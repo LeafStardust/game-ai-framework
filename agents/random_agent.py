@@ -1,7 +1,9 @@
 import random
 
-from framework.agent.decision import DecisionEngine
 from framework.agent.agent import Agent
+from framework.agent.decision import DecisionEngine
+from framework.core.action import Action
+from framework.core.state import GameState
 
 
 class RandomDecisionEngine(DecisionEngine):
@@ -9,7 +11,12 @@ class RandomDecisionEngine(DecisionEngine):
     Selects an action randomly.
     """
 
-    def choose_action(self, state, actions):
+    def choose_action(
+        self,
+        state: GameState,
+        actions: list[Action]
+    ) -> Action:
+
         return random.choice(actions)
 
 

@@ -1,4 +1,7 @@
-class GameState:
+from abc import ABC
+
+
+class GameState(ABC):
     """
     Represents the current state of any game.
 

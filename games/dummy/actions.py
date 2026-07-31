@@ -6,9 +6,9 @@ class DummyAction(Action):
     Represents an action available in the dummy environment.
     """
 
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, name: str):
+        self.name: str = name
 
 
-INCREASE = DummyAction("INCREASE")
-DECREASE = DummyAction("DECREASE")
+INCREASE: DummyAction = DummyAction("INCREASE")
+DECREASE: DummyAction = DummyAction("DECREASE")

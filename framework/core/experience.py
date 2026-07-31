@@ -1,3 +1,7 @@
+from framework.core.action import Action
+from framework.core.state import GameState
+
+
 class Experience:
     """
     Stores a single agent interaction.
@@ -5,12 +9,12 @@ class Experience:
 
     def __init__(
         self,
-        state,
-        action,
-        reward,
-        next_state
+        state: GameState,
+        action: Action,
+        reward: float,
+        next_state: GameState
     ):
-        self.state = state
-        self.action = action
-        self.reward = reward
-        self.next_state = next_state
+        self.state: GameState = state
+        self.action: Action = action
+        self.reward: float = reward
+        self.next_state: GameState = next_state

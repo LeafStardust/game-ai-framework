@@ -1,4 +1,6 @@
 from framework.core.environment import GameEnvironment
+from framework.core.action import Action
+from framework.core.state import GameState
 
 from games.dummy.state import DummyState
 from games.dummy.actions import INCREASE, DECREASE
@@ -10,25 +12,28 @@ class DummyEnvironment(GameEnvironment):
     """
 
     def __init__(self):
+        self.state: DummyState = DummyState()
+
+
+    def reset(self) -> None:
         self.state = DummyState()
 
 
-    def reset(self):
-        self.state = DummyState()
-
-
-    def get_state(self):
+    def get_state(self) -> GameState:
         return self.state
 
 
-    def get_actions(self):
+    def get_actions(self) -> list[Action]:
         return [
             INCREASE,
             DECREASE
         ]
 
 
-    def execute_action(self, action):
+    def execute_action(
+        self,
+        action: Action
+    ) -> None:
 
         if action.name == "INCREASE":
             self.state.value += 1
@@ -37,12 +42,12 @@ class DummyEnvironment(GameEnvironment):
             self.state.value -= 1
 
 
-    def is_terminal(self):
+    def is_terminal(self) -> bool:
         return self.state.value >= 5
 
 
-    def get_reward(self):
+    def get_reward(self) -> float:
         if self.state.value >= 5:
-            return 1
+            return 1.0
 
-        return 0
+        return 0.0

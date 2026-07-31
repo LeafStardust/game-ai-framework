@@ -1,4 +1,7 @@
-class Action:
+from abc import ABC
+
+
+class Action(ABC):
     """
     Represents an action an agent can take.
 

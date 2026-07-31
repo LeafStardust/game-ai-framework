@@ -1,3 +1,5 @@
+from framework.agent.agent import Agent
+from framework.core.environment import GameEnvironment
 from framework.core.experience import Experience
 
 
@@ -6,13 +8,17 @@ class GameRunner:
     Handles the execution loop between an agent and an environment.
     """
 
-    def __init__(self, environment, agent):
-        self.environment = environment
-        self.agent = agent
-        self.history = []
+    def __init__(
+        self,
+        environment: GameEnvironment,
+        agent: Agent
+    ):
+        self.environment: GameEnvironment = environment
+        self.agent: Agent = agent
+        self.history: list[Experience] = []
 
 
-    def run(self):
+    def run(self) -> float:
 
         self.environment.reset()
 
@@ -42,5 +48,6 @@ class GameRunner:
 
         return self.environment.get_reward()
 
-    def get_history(self):
+
+    def get_history(self) -> list[Experience]:
         return self.history

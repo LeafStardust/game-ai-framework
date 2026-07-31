@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
 
+from framework.core.action import Action
+from framework.core.state import GameState
+
 
 class GameEnvironment(ABC):
     """
@@ -7,30 +10,25 @@ class GameEnvironment(ABC):
     """
 
     @abstractmethod
-    def reset(self):
+    def reset(self) -> None:
         pass
 
-
     @abstractmethod
-    def get_state(self):
+    def get_state(self) -> GameState:
         pass
 
-
     @abstractmethod
-    def get_actions(self):
+    def get_actions(self) -> list[Action]:
         pass
 
-
     @abstractmethod
-    def execute_action(self, action):
+    def execute_action(self, action: Action) -> None:
         pass
 
-
     @abstractmethod
-    def is_terminal(self):
+    def is_terminal(self) -> bool:
         pass
 
-
     @abstractmethod
-    def get_reward(self):
+    def get_reward(self) -> float:
         pass
