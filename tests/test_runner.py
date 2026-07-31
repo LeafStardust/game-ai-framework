@@ -16,3 +16,19 @@ def test_game_runner_completes():
     reward = runner.run()
 
     assert reward == 1
+
+def test_game_runner_records_experience():
+
+    environment = DummyEnvironment()
+    agent = RandomAgent()
+
+    runner = GameRunner(
+        environment,
+        agent
+    )
+
+    runner.run()
+
+    history = runner.get_history()
+
+    assert len(history) > 0

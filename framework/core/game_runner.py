@@ -41,3 +41,6 @@ class GameRunner:
             self.history.append(experience)
 
         return self.environment.get_reward()
+
+    def get_history(self):
+        return self.history
