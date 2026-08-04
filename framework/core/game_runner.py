@@ -1,6 +1,7 @@
 from framework.agent.agent import Agent
 from framework.core.environment import GameEnvironment
 from framework.core.experience import Experience
+from framework.config.config import FrameworkConfig
 
 
 class GameRunner:
@@ -11,10 +12,12 @@ class GameRunner:
     def __init__(
         self,
         environment: GameEnvironment,
-        agent: Agent
+        agent: Agent,
+        config: FrameworkConfig | None = None
     ):
         self.environment: GameEnvironment = environment
         self.agent: Agent = agent
+        self.config: FrameworkConfig = config or FrameworkConfig()
         self.history: list[Experience] = []
 
 
@@ -22,7 +25,12 @@ class GameRunner:
 
         self.environment.reset()
 
-        while not self.environment.is_terminal():
+        steps = 0
+
+        while (
+            not self.environment.is_terminal()
+            and steps < self.config.max_steps
+        ):
 
             state = self.environment.get_state()
             actions = self.environment.get_actions()
@@ -45,6 +53,8 @@ class GameRunner:
             )
 
             self.history.append(experience)
+
+            steps += 1
 
         return self.environment.get_reward()
 
