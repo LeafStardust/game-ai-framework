@@ -3,17 +3,30 @@ from framework.core.state import GameState
 
 class BalatroState(GameState):
     """
-    Represents the current state of a Balatro run.
+    Represents the observable state of a Balatro run.
     """
 
-    def __init__(
-        self
-    ):
-        self.money: int = 0
-        self.hand_size: int = 8
-        self.current_round: int = 1
-        self.score: int = 0
+    def __init__(self):
 
+        # Economy
+        self.money: int = 0
+
+        # Run progression
+        self.ante: int = 1
+        self.round: int = 1
+
+        # Scoring
+        self.score: int = 0
+        self.target_score: int = 0
+
+        # Cards
         self.hand: list = []
+        self.deck_size: int = 52
+        self.discard_count: int = 0
+
+        # Jokers and upgrades
         self.jokers: list = []
-        self.deck: list = []
+        self.vouchers: list = []
+
+        # Current decision context
+        self.phase: str = "ROUND_START"

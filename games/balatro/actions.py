@@ -8,15 +8,26 @@ class BalatroAction(Action):
 
     def __init__(
         self,
-        name: str
+        action_type: str,
+        target=None
     ):
-        self.name = name
+        self.action_type = action_type
+        self.target = target
 
 
-PLAY_HAND = BalatroAction("PLAY_HAND")
-DISCARD_HAND = BalatroAction("DISCARD_HAND")
-SELECT_CARD = BalatroAction("SELECT_CARD")
-BUY_VOUCHER = BalatroAction("BUY_VOUCHER")
-BUY_JOKER = BalatroAction("BUY_JOKER")
-SELL_JOKER = BalatroAction("SELL_JOKER")
-END_ROUND = BalatroAction("END_ROUND")
+    @property
+    def name(self) -> str:
+        return self.action_type
+
+
+# General action types
+
+PLAY_HAND = "PLAY_HAND"
+DISCARD_HAND = "DISCARD_HAND"
+SELECT_CARD = "SELECT_CARD"
+
+BUY_VOUCHER = "BUY_VOUCHER"
+BUY_JOKER = "BUY_JOKER"
+SELL_JOKER = "SELL_JOKER"
+
+END_ROUND = "END_ROUND"
