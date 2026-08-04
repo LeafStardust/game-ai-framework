@@ -4,6 +4,7 @@ from framework.core.experience import Experience
 from framework.config.config import FrameworkConfig
 from framework.logging.logger import get_logger
 from framework.metrics.metrics import Metrics
+from framework.events.event import EventManager
 
 
 class GameRunner:
@@ -20,15 +21,22 @@ class GameRunner:
         self.environment: GameEnvironment = environment
         self.agent: Agent = agent
         self.config: FrameworkConfig = config or FrameworkConfig()
+
         self.history: list[Experience] = []
         self.metrics = Metrics()
+        self.events = EventManager()
         self.logger = get_logger(__name__)
 
 
     def run(self) -> float:
 
         self.environment.reset()
+
         self.logger.info("Game run started")
+
+        self.events.emit(
+            "game_started"
+        )
 
         steps = 0
 
@@ -61,17 +69,26 @@ class GameRunner:
 
             steps += 1
 
+
+        final_reward = self.environment.get_reward()
+
         self.logger.info(
             "Game run finished after %s steps",
             steps
+        )
+
+        self.events.emit(
+            "game_finished",
+            {
+                "steps": steps,
+                "reward": final_reward
+            }
         )
 
         self.metrics.record(
             "steps",
             float(steps)
         )
-
-        final_reward = self.environment.get_reward()
 
         self.metrics.record(
             "reward",
@@ -84,5 +101,10 @@ class GameRunner:
     def get_history(self) -> list[Experience]:
         return self.history
 
+
     def get_metrics(self) -> Metrics:
         return self.metrics
+
+
+    def get_events(self) -> EventManager:
+        return self.events
