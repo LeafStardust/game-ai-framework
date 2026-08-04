@@ -2,6 +2,7 @@ from framework.agent.agent import Agent
 from framework.core.environment import GameEnvironment
 from framework.core.experience import Experience
 from framework.config.config import FrameworkConfig
+from framework.logging.logger import get_logger
 
 
 class GameRunner:
@@ -19,11 +20,13 @@ class GameRunner:
         self.agent: Agent = agent
         self.config: FrameworkConfig = config or FrameworkConfig()
         self.history: list[Experience] = []
+        self.logger = get_logger(__name__)
 
 
     def run(self) -> float:
 
         self.environment.reset()
+        self.logger.info("Game run started")
 
         steps = 0
 
@@ -55,6 +58,11 @@ class GameRunner:
             self.history.append(experience)
 
             steps += 1
+
+        self.logger.info(
+            "Game run finished after %s steps",
+            steps
+        )
 
         return self.environment.get_reward()
 
