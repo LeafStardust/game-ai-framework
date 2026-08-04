@@ -1,9 +1,13 @@
+import random
+
 from agents.random_agent import RandomAgent
 from framework.core.game_runner import GameRunner
 from games.dummy.environment import DummyEnvironment
 
 
 def test_game_runner_completes():
+
+    random.seed(42)
 
     environment = DummyEnvironment()
     agent = RandomAgent()
@@ -16,6 +20,7 @@ def test_game_runner_completes():
     reward = runner.run()
 
     assert reward == 1
+
 
 def test_game_runner_records_experience():
 
