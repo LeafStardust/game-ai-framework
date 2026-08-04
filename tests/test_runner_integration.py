@@ -1,15 +1,18 @@
 from agents.random_agent import RandomAgent
 from framework.core.game_runner import GameRunner
-from games.dummy.environment import DummyEnvironment
+from framework.core.game import Game
+from games.dummy.adapter import DummyAdapter
 
 
 def test_game_runner_records_metrics():
 
-    environment = DummyEnvironment()
+    game = Game(
+        DummyAdapter()
+    )
     agent = RandomAgent()
 
     runner = GameRunner(
-        environment,
+        game,
         agent
     )
 
@@ -23,11 +26,13 @@ def test_game_runner_records_metrics():
 
 def test_game_runner_emits_events():
 
-    environment = DummyEnvironment()
+    game = Game(
+        DummyAdapter()
+    )
     agent = RandomAgent()
 
     runner = GameRunner(
-        environment,
+        game,
         agent
     )
 

@@ -1,5 +1,5 @@
 from framework.agent.agent import Agent
-from framework.core.environment import GameEnvironment
+from framework.core.game import Game
 from framework.core.experience import Experience
 from framework.config.config import FrameworkConfig
 from framework.logging.logger import get_logger
@@ -9,16 +9,16 @@ from framework.events.event import EventManager
 
 class GameRunner:
     """
-    Handles the execution loop between an agent and an environment.
+    Handles the execution loop between an agent and a game.
     """
 
     def __init__(
         self,
-        environment: GameEnvironment,
+        game: Game,
         agent: Agent,
         config: FrameworkConfig | None = None
     ):
-        self.environment: GameEnvironment = environment
+        self.game: Game = game
         self.agent: Agent = agent
         self.config: FrameworkConfig = config or FrameworkConfig()
 
@@ -30,7 +30,9 @@ class GameRunner:
 
     def run(self) -> float:
 
-        self.environment.reset()
+        environment = self.game.environment
+
+        environment.reset()
 
         self.logger.info("Game run started")
 
@@ -41,22 +43,22 @@ class GameRunner:
         steps = 0
 
         while (
-            not self.environment.is_terminal()
+            not environment.is_terminal()
             and steps < self.config.max_steps
         ):
 
-            state = self.environment.get_state()
-            actions = self.environment.get_actions()
+            state = environment.get_state()
+            actions = environment.get_actions()
 
             action = self.agent.act(
                 state,
                 actions
             )
 
-            self.environment.execute_action(action)
+            environment.execute_action(action)
 
-            next_state = self.environment.get_state()
-            reward = self.environment.get_reward()
+            next_state = environment.get_state()
+            reward = environment.get_reward()
 
             experience = Experience(
                 state,
@@ -70,7 +72,7 @@ class GameRunner:
             steps += 1
 
 
-        final_reward = self.environment.get_reward()
+        final_reward = environment.get_reward()
 
         self.logger.info(
             "Game run finished after %s steps",
