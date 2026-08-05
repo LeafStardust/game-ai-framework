@@ -8,5 +8,6 @@ List of games planned for AI agent development using the General Game AI Framewo
 - [ ] Balatro
 - [ ] Riichi Mahjong
 - [ ] Slay the Spire
-- [ ] Inscryption
+- [ ] Inscryption (Kaycee's Mod)
+- [ ] Marvel Snap
 - [ ] CloverPit (?) — requires investigation into vision-based state extraction and interaction
