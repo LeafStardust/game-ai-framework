@@ -1,3 +1,4 @@
+from framework.agent.decision import DecisionEngine
 from framework.core.action import Action
 from framework.core.state import GameState
 
@@ -5,7 +6,7 @@ from framework.decision.evaluator import Evaluator
 from framework.decision.policy import Policy
 
 
-class DecisionPipeline:
+class DecisionPipeline(DecisionEngine):
     """
     Connects action evaluation and action selection.
     """
@@ -19,7 +20,7 @@ class DecisionPipeline:
         self.policy = policy
 
 
-    def decide(
+    def choose_action(
         self,
         state: GameState,
         actions: list[Action]

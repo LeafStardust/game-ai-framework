@@ -35,7 +35,7 @@ def test_pipeline_returns_action():
         "ACTION_2"
     ]
 
-    result = pipeline.decide(
+    result = pipeline.choose_action(
         None,
         actions
     )
