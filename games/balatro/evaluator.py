@@ -1,12 +1,33 @@
-from framework.decision.evaluator import Evaluator
 from framework.core.action import Action
 from framework.core.state import GameState
+from framework.evaluation.evaluator import CompositeEvaluator
+
+from games.balatro.heuristics.discard_value import (
+    DiscardValueHeuristic
+)
+from games.balatro.heuristics.hand_value import (
+    HandValueHeuristic
+)
+from games.balatro.heuristics.risk import (
+    RiskHeuristic
+)
 
 
-class BalatroEvaluator(Evaluator):
+class BalatroEvaluator:
     """
-    Basic heuristic evaluator for Balatro actions.
+    Balatro-specific evaluator composed from multiple heuristics.
     """
+
+    def __init__(self):
+
+        self.evaluator = CompositeEvaluator(
+            [
+                DiscardValueHeuristic(),
+                HandValueHeuristic(),
+                RiskHeuristic()
+            ]
+        )
+
 
     def evaluate(
         self,
@@ -14,13 +35,7 @@ class BalatroEvaluator(Evaluator):
         action: Action
     ) -> float:
 
-        if action.name == "PLAY_HAND":
-            return 10.0
-
-        if action.name == "DISCARD_HAND":
-            return 5.0
-
-        if action.name == "END_ROUND":
-            return -10.0
-
-        return 0.0
+        return self.evaluator.evaluate(
+            state,
+            action
+        )
