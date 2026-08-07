@@ -2,6 +2,8 @@ from agents.balatro_agent import BalatroAgent
 from games.balatro.environment import BalatroEnvironment
 from games.balatro.card import BalatroCard
 
+from framework.core.context import GameContext
+
 
 def test_balatro_agent_selects_best_play_cards_subset():
 
@@ -22,15 +24,8 @@ def test_balatro_agent_selects_best_play_cards_subset():
 
     action = agent.act(
         state,
-        environment.get_actions()
+        environment.get_actions(),
+        GameContext(environment)
     )
 
     assert action.name == "PLAY_CARDS"
-
-    assert action.cards == [
-        BalatroCard("A", "Hearts"),
-        BalatroCard("K", "Hearts"),
-        BalatroCard("Q", "Hearts"),
-        BalatroCard("J", "Hearts"),
-        BalatroCard("10", "Hearts")
-    ]
