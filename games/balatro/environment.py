@@ -13,6 +13,8 @@ from games.balatro.actions import (
     END_ROUND
 )
 from games.balatro.card_selector import CardSelector
+from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.scoring import BalatroScorer
 
 
 class BalatroEnvironment(GameEnvironment):
@@ -23,6 +25,9 @@ class BalatroEnvironment(GameEnvironment):
     def __init__(self):
         self.state = BalatroState()
         self.card_selector = CardSelector()
+
+        self.hand_evaluator = HandEvaluator()
+        self.scorer = BalatroScorer()
 
 
     def reset(self) -> None:
@@ -102,13 +107,21 @@ class BalatroEnvironment(GameEnvironment):
 
             if selected_cards:
 
+                poker_hand = self.hand_evaluator.evaluate(
+                    selected_cards
+                )
+
+                hand_score = self.scorer.score(
+                    poker_hand
+                )
+
+                state.score += hand_score.total
+
                 state.hand = [
                     card
                     for card in state.hand
                     if card not in selected_cards
                 ]
-
-                state.score += len(selected_cards) * 10
 
             state.round += 1
             state.phase = "ROUND_START"
