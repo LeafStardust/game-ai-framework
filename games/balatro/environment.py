@@ -1,4 +1,4 @@
-from random import sample
+import random
 
 from framework.core.environment import GameEnvironment
 from framework.core.action import Action
@@ -13,6 +13,7 @@ from games.balatro.actions import (
     END_ROUND
 )
 from games.balatro.card_selector import CardSelector
+
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.scoring import BalatroScorer
 
@@ -28,6 +29,8 @@ class BalatroEnvironment(GameEnvironment):
 
         self.hand_evaluator = HandEvaluator()
         self.scorer = BalatroScorer()
+
+        self.rng = random.Random()
 
 
     def reset(self) -> None:
@@ -81,14 +84,27 @@ class BalatroEnvironment(GameEnvironment):
         action: Action
     ) -> GameState:
 
-        simulated_state = self.state.copy()
+        simulated_environment = self.copy()
 
-        self._apply_action(
-            simulated_state,
+        simulated_environment._apply_action(
+            simulated_environment.state,
             action
         )
 
-        return simulated_state
+        return simulated_environment.state
+
+
+    def copy(self):
+
+        new_environment = BalatroEnvironment()
+
+        new_environment.state = self.state.copy()
+
+        new_environment.rng.setstate(
+            self.rng.getstate()
+        )
+
+        return new_environment
 
 
     def _apply_action(
@@ -188,7 +204,7 @@ class BalatroEnvironment(GameEnvironment):
             if card not in state.hand
         ]
 
-        drawn = sample(
+        drawn = self.rng.sample(
             available,
             min(amount, len(available))
         )
