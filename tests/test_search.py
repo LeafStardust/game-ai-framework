@@ -26,3 +26,25 @@ def test_search_evaluates_future_states():
     )
 
     assert len(scores) == 1
+
+
+def test_search_supports_multiple_simulations():
+
+    environment = BalatroEnvironment()
+
+    search = SearchStrategy(
+        BalatroEvaluator(),
+        environment,
+        simulations=3
+    )
+
+    scores = search.evaluate_actions(
+        environment.get_state(),
+        [
+            BalatroAction(
+                PLAY_CARDS
+            )
+        ]
+    )
+
+    assert len(scores) == 1

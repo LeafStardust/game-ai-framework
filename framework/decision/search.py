@@ -13,10 +13,12 @@ class SearchStrategy:
     def __init__(
         self,
         evaluator: Evaluator,
-        environment: GameEnvironment
+        environment: GameEnvironment,
+        simulations: int = 1
     ):
         self.evaluator = evaluator
         self.environment = environment
+        self.simulations = simulations
 
 
     def evaluate_actions(
@@ -29,15 +31,28 @@ class SearchStrategy:
 
         for action in actions:
 
-            next_state = self.environment.simulate_action(
-                action
+            total_score = 0.0
+
+            for _ in range(self.simulations):
+
+                next_state = self.environment.simulate_action(
+                    action
+                )
+
+                score = self.evaluator.evaluate(
+                    next_state,
+                    action
+                )
+
+                total_score += score
+
+
+            average_score = (
+                total_score / self.simulations
             )
 
-            score = self.evaluator.evaluate(
-                next_state,
-                action
+            scores.append(
+                average_score
             )
-
-            scores.append(score)
 
         return scores
