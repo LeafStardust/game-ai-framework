@@ -1,18 +1,33 @@
-from abc import ABC, abstractmethod
-
 from framework.core.action import Action
 from framework.core.state import GameState
 
+from framework.evaluation.heuristic import Heuristic
 
-class Evaluator(ABC):
+
+class CompositeEvaluator:
     """
-    Defines how states or actions are evaluated.
+    Combines multiple heuristics into a single score.
     """
 
-    @abstractmethod
+    def __init__(
+        self,
+        heuristics: list[Heuristic]
+    ):
+        self.heuristics = heuristics
+
+
     def evaluate(
         self,
         state: GameState,
         action: Action
     ) -> float:
-        pass
+
+        score = 0.0
+
+        for heuristic in self.heuristics:
+            score += heuristic.evaluate(
+                state,
+                action
+            )
+
+        return score
