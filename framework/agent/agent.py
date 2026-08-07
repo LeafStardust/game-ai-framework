@@ -22,10 +22,12 @@ class Agent:
     def act(
         self,
         state: GameState,
-        actions: list[Action]
+        actions: list[Action],
+        context=None
     ) -> Action:
 
         return self.decision_engine.choose_action(
             state,
-            actions
+            actions,
+            context
         )

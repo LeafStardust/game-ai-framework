@@ -26,10 +26,13 @@ class DecisionPipeline(DecisionEngine):
     def choose_action(
         self,
         state: GameState,
-        actions: list[Action]
+        actions: list[Action],
+        context=None
     ) -> Action:
 
-        if self.search:
+        if self.search and context:
+
+            self.search.environment = context.environment
 
             scores = self.search.evaluate_actions(
                 state,

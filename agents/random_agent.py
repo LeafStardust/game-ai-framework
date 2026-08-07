@@ -14,7 +14,8 @@ class RandomDecisionEngine(DecisionEngine):
     def choose_action(
         self,
         state: GameState,
-        actions: list[Action]
+        actions: list[Action],
+        context=None
     ) -> Action:
 
         return random.choice(actions)
