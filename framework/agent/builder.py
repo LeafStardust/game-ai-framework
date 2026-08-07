@@ -1,7 +1,8 @@
 from framework.agent.agent import Agent
-from framework.agent.decision import DecisionEngine
 
 from framework.config.config import FrameworkConfig
+
+from framework.core.random import set_seed
 
 from framework.decision.evaluator import Evaluator
 from framework.decision.factory import PolicyFactory
@@ -19,11 +20,15 @@ class AgentBuilder:
         evaluator: Evaluator
     ) -> Agent:
 
+        set_seed(
+            config.seed
+        )
+
         policy = PolicyFactory.create(
             config
         )
 
-        decision_engine: DecisionEngine = DecisionPipeline(
+        decision_engine = DecisionPipeline(
             evaluator,
             policy
         )
