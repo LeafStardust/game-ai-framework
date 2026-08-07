@@ -1,5 +1,6 @@
 import random
 
+from framework.core import state
 from framework.core.environment import GameEnvironment
 from framework.core.action import Action
 from framework.core.state import GameState
@@ -140,7 +141,7 @@ class BalatroEnvironment(GameEnvironment):
                     if card not in selected_cards
                 ]
 
-            if state.blind_score >= state.blind_requirement:
+            if state.blind_score >= state.blind.requirement:
                 state.blind_score = 0
 
             state.round += 1

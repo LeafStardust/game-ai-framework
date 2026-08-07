@@ -1,5 +1,7 @@
 from framework.core.state import GameState
+
 from games.balatro.card import BalatroCard
+from games.balatro.blinds.blind import Blind, BlindType
 
 
 class BalatroState(GameState):
@@ -19,8 +21,11 @@ class BalatroState(GameState):
         # Blind scoring
         self.score: int = 0
         self.blind_score: int = 0
-        self.blind_requirement: int = 300
-        self.blind_type: str = "SMALL"
+
+        self.blind = Blind(
+            BlindType.SMALL,
+            requirement=300
+        )
 
         # Cards
         self.hand: list[BalatroCard] = []
@@ -35,6 +40,16 @@ class BalatroState(GameState):
         self.phase: str = "ROUND_START"
 
 
+    @property
+    def blind_requirement(self):
+        return self.blind.requirement
+
+
+    @blind_requirement.setter
+    def blind_requirement(self, value):
+        self.blind.requirement = value
+
+
     def copy(self):
 
         new_state = BalatroState()
@@ -47,8 +62,7 @@ class BalatroState(GameState):
         new_state.score = self.score
 
         new_state.blind_score = self.blind_score
-        new_state.blind_requirement = self.blind_requirement
-        new_state.blind_type = self.blind_type
+        new_state.blind = self.blind
 
         new_state.hand = self.hand.copy()
         new_state.deck_size = self.deck_size
