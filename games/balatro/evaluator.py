@@ -5,8 +5,8 @@ from framework.evaluation.evaluator import CompositeEvaluator
 from games.balatro.heuristics.discard_value import (
     DiscardValueHeuristic
 )
-from games.balatro.heuristics.play_hand_value import (
-    PlayHandValueHeuristic
+from games.balatro.heuristics.play_cards_value import (
+    PlayCardsValueHeuristic
 )
 from games.balatro.heuristics.risk import (
     RiskHeuristic
@@ -23,7 +23,7 @@ class BalatroEvaluator:
         self.evaluator = CompositeEvaluator(
             [
                 DiscardValueHeuristic(),
-                PlayHandValueHeuristic(),
+                PlayCardsValueHeuristic(),
                 RiskHeuristic()
             ]
         )

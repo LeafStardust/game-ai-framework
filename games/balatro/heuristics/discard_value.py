@@ -14,7 +14,7 @@ class DiscardValueHeuristic(Heuristic):
         action: Action
     ) -> float:
 
-        if action.name == "DISCARD_HAND":
+        if action.name == "DISCARD_CARDS":
             return 1.0
 
         return 0.0

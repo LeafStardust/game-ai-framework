@@ -1,6 +1,6 @@
 from games.balatro.environment import BalatroEnvironment
 from games.balatro.actions import (
-    PLAY_HAND,
+    PLAY_CARDS,
     BalatroAction
 )
 from games.dummy import environment
@@ -15,12 +15,12 @@ def test_balatro_environment_has_initial_actions():
     assert len(actions) == 3
 
 
-def test_play_hand_changes_phase():
+def test_PLAY_CARDS_changes_phase():
 
     environment = BalatroEnvironment()
 
     action = BalatroAction(
-        PLAY_HAND
+        PLAY_CARDS
     )
 
     environment.execute_action(

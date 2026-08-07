@@ -3,7 +3,7 @@ from framework.core.state import GameState
 from framework.evaluation.heuristic import Heuristic
 
 
-class PlayHandValueHeuristic(Heuristic):
+class PlayCardsValueHeuristic(Heuristic):
     """
     Evaluates playing the current hand.
     """
@@ -14,7 +14,7 @@ class PlayHandValueHeuristic(Heuristic):
         action: Action
     ) -> float:
 
-        if action.name == "PLAY_HAND":
+        if action.name == "PLAY_CARDS":
             return 10.0
 
         return 0.0

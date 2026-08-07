@@ -5,8 +5,8 @@ from framework.core.state import GameState
 from games.balatro.state import BalatroState
 from games.balatro.actions import (
     BalatroAction,
-    PLAY_HAND,
-    DISCARD_HAND,
+    PLAY_CARDS,
+    DISCARD_CARDS,
     END_ROUND
 )
 
@@ -36,13 +36,13 @@ class BalatroEnvironment(GameEnvironment):
 
             actions.append(
                 BalatroAction(
-                    PLAY_HAND
+                    PLAY_CARDS
                 )
             )
 
             actions.append(
                 BalatroAction(
-                    DISCARD_HAND
+                    DISCARD_CARDS
                 )
             )
 
@@ -60,11 +60,11 @@ class BalatroEnvironment(GameEnvironment):
         action: Action
     ) -> None:
 
-        if action.name == PLAY_HAND:
+        if action.name == PLAY_CARDS:
             self.state.round += 1
             self.state.phase = "ROUND_START"
 
-        elif action.name == DISCARD_HAND:
+        elif action.name == DISCARD_CARDS:
             self.state.discard_count += 1
 
         elif action.name == END_ROUND:

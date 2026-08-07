@@ -3,7 +3,7 @@ from games.balatro.environment import BalatroEnvironment
 from games.balatro.actions import BalatroAction
 
 
-def test_balatro_evaluator_scores_play_hand_higher():
+def test_balatro_evaluator_scores_PLAY_CARDS_higher():
 
     evaluator = BalatroEvaluator()
 
@@ -11,12 +11,12 @@ def test_balatro_evaluator_scores_play_hand_higher():
 
     play_score = evaluator.evaluate(
         environment.get_state(),
-        BalatroAction("PLAY_HAND")
+        BalatroAction("PLAY_CARDS")
     )
 
     discard_score = evaluator.evaluate(
         environment.get_state(),
-        BalatroAction("DISCARD_HAND")
+        BalatroAction("DISCARD_CARDS")
     )
 
     assert play_score > discard_score
