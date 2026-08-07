@@ -12,7 +12,7 @@ def test_balatro_evaluator_scores_PLAY_CARDS_higher():
 
     state = environment.get_state()
 
-    state.hand = [
+    cards = [
         BalatroCard("A", "Hearts"),
         BalatroCard("A", "Spades"),
         BalatroCard("K", "Clubs"),
@@ -20,14 +20,22 @@ def test_balatro_evaluator_scores_PLAY_CARDS_higher():
         BalatroCard("2", "Hearts")
     ]
 
+    state.hand = cards
+
     play_score = evaluator.evaluate(
         state,
-        BalatroAction("PLAY_CARDS")
+        BalatroAction(
+            "PLAY_CARDS",
+            cards=cards
+        )
     )
 
     discard_score = evaluator.evaluate(
         state,
-        BalatroAction("DISCARD_CARDS")
+        BalatroAction(
+            "DISCARD_CARDS",
+            cards=cards
+        )
     )
 
     assert play_score > discard_score
@@ -41,7 +49,7 @@ def test_balatro_evaluator_rewards_blind_clear():
 
     state = environment.get_state()
 
-    state.hand = [
+    cards = [
         BalatroCard("A", "Hearts"),
         BalatroCard("A", "Spades"),
         BalatroCard("K", "Clubs"),
@@ -49,11 +57,15 @@ def test_balatro_evaluator_rewards_blind_clear():
         BalatroCard("2", "Hearts")
     ]
 
+    state.hand = cards
     state.blind_requirement = 10
 
     score = evaluator.evaluate(
         state,
-        BalatroAction("PLAY_CARDS")
+        BalatroAction(
+            "PLAY_CARDS",
+            cards=cards
+        )
     )
 
     assert score > 100
@@ -67,7 +79,7 @@ def test_balatro_evaluator_does_not_reward_failed_blind():
 
     state = environment.get_state()
 
-    state.hand = [
+    cards = [
         BalatroCard("A", "Hearts"),
         BalatroCard("A", "Spades"),
         BalatroCard("K", "Clubs"),
@@ -75,11 +87,15 @@ def test_balatro_evaluator_does_not_reward_failed_blind():
         BalatroCard("2", "Hearts")
     ]
 
+    state.hand = cards
     state.blind_requirement = 9999
 
     score = evaluator.evaluate(
         state,
-        BalatroAction("PLAY_CARDS")
+        BalatroAction(
+            "PLAY_CARDS",
+            cards=cards
+        )
     )
 
     assert score < 1000

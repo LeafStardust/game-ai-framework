@@ -8,7 +8,7 @@ from games.balatro.scoring import BalatroScorer
 
 class PlayCardsValueHeuristic(Heuristic):
     """
-    Evaluates playing the current cards.
+    Evaluates playing selected cards.
     """
 
     def __init__(self):
@@ -26,12 +26,12 @@ class PlayCardsValueHeuristic(Heuristic):
             return 0.0
 
 
-        if not state.hand:
+        if not action.cards:
             return 0.0
 
 
         poker_hand = self.hand_evaluator.evaluate(
-            state.hand
+            action.cards
         )
 
 

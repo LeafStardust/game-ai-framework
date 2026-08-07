@@ -9,6 +9,7 @@ from games.balatro.actions import (
     DISCARD_CARDS,
     END_ROUND
 )
+from games.balatro.card_selector import CardSelector
 
 
 class BalatroEnvironment(GameEnvironment):
@@ -18,6 +19,7 @@ class BalatroEnvironment(GameEnvironment):
 
     def __init__(self):
         self.state = BalatroState()
+        self.card_selector = CardSelector()
 
 
     def reset(self) -> None:
@@ -34,9 +36,9 @@ class BalatroEnvironment(GameEnvironment):
 
         if self.state.phase == "ROUND_START":
 
-            actions.append(
-                BalatroAction(
-                    PLAY_CARDS
+            actions.extend(
+                self.card_selector.generate_actions(
+                    self.state
                 )
             )
 
@@ -65,7 +67,7 @@ class BalatroEnvironment(GameEnvironment):
             self.state.phase = "ROUND_START"
 
         elif action.name == DISCARD_CARDS:
-            self.state.discards_remaining += 1
+            self.state.discards_remaining -= 1
 
         elif action.name == END_ROUND:
             self.state.round += 1

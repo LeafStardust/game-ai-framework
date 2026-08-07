@@ -9,9 +9,11 @@ class BalatroAction(Action):
     def __init__(
         self,
         action_type: str,
+        cards: list | None = None,
         target=None
     ):
         self.action_type = action_type
+        self.cards = cards or []
         self.target = target
 
 

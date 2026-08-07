@@ -1,9 +1,9 @@
+from games.balatro.card import BalatroCard
 from games.balatro.environment import BalatroEnvironment
 from games.balatro.actions import (
     PLAY_CARDS,
     BalatroAction
 )
-from games.dummy import environment
 
 
 def test_balatro_environment_has_initial_actions():
@@ -12,7 +12,7 @@ def test_balatro_environment_has_initial_actions():
 
     actions = environment.get_actions()
 
-    assert len(actions) == 3
+    assert len(actions) == 2
 
 
 def test_PLAY_CARDS_changes_phase():
@@ -20,7 +20,14 @@ def test_PLAY_CARDS_changes_phase():
     environment = BalatroEnvironment()
 
     action = BalatroAction(
-        PLAY_CARDS
+        PLAY_CARDS,
+        cards=[
+            BalatroCard("A", "Hearts"),
+            BalatroCard("K", "Hearts"),
+            BalatroCard("Q", "Hearts"),
+            BalatroCard("J", "Hearts"),
+            BalatroCard("10", "Hearts")
+        ]
     )
 
     environment.execute_action(
@@ -44,3 +51,26 @@ def test_end_round_increases_round():
     )
 
     assert environment.state.round == 2
+
+
+def test_balatro_environment_generates_play_actions():
+
+    environment = BalatroEnvironment()
+
+    environment.state.hand = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("K", "Hearts"),
+        BalatroCard("Q", "Hearts"),
+        BalatroCard("J", "Hearts"),
+        BalatroCard("10", "Hearts")
+    ]
+
+    actions = environment.get_actions()
+
+    play_actions = [
+        action
+        for action in actions
+        if action.name == "PLAY_CARDS"
+    ]
+
+    assert len(play_actions) == 1

@@ -3,7 +3,7 @@ from games.balatro.environment import BalatroEnvironment
 from games.balatro.card import BalatroCard
 
 
-def test_balatro_agent_prefers_PLAY_CARDS():
+def test_balatro_agent_selects_best_play_cards_subset():
 
     environment = BalatroEnvironment()
 
@@ -11,10 +11,11 @@ def test_balatro_agent_prefers_PLAY_CARDS():
 
     state.hand = [
         BalatroCard("A", "Hearts"),
-        BalatroCard("A", "Spades"),
-        BalatroCard("K", "Clubs"),
-        BalatroCard("7", "Diamonds"),
-        BalatroCard("2", "Hearts")
+        BalatroCard("K", "Hearts"),
+        BalatroCard("Q", "Hearts"),
+        BalatroCard("J", "Hearts"),
+        BalatroCard("10", "Hearts"),
+        BalatroCard("2", "Clubs")
     ]
 
     agent = BalatroAgent()
@@ -25,3 +26,11 @@ def test_balatro_agent_prefers_PLAY_CARDS():
     )
 
     assert action.name == "PLAY_CARDS"
+
+    assert action.cards == [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("K", "Hearts"),
+        BalatroCard("Q", "Hearts"),
+        BalatroCard("J", "Hearts"),
+        BalatroCard("10", "Hearts")
+    ]
