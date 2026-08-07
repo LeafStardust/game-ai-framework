@@ -5,18 +5,21 @@ from framework.evaluation.evaluator import CompositeEvaluator
 from games.balatro.heuristics.discard_value import (
     DiscardValueHeuristic
 )
+
 from games.balatro.heuristics.play_cards_value import (
     PlayCardsValueHeuristic
 )
+
+from games.balatro.heuristics.blind_progress import (
+    BlindProgressHeuristic
+)
+
 from games.balatro.heuristics.risk import (
     RiskHeuristic
 )
 
 
 class BalatroEvaluator:
-    """
-    Balatro-specific evaluator composed from multiple heuristics.
-    """
 
     def __init__(self):
 
@@ -24,6 +27,7 @@ class BalatroEvaluator:
             [
                 DiscardValueHeuristic(),
                 PlayCardsValueHeuristic(),
+                BlindProgressHeuristic(),
                 RiskHeuristic()
             ]
         )
