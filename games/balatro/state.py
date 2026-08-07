@@ -31,3 +31,25 @@ class BalatroState(GameState):
 
         # Current decision context
         self.phase: str = "ROUND_START"
+
+
+    def copy(self):
+
+        new_state = BalatroState()
+
+        new_state.money = self.money
+
+        new_state.ante = self.ante
+        new_state.round = self.round
+
+        new_state.score = self.score
+
+        new_state.hand = self.hand.copy()
+        new_state.deck_size = self.deck_size
+
+        new_state.jokers = self.jokers.copy()
+        new_state.vouchers = self.vouchers.copy()
+
+        new_state.phase = self.phase
+
+        return new_state

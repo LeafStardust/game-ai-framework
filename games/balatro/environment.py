@@ -62,16 +62,43 @@ class BalatroEnvironment(GameEnvironment):
         action: Action
     ) -> None:
 
+        self._apply_action(
+            self.state,
+            action
+        )
+
+
+    def simulate_action(
+        self,
+        action: Action
+    ) -> GameState:
+
+        simulated_state = self.state.copy()
+
+        self._apply_action(
+            simulated_state,
+            action
+        )
+
+        return simulated_state
+
+
+    def _apply_action(
+        self,
+        state: BalatroState,
+        action: Action
+    ) -> None:
+
         if action.name == PLAY_CARDS:
-            self.state.round += 1
-            self.state.phase = "ROUND_START"
+            state.round += 1
+            state.phase = "ROUND_START"
 
         elif action.name == DISCARD_CARDS:
-            self.state.discards_remaining -= 1
+            state.discards_remaining -= 1
 
         elif action.name == END_ROUND:
-            self.state.round += 1
-            self.state.phase = "ROUND_START"
+            state.round += 1
+            state.phase = "ROUND_START"
 
 
     def is_terminal(self) -> bool:

@@ -25,3 +25,17 @@ def test_balatro_state_creation():
     assert len(state.hand) == 2
     assert state.deck_size == 52
     assert state.discards_remaining == 3
+
+
+def test_balatro_state_copy_is_independent():
+
+    state = BalatroState()
+
+    state.money = 10
+
+    copied = state.copy()
+
+    copied.money = 50
+
+    assert state.money == 10
+    assert copied.money == 50

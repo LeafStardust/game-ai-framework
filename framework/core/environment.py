@@ -13,21 +13,45 @@ class GameEnvironment(ABC):
     def reset(self) -> None:
         pass
 
+
     @abstractmethod
     def get_state(self) -> GameState:
         pass
+
 
     @abstractmethod
     def get_actions(self) -> list[Action]:
         pass
 
+
     @abstractmethod
-    def execute_action(self, action: Action) -> None:
+    def execute_action(
+        self,
+        action: Action
+    ) -> None:
         pass
+
+
+    def simulate_action(
+        self,
+        action: Action
+    ) -> GameState:
+        """
+        Returns the resulting state after applying an action without
+        modifying the real environment.
+
+        Games supporting search should override this method.
+        """
+
+        raise NotImplementedError(
+            "This environment does not support simulation."
+        )
+
 
     @abstractmethod
     def is_terminal(self) -> bool:
         pass
+
 
     @abstractmethod
     def get_reward(self) -> float:

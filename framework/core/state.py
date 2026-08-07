@@ -8,4 +8,13 @@ class GameState(ABC):
     Game-specific states should inherit from this.
     """
 
-    pass
+    def copy(self):
+        """
+        Creates an independent copy of the state.
+
+        Games requiring simulation should override this method.
+        """
+
+        raise NotImplementedError(
+            "This game state does not support copying."
+        )
