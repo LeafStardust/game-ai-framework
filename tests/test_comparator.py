@@ -57,13 +57,14 @@ def test_comparator_runs_multiple_agents():
     )
 
     results = comparator.compare(
-        [
-            agent_a,
-            agent_b
-        ],
+        {
+            "Agent A": agent_a,
+            "Agent B": agent_b
+        },
         episodes=5
     )
 
     assert len(results) == 2
-    assert results[0].episodes == 5
-    assert results[1].episodes == 5
+
+    assert results["Agent A"].episodes == 5
+    assert results["Agent B"].episodes == 5

@@ -19,16 +19,16 @@ class Comparator:
 
     def compare(
         self,
-        agents: list[Agent],
+        agents: dict[str, Agent],
         episodes: int
-    ) -> list[ExperimentResult]:
+    ) -> dict[str, ExperimentResult]:
         """
         Runs experiments for each agent.
         """
 
-        results = []
+        results = {}
 
-        for agent in agents:
+        for name, agent in agents.items():
 
             experiment = ExperimentRunner(
                 self.game,
@@ -39,8 +39,6 @@ class Comparator:
                 episodes
             )
 
-            results.append(
-                result
-            )
+            results[name] = result
 
         return results
