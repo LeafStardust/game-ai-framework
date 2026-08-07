@@ -34,12 +34,30 @@ class BalatroEnvironment(GameEnvironment):
 
         self.rng = random.Random()
 
+        self.rng.shuffle(
+            self.state.deck
+        )
+
+        self._draw_cards(
+            self.state,
+            8
+        )
+
         self._setup_blind()
 
 
     def reset(self) -> None:
 
         self.state = BalatroState()
+
+        self.rng.shuffle(
+            self.state.deck
+        )
+
+        self._draw_cards(
+            self.state,
+            8
+        )
 
         self._setup_blind()
 
@@ -104,16 +122,51 @@ class BalatroEnvironment(GameEnvironment):
 
     def copy(self):
 
-        new_environment = BalatroEnvironment()
+        new_environment = object.__new__(
+            BalatroEnvironment
+        )
 
         new_environment.state = self.state.copy()
+
+        new_environment.card_selector = self.card_selector
         new_environment.blind_manager = self.blind_manager
+
+        new_environment.hand_evaluator = self.hand_evaluator
+        new_environment.scorer = self.scorer
+
+        new_environment.rng = random.Random()
 
         new_environment.rng.setstate(
             self.rng.getstate()
         )
 
         return new_environment
+
+
+    def _initialize_deck(self):
+
+        ranks = [
+            "2", "3", "4", "5", "6",
+            "7", "8", "9", "10",
+            "J", "Q", "K", "A"
+        ]
+
+        suits = [
+            "Hearts",
+            "Diamonds",
+            "Clubs",
+            "Spades"
+        ]
+
+        self.state.deck = [
+            BalatroCard(rank, suit)
+            for rank in ranks
+            for suit in suits
+        ]
+
+        self.rng.shuffle(
+            self.state.deck
+        )
 
 
     def _setup_blind(self) -> None:
@@ -141,9 +194,11 @@ class BalatroEnvironment(GameEnvironment):
             self.state.blind,
             "name"
         ):
+
             self.state.boss_name = self.state.blind.name
 
         else:
+
             self.state.boss_name = None
 
 
@@ -206,11 +261,15 @@ class BalatroEnvironment(GameEnvironment):
                 state.blind_score += hand_score.total
 
 
-                state.hand = [
-                    card
-                    for card in state.hand
-                    if card not in selected_cards
-                ]
+                for card in selected_cards:
+
+                    if card in state.hand:
+
+                        state.hand.remove(card)
+
+                        state.discard_pile.append(
+                            card
+                        )
 
 
             if state.blind_score >= state.blind.requirement:
@@ -225,6 +284,7 @@ class BalatroEnvironment(GameEnvironment):
                 state.phase = "ROUND_START"
 
 
+
         elif action.name == DISCARD_CARDS:
 
             state.discards_remaining -= 1
@@ -236,24 +296,28 @@ class BalatroEnvironment(GameEnvironment):
             )
 
 
-            if selected_cards:
+            for card in selected_cards:
 
-                state.hand = [
-                    card
-                    for card in state.hand
-                    if card not in selected_cards
-                ]
+                if card in state.hand:
 
-                self._draw_cards(
-                    state,
-                    len(selected_cards)
-                )
+                    state.hand.remove(card)
+
+                    state.discard_pile.append(
+                        card
+                    )
+
+
+            self._draw_cards(
+                state,
+                len(selected_cards)
+            )
 
 
 
         elif action.name == END_ROUND:
 
             state.round += 1
+
             state.phase = "ROUND_START"
 
             self._setup_blind()
@@ -266,44 +330,21 @@ class BalatroEnvironment(GameEnvironment):
         amount: int
     ) -> None:
 
-        ranks = [
-            "2", "3", "4", "5", "6",
-            "7", "8", "9", "10",
-            "J", "Q", "K", "A"
-        ]
-
-        suits = [
-            "Hearts",
-            "Diamonds",
-            "Clubs",
-            "Spades"
-        ]
-
-        deck = [
-            BalatroCard(rank, suit)
-            for rank in ranks
-            for suit in suits
-        ]
-
-        available = [
-            card
-            for card in deck
-            if card not in state.hand
-        ]
-
-        drawn = self.rng.sample(
-            available,
-            min(amount, len(available))
+        draw_amount = min(
+            amount,
+            len(state.deck)
         )
 
-        state.hand.extend(drawn)
+        for _ in range(draw_amount):
 
+            state.hand.append(
+                state.deck.pop()
+            )
 
 
     def is_terminal(self) -> bool:
 
         return self.state.ante > 8
-
 
 
     def get_reward(self) -> float:

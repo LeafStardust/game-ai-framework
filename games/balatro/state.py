@@ -18,14 +18,22 @@ class BalatroState(GameState):
         self.blind = None
         self.boss_name: str | None = None
 
+        self.deck: list[BalatroCard] = self._create_deck()
         self.hand: list[BalatroCard] = []
-        self.deck_size: int = 52
+        self.discard_pile: list[BalatroCard] = []
+
         self.discards_remaining: int = 3
 
         self.jokers: list = []
         self.vouchers: list = []
 
         self.phase: str = "ROUND_START"
+
+
+    @property
+    def deck_size(self) -> int:
+
+        return len(self.deck)
 
 
     @property
@@ -47,6 +55,28 @@ class BalatroState(GameState):
             self.blind.requirement = value
 
 
+    def _create_deck(self):
+
+        ranks = [
+            "2", "3", "4", "5", "6",
+            "7", "8", "9", "10",
+            "J", "Q", "K", "A"
+        ]
+
+        suits = [
+            "Hearts",
+            "Diamonds",
+            "Clubs",
+            "Spades"
+        ]
+
+        return [
+            BalatroCard(rank, suit)
+            for rank in ranks
+            for suit in suits
+        ]
+
+
     def copy(self):
 
         new_state = BalatroState()
@@ -64,8 +94,11 @@ class BalatroState(GameState):
 
         new_state.boss_name = self.boss_name
 
+        new_state.deck = self.deck.copy()
         new_state.hand = self.hand.copy()
-        new_state.deck_size = self.deck_size
+        new_state.discard_pile = self.discard_pile.copy()
+
+        new_state.discards_remaining = self.discards_remaining
 
         new_state.jokers = self.jokers.copy()
         new_state.vouchers = self.vouchers.copy()

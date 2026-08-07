@@ -8,11 +8,9 @@ from games.balatro.probability import HandProbability
 
 
 class DiscardValueHeuristic(Heuristic):
-    """
-    Evaluates the value of discarding current cards.
-    """
 
     def __init__(self):
+
         self.hand_evaluator = HandEvaluator()
         self.probability = HandProbability()
 
@@ -27,11 +25,18 @@ class DiscardValueHeuristic(Heuristic):
             return 0.0
 
 
-        if not state.hand:
+        discarded_cards = getattr(
+            action,
+            "cards",
+            []
+        )
+
+
+        if not discarded_cards:
             return 0.0
 
 
-        poker_hand = self.hand_evaluator.evaluate(
+        current_hand = self.hand_evaluator.evaluate(
             state.hand
         )
 
@@ -45,8 +50,8 @@ class DiscardValueHeuristic(Heuristic):
         }
 
 
-        if poker_hand in strong_hands:
-            return 0.0
+        if current_hand in strong_hands:
+            return -50.0
 
 
         remaining_cards = self.probability.remaining_cards(
@@ -54,10 +59,30 @@ class DiscardValueHeuristic(Heuristic):
             len(state.hand)
         )
 
+
         improvement_chance = self.probability.draw_probability(
-            len(getattr(action, "cards", state.hand)),
+            len(discarded_cards),
             remaining_cards,
             1
         )
 
-        return 5.0 + (improvement_chance * 10)
+
+        score = improvement_chance * 20
+
+
+        if current_hand == PokerHand.HIGH_CARD:
+            score += 10
+
+        elif current_hand == PokerHand.PAIR:
+            score += 5
+
+
+        if getattr(
+            state,
+            "discards_remaining",
+            0
+        ) <= 1:
+            score -= 10
+
+
+        return score

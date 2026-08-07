@@ -7,11 +7,9 @@ from games.balatro.scoring import BalatroScorer
 
 
 class PlayCardsValueHeuristic(Heuristic):
-    """
-    Evaluates playing selected cards.
-    """
 
     def __init__(self):
+
         self.hand_evaluator = HandEvaluator()
         self.scorer = BalatroScorer()
 
@@ -40,13 +38,6 @@ class PlayCardsValueHeuristic(Heuristic):
         )
 
 
-        score = float(
+        return float(
             hand_score.total
         )
-
-
-        if score >= state.blind_requirement:
-            return score + 1000.0
-
-
-        return score
