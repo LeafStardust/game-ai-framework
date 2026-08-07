@@ -2,11 +2,18 @@ from framework.core.action import Action
 from framework.core.state import GameState
 from framework.evaluation.heuristic import Heuristic
 
+from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.hand import PokerHand
+
 
 class DiscardValueHeuristic(Heuristic):
     """
-    Evaluates the value of discarding a hand.
+    Evaluates the value of discarding current cards.
     """
+
+    def __init__(self):
+        self.hand_evaluator = HandEvaluator()
+
 
     def evaluate(
         self,
@@ -14,7 +21,30 @@ class DiscardValueHeuristic(Heuristic):
         action: Action
     ) -> float:
 
-        if action.name == "DISCARD_CARDS":
-            return 1.0
+        if action.name != "DISCARD_CARDS":
+            return 0.0
 
-        return 0.0
+
+        if not state.hand:
+            return 0.0
+
+
+        poker_hand = self.hand_evaluator.evaluate(
+            state.hand
+        )
+
+
+        strong_hands = {
+            PokerHand.STRAIGHT,
+            PokerHand.FLUSH,
+            PokerHand.FULL_HOUSE,
+            PokerHand.FOUR_OF_A_KIND,
+            PokerHand.STRAIGHT_FLUSH
+        }
+
+
+        if poker_hand in strong_hands:
+            return 0.0
+
+
+        return 5.0
