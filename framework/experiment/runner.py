@@ -1,6 +1,7 @@
 from framework.agent.agent import Agent
 from framework.core.game import Game
 from framework.core.game_runner import GameRunner
+from framework.experiment.result import ExperimentResult
 
 
 class ExperimentRunner:
@@ -20,7 +21,7 @@ class ExperimentRunner:
     def run(
         self,
         episodes: int
-    ) -> list[float]:
+    ) -> ExperimentResult:
         """
         Runs multiple episodes and returns rewards.
         """
@@ -40,4 +41,6 @@ class ExperimentRunner:
                 reward
             )
 
-        return rewards
+        return ExperimentResult(
+            rewards
+        )

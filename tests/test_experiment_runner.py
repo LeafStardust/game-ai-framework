@@ -55,8 +55,8 @@ def test_experiment_runs_multiple_episodes():
         agent
     )
 
-    rewards = experiment.run(
+    result = experiment.run(
         episodes=5
     )
 
-    assert len(rewards) == 5
+    assert result.episodes == 5
