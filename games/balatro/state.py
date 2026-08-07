@@ -1,4 +1,5 @@
 from framework.core.state import GameState
+from games.balatro.card import BalatroCard
 
 
 class BalatroState(GameState):
@@ -20,7 +21,7 @@ class BalatroState(GameState):
         self.target_score: int = 0
 
         # Cards
-        self.hand: list = []
+        self.hand: list[BalatroCard] = []
         self.deck_size: int = 52
         self.discard_count: int = 0
 
