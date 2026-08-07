@@ -4,6 +4,7 @@ from framework.core.state import GameState
 
 from framework.decision.evaluator import Evaluator
 from framework.decision.policy import Policy
+from framework.decision.search import SearchStrategy
 
 
 class DecisionPipeline(DecisionEngine):
@@ -14,10 +15,12 @@ class DecisionPipeline(DecisionEngine):
     def __init__(
         self,
         evaluator: Evaluator,
-        policy: Policy
+        policy: Policy,
+        search: SearchStrategy | None = None
     ):
         self.evaluator = evaluator
         self.policy = policy
+        self.search = search
 
 
     def choose_action(
@@ -26,15 +29,24 @@ class DecisionPipeline(DecisionEngine):
         actions: list[Action]
     ) -> Action:
 
-        scores = []
+        if self.search:
 
-        for action in actions:
-            score = self.evaluator.evaluate(
+            scores = self.search.evaluate_actions(
                 state,
-                action
+                actions
             )
 
-            scores.append(score)
+        else:
+
+            scores = []
+
+            for action in actions:
+                score = self.evaluator.evaluate(
+                    state,
+                    action
+                )
+
+                scores.append(score)
 
 
         return self.policy.select_action(
