@@ -94,6 +94,22 @@ class BalatroEnvironment(GameEnvironment):
 
         if action.name == PLAY_CARDS:
 
+            selected_cards = getattr(
+                action,
+                "cards",
+                []
+            )
+
+            if selected_cards:
+
+                state.hand = [
+                    card
+                    for card in state.hand
+                    if card not in selected_cards
+                ]
+
+                state.score += len(selected_cards) * 10
+
             state.round += 1
             state.phase = "ROUND_START"
 
