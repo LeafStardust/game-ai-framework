@@ -16,14 +16,14 @@ class BalatroState(GameState):
         self.ante: int = 1
         self.round: int = 1
 
-        # Scoring
+        # Blind scoring
         self.score: int = 0
-        self.target_score: int = 0
+        self.blind_requirement: int = 0
 
         # Cards
         self.hand: list[BalatroCard] = []
         self.deck_size: int = 52
-        self.discard_count: int = 0
+        self.discards_remaining: int = 3
 
         # Jokers and upgrades
         self.jokers: list = []

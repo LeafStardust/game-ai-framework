@@ -40,6 +40,13 @@ class PlayCardsValueHeuristic(Heuristic):
         )
 
 
-        return float(
+        score = float(
             hand_score.total
         )
+
+
+        if score >= state.blind_requirement:
+            return score + 1000.0
+
+
+        return score

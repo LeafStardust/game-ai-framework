@@ -65,7 +65,7 @@ class BalatroEnvironment(GameEnvironment):
             self.state.phase = "ROUND_START"
 
         elif action.name == DISCARD_CARDS:
-            self.state.discard_count += 1
+            self.state.discards_remaining += 1
 
         elif action.name == END_ROUND:
             self.state.round += 1

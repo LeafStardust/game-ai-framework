@@ -24,4 +24,4 @@ def test_balatro_state_creation():
 
     assert len(state.hand) == 2
     assert state.deck_size == 52
-    assert state.discard_count == 0
+    assert state.discards_remaining == 3
