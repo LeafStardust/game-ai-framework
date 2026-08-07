@@ -1,7 +1,10 @@
+from random import sample
+
 from framework.core.environment import GameEnvironment
 from framework.core.action import Action
 from framework.core.state import GameState
 
+from games.balatro.card import BalatroCard
 from games.balatro.state import BalatroState
 from games.balatro.actions import (
     BalatroAction,
@@ -90,15 +93,78 @@ class BalatroEnvironment(GameEnvironment):
     ) -> None:
 
         if action.name == PLAY_CARDS:
+
             state.round += 1
             state.phase = "ROUND_START"
+
 
         elif action.name == DISCARD_CARDS:
+
             state.discards_remaining -= 1
 
+            selected_cards = getattr(
+                action,
+                "cards",
+                []
+            )
+
+            if selected_cards:
+
+                state.hand = [
+                    card
+                    for card in state.hand
+                    if card not in selected_cards
+                ]
+
+                self._draw_cards(
+                    state,
+                    len(selected_cards)
+                )
+
+
         elif action.name == END_ROUND:
+
             state.round += 1
             state.phase = "ROUND_START"
+
+
+    def _draw_cards(
+        self,
+        state: BalatroState,
+        amount: int
+    ) -> None:
+
+        ranks = [
+            "2", "3", "4", "5", "6",
+            "7", "8", "9", "10",
+            "J", "Q", "K", "A"
+        ]
+
+        suits = [
+            "Hearts",
+            "Diamonds",
+            "Clubs",
+            "Spades"
+        ]
+
+        deck = [
+            BalatroCard(rank, suit)
+            for rank in ranks
+            for suit in suits
+        ]
+
+        available = [
+            card
+            for card in deck
+            if card not in state.hand
+        ]
+
+        drawn = sample(
+            available,
+            min(amount, len(available))
+        )
+
+        state.hand.extend(drawn)
 
 
     def is_terminal(self) -> bool:

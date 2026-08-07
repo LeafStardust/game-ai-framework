@@ -4,6 +4,7 @@ from framework.evaluation.heuristic import Heuristic
 
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand import PokerHand
+from games.balatro.probability import HandProbability
 
 
 class DiscardValueHeuristic(Heuristic):
@@ -13,6 +14,7 @@ class DiscardValueHeuristic(Heuristic):
 
     def __init__(self):
         self.hand_evaluator = HandEvaluator()
+        self.probability = HandProbability()
 
 
     def evaluate(
@@ -47,4 +49,15 @@ class DiscardValueHeuristic(Heuristic):
             return 0.0
 
 
-        return 5.0
+        remaining_cards = self.probability.remaining_cards(
+            state.deck_size,
+            len(state.hand)
+        )
+
+        improvement_chance = self.probability.draw_probability(
+            len(getattr(action, "cards", state.hand)),
+            remaining_cards,
+            1
+        )
+
+        return 5.0 + (improvement_chance * 10)

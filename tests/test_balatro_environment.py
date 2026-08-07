@@ -1,6 +1,7 @@
 from games.balatro.card import BalatroCard
 from games.balatro.environment import BalatroEnvironment
 from games.balatro.actions import (
+    DISCARD_CARDS,
     END_ROUND,
     PLAY_CARDS,
     BalatroAction
@@ -119,3 +120,24 @@ def test_simulate_action_returns_independent_state():
     simulated_state.round = 99
 
     assert environment.state.round != 99
+
+
+def test_simulate_discard_changes_hand():
+
+    environment = BalatroEnvironment()
+
+    environment.state.hand = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("K", "Hearts")
+    ]
+
+    simulated = environment.simulate_action(
+        BalatroAction(
+            DISCARD_CARDS,
+            cards=environment.state.hand.copy()
+        )
+    )
+
+    assert len(simulated.hand) == 2
+    assert simulated.discards_remaining == 2
+    assert len(environment.state.hand) == 2
