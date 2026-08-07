@@ -61,7 +61,8 @@ class BalatroEnvironment(GameEnvironment):
     ) -> None:
 
         if action.name == PLAY_HAND:
-            self.state.phase = "ROUND_END"
+            self.state.round += 1
+            self.state.phase = "ROUND_START"
 
         elif action.name == DISCARD_HAND:
             self.state.discard_count += 1
@@ -72,7 +73,7 @@ class BalatroEnvironment(GameEnvironment):
 
 
     def is_terminal(self) -> bool:
-        return False
+        return self.state.round >= 3
 
 
     def get_reward(self) -> float:

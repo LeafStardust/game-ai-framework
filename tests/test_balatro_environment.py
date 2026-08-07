@@ -3,6 +3,7 @@ from games.balatro.actions import (
     PLAY_HAND,
     BalatroAction
 )
+from games.dummy import environment
 
 
 def test_balatro_environment_has_initial_actions():
@@ -26,7 +27,8 @@ def test_play_hand_changes_phase():
         action
     )
 
-    assert environment.state.phase == "ROUND_END"
+    assert environment.state.phase == "ROUND_START"
+    assert environment.state.round == 2
 
 
 def test_end_round_increases_round():
