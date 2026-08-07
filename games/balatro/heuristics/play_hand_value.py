@@ -3,7 +3,7 @@ from framework.core.state import GameState
 from framework.evaluation.heuristic import Heuristic
 
 
-class HandValueHeuristic(Heuristic):
+class PlayHandValueHeuristic(Heuristic):
     """
     Evaluates playing the current hand.
     """
