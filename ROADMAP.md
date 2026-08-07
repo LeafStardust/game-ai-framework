@@ -1,6 +1,6 @@
-> The roadmap is milestone-based. Individual game intelligence is developed on top of the general framework rather than being embedded into the framework itself.
-
 # Roadmap
+
+> The roadmap is milestone-based. Individual game intelligence is developed on top of the general framework through game adapters, evaluators, and agents rather than being embedded into the framework itself.
 
 ## v0.1.0 — Foundation
 
@@ -30,10 +30,10 @@
 
 - [x] Generic evaluator abstraction
 - [x] Heuristic evaluation system
-- [x] Balatro evaluator
-- [x] Play hand value heuristic
-- [x] Discard value heuristic
-- [x] Risk heuristic
+- [x] Balatro evaluator integration
+- [x] Play cards value heuristic
+- [x] Discard cards value heuristic
+- [x] Basic risk heuristic
 
 ## v0.5.0 — Decision Strategy Expansion
 
@@ -45,22 +45,25 @@
 
 ## v0.6.0 — Experiment Infrastructure
 
-- [ ] Agent evaluation runner
-- [ ] Multi-episode execution
-- [ ] Policy comparison framework
-- [ ] Extended metrics collection
-- [ ] Experiment configuration
+- [x] Agent evaluation runner
+- [x] Multi-episode execution
+- [x] Policy comparison framework
+- [x] Experiment result tracking
+- [x] Extended metrics collection
 
 ## v0.7.0 — Balatro Intelligence Layer
 
-- [ ] Card representation
-- [ ] Poker hand recognition
-- [ ] Balatro scoring calculation
-- [ ] Action simulation
-- [ ] Improved action evaluation
+- [x] Balatro card representation
+- [x] Poker hand recognition
+- [x] Balatro scoring calculation
+- [x] Play cards evaluation
+- [x] Discard cards evaluation
+- [x] Blind-aware decision evaluation
+- [x] Balatro terminology alignment
 
 ## v0.8.0 — Balatro Search and Planning
 
+- [ ] Card selection system
 - [ ] Future state prediction
 - [ ] Hand/discard probability analysis
 - [ ] Search-based decision making
