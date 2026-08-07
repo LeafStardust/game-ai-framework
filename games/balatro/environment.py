@@ -132,12 +132,16 @@ class BalatroEnvironment(GameEnvironment):
                 )
 
                 state.score += hand_score.total
+                state.blind_score += hand_score.total
 
                 state.hand = [
                     card
                     for card in state.hand
                     if card not in selected_cards
                 ]
+
+            if state.blind_score >= state.blind_requirement:
+                state.blind_score = 0
 
             state.round += 1
             state.phase = "ROUND_START"

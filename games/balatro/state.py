@@ -18,7 +18,9 @@ class BalatroState(GameState):
 
         # Blind scoring
         self.score: int = 0
-        self.blind_requirement: int = 0
+        self.blind_score: int = 0
+        self.blind_requirement: int = 300
+        self.blind_type: str = "SMALL"
 
         # Cards
         self.hand: list[BalatroCard] = []
@@ -43,6 +45,10 @@ class BalatroState(GameState):
         new_state.round = self.round
 
         new_state.score = self.score
+
+        new_state.blind_score = self.blind_score
+        new_state.blind_requirement = self.blind_requirement
+        new_state.blind_type = self.blind_type
 
         new_state.hand = self.hand.copy()
         new_state.deck_size = self.deck_size
