@@ -10,9 +10,6 @@ class BlindType(Enum):
 
 
 class Blind:
-    """
-    Represents a Balatro blind.
-    """
 
     def __init__(
         self,
@@ -31,9 +28,44 @@ class Blind:
         self,
         state,
         action
-    ):
+    ) -> bool:
+
         for modifier in self.modifiers:
-            modifier.apply(
+
+            if not modifier.apply(
                 state,
                 action
-            )
+            ):
+                return False
+
+        return True
+
+
+    def copy(self):
+
+        return Blind(
+            self.type,
+            self.requirement,
+            self.reward,
+            self.modifiers.copy()
+        )
+
+
+def create_small_blind(
+    requirement: int
+) -> Blind:
+
+    return Blind(
+        BlindType.SMALL,
+        requirement
+    )
+
+
+def create_big_blind(
+    requirement: int
+) -> Blind:
+
+    return Blind(
+        BlindType.BIG,
+        requirement
+    )

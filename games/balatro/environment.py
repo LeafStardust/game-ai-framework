@@ -1,44 +1,51 @@
 import random
 
-from framework.core import state
 from framework.core.environment import GameEnvironment
 from framework.core.action import Action
 from framework.core.state import GameState
 
 from games.balatro.card import BalatroCard
 from games.balatro.state import BalatroState
+
 from games.balatro.actions import (
     BalatroAction,
     PLAY_CARDS,
     DISCARD_CARDS,
     END_ROUND
 )
-from games.balatro.card_selector import CardSelector
 
+from games.balatro.card_selector import CardSelector
+from games.balatro.blinds.manager import BlindManager
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.scoring import BalatroScorer
 
 
 class BalatroEnvironment(GameEnvironment):
-    """
-    Environment for a Balatro game instance.
-    """
 
     def __init__(self):
+
         self.state = BalatroState()
+
         self.card_selector = CardSelector()
+        self.blind_manager = BlindManager()
 
         self.hand_evaluator = HandEvaluator()
         self.scorer = BalatroScorer()
 
         self.rng = random.Random()
 
+        self._setup_blind()
+
 
     def reset(self) -> None:
+
         self.state = BalatroState()
+
+        self._setup_blind()
 
 
     def get_state(self) -> GameState:
+
         return self.state
 
 
@@ -89,7 +96,7 @@ class BalatroEnvironment(GameEnvironment):
 
         simulated_environment._apply_action(
             simulated_environment.state,
-            action
+            action.copy()
         )
 
         return simulated_environment.state
@@ -100,12 +107,63 @@ class BalatroEnvironment(GameEnvironment):
         new_environment = BalatroEnvironment()
 
         new_environment.state = self.state.copy()
+        new_environment.blind_manager = self.blind_manager
 
         new_environment.rng.setstate(
             self.rng.getstate()
         )
 
         return new_environment
+
+
+    def _setup_blind(self) -> None:
+
+        if self.state.round == 1:
+
+            blind_type = "SMALL"
+
+        elif self.state.round == 2:
+
+            blind_type = "BIG"
+
+        else:
+
+            blind_type = "BOSS"
+
+
+        self.state.blind = self.blind_manager.get_blind(
+            blind_type,
+            self.state.ante
+        )
+
+
+        if hasattr(
+            self.state.blind,
+            "name"
+        ):
+            self.state.boss_name = self.state.blind.name
+
+        else:
+            self.state.boss_name = None
+
+
+    def _complete_blind(
+        self,
+        state: BalatroState
+    ) -> None:
+
+        state.blind_score = 0
+
+        state.round += 1
+
+        if state.round > 3:
+
+            state.ante += 1
+            state.round = 1
+
+        state.phase = "ROUND_START"
+
+        self._setup_blind()
 
 
     def _apply_action(
@@ -116,11 +174,23 @@ class BalatroEnvironment(GameEnvironment):
 
         if action.name == PLAY_CARDS:
 
+            modified_action = action.copy()
+
+            if state.blind:
+
+                if not state.blind.apply_modifiers(
+                    state,
+                    modified_action
+                ):
+                    return
+
+
             selected_cards = getattr(
-                action,
+                modified_action,
                 "cards",
                 []
             )
+
 
             if selected_cards:
 
@@ -135,17 +205,24 @@ class BalatroEnvironment(GameEnvironment):
                 state.score += hand_score.total
                 state.blind_score += hand_score.total
 
+
                 state.hand = [
                     card
                     for card in state.hand
                     if card not in selected_cards
                 ]
 
-            if state.blind_score >= state.blind.requirement:
-                state.blind_score = 0
 
-            state.round += 1
-            state.phase = "ROUND_START"
+            if state.blind_score >= state.blind.requirement:
+
+                self._complete_blind(
+                    state
+                )
+
+            else:
+
+                state.round += 1
+                state.phase = "ROUND_START"
 
 
         elif action.name == DISCARD_CARDS:
@@ -157,6 +234,7 @@ class BalatroEnvironment(GameEnvironment):
                 "cards",
                 []
             )
+
 
             if selected_cards:
 
@@ -172,10 +250,14 @@ class BalatroEnvironment(GameEnvironment):
                 )
 
 
+
         elif action.name == END_ROUND:
 
             state.round += 1
             state.phase = "ROUND_START"
+
+            self._setup_blind()
+
 
 
     def _draw_cards(
@@ -217,9 +299,15 @@ class BalatroEnvironment(GameEnvironment):
         state.hand.extend(drawn)
 
 
+
     def is_terminal(self) -> bool:
-        return self.state.round >= 3
+
+        return self.state.ante > 8
+
 
 
     def get_reward(self) -> float:
-        return float(self.state.score)
+
+        return float(
+            self.state.score
+        )

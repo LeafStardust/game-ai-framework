@@ -2,9 +2,6 @@ from framework.core.action import Action
 
 
 class BalatroAction(Action):
-    """
-    Represents an action available in Balatro.
-    """
 
     def __init__(
         self,
@@ -22,7 +19,14 @@ class BalatroAction(Action):
         return self.action_type
 
 
-# General action types
+    def copy(self):
+
+        return BalatroAction(
+            self.action_type,
+            self.cards.copy(),
+            self.target
+        )
+
 
 PLAY_CARDS = "PLAY_CARDS"
 DISCARD_CARDS = "DISCARD_CARDS"

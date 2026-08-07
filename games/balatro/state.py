@@ -1,53 +1,50 @@
 from framework.core.state import GameState
 
 from games.balatro.card import BalatroCard
-from games.balatro.blinds.blind import Blind, BlindType
 
 
 class BalatroState(GameState):
-    """
-    Represents the observable state of a Balatro run.
-    """
 
     def __init__(self):
 
-        # Economy
         self.money: int = 0
 
-        # Run progression
         self.ante: int = 1
         self.round: int = 1
 
-        # Blind scoring
         self.score: int = 0
         self.blind_score: int = 0
 
-        self.blind = Blind(
-            BlindType.SMALL,
-            requirement=300
-        )
+        self.blind = None
+        self.boss_name: str | None = None
 
-        # Cards
         self.hand: list[BalatroCard] = []
         self.deck_size: int = 52
         self.discards_remaining: int = 3
 
-        # Jokers and upgrades
         self.jokers: list = []
         self.vouchers: list = []
 
-        # Current decision context
         self.phase: str = "ROUND_START"
 
 
     @property
     def blind_requirement(self):
+
+        if self.blind is None:
+            return 0
+
         return self.blind.requirement
 
 
     @blind_requirement.setter
-    def blind_requirement(self, value):
-        self.blind.requirement = value
+    def blind_requirement(
+        self,
+        value
+    ):
+
+        if self.blind is not None:
+            self.blind.requirement = value
 
 
     def copy(self):
@@ -60,9 +57,12 @@ class BalatroState(GameState):
         new_state.round = self.round
 
         new_state.score = self.score
-
         new_state.blind_score = self.blind_score
-        new_state.blind = self.blind
+
+        if self.blind is not None:
+            new_state.blind = self.blind.copy()
+
+        new_state.boss_name = self.boss_name
 
         new_state.hand = self.hand.copy()
         new_state.deck_size = self.deck_size
