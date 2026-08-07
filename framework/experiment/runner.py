@@ -27,6 +27,7 @@ class ExperimentRunner:
         """
 
         rewards = []
+        steps = []
 
         for _ in range(episodes):
 
@@ -41,6 +42,11 @@ class ExperimentRunner:
                 reward
             )
 
+            steps.append(
+                len(runner.get_history())
+            )
+
         return ExperimentResult(
-            rewards
+            rewards,
+            steps
         )

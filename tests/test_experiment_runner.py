@@ -60,3 +60,5 @@ def test_experiment_runs_multiple_episodes():
     )
 
     assert result.episodes == 5
+    assert result.average_reward == 1.0
+    assert result.average_steps == 0.0

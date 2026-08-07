@@ -5,9 +5,11 @@ class ExperimentResult:
 
     def __init__(
         self,
-        rewards: list[float]
+        rewards: list[float],
+        steps: list[int]
     ):
         self.rewards = rewards
+        self.steps = steps
 
     @property
     def episodes(self) -> int:
@@ -33,3 +35,10 @@ class ExperimentResult:
             return 0.0
 
         return min(self.rewards)
+
+    @property
+    def average_steps(self) -> float:
+        if not self.steps:
+            return 0.0
+
+        return sum(self.steps) / len(self.steps)
