@@ -1,5 +1,6 @@
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
+from games.balatro.scoring import BalatroScorer
 from games.balatro.jokers.crazy_joker import CrazyJoker
 from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
@@ -7,7 +8,11 @@ from games.balatro.jokers.mad_joker import MadJoker
 from games.balatro.jokers.zany_joker import ZanyJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.bull import BullJoker
-from games.balatro.scoring import BalatroScorer
+from games.balatro.jokers.clever_joker import CleverJoker
+from games.balatro.jokers.crafty_joker import CraftyJoker
+from games.balatro.jokers.devious_joker import DeviousJoker
+from games.balatro.jokers.sly_joker import SlyJoker
+from games.balatro.jokers.wily_joker import WilyJoker
 
 
 def test_jolly_joker():
@@ -222,3 +227,168 @@ def test_bull_joker():
     assert score.chips == 10
     assert score.mult == 8
     assert score.total == 80
+
+
+def test_sly_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                SlyJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("A", "Spades"),
+        BalatroCard("7", "Clubs"),
+        BalatroCard("4", "Diamonds"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state,
+        cards
+    )
+
+    assert score.chips == 60
+    assert score.mult == 2
+    assert score.total == 120
+
+
+def test_wily_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                WilyJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("A", "Spades"),
+        BalatroCard("A", "Clubs"),
+        BalatroCard("7", "Diamonds"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.THREE_OF_A_KIND,
+        state,
+        cards
+    )
+
+    assert score.chips == 130
+    assert score.mult == 3
+    assert score.total == 390
+
+
+def test_clever_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                CleverJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("A", "Spades"),
+        BalatroCard("7", "Clubs"),
+        BalatroCard("7", "Diamonds"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.TWO_PAIR,
+        state,
+        cards
+    )
+
+    assert score.chips == 100
+    assert score.mult == 2
+    assert score.total == 200
+
+
+def test_devious_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                DeviousJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("3", "Spades"),
+        BalatroCard("4", "Clubs"),
+        BalatroCard("5", "Diamonds"),
+        BalatroCard("6", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.STRAIGHT,
+        state,
+        cards
+    )
+
+    assert score.chips == 130
+    assert score.mult == 4
+    assert score.total == 520
+
+
+def test_crafty_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                CraftyJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("7", "Hearts"),
+        BalatroCard("5", "Hearts"),
+        BalatroCard("3", "Hearts"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.FLUSH,
+        state,
+        cards
+    )
+
+    assert score.chips == 115
+    assert score.mult == 4
+    assert score.total == 460
