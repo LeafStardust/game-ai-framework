@@ -63,7 +63,7 @@
 - [x] Joker framework
 - [x] Consumable framework
 - [x] Planet card effects
-- [ ] Tarot card effects
+- [x] Tarot card effects
 - [ ] Spectral card effects
 - [ ] Card enhancements and editions
 - [ ] Seals and card modifiers
