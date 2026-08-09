@@ -1,9 +1,10 @@
 import pytest
+import random
 
 from games.balatro.card import BalatroCard
 from games.balatro.consumable import ConsumableContext
 from games.balatro.state import BalatroState
-from games.balatro.tarots import create_tarot
+from games.balatro.tarots import TAROT_CARDS, create_tarot, random_tarot
 
 
 def test_strength_can_use_with_cards():
@@ -271,3 +272,13 @@ def test_magician_generates_one_or_two_card_targets():
         [first, third],
         [second, third]
     ]
+
+
+def test_random_tarot_returns_registered_tarot():
+
+    tarot = random_tarot(
+        random.Random()
+    )
+
+    assert tarot.name in TAROT_CARDS
+    assert tarot.category == "TAROT"

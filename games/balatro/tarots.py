@@ -109,3 +109,16 @@ def create_tarot(
 ) -> TarotCard:
 
     return TAROT_CARDS[name]()
+
+
+def random_tarot(
+    rng
+) -> TarotCard:
+
+    name = rng.choice(
+        list(TAROT_CARDS)
+    )
+
+    return create_tarot(
+        name
+    )

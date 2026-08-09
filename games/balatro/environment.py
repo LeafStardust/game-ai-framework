@@ -16,7 +16,7 @@ from games.balatro.events import BalatroEvent, BalatroEventType
 from games.balatro.joker import JokerContext
 from games.balatro.consumable import ConsumableContext
 from games.balatro.planets import random_planet
-from games.balatro.tarots import TAROT_CARDS, create_tarot
+from games.balatro.tarots import random_tarot
 
 
 class BalatroEnvironment(GameEnvironment):
@@ -504,12 +504,8 @@ class BalatroEnvironment(GameEnvironment):
         if self.rng.random() < 0.5:
             return self._generate_planet()
 
-        tarot_name = self.rng.choice(
-            list(TAROT_CARDS)
-        )
-
-        return create_tarot(
-            tarot_name
+        return random_tarot(
+            self.rng
         )
 
 
