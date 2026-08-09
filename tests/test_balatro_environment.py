@@ -690,7 +690,7 @@ def test_shop_can_generate_tarot():
     ) == 2
 
     assert all(
-        consumable.name == "Strength"
+        consumable.category == "TAROT"
         for consumable in environment.state.shop_consumables
     )
 

@@ -212,3 +212,62 @@ def test_create_tarot_rejects_unknown_tarot():
         create_tarot(
             "Unknown"
         )
+
+
+def test_magician_applies_lucky_enhancement():
+
+    first = BalatroCard(
+        "2",
+        "Hearts"
+    )
+
+    second = BalatroCard(
+        "K",
+        "Spades"
+    )
+
+    tarot = create_tarot(
+        "The Magician"
+    )
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[first, second]
+    )
+
+    tarot.use(context)
+
+    assert first.enhancement == "Lucky"
+    assert second.enhancement == "Lucky"
+
+
+def test_magician_generates_one_or_two_card_targets():
+
+    state = BalatroState()
+
+    first = BalatroCard("2", "Hearts")
+    second = BalatroCard("3", "Spades")
+    third = BalatroCard("4", "Clubs")
+
+    state.hand = [
+        first,
+        second,
+        third
+    ]
+
+    tarot = create_tarot(
+        "The Magician"
+    )
+
+    targets = tarot.get_target_cards(
+        state
+    )
+
+    assert targets == [
+        [first],
+        [second],
+        [third],
+        [first, second],
+        [first, third],
+        [second, third]
+    ]
