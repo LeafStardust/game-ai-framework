@@ -1,6 +1,11 @@
+import random
+
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
 from games.balatro.scoring import BalatroScorer
+from games.balatro.events import BalatroEvent, BalatroEventType
+from games.balatro.joker import JokerContext
+
 from games.balatro.jokers.crazy_joker import CrazyJoker
 from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
@@ -35,9 +40,15 @@ from games.balatro.jokers.glass_joker import GlassJoker
 from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.ride_the_bus import RideTheBusJoker
 from games.balatro.jokers.red_card import RedCardJoker
-from games.balatro.events import BalatroEvent, BalatroEventType
-from games.balatro.joker import JokerContext
 from games.balatro.jokers.castle import CastleJoker
+from games.balatro.jokers.misprint import MisprintJoker
+from games.balatro.jokers.ramen import RamenJoker
+from games.balatro.jokers.vampire import VampireJoker
+from games.balatro.jokers.hologram import HologramJoker
+from games.balatro.jokers.fortune_teller import FortuneTellerJoker
+from games.balatro.jokers.supernova import SupernovaJoker
+from games.balatro.jokers.space_joker import SpaceJoker
+from games.balatro.jokers.splash import SplashJoker
 
 
 def test_jolly_joker():
@@ -1283,3 +1294,212 @@ def test_castle_joker():
     joker.apply(context)
 
     assert joker.chips == 9
+
+
+def test_misprint_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [MisprintJoker()]
+        }
+    )()
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state
+    )
+
+    assert 2 <= score.mult <= 25
+
+
+def test_ramen_joker():
+
+    joker = RamenJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker],
+            "hand": []
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("K", "Spades")
+    ]
+
+    context = JokerContext(
+        state=state,
+        event=BalatroEvent(
+            BalatroEventType.CARDS_DISCARDED,
+            cards
+        )
+    )
+
+    joker.apply(context)
+
+    assert joker.x_mult == 1.98
+
+
+def test_vampire_joker():
+
+    joker = VampireJoker()
+
+    card = BalatroCard(
+        "A",
+        "Hearts",
+        enhancement="BONUS"
+    )
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker],
+            "hand": []
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        cards=[card]
+    )
+
+    joker.apply(context)
+
+    assert joker.x_mult == 1.1
+    assert card.enhancement is None
+
+
+def test_hologram_joker():
+
+    joker = HologramJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker],
+            "hand": []
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("K", "Spades")
+    ]
+
+    context = JokerContext(
+        state=state,
+        event=BalatroEvent(
+            BalatroEventType.CARDS_ADDED,
+            cards
+        )
+    )
+
+    joker.apply(context)
+
+    assert joker.x_mult == 1.5
+
+
+def test_fortune_teller_joker():
+
+    joker = FortuneTellerJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker],
+            "hand": []
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        event=BalatroEvent(
+            BalatroEventType.TAROT_USED
+        )
+    )
+
+    joker.apply(context)
+    joker.apply(context)
+
+    assert joker.mult == 2
+
+
+def test_supernova_joker():
+
+    joker = SupernovaJoker(PokerHand.PAIR)
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker],
+            "hand": []
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        poker_hand=PokerHand.PAIR
+    )
+
+    joker.apply(context)
+    joker.apply(context)
+
+    assert joker.mult == 2
+
+
+def test_space_joker():
+
+    joker = SpaceJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker],
+            "hand": []
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        poker_hand=PokerHand.PAIR
+    )
+
+    random.seed(1)
+
+    joker.apply(context)
+
+    assert "level_ups" in context.data
+
+
+def test_splash_joker():
+
+    joker = SplashJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker],
+            "hand": []
+        }
+    )()
+
+    context = JokerContext(
+        state=state
+    )
+
+    joker.apply(context)
+
+    assert context.data["all_cards_score"] is True
