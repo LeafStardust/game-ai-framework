@@ -54,6 +54,7 @@ class BalatroScorer:
             context = JokerContext(
                 state=state,
                 score=score,
+                poker_hand=hand,
                 cards=cards or [],
                 held_cards=getattr(state, "hand", []),
                 trigger="HAND_SCORED"

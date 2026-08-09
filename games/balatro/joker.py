@@ -9,6 +9,7 @@ from framework.core.state import GameState
 from games.balatro.card import BalatroCard
 
 if TYPE_CHECKING:
+    from games.balatro.hand import PokerHand
     from games.balatro.scoring import HandScore
 
 
@@ -17,6 +18,7 @@ class JokerContext:
 
     state: GameState
     score: HandScore | None = None
+    poker_hand: PokerHand | None = None
 
     cards: list[BalatroCard] = field(default_factory=list)
     held_cards: list[BalatroCard] = field(default_factory=list)

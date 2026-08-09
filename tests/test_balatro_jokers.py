@@ -23,6 +23,11 @@ from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.banner import BannerJoker
 from games.balatro.jokers.half_joker import HalfJoker
+from games.balatro.jokers.the_duo import TheDuoJoker
+from games.balatro.jokers.the_trio import TheTrioJoker
+from games.balatro.jokers.the_family import TheFamilyJoker
+from games.balatro.jokers.the_order import TheOrderJoker
+from games.balatro.jokers.the_tribe import TheTribeJoker
 
 
 def test_jolly_joker():
@@ -759,3 +764,173 @@ def test_banner_joker():
     assert score.chips == 95
     assert score.mult == 1
     assert score.total == 95
+
+
+def test_the_duo_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                TheDuoJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("A", "Spades"),
+        BalatroCard("7", "Clubs"),
+        BalatroCard("4", "Diamonds"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state,
+        cards
+    )
+
+    assert score.chips == 10
+    assert score.mult == 2
+    assert score.x_mult == 2
+    assert score.total == 40
+
+
+def test_the_trio_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                TheTrioJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("A", "Spades"),
+        BalatroCard("A", "Clubs"),
+        BalatroCard("7", "Diamonds"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.THREE_OF_A_KIND,
+        state,
+        cards
+    )
+
+    assert score.chips == 30
+    assert score.mult == 3
+    assert score.x_mult == 3
+    assert score.total == 270
+
+
+def test_the_family_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                TheFamilyJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("A", "Spades"),
+        BalatroCard("A", "Clubs"),
+        BalatroCard("A", "Diamonds"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.FOUR_OF_A_KIND,
+        state,
+        cards
+    )
+
+    assert score.chips == 60
+    assert score.mult == 7
+    assert score.x_mult == 4
+    assert score.total == 1680
+
+
+def test_the_order_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                TheOrderJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("3", "Spades"),
+        BalatroCard("4", "Clubs"),
+        BalatroCard("5", "Diamonds"),
+        BalatroCard("6", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.STRAIGHT,
+        state,
+        cards
+    )
+
+    assert score.chips == 30
+    assert score.mult == 4
+    assert score.x_mult == 3
+    assert score.total == 360
+
+
+def test_the_tribe_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                TheTribeJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("7", "Hearts"),
+        BalatroCard("5", "Hearts"),
+        BalatroCard("3", "Hearts"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.FLUSH,
+        state,
+        cards
+    )
+
+    assert score.chips == 35
+    assert score.mult == 4
+    assert score.x_mult == 2
+    assert score.total == 280
