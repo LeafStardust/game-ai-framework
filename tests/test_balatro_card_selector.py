@@ -1,3 +1,5 @@
+from math import comb
+
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.card import BalatroCard
 from games.balatro.card_selector import CardSelector
@@ -19,9 +21,9 @@ def test_play_actions_include_all_valid_hand_sizes():
     actions = CardSelector().generate_play_actions(state)
 
     assert len(actions) == sum(
-        6 if size == 1 else 1
-        for size in []
-    ) if False else 62
+        comb(6, size)
+        for size in range(1, 6)
+    )
     assert all(action.name == PLAY_CARDS for action in actions)
     assert {len(action.cards) for action in actions} == {1, 2, 3, 4, 5}
 
@@ -40,7 +42,10 @@ def test_discard_actions_include_all_valid_hand_sizes():
 
     actions = CardSelector().generate_discard_actions(state)
 
-    assert len(actions) == 62
+    assert len(actions) == sum(
+        comb(6, size)
+        for size in range(1, 6)
+    )
     assert all(action.name == DISCARD_CARDS for action in actions)
     assert {len(action.cards) for action in actions} == {1, 2, 3, 4, 5}
 
