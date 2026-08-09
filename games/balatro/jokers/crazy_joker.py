@@ -1,23 +1,17 @@
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class CrazyJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
-        if self._has_straight(cards):
-            return HandScore(
-                score.chips,
-                score.mult + 12
-            )
+        if self._has_straight(context.cards):
+            context.score.mult += 12
 
-        return score
+        return context
 
     @staticmethod
     def _has_straight(cards):

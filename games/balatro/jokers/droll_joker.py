@@ -1,23 +1,17 @@
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class DrollJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
-        if cards and len({
+        if context.cards and len({
             card.suit
-            for card in cards
+            for card in context.cards
         }) == 1:
-            return HandScore(
-                score.chips,
-                score.mult + 10
-            )
+            context.score.mult += 10
 
-        return score
+        return context

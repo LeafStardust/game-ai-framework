@@ -1,15 +1,12 @@
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class FibonacciJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
         fibonacci_ranks = {
             "A",
@@ -21,10 +18,9 @@ class FibonacciJoker(Joker):
 
         mult = sum(
             card.rank in fibonacci_ranks
-            for card in cards
+            for card in context.cards
         ) * 8
 
-        return HandScore(
-            score.chips,
-            score.mult + mult
-        )
+        context.score.mult += mult
+
+        return context

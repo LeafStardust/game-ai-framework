@@ -1,23 +1,17 @@
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class JollyJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
-        if self._has_pair(cards):
-            return HandScore(
-                score.chips,
-                score.mult + 8
-            )
+        if self._has_pair(context.cards):
+            context.score.mult += 8
 
-        return score
+        return context
 
     @staticmethod
     def _has_pair(cards):

@@ -1,22 +1,19 @@
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class ScholarJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
         aces = sum(
             card.rank == "A"
-            for card in cards
+            for card in context.cards
         )
 
-        return HandScore(
-            score.chips + (aces * 20),
-            score.mult + (aces * 4)
-        )
+        context.score.chips += aces * 20
+        context.score.mult += aces * 4
+
+        return context

@@ -1,19 +1,14 @@
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class BannerJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
-        chips = state.discards_remaining * 30
+        chips = context.state.discards_remaining * 30
+        context.score.chips += chips
 
-        return HandScore(
-            score.chips + chips,
-            score.mult
-        )
+        return context

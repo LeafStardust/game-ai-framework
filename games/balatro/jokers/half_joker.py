@@ -1,20 +1,14 @@
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class HalfJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
-        if len(cards) <= 3:
-            return HandScore(
-                score.chips,
-                score.mult + 20
-            )
+        if len(context.cards) <= 3:
+            context.score.mult += 20
 
-        return score
+        return context

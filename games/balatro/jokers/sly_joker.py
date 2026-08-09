@@ -1,25 +1,19 @@
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class SlyJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
         ranks = [
             card.rank
-            for card in cards
+            for card in context.cards
         ]
 
         if len(ranks) != len(set(ranks)):
-            return HandScore(
-                score.chips + 50,
-                score.mult
-            )
+            context.score.chips += 50
 
-        return score
+        return context

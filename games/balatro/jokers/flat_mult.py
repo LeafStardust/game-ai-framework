@@ -1,5 +1,4 @@
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class FlatMultJoker(Joker):
@@ -12,12 +11,9 @@ class FlatMultJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
-        return HandScore(
-            score.chips,
-            score.mult + self.mult
-        )
+        context.score.mult += self.mult
+
+        return context

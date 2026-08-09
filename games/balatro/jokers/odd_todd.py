@@ -1,15 +1,12 @@
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class OddToddJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
         odd_ranks = {
             "A",
@@ -21,10 +18,9 @@ class OddToddJoker(Joker):
 
         chips = sum(
             card.rank in odd_ranks
-            for card in cards
+            for card in context.cards
         ) * 31
 
-        return HandScore(
-            score.chips + chips,
-            score.mult
-        )
+        context.score.chips += chips
+
+        return context

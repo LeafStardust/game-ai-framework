@@ -1,15 +1,12 @@
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class EvenStevenJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
         even_ranks = {
             "2",
@@ -21,10 +18,9 @@ class EvenStevenJoker(Joker):
 
         mult = sum(
             card.rank in even_ranks
-            for card in cards
+            for card in context.cards
         ) * 4
 
-        return HandScore(
-            score.chips,
-            score.mult + mult
-        )
+        context.score.mult += mult
+
+        return context

@@ -1,19 +1,15 @@
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class BullJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
-        mult = (state.money // 5) * 2
-
-        return HandScore(
-            score.chips,
-            score.mult + mult
+        context.score.mult += (
+            (context.state.money // 5) * 2
         )
+
+        return context

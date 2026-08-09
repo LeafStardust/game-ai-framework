@@ -1,27 +1,21 @@
 from collections import Counter
 
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class WilyJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
         counts = Counter(
             card.rank
-            for card in cards
+            for card in context.cards
         )
 
         if any(count >= 3 for count in counts.values()):
-            return HandScore(
-                score.chips + 100,
-                score.mult
-            )
+            context.score.chips += 100
 
-        return score
+        return context

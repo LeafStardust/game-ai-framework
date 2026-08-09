@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from games.balatro.hand import PokerHand
+from games.balatro.joker import JokerContext
 
 
 @dataclass
@@ -8,10 +9,15 @@ class HandScore:
 
     chips: int
     mult: int
+    x_mult: float = 1.0
 
     @property
     def total(self) -> int:
-        return self.chips * self.mult
+        return int(
+            self.chips
+            * self.mult
+            * self.x_mult
+        )
 
 
 class BalatroScorer:
@@ -28,7 +34,6 @@ class BalatroScorer:
         PokerHand.STRAIGHT_FLUSH: HandScore(100, 8),
     }
 
-
     def score(
         self,
         hand: PokerHand,
@@ -40,17 +45,23 @@ class BalatroScorer:
 
         score = HandScore(
             base_score.chips,
-            base_score.mult
+            base_score.mult,
+            base_score.x_mult
         )
 
         if state is not None:
 
-            for joker in state.jokers:
+            context = JokerContext(
+                state=state,
+                score=score,
+                cards=cards or [],
+                held_cards=getattr(state, "hand", []),
+                trigger="HAND_SCORED"
+            )
 
-                score = joker.apply(
-                    state,
-                    cards or [],
-                    score
-                )
+            for joker in state.jokers:
+                context = joker.apply(context)
+
+            score = context.score
 
         return score

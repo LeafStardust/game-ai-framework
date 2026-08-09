@@ -1,15 +1,12 @@
-from games.balatro.joker import Joker
-from games.balatro.scoring import HandScore
+from games.balatro.joker import Joker, JokerContext
 
 
 class DeviousJoker(Joker):
 
     def apply(
         self,
-        state,
-        cards,
-        score: HandScore
-    ) -> HandScore:
+        context: JokerContext
+    ) -> JokerContext:
 
         values = {
             "2": 2,
@@ -29,7 +26,7 @@ class DeviousJoker(Joker):
 
         ranks = {
             values[card.rank]
-            for card in cards
+            for card in context.cards
         }
 
         has_straight = (
@@ -44,9 +41,6 @@ class DeviousJoker(Joker):
         )
 
         if has_straight:
-            return HandScore(
-                score.chips + 100,
-                score.mult
-            )
+            context.score.chips += 100
 
-        return score
+        return context
