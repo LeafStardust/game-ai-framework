@@ -388,6 +388,8 @@ def test_end_shop_returns_to_round_start():
         environment.state
     )
 
+    blind = environment.state.blind
+
     environment.execute_action(
         BalatroAction(
             END_SHOP
@@ -396,3 +398,4 @@ def test_end_shop_returns_to_round_start():
 
     assert environment.state.phase == "ROUND_START"
     assert not environment.state.shop_active
+    assert environment.state.blind is blind
