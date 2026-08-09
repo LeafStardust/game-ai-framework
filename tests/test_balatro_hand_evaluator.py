@@ -172,3 +172,47 @@ def test_straight_flush_detection():
     )
 
     assert result == PokerHand.STRAIGHT_FLUSH
+
+
+def test_single_card_is_high_card():
+
+    result = HandEvaluator().evaluate([
+        BalatroCard("A", "Hearts")
+    ])
+
+    assert result == PokerHand.HIGH_CARD
+
+
+def test_pair_can_be_evaluated_with_two_cards():
+
+    result = HandEvaluator().evaluate([
+        BalatroCard("A", "Hearts"),
+        BalatroCard("A", "Clubs")
+    ])
+
+    assert result == PokerHand.PAIR
+
+
+def test_four_of_a_kind_can_be_evaluated_with_four_cards():
+
+    result = HandEvaluator().evaluate([
+        BalatroCard("A", "Hearts"),
+        BalatroCard("A", "Clubs"),
+        BalatroCard("A", "Diamonds"),
+        BalatroCard("A", "Spades")
+    ])
+
+    assert result == PokerHand.FOUR_OF_A_KIND
+
+
+def test_ace_low_straight_is_recognized():
+
+    result = HandEvaluator().evaluate([
+        BalatroCard("A", "Hearts"),
+        BalatroCard("2", "Clubs"),
+        BalatroCard("3", "Diamonds"),
+        BalatroCard("4", "Spades"),
+        BalatroCard("5", "Hearts")
+    ])
+
+    assert result == PokerHand.STRAIGHT
