@@ -64,9 +64,9 @@
 - [x] Consumable framework
 - [x] Planet card effects
 - [x] Tarot card effects
-- [ ] Spectral card effects
-- [ ] Card enhancements and editions
-- [ ] Seals and card modifiers
+- [x] Spectral card effects
+- [x] Card enhancements and editions
+- [x] Seals and card modifiers
 
 ## v0.8.0 — Balatro Search and Planning
 

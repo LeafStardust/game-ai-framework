@@ -23,7 +23,7 @@ from games.balatro.consumable import ConsumableContext
 from games.balatro.events import BalatroEvent, BalatroEventType
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.joker import JokerContext
-from games.balatro.planets import random_planet
+from games.balatro.planets import PLANET_CARDS, create_planet, random_planet
 from games.balatro.scoring import BalatroScorer
 from games.balatro.spectrals import random_spectral
 from games.balatro.state import BalatroState
@@ -255,6 +255,8 @@ class BalatroEnvironment(GameEnvironment):
         state: BalatroState
     ) -> None:
 
+        self._resolve_end_round_seals(state)
+
         state.blind_score = 0
 
         state.round += 1
@@ -302,6 +304,8 @@ class BalatroEnvironment(GameEnvironment):
                     selected_cards
                 )
 
+                state.last_played_hand = poker_hand.value
+
                 hand_score = self.scorer.score(
                     poker_hand,
                     state,
@@ -340,6 +344,11 @@ class BalatroEnvironment(GameEnvironment):
                 action,
                 "cards",
                 []
+            )
+
+            self._trigger_discard_seals(
+                state,
+                selected_cards
             )
 
             for card in selected_cards:
@@ -440,11 +449,61 @@ class BalatroEnvironment(GameEnvironment):
 
         elif action.name == END_ROUND:
 
+            self._resolve_end_round_seals(state)
+
             state.round += 1
 
             state.phase = "ROUND_START"
 
             self._setup_blind()
+
+    def _trigger_discard_seals(
+        self,
+        state: BalatroState,
+        cards: list[BalatroCard]
+    ) -> None:
+
+        for card in cards:
+
+            if card not in state.hand:
+                continue
+
+            if card.seal == "Purple":
+
+                if len(state.consumables) < state.consumable_slots:
+                    state.consumables.append(
+                        random_tarot(self.rng)
+                    )
+
+    def _resolve_end_round_seals(
+        self,
+        state: BalatroState
+    ) -> None:
+
+        for card in state.hand:
+
+            if card.seal == "Gold":
+                state.money += 3
+
+            elif card.seal == "Blue":
+
+                if (
+                    state.last_played_hand is not None
+                    and len(state.consumables) < state.consumable_slots
+                ):
+                    planet = next(
+                        (
+                            name
+                            for name, value in PLANET_CARDS.items()
+                            if value.hand_type == state.last_played_hand
+                        ),
+                        None
+                    )
+
+                    if planet is not None:
+                        state.consumables.append(
+                            create_planet(planet)
+                        )
 
     def _trigger_joker_event(
         self,
