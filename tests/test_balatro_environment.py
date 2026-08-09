@@ -627,13 +627,19 @@ def test_strength_can_be_used_through_environment():
 
     environment = BalatroEnvironment()
 
-    card = BalatroCard(
+    first = BalatroCard(
         "2",
         "Hearts"
     )
 
+    second = BalatroCard(
+        "3",
+        "Spades"
+    )
+
     environment.state.hand = [
-        card
+        first,
+        second
     ]
 
     consumable = create_tarot(
@@ -654,11 +660,11 @@ def test_strength_can_be_used_through_environment():
     ]
 
     assert len(use_actions) == 1
-    assert use_actions[0].cards == [card]
+    assert use_actions[0].cards == [first, second]
 
     environment.execute_action(
         use_actions[0]
     )
 
-    assert card.rank == "3"
-    assert consumable not in environment.state.consumables
+    assert first.rank == "3"
+    assert second.rank == "4"

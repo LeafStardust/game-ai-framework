@@ -1,3 +1,5 @@
+from itertools import combinations
+
 from games.balatro.consumable import ConsumableContext, TarotCard
 from games.balatro.card import BalatroCard
 
@@ -45,8 +47,11 @@ class Strength(TarotCard):
     ) -> list[list[BalatroCard]]:
 
         return [
-            [card]
-            for card in state.hand
+            list(cards)
+            for cards in combinations(
+                state.hand,
+                min(2, len(state.hand))
+            )
         ]
 
 
