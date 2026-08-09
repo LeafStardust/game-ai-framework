@@ -45,36 +45,47 @@ class BalatroScorer:
 
         for card in cards:
 
-            if card.enhancement == "Bonus":
-                score.chips += 30
-
-            elif card.enhancement == "Mult":
-                score.mult += 4
-
-            elif card.enhancement == "Glass":
-                score.x_mult *= 2
-
-            elif card.enhancement == "Stone":
-                score.chips += 50
-
-            if card.edition == "Foil":
-                score.chips += 50
-
-            elif card.edition == "Holographic":
-                score.mult += 10
-
-            elif card.edition == "Polychrome":
-                score.x_mult *= 1.5
+            self._apply_single_card_modifier(
+                score,
+                card
+            )
 
             if card.seal == "Red":
-                pass
+                self._apply_single_card_modifier(
+                    score,
+                    card
+                )
 
-            elif card.seal == "Gold":
-                pass
+    def _apply_single_card_modifier(
+        self,
+        score: HandScore,
+        card
+    ) -> None:
 
-            elif card.enhancement == "Lucky":
-                if random.random() < 0.2:
-                    score.mult += 20
+        if card.enhancement == "Bonus":
+            score.chips += 30
+
+        elif card.enhancement == "Mult":
+            score.mult += 4
+
+        elif card.enhancement == "Glass":
+            score.x_mult *= 2
+
+        elif card.enhancement == "Stone":
+            score.chips += 50
+
+        if card.edition == "Foil":
+            score.chips += 50
+
+        elif card.edition == "Holographic":
+            score.mult += 10
+
+        elif card.edition == "Polychrome":
+            score.x_mult *= 1.5
+
+        if card.enhancement == "Lucky":
+            if random.random() < 0.2:
+                score.mult += 20
 
     def _apply_held_modifiers(
         self,
