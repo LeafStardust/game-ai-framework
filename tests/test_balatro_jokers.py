@@ -21,6 +21,8 @@ from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.scholar import ScholarJoker
+from games.balatro.jokers.banner import BannerJoker
+from games.balatro.jokers.half_joker import HalfJoker
 
 
 def test_jolly_joker():
@@ -664,3 +666,96 @@ def test_scholar_joker():
     assert score.chips == 50
     assert score.mult == 10
     assert score.total == 500
+
+
+def test_half_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                HalfJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("K", "Spades"),
+        BalatroCard("Q", "Clubs")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.chips == 5
+    assert score.mult == 21
+    assert score.total == 105
+
+
+def test_half_joker_does_not_trigger_above_three_cards():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                HalfJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("K", "Spades"),
+        BalatroCard("Q", "Clubs"),
+        BalatroCard("J", "Diamonds")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.chips == 5
+    assert score.mult == 1
+    assert score.total == 5
+
+
+def test_banner_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "discards_remaining": 3,
+            "jokers": [
+                BannerJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.chips == 95
+    assert score.mult == 1
+    assert score.total == 95
