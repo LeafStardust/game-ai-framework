@@ -38,12 +38,12 @@ class BalatroState(GameState):
         self.vouchers: list = []
         self.phase: str = "ROUND_START"
         self.glass_cards_destroyed: int = 0
+        self.last_played_hand: str | None = None
 
     @property
     def deck_size(self) -> int:
 
         return len(self.deck)
-
 
     @property
     def blind_requirement(self):
@@ -53,7 +53,6 @@ class BalatroState(GameState):
 
         return self.blind.requirement
 
-
     @blind_requirement.setter
     def blind_requirement(
         self,
@@ -62,7 +61,6 @@ class BalatroState(GameState):
 
         if self.blind is not None:
             self.blind.requirement = value
-
 
     def _create_deck(self):
 
@@ -84,7 +82,6 @@ class BalatroState(GameState):
             for rank in ranks
             for suit in suits
         ]
-
 
     def copy(self):
 
@@ -111,9 +108,9 @@ class BalatroState(GameState):
         new_state.vouchers = self.vouchers.copy()
         new_state.phase = self.phase
         new_state.glass_cards_destroyed = self.glass_cards_destroyed
+        new_state.last_played_hand = self.last_played_hand
 
         return new_state
-
 
     def add_consumable(self, consumable) -> bool:
 
@@ -125,7 +122,6 @@ class BalatroState(GameState):
         )
 
         return True
-
 
     def remove_consumable(self, consumable) -> bool:
 
