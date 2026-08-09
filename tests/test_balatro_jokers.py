@@ -34,6 +34,10 @@ from games.balatro.jokers.steel_joker import SteelJoker
 from games.balatro.jokers.glass_joker import GlassJoker
 from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.ride_the_bus import RideTheBusJoker
+from games.balatro.jokers.red_card import RedCardJoker
+from games.balatro.events import BalatroEvent, BalatroEventType
+from games.balatro.joker import JokerContext
+from games.balatro.jokers.castle import CastleJoker
 
 
 def test_jolly_joker():
@@ -1197,3 +1201,85 @@ def test_green_joker():
     )
 
     assert score.mult == 3
+
+
+def test_red_card_joker():
+
+    scorer = BalatroScorer()
+
+    joker = RedCardJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker],
+            "hand": []
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        event=BalatroEvent(
+            BalatroEventType.BOOSTER_SKIPPED
+        )
+    )
+
+    joker.apply(context)
+
+    assert joker.mult == 3
+
+    context = JokerContext(
+        state=state,
+        event=BalatroEvent(
+            BalatroEventType.VOUCHER_SKIPPED
+        )
+    )
+
+    joker.apply(context)
+
+    assert joker.mult == 6
+
+
+def test_castle_joker():
+
+    joker = CastleJoker("Spades")
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker],
+            "hand": []
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        event=BalatroEvent(
+            BalatroEventType.CARDS_DISCARDED,
+            [
+                BalatroCard("A", "Spades"),
+                BalatroCard("7", "Hearts"),
+                BalatroCard("K", "Spades")
+            ]
+        )
+    )
+
+    joker.apply(context)
+
+    assert joker.chips == 6
+
+    context = JokerContext(
+        state=state,
+        event=BalatroEvent(
+            BalatroEventType.CARDS_DISCARDED,
+            [
+                BalatroCard("2", "Spades")
+            ]
+        )
+    )
+
+    joker.apply(context)
+
+    assert joker.chips == 9
