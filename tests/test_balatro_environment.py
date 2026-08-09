@@ -730,3 +730,56 @@ def test_shop_can_generate_registered_tarot():
         "Strength",
         "The Magician"
     }
+
+
+def test_magician_can_be_used_through_environment():
+
+    environment = BalatroEnvironment()
+
+    first = BalatroCard(
+        "2",
+        "Hearts"
+    )
+
+    second = BalatroCard(
+        "K",
+        "Spades"
+    )
+
+    environment.state.hand = [
+        first,
+        second
+    ]
+
+    consumable = create_tarot(
+        "The Magician"
+    )
+
+    environment.state.consumables.append(
+        consumable
+    )
+
+    actions = environment.get_actions()
+
+    use_actions = [
+        action
+        for action in actions
+        if action.name == USE_CONSUMABLE
+        and action.target is consumable
+    ]
+
+    assert len(use_actions) == 3
+
+    two_card_action = next(
+        action
+        for action in use_actions
+        if action.cards == [first, second]
+    )
+
+    environment.execute_action(
+        two_card_action
+    )
+
+    assert first.enhancement == "Lucky"
+    assert second.enhancement == "Lucky"
+    assert consumable not in environment.state.consumables
