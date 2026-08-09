@@ -70,6 +70,19 @@
 
 ## v0.8.0 — Balatro Search and Planning
 
+> Decks are developed sequentially. A deck is not started until the previous deck has a complete agent and passes its validation criteria. The current target is the Red Deck.
+
+### Deck progression
+
+1. **Red Deck** — active
+2. **Blue Deck** — locked until Red Deck completion
+3. **Yellow Deck** — locked until Blue Deck completion
+4. **Green Deck** — locked until Yellow Deck completion
+5. **Black Deck** — locked until Green Deck completion
+
+### Red Deck Agent
+
+- [ ] Red Deck rules and starting-state support
 - [ ] Card selection system
 - [ ] Future state prediction
 - [ ] Hand/discard probability analysis
@@ -78,6 +91,13 @@
 - [ ] Goal-directed path planning
 - [ ] Blind completion path synthesis
 - [ ] Tactical path commitment
+- [ ] Complete Red Deck agent
+- [ ] Validate Red Deck agent across full runs
+
+### Deck completion gate
+
+- [ ] Current deck agent completes its full validation criteria
+- [ ] Current deck agent is considered complete before the next deck begins
 
 ## v1.0.0 — General Game AI Framework
 
