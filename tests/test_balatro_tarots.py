@@ -106,3 +106,87 @@ def test_strength_generates_one_or_two_card_targets():
         [first, third],
         [second, third]
     ]
+
+
+def test_strength_increases_jack_to_queen():
+
+    card = BalatroCard(
+        "J",
+        "Hearts"
+    )
+
+    tarot = create_tarot(
+        "Strength"
+    )
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.rank == "Q"
+
+
+def test_strength_increases_queen_to_king():
+
+    card = BalatroCard(
+        "Q",
+        "Hearts"
+    )
+
+    tarot = create_tarot(
+        "Strength"
+    )
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.rank == "K"
+
+
+def test_strength_increases_king_to_ace():
+
+    card = BalatroCard(
+        "K",
+        "Hearts"
+    )
+
+    tarot = create_tarot(
+        "Strength"
+    )
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.rank == "A"
+
+
+def test_strength_does_not_increase_ace():
+
+    card = BalatroCard(
+        "A",
+        "Hearts"
+    )
+
+    tarot = create_tarot(
+        "Strength"
+    )
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.rank == "A"
