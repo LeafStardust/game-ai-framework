@@ -93,6 +93,16 @@ from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.shortcut import ShortcutJoker
 from games.balatro.jokers.smeared_joker import SmearedJoker
 from games.balatro.jokers.wee_joker import WeeJoker
+from games.balatro.jokers.abstract_joker import AbstractJoker
+from games.balatro.jokers.acrobat import AcrobatJoker
+from games.balatro.jokers.cloud_9 import Cloud9Joker
+from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
+from games.balatro.jokers.egg import EggJoker
+from games.balatro.jokers.gift_card import GiftCardJoker
+from games.balatro.jokers.golden_joker import GoldenJoker
+from games.balatro.jokers.reserved_parking import ReservedParkingJoker
+from games.balatro.jokers.rocket import RocketJoker
+from games.balatro.jokers.to_do_list import ToDoListJoker
 
 
 def test_jolly_joker():
@@ -2593,3 +2603,206 @@ def test_midas_mask_joker():
     assert cards[0].enhancement == "Gold"
     assert cards[1].enhancement == "Gold"
     assert cards[2].enhancement is None
+
+
+def test_abstract_joker():
+
+    joker = AbstractJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker, object(), object()]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2)
+    )
+
+    joker.apply(context)
+
+    assert context.score.mult == 11
+
+
+def test_acrobat_joker():
+
+    joker = AcrobatJoker()
+
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        data={"hands_remaining": 0}
+    )
+
+    joker.apply(context)
+
+    assert context.score.x_mult == 3
+
+
+def test_delayed_gratification_joker():
+
+    joker = DelayedGratificationJoker()
+
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="ROUND_ENDED",
+        data={"discards_remaining": 2}
+    )
+
+    joker.apply(context)
+
+    assert context.data["delayed_gratification_money"] == 4
+
+
+def test_to_do_list_joker(monkeypatch):
+
+    monkeypatch.setattr(
+        "games.balatro.jokers.to_do_list.random.choice",
+        lambda values: PokerHand.PAIR
+    )
+
+    joker = ToDoListJoker()
+
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="HAND_SCORED",
+        poker_hand=PokerHand.PAIR
+    )
+
+    joker.apply(context)
+
+    assert context.data["money"] == 4
+
+
+def test_golden_joker():
+
+    joker = GoldenJoker()
+
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="ROUND_ENDED"
+    )
+
+    joker.apply(context)
+
+    assert context.data["money"] == 4
+
+
+def test_rocket_joker():
+
+    joker = RocketJoker()
+
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="ROUND_ENDED",
+        data={"boss_blind": True}
+    )
+
+    joker.apply(context)
+
+    assert context.data["money"] == 3
+
+
+def test_cloud_9_joker():
+
+    joker = Cloud9Joker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker],
+            "hand": [
+                BalatroCard("A", "Hearts"),
+                BalatroCard("K", "Spades")
+            ]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        trigger="ROUND_ENDED"
+    )
+
+    joker.apply(context)
+
+    assert context.data["money"] == 2
+
+
+def test_reserved_parking_joker(monkeypatch):
+
+    monkeypatch.setattr(
+        "games.balatro.jokers.reserved_parking.random.random",
+        lambda: 0.1
+    )
+
+    joker = ReservedParkingJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker],
+            "hand": [
+                BalatroCard("K", "Hearts")
+            ]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        trigger="ROUND_ENDED"
+    )
+
+    joker.apply(context)
+
+    assert context.data["money"] == 1
+
+
+def test_egg_joker():
+
+    joker = EggJoker()
+
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="ROUND_ENDED"
+    )
+
+    joker.apply(context)
+
+    assert joker.sell_value == 6
+
+
+def test_gift_card_joker():
+
+    joker = GiftCardJoker()
+
+    card = BalatroCard("A", "Hearts")
+    card.sell_value = 3
+
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="ROUND_ENDED",
+        data={"owned_cards": [card]}
+    )
+
+    joker.apply(context)
+
+    assert card.sell_value == 4
