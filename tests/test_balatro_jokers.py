@@ -5,6 +5,7 @@ from games.balatro.hand import PokerHand
 from games.balatro.scoring import BalatroScorer, HandScore
 from games.balatro.events import BalatroEvent, BalatroEventType
 from games.balatro.joker import JokerContext
+from framework.core.state import GameState
 
 from games.balatro.jokers.crazy_joker import CrazyJoker
 from games.balatro.jokers.droll_joker import DrollJoker
@@ -115,6 +116,15 @@ from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.satellite import SatelliteJoker
 from games.balatro.jokers.swashbuckler import SwashbucklerJoker
+from games.balatro.jokers.burglar import BurglarJoker
+from games.balatro.jokers.coupon_tag import CouponTagJoker
+from games.balatro.jokers.diet_cola import DietColaJoker
+from games.balatro.jokers.hallucination import HallucinationJoker
+from games.balatro.jokers.hiker import HikerJoker
+from games.balatro.jokers.merry_andy import MerryAndyJoker
+from games.balatro.jokers.showman import ShowmanJoker
+from games.balatro.jokers.stone_joker import StoneJoker
+from games.balatro.jokers.turtle_bean import TurtleBeanJoker
 
 
 def test_jolly_joker():
@@ -3186,3 +3196,133 @@ def test_swashbuckler_joker():
     joker.apply(context)
 
     assert context.score.mult == 13
+
+
+def test_burglar_joker():
+
+    joker = BurglarJoker()
+    context = JokerContext(
+        state=GameState(),
+        trigger="BLIND_SELECTED",
+        data={"discards_remaining": 2}
+    )
+
+    joker.apply(context)
+
+    assert context.data["hands_gained"] == 3
+    assert context.data["discards_lost"] == 2
+
+
+def test_coupon_tag_joker():
+
+    joker = CouponTagJoker()
+    context = JokerContext(
+        state=GameState(),
+        trigger="ROUND_STARTED"
+    )
+
+    joker.apply(context)
+
+    assert context.data["shop_free"] is True
+
+
+def test_diet_cola_joker():
+
+    joker = DietColaJoker()
+    context = JokerContext(
+        state=GameState(),
+        trigger="SOLD",
+        data={"sold_joker": joker}
+    )
+
+    joker.apply(context)
+
+    assert context.data["double_tag"] is True
+
+
+def test_hallucination_joker(monkeypatch):
+
+    monkeypatch.setattr(
+        "games.balatro.jokers.hallucination.random.random",
+        lambda: 0.1
+    )
+
+    joker = HallucinationJoker()
+    context = JokerContext(
+        state=GameState(),
+        trigger="BOOSTER_OPENED"
+    )
+
+    joker.apply(context)
+
+    assert len(context.data["created_tarot_cards"]) == 1
+
+
+def test_hiker_joker():
+
+    joker = HikerJoker()
+    card = BalatroCard("A", "Hearts")
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="HAND_SCORED",
+        cards=[card]
+    )
+
+    joker.apply(context)
+
+    assert card.permanent_bonus == 5
+
+
+def test_merry_andy_joker():
+
+    joker = MerryAndyJoker()
+    context = JokerContext(
+        state=GameState(),
+        trigger="JOKER_ACQUIRED"
+    )
+
+    joker.apply(context)
+
+    assert context.data["hand_size"] == 3
+    assert context.data["discards_per_round"] == 1
+
+
+def test_showman_joker():
+
+    joker = ShowmanJoker()
+    context = JokerContext(state=GameState())
+
+    joker.apply(context)
+
+    assert context.data["allow_duplicates"] is True
+
+
+def test_stone_joker():
+
+    joker = StoneJoker()
+    card = BalatroCard("A", "Hearts", enhancement="Stone")
+
+    context = JokerContext(
+        state=GameState(),
+        score=HandScore(10, 2),
+        cards=[card]
+    )
+
+    joker.apply(context)
+
+    assert context.score.chips == 35
+
+
+def test_turtle_bean_joker():
+
+    joker = TurtleBeanJoker()
+    context = JokerContext(
+        state=GameState(),
+        trigger="ROUND_STARTED"
+    )
+
+    joker.apply(context)
+
+    assert joker.hand_size == 4
+    assert context.data["hand_size_modifier"] == 4
