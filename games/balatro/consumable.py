@@ -20,9 +20,17 @@ class ConsumableContext:
 
     def has_valid_cards(self) -> bool:
 
-        return all(
-            card in self.state.hand
-            for card in self.cards
+        return (
+            len(self.cards) == len(
+                {
+                    id(card)
+                    for card in self.cards
+                }
+            )
+            and all(
+                card in self.state.hand
+                for card in self.cards
+            )
         )
 
 

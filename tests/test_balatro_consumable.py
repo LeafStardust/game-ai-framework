@@ -153,3 +153,24 @@ def test_consumable_context_rejects_cards_not_in_hand():
     )
 
     assert not context.has_valid_cards()
+
+
+def test_consumable_context_rejects_duplicate_cards():
+
+    state = BalatroState()
+
+    card = BalatroCard(
+        "2",
+        "Hearts"
+    )
+
+    state.hand = [
+        card
+    ]
+
+    context = ConsumableContext(
+        state=state,
+        cards=[card, card]
+    )
+
+    assert not context.has_valid_cards()
