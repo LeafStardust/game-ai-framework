@@ -125,6 +125,13 @@ from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.showman import ShowmanJoker
 from games.balatro.jokers.stone_joker import StoneJoker
 from games.balatro.jokers.turtle_bean import TurtleBeanJoker
+from games.balatro.jokers.card_sharp import CardSharpJoker
+from games.balatro.jokers.ice_cream import IceCreamJoker
+from games.balatro.jokers.jokers_apprentice import JokersApprentice
+from games.balatro.jokers.matador import MatadorJoker
+from games.balatro.jokers.popcorn import PopcornJoker
+from games.balatro.jokers.riff_raff import RiffRaffJoker
+from games.balatro.jokers.throwback import ThrowbackJoker
 
 
 def test_jolly_joker():
@@ -3326,3 +3333,105 @@ def test_turtle_bean_joker():
 
     assert joker.hand_size == 4
     assert context.data["hand_size_modifier"] == 4
+
+
+def test_card_sharp_joker():
+
+    joker = CardSharpJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        score=HandScore(10, 2),
+        data={"poker_hand_played_twice": True}
+    )
+
+    joker.apply(context)
+
+    assert context.score.x_mult == 3
+
+
+def test_ice_cream_joker():
+
+    joker = IceCreamJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        score=HandScore(10, 2),
+        trigger="HAND_SCORED"
+    )
+
+    joker.apply(context)
+
+    assert context.score.chips == 110
+    assert joker.chips == 95
+
+
+def test_jokers_apprentice():
+
+    joker = JokersApprentice()
+
+    context = JokerContext(
+        state=GameState()
+    )
+
+    joker.apply(context)
+
+    assert context.data["wild_card"] is True
+
+
+def test_matador_joker():
+
+    joker = MatadorJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="BOSS_BLIND_DEFEATED"
+    )
+
+    joker.apply(context)
+
+    assert context.data["money"] == 8
+
+
+def test_popcorn_joker():
+
+    joker = PopcornJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        score=HandScore(10, 2),
+        trigger="ROUND_ENDED"
+    )
+
+    joker.apply(context)
+
+    assert context.score.mult == 22
+    assert joker.mult == 16
+
+
+def test_riff_raff_joker():
+
+    joker = RiffRaffJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="BLIND_SELECTED"
+    )
+
+    joker.apply(context)
+
+    assert context.data["create_random_jokers"] == 2
+
+
+def test_throwback_joker():
+
+    joker = ThrowbackJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="BLIND_SKIPPED"
+    )
+
+    joker.apply(context)
+
+    assert joker.x_mult == 1.25
