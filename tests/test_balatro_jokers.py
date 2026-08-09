@@ -17,6 +17,10 @@ from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.greedy_joker import GreedyJoker
 from games.balatro.jokers.lusty_joker import LustyJoker
 from games.balatro.jokers.wrathful_joker import WrathfulJoker
+from games.balatro.jokers.even_steven import EvenStevenJoker
+from games.balatro.jokers.fibonacci import FibonacciJoker
+from games.balatro.jokers.odd_todd import OddToddJoker
+from games.balatro.jokers.scholar import ScholarJoker
 
 
 def test_jolly_joker():
@@ -528,3 +532,135 @@ def test_gluttonous_joker():
     assert score.chips == 5
     assert score.mult == 7
     assert score.total == 35
+
+
+def test_even_steven_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                EvenStevenJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("4", "Spades"),
+        BalatroCard("7", "Clubs"),
+        BalatroCard("A", "Diamonds"),
+        BalatroCard("K", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.chips == 5
+    assert score.mult == 9
+    assert score.total == 45
+
+
+def test_odd_todd_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                OddToddJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("3", "Spades"),
+        BalatroCard("7", "Clubs"),
+        BalatroCard("K", "Diamonds"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.chips == 98
+    assert score.mult == 1
+    assert score.total == 98
+
+
+def test_fibonacci_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                FibonacciJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("2", "Spades"),
+        BalatroCard("5", "Clubs"),
+        BalatroCard("K", "Diamonds"),
+        BalatroCard("Q", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.chips == 5
+    assert score.mult == 25
+    assert score.total == 125
+
+
+def test_scholar_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                ScholarJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("A", "Spades"),
+        BalatroCard("7", "Clubs"),
+        BalatroCard("4", "Diamonds"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state,
+        cards
+    )
+
+    assert score.chips == 50
+    assert score.mult == 10
+    assert score.total == 500
