@@ -111,6 +111,10 @@ from games.balatro.jokers.invisible_joker import InvisibleJoker
 from games.balatro.jokers.joker_stencil import JokerStencil
 from games.balatro.jokers.luchador import LuchadorJoker
 from games.balatro.jokers.mr_bones import MrBonesJoker
+from games.balatro.jokers.madness import MadnessJoker
+from games.balatro.jokers.mime import MimeJoker
+from games.balatro.jokers.satellite import SatelliteJoker
+from games.balatro.jokers.swashbuckler import SwashbucklerJoker
 
 
 def test_jolly_joker():
@@ -3011,3 +3015,174 @@ def test_brainstorm():
     joker.apply(context)
 
     assert context.data["copy_joker"] is first
+
+
+def test_madness_joker(monkeypatch):
+
+    target = object()
+
+    monkeypatch.setattr(
+        "games.balatro.jokers.madness.random.choice",
+        lambda jokers: target
+    )
+
+    joker = MadnessJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker, target]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        trigger="SMALL_BLIND_SELECTED"
+    )
+
+    joker.apply(context)
+
+    assert joker.x_mult == 1.5
+    assert context.data["destroy_joker"] is target
+
+
+def test_madness_does_not_trigger_on_boss():
+
+    joker = MadnessJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        trigger="BOSS_BLIND_SELECTED"
+    )
+
+    joker.apply(context)
+
+    assert joker.x_mult == 1.0
+    assert "destroy_joker" not in context.data
+
+
+def test_mime_joker():
+
+    joker = MimeJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2)
+    )
+
+    joker.apply(context)
+
+    assert context.data["retrigger_held_abilities"] == 1
+
+
+def test_satellite_joker():
+
+    joker = SatelliteJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        trigger="ROUND_ENDED",
+        data={
+            "used_planets": [
+                "Mercury",
+                "Venus",
+                "Earth",
+            ]
+        }
+    )
+
+    joker.apply(context)
+
+    assert context.data["money"] == 3
+
+
+def test_satellite_only_counts_unique_planets():
+
+    joker = SatelliteJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        trigger="ROUND_ENDED",
+        data={
+            "used_planets": [
+                "Mercury",
+                "Mercury",
+                "Venus",
+            ]
+        }
+    )
+
+    joker.apply(context)
+
+    assert context.data["money"] == 2
+
+
+def test_swashbuckler_joker():
+
+    joker = SwashbucklerJoker()
+
+    first = type(
+        "TestJoker",
+        (),
+        {
+            "sell_value": 4
+        }
+    )()
+
+    second = type(
+        "TestJoker",
+        (),
+        {
+            "sell_value": 7
+        }
+    )()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [first, joker, second]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2)
+    )
+
+    joker.apply(context)
+
+    assert context.score.mult == 13
