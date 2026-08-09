@@ -10,9 +10,11 @@ class BalatroFutureStatePredictor:
 
     def __init__(
         self,
-        environment: BalatroEnvironment
+        environment: BalatroEnvironment,
+        seed: int | None = None
     ):
         self.environment = environment
+        self.rng = random.Random(seed)
 
     def predict(
         self,
@@ -29,7 +31,7 @@ class BalatroFutureStatePredictor:
 
             environment = self.environment.copy()
 
-            random.Random().shuffle(
+            self.rng.shuffle(
                 environment.state.deck
             )
 
