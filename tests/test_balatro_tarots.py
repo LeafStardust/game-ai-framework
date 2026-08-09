@@ -1,0 +1,78 @@
+from games.balatro.card import BalatroCard
+from games.balatro.consumable import ConsumableContext
+from games.balatro.state import BalatroState
+from games.balatro.tarots import create_tarot
+
+
+def test_strength_can_use_with_cards():
+
+    tarot = create_tarot("Strength")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[
+            BalatroCard(
+                "2",
+                "Hearts"
+            )
+        ]
+    )
+
+    assert tarot.can_use(context)
+
+
+def test_strength_cannot_use_without_cards():
+
+    tarot = create_tarot("Strength")
+
+    context = ConsumableContext(
+        state=BalatroState()
+    )
+
+    assert not tarot.can_use(context)
+
+
+def test_strength_increases_rank():
+
+    card = BalatroCard(
+        "2",
+        "Hearts"
+    )
+
+    tarot = create_tarot("Strength")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.rank == "3"
+
+
+def test_strength_does_not_change_ace():
+
+    card = BalatroCard(
+        "A",
+        "Hearts"
+    )
+
+    tarot = create_tarot("Strength")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.rank == "A"
+
+
+def test_create_tarot_returns_independent_instance():
+
+    first = create_tarot("Strength")
+    second = create_tarot("Strength")
+
+    assert first is not second

@@ -81,3 +81,14 @@ class PlanetCard(Consumable):
         context.data["mult"] = self.mult
 
         return context
+
+
+class TarotCard(Consumable):
+
+    category = "TAROT"
+
+    def __init__(
+        self,
+        name: str
+    ):
+        self.name = name
