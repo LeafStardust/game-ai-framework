@@ -39,3 +39,13 @@ def test_balatro_state_copy_is_independent():
 
     assert state.money == 10
     assert copied.money == 50
+
+
+def test_balatro_state_copies_consumable_slots():
+
+    state = BalatroState()
+    state.consumable_slots = 3
+
+    copied_state = state.copy()
+
+    assert copied_state.consumable_slots == 3

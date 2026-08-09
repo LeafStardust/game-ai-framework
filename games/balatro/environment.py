@@ -417,6 +417,22 @@ class BalatroEnvironment(GameEnvironment):
         )
 
 
+    def _add_consumable(
+        self,
+        state: BalatroState,
+        consumable
+    ) -> bool:
+
+        if len(state.consumables) >= state.consumable_slots:
+            return False
+
+        state.consumables.append(
+            consumable
+        )
+
+        return True
+
+
     def is_terminal(self) -> bool:
 
         return self.state.ante > 8

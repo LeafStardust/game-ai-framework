@@ -248,3 +248,55 @@ def test_environment_generates_planet():
         planet.name
         for planet in PLANET_CARDS.values()
     ]
+
+
+def test_add_consumable_respects_inventory_capacity():
+
+    environment = BalatroEnvironment()
+
+    first = create_planet("MERCURY")
+    second = create_planet("VENUS")
+
+    assert environment._add_consumable(
+        environment.state,
+        first
+    )
+
+    assert environment._add_consumable(
+        environment.state,
+        second
+    )
+
+    assert environment.state.consumables == [
+        first,
+        second
+    ]
+
+
+def test_add_consumable_rejects_full_inventory():
+
+    environment = BalatroEnvironment()
+
+    first = create_planet("MERCURY")
+    second = create_planet("VENUS")
+    third = create_planet("EARTH")
+
+    environment._add_consumable(
+        environment.state,
+        first
+    )
+
+    environment._add_consumable(
+        environment.state,
+        second
+    )
+
+    assert not environment._add_consumable(
+        environment.state,
+        third
+    )
+
+    assert environment.state.consumables == [
+        first,
+        second
+    ]
