@@ -26,6 +26,7 @@ class BalatroState(GameState):
 
         self.jokers: list = []
         self.consumables: list = []
+        self.shop_consumables: list = []
         self.consumable_slots = 2
         self.hand_levels = {
             "HIGH_CARD": 1,
@@ -116,6 +117,7 @@ class BalatroState(GameState):
 
         new_state.jokers = self.jokers.copy()
         new_state.consumables = self.consumables.copy()
+        new_state.shop_consumables = self.shop_consumables.copy()
         new_state.consumable_slots = self.consumable_slots
         new_state.hand_levels = self.hand_levels.copy()
         new_state.vouchers = self.vouchers.copy()

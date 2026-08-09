@@ -81,3 +81,22 @@ def test_balatro_state_rejects_consumable_when_full():
     assert state.add_consumable(first)
     assert state.add_consumable(second)
     assert not state.add_consumable(third)
+
+
+def test_balatro_state_copies_shop_consumables():
+
+    state = BalatroState()
+
+    consumable = create_planet("MERCURY")
+
+    state.shop_consumables.append(
+        consumable
+    )
+
+    copied_state = state.copy()
+
+    assert copied_state.shop_consumables == [
+        consumable
+    ]
+
+    assert copied_state.shop_consumables is not state.shop_consumables

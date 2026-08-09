@@ -1,6 +1,6 @@
 from games.balatro.card import BalatroCard
 from games.balatro.environment import BalatroEnvironment
-from games.balatro.actions import DISCARD_CARDS, END_ROUND, PLAY_CARDS, USE_CONSUMABLE, BalatroAction
+from games.balatro.actions import DISCARD_CARDS, END_ROUND, PLAY_CARDS, BUY_CONSUMABLE, USE_CONSUMABLE, BalatroAction
 from games.balatro.consumable import Consumable
 from games.balatro.planets import create_planet, PLANET_CARDS
 
@@ -252,3 +252,68 @@ def test_environment_uses_state_consumable_inventory():
     )
 
     assert consumable in environment.state.consumables
+
+
+def test_buy_consumable_moves_consumable_to_inventory():
+
+    environment = BalatroEnvironment()
+
+    consumable = create_planet("MERCURY")
+
+    environment.state.shop_consumables.append(
+        consumable
+    )
+
+    actions = environment.get_actions()
+
+    buy_actions = [
+        action
+        for action in actions
+        if action.name == BUY_CONSUMABLE
+    ]
+
+    assert len(buy_actions) == 1
+    assert buy_actions[0].target is consumable
+
+    environment.execute_action(
+        buy_actions[0]
+    )
+
+    assert consumable in environment.state.consumables
+    assert consumable not in environment.state.shop_consumables
+
+
+def test_buy_consumable_fails_when_inventory_is_full():
+
+    environment = BalatroEnvironment()
+
+    first = create_planet("MERCURY")
+    second = create_planet("VENUS")
+    third = create_planet("EARTH")
+
+    environment.state.add_consumable(first)
+    environment.state.add_consumable(second)
+
+    environment.state.shop_consumables.append(
+        third
+    )
+
+    actions = environment.get_actions()
+
+    buy_actions = [
+        action
+        for action in actions
+        if action.name == BUY_CONSUMABLE
+    ]
+
+    assert len(buy_actions) == 0
+
+    environment.execute_action(
+        BalatroAction(
+            BUY_CONSUMABLE,
+            target=third
+        )
+    )
+
+    assert third not in environment.state.consumables
+    assert third in environment.state.shop_consumables
