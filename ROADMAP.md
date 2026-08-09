@@ -82,8 +82,8 @@
 
 ### Red Deck Agent
 
-- [ ] Red Deck rules and starting-state support
-- [ ] Card selection system
+- [x] Red Deck rules and starting-state support
+- [x] Card selection system
 - [ ] Future state prediction
 - [ ] Hand/discard probability analysis
 - [ ] Search-based decision making
