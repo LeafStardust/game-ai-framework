@@ -20,15 +20,20 @@ class RaisedFistJoker(Joker):
     }
 
     def apply(self, context: JokerContext) -> JokerContext:
+        if context.trigger != "HAND_SCORED":
+            return context
 
-        if context.score is None or not context.held_cards:
+        if not context.held_cards:
             return context
 
         lowest = min(
-            self.RANK_VALUES[card.rank]
-            for card in context.held_cards
+            context.held_cards,
+            key=lambda card: self.RANK_VALUES[card.rank]
         )
 
-        context.score.mult += lowest * 2
+        context.data["raised_fist_card"] = lowest
+        context.data["raised_fist_mult"] = (
+            self.RANK_VALUES[lowest.rank] * 2
+        )
 
         return context

@@ -7,11 +7,11 @@ class MerryAndyJoker(Joker):
         if context.trigger != "JOKER_ACQUIRED":
             return context
 
-        context.data["hand_size"] = (
-            context.data.get("hand_size", 0) + 3
+        context.data["hand_size_modifier"] = (
+            context.data.get("hand_size_modifier", 0) + 3
         )
-        context.data["discards_per_round"] = (
-            context.data.get("discards_per_round", 0) + 1
+        context.data["discards_per_round_modifier"] = (
+            context.data.get("discards_per_round_modifier", 0) + 1
         )
 
         return context

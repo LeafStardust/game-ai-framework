@@ -8,6 +8,9 @@ class JollyJoker(Joker):
         context: JokerContext
     ) -> JokerContext:
 
+        if context.score is None:
+            return context
+
         if self._has_pair(context.cards):
             context.score.mult += 8
 
@@ -15,10 +18,5 @@ class JollyJoker(Joker):
 
     @staticmethod
     def _has_pair(cards):
-
-        ranks = [
-            card.rank
-            for card in cards
-        ]
-
+        ranks = [card.rank for card in cards]
         return len(ranks) != len(set(ranks))

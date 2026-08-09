@@ -8,6 +8,9 @@ class SteelJoker(Joker):
         context: JokerContext
     ) -> JokerContext:
 
+        if context.score is None:
+            return context
+
         steel_cards = sum(
             card.enhancement == "Steel"
             for card in context.state.deck

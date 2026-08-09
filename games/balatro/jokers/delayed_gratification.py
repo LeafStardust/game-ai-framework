@@ -7,12 +7,14 @@ class DelayedGratificationJoker(Joker):
         if context.trigger != "ROUND_ENDED":
             return context
 
-        if context.data.get("discards_remaining", 0) == 0:
+        discards_remaining = context.data.get("discards_remaining", 0)
+
+        if discards_remaining <= 0:
             return context
 
         context.data["delayed_gratification_money"] = (
             context.data.get("delayed_gratification_money", 0)
-            + context.data["discards_remaining"] * 2
+            + discards_remaining * 2
         )
 
         return context

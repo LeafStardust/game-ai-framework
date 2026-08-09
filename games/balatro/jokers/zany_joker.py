@@ -2,13 +2,15 @@ from collections import Counter
 
 from games.balatro.joker import Joker, JokerContext
 
-
 class ZanyJoker(Joker):
 
     def apply(
         self,
         context: JokerContext
     ) -> JokerContext:
+
+        if context.score is None:
+            return context
 
         counts = Counter(
             card.rank

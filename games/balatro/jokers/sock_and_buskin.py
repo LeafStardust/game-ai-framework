@@ -11,9 +11,9 @@ class SockAndBuskinJoker(Joker):
         ]
 
         if face_cards:
-            context.data["retrigger_cards"] = context.data.get(
-                "retrigger_cards",
-                0
-            ) + len(face_cards)
+            context.data["retrigger_played_cards"] = (
+                context.data.get("retrigger_played_cards", 0)
+                + len(face_cards)
+            )
 
         return context

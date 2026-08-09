@@ -10,10 +10,6 @@ class DNAJoker(Joker):
         if len(context.cards) != 1:
             return context
 
-        if context.data.get("dna_triggered"):
-            return context
-
-        context.data["dna_triggered"] = True
         context.data.setdefault(
             "copied_cards",
             []

@@ -3,10 +3,9 @@ from games.balatro.joker import Joker, JokerContext
 
 class BlackboardJoker(Joker):
 
-    def apply(
-        self,
-        context: JokerContext
-    ) -> JokerContext:
+    def apply(self, context: JokerContext) -> JokerContext:
+        if context.score is None:
+            return context
 
         if context.held_cards and all(
             card.suit in ("Spades", "Clubs")

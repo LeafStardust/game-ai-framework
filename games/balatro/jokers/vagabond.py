@@ -2,13 +2,9 @@ import random
 
 from games.balatro.joker import Joker, JokerContext
 
-
 class VagabondJoker(Joker):
 
     def apply(self, context: JokerContext) -> JokerContext:
-        if context.score is None:
-            return context
-
         money = context.data.get(
             "money",
             getattr(context.state, "money", 0)

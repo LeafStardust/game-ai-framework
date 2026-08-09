@@ -8,6 +8,9 @@ class ScholarJoker(Joker):
         context: JokerContext
     ) -> JokerContext:
 
+        if context.score is None:
+            return context
+
         aces = sum(
             card.rank == "A"
             for card in context.cards

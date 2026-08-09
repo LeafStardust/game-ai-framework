@@ -3,10 +3,9 @@ from games.balatro.joker import Joker, JokerContext
 
 class DrollJoker(Joker):
 
-    def apply(
-        self,
-        context: JokerContext
-    ) -> JokerContext:
+    def apply(self, context: JokerContext) -> JokerContext:
+        if context.score is None:
+            return context
 
         if context.cards and len({
             card.suit

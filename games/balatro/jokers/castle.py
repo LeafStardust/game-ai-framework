@@ -1,4 +1,3 @@
-from games.balatro.events import BalatroEventType
 from games.balatro.joker import Joker, JokerContext
 
 
@@ -9,19 +8,17 @@ class CastleJoker(Joker):
         self.chips = 0
 
     def apply(self, context: JokerContext) -> JokerContext:
+        if context.event is not None:
+            cards = context.event.cards or []
 
-        if context.event is None:
-            return context
+            if context.event.type.value == "CARDS_DISCARDED":
+                matching_cards = sum(
+                    card.suit == self.suit
+                    for card in cards
+                )
 
-        if context.event.type != BalatroEventType.CARDS_DISCARDED:
-            return context
-
-        matching_cards = sum(
-            card.suit == self.suit
-            for card in context.event.cards
-        )
-
-        self.chips += matching_cards * 3
+                self.chips += matching_cards * 3
+                return context
 
         if context.score is not None:
             context.score.chips += self.chips

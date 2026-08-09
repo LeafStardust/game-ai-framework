@@ -10,9 +10,6 @@ class LuckyCatJoker(Joker):
         if context.trigger != "LUCKY_TRIGGERED":
             return context
 
-        self.x_mult += 0.2
-
-        if context.score is not None:
-            context.score.x_mult *= 1.2
+        self.x_mult += 0.25
 
         return context

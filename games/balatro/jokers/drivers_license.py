@@ -3,10 +3,9 @@ from games.balatro.joker import Joker, JokerContext
 
 class DriversLicenseJoker(Joker):
 
-    def apply(
-        self,
-        context: JokerContext
-    ) -> JokerContext:
+    def apply(self, context: JokerContext) -> JokerContext:
+        if context.score is None:
+            return context
 
         enhanced_cards = sum(
             getattr(card, "enhancement", None) is not None

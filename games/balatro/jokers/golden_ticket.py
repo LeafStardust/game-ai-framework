@@ -8,7 +8,7 @@ class GoldenTicketJoker(Joker):
             return context
 
         gold_cards = sum(
-            card.enhancement == "Gold"
+            getattr(card, "seal", None) == "Gold"
             for card in context.cards
         )
 

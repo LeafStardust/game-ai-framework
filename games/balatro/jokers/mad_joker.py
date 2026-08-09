@@ -10,6 +10,9 @@ class MadJoker(Joker):
         context: JokerContext
     ) -> JokerContext:
 
+        if context.score is None:
+            return context
+
         counts = Counter(
             card.rank
             for card in context.cards

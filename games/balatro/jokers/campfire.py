@@ -11,9 +11,11 @@ class CampfireJoker(Joker):
         if context.event is not None:
             if context.event.type == BalatroEventType.CARD_SOLD:
                 self.x_mult += 0.25
+                return context
 
-            elif context.event.type == BalatroEventType.BOSS_BLIND_DEFEATED:
+            if context.event.type == BalatroEventType.BOSS_BLIND_DEFEATED:
                 self.x_mult = 1.0
+                return context
 
         if context.score is not None:
             context.score.x_mult *= self.x_mult

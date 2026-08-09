@@ -8,11 +8,12 @@ class LustyJoker(Joker):
         context: JokerContext
     ) -> JokerContext:
 
-        mult = sum(
+        if context.score is None:
+            return context
+
+        context.score.mult += sum(
             card.suit == "Hearts"
             for card in context.cards
         ) * 3
-
-        context.score.mult += mult
 
         return context

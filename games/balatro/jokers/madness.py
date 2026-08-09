@@ -26,4 +26,7 @@ class MadnessJoker(Joker):
         if jokers:
             context.data["destroy_joker"] = random.choice(jokers)
 
+        if context.score is not None:
+            context.score.x_mult *= self.x_mult
+
         return context

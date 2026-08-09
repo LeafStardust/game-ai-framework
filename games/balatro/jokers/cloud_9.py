@@ -7,13 +7,15 @@ class Cloud9Joker(Joker):
         if context.trigger != "ROUND_ENDED":
             return context
 
-        hand_size = len(
-            getattr(context.state, "hand", [])
+        deck = context.data.get("deck", [])
+
+        nines = sum(
+            card.rank == "9"
+            for card in deck
         )
 
         context.data["money"] = (
-            context.data.get("money", 0)
-            + hand_size
+            context.data.get("money", 0) + nines
         )
 
         return context

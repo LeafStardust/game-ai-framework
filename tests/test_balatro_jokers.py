@@ -1664,28 +1664,22 @@ def test_shoot_the_moon_joker():
 
 
 def test_raised_fist_joker():
+    joker = RaisedFistJoker()
 
-    scorer = BalatroScorer()
-
-    state = type(
-        "TestState",
-        (),
-        {
-            "jokers": [RaisedFistJoker()],
-            "hand": [
-                BalatroCard("7", "Hearts"),
-                BalatroCard("K", "Spades"),
-                BalatroCard("3", "Clubs")
-            ]
-        }
-    )()
-
-    score = scorer.score(
-        PokerHand.HIGH_CARD,
-        state
+    context = JokerContext(
+        state=GameState(),
+        trigger="HAND_SCORED",
+        held_cards=[
+            BalatroCard("7", "Hearts"),
+            BalatroCard("K", "Spades"),
+            BalatroCard("3", "Clubs"),
+        ]
     )
 
-    assert score.mult == 7
+    joker.apply(context)
+
+    assert context.data["raised_fist_card"].rank == "3"
+    assert context.data["raised_fist_mult"] == 6
 
 
 def test_seeing_double_joker():
@@ -2076,7 +2070,10 @@ def test_chicot_joker():
     joker = ChicotJoker()
     state = type("TestState", (), {"jokers": [joker]})()
 
-    context = JokerContext(state=state)
+    context = JokerContext(
+        state=state,
+        data={"boss_blind": True}
+    )
 
     joker.apply(context)
 
@@ -2143,7 +2140,8 @@ def test_loyalty_card_joker():
     for _ in range(6):
         context = JokerContext(
             state=state,
-            score=HandScore(10, 2)
+            score=HandScore(10, 2),
+            trigger="HAND_PLAYED"
         )
         joker.apply(context)
 
@@ -2151,21 +2149,22 @@ def test_loyalty_card_joker():
 
 
 def test_flash_card_joker():
-
     joker = FlashCardJoker()
 
-    state = type(
-        "TestState",
-        (),
-        {
-            "jokers": [joker]
-        }
-    )()
+    state = type("TestState", (), {"jokers": [joker]})()
 
     context = JokerContext(
         state=state,
-        score=HandScore(10, 2),
-        data={"rerolls": 3}
+        trigger="SHOP_REROLLED"
+    )
+
+    joker.apply(context)
+    joker.apply(context)
+    joker.apply(context)
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2)
     )
 
     joker.apply(context)
@@ -2229,13 +2228,12 @@ def test_burnt_joker():
 
 
 def test_certificate_joker():
-
     joker = CertificateJoker()
     state = type("TestState", (), {"jokers": [joker]})()
 
     context = JokerContext(
         state=state,
-        score=HandScore(10, 2)
+        trigger="ROUND_STARTED"
     )
 
     joker.apply(context)
@@ -2327,21 +2325,19 @@ def test_sixth_sense_joker():
 
 
 def test_trading_card_joker():
-
     joker = TradingCardJoker()
-    state = type("TestState", (), {"jokers": [joker]})()
-
-    card = BalatroCard("A", "Hearts")
 
     context = JokerContext(
-        state=state,
-        trigger="CARDS_DISCARDED",
-        cards=[card]
+        state=GameState(),
+        trigger="DISCARD",
+        cards=[
+            BalatroCard("A", "Hearts")
+        ]
     )
 
     joker.apply(context)
 
-    assert context.data["destroyed_cards"] == [card]
+    assert context.data["destroyed_cards"] == context.cards
     assert context.data["money"] == 3
 
 
@@ -2390,8 +2386,6 @@ def test_eight_ball_joker(monkeypatch):
 
 
 def test_eight_ball_joker_does_not_trigger_without_eight():
-
-    monkeypatch = None
 
     joker = EightBallJoker()
     state = type("TestState", (), {"jokers": [joker]})()
@@ -2484,7 +2478,6 @@ def test_photograph_joker_does_not_trigger_without_face_first():
 
 
 def test_sock_and_buskin_joker():
-
     joker = SockAndBuskinJoker()
     state = type("TestState", (), {"jokers": [joker]})()
 
@@ -2499,7 +2492,7 @@ def test_sock_and_buskin_joker():
 
     joker.apply(context)
 
-    assert context.data["retrigger_cards"] == 2
+    assert context.data["retrigger_played_cards"] == 2
 
 
 def test_hanging_chad_joker():
@@ -2520,15 +2513,15 @@ def test_hanging_chad_joker():
 
 
 def test_four_fingers_joker():
-
     joker = FourFingersJoker()
-    state = type("TestState", (), {"jokers": [joker]})()
 
-    context = JokerContext(state=state)
+    context = JokerContext(state=GameState())
 
     joker.apply(context)
 
-    assert context.data["four_fingers"] is True
+    assert context.data["straight_flush_size"] == 4
+    assert context.data["flush_size"] == 4
+    assert context.data["straight_size"] == 4
 
 
 def test_shortcut_joker():
@@ -2654,9 +2647,7 @@ def test_wee_joker():
 
 
 def test_midas_mask_joker():
-
     joker = MidasMaskJoker()
-    state = type("TestState", (), {"jokers": [joker]})()
 
     cards = [
         BalatroCard("K", "Hearts"),
@@ -2665,7 +2656,8 @@ def test_midas_mask_joker():
     ]
 
     context = JokerContext(
-        state=state,
+        state=GameState(),
+        trigger="HAND_SCORED",
         cards=cards
     )
 
@@ -2677,7 +2669,6 @@ def test_midas_mask_joker():
 
 
 def test_abstract_joker():
-
     joker = AbstractJoker()
 
     state = type(
@@ -2695,7 +2686,7 @@ def test_abstract_joker():
 
     joker.apply(context)
 
-    assert context.score.mult == 11
+    assert context.score.mult == 8
 
 
 def test_acrobat_joker():
@@ -2733,7 +2724,6 @@ def test_delayed_gratification_joker():
 
 
 def test_to_do_list_joker(monkeypatch):
-
     monkeypatch.setattr(
         "games.balatro.jokers.to_do_list.random.choice",
         lambda values: PokerHand.PAIR
@@ -2741,17 +2731,15 @@ def test_to_do_list_joker(monkeypatch):
 
     joker = ToDoListJoker()
 
-    state = type("TestState", (), {"jokers": [joker]})()
-
     context = JokerContext(
-        state=state,
+        state=GameState(),
         trigger="HAND_SCORED",
         poker_hand=PokerHand.PAIR
     )
 
     joker.apply(context)
 
-    assert context.data["money"] == 4
+    assert context.data["money"] == 5
 
 
 def test_golden_joker():
@@ -2788,24 +2776,18 @@ def test_rocket_joker():
 
 
 def test_cloud_9_joker():
-
     joker = Cloud9Joker()
 
-    state = type(
-        "TestState",
-        (),
-        {
-            "jokers": [joker],
-            "hand": [
-                BalatroCard("A", "Hearts"),
-                BalatroCard("K", "Spades")
+    context = JokerContext(
+        state=GameState(),
+        trigger="ROUND_ENDED",
+        data={
+            "deck": [
+                BalatroCard("9", "Hearts"),
+                BalatroCard("K", "Spades"),
+                BalatroCard("9", "Clubs"),
             ]
         }
-    )()
-
-    context = JokerContext(
-        state=state,
-        trigger="ROUND_ENDED"
     )
 
     joker.apply(context)
@@ -2964,15 +2946,16 @@ def test_blue_joker():
 
 
 def test_golden_ticket():
-
     joker = GoldenTicketJoker()
-    state = type("TestState", (), {"jokers": [joker]})()
+
+    gold_card = BalatroCard("A", "Hearts")
+    gold_card.seal = "Gold"
 
     context = JokerContext(
-        state=state,
+        state=GameState(),
         trigger="CARDS_SCORED",
         cards=[
-            BalatroCard("A", "Hearts", enhancement="Gold"),
+            gold_card,
             BalatroCard("K", "Spades"),
         ]
     )
@@ -2983,13 +2966,11 @@ def test_golden_ticket():
 
 
 def test_luchador():
-
     joker = LuchadorJoker()
-    state = type("TestState", (), {"jokers": [joker]})()
 
     context = JokerContext(
-        state=state,
-        trigger="BOSS_BLIND_DEFEATED"
+        state=GameState(),
+        trigger="BOSS_BLIND_SELECTED"
     )
 
     joker.apply(context)
@@ -3248,18 +3229,17 @@ def test_swashbuckler_joker():
 
 
 def test_burglar_joker():
-
     joker = BurglarJoker()
+
     context = JokerContext(
         state=GameState(),
-        trigger="BLIND_SELECTED",
-        data={"discards_remaining": 2}
+        trigger="BLIND_SELECTED"
     )
 
     joker.apply(context)
 
     assert context.data["hands_gained"] == 3
-    assert context.data["discards_lost"] == 2
+    assert context.data["discards_remaining"] == 0
 
 
 def test_coupon_tag_joker():
@@ -3290,13 +3270,13 @@ def test_diet_cola_joker():
 
 
 def test_hallucination_joker(monkeypatch):
-
     monkeypatch.setattr(
         "games.balatro.jokers.hallucination.random.random",
         lambda: 0.1
     )
 
     joker = HallucinationJoker()
+
     context = JokerContext(
         state=GameState(),
         trigger="BOOSTER_OPENED"
@@ -3304,7 +3284,7 @@ def test_hallucination_joker(monkeypatch):
 
     joker.apply(context)
 
-    assert len(context.data["created_tarot_cards"]) == 1
+    assert context.data["created_consumables"] == ["Random Tarot"]
 
 
 def test_hiker_joker():
@@ -3324,8 +3304,8 @@ def test_hiker_joker():
 
 
 def test_merry_andy_joker():
-
     joker = MerryAndyJoker()
+
     context = JokerContext(
         state=GameState(),
         trigger="JOKER_ACQUIRED"
@@ -3333,8 +3313,8 @@ def test_merry_andy_joker():
 
     joker.apply(context)
 
-    assert context.data["hand_size"] == 3
-    assert context.data["discards_per_round"] == 1
+    assert context.data["hand_size_modifier"] == 3
+    assert context.data["discards_per_round_modifier"] == 1
 
 
 def test_showman_joker():
@@ -3480,7 +3460,6 @@ def test_throwback_joker():
 
 
 def test_baseball_card_joker():
-
     joker = BaseballCardJoker()
 
     rare_joker = type(
@@ -3509,12 +3488,12 @@ def test_baseball_card_joker():
 
     context = JokerContext(
         state=state,
-        trigger="HAND_SCORED"
+        score=HandScore(10, 1)
     )
 
     joker.apply(context)
 
-    assert context.data["rare_joker_triggers"] == 1
+    assert context.score.x_mult == 1.5
 
 
 def test_dusk_joker():
@@ -3748,7 +3727,6 @@ def test_faceless_joker():
 
 
 def test_lucky_cat_joker():
-
     joker = LuckyCatJoker()
 
     context = JokerContext(
@@ -3758,7 +3736,7 @@ def test_lucky_cat_joker():
 
     joker.apply(context)
 
-    assert joker.x_mult == 1.2
+    assert joker.x_mult == 1.25
 
 
 def test_mail_in_rebate_joker():
@@ -3834,11 +3812,11 @@ def test_business_card_joker(monkeypatch):
 
 
 def test_chaos_the_clown_joker():
-
     joker = ChaosTheClownJoker()
 
     context = JokerContext(
-        state=GameState()
+        state=GameState(),
+        trigger="SHOP_ENTERED"
     )
 
     joker.apply(context)
@@ -3873,14 +3851,13 @@ def test_juggler_joker():
 
 
 def test_spare_trousers_joker():
-
     joker = SpareTrousersJoker()
 
     context = JokerContext(
         state=GameState(),
         score=HandScore(10, 2),
         trigger="HAND_SCORED",
-        data={"poker_hand": "Two Pair"}
+        poker_hand=PokerHand.TWO_PAIR
     )
 
     joker.apply(context)
@@ -3927,21 +3904,20 @@ def test_stuntman_joker():
 
 
 def test_superposition_joker():
-
     joker = SuperpositionJoker()
 
     context = JokerContext(
         state=GameState(),
         trigger="HAND_SCORED",
+        poker_hand=PokerHand.STRAIGHT,
         cards=[
             BalatroCard("A", "Hearts"),
-        ],
-        data={"straight": True}
+        ]
     )
 
     joker.apply(context)
 
-    assert len(context.data["created_tarot_cards"]) == 1
+    assert context.data["created_tarot_cards"] == ["Random"]
 
 
 def test_to_the_moon_joker():

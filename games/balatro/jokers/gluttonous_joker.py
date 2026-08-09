@@ -8,6 +8,9 @@ class GluttonousJoker(Joker):
         context: JokerContext
     ) -> JokerContext:
 
+        if context.score is None:
+            return context
+
         mult = sum(
             card.suit == "Clubs"
             for card in context.cards

@@ -21,7 +21,7 @@ class ToDoListJoker(Joker):
                 "money",
                 0
             )
-            context.data["money"] += 4
+            context.data["money"] += 5
             context.data["to_do_list_hand"] = random.choice(
                 list(PokerHand)
             )

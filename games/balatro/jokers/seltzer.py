@@ -10,9 +10,10 @@ class SeltzerJoker(Joker):
         if self.rounds_remaining <= 0:
             return context
 
-        context.data["retrigger_played_cards"] = (
-            context.data.get("retrigger_played_cards", 0) + 1
-        )
+        if context.trigger == "HAND_SCORED":
+            context.data["retrigger_played_cards"] = (
+                context.data.get("retrigger_played_cards", 0) + 1
+            )
 
         if context.trigger == "ROUND_ENDED":
             self.rounds_remaining -= 1

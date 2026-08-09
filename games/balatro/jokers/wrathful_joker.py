@@ -1,12 +1,14 @@
 from games.balatro.joker import Joker, JokerContext
 
-
 class WrathfulJoker(Joker):
 
     def apply(
         self,
         context: JokerContext
     ) -> JokerContext:
+
+        if context.score is None:
+            return context
 
         mult = sum(
             card.suit == "Spades"

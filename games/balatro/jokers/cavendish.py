@@ -9,13 +9,14 @@ class CavendishJoker(Joker):
         self.active = True
 
     def apply(self, context: JokerContext) -> JokerContext:
-        if context.score is None or not self.active:
+        if context.trigger == "ROUND_ENDED":
+            if random.random() < 0.001:
+                self.active = False
+                context.data["remove_joker"] = self
+
             return context
 
-        context.score.x_mult *= 3
-
-        if random.random() < 0.001:
-            self.active = False
-            context.data["remove_joker"] = self
+        if context.score is not None and self.active:
+            context.score.x_mult *= 3
 
         return context

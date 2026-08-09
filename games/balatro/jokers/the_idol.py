@@ -16,11 +16,12 @@ class TheIdolJoker(Joker):
         if context.score is None:
             return context
 
-        if any(
+        matches = sum(
             card.rank == self.rank
             and card.suit == self.suit
             for card in context.cards
-        ):
-            context.score.x_mult *= 2
+        )
+
+        context.score.x_mult *= 2 ** matches
 
         return context

@@ -1,3 +1,4 @@
+from games.balatro.hand import PokerHand
 from games.balatro.joker import Joker, JokerContext
 
 
@@ -10,7 +11,7 @@ class SpareTrousersJoker(Joker):
         if context.trigger != "HAND_SCORED":
             return context
 
-        if context.data.get("poker_hand") == "Two Pair":
+        if context.poker_hand == PokerHand.TWO_PAIR:
             self.mult += 2
 
         if context.score is not None:

@@ -1,7 +1,6 @@
 from games.balatro.hand import PokerHand
 from games.balatro.joker import Joker, JokerContext
 
-
 class TheOrderJoker(Joker):
 
     def apply(
@@ -9,10 +8,10 @@ class TheOrderJoker(Joker):
         context: JokerContext
     ) -> JokerContext:
 
-        if context.poker_hand in (
-            PokerHand.STRAIGHT,
-            PokerHand.STRAIGHT_FLUSH,
-        ):
+        if context.score is None:
+            return context
+
+        if context.poker_hand == PokerHand.STRAIGHT:
             context.score.x_mult *= 3
 
         return context

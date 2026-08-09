@@ -5,10 +5,9 @@ from games.balatro.joker import Joker, JokerContext
 
 class CleverJoker(Joker):
 
-    def apply(
-        self,
-        context: JokerContext
-    ) -> JokerContext:
+    def apply(self, context: JokerContext) -> JokerContext:
+        if context.score is None:
+            return context
 
         counts = Counter(
             card.rank

@@ -8,6 +8,9 @@ class EvenStevenJoker(Joker):
         context: JokerContext
     ) -> JokerContext:
 
+        if context.score is None:
+            return context
+
         even_ranks = {
             "2",
             "4",
@@ -16,11 +19,9 @@ class EvenStevenJoker(Joker):
             "10"
         }
 
-        mult = sum(
+        context.score.mult += sum(
             card.rank in even_ranks
             for card in context.cards
         ) * 4
-
-        context.score.mult += mult
 
         return context

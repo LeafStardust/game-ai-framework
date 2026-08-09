@@ -8,6 +8,9 @@ class FibonacciJoker(Joker):
         context: JokerContext
     ) -> JokerContext:
 
+        if context.score is None:
+            return context
+
         fibonacci_ranks = {
             "A",
             "2",
@@ -16,11 +19,9 @@ class FibonacciJoker(Joker):
             "8"
         }
 
-        mult = sum(
+        context.score.mult += sum(
             card.rank in fibonacci_ranks
             for card in context.cards
         ) * 8
-
-        context.score.mult += mult
 
         return context

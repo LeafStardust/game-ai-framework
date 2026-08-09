@@ -10,9 +10,6 @@ class OopsAll6sJoker(Joker):
         if "probability" not in context.data:
             return context
 
-        context.data["probability"] = min(
-            context.data["probability"] * 2,
-            context.data.get("base_probability", 1)
-        )
+        context.data["probability"] *= 2
 
         return context

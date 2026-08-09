@@ -1,12 +1,14 @@
 from games.balatro.joker import Joker, JokerContext
 
-
 class WeeJoker(Joker):
 
     def __init__(self):
         self.chips = 0
 
     def apply(self, context: JokerContext) -> JokerContext:
+        if context.score is None:
+            return context
+
         twos = sum(
             card.rank == "2"
             for card in context.cards

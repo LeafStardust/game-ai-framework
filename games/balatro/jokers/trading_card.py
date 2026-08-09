@@ -4,7 +4,7 @@ from games.balatro.joker import Joker, JokerContext
 class TradingCardJoker(Joker):
 
     def apply(self, context: JokerContext) -> JokerContext:
-        if context.trigger != "CARDS_DISCARDED":
+        if context.trigger != "DISCARD":
             return context
 
         if len(context.cards) != 1:

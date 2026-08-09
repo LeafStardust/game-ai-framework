@@ -8,6 +8,9 @@ class SlyJoker(Joker):
         context: JokerContext
     ) -> JokerContext:
 
+        if context.score is None:
+            return context
+
         ranks = [
             card.rank
             for card in context.cards

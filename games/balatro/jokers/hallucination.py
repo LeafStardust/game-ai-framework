@@ -13,8 +13,8 @@ class HallucinationJoker(Joker):
             return context
 
         context.data.setdefault(
-            "created_tarot_cards",
+            "created_consumables",
             []
-        ).append("Random")
+        ).append("Random Tarot")
 
         return context

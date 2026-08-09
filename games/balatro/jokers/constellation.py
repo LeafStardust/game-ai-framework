@@ -7,9 +7,11 @@ class ConstellationJoker(Joker):
         self.x_mult = 1.0
 
     def apply(self, context: JokerContext) -> JokerContext:
-        if context.trigger != "PLANET_USED":
+        if context.trigger == "PLANET_USED":
+            self.x_mult += 0.1
             return context
 
-        self.x_mult += 0.1
+        if context.score is not None:
+            context.score.x_mult *= self.x_mult
 
         return context

@@ -8,6 +8,9 @@ class OddToddJoker(Joker):
         context: JokerContext
     ) -> JokerContext:
 
+        if context.score is None:
+            return context
+
         odd_ranks = {
             "A",
             "3",
@@ -16,11 +19,9 @@ class OddToddJoker(Joker):
             "9"
         }
 
-        chips = sum(
+        context.score.chips += sum(
             card.rank in odd_ranks
             for card in context.cards
         ) * 31
-
-        context.score.chips += chips
 
         return context

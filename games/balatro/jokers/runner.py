@@ -8,6 +8,9 @@ class RunnerJoker(Joker):
         self.chips = 0
 
     def apply(self, context: JokerContext) -> JokerContext:
+        if context.score is None:
+            return context
+
         if context.poker_hand != PokerHand.STRAIGHT:
             return context
 

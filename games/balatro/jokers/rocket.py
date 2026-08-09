@@ -3,18 +3,14 @@ from games.balatro.joker import Joker, JokerContext
 
 class RocketJoker(Joker):
 
-    def __init__(self):
-        self.money = 0
-
     def apply(self, context: JokerContext) -> JokerContext:
-        if context.trigger == "ROUND_ENDED":
-            self.money += 1
+        if context.trigger != "ROUND_ENDED":
+            return context
 
-            if context.data.get("boss_blind"):
-                self.money += 2
+        money = 3 if context.data.get("boss_blind") else 1
 
-            context.data["money"] = (
-                context.data.get("money", 0) + self.money
-            )
+        context.data["money"] = (
+            context.data.get("money", 0) + money
+        )
 
         return context

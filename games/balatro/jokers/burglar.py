@@ -10,9 +10,6 @@ class BurglarJoker(Joker):
         context.data["hands_gained"] = (
             context.data.get("hands_gained", 0) + 3
         )
-        context.data["discards_lost"] = (
-            context.data.get("discards_lost", 0)
-            + context.data.get("discards_remaining", 0)
-        )
+        context.data["discards_remaining"] = 0
 
         return context
