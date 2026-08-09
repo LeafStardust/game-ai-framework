@@ -1,7 +1,6 @@
 from games.balatro.planets import create_planet, random_planet
 from games.balatro.consumable import ConsumableContext
 from games.balatro.state import BalatroState
-from games.balatro.planets import create_planet, random_planet
 
 
 def test_create_planet_returns_independent_instance():
