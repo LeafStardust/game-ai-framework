@@ -1,6 +1,6 @@
 from games.balatro.card import BalatroCard
 from games.balatro.environment import BalatroEnvironment
-from games.balatro.actions import DISCARD_CARDS, END_ROUND, PLAY_CARDS, BUY_CONSUMABLE, USE_CONSUMABLE, BalatroAction
+from games.balatro.actions import DISCARD_CARDS, END_ROUND, PLAY_CARDS, BUY_CONSUMABLE, END_SHOP, USE_CONSUMABLE, BalatroAction
 from games.balatro.consumable import Consumable
 from games.balatro.planets import create_planet, PLANET_CARDS
 
@@ -61,8 +61,11 @@ def test_PLAY_CARDS_changes_phase():
         action
     )
 
-    assert environment.state.phase == "ROUND_START"
-    assert environment.state.round == 2
+    assert environment.state.phase == "SHOP"
+    assert environment.state.shop_active
+    assert len(
+        environment.state.shop_consumables
+    ) == 2
 
 
 def test_end_round_increases_round():
@@ -260,6 +263,8 @@ def test_buy_consumable_moves_consumable_to_inventory():
 
     consumable = create_planet("MERCURY")
 
+    environment.state.phase = "SHOP"
+    environment.state.shop_active = True
     environment.state.shop_consumables.append(
         consumable
     )
@@ -332,3 +337,62 @@ def test_complete_blind_generates_shop_consumables():
     ) == 2
 
     assert environment.state.shop_active
+
+
+def test_completed_blind_enters_shop():
+
+    environment = BalatroEnvironment()
+
+    environment._complete_blind(
+        environment.state
+    )
+
+    assert environment.state.phase == "SHOP"
+    assert environment.state.shop_active
+    assert len(
+        environment.state.shop_consumables
+    ) == 2
+
+
+def test_shop_generates_buy_and_end_actions():
+
+    environment = BalatroEnvironment()
+
+    environment._complete_blind(
+        environment.state
+    )
+
+    actions = environment.get_actions()
+
+    buy_actions = [
+        action
+        for action in actions
+        if action.name == BUY_CONSUMABLE
+    ]
+
+    end_actions = [
+        action
+        for action in actions
+        if action.name == END_SHOP
+    ]
+
+    assert len(buy_actions) == 2
+    assert len(end_actions) == 1
+
+
+def test_end_shop_returns_to_round_start():
+
+    environment = BalatroEnvironment()
+
+    environment._complete_blind(
+        environment.state
+    )
+
+    environment.execute_action(
+        BalatroAction(
+            END_SHOP
+        )
+    )
+
+    assert environment.state.phase == "ROUND_START"
+    assert not environment.state.shop_active

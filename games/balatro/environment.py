@@ -7,7 +7,7 @@ from framework.core.state import GameState
 from games.balatro.card import BalatroCard
 from games.balatro.state import BalatroState
 
-from games.balatro.actions import BalatroAction, PLAY_CARDS, DISCARD_CARDS, BUY_CONSUMABLE, USE_CONSUMABLE, END_ROUND
+from games.balatro.actions import BalatroAction, PLAY_CARDS, DISCARD_CARDS, BUY_CONSUMABLE, END_SHOP, USE_CONSUMABLE, END_ROUND
 
 from games.balatro.card_selector import CardSelector
 from games.balatro.blinds.manager import BlindManager
@@ -58,7 +58,7 @@ class BalatroEnvironment(GameEnvironment):
         )
 
         self._setup_blind()
-   
+
 
     def get_state(self) -> GameState:
 
@@ -90,6 +90,20 @@ class BalatroEnvironment(GameEnvironment):
                 )
             )
 
+            actions.append(
+                BalatroAction(
+                    DISCARD_CARDS
+                )
+            )
+
+            actions.append(
+                BalatroAction(
+                    END_ROUND
+                )
+            )
+
+        if self.state.phase == "SHOP":
+
             actions.extend(
                 BalatroAction(
                     BUY_CONSUMABLE,
@@ -101,13 +115,7 @@ class BalatroEnvironment(GameEnvironment):
 
             actions.append(
                 BalatroAction(
-                    DISCARD_CARDS
-                )
-            )
-
-            actions.append(
-                BalatroAction(
-                    END_ROUND
+                    END_SHOP
                 )
             )
 
@@ -234,13 +242,13 @@ class BalatroEnvironment(GameEnvironment):
             state.ante += 1
             state.round = 1
 
-        state.phase = "ROUND_START"
-
         self._setup_blind()
 
         self._generate_shop_consumables(
             state
         )
+
+        state.phase = "SHOP"
 
 
     def _apply_action(
@@ -338,7 +346,19 @@ class BalatroEnvironment(GameEnvironment):
             )
 
 
+        elif action.name == END_SHOP:
+
+            if state.phase != "SHOP":
+                return
+
+            state.shop_active = False
+            state.phase = "ROUND_START"
+
+
         elif action.name == BUY_CONSUMABLE:
+
+            if state.phase != "SHOP":
+                return
 
             consumable = getattr(
                 action,
