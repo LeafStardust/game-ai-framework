@@ -12,6 +12,8 @@ class BalatroEventType(Enum):
     ROUND_ENDED = "ROUND_ENDED"
     CARDS_ADDED = "CARDS_ADDED"
     TAROT_USED = "TAROT_USED"
+    CARD_SOLD = "CARD_SOLD"
+    BOSS_BLIND_DEFEATED = "BOSS_BLIND_DEFEATED"
 
 
 @dataclass

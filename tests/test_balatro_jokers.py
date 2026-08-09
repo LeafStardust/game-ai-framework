@@ -60,6 +60,16 @@ from games.balatro.jokers.rough_gem import RoughGemJoker
 from games.balatro.jokers.obelisk import ObeliskJoker
 from games.balatro.jokers.hit_the_road import HitTheRoadJoker
 from games.balatro.jokers.bootstraps import BootstrapsJoker
+from games.balatro.jokers.canio import CanioJoker
+from games.balatro.jokers.campfire import CampfireJoker
+from games.balatro.jokers.cavendish import CavendishJoker
+from games.balatro.jokers.chicot import ChicotJoker
+from games.balatro.jokers.flash_card import FlashCardJoker
+from games.balatro.jokers.loyalty_card import LoyaltyCardJoker
+from games.balatro.jokers.mystic_summit import MysticSummitJoker
+from games.balatro.jokers.perkeo import PerkeoJoker
+from games.balatro.jokers.triboulet import TribouletJoker
+from games.balatro.jokers.yorick import YorickJoker
 
 
 def test_jolly_joker():
@@ -1883,3 +1893,190 @@ def test_bootstraps_joker_below_five_dollars():
     assert score.chips == 10
     assert score.mult == 2
     assert score.total == 20
+
+
+def test_canio_joker():
+    joker = CanioJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        data={
+            "destroyed_cards": [
+                BalatroCard("K", "Hearts")
+            ]
+        }
+    )
+
+    joker.apply(context)
+
+    assert joker.x_mult == 2.0
+    assert context.score.x_mult == 2.0
+
+
+def test_triboulet_joker():
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {"jokers": [TribouletJoker()]}
+    )()
+
+    cards = [
+        BalatroCard("K", "Hearts"),
+        BalatroCard("Q", "Spades")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.x_mult == 4.0
+
+
+def test_yorick_joker():
+    joker = YorickJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    cards = [
+        BalatroCard("2", "Hearts")
+        for _ in range(23)
+    ]
+
+    context = JokerContext(
+        state=state,
+        event=BalatroEvent(
+            BalatroEventType.CARDS_DISCARDED,
+            cards
+        )
+    )
+
+    joker.apply(context)
+
+    assert joker.discarded_cards == 0
+    assert joker.x_mult == 6.0
+
+
+def test_chicot_joker():
+    joker = ChicotJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(state=state)
+
+    joker.apply(context)
+
+    assert context.data["disable_boss_blind"] is True
+
+
+def test_perkeo_joker():
+    joker = PerkeoJoker()
+
+    consumable = object()
+
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        event=BalatroEvent(
+            BalatroEventType.ROUND_ENDED
+        ),
+        data={
+            "consumables": [consumable]
+        }
+    )
+
+    joker.apply(context)
+
+    assert context.data["create_negative_copy"] is consumable
+
+
+def test_campfire_joker():
+    joker = CampfireJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        event=BalatroEvent(
+            BalatroEventType.CARD_SOLD
+        )
+    )
+
+    joker.apply(context)
+
+    assert joker.x_mult == 1.25
+
+
+def test_cavendish_joker():
+    joker = CavendishJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2)
+    )
+
+    joker.apply(context)
+
+    assert context.score.x_mult == 3.0
+    assert joker.active is True
+
+
+def test_loyalty_card_joker():
+    joker = LoyaltyCardJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    for _ in range(6):
+        context = JokerContext(
+            state=state,
+            score=HandScore(10, 2)
+        )
+        joker.apply(context)
+
+    assert context.score.x_mult == 4.0
+
+
+def test_flash_card_joker():
+
+    joker = FlashCardJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        data={"rerolls": 3}
+    )
+
+    joker.apply(context)
+
+    assert context.score.mult == 8
+
+
+def test_mystic_summit_joker():
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [MysticSummitJoker()],
+            "discards_remaining": 0
+        }
+    )()
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state
+    )
+
+    assert score.mult == 17
