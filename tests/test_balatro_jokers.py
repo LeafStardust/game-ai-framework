@@ -71,7 +71,7 @@ from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.perkeo import PerkeoJoker
 from games.balatro.jokers.triboulet import TribouletJoker
 from games.balatro.jokers.yorick import YorickJoker
-from games.balatro.jokers.astronaut import AstronautJoker
+from games.balatro.jokers.astronomer import AstronomerJoker
 from games.balatro.jokers.burnt_joker import BurntJoker
 from games.balatro.jokers.certificate import CertificateJoker
 from games.balatro.jokers.cartomancer import CartomancerJoker
@@ -1568,7 +1568,7 @@ def test_supernova_joker():
     assert joker.mult == 2
 
 
-def test_space_joker():
+def test_space_joker(monkeypatch):
 
     joker = SpaceJoker()
 
@@ -1586,11 +1586,33 @@ def test_space_joker():
         poker_hand=PokerHand.PAIR
     )
 
-    random.seed(1)
+    monkeypatch.setattr(
+        "games.balatro.jokers.space_joker.random.random",
+        lambda: 0.1
+    )
 
     joker.apply(context)
 
-    assert "level_ups" in context.data
+    assert context.data["level_ups"] == [PokerHand.PAIR]
+
+
+def test_space_joker_does_not_trigger(monkeypatch):
+
+    joker = SpaceJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        poker_hand=PokerHand.PAIR
+    )
+
+    monkeypatch.setattr(
+        "games.balatro.jokers.space_joker.random.random",
+        lambda: 0.3
+    )
+
+    joker.apply(context)
+
+    assert "level_ups" not in context.data
 
 
 def test_splash_joker():
@@ -2171,25 +2193,18 @@ def test_mystic_summit_joker():
     assert score.mult == 17
 
 
-def test_astronaut_joker(monkeypatch):
+def test_astronomer_joker():
 
-    monkeypatch.setattr(
-        "games.balatro.jokers.astronaut.random.random",
-        lambda: 0.1
-    )
-
-    joker = AstronautJoker()
-    state = type("TestState", (), {"jokers": [joker]})()
+    joker = AstronomerJoker()
 
     context = JokerContext(
-        state=state,
-        score=HandScore(10, 2),
-        poker_hand=PokerHand.PAIR
+        state=GameState()
     )
 
     joker.apply(context)
 
-    assert context.data["level_up_hand"] == PokerHand.PAIR
+    assert context.data["planet_cards_free"] is True
+    assert context.data["celestial_packs_free"] is True
 
 
 def test_burnt_joker():
