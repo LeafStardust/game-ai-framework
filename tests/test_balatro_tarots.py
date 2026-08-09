@@ -388,3 +388,17 @@ def test_create_tarot_returns_magician():
 
     assert tarot.name == "The Magician"
     assert tarot.category == "TAROT"
+
+
+def test_random_tarot_uses_rng():
+
+    class TestRng:
+
+        def choice(self, values):
+            return "The Magician"
+
+    tarot = random_tarot(
+        TestRng()
+    )
+
+    assert tarot.name == "The Magician"
