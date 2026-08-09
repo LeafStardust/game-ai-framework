@@ -25,6 +25,7 @@ class BalatroState(GameState):
         self.discards_remaining: int = 3
 
         self.jokers: list = []
+        self.consumables: list = []
         self.vouchers: list = []
 
         self.phase: str = "ROUND_START"
@@ -102,6 +103,7 @@ class BalatroState(GameState):
         new_state.discards_remaining = self.discards_remaining
 
         new_state.jokers = self.jokers.copy()
+        new_state.consumables = self.consumables.copy()
         new_state.vouchers = self.vouchers.copy()
 
         new_state.phase = self.phase
