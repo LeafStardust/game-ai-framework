@@ -693,3 +693,15 @@ def test_shop_can_generate_tarot():
         consumable.name == "Strength"
         for consumable in environment.state.shop_consumables
     )
+
+
+def test_environment_generates_consumable():
+
+    environment = BalatroEnvironment()
+
+    consumable = environment._generate_consumable()
+
+    assert consumable.category in {
+        "PLANET",
+        "TAROT"
+    }
