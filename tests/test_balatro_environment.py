@@ -268,6 +268,7 @@ def test_buy_consumable_moves_consumable_to_inventory():
     environment.state.shop_consumables.append(
         consumable
     )
+    environment.state.money = consumable.price
 
     actions = environment.get_actions()
 
@@ -362,6 +363,11 @@ def test_shop_generates_buy_and_end_actions():
         environment.state
     )
 
+    environment.state.money = max(
+        consumable.price
+        for consumable in environment.state.shop_consumables
+    )
+
     actions = environment.get_actions()
 
     buy_actions = [
@@ -399,3 +405,52 @@ def test_end_shop_returns_to_round_start():
     assert environment.state.phase == "ROUND_START"
     assert not environment.state.shop_active
     assert environment.state.blind is blind
+
+
+def test_buy_consumable_spends_money():
+
+    environment = BalatroEnvironment()
+
+    consumable = create_planet("MERCURY")
+
+    environment.state.phase = "SHOP"
+    environment.state.shop_active = True
+    environment.state.shop_consumables.append(
+        consumable
+    )
+    environment.state.money = consumable.price
+
+    environment.execute_action(
+        BalatroAction(
+            BUY_CONSUMABLE,
+            target=consumable
+        )
+    )
+
+    assert environment.state.money == 0
+    assert consumable in environment.state.consumables
+    assert consumable not in environment.state.shop_consumables
+
+
+def test_buy_consumable_requires_enough_money():
+
+    environment = BalatroEnvironment()
+
+    consumable = create_planet("MERCURY")
+
+    environment.state.phase = "SHOP"
+    environment.state.shop_active = True
+    environment.state.shop_consumables.append(
+        consumable
+    )
+    environment.state.money = consumable.price - 1
+
+    actions = environment.get_actions()
+
+    buy_actions = [
+        action
+        for action in actions
+        if action.name == BUY_CONSUMABLE
+    ]
+
+    assert len(buy_actions) == 0

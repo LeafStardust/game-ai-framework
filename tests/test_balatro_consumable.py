@@ -118,3 +118,10 @@ def test_random_planet_returns_valid_planet():
         planet.name
         for planet in PLANET_CARDS.values()
     ]
+
+
+def test_consumable_has_default_price():
+
+    consumable = create_planet("MERCURY")
+
+    assert consumable.price == 3

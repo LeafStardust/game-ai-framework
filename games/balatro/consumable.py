@@ -23,6 +23,7 @@ class Consumable(ABC):
 
     name: str = ""
     category: str = ""
+    price: int = 3
 
     @abstractmethod
     def can_use(

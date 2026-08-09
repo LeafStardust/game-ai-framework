@@ -111,6 +111,7 @@ class BalatroEnvironment(GameEnvironment):
                 )
                 for consumable in self.state.shop_consumables
                 if len(self.state.consumables) < self.state.consumable_slots
+                and self.state.money >= consumable.price
             )
 
             actions.append(
@@ -369,10 +370,15 @@ class BalatroEnvironment(GameEnvironment):
             if consumable not in state.shop_consumables:
                 return
 
+            if state.money < consumable.price:
+                return
+
             if not state.add_consumable(
                 consumable
             ):
                 return
+
+            state.money -= consumable.price
 
             state.shop_consumables.remove(
                 consumable
