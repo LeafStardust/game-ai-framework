@@ -20,6 +20,7 @@ from games.balatro.blinds.manager import BlindManager
 from games.balatro.card import BalatroCard
 from games.balatro.card_selector import CardSelector
 from games.balatro.consumable import ConsumableContext
+from games.balatro.decks import BASE_DECK, BalatroDeck
 from games.balatro.events import BalatroEvent, BalatroEventType
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.joker import JokerContext
@@ -34,15 +35,21 @@ class BalatroEnvironment(GameEnvironment):
 
     SHOP_REFRESH_COST = 5
 
-    def __init__(self):
+    def __init__(
+        self,
+        deck: BalatroDeck = BASE_DECK
+    ):
 
+        self.deck = deck
         self.state = BalatroState()
         self.card_selector = CardSelector()
         self.blind_manager = BlindManager()
         self.hand_evaluator = HandEvaluator()
         self.scorer = BalatroScorer()
         self.rng = random.Random()
-        self.hand_size: int = 8
+        self.hand_size = deck.starting_hand_size
+
+        self._apply_deck_rules()
 
         self.rng.shuffle(
             self.state.deck
@@ -59,6 +66,8 @@ class BalatroEnvironment(GameEnvironment):
 
         self.state = BalatroState()
 
+        self._apply_deck_rules()
+
         self.rng.shuffle(
             self.state.deck
         )
@@ -69,6 +78,13 @@ class BalatroEnvironment(GameEnvironment):
         )
 
         self._setup_blind()
+
+    def _apply_deck_rules(self) -> None:
+
+        self.state.deck_name = self.deck.name
+        self.state.money = self.deck.starting_money
+        self.state.hand_size = self.deck.starting_hand_size
+        self.state.discards_remaining = self.deck.starting_discards
 
     def get_state(self) -> GameState:
 
@@ -108,12 +124,6 @@ class BalatroEnvironment(GameEnvironment):
                             target=consumable
                         )
                     )
-
-            actions.append(
-                BalatroAction(
-                    DISCARD_CARDS
-                )
-            )
 
             actions.append(
                 BalatroAction(
@@ -179,6 +189,7 @@ class BalatroEnvironment(GameEnvironment):
             BalatroEnvironment
         )
 
+        new_environment.deck = self.deck
         new_environment.state = self.state.copy()
 
         new_environment.card_selector = self.card_selector
@@ -266,6 +277,8 @@ class BalatroEnvironment(GameEnvironment):
             state.ante += 1
             state.round = 1
 
+        state.discards_remaining = self.deck.starting_discards
+
         self._setup_blind()
 
         self._generate_shop_consumables(
@@ -337,6 +350,9 @@ class BalatroEnvironment(GameEnvironment):
                 state.phase = "ROUND_START"
 
         elif action.name == DISCARD_CARDS:
+
+            if state.discards_remaining <= 0:
+                return
 
             state.discards_remaining -= 1
 
@@ -454,6 +470,7 @@ class BalatroEnvironment(GameEnvironment):
             state.round += 1
 
             state.phase = "ROUND_START"
+            state.discards_remaining = self.deck.starting_discards
 
             self._setup_blind()
 
