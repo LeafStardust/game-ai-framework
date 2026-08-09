@@ -32,6 +32,8 @@ from games.balatro.jokers.blackboard import BlackboardJoker
 from games.balatro.jokers.drivers_license import DriversLicenseJoker
 from games.balatro.jokers.steel_joker import SteelJoker
 from games.balatro.jokers.glass_joker import GlassJoker
+from games.balatro.jokers.green_joker import GreenJoker
+from games.balatro.jokers.ride_the_bus import RideTheBusJoker
 
 
 def test_jolly_joker():
@@ -1094,3 +1096,104 @@ def test_glass_joker():
     assert score.mult == 2
     assert score.x_mult == 2.5
     assert score.total == 50
+
+
+def test_ride_the_bus_joker():
+
+    scorer = BalatroScorer()
+
+    joker = RideTheBusJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker]
+        }
+    )()
+
+    cards = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("4", "Spades"),
+        BalatroCard("7", "Clubs")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.mult == 2
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.mult == 3
+
+
+def test_ride_the_bus_joker_resets_on_face_card():
+
+    scorer = BalatroScorer()
+
+    joker = RideTheBusJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker]
+        }
+    )()
+
+    cards = [
+        BalatroCard("J", "Hearts"),
+        BalatroCard("4", "Spades")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.mult == 1
+
+
+def test_green_joker():
+
+    scorer = BalatroScorer()
+
+    joker = GreenJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker],
+            "hand": []
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.mult == 2
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.mult == 3

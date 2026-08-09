@@ -18,6 +18,11 @@ from games.balatro.card_selector import CardSelector
 from games.balatro.blinds.manager import BlindManager
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.scoring import BalatroScorer
+from games.balatro.events import (
+    BalatroEvent,
+    BalatroEventType
+)
+from games.balatro.joker import JokerContext
 
 
 class BalatroEnvironment(GameEnvironment):
@@ -183,12 +188,10 @@ class BalatroEnvironment(GameEnvironment):
 
             blind_type = "BOSS"
 
-
         self.state.blind = self.blind_manager.get_blind(
             blind_type,
             self.state.ante
         )
-
 
         if hasattr(
             self.state.blind,
@@ -239,13 +242,11 @@ class BalatroEnvironment(GameEnvironment):
                 ):
                     return
 
-
             selected_cards = getattr(
                 modified_action,
                 "cards",
                 []
             )
-
 
             if selected_cards:
 
@@ -262,7 +263,6 @@ class BalatroEnvironment(GameEnvironment):
                 state.score += hand_score.total
                 state.blind_score += hand_score.total
 
-
                 for card in selected_cards:
 
                     if card in state.hand:
@@ -272,7 +272,6 @@ class BalatroEnvironment(GameEnvironment):
                         state.discard_pile.append(
                             card
                         )
-
 
             if state.blind_score >= state.blind.requirement:
 
@@ -286,7 +285,6 @@ class BalatroEnvironment(GameEnvironment):
                 state.phase = "ROUND_START"
 
 
-
         elif action.name == DISCARD_CARDS:
 
             state.discards_remaining -= 1
@@ -296,7 +294,6 @@ class BalatroEnvironment(GameEnvironment):
                 "cards",
                 []
             )
-
 
             for card in selected_cards:
 
@@ -308,12 +305,18 @@ class BalatroEnvironment(GameEnvironment):
                         card
                     )
 
+            self._trigger_joker_event(
+                state,
+                BalatroEvent(
+                    BalatroEventType.CARDS_DISCARDED,
+                    selected_cards
+                )
+            )
 
             self._draw_cards(
                 state,
                 len(selected_cards)
             )
-
 
 
         elif action.name == END_ROUND:
@@ -324,6 +327,25 @@ class BalatroEnvironment(GameEnvironment):
 
             self._setup_blind()
 
+
+    def _trigger_joker_event(
+        self,
+        state: BalatroState,
+        event: BalatroEvent
+    ) -> None:
+
+        context = JokerContext(
+            state=state,
+            held_cards=state.hand.copy(),
+            trigger=event.type.value,
+            event=event
+        )
+
+        for joker in state.jokers:
+
+            joker.apply(
+                context
+            )
 
 
     def _draw_cards(
