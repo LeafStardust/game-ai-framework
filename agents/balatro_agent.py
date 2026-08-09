@@ -2,15 +2,12 @@ from framework.agent.agent import Agent
 
 from framework.decision.pipeline import DecisionPipeline
 from framework.decision.policies.greedy import GreedyPolicy
-from framework.decision.search import SearchStrategy
 
 from games.balatro.evaluator import BalatroEvaluator
+from games.balatro.search import BalatroSearchStrategy
 
 
 class BalatroAgent(Agent):
-    """
-    Balatro agent using heuristic evaluation and search.
-    """
 
     def __init__(self):
 
@@ -20,9 +17,10 @@ class BalatroAgent(Agent):
             DecisionPipeline(
                 evaluator,
                 GreedyPolicy(),
-                SearchStrategy(
+                BalatroSearchStrategy(
                     evaluator,
-                    None
+                    None,
+                    simulations=8
                 )
             )
         )
