@@ -39,6 +39,13 @@ class Consumable(ABC):
     ) -> ConsumableContext:
         pass
 
+    def get_target_cards(
+        self,
+        state: BalatroState
+    ) -> list[list[BalatroCard]]:
+
+        return [[]]
+
 
 class PlanetCard(Consumable):
 

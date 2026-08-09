@@ -1,4 +1,5 @@
 import random
+from itertools import combinations
 
 from framework.core.environment import GameEnvironment
 from framework.core.action import Action
@@ -79,18 +80,26 @@ class BalatroEnvironment(GameEnvironment):
                 )
             )
 
-            actions.extend(
-                BalatroAction(
-                    USE_CONSUMABLE,
-                    target=consumable
+            for consumable in self.state.consumables:
+
+                context = ConsumableContext(
+                    state=self.state
                 )
-                for consumable in self.state.consumables
-                if consumable.can_use(
-                    ConsumableContext(
-                        state=self.state
+
+                if not consumable.can_use(context):
+                    continue
+
+                for cards in consumable.get_target_cards(
+                    self.state
+                ):
+
+                    actions.append(
+                        BalatroAction(
+                            USE_CONSUMABLE,
+                            cards=cards,
+                            target=consumable
+                        )
                     )
-                )
-            )
 
             actions.append(
                 BalatroAction(
@@ -423,6 +432,7 @@ class BalatroEnvironment(GameEnvironment):
 
             context = ConsumableContext(
                 state=state,
+                cards=action.cards,
                 target=consumable
             )
 

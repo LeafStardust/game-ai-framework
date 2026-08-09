@@ -125,3 +125,13 @@ def test_consumable_has_default_price():
     consumable = create_planet("MERCURY")
 
     assert consumable.price == 3
+
+
+def test_consumable_default_target_cards():
+
+    state = BalatroState()
+    consumable = create_planet("MERCURY")
+
+    assert consumable.get_target_cards(
+        state
+    ) == [[]]

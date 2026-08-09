@@ -597,3 +597,26 @@ def test_refresh_shop_does_not_spend_money_when_unaffordable():
     )
 
     assert environment.state.shop_consumables == original
+
+
+def test_use_consumable_action_contains_target_cards():
+
+    environment = BalatroEnvironment()
+
+    consumable = create_planet("MERCURY")
+
+    environment.state.consumables.append(
+        consumable
+    )
+
+    actions = environment.get_actions()
+
+    use_actions = [
+        action
+        for action in actions
+        if action.name == USE_CONSUMABLE
+    ]
+
+    assert len(use_actions) == 1
+    assert use_actions[0].target is consumable
+    assert use_actions[0].cards == []
