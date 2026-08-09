@@ -2,7 +2,7 @@ import random
 
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
-from games.balatro.scoring import BalatroScorer
+from games.balatro.scoring import BalatroScorer, HandScore
 from games.balatro.events import BalatroEvent, BalatroEventType
 from games.balatro.joker import JokerContext
 
@@ -57,6 +57,9 @@ from games.balatro.jokers.bloodstone import BloodstoneJoker
 from games.balatro.jokers.onyx_agate import OnyxAgateJoker
 from games.balatro.jokers.arrowhead import ArrowheadJoker
 from games.balatro.jokers.rough_gem import RoughGemJoker
+from games.balatro.jokers.obelisk import ObeliskJoker
+from games.balatro.jokers.hit_the_road import HitTheRoadJoker
+from games.balatro.jokers.bootstraps import BootstrapsJoker
 
 
 def test_jolly_joker():
@@ -1723,3 +1726,160 @@ def test_rough_gem_joker():
     joker.apply(context)
 
     assert context.data["money"] == 2
+
+
+def test_obelisk_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [ObeliskJoker()]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("A", "Spades")
+    ]
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state,
+        cards
+    )
+
+    assert score.x_mult == 1.2
+
+
+def test_obelisk_joker_resets_on_most_played_hand():
+
+    joker = ObeliskJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        poker_hand=PokerHand.PAIR,
+        data={
+            "most_played_hand": PokerHand.PAIR
+        }
+    )
+
+    joker.x_mult = 2.0
+    joker.apply(context)
+
+    assert joker.x_mult == 1.0
+    assert context.score.x_mult == 1.0
+
+
+def test_hit_the_road_joker():
+
+    joker = HitTheRoadJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        event=BalatroEvent(
+            BalatroEventType.CARDS_DISCARDED,
+            [
+                BalatroCard("J", "Hearts"),
+                BalatroCard("J", "Spades"),
+                BalatroCard("7", "Clubs")
+            ]
+        )
+    )
+
+    joker.apply(context)
+
+    assert joker.x_mult == 2.0
+
+
+def test_hit_the_road_joker_no_jacks():
+
+    joker = HitTheRoadJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        event=BalatroEvent(
+            BalatroEventType.CARDS_DISCARDED,
+            [
+                BalatroCard("7", "Hearts"),
+                BalatroCard("8", "Spades")
+            ]
+        )
+    )
+
+    joker.apply(context)
+
+    assert joker.x_mult == 1.0
+
+
+def test_bootstraps_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "money": 15,
+            "jokers": [BootstrapsJoker()]
+        }
+    )()
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state
+    )
+
+    assert score.chips == 13
+    assert score.mult == 8
+    assert score.total == 104
+
+
+def test_bootstraps_joker_below_five_dollars():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "money": 4,
+            "jokers": [BootstrapsJoker()]
+        }
+    )()
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state
+    )
+
+    assert score.chips == 10
+    assert score.mult == 2
+    assert score.total == 20
