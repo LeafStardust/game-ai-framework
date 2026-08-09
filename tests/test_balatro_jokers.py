@@ -13,6 +13,10 @@ from games.balatro.jokers.crafty_joker import CraftyJoker
 from games.balatro.jokers.devious_joker import DeviousJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.wily_joker import WilyJoker
+from games.balatro.jokers.gluttonous_joker import GluttonousJoker
+from games.balatro.jokers.greedy_joker import GreedyJoker
+from games.balatro.jokers.lusty_joker import LustyJoker
+from games.balatro.jokers.wrathful_joker import WrathfulJoker
 
 
 def test_jolly_joker():
@@ -392,3 +396,135 @@ def test_crafty_joker():
     assert score.chips == 115
     assert score.mult == 4
     assert score.total == 460
+
+
+def test_greedy_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                GreedyJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Diamonds"),
+        BalatroCard("7", "Diamonds"),
+        BalatroCard("5", "Hearts"),
+        BalatroCard("3", "Clubs"),
+        BalatroCard("2", "Spades")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.chips == 5
+    assert score.mult == 7
+    assert score.total == 35
+
+
+def test_lusty_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                LustyJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("7", "Hearts"),
+        BalatroCard("5", "Diamonds"),
+        BalatroCard("3", "Clubs"),
+        BalatroCard("2", "Spades")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.chips == 5
+    assert score.mult == 7
+    assert score.total == 35
+
+
+def test_wrathful_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                WrathfulJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Spades"),
+        BalatroCard("7", "Spades"),
+        BalatroCard("5", "Diamonds"),
+        BalatroCard("3", "Clubs"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.chips == 5
+    assert score.mult == 7
+    assert score.total == 35
+
+
+def test_gluttonous_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                GluttonousJoker()
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Clubs"),
+        BalatroCard("7", "Clubs"),
+        BalatroCard("5", "Diamonds"),
+        BalatroCard("3", "Hearts"),
+        BalatroCard("2", "Spades")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.chips == 5
+    assert score.mult == 7
+    assert score.total == 35
