@@ -673,3 +673,23 @@ def test_strength_can_be_used_through_environment():
 
     assert first.rank == "3"
     assert second.rank == "4"
+
+
+def test_shop_can_generate_tarot():
+
+    environment = BalatroEnvironment()
+
+    environment.rng.random = lambda: 1.0
+
+    environment._generate_shop_consumables(
+        environment.state
+    )
+
+    assert len(
+        environment.state.shop_consumables
+    ) == 2
+
+    assert all(
+        consumable.name == "Strength"
+        for consumable in environment.state.shop_consumables
+    )

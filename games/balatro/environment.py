@@ -7,9 +7,7 @@ from framework.core.state import GameState
 
 from games.balatro.card import BalatroCard
 from games.balatro.state import BalatroState
-
 from games.balatro.actions import BalatroAction, PLAY_CARDS, DISCARD_CARDS, BUY_CONSUMABLE, END_SHOP, REFRESH_SHOP, USE_CONSUMABLE, END_ROUND
-
 from games.balatro.card_selector import CardSelector
 from games.balatro.blinds.manager import BlindManager
 from games.balatro.hand_evaluator import HandEvaluator
@@ -17,6 +15,8 @@ from games.balatro.scoring import BalatroScorer
 from games.balatro.events import BalatroEvent, BalatroEventType
 from games.balatro.joker import JokerContext
 from games.balatro.consumable import ConsumableContext
+from games.balatro.planets import random_planet
+from games.balatro.tarots import create_tarot
 
 
 class BalatroEnvironment(GameEnvironment):
@@ -494,10 +494,18 @@ class BalatroEnvironment(GameEnvironment):
 
     def _generate_planet(self):
 
-        from games.balatro.planets import random_planet
-
         return random_planet(
             self.rng
+        )
+
+
+    def _generate_consumable(self):
+
+        if self.rng.random() < 0.5:
+            return self._generate_planet()
+
+        return create_tarot(
+            "Strength"
         )
 
 
@@ -507,8 +515,8 @@ class BalatroEnvironment(GameEnvironment):
     ) -> None:
 
         state.shop_consumables = [
-            self._generate_planet(),
-            self._generate_planet()
+            self._generate_consumable(),
+            self._generate_consumable()
         ]
 
         state.shop_active = True
