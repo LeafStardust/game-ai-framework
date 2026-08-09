@@ -28,6 +28,8 @@ from games.balatro.jokers.the_trio import TheTrioJoker
 from games.balatro.jokers.the_family import TheFamilyJoker
 from games.balatro.jokers.the_order import TheOrderJoker
 from games.balatro.jokers.the_tribe import TheTribeJoker
+from games.balatro.jokers.blackboard import BlackboardJoker
+from games.balatro.jokers.drivers_license import DriversLicenseJoker
 
 
 def test_jolly_joker():
@@ -934,3 +936,103 @@ def test_the_tribe_joker():
     assert score.mult == 4
     assert score.x_mult == 2
     assert score.total == 280
+
+
+def test_blackboard_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                BlackboardJoker()
+            ],
+            "hand": [
+                BalatroCard("A", "Spades"),
+                BalatroCard("K", "Clubs"),
+                BalatroCard("Q", "Spades")
+            ]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("A", "Diamonds"),
+    ]
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state,
+        cards
+    )
+
+    assert score.chips == 10
+    assert score.mult == 2
+    assert score.x_mult == 3
+    assert score.total == 60
+
+
+def test_blackboard_joker_does_not_trigger_with_other_suit():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                BlackboardJoker()
+            ],
+            "hand": [
+                BalatroCard("A", "Spades"),
+                BalatroCard("K", "Clubs"),
+                BalatroCard("Q", "Hearts")
+            ]
+        }
+    )()
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state
+    )
+
+    assert score.chips == 10
+    assert score.mult == 2
+    assert score.x_mult == 1.0
+    assert score.total == 20
+
+
+def test_drivers_license_joker():
+
+    scorer = BalatroScorer()
+
+    deck = [
+        BalatroCard(str(rank), "Hearts")
+        for rank in range(2, 19)
+    ]
+
+    for card in deck:
+        card.enhancement = "Steel"
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                DriversLicenseJoker()
+            ],
+            "deck": deck
+        }
+    )()
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state
+    )
+
+    assert score.chips == 10
+    assert score.mult == 2
+    assert score.x_mult == 3
+    assert score.total == 60
