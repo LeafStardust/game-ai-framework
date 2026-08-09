@@ -148,6 +148,11 @@ from games.balatro.jokers.lucky_cat import LuckyCatJoker
 from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
 from games.balatro.jokers.oops_all_6s import OopsAll6sJoker
 from games.balatro.jokers.pareidolia import PareidoliaJoker
+from games.balatro.jokers.business_card import BusinessCardJoker
+from games.balatro.jokers.chaos_the_clown import ChaosTheClownJoker
+from games.balatro.jokers.credit_card import CreditCardJoker
+from games.balatro.jokers.juggler import JugglerJoker
+from games.balatro.jokers.spare_trousers import SpareTrousersJoker
 
 
 def test_jolly_joker():
@@ -3665,14 +3670,17 @@ def test_constellation_joker():
 def test_dagger_joker():
 
     joker = DaggerJoker()
-    target = object()
+
+    target = type(
+        "TestJoker",
+        (),
+        {"sell_value": 7}
+    )()
 
     state = type(
         "TestState",
         (),
-        {
-            "jokers": [joker, target]
-        }
+        {"jokers": [joker, target]}
     )()
 
     context = JokerContext(
@@ -3683,7 +3691,7 @@ def test_dagger_joker():
     joker.apply(context)
 
     assert context.data["destroy_joker"] is target
-    assert context.data["dagger_mult"] == 20
+    assert joker.mult == 14
 
 
 def test_drunkard_joker():
@@ -3778,3 +3786,83 @@ def test_pareidolia_joker():
     joker.apply(context)
 
     assert context.data["all_cards_are_face"] is True
+
+
+def test_business_card_joker(monkeypatch):
+
+    monkeypatch.setattr(
+        "games.balatro.jokers.business_card.random.random",
+        lambda: 0.1
+    )
+
+    joker = BusinessCardJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="HAND_SCORED",
+        cards=[
+            BalatroCard("J", "Hearts"),
+            BalatroCard("Q", "Spades"),
+            BalatroCard("A", "Clubs"),
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.data["money"] == 4
+
+
+def test_chaos_the_clown_joker():
+
+    joker = ChaosTheClownJoker()
+
+    context = JokerContext(
+        state=GameState()
+    )
+
+    joker.apply(context)
+
+    assert context.data["free_rerolls"] == 1
+
+
+def test_credit_card_joker():
+
+    joker = CreditCardJoker()
+
+    context = JokerContext(
+        state=GameState()
+    )
+
+    joker.apply(context)
+
+    assert context.data["max_debt"] == -20
+
+
+def test_juggler_joker():
+
+    joker = JugglerJoker()
+
+    context = JokerContext(
+        state=GameState()
+    )
+
+    joker.apply(context)
+
+    assert context.data["hand_size_modifier"] == 1
+
+
+def test_spare_trousers_joker():
+
+    joker = SpareTrousersJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        score=HandScore(10, 2),
+        trigger="HAND_SCORED",
+        data={"poker_hand": "Two Pair"}
+    )
+
+    joker.apply(context)
+
+    assert joker.mult == 2
+    assert context.score.mult == 4
