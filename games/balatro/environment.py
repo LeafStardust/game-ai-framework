@@ -1,21 +1,32 @@
-import random
-from itertools import combinations
+from __future__ import annotations
 
-from framework.core.environment import GameEnvironment
+import random
+
 from framework.core.action import Action
+from framework.core.environment import GameEnvironment
 from framework.core.state import GameState
 
-from games.balatro.card import BalatroCard
-from games.balatro.state import BalatroState
-from games.balatro.actions import BalatroAction, PLAY_CARDS, DISCARD_CARDS, BUY_CONSUMABLE, END_SHOP, REFRESH_SHOP, USE_CONSUMABLE, END_ROUND
-from games.balatro.card_selector import CardSelector
+from games.balatro.actions import (
+    BalatroAction,
+    BUY_CONSUMABLE,
+    DISCARD_CARDS,
+    END_ROUND,
+    END_SHOP,
+    PLAY_CARDS,
+    REFRESH_SHOP,
+    USE_CONSUMABLE,
+)
 from games.balatro.blinds.manager import BlindManager
-from games.balatro.hand_evaluator import HandEvaluator
-from games.balatro.scoring import BalatroScorer
-from games.balatro.events import BalatroEvent, BalatroEventType
-from games.balatro.joker import JokerContext
+from games.balatro.card import BalatroCard
+from games.balatro.card_selector import CardSelector
 from games.balatro.consumable import ConsumableContext
+from games.balatro.events import BalatroEvent, BalatroEventType
+from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.joker import JokerContext
 from games.balatro.planets import random_planet
+from games.balatro.scoring import BalatroScorer
+from games.balatro.spectrals import random_spectral
+from games.balatro.state import BalatroState
 from games.balatro.tarots import random_tarot
 
 
@@ -26,14 +37,12 @@ class BalatroEnvironment(GameEnvironment):
     def __init__(self):
 
         self.state = BalatroState()
-
         self.card_selector = CardSelector()
         self.blind_manager = BlindManager()
-
         self.hand_evaluator = HandEvaluator()
         self.scorer = BalatroScorer()
-
         self.rng = random.Random()
+        self.hand_size: int = 8
 
         self.rng.shuffle(
             self.state.deck
@@ -41,11 +50,10 @@ class BalatroEnvironment(GameEnvironment):
 
         self._draw_cards(
             self.state,
-            8
+            self.hand_size
         )
 
         self._setup_blind()
-
 
     def reset(self) -> None:
 
@@ -57,16 +65,14 @@ class BalatroEnvironment(GameEnvironment):
 
         self._draw_cards(
             self.state,
-            8
+            self.hand_size
         )
 
         self._setup_blind()
 
-
     def get_state(self) -> GameState:
 
         return self.state
-
 
     def get_actions(self) -> list[Action]:
 
@@ -143,7 +149,6 @@ class BalatroEnvironment(GameEnvironment):
 
         return actions
 
-
     def execute_action(
         self,
         action: Action
@@ -153,7 +158,6 @@ class BalatroEnvironment(GameEnvironment):
             self.state,
             action
         )
-
 
     def simulate_action(
         self,
@@ -169,7 +173,6 @@ class BalatroEnvironment(GameEnvironment):
 
         return simulated_environment.state
 
-
     def copy(self):
 
         new_environment = object.__new__(
@@ -180,9 +183,9 @@ class BalatroEnvironment(GameEnvironment):
 
         new_environment.card_selector = self.card_selector
         new_environment.blind_manager = self.blind_manager
-
         new_environment.hand_evaluator = self.hand_evaluator
         new_environment.scorer = self.scorer
+        new_environment.hand_size = self.hand_size
 
         new_environment.rng = random.Random()
 
@@ -191,7 +194,6 @@ class BalatroEnvironment(GameEnvironment):
         )
 
         return new_environment
-
 
     def _initialize_deck(self):
 
@@ -217,7 +219,6 @@ class BalatroEnvironment(GameEnvironment):
         self.rng.shuffle(
             self.state.deck
         )
-
 
     def _setup_blind(self) -> None:
 
@@ -249,7 +250,6 @@ class BalatroEnvironment(GameEnvironment):
 
             self.state.boss_name = None
 
-
     def _complete_blind(
         self,
         state: BalatroState
@@ -271,7 +271,6 @@ class BalatroEnvironment(GameEnvironment):
         )
 
         state.phase = "SHOP"
-
 
     def _apply_action(
         self,
@@ -333,7 +332,6 @@ class BalatroEnvironment(GameEnvironment):
                 state.round += 1
                 state.phase = "ROUND_START"
 
-
         elif action.name == DISCARD_CARDS:
 
             state.discards_remaining -= 1
@@ -367,7 +365,6 @@ class BalatroEnvironment(GameEnvironment):
                 len(selected_cards)
             )
 
-
         elif action.name == REFRESH_SHOP:
 
             if state.phase != "SHOP":
@@ -382,7 +379,6 @@ class BalatroEnvironment(GameEnvironment):
                 state
             )
 
-
         elif action.name == END_SHOP:
 
             if state.phase != "SHOP":
@@ -390,7 +386,6 @@ class BalatroEnvironment(GameEnvironment):
 
             state.shop_active = False
             state.phase = "ROUND_START"
-
 
         elif action.name == BUY_CONSUMABLE:
 
@@ -420,7 +415,6 @@ class BalatroEnvironment(GameEnvironment):
                 consumable
             )
 
-
         elif action.name == USE_CONSUMABLE:
 
             consumable = getattr(
@@ -444,7 +438,6 @@ class BalatroEnvironment(GameEnvironment):
             consumable.use(context)
             state.remove_consumable(consumable)
 
-
         elif action.name == END_ROUND:
 
             state.round += 1
@@ -452,7 +445,6 @@ class BalatroEnvironment(GameEnvironment):
             state.phase = "ROUND_START"
 
             self._setup_blind()
-
 
     def _trigger_joker_event(
         self,
@@ -473,7 +465,6 @@ class BalatroEnvironment(GameEnvironment):
                 context
             )
 
-
     def _draw_cards(
         self,
         state: BalatroState,
@@ -491,23 +482,23 @@ class BalatroEnvironment(GameEnvironment):
                 state.deck.pop()
             )
 
-
     def _generate_planet(self):
 
         return random_planet(
             self.rng
         )
 
-
     def _generate_consumable(self):
 
-        if self.rng.random() < 0.5:
+        roll = self.rng.random()
+
+        if roll < 1 / 3:
             return self._generate_planet()
 
-        return random_tarot(
-            self.rng
-        )
+        if roll < 2 / 3:
+            return random_tarot(self.rng)
 
+        return random_spectral(self.rng)
 
     def _generate_shop_consumables(
         self,
@@ -521,11 +512,9 @@ class BalatroEnvironment(GameEnvironment):
 
         state.shop_active = True
 
-
     def is_terminal(self) -> bool:
 
         return self.state.ante > 8
-
 
     def get_reward(self) -> float:
 

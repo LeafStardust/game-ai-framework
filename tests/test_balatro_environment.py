@@ -679,7 +679,7 @@ def test_shop_can_generate_tarot():
 
     environment = BalatroEnvironment()
 
-    environment.rng.random = lambda: 1.0
+    environment.rng.random = lambda: 0.5
 
     environment._generate_shop_consumables(
         environment.state
@@ -703,7 +703,8 @@ def test_environment_generates_consumable():
 
     assert consumable.category in {
         "PLANET",
-        "TAROT"
+        "TAROT",
+        "SPECTRAL"
     }
 
 

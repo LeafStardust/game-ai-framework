@@ -107,3 +107,14 @@ class TarotCard(Consumable):
         name: str
     ):
         self.name = name
+
+
+class SpectralCard(Consumable):
+
+    category = "SPECTRAL"
+
+    def __init__(
+        self,
+        name: str
+    ):
+        self.name = name
