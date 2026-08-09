@@ -330,3 +330,51 @@ def test_magician_cannot_use_card_not_in_hand():
     )
 
     assert not tarot.can_use(context)
+
+
+def test_strength_cannot_use_more_than_two_cards():
+
+    state = BalatroState()
+
+    cards = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("3", "Spades"),
+        BalatroCard("4", "Clubs")
+    ]
+
+    state.hand = cards
+
+    tarot = create_tarot(
+        "Strength"
+    )
+
+    context = ConsumableContext(
+        state=state,
+        cards=cards
+    )
+
+    assert not tarot.can_use(context)
+
+
+def test_magician_cannot_use_more_than_two_cards():
+
+    state = BalatroState()
+
+    cards = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("3", "Spades"),
+        BalatroCard("4", "Clubs")
+    ]
+
+    state.hand = cards
+
+    tarot = create_tarot(
+        "The Magician"
+    )
+
+    context = ConsumableContext(
+        state=state,
+        cards=cards
+    )
+
+    assert not tarot.can_use(context)
