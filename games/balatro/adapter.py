@@ -3,24 +3,32 @@ from framework.core.state import GameState
 from framework.core.action import Action
 
 from games.adapter import GameAdapter
-from games.balatro.environment import BalatroEnvironment
+from games.balatro.decks import BASE_DECK, BalatroDeck
+from games.balatro.stake_environment import BalatroStakeEnvironment
+from games.balatro.stakes import WHITE_STAKE, BalatroStake
 
 
 class BalatroAdapter(GameAdapter):
-    """
-    Adapter for Balatro.
-    """
+
+    def __init__(
+        self,
+        deck: BalatroDeck = BASE_DECK,
+        stake: BalatroStake = WHITE_STAKE
+    ):
+        self.deck = deck
+        self.stake = stake
 
     def create_environment(self) -> GameEnvironment:
-        return BalatroEnvironment()
-
+        return BalatroStakeEnvironment(
+            self.deck,
+            self.stake
+        )
 
     def get_state(
         self,
         environment: GameEnvironment
     ) -> GameState:
         return environment.get_state()
-
 
     def get_actions(
         self,
