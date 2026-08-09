@@ -70,6 +70,16 @@ from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.perkeo import PerkeoJoker
 from games.balatro.jokers.triboulet import TribouletJoker
 from games.balatro.jokers.yorick import YorickJoker
+from games.balatro.jokers.astronaut import AstronautJoker
+from games.balatro.jokers.burnt_joker import BurntJoker
+from games.balatro.jokers.certificate import CertificateJoker
+from games.balatro.jokers.cartomancer import CartomancerJoker
+from games.balatro.jokers.dna import DNAJoker
+from games.balatro.jokers.marble_joker import MarbleJoker
+from games.balatro.jokers.seance import SeanceJoker
+from games.balatro.jokers.sixth_sense import SixthSenseJoker
+from games.balatro.jokers.trading_card import TradingCardJoker
+from games.balatro.jokers.vagabond import VagabondJoker
 
 
 def test_jolly_joker():
@@ -2080,3 +2090,185 @@ def test_mystic_summit_joker():
     )
 
     assert score.mult == 17
+
+
+def test_astronaut_joker(monkeypatch):
+
+    monkeypatch.setattr(
+        "games.balatro.jokers.astronaut.random.random",
+        lambda: 0.1
+    )
+
+    joker = AstronautJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        poker_hand=PokerHand.PAIR
+    )
+
+    joker.apply(context)
+
+    assert context.data["level_up_hand"] == PokerHand.PAIR
+
+
+def test_burnt_joker():
+
+    joker = BurntJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    card = BalatroCard("A", "Hearts")
+
+    context = JokerContext(
+        state=state,
+        event=BalatroEvent(
+            BalatroEventType.CARDS_DISCARDED,
+            [card]
+        ),
+        data={"discarded_hand": PokerHand.PAIR}
+    )
+
+    joker.apply(context)
+
+    assert context.data["level_up_hand"] == PokerHand.PAIR
+
+
+def test_certificate_joker():
+
+    joker = CertificateJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2)
+    )
+
+    joker.apply(context)
+
+    assert len(context.data["created_cards"]) == 1
+
+
+def test_cartomancer_joker():
+
+    joker = CartomancerJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="BLIND_SELECTED"
+    )
+
+    joker.apply(context)
+
+    assert len(context.data["created_consumables"]) == 1
+
+
+def test_dna_joker():
+
+    joker = DNAJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    card = BalatroCard("A", "Hearts")
+
+    context = JokerContext(
+        state=state,
+        trigger="HAND_SCORED",
+        cards=[card]
+    )
+
+    joker.apply(context)
+
+    assert context.data["copied_cards"] == [card]
+
+
+def test_marble_joker():
+
+    joker = MarbleJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="ROUND_STARTED"
+    )
+
+    joker.apply(context)
+
+    assert len(context.data["created_cards"]) == 1
+    assert context.data["created_cards"][0].enhancement == "Stone"
+
+
+def test_seance_joker():
+
+    joker = SeanceJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        poker_hand=PokerHand.STRAIGHT_FLUSH
+    )
+
+    joker.apply(context)
+
+    assert len(context.data["created_consumables"]) == 1
+
+
+def test_sixth_sense_joker():
+
+    joker = SixthSenseJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    card = BalatroCard("6", "Hearts")
+
+    context = JokerContext(
+        state=state,
+        trigger="HAND_SCORED",
+        cards=[card]
+    )
+
+    joker.apply(context)
+
+    assert context.data["destroyed_cards"] == [card]
+    assert len(context.data["created_consumables"]) == 1
+
+
+def test_trading_card_joker():
+
+    joker = TradingCardJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    card = BalatroCard("A", "Hearts")
+
+    context = JokerContext(
+        state=state,
+        trigger="CARDS_DISCARDED",
+        cards=[card]
+    )
+
+    joker.apply(context)
+
+    assert context.data["destroyed_cards"] == [card]
+    assert context.data["money"] == 3
+
+
+def test_vagabond_joker():
+
+    joker = VagabondJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker],
+            "money": 4
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2)
+    )
+
+    joker.apply(context)
+
+    assert len(context.data["created_consumables"]) == 1
