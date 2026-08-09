@@ -783,3 +783,43 @@ def test_magician_can_be_used_through_environment():
     assert first.enhancement == "Lucky"
     assert second.enhancement == "Lucky"
     assert consumable not in environment.state.consumables
+
+
+def test_invalid_consumable_target_does_not_change_state():
+
+    environment = BalatroEnvironment()
+
+    card = BalatroCard(
+        "2",
+        "Hearts"
+    )
+
+    target = BalatroCard(
+        "3",
+        "Spades"
+    )
+
+    environment.state.hand = [
+        card
+    ]
+
+    consumable = create_tarot(
+        "Strength"
+    )
+
+    environment.state.consumables.append(
+        consumable
+    )
+
+    action = BalatroAction(
+        USE_CONSUMABLE,
+        cards=[target],
+        target=consumable
+    )
+
+    environment.execute_action(
+        action
+    )
+
+    assert target.rank == "3"
+    assert consumable in environment.state.consumables
