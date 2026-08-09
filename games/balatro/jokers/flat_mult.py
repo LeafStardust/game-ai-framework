@@ -3,9 +3,6 @@ from games.balatro.scoring import HandScore
 
 
 class FlatMultJoker(Joker):
-    """
-    Adds a fixed amount of Mult to the hand score.
-    """
 
     def __init__(
         self,
@@ -16,6 +13,7 @@ class FlatMultJoker(Joker):
     def apply(
         self,
         state,
+        cards,
         score: HandScore
     ) -> HandScore:
 

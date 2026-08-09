@@ -255,7 +255,8 @@ class BalatroEnvironment(GameEnvironment):
 
                 hand_score = self.scorer.score(
                     poker_hand,
-                    state
+                    state,
+                    selected_cards
                 )
 
                 state.score += hand_score.total

@@ -32,7 +32,8 @@ class BalatroScorer:
     def score(
         self,
         hand: PokerHand,
-        state=None
+        state=None,
+        cards=None
     ) -> HandScore:
 
         base_score = self.SCORES[hand]
@@ -48,6 +49,7 @@ class BalatroScorer:
 
                 score = joker.apply(
                     state,
+                    cards or [],
                     score
                 )
 

@@ -3,13 +3,11 @@ from games.balatro.scoring import HandScore
 
 
 class BullJoker(Joker):
-    """
-    Adds 2 Mult for every $5 held.
-    """
 
     def apply(
         self,
         state,
+        cards,
         score: HandScore
     ) -> HandScore:
 
