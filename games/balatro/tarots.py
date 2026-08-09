@@ -48,9 +48,11 @@ class Strength(TarotCard):
 
         return [
             list(cards)
+            for size in (1, 2)
+            if size <= len(state.hand)
             for cards in combinations(
                 state.hand,
-                min(2, len(state.hand))
+                size
             )
         ]
 

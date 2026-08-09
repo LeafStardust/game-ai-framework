@@ -78,7 +78,7 @@ def test_create_tarot_returns_independent_instance():
     assert first is not second
 
 
-def test_strength_generates_two_card_targets():
+def test_strength_generates_one_or_two_card_targets():
 
     state = BalatroState()
 
@@ -99,6 +99,9 @@ def test_strength_generates_two_card_targets():
     )
 
     assert targets == [
+        [first],
+        [second],
+        [third],
         [first, second],
         [first, third],
         [second, third]

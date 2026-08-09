@@ -659,11 +659,16 @@ def test_strength_can_be_used_through_environment():
         and action.target is consumable
     ]
 
-    assert len(use_actions) == 1
-    assert use_actions[0].cards == [first, second]
+    assert len(use_actions) == 3
+
+    two_card_action = next(
+        action
+        for action in use_actions
+        if action.cards == [first, second]
+    )
 
     environment.execute_action(
-        use_actions[0]
+        two_card_action
     )
 
     assert first.rank == "3"
