@@ -80,6 +80,12 @@ from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.sixth_sense import SixthSenseJoker
 from games.balatro.jokers.trading_card import TradingCardJoker
 from games.balatro.jokers.vagabond import VagabondJoker
+from games.balatro.jokers.eight_ball import EightBallJoker
+from games.balatro.jokers.hanging_chad import HangingChadJoker
+from games.balatro.jokers.photograph import PhotographJoker
+from games.balatro.jokers.scary_face import ScaryFaceJoker
+from games.balatro.jokers.smiley_face import SmileyFaceJoker
+from games.balatro.jokers.sock_and_buskin import SockAndBuskinJoker
 
 
 def test_jolly_joker():
@@ -2272,3 +2278,154 @@ def test_vagabond_joker():
     joker.apply(context)
 
     assert len(context.data["created_consumables"]) == 1
+
+
+def test_eight_ball_joker(monkeypatch):
+
+    monkeypatch.setattr(
+        "games.balatro.jokers.eight_ball.random.random",
+        lambda: 0.1
+    )
+
+    joker = EightBallJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="HAND_SCORED",
+        cards=[BalatroCard("8", "Hearts")]
+    )
+
+    joker.apply(context)
+
+    assert len(context.data["created_consumables"]) == 1
+
+
+def test_eight_ball_joker_does_not_trigger_without_eight():
+
+    monkeypatch = None
+
+    joker = EightBallJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="HAND_SCORED",
+        cards=[BalatroCard("7", "Hearts")]
+    )
+
+    joker.apply(context)
+
+    assert "created_consumables" not in context.data
+
+
+def test_scary_face_joker():
+
+    joker = ScaryFaceJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        cards=[
+            BalatroCard("K", "Hearts"),
+            BalatroCard("Q", "Spades")
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.score.chips == 70
+
+
+def test_smiley_face_joker():
+
+    joker = SmileyFaceJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        cards=[
+            BalatroCard("K", "Hearts"),
+            BalatroCard("Q", "Spades")
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.score.mult == 12
+
+
+def test_photograph_joker():
+
+    joker = PhotographJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        cards=[
+            BalatroCard("K", "Hearts"),
+            BalatroCard("7", "Spades")
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.score.x_mult == 2
+
+
+def test_photograph_joker_does_not_trigger_without_face_first():
+
+    joker = PhotographJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        cards=[
+            BalatroCard("7", "Hearts"),
+            BalatroCard("K", "Spades")
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.score.x_mult == 1
+
+
+def test_sock_and_buskin_joker():
+
+    joker = SockAndBuskinJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        cards=[
+            BalatroCard("K", "Hearts"),
+            BalatroCard("7", "Spades"),
+            BalatroCard("J", "Clubs")
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.data["retrigger_cards"] == 2
+
+
+def test_hanging_chad_joker():
+
+    joker = HangingChadJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        cards=[
+            BalatroCard("A", "Hearts")
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.data["retrigger_first_card"] == 2
