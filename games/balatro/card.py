@@ -9,3 +9,4 @@ class BalatroCard:
 
     rank: str
     suit: str
+    enhancement: str | None = None
