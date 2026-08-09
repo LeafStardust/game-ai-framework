@@ -62,11 +62,11 @@
 - [x] Balatro terminology alignment
 - [x] Joker framework
 - [x] Consumable framework
-- [ ] Card enhancements and editions
-- [ ] Seals and card modifiers
 - [x] Planet card effects
 - [ ] Tarot card effects
 - [ ] Spectral card effects
+- [ ] Card enhancements and editions
+- [ ] Seals and card modifiers
 
 ## v0.8.0 — Balatro Search and Planning
 
