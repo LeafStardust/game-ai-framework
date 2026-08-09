@@ -11,6 +11,7 @@ from games.balatro.actions import (
     BalatroAction,
     PLAY_CARDS,
     DISCARD_CARDS,
+    USE_CONSUMABLE,
     END_ROUND
 )
 
@@ -23,6 +24,7 @@ from games.balatro.events import (
     BalatroEventType
 )
 from games.balatro.joker import JokerContext
+from games.balatro.consumable import ConsumableContext
 
 
 class BalatroEnvironment(GameEnvironment):
@@ -81,6 +83,19 @@ class BalatroEnvironment(GameEnvironment):
             actions.extend(
                 self.card_selector.generate_actions(
                     self.state
+                )
+            )
+
+            actions.extend(
+                BalatroAction(
+                    USE_CONSUMABLE,
+                    target=consumable
+                )
+                for consumable in self.state.consumables
+                if consumable.can_use(
+                    ConsumableContext(
+                        state=self.state
+                    )
                 )
             )
 
@@ -317,6 +332,33 @@ class BalatroEnvironment(GameEnvironment):
                 state,
                 len(selected_cards)
             )
+
+
+        elif action.name == USE_CONSUMABLE:
+
+            consumable = getattr(
+                action,
+                "target",
+                None
+            )
+
+            if consumable not in state.consumables:
+                return
+
+            context = ConsumableContext(
+                state=state,
+                target=getattr(
+                    action,
+                    "target",
+                    None
+                )
+            )
+
+            if not consumable.can_use(context):
+                return
+
+            consumable.use(context)
+            state.consumables.remove(consumable)
 
 
         elif action.name == END_ROUND:
