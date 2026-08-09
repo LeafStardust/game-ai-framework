@@ -84,8 +84,8 @@
 
 - [x] Red Deck rules and starting-state support
 - [x] Card selection system
-- [ ] Future state prediction
-- [ ] Hand/discard probability analysis
+- [x] Future state prediction
+- [x] Hand/discard probability analysis
 - [ ] Search-based decision making
 - [ ] Expected value estimation
 - [ ] Goal-directed path planning
