@@ -15,6 +15,7 @@ class BalatroState(GameState):
         self.blind = None
         self.boss_name: str | None = None
         self.deck_name: str = "BASE"
+        self.stake_name: str = "WHITE"
         self.deck: list[BalatroCard] = self._create_deck()
         self.hand: list[BalatroCard] = []
         self.hand_size: int = 8
@@ -96,6 +97,7 @@ class BalatroState(GameState):
             new_state.blind = self.blind.copy()
         new_state.boss_name = self.boss_name
         new_state.deck_name = self.deck_name
+        new_state.stake_name = self.stake_name
         new_state.deck = self.deck.copy()
         new_state.hand = self.hand.copy()
         new_state.hand_size = self.hand_size
