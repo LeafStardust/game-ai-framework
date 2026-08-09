@@ -530,3 +530,165 @@ def test_random_tarot_uses_rng_for_empress():
     )
 
     assert tarot.name == "The Empress"
+
+
+def test_hierophant_applies_bonus_enhancement():
+
+    first = BalatroCard("2", "Hearts")
+    second = BalatroCard("K", "Spades")
+
+    tarot = create_tarot("The Hierophant")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[first, second]
+    )
+
+    tarot.use(context)
+
+    assert first.enhancement == "Bonus"
+    assert second.enhancement == "Bonus"
+
+
+def test_lovers_applies_wild_enhancement():
+
+    card = BalatroCard("2", "Hearts")
+
+    tarot = create_tarot("The Lovers")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.enhancement == "Wild"
+
+
+def test_chariot_applies_steel_enhancement():
+
+    card = BalatroCard("2", "Hearts")
+
+    tarot = create_tarot("The Chariot")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.enhancement == "Steel"
+
+
+def test_justice_applies_glass_enhancement():
+
+    card = BalatroCard("2", "Hearts")
+
+    tarot = create_tarot("Justice")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.enhancement == "Glass"
+
+
+def test_devil_applies_gold_enhancement():
+
+    card = BalatroCard("2", "Hearts")
+
+    tarot = create_tarot("The Devil")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.enhancement == "Gold"
+
+
+def test_tower_applies_stone_enhancement():
+
+    card = BalatroCard("2", "Hearts")
+
+    tarot = create_tarot("The Tower")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.enhancement == "Stone"
+
+
+def test_star_changes_suit_to_diamonds():
+
+    card = BalatroCard("2", "Hearts")
+
+    tarot = create_tarot("The Star")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.suit == "Diamonds"
+
+
+def test_moon_changes_suit_to_clubs():
+
+    card = BalatroCard("2", "Hearts")
+
+    tarot = create_tarot("The Moon")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.suit == "Clubs"
+
+
+def test_sun_changes_suit_to_hearts():
+
+    card = BalatroCard("2", "Spades")
+
+    tarot = create_tarot("The Sun")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.suit == "Hearts"
+
+
+def test_world_changes_suit_to_spades():
+
+    card = BalatroCard("2", "Hearts")
+
+    tarot = create_tarot("The World")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[card]
+    )
+
+    tarot.use(context)
+
+    assert card.suit == "Spades"

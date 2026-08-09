@@ -729,7 +729,17 @@ def test_shop_can_generate_registered_tarot():
     assert tarot_names == {
         "Strength",
         "The Magician",
-        "The Empress"
+        "The Empress",
+        "The Hierophant",
+        "The Lovers",
+        "The Chariot",
+        "Justice",
+        "The Devil",
+        "The Tower",
+        "The Star",
+        "The Moon",
+        "The Sun",
+        "The World",
     }
 
 
