@@ -104,6 +104,13 @@ from games.balatro.jokers.reserved_parking import ReservedParkingJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.to_do_list import ToDoListJoker
 from games.balatro.jokers.ancient_joker import AncientJoker
+from games.balatro.jokers.blue_joker import BlueJoker
+from games.balatro.jokers.brainstorm import BrainstormJoker
+from games.balatro.jokers.golden_ticket import GoldenTicketJoker
+from games.balatro.jokers.invisible_joker import InvisibleJoker
+from games.balatro.jokers.joker_stencil import JokerStencil
+from games.balatro.jokers.luchador import LuchadorJoker
+from games.balatro.jokers.mr_bones import MrBonesJoker
 
 
 def test_jolly_joker():
@@ -2870,3 +2877,137 @@ def test_ancient_joker_does_not_trigger_without_matching_suit():
     joker.apply(context)
 
     assert context.score.x_mult == 1.0
+
+
+def test_blue_joker():
+
+    joker = BlueJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        data={
+            "deck": [
+                BalatroCard("A", "Hearts"),
+                BalatroCard("K", "Spades"),
+            ]
+        }
+    )
+
+    joker.apply(context)
+
+    assert context.score.chips == 14
+
+
+def test_golden_ticket():
+
+    joker = GoldenTicketJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="CARDS_SCORED",
+        cards=[
+            BalatroCard("A", "Hearts", enhancement="Gold"),
+            BalatroCard("K", "Spades"),
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.data["money"] == 4
+
+
+def test_luchador():
+
+    joker = LuchadorJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="BOSS_BLIND_DEFEATED"
+    )
+
+    joker.apply(context)
+
+    assert context.data["boss_blind_disabled"] is True
+
+
+def test_mr_bones():
+
+    joker = MrBonesJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="RUN_FAILED",
+        data={
+            "score": 30,
+            "required_score": 100,
+        }
+    )
+
+    joker.apply(context)
+
+    assert context.data["prevented_loss"] is True
+
+
+def test_invisible_joker():
+
+    joker = InvisibleJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    for _ in range(2):
+        context = JokerContext(
+            state=state,
+            trigger="ROUND_ENDED"
+        )
+        joker.apply(context)
+
+    assert context.data["invisible_joker_trigger"] is True
+
+
+def test_joker_stencil():
+
+    joker = JokerStencil()
+
+    other = object()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker, other]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        data={"joker_slots": 5}
+    )
+
+    joker.apply(context)
+
+    assert context.score.x_mult == 3
+
+
+def test_brainstorm():
+
+    first = object()
+    joker = BrainstormJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [first, joker]
+        }
+    )()
+
+    context = JokerContext(state=state)
+
+    joker.apply(context)
+
+    assert context.data["copy_joker"] is first
