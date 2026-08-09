@@ -317,3 +317,18 @@ def test_buy_consumable_fails_when_inventory_is_full():
 
     assert third not in environment.state.consumables
     assert third in environment.state.shop_consumables
+
+
+def test_complete_blind_generates_shop_consumables():
+
+    environment = BalatroEnvironment()
+
+    environment._complete_blind(
+        environment.state
+    )
+
+    assert len(
+        environment.state.shop_consumables
+    ) == 2
+
+    assert environment.state.shop_active

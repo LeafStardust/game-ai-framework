@@ -58,7 +58,7 @@ class BalatroEnvironment(GameEnvironment):
         )
 
         self._setup_blind()
-
+   
 
     def get_state(self) -> GameState:
 
@@ -237,6 +237,10 @@ class BalatroEnvironment(GameEnvironment):
         state.phase = "ROUND_START"
 
         self._setup_blind()
+
+        self._generate_shop_consumables(
+            state
+        )
 
 
     def _apply_action(
@@ -432,6 +436,19 @@ class BalatroEnvironment(GameEnvironment):
         return random_planet(
             self.rng
         )
+
+
+    def _generate_shop_consumables(
+        self,
+        state: BalatroState
+    ) -> None:
+
+        state.shop_consumables = [
+            self._generate_planet(),
+            self._generate_planet()
+        ]
+
+        state.shop_active = True
 
 
     def is_terminal(self) -> bool:

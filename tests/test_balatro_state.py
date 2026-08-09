@@ -100,3 +100,13 @@ def test_balatro_state_copies_shop_consumables():
     ]
 
     assert copied_state.shop_consumables is not state.shop_consumables
+
+
+def test_balatro_state_copies_shop_active():
+
+    state = BalatroState()
+    state.shop_active = True
+
+    copied_state = state.copy()
+
+    assert copied_state.shop_active
