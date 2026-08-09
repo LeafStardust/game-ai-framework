@@ -86,6 +86,13 @@ from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.smiley_face import SmileyFaceJoker
 from games.balatro.jokers.sock_and_buskin import SockAndBuskinJoker
+from games.balatro.jokers.flower_pot import FlowerPotJoker
+from games.balatro.jokers.four_fingers import FourFingersJoker
+from games.balatro.jokers.midas_mask import MidasMaskJoker
+from games.balatro.jokers.runner import RunnerJoker
+from games.balatro.jokers.shortcut import ShortcutJoker
+from games.balatro.jokers.smeared_joker import SmearedJoker
+from games.balatro.jokers.wee_joker import WeeJoker
 
 
 def test_jolly_joker():
@@ -2429,3 +2436,160 @@ def test_hanging_chad_joker():
     joker.apply(context)
 
     assert context.data["retrigger_first_card"] == 2
+
+
+def test_four_fingers_joker():
+
+    joker = FourFingersJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(state=state)
+
+    joker.apply(context)
+
+    assert context.data["four_fingers"] is True
+
+
+def test_shortcut_joker():
+
+    joker = ShortcutJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(state=state)
+
+    joker.apply(context)
+
+    assert context.data["shortcut"] is True
+
+
+def test_runner_joker():
+
+    joker = RunnerJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(30, 4),
+        poker_hand=PokerHand.STRAIGHT
+    )
+
+    joker.apply(context)
+
+    assert joker.chips == 15
+    assert context.score.chips == 45
+
+
+def test_runner_joker_only_triggers_on_straight():
+
+    joker = RunnerJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        poker_hand=PokerHand.PAIR
+    )
+
+    joker.apply(context)
+
+    assert joker.chips == 0
+    assert context.score.chips == 10
+
+
+def test_smeared_joker():
+
+    joker = SmearedJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(state=state)
+
+    joker.apply(context)
+
+    assert context.data["smeared_suits"]["Hearts"] == "Red"
+    assert context.data["smeared_suits"]["Diamonds"] == "Red"
+    assert context.data["smeared_suits"]["Clubs"] == "Black"
+    assert context.data["smeared_suits"]["Spades"] == "Black"
+
+
+def test_flower_pot_joker():
+
+    joker = FlowerPotJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        cards=[
+            BalatroCard("A", "Hearts"),
+            BalatroCard("K", "Diamonds"),
+            BalatroCard("Q", "Clubs"),
+            BalatroCard("J", "Spades"),
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.score.x_mult == 3
+
+
+def test_flower_pot_joker_does_not_trigger_without_all_suits():
+
+    joker = FlowerPotJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        cards=[
+            BalatroCard("A", "Hearts"),
+            BalatroCard("K", "Diamonds"),
+            BalatroCard("Q", "Clubs"),
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.score.x_mult == 1
+
+
+def test_wee_joker():
+
+    joker = WeeJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        cards=[
+            BalatroCard("2", "Hearts"),
+            BalatroCard("2", "Spades"),
+        ]
+    )
+
+    joker.apply(context)
+
+    assert joker.chips == 16
+    assert context.score.chips == 26
+
+
+def test_midas_mask_joker():
+
+    joker = MidasMaskJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    cards = [
+        BalatroCard("K", "Hearts"),
+        BalatroCard("Q", "Spades"),
+        BalatroCard("7", "Clubs"),
+    ]
+
+    context = JokerContext(
+        state=state,
+        cards=cards
+    )
+
+    joker.apply(context)
+
+    assert cards[0].enhancement == "Gold"
+    assert cards[1].enhancement == "Gold"
+    assert cards[2].enhancement is None
