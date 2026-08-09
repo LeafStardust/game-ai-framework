@@ -31,6 +31,7 @@ from games.balatro.jokers.the_tribe import TheTribeJoker
 from games.balatro.jokers.blackboard import BlackboardJoker
 from games.balatro.jokers.drivers_license import DriversLicenseJoker
 from games.balatro.jokers.steel_joker import SteelJoker
+from games.balatro.jokers.glass_joker import GlassJoker
 
 
 def test_jolly_joker():
@@ -1067,3 +1068,29 @@ def test_steel_joker():
     assert score.mult == 2
     assert score.x_mult == 1.4
     assert score.total == 28
+
+
+def test_glass_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "glass_cards_destroyed": 2,
+            "jokers": [
+                GlassJoker()
+            ]
+        }
+    )()
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state
+    )
+
+    assert score.chips == 10
+    assert score.mult == 2
+    assert score.x_mult == 2.5
+    assert score.total == 50

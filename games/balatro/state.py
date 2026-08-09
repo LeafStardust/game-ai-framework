@@ -29,6 +29,7 @@ class BalatroState(GameState):
 
         self.phase: str = "ROUND_START"
 
+        self.glass_cards_destroyed: int = 0
 
     @property
     def deck_size(self) -> int:
@@ -104,5 +105,7 @@ class BalatroState(GameState):
         new_state.vouchers = self.vouchers.copy()
 
         new_state.phase = self.phase
+
+        new_state.glass_cards_destroyed = self.glass_cards_destroyed
 
         return new_state
