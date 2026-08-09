@@ -5,9 +5,6 @@ from games.balatro.hand import PokerHand
 
 
 class HandEvaluator:
-    """
-    Determines poker hand category from cards.
-    """
 
     RANK_ORDER = {
         "2": 2,
@@ -25,11 +22,13 @@ class HandEvaluator:
         "A": 14
     }
 
-
     def evaluate(
         self,
         cards: list[BalatroCard]
     ) -> PokerHand:
+
+        if not cards:
+            return PokerHand.HIGH_CARD
 
         ranks = [
             card.rank
@@ -46,14 +45,13 @@ class HandEvaluator:
         is_flush = self._is_flush(cards)
         is_straight = self._is_straight(cards)
 
-
         if is_flush and is_straight:
             return PokerHand.STRAIGHT_FLUSH
 
         if values[0] == 4:
             return PokerHand.FOUR_OF_A_KIND
 
-        if values[0] == 3 and values[1] == 2:
+        if values[0] == 3 and len(values) > 1 and values[1] == 2:
             return PokerHand.FULL_HOUSE
 
         if is_flush:
@@ -76,11 +74,13 @@ class HandEvaluator:
 
         return PokerHand.HIGH_CARD
 
-
     def _is_flush(
         self,
         cards: list[BalatroCard]
     ) -> bool:
+
+        if len(cards) != 5:
+            return False
 
         suits = [
             card.suit
@@ -89,11 +89,13 @@ class HandEvaluator:
 
         return len(set(suits)) == 1
 
-
     def _is_straight(
         self,
         cards: list[BalatroCard]
     ) -> bool:
+
+        if len(cards) != 5:
+            return False
 
         values = sorted(
             [
@@ -101,6 +103,9 @@ class HandEvaluator:
                 for card in cards
             ]
         )
+
+        if values == [2, 3, 4, 5, 14]:
+            return True
 
         return values == list(
             range(
