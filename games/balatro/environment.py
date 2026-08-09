@@ -20,6 +20,8 @@ from games.balatro.consumable import ConsumableContext
 
 class BalatroEnvironment(GameEnvironment):
 
+    SHOP_REFRESH_COST = 5
+
     def __init__(self):
 
         self.state = BalatroState()
@@ -114,11 +116,13 @@ class BalatroEnvironment(GameEnvironment):
                 and self.state.money >= consumable.price
             )
 
-            actions.append(
-                BalatroAction(
-                    REFRESH_SHOP
+            if self.state.money >= self.SHOP_REFRESH_COST:
+
+                actions.append(
+                    BalatroAction(
+                        REFRESH_SHOP
+                    )
                 )
-            )
 
             actions.append(
                 BalatroAction(
@@ -357,6 +361,11 @@ class BalatroEnvironment(GameEnvironment):
 
             if state.phase != "SHOP":
                 return
+
+            if state.money < self.SHOP_REFRESH_COST:
+                return
+
+            state.money -= self.SHOP_REFRESH_COST
 
             self._generate_shop_consumables(
                 state

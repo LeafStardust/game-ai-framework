@@ -514,6 +514,8 @@ def test_shop_generates_refresh_action():
         environment.state
     )
 
+    environment.state.money = environment.SHOP_REFRESH_COST
+
     actions = environment.get_actions()
 
     refresh_actions = [
@@ -525,12 +527,61 @@ def test_shop_generates_refresh_action():
     assert len(refresh_actions) == 1
 
 
-def test_refresh_shop_replaces_consumables():
+def test_refresh_shop_costs_money():
 
     environment = BalatroEnvironment()
 
     environment._complete_blind(
         environment.state
+    )
+
+    environment.state.money = environment.SHOP_REFRESH_COST
+
+    environment.execute_action(
+        BalatroAction(
+            REFRESH_SHOP
+        )
+    )
+
+    assert environment.state.money == 0
+    assert len(
+        environment.state.shop_consumables
+    ) == 2
+
+
+def test_refresh_shop_requires_money():
+
+    environment = BalatroEnvironment()
+
+    environment._complete_blind(
+        environment.state
+    )
+
+    environment.state.money = (
+        environment.SHOP_REFRESH_COST - 1
+    )
+
+    actions = environment.get_actions()
+
+    refresh_actions = [
+        action
+        for action in actions
+        if action.name == REFRESH_SHOP
+    ]
+
+    assert len(refresh_actions) == 0
+
+
+def test_refresh_shop_does_not_spend_money_when_unaffordable():
+
+    environment = BalatroEnvironment()
+
+    environment._complete_blind(
+        environment.state
+    )
+
+    environment.state.money = (
+        environment.SHOP_REFRESH_COST - 1
     )
 
     original = environment.state.shop_consumables.copy()
@@ -541,8 +592,8 @@ def test_refresh_shop_replaces_consumables():
         )
     )
 
-    assert len(
-        environment.state.shop_consumables
-    ) == 2
+    assert environment.state.money == (
+        environment.SHOP_REFRESH_COST - 1
+    )
 
-    assert environment.state.shop_consumables != original
+    assert environment.state.shop_consumables == original
