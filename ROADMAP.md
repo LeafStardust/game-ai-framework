@@ -60,6 +60,13 @@
 - [x] Discard cards evaluation
 - [x] Blind-aware decision evaluation
 - [x] Balatro terminology alignment
+- [x] Joker framework
+- [ ] Consumable framework
+- [ ] Card enhancements and editions
+- [ ] Seals and card modifiers
+- [ ] Planet card effects
+- [ ] Tarot card effects
+- [ ] Spectral card effects
 
 ## v0.8.0 — Balatro Search and Planning
 
@@ -68,6 +75,9 @@
 - [ ] Hand/discard probability analysis
 - [ ] Search-based decision making
 - [ ] Expected value estimation
+- [ ] Goal-directed path planning
+- [ ] Blind completion path synthesis
+- [ ] Tactical path commitment
 
 ## v1.0.0 — General Game AI Framework
 
