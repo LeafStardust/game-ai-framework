@@ -30,6 +30,7 @@ from games.balatro.jokers.the_order import TheOrderJoker
 from games.balatro.jokers.the_tribe import TheTribeJoker
 from games.balatro.jokers.blackboard import BlackboardJoker
 from games.balatro.jokers.drivers_license import DriversLicenseJoker
+from games.balatro.jokers.steel_joker import SteelJoker
 
 
 def test_jolly_joker():
@@ -1036,3 +1037,33 @@ def test_drivers_license_joker():
     assert score.mult == 2
     assert score.x_mult == 3
     assert score.total == 60
+
+
+def test_steel_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                SteelJoker()
+            ],
+            "deck": [
+                BalatroCard("A", "Hearts", "Steel"),
+                BalatroCard("K", "Spades", "Steel"),
+                BalatroCard("Q", "Clubs")
+            ]
+        }
+    )()
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state
+    )
+
+    assert score.chips == 10
+    assert score.mult == 2
+    assert score.x_mult == 1.4
+    assert score.total == 28
