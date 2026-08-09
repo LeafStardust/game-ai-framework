@@ -7,6 +7,7 @@ from games.balatro.consumable import (
 )
 from games.balatro.state import BalatroState
 from games.balatro.planets import PLANET_CARDS, create_planet, random_planet
+from games.balatro.card import BalatroCard
 
 
 class TestConsumable(Consumable):
@@ -135,3 +136,20 @@ def test_consumable_default_target_cards():
     assert consumable.get_target_cards(
         state
     ) == [[]]
+
+
+def test_consumable_context_rejects_cards_not_in_hand():
+
+    state = BalatroState()
+
+    card = BalatroCard(
+        "2",
+        "Hearts"
+    )
+
+    context = ConsumableContext(
+        state=state,
+        cards=[card]
+    )
+
+    assert not context.has_valid_cards()

@@ -17,7 +17,10 @@ class Strength(TarotCard):
         context: ConsumableContext
     ) -> bool:
 
-        return len(context.cards) > 0
+        return (
+            0 < len(context.cards) <= 2
+            and context.has_valid_cards()
+        )
 
     def use(
         self,
@@ -70,7 +73,10 @@ class Magician(TarotCard):
         context: ConsumableContext
     ) -> bool:
 
-        return len(context.cards) > 0
+        return (
+            0 < len(context.cards) <= 2
+            and context.has_valid_cards()
+        )
 
     def use(
         self,

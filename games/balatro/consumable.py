@@ -18,6 +18,13 @@ class ConsumableContext:
     target: object | None = None
     data: dict = field(default_factory=dict)
 
+    def has_valid_cards(self) -> bool:
+
+        return all(
+            card in self.state.hand
+            for card in self.cards
+        )
+
 
 class Consumable(ABC):
 

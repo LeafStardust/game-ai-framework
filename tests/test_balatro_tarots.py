@@ -11,14 +11,20 @@ def test_strength_can_use_with_cards():
 
     tarot = create_tarot("Strength")
 
+    state = BalatroState()
+
+    card = BalatroCard(
+        "2",
+        "Hearts"
+    )
+
+    state.hand = [
+        card
+    ]
+
     context = ConsumableContext(
-        state=BalatroState(),
-        cards=[
-            BalatroCard(
-                "2",
-                "Hearts"
-            )
-        ]
+        state=state,
+        cards=[card]
     )
 
     assert tarot.can_use(context)
@@ -282,3 +288,45 @@ def test_random_tarot_returns_registered_tarot():
 
     assert tarot.name in TAROT_CARDS
     assert tarot.category == "TAROT"
+
+
+def test_strength_cannot_use_card_not_in_hand():
+
+    state = BalatroState()
+
+    card = BalatroCard(
+        "2",
+        "Hearts"
+    )
+
+    tarot = create_tarot(
+        "Strength"
+    )
+
+    context = ConsumableContext(
+        state=state,
+        cards=[card]
+    )
+
+    assert not tarot.can_use(context)
+
+
+def test_magician_cannot_use_card_not_in_hand():
+
+    state = BalatroState()
+
+    card = BalatroCard(
+        "2",
+        "Hearts"
+    )
+
+    tarot = create_tarot(
+        "The Magician"
+    )
+
+    context = ConsumableContext(
+        state=state,
+        cards=[card]
+    )
+
+    assert not tarot.can_use(context)
