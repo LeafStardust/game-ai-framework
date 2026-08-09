@@ -138,6 +138,12 @@ from games.balatro.jokers.erosion import ErosionJoker
 from games.balatro.jokers.gros_michel import GrosMichelJoker
 from games.balatro.jokers.hack import HackJoker
 from games.balatro.jokers.seltzer import SeltzerJoker
+from games.balatro.jokers.baron import BaronJoker
+from games.balatro.jokers.blueprint import BlueprintJoker
+from games.balatro.jokers.constellation import ConstellationJoker
+from games.balatro.jokers.dagger import DaggerJoker
+from games.balatro.jokers.drunkard import DrunkardJoker
+from games.balatro.jokers.faceless_joker import FacelessJoker
 
 
 def test_jolly_joker():
@@ -3597,3 +3603,112 @@ def test_seltzer_joker_expires():
         joker.apply(context)
 
     assert joker.rounds_remaining == 0
+
+
+def test_baron_joker():
+
+    joker = BaronJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        score=HandScore(10, 2),
+        held_cards=[
+            BalatroCard("K", "Hearts"),
+            BalatroCard("K", "Spades"),
+            BalatroCard("A", "Clubs"),
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.score.x_mult == 2.25
+
+
+def test_blueprint_joker():
+
+    joker = BlueprintJoker()
+    target = object()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker, target]
+        }
+    )()
+
+    context = JokerContext(state=state)
+
+    joker.apply(context)
+
+    assert context.data["copy_joker"] is target
+
+
+def test_constellation_joker():
+
+    joker = ConstellationJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="PLANET_USED"
+    )
+
+    joker.apply(context)
+
+    assert joker.x_mult == 1.1
+
+
+def test_dagger_joker():
+
+    joker = DaggerJoker()
+    target = object()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker, target]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        trigger="BLIND_SELECTED"
+    )
+
+    joker.apply(context)
+
+    assert context.data["destroy_joker"] is target
+    assert context.data["dagger_mult"] == 20
+
+
+def test_drunkard_joker():
+
+    joker = DrunkardJoker()
+
+    context = JokerContext(
+        state=GameState()
+    )
+
+    joker.apply(context)
+
+    assert context.data["discards_per_round_modifier"] == 1
+
+
+def test_faceless_joker():
+
+    joker = FacelessJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="DISCARD",
+        cards=[
+            BalatroCard("J", "Hearts"),
+            BalatroCard("Q", "Spades"),
+            BalatroCard("K", "Clubs"),
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.data["money"] == 5
