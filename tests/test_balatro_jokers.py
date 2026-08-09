@@ -153,6 +153,12 @@ from games.balatro.jokers.chaos_the_clown import ChaosTheClownJoker
 from games.balatro.jokers.credit_card import CreditCardJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.spare_trousers import SpareTrousersJoker
+from games.balatro.jokers.square_joker import SquareJoker
+from games.balatro.jokers.stuntman import StuntmanJoker
+from games.balatro.jokers.superposition import SuperpositionJoker
+from games.balatro.jokers.to_the_moon import ToTheMoonJoker
+from games.balatro.jokers.troubadour import TroubadourJoker
+from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 
 
 def test_jolly_joker():
@@ -3866,3 +3872,107 @@ def test_spare_trousers_joker():
 
     assert joker.mult == 2
     assert context.score.mult == 4
+
+
+def test_square_joker():
+
+    joker = SquareJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        score=HandScore(10, 2),
+        trigger="HAND_SCORED",
+        cards=[
+            BalatroCard("A", "Hearts"),
+            BalatroCard("K", "Hearts"),
+            BalatroCard("Q", "Hearts"),
+            BalatroCard("J", "Hearts"),
+        ]
+    )
+
+    joker.apply(context)
+
+    assert joker.chips == 4
+    assert context.score.chips == 14
+
+
+def test_stuntman_joker():
+
+    joker = StuntmanJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        score=HandScore(10, 2)
+    )
+
+    joker.apply(context)
+
+    assert context.score.chips == 310
+    assert context.data["hand_size_modifier"] == -2
+
+
+def test_superposition_joker():
+
+    joker = SuperpositionJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="HAND_SCORED",
+        cards=[
+            BalatroCard("A", "Hearts"),
+        ],
+        data={"straight": True}
+    )
+
+    joker.apply(context)
+
+    assert len(context.data["created_tarot_cards"]) == 1
+
+
+def test_to_the_moon_joker():
+
+    joker = ToTheMoonJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="INTEREST_CALCULATED"
+    )
+
+    joker.apply(context)
+
+    assert context.data["interest_bonus"] == 1
+
+
+def test_troubadour_joker():
+
+    joker = TroubadourJoker()
+
+    context = JokerContext(
+        state=GameState()
+    )
+
+    joker.apply(context)
+
+    assert context.data["hand_size_modifier"] == 2
+    assert context.data["hands_per_round_modifier"] == -1
+
+
+def test_walkie_talkie_joker():
+
+    joker = WalkieTalkieJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        score=HandScore(10, 2),
+        trigger="HAND_SCORED",
+        cards=[
+            BalatroCard("10", "Hearts"),
+            BalatroCard("4", "Spades"),
+            BalatroCard("A", "Clubs"),
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.score.chips == 30
+    assert context.score.mult == 10
