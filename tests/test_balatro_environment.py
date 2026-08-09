@@ -728,7 +728,8 @@ def test_shop_can_generate_registered_tarot():
 
     assert tarot_names == {
         "Strength",
-        "The Magician"
+        "The Magician",
+        "The Empress"
     }
 
 

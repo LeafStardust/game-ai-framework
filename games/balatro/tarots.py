@@ -104,9 +104,54 @@ class Magician(TarotCard):
         ]
 
 
+class Empress(TarotCard):
+
+    def __init__(self):
+
+        super().__init__(
+            "The Empress"
+        )
+
+    def can_use(
+        self,
+        context: ConsumableContext
+    ) -> bool:
+
+        return (
+            0 < len(context.cards) <= 2
+            and context.has_valid_cards()
+        )
+
+    def use(
+        self,
+        context: ConsumableContext
+    ) -> ConsumableContext:
+
+        for card in context.cards:
+            card.enhancement = "Mult"
+
+        return context
+
+    def get_target_cards(
+        self,
+        state
+    ) -> list[list[BalatroCard]]:
+
+        return [
+            list(cards)
+            for size in (1, 2)
+            if size <= len(state.hand)
+            for cards in combinations(
+                state.hand,
+                size
+            )
+        ]
+
+
 TAROT_CARDS = {
     "Strength": Strength,
-    "The Magician": Magician
+    "The Magician": Magician,
+    "The Empress": Empress
 }
 
 

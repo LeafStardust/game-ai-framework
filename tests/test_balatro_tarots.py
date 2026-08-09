@@ -402,3 +402,131 @@ def test_random_tarot_uses_rng():
     )
 
     assert tarot.name == "The Magician"
+
+
+def test_empress_applies_mult_enhancement():
+
+    first = BalatroCard(
+        "2",
+        "Hearts"
+    )
+
+    second = BalatroCard(
+        "K",
+        "Spades"
+    )
+
+    tarot = create_tarot(
+        "The Empress"
+    )
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[first, second]
+    )
+
+    tarot.use(context)
+
+    assert first.enhancement == "Mult"
+    assert second.enhancement == "Mult"
+
+
+def test_empress_generates_one_or_two_card_targets():
+
+    state = BalatroState()
+
+    first = BalatroCard("2", "Hearts")
+    second = BalatroCard("3", "Spades")
+    third = BalatroCard("4", "Clubs")
+
+    state.hand = [
+        first,
+        second,
+        third
+    ]
+
+    tarot = create_tarot(
+        "The Empress"
+    )
+
+    targets = tarot.get_target_cards(
+        state
+    )
+
+    assert targets == [
+        [first],
+        [second],
+        [third],
+        [first, second],
+        [first, third],
+        [second, third]
+    ]
+
+
+def test_empress_cannot_use_card_not_in_hand():
+
+    state = BalatroState()
+
+    card = BalatroCard(
+        "2",
+        "Hearts"
+    )
+
+    tarot = create_tarot(
+        "The Empress"
+    )
+
+    context = ConsumableContext(
+        state=state,
+        cards=[card]
+    )
+
+    assert not tarot.can_use(context)
+
+
+def test_empress_cannot_use_more_than_two_cards():
+
+    state = BalatroState()
+
+    cards = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("3", "Spades"),
+        BalatroCard("4", "Clubs")
+    ]
+
+    state.hand = cards
+
+    tarot = create_tarot(
+        "The Empress"
+    )
+
+    context = ConsumableContext(
+        state=state,
+        cards=cards
+    )
+
+    assert not tarot.can_use(context)
+
+
+def test_create_tarot_returns_empress():
+
+    tarot = create_tarot(
+        "The Empress"
+    )
+
+    assert tarot.name == "The Empress"
+    assert tarot.category == "TAROT"
+
+
+def test_random_tarot_uses_rng_for_empress():
+
+    class TestRng:
+
+        def choice(self, values):
+            return "The Empress"
+
+    tarot = random_tarot(
+        TestRng()
+    )
+
+    assert tarot.name == "The Empress"
