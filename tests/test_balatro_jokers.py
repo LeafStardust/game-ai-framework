@@ -144,6 +144,10 @@ from games.balatro.jokers.constellation import ConstellationJoker
 from games.balatro.jokers.dagger import DaggerJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.faceless_joker import FacelessJoker
+from games.balatro.jokers.lucky_cat import LuckyCatJoker
+from games.balatro.jokers.mail_in_rebate import MailInRebateJoker
+from games.balatro.jokers.oops_all_6s import OopsAll6sJoker
+from games.balatro.jokers.pareidolia import PareidoliaJoker
 
 
 def test_jolly_joker():
@@ -3712,3 +3716,65 @@ def test_faceless_joker():
     joker.apply(context)
 
     assert context.data["money"] == 5
+
+
+def test_lucky_cat_joker():
+
+    joker = LuckyCatJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="LUCKY_TRIGGERED"
+    )
+
+    joker.apply(context)
+
+    assert joker.x_mult == 1.2
+
+
+def test_mail_in_rebate_joker():
+
+    joker = MailInRebateJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="DISCARD",
+        cards=[
+            BalatroCard("A", "Hearts"),
+            BalatroCard("A", "Spades"),
+            BalatroCard("K", "Clubs"),
+        ],
+        data={"mail_in_rebate_rank": "A"}
+    )
+
+    joker.apply(context)
+
+    assert context.data["money"] == 6
+
+
+def test_oops_all_6s_joker():
+
+    joker = OopsAll6sJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="PROBABILITY_CHECK",
+        data={"probability": 1, "base_probability": 2}
+    )
+
+    joker.apply(context)
+
+    assert context.data["probability"] == 2
+
+
+def test_pareidolia_joker():
+
+    joker = PareidoliaJoker()
+
+    context = JokerContext(
+        state=GameState()
+    )
+
+    joker.apply(context)
+
+    assert context.data["all_cards_are_face"] is True
