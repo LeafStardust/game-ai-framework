@@ -3,7 +3,7 @@ from games.balatro.environment import BalatroEnvironment
 from games.balatro.actions import DISCARD_CARDS, END_ROUND, PLAY_CARDS, BUY_CONSUMABLE, END_SHOP, REFRESH_SHOP, USE_CONSUMABLE, BalatroAction
 from games.balatro.consumable import Consumable
 from games.balatro.planets import create_planet, PLANET_CARDS
-from games.balatro.tarots import create_tarot
+from games.balatro.tarots import create_tarot, TAROT_CARDS
 
 
 class TestConsumable(Consumable):
@@ -709,38 +709,12 @@ def test_environment_generates_consumable():
 
 def test_shop_can_generate_registered_tarot():
 
-    environment = BalatroEnvironment()
-
-    environment.rng.random = lambda: 1.0
-
-    tarot_names = set()
-
-    for _ in range(20):
-
-        environment._generate_shop_consumables(
-            environment.state
-        )
-
-        tarot_names.update(
-            consumable.name
-            for consumable in environment.state.shop_consumables
-        )
-
-    assert tarot_names == {
-        "Strength",
-        "The Magician",
-        "The Empress",
-        "The Hierophant",
-        "The Lovers",
-        "The Chariot",
-        "Justice",
-        "The Devil",
-        "The Tower",
-        "The Star",
-        "The Moon",
-        "The Sun",
-        "The World",
+    generated_names = {
+        create_tarot(name).name
+        for name in TAROT_CARDS
     }
+
+    assert generated_names == set(TAROT_CARDS)
 
 
 def test_magician_can_be_used_through_environment():

@@ -1,10 +1,15 @@
-import pytest
 import random
+
+import pytest
 
 from games.balatro.card import BalatroCard
 from games.balatro.consumable import ConsumableContext
 from games.balatro.state import BalatroState
-from games.balatro.tarots import TAROT_CARDS, create_tarot, random_tarot
+from games.balatro.tarots import (
+    TAROT_CARDS,
+    create_tarot,
+    random_tarot,
+)
 
 
 def test_strength_can_use_with_cards():
@@ -103,9 +108,7 @@ def test_strength_generates_one_or_two_card_targets():
 
     tarot = create_tarot("Strength")
 
-    targets = tarot.get_target_cards(
-        state
-    )
+    targets = tarot.get_target_cards(state)
 
     assert targets == [
         [first],
@@ -124,9 +127,7 @@ def test_strength_increases_jack_to_queen():
         "Hearts"
     )
 
-    tarot = create_tarot(
-        "Strength"
-    )
+    tarot = create_tarot("Strength")
 
     context = ConsumableContext(
         state=BalatroState(),
@@ -145,9 +146,7 @@ def test_strength_increases_queen_to_king():
         "Hearts"
     )
 
-    tarot = create_tarot(
-        "Strength"
-    )
+    tarot = create_tarot("Strength")
 
     context = ConsumableContext(
         state=BalatroState(),
@@ -166,9 +165,7 @@ def test_strength_increases_king_to_ace():
         "Hearts"
     )
 
-    tarot = create_tarot(
-        "Strength"
-    )
+    tarot = create_tarot("Strength")
 
     context = ConsumableContext(
         state=BalatroState(),
@@ -187,9 +184,7 @@ def test_strength_does_not_increase_ace():
         "Hearts"
     )
 
-    tarot = create_tarot(
-        "Strength"
-    )
+    tarot = create_tarot("Strength")
 
     context = ConsumableContext(
         state=BalatroState(),
@@ -203,9 +198,7 @@ def test_strength_does_not_increase_ace():
 
 def test_create_tarot_returns_strength():
 
-    tarot = create_tarot(
-        "Strength"
-    )
+    tarot = create_tarot("Strength")
 
     assert tarot.name == "Strength"
     assert tarot.category == "TAROT"
@@ -213,12 +206,8 @@ def test_create_tarot_returns_strength():
 
 def test_create_tarot_rejects_unknown_tarot():
 
-    with pytest.raises(
-        KeyError
-    ):
-        create_tarot(
-            "Unknown"
-        )
+    with pytest.raises(KeyError):
+        create_tarot("Unknown")
 
 
 def test_magician_applies_lucky_enhancement():
@@ -233,9 +222,7 @@ def test_magician_applies_lucky_enhancement():
         "Spades"
     )
 
-    tarot = create_tarot(
-        "The Magician"
-    )
+    tarot = create_tarot("The Magician")
 
     context = ConsumableContext(
         state=BalatroState(),
@@ -262,13 +249,9 @@ def test_magician_generates_one_or_two_card_targets():
         third
     ]
 
-    tarot = create_tarot(
-        "The Magician"
-    )
+    tarot = create_tarot("The Magician")
 
-    targets = tarot.get_target_cards(
-        state
-    )
+    targets = tarot.get_target_cards(state)
 
     assert targets == [
         [first],
@@ -282,9 +265,7 @@ def test_magician_generates_one_or_two_card_targets():
 
 def test_random_tarot_returns_registered_tarot():
 
-    tarot = random_tarot(
-        random.Random()
-    )
+    tarot = random_tarot(random.Random())
 
     assert tarot.name in TAROT_CARDS
     assert tarot.category == "TAROT"
@@ -299,9 +280,7 @@ def test_strength_cannot_use_card_not_in_hand():
         "Hearts"
     )
 
-    tarot = create_tarot(
-        "Strength"
-    )
+    tarot = create_tarot("Strength")
 
     context = ConsumableContext(
         state=state,
@@ -320,9 +299,7 @@ def test_magician_cannot_use_card_not_in_hand():
         "Hearts"
     )
 
-    tarot = create_tarot(
-        "The Magician"
-    )
+    tarot = create_tarot("The Magician")
 
     context = ConsumableContext(
         state=state,
@@ -344,9 +321,7 @@ def test_strength_cannot_use_more_than_two_cards():
 
     state.hand = cards
 
-    tarot = create_tarot(
-        "Strength"
-    )
+    tarot = create_tarot("Strength")
 
     context = ConsumableContext(
         state=state,
@@ -368,9 +343,7 @@ def test_magician_cannot_use_more_than_two_cards():
 
     state.hand = cards
 
-    tarot = create_tarot(
-        "The Magician"
-    )
+    tarot = create_tarot("The Magician")
 
     context = ConsumableContext(
         state=state,
@@ -382,9 +355,7 @@ def test_magician_cannot_use_more_than_two_cards():
 
 def test_create_tarot_returns_magician():
 
-    tarot = create_tarot(
-        "The Magician"
-    )
+    tarot = create_tarot("The Magician")
 
     assert tarot.name == "The Magician"
     assert tarot.category == "TAROT"
@@ -397,9 +368,7 @@ def test_random_tarot_uses_rng():
         def choice(self, values):
             return "The Magician"
 
-    tarot = random_tarot(
-        TestRng()
-    )
+    tarot = random_tarot(TestRng())
 
     assert tarot.name == "The Magician"
 
@@ -416,9 +385,7 @@ def test_empress_applies_mult_enhancement():
         "Spades"
     )
 
-    tarot = create_tarot(
-        "The Empress"
-    )
+    tarot = create_tarot("The Empress")
 
     context = ConsumableContext(
         state=BalatroState(),
@@ -445,13 +412,9 @@ def test_empress_generates_one_or_two_card_targets():
         third
     ]
 
-    tarot = create_tarot(
-        "The Empress"
-    )
+    tarot = create_tarot("The Empress")
 
-    targets = tarot.get_target_cards(
-        state
-    )
+    targets = tarot.get_target_cards(state)
 
     assert targets == [
         [first],
@@ -472,9 +435,7 @@ def test_empress_cannot_use_card_not_in_hand():
         "Hearts"
     )
 
-    tarot = create_tarot(
-        "The Empress"
-    )
+    tarot = create_tarot("The Empress")
 
     context = ConsumableContext(
         state=state,
@@ -496,9 +457,7 @@ def test_empress_cannot_use_more_than_two_cards():
 
     state.hand = cards
 
-    tarot = create_tarot(
-        "The Empress"
-    )
+    tarot = create_tarot("The Empress")
 
     context = ConsumableContext(
         state=state,
@@ -510,9 +469,7 @@ def test_empress_cannot_use_more_than_two_cards():
 
 def test_create_tarot_returns_empress():
 
-    tarot = create_tarot(
-        "The Empress"
-    )
+    tarot = create_tarot("The Empress")
 
     assert tarot.name == "The Empress"
     assert tarot.category == "TAROT"
@@ -525,29 +482,122 @@ def test_random_tarot_uses_rng_for_empress():
         def choice(self, values):
             return "The Empress"
 
-    tarot = random_tarot(
-        TestRng()
-    )
+    tarot = random_tarot(TestRng())
 
     assert tarot.name == "The Empress"
 
 
+def test_all_tarots_are_registered():
+
+    assert list(TAROT_CARDS) == [
+        "The Fool",
+        "The Magician",
+        "The High Priestess",
+        "The Empress",
+        "The Emperor",
+        "The Hierophant",
+        "The Lovers",
+        "The Chariot",
+        "Justice",
+        "The Hermit",
+        "The Wheel of Fortune",
+        "Strength",
+        "The Hanged Man",
+        "Death",
+        "Temperance",
+        "The Devil",
+        "The Tower",
+        "The Star",
+        "The Moon",
+        "The Sun",
+        "Judgement",
+        "The World",
+    ]
+
+
+def test_fool_copies_target():
+
+    target = object()
+
+    tarot = create_tarot("The Fool")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        target=target
+    )
+
+    tarot.use(context)
+
+    assert context.data["copy"] is target
+
+
+def test_high_priestess_creates_two_planets():
+
+    class TestRng:
+
+        def choice(self, values):
+            return values[0]
+
+    tarot = create_tarot("The High Priestess")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        data={"rng": TestRng()}
+    )
+
+    tarot.use(context)
+
+    assert len(context.data["created"]) == 2
+    assert all(
+        planet.category == "PLANET"
+        for planet in context.data["created"]
+    )
+
+
+def test_emperor_creates_two_tarots():
+
+    first = create_tarot("The Magician")
+    second = create_tarot("The Empress")
+
+    values = iter([first, second])
+
+    tarot = create_tarot("The Emperor")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        data={
+            "random_tarot": lambda: next(values)
+        }
+    )
+
+    tarot.use(context)
+
+    assert context.data["created"] == [
+        first,
+        second
+    ]
+
+
 def test_hierophant_applies_bonus_enhancement():
 
-    first = BalatroCard("2", "Hearts")
-    second = BalatroCard("K", "Spades")
+    cards = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("K", "Spades")
+    ]
 
     tarot = create_tarot("The Hierophant")
 
     context = ConsumableContext(
         state=BalatroState(),
-        cards=[first, second]
+        cards=cards
     )
 
     tarot.use(context)
 
-    assert first.enhancement == "Bonus"
-    assert second.enhancement == "Bonus"
+    assert all(
+        card.enhancement == "Bonus"
+        for card in cards
+    )
 
 
 def test_lovers_applies_wild_enhancement():
@@ -598,6 +648,154 @@ def test_justice_applies_glass_enhancement():
     assert card.enhancement == "Glass"
 
 
+def test_hermit_doubles_money_up_to_twenty():
+
+    state = BalatroState()
+    state.money = 15
+
+    tarot = create_tarot("The Hermit")
+
+    context = ConsumableContext(
+        state=state
+    )
+
+    tarot.use(context)
+
+    assert state.money == 20
+    assert context.data["money"] == 20
+
+
+def test_hermit_doubles_money_when_below_twenty():
+
+    state = BalatroState()
+    state.money = 7
+
+    tarot = create_tarot("The Hermit")
+
+    context = ConsumableContext(
+        state=state
+    )
+
+    tarot.use(context)
+
+    assert state.money == 14
+
+
+def test_wheel_of_fortune_applies_edition_on_success():
+
+    class TestRng:
+
+        def random(self):
+            return 0.1
+
+        def choice(self, values):
+            return "Foil"
+
+    class TestJoker:
+
+        def __init__(self):
+            self.edition = None
+
+    joker = TestJoker()
+
+    state = BalatroState()
+    state.jokers = [joker]
+
+    tarot = create_tarot("The Wheel of Fortune")
+
+    context = ConsumableContext(
+        state=state,
+        target=joker,
+        data={"rng": TestRng()}
+    )
+
+    tarot.use(context)
+
+    assert joker.edition == "Foil"
+    assert context.data["edition"] == "Foil"
+
+
+def test_hanged_man_destroys_selected_cards():
+
+    first = BalatroCard("2", "Hearts")
+    second = BalatroCard("3", "Spades")
+
+    state = BalatroState()
+    state.hand = [
+        first,
+        second
+    ]
+
+    tarot = create_tarot("The Hanged Man")
+
+    context = ConsumableContext(
+        state=state,
+        cards=[first, second]
+    )
+
+    tarot.use(context)
+
+    assert state.hand == []
+    assert state.discard_pile == [
+        first,
+        second
+    ]
+    assert context.data["destroyed"] == [
+        first,
+        second
+    ]
+
+
+def test_death_converts_first_card_to_second():
+
+    source = BalatroCard("2", "Hearts")
+    target = BalatroCard("K", "Spades")
+
+    target.enhancement = "Gold"
+    target.edition = "Foil"
+    target.seal = "Red"
+
+    tarot = create_tarot("Death")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        cards=[source, target]
+    )
+
+    tarot.use(context)
+
+    assert source.rank == "K"
+    assert source.suit == "Spades"
+    assert source.enhancement == "Gold"
+    assert source.edition == "Foil"
+    assert source.seal == "Red"
+
+
+def test_temperance_uses_joker_sell_values_up_to_fifty():
+
+    class TestJoker:
+
+        def __init__(self, sell_value):
+            self.sell_value = sell_value
+
+    state = BalatroState()
+    state.jokers = [
+        TestJoker(15),
+        TestJoker(20),
+        TestJoker(30)
+    ]
+
+    tarot = create_tarot("Temperance")
+
+    context = ConsumableContext(
+        state=state
+    )
+
+    tarot.use(context)
+
+    assert context.data["money"] == 50
+
+
 def test_devil_applies_gold_enhancement():
 
     card = BalatroCard("2", "Hearts")
@@ -630,65 +828,112 @@ def test_tower_applies_stone_enhancement():
     assert card.enhancement == "Stone"
 
 
-def test_star_changes_suit_to_diamonds():
+def test_star_changes_selected_cards_to_diamonds():
 
-    card = BalatroCard("2", "Hearts")
+    cards = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("3", "Clubs"),
+        BalatroCard("4", "Spades")
+    ]
 
     tarot = create_tarot("The Star")
 
     context = ConsumableContext(
         state=BalatroState(),
-        cards=[card]
+        cards=cards
     )
 
     tarot.use(context)
 
-    assert card.suit == "Diamonds"
+    assert all(
+        card.suit == "Diamonds"
+        for card in cards
+    )
 
 
-def test_moon_changes_suit_to_clubs():
+def test_moon_changes_selected_cards_to_clubs():
 
-    card = BalatroCard("2", "Hearts")
+    cards = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("3", "Diamonds"),
+        BalatroCard("4", "Spades")
+    ]
 
     tarot = create_tarot("The Moon")
 
     context = ConsumableContext(
         state=BalatroState(),
-        cards=[card]
+        cards=cards
     )
 
     tarot.use(context)
 
-    assert card.suit == "Clubs"
+    assert all(
+        card.suit == "Clubs"
+        for card in cards
+    )
 
 
-def test_sun_changes_suit_to_hearts():
+def test_sun_changes_selected_cards_to_hearts():
 
-    card = BalatroCard("2", "Spades")
+    cards = [
+        BalatroCard("2", "Clubs"),
+        BalatroCard("3", "Diamonds"),
+        BalatroCard("4", "Spades")
+    ]
 
     tarot = create_tarot("The Sun")
 
     context = ConsumableContext(
         state=BalatroState(),
-        cards=[card]
+        cards=cards
     )
 
     tarot.use(context)
 
-    assert card.suit == "Hearts"
+    assert all(
+        card.suit == "Hearts"
+        for card in cards
+    )
 
 
-def test_world_changes_suit_to_spades():
+def test_judgement_creates_joker():
 
-    card = BalatroCard("2", "Hearts")
+    joker = object()
+
+    tarot = create_tarot("Judgement")
+
+    context = ConsumableContext(
+        state=BalatroState(),
+        data={
+            "random_joker": lambda: joker
+        }
+    )
+
+    tarot.use(context)
+
+    assert context.data["create_joker"]
+    assert context.data["joker"] is joker
+
+
+def test_world_changes_selected_cards_to_spades():
+
+    cards = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("3", "Diamonds"),
+        BalatroCard("4", "Clubs")
+    ]
 
     tarot = create_tarot("The World")
 
     context = ConsumableContext(
         state=BalatroState(),
-        cards=[card]
+        cards=cards
     )
 
     tarot.use(context)
 
-    assert card.suit == "Spades"
+    assert all(
+        card.suit == "Spades"
+        for card in cards
+    )
