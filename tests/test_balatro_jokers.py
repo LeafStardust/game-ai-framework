@@ -103,6 +103,7 @@ from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.reserved_parking import ReservedParkingJoker
 from games.balatro.jokers.rocket import RocketJoker
 from games.balatro.jokers.to_do_list import ToDoListJoker
+from games.balatro.jokers.ancient_joker import AncientJoker
 
 
 def test_jolly_joker():
@@ -2806,3 +2807,66 @@ def test_gift_card_joker():
     joker.apply(context)
 
     assert card.sell_value == 4
+
+
+def test_ancient_joker_selects_suit(monkeypatch):
+
+    monkeypatch.setattr(
+        "games.balatro.jokers.ancient_joker.random.choice",
+        lambda suits: "Hearts"
+    )
+
+    joker = AncientJoker()
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        trigger="ROUND_STARTED"
+    )
+
+    joker.apply(context)
+
+    assert joker.suit == "Hearts"
+
+
+def test_ancient_joker():
+
+    joker = AncientJoker()
+    joker.suit = "Hearts"
+
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        cards=[
+            BalatroCard("A", "Hearts"),
+            BalatroCard("K", "Hearts"),
+            BalatroCard("7", "Spades"),
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.score.x_mult == 2.25
+
+
+def test_ancient_joker_does_not_trigger_without_matching_suit():
+
+    joker = AncientJoker()
+    joker.suit = "Hearts"
+
+    state = type("TestState", (), {"jokers": [joker]})()
+
+    context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        cards=[
+            BalatroCard("A", "Spades"),
+            BalatroCard("K", "Clubs"),
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.score.x_mult == 1.0
