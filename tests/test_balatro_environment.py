@@ -3,6 +3,7 @@ from games.balatro.environment import BalatroEnvironment
 from games.balatro.actions import DISCARD_CARDS, END_ROUND, PLAY_CARDS, BUY_CONSUMABLE, END_SHOP, REFRESH_SHOP, USE_CONSUMABLE, BalatroAction
 from games.balatro.consumable import Consumable
 from games.balatro.planets import create_planet, PLANET_CARDS
+from games.balatro.tarots import create_tarot
 
 
 class TestConsumable(Consumable):
@@ -620,3 +621,44 @@ def test_use_consumable_action_contains_target_cards():
     assert len(use_actions) == 1
     assert use_actions[0].target is consumable
     assert use_actions[0].cards == []
+
+
+def test_strength_can_be_used_through_environment():
+
+    environment = BalatroEnvironment()
+
+    card = BalatroCard(
+        "2",
+        "Hearts"
+    )
+
+    environment.state.hand = [
+        card
+    ]
+
+    consumable = create_tarot(
+        "Strength"
+    )
+
+    environment.state.consumables.append(
+        consumable
+    )
+
+    actions = environment.get_actions()
+
+    use_actions = [
+        action
+        for action in actions
+        if action.name == USE_CONSUMABLE
+        and action.target is consumable
+    ]
+
+    assert len(use_actions) == 1
+    assert use_actions[0].cards == [card]
+
+    environment.execute_action(
+        use_actions[0]
+    )
+
+    assert card.rank == "3"
+    assert consumable not in environment.state.consumables

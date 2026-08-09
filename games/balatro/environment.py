@@ -82,16 +82,18 @@ class BalatroEnvironment(GameEnvironment):
 
             for consumable in self.state.consumables:
 
-                context = ConsumableContext(
-                    state=self.state
-                )
-
-                if not consumable.can_use(context):
-                    continue
-
                 for cards in consumable.get_target_cards(
                     self.state
                 ):
+
+                    context = ConsumableContext(
+                        state=self.state,
+                        cards=cards,
+                        target=consumable
+                    )
+
+                    if not consumable.can_use(context):
+                        continue
 
                     actions.append(
                         BalatroAction(
