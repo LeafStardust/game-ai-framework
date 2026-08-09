@@ -70,15 +70,15 @@
 
 ## v0.8.0 — Balatro Search and Planning
 
-> Decks are developed sequentially. A deck is not started until the previous deck has a complete agent and passes its validation criteria. The current target is the Red Deck.
+> Decks are developed sequentially. A deck is not started until the previous deck has a complete agent and passes its validation criteria. The current target is the Red Deck. For each deck, the agent progresses through White → Red → Green → Black → Blue → Purple → Orange → Gold Stake. A deck is complete after one successful full run at every stake; win-rate optimization is not a completion requirement.
 
 ### Deck progression
 
-1. **Red Deck** — active
-2. **Blue Deck** — locked until Red Deck completion
-3. **Yellow Deck** — locked until Blue Deck completion
-4. **Green Deck** — locked until Yellow Deck completion
-5. **Black Deck** — locked until Green Deck completion
+1. **Red Deck** — active; complete White → Gold Stake
+2. **Blue Deck** — locked until Red Deck Gold Stake completion
+3. **Yellow Deck** — locked until Blue Deck Gold Stake completion
+4. **Green Deck** — locked until Yellow Deck Gold Stake completion
+5. **Black Deck** — locked until Green Deck Gold Stake completion
 
 ### Red Deck Agent
 
@@ -87,17 +87,39 @@
 - [x] Future state prediction
 - [x] Hand/discard probability analysis
 - [x] Search-based decision making
+- [x] Stake system
 - [ ] Expected value estimation
 - [ ] Goal-directed path planning
 - [ ] Blind completion path synthesis
 - [ ] Tactical path commitment
+- [ ] White Stake completion
+- [ ] Red Stake completion
+- [ ] Green Stake completion
+- [ ] Black Stake completion
+- [ ] Blue Stake completion
+- [ ] Purple Stake completion
+- [ ] Orange Stake completion
+- [ ] Gold Stake completion
 - [ ] Complete Red Deck agent
 - [ ] Validate Red Deck agent across full runs
 
 ### Deck completion gate
 
-- [ ] Current deck agent completes its full validation criteria
+- [ ] Agent completes one full run at every stake from White through Gold
 - [ ] Current deck agent is considered complete before the next deck begins
+
+### Stake progression
+
+| Stake | Added difficulty |
+| --- | --- |
+| White | Base difficulty |
+| Red | Small Blind gives no reward money |
+| Green | Higher Ante score requirements |
+| Black | 30% chance for shop/pack Jokers to be Eternal |
+| Blue | -1 discard |
+| Purple | Higher Ante score requirements |
+| Orange | 30% chance for Jokers to be Perishable |
+| Gold | 30% chance for Jokers to be Rental |
 
 ## v1.0.0 — General Game AI Framework
 
