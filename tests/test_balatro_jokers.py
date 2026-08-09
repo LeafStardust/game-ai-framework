@@ -49,6 +49,14 @@ from games.balatro.jokers.fortune_teller import FortuneTellerJoker
 from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.jokers.space_joker import SpaceJoker
 from games.balatro.jokers.splash import SplashJoker
+from games.balatro.jokers.shoot_the_moon import ShootTheMoonJoker
+from games.balatro.jokers.raised_fist import RaisedFistJoker
+from games.balatro.jokers.seeing_double import SeeingDoubleJoker
+from games.balatro.jokers.the_idol import TheIdolJoker
+from games.balatro.jokers.bloodstone import BloodstoneJoker
+from games.balatro.jokers.onyx_agate import OnyxAgateJoker
+from games.balatro.jokers.arrowhead import ArrowheadJoker
+from games.balatro.jokers.rough_gem import RoughGemJoker
 
 
 def test_jolly_joker():
@@ -1503,3 +1511,215 @@ def test_splash_joker():
     joker.apply(context)
 
     assert context.data["all_cards_score"] is True
+
+
+def test_shoot_the_moon_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [ShootTheMoonJoker()]
+        }
+    )()
+
+    cards = [
+        BalatroCard("Q", "Hearts"),
+        BalatroCard("7", "Spades")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.mult == 14
+
+
+def test_raised_fist_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [RaisedFistJoker()],
+            "hand": [
+                BalatroCard("7", "Hearts"),
+                BalatroCard("K", "Spades"),
+                BalatroCard("3", "Clubs")
+            ]
+        }
+    )()
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state
+    )
+
+    assert score.mult == 7
+
+
+def test_seeing_double_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [SeeingDoubleJoker()]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Clubs"),
+        BalatroCard("7", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.x_mult == 2.0
+
+
+def test_the_idol_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [TheIdolJoker("A", "Spades")]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Spades"),
+        BalatroCard("7", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.x_mult == 2.0
+
+
+def test_bloodstone_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [BloodstoneJoker()]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Hearts")
+    ]
+
+    random.seed(1)
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.x_mult == 1.5
+
+
+def test_onyx_agate_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [OnyxAgateJoker()]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Clubs"),
+        BalatroCard("7", "Clubs"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.mult == 15
+
+
+def test_arrowhead_joker():
+
+    scorer = BalatroScorer()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [ArrowheadJoker()]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Spades"),
+        BalatroCard("7", "Spades"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state,
+        cards
+    )
+
+    assert score.chips == 105
+
+
+def test_rough_gem_joker():
+
+    joker = RoughGemJoker()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [joker]
+        }
+    )()
+
+    cards = [
+        BalatroCard("A", "Diamonds"),
+        BalatroCard("7", "Diamonds"),
+        BalatroCard("2", "Hearts")
+    ]
+
+    context = JokerContext(
+        state=state,
+        cards=cards
+    )
+
+    joker.apply(context)
+
+    assert context.data["money"] == 2
