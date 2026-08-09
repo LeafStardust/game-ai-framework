@@ -705,3 +705,28 @@ def test_environment_generates_consumable():
         "PLANET",
         "TAROT"
     }
+
+
+def test_shop_can_generate_registered_tarot():
+
+    environment = BalatroEnvironment()
+
+    environment.rng.random = lambda: 1.0
+
+    tarot_names = set()
+
+    for _ in range(20):
+
+        environment._generate_shop_consumables(
+            environment.state
+        )
+
+        tarot_names.update(
+            consumable.name
+            for consumable in environment.state.shop_consumables
+        )
+
+    assert tarot_names == {
+        "Strength",
+        "The Magician"
+    }
