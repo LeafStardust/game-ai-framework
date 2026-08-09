@@ -1,4 +1,5 @@
 from games.balatro.consumable import ConsumableContext, TarotCard
+from games.balatro.card import BalatroCard
 
 
 class Strength(TarotCard):
@@ -37,6 +38,16 @@ class Strength(TarotCard):
             ]
 
         return context
+
+    def get_target_cards(
+        self,
+        state
+    ) -> list[list[BalatroCard]]:
+
+        return [
+            [card]
+            for card in state.hand
+        ]
 
 
 TAROT_CARDS = {
