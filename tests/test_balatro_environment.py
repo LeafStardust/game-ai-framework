@@ -1,6 +1,6 @@
 from games.balatro.card import BalatroCard
 from games.balatro.environment import BalatroEnvironment
-from games.balatro.actions import DISCARD_CARDS, END_ROUND, PLAY_CARDS, BUY_CONSUMABLE, END_SHOP, USE_CONSUMABLE, BalatroAction
+from games.balatro.actions import DISCARD_CARDS, END_ROUND, PLAY_CARDS, BUY_CONSUMABLE, END_SHOP, REFRESH_SHOP, USE_CONSUMABLE, BalatroAction
 from games.balatro.consumable import Consumable
 from games.balatro.planets import create_planet, PLANET_CARDS
 
@@ -504,3 +504,45 @@ def test_simulate_end_shop_does_not_modify_original_state():
 
     assert simulated_state.phase == "ROUND_START"
     assert not simulated_state.shop_active
+
+
+def test_shop_generates_refresh_action():
+
+    environment = BalatroEnvironment()
+
+    environment._complete_blind(
+        environment.state
+    )
+
+    actions = environment.get_actions()
+
+    refresh_actions = [
+        action
+        for action in actions
+        if action.name == REFRESH_SHOP
+    ]
+
+    assert len(refresh_actions) == 1
+
+
+def test_refresh_shop_replaces_consumables():
+
+    environment = BalatroEnvironment()
+
+    environment._complete_blind(
+        environment.state
+    )
+
+    original = environment.state.shop_consumables.copy()
+
+    environment.execute_action(
+        BalatroAction(
+            REFRESH_SHOP
+        )
+    )
+
+    assert len(
+        environment.state.shop_consumables
+    ) == 2
+
+    assert environment.state.shop_consumables != original

@@ -7,7 +7,7 @@ from framework.core.state import GameState
 from games.balatro.card import BalatroCard
 from games.balatro.state import BalatroState
 
-from games.balatro.actions import BalatroAction, PLAY_CARDS, DISCARD_CARDS, BUY_CONSUMABLE, END_SHOP, USE_CONSUMABLE, END_ROUND
+from games.balatro.actions import BalatroAction, PLAY_CARDS, DISCARD_CARDS, BUY_CONSUMABLE, END_SHOP, REFRESH_SHOP, USE_CONSUMABLE, END_ROUND
 
 from games.balatro.card_selector import CardSelector
 from games.balatro.blinds.manager import BlindManager
@@ -112,6 +112,12 @@ class BalatroEnvironment(GameEnvironment):
                 for consumable in self.state.shop_consumables
                 if len(self.state.consumables) < self.state.consumable_slots
                 and self.state.money >= consumable.price
+            )
+
+            actions.append(
+                BalatroAction(
+                    REFRESH_SHOP
+                )
             )
 
             actions.append(
@@ -344,6 +350,16 @@ class BalatroEnvironment(GameEnvironment):
             self._draw_cards(
                 state,
                 len(selected_cards)
+            )
+
+
+        elif action.name == REFRESH_SHOP:
+
+            if state.phase != "SHOP":
+                return
+
+            self._generate_shop_consumables(
+                state
             )
 
 
