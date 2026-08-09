@@ -454,3 +454,53 @@ def test_buy_consumable_requires_enough_money():
     ]
 
     assert len(buy_actions) == 0
+
+
+def test_simulate_buy_consumable_does_not_modify_original_state():
+
+    environment = BalatroEnvironment()
+
+    consumable = create_planet("MERCURY")
+
+    environment.state.phase = "SHOP"
+    environment.state.shop_active = True
+    environment.state.shop_consumables.append(
+        consumable
+    )
+    environment.state.money = consumable.price
+
+    simulated_state = environment.simulate_action(
+        BalatroAction(
+            BUY_CONSUMABLE,
+            target=consumable
+        )
+    )
+
+    assert consumable in environment.state.shop_consumables
+    assert consumable not in environment.state.consumables
+    assert environment.state.money == consumable.price
+
+    assert consumable in simulated_state.consumables
+    assert consumable not in simulated_state.shop_consumables
+    assert simulated_state.money == 0
+
+
+def test_simulate_end_shop_does_not_modify_original_state():
+
+    environment = BalatroEnvironment()
+
+    environment._complete_blind(
+        environment.state
+    )
+
+    simulated_state = environment.simulate_action(
+        BalatroAction(
+            END_SHOP
+        )
+    )
+
+    assert environment.state.phase == "SHOP"
+    assert environment.state.shop_active
+
+    assert simulated_state.phase == "ROUND_START"
+    assert not simulated_state.shop_active
