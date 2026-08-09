@@ -55,8 +55,7 @@ class DiscardValueHeuristic(Heuristic):
 
 
         remaining_cards = self.probability.remaining_cards(
-            state.deck_size,
-            len(state.hand)
+            state.deck
         )
 
 

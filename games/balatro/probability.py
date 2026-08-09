@@ -1,6 +1,3 @@
-from games.balatro.card import BalatroCard
-
-
 class HandProbability:
     """
     Estimates probabilities related to card draws.
@@ -8,11 +5,10 @@ class HandProbability:
 
     def remaining_cards(
         self,
-        deck_size: int,
-        hand_size: int
+        deck: list
     ) -> int:
 
-        return deck_size - hand_size
+        return len(deck)
 
 
     def draw_probability(
@@ -29,6 +25,6 @@ class HandProbability:
             return 0.0
 
         return min(
-            desired_cards / total_cards * draws,
+            (desired_cards / total_cards) * draws,
             1.0
         )
