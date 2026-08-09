@@ -4,7 +4,10 @@ from games.balatro.consumable import (
     PlanetCard
 )
 from games.balatro.state import BalatroState
-from games.balatro.planets import PLANET_CARDS
+from games.balatro.planets import (
+    PLANET_CARDS,
+    create_planet
+)
 
 
 class TestConsumable(Consumable):
@@ -93,3 +96,15 @@ def test_planet_card_use_returns_effect_data():
 
     assert context.data["chips"] == 15
     assert context.data["mult"] == 1
+
+
+def test_create_planet_returns_independent_instance():
+
+    first = create_planet("MERCURY")
+    second = create_planet("MERCURY")
+
+    assert first is not second
+    assert first.name == second.name
+    assert first.hand_type == second.hand_type
+    assert first.chips == second.chips
+    assert first.mult == second.mult

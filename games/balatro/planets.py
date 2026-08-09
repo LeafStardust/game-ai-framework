@@ -57,3 +57,14 @@ PLANET_CARDS = {
         1
     )
 }
+
+
+def create_planet(name: str):
+    planet = PLANET_CARDS[name]
+
+    return PlanetCard(
+        planet.name,
+        planet.hand_type,
+        planet.chips,
+        planet.mult
+    )

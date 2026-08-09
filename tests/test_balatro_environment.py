@@ -8,6 +8,7 @@ from games.balatro.actions import (
     BalatroAction
 )
 from games.balatro.consumable import Consumable
+from games.balatro.planets import create_planet
 
 
 class TestConsumable(Consumable):
@@ -210,3 +211,27 @@ def test_simulate_consumable_does_not_modify_original_state():
     assert len(environment.state.consumables) == 1
     assert simulated.money == 10
     assert len(simulated.consumables) == 0
+
+
+def test_planet_can_be_used_through_environment():
+
+    environment = BalatroEnvironment()
+
+    planet = create_planet("MERCURY")
+
+    environment.state.consumables.append(
+        planet
+    )
+
+    actions = environment.get_actions()
+
+    action = next(
+        action
+        for action in actions
+        if action.name == USE_CONSUMABLE
+    )
+
+    environment.execute_action(action)
+
+    assert environment.state.hand_levels["PAIR"] == 2
+    assert planet not in environment.state.consumables
