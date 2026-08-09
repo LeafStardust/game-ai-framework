@@ -132,6 +132,12 @@ from games.balatro.jokers.matador import MatadorJoker
 from games.balatro.jokers.popcorn import PopcornJoker
 from games.balatro.jokers.riff_raff import RiffRaffJoker
 from games.balatro.jokers.throwback import ThrowbackJoker
+from games.balatro.jokers.baseball_card import BaseballCardJoker
+from games.balatro.jokers.dusk import DuskJoker
+from games.balatro.jokers.erosion import ErosionJoker
+from games.balatro.jokers.gros_michel import GrosMichelJoker
+from games.balatro.jokers.hack import HackJoker
+from games.balatro.jokers.seltzer import SeltzerJoker
 
 
 def test_jolly_joker():
@@ -3435,3 +3441,159 @@ def test_throwback_joker():
     joker.apply(context)
 
     assert joker.x_mult == 1.25
+
+
+def test_baseball_card_joker():
+
+    joker = BaseballCardJoker()
+
+    rare_joker = type(
+        "RareJoker",
+        (),
+        {"rarity": "Rare"}
+    )()
+
+    common_joker = type(
+        "CommonJoker",
+        (),
+        {"rarity": "Common"}
+    )()
+
+    state = type(
+        "TestState",
+        (),
+        {
+            "jokers": [
+                joker,
+                rare_joker,
+                common_joker,
+            ]
+        }
+    )()
+
+    context = JokerContext(
+        state=state,
+        trigger="HAND_SCORED"
+    )
+
+    joker.apply(context)
+
+    assert context.data["rare_joker_triggers"] == 1
+
+
+def test_dusk_joker():
+
+    joker = DuskJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="LAST_HAND"
+    )
+
+    joker.apply(context)
+
+    assert context.data["retrigger_played_cards"] == 1
+
+
+def test_dusk_joker_does_not_trigger():
+
+    joker = DuskJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="HAND_SCORED"
+    )
+
+    joker.apply(context)
+
+    assert "retrigger_played_cards" not in context.data
+
+
+def test_erosion_joker():
+
+    joker = ErosionJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        score=HandScore(10, 2),
+        data={
+            "deck": [
+                BalatroCard("A", "Hearts"),
+            ],
+            "deck_target_size": 5,
+        }
+    )
+
+    joker.apply(context)
+
+    assert context.score.mult == 18
+
+
+def test_gros_michel_joker(monkeypatch):
+
+    monkeypatch.setattr(
+        "games.balatro.jokers.gros_michel.random.random",
+        lambda: 0.1
+    )
+
+    joker = GrosMichelJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        score=HandScore(10, 2),
+        trigger="ROUND_ENDED"
+    )
+
+    joker.apply(context)
+
+    assert context.score.mult == 17
+    assert joker.destroyed is True
+    assert context.data["destroy_self"] is True
+
+
+def test_hack_joker():
+
+    joker = HackJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        cards=[
+            BalatroCard("2", "Hearts"),
+            BalatroCard("5", "Spades"),
+            BalatroCard("10", "Clubs"),
+            BalatroCard("J", "Diamonds"),
+        ]
+    )
+
+    joker.apply(context)
+
+    assert context.data["retrigger_low_cards"] == 3
+
+
+def test_seltzer_joker():
+
+    joker = SeltzerJoker()
+
+    context = JokerContext(
+        state=GameState(),
+        trigger="HAND_SCORED"
+    )
+
+    joker.apply(context)
+
+    assert context.data["retrigger_played_cards"] == 1
+    assert joker.rounds_remaining == 10
+
+
+def test_seltzer_joker_expires():
+
+    joker = SeltzerJoker()
+
+    for _ in range(10):
+        context = JokerContext(
+            state=GameState(),
+            trigger="ROUND_ENDED"
+        )
+        joker.apply(context)
+
+    assert joker.rounds_remaining == 0
