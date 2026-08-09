@@ -4,8 +4,23 @@ from games.balatro.actions import (
     DISCARD_CARDS,
     END_ROUND,
     PLAY_CARDS,
+    USE_CONSUMABLE,
     BalatroAction
 )
+from games.balatro.consumable import Consumable
+
+
+class TestConsumable(Consumable):
+
+    name = "Test Consumable"
+    category = "TEST"
+
+    def can_use(self, context):
+        return True
+
+    def use(self, context):
+        context.state.money += 10
+        return context
 
 
 def test_balatro_environment_has_initial_actions():
@@ -141,3 +156,57 @@ def test_simulate_discard_changes_hand():
     assert len(simulated.hand) == 2
     assert simulated.discards_remaining == 2
     assert len(environment.state.hand) == 2
+
+
+def test_balatro_environment_generates_consumable_actions():
+
+    environment = BalatroEnvironment()
+    consumable = TestConsumable()
+    environment.state.consumables.append(consumable)
+
+    actions = environment.get_actions()
+
+    consumable_actions = [
+        action
+        for action in actions
+        if action.name == USE_CONSUMABLE
+    ]
+
+    assert len(consumable_actions) == 1
+    assert consumable_actions[0].target is consumable
+
+
+def test_use_consumable_changes_state_and_removes_consumable():
+
+    environment = BalatroEnvironment()
+    consumable = TestConsumable()
+    environment.state.consumables.append(consumable)
+
+    environment.execute_action(
+        BalatroAction(
+            USE_CONSUMABLE,
+            target=consumable
+        )
+    )
+
+    assert environment.state.money == 10
+    assert consumable not in environment.state.consumables
+
+
+def test_simulate_consumable_does_not_modify_original_state():
+
+    environment = BalatroEnvironment()
+    consumable = TestConsumable()
+    environment.state.consumables.append(consumable)
+
+    simulated = environment.simulate_action(
+        BalatroAction(
+            USE_CONSUMABLE,
+            target=consumable
+        )
+    )
+
+    assert environment.state.money == 0
+    assert len(environment.state.consumables) == 1
+    assert simulated.money == 10
+    assert len(simulated.consumables) == 0
