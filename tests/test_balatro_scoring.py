@@ -1,6 +1,7 @@
 from games.balatro.scoring import BalatroScorer
 from games.balatro.hand import PokerHand
 from games.balatro.card import BalatroCard
+from games.balatro.state import BalatroState
 
 
 def test_pair_scoring():
@@ -202,3 +203,65 @@ def test_combined_card_modifiers():
     assert score.chips == 5
     assert score.mult == 5
     assert score.x_mult == 1.5
+
+
+def test_planet_level_one_keeps_base_score():
+
+    scorer = BalatroScorer()
+    state = BalatroState()
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state
+    )
+
+    assert score.chips == 10
+    assert score.mult == 2
+
+
+def test_planet_level_two_increases_score():
+
+    scorer = BalatroScorer()
+    state = BalatroState()
+
+    state.hand_levels["PAIR"] = 2
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state
+    )
+
+    assert score.chips == 25
+    assert score.mult == 3
+
+
+def test_planet_level_three_applies_bonus_twice():
+
+    scorer = BalatroScorer()
+    state = BalatroState()
+
+    state.hand_levels["PAIR"] = 3
+
+    score = scorer.score(
+        PokerHand.PAIR,
+        state
+    )
+
+    assert score.chips == 40
+    assert score.mult == 4
+
+
+def test_planet_upgrade_only_affects_matching_hand():
+
+    scorer = BalatroScorer()
+    state = BalatroState()
+
+    state.hand_levels["PAIR"] = 2
+
+    score = scorer.score(
+        PokerHand.HIGH_CARD,
+        state
+    )
+
+    assert score.chips == 5
+    assert score.mult == 1

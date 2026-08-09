@@ -96,11 +96,51 @@ class BalatroScorer:
 
         base_score = self.SCORES[hand]
 
+        hand_level = 1
+
+        if state is not None:
+
+            hand_levels = getattr(
+                state,
+                "hand_levels",
+                {}
+            )
+
+            hand_level = hand_levels.get(
+                hand.value,
+                1
+            )
+
         score = HandScore(
             base_score.chips,
             base_score.mult,
             base_score.x_mult
         )
+
+        if hand_level > 1:
+
+            from games.balatro.planets import PLANET_CARDS
+
+            planet = next(
+                (
+                    planet
+                    for planet in PLANET_CARDS.values()
+                    if planet.hand_type == hand.value
+                ),
+                None
+            )
+
+            if planet is not None:
+
+                score.chips += (
+                    planet.chips
+                    * (hand_level - 1)
+                )
+
+                score.mult += (
+                    planet.mult
+                    * (hand_level - 1)
+                )
 
         played_cards = cards or []
 
