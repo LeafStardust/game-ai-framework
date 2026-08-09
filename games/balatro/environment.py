@@ -7,22 +7,13 @@ from framework.core.state import GameState
 from games.balatro.card import BalatroCard
 from games.balatro.state import BalatroState
 
-from games.balatro.actions import (
-    BalatroAction,
-    PLAY_CARDS,
-    DISCARD_CARDS,
-    USE_CONSUMABLE,
-    END_ROUND
-)
+from games.balatro.actions import BalatroAction, PLAY_CARDS, DISCARD_CARDS, USE_CONSUMABLE, END_ROUND
 
 from games.balatro.card_selector import CardSelector
 from games.balatro.blinds.manager import BlindManager
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.scoring import BalatroScorer
-from games.balatro.events import (
-    BalatroEvent,
-    BalatroEventType
-)
+from games.balatro.events import BalatroEvent, BalatroEventType
 from games.balatro.joker import JokerContext
 from games.balatro.consumable import ConsumableContext
 
@@ -347,18 +338,14 @@ class BalatroEnvironment(GameEnvironment):
 
             context = ConsumableContext(
                 state=state,
-                target=getattr(
-                    action,
-                    "target",
-                    None
-                )
+                target=consumable
             )
 
             if not consumable.can_use(context):
                 return
 
             consumable.use(context)
-            state.consumables.remove(consumable)
+            state.remove_consumable(consumable)
 
 
         elif action.name == END_ROUND:
@@ -415,22 +402,6 @@ class BalatroEnvironment(GameEnvironment):
         return random_planet(
             self.rng
         )
-
-
-    def _add_consumable(
-        self,
-        state: BalatroState,
-        consumable
-    ) -> bool:
-
-        if len(state.consumables) >= state.consumable_slots:
-            return False
-
-        state.consumables.append(
-            consumable
-        )
-
-        return True
 
 
     def is_terminal(self) -> bool:

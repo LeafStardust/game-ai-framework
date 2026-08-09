@@ -1,5 +1,6 @@
 from games.balatro.card import BalatroCard
 from games.balatro.state import BalatroState
+from games.balatro.planets import create_planet
 
 
 def test_balatro_card_creation():
@@ -49,3 +50,34 @@ def test_balatro_state_copies_consumable_slots():
     copied_state = state.copy()
 
     assert copied_state.consumable_slots == 3
+
+
+def test_balatro_state_add_and_remove_consumable():
+
+    state = BalatroState()
+    consumable = create_planet("MERCURY")
+
+    assert state.add_consumable(
+        consumable
+    )
+
+    assert consumable in state.consumables
+
+    assert state.remove_consumable(
+        consumable
+    )
+
+    assert consumable not in state.consumables
+
+
+def test_balatro_state_rejects_consumable_when_full():
+
+    state = BalatroState()
+
+    first = create_planet("MERCURY")
+    second = create_planet("VENUS")
+    third = create_planet("EARTH")
+
+    assert state.add_consumable(first)
+    assert state.add_consumable(second)
+    assert not state.add_consumable(third)

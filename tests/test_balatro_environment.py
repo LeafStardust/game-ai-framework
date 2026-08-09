@@ -1,12 +1,6 @@
 from games.balatro.card import BalatroCard
 from games.balatro.environment import BalatroEnvironment
-from games.balatro.actions import (
-    DISCARD_CARDS,
-    END_ROUND,
-    PLAY_CARDS,
-    USE_CONSUMABLE,
-    BalatroAction
-)
+from games.balatro.actions import DISCARD_CARDS, END_ROUND, PLAY_CARDS, USE_CONSUMABLE, BalatroAction
 from games.balatro.consumable import Consumable
 from games.balatro.planets import create_planet, PLANET_CARDS
 
@@ -76,7 +70,7 @@ def test_end_round_increases_round():
     environment = BalatroEnvironment()
 
     action = BalatroAction(
-        "END_ROUND"
+        END_ROUND
     )
 
     environment.execute_action(
@@ -103,7 +97,7 @@ def test_balatro_environment_generates_play_actions():
     play_actions = [
         action
         for action in actions
-        if action.name == "PLAY_CARDS"
+        if action.name == PLAY_CARDS
     ]
 
     assert len(play_actions) == 1
@@ -114,7 +108,6 @@ def test_simulate_action_does_not_modify_original_state():
     environment = BalatroEnvironment()
 
     original_state = environment.get_state()
-
     original_round = original_state.round
 
     simulated_state = environment.simulate_action(
@@ -216,7 +209,6 @@ def test_simulate_consumable_does_not_modify_original_state():
 def test_planet_can_be_used_through_environment():
 
     environment = BalatroEnvironment()
-
     planet = create_planet("MERCURY")
 
     environment.state.consumables.append(
@@ -250,53 +242,13 @@ def test_environment_generates_planet():
     ]
 
 
-def test_add_consumable_respects_inventory_capacity():
+def test_environment_uses_state_consumable_inventory():
 
     environment = BalatroEnvironment()
+    consumable = create_planet("MERCURY")
 
-    first = create_planet("MERCURY")
-    second = create_planet("VENUS")
-
-    assert environment._add_consumable(
-        environment.state,
-        first
+    assert environment.state.add_consumable(
+        consumable
     )
 
-    assert environment._add_consumable(
-        environment.state,
-        second
-    )
-
-    assert environment.state.consumables == [
-        first,
-        second
-    ]
-
-
-def test_add_consumable_rejects_full_inventory():
-
-    environment = BalatroEnvironment()
-
-    first = create_planet("MERCURY")
-    second = create_planet("VENUS")
-    third = create_planet("EARTH")
-
-    environment._add_consumable(
-        environment.state,
-        first
-    )
-
-    environment._add_consumable(
-        environment.state,
-        second
-    )
-
-    assert not environment._add_consumable(
-        environment.state,
-        third
-    )
-
-    assert environment.state.consumables == [
-        first,
-        second
-    ]
+    assert consumable in environment.state.consumables

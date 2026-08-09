@@ -125,3 +125,27 @@ class BalatroState(GameState):
         new_state.glass_cards_destroyed = self.glass_cards_destroyed
 
         return new_state
+
+
+    def add_consumable(self, consumable) -> bool:
+
+        if len(self.consumables) >= self.consumable_slots:
+            return False
+
+        self.consumables.append(
+            consumable
+        )
+
+        return True
+
+
+    def remove_consumable(self, consumable) -> bool:
+
+        if consumable not in self.consumables:
+            return False
+
+        self.consumables.remove(
+            consumable
+        )
+
+        return True
