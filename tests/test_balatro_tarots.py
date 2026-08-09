@@ -1,3 +1,5 @@
+import pytest
+
 from games.balatro.card import BalatroCard
 from games.balatro.consumable import ConsumableContext
 from games.balatro.state import BalatroState
@@ -190,3 +192,23 @@ def test_strength_does_not_increase_ace():
     tarot.use(context)
 
     assert card.rank == "A"
+
+
+def test_create_tarot_returns_strength():
+
+    tarot = create_tarot(
+        "Strength"
+    )
+
+    assert tarot.name == "Strength"
+    assert tarot.category == "TAROT"
+
+
+def test_create_tarot_rejects_unknown_tarot():
+
+    with pytest.raises(
+        KeyError
+    ):
+        create_tarot(
+            "Unknown"
+        )
