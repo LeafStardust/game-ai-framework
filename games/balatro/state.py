@@ -26,6 +26,17 @@ class BalatroState(GameState):
 
         self.jokers: list = []
         self.consumables: list = []
+        self.hand_levels = {
+            "HIGH_CARD": 1,
+            "PAIR": 1,
+            "TWO_PAIR": 1,
+            "THREE_OF_A_KIND": 1,
+            "STRAIGHT": 1,
+            "FLUSH": 1,
+            "FULL_HOUSE": 1,
+            "FOUR_OF_A_KIND": 1,
+            "STRAIGHT_FLUSH": 1
+        }
         self.vouchers: list = []
 
         self.phase: str = "ROUND_START"
@@ -104,6 +115,7 @@ class BalatroState(GameState):
 
         new_state.jokers = self.jokers.copy()
         new_state.consumables = self.consumables.copy()
+        new_state.hand_levels = self.hand_levels.copy()
         new_state.vouchers = self.vouchers.copy()
 
         new_state.phase = self.phase

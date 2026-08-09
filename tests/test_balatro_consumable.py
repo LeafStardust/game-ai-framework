@@ -1,5 +1,10 @@
-from games.balatro.consumable import Consumable, ConsumableContext
+from games.balatro.consumable import (
+    Consumable,
+    ConsumableContext,
+    PlanetCard
+)
 from games.balatro.state import BalatroState
+from games.balatro.planets import PLANET_CARDS
 
 
 class TestConsumable(Consumable):
@@ -39,3 +44,52 @@ def test_consumable_usage():
     consumable.use(context)
 
     assert state.money == 10
+
+
+def test_planet_card_metadata():
+
+    planet = PLANET_CARDS["MERCURY"]
+
+    assert planet.name == "Mercury"
+    assert planet.category == "PLANET"
+    assert planet.hand_type == "PAIR"
+    assert planet.chips == 15
+    assert planet.mult == 1
+
+
+def test_planet_card_can_use():
+
+    state = BalatroState()
+
+    planet = PLANET_CARDS["MERCURY"]
+
+    assert planet.can_use(
+        ConsumableContext(state)
+    )
+
+
+def test_planet_card_increases_hand_level():
+
+    state = BalatroState()
+
+    planet = PLANET_CARDS["MERCURY"]
+
+    planet.use(
+        ConsumableContext(state)
+    )
+
+    assert state.hand_levels["PAIR"] == 2
+
+
+def test_planet_card_use_returns_effect_data():
+
+    state = BalatroState()
+
+    planet = PLANET_CARDS["MERCURY"]
+
+    context = planet.use(
+        ConsumableContext(state)
+    )
+
+    assert context.data["chips"] == 15
+    assert context.data["mult"] == 1

@@ -61,10 +61,10 @@
 - [x] Blind-aware decision evaluation
 - [x] Balatro terminology alignment
 - [x] Joker framework
-- [ ] Consumable framework
+- [x] Consumable framework
 - [ ] Card enhancements and editions
 - [ ] Seals and card modifiers
-- [ ] Planet card effects
+- [x] Planet card effects
 - [ ] Tarot card effects
 - [ ] Spectral card effects
 
