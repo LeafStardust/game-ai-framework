@@ -378,3 +378,13 @@ def test_magician_cannot_use_more_than_two_cards():
     )
 
     assert not tarot.can_use(context)
+
+
+def test_create_tarot_returns_magician():
+
+    tarot = create_tarot(
+        "The Magician"
+    )
+
+    assert tarot.name == "The Magician"
+    assert tarot.category == "TAROT"
