@@ -5,9 +5,6 @@ from games.balatro.hand import PokerHand
 
 @dataclass
 class HandScore:
-    """
-    Represents a Balatro hand score.
-    """
 
     chips: int
     mult: int
@@ -18,9 +15,6 @@ class HandScore:
 
 
 class BalatroScorer:
-    """
-    Calculates base Balatro hand scores.
-    """
 
     SCORES = {
         PokerHand.HIGH_CARD: HandScore(5, 1),
@@ -37,10 +31,24 @@ class BalatroScorer:
 
     def score(
         self,
-        hand: PokerHand
+        hand: PokerHand,
+        state=None
     ) -> HandScore:
-        """
-        Returns base Balatro score for a poker hand.
-        """
 
-        return self.SCORES[hand]
+        base_score = self.SCORES[hand]
+
+        score = HandScore(
+            base_score.chips,
+            base_score.mult
+        )
+
+        if state is not None:
+
+            for joker in state.jokers:
+
+                score = joker.apply(
+                    state,
+                    score
+                )
+
+        return score
