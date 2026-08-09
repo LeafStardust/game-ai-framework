@@ -408,6 +408,15 @@ class BalatroEnvironment(GameEnvironment):
             )
 
 
+    def _generate_planet(self):
+
+        from games.balatro.planets import random_planet
+
+        return random_planet(
+            self.rng
+        )
+
+
     def is_terminal(self) -> bool:
 
         return self.state.ante > 8

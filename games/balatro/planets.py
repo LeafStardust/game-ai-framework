@@ -58,6 +58,8 @@ PLANET_CARDS = {
     )
 }
 
+PLANET_NAMES = list(PLANET_CARDS.keys())
+
 
 def create_planet(name: str):
     planet = PLANET_CARDS[name]
@@ -67,4 +69,10 @@ def create_planet(name: str):
         planet.hand_type,
         planet.chips,
         planet.mult
+    )
+
+
+def random_planet(rng):
+    return create_planet(
+        rng.choice(PLANET_NAMES)
     )

@@ -8,7 +8,7 @@ from games.balatro.actions import (
     BalatroAction
 )
 from games.balatro.consumable import Consumable
-from games.balatro.planets import create_planet
+from games.balatro.planets import create_planet, PLANET_CARDS
 
 
 class TestConsumable(Consumable):
@@ -235,3 +235,16 @@ def test_planet_can_be_used_through_environment():
 
     assert environment.state.hand_levels["PAIR"] == 2
     assert planet not in environment.state.consumables
+
+
+def test_environment_generates_planet():
+
+    environment = BalatroEnvironment()
+
+    planet = environment._generate_planet()
+
+    assert planet.category == "PLANET"
+    assert planet.name in [
+        planet.name
+        for planet in PLANET_CARDS.values()
+    ]

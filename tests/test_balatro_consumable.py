@@ -1,13 +1,12 @@
+import random
+
 from games.balatro.consumable import (
     Consumable,
     ConsumableContext,
     PlanetCard
 )
 from games.balatro.state import BalatroState
-from games.balatro.planets import (
-    PLANET_CARDS,
-    create_planet
-)
+from games.balatro.planets import PLANET_CARDS, create_planet, random_planet
 
 
 class TestConsumable(Consumable):
@@ -108,3 +107,14 @@ def test_create_planet_returns_independent_instance():
     assert first.hand_type == second.hand_type
     assert first.chips == second.chips
     assert first.mult == second.mult
+
+
+def test_random_planet_returns_valid_planet():
+
+    planet = random_planet(random.Random())
+
+    assert planet.category == "PLANET"
+    assert planet.name in [
+        planet.name
+        for planet in PLANET_CARDS.values()
+    ]
