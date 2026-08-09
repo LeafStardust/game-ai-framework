@@ -86,7 +86,7 @@
 - [x] Card selection system
 - [x] Future state prediction
 - [x] Hand/discard probability analysis
-- [ ] Search-based decision making
+- [x] Search-based decision making
 - [ ] Expected value estimation
 - [ ] Goal-directed path planning
 - [ ] Blind completion path synthesis
