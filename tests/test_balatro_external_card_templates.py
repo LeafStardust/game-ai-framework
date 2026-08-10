@@ -11,9 +11,9 @@ from games.balatro.live.external.card_calibration import (
     calibrate_card_template_manifests,
     calibrate_card_templates,
 )
+from games.balatro.live.external.card_template_format import load_card_template_set
 from games.balatro.live.external.card_templates import (
     coverage_report,
-    load_card_template_set,
     load_rgb_png,
     parse_card_label,
     templates_from_labeled_images,
@@ -211,7 +211,7 @@ def test_calibration_rebuilds_from_multiple_manifests(tmp_path):
     assert len(templates.suits) == 4
 
 
-@pytest.mark.parametrize("version", [1, 2, 3])
+@pytest.mark.parametrize("version", [1, 2, 3, 4])
 def test_load_card_template_set_rejects_legacy_versions(tmp_path, version):
     path = tmp_path / "legacy.json"
     path.write_text(
