@@ -11,11 +11,14 @@ from .save_state import BalatroSaveReader
 def _item_label(item) -> str:
     label = getattr(item, "label", getattr(item, "name", type(item).__name__))
     price = getattr(item, "price", getattr(item, "cost", None))
+    area_index = getattr(item, "area_index", None)
     if isinstance(price, dict):
         price = price.get("buy")
-    if price is None:
-        return str(label)
-    return f"{label} (${price})"
+
+    text = str(label) if price is None else f"{label} (${price})"
+    if area_index is not None:
+        text = f"[{area_index}] {text}"
+    return text
 
 
 def _items(values) -> str:
