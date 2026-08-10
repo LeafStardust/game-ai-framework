@@ -79,10 +79,17 @@ def snapshot_from_save(
         "score": _integer(game.get("chips"), 0),
         "hand": _normalize_area(areas, "hand"),
         "cards": _normalize_area(areas, "deck"),
-        "consumables": _normalize_area(areas, "consumeables", "consumables"),
-        "jokers": _normalize_area(areas, "jokers"),
+        "consumables": _normalize_item_area(
+            areas,
+            "consumeables",
+            "consumables",
+        ),
+        "jokers": _normalize_item_area(areas, "jokers"),
         "play": _normalize_area(areas, "play"),
         "discard": _normalize_area(areas, "discard"),
+        "shop_jokers": _normalize_item_area(areas, "shop_jokers"),
+        "shop_boosters": _normalize_item_area(areas, "shop_booster"),
+        "shop_vouchers": _normalize_item_area(areas, "shop_vouchers"),
         "hands": _normalize_hand_levels(game.get("hands")),
         "blind": _normalize_blind(blind, game),
         "won": bool(game.get("won", False)),
@@ -105,12 +112,7 @@ def _normalize_area(
     name: str,
     *aliases: str,
 ) -> dict[str, Any]:
-    area = {}
-    for candidate in (name, *aliases):
-        area = _mapping(areas.get(candidate))
-        if area:
-            break
-
+    area = _find_area(areas, name, *aliases)
     config = _mapping(area.get("config"))
     cards = _ordered_values(area.get("cards"))
     return {
@@ -118,6 +120,33 @@ def _normalize_area(
         "limit": _integer(config.get("card_limit"), len(cards)),
         "cards": [_normalize_card(card) for card in cards],
     }
+
+
+def _normalize_item_area(
+    areas: dict[Any, Any],
+    name: str,
+    *aliases: str,
+) -> dict[str, Any]:
+    area = _find_area(areas, name, *aliases)
+    config = _mapping(area.get("config"))
+    cards = _ordered_values(area.get("cards"))
+    return {
+        "count": _integer(config.get("card_count"), len(cards)),
+        "limit": _integer(config.get("card_limit"), len(cards)),
+        "cards": [_normalize_item(card) for card in cards],
+    }
+
+
+def _find_area(
+    areas: dict[Any, Any],
+    name: str,
+    *aliases: str,
+) -> dict[Any, Any]:
+    for candidate in (name, *aliases):
+        area = _mapping(areas.get(candidate))
+        if area:
+            return area
+    return {}
 
 
 def _normalize_card(card: dict[Any, Any]) -> dict[str, Any]:
@@ -148,6 +177,31 @@ def _normalize_card(card: dict[Any, Any]) -> dict[str, Any]:
         "debuff": bool(card.get("debuff", False)),
         "label": card.get("label"),
     }
+
+
+def _normalize_item(card: dict[Any, Any]) -> dict[str, Any]:
+    save_fields = _mapping(card.get("save_fields"))
+    ability = _mapping(card.get("ability"))
+
+    result: dict[str, Any] = {
+        "live_id": card.get("sort_id", card.get("playing_card")),
+        "center": save_fields.get("center"),
+        "label": card.get("label") or ability.get("name"),
+        "ability_name": ability.get("name"),
+        "ability_set": ability.get("set"),
+        "debuff": bool(card.get("debuff", False)),
+    }
+
+    edition = _edition_name(card.get("edition"))
+    if edition is not None:
+        result["edition"] = edition
+
+    for field in ("cost", "sell_cost"):
+        value = card.get(field)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            result[field] = value
+
+    return result
 
 
 def _normalize_hand_levels(value: Any) -> dict[str, dict[str, int]]:
