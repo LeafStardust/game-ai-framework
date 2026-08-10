@@ -1,0 +1,44 @@
+{
+  "cards": [
+    {
+      "file": "card-00.png",
+      "index": 0,
+      "label": "K♥"
+    },
+    {
+      "file": "card-01.png",
+      "index": 1,
+      "label": "K♦"
+    },
+    {
+      "file": "card-02.png",
+      "index": 2,
+      "label": "Q♠"
+    },
+    {
+      "file": "card-03.png",
+      "index": 3,
+      "label": "7♠"
+    },
+    {
+      "file": "card-04.png",
+      "index": 4,
+      "label": "7♦"
+    },
+    {
+      "file": "card-05.png",
+      "index": 5,
+      "label": "6♥"
+    },
+    {
+      "file": "card-06.png",
+      "index": 6,
+      "label": "3♦"
+    },
+    {
+      "file": "card-07.png",
+      "index": 7,
+      "label": "2♦"
+    }
+  ]
+}
