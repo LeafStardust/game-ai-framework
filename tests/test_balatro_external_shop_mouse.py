@@ -27,6 +27,7 @@ from games.balatro.live.shop_sync import (
     BufferedShopTransaction,
     UnsupportedBufferedShopAction,
 )
+from games.balatro.live.translator import DefaultBalatroStateTranslator
 from games.balatro.state import BalatroState
 
 
@@ -174,6 +175,38 @@ def test_external_shop_mouse_executor_dispatches_and_projects_direct_purchase():
     assert transaction.expected_money == 4
 
 
+def test_external_shop_mouse_executor_preflights_before_mouse_input():
+    provider = Provider()
+    joker = SimpleNamespace(
+        area_index=0,
+        live_id=640,
+        label="Acrobat",
+        cost=20,
+    )
+    state = BalatroState()
+    state.phase = "SHOP"
+    state.money = 10
+    state.shop_jokers = [joker]
+    transaction = BufferedShopTransaction.begin(state)
+    executor = ExternalShopMouseExecutor(
+        ShopMouseLayout(
+            main={0: _sequence(_click(0.5, 0.5))},
+        ),
+        capture=Capture(_frame()),
+        mouse=BalatroMouseController(provider=provider, armed=True),
+    )
+
+    with pytest.raises(ValueError, match="insufficient money"):
+        executor.dispatch(
+            BalatroAction(BUY_JOKER, target=joker),
+            state,
+            transaction,
+        )
+
+    assert provider.events == []
+    assert state.money == 10
+
+
 def test_external_shop_mouse_executor_dispatches_end_shop_without_projection():
     provider = Provider()
     state = BalatroState()
@@ -214,7 +247,7 @@ def test_external_shop_mouse_executor_rejects_random_state_actions():
             executor.dispatch(action, state)
 
 
-def test_save_shop_offers_preserve_visible_area_index():
+def test_save_shop_offers_preserve_visible_area_index_after_translation():
     save = BalatroSaveSnapshot(
         path=Path("save.jkr"),
         modified_ns=1,
@@ -256,3 +289,9 @@ def test_save_shop_offers_preserve_visible_area_index():
         for card in snapshot.payload["shop_jokers"]["cards"]
     ] == [0, 1]
     assert "area_index" not in snapshot.payload["jokers"]["cards"]
+
+    state = DefaultBalatroStateTranslator().translate(snapshot)
+    assert state.shop_jokers[0].label == "8 Ball"
+    assert state.shop_jokers[0].area_index == 0
+    assert state.shop_consumables[0].name == "Mercury"
+    assert state.shop_consumables[0].area_index == 1
