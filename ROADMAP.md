@@ -85,9 +85,26 @@
 - [x] Deck-specific agent architecture
 - [x] Red Deck starting-state support
 
+## v0.9.0 — Balatro Real-Game Integration
+
+> Connect the framework-level Balatro agent to the actual Balatro game. This milestone is complete when the agent can observe live game state, translate it into framework state, execute framework actions in the game, and autonomously operate the full interaction loop required for a Red Deck White Stake run. Winning the run is reserved for v1.0.0.
+
+- [ ] Real-game integration architecture
+- [ ] Live Balatro state acquisition
+- [ ] Live state → `BalatroState` translation
+- [ ] `BalatroAction` → live game input execution
+- [ ] Synchronization and turn/phase detection
+- [ ] Shop interaction support
+- [ ] Consumable interaction support
+- [ ] Blind selection and round-transition support
+- [ ] Run start/restart support for Red Deck White Stake
+- [ ] Integration error handling and recovery
+- [ ] End-to-end autonomous game loop
+- [ ] Validate agent can operate an actual Red Deck White Stake run without manual gameplay input
+
 # v1.0.0 — Red Deck — White Stake
 
-> First complete Balatro agent milestone. The Red Deck agent must be capable of independently playing a complete Red Deck White Stake run from start to finish.
+> First complete Balatro agent milestone. The Red Deck agent must be capable of independently playing and successfully completing an actual Red Deck White Stake run from start to finish.
 
 * [ ] Red Deck agent
 * [ ] Red Deck decision-making brain
@@ -98,7 +115,7 @@
 * [ ] Blind strategy
 * [ ] Economy management
 * [ ] Deck-building decisions
-* [ ] Complete one successful Red Deck White Stake run
+* [ ] Complete one successful Red Deck White Stake run in actual Balatro
 * [ ] Validate Red Deck White Stake agent
 
 # v1.1.0 — Red Deck — Red Stake
@@ -185,7 +202,7 @@
 
 A deck/stake milestone is complete when:
 
-* [ ] The deck-specific agent can independently play the game
+* [ ] The deck-specific agent can independently play the actual game
 * [ ] The agent completes one full run at the target stake
 * [ ] The run passes the relevant validation tests
 
