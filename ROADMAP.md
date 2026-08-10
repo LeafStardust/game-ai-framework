@@ -77,12 +77,12 @@
 - [x] Card selection search
 - [x] Future state prediction
 - [x] Hand/discard probability analysis
-- [ ] Expected value estimation
-- [ ] Goal-directed path planning
-- [ ] Blind completion path synthesis
-- [ ] Tactical path commitment
+- [x] Expected value estimation
+- [x] Goal-directed path planning
+- [x] Blind completion path synthesis
+- [x] Tactical path commitment
 - [x] Stake system
-- [ ] Deck-specific agent architecture
+- [x] Deck-specific agent architecture
 - [x] Red Deck starting-state support
 
 # v1.0.0 — Red Deck — White Stake
