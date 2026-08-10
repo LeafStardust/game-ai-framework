@@ -4,6 +4,7 @@ from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.interfaces import BalatroStateTranslator
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.live.protocol import LiveBalatroSnapshot
+from games.balatro.live.shop import LiveShopItemFactory
 from games.balatro.state import BalatroState
 
 
@@ -78,6 +79,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
     def __init__(self):
         self.consumable_factory = LiveConsumableFactory()
         self.joker_factory = LiveJokerFactory()
+        self.shop_item_factory = LiveShopItemFactory()
 
     def translate(
         self,
@@ -112,11 +114,15 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         deck_area = self._area(payload.get("cards", payload.get("deck")))
         joker_area = self._area(payload.get("jokers"))
         consumable_area = self._area(payload.get("consumables"))
-        shop_area = self._area(payload.get("shop"))
+        legacy_shop_area = self._area(payload.get("shop"))
+        shop_card_area = self._area(payload.get("shop_jokers"))
+        shop_booster_area = self._area(payload.get("shop_boosters"))
+        shop_voucher_area = self._area(payload.get("shop_vouchers"))
 
         state.hand_size = int(
             hand_area.get("limit", len(hand_area.get("cards", [])))
         )
+        state.joker_slots = int(joker_area.get("limit", 5))
         state.consumable_slots = int(
             consumable_area.get("limit", 2)
         )
@@ -126,8 +132,22 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         state.consumables = self._consumables(
             consumable_area.get("cards", [])
         )
-        state.shop_consumables = self._consumables(
-            shop_area.get("cards", [])
+
+        shop_jokers, shop_consumables = self._shop_cards(
+            shop_card_area.get("cards", [])
+        )
+        state.shop_jokers = shop_jokers
+        state.shop_consumables = shop_consumables
+        state.shop_consumables.extend(
+            self._consumables(legacy_shop_area.get("cards", []))
+        )
+        state.shop_boosters = self._shop_items(
+            shop_booster_area.get("cards", []),
+            kind="BOOSTER",
+        )
+        state.shop_vouchers = self._shop_items(
+            shop_voucher_area.get("cards", []),
+            kind="VOUCHER",
         )
         state.shop_active = snapshot.phase == "SHOP"
 
@@ -191,11 +211,48 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         for index, value in enumerate(values):
             consumable = self.consumable_factory.create(
                 value,
-                live_id=index,
+                live_id=value.get("live_id", value.get("id", index)),
             )
             if consumable is not None:
                 result.append(consumable)
 
+        return result
+
+    def _shop_cards(self, values: list[dict]) -> tuple[list, list]:
+        jokers = []
+        consumables = []
+
+        for index, value in enumerate(values):
+            item_type = str(
+                value.get("ability_set", value.get("set", ""))
+            ).upper()
+
+            if item_type == "JOKER":
+                joker = self.joker_factory.create(value)
+                if joker is None:
+                    joker = self.shop_item_factory.create(
+                        value,
+                        kind="JOKER",
+                    )
+                if joker is not None:
+                    jokers.append(joker)
+                continue
+
+            consumable = self.consumable_factory.create(
+                value,
+                live_id=value.get("live_id", value.get("id", index)),
+            )
+            if consumable is not None:
+                consumables.append(consumable)
+
+        return jokers, consumables
+
+    def _shop_items(self, values: list[dict], *, kind: str) -> list:
+        result = []
+        for value in values:
+            item = self.shop_item_factory.create(value, kind=kind)
+            if item is not None:
+                result.append(item)
         return result
 
     def _card(
