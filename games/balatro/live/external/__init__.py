@@ -4,6 +4,13 @@ from .capture import (
     BalatroScreenCapture,
     ScreenCapturer,
 )
+from .mouse import (
+    BalatroMouseController,
+    MouseControlError,
+    MouseControlNotArmed,
+    MouseInputProvider,
+    WindowsMouseInputProvider,
+)
 from .viewport import (
     BalatroViewport,
     FrameRegion,
@@ -26,6 +33,7 @@ from .window import (
 __all__ = [
     "BalatroCaptureError",
     "BalatroFrame",
+    "BalatroMouseController",
     "BalatroScreenCapture",
     "BalatroViewport",
     "BalatroWindow",
@@ -34,6 +42,9 @@ __all__ = [
     "BalatroWindowNotFound",
     "BalatroWindowTracker",
     "FrameRegion",
+    "MouseControlError",
+    "MouseControlNotArmed",
+    "MouseInputProvider",
     "NormalizedPoint",
     "NormalizedRect",
     "PixelPoint",
@@ -41,5 +52,6 @@ __all__ = [
     "ScreenCapturer",
     "WindowProvider",
     "WindowRect",
+    "WindowsMouseInputProvider",
     "WindowsWindowProvider",
 ]
