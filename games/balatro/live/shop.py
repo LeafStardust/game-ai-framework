@@ -33,20 +33,24 @@ class LiveShopItemFactory:
             return None
 
         item_kind = kind or data.get("ability_set") or data.get("set") or "ITEM"
-        price = data.get("cost", data.get("price", 0))
-        try:
-            price = int(price)
-        except (TypeError, ValueError):
-            price = 0
 
         return LiveShopItem(
             kind=str(item_kind).upper(),
             label=str(label),
-            price=price,
+            price=self._price(data.get("cost", data.get("price", 0))),
             live_id=data.get("live_id", data.get("id")),
             center=data.get("center") or data.get("key"),
             edition=data.get("edition"),
         )
+
+    @staticmethod
+    def _price(value) -> int:
+        if isinstance(value, dict):
+            value = value.get("buy", 0)
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return 0
 
 
 class BalatroShopActionGenerator:
@@ -90,6 +94,8 @@ class BalatroShopActionGenerator:
     @staticmethod
     def _price(item) -> int:
         value = getattr(item, "price", getattr(item, "cost", 0))
+        if isinstance(value, dict):
+            value = value.get("buy", 0)
         try:
             return int(value)
         except (TypeError, ValueError):
