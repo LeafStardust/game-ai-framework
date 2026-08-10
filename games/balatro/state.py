@@ -23,8 +23,12 @@ class BalatroState(GameState):
         self.discard_pile: list[BalatroCard] = []
         self.discards_remaining: int = 3
         self.jokers: list = []
+        self.joker_slots: int = 5
         self.consumables: list = []
+        self.shop_jokers: list = []
         self.shop_consumables: list = []
+        self.shop_boosters: list = []
+        self.shop_vouchers: list = []
         self.shop_active = False
         self.consumable_slots = 2
         self.hand_levels = {
@@ -106,8 +110,12 @@ class BalatroState(GameState):
         new_state.discard_pile = self.discard_pile.copy()
         new_state.discards_remaining = self.discards_remaining
         new_state.jokers = self.jokers.copy()
+        new_state.joker_slots = self.joker_slots
         new_state.consumables = self.consumables.copy()
+        new_state.shop_jokers = self.shop_jokers.copy()
         new_state.shop_consumables = self.shop_consumables.copy()
+        new_state.shop_boosters = self.shop_boosters.copy()
+        new_state.shop_vouchers = self.shop_vouchers.copy()
         new_state.shop_active = self.shop_active
         new_state.consumable_slots = self.consumable_slots
         new_state.hand_levels = self.hand_levels.copy()
