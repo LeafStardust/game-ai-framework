@@ -9,11 +9,13 @@ from .protocol import (
     LiveBalatroCommand,
     LiveBalatroSnapshot,
 )
+from .synchronizer import BalatroLiveSynchronizer
 from .translator import DefaultBalatroStateTranslator
 
 __all__ = [
     "BalatroActionExecutor",
     "BalatroLiveBridge",
+    "BalatroLiveSynchronizer",
     "BalatroStateTranslator",
     "DefaultBalatroActionExecutor",
     "DefaultBalatroStateTranslator",
