@@ -18,14 +18,21 @@ from games.balatro.live.external.card_templates import (
 )
 
 
-def _identity_png(path, *, accent=(20, 30, 40)):
+def _identity_png(
+    path,
+    *,
+    accent=(20, 30, 40),
+    rank_offset=(0, 0),
+    rank_width=4,
+):
     width = 24
     height = 32
     pixels = bytearray(b"\xf0\xf0\xf0\xff" * (width * height))
     blue, green, red = accent
+    offset_x, offset_y = rank_offset
 
-    for y in range(3, 7):
-        for x in range(2, 6):
+    for y in range(3 + offset_y, 7 + offset_y):
+        for x in range(2 + offset_x, 2 + offset_x + rank_width):
             index = (y * width + x) * 4
             pixels[index : index + 4] = bytes((blue, green, red, 255))
 
@@ -83,12 +90,28 @@ def test_rank_shape_signature_is_color_invariant(tmp_path):
         _identity_png(tmp_path / "colored.png", accent=(60, 50, 180))
     )
 
-    dark_signature = rank_shape_signature(dark, columns=4, rows=3)
-    colored_signature = rank_shape_signature(colored, columns=4, rows=3)
+    dark_signature = rank_shape_signature(dark, columns=8, rows=8)
+    colored_signature = rank_shape_signature(colored, columns=8, rows=8)
 
-    assert len(dark_signature) == 12
+    assert len(dark_signature) == 64
     assert dark_signature == colored_signature
     assert max(dark_signature) > 0
+
+
+def test_rank_shape_signature_normalizes_glyph_position(tmp_path):
+    first = load_rgb_png(_identity_png(tmp_path / "first.png"))
+    shifted = load_rgb_png(
+        _identity_png(tmp_path / "shifted.png", rank_offset=(1, 1))
+    )
+
+    assert rank_shape_signature(first) == rank_shape_signature(shifted)
+
+
+def test_rank_shape_signature_preserves_glyph_aspect_ratio(tmp_path):
+    square = load_rgb_png(_identity_png(tmp_path / "square.png"))
+    wide = load_rgb_png(_identity_png(tmp_path / "wide.png", rank_width=6))
+
+    assert rank_shape_signature(square) != rank_shape_signature(wide)
 
 
 def test_suit_color_signature_preserves_glyph_color(tmp_path):
@@ -114,15 +137,15 @@ def test_templates_report_partial_rank_and_suit_coverage(tmp_path):
     templates = templates_from_labeled_images(
         [first, second],
         ["K♥", "7♦"],
-        columns=4,
-        rows=4,
+        columns=8,
+        rows=8,
     )
 
     report = coverage_report(templates)
 
     assert report["ranks"] == ["K", "7"]
     assert report["suits"] == ["Hearts", "Diamonds"]
-    assert len(templates.ranks[0].signature) == 16
+    assert len(templates.ranks[0].signature) == 64
     assert len(templates.suits[0].signature) == 3
     assert "A" in report["missing_ranks"]
     assert "Clubs" in report["missing_suits"]
@@ -168,12 +191,13 @@ def test_calibration_rebuilds_from_multiple_manifests(tmp_path):
     assert len(templates.suits) == 4
 
 
-def test_load_card_template_set_rejects_legacy_version_one(tmp_path):
+@pytest.mark.parametrize("version", [1, 2])
+def test_load_card_template_set_rejects_legacy_versions(tmp_path, version):
     path = tmp_path / "legacy.json"
     path.write_text(
         json.dumps(
             {
-                "version": 1,
+                "version": version,
                 "columns": 12,
                 "rows": 12,
                 "ranks": [],
@@ -183,5 +207,8 @@ def test_load_card_template_set_rejects_legacy_version_one(tmp_path):
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="legacy card template version 1"):
+    with pytest.raises(
+        ValueError,
+        match=f"legacy card template version {version}",
+    ):
         load_card_template_set(path)
