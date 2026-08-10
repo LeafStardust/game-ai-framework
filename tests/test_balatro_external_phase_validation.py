@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from games.balatro.live.external import ColorGridSignature, PhaseTemplate
@@ -38,6 +40,14 @@ def test_phase_validation_accepts_complete_template_set(tmp_path):
             for offset in (-1, 0, 1)
         ],
     )
+
+    counts = validate_template_set(path)
+
+    assert counts == {phase: 3 for phase in REQUIRED_PHASES}
+
+
+def test_committed_phase_templates_are_valid():
+    path = Path(__file__).parents[1] / "balatro-phase-templates.json"
 
     counts = validate_template_set(path)
 
