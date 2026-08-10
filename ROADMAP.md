@@ -5,6 +5,8 @@
 > For Balatro, each deck has its own independent agent/"thinking brain". Decks are developed sequentially. A new deck is not started until the previous deck has completed all stakes from White through Gold.
 >
 > Completion does **not** require a high win rate or optimal play. A stake is considered completed once the agent successfully completes one full run at that stake.
+>
+> Once live-game integration is complete, major versions correspond to deck progression and patch versions correspond to stake progression within that deck. For example, Red Deck White Stake is v1.0.0 and Red Deck Gold Stake is v1.0.7; Blue Deck begins at v2.0.0 with White Stake.
 
 ## v0.1.0 — Foundation
 
@@ -118,21 +120,21 @@
 * [ ] Complete one successful Red Deck White Stake run in actual Balatro
 * [ ] Validate Red Deck White Stake agent
 
-# v1.1.0 — Red Deck — Red Stake
+# v1.0.1 — Red Deck — Red Stake
 
 * [ ] Red Stake support
 * [ ] Adapt decision-making to Red Stake rules
 * [ ] Complete one successful Red Deck Red Stake run
 * [ ] Validate Red Stake agent
 
-# v1.2.0 — Red Deck — Green Stake
+# v1.0.2 — Red Deck — Green Stake
 
 * [ ] Green Stake support
 * [ ] Adapt decision-making to Green Stake rules
 * [ ] Complete one successful Red Deck Green Stake run
 * [ ] Validate Green Stake agent
 
-# v1.3.0 — Red Deck — Black Stake
+# v1.0.3 — Red Deck — Black Stake
 
 * [ ] Black Stake support
 * [ ] Eternal Joker handling
@@ -140,7 +142,7 @@
 * [ ] Complete one successful Red Deck Black Stake run
 * [ ] Validate Black Stake agent
 
-# v1.4.0 — Red Deck — Blue Stake
+# v1.0.4 — Red Deck — Blue Stake
 
 * [ ] Blue Stake support
 * [ ] Reduced discard handling
@@ -148,7 +150,7 @@
 * [ ] Complete one successful Red Deck Blue Stake run
 * [ ] Validate Blue Stake agent
 
-# v1.5.0 — Red Deck — Purple Stake
+# v1.0.5 — Red Deck — Purple Stake
 
 * [ ] Purple Stake support
 * [ ] Increased Ante requirements
@@ -156,7 +158,7 @@
 * [ ] Complete one successful Red Deck Purple Stake run
 * [ ] Validate Purple Stake agent
 
-# v1.6.0 — Red Deck — Orange Stake
+# v1.0.6 — Red Deck — Orange Stake
 
 * [ ] Orange Stake support
 * [ ] Perishable Joker handling
@@ -164,7 +166,7 @@
 * [ ] Complete one successful Red Deck Orange Stake run
 * [ ] Validate Orange Stake agent
 
-# v1.7.0 — Red Deck — Gold Stake
+# v1.0.7 — Red Deck — Gold Stake
 
 * [ ] Gold Stake support
 * [ ] Rental Joker handling
@@ -173,30 +175,39 @@
 * [ ] Validate Red Deck across all stakes
 * [ ] Complete Red Deck agent
 
+# v2.0.0 — Blue Deck — White Stake
+
+> Begins only after Red Deck Gold Stake completion. Blue Deck follows the same stake-version progression: White v2.0.0, Red v2.0.1, Green v2.0.2, Black v2.0.3, Blue v2.0.4, Purple v2.0.5, Orange v2.0.6, Gold v2.0.7.
+
+* [ ] Blue Deck agent
+* [ ] Blue Deck decision-making adaptation
+* [ ] Complete one successful Blue Deck White Stake run
+* [ ] Validate Blue Deck White Stake agent
+
 ## Balatro Deck Progression
 
-> A deck begins only after the previous deck has completed every stake through Gold.
+> A deck begins only after the previous deck has completed every stake through Gold. Each deck receives its own major version; stakes advance the patch version from `.0` for White through `.7` for Gold.
 
-1. **Red Deck** — Active
-
-   * White → Red → Green → Black → Blue → Purple → Orange → Gold
-2. **Blue Deck** — Locked until Red Deck Gold Stake completion
-3. **Yellow Deck** — Locked until Blue Deck Gold Stake completion
-4. **Green Deck** — Locked until Yellow Deck Gold Stake completion
-5. **Black Deck** — Locked until Green Deck Gold Stake completion
+1. **Red Deck — v1.x** — Active
+   * White `v1.0.0` → Red `v1.0.1` → Green `v1.0.2` → Black `v1.0.3` → Blue `v1.0.4` → Purple `v1.0.5` → Orange `v1.0.6` → Gold `v1.0.7`
+2. **Blue Deck — v2.x** — Locked until Red Deck Gold Stake completion
+   * White `v2.0.0` → Red `v2.0.1` → Green `v2.0.2` → Black `v2.0.3` → Blue `v2.0.4` → Purple `v2.0.5` → Orange `v2.0.6` → Gold `v2.0.7`
+3. **Yellow Deck — v3.x** — Locked until Blue Deck Gold Stake completion
+4. **Green Deck — v4.x** — Locked until Yellow Deck Gold Stake completion
+5. **Black Deck — v5.x** — Locked until Green Deck Gold Stake completion
 
 ## Stake Progression
 
-| Stake  | Added difficulty                              |
-| ------ | --------------------------------------------- |
-| White  | Base difficulty                               |
-| Red    | Small Blind gives no reward money             |
-| Green  | Higher Ante score requirements                |
-| Black  | 30% chance for shop/pack Jokers to be Eternal |
-| Blue   | -1 discard                                    |
-| Purple | Higher Ante score requirements                |
-| Orange | 30% chance for Jokers to be Perishable        |
-| Gold   | 30% chance for Jokers to be Rental            |
+| Stake  | Version suffix | Added difficulty                              |
+| ------ | -------------- | --------------------------------------------- |
+| White  | `.0.0`         | Base difficulty                               |
+| Red    | `.0.1`         | Small Blind gives no reward money             |
+| Green  | `.0.2`         | Higher Ante score requirements                |
+| Black  | `.0.3`         | 30% chance for shop/pack Jokers to be Eternal |
+| Blue   | `.0.4`         | -1 discard                                    |
+| Purple | `.0.5`         | Higher Ante score requirements                |
+| Orange | `.0.6`         | 30% chance for Jokers to be Perishable        |
+| Gold   | `.0.7`         | 30% chance for Jokers to be Rental            |
 
 ## Completion Criterion
 
