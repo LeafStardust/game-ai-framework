@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .capture import BalatroFrame, BalatroScreenCapture
-from .phase_calibration import load_phase_templates
+from .phase_templates import load_phase_templates
 from .vision import (
     BalatroVisualPhaseRecognizer,
     PhaseDetection,
