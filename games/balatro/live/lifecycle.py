@@ -10,6 +10,38 @@ class BalatroLiveLifecycle:
     ):
         self.bridge = bridge
 
+    def start_run(
+        self,
+        deck: str = "RED",
+        stake: str = "WHITE",
+        seed: str | None = None,
+    ) -> LiveBalatroSnapshot:
+        params = {
+            "deck": deck,
+            "stake": stake,
+        }
+
+        if seed is not None:
+            params["seed"] = seed
+
+        return self.bridge.request(
+            "start",
+            params,
+        )
+
+    def restart_run(
+        self,
+        deck: str = "RED",
+        stake: str = "WHITE",
+        seed: str | None = None,
+    ) -> LiveBalatroSnapshot:
+        self.bridge.request("menu")
+        return self.start_run(
+            deck=deck,
+            stake=stake,
+            seed=seed,
+        )
+
     def select_blind(self) -> LiveBalatroSnapshot:
         return self.bridge.request("select")
 
