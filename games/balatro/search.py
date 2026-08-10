@@ -4,6 +4,7 @@ from framework.decision.evaluator import Evaluator
 from framework.decision.search import SearchStrategy
 
 from games.balatro.actions import DISCARD_CARDS
+from games.balatro.expected_value import BalatroExpectedValueEstimator
 from games.balatro.prediction import BalatroFutureStatePredictor
 
 
@@ -21,6 +22,10 @@ class BalatroSearchStrategy(SearchStrategy):
         predictor = BalatroFutureStatePredictor(
             self.environment
         )
+        estimator = BalatroExpectedValueEstimator(
+            self.evaluator,
+            predictor
+        )
         scores = []
 
         for action in actions:
@@ -30,21 +35,11 @@ class BalatroSearchStrategy(SearchStrategy):
             if action.name != DISCARD_CARDS:
                 samples = 1
 
-            states = predictor.predict(
-                action,
-                samples=samples
-            )
-
-            total = sum(
-                self.evaluator.evaluate(
-                    next_state,
-                    action
-                )
-                for next_state in states
-            )
-
             scores.append(
-                total / len(states)
+                estimator.estimate(
+                    action,
+                    samples=samples
+                )
             )
 
         return scores
