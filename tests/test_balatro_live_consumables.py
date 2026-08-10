@@ -6,18 +6,27 @@ from games.balatro.live import (
 )
 
 
-def test_translator_creates_live_tarot_inventory_item():
+def test_translator_creates_balatrobot_tarot_inventory_item():
     snapshot = LiveBalatroSnapshot(
         sequence=1,
         phase="SELECTING_HAND",
         state_complete=True,
         payload={
-            "consumables": [
-                {
-                    "id": "consumable-1",
-                    "ability_name": "Strength",
-                }
-            ]
+            "consumables": {
+                "count": 1,
+                "limit": 2,
+                "cards": [
+                    {
+                        "key": "c_strength",
+                        "set": "TAROT",
+                        "label": "Strength",
+                        "cost": {
+                            "buy": 3,
+                            "sell": 1,
+                        },
+                    }
+                ],
+            }
         },
     )
 
@@ -25,28 +34,39 @@ def test_translator_creates_live_tarot_inventory_item():
 
     assert len(state.consumables) == 1
     assert state.consumables[0].name == "Strength"
-    assert state.consumables[0].live_id == "consumable-1"
+    assert state.consumables[0].live_id == 0
 
 
-def test_use_consumable_command_maps_consumable_and_card_ids():
+def test_use_consumable_command_maps_balatrobot_indices():
     snapshot = LiveBalatroSnapshot(
         sequence=8,
         phase="SELECTING_HAND",
         state_complete=True,
         payload={
-            "hand": [
-                {
-                    "id": "card-1",
-                    "rank": "2",
-                    "suit": "Hearts",
-                }
-            ],
-            "consumables": [
-                {
-                    "id": "consumable-1",
-                    "ability_name": "Strength",
-                }
-            ],
+            "hand": {
+                "count": 1,
+                "limit": 8,
+                "cards": [
+                    {
+                        "value": {
+                            "rank": "2",
+                            "suit": "H",
+                        },
+                        "modifier": {},
+                    }
+                ],
+            },
+            "consumables": {
+                "count": 1,
+                "limit": 2,
+                "cards": [
+                    {
+                        "key": "c_strength",
+                        "set": "TAROT",
+                        "label": "Strength",
+                    }
+                ],
+            },
         },
     )
     state = DefaultBalatroStateTranslator().translate(snapshot)
@@ -62,6 +82,6 @@ def test_use_consumable_command_maps_consumable_and_card_ids():
 
     assert command.action == USE_CONSUMABLE
     assert command.payload == {
-        "cards": ["card-1"],
-        "target": "consumable-1",
+        "cards": [0],
+        "target": 0,
     }
