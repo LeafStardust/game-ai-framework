@@ -31,13 +31,13 @@ def _identity_png(
     blue, green, red = accent
     offset_x, offset_y = rank_offset
 
-    for y in range(3 + offset_y, 7 + offset_y):
-        for x in range(2 + offset_x, 2 + offset_x + rank_width):
+    for y in range(0, 6):
+        for x in range(max(0, 5 - y), width):
             index = (y * width + x) * 4
-            pixels[index : index + 4] = bytes((blue, green, red, 255))
+            pixels[index : index + 4] = bytes((60, 80, 70, 255))
 
-    for y in range(10, 14):
-        for x in range(3, 7):
+    for y in range(10 + offset_y, 14 + offset_y):
+        for x in range(2 + offset_x, 2 + offset_x + rank_width):
             index = (y * width + x) * 4
             pixels[index : index + 4] = bytes((blue, green, red, 255))
 
@@ -112,6 +112,13 @@ def test_rank_shape_signature_preserves_glyph_aspect_ratio(tmp_path):
     wide = load_rgb_png(_identity_png(tmp_path / "wide.png", rank_width=6))
 
     assert rank_shape_signature(square) != rank_shape_signature(wide)
+
+
+def test_rank_shape_signature_ignores_shared_top_card_border(tmp_path):
+    narrow = load_rgb_png(_identity_png(tmp_path / "narrow.png", rank_width=3))
+    wide = load_rgb_png(_identity_png(tmp_path / "wide.png", rank_width=6))
+
+    assert rank_shape_signature(narrow) != rank_shape_signature(wide)
 
 
 def test_suit_color_signature_preserves_glyph_color(tmp_path):
@@ -191,7 +198,7 @@ def test_calibration_rebuilds_from_multiple_manifests(tmp_path):
     assert len(templates.suits) == 4
 
 
-@pytest.mark.parametrize("version", [1, 2])
+@pytest.mark.parametrize("version", [1, 2, 3])
 def test_load_card_template_set_rejects_legacy_versions(tmp_path, version):
     path = tmp_path / "legacy.json"
     path.write_text(
