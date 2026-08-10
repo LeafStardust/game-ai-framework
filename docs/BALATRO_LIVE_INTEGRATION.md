@@ -37,7 +37,7 @@ The responsibilities are deliberately separated:
 
 BalatroBot is an external runtime dependency and is not vendored into this repository. The user installs the BalatroBot mod alongside Balatro.
 
-The default API endpoint is:
+BalatroBot currently requires Balatro, Lovely Injector, Steamodded, and `uv`. Its default API endpoint is:
 
 ```text
 http://127.0.0.1:12346
@@ -79,6 +79,34 @@ BalatroBot actions return the settled game state after the operation. `BalatroBo
 
 `BalatroLiveSynchronizer` uses this sequence and phase filtering to avoid acting repeatedly on the same state.
 
+## Console Telemetry
+
+`BalatroConsoleTelemetry` reports live state, chosen actions, errors, and an end-of-run summary. The trace includes ante, round, blind progress, money, hands/discards remaining, decision counts, action counts, recoveries, and the final outcome.
+
+## Running Locally
+
+Install and configure BalatroBot according to its upstream installation guide, then launch Balatro through its server command:
+
+```powershell
+uvx balatrobot serve
+```
+
+In a second terminal, from this repository, run the framework agent:
+
+```powershell
+py -m games.balatro.live
+```
+
+The default target is Red Deck White Stake. Optional arguments include:
+
+```powershell
+py -m games.balatro.live --seed ABC123
+py -m games.balatro.live --endpoint http://127.0.0.1:12346
+py -m games.balatro.live --deck RED --stake WHITE
+```
+
+The v0.9 validation run does not need to win. It only needs to demonstrate that the framework can start the run and autonomously progress through live game states without manual gameplay input until the game ends.
+
 ## v0.9 Task Boundaries
 
 1. Real-game integration architecture.
@@ -90,6 +118,8 @@ BalatroBot actions return the settled game state after the operation. `BalatroBo
 7. Blind and round transitions.
 8. Run start/restart.
 9. Recovery handling.
-10. End-to-end autonomous loop.
+10. Console telemetry and run diagnostics.
+11. End-to-end autonomous loop.
+12. Actual-game validation.
 
 The v0.9 milestone proves that the agent can autonomously operate the actual game. Winning Red Deck White Stake is the v1.0.0 completion criterion.
