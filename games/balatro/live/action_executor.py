@@ -33,15 +33,15 @@ class DefaultBalatroActionExecutor(BalatroActionExecutor):
         )
 
     @staticmethod
-    def _object_id(value) -> str:
+    def _object_id(value):
         if isinstance(value, dict):
             live_id = value.get("id")
         else:
             live_id = getattr(value, "live_id", None)
 
-        if not live_id:
+        if live_id is None:
             raise ValueError(
                 "live Balatro objects require a live_id"
             )
 
-        return str(live_id)
+        return live_id
