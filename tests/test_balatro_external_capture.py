@@ -1,3 +1,5 @@
+import struct
+
 import pytest
 
 from games.balatro.live.external import (
@@ -6,6 +8,7 @@ from games.balatro.live.external import (
     BalatroWindow,
     WindowRect,
 )
+from games.balatro.live.external.capture import save_frame_png
 
 
 class Tracker:
@@ -91,3 +94,17 @@ def test_capture_closes_underlying_capturer():
     capture.close()
 
     assert capturer.closed is True
+
+
+def test_save_frame_png_writes_png_dimensions(tmp_path):
+    capture = BalatroScreenCapture(
+        tracker=Tracker([window(width=2, height=3)]),
+        capturer=Capturer(fill=b"\x0a\x14\x1e\xff"),
+    )
+    frame = capture.capture()
+    path = save_frame_png(frame, tmp_path / "frame.png")
+    data = path.read_bytes()
+
+    assert data.startswith(b"\x89PNG\r\n\x1a\n")
+    assert data[12:16] == b"IHDR"
+    assert struct.unpack(">II", data[16:24]) == (2, 3)
