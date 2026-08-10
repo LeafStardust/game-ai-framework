@@ -107,7 +107,7 @@
 - [x] External screen-capture backend
 - [x] Resolution/scale-independent viewport normalization
 - [x] Visual phase signature/calibration infrastructure
-- [ ] Visual game-phase detection
+- [x] Visual game-phase detection
 - [ ] Playing-card visual recognition
 - [ ] HUD extraction: ante, round, score, blind target, money, hands, discards
 - [ ] Blind-selection visual state extraction
