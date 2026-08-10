@@ -36,11 +36,31 @@ def _observation(phase="SELECTING_HAND", width=100, height=80):
 
 
 def test_default_hud_field_regions_fit_inside_hud_panel():
+    assert set(DEFAULT_HUD_FIELD_REGIONS) == {
+        "ante",
+        "blind_target",
+        "discards",
+        "hands",
+        "money",
+        "round",
+        "score",
+    }
     for region in DEFAULT_HUD_FIELD_REGIONS.values():
         assert region.left >= DEFAULT_HUD_REGION.left
         assert region.top >= DEFAULT_HUD_REGION.top
         assert region.right <= DEFAULT_HUD_REGION.right
         assert region.bottom <= DEFAULT_HUD_REGION.bottom
+
+
+def test_refined_hud_regions_are_value_focused():
+    assert DEFAULT_HUD_REGION.width == 0.27
+    assert DEFAULT_HUD_FIELD_REGIONS["blind_target"].top == 0.21
+    assert DEFAULT_HUD_FIELD_REGIONS["score"].top == 0.37
+    assert DEFAULT_HUD_FIELD_REGIONS["hands"].top == 0.66
+    assert DEFAULT_HUD_FIELD_REGIONS["discards"].top == 0.66
+    assert DEFAULT_HUD_FIELD_REGIONS["money"].top == 0.77
+    assert DEFAULT_HUD_FIELD_REGIONS["ante"].top == 0.89
+    assert DEFAULT_HUD_FIELD_REGIONS["round"].top == 0.89
 
 
 def test_hud_diagnostic_saves_panel_fields_and_metadata(tmp_path):
@@ -62,7 +82,7 @@ def test_hud_diagnostic_saves_panel_fields_and_metadata(tmp_path):
         "width": DEFAULT_HUD_REGION.width,
         "height": DEFAULT_HUD_REGION.height,
     }
-    assert metadata["hud_region"]["pixels"]["width"] == 24
+    assert metadata["hud_region"]["pixels"]["width"] == 27
     assert metadata["hud_region"]["pixels"]["height"] == 80
     assert sorted(metadata["fields"]) == sorted(DEFAULT_HUD_FIELD_REGIONS)
 
