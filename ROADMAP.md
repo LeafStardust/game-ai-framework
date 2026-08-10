@@ -89,19 +89,21 @@
 
 ## v0.9.0 — Balatro Real-Game Integration
 
-> Connect the framework-level Balatro agent to the actual Balatro game. This milestone is complete when the agent can observe live game state, translate it into framework state, execute framework actions in the game, and autonomously operate the full interaction loop required for a Red Deck White Stake run. Winning the run is reserved for v1.0.0.
+> Connect the framework-level Balatro agent to the actual Balatro game. BalatroBot is used only as the live state/control API; all agent decision-making remains inside this framework. This milestone is complete when the agent can autonomously operate an actual Red Deck White Stake run from start until the game ends. Winning the run is reserved for v1.0.0.
 
 - [x] Real-game integration architecture
-- [ ] Live Balatro state acquisition
-- [ ] Live state → `BalatroState` translation
-- [ ] `BalatroAction` → live game input execution
-- [ ] Synchronization and turn/phase detection
-- [ ] Shop interaction support
-- [ ] Consumable interaction support
-- [ ] Blind selection and round-transition support
-- [ ] Run start/restart support for Red Deck White Stake
-- [ ] Integration error handling and recovery
-- [ ] End-to-end autonomous game loop
+- [x] BalatroBot-backed live game bridge
+- [x] Live Balatro state acquisition
+- [x] Live state → `BalatroState` translation
+- [x] `BalatroAction` → live game input execution
+- [x] Synchronization and turn/phase detection
+- [x] Shop interaction support
+- [x] Consumable interaction support
+- [x] Blind selection and round-transition support
+- [x] Run start/restart support for Red Deck White Stake
+- [x] Integration error handling and recovery
+- [x] Console telemetry and run diagnostics
+- [x] End-to-end autonomous game loop
 - [ ] Validate agent can operate an actual Red Deck White Stake run without manual gameplay input
 
 # v1.0.0 — Red Deck — White Stake
