@@ -102,22 +102,39 @@ class BalatroScreenCapture:
 
 
 def save_frame_png(frame: BalatroFrame, path: str | Path) -> Path:
+    return save_bgra_png(frame.width, frame.height, frame.bgra, path)
+
+
+def save_bgra_png(
+    width: int,
+    height: int,
+    bgra: bytes,
+    path: str | Path,
+) -> Path:
+    if width <= 0 or height <= 0:
+        raise ValueError("PNG dimensions must be positive")
+    expected = width * height * 4
+    if len(bgra) != expected:
+        raise ValueError(
+            f"BGRA pixel buffer must contain {expected} bytes, got {len(bgra)}"
+        )
+
     output = Path(path)
     output.parent.mkdir(parents=True, exist_ok=True)
 
     rows = bytearray()
-    stride = frame.width * 4
-    for y in range(frame.height):
+    stride = width * 4
+    for y in range(height):
         rows.append(0)
-        row = frame.bgra[y * stride : (y + 1) * stride]
+        row = bgra[y * stride : (y + 1) * stride]
         for index in range(0, len(row), 4):
             blue, green, red = row[index : index + 3]
             rows.extend((red, green, blue))
 
     header = struct.pack(
         ">IIBBBBB",
-        frame.width,
-        frame.height,
+        width,
+        height,
         8,
         2,
         0,
