@@ -9,7 +9,7 @@ from games.balatro.live.external import (
     BalatroWindowNotForeground,
     WindowRect,
 )
-from games.balatro.live.external.capture import save_frame_png
+from games.balatro.live.external.capture import save_bgra_png, save_frame_png
 
 
 class Tracker:
@@ -126,3 +126,21 @@ def test_save_frame_png_writes_png_dimensions(tmp_path):
     assert data.startswith(b"\x89PNG\r\n\x1a\n")
     assert data[12:16] == b"IHDR"
     assert struct.unpack(">II", data[16:24]) == (2, 3)
+
+
+def test_save_bgra_png_writes_region_dimensions(tmp_path):
+    path = save_bgra_png(
+        3,
+        2,
+        b"\x0a\x14\x1e\xff" * 6,
+        tmp_path / "region.png",
+    )
+    data = path.read_bytes()
+
+    assert data.startswith(b"\x89PNG\r\n\x1a\n")
+    assert struct.unpack(">II", data[16:24]) == (3, 2)
+
+
+def test_save_bgra_png_rejects_wrong_pixel_buffer_size(tmp_path):
+    with pytest.raises(ValueError, match="BGRA pixel buffer"):
+        save_bgra_png(2, 2, b"\x00" * 4, tmp_path / "bad.png")
