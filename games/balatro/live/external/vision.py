@@ -62,23 +62,49 @@ class ColorGridSignature:
         other: ColorGridSignature,
         weights: tuple[float, ...] | None = None,
     ) -> float:
-        if self.columns != other.columns or self.rows != other.rows:
-            raise ValueError("signature grid dimensions must match")
-
-        if weights is None:
-            weights = tuple(1.0 for _ in self.values)
-        if len(weights) != len(self.values):
-            raise ValueError("signature distance weights must match channel values")
-
-        total_weight = sum(weights)
-        if total_weight <= 0:
-            raise ValueError("signature distance weights must have positive total weight")
-
+        self._validate_comparison(other, weights)
+        active_weights = weights or tuple(1.0 for _ in self.values)
+        total_weight = sum(active_weights)
         difference = sum(
             weight * abs(left - right)
-            for left, right, weight in zip(self.values, other.values, weights)
+            for left, right, weight in zip(
+                self.values,
+                other.values,
+                active_weights,
+            )
         )
         return difference / (total_weight * 255.0)
+
+    def relative_values(self) -> tuple[float, ...]:
+        cell_count = self.columns * self.rows
+        channel_means = tuple(
+            sum(self.values[channel::3]) / cell_count
+            for channel in range(3)
+        )
+        return tuple(
+            value - channel_means[index % 3]
+            for index, value in enumerate(self.values)
+        )
+
+    def relative_weighted_distance(
+        self,
+        other: ColorGridSignature,
+        weights: tuple[float, ...] | None = None,
+    ) -> float:
+        self._validate_comparison(other, weights)
+        active_weights = weights or tuple(1.0 for _ in self.values)
+        total_weight = sum(active_weights)
+        left_values = self.relative_values()
+        right_values = other.relative_values()
+        difference = sum(
+            weight * abs(left - right)
+            for left, right, weight in zip(
+                left_values,
+                right_values,
+                active_weights,
+            )
+        )
+        return difference / (total_weight * 510.0)
 
     def to_dict(self) -> dict:
         return {
@@ -94,6 +120,18 @@ class ColorGridSignature:
             rows=int(value["rows"]),
             values=tuple(int(item) for item in value["values"]),
         )
+
+    def _validate_comparison(
+        self,
+        other: ColorGridSignature,
+        weights: tuple[float, ...] | None,
+    ) -> None:
+        if self.columns != other.columns or self.rows != other.rows:
+            raise ValueError("signature grid dimensions must match")
+        if weights is not None and len(weights) != len(self.values):
+            raise ValueError("signature distance weights must match channel values")
+        if weights is not None and sum(weights) <= 0:
+            raise ValueError("signature distance weights must have positive total weight")
 
     @staticmethod
     def _sample_cell(
@@ -175,6 +213,16 @@ class PhaseDetection:
     phase: str
     confidence: float
     distance: float
+    wins: float = 0.0
+    margin: float = 0.0
+
+
+@dataclass(frozen=True)
+class _PhaseMatch:
+    template: PhaseTemplate
+    distance: float
+    wins: float
+    margin: float
 
 
 class BalatroVisualPhaseRecognizer:
@@ -183,7 +231,7 @@ class BalatroVisualPhaseRecognizer:
     def __init__(self, templates: list[PhaseTemplate] | None = None):
         self.templates = list(templates or [])
         self._weight_cache: dict[
-            tuple[int, int, NormalizedRect],
+            tuple[str, str, int, int, NormalizedRect],
             tuple[float, ...] | None,
         ] = {}
 
@@ -215,14 +263,15 @@ class BalatroVisualPhaseRecognizer:
         )
 
     def rank(self, frame: BalatroFrame) -> list[PhaseDetection]:
-        matches = self._best_match_per_phase(frame)
         return [
             PhaseDetection(
-                template.phase,
-                max(0.0, 1.0 - distance),
-                distance,
+                match.template.phase,
+                max(0.0, 1.0 - match.distance),
+                match.distance,
+                match.wins,
+                match.margin,
             )
-            for template, distance in matches
+            for match in self._best_match_per_phase(frame)
         ]
 
     def detect(self, frame: BalatroFrame) -> PhaseDetection:
@@ -230,98 +279,194 @@ class BalatroVisualPhaseRecognizer:
         if not matches:
             return PhaseDetection(UNKNOWN_PHASE, 0.0, 1.0)
 
-        best_template, best_distance = matches[0]
-        if best_distance > best_template.max_distance:
+        best = matches[0]
+        if best.distance > best.template.max_distance:
             return PhaseDetection(
                 UNKNOWN_PHASE,
-                max(0.0, 1.0 - best_distance),
-                best_distance,
+                max(0.0, 1.0 - best.distance),
+                best.distance,
+                best.wins,
+                best.margin,
             )
 
         return PhaseDetection(
-            best_template.phase,
-            max(0.0, 1.0 - best_distance),
-            best_distance,
+            best.template.phase,
+            max(0.0, 1.0 - best.distance),
+            best.distance,
+            best.wins,
+            best.margin,
         )
 
-    def _best_match_per_phase(
-        self,
-        frame: BalatroFrame,
-    ) -> list[tuple[PhaseTemplate, float]]:
+    def _best_match_per_phase(self, frame: BalatroFrame) -> list[_PhaseMatch]:
         if not self.templates:
             return []
 
-        viewport = BalatroViewport(frame)
-        best_by_phase: dict[str, tuple[PhaseTemplate, float]] = {}
+        geometry = self._primary_geometry()
+        compatible = [
+            template
+            for template in self.templates
+            if self._geometry(template) == geometry
+        ]
+        grouped = {
+            phase: [template for template in compatible if template.phase == phase]
+            for phase in sorted({template.phase for template in compatible})
+        }
+        if not grouped:
+            return []
 
-        for template in self.templates:
-            candidate = ColorGridSignature.from_region(
-                viewport.crop(template.region),
-                columns=template.signature.columns,
-                rows=template.signature.rows,
-            )
-            distance = template.signature.weighted_distance(
-                candidate,
-                self._shared_weights(template),
-            )
-            previous = best_by_phase.get(template.phase)
-            if previous is None or distance < previous[1]:
-                best_by_phase[template.phase] = (template, distance)
-
-        return sorted(
-            best_by_phase.values(),
-            key=lambda item: item[1],
+        sample = compatible[0]
+        candidate = ColorGridSignature.from_region(
+            BalatroViewport(frame).crop(sample.region),
+            columns=sample.signature.columns,
+            rows=sample.signature.rows,
         )
 
-    def _shared_weights(
+        if len(grouped) == 1:
+            phase = next(iter(grouped))
+            template, distance = self._nearest(
+                grouped[phase],
+                candidate,
+                None,
+            )
+            return [_PhaseMatch(template, distance, 0.0, 0.0)]
+
+        wins = {phase: 0.0 for phase in grouped}
+        margins = {phase: 0.0 for phase in grouped}
+        distances: dict[str, list[float]] = {phase: [] for phase in grouped}
+        phases = sorted(grouped)
+
+        for left_index, left_phase in enumerate(phases):
+            for right_phase in phases[left_index + 1:]:
+                weights = self._pair_weights(
+                    left_phase,
+                    right_phase,
+                    grouped[left_phase],
+                    grouped[right_phase],
+                )
+                _, left_distance = self._nearest(
+                    grouped[left_phase],
+                    candidate,
+                    weights,
+                )
+                _, right_distance = self._nearest(
+                    grouped[right_phase],
+                    candidate,
+                    weights,
+                )
+
+                distances[left_phase].append(left_distance)
+                distances[right_phase].append(right_distance)
+                difference = right_distance - left_distance
+                margins[left_phase] += difference
+                margins[right_phase] -= difference
+
+                if abs(difference) <= 1e-9:
+                    wins[left_phase] += 0.5
+                    wins[right_phase] += 0.5
+                elif difference > 0:
+                    wins[left_phase] += 1.0
+                else:
+                    wins[right_phase] += 1.0
+
+        matches = []
+        for phase, templates in grouped.items():
+            representative = min(
+                templates,
+                key=lambda template: self._comparison_distance(
+                    template.signature,
+                    candidate,
+                    None,
+                ),
+            )
+            phase_distances = distances[phase]
+            average_distance = sum(phase_distances) / len(phase_distances)
+            matches.append(
+                _PhaseMatch(
+                    representative,
+                    average_distance,
+                    wins[phase],
+                    margins[phase],
+                )
+            )
+
+        return sorted(
+            matches,
+            key=lambda match: (
+                -match.wins,
+                -match.margin,
+                match.distance,
+            ),
+        )
+
+    def _nearest(
         self,
-        template: PhaseTemplate,
+        templates: list[PhaseTemplate],
+        candidate: ColorGridSignature,
+        weights: tuple[float, ...] | None,
+    ) -> tuple[PhaseTemplate, float]:
+        matches = [
+            (
+                template,
+                self._comparison_distance(
+                    template.signature,
+                    candidate,
+                    weights,
+                ),
+            )
+            for template in templates
+        ]
+        return min(matches, key=lambda item: item[1])
+
+    @staticmethod
+    def _comparison_distance(
+        template: ColorGridSignature,
+        candidate: ColorGridSignature,
+        weights: tuple[float, ...] | None,
+    ) -> float:
+        relative = template.relative_weighted_distance(candidate, weights)
+        raw = template.weighted_distance(candidate, weights)
+        return 0.85 * relative + 0.15 * raw
+
+    def _pair_weights(
+        self,
+        left_phase: str,
+        right_phase: str,
+        left_templates: list[PhaseTemplate],
+        right_templates: list[PhaseTemplate],
     ) -> tuple[float, ...] | None:
+        sample = left_templates[0]
+        phase_key = tuple(sorted((left_phase, right_phase)))
         key = (
-            template.signature.columns,
-            template.signature.rows,
-            template.region,
+            phase_key[0],
+            phase_key[1],
+            sample.signature.columns,
+            sample.signature.rows,
+            sample.region,
         )
         if key in self._weight_cache:
             return self._weight_cache[key]
 
-        compatible = [
-            item
-            for item in self.templates
-            if item.signature.columns == template.signature.columns
-            and item.signature.rows == template.signature.rows
-            and item.region == template.region
+        left_features = [
+            template.signature.relative_values()
+            for template in left_templates
         ]
-        phases = sorted({item.phase for item in compatible})
-        if len(phases) < 2:
-            self._weight_cache[key] = None
-            return None
-
-        grouped = {
-            phase: [item for item in compatible if item.phase == phase]
-            for phase in phases
-        }
+        right_features = [
+            template.signature.relative_values()
+            for template in right_templates
+        ]
         weights = []
 
-        for index in range(len(template.signature.values)):
-            means = {}
-            within_total = 0.0
-            sample_count = 0
-
-            for phase, items in grouped.items():
-                values = [item.signature.values[index] for item in items]
-                mean = sum(values) / len(values)
-                means[phase] = mean
-                within_total += sum(abs(value - mean) for value in values)
-                sample_count += len(values)
-
-            overall_mean = sum(means.values()) / len(means)
-            between_phase = sum(
-                abs(mean - overall_mean) for mean in means.values()
-            ) / len(means)
-            within_phase = within_total / sample_count
-
-            weight = (between_phase + 1.0) / (within_phase + 4.0)
+        for index in range(len(sample.signature.values)):
+            left_values = [values[index] for values in left_features]
+            right_values = [values[index] for values in right_features]
+            left_mean = sum(left_values) / len(left_values)
+            right_mean = sum(right_values) / len(right_values)
+            within = (
+                sum(abs(value - left_mean) for value in left_values)
+                + sum(abs(value - right_mean) for value in right_values)
+            ) / (len(left_values) + len(right_values))
+            between = abs(left_mean - right_mean)
+            weight = (between + 1.0) / (within + 4.0)
             weights.append(min(8.0, max(0.05, weight)))
 
         total = sum(weights)
@@ -329,3 +474,18 @@ class BalatroVisualPhaseRecognizer:
         normalized = tuple(weight * scale for weight in weights)
         self._weight_cache[key] = normalized
         return normalized
+
+    def _primary_geometry(self) -> tuple[int, int, NormalizedRect]:
+        counts: dict[tuple[int, int, NormalizedRect], int] = {}
+        for template in self.templates:
+            key = self._geometry(template)
+            counts[key] = counts.get(key, 0) + 1
+        return max(counts, key=counts.get)
+
+    @staticmethod
+    def _geometry(template: PhaseTemplate) -> tuple[int, int, NormalizedRect]:
+        return (
+            template.signature.columns,
+            template.signature.rows,
+            template.region,
+        )
