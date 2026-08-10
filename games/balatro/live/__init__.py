@@ -1,3 +1,4 @@
+from .file_bridge import FileBalatroBridge
 from .interfaces import (
     BalatroActionExecutor,
     BalatroLiveBridge,
@@ -12,6 +13,7 @@ __all__ = [
     "BalatroActionExecutor",
     "BalatroLiveBridge",
     "BalatroStateTranslator",
+    "FileBalatroBridge",
     "LiveBalatroCommand",
     "LiveBalatroSnapshot",
 ]
