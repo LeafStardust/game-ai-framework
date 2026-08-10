@@ -192,26 +192,24 @@ class BalatroVisualPhaseRecognizer:
             max_distance=max_distance,
         )
 
+    def rank(self, frame: BalatroFrame) -> list[PhaseDetection]:
+        matches = self._best_match_per_phase(frame)
+        return [
+            PhaseDetection(
+                template.phase,
+                max(0.0, 1.0 - distance),
+                distance,
+            )
+            for template, distance in matches
+        ]
+
     def detect(self, frame: BalatroFrame) -> PhaseDetection:
-        if not self.templates:
+        matches = self._best_match_per_phase(frame)
+        if not matches:
             return PhaseDetection(UNKNOWN_PHASE, 0.0, 1.0)
 
-        viewport = BalatroViewport(frame)
-        best_template: PhaseTemplate | None = None
-        best_distance = 1.0
-
-        for template in self.templates:
-            candidate = ColorGridSignature.from_region(
-                viewport.crop(template.region),
-                columns=template.signature.columns,
-                rows=template.signature.rows,
-            )
-            distance = template.signature.distance(candidate)
-            if distance < best_distance:
-                best_template = template
-                best_distance = distance
-
-        if best_template is None or best_distance > best_template.max_distance:
+        best_template, best_distance = matches[0]
+        if best_distance > best_template.max_distance:
             return PhaseDetection(
                 UNKNOWN_PHASE,
                 max(0.0, 1.0 - best_distance),
@@ -222,4 +220,30 @@ class BalatroVisualPhaseRecognizer:
             best_template.phase,
             max(0.0, 1.0 - best_distance),
             best_distance,
+        )
+
+    def _best_match_per_phase(
+        self,
+        frame: BalatroFrame,
+    ) -> list[tuple[PhaseTemplate, float]]:
+        if not self.templates:
+            return []
+
+        viewport = BalatroViewport(frame)
+        best_by_phase: dict[str, tuple[PhaseTemplate, float]] = {}
+
+        for template in self.templates:
+            candidate = ColorGridSignature.from_region(
+                viewport.crop(template.region),
+                columns=template.signature.columns,
+                rows=template.signature.rows,
+            )
+            distance = template.signature.distance(candidate)
+            previous = best_by_phase.get(template.phase)
+            if previous is None or distance < previous[1]:
+                best_by_phase[template.phase] = (template, distance)
+
+        return sorted(
+            best_by_phase.values(),
+            key=lambda item: item[1],
         )
