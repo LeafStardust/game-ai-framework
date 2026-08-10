@@ -32,38 +32,35 @@ class BufferedShopTransaction:
             expected_money=state.money,
         )
 
+    def validate(self, state: BalatroState, action: BalatroAction) -> None:
+        """Reject an unsafe or impossible buffered purchase without mutating state."""
+        source, destination, capacity = self._purchase_context(state, action)
+        self._validate_buy(
+            state,
+            action,
+            source=source,
+            destination=destination,
+            capacity=capacity,
+        )
+
     def apply(self, state: BalatroState, action: BalatroAction) -> None:
         if state.phase != "SHOP":
             raise ValueError("buffered shop mutations require SHOP phase")
 
-        if action.name == BUY_JOKER:
-            self._buy(
-                state,
-                action,
-                source=state.shop_jokers,
-                destination=state.jokers,
-                capacity=state.joker_slots,
-            )
-        elif action.name == BUY_CONSUMABLE:
-            self._buy(
-                state,
-                action,
-                source=state.shop_consumables,
-                destination=state.consumables,
-                capacity=state.consumable_slots,
-            )
-        elif action.name == BUY_VOUCHER:
-            self._buy(
-                state,
-                action,
-                source=state.shop_vouchers,
-                destination=state.vouchers,
-                capacity=None,
-            )
-        else:
-            raise UnsupportedBufferedShopAction(
-                f"shop action {action.name!r} cannot be projected safely"
-            )
+        source, destination, capacity = self._purchase_context(state, action)
+        self._validate_buy(
+            state,
+            action,
+            source=source,
+            destination=destination,
+            capacity=capacity,
+        )
+
+        target = action.target
+        price = self._price(target)
+        state.money -= price
+        source.remove(target)
+        destination.append(target)
 
         self.purchases.append(action)
         self.expected_money = state.money
@@ -79,7 +76,30 @@ class BufferedShopTransaction:
                 f"expected money={self.expected_money}, observed money={persisted.money}"
             )
 
-    def _buy(
+    def _purchase_context(
+        self,
+        state: BalatroState,
+        action: BalatroAction,
+    ) -> tuple[list, list, int | None]:
+        if state.phase != "SHOP":
+            raise ValueError("buffered shop mutations require SHOP phase")
+
+        if action.name == BUY_JOKER:
+            return state.shop_jokers, state.jokers, state.joker_slots
+        if action.name == BUY_CONSUMABLE:
+            return (
+                state.shop_consumables,
+                state.consumables,
+                state.consumable_slots,
+            )
+        if action.name == BUY_VOUCHER:
+            return state.shop_vouchers, state.vouchers, None
+
+        raise UnsupportedBufferedShopAction(
+            f"shop action {action.name!r} cannot be projected safely"
+        )
+
+    def _validate_buy(
         self,
         state: BalatroState,
         action: BalatroAction,
@@ -97,10 +117,6 @@ class BufferedShopTransaction:
         price = self._price(target)
         if state.money < price:
             raise ValueError("insufficient money for shop purchase")
-
-        state.money -= price
-        source.remove(target)
-        destination.append(target)
 
     @staticmethod
     def _price(item) -> int:
