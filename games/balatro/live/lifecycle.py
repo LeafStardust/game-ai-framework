@@ -1,14 +1,29 @@
-from games.balatro.live.balatrobot_bridge import BalatroBotBridge
+import time
+
+from games.balatro.live.balatrobot_bridge import (
+    BalatroBotBridge,
+    BalatroBotRpcError,
+)
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 
 class BalatroLiveLifecycle:
 
+    SELECT_NOT_READY_ERRORS = (
+        "no blind on deck",
+        "blind pane not found",
+        "select button not found",
+    )
+
     def __init__(
         self,
         bridge: BalatroBotBridge,
+        select_retries: int = 40,
+        select_retry_delay: float = 0.05,
     ):
         self.bridge = bridge
+        self.select_retries = max(0, select_retries)
+        self.select_retry_delay = max(0.0, select_retry_delay)
 
     def start_run(
         self,
@@ -43,7 +58,20 @@ class BalatroLiveLifecycle:
         )
 
     def select_blind(self) -> LiveBalatroSnapshot:
-        return self.bridge.request("select")
+        for attempt in range(self.select_retries + 1):
+            try:
+                return self.bridge.request("select")
+            except BalatroBotRpcError as error:
+                if (
+                    not self._select_not_ready(error)
+                    or attempt >= self.select_retries
+                ):
+                    raise
+
+                if self.select_retry_delay > 0:
+                    time.sleep(self.select_retry_delay)
+
+        raise RuntimeError("unreachable")
 
     def skip_blind(self) -> LiveBalatroSnapshot:
         return self.bridge.request("skip")
@@ -53,3 +81,11 @@ class BalatroLiveLifecycle:
 
     def next_round(self) -> LiveBalatroSnapshot:
         return self.bridge.request("next_round")
+
+    @classmethod
+    def _select_not_ready(cls, error: BalatroBotRpcError) -> bool:
+        message = str(error).lower()
+        return any(
+            fragment in message
+            for fragment in cls.SELECT_NOT_READY_ERRORS
+        )
