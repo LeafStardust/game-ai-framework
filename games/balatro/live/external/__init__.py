@@ -11,6 +11,7 @@ from .mouse import (
     MouseInputProvider,
     WindowsMouseInputProvider,
 )
+from .observer import ExternalBalatroObservation, ExternalBalatroObserver
 from .viewport import (
     BalatroViewport,
     FrameRegion,
@@ -51,6 +52,8 @@ __all__ = [
     "BalatroWindowNotFound",
     "BalatroWindowTracker",
     "ColorGridSignature",
+    "ExternalBalatroObservation",
+    "ExternalBalatroObserver",
     "FrameRegion",
     "MouseControlError",
     "MouseControlNotArmed",
