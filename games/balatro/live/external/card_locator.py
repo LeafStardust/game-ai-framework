@@ -11,6 +11,11 @@ from .observer import ExternalBalatroObserver
 from .viewport import BalatroViewport, FrameRegion, NormalizedPoint, NormalizedRect, PixelRect
 
 
+CARD_FACE_WIDTH_HEIGHT_RATIO = 0.67
+CARD_FACE_STRIDE_HEIGHT_RATIO = 0.53
+MAX_HAND_CARDS = 12
+
+
 @dataclass(frozen=True)
 class CardFaceLocation:
     local_rect: PixelRect
@@ -148,12 +153,61 @@ def locate_card_faces(
         min_brightness=min_brightness,
         max_channel_spread=max_channel_spread,
     )
-    candidates = [
+    accepted = [
         _location_from_component(region, component)
         for component in diagnostics
         if component.accepted
     ]
-    return sorted(candidates, key=lambda candidate: candidate.center.x)
+
+    wide_components = [
+        component
+        for component in diagnostics
+        if component.rejection == "too_wide" and component.density >= 0.35
+    ]
+    if not wide_components:
+        return sorted(accepted, key=lambda candidate: candidate.center.x)
+
+    hand_component = max(wide_components, key=lambda component: component.cells)
+    split_cards = _split_wide_component(region, hand_component)
+    if len(split_cards) < 2:
+        return sorted(accepted, key=lambda candidate: candidate.center.x)
+
+    aligned = [
+        candidate
+        for candidate in accepted
+        if _same_card_row(candidate.local_rect, hand_component.local_rect)
+    ]
+    combined = split_cards + aligned
+    return sorted(combined, key=lambda candidate: candidate.center.x)
+
+
+def _split_wide_component(
+    region: FrameRegion,
+    component: CardComponentDiagnostic,
+) -> list[CardFaceLocation]:
+    rect = component.local_rect
+    card_width = max(1, round(rect.height * CARD_FACE_WIDTH_HEIGHT_RATIO))
+    nominal_stride = max(1.0, rect.height * CARD_FACE_STRIDE_HEIGHT_RATIO)
+    if rect.width <= card_width:
+        return []
+
+    count = round(1 + (rect.width - card_width) / nominal_stride)
+    count = max(2, min(MAX_HAND_CARDS, count))
+    stride = (rect.width - card_width) / (count - 1)
+
+    cards = []
+    for index in range(count):
+        left = round(rect.left + index * stride)
+        local_rect = PixelRect(left, rect.top, card_width, rect.height)
+        cards.append(
+            _location_from_rect(region, local_rect, component.density)
+        )
+    return cards
+
+
+def _same_card_row(candidate: PixelRect, row: PixelRect) -> bool:
+    center_delta = abs(candidate.center.y - row.center.y)
+    return center_delta <= row.height * 0.35
 
 
 def _build_bright_mask(
@@ -212,7 +266,14 @@ def _location_from_component(
     region: FrameRegion,
     component: CardComponentDiagnostic,
 ) -> CardFaceLocation:
-    rect = component.local_rect
+    return _location_from_rect(region, component.local_rect, component.density)
+
+
+def _location_from_rect(
+    region: FrameRegion,
+    rect: PixelRect,
+    density: float,
+) -> CardFaceLocation:
     source = region.normalized_rect
     normalized_rect = NormalizedRect(
         source.left + source.width * (rect.left / region.width),
@@ -220,7 +281,7 @@ def _location_from_component(
         source.width * (rect.width / region.width),
         source.height * (rect.height / region.height),
     )
-    return CardFaceLocation(rect, normalized_rect, component.density)
+    return CardFaceLocation(rect, normalized_rect, density)
 
 
 def _validate_settings(
@@ -319,12 +380,12 @@ def main() -> int:
         min_brightness=args.min_brightness,
         max_channel_spread=args.max_channel_spread,
     )
-    locations = [
-        _location_from_component(hand, component)
-        for component in diagnostics
-        if component.accepted
-    ]
-    locations.sort(key=lambda location: location.center.x)
+    locations = locate_card_faces(
+        hand,
+        sample_step=args.sample_step,
+        min_brightness=args.min_brightness,
+        max_channel_spread=args.max_channel_spread,
+    )
     result = _serialize(locations, diagnostics)
     Path(args.output).write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n",
