@@ -5,13 +5,12 @@ import json
 from pathlib import Path
 
 from .card_aligned_features import aligned_templates_from_labeled_images
+from .card_template_format import load_card_template_set, save_card_template_set
 from .card_templates import (
     TEMPLATE_COLUMNS,
     TEMPLATE_ROWS,
     coverage_report,
-    load_card_template_set,
     merge_card_template_sets,
-    save_card_template_set,
 )
 
 
