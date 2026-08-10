@@ -19,10 +19,13 @@ SUIT_ALIASES = {
     "♠": "Spades",
     "♣": "Clubs",
 }
-TEMPLATE_COLUMNS = 12
-TEMPLATE_ROWS = 12
-RANK_ZONE = (0.0, 0.0, 1.0, 0.56)
-SUIT_ZONE = (0.0, 0.44, 1.0, 0.56)
+TEMPLATE_VERSION = 2
+TEMPLATE_COLUMNS = 10
+TEMPLATE_ROWS = 10
+RANK_ZONE = (0.06, 0.06, 0.32, 0.20)
+SUIT_ZONE = (0.06, 0.27, 0.32, 0.22)
+FOREGROUND_THRESHOLD = 35
+BACKGROUND_FRACTION = 0.40
 
 
 @dataclass(frozen=True)
@@ -130,58 +133,65 @@ def load_rgb_png(path: str | Path) -> RGBImage:
     return RGBImage(width, height, bytes(output))
 
 
-def image_signature(
+def rank_shape_signature(
     image: RGBImage,
-    zone: tuple[float, float, float, float],
+    zone: tuple[float, float, float, float] = RANK_ZONE,
     *,
     columns: int = TEMPLATE_COLUMNS,
     rows: int = TEMPLATE_ROWS,
+    foreground_threshold: int = FOREGROUND_THRESHOLD,
 ) -> tuple[int, ...]:
     if columns < 1 or rows < 1:
         raise ValueError("signature grid dimensions must be positive")
+    if not 0 <= foreground_threshold <= 255:
+        raise ValueError("foreground_threshold must be between 0 and 255")
 
-    left_ratio, top_ratio, width_ratio, height_ratio = zone
-    if (
-        left_ratio < 0.0
-        or top_ratio < 0.0
-        or width_ratio <= 0.0
-        or height_ratio <= 0.0
-        or left_ratio + width_ratio > 1.0
-        or top_ratio + height_ratio > 1.0
-    ):
-        raise ValueError("signature zone must fit inside image")
-
-    left = round(left_ratio * image.width)
-    top = round(top_ratio * image.height)
-    right = max(left + 1, round((left_ratio + width_ratio) * image.width))
-    bottom = max(top + 1, round((top_ratio + height_ratio) * image.height))
-    right = min(image.width, right)
-    bottom = min(image.height, bottom)
-
+    left, top, right, bottom = _zone_bounds(image, zone)
     background = _background_rgb(image, left, top, right, bottom)
     signature = []
+
     for grid_y in range(rows):
         y0 = top + (bottom - top) * grid_y // rows
-        y1 = top + (bottom - top) * (grid_y + 1) // rows
-        y1 = max(y0 + 1, y1)
+        y1 = max(y0 + 1, top + (bottom - top) * (grid_y + 1) // rows)
         for grid_x in range(columns):
             x0 = left + (right - left) * grid_x // columns
-            x1 = left + (right - left) * (grid_x + 1) // columns
-            x1 = max(x0 + 1, x1)
-            total = count = 0
+            x1 = max(x0 + 1, left + (right - left) * (grid_x + 1) // columns)
+            foreground = count = 0
             for y in range(y0, min(y1, bottom)):
                 for x in range(x0, min(x1, right)):
-                    index = (y * image.width + x) * 3
-                    red, green, blue = image.rgb[index : index + 3]
-                    difference = (
-                        abs(red - background[0])
-                        + abs(green - background[1])
-                        + abs(blue - background[2])
-                    ) // 3
-                    total += difference
+                    pixel = _pixel_rgb(image, x, y)
+                    foreground += int(
+                        _color_distance(pixel, background) >= foreground_threshold
+                    )
                     count += 1
-            signature.append(round(total / max(1, count)))
+            signature.append(round(255 * foreground / max(1, count)))
+
     return tuple(signature)
+
+
+def suit_color_signature(
+    image: RGBImage,
+    zone: tuple[float, float, float, float] = SUIT_ZONE,
+    *,
+    foreground_threshold: int = FOREGROUND_THRESHOLD,
+) -> tuple[int, int, int]:
+    if not 0 <= foreground_threshold <= 255:
+        raise ValueError("foreground_threshold must be between 0 and 255")
+
+    left, top, right, bottom = _zone_bounds(image, zone)
+    background = _background_rgb(image, left, top, right, bottom)
+    pixels = []
+
+    for y in range(top, bottom):
+        for x in range(left, right):
+            pixel = _pixel_rgb(image, x, y)
+            if _color_distance(pixel, background) >= foreground_threshold:
+                pixels.append(pixel)
+
+    if not pixels:
+        raise ValueError("suit glyph zone contains no foreground pixels")
+
+    return tuple(_median(channel) for channel in zip(*pixels))
 
 
 def templates_from_labeled_images(
@@ -204,14 +214,11 @@ def templates_from_labeled_images(
         rank_templates.append(
             CardVisualTemplate(
                 rank,
-                image_signature(image, RANK_ZONE, columns=columns, rows=rows),
+                rank_shape_signature(image, columns=columns, rows=rows),
             )
         )
         suit_templates.append(
-            CardVisualTemplate(
-                suit,
-                image_signature(image, SUIT_ZONE, columns=columns, rows=rows),
-            )
+            CardVisualTemplate(suit, suit_color_signature(image))
         )
 
     return CardTemplateSet(
@@ -242,9 +249,11 @@ def save_card_template_set(path: str | Path, templates: CardTemplateSet) -> Path
     output = Path(path)
     output.parent.mkdir(parents=True, exist_ok=True)
     payload = {
-        "version": 1,
+        "version": TEMPLATE_VERSION,
         "columns": templates.columns,
         "rows": templates.rows,
+        "rank_feature": "binary-glyph-shape",
+        "suit_feature": "glyph-median-rgb",
         "ranks": [
             {"label": template.label, "signature": list(template.signature)}
             for template in templates.ranks
@@ -263,26 +272,37 @@ def save_card_template_set(path: str | Path, templates: CardTemplateSet) -> Path
 
 def load_card_template_set(path: str | Path) -> CardTemplateSet:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
-    if payload.get("version") != 1:
+    version = payload.get("version")
+    if version != TEMPLATE_VERSION:
+        if version == 1:
+            raise ValueError(
+                "legacy card template version 1 must be rebuilt from labeled identity crops"
+            )
         raise ValueError("unsupported card template version")
+
     columns = int(payload["columns"])
     rows = int(payload["rows"])
-    expected = columns * rows
+    rank_expected = columns * rows
 
-    def parse_templates(kind: str) -> tuple[CardVisualTemplate, ...]:
+    def parse_templates(
+        kind: str,
+        expected: int,
+    ) -> tuple[CardVisualTemplate, ...]:
         templates = []
         for item in payload.get(kind, []):
             signature = tuple(int(value) for value in item["signature"])
             if len(signature) != expected:
                 raise ValueError(f"invalid {kind} template signature length")
+            if any(value < 0 or value > 255 for value in signature):
+                raise ValueError(f"invalid {kind} template signature value")
             templates.append(CardVisualTemplate(str(item["label"]), signature))
         return tuple(templates)
 
     return CardTemplateSet(
         columns,
         rows,
-        parse_templates("ranks"),
-        parse_templates("suits"),
+        parse_templates("ranks", rank_expected),
+        parse_templates("suits", 3),
     )
 
 
@@ -298,6 +318,34 @@ def coverage_report(templates: CardTemplateSet) -> dict:
     }
 
 
+def _zone_bounds(
+    image: RGBImage,
+    zone: tuple[float, float, float, float],
+) -> tuple[int, int, int, int]:
+    left_ratio, top_ratio, width_ratio, height_ratio = zone
+    if (
+        left_ratio < 0.0
+        or top_ratio < 0.0
+        or width_ratio <= 0.0
+        or height_ratio <= 0.0
+        or left_ratio + width_ratio > 1.0
+        or top_ratio + height_ratio > 1.0
+    ):
+        raise ValueError("signature zone must fit inside image")
+
+    left = round(left_ratio * image.width)
+    top = round(top_ratio * image.height)
+    right = min(
+        image.width,
+        max(left + 1, round((left_ratio + width_ratio) * image.width)),
+    )
+    bottom = min(
+        image.height,
+        max(top + 1, round((top_ratio + height_ratio) * image.height)),
+    )
+    return left, top, right, bottom
+
+
 def _background_rgb(
     image: RGBImage,
     left: int,
@@ -305,21 +353,35 @@ def _background_rgb(
     right: int,
     bottom: int,
 ) -> tuple[int, int, int]:
-    sample_width = max(1, (right - left) // 4)
-    sample_height = max(1, (bottom - top) // 4)
-    sample_left = max(left, right - sample_width)
-    sample_bottom = min(bottom, top + sample_height)
-    totals = [0, 0, 0]
-    count = 0
-    for y in range(top, sample_bottom):
-        for x in range(sample_left, right):
-            index = (y * image.width + x) * 3
-            red, green, blue = image.rgb[index : index + 3]
-            totals[0] += red
-            totals[1] += green
-            totals[2] += blue
-            count += 1
-    return tuple(round(total / max(1, count)) for total in totals)
+    pixels = [
+        _pixel_rgb(image, x, y)
+        for y in range(top, bottom)
+        for x in range(left, right)
+    ]
+    sample_count = max(1, round(len(pixels) * BACKGROUND_FRACTION))
+    brightest = sorted(pixels, key=sum, reverse=True)[:sample_count]
+    return tuple(_median(channel) for channel in zip(*brightest))
+
+
+def _pixel_rgb(image: RGBImage, x: int, y: int) -> tuple[int, int, int]:
+    index = (y * image.width + x) * 3
+    red, green, blue = image.rgb[index : index + 3]
+    return red, green, blue
+
+
+def _color_distance(
+    left: tuple[int, int, int],
+    right: tuple[int, int, int],
+) -> float:
+    return sum(abs(a - b) for a, b in zip(left, right)) / 3.0
+
+
+def _median(values) -> int:
+    ordered = sorted(values)
+    middle = len(ordered) // 2
+    if len(ordered) % 2:
+        return int(ordered[middle])
+    return round((ordered[middle - 1] + ordered[middle]) / 2)
 
 
 def _unfilter_scanline(
