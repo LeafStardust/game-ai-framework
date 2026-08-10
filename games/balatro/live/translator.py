@@ -8,7 +8,15 @@ from games.balatro.state import BalatroState
 
 class DefaultBalatroStateTranslator(BalatroStateTranslator):
 
+    SUITS = {
+        "H": "Hearts",
+        "D": "Diamonds",
+        "C": "Clubs",
+        "S": "Spades",
+    }
+
     RANKS = {
+        "T": "10",
         "Ace": "A",
         "King": "K",
         "Queen": "Q",
@@ -16,6 +24,14 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
     }
 
     ENHANCEMENTS = {
+        "BONUS": "Bonus",
+        "MULT": "Mult",
+        "WILD": "Wild",
+        "GLASS": "Glass",
+        "STEEL": "Steel",
+        "STONE": "Stone",
+        "GOLD": "Gold",
+        "LUCKY": "Lucky",
         "m_bonus": "Bonus",
         "m_mult": "Mult",
         "m_wild": "Wild",
@@ -27,6 +43,11 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
     }
 
     EDITIONS = {
+        "FOIL": "Foil",
+        "HOLO": "Holographic",
+        "HOLOGRAPHIC": "Holographic",
+        "POLYCHROME": "Polychrome",
+        "NEGATIVE": "Negative",
         "foil": "Foil",
         "holo": "Holographic",
         "holographic": "Holographic",
@@ -34,15 +55,23 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         "negative": "Negative",
     }
 
-    STAKES = {
-        1: "WHITE",
-        2: "RED",
-        3: "GREEN",
-        4: "BLACK",
-        5: "BLUE",
-        6: "PURPLE",
-        7: "ORANGE",
-        8: "GOLD",
+    SEALS = {
+        "RED": "Red",
+        "BLUE": "Blue",
+        "GOLD": "Gold",
+        "PURPLE": "Purple",
+    }
+
+    HAND_NAMES = {
+        "High Card": "HIGH_CARD",
+        "Pair": "PAIR",
+        "Two Pair": "TWO_PAIR",
+        "Three of a Kind": "THREE_OF_A_KIND",
+        "Straight": "STRAIGHT",
+        "Flush": "FLUSH",
+        "Full House": "FULL_HOUSE",
+        "Four of a Kind": "FOUR_OF_A_KIND",
+        "Straight Flush": "STRAIGHT_FLUSH",
     }
 
     def __init__(self):
@@ -53,73 +82,193 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         snapshot: LiveBalatroSnapshot
     ) -> BalatroState:
         payload = snapshot.payload
+        round_info = payload.get("round") or {}
         state = BalatroState()
 
         state.money = int(payload.get("money", 0))
-        state.ante = int(payload.get("ante", 1))
-        state.round = int(payload.get("round", 1))
-        state.blind_score = int(payload.get("blind_score", 0))
-        state.discards_remaining = int(payload.get("discards_left", 0))
-        state.hand_size = int(payload.get("hand_size", len(payload.get("hand", []))))
-        state.consumable_slots = int(payload.get("consumable_slots", 2))
-        state.deck_name = str(payload.get("deck_name", "RED")).upper()
-        state.stake_name = self._stake_name(payload)
+        state.ante = int(payload.get("ante_num", payload.get("ante", 1)))
+        state.round = int(payload.get("round_num", payload.get("round_number", 1)))
+        state.blind_score = int(
+            round_info.get("chips", payload.get("blind_score", 0))
+        )
+        state.hands_remaining = int(
+            round_info.get("hands_left", payload.get("hands_left", 0))
+        )
+        state.discards_remaining = int(
+            round_info.get("discards_left", payload.get("discards_left", 0))
+        )
+        state.deck_name = str(
+            payload.get("deck", payload.get("deck_name", "RED"))
+        ).upper()
+        state.stake_name = str(
+            payload.get("stake", payload.get("stake_name", "WHITE"))
+        ).upper()
         state.phase = snapshot.phase
 
-        state.hand = self._cards(payload.get("hand", []))
-        state.deck = self._cards(payload.get("deck", []))
-        state.consumables = self._consumables(
-            payload.get("consumables", [])
-        )
+        hand_area = self._area(payload.get("hand"))
+        deck_area = self._area(payload.get("cards", payload.get("deck")))
+        consumable_area = self._area(payload.get("consumables"))
+        shop_area = self._area(payload.get("shop"))
 
-        blind = payload.get("blind")
-        if blind:
-            blind_type = BlindType.BOSS if blind.get("boss") else BlindType.SMALL
-            state.blind = Blind(
-                blind_type,
-                int(blind.get("chips", 0)),
-            )
-            state.boss_name = blind.get("name") if blind_type == BlindType.BOSS else None
+        state.hand_size = int(
+            hand_area.get("limit", len(hand_area.get("cards", [])))
+        )
+        state.consumable_slots = int(
+            consumable_area.get("limit", 2)
+        )
+        state.hand = self._cards(hand_area.get("cards", []))
+        state.deck = self._cards(deck_area.get("cards", []))
+        state.consumables = self._consumables(
+            consumable_area.get("cards", [])
+        )
+        state.shop_consumables = self._consumables(
+            shop_area.get("cards", [])
+        )
+        state.shop_active = snapshot.phase == "SHOP"
+
+        self._translate_hand_levels(
+            state,
+            payload.get("hands") or {}
+        )
+        self._translate_blind(
+            state,
+            payload.get("blinds") or payload.get("blind")
+        )
 
         return state
 
-    def _stake_name(self, payload: dict) -> str:
-        if payload.get("stake_name"):
-            return str(payload["stake_name"]).upper()
-
-        stake = payload.get("stake")
-        if stake is None:
-            return "WHITE"
-
-        return self.STAKES.get(int(stake), "WHITE")
+    @staticmethod
+    def _area(value) -> dict:
+        if isinstance(value, dict):
+            return value
+        if isinstance(value, list):
+            return {
+                "cards": value,
+                "count": len(value),
+                "limit": len(value),
+            }
+        return {
+            "cards": [],
+            "count": 0,
+            "limit": 0,
+        }
 
     def _cards(self, cards: list[dict]) -> list[BalatroCard]:
-        return [
-            self._card(card)
-            for card in cards
-            if card.get("rank") and card.get("suit")
-        ]
+        result = []
+
+        for index, card in enumerate(cards):
+            value = card.get("value") or card
+            rank = value.get("rank")
+            suit = value.get("suit")
+
+            if rank is None or suit is None:
+                continue
+
+            result.append(
+                self._card(card, index)
+            )
+
+        return result
 
     def _consumables(self, values: list[dict]) -> list:
         result = []
 
-        for value in values:
-            consumable = self.consumable_factory.create(value)
+        for index, value in enumerate(values):
+            consumable = self.consumable_factory.create(
+                value,
+                live_id=index,
+            )
             if consumable is not None:
                 result.append(consumable)
 
         return result
 
-    def _card(self, card: dict) -> BalatroCard:
-        rank = str(card["rank"])
-        enhancement = card.get("enhancement")
-        edition = card.get("edition")
+    def _card(
+        self,
+        card: dict,
+        live_id: int,
+    ) -> BalatroCard:
+        value = card.get("value") or card
+        modifier = card.get("modifier") or card
+        rank = str(value["rank"])
+        suit = str(value["suit"])
+        enhancement = modifier.get("enhancement")
+        edition = modifier.get("edition")
+        seal = modifier.get("seal")
 
         return BalatroCard(
             rank=self.RANKS.get(rank, rank),
-            suit=str(card["suit"]),
-            enhancement=self.ENHANCEMENTS.get(enhancement, enhancement),
-            edition=self.EDITIONS.get(edition, edition),
-            seal=card.get("seal"),
-            live_id=card.get("id"),
+            suit=self.SUITS.get(suit, suit),
+            enhancement=self.ENHANCEMENTS.get(
+                enhancement,
+                enhancement,
+            ),
+            edition=self.EDITIONS.get(
+                edition,
+                edition,
+            ),
+            seal=self.SEALS.get(
+                seal,
+                seal,
+            ),
+            live_id=live_id,
         )
+
+    def _translate_hand_levels(
+        self,
+        state: BalatroState,
+        hands: dict,
+    ) -> None:
+        for name, data in hands.items():
+            hand_type = self.HAND_NAMES.get(name)
+            if hand_type is None:
+                continue
+            state.hand_levels[hand_type] = int(
+                (data or {}).get("level", 1)
+            )
+
+    def _translate_blind(
+        self,
+        state: BalatroState,
+        blinds,
+    ) -> None:
+        blind = self._active_blind(blinds)
+        if blind is None:
+            return
+
+        blind_type_name = str(
+            blind.get("type", "SMALL")
+        ).upper()
+        blind_type = BlindType.__members__.get(
+            blind_type_name,
+            BlindType.SMALL,
+        )
+
+        state.blind = Blind(
+            blind_type,
+            int(blind.get("score", blind.get("chips", 0))),
+        )
+
+        if blind_type == BlindType.BOSS:
+            state.boss_name = blind.get("name")
+
+    @staticmethod
+    def _active_blind(blinds) -> dict | None:
+        if not isinstance(blinds, dict):
+            return None
+
+        if "type" in blinds:
+            return blinds
+
+        values = [
+            value
+            for value in blinds.values()
+            if isinstance(value, dict)
+        ]
+
+        for status in ("CURRENT", "SELECT"):
+            for value in values:
+                if str(value.get("status", "")).upper() == status:
+                    return value
+
+        return None
