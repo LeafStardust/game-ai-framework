@@ -6,6 +6,10 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from .card_aligned_features import (
+    aligned_rank_shape_signature,
+    aligned_suit_color_signature,
+)
 from .card_capture import DEFAULT_HAND_REGION
 from .card_identity import extract_card_identity_regions
 from .card_locator import locate_card_faces
@@ -14,8 +18,6 @@ from .card_templates import (
     CardVisualTemplate,
     RGBImage,
     load_card_template_set,
-    rank_shape_signature,
-    suit_color_signature,
 )
 from .observer import ExternalBalatroObserver
 from .viewport import BalatroViewport, FrameRegion
@@ -44,12 +46,13 @@ def recognize_card_image(
     image: RGBImage,
     templates: CardTemplateSet,
 ) -> CardRecognition:
-    rank_signature = rank_shape_signature(
+    suit_signature = aligned_suit_color_signature(image)
+    rank_signature = aligned_rank_shape_signature(
         image,
+        suit_signature,
         columns=templates.columns,
         rows=templates.rows,
     )
-    suit_signature = suit_color_signature(image)
     return CardRecognition(
         rank=_match_signature(rank_signature, templates.ranks),
         suit=_match_signature(suit_signature, templates.suits),
