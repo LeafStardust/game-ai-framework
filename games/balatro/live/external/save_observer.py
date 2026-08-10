@@ -87,9 +87,21 @@ def snapshot_from_save(
         "jokers": _normalize_item_area(areas, "jokers"),
         "play": _normalize_area(areas, "play"),
         "discard": _normalize_area(areas, "discard"),
-        "shop_jokers": _normalize_item_area(areas, "shop_jokers"),
-        "shop_boosters": _normalize_item_area(areas, "shop_booster"),
-        "shop_vouchers": _normalize_item_area(areas, "shop_vouchers"),
+        "shop_jokers": _normalize_item_area(
+            areas,
+            "shop_jokers",
+            preserve_index=True,
+        ),
+        "shop_boosters": _normalize_item_area(
+            areas,
+            "shop_booster",
+            preserve_index=True,
+        ),
+        "shop_vouchers": _normalize_item_area(
+            areas,
+            "shop_vouchers",
+            preserve_index=True,
+        ),
         "hands": _normalize_hand_levels(game.get("hands")),
         "blind": _normalize_blind(blind, game),
         "won": bool(game.get("won", False)),
@@ -126,6 +138,7 @@ def _normalize_item_area(
     areas: dict[Any, Any],
     name: str,
     *aliases: str,
+    preserve_index: bool = False,
 ) -> dict[str, Any]:
     area = _find_area(areas, name, *aliases)
     config = _mapping(area.get("config"))
@@ -134,7 +147,10 @@ def _normalize_item_area(
         "count": _integer(config.get("card_count"), len(cards)),
         "limit": _integer(config.get("card_limit"), len(cards)),
         "cards": [
-            _normalize_item(card, area_index=index)
+            _normalize_item(
+                card,
+                area_index=(index if preserve_index else None),
+            )
             for index, card in enumerate(cards)
         ],
     }
