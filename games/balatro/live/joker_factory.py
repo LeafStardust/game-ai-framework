@@ -28,6 +28,7 @@ class LiveJokerFactory:
 
         for field in (
             "live_id",
+            "area_index",
             "center",
             "label",
             "edition",
