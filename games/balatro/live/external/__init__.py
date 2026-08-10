@@ -1,3 +1,9 @@
+from .capture import (
+    BalatroCaptureError,
+    BalatroFrame,
+    BalatroScreenCapture,
+    ScreenCapturer,
+)
 from .window import (
     BalatroWindow,
     BalatroWindowError,
@@ -10,11 +16,15 @@ from .window import (
 )
 
 __all__ = [
+    "BalatroCaptureError",
+    "BalatroFrame",
+    "BalatroScreenCapture",
     "BalatroWindow",
     "BalatroWindowError",
     "BalatroWindowLocator",
     "BalatroWindowNotFound",
     "BalatroWindowTracker",
+    "ScreenCapturer",
     "WindowProvider",
     "WindowRect",
     "WindowsWindowProvider",
