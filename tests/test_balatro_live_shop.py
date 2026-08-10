@@ -14,6 +14,10 @@ from games.balatro.live import (
     LiveBalatroSnapshot,
 )
 from games.balatro.live.shop import BalatroShopActionGenerator, LiveShopItem
+from games.balatro.live.shop_sync import (
+    BufferedShopTransaction,
+    UnsupportedBufferedShopAction,
+)
 
 
 def test_shop_buy_action_uses_balatrobot_index():
@@ -200,3 +204,81 @@ def test_shop_action_generator_respects_inventory_slots_and_money():
         BUY_BOOSTER,
         END_SHOP,
     ]
+
+
+def test_buffered_shop_transaction_projects_direct_purchase_until_checkpoint():
+    state = DefaultBalatroStateTranslator().translate(
+        _structured_shop_snapshot()
+    )
+    joker = state.shop_jokers[0]
+    transaction = BufferedShopTransaction.begin(state)
+
+    transaction.apply(
+        state,
+        BalatroAction(BUY_JOKER, target=joker),
+    )
+
+    assert state.money == 3
+    assert joker in state.jokers
+    assert joker not in state.shop_jokers
+    assert transaction.expected_money == 3
+    assert len(transaction.purchases) == 1
+
+    persisted = DefaultBalatroStateTranslator().translate(
+        LiveBalatroSnapshot(
+            sequence=13,
+            phase="BLIND_SELECT",
+            state_complete=False,
+            payload={"money": 3},
+        )
+    )
+    transaction.assert_reconciled(persisted)
+
+
+def test_buffered_shop_transaction_projects_consumable_and_voucher_purchases():
+    state = DefaultBalatroStateTranslator().translate(
+        _structured_shop_snapshot()
+    )
+    transaction = BufferedShopTransaction.begin(state)
+
+    strength = state.shop_consumables[0]
+    transaction.apply(
+        state,
+        BalatroAction(BUY_CONSUMABLE, target=strength),
+    )
+
+    assert state.money == 7
+    assert strength in state.consumables
+    assert strength not in state.shop_consumables
+
+    state.money = 10
+    voucher = state.shop_vouchers[0]
+    transaction.expected_money = 10
+    transaction.apply(
+        state,
+        BalatroAction(BUY_VOUCHER, target=voucher),
+    )
+
+    assert state.money == 0
+    assert voucher in state.vouchers
+    assert voucher not in state.shop_vouchers
+
+
+def test_buffered_shop_transaction_rejects_random_state_actions():
+    state = DefaultBalatroStateTranslator().translate(
+        _structured_shop_snapshot()
+    )
+    transaction = BufferedShopTransaction.begin(state)
+
+    for action in (
+        BalatroAction(BUY_BOOSTER, target=state.shop_boosters[0]),
+        BalatroAction(REFRESH_SHOP),
+    ):
+        try:
+            transaction.apply(state, action)
+        except UnsupportedBufferedShopAction:
+            pass
+        else:
+            raise AssertionError(
+                f"expected {action.name} to require immediate observation"
+            )
