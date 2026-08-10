@@ -12,6 +12,13 @@ from .mouse import (
     WindowsMouseInputProvider,
 )
 from .observer import ExternalBalatroObservation, ExternalBalatroObserver
+from .shop_mouse import (
+    ExternalShopMouseExecutor,
+    ShopClickSequence,
+    ShopMouseLayout,
+    ShopMouseLayoutError,
+    ShopPointerStep,
+)
 from .viewport import (
     BalatroViewport,
     FrameRegion,
@@ -56,6 +63,7 @@ __all__ = [
     "ColorGridSignature",
     "ExternalBalatroObservation",
     "ExternalBalatroObserver",
+    "ExternalShopMouseExecutor",
     "FrameRegion",
     "MouseControlError",
     "MouseControlNotArmed",
@@ -67,6 +75,10 @@ __all__ = [
     "PixelPoint",
     "PixelRect",
     "ScreenCapturer",
+    "ShopClickSequence",
+    "ShopMouseLayout",
+    "ShopMouseLayoutError",
+    "ShopPointerStep",
     "WindowProvider",
     "WindowRect",
     "WindowsMouseInputProvider",
