@@ -41,6 +41,9 @@ class LiveConsumableFactory:
             if live_id is not None
             else data.get("live_id", data.get("id"))
         )
+        area_index = data.get("area_index")
+        if area_index is not None:
+            consumable.area_index = int(area_index)
 
         cost = data.get("cost")
         if isinstance(cost, dict):
