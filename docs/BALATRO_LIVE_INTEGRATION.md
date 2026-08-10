@@ -2,143 +2,224 @@
 
 ## Purpose
 
-The live integration connects the Python decision framework to the actual Balatro process without embedding agent intelligence into the game integration layer.
+The production Balatro integration connects the Python decision framework to the normal Steam version of Balatro **without modifying or injecting into the Balatro process**.
 
-BalatroBot is used only as the external game-control API. It supplies live state and executes requested game operations. Decision-making, search, evaluation, planning, and deck-specific strategy remain inside this repository.
+The long-term target is an agent that plays the same visible game a human plays:
 
-## Architecture
+```text
+Steam Balatro
+    |
+    | pixels
+    v
+External Observer
+    |
+    v
+BalatroState
+    |
+    v
+Deck Agent / Decision System
+    |
+    v
+BalatroAction
+    |
+    v
+External Input Controller
+    |
+    | normal mouse / keyboard events
+    v
+Steam Balatro
+```
+
+This keeps the production game process unmodified and allows runs to use the normal Steam profile, save data, unlock progression, and achievement system.
+
+## Production Architecture
+
+```text
+Unmodified Steam Balatro
+        |
+        | window capture
+        v
+BalatroExternalObserver
+        |
+        +--> UI/phase detector
+        +--> card recognizer
+        +--> HUD/state extractor
+        +--> shop/blind/joker/consumable recognizers
+        |
+        v
+BalatroStateTranslator
+        |
+        v
+BalatroState
+        |
+        v
+RedDeckAgent
+        |
+        v
+BalatroAction
+        |
+        v
+BalatroExternalActionExecutor
+        |
+        +--> screen-coordinate mapper
+        +--> mouse controller
+        +--> keyboard controller
+        |
+        v
+Unmodified Steam Balatro
+```
+
+The production boundary is strict:
+
+- no Lovely requirement;
+- no Steamodded requirement;
+- no BalatroBot requirement;
+- no runtime Lua injection;
+- no reading Balatro process memory;
+- no native in-game API calls for action execution.
+
+The agent observes pixels and acts through normal operating-system input events.
+
+## Shared Live Interfaces
+
+The live integration remains backend-independent. The existing bridge, snapshot, translator, executor, recovery, runner, and telemetry concepts are retained so alternate observation/control implementations can share the same agent code.
+
+The deck agent must not know whether a state came from:
+
+- a simulator;
+- a development API backend;
+- external visual observation.
+
+Likewise, the decision system returns `BalatroAction` objects rather than mouse coordinates.
+
+This separation is required for the general game framework: game-specific sensing and control belong in the adapter layer, while strategy remains in the agent/decision layer.
+
+## External Observation
+
+The Windows production observer will locate the Balatro window and capture only its client area.
+
+Captured frames are normalized into a logical viewport so recognition and coordinate mapping do not depend directly on the user's screen position or window resolution.
+
+The observer is responsible for extracting enough visible information to construct a useful `BalatroState`, including:
+
+- current game phase;
+- hand cards;
+- remaining visible HUD information;
+- ante and round;
+- blind and required score;
+- current score;
+- money;
+- hands and discards remaining;
+- Jokers;
+- consumables;
+- shop contents;
+- blind-selection state.
+
+Recognition should expose confidence where appropriate. Low-confidence observations must cause re-observation or recovery rather than an unsafe click.
+
+## External Input
+
+The production controller translates framework actions into normal mouse and keyboard operations.
+
+Examples:
+
+```text
+PLAY_CARDS
+    -> map selected framework cards to current visible card positions
+    -> click those cards
+    -> click Play Hand
+
+DISCARD_CARDS
+    -> map selected framework cards to current visible card positions
+    -> click those cards
+    -> click Discard
+
+BUY_JOKER
+    -> locate the selected shop item
+    -> click Buy
+```
+
+Coordinates are derived from the current normalized viewport and the current observation, not stored as fixed absolute desktop coordinates.
+
+After every mutating action, the runner waits for visual confirmation of the expected transition before choosing another action.
+
+## Development Oracle: BalatroBot
+
+BalatroBot remains supported as an **optional development and testing backend**.
+
+It is useful for:
+
+- comparing visual recognition against structured internal state;
+- generating labeled screenshots/state pairs;
+- debugging state translation;
+- exercising decision logic without relying on visual recognition;
+- validating that an externally inferred state matches the real underlying state during development.
+
+Its architecture is:
 
 ```text
 Balatro
     |
     | Lovely + Steamodded + BalatroBot
-    | JSON-RPC 2.0 over HTTP
     v
-BalatroBotBridge : BalatroLiveBridge
+BalatroBotBridge
     |
-    +--> BalatroStateTranslator --> BalatroState
-    |                               |
-    |                               v
-    |                         RedDeckAgent
-    |                               |
-    |                               v
-    +<-- BalatroActionExecutor <-- BalatroAction
+    v
+BalatroState / BalatroAction
 ```
 
-The responsibilities are deliberately separated:
+BalatroBot does not provide agent strategy; however, because it uses an injected mod/API, runs made through it **do not count** toward v0.9.0 or later deck/stake completion.
 
-- **Lovely** injects the modding/runtime layer into Balatro.
-- **Steamodded** loads the BalatroBot mod.
-- **BalatroBot** exposes Balatro runtime state and native game controls through JSON-RPC.
-- **`BalatroBotBridge`** owns the HTTP/JSON-RPC transport and maps generic live commands to BalatroBot methods.
-- **`BalatroStateTranslator`** converts BalatroBot gamestate responses into the existing `BalatroState` model.
-- **`RedDeckAgent`** remains the decision-making brain and does not depend on BalatroBot-specific details.
-- **`BalatroActionExecutor`** converts selected `BalatroAction` objects into indexed live-game commands.
+The automated Lovely/Steamodded/BalatroBot setup code may remain for this optional development mode.
 
-## Automated Setup
+## Steam Progression Requirement
 
-Python dependencies are installed normally:
+Production milestone runs must use the user's normal Steam copy and normal Balatro profile/save data.
 
-```powershell
-pip install -r requirements.txt
-```
+The agent should therefore behave like an external human input device from Balatro's perspective. If the agent legitimately satisfies a normal in-game unlock or Steam achievement condition during a production run, the integration must not intentionally suppress or replace that progression mechanism.
 
-Balatro-side integration dependencies are installed with:
-
-```powershell
-py -m games.balatro.setup
-```
-
-The setup command:
-
-1. detects the Steam Balatro installation, including secondary Steam libraries;
-2. downloads the current Lovely release for the detected platform;
-3. installs Lovely into the Balatro game directory;
-4. downloads and installs the current Steamodded release;
-5. downloads and installs the current BalatroBot release;
-6. verifies all required files are present.
-
-Use `--balatro-dir` when Balatro cannot be auto-detected, `--mods-dir` to override the mod directory, and `--force` to reinstall the integration dependencies.
-
-On Windows, `py -m games.balatro.live` automatically starts `Balatro.exe` when the BalatroBot API is not already available. It sets the same `BALATROBOT_*` environment variables consumed by the BalatroBot mod, so `uvx balatrobot serve` is not required.
-
-## Dependency Boundary
-
-Lovely, Steamodded, and BalatroBot remain upstream runtime dependencies. Their source code is not vendored into this repository. The bootstrapper downloads their official GitHub releases into the locations required by Balatro.
-
-The default API endpoint is:
-
-```text
-http://127.0.0.1:12346
-```
-
-The integration uses BalatroBot's public JSON-RPC API for operations including:
-
-- game-state acquisition;
-- starting and restarting runs;
-- blind selection and skipping;
-- playing and discarding cards;
-- buying, selling, rerolling, and leaving shops;
-- using consumables;
-- cashing out completed rounds;
-- advancing to the next blind.
-
-No BalatroBot decision or strategy logic is used.
-
-## State Mapping
-
-BalatroBot returns structured areas for the hand, remaining deck, Jokers, consumables, shop cards, vouchers, packs, and booster contents. Cards in an area are addressed by their 0-based position.
-
-The translator maps the live schema into framework concepts, including:
-
-- deck and stake;
-- ante and round;
-- money and blind progress;
-- hands and discards remaining;
-- playing cards and modifiers;
-- poker-hand levels;
-- consumables;
-- current/selectable blind information.
-
-Framework cards and consumables retain the corresponding live area index as `live_id` so a selected framework action can be sent back to BalatroBot.
+No milestone depends on artificially unlocking content or editing save data.
 
 ## Synchronization
 
-BalatroBot actions return the settled game state after the operation. `BalatroBotBridge` normalizes these responses into `LiveBalatroSnapshot` objects and assigns a local monotonically increasing sequence whenever the observed game state changes.
+The external backend cannot assume an action completed simply because a mouse event was sent.
 
-`BalatroLiveSynchronizer` uses this sequence and phase filtering to avoid acting repeatedly on the same state.
+The synchronization loop is:
 
-## Running the Agent
+1. observe a stable frame/state;
+2. choose one framework action;
+3. execute the corresponding input sequence;
+4. wait for a visible state change or expected phase transition;
+5. re-observe and validate;
+6. only then make the next decision.
 
-After setup:
+Timeouts and low-confidence observations enter recovery rather than issuing repeated mutating input blindly.
+
+## Production Running Target
+
+The final production command should remain simple, for example:
 
 ```powershell
 py -m games.balatro.live
 ```
 
-The default target is Red Deck / White Stake. Useful options include:
+The default target remains Red Deck / White Stake.
 
-```text
---seed SEED
---endpoint URL
---balatro-dir PATH
---fast
---headless
---no-launch
-```
+The production command should launch or focus the normal Steam Balatro installation and use the external backend by default. A development/API backend may be selected explicitly for debugging.
 
 ## v0.9 Task Boundaries
 
-1. Real-game integration architecture.
-2. Live Balatro state acquisition.
-3. Live state to `BalatroState` translation.
-4. `BalatroAction` to live-game input execution.
-5. Synchronization and phase detection.
-6. Shop and consumable interaction.
-7. Blind and round transitions.
-8. Run start/restart.
-9. Recovery handling.
-10. Dependency bootstrap and launch.
-11. End-to-end autonomous loop.
+1. Shared live integration abstractions.
+2. Steam Balatro window discovery and tracking.
+3. External frame capture and normalized viewport.
+4. Visual phase/state recognition.
+5. Hand/card recognition.
+6. HUD, blind, Joker, consumable, and shop recognition.
+7. External state to `BalatroState` translation.
+8. Normal mouse/keyboard action execution.
+9. Visual synchronization and recovery.
+10. Run start/restart through normal UI controls.
+11. End-to-end autonomous external loop.
+12. Validation on an unmodified Steam Red Deck White Stake run.
 
-The v0.9 milestone proves that the agent can autonomously operate the actual game. Winning Red Deck White Stake is the v1.0.0 completion criterion.
+The v0.9 milestone proves that the agent can operate the normal Steam game externally. Winning Red Deck White Stake is the v1.0.0 completion criterion.
