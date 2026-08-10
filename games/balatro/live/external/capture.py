@@ -44,7 +44,7 @@ class BalatroScreenCapture:
         self._sequence = 0
 
     def capture(self) -> BalatroFrame:
-        window = self.tracker.snapshot()
+        window = self.tracker.require_foreground()
         rect = window.client_rect
         region = {
             "left": rect.left,
