@@ -3,6 +3,10 @@ import json
 import pytest
 
 from games.balatro.live.external.capture import save_bgra_png
+from games.balatro.live.external.card_aligned_features import (
+    aligned_rank_shape_signature,
+    aligned_suit_color_signature,
+)
 from games.balatro.live.external.card_calibration import (
     calibrate_card_template_manifests,
     calibrate_card_templates,
@@ -12,8 +16,6 @@ from games.balatro.live.external.card_templates import (
     load_card_template_set,
     load_rgb_png,
     parse_card_label,
-    rank_shape_signature,
-    suit_color_signature,
     templates_from_labeled_images,
 )
 
@@ -31,15 +33,17 @@ def _identity_png(
     blue, green, red = accent
     offset_x, offset_y = rank_offset
 
-    for y in range(0, 6):
-        for x in range(max(0, 5 - y), width):
-            index = (y * width + x) * 4
-            pixels[index : index + 4] = bytes((60, 80, 70, 255))
-
-    for y in range(10 + offset_y, 14 + offset_y):
+    for y in range(3 + offset_y, 8 + offset_y):
         for x in range(2 + offset_x, 2 + offset_x + rank_width):
             index = (y * width + x) * 4
             pixels[index : index + 4] = bytes((blue, green, red, 255))
+
+    suit_top = 10
+    for y in range(suit_top, suit_top + 5):
+        for x in range(3, 8):
+            if abs(x - 5) + abs(y - (suit_top + 2)) <= 3:
+                index = (y * width + x) * 4
+                pixels[index : index + 4] = bytes((blue, green, red, 255))
 
     save_bgra_png(width, height, bytes(pixels), path)
     return path
@@ -56,6 +60,15 @@ def _manifest(directory, labels, *, accent=(20, 30, 40)):
     path = directory / "labels.json"
     path.write_text(json.dumps({"cards": cards}), encoding="utf-8")
     return path
+
+
+def _aligned_rank(image, *, columns=8, rows=8):
+    return aligned_rank_shape_signature(
+        image,
+        aligned_suit_color_signature(image),
+        columns=columns,
+        rows=rows,
+    )
 
 
 def test_parse_card_label_accepts_symbols_and_ascii_suits():
@@ -82,7 +95,7 @@ def test_load_rgb_png_reads_capture_png(tmp_path):
     assert len(image.rgb) == 24 * 32 * 3
 
 
-def test_rank_shape_signature_is_color_invariant(tmp_path):
+def test_aligned_rank_shape_signature_is_color_invariant(tmp_path):
     dark = load_rgb_png(
         _identity_png(tmp_path / "dark.png", accent=(20, 30, 40))
     )
@@ -90,38 +103,39 @@ def test_rank_shape_signature_is_color_invariant(tmp_path):
         _identity_png(tmp_path / "colored.png", accent=(60, 50, 180))
     )
 
-    dark_signature = rank_shape_signature(dark, columns=8, rows=8)
-    colored_signature = rank_shape_signature(colored, columns=8, rows=8)
+    dark_signature = _aligned_rank(dark)
+    colored_signature = _aligned_rank(colored)
 
     assert len(dark_signature) == 64
     assert dark_signature == colored_signature
     assert max(dark_signature) > 0
 
 
-def test_rank_shape_signature_normalizes_glyph_position(tmp_path):
+def test_aligned_rank_shape_signature_normalizes_glyph_position(tmp_path):
     first = load_rgb_png(_identity_png(tmp_path / "first.png"))
     shifted = load_rgb_png(
         _identity_png(tmp_path / "shifted.png", rank_offset=(1, 1))
     )
 
-    assert rank_shape_signature(first) == rank_shape_signature(shifted)
+    assert _aligned_rank(first, columns=20, rows=20) == _aligned_rank(
+        shifted,
+        columns=20,
+        rows=20,
+    )
 
 
-def test_rank_shape_signature_preserves_glyph_aspect_ratio(tmp_path):
+def test_aligned_rank_shape_signature_preserves_glyph_aspect_ratio(tmp_path):
     square = load_rgb_png(_identity_png(tmp_path / "square.png"))
     wide = load_rgb_png(_identity_png(tmp_path / "wide.png", rank_width=6))
 
-    assert rank_shape_signature(square) != rank_shape_signature(wide)
+    assert _aligned_rank(square, columns=20, rows=20) != _aligned_rank(
+        wide,
+        columns=20,
+        rows=20,
+    )
 
 
-def test_rank_shape_signature_ignores_shared_top_card_border(tmp_path):
-    narrow = load_rgb_png(_identity_png(tmp_path / "narrow.png", rank_width=3))
-    wide = load_rgb_png(_identity_png(tmp_path / "wide.png", rank_width=6))
-
-    assert rank_shape_signature(narrow) != rank_shape_signature(wide)
-
-
-def test_suit_color_signature_preserves_glyph_color(tmp_path):
+def test_aligned_suit_color_signature_preserves_glyph_color(tmp_path):
     first = load_rgb_png(
         _identity_png(tmp_path / "first.png", accent=(20, 30, 40))
     )
@@ -129,10 +143,9 @@ def test_suit_color_signature_preserves_glyph_color(tmp_path):
         _identity_png(tmp_path / "second.png", accent=(40, 80, 180))
     )
 
-    first_signature = suit_color_signature(first)
-    second_signature = suit_color_signature(second)
+    first_signature = aligned_suit_color_signature(first)
+    second_signature = aligned_suit_color_signature(second)
 
-    assert len(first_signature) == 3
     assert first_signature == (40, 30, 20)
     assert second_signature == (180, 80, 40)
     assert first_signature != second_signature
