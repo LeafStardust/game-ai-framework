@@ -206,6 +206,21 @@ def test_shop_action_generator_respects_inventory_slots_and_money():
     ]
 
 
+def test_shop_action_generator_exposes_only_checkpoint_safe_external_actions():
+    state = DefaultBalatroStateTranslator().translate(
+        _structured_shop_snapshot()
+    )
+
+    actions = BalatroShopActionGenerator().generate_bufferable_actions(state)
+
+    assert [action.name for action in actions] == [
+        BUY_JOKER,
+        BUY_CONSUMABLE,
+        BUY_VOUCHER,
+        END_SHOP,
+    ]
+
+
 def test_buffered_shop_transaction_projects_direct_purchase_until_checkpoint():
     state = DefaultBalatroStateTranslator().translate(
         _structured_shop_snapshot()
