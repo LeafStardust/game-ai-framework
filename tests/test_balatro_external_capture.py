@@ -6,6 +6,7 @@ from games.balatro.live.external import (
     BalatroCaptureError,
     BalatroScreenCapture,
     BalatroWindow,
+    BalatroWindowNotForeground,
     WindowRect,
 )
 from games.balatro.live.external.capture import save_frame_png
@@ -13,11 +14,15 @@ from games.balatro.live.external.capture import save_frame_png
 
 class Tracker:
 
-    def __init__(self, windows):
+    def __init__(self, windows, foreground=True):
         self.windows = iter(windows)
+        self.foreground = foreground
 
-    def snapshot(self):
-        return next(self.windows)
+    def require_foreground(self):
+        window = next(self.windows)
+        if not self.foreground:
+            raise BalatroWindowNotForeground("Balatro is not foreground")
+        return window
 
 
 class Image:
@@ -82,6 +87,19 @@ def test_capture_rejects_invalid_pixel_buffer_size():
 
     with pytest.raises(BalatroCaptureError):
         capture.capture()
+
+
+def test_capture_rejects_when_balatro_is_not_foreground():
+    capturer = Capturer()
+    capture = BalatroScreenCapture(
+        tracker=Tracker([window()], foreground=False),
+        capturer=capturer,
+    )
+
+    with pytest.raises(BalatroWindowNotForeground):
+        capture.capture()
+
+    assert capturer.regions == []
 
 
 def test_capture_closes_underlying_capturer():
