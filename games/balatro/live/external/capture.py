@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import struct
 import time
+import zlib
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 from .window import BalatroWindow, BalatroWindowTracker
@@ -96,3 +99,45 @@ class BalatroScreenCapture:
                 "install requirements.txt"
             ) from error
         return mss.mss()
+
+
+def save_frame_png(frame: BalatroFrame, path: str | Path) -> Path:
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+
+    rows = bytearray()
+    stride = frame.width * 4
+    for y in range(frame.height):
+        rows.append(0)
+        row = frame.bgra[y * stride : (y + 1) * stride]
+        for index in range(0, len(row), 4):
+            blue, green, red = row[index : index + 3]
+            rows.extend((red, green, blue))
+
+    header = struct.pack(
+        ">IIBBBBB",
+        frame.width,
+        frame.height,
+        8,
+        2,
+        0,
+        0,
+        0,
+    )
+    png = bytearray(b"\x89PNG\r\n\x1a\n")
+    png.extend(_png_chunk(b"IHDR", header))
+    png.extend(_png_chunk(b"IDAT", zlib.compress(bytes(rows))))
+    png.extend(_png_chunk(b"IEND", b""))
+    output.write_bytes(png)
+    return output
+
+
+def _png_chunk(kind: bytes, data: bytes) -> bytes:
+    checksum = zlib.crc32(kind)
+    checksum = zlib.crc32(data, checksum) & 0xFFFFFFFF
+    return (
+        struct.pack(">I", len(data))
+        + kind
+        + data
+        + struct.pack(">I", checksum)
+    )
