@@ -1,6 +1,9 @@
 import pytest
 
-from games.balatro.live.external.card_locator import locate_card_faces
+from games.balatro.live.external.card_locator import (
+    inspect_card_face_components,
+    locate_card_faces,
+)
 from games.balatro.live.external.viewport import FrameRegion, NormalizedRect, PixelRect
 
 
@@ -16,6 +19,23 @@ def _region(width=400, height=200):
     for index in range(8):
         fill(10 + index * 47, 80, 30, 90)
     fill(390, 10, 5, 5)
+
+    return FrameRegion(
+        normalized_rect=NormalizedRect(0.10, 0.50, 0.80, 0.40),
+        pixel_rect=PixelRect(40, 100, width, height),
+        width=width,
+        height=height,
+        bgra=bytes(pixels),
+    )
+
+
+def _touching_region(width=400, height=200):
+    pixels = bytearray(b"\x20\x50\x20\xff" * (width * height))
+
+    for y in range(80, 170):
+        for x in range(20, 300):
+            index = (y * width + x) * 4
+            pixels[index : index + 4] = b"\xe6\xe6\xe6\xff"
 
     return FrameRegion(
         normalized_rect=NormalizedRect(0.10, 0.50, 0.80, 0.40),
@@ -53,6 +73,23 @@ def test_locate_card_faces_maps_locations_back_to_full_viewport():
     assert first.normalized_rect.height == pytest.approx(0.18)
     assert first.center.x == pytest.approx(0.15)
     assert first.center.y == pytest.approx(0.75)
+
+
+def test_component_diagnostics_explain_oversized_touching_region():
+    diagnostics = inspect_card_face_components(_touching_region(), sample_step=1)
+
+    assert diagnostics
+    assert diagnostics[0].rejection == "too_wide"
+    assert diagnostics[0].local_rect.width == 280
+    assert diagnostics[0].density == pytest.approx(1.0)
+
+
+def test_component_diagnostics_include_accepted_card_regions():
+    diagnostics = inspect_card_face_components(_region(), sample_step=1)
+    accepted = [component for component in diagnostics if component.accepted]
+
+    assert len(accepted) == 8
+    assert all(component.rejection is None for component in accepted)
 
 
 def test_locate_card_faces_rejects_invalid_threshold_settings():
