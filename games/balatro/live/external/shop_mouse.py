@@ -255,9 +255,8 @@ class ExternalShopMouseExecutor:
             transaction.validate(state, action)
 
         sequence = self.layout.sequence_for(action)
-        frame = self.capture.capture()
+        frame = self._capture_focused_frame()
         viewport = BalatroViewport(frame)
-        self.mouse.focus(frame.window)
 
         for step in sequence.steps:
             screen_point = viewport.screen_point(step.point)
@@ -271,6 +270,17 @@ class ExternalShopMouseExecutor:
         if action.name in self.BUFFERED_PURCHASES:
             transaction.apply(state, action)
 
+        return frame
+
+    def _capture_focused_frame(self) -> BalatroFrame:
+        tracker = getattr(self.capture, "tracker", None)
+        if tracker is not None:
+            window = tracker.snapshot()
+            self.mouse.focus(window)
+            return self.capture.capture()
+
+        frame = self.capture.capture()
+        self.mouse.focus(frame.window)
         return frame
 
     def close(self) -> None:
