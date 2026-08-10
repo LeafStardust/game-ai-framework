@@ -16,6 +16,7 @@ from .protocol import (
     LiveBalatroSnapshot,
 )
 from .recovery import BalatroLiveRecovery
+from .runner import BalatroLiveRunner
 from .synchronizer import BalatroLiveSynchronizer
 from .telemetry import BalatroConsoleTelemetry, BalatroRunStats
 from .translator import DefaultBalatroStateTranslator
@@ -30,6 +31,7 @@ __all__ = [
     "BalatroLiveBridge",
     "BalatroLiveLifecycle",
     "BalatroLiveRecovery",
+    "BalatroLiveRunner",
     "BalatroLiveSynchronizer",
     "BalatroRunStats",
     "BalatroStateTranslator",
