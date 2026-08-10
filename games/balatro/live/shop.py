@@ -21,6 +21,7 @@ class LiveShopItem:
     label: str
     price: int
     live_id: int | str | None = None
+    area_index: int | None = None
     center: str | None = None
     edition: str | None = None
 
@@ -33,12 +34,14 @@ class LiveShopItemFactory:
             return None
 
         item_kind = kind or data.get("ability_set") or data.get("set") or "ITEM"
+        area_index = data.get("area_index")
 
         return LiveShopItem(
             kind=str(item_kind).upper(),
             label=str(label),
             price=self._price(data.get("cost", data.get("price", 0))),
             live_id=data.get("live_id", data.get("id")),
+            area_index=(int(area_index) if area_index is not None else None),
             center=data.get("center") or data.get("key"),
             edition=data.get("edition"),
         )
