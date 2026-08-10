@@ -133,7 +133,10 @@ def _normalize_item_area(
     return {
         "count": _integer(config.get("card_count"), len(cards)),
         "limit": _integer(config.get("card_limit"), len(cards)),
-        "cards": [_normalize_item(card) for card in cards],
+        "cards": [
+            _normalize_item(card, area_index=index)
+            for index, card in enumerate(cards)
+        ],
     }
 
 
@@ -179,7 +182,11 @@ def _normalize_card(card: dict[Any, Any]) -> dict[str, Any]:
     }
 
 
-def _normalize_item(card: dict[Any, Any]) -> dict[str, Any]:
+def _normalize_item(
+    card: dict[Any, Any],
+    *,
+    area_index: int | None = None,
+) -> dict[str, Any]:
     save_fields = _mapping(card.get("save_fields"))
     ability = _mapping(card.get("ability"))
 
@@ -191,6 +198,8 @@ def _normalize_item(card: dict[Any, Any]) -> dict[str, Any]:
         "ability_set": ability.get("set"),
         "debuff": bool(card.get("debuff", False)),
     }
+    if area_index is not None:
+        result["area_index"] = area_index
 
     edition = _edition_name(card.get("edition"))
     if edition is not None:
