@@ -10,6 +10,7 @@ from .interfaces import (
     BalatroLiveBridge,
     BalatroStateTranslator,
 )
+from .lifecycle import BalatroLiveLifecycle
 from .protocol import (
     LiveBalatroCommand,
     LiveBalatroSnapshot,
@@ -24,6 +25,7 @@ __all__ = [
     "BalatroBotError",
     "BalatroBotRpcError",
     "BalatroLiveBridge",
+    "BalatroLiveLifecycle",
     "BalatroLiveSynchronizer",
     "BalatroStateTranslator",
     "DefaultBalatroActionExecutor",
