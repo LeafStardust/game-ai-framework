@@ -3,6 +3,7 @@ import pytest
 from games.balatro.live.external import (
     BalatroWindow,
     BalatroWindowLocator,
+    BalatroWindowNotForeground,
     BalatroWindowNotFound,
     BalatroWindowTracker,
     WindowRect,
@@ -11,14 +12,18 @@ from games.balatro.live.external import (
 
 class FakeWindowProvider:
 
-    def __init__(self, windows):
+    def __init__(self, windows, foreground_handle=None):
         self.windows = {window.handle: window for window in windows}
+        self.foreground_handle = foreground_handle
 
     def list_windows(self):
         return list(self.windows.values())
 
     def get_window(self, handle):
         return self.windows.get(handle)
+
+    def get_foreground_handle(self):
+        return self.foreground_handle
 
 
 def window(handle, title, left=0, top=0, width=1280, height=720):
@@ -87,3 +92,30 @@ def test_tracker_reacquires_balatro_when_handle_changes():
     assert current.handle == 7
     assert current.client_rect.left == 25
     assert current.client_rect.top == 30
+
+
+def test_tracker_accepts_balatro_as_foreground():
+    provider = FakeWindowProvider(
+        [window(1, "Balatro")],
+        foreground_handle=1,
+    )
+    tracker = BalatroWindowTracker(
+        BalatroWindowLocator(provider=provider)
+    )
+
+    current = tracker.require_foreground()
+
+    assert current.handle == 1
+
+
+def test_tracker_rejects_balatro_when_another_window_is_foreground():
+    provider = FakeWindowProvider(
+        [window(1, "Balatro"), window(2, "PowerShell")],
+        foreground_handle=2,
+    )
+    tracker = BalatroWindowTracker(
+        BalatroWindowLocator(provider=provider)
+    )
+
+    with pytest.raises(BalatroWindowNotForeground):
+        tracker.require_foreground()
