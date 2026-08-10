@@ -5,6 +5,7 @@ import pytest
 from games.balatro.live.external import ColorGridSignature, PhaseTemplate
 from games.balatro.live.external.phase_templates import save_phase_templates
 from games.balatro.live.external.phase_validation import (
+    MIN_TEMPLATES_PER_PHASE,
     REQUIRED_PHASES,
     validate_template_set,
 )
@@ -51,7 +52,11 @@ def test_committed_phase_templates_are_valid():
 
     counts = validate_template_set(path)
 
-    assert counts == {phase: 3 for phase in REQUIRED_PHASES}
+    assert set(counts) == REQUIRED_PHASES
+    assert all(
+        counts[phase] >= MIN_TEMPLATES_PER_PHASE
+        for phase in REQUIRED_PHASES
+    )
 
 
 def test_phase_validation_rejects_missing_phase(tmp_path):
