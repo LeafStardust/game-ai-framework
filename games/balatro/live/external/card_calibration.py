@@ -59,13 +59,37 @@ def calibrate_card_templates(
     return coverage_report(merged)
 
 
+def calibrate_card_template_manifests(
+    manifest_paths: list[str | Path],
+    output_path: str | Path,
+    *,
+    replace: bool = False,
+) -> dict:
+    if not manifest_paths:
+        raise ValueError("at least one card identity manifest is required")
+
+    report = None
+    for index, manifest_path in enumerate(manifest_paths):
+        report = calibrate_card_templates(
+            manifest_path,
+            output_path,
+            append=not replace or index > 0,
+        )
+    return report
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Build Balatro rank/suit visual templates from labeled card crops."
     )
     parser.add_argument(
         "--manifest",
-        default="balatro-card-identities/labels.json",
+        action="append",
+        dest="manifests",
+        help=(
+            "Labeled identity manifest. Repeat this option to rebuild from "
+            "multiple calibration datasets."
+        ),
     )
     parser.add_argument(
         "--output",
@@ -74,15 +98,17 @@ def main() -> int:
     parser.add_argument(
         "--replace",
         action="store_true",
-        help="Replace the output template set instead of appending samples.",
+        help="Replace the output template set before the first manifest.",
     )
     args = parser.parse_args()
 
+    manifests = args.manifests or ["balatro-card-identities/labels.json"]
+
     try:
-        report = calibrate_card_templates(
-            args.manifest,
+        report = calibrate_card_template_manifests(
+            manifests,
             args.output,
-            append=not args.replace,
+            replace=args.replace,
         )
     except (OSError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
