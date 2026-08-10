@@ -1,4 +1,7 @@
+import pytest
+
 from games.balatro.live import (
+    BalatroBotRpcError,
     BalatroLiveLifecycle,
     LiveBalatroSnapshot,
 )
@@ -22,6 +25,30 @@ class Bridge:
         return LiveBalatroSnapshot(
             sequence=len(self.methods),
             phase=phases[method],
+            state_complete=True,
+        )
+
+
+class DelayedBlindBridge:
+
+    def __init__(self, failures=2, message="select() called with no blind on deck"):
+        self.failures = failures
+        self.message = message
+        self.attempts = 0
+
+    def request(self, method, params=None):
+        assert method == "select"
+        self.attempts += 1
+
+        if self.attempts <= self.failures:
+            raise BalatroBotRpcError(
+                -32603,
+                self.message,
+            )
+
+        return LiveBalatroSnapshot(
+            sequence=self.attempts,
+            phase="SELECTING_HAND",
             state_complete=True,
         )
 
@@ -85,6 +112,37 @@ def test_lifecycle_selects_and_skips_blinds():
         ("select", None),
         ("skip", None),
     ]
+
+
+def test_lifecycle_waits_for_blind_selection_readiness():
+    bridge = DelayedBlindBridge(failures=2)
+    lifecycle = BalatroLiveLifecycle(
+        bridge,
+        select_retries=3,
+        select_retry_delay=0,
+    )
+
+    snapshot = lifecycle.select_blind()
+
+    assert snapshot.phase == "SELECTING_HAND"
+    assert bridge.attempts == 3
+
+
+def test_lifecycle_does_not_retry_unrelated_select_error():
+    bridge = DelayedBlindBridge(
+        failures=1,
+        message="unexpected select failure",
+    )
+    lifecycle = BalatroLiveLifecycle(
+        bridge,
+        select_retries=3,
+        select_retry_delay=0,
+    )
+
+    with pytest.raises(BalatroBotRpcError):
+        lifecycle.select_blind()
+
+    assert bridge.attempts == 1
 
 
 def test_lifecycle_cashes_out_and_advances_round():
