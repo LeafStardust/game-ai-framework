@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import pytest
@@ -5,6 +6,7 @@ import pytest
 from games.balatro.live.external.capture import save_bgra_png
 from games.balatro.live.external.hud_calibration import (
     calibrate_hud_digits,
+    main,
     parse_field_value,
 )
 from games.balatro.live.external.hud_digit_templates import (
@@ -96,3 +98,46 @@ def test_calibration_deduplicates_identical_samples(tmp_path):
 
     assert len(first.templates) == 1
     assert second == first
+
+
+def test_status_reports_coverage_without_modifying_templates(tmp_path, monkeypatch, capsys):
+    prefix = tmp_path / "hud"
+    output = tmp_path / "digits.json"
+    _save_crop(
+        tmp_path / "hud-round.png",
+        40,
+        40,
+        [(10, 7, 22, 34)],
+        (255, 143, 0),
+    )
+    calibrate_hud_digits(
+        [("round", "1")],
+        input_prefix=prefix,
+        output_path=output,
+        replace=True,
+    )
+    before = output.read_bytes()
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["hud_calibration.py", "--status", "--output", str(output)],
+    )
+
+    assert main() == 0
+
+    captured = capsys.readouterr().out
+    assert "Digit coverage: 1" in captured
+    assert "Missing digits: 0, 2, 3, 4, 5, 6, 7, 8, 9" in captured
+    assert "Recognition calibration complete: False" in captured
+    assert "Saved ->" not in captured
+    assert output.read_bytes() == before
+
+
+def test_cli_requires_samples_without_status(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["hud_calibration.py"])
+
+    with pytest.raises(SystemExit) as error:
+        main()
+
+    assert error.value.code == 2
+    assert "FIELD=INTEGER is required unless --status is used" in capsys.readouterr().err
