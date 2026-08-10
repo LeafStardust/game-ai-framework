@@ -1,0 +1,44 @@
+{
+  "cards": [
+    {
+      "file": "card-00.png",
+      "index": 0,
+      "label": "AD"
+    },
+    {
+      "file": "card-01.png",
+      "index": 1,
+      "label": "KC"
+    },
+    {
+      "file": "card-02.png",
+      "index": 2,
+      "label": "KD"
+    },
+    {
+      "file": "card-03.png",
+      "index": 3,
+      "label": "9S"
+    },
+    {
+      "file": "card-04.png",
+      "index": 4,
+      "label": "5D"
+    },
+    {
+      "file": "card-05.png",
+      "index": 5,
+      "label": "4S"
+    },
+    {
+      "file": "card-06.png",
+      "index": 6,
+      "label": "3H"
+    },
+    {
+      "file": "card-07.png",
+      "index": 7,
+      "label": "2C"
+    }
+  ]
+}
