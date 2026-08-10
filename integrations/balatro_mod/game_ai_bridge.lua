@@ -65,6 +65,13 @@ local function current_blind()
     }
 end
 
+local function selected_deck_name(game)
+    if game.selected_back and game.selected_back.name then
+        return game.selected_back.name
+    end
+    return nil
+end
+
 local function build_snapshot()
     local game = G.GAME or {}
     local round_resets = game.round_resets or {}
@@ -81,18 +88,21 @@ local function build_snapshot()
             money = game.dollars or 0,
             ante = round_resets.ante or 0,
             round = round_resets.blind_ante or 0,
+            blind_score = game.chips or 0,
             hands_left = current_round.hands_left or 0,
             discards_left = current_round.discards_left or 0,
-            chips = current_round.current_hand and current_round.current_hand.chips or 0,
-            mult = current_round.current_hand and current_round.current_hand.mult or 0,
+            hand_size = G.hand and G.hand.config and G.hand.config.card_limit or 0,
+            consumable_slots = G.consumeables and G.consumeables.config and G.consumeables.config.card_limit or 0,
+            stake = game.stake,
+            deck_name = selected_deck_name(game),
             hand = area_cards(G.hand),
             play = area_cards(G.play),
+            deck = area_cards(G.deck),
             jokers = area_cards(G.jokers),
             consumables = area_cards(G.consumeables),
             shop_jokers = area_cards(G.shop_jokers),
             shop_vouchers = area_cards(G.shop_vouchers),
             shop_booster = area_cards(G.shop_booster),
-            deck_count = G.deck and G.deck.cards and #G.deck.cards or 0,
             blind = current_blind(),
         },
     }
