@@ -15,6 +15,7 @@ from .protocol import (
     LiveBalatroCommand,
     LiveBalatroSnapshot,
 )
+from .recovery import BalatroLiveRecovery
 from .synchronizer import BalatroLiveSynchronizer
 from .translator import DefaultBalatroStateTranslator
 
@@ -26,6 +27,7 @@ __all__ = [
     "BalatroBotRpcError",
     "BalatroLiveBridge",
     "BalatroLiveLifecycle",
+    "BalatroLiveRecovery",
     "BalatroLiveSynchronizer",
     "BalatroStateTranslator",
     "DefaultBalatroActionExecutor",
