@@ -10,7 +10,7 @@ from games.balatro.live import (
 )
 
 
-def test_shop_buy_action_uses_live_target_id():
+def test_shop_buy_action_uses_balatrobot_index():
     executor = DefaultBalatroActionExecutor()
     snapshot = LiveBalatroSnapshot(
         sequence=9,
@@ -21,14 +21,14 @@ def test_shop_buy_action_uses_live_target_id():
     command = executor.command_for(
         BalatroAction(
             BUY_JOKER,
-            target={"id": "shop-joker-1"},
+            target={"id": 1},
         ),
         snapshot,
     )
 
     assert command.action == BUY_JOKER
     assert command.payload == {
-        "target": "shop-joker-1"
+        "target": 1
     }
 
 
