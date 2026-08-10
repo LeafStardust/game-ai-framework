@@ -122,7 +122,7 @@ def test_phase_recognizer_ranks_one_best_match_per_phase():
     assert ranking[0].distance < ranking[1].distance
 
 
-def test_phase_recognizer_weights_stable_discriminative_cells():
+def test_phase_recognizer_weights_stable_discriminative_cells_symmetrically():
     recognizer = BalatroVisualPhaseRecognizer()
     blind_samples = [
         [200, 0, 0, 100, 100, 0, 0, 100, 100],
@@ -152,11 +152,23 @@ def test_phase_recognizer_weights_stable_discriminative_cells():
             )
         )
 
-    candidate = _grid_frame([190, 0, 0, 0, 0, 100, 100, 100, 100])
-    ranking = recognizer.rank(candidate)
+    blind_ranking = recognizer.rank(
+        _grid_frame([190, 0, 0, 0, 0, 100, 100, 100, 100])
+    )
+    hand_ranking = recognizer.rank(
+        _grid_frame([55, 0, 0, 100, 100, 0, 0, 0, 0])
+    )
 
-    assert [item.phase for item in ranking] == ["BLIND_SELECT", "SELECTING_HAND"]
-    assert ranking[0].distance < ranking[1].distance
+    assert [item.phase for item in blind_ranking] == [
+        "BLIND_SELECT",
+        "SELECTING_HAND",
+    ]
+    assert blind_ranking[0].distance < blind_ranking[1].distance
+    assert [item.phase for item in hand_ranking] == [
+        "SELECTING_HAND",
+        "BLIND_SELECT",
+    ]
+    assert hand_ranking[0].distance < hand_ranking[1].distance
 
 
 def test_phase_template_serialization_round_trip():
