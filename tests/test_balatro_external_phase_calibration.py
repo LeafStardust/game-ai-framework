@@ -72,5 +72,21 @@ def test_phase_calibration_captures_multiple_samples():
     assert {template.phase for template in templates} == {"SELECTING_HAND"}
 
 
+def test_phase_calibration_saves_first_capture_snapshot(tmp_path):
+    snapshot = tmp_path / "shop.png"
+
+    capture_phase_templates(
+        "SHOP",
+        Capture([_frame(10, 20, 30), _frame(11, 21, 31)]),
+        samples=2,
+        delay=0,
+        columns=2,
+        rows=2,
+        snapshot_path=snapshot,
+    )
+
+    assert snapshot.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+
+
 def test_missing_phase_template_file_loads_empty(tmp_path):
     assert load_phase_templates(tmp_path / "missing.json") == []
