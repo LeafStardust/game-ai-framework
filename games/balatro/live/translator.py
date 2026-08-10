@@ -88,6 +88,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         state.money = int(payload.get("money", 0))
         state.ante = int(payload.get("ante_num", payload.get("ante", 1)))
         state.round = int(payload.get("round_num", payload.get("round_number", 1)))
+        state.score = int(payload.get("score", payload.get("chips", 0)))
         state.blind_score = int(
             round_info.get("chips", payload.get("blind_score", 0))
         )
