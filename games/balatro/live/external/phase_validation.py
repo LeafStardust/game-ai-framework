@@ -15,6 +15,7 @@ REQUIRED_PHASES = {
     "SELECTING_HAND",
     "SHOP",
 }
+MIN_TEMPLATES_PER_PHASE = 2
 
 
 def validate_template_set(path: str | Path) -> Counter:
@@ -36,6 +37,51 @@ def validate_template_set(path: str | Path) -> Counter:
     }
     if len(dimensions) != 1:
         raise ValueError("phase templates use inconsistent grid dimensions")
+
+    undersampled = sorted(
+        phase
+        for phase in REQUIRED_PHASES
+        if counts[phase] < MIN_TEMPLATES_PER_PHASE
+    )
+    if undersampled:
+        raise ValueError(
+            "phase template file needs at least "
+            f"{MIN_TEMPLATES_PER_PHASE} samples for: "
+            + ", ".join(undersampled)
+        )
+
+    for index, template in enumerate(templates):
+        same_phase = []
+        other_phase = []
+
+        for other_index, other in enumerate(templates):
+            if other_index == index:
+                continue
+            distance = template.signature.distance(other.signature)
+            if other.phase == template.phase:
+                same_phase.append(distance)
+            else:
+                other_phase.append((other.phase, distance))
+
+        nearest_same = min(same_phase)
+        nearest_other_phase, nearest_other = min(
+            other_phase,
+            key=lambda item: item[1],
+        )
+
+        if nearest_same > template.max_distance:
+            raise ValueError(
+                f"{template.phase} calibration samples vary beyond their "
+                f"recognition threshold: {nearest_same:.4f} > "
+                f"{template.max_distance:.4f}"
+            )
+
+        if nearest_other <= nearest_same:
+            raise ValueError(
+                f"{template.phase} calibration is not visually separable "
+                f"from {nearest_other_phase}: own={nearest_same:.4f}, "
+                f"other={nearest_other:.4f}"
+            )
 
     return counts
 
@@ -73,7 +119,7 @@ def main() -> int:
     )
 
     if args.expected is None:
-        print("Template set verified.")
+        print("Template set verified and visually separable.")
         return 0
 
     failures = 0
