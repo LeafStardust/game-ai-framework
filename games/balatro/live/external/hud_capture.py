@@ -10,16 +10,16 @@ from .observer import ExternalBalatroObservation, ExternalBalatroObserver
 from .viewport import BalatroViewport, NormalizedRect
 
 
-DEFAULT_HUD_REGION = NormalizedRect(0.00, 0.00, 0.24, 1.00)
+DEFAULT_HUD_REGION = NormalizedRect(0.00, 0.00, 0.27, 1.00)
 
 DEFAULT_HUD_FIELD_REGIONS = {
-    "ante": NormalizedRect(0.02, 0.73, 0.10, 0.15),
-    "blind_target": NormalizedRect(0.01, 0.07, 0.22, 0.17),
-    "discards": NormalizedRect(0.11, 0.49, 0.11, 0.14),
-    "hands": NormalizedRect(0.01, 0.49, 0.11, 0.14),
-    "money": NormalizedRect(0.02, 0.62, 0.20, 0.13),
-    "round": NormalizedRect(0.12, 0.73, 0.10, 0.15),
-    "score": NormalizedRect(0.01, 0.23, 0.22, 0.20),
+    "ante": NormalizedRect(0.13, 0.89, 0.04, 0.06),
+    "blind_target": NormalizedRect(0.17, 0.21, 0.08, 0.06),
+    "discards": NormalizedRect(0.20, 0.66, 0.05, 0.08),
+    "hands": NormalizedRect(0.13, 0.66, 0.05, 0.08),
+    "money": NormalizedRect(0.14, 0.77, 0.11, 0.07),
+    "round": NormalizedRect(0.20, 0.89, 0.05, 0.06),
+    "score": NormalizedRect(0.17, 0.37, 0.08, 0.06),
 }
 
 
