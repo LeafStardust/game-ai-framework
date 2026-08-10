@@ -6,7 +6,7 @@
 >
 > Completion does **not** require a high win rate or optimal play. A stake is considered completed once the agent successfully completes one full run at that stake.
 >
-> The production Balatro agent targets the normal Steam game through external observation and normal mouse/keyboard input. Runtime injection/mod APIs may be used as optional development and testing tools, but a modded/injected backend does not satisfy the real-game completion criterion.
+> The production Balatro agent targets the normal Steam game through external observation and normal mouse input. Runtime injection/mod APIs may be used as optional development and testing tools, but a modded/injected backend does not satisfy the real-game completion criterion.
 >
 > Once live-game integration is complete, major versions correspond to deck progression and patch versions correspond to stake progression within that deck. For example, Red Deck White Stake is v1.0.0 and Red Deck Gold Stake is v1.0.7; Blue Deck begins at v2.0.0 with White Stake.
 
@@ -91,7 +91,7 @@
 
 ## v0.9.0 — Balatro External Real-Game Integration
 
-> Connect the framework-level Balatro agent to the normal Steam version of Balatro without modifying or injecting into the game process. The production backend must observe the game externally and execute actions through normal mouse/keyboard input. This milestone is complete when the agent can autonomously operate an unmodified Red Deck White Stake run. Winning the run is reserved for v1.0.0.
+> Connect the framework-level Balatro agent to the normal Steam version of Balatro without modifying or injecting into the game process. The production backend must observe the game externally and execute actions through normal mouse input. This milestone is complete when the agent can autonomously operate an unmodified Red Deck White Stake run. Winning the run is reserved for v1.0.0.
 
 ### Shared live-integration infrastructure
 
@@ -103,9 +103,10 @@
 
 ### External Steam observation
 
-- [ ] Steam Balatro window discovery and client-area tracking
-- [ ] External screen-capture backend
-- [ ] Resolution/scale-independent viewport normalization
+- [x] Steam Balatro window discovery and client-area tracking
+- [x] External screen-capture backend
+- [x] Resolution/scale-independent viewport normalization
+- [x] Visual phase signature/calibration infrastructure
 - [ ] Visual game-phase detection
 - [ ] Playing-card visual recognition
 - [ ] HUD extraction: ante, round, score, blind target, money, hands, discards
@@ -117,7 +118,7 @@
 
 ### External Steam control
 
-- [ ] Normal mouse/keyboard input backend
+- [x] Normal mouse input backend
 - [ ] `BalatroAction` → screen/input execution
 - [ ] Card selection coordinate mapping
 - [ ] Blind-selection and round-transition controls
