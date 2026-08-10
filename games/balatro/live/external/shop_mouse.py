@@ -247,6 +247,13 @@ class ExternalShopMouseExecutor:
                 f"shop action {action.name!r} requires immediate post-action observation"
             )
 
+        if action.name in self.BUFFERED_PURCHASES:
+            if transaction is None:
+                raise ValueError(
+                    "deterministic shop purchases require a BufferedShopTransaction"
+                )
+            transaction.validate(state, action)
+
         sequence = self.layout.sequence_for(action)
         frame = self.capture.capture()
         viewport = BalatroViewport(frame)
@@ -262,10 +269,6 @@ class ExternalShopMouseExecutor:
                 time.sleep(step.delay)
 
         if action.name in self.BUFFERED_PURCHASES:
-            if transaction is None:
-                raise ValueError(
-                    "deterministic shop purchases require a BufferedShopTransaction"
-                )
             transaction.apply(state, action)
 
         return frame
