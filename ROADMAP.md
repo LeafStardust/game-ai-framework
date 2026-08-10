@@ -6,6 +6,8 @@
 >
 > Completion does **not** require a high win rate or optimal play. A stake is considered completed once the agent successfully completes one full run at that stake.
 >
+> The production Balatro agent targets the normal Steam game through external observation and normal mouse/keyboard input. Runtime injection/mod APIs may be used as optional development and testing tools, but a modded/injected backend does not satisfy the real-game completion criterion.
+>
 > Once live-game integration is complete, major versions correspond to deck progression and patch versions correspond to stake progression within that deck. For example, Red Deck White Stake is v1.0.0 and Red Deck Gold Stake is v1.0.7; Blue Deck begins at v2.0.0 with White Stake.
 
 ## v0.1.0 — Foundation
@@ -87,29 +89,55 @@
 - [x] Deck-specific agent architecture
 - [x] Red Deck starting-state support
 
-## v0.9.0 — Balatro Real-Game Integration
+## v0.9.0 — Balatro External Real-Game Integration
 
-> Connect the framework-level Balatro agent to the actual Balatro game. This milestone is complete when the agent can observe live game state, translate it into framework state, execute framework actions in the game, and autonomously operate the full interaction loop required for a Red Deck White Stake run. Winning the run is reserved for v1.0.0.
+> Connect the framework-level Balatro agent to the normal Steam version of Balatro without modifying or injecting into the game process. The production backend must observe the game externally and execute actions through normal mouse/keyboard input. This milestone is complete when the agent can autonomously operate an unmodified Red Deck White Stake run. Winning the run is reserved for v1.0.0.
 
-- [x] Real-game integration architecture
-- [x] Live Balatro state acquisition
-- [x] Live state → `BalatroState` translation
-- [x] `BalatroAction` → live game input execution
-- [x] Synchronization and turn/phase detection
-- [x] Shop interaction support
-- [x] Consumable interaction support
-- [x] Blind selection and round-transition support
-- [x] Run start/restart support for Red Deck White Stake
-- [x] Integration error handling and recovery
-- [x] Automated Lovely/Steamodded/BalatroBot dependency bootstrap
-- [x] Automatic Windows Balatro launch
+### Shared live-integration infrastructure
+
+- [x] Live-game bridge/action interfaces
+- [x] Live state → `BalatroState` translation architecture
 - [x] Live console telemetry
-- [x] End-to-end autonomous game loop
-- [ ] Validate agent can operate an actual Red Deck White Stake run without manual gameplay input
+- [x] Integration error/recovery architecture
+- [x] BalatroBot API backend for optional development/testing
+
+### External Steam observation
+
+- [ ] Steam Balatro window discovery and client-area tracking
+- [ ] External screen-capture backend
+- [ ] Resolution/scale-independent viewport normalization
+- [ ] Visual game-phase detection
+- [ ] Playing-card visual recognition
+- [ ] HUD extraction: ante, round, score, blind target, money, hands, discards
+- [ ] Blind-selection visual state extraction
+- [ ] Joker and consumable visual state extraction
+- [ ] Shop visual state extraction
+- [ ] External observation → `BalatroState` translation
+- [ ] Observation confidence/validation and recovery
+
+### External Steam control
+
+- [ ] Normal mouse/keyboard input backend
+- [ ] `BalatroAction` → screen/input execution
+- [ ] Card selection coordinate mapping
+- [ ] Blind-selection and round-transition controls
+- [ ] Shop interaction controls
+- [ ] Consumable interaction controls
+- [ ] Run start/restart controls for Red Deck White Stake
+- [ ] Visual post-action synchronization and confirmation
+
+### End-to-end validation
+
+- [ ] External autonomous game loop
+- [ ] Production backend requires no Lovely/Steamodded/BalatroBot injection
+- [ ] Validate one actual unseeded Red Deck White Stake run operates without manual gameplay input
+- [ ] Validate normal Steam profile/save progression remains in use
+
+> Lovely/Steamodded/BalatroBot may remain available as an optional development oracle for comparing extracted state against internal game state. Runs performed through that backend do **not** count toward v0.9.0 or later deck/stake completion.
 
 # v1.0.0 — Red Deck — White Stake
 
-> First complete Balatro agent milestone. The Red Deck agent must be capable of independently playing and successfully completing an actual Red Deck White Stake run from start to finish.
+> First complete Balatro agent milestone. The Red Deck agent must independently play the normal Steam game through the external production backend and successfully complete an unseeded Red Deck White Stake run from start to finish.
 
 * [ ] Red Deck agent
 * [ ] Red Deck decision-making brain
@@ -120,7 +148,8 @@
 * [ ] Blind strategy
 * [ ] Economy management
 * [ ] Deck-building decisions
-* [ ] Complete one successful Red Deck White Stake run in actual Balatro
+* [ ] Complete one successful unseeded Red Deck White Stake run in actual Steam Balatro
+* [ ] Validate normal profile progression/unlocks are preserved
 * [ ] Validate Red Deck White Stake agent
 
 # v1.0.1 — Red Deck — Red Stake
@@ -216,8 +245,9 @@
 
 A deck/stake milestone is complete when:
 
-* [ ] The deck-specific agent can independently play the actual game
+* [ ] The deck-specific agent independently plays the normal Steam game through the external production backend
 * [ ] The agent completes one full run at the target stake
+* [ ] The run uses the normal Steam profile/save path without injected gameplay control
 * [ ] The run passes the relevant validation tests
 
 > **Win rate is not a completion requirement.** The objective is to build an agent capable of completing Balatro, not an optimal or highly competitive Balatro AI.
