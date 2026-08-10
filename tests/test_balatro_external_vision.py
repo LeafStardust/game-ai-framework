@@ -45,6 +45,18 @@ def _grid_frame(values, cell_width=20, height=40):
     )
 
 
+def _add_grid_samples(recognizer, phase, samples):
+    for values in samples:
+        recognizer.add_template(
+            recognizer.template_from_frame(
+                phase,
+                _grid_frame(values),
+                columns=len(values),
+                rows=1,
+            )
+        )
+
+
 def test_phase_recognizer_matches_calibrated_external_frame():
     recognizer = BalatroVisualPhaseRecognizer()
     recognizer.add_template(
@@ -133,24 +145,8 @@ def test_phase_recognizer_weights_stable_discriminative_cells_symmetrically():
         [50, 100, 100, 100, 100, 0, 0, 0, 0],
     ]
 
-    for values in blind_samples:
-        recognizer.add_template(
-            recognizer.template_from_frame(
-                "BLIND_SELECT",
-                _grid_frame(values),
-                columns=9,
-                rows=1,
-            )
-        )
-    for values in hand_samples:
-        recognizer.add_template(
-            recognizer.template_from_frame(
-                "SELECTING_HAND",
-                _grid_frame(values),
-                columns=9,
-                rows=1,
-            )
-        )
+    _add_grid_samples(recognizer, "BLIND_SELECT", blind_samples)
+    _add_grid_samples(recognizer, "SELECTING_HAND", hand_samples)
 
     blind_ranking = recognizer.rank(
         _grid_frame([190, 0, 0, 0, 0, 100, 100, 100, 100])
@@ -163,12 +159,42 @@ def test_phase_recognizer_weights_stable_discriminative_cells_symmetrically():
         "BLIND_SELECT",
         "SELECTING_HAND",
     ]
-    assert blind_ranking[0].distance < blind_ranking[1].distance
     assert [item.phase for item in hand_ranking] == [
         "SELECTING_HAND",
         "BLIND_SELECT",
     ]
-    assert hand_ranking[0].distance < hand_ranking[1].distance
+
+
+def test_phase_recognizer_pairwise_voting_ignores_unrelated_global_color():
+    recognizer = BalatroVisualPhaseRecognizer()
+    _add_grid_samples(
+        recognizer,
+        "BLIND_SELECT",
+        ([220, 20, 20, 20, 20, 20], [230, 30, 30, 30, 30, 30]),
+    )
+    _add_grid_samples(
+        recognizer,
+        "SELECTING_HAND",
+        ([60, 20, 20, 20, 20, 20], [70, 30, 30, 30, 30, 30]),
+    )
+    _add_grid_samples(
+        recognizer,
+        "ROUND_EVAL",
+        ([20, 220, 20, 20, 20, 20], [30, 230, 30, 30, 30, 30]),
+    )
+    _add_grid_samples(
+        recognizer,
+        "SHOP",
+        ([20, 20, 220, 20, 20, 20], [30, 30, 230, 30, 30, 30]),
+    )
+
+    blind = recognizer.detect(_grid_frame([255, 100, 100, 100, 100, 100]))
+    hand = recognizer.detect(_grid_frame([140, 100, 100, 100, 100, 100]))
+
+    assert blind.phase == "BLIND_SELECT"
+    assert blind.wins == 3.0
+    assert hand.phase == "SELECTING_HAND"
+    assert hand.wins == 3.0
 
 
 def test_phase_template_serialization_round_trip():
