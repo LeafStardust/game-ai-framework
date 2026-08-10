@@ -12,6 +12,8 @@ class Bridge:
     def request(self, method, params=None):
         self.methods.append((method, params))
         phases = {
+            "start": "BLIND_SELECT",
+            "menu": "MENU",
             "select": "SELECTING_HAND",
             "skip": "BLIND_SELECT",
             "cash_out": "SHOP",
@@ -22,6 +24,52 @@ class Bridge:
             phase=phases[method],
             state_complete=True,
         )
+
+
+def test_lifecycle_starts_red_deck_white_stake_by_default():
+    bridge = Bridge()
+    lifecycle = BalatroLiveLifecycle(bridge)
+
+    snapshot = lifecycle.start_run()
+
+    assert snapshot.phase == "BLIND_SELECT"
+    assert bridge.methods == [
+        (
+            "start",
+            {
+                "deck": "RED",
+                "stake": "WHITE",
+            },
+        )
+    ]
+
+
+def test_lifecycle_can_start_seeded_run():
+    bridge = Bridge()
+    lifecycle = BalatroLiveLifecycle(bridge)
+
+    lifecycle.start_run(seed="TEST123")
+
+    assert bridge.methods[0][1]["seed"] == "TEST123"
+
+
+def test_lifecycle_restart_returns_to_menu_before_start():
+    bridge = Bridge()
+    lifecycle = BalatroLiveLifecycle(bridge)
+
+    snapshot = lifecycle.restart_run()
+
+    assert snapshot.phase == "BLIND_SELECT"
+    assert bridge.methods == [
+        ("menu", None),
+        (
+            "start",
+            {
+                "deck": "RED",
+                "stake": "WHITE",
+            },
+        ),
+    ]
 
 
 def test_lifecycle_selects_and_skips_blinds():
