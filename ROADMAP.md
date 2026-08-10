@@ -6,7 +6,7 @@
 >
 > Completion does **not** require a high win rate or optimal play. A stake is considered completed once the agent successfully completes one full run at that stake.
 >
-> The production Balatro agent targets the normal Steam game through external observation and normal mouse input. Runtime injection/mod APIs may be used as optional development and testing tools, but a modded/injected backend does not satisfy the real-game completion criterion.
+> The production Balatro agent targets the normal Steam game through read-only external observation and normal mouse input. Read-only observation may use the normal Balatro save state and/or screen pixels, but production must not modify or inject into the game process or save. Agent-facing state must exclude hidden future/RNG information that a normal player could not know. Runtime injection/mod APIs may be used as optional development and testing tools, but a modded/injected backend does not satisfy the real-game completion criterion.
 >
 > Once live-game integration is complete, major versions correspond to deck progression and patch versions correspond to stake progression within that deck. For example, Red Deck White Stake is v1.0.0 and Red Deck Gold Stake is v1.0.7; Blue Deck begins at v2.0.0 with White Stake.
 
@@ -91,7 +91,7 @@
 
 ## v0.9.0 — Balatro External Real-Game Integration
 
-> Connect the framework-level Balatro agent to the normal Steam version of Balatro without modifying or injecting into the game process. The production backend must observe the game externally and execute actions through normal mouse input. This milestone is complete when the agent can autonomously operate an unmodified Red Deck White Stake run. Winning the run is reserved for v1.0.0.
+> Connect the framework-level Balatro agent to the normal Steam version of Balatro without modifying or injecting into the game process or save. The production backend may read the normal save state and screen pixels externally, and must execute gameplay actions through normal input. This milestone is complete when the agent can autonomously operate an unmodified Red Deck White Stake run. Winning the run is reserved for v1.0.0.
 
 ### Shared live-integration infrastructure
 
@@ -103,18 +103,30 @@
 
 ### External Steam observation
 
+- [x] Read-only vanilla `save.jkr` discovery and parser
+- [x] Save snapshot change detection and stale-state rejection
+- [x] Agent-facing observable-state whitelist excluding RNG seed/future-only data
+- [x] Selecting-hand structured state extraction: phase, deck/stake, ante/round, money, score, blind, hands/discards, hand and remaining deck
+- [ ] Blind-selection structured state extraction and validation
+- [ ] Joker and consumable structured state extraction and validation
+- [ ] Shop structured state extraction and validation
+- [ ] External observation → `BalatroState` translation across all production phases
+- [ ] Observation validation and recovery across phase transitions
+
+### Optional visual fallback
+
 - [x] Steam Balatro window discovery and client-area tracking
 - [x] External screen-capture backend
 - [x] Resolution/scale-independent viewport normalization
 - [x] Visual phase signature/calibration infrastructure
 - [x] Visual game-phase detection
 - [x] Playing-card visual recognition
-- [ ] HUD extraction: ante, round, score, blind target, money, hands, discards
-- [ ] Blind-selection visual state extraction
-- [ ] Joker and consumable visual state extraction
-- [ ] Shop visual state extraction
-- [ ] External observation → `BalatroState` translation
-- [ ] Observation confidence/validation and recovery
+- [ ] HUD visual extraction fallback
+- [ ] Blind-selection visual fallback
+- [ ] Joker/consumable visual fallback
+- [ ] Shop visual fallback
+
+> Visual fallback work is not a v0.9.0 completion blocker when the same observable state is available reliably through the read-only structured observer.
 
 ### External Steam control
 
@@ -125,14 +137,14 @@
 - [ ] Shop interaction controls
 - [ ] Consumable interaction controls
 - [ ] Run start/restart controls for Red Deck White Stake
-- [ ] Visual post-action synchronization and confirmation
+- [ ] Post-action state synchronization and confirmation
 
 ### End-to-end validation
 
 - [ ] External autonomous game loop
 - [ ] Production backend requires no Lovely/Steamodded/BalatroBot injection
 - [ ] Validate one actual unseeded Red Deck White Stake run operates without manual gameplay input
-- [ ] Validate normal Steam profile/save progression remains in use
+- [ ] Validate normal Steam profile/save progression and achievement eligibility remain in use
 
 > Lovely/Steamodded/BalatroBot may remain available as an optional development oracle for comparing extracted state against internal game state. Runs performed through that backend do **not** count toward v0.9.0 or later deck/stake completion.
 
