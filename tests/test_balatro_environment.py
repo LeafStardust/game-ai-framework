@@ -104,7 +104,7 @@ def test_balatro_environment_generates_play_actions():
         if action.name == PLAY_CARDS
     ]
 
-    assert len(play_actions) == 1
+    assert len(play_actions) == 31
 
 
 def test_simulate_action_does_not_modify_original_state():
