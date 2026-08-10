@@ -82,6 +82,21 @@ class BalatroBotBridge(BalatroLiveBridge):
         if isinstance(result, dict) and "state" in result:
             self._pending_result = result
 
+    def request(
+        self,
+        method: str,
+        params: dict[str, Any] | None = None,
+    ) -> LiveBalatroSnapshot:
+        result = self.call(method, params)
+
+        if not isinstance(result, dict) or "state" not in result:
+            raise BalatroBotError(
+                f"BalatroBot {method} did not return game state"
+            )
+
+        self._pending_result = None
+        return self._snapshot(result)
+
     def is_connected(self) -> bool:
         try:
             result = self.call("health")
