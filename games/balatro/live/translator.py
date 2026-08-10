@@ -1,5 +1,6 @@
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
+from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.interfaces import BalatroStateTranslator
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.state import BalatroState
@@ -44,6 +45,9 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         8: "GOLD",
     }
 
+    def __init__(self):
+        self.consumable_factory = LiveConsumableFactory()
+
     def translate(
         self,
         snapshot: LiveBalatroSnapshot
@@ -64,6 +68,9 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
 
         state.hand = self._cards(payload.get("hand", []))
         state.deck = self._cards(payload.get("deck", []))
+        state.consumables = self._consumables(
+            payload.get("consumables", [])
+        )
 
         blind = payload.get("blind")
         if blind:
@@ -92,6 +99,16 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             for card in cards
             if card.get("rank") and card.get("suit")
         ]
+
+    def _consumables(self, values: list[dict]) -> list:
+        result = []
+
+        for value in values:
+            consumable = self.consumable_factory.create(value)
+            if consumable is not None:
+                result.append(consumable)
+
+        return result
 
     def _card(self, card: dict) -> BalatroCard:
         rank = str(card["rank"])

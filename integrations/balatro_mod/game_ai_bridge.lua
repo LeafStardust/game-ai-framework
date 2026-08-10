@@ -173,6 +173,16 @@ local function execute_command(command)
         return true
     end
 
+    if command.action == "USE_CONSUMABLE" then
+        local card = find_card(G.consumeables, payload.target)
+        if not card then return false end
+        if payload.cards and #payload.cards > 0 then
+            if not highlight_cards(payload.cards) then return false end
+        end
+        G.FUNCS.use_card({config = {ref_table = card}})
+        return true
+    end
+
     return false
 end
 
