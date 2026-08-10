@@ -4,12 +4,14 @@ import argparse
 import json
 from pathlib import Path
 
+from .card_aligned_features import aligned_templates_from_labeled_images
 from .card_templates import (
+    TEMPLATE_COLUMNS,
+    TEMPLATE_ROWS,
     coverage_report,
     load_card_template_set,
     merge_card_template_sets,
     save_card_template_set,
-    templates_from_labeled_images,
 )
 
 
@@ -48,7 +50,12 @@ def calibrate_card_templates(
     append: bool = True,
 ) -> dict:
     image_paths, labels = load_labeled_identity_manifest(manifest_path)
-    additions = templates_from_labeled_images(image_paths, labels)
+    additions = aligned_templates_from_labeled_images(
+        image_paths,
+        labels,
+        columns=TEMPLATE_COLUMNS,
+        rows=TEMPLATE_ROWS,
+    )
 
     output = Path(output_path)
     base = None
