@@ -1,5 +1,10 @@
 from .action_executor import DefaultBalatroActionExecutor
-from .file_bridge import FileBalatroBridge
+from .balatrobot_bridge import (
+    BalatroBotBridge,
+    BalatroBotConnectionError,
+    BalatroBotError,
+    BalatroBotRpcError,
+)
 from .interfaces import (
     BalatroActionExecutor,
     BalatroLiveBridge,
@@ -14,12 +19,15 @@ from .translator import DefaultBalatroStateTranslator
 
 __all__ = [
     "BalatroActionExecutor",
+    "BalatroBotBridge",
+    "BalatroBotConnectionError",
+    "BalatroBotError",
+    "BalatroBotRpcError",
     "BalatroLiveBridge",
     "BalatroLiveSynchronizer",
     "BalatroStateTranslator",
     "DefaultBalatroActionExecutor",
     "DefaultBalatroStateTranslator",
-    "FileBalatroBridge",
     "LiveBalatroCommand",
     "LiveBalatroSnapshot",
 ]
