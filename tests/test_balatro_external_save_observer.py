@@ -30,6 +30,9 @@ def _save_snapshot(*, sha256="abc", state_id=1):
             "facing_blind": True,
             "blind_on_deck": "Small",
             "won": False,
+            "pseudorandom": {
+                "seed": "HIDDEN",
+            },
             "round_resets": {
                 "ante": 1,
             },
@@ -113,9 +116,7 @@ def _save_snapshot(*, sha256="abc", state_id=1):
 
 
 def test_snapshot_from_save_normalizes_live_state():
-    save = _save_snapshot()
-
-    snapshot = snapshot_from_save(save, sequence=4)
+    snapshot = snapshot_from_save(_save_snapshot(), sequence=4)
 
     assert snapshot.sequence == 4
     assert snapshot.phase == "SELECTING_HAND"
@@ -133,7 +134,8 @@ def test_snapshot_from_save_normalizes_live_state():
     }
     assert snapshot.payload["hand"]["count"] == 2
     assert snapshot.payload["hand"]["limit"] == 8
-    assert snapshot.payload["raw_save"] is save.data
+    assert "raw_save" not in snapshot.payload
+    assert "pseudorandom" not in snapshot.payload
 
 
 def test_save_snapshot_translates_into_framework_state():
