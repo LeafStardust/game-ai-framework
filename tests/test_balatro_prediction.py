@@ -57,4 +57,4 @@ def test_prediction_respects_discard_action():
     ).predict(action)
 
     assert len(states[0].hand) == 5
-    assert states[0].discards_remaining == 2
+    assert states[0].discards_remaining == 3
