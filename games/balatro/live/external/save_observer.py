@@ -65,13 +65,6 @@ def snapshot_from_save(
     phase = SAVE_PHASES.get(state_id, f"SAVE_STATE_{state_id}")
     stake_id = _integer(game.get("stake"), 1)
 
-    hand = _normalize_area(areas, "hand")
-    deck = _normalize_area(areas, "deck")
-    consumables = _normalize_area(areas, "consumeables", "consumables")
-    jokers = _normalize_area(areas, "jokers")
-    play = _normalize_area(areas, "play")
-    discard = _normalize_area(areas, "discard")
-
     payload: dict[str, Any] = {
         "money": _integer(game.get("dollars"), 0),
         "ante_num": _integer(round_resets.get("ante"), 1),
@@ -84,20 +77,19 @@ def snapshot_from_save(
             "discards_left": _integer(current_round.get("discards_left"), 0),
         },
         "score": _integer(game.get("chips"), 0),
-        "hand": hand,
-        "cards": deck,
-        "consumables": consumables,
-        "jokers": jokers,
-        "play": play,
-        "discard": discard,
-        "hands": _mapping(game.get("hands")),
+        "hand": _normalize_area(areas, "hand"),
+        "cards": _normalize_area(areas, "deck"),
+        "consumables": _normalize_area(areas, "consumeables", "consumables"),
+        "jokers": _normalize_area(areas, "jokers"),
+        "play": _normalize_area(areas, "play"),
+        "discard": _normalize_area(areas, "discard"),
+        "hands": _normalize_hand_levels(game.get("hands")),
         "blind": _normalize_blind(blind, game),
         "won": bool(game.get("won", False)),
         "save_state": state_id,
         "save_path": str(save.path),
         "save_modified_ns": save.modified_ns,
         "save_sha256": save.sha256,
-        "raw_save": data,
     }
 
     return LiveBalatroSnapshot(
@@ -125,15 +117,12 @@ def _normalize_area(
         "count": _integer(config.get("card_count"), len(cards)),
         "limit": _integer(config.get("card_limit"), len(cards)),
         "cards": [_normalize_card(card) for card in cards],
-        "raw": area,
     }
 
 
 def _normalize_card(card: dict[Any, Any]) -> dict[str, Any]:
     base = _mapping(card.get("base"))
     save_fields = _mapping(card.get("save_fields"))
-    value = base.get("value")
-    suit = base.get("suit")
     center = save_fields.get("center")
 
     modifier: dict[str, Any] = {}
@@ -150,15 +139,26 @@ def _normalize_card(card: dict[Any, Any]) -> dict[str, Any]:
 
     return {
         "value": {
-            "rank": value,
-            "suit": suit,
+            "rank": base.get("value"),
+            "suit": base.get("suit"),
         },
         "modifier": modifier,
         "live_id": card.get("playing_card", card.get("sort_id")),
         "center": center,
         "debuff": bool(card.get("debuff", False)),
-        "raw": card,
+        "label": card.get("label"),
     }
+
+
+def _normalize_hand_levels(value: Any) -> dict[str, dict[str, int]]:
+    hands = _mapping(value)
+    result = {}
+    for name, hand in hands.items():
+        data = _mapping(hand)
+        result[str(name)] = {
+            "level": _integer(data.get("level"), 1),
+        }
+    return result
 
 
 def _normalize_blind(blind: dict[Any, Any], game: dict[Any, Any]) -> dict[str, Any]:
@@ -176,7 +176,6 @@ def _normalize_blind(blind: dict[Any, Any], game: dict[Any, Any]) -> dict[str, A
         "name": blind.get("name"),
         "score": _integer(blind.get("chips"), 0),
         "key": blind.get("config_blind"),
-        "raw": blind,
     }
 
 
