@@ -91,7 +91,7 @@
 
 > Connect the framework-level Balatro agent to the actual Balatro game. This milestone is complete when the agent can observe live game state, translate it into framework state, execute framework actions in the game, and autonomously operate the full interaction loop required for a Red Deck White Stake run. Winning the run is reserved for v1.0.0.
 
-- [ ] Real-game integration architecture
+- [x] Real-game integration architecture
 - [ ] Live Balatro state acquisition
 - [ ] Live state → `BalatroState` translation
 - [ ] `BalatroAction` → live game input execution
