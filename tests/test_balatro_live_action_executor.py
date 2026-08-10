@@ -12,16 +12,16 @@ from games.balatro.live import (
 )
 
 
-def test_action_executor_maps_selected_card_ids():
+def test_action_executor_maps_selected_card_indices():
     executor = DefaultBalatroActionExecutor()
     snapshot = LiveBalatroSnapshot(
         sequence=12,
-        phase="ROUND_START",
+        phase="SELECTING_HAND",
         state_complete=True,
     )
     cards = [
-        BalatroCard("A", "Spades", live_id="card-a"),
-        BalatroCard("K", "Hearts", live_id="card-k"),
+        BalatroCard("A", "Spades", live_id=0),
+        BalatroCard("K", "Hearts", live_id=2),
     ]
 
     command = executor.command_for(
@@ -35,7 +35,7 @@ def test_action_executor_maps_selected_card_ids():
     assert command.sequence == 12
     assert command.action == PLAY_CARDS
     assert command.payload == {
-        "cards": ["card-a", "card-k"]
+        "cards": [0, 2]
     }
 
 
@@ -43,13 +43,13 @@ def test_action_executor_maps_discard_action():
     executor = DefaultBalatroActionExecutor()
     snapshot = LiveBalatroSnapshot(
         sequence=3,
-        phase="ROUND_START",
+        phase="SELECTING_HAND",
         state_complete=True,
     )
     card = BalatroCard(
         "2",
         "Clubs",
-        live_id="card-2",
+        live_id=1,
     )
 
     command = executor.command_for(
@@ -61,14 +61,33 @@ def test_action_executor_maps_discard_action():
     )
 
     assert command.action == DISCARD_CARDS
-    assert command.payload["cards"] == ["card-2"]
+    assert command.payload["cards"] == [1]
+
+
+def test_action_executor_accepts_zero_index():
+    executor = DefaultBalatroActionExecutor()
+    snapshot = LiveBalatroSnapshot(
+        sequence=1,
+        phase="SELECTING_HAND",
+        state_complete=True,
+    )
+
+    command = executor.command_for(
+        BalatroAction(
+            PLAY_CARDS,
+            cards=[BalatroCard("A", "Spades", live_id=0)],
+        ),
+        snapshot,
+    )
+
+    assert command.payload["cards"] == [0]
 
 
 def test_action_executor_requires_live_object_ids():
     executor = DefaultBalatroActionExecutor()
     snapshot = LiveBalatroSnapshot(
         sequence=1,
-        phase="ROUND_START",
+        phase="SELECTING_HAND",
         state_complete=True,
     )
 
