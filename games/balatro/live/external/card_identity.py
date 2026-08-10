@@ -9,6 +9,7 @@ from pathlib import Path
 from .capture import save_bgra_png
 from .card_capture import DEFAULT_HAND_REGION
 from .card_locator import CardFaceLocation, locate_card_faces
+from .card_templates import parse_card_label
 from .observer import ExternalBalatroObserver
 from .viewport import BalatroViewport, FrameRegion, NormalizedRect
 
@@ -104,6 +105,36 @@ def save_card_identity_diagnostic(
     return metadata
 
 
+def save_card_identity_labels(
+    metadata: dict,
+    labels: list[str],
+    output_dir: str | Path,
+) -> Path:
+    cards = metadata.get("cards", [])
+    if len(labels) != len(cards):
+        raise ValueError(
+            f"label count must match card count: expected {len(cards)}, got {len(labels)}"
+        )
+
+    entries = []
+    for index, (card, label) in enumerate(zip(cards, labels)):
+        parse_card_label(label)
+        entries.append(
+            {
+                "index": index,
+                "file": Path(card["file"]).name,
+                "label": label,
+            }
+        )
+
+    path = Path(output_dir) / "labels.json"
+    path.write_text(
+        json.dumps({"cards": entries}, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Extract rank/suit identity corners from a live Steam Balatro hand."
@@ -113,6 +144,11 @@ def main() -> int:
     parser.add_argument("--prepare-delay", type=float, default=3.0)
     parser.add_argument("--width-ratio", type=float, default=IDENTITY_WIDTH_RATIO)
     parser.add_argument("--height-ratio", type=float, default=IDENTITY_HEIGHT_RATIO)
+    parser.add_argument(
+        "--labels",
+        nargs="+",
+        help="Left-to-right card labels, e.g. AH KD 10S 9C.",
+    )
     args = parser.parse_args()
 
     if args.prepare_delay < 0:
@@ -148,10 +184,17 @@ def main() -> int:
             width_ratio=args.width_ratio,
             height_ratio=args.height_ratio,
         )
+        metadata = save_card_identity_diagnostic(identities, args.output_dir)
+        label_path = None
+        if args.labels is not None:
+            label_path = save_card_identity_labels(
+                metadata,
+                args.labels,
+                args.output_dir,
+            )
     except ValueError as error:
         parser.error(str(error))
 
-    metadata = save_card_identity_diagnostic(identities, args.output_dir)
     print(f"Extracted card identity regions: {metadata['count']}")
     for card in metadata["cards"]:
         pixels = card["pixels"]
@@ -160,6 +203,8 @@ def main() -> int:
             f"size={pixels['width']}x{pixels['height']}"
         )
     print(f"Saved metadata -> {Path(args.output_dir) / 'cards.json'}")
+    if label_path is not None:
+        print(f"Saved labels -> {label_path}")
     return 0
 
 
