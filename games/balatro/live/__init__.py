@@ -17,6 +17,11 @@ from .protocol import (
 )
 from .recovery import BalatroLiveRecovery
 from .runner import BalatroLiveRunner
+from .shop import (
+    BalatroShopActionGenerator,
+    LiveShopItem,
+    LiveShopItemFactory,
+)
 from .synchronizer import BalatroLiveSynchronizer
 from .telemetry import BalatroConsoleTelemetry, BalatroRunStats
 from .translator import DefaultBalatroStateTranslator
@@ -34,9 +39,12 @@ __all__ = [
     "BalatroLiveRunner",
     "BalatroLiveSynchronizer",
     "BalatroRunStats",
+    "BalatroShopActionGenerator",
     "BalatroStateTranslator",
     "DefaultBalatroActionExecutor",
     "DefaultBalatroStateTranslator",
     "LiveBalatroCommand",
     "LiveBalatroSnapshot",
+    "LiveShopItem",
+    "LiveShopItemFactory",
 ]
