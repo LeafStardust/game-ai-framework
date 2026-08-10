@@ -10,13 +10,12 @@ from .card_capture import DEFAULT_HAND_REGION
 from .card_identity import extract_card_identity_regions
 from .card_locator import locate_card_faces
 from .card_templates import (
-    RANK_ZONE,
-    SUIT_ZONE,
     CardTemplateSet,
     CardVisualTemplate,
     RGBImage,
-    image_signature,
     load_card_template_set,
+    rank_shape_signature,
+    suit_color_signature,
 )
 from .observer import ExternalBalatroObserver
 from .viewport import BalatroViewport, FrameRegion
@@ -45,18 +44,12 @@ def recognize_card_image(
     image: RGBImage,
     templates: CardTemplateSet,
 ) -> CardRecognition:
-    rank_signature = image_signature(
+    rank_signature = rank_shape_signature(
         image,
-        RANK_ZONE,
         columns=templates.columns,
         rows=templates.rows,
     )
-    suit_signature = image_signature(
-        image,
-        SUIT_ZONE,
-        columns=templates.columns,
-        rows=templates.rows,
-    )
+    suit_signature = suit_color_signature(image)
     return CardRecognition(
         rank=_match_signature(rank_signature, templates.ranks),
         suit=_match_signature(suit_signature, templates.suits),
@@ -154,7 +147,11 @@ def main() -> int:
     if args.prepare_delay < 0:
         parser.error("--prepare-delay cannot be negative")
 
-    templates = load_card_template_set(args.card_templates)
+    try:
+        templates = load_card_template_set(args.card_templates)
+    except ValueError as error:
+        parser.error(str(error))
+
     if args.prepare_delay > 0:
         print(
             f"Capture starts in {args.prepare_delay:g}s; "
