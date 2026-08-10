@@ -26,6 +26,10 @@ def main() -> int:
         f"{card.rank} {card.suit}"
         for card in state.hand
     ) or "none"
+    jokers = ", ".join(
+        str(getattr(joker, "label", type(joker).__name__))
+        for joker in state.jokers
+    ) or "none"
 
     print(f"Save -> {reader.path}")
     print(
@@ -45,6 +49,7 @@ def main() -> int:
         f"hand_size={state.hand_size}"
     )
     print(f"hand[{len(state.hand)}] -> {hand}")
+    print(f"jokers[{len(state.jokers)}] -> {jokers}")
     print(
         "areas -> "
         f"deck={snapshot.payload['cards']['count']} "
@@ -53,6 +58,12 @@ def main() -> int:
         f"consumables={snapshot.payload['consumables']['count']} "
         f"play={snapshot.payload['play']['count']} "
         f"discard={snapshot.payload['discard']['count']}"
+    )
+    print(
+        "shop -> "
+        f"jokers={snapshot.payload['shop_jokers']['count']} "
+        f"boosters={snapshot.payload['shop_boosters']['count']} "
+        f"vouchers={snapshot.payload['shop_vouchers']['count']}"
     )
     print(f"hidden_raw_save_exposed={'raw_save' in snapshot.payload}")
     return 0
