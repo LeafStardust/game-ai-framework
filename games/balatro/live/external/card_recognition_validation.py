@@ -38,8 +38,10 @@ def validate_labeled_samples(
                 "detected_suit": recognition.suit.label,
                 "rank_distance": recognition.rank.distance,
                 "rank_margin": recognition.rank.margin,
+                "rank_runner_up": recognition.rank.runner_up,
                 "suit_distance": recognition.suit.distance,
                 "suit_margin": recognition.suit.margin,
+                "suit_runner_up": recognition.suit.runner_up,
                 "passed": passed,
             }
         )
@@ -77,8 +79,10 @@ def main() -> int:
             f"{result['index']}: {status} expected={expected} detected={detected} "
             f"rank_distance={result['rank_distance']:.4f} "
             f"rank_margin={result['rank_margin']:.4f} "
+            f"rank_runner_up={result['rank_runner_up']} "
             f"suit_distance={result['suit_distance']:.4f} "
-            f"suit_margin={result['suit_margin']:.4f}"
+            f"suit_margin={result['suit_margin']:.4f} "
+            f"suit_runner_up={result['suit_runner_up']}"
         )
 
     print(f"Card recognition sample validation: {passed}/{len(results)} matches.")
