@@ -20,6 +20,8 @@ class BalatroLiveSynchronizer:
         self,
         after_sequence: int = -1,
         phases: set[str] | None = None,
+        *,
+        require_complete: bool = True,
     ) -> LiveBalatroSnapshot:
         deadline = time.monotonic() + self.timeout
 
@@ -34,7 +36,7 @@ class BalatroLiveSynchronizer:
                 self._sleep()
                 continue
 
-            if not snapshot.state_complete:
+            if require_complete and not snapshot.state_complete:
                 self._sleep()
                 continue
 
@@ -52,10 +54,13 @@ class BalatroLiveSynchronizer:
         self,
         snapshot: LiveBalatroSnapshot,
         phases: set[str] | None = None,
+        *,
+        require_complete: bool = True,
     ) -> LiveBalatroSnapshot:
         return self.wait_for_ready(
             after_sequence=snapshot.sequence,
             phases=phases,
+            require_complete=require_complete,
         )
 
     def _sleep(self) -> None:
