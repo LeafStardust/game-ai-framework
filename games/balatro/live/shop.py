@@ -56,6 +56,13 @@ class LiveShopItemFactory:
 class BalatroShopActionGenerator:
     """Generate legal purchase/leave actions from translated observable shop state."""
 
+    BUFFERABLE_ACTIONS = {
+        BUY_JOKER,
+        BUY_CONSUMABLE,
+        BUY_VOUCHER,
+        END_SHOP,
+    }
+
     def generate_actions(self, state: BalatroState) -> list[BalatroAction]:
         if state.phase != "SHOP":
             return []
@@ -90,6 +97,17 @@ class BalatroShopActionGenerator:
 
         actions.append(BalatroAction(END_SHOP))
         return actions
+
+    def generate_bufferable_actions(
+        self,
+        state: BalatroState,
+    ) -> list[BalatroAction]:
+        """Return shop actions that the current save-checkpoint path can confirm safely."""
+        return [
+            action
+            for action in self.generate_actions(state)
+            if action.name in self.BUFFERABLE_ACTIONS
+        ]
 
     @staticmethod
     def _price(item) -> int:
