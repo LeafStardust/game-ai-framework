@@ -67,16 +67,17 @@ class WindowsMouseInputProvider:
         if platform.system() != "Windows":
             raise MouseControlError("Windows mouse control requires Windows")
         self.user32 = ctypes.windll.user32
+        self.user32.GetForegroundWindow.restype = ctypes.c_void_p
         try:
             self.user32.SetProcessDPIAware()
         except (AttributeError, OSError):
             pass
 
     def focus(self, handle: int) -> None:
-        hwnd = ctypes.c_void_p(handle)
-        if self.user32.GetForegroundWindow() == hwnd.value:
+        foreground = int(self.user32.GetForegroundWindow() or 0)
+        if foreground == handle:
             return
-        if not self.user32.SetForegroundWindow(hwnd):
+        if not self.user32.SetForegroundWindow(ctypes.c_void_p(handle)):
             raise MouseControlError(
                 f"unable to focus Balatro window handle: {handle}"
             )

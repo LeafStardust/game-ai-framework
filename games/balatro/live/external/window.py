@@ -71,6 +71,10 @@ class WindowsWindowProvider:
                 "Windows Balatro window discovery requires Windows"
             )
         self.user32 = ctypes.windll.user32
+        try:
+            self.user32.SetProcessDPIAware()
+        except (AttributeError, OSError):
+            pass
 
     def list_windows(self) -> list[BalatroWindow]:
         windows: list[BalatroWindow] = []
