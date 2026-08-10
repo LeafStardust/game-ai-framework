@@ -5,6 +5,7 @@ import time
 from collections import Counter
 from pathlib import Path
 
+from .capture import save_frame_png
 from .observer import ExternalBalatroObserver
 from .phase_templates import load_phase_templates
 
@@ -100,10 +101,14 @@ def main() -> int:
     )
     parser.add_argument("--samples", type=int, default=5)
     parser.add_argument("--interval", type=float, default=0.10)
+    parser.add_argument("--prepare-delay", type=float, default=3.0)
+    parser.add_argument("--snapshot")
     args = parser.parse_args()
 
     if args.samples < 1:
         parser.error("--samples must be at least 1")
+    if args.prepare_delay < 0:
+        parser.error("--prepare-delay cannot be negative")
 
     try:
         counts = validate_template_set(args.templates)
@@ -122,10 +127,20 @@ def main() -> int:
         print("Template set verified and visually separable.")
         return 0
 
+    if args.prepare_delay > 0:
+        print(
+            f"Capture starts in {args.prepare_delay:g}s; "
+            "bring Balatro to the foreground.",
+            flush=True,
+        )
+        time.sleep(args.prepare_delay)
+
     failures = 0
     with ExternalBalatroObserver.from_template_file(args.templates) as observer:
         for index in range(args.samples):
             observation = observer.observe()
+            if index == 0 and args.snapshot:
+                save_frame_png(observation.frame, args.snapshot)
             detection = observation.phase
             ranking = observer.recognizer.rank(observation.frame)
             runner_up = ranking[1] if len(ranking) > 1 else None
@@ -152,6 +167,9 @@ def main() -> int:
 
             if index + 1 < args.samples and args.interval > 0:
                 time.sleep(args.interval)
+
+    if args.snapshot:
+        print(f"Saved first captured frame -> {args.snapshot}")
 
     if failures:
         print(f"Phase validation failed: {failures}/{args.samples} mismatches.")
