@@ -7,7 +7,8 @@ from .card_capture import DEFAULT_HAND_REGION
 from .card_identity import extract_card_identity_regions
 from .card_locator import locate_card_faces
 from .card_recognition import CardRecognition, recognize_identity_region
-from .card_templates import coverage_report, load_card_template_set, parse_card_label
+from .card_template_format import load_card_template_set
+from .card_templates import coverage_report, parse_card_label
 from .observer import ExternalBalatroObserver
 from .viewport import BalatroViewport
 
