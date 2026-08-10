@@ -1,7 +1,8 @@
+from math import comb
+
 from games.balatro.card import BalatroCard
 from games.balatro.card_selector import CardSelector
 from games.balatro.state import BalatroState
-from games.dummy import actions
 
 
 def test_card_selector_generates_play_options():
@@ -29,7 +30,10 @@ def test_card_selector_generates_play_options():
         if action.name == "PLAY_CARDS"
     ]
 
-    assert len(play_actions) == 6
+    assert len(play_actions) == sum(
+        comb(6, size)
+        for size in range(1, 6)
+    )
 
 
 def test_card_selector_generates_discard_options():
@@ -57,4 +61,7 @@ def test_card_selector_generates_discard_options():
         if action.name == "DISCARD_CARDS"
     ]
 
-    assert len(discard_actions) == 6
+    assert len(discard_actions) == sum(
+        comb(6, size)
+        for size in range(1, 6)
+    )
