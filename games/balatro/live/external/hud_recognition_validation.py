@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import time
 
 from .hud_calibration import parse_field_value
 from .hud_capture import DEFAULT_HUD_FIELD_REGIONS
@@ -28,11 +29,24 @@ def main() -> int:
         default=[],
         metavar="FIELD=INTEGER",
     )
+    parser.add_argument("--prepare-delay", type=float, default=3.0)
     args = parser.parse_args()
+
+    if args.prepare_delay < 0:
+        parser.error("--prepare-delay cannot be negative")
 
     try:
         expected = dict(parse_field_value(value) for value in args.expect)
         templates = load_hud_digit_templates(args.templates)
+
+        if args.prepare_delay > 0:
+            print(
+                f"Capture starts in {args.prepare_delay:g}s; "
+                "bring the dealt hand to the foreground.",
+                flush=True,
+            )
+            time.sleep(args.prepare_delay)
+
         with ExternalBalatroObserver.from_template_file(args.phase_templates) as observer:
             observation = observer.observe()
         if observation.phase.phase != "SELECTING_HAND":
