@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from games.balatro.jokers.acrobat import AcrobatJoker
 from games.balatro.live.external.save_observer import (
     SaveBalatroObserver,
     snapshot_from_save,
@@ -97,12 +98,78 @@ def _save_snapshot(*, sha256="abc", state_id=1):
                 },
             },
             "jokers": {
-                "cards": {},
-                "config": {"card_count": 0, "card_limit": 5},
+                "cards": {
+                    1: {
+                        "sort_id": 640,
+                        "label": "Acrobat",
+                        "cost": 6,
+                        "sell_cost": 3,
+                        "debuff": False,
+                        "save_fields": {
+                            "center": "j_acrobat",
+                        },
+                        "ability": {
+                            "name": "Acrobat",
+                            "set": "Joker",
+                        },
+                    }
+                },
+                "config": {"card_count": 1, "card_limit": 5},
             },
             "consumeables": {
                 "cards": {},
                 "config": {"card_count": 0, "card_limit": 2},
+            },
+            "shop_jokers": {
+                "cards": {
+                    1: {
+                        "sort_id": 641,
+                        "label": "Rough Gem",
+                        "cost": 7,
+                        "save_fields": {
+                            "center": "j_rough_gem",
+                        },
+                        "ability": {
+                            "name": "Rough Gem",
+                            "set": "Joker",
+                        },
+                    }
+                },
+                "config": {"card_count": 1, "card_limit": 2},
+            },
+            "shop_booster": {
+                "cards": {
+                    1: {
+                        "sort_id": 642,
+                        "label": "Celestial Pack",
+                        "cost": 4,
+                        "save_fields": {
+                            "center": "p_celestial_normal_4",
+                        },
+                        "ability": {
+                            "name": "Celestial Pack",
+                            "set": "Booster",
+                        },
+                    }
+                },
+                "config": {"card_count": 1, "card_limit": 2},
+            },
+            "shop_vouchers": {
+                "cards": {
+                    1: {
+                        "sort_id": 643,
+                        "label": "Crystal Ball",
+                        "cost": 10,
+                        "save_fields": {
+                            "center": "v_crystal_ball",
+                        },
+                        "ability": {
+                            "name": "Crystal Ball",
+                            "set": "Voucher",
+                        },
+                    }
+                },
+                "config": {"card_count": 1, "card_limit": 1},
             },
         },
     }
@@ -134,6 +201,22 @@ def test_snapshot_from_save_normalizes_live_state():
     }
     assert snapshot.payload["hand"]["count"] == 2
     assert snapshot.payload["hand"]["limit"] == 8
+    assert snapshot.payload["jokers"]["cards"] == [
+        {
+            "live_id": 640,
+            "center": "j_acrobat",
+            "label": "Acrobat",
+            "ability_name": "Acrobat",
+            "ability_set": "Joker",
+            "debuff": False,
+            "cost": 6,
+            "sell_cost": 3,
+        }
+    ]
+    assert snapshot.payload["shop_jokers"]["cards"][0]["label"] == "Rough Gem"
+    assert snapshot.payload["shop_jokers"]["cards"][0]["cost"] == 7
+    assert snapshot.payload["shop_boosters"]["cards"][0]["label"] == "Celestial Pack"
+    assert snapshot.payload["shop_vouchers"]["cards"][0]["label"] == "Crystal Ball"
     assert "raw_save" not in snapshot.payload
     assert "pseudorandom" not in snapshot.payload
 
@@ -165,6 +248,10 @@ def test_save_snapshot_translates_into_framework_state():
     assert [(card.rank, card.suit) for card in state.deck] == [
         ("7", "Diamonds"),
     ]
+    assert len(state.jokers) == 1
+    assert isinstance(state.jokers[0], AcrobatJoker)
+    assert state.jokers[0].live_id == 640
+    assert state.jokers[0].center == "j_acrobat"
     assert state.blind is not None
     assert state.blind.requirement == 300
 
