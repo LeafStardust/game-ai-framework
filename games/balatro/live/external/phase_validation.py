@@ -129,27 +129,25 @@ def main() -> int:
             detection = observation.phase
             ranking = observer.recognizer.rank(observation.frame)
             runner_up = ranking[1] if len(ranking) > 1 else None
-            margin = (
-                runner_up.distance - detection.distance
-                if runner_up is not None
-                else 1.0 - detection.distance
-            )
 
             status = "PASS" if detection.phase == args.expected else "FAIL"
             if status == "FAIL":
                 failures += 1
 
             competitor = (
-                f"{runner_up.phase}:{runner_up.distance:.4f}"
+                f"{runner_up.phase}:wins={runner_up.wins:.1f},"
+                f"distance={runner_up.distance:.4f}"
                 if runner_up is not None
                 else "none"
             )
             print(
                 f"{index + 1}/{args.samples} {status} "
                 f"expected={args.expected} detected={detection.phase} "
+                f"wins={detection.wins:.1f} "
+                f"pair_margin={detection.margin:.4f} "
                 f"distance={detection.distance:.4f} "
                 f"confidence={detection.confidence:.4f} "
-                f"runner_up={competitor} margin={margin:.4f}"
+                f"runner_up={competitor}"
             )
 
             if index + 1 < args.samples and args.interval > 0:
