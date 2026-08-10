@@ -69,6 +69,39 @@ def test_phase_recognizer_returns_unknown_outside_threshold():
     assert detection.phase == UNKNOWN_PHASE
 
 
+def test_phase_recognizer_ranks_one_best_match_per_phase():
+    recognizer = BalatroVisualPhaseRecognizer()
+    recognizer.add_template(
+        recognizer.template_from_frame(
+            "BLIND_SELECT",
+            _solid_frame(200, 20, 20),
+            columns=4,
+            rows=3,
+        )
+    )
+    recognizer.add_template(
+        recognizer.template_from_frame(
+            "BLIND_SELECT",
+            _solid_frame(190, 25, 25),
+            columns=4,
+            rows=3,
+        )
+    )
+    recognizer.add_template(
+        recognizer.template_from_frame(
+            "SHOP",
+            _solid_frame(20, 20, 200),
+            columns=4,
+            rows=3,
+        )
+    )
+
+    ranking = recognizer.rank(_solid_frame(195, 22, 22))
+
+    assert [item.phase for item in ranking] == ["BLIND_SELECT", "SHOP"]
+    assert ranking[0].distance < ranking[1].distance
+
+
 def test_phase_template_serialization_round_trip():
     recognizer = BalatroVisualPhaseRecognizer()
     template = recognizer.template_from_frame(
