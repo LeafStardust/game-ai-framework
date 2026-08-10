@@ -3,15 +3,17 @@ import json
 import pytest
 
 from games.balatro.live.external.capture import save_bgra_png
-from games.balatro.live.external.card_calibration import calibrate_card_templates
+from games.balatro.live.external.card_calibration import (
+    calibrate_card_template_manifests,
+    calibrate_card_templates,
+)
 from games.balatro.live.external.card_templates import (
-    RANK_ZONE,
-    SUIT_ZONE,
     coverage_report,
-    image_signature,
     load_card_template_set,
     load_rgb_png,
     parse_card_label,
+    rank_shape_signature,
+    suit_color_signature,
     templates_from_labeled_images,
 )
 
@@ -21,11 +23,31 @@ def _identity_png(path, *, accent=(20, 30, 40)):
     height = 32
     pixels = bytearray(b"\xf0\xf0\xf0\xff" * (width * height))
     blue, green, red = accent
-    for y in range(3, 27):
-        for x in range(2, 9):
+
+    for y in range(3, 7):
+        for x in range(2, 6):
             index = (y * width + x) * 4
             pixels[index : index + 4] = bytes((blue, green, red, 255))
+
+    for y in range(10, 14):
+        for x in range(3, 7):
+            index = (y * width + x) * 4
+            pixels[index : index + 4] = bytes((blue, green, red, 255))
+
     save_bgra_png(width, height, bytes(pixels), path)
+    return path
+
+
+def _manifest(directory, labels, *, accent=(20, 30, 40)):
+    directory.mkdir()
+    cards = []
+    for index, label in enumerate(labels):
+        name = f"card-{index:02d}.png"
+        _identity_png(directory / name, accent=accent)
+        cards.append({"index": index, "file": name, "label": label})
+
+    path = directory / "labels.json"
+    path.write_text(json.dumps({"cards": cards}), encoding="utf-8")
     return path
 
 
@@ -53,16 +75,37 @@ def test_load_rgb_png_reads_capture_png(tmp_path):
     assert len(image.rgb) == 24 * 32 * 3
 
 
-def test_image_signature_has_stable_grid_size(tmp_path):
-    image = load_rgb_png(_identity_png(tmp_path / "card.png"))
+def test_rank_shape_signature_is_color_invariant(tmp_path):
+    dark = load_rgb_png(
+        _identity_png(tmp_path / "dark.png", accent=(20, 30, 40))
+    )
+    colored = load_rgb_png(
+        _identity_png(tmp_path / "colored.png", accent=(60, 50, 180))
+    )
 
-    rank = image_signature(image, RANK_ZONE, columns=4, rows=3)
-    suit = image_signature(image, SUIT_ZONE, columns=4, rows=3)
+    dark_signature = rank_shape_signature(dark, columns=4, rows=3)
+    colored_signature = rank_shape_signature(colored, columns=4, rows=3)
 
-    assert len(rank) == 12
-    assert len(suit) == 12
-    assert max(rank) > 0
-    assert max(suit) > 0
+    assert len(dark_signature) == 12
+    assert dark_signature == colored_signature
+    assert max(dark_signature) > 0
+
+
+def test_suit_color_signature_preserves_glyph_color(tmp_path):
+    first = load_rgb_png(
+        _identity_png(tmp_path / "first.png", accent=(20, 30, 40))
+    )
+    second = load_rgb_png(
+        _identity_png(tmp_path / "second.png", accent=(40, 80, 180))
+    )
+
+    first_signature = suit_color_signature(first)
+    second_signature = suit_color_signature(second)
+
+    assert len(first_signature) == 3
+    assert first_signature == (40, 30, 20)
+    assert second_signature == (180, 80, 40)
+    assert first_signature != second_signature
 
 
 def test_templates_report_partial_rank_and_suit_coverage(tmp_path):
@@ -79,27 +122,18 @@ def test_templates_report_partial_rank_and_suit_coverage(tmp_path):
 
     assert report["ranks"] == ["K", "7"]
     assert report["suits"] == ["Hearts", "Diamonds"]
+    assert len(templates.ranks[0].signature) == 16
+    assert len(templates.suits[0].signature) == 3
     assert "A" in report["missing_ranks"]
     assert "Clubs" in report["missing_suits"]
     assert report["complete"] is False
 
 
 def test_calibration_uses_relative_manifest_image_paths(tmp_path):
-    identity_dir = tmp_path / "identities"
-    identity_dir.mkdir()
-    _identity_png(identity_dir / "card-00.png")
-    _identity_png(identity_dir / "card-01.png", accent=(10, 20, 60))
-    manifest = identity_dir / "labels.json"
-    manifest.write_text(
-        json.dumps(
-            {
-                "cards": [
-                    {"index": 0, "file": "card-00.png", "label": "Q♠"},
-                    {"index": 1, "file": "card-01.png", "label": "2♣"},
-                ]
-            }
-        ),
-        encoding="utf-8",
+    manifest = _manifest(
+        tmp_path / "identities",
+        ["Q♠", "2♣"],
+        accent=(10, 20, 60),
     )
     output = tmp_path / "templates.json"
 
@@ -110,3 +144,44 @@ def test_calibration_uses_relative_manifest_image_paths(tmp_path):
     assert report["suits"] == ["Spades", "Clubs"]
     assert len(templates.ranks) == 2
     assert len(templates.suits) == 2
+
+
+def test_calibration_rebuilds_from_multiple_manifests(tmp_path):
+    first = _manifest(tmp_path / "first", ["AH", "KD"])
+    second = _manifest(
+        tmp_path / "second",
+        ["QS", "JC"],
+        accent=(50, 70, 120),
+    )
+    output = tmp_path / "templates.json"
+
+    report = calibrate_card_template_manifests(
+        [first, second],
+        output,
+        replace=True,
+    )
+    templates = load_card_template_set(output)
+
+    assert report["ranks"] == ["A", "K", "Q", "J"]
+    assert report["suits"] == ["Hearts", "Diamonds", "Spades", "Clubs"]
+    assert len(templates.ranks) == 4
+    assert len(templates.suits) == 4
+
+
+def test_load_card_template_set_rejects_legacy_version_one(tmp_path):
+    path = tmp_path / "legacy.json"
+    path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "columns": 12,
+                "rows": 12,
+                "ranks": [],
+                "suits": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="legacy card template version 1"):
+        load_card_template_set(path)
