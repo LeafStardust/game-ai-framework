@@ -17,12 +17,14 @@ def _image(width=20, height=20, *, offset_x=0, value=(30, 30, 30)):
     return RGBImage(width, height, bytes(rgb))
 
 
-def test_candidate_fixed_rank_zones_stay_in_rank_band():
+def test_candidate_fixed_rank_zones_stay_in_diagnostic_search_band():
     zones = candidate_fixed_rank_zones()
 
     assert zones
-    assert all(top < 0.20 for _, top, _, _ in zones)
-    assert all(top + height <= 0.30 for _, top, _, height in zones)
+    assert all(0.06 <= left <= 0.10 for left, _, _, _ in zones)
+    assert all(0.12 <= top <= 0.16 for _, top, _, _ in zones)
+    assert all(0.28 <= width <= 0.36 for _, _, width, _ in zones)
+    assert all(0.10 <= height <= 0.14 for _, _, _, height in zones)
 
 
 def test_fixed_rank_signature_is_color_normalized():
