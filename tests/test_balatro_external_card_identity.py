@@ -1,8 +1,11 @@
+import json
+
 import pytest
 
 from games.balatro.live.external.card_identity import (
     card_identity_rect,
     extract_card_identity_regions,
+    save_card_identity_labels,
 )
 from games.balatro.live.external.card_locator import CardFaceLocation
 from games.balatro.live.external.capture import BalatroFrame
@@ -63,6 +66,41 @@ def test_extract_card_identity_regions_preserves_card_order():
     assert identities[0].region.width == 50
     assert identities[0].region.height == 60
     assert identities[1].region.pixel_rect.left == 400
+
+
+def test_save_card_identity_labels_writes_relative_sample_files(tmp_path):
+    directory = tmp_path / "samples"
+    directory.mkdir()
+    metadata = {
+        "cards": [
+            {"file": str(directory / "card-00.png")},
+            {"file": str(directory / "card-01.png")},
+        ]
+    }
+
+    path = save_card_identity_labels(metadata, ["AH", "10C"], directory)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+
+    assert payload == {
+        "cards": [
+            {"file": "card-00.png", "index": 0, "label": "AH"},
+            {"file": "card-01.png", "index": 1, "label": "10C"},
+        ]
+    }
+
+
+def test_save_card_identity_labels_rejects_count_mismatch(tmp_path):
+    metadata = {"cards": [{"file": "card-00.png"}, {"file": "card-01.png"}]}
+
+    with pytest.raises(ValueError, match="label count"):
+        save_card_identity_labels(metadata, ["AH"], tmp_path)
+
+
+def test_save_card_identity_labels_rejects_invalid_card_label(tmp_path):
+    metadata = {"cards": [{"file": "card-00.png"}]}
+
+    with pytest.raises(ValueError, match="unknown card"):
+        save_card_identity_labels(metadata, ["1Z"], tmp_path)
 
 
 def test_card_identity_rect_rejects_invalid_ratios():
