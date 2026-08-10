@@ -8,6 +8,20 @@ from .save_observer import SaveBalatroObserver
 from .save_state import BalatroSaveReader
 
 
+def _item_label(item) -> str:
+    label = getattr(item, "label", getattr(item, "name", type(item).__name__))
+    price = getattr(item, "price", getattr(item, "cost", None))
+    if isinstance(price, dict):
+        price = price.get("buy")
+    if price is None:
+        return str(label)
+    return f"{label} (${price})"
+
+
+def _items(values) -> str:
+    return ", ".join(_item_label(value) for value in values) or "none"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Read vanilla Balatro save.jkr and print the translated framework state."
@@ -60,11 +74,18 @@ def main() -> int:
         f"discard={snapshot.payload['discard']['count']}"
     )
     print(
-        "shop -> "
-        f"jokers={snapshot.payload['shop_jokers']['count']} "
+        "shop areas -> "
+        f"cards={snapshot.payload['shop_jokers']['count']} "
         f"boosters={snapshot.payload['shop_boosters']['count']} "
         f"vouchers={snapshot.payload['shop_vouchers']['count']}"
     )
+    print(f"shop_jokers[{len(state.shop_jokers)}] -> {_items(state.shop_jokers)}")
+    print(
+        f"shop_consumables[{len(state.shop_consumables)}] -> "
+        f"{_items(state.shop_consumables)}"
+    )
+    print(f"shop_boosters[{len(state.shop_boosters)}] -> {_items(state.shop_boosters)}")
+    print(f"shop_vouchers[{len(state.shop_vouchers)}] -> {_items(state.shop_vouchers)}")
     print(f"hidden_raw_save_exposed={'raw_save' in snapshot.payload}")
     return 0
 
