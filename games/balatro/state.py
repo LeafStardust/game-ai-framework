@@ -19,6 +19,7 @@ class BalatroState(GameState):
         self.deck: list[BalatroCard] = self._create_deck()
         self.hand: list[BalatroCard] = []
         self.hand_size: int = 8
+        self.hands_remaining: int = 4
         self.discard_pile: list[BalatroCard] = []
         self.discards_remaining: int = 3
         self.jokers: list = []
@@ -101,6 +102,7 @@ class BalatroState(GameState):
         new_state.deck = self.deck.copy()
         new_state.hand = self.hand.copy()
         new_state.hand_size = self.hand_size
+        new_state.hands_remaining = self.hands_remaining
         new_state.discard_pile = self.discard_pile.copy()
         new_state.discards_remaining = self.discards_remaining
         new_state.jokers = self.jokers.copy()
