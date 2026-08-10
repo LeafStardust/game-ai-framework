@@ -17,6 +17,7 @@ from .protocol import (
 )
 from .recovery import BalatroLiveRecovery
 from .synchronizer import BalatroLiveSynchronizer
+from .telemetry import BalatroConsoleTelemetry, BalatroRunStats
 from .translator import DefaultBalatroStateTranslator
 
 __all__ = [
@@ -25,10 +26,12 @@ __all__ = [
     "BalatroBotConnectionError",
     "BalatroBotError",
     "BalatroBotRpcError",
+    "BalatroConsoleTelemetry",
     "BalatroLiveBridge",
     "BalatroLiveLifecycle",
     "BalatroLiveRecovery",
     "BalatroLiveSynchronizer",
+    "BalatroRunStats",
     "BalatroStateTranslator",
     "DefaultBalatroActionExecutor",
     "DefaultBalatroStateTranslator",
