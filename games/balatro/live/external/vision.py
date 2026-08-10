@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass
 
 from .capture import BalatroFrame
@@ -55,13 +56,30 @@ class ColorGridSignature:
         return cls(columns, rows, tuple(values))
 
     def distance(self, other: ColorGridSignature) -> float:
+        return self.weighted_distance(other)
+
+    def weighted_distance(
+        self,
+        other: ColorGridSignature,
+        weights: tuple[float, ...] | None = None,
+    ) -> float:
         if self.columns != other.columns or self.rows != other.rows:
             raise ValueError("signature grid dimensions must match")
+
+        if weights is None:
+            weights = tuple(1.0 for _ in self.values)
+        if len(weights) != len(self.values):
+            raise ValueError("signature distance weights must match channel values")
+
+        total_weight = sum(weights)
+        if total_weight <= 0:
+            raise ValueError("signature distance weights must have positive total weight")
+
         difference = sum(
-            abs(left - right)
-            for left, right in zip(self.values, other.values)
+            weight * abs(left - right)
+            for left, right, weight in zip(self.values, other.values, weights)
         )
-        return difference / (len(self.values) * 255.0)
+        return difference / (total_weight * 255.0)
 
     def to_dict(self) -> dict:
         return {
@@ -165,9 +183,14 @@ class BalatroVisualPhaseRecognizer:
 
     def __init__(self, templates: list[PhaseTemplate] | None = None):
         self.templates = list(templates or [])
+        self._weight_cache: dict[
+            tuple[str, int, int, NormalizedRect],
+            tuple[float, ...] | None,
+        ] = {}
 
     def add_template(self, template: PhaseTemplate) -> None:
         self.templates.append(template)
+        self._weight_cache.clear()
 
     def template_from_frame(
         self,
@@ -238,7 +261,10 @@ class BalatroVisualPhaseRecognizer:
                 columns=template.signature.columns,
                 rows=template.signature.rows,
             )
-            distance = template.signature.distance(candidate)
+            distance = template.signature.weighted_distance(
+                candidate,
+                self._phase_weights(template),
+            )
             previous = best_by_phase.get(template.phase)
             if previous is None or distance < previous[1]:
                 best_by_phase[template.phase] = (template, distance)
@@ -247,3 +273,58 @@ class BalatroVisualPhaseRecognizer:
             best_by_phase.values(),
             key=lambda item: item[1],
         )
+
+    def _phase_weights(
+        self,
+        template: PhaseTemplate,
+    ) -> tuple[float, ...] | None:
+        key = (
+            template.phase,
+            template.signature.columns,
+            template.signature.rows,
+            template.region,
+        )
+        if key in self._weight_cache:
+            return self._weight_cache[key]
+
+        compatible = [
+            item
+            for item in self.templates
+            if item.signature.columns == template.signature.columns
+            and item.signature.rows == template.signature.rows
+            and item.region == template.region
+        ]
+        same_phase = [item for item in compatible if item.phase == template.phase]
+        other_phases: dict[str, list[PhaseTemplate]] = defaultdict(list)
+        for item in compatible:
+            if item.phase != template.phase:
+                other_phases[item.phase].append(item)
+
+        if len(same_phase) < 2 or not other_phases:
+            self._weight_cache[key] = None
+            return None
+
+        weights = []
+        for index in range(len(template.signature.values)):
+            same_values = [item.signature.values[index] for item in same_phase]
+            same_mean = sum(same_values) / len(same_values)
+            within_phase = sum(
+                abs(value - same_mean) for value in same_values
+            ) / len(same_values)
+
+            other_means = [
+                sum(item.signature.values[index] for item in items) / len(items)
+                for items in other_phases.values()
+            ]
+            between_phase = min(
+                abs(same_mean - other_mean) for other_mean in other_means
+            )
+
+            weight = (between_phase + 1.0) / (within_phase + 4.0)
+            weights.append(min(8.0, max(0.05, weight)))
+
+        total = sum(weights)
+        scale = len(weights) / total
+        normalized = tuple(weight * scale for weight in weights)
+        self._weight_cache[key] = normalized
+        return normalized
