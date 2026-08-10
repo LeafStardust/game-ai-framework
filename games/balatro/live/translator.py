@@ -104,4 +104,5 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             enhancement=self.ENHANCEMENTS.get(enhancement, enhancement),
             edition=self.EDITIONS.get(edition, edition),
             seal=card.get("seal"),
+            live_id=card.get("id"),
         )

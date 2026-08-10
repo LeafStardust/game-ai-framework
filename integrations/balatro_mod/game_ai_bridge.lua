@@ -8,9 +8,11 @@
 
 local BRIDGE_DIRECTORY = "game_ai_bridge"
 local STATE_FILE = BRIDGE_DIRECTORY .. "/state.json"
+local COMMAND_FILE = BRIDGE_DIRECTORY .. "/command.json"
 local EXPORT_INTERVAL = 0.10
 
 local sequence = 0
+local last_command_sequence = -1
 local elapsed = 0
 
 local function card_snapshot(card)
@@ -120,9 +122,96 @@ local function export_snapshot()
     )
 end
 
+local function clear_hand_highlights()
+    if not G.hand or not G.hand.highlighted then
+        return
+    end
+
+    for index = #G.hand.highlighted, 1, -1 do
+        G.hand:remove_from_highlighted(G.hand.highlighted[index])
+    end
+end
+
+local function highlight_cards(ids)
+    if not G.hand or not G.hand.cards then
+        return false
+    end
+
+    local wanted = {}
+    for _, id in ipairs(ids or {}) do
+        wanted[id] = true
+    end
+
+    clear_hand_highlights()
+
+    local highlighted = 0
+    for _, card in ipairs(G.hand.cards) do
+        if wanted[tostring(card)] then
+            G.hand:add_to_highlighted(card, true)
+            highlighted = highlighted + 1
+        end
+    end
+
+    return highlighted == #(ids or {})
+end
+
+local function execute_command(command)
+    if not command or not command.action then
+        return false
+    end
+
+    if command.action == "PLAY_CARDS" then
+        if not highlight_cards(command.payload and command.payload.cards) then
+            return false
+        end
+        G.FUNCS.play_cards_from_highlighted()
+        return true
+    end
+
+    if command.action == "DISCARD_CARDS" then
+        if not highlight_cards(command.payload and command.payload.cards) then
+            return false
+        end
+        G.FUNCS.discard_cards_from_highlighted()
+        return true
+    end
+
+    return false
+end
+
+local function process_command()
+    if not love.filesystem.getInfo(COMMAND_FILE) then
+        return
+    end
+
+    local raw = love.filesystem.read(COMMAND_FILE)
+    if not raw then
+        return
+    end
+
+    local ok, command = pcall(json.decode, raw)
+    if not ok or not command then
+        return
+    end
+
+    local command_sequence = tonumber(command.sequence) or -1
+    if command_sequence <= last_command_sequence then
+        love.filesystem.remove(COMMAND_FILE)
+        return
+    end
+
+    if execute_command(command) then
+        last_command_sequence = command_sequence
+    end
+
+    love.filesystem.remove(COMMAND_FILE)
+end
+
 local game_update_ref = Game.update
 function Game:update(dt)
     game_update_ref(self, dt)
+
+    process_command()
 
     elapsed = elapsed + dt
     if elapsed >= EXPORT_INTERVAL then

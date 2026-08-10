@@ -34,6 +34,7 @@ class BalatroCard:
     enhancement: str | None = None
     edition: str | None = None
     seal: str | None = None
+    live_id: str | None = None
 
     @property
     def is_wild(self) -> bool:
