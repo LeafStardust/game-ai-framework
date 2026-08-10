@@ -144,6 +144,7 @@ def test_save_snapshot_translates_into_framework_state():
     assert state.money == 4
     assert state.ante == 1
     assert state.round == 1
+    assert state.score == 220
     assert state.blind_score == 300
     assert state.hands_remaining == 3
     assert state.discards_remaining == 2
