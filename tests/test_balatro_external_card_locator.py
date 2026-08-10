@@ -7,19 +7,7 @@ from games.balatro.live.external.card_locator import (
 from games.balatro.live.external.viewport import FrameRegion, NormalizedRect, PixelRect
 
 
-def _region(width=400, height=200):
-    pixels = bytearray(b"\x20\x50\x20\xff" * (width * height))
-
-    def fill(left, top, rect_width, rect_height, pixel=b"\xe6\xe6\xe6\xff"):
-        for y in range(top, top + rect_height):
-            for x in range(left, left + rect_width):
-                index = (y * width + x) * 4
-                pixels[index : index + 4] = pixel
-
-    for index in range(8):
-        fill(10 + index * 47, 80, 30, 90)
-    fill(390, 10, 5, 5)
-
+def _frame_region(width, height, pixels):
     return FrameRegion(
         normalized_rect=NormalizedRect(0.10, 0.50, 0.80, 0.40),
         pixel_rect=PixelRect(40, 100, width, height),
@@ -27,23 +15,35 @@ def _region(width=400, height=200):
         height=height,
         bgra=bytes(pixels),
     )
+
+
+def _fill(pixels, width, left, top, rect_width, rect_height):
+    for y in range(top, top + rect_height):
+        for x in range(left, left + rect_width):
+            index = (y * width + x) * 4
+            pixels[index : index + 4] = b"\xe6\xe6\xe6\xff"
+
+
+def _region(width=400, height=200):
+    pixels = bytearray(b"\x20\x50\x20\xff" * (width * height))
+    for index in range(8):
+        _fill(pixels, width, 10 + index * 47, 80, 30, 90)
+    _fill(pixels, width, 390, 10, 5, 5)
+    return _frame_region(width, height, pixels)
 
 
 def _touching_region(width=400, height=200):
     pixels = bytearray(b"\x20\x50\x20\xff" * (width * height))
+    _fill(pixels, width, 20, 80, 280, 90)
+    return _frame_region(width, height, pixels)
 
-    for y in range(80, 170):
-        for x in range(20, 300):
-            index = (y * width + x) * 4
-            pixels[index : index + 4] = b"\xe6\xe6\xe6\xff"
 
-    return FrameRegion(
-        normalized_rect=NormalizedRect(0.10, 0.50, 0.80, 0.40),
-        pixel_rect=PixelRect(40, 100, width, height),
-        width=width,
-        height=height,
-        bgra=bytes(pixels),
-    )
+def _overlapping_hand_region(width=500, height=240):
+    pixels = bytearray(b"\x20\x50\x20\xff" * (width * height))
+    for index in range(8):
+        _fill(pixels, width, 20 + index * 48, 60, 60, 90)
+    _fill(pixels, width, 430, 140, 60, 90)
+    return _frame_region(width, height, pixels)
 
 
 def test_locate_card_faces_finds_ordered_bright_card_regions():
@@ -73,6 +73,25 @@ def test_locate_card_faces_maps_locations_back_to_full_viewport():
     assert first.normalized_rect.height == pytest.approx(0.18)
     assert first.center.x == pytest.approx(0.15)
     assert first.center.y == pytest.approx(0.75)
+
+
+def test_locate_card_faces_splits_overlapping_hand_and_ignores_deck_pile():
+    cards = locate_card_faces(_overlapping_hand_region(), sample_step=1)
+
+    assert len(cards) == 8
+    assert [card.local_rect.left for card in cards] == [
+        20,
+        68,
+        116,
+        164,
+        212,
+        260,
+        308,
+        356,
+    ]
+    assert all(card.local_rect.top == 60 for card in cards)
+    assert all(card.local_rect.width == 60 for card in cards)
+    assert all(card.local_rect.height == 90 for card in cards)
 
 
 def test_component_diagnostics_explain_oversized_touching_region():
