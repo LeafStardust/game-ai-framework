@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from dataclasses import dataclass
 
 from .capture import BalatroFrame
@@ -184,7 +183,7 @@ class BalatroVisualPhaseRecognizer:
     def __init__(self, templates: list[PhaseTemplate] | None = None):
         self.templates = list(templates or [])
         self._weight_cache: dict[
-            tuple[str, int, int, NormalizedRect],
+            tuple[int, int, NormalizedRect],
             tuple[float, ...] | None,
         ] = {}
 
@@ -263,7 +262,7 @@ class BalatroVisualPhaseRecognizer:
             )
             distance = template.signature.weighted_distance(
                 candidate,
-                self._phase_weights(template),
+                self._shared_weights(template),
             )
             previous = best_by_phase.get(template.phase)
             if previous is None or distance < previous[1]:
@@ -274,12 +273,11 @@ class BalatroVisualPhaseRecognizer:
             key=lambda item: item[1],
         )
 
-    def _phase_weights(
+    def _shared_weights(
         self,
         template: PhaseTemplate,
     ) -> tuple[float, ...] | None:
         key = (
-            template.phase,
             template.signature.columns,
             template.signature.rows,
             template.region,
@@ -294,31 +292,34 @@ class BalatroVisualPhaseRecognizer:
             and item.signature.rows == template.signature.rows
             and item.region == template.region
         ]
-        same_phase = [item for item in compatible if item.phase == template.phase]
-        other_phases: dict[str, list[PhaseTemplate]] = defaultdict(list)
-        for item in compatible:
-            if item.phase != template.phase:
-                other_phases[item.phase].append(item)
-
-        if len(same_phase) < 2 or not other_phases:
+        phases = sorted({item.phase for item in compatible})
+        if len(phases) < 2:
             self._weight_cache[key] = None
             return None
 
+        grouped = {
+            phase: [item for item in compatible if item.phase == phase]
+            for phase in phases
+        }
         weights = []
-        for index in range(len(template.signature.values)):
-            same_values = [item.signature.values[index] for item in same_phase]
-            same_mean = sum(same_values) / len(same_values)
-            within_phase = sum(
-                abs(value - same_mean) for value in same_values
-            ) / len(same_values)
 
-            other_means = [
-                sum(item.signature.values[index] for item in items) / len(items)
-                for items in other_phases.values()
-            ]
-            between_phase = min(
-                abs(same_mean - other_mean) for other_mean in other_means
-            )
+        for index in range(len(template.signature.values)):
+            means = {}
+            within_total = 0.0
+            sample_count = 0
+
+            for phase, items in grouped.items():
+                values = [item.signature.values[index] for item in items]
+                mean = sum(values) / len(values)
+                means[phase] = mean
+                within_total += sum(abs(value - mean) for value in values)
+                sample_count += len(values)
+
+            overall_mean = sum(means.values()) / len(means)
+            between_phase = sum(
+                abs(mean - overall_mean) for mean in means.values()
+            ) / len(means)
+            within_phase = within_total / sample_count
 
             weight = (between_phase + 1.0) / (within_phase + 4.0)
             weights.append(min(8.0, max(0.05, weight)))
