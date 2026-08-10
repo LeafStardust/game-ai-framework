@@ -2,17 +2,19 @@
 
 ## Purpose
 
-The live integration connects the Python decision framework to the actual Balatro process without embedding agent intelligence into the game mod.
+The live integration connects the Python decision framework to the actual Balatro process without embedding agent intelligence into the game integration layer.
+
+BalatroBot is used only as the external game-control API. It supplies live state and executes requested game operations. Decision-making, search, evaluation, planning, and deck-specific strategy remain inside this repository.
 
 ## Architecture
 
 ```text
-Balatro (LÖVE/Lua)
+Balatro
     |
-    | Steamodded/Lovely bridge mod
-    | snapshots / commands
+    | BalatroBot Steamodded/Lovely mod
+    | JSON-RPC 2.0 over HTTP
     v
-BalatroLiveBridge
+BalatroBotBridge : BalatroLiveBridge
     |
     +--> BalatroStateTranslator --> BalatroState
     |                               |
@@ -25,33 +27,57 @@ BalatroLiveBridge
 
 The responsibilities are deliberately separated:
 
-- **Lua bridge mod** reads Balatro's internal state and performs game-native interactions.
-- **`BalatroLiveBridge`** owns transport only. It does not understand strategy.
-- **`BalatroStateTranslator`** converts live snapshots into the existing `BalatroState` model.
-- **`RedDeckAgent`** remains the decision-making brain and should not know whether its state came from simulation or the live game.
-- **`BalatroActionExecutor`** converts selected `BalatroAction` objects into live-game commands.
+- **BalatroBot** exposes Balatro runtime state and native game controls through JSON-RPC.
+- **`BalatroBotBridge`** owns the HTTP/JSON-RPC transport and maps generic live commands to BalatroBot methods.
+- **`BalatroStateTranslator`** converts BalatroBot gamestate responses into the existing `BalatroState` model.
+- **`RedDeckAgent`** remains the decision-making brain and does not depend on BalatroBot-specific details.
+- **`BalatroActionExecutor`** converts selected `BalatroAction` objects into indexed live-game commands.
 
-## Integration Surface
+## Dependency Boundary
 
-The in-game bridge will use Steamodded/Lovely because Balatro exposes its runtime state through Lua globals such as `G`, `G.GAME`, `G.STATE`, and the event manager. This avoids making screen recognition and mouse-coordinate automation the primary source of truth.
+BalatroBot is an external runtime dependency and is not vendored into this repository. The user installs the BalatroBot mod alongside Balatro.
 
-The initial transport will use JSON messages between the Lua bridge and Python. The Python interfaces do not depend on a specific transport so the implementation can later move to sockets or another IPC mechanism without changing agent code.
+The default API endpoint is:
 
-## Protocol Rules
+```text
+http://127.0.0.1:12346
+```
 
-Every snapshot and command has a monotonically increasing `sequence` value. This is used to prevent the Python agent from acting twice on the same live state and to detect stale messages.
+The integration uses BalatroBot's public JSON-RPC API for operations including:
 
-A snapshot contains:
+- game-state acquisition;
+- starting and restarting runs;
+- blind selection and skipping;
+- playing and discarding cards;
+- buying, selling, rerolling, and leaving shops;
+- using consumables;
+- cashing out completed rounds;
+- advancing to the next blind.
 
-- current live phase/state identifier;
-- whether the game reports that state as complete/stable;
-- a payload containing the game data required by the translator.
+No BalatroBot decision or strategy logic is used.
 
-A command contains:
+## State Mapping
 
-- the snapshot sequence it responds to;
-- a framework action name;
-- action-specific payload such as selected card identifiers or shop targets.
+BalatroBot returns structured areas for the hand, remaining deck, Jokers, consumables, shop cards, vouchers, packs, and booster contents. Cards in an area are addressed by their 0-based position.
+
+The translator maps the live schema into framework concepts, including:
+
+- deck and stake;
+- ante and round;
+- money and blind progress;
+- hands and discards remaining;
+- playing cards and modifiers;
+- poker-hand levels;
+- consumables;
+- current/selectable blind information.
+
+Framework cards and consumables retain the corresponding live area index as `live_id` so a selected framework action can be sent back to BalatroBot.
+
+## Synchronization
+
+BalatroBot actions return the settled game state after the operation. `BalatroBotBridge` normalizes these responses into `LiveBalatroSnapshot` objects and assigns a local monotonically increasing sequence whenever the observed game state changes.
+
+`BalatroLiveSynchronizer` uses this sequence and phase filtering to avoid acting repeatedly on the same state.
 
 ## v0.9 Task Boundaries
 
