@@ -39,12 +39,19 @@ class LiveConsumableFactory:
         consumable.live_id = (
             live_id
             if live_id is not None
-            else data.get("id")
+            else data.get("live_id", data.get("id"))
         )
 
-        cost = data.get("cost") or {}
-        if cost.get("buy") is not None:
-            consumable.price = int(cost["buy"])
+        cost = data.get("cost")
+        if isinstance(cost, dict):
+            buy_cost = cost.get("buy")
+        elif isinstance(cost, (int, float)) and not isinstance(cost, bool):
+            buy_cost = cost
+        else:
+            buy_cost = None
+
+        if buy_cost is not None:
+            consumable.price = int(buy_cost)
 
         return consumable
 
