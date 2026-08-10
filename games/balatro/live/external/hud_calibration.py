@@ -70,37 +70,57 @@ def calibrate_hud_digits(
     return templates
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Build HUD digit templates from labeled Balatro diagnostic crops."
-    )
-    parser.add_argument(
-        "values",
-        nargs="+",
-        metavar="FIELD=INTEGER",
-    )
-    parser.add_argument("--input-prefix", default=DEFAULT_INPUT_PREFIX)
-    parser.add_argument("--output", default=DEFAULT_OUTPUT)
-    parser.add_argument("--replace", action="store_true")
-    args = parser.parse_args()
-
-    try:
-        samples = [parse_field_value(value) for value in args.values]
-        templates = calibrate_hud_digits(
-            samples,
-            input_prefix=args.input_prefix,
-            output_path=args.output,
-            replace=args.replace,
-        )
-    except (OSError, ValueError) as error:
-        parser.error(str(error))
-
+def print_calibration_status(templates) -> None:
     coverage = sorted(templates.coverage, key=int)
     missing = [digit for digit in DIGITS if digit not in templates.coverage]
     print("Digit coverage: " + (", ".join(coverage) if coverage else "none"))
     print("Missing digits: " + (", ".join(missing) if missing else "none"))
     print(f"Recognition calibration complete: {templates.complete}")
-    print(f"Saved -> {args.output}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Build or inspect HUD digit templates from labeled Balatro diagnostic crops."
+    )
+    parser.add_argument(
+        "values",
+        nargs="*",
+        metavar="FIELD=INTEGER",
+    )
+    parser.add_argument("--input-prefix", default=DEFAULT_INPUT_PREFIX)
+    parser.add_argument("--output", default=DEFAULT_OUTPUT)
+    parser.add_argument("--replace", action="store_true")
+    parser.add_argument(
+        "--status",
+        action="store_true",
+        help="show current HUD digit template coverage without modifying it",
+    )
+    args = parser.parse_args()
+
+    if args.status and args.values:
+        parser.error("--status cannot be combined with FIELD=INTEGER samples")
+    if args.status and args.replace:
+        parser.error("--status cannot be combined with --replace")
+    if not args.status and not args.values:
+        parser.error("FIELD=INTEGER is required unless --status is used")
+
+    try:
+        if args.status:
+            templates = load_hud_digit_templates(args.output)
+        else:
+            samples = [parse_field_value(value) for value in args.values]
+            templates = calibrate_hud_digits(
+                samples,
+                input_prefix=args.input_prefix,
+                output_path=args.output,
+                replace=args.replace,
+            )
+    except (OSError, ValueError) as error:
+        parser.error(str(error))
+
+    print_calibration_status(templates)
+    if not args.status:
+        print(f"Saved -> {args.output}")
     return 0
 
 
