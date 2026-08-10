@@ -1,8 +1,8 @@
 from games.balatro.live.external.card_rank_diagnostics import exact_rank_collisions
+from games.balatro.live.external.card_template_format import save_card_template_set
 from games.balatro.live.external.card_templates import (
     CardTemplateSet,
     CardVisualTemplate,
-    save_card_template_set,
 )
 
 
