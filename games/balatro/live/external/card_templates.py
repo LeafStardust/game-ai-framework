@@ -19,11 +19,11 @@ SUIT_ALIASES = {
     "♠": "Spades",
     "♣": "Clubs",
 }
-TEMPLATE_VERSION = 3
+TEMPLATE_VERSION = 4
 TEMPLATE_COLUMNS = 20
 TEMPLATE_ROWS = 20
-RANK_ZONE = (0.06, 0.06, 0.32, 0.20)
-SUIT_ZONE = (0.06, 0.27, 0.32, 0.22)
+RANK_ZONE = (0.06, 0.30, 0.32, 0.20)
+SUIT_ZONE = RANK_ZONE
 FOREGROUND_THRESHOLD = 35
 BACKGROUND_FRACTION = 0.40
 RANK_PADDING = 1
@@ -277,8 +277,8 @@ def save_card_template_set(path: str | Path, templates: CardTemplateSet) -> Path
         "version": TEMPLATE_VERSION,
         "columns": templates.columns,
         "rows": templates.rows,
-        "rank_feature": "normalized-smoothed-glyph-shape",
-        "suit_feature": "glyph-median-rgb",
+        "rank_feature": "normalized-smoothed-rank-glyph-shape",
+        "suit_feature": "rank-glyph-median-rgb",
         "ranks": [
             {"label": template.label, "signature": list(template.signature)}
             for template in templates.ranks
@@ -299,7 +299,7 @@ def load_card_template_set(path: str | Path) -> CardTemplateSet:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     version = payload.get("version")
     if version != TEMPLATE_VERSION:
-        if version in {1, 2}:
+        if version in {1, 2, 3}:
             raise ValueError(
                 f"legacy card template version {version} must be rebuilt from labeled identity crops"
             )
