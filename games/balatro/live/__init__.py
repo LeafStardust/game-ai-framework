@@ -22,6 +22,10 @@ from .shop import (
     LiveShopItem,
     LiveShopItemFactory,
 )
+from .shop_sync import (
+    BufferedShopTransaction,
+    UnsupportedBufferedShopAction,
+)
 from .synchronizer import BalatroLiveSynchronizer
 from .telemetry import BalatroConsoleTelemetry, BalatroRunStats
 from .translator import DefaultBalatroStateTranslator
@@ -41,10 +45,12 @@ __all__ = [
     "BalatroRunStats",
     "BalatroShopActionGenerator",
     "BalatroStateTranslator",
+    "BufferedShopTransaction",
     "DefaultBalatroActionExecutor",
     "DefaultBalatroStateTranslator",
     "LiveBalatroCommand",
     "LiveBalatroSnapshot",
     "LiveShopItem",
     "LiveShopItemFactory",
+    "UnsupportedBufferedShopAction",
 ]
