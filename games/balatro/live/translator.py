@@ -2,6 +2,7 @@ from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.interfaces import BalatroStateTranslator
+from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.state import BalatroState
 
@@ -76,6 +77,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
 
     def __init__(self):
         self.consumable_factory = LiveConsumableFactory()
+        self.joker_factory = LiveJokerFactory()
 
     def translate(
         self,
@@ -108,6 +110,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
 
         hand_area = self._area(payload.get("hand"))
         deck_area = self._area(payload.get("cards", payload.get("deck")))
+        joker_area = self._area(payload.get("jokers"))
         consumable_area = self._area(payload.get("consumables"))
         shop_area = self._area(payload.get("shop"))
 
@@ -119,6 +122,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         )
         state.hand = self._cards(hand_area.get("cards", []))
         state.deck = self._cards(deck_area.get("cards", []))
+        state.jokers = self._jokers(joker_area.get("cards", []))
         state.consumables = self._consumables(
             consumable_area.get("cards", [])
         )
@@ -168,6 +172,16 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             result.append(
                 self._card(card, index)
             )
+
+        return result
+
+    def _jokers(self, values: list[dict]) -> list:
+        result = []
+
+        for value in values:
+            joker = self.joker_factory.create(value)
+            if joker is not None:
+                result.append(joker)
 
         return result
 
