@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from games.balatro.live.external import ColorGridSignature, PhaseTemplate
-from games.balatro.live.external.phase_store import save_phase_templates
+from games.balatro.live.external.phase_templates import save_phase_templates
 from games.balatro.live.external.phase_validation import (
     REQUIRED_PHASES,
     validate_template_set,
