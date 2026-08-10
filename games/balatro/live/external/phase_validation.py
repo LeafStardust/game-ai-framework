@@ -6,7 +6,7 @@ from collections import Counter
 from pathlib import Path
 
 from .observer import ExternalBalatroObserver
-from .phase_store import load_phase_templates
+from .phase_templates import load_phase_templates
 
 
 REQUIRED_PHASES = {
