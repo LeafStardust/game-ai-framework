@@ -11,7 +11,7 @@ BalatroBot is used only as the external game-control API. It supplies live state
 ```text
 Balatro
     |
-    | BalatroBot Steamodded/Lovely mod
+    | Lovely + Steamodded + BalatroBot
     | JSON-RPC 2.0 over HTTP
     v
 BalatroBotBridge : BalatroLiveBridge
@@ -27,17 +27,46 @@ BalatroBotBridge : BalatroLiveBridge
 
 The responsibilities are deliberately separated:
 
+- **Lovely** injects the modding/runtime layer into Balatro.
+- **Steamodded** loads the BalatroBot mod.
 - **BalatroBot** exposes Balatro runtime state and native game controls through JSON-RPC.
 - **`BalatroBotBridge`** owns the HTTP/JSON-RPC transport and maps generic live commands to BalatroBot methods.
 - **`BalatroStateTranslator`** converts BalatroBot gamestate responses into the existing `BalatroState` model.
 - **`RedDeckAgent`** remains the decision-making brain and does not depend on BalatroBot-specific details.
 - **`BalatroActionExecutor`** converts selected `BalatroAction` objects into indexed live-game commands.
 
+## Automated Setup
+
+Python dependencies are installed normally:
+
+```powershell
+pip install -r requirements.txt
+```
+
+Balatro-side integration dependencies are installed with:
+
+```powershell
+py -m games.balatro.setup
+```
+
+The setup command:
+
+1. detects the Steam Balatro installation, including secondary Steam libraries;
+2. downloads the current Lovely release for the detected platform;
+3. installs Lovely into the Balatro game directory;
+4. downloads and installs the current Steamodded release;
+5. downloads and installs the current BalatroBot release;
+6. verifies all required files are present.
+
+Use `--balatro-dir` when Balatro cannot be auto-detected, `--mods-dir` to override the mod directory, and `--force` to reinstall the integration dependencies.
+
+On Windows, `py -m games.balatro.live` automatically starts `Balatro.exe` when the BalatroBot API is not already available. It sets the same `BALATROBOT_*` environment variables consumed by the BalatroBot mod, so `uvx balatrobot serve` is not required.
+
 ## Dependency Boundary
 
-BalatroBot is an external runtime dependency and is not vendored into this repository. The user installs the BalatroBot mod alongside Balatro.
+Lovely, Steamodded, and BalatroBot remain upstream runtime dependencies. Their source code is not vendored into this repository. The bootstrapper downloads their official GitHub releases into the locations required by Balatro.
 
-BalatroBot currently requires Balatro, Lovely Injector, Steamodded, and `uv`. Its default API endpoint is:
+The default API endpoint is:
 
 ```text
 http://127.0.0.1:12346
@@ -79,33 +108,24 @@ BalatroBot actions return the settled game state after the operation. `BalatroBo
 
 `BalatroLiveSynchronizer` uses this sequence and phase filtering to avoid acting repeatedly on the same state.
 
-## Console Telemetry
+## Running the Agent
 
-`BalatroConsoleTelemetry` reports live state, chosen actions, errors, and an end-of-run summary. The trace includes ante, round, blind progress, money, hands/discards remaining, decision counts, action counts, recoveries, and the final outcome.
-
-## Running Locally
-
-Install and configure BalatroBot according to its upstream installation guide, then launch Balatro through its server command:
-
-```powershell
-uvx balatrobot serve
-```
-
-In a second terminal, from this repository, run the framework agent:
+After setup:
 
 ```powershell
 py -m games.balatro.live
 ```
 
-The default target is Red Deck White Stake. Optional arguments include:
+The default target is Red Deck / White Stake. Useful options include:
 
-```powershell
-py -m games.balatro.live --seed ABC123
-py -m games.balatro.live --endpoint http://127.0.0.1:12346
-py -m games.balatro.live --deck RED --stake WHITE
+```text
+--seed SEED
+--endpoint URL
+--balatro-dir PATH
+--fast
+--headless
+--no-launch
 ```
-
-The v0.9 validation run does not need to win. It only needs to demonstrate that the framework can start the run and autonomously progress through live game states without manual gameplay input until the game ends.
 
 ## v0.9 Task Boundaries
 
@@ -118,8 +138,7 @@ The v0.9 validation run does not need to win. It only needs to demonstrate that 
 7. Blind and round transitions.
 8. Run start/restart.
 9. Recovery handling.
-10. Console telemetry and run diagnostics.
+10. Dependency bootstrap and launch.
 11. End-to-end autonomous loop.
-12. Actual-game validation.
 
 The v0.9 milestone proves that the agent can autonomously operate the actual game. Winning Red Deck White Stake is the v1.0.0 completion criterion.
