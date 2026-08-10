@@ -5,11 +5,8 @@ import json
 from pathlib import Path
 
 from .card_recognition import recognize_card_image
-from .card_templates import (
-    load_card_template_set,
-    load_rgb_png,
-    parse_card_label,
-)
+from .card_template_format import load_card_template_set
+from .card_templates import load_rgb_png, parse_card_label
 
 
 def validate_labeled_samples(
