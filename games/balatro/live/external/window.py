@@ -15,6 +15,10 @@ class BalatroWindowNotFound(BalatroWindowError):
     pass
 
 
+class BalatroWindowNotForeground(BalatroWindowError):
+    pass
+
+
 @dataclass(frozen=True)
 class WindowRect:
     left: int
@@ -48,6 +52,8 @@ class WindowProvider(Protocol):
 
     def get_window(self, handle: int) -> BalatroWindow | None: ...
 
+    def get_foreground_handle(self) -> int | None: ...
+
 
 class _Point(ctypes.Structure):
     _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
@@ -75,6 +81,7 @@ class WindowsWindowProvider:
             self.user32.SetProcessDPIAware()
         except (AttributeError, OSError):
             pass
+        self.user32.GetForegroundWindow.restype = ctypes.c_void_p
 
     def list_windows(self) -> list[BalatroWindow]:
         windows: list[BalatroWindow] = []
@@ -132,6 +139,10 @@ class WindowsWindowProvider:
             ),
         )
 
+    def get_foreground_handle(self) -> int | None:
+        handle = self.user32.GetForegroundWindow()
+        return int(handle) if handle else None
+
 
 class BalatroWindowLocator:
     """Finds the normal Balatro game window without touching the process."""
@@ -173,6 +184,9 @@ class BalatroWindowLocator:
             )
         return window
 
+    def foreground_handle(self) -> int | None:
+        return self.provider.get_foreground_handle()
+
     def wait(
         self,
         timeout: float = 10.0,
@@ -211,3 +225,12 @@ class BalatroWindowTracker:
         except BalatroWindowNotFound:
             self.current = self.locator.find()
         return self.current
+
+    def require_foreground(self) -> BalatroWindow:
+        window = self.snapshot()
+        foreground = self.locator.foreground_handle()
+        if foreground != window.handle:
+            raise BalatroWindowNotForeground(
+                "Balatro must be the foreground window before external capture"
+            )
+        return window
