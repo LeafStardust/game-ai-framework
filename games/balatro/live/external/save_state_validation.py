@@ -44,9 +44,7 @@ def main() -> int:
         f"hands={state.hands_remaining} discards={state.discards_remaining} "
         f"hand_size={state.hand_size}"
     )
-    print(
-        f"hand[{len(state.hand)}] -> {hand}"
-    )
+    print(f"hand[{len(state.hand)}] -> {hand}")
     print(
         "areas -> "
         f"deck={snapshot.payload['cards']['count']} "
@@ -56,10 +54,7 @@ def main() -> int:
         f"play={snapshot.payload['play']['count']} "
         f"discard={snapshot.payload['discard']['count']}"
     )
-    print(
-        "Raw save retained -> "
-        + str("raw_save" in snapshot.payload)
-    )
+    print(f"hidden_raw_save_exposed={'raw_save' in snapshot.payload}")
     return 0
 
 
