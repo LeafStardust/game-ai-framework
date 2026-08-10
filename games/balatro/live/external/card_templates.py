@@ -19,13 +19,14 @@ SUIT_ALIASES = {
     "♠": "Spades",
     "♣": "Clubs",
 }
-TEMPLATE_VERSION = 2
-TEMPLATE_COLUMNS = 10
-TEMPLATE_ROWS = 10
+TEMPLATE_VERSION = 3
+TEMPLATE_COLUMNS = 20
+TEMPLATE_ROWS = 20
 RANK_ZONE = (0.06, 0.06, 0.32, 0.20)
 SUIT_ZONE = (0.06, 0.27, 0.32, 0.22)
 FOREGROUND_THRESHOLD = 35
 BACKGROUND_FRACTION = 0.40
+RANK_PADDING = 1
 
 
 @dataclass(frozen=True)
@@ -141,32 +142,56 @@ def rank_shape_signature(
     rows: int = TEMPLATE_ROWS,
     foreground_threshold: int = FOREGROUND_THRESHOLD,
 ) -> tuple[int, ...]:
-    if columns < 1 or rows < 1:
-        raise ValueError("signature grid dimensions must be positive")
+    if columns < 3 or rows < 3:
+        raise ValueError("rank signature grid dimensions must be at least 3")
     if not 0 <= foreground_threshold <= 255:
         raise ValueError("foreground_threshold must be between 0 and 255")
 
     left, top, right, bottom = _zone_bounds(image, zone)
     background = _background_rgb(image, left, top, right, bottom)
-    signature = []
+    foreground = []
 
-    for grid_y in range(rows):
-        y0 = top + (bottom - top) * grid_y // rows
-        y1 = max(y0 + 1, top + (bottom - top) * (grid_y + 1) // rows)
-        for grid_x in range(columns):
-            x0 = left + (right - left) * grid_x // columns
-            x1 = max(x0 + 1, left + (right - left) * (grid_x + 1) // columns)
-            foreground = count = 0
-            for y in range(y0, min(y1, bottom)):
-                for x in range(x0, min(x1, right)):
-                    pixel = _pixel_rgb(image, x, y)
-                    foreground += int(
-                        _color_distance(pixel, background) >= foreground_threshold
-                    )
-                    count += 1
-            signature.append(round(255 * foreground / max(1, count)))
+    for y in range(top, bottom):
+        for x in range(left, right):
+            if _color_distance(_pixel_rgb(image, x, y), background) >= foreground_threshold:
+                foreground.append((x, y))
 
-    return tuple(signature)
+    if not foreground:
+        raise ValueError("rank glyph zone contains no foreground pixels")
+
+    min_x = min(x for x, _ in foreground)
+    max_x = max(x for x, _ in foreground)
+    min_y = min(y for _, y in foreground)
+    max_y = max(y for _, y in foreground)
+    glyph_width = max_x - min_x + 1
+    glyph_height = max_y - min_y + 1
+
+    inner_columns = columns - 2 * RANK_PADDING
+    inner_rows = rows - 2 * RANK_PADDING
+    scale = min(inner_columns / glyph_width, inner_rows / glyph_height)
+    rendered_width = max(1, min(inner_columns, round(glyph_width * scale)))
+    rendered_height = max(1, min(inner_rows, round(glyph_height * scale)))
+    offset_x = (columns - rendered_width) // 2
+    offset_y = (rows - rendered_height) // 2
+
+    canvas = [0] * (columns * rows)
+    for target_y in range(rendered_height):
+        source_y = min(
+            max_y,
+            min_y + int((target_y + 0.5) * glyph_height / rendered_height),
+        )
+        for target_x in range(rendered_width):
+            source_x = min(
+                max_x,
+                min_x + int((target_x + 0.5) * glyph_width / rendered_width),
+            )
+            if (
+                _color_distance(_pixel_rgb(image, source_x, source_y), background)
+                >= foreground_threshold
+            ):
+                canvas[(offset_y + target_y) * columns + offset_x + target_x] = 255
+
+    return _smooth_binary_signature(canvas, columns, rows)
 
 
 def suit_color_signature(
@@ -252,7 +277,7 @@ def save_card_template_set(path: str | Path, templates: CardTemplateSet) -> Path
         "version": TEMPLATE_VERSION,
         "columns": templates.columns,
         "rows": templates.rows,
-        "rank_feature": "binary-glyph-shape",
+        "rank_feature": "normalized-smoothed-glyph-shape",
         "suit_feature": "glyph-median-rgb",
         "ranks": [
             {"label": template.label, "signature": list(template.signature)}
@@ -274,9 +299,9 @@ def load_card_template_set(path: str | Path) -> CardTemplateSet:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     version = payload.get("version")
     if version != TEMPLATE_VERSION:
-        if version == 1:
+        if version in {1, 2}:
             raise ValueError(
-                "legacy card template version 1 must be rebuilt from labeled identity crops"
+                f"legacy card template version {version} must be rebuilt from labeled identity crops"
             )
         raise ValueError("unsupported card template version")
 
@@ -316,6 +341,23 @@ def coverage_report(templates: CardTemplateSet) -> dict:
         "missing_suits": [suit for suit in SUITS if suit not in suit_coverage],
         "complete": rank_coverage == set(RANKS) and suit_coverage == set(SUITS),
     }
+
+
+def _smooth_binary_signature(
+    canvas: list[int],
+    columns: int,
+    rows: int,
+) -> tuple[int, ...]:
+    signature = []
+    for y in range(rows):
+        for x in range(columns):
+            total = count = 0
+            for sample_y in range(max(0, y - 1), min(rows, y + 2)):
+                for sample_x in range(max(0, x - 1), min(columns, x + 2)):
+                    total += canvas[sample_y * columns + sample_x]
+                    count += 1
+            signature.append(round(total / count))
+    return tuple(signature)
 
 
 def _zone_bounds(
