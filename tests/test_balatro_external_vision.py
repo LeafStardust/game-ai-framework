@@ -25,6 +25,26 @@ def _solid_frame(red, green, blue, width=120, height=70):
     )
 
 
+def _grid_frame(values, cell_width=20, height=40):
+    width = len(values) * cell_width
+    row = b"".join(
+        bytes((value, value, value, 255)) * cell_width
+        for value in values
+    )
+    return BalatroFrame(
+        sequence=1,
+        timestamp=0.0,
+        window=BalatroWindow(
+            handle=1,
+            title="Balatro",
+            client_rect=WindowRect(0, 0, width, height),
+        ),
+        width=width,
+        height=height,
+        bgra=row * height,
+    )
+
+
 def test_phase_recognizer_matches_calibrated_external_frame():
     recognizer = BalatroVisualPhaseRecognizer()
     recognizer.add_template(
@@ -99,6 +119,43 @@ def test_phase_recognizer_ranks_one_best_match_per_phase():
     ranking = recognizer.rank(_solid_frame(195, 22, 22))
 
     assert [item.phase for item in ranking] == ["BLIND_SELECT", "SHOP"]
+    assert ranking[0].distance < ranking[1].distance
+
+
+def test_phase_recognizer_weights_stable_discriminative_cells():
+    recognizer = BalatroVisualPhaseRecognizer()
+    blind_samples = [
+        [200, 0, 0, 100, 100, 0, 0, 100, 100],
+        [200, 100, 100, 0, 0, 100, 100, 0, 0],
+    ]
+    hand_samples = [
+        [50, 0, 0, 0, 0, 100, 100, 100, 100],
+        [50, 100, 100, 100, 100, 0, 0, 0, 0],
+    ]
+
+    for values in blind_samples:
+        recognizer.add_template(
+            recognizer.template_from_frame(
+                "BLIND_SELECT",
+                _grid_frame(values),
+                columns=9,
+                rows=1,
+            )
+        )
+    for values in hand_samples:
+        recognizer.add_template(
+            recognizer.template_from_frame(
+                "SELECTING_HAND",
+                _grid_frame(values),
+                columns=9,
+                rows=1,
+            )
+        )
+
+    candidate = _grid_frame([190, 0, 0, 0, 0, 100, 100, 100, 100])
+    ranking = recognizer.rank(candidate)
+
+    assert [item.phase for item in ranking] == ["BLIND_SELECT", "SELECTING_HAND"]
     assert ranking[0].distance < ranking[1].distance
 
 
