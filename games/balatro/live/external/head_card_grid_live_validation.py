@@ -6,6 +6,7 @@ import time
 from games.balatro.live.external.capture import BalatroScreenCapture
 from games.balatro.live.external.card_capture import DEFAULT_HAND_REGION
 from games.balatro.live.external.expected_card_locator import (
+    _locations_form_uniform_grid,
     locate_card_faces_expected_count,
 )
 from games.balatro.live.external.hand_mouse import ExternalHandMouseExecutor
@@ -75,12 +76,15 @@ def main() -> int:
                 "visible hand/card-save count mismatch: "
                 f"screen={len(locations)}, save={expected_count}"
             )
+        if not _locations_form_uniform_grid(locations):
+            raise RuntimeError("reconstructed hand centers do not form a uniform card grid")
         ExternalHandMouseExecutor._require_unselected_row(locations)
     except (RuntimeError, ValueError) as error:
         parser.error(str(error))
 
     scorer = HeadScorer()
     print(f"Screen hand cards -> {len(locations)}")
+    print("Grid-spacing guard -> PASS")
     print("Resting-row guard -> PASS")
     for index, (card, location) in enumerate(zip(state.hand, locations)):
         suffix = " [DEBUFFED]" if scorer.is_card_debuffed(card) else ""
