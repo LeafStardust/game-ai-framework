@@ -81,7 +81,7 @@ def test_extended_node_budget_adds_deepest_horizon_intensification():
     assert wider_root.child_play_width == 1
 
     wider_child = schedule[-1]
-    assert wider_child.samples == 4
+    assert wider_child.samples == 8
     assert wider_child.play_width == 3
     assert wider_child.discard_width == 2
     assert wider_child.child_play_width == 2
