@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from games.balatro.actions import BUY_JOKER, END_SHOP
+from games.balatro.joker import Joker
 from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 from games.balatro.shop_policy import BalatroShopPolicy
@@ -23,6 +24,7 @@ def _live_compatible_actions(actions):
         action
         for action in actions
         if action.name != BUY_JOKER
+        or not isinstance(action.target, Joker)
         or isinstance(action.target, LiveJokerScoreProjector.SUPPORTED_TYPES)
     ]
 
