@@ -4,6 +4,7 @@ import ctypes
 import platform
 from dataclasses import dataclass
 from ctypes import wintypes
+from typing import Iterator
 
 from .window import BalatroWindowLocator
 
@@ -200,6 +201,76 @@ class WindowsProcessMemoryReader:
             and not (region.protect & self.PAGE_GUARD)
             and not (region.protect & self.PAGE_NOACCESS)
         )
+
+    def iter_readable_chunks(
+        self,
+        *,
+        chunk_size: int = 1024 * 1024,
+        overlap: int = 0,
+    ) -> Iterator[tuple[int, bytes]]:
+        if chunk_size < 1:
+            raise ValueError("chunk_size must be positive")
+        if overlap < 0 or overlap >= chunk_size:
+            raise ValueError("overlap must be between zero and chunk_size - 1")
+
+        step = chunk_size - overlap
+        for region in self.readable_regions():
+            offset = 0
+            while offset < region.size:
+                size = min(chunk_size, region.size - offset)
+                address = region.base + offset
+                try:
+                    data = self.read(address, size)
+                except BalatroProcessMemoryError:
+                    # VirtualQueryEx can race a live allocator. A failed chunk is
+                    # skipped rather than weakening read-only guarantees or aborting
+                    # an otherwise useful scan.
+                    offset += step
+                    continue
+                if data:
+                    yield address, data
+                offset += step
+
+    def find_bytes(
+        self,
+        needle: bytes,
+        *,
+        max_matches: int = 256,
+        chunk_size: int = 1024 * 1024,
+    ) -> tuple[int, ...]:
+        """Find byte-pattern addresses across readable committed memory.
+
+        Scanning is bounded by ``max_matches`` and handles patterns crossing chunk
+        boundaries by overlapping each read by ``len(needle)-1`` bytes.
+        """
+
+        if not needle:
+            raise ValueError("needle cannot be empty")
+        if max_matches < 1:
+            raise ValueError("max_matches must be positive")
+        if chunk_size <= len(needle):
+            chunk_size = len(needle) + 1
+
+        matches: list[int] = []
+        seen: set[int] = set()
+        overlap = len(needle) - 1
+        for base, data in self.iter_readable_chunks(
+            chunk_size=chunk_size,
+            overlap=overlap,
+        ):
+            start = 0
+            while True:
+                index = data.find(needle, start)
+                if index < 0:
+                    break
+                address = base + index
+                if address not in seen:
+                    seen.add(address)
+                    matches.append(address)
+                    if len(matches) >= max_matches:
+                        return tuple(matches)
+                start = index + 1
+        return tuple(matches)
 
     def __enter__(self) -> "WindowsProcessMemoryReader":
         return self
