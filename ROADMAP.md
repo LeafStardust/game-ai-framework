@@ -244,43 +244,43 @@ The existing `save.jkr` and visual observer work remains useful for diagnostics 
 - [ ] Preserve normal Steam profile progression/unlocks
 - [ ] Produce a complete replayable run-experience log
 
-## v1.0.1 — Red Deck — Red Stake
+## v1.1.0 — Red Deck — Red Stake
 
 - [ ] Red / Red playbook
 - [ ] Adapt strategy to Red Stake
 - [ ] Complete one successful run
 
-## v1.0.2 — Red Deck — Green Stake
+## v1.2.0 — Red Deck — Green Stake
 
 - [ ] Red / Green playbook
 - [ ] Adapt strategy to Green Stake
 - [ ] Complete one successful run
 
-## v1.0.3 — Red Deck — Black Stake
+## v1.3.0 — Red Deck — Black Stake
 
 - [ ] Red / Black playbook
 - [ ] Eternal Joker strategy
 - [ ] Complete one successful run
 
-## v1.0.4 — Red Deck — Blue Stake
+## v1.4.0 — Red Deck — Blue Stake
 
 - [ ] Red / Blue playbook
 - [ ] Reduced-discard strategy
 - [ ] Complete one successful run
 
-## v1.0.5 — Red Deck — Purple Stake
+## v1.5.0 — Red Deck — Purple Stake
 
 - [ ] Red / Purple playbook
 - [ ] Higher-score-requirement strategy
 - [ ] Complete one successful run
 
-## v1.0.6 — Red Deck — Orange Stake
+## v1.6.0 — Red Deck — Orange Stake
 
 - [ ] Red / Orange playbook
 - [ ] Perishable Joker strategy
 - [ ] Complete one successful run
 
-## v1.0.7 — Red Deck — Gold Stake
+## v1.7.0 — Red Deck — Gold Stake
 
 - [ ] Red / Gold playbook
 - [ ] Rental Joker strategy
@@ -297,7 +297,7 @@ The existing `save.jkr` and visual observer work remains useful for diagnostics 
 ## Deck progression
 
 1. **Red Deck — v1.x** — Active
-   - White `v1.0.0` -> Red `v1.0.1` -> Green `v1.0.2` -> Black `v1.0.3` -> Blue `v1.0.4` -> Purple `v1.0.5` -> Orange `v1.0.6` -> Gold `v1.0.7`
+   - White `v1.0.0` -> Red `v1.1.0` -> Green `v1.2.0` -> Black `v1.3.0` -> Blue `v1.4.0` -> Purple `v1.5.0` -> Orange `v1.6.0` -> Gold `v1.7.0`
 2. **Blue Deck — v2.x** — Locked until Red Gold completion
 3. **Yellow Deck — v3.x** — Locked until Blue Gold completion
 4. **Green Deck — v4.x** — Locked until Yellow Gold completion
@@ -308,25 +308,14 @@ The existing `save.jkr` and visual observer work remains useful for diagnostics 
 | Stake | Version | Primary added difficulty |
 |---|---:|---|
 | White | `.0.0` | Base difficulty |
-| Red | `.0.1` | Small Blind gives no reward money |
-| Green | `.0.2` | Higher score requirements |
-| Black | `.0.3` | Eternal Jokers |
-| Blue | `.0.4` | -1 discard |
-| Purple | `.0.5` | Higher score requirements |
-| Orange | `.0.6` | Perishable Jokers |
-| Gold | `.0.7` | Rental Jokers |
+| Red | `.1.0` | Small Blind gives no reward money |
+| Green | `.2.0` | Higher score requirements |
+| Black | `.3.0` | Eternal Jokers |
+| Blue | `.4.0` | -1 discard |
+| Purple | `.5.0` | Higher score requirements |
+| Orange | `.6.0` | Perishable Jokers |
+| Gold | `.7.0` | Rental Jokers |
 
 ## Completion criterion
 
-A deck/stake milestone is complete when:
-
-- [ ] The permanent agent detects the active deck/stake and loads the correct playbook
-- [ ] It independently plays the normal Steam run from activation through terminal state
-- [ ] It completes one full run at the target stake
-- [ ] The production observer does not use hidden RNG/future draw information
-- [ ] No third-party bot/mod runtime is required when the preferred zero-dependency observer is viable
-- [ ] Normal Steam profile/progression remains intact
-- [ ] The run produces a complete experience log
-- [ ] Relevant validation tests pass
-
-> **Win rate is not a completion requirement.** The objective is an agent capable of completing Balatro and improving through observable, reviewable experience—not an opaque self-modifying system.
+A deck/stake milestone is complete when the agent independently completes one full unseeded run at that deck/stake using the shared Balatro engine plus the automatically selected playbook, with no manual gameplay input after activation. A new deck begins only after the previous deck has completed every stake through Gold.
