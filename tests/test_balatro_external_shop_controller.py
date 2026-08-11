@@ -150,7 +150,7 @@ def test_external_shop_controller_rejects_non_shop_open():
 
 
 def test_external_shop_controller_rejects_reuse_after_close():
-    controller, _, _ = _controller()
+    controller, _, _ = _controller(persisted_money=10)
     session = controller.open()
     controller.leave_shop(session)
 
