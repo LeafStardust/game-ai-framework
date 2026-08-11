@@ -221,51 +221,51 @@ def main() -> int:
             )
             pack_areas = _root_pack_areas(decoder, root)
             candidates, visited, roots = _scan(decoder, root)
+
+            print("Live pack control diagnostic -> PASS")
+            print("Observation source -> live Balatro process memory")
+            print(f"Phase -> {snapshot.phase}")
+            print("Mouse input sent -> False")
+            print("Process writes/injection -> False")
+            print("Hidden RNG/deck traversal -> False")
+            print(
+                "Balatro client rect -> "
+                f"left={window.client_rect.left} top={window.client_rect.top} "
+                f"width={window.client_rect.width} height={window.client_rect.height}"
+            )
+            print(f"G.TILE_W -> {tile_w}")
+            print(f"G.TILE_H -> {tile_h}")
+
+            print(f"Root pack areas -> {len(pack_areas)}")
+            for name, address in pack_areas:
+                _describe_pack_area(decoder, name, address, transform)
+
+            print("Traversal roots -> " + (", ".join(roots) if roots else "none"))
+            print(f"UI tables visited -> {visited}")
+            print(f"Pack/control candidates -> {len(candidates)}")
+            for index, candidate in enumerate(candidates, start=1):
+                print(f"  Candidate {index}: {candidate.path} @ 0x{candidate.address:x}")
+                print("    match -> " + "; ".join(candidate.matches))
+                print("    T -> " + _geometry_text(candidate.t))
+                print("    VT -> " + _geometry_text(candidate.vt))
+                geometry = candidate.vt if _complete(candidate.vt) else candidate.t
+                print("    Screen center -> " + _screen_center(transform, geometry))
+
+            if not snapshot.phase.endswith("_PACK"):
+                print("Pack phase guard -> FAIL")
+                return 1
+            if not pack_areas and not candidates:
+                print("Pack UI discovery -> INCONCLUSIVE")
+                return 1
+
+            print("Pack UI discovery -> CANDIDATES_FOUND")
+            return 0
     except Exception as error:
         print("Live pack control diagnostic -> FAIL")
         print(f"Reason -> {error}")
         print("Mouse input sent -> False")
         print("Process writes/injection -> False")
         return 2
-
-    print("Live pack control diagnostic -> PASS")
-    print("Observation source -> live Balatro process memory")
-    print(f"Phase -> {snapshot.phase}")
-    print("Mouse input sent -> False")
-    print("Process writes/injection -> False")
-    print("Hidden RNG/deck traversal -> False")
-    print(
-        "Balatro client rect -> "
-        f"left={window.client_rect.left} top={window.client_rect.top} "
-        f"width={window.client_rect.width} height={window.client_rect.height}"
-    )
-    print(f"G.TILE_W -> {tile_w}")
-    print(f"G.TILE_H -> {tile_h}")
-
-    print(f"Root pack areas -> {len(pack_areas)}")
-    for name, address in pack_areas:
-        _describe_pack_area(decoder, name, address, transform)
-
-    print("Traversal roots -> " + (", ".join(roots) if roots else "none"))
-    print(f"UI tables visited -> {visited}")
-    print(f"Pack/control candidates -> {len(candidates)}")
-    for index, candidate in enumerate(candidates, start=1):
-        print(f"  Candidate {index}: {candidate.path} @ 0x{candidate.address:x}")
-        print("    match -> " + "; ".join(candidate.matches))
-        print("    T -> " + _geometry_text(candidate.t))
-        print("    VT -> " + _geometry_text(candidate.vt))
-        geometry = candidate.vt if _complete(candidate.vt) else candidate.t
-        print("    Screen center -> " + _screen_center(transform, geometry))
-
-    if not snapshot.phase.endswith("_PACK"):
-        print("Pack phase guard -> FAIL")
-        return 1
-    if not pack_areas and not candidates:
-        print("Pack UI discovery -> INCONCLUSIVE")
-        return 1
-
-    print("Pack UI discovery -> CANDIDATES_FOUND")
-    return 0
 
 
 if __name__ == "__main__":
