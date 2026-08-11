@@ -49,7 +49,8 @@ def test_consumable_layout_round_trips(tmp_path):
     layout = ConsumableMouseLayout(
         slot_0=NormalizedPoint(0.10, 0.20),
         slot_1=NormalizedPoint(0.20, 0.20),
-        use=NormalizedPoint(0.15, 0.35),
+        use_0=NormalizedPoint(0.10, 0.35),
+        use_1=NormalizedPoint(0.20, 0.35),
     )
     path = tmp_path / "consumables.json"
 
@@ -59,7 +60,8 @@ def test_consumable_layout_round_trips(tmp_path):
     assert loaded == layout
     assert loaded.point_for_slot(0) == NormalizedPoint(0.10, 0.20)
     assert loaded.point_for_slot(1) == NormalizedPoint(0.20, 0.20)
-    assert loaded.use_point() == NormalizedPoint(0.15, 0.35)
+    assert loaded.use_point_for_slot(0) == NormalizedPoint(0.10, 0.35)
+    assert loaded.use_point_for_slot(1) == NormalizedPoint(0.20, 0.35)
 
 
 def test_consumable_layout_rejects_unknown_slot():
@@ -67,6 +69,8 @@ def test_consumable_layout_rejects_unknown_slot():
 
     with pytest.raises(ConsumableMouseLayoutError):
         layout.point_for_slot(2)
+    with pytest.raises(ConsumableMouseLayoutError):
+        layout.use_point_for_slot(2)
 
 
 def test_sun_executor_requires_authoritative_area_index():
