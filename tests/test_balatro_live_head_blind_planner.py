@@ -6,6 +6,7 @@ from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.bootstraps import BootstrapsJoker
 from games.balatro.jokers.ice_cream import IceCreamJoker
+from games.balatro.live.external import head_blind_planner_action_live_validation as head_live
 from games.balatro.live.head_blind_planner import (
     HeadBlindClearPlanner,
     HeadHandDecisionEvaluator,
@@ -88,6 +89,39 @@ def test_head_wild_cards_are_debuffed_by_suit_boss():
     wild_club = BalatroCard("10", "Clubs", enhancement="Wild")
 
     assert scorer.is_card_debuffed(wild_club) is True
+
+
+def test_head_card_locator_retries_dimmer_profiles_until_save_count_matches(monkeypatch):
+    calls = []
+    seven = [object() for _ in range(7)]
+    eight = [object() for _ in range(8)]
+
+    def fake_locate(region, *, min_brightness, max_channel_spread):
+        calls.append((min_brightness, max_channel_spread))
+        return seven if len(calls) == 1 else eight
+
+    monkeypatch.setattr(head_live, "locate_card_faces", fake_locate)
+    locator = head_live._head_card_locator(8)
+
+    assert locator(object()) is eight
+    assert calls == [
+        head_live.HEAD_CARD_LOCATOR_PROFILES[0],
+        head_live.HEAD_CARD_LOCATOR_PROFILES[1],
+    ]
+
+
+def test_head_card_locator_fails_closed_when_no_profile_matches(monkeypatch):
+    seven = [object() for _ in range(7)]
+
+    def fake_locate(region, *, min_brightness, max_channel_spread):
+        return seven
+
+    monkeypatch.setattr(head_live, "locate_card_faces", fake_locate)
+    locator = head_live._head_card_locator(8)
+
+    # Returning the first failed profile preserves the generic executor's strict
+    # count-mismatch abort instead of fabricating or inferring a missing card.
+    assert locator(object()) is seven
 
 
 def test_head_planner_refuses_other_bosses():
