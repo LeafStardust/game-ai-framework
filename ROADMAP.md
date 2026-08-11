@@ -128,7 +128,7 @@
 - [x] Consumable interaction foundation
 - [x] Guard against already-selected hand cards
 - [x] Prefer live Balatro UI coordinates over visual inference where available
-- [ ] Reconcile each action against the **next direct live-state observation**
+- [x] Reconcile each action against the **next direct live-state observation**
 - [ ] Booster opening
 - [ ] Reroll
 - [ ] Joker sell/replace
