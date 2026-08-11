@@ -50,6 +50,39 @@ def test_live_card_chip_scoring_counts_only_pair_cards():
     assert score.total == 60
 
 
+def test_live_projection_reports_exact_pair_of_twos_blind_clear():
+    state = _state(
+        [
+            BalatroCard("A", "Clubs", live_id=0),
+            BalatroCard("K", "Diamonds", live_id=1),
+            BalatroCard("Q", "Spades", live_id=2),
+            BalatroCard("8", "Hearts", live_id=3),
+            BalatroCard("6", "Clubs", live_id=4),
+            BalatroCard("4", "Diamonds", live_id=5),
+            BalatroCard("2", "Hearts", live_id=6),
+            BalatroCard("2", "Clubs", live_id=7),
+        ],
+        score=272,
+        target=300,
+        hands=3,
+        discards=3,
+    )
+    action = next(
+        action
+        for action in CardSelector().generate_play_actions(state)
+        if [card.live_id for card in action.cards] == [6, 7]
+    )
+
+    projection = LiveHandDecisionEvaluator().project_play(state, action)
+
+    assert projection.hand == PokerHand.PAIR
+    assert projection.hand_score == 28
+    assert projection.projected_total == 300
+    assert projection.remaining_before == 28
+    assert projection.remaining_after == 0
+    assert projection.clears_blind is True
+
+
 def test_live_policy_discards_weak_pair_when_last_hand_cannot_keep_pace():
     state = _state(
         [
