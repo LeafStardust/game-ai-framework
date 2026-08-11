@@ -9,6 +9,8 @@
 > Production Balatro integration should require no third-party bot/mod runtime if technically possible. External repositories may be studied for Balatro internals, but production code should live in this repository. The preferred observer is our own zero-dependency, read-only Windows process-memory reader. `save.jkr` is fallback/debug state only, not live truth.
 >
 > Agent-facing observation must exclude hidden future information: no RNG state/seed exploitation and no ordered future draw pile. Current live objects and public deck composition are allowed.
+>
+> **Decision intelligence and execution are tracked separately.** Being able to click an action does not mean the agent knows when that action is correct. Every strategically distinct choice is developed as its own decision-threshold layer with independent inputs, thresholds, rationale, tests and validation.
 
 ## v0.1.0 — Foundation
 
@@ -89,9 +91,9 @@
 >
 > Target loop:
 >
-> `live Balatro state -> translate -> select playbook -> plan -> execute -> live Balatro state -> verify -> log -> replan`
+> `live Balatro state -> translate -> select playbook -> decision layer -> execute -> live Balatro state -> verify -> log -> replan`
 
-### 0.9A — Authoritative live-state observation — ACTIVE
+### 0.9A — Authoritative live-state observation
 
 - [x] Live bridge/state protocol and `BalatroState` translation architecture
 - [x] Zero-dependency Windows read-only process attachment through Python `ctypes`
@@ -102,14 +104,14 @@
 - [x] Validate LuaJIT layout against a fresh live Balatro run
 - [x] Reliably discover and validate Balatro global `G`
 - [x] Read whitelisted current-run fields directly from live memory
-- [ ] Read current card/Joker/consumable/shop identities directly from live objects
+- [x] Read current card/Joker/consumable/shop identities directly from live objects
 - [x] Read live UI object geometry where stable enough for execution targeting
 - [x] Detect deck and stake directly from the active run
 - [x] Translate direct-memory observation into `LiveBalatroSnapshot`
 - [x] Make direct live-memory observer the production default
 - [x] Keep `save.jkr` parser only as fallback/debug/recovery input
 - [x] Exclude RNG state, seed exploitation and ordered future draw information from production observation
-- [ ] Validate state freshness across rapid events such as consumable use, Joker creation/destruction and shop purchases
+- [ ] Validate state freshness across all rapid events such as consumable resolution and Joker creation/destruction
 - [ ] Validate observation across all required run phases
 
 > If a stable read-only memory decoder proves infeasible across normal Balatro builds, the fallback architecture is a minimal bridge written entirely in this repository. Third-party bot/mod repositories are not production dependencies.
@@ -123,16 +125,21 @@
 - [x] Small/Big/Boss Blind selection controls
 - [x] Blind skip controls
 - [x] Cash Out control
-- [x] Deterministic shop purchase controls
-- [x] End Shop control
-- [x] Consumable interaction foundation
+- [x] Main-shop Buy control
+- [x] Main-shop Buy & Use control
+- [x] Voucher redeem control
+- [x] Booster opening
+- [x] Reroll
+- [x] End Shop / Next Round control
+- [x] Booster-pack card selection and confirmation
+- [x] Booster-pack Skip control
+- [x] Unified live-memory action dispatcher for verified external primitives
 - [x] Guard against already-selected hand cards
-- [x] Prefer live Balatro UI coordinates over visual inference where available
-- [x] Reconcile each action against the **next direct live-state observation**
-- [ ] Booster opening
-- [ ] Reroll
-- [ ] Joker sell/replace
-- [ ] Robust consumable use for all supported target patterns
+- [x] Prefer live Balatro UI coordinates/templates over visual inference where available
+- [x] Reconcile irreversible shop actions against the next direct live-state observation
+- [ ] Joker sell/replace execution
+- [ ] Robust held-consumable use for all supported target patterns
+- [ ] Robust pack-effect targeting for Tarot/Spectral/Standard modifier flows
 - [ ] Optional direct internal action backend investigation using only repository-owned code
 - [ ] Emergency stop / safe agent deactivation
 
@@ -164,7 +171,7 @@
 
 ### 0.9D — Playbook cartridge system
 
-> There is one Balatro agent. The cartridge answers **how to play this deck/stake**, not **how Balatro works**.
+> There is one Balatro agent. The cartridge answers **how to play this deck/stake**, not **how Balatro works**. Each decision layer owns a separate threshold block so changing, for example, voucher appetite cannot silently alter discard behavior.
 
 - [x] Define playbook interface
 - [x] Playbook registry keyed by `(deck, stake)`
@@ -172,10 +179,15 @@
 - [x] Separate factual deck/stake mechanics from strategic playbook preferences
 - [x] Playbook controls for risk tolerance
 - [x] Playbook controls for planner/search budgets
-- [ ] Shop/Joker/consumable priorities
-- [ ] Economy thresholds and scaling priorities
-- [ ] Blind skip/tag strategy
-- [ ] Red Deck / White Stake first production playbook
+- [ ] Per-decision-layer threshold configuration
+- [ ] Independent hand-action thresholds
+- [ ] Independent Joker acquisition/replacement thresholds
+- [ ] Independent voucher thresholds
+- [ ] Independent consumable acquisition/use/target thresholds
+- [ ] Independent booster/pack thresholds
+- [ ] Independent reroll/shop-exit thresholds
+- [ ] Independent blind skip/tag thresholds
+- [ ] Red Deck / White Stake first production threshold set
 - [x] Playbook version identifier included in every run log
 
 ### 0.9E — Run experience logging and later learning
@@ -187,34 +199,363 @@
 - [x] Run identity includes deck/stake/playbook/playbook version
 - [ ] Integrate run logger into the autonomous live loop
 - [ ] Log sanitized observation before decisions
-- [ ] Log chosen action and planner/playbook rationale
+- [ ] Log decision-layer name, candidate scores, thresholds and chosen rationale
 - [ ] Log execution success/failure and authoritative post-action state
 - [ ] Log purchases, sells, consumable uses and blind outcomes
 - [ ] Log terminal win/loss and final run summary
 - [ ] Build replay/analysis utility over stored runs
-- [ ] Aggregate per-playbook statistics across runs
-- [ ] Identify repeated failure patterns and weak decisions from logs
+- [ ] Aggregate per-playbook and per-decision-layer statistics across runs
+- [ ] Identify repeated failure patterns and weak thresholds from logs
 - [ ] Add controlled offline playbook tuning/learning only after log quality is validated
 - [ ] Keep automatic online self-modification out of the critical live loop unless later evidence justifies it
 
-### 0.9F — Shop and run-level intelligence
+### 0.9F — Decision-threshold stack and run-level intelligence — ACTIVE
 
-- [x] Visible shop item translation and valuation foundation
-- [x] Purchase policy/re-ranking foundation
-- [x] Joker-aware shop value probes
-- [ ] Booster valuation/opening
-- [ ] Reroll valuation/execution
-- [ ] Joker sell/replace decisions
-- [ ] Broader semantic valuation for non-scoring Jokers, consumables and vouchers
-- [ ] Run-level planning connecting blind risk, economy, shop and deck growth
+> Strategic decisions are developed **one layer at a time**. A layer is not complete merely because the corresponding mouse action works. Each layer must define its own public-state inputs, legal candidate actions, threshold/config block, scoring or comparison rule, explicit abstain/hold option where legal, rationale output, deterministic tests, read-only live validation and armed live validation before it is enabled in the autonomous loop.
+>
+> Cross-layer state such as money, remaining hands/discards, ante, blind risk, slots and owned effects may be shared as **inputs**, but one layer's threshold constants must not be reused implicitly by another layer. The final shop/run arbiter compares normalized outputs from completed child layers instead of hiding all decisions inside one utility score.
+
+#### Decision-layer contract
+
+For every decision layer:
+
+- [ ] Define semantic question and legal outputs
+- [ ] Define required observable/public inputs
+- [ ] Define a dedicated threshold/config dataclass or playbook block
+- [ ] Define scoring/comparison rule and confidence/rationale output
+- [ ] Define explicit `HOLD`, `SKIP`, `END_SHOP` or equivalent no-action alternative where legal
+- [ ] Unit-test boundary cases around every important threshold
+- [ ] Read-only live validator prints candidates, scores, thresholds and recommendation
+- [ ] Armed validator executes exactly the recommended semantic action
+- [ ] Log enough data to explain and tune the layer independently later
+
+#### D1 — Hand action: play vs discard and card subset — FIRST FOCUS
+
+**Question:** Given the current hand, should the agent play or discard, and exactly which cards?
+
+Threshold/signals owned by this layer:
+
+- minimum blind-clear probability before preferring a play
+- expected score and score-margin requirement
+- discard improvement EV
+- hand/discard reserve value
+- remaining hands/discards and blind progress
+- overkill/resource-preservation penalty
+- Joker/card-effect consequences of the selected subset
+
+Status:
+
+- [x] Legal play/discard subset generation
+- [x] Live external selection and Play/Discard execution
+- [x] Probability/search foundation
+- [ ] Consolidate play-vs-discard comparison into one production threshold policy
+- [ ] Make resource preservation part of the threshold rather than a separate heuristic accident
+- [ ] Validate boundary cases live and lock D1 before moving to the next decision layer
+
+#### D2 — Joker acquisition, replacement and sale
+
+**Question:** Should the agent buy this Joker, keep current Jokers, replace one, or sell one?
+
+Threshold/signals owned by this layer:
+
+- marginal scoring gain
+- economy/resource gain
+- synergy with current deck/Jokers/consumables
+- scaling potential and remaining antes
+- Joker-slot pressure
+- replacement delta versus weakest owned Joker
+- sell value and replacement cost
+- Eternal/Perishable/Rental consequences when relevant
+
+Status:
+
+- [x] Direct Joker Buy execution
+- [x] Joker value-probe foundation
+- [ ] Broader semantic valuation for non-scoring/economy Jokers
+- [ ] Replacement/sell policy
+- [ ] Replacement/sell execution
+
+#### D3 — Voucher acquisition
+
+**Question:** Is this persistent voucher worth buying now?
+
+Threshold/signals owned by this layer:
+
+- persistent run-wide expected value
+- remaining antes/rounds over which the effect can pay back
+- immediate money and interest loss
+- reserve floor and survival risk
+- prerequisite/upgrade-chain value
+- deck/Joker strategy compatibility
+
+Status:
+
+- [x] Voucher observation and redeem execution
+- [x] Initial voucher valuation foundation
+- [ ] Dedicated voucher threshold policy independent of ordinary item-buy thresholds
+- [ ] Validate buy-versus-save boundary cases
+
+#### D4 — Consumable acquisition mode: do not buy vs Buy vs Buy & Use
+
+**Question:** For a shop Tarot/Planet/Spectral card, should the agent ignore it, buy it for later, or buy and use it immediately?
+
+Threshold/signals owned by this layer:
+
+- immediate-use utility
+- stored option value
+- consumable-slot pressure
+- current target quality/availability
+- money/interest/reserve cost
+- expected future target quality
+- interactions that reward holding a specific consumable
+
+Status:
+
+- [x] Buy execution
+- [x] Buy & Use execution
+- [x] Exact two-click live validation for both paths
+- [ ] Dedicated three-way acquisition policy
+- [ ] Never infer Buy & Use merely because the button exists
+
+#### D5 — Held consumable timing: use now vs hold
+
+**Question:** Once a consumable is owned, when should it actually be used?
+
+Threshold/signals owned by this layer:
+
+- immediate effect value now
+- expected option value of keeping it
+- blind survival urgency
+- consumable-slot pressure
+- expected future shop/pack opportunities
+- synergies that reward holding, copying or preserving a consumable
+- whether delaying changes the quality of available targets
+
+Status:
+
+- [ ] General held-consumable action generation
+- [ ] Timing policy independent of acquisition policy
+- [ ] Live execution for non-targeted held consumables
+- [ ] Integrate timing decisions into blind/shop phases as appropriate
+
+#### D6 — Consumable targeting
+
+**Question:** If a consumable should be used, what card(s), Joker(s), hand type or other legal target should it affect?
+
+Threshold/signals owned by this layer:
+
+- immediate score delta
+- permanent deck-quality delta
+- synergy delta with current build
+- target scarcity and future draw frequency
+- destruction/duplication/opportunity cost
+- legal target count and effect-specific constraints
+
+Status:
+
+- [ ] Effect-family target generators
+- [ ] Target scoring interface
+- [ ] Multi-card target selection
+- [ ] Live target-click execution and verification
+- [ ] Tarot/Spectral pack follow-up targeting
+
+#### D7 — Planet choice and Planet use timing
+
+**Question:** Which Planet is valuable, and should an owned Planet be consumed immediately or intentionally held?
+
+> Default expectation is that a Planet's permanent hand-level upgrade favors immediate use, but the policy must still compare that against any **observable hold-specific utility**, consumable-slot considerations, copying/holding synergies and effects whose value depends on consumable history. "Planet cards are always used immediately" must be a learned/validated policy result, not a hardcoded assumption.
+
+Threshold/signals owned by this layer:
+
+- expected frequency/value of the upgraded poker hand
+- level-up score gain
+- current build's hand distribution
+- hold-specific synergy value
+- consumable-slot pressure
+- last-used/history-dependent consumable interactions where observable
+
+Status:
+
+- [x] Planet representation and basic value estimation
+- [ ] Dedicated Planet selection policy
+- [ ] Immediate-use-versus-hold threshold
+- [ ] Live validation across at least one case where immediate use wins and one where holding has positive modeled value
+
+#### D8 — Booster acquisition
+
+**Question:** Should the agent spend money to open this booster pack at all?
+
+Threshold/signals owned by this layer:
+
+- expected opportunity value of pack type
+- current deck/Joker/consumable needs
+- money/interest/reserve loss
+- slot availability
+- probability that at least one offered choice exceeds Skip
+- run stage and scaling needs
+
+Status:
+
+- [x] Booster observation and two-click opening execution
+- [x] Integrated `SHOP -> *_PACK` live validation
+- [ ] Booster expected-value model
+- [ ] Buy-versus-save threshold
+
+#### D9 — Pack choice: take which offer vs Skip
+
+**Question:** After a pack is open, which visible offer should be taken, or should the pack be skipped?
+
+Threshold/signals owned by this layer:
+
+- marginal value of each visible choice
+- slot/legal constraints
+- immediate versus long-term value
+- synergy with the current build
+- Skip baseline/opportunity value
+- whether the chosen item requires another unresolved target decision
+
+Status:
+
+- [x] Read visible pack choices from live memory
+- [x] Pack card/Joker selection and confirmation execution
+- [x] Pack Skip execution
+- [x] Initial conservative pack-policy foundation
+- [ ] Complete valuation across Joker/Standard/Planet/Tarot/Spectral packs
+- [ ] Validate recommendation quality across pack families
+
+#### D10 — Pack effect targeting
+
+**Question:** When the selected pack item requires a follow-up target, what should it be used on?
+
+> This is intentionally separate from D9. "The Emperor is the best card in this pack" and "which card(s) should this Tarot affect?" are different decisions and must not share one hidden threshold.
+
+Threshold/signals owned by this layer:
+
+- effect-specific target utility
+- permanent deck transformation value
+- current blind impact
+- future synergy
+- target legality/count
+- option value of declining/choosing a different pack item if no good target exists
+
+Status:
+
+- [ ] Follow-up target observation
+- [ ] Effect-specific target policy
+- [ ] External target execution
+- [ ] End-to-end targeted Tarot/Spectral/Standard-pack validation
+
+#### D11 — Reroll decision
+
+**Question:** Is another shop roll worth its cost compared with buying current offers or leaving?
+
+Threshold/signals owned by this layer:
+
+- expected value of unseen replacement offers
+- reroll cost and next reroll cost
+- money reserve and interest breakpoints
+- current shop opportunity quality
+- build urgency and missing pieces
+- remaining shop opportunities before future blinds
+
+Status:
+
+- [x] Reroll execution
+- [ ] Reroll EV model
+- [ ] Dedicated reroll threshold policy
+
+#### D12 — Shop arbiter: what to do next in the shop
+
+**Question:** Given the outputs of the completed child decision layers, should the agent buy a Joker, buy/redeem a voucher, acquire/use a consumable, buy a booster, reroll, or end the shop?
+
+> The arbiter does **not** reimplement Joker, voucher, consumable or booster valuation. It compares their normalized recommendations while enforcing shared money/slot legality.
+
+Threshold/signals owned by this layer:
+
+- minimum action advantage over `END_SHOP`
+- hard survival/economy reserve floor
+- interest breakpoints
+- maximum acceptable aggregate spend this shop
+- normalized confidence from child layers
+
+Status:
+
+- [x] Visible shop action generation
+- [x] Initial purchase ranking foundation
+- [x] Live-memory shop controller and unified dispatcher integration
+- [ ] Normalize child-layer recommendations
+- [ ] Make `END_SHOP` an explicit baseline against every action
+- [ ] Multi-action shop loop with fresh re-observation after each action
+
+#### D13 — Blind selection and skip/tag decision
+
+**Question:** Should the next blind be played or skipped for its tag/reward tradeoff?
+
+Threshold/signals owned by this layer:
+
+- blind clear probability
+- blind reward money
+- tag expected value
+- lost shop/economy opportunity
+- boss preparation value
+- current deck strength and ante risk
+
+Status:
+
+- [x] Blind selection/skip execution
+- [ ] Tag valuation
+- [ ] Play-versus-skip threshold
+
+#### D14 — Run-level resource arbitration
+
+**Question:** How should money, hands, discards, slots and growth opportunities be valued consistently across otherwise independent decision layers?
+
+> This layer provides shared **state valuations and constraints**, not one giant action selector. Child layers still own their own thresholds.
+
+- [ ] Money/interest marginal-value model
+- [ ] Survival reserve model
+- [ ] Hand/discard resource value
+- [ ] Joker/consumable slot shadow prices
+- [ ] Remaining-ante horizon value
+- [ ] Shared normalized utility scale for the shop arbiter
+
+#### Required implementation order
+
+Work on one decision layer until its completion gate is met before moving to the next unless a missing execution primitive blocks it:
+
+1. **D1 Hand action** — settle play vs discard and exact card subset
+2. **D2 Joker acquisition/replacement**
+3. **D3 Voucher acquisition**
+4. **D4 Consumable acquisition mode** — ignore vs Buy vs Buy & Use
+5. **D5 Held consumable timing**
+6. **D6 Consumable targeting**
+7. **D7 Planet choice/timing specialisation**
+8. **D8 Booster acquisition**
+9. **D9 Pack choice/Skip**
+10. **D10 Pack effect targeting**
+11. **D11 Reroll decision**
+12. **D12 Shop arbiter**
+13. **D13 Blind skip/tag decision**
+14. **D14 Run-level resource arbitration and threshold normalization**
+
+Completion gate for each layer:
+
+- [ ] Policy/config threshold block exists
+- [ ] Boundary tests exist
+- [ ] Read-only live validator exposes recommendation and rationale
+- [ ] Armed live validator executes recommendation correctly
+- [ ] Decision is logged independently
+- [ ] Layer is enabled in the autonomous orchestrator only after all above are complete
 
 ### 0.9G — Single-command autonomous orchestrator
 
 - [ ] One activation command for an already-started Balatro run
 - [x] Attach to current Balatro process automatically
 - [x] Read current deck/stake and load playbook automatically
-- [ ] Observe/plan/execute/verify/log loop across all required phases
-- [ ] Blind select -> hand play -> round eval -> shop -> next blind without manual gameplay input
+- [x] Unified semantic live-action dispatcher foundation
+- [ ] Route each phase to its completed decision layer rather than one monolithic policy
+- [ ] Observe/decide/execute/verify/log loop across all required phases
+- [ ] Blind select -> hand play -> round eval -> shop -> pack/consumable subflows -> next blind without manual gameplay input
 - [ ] Continue automatically across antes
 - [ ] Detect win/loss terminal state
 - [ ] Clean shutdown and complete run log
@@ -235,63 +576,73 @@ The existing `save.jkr` and visual observer work remains useful for diagnostics 
 
 > First complete playbook milestone. The permanent Balatro agent must activate against a normal unseeded Red Deck White Stake run, automatically select the Red/White playbook, and complete the run without manual gameplay input.
 
-- [ ] Red / White playbook
-- [ ] Probabilistic blind-clear planning validated across a complete run
-- [ ] Shop/Joker/consumable decisions
-- [ ] Blind and skip/tag strategy
-- [ ] Economy and deck-building decisions
+- [ ] Red / White per-decision threshold set
+- [ ] D1 Hand action threshold validated across a complete run
+- [ ] D2 Joker acquisition/replacement threshold
+- [ ] D3 Voucher threshold
+- [ ] D4 Consumable Buy-vs-Buy-&-Use threshold
+- [ ] D5 Held consumable timing threshold
+- [ ] D6 Consumable target-selection threshold
+- [ ] D7 Planet choice/use-timing threshold
+- [ ] D8 Booster acquisition threshold
+- [ ] D9 Pack choice/Skip threshold
+- [ ] D10 Pack target-selection threshold
+- [ ] D11 Reroll threshold
+- [ ] D12 Shop arbiter
+- [ ] D13 Blind skip/tag threshold
+- [ ] D14 Run-level resource valuation
 - [ ] Complete one successful unseeded Red Deck White Stake run
 - [ ] Preserve normal Steam profile progression/unlocks
-- [ ] Produce a complete replayable run-experience log
+- [ ] Produce a complete replayable run-experience log with per-layer rationales
 
 ## v1.1.0 — Red Deck — Red Stake
 
-- [ ] Red / Red playbook
-- [ ] Adapt strategy to Red Stake
+- [ ] Red / Red threshold cartridge
+- [ ] Adapt affected decision thresholds to Red Stake
 - [ ] Complete one successful run
 
 ## v1.2.0 — Red Deck — Green Stake
 
-- [ ] Red / Green playbook
-- [ ] Adapt strategy to Green Stake
+- [ ] Red / Green threshold cartridge
+- [ ] Adapt affected decision thresholds to Green Stake
 - [ ] Complete one successful run
 
 ## v1.3.0 — Red Deck — Black Stake
 
-- [ ] Red / Black playbook
-- [ ] Eternal Joker strategy
+- [ ] Red / Black threshold cartridge
+- [ ] Eternal Joker strategy in D2/D12
 - [ ] Complete one successful run
 
 ## v1.4.0 — Red Deck — Blue Stake
 
-- [ ] Red / Blue playbook
-- [ ] Reduced-discard strategy
+- [ ] Red / Blue threshold cartridge
+- [ ] Reduced-discard strategy in D1/D14
 - [ ] Complete one successful run
 
 ## v1.5.0 — Red Deck — Purple Stake
 
-- [ ] Red / Purple playbook
-- [ ] Higher-score-requirement strategy
+- [ ] Red / Purple threshold cartridge
+- [ ] Higher-score-requirement strategy in D1/D13/D14
 - [ ] Complete one successful run
 
 ## v1.6.0 — Red Deck — Orange Stake
 
-- [ ] Red / Orange playbook
-- [ ] Perishable Joker strategy
+- [ ] Red / Orange threshold cartridge
+- [ ] Perishable Joker strategy in D2/D12
 - [ ] Complete one successful run
 
 ## v1.7.0 — Red Deck — Gold Stake
 
-- [ ] Red / Gold playbook
-- [ ] Rental Joker strategy
+- [ ] Red / Gold threshold cartridge
+- [ ] Rental Joker strategy in D2/D12/D14
 - [ ] Complete one successful run
 - [ ] Validate Red Deck across all stakes
 
 ## v2.0.0 — Blue Deck — White Stake
 
-> Begins after Red Deck Gold Stake. The permanent agent is unchanged; Blue Deck progression adds Blue-specific playbooks.
+> Begins after Red Deck Gold Stake. The permanent agent is unchanged; Blue Deck progression adds Blue-specific playbook threshold cartridges.
 
-- [ ] Blue / White playbook
+- [ ] Blue / White threshold cartridge
 - [ ] Complete one successful Blue Deck White Stake run
 
 ## Deck progression
@@ -317,3 +668,5 @@ The existing `save.jkr` and visual observer work remains useful for diagnostics 
 | Gold | `.7.0` | Rental Jokers |
 
 ## Completion criterion
+
+A deck/stake milestone is complete when the permanent agent, using the matching threshold cartridge and no manual gameplay input after activation, completes one full unseeded run while producing a complete authoritative experience log. High win rate and optimal play are future optimization goals, not milestone gates.
