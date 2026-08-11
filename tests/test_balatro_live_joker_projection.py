@@ -2,6 +2,7 @@ from games.balatro.actions import BalatroAction, PLAY_CARDS
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
+from games.balatro.jokers.bootstraps import BootstrapsJoker
 from games.balatro.jokers.ice_cream import IceCreamJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
@@ -50,6 +51,58 @@ def test_ice_cream_projection_scores_and_decays_only_copied_joker():
     assert transition.state_after_scoring.hand[1] is cards[1]
     assert transition.state_after_scoring.jokers[0] is not ice_cream
     assert transition.state_after_scoring.jokers[0].chips == 95
+
+
+def test_bootstraps_projection_adds_only_mult_from_public_money():
+    ace = BalatroCard("A", "Spades", live_id=0)
+    state = _state([ace])
+    state.money = 5
+    bootstraps = BootstrapsJoker()
+    state.jokers = [bootstraps]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD,
+        state,
+        [ace],
+    )
+
+    # High Card A is 16 Chips x 1 Mult before Jokers. At $5 Bootstraps adds
+    # exactly +2 Mult and no Chips: 16 x 3 = 48.
+    assert transition.distribution.minimum == 48
+    assert transition.distribution.maximum == 48
+    assert transition.joker_projection_complete is True
+    assert transition.unsupported_jokers == ()
+    assert state.money == 5
+    assert transition.state_after_scoring.money == 5
+    assert transition.state_after_scoring.jokers[0] is not bootstraps
+
+
+def test_bootstraps_and_ice_cream_project_together_without_mutating_observed_state():
+    cards = [
+        BalatroCard("K", "Spades", live_id=0),
+        BalatroCard("K", "Diamonds", live_id=1),
+    ]
+    state = _state(cards)
+    state.money = 5
+    ice_cream = IceCreamJoker()
+    ice_cream.chips = 85
+    bootstraps = BootstrapsJoker()
+    state.jokers = [ice_cream, bootstraps]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.PAIR,
+        state,
+        cards,
+    )
+
+    # Pair K,K: 10 base + 20 rank chips + 85 Ice Cream = 115 Chips.
+    # Pair base Mult 2 + Bootstraps 2 at $5 = 4 Mult. 115 x 4 = 460.
+    assert transition.distribution.minimum == 460
+    assert transition.joker_projection_complete is True
+    assert transition.unsupported_jokers == ()
+    assert ice_cream.chips == 85
+    assert transition.state_after_scoring.jokers[0].chips == 80
+    assert isinstance(transition.state_after_scoring.jokers[1], BootstrapsJoker)
 
 
 def test_two_action_planner_carries_ice_cream_decay_into_second_play():
