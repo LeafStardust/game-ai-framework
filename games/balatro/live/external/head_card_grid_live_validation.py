@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import time
 
 from games.balatro.live.external.capture import BalatroScreenCapture
 from games.balatro.live.external.card_capture import DEFAULT_HAND_REGION
@@ -35,7 +36,11 @@ def main() -> int:
     )
     parser.add_argument("--save")
     parser.add_argument("--profile", default="1")
+    parser.add_argument("--prepare-delay", type=float, default=3.0)
     args = parser.parse_args()
+
+    if args.prepare_delay < 0:
+        parser.error("--prepare-delay cannot be negative")
 
     reader = BalatroSaveReader(args.save, profile=args.profile)
     observer = SaveBalatroObserver(reader)
@@ -52,6 +57,13 @@ def main() -> int:
         parser.error(f"expected The Head, observed {state.boss_name!r}")
 
     expected_count = len(state.hand)
+
+    if args.prepare_delay > 0:
+        print(
+            f"Capture starts in {args.prepare_delay:g}s; bring Balatro to the foreground.",
+            flush=True,
+        )
+        time.sleep(args.prepare_delay)
 
     try:
         with BalatroScreenCapture() as capture:
