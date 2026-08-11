@@ -96,6 +96,26 @@ def _highlighted_card(observer: LiveMemoryBalatroObserver) -> LivePackSelectedCa
     return LivePackSelectedCard(highlighted[0])
 
 
+def _selected_card_geometry(
+    observer: LiveMemoryBalatroObserver,
+    address: int,
+) -> dict[str, float]:
+    decoder, _, _ = observer._root()
+    try:
+        fields = decoder.string_fields(address)
+    except Exception as error:
+        raise LivePackSelectedCardConfirmError(
+            "unable to read highlighted pack card geometry"
+        ) from error
+    for value in (fields.get("VT"), fields.get("T")):
+        geometry = _geometry(decoder, value)
+        if _complete_geometry(geometry):
+            return geometry
+    raise LivePackSelectedCardConfirmError(
+        "highlighted pack card has no complete VT/T geometry"
+    )
+
+
 def pack_contains_card(observer: LiveMemoryBalatroObserver, address: int) -> bool:
     try:
         decoder, _, root = observer._root()
@@ -226,7 +246,6 @@ def _memory_confirm_candidates(
             if value.kind == "table":
                 queue.append((f"[{index}]", int(value.value), depth + 1))
 
-    # Prefer unique config nodes. The same table can be reachable from several roots.
     unique: list[_MemoryConfirmCandidate] = []
     seen_addresses: set[int] = set()
     for candidate in found:
@@ -249,6 +268,36 @@ def _candidate_screen_point(
     return transform.screen_point(
         float(geometry["x"]) + float(geometry["w"]) / 2.0,
         float(geometry["y"]) + float(geometry["h"]) / 2.0,
+    )
+
+
+def _template_confirm_point(
+    *,
+    selected_geometry: dict[str, float],
+    control_geometry: dict[str, float],
+    logical_width: float,
+    logical_height: float,
+    client_rect,
+) -> PixelPoint:
+    """Predict the selected-card action button from the highlighted card itself.
+
+    Balatro attaches ``use_card/can_select_card`` to the lower-right edge of the
+    highlighted card. Nested control x/y can be in a UI-local coordinate space, so
+    this template deliberately ignores them. Only the live control width is used;
+    the highlighted card's live geometry is the positional anchor.
+    """
+
+    transform = BalatroLogicalViewport(logical_width, logical_height, client_rect)
+    card = transform.screen_rect(
+        x=float(selected_geometry["x"]),
+        y=float(selected_geometry["y"]),
+        w=float(selected_geometry["w"]),
+        h=float(selected_geometry["h"]),
+    )
+    control_width = max(1, round(float(control_geometry["w"]) * transform.scale))
+    return PixelPoint(
+        x=card.right - control_width // 2,
+        y=card.bottom,
     )
 
 
@@ -301,8 +350,8 @@ class LivePackSelectedCardConfirmExecutor:
         *,
         search_step: int = 24,
         local_search_step: int = 12,
-        local_radius_x: int = 168,
-        local_radius_y: int = 132,
+        local_radius_x: int = 96,
+        local_radius_y: int = 72,
         probe_settle_delay: float = 0.06,
         click_settle_delay: float = 0.05,
         focus_settle_delay: float = 0.25,
@@ -348,16 +397,19 @@ class LivePackSelectedCardConfirmExecutor:
                 f"Balatro is in {before.phase}, expected *_PACK"
             )
         selected = _highlighted_card(self.observer)
+        selected_geometry = _selected_card_geometry(self.observer, selected.address)
 
         memory_candidates, tile_w, tile_h = _memory_confirm_candidates(self.observer)
         target = None
         probes = 0
 
-        # Fast path: derive candidate points from exact live UI nodes in memory. The
-        # nested T/VT center is only a guess: authorize it with live hover identity.
+        # Primary production path: the action button is attached to the selected
+        # card in a stable relative layout. Ignore nested control x/y and anchor the
+        # prediction to the highlighted card's current live geometry.
         for candidate in memory_candidates:
-            origin = _candidate_screen_point(
-                candidate,
+            origin = _template_confirm_point(
+                selected_geometry=selected_geometry,
+                control_geometry=candidate.geometry,
                 logical_width=tile_w,
                 logical_height=tile_h,
                 client_rect=window.client_rect,
@@ -376,16 +428,15 @@ class LivePackSelectedCardConfirmExecutor:
                     control_id=hit.control_id,
                     hit_signal=hit.hit_signal,
                     probes=probes,
-                    location_source=f"memory_{candidate.geometry_source}",
+                    location_source="selected_card_template",
                     memory_candidates=len(memory_candidates),
                     used_local_search=False,
                     used_fallback_search=False,
                 )
                 break
 
-            # Nested UI geometry is not always the literal clickable screen region.
-            # Search only around that live-memory-derived guess before considering a
-            # whole-client fallback. No offset is persisted or learned.
+            # Small fail-safe search around the current card-relative prediction.
+            # No offset is persisted or learned between actions.
             for point in _local_search_points(
                 origin,
                 window.client_rect,
@@ -405,7 +456,7 @@ class LivePackSelectedCardConfirmExecutor:
                     control_id=hit.control_id,
                     hit_signal=hit.hit_signal,
                     probes=probes,
-                    location_source=f"memory_{candidate.geometry_source}_local_search",
+                    location_source="selected_card_template_local_search",
                     memory_candidates=len(memory_candidates),
                     used_local_search=True,
                     used_fallback_search=False,
@@ -414,8 +465,38 @@ class LivePackSelectedCardConfirmExecutor:
             if target is not None:
                 break
 
-        # Last-resort fail-safe for layouts whose memory geometry is too detached from
-        # the real hit region. This is not the normal production path.
+        # Secondary memory-derived attempt using the control's own absolute nested
+        # geometry, retained only as another fail-safe before whole-client search.
+        if target is None:
+            for candidate in memory_candidates:
+                point = _candidate_screen_point(
+                    candidate,
+                    logical_width=tile_w,
+                    logical_height=tile_h,
+                    client_rect=window.client_rect,
+                )
+                if not _inside_client(point, window.client_rect):
+                    continue
+                probes += 1
+                hit = self._probe_point(point)
+                if hit is None or hit.node_address != candidate.node_address:
+                    continue
+                target = LivePackConfirmTarget(
+                    screen_point=point,
+                    node_address=hit.node_address,
+                    button=hit.button,
+                    func=hit.func,
+                    control_id=hit.control_id,
+                    hit_signal=hit.hit_signal,
+                    probes=probes,
+                    location_source=f"memory_{candidate.geometry_source}",
+                    memory_candidates=len(memory_candidates),
+                    used_local_search=False,
+                    used_fallback_search=False,
+                )
+                break
+
+        # Last-resort fail-safe only.
         if target is None:
             for point in _search_points(window.client_rect, self.search_step):
                 probes += 1
@@ -451,7 +532,6 @@ class LivePackSelectedCardConfirmExecutor:
                 "verified pack confirm point lost live identity before click"
             )
 
-        # Ensure the same single highlighted card still exists immediately before click.
         latest_selected = _highlighted_card(self.observer)
         if latest_selected.address != selected.address:
             raise LivePackSelectedCardConfirmError(
