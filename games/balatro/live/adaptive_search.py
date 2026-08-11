@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from games.balatro.actions import DISCARD_CARDS
+
 
 @dataclass(frozen=True)
 class AdaptiveBlindSearchConfig:
@@ -21,6 +23,16 @@ class AdaptiveBlindSearchConfig:
     child_play_width: int
     child_discard_width: int
     max_nodes: int
+
+
+@dataclass(frozen=True)
+class AdaptiveRecommendationSummary:
+    """Planner recommendation fields needed for cross-search consensus checks."""
+
+    action: str
+    indices: tuple[int, ...]
+    clear_probability: float
+    expected_score: float
 
 
 def _node_budget(horizon: int, cap: int) -> int:
@@ -84,3 +96,43 @@ def adaptive_blind_search_schedule(
             )
         )
     return tuple(configs)
+
+
+def stable_discard_consensus(
+    recommendations: tuple[AdaptiveRecommendationSummary, ...],
+    *,
+    minimum_agreement: int = 3,
+    tolerance: float = 1e-9,
+) -> bool:
+    """Return whether the deepest completed searches agree on one discard.
+
+    This is deliberately stricter than merely choosing the best sampled result.
+    The last ``minimum_agreement`` completed searches must recommend the exact
+    same discard indexes, and both clear probability and expected score must be
+    non-decreasing as search horizon deepens. It is intended as an explicit
+    best-effort setup-action policy; scored plays remain governed by the normal
+    clear-probability execution threshold.
+    """
+
+    if minimum_agreement < 2:
+        raise ValueError("minimum_agreement must be at least 2")
+    if tolerance < 0:
+        raise ValueError("tolerance cannot be negative")
+    if len(recommendations) < minimum_agreement:
+        return False
+
+    tail = recommendations[-minimum_agreement:]
+    first = tail[0]
+    if first.action != DISCARD_CARDS:
+        return False
+    if not first.indices:
+        return False
+    if any(item.action != DISCARD_CARDS or item.indices != first.indices for item in tail[1:]):
+        return False
+
+    for previous, current in zip(tail, tail[1:]):
+        if current.clear_probability + tolerance < previous.clear_probability:
+            return False
+        if current.expected_score + tolerance < previous.expected_score:
+            return False
+    return True
