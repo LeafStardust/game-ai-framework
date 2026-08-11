@@ -3,9 +3,11 @@ from types import SimpleNamespace
 import pytest
 
 from games.balatro.live.external.live_shop_special_action_mouse import (
+    ACTION_OFFSETS,
     LiveShopSpecialActionMouseError,
     _resolve_expected_from_node,
     _target_item,
+    _template_point,
 )
 from games.balatro.live.external.viewport import PixelPoint
 from games.balatro.live.external.window import WindowRect
@@ -122,3 +124,81 @@ def test_special_action_refuses_unaffordable_item():
             logical_height=11.5,
             client_rect=WindowRect(0, 0, 1536, 864),
         )
+
+
+def test_booster_template_is_card_relative_and_resolution_independent():
+    snapshot = SimpleNamespace(
+        phase="SHOP",
+        payload={
+            "money": 10,
+            "shop_boosters": {
+                "cards": [{
+                    "area_index": 0,
+                    "label": "Buffoon Pack",
+                    "live_id": 22,
+                    "cost": 4,
+                    "ui": {"x": 8.0, "y": 7.0, "w": 2.0, "h": 2.0},
+                }],
+            },
+        },
+    )
+    rect = WindowRect(-1000, 100, 1536, 864)
+    item = _target_item(
+        snapshot,
+        "boosters",
+        0,
+        logical_width=20.0,
+        logical_height=11.5,
+        client_rect=rect,
+    )
+
+    point = _template_point(
+        item,
+        "boosters",
+        logical_width=20.0,
+        logical_height=11.5,
+        client_rect=rect,
+    )
+
+    assert ACTION_OFFSETS["boosters"] == (0.0, 1.33)
+    assert point.x == item.screen_center.x
+    assert point.y > item.screen_center.y
+
+
+def test_voucher_template_targets_below_selected_card():
+    snapshot = SimpleNamespace(
+        phase="SHOP",
+        payload={
+            "money": 10,
+            "shop_vouchers": {
+                "cards": [{
+                    "area_index": 0,
+                    "label": "Wasteful",
+                    "live_id": 23,
+                    "cost": 5,
+                    "ui": {"x": 8.0, "y": 7.0, "w": 2.0, "h": 2.0},
+                }],
+            },
+        },
+    )
+    rect = WindowRect(0, 0, 1536, 864)
+    item = _target_item(
+        snapshot,
+        "vouchers",
+        0,
+        logical_width=20.0,
+        logical_height=11.5,
+        client_rect=rect,
+    )
+
+    point = _template_point(
+        item,
+        "vouchers",
+        logical_width=20.0,
+        logical_height=11.5,
+        client_rect=rect,
+    )
+
+    assert ACTION_OFFSETS["vouchers"] == (0.0, 1.07)
+    assert point.x == item.screen_center.x
+    assert point.y > item.screen_center.y
