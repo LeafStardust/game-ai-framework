@@ -54,6 +54,14 @@ class BalatroScorer:
         "A": 11,
     }
 
+    def is_card_debuffed(self, card) -> bool:
+        """Return whether a card's scoring/held effects are disabled.
+
+        The base scorer has no blind-specific debuffs. Live boss-specific scorers
+        override this hook while leaving poker-hand classification unchanged.
+        """
+        return False
+
     def _apply_card_modifiers(
         self,
         score: HandScore,
@@ -63,6 +71,9 @@ class BalatroScorer:
     ) -> None:
 
         for card in cards:
+
+            if self.is_card_debuffed(card):
+                continue
 
             self._apply_single_card_modifier(
                 score,
@@ -120,6 +131,9 @@ class BalatroScorer:
     ) -> None:
 
         for card in cards:
+
+            if self.is_card_debuffed(card):
+                continue
 
             if card.enhancement == "Steel":
                 score.x_mult *= 1.5
@@ -191,6 +205,7 @@ class BalatroScorer:
                 self.card_chip_value(card)
                 * (2 if getattr(card, "seal", None) == "Red" else 1)
                 for card in modifier_cards
+                if not self.is_card_debuffed(card)
             )
 
         self._apply_card_modifiers(
