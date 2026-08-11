@@ -4,6 +4,7 @@ import pytest
 
 from games.balatro.live.external.live_shop_purchase_mouse import (
     LiveShopPurchaseMouseError,
+    live_buy_hit_test,
     resolve_live_buy_target,
 )
 from games.balatro.live.external.viewport import PixelPoint
@@ -23,7 +24,7 @@ class Decoder:
         return self.tables[int(address)]
 
 
-def _fixture(button="buy_from_shop", func="can_buy"):
+def _fixture(button="buy_from_shop", func="can_buy", *, hovered=False):
     tables = {
         1: {"cursor_hover": _value("table", 2)},
         2: {"prev_target": _value("table", 3)},
@@ -38,6 +39,7 @@ def _fixture(button="buy_from_shop", func="can_buy"):
             "config": _value("table", 7),
             "T": _value("table", 8),
             "VT": _value("table", 9),
+            "states": _value("table", 10),
         },
         7: {
             "button": _value("string", button),
@@ -59,6 +61,8 @@ def _fixture(button="buy_from_shop", func="can_buy"):
             "r": _value("number", 0.0),
             "scale": _value("number", 1.0),
         },
+        10: {"hover": _value("table", 11)},
+        11: {"is": _value("boolean", hovered)},
     }
     root = {
         "CONTROLLER": _value("table", 1),
@@ -68,7 +72,7 @@ def _fixture(button="buy_from_shop", func="can_buy"):
     return Decoder(tables), root
 
 
-def test_live_buy_target_matches_validated_neptune_geometry():
+def test_live_buy_target_resolves_nested_neptune_geometry_guess():
     decoder, root = _fixture()
 
     target = resolve_live_buy_target(
@@ -83,6 +87,34 @@ def test_live_buy_target_matches_validated_neptune_geometry():
     assert target.func == "can_buy"
     assert target.geometry_source == "UIRoot VT"
     assert target.screen_center == PixelPoint(-858, 702)
+
+
+def test_live_buy_hit_test_accepts_active_uiroot_hover():
+    decoder, root = _fixture(hovered=True)
+    target = resolve_live_buy_target(
+        decoder,
+        root,
+        WindowRect(-1736, 165, 1536, 864),
+    )
+
+    hit, signal = live_buy_hit_test(decoder, root, target)
+
+    assert hit is True
+    assert signal == "states.hover.is:UIRoot"
+
+
+def test_live_buy_hit_test_rejects_unverified_point():
+    decoder, root = _fixture(hovered=False)
+    target = resolve_live_buy_target(
+        decoder,
+        root,
+        WindowRect(-1736, 165, 1536, 864),
+    )
+
+    hit, signal = live_buy_hit_test(decoder, root, target)
+
+    assert hit is False
+    assert signal == ""
 
 
 def test_live_buy_target_rejects_buy_and_use_control():
