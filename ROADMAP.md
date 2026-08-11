@@ -1,80 +1,74 @@
 # Roadmap
 
-> The roadmap is milestone-based. Individual game intelligence is developed on top of the general framework through game adapters, evaluators, decision systems, search, planning, and deck-specific agents rather than being embedded into the framework itself.
+> The roadmap is milestone-based. General game-AI infrastructure stays reusable; game-specific mechanics, planning and playbooks live in game adapters and agents.
 >
-> For Balatro, each deck has its own independent agent/"thinking brain". Decks are developed sequentially. A new deck is not started until the previous deck has completed all stakes from White through Gold.
+> For Balatro there is **one permanent agent and one permanent mechanics/state/execution stack**. Deck/stake strategy is supplied by a replaceable **playbook cartridge** selected automatically from the live run. A new deck begins only after the previous deck has completed every stake through Gold.
 >
-> Completion does **not** require a high win rate or optimal play. A stake is considered completed once the agent successfully completes one full run at that stake.
+> Completion does **not** require a high win rate or optimal play. A stake is complete once the agent independently completes one full run at that stake.
 >
-> The production Balatro agent targets the normal Steam game through read-only external observation and normal mouse input. Read-only observation may use the normal Balatro save state and/or screen pixels, but production must not modify or inject into the game process or save. Agent-facing state must exclude hidden future/RNG information that a normal player could not know. Runtime injection/mod APIs may be used as optional development and testing tools, but a modded/injected backend does not satisfy the real-game completion criterion.
+> Production Balatro integration should require no third-party bot/mod runtime if technically possible. External repositories may be studied for Balatro internals, but production code should live in this repository. The preferred observer is our own zero-dependency, read-only Windows process-memory reader. `save.jkr` is fallback/debug state only, not live truth.
 >
-> Once live-game integration is complete, major versions correspond to deck progression and patch versions correspond to stake progression within that deck. For example, Red Deck White Stake is v1.0.0 and Red Deck Gold Stake is v1.0.7; Blue Deck begins at v2.0.0 with White Stake.
+> Agent-facing observation must exclude hidden future information: no RNG state/seed exploitation and no ordered future draw pile. Current live objects and public deck composition are allowed.
 
 ## v0.1.0 — Foundation
 
-* [x] Repository setup
-* [x] Core abstractions
-* [x] Game runner
-* [x] Dummy environment
-* [x] Type annotations
+- [x] Repository setup
+- [x] Core abstractions
+- [x] Game runner
+- [x] Dummy environment
+- [x] Type annotations
 
 ## v0.2.0 — Framework Infrastructure
 
-* [x] Configuration system
-* [x] Logging system
-* [x] Metrics system
-* [x] Event system
+- [x] Configuration system
+- [x] Logging system
+- [x] Metrics system
+- [x] Event system
 
 ## v0.3.0 — Decision Systems
 
-* [x] Agent architecture
-* [x] Decision engine interface
-* [x] Decision pipeline
-* [x] Policy interface
-* [x] Greedy action policy
-* [x] Balatro agent integration
+- [x] Agent architecture
+- [x] Decision engine interface
+- [x] Decision pipeline
+- [x] Policy interface
+- [x] Greedy action policy
+- [x] Balatro agent integration
 
 ## v0.4.0 — Evaluation Framework
 
-* [x] Generic evaluator abstraction
-* [x] Heuristic evaluation system
-* [x] Balatro evaluator integration
-* [x] Play cards value heuristic
-* [x] Discard cards value heuristic
-* [x] Basic risk heuristic
+- [x] Generic evaluator abstraction
+- [x] Heuristic evaluation system
+- [x] Balatro evaluator integration
+- [x] Play/discard value heuristics
+- [x] Basic risk heuristic
 
 ## v0.5.0 — Decision Strategy Expansion
 
-* [x] Softmax action policy
-* [x] Configurable policy selection
-* [x] Policy factory
-* [x] Agent builder
-* [x] Reproducible random seed handling
+- [x] Softmax action policy
+- [x] Configurable policy selection
+- [x] Policy factory
+- [x] Agent builder
+- [x] Reproducible random seed handling for framework experiments
 
 ## v0.6.0 — Experiment Infrastructure
 
-* [x] Agent evaluation runner
-* [x] Multi-episode execution
-* [x] Policy comparison framework
-* [x] Experiment result tracking
-* [x] Extended metrics collection
+- [x] Agent evaluation runner
+- [x] Multi-episode execution
+- [x] Policy comparison framework
+- [x] Experiment result tracking
+- [x] Extended metrics collection
 
 ## v0.7.0 — Balatro Intelligence Layer
 
-* [x] Balatro card representation
-* [x] Poker hand recognition
-* [x] Balatro scoring calculation
-* [x] Play cards evaluation
-* [x] Discard cards evaluation
-* [x] Blind-aware decision evaluation
-* [x] Balatro terminology alignment
-* [x] Joker framework
-* [x] Consumable framework
-* [x] Planet card effects
-* [x] Tarot card effects
-* [x] Spectral card effects
-* [x] Card enhancements and editions
-* [x] Seals and card modifiers
+- [x] Balatro card representation
+- [x] Poker hand recognition
+- [x] Balatro scoring calculation
+- [x] Play/discard evaluation
+- [x] Blind-aware evaluation
+- [x] Joker framework
+- [x] Consumable framework
+- [x] Planet/Tarot/Spectral effects
+- [x] Enhancements, editions and seals
 
 ## v0.8.0 — Balatro Search and Planning Foundation
 
@@ -86,242 +80,253 @@
 - [x] Blind completion path synthesis
 - [x] Tactical path commitment
 - [x] Stake system
-- [x] Deck-specific agent architecture
+- [x] Deck-specific agent architecture foundation
 - [x] Red Deck starting-state support
 
-## v0.9.0 — Balatro External Real-Game Integration
+## v0.9.0 — Autonomous Real-Game Integration
 
-> Connect the framework-level Balatro agent to the normal Steam version of Balatro without modifying or injecting into the game process or save. The production backend may read the normal save state and screen pixels externally, and must execute gameplay actions through normal input. This milestone is complete when the agent can autonomously operate an unmodified Red Deck White Stake run. Winning the run is reserved for v1.0.0.
+> Target user flow: start normal Steam Balatro, enter any supported deck/stake run manually, then activate the agent once. The agent reads the **current running game**, detects deck/stake, loads the matching playbook, chooses and executes one action, observes the resulting live state, verifies it, and repeats until win/loss.
+>
+> Target loop:
+>
+> `live Balatro state -> translate -> select playbook -> plan -> execute -> live Balatro state -> verify -> log -> replan`
 
-### Shared live-integration infrastructure
+### 0.9A — Authoritative live-state observation — ACTIVE
 
-- [x] Live-game bridge/action interfaces
-- [x] Live state → `BalatroState` translation architecture
-- [x] Live console telemetry
-- [x] Integration error/recovery architecture
-- [x] BalatroBot API backend for optional development/testing
+- [x] Live bridge/state protocol and `BalatroState` translation architecture
+- [x] Zero-dependency Windows read-only process attachment through Python `ctypes`
+- [x] Readable process-memory region enumeration
+- [x] Narrow LuaJIT value/table decoder foundation
+- [x] Initial live-memory `G` discovery probe
+- [x] Unit coverage for LuaJIT-memory decoding primitives
+- [ ] Validate LuaJIT layout against a fresh live Balatro run
+- [ ] Reliably discover and validate Balatro global `G`
+- [ ] Read whitelisted current-run fields directly from live memory
+- [ ] Read current card/Joker/consumable/shop identities directly from live objects
+- [ ] Read live UI object geometry where stable enough for execution targeting
+- [ ] Detect deck and stake directly from the active run
+- [ ] Translate direct-memory observation into `LiveBalatroSnapshot`
+- [ ] Make direct live-memory observer the production default
+- [ ] Keep `save.jkr` parser only as fallback/debug/recovery input
+- [ ] Exclude RNG state, seed exploitation and ordered future draw information from production observation
+- [ ] Validate state freshness across rapid events such as consumable use, Joker creation/destruction and shop purchases
+- [ ] Validate observation across all required run phases
 
-### External Steam observation
+> If a stable read-only memory decoder proves infeasible across normal Balatro builds, the fallback architecture is a minimal bridge written entirely in this repository. Third-party bot/mod repositories are not production dependencies.
 
-- [x] Read-only vanilla `save.jkr` discovery and parser
-- [x] Save snapshot change detection and stale-state rejection
-- [x] Agent-facing observable-state whitelist excluding RNG seed/future-only data
-- [x] Selecting-hand structured state extraction: phase, deck/stake, ante/round, money, score, blind, hands/discards and visible hand
-- [x] Blind-selection phase/state extraction and validation
-- [x] Joker and consumable structured state extraction and validation
-- [x] Shop structured state extraction and validation, including visible-area indices
-- [x] Structured translation for validated `BLIND_SELECT`, `SELECTING_HAND`, `ROUND_EVAL`, `SHOP` and checkpoint transitions
-- [x] Save-disappearance/race handling at terminal run states
-- [ ] Public skip-tag identity/reward extraction for blind planning
-- [ ] Complete production-state translation for every remaining run/menu phase
-- [ ] Full observation recovery validation across an entire run
+### 0.9B — Exact external control
 
-### Optional visual fallback
-
-- [x] Steam Balatro window discovery and client-area tracking
-- [x] External screen-capture backend
-- [x] Resolution/scale-independent viewport normalization
-- [x] Visual phase signature/calibration infrastructure
-- [x] Visual game-phase detection
-- [x] Playing-card location/order detection for external clicking
-- [ ] HUD visual extraction fallback
-- [ ] Blind-selection visual information fallback
-- [ ] Joker/consumable visual fallback
-- [ ] Shop visual fallback
-
-> Visual fallback work is not a v0.9.0 completion blocker when the same observable state is available reliably through the read-only structured observer.
-
-### External Steam control
+> Baseline execution remains normal OS input. Direct invocation of Balatro internal callbacks may be explored later only if our own implementation is simpler and sufficiently safe; it is not required for autonomous play.
 
 - [x] Normal mouse input backend with foreground/focus safety
-- [x] Dynamic hand-card coordinate mapping and save-order validation
-- [x] External `PLAY_CARDS` execution
-- [x] External `DISCARD_CARDS` execution
-- [x] Calibrated Small/Big/Boss Blind Select controls
-- [x] Calibrated Small/Big Blind Skip controls
-- [x] Calibrated Cash Out control with validated `ROUND_EVAL` → `SHOP` checkpoint transition
-- [x] Deterministic shop purchase controls for Joker/consumable/voucher targets
-- [x] External End Shop control and delayed checkpoint reconciliation
-- [x] Post-action checkpoint synchronization for hand, blind-select, round-eval and validated shop transitions
-- [x] Guard against already-selected hand cards before external execution
-- [x] Fresh post-purchase visual observation and dynamic retargeting for safe multi-buy main-shop chaining
-- [ ] Booster-opening control and immediate post-open observation
-- [ ] Reroll control and immediate refreshed-shop observation
-- [ ] Consumable-use interaction controls
-- [ ] Run start/restart controls for Red Deck White Stake
+- [x] External `PLAY_CARDS` / `DISCARD_CARDS`
+- [x] Small/Big/Boss Blind selection controls
+- [x] Blind skip controls
+- [x] Cash Out control
+- [x] Deterministic shop purchase controls
+- [x] End Shop control
+- [x] Consumable interaction foundation
+- [x] Guard against already-selected hand cards
+- [ ] Prefer live Balatro UI coordinates over visual inference where available
+- [ ] Reconcile each action against the **next direct live-state observation**
+- [ ] Booster opening
+- [ ] Reroll
+- [ ] Joker sell/replace
+- [ ] Robust consumable use for all supported target patterns
+- [ ] Optional direct internal action backend investigation using only repository-owned code
+- [ ] Emergency stop / safe agent deactivation
 
-### Live hand scoring and blind-clear planning
+### 0.9C — Shared mechanics and blind planning
 
-> The live agent is moving from local turn-by-turn heuristics to goal-directed blind completion. The target architecture is: **score outcomes → model possible future draws → search for the highest-probability blind-clear policy → execute one action → observe the authoritative save checkpoint → replan**.
->
-> Deterministic visible effects must produce an exact score. Nondeterministic effects must not be collapsed into one guessed score: the planner should track at minimum a **guaranteed score floor**, an **expected score**, and the relevant **outcome distribution / clear probability**. A Lucky-style bonus therefore contributes to expected/upside scoring but is not counted in the guaranteed floor unless the non-random part already provides it.
+> Mechanics do not change when a playbook cartridge changes. The shared engine owns Balatro rules; a playbook only changes strategic preferences and planning parameters.
 
-- [x] Exact deterministic visible-hand scoring including played-card chip values
-- [x] Exact projected blind total and immediate-clear detection
-- [x] Live preview telemetry for poker hand, calculated score, projected total, remaining chips and clear status
-- [x] Pace-aware one-step play/discard evaluator as an interim policy
-- [x] Checkpointed hand loop: observe → choose → execute → persist → replan
-- [x] Preserve terminal action when Balatro removes the run save after a loss
-- [x] Visible-card score-outcome model with guaranteed minimum, expected value, maximum/relevant outcomes and clear probability
-- [x] Deterministic/probabilistic separation for Lucky card scoring effects
-- [ ] Extend score-outcome modelling to remaining stochastic Joker/effect sources
-- [x] Side-effect-free Joker scoring projection architecture with live-validated stateful Ice Cream support
-- [ ] Extend side-effect-free hypothetical scoring across remaining relevant Joker implementations
-- [x] Boss-blind legality integration foundation with live-validated The Psychic support
-- [ ] Extend boss-blind modifier integration to remaining bosses
-- [x] Public remaining-deck composition model that never exposes hidden draw order
-- [x] Draw/discard outcome distributions from public deck composition
-- [x] Bounded two-action blind-clear planner over play/discard branches
-- [ ] Generalize blind-clear planning across all remaining hands and discards
-- [ ] Contingent plans validated on a real discard/draw checkpoint rather than only deterministic retained-card continuations
-- [ ] Resource-aware plan objective: maximize clear probability first, then preserve hands/discards/economy and avoid unnecessary overkill
-- [ ] Consumable-use branches inside blind-clear planning
-- [x] Replan after every real planner-controlled hand checkpoint using the newly observed state
-- [x] Guarded planner-controlled real blind clear with authoritative stateful-Joker checkpoint restoration and replanning
-- [ ] Blind-skip/tag valuation integrated with run-level planning
-- [ ] Replace the interim pace heuristic as the primary live hand policy once the planner is validated
+- [x] Exact deterministic visible-hand scoring
+- [x] Immediate-clear and projected blind-total calculations
+- [x] Guaranteed/expected/upside score-outcome representation
+- [x] Lucky stochastic separation
+- [x] Side-effect-free Joker score projection architecture
+- [x] Live-validated Ice Cream and Bootstraps projections
+- [x] Boss-blind legality foundation
+- [x] The Psychic / The Head / The House planner paths validated during live development
+- [x] Public remaining-deck composition model without future draw order
+- [x] Probabilistic draw/discard outcomes
+- [x] Bounded multi-action adaptive blind-clear search
+- [x] Search node budgets and guarded one-action execution
+- [x] Consensus setup-discard policy
+- [x] Replan after each real action checkpoint
+- [x] Initial The Sun escape planning
+- [ ] Extend score projection to relevant remaining Jokers/effects
+- [ ] Generalize boss-blind integration
+- [ ] Integrate consumable actions into the normal blind planner
+- [ ] Resource-aware blind objective: clear probability first, then preserve hands/discards/economy
+- [ ] Blind skip/tag valuation
+- [ ] Replace temporary unsupported-Joker hard stops with complete supported mechanics
 
-### Shop intelligence and safe execution
+### 0.9D — Playbook cartridge system
 
-- [x] Visible shop item translation with live identity and original area index
-- [x] Buffered deterministic purchase transaction model for stale in-shop saves
-- [x] Delayed money reconciliation after leaving shop
-- [x] One-shot policy-recommended external purchase with exact-label guard
-- [x] Projected re-ranking after one purchase
-- [x] Optional guarded End Shop when the projected next recommendation is to stop buying
-- [x] Joker-aware shop value probes using existing Joker implementations
-- [ ] Identity/inventory reconciliation in addition to money reconciliation
-- [x] Safe fresh-layout observation before a second main-card purchase, with combined delayed multi-buy checkpoint validation
+> There is one Balatro agent. The cartridge answers **how to play this deck/stake**, not **how Balatro works**.
+
+- [ ] Define playbook interface
+- [ ] Playbook registry keyed by `(deck, stake)`
+- [ ] Auto-select playbook from live deck/stake at activation
+- [ ] Separate factual deck/stake mechanics from strategic playbook preferences
+- [ ] Playbook controls for risk tolerance
+- [ ] Playbook controls for planner/search budgets
+- [ ] Shop/Joker/consumable priorities
+- [ ] Economy thresholds and scaling priorities
+- [ ] Blind skip/tag strategy
+- [ ] Red Deck / White Stake first production playbook
+- [ ] Playbook version identifier included in every run log
+
+### 0.9E — Run experience logging and later learning
+
+> **Recording and learning are separate.** Every run should produce a durable experience log now. The agent must not silently rewrite its active playbook during a run. Controlled offline analysis/adaptation can be added once enough trustworthy runs exist.
+
+- [x] Generic framework console logging/metrics foundation
+- [x] Append-only Balatro per-run JSONL experience logger
+- [x] Run identity includes deck/stake/playbook/playbook version
+- [ ] Integrate run logger into the autonomous live loop
+- [ ] Log sanitized observation before decisions
+- [ ] Log chosen action and planner/playbook rationale
+- [ ] Log execution success/failure and authoritative post-action state
+- [ ] Log purchases, sells, consumable uses and blind outcomes
+- [ ] Log terminal win/loss and final run summary
+- [ ] Build replay/analysis utility over stored runs
+- [ ] Aggregate per-playbook statistics across runs
+- [ ] Identify repeated failure patterns and weak decisions from logs
+- [ ] Add controlled offline playbook tuning/learning only after log quality is validated
+- [ ] Keep automatic online self-modification out of the critical live loop unless later evidence justifies it
+
+### 0.9F — Shop and run-level intelligence
+
+- [x] Visible shop item translation and valuation foundation
+- [x] Purchase policy/re-ranking foundation
+- [x] Joker-aware shop value probes
 - [ ] Booster valuation/opening
 - [ ] Reroll valuation/execution
 - [ ] Joker sell/replace decisions
 - [ ] Broader semantic valuation for non-scoring Jokers, consumables and vouchers
+- [ ] Run-level planning connecting blind risk, economy, shop and deck growth
 
-### End-to-end validation
+### 0.9G — Single-command autonomous orchestrator
 
-- [ ] External autonomous game loop spanning blind select → hand play → round evaluation → shop → next blind
-- [x] Production hand actions require no Lovely/Steamodded/BalatroBot injection
-- [x] Production blind-selection and validated deterministic shop actions require no injection
-- [ ] Validate one actual unseeded Red Deck White Stake run operates without manual gameplay input
-- [ ] Validate normal Steam profile/save progression remains in use
-- [ ] Verify achievement/progression behavior empirically rather than assuming it
+- [ ] One activation command for an already-started Balatro run
+- [ ] Attach to current Balatro process automatically
+- [ ] Read current deck/stake and load playbook automatically
+- [ ] Observe/plan/execute/verify/log loop across all required phases
+- [ ] Blind select -> hand play -> round eval -> shop -> next blind without manual gameplay input
+- [ ] Continue automatically across antes
+- [ ] Detect win/loss terminal state
+- [ ] Clean shutdown and complete run log
+- [ ] Validate a fresh unseeded Red Deck White Stake run end-to-end
 
-> Lovely/Steamodded/BalatroBot may remain available as an optional development oracle for comparing extracted state against internal game state. Runs performed through that backend do **not** count toward v0.9.0 or later deck/stake completion.
+### Legacy/fallback observation
 
-# v1.0.0 — Red Deck — White Stake
+The existing `save.jkr` and visual observer work remains useful for diagnostics and recovery, but it is no longer the production source of truth.
 
-> First complete Balatro agent milestone. The Red Deck agent must independently play the normal Steam game through the external production backend and successfully complete an unseeded Red Deck White Stake run from start to finish.
+- [x] Vanilla `save.jkr` discovery/parser
+- [x] Save-backed phase/hand/Joker/consumable/shop extraction
+- [x] Screen capture and visual phase/card-location infrastructure
+- [ ] Keep these paths isolated as fallback/debug tools
+- [ ] Remove live-control dependence on save-persistence timing
+- [ ] Remove stale-save reconciliation from the normal autonomous loop
 
-* [ ] Red Deck agent
-* [ ] Red Deck decision-making brain
-* [ ] Probabilistic blind-clear planning validated in live play
-* [ ] Shop decision-making
-* [ ] Joker evaluation and selection
-* [ ] Consumable evaluation and selection
-* [ ] Tarot/Spectral/Planet decision-making
-* [ ] Blind strategy, including skip/tag decisions
-* [ ] Economy management
-* [ ] Deck-building decisions
-* [ ] Complete one successful unseeded Red Deck White Stake run in actual Steam Balatro
-* [ ] Validate normal profile progression/unlocks are preserved
-* [ ] Validate Red Deck White Stake agent
+## v1.0.0 — Red Deck — White Stake
 
-# v1.0.1 — Red Deck — Red Stake
+> First complete playbook milestone. The permanent Balatro agent must activate against a normal unseeded Red Deck White Stake run, automatically select the Red/White playbook, and complete the run without manual gameplay input.
 
-* [ ] Red Stake support
-* [ ] Adapt decision-making to Red Stake rules
-* [ ] Complete one successful Red Deck Red Stake run
-* [ ] Validate Red Stake agent
+- [ ] Red / White playbook
+- [ ] Probabilistic blind-clear planning validated across a complete run
+- [ ] Shop/Joker/consumable decisions
+- [ ] Blind and skip/tag strategy
+- [ ] Economy and deck-building decisions
+- [ ] Complete one successful unseeded Red Deck White Stake run
+- [ ] Preserve normal Steam profile progression/unlocks
+- [ ] Produce a complete replayable run-experience log
 
-# v1.0.2 — Red Deck — Green Stake
+## v1.0.1 — Red Deck — Red Stake
 
-* [ ] Green Stake support
-* [ ] Adapt decision-making to Green Stake rules
-* [ ] Complete one successful Red Deck Green Stake run
-* [ ] Validate Green Stake agent
+- [ ] Red / Red playbook
+- [ ] Adapt strategy to Red Stake
+- [ ] Complete one successful run
 
-# v1.0.3 — Red Deck — Black Stake
+## v1.0.2 — Red Deck — Green Stake
 
-* [ ] Black Stake support
-* [ ] Eternal Joker handling
-* [ ] Adapt decision-making to Black Stake rules
-* [ ] Complete one successful Red Deck Black Stake run
-* [ ] Validate Black Stake agent
+- [ ] Red / Green playbook
+- [ ] Adapt strategy to Green Stake
+- [ ] Complete one successful run
 
-# v1.0.4 — Red Deck — Blue Stake
+## v1.0.3 — Red Deck — Black Stake
 
-* [ ] Blue Stake support
-* [ ] Reduced discard handling
-* [ ] Adapt decision-making to Blue Stake rules
-* [ ] Complete one successful Red Deck Blue Stake run
-* [ ] Validate Blue Stake agent
+- [ ] Red / Black playbook
+- [ ] Eternal Joker strategy
+- [ ] Complete one successful run
 
-# v1.0.5 — Red Deck — Purple Stake
+## v1.0.4 — Red Deck — Blue Stake
 
-* [ ] Purple Stake support
-* [ ] Increased Ante score requirements
-* [ ] Adapt decision-making to Purple Stake rules
-* [ ] Complete one successful Red Deck Purple Stake run
-* [ ] Validate Purple Stake agent
+- [ ] Red / Blue playbook
+- [ ] Reduced-discard strategy
+- [ ] Complete one successful run
 
-# v1.0.6 — Red Deck — Orange Stake
+## v1.0.5 — Red Deck — Purple Stake
 
-* [ ] Orange Stake support
-* [ ] Perishable Joker handling
-* [ ] Adapt decision-making to Orange Stake rules
-* [ ] Complete one successful Red Deck Orange Stake run
-* [ ] Validate Orange Stake agent
+- [ ] Red / Purple playbook
+- [ ] Higher-score-requirement strategy
+- [ ] Complete one successful run
 
-# v1.0.7 — Red Deck — Gold Stake
+## v1.0.6 — Red Deck — Orange Stake
 
-* [ ] Gold Stake support
-* [ ] Rental Joker handling
-* [ ] Adapt decision-making to Gold Stake rules
-* [ ] Complete one successful Red Deck Gold Stake run
-* [ ] Validate Red Deck across all stakes
-* [ ] Complete Red Deck agent
+- [ ] Red / Orange playbook
+- [ ] Perishable Joker strategy
+- [ ] Complete one successful run
 
-# v2.0.0 — Blue Deck — White Stake
+## v1.0.7 — Red Deck — Gold Stake
 
-> Begins only after Red Deck Gold Stake completion. Blue Deck follows the same stake-version progression: White v2.0.0, Red v2.0.1, Green v2.0.2, Black v2.0.3, Blue v2.0.4, Purple v2.0.5, Orange v2.0.6, Gold v2.0.7.
+- [ ] Red / Gold playbook
+- [ ] Rental Joker strategy
+- [ ] Complete one successful run
+- [ ] Validate Red Deck across all stakes
 
-* [ ] Blue Deck agent
-* [ ] Blue Deck decision-making adaptation
-* [ ] Complete one successful Blue Deck White Stake run
-* [ ] Validate Blue Deck White Stake agent
+## v2.0.0 — Blue Deck — White Stake
 
-## Balatro Deck Progression
+> Begins after Red Deck Gold Stake. The permanent agent is unchanged; Blue Deck progression adds Blue-specific playbooks.
 
-> A deck begins only after the previous deck has completed every stake through Gold. Each deck receives its own major version; stakes advance the patch version from `.0` for White through `.7` for Gold.
+- [ ] Blue / White playbook
+- [ ] Complete one successful Blue Deck White Stake run
+
+## Deck progression
 
 1. **Red Deck — v1.x** — Active
-   * White `v1.0.0` → Red `v1.0.1` → Green `v1.0.2` → Black `v1.0.3` → Blue `v1.0.4` → Purple `v1.0.5` → Orange `v1.0.6` → Gold `v1.0.7`
-2. **Blue Deck — v2.x** — Locked until Red Deck Gold Stake completion
-   * White `v2.0.0` → Red `v2.0.1` → Green `v2.0.2` → Black `v2.0.3` → Blue `v2.0.4` → Purple `v2.0.5` → Orange `v2.0.6` → Gold `v2.0.7`
-3. **Yellow Deck — v3.x** — Locked until Blue Deck Gold Stake completion
-4. **Green Deck — v4.x** — Locked until Yellow Deck Gold Stake completion
-5. **Black Deck — v5.x** — Locked until Green Deck Gold Stake completion
+   - White `v1.0.0` -> Red `v1.0.1` -> Green `v1.0.2` -> Black `v1.0.3` -> Blue `v1.0.4` -> Purple `v1.0.5` -> Orange `v1.0.6` -> Gold `v1.0.7`
+2. **Blue Deck — v2.x** — Locked until Red Gold completion
+3. **Yellow Deck — v3.x** — Locked until Blue Gold completion
+4. **Green Deck — v4.x** — Locked until Yellow Gold completion
+5. **Black Deck — v5.x** — Locked until Green Gold completion
 
-## Stake Progression
+## Stake progression
 
-| Stake  | Version suffix | Added difficulty                              |
-| ------ | -------------- | --------------------------------------------- |
-| White  | `.0.0`         | Base difficulty                               |
-| Red    | `.0.1`         | Small Blind gives no reward money             |
-| Green  | `.0.2`         | Higher Ante score requirements                |
-| Black  | `.0.3`         | 30% chance for shop/pack Jokers to be Eternal |
-| Blue   | `.0.4`         | -1 discard                                    |
-| Purple | `.0.5`         | Higher Ante score requirements                |
-| Orange | `.0.6`         | 30% chance for Jokers to be Perishable        |
-| Gold   | `.0.7`         | 30% chance for Jokers to be Rental            |
+| Stake | Version | Primary added difficulty |
+|---|---:|---|
+| White | `.0.0` | Base difficulty |
+| Red | `.0.1` | Small Blind gives no reward money |
+| Green | `.0.2` | Higher score requirements |
+| Black | `.0.3` | Eternal Jokers |
+| Blue | `.0.4` | -1 discard |
+| Purple | `.0.5` | Higher score requirements |
+| Orange | `.0.6` | Perishable Jokers |
+| Gold | `.0.7` | Rental Jokers |
 
-## Completion Criterion
+## Completion criterion
 
 A deck/stake milestone is complete when:
 
-* [ ] The deck-specific agent independently plays the normal Steam game through the external production backend
-* [ ] The agent completes one full run at the target stake
-* [ ] The run uses the normal Steam profile/save path without injected gameplay control
-* [ ] The run passes the relevant validation tests
+- [ ] The permanent agent detects the active deck/stake and loads the correct playbook
+- [ ] It independently plays the normal Steam run from activation through terminal state
+- [ ] It completes one full run at the target stake
+- [ ] The production observer does not use hidden RNG/future draw information
+- [ ] No third-party bot/mod runtime is required when the preferred zero-dependency observer is viable
+- [ ] Normal Steam profile/progression remains intact
+- [ ] The run produces a complete experience log
+- [ ] Relevant validation tests pass
 
-> **Win rate is not a completion requirement.** The objective is to build an agent capable of completing Balatro, not an optimal or highly competitive Balatro AI.
+> **Win rate is not a completion requirement.** The objective is an agent capable of completing Balatro and improving through observable, reviewable experience—not an opaque self-modifying system.
