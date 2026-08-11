@@ -35,9 +35,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Preview or confirm exactly one already-highlighted pack card. The executor "
-            "first derives the exact use_card/can_select_card control from live memory "
-            "geometry, live-verifies it, and only falls back to a screen search if that "
-            "fast path misses."
+            "derives the exact use_card/can_select_card control from live memory, "
+            "live-verifies its geometry, searches locally around that memory guess if "
+            "needed, and only then falls back to a whole-client search."
         )
     )
     parser.add_argument("--execute", action="store_true")
@@ -83,6 +83,7 @@ def main() -> int:
             print(f"Verified confirm hit signal -> {target.hit_signal}")
             print(f"Confirm location source -> {target.location_source}")
             print(f"Memory confirm candidates -> {target.memory_candidates}")
+            print(f"Local memory search used -> {target.used_local_search}")
             print(f"Fallback screen search used -> {target.used_fallback_search}")
             print(f"Confirm hover probes required -> {target.probes}")
             print("Waiting for live pack-confirm postcondition")
