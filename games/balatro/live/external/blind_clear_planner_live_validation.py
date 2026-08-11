@@ -39,7 +39,16 @@ def main() -> int:
     parser.add_argument("--profile", default="1")
     parser.add_argument("--play-width", type=int, default=6)
     parser.add_argument("--discard-width", type=int, default=4)
-    parser.add_argument("--samples", type=int, default=256)
+    parser.add_argument(
+        "--samples",
+        type=int,
+        default=LiveBlindClearPlanner.DEFAULT_DRAW_SAMPLE_COUNT,
+    )
+    parser.add_argument(
+        "--exact-limit",
+        type=int,
+        default=LiveBlindClearPlanner.DEFAULT_EXACT_DRAW_COMBINATION_LIMIT,
+    )
     args = parser.parse_args()
 
     reader = BalatroSaveReader(args.save, profile=args.profile)
@@ -55,6 +64,10 @@ def main() -> int:
     print(f"Discards -> {state.discards_remaining}")
     print(f"Visible hand cards -> {len(state.hand)}")
     print(f"Public remaining deck cards -> {len(state.deck)}")
+    print(f"Planner play width -> {args.play_width}")
+    print(f"Planner discard width -> {args.discard_width}")
+    print(f"Exact draw combination limit -> {args.exact_limit}")
+    print(f"Sampled draw branches -> {args.samples}")
 
     if state.phase != "SELECTING_HAND":
         print("Planner ready -> False")
@@ -65,7 +78,10 @@ def main() -> int:
     from games.balatro.live.draw_outcomes import PublicDrawOutcomeModel
 
     planner = LiveBlindClearPlanner(
-        draw_outcomes=PublicDrawOutcomeModel(sample_count=args.samples),
+        draw_outcomes=PublicDrawOutcomeModel(
+            exact_combination_limit=args.exact_limit,
+            sample_count=args.samples,
+        ),
         play_width=args.play_width,
         discard_width=args.discard_width,
         horizon=2,
