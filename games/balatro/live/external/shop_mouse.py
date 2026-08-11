@@ -228,16 +228,23 @@ class ExternalShopMouseExecutor:
         layout: ShopMouseLayout,
         capture: BalatroScreenCapture | None = None,
         mouse: BalatroMouseController | None = None,
+        *,
+        focus_settle_delay: float = 0.25,
+        between_click_delay: float = 0.5,
     ):
         self.layout = layout
         self.capture = capture or BalatroScreenCapture()
         self.mouse = mouse or BalatroMouseController()
+        self.focus_settle_delay = max(0.0, focus_settle_delay)
+        self.between_click_delay = max(0.0, between_click_delay)
 
     def dispatch(
         self,
         action: BalatroAction,
         state: BalatroState,
         transaction: BufferedShopTransaction | None = None,
+        *,
+        only_step: int | None = None,
     ) -> BalatroFrame:
         if state.phase != "SHOP":
             raise ValueError("external shop mouse actions require SHOP phase")
@@ -247,6 +254,7 @@ class ExternalShopMouseExecutor:
                 f"shop action {action.name!r} requires immediate post-action observation"
             )
 
+        project_purchase = action.name in self.BUFFERED_PURCHASES and only_step is None
         if action.name in self.BUFFERED_PURCHASES:
             if transaction is None:
                 raise ValueError(
@@ -255,19 +263,33 @@ class ExternalShopMouseExecutor:
             transaction.validate(state, action)
 
         sequence = self.layout.sequence_for(action)
+        steps = sequence.steps
+        if only_step is not None:
+            if only_step < 1 or only_step > len(steps):
+                raise ValueError(
+                    f"shop pointer step must be between 1 and {len(steps)}"
+                )
+            steps = (steps[only_step - 1],)
+
         frame = self._capture_focused_frame()
         viewport = BalatroViewport(frame)
 
-        for step in sequence.steps:
+        previous_was_click = False
+        for step in steps:
+            if previous_was_click and self.between_click_delay > 0:
+                time.sleep(self.between_click_delay)
+
             screen_point = viewport.screen_point(step.point)
             if step.op == "move":
                 self.mouse.move_screen(screen_point)
             else:
                 self.mouse.click_screen(screen_point)
+
             if step.delay > 0:
                 time.sleep(step.delay)
+            previous_was_click = step.op == "click"
 
-        if action.name in self.BUFFERED_PURCHASES:
+        if project_purchase:
             transaction.apply(state, action)
 
         return frame
@@ -277,10 +299,14 @@ class ExternalShopMouseExecutor:
         if tracker is not None:
             window = tracker.snapshot()
             self.mouse.focus(window)
+            if self.focus_settle_delay > 0:
+                time.sleep(self.focus_settle_delay)
             return self.capture.capture()
 
         frame = self.capture.capture()
         self.mouse.focus(frame.window)
+        if self.focus_settle_delay > 0:
+            time.sleep(self.focus_settle_delay)
         return frame
 
     def close(self) -> None:
