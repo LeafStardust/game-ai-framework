@@ -15,8 +15,8 @@ from games.balatro.actions import (
 from games.balatro.card import BalatroCard
 from games.balatro.consumable import PlanetCard
 from games.balatro.hand import PokerHand
-from games.balatro.joker import Joker
-from games.balatro.scoring import BalatroScorer
+from games.balatro.joker import Joker, JokerContext
+from games.balatro.scoring import BalatroScorer, HandScore
 from games.balatro.state import BalatroState
 
 
@@ -35,6 +35,14 @@ class ShopActionScore:
     notes: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True)
+class JokerProbeResult:
+    """Observable consequences detected from an existing Joker implementation."""
+
+    direct_scoring_gain: float = 0.0
+    semantic_signals: tuple[str, ...] = ()
+
+
 class ShopItemValueEstimator(Protocol):
 
     def estimate(
@@ -45,69 +53,119 @@ class ShopItemValueEstimator(Protocol):
 
 
 class JokerMarginalValueEstimator:
-    """Reuse Joker.apply() to estimate direct HAND_SCORED marginal value."""
+    """Reuse existing Joker implementations to estimate immediate and semantic value.
+
+    Scoring probes compare representative hands with and without the candidate Joker.
+    A separate semantic probe captures framework signals written to JokerContext.data,
+    which is important for effect Jokers such as Mime that do not directly modify the
+    HandScore object.
+    """
 
     PROBES = (
-        (PokerHand.HIGH_CARD, (
-            BalatroCard("A", "Spades"), BalatroCard("K", "Hearts"),
-            BalatroCard("9", "Clubs"), BalatroCard("5", "Diamonds"),
-            BalatroCard("2", "Spades"),
-        )),
-        (PokerHand.PAIR, (
-            BalatroCard("8", "Hearts"), BalatroCard("8", "Spades"),
-            BalatroCard("K", "Clubs"), BalatroCard("7", "Diamonds"),
-            BalatroCard("2", "Hearts"),
-        )),
-        (PokerHand.TWO_PAIR, (
-            BalatroCard("A", "Hearts"), BalatroCard("A", "Spades"),
-            BalatroCard("K", "Clubs"), BalatroCard("K", "Diamonds"),
-            BalatroCard("2", "Hearts"),
-        )),
-        (PokerHand.THREE_OF_A_KIND, (
-            BalatroCard("Q", "Hearts"), BalatroCard("Q", "Spades"),
-            BalatroCard("Q", "Clubs"), BalatroCard("7", "Diamonds"),
-            BalatroCard("2", "Hearts"),
-        )),
-        (PokerHand.STRAIGHT, (
-            BalatroCard("10", "Hearts"), BalatroCard("J", "Spades"),
-            BalatroCard("Q", "Clubs"), BalatroCard("K", "Diamonds"),
-            BalatroCard("A", "Hearts"),
-        )),
-        (PokerHand.FLUSH, (
-            BalatroCard("A", "Hearts"), BalatroCard("10", "Hearts"),
-            BalatroCard("8", "Hearts"), BalatroCard("5", "Hearts"),
-            BalatroCard("2", "Hearts"),
-        )),
-        (PokerHand.FULL_HOUSE, (
-            BalatroCard("K", "Hearts"), BalatroCard("K", "Spades"),
-            BalatroCard("K", "Clubs"), BalatroCard("8", "Diamonds"),
-            BalatroCard("8", "Hearts"),
-        )),
-        (PokerHand.FOUR_OF_A_KIND, (
-            BalatroCard("8", "Hearts"), BalatroCard("8", "Spades"),
-            BalatroCard("8", "Clubs"), BalatroCard("8", "Diamonds"),
-            BalatroCard("A", "Hearts"),
-        )),
+        (
+            PokerHand.HIGH_CARD,
+            (
+                BalatroCard("A", "Spades"),
+                BalatroCard("K", "Hearts"),
+                BalatroCard("9", "Clubs"),
+                BalatroCard("5", "Diamonds"),
+                BalatroCard("2", "Spades"),
+            ),
+        ),
+        (
+            PokerHand.PAIR,
+            (
+                BalatroCard("8", "Hearts"),
+                BalatroCard("8", "Spades"),
+                BalatroCard("K", "Clubs"),
+                BalatroCard("7", "Diamonds"),
+                BalatroCard("2", "Hearts"),
+            ),
+        ),
+        (
+            PokerHand.TWO_PAIR,
+            (
+                BalatroCard("A", "Hearts"),
+                BalatroCard("A", "Spades"),
+                BalatroCard("K", "Clubs"),
+                BalatroCard("K", "Diamonds"),
+                BalatroCard("2", "Hearts"),
+            ),
+        ),
+        (
+            PokerHand.THREE_OF_A_KIND,
+            (
+                BalatroCard("Q", "Hearts"),
+                BalatroCard("Q", "Spades"),
+                BalatroCard("Q", "Clubs"),
+                BalatroCard("7", "Diamonds"),
+                BalatroCard("2", "Hearts"),
+            ),
+        ),
+        (
+            PokerHand.STRAIGHT,
+            (
+                BalatroCard("10", "Hearts"),
+                BalatroCard("J", "Spades"),
+                BalatroCard("Q", "Clubs"),
+                BalatroCard("K", "Diamonds"),
+                BalatroCard("A", "Hearts"),
+            ),
+        ),
+        (
+            PokerHand.FLUSH,
+            (
+                BalatroCard("A", "Hearts"),
+                BalatroCard("10", "Hearts"),
+                BalatroCard("8", "Hearts"),
+                BalatroCard("5", "Hearts"),
+                BalatroCard("2", "Hearts"),
+            ),
+        ),
+        (
+            PokerHand.FULL_HOUSE,
+            (
+                BalatroCard("K", "Hearts"),
+                BalatroCard("K", "Spades"),
+                BalatroCard("K", "Clubs"),
+                BalatroCard("8", "Diamonds"),
+                BalatroCard("8", "Hearts"),
+            ),
+        ),
+        (
+            PokerHand.FOUR_OF_A_KIND,
+            (
+                BalatroCard("8", "Hearts"),
+                BalatroCard("8", "Spades"),
+                BalatroCard("8", "Clubs"),
+                BalatroCard("8", "Diamonds"),
+                BalatroCard("A", "Hearts"),
+            ),
+        ),
     )
 
     def __init__(self, scorer: BalatroScorer | None = None):
         self.scorer = scorer or BalatroScorer()
 
     def estimate(self, state: BalatroState, joker) -> float:
+        return self.analyze(state, joker).direct_scoring_gain
+
+    def analyze(self, state: BalatroState, joker) -> JokerProbeResult:
         if not isinstance(joker, Joker):
-            return 0.0
+            return JokerProbeResult()
 
         random_state = random.getstate()
         gains: list[float] = []
+        signals: set[str] = set()
         try:
             random.seed(0)
             for hand, cards in self.PROBES:
-                try:
-                    before_state = copy.deepcopy(state)
-                    before_state.hand = list(cards)
-                    after_state = copy.deepcopy(before_state)
-                    after_state.jokers.append(copy.deepcopy(joker))
+                before_state = copy.deepcopy(state)
+                before_state.hand = list(cards)
+                after_state = copy.deepcopy(before_state)
+                after_state.jokers.append(copy.deepcopy(joker))
 
+                try:
                     before = self.scorer.score(
                         hand,
                         state=before_state,
@@ -118,30 +176,58 @@ class JokerMarginalValueEstimator:
                         state=after_state,
                         cards=list(cards),
                     ).total
-                except Exception:
-                    # Event-specific/stateful Joker implementations are allowed to
-                    # reject synthetic probe contexts. Their base value still applies.
+                except (AttributeError, KeyError, TypeError, ValueError):
+                    # Some event-specific Jokers require context that a scoring probe
+                    # intentionally does not fabricate. They are handled conservatively.
                     continue
 
                 gains.append(
                     max(0.0, (after - before) / max(float(before), 1.0))
                 )
+
+                signals.update(self._semantic_signals(joker, before_state, hand, cards))
         finally:
             random.setstate(random_state)
 
-        if not gains:
-            return 0.0
-        return sum(gains) / len(gains)
+        gain = sum(gains) / len(gains) if gains else 0.0
+        return JokerProbeResult(
+            direct_scoring_gain=gain,
+            semantic_signals=tuple(sorted(signals)),
+        )
+
+    @staticmethod
+    def _semantic_signals(joker, state, hand, cards) -> set[str]:
+        probe = copy.deepcopy(joker)
+        context = JokerContext(
+            state=copy.deepcopy(state),
+            score=HandScore(50, 5),
+            poker_hand=hand,
+            cards=list(cards),
+            held_cards=list(cards),
+            trigger="HAND_SCORED",
+            data={},
+        )
+        try:
+            result = probe.apply(context)
+        except (AttributeError, KeyError, TypeError, ValueError):
+            return set()
+
+        data = getattr(result, "data", {}) or {}
+        return {
+            str(key)
+            for key, value in data.items()
+            if value not in (None, False, 0, "", [], {}, ())
+        }
 
 
 class DefaultShopItemValueEstimator:
-    """Conservative intrinsic value model for buffer-safe shop items."""
+    """Conservative intrinsic value model for currently buffer-safe shop items."""
 
     def __init__(
         self,
         joker_marginal: JokerMarginalValueEstimator | None = None,
         *,
-        joker_base_value: float = 4.5,
+        joker_base_value: float = 2.25,
         direct_gain_weight: float = 6.0,
     ):
         self.joker_marginal = joker_marginal or JokerMarginalValueEstimator()
@@ -154,13 +240,24 @@ class DefaultShopItemValueEstimator:
         action: BalatroAction,
     ) -> tuple[float, tuple[str, ...]]:
         if action.name == BUY_JOKER:
-            gain = self.joker_marginal.estimate(state, action.target)
-            value = self.joker_base_value + min(12.0, gain * self.direct_gain_weight)
+            analysis = self.joker_marginal.analyze(state, action.target)
+            gain = analysis.direct_scoring_gain
+            semantic_bonus, semantic_notes = self._semantic_joker_value(
+                state,
+                action.target,
+                analysis.semantic_signals,
+            )
+            value = (
+                self.joker_base_value
+                + min(12.0, gain * self.direct_gain_weight)
+                + semantic_bonus
+            )
             notes = [f"joker base={self.joker_base_value:.2f}"]
             if gain > 0:
                 notes.append(f"direct scoring gain={gain:.3f}")
             else:
                 notes.append("no direct HAND_SCORED gain detected")
+            notes.extend(semantic_notes)
             return value, tuple(notes)
 
         if action.name == BUY_CONSUMABLE:
@@ -179,17 +276,163 @@ class DefaultShopItemValueEstimator:
             if category == "SPECTRAL":
                 return 4.0, ("spectral fallback value",)
             if category == "TAROT":
-                return 3.2, ("tarot fallback value",)
+                return self._tarot_value(state, target)
             return 2.5, ("unknown consumable fallback value",)
 
         if action.name == BUY_VOUCHER:
-            return 6.0, ("persistent voucher fallback value",)
+            return self._voucher_value(state, action.target)
 
         return 0.0, ()
 
+    def _semantic_joker_value(
+        self,
+        state: BalatroState,
+        joker,
+        signals: tuple[str, ...],
+    ) -> tuple[float, list[str]]:
+        bonus = 0.0
+        notes: list[str] = []
+
+        if "retrigger_held_abilities" in signals:
+            held_sources = self._held_ability_sources(state)
+            baron = any(
+                type(owned).__name__ == "BaronJoker"
+                for owned in state.jokers
+            )
+            prospective_steel = self._has_consumable_named(
+                state.shop_consumables,
+                "The Chariot",
+            ) or self._has_consumable_named(
+                state.consumables,
+                "The Chariot",
+            )
+
+            bonus += 0.35
+            if held_sources:
+                bonus += min(4.0, held_sources * 0.85)
+            if baron:
+                bonus += 3.0
+            if prospective_steel:
+                bonus += 1.0
+
+            notes.append(
+                "held-ability retrigger signal: "
+                f"deck sources={held_sources}"
+            )
+            if baron:
+                notes.append("Baron synergy detected")
+            if prospective_steel:
+                notes.append("Chariot/Steel setup synergy detected")
+
+        unknown_signals = [
+            signal
+            for signal in signals
+            if signal != "retrigger_held_abilities"
+        ]
+        if unknown_signals:
+            bonus += min(1.0, len(unknown_signals) * 0.25)
+            notes.append(
+                "effect signals=" + ",".join(sorted(unknown_signals))
+            )
+
+        return bonus, notes
+
+    def _tarot_value(self, state: BalatroState, target) -> tuple[float, tuple[str, ...]]:
+        name = str(getattr(target, "name", getattr(target, "label", "")))
+
+        if name == "The Chariot":
+            mime_owned = any(
+                type(joker).__name__ == "MimeJoker"
+                for joker in state.jokers
+            )
+            mime_available = any(
+                type(joker).__name__ == "MimeJoker"
+                or str(getattr(joker, "label", "")) == "Mime"
+                for joker in state.shop_jokers
+            )
+            value = 3.9
+            notes = ["Chariot creates a persistent Steel card"]
+            if mime_owned:
+                value += 2.0
+                notes.append("owned Mime retrigger synergy")
+            elif mime_available:
+                value += 1.0
+                notes.append("shop Mime combo opportunity")
+            return value, tuple(notes)
+
+        if name == "The Hermit":
+            gain = max(0, min(state.money * 2, 20) - state.money)
+            value = 2.2 + min(5.0, gain * 0.35)
+            return value, (f"Hermit potential money gain={gain}",)
+
+        if name == "Judgement":
+            free = max(0, state.joker_slots - len(state.jokers))
+            value = 4.5 if free > 0 else 0.5
+            return value, (f"free joker slots={free}",)
+
+        if name == "The Wheel of Fortune":
+            value = 3.4 if state.jokers else 1.0
+            return value, ("edition chance requires owned Joker",)
+
+        return 3.2, ("tarot fallback value",)
+
+    def _voucher_value(self, state: BalatroState, target) -> tuple[float, tuple[str, ...]]:
+        label = str(getattr(target, "label", getattr(target, "name", "")))
+
+        if label == "Hieroglyph":
+            # Extra ante runway is strategically useful, but losing one hand every
+            # round is a substantial survivability cost. Keep this conservative.
+            runway_bonus = max(0.0, 4.0 - min(float(state.ante), 4.0)) * 0.25
+            value = 4.0 + runway_bonus
+            return value, (
+                "Hieroglyph: -1 Ante / -1 hand each round",
+                f"ante={state.ante} heuristic runway bonus={runway_bonus:.2f}",
+            )
+
+        if label == "Antimatter":
+            return 10.0, ("Antimatter grants +1 Joker slot",)
+
+        if label in {"Paint Brush", "Palette"}:
+            return 7.0, ("permanent +1 hand size",)
+
+        if label in {"Grabber", "Nacho Tong"}:
+            return 7.0, ("permanent +1 hand per round",)
+
+        if label in {"Wasteful", "Recyclomancy"}:
+            return 5.5, ("permanent +1 discard per round",)
+
+        if label == "Seed Money":
+            value = 3.0 + min(4.0, max(0, state.money - 20) * 0.15)
+            return value, ("raises interest cap to $10",)
+
+        if label == "Money Tree":
+            value = 4.5 + min(5.0, max(0, state.money - 25) * 0.15)
+            return value, ("raises interest cap to $20",)
+
+        if label == "Blank":
+            return 0.5, ("Blank has no immediate run effect",)
+
+        return 5.0, ("persistent voucher conservative fallback value",)
+
+    @staticmethod
+    def _held_ability_sources(state: BalatroState) -> int:
+        cards = list(getattr(state, "deck", []))
+        return sum(
+            getattr(card, "enhancement", None) in {"Steel", "Gold"}
+            or getattr(card, "seal", None) == "Blue"
+            for card in cards
+        )
+
+    @staticmethod
+    def _has_consumable_named(items, name: str) -> bool:
+        return any(
+            str(getattr(item, "name", getattr(item, "label", ""))) == name
+            for item in items
+        )
+
 
 class BalatroShopPolicy:
-    """Rank deterministic purchases against the option to leave and save money."""
+    """Rank deterministic shop actions against the option to save money."""
 
     EDITION_BONUSES = {
         "FOIL": 0.8,
@@ -211,7 +454,9 @@ class BalatroShopPolicy:
         last_consumable_slot_penalty: float = 0.6,
         hold_bias: float = 0.35,
     ):
-        self.item_value_estimator = item_value_estimator or DefaultShopItemValueEstimator()
+        self.item_value_estimator = (
+            item_value_estimator or DefaultShopItemValueEstimator()
+        )
         self.price_weight = price_weight
         self.interest_weight = interest_weight
         self.reserve_target = max(0, reserve_target)
