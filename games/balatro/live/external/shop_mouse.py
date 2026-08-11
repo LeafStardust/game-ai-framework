@@ -230,12 +230,16 @@ class ExternalShopMouseExecutor:
         mouse: BalatroMouseController | None = None,
         *,
         focus_settle_delay: float = 0.25,
+        focus_timeout: float = 1.5,
+        focus_poll_interval: float = 0.02,
         between_click_delay: float = 0.5,
     ):
         self.layout = layout
         self.capture = capture or BalatroScreenCapture()
         self.mouse = mouse or BalatroMouseController()
         self.focus_settle_delay = max(0.0, focus_settle_delay)
+        self.focus_timeout = max(0.0, focus_timeout)
+        self.focus_poll_interval = max(0.0, focus_poll_interval)
         self.between_click_delay = max(0.0, between_click_delay)
 
     def dispatch(
@@ -299,6 +303,7 @@ class ExternalShopMouseExecutor:
         if tracker is not None:
             window = tracker.snapshot()
             self.mouse.focus(window)
+            self._wait_for_foreground(tracker, window.handle)
             if self.focus_settle_delay > 0:
                 time.sleep(self.focus_settle_delay)
             return self.capture.capture()
@@ -308,6 +313,24 @@ class ExternalShopMouseExecutor:
         if self.focus_settle_delay > 0:
             time.sleep(self.focus_settle_delay)
         return frame
+
+    def _wait_for_foreground(self, tracker, handle: int) -> None:
+        locator = getattr(tracker, "locator", None)
+        foreground_handle = getattr(locator, "foreground_handle", None)
+        if not callable(foreground_handle):
+            return
+
+        deadline = time.monotonic() + self.focus_timeout
+        while True:
+            if foreground_handle() == handle:
+                return
+            if time.monotonic() >= deadline:
+                raise ShopMouseLayoutError(
+                    "Balatro focus was requested, but Windows did not report Balatro as "
+                    "the foreground window before shop capture"
+                )
+            if self.focus_poll_interval > 0:
+                time.sleep(self.focus_poll_interval)
 
     def close(self) -> None:
         self.capture.close()
