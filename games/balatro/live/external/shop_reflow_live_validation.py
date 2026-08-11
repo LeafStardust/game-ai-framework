@@ -68,11 +68,24 @@ def main() -> int:
         help="move the cursor to the freshly detected card without clicking",
     )
     mode.add_argument(
+        "--hover-buy-only",
+        action="store_true",
+        help="move the cursor to the dynamically retargeted Buy button without clicking",
+    )
+    mode.add_argument(
         "--execute-card-click",
         action="store_true",
         help=(
             "after all guards pass, click only the freshly detected card position; "
             "the Buy button is never clicked by this diagnostic"
+        ),
+    )
+    mode.add_argument(
+        "--execute-buy-click",
+        action="store_true",
+        help=(
+            "after all guards pass, click only the dynamically retargeted Buy button; "
+            "use this only after the expected card is already selected"
         ),
     )
     args = parser.parse_args()
@@ -115,37 +128,49 @@ def main() -> int:
             )
             print(f"Dynamic sequence -> {_sequence_text(target.sequence)}")
 
-            if args.hover_only:
+            if args.hover_only or args.hover_buy_only:
+                step_index = 1 if args.hover_only else 2
+                point = target.sequence.steps[step_index - 1].point
                 frame = executor._capture_focused_frame()
-                point = BalatroViewport(frame).screen_point(target.sequence.steps[0].point)
-                mouse.move_screen(point)
+                screen_point = BalatroViewport(frame).screen_point(point)
+                mouse.move_screen(screen_point)
                 print("Mouse input sent -> True (move only)")
                 print("Clicked -> False")
-                print(f"Expected cursor target -> {args.expect_label}")
+                if args.hover_only:
+                    print(f"Expected cursor target -> {args.expect_label}")
+                else:
+                    print(f"Expected cursor target -> {args.expect_label} Buy button")
                 return 0
 
-            if not args.execute_card_click:
+            if not args.execute_card_click and not args.execute_buy_click:
                 print("Mouse input sent -> False")
                 print(
-                    "Re-run with --hover-only to move the cursor onto the detected "
-                    "card without clicking."
+                    "Re-run with --hover-only or --hover-buy-only to validate a "
+                    "dynamic pointer target without clicking."
                 )
                 return 0
 
+            only_step = 1 if args.execute_card_click else 2
             locator.dispatch(
                 expected,
                 state,
                 transaction,
-                only_step=1,
+                only_step=only_step,
             )
     except (OSError, RuntimeError, ValueError) as error:
         parser.error(str(error))
 
     print("Mouse input sent -> True")
-    print("Dynamic purchase step -> card click only")
-    print("Buy button clicked -> False")
-    print("Local second-purchase projection -> False")
-    print(f"Expected selected card -> {args.expect_label}")
+    if args.execute_card_click:
+        print("Dynamic purchase step -> card click only")
+        print("Buy button clicked -> False")
+        print("Local second-purchase projection -> False")
+        print(f"Expected selected card -> {args.expect_label}")
+    else:
+        print("Dynamic purchase step -> Buy click only")
+        print("Card click sent -> False")
+        print("Local second-purchase projection -> False")
+        print(f"Expected purchased card -> {args.expect_label}")
     return 0
 
 
