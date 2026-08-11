@@ -38,6 +38,14 @@ def _joker_text(joker) -> str:
     return str(label) + (f" ({', '.join(fields)})" if fields else "")
 
 
+def _consumable_text(consumable) -> str:
+    return str(
+        getattr(consumable, "name", None)
+        or getattr(consumable, "label", None)
+        or type(consumable).__name__
+    )
+
+
 def _rank_plans(planner, state) -> list[LiveBlindPlan]:
     candidates = planner._candidate_actions(
         state,
@@ -92,9 +100,14 @@ def main() -> int:
     snapshot = observer.observe()
     state = DefaultBalatroStateTranslator().translate(snapshot)
 
+    blind_type = getattr(getattr(state, "blind", None), "type", None)
+    blind_type_text = getattr(blind_type, "value", str(blind_type) if blind_type else "none")
+
     print(f"Save -> {reader.path}")
     print(f"Phase -> {state.phase}")
     print(f"Score -> {state.score}")
+    print(f"Blind type -> {blind_type_text}")
+    print(f"Boss -> {state.boss_name or 'none'}")
     print(f"Blind target -> {getattr(state.blind, 'requirement', 0)}")
     print(f"Hands -> {state.hands_remaining}")
     print(f"Discards -> {state.discards_remaining}")
@@ -105,6 +118,9 @@ def main() -> int:
     print(f"Owned Jokers -> {len(state.jokers)}")
     for index, joker in enumerate(state.jokers):
         print(f"  J{index}: {_joker_text(joker)}")
+    print(f"Owned consumables -> {len(state.consumables)}")
+    for index, consumable in enumerate(state.consumables):
+        print(f"  C{index}: {_consumable_text(consumable)}")
     print(f"Planner play width -> {args.play_width}")
     print(f"Planner discard width -> {args.discard_width}")
     print(f"Exact draw combination limit -> {args.exact_limit}")
@@ -113,6 +129,16 @@ def main() -> int:
     if state.phase != "SELECTING_HAND":
         print("Planner ready -> False")
         print(f"Reason -> current phase is {state.phase}")
+        print("Mouse input sent -> False")
+        return 0
+
+    if state.boss_name:
+        print("Boss modifier support -> False")
+        print("Planner ready -> False")
+        print(
+            "Reason -> boss-blind modifier integration is not yet validated for "
+            f"{state.boss_name}"
+        )
         print("Mouse input sent -> False")
         return 0
 
