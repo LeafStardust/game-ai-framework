@@ -56,7 +56,7 @@ def test_mouse_controller_is_disarmed_by_default():
 
 def test_mouse_controller_clicks_screen_coordinate_when_armed():
     provider = Provider()
-    controller = BalatroMouseController(provider=provider, armed=True)
+    controller = BalatroMouseController(provider=provider, armed=True, hover_delay=0)
 
     controller.click_screen(
         PixelPoint(300, 400),
@@ -71,9 +71,32 @@ def test_mouse_controller_clicks_screen_coordinate_when_armed():
     ]
 
 
+def test_mouse_controller_waits_after_move_before_click(monkeypatch):
+    provider = Provider()
+    sleeps = []
+    controller = BalatroMouseController(
+        provider=provider,
+        armed=True,
+        hover_delay=0.1,
+    )
+    monkeypatch.setattr(
+        "games.balatro.live.external.mouse.time.sleep",
+        lambda seconds: sleeps.append(seconds),
+    )
+
+    controller.click_screen(PixelPoint(300, 400))
+
+    assert provider.events == [
+        ("move", 300, 400),
+        ("down",),
+        ("up",),
+    ]
+    assert sleeps == [0.1]
+
+
 def test_mouse_controller_maps_normalized_point_to_real_screen():
     provider = Provider()
-    controller = BalatroMouseController(provider=provider, armed=True)
+    controller = BalatroMouseController(provider=provider, armed=True, hover_delay=0)
 
     controller.click(_viewport(), NormalizedPoint(0.5, 0.25))
 
@@ -87,7 +110,7 @@ def test_mouse_controller_maps_normalized_point_to_real_screen():
 
 def test_mouse_controller_clicks_normalized_rectangle_center():
     provider = Provider()
-    controller = BalatroMouseController(provider=provider, armed=True)
+    controller = BalatroMouseController(provider=provider, armed=True, hover_delay=0)
 
     controller.click_rect(
         _viewport(),
