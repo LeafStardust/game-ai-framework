@@ -6,6 +6,7 @@ from games.balatro.card import BalatroCard
 from games.balatro.live.external.consumable_mouse import ConsumableMouseLayoutError
 from games.balatro.live.external.judgement_live_validation import (
     _projection_status,
+    _wait_for_judgement_checkpoint,
     verify_judgement_checkpoint,
 )
 from games.balatro.live.external.judgement_mouse import ExternalJudgementMouseExecutor
@@ -37,13 +38,26 @@ def _state():
     return state
 
 
-def _snapshot(*, consumables, jokers):
+def _snapshot(*, consumables, jokers, sha="sha", phase="SELECTING_HAND"):
     return SimpleNamespace(
+        phase=phase,
         payload={
+            "save_sha256": sha,
             "consumables": {"cards": consumables},
             "jokers": {"cards": jokers},
-        }
+        },
     )
+
+
+class _Observer:
+    def __init__(self, snapshots):
+        self.snapshots = list(snapshots)
+        self.index = 0
+
+    def observe(self):
+        value = self.snapshots[min(self.index, len(self.snapshots) - 1)]
+        self.index += 1
+        return value
 
 
 def test_judgement_executor_accepts_available_joker_slot():
@@ -58,6 +72,37 @@ def test_judgement_executor_rejects_full_joker_slots():
 
     with pytest.raises(ConsumableMouseLayoutError, match="no Joker slot"):
         ExternalJudgementMouseExecutor._validate(state, state.consumables[0])
+
+
+def test_wait_for_judgement_checkpoint_skips_partial_save():
+    before = _snapshot(
+        consumables=[{"live_id": 145, "label": "Judgement"}],
+        jokers=[{"live_id": 10, "label": "Bootstraps"}],
+        sha="before",
+    )
+    partial = _snapshot(
+        consumables=[],
+        jokers=[{"live_id": 10, "label": "Bootstraps"}],
+        sha="partial",
+    )
+    complete = _snapshot(
+        consumables=[],
+        jokers=[
+            {"live_id": 10, "label": "Bootstraps"},
+            {"live_id": 11, "label": "Joker"},
+        ],
+        sha="complete",
+    )
+
+    result = _wait_for_judgement_checkpoint(
+        _Observer([partial, complete]),
+        before,
+        judgement_live_id=145,
+        timeout=0.1,
+        poll_interval=0,
+    )
+
+    assert result is complete
 
 
 def test_verify_judgement_checkpoint_accepts_one_new_joker():
