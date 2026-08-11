@@ -6,6 +6,7 @@ from .live_memory_observer import (
     _number,
     _table_fields,
 )
+from .live_ui_transform import BalatroLogicalViewport
 from .window import BalatroWindowLocator
 
 
@@ -55,29 +56,40 @@ def main() -> int:
     print(f"G.ROOM_ATTACH.T -> {_fmt_geometry(room_attach_t)}")
     print(f"G.hand.T -> {_fmt_geometry(hand_t)}")
 
+    if tile_w is None or tile_h is None or tile_w <= 0 or tile_h <= 0:
+        print("Coordinate transform -> FAIL")
+        print("Reason -> missing positive G.TILE_W / G.TILE_H")
+        return 2
+
+    transform = BalatroLogicalViewport(float(tile_w), float(tile_h), rect)
+    print(f"Logical-to-client scale -> {transform.scale:.6f} px/unit")
+    print(f"Letterbox padding -> x={transform.pad_x:.6f} y={transform.pad_y:.6f}")
+
     hand_cards = (snapshot.payload.get("hand") or {}).get("cards") or []
     print(f"Hand cards -> {len(hand_cards)}")
+    missing = []
     for index, card in enumerate(hand_cards):
         value = card.get("value") or {}
         ui = card.get("ui") or {}
+        if not ui.get("w") or not ui.get("h"):
+            missing.append(index)
+            center_text = "missing"
+        else:
+            center = transform.card_center(ui)
+            center_text = f"screen=({center.x},{center.y})"
         print(
             f"  H{index}: {value.get('rank')} / {value.get('suit')} "
-            f"live_id={card.get('live_id')} T[{_fmt_geometry(ui)}]"
+            f"live_id={card.get('live_id')} T[{_fmt_geometry(ui)}] {center_text}"
         )
 
-    missing = [
-        index
-        for index, card in enumerate(hand_cards)
-        if not (card.get("ui") or {}).get("w")
-        or not (card.get("ui") or {}).get("h")
-    ]
     if missing:
         print("Geometry completeness -> FAIL")
         print("Missing card geometry indices -> " + ",".join(map(str, missing)))
         return 2
 
     print("Geometry completeness -> PASS")
-    print("Coordinate transform -> NOT_YET_VALIDATED")
+    print("Coordinate transform calculation -> PASS")
+    print("Coordinate transform click/hover validation -> NOT_YET_VALIDATED")
     return 0
 
 
