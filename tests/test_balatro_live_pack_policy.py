@@ -1,4 +1,4 @@
-from games.balatro.actions import SELECT_PACK_CARD, SKIP_BOOSTER
+from games.balatro.actions import BalatroAction, SELECT_PACK_CARD, SKIP_BOOSTER
 from games.balatro.live.pack import LivePackActionGenerator, LivePackChoice
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.state import BalatroState
@@ -25,12 +25,8 @@ def test_generic_joker_choice_beats_skip():
         },
     )
     actions = [
-        __import__("games.balatro.actions", fromlist=["BalatroAction"]).BalatroAction(
-            SELECT_PACK_CARD, target=choice
-        ),
-        __import__("games.balatro.actions", fromlist=["BalatroAction"]).BalatroAction(
-            SKIP_BOOSTER
-        ),
+        BalatroAction(SELECT_PACK_CARD, target=choice),
+        BalatroAction(SKIP_BOOSTER),
     ]
 
     ranked = BalatroPackPolicy().rank_actions(_state(), actions)
@@ -52,7 +48,6 @@ def test_vanilla_playing_card_can_lose_to_skip():
             "modifier": {},
         },
     )
-    from games.balatro.actions import BalatroAction
 
     ranked = BalatroPackPolicy().rank_actions(
         _state("STANDARD_PACK"),
@@ -74,7 +69,6 @@ def test_enhanced_playing_card_beats_skip():
             "modifier": {"enhancement": "m_gold"},
         },
     )
-    from games.balatro.actions import BalatroAction
 
     ranked = BalatroPackPolicy().rank_actions(
         _state("STANDARD_PACK"),
@@ -115,7 +109,6 @@ def test_targeted_tarot_is_ranked_below_skip_until_followup_is_supported():
             "live_id": 5,
         },
     )
-    from games.balatro.actions import BalatroAction
 
     ranked = BalatroPackPolicy().rank_actions(
         _state("TAROT_PACK"),
