@@ -94,6 +94,16 @@ def _resolve_playbook_policy(args, state):
     return playbook
 
 
+def _load_execution_layout(execute: bool, path: str):
+    """Load mouse calibration only when real input is armed."""
+    if not execute:
+        return None
+    layout = HandMouseLayout.load(Path(path))
+    layout.point_for("play-hand")
+    layout.point_for("discard")
+    return layout
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
@@ -158,9 +168,7 @@ def main() -> int:
         parser.error("--save requires --observation-source save")
 
     try:
-        layout = HandMouseLayout.load(Path(args.layout))
-        layout.point_for("play-hand")
-        layout.point_for("discard")
+        layout = _load_execution_layout(args.execute, args.layout)
     except (OSError, RuntimeError, ValueError) as error:
         parser.error(str(error))
 
@@ -283,6 +291,9 @@ def main() -> int:
                 print("Reason -> live Balatro state changed during search; replan from new checkpoint")
                 print("Mouse input sent -> False")
                 return 0
+
+            if layout is None:
+                parser.error("execution layout is unavailable while --execute is armed")
 
             print(
                 f"Executing action {actions_sent + 1} -> {result.plan.action.name} "
