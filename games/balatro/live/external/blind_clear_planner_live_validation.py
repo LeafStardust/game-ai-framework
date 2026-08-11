@@ -82,6 +82,7 @@ def main() -> int:
     parser.add_argument("--profile", default="1")
     parser.add_argument("--play-width", type=int, default=6)
     parser.add_argument("--discard-width", type=int, default=4)
+    parser.add_argument("--horizon", type=int, default=2)
     parser.add_argument("--top", type=int, default=10)
     parser.add_argument(
         "--samples",
@@ -94,6 +95,9 @@ def main() -> int:
         default=LiveBlindClearPlanner.DEFAULT_EXACT_DRAW_COMBINATION_LIMIT,
     )
     args = parser.parse_args()
+
+    if args.horizon < 1:
+        parser.error("--horizon must be at least 1")
 
     reader = BalatroSaveReader(args.save, profile=args.profile)
     observer = SaveBalatroObserver(reader)
@@ -123,6 +127,7 @@ def main() -> int:
         print(f"  C{index}: {_consumable_text(consumable)}")
     print(f"Planner play width -> {args.play_width}")
     print(f"Planner discard width -> {args.discard_width}")
+    print(f"Planner horizon -> {args.horizon} actions")
     print(f"Exact draw combination limit -> {args.exact_limit}")
     print(f"Sampled draw branches -> {args.samples}")
 
@@ -151,7 +156,7 @@ def main() -> int:
         ),
         play_width=args.play_width,
         discard_width=args.discard_width,
-        horizon=2,
+        horizon=args.horizon,
     )
     unsupported = planner.evaluator.score_outcomes.joker_projector.unsupported_jokers(
         state
@@ -173,7 +178,7 @@ def main() -> int:
     print("Selected indices -> " + ",".join(str(index) for index in indices))
     for index in indices:
         print(f"  {index}: {_card_text(state.hand[index])}")
-    print(f"Two-action clear probability -> {plan.value.clear_probability:.6f}")
+    print(f"Horizon clear probability -> {plan.value.clear_probability:.6f}")
     print(f"Expected horizon progress -> {plan.value.expected_progress:.6f}")
     print(f"Expected horizon score -> {plan.value.expected_score:.3f}")
     print(f"Expected hands remaining -> {plan.value.expected_hands_remaining:.3f}")
@@ -196,7 +201,6 @@ def main() -> int:
             f"exact={candidate.exact}"
         )
 
-    print("Planner horizon -> 2 actions")
     print("Hidden draw order used -> False")
     print("Mouse input sent -> False")
     return 0
