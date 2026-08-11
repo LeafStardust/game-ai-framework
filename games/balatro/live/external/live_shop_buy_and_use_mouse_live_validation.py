@@ -60,9 +60,9 @@ def _wait_for_result(observer, before, target: LiveShopItemTarget, timeout: floa
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Preview or execute one main-shop Buy & Use action. The executor targets "
-            "the card-relative Buy & Use template, requires exact live identity "
-            "buy_from_shop/can_buy_and_use, and verifies the transaction afterward."
+            "Preview or execute one main-shop Buy & Use action. The executor clicks "
+            "the item first, requires the generated Buy & Use child, then targets the "
+            "card-relative template and verifies exact buy_from_shop/can_buy_and_use."
         )
     )
     parser.add_argument("--index", type=int, default=0)
@@ -106,8 +106,8 @@ def main() -> int:
                 print("Mouse movement sent -> False")
                 print("Mouse clicks sent -> False")
                 print(
-                    "Re-run with --execute to target and click exactly one live "
-                    "buy_from_shop/can_buy_and_use control."
+                    "Re-run with --execute to click the item once, verify Buy & Use "
+                    "appears, and click that generated control once."
                 )
                 return 0
 
@@ -115,7 +115,12 @@ def main() -> int:
             control = verified.control
             print("Mouse movement sent -> True")
             print("Mouse clicks sent -> True")
-            print("Clicks sent -> 1")
+            print("Clicks sent -> 2")
+            print(
+                "Item selection click -> "
+                f"x={verified.item_click_point.x} y={verified.item_click_point.y}"
+            )
+            print("Item selection exposed expected Buy & Use control -> True")
             print(f"Control button -> {control.button!r}")
             print(f"Control func -> {control.func!r}")
             print(f"Control id -> {control.control_id!r}")
