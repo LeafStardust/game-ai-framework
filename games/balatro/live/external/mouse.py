@@ -62,25 +62,120 @@ class WindowsMouseInputProvider:
     INPUT_MOUSE = 0
     MOUSEEVENTF_LEFTDOWN = 0x0002
     MOUSEEVENTF_LEFTUP = 0x0004
+    SW_RESTORE = 9
 
-    def __init__(self):
-        if platform.system() != "Windows":
+    def __init__(
+        self,
+        *,
+        user32=None,
+        kernel32=None,
+        focus_retries: int = 3,
+        focus_retry_delay: float = 0.05,
+    ):
+        injected = user32 is not None or kernel32 is not None
+        if not injected and platform.system() != "Windows":
             raise MouseControlError("Windows mouse control requires Windows")
-        self.user32 = ctypes.windll.user32
-        self.user32.GetForegroundWindow.restype = ctypes.c_void_p
+        if (user32 is None) != (kernel32 is None):
+            raise ValueError("user32 and kernel32 must be supplied together")
+
+        if user32 is None:
+            user32 = ctypes.windll.user32
+            kernel32 = ctypes.windll.kernel32
+        self.user32 = user32
+        self.kernel32 = kernel32
+        self.focus_retries = max(1, int(focus_retries))
+        self.focus_retry_delay = max(0.0, float(focus_retry_delay))
+
+        try:
+            self.user32.GetForegroundWindow.restype = ctypes.c_void_p
+        except (AttributeError, TypeError):
+            pass
         try:
             self.user32.SetProcessDPIAware()
         except (AttributeError, OSError):
             pass
 
     def focus(self, handle: int) -> None:
-        foreground = int(self.user32.GetForegroundWindow() or 0)
-        if foreground == handle:
+        handle = int(handle)
+        if handle <= 0:
+            raise MouseControlError(f"invalid Balatro window handle: {handle}")
+        if self._foreground_handle() == handle:
             return
-        if not self.user32.SetForegroundWindow(ctypes.c_void_p(handle)):
+
+        hwnd = ctypes.c_void_p(handle)
+        is_window = getattr(self.user32, "IsWindow", None)
+        if callable(is_window) and not is_window(hwnd):
             raise MouseControlError(
-                f"unable to focus Balatro window handle: {handle}"
+                f"Balatro window handle is no longer available: {handle}"
             )
+
+        is_iconic = getattr(self.user32, "IsIconic", None)
+        if callable(is_iconic) and is_iconic(hwnd):
+            show_window_async = getattr(self.user32, "ShowWindowAsync", None)
+            if callable(show_window_async):
+                show_window_async(hwnd, self.SW_RESTORE)
+
+        for attempt in range(self.focus_retries):
+            self._request_foreground(hwnd)
+            if self._foreground_handle() == handle:
+                return
+            if attempt + 1 < self.focus_retries and self.focus_retry_delay > 0:
+                time.sleep(self.focus_retry_delay)
+
+        raise MouseControlError(
+            "unable to focus Balatro window handle after foreground recovery: "
+            f"{handle}"
+        )
+
+    def _foreground_handle(self) -> int:
+        return int(self.user32.GetForegroundWindow() or 0)
+
+    def _request_foreground(self, hwnd) -> None:
+        """Try normal focus first, then temporarily join Windows input queues."""
+        bring_to_top = getattr(self.user32, "BringWindowToTop", None)
+        if callable(bring_to_top):
+            bring_to_top(hwnd)
+        self.user32.SetForegroundWindow(hwnd)
+        if self._foreground_handle() == int(hwnd.value or 0):
+            return
+
+        attach_thread_input = getattr(self.user32, "AttachThreadInput", None)
+        get_window_thread = getattr(self.user32, "GetWindowThreadProcessId", None)
+        get_current_thread = getattr(self.kernel32, "GetCurrentThreadId", None)
+        if not (
+            callable(attach_thread_input)
+            and callable(get_window_thread)
+            and callable(get_current_thread)
+        ):
+            return
+
+        current_thread = int(get_current_thread() or 0)
+        foreground = self._foreground_handle()
+        foreground_thread = (
+            int(get_window_thread(ctypes.c_void_p(foreground), None) or 0)
+            if foreground
+            else 0
+        )
+        target_thread = int(get_window_thread(hwnd, None) or 0)
+
+        attached: list[int] = []
+        for thread_id in (foreground_thread, target_thread):
+            if (
+                thread_id
+                and current_thread
+                and thread_id != current_thread
+                and thread_id not in attached
+                and attach_thread_input(current_thread, thread_id, True)
+            ):
+                attached.append(thread_id)
+
+        try:
+            if callable(bring_to_top):
+                bring_to_top(hwnd)
+            self.user32.SetForegroundWindow(hwnd)
+        finally:
+            for thread_id in reversed(attached):
+                attach_thread_input(current_thread, thread_id, False)
 
     def move_to(self, x: int, y: int) -> None:
         if not self.user32.SetCursorPos(int(x), int(y)):
