@@ -63,9 +63,11 @@ def adaptive_blind_search_schedule(
     """Return a cheap-to-deep bounded search schedule for the current blind.
 
     The maximum useful horizon is bounded by the remaining real action budget:
-    every play consumes one hand and every discard consumes one discard. A
-    four-action search is the normal starting point when enough actions remain;
-    smaller states start at their remaining action count instead.
+    every play consumes one hand and every discard consumes one discard. Search
+    starts at horizon two whenever possible so the first pass is genuinely cheap
+    enough to complete on an ordinary opening hand. Deeper horizons are attempted
+    only after a shallower result exists or the shallower search itself exhausts
+    its bounded budget.
 
     The normal schedule deliberately caps deep searches at 5000 nodes. When the
     caller explicitly supplies a larger ``max_nodes`` value, the schedule spends
@@ -89,7 +91,7 @@ def adaptive_blind_search_schedule(
         return ()
 
     deepest = min(max_horizon, action_budget)
-    first = min(4, deepest)
+    first = 1 if deepest == 1 else 2
     configs = []
     for horizon in range(first, deepest + 1):
         configs.append(
