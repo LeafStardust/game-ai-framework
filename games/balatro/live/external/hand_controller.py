@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from framework.agent.agent import Agent
 from framework.decision.pipeline import DecisionPipeline
@@ -26,8 +27,12 @@ class ExternalHandStep:
     indices: tuple[int, ...]
     before_snapshot: LiveBalatroSnapshot
     before_state: BalatroState
-    after_snapshot: LiveBalatroSnapshot
-    after_state: BalatroState
+    after_snapshot: LiveBalatroSnapshot | None
+    after_state: BalatroState | None
+
+    @property
+    def checkpoint_available(self) -> bool:
+        return self.after_snapshot is not None and self.after_state is not None
 
 
 @dataclass(frozen=True)
@@ -89,7 +94,12 @@ class ExternalHandController:
         snapshot: LiveBalatroSnapshot,
         state: BalatroState,
     ) -> ExternalHandStep:
-        """Execute one action, then require a new authoritative save checkpoint."""
+        """Execute one action, then require a new authoritative save checkpoint.
+
+        If Balatro removes the run save after the action (for example after a
+        terminal loss), the executed action is preserved while the unavailable
+        post-action state remains explicitly unknown.
+        """
         self._require_selecting_hand(state)
         action = self.recommend(state)
         expected_indices = self.executor.card_indices(state, action)
@@ -99,10 +109,23 @@ class ExternalHandController:
                 "hand executor index mapping changed during external dispatch"
             )
 
-        persisted_snapshot = self.synchronizer.wait_for_change(
-            snapshot,
-            require_complete=False,
-        )
+        try:
+            persisted_snapshot = self.synchronizer.wait_for_change(
+                snapshot,
+                require_complete=False,
+            )
+        except (RuntimeError, TimeoutError):
+            if self._save_is_missing():
+                return ExternalHandStep(
+                    action=action,
+                    indices=expected_indices,
+                    before_snapshot=snapshot,
+                    before_state=state,
+                    after_snapshot=None,
+                    after_state=None,
+                )
+            raise
+
         persisted_state = self.translator.translate(persisted_snapshot)
         return ExternalHandStep(
             action=action,
@@ -138,8 +161,19 @@ class ExternalHandController:
         while len(steps) < max_actions and state.phase == "SELECTING_HAND":
             step = self.execute_one(snapshot, state)
             steps.append(step)
+
+            if not step.checkpoint_available:
+                return ExternalHandRunResult(
+                    steps=tuple(steps),
+                    final_snapshot=None,
+                    final_state=None,
+                    stop_reason="terminal:save_unavailable_after_action",
+                )
+
             snapshot = step.after_snapshot
             state = step.after_state
+            assert snapshot is not None
+            assert state is not None
 
         if state.phase != "SELECTING_HAND":
             stop_reason = f"phase:{state.phase}"
@@ -152,6 +186,16 @@ class ExternalHandController:
             final_state=state,
             stop_reason=stop_reason,
         )
+
+    def _save_is_missing(self) -> bool:
+        reader = getattr(self.observer, "reader", None)
+        path = getattr(reader, "path", None)
+        if path is None:
+            return False
+        try:
+            return not Path(path).is_file()
+        except OSError:
+            return False
 
     @staticmethod
     def _require_selecting_hand(state: BalatroState) -> None:
