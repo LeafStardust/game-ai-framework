@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from games.balatro.actions import PLAY_CARDS
+
 from .hand_controller import ExternalHandController
 from .hand_mouse import ExternalHandMouseExecutor, HandMouseLayout
 from .mouse import BalatroMouseController
@@ -91,6 +93,17 @@ def main() -> int:
                     f"  {index}: {_card_text(state.hand[index])} "
                     f"-> center=({location.center.x:.4f},{location.center.y:.4f})"
                 )
+
+            if recommendation.name == PLAY_CARDS:
+                projection = controller.project_play(state, recommendation)
+                print(f"Poker hand -> {projection.hand.value}")
+                print(f"Calculated hand score -> {projection.hand_score}")
+                print(
+                    f"Projected blind score -> {projection.projected_total}/"
+                    f"{projection.blind_target}"
+                )
+                print(f"Chips remaining after play -> {projection.remaining_after}")
+                print(f"Clears blind -> {projection.clears_blind}")
 
             if not args.execute:
                 print("Hand loop ready -> True")
