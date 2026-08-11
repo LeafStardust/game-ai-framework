@@ -24,10 +24,18 @@ class RacingBridge(FakeBridge):
     def __init__(self, snapshots):
         super().__init__(snapshots)
         self.failed_once = False
+        self.disconnect_probe = False
+
+    def is_connected(self):
+        if self.disconnect_probe:
+            self.disconnect_probe = False
+            return False
+        return True
 
     def observe(self):
         if not self.failed_once:
             self.failed_once = True
+            self.disconnect_probe = True
             raise RuntimeError("save disappeared between connectivity check and read")
         return super().observe()
 
