@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import argparse
 
-from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner, LiveBlindPlan
+from games.balatro.live.blind_clear_planner import (
+    LiveBlindClearPlanner,
+    LiveBlindPlan,
+    PlannerSearchBudgetExceeded,
+)
 from games.balatro.live.external.save_observer import SaveBalatroObserver
 from games.balatro.live.external.save_state import BalatroSaveReader
 from games.balatro.live.translator import DefaultBalatroStateTranslator
@@ -47,6 +51,7 @@ def _consumable_text(consumable) -> str:
 
 
 def _rank_plans(planner, state) -> list[LiveBlindPlan]:
+    planner.reset_search_stats()
     candidates = planner._candidate_actions(
         state,
         allow_discards=planner.horizon > 1,
@@ -82,7 +87,10 @@ def main() -> int:
     parser.add_argument("--profile", default="1")
     parser.add_argument("--play-width", type=int, default=6)
     parser.add_argument("--discard-width", type=int, default=4)
+    parser.add_argument("--child-play-width", type=int)
+    parser.add_argument("--child-discard-width", type=int)
     parser.add_argument("--horizon", type=int, default=2)
+    parser.add_argument("--max-nodes", type=int)
     parser.add_argument("--top", type=int, default=10)
     parser.add_argument(
         "--samples",
@@ -98,6 +106,18 @@ def main() -> int:
 
     if args.horizon < 1:
         parser.error("--horizon must be at least 1")
+    if args.child_play_width is not None and args.child_play_width < 1:
+        parser.error("--child-play-width must be positive")
+    if args.child_discard_width is not None and args.child_discard_width < 0:
+        parser.error("--child-discard-width cannot be negative")
+    if args.max_nodes is not None and args.max_nodes < 1:
+        parser.error("--max-nodes must be positive")
+
+    # Deeper diagnostics are automatically bounded unless the caller supplies a
+    # tighter/looser explicit budget. Horizon 1-2 retains historical behavior.
+    max_nodes = args.max_nodes
+    if max_nodes is None and args.horizon > 2:
+        max_nodes = 1000
 
     reader = BalatroSaveReader(args.save, profile=args.profile)
     observer = SaveBalatroObserver(reader)
@@ -127,7 +147,16 @@ def main() -> int:
         print(f"  C{index}: {_consumable_text(consumable)}")
     print(f"Planner play width -> {args.play_width}")
     print(f"Planner discard width -> {args.discard_width}")
+    print(
+        "Planner child play width -> "
+        f"{args.child_play_width if args.child_play_width is not None else args.play_width}"
+    )
+    print(
+        "Planner child discard width -> "
+        f"{args.child_discard_width if args.child_discard_width is not None else args.discard_width}"
+    )
     print(f"Planner horizon -> {args.horizon} actions")
+    print(f"Planner node budget -> {max_nodes if max_nodes is not None else 'unbounded'}")
     print(f"Exact draw combination limit -> {args.exact_limit}")
     print(f"Sampled draw branches -> {args.samples}")
 
@@ -156,7 +185,10 @@ def main() -> int:
         ),
         play_width=args.play_width,
         discard_width=args.discard_width,
+        child_play_width=args.child_play_width,
+        child_discard_width=args.child_discard_width,
         horizon=args.horizon,
+        max_nodes=max_nodes,
     )
     unsupported = planner.evaluator.score_outcomes.joker_projector.unsupported_jokers(
         state
@@ -169,6 +201,12 @@ def main() -> int:
 
     try:
         ranked = _rank_plans(planner, state)
+    except PlannerSearchBudgetExceeded as error:
+        print("Planner ready -> False")
+        print(f"Reason -> {error}")
+        print(f"Planner nodes evaluated -> {planner.nodes_evaluated}")
+        print("Mouse input sent -> False")
+        return 0
     except (RuntimeError, ValueError) as error:
         parser.error(str(error))
 
@@ -184,6 +222,7 @@ def main() -> int:
     print(f"Expected hands remaining -> {plan.value.expected_hands_remaining:.3f}")
     print(f"Expected discards remaining -> {plan.value.expected_discards_remaining:.3f}")
     print(f"Candidate actions evaluated -> {plan.candidate_count}")
+    print(f"Planner nodes evaluated -> {planner.nodes_evaluated}")
     print(f"Draw/Joker branches exact -> {plan.exact}")
 
     print("Ranked root candidates:")
