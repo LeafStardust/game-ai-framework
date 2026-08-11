@@ -9,7 +9,7 @@ from framework.decision.policies.greedy import GreedyPolicy
 
 from games.balatro.actions import BalatroAction
 from games.balatro.card_selector import CardSelector
-from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
+from games.balatro.live.hand_decision import LiveHandDecisionEvaluator, LivePlayProjection
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.synchronizer import BalatroLiveSynchronizer
 from games.balatro.live.translator import DefaultBalatroStateTranslator
@@ -88,6 +88,13 @@ class ExternalHandController:
         if not actions:
             raise RuntimeError("no legal play/discard action is available")
         return self.agent.act(state, actions)
+
+    def project_play(self, state: BalatroState, action: BalatroAction) -> LivePlayProjection:
+        evaluator = getattr(getattr(self.agent, "decision_engine", None), "evaluator", None)
+        project = getattr(evaluator, "project_play", None)
+        if not callable(project):
+            raise RuntimeError("active live hand evaluator cannot project PLAY_CARDS")
+        return project(state, action)
 
     def execute_one(
         self,
