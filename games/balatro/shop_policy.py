@@ -45,93 +45,49 @@ class ShopItemValueEstimator(Protocol):
 
 
 class JokerMarginalValueEstimator:
-    """Estimate direct scoring gain by reusing existing Joker implementations.
-
-    The probes are deterministic and operate on deep-copied state, so stateful
-    Jokers cannot mutate the live agent state while being valued.
-    """
+    """Reuse Joker.apply() to estimate direct HAND_SCORED marginal value."""
 
     PROBES = (
-        (
-            PokerHand.HIGH_CARD,
-            (
-                BalatroCard("A", "Spades"),
-                BalatroCard("K", "Hearts"),
-                BalatroCard("9", "Clubs"),
-                BalatroCard("5", "Diamonds"),
-                BalatroCard("2", "Spades"),
-            ),
-        ),
-        (
-            PokerHand.PAIR,
-            (
-                BalatroCard("8", "Hearts"),
-                BalatroCard("8", "Spades"),
-                BalatroCard("K", "Clubs"),
-                BalatroCard("7", "Diamonds"),
-                BalatroCard("2", "Hearts"),
-            ),
-        ),
-        (
-            PokerHand.TWO_PAIR,
-            (
-                BalatroCard("A", "Hearts"),
-                BalatroCard("A", "Spades"),
-                BalatroCard("K", "Clubs"),
-                BalatroCard("K", "Diamonds"),
-                BalatroCard("2", "Hearts"),
-            ),
-        ),
-        (
-            PokerHand.THREE_OF_A_KIND,
-            (
-                BalatroCard("Q", "Hearts"),
-                BalatroCard("Q", "Spades"),
-                BalatroCard("Q", "Clubs"),
-                BalatroCard("7", "Diamonds"),
-                BalatroCard("2", "Hearts"),
-            ),
-        ),
-        (
-            PokerHand.STRAIGHT,
-            (
-                BalatroCard("10", "Hearts"),
-                BalatroCard("J", "Spades"),
-                BalatroCard("Q", "Clubs"),
-                BalatroCard("K", "Diamonds"),
-                BalatroCard("A", "Hearts"),
-            ),
-        ),
-        (
-            PokerHand.FLUSH,
-            (
-                BalatroCard("A", "Hearts"),
-                BalatroCard("10", "Hearts"),
-                BalatroCard("8", "Hearts"),
-                BalatroCard("5", "Hearts"),
-                BalatroCard("2", "Hearts"),
-            ),
-        ),
-        (
-            PokerHand.FULL_HOUSE,
-            (
-                BalatroCard("K", "Hearts"),
-                BalatroCard("K", "Spades"),
-                BalatroCard("K", "Clubs"),
-                BalatroCard("8", "Diamonds"),
-                BalatroCard("8", "Hearts"),
-            ),
-        ),
-        (
-            PokerHand.FOUR_OF_A_KIND,
-            (
-                BalatroCard("8", "Hearts"),
-                BalatroCard("8", "Spades"),
-                BalatroCard("8", "Clubs"),
-                BalatroCard("8", "Diamonds"),
-                BalatroCard("A", "Hearts"),
-            ),
-        ),
+        (PokerHand.HIGH_CARD, (
+            BalatroCard("A", "Spades"), BalatroCard("K", "Hearts"),
+            BalatroCard("9", "Clubs"), BalatroCard("5", "Diamonds"),
+            BalatroCard("2", "Spades"),
+        )),
+        (PokerHand.PAIR, (
+            BalatroCard("8", "Hearts"), BalatroCard("8", "Spades"),
+            BalatroCard("K", "Clubs"), BalatroCard("7", "Diamonds"),
+            BalatroCard("2", "Hearts"),
+        )),
+        (PokerHand.TWO_PAIR, (
+            BalatroCard("A", "Hearts"), BalatroCard("A", "Spades"),
+            BalatroCard("K", "Clubs"), BalatroCard("K", "Diamonds"),
+            BalatroCard("2", "Hearts"),
+        )),
+        (PokerHand.THREE_OF_A_KIND, (
+            BalatroCard("Q", "Hearts"), BalatroCard("Q", "Spades"),
+            BalatroCard("Q", "Clubs"), BalatroCard("7", "Diamonds"),
+            BalatroCard("2", "Hearts"),
+        )),
+        (PokerHand.STRAIGHT, (
+            BalatroCard("10", "Hearts"), BalatroCard("J", "Spades"),
+            BalatroCard("Q", "Clubs"), BalatroCard("K", "Diamonds"),
+            BalatroCard("A", "Hearts"),
+        )),
+        (PokerHand.FLUSH, (
+            BalatroCard("A", "Hearts"), BalatroCard("10", "Hearts"),
+            BalatroCard("8", "Hearts"), BalatroCard("5", "Hearts"),
+            BalatroCard("2", "Hearts"),
+        )),
+        (PokerHand.FULL_HOUSE, (
+            BalatroCard("K", "Hearts"), BalatroCard("K", "Spades"),
+            BalatroCard("K", "Clubs"), BalatroCard("8", "Diamonds"),
+            BalatroCard("8", "Hearts"),
+        )),
+        (PokerHand.FOUR_OF_A_KIND, (
+            BalatroCard("8", "Hearts"), BalatroCard("8", "Spades"),
+            BalatroCard("8", "Clubs"), BalatroCard("8", "Diamonds"),
+            BalatroCard("A", "Hearts"),
+        )),
     )
 
     def __init__(self, scorer: BalatroScorer | None = None):
@@ -146,21 +102,26 @@ class JokerMarginalValueEstimator:
         try:
             random.seed(0)
             for hand, cards in self.PROBES:
-                before_state = copy.deepcopy(state)
-                before_state.hand = list(cards)
-                after_state = copy.deepcopy(before_state)
-                after_state.jokers.append(copy.deepcopy(joker))
+                try:
+                    before_state = copy.deepcopy(state)
+                    before_state.hand = list(cards)
+                    after_state = copy.deepcopy(before_state)
+                    after_state.jokers.append(copy.deepcopy(joker))
 
-                before = self.scorer.score(
-                    hand,
-                    state=before_state,
-                    cards=list(cards),
-                ).total
-                after = self.scorer.score(
-                    hand,
-                    state=after_state,
-                    cards=list(cards),
-                ).total
+                    before = self.scorer.score(
+                        hand,
+                        state=before_state,
+                        cards=list(cards),
+                    ).total
+                    after = self.scorer.score(
+                        hand,
+                        state=after_state,
+                        cards=list(cards),
+                    ).total
+                except Exception:
+                    # Event-specific/stateful Joker implementations are allowed to
+                    # reject synthetic probe contexts. Their base value still applies.
+                    continue
 
                 gains.append(
                     max(0.0, (after - before) / max(float(before), 1.0))
@@ -174,7 +135,7 @@ class JokerMarginalValueEstimator:
 
 
 class DefaultShopItemValueEstimator:
-    """Conservative intrinsic value model for currently buffer-safe shop items."""
+    """Conservative intrinsic value model for buffer-safe shop items."""
 
     def __init__(
         self,
@@ -228,7 +189,7 @@ class DefaultShopItemValueEstimator:
 
 
 class BalatroShopPolicy:
-    """Rank deterministic shop actions against the option to save money."""
+    """Rank deterministic purchases against the option to leave and save money."""
 
     EDITION_BONUSES = {
         "FOIL": 0.8,
@@ -250,9 +211,7 @@ class BalatroShopPolicy:
         last_consumable_slot_penalty: float = 0.6,
         hold_bias: float = 0.35,
     ):
-        self.item_value_estimator = (
-            item_value_estimator or DefaultShopItemValueEstimator()
-        )
+        self.item_value_estimator = item_value_estimator or DefaultShopItemValueEstimator()
         self.price_weight = price_weight
         self.interest_weight = interest_weight
         self.reserve_target = max(0, reserve_target)
