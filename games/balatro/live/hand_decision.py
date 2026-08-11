@@ -1,0 +1,247 @@
+from __future__ import annotations
+
+from collections import Counter
+from dataclasses import dataclass
+
+from framework.core.action import Action
+from framework.decision.evaluator import Evaluator
+
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
+from games.balatro.card_selector import CardSelector
+from games.balatro.hand import PokerHand
+from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.scoring import BalatroScorer
+
+
+@dataclass(frozen=True)
+class _DecisionContext:
+    remaining_chips: float
+    required_per_hand: float
+    best_play_score: float
+    best_play_hand: PokerHand
+
+
+class LiveHandDecisionEvaluator(Evaluator):
+    """Pace-aware evaluator for live play/discard decisions.
+
+    It deliberately uses only currently visible state. Remaining deck order is not
+    consulted. Joker effects are excluded from the scoring probe for now because
+    many Joker implementations are stateful or probabilistic; the live controller
+    will gain a side-effect-free Joker projection layer separately.
+    """
+
+    STRONG_MADE_HANDS = {
+        PokerHand.STRAIGHT,
+        PokerHand.FLUSH,
+        PokerHand.FULL_HOUSE,
+        PokerHand.FOUR_OF_A_KIND,
+        PokerHand.STRAIGHT_FLUSH,
+    }
+
+    RANK_ORDER = {
+        "A": 14,
+        "K": 13,
+        "Q": 12,
+        "J": 11,
+        "10": 10,
+        "9": 9,
+        "8": 8,
+        "7": 7,
+        "6": 6,
+        "5": 5,
+        "4": 4,
+        "3": 3,
+        "2": 2,
+    }
+
+    def __init__(self):
+        self.hand_evaluator = HandEvaluator()
+        self.scorer = BalatroScorer()
+        self.action_generator = CardSelector()
+        self._cached_state_id: int | None = None
+        self._cached_context: _DecisionContext | None = None
+
+    def evaluate(self, state, action: Action) -> float:
+        context = self._context(state)
+
+        if action.name == PLAY_CARDS:
+            return self._play_value(state, action, context)
+
+        if action.name == DISCARD_CARDS:
+            return self._discard_value(state, action, context)
+
+        return -1_000_000.0
+
+    def _context(self, state) -> _DecisionContext:
+        state_id = id(state)
+        if self._cached_state_id == state_id and self._cached_context is not None:
+            return self._cached_context
+
+        requirement = int(getattr(getattr(state, "blind", None), "requirement", 0))
+        remaining = max(1.0, float(requirement - getattr(state, "score", 0)))
+        hands = max(1, int(getattr(state, "hands_remaining", 1)))
+        required_per_hand = remaining / hands
+
+        best_score = 0.0
+        best_hand = PokerHand.HIGH_CARD
+        for play in self.action_generator.generate_play_actions(state):
+            estimate = self._estimate_play(state, play)
+            if estimate > best_score:
+                best_score = estimate
+                best_hand = self.hand_evaluator.evaluate(play.cards)
+
+        context = _DecisionContext(
+            remaining_chips=remaining,
+            required_per_hand=max(1.0, required_per_hand),
+            best_play_score=best_score,
+            best_play_hand=best_hand,
+        )
+        self._cached_state_id = state_id
+        self._cached_context = context
+        return context
+
+    def _play_value(self, state, action, context: _DecisionContext) -> float:
+        estimate = self._estimate_play(state, action)
+        hand = self.hand_evaluator.evaluate(action.cards)
+
+        if estimate >= context.remaining_chips:
+            return 2_000.0 + estimate
+
+        progress = (estimate / context.remaining_chips) * 100.0
+        pace_ratio = estimate / context.required_per_hand
+
+        if hand in self.STRONG_MADE_HANDS:
+            progress += 35.0
+        elif hand in {PokerHand.THREE_OF_A_KIND, PokerHand.TWO_PAIR}:
+            progress += 15.0
+        elif hand == PokerHand.PAIR:
+            progress += 5.0
+
+        discards = int(getattr(state, "discards_remaining", 0))
+        hands = max(1, int(getattr(state, "hands_remaining", 1)))
+        if discards > 0 and pace_ratio < 1.0:
+            shortfall = 1.0 - pace_ratio
+            progress -= shortfall * 50.0
+            progress -= max(0, 4 - hands) * 10.0
+
+        return progress
+
+    def _discard_value(self, state, action, context: _DecisionContext) -> float:
+        if int(getattr(state, "discards_remaining", 0)) <= 0:
+            return -1_000_000.0
+
+        if context.best_play_score >= context.remaining_chips:
+            return -2_000.0
+
+        kept_cards = self._kept_cards(state.hand, action.cards)
+        promise = self._retained_structure_value(kept_cards)
+
+        pace_ratio = context.best_play_score / context.required_per_hand
+        shortfall = max(0.0, 1.0 - pace_ratio)
+        hands = max(1, int(getattr(state, "hands_remaining", 1)))
+
+        value = 40.0
+        value += shortfall * 50.0
+        value += max(0, 4 - hands) * 10.0
+        value += promise
+        value += min(5, len(action.cards)) * 4.0
+
+        if context.best_play_hand in self.STRONG_MADE_HANDS:
+            value -= 250.0
+        elif pace_ratio >= 1.0:
+            value -= 80.0
+
+        if int(getattr(state, "discards_remaining", 0)) <= 1:
+            value -= 10.0
+
+        return value
+
+    def _estimate_play(self, state, action) -> float:
+        hand = self.hand_evaluator.evaluate(action.cards)
+
+        safe_state = state.copy()
+        safe_state.jokers = []
+
+        score = self.scorer.score(
+            hand,
+            safe_state,
+            cards=action.cards,
+            include_card_chips=True,
+        )
+        return float(score.total)
+
+    @staticmethod
+    def _kept_cards(hand, discarded) -> list:
+        discarded_ids = {id(card) for card in discarded}
+        return [card for card in hand if id(card) not in discarded_ids]
+
+    def _retained_structure_value(self, cards) -> float:
+        if not cards:
+            return 0.0
+
+        regular = [
+            card
+            for card in cards
+            if getattr(card, "enhancement", None) != "Stone"
+        ]
+        if not regular:
+            return 0.0
+
+        ranks = [str(card.rank) for card in regular]
+        rank_counts = Counter(ranks)
+        counts = sorted(rank_counts.values(), reverse=True)
+
+        value = 0.0
+        if counts and counts[0] >= 4:
+            value += 90.0
+        elif counts and counts[0] == 3:
+            value += 60.0
+        elif counts and counts[0] == 2:
+            value += 35.0
+
+        if sum(1 for count in counts if count >= 2) >= 2:
+            value += 20.0
+
+        suit_counts = Counter(str(card.suit) for card in regular)
+        max_suit = max(suit_counts.values(), default=0)
+        if max_suit >= 4:
+            value += 50.0
+        elif max_suit == 3:
+            value += 25.0
+        elif max_suit == 2:
+            value += 8.0
+
+        run = self._longest_straight_run(ranks)
+        if run >= 4:
+            value += 45.0
+        elif run == 3:
+            value += 20.0
+
+        high_cards = sorted(
+            (self.scorer.card_chip_value(card) for card in regular),
+            reverse=True,
+        )[:2]
+        value += sum(high_cards) * 0.5
+        return value
+
+    def _longest_straight_run(self, ranks) -> int:
+        values = {
+            self.RANK_ORDER[rank]
+            for rank in ranks
+            if rank in self.RANK_ORDER
+        }
+        if 14 in values:
+            values.add(1)
+        if not values:
+            return 0
+
+        longest = 1
+        current = 1
+        ordered = sorted(values)
+        for previous, value in zip(ordered, ordered[1:]):
+            if value == previous + 1:
+                current += 1
+                longest = max(longest, current)
+            elif value != previous:
+                current = 1
+        return longest
