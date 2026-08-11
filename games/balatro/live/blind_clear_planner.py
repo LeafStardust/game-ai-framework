@@ -170,12 +170,17 @@ class LiveBlindClearPlanner:
                 )
             return _ActionEstimate(action, total_value, exact)
 
-        composition = PublicDeckComposition.from_state(state)
-        draw_distribution = self.draw_outcomes.distribution(
-            composition,
-            len(action.cards),
-        )
-        exact = exact and draw_distribution.exact
+        # Do not branch over unknown redraws when cards already retained in hand
+        # prove an exact next-play clear. This is both faster and stronger than a
+        # sampled draw result: drawing extra cards cannot invalidate a legal play
+        # made solely from cards that remain in hand.
+        retained_cards = [
+            card
+            for index, card in enumerate(projected_state.hand)
+            if index not in played_indices
+        ]
+        composition = None
+        draw_distribution = None
 
         for score_outcome in projection.outcomes:
             score_after = int(getattr(state, "score", 0)) + score_outcome.score
@@ -201,16 +206,32 @@ class LiveBlindClearPlanner:
                 )
                 continue
 
+            retained_state = deepcopy(projected_state)
+            retained_state.score = score_after
+            retained_state.hands_remaining = hands_after
+            retained_state.hand = list(retained_cards)
+            guaranteed_value = self._guaranteed_next_play_value(retained_state)
+            if guaranteed_value is not None:
+                total_value = total_value.plus(
+                    guaranteed_value.weighted(score_outcome.probability)
+                )
+                continue
+
+            if draw_distribution is None:
+                composition = PublicDeckComposition.from_state(state)
+                draw_distribution = self.draw_outcomes.distribution(
+                    composition,
+                    len(action.cards),
+                )
+                exact = exact and draw_distribution.exact
+
+            assert composition is not None
+            assert draw_distribution is not None
             for draw_outcome in draw_distribution.outcomes:
                 next_state = deepcopy(projected_state)
                 next_state.score = score_after
                 next_state.hands_remaining = hands_after
-                kept = [
-                    card
-                    for index, card in enumerate(next_state.hand)
-                    if index not in played_indices
-                ]
-                next_state.hand = kept + [
+                next_state.hand = list(retained_cards) + [
                     self.draw_outcomes.card_from_signature(signature)
                     for signature in draw_outcome.cards
                 ]
@@ -224,6 +245,24 @@ class LiveBlindClearPlanner:
                 total_value = total_value.plus(value.weighted(probability))
 
         return _ActionEstimate(action, total_value, exact)
+
+    def _guaranteed_next_play_value(self, state) -> LiveBlindPlanValue | None:
+        """Return an exact clear value using only cards already retained in hand."""
+        candidates = self._candidate_actions(state, allow_discards=False)
+        if not candidates:
+            return None
+
+        estimates = [self._estimate_play(state, action, 1) for action in candidates]
+        guaranteed = [
+            estimate
+            for estimate in estimates
+            if estimate.exact
+            and estimate.value.clear_probability >= 1.0 - 1e-12
+        ]
+        if not guaranteed:
+            return None
+        best = max(guaranteed, key=lambda estimate: self._value_key(estimate.value))
+        return best.value
 
     def _estimate_discard(
         self,
