@@ -7,6 +7,7 @@ from games.balatro.live.blind_clear_planner import (
     LiveBlindPlan,
     PlannerSearchBudgetExceeded,
 )
+from games.balatro.live.depth_draw_outcomes import DepthAwarePublicDrawOutcomeModel
 from games.balatro.live.external.save_observer import SaveBalatroObserver
 from games.balatro.live.external.save_state import BalatroSaveReader
 from games.balatro.live.translator import DefaultBalatroStateTranslator
@@ -96,6 +97,15 @@ def main() -> int:
         "--samples",
         type=int,
         default=LiveBlindClearPlanner.DEFAULT_DRAW_SAMPLE_COUNT,
+        help="sampled public draw branches for root-action redraws",
+    )
+    parser.add_argument(
+        "--child-samples",
+        type=int,
+        help=(
+            "sampled public draw branches below the root; defaults to half of "
+            "--samples for horizons above 2"
+        ),
     )
     parser.add_argument(
         "--exact-limit",
@@ -112,12 +122,22 @@ def main() -> int:
         parser.error("--child-discard-width cannot be negative")
     if args.max_nodes is not None and args.max_nodes < 1:
         parser.error("--max-nodes must be positive")
+    if args.samples < 1:
+        parser.error("--samples must be positive")
+    if args.child_samples is not None and args.child_samples < 1:
+        parser.error("--child-samples must be positive")
 
-    # Deeper diagnostics are automatically bounded unless the caller supplies a
-    # tighter/looser explicit budget. Horizon 1-2 retains historical behavior.
     max_nodes = args.max_nodes
     if max_nodes is None and args.horizon > 2:
         max_nodes = 1000
+
+    child_samples = args.child_samples
+    if child_samples is None:
+        child_samples = (
+            max(1, args.samples // 2)
+            if args.horizon > 2
+            else args.samples
+        )
 
     reader = BalatroSaveReader(args.save, profile=args.profile)
     observer = SaveBalatroObserver(reader)
@@ -125,7 +145,11 @@ def main() -> int:
     state = DefaultBalatroStateTranslator().translate(snapshot)
 
     blind_type = getattr(getattr(state, "blind", None), "type", None)
-    blind_type_text = getattr(blind_type, "value", str(blind_type) if blind_type else "none")
+    blind_type_text = getattr(
+        blind_type,
+        "value",
+        str(blind_type) if blind_type else "none",
+    )
 
     print(f"Save -> {reader.path}")
     print(f"Phase -> {state.phase}")
@@ -156,9 +180,13 @@ def main() -> int:
         f"{args.child_discard_width if args.child_discard_width is not None else args.discard_width}"
     )
     print(f"Planner horizon -> {args.horizon} actions")
-    print(f"Planner node budget -> {max_nodes if max_nodes is not None else 'unbounded'}")
+    print(
+        "Planner node budget -> "
+        f"{max_nodes if max_nodes is not None else 'unbounded'}"
+    )
     print(f"Exact draw combination limit -> {args.exact_limit}")
-    print(f"Sampled draw branches -> {args.samples}")
+    print(f"Root sampled draw branches -> {args.samples}")
+    print(f"Child sampled draw branches -> {child_samples}")
 
     if state.phase != "SELECTING_HAND":
         print("Planner ready -> False")
@@ -176,12 +204,11 @@ def main() -> int:
         print("Mouse input sent -> False")
         return 0
 
-    from games.balatro.live.draw_outcomes import PublicDrawOutcomeModel
-
     planner = LiveBlindClearPlanner(
-        draw_outcomes=PublicDrawOutcomeModel(
+        draw_outcomes=DepthAwarePublicDrawOutcomeModel(
             exact_combination_limit=args.exact_limit,
-            sample_count=args.samples,
+            root_sample_count=args.samples,
+            child_sample_count=child_samples,
         ),
         play_width=args.play_width,
         discard_width=args.discard_width,
