@@ -23,6 +23,13 @@ from .viewport import BalatroViewport, NormalizedPoint, NormalizedRect
 # comes from the public structured shop observation/projected transaction.
 DEFAULT_SHOP_MAIN_CARD_REGION = NormalizedRect(0.40, 0.35, 0.42, 0.22)
 
+# Shop cards contain much more saturated artwork than ordinary playing cards.
+# These thresholds were selected from live diagnostics because the stricter hand
+# defaults missed The Sun entirely, while looser probes began accepting internal
+# artwork fragments as separate cards.
+DEFAULT_SHOP_CARD_MIN_BRIGHTNESS = 145
+DEFAULT_SHOP_CARD_MAX_CHANNEL_SPREAD = 100
+
 
 class ShopReflowError(RuntimeError):
     pass
@@ -52,9 +59,13 @@ class ShopMainReflowLocator:
         executor: ExternalShopMouseExecutor,
         *,
         region: NormalizedRect = DEFAULT_SHOP_MAIN_CARD_REGION,
+        min_brightness: int = DEFAULT_SHOP_CARD_MIN_BRIGHTNESS,
+        max_channel_spread: int = DEFAULT_SHOP_CARD_MAX_CHANNEL_SPREAD,
     ):
         self.executor = executor
         self.region = region
+        self.min_brightness = min_brightness
+        self.max_channel_spread = max_channel_spread
 
     def locate(self, state: BalatroState, action: BalatroAction) -> ReflowedShopTarget:
         if state.phase != "SHOP":
@@ -77,7 +88,11 @@ class ShopMainReflowLocator:
 
         frame = self.executor._capture_focused_frame()
         main_region = BalatroViewport(frame).crop(self.region)
-        cards = locate_card_faces(main_region)
+        cards = locate_card_faces(
+            main_region,
+            min_brightness=self.min_brightness,
+            max_channel_spread=self.max_channel_spread,
+        )
         if len(cards) != len(offers):
             raise ShopReflowError(
                 "fresh shop-card detection/projected-offer count mismatch: "
