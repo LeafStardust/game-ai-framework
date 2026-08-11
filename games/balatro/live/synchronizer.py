@@ -33,9 +33,11 @@ class BalatroLiveSynchronizer:
             try:
                 snapshot = self.bridge.observe()
             except RuntimeError:
-                # A live source can disappear or be replaced between the
-                # connectivity check and the actual read. Treat that as a
-                # transient observation race and keep polling until timeout.
+                # A live source can disappear between the connectivity check
+                # and the actual read. Retry only when it is now disconnected;
+                # otherwise preserve real bridge/programming errors.
+                if self.bridge.is_connected():
+                    raise
                 self._sleep()
                 continue
 
