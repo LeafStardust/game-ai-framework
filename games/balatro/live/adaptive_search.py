@@ -124,7 +124,7 @@ def adaptive_blind_search_schedule(
         configs.append(
             AdaptiveBlindSearchConfig(
                 horizon=deepest,
-                samples=4,
+                samples=max(8, _sample_count(deepest)),
                 child_samples=1,
                 play_width=3,
                 discard_width=2 if discards_remaining > 0 else 0,
