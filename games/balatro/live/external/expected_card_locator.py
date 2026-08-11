@@ -8,6 +8,7 @@ from .card_locator import (
     MAX_HAND_CARDS,
     CardComponentDiagnostic,
     CardFaceLocation,
+    _split_wide_component,
     inspect_card_face_components,
     locate_card_faces,
 )
@@ -42,11 +43,12 @@ def locate_card_faces_expected_count(
 ) -> list[CardFaceLocation]:
     """Locate a hand with a strict save-backed expected card count.
 
-    Normal bright-card detection is always preferred. If dimmed cards make that
-    impossible, individually accepted card components are used as anchors for an
-    evenly spaced Balatro hand grid. A reconstructed grid is returned only when it
-    is unambiguous and every anchor agrees with it. Otherwise the first ordinary
-    locator result is returned so the caller's exact-count guard fails closed.
+    Normal bright-card detection is preferred only when its returned centers form
+    a plausible evenly-spaced Balatro hand grid. If dimmed cards or mixed
+    individual/wide components distort that result, the locator reconstructs a
+    uniform grid from either a dominant wide hand component or individually
+    accepted card anchors. A reconstructed grid is returned only when the fit is
+    unambiguous; otherwise the caller's exact-count guard fails closed.
     """
 
     if not 1 <= expected_count <= MAX_HAND_CARDS:
@@ -65,7 +67,7 @@ def locate_card_faces_expected_count(
         )
         if first_locations is None:
             first_locations = locations
-        if len(locations) == expected_count:
+        if len(locations) == expected_count and _locations_form_uniform_grid(locations):
             return locations
 
         diagnostics = inspect_card_face_components(
@@ -73,15 +75,146 @@ def locate_card_faces_expected_count(
             min_brightness=min_brightness,
             max_channel_spread=max_channel_spread,
         )
-        fit = _fit_grid_from_accepted_components(diagnostics, expected_count)
-        if fit is not None:
-            fits.append(fit)
+
+        wide_fit = _fit_grid_from_wide_component(diagnostics, expected_count)
+        if wide_fit is not None:
+            fits.append(wide_fit)
+
+        anchor_fit = _fit_grid_from_accepted_components(diagnostics, expected_count)
+        if anchor_fit is not None:
+            fits.append(anchor_fit)
 
     chosen = _choose_unambiguous_fit(fits)
     if chosen is not None:
-        return _locations_from_fit(region, chosen, expected_count)
+        locations = _locations_from_fit(region, chosen, expected_count)
+        if _locations_form_uniform_grid(locations):
+            return locations
 
     return first_locations or []
+
+
+def _locations_form_uniform_grid(locations: list[CardFaceLocation]) -> bool:
+    if len(locations) <= 2:
+        return True
+
+    ordered = sorted(locations, key=lambda location: location.center.x)
+    gaps = [
+        ordered[index + 1].center.x - ordered[index].center.x
+        for index in range(len(ordered) - 1)
+    ]
+    if any(gap <= 0 for gap in gaps):
+        return False
+
+    typical_gap = median(gaps)
+    if typical_gap <= 0:
+        return False
+
+    # Real Balatro card rows are effectively uniform. Keep enough tolerance for
+    # pixel quantization while rejecting mixed component/split results such as
+    # 0.056, 0.096, 0.087, ... that can still accidentally total the save count.
+    if any(abs(gap - typical_gap) > typical_gap * 0.20 for gap in gaps):
+        return False
+
+    return True
+
+
+def _fit_grid_from_wide_component(
+    diagnostics: list[CardComponentDiagnostic],
+    expected_count: int,
+) -> _GridFit | None:
+    """Reconstruct a full uniform row from one dominant overlapping-hand blob.
+
+    ``locate_card_faces`` can correctly split a wide connected component while
+    also returning a few individually visible cards beside it. Those individual
+    components may have distorted face centers under Boss debuffs. Use them only
+    to determine how many card slots lie to the left/right of the wide component;
+    the final coordinates come entirely from the wide component's uniform stride.
+    """
+
+    wide_components = [
+        component
+        for component in diagnostics
+        if component.rejection == "too_wide" and component.density >= 0.35
+    ]
+    if not wide_components:
+        return None
+
+    candidates: list[_GridFit] = []
+    for wide in wide_components:
+        split = _split_wide_component_from_diagnostic(wide, expected_count)
+        if len(split) < 2 or len(split) >= expected_count:
+            continue
+
+        row_tolerance = max(4.0, wide.local_rect.height * 0.35)
+        aligned = [
+            component
+            for component in diagnostics
+            if component.accepted
+            and abs(component.local_rect.center.y - wide.local_rect.center.y)
+            <= row_tolerance
+        ]
+        left = [
+            component
+            for component in aligned
+            if component.local_rect.center.x < split[0]
+        ]
+        right = [
+            component
+            for component in aligned
+            if component.local_rect.center.x > split[-1]
+        ]
+
+        if len(left) + len(split) + len(right) != expected_count:
+            continue
+
+        stride = median(
+            split[index + 1] - split[index]
+            for index in range(len(split) - 1)
+        )
+        if stride <= 0:
+            continue
+
+        start_x = split[0] - len(left) * stride
+        width = max(1.0, wide.local_rect.height * 0.67)
+        fit = _GridFit(
+            start_x=start_x,
+            stride=stride,
+            top=float(wide.local_rect.top),
+            card_width=width,
+            card_height=float(wide.local_rect.height),
+            score=0.0,
+            mapped_indices=tuple(range(expected_count)),
+        )
+        candidates.append(fit)
+
+    if len(candidates) != 1:
+        return None
+    return candidates[0]
+
+
+def _split_wide_component_from_diagnostic(
+    component: CardComponentDiagnostic,
+    expected_count: int,
+) -> list[float]:
+    """Return local-x centers for the wide component's inferred card slots."""
+
+    # _split_wide_component needs a region only for normalized output. Build a
+    # minimal synthetic region large enough to preserve its local geometry, then
+    # read back only the local centers.
+    rect = component.local_rect
+    width = max(rect.left + rect.width + 1, 1)
+    height = max(rect.top + rect.height + 1, 1)
+    region = FrameRegion(
+        normalized_rect=NormalizedRect(0.0, 0.0, 1.0, 1.0),
+        pixel_rect=PixelRect(0, 0, width, height),
+        width=width,
+        height=height,
+        bgra=bytes(width * height * 4),
+    )
+    split = _split_wide_component(region, component)
+    if len(split) > expected_count:
+        return []
+    return [location.local_rect.center.x for location in split]
 
 
 def _fit_grid_from_accepted_components(
