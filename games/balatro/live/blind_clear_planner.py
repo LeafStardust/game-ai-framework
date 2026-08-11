@@ -10,6 +10,10 @@ from games.balatro.live.draw_outcomes import PublicDrawOutcomeModel
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 
 
+class PlannerSearchBudgetExceeded(RuntimeError):
+    """Raised when a bounded live planner search exhausts its node budget."""
+
+
 @dataclass(frozen=True)
 class LiveBlindPlanValue:
     clear_probability: float
@@ -60,14 +64,14 @@ class _ActionEstimate:
 class LiveBlindClearPlanner:
     """Bounded expectimax planner over public live Balatro state.
 
-    The initial live planner deliberately uses a two-action horizon:
-
-        PLAY -> score/Joker outcome -> public redraw -> best next PLAY
-        DISCARD -> public redraw -> best next PLAY
-
-    Replanning after the real checkpoint supplies the next horizon. Hidden draw
+    Replanning after each real checkpoint supplies the next horizon. Hidden draw
     order is never used. Validated stateful Joker transitions are carried between
     hypothetical play nodes on isolated branch copies.
+
+    Root and child action beams can be configured independently. This matters for
+    deeper live diagnostics: keeping a useful root comparison while narrowing
+    recursive child choices prevents sampled redraw branches from exploding
+    combinatorially. ``max_nodes`` provides a final hard safety cap.
     """
 
     DEFAULT_EXACT_DRAW_COMBINATION_LIMIT = 128
@@ -81,14 +85,24 @@ class LiveBlindClearPlanner:
         draw_outcomes: PublicDrawOutcomeModel | None = None,
         play_width: int = 6,
         discard_width: int = 4,
+        child_play_width: int | None = None,
+        child_discard_width: int | None = None,
         horizon: int = 2,
+        max_nodes: int | None = None,
     ):
         if play_width < 1:
             raise ValueError("play_width must be positive")
         if discard_width < 0:
             raise ValueError("discard_width cannot be negative")
+        if child_play_width is not None and child_play_width < 1:
+            raise ValueError("child_play_width must be positive")
+        if child_discard_width is not None and child_discard_width < 0:
+            raise ValueError("child_discard_width cannot be negative")
         if horizon < 1:
             raise ValueError("horizon must be at least 1")
+        if max_nodes is not None and max_nodes < 1:
+            raise ValueError("max_nodes must be positive when supplied")
+
         self.evaluator = evaluator or LiveHandDecisionEvaluator()
         self.action_generator = action_generator or CardSelector()
         self.draw_outcomes = draw_outcomes or PublicDrawOutcomeModel(
@@ -97,10 +111,22 @@ class LiveBlindClearPlanner:
         )
         self.play_width = int(play_width)
         self.discard_width = int(discard_width)
+        self.child_play_width = int(
+            play_width if child_play_width is None else child_play_width
+        )
+        self.child_discard_width = int(
+            discard_width if child_discard_width is None else child_discard_width
+        )
         self.horizon = int(horizon)
+        self.max_nodes = int(max_nodes) if max_nodes is not None else None
+        self.nodes_evaluated = 0
+
+    def reset_search_stats(self) -> None:
+        self.nodes_evaluated = 0
 
     def plan(self, state) -> LiveBlindPlan:
         self._require_state(state)
+        self.reset_search_stats()
         candidates = self._candidate_actions(state, allow_discards=self.horizon > 1)
         if not candidates:
             raise RuntimeError("no live blind-clear candidate action is available")
@@ -118,6 +144,14 @@ class LiveBlindClearPlanner:
             candidate_count=len(candidates),
         )
 
+    def _consume_node(self) -> None:
+        self.nodes_evaluated += 1
+        if self.max_nodes is not None and self.nodes_evaluated > self.max_nodes:
+            raise PlannerSearchBudgetExceeded(
+                "live blind planner search exceeded node budget "
+                f"({self.max_nodes})"
+            )
+
     def _best_value(self, state, depth: int) -> tuple[LiveBlindPlanValue, bool]:
         if self._is_cleared(state):
             return self._terminal_value(state, clear=True), True
@@ -126,7 +160,12 @@ class LiveBlindClearPlanner:
         if depth <= 0:
             return self._terminal_value(state, clear=False), True
 
-        candidates = self._candidate_actions(state, allow_discards=depth > 1)
+        candidates = self._candidate_actions(
+            state,
+            allow_discards=depth > 1,
+            play_width=self.child_play_width,
+            discard_width=self.child_discard_width,
+        )
         if not candidates:
             return self._terminal_value(state, clear=False), True
 
@@ -138,6 +177,7 @@ class LiveBlindClearPlanner:
         return best.value, best.exact
 
     def _estimate_action(self, state, action: BalatroAction, depth: int) -> _ActionEstimate:
+        self._consume_node()
         if action.name == PLAY_CARDS:
             return self._estimate_play(state, action, depth)
         if action.name == DISCARD_CARDS:
@@ -170,10 +210,6 @@ class LiveBlindClearPlanner:
                 )
             return _ActionEstimate(action, total_value, exact)
 
-        # Do not branch over unknown redraws when cards already retained in hand
-        # prove an exact next-play clear. This is both faster and stronger than a
-        # sampled draw result: drawing extra cards cannot invalidate a legal play
-        # made solely from cards that remain in hand.
         retained_cards = [
             card
             for index, card in enumerate(projected_state.hand)
@@ -248,11 +284,16 @@ class LiveBlindClearPlanner:
 
     def _guaranteed_next_play_value(self, state) -> LiveBlindPlanValue | None:
         """Return an exact clear value using only cards already retained in hand."""
-        candidates = self._candidate_actions(state, allow_discards=False)
+        candidates = self._candidate_actions(
+            state,
+            allow_discards=False,
+            play_width=self.child_play_width,
+            discard_width=0,
+        )
         if not candidates:
             return None
 
-        estimates = [self._estimate_play(state, action, 1) for action in candidates]
+        estimates = [self._estimate_action(state, action, 1) for action in candidates]
         guaranteed = [
             estimate
             for estimate in estimates
@@ -320,15 +361,31 @@ class LiveBlindClearPlanner:
 
         return _ActionEstimate(action, total_value, exact)
 
-    def _candidate_actions(self, state, *, allow_discards: bool) -> list[BalatroAction]:
+    def _candidate_actions(
+        self,
+        state,
+        *,
+        allow_discards: bool,
+        play_width: int | None = None,
+        discard_width: int | None = None,
+    ) -> list[BalatroAction]:
+        play_limit = self.play_width if play_width is None else int(play_width)
+        discard_limit = (
+            self.discard_width if discard_width is None else int(discard_width)
+        )
+
         plays = self.action_generator.generate_play_actions(state)
         ranked_plays = sorted(
             plays,
             key=lambda action: self._play_priority(state, action),
             reverse=True,
-        )[: self.play_width]
+        )[:play_limit]
 
-        if not allow_discards or int(getattr(state, "discards_remaining", 0)) <= 0:
+        if (
+            not allow_discards
+            or discard_limit <= 0
+            or int(getattr(state, "discards_remaining", 0)) <= 0
+        ):
             return ranked_plays
 
         discards = self.action_generator.generate_discard_actions(state)
@@ -336,7 +393,7 @@ class LiveBlindClearPlanner:
             discards,
             key=lambda action: self._discard_priority(state, action),
             reverse=True,
-        )[: self.discard_width]
+        )[:discard_limit]
         return ranked_plays + ranked_discards
 
     def _play_priority(self, state, action: BalatroAction) -> tuple[float, float, int, int]:
@@ -398,12 +455,7 @@ class LiveBlindClearPlanner:
 
     @classmethod
     def _estimate_key(cls, estimate: _ActionEstimate) -> tuple[float, int, float, float, float, float]:
-        """Rank estimated probability first, then prefer exact evidence on ties.
-
-        A sampled branch that happened to clear in every sample must not outrank an
-        exact branch with the same reported clear probability merely because its
-        sampled expected score is larger.
-        """
+        """Rank estimated probability first, then prefer exact evidence on ties."""
         value = estimate.value
         return (
             value.clear_probability,
