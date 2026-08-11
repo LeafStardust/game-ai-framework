@@ -123,15 +123,25 @@ def test_consensus_discard_accepts_three_deepening_agreements():
     assert stable_discard_consensus(recommendations)
 
 
-def test_consensus_discard_ignores_strictly_dominated_noisy_tail():
+def test_consensus_discard_ignores_same_action_strictly_dominated_tail():
     recommendations = (
+        _recommendation(PLAY_CARDS, (2, 3, 4), 0.125, 6200.0),
         _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6465.5),
         _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6824.0),
+        _recommendation(DISCARD_CARDS, (0, 1), 0.029412, 6704.324),
+    )
+
+    assert stable_discard_consensus(recommendations)
+
+
+def test_consensus_discard_rejects_dominated_tail_with_changed_indexes():
+    recommendations = (
+        _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6465.5),
         _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6824.0),
         _recommendation(DISCARD_CARDS, (4, 5), 0.029412, 6704.324),
     )
 
-    assert stable_discard_consensus(recommendations)
+    assert not stable_discard_consensus(recommendations)
 
 
 def test_consensus_discard_rejects_changed_indexes():
@@ -158,8 +168,7 @@ def test_consensus_discard_rejects_one_objective_tradeoff_tail():
     recommendations = (
         _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6465.5),
         _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6824.0),
-        _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6824.0),
-        _recommendation(DISCARD_CARDS, (4, 5), 0.20, 6704.324),
+        _recommendation(DISCARD_CARDS, (0, 1), 0.20, 6704.324),
     )
 
     assert not stable_discard_consensus(recommendations)
