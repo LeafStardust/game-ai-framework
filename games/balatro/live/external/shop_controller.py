@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from games.balatro.actions import END_SHOP, BalatroAction
+from games.balatro.actions import (
+    BUY_CONSUMABLE,
+    BUY_JOKER,
+    END_SHOP,
+    BalatroAction,
+)
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.shop import BalatroShopActionGenerator
 from games.balatro.live.shop_sync import BufferedShopTransaction
@@ -13,6 +18,7 @@ from games.balatro.state import BalatroState
 
 from .save_observer import SaveBalatroObserver
 from .shop_mouse import ExternalShopMouseExecutor
+from .shop_reflow import ShopMainReflowLocator
 
 
 @dataclass
@@ -38,6 +44,7 @@ class ExternalShopController:
         policy=None,
         synchronizer=None,
         checkpoint_phases: set[str] | None = None,
+        reflow_locator=None,
     ):
         self.observer = observer
         self.executor = executor
@@ -49,6 +56,7 @@ class ExternalShopController:
             timeout=15.0,
         )
         self.checkpoint_phases = checkpoint_phases or {"BLIND_SELECT"}
+        self.reflow_locator = reflow_locator or ShopMainReflowLocator(executor)
 
     def open(self) -> ExternalShopSession:
         snapshot = self.observer.observe()
@@ -116,11 +124,22 @@ class ExternalShopController:
         if action.name == END_SHOP:
             raise ValueError("use leave_shop() for END_SHOP")
 
-        self.executor.dispatch(
-            action,
-            session.state,
-            session.transaction,
+        use_fresh_main_geometry = (
+            bool(session.transaction.purchases)
+            and action.name in {BUY_JOKER, BUY_CONSUMABLE}
         )
+        if use_fresh_main_geometry:
+            self.reflow_locator.dispatch(
+                action,
+                session.state,
+                session.transaction,
+            )
+        else:
+            self.executor.dispatch(
+                action,
+                session.state,
+                session.transaction,
+            )
         return session.state
 
     def leave_shop(
