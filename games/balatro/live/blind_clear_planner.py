@@ -109,7 +109,7 @@ class LiveBlindClearPlanner:
             self._estimate_action(state, action, self.horizon)
             for action in candidates
         ]
-        best = max(estimates, key=lambda estimate: self._value_key(estimate.value))
+        best = max(estimates, key=self._estimate_key)
         return LiveBlindPlan(
             action=best.action,
             value=best.value,
@@ -134,7 +134,7 @@ class LiveBlindClearPlanner:
             self._estimate_action(state, action, depth)
             for action in candidates
         ]
-        best = max(estimates, key=lambda estimate: self._value_key(estimate.value))
+        best = max(estimates, key=self._estimate_key)
         return best.value, best.exact
 
     def _estimate_action(self, state, action: BalatroAction, depth: int) -> _ActionEstimate:
@@ -395,6 +395,24 @@ class LiveBlindClearPlanner:
     def _is_cleared(self, state) -> bool:
         target = self._target(state)
         return target > 0 and int(getattr(state, "score", 0)) >= target
+
+    @classmethod
+    def _estimate_key(cls, estimate: _ActionEstimate) -> tuple[float, int, float, float, float, float]:
+        """Rank estimated probability first, then prefer exact evidence on ties.
+
+        A sampled branch that happened to clear in every sample must not outrank an
+        exact branch with the same reported clear probability merely because its
+        sampled expected score is larger.
+        """
+        value = estimate.value
+        return (
+            value.clear_probability,
+            1 if estimate.exact else 0,
+            value.expected_progress,
+            value.expected_hands_remaining,
+            value.expected_discards_remaining,
+            value.expected_score,
+        )
 
     @staticmethod
     def _value_key(value: LiveBlindPlanValue) -> tuple[float, float, float, float, float]:
