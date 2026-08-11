@@ -41,7 +41,7 @@ def _wide_hand_blob_region():
     height = 240
     pixels = bytearray(b"\x20\x50\x20\xff" * (width * height))
     # A single connected hand blob. The generic nominal-stride splitter infers a
-    # different count; the expected-count locator must use the save-backed 8.
+    # different count; the expected-count locator must use the save-backed count.
     _fill(pixels, width, 50, 70, 350, 90, 230)
     return _frame_region(width, height, pixels)
 
@@ -77,6 +77,18 @@ def test_expected_count_locator_splits_dominant_wide_blob_by_save_count():
     cards = locate_card_faces_expected_count(_wide_hand_blob_region(), 8)
 
     assert len(cards) == 8
+    assert _locations_form_uniform_grid(cards) is True
+    centers = [card.local_rect.center.x for card in cards]
+    gaps = [right - left for left, right in zip(centers, centers[1:])]
+    assert centers[0] == pytest.approx(80, abs=2)
+    assert centers[-1] == pytest.approx(370, abs=2)
+    assert max(gaps) - min(gaps) <= 1
+
+
+def test_expected_count_locator_supports_nine_card_hand_from_save_count():
+    cards = locate_card_faces_expected_count(_wide_hand_blob_region(), 9)
+
+    assert len(cards) == 9
     assert _locations_form_uniform_grid(cards) is True
     centers = [card.local_rect.center.x for card in cards]
     gaps = [right - left for left, right in zip(centers, centers[1:])]
