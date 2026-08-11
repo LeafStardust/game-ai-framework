@@ -9,14 +9,15 @@ from .window import BalatroWindowLocator
 
 
 DEFAULT_OUTPUT = "balatro-consumable-mouse.json"
-CONTROLS = {"slot-0", "slot-1", "use"}
+CONTROLS = {"slot-0", "slot-1", "use-0", "use-1"}
 
 
 def print_status(layout: ConsumableMouseLayout) -> None:
     values = {
         "slot-0": layout.slot_0,
         "slot-1": layout.slot_1,
-        "use": layout.use,
+        "use-0": layout.use_0,
+        "use-1": layout.use_1,
     }
     for name, point in values.items():
         if point is None:
@@ -36,16 +37,18 @@ def _prompt(control: str) -> str:
             "Move the cursor to the right/second held consumable card in Balatro, "
             "then press Enter here."
         )
+    slot = control.removeprefix("use-")
     return (
-        "Make a held consumable's Use button visible in Balatro, move the cursor "
-        "to the Use button, then press Enter here."
+        f"Open held consumable slot {slot} so its Use button is visible in Balatro, "
+        "move the cursor to that Use button, then press Enter here."
     )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Record resolution-independent Balatro held-consumable slots and Use button."
+            "Record resolution-independent Balatro held-consumable slots and "
+            "slot-specific Use buttons."
         )
     )
     parser.add_argument("controls", nargs="*", choices=sorted(CONTROLS))
@@ -77,7 +80,8 @@ def main() -> int:
         points = {
             "slot-0": layout.slot_0,
             "slot-1": layout.slot_1,
-            "use": layout.use,
+            "use-0": layout.use_0,
+            "use-1": layout.use_1,
         }
 
         for control in args.controls:
@@ -92,7 +96,8 @@ def main() -> int:
         layout = ConsumableMouseLayout(
             slot_0=points["slot-0"],
             slot_1=points["slot-1"],
-            use=points["use"],
+            use_0=points["use-0"],
+            use_1=points["use-1"],
         )
         layout.save(output)
     except (OSError, RuntimeError, ValueError) as error:
