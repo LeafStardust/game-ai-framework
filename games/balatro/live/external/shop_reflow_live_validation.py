@@ -13,6 +13,7 @@ from .save_observer import SaveBalatroObserver
 from .save_state import BalatroSaveReader
 from .shop_mouse import ExternalShopMouseExecutor, ShopMouseLayout
 from .shop_reflow import ShopMainReflowLocator
+from .viewport import BalatroViewport
 
 
 DEFAULT_LAYOUT = "balatro-shop-mouse.json"
@@ -60,7 +61,13 @@ def main() -> int:
     parser.add_argument("--save")
     parser.add_argument("--profile", default="1")
     parser.add_argument("--layout", default=DEFAULT_LAYOUT)
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--hover-only",
+        action="store_true",
+        help="move the cursor to the freshly detected card without clicking",
+    )
+    mode.add_argument(
         "--execute-card-click",
         action="store_true",
         help=(
@@ -108,11 +115,20 @@ def main() -> int:
             )
             print(f"Dynamic sequence -> {_sequence_text(target.sequence)}")
 
+            if args.hover_only:
+                frame = executor._capture_focused_frame()
+                point = BalatroViewport(frame).screen_point(target.sequence.steps[0].point)
+                mouse.move_screen(point)
+                print("Mouse input sent -> True (move only)")
+                print("Clicked -> False")
+                print(f"Expected cursor target -> {args.expect_label}")
+                return 0
+
             if not args.execute_card_click:
                 print("Mouse input sent -> False")
                 print(
-                    "Re-run with --execute-card-click to click only the freshly "
-                    "detected target card."
+                    "Re-run with --hover-only to move the cursor onto the detected "
+                    "card without clicking."
                 )
                 return 0
 
