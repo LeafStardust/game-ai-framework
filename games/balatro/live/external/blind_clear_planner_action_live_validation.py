@@ -4,8 +4,11 @@ import argparse
 from pathlib import Path
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
-from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
-from games.balatro.live.draw_outcomes import PublicDrawOutcomeModel
+from games.balatro.live.blind_clear_planner import (
+    LiveBlindClearPlanner,
+    PlannerSearchBudgetExceeded,
+)
+from games.balatro.live.depth_draw_outcomes import DepthAwarePublicDrawOutcomeModel
 from games.balatro.live.synchronizer import BalatroLiveSynchronizer
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 
@@ -62,14 +65,27 @@ def _joker_text(joker) -> str:
 
 
 def _planner(args) -> LiveBlindClearPlanner:
+    child_samples = args.child_samples
+    if child_samples is None:
+        child_samples = max(1, args.samples // 2) if args.horizon > 2 else args.samples
+
+    max_nodes = args.max_nodes
+    if max_nodes is None and args.horizon > 2:
+        max_nodes = 1000
+
     return LiveBlindClearPlanner(
-        draw_outcomes=PublicDrawOutcomeModel(
+        draw_outcomes=DepthAwarePublicDrawOutcomeModel(
             exact_combination_limit=args.exact_limit,
-            sample_count=args.samples,
+            root_sample_count=args.samples,
+            child_sample_count=child_samples,
+            child_exact_combination_limit=args.child_exact_limit,
         ),
         play_width=args.play_width,
         discard_width=args.discard_width,
+        child_play_width=args.child_play_width,
+        child_discard_width=args.child_discard_width,
         horizon=args.horizon,
+        max_nodes=max_nodes,
     )
 
 
@@ -109,17 +125,22 @@ def main() -> int:
     parser.add_argument("--layout", default=DEFAULT_LAYOUT)
     parser.add_argument("--play-width", type=int, default=6)
     parser.add_argument("--discard-width", type=int, default=4)
+    parser.add_argument("--child-play-width", type=int)
+    parser.add_argument("--child-discard-width", type=int)
     parser.add_argument("--horizon", type=int, default=2)
+    parser.add_argument("--max-nodes", type=int)
     parser.add_argument(
         "--samples",
         type=int,
         default=LiveBlindClearPlanner.DEFAULT_DRAW_SAMPLE_COUNT,
     )
+    parser.add_argument("--child-samples", type=int)
     parser.add_argument(
         "--exact-limit",
         type=int,
         default=LiveBlindClearPlanner.DEFAULT_EXACT_DRAW_COMBINATION_LIMIT,
     )
+    parser.add_argument("--child-exact-limit", type=int)
     parser.add_argument(
         "--execute",
         action="store_true",
@@ -159,6 +180,20 @@ def main() -> int:
 
     if args.horizon < 1:
         parser.error("--horizon must be at least 1")
+    if args.child_play_width is not None and args.child_play_width < 1:
+        parser.error("--child-play-width must be positive")
+    if args.child_discard_width is not None and args.child_discard_width < 0:
+        parser.error("--child-discard-width cannot be negative")
+    if args.max_nodes is not None and args.max_nodes < 1:
+        parser.error("--max-nodes must be positive")
+    if args.samples < 1:
+        parser.error("--samples must be positive")
+    if args.child_samples is not None and args.child_samples < 1:
+        parser.error("--child-samples must be positive")
+    if args.exact_limit < 1:
+        parser.error("--exact-limit must be positive")
+    if args.child_exact_limit is not None and args.child_exact_limit < 1:
+        parser.error("--child-exact-limit must be positive")
     if args.execute and (args.expect_action is None or args.expect_indices is None):
         parser.error("--execute requires --expect-action and --expect-indices")
     if not args.execute and (args.expect_action is not None or args.expect_indices is not None):
@@ -169,9 +204,7 @@ def main() -> int:
         if not 0.0 <= args.min_clear_probability <= 1.0:
             parser.error("--min-clear-probability must be between 0 and 1")
         if args.execute and args.expect_clear_probability is None:
-            parser.error(
-                "probabilistic --execute requires --expect-clear-probability"
-            )
+            parser.error("probabilistic --execute requires --expect-clear-probability")
     elif args.min_clear_probability is not None or args.expect_clear_probability is not None:
         parser.error(
             "--min-clear-probability/--expect-clear-probability require "
@@ -213,6 +246,14 @@ def main() -> int:
 
     try:
         plan = planner.plan(state)
+    except PlannerSearchBudgetExceeded as error:
+        print(f"Save -> {reader.path}")
+        print(f"Phase before -> {state.phase}")
+        print("Execution guard -> BLOCKED")
+        print(f"Reason -> {error}")
+        print(f"Planner nodes evaluated -> {planner.nodes_evaluated}")
+        print("Mouse input sent -> False")
+        return 0
     except (RuntimeError, ValueError) as error:
         parser.error(str(error))
 
@@ -223,6 +264,7 @@ def main() -> int:
     print(f"Hands before -> {state.hands_remaining}")
     print(f"Discards before -> {state.discards_remaining}")
     print(f"Planner horizon -> {args.horizon} actions")
+    print(f"Planner nodes evaluated -> {planner.nodes_evaluated}")
     print(f"Owned Jokers -> {len(state.jokers)}")
     for index, joker in enumerate(state.jokers):
         print(f"  J{index}: {_joker_text(joker)}")
@@ -348,10 +390,8 @@ def main() -> int:
                 f"{persisted_state.boss_name}"
             )
         else:
-            unsupported_after = (
-                planner.evaluator.score_outcomes.joker_projector.unsupported_jokers(
-                    persisted_state
-                )
+            unsupported_after = planner.evaluator.score_outcomes.joker_projector.unsupported_jokers(
+                persisted_state
             )
             if unsupported_after:
                 print(
@@ -361,6 +401,8 @@ def main() -> int:
             else:
                 try:
                     replanned = planner.plan(persisted_state)
+                except PlannerSearchBudgetExceeded as error:
+                    print(f"Replan blocked -> {error}")
                 except (RuntimeError, ValueError) as error:
                     print(f"Replan blocked -> {error}")
                 else:
