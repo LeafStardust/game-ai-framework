@@ -139,6 +139,67 @@ def test_real_capture_path_focuses_balatro_before_foreground_capture():
     assert provider.events[0] == ("focus", 42)
 
 
+class DelayedForegroundLocator:
+
+    def __init__(self, handles):
+        self.handles = list(handles)
+        self.calls = 0
+
+    def foreground_handle(self):
+        self.calls += 1
+        if len(self.handles) > 1:
+            return self.handles.pop(0)
+        return self.handles[0]
+
+
+class DelayedForegroundTracker(Tracker):
+
+    def __init__(self, window, handles):
+        super().__init__(window)
+        self.locator = DelayedForegroundLocator(handles)
+
+
+class DelayedForegroundCapture(ForegroundCapture):
+
+    def __init__(self, frame, provider, handles):
+        self.frame = frame
+        self.provider = provider
+        self.tracker = DelayedForegroundTracker(frame.window, handles)
+        self.capture_calls = 0
+
+    def capture(self):
+        self.capture_calls += 1
+        assert self.tracker.locator.handles[-1] == 42
+        return self.frame
+
+
+def test_real_capture_waits_for_windows_foreground_transition():
+    provider = Provider()
+    frame = _frame()
+    capture = DelayedForegroundCapture(frame, provider, [99, 99, 42])
+    executor = ExternalShopMouseExecutor(
+        ShopMouseLayout(
+            end_shop=ShopClickSequence(
+                (ShopPointerStep("click", NormalizedPoint(0.5, 0.5)),)
+            )
+        ),
+        capture=capture,
+        mouse=BalatroMouseController(provider=provider, armed=True),
+        focus_settle_delay=0,
+        focus_timeout=0.1,
+        focus_poll_interval=0,
+    )
+
+    executor.dispatch(
+        select_action(_state(), "end-shop", None),
+        _state(),
+    )
+
+    assert capture.tracker.locator.calls == 3
+    assert capture.capture_calls == 1
+    assert provider.events[0] == ("focus", 42)
+
+
 def test_single_step_diagnostic_click_does_not_project_purchase():
     provider = Provider()
     frame = _frame()
