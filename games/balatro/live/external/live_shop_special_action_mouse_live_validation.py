@@ -70,9 +70,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Preview or execute one live Voucher Redeem or Booster Open action. "
-            "The executor searches only with normal cursor movement, requires Balatro "
-            "live cursor identity immediately before one click, then verifies the "
-            "result through live process-memory observation."
+            "Execution clicks the special SHOP card once, verifies the generated "
+            "Redeem/Open control from live memory, then clicks that control once."
         )
     )
     parser.add_argument("--area", choices=sorted(AREA_PAYLOADS), required=True)
@@ -107,17 +106,27 @@ def main() -> int:
                 f"left={window.client_rect.left} top={window.client_rect.top} "
                 f"width={window.client_rect.width} height={window.client_rect.height}"
             )
-            print(f"Live item hover center -> x={item.screen_center.x} y={item.screen_center.y}")
+            print(f"Live item center -> x={item.screen_center.x} y={item.screen_center.y}")
 
             if not args.execute:
                 print("Mouse movement sent -> False")
                 print("Mouse clicks sent -> False")
-                print("Re-run with --execute to perform exactly one live-hit-tested action click.")
+                print(
+                    "Re-run with --execute to click the item once, verify its generated "
+                    "action control, and click that control once."
+                )
                 return 0
 
             before, clicked_item, target = executor.dispatch(args.area, args.index)
             print("Mouse movement sent -> True")
             print("Mouse clicks sent -> True")
+            print("Clicks sent -> 2")
+            if target.item_click_point is not None:
+                print(
+                    "Item selection click -> "
+                    f"x={target.item_click_point.x} y={target.item_click_point.y}"
+                )
+            print("Item selection exposed expected action control -> True")
             print(f"Action node address -> 0x{target.node_address:x}")
             print(f"Action button -> {target.button!r}")
             print(f"Action func -> {target.func!r}")
@@ -127,6 +136,9 @@ def main() -> int:
                 f"x={target.screen_point.x} y={target.screen_point.y}"
             )
             print(f"Verified action hit signal -> {target.hit_signal}")
+            print(f"Action location source -> {target.location_source}")
+            print(f"Local live search used -> {target.used_local_search}")
+            print(f"Fallback search used -> {target.used_fallback_search}")
             print(f"Action probes required -> {target.probes}")
             print("Waiting for live special-action postcondition")
 
