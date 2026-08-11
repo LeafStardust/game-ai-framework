@@ -84,6 +84,14 @@ def main() -> int:
     parser.add_argument("--profile", default="1")
     parser.add_argument("--layout", default=DEFAULT_LAYOUT)
     parser.add_argument(
+        "--step",
+        type=int,
+        help=(
+            "diagnostic: execute only one 1-based calibrated pointer step; "
+            "no local purchase projection is applied"
+        ),
+    )
+    parser.add_argument(
         "--execute",
         action="store_true",
         help="arm the mouse and send the calibrated pointer sequence",
@@ -92,6 +100,10 @@ def main() -> int:
 
     if args.slot is not None and args.slot < 0:
         parser.error("--slot cannot be negative")
+    if args.step is not None and args.step < 1:
+        parser.error("--step must be at least 1")
+    if args.step is not None and not args.execute:
+        parser.error("--step requires --execute")
 
     try:
         reader = BalatroSaveReader(args.save, profile=args.profile)
@@ -104,17 +116,28 @@ def main() -> int:
         layout = ShopMouseLayout.load(layout_path)
         action = select_action(state, args.action, args.slot)
         sequence = layout.sequence_for(action)
+        if args.step is not None and args.step > len(sequence.steps):
+            parser.error(
+                f"--step must be between 1 and {len(sequence.steps)} for this action"
+            )
     except (OSError, RuntimeError, ValueError) as error:
         parser.error(str(error))
 
     steps = " -> ".join(
-        f"{step.op}({step.point.x:.4f},{step.point.y:.4f})"
-        for step in sequence.steps
+        f"{index}:{step.op}({step.point.x:.4f},{step.point.y:.4f})"
+        for index, step in enumerate(sequence.steps, start=1)
     )
     print(f"Save -> {reader.path}")
     print(f"Action -> {action.name}: {target_label(action)}")
     print(f"Sequence -> {steps}")
     print(f"Money before -> {state.money}")
+
+    if args.step is not None:
+        selected = sequence.steps[args.step - 1]
+        print(
+            f"Diagnostic step -> {args.step}:"
+            f"{selected.op}({selected.point.x:.4f},{selected.point.y:.4f})"
+        )
 
     if not args.execute:
         print("Mouse input sent -> False")
@@ -127,10 +150,18 @@ def main() -> int:
 
     mouse = BalatroMouseController(armed=True)
     with ExternalShopMouseExecutor(layout, mouse=mouse) as executor:
-        executor.dispatch(action, state, transaction)
+        executor.dispatch(
+            action,
+            state,
+            transaction,
+            only_step=args.step,
+        )
 
     print("Mouse input sent -> True")
-    if transaction is not None:
+    if args.step is not None:
+        print("Local purchase projection -> skipped (diagnostic single-step mode)")
+        print("Inspect Balatro UI before running another diagnostic step.")
+    elif transaction is not None:
         print(f"Projected money -> {state.money}")
         print(
             "Checkpoint reconciliation -> pending "
