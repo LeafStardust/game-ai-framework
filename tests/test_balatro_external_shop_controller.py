@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from games.balatro.actions import BUY_JOKER, END_SHOP
+from games.balatro.actions import BUY_CONSUMABLE, BUY_JOKER, END_SHOP
 from games.balatro.live.external.shop_controller import ExternalShopController
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.state import BalatroState
@@ -19,6 +19,19 @@ def _shop_state(*, money=10):
             live_id=100,
             label="8 Ball",
             cost=5,
+        )
+    ]
+    return state
+
+
+def _two_item_shop_state(*, money=10):
+    state = _shop_state(money=money)
+    state.shop_consumables = [
+        SimpleNamespace(
+            area_index=1,
+            live_id=101,
+            label="The Sun",
+            cost=3,
         )
     ]
     return state
@@ -67,6 +80,16 @@ class Executor:
         self.actions.append(action)
         if action.name != END_SHOP:
             transaction.apply(state, action)
+
+
+class ReflowLocator:
+
+    def __init__(self):
+        self.actions = []
+
+    def dispatch(self, action, state, transaction, *, only_step=None):
+        self.actions.append(action)
+        transaction.apply(state, action)
 
 
 class Synchronizer:
@@ -215,6 +238,38 @@ def test_external_shop_controller_executes_exactly_one_recommended_purchase():
     assert session.state.money == 5
     assert len(session.state.jokers) == 1
     assert controller.recommended_action(session).name == END_SHOP
+
+
+def test_external_shop_controller_uses_fresh_geometry_for_second_main_purchase():
+    initial_state = _two_item_shop_state()
+    initial = _snapshot(1, "SHOP", initial_state)
+    executor = Executor()
+    reflow = ReflowLocator()
+    controller = ExternalShopController(
+        Observer(initial),
+        executor,
+        translator=Translator(),
+        synchronizer=Synchronizer(
+            _snapshot(2, "BLIND_SELECT", _checkpoint_state(money=2))
+        ),
+        reflow_locator=reflow,
+    )
+    session = controller.open()
+
+    actions = controller.available_actions(session)
+    joker = next(action for action in actions if action.name == BUY_JOKER)
+    controller.execute_purchase(session, joker)
+
+    actions = controller.available_actions(session)
+    consumable = next(action for action in actions if action.name == BUY_CONSUMABLE)
+    controller.execute_purchase(session, consumable)
+
+    assert [action.name for action in executor.actions] == [BUY_JOKER]
+    assert [action.name for action in reflow.actions] == [BUY_CONSUMABLE]
+    assert session.state.money == 2
+    assert session.state.shop_jokers == []
+    assert session.state.shop_consumables == []
+    assert len(session.transaction.purchases) == 2
 
 
 def test_external_shop_controller_does_not_execute_when_policy_recommends_leave():
