@@ -16,6 +16,13 @@ class LiveJokerFactory:
         "8_ball": "eight_ball",
     }
 
+    # These fields are only accepted from the observer's narrowly whitelisted
+    # ``public_state`` object, never from a broad raw ability blob.
+    PUBLIC_STATE_FIELDS = {
+        "chips",
+        "chip_mod",
+    }
+
     def create(self, data: dict):
         joker_class = self._resolve_class(data)
         if joker_class is None:
@@ -38,6 +45,18 @@ class LiveJokerFactory:
             value = data.get(field)
             if value is not None:
                 setattr(joker, field, value)
+
+        public_state = data.get("public_state")
+        if isinstance(public_state, dict):
+            for field in self.PUBLIC_STATE_FIELDS:
+                value = public_state.get(field)
+                if (
+                    value is not None
+                    and hasattr(joker, field)
+                    and isinstance(value, (int, float))
+                    and not isinstance(value, bool)
+                ):
+                    setattr(joker, field, value)
 
         return joker
 
