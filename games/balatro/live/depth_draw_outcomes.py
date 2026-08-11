@@ -12,10 +12,13 @@ class DepthAwarePublicDrawOutcomeModel:
     without exposing or depending on hidden deck order.
 
     Root and child nodes may use different exact-enumeration limits as well as
-    different sample counts. This prevents common one-card child redraws (roughly
-    40 possible cards in a normal early run) from being enumerated exactly merely
-    because the root exact limit is intentionally generous.
+    different sample counts. By default child nodes enumerate only outcome spaces
+    of at most eight combinations exactly; larger child spaces are sampled. This
+    prevents common one-card child redraws (roughly 40 possible cards early in a
+    run) from exploding merely because the root exact limit is generous.
     """
+
+    DEFAULT_CHILD_EXACT_COMBINATION_LIMIT = 8
 
     def __init__(
         self,
@@ -39,8 +42,12 @@ class DepthAwarePublicDrawOutcomeModel:
             raise ValueError("child_exact_combination_limit must be positive")
 
         self.exact_combination_limit = int(exact_combination_limit)
+        default_child_limit = min(
+            self.exact_combination_limit,
+            self.DEFAULT_CHILD_EXACT_COMBINATION_LIMIT,
+        )
         self.child_exact_combination_limit = int(
-            self.exact_combination_limit
+            default_child_limit
             if child_exact_combination_limit is None
             else child_exact_combination_limit
         )
