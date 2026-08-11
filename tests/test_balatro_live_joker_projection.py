@@ -42,6 +42,12 @@ def test_ice_cream_projection_scores_and_decays_only_copied_joker():
     assert transition.distribution.minimum == 260
     assert transition.joker_projection_complete is True
     assert ice_cream.chips == 100
+    assert transition.state_after_scoring is not state
+    assert transition.state_after_scoring.hand is not state.hand
+    # Playing cards intentionally retain identity across the cheap branch copy;
+    # scorer held-card logic depends on the played objects matching branch.hand.
+    assert transition.state_after_scoring.hand[0] is cards[0]
+    assert transition.state_after_scoring.hand[1] is cards[1]
     assert transition.state_after_scoring.jokers[0] is not ice_cream
     assert transition.state_after_scoring.jokers[0].chips == 95
 
