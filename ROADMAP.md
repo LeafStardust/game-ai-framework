@@ -106,12 +106,15 @@
 - [x] Read-only vanilla `save.jkr` discovery and parser
 - [x] Save snapshot change detection and stale-state rejection
 - [x] Agent-facing observable-state whitelist excluding RNG seed/future-only data
-- [x] Selecting-hand structured state extraction: phase, deck/stake, ante/round, money, score, blind, hands/discards, hand and remaining deck
-- [ ] Blind-selection structured state extraction and validation
-- [ ] Joker and consumable structured state extraction and validation
-- [ ] Shop structured state extraction and validation
-- [ ] External observation → `BalatroState` translation across all production phases
-- [ ] Observation validation and recovery across phase transitions
+- [x] Selecting-hand structured state extraction: phase, deck/stake, ante/round, money, score, blind, hands/discards and visible hand
+- [x] Blind-selection phase/state extraction and validation
+- [x] Joker and consumable structured state extraction and validation
+- [x] Shop structured state extraction and validation, including visible-area indices
+- [x] Structured translation for validated `BLIND_SELECT`, `SELECTING_HAND`, `SHOP` and checkpoint transitions
+- [x] Save-disappearance/race handling at terminal run states
+- [ ] Public skip-tag identity/reward extraction for blind planning
+- [ ] Complete production-state translation for every remaining run/menu phase
+- [ ] Full observation recovery validation across an entire run
 
 ### Optional visual fallback
 
@@ -120,9 +123,9 @@
 - [x] Resolution/scale-independent viewport normalization
 - [x] Visual phase signature/calibration infrastructure
 - [x] Visual game-phase detection
-- [x] Playing-card visual recognition
+- [x] Playing-card location/order detection for external clicking
 - [ ] HUD visual extraction fallback
-- [ ] Blind-selection visual fallback
+- [ ] Blind-selection visual information fallback
 - [ ] Joker/consumable visual fallback
 - [ ] Shop visual fallback
 
@@ -130,21 +133,72 @@
 
 ### External Steam control
 
-- [x] Normal mouse input backend
-- [ ] `BalatroAction` → screen/input execution
-- [ ] Card selection coordinate mapping
-- [ ] Blind-selection and round-transition controls
-- [ ] Shop interaction controls
-- [ ] Consumable interaction controls
+- [x] Normal mouse input backend with foreground/focus safety
+- [x] Dynamic hand-card coordinate mapping and save-order validation
+- [x] External `PLAY_CARDS` execution
+- [x] External `DISCARD_CARDS` execution
+- [x] Calibrated Small/Big/Boss Blind Select controls
+- [x] Calibrated Small/Big Blind Skip controls
+- [x] Deterministic shop purchase controls for Joker/consumable/voucher targets
+- [x] External End Shop control and delayed checkpoint reconciliation
+- [x] Post-action checkpoint synchronization for hand, blind-select and validated shop transitions
+- [x] Guard against already-selected hand cards before external execution
+- [ ] Fresh post-purchase visual observation for safe multi-buy shop chaining
+- [ ] Booster-opening control and immediate post-open observation
+- [ ] Reroll control and immediate refreshed-shop observation
+- [ ] Consumable-use interaction controls
 - [ ] Run start/restart controls for Red Deck White Stake
-- [ ] Post-action state synchronization and confirmation
+
+### Live hand scoring and blind-clear planning
+
+> The live agent is moving from local turn-by-turn heuristics to goal-directed blind completion. The target architecture is: **score outcomes → model possible future draws → search for the highest-probability blind-clear policy → execute one action → observe the authoritative save checkpoint → replan**.
+>
+> Deterministic visible effects must produce an exact score. Nondeterministic effects must not be collapsed into one guessed score: the planner should track at minimum a **guaranteed score floor**, an **expected score**, and the relevant **outcome distribution / clear probability**. A Lucky-style bonus therefore contributes to expected/upside scoring but is not counted in the guaranteed floor unless the non-random part already provides it.
+
+- [x] Exact deterministic visible-hand scoring including played-card chip values
+- [x] Exact projected blind total and immediate-clear detection
+- [x] Live preview telemetry for poker hand, calculated score, projected total, remaining chips and clear status
+- [x] Pace-aware one-step play/discard evaluator as an interim policy
+- [x] Checkpointed hand loop: observe → choose → execute → persist → replan
+- [x] Preserve terminal action when Balatro removes the run save after a loss
+- [ ] Score-outcome model with guaranteed minimum, expected value, maximum/relevant outcomes and clear probability for RNG effects
+- [ ] Deterministic/probabilistic separation for Lucky cards and other random scoring effects
+- [ ] Side-effect-free Joker scoring projection for hypothetical plays
+- [ ] Boss-blind modifier integration into hypothetical score/legality calculations
+- [ ] Public remaining-deck composition model that never exposes hidden draw order
+- [ ] Draw/discard outcome distributions from public deck composition
+- [ ] Multi-action blind-clear planner over remaining hands and discards
+- [ ] Contingent plans that branch on the observed result of a draw/discard rather than assuming one future hand
+- [ ] Resource-aware plan objective: maximize clear probability first, then preserve hands/discards/economy and avoid unnecessary overkill
+- [ ] Consumable-use branches inside blind-clear planning
+- [ ] Replan after every real checkpoint using the newly observed state
+- [ ] Blind-skip/tag valuation integrated with run-level planning
+- [ ] Replace the interim pace heuristic as the primary live hand policy once the planner is validated
+
+### Shop intelligence and safe execution
+
+- [x] Visible shop item translation with live identity and original area index
+- [x] Buffered deterministic purchase transaction model for stale in-shop saves
+- [x] Delayed money reconciliation after leaving shop
+- [x] One-shot policy-recommended external purchase with exact-label guard
+- [x] Projected re-ranking after one purchase
+- [x] Optional guarded End Shop when the projected next recommendation is to stop buying
+- [x] Joker-aware shop value probes using existing Joker implementations
+- [ ] Identity/inventory reconciliation in addition to money reconciliation
+- [ ] Safe fresh-layout observation before any second purchase
+- [ ] Booster valuation/opening
+- [ ] Reroll valuation/execution
+- [ ] Joker sell/replace decisions
+- [ ] Broader semantic valuation for non-scoring Jokers, consumables and vouchers
 
 ### End-to-end validation
 
-- [ ] External autonomous game loop
-- [ ] Production backend requires no Lovely/Steamodded/BalatroBot injection
+- [ ] External autonomous game loop spanning blind select → hand play → round evaluation → shop → next blind
+- [x] Production hand actions require no Lovely/Steamodded/BalatroBot injection
+- [x] Production blind-selection and validated deterministic shop actions require no injection
 - [ ] Validate one actual unseeded Red Deck White Stake run operates without manual gameplay input
-- [ ] Validate normal Steam profile/save progression and achievement eligibility remain in use
+- [ ] Validate normal Steam profile/save progression remains in use
+- [ ] Verify achievement/progression behavior empirically rather than assuming it
 
 > Lovely/Steamodded/BalatroBot may remain available as an optional development oracle for comparing extracted state against internal game state. Runs performed through that backend do **not** count toward v0.9.0 or later deck/stake completion.
 
@@ -154,11 +208,12 @@
 
 * [ ] Red Deck agent
 * [ ] Red Deck decision-making brain
+* [ ] Probabilistic blind-clear planning validated in live play
 * [ ] Shop decision-making
 * [ ] Joker evaluation and selection
 * [ ] Consumable evaluation and selection
 * [ ] Tarot/Spectral/Planet decision-making
-* [ ] Blind strategy
+* [ ] Blind strategy, including skip/tag decisions
 * [ ] Economy management
 * [ ] Deck-building decisions
 * [ ] Complete one successful unseeded Red Deck White Stake run in actual Steam Balatro
