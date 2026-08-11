@@ -12,9 +12,9 @@ from games.balatro.live.external.card_locator import (
 from games.balatro.live.external.expected_card_locator import (
     DEFAULT_PROFILES,
     _locations_form_uniform_grid,
-    locate_card_faces_expected_count,
 )
 from games.balatro.live.external.hand_mouse import ExternalHandMouseExecutor
+from games.balatro.live.external.head_card_locator import locate_head_card_faces
 from games.balatro.live.external.save_observer import SaveBalatroObserver
 from games.balatro.live.external.save_state import BalatroSaveReader
 from games.balatro.live.external.viewport import BalatroViewport
@@ -108,7 +108,7 @@ def _print_failure_diagnostics(region, state) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Read-only validation of expected-count hand-grid reconstruction for "
+            "Read-only validation of stable hand-grid reconstruction for "
             "The Head. Captures Balatro without focusing or sending mouse input."
         )
     )
@@ -147,7 +147,7 @@ def main() -> int:
         with BalatroScreenCapture() as capture:
             frame = capture.capture()
         region = BalatroViewport(frame).crop(DEFAULT_HAND_REGION)
-        locations = locate_card_faces_expected_count(region, expected_count)
+        locations = locate_head_card_faces(region, expected_count)
         if len(locations) != expected_count:
             print(
                 "Card-grid reconstruction -> FAIL "
