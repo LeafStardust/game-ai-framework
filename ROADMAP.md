@@ -162,17 +162,21 @@
 - [x] Pace-aware one-step play/discard evaluator as an interim policy
 - [x] Checkpointed hand loop: observe → choose → execute → persist → replan
 - [x] Preserve terminal action when Balatro removes the run save after a loss
-- [ ] Score-outcome model with guaranteed minimum, expected value, maximum/relevant outcomes and clear probability for RNG effects
-- [ ] Deterministic/probabilistic separation for Lucky cards and other random scoring effects
-- [ ] Side-effect-free Joker scoring projection for hypothetical plays
+- [x] Visible-card score-outcome model with guaranteed minimum, expected value, maximum/relevant outcomes and clear probability
+- [x] Deterministic/probabilistic separation for Lucky card scoring effects
+- [ ] Extend score-outcome modelling to remaining stochastic Joker/effect sources
+- [x] Side-effect-free Joker scoring projection architecture with live-validated stateful Ice Cream support
+- [ ] Extend side-effect-free hypothetical scoring across remaining relevant Joker implementations
 - [ ] Boss-blind modifier integration into hypothetical score/legality calculations
-- [ ] Public remaining-deck composition model that never exposes hidden draw order
-- [ ] Draw/discard outcome distributions from public deck composition
-- [ ] Multi-action blind-clear planner over remaining hands and discards
-- [ ] Contingent plans that branch on the observed result of a draw/discard rather than assuming one future hand
+- [x] Public remaining-deck composition model that never exposes hidden draw order
+- [x] Draw/discard outcome distributions from public deck composition
+- [x] Bounded two-action blind-clear planner over play/discard branches
+- [ ] Generalize blind-clear planning across all remaining hands and discards
+- [ ] Contingent plans validated on a real discard/draw checkpoint rather than only deterministic retained-card continuations
 - [ ] Resource-aware plan objective: maximize clear probability first, then preserve hands/discards/economy and avoid unnecessary overkill
 - [ ] Consumable-use branches inside blind-clear planning
-- [ ] Replan after every real checkpoint using the newly observed state
+- [x] Replan after every real planner-controlled hand checkpoint using the newly observed state
+- [x] Guarded planner-controlled real blind clear with authoritative stateful-Joker checkpoint restoration and replanning
 - [ ] Blind-skip/tag valuation integrated with run-level planning
 - [ ] Replace the interim pace heuristic as the primary live hand policy once the planner is validated
 
