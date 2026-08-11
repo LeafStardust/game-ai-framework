@@ -80,7 +80,22 @@ class Synchronizer:
         return self.snapshot
 
 
-def _controller(*, persisted_money=5):
+class PreferPurchasePolicy:
+
+    def __init__(self):
+        self.calls = []
+
+    def rank_actions(self, state, actions):
+        self.calls.append((state.money, tuple(action.name for action in actions)))
+        ordered = sorted(
+            actions,
+            key=lambda action: action.name != END_SHOP,
+            reverse=True,
+        )
+        return [SimpleNamespace(action=action) for action in ordered]
+
+
+def _controller(*, persisted_money=5, policy=None):
     initial_state = _shop_state()
     initial = _snapshot(1, "SHOP", initial_state)
     persisted = _snapshot(
@@ -94,6 +109,7 @@ def _controller(*, persisted_money=5):
         Observer(initial),
         executor,
         translator=Translator(),
+        policy=policy,
         synchronizer=synchronizer,
     )
     return controller, executor, synchronizer
@@ -156,3 +172,21 @@ def test_external_shop_controller_rejects_reuse_after_close():
 
     with pytest.raises(RuntimeError, match="already closed"):
         controller.available_actions(session)
+
+
+def test_external_shop_controller_recommends_from_current_projected_state():
+    policy = PreferPurchasePolicy()
+    controller, _, _ = _controller(policy=policy)
+    session = controller.open()
+
+    recommended = controller.recommended_action(session)
+    assert recommended.name == BUY_JOKER
+
+    controller.execute_purchase(session, recommended)
+
+    recommended_after_purchase = controller.recommended_action(session)
+    assert recommended_after_purchase.name == END_SHOP
+    assert policy.calls == [
+        (10, (BUY_JOKER, END_SHOP)),
+        (5, (END_SHOP,)),
+    ]
