@@ -1,25 +1,33 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 
 from games.balatro.live.synchronizer import BalatroLiveSynchronizer
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
 
-from .auto_blind_runner import (
-    DEFAULT_LAYOUT,
-    _is_guaranteed,
-    _print_plan,
+from .auto_blind_runner import _is_guaranteed, _print_plan
+from .live_memory_hand_executor import (
+    LiveMemoryHandExecutionError,
+    LiveMemoryHandExecutor,
 )
-from .expected_card_locator import locate_card_faces_expected_count
-from .hand_mouse import ExternalHandMouseExecutor, HandMouseLayout
+from .live_memory_observer import LiveMemoryBalatroObserver
 from .live_search_policy import search_with_pace_fallback
-from .mouse import BalatroMouseController
+from .production_observer import ProductionBalatroObserver
 from .state_observer_factory import create_balatro_state_observer
 
 
-def _execute_one(state, result, *, layout, observer, snapshot, translator):
+def _raw_memory_observer(observer) -> LiveMemoryBalatroObserver:
+    if isinstance(observer, ProductionBalatroObserver):
+        return observer.observer
+    if isinstance(observer, LiveMemoryBalatroObserver):
+        return observer
+    raise LiveMemoryHandExecutionError(
+        "calibration-free hand execution requires live process-memory observation"
+    )
+
+
+def _execute_one(state, result, *, observer, snapshot, translator):
     plan = result.plan
     selected_ids = {id(card) for card in plan.action.cards}
     indices = tuple(
@@ -28,37 +36,24 @@ def _execute_one(state, result, *, layout, observer, snapshot, translator):
         if id(card) in selected_ids
     )
 
-    mouse = BalatroMouseController(armed=True)
-    card_locator = lambda region: locate_card_faces_expected_count(region, len(state.hand))
+    executor = LiveMemoryHandExecutor(_raw_memory_observer(observer))
+    executed_indices = executor.dispatch(plan.action, state, snapshot)
+    if executed_indices != indices:
+        raise RuntimeError("live-memory hand executor index mapping differs from planner mapping")
 
-    with ExternalHandMouseExecutor(
-        layout,
-        mouse=mouse,
-        card_locator=card_locator,
-    ) as executor:
-        executor_indices = executor.card_indices(state, plan.action)
-        if executor_indices != indices:
-            raise RuntimeError("hand executor index mapping differs from planner mapping")
-
-        frame, locations = executor.locate_hand(state)
-        print(f"Screen/live-state exact-count guard -> PASS ({len(locations)})")
-        for index in indices:
-            location = locations[index]
-            card = state.hand[index]
-            print(
-                f"  Screen {index}: {card.rank} / {card.suit} "
-                f"-> center=({location.center.x:.4f},{location.center.y:.4f})"
-            )
-
-        executed_indices = executor.dispatch_with_locations(
-            plan.action,
-            state,
-            frame,
-            locations,
+    print(f"Live card/control geometry guard -> PASS ({len(indices)} selected cards)")
+    for index in indices:
+        card = state.hand[index]
+        geometry = ((snapshot.payload.get("hand") or {}).get("cards") or [])[index].get("ui") or {}
+        print(
+            f"  Live H{index}: {card.rank} / {card.suit} "
+            f"T=({geometry.get('x')},{geometry.get('y')},"
+            f"{geometry.get('w')},{geometry.get('h')})"
         )
-        if executed_indices != indices:
-            raise RuntimeError("hand executor index mapping changed during dispatch")
 
+    print("Execution targeting -> live Balatro UI geometry")
+    print("Mouse calibration file used -> False")
+    print("Screen card locator used -> False")
     print("Mouse input sent -> True")
     print("Waiting for live-memory checkpoint -> stable changed game state")
     persisted = BalatroLiveSynchronizer(
@@ -99,16 +94,6 @@ def _resolve_playbook_policy(args, state):
     return playbook
 
 
-def _load_execution_layout(execute: bool, path: str):
-    """Load mouse calibration only when real input is armed."""
-    if not execute:
-        return None
-    layout = HandMouseLayout.load(Path(path))
-    layout.point_for("play-hand")
-    layout.point_for("discard")
-    return layout
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
@@ -125,7 +110,6 @@ def main() -> int:
     )
     parser.add_argument("--save", help="fallback save path; valid only with --observation-source save")
     parser.add_argument("--profile", default="1")
-    parser.add_argument("--layout", default=DEFAULT_LAYOUT)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--exact-only", action="store_true")
     parser.add_argument(
@@ -171,11 +155,10 @@ def main() -> int:
         parser.error("--child-exact-limit must be positive")
     if args.observation_source == "memory" and args.save is not None:
         parser.error("--save requires --observation-source save")
-
-    try:
-        layout = _load_execution_layout(args.execute, args.layout)
-    except (OSError, RuntimeError, ValueError) as error:
-        parser.error(str(error))
+    if args.execute and args.observation_source != "memory":
+        parser.error(
+            "--execute requires --observation-source memory; save.jkr is fallback/debug only"
+        )
 
     observer = create_balatro_state_observer(
         args.observation_source,
@@ -225,6 +208,9 @@ def main() -> int:
                 print(f"Consensus discard -> {args.allow_consensus_discard}")
                 print(f"Pace fallback -> {args.allow_pace_fallback}")
                 print(f"Minimum pace ratio -> {args.min_pace_ratio:.3f}")
+                if args.observation_source == "memory":
+                    print("Execution targeting -> live Balatro UI geometry")
+                    print("Mouse calibration required -> False")
 
             print(f"Checkpoint sequence -> {snapshot.sequence}")
             print(f"Phase before -> {state.phase}")
@@ -304,9 +290,6 @@ def main() -> int:
                 print("Mouse input sent -> False")
                 return 0
 
-            if layout is None:
-                parser.error("execution layout is unavailable while --execute is armed")
-
             print(
                 f"Executing action {actions_sent + 1} -> {result.plan.action.name} "
                 + ",".join(str(index) for index in indices)
@@ -315,7 +298,6 @@ def main() -> int:
                 persisted, persisted_state = _execute_one(
                     state,
                     result,
-                    layout=layout,
                     observer=observer,
                     snapshot=snapshot,
                     translator=translator,
