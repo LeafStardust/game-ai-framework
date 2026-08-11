@@ -167,6 +167,8 @@ class VisibleCardScoreOutcomeModel:
     def _lucky_scoring_triggers(self, hand: PokerHand, cards) -> int:
         triggers = 0
         for card in self.scorer.scoring_cards(hand, cards):
+            if self.scorer.is_card_debuffed(card):
+                continue
             if getattr(card, "enhancement", None) != "Lucky":
                 continue
             triggers += 2 if getattr(card, "seal", None) == "Red" else 1
