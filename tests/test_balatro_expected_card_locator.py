@@ -1,4 +1,6 @@
+from games.balatro.live.external.card_locator import CardFaceLocation
 from games.balatro.live.external.expected_card_locator import (
+    _locations_form_uniform_grid,
     locate_card_faces_expected_count,
 )
 from games.balatro.live.external.viewport import FrameRegion, NormalizedRect, PixelRect
@@ -32,6 +34,15 @@ def _anchored_hand_region(*, visible_indices):
     return _frame_region(width, height, pixels)
 
 
+def _location(x):
+    rect = NormalizedRect(x - 0.02, 0.65, 0.04, 0.10)
+    return CardFaceLocation(
+        local_rect=PixelRect(round(x * 1000), 50, 40, 100),
+        normalized_rect=rect,
+        density=1.0,
+    )
+
+
 def test_expected_count_locator_reconstructs_internal_dimmed_cards_from_grid():
     region = _anchored_hand_region(visible_indices={0, 1, 3, 4, 5, 7})
 
@@ -56,3 +67,14 @@ def test_expected_count_locator_fails_closed_when_grid_position_is_ambiguous():
     cards = locate_card_faces_expected_count(region, 8)
 
     assert len(cards) != 8
+
+
+def test_exact_count_requires_uniform_horizontal_spacing():
+    uniform = [_location(0.15 + index * 0.08) for index in range(8)]
+    distorted = [
+        _location(x)
+        for x in (0.1682, 0.2242, 0.3205, 0.4077, 0.4948, 0.5820, 0.6692, 0.7564)
+    ]
+
+    assert _locations_form_uniform_grid(uniform) is True
+    assert _locations_form_uniform_grid(distorted) is False
