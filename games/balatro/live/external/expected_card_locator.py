@@ -90,7 +90,12 @@ def locate_card_faces_expected_count(
         if _locations_form_uniform_grid(locations):
             return locations
 
-    return first_locations or []
+    # Preserve diagnostic information only when it still guarantees that the
+    # caller's strict count check will fail. Never return an exact-count result
+    # whose geometry has already been rejected as malformed.
+    if first_locations is not None and len(first_locations) != expected_count:
+        return first_locations
+    return []
 
 
 def _locations_form_uniform_grid(locations: list[CardFaceLocation]) -> bool:
