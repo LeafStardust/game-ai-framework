@@ -118,6 +118,8 @@ def _summary(state, result: _SearchResult) -> AdaptiveRecommendationSummary:
         indices=_indices(state, result.plan.action),
         clear_probability=float(result.plan.value.clear_probability),
         expected_score=float(result.plan.value.expected_score),
+        horizon=result.config.horizon,
+        intensified=result.config.max_nodes > 5000,
     )
 
 
