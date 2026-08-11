@@ -8,6 +8,7 @@ from games.balatro.live.shop import BalatroShopActionGenerator
 from games.balatro.live.shop_sync import BufferedShopTransaction
 from games.balatro.live.synchronizer import BalatroLiveSynchronizer
 from games.balatro.live.translator import DefaultBalatroStateTranslator
+from games.balatro.shop_policy import BalatroShopPolicy, ShopActionScore
 from games.balatro.state import BalatroState
 
 from .save_observer import SaveBalatroObserver
@@ -25,7 +26,7 @@ class ExternalShopSession:
 
 
 class ExternalShopController:
-    """Coordinate save observation, buffered shop input, and checkpoint reconciliation."""
+    """Coordinate save observation, shop decisions, buffered input, and reconciliation."""
 
     def __init__(
         self,
@@ -34,6 +35,7 @@ class ExternalShopController:
         *,
         translator=None,
         action_generator=None,
+        policy=None,
         synchronizer=None,
         checkpoint_phases: set[str] | None = None,
     ):
@@ -41,6 +43,7 @@ class ExternalShopController:
         self.executor = executor
         self.translator = translator or DefaultBalatroStateTranslator()
         self.action_generator = action_generator or BalatroShopActionGenerator()
+        self.policy = policy or BalatroShopPolicy()
         self.synchronizer = synchronizer or BalatroLiveSynchronizer(
             observer,
             timeout=15.0,
@@ -67,6 +70,25 @@ class ExternalShopController:
     ) -> list[BalatroAction]:
         self._require_open(session)
         return self.action_generator.generate_bufferable_actions(session.state)
+
+    def rank_actions(
+        self,
+        session: ExternalShopSession,
+    ) -> list[ShopActionScore]:
+        self._require_open(session)
+        return self.policy.rank_actions(
+            session.state,
+            self.available_actions(session),
+        )
+
+    def recommended_action(
+        self,
+        session: ExternalShopSession,
+    ) -> BalatroAction:
+        ranked = self.rank_actions(session)
+        if not ranked:
+            raise RuntimeError("no buffer-safe shop action is available")
+        return ranked[0].action
 
     def execute_purchase(
         self,
