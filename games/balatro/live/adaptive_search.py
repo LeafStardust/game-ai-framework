@@ -64,6 +64,13 @@ def adaptive_blind_search_schedule(
     every play consumes one hand and every discard consumes one discard. A
     four-action search is the normal starting point when enough actions remain;
     smaller states start at their remaining action count instead.
+
+    The normal schedule deliberately caps deep searches at 5000 nodes. When the
+    caller explicitly supplies a larger ``max_nodes`` value, the schedule spends
+    that extra budget only after the cheap schedule fails: it repeats the deepest
+    useful horizon with wider root beams, then (if still needed) a wider child
+    play beam. This makes ``--max-search-nodes`` a real opt-in intensification
+    control without making ordinary live replans expensive.
     """
 
     if hands_remaining < 0:
@@ -95,6 +102,34 @@ def adaptive_blind_search_schedule(
                 max_nodes=_node_budget(horizon, max_nodes),
             )
         )
+
+    normal_deep_budget = _node_budget(deepest, max_nodes)
+    if max_nodes > normal_deep_budget:
+        configs.append(
+            AdaptiveBlindSearchConfig(
+                horizon=deepest,
+                samples=max(8, _sample_count(deepest)),
+                child_samples=1,
+                play_width=3,
+                discard_width=2 if discards_remaining > 0 else 0,
+                child_play_width=1,
+                child_discard_width=1 if discards_remaining > 0 else 0,
+                max_nodes=max_nodes,
+            )
+        )
+        configs.append(
+            AdaptiveBlindSearchConfig(
+                horizon=deepest,
+                samples=4,
+                child_samples=1,
+                play_width=3,
+                discard_width=2 if discards_remaining > 0 else 0,
+                child_play_width=2,
+                child_discard_width=1 if discards_remaining > 0 else 0,
+                max_nodes=max_nodes,
+            )
+        )
+
     return tuple(configs)
 
 
