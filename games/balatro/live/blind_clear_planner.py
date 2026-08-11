@@ -123,6 +123,9 @@ class LiveBlindClearPlanner:
 
     def reset_search_stats(self) -> None:
         self.nodes_evaluated = 0
+        reset_root = getattr(self.draw_outcomes, "reset_root", None)
+        if callable(reset_root):
+            reset_root()
 
     def plan(self, state) -> LiveBlindPlan:
         self._require_state(state)
