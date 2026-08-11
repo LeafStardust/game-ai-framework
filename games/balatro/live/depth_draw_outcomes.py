@@ -16,6 +16,11 @@ class DepthAwarePublicDrawOutcomeModel:
     of at most eight combinations exactly; larger child spaces are sampled. This
     prevents common one-card child redraws (roughly 40 possible cards early in a
     run) from exploding merely because the root exact limit is generous.
+
+    ``reset_root()`` must be called before each independent top-level planning
+    search. A real checkpoint changes the authoritative deck population, so a
+    replan must treat that new population as the root rather than as a child of
+    the previous search.
     """
 
     DEFAULT_CHILD_EXACT_COMBINATION_LIMIT = 8
@@ -65,6 +70,10 @@ class DepthAwarePublicDrawOutcomeModel:
             sample_count=self.child_sample_count,
             seed=self.seed,
         )
+
+    def reset_root(self) -> None:
+        """Forget the previous search root before an independent replan."""
+        self._root_population_size = None
 
     def distribution(self, composition, draws: int):
         population_size = int(composition.total_cards)
