@@ -7,7 +7,9 @@ from pathlib import Path
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.live.adaptive_search import (
     AdaptiveBlindSearchConfig,
+    AdaptiveRecommendationSummary,
     adaptive_blind_search_schedule,
+    stable_discard_consensus,
 )
 from games.balatro.live.blind_clear_planner import (
     LiveBlindClearPlanner,
@@ -33,6 +35,12 @@ class _SearchResult:
     config: AdaptiveBlindSearchConfig
     planner: LiveBlindClearPlanner
     plan: object
+
+
+@dataclass(frozen=True)
+class _SearchDecision:
+    result: _SearchResult | None
+    mode: str
 
 
 def _indices(state, action) -> tuple[int, ...]:
@@ -104,6 +112,15 @@ def _result_key(result: _SearchResult) -> tuple[float, float, float, int]:
     )
 
 
+def _summary(state, result: _SearchResult) -> AdaptiveRecommendationSummary:
+    return AdaptiveRecommendationSummary(
+        action=result.plan.action.name,
+        indices=_indices(state, result.plan.action),
+        clear_probability=float(result.plan.value.clear_probability),
+        expected_score=float(result.plan.value.expected_score),
+    )
+
+
 def _print_plan(prefix: str, state, result: _SearchResult) -> tuple[int, ...]:
     plan = result.plan
     indices = _indices(state, plan.action)
@@ -118,7 +135,7 @@ def _print_plan(prefix: str, state, result: _SearchResult) -> tuple[int, ...]:
     return indices
 
 
-def _search(state, args) -> _SearchResult | None:
+def _search(state, args) -> _SearchDecision:
     schedule = adaptive_blind_search_schedule(
         hands_remaining=int(state.hands_remaining),
         discards_remaining=int(state.discards_remaining),
@@ -126,6 +143,8 @@ def _search(state, args) -> _SearchResult | None:
         max_nodes=args.max_search_nodes,
     )
     best: _SearchResult | None = None
+    completed: list[_SearchResult] = []
+    summaries: list[AdaptiveRecommendationSummary] = []
 
     print(f"Adaptive search attempts -> {len(schedule)}")
     for attempt, config in enumerate(schedule, start=1):
@@ -148,6 +167,8 @@ def _search(state, args) -> _SearchResult | None:
             continue
 
         result = _SearchResult(config=config, planner=planner, plan=plan)
+        completed.append(result)
+        summaries.append(_summary(state, result))
         print(
             f"  Search {attempt} -> horizon={config.horizon} "
             f"samples={config.samples} nodes={planner.nodes_evaluated}/"
@@ -159,9 +180,22 @@ def _search(state, args) -> _SearchResult | None:
 
         if _accepts(plan, args.min_clear_probability):
             print(f"Adaptive escalation stop -> search {attempt} meets execution policy")
-            return result
+            return _SearchDecision(result=result, mode="threshold")
 
-    return best
+    if args.allow_consensus_discard and stable_discard_consensus(
+        tuple(summaries),
+        minimum_agreement=args.consensus_discard_agreement,
+    ):
+        result = completed[-1]
+        indices = _indices(state, result.plan.action)
+        print(
+            "Adaptive setup consensus -> PASS "
+            f"({args.consensus_discard_agreement} deepest completed searches agree on "
+            f"DISCARD {','.join(str(index) for index in indices)})"
+        )
+        return _SearchDecision(result=result, mode="consensus-discard")
+
+    return _SearchDecision(result=best, mode="none")
 
 
 def _execute_one(state, result: _SearchResult, *, layout, observer, snapshot, translator):
@@ -224,9 +258,24 @@ def main() -> int:
         "--min-clear-probability",
         type=float,
         help=(
-            "minimum sampled clear probability accepted for execution; when omitted, "
-            "only exact guaranteed-clear plans may execute"
+            "minimum sampled clear probability accepted for scored-play execution; "
+            "when omitted, only exact guaranteed-clear scored plays may execute"
         ),
+    )
+    parser.add_argument(
+        "--allow-consensus-discard",
+        action="store_true",
+        help=(
+            "allow a setup discard below the scored-play probability threshold only "
+            "when the deepest completed searches repeatedly agree on the exact same "
+            "discard and their projected outcomes improve with depth"
+        ),
+    )
+    parser.add_argument(
+        "--consensus-discard-agreement",
+        type=int,
+        default=3,
+        help="number of deepest completed searches that must agree on a setup discard",
     )
     parser.add_argument("--max-horizon", type=int, default=8)
     parser.add_argument("--max-search-nodes", type=int, default=5000)
@@ -246,6 +295,8 @@ def main() -> int:
 
     if args.min_clear_probability is not None and not 0.0 <= args.min_clear_probability <= 1.0:
         parser.error("--min-clear-probability must be between 0 and 1")
+    if args.consensus_discard_agreement < 2:
+        parser.error("--consensus-discard-agreement must be at least 2")
     if args.max_horizon < 1:
         parser.error("--max-horizon must be positive")
     if args.max_search_nodes < 1:
@@ -301,10 +352,11 @@ def main() -> int:
         print("Hidden draw order used -> False")
 
         try:
-            result = _search(state, args)
+            decision = _search(state, args)
         except (RuntimeError, ValueError) as error:
             parser.error(str(error))
 
+        result = decision.result
         if result is None:
             print("Execution guard -> BLOCKED")
             print("Reason -> every adaptive search attempt exceeded its node budget")
@@ -312,8 +364,19 @@ def main() -> int:
             return 0
 
         indices = _print_plan("Selected", state, result)
-        accepted = _accepts(result.plan, args.min_clear_probability)
-        if _is_guaranteed(result.plan):
+        accepted = decision.mode in {"threshold", "consensus-discard"}
+        if decision.mode == "consensus-discard":
+            print(
+                "Execution mode -> consensus-discard "
+                f"(agreement={args.consensus_discard_agreement}; scored-play minimum="
+                + (
+                    f"{args.min_clear_probability:.6f}"
+                    if args.min_clear_probability is not None
+                    else "exact-guaranteed"
+                )
+                + ")"
+            )
+        elif _is_guaranteed(result.plan):
             print("Execution mode -> exact-guaranteed")
         elif args.min_clear_probability is not None:
             print(
