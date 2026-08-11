@@ -11,6 +11,11 @@ from .capture import (
     BalatroScreenCapture,
     ScreenCapturer,
 )
+from .hand_controller import (
+    ExternalHandController,
+    ExternalHandRunResult,
+    ExternalHandStep,
+)
 from .hand_mouse import (
     HAND_CONTROLS,
     ExternalHandMouseExecutor,
@@ -83,7 +88,10 @@ __all__ = [
     "ExternalBalatroObservation",
     "ExternalBalatroObserver",
     "ExternalBlindMouseExecutor",
+    "ExternalHandController",
     "ExternalHandMouseExecutor",
+    "ExternalHandRunResult",
+    "ExternalHandStep",
     "ExternalShopController",
     "ExternalShopMouseExecutor",
     "ExternalShopSession",
