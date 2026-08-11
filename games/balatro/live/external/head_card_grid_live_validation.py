@@ -5,7 +5,12 @@ import time
 
 from games.balatro.live.external.capture import BalatroScreenCapture
 from games.balatro.live.external.card_capture import DEFAULT_HAND_REGION
+from games.balatro.live.external.card_locator import (
+    inspect_card_face_components,
+    locate_card_faces,
+)
 from games.balatro.live.external.expected_card_locator import (
+    DEFAULT_PROFILES,
     _locations_form_uniform_grid,
     locate_card_faces_expected_count,
 )
@@ -26,6 +31,78 @@ def _card_text(card) -> str:
     if getattr(card, "seal", None):
         parts.append(str(card.seal))
     return " / ".join(parts)
+
+
+def _point_text(location) -> str:
+    return f"({location.center.x:.4f},{location.center.y:.4f})"
+
+
+def _print_failure_diagnostics(region, state) -> None:
+    scorer = HeadScorer()
+    bright_indices = [
+        index
+        for index, card in enumerate(state.hand)
+        if not scorer.is_card_debuffed(card)
+    ]
+    print(
+        "Save-known non-debuffed indices -> "
+        + (",".join(str(index) for index in bright_indices) if bright_indices else "none")
+    )
+
+    for min_brightness, max_channel_spread in DEFAULT_PROFILES:
+        locations = locate_card_faces(
+            region,
+            min_brightness=min_brightness,
+            max_channel_spread=max_channel_spread,
+        )
+        diagnostics = inspect_card_face_components(
+            region,
+            min_brightness=min_brightness,
+            max_channel_spread=max_channel_spread,
+        )
+        accepted = [component for component in diagnostics if component.accepted]
+        wide = [
+            component
+            for component in diagnostics
+            if component.rejection == "too_wide"
+        ]
+
+        print(
+            f"Profile brightness={min_brightness} spread={max_channel_spread} "
+            f"-> located={len(locations)} accepted={len(accepted)} wide={len(wide)}"
+        )
+        if locations:
+            print("  located centers -> " + " ".join(_point_text(item) for item in locations))
+        if accepted:
+            centers = [
+                (
+                    component.local_rect.center.x,
+                    component.local_rect.center.y,
+                    component.local_rect.width,
+                    component.local_rect.height,
+                )
+                for component in sorted(
+                    accepted,
+                    key=lambda item: item.local_rect.center.x,
+                )
+            ]
+            print(
+                "  accepted local -> "
+                + " ".join(
+                    f"({x:.1f},{y:.1f};{width}x{height})"
+                    for x, y, width, height in centers
+                )
+            )
+        if wide:
+            print(
+                "  wide local -> "
+                + " ".join(
+                    f"({component.local_rect.left},{component.local_rect.top};"
+                    f"{component.local_rect.width}x{component.local_rect.height};"
+                    f"density={component.density:.3f})"
+                    for component in wide[:4]
+                )
+            )
 
 
 def main() -> int:
@@ -72,12 +149,18 @@ def main() -> int:
         region = BalatroViewport(frame).crop(DEFAULT_HAND_REGION)
         locations = locate_card_faces_expected_count(region, expected_count)
         if len(locations) != expected_count:
-            raise RuntimeError(
-                "visible hand/card-save count mismatch: "
-                f"screen={len(locations)}, save={expected_count}"
+            print(
+                "Card-grid reconstruction -> FAIL "
+                f"(screen={len(locations)}, save={expected_count})"
             )
+            _print_failure_diagnostics(region, state)
+            print("Mouse input sent -> False")
+            return 0
         if not _locations_form_uniform_grid(locations):
-            raise RuntimeError("reconstructed hand centers do not form a uniform card grid")
+            print("Card-grid reconstruction -> FAIL (nonuniform centers)")
+            _print_failure_diagnostics(region, state)
+            print("Mouse input sent -> False")
+            return 0
         ExternalHandMouseExecutor._require_unselected_row(locations)
     except (RuntimeError, ValueError) as error:
         parser.error(str(error))
