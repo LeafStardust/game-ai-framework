@@ -60,7 +60,8 @@ def main() -> int:
     except (OSError, RuntimeError, ValueError) as error:
         parser.error(str(error))
 
-    mouse = BalatroMouseController(armed=args.execute)
+    # Dry-run capture still needs to focus Balatro; only --execute reaches dispatch().
+    mouse = BalatroMouseController(armed=True)
     try:
         with ExternalHandMouseExecutor(layout, mouse=mouse) as executor:
             controller = ExternalHandController(observer, executor)
