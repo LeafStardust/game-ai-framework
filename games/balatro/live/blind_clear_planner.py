@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 
 from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
@@ -61,17 +62,14 @@ class LiveBlindClearPlanner:
 
     The initial live planner deliberately uses a two-action horizon:
 
-        PLAY -> score outcome -> public redraw -> best next PLAY
+        PLAY -> score/Joker outcome -> public redraw -> best next PLAY
         DISCARD -> public redraw -> best next PLAY
 
-    This is enough to replace purely local play/discard comparison with a genuine
-    contingent plan while keeping the first validation tractable. Replanning after
-    the real checkpoint supplies the next horizon. Hidden draw order is never used.
+    Replanning after the real checkpoint supplies the next horizon. Hidden draw
+    order is never used. Validated stateful Joker transitions are carried between
+    hypothetical play nodes on isolated branch copies.
     """
 
-    # Offline probability analysis may enumerate much larger draw spaces, but a
-    # live decision must stay responsive. One-card redraws on a normal deck remain
-    # exact; larger spaces are represented by reproducible public-state samples.
     DEFAULT_EXACT_DRAW_COMBINATION_LIMIT = 128
     DEFAULT_DRAW_SAMPLE_COUNT = 64
 
@@ -149,17 +147,18 @@ class LiveBlindClearPlanner:
     def _estimate_play(self, state, action: BalatroAction, depth: int) -> _ActionEstimate:
         projection = self.evaluator.project_play(state, action)
         total_value = self._zero_value()
-        exact = True
+        exact = projection.joker_projection_complete
         hands_after = max(0, int(getattr(state, "hands_remaining", 0)) - 1)
-        kept = self._kept_cards(state.hand, action.cards)
         target = self._target(state)
+        played_indices = self._card_indices(state.hand, action.cards)
+        projected_state = projection.state_after_scoring
+        if projected_state is None:
+            projected_state = deepcopy(state)
 
-        # At the final search ply there is no need to model the refill: only the
-        # score outcome of this play can affect whether the horizon clears.
         if depth <= 1:
             for score_outcome in projection.outcomes:
                 score_after = int(getattr(state, "score", 0)) + score_outcome.score
-                branch_state = state.copy()
+                branch_state = deepcopy(projected_state)
                 branch_state.score = score_after
                 branch_state.hands_remaining = hands_after
                 value = self._terminal_value(
@@ -169,7 +168,7 @@ class LiveBlindClearPlanner:
                 total_value = total_value.plus(
                     value.weighted(score_outcome.probability)
                 )
-            return _ActionEstimate(action, total_value, True)
+            return _ActionEstimate(action, total_value, exact)
 
         composition = PublicDeckComposition.from_state(state)
         draw_distribution = self.draw_outcomes.distribution(
@@ -181,7 +180,7 @@ class LiveBlindClearPlanner:
         for score_outcome in projection.outcomes:
             score_after = int(getattr(state, "score", 0)) + score_outcome.score
             if target > 0 and score_after >= target:
-                branch_state = state.copy()
+                branch_state = deepcopy(projected_state)
                 branch_state.score = score_after
                 branch_state.hands_remaining = hands_after
                 total_value = total_value.plus(
@@ -192,7 +191,7 @@ class LiveBlindClearPlanner:
                 continue
 
             if hands_after <= 0:
-                branch_state = state.copy()
+                branch_state = deepcopy(projected_state)
                 branch_state.score = score_after
                 branch_state.hands_remaining = 0
                 total_value = total_value.plus(
@@ -203,9 +202,14 @@ class LiveBlindClearPlanner:
                 continue
 
             for draw_outcome in draw_distribution.outcomes:
-                next_state = state.copy()
+                next_state = deepcopy(projected_state)
                 next_state.score = score_after
                 next_state.hands_remaining = hands_after
+                kept = [
+                    card
+                    for index, card in enumerate(next_state.hand)
+                    if index not in played_indices
+                ]
                 next_state.hand = kept + [
                     self.draw_outcomes.card_from_signature(signature)
                     for signature in draw_outcome.cards
@@ -236,7 +240,7 @@ class LiveBlindClearPlanner:
 
         discards_after = max(0, int(state.discards_remaining) - 1)
         if depth <= 1:
-            next_state = state.copy()
+            next_state = deepcopy(state)
             next_state.discards_remaining = discards_after
             return _ActionEstimate(
                 action,
@@ -249,13 +253,18 @@ class LiveBlindClearPlanner:
             composition,
             len(action.cards),
         )
-        kept = self._kept_cards(state.hand, action.cards)
+        removed_indices = self._card_indices(state.hand, action.cards)
         total_value = self._zero_value()
         exact = draw_distribution.exact
 
         for draw_outcome in draw_distribution.outcomes:
-            next_state = state.copy()
+            next_state = deepcopy(state)
             next_state.discards_remaining = discards_after
+            kept = [
+                card
+                for index, card in enumerate(next_state.hand)
+                if index not in removed_indices
+            ]
             next_state.hand = kept + [
                 self.draw_outcomes.card_from_signature(signature)
                 for signature in draw_outcome.cards
@@ -327,6 +336,15 @@ class LiveBlindClearPlanner:
         return LiveBlindPlanValue(0.0, 0.0, 0.0, 0.0, 0.0)
 
     @staticmethod
+    def _card_indices(hand, selected) -> set[int]:
+        selected_ids = {id(card) for card in selected}
+        return {
+            index
+            for index, card in enumerate(hand)
+            if id(card) in selected_ids
+        }
+
+    @staticmethod
     def _kept_cards(hand, removed) -> list:
         removed_ids = {id(card) for card in removed}
         return [card for card in hand if id(card) not in removed_ids]
@@ -341,8 +359,6 @@ class LiveBlindClearPlanner:
 
     @staticmethod
     def _value_key(value: LiveBlindPlanValue) -> tuple[float, float, float, float, float]:
-        # Clear probability dominates. Progress matters when the horizon cannot
-        # prove a clear; once both clear/progress tie, preserve resources.
         return (
             value.clear_probability,
             value.expected_progress,
