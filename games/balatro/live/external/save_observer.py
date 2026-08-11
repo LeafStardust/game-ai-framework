@@ -83,6 +83,7 @@ def snapshot_from_save(
             areas,
             "consumeables",
             "consumables",
+            preserve_index=True,
         ),
         "jokers": _normalize_item_area(areas, "jokers"),
         "play": _normalize_area(areas, "play"),
