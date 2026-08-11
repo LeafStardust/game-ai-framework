@@ -6,7 +6,7 @@ from math import comb
 from typing import Callable, Iterable
 
 
-@dataclass(frozen=True, order=True)
+@dataclass(frozen=True)
 class PublicCardSignature:
     """Public card attributes that are safe to use for draw probabilities.
 
@@ -29,6 +29,15 @@ class PublicCardSignature:
             enhancement=getattr(card, "enhancement", None),
             edition=getattr(card, "edition", None),
             seal=getattr(card, "seal", None),
+        )
+
+    def sort_key(self) -> tuple[str, str, str, str, str]:
+        return (
+            self.rank,
+            self.suit,
+            self.enhancement or "",
+            self.edition or "",
+            self.seal or "",
         )
 
 
@@ -72,7 +81,12 @@ class PublicDeckComposition:
 
     def items(self) -> tuple[tuple[PublicCardSignature, int], ...]:
         """Return deterministic aggregate output without revealing draw order."""
-        return tuple(sorted(self._counts.items(), key=lambda item: item[0]))
+        return tuple(
+            sorted(
+                self._counts.items(),
+                key=lambda item: item[0].sort_key(),
+            )
+        )
 
     def count_matching(
         self,
