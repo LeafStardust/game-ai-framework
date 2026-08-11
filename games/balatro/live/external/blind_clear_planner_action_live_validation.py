@@ -12,6 +12,7 @@ from games.balatro.live.depth_draw_outcomes import DepthAwarePublicDrawOutcomeMo
 from games.balatro.live.synchronizer import BalatroLiveSynchronizer
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 
+from .expected_card_locator import locate_card_faces_expected_count
 from .hand_mouse import ExternalHandMouseExecutor, HandMouseLayout
 from .mouse import BalatroMouseController
 from .save_observer import SaveBalatroObserver
@@ -342,19 +343,30 @@ def main() -> int:
         parser.error(str(error))
 
     mouse = BalatroMouseController(armed=True)
+    card_locator = lambda region: locate_card_faces_expected_count(region, len(state.hand))
     try:
-        with ExternalHandMouseExecutor(layout, mouse=mouse) as executor:
+        with ExternalHandMouseExecutor(
+            layout,
+            mouse=mouse,
+            card_locator=card_locator,
+        ) as executor:
             executor_indices = executor.card_indices(state, plan.action)
             if executor_indices != indices:
                 raise RuntimeError("hand executor index mapping differs from planner mapping")
-            _, locations = executor.locate_hand(state)
+            frame, locations = executor.locate_hand(state)
+            print(f"Screen/save exact-count guard -> PASS ({len(locations)})")
             for index in indices:
                 location = locations[index]
                 print(
                     f"  Screen {index}: {_card_text(state.hand[index])} "
                     f"-> center=({location.center.x:.4f},{location.center.y:.4f})"
                 )
-            executed_indices = executor.dispatch(plan.action, state)
+            executed_indices = executor.dispatch_with_locations(
+                plan.action,
+                state,
+                frame,
+                locations,
+            )
             if executed_indices != indices:
                 raise RuntimeError("hand executor index mapping changed during dispatch")
 
