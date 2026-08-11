@@ -20,6 +20,18 @@ class FakeBridge:
         pass
 
 
+class RacingBridge(FakeBridge):
+    def __init__(self, snapshots):
+        super().__init__(snapshots)
+        self.failed_once = False
+
+    def observe(self):
+        if not self.failed_once:
+            self.failed_once = True
+            raise RuntimeError("save disappeared between connectivity check and read")
+        return super().observe()
+
+
 def test_synchronizer_skips_incomplete_and_stale_snapshots():
     bridge = FakeBridge([
         LiveBalatroSnapshot(1, "1", False),
@@ -78,3 +90,23 @@ def test_synchronizer_filters_phases():
 
     assert snapshot.sequence == 2
     assert snapshot.phase == "SELECTING_HAND"
+
+
+def test_synchronizer_retries_observe_race_after_connected_check():
+    bridge = RacingBridge([
+        LiveBalatroSnapshot(6, "ROUND_EVAL", False),
+    ])
+    synchronizer = BalatroLiveSynchronizer(
+        bridge,
+        poll_interval=0,
+        timeout=1,
+    )
+
+    snapshot = synchronizer.wait_for_ready(
+        after_sequence=5,
+        require_complete=False,
+    )
+
+    assert bridge.failed_once is True
+    assert snapshot.sequence == 6
+    assert snapshot.phase == "ROUND_EVAL"
