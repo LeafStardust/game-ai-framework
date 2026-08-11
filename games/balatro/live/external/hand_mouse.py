@@ -14,7 +14,7 @@ from .capture import BalatroFrame, BalatroScreenCapture
 from .card_capture import DEFAULT_HAND_REGION
 from .card_locator import CardFaceLocation, locate_card_faces
 from .mouse import BalatroMouseController
-from .viewport import BalatroViewport, NormalizedPoint
+from .viewport import BalatroViewport, NormalizedPoint, PixelPoint
 
 
 HAND_CONTROLS = {"play-hand", "discard"}
@@ -107,6 +107,8 @@ class ExternalHandMouseExecutor:
         focus_poll_interval: float = 0.02,
         between_card_delay: float = 0.12,
         before_action_delay: float = 0.20,
+        pre_capture_point: NormalizedPoint | None = None,
+        pre_capture_settle_delay: float = 0.20,
     ):
         self.layout = layout
         self.capture = capture or BalatroScreenCapture()
@@ -117,6 +119,8 @@ class ExternalHandMouseExecutor:
         self.focus_poll_interval = max(0.0, focus_poll_interval)
         self.between_card_delay = max(0.0, between_card_delay)
         self.before_action_delay = max(0.0, before_action_delay)
+        self.pre_capture_point = pre_capture_point
+        self.pre_capture_settle_delay = max(0.0, pre_capture_settle_delay)
 
     def locate_hand(
         self,
@@ -139,15 +143,32 @@ class ExternalHandMouseExecutor:
         action: BalatroAction,
         state: BalatroState,
     ) -> tuple[int, ...]:
+        frame, locations = self.locate_hand(state)
+        return self.dispatch_with_locations(action, state, frame, locations)
+
+    def dispatch_with_locations(
+        self,
+        action: BalatroAction,
+        state: BalatroState,
+        frame: BalatroFrame,
+        locations: list[CardFaceLocation],
+    ) -> tuple[int, ...]:
+        """Dispatch against one already validated frozen hand mapping."""
+
         if action.name not in {PLAY_CARDS, DISCARD_CARDS}:
             raise HandMouseLayoutError(
                 f"external hand executor cannot dispatch {action.name!r}"
             )
         if not action.cards:
             raise HandMouseLayoutError("hand action must select at least one card")
+        if len(locations) != len(state.hand):
+            raise HandMouseLayoutError(
+                "frozen hand/card-save count mismatch: "
+                f"screen={len(locations)}, save={len(state.hand)}"
+            )
+        self._require_unselected_row(locations)
 
         indices = self.card_indices(state, action)
-        frame, locations = self.locate_hand(state)
         viewport = BalatroViewport(frame)
 
         for offset, index in enumerate(indices):
@@ -216,15 +237,31 @@ class ExternalHandMouseExecutor:
             window = tracker.snapshot()
             self.mouse.focus(window)
             self._wait_for_foreground(tracker, window.handle)
+            self._clear_hover(window)
             if self.focus_settle_delay > 0:
                 time.sleep(self.focus_settle_delay)
             return self.capture.capture()
 
         frame = self.capture.capture()
         self.mouse.focus(frame.window)
+        self._clear_hover(frame.window)
         if self.focus_settle_delay > 0:
             time.sleep(self.focus_settle_delay)
+        if self.pre_capture_point is not None:
+            return self.capture.capture()
         return frame
+
+    def _clear_hover(self, window) -> None:
+        if self.pre_capture_point is None:
+            return
+        rect = window.client_rect
+        point = PixelPoint(
+            rect.left + round(rect.width * self.pre_capture_point.x),
+            rect.top + round(rect.height * self.pre_capture_point.y),
+        )
+        self.mouse.move_screen(point)
+        if self.pre_capture_settle_delay > 0:
+            time.sleep(self.pre_capture_settle_delay)
 
     def _wait_for_foreground(self, tracker, handle: int) -> None:
         locator = getattr(tracker, "locator", None)
