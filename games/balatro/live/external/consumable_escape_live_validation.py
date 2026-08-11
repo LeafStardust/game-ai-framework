@@ -313,9 +313,10 @@ def main() -> int:
         return 0
 
     try:
+        area_index = int(getattr(sun, "area_index"))
         layout = ConsumableMouseLayout.load(Path(args.layout))
-        layout.point_for_slot(int(getattr(sun, "area_index")))
-        layout.use_point()
+        layout.point_for_slot(area_index)
+        layout.use_point_for_slot(area_index)
     except (OSError, RuntimeError, TypeError, ValueError) as error:
         parser.error(str(error))
 
