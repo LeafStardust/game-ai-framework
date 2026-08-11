@@ -103,8 +103,10 @@ def adaptive_blind_search_schedule(
             )
         )
 
-    normal_deep_budget = _node_budget(deepest, max_nodes)
-    if max_nodes > normal_deep_budget:
+    # Intensification is explicitly opt-in. The default 5000-node setting must
+    # never add extra passes merely because a shallow remaining horizon normally
+    # uses a smaller 2000/3000-node budget.
+    if max_nodes > 5000:
         configs.append(
             AdaptiveBlindSearchConfig(
                 horizon=deepest,
