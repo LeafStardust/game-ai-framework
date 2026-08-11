@@ -150,6 +150,11 @@ def main() -> int:
         parser.error(f"Balatro save is in {state.phase}, expected SELECTING_HAND")
     if not state.hand:
         parser.error("save contains no visible hand cards")
+    if state.boss_name:
+        parser.error(
+            "planner execution is blocked until boss-blind modifier integration is "
+            f"validated for {state.boss_name}"
+        )
 
     planner = _planner(args)
     unsupported = planner.evaluator.score_outcomes.joker_projector.unsupported_jokers(state)
@@ -254,23 +259,29 @@ def main() -> int:
     print("Checkpoint verified -> True")
 
     if persisted_state.phase == "SELECTING_HAND":
-        unsupported_after = (
-            planner.evaluator.score_outcomes.joker_projector.unsupported_jokers(
-                persisted_state
-            )
-        )
-        if unsupported_after:
+        if persisted_state.boss_name:
             print(
-                "Replan blocked -> unsupported Joker projection(s): "
-                + ", ".join(unsupported_after)
+                "Replan blocked -> unsupported Boss Blind: "
+                f"{persisted_state.boss_name}"
             )
         else:
-            try:
-                replanned = planner.plan(persisted_state)
-            except (RuntimeError, ValueError) as error:
-                print(f"Replan blocked -> {error}")
+            unsupported_after = (
+                planner.evaluator.score_outcomes.joker_projector.unsupported_jokers(
+                    persisted_state
+                )
+            )
+            if unsupported_after:
+                print(
+                    "Replan blocked -> unsupported Joker projection(s): "
+                    + ", ".join(unsupported_after)
+                )
             else:
-                _print_plan("Replanned", persisted_state, replanned)
+                try:
+                    replanned = planner.plan(persisted_state)
+                except (RuntimeError, ValueError) as error:
+                    print(f"Replan blocked -> {error}")
+                else:
+                    _print_plan("Replanned", persisted_state, replanned)
     else:
         print(f"Replan skipped -> phase is {persisted_state.phase}")
 
