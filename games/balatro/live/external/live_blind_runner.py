@@ -11,10 +11,10 @@ from .auto_blind_runner import (
     DEFAULT_LAYOUT,
     _is_guaranteed,
     _print_plan,
-    _search,
 )
 from .expected_card_locator import locate_card_faces_expected_count
 from .hand_mouse import ExternalHandMouseExecutor, HandMouseLayout
+from .live_search_policy import search_with_pace_fallback
 from .mouse import BalatroMouseController
 from .state_observer_factory import create_balatro_state_observer
 
@@ -90,6 +90,11 @@ def _resolve_playbook_policy(args, state):
         args.max_horizon = int(planner.get("max_horizon", 8))
     if args.max_search_nodes is None:
         args.max_search_nodes = int(planner.get("max_search_nodes", 5000))
+
+    args.allow_pace_fallback = bool(planner.get("allow_pace_fallback", True))
+    args.min_pace_ratio = float(planner.get("min_pace_ratio", 1.0))
+    if args.min_pace_ratio <= 0:
+        raise ValueError("playbook min_pace_ratio must be positive")
 
     return playbook
 
@@ -198,7 +203,7 @@ def main() -> int:
             if playbook is None:
                 try:
                     playbook = _resolve_playbook_policy(args, state)
-                except BalatroPlaybookNotFound as error:
+                except (BalatroPlaybookNotFound, ValueError) as error:
                     parser.error(str(error))
                 print("Observation source -> " + (
                     "live Balatro process memory"
@@ -218,6 +223,8 @@ def main() -> int:
                     )
                 )
                 print(f"Consensus discard -> {args.allow_consensus_discard}")
+                print(f"Pace fallback -> {args.allow_pace_fallback}")
+                print(f"Minimum pace ratio -> {args.min_pace_ratio:.3f}")
 
             print(f"Checkpoint sequence -> {snapshot.sequence}")
             print(f"Phase before -> {state.phase}")
@@ -245,21 +252,26 @@ def main() -> int:
             print("Hidden draw order used -> False")
 
             try:
-                decision = _search(state, args)
+                decision = search_with_pace_fallback(state, args)
             except (RuntimeError, ValueError) as error:
                 parser.error(str(error))
 
             result = decision.result
             if result is None:
                 print("Execution guard -> BLOCKED")
-                print("Reason -> every adaptive search attempt exceeded its node budget")
+                print("Reason -> no bounded search or pace fallback produced a usable plan")
                 print("Mouse input sent -> False")
                 return 0
 
             indices = _print_plan("Selected", state, result)
-            accepted = decision.mode in {"threshold", "consensus-discard"}
+            accepted = decision.mode in {"threshold", "consensus-discard", "pace-play"}
             if decision.mode == "consensus-discard":
                 print("Execution mode -> consensus-discard")
+            elif decision.mode == "pace-play":
+                print(
+                    "Execution mode -> pace-play "
+                    f"(minimum-ratio={args.min_pace_ratio:.3f})"
+                )
             elif _is_guaranteed(result.plan):
                 print("Execution mode -> exact-guaranteed")
             elif args.min_clear_probability is not None:
@@ -272,7 +284,7 @@ def main() -> int:
             print(f"Execution guard -> {'PASS' if accepted else 'BLOCKED'}")
 
             if not accepted:
-                print("Reason -> no adaptive search met the active playbook execution policy")
+                print("Reason -> no search met clear, consensus-discard, or pace policy")
                 print("Mouse input sent -> False")
                 return 0
             if not args.execute:
