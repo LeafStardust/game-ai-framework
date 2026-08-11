@@ -3,7 +3,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from games.balatro.actions import END_SHOP
+from games.balatro.actions import BUY_JOKER, END_SHOP
+from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 from games.balatro.shop_policy import BalatroShopPolicy
 
@@ -15,6 +16,15 @@ from .shop_mouse import ExternalShopMouseExecutor, ShopMouseLayout
 
 
 DEFAULT_LAYOUT = "balatro-shop-mouse.json"
+
+
+def _live_compatible_actions(actions):
+    return [
+        action
+        for action in actions
+        if action.name != BUY_JOKER
+        or isinstance(action.target, LiveJokerScoreProjector.SUPPORTED_TYPES)
+    ]
 
 
 def target_label(action) -> str:
@@ -104,7 +114,9 @@ def main() -> int:
 
         from games.balatro.live.shop import BalatroShopActionGenerator
 
-        actions = BalatroShopActionGenerator().generate_bufferable_actions(state)
+        actions = _live_compatible_actions(
+            BalatroShopActionGenerator().generate_bufferable_actions(state)
+        )
         ranked = policy.rank_actions(state, actions)
 
         print(f"Save -> {reader.path}")
