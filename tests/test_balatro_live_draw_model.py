@@ -54,6 +54,22 @@ def test_public_signature_preserves_visible_modifiers_but_not_live_id():
     )
 
 
+def test_aggregate_output_sorts_mixed_modified_and_unmodified_same_card():
+    composition = PublicDeckComposition.from_cards(
+        [
+            BalatroCard("7", "Diamonds", enhancement="Lucky"),
+            BalatroCard("7", "Diamonds"),
+            BalatroCard("7", "Diamonds", edition="Foil"),
+        ]
+    )
+
+    items = composition.items()
+
+    assert len(items) == 3
+    assert {signature.enhancement for signature, _ in items} == {None, "Lucky"}
+    assert {signature.edition for signature, _ in items} == {None, "Foil"}
+
+
 def test_exact_hypergeometric_probability_uses_without_replacement_math():
     cards = [BalatroCard("A", "Spades") for _ in range(4)] + [
         BalatroCard("2", "Hearts") for _ in range(6)
