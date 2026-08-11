@@ -10,7 +10,10 @@ from games.balatro.live.head_blind_planner import HeadBlindClearPlanner
 from games.balatro.live.synchronizer import BalatroLiveSynchronizer
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 
-from .card_locator import locate_card_faces
+from .expected_card_locator import (
+    _locations_form_uniform_grid,
+    locate_card_faces_expected_count,
+)
 from .hand_mouse import ExternalHandMouseExecutor, HandMouseLayout
 from .mouse import BalatroMouseController
 from .save_observer import SaveBalatroObserver
@@ -19,13 +22,6 @@ from .save_state import BalatroSaveReader
 
 DEFAULT_LAYOUT = "balatro-hand-mouse.json"
 PROBABILITY_TOLERANCE = 1e-9
-HEAD_CARD_LOCATOR_PROFILES = (
-    (165, 70),
-    (150, 85),
-    (140, 100),
-    (130, 115),
-    (120, 130),
-)
 
 
 def _parse_indices(value: str) -> tuple[int, ...]:
@@ -65,27 +61,22 @@ def _joker_text(joker) -> str:
 
 
 def _head_card_locator(expected_count: int):
-    """Return a strict count-aware locator for dimmed Head cards.
+    """Return the save-backed structural locator validated for The Head.
 
-    The generic bright-card profile remains first. Progressively dimmer profiles
-    are only accepted when they recover exactly the authoritative save hand count;
-    ExternalHandMouseExecutor still enforces the resting-row safety guard before
-    any click can be sent.
+    Boss-debuffed cards can be visually dim enough for ordinary bright-face
+    detection to miss them or return malformed mixed components. The expected-
+    count locator reconstructs a hand only when it can produce exactly the
+    authoritative save count on a uniform Balatro card grid; otherwise execution
+    fails closed before any click is sent.
     """
 
     def locate(region):
-        first_locations = None
-        for min_brightness, max_channel_spread in HEAD_CARD_LOCATOR_PROFILES:
-            locations = locate_card_faces(
-                region,
-                min_brightness=min_brightness,
-                max_channel_spread=max_channel_spread,
-            )
-            if first_locations is None:
-                first_locations = locations
-            if len(locations) == expected_count:
-                return locations
-        return first_locations or []
+        locations = locate_card_faces_expected_count(region, expected_count)
+        if len(locations) != expected_count:
+            return locations
+        if not _locations_form_uniform_grid(locations):
+            return []
+        return locations
 
     return locate
 
@@ -315,6 +306,11 @@ def main() -> int:
             if executor_indices != indices:
                 raise RuntimeError("hand executor index mapping differs from planner mapping")
             _, locations = executor.locate_hand(state)
+            if not _locations_form_uniform_grid(locations):
+                raise RuntimeError(
+                    "Head execution blocked: located cards do not form a uniform grid"
+                )
+            print("Screen grid-spacing guard -> PASS")
             for index in indices:
                 location = locations[index]
                 card = state.hand[index]
