@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from copy import deepcopy
 from typing import Any
 
@@ -22,13 +24,16 @@ _ID_AREAS = (
 class ProductionBalatroObserver:
     """Agent-facing authoritative observer.
 
-    The raw live-memory decoder preserves Lua numeric representation. Balatro IDs
-    that are mathematically integral are normalized to Python ints here so stable
-    identity matching does not depend on ``5`` versus ``5.0`` formatting.
+    Integral Lua numeric IDs are canonicalized to Python ints. The production
+    sequence advances only when logical agent-facing state changes; volatile UI
+    geometry remains available for execution targeting but cannot masquerade as
+    an authoritative game-state checkpoint.
     """
 
     def __init__(self, observer: LiveMemoryBalatroObserver | None = None) -> None:
         self.observer = observer or LiveMemoryBalatroObserver()
+        self._sequence = 0
+        self._last_logical_fingerprint: str | None = None
 
     def observe(self) -> LiveBalatroSnapshot:
         snapshot = self.observer.observe()
@@ -45,8 +50,25 @@ class ProductionBalatroObserver:
                     continue
                 card["live_id"] = _stable_identity(card.get("live_id"))
 
+        fingerprint_payload = _without_ui_geometry(payload)
+        fingerprint = hashlib.sha256(
+            json.dumps(
+                {
+                    "phase": snapshot.phase,
+                    "state_complete": snapshot.state_complete,
+                    "payload": fingerprint_payload,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ).encode("utf-8")
+        ).hexdigest()
+        if fingerprint != self._last_logical_fingerprint:
+            self._sequence += 1
+            self._last_logical_fingerprint = fingerprint
+
         return LiveBalatroSnapshot(
-            sequence=snapshot.sequence,
+            sequence=self._sequence,
             phase=snapshot.phase,
             state_complete=snapshot.state_complete,
             payload=payload,
@@ -71,4 +93,16 @@ def _stable_identity(value: Any) -> Any:
         return value
     if isinstance(value, float) and value.is_integer():
         return int(value)
+    return value
+
+
+def _without_ui_geometry(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _without_ui_geometry(item)
+            for key, item in value.items()
+            if key != "ui"
+        }
+    if isinstance(value, list):
+        return [_without_ui_geometry(item) for item in value]
     return value
