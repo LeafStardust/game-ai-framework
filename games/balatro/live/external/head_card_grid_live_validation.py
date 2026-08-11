@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import argparse
 
+from games.balatro.live.external.capture import BalatroScreenCapture
+from games.balatro.live.external.card_capture import DEFAULT_HAND_REGION
 from games.balatro.live.external.expected_card_locator import (
     locate_card_faces_expected_count,
 )
-from games.balatro.live.external.hand_mouse import ExternalHandMouseExecutor, HandMouseLayout
+from games.balatro.live.external.hand_mouse import ExternalHandMouseExecutor
 from games.balatro.live.external.save_observer import SaveBalatroObserver
 from games.balatro.live.external.save_state import BalatroSaveReader
+from games.balatro.live.external.viewport import BalatroViewport
 from games.balatro.live.head_blind_planner import HeadScorer
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 
@@ -27,7 +30,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Read-only validation of expected-count hand-grid reconstruction for "
-            "The Head. Focuses/captures Balatro but never clicks a card or action."
+            "The Head. Captures Balatro without focusing or sending mouse input."
         )
     )
     parser.add_argument("--save")
@@ -50,19 +53,21 @@ def main() -> int:
 
     expected_count = len(state.hand)
 
-    def locator(region):
-        return locate_card_faces_expected_count(region, expected_count)
-
-    scorer = HeadScorer()
     try:
-        with ExternalHandMouseExecutor(
-            HandMouseLayout(),
-            card_locator=locator,
-        ) as executor:
-            _, locations = executor.locate_hand(state)
+        with BalatroScreenCapture() as capture:
+            frame = capture.capture()
+        region = BalatroViewport(frame).crop(DEFAULT_HAND_REGION)
+        locations = locate_card_faces_expected_count(region, expected_count)
+        if len(locations) != expected_count:
+            raise RuntimeError(
+                "visible hand/card-save count mismatch: "
+                f"screen={len(locations)}, save={expected_count}"
+            )
+        ExternalHandMouseExecutor._require_unselected_row(locations)
     except (RuntimeError, ValueError) as error:
         parser.error(str(error))
 
+    scorer = HeadScorer()
     print(f"Screen hand cards -> {len(locations)}")
     print("Resting-row guard -> PASS")
     for index, (card, location) in enumerate(zip(state.hand, locations)):
