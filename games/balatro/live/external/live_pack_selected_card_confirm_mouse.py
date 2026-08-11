@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from collections import deque
 from dataclasses import dataclass
 
 from games.balatro.live.protocol import LiveBalatroSnapshot
@@ -8,9 +9,12 @@ from games.balatro.live.protocol import LiveBalatroSnapshot
 from .live_memory_observer import (
     LiveMemoryBalatroObserver,
     _array_table_values,
+    _geometry,
+    _number,
     _primitive,
     _table_fields,
 )
+from .live_ui_transform import BalatroLogicalViewport
 from .mouse import BalatroMouseController
 from .viewport import PixelPoint
 from .window import BalatroWindowLocator
@@ -18,6 +22,24 @@ from .window import BalatroWindowLocator
 EXPECTED_BUTTON = "use_card"
 EXPECTED_FUNC = "can_select_card"
 MAX_PARENT_DEPTH = 12
+MAX_MEMORY_DEPTH = 9
+MAX_MEMORY_TABLES = 5000
+REQUIRED_GEOMETRY = ("x", "y", "w", "h")
+MEMORY_ROOT_HINTS = (
+    "ui",
+    "pack",
+    "booster",
+    "button",
+    "controller",
+    "room",
+)
+MEMORY_SKIP_ROOTS = {
+    "GAME",
+    "deck",
+    "playing_cards",
+    "pseudorandom",
+    "pseudoseed",
+}
 
 
 class LivePackSelectedCardConfirmError(RuntimeError):
@@ -38,12 +60,26 @@ class LivePackConfirmTarget:
     control_id: object
     hit_signal: str
     probes: int
+    location_source: str
+    memory_candidates: int
+    used_fallback_search: bool
+
+
+@dataclass(frozen=True)
+class _MemoryConfirmCandidate:
+    node_address: int
+    geometry: dict[str, float]
+    geometry_source: str
 
 
 def _table_address(value) -> int | None:
     if value is None or value.kind != "table":
         return None
     return int(value.value)
+
+
+def _complete_geometry(value: dict[str, float]) -> bool:
+    return all(name in value for name in REQUIRED_GEOMETRY)
 
 
 def _highlighted_card(observer: LiveMemoryBalatroObserver) -> LivePackSelectedCard:
@@ -116,8 +152,106 @@ def live_confirm_hit_test(
                 control_id=control_id,
                 hit_signal=signal,
                 probes=0,
+                location_source="live_hover",
+                memory_candidates=0,
+                used_fallback_search=False,
             )
     return None
+
+
+def _memory_root_candidates(root: dict) -> list[tuple[str, int]]:
+    preferred: list[tuple[str, int]] = []
+    fallback: list[tuple[str, int]] = []
+    for name, value in sorted(root.items()):
+        if name in MEMORY_SKIP_ROOTS or value.kind != "table":
+            continue
+        entry = (name, int(value.value))
+        fallback.append(entry)
+        if any(token in name.casefold() for token in MEMORY_ROOT_HINTS):
+            preferred.append(entry)
+    return preferred or fallback
+
+
+def _memory_confirm_candidates(
+    observer: LiveMemoryBalatroObserver,
+) -> tuple[list[_MemoryConfirmCandidate], float, float]:
+    decoder, _, root = observer._root()
+    tile_w = _number(root.get("TILE_W"))
+    tile_h = _number(root.get("TILE_H"))
+    if tile_w is None or tile_h is None or tile_w <= 0 or tile_h <= 0:
+        raise LivePackSelectedCardConfirmError("missing positive G.TILE_W / G.TILE_H")
+
+    queue = deque(
+        (f"G.{name}", address, 0)
+        for name, address in _memory_root_candidates(root)
+    )
+    visited: set[int] = set()
+    found: list[_MemoryConfirmCandidate] = []
+
+    while queue and len(visited) < MAX_MEMORY_TABLES:
+        path, address, depth = queue.popleft()
+        del path
+        if address in visited:
+            continue
+        visited.add(address)
+        try:
+            fields = decoder.string_fields(address)
+        except Exception:
+            continue
+
+        config = _table_fields(decoder, fields.get("config"))
+        button = _primitive(config.get("button"))
+        func = _primitive(config.get("func"))
+        if button == EXPECTED_BUTTON and func == EXPECTED_FUNC:
+            vt = _geometry(decoder, fields.get("VT"))
+            t = _geometry(decoder, fields.get("T"))
+            if _complete_geometry(vt):
+                found.append(_MemoryConfirmCandidate(address, vt, "VT"))
+            elif _complete_geometry(t):
+                found.append(_MemoryConfirmCandidate(address, t, "T"))
+
+        if depth >= MAX_MEMORY_DEPTH:
+            continue
+
+        for name, value in fields.items():
+            if value.kind == "table":
+                queue.append((name, int(value.value), depth + 1))
+        try:
+            array_items = decoder.array_items(address)
+        except Exception:
+            array_items = []
+        for index, value in array_items:
+            if value.kind == "table":
+                queue.append((f"[{index}]", int(value.value), depth + 1))
+
+    # Prefer unique config nodes. The same table can be reachable from several roots.
+    unique: list[_MemoryConfirmCandidate] = []
+    seen_addresses: set[int] = set()
+    for candidate in found:
+        if candidate.node_address in seen_addresses:
+            continue
+        seen_addresses.add(candidate.node_address)
+        unique.append(candidate)
+    return unique, float(tile_w), float(tile_h)
+
+
+def _candidate_screen_point(
+    candidate: _MemoryConfirmCandidate,
+    *,
+    logical_width: float,
+    logical_height: float,
+    client_rect,
+) -> PixelPoint:
+    transform = BalatroLogicalViewport(logical_width, logical_height, client_rect)
+    geometry = candidate.geometry
+    return transform.screen_point(
+        float(geometry["x"]) + float(geometry["w"]) / 2.0,
+        float(geometry["y"]) + float(geometry["h"]) / 2.0,
+    )
+
+
+def _inside_client(point: PixelPoint, rect) -> bool:
+    return rect.left <= point.x < rect.right and rect.top <= point.y < rect.bottom
 
 
 def _search_points(rect, step: int) -> list[PixelPoint]:
@@ -181,15 +315,55 @@ class LivePackSelectedCardConfirmExecutor:
             )
         selected = _highlighted_card(self.observer)
 
+        memory_candidates, tile_w, tile_h = _memory_confirm_candidates(self.observer)
         target = None
-        for probes, point in enumerate(
-            _search_points(window.client_rect, self.search_step), start=1
-        ):
+        probes = 0
+
+        # Fast path: derive candidate points from the exact live UI node's memory
+        # geometry, then authorize them with Balatro's cursor-hover identity.
+        for candidate in memory_candidates:
+            point = _candidate_screen_point(
+                candidate,
+                logical_width=tile_w,
+                logical_height=tile_h,
+                client_rect=window.client_rect,
+            )
+            if not _inside_client(point, window.client_rect):
+                continue
+            probes += 1
             self.mouse.move_screen(point)
             if self.probe_settle_delay:
                 time.sleep(self.probe_settle_delay)
             hit = live_confirm_hit_test(self.observer, point)
-            if hit is not None:
+            if hit is None or hit.node_address != candidate.node_address:
+                continue
+            target = LivePackConfirmTarget(
+                screen_point=point,
+                node_address=hit.node_address,
+                button=hit.button,
+                func=hit.func,
+                control_id=hit.control_id,
+                hit_signal=hit.hit_signal,
+                probes=probes,
+                location_source=f"memory_{candidate.geometry_source}",
+                memory_candidates=len(memory_candidates),
+                used_fallback_search=False,
+            )
+            break
+
+        # Fail-safe fallback for layouts whose nested T/VT geometry is not directly
+        # screen-mappable. This is discovery-style cursor scanning, not calibration.
+        if target is None:
+            fallback_probes = 0
+            for fallback_probes, point in enumerate(
+                _search_points(window.client_rect, self.search_step), start=1
+            ):
+                self.mouse.move_screen(point)
+                if self.probe_settle_delay:
+                    time.sleep(self.probe_settle_delay)
+                hit = live_confirm_hit_test(self.observer, point)
+                if hit is None:
+                    continue
                 target = LivePackConfirmTarget(
                     screen_point=point,
                     node_address=hit.node_address,
@@ -197,7 +371,10 @@ class LivePackSelectedCardConfirmExecutor:
                     func=hit.func,
                     control_id=hit.control_id,
                     hit_signal=hit.hit_signal,
-                    probes=probes,
+                    probes=probes + fallback_probes,
+                    location_source="fallback_screen_search",
+                    memory_candidates=len(memory_candidates),
+                    used_fallback_search=True,
                 )
                 break
 
@@ -210,7 +387,7 @@ class LivePackSelectedCardConfirmExecutor:
         if self.click_settle_delay:
             time.sleep(self.click_settle_delay)
         confirmed = live_confirm_hit_test(self.observer, target.screen_point)
-        if confirmed is None:
+        if confirmed is None or confirmed.node_address != target.node_address:
             raise LivePackSelectedCardConfirmError(
                 "verified pack confirm point lost live identity before click"
             )
