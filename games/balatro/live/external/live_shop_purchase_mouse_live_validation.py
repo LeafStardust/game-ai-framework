@@ -89,9 +89,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Preview or execute one ordinary Buy action for a live main-shop item. "
-            "The executor hovers the live item, resolves Balatro's generated Buy "
-            "control, requires a live hover hit-test before clicking it once with "
-            "normal desktop input, then verifies money/offer/ownership changes."
+            "The executor uses the card-relative Buy template first, requires Balatro's "
+            "live hover identity before clicking, then verifies money/offer/ownership."
         )
     )
     parser.add_argument("--index", type=int, default=0)
@@ -110,6 +109,7 @@ def main() -> int:
             executor = LiveMemoryShopPurchaseMouseExecutor(
                 observer=observer,
                 mouse=mouse,
+                action="buy",
             )
 
             snapshot, item, window = executor.preview(args.index)
@@ -140,8 +140,8 @@ def main() -> int:
                 print("Mouse movement sent -> False")
                 print("Mouse clicks sent -> False")
                 print(
-                    "Re-run with --execute to locate a live-hit-tested ordinary Buy "
-                    "point and send exactly one normal mouse click there."
+                    "Re-run with --execute to template-locate and live-verify the "
+                    "ordinary Buy control, then send exactly one normal mouse click."
                 )
                 return 0
 
@@ -167,7 +167,9 @@ def main() -> int:
                 f"x={verified.screen_point.x} y={verified.screen_point.y}"
             )
             print(f"Verified Buy hit signal -> {verified.hit_signal}")
+            print(f"Buy location source -> {verified.location_source}")
             print(f"Buy probes required -> {verified.probes}")
+            print(f"Local live search used -> {verified.used_local_search}")
             print(f"Fallback search used -> {verified.used_fallback_search}")
             print("Waiting for live purchase postcondition -> SHOP")
 
