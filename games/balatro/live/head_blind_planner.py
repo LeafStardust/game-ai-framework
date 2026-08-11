@@ -11,17 +11,17 @@ class HeadScorer(BalatroScorer):
 
     Debuffed cards still participate in poker-hand classification, but their card
     chips and card/held modifier effects are disabled by ``BalatroScorer``'s
-    debuff hook. Wild cards count as every suit and are therefore also debuffed by
-    a suit-debuffing Boss Blind.
+    debuff hook. Suit matching intentionally uses the card model's normal rules:
+    Wild cards match every suit while Stone cards match no suit.
     """
 
     DEBUFFED_SUIT = "Hearts"
 
     def is_card_debuffed(self, card) -> bool:
-        return (
-            str(getattr(card, "suit", "")) == self.DEBUFFED_SUIT
-            or getattr(card, "enhancement", None) == "Wild"
-        )
+        matches_suit = getattr(card, "matches_suit", None)
+        if callable(matches_suit):
+            return bool(matches_suit(self.DEBUFFED_SUIT))
+        return str(getattr(card, "suit", "")) == self.DEBUFFED_SUIT
 
 
 class HeadHandDecisionEvaluator(LiveHandDecisionEvaluator):
