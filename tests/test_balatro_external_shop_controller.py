@@ -3,6 +3,8 @@ from types import SimpleNamespace
 import pytest
 
 from games.balatro.actions import BUY_CONSUMABLE, BUY_JOKER, END_SHOP
+from games.balatro.jokers.ice_cream import IceCreamJoker
+from games.balatro.jokers.to_do_list import ToDoListJoker
 from games.balatro.live.external.shop_controller import ExternalShopController
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.state import BalatroState
@@ -281,3 +283,43 @@ def test_external_shop_controller_does_not_execute_when_policy_recommends_leave(
 
     assert executor.actions == []
     assert session.state.money == 10
+
+
+def test_external_shop_controller_filters_jokers_unsupported_by_live_planner():
+    state = BalatroState()
+    state.phase = "SHOP"
+    state.money = 20
+    state.joker_slots = 5
+
+    unsupported = ToDoListJoker()
+    unsupported.area_index = 0
+    unsupported.live_id = 200
+    unsupported.label = "To Do List"
+    unsupported.cost = 4
+
+    supported = IceCreamJoker()
+    supported.area_index = 1
+    supported.live_id = 201
+    supported.label = "Ice Cream"
+    supported.cost = 5
+
+    state.shop_jokers = [unsupported, supported]
+    controller = ExternalShopController(
+        Observer(_snapshot(1, "SHOP", state)),
+        Executor(),
+        translator=Translator(),
+        synchronizer=Synchronizer(
+            _snapshot(2, "BLIND_SELECT", _checkpoint_state(money=20))
+        ),
+    )
+    session = controller.open()
+
+    actions = controller.available_actions(session)
+    joker_labels = [
+        action.target.label
+        for action in actions
+        if action.name == BUY_JOKER
+    ]
+
+    assert joker_labels == ["Ice Cream"]
+    assert any(action.name == END_SHOP for action in actions)
