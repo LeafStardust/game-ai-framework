@@ -5,12 +5,13 @@ class IceCreamJoker(Joker):
 
     def __init__(self):
         self.chips = 100
+        self.chip_mod = 5
 
     def apply(self, context: JokerContext) -> JokerContext:
         if context.score is not None:
             context.score.chips += self.chips
 
         if context.trigger == "HAND_SCORED":
-            self.chips = max(self.chips - 5, 0)
+            self.chips = max(self.chips - self.chip_mod, 0)
 
         return context
