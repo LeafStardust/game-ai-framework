@@ -13,7 +13,7 @@ from .save_observer import SaveBalatroObserver
 from .save_state import BalatroSaveReader
 from .shop_mouse import ExternalShopMouseExecutor, ShopMouseLayout
 from .shop_reflow import ShopMainReflowLocator
-from .viewport import BalatroViewport
+from .viewport import BalatroViewport, NormalizedPoint
 
 
 DEFAULT_LAYOUT = "balatro-shop-mouse.json"
@@ -61,6 +61,16 @@ def main() -> int:
     parser.add_argument("--save")
     parser.add_argument("--profile", default="1")
     parser.add_argument("--layout", default=DEFAULT_LAYOUT)
+    parser.add_argument(
+        "--known-card-center",
+        nargs=2,
+        type=float,
+        metavar=("X", "Y"),
+        help=(
+            "reuse a previously validated pre-selection normalized card center; "
+            "intended for Buy-only diagnostics after the card is already selected"
+        ),
+    )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
         "--hover-only",
@@ -84,11 +94,16 @@ def main() -> int:
         "--execute-buy-click",
         action="store_true",
         help=(
-            "after all guards pass, click only the dynamically retargeted Buy button; "
-            "use this only after the expected card is already selected"
+            "click only the dynamically retargeted Buy button; use this only after "
+            "the expected card is already selected"
         ),
     )
     args = parser.parse_args()
+
+    if args.known_card_center and not (args.hover_buy_only or args.execute_buy_click):
+        parser.error(
+            "--known-card-center is only valid with --hover-buy-only or --execute-buy-click"
+        )
 
     try:
         reader = BalatroSaveReader(args.save, profile=args.profile)
@@ -118,19 +133,31 @@ def main() -> int:
     try:
         with ExternalShopMouseExecutor(layout, mouse=mouse) as executor:
             locator = ShopMainReflowLocator(executor)
-            target = locator.locate(state, expected)
 
-            print(f"Fresh visible main cards -> {target.visible_count}")
-            print(f"Mapped visible index -> {target.visible_index}")
-            print(
-                "Detected target center -> "
-                f"({target.card.center.x:.4f},{target.card.center.y:.4f})"
-            )
-            print(f"Dynamic sequence -> {_sequence_text(target.sequence)}")
+            if args.known_card_center is not None:
+                known_center = NormalizedPoint(*args.known_card_center)
+                sequence = locator._retarget_sequence(expected, known_center)
+                print("Fresh card re-detection -> skipped (known pre-selection center)")
+                print(
+                    "Known target center -> "
+                    f"({known_center.x:.4f},{known_center.y:.4f})"
+                )
+                print(f"Dynamic sequence -> {_sequence_text(sequence)}")
+                target = None
+            else:
+                target = locator.locate(state, expected)
+                sequence = target.sequence
+                print(f"Fresh visible main cards -> {target.visible_count}")
+                print(f"Mapped visible index -> {target.visible_index}")
+                print(
+                    "Detected target center -> "
+                    f"({target.card.center.x:.4f},{target.card.center.y:.4f})"
+                )
+                print(f"Dynamic sequence -> {_sequence_text(sequence)}")
 
             if args.hover_only or args.hover_buy_only:
                 step_index = 1 if args.hover_only else 2
-                point = target.sequence.steps[step_index - 1].point
+                point = sequence.steps[step_index - 1].point
                 frame = executor._capture_focused_frame()
                 screen_point = BalatroViewport(frame).screen_point(point)
                 mouse.move_screen(screen_point)
@@ -151,12 +178,18 @@ def main() -> int:
                 return 0
 
             only_step = 1 if args.execute_card_click else 2
-            locator.dispatch(
-                expected,
-                state,
-                transaction,
-                only_step=only_step,
-            )
+            if args.known_card_center is not None:
+                point = sequence.steps[only_step - 1].point
+                frame = executor._capture_focused_frame()
+                screen_point = BalatroViewport(frame).screen_point(point)
+                mouse.click_screen(screen_point)
+            else:
+                locator.dispatch(
+                    expected,
+                    state,
+                    transaction,
+                    only_step=only_step,
+                )
     except (OSError, RuntimeError, ValueError) as error:
         parser.error(str(error))
 
