@@ -170,7 +170,7 @@ class LiveMemoryShopController:
     def close(self) -> None:
         if self._owns_dispatcher:
             self.dispatcher.close()
-        elif self._owns_observer:
+        if self._owns_observer:
             self.observer.close()
 
     def __enter__(self) -> "LiveMemoryShopController":
