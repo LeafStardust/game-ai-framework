@@ -20,7 +20,21 @@ from .window import BalatroWindow, BalatroWindowLocator, WindowRect
 
 REQUIRED_GEOMETRY = ("x", "y", "w", "h")
 EXPECTED_BUTTON = "buy_from_shop"
-EXPECTED_FUNC = "can_buy"
+
+# These are Balatro logical-UI offsets from the live shop-card center, not pixels.
+# The ephemeral buttons keep this relative placement when the window/resolution moves.
+PURCHASE_SPECS = {
+    "buy": {
+        "child": "buy_button",
+        "func": "can_buy",
+        "offset": (0.0, 1.55),
+    },
+    "buy_and_use": {
+        "child": "buy_and_use_button",
+        "func": "can_buy_and_use",
+        "offset": (1.29, 0.0),
+    },
+}
 
 
 class LiveShopPurchaseMouseError(RuntimeError):
@@ -41,6 +55,8 @@ class LiveShopItemTarget:
 
 @dataclass(frozen=True)
 class LiveShopBuyTarget:
+    action: str
+    child_name: str
     container_address: int
     ui_root_address: int
     button: str
@@ -57,6 +73,8 @@ class LiveVerifiedShopBuyTarget:
     screen_point: PixelPoint
     hit_signal: str
     probes: int
+    location_source: str
+    used_local_search: bool
     used_fallback_search: bool
 
 
@@ -136,43 +154,44 @@ def resolve_live_shop_item_target(
     )
 
 
-def resolve_live_buy_target(
+def resolve_live_purchase_target(
     decoder,
     root: dict,
     client_rect: WindowRect,
+    *,
+    action: str = "buy",
 ) -> LiveShopBuyTarget:
-    """Resolve the ordinary Buy control created for the hovered shop item.
-
-    ``screen_center`` is only a geometry-derived first guess. Nested Balatro UI
-    transforms are not assumed to be globally positioned; callers must live
-    hit-test the point before clicking it.
-    """
+    spec = PURCHASE_SPECS.get(action)
+    if spec is None:
+        raise LiveShopPurchaseMouseError(f"unsupported shop purchase action: {action!r}")
 
     controller = _table_fields(decoder, root.get("CONTROLLER"))
     cursor_hover = _table_fields(decoder, controller.get("cursor_hover"))
     prev_target = _table_fields(decoder, cursor_hover.get("prev_target"))
     children = _table_fields(decoder, prev_target.get("children"))
-    buy_container_value = children.get("buy_button")
-    container_address = _table_address(buy_container_value)
+    child_name = str(spec["child"])
+    container_value = children.get(child_name)
+    container_address = _table_address(container_value)
     if container_address is None:
         raise LiveShopPurchaseMouseError(
-            "hovered shop item has no buy_button container"
+            f"hovered shop item has no {child_name} container"
         )
 
-    container = _table_fields(decoder, buy_container_value)
+    container = _table_fields(decoder, container_value)
     ui_root_value = container.get("UIRoot")
     ui_root_address = _table_address(ui_root_value)
     if ui_root_address is None:
-        raise LiveShopPurchaseMouseError("buy_button has no UIRoot")
+        raise LiveShopPurchaseMouseError(f"{child_name} has no UIRoot")
 
     ui_root = _table_fields(decoder, ui_root_value)
     config = _table_fields(decoder, ui_root.get("config"))
     button = _primitive(config.get("button"))
     func = _primitive(config.get("func"))
     control_id = _primitive(config.get("id"))
-    if button != EXPECTED_BUTTON or func != EXPECTED_FUNC:
+    expected_func = str(spec["func"])
+    if button != EXPECTED_BUTTON or func != expected_func:
         raise LiveShopPurchaseMouseError(
-            "hover purchase control is not the ordinary Buy control: "
+            f"hover purchase control is not {action}: "
             f"button={button!r}, func={func!r}, id={control_id!r}"
         )
 
@@ -191,7 +210,7 @@ def resolve_live_buy_target(
             break
     if not geometry:
         raise LiveShopPurchaseMouseError(
-            "ordinary Buy control has no complete UIRoot/container VT/T geometry"
+            f"{action} control has no complete UIRoot/container VT/T geometry"
         )
 
     tile_w = _number(root.get("TILE_W"))
@@ -205,6 +224,8 @@ def resolve_live_buy_target(
         float(geometry["y"]) + float(geometry["h"]) / 2.0,
     )
     return LiveShopBuyTarget(
+        action=action,
+        child_name=child_name,
         container_address=container_address,
         ui_root_address=ui_root_address,
         button=str(button),
@@ -216,6 +237,18 @@ def resolve_live_buy_target(
     )
 
 
+def resolve_live_buy_target(decoder, root: dict, client_rect: WindowRect) -> LiveShopBuyTarget:
+    return resolve_live_purchase_target(decoder, root, client_rect, action="buy")
+
+
+def resolve_live_buy_and_use_target(
+    decoder,
+    root: dict,
+    client_rect: WindowRect,
+) -> LiveShopBuyTarget:
+    return resolve_live_purchase_target(decoder, root, client_rect, action="buy_and_use")
+
+
 def _active_hover(decoder, fields: dict) -> bool:
     if _primitive(fields.get("hover")) is True:
         return True
@@ -224,9 +257,10 @@ def _active_hover(decoder, fields: dict) -> bool:
     return _primitive(hover.get("is")) is True
 
 
-def _node_is_buy(decoder, value, *, expected_addresses: set[int]) -> bool:
+def _node_is_purchase(decoder, value, control: LiveShopBuyTarget) -> bool:
     address = _table_address(value)
     seen: set[int] = set()
+    expected_addresses = {control.container_address, control.ui_root_address}
     for _ in range(12):
         if address is None or address in seen:
             return False
@@ -239,20 +273,22 @@ def _node_is_buy(decoder, value, *, expected_addresses: set[int]) -> bool:
             return False
         config = _table_fields(decoder, fields.get("config"))
         if (
-            _primitive(config.get("button")) == EXPECTED_BUTTON
-            and _primitive(config.get("func")) == EXPECTED_FUNC
+            _primitive(config.get("button")) == control.button
+            and _primitive(config.get("func")) == control.func
         ):
             return True
         address = _table_address(fields.get("parent"))
     return False
 
 
-def live_buy_hit_test(decoder, root: dict, buy: LiveShopBuyTarget) -> tuple[bool, str]:
-    """Ask Balatro whether the current cursor is actually over this Buy control."""
-
+def live_purchase_hit_test(
+    decoder,
+    root: dict,
+    control: LiveShopBuyTarget,
+) -> tuple[bool, str]:
     for name, address in (
-        ("UIRoot", buy.ui_root_address),
-        ("container", buy.container_address),
+        ("UIRoot", control.ui_root_address),
+        ("container", control.container_address),
     ):
         try:
             fields = decoder.string_fields(address)
@@ -263,15 +299,33 @@ def live_buy_hit_test(decoder, root: dict, buy: LiveShopBuyTarget) -> tuple[bool
 
     controller = _table_fields(decoder, root.get("CONTROLLER"))
     cursor_hover = _table_fields(decoder, controller.get("cursor_hover"))
-    expected_addresses = {buy.container_address, buy.ui_root_address}
     for name in ("target", "prev_target", "node"):
-        if _node_is_buy(
-            decoder,
-            cursor_hover.get(name),
-            expected_addresses=expected_addresses,
-        ):
+        if _node_is_purchase(decoder, cursor_hover.get(name), control):
             return True, f"cursor_hover.{name}"
     return False, ""
+
+
+def live_buy_hit_test(decoder, root: dict, buy: LiveShopBuyTarget) -> tuple[bool, str]:
+    if buy.action != "buy" or buy.func != "can_buy":
+        return False, ""
+    return live_purchase_hit_test(decoder, root, buy)
+
+
+def _template_point(
+    item: LiveShopItemTarget,
+    *,
+    action: str,
+    logical_width: float,
+    logical_height: float,
+    client_rect: WindowRect,
+) -> PixelPoint:
+    spec = PURCHASE_SPECS[action]
+    dx, dy = spec["offset"]
+    geometry = item.geometry
+    center_x = float(geometry["x"]) + float(geometry["w"]) / 2.0
+    center_y = float(geometry["y"]) + float(geometry["h"]) / 2.0
+    transform = BalatroLogicalViewport(logical_width, logical_height, client_rect)
+    return transform.screen_point(center_x + float(dx), center_y + float(dy))
 
 
 def _search_offsets(x_radius: int, y_radius: int, step: int) -> list[tuple[int, int]]:
@@ -292,11 +346,11 @@ def _search_offsets(x_radius: int, y_radius: int, step: int) -> list[tuple[int, 
 
 
 class LiveMemoryShopPurchaseMouseExecutor:
-    """Buy one main-shop item using live memory plus normal desktop mouse input.
+    """Execute Buy or Buy & Use from a live card-relative UI template.
 
-    The nested Buy geometry is treated only as a first guess. No Buy click is
-    sent until Balatro's own live hover state confirms the cursor is currently
-    inside the ordinary ``buy_from_shop / can_buy`` control.
+    The primary location is a resolution-independent offset from the current shop
+    card. Balatro's own live hover identity remains the authority before clicking.
+    Nested control geometry and a bounded local search are fail-safe fallbacks.
     """
 
     def __init__(
@@ -305,6 +359,7 @@ class LiveMemoryShopPurchaseMouseExecutor:
         mouse: BalatroMouseController | None = None,
         window_locator: BalatroWindowLocator | None = None,
         *,
+        action: str = "buy",
         hover_settle_delay: float = 0.15,
         probe_settle_delay: float = 0.10,
         click_settle_delay: float = 0.05,
@@ -315,9 +370,12 @@ class LiveMemoryShopPurchaseMouseExecutor:
         focus_timeout: float = 1.5,
         focus_poll_interval: float = 0.02,
     ) -> None:
+        if action not in PURCHASE_SPECS:
+            raise ValueError(f"unsupported shop purchase action: {action!r}")
         self.observer = observer or LiveMemoryBalatroObserver()
         self.mouse = mouse or BalatroMouseController()
         self.window_locator = window_locator or BalatroWindowLocator()
+        self.action = action
         self.hover_settle_delay = max(0.0, hover_settle_delay)
         self.probe_settle_delay = max(0.0, probe_settle_delay)
         self.click_settle_delay = max(0.0, click_settle_delay)
@@ -374,19 +432,21 @@ class LiveMemoryShopPurchaseMouseExecutor:
             logical_height=float(tile_h),
             client_rect=window.client_rect,
         )
-        verified = self._find_verified_buy_point(item, window)
+        verified = self._find_verified_purchase_point(
+            item,
+            window,
+            logical_width=float(tile_w),
+            logical_height=float(tile_h),
+        )
 
-        # Keep the cursor on the already verified point, then re-check the same
-        # live Buy object immediately before the click. Fail closed if Balatro no
-        # longer considers the pointer to be inside that control.
         self.mouse.move_screen(verified.screen_point)
         if self.click_settle_delay > 0:
             time.sleep(self.click_settle_delay)
         decoder, _, root = self.observer._root()
-        hit, signal = live_buy_hit_test(decoder, root, verified.control)
+        hit, signal = live_purchase_hit_test(decoder, root, verified.control)
         if not hit:
             raise LiveShopPurchaseMouseError(
-                "verified Buy point lost live hover before click"
+                f"verified {self.action} point lost live hover before click"
             )
 
         self.mouse.click_screen(verified.screen_point, hover_delay=0.0)
@@ -395,47 +455,98 @@ class LiveMemoryShopPurchaseMouseExecutor:
             screen_point=verified.screen_point,
             hit_signal=signal,
             probes=verified.probes,
+            location_source=verified.location_source,
+            used_local_search=verified.used_local_search,
             used_fallback_search=verified.used_fallback_search,
         )
         return before, item, verified
 
-    def _find_verified_buy_point(
+    def _probe(
         self,
         item: LiveShopItemTarget,
         window: BalatroWindow,
-    ) -> LiveVerifiedShopBuyTarget:
-        initial_buy = self._resolve_buy_after_hover(item, window)
-        origin = initial_buy.screen_center
-        candidates = [origin] + [
-            PixelPoint(origin.x + dx, origin.y + dy)
-            for dx, dy in _search_offsets(
-                self.search_x_radius,
-                self.search_y_radius,
-                self.search_step,
-            )
-        ]
+        point: PixelPoint,
+    ) -> tuple[LiveShopBuyTarget, bool, str]:
+        control = self._resolve_purchase_after_hover(item, window)
+        self.mouse.move_screen(point)
+        if self.probe_settle_delay > 0:
+            time.sleep(self.probe_settle_delay)
+        decoder, _, root = self.observer._root()
+        hit, signal = live_purchase_hit_test(decoder, root, control)
+        return control, hit, signal
 
-        for probe_count, point in enumerate(candidates, start=1):
-            buy = self._resolve_buy_after_hover(item, window)
-            self.mouse.move_screen(point)
-            if self.probe_settle_delay > 0:
-                time.sleep(self.probe_settle_delay)
-            decoder, _, root = self.observer._root()
-            hit, signal = live_buy_hit_test(decoder, root, buy)
+    def _find_verified_purchase_point(
+        self,
+        item: LiveShopItemTarget,
+        window: BalatroWindow,
+        *,
+        logical_width: float,
+        logical_height: float,
+    ) -> LiveVerifiedShopBuyTarget:
+        template = _template_point(
+            item,
+            action=self.action,
+            logical_width=logical_width,
+            logical_height=logical_height,
+            client_rect=window.client_rect,
+        )
+        probes = 1
+        control, hit, signal = self._probe(item, window, template)
+        if hit:
+            return LiveVerifiedShopBuyTarget(
+                control=control,
+                screen_point=template,
+                hit_signal=signal,
+                probes=probes,
+                location_source="shop_card_template",
+                used_local_search=False,
+                used_fallback_search=False,
+            )
+
+        # Secondary guess: Balatro's nested control geometry is often correct even
+        # though it is not reliable enough to be authoritative across all layouts.
+        nested = control.screen_center
+        if nested != template:
+            probes += 1
+            control, hit, signal = self._probe(item, window, nested)
             if hit:
                 return LiveVerifiedShopBuyTarget(
-                    control=buy,
+                    control=control,
+                    screen_point=nested,
+                    hit_signal=signal,
+                    probes=probes,
+                    location_source="nested_geometry",
+                    used_local_search=False,
+                    used_fallback_search=True,
+                )
+
+        # Final fail-safe: bounded local live-hit search. No coordinate found here is
+        # persisted; every probe re-hovers the current card and re-resolves the exact
+        # ephemeral control before Balatro's hover identity is checked.
+        for dx, dy in _search_offsets(
+            self.search_x_radius,
+            self.search_y_radius,
+            self.search_step,
+        ):
+            point = PixelPoint(template.x + dx, template.y + dy)
+            probes += 1
+            control, hit, signal = self._probe(item, window, point)
+            if hit:
+                return LiveVerifiedShopBuyTarget(
+                    control=control,
                     screen_point=point,
                     hit_signal=signal,
-                    probes=probe_count,
-                    used_fallback_search=probe_count > 1,
+                    probes=probes,
+                    location_source="local_live_search",
+                    used_local_search=True,
+                    used_fallback_search=True,
                 )
 
         raise LiveShopPurchaseMouseError(
-            "unable to find a live-hit-tested ordinary Buy point around nested geometry"
+            f"unable to find a live-hit-tested {self.action} point"
         )
 
-    def _resolve_buy_after_hover(
+    def _resolve_purchase_after_hover(
         self,
         item: LiveShopItemTarget,
         window: BalatroWindow,
@@ -447,10 +558,15 @@ class LiveMemoryShopPurchaseMouseExecutor:
         current = self.observer.observe()
         if current.phase != "SHOP":
             raise LiveShopPurchaseMouseError(
-                f"Balatro left SHOP before Buy click: phase={current.phase}"
+                f"Balatro left SHOP before {self.action} click: phase={current.phase}"
             )
         decoder, _, root = self.observer._root()
-        return resolve_live_buy_target(decoder, root, window.client_rect)
+        return resolve_live_purchase_target(
+            decoder,
+            root,
+            window.client_rect,
+            action=self.action,
+        )
 
     def _wait_for_foreground(self, handle: int) -> None:
         foreground_handle = getattr(self.window_locator, "foreground_handle", None)
