@@ -58,12 +58,25 @@ def _differences(before: dict[str, Any], after: dict[str, Any]) -> dict[str, tup
     }
 
 
-def _hover_truths(state: dict[str, Any]) -> tuple[str, ...]:
-    return tuple(
-        key
-        for key, value in state.items()
-        if "hover" in key.casefold() and value is True
-    )
+def _active_hover_truths(state: dict[str, Any]) -> tuple[str, ...]:
+    """Return fields that mean a card is actively hovered, not merely hoverable.
+
+    Balatro exposes ``states.hover.can`` on every hover-capable card, while
+    ``states.hover.is`` becomes true only for the card currently under the cursor.
+    Direct boolean hover fields are accepted as a compatibility fallback.
+    """
+
+    active: list[str] = []
+    for key, value in state.items():
+        if value is not True:
+            continue
+        folded = key.casefold()
+        if folded == "hover" or folded.endswith(".hover"):
+            active.append(key)
+            continue
+        if "hover" in folded and folded.endswith(".is"):
+            active.append(key)
+    return tuple(active)
 
 
 def main() -> int:
@@ -159,7 +172,7 @@ def main() -> int:
     changed_cards: list[int] = []
     for index in range(len(raw_cards)):
         changes = _differences(before[index], after[index])
-        truths = _hover_truths(after[index])
+        truths = _active_hover_truths(after[index])
         if changes or truths:
             changed_cards.append(index)
             print(f"  H{index} live state:")
@@ -169,26 +182,16 @@ def main() -> int:
                 if key not in changes:
                     print(f"    {key}: True")
 
-    target_hover = _hover_truths(after[args.index])
+    target_hover = _active_hover_truths(after[args.index])
     other_hover = {
-        index: _hover_truths(after[index])
+        index: _active_hover_truths(after[index])
         for index in range(len(raw_cards))
-        if index != args.index and _hover_truths(after[index])
+        if index != args.index and _active_hover_truths(after[index])
     }
 
     if target_hover and not other_hover:
         print("Hovered-card identity -> PASS")
         print("Target hover field(s) -> " + ", ".join(target_hover))
-        print("Coordinate transform hover validation -> PASS")
-        return 0
-
-    target_changes = _differences(before[args.index], after[args.index])
-    target_hover_changes = tuple(
-        key for key in target_changes if "hover" in key.casefold()
-    )
-    if target_hover_changes and not other_hover:
-        print("Hovered-card identity -> PASS")
-        print("Target hover change(s) -> " + ", ".join(target_hover_changes))
         print("Coordinate transform hover validation -> PASS")
         return 0
 
