@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.live.blind_clear_planner import PlannerSearchBudgetExceeded
 from games.balatro.live.depth_draw_outcomes import DepthAwarePublicDrawOutcomeModel
 from games.balatro.live.house_blind_planner import HouseBlindClearPlanner
@@ -20,14 +20,12 @@ from .blind_clear_planner_action_live_validation import (
 )
 from .expected_card_locator import locate_card_faces_expected_count
 from .hand_mouse import ExternalHandMouseExecutor, HandMouseLayout
-from .house_card_visibility import classify_house_card_visibility
 from .mouse import BalatroMouseController
 from .save_observer import SaveBalatroObserver
 from .save_state import BalatroSaveReader
 
 
 DEFAULT_LAYOUT = "balatro-hand-mouse.json"
-MAX_DISCARD_CARDS = 5
 
 
 def _planner(args) -> HouseBlindClearPlanner:
@@ -55,20 +53,6 @@ def _planner(args) -> HouseBlindClearPlanner:
     )
 
 
-def _visibility_indices(visibility, *, face_up: bool) -> tuple[int, ...]:
-    return tuple(item.index for item in visibility if item.face_up is face_up)
-
-
-def _print_visibility(visibility) -> tuple[int, ...]:
-    face_down = _visibility_indices(visibility, face_up=False)
-    print(f"Screen face-up cards -> {len(visibility) - len(face_down)}")
-    print(f"Screen face-down cards -> {len(face_down)}")
-    for item in visibility:
-        label = "FACE UP" if item.face_up else "FACE DOWN"
-        print(f"  Screen {item.index}: {label}")
-    return face_down
-
-
 def _print_plan(prefix: str, state, plan) -> tuple[int, ...]:
     indices = _indices(state, plan.action)
     print(f"{prefix} -> {plan.action.name}")
@@ -82,24 +66,11 @@ def _print_plan(prefix: str, state, plan) -> tuple[int, ...]:
     return indices
 
 
-def _load_layout(path: str) -> HandMouseLayout:
-    layout = HandMouseLayout.load(Path(path))
-    layout.point_for("play-hand")
-    layout.point_for("discard")
-    return layout
-
-
-def _locator(expected_count: int):
-    return lambda region: locate_card_faces_expected_count(region, expected_count)
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Preview or execute exactly one guarded The House action. Face-down "
-            "positions are detected from screen pixels and discarded without using "
-            "their hidden save identities for decision-making. Once every held card "
-            "is visibly face-up, normal public-state blind-clear planning resumes."
+            "Preview or execute exactly one guarded The House planner action using "
+            "the structured hand identities already present in save.jkr."
         )
     )
     parser.add_argument("--save")
@@ -154,7 +125,8 @@ def main() -> int:
             parser.error("probabilistic --execute requires --expect-clear-probability")
     elif args.min_clear_probability is not None or args.expect_clear_probability is not None:
         parser.error(
-            "--min-clear-probability/--expect-clear-probability require --allow-probabilistic"
+            "--min-clear-probability/--expect-clear-probability require "
+            "--allow-probabilistic"
         )
 
     try:
@@ -162,11 +134,6 @@ def main() -> int:
             _parse_indices(args.expect_indices) if args.expect_indices is not None else None
         )
     except ValueError as error:
-        parser.error(str(error))
-
-    try:
-        layout = _load_layout(args.layout)
-    except (OSError, RuntimeError, ValueError) as error:
         parser.error(str(error))
 
     reader = BalatroSaveReader(args.save, profile=args.profile)
@@ -192,159 +159,127 @@ def main() -> int:
             + ", ".join(unsupported)
         )
 
+    try:
+        plan = planner.plan(state)
+    except PlannerSearchBudgetExceeded as error:
+        print(f"Save -> {reader.path}")
+        print(f"Phase before -> {state.phase}")
+        print(f"Boss -> {state.boss_name}")
+        print("Execution guard -> BLOCKED")
+        print(f"Reason -> {error}")
+        print(f"Planner nodes evaluated -> {planner.nodes_evaluated}")
+        print("Mouse input sent -> False")
+        return 0
+    except (RuntimeError, ValueError) as error:
+        parser.error(str(error))
+
+    print(f"Save -> {reader.path}")
+    print(f"Phase before -> {state.phase}")
+    print(f"Boss -> {state.boss_name}")
+    print("Boss modifier support -> True")
+    print("Observation source -> save.jkr structured hand identities")
+    print("House face-down masking -> disabled")
+    print(f"Score before -> {state.score}")
+    print(f"Blind target -> {getattr(state.blind, 'requirement', 0)}")
+    print(f"Hands before -> {state.hands_remaining}")
+    print(f"Discards before -> {state.discards_remaining}")
+    print(f"Planner horizon -> {args.horizon} actions")
+    print(f"Planner nodes evaluated -> {planner.nodes_evaluated}")
+    print(f"Owned Jokers -> {len(state.jokers)}")
+    for index, joker in enumerate(state.jokers):
+        print(f"  J{index}: {_joker_text(joker)}")
+    print("Joker projection complete -> True")
+    print("Hidden draw order used -> False")
+    indices = _print_plan("Recommended", state, plan)
+
+    guaranteed = _is_guaranteed(plan)
+    probabilistic = (
+        args.allow_probabilistic
+        and args.min_clear_probability is not None
+        and plan.value.clear_probability + PROBABILITY_TOLERANCE
+        >= args.min_clear_probability
+    )
+    guard_passes = guaranteed or probabilistic
+
+    if guaranteed:
+        print("Execution mode -> exact-guaranteed")
+    elif args.allow_probabilistic:
+        print(
+            "Execution mode -> probabilistic "
+            f"(minimum={args.min_clear_probability:.6f})"
+        )
+    else:
+        print("Execution mode -> exact-guaranteed")
+    print(f"Execution guard -> {'PASS' if guard_passes else 'BLOCKED'}")
+
+    if not guard_passes:
+        print("Reason -> recommendation is not allowed by selected execution mode")
+        print("Mouse input sent -> False")
+        return 0
+
+    if not args.execute:
+        print("Mouse input sent -> False")
+        return 0
+
+    if plan.action.name != args.expect_action:
+        parser.error(
+            "planner recommendation changed before execution: "
+            f"expected action={args.expect_action}, observed={plan.action.name}"
+        )
+    if indices != expected_indices:
+        parser.error(
+            "planner cards changed before execution: "
+            f"expected indices={expected_indices}, observed={indices}"
+        )
+    if not guaranteed and args.allow_probabilistic:
+        assert args.expect_clear_probability is not None
+        if abs(plan.value.clear_probability - args.expect_clear_probability) > PROBABILITY_TOLERANCE:
+            parser.error(
+                "planner clear probability changed before execution: "
+                f"expected={args.expect_clear_probability:.6f}, "
+                f"observed={plan.value.clear_probability:.6f}"
+            )
+
+    try:
+        layout = HandMouseLayout.load(Path(args.layout))
+        layout.point_for("play-hand")
+        layout.point_for("discard")
+    except (OSError, RuntimeError, ValueError) as error:
+        parser.error(str(error))
+
     mouse = BalatroMouseController(armed=True)
+    locator = lambda region: locate_card_faces_expected_count(region, len(state.hand))
+
     try:
         with ExternalHandMouseExecutor(
             layout,
             mouse=mouse,
-            card_locator=_locator(len(state.hand)),
+            card_locator=locator,
         ) as executor:
+            executor_indices = executor.card_indices(state, plan.action)
+            if executor_indices != indices:
+                raise RuntimeError("hand executor index mapping differs from planner mapping")
+
             frame, locations = executor.locate_hand(state)
-            visibility = classify_house_card_visibility(frame, locations)
-
-            print(f"Save -> {reader.path}")
-            print(f"Phase before -> {state.phase}")
-            print(f"Boss -> {state.boss_name}")
-            print("Boss modifier support -> True")
-            print("Boss rule -> first hand is drawn face down")
-            print(f"Score before -> {state.score}")
-            print(f"Blind target -> {getattr(state.blind, 'requirement', 0)}")
-            print(f"Hands before -> {state.hands_remaining}")
-            print(f"Discards before -> {state.discards_remaining}")
             print(f"Screen/save exact-count guard -> PASS ({len(locations)})")
-            face_down = _print_visibility(visibility)
-
-            if face_down:
-                if int(getattr(state, "discards_remaining", 0)) <= 0:
-                    print("Execution guard -> BLOCKED")
-                    print("Reason -> face-down cards remain but no discards are available")
-                    print("Mouse input sent -> False")
-                    return 0
-
-                recommended_indices = face_down[:MAX_DISCARD_CARDS]
-                print("Visibility-clearing action -> DISCARD_CARDS")
+            for index in indices:
+                location = locations[index]
                 print(
-                    "Recommended indices -> "
-                    + ",".join(str(index) for index in recommended_indices)
+                    f"  Screen {index}: {_card_text(state.hand[index])} "
+                    f"-> center=({location.center.x:.4f},{location.center.y:.4f})"
                 )
-                for index in recommended_indices:
-                    print(f"  {index}: [FACE DOWN; identity intentionally withheld]")
-                print("Hidden save card identities used for choice -> False")
-                print("Execution mode -> public-visibility discard")
-                print("Execution guard -> PASS")
 
-                if not args.execute:
-                    print("Mouse input sent -> False")
-                    print(
-                        "Re-run with --execute --expect-action DISCARD_CARDS and the "
-                        "exact indices above to send one guarded visibility-clearing action."
-                    )
-                    return 0
+            executed_indices = executor.dispatch_with_locations(
+                plan.action,
+                state,
+                frame,
+                locations,
+            )
+            if executed_indices != indices:
+                raise RuntimeError("hand executor index mapping changed during dispatch")
 
-                if args.expect_action != DISCARD_CARDS:
-                    parser.error(
-                        "House visibility recommendation changed before execution: "
-                        f"expected action={args.expect_action}, observed={DISCARD_CARDS}"
-                    )
-                if expected_indices != recommended_indices:
-                    parser.error(
-                        "House face-down positions changed before execution: "
-                        f"expected indices={expected_indices}, observed={recommended_indices}"
-                    )
-
-                action = BalatroAction(
-                    DISCARD_CARDS,
-                    [state.hand[index] for index in recommended_indices],
-                )
-                executed = executor.dispatch_with_locations(
-                    action,
-                    state,
-                    frame,
-                    locations,
-                )
-                if executed != recommended_indices:
-                    raise RuntimeError(
-                        "House executor index mapping changed during dispatch"
-                    )
-            else:
-                print("Public visibility gate -> PASS (all held cards face-up)")
-                try:
-                    plan = planner.plan(state)
-                except PlannerSearchBudgetExceeded as error:
-                    print("Execution guard -> BLOCKED")
-                    print(f"Reason -> {error}")
-                    print(f"Planner nodes evaluated -> {planner.nodes_evaluated}")
-                    print("Mouse input sent -> False")
-                    return 0
-
-                print(f"Planner horizon -> {args.horizon} actions")
-                print(f"Planner nodes evaluated -> {planner.nodes_evaluated}")
-                print(f"Owned Jokers -> {len(state.jokers)}")
-                for index, joker in enumerate(state.jokers):
-                    print(f"  J{index}: {_joker_text(joker)}")
-                print("Joker projection complete -> True")
-                print("Hidden draw order used -> False")
-                indices = _print_plan("Recommended", state, plan)
-                guaranteed = _is_guaranteed(plan)
-                probabilistic = (
-                    args.allow_probabilistic
-                    and args.min_clear_probability is not None
-                    and plan.value.clear_probability + PROBABILITY_TOLERANCE
-                    >= args.min_clear_probability
-                )
-                guard_passes = guaranteed or probabilistic
-                if guaranteed:
-                    print("Execution mode -> exact-guaranteed")
-                elif args.allow_probabilistic:
-                    print(
-                        "Execution mode -> probabilistic "
-                        f"(minimum={args.min_clear_probability:.6f})"
-                    )
-                else:
-                    print("Execution mode -> exact-guaranteed")
-                print(f"Execution guard -> {'PASS' if guard_passes else 'BLOCKED'}")
-                if not guard_passes:
-                    print("Reason -> recommendation is not allowed by selected execution mode")
-                    print("Mouse input sent -> False")
-                    return 0
-                if not args.execute:
-                    print("Mouse input sent -> False")
-                    return 0
-                if plan.action.name != args.expect_action:
-                    parser.error(
-                        "planner recommendation changed before execution: "
-                        f"expected action={args.expect_action}, observed={plan.action.name}"
-                    )
-                if indices != expected_indices:
-                    parser.error(
-                        "planner cards changed before execution: "
-                        f"expected indices={expected_indices}, observed={indices}"
-                    )
-                if not guaranteed and args.allow_probabilistic:
-                    assert args.expect_clear_probability is not None
-                    if (
-                        abs(plan.value.clear_probability - args.expect_clear_probability)
-                        > PROBABILITY_TOLERANCE
-                    ):
-                        parser.error(
-                            "planner clear probability changed before execution: "
-                            f"expected={args.expect_clear_probability:.6f}, "
-                            f"observed={plan.value.clear_probability:.6f}"
-                        )
-                executed = executor.dispatch_with_locations(
-                    plan.action,
-                    state,
-                    frame,
-                    locations,
-                )
-                if executed != indices:
-                    raise RuntimeError("House executor index mapping changed during dispatch")
-    except (RuntimeError, TimeoutError, ValueError) as error:
-        parser.error(str(error))
-
-    print("Mouse input sent -> True")
-    print("Waiting for save checkpoint -> changed hand/round state")
-    try:
+        print("Mouse input sent -> True")
+        print("Waiting for save checkpoint -> changed hand/round state")
         persisted = BalatroLiveSynchronizer(
             observer,
             poll_interval=0.05,
@@ -367,7 +302,29 @@ def main() -> int:
     for index, joker in enumerate(persisted_state.jokers):
         print(f"  J{index}: {_joker_text(joker)}")
     print("Checkpoint verified -> True")
-    print("Replan deferred -> re-run House validator for a fresh public-visibility capture")
+
+    if persisted_state.phase == "SELECTING_HAND":
+        if persisted_state.boss_name != HouseBlindClearPlanner.BOSS_NAME:
+            print(f"Replan blocked -> unexpected boss {persisted_state.boss_name!r}")
+        else:
+            unsupported_after = planner.evaluator.score_outcomes.joker_projector.unsupported_jokers(
+                persisted_state
+            )
+            if unsupported_after:
+                print(
+                    "Replan blocked -> unsupported Joker projection(s): "
+                    + ", ".join(unsupported_after)
+                )
+            else:
+                try:
+                    replanned = planner.plan(persisted_state)
+                except (PlannerSearchBudgetExceeded, RuntimeError, ValueError) as error:
+                    print(f"Replan blocked -> {error}")
+                else:
+                    _print_plan("Replanned", persisted_state, replanned)
+    else:
+        print(f"Replan skipped -> phase is {persisted_state.phase}")
+
     print("Follow-up mouse input sent -> False")
     return 0
 
