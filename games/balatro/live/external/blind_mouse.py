@@ -11,6 +11,13 @@ from .viewport import BalatroViewport, NormalizedPoint
 
 
 BLIND_TARGETS = {"small", "big", "boss"}
+BLIND_CONTROLS = {
+    "small-select",
+    "small-skip",
+    "big-select",
+    "big-skip",
+    "boss-select",
+}
 
 
 class BlindMouseLayoutError(RuntimeError):
@@ -19,19 +26,21 @@ class BlindMouseLayoutError(RuntimeError):
 
 @dataclass(frozen=True)
 class BlindMouseLayout:
-    """Resolution-independent calibrated Select-button points for blind selection."""
+    """Resolution-independent calibrated blind Select/Skip control points."""
 
-    small: NormalizedPoint | None = None
-    big: NormalizedPoint | None = None
-    boss: NormalizedPoint | None = None
+    small_select: NormalizedPoint | None = None
+    small_skip: NormalizedPoint | None = None
+    big_select: NormalizedPoint | None = None
+    big_skip: NormalizedPoint | None = None
+    boss_select: NormalizedPoint | None = None
 
-    def point_for(self, target: str) -> NormalizedPoint:
-        key = str(target).lower()
-        if key not in BLIND_TARGETS:
-            raise BlindMouseLayoutError(f"unsupported blind target: {target!r}")
-        point = getattr(self, key)
+    def point_for(self, control: str) -> NormalizedPoint:
+        key = str(control).lower().replace("_", "-")
+        if key not in BLIND_CONTROLS:
+            raise BlindMouseLayoutError(f"unsupported blind control: {control!r}")
+        point = getattr(self, key.replace("-", "_"))
         if point is None:
-            raise BlindMouseLayoutError(f"{key} blind Select button is not calibrated")
+            raise BlindMouseLayoutError(f"{key} control is not calibrated")
         return point
 
     @classmethod
@@ -43,17 +52,27 @@ class BlindMouseLayout:
 
     @classmethod
     def from_dict(cls, raw: dict) -> "BlindMouseLayout":
+        # Accept the first experimental flat select-only format so local calibration
+        # files do not become unreadable if one was already created.
         return cls(
-            small=cls._point_from_value(raw.get("small")),
-            big=cls._point_from_value(raw.get("big")),
-            boss=cls._point_from_value(raw.get("boss")),
+            small_select=cls._point_from_value(
+                raw.get("small_select", raw.get("small"))
+            ),
+            small_skip=cls._point_from_value(raw.get("small_skip")),
+            big_select=cls._point_from_value(raw.get("big_select", raw.get("big"))),
+            big_skip=cls._point_from_value(raw.get("big_skip")),
+            boss_select=cls._point_from_value(
+                raw.get("boss_select", raw.get("boss"))
+            ),
         )
 
     def to_dict(self) -> dict:
         return {
-            "small": self._point_to_value(self.small),
-            "big": self._point_to_value(self.big),
-            "boss": self._point_to_value(self.boss),
+            "small_select": self._point_to_value(self.small_select),
+            "small_skip": self._point_to_value(self.small_skip),
+            "big_select": self._point_to_value(self.big_select),
+            "big_skip": self._point_to_value(self.big_skip),
+            "boss_select": self._point_to_value(self.boss_select),
         }
 
     def save(self, path: str | Path) -> Path:
@@ -86,7 +105,7 @@ class BlindMouseLayout:
 
 
 class ExternalBlindMouseExecutor:
-    """Click one calibrated blind Select button through normal desktop input."""
+    """Click one calibrated blind Select/Skip control through desktop input."""
 
     def __init__(
         self,
@@ -105,8 +124,8 @@ class ExternalBlindMouseExecutor:
         self.focus_timeout = max(0.0, focus_timeout)
         self.focus_poll_interval = max(0.0, focus_poll_interval)
 
-    def dispatch(self, target: str) -> BalatroFrame:
-        point = self.layout.point_for(target)
+    def dispatch(self, control: str) -> BalatroFrame:
+        point = self.layout.point_for(control)
         frame = self._capture_focused_frame()
         viewport = BalatroViewport(frame)
         self.mouse.click_screen(viewport.screen_point(point))
@@ -141,7 +160,7 @@ class ExternalBlindMouseExecutor:
             if time.monotonic() >= deadline:
                 raise BlindMouseLayoutError(
                     "Balatro focus was requested, but Windows did not report Balatro as "
-                    "the foreground window before blind selection capture"
+                    "the foreground window before blind control capture"
                 )
             if self.focus_poll_interval > 0:
                 time.sleep(self.focus_poll_interval)
