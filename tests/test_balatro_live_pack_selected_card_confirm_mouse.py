@@ -1,9 +1,11 @@
 from types import SimpleNamespace
 
 from games.balatro.live.external.live_pack_selected_card_confirm_mouse import (
+    _local_search_points,
     _memory_confirm_candidates,
     _resolve_confirm,
 )
+from games.balatro.live.external.viewport import PixelPoint
 
 
 def _value(kind, value):
@@ -116,3 +118,25 @@ def test_memory_confirm_candidates_find_exact_live_ui_geometry():
     assert candidate.geometry["y"] == 6.0
     assert candidate.geometry["w"] == 1.0
     assert candidate.geometry["h"] == 0.5
+
+
+def test_local_search_points_are_bounded_and_nearest_first():
+    rect = SimpleNamespace(left=-200, top=100, right=200, bottom=400)
+    origin = PixelPoint(0, 250)
+
+    points = _local_search_points(
+        origin,
+        rect,
+        step=12,
+        radius_x=24,
+        radius_y=24,
+    )
+
+    assert origin not in points
+    assert points
+    assert all(rect.left <= point.x < rect.right for point in points)
+    assert all(rect.top <= point.y < rect.bottom for point in points)
+
+    distances = [abs(point.x - origin.x) + abs(point.y - origin.y) for point in points]
+    assert distances == sorted(distances)
+    assert distances[0] == 12
