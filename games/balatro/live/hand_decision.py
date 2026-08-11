@@ -14,6 +14,18 @@ from games.balatro.scoring import BalatroScorer
 
 
 @dataclass(frozen=True)
+class LivePlayProjection:
+    hand: PokerHand
+    hand_score: int
+    current_score: int
+    projected_total: int
+    blind_target: int
+    remaining_before: int
+    remaining_after: int
+    clears_blind: bool
+
+
+@dataclass(frozen=True)
 class _DecisionContext:
     remaining_chips: float
     required_per_hand: float
@@ -71,6 +83,31 @@ class LiveHandDecisionEvaluator(Evaluator):
             return self._discard_value(state, action, context)
 
         return -1_000_000.0
+
+    def project_play(self, state, action: Action) -> LivePlayProjection:
+        if action.name != PLAY_CARDS:
+            raise ValueError("live play projection requires PLAY_CARDS")
+        if not action.cards:
+            raise ValueError("live play projection requires at least one played card")
+
+        hand = self.hand_evaluator.evaluate(action.cards)
+        hand_score = int(self._estimate_play(state, action))
+        current_score = int(getattr(state, "score", 0))
+        target = int(getattr(getattr(state, "blind", None), "requirement", 0))
+        projected_total = current_score + hand_score
+        remaining_before = max(0, target - current_score)
+        remaining_after = max(0, target - projected_total)
+
+        return LivePlayProjection(
+            hand=hand,
+            hand_score=hand_score,
+            current_score=current_score,
+            projected_total=projected_total,
+            blind_target=target,
+            remaining_before=remaining_before,
+            remaining_after=remaining_after,
+            clears_blind=target > 0 and projected_total >= target,
+        )
 
     def _context(self, state) -> _DecisionContext:
         state_id = id(state)
