@@ -42,3 +42,26 @@ def test_depth_aware_draw_sampling_keeps_small_spaces_exact():
 
     assert root.exact is True
     assert child.exact is True
+
+
+def test_depth_aware_draw_sampling_does_not_exactly_expand_large_one_card_children():
+    model = DepthAwarePublicDrawOutcomeModel(
+        exact_combination_limit=128,
+        root_sample_count=4,
+        child_sample_count=1,
+        seed=7,
+    )
+
+    root = model.distribution(_composition(44), 1)
+    child = model.distribution(_composition(41), 1)
+
+    # Root keeps the generous exact limit: 44 one-card outcomes are tractable.
+    assert root.exact is True
+    assert root.combination_count == 44
+
+    # Child uses the tighter default exact limit (8), so the same kind of
+    # one-card redraw is sampled instead of recursively expanding 41 branches.
+    assert child.exact is False
+    assert child.combination_count == 41
+    assert child.sample_count == 1
+    assert len(child.outcomes) == 1
