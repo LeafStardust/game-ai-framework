@@ -107,6 +107,17 @@ def main() -> int:
     for number, step in enumerate(result.steps, start=1):
         before = step.before_state
         after = step.after_state
+        if after is None:
+            print(
+                f"Step {number} -> {step.action.name} "
+                f"indices={','.join(str(index) for index in step.indices)} "
+                f"score={before.score}->unknown "
+                f"hands={before.hands_remaining}->unknown "
+                f"discards={before.discards_remaining}->unknown "
+                f"phase={before.phase}->TERMINAL_SAVE_UNAVAILABLE"
+            )
+            continue
+
         print(
             f"Step {number} -> {step.action.name} "
             f"indices={','.join(str(index) for index in step.indices)} "
@@ -123,6 +134,8 @@ def main() -> int:
         print(f"Final hands -> {final_state.hands_remaining}")
         print(f"Final discards -> {final_state.discards_remaining}")
         print(f"Final hand cards -> {len(final_state.hand)}")
+    else:
+        print("Final persisted state -> unavailable (run save removed)")
     print(f"Stop reason -> {result.stop_reason}")
     print("Checkpoint loop verified -> True")
     return 0
