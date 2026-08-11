@@ -167,7 +167,8 @@
 - [ ] Extend score-outcome modelling to remaining stochastic Joker/effect sources
 - [x] Side-effect-free Joker scoring projection architecture with live-validated stateful Ice Cream support
 - [ ] Extend side-effect-free hypothetical scoring across remaining relevant Joker implementations
-- [ ] Boss-blind modifier integration into hypothetical score/legality calculations
+- [x] Boss-blind legality integration foundation with live-validated The Psychic support
+- [ ] Extend boss-blind modifier integration to remaining bosses
 - [x] Public remaining-deck composition model that never exposes hidden draw order
 - [x] Draw/discard outcome distributions from public deck composition
 - [x] Bounded two-action blind-clear planner over play/discard branches
