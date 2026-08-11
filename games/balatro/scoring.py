@@ -57,26 +57,32 @@ class BalatroScorer:
     def _apply_card_modifiers(
         self,
         score: HandScore,
-        cards
+        cards,
+        *,
+        resolve_random_effects: bool = True,
     ) -> None:
 
         for card in cards:
 
             self._apply_single_card_modifier(
                 score,
-                card
+                card,
+                resolve_random_effects=resolve_random_effects,
             )
 
             if card.seal == "Red":
                 self._apply_single_card_modifier(
                     score,
-                    card
+                    card,
+                    resolve_random_effects=resolve_random_effects,
                 )
 
     def _apply_single_card_modifier(
         self,
         score: HandScore,
-        card
+        card,
+        *,
+        resolve_random_effects: bool = True,
     ) -> None:
 
         if card.enhancement == "Bonus":
@@ -100,9 +106,12 @@ class BalatroScorer:
         elif card.edition == "Polychrome":
             score.x_mult *= 1.5
 
-        if card.enhancement == "Lucky":
-            if random.random() < 0.2:
-                score.mult += 20
+        if (
+            resolve_random_effects
+            and card.enhancement == "Lucky"
+            and random.random() < 0.2
+        ):
+            score.mult += 20
 
     def _apply_held_modifiers(
         self,
@@ -122,6 +131,7 @@ class BalatroScorer:
         cards=None,
         *,
         include_card_chips: bool = False,
+        resolve_random_effects: bool = True,
     ) -> HandScore:
 
         base_score = self.SCORES[hand]
@@ -179,12 +189,14 @@ class BalatroScorer:
             modifier_cards = self.scoring_cards(hand, played_cards)
             score.chips += sum(
                 self.card_chip_value(card)
+                * (2 if getattr(card, "seal", None) == "Red" else 1)
                 for card in modifier_cards
             )
 
         self._apply_card_modifiers(
             score,
-            modifier_cards
+            modifier_cards,
+            resolve_random_effects=resolve_random_effects,
         )
 
         if state is not None:
