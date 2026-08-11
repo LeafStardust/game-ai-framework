@@ -189,8 +189,9 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             if rank is None or suit is None:
                 continue
 
+            live_id = card.get("live_id", card.get("id", index))
             result.append(
-                self._card(card, index)
+                self._card(card, live_id)
             )
 
         return result
@@ -258,7 +259,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
     def _card(
         self,
         card: dict,
-        live_id: int,
+        live_id: int | str | None,
     ) -> BalatroCard:
         value = card.get("value") or card
         modifier = card.get("modifier") or card
