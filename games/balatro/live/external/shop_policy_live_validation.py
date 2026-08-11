@@ -55,7 +55,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Preview or execute exactly one policy-recommended, buffer-safe Balatro "
-            "shop purchase. Execution never leaves the shop or chains purchases."
+            "shop purchase. With --finish-if-done, execution may also leave the shop "
+            "when the projected re-rank recommends END_SHOP."
         )
     )
     parser.add_argument("--save")
@@ -73,12 +74,22 @@ def main() -> int:
             "current recommendation"
         ),
     )
+    parser.add_argument(
+        "--finish-if-done",
+        action="store_true",
+        help=(
+            "after the one purchase, leave the shop and reconcile the checkpoint "
+            "only if the projected next recommendation is END_SHOP"
+        ),
+    )
     args = parser.parse_args()
 
     if args.execute and not args.expect_label:
         parser.error("--execute requires --expect-label")
     if args.expect_label and not args.execute:
         parser.error("--expect-label is only valid with --execute")
+    if args.finish_if_done and not args.execute:
+        parser.error("--finish-if-done requires --execute")
 
     reader = BalatroSaveReader(args.save, profile=args.profile)
     observer = SaveBalatroObserver(reader)
@@ -162,13 +173,31 @@ def main() -> int:
 
         reranked = controller.rank_actions(session)
         print_ranking(reranked, heading="Projected ranking after one purchase:")
-        if reranked:
-            next_action = reranked[0].action
+        next_action = reranked[0].action if reranked else None
+        if next_action is not None:
             print(f"Next recommendation -> {next_action.name}: {target_label(next_action)}")
         else:
             print("Next recommendation -> none")
         print("Automatic follow-up purchase -> False")
-        print("Automatic END_SHOP -> False")
+
+        should_finish = (
+            args.finish_if_done
+            and next_action is not None
+            and next_action.name == END_SHOP
+        )
+        if not should_finish:
+            print("Automatic END_SHOP -> False")
+            return 0
+
+        print("Automatic END_SHOP -> True (policy recommends stopping)")
+        try:
+            checkpoint_snapshot, checkpoint_state = controller.leave_shop(session)
+        except (RuntimeError, TimeoutError, ValueError) as error:
+            parser.error(str(error))
+
+        print("Checkpoint reconciliation -> PASS")
+        print(f"Persisted phase -> {checkpoint_snapshot.phase}")
+        print(f"Persisted money -> {checkpoint_state.money}")
 
     return 0
 
