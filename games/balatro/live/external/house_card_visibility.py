@@ -23,6 +23,8 @@ class HouseCardVisibility:
     index: int
     face_up: bool
     neutral_fraction: float
+    mean_brightness: float = 0.0
+    mean_chroma: float = 0.0
 
 
 def _rgb_image_from_bgra(width: int, height: int, bgra: bytes) -> RGBImage:
@@ -41,20 +43,17 @@ def _pixel_rgb(image: RGBImage, x: int, y: int) -> tuple[int, int, int]:
     return red, green, blue
 
 
-def face_interior_neutral_fraction(image: RGBImage) -> float:
-    """Measure the bright neutral interior exposed by a normal card face.
+def face_interior_metrics(image: RGBImage) -> tuple[float, float, float]:
+    """Return neutral fraction, mean brightness, and mean chroma for card interior.
 
-    The House card back can contain a bright neutral border, so merely finding a
-    white row is not sufficient to establish that rank/suit information is public.
-    A face-up Balatro card exposes a broad cream/white interior on its unoccluded
-    left side; a card back does not. The measurement intentionally ignores rank
-    and suit glyph identity and uses screen pixels only.
+    These are screen-only diagnostics. They deliberately avoid rank/suit recognition
+    so The House's hidden card identities remain unavailable to the planner.
     """
 
     try:
         face_top = detect_card_face_top(image)
     except ValueError:
-        return 0.0
+        return 0.0, 0.0, 0.0
 
     left = max(0, round(FACE_INTERIOR_LEFT * image.width))
     right = min(
@@ -75,18 +74,31 @@ def face_interior_neutral_fraction(image: RGBImage) -> float:
 
     neutral = 0
     total = 0
+    brightness_total = 0.0
+    chroma_total = 0.0
     for y in range(top, bottom):
         for x in range(left, right):
             red, green, blue = _pixel_rgb(image, x, y)
+            low = min(red, green, blue)
+            high = max(red, green, blue)
             total += 1
-            if (
-                min(red, green, blue) >= FACE_NEUTRAL_MIN
-                and max(red, green, blue) - min(red, green, blue)
-                <= FACE_NEUTRAL_CHROMA_MAX
-            ):
+            brightness_total += (red + green + blue) / 3.0
+            chroma_total += high - low
+            if low >= FACE_NEUTRAL_MIN and high - low <= FACE_NEUTRAL_CHROMA_MAX:
                 neutral += 1
 
-    return neutral / max(1, total)
+    denominator = max(1, total)
+    return (
+        neutral / denominator,
+        brightness_total / denominator,
+        chroma_total / denominator,
+    )
+
+
+def face_interior_neutral_fraction(image: RGBImage) -> float:
+    """Measure the bright neutral interior exposed by a normal card face."""
+
+    return face_interior_metrics(image)[0]
 
 
 def is_face_up_image(image: RGBImage) -> bool:
@@ -103,12 +115,14 @@ def classify_house_card_visibility(frame, locations) -> tuple[HouseCardVisibilit
     for index, location in enumerate(locations):
         region = viewport.crop(location.normalized_rect)
         image = _rgb_image_from_bgra(region.width, region.height, region.bgra)
-        neutral_fraction = face_interior_neutral_fraction(image)
+        neutral_fraction, mean_brightness, mean_chroma = face_interior_metrics(image)
         result.append(
             HouseCardVisibility(
                 index,
                 neutral_fraction >= FACE_INTERIOR_NEUTRAL_FRACTION_MIN,
                 neutral_fraction,
+                mean_brightness,
+                mean_chroma,
             )
         )
     return tuple(result)
