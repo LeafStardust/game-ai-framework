@@ -14,6 +14,7 @@ from games.balatro.live.external.shop_mouse import (
 from games.balatro.live.external.shop_mouse_live_validation import select_action
 from games.balatro.live.external.viewport import NormalizedPoint
 from games.balatro.live.external.window import BalatroWindow, WindowRect
+from games.balatro.live.shop_sync import BufferedShopTransaction
 from games.balatro.state import BalatroState
 
 
@@ -127,6 +128,7 @@ def test_real_capture_path_focuses_balatro_before_foreground_capture():
         ),
         capture=ForegroundCapture(frame, provider),
         mouse=BalatroMouseController(provider=provider, armed=True),
+        focus_settle_delay=0,
     )
 
     executor.dispatch(
@@ -135,3 +137,44 @@ def test_real_capture_path_focuses_balatro_before_foreground_capture():
     )
 
     assert provider.events[0] == ("focus", 42)
+
+
+def test_single_step_diagnostic_click_does_not_project_purchase():
+    provider = Provider()
+    frame = _frame()
+    state = _state()
+    action = select_action(state, "buy-joker", 0)
+    transaction = BufferedShopTransaction.begin(state)
+    executor = ExternalShopMouseExecutor(
+        ShopMouseLayout(
+            main={
+                0: ShopClickSequence(
+                    (
+                        ShopPointerStep("click", NormalizedPoint(0.4, 0.4)),
+                        ShopPointerStep("click", NormalizedPoint(0.4, 0.5)),
+                    )
+                )
+            }
+        ),
+        capture=ForegroundCapture(frame, provider),
+        mouse=BalatroMouseController(provider=provider, armed=True),
+        focus_settle_delay=0,
+        between_click_delay=0,
+    )
+
+    executor.dispatch(
+        action,
+        state,
+        transaction,
+        only_step=1,
+    )
+
+    assert state.money == 10
+    assert state.jokers == []
+    assert state.shop_jokers == [action.target]
+    assert transaction.purchases == []
+    assert provider.events[-3:] == [
+        ("move", 260, 280),
+        ("down",),
+        ("up",),
+    ]
