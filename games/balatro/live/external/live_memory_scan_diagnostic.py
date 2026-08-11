@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import struct
+from collections import Counter
 from dataclasses import dataclass
 
 from .luajit_memory import LuaJITGC64Decoder, LuaJITMemoryError
@@ -8,6 +9,9 @@ from .process_memory import BalatroProcessMemoryError, WindowsProcessMemoryReade
 
 
 REQUIRED_G_KEYS = {"GAME", "STATE", "hand", "jokers"}
+MEM_PRIVATE = 0x20000
+MEM_MAPPED = 0x40000
+MEM_IMAGE = 0x1000000
 
 
 @dataclass(frozen=True)
@@ -31,6 +35,23 @@ NON_GC64_STRING_LAYOUT = _StringLayout(
     gct_offset=5,
     length_offset=16,
 )
+
+
+def _region_kind_name(kind: int) -> str:
+    if kind == MEM_PRIVATE:
+        return "PRIVATE"
+    if kind == MEM_MAPPED:
+        return "MAPPED"
+    if kind == MEM_IMAGE:
+        return "IMAGE"
+    return f"0x{kind:x}"
+
+
+def _region_for_address(reader: WindowsProcessMemoryReader, address: int):
+    for region in reader.readable_regions():
+        if region.base <= address < region.end:
+            return region
+    return None
 
 
 def _find_valid_gc_strings_for_layout(
@@ -109,6 +130,67 @@ def _find_valid_gc64_strings(
     )
 
 
+def _raw_string_diagnostics(
+    reader: WindowsProcessMemoryReader,
+    text: str,
+    *,
+    max_matches: int = 4096,
+) -> tuple[int, ...]:
+    encoded = text.encode("utf-8")
+    matches = reader.find_bytes(encoded, max_matches=max_matches)
+    regions = reader.readable_regions()
+
+    kind_counts: Counter[str] = Counter()
+    private_matches: list[int] = []
+    len_prefix_matches: list[int] = []
+    len_prefix_private: list[int] = []
+    expected_len = struct.pack("<I", len(encoded))
+
+    for payload in matches:
+        region = next(
+            (region for region in regions if region.base <= payload < region.end),
+            None,
+        )
+        kind = _region_kind_name(region.kind) if region is not None else "UNKNOWN"
+        kind_counts[kind] += 1
+        if region is not None and region.kind == MEM_PRIVATE:
+            private_matches.append(payload)
+
+        if payload < 4:
+            continue
+        try:
+            prefix = reader.read(payload - 4, 4)
+        except BalatroProcessMemoryError:
+            continue
+        if prefix == expected_len:
+            len_prefix_matches.append(payload)
+            if region is not None and region.kind == MEM_PRIVATE:
+                len_prefix_private.append(payload)
+
+    print(f"Raw ASCII '{text}' matches -> {len(matches)}" + (" (capped)" if len(matches) == max_matches else ""))
+    print(
+        f"Raw '{text}' memory kinds -> "
+        + (", ".join(f"{name}:{count}" for name, count in sorted(kind_counts.items())) or "none")
+    )
+    print(f"Raw '{text}' PRIVATE matches -> {len(private_matches)}")
+    print(f"Raw '{text}' with uint32 length immediately before payload -> {len(len_prefix_matches)}")
+    print(f"Raw '{text}' PRIVATE + uint32 length prefix -> {len(len_prefix_private)}")
+
+    preview = len_prefix_private[:8] or len_prefix_matches[:8] or private_matches[:8]
+    for index, payload in enumerate(preview):
+        start = max(0, payload - 40)
+        try:
+            prefix = reader.read(start, payload - start)
+        except BalatroProcessMemoryError:
+            continue
+        print(
+            f"  {text} candidate {index} payload=0x{payload:x} "
+            f"prefix[{len(prefix)}]={prefix.hex(' ')}"
+        )
+
+    return matches
+
+
 def main() -> int:
     try:
         with WindowsProcessMemoryReader.from_balatro_window() as reader:
@@ -120,12 +202,9 @@ def main() -> int:
             print("save.jkr used -> False")
             print("LuaJIT layouts under test -> GC64, non-GC64")
 
-            raw_game = reader.find_bytes(b"GAME", max_matches=4096)
-            capped = len(raw_game) == 4096
-            print(
-                "Raw ASCII 'GAME' matches -> "
-                f"{len(raw_game)}" + (" (capped at 4096)" if capped else "")
-            )
+            raw_game = _raw_string_diagnostics(reader, "GAME")
+            for cross_check in ("STATE", "jokers", "consumeables"):
+                _raw_string_diagnostics(reader, cross_check)
 
             old_gc_strings = decoder.find_gc_strings("GAME", max_matches=128)
             gc64_strings = _find_valid_gc64_strings(
@@ -214,7 +293,10 @@ def main() -> int:
 
             print("Discovery diagnostic -> INCONCLUSIVE")
             if not gc64_strings and not non_gc64_strings:
-                print("Likely failure class -> GCstr header assumptions or scan coverage")
+                if raw_game:
+                    print("Likely failure class -> runtime GCstr representation differs from assumed upstream layouts")
+                else:
+                    print("Likely failure class -> process scan coverage")
             elif not total_nodes:
                 print("Likely failure class -> GC64 TValue encoding/reference assumption")
             elif not owner_candidates:
