@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from math import comb
 
 from games.balatro.hand import PokerHand
+from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.scoring import BalatroScorer
 
 
@@ -15,12 +16,7 @@ class ScoreOutcome:
 
 @dataclass(frozen=True)
 class ScoreOutcomeDistribution:
-    """Discrete scoring outcomes for one visible play.
-
-    The current implementation models deterministic visible card effects and the
-    scoring branch of Lucky cards. Joker randomness is intentionally outside this
-    layer until side-effect-free Joker projection is available.
-    """
+    """Discrete scoring outcomes for one visible play."""
 
     outcomes: tuple[ScoreOutcome, ...]
     random_sources: tuple[str, ...] = ()
@@ -62,20 +58,39 @@ class ScoreOutcomeDistribution:
         )
 
 
-class VisibleCardScoreOutcomeModel:
-    """Project public visible-card scoring without consuming game RNG.
+@dataclass(frozen=True)
+class ScoreProjectionTransition:
+    """Score distribution plus the isolated post-scoring branch state."""
 
-    This layer deliberately strips Jokers from hypothetical scoring. It therefore
-    matches the current live hand evaluator's scope while giving the planner a
-    deterministic floor and a discrete Lucky-card distribution instead of a
-    sampled guess.
+    distribution: ScoreOutcomeDistribution
+    state_after_scoring: object | None
+    unsupported_jokers: tuple[str, ...] = ()
+
+    @property
+    def joker_projection_complete(self) -> bool:
+        return not self.unsupported_jokers
+
+
+class VisibleCardScoreOutcomeModel:
+    """Project public visible scoring without consuming Balatro's hidden RNG.
+
+    Card-level Lucky Mult is represented analytically. Joker scoring is delegated
+    to ``LiveJokerScoreProjector``, which deep-copies the state and only executes
+    Joker implementations that have been explicitly validated for live projection.
+    Stateful mutations therefore belong to the hypothetical branch, never to the
+    authoritative observed state.
     """
 
     LUCKY_MULT_PROBABILITY = 0.2
     LUCKY_MULT_BONUS = 20
 
-    def __init__(self, scorer: BalatroScorer | None = None):
+    def __init__(
+        self,
+        scorer: BalatroScorer | None = None,
+        joker_projector: LiveJokerScoreProjector | None = None,
+    ):
         self.scorer = scorer or BalatroScorer()
+        self.joker_projector = joker_projector or LiveJokerScoreProjector(self.scorer)
 
     def project(
         self,
@@ -85,22 +100,40 @@ class VisibleCardScoreOutcomeModel:
         *,
         include_card_chips: bool = True,
     ) -> ScoreOutcomeDistribution:
-        safe_state = state.copy() if state is not None else None
-        if safe_state is not None:
-            safe_state.jokers = []
-
-        base = self.scorer.score(
+        return self.project_transition(
             hand,
-            safe_state,
-            cards=cards,
+            state,
+            cards,
+            include_card_chips=include_card_chips,
+        ).distribution
+
+    def project_transition(
+        self,
+        hand: PokerHand,
+        state,
+        cards,
+        *,
+        include_card_chips: bool = True,
+    ) -> ScoreProjectionTransition:
+        joker_projection = self.joker_projector.score(
+            hand,
+            state,
+            cards,
             include_card_chips=include_card_chips,
             resolve_random_effects=False,
         )
+        base = joker_projection.score
+        copied_cards = joker_projection.cards_after_copy
 
-        lucky_triggers = self._lucky_scoring_triggers(hand, cards)
+        lucky_triggers = self._lucky_scoring_triggers(hand, copied_cards)
         if lucky_triggers == 0:
-            return ScoreOutcomeDistribution(
+            distribution = ScoreOutcomeDistribution(
                 outcomes=(ScoreOutcome(base.total, 1.0),),
+            )
+            return ScoreProjectionTransition(
+                distribution=distribution,
+                state_after_scoring=joker_projection.state_after_scoring,
+                unsupported_jokers=joker_projection.unsupported_jokers,
             )
 
         probabilities: dict[int, float] = {}
@@ -118,13 +151,17 @@ class VisibleCardScoreOutcomeModel:
             )
             probabilities[total] = probabilities.get(total, 0.0) + probability
 
-        outcomes = tuple(
-            ScoreOutcome(score, probability)
-            for score, probability in sorted(probabilities.items())
-        )
-        return ScoreOutcomeDistribution(
-            outcomes=outcomes,
+        distribution = ScoreOutcomeDistribution(
+            outcomes=tuple(
+                ScoreOutcome(score, probability)
+                for score, probability in sorted(probabilities.items())
+            ),
             random_sources=(f"Lucky mult x{lucky_triggers}",),
+        )
+        return ScoreProjectionTransition(
+            distribution=distribution,
+            state_after_scoring=joker_projection.state_after_scoring,
+            unsupported_jokers=joker_projection.unsupported_jokers,
         )
 
     def _lucky_scoring_triggers(self, hand: PokerHand, cards) -> int:
