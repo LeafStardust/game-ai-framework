@@ -6,7 +6,11 @@ from games.balatro.live.external.shop_mouse import (
     ShopMouseLayout,
     ShopPointerStep,
 )
-from games.balatro.live.external.shop_reflow import ShopMainReflowLocator
+from games.balatro.live.external.shop_reflow import (
+    DEFAULT_SHOP_CARD_MAX_CHANNEL_SPREAD,
+    DEFAULT_SHOP_CARD_MIN_BRIGHTNESS,
+    ShopMainReflowLocator,
+)
 from games.balatro.live.external.viewport import NormalizedPoint
 from games.balatro.state import BalatroState
 
@@ -56,3 +60,10 @@ def test_remaining_main_offers_preserve_original_area_order_after_split_translat
     offers = ShopMainReflowLocator._remaining_main_offers(state)
 
     assert offers == [consumable_a, consumable_b, joker]
+
+
+def test_reflow_locator_uses_shop_specific_detection_thresholds_by_default():
+    locator = ShopMainReflowLocator(Executor(ShopMouseLayout()))
+
+    assert locator.min_brightness == DEFAULT_SHOP_CARD_MIN_BRIGHTNESS == 145
+    assert locator.max_channel_spread == DEFAULT_SHOP_CARD_MAX_CHANNEL_SPREAD == 100
