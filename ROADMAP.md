@@ -99,16 +99,16 @@
 - [x] Narrow LuaJIT value/table decoder foundation
 - [x] Initial live-memory `G` discovery probe
 - [x] Unit coverage for LuaJIT-memory decoding primitives
-- [ ] Validate LuaJIT layout against a fresh live Balatro run
-- [ ] Reliably discover and validate Balatro global `G`
-- [ ] Read whitelisted current-run fields directly from live memory
+- [x] Validate LuaJIT layout against a fresh live Balatro run
+- [x] Reliably discover and validate Balatro global `G`
+- [x] Read whitelisted current-run fields directly from live memory
 - [ ] Read current card/Joker/consumable/shop identities directly from live objects
 - [ ] Read live UI object geometry where stable enough for execution targeting
-- [ ] Detect deck and stake directly from the active run
-- [ ] Translate direct-memory observation into `LiveBalatroSnapshot`
-- [ ] Make direct live-memory observer the production default
-- [ ] Keep `save.jkr` parser only as fallback/debug/recovery input
-- [ ] Exclude RNG state, seed exploitation and ordered future draw information from production observation
+- [x] Detect deck and stake directly from the active run
+- [x] Translate direct-memory observation into `LiveBalatroSnapshot`
+- [x] Make direct live-memory observer the production default
+- [x] Keep `save.jkr` parser only as fallback/debug/recovery input
+- [x] Exclude RNG state, seed exploitation and ordered future draw information from production observation
 - [ ] Validate state freshness across rapid events such as consumable use, Joker creation/destruction and shop purchases
 - [ ] Validate observation across all required run phases
 
@@ -166,17 +166,17 @@
 
 > There is one Balatro agent. The cartridge answers **how to play this deck/stake**, not **how Balatro works**.
 
-- [ ] Define playbook interface
-- [ ] Playbook registry keyed by `(deck, stake)`
-- [ ] Auto-select playbook from live deck/stake at activation
-- [ ] Separate factual deck/stake mechanics from strategic playbook preferences
-- [ ] Playbook controls for risk tolerance
-- [ ] Playbook controls for planner/search budgets
+- [x] Define playbook interface
+- [x] Playbook registry keyed by `(deck, stake)`
+- [x] Auto-select playbook from live deck/stake at activation
+- [x] Separate factual deck/stake mechanics from strategic playbook preferences
+- [x] Playbook controls for risk tolerance
+- [x] Playbook controls for planner/search budgets
 - [ ] Shop/Joker/consumable priorities
 - [ ] Economy thresholds and scaling priorities
 - [ ] Blind skip/tag strategy
 - [ ] Red Deck / White Stake first production playbook
-- [ ] Playbook version identifier included in every run log
+- [x] Playbook version identifier included in every run log
 
 ### 0.9E — Run experience logging and later learning
 
@@ -211,8 +211,8 @@
 ### 0.9G — Single-command autonomous orchestrator
 
 - [ ] One activation command for an already-started Balatro run
-- [ ] Attach to current Balatro process automatically
-- [ ] Read current deck/stake and load playbook automatically
+- [x] Attach to current Balatro process automatically
+- [x] Read current deck/stake and load playbook automatically
 - [ ] Observe/plan/execute/verify/log loop across all required phases
 - [ ] Blind select -> hand play -> round eval -> shop -> next blind without manual gameplay input
 - [ ] Continue automatically across antes
@@ -227,7 +227,7 @@ The existing `save.jkr` and visual observer work remains useful for diagnostics 
 - [x] Vanilla `save.jkr` discovery/parser
 - [x] Save-backed phase/hand/Joker/consumable/shop extraction
 - [x] Screen capture and visual phase/card-location infrastructure
-- [ ] Keep these paths isolated as fallback/debug tools
+- [x] Keep these paths isolated as fallback/debug tools
 - [ ] Remove live-control dependence on save-persistence timing
 - [ ] Remove stale-save reconciliation from the normal autonomous loop
 
