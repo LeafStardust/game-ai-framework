@@ -8,6 +8,7 @@ from games.balatro.actions import (
     END_SHOP,
     BalatroAction,
 )
+from games.balatro.joker import Joker
 from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.shop import BalatroShopActionGenerator
@@ -83,6 +84,7 @@ class ExternalShopController:
             action
             for action in actions
             if action.name != BUY_JOKER
+            or not isinstance(action.target, Joker)
             or isinstance(action.target, LiveJokerScoreProjector.SUPPORTED_TYPES)
         ]
 
