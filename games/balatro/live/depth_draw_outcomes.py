@@ -4,16 +4,17 @@ from games.balatro.live.draw_outcomes import PublicDrawOutcomeModel
 
 
 class DepthAwarePublicDrawOutcomeModel:
-    """Use fuller sampling at the root and a smaller sample below it.
+    """Use fuller public draw branching at the root and tighter branching below it.
 
     Live expectimax evaluates several root actions against the same authoritative
     remaining-deck population. After a hypothetical play/discard, that public
     population shrinks, so population size provides a simple depth boundary
     without exposing or depending on hidden deck order.
 
-    Exact outcome spaces stay exact because both delegated models use the same
-    ``exact_combination_limit``. Only sampled spaces use fewer branches below
-    the root.
+    Root and child nodes may use different exact-enumeration limits as well as
+    different sample counts. This prevents common one-card child redraws (roughly
+    40 possible cards in a normal early run) from being enumerated exactly merely
+    because the root exact limit is intentionally generous.
     """
 
     def __init__(
@@ -22,12 +23,27 @@ class DepthAwarePublicDrawOutcomeModel:
         exact_combination_limit: int,
         root_sample_count: int,
         child_sample_count: int,
+        child_exact_combination_limit: int | None = None,
         seed: int = 0,
     ):
+        if exact_combination_limit < 1:
+            raise ValueError("exact_combination_limit must be positive")
+        if root_sample_count < 1:
+            raise ValueError("root_sample_count must be positive")
         if child_sample_count < 1:
             raise ValueError("child_sample_count must be positive")
+        if (
+            child_exact_combination_limit is not None
+            and child_exact_combination_limit < 1
+        ):
+            raise ValueError("child_exact_combination_limit must be positive")
 
         self.exact_combination_limit = int(exact_combination_limit)
+        self.child_exact_combination_limit = int(
+            self.exact_combination_limit
+            if child_exact_combination_limit is None
+            else child_exact_combination_limit
+        )
         self.sample_count = int(root_sample_count)
         self.child_sample_count = int(child_sample_count)
         self.seed = int(seed)
@@ -38,7 +54,7 @@ class DepthAwarePublicDrawOutcomeModel:
             seed=self.seed,
         )
         self._child = PublicDrawOutcomeModel(
-            exact_combination_limit=self.exact_combination_limit,
+            exact_combination_limit=self.child_exact_combination_limit,
             sample_count=self.child_sample_count,
             seed=self.seed,
         )
