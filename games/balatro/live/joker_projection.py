@@ -11,10 +11,10 @@ from games.balatro.scoring import BalatroScorer, HandScore
 class JokerScoreProjection:
     """One side-effect-free Joker-aware scoring transition.
 
-    ``state_after_scoring`` is a deep branch copy. Stateful supported Jokers may
-    mutate inside that copy, but the authoritative observed state is never touched.
-    ``cards_after_copy`` shares deepcopy identity with the copied state's hand so
-    held-card calculations remain correct.
+    ``state_after_scoring`` is an isolated branch state. Stateful supported Jokers
+    may mutate inside that branch, but the authoritative observed state is never
+    touched. Playing cards remain shared immutable observation objects so the
+    scorer's played/held identity checks stay correct without copying the deck.
     """
 
     score: HandScore
@@ -35,6 +35,13 @@ class LiveJokerScoreProjector:
     hypothetical scoring instead of being silently sampled or allowed to mutate the
     observed state. The supported set is intentionally conservative and grows as
     each Joker is validated for live planning.
+
+    Live score search is extremely hot code. ``BalatroState.copy()`` already gives
+    us independent state containers while deliberately retaining playing-card
+    identity. Only Joker objects need a deep copy for the currently supported
+    semantics. This avoids deep-copying the full hand/deck on every hypothetical
+    score probe while still isolating stateful Joker mutation such as Ice Cream's
+    per-hand decay.
     """
 
     SUPPORTED_TYPES = (IceCreamJoker,)
@@ -74,10 +81,14 @@ class LiveJokerScoreProjector:
                 cards_after_copy=tuple(cards or ()),
             )
 
-        # Copy the state and selected cards in one deepcopy operation. The shared
-        # memo preserves the relationship between selected cards and copied hand
-        # cards, which the scorer uses to distinguish played from held cards.
-        safe_state, safe_cards = deepcopy((state, list(cards or [])))
+        # Keep card identity intact: BalatroState.copy() shallow-copies the hand and
+        # deck lists, so action cards still match objects in safe_state.hand. The
+        # scorer relies on that identity to exclude played cards from held effects.
+        # Deep-copy only Jokers because validated live Jokers may mutate themselves.
+        safe_state = state.copy()
+        safe_state.jokers = deepcopy(list(getattr(state, "jokers", [])))
+        safe_cards = list(cards or [])
+
         all_jokers = list(getattr(safe_state, "jokers", []))
         supported = [
             joker
