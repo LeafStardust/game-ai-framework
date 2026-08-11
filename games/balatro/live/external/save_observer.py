@@ -205,11 +205,12 @@ def _normalize_item(
 ) -> dict[str, Any]:
     save_fields = _mapping(card.get("save_fields"))
     ability = _mapping(card.get("ability"))
+    label = card.get("label") or ability.get("name")
 
     result: dict[str, Any] = {
         "live_id": card.get("sort_id", card.get("playing_card")),
         "center": save_fields.get("center"),
-        "label": card.get("label") or ability.get("name"),
+        "label": label,
         "ability_name": ability.get("name"),
         "ability_set": ability.get("set"),
         "debuff": bool(card.get("debuff", False)),
@@ -226,6 +227,28 @@ def _normalize_item(
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             result[field] = value
 
+    public_state = _normalize_public_item_state(label, ability)
+    if public_state:
+        result["public_state"] = public_state
+
+    return result
+
+
+def _normalize_public_item_state(label: Any, ability: dict[Any, Any]) -> dict[str, Any]:
+    """Whitelist visible/public state for validated stateful items only.
+
+    Never return the raw ability/extra mapping. New fields must be added narrowly
+    as their live semantics are validated.
+    """
+    if label != "Ice Cream":
+        return {}
+
+    extra = _mapping(ability.get("extra"))
+    result: dict[str, Any] = {}
+    for field in ("chips", "chip_mod"):
+        value = extra.get(field)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            result[field] = value
     return result
 
 
