@@ -25,10 +25,10 @@ from .live_memory_hand_executor import LiveMemoryHandExecutor
 from .live_memory_observer import LiveMemoryBalatroObserver
 from .live_pack_card_mouse import LivePackCardMouseExecutor
 from .live_pack_skip_mouse import LivePackSkipMouseExecutor
-from .live_round_eval_mouse import LiveRoundEvalCashOutMouseExecutor
-from .live_shop_next_round_mouse import LiveShopNextRoundMouseExecutor
+from .live_round_eval_mouse import LiveMemoryRoundEvalMouseExecutor
+from .live_shop_next_round_mouse import LiveMemoryShopNextRoundMouseExecutor
 from .live_shop_purchase_mouse import LiveMemoryShopPurchaseMouseExecutor
-from .live_shop_reroll_mouse import LiveShopRerollMouseExecutor
+from .live_shop_reroll_mouse import LiveMemoryShopRerollMouseExecutor
 from .live_shop_special_action_mouse import LiveMemoryShopSpecialActionMouseExecutor
 from .mouse import BalatroMouseController
 from .window import BalatroWindowLocator
@@ -136,17 +136,17 @@ class LiveMemoryActionDispatcher:
             mouse=self.mouse,
             window_locator=self.window_locator,
         )
-        self.reroll_executor = reroll_executor or LiveShopRerollMouseExecutor(
+        self.reroll_executor = reroll_executor or LiveMemoryShopRerollMouseExecutor(
             observer=self.observer,
             mouse=self.mouse,
             window_locator=self.window_locator,
         )
-        self.next_round_executor = next_round_executor or LiveShopNextRoundMouseExecutor(
+        self.next_round_executor = next_round_executor or LiveMemoryShopNextRoundMouseExecutor(
             observer=self.observer,
             mouse=self.mouse,
             window_locator=self.window_locator,
         )
-        self.cash_out_executor = cash_out_executor or LiveRoundEvalCashOutMouseExecutor(
+        self.cash_out_executor = cash_out_executor or LiveMemoryRoundEvalMouseExecutor(
             observer=self.observer,
             mouse=self.mouse,
             window_locator=self.window_locator,
