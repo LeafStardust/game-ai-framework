@@ -2,10 +2,10 @@ from dataclasses import dataclass
 
 from games.balatro.live.external.live_memory_hand_executor import (
     LiveMemoryHandExecutionError,
-    LiveMemoryHandExecutor,
+    _active_hover,
+    _card_probe_logical_points,
     resolve_live_hand_controls,
 )
-from games.balatro.live.external.window import BalatroWindow, WindowRect
 
 
 @dataclass(frozen=True)
@@ -26,38 +26,16 @@ class _Decoder:
         return list(enumerate(self.arrays.get(int(address), [])))
 
 
-class _Observer:
-    def __init__(self, decoder, root):
-        self.decoder = decoder
-        self.root = root
-
-    def _root(self):
-        return self.decoder, 999, self.root
-
-
-class _WindowLocator:
-    def __init__(self, window):
-        self.window = window
-
-    def refresh(self, handle):
-        assert handle == self.window.handle
-        return self.window
-
-
-class _Mouse:
-    def __init__(self):
-        self.points = []
-
-    def click_screen(self, point, *, window=None):
-        self.points.append(point)
-
-
 def _num(value):
     return _Value("number", float(value))
 
 
 def _text(value):
     return _Value("string", value)
+
+
+def _bool(value):
+    return _Value("boolean", bool(value))
 
 
 def _table(address):
@@ -108,43 +86,26 @@ def test_resolver_fails_closed_when_one_control_is_missing():
         raise AssertionError("missing discard control must fail closed")
 
 
-def test_live_card_click_rereads_geometry_after_hand_reflow():
-    decoder = _Decoder(
-        {
-            70: {"T": _table(71)},
-            71: {
-                "x": _num(4.0),
-                "y": _num(7.0),
-                "w": _num(2.0),
-                "h": _num(2.5),
-            },
-        },
-        {},
-    )
-    root = {"TILE_W": _num(20.0), "TILE_H": _num(11.5)}
-    window = BalatroWindow(
-        handle=123,
-        title="Balatro",
-        client_rect=WindowRect(left=100, top=200, width=1536, height=864),
-    )
-    mouse = _Mouse()
-    executor = LiveMemoryHandExecutor(
-        _Observer(decoder, root),
-        mouse=mouse,
-        window_locator=_WindowLocator(window),
-    )
+def test_card_probe_points_start_at_center_and_stay_inside_card():
+    geometry = {"x": 4.0, "y": 6.0, "w": 2.0, "h": 3.0}
 
-    executor._click_live_card(70, window, label="H0")
-    first = mouse.points[-1]
+    points = _card_probe_logical_points(geometry)
 
-    # Simulate Balatro re-fanning the same live card object after another card was
-    # selected. A stale snapshot target would click the old point; production must
-    # read T again from address 70.
-    decoder.tables[71]["x"] = _num(8.0)
-    decoder.tables[71]["y"] = _num(6.5)
+    assert points[0] == (5.0, 7.5)
+    assert len(points) == 9
+    assert all(4.0 < x < 6.0 and 6.0 < y < 9.0 for x, y in points)
 
-    executor._click_live_card(70, window, label="H0")
-    second = mouse.points[-1]
 
-    assert second != first
-    assert second.x > first.x
+def test_active_hover_requires_hover_is_not_hover_can():
+    tables = {
+        10: {"states": _table(11)},
+        11: {"hover": _table(12)},
+        12: {"can": _bool(True), "is": _bool(False)},
+        20: {"states": _table(21)},
+        21: {"hover": _table(22)},
+        22: {"can": _bool(True), "is": _bool(True)},
+    }
+    decoder = _Decoder(tables, {})
+
+    assert _active_hover(decoder, 10) is False
+    assert _active_hover(decoder, 20) is True
