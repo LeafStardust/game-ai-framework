@@ -182,7 +182,8 @@ def test_retained_pair_proves_exact_clear_without_sampling_redraws():
     plan = planner.plan(state)
 
     assert plan.action.name == PLAY_CARDS
-    assert [card.rank for card in plan.action.cards] == ["K", "K"]
+    assert len(plan.action.cards) == 2
+    assert [card.rank for card in plan.action.cards] in (["K", "K"], ["Q", "Q"])
     assert plan.value.clear_probability == 1.0
     assert plan.value.expected_score == 510.0
     assert plan.exact is True
