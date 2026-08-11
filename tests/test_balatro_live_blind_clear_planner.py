@@ -147,3 +147,18 @@ def test_guaranteed_immediate_clear_preserves_discard_over_two_action_clear():
     assert plan.action.name == PLAY_CARDS
     assert plan.value.clear_probability == 1.0
     assert plan.value.expected_discards_remaining == 1.0
+
+
+def test_default_live_planner_bounds_draw_branching():
+    planner = LiveBlindClearPlanner()
+
+    assert (
+        planner.draw_outcomes.exact_combination_limit
+        == LiveBlindClearPlanner.DEFAULT_EXACT_DRAW_COMBINATION_LIMIT
+        == 128
+    )
+    assert (
+        planner.draw_outcomes.sample_count
+        == LiveBlindClearPlanner.DEFAULT_DRAW_SAMPLE_COUNT
+        == 64
+    )
