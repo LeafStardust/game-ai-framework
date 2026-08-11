@@ -143,6 +143,7 @@ class ExternalHandMouseExecutor:
         action: BalatroAction,
         state: BalatroState,
     ) -> tuple[int, ...]:
+        self._validate_action(action)
         frame, locations = self.locate_hand(state)
         return self.dispatch_with_locations(action, state, frame, locations)
 
@@ -155,12 +156,7 @@ class ExternalHandMouseExecutor:
     ) -> tuple[int, ...]:
         """Dispatch against one already validated frozen hand mapping."""
 
-        if action.name not in {PLAY_CARDS, DISCARD_CARDS}:
-            raise HandMouseLayoutError(
-                f"external hand executor cannot dispatch {action.name!r}"
-            )
-        if not action.cards:
-            raise HandMouseLayoutError("hand action must select at least one card")
+        self._validate_action(action)
         if len(locations) != len(state.hand):
             raise HandMouseLayoutError(
                 "frozen hand/card-save count mismatch: "
@@ -182,6 +178,15 @@ class ExternalHandMouseExecutor:
         control = "play-hand" if action.name == PLAY_CARDS else "discard"
         self.mouse.click_screen(viewport.screen_point(self.layout.point_for(control)))
         return indices
+
+    @staticmethod
+    def _validate_action(action: BalatroAction) -> None:
+        if action.name not in {PLAY_CARDS, DISCARD_CARDS}:
+            raise HandMouseLayoutError(
+                f"external hand executor cannot dispatch {action.name!r}"
+            )
+        if not action.cards:
+            raise HandMouseLayoutError("hand action must select at least one card")
 
     @staticmethod
     def card_indices(
