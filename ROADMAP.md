@@ -127,7 +127,7 @@
 - [x] End Shop control
 - [x] Consumable interaction foundation
 - [x] Guard against already-selected hand cards
-- [ ] Prefer live Balatro UI coordinates over visual inference where available
+- [x] Prefer live Balatro UI coordinates over visual inference where available
 - [ ] Reconcile each action against the **next direct live-state observation**
 - [ ] Booster opening
 - [ ] Reroll
