@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from .live_memory_observer import LiveMemoryBalatroObserver
+from .production_observer import ProductionBalatroObserver
 from .save_observer import SaveBalatroObserver
 from .save_state import BalatroSaveReader
 
@@ -27,7 +27,7 @@ def create_balatro_state_observer(
     if source == "memory":
         if save_path is not None:
             raise ValueError("save_path is only valid with observation source 'save'")
-        return LiveMemoryBalatroObserver()
+        return ProductionBalatroObserver()
     if source == "save":
         return SaveBalatroObserver(
             BalatroSaveReader(save_path, profile=profile)
