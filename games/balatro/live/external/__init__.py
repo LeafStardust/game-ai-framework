@@ -1,3 +1,9 @@
+from .blind_mouse import (
+    BLIND_TARGETS,
+    BlindMouseLayout,
+    BlindMouseLayoutError,
+    ExternalBlindMouseExecutor,
+)
 from .capture import (
     BalatroCaptureError,
     BalatroFrame,
@@ -48,6 +54,7 @@ from .window import (
 )
 
 __all__ = [
+    "BLIND_TARGETS",
     "UNKNOWN_PHASE",
     "BalatroCaptureError",
     "BalatroFrame",
@@ -61,9 +68,12 @@ __all__ = [
     "BalatroWindowNotForeground",
     "BalatroWindowNotFound",
     "BalatroWindowTracker",
+    "BlindMouseLayout",
+    "BlindMouseLayoutError",
     "ColorGridSignature",
     "ExternalBalatroObservation",
     "ExternalBalatroObserver",
+    "ExternalBlindMouseExecutor",
     "ExternalShopController",
     "ExternalShopMouseExecutor",
     "ExternalShopSession",
