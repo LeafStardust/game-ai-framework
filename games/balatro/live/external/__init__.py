@@ -30,6 +30,12 @@ from .mouse import (
     WindowsMouseInputProvider,
 )
 from .observer import ExternalBalatroObservation, ExternalBalatroObserver
+from .round_eval_mouse import (
+    ROUND_EVAL_CONTROLS,
+    ExternalRoundEvalMouseExecutor,
+    RoundEvalMouseLayout,
+    RoundEvalMouseLayoutError,
+)
 from .shop_controller import ExternalShopController, ExternalShopSession
 from .shop_mouse import (
     ExternalShopMouseExecutor,
@@ -69,6 +75,7 @@ __all__ = [
     "BLIND_CONTROLS",
     "BLIND_TARGETS",
     "HAND_CONTROLS",
+    "ROUND_EVAL_CONTROLS",
     "UNKNOWN_PHASE",
     "BalatroCaptureError",
     "BalatroFrame",
@@ -92,6 +99,7 @@ __all__ = [
     "ExternalHandMouseExecutor",
     "ExternalHandRunResult",
     "ExternalHandStep",
+    "ExternalRoundEvalMouseExecutor",
     "ExternalShopController",
     "ExternalShopMouseExecutor",
     "ExternalShopSession",
@@ -107,6 +115,8 @@ __all__ = [
     "PhaseTemplate",
     "PixelPoint",
     "PixelRect",
+    "RoundEvalMouseLayout",
+    "RoundEvalMouseLayoutError",
     "ScreenCapturer",
     "ShopClickSequence",
     "ShopMouseLayout",
