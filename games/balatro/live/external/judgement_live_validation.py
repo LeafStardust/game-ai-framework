@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import time
 from pathlib import Path
 
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.live.joker_projection import LiveJokerScoreProjector
-from games.balatro.live.synchronizer import BalatroLiveSynchronizer
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 
 from .consumable_mouse import ConsumableMouseLayout
@@ -119,6 +119,55 @@ def verify_judgement_checkpoint(
     return None, new_item
 
 
+def _wait_for_judgement_checkpoint(
+    observer,
+    before_snapshot,
+    *,
+    judgement_live_id,
+    timeout: float = 20.0,
+    poll_interval: float = 0.05,
+):
+    """Wait through partial save writes until both Judgement effects are present."""
+
+    before_joker_count = len(_area_cards(before_snapshot, "jokers"))
+    before_sha = before_snapshot.payload.get("save_sha256")
+    deadline = time.monotonic() + max(0.0, timeout)
+    last_detail = "save has not changed"
+
+    while time.monotonic() < deadline:
+        candidate = observer.observe()
+        if candidate.payload.get("save_sha256") == before_sha:
+            last_detail = "save has not changed"
+            if poll_interval > 0:
+                time.sleep(poll_interval)
+            continue
+
+        if candidate.phase != "SELECTING_HAND":
+            last_detail = f"phase={candidate.phase}"
+            if poll_interval > 0:
+                time.sleep(poll_interval)
+            continue
+
+        consumables = _area_cards(candidate, "consumables")
+        jokers = _area_cards(candidate, "jokers")
+        judgement_present = any(
+            _item_id(item) == judgement_live_id for item in consumables
+        )
+        joker_delta = len(jokers) - before_joker_count
+        if not judgement_present and joker_delta == 1:
+            return candidate
+
+        last_detail = (
+            f"judgement_present={judgement_present}, joker_delta={joker_delta}"
+        )
+        if poll_interval > 0:
+            time.sleep(poll_interval)
+
+    raise TimeoutError(
+        "timed out waiting for complete Judgement checkpoint; " + last_detail
+    )
+
+
 def _find_judgement(state):
     matches = [
         consumable
@@ -169,11 +218,12 @@ def main() -> int:
     if state.phase != "SELECTING_HAND":
         parser.error(f"Balatro save is in {state.phase}, expected SELECTING_HAND")
 
+    raw_joker_count = len(_area_cards(snapshot, "jokers"))
     print(f"Score before -> {state.score}")
     print(f"Blind target -> {getattr(state.blind, 'requirement', 0)}")
     print(f"Hands before -> {state.hands_remaining}")
     print(f"Discards before -> {state.discards_remaining}")
-    print(f"Owned Jokers before -> {len(_area_cards(snapshot, 'jokers'))}")
+    print(f"Owned Jokers before -> {raw_joker_count}")
     print(f"Held consumables -> {len(state.consumables)}")
     for index, consumable in enumerate(state.consumables):
         print(
@@ -183,6 +233,8 @@ def main() -> int:
         )
 
     try:
+        if raw_joker_count >= int(getattr(state, "joker_slots", 5)):
+            raise RuntimeError("no authoritative Joker slot is available for Judgement")
         judgement = _find_judgement(state)
         ExternalJudgementMouseExecutor._validate(state, judgement)
         area_index = int(getattr(judgement, "area_index"))
@@ -228,14 +280,10 @@ def main() -> int:
     print("Mouse input sent -> True")
     print("Waiting for save checkpoint -> Judgement consumed and one Joker created")
     try:
-        persisted = BalatroLiveSynchronizer(
+        persisted = _wait_for_judgement_checkpoint(
             observer,
-            poll_interval=0.05,
-            timeout=20.0,
-        ).wait_for_change(
             snapshot,
-            phases={"SELECTING_HAND"},
-            require_complete=False,
+            judgement_live_id=judgement_live_id,
         )
     except TimeoutError as error:
         parser.error(str(error))
