@@ -28,13 +28,17 @@ def _card_text(card) -> str:
     return " / ".join(parts)
 
 
-def _rank_plans(planner, state) -> list[LiveBlindPlan]:
-    """Rank the same bounded root candidates used by planner.plan().
+def _joker_text(joker) -> str:
+    label = getattr(joker, "label", None) or type(joker).__name__
+    fields = []
+    for field in ("chips", "chip_mod"):
+        value = getattr(joker, field, None)
+        if value is not None:
+            fields.append(f"{field}={value}")
+    return str(label) + (f" ({', '.join(fields)})" if fields else "")
 
-    This is diagnostic-only. It evaluates each root candidate exactly once so the
-    validator can expose why the winning action beat the alternatives without
-    doubling the already-expensive live search.
-    """
+
+def _rank_plans(planner, state) -> list[LiveBlindPlan]:
     candidates = planner._candidate_actions(
         state,
         allow_discards=planner.horizon > 1,
@@ -101,6 +105,9 @@ def main() -> int:
     for index, card in enumerate(state.hand):
         print(f"  {index}: {_card_text(card)}")
     print(f"Public remaining deck cards -> {len(state.deck)}")
+    print(f"Owned Jokers -> {len(state.jokers)}")
+    for index, joker in enumerate(state.jokers):
+        print(f"  J{index}: {_joker_text(joker)}")
     print(f"Planner play width -> {args.play_width}")
     print(f"Planner discard width -> {args.discard_width}")
     print(f"Exact draw combination limit -> {args.exact_limit}")
@@ -123,6 +130,15 @@ def main() -> int:
         discard_width=args.discard_width,
         horizon=2,
     )
+    unsupported = planner.evaluator.score_outcomes.joker_projector.unsupported_jokers(
+        state
+    )
+    print(f"Joker projection complete -> {not unsupported}")
+    print(
+        "Unsupported Joker projections -> "
+        + (", ".join(unsupported) if unsupported else "none")
+    )
+
     try:
         ranked = _rank_plans(planner, state)
     except (RuntimeError, ValueError) as error:
@@ -140,7 +156,7 @@ def main() -> int:
     print(f"Expected hands remaining -> {plan.value.expected_hands_remaining:.3f}")
     print(f"Expected discards remaining -> {plan.value.expected_discards_remaining:.3f}")
     print(f"Candidate actions evaluated -> {plan.candidate_count}")
-    print(f"Draw branches exact -> {plan.exact}")
+    print(f"Draw/Joker branches exact -> {plan.exact}")
 
     print("Ranked root candidates:")
     for rank, candidate in enumerate(ranked[: max(1, args.top)], start=1):
