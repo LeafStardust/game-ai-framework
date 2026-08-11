@@ -144,7 +144,7 @@
 - [x] External End Shop control and delayed checkpoint reconciliation
 - [x] Post-action checkpoint synchronization for hand, blind-select, round-eval and validated shop transitions
 - [x] Guard against already-selected hand cards before external execution
-- [ ] Fresh post-purchase visual observation for safe multi-buy shop chaining
+- [x] Fresh post-purchase visual observation and dynamic retargeting for safe multi-buy main-shop chaining
 - [ ] Booster-opening control and immediate post-open observation
 - [ ] Reroll control and immediate refreshed-shop observation
 - [ ] Consumable-use interaction controls
@@ -186,7 +186,7 @@
 - [x] Optional guarded End Shop when the projected next recommendation is to stop buying
 - [x] Joker-aware shop value probes using existing Joker implementations
 - [ ] Identity/inventory reconciliation in addition to money reconciliation
-- [ ] Safe fresh-layout observation before any second purchase
+- [x] Safe fresh-layout observation before a second main-card purchase, with combined delayed multi-buy checkpoint validation
 - [ ] Booster valuation/opening
 - [ ] Reroll valuation/execution
 - [ ] Joker sell/replace decisions
@@ -254,7 +254,7 @@
 # v1.0.5 — Red Deck — Purple Stake
 
 * [ ] Purple Stake support
-* [ ] Increased Ante requirements
+* [ ] Increased Ante score requirements
 * [ ] Adapt decision-making to Purple Stake rules
 * [ ] Complete one successful Red Deck Purple Stake run
 * [ ] Validate Purple Stake agent
