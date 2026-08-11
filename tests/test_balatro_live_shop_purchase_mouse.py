@@ -3,8 +3,11 @@ from types import SimpleNamespace
 import pytest
 
 from games.balatro.live.external.live_shop_purchase_mouse import (
+    LiveShopItemTarget,
     LiveShopPurchaseMouseError,
+    _template_point,
     live_buy_hit_test,
+    resolve_live_buy_and_use_target,
     resolve_live_buy_target,
 )
 from games.balatro.live.external.viewport import PixelPoint
@@ -24,12 +27,18 @@ class Decoder:
         return self.tables[int(address)]
 
 
-def _fixture(button="buy_from_shop", func="can_buy", *, hovered=False):
+def _fixture(
+    button="buy_from_shop",
+    func="can_buy",
+    *,
+    hovered=False,
+    child_name="buy_button",
+):
     tables = {
         1: {"cursor_hover": _value("table", 2)},
         2: {"prev_target": _value("table", 3)},
         3: {"children": _value("table", 4)},
-        4: {"buy_button": _value("table", 5)},
+        4: {child_name: _value("table", 5)},
         5: {
             "UIRoot": _value("table", 6),
             "T": _value("table", 8),
@@ -81,12 +90,31 @@ def test_live_buy_target_resolves_nested_neptune_geometry_guess():
         WindowRect(-1736, 165, 1536, 864),
     )
 
+    assert target.action == "buy"
     assert target.container_address == 5
     assert target.ui_root_address == 6
     assert target.button == "buy_from_shop"
     assert target.func == "can_buy"
     assert target.geometry_source == "UIRoot VT"
     assert target.screen_center == PixelPoint(-858, 702)
+
+
+def test_live_buy_and_use_target_requires_exact_control():
+    decoder, root = _fixture(
+        func="can_buy_and_use",
+        child_name="buy_and_use_button",
+    )
+
+    target = resolve_live_buy_and_use_target(
+        decoder,
+        root,
+        WindowRect(-1736, 165, 1536, 864),
+    )
+
+    assert target.action == "buy_and_use"
+    assert target.child_name == "buy_and_use_button"
+    assert target.button == "buy_from_shop"
+    assert target.func == "can_buy_and_use"
 
 
 def test_live_buy_hit_test_accepts_active_uiroot_hover():
@@ -120,9 +148,53 @@ def test_live_buy_hit_test_rejects_unverified_point():
 def test_live_buy_target_rejects_buy_and_use_control():
     decoder, root = _fixture(func="can_buy_and_use")
 
-    with pytest.raises(LiveShopPurchaseMouseError, match="not the ordinary Buy control"):
+    with pytest.raises(LiveShopPurchaseMouseError, match="not buy"):
         resolve_live_buy_target(
             decoder,
             root,
             WindowRect(0, 0, 1536, 864),
         )
+
+
+def _item() -> LiveShopItemTarget:
+    return LiveShopItemTarget(
+        area="main",
+        index=0,
+        label="Neptune",
+        live_id=321.0,
+        ability_set="Planet",
+        cost=3.0,
+        geometry={
+            "x": 10.446256,
+            "y": 3.670488,
+            "w": 2.048780,
+            "h": 2.751220,
+        },
+        screen_center=PixelPoint(-858, 544),
+    )
+
+
+def test_buy_template_is_directly_below_shop_card():
+    point = _template_point(
+        _item(),
+        action="buy",
+        logical_width=20.0,
+        logical_height=11.5,
+        client_rect=WindowRect(-1736, 165, 1536, 864),
+    )
+
+    assert point.x == -858
+    assert abs(point.y - 660) <= 1
+
+
+def test_buy_and_use_template_is_right_of_shop_card():
+    point = _template_point(
+        _item(),
+        action="buy_and_use",
+        logical_width=20.0,
+        logical_height=11.5,
+        client_rect=WindowRect(-1736, 165, 1536, 864),
+    )
+
+    assert abs(point.x - (-761)) <= 1
+    assert point.y == -1 + 545  # same mapped row as the item center, allowing fixture rounding
