@@ -62,6 +62,7 @@ class LivePackConfirmTarget:
     probes: int
     location_source: str
     memory_candidates: int
+    used_local_search: bool
     used_fallback_search: bool
 
 
@@ -154,6 +155,7 @@ def live_confirm_hit_test(
                 probes=0,
                 location_source="live_hover",
                 memory_candidates=0,
+                used_local_search=False,
                 used_fallback_search=False,
             )
     return None
@@ -254,6 +256,26 @@ def _inside_client(point: PixelPoint, rect) -> bool:
     return rect.left <= point.x < rect.right and rect.top <= point.y < rect.bottom
 
 
+def _local_search_points(
+    origin: PixelPoint,
+    rect,
+    *,
+    step: int,
+    radius_x: int,
+    radius_y: int,
+) -> list[PixelPoint]:
+    points: list[PixelPoint] = []
+    for dy in range(-radius_y, radius_y + 1, step):
+        for dx in range(-radius_x, radius_x + 1, step):
+            if dx == 0 and dy == 0:
+                continue
+            point = PixelPoint(origin.x + dx, origin.y + dy)
+            if _inside_client(point, rect):
+                points.append(point)
+    points.sort(key=lambda point: abs(point.x - origin.x) + abs(point.y - origin.y))
+    return points
+
+
 def _search_points(rect, step: int) -> list[PixelPoint]:
     left = rect.left + round(rect.width * 0.06)
     right = rect.right - round(rect.width * 0.06)
@@ -278,6 +300,9 @@ class LivePackSelectedCardConfirmExecutor:
         window_locator: BalatroWindowLocator | None = None,
         *,
         search_step: int = 24,
+        local_search_step: int = 12,
+        local_radius_x: int = 168,
+        local_radius_y: int = 132,
         probe_settle_delay: float = 0.06,
         click_settle_delay: float = 0.05,
         focus_settle_delay: float = 0.25,
@@ -286,6 +311,9 @@ class LivePackSelectedCardConfirmExecutor:
         self.mouse = mouse or BalatroMouseController()
         self.window_locator = window_locator or BalatroWindowLocator()
         self.search_step = max(1, int(search_step))
+        self.local_search_step = max(1, int(local_search_step))
+        self.local_radius_x = max(0, int(local_radius_x))
+        self.local_radius_y = max(0, int(local_radius_y))
         self.probe_settle_delay = max(0.0, probe_settle_delay)
         self.click_settle_delay = max(0.0, click_settle_delay)
         self.focus_settle_delay = max(0.0, focus_settle_delay)
@@ -298,6 +326,12 @@ class LivePackSelectedCardConfirmExecutor:
                 f"Balatro is in {snapshot.phase}, expected *_PACK"
             )
         return snapshot, _highlighted_card(self.observer)
+
+    def _probe_point(self, point: PixelPoint):
+        self.mouse.move_screen(point)
+        if self.probe_settle_delay:
+            time.sleep(self.probe_settle_delay)
+        return live_confirm_hit_test(self.observer, point)
 
     def dispatch(
         self,
@@ -319,49 +353,73 @@ class LivePackSelectedCardConfirmExecutor:
         target = None
         probes = 0
 
-        # Fast path: derive candidate points from the exact live UI node's memory
-        # geometry, then authorize them with Balatro's cursor-hover identity.
+        # Fast path: derive candidate points from exact live UI nodes in memory. The
+        # nested T/VT center is only a guess: authorize it with live hover identity.
         for candidate in memory_candidates:
-            point = _candidate_screen_point(
+            origin = _candidate_screen_point(
                 candidate,
                 logical_width=tile_w,
                 logical_height=tile_h,
                 client_rect=window.client_rect,
             )
-            if not _inside_client(point, window.client_rect):
+            if not _inside_client(origin, window.client_rect):
                 continue
-            probes += 1
-            self.mouse.move_screen(point)
-            if self.probe_settle_delay:
-                time.sleep(self.probe_settle_delay)
-            hit = live_confirm_hit_test(self.observer, point)
-            if hit is None or hit.node_address != candidate.node_address:
-                continue
-            target = LivePackConfirmTarget(
-                screen_point=point,
-                node_address=hit.node_address,
-                button=hit.button,
-                func=hit.func,
-                control_id=hit.control_id,
-                hit_signal=hit.hit_signal,
-                probes=probes,
-                location_source=f"memory_{candidate.geometry_source}",
-                memory_candidates=len(memory_candidates),
-                used_fallback_search=False,
-            )
-            break
 
-        # Fail-safe fallback for layouts whose nested T/VT geometry is not directly
-        # screen-mappable. This is discovery-style cursor scanning, not calibration.
-        if target is None:
-            fallback_probes = 0
-            for fallback_probes, point in enumerate(
-                _search_points(window.client_rect, self.search_step), start=1
+            probes += 1
+            hit = self._probe_point(origin)
+            if hit is not None and hit.node_address == candidate.node_address:
+                target = LivePackConfirmTarget(
+                    screen_point=origin,
+                    node_address=hit.node_address,
+                    button=hit.button,
+                    func=hit.func,
+                    control_id=hit.control_id,
+                    hit_signal=hit.hit_signal,
+                    probes=probes,
+                    location_source=f"memory_{candidate.geometry_source}",
+                    memory_candidates=len(memory_candidates),
+                    used_local_search=False,
+                    used_fallback_search=False,
+                )
+                break
+
+            # Nested UI geometry is not always the literal clickable screen region.
+            # Search only around that live-memory-derived guess before considering a
+            # whole-client fallback. No offset is persisted or learned.
+            for point in _local_search_points(
+                origin,
+                window.client_rect,
+                step=self.local_search_step,
+                radius_x=self.local_radius_x,
+                radius_y=self.local_radius_y,
             ):
-                self.mouse.move_screen(point)
-                if self.probe_settle_delay:
-                    time.sleep(self.probe_settle_delay)
-                hit = live_confirm_hit_test(self.observer, point)
+                probes += 1
+                hit = self._probe_point(point)
+                if hit is None or hit.node_address != candidate.node_address:
+                    continue
+                target = LivePackConfirmTarget(
+                    screen_point=point,
+                    node_address=hit.node_address,
+                    button=hit.button,
+                    func=hit.func,
+                    control_id=hit.control_id,
+                    hit_signal=hit.hit_signal,
+                    probes=probes,
+                    location_source=f"memory_{candidate.geometry_source}_local_search",
+                    memory_candidates=len(memory_candidates),
+                    used_local_search=True,
+                    used_fallback_search=False,
+                )
+                break
+            if target is not None:
+                break
+
+        # Last-resort fail-safe for layouts whose memory geometry is too detached from
+        # the real hit region. This is not the normal production path.
+        if target is None:
+            for point in _search_points(window.client_rect, self.search_step):
+                probes += 1
+                hit = self._probe_point(point)
                 if hit is None:
                     continue
                 target = LivePackConfirmTarget(
@@ -371,9 +429,10 @@ class LivePackSelectedCardConfirmExecutor:
                     func=hit.func,
                     control_id=hit.control_id,
                     hit_signal=hit.hit_signal,
-                    probes=probes + fallback_probes,
+                    probes=probes,
                     location_source="fallback_screen_search",
                     memory_candidates=len(memory_candidates),
+                    used_local_search=False,
                     used_fallback_search=True,
                 )
                 break
