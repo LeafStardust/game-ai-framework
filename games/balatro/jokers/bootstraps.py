@@ -10,7 +10,6 @@ class BootstrapsJoker(Joker):
         money = getattr(context.state, "money", 0)
         increments = money // 5
 
-        context.score.chips += increments
         context.score.mult += increments * 2
 
         return context
