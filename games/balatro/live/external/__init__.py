@@ -1,4 +1,5 @@
 from .blind_mouse import (
+    BLIND_CONTROLS,
     BLIND_TARGETS,
     BlindMouseLayout,
     BlindMouseLayoutError,
@@ -54,6 +55,7 @@ from .window import (
 )
 
 __all__ = [
+    "BLIND_CONTROLS",
     "BLIND_TARGETS",
     "UNKNOWN_PHASE",
     "BalatroCaptureError",
