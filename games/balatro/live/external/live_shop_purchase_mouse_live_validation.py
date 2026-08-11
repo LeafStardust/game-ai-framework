@@ -90,15 +90,15 @@ def main() -> int:
         description=(
             "Preview or execute one ordinary Buy action for a live main-shop item. "
             "The executor hovers the live item, resolves Balatro's generated Buy "
-            "control from live memory, clicks it once with normal desktop input, "
-            "and verifies money/offer/ownership changes from live memory."
+            "control, requires a live hover hit-test before clicking it once with "
+            "normal desktop input, then verifies money/offer/ownership changes."
         )
     )
     parser.add_argument("--index", type=int, default=0)
     parser.add_argument(
         "--execute",
         action="store_true",
-        help="arm normal mouse input and perform exactly one Buy click",
+        help="arm normal mouse input and perform exactly one verified Buy click",
     )
     args = parser.parse_args()
     if args.index < 0:
@@ -140,12 +140,13 @@ def main() -> int:
                 print("Mouse movement sent -> False")
                 print("Mouse clicks sent -> False")
                 print(
-                    "Re-run with --execute to hover this item and send exactly one "
-                    "normal mouse click to its live-derived ordinary Buy control."
+                    "Re-run with --execute to locate a live-hit-tested ordinary Buy "
+                    "point and send exactly one normal mouse click there."
                 )
                 return 0
 
-            before, clicked_item, buy = executor.dispatch(args.index)
+            before, clicked_item, verified = executor.dispatch(args.index)
+            buy = verified.control
             print("Mouse movement sent -> True")
             print("Mouse clicks sent -> True")
             print(
@@ -155,12 +156,19 @@ def main() -> int:
             print("Buy control button -> " + repr(buy.button))
             print("Buy control func -> " + repr(buy.func))
             print("Buy control id -> " + repr(buy.control_id))
-            print(f"Buy geometry source -> {buy.geometry_source}")
-            print(f"Buy geometry -> {_fmt_geometry(buy.geometry)}")
+            print(f"Buy nested geometry source -> {buy.geometry_source}")
+            print(f"Buy nested geometry -> {_fmt_geometry(buy.geometry)}")
             print(
-                "Clicked live Buy center -> "
+                "Nested-geometry guessed Buy center -> "
                 f"x={buy.screen_center.x} y={buy.screen_center.y}"
             )
+            print(
+                "Verified live Buy point -> "
+                f"x={verified.screen_point.x} y={verified.screen_point.y}"
+            )
+            print(f"Verified Buy hit signal -> {verified.hit_signal}")
+            print(f"Buy probes required -> {verified.probes}")
+            print(f"Fallback search used -> {verified.used_fallback_search}")
             print("Waiting for live purchase postcondition -> SHOP")
 
             after, destination = _wait_for_purchase(observer, before, clicked_item)
