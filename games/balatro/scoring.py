@@ -1,5 +1,6 @@
 import random
 
+from collections import Counter
 from dataclasses import dataclass
 
 from games.balatro.hand import PokerHand
@@ -35,6 +36,22 @@ class BalatroScorer:
         PokerHand.FULL_HOUSE: HandScore(40, 4),
         PokerHand.FOUR_OF_A_KIND: HandScore(60, 7),
         PokerHand.STRAIGHT_FLUSH: HandScore(100, 8),
+    }
+
+    RANK_CHIPS = {
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8,
+        "9": 9,
+        "10": 10,
+        "J": 10,
+        "Q": 10,
+        "K": 10,
+        "A": 11,
     }
 
     def _apply_card_modifiers(
@@ -102,7 +119,9 @@ class BalatroScorer:
         self,
         hand: PokerHand,
         state=None,
-        cards=None
+        cards=None,
+        *,
+        include_card_chips: bool = False,
     ) -> HandScore:
 
         base_score = self.SCORES[hand]
@@ -154,10 +173,18 @@ class BalatroScorer:
                 )
 
         played_cards = cards or []
+        modifier_cards = played_cards
+
+        if include_card_chips:
+            modifier_cards = self.scoring_cards(hand, played_cards)
+            score.chips += sum(
+                self.card_chip_value(card)
+                for card in modifier_cards
+            )
 
         self._apply_card_modifiers(
             score,
-            played_cards
+            modifier_cards
         )
 
         if state is not None:
@@ -167,6 +194,13 @@ class BalatroScorer:
                 "hand",
                 []
             )
+            if include_card_chips and played_cards:
+                played_identity = {id(card) for card in played_cards}
+                held_cards = [
+                    card
+                    for card in held_cards
+                    if id(card) not in played_identity
+                ]
 
             self._apply_held_modifiers(
                 score,
@@ -192,3 +226,91 @@ class BalatroScorer:
             score = context.score
 
         return score
+
+    @classmethod
+    def card_chip_value(cls, card) -> int:
+        if getattr(card, "enhancement", None) == "Stone":
+            return 0
+        return cls.RANK_CHIPS.get(str(getattr(card, "rank", "")), 0)
+
+    @classmethod
+    def scoring_cards(cls, hand: PokerHand, cards) -> list:
+        """Return ordinary cards that contribute chips for a standard poker hand.
+
+        This is used by live decision estimates. It intentionally leaves Joker-
+        specific scoring overrides such as Splash for a future Joker-aware layer.
+        Stone cards are always included because their enhancement scores directly.
+        """
+        played = list(cards or [])
+        if not played:
+            return []
+
+        stones = [
+            card
+            for card in played
+            if getattr(card, "enhancement", None) == "Stone"
+        ]
+        regular = [card for card in played if card not in stones]
+        if not regular:
+            return stones
+
+        counts = Counter(str(getattr(card, "rank", "")) for card in regular)
+
+        if hand == PokerHand.HIGH_CARD:
+            highest = max(
+                regular,
+                key=lambda card: cls.card_chip_value(card),
+            )
+            selected = [highest]
+
+        elif hand == PokerHand.PAIR:
+            pair_rank = next(
+                (rank for rank, count in counts.items() if count >= 2),
+                None,
+            )
+            selected = [
+                card
+                for card in regular
+                if str(getattr(card, "rank", "")) == pair_rank
+            ][:2]
+
+        elif hand == PokerHand.TWO_PAIR:
+            pair_ranks = {
+                rank
+                for rank, count in counts.items()
+                if count >= 2
+            }
+            selected = [
+                card
+                for card in regular
+                if str(getattr(card, "rank", "")) in pair_ranks
+            ][:4]
+
+        elif hand == PokerHand.THREE_OF_A_KIND:
+            trip_rank = next(
+                (rank for rank, count in counts.items() if count >= 3),
+                None,
+            )
+            selected = [
+                card
+                for card in regular
+                if str(getattr(card, "rank", "")) == trip_rank
+            ][:3]
+
+        elif hand == PokerHand.FOUR_OF_A_KIND:
+            quad_rank = next(
+                (rank for rank, count in counts.items() if count >= 4),
+                None,
+            )
+            selected = [
+                card
+                for card in regular
+                if str(getattr(card, "rank", "")) == quad_rank
+            ][:4]
+
+        else:
+            selected = regular
+
+        selected_ids = {id(card) for card in selected}
+        selected.extend(card for card in stones if id(card) not in selected_ids)
+        return selected
