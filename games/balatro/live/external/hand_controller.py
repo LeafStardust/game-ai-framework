@@ -9,7 +9,7 @@ from framework.decision.policies.greedy import GreedyPolicy
 
 from games.balatro.actions import BalatroAction
 from games.balatro.card_selector import CardSelector
-from games.balatro.evaluator import BalatroEvaluator
+from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.synchronizer import BalatroLiveSynchronizer
 from games.balatro.live.translator import DefaultBalatroStateTranslator
@@ -73,7 +73,7 @@ class ExternalHandController:
     def _default_agent() -> Agent:
         return Agent(
             DecisionPipeline(
-                BalatroEvaluator(),
+                LiveHandDecisionEvaluator(),
                 GreedyPolicy(),
             )
         )
