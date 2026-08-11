@@ -1,3 +1,5 @@
+import pytest
+
 from games.balatro.live.external.card_locator import CardFaceLocation
 from games.balatro.live.external.expected_card_locator import (
     _locations_form_uniform_grid,
@@ -34,6 +36,16 @@ def _anchored_hand_region(*, visible_indices):
     return _frame_region(width, height, pixels)
 
 
+def _wide_hand_blob_region():
+    width = 500
+    height = 240
+    pixels = bytearray(b"\x20\x50\x20\xff" * (width * height))
+    # A single connected hand blob. The generic nominal-stride splitter infers a
+    # different count; the expected-count locator must use the save-backed 8.
+    _fill(pixels, width, 50, 70, 350, 90, 230)
+    return _frame_region(width, height, pixels)
+
+
 def _location(x):
     rect = NormalizedRect(x - 0.02, 0.65, 0.04, 0.10)
     return CardFaceLocation(
@@ -59,6 +71,18 @@ def test_expected_count_locator_reconstructs_internal_dimmed_cards_from_grid():
         323,
         371,
     ]
+
+
+def test_expected_count_locator_splits_dominant_wide_blob_by_save_count():
+    cards = locate_card_faces_expected_count(_wide_hand_blob_region(), 8)
+
+    assert len(cards) == 8
+    assert _locations_form_uniform_grid(cards) is True
+    centers = [card.local_rect.center.x for card in cards]
+    gaps = [right - left for left, right in zip(centers, centers[1:])]
+    assert centers[0] == pytest.approx(80, abs=2)
+    assert centers[-1] == pytest.approx(370, abs=2)
+    assert max(gaps) - min(gaps) <= 1
 
 
 def test_expected_count_locator_fails_closed_when_grid_position_is_ambiguous():
