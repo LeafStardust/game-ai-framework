@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import struct
+from dataclasses import dataclass
 
 from .luajit_memory import LuaJITGC64Decoder, LuaJITMemoryError
 from .process_memory import BalatroProcessMemoryError, WindowsProcessMemoryReader
@@ -9,20 +10,44 @@ from .process_memory import BalatroProcessMemoryError, WindowsProcessMemoryReade
 REQUIRED_G_KEYS = {"GAME", "STATE", "hand", "jokers"}
 
 
-def _find_valid_gc_strings(
-    decoder: LuaJITGC64Decoder,
+@dataclass(frozen=True)
+class _StringLayout:
+    name: str
+    header_size: int
+    gct_offset: int
+    length_offset: int
+
+
+GC64_STRING_LAYOUT = _StringLayout(
+    name="GC64",
+    header_size=24,
+    gct_offset=9,
+    length_offset=20,
+)
+
+NON_GC64_STRING_LAYOUT = _StringLayout(
+    name="non-GC64",
+    header_size=20,
+    gct_offset=5,
+    length_offset=16,
+)
+
+
+def _find_valid_gc_strings_for_layout(
+    reader: WindowsProcessMemoryReader,
     text: str,
+    layout: _StringLayout,
     *,
     max_valid_matches: int = 64,
 ) -> tuple[int, ...]:
-    """Find validated GCstr objects without truncating on raw byte decoys."""
+    """Find validated GCstr payloads for one candidate LuaJIT layout."""
 
     encoded = text.encode("utf-8")
     result: list[int] = []
     seen_payloads: set[int] = set()
     overlap = max(0, len(encoded) - 1)
 
-    for base, data in decoder.reader.iter_readable_chunks(
+    for base, data in reader.iter_readable_chunks(
         chunk_size=1024 * 1024,
         overlap=overlap,
     ):
@@ -38,26 +63,27 @@ def _find_valid_gc_strings(
                 continue
             seen_payloads.add(payload)
 
-            address = payload - decoder.GCSTR_SIZE
+            address = payload - layout.header_size
             if address <= 0:
                 continue
 
             try:
-                header = decoder.reader.read(address, decoder.GCSTR_SIZE)
+                header = reader.read(address, layout.header_size)
             except BalatroProcessMemoryError:
                 continue
 
-            if len(header) != decoder.GCSTR_SIZE:
+            if len(header) != layout.header_size:
                 continue
-            if header[9] != decoder.GC_STRING_TYPE:
+            # LuaJIT GC string object type: gct == ~LJ_TSTR == 4.
+            if header[layout.gct_offset] != 4:
                 continue
 
-            length = struct.unpack_from("<I", header, 20)[0]
+            length = struct.unpack_from("<I", header, layout.length_offset)[0]
             if length != len(encoded):
                 continue
 
             try:
-                if decoder.reader.read(payload, length) != encoded:
+                if reader.read(payload, length) != encoded:
                     continue
             except BalatroProcessMemoryError:
                 continue
@@ -69,6 +95,20 @@ def _find_valid_gc_strings(
     return tuple(result)
 
 
+def _find_valid_gc64_strings(
+    decoder: LuaJITGC64Decoder,
+    text: str,
+    *,
+    max_valid_matches: int = 64,
+) -> tuple[int, ...]:
+    return _find_valid_gc_strings_for_layout(
+        decoder.reader,
+        text,
+        GC64_STRING_LAYOUT,
+        max_valid_matches=max_valid_matches,
+    )
+
+
 def main() -> int:
     try:
         with WindowsProcessMemoryReader.from_balatro_window() as reader:
@@ -78,7 +118,7 @@ def main() -> int:
             print("Diagnostic mode -> read-only live process memory")
             print("Process writes/injection -> False")
             print("save.jkr used -> False")
-            print("LuaJIT ABI under test -> GC64")
+            print("LuaJIT layouts under test -> GC64, non-GC64")
 
             raw_game = reader.find_bytes(b"GAME", max_matches=4096)
             capped = len(raw_game) == 4096
@@ -88,13 +128,32 @@ def main() -> int:
             )
 
             old_gc_strings = decoder.find_gc_strings("GAME", max_matches=128)
-            valid_gc_strings = _find_valid_gc_strings(
+            gc64_strings = _find_valid_gc64_strings(
                 decoder,
                 "GAME",
                 max_valid_matches=64,
             )
-            print(f"Old bounded GCstr matches -> {len(old_gc_strings)}")
-            print(f"Validated GC64 GCstr matches -> {len(valid_gc_strings)}")
+            non_gc64_strings = _find_valid_gc_strings_for_layout(
+                reader,
+                "GAME",
+                NON_GC64_STRING_LAYOUT,
+                max_valid_matches=64,
+            )
+            print(f"Old bounded GC64 GCstr matches -> {len(old_gc_strings)}")
+            print(f"Validated GC64 GCstr matches -> {len(gc64_strings)}")
+            print(f"Validated non-GC64 GCstr matches -> {len(non_gc64_strings)}")
+
+            if not gc64_strings and non_gc64_strings:
+                print("Detected LuaJIT object layout -> non-GC64")
+                print("GC64 table discovery -> SKIPPED")
+                print("Discovery diagnostic -> PASS")
+                print("Likely failure class -> production decoder assumes GC64 but Balatro uses non-GC64 LuaJIT layout")
+                return 0
+
+            if gc64_strings:
+                print("Detected LuaJIT object layout -> GC64")
+            elif not non_gc64_strings:
+                print("Detected LuaJIT object layout -> unresolved")
 
             total_nodes = 0
             owner_candidates: set[int] = set()
@@ -102,7 +161,7 @@ def main() -> int:
             best_owner: int | None = None
             best_keys: tuple[str, ...] = ()
 
-            for string_address in valid_gc_strings:
+            for string_address in gc64_strings:
                 nodes = decoder.find_key_nodes_for_string(string_address)
                 total_nodes += len(nodes)
                 for node in nodes:
@@ -154,8 +213,8 @@ def main() -> int:
                 return 0
 
             print("Discovery diagnostic -> INCONCLUSIVE")
-            if not valid_gc_strings:
-                print("Likely failure class -> GC64 string/header assumption or scan coverage")
+            if not gc64_strings and not non_gc64_strings:
+                print("Likely failure class -> GCstr header assumptions or scan coverage")
             elif not total_nodes:
                 print("Likely failure class -> GC64 TValue encoding/reference assumption")
             elif not owner_candidates:
