@@ -8,7 +8,6 @@ from .card_locator import (
     MAX_HAND_CARDS,
     CardComponentDiagnostic,
     CardFaceLocation,
-    _split_wide_component,
     inspect_card_face_components,
     locate_card_faces,
 )
@@ -127,99 +126,74 @@ def _fit_grid_from_wide_component(
     diagnostics: list[CardComponentDiagnostic],
     expected_count: int,
 ) -> _GridFit | None:
-    """Reconstruct a full uniform row from one dominant overlapping-hand blob.
+    """Split a dominant connected hand blob using the authoritative card count.
 
-    ``locate_card_faces`` can correctly split a wide connected component while
-    also returning a few individually visible cards beside it. Those individual
-    components may have distorted face centers under Boss debuffs. Use them only
-    to determine how many card slots lie to the left/right of the wide component;
-    the final coordinates come entirely from the wide component's uniform stride.
+    Under suit-debuff Boss Blinds, lowering the brightness threshold can connect
+    the entire overlapping hand into one wide component. The generic card locator
+    must infer a count from nominal stride and can over-split that blob. Here the
+    save already supplies the exact visible hand count, so derive the only uniform
+    card grid consistent with that count and reject components whose resulting
+    stride is not physically plausible for a Balatro hand.
     """
+
+    if expected_count < 2:
+        return None
 
     wide_components = [
         component
         for component in diagnostics
-        if component.rejection == "too_wide" and component.density >= 0.35
+        if component.rejection == "too_wide" and component.density >= 0.30
     ]
     if not wide_components:
         return None
 
     candidates: list[_GridFit] = []
-    for wide in wide_components:
-        split = _split_wide_component_from_diagnostic(wide, expected_count)
-        if len(split) < 2 or len(split) >= expected_count:
+    for component in wide_components:
+        rect = component.local_rect
+        card_height = float(rect.height)
+        if card_height <= 0:
             continue
 
-        row_tolerance = max(4.0, wide.local_rect.height * 0.35)
-        aligned = [
-            component
-            for component in diagnostics
-            if component.accepted
-            and abs(component.local_rect.center.y - wide.local_rect.center.y)
-            <= row_tolerance
-        ]
-        left = [
-            component
-            for component in aligned
-            if component.local_rect.center.x < split[0]
-        ]
-        right = [
-            component
-            for component in aligned
-            if component.local_rect.center.x > split[-1]
-        ]
-
-        if len(left) + len(split) + len(right) != expected_count:
+        # Match the card-face geometry used by the ordinary wide-component
+        # splitter, but use the authoritative count rather than inferring count.
+        card_width = card_height * 0.67
+        if rect.width <= card_width:
             continue
 
-        stride = median(
-            split[index + 1] - split[index]
-            for index in range(len(split) - 1)
-        )
-        if stride <= 0:
+        stride = (float(rect.width) - card_width) / (expected_count - 1)
+        stride_ratio = stride / card_height
+        if not 0.38 <= stride_ratio <= 0.68:
             continue
 
-        start_x = split[0] - len(left) * stride
-        width = max(1.0, wide.local_rect.height * 0.67)
+        start_x = float(rect.left) + card_width / 2.0
         fit = _GridFit(
             start_x=start_x,
             stride=stride,
-            top=float(wide.local_rect.top),
-            card_width=width,
-            card_height=float(wide.local_rect.height),
-            score=0.0,
+            top=float(rect.top),
+            card_width=card_width,
+            card_height=card_height,
+            # Prefer dense, large hand blobs and a stride near Balatro's nominal
+            # overlap geometry. Small partial blobs naturally fail the ratio gate.
+            score=(
+                abs(stride - card_height * CARD_FACE_STRIDE_HEIGHT_RATIO)
+                + (1.0 - min(1.0, component.density)) * card_height * 0.10
+            ),
             mapped_indices=tuple(range(expected_count)),
         )
         candidates.append(fit)
 
-    if len(candidates) != 1:
+    if not candidates:
         return None
-    return candidates[0]
 
-
-def _split_wide_component_from_diagnostic(
-    component: CardComponentDiagnostic,
-    expected_count: int,
-) -> list[float]:
-    """Return local-x centers for the wide component's inferred card slots."""
-
-    # _split_wide_component needs a region only for normalized output. Build a
-    # minimal synthetic region large enough to preserve its local geometry, then
-    # read back only the local centers.
-    rect = component.local_rect
-    width = max(rect.left + rect.width + 1, 1)
-    height = max(rect.top + rect.height + 1, 1)
-    region = FrameRegion(
-        normalized_rect=NormalizedRect(0.0, 0.0, 1.0, 1.0),
-        pixel_rect=PixelRect(0, 0, width, height),
-        width=width,
-        height=height,
-        bgra=bytes(width * height * 4),
-    )
-    split = _split_wide_component(region, component)
-    if len(split) > expected_count:
-        return []
-    return [location.local_rect.center.x for location in split]
+    candidates.sort(key=lambda fit: fit.score)
+    best = candidates[0]
+    for alternative in candidates[1:]:
+        if _equivalent_fit(best, alternative):
+            continue
+        if alternative.score <= best.score + max(1.0, best.card_height * 0.03):
+            return None
+        break
+    return best
 
 
 def _fit_grid_from_accepted_components(
