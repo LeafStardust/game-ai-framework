@@ -110,7 +110,7 @@
 - [x] Blind-selection phase/state extraction and validation
 - [x] Joker and consumable structured state extraction and validation
 - [x] Shop structured state extraction and validation, including visible-area indices
-- [x] Structured translation for validated `BLIND_SELECT`, `SELECTING_HAND`, `SHOP` and checkpoint transitions
+- [x] Structured translation for validated `BLIND_SELECT`, `SELECTING_HAND`, `ROUND_EVAL`, `SHOP` and checkpoint transitions
 - [x] Save-disappearance/race handling at terminal run states
 - [ ] Public skip-tag identity/reward extraction for blind planning
 - [ ] Complete production-state translation for every remaining run/menu phase
@@ -139,9 +139,10 @@
 - [x] External `DISCARD_CARDS` execution
 - [x] Calibrated Small/Big/Boss Blind Select controls
 - [x] Calibrated Small/Big Blind Skip controls
+- [x] Calibrated Cash Out control with validated `ROUND_EVAL` → `SHOP` checkpoint transition
 - [x] Deterministic shop purchase controls for Joker/consumable/voucher targets
 - [x] External End Shop control and delayed checkpoint reconciliation
-- [x] Post-action checkpoint synchronization for hand, blind-select and validated shop transitions
+- [x] Post-action checkpoint synchronization for hand, blind-select, round-eval and validated shop transitions
 - [x] Guard against already-selected hand cards before external execution
 - [ ] Fresh post-purchase visual observation for safe multi-buy shop chaining
 - [ ] Booster-opening control and immediate post-open observation
