@@ -4,6 +4,7 @@ import json
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from statistics import median
 from typing import Callable
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
@@ -127,8 +128,10 @@ class ExternalHandMouseExecutor:
         if len(locations) != len(state.hand):
             raise HandMouseLayoutError(
                 "visible hand/card-save count mismatch: "
-                f"screen={len(locations)}, save={len(state.hand)}"
+                f"screen={len(locations)}, save={len(state.hand)}. "
+                "Make sure no hand cards are already selected."
             )
+        self._require_unselected_row(locations)
         return frame, locations
 
     def dispatch(
@@ -192,6 +195,20 @@ class ExternalHandMouseExecutor:
                 "selected action cards could not be mapped to current save hand"
             )
         return tuple(indices)
+
+    @staticmethod
+    def _require_unselected_row(locations: list[CardFaceLocation]) -> None:
+        if len(locations) < 2:
+            return
+
+        centers = [location.center.y for location in locations]
+        heights = [location.normalized_rect.height for location in locations]
+        tolerance = max(0.008, median(heights) * 0.20)
+        if max(centers) - min(centers) > tolerance:
+            raise HandMouseLayoutError(
+                "visible hand is not on one resting row; one or more cards may "
+                "already be selected. Deselect all hand cards before external execution."
+            )
 
     def _capture_focused_frame(self) -> BalatroFrame:
         tracker = getattr(self.capture, "tracker", None)
