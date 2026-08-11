@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import argparse
 
-from .luajit_memory import LuaJITGC64Decoder, LuaJITMemoryError, LuaValue
+from .luajit_memory import LuaJITMemoryError, LuaValue
+from .luajit_non_gc64_memory import LuaJITNonGC64Decoder
 from .process_memory import BalatroProcessMemoryError, WindowsProcessMemoryReader
 
 
@@ -29,14 +30,21 @@ def _value_text(value: LuaValue | None) -> str:
     return f"{value.kind}:{value.value}"
 
 
-def _table_keys(decoder: LuaJITGC64Decoder, address: int, limit: int = 80) -> str:
+def _table_keys(
+    decoder: LuaJITNonGC64Decoder,
+    address: int,
+    limit: int = 80,
+) -> str:
     fields = decoder.string_fields(address)
     keys = sorted(fields)
     suffix = "" if len(keys) <= limit else f" ... (+{len(keys) - limit})"
     return ", ".join(keys[:limit]) + suffix
 
 
-def _area_count(decoder: LuaJITGC64Decoder, value: LuaValue | None) -> int | None:
+def _area_count(
+    decoder: LuaJITNonGC64Decoder,
+    value: LuaValue | None,
+) -> int | None:
     if value is None or value.kind != "table":
         return None
     fields = decoder.string_fields(int(value.value))
@@ -44,12 +52,13 @@ def _area_count(decoder: LuaJITGC64Decoder, value: LuaValue | None) -> int | Non
     if cards is None or cards.kind != "table":
         return None
     array = decoder.array_items(int(cards.value))
-    # Balatro/Lua arrays are 1-based. Ignore a non-nil zero slot if a future
-    # runtime ever uses one; this is diagnostics only and not planner state yet.
     return sum(1 for index, _ in array if index >= 1)
 
 
-def _state_name(decoder: LuaJITGC64Decoder, root: dict[str, LuaValue]) -> str | None:
+def _state_name(
+    decoder: LuaJITNonGC64Decoder,
+    root: dict[str, LuaValue],
+) -> str | None:
     state = root.get("STATE")
     states = root.get("STATES")
     if state is None or states is None or states.kind != "table":
@@ -75,9 +84,10 @@ def main() -> int:
 
     try:
         with WindowsProcessMemoryReader.from_balatro_window() as reader:
-            decoder = LuaJITGC64Decoder(reader)
+            decoder = LuaJITNonGC64Decoder(reader)
             print(f"Balatro PID -> {reader.pid}")
             print("Observation source -> live Balatro process memory")
+            print("LuaJIT layout -> non-GC64 32-bit pseudo-pointers")
             print("External runtime dependency -> none")
             print("Process writes/injection -> False")
             print("save.jkr used -> False")
