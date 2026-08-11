@@ -90,6 +90,23 @@ class ExternalShopController:
             raise RuntimeError("no buffer-safe shop action is available")
         return ranked[0].action
 
+    def execute_recommended_purchase(
+        self,
+        session: ExternalShopSession,
+    ) -> BalatroAction:
+        """Execute exactly one current policy-recommended purchase.
+
+        END_SHOP is deliberately not executed here. Call leave_shop() explicitly so
+        policy-driven purchase validation cannot unexpectedly advance the run.
+        """
+        action = self.recommended_action(session)
+        if action.name == END_SHOP:
+            raise RuntimeError(
+                "shop policy recommends END_SHOP; no purchase should be executed"
+            )
+        self.execute_purchase(session, action)
+        return action
+
     def execute_purchase(
         self,
         session: ExternalShopSession,
