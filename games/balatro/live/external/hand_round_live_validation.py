@@ -26,6 +26,43 @@ def _card_text(card) -> str:
     return " / ".join(parts)
 
 
+def _print_play_projection(projection) -> None:
+    print(f"Poker hand -> {projection.hand.value}")
+    if projection.deterministic:
+        print(f"Calculated hand score -> {projection.hand_score}")
+    else:
+        print(f"Guaranteed hand score -> {projection.hand_score}")
+        print(f"Expected hand score -> {projection.expected_hand_score:.3f}")
+        print(f"Maximum hand score -> {projection.maximum_hand_score}")
+        print(
+            "Score outcomes -> "
+            + ", ".join(
+                f"{outcome.score}@{outcome.probability:.3f}"
+                for outcome in projection.outcomes
+            )
+        )
+        if projection.random_sources:
+            print("Random sources -> " + ", ".join(projection.random_sources))
+
+    print(
+        f"Projected blind score -> {projection.projected_total}/"
+        f"{projection.blind_target}"
+    )
+    if not projection.deterministic:
+        print(
+            f"Expected blind score -> {projection.expected_projected_total:.3f}/"
+            f"{projection.blind_target}"
+        )
+        print(
+            f"Maximum blind score -> {projection.maximum_projected_total}/"
+            f"{projection.blind_target}"
+        )
+        print(f"Clear probability -> {projection.clear_probability:.3%}")
+
+    print(f"Chips remaining after play -> {projection.remaining_after}")
+    print(f"Clears blind -> {projection.clears_blind}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
@@ -96,14 +133,7 @@ def main() -> int:
 
             if recommendation.name == PLAY_CARDS:
                 projection = controller.project_play(state, recommendation)
-                print(f"Poker hand -> {projection.hand.value}")
-                print(f"Calculated hand score -> {projection.hand_score}")
-                print(
-                    f"Projected blind score -> {projection.projected_total}/"
-                    f"{projection.blind_target}"
-                )
-                print(f"Chips remaining after play -> {projection.remaining_after}")
-                print(f"Clears blind -> {projection.clears_blind}")
+                _print_play_projection(projection)
 
             if not args.execute:
                 print("Hand loop ready -> True")
