@@ -1,6 +1,7 @@
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
+from games.balatro.jokers.ice_cream import IceCreamJoker
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.live.draw_outcomes import PublicDrawOutcomeModel
 from games.balatro.state import BalatroState
@@ -147,6 +148,44 @@ def test_guaranteed_immediate_clear_preserves_discard_over_two_action_clear():
     assert plan.action.name == PLAY_CARDS
     assert plan.value.clear_probability == 1.0
     assert plan.value.expected_discards_remaining == 1.0
+
+
+def test_retained_pair_proves_exact_clear_without_sampling_redraws():
+    state = _state(
+        [
+            BalatroCard("K", "Spades", live_id=0),
+            BalatroCard("K", "Diamonds", live_id=1),
+            BalatroCard("Q", "Spades", live_id=2),
+            BalatroCard("Q", "Diamonds", live_id=3),
+            BalatroCard("J", "Spades", live_id=4),
+            BalatroCard("10", "Spades", live_id=5),
+            BalatroCard("7", "Clubs", live_id=6),
+            BalatroCard("3", "Clubs", live_id=7),
+        ],
+        [BalatroCard(str((index % 9) + 2), "Hearts") for index in range(20)],
+        target=450,
+        hands=4,
+        discards=4,
+    )
+    state.jokers = [IceCreamJoker()]
+
+    planner = LiveBlindClearPlanner(
+        draw_outcomes=PublicDrawOutcomeModel(
+            exact_combination_limit=128,
+            sample_count=64,
+            seed=1,
+        ),
+        play_width=6,
+        discard_width=4,
+        horizon=2,
+    )
+    plan = planner.plan(state)
+
+    assert plan.action.name == PLAY_CARDS
+    assert [card.rank for card in plan.action.cards] == ["K", "K"]
+    assert plan.value.clear_probability == 1.0
+    assert plan.value.expected_score == 510.0
+    assert plan.exact is True
 
 
 def test_default_live_planner_bounds_draw_branching():
