@@ -11,18 +11,34 @@ from games.balatro.card_selector import CardSelector
 from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.scoring import BalatroScorer
+from games.balatro.live.score_outcomes import ScoreOutcome, VisibleCardScoreOutcomeModel
 
 
 @dataclass(frozen=True)
 class LivePlayProjection:
     hand: PokerHand
     hand_score: int
+    expected_hand_score: float
+    maximum_hand_score: int
     current_score: int
     projected_total: int
+    expected_projected_total: float
+    maximum_projected_total: int
     blind_target: int
     remaining_before: int
     remaining_after: int
     clears_blind: bool
+    clear_probability: float
+    outcomes: tuple[ScoreOutcome, ...]
+    random_sources: tuple[str, ...] = ()
+
+    @property
+    def deterministic(self) -> bool:
+        return len(self.outcomes) == 1
+
+    @property
+    def possible_clear(self) -> bool:
+        return self.clear_probability > 0.0
 
 
 @dataclass(frozen=True)
@@ -40,6 +56,10 @@ class LiveHandDecisionEvaluator(Evaluator):
     consulted. Joker effects are excluded from the scoring probe for now because
     many Joker implementations are stateful or probabilistic; the live controller
     will gain a side-effect-free Joker projection layer separately.
+
+    Visible-card randomness is never sampled during decision-making. The score
+    outcome model supplies a guaranteed floor, expectation, maximum and discrete
+    clear probability instead.
     """
 
     STRONG_MADE_HANDS = {
@@ -69,6 +89,7 @@ class LiveHandDecisionEvaluator(Evaluator):
     def __init__(self):
         self.hand_evaluator = HandEvaluator()
         self.scorer = BalatroScorer()
+        self.score_outcomes = VisibleCardScoreOutcomeModel(self.scorer)
         self.action_generator = CardSelector()
         self._cached_state_id: int | None = None
         self._cached_context: _DecisionContext | None = None
@@ -91,22 +112,45 @@ class LiveHandDecisionEvaluator(Evaluator):
             raise ValueError("live play projection requires at least one played card")
 
         hand = self.hand_evaluator.evaluate(action.cards)
-        hand_score = int(self._estimate_play(state, action))
+        distribution = self.score_outcomes.project(
+            hand,
+            state,
+            action.cards,
+            include_card_chips=True,
+        )
         current_score = int(getattr(state, "score", 0))
         target = int(getattr(getattr(state, "blind", None), "requirement", 0))
-        projected_total = current_score + hand_score
         remaining_before = max(0, target - current_score)
+        projected_total = current_score + distribution.minimum
+        expected_projected_total = current_score + distribution.expected
+        maximum_projected_total = current_score + distribution.maximum
         remaining_after = max(0, target - projected_total)
+
+        if target <= 0 or remaining_before <= 0:
+            clear_probability = 1.0 if target > 0 else 0.0
+        else:
+            clear_probability = distribution.probability_at_least(remaining_before)
 
         return LivePlayProjection(
             hand=hand,
-            hand_score=hand_score,
+            hand_score=distribution.minimum,
+            expected_hand_score=distribution.expected,
+            maximum_hand_score=distribution.maximum,
             current_score=current_score,
             projected_total=projected_total,
+            expected_projected_total=expected_projected_total,
+            maximum_projected_total=maximum_projected_total,
             blind_target=target,
             remaining_before=remaining_before,
             remaining_after=remaining_after,
-            clears_blind=target > 0 and projected_total >= target,
+            clears_blind=(
+                target > 0
+                and remaining_before > 0
+                and distribution.minimum >= remaining_before
+            ),
+            clear_probability=clear_probability,
+            outcomes=distribution.outcomes,
+            random_sources=distribution.random_sources,
         )
 
     def _context(self, state) -> _DecisionContext:
@@ -138,13 +182,22 @@ class LiveHandDecisionEvaluator(Evaluator):
         return context
 
     def _play_value(self, state, action, context: _DecisionContext) -> float:
-        estimate = self._estimate_play(state, action)
-        hand = self.hand_evaluator.evaluate(action.cards)
+        projection = self.project_play(state, action)
+        estimate = projection.expected_hand_score
+        hand = projection.hand
 
-        if estimate >= context.remaining_chips:
-            return 2_000.0 + estimate
+        if projection.clears_blind:
+            return 2_000.0 + projection.hand_score
+
+        # A probabilistic immediate clear is valuable, but it must remain below a
+        # guaranteed clear so the temporary policy never prefers a gamble over a
+        # certain finish merely because its upside is larger.
+        probabilistic_clear_bonus = 0.0
+        if projection.clear_probability > 0.0:
+            probabilistic_clear_bonus = 500.0 * projection.clear_probability
 
         progress = (estimate / context.remaining_chips) * 100.0
+        progress += probabilistic_clear_bonus
         pace_ratio = estimate / context.required_per_hand
 
         if hand in self.STRONG_MADE_HANDS:
@@ -167,7 +220,7 @@ class LiveHandDecisionEvaluator(Evaluator):
         if int(getattr(state, "discards_remaining", 0)) <= 0:
             return -1_000_000.0
 
-        if context.best_play_score >= context.remaining_chips:
+        if self._has_guaranteed_clearing_play(state):
             return -2_000.0
 
         kept_cards = self._kept_cards(state.hand, action.cards)
@@ -195,17 +248,32 @@ class LiveHandDecisionEvaluator(Evaluator):
 
     def _estimate_play(self, state, action) -> float:
         hand = self.hand_evaluator.evaluate(action.cards)
-
-        safe_state = state.copy()
-        safe_state.jokers = []
-
-        score = self.scorer.score(
+        return self.score_outcomes.project(
             hand,
-            safe_state,
-            cards=action.cards,
+            state,
+            action.cards,
             include_card_chips=True,
+        ).expected
+
+    def _has_guaranteed_clearing_play(self, state) -> bool:
+        remaining = max(
+            0,
+            int(getattr(getattr(state, "blind", None), "requirement", 0))
+            - int(getattr(state, "score", 0)),
         )
-        return float(score.total)
+        if remaining <= 0:
+            return True
+        for play in self.action_generator.generate_play_actions(state):
+            hand = self.hand_evaluator.evaluate(play.cards)
+            distribution = self.score_outcomes.project(
+                hand,
+                state,
+                play.cards,
+                include_card_chips=True,
+            )
+            if distribution.minimum >= remaining:
+                return True
+        return False
 
     @staticmethod
     def _kept_cards(hand, discarded) -> list:
