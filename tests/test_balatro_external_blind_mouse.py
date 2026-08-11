@@ -101,7 +101,7 @@ def test_blind_mouse_executor_focuses_then_clicks_target():
         mouse=BalatroMouseController(
             provider=provider,
             armed=True,
-            hover_settle_delay=0,
+            hover_delay=0,
         ),
         focus_settle_delay=0,
     )
