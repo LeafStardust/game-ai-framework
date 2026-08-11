@@ -29,7 +29,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Validate the live-memory SHOP planner. By default this is read-only. "
-            "--execute-booster INDEX really buys/opens that booster using normal mouse input."
+            "--execute-booster INDEX really selects, buys, and opens that booster "
+            "using two normal mouse clicks."
         )
     )
     parser.add_argument(
@@ -37,8 +38,9 @@ def main() -> int:
         type=int,
         metavar="INDEX",
         help=(
-            "REALLY buy/open the affordable booster at this area_index. This spends "
-            "money and leaves SHOP for the booster-pack phase."
+            "REALLY buy/open the affordable booster at this area_index. This clicks "
+            "the booster card, clicks its generated Open control, spends money, and "
+            "leaves SHOP for the booster-pack phase."
         ),
     )
     args = parser.parse_args()
@@ -89,12 +91,26 @@ def main() -> int:
         return 0
 
     item = result.details["item"] if isinstance(result.details, dict) else None
+    control = result.details["control"] if isinstance(result.details, dict) else None
     print("Integrated external action execution armed -> True")
     print("Mouse movement sent -> True")
     print("Mouse clicks sent -> True")
+    print("Clicks sent -> 2")
     print(f"Executed action -> {result.action.name}")
     if item is not None:
         print(f"Opened booster -> {item.label!r}, index={item.index}, cost={item.cost:g}")
+    if control is not None:
+        if control.item_click_point is not None:
+            print(
+                "Booster selection click -> "
+                f"x={control.item_click_point.x} y={control.item_click_point.y}"
+            )
+        print(f"Open control button -> {control.button!r}")
+        print(f"Open control func -> {control.func!r}")
+        print(f"Open location source -> {control.location_source}")
+        print(f"Open probes required -> {control.probes}")
+        print(f"Local live search used -> {control.used_local_search}")
+        print(f"Fallback search used -> {control.used_fallback_search}")
     print(f"Phase before action -> {result.before.phase}")
     print(f"Money before action -> {result.before.payload.get('money')}")
     print(f"Phase after action -> {result.after.phase}")
