@@ -116,9 +116,11 @@ class BalatroMouseController:
         provider: MouseInputProvider | None = None,
         *,
         armed: bool = False,
+        hover_delay: float = 0.10,
     ):
         self.provider = provider or WindowsMouseInputProvider()
         self.armed = armed
+        self.hover_delay = max(0.0, hover_delay)
 
     def arm(self) -> None:
         self.armed = True
@@ -141,6 +143,7 @@ class BalatroMouseController:
         window: BalatroWindow | None = None,
         count: int = 1,
         interval: float = 0.05,
+        hover_delay: float | None = None,
     ) -> None:
         self._require_armed()
         if count < 1:
@@ -149,6 +152,10 @@ class BalatroMouseController:
         if window is not None:
             self.provider.focus(window.handle)
         self.provider.move_to(point.x, point.y)
+
+        settle = self.hover_delay if hover_delay is None else max(0.0, hover_delay)
+        if settle > 0:
+            time.sleep(settle)
 
         for index in range(count):
             self.provider.left_down()
@@ -163,12 +170,14 @@ class BalatroMouseController:
         *,
         count: int = 1,
         interval: float = 0.05,
+        hover_delay: float | None = None,
     ) -> None:
         self.click_screen(
             viewport.screen_point(point),
             window=viewport.frame.window,
             count=count,
             interval=interval,
+            hover_delay=hover_delay,
         )
 
     def click_rect(
@@ -178,12 +187,14 @@ class BalatroMouseController:
         *,
         count: int = 1,
         interval: float = 0.05,
+        hover_delay: float | None = None,
     ) -> None:
         self.click(
             viewport,
             rect.center,
             count=count,
             interval=interval,
+            hover_delay=hover_delay,
         )
 
     def _require_armed(self) -> None:
