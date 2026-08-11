@@ -8,6 +8,7 @@ from games.balatro.actions import (
     END_SHOP,
     BalatroAction,
 )
+from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.shop import BalatroShopActionGenerator
 from games.balatro.live.shop_sync import BufferedShopTransaction
@@ -77,7 +78,13 @@ class ExternalShopController:
         session: ExternalShopSession,
     ) -> list[BalatroAction]:
         self._require_open(session)
-        return self.action_generator.generate_bufferable_actions(session.state)
+        actions = self.action_generator.generate_bufferable_actions(session.state)
+        return [
+            action
+            for action in actions
+            if action.name != BUY_JOKER
+            or isinstance(action.target, LiveJokerScoreProjector.SUPPORTED_TYPES)
+        ]
 
     def rank_actions(
         self,
