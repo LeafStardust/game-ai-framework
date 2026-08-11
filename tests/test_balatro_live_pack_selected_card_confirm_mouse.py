@@ -4,6 +4,7 @@ from games.balatro.live.external.live_pack_selected_card_confirm_mouse import (
     _local_search_points,
     _memory_confirm_candidates,
     _resolve_confirm,
+    _template_confirm_point,
 )
 from games.balatro.live.external.viewport import PixelPoint
 
@@ -118,6 +119,33 @@ def test_memory_confirm_candidates_find_exact_live_ui_geometry():
     assert candidate.geometry["y"] == 6.0
     assert candidate.geometry["w"] == 1.0
     assert candidate.geometry["h"] == 0.5
+
+
+def test_template_confirm_point_anchors_to_selected_card_lower_right():
+    rect = SimpleNamespace(left=-1736, top=165, width=1536, height=864)
+
+    point = _template_confirm_point(
+        selected_geometry={
+            "x": 5.351391101850717,
+            "y": 6.5548780487804885,
+            "w": 2.048780487804878,
+            "h": 2.7512195121951217,
+        },
+        control_geometry={
+            "x": 99.0,
+            "y": 99.0,
+            "w": 1.1,
+            "h": 0.94,
+        },
+        logical_width=20.0,
+        logical_height=11.5,
+        client_rect=rect,
+    )
+
+    # The control's bogus absolute x/y are ignored. With the live geometry from
+    # the Standard Pack discovery this lands inside the measured select-card hitbox.
+    assert -1220 <= point.x <= -1200
+    assert 855 <= point.y <= 870
 
 
 def test_local_search_points_are_bounded_and_nearest_first():
