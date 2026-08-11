@@ -11,6 +11,7 @@ from games.balatro.live.external import (
     PixelPoint,
     WindowRect,
 )
+from games.balatro.live.external.mouse import WindowsMouseInputProvider
 
 
 class Provider:
@@ -29,6 +30,59 @@ class Provider:
 
     def left_up(self):
         self.events.append(("up",))
+
+
+class FocusRecoveryUser32:
+
+    def __init__(self):
+        self.foreground = 100
+        self.attached_threads = set()
+        self.events = []
+
+    @staticmethod
+    def _handle_value(hwnd):
+        return int(getattr(hwnd, "value", hwnd) or 0)
+
+    def SetProcessDPIAware(self):
+        return 1
+
+    def GetForegroundWindow(self):
+        return self.foreground
+
+    def IsWindow(self, hwnd):
+        return int(self._handle_value(hwnd) in {42, 100})
+
+    def IsIconic(self, hwnd):
+        return 0
+
+    def BringWindowToTop(self, hwnd):
+        self.events.append(("top", self._handle_value(hwnd)))
+        return 1
+
+    def SetForegroundWindow(self, hwnd):
+        handle = self._handle_value(hwnd)
+        self.events.append(("foreground", handle))
+        if self.attached_threads:
+            self.foreground = handle
+        return 1
+
+    def GetWindowThreadProcessId(self, hwnd, _process_id):
+        return {100: 10, 42: 20}.get(self._handle_value(hwnd), 0)
+
+    def AttachThreadInput(self, current_thread, other_thread, attach):
+        event = ("attach", int(current_thread), int(other_thread), bool(attach))
+        self.events.append(event)
+        if attach:
+            self.attached_threads.add(int(other_thread))
+        else:
+            self.attached_threads.discard(int(other_thread))
+        return 1
+
+
+class FocusRecoveryKernel32:
+
+    def GetCurrentThreadId(self):
+        return 30
 
 
 def _viewport():
@@ -126,3 +180,21 @@ def test_mouse_controller_can_be_disarmed_after_use():
 
     with pytest.raises(MouseControlNotArmed):
         controller.move_screen(PixelPoint(1, 1))
+
+
+def test_windows_provider_recovers_focus_with_attached_input_threads():
+    user32 = FocusRecoveryUser32()
+    provider = WindowsMouseInputProvider(
+        user32=user32,
+        kernel32=FocusRecoveryKernel32(),
+        focus_retry_delay=0,
+    )
+
+    provider.focus(42)
+
+    assert user32.foreground == 42
+    assert user32.attached_threads == set()
+    assert ("attach", 30, 10, True) in user32.events
+    assert ("attach", 30, 20, True) in user32.events
+    assert ("attach", 30, 20, False) in user32.events
+    assert ("attach", 30, 10, False) in user32.events
