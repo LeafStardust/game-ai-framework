@@ -1,4 +1,5 @@
 from games.balatro.card import BalatroCard
+from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.live.depth_draw_outcomes import DepthAwarePublicDrawOutcomeModel
 from games.balatro.live.draw_model import PublicDeckComposition
 
@@ -65,3 +66,41 @@ def test_depth_aware_draw_sampling_does_not_exactly_expand_large_one_card_childr
     assert child.combination_count == 41
     assert child.sample_count == 1
     assert len(child.outcomes) == 1
+
+
+def test_depth_aware_draw_sampling_can_reset_a_new_authoritative_root():
+    model = DepthAwarePublicDrawOutcomeModel(
+        exact_combination_limit=128,
+        root_sample_count=4,
+        child_sample_count=1,
+        seed=7,
+    )
+
+    first_root = model.distribution(_composition(44), 1)
+    first_child = model.distribution(_composition(41), 1)
+    assert first_root.exact is True
+    assert first_child.exact is False
+
+    model.reset_root()
+    replanned_root = model.distribution(_composition(41), 1)
+
+    # After a real checkpoint, the new authoritative 41-card population must be
+    # treated as a fresh root, not as a child of the old 44-card search.
+    assert replanned_root.exact is True
+    assert replanned_root.combination_count == 41
+
+
+def test_live_planner_resets_depth_aware_draw_root_before_each_search():
+    model = DepthAwarePublicDrawOutcomeModel(
+        exact_combination_limit=128,
+        root_sample_count=4,
+        child_sample_count=1,
+        seed=7,
+    )
+    model.distribution(_composition(44), 1)
+    assert model._root_population_size == 44
+
+    planner = LiveBlindClearPlanner(draw_outcomes=model)
+    planner.reset_search_stats()
+
+    assert model._root_population_size is None
