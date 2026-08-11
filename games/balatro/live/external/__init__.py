@@ -11,6 +11,12 @@ from .capture import (
     BalatroScreenCapture,
     ScreenCapturer,
 )
+from .hand_mouse import (
+    HAND_CONTROLS,
+    ExternalHandMouseExecutor,
+    HandMouseLayout,
+    HandMouseLayoutError,
+)
 from .mouse import (
     BalatroMouseController,
     MouseControlError,
@@ -57,6 +63,7 @@ from .window import (
 __all__ = [
     "BLIND_CONTROLS",
     "BLIND_TARGETS",
+    "HAND_CONTROLS",
     "UNKNOWN_PHASE",
     "BalatroCaptureError",
     "BalatroFrame",
@@ -76,10 +83,13 @@ __all__ = [
     "ExternalBalatroObservation",
     "ExternalBalatroObserver",
     "ExternalBlindMouseExecutor",
+    "ExternalHandMouseExecutor",
     "ExternalShopController",
     "ExternalShopMouseExecutor",
     "ExternalShopSession",
     "FrameRegion",
+    "HandMouseLayout",
+    "HandMouseLayoutError",
     "MouseControlError",
     "MouseControlNotArmed",
     "MouseInputProvider",
