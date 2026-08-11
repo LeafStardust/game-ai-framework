@@ -16,8 +16,12 @@ def test_default_registry_selects_red_white_from_live_state():
     playbook = default_balatro_playbooks().for_state(state)
 
     assert playbook.name == "red-white"
+    assert playbook.version == "0.2"
     assert playbook.key == ("RED", "WHITE")
-    assert playbook.strategy["planner"]["min_clear_probability"] == 0.75
+    planner = playbook.strategy["planner"]
+    assert planner["min_clear_probability"] == 0.75
+    assert planner["allow_pace_fallback"] is True
+    assert planner["min_pace_ratio"] == 1.0
 
 
 def test_registry_requires_exact_deck_stake_cartridge():
