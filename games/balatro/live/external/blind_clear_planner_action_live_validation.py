@@ -16,6 +16,7 @@ from .save_state import BalatroSaveReader
 
 
 DEFAULT_LAYOUT = "balatro-hand-mouse.json"
+PROBABILITY_TOLERANCE = 1e-9
 
 
 def _parse_indices(value: str) -> tuple[int, ...]:
@@ -68,12 +69,18 @@ def _planner(args) -> LiveBlindClearPlanner:
         ),
         play_width=args.play_width,
         discard_width=args.discard_width,
-        horizon=2,
+        horizon=args.horizon,
     )
 
 
 def _is_guaranteed(plan) -> bool:
     return plan.exact and plan.value.clear_probability >= 1.0 - 1e-12
+
+
+def _probabilistic_guard_passes(plan, minimum: float | None) -> bool:
+    if minimum is None:
+        return False
+    return plan.value.clear_probability + PROBABILITY_TOLERANCE >= minimum
 
 
 def _print_plan(prefix: str, state, plan) -> tuple[int, ...]:
@@ -102,6 +109,7 @@ def main() -> int:
     parser.add_argument("--layout", default=DEFAULT_LAYOUT)
     parser.add_argument("--play-width", type=int, default=6)
     parser.add_argument("--discard-width", type=int, default=4)
+    parser.add_argument("--horizon", type=int, default=2)
     parser.add_argument(
         "--samples",
         type=int,
@@ -126,12 +134,51 @@ def main() -> int:
         "--expect-indices",
         help="required with --execute; exact comma-separated current hand indexes expected",
     )
+    parser.add_argument(
+        "--allow-probabilistic",
+        action="store_true",
+        help=(
+            "allow a sampled/inexact recommendation only when its reported clear "
+            "probability also satisfies an explicit threshold"
+        ),
+    )
+    parser.add_argument(
+        "--min-clear-probability",
+        type=float,
+        help="required with --allow-probabilistic; minimum accepted clear probability",
+    )
+    parser.add_argument(
+        "--expect-clear-probability",
+        type=float,
+        help=(
+            "required with probabilistic --execute; exact clear probability printed "
+            "by the preceding dry run"
+        ),
+    )
     args = parser.parse_args()
 
+    if args.horizon < 1:
+        parser.error("--horizon must be at least 1")
     if args.execute and (args.expect_action is None or args.expect_indices is None):
         parser.error("--execute requires --expect-action and --expect-indices")
     if not args.execute and (args.expect_action is not None or args.expect_indices is not None):
         parser.error("--expect-action/--expect-indices are only valid with --execute")
+    if args.allow_probabilistic:
+        if args.min_clear_probability is None:
+            parser.error("--allow-probabilistic requires --min-clear-probability")
+        if not 0.0 <= args.min_clear_probability <= 1.0:
+            parser.error("--min-clear-probability must be between 0 and 1")
+        if args.execute and args.expect_clear_probability is None:
+            parser.error(
+                "probabilistic --execute requires --expect-clear-probability"
+            )
+    elif args.min_clear_probability is not None or args.expect_clear_probability is not None:
+        parser.error(
+            "--min-clear-probability/--expect-clear-probability require "
+            "--allow-probabilistic"
+        )
+    if args.expect_clear_probability is not None and not 0.0 <= args.expect_clear_probability <= 1.0:
+        parser.error("--expect-clear-probability must be between 0 and 1")
 
     try:
         expected_indices = (
@@ -175,6 +222,7 @@ def main() -> int:
     print(f"Blind target -> {getattr(state.blind, 'requirement', 0)}")
     print(f"Hands before -> {state.hands_remaining}")
     print(f"Discards before -> {state.discards_remaining}")
+    print(f"Planner horizon -> {args.horizon} actions")
     print(f"Owned Jokers -> {len(state.jokers)}")
     for index, joker in enumerate(state.jokers):
         print(f"  J{index}: {_joker_text(joker)}")
@@ -183,18 +231,45 @@ def main() -> int:
     indices = _print_plan("Recommended", state, plan)
 
     guaranteed = _is_guaranteed(plan)
-    print(f"Execution guard -> {'PASS' if guaranteed else 'BLOCKED'}")
-    if not guaranteed:
-        print("Reason -> recommendation is not an exact guaranteed-clear continuation")
+    probabilistic = args.allow_probabilistic and _probabilistic_guard_passes(
+        plan,
+        args.min_clear_probability,
+    )
+    guard_passes = guaranteed or probabilistic
+    if guaranteed:
+        print("Execution mode -> exact-guaranteed")
+    elif args.allow_probabilistic:
+        print(
+            "Execution mode -> probabilistic "
+            f"(minimum={args.min_clear_probability:.6f})"
+        )
+    else:
+        print("Execution mode -> exact-guaranteed")
+    print(f"Execution guard -> {'PASS' if guard_passes else 'BLOCKED'}")
+    if not guard_passes:
+        if args.allow_probabilistic:
+            print(
+                "Reason -> recommendation clear probability is below the explicit "
+                "probabilistic threshold"
+            )
+        else:
+            print("Reason -> recommendation is not an exact guaranteed-clear continuation")
         print("Mouse input sent -> False")
         return 0
 
     if not args.execute:
         print("Mouse input sent -> False")
-        print(
-            "Re-run with --execute plus the exact action and indices above to send "
-            "one guarded planner action."
-        )
+        if guaranteed:
+            print(
+                "Re-run with --execute plus the exact action and indices above to send "
+                "one guarded planner action."
+            )
+        else:
+            print(
+                "Re-run with --execute, the exact action/indices/clear probability "
+                "above, and the same probabilistic threshold to send one guarded "
+                "planner action."
+            )
         return 0
 
     if plan.action.name != args.expect_action:
@@ -207,6 +282,14 @@ def main() -> int:
             "planner cards changed before execution: "
             f"expected indices={expected_indices}, observed={indices}"
         )
+    if not guaranteed and args.allow_probabilistic:
+        assert args.expect_clear_probability is not None
+        if abs(plan.value.clear_probability - args.expect_clear_probability) > PROBABILITY_TOLERANCE:
+            parser.error(
+                "planner clear probability changed before execution: "
+                f"expected={args.expect_clear_probability:.6f}, "
+                f"observed={plan.value.clear_probability:.6f}"
+            )
 
     layout_path = Path(args.layout)
     try:
