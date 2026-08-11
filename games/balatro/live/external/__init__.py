@@ -12,6 +12,7 @@ from .mouse import (
     WindowsMouseInputProvider,
 )
 from .observer import ExternalBalatroObservation, ExternalBalatroObserver
+from .shop_controller import ExternalShopController, ExternalShopSession
 from .shop_mouse import (
     ExternalShopMouseExecutor,
     ShopClickSequence,
@@ -63,7 +64,9 @@ __all__ = [
     "ColorGridSignature",
     "ExternalBalatroObservation",
     "ExternalBalatroObserver",
+    "ExternalShopController",
     "ExternalShopMouseExecutor",
+    "ExternalShopSession",
     "FrameRegion",
     "MouseControlError",
     "MouseControlNotArmed",
