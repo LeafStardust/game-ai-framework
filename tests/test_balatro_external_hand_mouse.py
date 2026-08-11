@@ -71,10 +71,10 @@ def _frame():
     )
 
 
-def _location(x):
-    rect = NormalizedRect(x - 0.02, 0.68, 0.04, 0.08)
+def _location(x, y=0.72):
+    rect = NormalizedRect(x - 0.02, y - 0.04, 0.04, 0.08)
     return SimpleNamespace(
-        center=NormalizedPoint(x, 0.72),
+        center=NormalizedPoint(x, y),
         normalized_rect=rect,
         local_rect=PixelRect(0, 0, 10, 20),
         density=1.0,
@@ -175,6 +175,41 @@ def test_hand_executor_uses_discard_button_for_discard_action():
         ("down",),
         ("up",),
     ]
+
+
+def test_hand_executor_rejects_preselected_raised_card():
+    provider = Provider()
+    state = BalatroState()
+    state.hand = [
+        BalatroCard("A", "Spades", live_id=1),
+        BalatroCard("K", "Spades", live_id=2),
+        BalatroCard("Q", "Spades", live_id=3),
+    ]
+    locations = [
+        _location(0.25),
+        _location(0.50, y=0.66),
+        _location(0.75),
+    ]
+
+    executor = ExternalHandMouseExecutor(
+        HandMouseLayout(
+            play_hand=NormalizedPoint(0.4, 0.9),
+            discard=NormalizedPoint(0.6, 0.9),
+        ),
+        capture=Capture(_frame(), provider),
+        mouse=BalatroMouseController(provider=provider, armed=True, hover_delay=0),
+        card_locator=lambda region: locations,
+        focus_settle_delay=0,
+    )
+
+    try:
+        executor.locate_hand(state)
+    except HandMouseLayoutError as error:
+        assert "already be selected" in str(error)
+    else:
+        raise AssertionError("raised preselected card should fail safe")
+
+    assert provider.events == [("focus", 42)]
 
 
 def test_hand_executor_rejects_unsupported_action():
