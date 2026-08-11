@@ -69,6 +69,12 @@ class LiveBlindClearPlanner:
     the real checkpoint supplies the next horizon. Hidden draw order is never used.
     """
 
+    # Offline probability analysis may enumerate much larger draw spaces, but a
+    # live decision must stay responsive. One-card redraws on a normal deck remain
+    # exact; larger spaces are represented by reproducible public-state samples.
+    DEFAULT_EXACT_DRAW_COMBINATION_LIMIT = 128
+    DEFAULT_DRAW_SAMPLE_COUNT = 64
+
     def __init__(
         self,
         *,
@@ -87,7 +93,10 @@ class LiveBlindClearPlanner:
             raise ValueError("horizon must be at least 1")
         self.evaluator = evaluator or LiveHandDecisionEvaluator()
         self.action_generator = action_generator or CardSelector()
-        self.draw_outcomes = draw_outcomes or PublicDrawOutcomeModel()
+        self.draw_outcomes = draw_outcomes or PublicDrawOutcomeModel(
+            exact_combination_limit=self.DEFAULT_EXACT_DRAW_COMBINATION_LIMIT,
+            sample_count=self.DEFAULT_DRAW_SAMPLE_COUNT,
+        )
         self.play_width = int(play_width)
         self.discard_width = int(discard_width)
         self.horizon = int(horizon)
