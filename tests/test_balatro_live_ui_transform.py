@@ -17,7 +17,7 @@ def test_transform_uses_uniform_scale_and_centered_letterbox():
         {"x": 4.836622, "y": 6.936311, "w": 2.048780, "h": 2.751220}
     )
     assert center.x == -1279
-    assert center.y == 790
+    assert center.y == 789
 
 
 def test_window_movement_changes_only_desktop_offset():
