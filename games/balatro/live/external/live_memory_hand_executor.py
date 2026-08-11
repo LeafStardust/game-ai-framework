@@ -16,6 +16,7 @@ from .live_memory_observer import (
 )
 from .live_ui_transform import BalatroLogicalViewport
 from .mouse import BalatroMouseController
+from .viewport import PixelPoint
 from .window import BalatroWindowLocator
 
 
@@ -42,6 +43,22 @@ _CONTROL_SPECS = {
     "play": ("play_button", "can_play"),
     "discard": ("discard_button", "can_discard"),
 }
+
+# Probe the interior of a live card instead of trusting one geometric center.
+# Balatro cards overlap while fanned and after selection animations. These points
+# stay away from corners (where rotation makes the T rectangle least reliable)
+# while covering upper/middle/lower and left/right exposed regions.
+_CARD_PROBE_FRACTIONS = (
+    (0.50, 0.50),
+    (0.50, 0.25),
+    (0.25, 0.50),
+    (0.75, 0.50),
+    (0.50, 0.75),
+    (0.25, 0.25),
+    (0.75, 0.25),
+    (0.25, 0.75),
+    (0.75, 0.75),
+)
 
 
 def _text(value) -> str | None:
@@ -138,6 +155,21 @@ def _required_geometry(decoder, address: int, *, label: str) -> dict[str, float]
     return geometry
 
 
+def _card_probe_logical_points(geometry: dict[str, float]) -> tuple[tuple[float, float], ...]:
+    x = float(geometry["x"])
+    y = float(geometry["y"])
+    w = float(geometry["w"])
+    h = float(geometry["h"])
+    return tuple((x + w * fx, y + h * fy) for fx, fy in _CARD_PROBE_FRACTIONS)
+
+
+def _active_hover(decoder, address: int) -> bool:
+    fields = decoder.string_fields(int(address))
+    states = _table_fields(decoder, fields.get("states"))
+    hover = _table_fields(decoder, states.get("hover"))
+    return _primitive(hover.get("is")) is True
+
+
 class LiveMemoryHandExecutor:
     """Execute hand actions using only live Balatro geometry and normal OS input.
 
@@ -145,8 +177,9 @@ class LiveMemoryHandExecutor:
     from the current hand objects' live ``T`` fields; Play Hand / Discard targets
     are resolved from ``G.buttons`` by guarded UI id + callback pairs. The Balatro
     client rectangle and each card's live geometry are refreshed immediately
-    before every click, so window changes and hand-selection animations cannot
-    invalidate later targets.
+    before every click. Because fanned cards overlap, candidate pixels are also
+    hover-verified against Balatro's own ``states.hover.is`` before any click is
+    emitted.
     """
 
     def __init__(
@@ -158,6 +191,7 @@ class LiveMemoryHandExecutor:
         between_card_delay: float = 0.10,
         selection_timeout: float = 0.80,
         selection_poll_interval: float = 0.02,
+        hover_probe_delay: float = 0.045,
         before_action_delay: float = 0.12,
     ) -> None:
         self.observer = observer
@@ -166,7 +200,16 @@ class LiveMemoryHandExecutor:
         self.between_card_delay = max(0.0, float(between_card_delay))
         self.selection_timeout = max(0.0, float(selection_timeout))
         self.selection_poll_interval = max(0.0, float(selection_poll_interval))
+        self.hover_probe_delay = max(0.0, float(hover_probe_delay))
         self.before_action_delay = max(0.0, float(before_action_delay))
+
+    def _current_hand_addresses(self) -> list[int]:
+        decoder, _, root = self.observer._root()
+        hand = _table_fields(decoder, root.get("hand"))
+        return [
+            address
+            for _, address in _array_table_values(decoder, hand.get("cards"))
+        ]
 
     def _current_highlighted_addresses(self) -> set[int]:
         decoder, _, root = self.observer._root()
@@ -175,6 +218,22 @@ class LiveMemoryHandExecutor:
             address
             for _, address in _array_table_values(decoder, hand.get("highlighted"))
         }
+
+    def _current_hovered_hand_addresses(self) -> set[int]:
+        decoder, _, root = self.observer._root()
+        hand = _table_fields(decoder, root.get("hand"))
+        addresses = [
+            address
+            for _, address in _array_table_values(decoder, hand.get("cards"))
+        ]
+        hovered: set[int] = set()
+        for address in addresses:
+            try:
+                if _active_hover(decoder, address):
+                    hovered.add(address)
+            except Exception:
+                continue
+        return hovered
 
     def _wait_for_highlights(self, expected: set[int]) -> set[int]:
         deadline = time.monotonic() + self.selection_timeout
@@ -187,7 +246,7 @@ class LiveMemoryHandExecutor:
             if self.selection_poll_interval:
                 time.sleep(self.selection_poll_interval)
 
-    def _click_live_card(self, address: int, window, *, label: str):
+    def _hover_verified_card_point(self, address: int, window, *, label: str):
         decoder, _, root = self.observer._root()
         geometry = _required_geometry(decoder, address, label=label)
         tile_w = _number(root.get("TILE_W"))
@@ -201,7 +260,28 @@ class LiveMemoryHandExecutor:
             float(tile_h),
             window.client_rect,
         )
-        self.mouse.click_screen(transform.card_center(geometry), window=window)
+
+        last_hovered: set[int] = set()
+        for logical_x, logical_y in _card_probe_logical_points(geometry):
+            point = transform.screen_point(logical_x, logical_y)
+            self.mouse.move_screen(point)
+            if self.hover_probe_delay:
+                time.sleep(self.hover_probe_delay)
+            last_hovered = self._current_hovered_hand_addresses()
+            if last_hovered == {address}:
+                return point, window
+
+        raise LiveMemoryHandExecutionError(
+            f"unable to find a hover-verified pixel for {label}; "
+            f"last-hover-count={len(last_hovered)}"
+        )
+
+    def _click_live_card(self, address: int, window, *, label: str):
+        point, window = self._hover_verified_card_point(address, window, label=label)
+        # The cursor is already on a pixel Balatro identifies as this exact card.
+        # Disable the normal extra hover delay so animation cannot unnecessarily
+        # move the target before the click is emitted.
+        self.mouse.click_screen(point, window=window, hover_delay=0.0)
         return window
 
     def _rollback_highlights(self, window) -> tuple[bool, set[int]]:
@@ -211,13 +291,9 @@ class LiveMemoryHandExecutor:
         if not current:
             return True, set()
 
-        decoder, _, root = self.observer._root()
-        hand = _table_fields(decoder, root.get("hand"))
-        raw_cards = _array_table_values(decoder, hand.get("cards"))
-        hand_order = [address for _, address in raw_cards]
-
+        hand_order = self._current_hand_addresses()
         # Reverse hand order keeps each next target exposed as selected cards drop
-        # back into the row and the live geometry is refreshed before every click.
+        # back into the row. Every rollback target is hover-verified before click.
         rollback_order = [address for address in reversed(hand_order) if address in current]
         for address in rollback_order:
             try:
@@ -284,13 +360,8 @@ class LiveMemoryHandExecutor:
                 address = target_addresses[index]
 
                 # Ensure the target object still belongs to the live hand before
-                # using its freshly read geometry.
-                decoder, _, refreshed_root = self.observer._root()
-                refreshed_hand = _table_fields(decoder, refreshed_root.get("hand"))
-                current_addresses = {
-                    candidate
-                    for _, candidate in _array_table_values(decoder, refreshed_hand.get("cards"))
-                }
+                # probing its freshly read geometry.
+                current_addresses = set(self._current_hand_addresses())
                 if address not in current_addresses:
                     raise LiveMemoryHandExecutionError(
                         f"intended card H{index} left the live hand before selection"
@@ -300,9 +371,12 @@ class LiveMemoryHandExecutor:
                 expected_highlights.add(address)
                 actual = self._wait_for_highlights(expected_highlights)
                 if actual != expected_highlights:
+                    missing = len(expected_highlights - actual)
+                    unexpected = len(actual - expected_highlights)
                     raise LiveMemoryHandExecutionError(
                         f"Balatro highlight mismatch after H{index}: "
-                        f"expected={len(expected_highlights)} actual={len(actual)}"
+                        f"expected={len(expected_highlights)} actual={len(actual)} "
+                        f"missing={missing} unexpected={unexpected}"
                     )
 
                 if offset + 1 < len(indices) and self.between_card_delay:
