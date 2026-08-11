@@ -18,11 +18,12 @@ class ConsumableMouseLayoutError(RuntimeError):
 
 @dataclass(frozen=True)
 class ConsumableMouseLayout:
-    """Resolution-independent held-consumable slots and Use button."""
+    """Resolution-independent held-consumable slots and slot-specific Use buttons."""
 
     slot_0: NormalizedPoint | None = None
     slot_1: NormalizedPoint | None = None
-    use: NormalizedPoint | None = None
+    use_0: NormalizedPoint | None = None
+    use_1: NormalizedPoint | None = None
 
     def point_for_slot(self, index: int) -> NormalizedPoint:
         if index == 0:
@@ -39,10 +40,20 @@ class ConsumableMouseLayout:
             )
         return point
 
-    def use_point(self) -> NormalizedPoint:
-        if self.use is None:
-            raise ConsumableMouseLayoutError("consumable Use button is not calibrated")
-        return self.use
+    def use_point_for_slot(self, index: int) -> NormalizedPoint:
+        if index == 0:
+            point = self.use_0
+        elif index == 1:
+            point = self.use_1
+        else:
+            raise ConsumableMouseLayoutError(
+                f"unsupported held consumable area index: {index}"
+            )
+        if point is None:
+            raise ConsumableMouseLayoutError(
+                f"consumable Use button for slot {index} is not calibrated"
+            )
+        return point
 
     @classmethod
     def load(cls, path: str | Path) -> "ConsumableMouseLayout":
@@ -58,14 +69,16 @@ class ConsumableMouseLayout:
         return cls(
             slot_0=cls._point_from_value(raw.get("slot_0")),
             slot_1=cls._point_from_value(raw.get("slot_1")),
-            use=cls._point_from_value(raw.get("use")),
+            use_0=cls._point_from_value(raw.get("use_0")),
+            use_1=cls._point_from_value(raw.get("use_1")),
         )
 
     def to_dict(self) -> dict:
         return {
             "slot_0": self._point_to_value(self.slot_0),
             "slot_1": self._point_to_value(self.slot_1),
-            "use": self._point_to_value(self.use),
+            "use_0": self._point_to_value(self.use_0),
+            "use_1": self._point_to_value(self.use_1),
         }
 
     def save(self, path: str | Path) -> Path:
@@ -158,7 +171,9 @@ class ExternalSunMouseExecutor:
         if self.before_use_delay > 0:
             time.sleep(self.before_use_delay)
 
-        self.mouse.click_screen(viewport.screen_point(self.layout.use_point()))
+        self.mouse.click_screen(
+            viewport.screen_point(self.layout.use_point_for_slot(area_index))
+        )
         return target_indices
 
     @staticmethod
