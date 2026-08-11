@@ -30,6 +30,9 @@ class LivePlayProjection:
     clears_blind: bool
     clear_probability: float
     outcomes: tuple[ScoreOutcome, ...]
+    state_after_scoring: object | None = None
+    joker_projection_complete: bool = True
+    unsupported_jokers: tuple[str, ...] = ()
     random_sources: tuple[str, ...] = ()
 
     @property
@@ -53,9 +56,9 @@ class LiveHandDecisionEvaluator(Evaluator):
     """Pace-aware evaluator for live play/discard decisions.
 
     It deliberately uses only currently visible state. Remaining deck order is not
-    consulted. Joker effects are excluded from the scoring probe for now because
-    many Joker implementations are stateful or probabilistic; the live controller
-    will gain a side-effect-free Joker projection layer separately.
+    consulted. Validated Jokers are projected on deep branch copies so stateful
+    effects cannot mutate the authoritative live state. Unsupported Joker semantics
+    are surfaced explicitly for the caller to guard before real execution.
 
     Visible-card randomness is never sampled during decision-making. The score
     outcome model supplies a guaranteed floor, expectation, maximum and discrete
@@ -112,12 +115,13 @@ class LiveHandDecisionEvaluator(Evaluator):
             raise ValueError("live play projection requires at least one played card")
 
         hand = self.hand_evaluator.evaluate(action.cards)
-        distribution = self.score_outcomes.project(
+        transition = self.score_outcomes.project_transition(
             hand,
             state,
             action.cards,
             include_card_chips=True,
         )
+        distribution = transition.distribution
         current_score = int(getattr(state, "score", 0))
         target = int(getattr(getattr(state, "blind", None), "requirement", 0))
         remaining_before = max(0, target - current_score)
@@ -150,6 +154,9 @@ class LiveHandDecisionEvaluator(Evaluator):
             ),
             clear_probability=clear_probability,
             outcomes=distribution.outcomes,
+            state_after_scoring=transition.state_after_scoring,
+            joker_projection_complete=transition.joker_projection_complete,
+            unsupported_jokers=transition.unsupported_jokers,
             random_sources=distribution.random_sources,
         )
 
@@ -189,9 +196,6 @@ class LiveHandDecisionEvaluator(Evaluator):
         if projection.clears_blind:
             return 2_000.0 + projection.hand_score
 
-        # A probabilistic immediate clear is valuable, but it must remain below a
-        # guaranteed clear so the temporary policy never prefers a gamble over a
-        # certain finish merely because its upside is larger.
         probabilistic_clear_bonus = 0.0
         if projection.clear_probability > 0.0:
             probabilistic_clear_bonus = 500.0 * projection.clear_probability
