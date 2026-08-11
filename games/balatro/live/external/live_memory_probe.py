@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 
+from .balatro_g_discovery import discover_balatro_g_table
 from .luajit_memory import LuaJITMemoryError, LuaValue
 from .luajit_non_gc64_memory import LuaJITNonGC64Decoder
 from .process_memory import BalatroProcessMemoryError, WindowsProcessMemoryReader
@@ -92,8 +93,9 @@ def main() -> int:
             print("Process writes/injection -> False")
             print("save.jkr used -> False")
             print("Hidden RNG requested -> False")
+            print("G discovery method -> direct Lua global binding")
             print("Discovering Balatro G table -> ...")
-            g_table = decoder.discover_balatro_g_table()
+            g_table = discover_balatro_g_table(decoder)
             root = decoder.string_fields(g_table)
 
             print(f"Balatro G table -> 0x{g_table:x}")
