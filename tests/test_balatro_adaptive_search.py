@@ -103,32 +103,56 @@ def test_schedule_rejects_invalid_limits():
         )
 
 
-def _recommendation(action, indices, probability, expected_score):
+def _recommendation(
+    action,
+    indices,
+    probability,
+    expected_score,
+    *,
+    horizon=None,
+    intensified=False,
+):
     return AdaptiveRecommendationSummary(
         action=action,
         indices=indices,
         clear_probability=probability,
         expected_score=expected_score,
+        horizon=horizon,
+        intensified=intensified,
     )
 
 
 def test_consensus_discard_accepts_three_deepening_agreements():
     recommendations = (
-        _recommendation(PLAY_CARDS, (1, 2, 3), 0.0, 4198.0),
-        _recommendation(DISCARD_CARDS, (6,), 0.0, 5158.698),
-        _recommendation(DISCARD_CARDS, (6,), 0.046512, 6189.442),
-        _recommendation(DISCARD_CARDS, (6,), 0.209302, 6904.884),
+        _recommendation(PLAY_CARDS, (1, 2, 3), 0.0, 4198.0, horizon=4),
+        _recommendation(DISCARD_CARDS, (6,), 0.0, 5158.698, horizon=5),
+        _recommendation(DISCARD_CARDS, (6,), 0.046512, 6189.442, horizon=6),
+        _recommendation(DISCARD_CARDS, (6,), 0.209302, 6904.884, horizon=7),
     )
 
     assert stable_discard_consensus(recommendations)
 
 
-def test_consensus_discard_ignores_same_action_strictly_dominated_tail():
+def test_consensus_discard_ignores_intensified_duplicate_horizon_noise():
     recommendations = (
-        _recommendation(PLAY_CARDS, (2, 3, 4), 0.125, 6200.0),
-        _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6465.5),
-        _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6824.0),
-        _recommendation(DISCARD_CARDS, (0, 1), 0.029412, 6704.324),
+        _recommendation(PLAY_CARDS, (2, 3, 4), 0.125, 6200.0, horizon=4),
+        _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6824.0, horizon=5),
+        _recommendation(
+            DISCARD_CARDS,
+            (0, 1),
+            0.125,
+            6824.0,
+            horizon=5,
+            intensified=True,
+        ),
+        _recommendation(
+            DISCARD_CARDS,
+            (0, 1),
+            0.029412,
+            6704.324,
+            horizon=5,
+            intensified=True,
+        ),
     )
 
     assert stable_discard_consensus(recommendations)
@@ -136,9 +160,23 @@ def test_consensus_discard_ignores_same_action_strictly_dominated_tail():
 
 def test_consensus_discard_rejects_dominated_tail_with_changed_indexes():
     recommendations = (
-        _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6465.5),
-        _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6824.0),
-        _recommendation(DISCARD_CARDS, (4, 5), 0.029412, 6704.324),
+        _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6465.5, horizon=5),
+        _recommendation(
+            DISCARD_CARDS,
+            (0, 1),
+            0.125,
+            6824.0,
+            horizon=5,
+            intensified=True,
+        ),
+        _recommendation(
+            DISCARD_CARDS,
+            (4, 5),
+            0.029412,
+            6704.324,
+            horizon=5,
+            intensified=True,
+        ),
     )
 
     assert not stable_discard_consensus(recommendations)
@@ -146,9 +184,9 @@ def test_consensus_discard_rejects_dominated_tail_with_changed_indexes():
 
 def test_consensus_discard_rejects_changed_indexes():
     recommendations = (
-        _recommendation(DISCARD_CARDS, (6,), 0.0, 5158.0),
-        _recommendation(DISCARD_CARDS, (5,), 0.1, 6200.0),
-        _recommendation(DISCARD_CARDS, (6,), 0.2, 6900.0),
+        _recommendation(DISCARD_CARDS, (6,), 0.0, 5158.0, horizon=5),
+        _recommendation(DISCARD_CARDS, (5,), 0.1, 6200.0, horizon=6),
+        _recommendation(DISCARD_CARDS, (6,), 0.2, 6900.0, horizon=7),
     )
 
     assert not stable_discard_consensus(recommendations)
@@ -156,9 +194,19 @@ def test_consensus_discard_rejects_changed_indexes():
 
 def test_consensus_discard_rejects_regressing_projection():
     recommendations = (
-        _recommendation(DISCARD_CARDS, (6,), 0.0, 5158.0),
-        _recommendation(DISCARD_CARDS, (6,), 0.2, 6900.0),
-        _recommendation(DISCARD_CARDS, (6,), 0.1, 6800.0),
+        _recommendation(DISCARD_CARDS, (6,), 0.0, 5158.0, horizon=5),
+        _recommendation(DISCARD_CARDS, (6,), 0.2, 6900.0, horizon=6),
+        _recommendation(DISCARD_CARDS, (6,), 0.1, 6800.0, horizon=7),
+    )
+
+    assert not stable_discard_consensus(recommendations)
+
+
+def test_consensus_discard_rejects_unmarked_same_horizon_regression():
+    recommendations = (
+        _recommendation(DISCARD_CARDS, (6,), 0.1, 6500.0, horizon=5),
+        _recommendation(DISCARD_CARDS, (6,), 0.2, 6900.0, horizon=5),
+        _recommendation(DISCARD_CARDS, (6,), 0.1, 6800.0, horizon=5),
     )
 
     assert not stable_discard_consensus(recommendations)
@@ -166,9 +214,16 @@ def test_consensus_discard_rejects_regressing_projection():
 
 def test_consensus_discard_rejects_one_objective_tradeoff_tail():
     recommendations = (
-        _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6465.5),
-        _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6824.0),
-        _recommendation(DISCARD_CARDS, (0, 1), 0.20, 6704.324),
+        _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6465.5, horizon=5),
+        _recommendation(DISCARD_CARDS, (0, 1), 0.125, 6824.0, horizon=5),
+        _recommendation(
+            DISCARD_CARDS,
+            (0, 1),
+            0.20,
+            6704.324,
+            horizon=5,
+            intensified=True,
+        ),
     )
 
     assert not stable_discard_consensus(recommendations)
@@ -176,9 +231,9 @@ def test_consensus_discard_rejects_one_objective_tradeoff_tail():
 
 def test_consensus_discard_rejects_scored_play():
     recommendations = (
-        _recommendation(PLAY_CARDS, (1, 2), 0.2, 5000.0),
-        _recommendation(PLAY_CARDS, (1, 2), 0.3, 6000.0),
-        _recommendation(PLAY_CARDS, (1, 2), 0.4, 7000.0),
+        _recommendation(PLAY_CARDS, (1, 2), 0.2, 5000.0, horizon=5),
+        _recommendation(PLAY_CARDS, (1, 2), 0.3, 6000.0, horizon=6),
+        _recommendation(PLAY_CARDS, (1, 2), 0.4, 7000.0, horizon=7),
     )
 
     assert not stable_discard_consensus(recommendations)
