@@ -4,13 +4,14 @@ from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 
 
 class HouseBlindClearPlanner(LiveBlindClearPlanner):
-    """Normal-score planner for The House once every held card is face-up.
+    """Normal-score planner for The House using save-backed hand identities.
 
-    The House changes observation, not scoring: its initial hand is hidden. The
-    external validator is responsible for proving from screen pixels that no held
-    cards remain face-down before this planner may inspect save-backed identities.
-    Subsequent draws are ordinary face-up draws, so normal public draw modeling is
-    valid after that visibility gate passes.
+    The House changes what a human player can see, not scoring or legal actions.
+    For the current live-agent integration we intentionally use the structured
+    hand identities already present in save.jkr, including cards that Balatro
+    renders face-down. This keeps The House on the same structured-state-first
+    observation path as other blinds. A stricter human-visible masking layer can
+    be reintroduced later if required by the project.
     """
 
     BOSS_NAME = "The House"
