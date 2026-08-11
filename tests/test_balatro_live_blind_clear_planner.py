@@ -1,8 +1,13 @@
+import pytest
+
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.jokers.ice_cream import IceCreamJoker
-from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
+from games.balatro.live.blind_clear_planner import (
+    LiveBlindClearPlanner,
+    PlannerSearchBudgetExceeded,
+)
 from games.balatro.live.draw_outcomes import PublicDrawOutcomeModel
 from games.balatro.state import BalatroState
 
@@ -202,3 +207,42 @@ def test_default_live_planner_bounds_draw_branching():
         == LiveBlindClearPlanner.DEFAULT_DRAW_SAMPLE_COUNT
         == 64
     )
+
+
+def test_planner_supports_narrower_recursive_action_beam():
+    planner = LiveBlindClearPlanner(
+        play_width=6,
+        discard_width=4,
+        child_play_width=2,
+        child_discard_width=1,
+    )
+
+    assert planner.play_width == 6
+    assert planner.discard_width == 4
+    assert planner.child_play_width == 2
+    assert planner.child_discard_width == 1
+
+
+def test_planner_hard_node_budget_aborts_recursive_search():
+    state = _state(
+        [
+            BalatroCard("A", "Spades", live_id=0),
+            BalatroCard("K", "Hearts", live_id=1),
+            BalatroCard("Q", "Clubs", live_id=2),
+            BalatroCard("9", "Diamonds", live_id=3),
+        ],
+        [
+            BalatroCard("2", "Spades"),
+            BalatroCard("3", "Hearts"),
+            BalatroCard("4", "Clubs"),
+        ],
+        target=10_000,
+        hands=2,
+        discards=1,
+    )
+
+    planner = _planner(max_nodes=1)
+
+    with pytest.raises(PlannerSearchBudgetExceeded):
+        planner.plan(state)
+    assert planner.nodes_evaluated == 2
