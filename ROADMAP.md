@@ -103,7 +103,7 @@
 - [x] Reliably discover and validate Balatro global `G`
 - [x] Read whitelisted current-run fields directly from live memory
 - [ ] Read current card/Joker/consumable/shop identities directly from live objects
-- [ ] Read live UI object geometry where stable enough for execution targeting
+- [x] Read live UI object geometry where stable enough for execution targeting
 - [x] Detect deck and stake directly from the active run
 - [x] Translate direct-memory observation into `LiveBalatroSnapshot`
 - [x] Make direct live-memory observer the production default
@@ -317,5 +317,3 @@ The existing `save.jkr` and visual observer work remains useful for diagnostics 
 | Gold | `.7.0` | Rental Jokers |
 
 ## Completion criterion
-
-A deck/stake milestone is complete when the agent independently completes one full unseeded run at that deck/stake using the shared Balatro engine plus the automatically selected playbook, with no manual gameplay input after activation. A new deck begins only after the previous deck has completed every stake through Gold.
