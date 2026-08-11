@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from games.balatro.card import BalatroCard
+from games.balatro.live.external.capture import BalatroFrame
 from games.balatro.live.external.consumable_mouse import ConsumableMouseLayoutError
 from games.balatro.live.external.judgement_live_validation import (
     _projection_status,
@@ -10,6 +11,7 @@ from games.balatro.live.external.judgement_live_validation import (
     verify_judgement_checkpoint,
 )
 from games.balatro.live.external.judgement_mouse import ExternalJudgementMouseExecutor
+from games.balatro.live.external.viewport import NormalizedPoint
 from games.balatro.state import BalatroState
 from games.balatro.tarots import create_tarot
 
@@ -60,6 +62,34 @@ class _Observer:
         return value
 
 
+def _frame(width=100, height=100, value=0):
+    pixel = bytes((value, value, value, 255))
+    return BalatroFrame(
+        sequence=1,
+        timestamp=0.0,
+        window=SimpleNamespace(),
+        width=width,
+        height=height,
+        bgra=pixel * (width * height),
+    )
+
+
+def _frame_with_patch(width=100, height=100, value=0, patch_value=120):
+    data = bytearray(bytes((value, value, value, 255)) * (width * height))
+    for y in range(46, 55):
+        for x in range(44, 57):
+            offset = (y * width + x) * 4
+            data[offset : offset + 3] = bytes((patch_value, patch_value, patch_value))
+    return BalatroFrame(
+        sequence=2,
+        timestamp=0.1,
+        window=SimpleNamespace(),
+        width=width,
+        height=height,
+        bgra=bytes(data),
+    )
+
+
 def test_judgement_executor_accepts_available_joker_slot():
     state = _state()
 
@@ -72,6 +102,28 @@ def test_judgement_executor_rejects_full_joker_slots():
 
     with pytest.raises(ConsumableMouseLayoutError, match="no Joker slot"):
         ExternalJudgementMouseExecutor._validate(state, state.consumables[0])
+
+
+def test_judgement_use_visual_guard_accepts_changed_use_patch():
+    before = _frame()
+    after = _frame_with_patch()
+
+    assert ExternalJudgementMouseExecutor.use_control_changed(
+        before,
+        after,
+        NormalizedPoint(0.50, 0.50),
+    )
+
+
+def test_judgement_use_visual_guard_rejects_unchanged_use_patch():
+    before = _frame()
+    after = _frame()
+
+    assert not ExternalJudgementMouseExecutor.use_control_changed(
+        before,
+        after,
+        NormalizedPoint(0.50, 0.50),
+    )
 
 
 def test_wait_for_judgement_checkpoint_skips_partial_save():
