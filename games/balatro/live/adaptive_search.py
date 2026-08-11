@@ -138,20 +138,18 @@ def adaptive_blind_search_schedule(
 def _trim_strictly_dominated_tail(
     recommendations: tuple[AdaptiveRecommendationSummary, ...],
     *,
-    minimum_agreement: int,
+    minimum_remaining: int,
     tolerance: float,
 ) -> tuple[AdaptiveRecommendationSummary, ...]:
-    """Drop only trailing searches that are worse on both planner objectives.
+    """Drop trailing estimates that are strictly worse on both objectives.
 
-    Intensified sampled searches can occasionally be noisier than the preceding
-    search even though they use a wider beam. Such a strictly dominated trailing
-    estimate should not erase an otherwise stable setup consensus. We never trim
-    below ``minimum_agreement`` candidates, and a tradeoff/regression in only one
-    objective remains a real conflict rather than something to ignore.
+    This helper is used only after discard-action agreement has already been
+    established. It therefore affects the quality-trend check, not which action
+    counts as evidence for consensus.
     """
 
     items = list(recommendations)
-    while len(items) > minimum_agreement:
+    while len(items) > minimum_remaining:
         previous = items[-2]
         current = items[-1]
         probability_worse = (
@@ -170,13 +168,13 @@ def stable_discard_consensus(
     minimum_agreement: int = 3,
     tolerance: float = 1e-9,
 ) -> bool:
-    """Return whether the deepest useful searches agree on one discard.
+    """Return whether the deepest searches agree on one setup discard.
 
-    The last ``minimum_agreement`` useful searches must recommend the exact same
-    discard indexes, and both clear probability and expected score must be
-    non-decreasing as search depth/coverage increases. A trailing search may be
-    ignored only when it is strictly worse on both objectives, which protects a
-    stable setup consensus from a noisier intensified sample. Scored plays remain
+    The deepest ``minimum_agreement`` completed searches must first recommend
+    the exact same non-empty discard. That action agreement is never replaced by
+    a shallower search. Only after the action vote is established may a trailing
+    estimate be ignored for the monotonic quality check when it is strictly
+    worse in both clear probability and expected score. Scored plays remain
     governed by the normal clear-probability execution threshold.
     """
 
@@ -187,21 +185,24 @@ def stable_discard_consensus(
     if len(recommendations) < minimum_agreement:
         return False
 
-    useful = _trim_strictly_dominated_tail(
-        recommendations,
-        minimum_agreement=minimum_agreement,
-        tolerance=tolerance,
-    )
-    tail = useful[-minimum_agreement:]
-    first = tail[0]
+    action_tail = recommendations[-minimum_agreement:]
+    first = action_tail[0]
     if first.action != DISCARD_CARDS:
         return False
     if not first.indices:
         return False
-    if any(item.action != DISCARD_CARDS or item.indices != first.indices for item in tail[1:]):
+    if any(
+        item.action != DISCARD_CARDS or item.indices != first.indices
+        for item in action_tail[1:]
+    ):
         return False
 
-    for previous, current in zip(tail, tail[1:]):
+    quality_tail = _trim_strictly_dominated_tail(
+        action_tail,
+        minimum_remaining=2,
+        tolerance=tolerance,
+    )
+    for previous, current in zip(quality_tail, quality_tail[1:]):
         if current.clear_probability + tolerance < previous.clear_probability:
             return False
         if current.expected_score + tolerance < previous.expected_score:
