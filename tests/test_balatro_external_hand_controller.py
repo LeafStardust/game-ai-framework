@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.card import BalatroCard
 from games.balatro.live.external.hand_controller import ExternalHandController
@@ -7,8 +9,10 @@ from games.balatro.state import BalatroState
 
 class Observer:
 
-    def __init__(self, snapshot):
+    def __init__(self, snapshot, *, reader_path=None):
         self.snapshot = snapshot
+        if reader_path is not None:
+            self.reader = SimpleNamespace(path=reader_path)
 
     def observe(self):
         return self.snapshot
@@ -59,6 +63,16 @@ class Synchronizer:
         return self.snapshots.pop(0)
 
 
+class TimeoutSynchronizer:
+
+    def __init__(self):
+        self.calls = []
+
+    def wait_for_change(self, snapshot, phases=None, *, require_complete=True):
+        self.calls.append((snapshot.sequence, phases, require_complete))
+        raise TimeoutError("no post-action save checkpoint")
+
+
 def _snapshot(sequence, phase):
     return LiveBalatroSnapshot(
         sequence=sequence,
@@ -83,11 +97,11 @@ def sequence_id(score, hands):
     return score * 10 + hands
 
 
-def _controller(initial, following, states):
+def _controller(initial, following, states, *, reader_path=None, synchronizer=None):
     executor = Executor()
-    synchronizer = Synchronizer(following)
+    synchronizer = synchronizer or Synchronizer(following)
     controller = ExternalHandController(
-        Observer(initial),
+        Observer(initial, reader_path=reader_path),
         executor,
         translator=Translator(states),
         action_generator=ActionGenerator(),
@@ -154,6 +168,35 @@ def test_external_hand_controller_does_nothing_outside_selecting_hand():
     assert synchronizer.calls == []
     assert result.final_state is states[1]
     assert result.stop_reason == "phase:ROUND_EVAL"
+
+
+def test_external_hand_controller_records_terminal_action_when_save_disappears(tmp_path):
+    missing_save = tmp_path / "save.jkr"
+    initial = _snapshot(1, "SELECTING_HAND")
+    states = {
+        1: _state("SELECTING_HAND", score=364, hands=1),
+    }
+    timeout_sync = TimeoutSynchronizer()
+    controller, executor, synchronizer = _controller(
+        initial,
+        [],
+        states,
+        reader_path=missing_save,
+        synchronizer=timeout_sync,
+    )
+
+    result = controller.execute_until_phase_change(max_actions=1)
+
+    assert len(result.steps) == 1
+    step = result.steps[0]
+    assert executor.calls == [(PLAY_CARDS, 364)]
+    assert synchronizer.calls == [(1, None, False)]
+    assert step.checkpoint_available is False
+    assert step.after_snapshot is None
+    assert step.after_state is None
+    assert result.final_snapshot is None
+    assert result.final_state is None
+    assert result.stop_reason == "terminal:save_unavailable_after_action"
 
 
 def test_external_hand_controller_rejects_nonpositive_action_cap():
