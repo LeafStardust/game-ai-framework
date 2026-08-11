@@ -10,6 +10,7 @@ from games.balatro.live.head_blind_planner import HeadBlindClearPlanner
 from games.balatro.live.synchronizer import BalatroLiveSynchronizer
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 
+from .card_locator import locate_card_faces
 from .hand_mouse import ExternalHandMouseExecutor, HandMouseLayout
 from .mouse import BalatroMouseController
 from .save_observer import SaveBalatroObserver
@@ -18,6 +19,13 @@ from .save_state import BalatroSaveReader
 
 DEFAULT_LAYOUT = "balatro-hand-mouse.json"
 PROBABILITY_TOLERANCE = 1e-9
+HEAD_CARD_LOCATOR_PROFILES = (
+    (165, 70),
+    (150, 85),
+    (140, 100),
+    (130, 115),
+    (120, 130),
+)
 
 
 def _parse_indices(value: str) -> tuple[int, ...]:
@@ -54,6 +62,32 @@ def _joker_text(joker) -> str:
         if value is not None:
             fields.append(f"{field}={value}")
     return str(label) + (f" ({', '.join(fields)})" if fields else "")
+
+
+def _head_card_locator(expected_count: int):
+    """Return a strict count-aware locator for dimmed Head cards.
+
+    The generic bright-card profile remains first. Progressively dimmer profiles
+    are only accepted when they recover exactly the authoritative save hand count;
+    ExternalHandMouseExecutor still enforces the resting-row safety guard before
+    any click can be sent.
+    """
+
+    def locate(region):
+        first_locations = None
+        for min_brightness, max_channel_spread in HEAD_CARD_LOCATOR_PROFILES:
+            locations = locate_card_faces(
+                region,
+                min_brightness=min_brightness,
+                max_channel_spread=max_channel_spread,
+            )
+            if first_locations is None:
+                first_locations = locations
+            if len(locations) == expected_count:
+                return locations
+        return first_locations or []
+
+    return locate
 
 
 def _planner(args) -> HeadBlindClearPlanner:
@@ -270,8 +304,13 @@ def main() -> int:
         parser.error(str(error))
 
     mouse = BalatroMouseController(armed=True)
+    card_locator = _head_card_locator(len(state.hand))
     try:
-        with ExternalHandMouseExecutor(layout, mouse=mouse) as executor:
+        with ExternalHandMouseExecutor(
+            layout,
+            mouse=mouse,
+            card_locator=card_locator,
+        ) as executor:
             executor_indices = executor.card_indices(state, plan.action)
             if executor_indices != indices:
                 raise RuntimeError("hand executor index mapping differs from planner mapping")
