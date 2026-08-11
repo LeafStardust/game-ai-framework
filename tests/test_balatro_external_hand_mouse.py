@@ -171,20 +171,21 @@ def test_hand_executor_uses_discard_button_for_discard_action():
     executor.dispatch(action, state)
 
     assert provider.events[-3:] == [
+        ("move", 339, 379),
         ("down",),
         ("up",),
-    ][-3:] if False else provider.events[-3:]
-    assert ("move", 339, 379) in provider.events
+    ]
 
 
 def test_hand_executor_rejects_unsupported_action():
+    provider = Provider()
     executor = ExternalHandMouseExecutor(
         HandMouseLayout(
             play_hand=NormalizedPoint(0.4, 0.9),
             discard=NormalizedPoint(0.6, 0.9),
         ),
-        capture=Capture(_frame(), Provider()),
-        mouse=BalatroMouseController(provider=Provider(), armed=True, hover_delay=0),
+        capture=Capture(_frame(), provider),
+        mouse=BalatroMouseController(provider=provider, armed=True, hover_delay=0),
     )
     state = BalatroState()
 
