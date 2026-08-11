@@ -50,10 +50,7 @@ def _rank_plans(planner, state) -> list[LiveBlindPlan]:
         planner._estimate_action(state, action, planner.horizon)
         for action in candidates
     ]
-    estimates.sort(
-        key=lambda estimate: planner._value_key(estimate.value),
-        reverse=True,
-    )
+    estimates.sort(key=planner._estimate_key, reverse=True)
     return [
         LiveBlindPlan(
             action=estimate.action,
