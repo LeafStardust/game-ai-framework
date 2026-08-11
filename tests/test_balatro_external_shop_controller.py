@@ -95,6 +95,17 @@ class PreferPurchasePolicy:
         return [SimpleNamespace(action=action) for action in ordered]
 
 
+class PreferLeavePolicy:
+
+    def rank_actions(self, state, actions):
+        ordered = sorted(
+            actions,
+            key=lambda action: action.name == END_SHOP,
+            reverse=True,
+        )
+        return [SimpleNamespace(action=action) for action in ordered]
+
+
 def _controller(*, persisted_money=5, policy=None):
     initial_state = _shop_state()
     initial = _snapshot(1, "SHOP", initial_state)
@@ -190,3 +201,28 @@ def test_external_shop_controller_recommends_from_current_projected_state():
         (10, (BUY_JOKER, END_SHOP)),
         (5, (END_SHOP,)),
     ]
+
+
+def test_external_shop_controller_executes_exactly_one_recommended_purchase():
+    policy = PreferPurchasePolicy()
+    controller, executor, _ = _controller(policy=policy)
+    session = controller.open()
+
+    executed = controller.execute_recommended_purchase(session)
+
+    assert executed.name == BUY_JOKER
+    assert [action.name for action in executor.actions] == [BUY_JOKER]
+    assert session.state.money == 5
+    assert len(session.state.jokers) == 1
+    assert controller.recommended_action(session).name == END_SHOP
+
+
+def test_external_shop_controller_does_not_execute_when_policy_recommends_leave():
+    controller, executor, _ = _controller(policy=PreferLeavePolicy())
+    session = controller.open()
+
+    with pytest.raises(RuntimeError, match="recommends END_SHOP"):
+        controller.execute_recommended_purchase(session)
+
+    assert executor.actions == []
+    assert session.state.money == 10
