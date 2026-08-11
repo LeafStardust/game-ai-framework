@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
 
+from games.balatro.jokers.bootstraps import BootstrapsJoker
 from games.balatro.jokers.ice_cream import IceCreamJoker
 from games.balatro.scoring import BalatroScorer, HandScore
 
@@ -44,7 +45,7 @@ class LiveJokerScoreProjector:
     per-hand decay.
     """
 
-    SUPPORTED_TYPES = (IceCreamJoker,)
+    SUPPORTED_TYPES = (IceCreamJoker, BootstrapsJoker)
 
     def __init__(self, scorer: BalatroScorer | None = None):
         self.scorer = scorer or BalatroScorer()
