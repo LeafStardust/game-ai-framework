@@ -89,15 +89,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Preview or execute one ordinary Buy action for a live main-shop item. "
-            "The executor uses the card-relative Buy template first, requires Balatro's "
-            "live hover identity before clicking, then verifies money/offer/ownership."
+            "The executor clicks the item first, requires the generated Buy control, "
+            "then template-locates and live-verifies that control before the second click."
         )
     )
     parser.add_argument("--index", type=int, default=0)
     parser.add_argument(
         "--execute",
         action="store_true",
-        help="arm normal mouse input and perform exactly one verified Buy click",
+        help="arm normal mouse input and perform the two-click item -> Buy sequence",
     )
     args = parser.parse_args()
     if args.index < 0:
@@ -132,7 +132,7 @@ def main() -> int:
                 f"width={window.client_rect.width} height={window.client_rect.height}"
             )
             print(
-                "Live item hover center -> "
+                "Live item center -> "
                 f"x={item.screen_center.x} y={item.screen_center.y}"
             )
 
@@ -140,8 +140,8 @@ def main() -> int:
                 print("Mouse movement sent -> False")
                 print("Mouse clicks sent -> False")
                 print(
-                    "Re-run with --execute to template-locate and live-verify the "
-                    "ordinary Buy control, then send exactly one normal mouse click."
+                    "Re-run with --execute to click the item once, verify the generated "
+                    "Buy control, and click that control once."
                 )
                 return 0
 
@@ -149,10 +149,12 @@ def main() -> int:
             buy = verified.control
             print("Mouse movement sent -> True")
             print("Mouse clicks sent -> True")
+            print("Clicks sent -> 2")
             print(
-                "Hovered live item center -> "
-                f"x={clicked_item.screen_center.x} y={clicked_item.screen_center.y}"
+                "Item selection click -> "
+                f"x={verified.item_click_point.x} y={verified.item_click_point.y}"
             )
+            print("Item selection exposed expected Buy control -> True")
             print("Buy control button -> " + repr(buy.button))
             print("Buy control func -> " + repr(buy.func))
             print("Buy control id -> " + repr(buy.control_id))
