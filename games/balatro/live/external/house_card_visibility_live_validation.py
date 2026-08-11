@@ -66,7 +66,9 @@ def main() -> int:
         label = "FACE UP" if item.face_up else "FACE DOWN"
         print(
             f"  Screen {item.index}: {label} "
-            f"neutral_fraction={item.neutral_fraction:.6f}"
+            f"neutral_fraction={item.neutral_fraction:.6f} "
+            f"mean_brightness={item.mean_brightness:.3f} "
+            f"mean_chroma={item.mean_chroma:.3f}"
         )
     print("Hidden save card identities printed -> False")
     print("Mouse input sent -> False")
