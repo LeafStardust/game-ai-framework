@@ -21,6 +21,7 @@ from games.balatro.live.injected import (
     FirstPartyBalatroBridge,
     LiveMemoryInjectedActionDispatcher,
 )
+from games.balatro.live.injected.action_dispatcher import _reroll_complete
 from games.balatro.live.injected.install import asset_dir
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
@@ -181,6 +182,61 @@ def test_injected_dispatcher_reroll_requires_changed_shop_checkpoint():
 
     assert bridge.calls == [("reroll_shop",)]
     assert result.after is after
+
+
+def test_injected_reroll_accepts_free_inventory_change():
+    before = _snapshot(
+        12,
+        "SHOP",
+        money=10,
+        shop_jokers={
+            "cards": [
+                {
+                    "area_index": 0,
+                    "live_id": 1,
+                    "label": "Joker",
+                    "center": "j_joker",
+                    "cost": 2,
+                }
+            ]
+        },
+    )
+    after = _snapshot(
+        13,
+        "SHOP",
+        money=10,
+        shop_jokers={
+            "cards": [
+                {
+                    "area_index": 0,
+                    "live_id": 2,
+                    "label": "Greedy Joker",
+                    "center": "j_greedy_joker",
+                    "cost": 5,
+                }
+            ]
+        },
+    )
+
+    assert _reroll_complete(before, after)
+
+
+def test_injected_reroll_rejects_sequence_only_change():
+    shop = {
+        "cards": [
+            {
+                "area_index": 0,
+                "live_id": 1,
+                "label": "Joker",
+                "center": "j_joker",
+                "cost": 2,
+            }
+        ]
+    }
+    before = _snapshot(14, "SHOP", money=10, shop_jokers=shop)
+    after = _snapshot(15, "SHOP", money=10, shop_jokers=shop)
+
+    assert not _reroll_complete(before, after)
 
 
 @pytest.mark.parametrize(
