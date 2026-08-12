@@ -62,7 +62,7 @@ def test_d1_candidate_beam_projects_each_play_once_per_search():
     assert planner._play_projection_cache == {}
 
 
-def test_d1_child_beam_shortlists_before_expensive_projection():
+def test_d1_child_beam_never_enumerates_all_play_subsets():
     state = _state()
     planner = D1LiveBlindClearPlanner(
         play_width=6,
@@ -70,24 +70,12 @@ def test_d1_child_beam_shortlists_before_expensive_projection():
         child_play_width=1,
         horizon=4,
     )
-    plays = planner.action_generator.generate_play_actions(state)
+    exhaustive_count = len(planner.action_generator.generate_play_actions(state))
 
-    def retained_structure_must_not_run(_cards):
-        raise AssertionError("child shortlist must not scan retained-hand structure")
+    def exhaustive_generation_must_not_run(_state):
+        raise AssertionError("recursive child beam must not enumerate Play subsets")
 
-    planner.evaluator._retained_structure_value = retained_structure_must_not_run
-    shortlist = planner._shortlist_child_plays(
-        state,
-        plays,
-        planner.child_play_width,
-    )
-
-    assert len(shortlist) == 5
-    assert len(shortlist) < len(plays)
-    assert {len(action.cards) for action in shortlist} == {1, 2, 3, 4, 5}
-
-    # Recursive child beam construction happens only after at least one search
-    # node has been consumed. Simulate that boundary directly.
+    planner.action_generator.generate_play_actions = exhaustive_generation_must_not_run
     planner.nodes_evaluated = 1
     actions = planner._candidate_actions(
         state,
@@ -97,7 +85,36 @@ def test_d1_child_beam_shortlists_before_expensive_projection():
     )
 
     assert len(actions) == planner.child_play_width
-    assert planner.play_projections_evaluated == len(shortlist)
-    assert planner.play_projections_evaluated == 5
-    assert planner.play_projections_evaluated < len(plays)
+    assert planner.play_projections_evaluated <= 3
+    assert planner.play_projections_evaluated < exhaustive_count
     assert planner._play_projection_cache == {}
+
+
+def test_d1_child_beam_never_enumerates_all_discard_subsets():
+    state = _state()
+    planner = D1LiveBlindClearPlanner(
+        play_width=6,
+        discard_width=1,
+        child_play_width=1,
+        child_discard_width=1,
+        horizon=4,
+    )
+
+    def exhaustive_play_generation_must_not_run(_state):
+        raise AssertionError("recursive child beam must not enumerate Play subsets")
+
+    def exhaustive_discard_generation_must_not_run(_state):
+        raise AssertionError("recursive child beam must not enumerate Discard subsets")
+
+    planner.action_generator.generate_play_actions = exhaustive_play_generation_must_not_run
+    planner.action_generator.generate_discard_actions = exhaustive_discard_generation_must_not_run
+    planner.nodes_evaluated = 1
+    actions = planner._candidate_actions(
+        state,
+        allow_discards=True,
+        play_width=planner.child_play_width,
+        discard_width=planner.child_discard_width,
+    )
+
+    assert sum(action.name == "PLAY_CARDS" for action in actions) == 1
+    assert sum(action.name == "DISCARD_CARDS" for action in actions) == 1
