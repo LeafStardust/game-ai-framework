@@ -4,7 +4,7 @@ import copy
 import random
 from dataclasses import dataclass
 
-from games.balatro.card import BalatroCard, EDITIONS, ENHANCEMENTS, SEALS
+from games.balatro.card import BalatroCard, ENHANCEMENTS, SEALS
 from games.balatro.consumable import Consumable, ConsumableContext, PlanetCard
 from games.balatro.hand import PokerHand
 from games.balatro.joker import Joker, JokerContext
@@ -251,6 +251,7 @@ class JokerBehaviorAnalyzer:
     ) -> _ProbeResult:
         state = BalatroState()
         state.hand = copy.deepcopy(cards)
+        initial_money = float(state.money)
         score = HandScore(100, 10, 1.0)
         context = JokerContext(
             state=state,
@@ -294,8 +295,9 @@ class JokerBehaviorAnalyzer:
             else:
                 magnitudes[f"signal:{signal}"] = 1.0
 
-        if getattr(result.state, "money", 0) != state.money:
-            magnitudes[ECONOMY] = abs(float(result.state.money) - float(state.money))
+        money_after = float(getattr(result.state, "money", initial_money))
+        if money_after != initial_money:
+            magnitudes[ECONOMY] = abs(money_after - initial_money)
 
         return _ProbeResult(
             magnitudes=tuple(sorted(magnitudes.items())),
