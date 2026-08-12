@@ -34,6 +34,28 @@ def _live_like_state():
     return state
 
 
+def _flush_draw_state():
+    state = BalatroState()
+    state.phase = "SELECTING_HAND"
+    state.hand = [
+        BalatroCard("K", "Clubs", live_id=0),
+        BalatroCard("9", "Clubs", live_id=1),
+        BalatroCard("7", "Clubs", live_id=2),
+        BalatroCard("2", "Clubs", live_id=3),
+        BalatroCard("Q", "Diamonds", live_id=4),
+        BalatroCard("10", "Hearts", live_id=5),
+        BalatroCard("6", "Spades", live_id=6),
+        BalatroCard("4", "Hearts", live_id=7),
+    ]
+    state.deck = []
+    state.score = 0
+    state.hands_remaining = 4
+    state.discards_remaining = 4
+    state.blind = Blind(BlindType.SMALL, 300)
+    state.jokers = []
+    return state
+
+
 def test_d1_decision_engine_defaults_to_diversity_aware_planner():
     engine = LiveHandActionDecisionEngine()
 
@@ -78,8 +100,30 @@ def test_d1_discard_beam_preserves_distinct_redraw_sizes():
     assert {len(action.cards) for action in discards} == {1, 2, 3, 4}
 
 
-def test_four_card_discard_can_preserve_four_club_flush_structure():
+def test_four_card_discard_represents_best_retained_structure_for_that_size():
     state = _live_like_state()
+    planner = D1LiveBlindClearPlanner(play_width=6, discard_width=4, horizon=2)
+
+    actions = planner._candidate_actions(state, allow_discards=True)
+    selected = next(
+        action
+        for action in actions
+        if action.name == DISCARD_CARDS and len(action.cards) == 4
+    )
+    all_four_card_discards = [
+        action
+        for action in planner.action_generator.generate_discard_actions(state)
+        if len(action.cards) == 4
+    ]
+
+    assert planner._discard_priority(state, selected) == max(
+        planner._discard_priority(state, action)
+        for action in all_four_card_discards
+    )
+
+
+def test_four_card_discard_preserves_four_club_flush_when_flush_is_best_structure():
+    state = _flush_draw_state()
     planner = D1LiveBlindClearPlanner(play_width=6, discard_width=4, horizon=2)
 
     actions = planner._candidate_actions(state, allow_discards=True)
