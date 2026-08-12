@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import json
+import os
+import tempfile
+from pathlib import Path
+
 from .luajit_memory import LuaJITMemoryError, LuaValue
 from .luajit_non_gc64_memory import LuaJITNonGC64Decoder
 from .process_memory import BalatroProcessMemoryError
@@ -24,6 +29,8 @@ _AREA_FIELDS = (
     "consumeables",
     "deck",
 )
+
+_G_CACHE_VERSION = 1
 
 
 def _kind_matches(value: LuaValue | None, expected) -> bool:
@@ -107,6 +114,84 @@ def validate_balatro_g_table(
     scan, while still failing closed when the Lua VM or process has changed.
     """
     return _candidate_score(decoder, int(table)) is not None
+
+
+def _reader_pid(decoder: LuaJITNonGC64Decoder) -> int | None:
+    value = getattr(getattr(decoder, "reader", None), "pid", None)
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        return None
+    return int(value)
+
+
+def _g_cache_path(pid: int) -> Path:
+    return (
+        Path(tempfile.gettempdir())
+        / "game-ai-framework"
+        / f"balatro-g-{int(pid)}.json"
+    )
+
+
+def _load_cached_g_table(decoder: LuaJITNonGC64Decoder) -> int | None:
+    pid = _reader_pid(decoder)
+    if pid is None:
+        return None
+
+    path = _g_cache_path(pid)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return None
+
+    try:
+        version = int(data.get("version"))
+        cached_pid = int(data.get("pid"))
+        table = int(data.get("g_table"))
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+    if version != _G_CACHE_VERSION or cached_pid != pid:
+        return None
+    if table <= 0 or table > LuaJITNonGC64Decoder.POINTER_MASK:
+        return None
+    if not validate_balatro_g_table(decoder, table):
+        return None
+
+    setattr(decoder, "g_table_cache_hit", True)
+    return table
+
+
+def _store_cached_g_table(
+    decoder: LuaJITNonGC64Decoder,
+    table: int,
+) -> None:
+    pid = _reader_pid(decoder)
+    if pid is None:
+        return
+
+    path = _g_cache_path(pid)
+    temporary = path.with_suffix(path.suffix + f".{os.getpid()}.tmp")
+    payload = {
+        "version": _G_CACHE_VERSION,
+        "pid": pid,
+        "g_table": int(table),
+    }
+
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary.write_text(
+            json.dumps(payload, sort_keys=True, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        os.replace(temporary, path)
+    except OSError:
+        # Cache persistence is strictly an optimization. Discovery must remain
+        # fully functional on read-only/locked-down hosts where temp writes fail.
+        pass
+    finally:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def _rank_candidates(
@@ -197,22 +282,28 @@ def _discover_from_game_owner(
 def discover_balatro_g_table(
     decoder: LuaJITNonGC64Decoder,
 ) -> int:
-    """Discover Balatro's live global ``G`` with a structural fallback.
+    """Discover or safely reuse Balatro's live global ``G``.
 
-    The fast path resolves the Lua global binding named ``G`` directly. Some
-    live LuaJIT layouts do not leave that binding discoverable through the
-    interned-string reference scan, even though the table itself remains fully
-    reachable. In that case, the fallback locates the ``GAME`` field node,
-    reverse-maps it to candidate table owners, and applies the same Balatro-
-    specific structural validation and ambiguity checks.
+    A structurally validated address for the current Balatro PID is reused from
+    a small temp cache when available. A cache miss or invalid cached address
+    falls back to the existing whole-process discovery, then persists the newly
+    validated address for later CLI processes.
     """
+
+    cached = _load_cached_g_table(decoder)
+    if cached is not None:
+        return cached
+
+    setattr(decoder, "g_table_cache_hit", False)
 
     direct = _discover_from_global_binding(decoder)
     if direct is not None:
+        _store_cached_g_table(decoder, direct)
         return direct
 
     fallback = _discover_from_game_owner(decoder)
     if fallback is not None:
+        _store_cached_g_table(decoder, fallback)
         return fallback
 
     raise LuaJITMemoryError(
