@@ -4,7 +4,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from games.balatro.actions import END_ROUND, END_SHOP, PLAY_CARDS, SELECT_PACK_CARD, BalatroAction
+from games.balatro.actions import (
+    END_ROUND,
+    END_SHOP,
+    PLAY_CARDS,
+    SELECT_BLIND,
+    SELECT_PACK_CARD,
+    BalatroAction,
+)
 from games.balatro.live.external.live_memory_autonomous_step_injected import (
     AutonomousStepGuardError,
     LiveMemoryInjectedSingleStepRunner,
@@ -88,6 +95,22 @@ def test_autonomous_round_eval_recommends_cash_out():
     assert decision.source == "deterministic round-flow policy"
 
 
+def test_autonomous_blind_select_recommends_current_blind():
+    before = _snapshot(1, "BLIND_SELECT")
+    runner = LiveMemoryInjectedSingleStepRunner(
+        FakeObserver(before),
+        translator=FakeTranslator(_state("BLIND_SELECT")),
+        bridge=FakeBridge(),
+        dispatcher=FakeDispatcher(_snapshot(2, "SELECTING_HAND")),
+    )
+
+    decision = runner.decide()
+
+    assert decision.action.name == SELECT_BLIND
+    assert decision.source == "deterministic blind-selection policy"
+    assert "skip policy not yet enabled" in decision.notes[0]
+
+
 def test_autonomous_hand_uses_injected_d1_recommendation():
     before = _snapshot(1, "SELECTING_HAND")
     card = object()
@@ -132,15 +155,15 @@ def test_autonomous_shop_uses_policy_recommendation():
 
 
 def test_autonomous_runner_blocks_unvalidated_phase():
-    before = _snapshot(1, "BLIND_SELECT")
+    before = _snapshot(1, "MENU")
     runner = LiveMemoryInjectedSingleStepRunner(
         FakeObserver(before),
-        translator=FakeTranslator(_state("BLIND_SELECT")),
+        translator=FakeTranslator(_state("MENU")),
         bridge=FakeBridge(),
         dispatcher=FakeDispatcher(before),
     )
 
-    with pytest.raises(UnsupportedAutonomousPhase, match="BLIND_SELECT"):
+    with pytest.raises(UnsupportedAutonomousPhase, match="MENU"):
         runner.decide()
 
 
