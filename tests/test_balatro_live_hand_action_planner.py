@@ -56,6 +56,28 @@ def _flush_draw_state():
     return state
 
 
+def _guaranteed_clear_state():
+    state = BalatroState()
+    state.phase = "SELECTING_HAND"
+    state.hand = [
+        BalatroCard("K", "Spades", live_id=0),
+        BalatroCard("K", "Clubs", live_id=1),
+        BalatroCard("K", "Diamonds", live_id=2),
+        BalatroCard("10", "Clubs", live_id=3),
+        BalatroCard("10", "Diamonds", live_id=4),
+        BalatroCard("9", "Clubs", live_id=5),
+        BalatroCard("3", "Clubs", live_id=6),
+        BalatroCard("2", "Clubs", live_id=7),
+    ]
+    state.deck = []
+    state.score = 36
+    state.hands_remaining = 3
+    state.discards_remaining = 4
+    state.blind = Blind(BlindType.SMALL, 300)
+    state.jokers = []
+    return state
+
+
 def test_d1_decision_engine_defaults_to_diversity_aware_planner():
     engine = LiveHandActionDecisionEngine()
 
@@ -136,3 +158,19 @@ def test_four_card_discard_preserves_four_club_flush_when_flush_is_best_structur
     kept = [card for card in state.hand if id(card) not in discarded_ids]
 
     assert sum(1 for card in kept if card.suit == "Clubs") == 4
+
+
+def test_guaranteed_immediate_clear_suppresses_discard_branches():
+    state = _guaranteed_clear_state()
+    planner = D1LiveBlindClearPlanner(play_width=6, discard_width=4, horizon=2)
+
+    actions = planner._candidate_actions(state, allow_discards=True)
+
+    assert actions
+    assert all(action.name == PLAY_CARDS for action in actions)
+    assert all(planner.evaluator.project_play(state, action).clears_blind for action in actions)
+
+    best = actions[0]
+    selected_ids = {id(card) for card in best.cards}
+    full_house_ids = {id(card) for card in state.hand[:5]}
+    assert selected_ids == full_house_ids
