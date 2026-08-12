@@ -136,15 +136,15 @@ def test_translator_maps_current_blind_requirement():
     assert state.boss_name == "The Wall"
 
 
-def test_translator_maps_live_poker_hand_levels():
+def test_translator_maps_live_poker_hand_levels_and_play_counts():
     snapshot = LiveBalatroSnapshot(
         sequence=1,
         phase="SHOP",
         state_complete=True,
         payload={
             "hands": {
-                "Pair": {"level": 3},
-                "Flush": {"level": 2},
+                "Pair": {"level": 3, "played": 7},
+                "Flush": {"level": 2, "played": 4},
             }
         },
     )
@@ -153,3 +153,5 @@ def test_translator_maps_live_poker_hand_levels():
 
     assert state.hand_levels["PAIR"] == 3
     assert state.hand_levels["FLUSH"] == 2
+    assert state.hand_play_counts["PAIR"] == 7
+    assert state.hand_play_counts["FLUSH"] == 4
