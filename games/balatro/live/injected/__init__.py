@@ -1,3 +1,8 @@
+from .action_dispatcher import (
+    InjectedActionPostconditionError,
+    LiveMemoryInjectedActionDispatcher,
+    UnsupportedInjectedAction,
+)
 from .bridge import (
     FirstPartyBalatroBridge,
     InjectedBridgeError,
@@ -11,9 +16,12 @@ from .hand_dispatcher import (
 
 __all__ = [
     "FirstPartyBalatroBridge",
+    "InjectedActionPostconditionError",
     "InjectedBridgeError",
     "InjectedBridgeProtocolError",
     "InjectedBridgeTimeoutError",
     "LiveInjectedActionResult",
+    "LiveMemoryInjectedActionDispatcher",
     "LiveMemoryInjectedHandDispatcher",
+    "UnsupportedInjectedAction",
 ]
