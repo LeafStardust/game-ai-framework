@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
 
+from games.balatro.joker import JokerContext
 from games.balatro.scoring import BalatroScorer, HandScore
 
 
@@ -12,8 +13,8 @@ class JokerScoreProjection:
 
     ``state_after_scoring`` is an isolated branch state. Stateful supported Jokers
     may mutate inside that branch, but the authoritative observed state is never
-    touched. Playing cards remain shared observation objects so the scorer's
-    played/held identity checks stay correct without copying the deck.
+    touched. Cards remain shared on the hot path unless a validated effect such as
+    Vampire requires branch-local card mutation.
     """
 
     score: HandScore
@@ -31,18 +32,12 @@ class LiveJokerScoreProjector:
 
     Live-state hydration and score-transition support are separate contracts. A
     Joker can be reconstructed perfectly from public memory and still require event
-    sequencing, stochastic branch semantics, scoring-card identity, retriggers or
-    card mutation isolation that this projector does not yet model.
+    sequencing or stochastic branch semantics that the planner does not model.
 
-    ``SUPPORTED_CLASS_NAMES`` contains only implementations whose current
-    ``HAND_SCORED`` path is safe and complete under this projection context.
-    ``DEFERRED_HYDRATED_CLASS_NAMES`` accounts for the remaining mutable hydrated
-    Jokers so new live-state coverage cannot be mistaken for runtime support.
-
-    Live score search is hot code. ``BalatroState.copy()`` gives independent state
-    containers while deliberately retaining playing-card identity. Joker objects
-    are deep-copied so validated mutable Joker transitions cannot touch the
-    authoritative observed state.
+    The projector executes the small pre-score ``HAND_PLAYED`` transition required
+    by admitted Jokers before delegating ordinary ``HAND_SCORED`` resolution to the
+    scorer. Card copies are created only when a supported Joker mutates card state;
+    otherwise the original cheap identity-preserving branch copy remains in use.
     """
 
     SUPPORTED_CLASS_NAMES = frozenset(
@@ -63,14 +58,19 @@ class LiveJokerScoreProjector:
             "HologramJoker",
             "IceCreamJoker",
             "InvisibleJoker",
+            "LoyaltyCardJoker",
             "MadnessJoker",
+            "ObeliskJoker",
             "PopcornJoker",
             "RamenJoker",
+            "RedCardJoker",
+            "RideTheBusJoker",
             "RunnerJoker",
             "SpareTrousersJoker",
             "SquareJoker",
             "ThrowbackJoker",
             "TurtleBeanJoker",
+            "VampireJoker",
             "WeeJoker",
             "YorickJoker",
         }
@@ -79,13 +79,8 @@ class LiveJokerScoreProjector:
     DEFERRED_HYDRATED_CLASS_NAMES = frozenset(
         {
             "CanioJoker",
-            "LoyaltyCardJoker",
             "LuckyCatJoker",
-            "ObeliskJoker",
-            "RedCardJoker",
-            "RideTheBusJoker",
             "SeltzerJoker",
-            "VampireJoker",
         }
     )
 
@@ -93,28 +88,26 @@ class LiveJokerScoreProjector:
         "CanioJoker": (
             "requires destroyed-card transition/stochastic propagation before scoring"
         ),
-        "LoyaltyCardJoker": (
-            "requires HAND_PLAYED transition sequencing before score projection"
-        ),
         "LuckyCatJoker": (
             "requires LUCKY_TRIGGERED stochastic branch-state propagation"
         ),
-        "ObeliskJoker": (
-            "requires authoritative most-played-hand history in the scoring context"
-        ),
-        "RedCardJoker": (
-            "model must apply accumulated hydrated Mult during ordinary HAND_SCORED"
-        ),
-        "RideTheBusJoker": (
-            "requires scoring-card identity rather than treating every played card as scoring"
-        ),
         "SeltzerJoker": (
-            "requires played-card retrigger execution; scorer does not consume retrigger signal yet"
-        ),
-        "VampireJoker": (
-            "mutates card enhancements and therefore requires isolated branch card copies"
+            "requires played-card retrigger execution including stochastic card effects"
         ),
     }
+
+    HAND_PLAYED_CLASS_NAMES = frozenset(
+        {
+            "LoyaltyCardJoker",
+            "VampireJoker",
+        }
+    )
+
+    CARD_MUTATING_CLASS_NAMES = frozenset(
+        {
+            "VampireJoker",
+        }
+    )
 
     def __init__(self, scorer: BalatroScorer | None = None):
         self.scorer = scorer or BalatroScorer()
@@ -164,12 +157,8 @@ class LiveJokerScoreProjector:
                 cards_after_copy=tuple(cards or ()),
             )
 
-        # Keep card identity intact: BalatroState.copy() shallow-copies the hand and
-        # deck lists, so action cards still match objects in safe_state.hand. This is
-        # why card-mutating effects such as Vampire remain deferred for now.
         safe_state = state.copy()
         safe_state.jokers = deepcopy(list(getattr(state, "jokers", [])))
-        safe_cards = list(cards or [])
 
         all_jokers = list(getattr(safe_state, "jokers", []))
         supported = [joker for joker in all_jokers if self.supports(joker)]
@@ -179,17 +168,27 @@ class LiveJokerScoreProjector:
             if not self.supports(joker)
         )
 
-        # Only validated Joker implementations participate in the score. Restore
-        # the full copied list afterwards so the branch retains complete ownership
-        # metadata for future validation/expansion.
+        if self._requires_card_isolation(supported):
+            safe_cards = self._isolate_branch_cards(state, safe_state, cards)
+        else:
+            safe_cards = list(cards or [])
+
         safe_state.jokers = supported
+        joker_data = self._prepare_hand_play(
+            hand,
+            safe_state,
+            safe_cards,
+            supported,
+        )
         score = self.scorer.score(
             hand,
             safe_state,
             cards=safe_cards,
             include_card_chips=include_card_chips,
             resolve_random_effects=resolve_random_effects,
+            joker_data=joker_data,
         )
+        self._increment_hand_play_count(safe_state, hand)
         safe_state.jokers = all_jokers
 
         return JokerScoreProjection(
@@ -198,6 +197,64 @@ class LiveJokerScoreProjector:
             cards_after_copy=tuple(safe_cards),
             unsupported_jokers=unsupported,
         )
+
+    def _prepare_hand_play(self, hand, state, cards, jokers) -> dict:
+        active = [
+            joker
+            for joker in jokers
+            if type(joker).__name__ in self.HAND_PLAYED_CLASS_NAMES
+        ]
+        if not active:
+            return {}
+
+        scoring_cards = [
+            card
+            for card in self.scorer.scoring_cards(hand, cards)
+            if not self.scorer.is_card_debuffed(card)
+        ]
+        context = JokerContext(
+            state=state,
+            poker_hand=hand,
+            cards=list(cards or []),
+            trigger="HAND_PLAYED",
+            data={"scoring_cards": scoring_cards},
+        )
+        for joker in active:
+            context = joker.apply(context)
+        return context.data
+
+    @classmethod
+    def _requires_card_isolation(cls, jokers) -> bool:
+        return any(
+            type(joker).__name__ in cls.CARD_MUTATING_CLASS_NAMES
+            for joker in jokers
+        )
+
+    @staticmethod
+    def _isolate_branch_cards(state, safe_state, cards) -> list:
+        copies: dict[int, object] = {}
+
+        def clone(card):
+            key = id(card)
+            if key not in copies:
+                copies[key] = deepcopy(card)
+            return copies[key]
+
+        safe_state.hand = [clone(card) for card in getattr(state, "hand", [])]
+        safe_state.deck = [clone(card) for card in getattr(state, "deck", [])]
+        return [clone(card) for card in list(cards or [])]
+
+    @staticmethod
+    def _increment_hand_play_count(state, hand) -> None:
+        counts = getattr(state, "hand_play_counts", None)
+        if not isinstance(counts, dict):
+            return
+
+        current = int(counts.get(hand.value, counts.get(hand, 0)) or 0)
+        updated = current + 1
+        counts[hand.value] = updated
+        if hand in counts:
+            counts[hand] = updated
 
     @staticmethod
     def _joker_name(joker) -> str:
