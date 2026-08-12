@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
+from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
 from games.balatro.live.hand_action_policy import (
     CLEAR_PATH,
@@ -51,9 +51,10 @@ class _TestEngine(LiveHandActionDecisionEngine):
         return list(self._adaptive_by_horizon[planner.config.horizon])
 
 
-def _state():
+def _state(*cards):
     return SimpleNamespace(
         phase="SELECTING_HAND",
+        hand=list(cards),
         score=0,
         blind=SimpleNamespace(requirement=300),
         hands_remaining=2,
@@ -93,17 +94,19 @@ def _policy():
 
 
 def test_adaptive_engine_stops_when_a_clear_path_reaches_floor():
+    clear_marker = object()
+    fallback_marker = object()
     accepted = _plan(
         PLAY_CARDS,
         clear=0.80,
         immediate_score=50.0,
-        marker="clear-path",
+        marker=clear_marker,
     )
     fallback = _plan(
         PLAY_CARDS,
         clear=0.0,
         immediate_score=200.0,
-        marker="fallback",
+        marker=fallback_marker,
     )
     engine = _TestEngine(
         adaptive_by_horizon={2: [accepted]},
@@ -111,26 +114,28 @@ def test_adaptive_engine_stops_when_a_clear_path_reaches_floor():
         policy=_policy(),
     )
 
-    decision = engine.decide(_state())
+    decision = engine.decide(_state(clear_marker, fallback_marker))
 
     assert decision.mode == CLEAR_PATH
-    assert decision.action.cards == ["clear-path"]
+    assert decision.action.cards == [clear_marker]
     assert len(decision.search_attempts) == 1
     assert decision.search_attempts[0].horizon == 2
 
 
 def test_adaptive_engine_enters_pace_fallback_when_no_clear_path_exists():
+    search_marker = object()
+    pace_marker = object()
     below_floor = _plan(
         PLAY_CARDS,
         clear=0.40,
         immediate_score=80.0,
-        marker="search",
+        marker=search_marker,
     )
     pace_play = _plan(
         PLAY_CARDS,
         clear=0.20,
         immediate_score=160.0,
-        marker="pace",
+        marker=pace_marker,
     )
     engine = _TestEngine(
         adaptive_by_horizon={
@@ -140,9 +145,9 @@ def test_adaptive_engine_enters_pace_fallback_when_no_clear_path_exists():
         policy=_policy(),
     )
 
-    decision = engine.decide(_state())
+    decision = engine.decide(_state(search_marker, pace_marker))
 
     assert decision.mode == PACE_PLAY
-    assert decision.action.cards == ["pace"]
+    assert decision.action.cards == [pace_marker]
     assert decision.pace_target == 150.0
     assert len(decision.search_attempts) == 1
