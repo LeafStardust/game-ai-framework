@@ -7,6 +7,10 @@ import unicodedata
 from pathlib import Path
 
 from games.balatro.joker import Joker
+from games.balatro.live.joker_state_contract import (
+    all_observed_public_joker_state_fields,
+    observed_public_joker_state_fields,
+)
 
 
 class LiveJokerFactory:
@@ -14,17 +18,17 @@ class LiveJokerFactory:
 
     MODULE_ALIASES = {
         "8_ball": "eight_ball",
+        "ceremonial": "dagger",
+        "ceremonial_dagger": "dagger",
         # The base Balatro card named simply "Joker" is modeled by the reusable
         # FlatMultJoker class, whose canonical default is +4 Mult.
         "joker": "flat_mult",
     }
 
-    # These fields are only accepted from the observer's narrowly whitelisted
-    # ``public_state`` object, never from a broad raw ability blob.
-    PUBLIC_STATE_FIELDS = {
-        "chips",
-        "chip_mod",
-    }
+    # Only values already admitted by the explicit public-state contract can be
+    # assigned to Joker model fields. The observer remains responsible for the
+    # narrow per-Joker memory whitelist.
+    PUBLIC_STATE_FIELDS = all_observed_public_joker_state_fields()
     CONSTRUCTOR_PUBLIC_STATE_FIELDS = {
         "rank",
         "suit",
@@ -45,7 +49,7 @@ class LiveJokerFactory:
     }
 
     def create(self, data: dict):
-        joker_class = self._resolve_class(data)
+        joker_class = self.resolve_class(data)
         if joker_class is None:
             return None
 
@@ -77,17 +81,20 @@ class LiveJokerFactory:
             if value is not None:
                 setattr(joker, field, value)
 
-        for field in self.PUBLIC_STATE_FIELDS:
+        allowed_fields = observed_public_joker_state_fields(joker_class.__name__)
+        for field in allowed_fields:
             value = public_state.get(field)
-            if (
-                value is not None
-                and hasattr(joker, field)
-                and isinstance(value, (int, float))
-                and not isinstance(value, bool)
-            ):
-                setattr(joker, field, value)
+            if value is None or not hasattr(joker, field):
+                continue
+            if not isinstance(value, (str, int, float, bool)):
+                continue
+            setattr(joker, field, self._normalize_public_state_value(field, value))
 
         return joker
+
+    def resolve_class(self, data: dict) -> type[Joker] | None:
+        """Resolve the modeled Joker class without constructing an instance."""
+        return self._resolve_class(data)
 
     def _constructor_kwargs(
         self,
@@ -172,6 +179,11 @@ class LiveJokerFactory:
             return self.RANKS.get(value, value)
         if name == "suit":
             return self.SUITS.get(value, value)
+        return value
+
+    def _normalize_public_state_value(self, name: str, value):
+        if isinstance(value, str):
+            return self._normalize_constructor_value(name, value)
         return value
 
     @staticmethod
