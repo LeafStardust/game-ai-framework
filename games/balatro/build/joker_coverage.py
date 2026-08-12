@@ -53,13 +53,17 @@ class JokerCoverageReport:
 class JokerCoverageAuditor:
     """Enumerate every repository Joker class and measure semantic coverage.
 
-    This is deliberately repository-driven: adding a new file/class automatically
-    places it in the audit. Parameterized classes are reported separately because
-    the current live Joker factory cannot instantiate constructors that require
-    arguments. Constructible classes are behavior-probed across ordinary,
-    lifecycle and contextual public-state scenarios; opaque raw context signals
-    never count as complete semantic coverage.
+    Repository discovery is automatic. Jokers with genuinely public dynamic
+    constructor targets may declare representative *probe-only* fixtures here so
+    semantic completeness can be audited without inventing defaults in production.
+    Live construction remains a separate fail-closed responsibility of
+    ``LiveJokerFactory``.
     """
+
+    PROBE_CONSTRUCTOR_FIXTURES = {
+        "CastleJoker": {"suit": "Hearts"},
+        "TheIdolJoker": {"rank": "A", "suit": "Hearts"},
+    }
 
     def __init__(self, *, analyzer: ScenarioJokerBehaviorAnalyzer | None = None) -> None:
         self.analyzer = analyzer or ScenarioJokerBehaviorAnalyzer()
@@ -68,7 +72,8 @@ class JokerCoverageAuditor:
         entries: list[JokerCoverageEntry] = []
         for module_name, joker_class in self._classes():
             required = self._required_parameters(joker_class)
-            if required:
+            constructor_kwargs = self._probe_constructor_kwargs(joker_class, required)
+            if required and constructor_kwargs is None:
                 entries.append(
                     JokerCoverageEntry(
                         module=module_name,
@@ -85,12 +90,13 @@ class JokerCoverageAuditor:
                         module=module_name,
                         class_name=joker_class.__name__,
                         status=UNANALYZED,
+                        required_parameters=required,
                     )
                 )
                 continue
 
             try:
-                joker = joker_class()
+                joker = joker_class(**(constructor_kwargs or {}))
                 descriptor = self.analyzer.describe(joker)
             except Exception as exc:  # audit must report one bad model, not abort all
                 entries.append(
@@ -98,14 +104,39 @@ class JokerCoverageAuditor:
                         module=module_name,
                         class_name=joker_class.__name__,
                         status=ERROR,
+                        required_parameters=required,
                         error=f"{type(exc).__name__}: {exc}",
                     )
                 )
                 continue
 
-            entries.append(self._classify(module_name, joker_class.__name__, descriptor))
+            entry = self._classify(module_name, joker_class.__name__, descriptor)
+            entries.append(
+                JokerCoverageEntry(
+                    module=entry.module,
+                    class_name=entry.class_name,
+                    status=entry.status,
+                    required_parameters=required,
+                    known_features=entry.known_features,
+                    unknown_signals=entry.unknown_signals,
+                    error=entry.error,
+                )
+            )
 
         return JokerCoverageReport(entries=tuple(entries))
+
+    @classmethod
+    def _probe_constructor_kwargs(
+        cls,
+        joker_class: type[Joker],
+        required: tuple[str, ...],
+    ) -> dict[str, object] | None:
+        if not required:
+            return {}
+        fixture = cls.PROBE_CONSTRUCTOR_FIXTURES.get(joker_class.__name__)
+        if fixture is None or any(name not in fixture for name in required):
+            return None
+        return {name: fixture[name] for name in required}
 
     @staticmethod
     def _classify(
@@ -203,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--inventory-only",
         action="store_true",
-        help="enumerate constructor coverage without running behavior probes",
+        help="enumerate semantic probe inventory without running behavior probes",
     )
     parser.add_argument(
         "--all",
