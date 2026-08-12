@@ -50,6 +50,7 @@ def test_d1_candidate_beam_projects_each_play_once_per_search():
     assert planner.play_projections_evaluated == len(plays)
     assert len(calls) == len(plays)
     assert set(calls.values()) == {1}
+    assert planner._play_projection_cache == {}
 
     planner.reset_search_stats()
     assert planner.play_projections_evaluated == 0
@@ -58,3 +59,4 @@ def test_d1_candidate_beam_projects_each_play_once_per_search():
 
     assert planner.play_projections_evaluated == len(plays)
     assert set(calls.values()) == {2}
+    assert planner._play_projection_cache == {}
