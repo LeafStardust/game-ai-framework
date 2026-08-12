@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import comb
 
 from games.balatro.hand import PokerHand
@@ -12,6 +12,15 @@ from games.balatro.scoring import BalatroScorer
 class ScoreOutcome:
     score: int
     probability: float
+    # Multi-hand planning may need a different post-score state for two random
+    # outcomes even when their numeric score is identical. Keep the state on the
+    # outcome itself so score aggregation does not erase that distinction.
+    # Exclude it from equality/repr to preserve the existing public value contract.
+    state_after_scoring: object | None = field(
+        default=None,
+        compare=False,
+        repr=False,
+    )
 
 
 @dataclass(frozen=True)
@@ -124,15 +133,22 @@ class VisibleCardScoreOutcomeModel:
         )
         base = joker_projection.score
         copied_cards = joker_projection.cards_after_copy
+        projected_state = joker_projection.state_after_scoring
 
         lucky_triggers = self._lucky_scoring_triggers(hand, copied_cards)
         if lucky_triggers == 0:
             distribution = ScoreOutcomeDistribution(
-                outcomes=(ScoreOutcome(base.total, 1.0),),
+                outcomes=(
+                    ScoreOutcome(
+                        base.total,
+                        1.0,
+                        state_after_scoring=projected_state,
+                    ),
+                ),
             )
             return ScoreProjectionTransition(
                 distribution=distribution,
-                state_after_scoring=joker_projection.state_after_scoring,
+                state_after_scoring=projected_state,
                 unsupported_jokers=joker_projection.unsupported_jokers,
             )
 
@@ -153,14 +169,18 @@ class VisibleCardScoreOutcomeModel:
 
         distribution = ScoreOutcomeDistribution(
             outcomes=tuple(
-                ScoreOutcome(score, probability)
+                ScoreOutcome(
+                    score,
+                    probability,
+                    state_after_scoring=projected_state,
+                )
                 for score, probability in sorted(probabilities.items())
             ),
             random_sources=(f"Lucky mult x{lucky_triggers}",),
         )
         return ScoreProjectionTransition(
             distribution=distribution,
-            state_after_scoring=joker_projection.state_after_scoring,
+            state_after_scoring=projected_state,
             unsupported_jokers=joker_projection.unsupported_jokers,
         )
 
