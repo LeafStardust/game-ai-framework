@@ -96,6 +96,19 @@ def _candidate_score(
     return score, tuple(evidence)
 
 
+def validate_balatro_g_table(
+    decoder: LuaJITNonGC64Decoder,
+    table: int,
+) -> bool:
+    """Return whether an already-known address still looks like Balatro's ``G``.
+
+    This is intentionally structural rather than address-based. It lets callers
+    safely reuse a previously discovered address without another whole-process
+    scan, while still failing closed when the Lua VM or process has changed.
+    """
+    return _candidate_score(decoder, int(table)) is not None
+
+
 def _rank_candidates(
     candidates: dict[int, tuple[int, tuple[str, ...]]],
     *,
