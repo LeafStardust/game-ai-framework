@@ -14,6 +14,7 @@ class LoyaltyCardJoker(Joker):
         if (
             context.trigger == "HAND_SCORED"
             and context.score is not None
+            and self.hands > 0
             and self.hands % 6 == 0
         ):
             context.score.x_mult *= 4
