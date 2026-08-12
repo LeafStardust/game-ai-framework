@@ -9,12 +9,14 @@ class _MemoryReader:
     def __init__(self, base=0x100000, size=0x40000):
         self.base = base
         self.data = bytearray(size)
+        self.read_log = []
 
     def write(self, address, data):
         offset = address - self.base
         self.data[offset : offset + len(data)] = data
 
     def read(self, address, size):
+        self.read_log.append((address, size))
         offset = address - self.base
         if offset < 0 or offset + size > len(self.data):
             raise RuntimeError("out of fake memory")
@@ -128,6 +130,72 @@ def test_non_gc64_string_fields_decode_table():
     fields = decoder.string_fields(table)
     assert fields["STATE"].kind == "integer"
     assert fields["STATE"].value == 7
+
+
+def test_luajit_strings_are_cached_by_immutable_gc_address():
+    reader = _MemoryReader()
+    decoder = LuaJITNonGC64Decoder(reader)
+    address = 0x101000
+    _write_string(reader, address, "config")
+
+    assert decoder.read_string(address) == "config"
+    calls_after_first = len(reader.read_log)
+    assert calls_after_first == 2
+
+    assert decoder.read_string(address) == "config"
+    assert len(reader.read_log) == calls_after_first
+
+
+def test_hash_items_bulk_reads_contiguous_node_storage():
+    reader = _MemoryReader()
+    decoder = LuaJITNonGC64Decoder(reader)
+    table = 0x102000
+    nodes = 0x103000
+    _write_table(reader, table, node=nodes, hmask=3)
+    for index in range(4):
+        _write_node(
+            reader,
+            nodes + index * decoder.NODE_SIZE,
+            _integer_value(decoder, index + 10),
+            _integer_value(decoder, index + 1),
+        )
+
+    reader.read_log.clear()
+    items = decoder.hash_items(table)
+
+    assert len(items) == 4
+    assert (nodes, 4 * decoder.NODE_SIZE) in reader.read_log
+    assert not any(
+        address == nodes + index * decoder.NODE_SIZE and size == 8
+        for index in range(4)
+        for address, size in reader.read_log
+    )
+
+
+def test_array_items_bulk_reads_contiguous_array_storage():
+    reader = _MemoryReader()
+    decoder = LuaJITNonGC64Decoder(reader)
+    table = 0x102000
+    array = 0x103000
+    _write_table(reader, table, array=array, asize=4)
+    reader.write(
+        array,
+        b"".join(
+            struct.pack("<Q", _integer_value(decoder, index + 1))
+            for index in range(4)
+        ),
+    )
+
+    reader.read_log.clear()
+    items = decoder.array_items(table)
+
+    assert [value.value for _, value in items] == [1, 2, 3, 4]
+    assert (array, 4 * 8) in reader.read_log
+    assert not any(
+        address == array + index * 8 and size == 8
+        for index in range(4)
+        for address, size in reader.read_log
+    )
 
 
 def test_discovers_balatro_g_table_with_non_gc64_layout():
