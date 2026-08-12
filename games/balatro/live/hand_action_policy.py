@@ -5,6 +5,7 @@ from typing import Mapping
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner, LiveBlindPlan
+from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
 
 
 @dataclass(frozen=True)
@@ -269,7 +270,7 @@ class LiveHandActionDecisionEngine:
         planner: LiveBlindClearPlanner | None = None,
         policy: LiveHandActionThresholdPolicy | None = None,
     ) -> None:
-        self.planner = planner or LiveBlindClearPlanner()
+        self.planner = planner or D1LiveBlindClearPlanner()
         self.policy = policy or LiveHandActionThresholdPolicy()
 
     def rank_plans(self, state) -> list[LiveBlindPlan]:
