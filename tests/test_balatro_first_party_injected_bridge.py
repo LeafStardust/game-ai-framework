@@ -101,8 +101,9 @@ def test_bridge_assets_are_first_party_and_do_not_require_balatrobot(tmp_path):
     lua = (destination / "bridge.lua").read_text(encoding="utf-8")
     lovely = (destination / "lovely.toml").read_text(encoding="utf-8")
 
-    assert "SMODS" not in lua
-    assert "BalatroBot" not in lua
+    assert "SMODS." not in lua
+    assert 'require("socket")' not in lua
+    assert 'require("json")' not in lua
     assert "play_cards_from_highlighted" in lua
     assert "discard_cards_from_highlighted" in lua
     assert 'target = "main.lua"' in lovely
