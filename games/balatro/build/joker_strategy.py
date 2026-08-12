@@ -9,6 +9,7 @@ from games.balatro.joker import Joker
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 
+from .semantic_synergy import SemanticContextualJokerSynergyEvaluator
 from .synergy import ContextualBuildEvaluation, ContextualJokerSynergyEvaluator
 
 
@@ -70,7 +71,8 @@ class JokerBuildValueEvaluator:
 
     The deterministic score probe measures the whole scoring stack before and after
     adding the candidate. B3 then contributes structural/long-horizon interactions
-    such as held effects, copy behavior and requirement/scaling matches.
+    such as held effects, copy behavior, generated resources and conditional build
+    requirements.
     """
 
     PROBES = (
@@ -164,7 +166,7 @@ class JokerBuildValueEvaluator:
         weights: JokerBuildValueWeights | None = None,
     ) -> None:
         self.scorer = scorer or BalatroScorer()
-        self.contextual = contextual or ContextualJokerSynergyEvaluator()
+        self.contextual = contextual or SemanticContextualJokerSynergyEvaluator()
         self.weights = weights or JokerBuildValueWeights()
 
     def evaluate(self, state: BalatroState, joker: object) -> JokerBuildValue:
