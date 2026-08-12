@@ -7,12 +7,12 @@ class BaseballCardJoker(Joker):
         if context.score is None:
             return context
 
-        rare_jokers = sum(
-            getattr(joker, "rarity", None) == "Rare"
+        uncommon_jokers = sum(
+            str(getattr(joker, "rarity", "")).upper() == "UNCOMMON"
             for joker in getattr(context.state, "jokers", [])
             if joker is not self
         )
 
-        context.score.x_mult *= 1.5 ** rare_jokers
+        context.score.x_mult *= 1.5 ** uncommon_jokers
 
         return context
