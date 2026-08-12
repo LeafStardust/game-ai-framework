@@ -24,6 +24,7 @@ from games.balatro.live.shop import BalatroShopActionGenerator
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.playbook import default_balatro_playbooks
+from games.balatro.shop_arbiter import BuildAwareShopArbiter
 from games.balatro.shop_policy import BalatroShopPolicy
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 
@@ -197,6 +198,10 @@ class LiveMemoryInjectedSingleStepRunner:
         self.shop_reroll_policy = BuildAwareShopRerollPolicy(
             shop_policy=self.shop_policy,
         )
+        self.shop_arbiter = BuildAwareShopArbiter(
+            shop_policy=self.shop_policy,
+            reroll_policy=self.shop_reroll_policy,
+        )
         self.reroll_terms_reader = reroll_terms_reader or (
             lambda: read_live_shop_reroll_terms(self.observer)
         )
@@ -300,11 +305,6 @@ class LiveMemoryInjectedSingleStepRunner:
     ) -> tuple[BalatroAction, tuple[str, ...]]:
         del snapshot
         visible_actions = self.shop_generator.generate_actions(state)
-        policy_actions = [
-            action
-            for action in visible_actions
-            if action.name in self.SHOP_POLICY_ACTIONS
-        ]
 
         terms_notes: tuple[str, ...]
         try:
@@ -319,32 +319,24 @@ class LiveMemoryInjectedSingleStepRunner:
             effective_cost = None
             terms_notes = (f"reroll_terms_unavailable={error}",)
 
-        reroll = self.shop_reroll_policy.recommend(
+        decision = self.shop_arbiter.decide(
             state,
             visible_actions,
             reroll_cost=effective_cost,
         )
-        if reroll.decision == "REROLL":
-            if reroll.executable_action is None:
-                raise RuntimeError("REROLL recommendation is missing executable action")
-            return reroll.executable_action, (
-                "shop_decision=REROLL",
-                *terms_notes,
-                *reroll.rationale,
-            )
-
-        ranked = self.shop_policy.rank_actions(state, policy_actions)
-        if not ranked:
-            raise RuntimeError("shop policy produced no scoreable action")
-        selected = ranked[0]
+        shop_decision = (
+            "REROLL" if decision.source == "REROLL" else "HOLD_REROLL"
+        )
         notes = [
-            "shop_decision=HOLD_REROLL",
+            f"shop_decision={shop_decision}",
             *terms_notes,
-            *reroll.rationale,
-            f"policy_score={selected.total:.6f}",
+            f"arbiter_source={decision.source}",
+            f"policy_score={decision.total:.6f}",
         ]
-        notes.extend(str(note) for note in selected.notes)
-        return selected.action, tuple(notes)
+        if decision.source != "REROLL" and decision.reroll is not None:
+            notes.extend(str(note) for note in decision.reroll.rationale)
+        notes.extend(str(note) for note in decision.rationale)
+        return decision.action, tuple(notes)
 
     def _recommend_pack(
         self,
