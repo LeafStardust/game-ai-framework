@@ -161,7 +161,8 @@ def main() -> int:
             "Execution backend -> "
             "game-ai-framework injected Lua bridge"
         )
-        print("Loader -> Lovely")
+        print("Runtime loader -> none (fused LÖVE archive)")
+        print("Lovely required -> False")
         print("Steamodded required -> False")
         print("BalatroBot required -> False")
         print("Mouse calibration required -> False")

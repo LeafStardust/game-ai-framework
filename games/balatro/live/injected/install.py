@@ -3,6 +3,9 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import tempfile
+import zipfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from games.balatro.setup.installer import (
@@ -11,19 +14,30 @@ from games.balatro.setup.installer import (
 )
 
 
-BRIDGE_MOD_NAME = "game-ai-framework-bridge"
-ASSET_NAMES = ("lovely.toml", "bridge.lua")
+BRIDGE_ARCHIVE_NAME = "game_ai_framework_bridge.lua"
+BACKUP_SUFFIX = ".gaf-original"
+HOOK_BEGIN = "-- game-ai-framework bridge begin"
+HOOK_END = "-- game-ai-framework bridge end"
+
+
+class BalatroFusedPatchError(RuntimeError):
+    pass
+
+
+@dataclass(frozen=True)
+class FusedPatchReport:
+    executable: Path
+    backup: Path
+    runtime_dir: Path
+    already_patched: bool
 
 
 def asset_dir() -> Path:
     return Path(__file__).with_name("assets")
 
 
-def default_mods_dir() -> Path:
-    appdata = os.environ.get("APPDATA")
-    if not appdata:
-        raise RuntimeError("APPDATA is not available")
-    return Path(appdata) / "Balatro" / "Mods"
+def bridge_asset_path() -> Path:
+    return asset_dir() / "bridge.lua"
 
 
 def default_runtime_dir() -> Path:
@@ -33,71 +47,279 @@ def default_runtime_dir() -> Path:
     return Path(appdata) / "Balatro" / "game-ai-framework-bridge"
 
 
-def install_bridge_assets(
-    destination: str | Path,
+def backup_path(executable: str | Path) -> Path:
+    path = Path(executable)
+    return path.with_name(path.name + BACKUP_SUFFIX)
+
+
+def _load_hook() -> bytes:
+    hook = (
+        "\n"
+        f"{HOOK_BEGIN}\n"
+        f'local _gaf_bridge_chunk, _gaf_bridge_error = '
+        f'love.filesystem.load("{BRIDGE_ARCHIVE_NAME}")\n'
+        "assert(_gaf_bridge_chunk, _gaf_bridge_error)\n"
+        "_gaf_bridge_chunk()\n"
+        f"{HOOK_END}\n"
+    )
+    return hook.encode("utf-8")
+
+
+def _patched_main(main_lua: bytes) -> tuple[bytes, bool]:
+    marker = HOOK_BEGIN.encode("utf-8")
+    if marker in main_lua:
+        return main_lua, True
+    return main_lua.rstrip(b"\r\n") + _load_hook(), False
+
+
+def _fused_archive(executable: Path) -> tuple[list[zipfile.ZipInfo], int, bytes]:
+    if not executable.is_file():
+        raise BalatroFusedPatchError(f"Balatro executable not found: {executable}")
+
+    try:
+        with executable.open("rb") as raw:
+            if raw.read(2) != b"MZ":
+                raise BalatroFusedPatchError(
+                    f"{executable} is not a Windows PE executable"
+                )
+
+        with zipfile.ZipFile(executable, "r") as archive:
+            infos = archive.infolist()
+            if not infos:
+                raise BalatroFusedPatchError(
+                    "Balatro executable contains no fused LÖVE archive entries"
+                )
+            main_entries = [info for info in infos if info.filename == "main.lua"]
+            if len(main_entries) != 1:
+                raise BalatroFusedPatchError(
+                    "expected exactly one main.lua in the fused LÖVE archive; "
+                    f"found {len(main_entries)}"
+                )
+            prefix_size = min(info.header_offset for info in infos)
+            if prefix_size <= 0:
+                raise BalatroFusedPatchError(
+                    "fused LÖVE executable prefix could not be identified"
+                )
+            main_lua = archive.read(main_entries[0])
+    except BalatroFusedPatchError:
+        raise
+    except (OSError, zipfile.BadZipFile, RuntimeError) as error:
+        raise BalatroFusedPatchError(
+            f"unable to read Balatro fused LÖVE archive: {error}"
+        ) from error
+
+    return infos, prefix_size, main_lua
+
+
+def _copy_zipinfo(info: zipfile.ZipInfo) -> zipfile.ZipInfo:
+    clone = zipfile.ZipInfo(info.filename, date_time=info.date_time)
+    clone.compress_type = info.compress_type
+    clone.comment = info.comment
+    clone.extra = info.extra
+    clone.internal_attr = info.internal_attr
+    clone.external_attr = info.external_attr
+    clone.create_system = info.create_system
+    clone.create_version = info.create_version
+    clone.extract_version = info.extract_version
+    clone.flag_bits = info.flag_bits & ~0x08
+    clone.volume = info.volume
+    return clone
+
+
+def _rewrite_fused_executable(
+    executable: Path,
     *,
-    source: str | Path | None = None,
-) -> Path:
-    destination_path = Path(destination)
-    source_path = Path(source) if source is not None else asset_dir()
-    destination_path.mkdir(parents=True, exist_ok=True)
+    bridge_source: Path,
+) -> bool:
+    infos, prefix_size, main_lua = _fused_archive(executable)
+    patched_main, already_patched = _patched_main(main_lua)
 
-    for name in ASSET_NAMES:
-        source_file = source_path / name
-        if not source_file.is_file():
-            raise FileNotFoundError(
-                f"missing injected bridge asset: {source_file}"
+    if not bridge_source.is_file():
+        raise BalatroFusedPatchError(
+            f"first-party bridge asset is missing: {bridge_source}"
+        )
+    bridge_lua = bridge_source.read_bytes()
+
+    with executable.open("rb") as source:
+        prefix = source.read(prefix_size)
+        if len(prefix) != prefix_size:
+            raise BalatroFusedPatchError(
+                "unable to read the complete Balatro executable prefix"
             )
-        shutil.copy2(source_file, destination_path / name)
 
-    return destination_path
+    temporary_fd, temporary_name = tempfile.mkstemp(
+        prefix=executable.name + ".",
+        suffix=".tmp",
+        dir=executable.parent,
+    )
+    os.close(temporary_fd)
+    temporary = Path(temporary_name)
+
+    try:
+        temporary.write_bytes(prefix)
+        with zipfile.ZipFile(executable, "r") as source_archive:
+            with zipfile.ZipFile(
+                temporary,
+                "a",
+                allowZip64=True,
+            ) as destination:
+                for info in infos:
+                    if info.filename == BRIDGE_ARCHIVE_NAME:
+                        continue
+                    data = (
+                        patched_main
+                        if info.filename == "main.lua"
+                        else source_archive.read(info)
+                    )
+                    destination.writestr(_copy_zipinfo(info), data)
+
+                bridge_info = zipfile.ZipInfo(BRIDGE_ARCHIVE_NAME)
+                bridge_info.compress_type = zipfile.ZIP_DEFLATED
+                bridge_info.external_attr = 0o644 << 16
+                destination.writestr(bridge_info, bridge_lua)
+
+        _, _, verified_main = _fused_archive(temporary)
+        if HOOK_BEGIN.encode("utf-8") not in verified_main:
+            raise BalatroFusedPatchError(
+                "patched executable validation did not find the bridge hook"
+            )
+        with zipfile.ZipFile(temporary, "r") as verified:
+            if verified.read(BRIDGE_ARCHIVE_NAME) != bridge_lua:
+                raise BalatroFusedPatchError(
+                    "patched executable validation did not preserve the bridge"
+                )
+
+        os.replace(temporary, executable)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
+
+    return already_patched
+
+
+def patch_fused_game(
+    executable: str | Path,
+    *,
+    bridge_source: str | Path | None = None,
+    runtime_dir: str | Path | None = None,
+) -> FusedPatchReport:
+    executable_path = Path(executable).resolve()
+    backup = backup_path(executable_path)
+    bridge_path = (
+        Path(bridge_source).resolve()
+        if bridge_source is not None
+        else bridge_asset_path()
+    )
+
+    _, _, main_lua = _fused_archive(executable_path)
+    already_patched = HOOK_BEGIN.encode("utf-8") in main_lua
+
+    if not already_patched:
+        if backup.exists():
+            raise BalatroFusedPatchError(
+                f"refusing to overwrite existing original backup: {backup}. "
+                "Run the installer with --uninstall first if this backup belongs "
+                "to the current Balatro installation."
+            )
+        try:
+            shutil.copy2(executable_path, backup)
+        except OSError as error:
+            raise BalatroFusedPatchError(
+                f"unable to create Balatro backup at {backup}: {error}"
+            ) from error
+
+    try:
+        _rewrite_fused_executable(
+            executable_path,
+            bridge_source=bridge_path,
+        )
+    except Exception:
+        if not already_patched and backup.is_file():
+            try:
+                shutil.copy2(backup, executable_path)
+            except OSError:
+                pass
+        raise
+
+    runtime = (
+        Path(runtime_dir)
+        if runtime_dir is not None
+        else default_runtime_dir()
+    )
+    try:
+        runtime.mkdir(parents=True, exist_ok=True)
+        (runtime / "command.txt").unlink(missing_ok=True)
+        (runtime / "response.txt").unlink(missing_ok=True)
+    except OSError as error:
+        raise BalatroFusedPatchError(
+            f"unable to prepare bridge runtime directory {runtime}: {error}"
+        ) from error
+
+    return FusedPatchReport(
+        executable=executable_path,
+        backup=backup,
+        runtime_dir=runtime,
+        already_patched=already_patched,
+    )
+
+
+def restore_fused_game(executable: str | Path) -> Path:
+    executable_path = Path(executable).resolve()
+    backup = backup_path(executable_path)
+    if not backup.is_file():
+        raise BalatroFusedPatchError(
+            f"original Balatro backup not found: {backup}"
+        )
+    try:
+        os.replace(backup, executable_path)
+    except OSError as error:
+        raise BalatroFusedPatchError(
+            f"unable to restore original Balatro executable: {error}"
+        ) from error
+    return executable_path
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Install the game-ai-framework first-party Balatro action bridge. "
-            "Lovely is the only loader dependency; Steamodded and BalatroBot "
-            "are not required."
+            "Install the game-ai-framework first-party Balatro action bridge "
+            "directly into Balatro's fused LÖVE archive. No Lovely, Steamodded, "
+            "BalatroBot, or mouse calibration is required."
         )
     )
     parser.add_argument("--balatro-dir")
-    parser.add_argument("--mods-dir")
+    parser.add_argument(
+        "--uninstall",
+        action="store_true",
+        help="Restore the exact original Balatro.exe backup.",
+    )
     args = parser.parse_args()
 
     try:
         balatro_dir = BalatroSetup.detect_balatro_dir(args.balatro_dir)
-    except BalatroSetupError as error:
-        parser.error(str(error))
+        executable = balatro_dir / "Balatro.exe"
+        if args.uninstall:
+            restored = restore_fused_game(executable)
+            print(f"Balatro -> {balatro_dir}")
+            print(f"Restored original executable -> {restored}")
+            print("Restart Balatro -> required")
+            return 0
 
-    lovely_path = balatro_dir / "version.dll"
-    if not lovely_path.is_file():
-        parser.error(
-            "Lovely is not installed in the Balatro directory. "
-            "The first-party bridge needs a Lua injector/loader, but it does "
-            "not need Steamodded or BalatroBot."
-        )
-
-    try:
-        mods_dir = (
-            Path(args.mods_dir)
-            if args.mods_dir
-            else default_mods_dir()
-        )
-        destination = install_bridge_assets(
-            mods_dir / BRIDGE_MOD_NAME
-        )
-        runtime_dir = default_runtime_dir()
-        runtime_dir.mkdir(parents=True, exist_ok=True)
-        (runtime_dir / "command.txt").unlink(missing_ok=True)
-        (runtime_dir / "response.txt").unlink(missing_ok=True)
-    except (OSError, RuntimeError, FileNotFoundError) as error:
+        report = patch_fused_game(executable)
+    except (BalatroSetupError, BalatroFusedPatchError, OSError, RuntimeError) as error:
         parser.error(str(error))
 
     print(f"Balatro -> {balatro_dir}")
-    print(f"Lovely loader -> {lovely_path}")
-    print(f"First-party bridge mod -> {destination}")
-    print(f"Bridge runtime directory -> {runtime_dir}")
+    print(f"Patched executable -> {report.executable}")
+    print(f"Original backup -> {report.backup}")
+    print(f"Bridge runtime directory -> {report.runtime_dir}")
+    print(
+        "Existing bridge hook -> "
+        f"{'updated' if report.already_patched else 'installed'}"
+    )
+    print("Injection method -> fused LÖVE archive patch")
+    print("Runtime loader required -> False")
+    print("Lovely required -> False")
     print("Steamodded required -> False")
     print("BalatroBot required -> False")
     print("Mouse calibration required -> False")

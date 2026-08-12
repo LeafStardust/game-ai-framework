@@ -1,8 +1,9 @@
 -- game-ai-framework first-party Balatro action bridge.
 --
--- Loaded directly into Balatro by Lovely. This code intentionally has no
--- Steamodded or BalatroBot dependency. Commands are polled from a tiny local
--- file protocol and executed from love.update on the normal game thread.
+-- Loaded directly from Balatro's fused LÖVE archive. This code intentionally
+-- has no Lovely, Steamodded, or BalatroBot dependency. Commands are polled from
+-- a tiny local file protocol and executed from love.update on the normal game
+-- thread.
 
 if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   GAME_AI_FRAMEWORK_BRIDGE_INSTALLED = true
