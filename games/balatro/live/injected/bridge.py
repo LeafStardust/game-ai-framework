@@ -152,6 +152,20 @@ class FirstPartyBalatroBridge:
     def discard(self, indices: Iterable[int]) -> None:
         self._call("DISCARD", _validated_indices(indices))
 
+    def use_consumable(
+        self,
+        consumable_index: int,
+        hand_indices: Iterable[int] = (),
+    ) -> None:
+        slot = _validated_index(consumable_index)
+        targets = tuple(int(value) for value in hand_indices)
+        if targets:
+            targets = _validated_indices(targets)
+        # Consumable slots and hand-card positions are independent zero-based
+        # coordinate spaces. A slot and target may therefore share the same
+        # numeric index; validate target uniqueness separately before encoding.
+        self._call("USE_CONSUMABLE", (slot, *targets))
+
     def cash_out(self) -> None:
         self._call("CASH_OUT")
 

@@ -7,6 +7,7 @@ from typing import Any
 from games.balatro.actions import (
     DISCARD_CARDS,
     PLAY_CARDS,
+    USE_CONSUMABLE,
     BalatroAction,
 )
 from games.balatro.live.protocol import LiveBalatroSnapshot
@@ -78,6 +79,36 @@ def _hand_action_complete(
     return False
 
 
+def _area_cards(snapshot: LiveBalatroSnapshot, name: str) -> list[dict]:
+    area = snapshot.payload.get(name)
+    if not isinstance(area, dict):
+        return []
+    cards = area.get("cards")
+    if not isinstance(cards, list):
+        return []
+    return [card for card in cards if isinstance(card, dict)]
+
+
+def _consumable_use_complete(
+    before: LiveBalatroSnapshot,
+    after: LiveBalatroSnapshot,
+    *,
+    before_count: int,
+    consumed_live_id: object | None,
+) -> bool:
+    if (
+        after.sequence <= before.sequence
+        or after.phase != "SELECTING_HAND"
+        or not after.state_complete
+    ):
+        return False
+
+    after_cards = _area_cards(after, "consumables")
+    if consumed_live_id is not None:
+        return all(card.get("live_id") != consumed_live_id for card in after_cards)
+    return len(after_cards) == before_count - 1
+
+
 def _action_indices(
     state,
     action: BalatroAction,
@@ -99,18 +130,43 @@ def _action_indices(
     )
     if len(indices) != len(action.cards):
         raise UnsupportedInjectedHandAction(
-            "D1 action cards no longer map one-to-one to the "
+            "hand action cards no longer map one-to-one to the "
             "authoritative live hand"
         )
     return indices
 
 
-class LiveMemoryInjectedHandDispatcher:
-    """Execute Play/Discard through the repo-owned in-process Lua bridge.
+def _consumable_index(state, action: BalatroAction) -> int:
+    target = action.target
+    if target is None:
+        raise UnsupportedInjectedHandAction(
+            "USE_CONSUMABLE requires the held consumable as action.target"
+        )
 
-    The command selects cards by current zero-based hand positions and invokes
-    Balatro's own action callbacks. The process-memory observer remains read-only
-    and independently verifies the resulting semantic checkpoint.
+    target_live_id = getattr(target, "live_id", None)
+    matches = [
+        index
+        for index, consumable in enumerate(getattr(state, "consumables", ()))
+        if consumable is target
+        or (
+            target_live_id is not None
+            and getattr(consumable, "live_id", None) == target_live_id
+        )
+    ]
+    if len(matches) != 1:
+        raise UnsupportedInjectedHandAction(
+            "USE_CONSUMABLE target no longer maps one-to-one to the "
+            "authoritative held consumables"
+        )
+    return matches[0]
+
+
+class LiveMemoryInjectedHandDispatcher:
+    """Execute hand-phase actions through the repo-owned in-process Lua bridge.
+
+    Commands use current zero-based positions and Balatro's own callbacks. The
+    process-memory observer remains read-only and independently verifies the
+    resulting semantic checkpoint.
     """
 
     def __init__(
@@ -133,7 +189,7 @@ class LiveMemoryInjectedHandDispatcher:
         state,
         snapshot: LiveBalatroSnapshot,
     ) -> LiveInjectedActionResult:
-        if action.name not in {PLAY_CARDS, DISCARD_CARDS}:
+        if action.name not in {PLAY_CARDS, DISCARD_CARDS, USE_CONSUMABLE}:
             raise UnsupportedInjectedHandAction(
                 "first-party injected hand bridge does not support "
                 f"{action.name}"
@@ -145,12 +201,38 @@ class LiveMemoryInjectedHandDispatcher:
             )
 
         indices = _action_indices(state, action)
+
+        if action.name == USE_CONSUMABLE:
+            consumable_index = _consumable_index(state, action)
+            before_cards = _area_cards(snapshot, "consumables")
+            if consumable_index >= len(before_cards):
+                raise UnsupportedInjectedHandAction(
+                    "held consumable index is out of range for the live snapshot"
+                )
+            consumed_live_id = before_cards[consumable_index].get("live_id")
+            self.bridge.use_consumable(consumable_index, indices)
+            after = self._wait_consumable(
+                snapshot,
+                before_count=len(before_cards),
+                consumed_live_id=consumed_live_id,
+            )
+            return LiveInjectedActionResult(
+                action=action,
+                before=snapshot,
+                after=after,
+                details={
+                    "consumable_index": consumable_index,
+                    "target_indices": indices,
+                    "consumed_live_id": consumed_live_id,
+                },
+            )
+
         if action.name == PLAY_CARDS:
             self.bridge.play(indices)
         else:
             self.bridge.discard(indices)
 
-        after = self._wait(snapshot, action.name)
+        after = self._wait_hand(snapshot, action.name)
         return LiveInjectedActionResult(
             action=action,
             before=snapshot,
@@ -158,7 +240,7 @@ class LiveMemoryInjectedHandDispatcher:
             details=indices,
         )
 
-    def _wait(
+    def _wait_hand(
         self,
         before: LiveBalatroSnapshot,
         action_name: str,
@@ -173,6 +255,33 @@ class LiveMemoryInjectedHandDispatcher:
             if time.monotonic() >= deadline:
                 raise InjectedHandActionPostconditionError(
                     "timed out verifying injected hand action; "
+                    f"phase={last.phase}, sequence={last.sequence}"
+                )
+            if self.poll_interval:
+                time.sleep(self.poll_interval)
+
+    def _wait_consumable(
+        self,
+        before: LiveBalatroSnapshot,
+        *,
+        before_count: int,
+        consumed_live_id: object | None,
+    ) -> LiveBalatroSnapshot:
+        deadline = time.monotonic() + self.timeout
+        last = before
+        while True:
+            current = self.observer.observe()
+            last = current
+            if _consumable_use_complete(
+                before,
+                current,
+                before_count=before_count,
+                consumed_live_id=consumed_live_id,
+            ):
+                return current
+            if time.monotonic() >= deadline:
+                raise InjectedHandActionPostconditionError(
+                    "timed out verifying injected consumable use; "
                     f"phase={last.phase}, sequence={last.sequence}"
                 )
             if self.poll_interval:

@@ -97,6 +97,25 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return index
   end
 
+  local function parse_consumable_use_payload(payload)
+    if not payload or payload == "" then
+      return nil, nil, "consumable use requires a held consumable index"
+    end
+
+    local slot_payload, target_payload = payload:match("^([^,]+),?(.*)$")
+    local slot, slot_error = parse_single_index(slot_payload)
+    if slot == nil then
+      return nil, nil, slot_error
+    end
+
+    local targets, target_error = parse_indices(target_payload or "")
+    if not targets then
+      return nil, nil, target_error
+    end
+
+    return slot, targets
+  end
+
   local function achievement_gate_state()
     if not G then
       return "G_UNAVAILABLE"
@@ -126,6 +145,18 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       end
     end
     return set, list
+  end
+
+  local function clear_hand_selection()
+    local _, current = highlighted_set()
+    for _, card in ipairs(current) do
+      card:click()
+    end
+    local _, remaining = highlighted_set()
+    if #remaining ~= 0 then
+      return false, "Balatro rejected clearing highlighted cards"
+    end
+    return true
   end
 
   local function select_hand_indices(indices)
@@ -227,6 +258,48 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       return false, "Balatro action callback is unavailable"
     end
 
+    local ok, error_message = pcall(callback, button)
+    if not ok then
+      return false, error_message
+    end
+    return true
+  end
+
+  local function execute_consumable_use(payload)
+    if not G or not G.STATES or G.STATE ~= G.STATES.SELECTING_HAND then
+      return false, "consumable use requires SELECTING_HAND"
+    end
+    if not G.consumeables or not G.consumeables.cards then
+      return false, "held consumables are unavailable"
+    end
+
+    local consumable_index, target_indices, parse_error =
+      parse_consumable_use_payload(payload)
+    if consumable_index == nil then
+      return false, parse_error
+    end
+
+    local card = G.consumeables.cards[consumable_index + 1]
+    if not card then
+      return false, "held consumable index is out of range"
+    end
+
+    local selected, selection_error
+    if #target_indices == 0 then
+      selected, selection_error = clear_hand_selection()
+    else
+      selected, selection_error = select_hand_indices(target_indices)
+    end
+    if not selected then
+      return false, selection_error
+    end
+
+    local callback = G.FUNCS and G.FUNCS.use_card
+    if type(callback) ~= "function" then
+      return false, "use_card callback is unavailable"
+    end
+
+    local button = { config = { ref_table = card } }
     local ok, error_message = pcall(callback, button)
     if not ok then
       return false, error_message
@@ -537,6 +610,10 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     if action == "PLAY" or action == "DISCARD" then
       executor = function()
         return execute_hand_action(action, payload)
+      end
+    elseif action == "USE_CONSUMABLE" then
+      executor = function()
+        return execute_consumable_use(payload)
       end
     elseif action == "CASH_OUT" then
       executor = execute_cash_out

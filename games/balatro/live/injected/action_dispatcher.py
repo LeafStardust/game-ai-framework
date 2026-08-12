@@ -16,6 +16,7 @@ from games.balatro.actions import (
     SELECT_BLIND,
     SELECT_PACK_CARD,
     SKIP_BOOSTER,
+    USE_CONSUMABLE,
     BalatroAction,
 )
 from games.balatro.live.external.live_memory_pack_terms import (
@@ -259,7 +260,7 @@ class LiveMemoryInjectedActionDispatcher:
         before = snapshot or self.observer.observe()
         name = action.name
 
-        if name in {PLAY_CARDS, DISCARD_CARDS}:
+        if name in {PLAY_CARDS, DISCARD_CARDS, USE_CONSUMABLE}:
             if state is None:
                 raise UnsupportedInjectedAction(
                     f"{name} requires the translated state used to select cards"
