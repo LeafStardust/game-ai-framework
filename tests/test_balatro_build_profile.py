@@ -44,7 +44,15 @@ def test_build_profile_counts_public_deck_and_slots():
     assert profile.strength(rank_feature("K")) == 2.0
     assert profile.strength(enhancement_feature("Steel")) == 1.0
     assert profile.strength(HELD_EFFECT) == 1.0
-    assert profile.strength(hand_feature("PAIR")) == 3.0
+    assert profile.strength(hand_feature("PAIR")) == 2.0
+
+
+def test_default_level_one_hands_do_not_look_like_build_specialization():
+    profile = BalatroBuildProfiler().profile(BalatroState())
+
+    assert dict(profile.hand_levels)["STRAIGHT"] == 1
+    assert profile.strength(hand_feature("STRAIGHT")) == 0.0
+    assert profile.strength(hand_feature("PAIR")) == 0.0
 
 
 def test_build_profile_uses_owned_joker_behavior_and_consumable_capabilities():
