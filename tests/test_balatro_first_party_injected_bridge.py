@@ -36,6 +36,14 @@ def _write_fused_game(path):
     return original, prefix
 
 
+def _write_bridge_response(bridge, text):
+    temporary = bridge.response_path.with_name(
+        bridge.response_path.name + ".tmp"
+    )
+    temporary.write_bytes(text.encode("utf-8"))
+    temporary.replace(bridge.response_path)
+
+
 def test_command_protocol_uses_zero_based_hand_indices():
     command = encode_command("abc123", "play", (0, 2, 4))
     assert command == "abc123\tPLAY\t0,2,4\n"
@@ -70,9 +78,9 @@ def test_bridge_round_trip_uses_local_file_protocol(tmp_path):
                     payload=payload,
                 )
                 bridge.command_path.unlink()
-                bridge.response_path.write_text(
+                _write_bridge_response(
+                    bridge,
                     f"{command_id}\tOK\taccepted\n",
-                    encoding="utf-8",
                 )
                 return
             time.sleep(0.001)
@@ -100,9 +108,9 @@ def test_bridge_surfaces_lua_side_rejection(tmp_path):
                 text = bridge.command_path.read_text(encoding="utf-8")
                 command_id = text.split("\t", 1)[0]
                 bridge.command_path.unlink()
-                bridge.response_path.write_text(
+                _write_bridge_response(
+                    bridge,
                     f"{command_id}\tERROR\tBalatro rejected selection\n",
-                    encoding="utf-8",
                 )
                 return
             time.sleep(0.001)
