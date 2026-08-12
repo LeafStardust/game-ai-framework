@@ -18,6 +18,7 @@ from games.balatro.build.effects import (
 from games.balatro.card import BalatroCard
 from games.balatro.consumable import PlanetCard
 from games.balatro.jokers.baron import BaronJoker
+from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.state import BalatroState
 from games.balatro.tarots import Chariot, HangedMan
@@ -31,6 +32,22 @@ def test_baron_effect_inference_uses_real_held_king_behavior():
     assert rank_feature("K", held=True) in descriptor.requires
     assert rank_feature("K", held=True) in descriptor.scales_with
     assert rank_feature("K") not in descriptor.requires
+
+
+def test_fibonacci_inference_only_credits_positive_rank_scaling():
+    descriptor = JokerBehaviorAnalyzer().describe(FibonacciJoker())
+
+    expected = {
+        rank_feature("A"),
+        rank_feature("2"),
+        rank_feature("3"),
+        rank_feature("5"),
+        rank_feature("8"),
+    }
+    assert descriptor.scales_with == frozenset(expected)
+    assert rank_feature("4") not in descriptor.scales_with
+    assert rank_feature("10") not in descriptor.scales_with
+    assert rank_feature("K") not in descriptor.scales_with
 
 
 def test_mime_effect_inference_exposes_held_retrigger_synergy():
