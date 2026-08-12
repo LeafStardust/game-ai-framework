@@ -21,6 +21,7 @@ from games.balatro.live.injected import (
     FirstPartyBalatroBridge,
     LiveMemoryInjectedActionDispatcher,
 )
+from games.balatro.live.injected.install import asset_dir
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 
@@ -224,7 +225,7 @@ def test_injected_dispatcher_shop_purchase_checks_count_and_money(
     assert result.after is after
 
 
-def test_injected_dispatcher_booster_purchase_waits_for_open_pack():
+def test_injected_dispatcher_booster_purchase_waits_for_native_pack():
     item = {"area_index": 1, "label": "Arcana Pack", "cost": 4}
     before = _snapshot(
         20,
@@ -232,7 +233,7 @@ def test_injected_dispatcher_booster_purchase_waits_for_open_pack():
         money=10,
         shop_boosters={"cards": [{"cost": 2}, item]},
     )
-    after = _snapshot(21, "SMODS_BOOSTER_OPENED", money=6)
+    after = _snapshot(21, "TAROT_PACK", money=6)
     bridge = FakeBridge()
     dispatcher = LiveMemoryInjectedActionDispatcher(
         FakeObserver(after),
@@ -246,12 +247,22 @@ def test_injected_dispatcher_booster_purchase_waits_for_open_pack():
     )
 
     assert bridge.calls == [("buy_booster", 1)]
-    assert result.after.phase == "SMODS_BOOSTER_OPENED"
+    assert result.after.phase == "TAROT_PACK"
 
 
-def test_injected_dispatcher_pack_select_accepts_more_choices_checkpoint():
-    before = _snapshot(30, "SMODS_BOOSTER_OPENED")
-    after = _snapshot(31, "SMODS_BOOSTER_OPENED")
+@pytest.mark.parametrize(
+    "phase",
+    [
+        "TAROT_PACK",
+        "PLANET_PACK",
+        "SPECTRAL_PACK",
+        "STANDARD_PACK",
+        "BUFFOON_PACK",
+    ],
+)
+def test_injected_dispatcher_pack_select_accepts_native_pack_phases(phase):
+    before = _snapshot(30, phase)
+    after = _snapshot(31, phase)
     bridge = FakeBridge()
     dispatcher = LiveMemoryInjectedActionDispatcher(
         FakeObserver(after),
@@ -269,7 +280,7 @@ def test_injected_dispatcher_pack_select_accepts_more_choices_checkpoint():
 
 
 def test_injected_dispatcher_pack_skip_waits_for_shop():
-    before = _snapshot(40, "SMODS_BOOSTER_OPENED")
+    before = _snapshot(40, "STANDARD_PACK")
     after = _snapshot(41, "SHOP")
     bridge = FakeBridge()
     dispatcher = LiveMemoryInjectedActionDispatcher(
@@ -285,3 +296,26 @@ def test_injected_dispatcher_pack_skip_waits_for_shop():
 
     assert bridge.calls == [("skip_booster",)]
     assert result.after.phase == "SHOP"
+
+
+def test_bridge_asset_uses_native_pack_states_and_normal_callbacks():
+    lua = (asset_dir() / "bridge.lua").read_text(encoding="utf-8")
+
+    assert "SMODS_BOOSTER_OPENED" not in lua
+    for phase in (
+        "TAROT_PACK",
+        "PLANET_PACK",
+        "SPECTRAL_PACK",
+        "STANDARD_PACK",
+        "BUFFOON_PACK",
+    ):
+        assert phase in lua
+    for callback in (
+        "G.FUNCS.cash_out",
+        "G.FUNCS.toggle_shop",
+        "G.FUNCS.reroll_shop",
+        "G.FUNCS.buy_from_shop",
+        "G.FUNCS.use_card",
+        "G.FUNCS.skip_booster",
+    ):
+        assert callback in lua
