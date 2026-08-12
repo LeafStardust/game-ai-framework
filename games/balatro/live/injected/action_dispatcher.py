@@ -116,6 +116,45 @@ def _purchase_money_matches(
     return after_money == before_money - cost
 
 
+def _shop_signature(snapshot: LiveBalatroSnapshot) -> tuple[tuple, ...]:
+    result: list[tuple] = []
+    for area_name in ("shop_jokers", "shop_boosters", "shop_vouchers"):
+        for index, item in enumerate(_area_cards(snapshot, area_name)):
+            result.append(
+                (
+                    area_name,
+                    index,
+                    item.get("live_id"),
+                    item.get("center"),
+                    item.get("label"),
+                    item.get("cost"),
+                )
+            )
+    return tuple(result)
+
+
+def _reroll_complete(
+    before: LiveBalatroSnapshot,
+    after: LiveBalatroSnapshot,
+) -> bool:
+    if (
+        after.sequence <= before.sequence
+        or after.phase != "SHOP"
+        or not after.state_complete
+    ):
+        return False
+
+    before_money = _money(before)
+    after_money = _money(after)
+    money_decreased = (
+        before_money is not None
+        and after_money is not None
+        and after_money < before_money
+    )
+    inventory_changed = _shop_signature(after) != _shop_signature(before)
+    return money_decreased or inventory_changed
+
+
 def _is_pack_phase(phase: str) -> bool:
     return str(phase).endswith("_PACK")
 
@@ -226,11 +265,7 @@ class LiveMemoryInjectedActionDispatcher:
             self.bridge.reroll_shop()
             after = self._wait(
                 before,
-                lambda value: (
-                    value.sequence > before.sequence
-                    and value.phase == "SHOP"
-                    and value.state_complete
-                ),
+                lambda value: _reroll_complete(before, value),
                 "shop reroll",
             )
             return LiveInjectedActionResult(action, before, after)
