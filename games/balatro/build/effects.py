@@ -104,9 +104,11 @@ class JokerBehaviorAnalyzer:
     """Infer reusable Joker effect semantics by invoking its real implementation.
 
     Probes operate only on synthetic/deep-copied state. Rank, suit, enhancement,
-    seal, and poker-hand probes vary one public condition at a time so contextual
-    requirements can be discovered without maintaining a duplicate pairwise
-    synergy table. Probe failures remain conservative: no feature is invented.
+    seal, and poker-hand probes vary public conditions so contextual requirements
+    can be discovered without maintaining a duplicate pairwise synergy table.
+    When a hand-type condition activates an effect, a second conditioned pass
+    varies card features while keeping that hand condition fixed; this exposes
+    conjunctions such as ``Straight AND Ace`` conservatively.
     """
 
     RANKS = ("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
@@ -126,17 +128,20 @@ class JokerBehaviorAnalyzer:
         evidence: set[str] = set(baseline.evidence)
         amplifies: set[str] = set(baseline.amplifies)
 
-        def compare(feature: str, result: _ProbeResult) -> None:
+        def record(result: _ProbeResult) -> None:
             results.append(result)
             evidence.update(result.evidence)
             amplifies.update(result.amplifies)
+
+        def compare(feature: str, result: _ProbeResult) -> bool:
+            record(result)
             all_outputs = baseline.produced | result.produced
             increased = any(
                 result.magnitude(output) > baseline.magnitude(output) + 1e-12
                 for output in all_outputs
             )
             if not increased:
-                return
+                return False
             scales_with.add(feature)
             if any(
                 baseline.magnitude(output) <= 1e-12
@@ -144,6 +149,42 @@ class JokerBehaviorAnalyzer:
                 for output in all_outputs
             ):
                 requires.add(feature)
+            return True
+
+        def compare_variants(
+            variants: list[tuple[str, _ProbeResult]],
+        ) -> None:
+            """Infer positive dependencies within one already-active condition.
+
+            The minimum observed output across mutually exclusive variants is the
+            local reference. A feature is credited only when that feature produces
+            more output than the local minimum. If the local minimum is zero, the
+            feature is also an observed requirement for that conditioned effect.
+            """
+
+            if len(variants) < 2:
+                return
+            for _, result in variants:
+                record(result)
+
+            all_outputs = frozenset(
+                output
+                for _, result in variants
+                for output in result.produced
+            )
+            for output in all_outputs:
+                magnitudes = [result.magnitude(output) for _, result in variants]
+                minimum = min(magnitudes)
+                maximum = max(magnitudes)
+                if maximum <= minimum + 1e-12:
+                    continue
+                for feature, result in variants:
+                    magnitude = result.magnitude(output)
+                    if magnitude <= minimum + 1e-12:
+                        continue
+                    scales_with.add(feature)
+                    if minimum <= 1e-12:
+                        requires.add(feature)
 
         for rank in self.RANKS:
             compare(
@@ -217,6 +258,7 @@ class JokerBehaviorAnalyzer:
                 ),
             )
 
+        active_hands: list[PokerHand] = []
         for poker_hand in self.HANDS:
             result = self._probe(
                 joker,
@@ -224,7 +266,125 @@ class JokerBehaviorAnalyzer:
                 held_cards=baseline_cards,
                 poker_hand=poker_hand,
             )
-            compare(hand_feature(poker_hand), result)
+            if compare(hand_feature(poker_hand), result):
+                active_hands.append(poker_hand)
+
+        # One-factor probing cannot see conjunctions when the neutral cards already
+        # satisfy one side of the condition. Once a hand-type trigger is known to
+        # activate output, vary card features again under that fixed trigger.
+        for poker_hand in active_hands:
+            compare_variants(
+                [
+                    (
+                        rank_feature(rank),
+                        self._probe(
+                            joker,
+                            cards=self._rank_cards(rank),
+                            held_cards=baseline_cards,
+                            poker_hand=poker_hand,
+                        ),
+                    )
+                    for rank in self.RANKS
+                ]
+            )
+            compare_variants(
+                [
+                    (
+                        rank_feature(rank, held=True),
+                        self._probe(
+                            joker,
+                            cards=baseline_cards,
+                            held_cards=self._rank_cards(rank),
+                            poker_hand=poker_hand,
+                        ),
+                    )
+                    for rank in self.RANKS
+                ]
+            )
+            compare_variants(
+                [
+                    (
+                        suit_feature(suit),
+                        self._probe(
+                            joker,
+                            cards=self._suit_cards(suit),
+                            held_cards=baseline_cards,
+                            poker_hand=poker_hand,
+                        ),
+                    )
+                    for suit in self.SUITS
+                ]
+            )
+            compare_variants(
+                [
+                    (
+                        suit_feature(suit, held=True),
+                        self._probe(
+                            joker,
+                            cards=baseline_cards,
+                            held_cards=self._suit_cards(suit),
+                            poker_hand=poker_hand,
+                        ),
+                    )
+                    for suit in self.SUITS
+                ]
+            )
+            compare_variants(
+                [
+                    (
+                        enhancement_feature(enhancement),
+                        self._probe(
+                            joker,
+                            cards=self._enhanced_cards(enhancement),
+                            held_cards=baseline_cards,
+                            poker_hand=poker_hand,
+                        ),
+                    )
+                    for enhancement in sorted(ENHANCEMENTS)
+                ]
+            )
+            compare_variants(
+                [
+                    (
+                        enhancement_feature(enhancement, held=True),
+                        self._probe(
+                            joker,
+                            cards=baseline_cards,
+                            held_cards=self._enhanced_cards(enhancement),
+                            poker_hand=poker_hand,
+                        ),
+                    )
+                    for enhancement in sorted(ENHANCEMENTS)
+                ]
+            )
+            compare_variants(
+                [
+                    (
+                        seal_feature(seal),
+                        self._probe(
+                            joker,
+                            cards=self._sealed_cards(seal),
+                            held_cards=baseline_cards,
+                            poker_hand=poker_hand,
+                        ),
+                    )
+                    for seal in sorted(SEALS)
+                ]
+            )
+            compare_variants(
+                [
+                    (
+                        seal_feature(seal, held=True),
+                        self._probe(
+                            joker,
+                            cards=baseline_cards,
+                            held_cards=self._sealed_cards(seal),
+                            poker_hand=poker_hand,
+                        ),
+                    )
+                    for seal in sorted(SEALS)
+                ]
+            )
 
         produced = frozenset(
             feature
