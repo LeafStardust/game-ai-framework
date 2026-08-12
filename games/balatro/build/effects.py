@@ -428,29 +428,30 @@ class ConsumableBehaviorAnalyzer:
                 produces.update({HAND_LEVEL, hand_feature(hand_type)})
                 evidence.add(f"hand_level:{hand_type}:{before_level}->{level}")
 
-        for before_card, after_card in zip(before.hand, result.state.hand):
-            if before_card.rank != after_card.rank:
-                feature = rank_feature(after_card.rank)
-                transforms.add(feature)
-                evidence.add(f"rank:{before_card.rank}->{after_card.rank}")
-            if before_card.suit != after_card.suit:
-                feature = suit_feature(after_card.suit)
-                transforms.add(feature)
-                evidence.add(f"suit:{before_card.suit}->{after_card.suit}")
-            if before_card.enhancement != after_card.enhancement and after_card.enhancement:
-                feature = enhancement_feature(after_card.enhancement)
-                transforms.add(feature)
-                evidence.add(
-                    f"enhancement:{before_card.enhancement}->{after_card.enhancement}"
-                )
-            if before_card.edition != after_card.edition and after_card.edition:
-                feature = edition_feature(after_card.edition)
-                transforms.add(feature)
-                evidence.add(f"edition:{before_card.edition}->{after_card.edition}")
-            if before_card.seal != after_card.seal and after_card.seal:
-                feature = seal_feature(after_card.seal)
-                transforms.add(feature)
-                evidence.add(f"seal:{before_card.seal}->{after_card.seal}")
+        if len(before.hand) == len(result.state.hand):
+            for before_card, after_card in zip(before.hand, result.state.hand):
+                if before_card.rank != after_card.rank:
+                    feature = rank_feature(after_card.rank)
+                    transforms.add(feature)
+                    evidence.add(f"rank:{before_card.rank}->{after_card.rank}")
+                if before_card.suit != after_card.suit:
+                    feature = suit_feature(after_card.suit)
+                    transforms.add(feature)
+                    evidence.add(f"suit:{before_card.suit}->{after_card.suit}")
+                if before_card.enhancement != after_card.enhancement and after_card.enhancement:
+                    feature = enhancement_feature(after_card.enhancement)
+                    transforms.add(feature)
+                    evidence.add(
+                        f"enhancement:{before_card.enhancement}->{after_card.enhancement}"
+                    )
+                if before_card.edition != after_card.edition and after_card.edition:
+                    feature = edition_feature(after_card.edition)
+                    transforms.add(feature)
+                    evidence.add(f"edition:{before_card.edition}->{after_card.edition}")
+                if before_card.seal != after_card.seal and after_card.seal:
+                    feature = seal_feature(after_card.seal)
+                    transforms.add(feature)
+                    evidence.add(f"seal:{before_card.seal}->{after_card.seal}")
 
         if transforms:
             produces.add(DECK_TRANSFORM)
