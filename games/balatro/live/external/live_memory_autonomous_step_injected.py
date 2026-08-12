@@ -4,7 +4,7 @@ import argparse
 from dataclasses import dataclass
 from typing import Callable
 
-from games.balatro.actions import END_ROUND, BalatroAction
+from games.balatro.actions import END_ROUND, SELECT_BLIND, BalatroAction
 from games.balatro.live.hand_action_policy import (
     HandActionThresholds,
     LiveHandActionDecisionEngine,
@@ -259,6 +259,15 @@ class LiveMemoryInjectedSingleStepRunner:
             )
         state = self.translator.translate(snapshot)
         phase = str(snapshot.phase)
+
+        if phase == "BLIND_SELECT":
+            return AutonomousStepDecision(
+                snapshot,
+                state,
+                BalatroAction(SELECT_BLIND),
+                "deterministic blind-selection policy",
+                ("fight current blind; skip policy not yet enabled",),
+            )
 
         if phase == "SELECTING_HAND":
             action, notes = self.hand_recommender(state, snapshot)
