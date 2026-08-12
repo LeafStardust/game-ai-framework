@@ -140,9 +140,15 @@ def snapshot_payload_from_live_memory(
     phase = _phase_name(decoder, root)
     state_complete = _boolean(root.get("STATE_COMPLETE"), False)
     stake_id = _integer(game.get("stake"), 1)
+    round_joker_state = _normalize_round_joker_public_state(decoder, current_round)
 
     hand = _normalize_area(decoder, root.get("hand"), preserve_order=True)
-    jokers = _normalize_item_area(decoder, root.get("jokers"), preserve_index=False)
+    jokers = _normalize_item_area(
+        decoder,
+        root.get("jokers"),
+        preserve_index=False,
+        public_state_by_center=round_joker_state,
+    )
     consumables = _normalize_item_area(
         decoder,
         root.get("consumeables"),
@@ -158,6 +164,7 @@ def snapshot_payload_from_live_memory(
         decoder,
         root.get("shop_jokers"),
         preserve_index=True,
+        public_state_by_center=round_joker_state,
     )
     shop_boosters = _normalize_item_area(
         decoder,
@@ -274,6 +281,7 @@ def _normalize_item_area(
     area_value: LuaValue | None,
     *,
     preserve_index: bool,
+    public_state_by_center: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     area = _table_fields(decoder, area_value)
     config = _table_fields(decoder, area.get("config"))
@@ -283,6 +291,7 @@ def _normalize_item_area(
             decoder,
             address,
             area_index=(position if preserve_index else None),
+            public_state_by_center=public_state_by_center,
         )
         for position, (_, address) in enumerate(raw_cards)
     ]
@@ -342,6 +351,7 @@ def _normalize_item(
     address: int,
     *,
     area_index: int | None,
+    public_state_by_center: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     card = decoder.string_fields(address)
     ability = _table_fields(decoder, card.get("ability"))
@@ -352,6 +362,7 @@ def _normalize_item(
     center_name = _string(center.get("name"))
     label = _first_string(card.get("label"), ability.get("name"), center.get("name"))
     ability_set = _first_string(ability.get("set"), center.get("set"))
+    center_key = _string(center.get("key"))
 
     result: dict[str, Any] = {
         "live_id": _first_primitive(
@@ -359,7 +370,7 @@ def _normalize_item(
             card.get("playing_card"),
             card.get("ID"),
         ),
-        "center": _string(center.get("key")),
+        "center": center_key,
         "label": label,
         "ability_name": ability_name or center_name,
         "ability_set": ability_set,
@@ -377,7 +388,14 @@ def _normalize_item(
         if value is not None:
             result[field] = value
 
-    public_state = _normalize_public_item_state(decoder, label, ability)
+    public_state = _normalize_public_item_state(
+        decoder,
+        center_key,
+        label,
+        ability,
+    )
+    if center_key and public_state_by_center:
+        public_state.update(public_state_by_center.get(center_key, {}))
     if public_state:
         result["public_state"] = public_state
 
@@ -389,10 +407,13 @@ def _normalize_item(
 
 def _normalize_public_item_state(
     decoder: LuaJITNonGC64Decoder,
+    center_key: str | None,
     label: str | None,
     ability: dict[str, LuaValue],
 ) -> dict[str, Any]:
-    if label != "Ice Cream":
+    # Only Jokers with explicitly public, strategically relevant numeric counters
+    # are read here. Do not widen this into a generic ability-table serializer.
+    if center_key not in {"j_ice_cream", "j_castle"} and label != "Ice Cream":
         return {}
 
     extra = _table_fields(decoder, ability.get("extra"))
@@ -401,6 +422,30 @@ def _normalize_public_item_state(
         value = _number(extra.get(field))
         if value is not None:
             result[field] = value
+    return result
+
+
+def _normalize_round_joker_public_state(
+    decoder: LuaJITNonGC64Decoder,
+    current_round: dict[str, LuaValue],
+) -> dict[str, dict[str, Any]]:
+    """Read only visible per-round targets used by dynamic Jokers."""
+    result: dict[str, dict[str, Any]] = {}
+
+    castle_card = _table_fields(decoder, current_round.get("castle_card"))
+    castle_suit = _string(castle_card.get("suit"))
+    if castle_suit:
+        result["j_castle"] = {"suit": castle_suit}
+
+    idol_card = _table_fields(decoder, current_round.get("idol_card"))
+    idol_rank = _string(idol_card.get("rank"))
+    idol_suit = _string(idol_card.get("suit"))
+    if idol_rank and idol_suit:
+        result["j_idol"] = {
+            "rank": idol_rank,
+            "suit": idol_suit,
+        }
+
     return result
 
 
@@ -415,7 +460,10 @@ def _normalize_hand_levels(
         if hand_value.kind != "table":
             continue
         hand = _table_fields(decoder, hand_value)
-        result[name] = {"level": _integer(hand.get("level"), 1)}
+        result[name] = {
+            "level": _integer(hand.get("level"), 1),
+            "played": _integer(hand.get("played"), 0),
+        }
     return result
 
 
