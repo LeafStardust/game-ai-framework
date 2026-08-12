@@ -172,6 +172,9 @@ class LiveMemoryInjectedSingleStepRunner:
         self.hand_recommender = hand_recommender or self._recommend_hand
         self.shop_recommender = shop_recommender or self._recommend_shop
         self.pack_recommender = pack_recommender or self._recommend_pack
+        self.last_observation_seconds = 0.0
+        self.last_translation_seconds = 0.0
+        self.last_policy_seconds = 0.0
 
     def _recommend_hand(
         self,
@@ -290,12 +293,18 @@ class LiveMemoryInjectedSingleStepRunner:
         return selected.action, tuple(notes), _pack_choice_signature(choices)
 
     def decide(self) -> AutonomousStepDecision:
+        observed_started = perf_counter()
         snapshot = self.observer.observe()
+        self.last_observation_seconds = perf_counter() - observed_started
         if not snapshot.state_complete:
             raise UnsupportedAutonomousPhase(
                 f"{snapshot.phase} is not settled; autonomous execution is blocked"
             )
+
+        translated_started = perf_counter()
         state = self.translator.translate(snapshot)
+        self.last_translation_seconds = perf_counter() - translated_started
+        self.last_policy_seconds = 0.0
         phase = str(snapshot.phase)
 
         if phase == "BLIND_SELECT":
@@ -308,7 +317,9 @@ class LiveMemoryInjectedSingleStepRunner:
             )
 
         if phase == "SELECTING_HAND":
+            policy_started = perf_counter()
             action, notes = self.hand_recommender(state, snapshot)
+            self.last_policy_seconds = perf_counter() - policy_started
             return AutonomousStepDecision(
                 snapshot,
                 state,
@@ -327,7 +338,9 @@ class LiveMemoryInjectedSingleStepRunner:
             )
 
         if phase == "SHOP":
+            policy_started = perf_counter()
             action, notes = self.shop_recommender(state, snapshot)
+            self.last_policy_seconds = perf_counter() - policy_started
             return AutonomousStepDecision(
                 snapshot,
                 state,
@@ -337,7 +350,9 @@ class LiveMemoryInjectedSingleStepRunner:
             )
 
         if phase.endswith("_PACK"):
+            policy_started = perf_counter()
             action, notes, signature = self.pack_recommender(state, snapshot)
+            self.last_policy_seconds = perf_counter() - policy_started
             return AutonomousStepDecision(
                 snapshot,
                 state,
@@ -470,6 +485,9 @@ def main() -> int:
             print(f"Phase -> {decision.snapshot.phase}")
             print(f"Decision source -> {decision.source}")
             print(f"Decision latency -> {decision_elapsed:.3f}s")
+            print(f"Observation latency -> {runner.last_observation_seconds:.3f}s")
+            print(f"Translation latency -> {runner.last_translation_seconds:.3f}s")
+            print(f"Policy latency -> {runner.last_policy_seconds:.3f}s")
             print(f"Recommended action -> {_action_text(decision)}")
             for note in decision.notes:
                 print(f"  {note}")
