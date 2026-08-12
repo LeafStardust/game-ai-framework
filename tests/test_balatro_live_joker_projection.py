@@ -129,8 +129,6 @@ def test_hydrated_read_only_jokers_use_current_live_values():
         [ace],
     )
 
-    # High Card Ace = 16 Chips. Base 1 Mult + hydrated Flash +5 = 6 Mult,
-    # then hydrated Constellation x2 => 192.
     assert transition.distribution.minimum == 192
     assert transition.distribution.maximum == 192
     assert transition.joker_projection_complete is True
@@ -158,8 +156,6 @@ def test_spare_trousers_growth_starts_from_hydrated_mult_on_branch_only():
         cards,
     )
 
-    # Two Pair: 20 base Chips + 10 card Chips. Trousers grows 6 -> 8 Mult;
-    # base Two Pair Mult 2 + 8 = 10, so 30 * 10 = 300.
     assert transition.distribution.minimum == 300
     assert transition.joker_projection_complete is True
     assert trousers.mult == 6
@@ -183,6 +179,118 @@ def test_hydrated_non_scoring_joker_does_not_block_exact_score_projection():
     assert transition.joker_projection_complete is True
     assert egg.sell_value == 15
     assert transition.state_after_scoring.jokers[0].sell_value == 15
+
+
+def test_red_card_projection_applies_accumulated_hydrated_mult():
+    ace = BalatroCard("A", "Spades")
+    state = _state([ace])
+    red_card = RedCardJoker()
+    red_card.mult = 12
+    state.jokers = [red_card]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD,
+        state,
+        [ace],
+    )
+
+    assert transition.distribution.minimum == 208
+    assert transition.distribution.maximum == 208
+    assert transition.joker_projection_complete is True
+    assert red_card.mult == 12
+    assert transition.state_after_scoring.jokers[0].mult == 12
+
+
+def test_ride_the_bus_ignores_non_scoring_face_cards():
+    ace = BalatroCard("A", "Spades")
+    king = BalatroCard("K", "Hearts")
+    state = _state([ace, king])
+    ride_bus = RideTheBusJoker()
+    ride_bus.mult = 8
+    state.jokers = [ride_bus]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD,
+        state,
+        [ace, king],
+    )
+
+    # Only the Ace scores. The non-scoring King must not reset Ride the Bus.
+    # 16 Chips * (1 base Mult + 9 Ride the Bus Mult) = 160.
+    assert transition.distribution.minimum == 160
+    assert transition.joker_projection_complete is True
+    assert ride_bus.mult == 8
+    assert transition.state_after_scoring.jokers[0].mult == 9
+
+
+def test_obelisk_resets_on_any_tied_most_played_hand_and_carries_history():
+    ace = BalatroCard("A", "Spades")
+    state = _state([ace])
+    state.hand_play_counts[PokerHand.HIGH_CARD.value] = 4
+    state.hand_play_counts[PokerHand.PAIR.value] = 4
+    obelisk = ObeliskJoker()
+    obelisk.x_mult = 2.4
+    state.jokers = [obelisk]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD,
+        state,
+        [ace],
+    )
+
+    assert transition.distribution.minimum == 16
+    assert transition.joker_projection_complete is True
+    assert obelisk.x_mult == 2.4
+    assert state.hand_play_counts[PokerHand.HIGH_CARD.value] == 4
+    assert transition.state_after_scoring.jokers[0].x_mult == 1.0
+    assert transition.state_after_scoring.hand_play_counts[PokerHand.HIGH_CARD.value] == 5
+
+
+def test_loyalty_card_sixth_hand_transition_is_projected_on_copy():
+    ace = BalatroCard("A", "Spades")
+    state = _state([ace])
+    loyalty = LoyaltyCardJoker()
+    loyalty.hands = 5
+    state.jokers = [loyalty]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD,
+        state,
+        [ace],
+    )
+
+    assert transition.distribution.minimum == 64
+    assert transition.distribution.maximum == 64
+    assert transition.joker_projection_complete is True
+    assert loyalty.hands == 5
+    assert transition.state_after_scoring.jokers[0].hands == 6
+
+
+def test_vampire_removes_only_scoring_enhancements_on_isolated_cards():
+    ace = BalatroCard("A", "Spades", enhancement="Mult")
+    king = BalatroCard("K", "Hearts", enhancement="Bonus")
+    state = _state([ace, king])
+    vampire = VampireJoker()
+    vampire.x_mult = 1.0
+    state.jokers = [vampire]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD,
+        state,
+        [ace, king],
+    )
+
+    # Vampire strips the scoring Ace before its +4 Mult can apply, grows to x1.1,
+    # and leaves the non-scoring enhanced King untouched.
+    assert transition.distribution.minimum == 17
+    assert transition.joker_projection_complete is True
+    assert ace.enhancement == "Mult"
+    assert king.enhancement == "Bonus"
+    assert transition.state_after_scoring.hand[0] is not ace
+    assert transition.state_after_scoring.hand[0].enhancement is None
+    assert transition.state_after_scoring.hand[1].enhancement == "Bonus"
+    assert vampire.x_mult == 1.0
+    assert transition.state_after_scoring.jokers[0].x_mult == 1.1
 
 
 def test_bootstraps_projection_adds_only_mult_from_public_money():
@@ -264,31 +372,12 @@ def test_remaining_hydrated_projection_blockers_stay_fail_closed():
 
     canio = CanioJoker()
     canio.x_mult = 3.0
-    loyalty = LoyaltyCardJoker()
-    loyalty.hands = 5
     lucky_cat = LuckyCatJoker()
     lucky_cat.x_mult = 2.0
-    obelisk = ObeliskJoker()
-    obelisk.x_mult = 2.4
-    red_card = RedCardJoker()
-    red_card.mult = 12
-    ride_bus = RideTheBusJoker()
-    ride_bus.mult = 8
     seltzer = SeltzerJoker()
     seltzer.rounds_remaining = 7
-    vampire = VampireJoker()
-    vampire.x_mult = 2.0
 
-    state.jokers = [
-        canio,
-        loyalty,
-        lucky_cat,
-        obelisk,
-        red_card,
-        ride_bus,
-        seltzer,
-        vampire,
-    ]
+    state.jokers = [canio, lucky_cat, seltzer]
 
     transition = VisibleCardScoreOutcomeModel().project_transition(
         PokerHand.HIGH_CARD,
@@ -300,22 +389,12 @@ def test_remaining_hydrated_projection_blockers_stay_fail_closed():
     assert transition.joker_projection_complete is False
     assert transition.unsupported_jokers == (
         "Canio",
-        "LoyaltyCard",
         "LuckyCat",
-        "Obelisk",
-        "RedCard",
-        "RideTheBus",
         "Seltzer",
-        "Vampire",
     )
     assert canio.x_mult == 3.0
-    assert loyalty.hands == 5
     assert lucky_cat.x_mult == 2.0
-    assert obelisk.x_mult == 2.4
-    assert red_card.mult == 12
-    assert ride_bus.mult == 8
     assert seltzer.rounds_remaining == 7
-    assert vampire.x_mult == 2.0
 
 
 def test_unsupported_joker_is_reported_and_not_silently_applied():
