@@ -20,6 +20,8 @@ class RedCardJoker(Joker):
             )
         ):
             self.mult += 3
+            if context.score is not None:
+                context.score.mult += 3
             return context
 
         if context.score is not None:
