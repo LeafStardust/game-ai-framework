@@ -17,6 +17,7 @@ from games.balatro.actions import (
     SKIP_BOOSTER,
     BalatroAction,
 )
+from games.balatro.live.external.live_memory_pack_terms import LivePackSelectionTerms
 from games.balatro.live.external.live_memory_shop_terms import LiveShopRerollTerms
 from games.balatro.live.injected import (
     FirstPartyBalatroBridge,
@@ -358,14 +359,27 @@ def test_injected_dispatcher_booster_purchase_waits_for_native_pack():
         "BUFFOON_PACK",
     ],
 )
-def test_injected_dispatcher_pack_select_accepts_native_pack_phases(phase):
+def test_injected_dispatcher_multi_pick_pack_select_accepts_native_pack_phases(phase):
     before = _snapshot(30, phase)
     after = _snapshot(31, phase)
     bridge = FakeBridge()
+    terms = iter(
+        [
+            LivePackSelectionTerms(
+                choices_remaining=2,
+                choice_addresses=(100, 101, 102),
+            ),
+            LivePackSelectionTerms(
+                choices_remaining=1,
+                choice_addresses=(100, 101),
+            ),
+        ]
+    )
     dispatcher = LiveMemoryInjectedActionDispatcher(
         FakeObserver(after),
         bridge=bridge,
         poll_interval=0,
+        pack_terms_reader=lambda: next(terms),
     )
 
     result = dispatcher.dispatch(
@@ -375,6 +389,33 @@ def test_injected_dispatcher_pack_select_accepts_native_pack_phases(phase):
 
     assert bridge.calls == [("select_pack_card", 2)]
     assert result.after is after
+    assert result.details["choices_remaining_before"] == 2
+    assert result.details["selected_address"] == 102
+
+
+def test_injected_dispatcher_single_pack_select_waits_for_shop():
+    before = _snapshot(32, "PLANET_PACK")
+    transient = _snapshot(33, "PLANET_PACK")
+    after = _snapshot(34, "SHOP")
+    bridge = FakeBridge()
+    dispatcher = LiveMemoryInjectedActionDispatcher(
+        FakeObserver(transient, after),
+        bridge=bridge,
+        poll_interval=0,
+        pack_terms_reader=lambda: LivePackSelectionTerms(
+            choices_remaining=1,
+            choice_addresses=(200, 201, 202),
+        ),
+    )
+
+    result = dispatcher.dispatch(
+        BalatroAction(SELECT_PACK_CARD, target={"area_index": 1}),
+        snapshot=before,
+    )
+
+    assert bridge.calls == [("select_pack_card", 1)]
+    assert result.after is after
+    assert result.after.phase == "SHOP"
 
 
 def test_injected_dispatcher_pack_skip_waits_for_shop():
