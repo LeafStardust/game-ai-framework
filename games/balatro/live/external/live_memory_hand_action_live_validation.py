@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
-from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.live.depth_draw_outcomes import DepthAwarePublicDrawOutcomeModel
+from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
 from games.balatro.live.hand_action_policy import (
     HandActionThresholds,
     LiveHandActionDecisionEngine,
@@ -104,7 +104,7 @@ def main() -> int:
             )
             thresholds = HandActionThresholds.from_mapping(threshold_mapping)
             policy = LiveHandActionThresholdPolicy(thresholds)
-            planner = LiveBlindClearPlanner(
+            planner = D1LiveBlindClearPlanner(
                 draw_outcomes=DepthAwarePublicDrawOutcomeModel(
                     exact_combination_limit=args.exact_limit,
                     root_sample_count=args.samples,
@@ -134,6 +134,7 @@ def main() -> int:
     print(f"Phase -> {snapshot.phase}")
     print(f"Deck / stake -> {state.deck_name} / {state.stake_name}")
     print(f"Playbook -> {playbook.name} v{playbook.version}")
+    print("Planner beam -> D1 diversity-aware")
     print("Process writes/injection -> False")
     print("Hidden RNG/deck traversal -> False")
     print("Mouse movement sent -> False")
