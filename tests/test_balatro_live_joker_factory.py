@@ -1,7 +1,11 @@
 from games.balatro.jokers.acrobat import AcrobatJoker
+from games.balatro.jokers.ancient_joker import AncientJoker
 from games.balatro.jokers.castle import CastleJoker
+from games.balatro.jokers.dagger import DaggerJoker
 from games.balatro.jokers.eight_ball import EightBallJoker
+from games.balatro.jokers.egg import EggJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
+from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.supernova import SupernovaJoker
 from games.balatro.jokers.the_idol import TheIdolJoker
 from games.balatro.live.joker_factory import LiveJokerFactory
@@ -99,6 +103,52 @@ def test_live_joker_factory_constructs_supernova_without_fixed_hand_parameter():
     )
 
     assert isinstance(joker, SupernovaJoker)
+
+
+def test_live_joker_factory_hydrates_numeric_and_dynamic_string_state():
+    factory = LiveJokerFactory()
+
+    green = factory.create(
+        {
+            "center": "j_green_joker",
+            "label": "Green Joker",
+            "public_state": {"mult": 19},
+        }
+    )
+    ancient = factory.create(
+        {
+            "center": "j_ancient",
+            "label": "Ancient Joker",
+            "public_state": {"suit": "S"},
+        }
+    )
+    egg = factory.create(
+        {
+            "center": "j_egg",
+            "label": "Egg",
+            "public_state": {"sell_value": 15},
+        }
+    )
+
+    assert isinstance(green, GreenJoker)
+    assert green.mult == 19
+    assert isinstance(ancient, AncientJoker)
+    assert ancient.suit == "Spades"
+    assert isinstance(egg, EggJoker)
+    assert egg.sell_value == 15
+
+
+def test_live_joker_factory_resolves_ceremonial_dagger_alias():
+    joker = LiveJokerFactory().create(
+        {
+            "center": "j_ceremonial",
+            "label": "Ceremonial Dagger",
+            "public_state": {"mult": 24},
+        }
+    )
+
+    assert isinstance(joker, DaggerJoker)
+    assert joker.mult == 24
 
 
 def test_live_joker_factory_rejects_unknown_jokers():
