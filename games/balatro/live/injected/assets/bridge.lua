@@ -337,6 +337,39 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return true
   end
 
+  local function execute_select_blind()
+    local ready, state_error = require_state("BLIND_SELECT")
+    if not ready then
+      return false, state_error
+    end
+    if not G.GAME or not G.GAME.blind_on_deck then
+      return false, "current blind on deck is unavailable"
+    end
+    if not G.blind_select_opts then
+      return false, "blind select options are unavailable"
+    end
+
+    local current_blind = tostring(G.GAME.blind_on_deck)
+    local blind_pane = G.blind_select_opts[string.lower(current_blind)]
+    if not blind_pane or type(blind_pane.get_UIE_by_ID) ~= "function" then
+      return false, "current blind pane is unavailable"
+    end
+    local select_button = blind_pane:get_UIE_by_ID("select_blind_button")
+    if not select_button then
+      return false, "select blind button is unavailable"
+    end
+
+    local callback = G.FUNCS and G.FUNCS.select_blind
+    if type(callback) ~= "function" then
+      return false, "select_blind callback is unavailable"
+    end
+    local ok, error_message = pcall(callback, select_button)
+    if not ok then
+      return false, error_message
+    end
+    return true
+  end
+
   local function execute_reroll_shop()
     local ready, state_error = require_state("SHOP")
     if not ready then
@@ -509,6 +542,8 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       executor = execute_cash_out
     elseif action == "NEXT_ROUND" then
       executor = execute_next_round
+    elseif action == "SELECT_BLIND" then
+      executor = execute_select_blind
     elseif action == "REROLL_SHOP" then
       executor = execute_reroll_shop
     elseif action == "BUY_CARD" or action == "BUY_VOUCHER" or action == "BUY_BOOSTER" then
