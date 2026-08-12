@@ -139,12 +139,48 @@ def test_fused_game_patcher_preserves_prefix_and_creates_exact_backup(tmp_path):
     assert executable.read_bytes().startswith(prefix)
     assert report.runtime_dir == runtime_dir
     assert not report.already_patched
+    assert not report.reused_backup
 
     with zipfile.ZipFile(executable, "r") as archive:
         assert archive.read("game.lua") == b"GAME_AI_TEST = true\n"
         assert HOOK_BEGIN.encode("utf-8") in archive.read("main.lua")
         assert archive.read(BRIDGE_ARCHIVE_NAME) == (
             b"GAME_AI_BRIDGE_TEST = true\n"
+        )
+
+
+def test_fused_game_patcher_reuses_identical_interrupted_backup(tmp_path):
+    executable = tmp_path / "Balatro.exe"
+    original, _ = _write_fused_game(executable)
+    backup = backup_path(executable)
+    backup.write_bytes(original)
+    bridge_source = tmp_path / "bridge.lua"
+    bridge_source.write_bytes(b"BRIDGE = true\n")
+
+    report = patch_fused_game(
+        executable,
+        bridge_source=bridge_source,
+        runtime_dir=tmp_path / "runtime",
+    )
+
+    assert report.reused_backup
+    assert backup.read_bytes() == original
+    with zipfile.ZipFile(executable, "r") as archive:
+        assert HOOK_BEGIN.encode("utf-8") in archive.read("main.lua")
+
+
+def test_fused_game_patcher_rejects_different_existing_backup(tmp_path):
+    executable = tmp_path / "Balatro.exe"
+    _write_fused_game(executable)
+    backup_path(executable).write_bytes(b"different backup")
+    bridge_source = tmp_path / "bridge.lua"
+    bridge_source.write_bytes(b"BRIDGE = true\n")
+
+    with pytest.raises(BalatroFusedPatchError, match="differs from the current"):
+        patch_fused_game(
+            executable,
+            bridge_source=bridge_source,
+            runtime_dir=tmp_path / "runtime",
         )
 
 
@@ -171,6 +207,7 @@ def test_fused_game_patcher_is_idempotent_and_keeps_original_backup(tmp_path):
     )
 
     assert report.already_patched
+    assert not report.reused_backup
     assert first_backup == original
     assert backup.read_bytes() == original
     with zipfile.ZipFile(executable, "r") as archive:
