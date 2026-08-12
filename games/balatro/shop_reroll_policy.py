@@ -68,6 +68,7 @@ class BuildAwareShopRerollPolicy:
         visible_actions: list[BalatroAction],
         *,
         reroll_cost: int | None,
+        visible_score_floor: float | None = None,
     ) -> ShopRerollRecommendation:
         if state.phase != "SHOP":
             raise ValueError("reroll policy requires SHOP phase")
@@ -78,6 +79,9 @@ class BuildAwareShopRerollPolicy:
             if current_scores
             else float(self.shop_policy.hold_bias)
         )
+        if visible_score_floor is not None:
+            current_best = max(current_best, float(visible_score_floor))
+
         unmet = self._unmet_requirements(state)
         need_bonus = min(
             self.thresholds.max_unmet_requirement_bonus,
@@ -191,7 +195,8 @@ class BuildAwareShopRerollPolicy:
         ]
 
         # Random-state actions (e.g. booster opening) are intentionally absent:
-        # this layer will not fabricate a deterministic comparable value for them.
+        # the parent arbiter can supply their admitted child score as a floor without
+        # making this reroll layer predict the pack's hidden contents itself.
         if not any(action.name == END_SHOP for action in supported):
             supported.append(BalatroAction(END_SHOP))
 
