@@ -158,6 +158,9 @@ class FirstPartyBalatroBridge:
     def next_round(self) -> None:
         self._call("NEXT_ROUND")
 
+    def select_blind(self) -> None:
+        self._call("SELECT_BLIND")
+
     def reroll_shop(self) -> None:
         self._call("REROLL_SHOP")
 
