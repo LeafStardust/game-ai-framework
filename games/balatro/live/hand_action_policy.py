@@ -4,42 +4,59 @@ from dataclasses import dataclass, fields
 from typing import Mapping
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
-from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner, LiveBlindPlan
+from games.balatro.live.adaptive_search import (
+    AdaptiveBlindSearchConfig,
+    AdaptiveRecommendationSummary,
+    adaptive_blind_search_schedule,
+    stable_discard_consensus,
+)
+from games.balatro.live.blind_clear_planner import (
+    LiveBlindClearPlanner,
+    LiveBlindPlan,
+    PlannerSearchBudgetExceeded,
+)
+from games.balatro.live.depth_draw_outcomes import DepthAwarePublicDrawOutcomeModel
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
+from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
+
+
+CLEAR_PATH = "CLEAR_PATH"
+PACE_PLAY = "PACE_PLAY"
+PACE_RECOVERY = "PACE_RECOVERY"
 
 
 @dataclass(frozen=True)
 class HandActionThresholds:
-    """Thresholds owned only by D1: play-vs-discard and hand subset choice."""
+    """Thresholds owned only by D1: hand play/discard decisions.
 
-    play_clear_probability_floor: float = 0.75
-    discard_clear_probability_advantage: float = 0.05
-    discard_progress_advantage: float = 0.08
+    D1 is hierarchical. A sufficiently credible blind-clear path always takes
+    precedence. The pace thresholds are consulted only when adaptive clear-path
+    search cannot find such a path.
+    """
+
+    clear_path_probability_floor: float = 0.75
+    pace_ratio_floor: float = 1.0
+    setup_discard_consensus_agreement: int = 3
     low_discard_reserve: int = 1
-    low_discard_extra_clear_advantage: float = 0.05
-    low_discard_extra_progress_advantage: float = 0.04
+    low_discard_fallback_penalty: float = 10.0
     low_hand_reserve: int = 1
-    low_hand_clear_advantage_discount: float = 0.03
-    low_hand_progress_advantage_discount: float = 0.03
+    low_hand_discard_fallback_bonus: float = 10.0
 
     def __post_init__(self) -> None:
-        probability_fields = (
-            "play_clear_probability_floor",
-            "discard_clear_probability_advantage",
-            "discard_progress_advantage",
-            "low_discard_extra_clear_advantage",
-            "low_discard_extra_progress_advantage",
-            "low_hand_clear_advantage_discount",
-            "low_hand_progress_advantage_discount",
-        )
-        for name in probability_fields:
-            value = float(getattr(self, name))
-            if value < 0.0 or value > 1.0:
-                raise ValueError(f"{name} must be between 0 and 1")
+        if not 0.0 <= float(self.clear_path_probability_floor) <= 1.0:
+            raise ValueError("clear_path_probability_floor must be between 0 and 1")
+        if float(self.pace_ratio_floor) <= 0.0:
+            raise ValueError("pace_ratio_floor must be positive")
+        if self.setup_discard_consensus_agreement < 2:
+            raise ValueError("setup_discard_consensus_agreement must be at least 2")
         if self.low_discard_reserve < 0:
             raise ValueError("low_discard_reserve cannot be negative")
         if self.low_hand_reserve < 0:
             raise ValueError("low_hand_reserve cannot be negative")
+        if float(self.low_discard_fallback_penalty) < 0.0:
+            raise ValueError("low_discard_fallback_penalty cannot be negative")
+        if float(self.low_hand_discard_fallback_bonus) < 0.0:
+            raise ValueError("low_hand_discard_fallback_bonus cannot be negative")
 
     @classmethod
     def from_mapping(cls, value: Mapping[str, object] | None) -> "HandActionThresholds":
@@ -58,35 +75,80 @@ class HandActionThresholds:
 
 
 @dataclass(frozen=True)
+class HandActionSearchAttempt:
+    horizon: int
+    samples: int
+    play_width: int
+    discard_width: int
+    max_nodes: int
+    nodes_evaluated: int
+    budget_exceeded: bool
+    best_action: str | None = None
+    best_clear_probability: float | None = None
+    best_expected_score: float | None = None
+
+
+@dataclass(frozen=True)
 class HandActionDecision:
+    mode: str
     action: BalatroAction
     selected_plan: LiveBlindPlan
     best_play: LiveBlindPlan
     best_discard: LiveBlindPlan | None
     thresholds: HandActionThresholds
-    required_discard_clear_advantage: float
-    required_discard_progress_advantage: float
-    clear_probability_delta: float | None
-    progress_delta: float | None
+    pace_target: float
+    best_play_immediate_score: float
+    best_play_pace_ratio: float
+    selected_immediate_score: float | None
+    selected_pace_ratio: float | None
+    selected_fallback_value: float | None
+    clear_path_candidates: int
+    setup_discard_consensus: bool
     confidence: float
     rationale: tuple[str, ...]
     candidate_count: int
+    plans: tuple[LiveBlindPlan, ...]
+    search_attempts: tuple[HandActionSearchAttempt, ...] = ()
 
 
-class LiveHandActionThresholdPolicy:
-    """D1 policy: choose the exact Play/Discard action from planner estimates.
+class LiveHandActionPolicy:
+    """D1 hierarchy: clear path first, then next-hand pace fallback.
 
-    The expectimax planner supplies public-state outcomes. This policy owns the
-    strategic boundary between spending a hand and spending a discard. It does not
-    reuse shop, consumable, pack, voucher or economy thresholds.
+    CLEAR_PATH:
+        If bounded public-state search finds a plan whose blind-clear probability
+        meets the D1 floor, take the first action on that path. The live loop will
+        observe the real result and replan from the authoritative checkpoint.
+
+    PACE_PLAY:
+        If no acceptable clear path exists but a current play can meet the required
+        next-hand pace, play a pace-satisfying subset.
+
+    PACE_RECOVERY:
+        If no current play can meet pace, use the existing pace-aware evaluator to
+        choose the best recovery action. This may be a setup discard or, when a
+        discard is not worthwhile/legal, the strongest available under-pace play.
     """
 
     EPSILON = 1e-12
 
-    def __init__(self, thresholds: HandActionThresholds | None = None) -> None:
+    def __init__(
+        self,
+        thresholds: HandActionThresholds | None = None,
+        *,
+        evaluator: LiveHandDecisionEvaluator | None = None,
+    ) -> None:
         self.thresholds = thresholds or HandActionThresholds()
+        self.evaluator = evaluator or LiveHandDecisionEvaluator()
 
-    def decide(self, state, plans: list[LiveBlindPlan]) -> HandActionDecision:
+    def decide(
+        self,
+        state,
+        plans: list[LiveBlindPlan] | tuple[LiveBlindPlan, ...],
+        *,
+        search_attempts: tuple[HandActionSearchAttempt, ...] = (),
+        setup_discard_consensus: bool = False,
+    ) -> HandActionDecision:
+        plans = tuple(plans)
         plays = [plan for plan in plans if plan.action.name == PLAY_CARDS]
         discards = [plan for plan in plans if plan.action.name == DISCARD_CARDS]
         if not plays:
@@ -94,127 +156,185 @@ class LiveHandActionThresholdPolicy:
 
         best_play = max(plays, key=self._within_type_key)
         best_discard = max(discards, key=self._within_type_key) if discards else None
-        clear_requirement, progress_requirement = self._discard_requirements(state)
+        pace_target = self._pace_target(state)
+        immediate_scores = {
+            id(plan): float(self.evaluator.project_play(state, plan.action).expected_hand_score)
+            for plan in plays
+        }
+        best_immediate_play = max(plays, key=lambda plan: immediate_scores[id(plan)])
+        best_immediate_score = immediate_scores[id(best_immediate_play)]
+        best_immediate_ratio = self._pace_ratio(best_immediate_score, pace_target)
 
-        if best_discard is None or int(getattr(state, "discards_remaining", 0)) <= 0:
+        clear_paths = [
+            plan
+            for plan in plans
+            if plan.value.clear_probability + self.EPSILON
+            >= self.thresholds.clear_path_probability_floor
+        ]
+        if clear_paths:
+            selected = max(clear_paths, key=self._within_type_key)
+            selected_score = None
+            selected_ratio = None
+            if selected.action.name == PLAY_CARDS:
+                selected_score = immediate_scores[id(selected)]
+                selected_ratio = self._pace_ratio(selected_score, pace_target)
+            probability = float(selected.value.clear_probability)
+            confidence = 1.0 if selected.exact and probability >= 1.0 - self.EPSILON else probability
             return self._decision(
-                best_play,
-                best_play,
-                None,
-                clear_requirement,
-                progress_requirement,
-                None,
-                None,
-                1.0,
-                ("no legal discard candidate; play the best subset",),
-                len(plans),
-            )
-
-        play_value = best_play.value
-        discard_value = best_discard.value
-        clear_delta = (
-            discard_value.clear_probability - play_value.clear_probability
-        )
-        progress_delta = discard_value.expected_progress - play_value.expected_progress
-
-        if play_value.clear_probability >= 1.0 - self.EPSILON:
-            return self._decision(
-                best_play,
-                best_play,
-                best_discard,
-                clear_requirement,
-                progress_requirement,
-                clear_delta,
-                progress_delta,
-                1.0,
-                ("best play is a certain blind clear",),
-                len(plans),
-            )
-
-        if clear_delta + self.EPSILON >= clear_requirement:
-            margin = clear_delta - clear_requirement
-            return self._decision(
-                best_discard,
-                best_play,
-                best_discard,
-                clear_requirement,
-                progress_requirement,
-                clear_delta,
-                progress_delta,
-                self._confidence(margin),
-                (
-                    "discard improves projected clear probability enough to justify "
-                    "spending a discard",
+                mode=CLEAR_PATH,
+                selected=selected,
+                best_play=best_play,
+                best_discard=best_discard,
+                pace_target=pace_target,
+                best_play_immediate_score=best_immediate_score,
+                best_play_pace_ratio=best_immediate_ratio,
+                selected_immediate_score=selected_score,
+                selected_pace_ratio=selected_ratio,
+                selected_fallback_value=None,
+                clear_path_candidates=len(clear_paths),
+                setup_discard_consensus=setup_discard_consensus,
+                confidence=confidence,
+                rationale=(
+                    "adaptive search found a blind-clear path above the D1 probability floor",
+                    "take only the first action, then re-observe and replan from the real checkpoint",
                 ),
-                len(plans),
+                plans=plans,
+                search_attempts=search_attempts,
             )
 
-        below_play_floor = (
-            play_value.clear_probability + self.EPSILON
-            < self.thresholds.play_clear_probability_floor
-        )
-        if (
-            below_play_floor
-            and progress_delta + self.EPSILON >= progress_requirement
-        ):
-            margin = progress_delta - progress_requirement
-            return self._decision(
-                best_discard,
-                best_play,
-                best_discard,
-                clear_requirement,
-                progress_requirement,
-                clear_delta,
-                progress_delta,
-                self._confidence(margin),
-                (
-                    "best play is below the D1 clear-probability floor",
-                    "discard improves projected blind progress enough to justify redraw",
+        pace_plays = [
+            plan
+            for plan in plays
+            if self._pace_ratio(immediate_scores[id(plan)], pace_target) + self.EPSILON
+            >= self.thresholds.pace_ratio_floor
+        ]
+        if pace_plays:
+            selected = max(
+                pace_plays,
+                key=lambda plan: self._pace_play_key(
+                    plan,
+                    self._pace_ratio(immediate_scores[id(plan)], pace_target),
                 ),
-                len(plans),
+            )
+            selected_score = immediate_scores[id(selected)]
+            selected_ratio = self._pace_ratio(selected_score, pace_target)
+            confidence = self._pace_confidence(selected_ratio)
+            return self._decision(
+                mode=PACE_PLAY,
+                selected=selected,
+                best_play=best_play,
+                best_discard=best_discard,
+                pace_target=pace_target,
+                best_play_immediate_score=best_immediate_score,
+                best_play_pace_ratio=best_immediate_ratio,
+                selected_immediate_score=selected_score,
+                selected_pace_ratio=selected_ratio,
+                selected_fallback_value=None,
+                clear_path_candidates=0,
+                setup_discard_consensus=setup_discard_consensus,
+                confidence=confidence,
+                rationale=(
+                    "adaptive search found no acceptable blind-clear path",
+                    "a current play can meet the required next-hand pace",
+                ),
+                plans=plans,
+                search_attempts=search_attempts,
             )
 
-        rationale = []
-        if play_value.clear_probability >= self.thresholds.play_clear_probability_floor:
-            rationale.append("best play meets the D1 clear-probability floor")
+        scored = []
+        for plan in plans:
+            value = float(self.evaluator.evaluate(state, plan.action))
+            if plan.action.name == DISCARD_CARDS:
+                if (
+                    int(getattr(state, "discards_remaining", 0))
+                    <= self.thresholds.low_discard_reserve
+                ):
+                    value -= self.thresholds.low_discard_fallback_penalty
+                if (
+                    int(getattr(state, "hands_remaining", 0))
+                    <= self.thresholds.low_hand_reserve
+                ):
+                    value += self.thresholds.low_hand_discard_fallback_bonus
+            scored.append((value, plan))
+
+        scored.sort(
+            key=lambda item: (item[0], self._within_type_key(item[1])),
+            reverse=True,
+        )
+        selected_value, selected = scored[0]
+        selected_score = None
+        selected_ratio = None
+        if selected.action.name == PLAY_CARDS:
+            selected_score = immediate_scores[id(selected)]
+            selected_ratio = self._pace_ratio(selected_score, pace_target)
+
+        runner_up = scored[1][0] if len(scored) > 1 else selected_value
+        confidence = self._recovery_confidence(
+            selected_value - runner_up,
+            consensus=(
+                setup_discard_consensus and selected.action.name == DISCARD_CARDS
+            ),
+        )
+        rationale = [
+            "adaptive search found no acceptable blind-clear path",
+            "no current play reaches the required next-hand pace",
+        ]
+        if selected.action.name == DISCARD_CARDS:
+            rationale.append("pace-aware recovery prefers a setup discard")
+            if setup_discard_consensus:
+                rationale.append("deep adaptive searches also agree on the setup discard")
+            if (
+                int(getattr(state, "discards_remaining", 0))
+                <= self.thresholds.low_discard_reserve
+            ):
+                rationale.append("low discard reserve penalty was applied")
         else:
-            rationale.append("discard does not clear the required D1 advantage gates")
-        if int(getattr(state, "discards_remaining", 0)) <= self.thresholds.low_discard_reserve:
-            rationale.append("low discard reserve raises the evidence required to discard")
-        if int(getattr(state, "hands_remaining", 0)) <= self.thresholds.low_hand_reserve:
-            rationale.append("low hand reserve lowers the evidence required to preserve a hand")
+            rationale.append("discard recovery is not better than the strongest under-pace play")
 
-        play_margin = max(
-            clear_requirement - clear_delta,
-            progress_requirement - progress_delta if below_play_floor else 0.0,
-        )
         return self._decision(
-            best_play,
-            best_play,
-            best_discard,
-            clear_requirement,
-            progress_requirement,
-            clear_delta,
-            progress_delta,
-            self._confidence(play_margin),
-            tuple(rationale),
-            len(plans),
+            mode=PACE_RECOVERY,
+            selected=selected,
+            best_play=best_play,
+            best_discard=best_discard,
+            pace_target=pace_target,
+            best_play_immediate_score=best_immediate_score,
+            best_play_pace_ratio=best_immediate_ratio,
+            selected_immediate_score=selected_score,
+            selected_pace_ratio=selected_ratio,
+            selected_fallback_value=selected_value,
+            clear_path_candidates=0,
+            setup_discard_consensus=setup_discard_consensus,
+            confidence=confidence,
+            rationale=tuple(rationale),
+            plans=plans,
+            search_attempts=search_attempts,
         )
 
-    def _discard_requirements(self, state) -> tuple[float, float]:
-        thresholds = self.thresholds
-        clear_requirement = thresholds.discard_clear_probability_advantage
-        progress_requirement = thresholds.discard_progress_advantage
+    def best_clear_path(
+        self,
+        plans: list[LiveBlindPlan] | tuple[LiveBlindPlan, ...],
+    ) -> LiveBlindPlan | None:
+        candidates = [
+            plan
+            for plan in plans
+            if plan.value.clear_probability + self.EPSILON
+            >= self.thresholds.clear_path_probability_floor
+        ]
+        return max(candidates, key=self._within_type_key) if candidates else None
 
-        if int(getattr(state, "discards_remaining", 0)) <= thresholds.low_discard_reserve:
-            clear_requirement += thresholds.low_discard_extra_clear_advantage
-            progress_requirement += thresholds.low_discard_extra_progress_advantage
+    @staticmethod
+    def _pace_target(state) -> float:
+        target = float(getattr(getattr(state, "blind", None), "requirement", 0))
+        current = float(getattr(state, "score", 0))
+        remaining = max(0.0, target - current)
+        hands = max(1, int(getattr(state, "hands_remaining", 0)))
+        return remaining / hands
 
-        if int(getattr(state, "hands_remaining", 0)) <= thresholds.low_hand_reserve:
-            clear_requirement -= thresholds.low_hand_clear_advantage_discount
-            progress_requirement -= thresholds.low_hand_progress_advantage_discount
-
-        return max(0.0, clear_requirement), max(0.0, progress_requirement)
+    @staticmethod
+    def _pace_ratio(score: float, target: float) -> float:
+        if target <= 1e-12:
+            return 1.0
+        return float(score) / float(target)
 
     @staticmethod
     def _within_type_key(plan: LiveBlindPlan) -> tuple[float, int, float, float, float, float]:
@@ -228,53 +348,115 @@ class LiveHandActionThresholdPolicy:
             value.expected_score,
         )
 
+    def _pace_play_key(
+        self,
+        plan: LiveBlindPlan,
+        pace_ratio: float,
+    ) -> tuple[float, int, float, float, float, float]:
+        value = plan.value
+        return (
+            value.clear_probability,
+            1 if plan.exact else 0,
+            value.expected_progress,
+            value.expected_discards_remaining,
+            value.expected_hands_remaining,
+            -abs(pace_ratio - self.thresholds.pace_ratio_floor),
+        )
+
+    def _pace_confidence(self, ratio: float) -> float:
+        margin = max(0.0, ratio - self.thresholds.pace_ratio_floor)
+        return max(0.5, min(1.0, 0.75 + margin * 0.25))
+
     @staticmethod
-    def _confidence(margin: float) -> float:
-        return max(0.0, min(1.0, 0.5 + max(0.0, margin) * 2.0))
+    def _recovery_confidence(margin: float, *, consensus: bool) -> float:
+        base = 0.65 if consensus else 0.40
+        return max(base, min(1.0, base + max(0.0, margin) / 200.0))
 
     def _decision(
         self,
+        *,
+        mode: str,
         selected: LiveBlindPlan,
         best_play: LiveBlindPlan,
         best_discard: LiveBlindPlan | None,
-        required_clear: float,
-        required_progress: float,
-        clear_delta: float | None,
-        progress_delta: float | None,
+        pace_target: float,
+        best_play_immediate_score: float,
+        best_play_pace_ratio: float,
+        selected_immediate_score: float | None,
+        selected_pace_ratio: float | None,
+        selected_fallback_value: float | None,
+        clear_path_candidates: int,
+        setup_discard_consensus: bool,
         confidence: float,
         rationale: tuple[str, ...],
-        candidate_count: int,
+        plans: tuple[LiveBlindPlan, ...],
+        search_attempts: tuple[HandActionSearchAttempt, ...],
     ) -> HandActionDecision:
         return HandActionDecision(
+            mode=mode,
             action=selected.action,
             selected_plan=selected,
             best_play=best_play,
             best_discard=best_discard,
             thresholds=self.thresholds,
-            required_discard_clear_advantage=required_clear,
-            required_discard_progress_advantage=required_progress,
-            clear_probability_delta=clear_delta,
-            progress_delta=progress_delta,
+            pace_target=pace_target,
+            best_play_immediate_score=best_play_immediate_score,
+            best_play_pace_ratio=best_play_pace_ratio,
+            selected_immediate_score=selected_immediate_score,
+            selected_pace_ratio=selected_pace_ratio,
+            selected_fallback_value=selected_fallback_value,
+            clear_path_candidates=clear_path_candidates,
+            setup_discard_consensus=setup_discard_consensus,
             confidence=confidence,
             rationale=rationale,
-            candidate_count=candidate_count,
+            candidate_count=len(plans),
+            plans=plans,
+            search_attempts=search_attempts,
         )
 
 
+# Compatibility name for older imports while D1 callers migrate to the clearer name.
+LiveHandActionThresholdPolicy = LiveHandActionPolicy
+
+
 class LiveHandActionDecisionEngine:
-    """Generate planner estimates, then apply the independent D1 threshold policy."""
+    """Adaptive D1 search followed by the pace fallback hierarchy."""
 
     def __init__(
         self,
         *,
         planner: LiveBlindClearPlanner | None = None,
-        policy: LiveHandActionThresholdPolicy | None = None,
+        policy: LiveHandActionPolicy | None = None,
+        max_horizon: int = 8,
+        max_search_nodes: int = 5000,
+        exact_limit: int = LiveBlindClearPlanner.DEFAULT_EXACT_DRAW_COMBINATION_LIMIT,
+        child_exact_limit: int = 8,
     ) -> None:
-        self.planner = planner or D1LiveBlindClearPlanner()
-        self.policy = policy or LiveHandActionThresholdPolicy()
+        if max_horizon < 1:
+            raise ValueError("max_horizon must be positive")
+        if max_search_nodes < 1:
+            raise ValueError("max_search_nodes must be positive")
+        if exact_limit < 1:
+            raise ValueError("exact_limit must be positive")
+        if child_exact_limit < 1:
+            raise ValueError("child_exact_limit must be positive")
 
-    def rank_plans(self, state) -> list[LiveBlindPlan]:
-        planner = self.planner
+        self.planner = planner or D1LiveBlindClearPlanner(
+            play_width=6,
+            discard_width=4,
+            child_play_width=4,
+            child_discard_width=2,
+            horizon=2,
+            max_nodes=3000,
+        )
+        self.policy = policy or LiveHandActionPolicy(evaluator=self.planner.evaluator)
+        self.max_horizon = int(max_horizon)
+        self.max_search_nodes = int(max_search_nodes)
+        self.exact_limit = int(exact_limit)
+        self.child_exact_limit = int(child_exact_limit)
+
+    def rank_plans(self, state, *, planner: LiveBlindClearPlanner | None = None) -> list[LiveBlindPlan]:
+        planner = planner or self.planner
         planner._require_state(state)
         planner.reset_search_stats()
         candidates = planner._candidate_actions(
@@ -300,5 +482,107 @@ class LiveHandActionDecisionEngine:
         ]
 
     def decide(self, state) -> HandActionDecision:
-        plans = self.rank_plans(state)
-        return self.policy.decide(state, plans)
+        schedule = adaptive_blind_search_schedule(
+            hands_remaining=int(getattr(state, "hands_remaining", 0)),
+            discards_remaining=int(getattr(state, "discards_remaining", 0)),
+            max_horizon=self.max_horizon,
+            max_nodes=self.max_search_nodes,
+        )
+        attempts: list[HandActionSearchAttempt] = []
+        summaries: list[AdaptiveRecommendationSummary] = []
+
+        for config in schedule:
+            planner = self._adaptive_planner(config)
+            try:
+                plans = self.rank_plans(state, planner=planner)
+            except PlannerSearchBudgetExceeded:
+                attempts.append(
+                    HandActionSearchAttempt(
+                        horizon=config.horizon,
+                        samples=config.samples,
+                        play_width=config.play_width,
+                        discard_width=config.discard_width,
+                        max_nodes=config.max_nodes,
+                        nodes_evaluated=planner.nodes_evaluated,
+                        budget_exceeded=True,
+                    )
+                )
+                continue
+
+            best = plans[0]
+            attempts.append(
+                HandActionSearchAttempt(
+                    horizon=config.horizon,
+                    samples=config.samples,
+                    play_width=config.play_width,
+                    discard_width=config.discard_width,
+                    max_nodes=config.max_nodes,
+                    nodes_evaluated=planner.nodes_evaluated,
+                    budget_exceeded=False,
+                    best_action=best.action.name,
+                    best_clear_probability=float(best.value.clear_probability),
+                    best_expected_score=float(best.value.expected_score),
+                )
+            )
+            summaries.append(
+                AdaptiveRecommendationSummary(
+                    action=best.action.name,
+                    indices=self._indices(state, best.action),
+                    clear_probability=float(best.value.clear_probability),
+                    expected_score=float(best.value.expected_score),
+                    horizon=config.horizon,
+                    intensified=config.max_nodes > 5000,
+                )
+            )
+
+            clear_path = self.policy.best_clear_path(plans)
+            if clear_path is not None:
+                return self.policy.decide(
+                    state,
+                    plans,
+                    search_attempts=tuple(attempts),
+                    setup_discard_consensus=False,
+                )
+
+        consensus = stable_discard_consensus(
+            tuple(summaries),
+            minimum_agreement=self.policy.thresholds.setup_discard_consensus_agreement,
+        )
+
+        # No adaptive search reached the clear-path floor. Re-run a deliberately
+        # richer shallow D1 beam for the pace fallback so immediate play/discard
+        # coverage is not constrained by the narrow deep-search beams.
+        fallback_plans = self.rank_plans(state)
+        return self.policy.decide(
+            state,
+            fallback_plans,
+            search_attempts=tuple(attempts),
+            setup_discard_consensus=consensus,
+        )
+
+    def _adaptive_planner(self, config: AdaptiveBlindSearchConfig) -> D1LiveBlindClearPlanner:
+        return D1LiveBlindClearPlanner(
+            evaluator=self.planner.evaluator,
+            action_generator=self.planner.action_generator,
+            draw_outcomes=DepthAwarePublicDrawOutcomeModel(
+                exact_combination_limit=self.exact_limit,
+                root_sample_count=config.samples,
+                child_sample_count=config.child_samples,
+                child_exact_combination_limit=self.child_exact_limit,
+            ),
+            play_width=config.play_width,
+            discard_width=config.discard_width,
+            child_play_width=config.child_play_width,
+            child_discard_width=config.child_discard_width,
+            horizon=config.horizon,
+            max_nodes=config.max_nodes,
+        )
+
+    @staticmethod
+    def _indices(state, action) -> tuple[int, ...]:
+        selected_ids = {id(card) for card in action.cards}
+        return tuple(
+            index
+            for index, card in enumerate(state.hand)
+            if id(card) in selected_ids
+        )
