@@ -9,6 +9,12 @@ from .effects import (
     JOKER_GENERATE,
     EffectDescriptor,
 )
+from .joker_lifecycle import (
+    STATEFUL_ACTIVATION,
+    STATEFUL_DECAY,
+    STATEFUL_SCALING,
+    LifecycleJokerBehaviorAnalyzer,
+)
 from .joker_semantics import (
     CARD_GENERATE,
     CONSUMABLE_DUPLICATE,
@@ -33,7 +39,7 @@ from .synergy import (
 
 @dataclass(frozen=True)
 class JokerSemanticValueWeights:
-    """Structural values for non-scoring Joker capabilities.
+    """Structural values for non-scoring and lifecycle Joker capabilities.
 
     These remain build-intelligence units, not shop dollars. D2 applies price,
     interest, reserve and slot economics after this contextual value is produced.
@@ -48,10 +54,13 @@ class JokerSemanticValueWeights:
     sell_value_growth: float = 0.35
     shop_discount: float = 0.75
     debt_capacity: float = 0.15
+    stateful_activation: float = 0.35
+    stateful_scaling: float = 1.25
+    stateful_decay: float = 0.75
 
 
 class SemanticContextualJokerSynergyEvaluator(ContextualJokerSynergyEvaluator):
-    """B3 evaluator extended with explicit non-scoring gains and tradeoffs."""
+    """B3 evaluator extended with non-scoring gains and persistent tradeoffs."""
 
     MAGNITUDE_SCALED_FEATURES = frozenset(
         {
@@ -80,7 +89,7 @@ class SemanticContextualJokerSynergyEvaluator(ContextualJokerSynergyEvaluator):
         joker_analyzer: SemanticJokerBehaviorAnalyzer | None = None,
         pair_probe: JokerPairInteractionProbe | None = None,
     ) -> None:
-        analyzer = joker_analyzer or SemanticJokerBehaviorAnalyzer()
+        analyzer = joker_analyzer or LifecycleJokerBehaviorAnalyzer()
         build_profiler = profiler or BalatroBuildProfiler(joker_analyzer=analyzer)
         self.semantic_weights = semantic_weights or JokerSemanticValueWeights()
         super().__init__(
@@ -159,6 +168,9 @@ class SemanticContextualJokerSynergyEvaluator(ContextualJokerSynergyEvaluator):
             SELL_VALUE_GROWTH: semantic.sell_value_growth,
             SHOP_DISCOUNT: semantic.shop_discount,
             DEBT_CAPACITY: semantic.debt_capacity,
+            STATEFUL_ACTIVATION: semantic.stateful_activation,
+            STATEFUL_SCALING: semantic.stateful_scaling,
+            STATEFUL_DECAY: semantic.stateful_decay,
         }
         if feature in explicit:
             return explicit[feature]
