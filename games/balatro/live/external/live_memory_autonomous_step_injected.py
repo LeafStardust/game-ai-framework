@@ -25,9 +25,14 @@ from games.balatro.live.translator import DefaultBalatroStateTranslator
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.playbook import default_balatro_playbooks
 from games.balatro.shop_policy import BalatroShopPolicy
+from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 
 from .live_memory_achievement_guard import achievement_gate_state
 from .live_memory_observer import LiveMemoryBalatroObserver
+from .live_memory_shop_terms import (
+    LiveShopRerollTerms,
+    read_live_shop_reroll_terms,
+)
 
 
 class UnsupportedAutonomousPhase(RuntimeError):
@@ -170,6 +175,7 @@ class LiveMemoryInjectedSingleStepRunner:
         shop_recommender: Callable[[object, LiveBalatroSnapshot], tuple[BalatroAction, tuple[str, ...]]] | None = None,
         pack_recommender: Callable[[object, LiveBalatroSnapshot], tuple[BalatroAction, tuple[str, ...], tuple[tuple, ...]]] | None = None,
         pack_choice_reader: Callable[[], tuple] | None = None,
+        reroll_terms_reader: Callable[[], LiveShopRerollTerms] | None = None,
         max_horizon: int | None = None,
         max_search_nodes: int | None = None,
         exact_limit: int = 128,
@@ -188,6 +194,12 @@ class LiveMemoryInjectedSingleStepRunner:
         self.child_exact_limit = int(child_exact_limit)
         self.shop_generator = BalatroShopActionGenerator()
         self.shop_policy = BalatroShopPolicy()
+        self.shop_reroll_policy = BuildAwareShopRerollPolicy(
+            shop_policy=self.shop_policy,
+        )
+        self.reroll_terms_reader = reroll_terms_reader or (
+            lambda: read_live_shop_reroll_terms(self.observer)
+        )
         self.pack_generator = LivePackActionGenerator()
         self.pack_policy = BalatroPackPolicy()
         self.pack_choice_reader = pack_choice_reader or (
@@ -287,16 +299,50 @@ class LiveMemoryInjectedSingleStepRunner:
         snapshot: LiveBalatroSnapshot,
     ) -> tuple[BalatroAction, tuple[str, ...]]:
         del snapshot
-        actions = [
+        visible_actions = self.shop_generator.generate_actions(state)
+        policy_actions = [
             action
-            for action in self.shop_generator.generate_actions(state)
+            for action in visible_actions
             if action.name in self.SHOP_POLICY_ACTIONS
         ]
-        ranked = self.shop_policy.rank_actions(state, actions)
+
+        terms_notes: tuple[str, ...]
+        try:
+            terms = self.reroll_terms_reader()
+            effective_cost = 0 if terms.free_rerolls > 0 else int(terms.cost)
+            terms_notes = (
+                f"observed_reroll_cost={int(terms.cost)}",
+                f"free_rerolls={terms.free_rerolls}",
+                f"effective_reroll_spend={effective_cost}",
+            )
+        except RuntimeError as error:
+            effective_cost = None
+            terms_notes = (f"reroll_terms_unavailable={error}",)
+
+        reroll = self.shop_reroll_policy.recommend(
+            state,
+            visible_actions,
+            reroll_cost=effective_cost,
+        )
+        if reroll.decision == "REROLL":
+            if reroll.executable_action is None:
+                raise RuntimeError("REROLL recommendation is missing executable action")
+            return reroll.executable_action, (
+                "shop_decision=REROLL",
+                *terms_notes,
+                *reroll.rationale,
+            )
+
+        ranked = self.shop_policy.rank_actions(state, policy_actions)
         if not ranked:
             raise RuntimeError("shop policy produced no scoreable action")
         selected = ranked[0]
-        notes = [f"policy_score={selected.total:.6f}"]
+        notes = [
+            "shop_decision=HOLD_REROLL",
+            *terms_notes,
+            *reroll.rationale,
+            f"policy_score={selected.total:.6f}",
+        ]
         notes.extend(str(note) for note in selected.notes)
         return selected.action, tuple(notes)
 
