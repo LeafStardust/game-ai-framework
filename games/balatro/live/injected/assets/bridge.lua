@@ -153,9 +153,6 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       table.insert(ordered, card)
     end
 
-    -- Toggle only differences instead of calling unhighlight_all(). This keeps
-    -- Balatro's own selection restrictions authoritative (important for boss
-    -- effects such as forced selections).
     local _, current = highlighted_set()
     for _, card in ipairs(current) do
       if not desired[card] then
@@ -249,6 +246,26 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       return false, "action requires " .. tostring(state_name)
     end
     return true
+  end
+
+  local function is_pack_state()
+    if not G or not G.STATES then
+      return false
+    end
+    local names = {
+      "TAROT_PACK",
+      "PLANET_PACK",
+      "SPECTRAL_PACK",
+      "STANDARD_PACK",
+      "BUFFOON_PACK",
+    }
+    for _, name in ipairs(names) do
+      local state = G.STATES[name]
+      if state ~= nil and G.STATE == state then
+        return true
+      end
+    end
+    return false
   end
 
   local function shop_card(area, index)
@@ -415,9 +432,8 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   end
 
   local function execute_pack_select(payload)
-    local ready, state_error = require_state("SMODS_BOOSTER_OPENED")
-    if not ready then
-      return false, state_error
+    if not is_pack_state() then
+      return false, "pack selection requires a native *_PACK state"
     end
     if not G.pack_cards or G.pack_cards.REMOVED or not G.pack_cards.cards then
       return false, "no booster pack is open"
@@ -456,9 +472,8 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   end
 
   local function execute_pack_skip()
-    local ready, state_error = require_state("SMODS_BOOSTER_OPENED")
-    if not ready then
-      return false, state_error
+    if not is_pack_state() then
+      return false, "pack skip requires a native *_PACK state"
     end
     if not G.pack_cards or G.pack_cards.REMOVED then
       return false, "no booster pack is open"
@@ -543,8 +558,6 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
 
     local ok, error_message = pcall(poll_bridge)
     if not ok then
-      -- A command-level error is normally reported with its command id. This
-      -- catch prevents bridge failures from escaping into Balatro's update loop.
       print(
         "[game-ai-framework bridge] "
           .. sanitize_message(error_message)
