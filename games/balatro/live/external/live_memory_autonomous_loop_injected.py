@@ -23,6 +23,9 @@ class AutonomousLoopGuardError(RuntimeError):
     pass
 
 
+TERMINAL_PHASES = frozenset({"GAME_OVER"})
+
+
 @dataclass(frozen=True)
 class AutonomousLoopStep:
     number: int
@@ -81,6 +84,16 @@ def _stale_difference_details(
             for difference in differences
         )
     return tuple(details[:limit])
+
+
+def _terminal_stop_reason(snapshot) -> str | None:
+    phase = str(snapshot.phase)
+    if phase not in TERMINAL_PHASES:
+        return None
+    if phase == "GAME_OVER":
+        outcome = "won" if bool(snapshot.payload.get("won")) else "lost"
+        return f"game over ({outcome})"
+    return f"terminal phase reached: {phase}"
 
 
 class LiveMemoryInjectedAutonomousLoop:
@@ -241,6 +254,10 @@ class LiveMemoryInjectedAutonomousLoop:
                     )
                 )
                 previous_after_sequence = int(after.sequence)
+
+                terminal_reason = _terminal_stop_reason(after)
+                if terminal_reason is not None:
+                    return AutonomousLoopRun(tuple(completed), terminal_reason)
                 break
 
         return AutonomousLoopRun(tuple(completed), "max steps reached")
