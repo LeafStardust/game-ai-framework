@@ -66,7 +66,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
             deck="RED",
             stake="WHITE",
             name="red-white",
-            version="0.5",
+            version="0.6",
             strategy={
                 "risk_tolerance": "moderate",
                 "planner": {
@@ -82,6 +82,18 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                         "low_discard_fallback_penalty": 10.0,
                         "low_hand_reserve": 1,
                         "low_hand_discard_fallback_bonus": 10.0,
+                    },
+                    "joker_acquisition": {
+                        "minimum_purchase_build_gain": 0.0,
+                        "minimum_purchase_advantage": 0.35,
+                        "minimum_replacement_build_delta": 0.0,
+                        "minimum_replacement_advantage": 0.75,
+                        "price_weight": 0.35,
+                        "interest_weight": 1.25,
+                        "reserve_target": 5,
+                        "reserve_weight": 0.45,
+                        "last_joker_slot_penalty": 1.5,
+                        "penultimate_joker_slot_penalty": 0.5,
                     },
                 },
             },
