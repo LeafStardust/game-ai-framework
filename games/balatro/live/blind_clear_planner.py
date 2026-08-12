@@ -201,7 +201,11 @@ class LiveBlindClearPlanner:
         if depth <= 1:
             for score_outcome in projection.outcomes:
                 score_after = int(getattr(state, "score", 0)) + score_outcome.score
-                branch_state = deepcopy(projected_state)
+                outcome_state = self._score_outcome_state(
+                    score_outcome,
+                    projected_state,
+                )
+                branch_state = deepcopy(outcome_state)
                 branch_state.score = score_after
                 branch_state.hands_remaining = hands_after
                 value = self._terminal_value(
@@ -222,9 +226,13 @@ class LiveBlindClearPlanner:
         draw_distribution = None
 
         for score_outcome in projection.outcomes:
+            outcome_state = self._score_outcome_state(
+                score_outcome,
+                projected_state,
+            )
             score_after = int(getattr(state, "score", 0)) + score_outcome.score
             if target > 0 and score_after >= target:
-                branch_state = deepcopy(projected_state)
+                branch_state = deepcopy(outcome_state)
                 branch_state.score = score_after
                 branch_state.hands_remaining = hands_after
                 total_value = total_value.plus(
@@ -235,7 +243,7 @@ class LiveBlindClearPlanner:
                 continue
 
             if hands_after <= 0:
-                branch_state = deepcopy(projected_state)
+                branch_state = deepcopy(outcome_state)
                 branch_state.score = score_after
                 branch_state.hands_remaining = 0
                 total_value = total_value.plus(
@@ -245,7 +253,7 @@ class LiveBlindClearPlanner:
                 )
                 continue
 
-            retained_state = deepcopy(projected_state)
+            retained_state = deepcopy(outcome_state)
             retained_state.score = score_after
             retained_state.hands_remaining = hands_after
             retained_state.hand = list(retained_cards)
@@ -267,7 +275,7 @@ class LiveBlindClearPlanner:
             assert composition is not None
             assert draw_distribution is not None
             for draw_outcome in draw_distribution.outcomes:
-                next_state = deepcopy(projected_state)
+                next_state = deepcopy(outcome_state)
                 next_state.score = score_after
                 next_state.hands_remaining = hands_after
                 next_state.hand = list(retained_cards) + [
@@ -433,6 +441,11 @@ class LiveBlindClearPlanner:
     @staticmethod
     def _zero_value() -> LiveBlindPlanValue:
         return LiveBlindPlanValue(0.0, 0.0, 0.0, 0.0, 0.0)
+
+    @staticmethod
+    def _score_outcome_state(score_outcome, fallback_state):
+        state = getattr(score_outcome, "state_after_scoring", None)
+        return fallback_state if state is None else state
 
     @staticmethod
     def _card_indices(hand, selected) -> set[int]:
