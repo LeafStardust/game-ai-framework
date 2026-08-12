@@ -37,6 +37,15 @@ def _validated_indices(values: Iterable[int]) -> tuple[int, ...]:
     return indices
 
 
+def _validated_index(value: int) -> int:
+    if isinstance(value, bool):
+        raise ValueError("boolean is not a valid action index")
+    index = int(value)
+    if index < 0:
+        raise ValueError("action index cannot be negative")
+    return index
+
+
 def encode_command(command_id: str, action: str, indices: Iterable[int] = ()) -> str:
     normalized_action = str(action).strip().upper()
     if not command_id or any(char in command_id for char in "\t\r\n"):
@@ -142,6 +151,30 @@ class FirstPartyBalatroBridge:
 
     def discard(self, indices: Iterable[int]) -> None:
         self._call("DISCARD", _validated_indices(indices))
+
+    def cash_out(self) -> None:
+        self._call("CASH_OUT")
+
+    def next_round(self) -> None:
+        self._call("NEXT_ROUND")
+
+    def reroll_shop(self) -> None:
+        self._call("REROLL_SHOP")
+
+    def buy_shop_card(self, index: int) -> None:
+        self._call("BUY_CARD", (_validated_index(index),))
+
+    def buy_voucher(self, index: int) -> None:
+        self._call("BUY_VOUCHER", (_validated_index(index),))
+
+    def buy_booster(self, index: int) -> None:
+        self._call("BUY_BOOSTER", (_validated_index(index),))
+
+    def select_pack_card(self, index: int) -> None:
+        self._call("PACK_SELECT", (_validated_index(index),))
+
+    def skip_booster(self) -> None:
+        self._call("PACK_SKIP")
 
     def _call(
         self,
