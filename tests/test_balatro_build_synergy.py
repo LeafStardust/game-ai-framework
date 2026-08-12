@@ -1,11 +1,12 @@
 from games.balatro.build import HELD_EFFECT, ContextualJokerSynergyEvaluator
-from games.balatro.build.effects import rank_feature
+from games.balatro.build.effects import hand_feature, rank_feature
 from games.balatro.card import BalatroCard
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.blueprint import BlueprintJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.mime import MimeJoker
+from games.balatro.jokers.superposition import SuperpositionJoker
 from games.balatro.state import BalatroState
 
 
@@ -64,6 +65,21 @@ def test_fibonacci_context_only_matches_actual_fibonacci_ranks():
     assert rank_feature("4") not in value.matched_scaling
     assert rank_feature("10") not in value.matched_scaling
     assert rank_feature("K") not in value.matched_scaling
+
+
+def test_superposition_requires_ace_without_default_straight_specialization():
+    evaluator = ContextualJokerSynergyEvaluator()
+    state = BalatroState()
+
+    value = evaluator.evaluate(SuperpositionJoker(), state)
+
+    ace = rank_feature("A")
+    straight = hand_feature("STRAIGHT")
+    assert ace in value.matched_requirements
+    assert ace in value.matched_scaling
+    assert straight not in value.matched_requirements
+    assert straight in value.unmet_requirements
+    assert straight not in value.matched_scaling
 
 
 def test_mime_values_existing_held_card_effects_without_name_special_cases():
