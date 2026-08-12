@@ -29,6 +29,14 @@ from .effects import (
     seal_feature,
     suit_feature,
 )
+from .joker_strategy import (
+    JokerBuildTransition,
+    JokerBuildTransitionPlanner,
+    JokerBuildValue,
+    JokerBuildValueEvaluator,
+    JokerBuildValueWeights,
+    JokerReplacementOption,
+)
 from .profile import BalatroBuildProfiler, BuildProfile
 from .synergy import (
     BuildSynergyWeights,
@@ -61,8 +69,14 @@ __all__ = [
     "HELD_RETRIGGER",
     "JOKER_GENERATE",
     "JokerBehaviorAnalyzer",
+    "JokerBuildTransition",
+    "JokerBuildTransitionPlanner",
+    "JokerBuildValue",
+    "JokerBuildValueEvaluator",
+    "JokerBuildValueWeights",
     "JokerPairInteraction",
     "JokerPairInteractionProbe",
+    "JokerReplacementOption",
     "SCORE_CHIPS",
     "SCORE_MULT",
     "SCORE_XMULT",
