@@ -1,13 +1,20 @@
 from games.balatro.actions import BalatroAction, PLAY_CARDS
 from games.balatro.blinds.blind import Blind, BlindType
+from games.balatro.build.joker_live_state_fidelity import (
+    HYDRATED,
+    JokerLiveStateFidelityAuditor,
+)
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.bootstraps import BootstrapsJoker
+from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.ice_cream import IceCreamJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
+from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.live.external.save_observer import _normalize_item
 from games.balatro.live.joker_factory import LiveJokerFactory
+from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.live.score_outcomes import VisibleCardScoreOutcomeModel
 from games.balatro.state import BalatroState
 
@@ -22,6 +29,18 @@ def _state(hand, deck=None, *, target=1000, hands=2, discards=0):
     state.discards_remaining = discards
     state.blind = Blind(BlindType.BIG, target)
     return state
+
+
+def test_all_hydrated_mutable_jokers_are_admitted_by_runtime_score_projection():
+    report = JokerLiveStateFidelityAuditor().audit()
+    hydrated = {
+        entry.class_name
+        for entry in report.entries
+        if entry.status == HYDRATED
+    }
+
+    assert hydrated
+    assert hydrated <= LiveJokerScoreProjector.SUPPORTED_CLASS_NAMES
 
 
 def test_ice_cream_projection_scores_and_decays_only_copied_joker():
@@ -51,6 +70,59 @@ def test_ice_cream_projection_scores_and_decays_only_copied_joker():
     assert transition.state_after_scoring.hand[1] is cards[1]
     assert transition.state_after_scoring.jokers[0] is not ice_cream
     assert transition.state_after_scoring.jokers[0].chips == 95
+
+
+def test_green_joker_projection_starts_from_hydrated_mult_and_updates_only_copy():
+    cards = [
+        BalatroCard("K", "Spades", live_id=0),
+        BalatroCard("K", "Diamonds", live_id=1),
+    ]
+    state = _state(cards)
+    green = GreenJoker()
+    green.mult = 19
+    state.jokers = [green]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.PAIR,
+        state,
+        cards,
+    )
+
+    # HAND_SCORED grows Green Joker from +19 to +20 Mult on the copied branch.
+    # Pair K,K contributes 30 Chips and base Mult 2, so 30 * 22 = 660.
+    assert transition.distribution.minimum == 660
+    assert transition.distribution.maximum == 660
+    assert transition.joker_projection_complete is True
+    assert green.mult == 19
+    assert transition.state_after_scoring.jokers[0].mult == 20
+
+
+def test_runner_projection_starts_from_hydrated_chips_and_carries_growth():
+    cards = [
+        BalatroCard("2", "Spades", live_id=0),
+        BalatroCard("3", "Hearts", live_id=1),
+        BalatroCard("4", "Clubs", live_id=2),
+        BalatroCard("5", "Diamonds", live_id=3),
+        BalatroCard("6", "Spades", live_id=4),
+    ]
+    state = _state(cards)
+    runner = RunnerJoker()
+    runner.chips = 45
+    state.jokers = [runner]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.STRAIGHT,
+        state,
+        cards,
+    )
+
+    # Visible straight is 30 base + 20 card Chips. Runner grows 45 -> 60 and then
+    # contributes the copied value: (50 + 60) * 4 = 440.
+    assert transition.distribution.minimum == 440
+    assert transition.distribution.maximum == 440
+    assert transition.joker_projection_complete is True
+    assert runner.chips == 45
+    assert transition.state_after_scoring.jokers[0].chips == 60
 
 
 def test_bootstraps_projection_adds_only_mult_from_public_money():

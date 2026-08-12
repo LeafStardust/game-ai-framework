@@ -3,8 +3,6 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
 
-from games.balatro.jokers.bootstraps import BootstrapsJoker
-from games.balatro.jokers.ice_cream import IceCreamJoker
 from games.balatro.scoring import BalatroScorer, HandScore
 
 
@@ -31,24 +29,71 @@ class JokerScoreProjection:
 class LiveJokerScoreProjector:
     """Apply explicitly supported live Jokers on an isolated branch state.
 
-    Joker implementations can be stateful and some are probabilistic. Until their
-    live semantics are modeled explicitly, unsupported Jokers are withheld from
-    hypothetical scoring instead of being silently sampled or allowed to mutate the
-    observed state. The supported set is intentionally conservative and grows as
-    each Joker is validated for live planning.
+    Mutable Joker run state is reconstructed by the live observer/factory before
+    this layer runs. The stateful classes below are therefore safe to execute on a
+    hypothetical ``HAND_SCORED`` branch without falling back to constructor
+    defaults. Bootstraps remains explicitly admitted from the original validated
+    stateless support.
+
+    The contract is deliberately fail-closed: adding a new Joker implementation or
+    a new mutable live-state contract does not silently make it part of score
+    projection. Tests require every currently hydrated mutable Joker to be listed
+    here, while still leaving unrelated/stateless projection expansion as a
+    separate validation task.
 
     Live score search is extremely hot code. ``BalatroState.copy()`` already gives
     us independent state containers while deliberately retaining playing-card
-    identity. Only Joker objects need a deep copy for the currently supported
-    semantics. This avoids deep-copying the full hand/deck on every hypothetical
-    score probe while still isolating stateful Joker mutation such as Ice Cream's
-    per-hand decay.
+    identity. Only Joker objects need a deep copy. This avoids deep-copying the full
+    hand/deck on every hypothetical score probe while still isolating stateful Joker
+    mutation such as Ice Cream decay, Green Joker growth and Runner growth.
     """
 
-    SUPPORTED_TYPES = (IceCreamJoker, BootstrapsJoker)
+    SUPPORTED_CLASS_NAMES = frozenset(
+        {
+            "AncientJoker",
+            "BootstrapsJoker",
+            "CampfireJoker",
+            "CanioJoker",
+            "CastleJoker",
+            "CavendishJoker",
+            "ConstellationJoker",
+            "DaggerJoker",
+            "EggJoker",
+            "FlashCardJoker",
+            "FortuneTellerJoker",
+            "GreenJoker",
+            "GrosMichelJoker",
+            "HitTheRoadJoker",
+            "HologramJoker",
+            "IceCreamJoker",
+            "InvisibleJoker",
+            "LoyaltyCardJoker",
+            "LuckyCatJoker",
+            "MadnessJoker",
+            "ObeliskJoker",
+            "PopcornJoker",
+            "RamenJoker",
+            "RedCardJoker",
+            "RideTheBusJoker",
+            "RunnerJoker",
+            "SeltzerJoker",
+            "SpareTrousersJoker",
+            "SquareJoker",
+            "TheIdolJoker",
+            "ThrowbackJoker",
+            "TurtleBeanJoker",
+            "VampireJoker",
+            "WeeJoker",
+            "YorickJoker",
+        }
+    )
 
     def __init__(self, scorer: BalatroScorer | None = None):
         self.scorer = scorer or BalatroScorer()
+
+    @classmethod
+    def supports(cls, joker) -> bool:
+        return type(joker).__name__ in cls.SUPPORTED_CLASS_NAMES
 
     def unsupported_jokers(self, state) -> tuple[str, ...]:
         if state is None:
@@ -56,7 +101,7 @@ class LiveJokerScoreProjector:
         return tuple(
             self._joker_name(joker)
             for joker in getattr(state, "jokers", [])
-            if not isinstance(joker, self.SUPPORTED_TYPES)
+            if not self.supports(joker)
         )
 
     def score(
@@ -85,21 +130,17 @@ class LiveJokerScoreProjector:
         # Keep card identity intact: BalatroState.copy() shallow-copies the hand and
         # deck lists, so action cards still match objects in safe_state.hand. The
         # scorer relies on that identity to exclude played cards from held effects.
-        # Deep-copy only Jokers because validated live Jokers may mutate themselves.
+        # Deep-copy Jokers because validated live Jokers may mutate themselves.
         safe_state = state.copy()
         safe_state.jokers = deepcopy(list(getattr(state, "jokers", [])))
         safe_cards = list(cards or [])
 
         all_jokers = list(getattr(safe_state, "jokers", []))
-        supported = [
-            joker
-            for joker in all_jokers
-            if isinstance(joker, self.SUPPORTED_TYPES)
-        ]
+        supported = [joker for joker in all_jokers if self.supports(joker)]
         unsupported = tuple(
             self._joker_name(joker)
             for joker in all_jokers
-            if not isinstance(joker, self.SUPPORTED_TYPES)
+            if not self.supports(joker)
         )
 
         # Only validated Joker implementations participate in the score. Restore
