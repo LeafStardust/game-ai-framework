@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Callable
 
 from games.balatro.actions import END_ROUND, SELECT_BLIND, BalatroAction
@@ -200,7 +201,22 @@ class LiveMemoryInjectedSingleStepRunner:
             exact_limit=self.exact_limit,
             child_exact_limit=self.child_exact_limit,
         )
+
+        rank_timings: list[float] = []
+        original_rank_plans = engine.rank_plans
+
+        def timed_rank_plans(current_state, *, planner=None):
+            started = perf_counter()
+            try:
+                return original_rank_plans(current_state, planner=planner)
+            finally:
+                rank_timings.append(perf_counter() - started)
+
+        engine.rank_plans = timed_rank_plans
+        decision_started = perf_counter()
         decision = engine.decide(state)
+        d1_elapsed = perf_counter() - decision_started
+
         notes = [
             f"playbook={playbook.name} v{playbook.version}",
             f"mode={decision.mode}",
@@ -211,9 +227,31 @@ class LiveMemoryInjectedSingleStepRunner:
                 f"{decision.selected_plan.value.clear_probability:.6f}"
             ),
             f"path_exact={decision.selected_plan.exact}",
+            f"d1_decision_seconds={d1_elapsed:.3f}",
         ]
         if decision.selected_pace_ratio is not None:
             notes.append(f"pace_ratio={decision.selected_pace_ratio:.6f}")
+
+        for index, attempt in enumerate(decision.search_attempts):
+            elapsed = rank_timings[index] if index < len(rank_timings) else float("nan")
+            stage = "confirmation" if attempt.confirmation else "adaptive"
+            notes.append(
+                "search[{}]={} h={} samples={} nodes={}/{} budget_exceeded={} elapsed={:.3f}s".format(
+                    index,
+                    stage,
+                    attempt.horizon,
+                    attempt.samples,
+                    attempt.nodes_evaluated,
+                    attempt.max_nodes,
+                    attempt.budget_exceeded,
+                    elapsed,
+                )
+            )
+
+        if len(rank_timings) > len(decision.search_attempts):
+            fallback_elapsed = sum(rank_timings[len(decision.search_attempts):])
+            notes.append(f"fallback_search_elapsed={fallback_elapsed:.3f}s")
+
         return decision.action, tuple(notes)
 
     def _recommend_shop(
@@ -417,7 +455,9 @@ def main() -> int:
                 exact_limit=args.exact_limit,
                 child_exact_limit=args.child_exact_limit,
             )
+            decision_started = perf_counter()
             decision = runner.decide()
+            decision_elapsed = perf_counter() - decision_started
 
             print("Live-memory autonomous injected step -> READY")
             print("Observation source -> live Balatro process memory")
@@ -429,6 +469,7 @@ def main() -> int:
             print("Mouse fallback -> False")
             print(f"Phase -> {decision.snapshot.phase}")
             print(f"Decision source -> {decision.source}")
+            print(f"Decision latency -> {decision_elapsed:.3f}s")
             print(f"Recommended action -> {_action_text(decision)}")
             for note in decision.notes:
                 print(f"  {note}")
