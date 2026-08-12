@@ -323,7 +323,7 @@ Status:
 - [ ] Broader semantic valuation for non-scoring/economy Jokers
 - [x] Replacement policy with whole-build delta, sell-credit economics and explicit HOLD baseline
 - [x] Read-only live D2 validator implementation
-- [ ] Live-validate D2 recommendation/rationale against a real SHOP checkpoint
+- [x] Live-validate D2 recommendation/rationale against a real SHOP checkpoint
 - [ ] Standalone sell-only policy when selling without an immediate replacement is strategically justified
 - [ ] Replacement/sell execution
 
