@@ -1,3 +1,10 @@
+from .consumable_synergy import (
+    BuildFeatureClosure,
+    ConsumableBuildPath,
+    ConsumableBuildPathWeights,
+    ContextualConsumableEvaluation,
+    ContextualConsumableSynergyEvaluator,
+)
 from .effects import (
     CONSUMABLE_GENERATE,
     DECK_REMOVE,
@@ -34,11 +41,16 @@ from .synergy import (
 
 __all__ = [
     "BalatroBuildProfiler",
+    "BuildFeatureClosure",
     "BuildProfile",
     "BuildSynergyWeights",
     "CONSUMABLE_GENERATE",
     "ConsumableBehaviorAnalyzer",
+    "ConsumableBuildPath",
+    "ConsumableBuildPathWeights",
     "ContextualBuildEvaluation",
+    "ContextualConsumableEvaluation",
+    "ContextualConsumableSynergyEvaluator",
     "ContextualJokerSynergyEvaluator",
     "DECK_REMOVE",
     "DECK_TRANSFORM",
