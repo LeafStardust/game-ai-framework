@@ -10,6 +10,7 @@ from games.balatro.live.injected.bridge import (
     InjectedBridgeError,
     encode_command,
     parse_response,
+    parse_status_message,
 )
 from games.balatro.live.injected.install import (
     BRIDGE_ARCHIVE_NAME,
@@ -58,6 +59,14 @@ def test_response_protocol_preserves_bridge_error():
     assert message == "play_button not found"
 
 
+def test_status_protocol_parses_bridge_and_achievement_gate():
+    status = parse_status_message("bridge=1;achievement_gate=ENABLED")
+    assert status == {
+        "bridge": "1",
+        "achievement_gate": "ENABLED",
+    }
+
+
 def test_bridge_round_trip_uses_local_file_protocol(tmp_path):
     bridge = FirstPartyBalatroBridge(
         tmp_path,
@@ -92,6 +101,39 @@ def test_bridge_round_trip_uses_local_file_protocol(tmp_path):
 
     assert captured["action"] == "PLAY"
     assert captured["payload"] == "0,2,4"
+
+
+def test_bridge_status_round_trip_is_non_gameplay_command(tmp_path):
+    bridge = FirstPartyBalatroBridge(
+        tmp_path,
+        timeout=1.0,
+        poll_interval=0.001,
+    )
+    captured = {}
+
+    def responder():
+        deadline = time.monotonic() + 0.5
+        while time.monotonic() < deadline:
+            if bridge.command_path.exists():
+                text = bridge.command_path.read_text(encoding="utf-8")
+                command_id, action, payload = text.rstrip("\n").split("\t", 2)
+                captured.update(action=action, payload=payload)
+                bridge.command_path.unlink()
+                _write_bridge_response(
+                    bridge,
+                    f"{command_id}\tOK\tbridge=1;achievement_gate=UNSET\n",
+                )
+                return
+            time.sleep(0.001)
+
+    thread = threading.Thread(target=responder)
+    thread.start()
+    status = bridge.status()
+    thread.join(timeout=1.0)
+
+    assert captured == {"action": "STATUS", "payload": ""}
+    assert status["bridge"] == "1"
+    assert status["achievement_gate"] == "UNSET"
 
 
 def test_bridge_surfaces_lua_side_rejection(tmp_path):
@@ -256,3 +298,5 @@ def test_bridge_asset_has_no_external_mod_or_network_dependency():
     assert 'require("json")' not in lua
     assert "play_cards_from_highlighted" in lua
     assert "discard_cards_from_highlighted" in lua
+    assert 'action == "STATUS"' in lua
+    assert "F_NO_ACHIEVEMENTS" in lua
