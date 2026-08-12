@@ -14,6 +14,9 @@ class LiveJokerFactory:
 
     MODULE_ALIASES = {
         "8_ball": "eight_ball",
+        # The base Balatro card named simply "Joker" is modeled by the reusable
+        # FlatMultJoker class, whose canonical default is +4 Mult.
+        "joker": "flat_mult",
     }
 
     # These fields are only accepted from the observer's narrowly whitelisted
@@ -22,14 +25,42 @@ class LiveJokerFactory:
         "chips",
         "chip_mod",
     }
+    CONSTRUCTOR_PUBLIC_STATE_FIELDS = {
+        "rank",
+        "suit",
+    }
+
+    RANKS = {
+        "Ace": "A",
+        "King": "K",
+        "Queen": "Q",
+        "Jack": "J",
+        "T": "10",
+    }
+    SUITS = {
+        "H": "Hearts",
+        "D": "Diamonds",
+        "C": "Clubs",
+        "S": "Spades",
+    }
 
     def create(self, data: dict):
         joker_class = self._resolve_class(data)
         if joker_class is None:
             return None
 
+        public_state = data.get("public_state")
+        if not isinstance(public_state, dict):
+            public_state = {}
+
+        constructor_kwargs = self._constructor_kwargs(joker_class, public_state)
+        if constructor_kwargs is None:
+            # Dynamic constructor state must be observed explicitly. Never guess a
+            # Castle suit or Idol target merely to make a model constructible.
+            return None
+
         try:
-            joker = joker_class()
+            joker = joker_class(**constructor_kwargs)
         except TypeError:
             return None
 
@@ -46,19 +77,47 @@ class LiveJokerFactory:
             if value is not None:
                 setattr(joker, field, value)
 
-        public_state = data.get("public_state")
-        if isinstance(public_state, dict):
-            for field in self.PUBLIC_STATE_FIELDS:
-                value = public_state.get(field)
-                if (
-                    value is not None
-                    and hasattr(joker, field)
-                    and isinstance(value, (int, float))
-                    and not isinstance(value, bool)
-                ):
-                    setattr(joker, field, value)
+        for field in self.PUBLIC_STATE_FIELDS:
+            value = public_state.get(field)
+            if (
+                value is not None
+                and hasattr(joker, field)
+                and isinstance(value, (int, float))
+                and not isinstance(value, bool)
+            ):
+                setattr(joker, field, value)
 
         return joker
+
+    def _constructor_kwargs(
+        self,
+        joker_class: type[Joker],
+        public_state: dict,
+    ) -> dict[str, object] | None:
+        try:
+            signature = inspect.signature(joker_class)
+        except (TypeError, ValueError):
+            return {}
+
+        kwargs: dict[str, object] = {}
+        for parameter in signature.parameters.values():
+            if parameter.kind not in (
+                parameter.POSITIONAL_OR_KEYWORD,
+                parameter.KEYWORD_ONLY,
+            ):
+                continue
+            if parameter.default is not inspect.Parameter.empty:
+                continue
+
+            name = parameter.name
+            if name not in self.CONSTRUCTOR_PUBLIC_STATE_FIELDS:
+                return None
+            value = public_state.get(name)
+            if not isinstance(value, str) or not value:
+                return None
+            kwargs[name] = self._normalize_constructor_value(name, value)
+
+        return kwargs
 
     def _resolve_class(self, data: dict) -> type[Joker] | None:
         for module_name in self._module_candidates(data):
@@ -107,6 +166,13 @@ class LiveJokerFactory:
                 expanded.append(f"the_{candidate}")
 
         return list(dict.fromkeys(expanded))
+
+    def _normalize_constructor_value(self, name: str, value: str) -> str:
+        if name == "rank":
+            return self.RANKS.get(value, value)
+        if name == "suit":
+            return self.SUITS.get(value, value)
+        return value
 
     @staticmethod
     def _slug(value: str) -> str:
