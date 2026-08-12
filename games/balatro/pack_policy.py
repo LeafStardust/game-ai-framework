@@ -9,6 +9,7 @@ from games.balatro.actions import (
     SKIP_BOOSTER,
     BalatroAction,
 )
+from games.balatro.build import ContextualPlayingCardSynergyEvaluator
 from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.live.pack import LivePackChoice
@@ -87,12 +88,16 @@ class BalatroPackPolicy:
         joker_factory=None,
         consumable_factory=None,
         fallback_factory=None,
+        playing_card_build=None,
     ) -> None:
         self.skip_bias = float(skip_bias)
         self.item_estimator = item_estimator or DefaultShopItemValueEstimator()
         self.joker_factory = joker_factory or LiveJokerFactory()
         self.consumable_factory = consumable_factory or LiveConsumableFactory()
         self.fallback_factory = fallback_factory or LiveShopItemFactory()
+        self.playing_card_build = (
+            playing_card_build or ContextualPlayingCardSynergyEvaluator()
+        )
 
     def choose_action(self, state, actions: list[BalatroAction]) -> BalatroAction:
         ranked = self.rank_actions(state, actions)
@@ -124,7 +129,7 @@ class BalatroPackPolicy:
         if kind == "JOKER":
             return self._score_joker(state, action, choice)
         if kind == "PLAYING_CARD":
-            return self._score_playing_card(action, choice)
+            return self._score_playing_card(state, action, choice)
         if kind in {"PLANET", "TAROT", "SPECTRAL"}:
             return self._score_consumable(state, action, choice)
         return PackActionScore(action, 0.0, (f"unsupported pack kind={kind}",))
@@ -169,30 +174,48 @@ class BalatroPackPolicy:
         )
         return PackActionScore(action, float(utility), tuple(notes))
 
-    def _score_playing_card(self, action, choice: LivePackChoice) -> PackActionScore:
+    def _score_playing_card(self, state, action, choice: LivePackChoice) -> PackActionScore:
         value = choice.data.get("value") or {}
         modifier = choice.data.get("modifier") or {}
-        score = self.RANK_VALUE.get(str(value.get("rank")), 0.0)
+        rank = value.get("rank")
+        suit = value.get("suit")
+        enhancement = modifier.get("enhancement")
+        edition = modifier.get("edition")
+        seal = modifier.get("seal")
+
+        score = self.RANK_VALUE.get(str(rank), 0.0)
         notes: list[str] = []
 
-        enhancement = str(modifier.get("enhancement") or "")
         if enhancement:
-            amount = self.PLAYING_ENHANCEMENT_VALUE.get(enhancement, 0.0)
+            amount = self.PLAYING_ENHANCEMENT_VALUE.get(str(enhancement), 0.0)
             score += amount
             notes.append(f"enhancement={enhancement} value={amount:.2f}")
 
-        edition = str(modifier.get("edition") or "").upper()
-        if edition:
-            amount = self.EDITION_BONUS.get(edition, 0.0)
+        edition_text = str(edition or "").upper()
+        if edition_text:
+            amount = self.EDITION_BONUS.get(edition_text, 0.0)
             score += amount
-            notes.append(f"edition={edition} value={amount:.2f}")
+            notes.append(f"edition={edition_text} value={amount:.2f}")
 
-        seal = str(modifier.get("seal") or "").upper()
-        if seal:
-            amount = self.PLAYING_SEAL_VALUE.get(seal, 0.0)
+        seal_text = str(seal or "").upper()
+        if seal_text:
+            amount = self.PLAYING_SEAL_VALUE.get(seal_text, 0.0)
             score += amount
-            notes.append(f"seal={seal} value={amount:.2f}")
+            notes.append(f"seal={seal_text} value={amount:.2f}")
 
-        if not notes:
-            notes.append("vanilla playing card; small rank-only value")
+        contextual = self.playing_card_build.evaluate(
+            state,
+            rank=rank,
+            suit=suit,
+            enhancement=enhancement,
+            seal=seal,
+            edition=edition,
+        )
+        context_gain = float(contextual.total_gain)
+        score += context_gain
+        notes.append(f"B6 playing-card build gain={context_gain:.3f}")
+        notes.extend(contextual.rationale)
+
+        if not enhancement and not edition_text and not seal_text:
+            notes.append("vanilla playing card; small rank-only value before build context")
         return PackActionScore(action, score, tuple(notes))
