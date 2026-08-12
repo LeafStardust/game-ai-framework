@@ -96,17 +96,35 @@ def _candidate_score(
     return score, tuple(evidence)
 
 
-def discover_balatro_g_table(
+def _rank_candidates(
+    candidates: dict[int, tuple[int, tuple[str, ...]]],
+    *,
+    source: str,
+) -> int | None:
+    if not candidates:
+        return None
+
+    ranked = sorted(
+        candidates.items(),
+        key=lambda item: (-item[1][0], item[0]),
+    )
+    best_table, (best_score, _) = ranked[0]
+
+    if len(ranked) > 1 and ranked[1][1][0] == best_score:
+        details = ", ".join(
+            f"0x{table:x}:score={score}"
+            for table, (score, _) in ranked[:8]
+        )
+        raise LuaJITMemoryError(
+            f"multiple equally strong Balatro G {source} candidates; {details}"
+        )
+
+    return best_table
+
+
+def _discover_from_global_binding(
     decoder: LuaJITNonGC64Decoder,
-) -> int:
-    """Discover Balatro's live global ``G`` through the Lua global binding.
-
-    Balatro assigns its singleton to the global variable ``G``. Looking up the
-    hash node whose key is the interned string ``G`` gives us the table value
-    directly and avoids reverse-mapping a ``GAME`` hash node to a table owner.
-    The candidate is then validated against Balatro-specific live structure.
-    """
-
+) -> int | None:
     candidates: dict[int, tuple[int, tuple[str, ...]]] = {}
 
     for string_address in decoder.find_gc_strings("G", max_matches=64):
@@ -127,25 +145,64 @@ def discover_balatro_g_table(
             if previous is None or validated[0] > previous[0]:
                 candidates[table] = validated
 
-    if not candidates:
-        raise LuaJITMemoryError(
-            "unable to identify Balatro G from the live Lua global binding"
-        )
+    return _rank_candidates(candidates, source="global-binding")
 
-    ranked = sorted(
-        candidates.items(),
-        key=lambda item: (-item[1][0], item[0]),
+
+def _discover_from_game_owner(
+    decoder: LuaJITNonGC64Decoder,
+) -> int | None:
+    """Recover ``G`` by finding the table that owns its ``GAME`` hash node."""
+
+    candidates: dict[int, tuple[int, tuple[str, ...]]] = {}
+
+    for string_address in decoder.find_gc_strings("GAME", max_matches=64):
+        for node in decoder.find_key_nodes_for_string(string_address):
+            try:
+                value = decoder.read_value_at(node)
+            except (BalatroProcessMemoryError, LuaJITMemoryError):
+                continue
+            if value.kind != "table":
+                continue
+
+            try:
+                owners = decoder.find_table_owners_of_node(node)
+            except (BalatroProcessMemoryError, LuaJITMemoryError):
+                continue
+
+            for table in owners:
+                validated = _candidate_score(decoder, int(table))
+                if validated is None:
+                    continue
+
+                previous = candidates.get(int(table))
+                if previous is None or validated[0] > previous[0]:
+                    candidates[int(table)] = validated
+
+    return _rank_candidates(candidates, source="GAME-owner")
+
+
+def discover_balatro_g_table(
+    decoder: LuaJITNonGC64Decoder,
+) -> int:
+    """Discover Balatro's live global ``G`` with a structural fallback.
+
+    The fast path resolves the Lua global binding named ``G`` directly. Some
+    live LuaJIT layouts do not leave that binding discoverable through the
+    interned-string reference scan, even though the table itself remains fully
+    reachable. In that case, the fallback locates the ``GAME`` field node,
+    reverse-maps it to candidate table owners, and applies the same Balatro-
+    specific structural validation and ambiguity checks.
+    """
+
+    direct = _discover_from_global_binding(decoder)
+    if direct is not None:
+        return direct
+
+    fallback = _discover_from_game_owner(decoder)
+    if fallback is not None:
+        return fallback
+
+    raise LuaJITMemoryError(
+        "unable to identify Balatro G from either the live Lua global binding "
+        "or the structural GAME-owner fallback"
     )
-    best_table, (best_score, _) = ranked[0]
-
-    if len(ranked) > 1 and ranked[1][1][0] == best_score:
-        details = ", ".join(
-            f"0x{table:x}:score={score}"
-            for table, (score, _) in ranked[:8]
-        )
-        raise LuaJITMemoryError(
-            "multiple equally strong Balatro G global-binding candidates; "
-            f"{details}"
-        )
-
-    return best_table
