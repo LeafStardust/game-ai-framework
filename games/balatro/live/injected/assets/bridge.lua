@@ -86,6 +86,25 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return indices
   end
 
+  local function achievement_gate_state()
+    if not G then
+      return "G_UNAVAILABLE"
+    end
+
+    local value = G.F_NO_ACHIEVEMENTS
+    if value == nil then
+      return "UNSET"
+    end
+    if type(value) == "boolean" then
+      return value and "DISABLED" or "ENABLED"
+    end
+    return "UNEXPECTED:" .. type(value)
+  end
+
+  local function bridge_status()
+    return "bridge=1;achievement_gate=" .. achievement_gate_state()
+  end
+
   local function highlighted_set()
     local set = {}
     local list = {}
@@ -210,6 +229,11 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   local function process_command(command_id, action, payload)
     if action == "PING" then
       write_response(command_id, "OK", "ready")
+      return
+    end
+
+    if action == "STATUS" then
+      write_response(command_id, "OK", bridge_status())
       return
     end
 
