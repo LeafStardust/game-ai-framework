@@ -1,6 +1,5 @@
 from games.balatro.build.joker_coverage import (
     COVERED,
-    PARAMETERIZED,
     UNANALYZED,
     JokerCoverageAuditor,
 )
@@ -13,10 +12,14 @@ def test_inventory_discovers_repository_jokers_without_claiming_semantic_coverag
     entries = {(entry.module, entry.class_name): entry for entry in report.entries}
 
     assert entries[("constellation", "ConstellationJoker")].status == UNANALYZED
-    assert entries[("castle", "CastleJoker")].status == PARAMETERIZED
-    assert "suit" in entries[("castle", "CastleJoker")].required_parameters
-    assert entries[("supernova", "SupernovaJoker")].status == PARAMETERIZED
-    assert "poker_hand" in entries[("supernova", "SupernovaJoker")].required_parameters
+    assert entries[("castle", "CastleJoker")].status == UNANALYZED
+    assert entries[("castle", "CastleJoker")].required_parameters == ("suit",)
+    assert entries[("the_idol", "TheIdolJoker")].status == UNANALYZED
+    assert entries[("the_idol", "TheIdolJoker")].required_parameters == ("rank", "suit")
+    assert entries[("supernova", "SupernovaJoker")].status == UNANALYZED
+    assert entries[("supernova", "SupernovaJoker")].required_parameters == ()
+    assert entries[("flat_mult", "FlatMultJoker")].status == UNANALYZED
+    assert entries[("flat_mult", "FlatMultJoker")].required_parameters == ()
 
 
 def test_known_stateful_descriptor_classifies_as_covered():
