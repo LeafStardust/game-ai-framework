@@ -28,9 +28,9 @@ def _write_fused_game(path):
     with zipfile.ZipFile(payload, "w", zipfile.ZIP_DEFLATED) as archive:
         archive.writestr(
             "main.lua",
-            "function love.update(dt)\n  return dt\nend\n",
+            b"function love.update(dt)\n  return dt\nend\n",
         )
-        archive.writestr("game.lua", "GAME_AI_TEST = true\n")
+        archive.writestr("game.lua", b"GAME_AI_TEST = true\n")
     original = prefix + payload.getvalue()
     path.write_bytes(original)
     return original, prefix
@@ -118,7 +118,7 @@ def test_fused_game_patcher_preserves_prefix_and_creates_exact_backup(tmp_path):
     executable = tmp_path / "Balatro.exe"
     original, prefix = _write_fused_game(executable)
     bridge_source = tmp_path / "bridge.lua"
-    bridge_source.write_text("GAME_AI_BRIDGE_TEST = true\n", encoding="utf-8")
+    bridge_source.write_bytes(b"GAME_AI_BRIDGE_TEST = true\n")
     runtime_dir = tmp_path / "runtime"
 
     report = patch_fused_game(
@@ -144,7 +144,7 @@ def test_fused_game_patcher_is_idempotent_and_keeps_original_backup(tmp_path):
     executable = tmp_path / "Balatro.exe"
     original, _ = _write_fused_game(executable)
     bridge_source = tmp_path / "bridge.lua"
-    bridge_source.write_text("VERSION = 1\n", encoding="utf-8")
+    bridge_source.write_bytes(b"VERSION = 1\n")
     runtime_dir = tmp_path / "runtime"
 
     patch_fused_game(
@@ -155,7 +155,7 @@ def test_fused_game_patcher_is_idempotent_and_keeps_original_backup(tmp_path):
     backup = backup_path(executable)
     first_backup = backup.read_bytes()
 
-    bridge_source.write_text("VERSION = 2\n", encoding="utf-8")
+    bridge_source.write_bytes(b"VERSION = 2\n")
     report = patch_fused_game(
         executable,
         bridge_source=bridge_source,
@@ -176,7 +176,7 @@ def test_restore_fused_game_restores_exact_original_bytes(tmp_path):
     executable = tmp_path / "Balatro.exe"
     original, _ = _write_fused_game(executable)
     bridge_source = tmp_path / "bridge.lua"
-    bridge_source.write_text("BRIDGE = true\n", encoding="utf-8")
+    bridge_source.write_bytes(b"BRIDGE = true\n")
 
     patch_fused_game(
         executable,
@@ -193,7 +193,7 @@ def test_fused_game_patcher_rejects_non_fused_executable(tmp_path):
     executable = tmp_path / "Balatro.exe"
     executable.write_bytes(b"MZ" + b"\x00" * 128)
     bridge_source = tmp_path / "bridge.lua"
-    bridge_source.write_text("BRIDGE = true\n", encoding="utf-8")
+    bridge_source.write_bytes(b"BRIDGE = true\n")
 
     with pytest.raises(BalatroFusedPatchError, match="fused LÖVE archive"):
         patch_fused_game(
