@@ -15,6 +15,11 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
     reserve the best candidate for each redraw size before filling remaining beam
     slots by the generic priority. Beam widths therefore stay bounded while D1
     sees materially different actions instead of near-duplicates.
+
+    A guaranteed immediate blind clear is terminal for D1. When one is currently
+    visible, discard branches are suppressed entirely and only guaranteed clearing
+    plays are returned. This prevents expectimax from spending an unnecessary
+    discard to chase a higher terminal score after the blind can already be won.
     """
 
     def _candidate_actions(
@@ -31,6 +36,18 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         )
 
         plays = self.action_generator.generate_play_actions(state)
+        guaranteed_clears = [
+            action
+            for action in plays
+            if self.evaluator.project_play(state, action).clears_blind
+        ]
+        if guaranteed_clears:
+            return sorted(
+                guaranteed_clears,
+                key=lambda action: self._play_priority(state, action),
+                reverse=True,
+            )[: max(0, play_limit)]
+
         ranked_plays = self._diverse_play_beam(state, plays, play_limit)
 
         if (
