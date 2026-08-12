@@ -8,7 +8,10 @@ from collections import Counter
 from dataclasses import dataclass
 
 from games.balatro.live.joker_factory import LiveJokerFactory
-from games.balatro.live.joker_state_contract import public_joker_state_fields
+from games.balatro.live.joker_state_contract import (
+    derived_joker_state_fields,
+    observed_public_joker_state_fields,
+)
 
 from .joker_coverage import JokerCoverageAuditor
 
@@ -26,6 +29,7 @@ class JokerLiveStateEntry:
     status: str
     mutable_fields: tuple[str, ...] = ()
     hydrated_fields: tuple[str, ...] = ()
+    derived_fields: tuple[str, ...] = ()
     missing_fields: tuple[str, ...] = ()
     error: str | None = None
 
@@ -60,6 +64,10 @@ class JokerLiveStateFidelityAuditor:
     assignments to ``self.<field>`` outside ``__init__`` are treated as run-state
     requirements. Constructor-only configuration therefore does not become a
     false positive (for example FlatMultJoker.mult = 4).
+
+    A small second category covers terminal fields whose opposite value removes
+    the Joker from ownership. For those, the fact that the Joker is still present
+    is sufficient public evidence and no memory counter should be fabricated.
     """
 
     def audit(self) -> JokerLiveStateReport:
@@ -90,9 +98,11 @@ class JokerLiveStateFidelityAuditor:
                 )
                 continue
 
-            observed = public_joker_state_fields(joker_class.__name__)
+            observed = observed_public_joker_state_fields(joker_class.__name__)
+            derived = derived_joker_state_fields(joker_class.__name__) & mutable
             hydrated = mutable & observed & factory_fields
-            missing = mutable - hydrated
+            reconstructed = hydrated | derived
+            missing = mutable - reconstructed
             entries.append(
                 JokerLiveStateEntry(
                     module=module_name,
@@ -100,6 +110,7 @@ class JokerLiveStateFidelityAuditor:
                     status=HYDRATED if not missing else GAP,
                     mutable_fields=tuple(sorted(mutable)),
                     hydrated_fields=tuple(sorted(hydrated)),
+                    derived_fields=tuple(sorted(derived)),
                     missing_fields=tuple(sorted(missing)),
                 )
             )
@@ -177,6 +188,8 @@ def _print_report(report: JokerLiveStateReport, *, all_entries: bool) -> None:
             detail.append("mutable=" + ",".join(entry.mutable_fields))
         if entry.hydrated_fields:
             detail.append("hydrated=" + ",".join(entry.hydrated_fields))
+        if entry.derived_fields:
+            detail.append("derived=" + ",".join(entry.derived_fields))
         if entry.missing_fields:
             detail.append("missing=" + ",".join(entry.missing_fields))
         if entry.error:
