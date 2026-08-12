@@ -246,8 +246,8 @@ Milestones:
 - [x] **B1 Behavior-backed Joker inference:** probe the actual `Joker.apply()` implementation on copied synthetic contexts
 - [x] **B1 Behavior-backed consumable inference:** probe modeled `can_use()` / `use()` transformations conservatively
 - [x] **B2 Public BuildProfile:** aggregate deck composition, hand levels, slots, owned Jokers, held consumables and realized feature strengths without card-order dependence
-- [ ] **B3 Contextual Joker synergy evaluator:** compare candidate marginal value against the current build and expose interaction gain separately from intrinsic gain
-- [ ] **B3 Multi-Joker interaction probing:** measure meaningful combinations/retriggers/copy effects rather than only isolated Joker probes
+- [x] **B3 Contextual Joker synergy evaluator:** compare candidate marginal value against the current build and expose interaction gain separately from intrinsic gain
+- [x] **B3 Multi-Joker interaction probing:** measure meaningful combinations/retriggers/copy effects rather than only isolated Joker probes
 - [ ] **B4 Consumable/deck synergy evaluator:** value permanent rank/suit/enhancement/seal/edition changes against current and prospective engines
 - [ ] **B4 Build-path reasoning:** value enabling pieces before a combo is fully assembled when the relationship is supported by observable semantics
 - [ ] **B5 Build-aware shop policy:** feed contextual build delta into Joker/consumable/voucher/booster comparisons
