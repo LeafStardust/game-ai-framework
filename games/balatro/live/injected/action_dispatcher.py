@@ -17,6 +17,10 @@ from games.balatro.actions import (
     SKIP_BOOSTER,
     BalatroAction,
 )
+from games.balatro.live.external.live_memory_shop_terms import (
+    LiveShopRerollTerms,
+    read_live_shop_reroll_terms,
+)
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 from .bridge import FirstPartyBalatroBridge
@@ -136,23 +140,29 @@ def _shop_signature(snapshot: LiveBalatroSnapshot) -> tuple[tuple, ...]:
 def _reroll_complete(
     before: LiveBalatroSnapshot,
     after: LiveBalatroSnapshot,
+    before_terms: LiveShopRerollTerms,
+    after_terms: LiveShopRerollTerms,
 ) -> bool:
     if (
         after.sequence <= before.sequence
         or after.phase != "SHOP"
         or not after.state_complete
+        or _shop_signature(after) == _shop_signature(before)
     ):
         return False
 
     before_money = _money(before)
     after_money = _money(after)
-    money_decreased = (
-        before_money is not None
-        and after_money is not None
-        and after_money < before_money
-    )
-    inventory_changed = _shop_signature(after) != _shop_signature(before)
-    return money_decreased or inventory_changed
+    if before_money is None or after_money is None:
+        return False
+
+    if before_terms.free_rerolls > 0:
+        return (
+            after_money == before_money
+            and after_terms.free_rerolls == before_terms.free_rerolls - 1
+        )
+
+    return after_money == before_money - before_terms.cost
 
 
 def _is_pack_phase(phase: str) -> bool:
@@ -174,11 +184,15 @@ class LiveMemoryInjectedActionDispatcher:
         bridge: FirstPartyBalatroBridge | None = None,
         timeout: float = 12.0,
         poll_interval: float = 0.05,
+        reroll_terms_reader: Callable[[], LiveShopRerollTerms] | None = None,
     ) -> None:
         self.observer = observer
         self.bridge = bridge or FirstPartyBalatroBridge()
         self.timeout = max(0.0, float(timeout))
         self.poll_interval = max(0.0, float(poll_interval))
+        self.reroll_terms_reader = reroll_terms_reader or (
+            lambda: read_live_shop_reroll_terms(self.observer)
+        )
 
     def _wait(
         self,
@@ -262,13 +276,32 @@ class LiveMemoryInjectedActionDispatcher:
                 raise UnsupportedInjectedAction(
                     f"REFRESH_SHOP requires SHOP, observed {before.phase}"
                 )
+            before_terms = self.reroll_terms_reader()
             self.bridge.reroll_shop()
+
+            def reroll_settled(value: LiveBalatroSnapshot) -> bool:
+                after_terms = self.reroll_terms_reader()
+                return _reroll_complete(
+                    before,
+                    value,
+                    before_terms,
+                    after_terms,
+                )
+
             after = self._wait(
                 before,
-                lambda value: _reroll_complete(before, value),
+                reroll_settled,
                 "shop reroll",
             )
-            return LiveInjectedActionResult(action, before, after)
+            return LiveInjectedActionResult(
+                action,
+                before,
+                after,
+                {
+                    "reroll_cost": before_terms.cost,
+                    "free_rerolls": before_terms.free_rerolls,
+                },
+            )
 
         if name in {BUY_JOKER, BUY_CONSUMABLE}:
             if before.phase != "SHOP":
