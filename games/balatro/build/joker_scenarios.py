@@ -13,6 +13,7 @@ from games.balatro.state import BalatroState
 
 from .effects import (
     DECK_TRANSFORM,
+    HAND_LEVEL,
     SCORE_CHIPS,
     SCORE_MULT,
     SCORE_XMULT,
@@ -70,6 +71,7 @@ class _Scenario:
     joker_neighborhood: bool = False
     post_score: bool = False
     repetitions: int = 1
+    random_seed: int = 0
 
 
 @dataclass(frozen=True)
@@ -104,10 +106,13 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
         "flush_size": HAND_RULE,
         "straight_flush_size": HAND_RULE,
         "boss_blind_disabled": BOSS_CONTROL,
+        "disable_boss_blind": BOSS_CONTROL,
         "allow_duplicates": DUPLICATE_PERMISSION,
         "prevented_loss": SURVIVAL,
         "double_tag": TAG_GENERATE,
         "copy_joker": JOKER_COPY,
+        "invisible_joker_trigger": JOKER_COPY,
+        "level_up_hand": HAND_LEVEL,
     }
     _SIGNAL_PENALTIES = {
         "destroy_self": SELF_DESTRUCT,
@@ -116,6 +121,8 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
     _EVIDENCE_ONLY_SIGNALS = {
         "raised_fist_card",
         "to_do_list_hand",
+        "sixth_sense_triggered",
+        "trading_card_triggered",
     }
 
     def describe(self, joker: object) -> SemanticEffectDescriptor:
@@ -160,8 +167,6 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
             amplifies.update(result.amplified)
             evidence.update(result.evidence)
 
-            # The scenario is a useful condition only if it reveals a known effect
-            # that was not already observable in the ordinary baseline probes.
             newly_known = scenario_known - known_before
             if newly_known or scenario_penalties:
                 feature = scenario_feature(scenario.name)
@@ -247,9 +252,6 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
             data["sold_joker"] = working
 
         before_data = copy.deepcopy(data)
-        # Identity-valued fields are probe inputs, not Joker outputs. Preserve the
-        # exact reference across the before/after comparison so deepcopy itself does
-        # not manufacture a false semantic signal for every Joker.
         if "sold_joker" in data:
             before_data["sold_joker"] = data["sold_joker"]
         before_owned = copy.deepcopy(data.get("owned_cards", []))
@@ -262,7 +264,7 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
 
         random_state = random.getstate()
         try:
-            random.seed(0)
+            random.seed(scenario.random_seed)
             result = None
             for _ in range(max(1, scenario.repetitions)):
                 context = JokerContext(
@@ -309,17 +311,19 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
             self._signed_delta(SCORE_MULT, float(score_after.mult) - 10.0, features, penalties)
             self._signed_delta(SCORE_XMULT, float(score_after.x_mult) - 1.0, features, penalties)
 
+        after_data = getattr(result, "data", {}) or {}
         self._interpret_data(
             before_data,
-            getattr(result, "data", {}) or {},
+            after_data,
             magnitudes=features,
             penalties=penalties,
             evidence=evidence,
             amplifies=amplified,
         )
 
+        self._detect_probability_multiplier(before_data, after_data, features, evidence)
         self._detect_card_mutations(before_cards, getattr(result, "cards", cards), features, evidence)
-        self._detect_owned_sell_value(before_owned, (getattr(result, "data", {}) or {}).get("owned_cards", []), features, evidence)
+        self._detect_owned_sell_value(before_owned, after_data.get("owned_cards", []), features, evidence)
 
         return _ScenarioResult(
             features=tuple(sorted(features.items())),
@@ -327,6 +331,28 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
             evidence=tuple(sorted(evidence)),
             amplified=frozenset(amplified),
         )
+
+    @staticmethod
+    def _detect_probability_multiplier(
+        before: dict,
+        after: dict,
+        features: dict[str, float],
+        evidence: set[str],
+    ) -> None:
+        before_value = before.get("probability")
+        after_value = after.get("probability")
+        if not isinstance(before_value, (int, float)) or isinstance(before_value, bool):
+            return
+        if not isinstance(after_value, (int, float)) or isinstance(after_value, bool):
+            return
+        if before_value <= 0 or after_value <= before_value:
+            return
+        multiplier = float(after_value) / float(before_value)
+        features[PROBABILITY_MULTIPLIER] = max(
+            features.get(PROBABILITY_MULTIPLIER, 0.0),
+            multiplier,
+        )
+        evidence.add(f"scenario:probability_multiplier:{multiplier:g}")
 
     @classmethod
     def _detect_card_mutations(
@@ -412,15 +438,21 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
             BalatroCard(rank, "Hearts", enhancement="Gold")
             for rank in ("J", "Q", "K", "9", "2")
         )
+        owned_card = _ScenarioNeighbor(sell_value=5, rarity="COMMON")
         return (
             _Scenario("joker_neighborhood", joker_neighborhood=True),
+            _Scenario("blind_selected_neighborhood", trigger="BLIND_SELECTED", joker_neighborhood=True, post_score=True),
+            _Scenario("small_blind_neighborhood", trigger="SMALL_BLIND_SELECTED", joker_neighborhood=True, post_score=True),
             _Scenario("hands_exhausted", data=(("hands_remaining", 0),)),
             _Scenario("discards_exhausted", data=(("discards_remaining", 0),)),
             _Scenario("repeated_hand", data=(("poker_hand_played_twice", True),)),
+            _Scenario("boss_active", data=(("boss_blind", True),)),
+            _Scenario("last_hand", trigger="LAST_HAND"),
             _Scenario("two_pair", poker_hand=PokerHand.TWO_PAIR, cards=two_pair),
             _Scenario("three_cards", cards=tuple(cls._neutral_cards()[:3])),
             _Scenario("four_cards", cards=tuple(cls._neutral_cards()[:4])),
             _Scenario("single_six", cards=(BalatroCard("6", "Hearts"),)),
+            _Scenario("single_eight", cards=(BalatroCard("8", "Hearts"),), random_seed=1),
             _Scenario(
                 "single_six_discard",
                 trigger="DISCARD",
@@ -428,20 +460,31 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
                 data=(("discard_number", 1), ("trading_card_triggered", False), ("sixth_sense_triggered", False)),
                 post_score=True,
             ),
+            _Scenario(
+                "single_card_discard_event",
+                event_type=BalatroEventType.CARDS_DISCARDED,
+                cards=(BalatroCard("8", "Hearts"),),
+                data=(("discarded_hand", "PAIR"),),
+            ),
             _Scenario("faces_discarded", trigger="DISCARD", cards=face_cards, post_score=True),
             _Scenario("low_cards", cards=low_cards),
+            _Scenario("face_free_scored_cycle", event_type=BalatroEventType.HAND_SCORED, cards=low_cards, repetitions=3),
             _Scenario("gold_cards", cards=gold_cards),
+            _Scenario("gold_cards_scored", trigger="CARDS_SCORED", cards=gold_cards),
             _Scenario("enhanced_deck", state_mode="ENHANCED_DECK"),
             _Scenario("steel_deck", state_mode="STEEL_DECK"),
             _Scenario("short_deck", state_mode="SHORT_DECK", data=(("deck_target_size", 52),)),
             _Scenario("glass_destroyed", state_mode="GLASS_DESTROYED"),
             _Scenario("used_planets", trigger="ROUND_ENDED", data=(("used_planets", ("Mercury", "Venus", "Earth")),), post_score=True),
+            _Scenario("round_end_inventory", trigger="ROUND_ENDED", data=(("owned_cards", (owned_card,)),)),
+            _Scenario("round_end_cycle", trigger="ROUND_ENDED", repetitions=2),
             _Scenario("mail_rebate", trigger="DISCARD", cards=(BalatroCard("7", "Hearts"), BalatroCard("7", "Clubs")), data=(("mail_in_rebate_rank", "7"),), post_score=True),
             _Scenario("destroyed_faces", event_type=BalatroEventType.CARDS_ADDED, data=(("destroyed_cards", face_cards),), post_score=True),
             _Scenario("run_failed", trigger="RUN_FAILED", data=(("score", 25), ("required_score", 100))),
             _Scenario("self_sale", trigger="SOLD"),
             _Scenario("boss_selected", trigger="BOSS_BLIND_SELECTED"),
             _Scenario("probability_check", trigger="PROBABILITY_CHECK", data=(("probability", 0.25),)),
+            _Scenario("lucky_cycle", trigger="LUCKY_TRIGGERED", repetitions=3, post_score=True),
             _Scenario("first_discard", trigger="DISCARD", data=(("discard_number", 1),), post_score=True),
             _Scenario("hand_played_cycle", trigger="HAND_PLAYED", repetitions=6),
             _Scenario("long_discard_cycle", event_type=BalatroEventType.CARDS_DISCARDED, repetitions=5, post_score=True),
