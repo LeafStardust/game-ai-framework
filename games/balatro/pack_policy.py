@@ -166,12 +166,13 @@ class BalatroPackPolicy:
 
         if choice.kind == "TAROT" and choice.label not in self.SAFE_IMMEDIATE_TAROTS:
             target_evaluation = self.consumable_target_evaluator.recommend(state, target)
-            if target_evaluation is None:
+            if target_evaluation is None or target_evaluation.total_gain <= 0.0:
                 return PackActionScore(
                     action,
                     -1.0,
                     (
-                        "Tarot requires unsupported follow-up selection or has no valid B6 target",
+                        "Tarot requires unsupported follow-up selection "
+                        "or has no positive B6 target",
                     ),
                 )
 

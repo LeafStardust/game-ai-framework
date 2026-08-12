@@ -21,6 +21,7 @@ class ConsumableTargetEvaluation:
     contextual_delta: float
     effective_changes: int
     overwrite_penalty: float
+    intrinsic_delta: float = 0.0
     rationale: tuple[str, ...] = ()
 
 
@@ -32,10 +33,10 @@ class ContextualConsumableTargetEvaluator:
     runs on a deep copy of public state, so target evaluation cannot mutate the
     authoritative state or consume hidden RNG.
 
-    This first B6 targeting slice intentionally admits only deterministic Tarot
-    cards whose effect is a local rank/suit/enhancement transformation. Destructive,
-    copy, generation, economy, Joker-targeted, and stochastic effects remain
-    fail-closed until their timing/opportunity-cost semantics are modeled.
+    This B6 targeting layer admits deterministic local transformations plus
+    Death's directional public-card copy. Destructive deck thinning, generation,
+    economy, Joker-targeted, and stochastic effects remain fail-closed until their
+    timing/opportunity-cost semantics are modeled.
     """
 
     SUPPORTED_TAROTS = frozenset(
@@ -53,8 +54,47 @@ class ContextualConsumableTargetEvaluator:
             "The Moon",
             "The Sun",
             "The World",
+            "Death",
         }
     )
+
+    _RANK_CHIP_VALUE = {
+        "2": 0.02,
+        "3": 0.03,
+        "4": 0.04,
+        "5": 0.05,
+        "6": 0.06,
+        "7": 0.07,
+        "8": 0.08,
+        "9": 0.09,
+        "10": 0.10,
+        "J": 0.10,
+        "Q": 0.10,
+        "K": 0.10,
+        "A": 0.11,
+    }
+    _ENHANCEMENT_VALUE = {
+        "Bonus": 0.90,
+        "Mult": 1.20,
+        "Wild": 0.80,
+        "Glass": 1.80,
+        "Steel": 2.20,
+        "Stone": 0.70,
+        "Gold": 1.60,
+        "Lucky": 1.30,
+    }
+    _EDITION_VALUE = {
+        "Foil": 0.80,
+        "Holographic": 1.50,
+        "Polychrome": 2.50,
+        "Negative": 4.00,
+    }
+    _SEAL_VALUE = {
+        "Red": 2.00,
+        "Blue": 1.50,
+        "Gold": 1.40,
+        "Purple": 1.20,
+    }
 
     def __init__(
         self,
@@ -145,7 +185,9 @@ class ContextualConsumableTargetEvaluator:
         simulated_consumable.use(context)
         after_cards = simulated_cards
 
+        is_death = str(getattr(consumable, "name", "")) == "Death"
         contextual_delta = 0.0
+        intrinsic_delta = 0.0
         effective_changes = 0
         overwrite_penalty = 0.0
         change_notes: list[str] = []
@@ -154,6 +196,11 @@ class ContextualConsumableTargetEvaluator:
             before_value = self._card_build_value(state, original, profile)
             after_value = self._card_build_value(state, transformed, profile)
             contextual_delta += after_value - before_value
+            if is_death:
+                intrinsic_delta += (
+                    self._card_intrinsic_value(transformed)
+                    - self._card_intrinsic_value(original)
+                )
 
             changed = self._changed_properties(original, transformed)
             if changed:
@@ -164,20 +211,35 @@ class ContextualConsumableTargetEvaluator:
                 )
 
             if (
-                original.enhancement is not None
+                not is_death
+                and original.enhancement is not None
                 and transformed.enhancement != original.enhancement
             ):
                 overwrite_penalty += self.enhancement_overwrite_penalty
 
+        change_bonus = 0.0 if is_death else (
+            effective_changes * self.effective_change_value
+        )
         total_gain = (
             contextual_delta
-            + effective_changes * self.effective_change_value
+            + intrinsic_delta
+            + change_bonus
             - overwrite_penalty
         )
+        death_notes: tuple[str, ...] = ()
+        if is_death and len(indices) == 2:
+            death_notes = (
+                (
+                    "Death directional copy: "
+                    f"hand index {indices[0]} becomes hand index {indices[1]}"
+                ),
+                f"intrinsic copy delta={intrinsic_delta:.3f}",
+            )
         rationale = (
             f"contextual target delta={contextual_delta:.3f}",
             f"effective card changes={effective_changes}",
             f"enhancement overwrite penalty={overwrite_penalty:.3f}",
+            *death_notes,
             *change_notes,
         )
         return ConsumableTargetEvaluation(
@@ -187,6 +249,7 @@ class ContextualConsumableTargetEvaluator:
             contextual_delta=contextual_delta,
             effective_changes=effective_changes,
             overwrite_penalty=overwrite_penalty,
+            intrinsic_delta=intrinsic_delta,
             rationale=rationale,
         )
 
@@ -205,6 +268,17 @@ class ContextualConsumableTargetEvaluator:
             edition=card.edition,
             profile=profile,
         ).total_gain
+
+    @classmethod
+    def _card_intrinsic_value(cls, card: BalatroCard) -> float:
+        value = cls._RANK_CHIP_VALUE.get(str(card.rank), 0.0)
+        if card.enhancement:
+            value += cls._ENHANCEMENT_VALUE.get(str(card.enhancement), 0.0)
+        if card.edition:
+            value += cls._EDITION_VALUE.get(str(card.edition), 0.0)
+        if card.seal:
+            value += cls._SEAL_VALUE.get(str(card.seal), 0.0)
+        return value
 
     @staticmethod
     def _changed_properties(
