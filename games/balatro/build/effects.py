@@ -131,11 +131,11 @@ class JokerBehaviorAnalyzer:
             evidence.update(result.evidence)
             amplifies.update(result.amplifies)
             all_outputs = baseline.produced | result.produced
-            changed = any(
-                abs(result.magnitude(output) - baseline.magnitude(output)) > 1e-12
+            increased = any(
+                result.magnitude(output) > baseline.magnitude(output) + 1e-12
                 for output in all_outputs
             )
-            if not changed:
+            if not increased:
                 return
             scales_with.add(feature)
             if any(
