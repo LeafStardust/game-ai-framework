@@ -3,12 +3,22 @@ from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.bootstraps import BootstrapsJoker
+from games.balatro.jokers.canio import CanioJoker
+from games.balatro.jokers.constellation import ConstellationJoker
+from games.balatro.jokers.egg import EggJoker
+from games.balatro.jokers.flash_card import FlashCardJoker
 from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.ice_cream import IceCreamJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.loyalty_card import LoyaltyCardJoker
 from games.balatro.jokers.lucky_cat import LuckyCatJoker
+from games.balatro.jokers.obelisk import ObeliskJoker
+from games.balatro.jokers.red_card import RedCardJoker
+from games.balatro.jokers.ride_the_bus import RideTheBusJoker
 from games.balatro.jokers.runner import RunnerJoker
+from games.balatro.jokers.seltzer import SeltzerJoker
+from games.balatro.jokers.spare_trousers import SpareTrousersJoker
+from games.balatro.jokers.vampire import VampireJoker
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.live.external.save_observer import _normalize_item
 from games.balatro.live.joker_factory import LiveJokerFactory
@@ -43,14 +53,11 @@ def test_ice_cream_projection_scores_and_decays_only_copied_joker():
         cards,
     )
 
-    # Pair: (10 base + 20 rank chips + 100 Ice Cream) * 2 Mult.
     assert transition.distribution.minimum == 260
     assert transition.joker_projection_complete is True
     assert ice_cream.chips == 100
     assert transition.state_after_scoring is not state
     assert transition.state_after_scoring.hand is not state.hand
-    # Playing cards intentionally retain identity across the cheap branch copy;
-    # scorer held-card logic depends on the played objects matching branch.hand.
     assert transition.state_after_scoring.hand[0] is cards[0]
     assert transition.state_after_scoring.hand[1] is cards[1]
     assert transition.state_after_scoring.jokers[0] is not ice_cream
@@ -73,8 +80,6 @@ def test_green_joker_projection_starts_from_hydrated_mult_and_updates_only_copy(
         cards,
     )
 
-    # HAND_SCORED grows Green Joker from +19 to +20 Mult on the copied branch.
-    # Pair K,K contributes 30 Chips and base Mult 2, so 30 * 22 = 660.
     assert transition.distribution.minimum == 660
     assert transition.distribution.maximum == 660
     assert transition.joker_projection_complete is True
@@ -101,13 +106,83 @@ def test_runner_projection_starts_from_hydrated_chips_and_carries_growth():
         cards,
     )
 
-    # Visible straight is 30 base + 20 card Chips. Runner grows 45 -> 60 and then
-    # contributes the copied value: (50 + 60) * 4 = 440.
     assert transition.distribution.minimum == 440
     assert transition.distribution.maximum == 440
     assert transition.joker_projection_complete is True
     assert runner.chips == 45
     assert transition.state_after_scoring.jokers[0].chips == 60
+
+
+def test_hydrated_read_only_jokers_use_current_live_values():
+    ace = BalatroCard("A", "Spades")
+    state = _state([ace])
+
+    constellation = ConstellationJoker()
+    constellation.x_mult = 2.0
+    flash = FlashCardJoker()
+    flash.mult = 5
+    state.jokers = [flash, constellation]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD,
+        state,
+        [ace],
+    )
+
+    # High Card Ace = 16 Chips. Base 1 Mult + hydrated Flash +5 = 6 Mult,
+    # then hydrated Constellation x2 => 192.
+    assert transition.distribution.minimum == 192
+    assert transition.distribution.maximum == 192
+    assert transition.joker_projection_complete is True
+    assert flash.mult == 5
+    assert constellation.x_mult == 2.0
+    assert transition.state_after_scoring.jokers[0].mult == 5
+    assert transition.state_after_scoring.jokers[1].x_mult == 2.0
+
+
+def test_spare_trousers_growth_starts_from_hydrated_mult_on_branch_only():
+    cards = [
+        BalatroCard("2", "Spades"),
+        BalatroCard("2", "Hearts"),
+        BalatroCard("3", "Clubs"),
+        BalatroCard("3", "Diamonds"),
+    ]
+    state = _state(cards)
+    trousers = SpareTrousersJoker()
+    trousers.mult = 6
+    state.jokers = [trousers]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.TWO_PAIR,
+        state,
+        cards,
+    )
+
+    # Two Pair: 20 base Chips + 10 card Chips. Trousers grows 6 -> 8 Mult;
+    # base Two Pair Mult 2 + 8 = 10, so 30 * 10 = 300.
+    assert transition.distribution.minimum == 300
+    assert transition.joker_projection_complete is True
+    assert trousers.mult == 6
+    assert transition.state_after_scoring.jokers[0].mult == 8
+
+
+def test_hydrated_non_scoring_joker_does_not_block_exact_score_projection():
+    ace = BalatroCard("A", "Spades")
+    state = _state([ace])
+    egg = EggJoker()
+    egg.sell_value = 15
+    state.jokers = [egg]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD,
+        state,
+        [ace],
+    )
+
+    assert transition.distribution.minimum == 16
+    assert transition.joker_projection_complete is True
+    assert egg.sell_value == 15
+    assert transition.state_after_scoring.jokers[0].sell_value == 15
 
 
 def test_bootstraps_projection_adds_only_mult_from_public_money():
@@ -123,8 +198,6 @@ def test_bootstraps_projection_adds_only_mult_from_public_money():
         [ace],
     )
 
-    # High Card A is 16 Chips x 1 Mult before Jokers. At $5 Bootstraps adds
-    # exactly +2 Mult and no Chips: 16 x 3 = 48.
     assert transition.distribution.minimum == 48
     assert transition.distribution.maximum == 48
     assert transition.joker_projection_complete is True
@@ -152,8 +225,6 @@ def test_bootstraps_and_ice_cream_project_together_without_mutating_observed_sta
         cards,
     )
 
-    # Pair K,K: 10 base + 20 rank chips + 85 Ice Cream = 115 Chips.
-    # Pair base Mult 2 + Bootstraps 2 at $5 = 4 Mult. 115 x 4 = 460.
     assert transition.distribution.minimum == 460
     assert transition.joker_projection_complete is True
     assert transition.unsupported_jokers == ()
@@ -181,23 +252,43 @@ def test_two_action_planner_carries_ice_cream_decay_into_second_play():
     )
     plan = planner.plan(state)
 
-    # First High Card A: (5 + 11 + 100) * 1 = 116.
-    # Second High Card K after Ice Cream decay: (5 + 10 + 95) * 1 = 110.
     assert plan.action.name == PLAY_CARDS
     assert plan.value.expected_score == 226.0
     assert plan.exact is True
     assert ice_cream.chips == 100
 
 
-def test_event_incompatible_hydrated_jokers_remain_fail_closed():
+def test_remaining_hydrated_projection_blockers_stay_fail_closed():
     ace = BalatroCard("A", "Spades")
     state = _state([ace])
 
+    canio = CanioJoker()
+    canio.x_mult = 3.0
     loyalty = LoyaltyCardJoker()
     loyalty.hands = 5
     lucky_cat = LuckyCatJoker()
     lucky_cat.x_mult = 2.0
-    state.jokers = [loyalty, lucky_cat]
+    obelisk = ObeliskJoker()
+    obelisk.x_mult = 2.4
+    red_card = RedCardJoker()
+    red_card.mult = 12
+    ride_bus = RideTheBusJoker()
+    ride_bus.mult = 8
+    seltzer = SeltzerJoker()
+    seltzer.rounds_remaining = 7
+    vampire = VampireJoker()
+    vampire.x_mult = 2.0
+
+    state.jokers = [
+        canio,
+        loyalty,
+        lucky_cat,
+        obelisk,
+        red_card,
+        ride_bus,
+        seltzer,
+        vampire,
+    ]
 
     transition = VisibleCardScoreOutcomeModel().project_transition(
         PokerHand.HIGH_CARD,
@@ -205,14 +296,26 @@ def test_event_incompatible_hydrated_jokers_remain_fail_closed():
         [ace],
     )
 
-    # The projector must not claim exactness while HAND_PLAYED/LUCKY_TRIGGERED
-    # branch semantics are still absent. Neither deferred Joker is partially
-    # applied to the score.
     assert transition.distribution.minimum == 16
     assert transition.joker_projection_complete is False
-    assert transition.unsupported_jokers == ("LoyaltyCard", "LuckyCat")
+    assert transition.unsupported_jokers == (
+        "Canio",
+        "LoyaltyCard",
+        "LuckyCat",
+        "Obelisk",
+        "RedCard",
+        "RideTheBus",
+        "Seltzer",
+        "Vampire",
+    )
+    assert canio.x_mult == 3.0
     assert loyalty.hands == 5
     assert lucky_cat.x_mult == 2.0
+    assert obelisk.x_mult == 2.4
+    assert red_card.mult == 12
+    assert ride_bus.mult == 8
+    assert seltzer.rounds_remaining == 7
+    assert vampire.x_mult == 2.0
 
 
 def test_unsupported_joker_is_reported_and_not_silently_applied():
