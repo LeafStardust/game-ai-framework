@@ -81,6 +81,40 @@ def _area_contains(snapshot: LiveBalatroSnapshot, payload_name: str, *, live_id,
     return any(_same_live_item(card, live_id=live_id, label=label) for card in cards)
 
 
+def _round_resource(snapshot: LiveBalatroSnapshot, key: str) -> int | None:
+    value = (snapshot.payload.get("round") or {}).get(key)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return int(value)
+
+
+def _hand_action_complete(
+    before: LiveBalatroSnapshot,
+    after: LiveBalatroSnapshot,
+    action_name: str,
+) -> bool:
+    if after.sequence <= before.sequence:
+        return False
+
+    if action_name == PLAY_CARDS:
+        before_hands = _round_resource(before, "hands_left")
+        after_hands = _round_resource(after, "hands_left")
+        if before_hands is not None and after_hands == before_hands - 1:
+            return True
+        return after.phase == "ROUND_EVAL"
+
+    if action_name == DISCARD_CARDS:
+        before_discards = _round_resource(before, "discards_left")
+        after_discards = _round_resource(after, "discards_left")
+        return (
+            after.phase == "SELECTING_HAND"
+            and before_discards is not None
+            and after_discards == before_discards - 1
+        )
+
+    return False
+
+
 class LiveMemoryActionDispatcher:
     """Route framework ``BalatroAction`` objects to verified external mouse primitives.
 
@@ -177,6 +211,24 @@ class LiveMemoryActionDispatcher:
             if self.poll_interval:
                 time.sleep(self.poll_interval)
 
+    def _wait_hand_action(self, before: LiveBalatroSnapshot, action_name: str):
+        deadline = time.monotonic() + self.timeout
+        last = before
+        while True:
+            current = self.observer.observe()
+            last = current
+            if _hand_action_complete(before, current, action_name):
+                return current
+            if time.monotonic() >= deadline:
+                raise ExternalLiveActionPostconditionError(
+                    f"timed out verifying {action_name} semantic checkpoint; "
+                    f"phase={last.phase}, sequence={last.sequence}, "
+                    f"hands={_round_resource(last, 'hands_left')}, "
+                    f"discards={_round_resource(last, 'discards_left')}"
+                )
+            if self.poll_interval:
+                time.sleep(self.poll_interval)
+
     def _wait_purchase(self, before, item, *, require_shop: bool):
         before_money = before.payload.get("money")
         expected_money = (
@@ -247,11 +299,7 @@ class LiveMemoryActionDispatcher:
                     f"{name} requires the translated BalatroState used to select the cards"
                 )
             details = self.hand_executor.dispatch(action, state, before)
-            after = self._wait(
-                before,
-                lambda value: value.sequence > before.sequence,
-                name,
-            )
+            after = self._wait_hand_action(before, name)
             return LiveExternalActionResult(action, before, after, details)
 
         if name in {BUY_JOKER, BUY_CONSUMABLE}:
