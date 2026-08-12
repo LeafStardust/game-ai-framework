@@ -108,15 +108,39 @@ def _pack_choice_signature(choices) -> tuple[tuple, ...]:
     return tuple(result)
 
 
+def _semantic_payload(value):
+    """Remove presentation-only UI geometry from a live public-state payload.
+
+    The injected bridge acts on Balatro's internal card objects and callbacks, not
+    screen coordinates. Card/item ``ui`` geometry can drift from animation or
+    hover while every gameplay-relevant field remains unchanged, so it must not
+    invalidate a several-second D1 recommendation. All non-UI public fields stay
+    exact and pack identity keeps its dedicated address/signature guard.
+    """
+    if isinstance(value, dict):
+        return {
+            key: _semantic_payload(item)
+            for key, item in value.items()
+            if key != "ui"
+        }
+    if isinstance(value, list):
+        return [_semantic_payload(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_semantic_payload(item) for item in value)
+    return value
+
+
 def _same_snapshot(
     expected: LiveBalatroSnapshot,
     current: LiveBalatroSnapshot,
 ) -> bool:
+    # Sequence can advance from presentation-only geometry because the observer's
+    # general-purpose fingerprint intentionally includes its full payload. For
+    # injected execution, stale-state equality is gameplay-semantic instead.
     return (
-        current.sequence == expected.sequence
-        and current.phase == expected.phase
+        current.phase == expected.phase
         and current.state_complete == expected.state_complete
-        and current.payload == expected.payload
+        and _semantic_payload(current.payload) == _semantic_payload(expected.payload)
     )
 
 
