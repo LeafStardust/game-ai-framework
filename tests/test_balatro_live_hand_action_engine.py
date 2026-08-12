@@ -26,29 +26,75 @@ class _StubRootPlanner:
 
 
 class _AdaptiveStub:
-    def __init__(self, config):
+    def __init__(self, config, *, confirmation=False):
         self.config = config
+        self.confirmation = confirmation
         self.nodes_evaluated = 10
 
 
 class _TestEngine(LiveHandActionDecisionEngine):
-    def __init__(self, *, adaptive_by_horizon, fallback_plans, policy):
+    def __init__(
+        self,
+        *,
+        adaptive_by_horizon,
+        fallback_plans,
+        policy,
+        confirmation_by_horizon=None,
+        max_horizon=3,
+    ):
         self._adaptive_by_horizon = dict(adaptive_by_horizon)
+        self._confirmation_by_horizon = dict(confirmation_by_horizon or {})
         self._fallback_plans = list(fallback_plans)
         super().__init__(
             planner=_StubRootPlanner(policy.evaluator),
             policy=policy,
-            max_horizon=3,
+            max_horizon=max_horizon,
             max_search_nodes=5000,
         )
 
     def _adaptive_planner(self, config):
-        return _AdaptiveStub(config)
+        return _AdaptiveStub(config, confirmation=False)
+
+    def _confirmation_config(self, config):
+        return config
+
+    def _confirmation_planner(self, config):
+        return _AdaptiveStub(config, confirmation=True)
 
     def rank_plans(self, state, *, planner=None):
         if planner is None or planner is self.planner:
             return list(self._fallback_plans)
+        if getattr(planner, "confirmation", False):
+            return list(self._confirmation_by_horizon[planner.config.horizon])
         return list(self._adaptive_by_horizon[planner.config.horizon])
+
+
+# Production builds confirmation planners through _adaptive_planner. This test
+# harness marks confirmation by temporarily routing the engine helper explicitly.
+class _ConfirmationTestEngine(_TestEngine):
+    def decide(self, state):
+        original = self._adaptive_planner
+
+        def routed(config):
+            if getattr(self, "_next_is_confirmation", False):
+                self._next_is_confirmation = False
+                return self._confirmation_planner(config)
+            return original(config)
+
+        original_confirmation_config = self._confirmation_config
+
+        def marked_confirmation_config(config):
+            self._next_is_confirmation = True
+            return original_confirmation_config(config)
+
+        self._adaptive_planner = routed
+        self._confirmation_config = marked_confirmation_config
+        try:
+            return super().decide(state)
+        finally:
+            self._adaptive_planner = original
+            self._confirmation_config = original_confirmation_config
+            self._next_is_confirmation = False
 
 
 def _state(*cards):
@@ -62,7 +108,7 @@ def _state(*cards):
     )
 
 
-def _plan(action_name, *, clear, immediate_score, marker):
+def _plan(action_name, *, clear, immediate_score, marker, exact=False):
     action = BalatroAction(
         action_name,
         cards=[marker],
@@ -78,7 +124,7 @@ def _plan(action_name, *, clear, immediate_score, marker):
             expected_discards_remaining=0.0,
         ),
         horizon=2,
-        exact=False,
+        exact=exact,
         candidate_count=1,
     )
 
@@ -93,7 +139,7 @@ def _policy():
     )
 
 
-def test_adaptive_engine_stops_when_a_clear_path_reaches_floor():
+def test_adaptive_engine_stops_immediately_for_exact_clear_path():
     clear_marker = object()
     fallback_marker = object()
     accepted = _plan(
@@ -101,6 +147,7 @@ def test_adaptive_engine_stops_when_a_clear_path_reaches_floor():
         clear=0.80,
         immediate_score=50.0,
         marker=clear_marker,
+        exact=True,
     )
     fallback = _plan(
         PLAY_CARDS,
@@ -118,8 +165,92 @@ def test_adaptive_engine_stops_when_a_clear_path_reaches_floor():
 
     assert decision.mode == CLEAR_PATH
     assert decision.action.cards == [clear_marker]
+    assert decision.sampled_clear_path_confirmed is False
     assert len(decision.search_attempts) == 1
     assert decision.search_attempts[0].horizon == 2
+    assert decision.search_attempts[0].confirmation is False
+
+
+def test_sampled_clear_path_requires_stronger_same_action_confirmation():
+    clear_marker = object()
+    fallback_marker = object()
+    sampled = _plan(
+        PLAY_CARDS,
+        clear=1.0,
+        immediate_score=50.0,
+        marker=clear_marker,
+        exact=False,
+    )
+    confirmed = _plan(
+        PLAY_CARDS,
+        clear=0.84,
+        immediate_score=50.0,
+        marker=clear_marker,
+        exact=False,
+    )
+    fallback = _plan(
+        PLAY_CARDS,
+        clear=0.0,
+        immediate_score=200.0,
+        marker=fallback_marker,
+    )
+    engine = _ConfirmationTestEngine(
+        adaptive_by_horizon={2: [sampled]},
+        confirmation_by_horizon={2: [confirmed]},
+        fallback_plans=[fallback],
+        policy=_policy(),
+        max_horizon=2,
+    )
+
+    decision = engine.decide(_state(clear_marker, fallback_marker))
+
+    assert decision.mode == CLEAR_PATH
+    assert decision.action.cards == [clear_marker]
+    assert decision.sampled_clear_path_confirmed is True
+    assert decision.confidence == 0.84
+    assert len(decision.search_attempts) == 2
+    assert decision.search_attempts[1].confirmation is True
+
+
+def test_sampled_clear_path_is_rejected_when_confirmation_changes_first_action():
+    first_marker = object()
+    changed_marker = object()
+    pace_marker = object()
+    sampled = _plan(
+        PLAY_CARDS,
+        clear=0.90,
+        immediate_score=50.0,
+        marker=first_marker,
+        exact=False,
+    )
+    changed = _plan(
+        PLAY_CARDS,
+        clear=0.90,
+        immediate_score=50.0,
+        marker=changed_marker,
+        exact=False,
+    )
+    pace_play = _plan(
+        PLAY_CARDS,
+        clear=0.20,
+        immediate_score=160.0,
+        marker=pace_marker,
+    )
+    engine = _ConfirmationTestEngine(
+        adaptive_by_horizon={2: [sampled]},
+        confirmation_by_horizon={2: [changed]},
+        fallback_plans=[pace_play],
+        policy=_policy(),
+        max_horizon=2,
+    )
+
+    decision = engine.decide(_state(first_marker, changed_marker, pace_marker))
+
+    assert decision.mode == PACE_PLAY
+    assert decision.action.cards == [pace_marker]
+    assert decision.sampled_clear_path_confirmed is False
+    assert len(decision.search_attempts) == 2
+    assert decision.search_attempts[1].confirmation is True
 
 
 def test_adaptive_engine_enters_pace_fallback_when_no_clear_path_exists():
@@ -143,6 +274,7 @@ def test_adaptive_engine_enters_pace_fallback_when_no_clear_path_exists():
         },
         fallback_plans=[pace_play],
         policy=_policy(),
+        max_horizon=2,
     )
 
     decision = engine.decide(_state(search_marker, pace_marker))
