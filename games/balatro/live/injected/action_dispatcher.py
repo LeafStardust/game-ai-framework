@@ -116,6 +116,10 @@ def _purchase_money_matches(
     return after_money == before_money - cost
 
 
+def _is_pack_phase(phase: str) -> bool:
+    return str(phase).endswith("_PACK")
+
+
 class LiveMemoryInjectedActionDispatcher:
     """Execute supported Balatro actions through the first-party Lua bridge.
 
@@ -299,7 +303,7 @@ class LiveMemoryInjectedActionDispatcher:
                 before,
                 lambda value: (
                     value.sequence > before.sequence
-                    and value.phase == "SMODS_BOOSTER_OPENED"
+                    and _is_pack_phase(value.phase)
                     and value.state_complete
                     and _purchase_money_matches(before, value, item)
                 ),
@@ -313,10 +317,9 @@ class LiveMemoryInjectedActionDispatcher:
             )
 
         if name == SELECT_PACK_CARD:
-            if before.phase != "SMODS_BOOSTER_OPENED":
+            if not _is_pack_phase(before.phase):
                 raise UnsupportedInjectedAction(
-                    "SELECT_PACK_CARD requires SMODS_BOOSTER_OPENED, "
-                    f"observed {before.phase}"
+                    f"SELECT_PACK_CARD requires a *_PACK phase, observed {before.phase}"
                 )
             index = _target_index(action.target)
             self.bridge.select_pack_card(index)
@@ -325,7 +328,7 @@ class LiveMemoryInjectedActionDispatcher:
                 lambda value: (
                     value.sequence > before.sequence
                     and value.state_complete
-                    and value.phase in {"SMODS_BOOSTER_OPENED", "SHOP"}
+                    and (_is_pack_phase(value.phase) or value.phase == "SHOP")
                 ),
                 "pack selection",
             )
@@ -337,9 +340,9 @@ class LiveMemoryInjectedActionDispatcher:
             )
 
         if name == SKIP_BOOSTER:
-            if before.phase != "SMODS_BOOSTER_OPENED":
+            if not _is_pack_phase(before.phase):
                 raise UnsupportedInjectedAction(
-                    f"SKIP_BOOSTER requires SMODS_BOOSTER_OPENED, observed {before.phase}"
+                    f"SKIP_BOOSTER requires a *_PACK phase, observed {before.phase}"
                 )
             self.bridge.skip_booster()
             after = self._wait(
