@@ -26,9 +26,9 @@ class BuildProfile:
     """Order-independent public description of the current Balatro build.
 
     ``feature_strengths`` represents effects that are already active/realized in
-    the current build (deck composition, hand levels, owned Jokers). Held
-    consumables remain descriptors in ``effects`` so future synergy evaluation can
-    reason about what they can create without pretending that transformation has
+    the current build (deck composition, hand-level investment, owned Jokers).
+    Held consumables remain descriptors in ``effects`` so future synergy evaluation
+    can reason about what they can create without pretending that transformation has
     already happened.
     """
 
@@ -132,7 +132,13 @@ class BalatroBuildProfiler:
             for hand, level in getattr(state, "hand_levels", {}).items()
         }
         for hand, level in hand_levels.items():
-            strengths[hand_feature(hand)] += float(level)
+            # Every ordinary poker hand begins at level 1. That universal baseline
+            # is a game rule, not evidence that the current build is specialized in
+            # every hand type. Only investment above level 1 contributes contextual
+            # build strength; the exact raw level remains available in hand_levels.
+            investment = max(0.0, float(level) - 1.0)
+            if investment > 0.0:
+                strengths[hand_feature(hand)] += investment
 
         effects: list[EffectDescriptor] = []
         joker_names: list[str] = []
