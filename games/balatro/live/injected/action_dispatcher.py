@@ -13,6 +13,7 @@ from games.balatro.actions import (
     END_SHOP,
     PLAY_CARDS,
     REFRESH_SHOP,
+    SELECT_BLIND,
     SELECT_PACK_CARD,
     SKIP_BOOSTER,
     BalatroAction,
@@ -301,6 +302,23 @@ class LiveMemoryInjectedActionDispatcher:
                     and value.state_complete
                 ),
                 "next round",
+            )
+            return LiveInjectedActionResult(action, before, after)
+
+        if name == SELECT_BLIND:
+            if before.phase != "BLIND_SELECT":
+                raise UnsupportedInjectedAction(
+                    f"SELECT_BLIND requires BLIND_SELECT, observed {before.phase}"
+                )
+            self.bridge.select_blind()
+            after = self._wait(
+                before,
+                lambda value: (
+                    value.sequence > before.sequence
+                    and value.phase == "SELECTING_HAND"
+                    and value.state_complete
+                ),
+                "blind selection",
             )
             return LiveInjectedActionResult(action, before, after)
 
