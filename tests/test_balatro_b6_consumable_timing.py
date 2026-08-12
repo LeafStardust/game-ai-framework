@@ -1,11 +1,17 @@
-from types import SimpleNamespace
-
 from games.balatro.actions import USE_CONSUMABLE
 from games.balatro.card import BalatroCard
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.live.consumable_timing import HOLD, USE, LiveConsumableTimingPolicy
 from games.balatro.state import BalatroState
 from games.balatro.tarots import Hermit, Strength
+
+
+class _Blind:
+    def __init__(self, requirement: int):
+        self.requirement = requirement
+
+    def copy(self):
+        return _Blind(self.requirement)
 
 
 def _state(
@@ -23,7 +29,7 @@ def _state(
     ]
     state.hands_remaining = hands_remaining
     state.score = 0
-    state.blind = SimpleNamespace(requirement=requirement)
+    state.blind = _Blind(requirement)
     return state
 
 
