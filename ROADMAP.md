@@ -187,7 +187,7 @@
 - [x] Playbook controls for planner/search budgets
 - [ ] Per-decision-layer threshold configuration
 - [ ] Independent hand-action thresholds
-- [ ] Independent Joker acquisition/replacement thresholds
+- [x] Independent Joker acquisition/replacement thresholds
 - [ ] Independent voucher thresholds
 - [ ] Independent consumable acquisition/use/target thresholds
 - [ ] Independent booster/pack thresholds
@@ -248,10 +248,10 @@ Milestones:
 - [x] **B2 Public BuildProfile:** aggregate deck composition, hand levels, slots, owned Jokers, held consumables and realized feature strengths without card-order dependence
 - [x] **B3 Contextual Joker synergy evaluator:** compare candidate marginal value against the current build and expose interaction gain separately from intrinsic gain
 - [x] **B3 Multi-Joker interaction probing:** measure meaningful combinations/retriggers/copy effects rather than only isolated Joker probes
-- [ ] **B4 Consumable/deck synergy evaluator:** value permanent rank/suit/enhancement/seal/edition changes against current and prospective engines
-- [ ] **B4 Build-path reasoning:** value enabling pieces before a combo is fully assembled when the relationship is supported by observable semantics
+- [x] **B4 Consumable/deck synergy evaluator:** value permanent rank/suit/enhancement/seal/edition changes against current and prospective engines
+- [x] **B4 Build-path reasoning:** value enabling pieces before a combo is fully assembled when the relationship is supported by observable semantics
 - [ ] **B5 Build-aware shop policy:** feed contextual build delta into Joker/consumable/voucher/booster comparisons
-- [ ] **B5 Joker replacement planning:** compare every legal replacement against the complete current build and slot opportunity cost
+- [x] **B5 Joker replacement planning:** compare every legal replacement against the complete current build and slot opportunity cost
 - [ ] **B5 Build-aware reroll policy:** value missing engine pieces and current-shop opportunity quality
 - [ ] **B6 Build-aware consumable timing and targeting:** use/hold/target based on whole-build delta rather than generic card value
 - [ ] **B6 Build-aware pack choice:** evaluate visible offers as candidate build transitions
@@ -319,9 +319,12 @@ Status:
 - [x] Direct Joker Buy execution
 - [x] Joker value-probe foundation
 - [x] Shared B1/B2 effect/build context foundation
-- [ ] Replace isolated intrinsic valuation with B3 contextual whole-build delta
+- [x] Replace isolated intrinsic valuation with B3 contextual whole-build delta
 - [ ] Broader semantic valuation for non-scoring/economy Jokers
-- [ ] Replacement/sell policy
+- [x] Replacement policy with whole-build delta, sell-credit economics and explicit HOLD baseline
+- [x] Read-only live D2 validator implementation
+- [ ] Live-validate D2 recommendation/rationale against a real SHOP checkpoint
+- [ ] Standalone sell-only policy when selling without an immediate replacement is strategically justified
 - [ ] Replacement/sell execution
 
 #### D3 — Voucher acquisition
