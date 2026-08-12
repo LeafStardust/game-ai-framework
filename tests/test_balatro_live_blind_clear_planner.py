@@ -245,4 +245,6 @@ def test_planner_hard_node_budget_aborts_recursive_search():
 
     with pytest.raises(PlannerSearchBudgetExceeded):
         planner.plan(state)
-    assert planner.nodes_evaluated == 2
+    # The hard cap must never be exceeded: the second node is rejected before
+    # it is counted as evaluated.
+    assert planner.nodes_evaluated == planner.max_nodes == 1
