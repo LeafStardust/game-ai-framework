@@ -4,6 +4,7 @@ import hashlib
 import json
 from typing import Any
 
+from games.balatro.live.joker_state_reader import declared_joker_state_specs
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 from .balatro_g_discovery import discover_balatro_g_table
@@ -392,7 +393,9 @@ def _normalize_item(
         decoder,
         center_key,
         label,
+        ability_name,
         ability,
+        card,
     )
     if center_key and public_state_by_center:
         public_state.update(public_state_by_center.get(center_key, {}))
@@ -409,19 +412,44 @@ def _normalize_public_item_state(
     decoder: LuaJITNonGC64Decoder,
     center_key: str | None,
     label: str | None,
+    ability_name: str | None,
     ability: dict[str, LuaValue],
+    card: dict[str, LuaValue],
 ) -> dict[str, Any]:
-    # Only Jokers with explicitly public, strategically relevant numeric counters
-    # are read here. Do not widen this into a generic ability-table serializer.
-    if center_key not in {"j_ice_cream", "j_castle"} and label != "Ice Cream":
+    """Read only explicitly declared primitive state for one modeled Joker."""
+    specs = declared_joker_state_specs(
+        center=center_key,
+        label=label,
+        ability_name=ability_name,
+    )
+    if not specs:
         return {}
 
-    extra = _table_fields(decoder, ability.get("extra"))
+    extra_value = ability.get("extra")
+    extra = _table_fields(decoder, extra_value)
     result: dict[str, Any] = {}
-    for field in ("chips", "chip_mod"):
-        value = _number(extra.get(field))
+
+    for spec in specs:
+        value = None
+        for key in spec.ability_keys:
+            value = _primitive(ability.get(key))
+            if value is None:
+                value = _primitive(extra.get(key))
+            if value is not None:
+                break
+
+        if value is None:
+            for key in spec.card_keys:
+                value = _primitive(card.get(key))
+                if value is not None:
+                    break
+
+        if value is None and spec.scalar_extra:
+            value = _primitive(extra_value)
+
         if value is not None:
-            result[field] = value
+            result[spec.model_field] = value
+
     return result
 
 
@@ -431,6 +459,11 @@ def _normalize_round_joker_public_state(
 ) -> dict[str, dict[str, Any]]:
     """Read only visible per-round targets used by dynamic Jokers."""
     result: dict[str, dict[str, Any]] = {}
+
+    ancient_card = _table_fields(decoder, current_round.get("ancient_card"))
+    ancient_suit = _string(ancient_card.get("suit"))
+    if ancient_suit:
+        result["j_ancient"] = {"suit": ancient_suit}
 
     castle_card = _table_fields(decoder, current_round.get("castle_card"))
     castle_suit = _string(castle_card.get("suit"))
