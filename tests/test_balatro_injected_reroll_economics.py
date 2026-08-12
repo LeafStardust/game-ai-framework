@@ -68,7 +68,7 @@ def test_paid_reroll_waits_past_inventory_change_until_money_settles():
     assert bridge.calls == [("reroll_shop",)]
     assert result.after is settled
     assert result.after.payload["money"] == 12
-    assert result.metadata == {"reroll_cost": 5.0, "free_rerolls": 0}
+    assert result.details == {"reroll_cost": 5.0, "free_rerolls": 0}
 
 
 def test_free_reroll_requires_free_count_to_decrease_without_money_change():
@@ -94,4 +94,4 @@ def test_free_reroll_requires_free_count_to_decrease_without_money_change():
     assert bridge.calls == [("reroll_shop",)]
     assert result.after is changed
     assert result.after.payload["money"] == 10
-    assert result.metadata == {"reroll_cost": 5.0, "free_rerolls": 1}
+    assert result.details == {"reroll_cost": 5.0, "free_rerolls": 1}
