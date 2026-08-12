@@ -60,6 +60,32 @@ class WindowsProcessMemoryReader:
         self.handle = int(handle)
         self._kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 
+        # Configure ctypes signatures once. A live snapshot can perform thousands
+        # of small reads while decoding Lua tables; repeatedly assigning argtypes
+        # and restype on every call is pure Python overhead on the hottest path.
+        self._read_process_memory = self._kernel32.ReadProcessMemory
+        self._read_process_memory.argtypes = [
+            wintypes.HANDLE,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_size_t,
+            ctypes.POINTER(ctypes.c_size_t),
+        ]
+        self._read_process_memory.restype = wintypes.BOOL
+
+        self._virtual_query_ex = self._kernel32.VirtualQueryEx
+        self._virtual_query_ex.argtypes = [
+            wintypes.HANDLE,
+            ctypes.c_void_p,
+            ctypes.POINTER(_MemoryBasicInformation),
+            ctypes.c_size_t,
+        ]
+        self._virtual_query_ex.restype = ctypes.c_size_t
+
+        self._close_handle = self._kernel32.CloseHandle
+        self._close_handle.argtypes = [wintypes.HANDLE]
+        self._close_handle.restype = wintypes.BOOL
+
     @classmethod
     def from_balatro_window(
         cls,
@@ -106,9 +132,7 @@ class WindowsProcessMemoryReader:
     def close(self) -> None:
         if not self.handle:
             return
-        self._kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
-        self._kernel32.CloseHandle.restype = wintypes.BOOL
-        self._kernel32.CloseHandle(wintypes.HANDLE(self.handle))
+        self._close_handle(wintypes.HANDLE(self.handle))
         self.handle = 0
 
     def read(self, address: int, size: int) -> bytes:
@@ -119,18 +143,9 @@ class WindowsProcessMemoryReader:
         if size == 0:
             return b""
 
-        self._kernel32.ReadProcessMemory.argtypes = [
-            wintypes.HANDLE,
-            ctypes.c_void_p,
-            ctypes.c_void_p,
-            ctypes.c_size_t,
-            ctypes.POINTER(ctypes.c_size_t),
-        ]
-        self._kernel32.ReadProcessMemory.restype = wintypes.BOOL
-
         buffer = ctypes.create_string_buffer(size)
         read = ctypes.c_size_t()
-        ok = self._kernel32.ReadProcessMemory(
+        ok = self._read_process_memory(
             wintypes.HANDLE(self.handle),
             ctypes.c_void_p(address),
             buffer,
@@ -149,21 +164,13 @@ class WindowsProcessMemoryReader:
         if not self.handle:
             raise BalatroProcessMemoryError("Balatro process handle is closed")
 
-        self._kernel32.VirtualQueryEx.argtypes = [
-            wintypes.HANDLE,
-            ctypes.c_void_p,
-            ctypes.POINTER(_MemoryBasicInformation),
-            ctypes.c_size_t,
-        ]
-        self._kernel32.VirtualQueryEx.restype = ctypes.c_size_t
-
         result: list[MemoryRegion] = []
         address = 0
         max_address = (1 << (ctypes.sizeof(ctypes.c_void_p) * 8)) - 1
         mbi = _MemoryBasicInformation()
 
         while address < max_address:
-            queried = self._kernel32.VirtualQueryEx(
+            queried = self._virtual_query_ex(
                 wintypes.HANDLE(self.handle),
                 ctypes.c_void_p(address),
                 ctypes.byref(mbi),
