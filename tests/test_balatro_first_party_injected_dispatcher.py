@@ -142,3 +142,44 @@ def test_injected_play_accepts_round_eval_semantic_checkpoint():
 
     assert bridge.calls == [("play", (0,))]
     assert result.after.phase == "ROUND_EVAL"
+
+
+def test_injected_play_waits_through_transient_hand_played_phase():
+    state = _state()
+    before = LiveBalatroSnapshot(
+        sequence=20,
+        phase="SELECTING_HAND",
+        state_complete=True,
+        payload={"round": {"hands_left": 4, "discards_left": 4}},
+    )
+    transient = LiveBalatroSnapshot(
+        sequence=21,
+        phase="HAND_PLAYED",
+        state_complete=True,
+        payload={"round": {"hands_left": 3, "discards_left": 4}},
+    )
+    settled = LiveBalatroSnapshot(
+        sequence=22,
+        phase="ROUND_EVAL",
+        state_complete=True,
+        payload={"round": {"hands_left": 3, "discards_left": 4}},
+    )
+    bridge = FakeBridge()
+    dispatcher = LiveMemoryInjectedHandDispatcher(
+        FakeObserver(transient, settled),
+        bridge=bridge,
+        poll_interval=0,
+    )
+
+    result = dispatcher.dispatch(
+        BalatroAction(
+            PLAY_CARDS,
+            cards=[state.hand[0], state.hand[2]],
+        ),
+        state=state,
+        snapshot=before,
+    )
+
+    assert bridge.calls == [("play", (0, 2))]
+    assert result.after is settled
+    assert result.after.phase == "ROUND_EVAL"
