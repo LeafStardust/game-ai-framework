@@ -21,6 +21,7 @@ class JokerScoreProjection:
     state_after_scoring: object | None
     cards_after_copy: tuple
     unsupported_jokers: tuple[str, ...] = ()
+    played_card_retriggers: int = 0
 
     @property
     def complete(self) -> bool:
@@ -45,6 +46,7 @@ class LiveJokerScoreProjector:
             "AncientJoker",
             "BootstrapsJoker",
             "CampfireJoker",
+            "CanioJoker",
             "CastleJoker",
             "CavendishJoker",
             "ConstellationJoker",
@@ -59,6 +61,7 @@ class LiveJokerScoreProjector:
             "IceCreamJoker",
             "InvisibleJoker",
             "LoyaltyCardJoker",
+            "LuckyCatJoker",
             "MadnessJoker",
             "ObeliskJoker",
             "PopcornJoker",
@@ -66,6 +69,7 @@ class LiveJokerScoreProjector:
             "RedCardJoker",
             "RideTheBusJoker",
             "RunnerJoker",
+            "SeltzerJoker",
             "SpareTrousersJoker",
             "SquareJoker",
             "ThrowbackJoker",
@@ -76,25 +80,8 @@ class LiveJokerScoreProjector:
         }
     )
 
-    DEFERRED_HYDRATED_CLASS_NAMES = frozenset(
-        {
-            "CanioJoker",
-            "LuckyCatJoker",
-            "SeltzerJoker",
-        }
-    )
-
-    DEFERRED_REASONS_BY_CLASS = {
-        "CanioJoker": (
-            "requires destroyed-card transition/stochastic propagation before scoring"
-        ),
-        "LuckyCatJoker": (
-            "requires LUCKY_TRIGGERED stochastic branch-state propagation"
-        ),
-        "SeltzerJoker": (
-            "requires played-card retrigger execution including stochastic card effects"
-        ),
-    }
+    DEFERRED_HYDRATED_CLASS_NAMES = frozenset()
+    DEFERRED_REASONS_BY_CLASS = {}
 
     HAND_PLAYED_CLASS_NAMES = frozenset(
         {
@@ -180,6 +167,13 @@ class LiveJokerScoreProjector:
             safe_cards,
             supported,
         )
+        played_card_retriggers = self._seltzer_retriggers(supported)
+        if played_card_retriggers:
+            joker_data["retrigger_played_cards"] = (
+                int(joker_data.get("retrigger_played_cards", 0) or 0)
+                + played_card_retriggers
+            )
+
         score = self.scorer.score(
             hand,
             safe_state,
@@ -188,6 +182,7 @@ class LiveJokerScoreProjector:
             resolve_random_effects=resolve_random_effects,
             joker_data=joker_data,
         )
+        self._consume_seltzer_hand(supported)
         self._increment_hand_play_count(safe_state, hand)
         safe_state.jokers = all_jokers
 
@@ -196,6 +191,7 @@ class LiveJokerScoreProjector:
             state_after_scoring=safe_state,
             cards_after_copy=tuple(safe_cards),
             unsupported_jokers=unsupported,
+            played_card_retriggers=played_card_retriggers,
         )
 
     def _prepare_hand_play(self, hand, state, cards, jokers) -> dict:
@@ -222,6 +218,24 @@ class LiveJokerScoreProjector:
         for joker in active:
             context = joker.apply(context)
         return context.data
+
+    @staticmethod
+    def _seltzer_retriggers(jokers) -> int:
+        return sum(
+            1
+            for joker in jokers
+            if type(joker).__name__ == "SeltzerJoker"
+            and int(getattr(joker, "rounds_remaining", 0) or 0) > 0
+        )
+
+    @staticmethod
+    def _consume_seltzer_hand(jokers) -> None:
+        for joker in jokers:
+            if type(joker).__name__ != "SeltzerJoker":
+                continue
+            remaining = int(getattr(joker, "rounds_remaining", 0) or 0)
+            if remaining > 0:
+                joker.rounds_remaining = remaining - 1
 
     @classmethod
     def _requires_card_isolation(cls, jokers) -> bool:
