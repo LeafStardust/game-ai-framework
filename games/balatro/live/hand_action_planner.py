@@ -16,11 +16,25 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
     slots by the generic priority. Beam widths therefore stay bounded while D1
     sees materially different actions instead of near-duplicates.
 
-    A guaranteed immediate blind clear is terminal for D1. When one is currently
-    visible, discard branches are suppressed entirely and only guaranteed clearing
-    plays are returned. This prevents expectimax from spending an unnecessary
-    discard to chase a higher terminal score after the blind can already be won.
+    Root Play candidates remain exhaustive so a visible guaranteed blind clear is
+    never hidden by search optimization. Recursive hypothetical states first use
+    a deterministic public-state-only shortlist grouped by poker hand and selected
+    card count, then run the expensive Joker/score projection only on those
+    representatives. This keeps child beam construction bounded without using
+    hidden draw order or mutating authoritative state.
     """
+
+    _HAND_STRENGTH = {
+        "HIGH_CARD": 0,
+        "PAIR": 1,
+        "TWO_PAIR": 2,
+        "THREE_OF_A_KIND": 3,
+        "STRAIGHT": 4,
+        "FLUSH": 5,
+        "FULL_HOUSE": 6,
+        "FOUR_OF_A_KIND": 7,
+        "STRAIGHT_FLUSH": 8,
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -74,9 +88,21 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         self._play_projection_cache = {}
         try:
             plays = self.action_generator.generate_play_actions(state)
+
+            # rank_plans()/plan() construct the root beam before the first search
+            # node is consumed. Keep that visible root exhaustive. Recursive child
+            # beams have already consumed at least one node, so only they use the
+            # cheap deterministic shortlist.
+            root_beam = self.nodes_evaluated == 0
+            projected_plays = (
+                plays
+                if root_beam
+                else self._shortlist_child_plays(state, plays, play_limit)
+            )
+
             guaranteed_clears = [
                 action
-                for action in plays
+                for action in projected_plays
                 if self._play_projection(state, action).clears_blind
             ]
             if guaranteed_clears:
@@ -86,7 +112,11 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
                     reverse=True,
                 )[: max(0, play_limit)]
 
-            ranked_plays = self._diverse_play_beam(state, plays, play_limit)
+            ranked_plays = self._diverse_play_beam(
+                state,
+                projected_plays,
+                play_limit,
+            )
 
             if (
                 not allow_discards
@@ -104,6 +134,70 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             return ranked_plays + ranked_discards
         finally:
             self._play_projection_cache = previous_cache
+
+    def _shortlist_child_plays(self, state, plays, play_limit: int):
+        """Keep diverse cheap representatives before expensive child projection.
+
+        Bucketing by evaluated poker hand and selected-card count preserves
+        strategically distinct scoring structures and redraw sizes. Within each
+        bucket, visible scoring-card chips and retained-hand structure provide a
+        deterministic public-state-only ordering. No Joker transition projection
+        occurs here; that remains reserved for the much smaller returned set.
+        """
+        if not plays:
+            return []
+
+        representatives = max(2, min(4, max(1, play_limit) * 2))
+        buckets: dict[tuple[str, int], list] = {}
+        cheap_priorities: dict[tuple[int, ...], tuple] = {}
+
+        for action in plays:
+            hand = self.evaluator.hand_evaluator.evaluate(action.cards)
+            key = (hand.value, len(action.cards))
+            buckets.setdefault(key, []).append(action)
+            cheap_priorities[self._action_identity(action)] = self._cheap_play_priority(
+                state,
+                action,
+                hand,
+            )
+
+        chosen = []
+        chosen_keys = set()
+        for key in sorted(
+            buckets,
+            key=lambda item: (self._HAND_STRENGTH.get(item[0], -1), item[1]),
+            reverse=True,
+        ):
+            ranked = sorted(
+                buckets[key],
+                key=lambda action: cheap_priorities[self._action_identity(action)],
+                reverse=True,
+            )
+            for action in ranked[:representatives]:
+                identity = self._action_identity(action)
+                if identity in chosen_keys:
+                    continue
+                chosen.append(action)
+                chosen_keys.add(identity)
+
+        return chosen
+
+    def _cheap_play_priority(self, state, action, hand):
+        scoring = self.evaluator.scorer.scoring_cards(hand, action.cards)
+        visible_chips = sum(
+            float(self.evaluator.scorer.card_chip_value(card))
+            for card in scoring
+        )
+        kept = self._kept_cards(state.hand, action.cards)
+        retained_structure = self.evaluator._retained_structure_value(kept)
+        cycle_cost = sum(self._cycle_cost(card) for card in action.cards)
+        return (
+            self._HAND_STRENGTH.get(hand.value, -1),
+            visible_chips,
+            retained_structure,
+            -cycle_cost,
+            -len(action.cards),
+        )
 
     def _diverse_play_beam(self, state, plays, limit: int):
         if limit <= 0 or not plays:
