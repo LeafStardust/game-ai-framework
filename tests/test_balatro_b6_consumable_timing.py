@@ -1,9 +1,9 @@
 from games.balatro.actions import USE_CONSUMABLE
 from games.balatro.card import BalatroCard
-from games.balatro.jokers.fibonacci import FibonacciJoker
+from games.balatro.jokers.ancient_joker import AncientJoker
 from games.balatro.live.consumable_timing import HOLD, USE, LiveConsumableTimingPolicy
 from games.balatro.state import BalatroState
-from games.balatro.tarots import Hermit, Strength
+from games.balatro.tarots import Hermit, Strength, Sun
 
 
 class _Blind:
@@ -81,20 +81,26 @@ def test_final_hand_uses_positive_immediate_strength_gain():
 
 def test_full_consumable_slots_can_use_positive_build_context_target():
     four = BalatroCard("4", "Clubs")
-    five = BalatroCard("5", "Hearts")
-    state = _state([four, five])
-    state.jokers = [FibonacciJoker()]
-    strength = Strength()
-    state.consumables = [strength]
+    state = _state([four])
+    ancient = AncientJoker()
+    ancient.suit = "Hearts"
+    state.jokers = [ancient]
+    sun = Sun()
+    state.consumables = [sun]
     state.consumable_slots = 1
 
-    recommendation = LiveConsumableTimingPolicy().recommend(state, strength)
+    recommendation = LiveConsumableTimingPolicy().recommend(state, sun)
 
     assert recommendation.decision == USE
     assert recommendation.target is not None
     assert recommendation.target.target_indices == (0,)
     assert recommendation.target.cards == (four,)
     assert recommendation.target.contextual_delta > 0.0
+    assert recommendation.after_projection is not None
+    assert (
+        recommendation.after_projection.expected_hand_score
+        >= recommendation.before_projection.expected_hand_score
+    )
     assert any("full consumable slots" in note for note in recommendation.rationale)
 
 
