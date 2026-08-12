@@ -366,7 +366,7 @@ def test_two_action_planner_carries_ice_cream_decay_into_second_play():
     assert ice_cream.chips == 100
 
 
-def test_remaining_hydrated_projection_blockers_stay_fail_closed():
+def test_final_hydrated_projection_jokers_are_admitted_together():
     ace = BalatroCard("A", "Spades")
     state = _state([ace])
 
@@ -385,16 +385,16 @@ def test_remaining_hydrated_projection_blockers_stay_fail_closed():
         [ace],
     )
 
-    assert transition.distribution.minimum == 16
-    assert transition.joker_projection_complete is False
-    assert transition.unsupported_jokers == (
-        "Canio",
-        "LuckyCat",
-        "Seltzer",
-    )
+    # Seltzer retriggers the Ace once: 5 base + 22 card Chips = 27. Canio x3 and
+    # Lucky Cat x2 then give 27 * 1 * 6 = 162.
+    assert transition.distribution.minimum == 162
+    assert transition.distribution.maximum == 162
+    assert transition.joker_projection_complete is True
+    assert transition.unsupported_jokers == ()
     assert canio.x_mult == 3.0
     assert lucky_cat.x_mult == 2.0
     assert seltzer.rounds_remaining == 7
+    assert transition.state_after_scoring.jokers[2].rounds_remaining == 6
 
 
 def test_unsupported_joker_is_reported_and_not_silently_applied():
