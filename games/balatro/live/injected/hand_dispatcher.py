@@ -49,14 +49,22 @@ def _hand_action_complete(
         return False
 
     if action_name == PLAY_CARDS:
+        # HAND_PLAYED and other scoring/animation phases are transient. A Play
+        # checkpoint is authoritative only once Balatro has either returned to
+        # SELECTING_HAND for the next decision or entered ROUND_EVAL because the
+        # blind ended. This prevents the dispatcher from returning before score,
+        # draw, Joker, and blind-resolution events have completed.
+        if after.phase == "ROUND_EVAL":
+            return True
+        if after.phase != "SELECTING_HAND":
+            return False
+
         before_hands = _round_resource(before, "hands_left")
         after_hands = _round_resource(after, "hands_left")
-        if (
+        return (
             before_hands is not None
             and after_hands == before_hands - 1
-        ):
-            return True
-        return after.phase == "ROUND_EVAL"
+        )
 
     if action_name == DISCARD_CARDS:
         before_discards = _round_resource(before, "discards_left")
