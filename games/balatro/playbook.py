@@ -66,7 +66,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
             deck="RED",
             stake="WHITE",
             name="red-white",
-            version="0.2",
+            version="0.3",
             strategy={
                 "risk_tolerance": "moderate",
                 "planner": {
@@ -76,6 +76,19 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                     "min_pace_ratio": 1.0,
                     "max_horizon": 8,
                     "max_search_nodes": 10000,
+                },
+                "decision_thresholds": {
+                    "hand_action": {
+                        "play_clear_probability_floor": 0.75,
+                        "discard_clear_probability_advantage": 0.05,
+                        "discard_progress_advantage": 0.08,
+                        "low_discard_reserve": 1,
+                        "low_discard_extra_clear_advantage": 0.05,
+                        "low_discard_extra_progress_advantage": 0.04,
+                        "low_hand_reserve": 1,
+                        "low_hand_clear_advantage_discount": 0.03,
+                        "low_hand_progress_advantage_discount": 0.03,
+                    },
                 },
             },
         )
