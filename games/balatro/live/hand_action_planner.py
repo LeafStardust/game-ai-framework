@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 
 
@@ -21,12 +22,11 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
     plays are returned. This prevents expectimax from spending an unnecessary
     discard to chase a higher terminal score after the blind can already be won.
 
-    Root Play candidates remain exhaustive so a visible guaranteed blind clear is
-    never hidden by search optimization. Recursive hypothetical states first use
-    a deterministic public-state-only shortlist grouped by poker hand and selected
-    card count, then run the expensive Joker/score projection only on those
-    representatives. This keeps child beam construction bounded without using
-    hidden draw order or mutating authoritative state.
+    Root Play/Discard candidates remain exhaustive so currently visible decisions
+    keep full coverage. Recursive hypothetical states never enumerate every card
+    subset. They construct a small deterministic public-state-only candidate set
+    directly from the visible hand, then run expensive Joker/score projection only
+    on those representatives. Hidden draw order is never consulted.
     """
 
     _HAND_STRENGTH = {
@@ -40,7 +40,7 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         "FOUR_OF_A_KIND": 7,
         "STRAIGHT_FLUSH": 8,
     }
-    _MAX_CHILD_PROJECTED_PLAYS = 10
+    _MAX_CHILD_PROJECTED_PLAYS = 6
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -85,30 +85,22 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             self.discard_width if discard_width is None else int(discard_width)
         )
 
-        # Candidate construction can inspect the same Play several times: once
-        # for terminal-clear detection, again for ranking, and again while
-        # preserving redraw-size diversity. Cache only for this one state/beam;
-        # recursive search states get a fresh cache so hypothetical states are
-        # never retained for the lifetime of the whole search.
         previous_cache = self._play_projection_cache
         self._play_projection_cache = {}
         try:
-            plays = self.action_generator.generate_play_actions(state)
-
-            # rank_plans()/plan() construct the root beam before the first search
-            # node is consumed. Keep that visible root exhaustive. Recursive child
-            # beams have already consumed at least one node, so only they use the
-            # cheap deterministic shortlist.
+            # rank_plans()/plan() construct the authoritative root beam before the
+            # first search node is consumed. Recursive child beams have already
+            # consumed at least one node and therefore use bounded direct candidate
+            # construction instead of enumerating every subset.
             root_beam = self.nodes_evaluated == 0
-            projected_plays = (
-                plays
-                if root_beam
-                else self._shortlist_child_plays(state, plays, play_limit)
-            )
+            if root_beam:
+                plays = self.action_generator.generate_play_actions(state)
+            else:
+                plays = self._child_play_candidates(state, play_limit)
 
             guaranteed_clears = [
                 action
-                for action in projected_plays
+                for action in plays
                 if self._play_projection(state, action).clears_blind
             ]
             if guaranteed_clears:
@@ -120,7 +112,7 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
 
             ranked_plays = self._diverse_play_beam(
                 state,
-                projected_plays,
+                plays,
                 play_limit,
             )
 
@@ -131,7 +123,10 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             ):
                 return ranked_plays
 
-            discards = self.action_generator.generate_discard_actions(state)
+            if root_beam:
+                discards = self.action_generator.generate_discard_actions(state)
+            else:
+                discards = self._child_discard_candidates(state)
             ranked_discards = self._diverse_discard_beam(
                 state,
                 discards,
@@ -141,96 +136,122 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         finally:
             self._play_projection_cache = previous_cache
 
-    def _shortlist_child_plays(self, state, plays, play_limit: int):
-        """Keep a hard-bounded diverse set before expensive child projection.
-
-        All visible subsets receive only a cheap poker-hand/chip key. The returned
-        set first preserves one representative for each selected-card count, then
-        adds distinct poker-hand categories and finally the strongest remaining
-        cheap candidates. Expensive Joker/score projection is therefore capped at
-        five candidates for the normal one-wide child beam and ten for wider child
-        beams. No retained-structure scan or Joker transition projection occurs in
-        this prefilter.
-        """
-        if not plays:
+    def _child_play_candidates(self, state, play_limit: int):
+        """Construct a bounded strategic child Play set without subset scans."""
+        hand = list(getattr(state, "hand", ()))
+        if not hand:
             return []
+
+        max_cards = min(self.action_generator.MAX_SELECTED_CARDS, len(hand))
+        candidates: dict[tuple[int, ...], BalatroAction] = {}
+
+        def add(cards) -> None:
+            cards = list(cards)[:max_cards]
+            if not cards:
+                return
+            action = BalatroAction(PLAY_CARDS, cards=cards)
+            candidates.setdefault(self._action_identity(action), action)
+
+        # Cheap high-chip prefixes guarantee basic coverage for every selectable
+        # card count without constructing combinations.
+        high_cards = sorted(hand, key=self._card_visible_value, reverse=True)
+        for amount in range(1, max_cards + 1):
+            add(high_cards[:amount])
+
+        by_rank: dict[str, list] = {}
+        by_suit: dict[str, list] = {}
+        for card in hand:
+            by_rank.setdefault(str(getattr(card, "rank", "")), []).append(card)
+            by_suit.setdefault(str(getattr(card, "suit", "")), []).append(card)
+
+        rank_groups = sorted(
+            by_rank.values(),
+            key=lambda cards: (len(cards), sum(self._card_visible_value(c) for c in cards)),
+            reverse=True,
+        )
+        for cards in rank_groups:
+            if len(cards) >= 2:
+                add(sorted(cards, key=self._card_visible_value, reverse=True)[:4])
+
+        pairs = [cards for cards in rank_groups if len(cards) >= 2]
+        triples = [cards for cards in rank_groups if len(cards) >= 3]
+        if len(pairs) >= 2:
+            add(pairs[0][:2] + pairs[1][:2])
+        if triples:
+            pair = next((cards for cards in pairs if cards is not triples[0]), None)
+            if pair is not None:
+                add(triples[0][:3] + pair[:2])
+
+        # Flushes and straights are generated directly from rank/suit maps.
+        for cards in by_suit.values():
+            if len(cards) >= 5:
+                add(sorted(cards, key=self._card_visible_value, reverse=True)[:5])
+
+        add(self._best_straight_cards(hand))
+        for cards in by_suit.values():
+            add(self._best_straight_cards(cards))
 
         projection_limit = min(
             self._MAX_CHILD_PROJECTED_PLAYS,
-            max(5, max(1, play_limit) * 5),
+            max(3, max(1, play_limit) * 3),
         )
-        metadata = []
-        for action in plays:
-            hand = self.evaluator.hand_evaluator.evaluate(action.cards)
-            metadata.append(
-                (
-                    action,
-                    hand,
-                    self._cheap_play_priority(state, action, hand),
-                )
-            )
-
-        chosen = []
-        chosen_keys = set()
-
-        def add_best(candidates) -> None:
-            if not candidates or len(chosen) >= projection_limit:
-                return
-            action, _hand, _priority = max(candidates, key=lambda item: item[2])
-            identity = self._action_identity(action)
-            if identity in chosen_keys:
-                return
-            chosen.append(action)
-            chosen_keys.add(identity)
-
-        max_cards = min(
-            self.action_generator.MAX_SELECTED_CARDS,
-            len(getattr(state, "hand", [])),
-        )
-        for amount in range(1, max_cards + 1):
-            add_best([item for item in metadata if len(item[0].cards) == amount])
-
-        hand_values = sorted(
-            {item[1].value for item in metadata},
-            key=lambda value: self._HAND_STRENGTH.get(value, -1),
+        ranked = sorted(
+            candidates.values(),
+            key=self._direct_child_play_priority,
             reverse=True,
         )
-        for value in hand_values:
-            add_best([item for item in metadata if item[1].value == value])
-            if len(chosen) >= projection_limit:
-                return chosen
+        return ranked[:projection_limit]
 
-        for action, _hand, _priority in sorted(
-            metadata,
-            key=lambda item: item[2],
-            reverse=True,
-        ):
-            identity = self._action_identity(action)
-            if identity in chosen_keys:
-                continue
-            chosen.append(action)
-            chosen_keys.add(identity)
-            if len(chosen) >= projection_limit:
-                break
-        return chosen
+    def _child_discard_candidates(self, state):
+        """Construct one deterministic low-value discard for each redraw size."""
+        hand = list(getattr(state, "hand", ()))
+        if not hand:
+            return []
+        max_cards = min(self.action_generator.MAX_SELECTED_CARDS, len(hand))
+        low_cards = sorted(hand, key=self._card_visible_value)
+        return [
+            BalatroAction(DISCARD_CARDS, cards=low_cards[:amount])
+            for amount in range(1, max_cards + 1)
+        ]
 
-    def _cheap_play_priority(self, state, action, hand):
-        del state
+    def _direct_child_play_priority(self, action):
+        hand = self.evaluator.hand_evaluator.evaluate(action.cards)
         scoring = self.evaluator.scorer.scoring_cards(hand, action.cards)
-        visible_chips = sum(
-            float(self.evaluator.scorer.card_chip_value(card))
-            for card in scoring
-        )
-        scoring_ids = {id(card) for card in scoring}
-        cycled = [card for card in action.cards if id(card) not in scoring_ids]
-        cycle_cost = sum(self._cycle_cost(card) for card in cycled)
+        visible_chips = sum(self._card_visible_value(card) for card in scoring)
         return (
             self._HAND_STRENGTH.get(hand.value, -1),
             visible_chips,
             len(scoring),
-            -cycle_cost,
             -len(action.cards),
         )
+
+    def _best_straight_cards(self, cards):
+        best_by_value = {}
+        for card in cards:
+            value = self.evaluator.RANK_ORDER.get(str(getattr(card, "rank", "")))
+            if value is None:
+                continue
+            current = best_by_value.get(value)
+            if current is None or self._card_visible_value(card) > self._card_visible_value(current):
+                best_by_value[value] = card
+
+        sequences = ([14, 5, 4, 3, 2],) + tuple(
+            list(range(high, high - 5, -1)) for high in range(14, 5, -1)
+        )
+        for sequence in sequences:
+            if all(value in best_by_value for value in sequence):
+                return [best_by_value[value] for value in sequence]
+        return []
+
+    def _card_visible_value(self, card) -> float:
+        value = float(self.evaluator.scorer.card_chip_value(card))
+        if getattr(card, "enhancement", None):
+            value += 30.0
+        if getattr(card, "edition", None):
+            value += 25.0
+        if getattr(card, "seal", None):
+            value += 20.0
+        return value
 
     def _diverse_play_beam(self, state, plays, limit: int):
         if limit <= 0 or not plays:
