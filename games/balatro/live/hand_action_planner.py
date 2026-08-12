@@ -16,6 +16,11 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
     slots by the generic priority. Beam widths therefore stay bounded while D1
     sees materially different actions instead of near-duplicates.
 
+    A guaranteed immediate blind clear is terminal for D1. When one is currently
+    visible, discard branches are suppressed entirely and only guaranteed clearing
+    plays are returned. This prevents expectimax from spending an unnecessary
+    discard to chase a higher terminal score after the blind can already be won.
+
     Root Play candidates remain exhaustive so a visible guaranteed blind clear is
     never hidden by search optimization. Recursive hypothetical states first use
     a deterministic public-state-only shortlist grouped by poker hand and selected
@@ -35,6 +40,7 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         "FOUR_OF_A_KIND": 7,
         "STRAIGHT_FLUSH": 8,
     }
+    _MAX_CHILD_PROJECTED_PLAYS = 10
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -136,65 +142,92 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             self._play_projection_cache = previous_cache
 
     def _shortlist_child_plays(self, state, plays, play_limit: int):
-        """Keep diverse cheap representatives before expensive child projection.
+        """Keep a hard-bounded diverse set before expensive child projection.
 
-        Bucketing by evaluated poker hand and selected-card count preserves
-        strategically distinct scoring structures and redraw sizes. Within each
-        bucket, visible scoring-card chips and retained-hand structure provide a
-        deterministic public-state-only ordering. No Joker transition projection
-        occurs here; that remains reserved for the much smaller returned set.
+        All visible subsets receive only a cheap poker-hand/chip key. The returned
+        set first preserves one representative for each selected-card count, then
+        adds distinct poker-hand categories and finally the strongest remaining
+        cheap candidates. Expensive Joker/score projection is therefore capped at
+        five candidates for the normal one-wide child beam and ten for wider child
+        beams. No retained-structure scan or Joker transition projection occurs in
+        this prefilter.
         """
         if not plays:
             return []
 
-        representatives = max(2, min(4, max(1, play_limit) * 2))
-        buckets: dict[tuple[str, int], list] = {}
-        cheap_priorities: dict[tuple[int, ...], tuple] = {}
-
+        projection_limit = min(
+            self._MAX_CHILD_PROJECTED_PLAYS,
+            max(5, max(1, play_limit) * 5),
+        )
+        metadata = []
         for action in plays:
             hand = self.evaluator.hand_evaluator.evaluate(action.cards)
-            key = (hand.value, len(action.cards))
-            buckets.setdefault(key, []).append(action)
-            cheap_priorities[self._action_identity(action)] = self._cheap_play_priority(
-                state,
-                action,
-                hand,
+            metadata.append(
+                (
+                    action,
+                    hand,
+                    self._cheap_play_priority(state, action, hand),
+                )
             )
 
         chosen = []
         chosen_keys = set()
-        for key in sorted(
-            buckets,
-            key=lambda item: (self._HAND_STRENGTH.get(item[0], -1), item[1]),
+
+        def add_best(candidates) -> None:
+            if not candidates or len(chosen) >= projection_limit:
+                return
+            action, _hand, _priority = max(candidates, key=lambda item: item[2])
+            identity = self._action_identity(action)
+            if identity in chosen_keys:
+                return
+            chosen.append(action)
+            chosen_keys.add(identity)
+
+        max_cards = min(
+            self.action_generator.MAX_SELECTED_CARDS,
+            len(getattr(state, "hand", [])),
+        )
+        for amount in range(1, max_cards + 1):
+            add_best([item for item in metadata if len(item[0].cards) == amount])
+
+        hand_values = sorted(
+            {item[1].value for item in metadata},
+            key=lambda value: self._HAND_STRENGTH.get(value, -1),
+            reverse=True,
+        )
+        for value in hand_values:
+            add_best([item for item in metadata if item[1].value == value])
+            if len(chosen) >= projection_limit:
+                return chosen
+
+        for action, _hand, _priority in sorted(
+            metadata,
+            key=lambda item: item[2],
             reverse=True,
         ):
-            ranked = sorted(
-                buckets[key],
-                key=lambda action: cheap_priorities[self._action_identity(action)],
-                reverse=True,
-            )
-            for action in ranked[:representatives]:
-                identity = self._action_identity(action)
-                if identity in chosen_keys:
-                    continue
-                chosen.append(action)
-                chosen_keys.add(identity)
-
+            identity = self._action_identity(action)
+            if identity in chosen_keys:
+                continue
+            chosen.append(action)
+            chosen_keys.add(identity)
+            if len(chosen) >= projection_limit:
+                break
         return chosen
 
     def _cheap_play_priority(self, state, action, hand):
+        del state
         scoring = self.evaluator.scorer.scoring_cards(hand, action.cards)
         visible_chips = sum(
             float(self.evaluator.scorer.card_chip_value(card))
             for card in scoring
         )
-        kept = self._kept_cards(state.hand, action.cards)
-        retained_structure = self.evaluator._retained_structure_value(kept)
-        cycle_cost = sum(self._cycle_cost(card) for card in action.cards)
+        scoring_ids = {id(card) for card in scoring}
+        cycled = [card for card in action.cards if id(card) not in scoring_ids]
+        cycle_cost = sum(self._cycle_cost(card) for card in cycled)
         return (
             self._HAND_STRENGTH.get(hand.value, -1),
             visible_chips,
-            retained_structure,
+            len(scoring),
             -cycle_cost,
             -len(action.cards),
         )
