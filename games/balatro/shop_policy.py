@@ -12,9 +12,13 @@ from games.balatro.actions import (
 )
 from games.balatro.build import (
     ContextualConsumableSynergyEvaluator,
+    JokerBuildTransition,
+    JokerBuildTransitionPlanner,
     JokerBuildValueEvaluator,
+    JokerReplacementOption,
 )
 from games.balatro.consumable import PlanetCard
+from games.balatro.joker import Joker
 from games.balatro.state import BalatroState
 
 
@@ -31,6 +35,25 @@ class ShopActionScore:
     reserve_penalty: float = 0.0
     slot_penalty: float = 0.0
     notes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ShopJokerRecommendation:
+    """Build/economy recommendation for one observable shop Joker.
+
+    ``BUY`` is the only result that carries an executable action. ``REPLACE`` is
+    deliberately advisory until Joker sell/replace execution exists; its replacement
+    option exposes the whole-build delta and the exact incumbent slot. ``HOLD`` means
+    the candidate should not be bought under the current build/economy state.
+    """
+
+    decision: str
+    candidate: object
+    build_transition: JokerBuildTransition
+    executable_action: BalatroAction | None = None
+    shop_score: ShopActionScore | None = None
+    replacement: JokerReplacementOption | None = None
+    rationale: tuple[str, ...] = ()
 
 
 class ShopItemValueEstimator(Protocol):
@@ -225,6 +248,7 @@ class BalatroShopPolicy:
         self,
         item_value_estimator: ShopItemValueEstimator | None = None,
         *,
+        joker_transition_planner: JokerBuildTransitionPlanner | None = None,
         price_weight: float = 0.35,
         interest_weight: float = 1.25,
         reserve_target: int = 5,
@@ -237,6 +261,14 @@ class BalatroShopPolicy:
         self.item_value_estimator = (
             item_value_estimator or DefaultShopItemValueEstimator()
         )
+        if joker_transition_planner is not None:
+            self.joker_transition_planner = joker_transition_planner
+        elif isinstance(self.item_value_estimator, DefaultShopItemValueEstimator):
+            self.joker_transition_planner = JokerBuildTransitionPlanner(
+                evaluator=self.item_value_estimator.joker_build_value,
+            )
+        else:
+            self.joker_transition_planner = JokerBuildTransitionPlanner()
         self.price_weight = price_weight
         self.interest_weight = interest_weight
         self.reserve_target = max(0, reserve_target)
@@ -264,7 +296,18 @@ class BalatroShopPolicy:
         if state.phase != "SHOP":
             raise ValueError("shop policy requires SHOP phase")
 
-        scores = [self.score_action(state, action) for action in actions]
+        scores: list[ShopActionScore] = []
+        for action in actions:
+            if action.name == BUY_JOKER and isinstance(action.target, Joker):
+                recommendation = self.recommend_joker(state, action.target)
+                if recommendation.decision != "BUY":
+                    continue
+                if recommendation.shop_score is None:
+                    raise RuntimeError("BUY Joker recommendation is missing its shop score")
+                scores.append(recommendation.shop_score)
+                continue
+            scores.append(self.score_action(state, action))
+
         return sorted(
             scores,
             key=lambda result: (
@@ -272,6 +315,104 @@ class BalatroShopPolicy:
                 result.action.name == END_SHOP,
             ),
             reverse=True,
+        )
+
+    def recommend_jokers(
+        self,
+        state: BalatroState,
+    ) -> tuple[ShopJokerRecommendation, ...]:
+        """Evaluate all observable shop Jokers, including full-row replacements."""
+        if state.phase != "SHOP":
+            raise ValueError("shop policy requires SHOP phase")
+        return tuple(
+            self.recommend_joker(state, candidate)
+            for candidate in state.shop_jokers
+        )
+
+    def recommend_joker(
+        self,
+        state: BalatroState,
+        candidate: object,
+    ) -> ShopJokerRecommendation:
+        """Map build transition semantics onto safe shop-level Joker advice.
+
+        A free-slot ``ADD`` may become an executable ``BUY`` after ordinary shop
+        economics are checked. A build ``HOLD`` is rejected. A ``REPLACE`` exposes
+        the best incumbent and whole-build delta but never synthesizes a direct buy,
+        sell, or compound action.
+        """
+        if state.phase != "SHOP":
+            raise ValueError("shop policy requires SHOP phase")
+
+        transition = self.joker_transition_planner.plan(state, candidate)
+
+        if transition.action == "HOLD":
+            return ShopJokerRecommendation(
+                decision="HOLD",
+                candidate=candidate,
+                build_transition=transition,
+                rationale=transition.rationale,
+            )
+
+        if transition.action == "REPLACE":
+            replacement = transition.replacement
+            replacement_notes = replacement.rationale if replacement is not None else ()
+            return ShopJokerRecommendation(
+                decision="REPLACE",
+                candidate=candidate,
+                build_transition=transition,
+                replacement=replacement,
+                rationale=(
+                    *transition.rationale,
+                    *replacement_notes,
+                    "replacement is advisory only; sell/buy execution is not enabled",
+                ),
+            )
+
+        if transition.action != "ADD":
+            raise ValueError(
+                f"unsupported Joker build transition {transition.action!r}"
+            )
+
+        price = self._price(candidate)
+        if state.money < price:
+            return ShopJokerRecommendation(
+                decision="HOLD",
+                candidate=candidate,
+                build_transition=transition,
+                rationale=(
+                    *transition.rationale,
+                    f"candidate costs ${price} but only ${state.money} is available",
+                ),
+            )
+
+        action = BalatroAction(BUY_JOKER, target=candidate)
+        shop_score = self.score_action(state, action)
+        if shop_score.total <= self.hold_bias:
+            return ShopJokerRecommendation(
+                decision="HOLD",
+                candidate=candidate,
+                build_transition=transition,
+                shop_score=shop_score,
+                rationale=(
+                    *transition.rationale,
+                    *shop_score.notes,
+                    f"shop score={shop_score.total:.3f} does not beat "
+                    f"hold={self.hold_bias:.3f}",
+                ),
+            )
+
+        return ShopJokerRecommendation(
+            decision="BUY",
+            candidate=candidate,
+            build_transition=transition,
+            executable_action=action,
+            shop_score=shop_score,
+            rationale=(
+                *transition.rationale,
+                *shop_score.notes,
+                f"shop score={shop_score.total:.3f} beats hold={self.hold_bias:.3f}",
+            ),
         )
 
     def score_action(
@@ -289,6 +430,12 @@ class BalatroShopPolicy:
         if action.name not in {BUY_JOKER, BUY_CONSUMABLE, BUY_VOUCHER}:
             raise ValueError(
                 f"shop policy cannot safely score action {action.name!r} yet"
+            )
+
+        if action.name == BUY_JOKER and len(state.jokers) >= state.joker_slots:
+            raise ValueError(
+                "direct BUY_JOKER requires a free Joker slot; "
+                "use recommend_joker() for advisory replacement planning"
             )
 
         price = self._price(action.target)
