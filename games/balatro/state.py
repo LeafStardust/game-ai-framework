@@ -42,6 +42,13 @@ class BalatroState(GameState):
             "FOUR_OF_A_KIND": 1,
             "STRAIGHT_FLUSH": 1
         }
+        # Public run-history count for each poker hand. Live observation derives
+        # this from the ordinary G.GAME.hands[*].played counters; no hidden draw or
+        # RNG state is involved.
+        self.hand_play_counts = {
+            hand: 0
+            for hand in self.hand_levels
+        }
         self.vouchers: list = []
         self.phase: str = "ROUND_START"
         self.glass_cards_destroyed: int = 0
@@ -119,6 +126,7 @@ class BalatroState(GameState):
         new_state.shop_active = self.shop_active
         new_state.consumable_slots = self.consumable_slots
         new_state.hand_levels = self.hand_levels.copy()
+        new_state.hand_play_counts = self.hand_play_counts.copy()
         new_state.vouchers = self.vouchers.copy()
         new_state.phase = self.phase
         new_state.glass_cards_destroyed = self.glass_cards_destroyed
