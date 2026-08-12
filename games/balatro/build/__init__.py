@@ -29,6 +29,19 @@ from .effects import (
     seal_feature,
     suit_feature,
 )
+from .joker_semantics import (
+    CARD_GENERATE,
+    CONSUMABLE_DUPLICATE,
+    DEBT_CAPACITY,
+    DISCARDS_RESOURCE,
+    FREE_REROLL_RESOURCE,
+    HAND_SIZE_RESOURCE,
+    HANDS_RESOURCE,
+    SELL_VALUE_GROWTH,
+    SHOP_DISCOUNT,
+    SemanticEffectDescriptor,
+    SemanticJokerBehaviorAnalyzer,
+)
 from .joker_strategy import (
     JokerBuildTransition,
     JokerBuildTransitionPlanner,
@@ -38,6 +51,10 @@ from .joker_strategy import (
     JokerReplacementOption,
 )
 from .profile import BalatroBuildProfiler, BuildProfile
+from .semantic_synergy import (
+    JokerSemanticValueWeights,
+    SemanticContextualJokerSynergyEvaluator,
+)
 from .synergy import (
     BuildSynergyWeights,
     ContextualBuildEvaluation,
@@ -52,6 +69,8 @@ __all__ = [
     "BuildFeatureClosure",
     "BuildProfile",
     "BuildSynergyWeights",
+    "CARD_GENERATE",
+    "CONSUMABLE_DUPLICATE",
     "CONSUMABLE_GENERATE",
     "ConsumableBehaviorAnalyzer",
     "ConsumableBuildPath",
@@ -60,11 +79,16 @@ __all__ = [
     "ContextualConsumableEvaluation",
     "ContextualConsumableSynergyEvaluator",
     "ContextualJokerSynergyEvaluator",
+    "DEBT_CAPACITY",
     "DECK_REMOVE",
     "DECK_TRANSFORM",
+    "DISCARDS_RESOURCE",
     "ECONOMY",
     "EffectDescriptor",
+    "FREE_REROLL_RESOURCE",
     "HAND_LEVEL",
+    "HAND_SIZE_RESOURCE",
+    "HANDS_RESOURCE",
     "HELD_EFFECT",
     "HELD_RETRIGGER",
     "JOKER_GENERATE",
@@ -77,9 +101,15 @@ __all__ = [
     "JokerPairInteraction",
     "JokerPairInteractionProbe",
     "JokerReplacementOption",
+    "JokerSemanticValueWeights",
     "SCORE_CHIPS",
     "SCORE_MULT",
     "SCORE_XMULT",
+    "SELL_VALUE_GROWTH",
+    "SHOP_DISCOUNT",
+    "SemanticContextualJokerSynergyEvaluator",
+    "SemanticEffectDescriptor",
+    "SemanticJokerBehaviorAnalyzer",
     "SynergyContribution",
     "TARGET_CARD",
     "describe_build_item",
