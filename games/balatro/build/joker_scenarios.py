@@ -247,6 +247,11 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
             data["sold_joker"] = working
 
         before_data = copy.deepcopy(data)
+        # Identity-valued fields are probe inputs, not Joker outputs. Preserve the
+        # exact reference across the before/after comparison so deepcopy itself does
+        # not manufacture a false semantic signal for every Joker.
+        if "sold_joker" in data:
+            before_data["sold_joker"] = data["sold_joker"]
         before_owned = copy.deepcopy(data.get("owned_cards", []))
         score = HandScore(100, 10, 1.0)
         event = (
