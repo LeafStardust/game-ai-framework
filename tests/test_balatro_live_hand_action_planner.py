@@ -2,6 +2,7 @@ from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
+from games.balatro.live.hand_action_policy import LiveHandActionDecisionEngine
 from games.balatro.state import BalatroState
 
 
@@ -31,6 +32,22 @@ def _live_like_state():
     state.blind = Blind(BlindType.SMALL, 300)
     state.jokers = []
     return state
+
+
+def test_d1_decision_engine_defaults_to_diversity_aware_planner():
+    engine = LiveHandActionDecisionEngine()
+
+    assert isinstance(engine.planner, D1LiveBlindClearPlanner)
+
+
+def test_d1_beam_remains_bounded_by_configured_widths():
+    state = _live_like_state()
+    planner = D1LiveBlindClearPlanner(play_width=6, discard_width=4, horizon=2)
+
+    actions = planner._candidate_actions(state, allow_discards=True)
+
+    assert sum(action.name == PLAY_CARDS for action in actions) == 6
+    assert sum(action.name == DISCARD_CARDS for action in actions) == 4
 
 
 def test_d1_play_beam_preserves_pair_plus_trash_cycle_sizes():
