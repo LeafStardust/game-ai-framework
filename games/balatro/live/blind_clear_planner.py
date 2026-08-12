@@ -148,12 +148,12 @@ class LiveBlindClearPlanner:
         )
 
     def _consume_node(self) -> None:
-        if self.max_nodes is not None and self.nodes_evaluated >= self.max_nodes:
+        self.nodes_evaluated += 1
+        if self.max_nodes is not None and self.nodes_evaluated > self.max_nodes:
             raise PlannerSearchBudgetExceeded(
                 "live blind planner search exceeded node budget "
                 f"({self.max_nodes})"
             )
-        self.nodes_evaluated += 1
 
     def _best_value(self, state, depth: int) -> tuple[LiveBlindPlanValue, bool]:
         if self._is_cleared(state):
