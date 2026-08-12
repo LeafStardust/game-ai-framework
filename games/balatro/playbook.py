@@ -66,7 +66,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
             deck="RED",
             stake="WHITE",
             name="red-white",
-            version="0.4",
+            version="0.5",
             strategy={
                 "risk_tolerance": "moderate",
                 "planner": {
