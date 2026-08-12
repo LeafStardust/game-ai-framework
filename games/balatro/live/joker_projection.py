@@ -27,31 +27,42 @@ class JokerScoreProjection:
 
 
 class LiveJokerScoreProjector:
-    """Apply explicitly supported live Jokers on an isolated branch state.
+    """Apply explicitly validated live Jokers on an isolated branch state.
 
-    Mutable Joker run state is reconstructed by the live observer/factory before
-    this layer runs. The stateful classes below are therefore safe to execute on a
-    hypothetical ``HAND_SCORED`` branch without falling back to constructor
-    defaults. Bootstraps remains explicitly admitted from the original validated
-    stateless support.
+    Live-state hydration and score-transition support are separate contracts. A
+    Joker can be reconstructed perfectly from public memory and still require event
+    sequencing or stochastic branch semantics that this ``HAND_SCORED`` projector
+    does not yet model. Such Jokers remain fail-closed and make the projection
+    incomplete instead of silently receiving constructor defaults or partial rules.
 
-    The contract is deliberately fail-closed: adding a new Joker implementation or
-    a new mutable live-state contract does not silently make it part of score
-    projection. Tests require every currently hydrated mutable Joker to be listed
-    here, while still leaving unrelated/stateless projection expansion as a
-    separate validation task.
+    ``SUPPORTED_CLASS_NAMES`` contains only implementations validated against the
+    current score-transition context. ``DEFERRED_HYDRATED_CLASS_NAMES`` explicitly
+    accounts for the remaining mutable hydrated Jokers so new live-state coverage
+    cannot be mistaken for runtime projection coverage.
 
     Live score search is extremely hot code. ``BalatroState.copy()`` already gives
     us independent state containers while deliberately retaining playing-card
     identity. Only Joker objects need a deep copy. This avoids deep-copying the full
-    hand/deck on every hypothetical score probe while still isolating stateful Joker
-    mutation such as Ice Cream decay, Green Joker growth and Runner growth.
+    hand/deck on every hypothetical score probe while still isolating validated
+    stateful mutation such as Ice Cream decay, Green Joker growth and Runner growth.
     """
 
     SUPPORTED_CLASS_NAMES = frozenset(
         {
-            "AncientJoker",
             "BootstrapsJoker",
+            "GreenJoker",
+            "IceCreamJoker",
+            "RunnerJoker",
+        }
+    )
+
+    # These classes have complete mutable-state hydration, but their score/event
+    # transition has not yet been admitted to the exact live projector. Keep this
+    # list explicit: the projection-fidelity audit fails if a newly hydrated class
+    # is neither supported nor deliberately deferred.
+    DEFERRED_HYDRATED_CLASS_NAMES = frozenset(
+        {
+            "AncientJoker",
             "CampfireJoker",
             "CanioJoker",
             "CastleJoker",
@@ -61,11 +72,9 @@ class LiveJokerScoreProjector:
             "EggJoker",
             "FlashCardJoker",
             "FortuneTellerJoker",
-            "GreenJoker",
             "GrosMichelJoker",
             "HitTheRoadJoker",
             "HologramJoker",
-            "IceCreamJoker",
             "InvisibleJoker",
             "LoyaltyCardJoker",
             "LuckyCatJoker",
@@ -75,11 +84,9 @@ class LiveJokerScoreProjector:
             "RamenJoker",
             "RedCardJoker",
             "RideTheBusJoker",
-            "RunnerJoker",
             "SeltzerJoker",
             "SpareTrousersJoker",
             "SquareJoker",
-            "TheIdolJoker",
             "ThrowbackJoker",
             "TurtleBeanJoker",
             "VampireJoker",
@@ -88,12 +95,30 @@ class LiveJokerScoreProjector:
         }
     )
 
+    DEFERRED_REASONS_BY_CLASS = {
+        "LoyaltyCardJoker": (
+            "requires HAND_PLAYED transition sequencing before score projection"
+        ),
+        "LuckyCatJoker": (
+            "requires LUCKY_TRIGGERED stochastic branch-state propagation"
+        ),
+    }
+
     def __init__(self, scorer: BalatroScorer | None = None):
         self.scorer = scorer or BalatroScorer()
 
     @classmethod
     def supports(cls, joker) -> bool:
         return type(joker).__name__ in cls.SUPPORTED_CLASS_NAMES
+
+    @classmethod
+    def deferred_reason(cls, class_name: str) -> str | None:
+        if class_name not in cls.DEFERRED_HYDRATED_CLASS_NAMES:
+            return None
+        return cls.DEFERRED_REASONS_BY_CLASS.get(
+            class_name,
+            "requires explicit HAND_SCORED/event-transition validation",
+        )
 
     def unsupported_jokers(self, state) -> tuple[str, ...]:
         if state is None:

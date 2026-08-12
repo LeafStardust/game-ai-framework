@@ -1,20 +1,17 @@
 from games.balatro.actions import BalatroAction, PLAY_CARDS
 from games.balatro.blinds.blind import Blind, BlindType
-from games.balatro.build.joker_live_state_fidelity import (
-    HYDRATED,
-    JokerLiveStateFidelityAuditor,
-)
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.bootstraps import BootstrapsJoker
 from games.balatro.jokers.green_joker import GreenJoker
 from games.balatro.jokers.ice_cream import IceCreamJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
+from games.balatro.jokers.loyalty_card import LoyaltyCardJoker
+from games.balatro.jokers.lucky_cat import LuckyCatJoker
 from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.live.external.save_observer import _normalize_item
 from games.balatro.live.joker_factory import LiveJokerFactory
-from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.live.score_outcomes import VisibleCardScoreOutcomeModel
 from games.balatro.state import BalatroState
 
@@ -29,18 +26,6 @@ def _state(hand, deck=None, *, target=1000, hands=2, discards=0):
     state.discards_remaining = discards
     state.blind = Blind(BlindType.BIG, target)
     return state
-
-
-def test_all_hydrated_mutable_jokers_are_admitted_by_runtime_score_projection():
-    report = JokerLiveStateFidelityAuditor().audit()
-    hydrated = {
-        entry.class_name
-        for entry in report.entries
-        if entry.status == HYDRATED
-    }
-
-    assert hydrated
-    assert hydrated <= LiveJokerScoreProjector.SUPPORTED_CLASS_NAMES
 
 
 def test_ice_cream_projection_scores_and_decays_only_copied_joker():
@@ -202,6 +187,32 @@ def test_two_action_planner_carries_ice_cream_decay_into_second_play():
     assert plan.value.expected_score == 226.0
     assert plan.exact is True
     assert ice_cream.chips == 100
+
+
+def test_event_incompatible_hydrated_jokers_remain_fail_closed():
+    ace = BalatroCard("A", "Spades")
+    state = _state([ace])
+
+    loyalty = LoyaltyCardJoker()
+    loyalty.hands = 5
+    lucky_cat = LuckyCatJoker()
+    lucky_cat.x_mult = 2.0
+    state.jokers = [loyalty, lucky_cat]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD,
+        state,
+        [ace],
+    )
+
+    # The projector must not claim exactness while HAND_PLAYED/LUCKY_TRIGGERED
+    # branch semantics are still absent. Neither deferred Joker is partially
+    # applied to the score.
+    assert transition.distribution.minimum == 16
+    assert transition.joker_projection_complete is False
+    assert transition.unsupported_jokers == ("LoyaltyCard", "LuckyCat")
+    assert loyalty.hands == 5
+    assert lucky_cat.x_mult == 2.0
 
 
 def test_unsupported_joker_is_reported_and_not_silently_applied():
