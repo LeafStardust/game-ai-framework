@@ -17,6 +17,7 @@ from games.balatro.actions import (
     SKIP_BOOSTER,
     BalatroAction,
 )
+from games.balatro.live.external.live_memory_shop_terms import LiveShopRerollTerms
 from games.balatro.live.injected import (
     FirstPartyBalatroBridge,
     LiveMemoryInjectedActionDispatcher,
@@ -169,13 +170,50 @@ def test_injected_dispatcher_next_round_waits_for_blind_select():
 
 
 def test_injected_dispatcher_reroll_requires_changed_shop_checkpoint():
-    before = _snapshot(7, "SHOP", money=10)
-    after = _snapshot(8, "SHOP", money=9)
+    before = _snapshot(
+        7,
+        "SHOP",
+        money=10,
+        shop_jokers={
+            "cards": [
+                {
+                    "area_index": 0,
+                    "live_id": 1,
+                    "label": "Joker",
+                    "center": "j_joker",
+                    "cost": 2,
+                }
+            ]
+        },
+    )
+    after = _snapshot(
+        8,
+        "SHOP",
+        money=9,
+        shop_jokers={
+            "cards": [
+                {
+                    "area_index": 0,
+                    "live_id": 2,
+                    "label": "Greedy Joker",
+                    "center": "j_greedy_joker",
+                    "cost": 5,
+                }
+            ]
+        },
+    )
     bridge = FakeBridge()
+    terms = iter(
+        [
+            LiveShopRerollTerms(cost=1, free_rerolls=0),
+            LiveShopRerollTerms(cost=2, free_rerolls=0),
+        ]
+    )
     dispatcher = LiveMemoryInjectedActionDispatcher(
         FakeObserver(after),
         bridge=bridge,
         poll_interval=0,
+        reroll_terms_reader=lambda: next(terms),
     )
 
     result = dispatcher.dispatch(BalatroAction(REFRESH_SHOP), snapshot=before)
@@ -217,8 +255,10 @@ def test_injected_reroll_accepts_free_inventory_change():
             ]
         },
     )
+    before_terms = LiveShopRerollTerms(cost=5, free_rerolls=1)
+    after_terms = LiveShopRerollTerms(cost=6, free_rerolls=0)
 
-    assert _reroll_complete(before, after)
+    assert _reroll_complete(before, after, before_terms, after_terms)
 
 
 def test_injected_reroll_rejects_sequence_only_change():
@@ -235,8 +275,10 @@ def test_injected_reroll_rejects_sequence_only_change():
     }
     before = _snapshot(14, "SHOP", money=10, shop_jokers=shop)
     after = _snapshot(15, "SHOP", money=10, shop_jokers=shop)
+    before_terms = LiveShopRerollTerms(cost=1, free_rerolls=0)
+    after_terms = LiveShopRerollTerms(cost=2, free_rerolls=0)
 
-    assert not _reroll_complete(before, after)
+    assert not _reroll_complete(before, after, before_terms, after_terms)
 
 
 @pytest.mark.parametrize(
