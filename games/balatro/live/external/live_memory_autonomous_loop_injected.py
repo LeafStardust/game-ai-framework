@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
-from time import perf_counter
+from time import perf_counter, sleep
 
 from games.balatro.live.injected.bridge import InjectedBridgeError
 
@@ -13,6 +13,7 @@ from .live_memory_autonomous_step_injected import (
     LiveMemoryInjectedSingleStepRunner,
     UnsupportedAutonomousPhase,
     _action_text,
+    _same_snapshot,
     _semantic_payload,
 )
 from .live_memory_observer import LiveMemoryBalatroObserver
@@ -30,6 +31,7 @@ class AutonomousLoopStep:
     observation_seconds: float
     translation_seconds: float
     policy_seconds: float
+    stale_replans: int = 0
     after_phase: str | None = None
     after_sequence: int | None = None
     achievement_gate: str | None = None
@@ -88,19 +90,76 @@ class LiveMemoryInjectedAutonomousLoop:
     Every iteration calls the validated single-step runner again, so execution
     retains its exact stale-state checks, achievement guard, semantic dispatcher,
     and settled postcondition before another decision is even considered.
+
+    ``STATE_COMPLETE`` alone is not sufficient to prove that every public number
+    has stopped animating. Before planning a real action, production runners wait
+    for two consecutive semantically equal public snapshots. If the state still
+    changes after planning, that recommendation is discarded and replanned from
+    the new authoritative checkpoint. Stale replans never consume a gameplay step.
     """
 
-    def __init__(self, runner: LiveMemoryInjectedSingleStepRunner, *, max_steps: int):
+    DEFAULT_STALE_REPLAN_LIMIT = 3
+    DEFAULT_STABILITY_INTERVAL_SECONDS = 0.10
+    DEFAULT_STABILITY_TIMEOUT_SECONDS = 2.0
+
+    def __init__(
+        self,
+        runner: LiveMemoryInjectedSingleStepRunner,
+        *,
+        max_steps: int,
+        stale_replan_limit: int = DEFAULT_STALE_REPLAN_LIMIT,
+        stability_interval_seconds: float = DEFAULT_STABILITY_INTERVAL_SECONDS,
+        stability_timeout_seconds: float = DEFAULT_STABILITY_TIMEOUT_SECONDS,
+    ):
         if max_steps < 1:
             raise ValueError("max_steps must be positive")
+        if stale_replan_limit < 0:
+            raise ValueError("stale_replan_limit cannot be negative")
+        if stability_interval_seconds < 0:
+            raise ValueError("stability_interval_seconds cannot be negative")
+        if stability_timeout_seconds <= 0:
+            raise ValueError("stability_timeout_seconds must be positive")
         self.runner = runner
         self.max_steps = int(max_steps)
+        self.stale_replan_limit = int(stale_replan_limit)
+        self.stability_interval_seconds = float(stability_interval_seconds)
+        self.stability_timeout_seconds = float(stability_timeout_seconds)
 
     def preview(self) -> AutonomousLoopStep:
         started = perf_counter()
         decision = self.runner.decide()
         elapsed = perf_counter() - started
         return self._step(1, decision, elapsed)
+
+    def _wait_for_stable_checkpoint(self):
+        """Wait read-only for two consecutive equal semantic snapshots.
+
+        Test doubles and non-live runners may not expose an observer; in that case
+        the existing runner-level stale guard remains the only authority.
+        """
+        observer = getattr(self.runner, "observer", None)
+        if observer is None or not hasattr(observer, "observe"):
+            return None
+
+        deadline = perf_counter() + self.stability_timeout_seconds
+        previous = observer.observe()
+        while True:
+            if perf_counter() >= deadline:
+                raise AutonomousLoopGuardError(
+                    "live public state did not become semantically stable before planning"
+                )
+
+            if self.stability_interval_seconds:
+                sleep(self.stability_interval_seconds)
+            current = observer.observe()
+
+            if (
+                previous.state_complete
+                and current.state_complete
+                and _same_snapshot(previous, current)
+            ):
+                return current
+            previous = current
 
     def execute(self, *, expected_start_phase: str) -> AutonomousLoopRun:
         if not expected_start_phase:
@@ -110,61 +169,79 @@ class LiveMemoryInjectedAutonomousLoop:
         previous_after_sequence: int | None = None
 
         for number in range(1, self.max_steps + 1):
-            started = perf_counter()
-            try:
-                decision = self.runner.decide()
-            except UnsupportedAutonomousPhase as error:
-                return AutonomousLoopRun(
-                    tuple(completed),
-                    f"unsupported phase: {error}",
-                )
-            elapsed = perf_counter() - started
+            stale_replans = 0
 
-            if number == 1 and decision.snapshot.phase != expected_start_phase:
-                raise AutonomousLoopGuardError(
-                    f"expected start phase {expected_start_phase}, "
-                    f"observed {decision.snapshot.phase}"
-                )
+            while True:
+                self._wait_for_stable_checkpoint()
 
-            if (
-                previous_after_sequence is not None
-                and decision.snapshot.sequence < previous_after_sequence
-            ):
-                raise AutonomousLoopGuardError(
-                    "observer checkpoint sequence regressed between autonomous steps"
-                )
+                started = perf_counter()
+                try:
+                    decision = self.runner.decide()
+                except UnsupportedAutonomousPhase as error:
+                    return AutonomousLoopRun(
+                        tuple(completed),
+                        f"unsupported phase: {error}",
+                    )
+                elapsed = perf_counter() - started
 
-            try:
-                result, status = self.runner.execute(decision)
-            except AutonomousStepGuardError as error:
-                if "live state changed after autonomous planning" not in str(error):
-                    raise
-                latest = self.runner.observer.observe()
-                details = _stale_difference_details(decision, latest)
-                suffix = (
-                    "; semantic differences: " + "; ".join(details)
-                    if details
-                    else "; semantic differences unavailable on follow-up snapshot"
-                )
-                raise AutonomousLoopGuardError(str(error) + suffix) from error
+                if number == 1 and decision.snapshot.phase != expected_start_phase:
+                    raise AutonomousLoopGuardError(
+                        f"expected start phase {expected_start_phase}, "
+                        f"observed {decision.snapshot.phase}"
+                    )
 
-            after = result.after
-            if after.sequence <= decision.snapshot.sequence:
-                raise AutonomousLoopGuardError(
-                    "gameplay action did not advance the authoritative public checkpoint"
-                )
+                if (
+                    previous_after_sequence is not None
+                    and decision.snapshot.sequence < previous_after_sequence
+                ):
+                    raise AutonomousLoopGuardError(
+                        "observer checkpoint sequence regressed between autonomous steps"
+                    )
 
-            completed.append(
-                self._step(
-                    number,
-                    decision,
-                    elapsed,
-                    after_phase=str(after.phase),
-                    after_sequence=int(after.sequence),
-                    achievement_gate=status.get("achievement_gate"),
+                try:
+                    result, status = self.runner.execute(decision)
+                except AutonomousStepGuardError as error:
+                    if "live state changed after autonomous planning" not in str(error):
+                        raise
+
+                    stale_replans += 1
+                    if stale_replans <= self.stale_replan_limit:
+                        # No gameplay command was submitted. Discard the old
+                        # recommendation and restart this same gameplay step from
+                        # a newly stabilized authoritative public checkpoint.
+                        continue
+
+                    latest = self.runner.observer.observe()
+                    details = _stale_difference_details(decision, latest)
+                    suffix = (
+                        "; semantic differences: " + "; ".join(details)
+                        if details
+                        else "; semantic differences unavailable on follow-up snapshot"
+                    )
+                    raise AutonomousLoopGuardError(
+                        "stale-state replan limit exceeded after "
+                        f"{stale_replans} attempts; {error}{suffix}"
+                    ) from error
+
+                after = result.after
+                if after.sequence <= decision.snapshot.sequence:
+                    raise AutonomousLoopGuardError(
+                        "gameplay action did not advance the authoritative public checkpoint"
+                    )
+
+                completed.append(
+                    self._step(
+                        number,
+                        decision,
+                        elapsed,
+                        stale_replans=stale_replans,
+                        after_phase=str(after.phase),
+                        after_sequence=int(after.sequence),
+                        achievement_gate=status.get("achievement_gate"),
+                    )
                 )
-            )
-            previous_after_sequence = int(after.sequence)
+                previous_after_sequence = int(after.sequence)
+                break
 
         return AutonomousLoopRun(tuple(completed), "max steps reached")
 
@@ -174,6 +251,7 @@ class LiveMemoryInjectedAutonomousLoop:
         decision: AutonomousStepDecision,
         decision_seconds: float,
         *,
+        stale_replans: int = 0,
         after_phase: str | None = None,
         after_sequence: int | None = None,
         achievement_gate: str | None = None,
@@ -185,6 +263,7 @@ class LiveMemoryInjectedAutonomousLoop:
             observation_seconds=float(self.runner.last_observation_seconds),
             translation_seconds=float(self.runner.last_translation_seconds),
             policy_seconds=float(self.runner.last_policy_seconds),
+            stale_replans=int(stale_replans),
             after_phase=after_phase,
             after_sequence=after_sequence,
             achievement_gate=achievement_gate,
@@ -200,6 +279,7 @@ def _print_step(step: AutonomousLoopStep, *, executed: bool) -> None:
     print(f"  observation_seconds={step.observation_seconds:.3f}")
     print(f"  translation_seconds={step.translation_seconds:.3f}")
     print(f"  policy_seconds={step.policy_seconds:.3f}")
+    print(f"  stale_replans={step.stale_replans}")
     for note in decision.notes:
         print(f"  {note}")
     if executed:
@@ -271,6 +351,8 @@ def main() -> int:
             print("Execution backend -> game-ai-framework injected Lua bridge")
             print("Persistent observer session -> True")
             print("Fresh decision after every settled checkpoint -> True")
+            print("Pre-plan semantic stability check -> True")
+            print(f"Stale-state replan limit -> {loop.stale_replan_limit}")
             print("Hidden action queue -> False")
             print("Hidden RNG/deck traversal -> False")
             print("Mouse fallback -> False")
@@ -290,8 +372,8 @@ def main() -> int:
                 f"{args.max_steps} real in-process Balatro gameplay actions"
             )
             print(
-                "Execution semantics -> one action, settled checkpoint, fresh "
-                "observation, fresh decision"
+                "Execution semantics -> stabilize, decide one action, settled "
+                "checkpoint, fresh observation, fresh decision"
             )
 
             run = loop.execute(expected_start_phase=args.expect_start_phase)
