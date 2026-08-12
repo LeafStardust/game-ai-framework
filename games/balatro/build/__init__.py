@@ -23,12 +23,23 @@ from .effects import (
     suit_feature,
 )
 from .profile import BalatroBuildProfiler, BuildProfile
+from .synergy import (
+    BuildSynergyWeights,
+    ContextualBuildEvaluation,
+    ContextualJokerSynergyEvaluator,
+    JokerPairInteraction,
+    JokerPairInteractionProbe,
+    SynergyContribution,
+)
 
 __all__ = [
     "BalatroBuildProfiler",
     "BuildProfile",
+    "BuildSynergyWeights",
     "CONSUMABLE_GENERATE",
     "ConsumableBehaviorAnalyzer",
+    "ContextualBuildEvaluation",
+    "ContextualJokerSynergyEvaluator",
     "DECK_REMOVE",
     "DECK_TRANSFORM",
     "ECONOMY",
@@ -38,9 +49,12 @@ __all__ = [
     "HELD_RETRIGGER",
     "JOKER_GENERATE",
     "JokerBehaviorAnalyzer",
+    "JokerPairInteraction",
+    "JokerPairInteractionProbe",
     "SCORE_CHIPS",
     "SCORE_MULT",
     "SCORE_XMULT",
+    "SynergyContribution",
     "TARGET_CARD",
     "describe_build_item",
     "edition_feature",
