@@ -16,19 +16,23 @@ def test_default_registry_selects_red_white_from_live_state():
     playbook = default_balatro_playbooks().for_state(state)
 
     assert playbook.name == "red-white"
-    assert playbook.version == "0.3"
+    assert playbook.version == "0.4"
     assert playbook.key == ("RED", "WHITE")
+
     planner = playbook.strategy["planner"]
-    assert planner["min_clear_probability"] == 0.75
-    assert planner["allow_pace_fallback"] is True
-    assert planner["min_pace_ratio"] == 1.0
+    assert planner["max_horizon"] == 8
+    assert planner["max_search_nodes"] == 5000
+    assert "min_clear_probability" not in planner
+    assert "min_pace_ratio" not in planner
 
     hand_action = playbook.strategy["decision_thresholds"]["hand_action"]
-    assert hand_action["play_clear_probability_floor"] == 0.75
-    assert hand_action["discard_clear_probability_advantage"] == 0.05
-    assert hand_action["discard_progress_advantage"] == 0.08
+    assert hand_action["clear_path_probability_floor"] == 0.75
+    assert hand_action["pace_ratio_floor"] == 1.0
+    assert hand_action["setup_discard_consensus_agreement"] == 3
     assert hand_action["low_discard_reserve"] == 1
+    assert hand_action["low_discard_fallback_penalty"] == 10.0
     assert hand_action["low_hand_reserve"] == 1
+    assert hand_action["low_hand_discard_fallback_bonus"] == 10.0
 
 
 def test_registry_requires_exact_deck_stake_cartridge():
