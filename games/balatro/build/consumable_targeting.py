@@ -22,6 +22,7 @@ class ConsumableTargetEvaluation:
     effective_changes: int
     overwrite_penalty: float
     intrinsic_delta: float = 0.0
+    deck_thinning_gain: float = 0.0
     rationale: tuple[str, ...] = ()
 
 
@@ -33,10 +34,11 @@ class ContextualConsumableTargetEvaluator:
     runs on a deep copy of public state, so target evaluation cannot mutate the
     authoritative state or consume hidden RNG.
 
-    This B6 targeting layer admits deterministic local transformations plus
-    Death's directional public-card copy. Destructive deck thinning, generation,
-    economy, Joker-targeted, and stochastic effects remain fail-closed until their
-    timing/opportunity-cost semantics are modeled.
+    This B6 targeting layer admits deterministic local transformations, Death's
+    directional public-card copy, and Hanged Man when a complete public owned-deck
+    composition is available. Generation, economy, Joker-targeted, and stochastic
+    effects remain fail-closed until their timing/opportunity-cost semantics are
+    modeled.
     """
 
     SUPPORTED_TAROTS = frozenset(
@@ -48,6 +50,7 @@ class ContextualConsumableTargetEvaluator:
             "The Chariot",
             "Justice",
             "Strength",
+            "The Hanged Man",
             "The Devil",
             "The Tower",
             "The Star",
@@ -103,6 +106,7 @@ class ContextualConsumableTargetEvaluator:
         card_evaluator: ContextualPlayingCardSynergyEvaluator | None = None,
         effective_change_value: float = 0.10,
         enhancement_overwrite_penalty: float = 0.35,
+        deck_thinning_value: float = 0.05,
     ) -> None:
         self.profiler = profiler or BalatroBuildProfiler()
         self.card_evaluator = card_evaluator or ContextualPlayingCardSynergyEvaluator(
@@ -110,6 +114,7 @@ class ContextualConsumableTargetEvaluator:
         )
         self.effective_change_value = float(effective_change_value)
         self.enhancement_overwrite_penalty = float(enhancement_overwrite_penalty)
+        self.deck_thinning_value = float(deck_thinning_value)
 
     def supports(self, consumable: object) -> bool:
         return (
@@ -134,6 +139,10 @@ class ContextualConsumableTargetEvaluator:
         if not self.supports(consumable):
             return ()
 
+        name = str(getattr(consumable, "name", ""))
+        if name == "The Hanged Man":
+            return self._rank_hanged_man_targets(state, consumable)
+
         profile = self.profiler.profile(state)
         index_by_id = {id(card): index for index, card in enumerate(state.hand)}
         evaluations: list[ConsumableTargetEvaluation] = []
@@ -154,16 +163,110 @@ class ContextualConsumableTargetEvaluator:
             if evaluation is not None:
                 evaluations.append(evaluation)
 
-        return tuple(
-            sorted(
-                evaluations,
-                key=lambda evaluation: (
-                    -evaluation.total_gain,
-                    -evaluation.effective_changes,
-                    evaluation.target_indices,
+        return self._sorted(evaluations)
+
+    def _rank_hanged_man_targets(
+        self,
+        state: BalatroState,
+        consumable: Consumable,
+    ) -> tuple[ConsumableTargetEvaluation, ...]:
+        owned = self._owned_deck_for_thinning(state)
+        if owned is None or not owned[0]:
+            return ()
+
+        owned_cards, source = owned
+        profile_state = copy.copy(state)
+        profile_state.deck = list(owned_cards)
+        profile = self.profiler.profile(profile_state)
+
+        intrinsic_values = [
+            self._card_intrinsic_value(card)
+            for card in owned_cards
+        ]
+        contextual_values = [
+            self._card_build_value(profile_state, card, profile)
+            for card in owned_cards
+        ]
+        average_intrinsic = sum(intrinsic_values) / len(intrinsic_values)
+        average_contextual = sum(contextual_values) / len(contextual_values)
+
+        index_by_id = {id(card): index for index, card in enumerate(state.hand)}
+        evaluations: list[ConsumableTargetEvaluation] = []
+
+        for group in consumable.get_target_cards(state):
+            if not group or any(id(card) not in index_by_id for card in group):
+                continue
+            indices = tuple(index_by_id[id(card)] for card in group)
+            if len(set(indices)) != len(indices):
+                continue
+
+            cards = [state.hand[index] for index in indices]
+            context = ConsumableContext(state=state, cards=cards)
+            if not consumable.can_use(context):
+                continue
+
+            intrinsic_delta = sum(
+                average_intrinsic - self._card_intrinsic_value(card)
+                for card in cards
+            )
+            contextual_delta = sum(
+                average_contextual
+                - self._card_build_value(profile_state, card, profile)
+                for card in cards
+            )
+            deck_thinning_gain = self.deck_thinning_value * len(cards)
+            total_gain = (
+                intrinsic_delta
+                + contextual_delta
+                + deck_thinning_gain
+            )
+
+            rationale = (
+                f"owned deck source={source}",
+                f"owned deck size={len(owned_cards)}",
+                f"relative intrinsic removal delta={intrinsic_delta:.3f}",
+                f"relative contextual removal delta={contextual_delta:.3f}",
+                f"deck thinning gain={deck_thinning_gain:.3f}",
+                *(
+                    f"destroy {self._card_label(card)}"
+                    for card in cards
                 ),
             )
-        )
+            evaluations.append(
+                ConsumableTargetEvaluation(
+                    target_indices=indices,
+                    cards=tuple(cards),
+                    total_gain=total_gain,
+                    contextual_delta=contextual_delta,
+                    effective_changes=len(cards),
+                    overwrite_penalty=0.0,
+                    intrinsic_delta=intrinsic_delta,
+                    deck_thinning_gain=deck_thinning_gain,
+                    rationale=rationale,
+                )
+            )
+
+        return self._sorted(evaluations)
+
+    @staticmethod
+    def _owned_deck_for_thinning(
+        state: BalatroState,
+    ) -> tuple[list[BalatroCard], str] | None:
+        owned = getattr(state, "owned_deck", None)
+        if owned is not None:
+            return list(owned), "authoritative owned_deck"
+
+        phase = str(getattr(state, "phase", ""))
+        if phase.endswith("_PACK"):
+            return (
+                [
+                    *list(getattr(state, "hand", ())),
+                    *list(getattr(state, "deck", ())),
+                ],
+                "pack hand + remaining deck",
+            )
+
+        return None
 
     def _evaluate_target(
         self,
@@ -251,6 +354,21 @@ class ContextualConsumableTargetEvaluator:
             overwrite_penalty=overwrite_penalty,
             intrinsic_delta=intrinsic_delta,
             rationale=rationale,
+        )
+
+    @staticmethod
+    def _sorted(
+        evaluations: list[ConsumableTargetEvaluation],
+    ) -> tuple[ConsumableTargetEvaluation, ...]:
+        return tuple(
+            sorted(
+                evaluations,
+                key=lambda evaluation: (
+                    -evaluation.total_gain,
+                    -evaluation.effective_changes,
+                    evaluation.target_indices,
+                ),
+            )
         )
 
     def _card_build_value(
