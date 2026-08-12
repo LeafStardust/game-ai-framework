@@ -296,9 +296,9 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             hand_type = self.HAND_NAMES.get(name)
             if hand_type is None:
                 continue
-            state.hand_levels[hand_type] = int(
-                (data or {}).get("level", 1)
-            )
+            values = data or {}
+            state.hand_levels[hand_type] = int(values.get("level", 1))
+            state.hand_play_counts[hand_type] = int(values.get("played", 0))
 
     def _translate_blind(
         self,
