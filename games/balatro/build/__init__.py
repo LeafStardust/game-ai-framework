@@ -73,6 +73,10 @@ from .joker_strategy import (
     JokerBuildValueWeights,
     JokerReplacementOption,
 )
+from .playing_card_synergy import (
+    ContextualPlayingCardEvaluation,
+    ContextualPlayingCardSynergyEvaluator,
+)
 from .profile import BalatroBuildProfiler, BuildProfile
 from .semantic_synergy import (
     JokerSemanticValueWeights,
@@ -104,6 +108,8 @@ __all__ = [
     "ContextualConsumableEvaluation",
     "ContextualConsumableSynergyEvaluator",
     "ContextualJokerSynergyEvaluator",
+    "ContextualPlayingCardEvaluation",
+    "ContextualPlayingCardSynergyEvaluator",
     "DEBT_CAPACITY",
     "DECK_REMOVE",
     "DECK_TRANSFORM",
