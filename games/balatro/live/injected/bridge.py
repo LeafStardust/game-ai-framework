@@ -70,12 +70,41 @@ def parse_response(text: str) -> tuple[str, str, str]:
     return command_id, status, message
 
 
+def parse_status_message(message: str) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    for item in str(message).split(";"):
+        if not item:
+            continue
+        if "=" not in item:
+            raise InjectedBridgeProtocolError(
+                "injected bridge status field is malformed"
+            )
+        key, value = item.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key or not value:
+            raise InjectedBridgeProtocolError(
+                "injected bridge status field is empty"
+            )
+        if key in fields:
+            raise InjectedBridgeProtocolError(
+                f"injected bridge status repeats field {key!r}"
+            )
+        fields[key] = value
+    if not fields:
+        raise InjectedBridgeProtocolError(
+            "injected bridge returned empty status"
+        )
+    return fields
+
+
 class FirstPartyBalatroBridge:
     """File-command client for the repo-owned in-process Balatro Lua bridge.
 
-    The Lua side is injected by Lovely and runs on Balatro's normal game thread.
-    Python never writes gameplay memory directly. State verification remains the
-    responsibility of the read-only live-memory observer.
+    The Lua side is loaded from the patched fused LÖVE archive and runs on
+    Balatro's normal game thread. Python never writes gameplay memory directly.
+    State verification remains the responsibility of the read-only live-memory
+    observer for gameplay actions.
     """
 
     def __init__(
@@ -98,6 +127,9 @@ class FirstPartyBalatroBridge:
     def ping(self) -> None:
         self._call("PING")
 
+    def status(self) -> dict[str, str]:
+        return parse_status_message(self._call("STATUS"))
+
     def is_connected(self) -> bool:
         try:
             self.ping()
@@ -115,7 +147,7 @@ class FirstPartyBalatroBridge:
         self,
         action: str,
         indices: Iterable[int] = (),
-    ) -> None:
+    ) -> str:
         self.bridge_dir.mkdir(parents=True, exist_ok=True)
 
         if self.command_path.exists():
@@ -178,7 +210,7 @@ class FirstPartyBalatroBridge:
                                     "command"
                                 )
                             )
-                        return
+                        return message
 
             if time.monotonic() >= deadline:
                 raise InjectedBridgeTimeoutError(
