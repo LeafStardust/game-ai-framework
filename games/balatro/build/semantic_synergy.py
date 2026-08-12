@@ -13,7 +13,21 @@ from .joker_lifecycle import (
     STATEFUL_ACTIVATION,
     STATEFUL_DECAY,
     STATEFUL_SCALING,
-    LifecycleJokerBehaviorAnalyzer,
+)
+from .joker_scenarios import (
+    BOSS_CONTROL,
+    CARD_RULE,
+    DUPLICATE_PERMISSION,
+    HAND_RULE,
+    JOKER_COPY,
+    JOKER_DESTROY,
+    PERMANENT_CARD_GROWTH,
+    PLAYED_RETRIGGER,
+    PROBABILITY_MULTIPLIER,
+    SELF_DESTRUCT,
+    SURVIVAL,
+    TAG_GENERATE,
+    ScenarioJokerBehaviorAnalyzer,
 )
 from .joker_semantics import (
     CARD_GENERATE,
@@ -57,6 +71,18 @@ class JokerSemanticValueWeights:
     stateful_activation: float = 0.35
     stateful_scaling: float = 1.25
     stateful_decay: float = 0.75
+    played_retrigger: float = 1.25
+    card_rule: float = 0.70
+    hand_rule: float = 0.70
+    boss_control: float = 1.00
+    self_destruct: float = 1.25
+    survival: float = 1.50
+    permanent_card_growth: float = 0.80
+    probability_multiplier: float = 0.75
+    duplicate_permission: float = 0.50
+    joker_copy: float = 1.25
+    joker_destroy: float = 1.00
+    tag_generate: float = 0.75
 
 
 class SemanticContextualJokerSynergyEvaluator(ContextualJokerSynergyEvaluator):
@@ -77,6 +103,7 @@ class SemanticContextualJokerSynergyEvaluator(ContextualJokerSynergyEvaluator):
             SELL_VALUE_GROWTH,
             SHOP_DISCOUNT,
             DEBT_CAPACITY,
+            PERMANENT_CARD_GROWTH,
         }
     )
 
@@ -89,7 +116,7 @@ class SemanticContextualJokerSynergyEvaluator(ContextualJokerSynergyEvaluator):
         joker_analyzer: SemanticJokerBehaviorAnalyzer | None = None,
         pair_probe: JokerPairInteractionProbe | None = None,
     ) -> None:
-        analyzer = joker_analyzer or LifecycleJokerBehaviorAnalyzer()
+        analyzer = joker_analyzer or ScenarioJokerBehaviorAnalyzer()
         build_profiler = profiler or BalatroBuildProfiler(joker_analyzer=analyzer)
         self.semantic_weights = semantic_weights or JokerSemanticValueWeights()
         super().__init__(
@@ -171,6 +198,18 @@ class SemanticContextualJokerSynergyEvaluator(ContextualJokerSynergyEvaluator):
             STATEFUL_ACTIVATION: semantic.stateful_activation,
             STATEFUL_SCALING: semantic.stateful_scaling,
             STATEFUL_DECAY: semantic.stateful_decay,
+            PLAYED_RETRIGGER: semantic.played_retrigger,
+            CARD_RULE: semantic.card_rule,
+            HAND_RULE: semantic.hand_rule,
+            BOSS_CONTROL: semantic.boss_control,
+            SELF_DESTRUCT: semantic.self_destruct,
+            SURVIVAL: semantic.survival,
+            PERMANENT_CARD_GROWTH: semantic.permanent_card_growth,
+            PROBABILITY_MULTIPLIER: semantic.probability_multiplier,
+            DUPLICATE_PERMISSION: semantic.duplicate_permission,
+            JOKER_COPY: semantic.joker_copy,
+            JOKER_DESTROY: semantic.joker_destroy,
+            TAG_GENERATE: semantic.tag_generate,
         }
         if feature in explicit:
             return explicit[feature]
