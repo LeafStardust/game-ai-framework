@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import games.balatro.jokers as joker_package
 from games.balatro.joker import Joker
 
-from .joker_lifecycle import LifecycleJokerBehaviorAnalyzer
+from .joker_scenarios import ScenarioJokerBehaviorAnalyzer
 from .joker_semantics import SemanticEffectDescriptor
 
 
@@ -56,12 +56,13 @@ class JokerCoverageAuditor:
     This is deliberately repository-driven: adding a new file/class automatically
     places it in the audit. Parameterized classes are reported separately because
     the current live Joker factory cannot instantiate constructors that require
-    arguments. Constructible classes are behavior-probed; opaque raw context signals
+    arguments. Constructible classes are behavior-probed across ordinary,
+    lifecycle and contextual public-state scenarios; opaque raw context signals
     never count as complete semantic coverage.
     """
 
-    def __init__(self, *, analyzer: LifecycleJokerBehaviorAnalyzer | None = None) -> None:
-        self.analyzer = analyzer or LifecycleJokerBehaviorAnalyzer()
+    def __init__(self, *, analyzer: ScenarioJokerBehaviorAnalyzer | None = None) -> None:
+        self.analyzer = analyzer or ScenarioJokerBehaviorAnalyzer()
 
     def audit(self, *, analyze_semantics: bool = True) -> JokerCoverageReport:
         entries: list[JokerCoverageEntry] = []
