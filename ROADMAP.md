@@ -12,7 +12,7 @@
 >
 > **Decision intelligence and execution are tracked separately.** Being able to execute an action does not mean the agent knows when that action is correct. Every strategically distinct choice is developed as its own decision-threshold layer with independent inputs, thresholds, rationale, tests and validation.
 >
-> **Current strategic priority: runtime Joker projection fidelity before further build-intelligence integration.** Mutable live Joker reconstruction is complete (`33 HYDRATED / 119 STATELESS / 0 GAP / 0 ERROR`), but hydration does not imply that hypothetical score/search transitions model each Joker's event sequence correctly. The exact projector currently validates hydrated state transitions for Ice Cream, Green Joker and Runner, plus the already-supported stateless Bootstraps path; every other mutable hydrated Joker is explicitly deferred and fail-closed until its score/event/stochastic semantics are validated. This is a temporary correctness gate. Build intelligence remains the next strategic priority once D1/search can consume build-relevant Joker state without false exactness.
+> **Current strategic priority: runtime Joker projection fidelity before further build-intelligence integration.** Mutable live Joker reconstruction is complete (`33 HYDRATED / 119 STATELESS / 0 GAP / 0 ERROR`), but hydration does not imply that hypothetical score/search transitions model each Joker's event sequence correctly. The exact projector now validates **25 of the 33 mutable hydrated Jokers**, plus the already-supported stateless Bootstraps path. The remaining **8** are explicitly deferred and fail-closed because they still need destroyed-card propagation, event sequencing, stochastic propagation, scoring-card identity, retrigger execution, card-copy isolation, or a model correction. This is a temporary correctness gate. Build intelligence remains the next strategic priority once D1/search can consume build-relevant Joker state without false exactness.
 
 ## v0.1.0 — Foundation
 
@@ -163,6 +163,7 @@
 - [x] Validate hydrated Green Joker and Runner transitions on isolated hypothetical branches
 - [x] Runtime Joker projection fidelity audit: every mutable hydrated Joker is supported or explicitly deferred
 - [x] Fail closed on deferred event/stochastic semantics rather than claim an exact projection
+- [x] Expand deterministic hydrated runtime support to 25/33 mutable hydrated Jokers
 - [x] Boss-blind legality foundation
 - [x] The Psychic / The Head / The House planner paths validated during live development
 - [x] Public remaining-deck composition model without future draw order
@@ -173,7 +174,7 @@
 - [x] Replan after each real action checkpoint
 - [x] Initial The Sun escape planning
 - [x] Persistent D1 execution validated across repeated real Play/Discard checkpoints
-- [ ] Validate and admit remaining deferred mutable hydrated Jokers/effects (currently 30)
+- [ ] Resolve and admit remaining deferred mutable hydrated Jokers/effects (currently 8)
 - [ ] Extend score projection to relevant remaining stateless Jokers/effects separately from hydration
 - [ ] Generalize boss-blind integration
 - [ ] Integrate consumable actions into the normal blind planner after build-aware consumable strategy exists
