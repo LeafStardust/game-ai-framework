@@ -29,6 +29,13 @@ from .effects import (
     seal_feature,
     suit_feature,
 )
+from .joker_lifecycle import (
+    STATEFUL_ACTIVATION,
+    STATEFUL_DECAY,
+    STATEFUL_SCALING,
+    LifecycleJokerBehaviorAnalyzer,
+    lifecycle_event_feature,
+)
 from .joker_semantics import (
     CARD_GENERATE,
     CONSUMABLE_DUPLICATE,
@@ -102,11 +109,15 @@ __all__ = [
     "JokerPairInteractionProbe",
     "JokerReplacementOption",
     "JokerSemanticValueWeights",
+    "LifecycleJokerBehaviorAnalyzer",
     "SCORE_CHIPS",
     "SCORE_MULT",
     "SCORE_XMULT",
     "SELL_VALUE_GROWTH",
     "SHOP_DISCOUNT",
+    "STATEFUL_ACTIVATION",
+    "STATEFUL_DECAY",
+    "STATEFUL_SCALING",
     "SemanticContextualJokerSynergyEvaluator",
     "SemanticEffectDescriptor",
     "SemanticJokerBehaviorAnalyzer",
@@ -116,6 +127,7 @@ __all__ = [
     "edition_feature",
     "enhancement_feature",
     "hand_feature",
+    "lifecycle_event_feature",
     "rank_feature",
     "seal_feature",
     "suit_feature",
