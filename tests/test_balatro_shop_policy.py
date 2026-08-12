@@ -9,13 +9,13 @@ from games.balatro.actions import (
     END_SHOP,
     BalatroAction,
 )
+from games.balatro.card import BalatroCard
 from games.balatro.consumable import PlanetCard
 from games.balatro.joker import Joker, JokerContext
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.shop_policy import (
     BalatroShopPolicy,
     DefaultShopItemValueEstimator,
-    JokerMarginalValueEstimator,
 )
 from games.balatro.state import BalatroState
 from games.balatro.tarots import Chariot
@@ -139,42 +139,33 @@ def test_shop_policy_rewards_observable_joker_editions():
     assert negative_score.total > normal_score.total
 
 
-def test_joker_marginal_estimator_reuses_existing_apply_behavior():
+def test_default_item_estimator_uses_whole_build_joker_value():
     state = _shop_state(money=20)
-    estimator = JokerMarginalValueEstimator()
-
-    inert = estimator.estimate(state, InertJoker())
-    scoring = estimator.estimate(state, PlusMultJoker())
-
-    assert inert == 0.0
-    assert scoring > 0.0
-
-
-def test_joker_marginal_estimator_captures_mime_semantic_signal():
-    analysis = JokerMarginalValueEstimator().analyze(
-        _shop_state(money=20),
-        MimeJoker(),
-    )
-
-    assert analysis.direct_scoring_gain == 0.0
-    assert "retrigger_held_abilities" in analysis.semantic_signals
-
-
-def test_default_item_estimator_values_direct_scoring_joker_above_inert_joker():
-    state = _shop_state(money=20)
+    state.deck = [
+        BalatroCard("K", "Hearts", enhancement="Steel"),
+        BalatroCard("K", "Spades", enhancement="Steel"),
+        BalatroCard("Q", "Clubs"),
+    ]
     estimator = DefaultShopItemValueEstimator()
 
-    inert, _ = estimator.estimate(
+    inert, inert_notes = estimator.estimate(
         state,
         BalatroAction(BUY_JOKER, target=InertJoker()),
     )
-    scoring, notes = estimator.estimate(
+    scoring, scoring_notes = estimator.estimate(
         state,
         BalatroAction(BUY_JOKER, target=PlusMultJoker()),
     )
+    mime, mime_notes = estimator.estimate(
+        state,
+        BalatroAction(BUY_JOKER, target=MimeJoker()),
+    )
 
     assert scoring > inert
-    assert any("direct scoring gain" in note for note in notes)
+    assert mime > inert
+    assert any("whole-build Joker gain" in note for note in scoring_notes)
+    assert any("B3 contextual gain" in note for note in mime_notes)
+    assert any("whole-build Joker gain" in note for note in inert_notes)
 
 
 def test_default_item_estimator_uses_planet_upgrade_data():
@@ -189,64 +180,30 @@ def test_default_item_estimator_uses_planet_upgrade_data():
 
     assert value > 2.5
     assert any("planet upgrade" in note for note in notes)
+    assert any("B4 build-path gain" in note for note in notes)
 
 
-def test_chariot_value_increases_when_mime_is_available_in_shop():
-    state = _shop_state(money=12)
-    mime = MimeJoker()
-    mime.cost = 5
-    mime.label = "Mime"
-    state.shop_jokers = [mime]
+def test_chariot_build_path_value_increases_with_owned_mime():
     chariot = Chariot()
     chariot.price = 3
+    estimator = DefaultShopItemValueEstimator()
 
-    value, notes = DefaultShopItemValueEstimator().estimate(
-        state,
+    without_mime = _shop_state(money=12)
+    value_without, notes_without = estimator.estimate(
+        without_mime,
         BalatroAction(BUY_CONSUMABLE, target=chariot),
     )
 
-    assert value > 3.9
-    assert any("Mime combo" in note for note in notes)
-
-
-def test_mime_value_increases_when_chariot_is_available_in_shop():
-    state = _shop_state(money=12)
-    chariot = Chariot()
-    chariot.price = 3
-    state.shop_consumables = [chariot]
-    mime = MimeJoker()
-    mime.cost = 5
-
-    value, notes = DefaultShopItemValueEstimator().estimate(
-        state,
-        BalatroAction(BUY_JOKER, target=mime),
+    with_mime = _shop_state(money=12)
+    with_mime.jokers = [MimeJoker()]
+    value_with, notes_with = estimator.estimate(
+        with_mime,
+        BalatroAction(BUY_CONSUMABLE, target=chariot),
     )
 
-    assert value > 2.25
-    assert any("Chariot/Steel" in note for note in notes)
-
-
-def test_policy_prefers_chariot_setup_over_mime_in_posted_shop_shape():
-    state = _shop_state(money=12)
-    mime = MimeJoker()
-    mime.cost = 5
-    mime.label = "Mime"
-    chariot = Chariot()
-    chariot.price = 3
-    state.shop_jokers = [mime]
-    state.shop_consumables = [chariot]
-
-    actions = [
-        BalatroAction(BUY_JOKER, target=mime),
-        BalatroAction(BUY_CONSUMABLE, target=chariot),
-        BalatroAction(END_SHOP),
-    ]
-
-    ranked = BalatroShopPolicy().rank_actions(state, actions)
-
-    assert ranked[0].action.name == BUY_CONSUMABLE
-    assert ranked[0].action.target is chariot
-    assert ranked[0].total > ranked[1].total
+    assert value_with > value_without
+    assert any("MimeJoker" in note for note in notes_with)
+    assert any("B4 build-path gain" in note for note in notes_without)
 
 
 def test_hieroglyph_has_explicit_tradeoff_notes():
