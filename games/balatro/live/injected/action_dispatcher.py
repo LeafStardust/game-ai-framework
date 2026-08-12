@@ -17,6 +17,10 @@ from games.balatro.actions import (
     SKIP_BOOSTER,
     BalatroAction,
 )
+from games.balatro.live.external.live_memory_pack_terms import (
+    LivePackSelectionTerms,
+    read_live_pack_selection_terms,
+)
 from games.balatro.live.external.live_memory_shop_terms import (
     LiveShopRerollTerms,
     read_live_shop_reroll_terms,
@@ -169,6 +173,31 @@ def _is_pack_phase(phase: str) -> bool:
     return str(phase).endswith("_PACK")
 
 
+def _pack_selection_complete(
+    before: LiveBalatroSnapshot,
+    after: LiveBalatroSnapshot,
+    before_terms: LivePackSelectionTerms,
+    after_terms: LivePackSelectionTerms | None,
+    *,
+    selected_address: int,
+) -> bool:
+    if after.sequence <= before.sequence or not after.state_complete:
+        return False
+
+    if before_terms.choices_remaining <= 1:
+        return after.phase == "SHOP"
+
+    if after.phase == "SHOP":
+        return True
+    if not _is_pack_phase(after.phase) or after_terms is None:
+        return False
+
+    return (
+        after_terms.choices_remaining == before_terms.choices_remaining - 1
+        and selected_address not in after_terms.choice_addresses
+    )
+
+
 class LiveMemoryInjectedActionDispatcher:
     """Execute supported Balatro actions through the first-party Lua bridge.
 
@@ -185,6 +214,7 @@ class LiveMemoryInjectedActionDispatcher:
         timeout: float = 12.0,
         poll_interval: float = 0.05,
         reroll_terms_reader: Callable[[], LiveShopRerollTerms] | None = None,
+        pack_terms_reader: Callable[[], LivePackSelectionTerms] | None = None,
     ) -> None:
         self.observer = observer
         self.bridge = bridge or FirstPartyBalatroBridge()
@@ -192,6 +222,9 @@ class LiveMemoryInjectedActionDispatcher:
         self.poll_interval = max(0.0, float(poll_interval))
         self.reroll_terms_reader = reroll_terms_reader or (
             lambda: read_live_shop_reroll_terms(self.observer)
+        )
+        self.pack_terms_reader = pack_terms_reader or (
+            lambda: read_live_pack_selection_terms(self.observer)
         )
 
     def _wait(
@@ -390,21 +423,50 @@ class LiveMemoryInjectedActionDispatcher:
                     f"SELECT_PACK_CARD requires a *_PACK phase, observed {before.phase}"
                 )
             index = _target_index(action.target)
+            before_terms = self.pack_terms_reader()
+            if index >= len(before_terms.choice_addresses):
+                raise UnsupportedInjectedAction(
+                    f"pack choice index {index} is out of range for "
+                    f"{len(before_terms.choice_addresses)} visible choices"
+                )
+            if before_terms.choices_remaining <= 0:
+                raise UnsupportedInjectedAction(
+                    "Balatro reports no remaining booster-pack choices"
+                )
+            selected_address = before_terms.choice_addresses[index]
             self.bridge.select_pack_card(index)
+
+            def pack_selection_settled(value: LiveBalatroSnapshot) -> bool:
+                after_terms = None
+                if (
+                    before_terms.choices_remaining > 1
+                    and value.phase != "SHOP"
+                    and _is_pack_phase(value.phase)
+                    and value.state_complete
+                ):
+                    after_terms = self.pack_terms_reader()
+                return _pack_selection_complete(
+                    before,
+                    value,
+                    before_terms,
+                    after_terms,
+                    selected_address=selected_address,
+                )
+
             after = self._wait(
                 before,
-                lambda value: (
-                    value.sequence > before.sequence
-                    and value.state_complete
-                    and (_is_pack_phase(value.phase) or value.phase == "SHOP")
-                ),
+                pack_selection_settled,
                 "pack selection",
             )
             return LiveInjectedActionResult(
                 action,
                 before,
                 after,
-                {"area_index": index},
+                {
+                    "area_index": index,
+                    "choices_remaining_before": before_terms.choices_remaining,
+                    "selected_address": selected_address,
+                },
             )
 
         if name == SKIP_BOOSTER:
