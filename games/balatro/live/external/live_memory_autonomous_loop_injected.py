@@ -6,12 +6,14 @@ from time import perf_counter
 
 from games.balatro.live.injected.bridge import InjectedBridgeError
 
+from .live_memory_autonomous_stale_diagnostic import semantic_differences
 from .live_memory_autonomous_step_injected import (
     AutonomousStepDecision,
     AutonomousStepGuardError,
     LiveMemoryInjectedSingleStepRunner,
     UnsupportedAutonomousPhase,
     _action_text,
+    _semantic_payload,
 )
 from .live_memory_observer import LiveMemoryBalatroObserver
 
@@ -37,6 +39,46 @@ class AutonomousLoopStep:
 class AutonomousLoopRun:
     steps: tuple[AutonomousLoopStep, ...]
     stop_reason: str
+
+
+def _short_stale_value(value: object, *, limit: int = 80) -> str:
+    text = repr(value)
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3] + "..."
+
+
+def _stale_difference_details(
+    decision: AutonomousStepDecision,
+    latest,
+    *,
+    limit: int = 5,
+) -> tuple[str, ...]:
+    details: list[str] = []
+    if decision.snapshot.phase != latest.phase:
+        details.append(
+            f"phase: {decision.snapshot.phase!r} -> {latest.phase!r}"
+        )
+    if decision.snapshot.state_complete != latest.state_complete:
+        details.append(
+            "state_complete: "
+            f"{decision.snapshot.state_complete!r} -> {latest.state_complete!r}"
+        )
+
+    remaining = max(0, limit - len(details))
+    if remaining:
+        differences = semantic_differences(
+            _semantic_payload(decision.snapshot.payload),
+            _semantic_payload(latest.payload),
+            limit=remaining,
+        )
+        details.extend(
+            f"{difference.path}: "
+            f"{_short_stale_value(difference.before)} -> "
+            f"{_short_stale_value(difference.after)}"
+            for difference in differences
+        )
+    return tuple(details[:limit])
 
 
 class LiveMemoryInjectedAutonomousLoop:
@@ -92,7 +134,20 @@ class LiveMemoryInjectedAutonomousLoop:
                     "observer checkpoint sequence regressed between autonomous steps"
                 )
 
-            result, status = self.runner.execute(decision)
+            try:
+                result, status = self.runner.execute(decision)
+            except AutonomousStepGuardError as error:
+                if "live state changed after autonomous planning" not in str(error):
+                    raise
+                latest = self.runner.observer.observe()
+                details = _stale_difference_details(decision, latest)
+                suffix = (
+                    "; semantic differences: " + "; ".join(details)
+                    if details
+                    else "; semantic differences unavailable on follow-up snapshot"
+                )
+                raise AutonomousLoopGuardError(str(error) + suffix) from error
+
             after = result.after
             if after.sequence <= decision.snapshot.sequence:
                 raise AutonomousLoopGuardError(
