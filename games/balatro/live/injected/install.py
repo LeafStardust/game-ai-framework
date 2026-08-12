@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import filecmp
 import os
 import shutil
+import stat
 import tempfile
+import time
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,6 +21,8 @@ BRIDGE_ARCHIVE_NAME = "game_ai_framework_bridge.lua"
 BACKUP_SUFFIX = ".gaf-original"
 HOOK_BEGIN = "-- game-ai-framework bridge begin"
 HOOK_END = "-- game-ai-framework bridge end"
+_REPLACE_ATTEMPTS = 20
+_REPLACE_DELAY = 0.1
 
 
 class BalatroFusedPatchError(RuntimeError):
@@ -30,6 +35,7 @@ class FusedPatchReport:
     backup: Path
     runtime_dir: Path
     already_patched: bool
+    reused_backup: bool
 
 
 def asset_dir() -> Path:
@@ -126,6 +132,45 @@ def _copy_zipinfo(info: zipfile.ZipInfo) -> zipfile.ZipInfo:
     return clone
 
 
+def _make_writable(path: Path) -> None:
+    try:
+        mode = path.stat().st_mode
+    except OSError:
+        return
+    if not (mode & stat.S_IWRITE):
+        try:
+            path.chmod(mode | stat.S_IWRITE)
+        except OSError:
+            pass
+
+
+def _replace_with_retry(source: Path, destination: Path) -> None:
+    _make_writable(destination)
+    last_error: OSError | None = None
+    for attempt in range(_REPLACE_ATTEMPTS):
+        try:
+            os.replace(source, destination)
+            return
+        except PermissionError as error:
+            last_error = error
+            if attempt + 1 < _REPLACE_ATTEMPTS:
+                time.sleep(_REPLACE_DELAY)
+                continue
+            break
+        except OSError as error:
+            last_error = error
+            break
+
+    detail = f": {last_error}" if last_error is not None else ""
+    raise BalatroFusedPatchError(
+        "unable to replace Balatro.exe after building and validating the patched "
+        "archive. Close Balatro completely and make sure Steam is not currently "
+        "verifying/updating the game. If the Steam library folder itself denies "
+        "writes, run the terminal with permission to modify that library"
+        + detail
+    )
+
+
 def _rewrite_fused_executable(
     executable: Path,
     *,
@@ -147,6 +192,7 @@ def _rewrite_fused_executable(
                 "unable to read the complete Balatro executable prefix"
             )
 
+    original_mode = executable.stat().st_mode
     temporary_fd, temporary_name = tempfile.mkstemp(
         prefix=executable.name + ".",
         suffix=".tmp",
@@ -189,7 +235,8 @@ def _rewrite_fused_executable(
                     "patched executable validation did not preserve the bridge"
                 )
 
-        os.replace(temporary, executable)
+        temporary.chmod(original_mode | stat.S_IWRITE)
+        _replace_with_retry(temporary, executable)
     except Exception:
         temporary.unlink(missing_ok=True)
         raise
@@ -213,20 +260,33 @@ def patch_fused_game(
 
     _, _, main_lua = _fused_archive(executable_path)
     already_patched = HOOK_BEGIN.encode("utf-8") in main_lua
+    reused_backup = False
+    created_backup = False
 
     if not already_patched:
         if backup.exists():
-            raise BalatroFusedPatchError(
-                f"refusing to overwrite existing original backup: {backup}. "
-                "Run the installer with --uninstall first if this backup belongs "
-                "to the current Balatro installation."
-            )
-        try:
-            shutil.copy2(executable_path, backup)
-        except OSError as error:
-            raise BalatroFusedPatchError(
-                f"unable to create Balatro backup at {backup}: {error}"
-            ) from error
+            try:
+                same = filecmp.cmp(executable_path, backup, shallow=False)
+            except OSError as error:
+                raise BalatroFusedPatchError(
+                    f"unable to validate existing Balatro backup {backup}: {error}"
+                ) from error
+            if not same:
+                raise BalatroFusedPatchError(
+                    f"refusing to overwrite existing original backup: {backup}. "
+                    "It differs from the current executable, so the installer "
+                    "cannot safely infer whether it belongs to an interrupted "
+                    "install. Restore/verify Balatro before retrying."
+                )
+            reused_backup = True
+        else:
+            try:
+                shutil.copy2(executable_path, backup)
+                created_backup = True
+            except OSError as error:
+                raise BalatroFusedPatchError(
+                    f"unable to create Balatro backup at {backup}: {error}"
+                ) from error
 
     try:
         _rewrite_fused_executable(
@@ -234,9 +294,9 @@ def patch_fused_game(
             bridge_source=bridge_path,
         )
     except Exception:
-        if not already_patched and backup.is_file():
+        if created_backup and backup.is_file():
             try:
-                shutil.copy2(backup, executable_path)
+                backup.unlink()
             except OSError:
                 pass
         raise
@@ -260,6 +320,7 @@ def patch_fused_game(
         backup=backup,
         runtime_dir=runtime,
         already_patched=already_patched,
+        reused_backup=reused_backup,
     )
 
 
@@ -270,12 +331,21 @@ def restore_fused_game(executable: str | Path) -> Path:
         raise BalatroFusedPatchError(
             f"original Balatro backup not found: {backup}"
         )
+
+    temporary_fd, temporary_name = tempfile.mkstemp(
+        prefix=executable_path.name + ".restore.",
+        suffix=".tmp",
+        dir=executable_path.parent,
+    )
+    os.close(temporary_fd)
+    temporary = Path(temporary_name)
     try:
-        os.replace(backup, executable_path)
-    except OSError as error:
-        raise BalatroFusedPatchError(
-            f"unable to restore original Balatro executable: {error}"
-        ) from error
+        shutil.copy2(backup, temporary)
+        _replace_with_retry(temporary, executable_path)
+        backup.unlink()
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
     return executable_path
 
 
@@ -312,6 +382,7 @@ def main() -> int:
     print(f"Balatro -> {balatro_dir}")
     print(f"Patched executable -> {report.executable}")
     print(f"Original backup -> {report.backup}")
+    print(f"Existing backup reused -> {report.reused_backup}")
     print(f"Bridge runtime directory -> {report.runtime_dir}")
     print(
         "Existing bridge hook -> "
@@ -323,6 +394,7 @@ def main() -> int:
     print("Steamodded required -> False")
     print("BalatroBot required -> False")
     print("Mouse calibration required -> False")
+    print("Achievement-disable flag modified -> False")
     print("Restart Balatro -> required")
     return 0
 
