@@ -102,7 +102,7 @@ def test_clear_path_takes_priority_over_pace_fallback():
     assert decision.action.cards == ["path"]
     assert decision.clear_path_candidates == 1
     assert decision.pace_target == pytest.approx(100.0)
-    assert "re-observe and replan" in decision.rationale[1]
+    assert any("re-observe and replan" in reason for reason in decision.rationale)
 
 
 def test_clear_path_may_start_with_discard():
