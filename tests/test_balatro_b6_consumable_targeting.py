@@ -64,11 +64,12 @@ def test_targeting_avoids_overwriting_existing_enhancement_when_plain_target_exi
     assert recommendation.total_gain > glass_only.total_gain
 
 
-def test_destructive_tarot_remains_fail_closed_for_target_quality_slice():
+def test_hanged_man_is_supported_but_fails_closed_without_complete_owned_deck():
     state = _state([BalatroCard("2", "Hearts"), BalatroCard("3", "Clubs")])
+    state.phase = "SELECTING_HAND"
     evaluator = ContextualConsumableTargetEvaluator()
 
-    assert not evaluator.supports(HangedMan())
+    assert evaluator.supports(HangedMan())
     assert evaluator.rank_targets(state, HangedMan()) == ()
     assert evaluator.recommend(state, HangedMan()) is None
 
