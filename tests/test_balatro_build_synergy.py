@@ -1,8 +1,10 @@
 from games.balatro.build import HELD_EFFECT, ContextualJokerSynergyEvaluator
+from games.balatro.build.effects import rank_feature
 from games.balatro.card import BalatroCard
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.blueprint import BlueprintJoker
+from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.state import BalatroState
 
@@ -37,6 +39,31 @@ def test_baron_context_gain_increases_when_public_deck_contains_kings():
     assert "held:rank:K" in rich_value.matched_scaling
     assert rich_value.interaction_gain > poor_value.interaction_gain
     assert rich_value.total_gain > poor_value.total_gain
+
+
+def test_fibonacci_context_only_matches_actual_fibonacci_ranks():
+    evaluator = ContextualJokerSynergyEvaluator()
+    state = BalatroState()
+    suits = ("Hearts", "Diamonds", "Clubs", "Spades")
+    ranks = ("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
+    state.deck = [
+        BalatroCard(rank, suit)
+        for rank in ranks
+        for suit in suits
+    ]
+
+    value = evaluator.evaluate(FibonacciJoker(), state)
+
+    assert set(value.matched_scaling) == {
+        rank_feature("A"),
+        rank_feature("2"),
+        rank_feature("3"),
+        rank_feature("5"),
+        rank_feature("8"),
+    }
+    assert rank_feature("4") not in value.matched_scaling
+    assert rank_feature("10") not in value.matched_scaling
+    assert rank_feature("K") not in value.matched_scaling
 
 
 def test_mime_values_existing_held_card_effects_without_name_special_cases():
