@@ -506,9 +506,14 @@ class LiveHandActionDecisionEngine:
         planner = planner or self.planner
         planner._require_state(state)
         planner.reset_search_stats()
-        candidates = planner._candidate_actions(
-            state,
-            allow_discards=planner.horizon > 1,
+        root_action = getattr(planner, "_confirmation_root_action", None)
+        candidates = (
+            [root_action]
+            if root_action is not None
+            else planner._candidate_actions(
+                state,
+                allow_discards=planner.horizon > 1,
+            )
         )
         if not candidates:
             raise RuntimeError("no D1 hand-action candidate is available")
@@ -581,8 +586,9 @@ class LiveHandActionDecisionEngine:
             confirmation_config = self._confirmation_config(config)
             confirmation_planner = self._adaptive_planner(confirmation_config)
             try:
-                confirmation_plans = self.rank_plans(
+                confirmed = self._confirm_plan(
                     state,
+                    clear_path,
                     planner=confirmation_planner,
                 )
             except PlannerSearchBudgetExceeded:
@@ -595,41 +601,43 @@ class LiveHandActionDecisionEngine:
                 )
                 continue
 
-            confirmation_best = confirmation_plans[0]
             attempts.append(
                 self._attempt(
                     confirmation_config,
                     confirmation_planner,
                     confirmation=True,
-                    best=confirmation_best,
+                    best=confirmed,
                 )
             )
 
-            exact_confirmation = self.policy.best_clear_path(
-                confirmation_plans,
-                exact_only=True,
-            )
-            if exact_confirmation is not None:
-                return self.policy.decide(
-                    state,
-                    confirmation_plans,
-                    search_attempts=tuple(attempts),
-                    setup_discard_consensus=False,
-                )
-
-            confirmed = self._matching_clear_path(
+            if self._action_signature(state, confirmed.action) != self._action_signature(
                 state,
+                clear_path.action,
+            ):
+                continue
+            if not self.policy._meets_clear_floor(confirmed):
+                continue
+
+            confirmed_plans = self._replace_matching_plan(
+                state,
+                plans,
                 clear_path,
-                confirmation_plans,
+                confirmed,
             )
-            if confirmed is not None:
+            if confirmed.exact:
                 return self.policy.decide(
                     state,
-                    confirmation_plans,
+                    confirmed_plans,
                     search_attempts=tuple(attempts),
-                    confirmed_clear_path=confirmed,
                     setup_discard_consensus=False,
                 )
+            return self.policy.decide(
+                state,
+                confirmed_plans,
+                search_attempts=tuple(attempts),
+                confirmed_clear_path=confirmed,
+                setup_discard_consensus=False,
+            )
 
         consensus = stable_discard_consensus(
             tuple(summaries),
@@ -646,6 +654,53 @@ class LiveHandActionDecisionEngine:
             search_attempts=tuple(attempts),
             setup_discard_consensus=consensus,
         )
+
+    def _confirm_plan(
+        self,
+        state,
+        original: LiveBlindPlan,
+        *,
+        planner: LiveBlindClearPlanner,
+    ) -> LiveBlindPlan:
+        """Re-evaluate only the sampled first action under stronger sampling.
+
+        Confirmation is not a second root policy search. Its purpose is to ask
+        whether the exact same first action survives a stronger same-horizon
+        public-state estimate. Recursive continuations remain fully searched by
+        the confirmation planner; only redundant root action enumeration is
+        removed.
+        """
+        setattr(planner, "_confirmation_root_action", original.action)
+        try:
+            plans = self.rank_plans(state, planner=planner)
+        finally:
+            try:
+                delattr(planner, "_confirmation_root_action")
+            except AttributeError:
+                pass
+        if not plans:
+            raise RuntimeError("D1 confirmation produced no plan")
+        return plans[0]
+
+    def _replace_matching_plan(
+        self,
+        state,
+        plans: list[LiveBlindPlan] | tuple[LiveBlindPlan, ...],
+        original: LiveBlindPlan,
+        confirmed: LiveBlindPlan,
+    ) -> list[LiveBlindPlan]:
+        signature = self._action_signature(state, original.action)
+        replaced = []
+        matched = False
+        for plan in plans:
+            if self._action_signature(state, plan.action) == signature:
+                replaced.append(confirmed)
+                matched = True
+            else:
+                replaced.append(plan)
+        if not matched:
+            raise RuntimeError("confirmed D1 first action is missing from root plans")
+        return replaced
 
     def _adaptive_planner(self, config: AdaptiveBlindSearchConfig) -> D1LiveBlindClearPlanner:
         return D1LiveBlindClearPlanner(
