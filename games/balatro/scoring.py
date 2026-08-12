@@ -62,12 +62,22 @@ class BalatroScorer:
         """
         return False
 
+    @staticmethod
+    def _played_card_trigger_count(card, extra_retriggers: int = 0) -> int:
+        """Return how many times one scored card resolves its scoring effects."""
+        return (
+            1
+            + max(0, int(extra_retriggers))
+            + (1 if getattr(card, "seal", None) == "Red" else 0)
+        )
+
     def _apply_card_modifiers(
         self,
         score: HandScore,
         cards,
         *,
         resolve_random_effects: bool = True,
+        extra_retriggers: int = 0,
     ) -> None:
 
         for card in cards:
@@ -75,13 +85,9 @@ class BalatroScorer:
             if self.is_card_debuffed(card):
                 continue
 
-            self._apply_single_card_modifier(
-                score,
-                card,
-                resolve_random_effects=resolve_random_effects,
-            )
-
-            if card.seal == "Red":
+            for _ in range(
+                self._played_card_trigger_count(card, extra_retriggers)
+            ):
                 self._apply_single_card_modifier(
                     score,
                     card,
@@ -200,12 +206,20 @@ class BalatroScorer:
         played_cards = cards or []
         scoring_cards = self.scoring_cards(hand, played_cards)
         modifier_cards = played_cards
+        context_data = dict(joker_data or {})
+        played_card_retriggers = max(
+            0,
+            int(context_data.get("retrigger_played_cards", 0) or 0),
+        )
 
         if include_card_chips:
             modifier_cards = scoring_cards
             score.chips += sum(
                 self.card_chip_value(card)
-                * (2 if getattr(card, "seal", None) == "Red" else 1)
+                * self._played_card_trigger_count(
+                    card,
+                    played_card_retriggers,
+                )
                 for card in modifier_cards
                 if not self.is_card_debuffed(card)
             )
@@ -214,6 +228,9 @@ class BalatroScorer:
             score,
             modifier_cards,
             resolve_random_effects=resolve_random_effects,
+            extra_retriggers=(
+                played_card_retriggers if include_card_chips else 0
+            ),
         )
 
         if state is not None:
@@ -236,7 +253,6 @@ class BalatroScorer:
                 held_cards
             )
 
-            context_data = dict(joker_data or {})
             context_data.setdefault(
                 "scoring_cards",
                 [
