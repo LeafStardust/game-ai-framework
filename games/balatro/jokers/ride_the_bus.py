@@ -18,9 +18,10 @@ class RideTheBusJoker(Joker):
         if context.event.type != BalatroEventType.HAND_SCORED:
             return context
 
+        scoring_cards = context.data.get("scoring_cards", context.cards)
         has_face_card = any(
             card.rank in ("J", "Q", "K")
-            for card in context.cards
+            for card in scoring_cards
         )
 
         if has_face_card:
