@@ -146,6 +146,7 @@ class BalatroScorer:
         *,
         include_card_chips: bool = False,
         resolve_random_effects: bool = True,
+        joker_data: dict | None = None,
     ) -> HandScore:
 
         base_score = self.SCORES[hand]
@@ -162,7 +163,7 @@ class BalatroScorer:
 
             hand_level = hand_levels.get(
                 hand.value,
-                1
+                hand_levels.get(hand, 1),
             )
 
         score = HandScore(
@@ -197,10 +198,11 @@ class BalatroScorer:
                 )
 
         played_cards = cards or []
+        scoring_cards = self.scoring_cards(hand, played_cards)
         modifier_cards = played_cards
 
         if include_card_chips:
-            modifier_cards = self.scoring_cards(hand, played_cards)
+            modifier_cards = scoring_cards
             score.chips += sum(
                 self.card_chip_value(card)
                 * (2 if getattr(card, "seal", None) == "Red" else 1)
@@ -234,6 +236,20 @@ class BalatroScorer:
                 held_cards
             )
 
+            context_data = dict(joker_data or {})
+            context_data.setdefault(
+                "scoring_cards",
+                [
+                    card
+                    for card in scoring_cards
+                    if not self.is_card_debuffed(card)
+                ],
+            )
+            context_data.setdefault(
+                "most_played_hands",
+                self.most_played_hands(state),
+            )
+
             context = JokerContext(
                 state=state,
                 score=score,
@@ -244,7 +260,8 @@ class BalatroScorer:
                 event=BalatroEvent(
                     BalatroEventType.HAND_SCORED,
                     played_cards
-                )
+                ),
+                data=context_data,
             )
 
             for joker in state.jokers:
@@ -253,6 +270,22 @@ class BalatroScorer:
             score = context.score
 
         return score
+
+    @classmethod
+    def most_played_hands(cls, state) -> set[PokerHand]:
+        counts = getattr(state, "hand_play_counts", {})
+        by_hand = {
+            hand: int(counts.get(hand.value, counts.get(hand, 0)) or 0)
+            for hand in PokerHand
+        }
+        maximum = max(by_hand.values(), default=0)
+        if maximum <= 0:
+            return set()
+        return {
+            hand
+            for hand, count in by_hand.items()
+            if count == maximum
+        }
 
     @classmethod
     def card_chip_value(cls, card) -> int:
