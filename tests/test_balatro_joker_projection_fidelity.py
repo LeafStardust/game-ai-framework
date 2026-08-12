@@ -10,17 +10,27 @@ from games.balatro.build.joker_projection_fidelity import (
 def test_every_hydrated_mutable_joker_has_explicit_runtime_projection_status():
     report = JokerProjectionFidelityAuditor().audit()
 
-    assert report.count(SUPPORTED) == 3
-    assert report.count(DEFERRED) == 30
+    assert report.count(SUPPORTED) == 25
+    assert report.count(DEFERRED) == 8
     assert report.count(GAP) == 0
     assert report.count(ERROR) == 0
 
 
-def test_event_and_stochastic_deferrals_explain_why_projection_is_not_exact_yet():
+def test_deferred_jokers_explain_their_remaining_projection_blocker():
     report = JokerProjectionFidelityAuditor().audit()
     entries = {entry.class_name: entry for entry in report.entries}
 
-    assert entries["LoyaltyCardJoker"].status == DEFERRED
-    assert "HAND_PLAYED" in entries["LoyaltyCardJoker"].reason
-    assert entries["LuckyCatJoker"].status == DEFERRED
-    assert "LUCKY_TRIGGERED" in entries["LuckyCatJoker"].reason
+    expected_fragments = {
+        "CanioJoker": "destroyed-card",
+        "LoyaltyCardJoker": "HAND_PLAYED",
+        "LuckyCatJoker": "LUCKY_TRIGGERED",
+        "ObeliskJoker": "most-played-hand",
+        "RedCardJoker": "accumulated hydrated Mult",
+        "RideTheBusJoker": "scoring-card identity",
+        "SeltzerJoker": "retrigger",
+        "VampireJoker": "isolated branch card copies",
+    }
+
+    for class_name, fragment in expected_fragments.items():
+        assert entries[class_name].status == DEFERRED
+        assert fragment in entries[class_name].reason
