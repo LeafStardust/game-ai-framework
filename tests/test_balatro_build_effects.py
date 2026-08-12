@@ -1,4 +1,5 @@
 from games.balatro.build.effects import (
+    DECK_REMOVE,
     DECK_TRANSFORM,
     HAND_LEVEL,
     HELD_EFFECT,
@@ -19,7 +20,7 @@ from games.balatro.consumable import PlanetCard
 from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.state import BalatroState
-from games.balatro.tarots import Chariot
+from games.balatro.tarots import Chariot, HangedMan
 
 
 def test_baron_effect_inference_uses_real_held_king_behavior():
@@ -74,3 +75,19 @@ def test_chariot_descriptor_detects_real_steel_transformation_without_mutating_s
     assert steel in descriptor.transforms
     assert TARGET_CARD in descriptor.requires
     assert state.hand[0].enhancement is None
+
+
+def test_destructive_consumable_does_not_infer_positional_card_transformations():
+    state = BalatroState()
+    state.hand = [
+        BalatroCard("A", "Spades"),
+        BalatroCard("K", "Hearts"),
+        BalatroCard("9", "Clubs"),
+    ]
+
+    descriptor = ConsumableBehaviorAnalyzer().describe(HangedMan(), state=state)
+
+    assert DECK_REMOVE in descriptor.produces
+    assert DECK_TRANSFORM not in descriptor.produces
+    assert descriptor.transforms == frozenset()
+    assert len(state.hand) == 3
