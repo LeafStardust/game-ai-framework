@@ -3,12 +3,10 @@ from __future__ import annotations
 import argparse
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
-from games.balatro.live.depth_draw_outcomes import DepthAwarePublicDrawOutcomeModel
-from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
 from games.balatro.live.hand_action_policy import (
     HandActionThresholds,
     LiveHandActionDecisionEngine,
-    LiveHandActionThresholdPolicy,
+    LiveHandActionPolicy,
 )
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 from games.balatro.playbook import default_balatro_playbooks
@@ -44,7 +42,7 @@ def _plan_text(state, plan) -> str:
         f"score={value.expected_score:.3f} "
         f"hands={value.expected_hands_remaining:.3f} "
         f"discards={value.expected_discards_remaining:.3f} "
-        f"exact={plan.exact}"
+        f"exact={plan.exact} horizon={plan.horizon}"
     )
 
 
@@ -56,36 +54,25 @@ def _target(state) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Read-only D1 live hand-action validation. Ranks Play/Discard candidates "
-            "from direct Balatro process memory, applies the dedicated D1 threshold "
-            "block, and sends no mouse input."
+            "Read-only D1 live validation. Adaptively searches for a blind-clear path; "
+            "only when none reaches the D1 floor does it fall back to remaining blind "
+            "score divided by remaining hands. Sends no mouse input."
         )
     )
-    parser.add_argument("--horizon", type=int, default=2)
-    parser.add_argument("--play-width", type=int, default=6)
-    parser.add_argument("--discard-width", type=int, default=4)
-    parser.add_argument("--child-play-width", type=int, default=4)
-    parser.add_argument("--child-discard-width", type=int, default=2)
-    parser.add_argument("--samples", type=int, default=64)
-    parser.add_argument("--child-samples", type=int, default=24)
+    parser.add_argument("--max-horizon", type=int)
+    parser.add_argument("--max-search-nodes", type=int)
     parser.add_argument("--exact-limit", type=int, default=128)
     parser.add_argument("--child-exact-limit", type=int, default=8)
-    parser.add_argument("--max-nodes", type=int, default=2500)
     args = parser.parse_args()
 
-    if args.horizon < 1:
-        parser.error("--horizon must be at least 1")
-    if args.play_width < 1:
-        parser.error("--play-width must be positive")
-    if args.discard_width < 0:
-        parser.error("--discard-width cannot be negative")
-    if args.child_play_width < 1:
-        parser.error("--child-play-width must be positive")
-    if args.child_discard_width < 0:
-        parser.error("--child-discard-width cannot be negative")
-    for name in ("samples", "child_samples", "exact_limit", "child_exact_limit", "max_nodes"):
-        if getattr(args, name) < 1:
+    for name in ("max_horizon", "max_search_nodes"):
+        value = getattr(args, name)
+        if value is not None and value < 1:
             parser.error(f"--{name.replace('_', '-')} must be positive")
+    if args.exact_limit < 1:
+        parser.error("--exact-limit must be positive")
+    if args.child_exact_limit < 1:
+        parser.error("--child-exact-limit must be positive")
 
     try:
         with LiveMemoryBalatroObserver() as observer:
@@ -103,24 +90,27 @@ def main() -> int:
                 .get("hand_action", {})
             )
             thresholds = HandActionThresholds.from_mapping(threshold_mapping)
-            policy = LiveHandActionThresholdPolicy(thresholds)
-            planner = D1LiveBlindClearPlanner(
-                draw_outcomes=DepthAwarePublicDrawOutcomeModel(
-                    exact_combination_limit=args.exact_limit,
-                    root_sample_count=args.samples,
-                    child_sample_count=args.child_samples,
-                    child_exact_combination_limit=args.child_exact_limit,
-                ),
-                play_width=args.play_width,
-                discard_width=args.discard_width,
-                child_play_width=args.child_play_width,
-                child_discard_width=args.child_discard_width,
-                horizon=args.horizon,
-                max_nodes=args.max_nodes,
+            planner_config = playbook.strategy.get("planner", {})
+            max_horizon = (
+                args.max_horizon
+                if args.max_horizon is not None
+                else int(planner_config.get("max_horizon", 8))
             )
-            engine = LiveHandActionDecisionEngine(planner=planner, policy=policy)
-            plans = engine.rank_plans(state)
-            decision = policy.decide(state, plans)
+            max_search_nodes = (
+                args.max_search_nodes
+                if args.max_search_nodes is not None
+                else int(planner_config.get("max_search_nodes", 5000))
+            )
+
+            policy = LiveHandActionPolicy(thresholds)
+            engine = LiveHandActionDecisionEngine(
+                policy=policy,
+                max_horizon=max_horizon,
+                max_search_nodes=max_search_nodes,
+                exact_limit=args.exact_limit,
+                child_exact_limit=args.child_exact_limit,
+            )
+            decision = engine.decide(state)
     except Exception as error:
         print("Live-memory D1 hand-action validation -> FAIL")
         print(f"Reason -> {error}")
@@ -134,7 +124,9 @@ def main() -> int:
     print(f"Phase -> {snapshot.phase}")
     print(f"Deck / stake -> {state.deck_name} / {state.stake_name}")
     print(f"Playbook -> {playbook.name} v{playbook.version}")
-    print("Planner beam -> D1 diversity-aware")
+    print("Decision hierarchy -> CLEAR_PATH -> PACE_PLAY -> PACE_RECOVERY")
+    print("Clear-path search -> adaptive bounded public-state expectimax")
+    print("Pace fallback beam -> D1 diversity-aware")
     print("Process writes/injection -> False")
     print("Hidden RNG/deck traversal -> False")
     print("Mouse movement sent -> False")
@@ -150,42 +142,59 @@ def main() -> int:
     for name, value in thresholds.as_dict().items():
         print(f"  {name} -> {value}")
 
-    print(f"Planner candidates -> {len(plans)}")
-    for index, plan in enumerate(plans, start=1):
+    print(f"Adaptive clear-path attempts -> {len(decision.search_attempts)}")
+    for index, attempt in enumerate(decision.search_attempts, start=1):
+        if attempt.budget_exceeded:
+            print(
+                f"  {index}. horizon={attempt.horizon} samples={attempt.samples} "
+                f"beam={attempt.play_width}+{attempt.discard_width} "
+                f"nodes={attempt.nodes_evaluated}/{attempt.max_nodes} BUDGET_EXCEEDED"
+            )
+        else:
+            print(
+                f"  {index}. horizon={attempt.horizon} samples={attempt.samples} "
+                f"beam={attempt.play_width}+{attempt.discard_width} "
+                f"nodes={attempt.nodes_evaluated}/{attempt.max_nodes} "
+                f"best={attempt.best_action} "
+                f"clear={attempt.best_clear_probability:.6f} "
+                f"expected={attempt.best_expected_score:.3f}"
+            )
+
+    print(f"Decision-mode candidates -> {len(decision.plans)}")
+    for index, plan in enumerate(decision.plans, start=1):
         print(f"  {index}. {_plan_text(state, plan)}")
 
-    print("Best Play -> " + _plan_text(state, decision.best_play))
+    print("Best planner Play -> " + _plan_text(state, decision.best_play))
     if decision.best_discard is None:
-        print("Best Discard -> unavailable")
+        print("Best planner Discard -> unavailable")
     else:
-        print("Best Discard -> " + _plan_text(state, decision.best_discard))
+        print("Best planner Discard -> " + _plan_text(state, decision.best_discard))
 
     print(
-        "Required discard clear-probability advantage -> "
-        f"{decision.required_discard_clear_advantage:.6f}"
+        "Pace target -> "
+        f"({_target(state)} - {state.score}) / {state.hands_remaining} = "
+        f"{decision.pace_target:.3f} chips on the next hand"
     )
     print(
-        "Required discard progress advantage -> "
-        f"{decision.required_discard_progress_advantage:.6f}"
+        "Best immediate Play score / pace ratio -> "
+        f"{decision.best_play_immediate_score:.3f} / "
+        f"{decision.best_play_pace_ratio:.6f}x"
     )
-    if decision.clear_probability_delta is not None:
-        print(
-            "Discard - Play clear-probability delta -> "
-            f"{decision.clear_probability_delta:.6f}"
-        )
-    if decision.progress_delta is not None:
-        print(
-            "Discard - Play progress delta -> "
-            f"{decision.progress_delta:.6f}"
-        )
-
+    print(f"Clear-path candidates above floor -> {decision.clear_path_candidates}")
+    print(f"Setup-discard deep-search consensus -> {decision.setup_discard_consensus}")
+    print(f"D1 mode -> {decision.mode}")
     print(f"Recommended D1 action -> {decision.action.name}")
     print(f"Recommended indices -> {_indices(state, decision.action)}")
+    if decision.selected_immediate_score is not None:
+        print(f"Selected immediate score -> {decision.selected_immediate_score:.3f}")
+    if decision.selected_pace_ratio is not None:
+        print(f"Selected pace ratio -> {decision.selected_pace_ratio:.6f}x")
+    if decision.selected_fallback_value is not None:
+        print(f"Selected pace-recovery value -> {decision.selected_fallback_value:.3f}")
     print(f"D1 confidence -> {decision.confidence:.6f}")
     print("D1 rationale:")
     for reason in decision.rationale:
         print(f"  - {reason}")
-    print(f"Planner nodes evaluated -> {planner.nodes_evaluated}")
     print("Integrated external action execution armed -> False for this validation")
     return 0
 
