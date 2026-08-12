@@ -71,12 +71,18 @@ def test_d1_child_beam_shortlists_before_expensive_projection():
         horizon=4,
     )
     plays = planner.action_generator.generate_play_actions(state)
+
+    def retained_structure_must_not_run(_cards):
+        raise AssertionError("child shortlist must not scan retained-hand structure")
+
+    planner.evaluator._retained_structure_value = retained_structure_must_not_run
     shortlist = planner._shortlist_child_plays(
         state,
         plays,
         planner.child_play_width,
     )
 
+    assert len(shortlist) == 5
     assert len(shortlist) < len(plays)
     assert {len(action.cards) for action in shortlist} == {1, 2, 3, 4, 5}
 
@@ -92,5 +98,6 @@ def test_d1_child_beam_shortlists_before_expensive_projection():
 
     assert len(actions) == planner.child_play_width
     assert planner.play_projections_evaluated == len(shortlist)
+    assert planner.play_projections_evaluated == 5
     assert planner.play_projections_evaluated < len(plays)
     assert planner._play_projection_cache == {}
