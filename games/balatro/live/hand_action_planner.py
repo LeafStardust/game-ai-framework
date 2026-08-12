@@ -24,7 +24,7 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._play_projection_cache: dict[tuple[int, tuple[int, ...]], tuple[object, object]] = {}
+        self._play_projection_cache: dict[tuple[int, ...], object] = {}
         self.play_projections_evaluated = 0
 
     def reset_search_stats(self) -> None:
@@ -33,13 +33,13 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         self.play_projections_evaluated = 0
 
     def _play_projection(self, state, action):
-        key = (id(state), self._action_identity(action))
+        key = self._action_identity(action)
         cached = self._play_projection_cache.get(key)
-        if cached is not None and cached[0] is state:
-            return cached[1]
+        if cached is not None:
+            return cached
 
         projection = self.evaluator.project_play(state, action)
-        self._play_projection_cache[key] = (state, projection)
+        self._play_projection_cache[key] = projection
         self.play_projections_evaluated += 1
         return projection
 
@@ -65,35 +65,45 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             self.discard_width if discard_width is None else int(discard_width)
         )
 
-        plays = self.action_generator.generate_play_actions(state)
-        guaranteed_clears = [
-            action
-            for action in plays
-            if self._play_projection(state, action).clears_blind
-        ]
-        if guaranteed_clears:
-            return sorted(
-                guaranteed_clears,
-                key=lambda action: self._play_priority(state, action),
-                reverse=True,
-            )[: max(0, play_limit)]
+        # Candidate construction can inspect the same Play several times: once
+        # for terminal-clear detection, again for ranking, and again while
+        # preserving redraw-size diversity. Cache only for this one state/beam;
+        # recursive search states get a fresh cache so hypothetical states are
+        # never retained for the lifetime of the whole search.
+        previous_cache = self._play_projection_cache
+        self._play_projection_cache = {}
+        try:
+            plays = self.action_generator.generate_play_actions(state)
+            guaranteed_clears = [
+                action
+                for action in plays
+                if self._play_projection(state, action).clears_blind
+            ]
+            if guaranteed_clears:
+                return sorted(
+                    guaranteed_clears,
+                    key=lambda action: self._play_priority(state, action),
+                    reverse=True,
+                )[: max(0, play_limit)]
 
-        ranked_plays = self._diverse_play_beam(state, plays, play_limit)
+            ranked_plays = self._diverse_play_beam(state, plays, play_limit)
 
-        if (
-            not allow_discards
-            or discard_limit <= 0
-            or int(getattr(state, "discards_remaining", 0)) <= 0
-        ):
-            return ranked_plays
+            if (
+                not allow_discards
+                or discard_limit <= 0
+                or int(getattr(state, "discards_remaining", 0)) <= 0
+            ):
+                return ranked_plays
 
-        discards = self.action_generator.generate_discard_actions(state)
-        ranked_discards = self._diverse_discard_beam(
-            state,
-            discards,
-            discard_limit,
-        )
-        return ranked_plays + ranked_discards
+            discards = self.action_generator.generate_discard_actions(state)
+            ranked_discards = self._diverse_discard_beam(
+                state,
+                discards,
+                discard_limit,
+            )
+            return ranked_plays + ranked_discards
+        finally:
+            self._play_projection_cache = previous_cache
 
     def _diverse_play_beam(self, state, plays, limit: int):
         if limit <= 0 or not plays:
