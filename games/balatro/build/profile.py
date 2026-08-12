@@ -19,7 +19,7 @@ from .effects import (
     seal_feature,
     suit_feature,
 )
-from .joker_semantics import SemanticJokerBehaviorAnalyzer
+from .joker_lifecycle import LifecycleJokerBehaviorAnalyzer
 
 
 @dataclass(frozen=True)
@@ -87,7 +87,7 @@ class BalatroBuildProfiler:
         joker_analyzer: JokerBehaviorAnalyzer | None = None,
         consumable_analyzer: ConsumableBehaviorAnalyzer | None = None,
     ) -> None:
-        self.joker_analyzer = joker_analyzer or SemanticJokerBehaviorAnalyzer()
+        self.joker_analyzer = joker_analyzer or LifecycleJokerBehaviorAnalyzer()
         self.consumable_analyzer = consumable_analyzer or ConsumableBehaviorAnalyzer()
 
     def profile(self, state: BalatroState) -> BuildProfile:
