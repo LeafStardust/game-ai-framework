@@ -57,6 +57,10 @@ class LuaJITNonGC64Decoder:
 
     def __init__(self, reader: WindowsProcessMemoryReader):
         self.reader = reader
+        # Lua strings are immutable and interned. Caching by GCstr address avoids
+        # rereading the same field names thousands of times while normalizing a
+        # live deck full of structurally identical card tables.
+        self._string_cache: dict[int, str] = {}
 
     @classmethod
     def tag(cls, raw: int) -> int:
@@ -117,6 +121,10 @@ class LuaJITNonGC64Decoder:
         return LuaValue("number", number, raw)
 
     def read_string(self, address: int) -> str:
+        cached = self._string_cache.get(address)
+        if cached is not None:
+            return cached
+
         header = self.reader.read(address, self.GCSTR_SIZE)
         if len(header) != self.GCSTR_SIZE:
             raise LuaJITMemoryError(f"short GCstr header at 0x{address:x}")
@@ -132,9 +140,11 @@ class LuaJITNonGC64Decoder:
             )
         payload = self.reader.read(address + self.GCSTR_SIZE, length)
         try:
-            return payload.decode("utf-8")
+            text = payload.decode("utf-8")
         except UnicodeDecodeError:
-            return payload.decode("utf-8", errors="replace")
+            text = payload.decode("utf-8", errors="replace")
+        self._string_cache[address] = text
+        return text
 
     def read_table_meta(self, address: int) -> LuaTableMeta:
         header = self.reader.read(address, self.GCTAB_SIZE)
@@ -176,6 +186,34 @@ class LuaJITNonGC64Decoder:
         if not meta.node:
             return ()
 
+        count = meta.hmask + 1
+        try:
+            block = self.reader.read(meta.node, count * self.NODE_SIZE)
+            if len(block) != count * self.NODE_SIZE:
+                raise LuaJITMemoryError(
+                    f"short LuaJIT hash-node block at 0x{meta.node:x}"
+                )
+        except (BalatroProcessMemoryError, LuaJITMemoryError):
+            return self._hash_items_individually(meta)
+
+        result: list[tuple[LuaValue, LuaValue]] = []
+        for index in range(count):
+            offset = index * self.NODE_SIZE
+            value_raw, key_raw = struct.unpack_from("<QQ", block, offset)
+            try:
+                value = self.decode_value(value_raw)
+                key = self.decode_value(key_raw)
+            except (BalatroProcessMemoryError, LuaJITMemoryError):
+                continue
+            if value.kind == "nil" or key.kind == "nil":
+                continue
+            result.append((key, value))
+        return tuple(result)
+
+    def _hash_items_individually(
+        self,
+        meta: LuaTableMeta,
+    ) -> tuple[tuple[LuaValue, LuaValue], ...]:
         result: list[tuple[LuaValue, LuaValue]] = []
         for index in range(meta.hmask + 1):
             address = meta.node + index * self.NODE_SIZE
@@ -197,6 +235,30 @@ class LuaJITNonGC64Decoder:
         if not meta.array or not meta.asize:
             return ()
 
+        try:
+            block = self.reader.read(meta.array, meta.asize * 8)
+            if len(block) != meta.asize * 8:
+                raise LuaJITMemoryError(
+                    f"short LuaJIT array block at 0x{meta.array:x}"
+                )
+        except (BalatroProcessMemoryError, LuaJITMemoryError):
+            return self._array_items_individually(meta)
+
+        result: list[tuple[int, LuaValue]] = []
+        for index in range(meta.asize):
+            raw = struct.unpack_from("<Q", block, index * 8)[0]
+            try:
+                value = self.decode_value(raw)
+            except (BalatroProcessMemoryError, LuaJITMemoryError):
+                continue
+            if value.kind != "nil":
+                result.append((index, value))
+        return tuple(result)
+
+    def _array_items_individually(
+        self,
+        meta: LuaTableMeta,
+    ) -> tuple[tuple[int, LuaValue], ...]:
         result: list[tuple[int, LuaValue]] = []
         for index in range(meta.asize):
             try:
