@@ -463,6 +463,7 @@ class LiveHandActionDecisionEngine:
 
     CONFIRMATION_MIN_ROOT_SAMPLES = 32
     CONFIRMATION_MIN_CHILD_SAMPLES = 4
+    CONFIRMATION_MAX_NODES = 1000
 
     def __init__(
         self,
@@ -735,7 +736,7 @@ class LiveHandActionDecisionEngine:
             discard_width=config.discard_width,
             child_play_width=config.child_play_width,
             child_discard_width=config.child_discard_width,
-            max_nodes=config.max_nodes,
+            max_nodes=min(config.max_nodes, self.CONFIRMATION_MAX_NODES),
         )
 
     def _matching_clear_path(
