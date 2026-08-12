@@ -86,6 +86,17 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return indices
   end
 
+  local function parse_single_index(payload)
+    if not payload or payload == "" or payload:find(",", 1, true) then
+      return nil, "exactly one non-negative index is required"
+    end
+    local index = tonumber(payload)
+    if not index or index < 0 or index ~= math.floor(index) then
+      return nil, "invalid action index: " .. tostring(payload)
+    end
+    return index
+  end
+
   local function achievement_gate_state()
     if not G then
       return "G_UNAVAILABLE"
@@ -226,6 +237,243 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return true
   end
 
+  local function available_money()
+    if not G or not G.GAME then
+      return nil
+    end
+    return tonumber(G.GAME.dollars or 0) - tonumber(G.GAME.bankrupt_at or 0)
+  end
+
+  local function require_state(state_name)
+    if not G or not G.STATES or G.STATE ~= G.STATES[state_name] then
+      return false, "action requires " .. tostring(state_name)
+    end
+    return true
+  end
+
+  local function shop_card(area, index)
+    if not area or not area.cards then
+      return nil
+    end
+    return area.cards[index + 1]
+  end
+
+  local function affordable(card)
+    local money = available_money()
+    local cost = card and tonumber(card.cost or 0) or nil
+    if money == nil or cost == nil then
+      return false, "card cost or available money is unavailable"
+    end
+    if cost > money then
+      return false, "item is not affordable"
+    end
+    return true
+  end
+
+  local function room_for_shop_card(card)
+    local set = card and card.ability and card.ability.set
+    if set == "Joker" then
+      local count = G.jokers and G.jokers.config and tonumber(G.jokers.config.card_count or 0) or 0
+      local limit = G.jokers and G.jokers.config and tonumber(G.jokers.config.card_limit or 0) or 0
+      if count >= limit then
+        return false, "joker slots are full"
+      end
+    elseif set == "Tarot" or set == "Planet" or set == "Spectral" then
+      local count = G.consumeables and G.consumeables.config and tonumber(G.consumeables.config.card_count or 0) or 0
+      local limit = G.consumeables and G.consumeables.config and tonumber(G.consumeables.config.card_limit or 0) or 0
+      if count >= limit then
+        return false, "consumable slots are full"
+      end
+    end
+    return true
+  end
+
+  local function execute_cash_out()
+    local ready, state_error = require_state("ROUND_EVAL")
+    if not ready then
+      return false, state_error
+    end
+    local callback = G.FUNCS and G.FUNCS.cash_out
+    if type(callback) ~= "function" then
+      return false, "cash_out callback is unavailable"
+    end
+    local ok, error_message = pcall(callback, { config = {} })
+    if not ok then
+      return false, error_message
+    end
+    return true
+  end
+
+  local function execute_next_round()
+    local ready, state_error = require_state("SHOP")
+    if not ready then
+      return false, state_error
+    end
+    local callback = G.FUNCS and G.FUNCS.toggle_shop
+    if type(callback) ~= "function" then
+      return false, "toggle_shop callback is unavailable"
+    end
+    local ok, error_message = pcall(callback, {})
+    if not ok then
+      return false, error_message
+    end
+    return true
+  end
+
+  local function execute_reroll_shop()
+    local ready, state_error = require_state("SHOP")
+    if not ready then
+      return false, state_error
+    end
+    local round = G.GAME and G.GAME.current_round
+    local cost = round and tonumber(round.reroll_cost or 0) or 0
+    local money = available_money()
+    if money == nil then
+      return false, "available money is unavailable"
+    end
+    if cost > 0 and money < cost then
+      return false, "not enough dollars to reroll"
+    end
+    local callback = G.FUNCS and G.FUNCS.reroll_shop
+    if type(callback) ~= "function" then
+      return false, "reroll_shop callback is unavailable"
+    end
+    local ok, error_message = pcall(callback, nil)
+    if not ok then
+      return false, error_message
+    end
+    return true
+  end
+
+  local function execute_shop_purchase(action, payload)
+    local ready, state_error = require_state("SHOP")
+    if not ready then
+      return false, state_error
+    end
+
+    local index, parse_error = parse_single_index(payload)
+    if index == nil then
+      return false, parse_error
+    end
+
+    local area
+    if action == "BUY_CARD" then
+      area = G.shop_jokers
+    elseif action == "BUY_VOUCHER" then
+      area = G.shop_vouchers
+    else
+      area = G.shop_booster
+    end
+
+    local card = shop_card(area, index)
+    if not card then
+      return false, "shop item index is out of range"
+    end
+
+    local can_afford, affordability_error = affordable(card)
+    if not can_afford then
+      return false, affordability_error
+    end
+
+    if action == "BUY_CARD" then
+      local has_room, room_error = room_for_shop_card(card)
+      if not has_room then
+        return false, room_error
+      end
+    end
+
+    local button = card.children and card.children.buy_button and card.children.buy_button.definition
+    if not button then
+      return false, "shop item buy button is unavailable"
+    end
+
+    local callback
+    if action == "BUY_CARD" then
+      callback = G.FUNCS and G.FUNCS.buy_from_shop
+    else
+      callback = G.FUNCS and G.FUNCS.use_card
+    end
+    if type(callback) ~= "function" then
+      return false, "shop purchase callback is unavailable"
+    end
+
+    local ok, error_message = pcall(callback, button)
+    if not ok then
+      return false, error_message
+    end
+    return true
+  end
+
+  local function pack_card_requires_hand_targets(card)
+    local center = card and card.config and card.config.center
+    local key = center and center.key
+    local config = center and center.config
+    if key == "c_aura" then
+      return true
+    end
+    return config and config.max_highlighted ~= nil
+  end
+
+  local function execute_pack_select(payload)
+    local ready, state_error = require_state("SMODS_BOOSTER_OPENED")
+    if not ready then
+      return false, state_error
+    end
+    if not G.pack_cards or G.pack_cards.REMOVED or not G.pack_cards.cards then
+      return false, "no booster pack is open"
+    end
+
+    local index, parse_error = parse_single_index(payload)
+    if index == nil then
+      return false, parse_error
+    end
+    local card = G.pack_cards.cards[index + 1]
+    if not card then
+      return false, "pack card index is out of range"
+    end
+    if pack_card_requires_hand_targets(card) then
+      return false, "pack card requires hand targets; injected target selection is not implemented"
+    end
+
+    if card.ability and card.ability.set == "Joker" then
+      local count = G.jokers and G.jokers.config and tonumber(G.jokers.config.card_count or 0) or 0
+      local limit = G.jokers and G.jokers.config and tonumber(G.jokers.config.card_limit or 0) or 0
+      if count >= limit then
+        return false, "joker slots are full"
+      end
+    end
+
+    local callback = G.FUNCS and G.FUNCS.use_card
+    if type(callback) ~= "function" then
+      return false, "use_card callback is unavailable"
+    end
+    local button = { config = { ref_table = card } }
+    local ok, error_message = pcall(callback, button)
+    if not ok then
+      return false, error_message
+    end
+    return true
+  end
+
+  local function execute_pack_skip()
+    local ready, state_error = require_state("SMODS_BOOSTER_OPENED")
+    if not ready then
+      return false, state_error
+    end
+    if not G.pack_cards or G.pack_cards.REMOVED then
+      return false, "no booster pack is open"
+    end
+    local callback = G.FUNCS and G.FUNCS.skip_booster
+    if type(callback) ~= "function" then
+      return false, "skip_booster callback is unavailable"
+    end
+    local ok, error_message = pcall(callback, {})
+    if not ok then
+      return false, error_message
+    end
+    return true
+  end
+
   local function process_command(command_id, action, payload)
     if action == "PING" then
       write_response(command_id, "OK", "ready")
@@ -237,7 +485,28 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       return
     end
 
-    if action ~= "PLAY" and action ~= "DISCARD" then
+    local executor
+    if action == "PLAY" or action == "DISCARD" then
+      executor = function()
+        return execute_hand_action(action, payload)
+      end
+    elseif action == "CASH_OUT" then
+      executor = execute_cash_out
+    elseif action == "NEXT_ROUND" then
+      executor = execute_next_round
+    elseif action == "REROLL_SHOP" then
+      executor = execute_reroll_shop
+    elseif action == "BUY_CARD" or action == "BUY_VOUCHER" or action == "BUY_BOOSTER" then
+      executor = function()
+        return execute_shop_purchase(action, payload)
+      end
+    elseif action == "PACK_SELECT" then
+      executor = function()
+        return execute_pack_select(payload)
+      end
+    elseif action == "PACK_SKIP" then
+      executor = execute_pack_skip
+    else
       write_response(
         command_id,
         "ERROR",
@@ -246,11 +515,7 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       return
     end
 
-    local ok, result, message = pcall(
-      execute_hand_action,
-      action,
-      payload
-    )
+    local ok, result, message = pcall(executor)
     if not ok then
       write_response(command_id, "ERROR", result)
       return
