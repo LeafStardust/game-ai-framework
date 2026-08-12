@@ -187,8 +187,17 @@ class FirstPartyBalatroBridge:
     def buy_booster(self, index: int) -> None:
         self._call("BUY_BOOSTER", (_validated_index(index),))
 
-    def select_pack_card(self, index: int) -> None:
-        self._call("PACK_SELECT", (_validated_index(index),))
+    def select_pack_card(
+        self,
+        index: int,
+        hand_indices: Iterable[int] = (),
+    ) -> None:
+        pack_index = _validated_index(index)
+        targets = tuple(int(value) for value in hand_indices)
+        if targets:
+            targets = _validated_indices(targets)
+        # Pack slots and hand-card positions are independent zero-based spaces.
+        self._call("PACK_SELECT", (pack_index, *targets))
 
     def skip_booster(self) -> None:
         self._call("PACK_SKIP")

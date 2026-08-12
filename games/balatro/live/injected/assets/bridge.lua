@@ -116,6 +116,25 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return slot, targets
   end
 
+  local function parse_pack_select_payload(payload)
+    if not payload or payload == "" then
+      return nil, nil, "pack selection requires a pack card index"
+    end
+
+    local slot_payload, target_payload = payload:match("^([^,]+),?(.*)$")
+    local slot, slot_error = parse_single_index(slot_payload)
+    if slot == nil then
+      return nil, nil, slot_error
+    end
+
+    local targets, target_error = parse_indices(target_payload or "")
+    if not targets then
+      return nil, nil, target_error
+    end
+
+    return slot, targets
+  end
+
   local function achievement_gate_state()
     if not G then
       return "G_UNAVAILABLE"
@@ -545,7 +564,7 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       return false, "no booster pack is open"
     end
 
-    local index, parse_error = parse_single_index(payload)
+    local index, target_indices, parse_error = parse_pack_select_payload(payload)
     if index == nil then
       return false, parse_error
     end
@@ -553,8 +572,22 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     if not card then
       return false, "pack card index is out of range"
     end
-    if pack_card_requires_hand_targets(card) then
-      return false, "pack card requires hand targets; injected target selection is not implemented"
+
+    local requires_targets = pack_card_requires_hand_targets(card)
+    local selected, selection_error
+    if requires_targets then
+      if #target_indices == 0 then
+        return false, "pack card requires hand targets"
+      end
+      selected, selection_error = select_hand_indices(target_indices)
+    else
+      if #target_indices ~= 0 then
+        return false, "pack card does not accept hand targets"
+      end
+      selected, selection_error = clear_hand_selection()
+    end
+    if not selected then
+      return false, selection_error
     end
 
     if card.ability and card.ability.set == "Joker" then

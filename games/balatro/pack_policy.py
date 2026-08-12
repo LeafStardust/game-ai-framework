@@ -9,7 +9,10 @@ from games.balatro.actions import (
     SKIP_BOOSTER,
     BalatroAction,
 )
-from games.balatro.build import ContextualPlayingCardSynergyEvaluator
+from games.balatro.build import (
+    ContextualConsumableTargetEvaluator,
+    ContextualPlayingCardSynergyEvaluator,
+)
 from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.live.pack import LivePackChoice
@@ -28,8 +31,10 @@ class BalatroPackPolicy:
     """Conservative ranking for visible booster-pack choices.
 
     Joker, Planet, and enhanced/edition/sealed playing-card choices can be ranked
-    immediately. Tarot/Spectral cards that can require another selection step are
-    deliberately scored below Skip until those follow-up UI actions are implemented.
+    immediately. Deterministic targeted Tarot transformations are admitted only
+    when the public hand supplies a validated B6 target. Other Tarot/Spectral
+    follow-up semantics remain below Skip until their targeting and stochastic
+    consequences are modeled.
     """
 
     SAFE_IMMEDIATE_TAROTS = {
@@ -89,6 +94,7 @@ class BalatroPackPolicy:
         consumable_factory=None,
         fallback_factory=None,
         playing_card_build=None,
+        consumable_target_evaluator=None,
     ) -> None:
         self.skip_bias = float(skip_bias)
         self.item_estimator = item_estimator or DefaultShopItemValueEstimator()
@@ -97,6 +103,9 @@ class BalatroPackPolicy:
         self.fallback_factory = fallback_factory or LiveShopItemFactory()
         self.playing_card_build = (
             playing_card_build or ContextualPlayingCardSynergyEvaluator()
+        )
+        self.consumable_target_evaluator = (
+            consumable_target_evaluator or ContextualConsumableTargetEvaluator()
         )
 
     def choose_action(self, state, actions: list[BalatroAction]) -> BalatroAction:
@@ -156,11 +165,37 @@ class BalatroPackPolicy:
             return PackActionScore(action, 0.0, ("unresolved consumable",))
 
         if choice.kind == "TAROT" and choice.label not in self.SAFE_IMMEDIATE_TAROTS:
-            return PackActionScore(
-                action,
-                -1.0,
-                ("Tarot requires unsupported follow-up selection or is not yet classified safe",),
+            target_evaluation = self.consumable_target_evaluator.recommend(state, target)
+            if target_evaluation is None:
+                return PackActionScore(
+                    action,
+                    -1.0,
+                    (
+                        "Tarot requires unsupported follow-up selection or has no valid B6 target",
+                    ),
+                )
+
+            utility, notes = self.item_estimator.estimate(
+                state,
+                BalatroAction(BUY_CONSUMABLE, target=target),
             )
+            targeted_action = BalatroAction(
+                SELECT_PACK_CARD,
+                cards=list(target_evaluation.cards),
+                target=choice,
+            )
+            combined = (
+                *tuple(notes),
+                f"B6 pack target gain={target_evaluation.total_gain:.3f}",
+                f"target_indices={target_evaluation.target_indices}",
+                *target_evaluation.rationale,
+            )
+            return PackActionScore(
+                targeted_action,
+                float(utility) + float(target_evaluation.total_gain),
+                combined,
+            )
+
         if choice.kind == "SPECTRAL":
             return PackActionScore(
                 action,

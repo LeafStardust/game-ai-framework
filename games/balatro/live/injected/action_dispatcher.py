@@ -33,6 +33,7 @@ from .bridge import FirstPartyBalatroBridge
 from .hand_dispatcher import (
     LiveInjectedActionResult,
     LiveMemoryInjectedHandDispatcher,
+    _action_indices,
 )
 
 
@@ -452,8 +453,19 @@ class LiveMemoryInjectedActionDispatcher:
                 raise UnsupportedInjectedAction(
                     "Balatro reports no remaining booster-pack choices"
                 )
+            target_indices: tuple[int, ...] = ()
+            if action.cards:
+                if state is None:
+                    raise UnsupportedInjectedAction(
+                        "targeted SELECT_PACK_CARD requires the translated state "
+                        "used to choose hand targets"
+                    )
+                try:
+                    target_indices = _action_indices(state, action)
+                except RuntimeError as error:
+                    raise UnsupportedInjectedAction(str(error)) from error
             selected_address = before_terms.choice_addresses[index]
-            self.bridge.select_pack_card(index)
+            self.bridge.select_pack_card(index, target_indices)
 
             def pack_selection_settled(value: LiveBalatroSnapshot) -> bool:
                 after_terms = None
@@ -483,6 +495,7 @@ class LiveMemoryInjectedActionDispatcher:
                 after,
                 {
                     "area_index": index,
+                    "target_indices": target_indices,
                     "choices_remaining_before": before_terms.choices_remaining,
                     "selected_address": selected_address,
                 },
