@@ -20,6 +20,7 @@ from games.balatro.consumable import PlanetCard
 from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.mime import MimeJoker
+from games.balatro.jokers.superposition import SuperpositionJoker
 from games.balatro.state import BalatroState
 from games.balatro.tarots import Chariot, HangedMan
 
@@ -48,6 +49,20 @@ def test_fibonacci_inference_only_credits_positive_rank_scaling():
     assert rank_feature("4") not in descriptor.scales_with
     assert rank_feature("10") not in descriptor.scales_with
     assert rank_feature("K") not in descriptor.scales_with
+
+
+def test_superposition_inference_discovers_straight_and_ace_conjunction():
+    descriptor = JokerBehaviorAnalyzer().describe(SuperpositionJoker())
+
+    straight = hand_feature("STRAIGHT")
+    ace = rank_feature("A")
+    assert straight in descriptor.requires
+    assert straight in descriptor.scales_with
+    assert ace in descriptor.requires
+    assert ace in descriptor.scales_with
+    assert rank_feature("K") not in descriptor.requires
+    assert rank_feature("K") not in descriptor.scales_with
+    assert "context:created_tarot_cards" in descriptor.evidence
 
 
 def test_mime_effect_inference_exposes_held_retrigger_synergy():
