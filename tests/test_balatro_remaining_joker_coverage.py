@@ -7,6 +7,7 @@ from games.balatro.build.effects import (
     SCORE_XMULT,
 )
 from games.balatro.build.joker_coverage import (
+    COVERED,
     ERROR,
     OPAQUE,
     PARAMETERIZED,
@@ -85,10 +86,12 @@ def test_trigger_guard_flags_do_not_remain_unknown_semantic_outputs():
     assert "signal:trading_card_triggered" not in trading_card.produces
 
 
-def test_every_constructible_repository_joker_has_semantic_coverage():
+def test_every_repository_joker_has_semantic_coverage():
     report = JokerCoverageAuditor().audit()
 
+    assert len(report.entries) == 152
+    assert report.count(COVERED) == 152
     assert report.count(OPAQUE) == 0
     assert report.count(PARTIAL) == 0
     assert report.count(ERROR) == 0
-    assert report.count(PARAMETERIZED) == 4
+    assert report.count(PARAMETERIZED) == 0
