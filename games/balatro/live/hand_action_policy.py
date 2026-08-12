@@ -680,7 +680,7 @@ class LiveHandActionDecisionEngine:
             discard_width=config.discard_width,
             child_play_width=config.child_play_width,
             child_discard_width=config.child_discard_width,
-            max_nodes=max(config.max_nodes, self.max_search_nodes),
+            max_nodes=config.max_nodes,
         )
 
     def _matching_clear_path(
