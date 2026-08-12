@@ -5,6 +5,12 @@ from .balatrobot_bridge import (
     BalatroBotError,
     BalatroBotRpcError,
 )
+from .consumable_timing import (
+    HOLD,
+    USE,
+    ConsumableTimingRecommendation,
+    LiveConsumableTimingPolicy,
+)
 from .interfaces import (
     BalatroActionExecutor,
     BalatroLiveBridge,
@@ -46,11 +52,15 @@ __all__ = [
     "BalatroShopActionGenerator",
     "BalatroStateTranslator",
     "BufferedShopTransaction",
+    "ConsumableTimingRecommendation",
     "DefaultBalatroActionExecutor",
     "DefaultBalatroStateTranslator",
+    "HOLD",
     "LiveBalatroCommand",
     "LiveBalatroSnapshot",
+    "LiveConsumableTimingPolicy",
     "LiveShopItem",
     "LiveShopItemFactory",
+    "USE",
     "UnsupportedBufferedShopAction",
 ]
