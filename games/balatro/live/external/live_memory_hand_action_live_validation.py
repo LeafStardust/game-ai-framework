@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 
-from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.live.hand_action_policy import (
     HandActionThresholds,
     LiveHandActionDecisionEngine,
@@ -55,7 +54,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Read-only D1 live validation. Adaptively searches for a blind-clear path; "
-            "only when none reaches the D1 floor does it fall back to remaining blind "
+            "sampled paths require a stronger same-horizon confirmation pass. Only "
+            "when no credible path survives does D1 fall back to remaining blind "
             "score divided by remaining hands. Sends no mouse input."
         )
     )
@@ -126,6 +126,7 @@ def main() -> int:
     print(f"Playbook -> {playbook.name} v{playbook.version}")
     print("Decision hierarchy -> CLEAR_PATH -> PACE_PLAY -> PACE_RECOVERY")
     print("Clear-path search -> adaptive bounded public-state expectimax")
+    print("Sampled clear-path guard -> stronger same-horizon first-action confirmation")
     print("Pace fallback beam -> D1 diversity-aware")
     print("Process writes/injection -> False")
     print("Hidden RNG/deck traversal -> False")
@@ -144,20 +145,23 @@ def main() -> int:
 
     print(f"Adaptive clear-path attempts -> {len(decision.search_attempts)}")
     for index, attempt in enumerate(decision.search_attempts, start=1):
+        kind = " CONFIRMATION" if attempt.confirmation else ""
         if attempt.budget_exceeded:
             print(
                 f"  {index}. horizon={attempt.horizon} samples={attempt.samples} "
                 f"beam={attempt.play_width}+{attempt.discard_width} "
-                f"nodes={attempt.nodes_evaluated}/{attempt.max_nodes} BUDGET_EXCEEDED"
+                f"nodes={attempt.nodes_evaluated}/{attempt.max_nodes}{kind} "
+                "BUDGET_EXCEEDED"
             )
         else:
             print(
                 f"  {index}. horizon={attempt.horizon} samples={attempt.samples} "
                 f"beam={attempt.play_width}+{attempt.discard_width} "
-                f"nodes={attempt.nodes_evaluated}/{attempt.max_nodes} "
+                f"nodes={attempt.nodes_evaluated}/{attempt.max_nodes}{kind} "
                 f"best={attempt.best_action} "
                 f"clear={attempt.best_clear_probability:.6f} "
-                f"expected={attempt.best_expected_score:.3f}"
+                f"expected={attempt.best_expected_score:.3f} "
+                f"exact={attempt.best_exact}"
             )
 
     print(f"Decision-mode candidates -> {len(decision.plans)}")
@@ -180,11 +184,20 @@ def main() -> int:
         f"{decision.best_play_immediate_score:.3f} / "
         f"{decision.best_play_pace_ratio:.6f}x"
     )
-    print(f"Clear-path candidates above floor -> {decision.clear_path_candidates}")
+    print(f"Credible clear-path candidates -> {decision.clear_path_candidates}")
+    print(
+        "Sampled clear-path confirmation -> "
+        f"{decision.sampled_clear_path_confirmed}"
+    )
     print(f"Setup-discard deep-search consensus -> {decision.setup_discard_consensus}")
     print(f"D1 mode -> {decision.mode}")
     print(f"Recommended D1 action -> {decision.action.name}")
     print(f"Recommended indices -> {_indices(state, decision.action)}")
+    print(f"Selected path exact -> {decision.selected_plan.exact}")
+    print(
+        "Selected path clear probability -> "
+        f"{decision.selected_plan.value.clear_probability:.6f}"
+    )
     if decision.selected_immediate_score is not None:
         print(f"Selected immediate score -> {decision.selected_immediate_score:.3f}")
     if decision.selected_pace_ratio is not None:
