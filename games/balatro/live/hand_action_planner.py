@@ -22,6 +22,36 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
     discard to chase a higher terminal score after the blind can already be won.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._play_projection_cache: dict[tuple[int, tuple[int, ...]], tuple[object, object]] = {}
+        self.play_projections_evaluated = 0
+
+    def reset_search_stats(self) -> None:
+        super().reset_search_stats()
+        self._play_projection_cache.clear()
+        self.play_projections_evaluated = 0
+
+    def _play_projection(self, state, action):
+        key = (id(state), self._action_identity(action))
+        cached = self._play_projection_cache.get(key)
+        if cached is not None and cached[0] is state:
+            return cached[1]
+
+        projection = self.evaluator.project_play(state, action)
+        self._play_projection_cache[key] = (state, projection)
+        self.play_projections_evaluated += 1
+        return projection
+
+    def _play_priority(self, state, action):
+        projection = self._play_projection(state, action)
+        return (
+            projection.clear_probability,
+            projection.expected_hand_score,
+            projection.hand_score,
+            -len(action.cards),
+        )
+
     def _candidate_actions(
         self,
         state,
@@ -39,7 +69,7 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         guaranteed_clears = [
             action
             for action in plays
-            if self.evaluator.project_play(state, action).clears_blind
+            if self._play_projection(state, action).clears_blind
         ]
         if guaranteed_clears:
             return sorted(
