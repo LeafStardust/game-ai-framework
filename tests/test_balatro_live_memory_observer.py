@@ -1,4 +1,6 @@
 from games.balatro.live.external.live_memory_observer import (
+    _normalize_hand_levels,
+    _normalize_round_joker_public_state,
     snapshot_payload_from_live_memory,
 )
 from games.balatro.live.external.luajit_memory import LuaValue
@@ -168,3 +170,48 @@ def test_live_memory_snapshot_is_whitelisted_and_destroys_deck_order():
     remaining = payload["cards"]["cards"]
     assert [card["value"]["rank"] for card in remaining] == ["A", "K"]
     assert [card["live_id"] for card in remaining] == [21, 20]
+
+
+def test_live_memory_observer_whitelists_dynamic_joker_targets_and_hand_counts():
+    CURRENT_ROUND = 300
+    CASTLE_CARD = 301
+    IDOL_CARD = 302
+    HANDS = 310
+    PAIR = 311
+
+    tables = {
+        CURRENT_ROUND: {
+            "castle_card": _table(CASTLE_CARD),
+            "idol_card": _table(IDOL_CARD),
+            # Unrelated round state must not leak through the helper.
+            "reroll_cost": _integer(99),
+        },
+        CASTLE_CARD: {
+            "suit": _string("Clubs"),
+            "secret": _string("do-not-expose"),
+        },
+        IDOL_CARD: {
+            "rank": _string("Ace"),
+            "suit": _string("Spades"),
+            "id": _integer(14),
+        },
+        HANDS: {"Pair": _table(PAIR)},
+        PAIR: {
+            "level": _integer(3),
+            "played": _integer(7),
+            "played_this_round": _integer(2),
+        },
+    }
+    decoder = _FakeDecoder(tables, {})
+
+    round_state = _normalize_round_joker_public_state(
+        decoder,
+        decoder.string_fields(CURRENT_ROUND),
+    )
+    hands = _normalize_hand_levels(decoder, _table(HANDS))
+
+    assert round_state == {
+        "j_castle": {"suit": "Clubs"},
+        "j_idol": {"rank": "Ace", "suit": "Spades"},
+    }
+    assert hands == {"Pair": {"level": 3, "played": 7}}
