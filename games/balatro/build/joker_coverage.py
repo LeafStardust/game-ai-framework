@@ -19,6 +19,7 @@ PARTIAL = "PARTIAL"
 OPAQUE = "OPAQUE"
 PARAMETERIZED = "PARAMETERIZED"
 ERROR = "ERROR"
+UNANALYZED = "UNANALYZED"
 
 
 @dataclass(frozen=True)
@@ -82,7 +83,7 @@ class JokerCoverageAuditor:
                     JokerCoverageEntry(
                         module=module_name,
                         class_name=joker_class.__name__,
-                        status=COVERED,
+                        status=UNANALYZED,
                     )
                 )
                 continue
@@ -175,7 +176,7 @@ class JokerCoverageAuditor:
 def _print_report(report: JokerCoverageReport, *, gaps_only: bool) -> None:
     print("Balatro Joker semantic coverage -> READY")
     print(f"Joker classes -> {len(report.entries)}")
-    for status in (COVERED, PARTIAL, OPAQUE, PARAMETERIZED, ERROR):
+    for status in (COVERED, PARTIAL, OPAQUE, PARAMETERIZED, ERROR, UNANALYZED):
         print(f"{status} -> {report.count(status)}")
 
     entries = report.gaps if gaps_only else report.entries
