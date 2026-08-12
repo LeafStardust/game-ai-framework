@@ -5,6 +5,10 @@ from .consumable_synergy import (
     ContextualConsumableEvaluation,
     ContextualConsumableSynergyEvaluator,
 )
+from .consumable_targeting import (
+    ConsumableTargetEvaluation,
+    ContextualConsumableTargetEvaluator,
+)
 from .effects import (
     CONSUMABLE_GENERATE,
     DECK_REMOVE,
@@ -104,9 +108,11 @@ __all__ = [
     "ConsumableBehaviorAnalyzer",
     "ConsumableBuildPath",
     "ConsumableBuildPathWeights",
+    "ConsumableTargetEvaluation",
     "ContextualBuildEvaluation",
     "ContextualConsumableEvaluation",
     "ContextualConsumableSynergyEvaluator",
+    "ContextualConsumableTargetEvaluator",
     "ContextualJokerSynergyEvaluator",
     "ContextualPlayingCardEvaluation",
     "ContextualPlayingCardSynergyEvaluator",
