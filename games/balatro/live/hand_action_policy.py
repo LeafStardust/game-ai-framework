@@ -83,9 +83,11 @@ class HandActionSearchAttempt:
     max_nodes: int
     nodes_evaluated: int
     budget_exceeded: bool
+    confirmation: bool = False
     best_action: str | None = None
     best_clear_probability: float | None = None
     best_expected_score: float | None = None
+    best_exact: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -103,6 +105,7 @@ class HandActionDecision:
     selected_pace_ratio: float | None
     selected_fallback_value: float | None
     clear_path_candidates: int
+    sampled_clear_path_confirmed: bool
     setup_discard_consensus: bool
     confidence: float
     rationale: tuple[str, ...]
@@ -112,24 +115,25 @@ class HandActionDecision:
 
 
 class LiveHandActionPolicy:
-    """D1 hierarchy: clear path first, then next-hand pace fallback.
+    """D1 hierarchy: credible clear path first, then next-hand pace fallback.
 
     CLEAR_PATH:
-        If bounded public-state search finds a plan whose blind-clear probability
-        meets the D1 floor, take the first action on that path. The live loop will
-        observe the real result and replan from the authoritative checkpoint.
+        Exact probability evidence may be accepted immediately. A sampled/inexact
+        path must be independently confirmed by the decision engine with a stronger
+        same-horizon sampling pass before this policy will tunnel into it.
 
     PACE_PLAY:
-        If no acceptable clear path exists but a current play can meet the required
+        If no credible clear path exists but a current play can meet the required
         next-hand pace, play a pace-satisfying subset.
 
     PACE_RECOVERY:
-        If no current play can meet pace, use the existing pace-aware evaluator to
-        choose the best recovery action. This may be a setup discard or, when a
-        discard is not worthwhile/legal, the strongest available under-pace play.
+        If no current play can meet pace, use the pace-aware evaluator to choose
+        the best recovery action. This may be a setup discard or, when a discard
+        is not worthwhile/legal, the strongest available under-pace play.
     """
 
     EPSILON = 1e-12
+    SAMPLED_CONFIDENCE_CAP = 0.95
 
     def __init__(
         self,
@@ -146,6 +150,7 @@ class LiveHandActionPolicy:
         plans: list[LiveBlindPlan] | tuple[LiveBlindPlan, ...],
         *,
         search_attempts: tuple[HandActionSearchAttempt, ...] = (),
+        confirmed_clear_path: LiveBlindPlan | None = None,
         setup_discard_consensus: bool = False,
     ) -> HandActionDecision:
         plans = tuple(plans)
@@ -165,21 +170,46 @@ class LiveHandActionPolicy:
         best_immediate_score = immediate_scores[id(best_immediate_play)]
         best_immediate_ratio = self._pace_ratio(best_immediate_score, pace_target)
 
-        clear_paths = [
+        credible_clear_paths = [
             plan
             for plan in plans
-            if plan.value.clear_probability + self.EPSILON
-            >= self.thresholds.clear_path_probability_floor
+            if plan.exact and self._meets_clear_floor(plan)
         ]
-        if clear_paths:
-            selected = max(clear_paths, key=self._within_type_key)
+        sampled_confirmed = False
+        if confirmed_clear_path is not None:
+            if confirmed_clear_path not in plans:
+                raise ValueError("confirmed D1 clear path must belong to the supplied plans")
+            if not self._meets_clear_floor(confirmed_clear_path):
+                raise ValueError("confirmed D1 clear path is below the probability floor")
+            if not confirmed_clear_path.exact:
+                sampled_confirmed = True
+            credible_clear_paths.append(confirmed_clear_path)
+
+        if credible_clear_paths:
+            selected = max(credible_clear_paths, key=self._within_type_key)
             selected_score = None
             selected_ratio = None
             if selected.action.name == PLAY_CARDS:
                 selected_score = immediate_scores[id(selected)]
                 selected_ratio = self._pace_ratio(selected_score, pace_target)
             probability = float(selected.value.clear_probability)
-            confidence = 1.0 if selected.exact and probability >= 1.0 - self.EPSILON else probability
+            selected_is_confirmed_sample = sampled_confirmed and selected is confirmed_clear_path
+            confidence = probability
+            if selected_is_confirmed_sample:
+                confidence = min(confidence, self.SAMPLED_CONFIDENCE_CAP)
+
+            rationale = [
+                "credible blind-clear path meets the D1 probability floor",
+            ]
+            if selected_is_confirmed_sample:
+                rationale.append(
+                    "sampled path kept the same first action in a stronger same-horizon confirmation pass"
+                )
+            elif selected.exact:
+                rationale.append("clear-path probability was evaluated exactly")
+            rationale.append(
+                "take only the first action, then re-observe and replan from the real checkpoint"
+            )
             return self._decision(
                 mode=CLEAR_PATH,
                 selected=selected,
@@ -191,13 +221,11 @@ class LiveHandActionPolicy:
                 selected_immediate_score=selected_score,
                 selected_pace_ratio=selected_ratio,
                 selected_fallback_value=None,
-                clear_path_candidates=len(clear_paths),
+                clear_path_candidates=len(credible_clear_paths),
+                sampled_clear_path_confirmed=selected_is_confirmed_sample,
                 setup_discard_consensus=setup_discard_consensus,
                 confidence=confidence,
-                rationale=(
-                    "adaptive search found a blind-clear path above the D1 probability floor",
-                    "take only the first action, then re-observe and replan from the real checkpoint",
-                ),
+                rationale=tuple(rationale),
                 plans=plans,
                 search_attempts=search_attempts,
             )
@@ -231,10 +259,11 @@ class LiveHandActionPolicy:
                 selected_pace_ratio=selected_ratio,
                 selected_fallback_value=None,
                 clear_path_candidates=0,
+                sampled_clear_path_confirmed=False,
                 setup_discard_consensus=setup_discard_consensus,
                 confidence=confidence,
                 rationale=(
-                    "adaptive search found no acceptable blind-clear path",
+                    "adaptive search found no credible blind-clear path",
                     "a current play can meet the required next-hand pace",
                 ),
                 plans=plans,
@@ -276,7 +305,7 @@ class LiveHandActionPolicy:
             ),
         )
         rationale = [
-            "adaptive search found no acceptable blind-clear path",
+            "adaptive search found no credible blind-clear path",
             "no current play reaches the required next-hand pace",
         ]
         if selected.action.name == DISCARD_CARDS:
@@ -303,6 +332,7 @@ class LiveHandActionPolicy:
             selected_pace_ratio=selected_ratio,
             selected_fallback_value=selected_value,
             clear_path_candidates=0,
+            sampled_clear_path_confirmed=False,
             setup_discard_consensus=setup_discard_consensus,
             confidence=confidence,
             rationale=tuple(rationale),
@@ -313,14 +343,21 @@ class LiveHandActionPolicy:
     def best_clear_path(
         self,
         plans: list[LiveBlindPlan] | tuple[LiveBlindPlan, ...],
+        *,
+        exact_only: bool = False,
     ) -> LiveBlindPlan | None:
         candidates = [
             plan
             for plan in plans
-            if plan.value.clear_probability + self.EPSILON
-            >= self.thresholds.clear_path_probability_floor
+            if self._meets_clear_floor(plan) and (plan.exact or not exact_only)
         ]
         return max(candidates, key=self._within_type_key) if candidates else None
+
+    def _meets_clear_floor(self, plan: LiveBlindPlan) -> bool:
+        return (
+            float(plan.value.clear_probability) + self.EPSILON
+            >= self.thresholds.clear_path_probability_floor
+        )
 
     @staticmethod
     def _pace_target(state) -> float:
@@ -386,6 +423,7 @@ class LiveHandActionPolicy:
         selected_pace_ratio: float | None,
         selected_fallback_value: float | None,
         clear_path_candidates: int,
+        sampled_clear_path_confirmed: bool,
         setup_discard_consensus: bool,
         confidence: float,
         rationale: tuple[str, ...],
@@ -406,6 +444,7 @@ class LiveHandActionPolicy:
             selected_pace_ratio=selected_pace_ratio,
             selected_fallback_value=selected_fallback_value,
             clear_path_candidates=clear_path_candidates,
+            sampled_clear_path_confirmed=sampled_clear_path_confirmed,
             setup_discard_consensus=setup_discard_consensus,
             confidence=confidence,
             rationale=rationale,
@@ -421,6 +460,9 @@ LiveHandActionThresholdPolicy = LiveHandActionPolicy
 
 class LiveHandActionDecisionEngine:
     """Adaptive D1 search followed by the pace fallback hierarchy."""
+
+    CONFIRMATION_MIN_ROOT_SAMPLES = 32
+    CONFIRMATION_MIN_CHILD_SAMPLES = 4
 
     def __init__(
         self,
@@ -455,7 +497,12 @@ class LiveHandActionDecisionEngine:
         self.exact_limit = int(exact_limit)
         self.child_exact_limit = int(child_exact_limit)
 
-    def rank_plans(self, state, *, planner: LiveBlindClearPlanner | None = None) -> list[LiveBlindPlan]:
+    def rank_plans(
+        self,
+        state,
+        *,
+        planner: LiveBlindClearPlanner | None = None,
+    ) -> list[LiveBlindPlan]:
         planner = planner or self.planner
         planner._require_state(state)
         planner.reset_search_stats()
@@ -496,32 +543,16 @@ class LiveHandActionDecisionEngine:
             try:
                 plans = self.rank_plans(state, planner=planner)
             except PlannerSearchBudgetExceeded:
-                attempts.append(
-                    HandActionSearchAttempt(
-                        horizon=config.horizon,
-                        samples=config.samples,
-                        play_width=config.play_width,
-                        discard_width=config.discard_width,
-                        max_nodes=config.max_nodes,
-                        nodes_evaluated=planner.nodes_evaluated,
-                        budget_exceeded=True,
-                    )
-                )
+                attempts.append(self._attempt(config, planner, confirmation=False))
                 continue
 
             best = plans[0]
             attempts.append(
-                HandActionSearchAttempt(
-                    horizon=config.horizon,
-                    samples=config.samples,
-                    play_width=config.play_width,
-                    discard_width=config.discard_width,
-                    max_nodes=config.max_nodes,
-                    nodes_evaluated=planner.nodes_evaluated,
-                    budget_exceeded=False,
-                    best_action=best.action.name,
-                    best_clear_probability=float(best.value.clear_probability),
-                    best_expected_score=float(best.value.expected_score),
+                self._attempt(
+                    config,
+                    planner,
+                    confirmation=False,
+                    best=best,
                 )
             )
             summaries.append(
@@ -536,11 +567,67 @@ class LiveHandActionDecisionEngine:
             )
 
             clear_path = self.policy.best_clear_path(plans)
-            if clear_path is not None:
+            if clear_path is None:
+                continue
+
+            if clear_path.exact:
                 return self.policy.decide(
                     state,
                     plans,
                     search_attempts=tuple(attempts),
+                    setup_discard_consensus=False,
+                )
+
+            confirmation_config = self._confirmation_config(config)
+            confirmation_planner = self._adaptive_planner(confirmation_config)
+            try:
+                confirmation_plans = self.rank_plans(
+                    state,
+                    planner=confirmation_planner,
+                )
+            except PlannerSearchBudgetExceeded:
+                attempts.append(
+                    self._attempt(
+                        confirmation_config,
+                        confirmation_planner,
+                        confirmation=True,
+                    )
+                )
+                continue
+
+            confirmation_best = confirmation_plans[0]
+            attempts.append(
+                self._attempt(
+                    confirmation_config,
+                    confirmation_planner,
+                    confirmation=True,
+                    best=confirmation_best,
+                )
+            )
+
+            exact_confirmation = self.policy.best_clear_path(
+                confirmation_plans,
+                exact_only=True,
+            )
+            if exact_confirmation is not None:
+                return self.policy.decide(
+                    state,
+                    confirmation_plans,
+                    search_attempts=tuple(attempts),
+                    setup_discard_consensus=False,
+                )
+
+            confirmed = self._matching_clear_path(
+                state,
+                clear_path,
+                confirmation_plans,
+            )
+            if confirmed is not None:
+                return self.policy.decide(
+                    state,
+                    confirmation_plans,
+                    search_attempts=tuple(attempts),
+                    confirmed_clear_path=confirmed,
                     setup_discard_consensus=False,
                 )
 
@@ -549,9 +636,9 @@ class LiveHandActionDecisionEngine:
             minimum_agreement=self.policy.thresholds.setup_discard_consensus_agreement,
         )
 
-        # No adaptive search reached the clear-path floor. Re-run a deliberately
-        # richer shallow D1 beam for the pace fallback so immediate play/discard
-        # coverage is not constrained by the narrow deep-search beams.
+        # No credible adaptive search survived the exact/sampled confirmation gate.
+        # Re-run a richer shallow D1 beam for the pace fallback so immediate
+        # play/discard coverage is not constrained by narrow deep-search beams.
         fallback_plans = self.rank_plans(state)
         return self.policy.decide(
             state,
@@ -577,6 +664,71 @@ class LiveHandActionDecisionEngine:
             horizon=config.horizon,
             max_nodes=config.max_nodes,
         )
+
+    def _confirmation_config(
+        self,
+        config: AdaptiveBlindSearchConfig,
+    ) -> AdaptiveBlindSearchConfig:
+        return AdaptiveBlindSearchConfig(
+            horizon=config.horizon,
+            samples=max(self.CONFIRMATION_MIN_ROOT_SAMPLES, config.samples * 4),
+            child_samples=max(
+                self.CONFIRMATION_MIN_CHILD_SAMPLES,
+                config.child_samples * 4,
+            ),
+            play_width=config.play_width,
+            discard_width=config.discard_width,
+            child_play_width=config.child_play_width,
+            child_discard_width=config.child_discard_width,
+            max_nodes=max(config.max_nodes, self.max_search_nodes),
+        )
+
+    def _matching_clear_path(
+        self,
+        state,
+        original: LiveBlindPlan,
+        confirmation_plans: list[LiveBlindPlan] | tuple[LiveBlindPlan, ...],
+    ) -> LiveBlindPlan | None:
+        original_signature = self._action_signature(state, original.action)
+        candidates = [
+            plan
+            for plan in confirmation_plans
+            if self.policy._meets_clear_floor(plan)
+            and self._action_signature(state, plan.action) == original_signature
+        ]
+        if not candidates:
+            return None
+        return max(candidates, key=self.policy._within_type_key)
+
+    @staticmethod
+    def _attempt(
+        config: AdaptiveBlindSearchConfig,
+        planner: LiveBlindClearPlanner,
+        *,
+        confirmation: bool,
+        best: LiveBlindPlan | None = None,
+    ) -> HandActionSearchAttempt:
+        return HandActionSearchAttempt(
+            horizon=config.horizon,
+            samples=config.samples,
+            play_width=config.play_width,
+            discard_width=config.discard_width,
+            max_nodes=config.max_nodes,
+            nodes_evaluated=planner.nodes_evaluated,
+            budget_exceeded=(best is None),
+            confirmation=confirmation,
+            best_action=best.action.name if best is not None else None,
+            best_clear_probability=(
+                float(best.value.clear_probability) if best is not None else None
+            ),
+            best_expected_score=(
+                float(best.value.expected_score) if best is not None else None
+            ),
+            best_exact=best.exact if best is not None else None,
+        )
+
+    def _action_signature(self, state, action) -> tuple[str, tuple[int, ...]]:
+        return action.name, self._indices(state, action)
 
     @staticmethod
     def _indices(state, action) -> tuple[int, ...]:
