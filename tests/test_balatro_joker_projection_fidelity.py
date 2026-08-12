@@ -7,25 +7,10 @@ from games.balatro.build.joker_projection_fidelity import (
 )
 
 
-def test_every_hydrated_mutable_joker_has_explicit_runtime_projection_status():
+def test_every_hydrated_mutable_joker_has_exact_runtime_projection_support():
     report = JokerProjectionFidelityAuditor().audit()
 
-    assert report.count(SUPPORTED) == 30
-    assert report.count(DEFERRED) == 3
+    assert report.count(SUPPORTED) == 33
+    assert report.count(DEFERRED) == 0
     assert report.count(GAP) == 0
     assert report.count(ERROR) == 0
-
-
-def test_deferred_jokers_explain_their_remaining_projection_blocker():
-    report = JokerProjectionFidelityAuditor().audit()
-    entries = {entry.class_name: entry for entry in report.entries}
-
-    expected_fragments = {
-        "CanioJoker": "destroyed-card",
-        "LuckyCatJoker": "LUCKY_TRIGGERED",
-        "SeltzerJoker": "stochastic card effects",
-    }
-
-    for class_name, fragment in expected_fragments.items():
-        assert entries[class_name].status == DEFERRED
-        assert fragment in entries[class_name].reason
