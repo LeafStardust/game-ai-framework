@@ -60,3 +60,37 @@ def test_d1_candidate_beam_projects_each_play_once_per_search():
     assert planner.play_projections_evaluated == len(plays)
     assert set(calls.values()) == {2}
     assert planner._play_projection_cache == {}
+
+
+def test_d1_child_beam_shortlists_before_expensive_projection():
+    state = _state()
+    planner = D1LiveBlindClearPlanner(
+        play_width=6,
+        discard_width=0,
+        child_play_width=1,
+        horizon=4,
+    )
+    plays = planner.action_generator.generate_play_actions(state)
+    shortlist = planner._shortlist_child_plays(
+        state,
+        plays,
+        planner.child_play_width,
+    )
+
+    assert len(shortlist) < len(plays)
+    assert {len(action.cards) for action in shortlist} == {1, 2, 3, 4, 5}
+
+    # Recursive child beam construction happens only after at least one search
+    # node has been consumed. Simulate that boundary directly.
+    planner.nodes_evaluated = 1
+    actions = planner._candidate_actions(
+        state,
+        allow_discards=False,
+        play_width=planner.child_play_width,
+        discard_width=0,
+    )
+
+    assert len(actions) == planner.child_play_width
+    assert planner.play_projections_evaluated == len(shortlist)
+    assert planner.play_projections_evaluated < len(plays)
+    assert planner._play_projection_cache == {}
