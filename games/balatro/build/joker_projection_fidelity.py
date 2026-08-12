@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from collections import Counter
 from dataclasses import dataclass
 
@@ -91,3 +92,40 @@ class JokerProjectionFidelityAuditor:
             )
 
         return JokerProjectionFidelityReport(entries=tuple(entries))
+
+
+def _print_report(report: JokerProjectionFidelityReport, *, all_entries: bool) -> None:
+    print("Balatro Joker runtime projection fidelity -> READY")
+    print(f"Hydrated mutable Jokers -> {sum(1 for entry in report.entries if entry.status != ERROR)}")
+    for status in (SUPPORTED, DEFERRED, GAP, ERROR):
+        print(f"{status} -> {report.count(status)}")
+
+    entries = report.entries if all_entries else report.gaps
+    if not entries:
+        print("Projection classification gaps -> 0")
+        return
+
+    print("Projection entries:")
+    for entry in entries:
+        suffix = f" ({entry.reason})" if entry.reason else ""
+        print(f"  {entry.status:<9} {entry.module}.{entry.class_name}{suffix}")
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Audit runtime score-projection classification of hydrated Jokers"
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="print supported and deliberately deferred Jokers too",
+    )
+    args = parser.parse_args(argv)
+
+    report = JokerProjectionFidelityAuditor().audit()
+    _print_report(report, all_entries=args.all)
+    return 1 if report.gaps else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
