@@ -6,6 +6,7 @@ from time import perf_counter
 from typing import Callable
 
 from games.balatro.actions import END_ROUND, SELECT_BLIND, BalatroAction
+from games.balatro.live.consumable_timing import LiveConsumableTimingPolicy
 from games.balatro.live.hand_action_policy import (
     HandActionThresholds,
     LiveHandActionDecisionEngine,
@@ -177,6 +178,7 @@ class LiveMemoryInjectedSingleStepRunner:
         pack_recommender: Callable[[object, LiveBalatroSnapshot], tuple[BalatroAction, tuple[str, ...], tuple[tuple, ...]]] | None = None,
         pack_choice_reader: Callable[[], tuple] | None = None,
         reroll_terms_reader: Callable[[], LiveShopRerollTerms] | None = None,
+        consumable_timing_policy: LiveConsumableTimingPolicy | None = None,
         max_horizon: int | None = None,
         max_search_nodes: int | None = None,
         exact_limit: int = 128,
@@ -193,6 +195,9 @@ class LiveMemoryInjectedSingleStepRunner:
         self.max_search_nodes = max_search_nodes
         self.exact_limit = int(exact_limit)
         self.child_exact_limit = int(child_exact_limit)
+        self.consumable_timing_policy = (
+            consumable_timing_policy or LiveConsumableTimingPolicy()
+        )
         self.shop_generator = BalatroShopActionGenerator()
         self.shop_policy = BalatroShopPolicy()
         self.shop_reroll_policy = BuildAwareShopRerollPolicy(
@@ -216,6 +221,38 @@ class LiveMemoryInjectedSingleStepRunner:
         self.last_observation_seconds = 0.0
         self.last_translation_seconds = 0.0
         self.last_policy_seconds = 0.0
+
+    def _recommend_consumable_use(
+        self,
+        state,
+    ) -> tuple[BalatroAction, tuple[str, ...]] | None:
+        recommendations = self.consumable_timing_policy.recommend_inventory(state)
+        if not recommendations:
+            return None
+
+        selected = recommendations[0]
+        if not selected.should_use:
+            return None
+
+        action = selected.to_action()
+        if action is None:
+            raise RuntimeError(
+                "B6 consumable timing returned USE without an executable action"
+            )
+
+        name = str(getattr(selected.consumable, "name", "unknown"))
+        target_indices = (
+            selected.target.target_indices
+            if selected.target is not None
+            else ()
+        )
+        notes = (
+            "hand_decision=USE_CONSUMABLE",
+            f"consumable={name}",
+            f"target_indices={target_indices}",
+            *tuple(str(note) for note in selected.rationale),
+        )
+        return action, notes
 
     def _recommend_hand(
         self,
@@ -380,6 +417,18 @@ class LiveMemoryInjectedSingleStepRunner:
 
         if phase == "SELECTING_HAND":
             policy_started = perf_counter()
+            consumable = self._recommend_consumable_use(state)
+            if consumable is not None:
+                action, notes = consumable
+                self.last_policy_seconds = perf_counter() - policy_started
+                return AutonomousStepDecision(
+                    snapshot,
+                    state,
+                    action,
+                    "B6 consumable timing policy",
+                    notes,
+                )
+
             action, notes = self.hand_recommender(state, snapshot)
             self.last_policy_seconds = perf_counter() - policy_started
             return AutonomousStepDecision(
