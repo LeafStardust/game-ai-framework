@@ -13,6 +13,7 @@ from games.balatro.build import (
     ContextualConsumableTargetEvaluator,
     ContextualPlayingCardSynergyEvaluator,
 )
+from games.balatro.consumable import ConsumableContext
 from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.live.pack import LivePackChoice
@@ -33,18 +34,28 @@ class BalatroPackPolicy:
     Joker, Planet, and enhanced/edition/sealed playing-card choices can be ranked
     immediately. Deterministic targeted Tarot transformations are admitted only
     when the public hand supplies a validated B6 target. The Fool is valued from
-    Balatro's public last-Tarot/Planet run history. Other Tarot/Spectral follow-up
-    semantics remain below Skip until their consequences are modeled.
+    Balatro's public last-Tarot/Planet run history. Stochastic Tarot effects and
+    Spectral follow-up semantics remain below Skip until their outcome models are
+    explicit.
     """
 
-    SAFE_IMMEDIATE_TAROTS = {
-        "The High Priestess",
-        "The Emperor",
-        "The Hermit",
-        "The Wheel of Fortune",
-        "Temperance",
-        "Judgement",
-    }
+    DETERMINISTIC_IMMEDIATE_TAROTS = frozenset(
+        {
+            "The Hermit",
+            "Temperance",
+        }
+    )
+    STOCHASTIC_DEFERRED_TAROTS = frozenset(
+        {
+            "The High Priestess",
+            "The Emperor",
+            "The Wheel of Fortune",
+            "Judgement",
+        }
+    )
+    # Compatibility alias for older tests/callers. "Safe immediate" now means
+    # deterministic immediate effect, not merely "does not ask for hand targets".
+    SAFE_IMMEDIATE_TAROTS = DETERMINISTIC_IMMEDIATE_TAROTS
 
     EDITION_BONUS = {
         "FOIL": 0.8,
@@ -107,6 +118,13 @@ class BalatroPackPolicy:
             consumable_target_evaluator or ContextualConsumableTargetEvaluator()
         )
 
+    @classmethod
+    def classified_tarots(cls) -> frozenset[str]:
+        """Return every Tarot explicitly classified by autonomous pack policy."""
+        return frozenset({"The Fool"}) | cls.DETERMINISTIC_IMMEDIATE_TAROTS | (
+            cls.STOCHASTIC_DEFERRED_TAROTS
+        ) | ContextualConsumableTargetEvaluator.SUPPORTED_TAROTS
+
     def choose_action(self, state, actions: list[BalatroAction]) -> BalatroAction:
         ranked = self.rank_actions(state, actions)
         if not ranked:
@@ -165,6 +183,30 @@ class BalatroPackPolicy:
 
         if choice.kind == "TAROT" and choice.label == "The Fool":
             return self._score_fool(state, action, choice)
+
+        if (
+            choice.kind == "TAROT"
+            and choice.label in self.STOCHASTIC_DEFERRED_TAROTS
+        ):
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    f"stochastic Tarot deferred: {choice.label} outcome model "
+                    "is not yet autonomous-safe",
+                ),
+            )
+
+        if (
+            choice.kind == "TAROT"
+            and choice.label in self.DETERMINISTIC_IMMEDIATE_TAROTS
+        ):
+            if not target.can_use(ConsumableContext(state=state)):
+                return PackActionScore(
+                    action,
+                    -1.0,
+                    (f"deterministic immediate Tarot unavailable: {choice.label}",),
+                )
 
         if choice.kind == "TAROT" and choice.label not in self.SAFE_IMMEDIATE_TAROTS:
             target_evaluation = self.consumable_target_evaluator.recommend(state, target)
