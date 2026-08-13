@@ -5,7 +5,7 @@ from games.balatro.card import BalatroCard
 from games.balatro.jokers.ancient_joker import AncientJoker
 from games.balatro.live.consumable_timing import HOLD, USE, LiveConsumableTimingPolicy
 from games.balatro.state import BalatroState
-from games.balatro.tarots import Hermit, Strength, Sun, Temperance, WheelOfFortune
+from games.balatro.tarots import Hermit, HighPriestess, Strength, Sun, Temperance
 
 
 class _Blind:
@@ -211,11 +211,10 @@ def test_temperance_legacy_sell_value_fallback_remains_supported():
 
 def test_other_unsupported_no_target_consumable_stays_fail_closed():
     state = _state([BalatroCard("2", "Hearts"), BalatroCard("3", "Clubs")])
-    wheel = WheelOfFortune()
-    state.jokers = [SimpleNamespace()]
-    state.consumables = [wheel]
+    high_priestess = HighPriestess()
+    state.consumables = [high_priestess]
 
-    recommendation = LiveConsumableTimingPolicy().recommend(state, wheel)
+    recommendation = LiveConsumableTimingPolicy().recommend(state, high_priestess)
 
     assert recommendation.decision == HOLD
     assert recommendation.target is None
