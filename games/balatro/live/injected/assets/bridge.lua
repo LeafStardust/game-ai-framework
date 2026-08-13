@@ -499,7 +499,7 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     end
 
     local area
-    if action == "BUY_CARD" then
+    if action == "BUY_CARD" or action == "BUY_AND_USE_CONSUMABLE" then
       area = G.shop_jokers
     elseif action == "BUY_VOUCHER" then
       area = G.shop_vouchers
@@ -510,6 +510,13 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     local card = shop_card(area, index)
     if not card then
       return false, "shop item index is out of range"
+    end
+
+    if action == "BUY_AND_USE_CONSUMABLE" then
+      local set = card.ability and card.ability.set
+      if set ~= "Tarot" and set ~= "Planet" and set ~= "Spectral" then
+        return false, "Buy & Use requires a Tarot, Planet, or Spectral shop item"
+      end
     end
 
     local can_afford, affordability_error = affordable(card)
@@ -524,13 +531,26 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       end
     end
 
-    local button = card.children and card.children.buy_button and card.children.buy_button.definition
+    local button
+    if action == "BUY_AND_USE_CONSUMABLE" then
+      local child = card.children and card.children.buy_and_use_button
+      local ui_root = child and child.UIRoot
+      local config = ui_root and ui_root.config
+      if not config
+        or config.button ~= "buy_from_shop"
+        or config.func ~= "can_buy_and_use" then
+        return false, "shop item has no active Buy & Use control"
+      end
+      button = child.definition
+    else
+      button = card.children and card.children.buy_button and card.children.buy_button.definition
+    end
     if not button then
       return false, "shop item buy button is unavailable"
     end
 
     local callback
-    if action == "BUY_CARD" then
+    if action == "BUY_CARD" or action == "BUY_AND_USE_CONSUMABLE" then
       callback = G.FUNCS and G.FUNCS.buy_from_shop
     else
       callback = G.FUNCS and G.FUNCS.use_card
@@ -690,7 +710,10 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       executor = execute_select_blind
     elseif action == "REROLL_SHOP" then
       executor = execute_reroll_shop
-    elseif action == "BUY_CARD" or action == "BUY_VOUCHER" or action == "BUY_BOOSTER" then
+    elseif action == "BUY_CARD"
+      or action == "BUY_AND_USE_CONSUMABLE"
+      or action == "BUY_VOUCHER"
+      or action == "BUY_BOOSTER" then
       executor = function()
         return execute_shop_purchase(action, payload)
       end

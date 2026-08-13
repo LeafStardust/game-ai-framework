@@ -4,6 +4,7 @@ import time
 from typing import Callable
 
 from games.balatro.actions import (
+    BUY_AND_USE_CONSUMABLE,
     BUY_BOOSTER,
     BUY_CONSUMABLE,
     BUY_JOKER,
@@ -202,6 +203,15 @@ def _pack_selection_complete(
     )
 
 
+def _require_shop_consumable(item: dict) -> None:
+    ability_set = str(item.get("ability_set") or "").upper()
+    if ability_set not in {"TAROT", "PLANET", "SPECTRAL"}:
+        raise UnsupportedInjectedAction(
+            "BUY_AND_USE_CONSUMABLE requires a visible Tarot/Planet/Spectral "
+            f"shop item, observed ability_set={item.get('ability_set')!r}"
+        )
+
+
 class LiveMemoryInjectedActionDispatcher:
     """Execute supported Balatro actions through the first-party Lua bridge.
 
@@ -355,6 +365,48 @@ class LiveMemoryInjectedActionDispatcher:
                     "reroll_cost": before_terms.cost,
                     "free_rerolls": before_terms.free_rerolls,
                 },
+            )
+
+        if name == BUY_AND_USE_CONSUMABLE:
+            if before.phase != "SHOP":
+                raise UnsupportedInjectedAction(
+                    f"{name} requires SHOP, observed {before.phase}"
+                )
+            index = _target_index(action.target)
+            item = _area_item(before, "shop_jokers", index)
+            _require_shop_consumable(item)
+            before_count = len(_area_cards(before, "shop_jokers"))
+            target_live_id = item.get("live_id")
+            self.bridge.buy_and_use_shop_consumable(index)
+
+            def buy_and_use_settled(value: LiveBalatroSnapshot) -> bool:
+                after_cards = _area_cards(value, "shop_jokers")
+                if (
+                    value.sequence <= before.sequence
+                    or value.phase != "SHOP"
+                    or not value.state_complete
+                    or len(after_cards) != before_count - 1
+                    or not _purchase_money_matches(before, value, item)
+                ):
+                    return False
+                if target_live_id is None:
+                    return True
+                return all(
+                    not isinstance(shop_item, dict)
+                    or shop_item.get("live_id") != target_live_id
+                    for shop_item in after_cards
+                )
+
+            after = self._wait(
+                before,
+                buy_and_use_settled,
+                "shop consumable Buy & Use",
+            )
+            return LiveInjectedActionResult(
+                action,
+                before,
+                after,
+                {"area_index": index, "item": item, "consumed_immediately": True},
             )
 
         if name in {BUY_JOKER, BUY_CONSUMABLE}:

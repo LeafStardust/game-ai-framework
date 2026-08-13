@@ -181,6 +181,12 @@ class FirstPartyBalatroBridge:
     def buy_shop_card(self, index: int) -> None:
         self._call("BUY_CARD", (_validated_index(index),))
 
+    def buy_and_use_shop_consumable(self, index: int) -> None:
+        self._call(
+            "BUY_AND_USE_CONSUMABLE",
+            (_validated_index(index),),
+        )
+
     def buy_voucher(self, index: int) -> None:
         self._call("BUY_VOUCHER", (_validated_index(index),))
 
