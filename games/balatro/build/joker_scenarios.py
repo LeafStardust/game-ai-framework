@@ -113,6 +113,7 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
         "copy_joker": JOKER_COPY,
         "invisible_joker_trigger": JOKER_COPY,
         "level_up_hand": HAND_LEVEL,
+        "loyalty_card_ready": SCORE_XMULT,
     }
     _SIGNAL_PENALTIES = {
         "destroy_self": SELF_DESTRUCT,
