@@ -187,6 +187,9 @@ class FirstPartyBalatroBridge:
     def buy_booster(self, index: int) -> None:
         self._call("BUY_BOOSTER", (_validated_index(index),))
 
+    def sell_joker(self, index: int) -> None:
+        self._call("SELL_JOKER", (_validated_index(index),))
+
     def select_pack_card(
         self,
         index: int,
