@@ -14,7 +14,7 @@
 >
 > **Roadmap maintenance rule:** when implementation, deterministic tests or live validation clears a milestone, update this roadmap in the same development checkpoint instead of deferring documentation cleanup.
 >
-> **Current strategic priority: B6 + D8/D9/D10 booster and pack decisions.** D4 consumable acquisition, the D5 held-consumable autonomy foundation, the D6 deterministic consumable-targeting autonomy foundation, and D7 Planet selection/use timing are complete. D7 now distinguishes immediate `USE` from strategically positive `HOLD` using observable public-state signals, including consumable-slot pressure and consumable-duplication value, with guarded live `USE` execution and read-only `HOLD` validation. The next blocker is build-aware booster acquisition, visible pack choice/Skip, and pack-effect targeting across D8/D9/D10.
+> **Current strategic priority: B6 + D9/D10 visible pack decisions.** D4 consumable acquisition, the D5 held-consumable autonomy foundation, the D6 deterministic consumable-targeting autonomy foundation, D7 Planet selection/use timing, and D8 booster acquisition are complete. D8 now makes build-aware `BUY` versus `HOLD` decisions from public BuildProfile signals, unopened-pack opportunity priors, run stage and money/interest/reserve costs, with read-only live recommendation validation and guarded one-action booster execution into the correct `*_PACK` phase. The next blocker is visible pack choice/Skip and pack-effect targeting across D9/D10.
 
 ## v0.1.0 — Foundation
 
@@ -235,7 +235,7 @@
 >
 > Cross-layer state such as money, remaining hands/discards, ante, blind risk, slots and owned effects may be shared as **inputs**, but one layer's threshold constants must not be reused implicitly by another layer. The final shop/run arbiter compares normalized outputs from completed child layers instead of hiding all decisions inside one utility score.
 >
-> **The mutable-Joker 0.9C runtime projection correctness gate, D2 Joker lifecycle checkpoint, B5 + D12 shop-integration checkpoint, D4 consumable-acquisition checkpoint, D5 held-consumable autonomy foundation, D6 consumable-targeting autonomy foundation, and D7 Planet autonomy foundation are cleared.** B1–B4 contextual build intelligence reaches D2 and D4; B5 exposes contextual shop value and build-gap reroll context; D12 compares admitted child actions against an explicit `END_SHOP` baseline and relies on fresh authoritative re-observation after each executed shop action. D5 arbitrates held USE/HOLD before D1 during blinds and before D12 during SHOP for explicitly validated no-target effects. D6 provides effect-owned legal targets, B6 target scoring, multi-card selection, exact live target verification, and deterministic Tarot/Spectral pack follow-up targeting. D7 provides dedicated Planet USE/HOLD policy, observable duplication-aware hold value, guarded one-action Planet execution, and authoritative hand-level verification. The next strategic work is B6 + D8/D9/D10 booster and pack decision coverage.
+> **The mutable-Joker 0.9C runtime projection correctness gate, D2 Joker lifecycle checkpoint, B5 + D12 shop-integration checkpoint, D4 consumable-acquisition checkpoint, D5 held-consumable autonomy foundation, D6 consumable-targeting autonomy foundation, D7 Planet autonomy foundation, and D8 booster-acquisition autonomy foundation are cleared.** B1–B4 contextual build intelligence reaches D2 and D4; B5 exposes contextual shop value and build-gap reroll context; D12 compares admitted child actions against an explicit `END_SHOP` baseline and relies on fresh authoritative re-observation after each executed shop action. D5 arbitrates held USE/HOLD before D1 during blinds and before D12 during SHOP for explicitly validated no-target effects. D6 provides effect-owned legal targets, B6 target scoring, multi-card selection, exact live target verification, and deterministic Tarot/Spectral pack follow-up targeting. D7 provides dedicated Planet USE/HOLD policy, observable duplication-aware hold value, guarded one-action Planet execution, and authoritative hand-level verification. D8 provides a dedicated BuildProfile-informed unopened-pack EV and `BUY`/`HOLD` threshold, preserves fail-closed Arcana/Spectral acquisition until D9/D10 coverage is safe, and validates one guarded purchase through authoritative `SHOP -> *_PACK` transition without chaining a pack choice. The next strategic work is B6 + D9/D10 visible pack choice and pack-effect targeting.
 
 #### B1–B7 — Shared build intelligence and synergy strategy — ACTIVE STRATEGIC PRIORITY
 
@@ -457,7 +457,7 @@ Status:
 
 > D7 is live-validated in both directions. A held Mars `USE` passed the armed exact-action guard and authoritative hand-level verification (`FOUR_OF_A_KIND` 1 -> 2). A Perkeo-backed held-Planet state produced `duplicate_hold_value=1.000` and correctly selected `HOLD` when consumable slots were not full; full-slot pressure correctly overrode that hold value and selected `USE`. The live observer remained read-only and no mouse fallback was used.
 
-#### D8 — Booster acquisition
+#### D8 — Booster acquisition — AUTONOMY FOUNDATION COMPLETE
 
 **Question:** Should the agent spend money to open this booster pack at all?
 
@@ -474,8 +474,13 @@ Status:
 
 - [x] Booster observation and two-click opening execution
 - [x] Integrated `SHOP -> *_PACK` live validation
-- [ ] Booster expected-value model informed by current BuildProfile needs
-- [ ] Buy-versus-save threshold
+- [x] Booster expected-value model informed by current BuildProfile needs
+- [x] Buy-versus-save threshold
+- [x] Deterministic boundary coverage across pack families, BuildProfile need and reserve pressure
+- [x] Read-only live validator exposes D8 candidates, thresholds and rationale
+- [x] Armed live validator executes exactly one recommended booster purchase and stops before pack choice
+
+> D8 is live-validated in both directions at one real Red/White shop checkpoint. A Buffoon Pack with five free Joker slots produced `advantage_over_save=4.256` and selected `BUY`; a Mega Standard Pack in the same shop produced `advantage_over_save=-0.358` and selected `HOLD` after price, interest and reserve costs. Armed validation bought exactly the recommended Buffoon Pack, moved money from `$10` to `$6`, authoritatively reached `BUFFOON_PACK`, executed no follow-up pack choice, used no mouse input, and kept observation read-only. Arcana/Spectral acquisition remains fail-closed until D9/D10 can safely resolve their post-open choices/effects.
 
 #### D9 — Pack choice: take which offer vs Skip
 
@@ -601,14 +606,14 @@ Status:
 
 #### Required implementation order
 
-The mutable-hydrated 0.9C Joker runtime projection correctness gate, D2 Joker lifecycle checkpoint, B5 + D12 shop-integration checkpoint, D4 consumable-acquisition checkpoint, D5 held-consumable autonomy foundation, D6 consumable-targeting autonomy foundation, and D7 Planet autonomy foundation are complete. B6 + D8/D9/D10 is now the current active implementation step. Work remains deliberately narrow: clear one autonomy blocker, verify it, update this roadmap, then advance.
+The mutable-hydrated 0.9C Joker runtime projection correctness gate, D2 Joker lifecycle checkpoint, B5 + D12 shop-integration checkpoint, D4 consumable-acquisition checkpoint, D5 held-consumable autonomy foundation, D6 consumable-targeting autonomy foundation, D7 Planet autonomy foundation, and D8 booster-acquisition autonomy foundation are complete. B6 + D9/D10 is now the current active implementation step. Work remains deliberately narrow: clear one autonomy blocker, verify it, update this roadmap, then advance.
 
 1. [x] **0.9C Joker runtime projection fidelity** — `33/33` mutable hydrated Jokers supported with `0 deferred / 0 gap / 0 error`; unsupported stateless/event semantics remain fail-closed until separately validated
 2. [x] **D2 completion** — contextual scoring/economy/non-scoring valuation, standalone sell, first-party sell execution and fresh-replan replacement are complete
 3. [x] **B5 + D12 Build-aware shop** — contextual buying, replacement, build-gap reroll opportunity quality, normalized arbitration, explicit `END_SHOP`, and fresh post-action re-observation are complete
 4. [x] **D4 Consumable acquisition mode** — dedicated contextual `HOLD` / `BUY` / `BUY_AND_USE` policy with first-party Buy & Use execution and explicit immediate-use gating is complete
 5. [x] **B6 + D6/D7** — D5/D6 consumable autonomy and D7 dedicated Planet selection/use timing are cleared
-6. **B6 + D8/D9/D10 — CURRENT** — complete booster acquisition, visible pack choice/Skip valuation, and pack-effect target follow-up
+6. **B6 + D8/D9/D10 — CURRENT** — D8 booster acquisition is complete; next complete visible pack choice/Skip valuation and pack-effect target follow-up across D9/D10
 7. **D3 Voucher acquisition** — integrate capacity/economy/build compatibility
 8. **D11 Reroll decision** — complete reroll EV and remaining-shop/horizon quality
 9. **D13 Blind skip/tag decision**
