@@ -34,11 +34,11 @@ class ContextualConsumableTargetEvaluator:
     runs on a deep copy of public state, so target evaluation cannot mutate the
     authoritative state or consume hidden RNG.
 
-    This B6 targeting layer admits deterministic local transformations, Death's
-    directional public-card copy, and Hanged Man when a complete public owned-deck
-    composition is available. Generation, economy, Joker-targeted, and stochastic
-    effects remain fail-closed until their timing/opportunity-cost semantics are
-    modeled.
+    This B6 targeting layer admits deterministic local Tarot transformations,
+    deterministic Spectral seal transforms, directional public-card copy effects,
+    and Hanged Man when a complete public owned-deck composition is available.
+    Generation, economy, Joker-targeted, and stochastic effects remain fail-closed
+    until their timing/opportunity-cost semantics are modeled.
     """
 
     SUPPORTED_TAROTS = frozenset(
@@ -58,6 +58,14 @@ class ContextualConsumableTargetEvaluator:
             "The Sun",
             "The World",
             "Death",
+        }
+    )
+    SUPPORTED_SPECTRALS = frozenset(
+        {
+            "Talisman",
+            "Deja Vu",
+            "Trance",
+            "Medium",
         }
     )
 
@@ -117,10 +125,13 @@ class ContextualConsumableTargetEvaluator:
         self.deck_thinning_value = float(deck_thinning_value)
 
     def supports(self, consumable: object) -> bool:
+        if not isinstance(consumable, Consumable):
+            return False
+        category = str(getattr(consumable, "category", "")).upper()
+        name = str(getattr(consumable, "name", ""))
         return (
-            isinstance(consumable, Consumable)
-            and str(getattr(consumable, "category", "")).upper() == "TAROT"
-            and str(getattr(consumable, "name", "")) in self.SUPPORTED_TAROTS
+            (category == "TAROT" and name in self.SUPPORTED_TAROTS)
+            or (category == "SPECTRAL" and name in self.SUPPORTED_SPECTRALS)
         )
 
     def recommend(
@@ -288,7 +299,13 @@ class ContextualConsumableTargetEvaluator:
         simulated_consumable.use(context)
         after_cards = simulated_cards
 
-        is_death = str(getattr(consumable, "name", "")) == "Death"
+        name = str(getattr(consumable, "name", ""))
+        category = str(getattr(consumable, "category", "")).upper()
+        is_directional_copy = name == "Death"
+        is_spectral_seal = (
+            category == "SPECTRAL"
+            and name in self.SUPPORTED_SPECTRALS
+        )
         contextual_delta = 0.0
         intrinsic_delta = 0.0
         effective_changes = 0
@@ -299,7 +316,7 @@ class ContextualConsumableTargetEvaluator:
             before_value = self._card_build_value(state, original, profile)
             after_value = self._card_build_value(state, transformed, profile)
             contextual_delta += after_value - before_value
-            if is_death:
+            if is_directional_copy or is_spectral_seal:
                 intrinsic_delta += (
                     self._card_intrinsic_value(transformed)
                     - self._card_intrinsic_value(original)
@@ -314,13 +331,13 @@ class ContextualConsumableTargetEvaluator:
                 )
 
             if (
-                not is_death
+                not is_directional_copy
                 and original.enhancement is not None
                 and transformed.enhancement != original.enhancement
             ):
                 overwrite_penalty += self.enhancement_overwrite_penalty
 
-        change_bonus = 0.0 if is_death else (
+        change_bonus = 0.0 if is_directional_copy else (
             effective_changes * self.effective_change_value
         )
         total_gain = (
@@ -329,20 +346,26 @@ class ContextualConsumableTargetEvaluator:
             + change_bonus
             - overwrite_penalty
         )
-        death_notes: tuple[str, ...] = ()
-        if is_death and len(indices) == 2:
-            death_notes = (
+        copy_notes: tuple[str, ...] = ()
+        if is_directional_copy and len(indices) == 2:
+            copy_notes = (
                 (
-                    "Death directional copy: "
+                    "directional copy: "
                     f"hand index {indices[0]} becomes hand index {indices[1]}"
                 ),
                 f"intrinsic copy delta={intrinsic_delta:.3f}",
+            )
+        spectral_notes: tuple[str, ...] = ()
+        if is_spectral_seal:
+            spectral_notes = (
+                f"intrinsic seal delta={intrinsic_delta:.3f}",
             )
         rationale = (
             f"contextual target delta={contextual_delta:.3f}",
             f"effective card changes={effective_changes}",
             f"enhancement overwrite penalty={overwrite_penalty:.3f}",
-            *death_notes,
+            *copy_notes,
+            *spectral_notes,
             *change_notes,
         )
         return ConsumableTargetEvaluation(
