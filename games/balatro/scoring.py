@@ -130,6 +130,21 @@ class BalatroScorer:
         ):
             score.mult += 20
 
+    @staticmethod
+    def _apply_joker_edition(
+        score: HandScore,
+        joker,
+    ) -> None:
+        """Apply one Joker's scoring edition after that Joker's own effect."""
+        edition = str(getattr(joker, "edition", "") or "").upper()
+
+        if edition == "FOIL":
+            score.chips += 50
+        elif edition in {"HOLO", "HOLOGRAPHIC"}:
+            score.mult += 10
+        elif edition == "POLYCHROME":
+            score.x_mult *= 1.5
+
     def _apply_held_modifiers(
         self,
         score: HandScore,
@@ -282,6 +297,7 @@ class BalatroScorer:
 
             for joker in state.jokers:
                 context = joker.apply(context)
+                self._apply_joker_edition(context.score, joker)
 
             score = context.score
 
