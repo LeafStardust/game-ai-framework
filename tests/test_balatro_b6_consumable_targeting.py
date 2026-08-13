@@ -1,6 +1,7 @@
 from games.balatro.build import ContextualConsumableTargetEvaluator
 from games.balatro.card import BalatroCard
 from games.balatro.jokers.fibonacci import FibonacciJoker
+from games.balatro.spectrals import Aura, Cryptid, DejaVu, Medium, Talisman, Trance
 from games.balatro.state import BalatroState
 from games.balatro.tarots import HangedMan, Magician, Strength
 
@@ -72,6 +73,41 @@ def test_hanged_man_is_supported_but_fails_closed_without_complete_owned_deck():
     assert evaluator.supports(HangedMan())
     assert evaluator.rank_targets(state, HangedMan()) == ()
     assert evaluator.recommend(state, HangedMan()) is None
+
+
+def test_deterministic_seal_spectrals_share_d6_target_ranking():
+    state = _state([BalatroCard("7", "Hearts")])
+    evaluator = ContextualConsumableTargetEvaluator()
+
+    for spectral_type in (Talisman, DejaVu, Trance, Medium):
+        consumable = spectral_type()
+        recommendation = evaluator.recommend(state, consumable)
+
+        assert evaluator.supports(consumable)
+        assert recommendation is not None
+        assert recommendation.target_indices == (0,)
+        assert recommendation.effective_changes == 1
+        assert recommendation.intrinsic_delta > 0.0
+        assert recommendation.total_gain > 0.0
+
+
+def test_deterministic_seal_spectral_prefers_plain_card_over_seal_overwrite():
+    plain = BalatroCard("7", "Hearts")
+    blue_seal = BalatroCard("9", "Clubs", seal="Blue")
+    state = _state([plain, blue_seal])
+
+    recommendation = ContextualConsumableTargetEvaluator().recommend(state, DejaVu())
+
+    assert recommendation is not None
+    assert recommendation.target_indices == (0,)
+    assert recommendation.cards == (plain,)
+
+
+def test_stochastic_or_card_generation_spectrals_remain_fail_closed():
+    evaluator = ContextualConsumableTargetEvaluator()
+
+    assert not evaluator.supports(Aura())
+    assert not evaluator.supports(Cryptid())
 
 
 def test_target_simulation_does_not_mutate_authoritative_state():
