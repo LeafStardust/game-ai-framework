@@ -10,6 +10,7 @@ from .external.live_memory_observer import (
     _array_table_values,
     _normalize_card,
     _normalize_item,
+    _string,
     _table_fields,
 )
 
@@ -50,6 +51,8 @@ class LivePackActionGenerator:
             return []
 
         decoder, _, root = observer._root()
+        game = _table_fields(decoder, root.get("GAME"))
+        last_tarot_planet = _string(game.get("last_tarot_planet"))
         area = _table_fields(decoder, root.get("pack_cards"))
         choices: list[LivePackChoice] = []
         for index, (_, address) in enumerate(_array_table_values(decoder, area.get("cards"))):
@@ -64,6 +67,13 @@ class LivePackActionGenerator:
                 data["ability_set"] = "PLAYING_CARD"
             else:
                 data = item
+
+            # The Fool's copy target is ordinary public run history stored by
+            # Balatro as G.GAME.last_tarot_planet. Whitelist only the center key;
+            # no RNG state or hidden draw order is exposed.
+            if last_tarot_planet is not None:
+                data["last_tarot_planet"] = last_tarot_planet
+
             choices.append(LivePackChoice(index, address, data))
         return choices
 

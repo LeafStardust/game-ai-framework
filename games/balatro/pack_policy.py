@@ -32,13 +32,12 @@ class BalatroPackPolicy:
 
     Joker, Planet, and enhanced/edition/sealed playing-card choices can be ranked
     immediately. Deterministic targeted Tarot transformations are admitted only
-    when the public hand supplies a validated B6 target. Other Tarot/Spectral
-    follow-up semantics remain below Skip until their targeting and stochastic
-    consequences are modeled.
+    when the public hand supplies a validated B6 target. The Fool is valued from
+    Balatro's public last-Tarot/Planet run history. Other Tarot/Spectral follow-up
+    semantics remain below Skip until their consequences are modeled.
     """
 
     SAFE_IMMEDIATE_TAROTS = {
-        "The Fool",
         "The High Priestess",
         "The Emperor",
         "The Hermit",
@@ -164,6 +163,9 @@ class BalatroPackPolicy:
         if target is None:
             return PackActionScore(action, 0.0, ("unresolved consumable",))
 
+        if choice.kind == "TAROT" and choice.label == "The Fool":
+            return self._score_fool(state, action, choice)
+
         if choice.kind == "TAROT" and choice.label not in self.SAFE_IMMEDIATE_TAROTS:
             target_evaluation = self.consumable_target_evaluator.recommend(state, target)
             if target_evaluation is None or target_evaluation.total_gain <= 0.0:
@@ -209,6 +211,68 @@ class BalatroPackPolicy:
             BalatroAction(BUY_CONSUMABLE, target=target),
         )
         return PackActionScore(action, float(utility), tuple(notes))
+
+    def _score_fool(
+        self,
+        state,
+        action: BalatroAction,
+        choice: LivePackChoice,
+    ) -> PackActionScore:
+        last_key = str(choice.data.get("last_tarot_planet") or "")
+        if not last_key:
+            return PackActionScore(
+                action,
+                -1.0,
+                ("Fool unavailable: no previous Tarot/Planet in public run history",),
+            )
+        if last_key == "c_fool":
+            return PackActionScore(
+                action,
+                -1.0,
+                ("Fool unavailable: previous Tarot/Planet is The Fool",),
+            )
+
+        slots = max(0, int(getattr(state, "consumable_slots", 0)))
+        held = len(getattr(state, "consumables", ()))
+        if held >= slots:
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    f"Fool unavailable from pack: consumable slots full ({held}/{slots})",
+                ),
+            )
+
+        copied = self.consumable_factory.create({"key": last_key})
+        if copied is None:
+            return PackActionScore(
+                action,
+                -1.0,
+                (f"Fool copy target {last_key!r} is not modeled",),
+            )
+
+        copied_name = str(getattr(copied, "name", type(copied).__name__))
+        copied_category = str(getattr(copied, "category", "")).upper()
+        if copied_name == "The Fool" or copied_category not in {"TAROT", "PLANET"}:
+            return PackActionScore(
+                action,
+                -1.0,
+                (f"Fool copy target {last_key!r} is invalid",),
+            )
+
+        utility, notes = self.item_estimator.estimate(
+            state,
+            BalatroAction(BUY_CONSUMABLE, target=copied),
+        )
+        return PackActionScore(
+            action,
+            float(utility),
+            (
+                f"Fool copies public last Tarot/Planet={copied_name}",
+                f"last_tarot_planet={last_key}",
+                *tuple(notes),
+            ),
+        )
 
     def _score_playing_card(self, state, action, choice: LivePackChoice) -> PackActionScore:
         value = choice.data.get("value") or {}
