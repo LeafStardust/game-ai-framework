@@ -76,7 +76,8 @@ class LiveConsumableTimingPolicy:
         if name in self.ECONOMY_TAROTS:
             return self._recommend_economy(state, consumable, name=name)
 
-        target = self.target_evaluator.recommend(state, consumable)
+        ranked_targets = self.target_evaluator.rank_targets(state, consumable)
+        target = ranked_targets[0] if ranked_targets else None
         if target is None:
             return self._hold(
                 state,
@@ -130,13 +131,22 @@ class LiveConsumableTimingPolicy:
             )
 
         required_per_hand = self._required_per_hand(state)
-        decision_reason = self._use_reason(
-            state,
-            target=target,
-            before=before,
-            after=after,
-            required_per_hand=required_per_hand,
-        )
+        if name == "The Hanged Man":
+            decision_reason = self._hanged_man_use_reason(
+                state,
+                target=target,
+                ranked_targets=ranked_targets,
+                before=before,
+                after=after,
+            )
+        else:
+            decision_reason = self._use_reason(
+                state,
+                target=target,
+                before=before,
+                after=after,
+                required_per_hand=required_per_hand,
+            )
 
         rationale = (
             f"best-play clear probability {before.clear_probability:.6f} -> "
@@ -267,6 +277,45 @@ class LiveConsumableTimingPolicy:
             ),
         )
 
+    def _hanged_man_use_reason(
+        self,
+        state,
+        *,
+        target: ConsumableTargetEvaluation,
+        ranked_targets: tuple[ConsumableTargetEvaluation, ...],
+        before: LivePlayProjection,
+        after: LivePlayProjection,
+    ) -> str | None:
+        if target.total_gain <= self.EPSILON:
+            return None
+        if after.expected_hand_score + self.EPSILON < before.expected_hand_score:
+            return None
+
+        positive_single_indices = {
+            evaluation.target_indices[0]
+            for evaluation in ranked_targets
+            if (
+                len(evaluation.target_indices) == 1
+                and evaluation.total_gain > self.EPSILON
+            )
+        }
+        if (
+            len(target.target_indices) == 2
+            and all(index in positive_single_indices for index in target.target_indices)
+        ):
+            return (
+                "best public Hanged Man target removes two independently "
+                "positive deck-thinning cards with no current-play regression"
+            )
+
+        if self._consumable_slots_full(state):
+            return (
+                "full consumable slots plus positive Hanged Man deck-thinning "
+                "target with no current-play regression"
+            )
+
+        return None
+
     def _use_reason(
         self,
         state,
@@ -329,8 +378,49 @@ class LiveConsumableTimingPolicy:
             return None
 
         consumable.use(context)
+
+        if str(getattr(consumable, "name", "")) == "The Hanged Man":
+            destroyed_ids = {id(card) for card in cards}
+            simulated.discard_pile = [
+                card
+                for card in getattr(simulated, "discard_pile", ())
+                if id(card) not in destroyed_ids
+            ]
+            if not self._remove_from_owned_deck(simulated, cards):
+                return None
+
         simulated.consumables.pop(consumable_index)
         return simulated
+
+    @staticmethod
+    def _remove_from_owned_deck(state, cards: list[object]) -> bool:
+        owned_deck = getattr(state, "owned_deck", None)
+        if owned_deck is None:
+            return False
+
+        remaining = list(owned_deck)
+        for card in cards:
+            live_id = getattr(card, "live_id", None)
+            if live_id is None:
+                return False
+
+            matches = [
+                index
+                for index, owned_card in enumerate(remaining)
+                if getattr(owned_card, "live_id", None) == live_id
+            ]
+            if len(matches) != 1:
+                return False
+
+            index = matches[0]
+            remaining[index] = None
+
+        state.owned_deck = [
+            card
+            for card in remaining
+            if card is not None
+        ]
+        return True
 
     def _hold(
         self,
