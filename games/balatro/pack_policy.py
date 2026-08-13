@@ -33,12 +33,11 @@ class BalatroPackPolicy:
     """Conservative ranking for visible booster-pack choices.
 
     Joker, Planet, and enhanced/edition/sealed playing-card choices can be ranked
-    immediately. Deterministic targeted Tarot transformations are admitted only
-    when the public hand supplies a validated B6 target. The Fool is valued from
-    Balatro's public last-Tarot/Planet run history. Wheel of Fortune is valued from
-    an analytic public-state edition distribution. Other stochastic Tarot effects
-    and Spectral follow-up semantics remain below Skip until their outcome models
-    are explicit.
+    immediately. Deterministic targeted Tarot/Spectral transformations are admitted
+    only when the public hand supplies a validated B6 target. The Fool is valued
+    from Balatro's public last-Tarot/Planet run history. Wheel of Fortune is valued
+    from an analytic public-state edition distribution. Other stochastic effects
+    remain below Skip until their outcome models are explicit.
     """
 
     DETERMINISTIC_IMMEDIATE_TAROTS = frozenset(
@@ -223,14 +222,21 @@ class BalatroPackPolicy:
                     (f"deterministic immediate Tarot unavailable: {choice.label}",),
                 )
 
-        if choice.kind == "TAROT" and choice.label not in self.SAFE_IMMEDIATE_TAROTS:
+        requires_target = (
+            choice.kind == "SPECTRAL"
+            or (
+                choice.kind == "TAROT"
+                and choice.label not in self.SAFE_IMMEDIATE_TAROTS
+            )
+        )
+        if requires_target:
             target_evaluation = self.consumable_target_evaluator.recommend(state, target)
             if target_evaluation is None or target_evaluation.total_gain <= 0.0:
                 return PackActionScore(
                     action,
                     -1.0,
                     (
-                        "Tarot requires unsupported follow-up selection "
+                        f"{choice.kind.title()} requires unsupported follow-up selection "
                         "or has no positive B6 target",
                     ),
                 )
@@ -254,13 +260,6 @@ class BalatroPackPolicy:
                 targeted_action,
                 float(utility) + float(target_evaluation.total_gain),
                 combined,
-            )
-
-        if choice.kind == "SPECTRAL":
-            return PackActionScore(
-                action,
-                -1.0,
-                ("Spectral follow-up semantics not yet automated",),
             )
 
         utility, notes = self.item_estimator.estimate(
