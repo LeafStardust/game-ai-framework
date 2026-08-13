@@ -114,8 +114,9 @@ class JokerAcquisitionPolicy:
     """D2 build-aware Joker buy/replace decision with explicit HOLD baseline.
 
     B3/build strategy supplies whole-build gain. D2 adds only transaction economics,
-    slot opportunity cost and its own thresholds. A REPLACE recommendation is
-    strategy output only; live sell/buy execution remains a separate 0.9B gate.
+    slot opportunity cost and its own thresholds. A REPLACE recommendation remains
+    strategy output only; the autonomous shop layer executes one SELL, then requires
+    a fresh authoritative observation and D2 replan before any BUY can be emitted.
     """
 
     EDITION_BONUSES = {

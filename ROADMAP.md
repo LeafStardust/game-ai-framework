@@ -14,7 +14,7 @@
 >
 > **Roadmap maintenance rule:** when implementation, deterministic tests or live validation clears a milestone, update this roadmap in the same development checkpoint instead of deferring documentation cleanup.
 >
-> **Current strategic priority: D2 Joker lifecycle completion.** Mutable live Joker reconstruction is complete (`33 HYDRATED / 119 STATELESS / 0 GAP / 0 ERROR`) and the mutable-hydrated runtime projection correctness gate is also cleared (`33 SUPPORTED / 0 DEFERRED / 0 GAP / 0 ERROR`). Standalone Joker sell policy and first-party sell execution are now complete and locally green. The immediate narrow autonomy blocker is Joker replacement execution through the normal `SELL -> fresh observation/replan -> BUY` loop; broader non-scoring/economy valuation remains open for D2 quality refinement before moving to B5/D12 build-aware shop integration.
+> **Current strategic priority: D2 Joker lifecycle completion.** Mutable live Joker reconstruction is complete (`33 HYDRATED / 119 STATELESS / 0 GAP / 0 ERROR`) and the mutable-hydrated runtime projection correctness gate is also cleared (`33 SUPPORTED / 0 DEFERRED / 0 GAP / 0 ERROR`). Standalone Joker sell policy, first-party sell execution, and replacement execution through `SELL -> fresh observation/replan -> BUY` are now complete and deterministically green. The remaining D2 work is broader non-scoring/economy valuation quality before moving to B5/D12 build-aware shop integration.
 
 ## v0.1.0 — Foundation
 
@@ -148,7 +148,7 @@
 - [x] Accept natural `GAME_OVER` as a valid terminal postcondition after a played hand
 - [x] No silent mouse fallback in production autonomous execution
 - [x] Joker sell execution through the first-party bridge with authoritative roster reconciliation
-- [ ] Joker replacement execution through `SELL -> fresh observation/replan -> BUY`
+- [x] Joker replacement execution through `SELL -> fresh observation/replan -> BUY`
 - [ ] Robust held-consumable use for all supported target patterns
 - [ ] Robust pack-effect targeting for Tarot/Spectral/Standard modifier flows
 - [ ] Blind skip/tag execution in the first-party production bridge
@@ -235,7 +235,7 @@
 >
 > Cross-layer state such as money, remaining hands/discards, ante, blind risk, slots and owned effects may be shared as **inputs**, but one layer's threshold constants must not be reused implicitly by another layer. The final shop/run arbiter compares normalized outputs from completed child layers instead of hiding all decisions inside one utility score.
 >
-> **The mutable-Joker 0.9C runtime projection correctness gate is cleared.** B1–B4 and the contextual D2 replacement foundation already exist. Standalone D2 sell policy and first-party sell execution are complete; Joker replacement execution is the immediate autonomy blocker before broader D2 quality refinement and B5/D12 integration.
+> **The mutable-Joker 0.9C runtime projection correctness gate is cleared.** B1–B4 and the contextual D2 replacement foundation already exist. Standalone D2 sell policy, first-party sell execution, and fresh-replan replacement execution are complete; broader D2 non-scoring/economy valuation is the remaining quality step before B5/D12 integration.
 
 #### B1–B7 — Shared build intelligence and synergy strategy — ACTIVE STRATEGIC PRIORITY
 
@@ -338,7 +338,7 @@ Status:
 - [x] Live-validate D2 recommendation/rationale against a real SHOP checkpoint
 - [x] Standalone sell-only policy when selling without an immediate replacement is strategically justified
 - [x] First-party Joker sell execution with authoritative live re-observation
-- [ ] Joker replacement execution through `SELL -> fresh observation/replan -> BUY`
+- [x] Joker replacement execution through `SELL -> fresh observation/replan -> BUY`
 
 #### D3 — Voucher acquisition
 
@@ -598,7 +598,7 @@ Status:
 The mutable-hydrated 0.9C Joker runtime projection correctness gate is complete. Completed B3/B4 foundations are no longer listed as future work; D2 is the current active implementation step. Work remains deliberately narrow: clear one autonomy blocker, verify it, update this roadmap, then advance.
 
 1. [x] **0.9C Joker runtime projection fidelity** — `33/33` mutable hydrated Jokers supported with `0 deferred / 0 gap / 0 error`; unsupported stateless/event semantics remain fail-closed until separately validated
-2. **D2 completion — CURRENT** — standalone sell policy/execution is complete; next implement replacement execution, then finish remaining broader non-scoring/economy valuation needed for D2 quality
+2. **D2 completion — CURRENT** — standalone sell and replacement execution are complete; finish remaining broader non-scoring/economy valuation needed for D2 quality
 3. **B5 + D12 Build-aware shop** — contextual buying, replacement, reroll opportunity quality and shop arbitration
 4. **B6 + D4/D5/D6/D7** — consumable acquisition, timing, targeting and Planet decisions
 5. **B6 + D8/D9/D10** — booster/pack valuation and target follow-up

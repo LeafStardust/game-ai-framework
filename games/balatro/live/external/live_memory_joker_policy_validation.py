@@ -70,9 +70,9 @@ def evaluate_shop_jokers(
     """Evaluate every visible shop Joker, including full-slot replacements.
 
     This intentionally does not use ``BalatroShopActionGenerator``. That generator
-    correctly suppresses executable BUY_JOKER actions when the Joker bar is full,
+    correctly suppresses direct BUY_JOKER actions when the Joker bar is full,
     while D2 still needs to reason about those visible Jokers as replacement
-    candidates before sell/replace execution is enabled.
+    candidates before the autonomous shop layer emits the replacement SELL step.
     """
 
     candidates: list[LiveD2JokerCandidate] = []
@@ -258,7 +258,9 @@ def main() -> int:
                 f"slot={selected.replace_index} {selected.replace_joker}"
             )
 
-    print("Live replacement execution available -> False")
+    print("Autonomous replacement execution -> SELL -> fresh observation/replan -> BUY")
+    print("Live replacement execution available -> True")
+    print("This validator executes gameplay -> False")
     print("Gameplay action executed -> False")
     print("Achievement status command sent -> False")
     print("Mouse input sent -> False")
