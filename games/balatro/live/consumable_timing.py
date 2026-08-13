@@ -5,31 +5,42 @@ from games.balatro.live.consumable_timing_base import *  # noqa: F401,F403
 from games.balatro.live.consumable_timing_base import (
     LiveConsumableTimingPolicy as _BaseLiveConsumableTimingPolicy,
 )
+from games.balatro.live.planet_policy import LivePlanetPolicy
 
 
 class LiveConsumableTimingPolicy(_BaseLiveConsumableTimingPolicy):
-    """B6 held-consumable timing with analytic Wheel of Fortune support.
+    """B6/D7 held-consumable timing with Planet and analytic Wheel support.
 
     The green deterministic/targeted timing implementation remains in
-    ``consumable_timing_base``. Wheel adds one stochastic-but-analytic path that
-    consumes only public state and never samples Balatro RNG or reads its seed.
+    ``consumable_timing_base``. D7 Planets are delegated to a dedicated policy
+    with their own USE/HOLD threshold contract. Wheel adds one stochastic-but-
+    analytic path that consumes only public state and never samples Balatro RNG
+    or reads its seed.
 
-    SHOP timing is intentionally narrower than blind timing. Only validated
-    no-hand-target effects are admitted there; targeted Tarot/Spectral effects
-    stay fail-closed until D6/D10 and Planets remain owned by D7.
+    SHOP timing remains intentionally narrower than blind timing. Only validated
+    no-hand-target effects are admitted there; targeted Tarot/Spectral effects and
+    Planets stay fail-closed in SHOP until their first-party live paths are
+    separately validated.
     """
 
     SHOP_SAFE_NO_TARGET_NAMES = frozenset(
         {"The Hermit", "Temperance", "The Wheel of Fortune"}
     )
 
-    def __init__(self, *, wheel_evaluator=None, **kwargs) -> None:
+    def __init__(self, *, wheel_evaluator=None, planet_policy=None, **kwargs) -> None:
         super().__init__(**kwargs)
         self.wheel_evaluator = wheel_evaluator or WheelOfFortuneExpectationEvaluator()
+        self.planet_policy = planet_policy or LivePlanetPolicy(
+            hand_evaluator=self.hand_evaluator
+        )
 
     def recommend(self, state, consumable: object) -> ConsumableTimingRecommendation:
         name = str(getattr(consumable, "name", ""))
+        category = str(getattr(consumable, "category", "")).upper()
         phase = getattr(state, "phase", None)
+
+        if category == "PLANET":
+            return self._recommend_planet_d7(state, consumable)
 
         if phase == "SHOP":
             if self._identity_index(getattr(state, "consumables", ()), consumable) is None:
@@ -56,6 +67,23 @@ class LiveConsumableTimingPolicy(_BaseLiveConsumableTimingPolicy):
         if self._identity_index(getattr(state, "consumables", ()), consumable) is None:
             return self._hold(state, consumable, "candidate consumable is not held")
         return self._recommend_wheel(state, consumable)
+
+    def _recommend_planet_d7(
+        self,
+        state,
+        consumable: object,
+    ) -> ConsumableTimingRecommendation:
+        decision = self.planet_policy.recommend(state, consumable)
+        return ConsumableTimingRecommendation(
+            decision=decision.decision,
+            consumable=consumable,
+            target=None,
+            before_projection=decision.before_projection,
+            after_projection=decision.after_projection,
+            required_per_hand=decision.required_per_hand,
+            immediate_gain=decision.immediate_score_gain,
+            rationale=decision.rationale,
+        )
 
     def _recommend_wheel(
         self,
