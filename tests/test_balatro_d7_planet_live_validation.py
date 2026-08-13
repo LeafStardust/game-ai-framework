@@ -2,13 +2,18 @@ from types import SimpleNamespace
 
 import pytest
 
-from games.balatro.build.joker_semantics import CONSUMABLE_DUPLICATE
+from games.balatro.build.joker_semantics import (
+    CONSUMABLE_DUPLICATE,
+    SemanticJokerBehaviorAnalyzer,
+)
 from games.balatro.card import BalatroCard
+from games.balatro.jokers.perkeo import PerkeoJoker
 from games.balatro.live.external.live_memory_planet_policy_validation import (
     _execution_guard_errors,
     _state_fingerprint,
     build_live_d7_view,
 )
+from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.live.planet_policy import USE, LivePlanetPolicy
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.planets import create_planet
@@ -92,6 +97,31 @@ def test_view_exposes_default_use_and_positive_hold():
     assert hold_view.candidates[0].decision.duplicate_hold_value == 1.0
     assert hold_view.candidates[0].decision.decision == "HOLD"
     assert hold_view.recommendation is None
+
+
+def test_real_perkeo_is_score_neutral_and_creates_positive_planet_hold_value():
+    perkeo = PerkeoJoker()
+    assert LiveJokerScoreProjector.supports(perkeo)
+
+    descriptor = SemanticJokerBehaviorAnalyzer().describe(perkeo)
+    assert CONSUMABLE_DUPLICATE in descriptor.produces
+    assert descriptor.feature_magnitude(CONSUMABLE_DUPLICATE) >= 1.0
+
+    state = _state()
+    state.jokers = [perkeo]
+    view = build_live_d7_view(
+        _snapshot(),
+        state,
+        policy=LivePlanetPolicy(hand_evaluator=_HandEvaluator()),
+    )
+    decision = view.candidates[0].decision
+
+    assert decision.decision == "HOLD"
+    assert decision.duplicate_hold_value >= 1.0
+    assert decision.rationale[0].startswith(
+        "HOLD: observable consumable-duplication value"
+    )
+    assert view.recommendation is None
 
 
 def test_execution_guard_requires_exact_top_use():
