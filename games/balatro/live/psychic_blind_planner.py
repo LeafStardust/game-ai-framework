@@ -27,7 +27,19 @@ class PsychicBlindClearPlanner(LiveBlindClearPlanner):
                 f"Psychic planner requires {self.BOSS_NAME}, observed {boss_name!r}"
             )
 
-    def _candidate_actions(self, state, *, allow_discards: bool) -> list[BalatroAction]:
+    def _candidate_actions(
+        self,
+        state,
+        *,
+        allow_discards: bool,
+        play_width: int | None = None,
+        discard_width: int | None = None,
+    ) -> list[BalatroAction]:
+        play_limit = self.play_width if play_width is None else int(play_width)
+        discard_limit = (
+            self.discard_width if discard_width is None else int(discard_width)
+        )
+
         plays = [
             action
             for action in self.action_generator.generate_play_actions(state)
@@ -37,9 +49,13 @@ class PsychicBlindClearPlanner(LiveBlindClearPlanner):
             plays,
             key=lambda action: self._play_priority(state, action),
             reverse=True,
-        )[: self.play_width]
+        )[:play_limit]
 
-        if not allow_discards or int(getattr(state, "discards_remaining", 0)) <= 0:
+        if (
+            not allow_discards
+            or discard_limit <= 0
+            or int(getattr(state, "discards_remaining", 0)) <= 0
+        ):
             return ranked_plays
 
         discards = self.action_generator.generate_discard_actions(state)
@@ -47,5 +63,5 @@ class PsychicBlindClearPlanner(LiveBlindClearPlanner):
             discards,
             key=lambda action: self._discard_priority(state, action),
             reverse=True,
-        )[: self.discard_width]
+        )[:discard_limit]
         return ranked_plays + ranked_discards

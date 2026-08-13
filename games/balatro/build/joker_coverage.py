@@ -6,6 +6,7 @@ import inspect
 import pkgutil
 from collections import Counter
 from dataclasses import dataclass
+from pathlib import Path
 
 import games.balatro.jokers as joker_package
 from games.balatro.joker import Joker
@@ -171,12 +172,26 @@ class JokerCoverageAuditor:
 
     @staticmethod
     def _classes() -> tuple[tuple[str, type[Joker]], ...]:
+        """Discover Joker models from the repository package, independent of test state.
+
+        Full-suite tests may import or monkeypatch Joker modules before this audit
+        runs. Enumerate the package's actual filesystem directory and reload each
+        module so semantic coverage always measures the checked-out repository,
+        rather than whichever module objects happen to remain in ``sys.modules``.
+        """
         found: list[tuple[str, type[Joker]]] = []
         prefix = f"{joker_package.__name__}."
-        for module_info in pkgutil.iter_modules(joker_package.__path__):
+        package_file = getattr(joker_package, "__file__", None)
+        if not package_file:
+            raise RuntimeError("Balatro Joker package has no filesystem location")
+        package_path = Path(package_file).resolve().parent
+
+        for module_info in pkgutil.iter_modules([str(package_path)]):
             if module_info.name.startswith("_"):
                 continue
-            module = importlib.import_module(prefix + module_info.name)
+            module = importlib.reload(
+                importlib.import_module(prefix + module_info.name)
+            )
             classes = [
                 value
                 for value in vars(module).values()

@@ -85,7 +85,7 @@ class ExternalShopController:
             for action in actions
             if action.name != BUY_JOKER
             or not isinstance(action.target, Joker)
-            or isinstance(action.target, LiveJokerScoreProjector.SUPPORTED_TYPES)
+            or LiveJokerScoreProjector.supports(action.target)
         ]
 
     def rank_actions(

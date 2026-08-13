@@ -506,7 +506,10 @@ class LiveMemoryInjectedActionDispatcher:
                 except RuntimeError as error:
                     raise UnsupportedInjectedAction(str(error)) from error
             selected_address = before_terms.choice_addresses[index]
-            self.bridge.select_pack_card(index, target_indices)
+            if target_indices:
+                self.bridge.select_pack_card(index, target_indices)
+            else:
+                self.bridge.select_pack_card(index)
 
             def pack_selection_settled(value: LiveBalatroSnapshot) -> bool:
                 after_terms = None

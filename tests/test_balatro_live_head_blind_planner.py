@@ -91,36 +91,35 @@ def test_head_wild_cards_are_debuffed_by_suit_boss():
     assert scorer.is_card_debuffed(wild_club) is True
 
 
-def test_head_card_locator_retries_dimmer_profiles_until_save_count_matches(monkeypatch):
+def test_head_card_locator_uses_save_backed_expected_count_locator(monkeypatch):
     calls = []
-    seven = [object() for _ in range(7)]
     eight = [object() for _ in range(8)]
+    region = object()
 
-    def fake_locate(region, *, min_brightness, max_channel_spread):
-        calls.append((min_brightness, max_channel_spread))
-        return seven if len(calls) == 1 else eight
+    def fake_locate(value, expected_count):
+        calls.append((value, expected_count))
+        return eight
 
-    monkeypatch.setattr(head_live, "locate_card_faces", fake_locate)
+    monkeypatch.setattr(head_live, "locate_card_faces_expected_count", fake_locate)
+    monkeypatch.setattr(head_live, "_locations_form_uniform_grid", lambda locations: True)
     locator = head_live._head_card_locator(8)
 
-    assert locator(object()) is eight
-    assert calls == [
-        head_live.HEAD_CARD_LOCATOR_PROFILES[0],
-        head_live.HEAD_CARD_LOCATOR_PROFILES[1],
-    ]
+    assert locator(region) is eight
+    assert calls == [(region, 8)]
 
 
-def test_head_card_locator_fails_closed_when_no_profile_matches(monkeypatch):
+def test_head_card_locator_fails_closed_when_expected_count_locator_misses(monkeypatch):
     seven = [object() for _ in range(7)]
 
-    def fake_locate(region, *, min_brightness, max_channel_spread):
+    def fake_locate(region, expected_count):
+        assert expected_count == 8
         return seven
 
-    monkeypatch.setattr(head_live, "locate_card_faces", fake_locate)
+    monkeypatch.setattr(head_live, "locate_card_faces_expected_count", fake_locate)
     locator = head_live._head_card_locator(8)
 
-    # Returning the first failed profile preserves the generic executor's strict
-    # count-mismatch abort instead of fabricating or inferring a missing card.
+    # A count mismatch remains visible to the generic executor's strict abort path;
+    # the wrapper never fabricates or infers a missing card.
     assert locator(object()) is seven
 
 

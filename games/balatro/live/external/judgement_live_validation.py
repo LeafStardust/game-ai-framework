@@ -187,8 +187,7 @@ def _projection_status(raw_joker: dict) -> tuple[bool, str]:
         label = raw_joker.get("label") or raw_joker.get("ability_name") or "unknown Joker"
         return False, f"{label} is not represented by the framework Joker factory"
 
-    projector = LiveJokerScoreProjector()
-    if not isinstance(joker, projector.SUPPORTED_TYPES):
+    if not LiveJokerScoreProjector.supports(joker):
         label = raw_joker.get("label") or type(joker).__name__
         return False, f"{label} is not yet validated by the live Joker score projector"
     return True, "validated by the live Joker score projector"
