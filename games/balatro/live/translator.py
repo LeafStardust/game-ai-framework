@@ -112,6 +112,10 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
 
         hand_area = self._area(payload.get("hand"))
         deck_area = self._area(payload.get("cards", payload.get("deck")))
+        owned_deck_present = "owned_cards" in payload or "owned_deck" in payload
+        owned_deck_area = self._area(
+            payload.get("owned_cards", payload.get("owned_deck"))
+        )
         joker_area = self._area(payload.get("jokers"))
         consumable_area = self._area(payload.get("consumables"))
         legacy_shop_area = self._area(payload.get("shop"))
@@ -128,6 +132,8 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         )
         state.hand = self._cards(hand_area.get("cards", []))
         state.deck = self._cards(deck_area.get("cards", []))
+        if owned_deck_present:
+            state.owned_deck = self._cards(owned_deck_area.get("cards", []))
         state.jokers = self._jokers(joker_area.get("cards", []))
         state.consumables = self._consumables(
             consumable_area.get("cards", [])

@@ -24,8 +24,8 @@ class LiveMemoryBalatroObserver:
     Only explicitly whitelisted live fields are exposed. The observer never
     serializes ``G``/``G.GAME`` recursively and therefore never exposes the
     game's PRNG state or ordered future draw pile. ``G.deck.cards`` is reduced
-    to an unordered public remaining-deck composition before it enters the
-    agent-facing snapshot.
+    to an unordered public remaining-deck composition, while ``G.playing_cards``
+    is independently canonicalized as the public permanent owned-deck composition.
     """
 
     def __init__(
@@ -161,6 +161,16 @@ def snapshot_payload_from_live_memory(
     # agent-facing snapshot is canonical-sorted before exposure.
     deck = _normalize_area(decoder, root.get("deck"), preserve_order=False)
 
+    # G.playing_cards is the public permanent playing-card collection. Its internal
+    # array order is not strategically meaningful, so expose only a canonicalized
+    # composition. Keep absence distinct from an authoritative empty collection.
+    playing_cards = root.get("playing_cards")
+    owned_deck = (
+        _normalize_card_array(decoder, playing_cards)
+        if playing_cards is not None and playing_cards.kind == "table"
+        else None
+    )
+
     shop_jokers = _normalize_item_area(
         decoder,
         root.get("shop_jokers"),
@@ -204,6 +214,8 @@ def snapshot_payload_from_live_memory(
         "hidden_rng_exposed": False,
         "hidden_draw_order_exposed": False,
     }
+    if owned_deck is not None:
+        payload["owned_cards"] = owned_deck
 
     return payload, phase, state_complete
 
@@ -273,6 +285,22 @@ def _normalize_area(
     return {
         "count": len(cards),
         "limit": _integer(config.get("card_limit"), len(cards)),
+        "cards": cards,
+    }
+
+
+def _normalize_card_array(
+    decoder: LuaJITNonGC64Decoder,
+    cards_value: LuaValue | None,
+) -> dict[str, Any]:
+    cards = [
+        _normalize_card(decoder, address)
+        for _, address in _array_table_values(decoder, cards_value)
+    ]
+    cards.sort(key=_public_card_sort_key)
+    return {
+        "count": len(cards),
+        "limit": len(cards),
         "cards": cards,
     }
 

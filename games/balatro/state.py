@@ -17,6 +17,11 @@ class BalatroState(GameState):
         self.deck_name: str = "BASE"
         self.stake_name: str = "WHITE"
         self.deck: list[BalatroCard] = self._create_deck()
+        # ``deck`` may represent only the currently drawable composition in live
+        # play. ``owned_deck`` is the optional authoritative permanent playing-card
+        # composition; ``None`` means that source was not observed and callers may
+        # deliberately fall back to legacy ``deck`` semantics.
+        self.owned_deck: list[BalatroCard] | None = None
         self.hand: list[BalatroCard] = []
         self.hand_size: int = 8
         self.hands_remaining: int = 4
@@ -111,6 +116,11 @@ class BalatroState(GameState):
         new_state.deck_name = self.deck_name
         new_state.stake_name = self.stake_name
         new_state.deck = self.deck.copy()
+        new_state.owned_deck = (
+            self.owned_deck.copy()
+            if self.owned_deck is not None
+            else None
+        )
         new_state.hand = self.hand.copy()
         new_state.hand_size = self.hand_size
         new_state.hands_remaining = self.hands_remaining

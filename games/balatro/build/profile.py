@@ -76,9 +76,10 @@ class BuildProfile:
 class BalatroBuildProfiler:
     """Derive build context from translated public Balatro state only.
 
-    Card order is intentionally discarded. The profiler counts only the public
-    ``state.deck`` composition supplied by the live translator; it never asks the
-    game for hidden draw order or future RNG.
+    Card order is intentionally discarded. When authoritative ``state.owned_deck``
+    composition is available, permanent build features come from it; older or
+    synthetic states that do not expose owned-deck composition fall back to the
+    legacy ``state.deck`` field. Neither path asks for hidden draw order or RNG.
     """
 
     def __init__(
@@ -91,7 +92,12 @@ class BalatroBuildProfiler:
         self.consumable_analyzer = consumable_analyzer or ConsumableBehaviorAnalyzer()
 
     def profile(self, state: BalatroState) -> BuildProfile:
-        deck = list(getattr(state, "deck", ()))
+        owned_deck = getattr(state, "owned_deck", None)
+        deck = list(
+            owned_deck
+            if owned_deck is not None
+            else getattr(state, "deck", ())
+        )
         rank_counts: Counter[str] = Counter()
         suit_counts: Counter[str] = Counter()
         enhancement_counts: Counter[str] = Counter()
