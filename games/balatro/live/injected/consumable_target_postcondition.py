@@ -11,13 +11,15 @@ from games.balatro.live.translator import DefaultBalatroStateTranslator
 
 CardSignature = tuple[str, str, str | None, str | None, str | None]
 ExpectedTarget = tuple[int | str, CardSignature | None]
+ExpectedHandLevel = tuple[str, int]
 
 
 @dataclass(frozen=True)
 class ConsumableTargetPostcondition:
-    """Expected semantic result for exact live playing-card selections."""
+    """Expected semantic result for a modeled consumable use."""
 
-    expected_targets: tuple[ExpectedTarget, ...]
+    expected_targets: tuple[ExpectedTarget, ...] = ()
+    expected_hand_level: ExpectedHandLevel | None = None
 
     @property
     def live_ids(self) -> tuple[int | str, ...]:
@@ -38,6 +40,12 @@ class ConsumableTargetPostcondition:
                 continue
             if record is None or _snapshot_card_signature(record) != expected_signature:
                 return False
+
+        if self.expected_hand_level is not None:
+            hand_type, expected_level = self.expected_hand_level
+            if _snapshot_hand_level(snapshot, hand_type) != expected_level:
+                return False
+
         return True
 
 
@@ -65,7 +73,13 @@ def build_consumable_target_postcondition_for_consumable(
     consumable,
     target_indices: tuple[int, ...],
 ) -> ConsumableTargetPostcondition | None:
-    """Derive the same D6 postcondition for held or pack consumables."""
+    """Derive the same semantic postcondition for held or pack consumables."""
+
+    category = str(getattr(consumable, "category", "")).upper()
+    if category == "PLANET":
+        if target_indices:
+            raise ValueError("modeled Planet verification does not accept hand targets")
+        return _build_planet_hand_level_postcondition(state, consumable)
 
     if not target_indices:
         return None
@@ -114,6 +128,39 @@ def build_consumable_target_postcondition_for_consumable(
     return ConsumableTargetPostcondition(tuple(expected))
 
 
+def _build_planet_hand_level_postcondition(
+    state,
+    consumable,
+) -> ConsumableTargetPostcondition | None:
+    hand_type = str(getattr(consumable, "hand_type", ""))
+    if not hand_type:
+        return None
+
+    hand_levels = getattr(state, "hand_levels", None)
+    if not isinstance(hand_levels, dict) or hand_type not in hand_levels:
+        return None
+
+    simulated = copy.deepcopy(state)
+    simulated_consumable = copy.deepcopy(consumable)
+    context = ConsumableContext(state=simulated)
+    if not simulated_consumable.can_use(context):
+        raise ValueError(
+            "modeled Planet failed can_use during verification simulation"
+        )
+
+    before_level = int(simulated.hand_levels[hand_type])
+    simulated_consumable.use(context)
+    after_level = int(simulated.hand_levels.get(hand_type, before_level))
+    if after_level <= before_level:
+        raise ValueError(
+            "modeled Planet verification requires a positive hand-level transition"
+        )
+
+    return ConsumableTargetPostcondition(
+        expected_hand_level=(hand_type, after_level),
+    )
+
+
 def _area_cards(snapshot: LiveBalatroSnapshot, name: str) -> list[dict]:
     area = snapshot.payload.get(name)
     if not isinstance(area, dict):
@@ -130,6 +177,33 @@ def _target_card_records(snapshot: LiveBalatroSnapshot) -> list[dict]:
     if "owned_deck" in snapshot.payload:
         return _area_cards(snapshot, "owned_deck")
     return _area_cards(snapshot, "hand")
+
+
+def _snapshot_hand_level(
+    snapshot: LiveBalatroSnapshot,
+    hand_type: str,
+) -> int | None:
+    hands = snapshot.payload.get("hands")
+    if not isinstance(hands, dict):
+        return None
+
+    keys = [hand_type]
+    keys.extend(
+        display_name
+        for display_name, normalized in DefaultBalatroStateTranslator.HAND_NAMES.items()
+        if normalized == hand_type
+    )
+
+    for key in keys:
+        value = hands.get(key)
+        if isinstance(value, dict):
+            level = value.get("level")
+        else:
+            level = value
+        if isinstance(level, bool) or not isinstance(level, (int, float)):
+            continue
+        return int(level)
+    return None
 
 
 def _model_card_signature(card) -> CardSignature:
