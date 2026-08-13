@@ -13,6 +13,10 @@ from games.balatro.actions import (
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 from .bridge import FirstPartyBalatroBridge
+from .consumable_target_postcondition import (
+    ConsumableTargetPostcondition,
+    build_consumable_target_postcondition,
+)
 
 
 class UnsupportedInjectedHandAction(RuntimeError):
@@ -100,6 +104,7 @@ def _consumable_use_complete(
     *,
     before_count: int,
     consumed_live_id: object | None,
+    target_postcondition: ConsumableTargetPostcondition | None = None,
 ) -> bool:
     if (
         after.sequence <= before.sequence
@@ -110,8 +115,18 @@ def _consumable_use_complete(
 
     after_cards = _area_cards(after, "consumables")
     if consumed_live_id is not None:
-        return all(card.get("live_id") != consumed_live_id for card in after_cards)
-    return len(after_cards) == before_count - 1
+        consumed = all(
+            card.get("live_id") != consumed_live_id
+            for card in after_cards
+        )
+    else:
+        consumed = len(after_cards) == before_count - 1
+
+    if not consumed:
+        return False
+    if target_postcondition is not None and not target_postcondition.matches(after):
+        return False
+    return True
 
 
 def _action_indices(
@@ -235,21 +250,34 @@ class LiveMemoryInjectedHandDispatcher:
                     "held consumable index is out of range for the live snapshot"
                 )
             consumed_live_id = before_cards[consumable_index].get("live_id")
+            try:
+                target_postcondition = build_consumable_target_postcondition(
+                    state,
+                    consumable_index=consumable_index,
+                    target_indices=indices,
+                )
+            except ValueError as error:
+                raise UnsupportedInjectedHandAction(str(error)) from error
+
             self.bridge.use_consumable(consumable_index, indices)
             after = self._wait_consumable(
                 snapshot,
                 before_count=len(before_cards),
                 consumed_live_id=consumed_live_id,
+                target_postcondition=target_postcondition,
             )
+            details = {
+                "consumable_index": consumable_index,
+                "target_indices": indices,
+                "consumed_live_id": consumed_live_id,
+            }
+            if target_postcondition is not None:
+                details["verified_target_live_ids"] = target_postcondition.live_ids
             return LiveInjectedActionResult(
                 action=action,
                 before=snapshot,
                 after=after,
-                details={
-                    "consumable_index": consumable_index,
-                    "target_indices": indices,
-                    "consumed_live_id": consumed_live_id,
-                },
+                details=details,
             )
 
         if action.name == PLAY_CARDS:
@@ -291,6 +319,7 @@ class LiveMemoryInjectedHandDispatcher:
         *,
         before_count: int,
         consumed_live_id: object | None,
+        target_postcondition: ConsumableTargetPostcondition | None = None,
     ) -> LiveBalatroSnapshot:
         deadline = time.monotonic() + self.timeout
         last = before
@@ -302,6 +331,7 @@ class LiveMemoryInjectedHandDispatcher:
                 current,
                 before_count=before_count,
                 consumed_live_id=consumed_live_id,
+                target_postcondition=target_postcondition,
             ):
                 return current
             if time.monotonic() >= deadline:
