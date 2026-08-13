@@ -110,9 +110,11 @@ def test_extended_bridge_commands_use_expected_wire_actions(
         poll_interval=0.001,
     )
     captured = {}
+    responder_ready = threading.Event()
 
     def responder():
-        deadline = time.monotonic() + 0.5
+        responder_ready.set()
+        deadline = time.monotonic() + bridge.timeout + 1.0
         while time.monotonic() < deadline:
             if bridge.command_path.exists():
                 text = bridge.command_path.read_text(encoding="utf-8")
@@ -128,9 +130,11 @@ def test_extended_bridge_commands_use_expected_wire_actions(
 
     thread = threading.Thread(target=responder)
     thread.start()
+    assert responder_ready.wait(timeout=1.0)
     getattr(bridge, method)(*args)
-    thread.join(timeout=1.0)
+    thread.join(timeout=bridge.timeout + 1.0)
 
+    assert not thread.is_alive()
     assert captured == {
         "action": expected_action,
         "payload": expected_payload,
