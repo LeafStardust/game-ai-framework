@@ -15,6 +15,7 @@ from games.balatro.actions import (
     REFRESH_SHOP,
     SELECT_BLIND,
     SELECT_PACK_CARD,
+    SELL_JOKER,
     SKIP_BOOSTER,
     USE_CONSUMABLE,
     BalatroAction,
@@ -376,6 +377,46 @@ class LiveMemoryInjectedActionDispatcher:
                     and _purchase_money_matches(before, value, item)
                 ),
                 "shop card purchase",
+            )
+            return LiveInjectedActionResult(
+                action,
+                before,
+                after,
+                {"area_index": index, "item": item},
+            )
+
+        if name == SELL_JOKER:
+            if before.phase != "SHOP":
+                raise UnsupportedInjectedAction(
+                    f"SELL_JOKER requires SHOP, observed {before.phase}"
+                )
+            index = _target_index(action.target)
+            item = _area_item(before, "jokers", index)
+            before_count = len(_area_cards(before, "jokers"))
+            target_live_id = item.get("live_id")
+            self.bridge.sell_joker(index)
+
+            def sale_settled(value: LiveBalatroSnapshot) -> bool:
+                after_jokers = _area_cards(value, "jokers")
+                if (
+                    value.sequence <= before.sequence
+                    or value.phase != "SHOP"
+                    or not value.state_complete
+                    or len(after_jokers) != before_count - 1
+                ):
+                    return False
+                if target_live_id is None:
+                    return True
+                return all(
+                    not isinstance(joker, dict)
+                    or joker.get("live_id") != target_live_id
+                    for joker in after_jokers
+                )
+
+            after = self._wait(
+                before,
+                sale_settled,
+                "joker sale",
             )
             return LiveInjectedActionResult(
                 action,
