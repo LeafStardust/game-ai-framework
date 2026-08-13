@@ -546,6 +546,40 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return true
   end
 
+  local function execute_sell_joker(payload)
+    local ready, state_error = require_state("SHOP")
+    if not ready then
+      return false, state_error
+    end
+
+    local index, parse_error = parse_single_index(payload)
+    if index == nil then
+      return false, parse_error
+    end
+    if not G.jokers or not G.jokers.cards then
+      return false, "joker area is unavailable"
+    end
+
+    local joker = G.jokers.cards[index + 1]
+    if not joker then
+      return false, "joker index is out of range"
+    end
+
+    local callback = G.FUNCS and G.FUNCS.sell_card
+    if type(callback) ~= "function" then
+      return false, "sell_card callback is unavailable"
+    end
+
+    local ok, error_message = pcall(
+      callback,
+      { config = { ref_table = joker } }
+    )
+    if not ok then
+      return false, error_message
+    end
+    return true
+  end
+
   local function pack_card_requires_hand_targets(card)
     local center = card and card.config and card.config.center
     local key = center and center.key
@@ -659,6 +693,10 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     elseif action == "BUY_CARD" or action == "BUY_VOUCHER" or action == "BUY_BOOSTER" then
       executor = function()
         return execute_shop_purchase(action, payload)
+      end
+    elseif action == "SELL_JOKER" then
+      executor = function()
+        return execute_sell_joker(payload)
       end
     elseif action == "PACK_SELECT" then
       executor = function()
