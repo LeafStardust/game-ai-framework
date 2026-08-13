@@ -14,7 +14,7 @@
 >
 > **Roadmap maintenance rule:** when implementation, deterministic tests or live validation clears a milestone, update this roadmap in the same development checkpoint instead of deferring documentation cleanup.
 >
-> **Current strategic priority: B5 + D12 build-aware shop integration.** D2 Joker lifecycle strategy is complete: behavior-backed scoring, economy/resource and non-scoring semantics feed contextual whole-build value; conditional engines remain conservative when requirements are absent; standalone sale, first-party sale execution, and replacement execution through `SELL -> fresh observation/replan -> BUY` are complete and deterministically green. The next work is to replace isolated shop-item ranking with completed child-layer/build-aware recommendations and an explicit `END_SHOP` baseline.
+> **Current strategic priority: B6 + D4/D5/D6/D7 build-aware consumable decisions.** B5 + D12 shop integration is complete for the autonomy foundation: contextual/build-aware child recommendations feed one parent arbiter, D2 owns Joker acquisition/replacement, reroll receives build-gap/current-opportunity context, `END_SHOP` is an explicit zero-gain parent candidate, and every executed shop action returns to a fresh authoritative observation before replanning. D11 remains a later quality checkpoint for stronger reroll EV/horizon reasoning rather than a blocker to the completed parent shop contract.
 
 ## v0.1.0 — Foundation
 
@@ -235,7 +235,7 @@
 >
 > Cross-layer state such as money, remaining hands/discards, ante, blind risk, slots and owned effects may be shared as **inputs**, but one layer's threshold constants must not be reused implicitly by another layer. The final shop/run arbiter compares normalized outputs from completed child layers instead of hiding all decisions inside one utility score.
 >
-> **The mutable-Joker 0.9C runtime projection correctness gate and D2 Joker lifecycle checkpoint are cleared.** B1–B4 contextual build intelligence now reaches D2 for scoring, economy/resource and non-scoring effects, including conditional requirements; standalone sell, first-party sell execution, and fresh-replan replacement execution are complete. B5 + D12 build-aware shop integration is now the active strategic step.
+> **The mutable-Joker 0.9C runtime projection correctness gate, D2 Joker lifecycle checkpoint, and B5 + D12 shop-integration checkpoint are cleared.** B1–B4 contextual build intelligence reaches D2; B5 exposes contextual shop value and build-gap reroll context; D12 compares admitted child actions against an explicit `END_SHOP` baseline and relies on fresh authoritative re-observation after each executed shop action. The next strategic step is B6 + D4/D5/D6/D7 consumable acquisition, timing, targeting and Planet decisions.
 
 #### B1–B7 — Shared build intelligence and synergy strategy — ACTIVE STRATEGIC PRIORITY
 
@@ -262,9 +262,9 @@ Milestones:
 - [x] **B3 Multi-Joker interaction probing:** measure meaningful combinations/retriggers/copy effects rather than only isolated Joker probes
 - [x] **B4 Consumable/deck synergy evaluator:** value permanent rank/suit/enhancement/seal/edition changes against current and prospective engines
 - [x] **B4 Build-path reasoning:** value enabling pieces before a combo is fully assembled when the relationship is supported by observable semantics
-- [ ] **B5 Build-aware shop policy:** feed contextual build delta into Joker/consumable/voucher/booster comparisons
+- [x] **B5 Build-aware shop policy:** feed contextual build delta into Joker/consumable/voucher/booster comparisons
 - [x] **B5 Joker replacement planning:** compare every legal replacement against the complete current build and slot opportunity cost
-- [ ] **B5 Build-aware reroll policy:** value missing engine pieces and current-shop opportunity quality
+- [x] **B5 Build-aware reroll policy:** value missing engine pieces and current-shop opportunity quality
 - [ ] **B6 Build-aware consumable timing and targeting:** use/hold/target based on whole-build delta rather than generic card value
 - [ ] **B6 Build-aware pack choice:** evaluate visible offers as candidate build transitions
 - [ ] **B7 Build intent feedback into D1:** hand/discard choices should respect engines such as held-card, rank, suit, retrigger and hand-level strategies
@@ -281,7 +281,7 @@ For every decision layer:
 - [ ] Define explicit `HOLD`, `SKIP`, `END_SHOP` or equivalent no-action alternative where legal
 - [ ] Unit-test boundary cases around every important threshold
 - [ ] Read-only live validator prints candidates, scores, thresholds and recommendation
-- [ ] Armed validator executes exactly the recommended semantic action
+- [ ] Armed live validator executes exactly the recommended semantic action
 - [ ] Log enough data to explain and tune the layer independently later
 
 #### D1 — Hand action: play vs discard and card subset — FOUNDATION VALIDATED; QUALITY TUNING DEFERRED
@@ -532,15 +532,15 @@ Threshold/signals owned by this layer:
 Status:
 
 - [x] Reroll execution
-- [ ] B5 build-gap/opportunity model
+- [x] B5 build-gap/opportunity model
 - [ ] Reroll EV model
-- [ ] Dedicated reroll threshold policy
+- [x] Dedicated reroll threshold policy foundation
 
-#### D12 — Shop arbiter: what to do next in the shop
+#### D12 — Shop arbiter: what to do next in the shop — AUTONOMY FOUNDATION COMPLETE
 
 **Question:** Given the outputs of the completed child decision layers, should the agent buy a Joker, buy/redeem a voucher, acquire/use a consumable, buy a booster, reroll, or end the shop?
 
-> The arbiter does **not** reimplement Joker, voucher, consumable or booster valuation. It compares their normalized recommendations while enforcing shared money/slot legality.
+> The arbiter does **not** reimplement Joker, voucher, consumable or booster valuation. It compares their normalized recommendations while enforcing shared money/slot legality. Child layers that are still strategically provisional can be replaced as their dedicated D3–D11 policies mature without reopening the parent arbitration contract.
 
 Threshold/signals owned by this layer:
 
@@ -555,10 +555,10 @@ Status:
 - [x] Visible shop action generation
 - [x] Initial purchase ranking foundation
 - [x] Live-memory shop controller and unified dispatcher integration
-- [ ] Replace isolated shop item scores with build-aware child-layer recommendations
-- [ ] Normalize child-layer recommendations
-- [ ] Make `END_SHOP` an explicit baseline against every action
-- [ ] Multi-action shop loop with fresh re-observation after each action
+- [x] Replace isolated shop item scores with build-aware child-layer recommendations
+- [x] Normalize child-layer recommendations around their no-action baselines
+- [x] Make `END_SHOP` an explicit baseline against every action
+- [x] Multi-action shop loop with fresh re-observation after each action
 
 #### D13 — Blind selection and skip/tag decision
 
@@ -595,15 +595,15 @@ Status:
 
 #### Required implementation order
 
-The mutable-hydrated 0.9C Joker runtime projection correctness gate and D2 Joker lifecycle checkpoint are complete. B5 + D12 build-aware shop integration is now the current active implementation step. Work remains deliberately narrow: clear one autonomy blocker, verify it, update this roadmap, then advance.
+The mutable-hydrated 0.9C Joker runtime projection correctness gate, D2 Joker lifecycle checkpoint, and B5 + D12 shop-integration checkpoint are complete. B6 + D4/D5/D6/D7 is now the current active implementation step. Work remains deliberately narrow: clear one autonomy blocker, verify it, update this roadmap, then advance.
 
 1. [x] **0.9C Joker runtime projection fidelity** — `33/33` mutable hydrated Jokers supported with `0 deferred / 0 gap / 0 error`; unsupported stateless/event semantics remain fail-closed until separately validated
 2. [x] **D2 completion** — contextual scoring/economy/non-scoring valuation, standalone sell, first-party sell execution and fresh-replan replacement are complete
-3. **B5 + D12 Build-aware shop — CURRENT** — contextual buying, replacement, reroll opportunity quality and shop arbitration
-4. **B6 + D4/D5/D6/D7** — consumable acquisition, timing, targeting and Planet decisions
+3. [x] **B5 + D12 Build-aware shop** — contextual buying, replacement, build-gap reroll opportunity quality, normalized arbitration, explicit `END_SHOP`, and fresh post-action re-observation are complete
+4. **B6 + D4/D5/D6/D7 — CURRENT** — consumable acquisition, timing, targeting and Planet decisions
 5. **B6 + D8/D9/D10** — booster/pack valuation and target follow-up
 6. **D3 Voucher acquisition** — integrate capacity/economy/build compatibility
-7. **D11 Reroll decision** — integrate build-gap valuation
+7. **D11 Reroll decision** — complete reroll EV and remaining-shop/horizon quality
 8. **D13 Blind skip/tag decision**
 9. **D14 Run-level resource arbitration and normalization**
 10. **B7 + D1 final refinement** — feed build intent into hand/discard decisions, then lock final D1 quality
