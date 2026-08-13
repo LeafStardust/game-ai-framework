@@ -9,7 +9,9 @@ from games.balatro.joker_policy import (
     JokerAcquisitionThresholds,
 )
 from games.balatro.jokers.baron import BaronJoker
+from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.mime import MimeJoker
+from games.balatro.jokers.superposition import SuperpositionJoker
 from games.balatro.card import BalatroCard
 from games.balatro.state import BalatroState
 
@@ -75,6 +77,38 @@ def test_d2_buys_positive_whole_build_candidate_when_economics_allow():
     assert decision.selected.build_gain > 0.0
     assert decision.selected.economics.price == 2
     assert decision.selected.economics.sell_credit == 0
+
+
+def test_d2_buys_behavior_backed_economy_joker_without_scoring_gain():
+    state = _state(money=20, slots=2)
+    candidate = GoldenJoker()
+    candidate.cost = 0
+
+    decision = JokerAcquisitionPolicy(
+        _no_economy_thresholds(),
+    ).decide(state, candidate)
+
+    assert decision.action == BUY
+    assert decision.selected is not None
+    assert decision.selected.transition.candidate_value.direct_scoring_gain == 0.0
+    assert decision.selected.transition.candidate_value.contextual.intrinsic_gain > 0.0
+    assert decision.selected.build_gain > 0.0
+
+
+def test_d2_buys_behavior_backed_non_scoring_generation_joker():
+    state = _state(money=20, slots=2)
+    candidate = SuperpositionJoker()
+    candidate.cost = 0
+
+    decision = JokerAcquisitionPolicy(
+        _no_economy_thresholds(),
+    ).decide(state, candidate)
+
+    assert decision.action == BUY
+    assert decision.selected is not None
+    assert decision.selected.transition.candidate_value.direct_scoring_gain == 0.0
+    assert decision.selected.transition.candidate_value.contextual.intrinsic_gain > 0.0
+    assert decision.selected.build_gain > 0.0
 
 
 def test_d2_holds_when_purchase_would_create_large_reserve_shortfall():
