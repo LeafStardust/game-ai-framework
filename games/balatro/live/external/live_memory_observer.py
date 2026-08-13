@@ -194,6 +194,7 @@ def snapshot_payload_from_live_memory(
         "round_num": _integer(game.get("round"), 1),
         "deck": _deck_name(decoder, game),
         "stake": STAKE_NAMES.get(stake_id, str(stake_id)),
+        "last_tarot_planet": _string(game.get("last_tarot_planet")),
         "round": {
             "chips": _integer(blind.get("chips"), 0),
             "hands_left": _integer(current_round.get("hands_left"), 0),

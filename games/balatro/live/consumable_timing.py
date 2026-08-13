@@ -9,6 +9,7 @@ from games.balatro.build import (
     ContextualConsumableTargetEvaluator,
 )
 from games.balatro.consumable import ConsumableContext
+from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator, LivePlayProjection
 
 
@@ -47,9 +48,11 @@ class LiveConsumableTimingPolicy:
     """Choose USE versus HOLD for deterministic held consumables.
 
     Targeted transformations use the existing B6 target-quality and visible-hand
-    projection path. Deterministic no-target economy Tarots are evaluated by their
-    exact public payout and conservative preservation thresholds. No executor state
-    is touched and no hidden draw order or RNG is consulted.
+    projection path. Deterministic no-target economy Tarots and Planets are timed
+    from their exact public effects. The Fool resolves only Balatro's public
+    ``last_tarot_planet`` key and is spent only when the copied modeled consumable
+    itself has a concrete current timing reason. No executor state is touched and
+    no hidden draw order or RNG is consulted.
     """
 
     EPSILON = 1e-12
@@ -60,9 +63,11 @@ class LiveConsumableTimingPolicy:
         *,
         target_evaluator: ContextualConsumableTargetEvaluator | None = None,
         hand_evaluator: LiveHandDecisionEvaluator | None = None,
+        consumable_factory: LiveConsumableFactory | None = None,
     ) -> None:
         self.target_evaluator = target_evaluator or ContextualConsumableTargetEvaluator()
         self.hand_evaluator = hand_evaluator or LiveHandDecisionEvaluator()
+        self.consumable_factory = consumable_factory or LiveConsumableFactory()
 
     def recommend(self, state, consumable: object) -> ConsumableTimingRecommendation:
         if getattr(state, "phase", None) != "SELECTING_HAND":
@@ -73,6 +78,19 @@ class LiveConsumableTimingPolicy:
             return self._hold(state, consumable, "candidate consumable is not held")
 
         name = str(getattr(consumable, "name", ""))
+        category = str(getattr(consumable, "category", "")).upper()
+        if name == "The Fool":
+            return self._recommend_fool(
+                state,
+                consumable,
+                consumable_index=consumable_index,
+            )
+        if category == "PLANET":
+            return self._recommend_planet(
+                state,
+                consumable,
+                consumable_index=consumable_index,
+            )
         if name in self.ECONOMY_TAROTS:
             return self._recommend_economy(state, consumable, name=name)
 
@@ -196,6 +214,171 @@ class LiveConsumableTimingPolicy:
             )
         )
 
+    def _recommend_fool(
+        self,
+        state,
+        consumable: object,
+        *,
+        consumable_index: int,
+    ) -> ConsumableTimingRecommendation:
+        last_key = getattr(state, "last_tarot_planet", None)
+        if not isinstance(last_key, str) or not last_key:
+            return self._hold(
+                state,
+                consumable,
+                "Fool has no previous Tarot/Planet in public run history",
+            )
+        if last_key == "c_fool":
+            return self._hold(
+                state,
+                consumable,
+                "Fool cannot copy The Fool",
+            )
+
+        copied = self.consumable_factory.create({"key": last_key})
+        if copied is None:
+            return self._hold(
+                state,
+                consumable,
+                f"Fool copy target {last_key!r} is not modeled",
+            )
+
+        copied_name = str(getattr(copied, "name", type(copied).__name__))
+        copied_category = str(getattr(copied, "category", "")).upper()
+        if copied_name == "The Fool" or copied_category not in {"TAROT", "PLANET"}:
+            return self._hold(
+                state,
+                consumable,
+                f"Fool copy target {last_key!r} is invalid",
+            )
+
+        converted = copy.deepcopy(state)
+        if not (0 <= consumable_index < len(converted.consumables)):
+            return self._hold(state, consumable, "Fool inventory slot became unavailable")
+        converted.consumables[consumable_index] = copied
+        converted.last_tarot_planet = last_key
+
+        copied_timing = self.recommend(converted, copied)
+        if not copied_timing.should_use:
+            return ConsumableTimingRecommendation(
+                decision=HOLD,
+                consumable=consumable,
+                target=None,
+                before_projection=None,
+                after_projection=None,
+                required_per_hand=self._required_per_hand(state),
+                rationale=(
+                    f"HOLD: Fool copy target {copied_name} has no concrete modeled use now",
+                    f"last_tarot_planet={last_key}",
+                    *copied_timing.rationale[:4],
+                ),
+            )
+
+        return ConsumableTimingRecommendation(
+            decision=USE,
+            consumable=consumable,
+            target=None,
+            before_projection=None,
+            after_projection=None,
+            required_per_hand=self._required_per_hand(state),
+            rationale=(
+                f"USE: materialize public Fool copy target {copied_name} for a concrete next-step use",
+                f"last_tarot_planet={last_key}",
+                "follow-up action chaining remains disabled; copied consumable requires fresh observation",
+                *copied_timing.rationale[:4],
+            ),
+        )
+
+    def _recommend_planet(
+        self,
+        state,
+        consumable: object,
+        *,
+        consumable_index: int,
+    ) -> ConsumableTimingRecommendation:
+        before = self._best_play_projection(state)
+        if before is None:
+            return self._hold(state, consumable, "no legal visible play for Planet timing")
+        if not before.joker_projection_complete:
+            return self._hold(
+                state,
+                consumable,
+                "current build has unsupported Joker score projection",
+                before=before,
+            )
+
+        transformed = self._simulate_use(
+            state,
+            consumable_index=consumable_index,
+            target_indices=(),
+        )
+        if transformed is None:
+            return self._hold(
+                state,
+                consumable,
+                "Planet failed deterministic copied simulation",
+                before=before,
+            )
+
+        after = self._best_play_projection(transformed)
+        if after is None:
+            return self._hold(
+                state,
+                consumable,
+                "Planet use leaves no legal visible play",
+                before=before,
+            )
+        if not after.joker_projection_complete:
+            return self._hold(
+                state,
+                consumable,
+                "Planet-upgraded build has unsupported Joker score projection",
+                before=before,
+                after=after,
+            )
+
+        required = self._required_per_hand(state)
+        reason = self._planet_use_reason(
+            state,
+            before=before,
+            after=after,
+            required_per_hand=required,
+        )
+        name = str(getattr(consumable, "name", "Planet"))
+        hand_type = str(getattr(consumable, "hand_type", "unknown"))
+        before_level = int(getattr(state, "hand_levels", {}).get(hand_type, 0))
+        after_level = int(getattr(transformed, "hand_levels", {}).get(hand_type, 0))
+        rationale = (
+            f"Planet={name} hand={hand_type} level {before_level} -> {after_level}",
+            f"best-play clear probability {before.clear_probability:.6f} -> {after.clear_probability:.6f}",
+            f"best-play expected score {before.expected_hand_score:.3f} -> {after.expected_hand_score:.3f}",
+            f"required pace per remaining hand={required:.3f}",
+        )
+
+        if reason is None:
+            return ConsumableTimingRecommendation(
+                decision=HOLD,
+                consumable=consumable,
+                target=None,
+                before_projection=before,
+                after_projection=after,
+                required_per_hand=required,
+                rationale=(
+                    "HOLD: Planet upgrade has no concrete current timing advantage",
+                    *rationale,
+                ),
+            )
+
+        return ConsumableTimingRecommendation(
+            decision=USE,
+            consumable=consumable,
+            target=None,
+            before_projection=before,
+            after_projection=after,
+            required_per_hand=required,
+            rationale=(f"USE: {reason}", *rationale),
+        )
+
     def _recommend_economy(
         self,
         state,
@@ -314,6 +497,34 @@ class LiveConsumableTimingPolicy:
                 "target with no current-play regression"
             )
 
+        return None
+
+    def _planet_use_reason(
+        self,
+        state,
+        *,
+        before: LivePlayProjection,
+        after: LivePlayProjection,
+        required_per_hand: float,
+    ) -> str | None:
+        if after.clear_probability > before.clear_probability + self.EPSILON:
+            return "Planet upgrade increases blind-clear probability"
+        if (
+            before.expected_hand_score + self.EPSILON < required_per_hand
+            and after.expected_hand_score + self.EPSILON >= required_per_hand
+        ):
+            return "Planet upgrade restores required blind pace"
+        hands_remaining = max(0, int(getattr(state, "hands_remaining", 0)))
+        if (
+            hands_remaining <= 1
+            and after.expected_hand_score > before.expected_hand_score + self.EPSILON
+        ):
+            return "final hand gains score from deterministic Planet upgrade"
+        if (
+            self._consumable_slots_full(state)
+            and after.expected_hand_score + self.EPSILON >= before.expected_hand_score
+        ):
+            return "full consumable slots plus permanent Planet upgrade with no score regression"
         return None
 
     def _use_reason(

@@ -58,6 +58,10 @@ class BalatroState(GameState):
         self.phase: str = "ROUND_START"
         self.glass_cards_destroyed: int = 0
         self.last_played_hand: str | None = None
+        # Public run history used by The Fool. Balatro stores this as the center
+        # key of the last Tarot/Planet used; ``None`` means no usable history was
+        # observed. This is ordinary visible run state, not RNG state.
+        self.last_tarot_planet: str | None = None
 
     @property
     def deck_size(self) -> int:
@@ -141,6 +145,7 @@ class BalatroState(GameState):
         new_state.phase = self.phase
         new_state.glass_cards_destroyed = self.glass_cards_destroyed
         new_state.last_played_hand = self.last_played_hand
+        new_state.last_tarot_planet = self.last_tarot_planet
 
         return new_state
 

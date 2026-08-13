@@ -108,6 +108,12 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         state.stake_name = str(
             payload.get("stake", payload.get("stake_name", "WHITE"))
         ).upper()
+        last_tarot_planet = payload.get("last_tarot_planet")
+        state.last_tarot_planet = (
+            str(last_tarot_planet)
+            if isinstance(last_tarot_planet, str) and last_tarot_planet
+            else None
+        )
         state.phase = snapshot.phase
 
         hand_area = self._area(payload.get("hand"))
