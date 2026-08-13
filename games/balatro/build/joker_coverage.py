@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 import importlib
 import inspect
-import pkgutil
 from collections import Counter
 from dataclasses import dataclass
+from pathlib import Path
 
 import games.balatro.jokers as joker_package
 from games.balatro.joker import Joker
@@ -171,25 +171,37 @@ class JokerCoverageAuditor:
 
     @staticmethod
     def _classes() -> tuple[tuple[str, type[Joker]], ...]:
-        """Discover Joker models from the package search path, independent of test state.
+        """Discover repository Joker models without mutating imported class identity.
 
-        ``__file__`` is optional for packages and can legitimately be absent under
-        some import/test configurations. ``__path__`` is the package contract for
-        submodule discovery, so enumerate that directly and reload each discovered
-        Joker module before inspecting its repository-defined classes.
+        ``__file__`` is optional for packages, while ``__path__`` is the package
+        contract for submodule discovery. Enumerate Python files directly from each
+        package search path, then use normal imports. Do not reload Joker modules:
+        semantic analyzers and tests may already hold references to those classes,
+        and reloading would create a second incompatible class identity.
         """
         found: list[tuple[str, type[Joker]]] = []
         prefix = f"{joker_package.__name__}."
-        package_paths = tuple(str(path) for path in getattr(joker_package, "__path__", ()))
+        package_paths = tuple(
+            Path(str(path)) for path in getattr(joker_package, "__path__", ())
+        )
         if not package_paths:
             raise RuntimeError("Balatro Joker package has no module search path")
 
-        for module_info in pkgutil.iter_modules(package_paths):
-            if module_info.name.startswith("_"):
+        module_names: set[str] = set()
+        for package_path in package_paths:
+            if not package_path.is_dir():
                 continue
-            module = importlib.reload(
-                importlib.import_module(prefix + module_info.name)
-            )
+            for module_path in package_path.glob("*.py"):
+                module_name = module_path.stem
+                if module_name == "__init__" or module_name.startswith("_"):
+                    continue
+                module_names.add(module_name)
+
+        if not module_names:
+            raise RuntimeError("Balatro Joker package search path contains no modules")
+
+        for module_name in sorted(module_names):
+            module = importlib.import_module(prefix + module_name)
             classes = [
                 value
                 for value in vars(module).values()
@@ -200,7 +212,7 @@ class JokerCoverageAuditor:
                 and not inspect.isabstract(value)
             ]
             for joker_class in classes:
-                found.append((module_info.name, joker_class))
+                found.append((module_name, joker_class))
         return tuple(sorted(found, key=lambda item: (item[0], item[1].__name__)))
 
     @staticmethod

@@ -91,9 +91,15 @@ def test_trigger_guard_flags_do_not_remain_unknown_semantic_outputs():
 def test_joker_discovery_does_not_require_package_file(monkeypatch):
     monkeypatch.setattr(joker_package, "__file__", None)
 
-    classes = JokerCoverageAuditor._classes()
+    first = JokerCoverageAuditor._classes()
+    second = JokerCoverageAuditor._classes()
 
-    assert len(classes) == 152
+    assert len(first) == 152
+    assert len(second) == 152
+    assert [item[:1] + (item[1].__name__,) for item in first] == [
+        item[:1] + (item[1].__name__,) for item in second
+    ]
+    assert all(first_class is second_class for (_, first_class), (_, second_class) in zip(first, second))
 
 
 def test_every_repository_joker_has_semantic_coverage():
