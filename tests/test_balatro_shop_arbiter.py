@@ -55,7 +55,7 @@ def test_unrecognized_and_target_unsafe_boosters_fail_closed():
     assert unknown.decision == "HOLD"
     assert arcana.decision == "HOLD"
     assert spectral.decision == "HOLD"
-    assert any("not autonomous-safe" in note for note in arcana.rationale)
+    assert any("deferred to D9/D10" in note for note in arcana.rationale)
     assert all(
         any("contents are not predicted" in note for note in result.rationale)
         for result in (unknown, arcana, spectral)
