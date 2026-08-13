@@ -246,8 +246,11 @@ class LiveMemoryInjectedSingleStepRunner:
             if selected.target is not None
             else ()
         )
+        decision_scope = (
+            "shop" if getattr(state, "phase", None) == "SHOP" else "hand"
+        )
         notes = (
-            "hand_decision=USE_CONSUMABLE",
+            f"{decision_scope}_decision=USE_CONSUMABLE",
             f"consumable={name}",
             f"target_indices={target_indices}",
             *tuple(str(note) for note in selected.rationale),
@@ -450,6 +453,18 @@ class LiveMemoryInjectedSingleStepRunner:
 
         if phase == "SHOP":
             policy_started = perf_counter()
+            consumable = self._recommend_consumable_use(state)
+            if consumable is not None:
+                action, notes = consumable
+                self.last_policy_seconds = perf_counter() - policy_started
+                return AutonomousStepDecision(
+                    snapshot,
+                    state,
+                    action,
+                    "B6 consumable timing policy",
+                    notes,
+                )
+
             action, notes = self.shop_recommender(state, snapshot)
             self.last_policy_seconds = perf_counter() - policy_started
             return AutonomousStepDecision(

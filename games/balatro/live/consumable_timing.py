@@ -13,7 +13,15 @@ class LiveConsumableTimingPolicy(_BaseLiveConsumableTimingPolicy):
     The green deterministic/targeted timing implementation remains in
     ``consumable_timing_base``. Wheel adds one stochastic-but-analytic path that
     consumes only public state and never samples Balatro RNG or reads its seed.
+
+    SHOP timing is intentionally narrower than blind timing. Only validated
+    no-hand-target effects are admitted there; targeted Tarot/Spectral effects
+    stay fail-closed until D6/D10 and Planets remain owned by D7.
     """
+
+    SHOP_SAFE_NO_TARGET_NAMES = frozenset(
+        {"The Hermit", "Temperance", "The Wheel of Fortune"}
+    )
 
     def __init__(self, *, wheel_evaluator=None, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -21,14 +29,29 @@ class LiveConsumableTimingPolicy(_BaseLiveConsumableTimingPolicy):
 
     def recommend(self, state, consumable: object) -> ConsumableTimingRecommendation:
         name = str(getattr(consumable, "name", ""))
+        phase = getattr(state, "phase", None)
+
+        if phase == "SHOP":
+            if self._identity_index(getattr(state, "consumables", ()), consumable) is None:
+                return self._hold(state, consumable, "candidate consumable is not held")
+            if name not in self.SHOP_SAFE_NO_TARGET_NAMES:
+                return self._hold(
+                    state,
+                    consumable,
+                    "SHOP timing admits only validated no-hand-target held consumables",
+                )
+            if name == "The Wheel of Fortune":
+                return self._recommend_wheel(state, consumable)
+            return self._recommend_economy(state, consumable, name=name)
+
         if name != "The Wheel of Fortune":
             return super().recommend(state, consumable)
 
-        if getattr(state, "phase", None) != "SELECTING_HAND":
+        if phase != "SELECTING_HAND":
             return self._hold(
                 state,
                 consumable,
-                "consumable timing requires SELECTING_HAND",
+                "consumable timing requires SELECTING_HAND or validated SHOP use",
             )
         if self._identity_index(getattr(state, "consumables", ()), consumable) is None:
             return self._hold(state, consumable, "candidate consumable is not held")

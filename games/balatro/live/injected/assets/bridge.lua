@@ -285,8 +285,14 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   end
 
   local function execute_consumable_use(payload)
-    if not G or not G.STATES or G.STATE ~= G.STATES.SELECTING_HAND then
-      return false, "consumable use requires SELECTING_HAND"
+    if not G or not G.STATES then
+      return false, "Balatro state is unavailable"
+    end
+
+    local selecting_hand = G.STATE == G.STATES.SELECTING_HAND
+    local in_shop = G.STATE == G.STATES.SHOP
+    if not selecting_hand and not in_shop then
+      return false, "consumable use requires SELECTING_HAND or validated SHOP use"
     end
     if not G.consumeables or not G.consumeables.cards then
       return false, "held consumables are unavailable"
@@ -303,14 +309,27 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       return false, "held consumable index is out of range"
     end
 
-    local selected, selection_error
-    if #target_indices == 0 then
-      selected, selection_error = clear_hand_selection()
+    if in_shop then
+      if #target_indices ~= 0 then
+        return false, "SHOP held-consumable use cannot include hand targets"
+      end
+      local center = card.config and card.config.center
+      local key = center and center.key
+      if key ~= "c_hermit"
+        and key ~= "c_temperance"
+        and key ~= "c_wheel_of_fortune" then
+        return false, "held consumable is not validated for SHOP use"
+      end
     else
-      selected, selection_error = select_hand_indices(target_indices)
-    end
-    if not selected then
-      return false, selection_error
+      local selected, selection_error
+      if #target_indices == 0 then
+        selected, selection_error = clear_hand_selection()
+      else
+        selected, selection_error = select_hand_indices(target_indices)
+      end
+      if not selected then
+        return false, selection_error
+      end
     end
 
     local callback = G.FUNCS and G.FUNCS.use_card

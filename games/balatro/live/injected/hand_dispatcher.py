@@ -31,6 +31,11 @@ class LiveInjectedActionResult:
     details: Any = None
 
 
+SHOP_SAFE_HELD_CONSUMABLES = frozenset(
+    {"The Hermit", "Temperance", "The Wheel of Fortune"}
+)
+
+
 def _round_resource(
     snapshot: LiveBalatroSnapshot,
     key: str,
@@ -98,7 +103,7 @@ def _consumable_use_complete(
 ) -> bool:
     if (
         after.sequence <= before.sequence
-        or after.phase != "SELECTING_HAND"
+        or after.phase != before.phase
         or not after.state_complete
     ):
         return False
@@ -162,11 +167,12 @@ def _consumable_index(state, action: BalatroAction) -> int:
 
 
 class LiveMemoryInjectedHandDispatcher:
-    """Execute hand-phase actions through the repo-owned in-process Lua bridge.
+    """Execute hand actions and validated held-consumable uses via the bridge.
 
     Commands use current zero-based positions and Balatro's own callbacks. The
     process-memory observer remains read-only and independently verifies the
-    resulting semantic checkpoint.
+    resulting semantic checkpoint. SHOP use is limited to explicitly validated
+    no-hand-target consumables; targeted use remains SELECTING_HAND-only.
     """
 
     def __init__(
@@ -194,7 +200,14 @@ class LiveMemoryInjectedHandDispatcher:
                 "first-party injected hand bridge does not support "
                 f"{action.name}"
             )
-        if snapshot.phase != "SELECTING_HAND":
+
+        if action.name == USE_CONSUMABLE:
+            if snapshot.phase not in {"SELECTING_HAND", "SHOP"}:
+                raise UnsupportedInjectedHandAction(
+                    "consumable use requires SELECTING_HAND or validated SHOP use, "
+                    f"observed {snapshot.phase}"
+                )
+        elif snapshot.phase != "SELECTING_HAND":
             raise UnsupportedInjectedHandAction(
                 "hand action requires SELECTING_HAND, "
                 f"observed {snapshot.phase}"
@@ -203,6 +216,18 @@ class LiveMemoryInjectedHandDispatcher:
         indices = _action_indices(state, action)
 
         if action.name == USE_CONSUMABLE:
+            if snapshot.phase == "SHOP":
+                if indices:
+                    raise UnsupportedInjectedHandAction(
+                        "SHOP held-consumable use cannot include hand targets"
+                    )
+                name = str(getattr(action.target, "name", ""))
+                if name not in SHOP_SAFE_HELD_CONSUMABLES:
+                    raise UnsupportedInjectedHandAction(
+                        "SHOP held-consumable use is not validated for "
+                        f"{name or 'unknown consumable'}"
+                    )
+
             consumable_index = _consumable_index(state, action)
             before_cards = _area_cards(snapshot, "consumables")
             if consumable_index >= len(before_cards):
