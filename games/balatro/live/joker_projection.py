@@ -64,6 +64,7 @@ class LiveJokerScoreProjector:
             "LuckyCatJoker",
             "MadnessJoker",
             "ObeliskJoker",
+            "PerkeoJoker",
             "PopcornJoker",
             "RamenJoker",
             "RedCardJoker",
