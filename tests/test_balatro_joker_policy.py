@@ -98,7 +98,7 @@ def test_d2_buys_behavior_backed_economy_joker_without_scoring_gain():
     assert decision.selected.build_gain > 0.0
 
 
-def test_d2_buys_behavior_backed_non_scoring_generation_joker():
+def test_d2_holds_conditional_generation_joker_when_build_requirements_are_absent():
     state = _state(money=20, slots=2)
     candidate = SuperpositionJoker()
     candidate.cost = 0
@@ -110,6 +110,27 @@ def test_d2_buys_behavior_backed_non_scoring_generation_joker():
 
     assert build_value.direct_scoring_gain == 0.0
     assert build_value.contextual.intrinsic_gain > 0.0
+    assert set(build_value.contextual.unmet_requirements) == {"hand:STRAIGHT", "rank:A"}
+    assert build_value.total_gain <= 0.0
+    assert decision.action == HOLD
+
+
+def test_d2_buys_conditional_generation_joker_when_build_requirements_are_present():
+    state = _state(money=20, slots=2)
+    state.deck.append(BalatroCard("A", "Clubs"))
+    state.hand_levels["STRAIGHT"] = 2
+    candidate = SuperpositionJoker()
+    candidate.cost = 0
+    build_value = JokerBuildValueEvaluator().evaluate(state, candidate)
+
+    decision = JokerAcquisitionPolicy(
+        _no_economy_thresholds(),
+    ).decide(state, candidate)
+
+    assert build_value.direct_scoring_gain == 0.0
+    assert build_value.contextual.intrinsic_gain > 0.0
+    assert build_value.contextual.unmet_requirements == ()
+    assert set(build_value.contextual.matched_requirements) == {"hand:STRAIGHT", "rank:A"}
     assert decision.action == BUY
     assert decision.selected is not None
     assert decision.selected.build_gain == pytest.approx(build_value.total_gain)
