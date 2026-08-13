@@ -21,6 +21,7 @@ from games.balatro.actions import (
     USE_CONSUMABLE,
     BalatroAction,
 )
+from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.external.live_memory_pack_terms import (
     LivePackSelectionTerms,
     read_live_pack_selection_terms,
@@ -32,6 +33,10 @@ from games.balatro.live.external.live_memory_shop_terms import (
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 from .bridge import FirstPartyBalatroBridge
+from .consumable_target_postcondition import (
+    ConsumableTargetPostcondition,
+    build_consumable_target_postcondition_for_consumable,
+)
 from .hand_dispatcher import (
     LiveInjectedActionResult,
     LiveMemoryInjectedHandDispatcher,
@@ -185,22 +190,28 @@ def _pack_selection_complete(
     after_terms: LivePackSelectionTerms | None,
     *,
     selected_address: int,
+    target_postcondition: ConsumableTargetPostcondition | None = None,
 ) -> bool:
     if after.sequence <= before.sequence or not after.state_complete:
         return False
 
     if before_terms.choices_remaining <= 1:
-        return after.phase == "SHOP"
-
-    if after.phase == "SHOP":
-        return True
-    if not _is_pack_phase(after.phase) or after_terms is None:
+        selection_complete = after.phase == "SHOP"
+    elif after.phase == "SHOP":
+        selection_complete = True
+    elif not _is_pack_phase(after.phase) or after_terms is None:
         return False
+    else:
+        selection_complete = (
+            after_terms.choices_remaining == before_terms.choices_remaining - 1
+            and selected_address not in after_terms.choice_addresses
+        )
 
-    return (
-        after_terms.choices_remaining == before_terms.choices_remaining - 1
-        and selected_address not in after_terms.choice_addresses
-    )
+    if not selection_complete:
+        return False
+    if target_postcondition is not None and not target_postcondition.matches(after):
+        return False
+    return True
 
 
 def _require_shop_consumable(item: dict) -> None:
@@ -547,6 +558,7 @@ class LiveMemoryInjectedActionDispatcher:
                     "Balatro reports no remaining booster-pack choices"
                 )
             target_indices: tuple[int, ...] = ()
+            target_postcondition: ConsumableTargetPostcondition | None = None
             if action.cards:
                 if state is None:
                     raise UnsupportedInjectedAction(
@@ -557,6 +569,35 @@ class LiveMemoryInjectedActionDispatcher:
                     target_indices = _action_indices(state, action)
                 except RuntimeError as error:
                     raise UnsupportedInjectedAction(str(error)) from error
+
+                choice_data = getattr(action.target, "data", None)
+                if not isinstance(choice_data, dict):
+                    raise UnsupportedInjectedAction(
+                        "targeted SELECT_PACK_CARD requires modeled live pack data"
+                    )
+                pack_consumable = LiveConsumableFactory().create(
+                    choice_data,
+                    live_id=getattr(action.target, "live_id", None),
+                )
+                if pack_consumable is None:
+                    raise UnsupportedInjectedAction(
+                        "targeted SELECT_PACK_CARD consumable is not modeled"
+                    )
+                try:
+                    target_postcondition = (
+                        build_consumable_target_postcondition_for_consumable(
+                            state,
+                            consumable=pack_consumable,
+                            target_indices=target_indices,
+                        )
+                    )
+                except ValueError as error:
+                    raise UnsupportedInjectedAction(str(error)) from error
+                if target_postcondition is None:
+                    raise UnsupportedInjectedAction(
+                        "targeted SELECT_PACK_CARD has no modeled semantic postcondition"
+                    )
+
             selected_address = before_terms.choice_addresses[index]
             if target_indices:
                 self.bridge.select_pack_card(index, target_indices)
@@ -578,6 +619,7 @@ class LiveMemoryInjectedActionDispatcher:
                     before_terms,
                     after_terms,
                     selected_address=selected_address,
+                    target_postcondition=target_postcondition,
                 )
 
             after = self._wait(
@@ -585,16 +627,19 @@ class LiveMemoryInjectedActionDispatcher:
                 pack_selection_settled,
                 "pack selection",
             )
+            details = {
+                "area_index": index,
+                "target_indices": target_indices,
+                "choices_remaining_before": before_terms.choices_remaining,
+                "selected_address": selected_address,
+            }
+            if target_postcondition is not None:
+                details["verified_target_live_ids"] = target_postcondition.live_ids
             return LiveInjectedActionResult(
                 action,
                 before,
                 after,
-                {
-                    "area_index": index,
-                    "target_indices": target_indices,
-                    "choices_remaining_before": before_terms.choices_remaining,
-                    "selected_address": selected_address,
-                },
+                details,
             )
 
         if name == SKIP_BOOSTER:

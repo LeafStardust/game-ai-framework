@@ -15,7 +15,7 @@ ExpectedTarget = tuple[int | str, CardSignature | None]
 
 @dataclass(frozen=True)
 class ConsumableTargetPostcondition:
-    """Expected semantic result for exact live hand-card targets."""
+    """Expected semantic result for exact live playing-card selections."""
 
     expected_targets: tuple[ExpectedTarget, ...]
 
@@ -24,14 +24,14 @@ class ConsumableTargetPostcondition:
         return tuple(live_id for live_id, _ in self.expected_targets)
 
     def matches(self, snapshot: LiveBalatroSnapshot) -> bool:
-        hand_by_live_id = {
+        cards_by_live_id = {
             card.get("live_id"): card
-            for card in _area_cards(snapshot, "hand")
+            for card in _target_card_records(snapshot)
             if card.get("live_id") is not None
         }
 
         for live_id, expected_signature in self.expected_targets:
-            record = hand_by_live_id.get(live_id)
+            record = cards_by_live_id.get(live_id)
             if expected_signature is None:
                 if record is not None:
                     return False
@@ -47,20 +47,34 @@ def build_consumable_target_postcondition(
     consumable_index: int,
     target_indices: tuple[int, ...],
 ) -> ConsumableTargetPostcondition | None:
-    """Simulate a modeled deterministic target and derive its live postcondition."""
+    """Simulate a modeled held selection and derive its live postcondition."""
+
+    consumables = list(getattr(state, "consumables", ()))
+    if not (0 <= consumable_index < len(consumables)):
+        return None
+    return build_consumable_target_postcondition_for_consumable(
+        state,
+        consumable=consumables[consumable_index],
+        target_indices=target_indices,
+    )
+
+
+def build_consumable_target_postcondition_for_consumable(
+    state,
+    *,
+    consumable,
+    target_indices: tuple[int, ...],
+) -> ConsumableTargetPostcondition | None:
+    """Derive the same D6 postcondition for held or pack consumables."""
 
     if not target_indices:
         return None
 
-    consumables = list(getattr(state, "consumables", ()))
     hand = list(getattr(state, "hand", ()))
-    if not (0 <= consumable_index < len(consumables)):
-        return None
     if any(index < 0 or index >= len(hand) for index in target_indices):
         return None
 
     evaluator = ContextualConsumableTargetEvaluator()
-    consumable = consumables[consumable_index]
     if not evaluator.supports(consumable):
         return None
 
@@ -73,7 +87,7 @@ def build_consumable_target_postcondition(
         raise ValueError("modeled targeted consumable verification requires unique live_ids")
 
     simulated = copy.deepcopy(state)
-    simulated_consumable = simulated.consumables[consumable_index]
+    simulated_consumable = copy.deepcopy(consumable)
     simulated_cards = [simulated.hand[index] for index in target_indices]
     context = ConsumableContext(state=simulated, cards=simulated_cards)
     if not simulated_consumable.can_use(context):
@@ -108,6 +122,14 @@ def _area_cards(snapshot: LiveBalatroSnapshot, name: str) -> list[dict]:
     if not isinstance(cards, list):
         return []
     return [card for card in cards if isinstance(card, dict)]
+
+
+def _target_card_records(snapshot: LiveBalatroSnapshot) -> list[dict]:
+    if "owned_cards" in snapshot.payload:
+        return _area_cards(snapshot, "owned_cards")
+    if "owned_deck" in snapshot.payload:
+        return _area_cards(snapshot, "owned_deck")
+    return _area_cards(snapshot, "hand")
 
 
 def _model_card_signature(card) -> CardSignature:
