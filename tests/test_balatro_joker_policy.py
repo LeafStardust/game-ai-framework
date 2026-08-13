@@ -1,5 +1,6 @@
 import pytest
 
+from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 from games.balatro.joker import Joker, JokerContext
 from games.balatro.joker_policy import (
     BUY,
@@ -83,15 +84,17 @@ def test_d2_buys_behavior_backed_economy_joker_without_scoring_gain():
     state = _state(money=20, slots=2)
     candidate = GoldenJoker()
     candidate.cost = 0
+    build_value = JokerBuildValueEvaluator().evaluate(state, candidate)
 
     decision = JokerAcquisitionPolicy(
         _no_economy_thresholds(),
     ).decide(state, candidate)
 
+    assert build_value.direct_scoring_gain == 0.0
+    assert build_value.contextual.intrinsic_gain > 0.0
     assert decision.action == BUY
     assert decision.selected is not None
-    assert decision.selected.transition.candidate_value.direct_scoring_gain == 0.0
-    assert decision.selected.transition.candidate_value.contextual.intrinsic_gain > 0.0
+    assert decision.selected.build_gain == pytest.approx(build_value.total_gain)
     assert decision.selected.build_gain > 0.0
 
 
@@ -99,15 +102,17 @@ def test_d2_buys_behavior_backed_non_scoring_generation_joker():
     state = _state(money=20, slots=2)
     candidate = SuperpositionJoker()
     candidate.cost = 0
+    build_value = JokerBuildValueEvaluator().evaluate(state, candidate)
 
     decision = JokerAcquisitionPolicy(
         _no_economy_thresholds(),
     ).decide(state, candidate)
 
+    assert build_value.direct_scoring_gain == 0.0
+    assert build_value.contextual.intrinsic_gain > 0.0
     assert decision.action == BUY
     assert decision.selected is not None
-    assert decision.selected.transition.candidate_value.direct_scoring_gain == 0.0
-    assert decision.selected.transition.candidate_value.contextual.intrinsic_gain > 0.0
+    assert decision.selected.build_gain == pytest.approx(build_value.total_gain)
     assert decision.selected.build_gain > 0.0
 
 
