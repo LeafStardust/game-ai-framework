@@ -12,7 +12,9 @@
 >
 > **Decision intelligence and execution are tracked separately.** Being able to execute an action does not mean the agent knows when that action is correct. Every strategically distinct choice is developed as its own decision-threshold layer with independent inputs, thresholds, rationale, tests and validation.
 >
-> **Current strategic priority: runtime Joker projection fidelity before further build-intelligence integration.** Mutable live Joker reconstruction is complete (`33 HYDRATED / 119 STATELESS / 0 GAP / 0 ERROR`), but hydration does not imply that hypothetical score/search transitions model each Joker's event sequence correctly. The exact projector now validates **25 of the 33 mutable hydrated Jokers**, plus the already-supported stateless Bootstraps path. The remaining **8** are explicitly deferred and fail-closed because they still need destroyed-card propagation, event sequencing, stochastic propagation, scoring-card identity, retrigger execution, card-copy isolation, or a model correction. This is a temporary correctness gate. Build intelligence remains the next strategic priority once D1/search can consume build-relevant Joker state without false exactness.
+> **Roadmap maintenance rule:** when implementation, deterministic tests or live validation clears a milestone, update this roadmap in the same change instead of deferring documentation cleanup.
+>
+> **Current strategic priority: D2 Joker lifecycle completion, then B5/D12 build-aware shop integration.** Mutable live Joker reconstruction is complete (`33 HYDRATED / 119 STATELESS / 0 GAP / 0 ERROR`) and the mutable-hydrated runtime projection correctness gate is also cleared (`33 SUPPORTED / 0 DEFERRED / 0 GAP / 0 ERROR`). Hydration and projection remain separate contracts, and unsupported stateless/event semantics continue to fail closed rather than claim false exactness. The next work is broader D2 non-scoring/economy valuation plus standalone sell and replacement/sell execution, followed by build-aware shop arbitration, consumables/packs and B7 feedback into D1.
 
 ## v0.1.0 — Foundation
 
@@ -150,9 +152,9 @@
 - [ ] Emergency stop / safe agent deactivation
 - [ ] Validate an actual normal Steam achievement/unlock from agent gameplay
 
-### 0.9C — Shared mechanics and blind planning — CURRENT CORRECTNESS GATE
+### 0.9C — Shared mechanics and blind planning — MUTABLE-JOKER RUNTIME GATE CLEARED
 
-> Mechanics do not change when a playbook cartridge changes. The shared engine owns Balatro rules; a playbook only changes strategic preferences and planning parameters. Mutable live-state hydration and runtime projection support are separate contracts: the former is complete, while the latter remains deliberately fail-closed until each score/event transition is validated.
+> Mechanics do not change when a playbook cartridge changes. The shared engine owns Balatro rules; a playbook only changes strategic preferences and planning parameters. Mutable live-state hydration and runtime projection support are separate contracts. Both contracts are complete for the 33 mutable hydrated Jokers; unsupported stateless/event semantics remain conservative and fail closed until separately validated.
 
 - [x] Exact deterministic visible-hand scoring
 - [x] Immediate-clear and projected blind-total calculations
@@ -161,9 +163,9 @@
 - [x] Side-effect-free Joker score projection architecture
 - [x] Validated Ice Cream and Bootstraps projections
 - [x] Validate hydrated Green Joker and Runner transitions on isolated hypothetical branches
-- [x] Runtime Joker projection fidelity audit: every mutable hydrated Joker is supported or explicitly deferred
-- [x] Fail closed on deferred event/stochastic semantics rather than claim an exact projection
-- [x] Expand deterministic hydrated runtime support to 25/33 mutable hydrated Jokers
+- [x] Runtime Joker projection fidelity audit: every mutable hydrated Joker is explicitly classified
+- [x] Fail closed on unsupported event/stochastic semantics rather than claim an exact projection
+- [x] Expand deterministic hydrated runtime support to 33/33 mutable hydrated Jokers
 - [x] Boss-blind legality foundation
 - [x] The Psychic / The Head / The House planner paths validated during live development
 - [x] Public remaining-deck composition model without future draw order
@@ -174,7 +176,7 @@
 - [x] Replan after each real action checkpoint
 - [x] Initial The Sun escape planning
 - [x] Persistent D1 execution validated across repeated real Play/Discard checkpoints
-- [ ] Resolve and admit remaining deferred mutable hydrated Jokers/effects (currently 8)
+- [x] Resolve and admit all previously deferred mutable hydrated Jokers/effects (`33 SUPPORTED / 0 DEFERRED / 0 GAP / 0 ERROR`)
 - [ ] Extend score projection to relevant remaining stateless Jokers/effects separately from hydration
 - [ ] Generalize boss-blind integration
 - [ ] Integrate consumable actions into the normal blind planner after build-aware consumable strategy exists
@@ -224,15 +226,15 @@
 - [ ] Add controlled offline playbook tuning/learning only after log quality is validated
 - [ ] Keep automatic online self-modification out of the critical live loop unless later evidence justifies it
 
-### 0.9F — Decision-threshold stack and run-level intelligence — NEXT AFTER 0.9C GATE
+### 0.9F — Decision-threshold stack and run-level intelligence — ACTIVE STRATEGIC STACK
 
 > Strategic decisions are developed **one layer at a time**. A layer is not complete merely because the corresponding action works. Each layer must define its own public-state inputs, legal candidate actions, threshold/config block, scoring or comparison rule, explicit abstain/hold option where legal, rationale output, deterministic tests, read-only live validation and armed live validation before it is enabled in the autonomous loop.
 >
 > Cross-layer state such as money, remaining hands/discards, ante, blind risk, slots and owned effects may be shared as **inputs**, but one layer's threshold constants must not be reused implicitly by another layer. The final shop/run arbiter compares normalized outputs from completed child layers instead of hiding all decisions inside one utility score.
 >
-> **Build intelligence remains the next strategic priority inside 0.9F, but 0.9C runtime Joker projection fidelity is the current correctness gate.** B1–B4 and the contextual D2 replacement foundation already exist. Once build-relevant Joker score/event transitions can be consumed without false exactness, continue with build-aware shop, consumable/pack reasoning, and finally B7 feedback into D1.
+> **The mutable-Joker 0.9C runtime projection correctness gate is cleared.** B1–B4 and the contextual D2 replacement foundation already exist. The immediate strategic priority is D2 lifecycle completion, followed by B5/D12 build-aware shop, B6 consumable/pack reasoning, and finally B7 feedback into D1.
 
-#### B1–B7 — Shared build intelligence and synergy strategy — NEXT STRATEGIC PRIORITY
+#### B1–B7 — Shared build intelligence and synergy strategy — ACTIVE STRATEGIC PRIORITY
 
 **Question:** What is the current run good at, what compatible engines can it deliberately build toward, and how much does each candidate item/action improve the whole build rather than itself in isolation?
 
@@ -589,10 +591,10 @@ Status:
 
 #### Required implementation order
 
-The current correctness gate precedes the remaining strategic stack. Completed B3/B4 foundations are no longer listed as future work.
+The mutable-hydrated 0.9C Joker runtime projection correctness gate is complete. Completed B3/B4 foundations are no longer listed as future work; D2 is the current active implementation step.
 
-1. **0.9C Joker runtime projection fidelity** — validate score/event/stochastic transitions for deferred mutable hydrated Jokers, prioritizing effects that materially change D1 and build-aware decisions; keep unsupported semantics fail-closed
-2. **D2 completion** — broader non-scoring/economy Joker valuation, standalone sell policy and replacement/sell execution
+1. [x] **0.9C Joker runtime projection fidelity** — `33/33` mutable hydrated Jokers supported with `0 deferred / 0 gap / 0 error`; unsupported stateless/event semantics remain fail-closed until separately validated
+2. **D2 completion — CURRENT** — broader non-scoring/economy Joker valuation, standalone sell policy and replacement/sell execution
 3. **B5 + D12 Build-aware shop** — contextual buying, replacement, reroll opportunity quality and shop arbitration
 4. **B6 + D4/D5/D6/D7** — consumable acquisition, timing, targeting and Planet decisions
 5. **B6 + D8/D9/D10** — booster/pack valuation and target follow-up
