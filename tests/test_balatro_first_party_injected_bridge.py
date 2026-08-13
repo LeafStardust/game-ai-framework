@@ -74,9 +74,11 @@ def test_bridge_round_trip_uses_local_file_protocol(tmp_path):
         poll_interval=0.001,
     )
     captured = {}
+    responder_ready = threading.Event()
 
     def responder():
-        deadline = time.monotonic() + 0.5
+        responder_ready.set()
+        deadline = time.monotonic() + bridge.timeout + 1.0
         while time.monotonic() < deadline:
             if bridge.command_path.exists():
                 text = bridge.command_path.read_text(encoding="utf-8")
@@ -96,9 +98,11 @@ def test_bridge_round_trip_uses_local_file_protocol(tmp_path):
 
     thread = threading.Thread(target=responder)
     thread.start()
+    assert responder_ready.wait(timeout=1.0)
     bridge.play((0, 2, 4))
-    thread.join(timeout=1.0)
+    thread.join(timeout=bridge.timeout + 1.0)
 
+    assert not thread.is_alive()
     assert captured["action"] == "PLAY"
     assert captured["payload"] == "0,2,4"
 
@@ -110,9 +114,11 @@ def test_bridge_status_round_trip_is_non_gameplay_command(tmp_path):
         poll_interval=0.001,
     )
     captured = {}
+    responder_ready = threading.Event()
 
     def responder():
-        deadline = time.monotonic() + 0.5
+        responder_ready.set()
+        deadline = time.monotonic() + bridge.timeout + 1.0
         while time.monotonic() < deadline:
             if bridge.command_path.exists():
                 text = bridge.command_path.read_text(encoding="utf-8")
@@ -128,9 +134,11 @@ def test_bridge_status_round_trip_is_non_gameplay_command(tmp_path):
 
     thread = threading.Thread(target=responder)
     thread.start()
+    assert responder_ready.wait(timeout=1.0)
     status = bridge.status()
-    thread.join(timeout=1.0)
+    thread.join(timeout=bridge.timeout + 1.0)
 
+    assert not thread.is_alive()
     assert captured == {"action": "STATUS", "payload": ""}
     assert status["bridge"] == "1"
     assert status["achievement_gate"] == "UNSET"
@@ -142,9 +150,11 @@ def test_bridge_surfaces_lua_side_rejection(tmp_path):
         timeout=1.0,
         poll_interval=0.001,
     )
+    responder_ready = threading.Event()
 
     def responder():
-        deadline = time.monotonic() + 0.5
+        responder_ready.set()
+        deadline = time.monotonic() + bridge.timeout + 1.0
         while time.monotonic() < deadline:
             if bridge.command_path.exists():
                 text = bridge.command_path.read_text(encoding="utf-8")
@@ -159,9 +169,12 @@ def test_bridge_surfaces_lua_side_rejection(tmp_path):
 
     thread = threading.Thread(target=responder)
     thread.start()
+    assert responder_ready.wait(timeout=1.0)
     with pytest.raises(InjectedBridgeError, match="rejected selection"):
         bridge.discard((1,))
-    thread.join(timeout=1.0)
+    thread.join(timeout=bridge.timeout + 1.0)
+
+    assert not thread.is_alive()
 
 
 def test_fused_game_patcher_preserves_prefix_and_creates_exact_backup(tmp_path):
