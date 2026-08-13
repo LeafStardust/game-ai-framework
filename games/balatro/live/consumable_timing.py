@@ -26,6 +26,7 @@ class ConsumableTimingRecommendation:
     before_projection: LivePlayProjection | None
     after_projection: LivePlayProjection | None
     required_per_hand: float
+    immediate_gain: float = 0.0
     rationale: tuple[str, ...] = ()
 
     @property
@@ -33,32 +34,26 @@ class ConsumableTimingRecommendation:
         return self.decision == USE
 
     def to_action(self) -> BalatroAction | None:
-        if not self.should_use or self.target is None:
+        if not self.should_use:
             return None
         return BalatroAction(
             USE_CONSUMABLE,
-            cards=list(self.target.cards),
+            cards=list(self.target.cards) if self.target is not None else [],
             target=self.consumable,
         )
 
 
 class LiveConsumableTimingPolicy:
-    """Choose USE versus HOLD for deterministic targeted consumables.
+    """Choose USE versus HOLD for deterministic held consumables.
 
-    HOLD is the conservative baseline. A current-hand use is admitted only when
-    public state shows a concrete timing benefit: better clear probability,
-    restoring required blind pace, improving the final hand, or resolving full
-    consumable-slot pressure with positive build-context target value and no
-    immediate scoring regression.
-
-    Exact card targets come from ``ContextualConsumableTargetEvaluator``. The
-    transformation is simulated on a deep copy using the consumable's real
-    ``can_use`` / ``use`` implementation, then normal visible-play projection is
-    run before and after. No executor state is touched and no hidden draw order or
-    RNG is consulted.
+    Targeted transformations use the existing B6 target-quality and visible-hand
+    projection path. Deterministic no-target economy Tarots are evaluated by their
+    exact public payout and conservative preservation thresholds. No executor state
+    is touched and no hidden draw order or RNG is consulted.
     """
 
     EPSILON = 1e-12
+    ECONOMY_TAROTS = frozenset({"The Hermit", "Temperance"})
 
     def __init__(
         self,
@@ -76,6 +71,10 @@ class LiveConsumableTimingPolicy:
         consumable_index = self._identity_index(getattr(state, "consumables", ()), consumable)
         if consumable_index is None:
             return self._hold(state, consumable, "candidate consumable is not held")
+
+        name = str(getattr(consumable, "name", ""))
+        if name in self.ECONOMY_TAROTS:
+            return self._recommend_economy(state, consumable, name=name)
 
         target = self.target_evaluator.recommend(state, consumable)
         if target is None:
@@ -187,6 +186,87 @@ class LiveConsumableTimingPolicy:
             )
         )
 
+    def _recommend_economy(
+        self,
+        state,
+        consumable: object,
+        *,
+        name: str,
+    ) -> ConsumableTimingRecommendation:
+        slots_full = self._consumable_slots_full(state)
+        required = self._required_per_hand(state)
+
+        if name == "The Hermit":
+            money = max(0, int(getattr(state, "money", 0)))
+            gain = max(0, min(money * 2, 20) - money)
+            if gain <= 0:
+                return self._hold(
+                    state,
+                    consumable,
+                    "Hermit has no positive deterministic money gain",
+                    immediate_gain=0.0,
+                )
+
+            if 10 <= money < 20:
+                reason = "Hermit is at or past its maximum-value $10 threshold"
+                decision = USE
+            elif slots_full:
+                reason = "full consumable slots plus positive deterministic Hermit gain"
+                decision = USE
+            else:
+                reason = "Hermit is below $10, so preserving it can increase deterministic payout"
+                decision = HOLD
+
+            return ConsumableTimingRecommendation(
+                decision=decision,
+                consumable=consumable,
+                target=None,
+                before_projection=None,
+                after_projection=None,
+                required_per_hand=required,
+                immediate_gain=float(gain),
+                rationale=(
+                    f"{decision}: {reason}",
+                    f"Hermit money ${money} -> ${money + gain}",
+                    f"deterministic money gain=${gain}",
+                    f"consumable slots full={slots_full}",
+                ),
+            )
+
+        payout = self._temperance_payout(state)
+        if payout <= 0:
+            return self._hold(
+                state,
+                consumable,
+                "Temperance has no positive deterministic Joker sell-value payout",
+                immediate_gain=0.0,
+            )
+
+        if payout >= 50:
+            reason = "Temperance has reached its $50 payout cap"
+            decision = USE
+        elif slots_full:
+            reason = "full consumable slots plus positive deterministic Temperance payout"
+            decision = USE
+        else:
+            reason = "Temperance is below its $50 cap, so preserving it keeps higher future payout optionality"
+            decision = HOLD
+
+        return ConsumableTimingRecommendation(
+            decision=decision,
+            consumable=consumable,
+            target=None,
+            before_projection=None,
+            after_projection=None,
+            required_per_hand=required,
+            immediate_gain=float(payout),
+            rationale=(
+                f"{decision}: {reason}",
+                f"deterministic Temperance payout=${payout}",
+                f"consumable slots full={slots_full}",
+            ),
+        )
+
     def _use_reason(
         self,
         state,
@@ -212,11 +292,8 @@ class LiveConsumableTimingPolicy:
         ):
             return "final hand has positive immediate score gain"
 
-        consumable_count = len(getattr(state, "consumables", ()))
-        consumable_slots = max(0, int(getattr(state, "consumable_slots", 0)))
-        slots_full = consumable_slots > 0 and consumable_count >= consumable_slots
         if (
-            slots_full
+            self._consumable_slots_full(state)
             and target.contextual_delta > self.EPSILON
             and after.expected_hand_score + self.EPSILON >= before.expected_hand_score
         ):
@@ -264,6 +341,7 @@ class LiveConsumableTimingPolicy:
         target: ConsumableTargetEvaluation | None = None,
         before: LivePlayProjection | None = None,
         after: LivePlayProjection | None = None,
+        immediate_gain: float = 0.0,
     ) -> ConsumableTimingRecommendation:
         return ConsumableTimingRecommendation(
             decision=HOLD,
@@ -272,8 +350,27 @@ class LiveConsumableTimingPolicy:
             before_projection=before,
             after_projection=after,
             required_per_hand=self._required_per_hand(state),
+            immediate_gain=float(immediate_gain),
             rationale=(f"HOLD: {reason}",),
         )
+
+    @staticmethod
+    def _temperance_payout(state) -> int:
+        total = 0.0
+        for joker in getattr(state, "jokers", ()):
+            value = getattr(joker, "sell_cost", None)
+            if value is None:
+                value = getattr(joker, "sell_value", 0)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                continue
+            total += max(0.0, float(value))
+        return int(min(total, 50.0))
+
+    @staticmethod
+    def _consumable_slots_full(state) -> bool:
+        count = len(getattr(state, "consumables", ()))
+        slots = max(0, int(getattr(state, "consumable_slots", 0)))
+        return slots > 0 and count >= slots
 
     @staticmethod
     def _required_per_hand(state) -> float:
@@ -315,6 +412,7 @@ class LiveConsumableTimingPolicy:
             1 if recommendation.should_use else 0,
             float(after_clear),
             float(after_score),
+            float(recommendation.immediate_gain),
             float(target_gain),
             str(getattr(recommendation.consumable, "name", "")),
         )
