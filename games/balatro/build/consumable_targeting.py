@@ -350,7 +350,7 @@ class ContextualConsumableTargetEvaluator:
         if is_directional_copy and len(indices) == 2:
             copy_notes = (
                 (
-                    "directional copy: "
+                    "Death directional copy: "
                     f"hand index {indices[0]} becomes hand index {indices[1]}"
                 ),
                 f"intrinsic copy delta={intrinsic_delta:.3f}",
