@@ -33,6 +33,7 @@ from games.balatro.jokers.eight_ball import EightBallJoker
 from games.balatro.jokers.gift_card import GiftCardJoker
 from games.balatro.jokers.golden_ticket import GoldenTicketJoker
 from games.balatro.jokers.invisible_joker import InvisibleJoker
+from games.balatro.jokers.loyalty_card import LoyaltyCardJoker
 from games.balatro.jokers.lucky_cat import LuckyCatJoker
 from games.balatro.jokers.madness import MadnessJoker
 from games.balatro.jokers.oops_all_6s import OopsAll6sJoker
@@ -86,6 +87,13 @@ def test_trigger_guard_flags_do_not_remain_unknown_semantic_outputs():
     assert DECK_REMOVE in trading_card.produces
     assert ECONOMY in trading_card.produces
     assert "signal:trading_card_triggered" not in trading_card.produces
+
+
+def test_loyalty_card_readiness_promotes_to_xmult_semantics():
+    loyalty = _describe(LoyaltyCardJoker())
+
+    assert SCORE_XMULT in loyalty.produces
+    assert "signal:loyalty_card_ready" not in loyalty.produces
 
 
 def test_joker_discovery_does_not_require_package_file(monkeypatch):
