@@ -13,6 +13,7 @@ from games.balatro.build import (
     ContextualConsumableTargetEvaluator,
     ContextualPlayingCardSynergyEvaluator,
 )
+from games.balatro.build.wheel_expectation import WheelOfFortuneExpectationEvaluator
 from games.balatro.consumable import ConsumableContext
 from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.joker_factory import LiveJokerFactory
@@ -34,9 +35,10 @@ class BalatroPackPolicy:
     Joker, Planet, and enhanced/edition/sealed playing-card choices can be ranked
     immediately. Deterministic targeted Tarot transformations are admitted only
     when the public hand supplies a validated B6 target. The Fool is valued from
-    Balatro's public last-Tarot/Planet run history. Stochastic Tarot effects and
-    Spectral follow-up semantics remain below Skip until their outcome models are
-    explicit.
+    Balatro's public last-Tarot/Planet run history. Wheel of Fortune is valued from
+    an analytic public-state edition distribution. Other stochastic Tarot effects
+    and Spectral follow-up semantics remain below Skip until their outcome models
+    are explicit.
     """
 
     DETERMINISTIC_IMMEDIATE_TAROTS = frozenset(
@@ -45,11 +47,15 @@ class BalatroPackPolicy:
             "Temperance",
         }
     )
+    STOCHASTIC_MODELED_TAROTS = frozenset(
+        {
+            "The Wheel of Fortune",
+        }
+    )
     STOCHASTIC_DEFERRED_TAROTS = frozenset(
         {
             "The High Priestess",
             "The Emperor",
-            "The Wheel of Fortune",
             "Judgement",
         }
     )
@@ -105,6 +111,7 @@ class BalatroPackPolicy:
         fallback_factory=None,
         playing_card_build=None,
         consumable_target_evaluator=None,
+        wheel_evaluator=None,
     ) -> None:
         self.skip_bias = float(skip_bias)
         self.item_estimator = item_estimator or DefaultShopItemValueEstimator()
@@ -117,13 +124,18 @@ class BalatroPackPolicy:
         self.consumable_target_evaluator = (
             consumable_target_evaluator or ContextualConsumableTargetEvaluator()
         )
+        self.wheel_evaluator = wheel_evaluator or WheelOfFortuneExpectationEvaluator()
 
     @classmethod
     def classified_tarots(cls) -> frozenset[str]:
         """Return every Tarot explicitly classified by autonomous pack policy."""
-        return frozenset({"The Fool"}) | cls.DETERMINISTIC_IMMEDIATE_TAROTS | (
-            cls.STOCHASTIC_DEFERRED_TAROTS
-        ) | ContextualConsumableTargetEvaluator.SUPPORTED_TAROTS
+        return (
+            frozenset({"The Fool"})
+            | cls.DETERMINISTIC_IMMEDIATE_TAROTS
+            | cls.STOCHASTIC_MODELED_TAROTS
+            | cls.STOCHASTIC_DEFERRED_TAROTS
+            | ContextualConsumableTargetEvaluator.SUPPORTED_TAROTS
+        )
 
     def choose_action(self, state, actions: list[BalatroAction]) -> BalatroAction:
         ranked = self.rank_actions(state, actions)
@@ -183,6 +195,9 @@ class BalatroPackPolicy:
 
         if choice.kind == "TAROT" and choice.label == "The Fool":
             return self._score_fool(state, action, choice)
+
+        if choice.kind == "TAROT" and choice.label == "The Wheel of Fortune":
+            return self._score_wheel(state, action)
 
         if (
             choice.kind == "TAROT"
@@ -253,6 +268,37 @@ class BalatroPackPolicy:
             BalatroAction(BUY_CONSUMABLE, target=target),
         )
         return PackActionScore(action, float(utility), tuple(notes))
+
+    def _score_wheel(
+        self,
+        state,
+        action: BalatroAction,
+    ) -> PackActionScore:
+        expectation = self.wheel_evaluator.evaluate(state)
+        if not expectation.available:
+            return PackActionScore(
+                action,
+                -1.0,
+                ("Wheel unavailable: no editionless public Joker target",),
+            )
+        if not expectation.complete:
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    "Wheel deferred: public stochastic outcome model could not "
+                    "score every edition branch",
+                    *expectation.rationale,
+                ),
+            )
+        return PackActionScore(
+            action,
+            float(expectation.expected_build_gain),
+            (
+                "Wheel uses analytic public-state expectation; no RNG sample or seed read",
+                *expectation.rationale,
+            ),
+        )
 
     def _score_fool(
         self,

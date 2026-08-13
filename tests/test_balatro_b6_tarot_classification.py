@@ -56,7 +56,7 @@ def _rank(name: str, state=None):
     "name",
     sorted(BalatroPackPolicy.STOCHASTIC_DEFERRED_TAROTS),
 )
-def test_stochastic_immediate_tarots_fail_closed_below_skip(name):
+def test_stochastic_deferred_tarots_fail_closed_below_skip(name):
     ranked = _rank(name)
 
     assert ranked[0].action.name == SKIP_BOOSTER
@@ -121,10 +121,17 @@ def test_unusable_temperance_fails_closed_below_skip():
 def test_tarot_policy_classification_is_exhaustive_and_disjoint():
     fool = {"The Fool"}
     immediate = set(BalatroPackPolicy.DETERMINISTIC_IMMEDIATE_TAROTS)
-    stochastic = set(BalatroPackPolicy.STOCHASTIC_DEFERRED_TAROTS)
+    modeled_stochastic = set(BalatroPackPolicy.STOCHASTIC_MODELED_TAROTS)
+    deferred_stochastic = set(BalatroPackPolicy.STOCHASTIC_DEFERRED_TAROTS)
     targeted = set(ContextualConsumableTargetEvaluator.SUPPORTED_TAROTS)
 
-    buckets = [fool, immediate, stochastic, targeted]
+    buckets = [
+        fool,
+        immediate,
+        modeled_stochastic,
+        deferred_stochastic,
+        targeted,
+    ]
     for index, left in enumerate(buckets):
         for right in buckets[index + 1:]:
             assert left.isdisjoint(right)
@@ -134,11 +141,19 @@ def test_tarot_policy_classification_is_exhaustive_and_disjoint():
     assert classified == set(BalatroPackPolicy.classified_tarots())
 
 
-def test_safe_immediate_compatibility_alias_excludes_stochastic_tarots():
+def test_safe_immediate_compatibility_alias_excludes_all_stochastic_tarots():
     assert (
         BalatroPackPolicy.SAFE_IMMEDIATE_TAROTS
         == BalatroPackPolicy.DETERMINISTIC_IMMEDIATE_TAROTS
     )
     assert BalatroPackPolicy.SAFE_IMMEDIATE_TAROTS.isdisjoint(
+        BalatroPackPolicy.STOCHASTIC_MODELED_TAROTS
+    )
+    assert BalatroPackPolicy.SAFE_IMMEDIATE_TAROTS.isdisjoint(
         BalatroPackPolicy.STOCHASTIC_DEFERRED_TAROTS
     )
+
+
+def test_wheel_is_modeled_stochastic_not_deferred():
+    assert "The Wheel of Fortune" in BalatroPackPolicy.STOCHASTIC_MODELED_TAROTS
+    assert "The Wheel of Fortune" not in BalatroPackPolicy.STOCHASTIC_DEFERRED_TAROTS
