@@ -28,8 +28,10 @@ class _RecordingBridge(FirstPartyBalatroBridge):
 class _Observer:
     def __init__(self, snapshots):
         self.snapshots = list(snapshots)
+        self.calls = 0
 
     def observe(self):
+        self.calls += 1
         if len(self.snapshots) > 1:
             return self.snapshots.pop(0)
         return self.snapshots[0]
@@ -61,12 +63,20 @@ def _pack_state(cards):
     return state
 
 
-def _snapshot(sequence, phase):
+def _raw_card(live_id, rank, suit="C", *, enhancement=None):
+    return {
+        "live_id": live_id,
+        "value": {"rank": rank, "suit": suit},
+        "modifier": {"enhancement": enhancement},
+    }
+
+
+def _snapshot(sequence, phase, payload=None):
     return LiveBalatroSnapshot(
         sequence=sequence,
         phase=phase,
         state_complete=True,
-        payload={},
+        payload=payload or {},
     )
 
 
@@ -115,13 +125,23 @@ def test_bridge_encodes_pack_slot_and_hand_targets_as_separate_index_spaces():
     assert bridge.calls == [("PACK_SELECT", (0, 0, 2))]
 
 
-def test_dispatcher_forwards_exact_target_indices_for_targeted_pack_choice():
-    card = SimpleNamespace(live_id=101)
-    state = SimpleNamespace(hand=[card])
+def test_dispatcher_waits_for_exact_target_semantics_after_targeted_pack_choice():
+    card = BalatroCard("4", "Clubs", live_id=101)
+    state = _pack_state([card])
     choice = _choice()
     action = BalatroAction(SELECT_PACK_CARD, cards=[card], target=choice)
     before = _snapshot(10, "TAROT_PACK")
-    after = _snapshot(11, "SHOP")
+    unresolved = _snapshot(
+        11,
+        "SHOP",
+        {"owned_cards": {"cards": [_raw_card(101, "4")]}}
+    )
+    settled = _snapshot(
+        12,
+        "SHOP",
+        {"owned_cards": {"cards": [_raw_card(101, "4", enhancement="m_steel")]}}
+    )
+    observer = _Observer([unresolved, settled])
     bridge = _RecordingBridge()
     terms = LivePackSelectionTerms(
         choices_remaining=1,
@@ -129,7 +149,7 @@ def test_dispatcher_forwards_exact_target_indices_for_targeted_pack_choice():
     )
 
     result = LiveMemoryInjectedActionDispatcher(
-        _Observer([after]),
+        observer,
         bridge=bridge,
         timeout=0.1,
         poll_interval=0,
@@ -137,10 +157,12 @@ def test_dispatcher_forwards_exact_target_indices_for_targeted_pack_choice():
     ).dispatch(action, state=state, snapshot=before)
 
     assert bridge.calls == [("PACK_SELECT", (0, 0))]
-    assert result.after is after
+    assert observer.calls == 2
+    assert result.after is settled
     assert result.details["area_index"] == 0
     assert result.details["target_indices"] == (0,)
     assert result.details["selected_address"] == choice.address
+    assert result.details["verified_target_live_ids"] == (101,)
 
 
 def test_dispatcher_requires_state_when_targeted_pack_action_has_cards():
