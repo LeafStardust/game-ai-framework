@@ -60,13 +60,24 @@ class _ExecutableJokerDecision:
     candidate_index: int
 
 
+@dataclass(frozen=True)
+class _ArbiterCandidate:
+    action: BalatroAction
+    source: str
+    total: float
+    normalized_gain: float
+    priority: int
+    child: object | None = None
+
+
 class BuildAwareShopArbiter:
     """Route the SHOP phase across independently scored child decisions.
 
     D2 Joker acquisition/replacement, deterministic purchases, unopened-booster
     option value, reroll, and END_SHOP retain separate policies/thresholds. The
-    arbiter only compares their common score outputs and never inspects hidden
-    future shop or pack contents.
+    arbiter compares only each admitted child's gain above its own no-action
+    baseline; END_SHOP is the explicit zero-gain parent baseline. It never inspects
+    hidden future shop or pack contents.
 
     Joker replacement is deliberately a two-checkpoint transaction. D2 may select
     ``SELL_JOKER`` for the incumbent, but the arbiter never chains the follow-up
@@ -105,21 +116,20 @@ class BuildAwareShopArbiter:
         if state.phase != "SHOP":
             raise ValueError("shop arbiter requires SHOP phase")
 
+        hold = float(self.shop_policy.hold_bias)
         deterministic_actions = [
             action
             for action in visible_actions
             if action.name in self.DETERMINISTIC_ACTIONS
+            and action.name != END_SHOP
         ]
-        if not any(action.name == END_SHOP for action in deterministic_actions):
-            deterministic_actions.append(BalatroAction(END_SHOP))
-
         deterministic_ranked = self.shop_policy.rank_actions(
             state,
             deterministic_actions,
         )
-        if not deterministic_ranked:
-            raise RuntimeError("shop arbiter has no deterministic HOLD baseline")
-        deterministic_best = deterministic_ranked[0]
+        deterministic_best = (
+            deterministic_ranked[0] if deterministic_ranked else None
+        )
 
         joker_best = self._best_joker_decision(state)
 
@@ -139,102 +149,160 @@ class BuildAwareShopArbiter:
             default=None,
         )
 
-        visible_best = deterministic_best.total
+        visible_normalized_best = 0.0
+        if deterministic_best is not None:
+            visible_normalized_best = max(
+                visible_normalized_best,
+                float(deterministic_best.total) - hold,
+            )
         if joker_best is not None:
-            visible_best = max(visible_best, joker_best.total)
+            # D2 total_advantage is already expressed against its HOLD=0 baseline.
+            visible_normalized_best = max(
+                visible_normalized_best,
+                float(joker_best.total),
+            )
         if booster_best is not None:
-            visible_best = max(visible_best, booster_best.total)
+            visible_normalized_best = max(
+                visible_normalized_best,
+                float(booster_best.total) - hold,
+            )
 
         # D2 is authoritative for Joker acquisition/replacement. Do not let the
         # older generic shop scorer independently admit a BUY_JOKER while reroll
-        # reasoning is comparing current visible options.
+        # reasoning is comparing current visible options. Reroll still operates on
+        # the generic shop score scale, so map the parent's normalized visible
+        # opportunity back onto that scale before passing it as a floor.
         reroll_visible_actions = [
             action for action in visible_actions if action.name != BUY_JOKER
         ]
+        reroll_visible_floor = hold + visible_normalized_best
         reroll = self.reroll_policy.recommend(
             state,
             reroll_visible_actions,
             reroll_cost=reroll_cost,
-            visible_score_floor=visible_best,
+            visible_score_floor=reroll_visible_floor,
         )
 
-        candidates: list[tuple[float, int, str, BalatroAction, object]] = [
-            (
-                deterministic_best.total,
-                2,
-                "DETERMINISTIC",
-                deterministic_best.action,
-                deterministic_best,
+        # END_SHOP is a real candidate, not an after-the-fact fallback. It wins
+        # exact zero-gain ties; positive child gains retain the historical child
+        # tie priorities (D2 > deterministic > booster > reroll).
+        candidates: list[_ArbiterCandidate] = [
+            _ArbiterCandidate(
+                action=BalatroAction(END_SHOP),
+                source="END_SHOP",
+                total=hold,
+                normalized_gain=0.0,
+                priority=4,
             )
         ]
+        if deterministic_best is not None:
+            candidates.append(
+                _ArbiterCandidate(
+                    action=deterministic_best.action,
+                    source="DETERMINISTIC",
+                    total=float(deterministic_best.total),
+                    normalized_gain=float(deterministic_best.total) - hold,
+                    priority=2,
+                    child=deterministic_best,
+                )
+            )
         if joker_best is not None:
             candidates.append(
-                (
-                    joker_best.total,
-                    3,
-                    joker_best.source,
-                    joker_best.action,
-                    joker_best,
+                _ArbiterCandidate(
+                    action=joker_best.action,
+                    source=joker_best.source,
+                    total=float(joker_best.total),
+                    normalized_gain=float(joker_best.total),
+                    priority=3,
+                    child=joker_best,
                 )
             )
         if booster_best is not None:
             candidates.append(
-                (
-                    booster_best.total,
-                    1,
-                    "BOOSTER",
-                    booster_best.action,
-                    booster_best,
+                _ArbiterCandidate(
+                    action=booster_best.action,
+                    source="BOOSTER",
+                    total=float(booster_best.total),
+                    normalized_gain=float(booster_best.total) - hold,
+                    priority=1,
+                    child=booster_best,
                 )
             )
         if reroll.decision == "REROLL":
             if reroll.executable_action is None:
                 raise RuntimeError("REROLL recommendation is missing executable action")
             candidates.append(
-                (
-                    reroll.reroll_score,
-                    0,
-                    "REROLL",
-                    reroll.executable_action,
-                    reroll,
+                _ArbiterCandidate(
+                    action=reroll.executable_action,
+                    source="REROLL",
+                    total=float(reroll.reroll_score),
+                    normalized_gain=float(reroll.reroll_score) - hold,
+                    priority=0,
+                    child=reroll,
                 )
             )
 
-        total, _, source, action, child = max(
+        selected = max(
             candidates,
-            key=lambda candidate: (candidate[0], candidate[1]),
+            key=lambda candidate: (
+                candidate.normalized_gain,
+                candidate.priority,
+            ),
         )
-        hold = float(self.shop_policy.hold_bias)
+        source = selected.source
+        action = selected.action
+        total = selected.total
+        normalized_gain = selected.normalized_gain
+        child = selected.child
+        deterministic_text = (
+            f"{deterministic_best.total:.3f}"
+            if deterministic_best is not None
+            else "none"
+        )
         rationale = [
             f"arbiter source={source}",
-            f"selected score={total:.3f}",
-            f"hold baseline={hold:.3f}",
-            f"normalized gain={total - hold:.3f}",
-            f"best deterministic score={deterministic_best.total:.3f}",
+            f"selected child score={total:.3f}",
+            f"parent END_SHOP baseline={hold:.3f}",
+            f"normalized gain={normalized_gain:.3f}",
+            f"best deterministic score={deterministic_text}",
+            f"visible normalized floor={visible_normalized_best:.3f}",
             f"admitted boosters={len(admitted_boosters)}/{len(booster_recommendations)}",
-            "parent arbiter compares child outputs; it does not predict hidden contents",
+            "parent arbiter compares gain over child no-action baselines; child admission thresholds remain child-owned",
+            "parent arbiter does not predict hidden contents",
         ]
 
-        if source == "DETERMINISTIC":
-            rationale.extend(deterministic_best.notes)
+        if source == "END_SHOP":
             return ShopArbiterDecision(
                 action=action,
-                source=("END_SHOP" if action.name == END_SHOP else "DETERMINISTIC"),
+                source="END_SHOP",
                 total=total,
                 hold_baseline=hold,
-                normalized_gain=total - hold,
-                deterministic=deterministic_best,
+                normalized_gain=0.0,
+                reroll=reroll,
+                rationale=tuple(rationale),
+            )
+
+        if source == "DETERMINISTIC":
+            assert isinstance(child, ShopActionScore)
+            rationale.extend(child.notes)
+            return ShopArbiterDecision(
+                action=action,
+                source="DETERMINISTIC",
+                total=total,
+                hold_baseline=hold,
+                normalized_gain=normalized_gain,
+                deterministic=child,
                 reroll=reroll,
                 rationale=tuple(rationale),
             )
 
         if source in {"JOKER_BUY", "JOKER_REPLACE_SELL"}:
             assert isinstance(child, _ExecutableJokerDecision)
-            selected = child.decision.selected
-            if selected is None:
+            selected_option = child.decision.selected
+            if selected_option is None:
                 raise RuntimeError("actionable D2 Joker decision is missing its selected option")
             rationale.extend(child.decision.rationale)
-            rationale.extend(selected.rationale)
+            rationale.extend(selected_option.rationale)
             if source == "JOKER_REPLACE_SELL":
                 rationale.extend(
                     (
@@ -248,7 +316,7 @@ class BuildAwareShopArbiter:
                 source=source,
                 total=total,
                 hold_baseline=hold,
-                normalized_gain=total - hold,
+                normalized_gain=normalized_gain,
                 joker=child.decision,
                 reroll=reroll,
                 rationale=tuple(rationale),
@@ -262,7 +330,7 @@ class BuildAwareShopArbiter:
                 source="BOOSTER",
                 total=total,
                 hold_baseline=hold,
-                normalized_gain=total - hold,
+                normalized_gain=normalized_gain,
                 booster=child,
                 reroll=reroll,
                 rationale=tuple(rationale),
@@ -275,7 +343,7 @@ class BuildAwareShopArbiter:
             source="REROLL",
             total=total,
             hold_baseline=hold,
-            normalized_gain=total - hold,
+            normalized_gain=normalized_gain,
             reroll=child,
             rationale=tuple(rationale),
         )
