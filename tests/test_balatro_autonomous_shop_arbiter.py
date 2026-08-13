@@ -1,12 +1,30 @@
+import pytest
 from types import SimpleNamespace
 
-from games.balatro.actions import BUY_BOOSTER, END_SHOP
+from games.balatro.actions import (
+    BUY_BOOSTER,
+    BUY_CONSUMABLE,
+    BUY_JOKER,
+    END_SHOP,
+    BalatroAction,
+)
+from games.balatro.joker import Joker, JokerContext
+from games.balatro.joker_policy import (
+    BUY,
+    JokerAcquisitionDecision,
+    JokerAcquisitionOption,
+    JokerAcquisitionThresholds,
+    JokerTransactionEconomics,
+)
 from games.balatro.live.external.live_memory_autonomous_step_injected import (
     LiveMemoryInjectedSingleStepRunner,
 )
 from games.balatro.live.external.live_memory_shop_terms import LiveShopRerollTerms
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.shop import LiveShopItem
+from games.balatro.shop_arbiter import BuildAwareShopArbiter
+from games.balatro.shop_policy import ShopActionScore
+from games.balatro.shop_reroll_policy import ShopRerollRecommendation
 from games.balatro.state import BalatroState
 
 
@@ -24,6 +42,84 @@ class FakeTranslator:
 
     def translate(self, snapshot):
         return self.state
+
+
+class InertJoker(Joker):
+    def apply(self, context: JokerContext) -> JokerContext:
+        return context
+
+
+class StaticShopPolicy:
+    hold_bias = 0.35
+
+    def __init__(self, deterministic_total: float):
+        self.deterministic_total = float(deterministic_total)
+
+    def rank_actions(self, state, actions):
+        return [
+            ShopActionScore(action=action, total=self.deterministic_total)
+            for action in actions
+        ]
+
+
+class StaticJokerPolicy:
+    def __init__(self, total_advantage: float):
+        self.total_advantage = float(total_advantage)
+
+    def decide(self, state, candidate):
+        economics = JokerTransactionEconomics(
+            price=0,
+            sell_credit=0,
+            net_spend=0,
+            money_after=int(state.money),
+            edition_delta=0.0,
+            price_penalty=0.0,
+            interest_penalty=0.0,
+            reserve_penalty=0.0,
+            slot_penalty=0.0,
+        )
+        option = JokerAcquisitionOption(
+            mode=BUY,
+            build_gain=self.total_advantage,
+            total_advantage=self.total_advantage,
+            economics=economics,
+            eligible=True,
+        )
+        return JokerAcquisitionDecision(
+            action=BUY,
+            candidate=type(candidate).__name__,
+            selected=option,
+            options=(option,),
+            thresholds=JokerAcquisitionThresholds(),
+        )
+
+
+class NoBoosterPolicy:
+    def recommend(self, state, action):
+        raise AssertionError("unexpected booster recommendation")
+
+
+class CapturingRerollPolicy:
+    def __init__(self):
+        self.visible_score_floor = None
+
+    def recommend(
+        self,
+        state,
+        visible_actions,
+        *,
+        reroll_cost,
+        visible_score_floor=None,
+    ):
+        self.visible_score_floor = visible_score_floor
+        return ShopRerollRecommendation(
+            decision="HOLD",
+            reroll_cost=reroll_cost,
+            executable_action=None,
+            current_best_score=float(visible_score_floor or 0.0),
+            exploration_value=0.0,
+            reroll_score=float("-inf"),
+        )
 
 
 def _snapshot() -> LiveBalatroSnapshot:
@@ -97,3 +193,59 @@ def test_autonomous_shop_does_not_open_unsafe_arcana_pack():
     assert decision.action.name != BUY_BOOSTER
     assert "shop_decision=HOLD_REROLL" in decision.notes
     assert "arbiter_source=END_SHOP" in decision.notes
+
+
+def test_shop_arbiter_compares_child_gain_over_each_no_action_baseline():
+    state = _state(money=20)
+    candidate = InertJoker()
+    state.shop_jokers = [candidate]
+    consumable = SimpleNamespace(price=0)
+    reroll = CapturingRerollPolicy()
+    arbiter = BuildAwareShopArbiter(
+        shop_policy=StaticShopPolicy(deterministic_total=0.50),
+        booster_policy=NoBoosterPolicy(),
+        reroll_policy=reroll,
+        joker_policy=StaticJokerPolicy(total_advantage=0.40),
+    )
+
+    decision = arbiter.decide(
+        state,
+        [
+            BalatroAction(BUY_CONSUMABLE, target=consumable),
+            BalatroAction(BUY_JOKER, target=candidate),
+            BalatroAction(END_SHOP),
+        ],
+        reroll_cost=1,
+    )
+
+    # Raw scores alone would prefer 0.50 over 0.40. Once each child is measured
+    # against its own no-action baseline, deterministic gain is only 0.15 while
+    # D2's total_advantage is already a 0.40 gain over HOLD=0.
+    assert decision.action.name == BUY_JOKER
+    assert decision.source == "JOKER_BUY"
+    assert decision.total == pytest.approx(0.40)
+    assert decision.normalized_gain == pytest.approx(0.40)
+    assert reroll.visible_score_floor == pytest.approx(0.75)
+
+
+def test_shop_arbiter_uses_explicit_zero_gain_end_shop_baseline():
+    state = _state(money=20)
+    reroll = CapturingRerollPolicy()
+    arbiter = BuildAwareShopArbiter(
+        shop_policy=StaticShopPolicy(deterministic_total=0.20),
+        booster_policy=NoBoosterPolicy(),
+        reroll_policy=reroll,
+        joker_policy=StaticJokerPolicy(total_advantage=0.0),
+    )
+
+    decision = arbiter.decide(
+        state,
+        [BalatroAction(BUY_CONSUMABLE, target=SimpleNamespace(price=0))],
+        reroll_cost=1,
+    )
+
+    assert decision.action.name == END_SHOP
+    assert decision.source == "END_SHOP"
+    assert decision.total == pytest.approx(0.35)
+    assert decision.normalized_gain == pytest.approx(0.0)
+    assert reroll.visible_score_floor == pytest.approx(0.35)
