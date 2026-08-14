@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from time import perf_counter
 
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
@@ -7,7 +8,10 @@ from games.balatro.build.profile import (
     BalatroBuildProfiler,
     BalatroPlaystyleIntentTracker,
 )
-from games.balatro.live.build_intent_log import BuildIntentLogTracker
+from games.balatro.live.build_intent_log import (
+    BuildIntentLogTracker,
+    PreparedBuildIntentLog,
+)
 from games.balatro.live.hand_action_policy import (
     HandActionThresholds,
     LiveHandActionDecisionEngine,
@@ -24,10 +28,16 @@ from games.balatro.shop_policy import (
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 
 from .live_memory_autonomous_step_injected import (
+    AutonomousStepDecision,
     LiveMemoryInjectedSingleStepRunner,
     _indices,
     _search_schedule_mode,
 )
+
+
+@dataclass(frozen=True)
+class PlaystyleAutonomousStepDecision(AutonomousStepDecision):
+    build_intent: PreparedBuildIntentLog | None = None
 
 
 class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
@@ -80,6 +90,18 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
 
         if not custom_hand_recommender:
             self.hand_recommender = self._recommend_hand_with_playstyle
+
+    def decide(self) -> PlaystyleAutonomousStepDecision:
+        decision = super().decide()
+        return PlaystyleAutonomousStepDecision(
+            snapshot=decision.snapshot,
+            state=decision.state,
+            action=decision.action,
+            source=decision.source,
+            notes=decision.notes,
+            pack_signature=decision.pack_signature,
+            build_intent=self.build_intent_log_tracker.prepare(decision.state),
+        )
 
     def _hand_policy(
         self,
