@@ -319,8 +319,24 @@ class LiveMemoryInjectedSingleStepRunner:
         for index, attempt in enumerate(decision.search_attempts):
             elapsed = rank_timings[index] if index < len(rank_timings) else float("nan")
             stage = "confirmation" if attempt.confirmation else "adaptive"
+            best_action = attempt.best_action or "NONE"
+            best_clear_probability = (
+                f"{attempt.best_clear_probability:.6f}"
+                if attempt.best_clear_probability is not None
+                else "NONE"
+            )
+            best_expected_score = (
+                f"{attempt.best_expected_score:.3f}"
+                if attempt.best_expected_score is not None
+                else "NONE"
+            )
+            best_exact = (
+                str(attempt.best_exact) if attempt.best_exact is not None else "NONE"
+            )
             notes.append(
-                "search[{}]={} h={} samples={} nodes={}/{} budget_exceeded={} elapsed={:.3f}s".format(
+                "search[{}]={} h={} samples={} nodes={}/{} budget_exceeded={} "
+                "elapsed={:.3f}s best_action={} best_clear_probability={} "
+                "best_expected_score={} best_exact={}".format(
                     index,
                     stage,
                     attempt.horizon,
@@ -329,6 +345,10 @@ class LiveMemoryInjectedSingleStepRunner:
                     attempt.max_nodes,
                     attempt.budget_exceeded,
                     elapsed,
+                    best_action,
+                    best_clear_probability,
+                    best_expected_score,
+                    best_exact,
                 )
             )
 
