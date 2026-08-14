@@ -177,9 +177,21 @@ class DefaultShopItemValueEstimator:
         name = str(getattr(target, "name", getattr(target, "label", "")))
 
         if name == "The Hermit":
-            gain = max(0, min(state.money * 2, 20) - state.money)
+            gain = min(max(0, int(state.money)), 20)
             value = 2.2 + min(5.0, gain * 0.35)
-            return value, (f"Hermit potential money gain={gain}",)
+            return value, (f"Hermit deterministic money gain={gain}",)
+
+        if name == "Temperance":
+            joker_sell_value = sum(
+                max(0, int(getattr(joker, "sell_value", 0)))
+                for joker in state.jokers
+            )
+            gain = min(joker_sell_value, 50)
+            value = 2.2 + min(5.0, gain * 0.35)
+            return value, (
+                f"Temperance deterministic money gain={gain}",
+                f"public Joker sell value={joker_sell_value}",
+            )
 
         if name == "Judgement":
             free = max(0, state.joker_slots - len(state.jokers))
