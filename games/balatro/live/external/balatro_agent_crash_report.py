@@ -70,6 +70,37 @@ def _git_value(*args: str) -> str:
     return result.stdout.strip() or "<empty>"
 
 
+def _balatro_process_section() -> str:
+    if os.name != "nt":
+        return "Balatro process inspection -> unavailable on this platform"
+    script = r"""
+$p = Get-Process -Name Balatro -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($null -eq $p) {
+  'Balatro.exe running -> False'
+} else {
+  'Balatro.exe running -> True'
+  'Balatro PID -> ' + $p.Id
+  'Balatro StartTime -> ' + $p.StartTime.ToString('o')
+  'Balatro Responding -> ' + $p.Responding
+}
+"""
+    try:
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-Command", script],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except Exception as error:
+        return f"Balatro process inspection -> unavailable ({error})"
+    text = (result.stdout or "").strip()
+    if text:
+        return text
+    detail = (result.stderr or "").strip()
+    return f"Balatro process inspection -> unavailable ({detail or 'no output'})"
+
+
 def _snapshot_section() -> str:
     try:
         with LiveMemoryBalatroObserver() as observer:
@@ -203,6 +234,9 @@ def build_crash_report(
         f"Recorded supervisor PID -> {recorded_pid}",
         f"Recorded PID still running -> {pid_running}",
         _json_text(status) if status else "<no valid status.json>",
+        "",
+        "=== BALATRO PROCESS ===",
+        _balatro_process_section(),
         "",
         "=== LIVE BALATRO SNAPSHOT ===",
         _snapshot_section(),
