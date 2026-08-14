@@ -2,8 +2,7 @@
 --
 -- Loaded directly from Balatro's fused LÖVE archive. This code intentionally
 -- has no Lovely, Steamodded, or BalatroBot dependency. Commands are polled from
--- a tiny local file protocol and executed from love.update on the normal game
--- thread.
+-- a tiny local file protocol and executed on Balatro's normal LÖVE game thread.
 
 if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   GAME_AI_FRAMEWORK_BRIDGE_INSTALLED = true
@@ -164,8 +163,9 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   end
 
   local function bridge_status()
-    return "bridge=1;achievement_gate=" .. achievement_gate_state()
+    return "bridge=2;achievement_gate=" .. achievement_gate_state()
       .. ";restart_run_callback=" .. restart_run_callback_state()
+      .. ";command_pump=LOVE_RUN_PRE_UPDATE"
   end
 
   local function highlighted_set()
@@ -853,18 +853,43 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     process_command(command_id, action, payload)
   end
 
-  local original_love_update = love.update
-  love.update = function(dt)
-    if original_love_update then
-      original_love_update(dt)
-    end
-
+  local function safe_poll_bridge()
     local ok, error_message = pcall(poll_bridge)
     if not ok then
       print(
         "[game-ai-framework bridge] "
           .. sanitize_message(error_message)
       )
+    end
+  end
+
+  -- Service bridge traffic before Balatro's update callback. The previous bridge
+  -- polled only after original_love_update returned, so any long/yielding update
+  -- during a state transition could starve even STATUS/PING commands.
+  local original_love_update = love.update
+  love.update = function(dt)
+    safe_poll_bridge()
+    if original_love_update then
+      original_love_update(dt)
+    end
+  end
+
+  -- Also poll from the outer LÖVE frame loop. This survives a later replacement
+  -- of love.update by game code and keeps command transport independent of any
+  -- particular Balatro phase callback. The command slot is single-consumer:
+  -- read_command removes command.txt before execution, so the redundant pre-update
+  -- poll cannot execute the same command twice.
+  local original_love_run = love.run
+  if type(original_love_run) == "function" then
+    love.run = function(...)
+      local frame = original_love_run(...)
+      if type(frame) ~= "function" then
+        return frame
+      end
+      return function(...)
+        safe_poll_bridge()
+        return frame(...)
+      end
     end
   end
 end
