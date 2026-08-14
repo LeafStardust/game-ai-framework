@@ -495,6 +495,44 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return true
   end
 
+  local function execute_skip_blind()
+    local ready, state_error = require_state("BLIND_SELECT")
+    if not ready then
+      return false, state_error
+    end
+    if not G.GAME or not G.GAME.blind_on_deck then
+      return false, "current blind on deck is unavailable"
+    end
+    if not G.blind_select_opts then
+      return false, "blind select options are unavailable"
+    end
+
+    local current_blind = tostring(G.GAME.blind_on_deck)
+    if string.lower(current_blind) == "boss" then
+      return false, "boss blind cannot be skipped"
+    end
+
+    local blind_pane = G.blind_select_opts[string.lower(current_blind)]
+    if not blind_pane or type(blind_pane.get_UIE_by_ID) ~= "function" then
+      return false, "current blind pane is unavailable"
+    end
+    local tag_button = blind_pane:get_UIE_by_ID("tag_" .. current_blind)
+    local skip_button = tag_button and tag_button.children and tag_button.children[2]
+    if not skip_button then
+      return false, "blind skip button is unavailable"
+    end
+
+    local callback = G.FUNCS and G.FUNCS.skip_blind
+    if type(callback) ~= "function" then
+      return false, "skip_blind callback is unavailable"
+    end
+    local ok, error_message = pcall(callback, skip_button)
+    if not ok then
+      return false, error_message
+    end
+    return true
+  end
+
   local function execute_reroll_shop()
     local ready, state_error = require_state("SHOP")
     if not ready then
@@ -803,6 +841,8 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       executor = execute_next_round
     elseif action == "SELECT_BLIND" then
       executor = execute_select_blind
+    elseif action == "SKIP_BLIND" then
+      executor = execute_skip_blind
     elseif action == "REROLL_SHOP" then
       executor = execute_reroll_shop
     elseif action == "BUY_CARD"
