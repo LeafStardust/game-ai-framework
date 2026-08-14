@@ -38,6 +38,7 @@ from games.balatro.shop_reroll_policy import (
     BuildAwareShopRerollPolicy,
     ShopRerollRecommendation,
 )
+from games.balatro.shop_utility_scale import ShopUtilityScale
 from games.balatro.state import BalatroState
 
 
@@ -93,9 +94,10 @@ class BuildAwareShopArbiter:
 
     D2 Joker acquisition/replacement, D4 consumable acquisition mode, deterministic
     voucher purchases, unopened-booster option value, reroll, and END_SHOP retain
-    separate policies/thresholds. The arbiter compares only each admitted child's
-    gain above its own no-action baseline; END_SHOP is the explicit zero-gain parent
-    baseline. It never inspects hidden future shop or pack contents.
+    separate policies/thresholds. Child policies remain authoritative for admission,
+    then D14 recomputes admitted options on one shared parent resource scale before
+    cross-family comparison. END_SHOP is the explicit zero-gain parent baseline. The
+    arbiter never inspects hidden future shop or pack contents.
 
     Joker replacement is deliberately a two-checkpoint transaction. D2 may select
     ``SELL_JOKER`` for the incumbent, but the arbiter never chains the follow-up
@@ -115,6 +117,7 @@ class BuildAwareShopArbiter:
         consumable_policy: ConsumableAcquisitionPolicy | None = None,
     ) -> None:
         self.shop_policy = shop_policy or BalatroShopPolicy()
+        self.utility_scale = ShopUtilityScale(self.shop_policy)
         self.booster_policy = booster_policy or BuildAwareShopBoosterPolicy(
             shop_policy=self.shop_policy,
         )
@@ -164,39 +167,53 @@ class BuildAwareShopArbiter:
         )
         booster_best = max(
             admitted_boosters,
-            key=lambda recommendation: recommendation.total,
+            key=lambda recommendation: self.utility_scale.booster_gain(
+                state,
+                recommendation,
+            ).gain,
             default=None,
         )
 
-        visible_normalized_best = 0.0
-        if deterministic_best is not None:
-            visible_normalized_best = max(
-                visible_normalized_best,
-                float(deterministic_best.total) - hold,
-            )
-        if joker_best is not None:
-            # D2 total_advantage is already expressed against its HOLD=0 baseline.
-            visible_normalized_best = max(
-                visible_normalized_best,
-                float(joker_best.total),
-            )
-        if consumable_best is not None:
-            # D4 total_advantage is also expressed against its HOLD=0 baseline.
-            visible_normalized_best = max(
-                visible_normalized_best,
-                float(consumable_best.total),
-            )
-        if booster_best is not None:
-            visible_normalized_best = max(
-                visible_normalized_best,
-                float(booster_best.total) - hold,
-            )
+        deterministic_utility = (
+            self.utility_scale.baseline_gain(deterministic_best.total, hold)
+            if deterministic_best is not None
+            else None
+        )
+        joker_utility = (
+            self.utility_scale.joker_gain(state, joker_best)
+            if joker_best is not None
+            else None
+        )
+        consumable_utility = (
+            self.utility_scale.consumable_gain(state, consumable_best)
+            if consumable_best is not None
+            else None
+        )
+        booster_utility = (
+            self.utility_scale.booster_gain(state, booster_best)
+            if booster_best is not None
+            else None
+        )
+
+        visible_normalized_best = max(
+            0.0,
+            *(
+                utility.gain
+                for utility in (
+                    deterministic_utility,
+                    joker_utility,
+                    consumable_utility,
+                    booster_utility,
+                )
+                if utility is not None
+            ),
+        )
 
         # D2 and D4 are authoritative for their item families. Do not let the
         # older generic scorer independently admit those same actions while reroll
-        # reasoning compares visible opportunity. Reroll still operates on the
-        # generic shop-score scale, so map the parent's normalized visible floor
-        # back onto that scale.
+        # reasoning compares visible opportunity. Reroll operates on the generic
+        # shop-score representation, so map the D14 shared normalized visible floor
+        # back onto that representation using the parent's hold baseline.
         reroll_visible_actions = [
             action
             for action in visible_actions
@@ -208,6 +225,11 @@ class BuildAwareShopArbiter:
             reroll_visible_actions,
             reroll_cost=reroll_cost,
             visible_score_floor=reroll_visible_floor,
+        )
+        reroll_utility = (
+            self.utility_scale.baseline_gain(reroll.reroll_score, hold)
+            if reroll.decision == "REROLL"
+            else None
         )
 
         # END_SHOP is a real candidate, not an after-the-fact fallback. It wins
@@ -224,46 +246,46 @@ class BuildAwareShopArbiter:
                 priority=5,
             )
         ]
-        if deterministic_best is not None:
+        if deterministic_best is not None and deterministic_utility is not None:
             candidates.append(
                 _ArbiterCandidate(
                     action=deterministic_best.action,
                     source="DETERMINISTIC",
                     total=float(deterministic_best.total),
-                    normalized_gain=float(deterministic_best.total) - hold,
+                    normalized_gain=deterministic_utility.gain,
                     priority=2,
                     child=deterministic_best,
                 )
             )
-        if joker_best is not None:
+        if joker_best is not None and joker_utility is not None:
             candidates.append(
                 _ArbiterCandidate(
                     action=joker_best.action,
                     source=joker_best.source,
                     total=float(joker_best.total),
-                    normalized_gain=float(joker_best.total),
+                    normalized_gain=joker_utility.gain,
                     priority=4,
                     child=joker_best,
                 )
             )
-        if consumable_best is not None:
+        if consumable_best is not None and consumable_utility is not None:
             candidates.append(
                 _ArbiterCandidate(
                     action=consumable_best.action,
                     source=consumable_best.source,
                     total=float(consumable_best.total),
-                    normalized_gain=float(consumable_best.total),
+                    normalized_gain=consumable_utility.gain,
                     priority=3,
                     child=consumable_best,
                 )
             )
-        if booster_best is not None:
+        if booster_best is not None and booster_utility is not None:
             candidates.append(
                 _ArbiterCandidate(
                     action=booster_best.action,
                     source="BOOSTER",
                     total=float(booster_best.total),
-                    normalized_gain=float(booster_best.total) - hold,
+                    normalized_gain=booster_utility.gain,
                     priority=1,
                     child=booster_best,
                 )
@@ -271,12 +293,13 @@ class BuildAwareShopArbiter:
         if reroll.decision == "REROLL":
             if reroll.executable_action is None:
                 raise RuntimeError("REROLL recommendation is missing executable action")
+            assert reroll_utility is not None
             candidates.append(
                 _ArbiterCandidate(
                     action=reroll.executable_action,
                     source="REROLL",
                     total=float(reroll.reroll_score),
-                    normalized_gain=float(reroll.reroll_score) - hold,
+                    normalized_gain=reroll_utility.gain,
                     priority=6 if reroll_cost == 0 else 0,
                     child=reroll,
                 )
@@ -308,12 +331,13 @@ class BuildAwareShopArbiter:
             f"arbiter source={source}",
             f"selected child score={total:.3f}",
             f"parent END_SHOP baseline={hold:.3f}",
-            f"normalized gain={normalized_gain:.3f}",
+            f"D14 normalized gain={normalized_gain:.3f}",
             f"best deterministic score={deterministic_text}",
             f"best D4 consumable advantage={consumable_text}",
             f"visible normalized floor={visible_normalized_best:.3f}",
             f"admitted boosters={len(admitted_boosters)}/{len(booster_recommendations)}",
-            "parent arbiter compares gain over child no-action baselines; child admission thresholds remain child-owned",
+            "D14 parent comparison uses one shared money/interest/reserve/slot resource scale after child admission",
+            "child admission thresholds remain child-owned",
             "parent arbiter does not predict hidden contents",
         ]
 
@@ -458,7 +482,7 @@ class BuildAwareShopArbiter:
         return max(
             actionable,
             key=lambda recommendation: (
-                recommendation.total,
+                self.utility_scale.joker_gain(state, recommendation).gain,
                 -recommendation.candidate_index,
             ),
         )
@@ -500,7 +524,7 @@ class BuildAwareShopArbiter:
         return max(
             actionable,
             key=lambda recommendation: (
-                recommendation.total,
+                self.utility_scale.consumable_gain(state, recommendation).gain,
                 -recommendation.candidate_index,
             ),
         )
