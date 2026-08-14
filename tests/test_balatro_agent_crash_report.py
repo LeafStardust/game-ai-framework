@@ -103,6 +103,9 @@ class _CrashingRunner:
     def decide(self):
         raise RuntimeError("planned crash")
 
+    def execute(self, decision):
+        raise AssertionError("execute should not be reached after decide crashes")
+
 
 def test_supervisor_failure_preserves_active_attempt_metadata(tmp_path):
     control = BalatroAgentControl(tmp_path / "control")

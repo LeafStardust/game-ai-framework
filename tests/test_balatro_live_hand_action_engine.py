@@ -68,6 +68,9 @@ class _TestEngine(LiveHandActionDecisionEngine):
             return list(self._confirmation_by_horizon[planner.config.horizon])
         return list(self._adaptive_by_horizon[planner.config.horizon])
 
+    def _rank_immediate_plans(self, state):
+        return list(self._fallback_plans)
+
 
 # Production builds confirmation planners through _adaptive_planner. This test
 # harness marks confirmation by temporarily routing the engine helper explicitly.

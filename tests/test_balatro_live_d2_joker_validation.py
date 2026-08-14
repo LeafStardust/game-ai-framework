@@ -82,7 +82,7 @@ def test_live_d2_view_loads_red_white_threshold_cartridge_without_execution():
     view = build_live_d2_view(_snapshot(), state)
 
     assert view.playbook_name == "red-white"
-    assert view.playbook_version == "0.6"
+    assert view.playbook_version == "0.8"
     assert view.thresholds.minimum_purchase_advantage == 0.35
     assert len(view.candidates) == 1
     assert view.recommendation is not None

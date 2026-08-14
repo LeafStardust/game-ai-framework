@@ -107,8 +107,9 @@ def test_autonomous_blind_select_recommends_current_blind():
     decision = runner.decide()
 
     assert decision.action.name == SELECT_BLIND
-    assert decision.source == "deterministic blind-selection policy"
-    assert "skip policy not yet enabled" in decision.notes[0]
+    assert decision.source == "D13 blind play-vs-skip policy"
+    assert "blind_decision=PLAY" in decision.notes
+    assert "tag_value_source=fallback_unidentified_live_tag" in decision.notes
 
 
 def test_autonomous_hand_uses_injected_d1_recommendation():

@@ -16,12 +16,13 @@ def test_default_registry_selects_red_white_from_live_state():
     playbook = default_balatro_playbooks().for_state(state)
 
     assert playbook.name == "red-white"
-    assert playbook.version == "0.6"
+    assert playbook.version == "0.8"
     assert playbook.key == ("RED", "WHITE")
 
     planner = playbook.strategy["planner"]
-    assert planner["max_horizon"] == 8
+    assert planner["max_horizon"] == 5
     assert planner["max_search_nodes"] == 5000
+    assert planner["search_schedule_mode"] == "probe-deepest"
     assert "min_clear_probability" not in planner
     assert "min_pace_ratio" not in planner
 
