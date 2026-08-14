@@ -145,9 +145,22 @@ def test_final_fallback_goes_directly_to_immediate_beam(monkeypatch):
     assert decision.action.cards == ["discard"]
 
 
+def test_probe_deepest_schedule_keeps_probe_and_deepest_horizon():
+    state = _state()
+    full = LiveHandActionDecisionEngine(max_horizon=5)
+    sparse = LiveHandActionDecisionEngine(
+        max_horizon=5,
+        search_schedule_mode="probe-deepest",
+    )
+
+    assert [config.horizon for config in full._search_schedule(state)] == [2, 3, 4, 5]
+    assert [config.horizon for config in sparse._search_schedule(state)] == [2, 5]
+
+
 def test_red_white_default_caps_normal_d1_search_at_horizon_five():
     playbook = default_balatro_playbooks().get("RED", "WHITE")
 
-    assert playbook.version == "0.7"
+    assert playbook.version == "0.8"
     assert playbook.strategy["planner"]["max_horizon"] == 5
     assert playbook.strategy["planner"]["max_search_nodes"] == 5000
+    assert playbook.strategy["planner"]["search_schedule_mode"] == "probe-deepest"
