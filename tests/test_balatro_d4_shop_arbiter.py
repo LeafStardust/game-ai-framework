@@ -13,7 +13,8 @@ class HoldRerollPolicy:
             reroll_cost=reroll_cost,
             executable_action=None,
             current_best_score=float(visible_score_floor or 0.0),
-            exploration_value=0.0,
+            future_shop_ev=0.0,
+            reroll_resource_cost=0.0,
             reroll_score=-1000000000.0,
         )
 

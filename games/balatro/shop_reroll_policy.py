@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from itertools import product
-from math import isfinite
+from math import fsum, isfinite
 
 from games.balatro.actions import (
     BUY_CONSUMABLE,
@@ -302,8 +302,19 @@ class BuildAwareShopRerollPolicy:
             for offer in prior.offers
         )
         hold = float(self.shop_policy.hold_bias)
+        offer_scores = tuple(
+            (offer.family, score)
+            for offer, score in zip(prior.offers, scores)
+        )
 
-        expected_best = 0.0
+        # If every family is currently unaffordable or capacity-blocked, the
+        # rerolled option set is exactly equivalent to leaving the shop. Preserve
+        # that baseline exactly instead of introducing probability-sum roundoff;
+        # zero-cost rerolls may then safely win the intentional tie-break.
+        if all(score == hold for score in scores):
+            return hold, offer_scores
+
+        expected_terms: list[float] = []
         indices = range(len(prior.offers))
         for outcome in product(indices, repeat=prior.card_slots):
             probability = 1.0
@@ -311,12 +322,9 @@ class BuildAwareShopRerollPolicy:
             for index in outcome:
                 probability *= probabilities[index]
                 best = max(best, scores[index])
-            expected_best += probability * best
+            expected_terms.append(probability * best)
 
-        return expected_best, tuple(
-            (offer.family, score)
-            for offer, score in zip(prior.offers, scores)
-        )
+        return fsum(expected_terms), offer_scores
 
     def _future_offer_score(
         self,
