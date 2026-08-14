@@ -84,6 +84,90 @@ class BuildProfile:
         )
 
 
+@dataclass(frozen=True)
+class PlaystyleIntent:
+    """Current or committed composable build direction for one run.
+
+    Antes 1-4 remain exploratory: callers receive the current build-derived vector
+    and are free to pivot as the run changes. The first observation at Ante 5 or
+    later freezes the most recent meaningful vector for the remainder of that run.
+    An empty committed vector is valid and means the run reached the lock boundary
+    without enough playstyle evidence to prefer any declared axis.
+    """
+
+    strengths: tuple[tuple[str, float], ...]
+    locked: bool
+    lock_ante: int | None = None
+
+    def strength(self, playstyle: Playstyle | str) -> float:
+        key = playstyle.value if isinstance(playstyle, Playstyle) else str(playstyle)
+        return dict(self.strengths).get(key, 0.0)
+
+
+class BalatroPlaystyleIntentTracker:
+    """Persist dynamic playstyle evidence and lock it starting at Ante 5.
+
+    The tracker is deliberately reset explicitly at the start of each new run.
+    Ante numbers are not a safe run-identity signal because ordinary Balatro effects
+    can change Ante within a live run.
+    """
+
+    LOCK_ANTE = 5
+
+    def __init__(self) -> None:
+        self._last_meaningful: tuple[tuple[str, float], ...] = ()
+        self._committed: tuple[tuple[str, float], ...] | None = None
+
+    @property
+    def locked(self) -> bool:
+        return self._committed is not None
+
+    def reset(self) -> None:
+        self._last_meaningful = ()
+        self._committed = None
+
+    @staticmethod
+    def _meaningful(
+        strengths: tuple[tuple[str, float], ...],
+    ) -> tuple[tuple[str, float], ...]:
+        return tuple(
+            sorted(
+                (str(key), float(value))
+                for key, value in strengths
+                if float(value) != 0.0
+            )
+        )
+
+    def resolve(self, profile: BuildProfile) -> PlaystyleIntent:
+        current = self._meaningful(profile.playstyle_strengths)
+
+        if self._committed is not None:
+            return PlaystyleIntent(
+                strengths=self._committed,
+                locked=True,
+                lock_ante=self.LOCK_ANTE,
+            )
+
+        # Antes 1-4 are fully pivotable. Remember the latest non-neutral direction
+        # only so an exact cancellation at the Ante-5 boundary does not erase the
+        # direction the run had immediately before commitment.
+        if int(profile.ante) < self.LOCK_ANTE:
+            if current:
+                self._last_meaningful = current
+            return PlaystyleIntent(
+                strengths=current,
+                locked=False,
+                lock_ante=None,
+            )
+
+        self._committed = current or self._last_meaningful
+        return PlaystyleIntent(
+            strengths=self._committed,
+            locked=True,
+            lock_ante=self.LOCK_ANTE,
+        )
+
+
 class BalatroBuildProfiler:
     """Derive build context from translated public Balatro state only.
 
