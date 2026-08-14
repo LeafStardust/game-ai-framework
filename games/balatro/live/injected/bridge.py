@@ -214,6 +214,35 @@ class FirstPartyBalatroBridge:
     def restart_run(self) -> None:
         self._call("RESTART_RUN")
 
+    def _cancel_own_pending_command(self, command_id: str) -> bool:
+        """Remove this call's still-pending command without touching another call.
+
+        Returns True only when command.txt still contains this exact command ID and
+        was removed. If the slot is already absent or belongs to another command,
+        Balatro may already have consumed this call, so its outcome is indeterminate.
+        """
+        try:
+            text = self.command_path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return False
+        except OSError as error:
+            raise InjectedBridgeError(
+                f"unable to inspect timed-out injected bridge command: {error}"
+            ) from error
+
+        if not text.startswith(f"{command_id}\t"):
+            return False
+
+        try:
+            self.command_path.unlink()
+        except FileNotFoundError:
+            return False
+        except OSError as error:
+            raise InjectedBridgeError(
+                f"unable to cancel timed-out injected bridge command: {error}"
+            ) from error
+        return True
+
     def _call(
         self,
         action: str,
@@ -284,9 +313,18 @@ class FirstPartyBalatroBridge:
                         return message
 
             if time.monotonic() >= deadline:
+                cancelled = self._cancel_own_pending_command(command_id)
+                if cancelled:
+                    raise InjectedBridgeTimeoutError(
+                        "timed out waiting for the first-party Balatro bridge; "
+                        "the still-pending command was cancelled before Balatro "
+                        "consumed it"
+                    )
                 raise InjectedBridgeTimeoutError(
-                    "timed out waiting for the first-party Balatro bridge; "
-                    "install the bridge and restart Balatro"
+                    "timed out waiting for the first-party Balatro bridge after "
+                    "the command slot was already consumed; command outcome is "
+                    "indeterminate, so re-observe authoritative live state before "
+                    "retrying"
                 )
             if self.poll_interval:
                 time.sleep(self.poll_interval)
