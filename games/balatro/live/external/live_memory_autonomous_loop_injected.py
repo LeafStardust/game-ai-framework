@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from time import perf_counter, sleep
+from typing import Callable
 
 from games.balatro.live.injected.bridge import InjectedBridgeError
 
@@ -109,6 +110,12 @@ class LiveMemoryInjectedAutonomousLoop:
     for two consecutive semantically equal public snapshots. If the state still
     changes after planning, that recommendation is discarded and replanned from
     the new authoritative checkpoint. Stale replans never consume a gameplay step.
+
+    ``max_steps=None`` means run until a terminal/unsupported/safe-stop condition.
+    A stop request is checked before planning and again immediately before action
+    submission, so turning the agent off never deliberately starts another action.
+    The optional transition hook runs only after an action has reached its settled
+    authoritative postcondition.
     """
 
     DEFAULT_STALE_REPLAN_LIMIT = 3
@@ -119,13 +126,16 @@ class LiveMemoryInjectedAutonomousLoop:
         self,
         runner: LiveMemoryInjectedSingleStepRunner,
         *,
-        max_steps: int,
+        max_steps: int | None,
         stale_replan_limit: int = DEFAULT_STALE_REPLAN_LIMIT,
         stability_interval_seconds: float = DEFAULT_STABILITY_INTERVAL_SECONDS,
         stability_timeout_seconds: float = DEFAULT_STABILITY_TIMEOUT_SECONDS,
+        stop_requested: Callable[[], bool] | None = None,
+        on_transition: Callable[[AutonomousStepDecision, object, dict[str, str]], None]
+        | None = None,
     ):
-        if max_steps < 1:
-            raise ValueError("max_steps must be positive")
+        if max_steps is not None and max_steps < 1:
+            raise ValueError("max_steps must be positive when bounded")
         if stale_replan_limit < 0:
             raise ValueError("stale_replan_limit cannot be negative")
         if stability_interval_seconds < 0:
@@ -133,10 +143,12 @@ class LiveMemoryInjectedAutonomousLoop:
         if stability_timeout_seconds <= 0:
             raise ValueError("stability_timeout_seconds must be positive")
         self.runner = runner
-        self.max_steps = int(max_steps)
+        self.max_steps = int(max_steps) if max_steps is not None else None
         self.stale_replan_limit = int(stale_replan_limit)
         self.stability_interval_seconds = float(stability_interval_seconds)
         self.stability_timeout_seconds = float(stability_timeout_seconds)
+        self.stop_requested = stop_requested or (lambda: False)
+        self.on_transition = on_transition
 
     def preview(self) -> AutonomousLoopStep:
         started = perf_counter()
@@ -180,12 +192,22 @@ class LiveMemoryInjectedAutonomousLoop:
 
         completed: list[AutonomousLoopStep] = []
         previous_after_sequence: int | None = None
+        number = 1
 
-        for number in range(1, self.max_steps + 1):
+        while self.max_steps is None or number <= self.max_steps:
+            if self.stop_requested():
+                return AutonomousLoopRun(tuple(completed), "stop requested")
+
             stale_replans = 0
 
             while True:
+                if self.stop_requested():
+                    return AutonomousLoopRun(tuple(completed), "stop requested")
+
                 self._wait_for_stable_checkpoint()
+
+                if self.stop_requested():
+                    return AutonomousLoopRun(tuple(completed), "stop requested")
 
                 started = perf_counter()
                 try:
@@ -210,6 +232,11 @@ class LiveMemoryInjectedAutonomousLoop:
                     raise AutonomousLoopGuardError(
                         "observer checkpoint sequence regressed between autonomous steps"
                     )
+
+                # An OFF request that arrives during a long planning call cancels
+                # the recommendation before any gameplay command is submitted.
+                if self.stop_requested():
+                    return AutonomousLoopRun(tuple(completed), "stop requested")
 
                 try:
                     result, status = self.runner.execute(decision)
@@ -255,10 +282,27 @@ class LiveMemoryInjectedAutonomousLoop:
                 )
                 previous_after_sequence = int(after.sequence)
 
+                if self.on_transition is not None:
+                    try:
+                        self.on_transition(decision, result, status)
+                    except Exception as error:
+                        # The gameplay action already happened. Stop immediately so
+                        # subsequent autonomous actions do not proceed without the
+                        # requested durable telemetry.
+                        return AutonomousLoopRun(
+                            tuple(completed),
+                            f"transition hook failed after executed action: {error}",
+                        )
+
                 terminal_reason = _terminal_stop_reason(after)
                 if terminal_reason is not None:
                     return AutonomousLoopRun(tuple(completed), terminal_reason)
+
+                if self.stop_requested():
+                    return AutonomousLoopRun(tuple(completed), "stop requested")
                 break
+
+            number += 1
 
         return AutonomousLoopRun(tuple(completed), "max steps reached")
 
