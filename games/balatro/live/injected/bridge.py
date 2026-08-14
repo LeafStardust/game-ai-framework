@@ -199,6 +199,9 @@ class FirstPartyBalatroBridge:
     def select_blind(self) -> None:
         self._call("SELECT_BLIND")
 
+    def skip_blind(self) -> None:
+        self._call("SKIP_BLIND")
+
     def reroll_shop(self) -> None:
         self._call("REROLL_SHOP")
 
