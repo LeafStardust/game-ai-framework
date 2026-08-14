@@ -600,8 +600,7 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   end
 
   local function execute_sell_joker(payload)
-    local ready, state_error = require_state("SHOP")
-    if not ready then
+    local ready, state_error = require_state("SHOP")n    if not ready then
       return false, state_error
     end
 
@@ -715,6 +714,68 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return true
   end
 
+  local function execute_restart_run()
+    if not G or not G.STATES or G.STATE ~= G.STATES.GAME_OVER then
+      return false, "run restart requires GAME_OVER"
+    end
+    if not G.GAME then
+      return false, "Balatro run state is unavailable"
+    end
+    if G.GAME.won then
+      return false, "won runs must not be restarted automatically"
+    end
+    if G.GAME.seeded then
+      return false, "automatic restart supports unseeded runs only"
+    end
+    if G.GAME.challenge then
+      return false, "automatic restart does not support challenge runs"
+    end
+    if not G.STAGES or G.STAGE ~= G.STAGES.RUN then
+      return false, "run restart requires RUN stage"
+    end
+    local stake = tonumber(G.GAME.stake)
+    if not stake or stake < 1 or stake ~= math.floor(stake) then
+      return false, "current stake is unavailable"
+    end
+    local callback = G.FUNCS and G.FUNCS.start_setup_run
+    if type(callback) ~= "function" then
+      return false, "start_setup_run callback is unavailable"
+    end
+    if type(G.save_settings) ~= "function" then
+      return false, "save_settings callback is unavailable"
+    end
+
+    local profile = G.PROFILES and G.SETTINGS and G.PROFILES[G.SETTINGS.profile]
+    local streak = profile and profile.high_scores and profile.high_scores.current_streak
+    if not streak then
+      return false, "current streak state is unavailable"
+    end
+
+    -- Mirror Balatro's native held-R restart setup for a normal unseeded run.
+    streak.amt = 0
+    G:save_settings()
+    G.SETTINGS.current_setup = "New Run"
+    G.GAME.viewed_back = nil
+    G.run_setup_seed = false
+    G.challenge_tab = nil
+    G.forced_seed = nil
+    G.setup_seed = nil
+    G.forced_stake = stake
+
+    local ok, error_message = pcall(callback)
+
+    -- start_setup_run consumes these synchronously while building the args table;
+    -- clear the temporary globals exactly as the native controller path does.
+    G.forced_stake = nil
+    G.challenge_tab = nil
+    G.forced_seed = nil
+
+    if not ok then
+      return false, error_message
+    end
+    return true
+  end
+
   local function process_command(command_id, action, payload)
     if action == "PING" then
       write_response(command_id, "OK", "ready")
@@ -760,6 +821,8 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       end
     elseif action == "PACK_SKIP" then
       executor = execute_pack_skip
+    elseif action == "RESTART_RUN" then
+      executor = execute_restart_run
     else
       write_response(
         command_id,
