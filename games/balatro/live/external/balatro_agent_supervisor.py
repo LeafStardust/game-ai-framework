@@ -7,6 +7,7 @@ import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from time import perf_counter, sleep
 from typing import Callable
 
 from games.balatro.live.run_experience_transition import (
@@ -21,11 +22,14 @@ from .live_memory_autonomous_loop_injected import (
 )
 from .live_memory_autonomous_step_injected import (
     LiveMemoryInjectedSingleStepRunner,
+    _same_snapshot,
 )
 from .live_memory_observer import LiveMemoryBalatroObserver
 
 
 SESSION_SUMMARY_SCHEMA = "balatro-agent-session-summary-v1"
+DEFAULT_STARTUP_STABILITY_INTERVAL_SECONDS = 0.10
+DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS = 2.0
 
 
 class BalatroAgentSupervisorError(RuntimeError):
@@ -70,6 +74,38 @@ def _native_restart_unavailable(_runner, _deck: str, _stake: str) -> None:
     )
 
 
+def wait_for_stable_startup_snapshot(
+    observer,
+    *,
+    interval_seconds: float = DEFAULT_STARTUP_STABILITY_INTERVAL_SECONDS,
+    timeout_seconds: float = DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS,
+):
+    """Return two-consecutive-equal settled public snapshots before identity lock."""
+    if interval_seconds < 0:
+        raise ValueError("startup stability interval cannot be negative")
+    if timeout_seconds <= 0:
+        raise ValueError("startup stability timeout must be positive")
+
+    deadline = perf_counter() + float(timeout_seconds)
+    previous = observer.observe()
+    while True:
+        if perf_counter() >= deadline:
+            raise BalatroAgentSupervisorError(
+                "live public state did not become semantically stable before "
+                "supervisor startup identity selection"
+            )
+        if interval_seconds:
+            sleep(interval_seconds)
+        current = observer.observe()
+        if (
+            previous.state_complete
+            and current.state_complete
+            and _same_snapshot(previous, current)
+        ):
+            return current
+        previous = current
+
+
 class BalatroAgentSupervisor:
     """Long-lived ON/OFF supervisor around disposable Balatro run attempts.
 
@@ -78,6 +114,10 @@ class BalatroAgentSupervisor:
     native restart strategy succeeds. Every attempt gets its own JSONL run log.
     A win ends the supervisor automatically. A manual OFF request is cooperative:
     the underlying autonomous loop stops before submitting another gameplay action.
+
+    Deck/stake/playbook identity is selected only after two consecutive settled
+    public snapshots are semantically equal, preventing a transient attachment
+    frame from locking the supervisor to the wrong playbook.
     """
 
     def __init__(
@@ -92,7 +132,17 @@ class BalatroAgentSupervisor:
         session_directory: str | Path = "logs/balatro/sessions",
         session_id: str | None = None,
         retry_losses: bool = True,
+        startup_stability_interval_seconds: float = (
+            DEFAULT_STARTUP_STABILITY_INTERVAL_SECONDS
+        ),
+        startup_stability_timeout_seconds: float = (
+            DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS
+        ),
     ) -> None:
+        if startup_stability_interval_seconds < 0:
+            raise ValueError("startup stability interval cannot be negative")
+        if startup_stability_timeout_seconds <= 0:
+            raise ValueError("startup stability timeout must be positive")
         self.control = control or BalatroAgentControl()
         self.observer_factory = observer_factory
         self.runner_factory = runner_factory or (
@@ -103,6 +153,12 @@ class BalatroAgentSupervisor:
         self.session_directory = Path(session_directory)
         self.session_id = str(session_id or _new_session_id())
         self.retry_losses = bool(retry_losses)
+        self.startup_stability_interval_seconds = float(
+            startup_stability_interval_seconds
+        )
+        self.startup_stability_timeout_seconds = float(
+            startup_stability_timeout_seconds
+        )
         self._attempts: list[BalatroAgentAttempt] = []
         self._target_deck: str | None = None
         self._target_stake: str | None = None
@@ -219,7 +275,11 @@ class BalatroAgentSupervisor:
                 run_id = f"{self.session_id}-attempt-{attempt_number:03d}"
                 with self.observer_factory() as observer:
                     runner = self.runner_factory(observer)
-                    initial = observer.observe()
+                    initial = wait_for_stable_startup_snapshot(
+                        observer,
+                        interval_seconds=self.startup_stability_interval_seconds,
+                        timeout_seconds=self.startup_stability_timeout_seconds,
+                    )
                     deck, stake, playbook = self._run_identity(initial)
 
                     self.control.write_status(
@@ -321,9 +381,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Run the toggleable Balatro autonomous supervisor. It auto-selects the "
-            "deck/stake playbook, runs an attempt until terminal or safe stop, and "
-            "is architected to retry fresh attempts after losses once native restart "
-            "is validated. A win always auto-disables the supervisor."
+            "deck/stake playbook from a stable public checkpoint, runs an attempt "
+            "until terminal or safe stop, and retries fresh attempts after losses "
+            "once native restart is validated. A win always auto-disables it."
         )
     )
     parser.add_argument("--control-dir")
