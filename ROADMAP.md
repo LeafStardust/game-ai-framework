@@ -491,9 +491,13 @@ The existing `save.jkr`, visual observer and OS-input work remains useful for di
 - [ ] Feed B7 build intent into D1 so hand/discard choices actively exploit the hands/ranks/suits/retriggers the Joker engine supports
 - [ ] Make Joker acquisition, replacement, hand selection, discard strategy, Planet choice and pack choice reinforce the same build rather than acting as mostly independent local policies
 - [ ] Strengthen contextual Joker/consumable/deck synergy beyond isolated item quality
+- [ ] Add explicit **anti-synergy/conflict modeling** for effects that demand mutually incompatible play patterns; conflict must reduce whole-build value even when both Jokers are individually useful
+- [ ] Allow incompatible Jokers to coexist temporarily when selling/replacing immediately would reduce survival or economy, but identify the preferred build direction and phase out the weaker conflicting Joker as soon as a superior coherent configuration is available
+- [ ] Make D2 replacement/sale compare **build coherence and future play constraints**, not only each Joker's isolated marginal score/economy value
+- [ ] Add a concrete regression for **Ride the Bus + Business Card**: Business Card rewards scoring face cards, while Ride the Bus requires avoiding scoring face cards to scale; the agent must recognize the conflict, choose a build direction from current run evidence, and eventually remove the losing side of the conflict
 - [ ] Model **Negative-edition Jokers** as unusually valuable because they do not consume normal Joker capacity; when reserve/survival constraints are satisfied, affordable Negative Jokers with positive marginal value should receive explicit acquisition priority rather than being treated like ordinary slot-consuming Jokers
 - [ ] Add D2 regression coverage for spare-cash + open-economy cases where buying a useful Negative Joker dominates holding cash
-- [ ] Log build-intent changes and the synergies that caused them
+- [ ] Log build-intent changes, detected anti-synergies and the interactions that caused purchase/replacement/sale decisions
 
 ### 1.0C — Planet and consumable competence
 
