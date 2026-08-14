@@ -378,11 +378,19 @@ class BalatroAgentSupervisor:
 
                 attempt_number += 1
         except Exception as error:
+            active = self.control.read_status()
             self.control.mark_off(
                 reason=f"supervisor failure: {error}",
                 session_id=self.session_id,
                 won=False,
                 attempts=len(self._attempts),
+                attempt=active.get("attempt"),
+                run_id=active.get("run_id"),
+                deck=active.get("deck"),
+                stake=active.get("stake"),
+                playbook=active.get("playbook"),
+                playbook_version=active.get("playbook_version"),
+                phase=active.get("phase"),
             )
             raise
 
