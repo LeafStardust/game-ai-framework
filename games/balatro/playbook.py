@@ -66,11 +66,11 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
             deck="RED",
             stake="WHITE",
             name="red-white",
-            version="0.6",
+            version="0.7",
             strategy={
                 "risk_tolerance": "moderate",
                 "planner": {
-                    "max_horizon": 8,
+                    "max_horizon": 5,
                     "max_search_nodes": 5000,
                 },
                 "decision_thresholds": {
