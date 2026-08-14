@@ -162,7 +162,7 @@ def main() -> int:
         print("Turning ON...")
         print(f"Supervisor PID -> {pid}")
         print("Playbook selection -> automatic from live deck/stake")
-        print("Loss handling -> retry lifecycle enabled; native restart still fail-closed")
+        print("Loss handling -> automatic fresh same-deck/stake native retry")
         print("Win handling -> automatic OFF")
         return 0
 
