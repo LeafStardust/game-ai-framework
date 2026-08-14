@@ -600,7 +600,8 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   end
 
   local function execute_sell_joker(payload)
-    local ready, state_error = require_state("SHOP")n    if not ready then
+    local ready, state_error = require_state("SHOP")
+    if not ready then
       return false, state_error
     end
 
