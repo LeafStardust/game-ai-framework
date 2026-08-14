@@ -49,6 +49,15 @@ def start_agent(
 
     control.ensure_directory()
     log_path = control.directory / "agent.log"
+    # Publish STARTING before the child exists. The supervisor is the only process
+    # allowed to advance this to ON, so the parent can never race and overwrite a
+    # fast child's ON status with an older STARTING state.
+    control.write_status(
+        "STARTING",
+        pid=None,
+        session_id=session_id,
+        log_path=str(log_path),
+    )
     try:
         log_handle = log_path.open("a", encoding="utf-8")
         try:
@@ -64,17 +73,14 @@ def start_agent(
         finally:
             log_handle.close()
         # Publish the child PID immediately so a second toggle cannot start a
-        # duplicate supervisor during Python import/attachment startup.
+        # duplicate supervisor during Python import/attachment startup. This does
+        # not rewrite status; a child that already reached ON remains ON.
         control.claim_current_process(process.pid)
-        control.write_status(
-            "STARTING",
-            pid=process.pid,
-            log_path=str(log_path),
-        )
         return int(process.pid)
     except Exception:
         control.release_start_lock()
         control.clear_pid()
+        control.write_status("OFF", reason="supervisor launch failed")
         raise
 
 
