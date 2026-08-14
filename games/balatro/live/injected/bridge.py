@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Iterable
 
 
+BRIDGE_PROTOCOL_VERSION = "1"
+
+
 class InjectedBridgeError(RuntimeError):
     pass
 
@@ -107,6 +110,27 @@ def parse_status_message(message: str) -> dict[str, str]:
     return fields
 
 
+def normalize_bridge_status(fields: dict[str, str]) -> dict[str, str]:
+    """Normalize known implementation revisions onto the stable wire protocol.
+
+    ``bridge`` is a protocol-compatibility field, not an implementation build
+    number. The first command-pump hardening build shipped briefly as bridge=2
+    even though its wire contract stayed compatible with protocol 1. Accept that
+    exact known build and expose its implementation revision separately. Unknown
+    future protocol values remain untouched so existing fail-closed guards still
+    reject genuinely incompatible bridges.
+    """
+    normalized = dict(fields)
+    raw_version = normalized.get("bridge")
+    if (
+        raw_version == "2"
+        and normalized.get("command_pump") == "LOVE_RUN_PRE_UPDATE"
+    ):
+        normalized["bridge_revision"] = normalized.get("bridge_revision", "2")
+        normalized["bridge"] = BRIDGE_PROTOCOL_VERSION
+    return normalized
+
+
 class FirstPartyBalatroBridge:
     """File-command client for the repo-owned in-process Balatro Lua bridge.
 
@@ -137,7 +161,7 @@ class FirstPartyBalatroBridge:
         self._call("PING")
 
     def status(self) -> dict[str, str]:
-        return parse_status_message(self._call("STATUS"))
+        return normalize_bridge_status(parse_status_message(self._call("STATUS")))
 
     def is_connected(self) -> bool:
         try:
