@@ -13,6 +13,10 @@ from .live_memory_autonomous_step_injected import (
 from .live_memory_observer import LiveMemoryBalatroObserver
 
 
+DEFAULT_RESTART_TIMEOUT_SECONDS = 20.0
+DEFAULT_RESTART_POLL_INTERVAL_SECONDS = 0.05
+
+
 class LiveRunRestartError(RuntimeError):
     pass
 
@@ -46,19 +50,40 @@ def _validate_restart_source(snapshot) -> tuple[str, str]:
     return _identity(snapshot)
 
 
+def _snapshot_diagnostic(snapshot) -> str:
+    if snapshot is None:
+        return "no post-command snapshot was observed"
+    try:
+        deck, stake = _identity(snapshot)
+        identity = f"{deck}/{stake}"
+    except LiveRunRestartError:
+        identity = "UNAVAILABLE"
+    return (
+        f"last_phase={snapshot.phase}; "
+        f"last_state_complete={bool(snapshot.state_complete)}; "
+        f"last_sequence={snapshot.sequence}; "
+        f"last_identity={identity}"
+    )
+
+
 def restart_fresh_unseeded_run(
     runner,
     deck: str,
     stake: str,
     *,
-    timeout_seconds: float = 5.0,
-    poll_interval_seconds: float = 0.05,
+    timeout_seconds: float = DEFAULT_RESTART_TIMEOUT_SECONDS,
+    poll_interval_seconds: float = DEFAULT_RESTART_POLL_INTERVAL_SECONDS,
 ) -> LiveRunRestartResult:
     """Restart one lost normal run and verify the new public checkpoint.
 
     The Lua bridge owns the destructive guard and mirrors Balatro's native held-R
     restart setup. Python never writes process memory; it independently requires a
     settled BLIND_SELECT checkpoint with the same deck/stake before returning.
+
+    Balatro's native restart is asynchronous and includes wipe/setup animation, so
+    the verifier deliberately allows the same 20-second settling envelope used by
+    older live transition synchronization instead of treating a five-second visual
+    transition as a control-path failure.
     """
     if timeout_seconds <= 0:
         raise ValueError("timeout_seconds must be positive")
@@ -86,10 +111,12 @@ def restart_fresh_unseeded_run(
 
     deadline = monotonic() + timeout_seconds
     previous = None
+    last_observed = None
     while monotonic() < deadline:
         if poll_interval_seconds:
             sleep(poll_interval_seconds)
         current = runner.observer.observe()
+        last_observed = current
 
         # The restart is asynchronous. Ignore incomplete/transient wipe frames and
         # require two consecutive semantically equal authoritative snapshots.
@@ -121,7 +148,8 @@ def restart_fresh_unseeded_run(
 
     raise LiveRunRestartError(
         "restart command was accepted but no settled same-deck/stake "
-        "BLIND_SELECT checkpoint appeared before timeout"
+        "BLIND_SELECT checkpoint appeared before timeout; "
+        + _snapshot_diagnostic(last_observed)
     )
 
 
@@ -134,7 +162,11 @@ def main() -> int:
         )
     )
     parser.add_argument("--execute", action="store_true")
-    parser.add_argument("--timeout", type=float, default=5.0)
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_RESTART_TIMEOUT_SECONDS,
+    )
     args = parser.parse_args()
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
