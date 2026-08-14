@@ -361,10 +361,10 @@
 - [x] D9 initial conservative pack-policy foundation
 - [ ] D9 complete valuation coverage across Joker/Standard/Planet/Tarot/Spectral packs using B3/B4/B6
 - [ ] D9 validate recommendations across pack families
-- [ ] D10 follow-up target observation for remaining required flows
-- [ ] D10 effect-specific target policy for remaining required flows
-- [ ] D10 Build-aware target delta shared with D6 for remaining required flows
-- [ ] D10 first-party target execution for remaining required flows
+- [x] D10 follow-up target observation for remaining required flows
+- [x] D10 effect-specific target policy for remaining required flows
+- [x] D10 Build-aware target delta shared with D6 for remaining required flows
+- [x] D10 first-party target execution for remaining required flows
 - [ ] D10 end-to-end targeted Tarot/Spectral/Standard-pack validation
 - [x] D11 reroll execution
 - [x] D11 B5 build-gap/opportunity model
