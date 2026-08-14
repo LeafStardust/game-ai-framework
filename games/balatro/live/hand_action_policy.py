@@ -534,6 +534,32 @@ class LiveHandActionDecisionEngine:
             for estimate in estimates
         ]
 
+    def _rank_immediate_plans(self, state) -> list[LiveBlindPlan]:
+        """Rank a bounded one-action fallback from only the current public state.
+
+        This path is used only when the richer fallback exhausts its node budget.
+        Depth one cannot recurse into draw outcomes, while explicitly retaining
+        legal discard candidates keeps the pace-recovery hierarchy intact.
+        """
+        planner = self.planner
+        planner._require_state(state)
+        planner.reset_search_stats()
+        candidates = planner._candidate_actions(state, allow_discards=True)
+        if not candidates:
+            raise RuntimeError("no immediate D1 fallback candidate is available")
+        estimates = [planner._estimate_action(state, action, 1) for action in candidates]
+        estimates.sort(key=planner._estimate_key, reverse=True)
+        return [
+            LiveBlindPlan(
+                action=estimate.action,
+                value=estimate.value,
+                horizon=1,
+                exact=estimate.exact,
+                candidate_count=len(candidates),
+            )
+            for estimate in estimates
+        ]
+
     def decide(self, state) -> HandActionDecision:
         schedule = adaptive_blind_search_schedule(
             hands_remaining=int(getattr(state, "hands_remaining", 0)),
@@ -646,9 +672,13 @@ class LiveHandActionDecisionEngine:
         )
 
         # No credible adaptive search survived the exact/sampled confirmation gate.
-        # Re-run a richer shallow D1 beam for the pace fallback so immediate
-        # play/discard coverage is not constrained by narrow deep-search beams.
-        fallback_plans = self.rank_plans(state)
+        # Prefer the richer shallow D1 beam, but never let its node budget terminate
+        # autonomy. If it exhausts the budget, degrade to a bounded one-action beam
+        # that still includes legal discards and uses only the current public state.
+        try:
+            fallback_plans = self.rank_plans(state)
+        except PlannerSearchBudgetExceeded:
+            fallback_plans = self._rank_immediate_plans(state)
         return self.policy.decide(
             state,
             fallback_plans,
