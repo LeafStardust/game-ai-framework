@@ -4,6 +4,31 @@ from games.balatro.actions import DISCARD_CARDS, BalatroAction
 from games.balatro.live.external import live_memory_autonomous_step_injected as target
 
 
+def test_search_schedule_mode_uses_playbook_for_normal_autonomy():
+    planner_config = {"search_schedule_mode": "probe-deepest"}
+
+    assert target._search_schedule_mode(
+        planner_config,
+        max_horizon_override=None,
+        max_search_nodes_override=None,
+    ) == "probe-deepest"
+
+
+def test_search_schedule_mode_forces_full_for_explicit_search_overrides():
+    planner_config = {"search_schedule_mode": "probe-deepest"}
+
+    assert target._search_schedule_mode(
+        planner_config,
+        max_horizon_override=5,
+        max_search_nodes_override=None,
+    ) == "full"
+    assert target._search_schedule_mode(
+        planner_config,
+        max_horizon_override=None,
+        max_search_nodes_override=8000,
+    ) == "full"
+
+
 def test_hand_recommendation_reports_total_and_per_search_timing(monkeypatch):
     card = object()
     state = SimpleNamespace(hand=[card])
@@ -47,10 +72,11 @@ def test_hand_recommendation_reports_total_and_per_search_timing(monkeypatch):
         selected_pace_ratio=None,
         search_attempts=attempts,
     )
+    engine_kwargs = {}
 
     class FakeEngine:
         def __init__(self, **kwargs):
-            del kwargs
+            engine_kwargs.update(kwargs)
 
         def rank_plans(self, current_state, *, planner=None):
             del current_state, planner
@@ -64,8 +90,11 @@ def test_hand_recommendation_reports_total_and_per_search_timing(monkeypatch):
 
     playbook = SimpleNamespace(
         name="red-white",
-        version="0.5",
-        strategy={"planner": {}, "decision_thresholds": {"hand_action": {}}},
+        version="0.8",
+        strategy={
+            "planner": {"search_schedule_mode": "probe-deepest"},
+            "decision_thresholds": {"hand_action": {}},
+        },
     )
     monkeypatch.setattr(
         target,
@@ -85,6 +114,8 @@ def test_hand_recommendation_reports_total_and_per_search_timing(monkeypatch):
     recommended, notes = runner._recommend_hand(state, None)
 
     assert recommended is action
+    assert engine_kwargs["search_schedule_mode"] == "probe-deepest"
+    assert "search_schedule=probe-deepest" in notes
     assert "d1_decision_seconds=8.000" in notes
     assert any(
         "search[0]=adaptive h=2 samples=8 nodes=100/2000" in note
