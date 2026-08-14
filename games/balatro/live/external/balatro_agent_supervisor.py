@@ -10,7 +10,10 @@ from pathlib import Path
 from time import perf_counter, sleep
 from typing import Callable
 
-from games.balatro.live.injected.bridge import InjectedBridgeError
+from games.balatro.live.injected.bridge import (
+    FirstPartyBalatroBridge,
+    InjectedBridgeError,
+)
 from games.balatro.live.run_experience_transition import (
     log_successful_live_transition,
 )
@@ -25,16 +28,17 @@ from .live_memory_autonomous_step_injected import (
     LiveMemoryInjectedSingleStepRunner,
     _same_snapshot,
 )
-from .live_memory_observer import LiveMemoryBalatroObserver
 from .live_memory_restart_run_injected import (
     LiveRunRestartError,
     restart_fresh_unseeded_run,
 )
+from .live_memory_supervisor_observer import SupervisorLiveMemoryBalatroObserver
 
 
 SESSION_SUMMARY_SCHEMA = "balatro-agent-session-summary-v1"
 DEFAULT_STARTUP_STABILITY_INTERVAL_SECONDS = 0.10
 DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS = 20.0
+DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS = 10.0
 
 
 class BalatroAgentSupervisorError(RuntimeError):
@@ -115,14 +119,17 @@ class BalatroAgentSupervisor:
 
     Deck/stake/playbook identity is selected only after two consecutive settled
     public snapshots are semantically equal, preventing a transient attachment
-    frame from locking the supervisor to the wrong playbook.
+    frame from locking the supervisor to the wrong playbook. The production
+    supervisor observer additionally withholds BLIND_SELECT until Balatro's native
+    blind-selection objects are actually present, avoiding the restart-time window
+    where public state is stable but SELECT_BLIND is not yet executable.
     """
 
     def __init__(
         self,
         *,
         control: BalatroAgentControl | None = None,
-        observer_factory: Callable[[], object] = LiveMemoryBalatroObserver,
+        observer_factory: Callable[[], object] = SupervisorLiveMemoryBalatroObserver,
         runner_factory: Callable[[object], LiveMemoryInjectedSingleStepRunner]
         | None = None,
         restart_run: Callable[[object, str, str], object] | None = None,
@@ -144,7 +151,12 @@ class BalatroAgentSupervisor:
         self.control = control or BalatroAgentControl()
         self.observer_factory = observer_factory
         self.runner_factory = runner_factory or (
-            lambda observer: LiveMemoryInjectedSingleStepRunner(observer)
+            lambda observer: LiveMemoryInjectedSingleStepRunner(
+                observer,
+                bridge=FirstPartyBalatroBridge(
+                    timeout=DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS,
+                ),
+            )
         )
         self.restart_run = restart_run or restart_fresh_unseeded_run
         self.run_log_directory = Path(run_log_directory)
