@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 
+from games.balatro.joker import Playstyle
 from games.balatro.state import BalatroState
 
 from .effects import (
@@ -31,6 +32,11 @@ class BuildProfile:
     Held consumables remain descriptors in ``effects`` so future synergy evaluation
     can reason about what they can create without pretending that transformation has
     already happened.
+
+    ``playstyle_strengths`` is a signed, composable direction vector derived from
+    owned Joker declarations. Positive values are evidence for an axis; negative
+    values are evidence against it; absent/zero axes remain neutral. Candidate
+    Jokers are intentionally not included until they are actually owned.
     """
 
     money: int
@@ -50,9 +56,14 @@ class BuildProfile:
     consumable_names: tuple[str, ...]
     effects: tuple[EffectDescriptor, ...]
     feature_strengths: tuple[tuple[str, float], ...]
+    playstyle_strengths: tuple[tuple[str, float], ...] = ()
 
     def strength(self, feature: str) -> float:
         return dict(self.feature_strengths).get(feature, 0.0)
+
+    def playstyle_strength(self, playstyle: Playstyle | str) -> float:
+        key = playstyle.value if isinstance(playstyle, Playstyle) else str(playstyle)
+        return dict(self.playstyle_strengths).get(key, 0.0)
 
     def supports(self, feature: str) -> bool:
         return self.strength(feature) > 0.0
@@ -104,6 +115,7 @@ class BalatroBuildProfiler:
         seal_counts: Counter[str] = Counter()
         edition_counts: Counter[str] = Counter()
         strengths: Counter[str] = Counter()
+        playstyle_strengths: Counter[str] = Counter()
 
         for card in deck:
             rank = getattr(card, "rank", None)
@@ -163,6 +175,23 @@ class BalatroBuildProfiler:
             for feature in descriptor.produces:
                 strengths[feature] += 1.0
 
+            # Playstyle declarations are deliberately directional rather than
+            # weighted scores. The build profile aggregates owned declarations;
+            # evaluation decides later how strongly that evidence should matter.
+            for playstyle, affinity in getattr(
+                joker,
+                "playstyle_affinities",
+                {},
+            ).items():
+                key = (
+                    playstyle.value
+                    if isinstance(playstyle, Playstyle)
+                    else str(playstyle)
+                )
+                value = int(affinity)
+                if value in {-1, 1}:
+                    playstyle_strengths[key] += float(value)
+
         consumable_names: list[str] = []
         for consumable in getattr(state, "consumables", ()):
             descriptor = describe_build_item(
@@ -204,4 +233,5 @@ class BalatroBuildProfiler:
             consumable_names=tuple(consumable_names),
             effects=tuple(effects),
             feature_strengths=tuple(sorted(strengths.items())),
+            playstyle_strengths=tuple(sorted(playstyle_strengths.items())),
         )
