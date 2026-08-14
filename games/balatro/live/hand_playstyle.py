@@ -188,6 +188,32 @@ class LiveHandPlaystyleEvaluator:
             ),
         )
 
+    @staticmethod
+    def _axis_relevant(action: BalatroAction, axis: str) -> bool:
+        if action.name == PLAY_CARDS:
+            return (
+                axis in _HAND_AXES
+                or axis in _SUIT_AXES
+                or axis
+                in {
+                    Playstyle.FACE_CARDS.value,
+                    Playstyle.NO_FACE_CARDS.value,
+                    Playstyle.NO_DISCARD.value,
+                }
+            )
+        if action.name == DISCARD_CARDS:
+            return (
+                axis in _SUIT_AXES
+                or axis
+                in {
+                    Playstyle.FACE_CARDS.value,
+                    Playstyle.NO_FACE_CARDS.value,
+                    Playstyle.DISCARD.value,
+                    Playstyle.NO_DISCARD.value,
+                }
+            )
+        return False
+
     def _fit(
         self,
         action: BalatroAction,
@@ -198,17 +224,20 @@ class LiveHandPlaystyleEvaluator:
         details: list[str] = []
 
         for key, raw_strength in intent.strengths:
-            strength = max(-1.0, min(1.0, float(raw_strength)))
-            signal = self._signal(action, str(key))
-            if signal == 0.0:
+            key = str(key)
+            if not self._axis_relevant(action, key):
                 continue
+
+            strength = max(-1.0, min(1.0, float(raw_strength)))
+            signal = self._signal(action, key)
             contribution = strength * signal
             total += contribution
             denominator += abs(strength)
-            details.append(
-                f"D1 axis {key}: strength={strength:+.3f} "
-                f"signal={signal:+.3f} contribution={contribution:+.3f}"
-            )
+            if signal != 0.0:
+                details.append(
+                    f"D1 axis {key}: strength={strength:+.3f} "
+                    f"signal={signal:+.3f} contribution={contribution:+.3f}"
+                )
 
         fit = total / denominator if denominator > 0.0 else 0.0
         return fit, tuple(details)
