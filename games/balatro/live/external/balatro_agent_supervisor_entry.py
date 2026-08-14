@@ -4,7 +4,7 @@ import argparse
 import traceback
 
 from .agent_control import BalatroAgentControl
-from .balatro_agent_crash_report import write_crash_report
+from .balatro_agent_crash_report_repo import write_repo_crash_report
 from .balatro_agent_supervisor import BalatroAgentSupervisor
 
 
@@ -42,7 +42,7 @@ def main() -> int:
         print("Traceback ->")
         print(exception_text.rstrip())
         try:
-            report_path, _ = write_crash_report(
+            report_path, _ = write_repo_crash_report(
                 control,
                 exception_text=exception_text,
             )
