@@ -9,7 +9,7 @@ from pathlib import Path
 from .agent_control import BalatroAgentControl
 
 
-SUPERVISOR_MODULE = "games.balatro.live.external.balatro_agent_supervisor"
+SUPERVISOR_MODULE = "games.balatro.live.external.balatro_agent_supervisor_entry"
 
 
 def _repo_root() -> Path:
@@ -164,6 +164,7 @@ def main() -> int:
         print("Playbook selection -> automatic from live deck/stake")
         print("Loss handling -> automatic fresh same-deck/stake native retry")
         print("Win handling -> automatic OFF")
+        print("Crash reporting -> automatic traceback + report file")
         return 0
 
     print("Balatro Agent is ON.")
