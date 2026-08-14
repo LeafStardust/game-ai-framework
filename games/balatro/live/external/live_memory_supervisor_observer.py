@@ -16,6 +16,8 @@ DEFAULT_NATIVE_READINESS_POLL_SECONDS = 0.05
 DEFAULT_POST_PACK_SETTLE_SECONDS = 0.50
 DEFAULT_JOKER_VISUAL_STABLE_SECONDS = 0.25
 DEFAULT_POST_PACK_SETTLE_TIMEOUT_SECONDS = 5.0
+DEFAULT_FULL_STATE_QUIET_SECONDS = 1.0
+DEFAULT_FULL_STATE_QUIET_TIMEOUT_SECONDS = 20.0
 # Backward-compatible names retained for tests/callers that configured the
 # original BLIND_SELECT-only readiness wrapper.
 DEFAULT_BLIND_SELECT_READINESS_TIMEOUT_SECONDS = DEFAULT_NATIVE_READINESS_TIMEOUT_SECONDS
@@ -124,14 +126,19 @@ def _is_pack_phase(phase: str) -> bool:
 
 
 class SupervisorLiveMemoryBalatroObserver(LiveMemoryBalatroObserver):
-    """Live observer that withholds public checkpoints before native UI readiness.
+    """Live observer that exposes only native-ready, quiescent checkpoints.
 
     This is intentionally supervisor-specific. Generic diagnostics still expose
     the earliest authoritative public snapshot, while the long-lived autonomous
     controller waits until Balatro has created the native objects required by the
-    next first-party action. This covers restart-time BLIND_SELECT, the short
-    post-cash-out SHOP construction window, and post-booster visual settlement so
-    a newly acquired Joker is not interrupted while moving into its Joker area.
+    next first-party action and the *full* observer fingerprint has stopped
+    changing for a continuous quiet window.
+
+    The full-sequence quiet gate is deliberately stricter than the planner's
+    semantic stale-state comparison. Presentation/UI changes are ignored when
+    deciding whether a several-second recommendation is still logically valid,
+    but they are evidence that Balatro is still processing the previous native
+    transition and therefore block the next bridge command.
     """
 
     def __init__(
@@ -150,6 +157,11 @@ class SupervisorLiveMemoryBalatroObserver(LiveMemoryBalatroObserver):
         post_pack_settle_timeout_seconds: float = (
             DEFAULT_POST_PACK_SETTLE_TIMEOUT_SECONDS
         ),
+        full_state_quiet_seconds: float = DEFAULT_FULL_STATE_QUIET_SECONDS,
+        full_state_quiet_timeout_seconds: float = (
+            DEFAULT_FULL_STATE_QUIET_TIMEOUT_SECONDS
+        ),
+        full_state_quiet_poll_seconds: float | None = None,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -172,6 +184,14 @@ class SupervisorLiveMemoryBalatroObserver(LiveMemoryBalatroObserver):
             raise ValueError("joker visual stable duration cannot be negative")
         if post_pack_settle_timeout_seconds <= 0:
             raise ValueError("post-pack settle timeout must be positive")
+        if full_state_quiet_seconds < 0:
+            raise ValueError("full-state quiet duration cannot be negative")
+        if full_state_quiet_timeout_seconds <= 0:
+            raise ValueError("full-state quiet timeout must be positive")
+        if full_state_quiet_poll_seconds is None:
+            full_state_quiet_poll_seconds = blind_select_readiness_poll_seconds
+        if full_state_quiet_poll_seconds < 0:
+            raise ValueError("full-state quiet poll interval cannot be negative")
 
         self.blind_select_readiness_timeout_seconds = float(
             blind_select_readiness_timeout_seconds
@@ -186,7 +206,13 @@ class SupervisorLiveMemoryBalatroObserver(LiveMemoryBalatroObserver):
         self.post_pack_settle_timeout_seconds = float(
             post_pack_settle_timeout_seconds
         )
+        self.full_state_quiet_seconds = float(full_state_quiet_seconds)
+        self.full_state_quiet_timeout_seconds = float(
+            full_state_quiet_timeout_seconds
+        )
+        self.full_state_quiet_poll_seconds = float(full_state_quiet_poll_seconds)
         self._last_exposed_phase: str | None = None
+        self._last_quiescent_sequence: int | None = None
 
     def _observe_public(self):
         return super().observe()
@@ -261,6 +287,62 @@ class SupervisorLiveMemoryBalatroObserver(LiveMemoryBalatroObserver):
                 last_signature = signature
                 visual_stable_since = monotonic()
 
+    def _wait_for_full_state_quiet(self, snapshot):
+        """Require a continuous quiet window in the observer's full sequence.
+
+        ``LiveMemoryBalatroObserver.sequence`` advances whenever the full observed
+        phase/state/payload fingerprint changes, including presentation geometry.
+        Therefore a sequence that remains unchanged for this window is stronger
+        evidence of native transition settlement than ``STATE_COMPLETE`` or
+        semantic equality alone.
+
+        Once a sequence has been certified quiet, repeated reads of that exact
+        sequence return immediately. A later native change produces a new sequence
+        and automatically re-arms the barrier before another supervisor command can
+        be based on it.
+        """
+        if (
+            snapshot.state_complete
+            and self._last_quiescent_sequence is not None
+            and int(snapshot.sequence) == self._last_quiescent_sequence
+        ):
+            return snapshot
+
+        deadline = monotonic() + self.full_state_quiet_timeout_seconds
+        last = snapshot
+        last_sequence = int(snapshot.sequence)
+        quiet_since = monotonic() if snapshot.state_complete else None
+
+        while True:
+            now = monotonic()
+            if (
+                quiet_since is not None
+                and now - quiet_since >= self.full_state_quiet_seconds
+            ):
+                self._last_quiescent_sequence = int(last.sequence)
+                return last
+
+            if now >= deadline:
+                raise LiveMemoryObservationError(
+                    "Balatro public state did not remain fully quiescent before "
+                    "supervisor command readiness; "
+                    f"phase={last.phase}, sequence={last.sequence}, "
+                    f"complete={bool(last.state_complete)}"
+                )
+
+            if self.full_state_quiet_poll_seconds:
+                sleep(self.full_state_quiet_poll_seconds)
+            current = self._observe_public()
+            current_sequence = int(current.sequence)
+
+            if current_sequence != last_sequence or not current.state_complete:
+                last_sequence = current_sequence
+                quiet_since = monotonic() if current.state_complete else None
+            elif quiet_since is None and current.state_complete:
+                quiet_since = monotonic()
+
+            last = current
+
     def observe(self):
         previous_phase = self._last_exposed_phase
         snapshot = self._observe_public()
@@ -302,5 +384,7 @@ class SupervisorLiveMemoryBalatroObserver(LiveMemoryBalatroObserver):
             snapshot = self._wait_for_post_pack_visual_settle(snapshot)
             final_phase = str(snapshot.phase)
 
+        snapshot = self._wait_for_full_state_quiet(snapshot)
+        final_phase = str(snapshot.phase)
         self._last_exposed_phase = final_phase
         return snapshot
