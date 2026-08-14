@@ -537,9 +537,9 @@ class LiveHandActionDecisionEngine:
     def _rank_immediate_plans(self, state) -> list[LiveBlindPlan]:
         """Rank a bounded one-action fallback from only the current public state.
 
-        This path is used only when the richer fallback exhausts its node budget.
-        Depth one cannot recurse into draw outcomes, while explicitly retaining
-        legal discard candidates keeps the pace-recovery hierarchy intact.
+        This path is used after adaptive clear-path search has exhausted its useful
+        horizon. Depth one cannot recurse into draw outcomes, while explicitly
+        retaining legal discard candidates keeps the pace-recovery hierarchy intact.
         """
         planner = self.planner
         planner._require_state(state)
@@ -672,13 +672,10 @@ class LiveHandActionDecisionEngine:
         )
 
         # No credible adaptive search survived the exact/sampled confirmation gate.
-        # Prefer the richer shallow D1 beam, but never let its node budget terminate
-        # autonomy. If it exhausts the budget, degrade to a bounded one-action beam
-        # that still includes legal discards and uses only the current public state.
-        try:
-            fallback_plans = self.rank_plans(state)
-        except PlannerSearchBudgetExceeded:
-            fallback_plans = self._rank_immediate_plans(state)
+        # Pace/recovery needs broad current-action coverage, not another recursive
+        # draw search. Go directly to the bounded one-action beam so autonomy cannot
+        # spend a second search budget re-proving that no clear path was confirmed.
+        fallback_plans = self._rank_immediate_plans(state)
         return self.policy.decide(
             state,
             fallback_plans,
