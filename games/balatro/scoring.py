@@ -55,12 +55,13 @@ class BalatroScorer:
     }
 
     def is_card_debuffed(self, card) -> bool:
-        """Return whether a card's scoring/held effects are disabled.
+        """Return whether Balatro currently disables this card's effects.
 
-        The base scorer has no blind-specific debuffs. Live boss-specific scorers
-        override this hook while leaving poker-hand classification unchanged.
+        Live observation exposes the public per-card ``debuff`` flag. Debuffed
+        cards retain rank/suit for poker-hand classification, but their chips,
+        enhancement/edition effects and held-card effects do not contribute.
         """
-        return False
+        return bool(getattr(card, "debuffed", False))
 
     @staticmethod
     def _played_card_trigger_count(card, extra_retriggers: int = 0) -> int:
