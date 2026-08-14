@@ -19,6 +19,7 @@ from games.balatro.build import (
 )
 from games.balatro.consumable import PlanetCard
 from games.balatro.joker import Joker
+from games.balatro.resource_value import RunResourceValuator
 from games.balatro.state import BalatroState
 
 
@@ -249,6 +250,7 @@ class BalatroShopPolicy:
         item_value_estimator: ShopItemValueEstimator | None = None,
         *,
         joker_transition_planner: JokerBuildTransitionPlanner | None = None,
+        resource_valuator: RunResourceValuator | None = None,
         price_weight: float = 0.35,
         interest_weight: float = 1.25,
         reserve_target: int = 5,
@@ -261,6 +263,7 @@ class BalatroShopPolicy:
         self.item_value_estimator = (
             item_value_estimator or DefaultShopItemValueEstimator()
         )
+        self.resource_valuator = resource_valuator or RunResourceValuator()
         if joker_transition_planner is not None:
             self.joker_transition_planner = joker_transition_planner
         elif isinstance(self.item_value_estimator, DefaultShopItemValueEstimator):
@@ -445,14 +448,17 @@ class BalatroShopPolicy:
 
         item_utility, notes = self.item_value_estimator.estimate(state, action)
         edition_bonus = self._edition_bonus(action.target)
-        price_penalty = price * self.price_weight
-        interest_penalty = (
-            self._interest(state.money) - self._interest(remaining)
-        ) * self.interest_weight
-        reserve_penalty = self._incremental_reserve_shortfall(
-            state.money,
-            remaining,
-        ) * self.reserve_weight
+        resource_cost = self.resource_valuator.money_spend_cost(
+            money=state.money,
+            spend=price,
+            price_weight=self.price_weight,
+            interest_weight=self.interest_weight,
+            reserve_target=self.reserve_target,
+            reserve_weight=self.reserve_weight,
+        )
+        price_penalty = resource_cost.direct
+        interest_penalty = resource_cost.interest
+        reserve_penalty = resource_cost.reserve
         slot_penalty = self._slot_penalty(state, action)
 
         total = (
@@ -488,7 +494,7 @@ class BalatroShopPolicy:
 
     @staticmethod
     def _interest(money: int) -> int:
-        return min(5, max(0, int(money)) // 5)
+        return RunResourceValuator.interest_value(money)
 
     def _incremental_reserve_shortfall(self, before: int, after: int) -> int:
         before_shortfall = max(0, self.reserve_target - before)
@@ -501,17 +507,22 @@ class BalatroShopPolicy:
         action: BalatroAction,
     ) -> float:
         if action.name == BUY_JOKER:
-            free_after = state.joker_slots - (len(state.jokers) + 1)
-            if free_after <= 0:
-                return self.last_joker_slot_penalty
-            if free_after == 1:
-                return self.penultimate_joker_slot_penalty
-            return 0.0
+            return self.resource_valuator.slot_opportunity_cost(
+                occupied=len(state.jokers),
+                capacity=state.joker_slots,
+                last_slot_penalty=self.last_joker_slot_penalty,
+                penultimate_slot_penalty=self.penultimate_joker_slot_penalty,
+                resource="joker",
+            ).total
 
         if action.name == BUY_CONSUMABLE:
-            free_after = state.consumable_slots - (len(state.consumables) + 1)
-            if free_after <= 0:
-                return self.last_consumable_slot_penalty
+            return self.resource_valuator.slot_opportunity_cost(
+                occupied=len(state.consumables),
+                capacity=state.consumable_slots,
+                last_slot_penalty=self.last_consumable_slot_penalty,
+                penultimate_slot_penalty=0.0,
+                resource="consumable",
+            ).total
 
         return 0.0
 
