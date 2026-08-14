@@ -46,6 +46,23 @@ def _choice_at(choices, index: int) -> LivePackChoice | None:
     )
 
 
+def _ranked_select_action(ranked, index: int) -> BalatroAction | None:
+    """Return the policy-produced semantic action for one visible pack choice.
+
+    Pack policy may attach B6-selected hand targets to SELECT_PACK_CARD. Armed
+    validation must execute that exact semantic action rather than reconstructing a
+    bare selection and silently discarding the target plan.
+    """
+    for scored in ranked:
+        action = scored.action
+        if action.name != SELECT_PACK_CARD:
+            continue
+        target = action.target
+        if isinstance(target, LivePackChoice) and int(target.area_index) == int(index):
+            return action
+    return None
+
+
 def _guard_errors(
     *,
     phase: str,
@@ -104,9 +121,12 @@ def _action_text(action: BalatroAction) -> str:
     if action.name == SKIP_BOOSTER:
         return SKIP_BOOSTER
     choice = action.target
+    target_text = ""
+    if action.cards:
+        target_text = f", hand_targets={len(action.cards)}"
     return (
         f"{SELECT_PACK_CARD}: index={choice.area_index}, "
-        f"label={_label(choice)!r}, center={_center(choice)!r}"
+        f"label={_label(choice)!r}, center={_center(choice)!r}{target_text}"
     )
 
 
@@ -242,6 +262,14 @@ def main() -> int:
             print("Mouse input sent -> False")
             return 0
 
+        # Rebuild the policy decision from the final guarded checkpoint. Targeted
+        # Tarot/Spectral actions carry Card objects from this translated state, and
+        # the injected dispatcher requires this exact state to map them to native
+        # hand indices and verify their semantic postcondition.
+        latest_state = translator.translate(latest)
+        latest_actions = generator.generate_actions(latest_state, list(latest_choices))
+        latest_ranked = policy.rank_actions(latest_state, latest_actions)
+
         bridge = FirstPartyBalatroBridge()
         try:
             bridge.ping()
@@ -254,9 +282,16 @@ def main() -> int:
 
         if args.action == SELECT_PACK_CARD:
             assert args.index is not None
-            target = _choice_at(latest_choices, args.index)
-            assert target is not None
-            action = BalatroAction(SELECT_PACK_CARD, target={"area_index": int(args.index)})
+            action = _ranked_select_action(latest_ranked, args.index)
+            if action is None:
+                print("Execution guard -> BLOCKED")
+                print(
+                    "Reason -> guarded visible choice has no policy-produced semantic action"
+                )
+                print("Injected bridge command sent -> False")
+                print("Mouse input sent -> False")
+                return 0
+            target = action.target
         else:
             target = None
             action = BalatroAction(SKIP_BOOSTER)
@@ -272,13 +307,15 @@ def main() -> int:
                 f"Armed target -> index={target.area_index} "
                 f"label={_label(target)!r} center={_center(target)!r}"
             )
+            if action.cards:
+                print(f"Policy-selected hand targets -> {len(action.cards)}")
         print("Mouse input sent -> False")
 
         try:
             result = LiveMemoryInjectedActionDispatcher(
                 observer,
                 bridge=bridge,
-            ).dispatch(action, snapshot=latest)
+            ).dispatch(action, state=latest_state, snapshot=latest)
         except (InjectedBridgeError, RuntimeError) as error:
             print("Injected execution -> FAILED")
             print(f"Reason -> {error}")
