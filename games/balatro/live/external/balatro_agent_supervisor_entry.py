@@ -3,9 +3,17 @@ from __future__ import annotations
 import argparse
 import traceback
 
+from games.balatro.live.injected.bridge import FirstPartyBalatroBridge
+
 from .agent_control import BalatroAgentControl
 from .balatro_agent_crash_report_repo import write_repo_crash_report
-from .balatro_agent_supervisor import BalatroAgentSupervisor
+from .balatro_agent_supervisor import (
+    DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS,
+    BalatroAgentSupervisor,
+)
+from .playstyle_autonomous_runner import (
+    PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
+)
 
 
 def main() -> int:
@@ -25,6 +33,12 @@ def main() -> int:
     control = BalatroAgentControl(args.control_dir)
     supervisor = BalatroAgentSupervisor(
         control=control,
+        runner_factory=lambda observer: PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
+            observer,
+            bridge=FirstPartyBalatroBridge(
+                timeout=DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS,
+            ),
+        ),
         run_log_directory=args.run_log_directory,
         session_directory=args.session_directory,
         session_id=args.session_id,
