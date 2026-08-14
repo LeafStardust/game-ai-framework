@@ -251,8 +251,8 @@
 
 **Open build-intelligence integration**
 
-- [ ] **B6 Build-aware pack choice:** visible pack offers evaluated as build transitions
-- [ ] **B7 Build intent feedback into D1:** hand/discard choices should actively exploit the build's supported hand/archetype
+- [x] **B6 Build-aware pack choice:** visible pack offers evaluated as build transitions
+- [x] **B7 Build intent feedback into D1:** hand/discard choices should actively exploit the build's supported hand/archetype
 - [ ] **B7 Build rationale logging:** record which synergies caused a purchase/use/target choice and how build intent changed
 
 ### 0.9E — Decision coverage inventory
