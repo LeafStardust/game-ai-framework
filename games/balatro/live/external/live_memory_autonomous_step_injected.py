@@ -722,12 +722,19 @@ def main() -> int:
                 return 1
 
             run_logger = None
+            run_log_error: Exception | None = None
             if args.run_id is not None:
-                run_logger = log_successful_live_transition(
-                    decision,
-                    result,
-                    run_id=args.run_id,
-                )
+                try:
+                    run_logger = log_successful_live_transition(
+                        decision,
+                        result,
+                        run_id=args.run_id,
+                    )
+                except Exception as error:
+                    # Gameplay has already executed and reached an authoritative
+                    # postcondition. A telemetry failure must never rewrite that
+                    # truth as "gameplay command sent -> False".
+                    run_log_error = error
 
             print("Execution guard -> PASS")
             print("Achievement status command sent -> True")
@@ -738,14 +745,17 @@ def main() -> int:
             print("Injected gameplay command sent -> True")
             print(f"Checkpoint sequence -> {result.after.sequence}")
             print(f"Phase after -> {result.after.phase}")
-            if run_logger is None:
+            if run_log_error is not None:
+                print("Run experience log -> FAILED")
+                print(f"Run logging reason -> {run_log_error}")
+            elif run_logger is None:
                 print("Run experience log -> DISABLED (--run-id not supplied)")
             else:
                 print(f"Run experience log -> {run_logger.path}")
                 if str(result.after.phase) == "GAME_OVER":
                     print(f"Run summary -> {run_logger.summary_path}")
             print("Follow-up action executed -> False")
-            return 0
+            return 1 if run_log_error is not None else 0
     except UnsupportedAutonomousPhase as error:
         print("Live-memory autonomous injected step -> BLOCKED")
         print(f"Reason -> {error}")
