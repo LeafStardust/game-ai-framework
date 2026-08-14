@@ -14,7 +14,7 @@ def _runner():
     )
 
 
-def test_production_runner_shares_one_intent_tracker_across_d1_d2_and_d4():
+def test_production_runner_shares_one_intent_tracker_across_d1_d2_d9_and_logging():
     runner = _runner()
 
     estimator = runner.shop_policy.item_value_estimator
@@ -41,9 +41,14 @@ def test_production_runner_shares_one_intent_tracker_across_d1_d2_and_d4():
     assert pack_playstyle.intent_tracker is runner.playstyle_intent_tracker
     assert pack_playstyle.profiler is runner.playstyle_profiler
 
+    build_log = runner.build_intent_log_tracker
+    assert build_log.intent_tracker is runner.playstyle_intent_tracker
+    assert build_log.profiler is runner.playstyle_profiler
 
-def test_fresh_runner_gets_fresh_run_scoped_intent_tracker():
+
+def test_fresh_runner_gets_fresh_run_scoped_intent_and_logging_trackers():
     first = _runner()
     second = _runner()
 
     assert first.playstyle_intent_tracker is not second.playstyle_intent_tracker
+    assert first.build_intent_log_tracker is not second.build_intent_log_tracker
