@@ -22,6 +22,9 @@ from games.balatro.live.injected.bridge import (
 )
 from games.balatro.live.pack import LivePackActionGenerator
 from games.balatro.live.protocol import LiveBalatroSnapshot
+from games.balatro.live.run_experience_transition import (
+    log_successful_live_transition,
+)
 from games.balatro.live.shop import BalatroShopActionGenerator
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 from games.balatro.pack_policy import BalatroPackPolicy
@@ -612,6 +615,13 @@ def main() -> int:
         "--expect-phase",
         help="required with --execute; prevents acting if Balatro is in another phase",
     )
+    parser.add_argument(
+        "--run-id",
+        help=(
+            "optional persistent run identifier; successful --execute transitions "
+            "append to logs/balatro/runs/<run-id>.jsonl"
+        ),
+    )
     parser.add_argument("--max-horizon", type=int)
     parser.add_argument("--max-search-nodes", type=int)
     parser.add_argument("--exact-limit", type=int, default=128)
@@ -622,6 +632,10 @@ def main() -> int:
         parser.error("--execute requires --expect-phase")
     if not args.execute and args.expect_phase is not None:
         parser.error("--expect-phase is only valid with --execute")
+    if not args.execute and args.run_id is not None:
+        parser.error("--run-id is only valid with --execute")
+    if args.run_id is not None and not args.run_id.strip():
+        parser.error("--run-id cannot be empty")
     for name in ("max_horizon", "max_search_nodes"):
         value = getattr(args, name)
         if value is not None and value < 1:
@@ -707,6 +721,14 @@ def main() -> int:
                 print("Follow-up action executed -> False")
                 return 1
 
+            run_logger = None
+            if args.run_id is not None:
+                run_logger = log_successful_live_transition(
+                    decision,
+                    result,
+                    run_id=args.run_id,
+                )
+
             print("Execution guard -> PASS")
             print("Achievement status command sent -> True")
             print(f"Bridge version -> {status.get('bridge', 'MISSING')}")
@@ -716,6 +738,12 @@ def main() -> int:
             print("Injected gameplay command sent -> True")
             print(f"Checkpoint sequence -> {result.after.sequence}")
             print(f"Phase after -> {result.after.phase}")
+            if run_logger is None:
+                print("Run experience log -> DISABLED (--run-id not supplied)")
+            else:
+                print(f"Run experience log -> {run_logger.path}")
+                if str(result.after.phase) == "GAME_OVER":
+                    print(f"Run summary -> {run_logger.summary_path}")
             print("Follow-up action executed -> False")
             return 0
     except UnsupportedAutonomousPhase as error:
