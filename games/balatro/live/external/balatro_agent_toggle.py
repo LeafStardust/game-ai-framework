@@ -96,7 +96,7 @@ def stop_agent(control: BalatroAgentControl) -> int | None:
         session_id=current.get("session_id"),
         attempt=current.get("attempt"),
         run_id=current.get("run_id"),
-        reason="manual toggle OFF requested; stop before next gameplay action",
+        reason="manual toggle OFF requested; stop before the next gameplay action",
     )
     return pid
 
