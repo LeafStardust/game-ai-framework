@@ -17,6 +17,7 @@ from games.balatro.actions import (
     SELECT_BLIND,
     SELECT_PACK_CARD,
     SELL_JOKER,
+    SKIP_BLIND,
     SKIP_BOOSTER,
     USE_CONSUMABLE,
     BalatroAction,
@@ -223,6 +224,13 @@ def _require_shop_consumable(item: dict) -> None:
         )
 
 
+def _blind_type(snapshot: LiveBalatroSnapshot) -> str:
+    blind = snapshot.payload.get("blind")
+    if not isinstance(blind, dict):
+        return "UNKNOWN"
+    return str(blind.get("type") or "UNKNOWN").upper()
+
+
 class LiveMemoryInjectedActionDispatcher:
     """Execute supported Balatro actions through the first-party Lua bridge.
 
@@ -345,6 +353,37 @@ class LiveMemoryInjectedActionDispatcher:
                 "blind selection",
             )
             return LiveInjectedActionResult(action, before, after)
+
+        if name == SKIP_BLIND:
+            if before.phase != "BLIND_SELECT":
+                raise UnsupportedInjectedAction(
+                    f"SKIP_BLIND requires BLIND_SELECT, observed {before.phase}"
+                )
+            before_blind = _blind_type(before)
+            if before_blind not in {"SMALL", "BIG"}:
+                raise UnsupportedInjectedAction(
+                    f"SKIP_BLIND requires a skippable Small/Big blind, observed {before_blind}"
+                )
+            self.bridge.skip_blind()
+            after = self._wait(
+                before,
+                lambda value: (
+                    value.sequence > before.sequence
+                    and value.phase == "BLIND_SELECT"
+                    and value.state_complete
+                    and _blind_type(value) != before_blind
+                ),
+                "blind skip",
+            )
+            return LiveInjectedActionResult(
+                action,
+                before,
+                after,
+                {
+                    "blind_before": before_blind,
+                    "blind_after": _blind_type(after),
+                },
+            )
 
         if name == REFRESH_SHOP:
             if before.phase != "SHOP":
