@@ -65,7 +65,12 @@ class _PreparedBuildIntent:
             "transition": "INITIAL",
             "changed_fields": ["jokers"],
             "profile": {"jokers": ["JokerJoker"]},
-            "intent": {"mode": "PIVOTABLE", "strengths": {}},
+            "intent": {
+                "mode": "PIVOTABLE",
+                "locked": False,
+                "lock_ante": None,
+                "strengths": {"pair": 1.0},
+            },
             "detected_synergies": [],
         }
         self.committed = False
@@ -114,6 +119,7 @@ def test_successful_transitions_resume_sequence_and_write_terminal_summary(tmp_p
         "run_finished",
     ]
     assert rows[2]["data"]["action"]["indices"] == [0]
+    assert "build_rationale" not in rows[2]["data"]["rationale"]
     assert _contains_key(rows, "ui") is False
 
     summary = json.loads(second_logger.summary_path.read_text(encoding="utf-8"))
@@ -155,6 +161,104 @@ def test_prepared_build_intent_is_written_before_decision_then_committed(tmp_pat
     assert rows[2]["data"]["transition"] == "INITIAL"
     assert rows[2]["data"]["profile"]["jokers"] == ["JokerJoker"]
     assert prepared.committed is True
+
+
+def test_chosen_purchase_logs_only_policy_supplied_build_causal_signals(tmp_path):
+    state = SimpleNamespace(
+        deck_name="RED",
+        stake_name="WHITE",
+        hand=[],
+    )
+    target = SimpleNamespace(name="Candidate Joker", price=5)
+    prepared = _PreparedBuildIntent()
+    decision = SimpleNamespace(
+        snapshot=_snapshot(10, "SHOP"),
+        state=state,
+        action=BalatroAction("BUY_JOKER", target=target),
+        source="shop policy",
+        notes=(
+            "policy_score=8.000000",
+            "B3 interaction=2.500",
+            "Candidate Joker creates rank:A -> held:rank:A; enables requirement for ExistingJoker (+1.250)",
+            "playstyle fit=1.000 value=2.000 mode=PIVOTABLE",
+            "price penalty=5.000",
+        ),
+        build_intent=prepared,
+    )
+    result = SimpleNamespace(after=_snapshot(11, "SHOP"))
+
+    logger = log_successful_live_transition(
+        decision,
+        result,
+        run_id="build-rationale-001",
+        directory=tmp_path,
+    )
+
+    rows = [
+        json.loads(line)
+        for line in logger.path.read_text(encoding="utf-8").splitlines()
+    ]
+    decision_row = next(row for row in rows if row["event"] == "decision")
+    rationale = decision_row["data"]["rationale"]["build_rationale"]
+
+    assert rationale["action_family"] == "PURCHASE"
+    assert rationale["decision_source"] == "shop policy"
+    assert rationale["intent_before"]["mode"] == "PIVOTABLE"
+    assert rationale["intent_before"]["strengths"] == {"pair": 1.0}
+    assert [signal["kind"] for signal in rationale["signals"]] == [
+        "B3",
+        "INTERACTION",
+        "PLAYSTYLE",
+    ]
+    assert all(
+        signal["text"] not in {"policy_score=8.000000", "price penalty=5.000"}
+        for signal in rationale["signals"]
+    )
+
+
+def test_targeted_pack_choice_logs_b6_and_d9_rationale_without_recomputing(tmp_path):
+    cards = [object(), object()]
+    state = SimpleNamespace(
+        deck_name="RED",
+        stake_name="WHITE",
+        hand=cards,
+    )
+    decision = SimpleNamespace(
+        snapshot=_snapshot(20, "TAROT_PACK"),
+        state=state,
+        action=BalatroAction(
+            "SELECT_PACK_CARD",
+            cards=cards,
+            target=SimpleNamespace(label="The Sun", area_index=1),
+        ),
+        source="pack policy",
+        notes=(
+            "policy_score=4.250000",
+            "B6 pack target gain=2.000",
+            "D9 playstyle fit=0.500 value=1.125 mode=PIVOTABLE",
+            "target_indices=(0, 1)",
+        ),
+    )
+    result = SimpleNamespace(after=_snapshot(21, "SHOP"))
+
+    logger = log_successful_live_transition(
+        decision,
+        result,
+        run_id="build-rationale-002",
+        directory=tmp_path,
+    )
+
+    rows = [
+        json.loads(line)
+        for line in logger.path.read_text(encoding="utf-8").splitlines()
+    ]
+    decision_row = next(row for row in rows if row["event"] == "decision")
+    rationale = decision_row["data"]["rationale"]["build_rationale"]
+
+    assert rationale["action_family"] == "PACK_CHOICE"
+    assert [signal["kind"] for signal in rationale["signals"]] == ["B6", "D9"]
+    assert decision_row["data"]["action"]["indices"] == [0, 1]
+    assert decision_row["data"]["action"]["target"]["label"] == "The Sun"
 
 
 def test_resumed_logger_rejects_identity_mismatch(tmp_path):
