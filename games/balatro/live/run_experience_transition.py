@@ -10,6 +10,41 @@ from .run_experience import BalatroRunExperienceLogger, BalatroRunIdentity
 
 TERMINAL_PHASES = frozenset({"GAME_OVER"})
 
+_BUILD_ACTION_FAMILIES = {
+    "PLAY_CARDS": "HAND",
+    "DISCARD_CARDS": "HAND",
+    "BUY_JOKER": "PURCHASE",
+    "SELL_JOKER": "SALE",
+    "BUY_CONSUMABLE": "PURCHASE",
+    "BUY_AND_USE_CONSUMABLE": "USE",
+    "BUY_BOOSTER": "PURCHASE",
+    "BUY_VOUCHER": "PURCHASE",
+    "USE_CONSUMABLE": "USE",
+    "SELECT_PACK_CARD": "PACK_CHOICE",
+}
+_BUILD_SIGNAL_PREFIXES = {
+    "B3 ": "B3",
+    "B4 ": "B4",
+    "B6 ": "B6",
+    "D1 ": "D1",
+    "D9 ": "D9",
+}
+_BUILD_SIGNAL_TERMS = (
+    "build gain",
+    "build delta",
+    "whole-build",
+    "build path",
+    "synergy",
+    "interaction",
+    "requirement",
+    "scales with",
+    "scaling source",
+    "amplif",
+    "playstyle",
+    "prospective deck feature",
+    "target gain",
+)
+
 
 def _sanitize_public_value(value: Any) -> Any:
     """Keep JSON-safe public semantics while dropping presentation-only UI data."""
@@ -64,6 +99,58 @@ def action_log_payload(decision) -> dict[str, Any]:
     return payload
 
 
+def _build_signal_kind(note: str) -> str | None:
+    for prefix, kind in _BUILD_SIGNAL_PREFIXES.items():
+        if note.startswith(prefix):
+            return kind
+
+    lowered = note.lower()
+    if "playstyle" in lowered:
+        return "PLAYSTYLE"
+    if any(term in lowered for term in _BUILD_SIGNAL_TERMS):
+        return "INTERACTION"
+    return None
+
+
+def build_rationale_log_payload(decision) -> dict[str, Any] | None:
+    """Project chosen policy rationale into structured build-causal telemetry.
+
+    The policy that selected the action remains authoritative. This logger never
+    reruns B3/B4/B6 or playstyle evaluation; it only classifies rationale already
+    attached to the chosen decision. That preserves the exact evidence that drove
+    the guarded action and avoids creating a second strategy implementation inside
+    telemetry code.
+    """
+    action_name = str(decision.action.name)
+    action_family = _BUILD_ACTION_FAMILIES.get(action_name)
+    if action_family is None:
+        return None
+
+    signals: list[dict[str, str]] = []
+    for raw_note in getattr(decision, "notes", ()):
+        note = str(raw_note)
+        kind = _build_signal_kind(note)
+        if kind is not None:
+            signals.append({"kind": kind, "text": note})
+
+    if not signals:
+        return None
+
+    payload: dict[str, Any] = {
+        "action_family": action_family,
+        "decision_source": str(decision.source),
+        "signals": signals,
+    }
+    prepared_build_intent = getattr(decision, "build_intent", None)
+    if prepared_build_intent is not None:
+        prepared_payload = getattr(prepared_build_intent, "payload", None)
+        if isinstance(prepared_payload, dict):
+            intent = prepared_payload.get("intent")
+            if intent is not None:
+                payload["intent_before"] = _sanitize_public_value(intent)
+    return payload
+
+
 def _snapshot_log_state(snapshot) -> dict[str, Any]:
     return {
         "sequence": int(snapshot.sequence),
@@ -107,6 +194,7 @@ def log_successful_live_transition(
     before_state = _snapshot_log_state(decision.snapshot)
     after_state = _snapshot_log_state(result.after)
     action = action_log_payload(decision)
+    build_rationale = build_rationale_log_payload(decision)
     prepared_build_intent = getattr(decision, "build_intent", None)
     commit_prepared_build_intent = False
     if build_intent is None and prepared_build_intent is not None:
@@ -128,12 +216,15 @@ def log_successful_live_transition(
         )
         if commit_prepared_build_intent:
             prepared_build_intent.commit()
+    rationale = {
+        "decision_source": str(decision.source),
+        "notes": [str(note) for note in decision.notes],
+    }
+    if build_rationale is not None:
+        rationale["build_rationale"] = build_rationale
     logger.decision(
         action=action,
-        rationale={
-            "decision_source": str(decision.source),
-            "notes": [str(note) for note in decision.notes],
-        },
+        rationale=rationale,
     )
     logger.action_result(
         action=action,
