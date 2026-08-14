@@ -34,7 +34,7 @@ from .live_memory_restart_run_injected import (
 
 SESSION_SUMMARY_SCHEMA = "balatro-agent-session-summary-v1"
 DEFAULT_STARTUP_STABILITY_INTERVAL_SECONDS = 0.10
-DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS = 2.0
+DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS = 20.0
 
 
 class BalatroAgentSupervisorError(RuntimeError):
@@ -80,8 +80,12 @@ def wait_for_stable_startup_snapshot(
     if timeout_seconds <= 0:
         raise ValueError("startup stability timeout must be positive")
 
-    deadline = perf_counter() + float(timeout_seconds)
+    # A fresh attempt deliberately constructs a fresh observer. Its first live
+    # process-memory observation may include cold process attachment and G-table
+    # discovery, which is connection cost rather than state-settling time. Start
+    # the stability deadline only after that first authoritative snapshot exists.
     previous = observer.observe()
+    deadline = perf_counter() + float(timeout_seconds)
     while True:
         if perf_counter() >= deadline:
             raise BalatroAgentSupervisorError(
