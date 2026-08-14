@@ -1,14 +1,17 @@
 from types import SimpleNamespace
 
+import games.balatro.live.external.live_memory_supervisor_observer as supervisor_observer_module
 from games.balatro.live.external.balatro_agent_supervisor import (
     BalatroAgentSupervisor,
     DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS,
 )
 from games.balatro.live.external.live_memory_supervisor_observer import (
     SupervisorLiveMemoryBalatroObserver,
+    joker_visual_signature,
     native_blind_select_ready,
     native_shop_ready,
 )
+from games.balatro.live.protocol import LiveBalatroSnapshot
 
 
 class _Decoder:
@@ -21,6 +24,40 @@ class _Decoder:
 
 def _value(kind, value):
     return SimpleNamespace(kind=kind, value=value)
+
+
+def _shop_snapshot(sequence: int, *, joker_x: float) -> LiveBalatroSnapshot:
+    return LiveBalatroSnapshot(
+        sequence=sequence,
+        phase="SHOP",
+        state_complete=True,
+        payload={
+            "jokers": {
+                "count": 1,
+                "limit": 5,
+                "cards": [
+                    {
+                        "live_id": 99,
+                        "center": "j_joker",
+                        "label": "Joker",
+                        "ui": {"x": joker_x, "y": 1.0, "w": 1.0, "h": 1.4},
+                        "public_state": {"mult": sequence},
+                    }
+                ],
+            }
+        },
+    )
+
+
+class _Clock:
+    def __init__(self):
+        self.now = 0.0
+
+    def monotonic(self):
+        return self.now
+
+    def sleep(self, seconds):
+        self.now += float(seconds)
 
 
 def test_native_blind_select_readiness_requires_real_on_deck_and_pane():
@@ -77,6 +114,47 @@ def test_native_shop_readiness_requires_real_card_areas_not_offer_counts():
     # early END_SHOP.
     decoder.tables[12] = {"card_limit": _value("number", 0)}
     assert native_shop_ready(decoder, root) is False
+
+
+def test_joker_visual_signature_tracks_geometry_not_strategic_state():
+    first = _shop_snapshot(1, joker_x=2.0)
+    same_position_new_state = _shop_snapshot(2, joker_x=2.0)
+    moved = _shop_snapshot(3, joker_x=3.0)
+
+    assert joker_visual_signature(first) == joker_visual_signature(same_position_new_state)
+    assert joker_visual_signature(first) != joker_visual_signature(moved)
+
+
+def test_post_pack_shop_waits_until_joker_geometry_is_stable(monkeypatch):
+    clock = _Clock()
+    monkeypatch.setattr(supervisor_observer_module, "monotonic", clock.monotonic)
+    monkeypatch.setattr(supervisor_observer_module, "sleep", clock.sleep)
+
+    observer = SupervisorLiveMemoryBalatroObserver(
+        post_pack_settle_seconds=0.10,
+        joker_visual_stable_seconds=0.10,
+        post_pack_settle_timeout_seconds=1.0,
+        shop_readiness_poll_seconds=0.05,
+    )
+    snapshots = iter(
+        [
+            _shop_snapshot(2, joker_x=1.0),
+            _shop_snapshot(3, joker_x=2.0),
+            _shop_snapshot(4, joker_x=2.0),
+            _shop_snapshot(5, joker_x=2.0),
+        ]
+    )
+    observer._observe_public = lambda: next(snapshots)
+
+    settled = observer._wait_for_post_pack_visual_settle(
+        _shop_snapshot(1, joker_x=0.0)
+    )
+
+    assert settled.sequence == 5
+    assert joker_visual_signature(settled) == joker_visual_signature(
+        _shop_snapshot(99, joker_x=2.0)
+    )
+    assert clock.now >= 0.20
 
 
 def test_supervisor_defaults_to_readiness_aware_observer_and_longer_bridge_timeout(tmp_path):
