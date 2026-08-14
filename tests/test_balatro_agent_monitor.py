@@ -1,7 +1,7 @@
 from games.balatro.live.external.balatro_agent_monitor import build_dashboard
 
 
-def test_dashboard_shows_current_run_and_last_decision():
+def test_dashboard_shows_current_run_last_decision_and_live_activity():
     status = {
         "state": "ON",
         "session_id": "session-1",
@@ -49,19 +49,32 @@ def test_dashboard_shows_current_run_and_last_decision():
             },
         },
     ]
+    telemetry = {
+        "activity": "THINKING",
+        "phase": "SELECTING_HAND",
+        "action": "-",
+        "decision_source": "D1 hand-action policy",
+        "detail": "evaluating the current settled checkpoint",
+        "notes": ["searching clear paths"],
+    }
 
     text = build_dashboard(
         status,
         supervisor_pid=1234,
         balatro_running=True,
         rows=rows,
+        telemetry=telemetry,
     )
 
     assert "Run ongoing     : YES" in text
+    assert "Agent activity   : THINKING" in text
     assert "Attempt         : 3" in text
     assert "Deck / Stake    : RED / WHITE" in text
     assert "Current phase   : SELECTING_HAND" in text
     assert "Score / Blind   : 220 / 450" in text
+    assert "Activity        : THINKING" in text
+    assert "evaluating the current settled checkpoint" in text
+    assert "searching clear paths" in text
     assert "Action          : PLAY_CARDS indices=0,2" in text
     assert "Decision source : D1 hand-action policy" in text
     assert "pace_ratio=1.20" in text
@@ -74,8 +87,10 @@ def test_dashboard_reports_stopped_run():
         supervisor_pid=None,
         balatro_running=False,
         rows=[],
+        telemetry={"activity": "OFF"},
     )
 
+    assert "Agent activity   : OFF" in text
     assert "Supervisor      : STOPPED" in text
     assert "Balatro.exe     : NOT RUNNING" in text
     assert "Run ongoing     : NO" in text
