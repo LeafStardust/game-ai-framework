@@ -150,8 +150,22 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return "UNEXPECTED:" .. type(value)
   end
 
+  local function restart_run_callback_state()
+    if type(G) ~= "table" then
+      return "NO_G"
+    end
+    if type(G.FUNCS) ~= "table" then
+      return "NO_FUNCS"
+    end
+    if type(G.FUNCS.start_run) == "function" then
+      return "START_RUN_PRESENT"
+    end
+    return "MISSING"
+  end
+
   local function bridge_status()
     return "bridge=1;achievement_gate=" .. achievement_gate_state()
+      .. ";restart_run_callback=" .. restart_run_callback_state()
   end
 
   local function highlighted_set()
