@@ -103,6 +103,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                         "interest_weight": 1.0,
                         "reserve_target": 5,
                         "reserve_weight": 0.45,
+                        "minimum_money_after": 5,
                         "target_ante": 8,
                         "remaining_ante_weight": 0.20,
                         "maximum_horizon_bonus": 1.40,
