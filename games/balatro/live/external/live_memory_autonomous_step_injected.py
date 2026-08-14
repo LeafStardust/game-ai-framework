@@ -35,8 +35,8 @@ from games.balatro.live.translator import DefaultBalatroStateTranslator
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.playbook import default_balatro_playbooks
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
-from games.balatro.shop_policy import BalatroShopPolicy
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
+from games.balatro.shop_voucher_policy import VoucherAwareBalatroShopPolicy
 
 from .live_memory_achievement_guard import achievement_gate_state
 from .live_memory_observer import LiveMemoryBalatroObserver
@@ -226,7 +226,7 @@ class LiveMemoryInjectedSingleStepRunner:
             consumable_timing_policy or LiveConsumableTimingPolicy()
         )
         self.shop_generator = BalatroShopActionGenerator()
-        self.shop_policy = BalatroShopPolicy()
+        self.shop_policy = VoucherAwareBalatroShopPolicy()
         self.shop_reroll_policy = BuildAwareShopRerollPolicy(
             shop_policy=self.shop_policy,
         )
