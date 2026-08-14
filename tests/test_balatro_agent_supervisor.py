@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from games.balatro.actions import BalatroAction
 from games.balatro.live.external import agent_control as agent_control_module
+from games.balatro.live.external import balatro_agent_supervisor as supervisor_module
 from games.balatro.live.external import balatro_agent_toggle as toggle_module
 from games.balatro.live.external.agent_control import BalatroAgentControl
 from games.balatro.live.external.balatro_agent_supervisor import (
@@ -12,6 +13,9 @@ from games.balatro.live.external.balatro_agent_supervisor import (
 from games.balatro.live.external.balatro_agent_toggle import toggle_agent
 from games.balatro.live.external.live_memory_autonomous_step_injected import (
     AutonomousStepDecision,
+)
+from games.balatro.live.external.live_memory_restart_run_injected import (
+    LiveRunRestartError,
 )
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
@@ -181,13 +185,27 @@ def test_supervisor_retries_fresh_attempts_until_win_and_auto_off(tmp_path):
         assert attempt_summary.exists()
 
 
-def test_supervisor_fails_closed_when_native_loss_restart_is_unavailable(tmp_path):
+def test_supervisor_defaults_to_validated_native_loss_restart(tmp_path):
+    supervisor = BalatroAgentSupervisor(
+        control=BalatroAgentControl(tmp_path / "control"),
+        session_id="native-restart-default",
+    )
+
+    assert supervisor.restart_run is supervisor_module.restart_fresh_unseeded_run
+
+
+def test_supervisor_fails_closed_when_native_restart_postcondition_fails(tmp_path):
     factory = _AttemptFactory([False])
     control = BalatroAgentControl(tmp_path / "control")
+
+    def failed_restart(_runner, _deck, _stake):
+        raise LiveRunRestartError("restart postcondition did not settle")
+
     supervisor = BalatroAgentSupervisor(
         control=control,
         observer_factory=factory.observer,
         runner_factory=_FakeAttemptRunner,
+        restart_run=failed_restart,
         run_log_directory=tmp_path / "runs",
         session_directory=tmp_path / "sessions",
         session_id="restart-blocked",
@@ -199,7 +217,7 @@ def test_supervisor_fails_closed_when_native_loss_restart_is_unavailable(tmp_pat
     assert result.won is False
     assert len(result.attempts) == 1
     assert result.attempts[0].outcome == "LOSS"
-    assert result.stop_reason.startswith("RESTART_UNAVAILABLE:")
+    assert result.stop_reason.startswith("RESTART_FAILED:")
     assert control.read_status()["state"] == "OFF"
 
 
