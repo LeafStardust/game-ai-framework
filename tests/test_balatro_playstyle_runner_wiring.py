@@ -4,6 +4,7 @@ from games.balatro.live.external.playstyle_autonomous_runner import (
 from games.balatro.live.hand_action_policy import HandActionThresholds
 from games.balatro.pack_playstyle import PackPlaystyleEvaluator
 from games.balatro.shop_policy import DefaultShopItemValueEstimator
+from games.balatro.shop_voucher_policy import VoucherAwareBalatroShopPolicy
 
 
 def _runner():
@@ -17,6 +18,7 @@ def _runner():
 def test_production_runner_shares_one_intent_tracker_across_d1_d2_d9_and_logging():
     runner = _runner()
 
+    assert isinstance(runner.shop_policy, VoucherAwareBalatroShopPolicy)
     estimator = runner.shop_policy.item_value_estimator
     assert isinstance(estimator, DefaultShopItemValueEstimator)
     assert (
