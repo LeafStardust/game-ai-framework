@@ -3,7 +3,9 @@ from types import SimpleNamespace
 import pytest
 
 from games.balatro.live.external.live_memory_restart_run_injected import (
+    DEFAULT_RESTART_TIMEOUT_SECONDS,
     LiveRunRestartError,
+    _snapshot_diagnostic,
     restart_fresh_unseeded_run,
 )
 from games.balatro.live.injected.bridge import FirstPartyBalatroBridge
@@ -53,6 +55,10 @@ class _Bridge:
 
     def restart_run(self):
         self.restart_calls += 1
+
+
+def test_restart_default_timeout_allows_native_wipe_and_setup_animation():
+    assert DEFAULT_RESTART_TIMEOUT_SECONDS == 20.0
 
 
 def test_restart_waits_for_settled_same_identity_blind_select():
@@ -150,6 +156,17 @@ def test_restart_fails_closed_on_changed_deck_or_stake_after_command():
         )
 
     assert bridge.restart_calls == 1
+
+
+def test_restart_timeout_diagnostic_reports_last_authoritative_snapshot():
+    snapshot = _snapshot(14, "BLIND_SELECT", complete=False)
+
+    assert _snapshot_diagnostic(snapshot) == (
+        "last_phase=BLIND_SELECT; "
+        "last_state_complete=False; "
+        "last_sequence=14; "
+        "last_identity=RED/WHITE"
+    )
 
 
 def test_bridge_restart_method_emits_control_command_without_payload():
