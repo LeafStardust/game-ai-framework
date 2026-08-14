@@ -50,6 +50,40 @@ def test_live_card_chip_scoring_counts_only_pair_cards():
     assert score.total == 60
 
 
+def test_debuffed_pair_card_keeps_hand_structure_but_scores_zero_card_value():
+    cards = [
+        BalatroCard("10", "Spades", live_id=0),
+        BalatroCard(
+            "10",
+            "Diamonds",
+            enhancement="Bonus",
+            edition="Foil",
+            live_id=1,
+            debuffed=True,
+        ),
+    ]
+    state = _state(
+        cards,
+        score=0,
+        target=100,
+        hands=4,
+        discards=3,
+    )
+    action = next(
+        action
+        for action in CardSelector().generate_play_actions(state)
+        if [card.live_id for card in action.cards] == [0, 1]
+    )
+
+    projection = LiveHandDecisionEvaluator().project_play(state, action)
+
+    # The debuffed 10 still completes the Pair structurally, but contributes no
+    # rank chips, Bonus enhancement, Foil edition, or retriggered card effects.
+    assert projection.hand == PokerHand.PAIR
+    assert projection.hand_score == 40
+    assert projection.expected_hand_score == 40.0
+
+
 def test_live_projection_reports_exact_pair_of_twos_blind_clear():
     state = _state(
         [
