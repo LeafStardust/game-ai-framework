@@ -2,6 +2,7 @@ from games.balatro.live.external.playstyle_autonomous_runner import (
     PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
 )
 from games.balatro.live.hand_action_policy import HandActionThresholds
+from games.balatro.pack_playstyle import PackPlaystyleEvaluator
 from games.balatro.shop_policy import DefaultShopItemValueEstimator
 
 
@@ -13,7 +14,7 @@ def _runner():
     )
 
 
-def test_production_runner_shares_one_intent_tracker_between_d1_and_d2():
+def test_production_runner_shares_one_intent_tracker_across_d1_d2_and_d4():
     runner = _runner()
 
     estimator = runner.shop_policy.item_value_estimator
@@ -30,6 +31,15 @@ def test_production_runner_shares_one_intent_tracker_between_d1_and_d2():
         is runner.playstyle_intent_tracker
     )
     assert hand_policy.playstyle_evaluator.profiler is runner.playstyle_profiler
+
+    # Joker choices in packs reuse the exact D2 evaluator instead of creating an
+    # independent pack-local Joker intent lifecycle.
+    assert runner.pack_policy.item_estimator is estimator
+
+    pack_playstyle = runner.pack_policy.playstyle_evaluator
+    assert isinstance(pack_playstyle, PackPlaystyleEvaluator)
+    assert pack_playstyle.intent_tracker is runner.playstyle_intent_tracker
+    assert pack_playstyle.profiler is runner.playstyle_profiler
 
 
 def test_fresh_runner_gets_fresh_run_scoped_intent_tracker():
