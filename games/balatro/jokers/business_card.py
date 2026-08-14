@@ -1,9 +1,19 @@
 import random
 
-from games.balatro.joker import Joker, JokerContext
+from games.balatro.joker import (
+    Joker,
+    JokerContext,
+    Playstyle,
+    PlaystyleAffinity,
+)
 
 
 class BusinessCardJoker(Joker):
+
+    playstyle_affinities = {
+        Playstyle.FACE_CARDS: PlaystyleAffinity.POSITIVE,
+        Playstyle.NO_FACE_CARDS: PlaystyleAffinity.NEGATIVE,
+    }
 
     def apply(self, context: JokerContext) -> JokerContext:
         if context.trigger != "HAND_SCORED":
