@@ -1,8 +1,18 @@
 from games.balatro.events import BalatroEventType
-from games.balatro.joker import Joker, JokerContext
+from games.balatro.joker import (
+    Joker,
+    JokerContext,
+    Playstyle,
+    PlaystyleAffinity,
+)
 
 
 class RideTheBusJoker(Joker):
+
+    playstyle_affinities = {
+        Playstyle.NO_FACE_CARDS: PlaystyleAffinity.POSITIVE,
+        Playstyle.FACE_CARDS: PlaystyleAffinity.NEGATIVE,
+    }
 
     def __init__(self):
         self.mult = 0
