@@ -10,6 +10,7 @@ from .agent_control import BalatroAgentControl
 
 
 SUPERVISOR_MODULE = "games.balatro.live.external.balatro_agent_supervisor_entry"
+MONITOR_MODULE = "games.balatro.live.external.balatro_agent_monitor"
 
 
 def _repo_root() -> Path:
@@ -22,6 +23,32 @@ def _creation_flags() -> int:
     return (
         getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
         | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
+    )
+
+
+def _monitor_creation_flags() -> int:
+    if os.name != "nt":
+        return 0
+    return (
+        getattr(subprocess, "CREATE_NEW_CONSOLE", 0x00000010)
+        | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
+    )
+
+
+def launch_monitor(control: BalatroAgentControl) -> None:
+    command = [
+        sys.executable,
+        "-m",
+        MONITOR_MODULE,
+        "--control-dir",
+        str(control.directory),
+    ]
+    subprocess.Popen(
+        command,
+        cwd=_repo_root(),
+        stdin=subprocess.DEVNULL,
+        close_fds=True,
+        creationflags=_monitor_creation_flags(),
     )
 
 
@@ -76,6 +103,12 @@ def start_agent(
         # duplicate supervisor during Python import/attachment startup. This does
         # not rewrite status; a child that already reached ON remains ON.
         control.claim_current_process(process.pid)
+        try:
+            launch_monitor(control)
+        except (OSError, subprocess.SubprocessError):
+            # Monitoring is convenience-only. Never tear down a healthy autonomous
+            # supervisor merely because Windows could not create the read-only UI.
+            pass
         return int(process.pid)
     except Exception:
         control.release_start_lock()
@@ -117,8 +150,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Toggle the Balatro autonomous supervisor. ON launches one detached "
-            "supervisor process. OFF writes a cooperative stop request; it never "
-            "kills Balatro or interrupts an already-submitted gameplay action."
+            "supervisor process plus a read-only live monitor window. OFF writes a "
+            "cooperative stop request; it never kills Balatro or interrupts an "
+            "already-submitted gameplay action."
         )
     )
     parser.add_argument("--control-dir")
@@ -161,6 +195,7 @@ def main() -> int:
         print("Balatro Agent is OFF.")
         print("Turning ON...")
         print(f"Supervisor PID -> {pid}")
+        print("Live monitor -> opening in a separate terminal window")
         print("Playbook selection -> automatic from live deck/stake")
         print("Loss handling -> automatic fresh same-deck/stake native retry")
         print("Win handling -> automatic OFF")
