@@ -59,6 +59,21 @@ def _contains_key(value, key: str) -> bool:
     return False
 
 
+class _PreparedBuildIntent:
+    def __init__(self):
+        self.payload = {
+            "transition": "INITIAL",
+            "changed_fields": ["jokers"],
+            "profile": {"jokers": ["JokerJoker"]},
+            "intent": {"mode": "PIVOTABLE", "strengths": {}},
+            "detected_synergies": [],
+        }
+        self.committed = False
+
+    def commit(self):
+        self.committed = True
+
+
 def test_successful_transitions_resume_sequence_and_write_terminal_summary(tmp_path):
     card = object()
     first = _decision(_snapshot(1, "SELECTING_HAND"), card)
@@ -110,6 +125,36 @@ def test_successful_transitions_resume_sequence_and_write_terminal_summary(tmp_p
     assert summary["event_counts"]["run_started"] == 1
     assert summary["event_counts"]["run_finished"] == 1
     assert summary["final_state"]["phase"] == "GAME_OVER"
+
+
+def test_prepared_build_intent_is_written_before_decision_then_committed(tmp_path):
+    card = object()
+    decision = _decision(_snapshot(1, "SELECTING_HAND"), card)
+    prepared = _PreparedBuildIntent()
+    decision.build_intent = prepared
+    result = SimpleNamespace(after=_snapshot(2, "ROUND_EVAL"))
+
+    logger = log_successful_live_transition(
+        decision,
+        result,
+        run_id="build-run-001",
+        directory=tmp_path,
+    )
+
+    rows = [
+        json.loads(line)
+        for line in logger.path.read_text(encoding="utf-8").splitlines()
+    ]
+    assert [row["event"] for row in rows] == [
+        "run_started",
+        "observation",
+        "build_intent",
+        "decision",
+        "action_result",
+    ]
+    assert rows[2]["data"]["transition"] == "INITIAL"
+    assert rows[2]["data"]["profile"]["jokers"] == ["JokerJoker"]
+    assert prepared.committed is True
 
 
 def test_resumed_logger_rejects_identity_mismatch(tmp_path):
