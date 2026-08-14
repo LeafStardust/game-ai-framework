@@ -7,6 +7,7 @@ from games.balatro.build.profile import (
     BalatroBuildProfiler,
     BalatroPlaystyleIntentTracker,
 )
+from games.balatro.live.build_intent_log import BuildIntentLogTracker
 from games.balatro.live.hand_action_policy import (
     HandActionThresholds,
     LiveHandActionDecisionEngine,
@@ -36,9 +37,9 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
 
     The base runner remains the mechanics/execution implementation. This adapter
     wires one competence-layer playstyle tracker into D1 hand decisions, D2
-    Joker/shop valuation, and D9 booster choices so no subsystem can capture an
-    independent Ante-5 commitment. A supervisor retry creates a fresh runner and
-    therefore a fresh tracker.
+    Joker/shop valuation, D9 booster choices, and structured run logging so no
+    subsystem can capture an independent Ante-5 commitment. A supervisor retry
+    creates a fresh runner and therefore a fresh tracker.
     """
 
     def __init__(self, observer, **kwargs) -> None:
@@ -47,6 +48,10 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
 
         self.playstyle_profiler = BalatroBuildProfiler()
         self.playstyle_intent_tracker = BalatroPlaystyleIntentTracker()
+        self.build_intent_log_tracker = BuildIntentLogTracker(
+            profiler=self.playstyle_profiler,
+            intent_tracker=self.playstyle_intent_tracker,
+        )
 
         joker_build_value = JokerBuildValueEvaluator(
             profiler=self.playstyle_profiler,
