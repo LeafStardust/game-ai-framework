@@ -107,6 +107,15 @@ def log_successful_live_transition(
     before_state = _snapshot_log_state(decision.snapshot)
     after_state = _snapshot_log_state(result.after)
     action = action_log_payload(decision)
+    prepared_build_intent = getattr(decision, "build_intent", None)
+    commit_prepared_build_intent = False
+    if build_intent is None and prepared_build_intent is not None:
+        build_intent = getattr(
+            prepared_build_intent,
+            "payload",
+            prepared_build_intent,
+        )
+        commit_prepared_build_intent = hasattr(prepared_build_intent, "commit")
 
     if logger.sequence == 0:
         logger.run_started(state=before_state)
@@ -117,6 +126,8 @@ def log_successful_live_transition(
             "build_intent",
             **_sanitize_public_value(build_intent),
         )
+        if commit_prepared_build_intent:
+            prepared_build_intent.commit()
     logger.decision(
         action=action,
         rationale={
