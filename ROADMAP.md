@@ -203,6 +203,8 @@
 
 - [ ] Extend score projection to relevant remaining stateless Jokers/effects separately from hydration
 - [ ] Generalize boss-blind integration
+- [ ] Correct boss-blind **debuff/nullification scoring**: cards marked disabled/debuffed by the active boss must contribute zero chips/effects where Balatro rules suppress them, while still being allowed to participate structurally in a poker hand when legal
+- [ ] Add regression coverage proving D1 does not value boss-disabled cards as ordinary scoring cards
 - [ ] Integrate supported consumable actions into the normal blind planner where execution coverage requires it
 - [ ] Replace temporary unsupported-Joker hard stops with complete supported mechanics
 
@@ -399,6 +401,8 @@
 - [x] Automatic supervisor traceback/crash-report capture on unhandled failure
 - [x] Supervisor failure preserves active attempt/run metadata for postmortem
 - [x] Crash report includes supervisor status, Balatro process state, live snapshot where available, bridge files, current attempt tail, agent log, exception and Windows application events
+- [x] Read-only live agent monitor terminal showing supervisor/Balatro process state, session/attempt/run identity, current phase/resources, last action and last logged decision rationale
+- [x] Agent toggle automatically opens the live monitor in a separate Windows console; closing the monitor does not stop the supervisor
 
 **Remaining**
 
@@ -463,6 +467,8 @@ The existing `save.jkr`, visual observer and OS-input work remains useful for di
 > **First competence/win milestone.** `v0.9.0` proves the production agent can safely operate and cover the real run flow. `v1.0.0` proves it can make coherent strategic decisions well enough to deliberately complete one normal unseeded Red Deck / White Stake run without manual gameplay help after activation.
 >
 > The optimization phase begins **after 0.9 integration is stable**. A lucky clear is useful, but the objective is not to brute-force attempts until RNG produces a win; it is to correct repeatable strategic failure modes and then earn the clear.
+>
+> **Observed baseline:** an exploratory Red Deck / White Stake soak was stopped after **10 autonomous attempts with no win**. Treat this as competence evidence, not a failure of the 0.9 integration milestone; the repeated strategic weaknesses below are now explicit 1.0 work.
 
 ### 1.0A — Blind-clear objective and hand efficiency
 
@@ -474,6 +480,8 @@ The existing `save.jkr`, visual observer and OS-input work remains useful for di
 - [ ] Do not trade away meaningful clear probability merely to save one hand
 - [ ] Use durable D1 run records to postmortem fragile/incorrect play/discard choices
 - [ ] Tune recovery/discard behavior around survival probability and the active clear path
+- [ ] Treat **held-in-hand value** as an explicit opportunity cost: avoid playing cards whose important payoff comes from remaining in hand (for example Steel/Blue Seal effects) unless the clear path or a stronger tactical benefit justifies spending them
+- [ ] Add regression cases for held-value cards so D1 distinguishes "good to hold" from "good to play"
 - [ ] Validate D1 with build-intent feedback across a complete run
 
 ### 1.0B — Build identity and Joker-supported play
@@ -483,6 +491,8 @@ The existing `save.jkr`, visual observer and OS-input work remains useful for di
 - [ ] Feed B7 build intent into D1 so hand/discard choices actively exploit the hands/ranks/suits/retriggers the Joker engine supports
 - [ ] Make Joker acquisition, replacement, hand selection, discard strategy, Planet choice and pack choice reinforce the same build rather than acting as mostly independent local policies
 - [ ] Strengthen contextual Joker/consumable/deck synergy beyond isolated item quality
+- [ ] Model **Negative-edition Jokers** as unusually valuable because they do not consume normal Joker capacity; when reserve/survival constraints are satisfied, affordable Negative Jokers with positive marginal value should receive explicit acquisition priority rather than being treated like ordinary slot-consuming Jokers
+- [ ] Add D2 regression coverage for spare-cash + open-economy cases where buying a useful Negative Joker dominates holding cash
 - [ ] Log build-intent changes and the synergies that caused them
 
 ### 1.0C — Planet and consumable competence
@@ -501,10 +511,14 @@ The existing `save.jkr`, visual observer and OS-input work remains useful for di
 - [ ] D9 Pack choice/Skip threshold tuned to build value rather than generic item value
 - [ ] D10 pack target-selection threshold and end-to-end targeted flows
 - [ ] D3 Voucher threshold with build/economy compatibility
+- [ ] Make voucher valuation explicitly **run-wide/persistent** so high-impact vouchers are not ignored merely because their immediate score delta is small
+- [ ] Add voucher buy-versus-save regression cases for affordable high-impact vouchers with sufficient reserve
 - [ ] D8 Booster acquisition threshold
 - [ ] D11 Reroll EV threshold
 - [ ] D12 Shop arbiter final calibration
 - [ ] D14 money/interest marginal value, survival reserve, hand/discard value, slot shadow prices and remaining-ante horizon value
+- [ ] Implement Balatro **interest breakpoint** awareness from the current run rules, including voucher-modified thresholds/caps where observable, so purchases/rerolls account for the next dollar of interest lost or preserved
+- [ ] Make shop spending compare purchase EV against both cash reserve and foregone interest, not cash price alone
 - [ ] Preserve enough economy to strengthen later shops without sacrificing immediate run survival
 
 ### 1.0E — Blind skip/tag strategy
