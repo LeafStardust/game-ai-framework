@@ -161,12 +161,12 @@
 - [x] Bridge timeout cleanup cancels only the exact still-pending command; already-consumed outcomes remain fail-closed/indeterminate
 - [x] Bridge v2 command pump services traffic before Balatro update and from the outer LÖVE run loop
 - [x] Compatible bridge protocol normalization keeps implementation revision separate from wire compatibility
+- [x] First-party blind skip/tag execution through Balatro's native skip callback
 
 **Remaining 0.9 coverage**
 
 - [ ] Robust held-consumable use for all supported target patterns
 - [ ] Robust pack-effect targeting for Tarot/Spectral/Standard modifier flows
-- [ ] **First-party blind skip/tag execution**
 - [ ] Emergency hard stop for a hung/unsafe supervisor
 - [ ] Validate an actual normal Steam achievement/unlock from agent gameplay
 
@@ -227,8 +227,8 @@
 - [x] Independent Joker acquisition/replacement thresholds
 - [x] Playbook version identifier included in every run log
 - [ ] Per-decision-layer threshold configuration
-- [ ] Independent hand-action thresholds
-- [ ] Independent voucher thresholds
+- [x] Independent hand-action thresholds
+- [x] Independent voucher thresholds
 - [ ] Independent consumable acquisition/use/target thresholds
 - [ ] Independent booster/pack thresholds
 - [ ] Independent reroll/shop-exit thresholds
@@ -265,7 +265,7 @@
 |---|---|---|
 | D1 | Play vs discard + subset | Foundation implemented/live exercised |
 | D2 | Joker buy/keep/replace/sell | Foundation complete |
-| D3 | Voucher acquisition | Execution + initial valuation; dedicated policy still open |
+| D3 | Voucher acquisition | Foundation complete |
 | D4 | Consumable ignore/buy/buy-and-use | Foundation complete |
 | D5 | Held consumable use vs hold | Foundation complete, conservative scope |
 | D6 | Consumable targeting | Deterministic targeting foundation complete |
@@ -275,8 +275,8 @@
 | D10 | Pack follow-up targeting | Partial deterministic coverage; broader flows open |
 | D11 | Reroll decision | Execution + policy foundation; EV model open |
 | D12 | Shop arbiter | Foundation complete |
-| D13 | Blind play vs skip/tag | Play exists; **skip/tag path open** |
-| D14 | Run-level resource valuation | Open |
+| D13 | Blind play vs skip/tag | Play/skip execution + threshold foundation complete; tag-specific valuation open |
+| D14 | Run-level resource valuation | Core resource models implemented; arbiter-wide normalization open |
 
 **Implemented decision-layer details**
 
@@ -352,9 +352,9 @@
 
 **Remaining 0.9 decision coverage**
 
-- [ ] D3 dedicated voucher threshold policy independent of ordinary item-buy thresholds
-- [ ] D3 consume BuildProfile compatibility where vouchers change build capacity/resource engines
-- [ ] D3 validate buy-versus-save boundary cases
+- [x] D3 dedicated voucher threshold policy independent of ordinary item-buy thresholds
+- [x] D3 consume BuildProfile compatibility where vouchers change build capacity/resource engines
+- [x] D3 validate buy-versus-save boundary cases
 - [x] D9 read visible pack choices from live memory
 - [x] D9 pack card/Joker selection and confirmation execution
 - [x] D9 Pack Skip execution
@@ -371,14 +371,14 @@
 - [x] D11 dedicated reroll threshold policy foundation
 - [ ] D11 reroll EV model
 - [x] D13 Blind selection execution
-- [ ] **D13 first-party blind skip execution**
-- [ ] **D13 Tag valuation**
-- [ ] **D13 Play-versus-skip threshold**
-- [ ] D14 money/interest marginal-value model
-- [ ] D14 survival reserve model
-- [ ] D14 hand/discard resource value
-- [ ] D14 Joker/consumable slot shadow prices
-- [ ] D14 remaining-ante horizon value
+- [x] **D13 first-party blind skip execution**
+- [ ] **D13 Tag valuation** — live process memory still does not expose the selected blind's tag identity; fallback unidentified-tag EV remains conservative
+- [x] **D13 Play-versus-skip threshold**
+- [x] D14 money/interest marginal-value model
+- [x] D14 survival reserve model
+- [x] D14 hand/discard resource value
+- [x] D14 Joker/consumable slot shadow prices
+- [x] D14 remaining-ante horizon value
 - [ ] D14 shared normalized utility scale for the shop arbiter
 
 > D14 may begin conservatively for `v0.9.0`; strategic calibration is part of `v1.0.0`.
