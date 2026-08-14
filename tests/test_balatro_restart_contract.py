@@ -1,6 +1,7 @@
 import pytest
 
 from games.balatro.live.external.live_memory_restart_contract import (
+    start_run_archive_matches,
     start_run_source_matches,
 )
 
@@ -42,3 +43,26 @@ def test_start_run_source_matches_respect_limit_and_validate_arguments():
         start_run_source_matches(source, context_lines=-1)
     with pytest.raises(ValueError, match="max_matches"):
         start_run_source_matches(source, max_matches=0)
+
+
+def test_start_run_archive_matches_scan_multiple_lua_sources_with_global_limit():
+    sources = {
+        "main.lua": "loader only",
+        "game.lua": "alpha\nG.FUNCS.start_run = function(e, args)\nomega",
+        "functions/button_callbacks.lua": "before\nG.FUNCS.start_run({})\nafter",
+    }
+
+    matches = start_run_archive_matches(
+        sources,
+        context_lines=0,
+        max_matches=2,
+    )
+
+    assert [(match.source_name, match.line_number) for match in matches] == [
+        ("functions/button_callbacks.lua", 2),
+        ("game.lua", 2),
+    ]
+    assert matches[0].lines == ("000002: G.FUNCS.start_run({})",)
+    assert matches[1].lines == (
+        "000002: G.FUNCS.start_run = function(e, args)",
+    )
