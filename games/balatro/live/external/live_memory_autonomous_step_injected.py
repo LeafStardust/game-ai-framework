@@ -5,7 +5,12 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Callable
 
-from games.balatro.actions import END_ROUND, SELECT_BLIND, BalatroAction
+from games.balatro.actions import END_ROUND, BalatroAction
+from games.balatro.blind_skip_policy import (
+    DEFAULT_BLIND_SKIP_THRESHOLD,
+    DEFAULT_FALLBACK_TAG_VALUE,
+    decide_blind_play_or_skip,
+)
 from games.balatro.live.consumable_timing import LiveConsumableTimingPolicy
 from games.balatro.live.hand_action_policy import (
     SEARCH_SCHEDULE_FULL,
@@ -197,6 +202,8 @@ class LiveMemoryInjectedSingleStepRunner:
         pack_choice_reader: Callable[[], tuple] | None = None,
         reroll_terms_reader: Callable[[], LiveShopRerollTerms] | None = None,
         consumable_timing_policy: LiveConsumableTimingPolicy | None = None,
+        blind_skip_threshold: float = DEFAULT_BLIND_SKIP_THRESHOLD,
+        fallback_tag_value: float = DEFAULT_FALLBACK_TAG_VALUE,
         max_horizon: int | None = None,
         max_search_nodes: int | None = None,
         exact_limit: int = 128,
@@ -209,6 +216,8 @@ class LiveMemoryInjectedSingleStepRunner:
             observer,
             bridge=self.bridge,
         )
+        self.blind_skip_threshold = max(0.0, float(blind_skip_threshold))
+        self.fallback_tag_value = max(0.0, float(fallback_tag_value))
         self.max_horizon = max_horizon
         self.max_search_nodes = max_search_nodes
         self.exact_limit = int(exact_limit)
@@ -455,12 +464,19 @@ class LiveMemoryInjectedSingleStepRunner:
         phase = str(snapshot.phase)
 
         if phase == "BLIND_SELECT":
+            policy_started = perf_counter()
+            blind_decision = decide_blind_play_or_skip(
+                snapshot,
+                threshold=self.blind_skip_threshold,
+                fallback_tag_value=self.fallback_tag_value,
+            )
+            self.last_policy_seconds = perf_counter() - policy_started
             return AutonomousStepDecision(
                 snapshot,
                 state,
-                BalatroAction(SELECT_BLIND),
-                "deterministic blind-selection policy",
-                ("fight current blind; skip policy not yet enabled",),
+                BalatroAction(blind_decision.action_name),
+                "D13 blind play-vs-skip policy",
+                blind_decision.notes,
             )
 
         if phase == "SELECTING_HAND":
@@ -626,6 +642,18 @@ def main() -> int:
     parser.add_argument("--max-search-nodes", type=int)
     parser.add_argument("--exact-limit", type=int, default=128)
     parser.add_argument("--child-exact-limit", type=int, default=8)
+    parser.add_argument(
+        "--blind-skip-threshold",
+        type=float,
+        default=DEFAULT_BLIND_SKIP_THRESHOLD,
+        help="minimum skip EV margin required before intentionally skipping a blind",
+    )
+    parser.add_argument(
+        "--fallback-tag-value",
+        type=float,
+        default=DEFAULT_FALLBACK_TAG_VALUE,
+        help="fallback tag EV while live process memory does not expose tag identity",
+    )
     args = parser.parse_args()
 
     if args.execute and args.expect_phase is None:
@@ -642,11 +670,15 @@ def main() -> int:
             parser.error(f"--{name.replace('_', '-')} must be positive")
     if args.exact_limit < 1 or args.child_exact_limit < 1:
         parser.error("exact combination limits must be positive")
+    if args.blind_skip_threshold < 0 or args.fallback_tag_value < 0:
+        parser.error("blind skip threshold and fallback tag value cannot be negative")
 
     try:
         with LiveMemoryBalatroObserver() as observer:
             runner = LiveMemoryInjectedSingleStepRunner(
                 observer,
+                blind_skip_threshold=args.blind_skip_threshold,
+                fallback_tag_value=args.fallback_tag_value,
                 max_horizon=args.max_horizon,
                 max_search_nodes=args.max_search_nodes,
                 exact_limit=args.exact_limit,
