@@ -14,6 +14,7 @@ from games.balatro.build import (
     ContextualPlayingCardSynergyEvaluator,
 )
 from games.balatro.build.aura_expectation import AuraExpectationEvaluator
+from games.balatro.build.sigil_expectation import SigilExpectationEvaluator
 from games.balatro.build.wheel_expectation import WheelOfFortuneExpectationEvaluator
 from games.balatro.consumable import ConsumableContext
 from games.balatro.live.consumable_factory import LiveConsumableFactory
@@ -37,11 +38,11 @@ class BalatroPackPolicy:
     Joker, Planet, enhanced/edition/sealed playing-card, and deterministic immediate
     Spectral choices can be ranked immediately. Deterministic targeted Tarot/Spectral
     transformations are admitted only when the public hand supplies a validated B6
-    target. Aura is admitted through an analytic public-state expectation over its
-    bounded edition outcomes and a validated target. The Fool is valued from Balatro's
-    public last-Tarot/Planet run history. Wheel of Fortune is valued from an analytic
-    public-state edition distribution. Other stochastic, destructive, generation, or
-    unsupported-target effects remain below Skip until their outcome models are explicit.
+    target. Aura and Sigil are admitted through analytic public-state expectations over
+    bounded outcomes. The Fool is valued from Balatro's public last-Tarot/Planet run
+    history. Wheel of Fortune is valued from an analytic public-state edition
+    distribution. Other stochastic, destructive, generation, or unsupported-target
+    effects remain below Skip until their outcome models are explicit.
 
     An optional D4 playstyle evaluator can add bounded run-intent value for choices
     whose semantics are directly observable. Joker intent is deliberately not added
@@ -72,8 +73,8 @@ class BalatroPackPolicy:
 
     # Black Hole is the only current Spectral whose complete modeled effect is both
     # deterministic and non-targeted. Four deterministic seal transforms remain on
-    # the generic B6 target path, while Aura has an explicit stochastic expectation
-    # model. Every other current Spectral stays deferred until its semantics are modeled.
+    # the generic B6 target path. Aura and Sigil have explicit stochastic expectation
+    # models; every other current Spectral stays deferred until its semantics are modeled.
     DETERMINISTIC_IMMEDIATE_SPECTRALS = frozenset(
         {
             "Black Hole",
@@ -82,6 +83,7 @@ class BalatroPackPolicy:
     STOCHASTIC_MODELED_SPECTRALS = frozenset(
         {
             "Aura",
+            "Sigil",
         }
     )
     DEFERRED_SPECTRALS = frozenset(
@@ -90,7 +92,6 @@ class BalatroPackPolicy:
             "Grim",
             "Incantation",
             "Wraith",
-            "Sigil",
             "Ouija",
             "Ectoplasm",
             "Immolate",
@@ -151,6 +152,7 @@ class BalatroPackPolicy:
         consumable_target_evaluator=None,
         wheel_evaluator=None,
         aura_evaluator=None,
+        sigil_evaluator=None,
         playstyle_evaluator: PackPlaystyleEvaluator | None = None,
     ) -> None:
         self.skip_bias = float(skip_bias)
@@ -166,6 +168,7 @@ class BalatroPackPolicy:
         )
         self.wheel_evaluator = wheel_evaluator or WheelOfFortuneExpectationEvaluator()
         self.aura_evaluator = aura_evaluator or AuraExpectationEvaluator()
+        self.sigil_evaluator = sigil_evaluator or SigilExpectationEvaluator()
         self.playstyle_evaluator = playstyle_evaluator
 
     @classmethod
@@ -296,6 +299,10 @@ class BalatroPackPolicy:
 
         if choice.kind == "SPECTRAL" and choice.label == "Aura":
             scored = self._score_aura(state, action, choice, target)
+            return self._add_playstyle(scored, playstyle_value, playstyle_notes)
+
+        if choice.kind == "SPECTRAL" and choice.label == "Sigil":
+            scored = self._score_sigil(state, action, target)
             return self._add_playstyle(scored, playstyle_value, playstyle_notes)
 
         if (
@@ -528,6 +535,54 @@ class BalatroPackPolicy:
                 *tuple(notes),
                 "Aura uses analytic public-state expectation; no RNG sample or seed read",
                 f"B6 Aura expected target gain={expectation.expected_total_gain:.3f}",
+                *expectation.rationale,
+            ),
+        )
+
+    def _score_sigil(
+        self,
+        state,
+        action: BalatroAction,
+        target,
+    ) -> PackActionScore:
+        expectation = self.sigil_evaluator.evaluate(state)
+        if not expectation.available:
+            return PackActionScore(
+                action,
+                -1.0,
+                ("Sigil unavailable: no public hand cards to rewrite",),
+            )
+        if not expectation.complete:
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    "Sigil deferred: public stochastic outcome model could not "
+                    "score every suit branch",
+                    *expectation.rationale,
+                ),
+            )
+        if expectation.expected_total_gain <= 0.0:
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    "Sigil has no positive analytic rewrite value",
+                    *expectation.rationale,
+                ),
+            )
+
+        utility, notes = self.item_estimator.estimate(
+            state,
+            BalatroAction(BUY_CONSUMABLE, target=target),
+        )
+        return PackActionScore(
+            action,
+            float(utility) + float(expectation.expected_total_gain),
+            (
+                *tuple(notes),
+                "Sigil uses analytic public-state expectation; no RNG sample or seed read",
+                f"B6 Sigil expected rewrite gain={expectation.expected_total_gain:.3f}",
                 *expectation.rationale,
             ),
         )
