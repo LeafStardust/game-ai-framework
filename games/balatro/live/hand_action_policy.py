@@ -23,6 +23,12 @@ from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 CLEAR_PATH = "CLEAR_PATH"
 PACE_PLAY = "PACE_PLAY"
 PACE_RECOVERY = "PACE_RECOVERY"
+SEARCH_SCHEDULE_FULL = "full"
+SEARCH_SCHEDULE_PROBE_DEEPEST = "probe-deepest"
+_SEARCH_SCHEDULE_MODES = {
+    SEARCH_SCHEDULE_FULL,
+    SEARCH_SCHEDULE_PROBE_DEEPEST,
+}
 
 
 @dataclass(frozen=True)
@@ -474,6 +480,7 @@ class LiveHandActionDecisionEngine:
         max_search_nodes: int = 5000,
         exact_limit: int = LiveBlindClearPlanner.DEFAULT_EXACT_DRAW_COMBINATION_LIMIT,
         child_exact_limit: int = 8,
+        search_schedule_mode: str = SEARCH_SCHEDULE_FULL,
     ) -> None:
         if max_horizon < 1:
             raise ValueError("max_horizon must be positive")
@@ -483,6 +490,9 @@ class LiveHandActionDecisionEngine:
             raise ValueError("exact_limit must be positive")
         if child_exact_limit < 1:
             raise ValueError("child_exact_limit must be positive")
+        if search_schedule_mode not in _SEARCH_SCHEDULE_MODES:
+            allowed = ", ".join(sorted(_SEARCH_SCHEDULE_MODES))
+            raise ValueError(f"search_schedule_mode must be one of: {allowed}")
 
         self.planner = planner or D1LiveBlindClearPlanner(
             play_width=6,
@@ -497,6 +507,7 @@ class LiveHandActionDecisionEngine:
         self.max_search_nodes = int(max_search_nodes)
         self.exact_limit = int(exact_limit)
         self.child_exact_limit = int(child_exact_limit)
+        self.search_schedule_mode = str(search_schedule_mode)
 
     def rank_plans(
         self,
@@ -560,13 +571,31 @@ class LiveHandActionDecisionEngine:
             for estimate in estimates
         ]
 
-    def decide(self, state) -> HandActionDecision:
+    def _search_schedule(self, state) -> tuple[AdaptiveBlindSearchConfig, ...]:
         schedule = adaptive_blind_search_schedule(
             hands_remaining=int(getattr(state, "hands_remaining", 0)),
             discards_remaining=int(getattr(state, "discards_remaining", 0)),
             max_horizon=self.max_horizon,
             max_nodes=self.max_search_nodes,
         )
+        if self.search_schedule_mode == SEARCH_SCHEDULE_FULL or len(schedule) <= 1:
+            return schedule
+
+        deepest_horizon = max(config.horizon for config in schedule)
+        # Keep the cheapest probe, then jump to every configuration at the deepest
+        # useful horizon. This preserves explicit same-horizon intensification while
+        # avoiding intermediate searches that the deeper pass will supersede.
+        return (
+            schedule[0],
+            *tuple(
+                config
+                for config in schedule[1:]
+                if config.horizon == deepest_horizon
+            ),
+        )
+
+    def decide(self, state) -> HandActionDecision:
+        schedule = self._search_schedule(state)
         attempts: list[HandActionSearchAttempt] = []
         summaries: list[AdaptiveRecommendationSummary] = []
 
