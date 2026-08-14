@@ -70,6 +70,25 @@ class _FakeRunner:
         }
 
 
+class _GameOverRunner(_FakeRunner):
+    def __init__(self, phases, *, won):
+        super().__init__(phases)
+        self.won = bool(won)
+
+    def execute(self, decision):
+        result, status = super().execute(decision)
+        if self.index >= len(self.phases):
+            result = SimpleNamespace(
+                after=LiveBalatroSnapshot(
+                    sequence=self.sequence,
+                    phase="GAME_OVER",
+                    state_complete=True,
+                    payload={"step": self.index, "won": self.won},
+                )
+            )
+        return result, status
+
+
 def test_preview_decides_once_without_executing():
     runner = _FakeRunner(["SELECTING_HAND"])
     loop = LiveMemoryInjectedAutonomousLoop(runner, max_steps=5)
@@ -138,6 +157,86 @@ def test_execute_stops_cleanly_when_next_phase_is_unsupported():
     assert result.stop_reason.startswith("unsupported phase:")
     assert runner.decide_calls == 2
     assert runner.execute_calls == 1
+
+
+def test_unbounded_execute_runs_until_authoritative_game_over():
+    runner = _GameOverRunner(
+        ["SELECTING_HAND", "ROUND_EVAL", "SHOP"],
+        won=True,
+    )
+    loop = LiveMemoryInjectedAutonomousLoop(runner, max_steps=None)
+
+    result = loop.execute(expected_start_phase="SELECTING_HAND")
+
+    assert len(result.steps) == 3
+    assert result.stop_reason == "game over (won)"
+    assert result.steps[-1].after_phase == "GAME_OVER"
+    assert runner.execute_calls == 3
+
+
+def test_stop_request_arriving_during_planning_cancels_before_execution():
+    runner = _FakeRunner(["SELECTING_HAND"])
+    loop = LiveMemoryInjectedAutonomousLoop(
+        runner,
+        max_steps=None,
+        stop_requested=lambda: runner.decide_calls >= 1,
+    )
+
+    result = loop.execute(expected_start_phase="SELECTING_HAND")
+
+    assert result.stop_reason == "stop requested"
+    assert result.steps == ()
+    assert runner.decide_calls == 1
+    assert runner.execute_calls == 0
+    assert runner.events == ["decide"]
+
+
+def test_successful_transition_hook_runs_after_authoritative_postcondition():
+    runner = _GameOverRunner(["SELECTING_HAND"], won=False)
+    transitions = []
+
+    def on_transition(decision, result, status):
+        transitions.append(
+            (
+                decision.snapshot.phase,
+                result.after.phase,
+                status["achievement_gate"],
+                runner.execute_calls,
+            )
+        )
+
+    loop = LiveMemoryInjectedAutonomousLoop(
+        runner,
+        max_steps=None,
+        on_transition=on_transition,
+    )
+
+    result = loop.execute(expected_start_phase="SELECTING_HAND")
+
+    assert result.stop_reason == "game over (lost)"
+    assert transitions == [("SELECTING_HAND", "GAME_OVER", "ENABLED", 1)]
+
+
+def test_transition_hook_failure_stops_after_already_executed_action():
+    runner = _FakeRunner(["SELECTING_HAND", "SHOP"])
+
+    def fail_transition(*_args):
+        raise RuntimeError("disk full")
+
+    loop = LiveMemoryInjectedAutonomousLoop(
+        runner,
+        max_steps=None,
+        on_transition=fail_transition,
+    )
+
+    result = loop.execute(expected_start_phase="SELECTING_HAND")
+
+    assert len(result.steps) == 1
+    assert result.stop_reason == (
+        "transition hook failed after executed action: disk full"
+    )
+    assert runner.execute_calls == 1
+    assert runner.events == ["decide", "execute"]
 
 
 class _NonAdvancingRunner(_FakeRunner):
