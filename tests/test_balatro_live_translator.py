@@ -67,6 +67,7 @@ def test_translator_maps_balatrobot_cards_and_modifiers():
                             "edition": "FOIL",
                             "seal": "RED",
                         },
+                        "debuff": True,
                     }
                 ],
             },
@@ -95,9 +96,11 @@ def test_translator_maps_balatrobot_cards_and_modifiers():
     assert state.hand[0].edition == "Foil"
     assert state.hand[0].seal == "Red"
     assert state.hand[0].live_id == 0
+    assert state.hand[0].debuffed is True
     assert len(state.deck) == 1
     assert state.deck[0].rank == "K"
     assert state.deck[0].suit == "Hearts"
+    assert state.deck[0].debuffed is False
 
 
 def test_translator_maps_current_blind_requirement():
