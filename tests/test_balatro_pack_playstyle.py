@@ -178,4 +178,4 @@ def test_pack_policy_applies_direct_playstyle_to_playing_card_ranking():
 
     assert ranked[0].action.target is non_face
     assert ranked[0].total > ranked[1].total
-    assert any(note.startswith("D4 playstyle fit=") for note in ranked[0].notes)
+    assert any(note.startswith("D9 playstyle fit=") for note in ranked[0].notes)
