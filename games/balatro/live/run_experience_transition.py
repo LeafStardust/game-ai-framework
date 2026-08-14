@@ -79,12 +79,15 @@ def log_successful_live_transition(
     *,
     run_id: str,
     directory: str | Path = "logs/balatro/runs",
+    build_intent: dict[str, Any] | None = None,
 ) -> BalatroRunExperienceLogger:
     """Append one already-successful guarded live transition to a durable run log.
 
     This function deliberately runs only after the injected dispatcher has returned
     a settled authoritative post-action snapshot. Preview, stale-state rejection,
     achievement-gate rejection and failed bridge execution therefore write nothing.
+    A structured ``build_intent`` event may be inserted before the decision when
+    the production run-scoped tracker reports a meaningful public build change.
     """
     normalized_run_id = str(run_id).strip()
     if not normalized_run_id:
@@ -109,6 +112,11 @@ def log_successful_live_transition(
         logger.run_started(state=before_state)
 
     logger.observation(before_state)
+    if build_intent is not None:
+        logger.record(
+            "build_intent",
+            **_sanitize_public_value(build_intent),
+        )
     logger.decision(
         action=action,
         rationale={
