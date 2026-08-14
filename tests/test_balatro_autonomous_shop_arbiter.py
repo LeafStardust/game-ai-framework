@@ -6,6 +6,7 @@ from games.balatro.actions import (
     BUY_CONSUMABLE,
     BUY_JOKER,
     END_SHOP,
+    REFRESH_SHOP,
     BalatroAction,
 )
 from games.balatro.joker import Joker, JokerContext
@@ -120,6 +121,28 @@ class CapturingRerollPolicy:
             future_shop_ev=0.0,
             reroll_resource_cost=0.0,
             reroll_score=float("-inf"),
+        )
+
+
+class FreeRerollPolicy:
+    def recommend(
+        self,
+        state,
+        visible_actions,
+        *,
+        reroll_cost,
+        visible_score_floor=None,
+    ):
+        assert reroll_cost == 0
+        score = float(visible_score_floor or 0.35)
+        return ShopRerollRecommendation(
+            decision="REROLL",
+            reroll_cost=0,
+            executable_action=BalatroAction(REFRESH_SHOP),
+            current_best_score=score,
+            future_shop_ev=score,
+            reroll_resource_cost=0.0,
+            reroll_score=score,
         )
 
 
@@ -250,3 +273,24 @@ def test_shop_arbiter_uses_explicit_zero_gain_end_shop_baseline():
     assert decision.total == pytest.approx(0.35)
     assert decision.normalized_gain == pytest.approx(0.0)
     assert reroll.visible_score_floor == pytest.approx(0.35)
+
+
+def test_shop_arbiter_prefers_admitted_free_reroll_over_zero_gain_end_shop():
+    state = _state(money=0)
+    arbiter = BuildAwareShopArbiter(
+        shop_policy=StaticShopPolicy(deterministic_total=0.20),
+        booster_policy=NoBoosterPolicy(),
+        reroll_policy=FreeRerollPolicy(),
+        joker_policy=StaticJokerPolicy(total_advantage=0.0),
+    )
+
+    decision = arbiter.decide(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=0,
+    )
+
+    assert decision.action.name == REFRESH_SHOP
+    assert decision.source == "REROLL"
+    assert decision.total == pytest.approx(0.35)
+    assert decision.normalized_gain == pytest.approx(0.0)

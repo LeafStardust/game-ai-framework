@@ -211,8 +211,10 @@ class BuildAwareShopArbiter:
         )
 
         # END_SHOP is a real candidate, not an after-the-fact fallback. It wins
-        # exact zero-gain ties. Positive child ties retain explicit parent priority:
-        # D2 > D4 > deterministic voucher > booster > reroll.
+        # exact zero-gain ties except against an admitted zero-cost reroll: a free
+        # reroll weakly dominates ending because END_SHOP remains available after
+        # observing the refreshed shop. Positive child ties retain explicit parent
+        # priority: D2 > D4 > deterministic voucher > booster > reroll.
         candidates: list[_ArbiterCandidate] = [
             _ArbiterCandidate(
                 action=BalatroAction(END_SHOP),
@@ -275,7 +277,7 @@ class BuildAwareShopArbiter:
                     source="REROLL",
                     total=float(reroll.reroll_score),
                     normalized_gain=float(reroll.reroll_score) - hold,
-                    priority=0,
+                    priority=6 if reroll_cost == 0 else 0,
                     child=reroll,
                 )
             )
