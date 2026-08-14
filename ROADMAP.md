@@ -14,7 +14,7 @@
 >
 > **Roadmap maintenance rule:** when implementation, deterministic tests or live validation clears a milestone, update this roadmap in the same development checkpoint instead of deferring documentation cleanup.
 >
-> **Current strategic priority: toggleable 0.9G supervisor + native loss restart.** The resumable run-experience logger and terminal summary checkpoint is locally green. The controller foundation now supports one-click ON/OFF state, cooperative safe stopping before another gameplay action, automatic deck/stake playbook selection, an unbounded per-attempt loop, attempt-scoped logs, session summaries, deterministic loss -> fresh-attempt -> win lifecycle testing, and automatic OFF after a win. The immediate production blocker is a validated first-party `GAME_OVER -> fresh unseeded same deck/stake run` action; until that native callback is proven, loss retry stays deliberately fail-closed. Durable D1 postmortems and D9/D10 pack coverage remain open work rather than being treated as complete.
+> **Current strategic priority: live-validate the toggleable 0.9G retry-until-win supervisor.** The resumable run-experience logger and terminal summary checkpoint is locally green. The controller foundation supports one-click ON/OFF state, cooperative safe stopping before another gameplay action, automatic deck/stake playbook selection, an unbounded per-attempt loop, attempt-scoped logs, session summaries, deterministic loss -> fresh-attempt -> win lifecycle testing, and automatic OFF after a win. The first-party `GAME_OVER -> fresh unseeded same deck/stake run` transition is now live-validated on Red Deck / White Stake and wired as the supervisor's production restart strategy. The immediate orchestration gate is an end-to-end toggle session that proves autonomous loss -> native restart -> fresh attempt continuation, manual cooperative OFF, and automatic OFF after a real win. Durable D1 postmortems and D9/D10 pack coverage remain open work rather than being treated as complete.
 
 ## v0.1.0 — Foundation
 
@@ -150,6 +150,7 @@
 - [x] Joker sell execution through the first-party bridge with authoritative roster reconciliation
 - [x] Joker replacement execution through `SELL -> fresh observation/replan -> BUY`
 - [x] Cooperative safe agent deactivation request before the next gameplay action
+- [x] Native lost-run restart through Balatro's own setup path with authoritative same-deck/stake `BLIND_SELECT` verification
 - [ ] Robust held-consumable use for all supported target patterns
 - [ ] Robust pack-effect targeting for Tarot/Spectral/Standard modifier flows
 - [ ] Blind skip/tag execution in the first-party production bridge
@@ -240,7 +241,7 @@
 >
 > Cross-layer state such as money, remaining hands/discards, ante, blind risk, slots and owned effects may be shared as **inputs**, but one layer's threshold constants must not be reused implicitly by another layer. The final shop/run arbiter compares normalized outputs from completed child layers instead of hiding all decisions inside one utility score.
 >
-> **The mutable-Joker 0.9C runtime projection correctness gate, D2 Joker lifecycle checkpoint, B5 + D12 shop-integration checkpoint, D4 consumable-acquisition checkpoint, D5 held-consumable autonomy foundation, D6 consumable-targeting autonomy foundation, D7 Planet autonomy foundation, and D8 booster-acquisition autonomy foundation are cleared.** B1–B4 contextual build intelligence reaches D2 and D4; B5 exposes contextual shop value and build-gap reroll context; D12 compares admitted child actions against an explicit `END_SHOP` baseline and relies on fresh authoritative re-observation after each executed shop action. D5 arbitrates held USE/HOLD before D1 during blinds and before D12 during SHOP for explicitly validated no-target effects. D6 provides effect-owned legal targets, B6 target scoring, multi-card selection, exact live target verification, and deterministic Tarot/Spectral pack follow-up targeting. D7 provides dedicated Planet USE/HOLD policy, observable duplication-aware hold value, guarded one-action Planet execution, and authoritative hand-level verification. D8 provides a dedicated BuildProfile-informed unopened-pack EV and `BUY`/`HOLD` threshold, preserves fail-closed Arcana/Spectral acquisition until D9/D10 coverage is safe, and validates one guarded purchase through authoritative `SHOP -> *_PACK` transition without chaining a pack choice. D9/D10 remain open coverage requirements; D1 postmortem tooling is now available from durable run records, while the active orchestration blocker is native loss restart for 0.9G.
+> **The mutable-Joker 0.9C runtime projection correctness gate, D2 Joker lifecycle checkpoint, B5 + D12 shop-integration checkpoint, D4 consumable-acquisition checkpoint, D5 held-consumable autonomy foundation, D6 consumable-targeting autonomy foundation, D7 Planet autonomy foundation, and D8 booster-acquisition autonomy foundation are cleared.** B1–B4 contextual build intelligence reaches D2 and D4; B5 exposes contextual shop value and build-gap reroll context; D12 compares admitted child actions against an explicit `END_SHOP` baseline and relies on fresh authoritative re-observation after each executed shop action. D5 arbitrates held USE/HOLD before D1 during blinds and before D12 during SHOP for explicitly validated no-target effects. D6 provides effect-owned legal targets, B6 target scoring, multi-card selection, exact live target verification, and deterministic Tarot/Spectral pack follow-up targeting. D7 provides dedicated Planet USE/HOLD policy, observable duplication-aware hold value, guarded one-action Planet execution, and authoritative hand-level verification. D8 provides a dedicated BuildProfile-informed unopened-pack EV and `BUY`/`HOLD` threshold, preserves fail-closed Arcana/Spectral acquisition until D9/D10 coverage is safe, and validates one guarded purchase through authoritative `SHOP -> *_PACK` transition without chaining a pack choice. D9/D10 remain open coverage requirements; D1 postmortem tooling is available from durable run records, native loss restart is now live-validated and wired into 0.9G, and the active orchestration gate is end-to-end retry-until-win plus ON/OFF validation.
 
 #### B1–B7 — Shared build intelligence and synergy strategy — ACTIVE STRATEGIC PRIORITY
 
@@ -612,7 +613,7 @@ Status:
 
 #### Required implementation order
 
-The mutable-hydrated 0.9C Joker runtime projection correctness gate, D2 Joker lifecycle checkpoint, B5 + D12 shop-integration checkpoint, D4 consumable-acquisition checkpoint, D5 held-consumable autonomy foundation, D6 consumable-targeting autonomy foundation, D7 Planet autonomy foundation, and D8 booster-acquisition autonomy foundation are complete. The active orchestration checkpoint is now the toggleable 0.9G supervisor: prove native loss restart, then live-validate retry-until-win and safe ON/OFF behavior. D1 postmortems are enabled by durable logs and D9/D10 remains open required `v0.9.0` coverage; neither is being marked complete by the supervisor work.
+The mutable-hydrated 0.9C Joker runtime projection correctness gate, D2 Joker lifecycle checkpoint, B5 + D12 shop-integration checkpoint, D4 consumable-acquisition checkpoint, D5 held-consumable autonomy foundation, D6 consumable-targeting autonomy foundation, D7 Planet autonomy foundation, and D8 booster-acquisition autonomy foundation are complete. Native first-party loss restart is now live-validated and wired into the toggleable 0.9G supervisor; the active orchestration checkpoint is an end-to-end live retry-until-win session plus safe ON/OFF behavior. D1 postmortems are enabled by durable logs and D9/D10 remains open required `v0.9.0` coverage; neither is being marked complete by the supervisor work.
 
 1. [x] **0.9C Joker runtime projection fidelity** — `33/33` mutable hydrated Jokers supported with `0 deferred / 0 gap / 0 error`; unsupported stateless/event semantics remain fail-closed until separately validated
 2. [x] **D2 completion** — contextual scoring/economy/non-scoring valuation, standalone sell, first-party sell execution and fresh-replan replacement are complete
@@ -624,7 +625,7 @@ The mutable-hydrated 0.9C Joker runtime projection correctness gate, D2 Joker li
 8. **D11 Reroll decision** — complete reroll EV and remaining-shop/horizon quality
 9. **D13 Blind skip/tag decision**
 10. **D14 Run-level resource arbitration and normalization**
-11. **0.9G toggleable supervisor — ACTIVE ORCHESTRATION** — control plane, unbounded per-attempt loop, attempt/session logging and deterministic retry-until-win lifecycle are implemented; validate native `GAME_OVER -> new run`, then live ON/OFF and auto-OFF-on-win behavior
+11. **0.9G toggleable supervisor — ACTIVE ORCHESTRATION** — control plane, unbounded per-attempt loop, attempt/session logging, deterministic retry-until-win lifecycle, and live-validated native loss restart are implemented; now live-validate automatic loss retry, safe OFF, and auto-OFF-on-win behavior
 12. **B7 + D1 final refinement** — use durable real-run D1 records, feed build intent into hand/discard decisions and lock final D1 quality
 13. **0.9E + 0.9G final integration** — complete remaining per-layer logging, remove temporary phase policies, and validate the production unbounded autonomous retry loop
 
@@ -653,8 +654,8 @@ Completion gate for each decision layer:
 - [x] Attempt-scoped run IDs/logs and session-level summary foundation
 - [x] Deterministic loss -> fresh attempt -> win supervisor lifecycle through an injectable restart strategy
 - [x] Deterministic auto-OFF after the target run wins
-- [ ] Validate and enable first-party `GAME_OVER -> fresh unseeded same deck/stake run` execution
-- [ ] Production retry losses automatically until the first win
+- [x] Validate and enable first-party `GAME_OVER -> fresh unseeded same deck/stake run` execution
+- [ ] Live-validate production retry losses automatically until the first win (implementation wired)
 - [ ] Live-validate manual toggle OFF during an active run
 - [ ] Live-validate automatic OFF after a real win
 - [ ] Route each phase to its completed decision layer rather than temporary conservative policies
