@@ -2,15 +2,12 @@ from types import SimpleNamespace
 
 import games.balatro.live.hand_action_policy as hand_action_policy
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
-from games.balatro.live.blind_clear_planner import (
-    LiveBlindPlan,
-    LiveBlindPlanValue,
-    PlannerSearchBudgetExceeded,
-)
+from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
 from games.balatro.live.hand_action_policy import (
     LiveHandActionDecisionEngine,
     LiveHandActionPolicy,
 )
+from games.balatro.playbook import default_balatro_playbooks
 
 
 class _FakeEvaluator:
@@ -119,7 +116,7 @@ def test_immediate_budget_fallback_is_depth_one_and_keeps_discards():
     assert all(plan.horizon == 1 for plan in plans)
 
 
-def test_final_fallback_budget_exhaustion_degrades_instead_of_aborting(monkeypatch):
+def test_final_fallback_goes_directly_to_immediate_beam(monkeypatch):
     evaluator = _FakeEvaluator()
     planner = SimpleNamespace(evaluator=evaluator)
     engine = LiveHandActionDecisionEngine(
@@ -136,13 +133,21 @@ def test_final_fallback_budget_exhaustion_degrades_instead_of_aborting(monkeypat
         lambda **kwargs: (),
     )
 
-    def exhaust_budget(*args, **kwargs):
-        raise PlannerSearchBudgetExceeded("test budget exhaustion")
+    def recursive_fallback_must_not_run(*args, **kwargs):
+        raise AssertionError("recursive D1 fallback should not run after adaptive search")
 
-    monkeypatch.setattr(engine, "rank_plans", exhaust_budget)
+    monkeypatch.setattr(engine, "rank_plans", recursive_fallback_must_not_run)
     monkeypatch.setattr(engine, "_rank_immediate_plans", lambda current: [play, discard])
 
     decision = engine.decide(state)
 
     assert decision.action.name == DISCARD_CARDS
     assert decision.action.cards == ["discard"]
+
+
+def test_red_white_default_caps_normal_d1_search_at_horizon_five():
+    playbook = default_balatro_playbooks().get("RED", "WHITE")
+
+    assert playbook.version == "0.7"
+    assert playbook.strategy["planner"]["max_horizon"] == 5
+    assert playbook.strategy["planner"]["max_search_nodes"] == 5000
