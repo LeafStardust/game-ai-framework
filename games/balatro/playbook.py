@@ -96,6 +96,17 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                         "last_joker_slot_penalty": 1.5,
                         "penultimate_joker_slot_penalty": 0.5,
                     },
+                    "voucher_acquisition": {
+                        "minimum_persistent_value": 1.0,
+                        "minimum_purchase_advantage": 0.35,
+                        "price_weight": 0.20,
+                        "interest_weight": 1.0,
+                        "reserve_target": 5,
+                        "reserve_weight": 0.45,
+                        "target_ante": 8,
+                        "remaining_ante_weight": 0.20,
+                        "maximum_horizon_bonus": 1.40,
+                    },
                 },
             },
         )
