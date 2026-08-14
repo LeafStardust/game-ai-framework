@@ -8,6 +8,7 @@ from typing import Callable
 from games.balatro.actions import END_ROUND, SELECT_BLIND, BalatroAction
 from games.balatro.live.consumable_timing import LiveConsumableTimingPolicy
 from games.balatro.live.hand_action_policy import (
+    SEARCH_SCHEDULE_FULL,
     HandActionThresholds,
     LiveHandActionDecisionEngine,
     LiveHandActionPolicy,
@@ -151,6 +152,20 @@ def _same_snapshot(
     )
 
 
+def _search_schedule_mode(
+    planner_config,
+    *,
+    max_horizon_override: int | None,
+    max_search_nodes_override: int | None,
+) -> str:
+    # Any explicit search-depth/budget override is diagnostic intent. Preserve the
+    # complete adaptive ladder in that case; only ordinary playbook-driven autonomy
+    # may use a sparse latency profile.
+    if max_horizon_override is not None or max_search_nodes_override is not None:
+        return SEARCH_SCHEDULE_FULL
+    return str(planner_config.get("search_schedule_mode", SEARCH_SCHEDULE_FULL))
+
+
 class LiveMemoryInjectedSingleStepRunner:
     """Choose and execute at most one autonomous Balatro action.
 
@@ -278,12 +293,18 @@ class LiveMemoryInjectedSingleStepRunner:
             if self.max_search_nodes is not None
             else int(planner_config.get("max_search_nodes", 5000))
         )
+        search_schedule_mode = _search_schedule_mode(
+            planner_config,
+            max_horizon_override=self.max_horizon,
+            max_search_nodes_override=self.max_search_nodes,
+        )
         engine = LiveHandActionDecisionEngine(
             policy=LiveHandActionPolicy(thresholds),
             max_horizon=max_horizon,
             max_search_nodes=max_search_nodes,
             exact_limit=self.exact_limit,
             child_exact_limit=self.child_exact_limit,
+            search_schedule_mode=search_schedule_mode,
         )
 
         rank_timings: list[float] = []
@@ -303,6 +324,7 @@ class LiveMemoryInjectedSingleStepRunner:
 
         notes = [
             f"playbook={playbook.name} v{playbook.version}",
+            f"search_schedule={search_schedule_mode}",
             f"mode={decision.mode}",
             f"confidence={decision.confidence:.6f}",
             f"indices={_indices(state, decision.action)}",
