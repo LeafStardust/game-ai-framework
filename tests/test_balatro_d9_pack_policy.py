@@ -7,6 +7,7 @@ from games.balatro.live.external.live_memory_pack_policy_validation import (
 )
 from games.balatro.live.pack import LivePackChoice
 from games.balatro.pack_policy import BalatroPackPolicy
+from games.balatro.spectrals import SPECTRAL_CARDS
 from games.balatro.state import BalatroState
 
 
@@ -122,6 +123,27 @@ def test_d9_spectral_targeted_choice_uses_b6_target_value_against_skip():
     assert ranked[0].total > 0.35
     assert any("B6 pack target gain=" in note for note in ranked[0].notes)
     assert any("target_indices=(0,)" in note for note in ranked[0].notes)
+
+
+def test_d9_black_hole_uses_b4_immediate_spectral_value_against_skip():
+    state = BalatroState()
+    state.phase = "SPECTRAL_PACK"
+    choice = _choice("Spectral", "Black Hole")
+
+    ranked = _rank(state, choice)
+
+    assert ranked[0].action.name == SELECT_PACK_CARD
+    assert ranked[0].action.cards == []
+    assert ranked[0].total > 0.35
+    assert any(
+        "deterministic immediate Spectral uses shared B4 item valuation" in note
+        for note in ranked[0].notes
+    )
+    assert any("B4 build-path gain=" in note for note in ranked[0].notes)
+
+
+def test_d9_every_current_spectral_is_explicitly_classified():
+    assert BalatroPackPolicy.classified_spectrals() == frozenset(SPECTRAL_CARDS)
 
 
 def test_d9_unmodeled_visible_effect_stays_below_explicit_skip_baseline():

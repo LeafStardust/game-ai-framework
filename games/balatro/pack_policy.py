@@ -33,12 +33,13 @@ class PackActionScore:
 class BalatroPackPolicy:
     """Conservative ranking for visible booster-pack choices.
 
-    Joker, Planet, and enhanced/edition/sealed playing-card choices can be ranked
-    immediately. Deterministic targeted Tarot/Spectral transformations are admitted
-    only when the public hand supplies a validated B6 target. The Fool is valued
-    from Balatro's public last-Tarot/Planet run history. Wheel of Fortune is valued
-    from an analytic public-state edition distribution. Other stochastic effects
-    remain below Skip until their outcome models are explicit.
+    Joker, Planet, enhanced/edition/sealed playing-card, and deterministic immediate
+    Spectral choices can be ranked immediately. Deterministic targeted Tarot/Spectral
+    transformations are admitted only when the public hand supplies a validated B6
+    target. The Fool is valued from Balatro's public last-Tarot/Planet run history.
+    Wheel of Fortune is valued from an analytic public-state edition distribution.
+    Other stochastic, destructive, generation, or unsupported-target effects remain
+    below Skip until their outcome models are explicit.
 
     An optional D4 playstyle evaluator can add bounded run-intent value for choices
     whose semantics are directly observable. Joker intent is deliberately not added
@@ -66,6 +67,33 @@ class BalatroPackPolicy:
     # Compatibility alias for older tests/callers. "Safe immediate" now means
     # deterministic immediate effect, not merely "does not ask for hand targets".
     SAFE_IMMEDIATE_TAROTS = DETERMINISTIC_IMMEDIATE_TAROTS
+
+    # Black Hole is the only current Spectral whose complete modeled effect is both
+    # deterministic and non-targeted. The four deterministic seal transforms remain
+    # on the B6 target path; every other current Spectral stays explicitly deferred
+    # until its stochastic/destructive/generation/target semantics are modeled.
+    DETERMINISTIC_IMMEDIATE_SPECTRALS = frozenset(
+        {
+            "Black Hole",
+        }
+    )
+    DEFERRED_SPECTRALS = frozenset(
+        {
+            "Familiar",
+            "Grim",
+            "Incantation",
+            "Aura",
+            "Wraith",
+            "Sigil",
+            "Ouija",
+            "Ectoplasm",
+            "Immolate",
+            "Ankh",
+            "Hex",
+            "Cryptid",
+            "The Soul",
+        }
+    )
 
     EDITION_BONUS = {
         "FOIL": 0.8,
@@ -141,6 +169,15 @@ class BalatroPackPolicy:
             | cls.STOCHASTIC_MODELED_TAROTS
             | cls.STOCHASTIC_DEFERRED_TAROTS
             | ContextualConsumableTargetEvaluator.SUPPORTED_TAROTS
+        )
+
+    @classmethod
+    def classified_spectrals(cls) -> frozenset[str]:
+        """Return every Spectral explicitly classified by autonomous pack policy."""
+        return (
+            cls.DETERMINISTIC_IMMEDIATE_SPECTRALS
+            | cls.DEFERRED_SPECTRALS
+            | ContextualConsumableTargetEvaluator.SUPPORTED_SPECTRALS
         )
 
     def choose_action(self, state, actions: list[BalatroAction]) -> BalatroAction:
@@ -276,8 +313,57 @@ class BalatroPackPolicy:
                     ),
                 )
 
+        if choice.kind == "SPECTRAL":
+            if choice.label in self.DEFERRED_SPECTRALS:
+                return PackActionScore(
+                    action,
+                    -1.0 + playstyle_value,
+                    (
+                        f"Spectral deferred: {choice.label} outcome/target semantics "
+                        "are not yet autonomous-safe",
+                        *playstyle_notes,
+                    ),
+                )
+
+            if choice.label in self.DETERMINISTIC_IMMEDIATE_SPECTRALS:
+                if not target.can_use(ConsumableContext(state=state)):
+                    return PackActionScore(
+                        action,
+                        -1.0 + playstyle_value,
+                        (
+                            f"deterministic immediate Spectral unavailable: {choice.label}",
+                            *playstyle_notes,
+                        ),
+                    )
+                utility, notes = self.item_estimator.estimate(
+                    state,
+                    BalatroAction(BUY_CONSUMABLE, target=target),
+                )
+                return PackActionScore(
+                    action,
+                    float(utility) + playstyle_value,
+                    (
+                        "deterministic immediate Spectral uses shared B4 item valuation",
+                        *tuple(notes),
+                        *playstyle_notes,
+                    ),
+                )
+
+            if choice.label not in ContextualConsumableTargetEvaluator.SUPPORTED_SPECTRALS:
+                return PackActionScore(
+                    action,
+                    -1.0 + playstyle_value,
+                    (
+                        f"unclassified Spectral fails closed: {choice.label}",
+                        *playstyle_notes,
+                    ),
+                )
+
         requires_target = (
-            choice.kind == "SPECTRAL"
+            (
+                choice.kind == "SPECTRAL"
+                and choice.label in ContextualConsumableTargetEvaluator.SUPPORTED_SPECTRALS
+            )
             or (
                 choice.kind == "TAROT"
                 and choice.label not in self.SAFE_IMMEDIATE_TAROTS
