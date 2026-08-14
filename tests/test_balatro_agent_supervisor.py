@@ -7,6 +7,7 @@ from games.balatro.live.external import balatro_agent_toggle as toggle_module
 from games.balatro.live.external.agent_control import BalatroAgentControl
 from games.balatro.live.external.balatro_agent_supervisor import (
     BalatroAgentSupervisor,
+    wait_for_stable_startup_snapshot,
 )
 from games.balatro.live.external.balatro_agent_toggle import toggle_agent
 from games.balatro.live.external.live_memory_autonomous_step_injected import (
@@ -96,6 +97,47 @@ class _AttemptFactory:
         self.index += 1
 
 
+class _TransientStartupObserver:
+    def __init__(self):
+        self.calls = 0
+
+    def observe(self):
+        self.calls += 1
+        if self.calls == 1:
+            return LiveBalatroSnapshot(
+                sequence=1,
+                phase="UNKNOWN",
+                state_complete=False,
+                payload={"deck": "BLUE", "stake": "WHITE"},
+            )
+        return LiveBalatroSnapshot(
+            sequence=2,
+            phase="SELECTING_HAND",
+            state_complete=True,
+            payload={
+                "deck": "RED",
+                "stake": "WHITE",
+                "hand": {"cards": []},
+            },
+        )
+
+
+def test_stable_startup_snapshot_ignores_transient_first_attachment_frame():
+    observer = _TransientStartupObserver()
+
+    stable = wait_for_stable_startup_snapshot(
+        observer,
+        interval_seconds=0.0,
+        timeout_seconds=0.1,
+    )
+
+    assert observer.calls == 3
+    assert stable.phase == "SELECTING_HAND"
+    assert stable.state_complete is True
+    assert stable.payload["deck"] == "RED"
+    assert stable.payload["stake"] == "WHITE"
+
+
 def test_supervisor_retries_fresh_attempts_until_win_and_auto_off(tmp_path):
     factory = _AttemptFactory([False, True])
     control = BalatroAgentControl(tmp_path / "control")
@@ -107,6 +149,7 @@ def test_supervisor_retries_fresh_attempts_until_win_and_auto_off(tmp_path):
         run_log_directory=tmp_path / "runs",
         session_directory=tmp_path / "sessions",
         session_id="session-test",
+        startup_stability_interval_seconds=0.0,
     )
 
     result = supervisor.run()
@@ -148,6 +191,7 @@ def test_supervisor_fails_closed_when_native_loss_restart_is_unavailable(tmp_pat
         run_log_directory=tmp_path / "runs",
         session_directory=tmp_path / "sessions",
         session_id="restart-blocked",
+        startup_stability_interval_seconds=0.0,
     )
 
     result = supervisor.run()
