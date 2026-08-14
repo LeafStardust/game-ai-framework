@@ -34,32 +34,40 @@ class RunResourceValuator:
         money = max(0, int(money))
         return min(cls.INTEREST_CAP, money // cls.INTEREST_STEP)
 
-    def money_spend_cost(
+    def money_transaction_cost(
         self,
         *,
         money: int,
-        spend: int,
+        net_spend: int,
         price_weight: float = 1.0,
         interest_weight: float = 1.0,
         reserve_target: int = 5,
         reserve_weight: float = 1.0,
     ) -> ResourceValueBreakdown:
-        """Return marginal utility forfeited by spending money now."""
+        """Return shared utility cost for a signed current-money transaction.
+
+        Positive ``net_spend`` spends cash; negative values represent deterministic
+        sale credit received as part of the same semantic transaction. Direct and
+        interest terms may therefore be negative benefits. Reserve value remains a
+        one-way safety penalty: recovering reserve headroom does not create an extra
+        reward beyond the cash/interest benefit already represented here.
+        """
         money = max(0, int(money))
-        spend = max(0, int(spend))
+        net_spend = int(net_spend)
         reserve_target = max(0, int(reserve_target))
-        if spend > money:
+        money_after = money - net_spend
+        if money_after < 0:
             return ResourceValueBreakdown(
                 total=inf,
                 direct=inf,
-                notes=(f"unaffordable spend=${spend} money=${money}",),
+                notes=(
+                    f"unaffordable net_spend=${net_spend} money=${money}",
+                ),
             )
 
-        money_after = money - spend
-        direct = float(price_weight) * spend
-        interest_steps_lost = max(
-            0,
-            self.interest_value(money) - self.interest_value(money_after),
+        direct = float(price_weight) * net_spend
+        interest_steps_lost = (
+            self.interest_value(money) - self.interest_value(money_after)
         )
         interest = float(interest_weight) * interest_steps_lost
         reserve_before = max(0, reserve_target - money)
@@ -74,9 +82,30 @@ class RunResourceValuator:
             reserve=reserve,
             notes=(
                 f"money=${money}->${money_after}",
+                f"net_spend=${net_spend}",
                 f"interest_steps_lost={interest_steps_lost}",
                 f"incremental_reserve_shortfall={reserve_delta}",
             ),
+        )
+
+    def money_spend_cost(
+        self,
+        *,
+        money: int,
+        spend: int,
+        price_weight: float = 1.0,
+        interest_weight: float = 1.0,
+        reserve_target: int = 5,
+        reserve_weight: float = 1.0,
+    ) -> ResourceValueBreakdown:
+        """Return marginal utility forfeited by spending money now."""
+        return self.money_transaction_cost(
+            money=money,
+            net_spend=max(0, int(spend)),
+            price_weight=price_weight,
+            interest_weight=interest_weight,
+            reserve_target=reserve_target,
+            reserve_weight=reserve_weight,
         )
 
     def slot_opportunity_cost(
