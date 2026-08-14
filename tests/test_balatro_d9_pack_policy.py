@@ -2,6 +2,9 @@ from types import SimpleNamespace
 
 from games.balatro.actions import SELECT_PACK_CARD, SKIP_BOOSTER, BalatroAction
 from games.balatro.card import BalatroCard
+from games.balatro.live.external.live_memory_pack_policy_validation import (
+    build_live_d9_view,
+)
 from games.balatro.live.pack import LivePackChoice
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.state import BalatroState
@@ -137,18 +140,25 @@ def test_d9_unmodeled_visible_effect_stays_below_explicit_skip_baseline():
     assert unsupported.action.cards == []
 
 
-def test_d9_supported_family_set_has_a_policy_path_for_all_pack_families():
-    assert BalatroPackPolicy().classified_tarots()
-    assert {
-        "JOKER",
+def test_d9_live_view_preserves_policy_order_and_explicit_skip_candidate():
+    state = BalatroState()
+    state.phase = "STANDARD_PACK"
+    choice = _choice(
         "PLAYING_CARD",
-        "PLANET",
-        "TAROT",
-        "SPECTRAL",
-    } == {
-        "JOKER",
-        "PLAYING_CARD",
-        "PLANET",
-        "TAROT",
-        "SPECTRAL",
-    }
+        "Steel King",
+        value={"rank": "K", "suit": "Hearts"},
+        modifier={"enhancement": "m_steel"},
+    )
+    snapshot = SimpleNamespace(
+        phase="STANDARD_PACK",
+        state_complete=True,
+        sequence=7,
+    )
+
+    view = build_live_d9_view(snapshot, state, [choice])
+
+    assert view.recommendation.score.action.name == SELECT_PACK_CARD
+    assert view.recommendation.area_index == 0
+    assert any(candidate.kind == "SKIP" for candidate in view.candidates)
+    skip = next(candidate for candidate in view.candidates if candidate.kind == "SKIP")
+    assert skip.score.total == BalatroPackPolicy().skip_bias
