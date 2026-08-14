@@ -27,7 +27,24 @@ class ShopUtilityScale:
 
     def __init__(self, shop_policy) -> None:
         self.shop_policy = shop_policy
-        self.resource_valuator: RunResourceValuator = shop_policy.resource_valuator
+        self.resource_valuator: RunResourceValuator = getattr(
+            shop_policy,
+            "resource_valuator",
+            None,
+        ) or RunResourceValuator()
+        self.price_weight = float(getattr(shop_policy, "price_weight", 0.35))
+        self.interest_weight = float(getattr(shop_policy, "interest_weight", 1.25))
+        self.reserve_target = int(getattr(shop_policy, "reserve_target", 5))
+        self.reserve_weight = float(getattr(shop_policy, "reserve_weight", 0.45))
+        self.last_joker_slot_penalty = float(
+            getattr(shop_policy, "last_joker_slot_penalty", 1.5)
+        )
+        self.penultimate_joker_slot_penalty = float(
+            getattr(shop_policy, "penultimate_joker_slot_penalty", 0.5)
+        )
+        self.last_consumable_slot_penalty = float(
+            getattr(shop_policy, "last_consumable_slot_penalty", 0.6)
+        )
 
     @staticmethod
     def baseline_gain(total: float, baseline: float) -> ShopNormalizedUtility:
@@ -56,10 +73,8 @@ class ShopUtilityScale:
             slot_cost = self.resource_valuator.slot_opportunity_cost(
                 occupied=len(state.jokers),
                 capacity=int(state.joker_slots),
-                last_slot_penalty=float(self.shop_policy.last_joker_slot_penalty),
-                penultimate_slot_penalty=float(
-                    self.shop_policy.penultimate_joker_slot_penalty
-                ),
+                last_slot_penalty=self.last_joker_slot_penalty,
+                penultimate_slot_penalty=self.penultimate_joker_slot_penalty,
                 resource="joker",
             ).total
 
@@ -90,9 +105,7 @@ class ShopUtilityScale:
             slot_cost = self.resource_valuator.slot_opportunity_cost(
                 occupied=len(state.consumables),
                 capacity=int(state.consumable_slots),
-                last_slot_penalty=float(
-                    self.shop_policy.last_consumable_slot_penalty
-                ),
+                last_slot_penalty=self.last_consumable_slot_penalty,
                 resource="consumable",
             ).total
 
@@ -134,20 +147,20 @@ class ShopUtilityScale:
         return self.resource_valuator.money_spend_cost(
             money=int(state.money),
             spend=spend,
-            price_weight=float(self.shop_policy.price_weight),
-            interest_weight=float(self.shop_policy.interest_weight),
-            reserve_target=int(self.shop_policy.reserve_target),
-            reserve_weight=float(self.shop_policy.reserve_weight),
+            price_weight=self.price_weight,
+            interest_weight=self.interest_weight,
+            reserve_target=self.reserve_target,
+            reserve_weight=self.reserve_weight,
         )
 
     def _money_transaction_cost(self, state, net_spend: int):
         return self.resource_valuator.money_transaction_cost(
             money=int(state.money),
             net_spend=net_spend,
-            price_weight=float(self.shop_policy.price_weight),
-            interest_weight=float(self.shop_policy.interest_weight),
-            reserve_target=int(self.shop_policy.reserve_target),
-            reserve_weight=float(self.shop_policy.reserve_weight),
+            price_weight=self.price_weight,
+            interest_weight=self.interest_weight,
+            reserve_target=self.reserve_target,
+            reserve_weight=self.reserve_weight,
         )
 
     @staticmethod
