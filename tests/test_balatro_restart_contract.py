@@ -1,6 +1,8 @@
 import pytest
 
 from games.balatro.live.external.live_memory_restart_contract import (
+    archive_matches,
+    source_matches,
     start_run_archive_matches,
     start_run_source_matches,
 )
@@ -66,3 +68,37 @@ def test_start_run_archive_matches_scan_multiple_lua_sources_with_global_limit()
     assert matches[1].lines == (
         "000002: G.FUNCS.start_run = function(e, args)",
     )
+
+
+def test_arbitrary_source_pattern_can_probe_native_restart_button_contract():
+    source = "\n".join(
+        (
+            "before",
+            "UIBox_button{id = 'restart_button', button = 'start_run'}",
+            "after",
+        )
+    )
+
+    matches = source_matches(source, "restart_button", context_lines=1)
+
+    assert len(matches) == 1
+    assert matches[0].line_number == 2
+    assert matches[0].lines == (
+        "000001: before",
+        "000002: UIBox_button{id = 'restart_button', button = 'start_run'}",
+        "000003: after",
+    )
+
+    archive = archive_matches(
+        {"functions/UI_definitions.lua": source, "main.lua": "loader"},
+        "restart_button",
+        context_lines=0,
+    )
+    assert [(match.source_name, match.line_number) for match in archive] == [
+        ("functions/UI_definitions.lua", 2),
+    ]
+
+    with pytest.raises(ValueError, match="pattern"):
+        source_matches(source, "")
+    with pytest.raises(ValueError, match="pattern"):
+        archive_matches({"main.lua": source}, "")
