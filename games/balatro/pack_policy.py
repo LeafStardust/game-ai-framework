@@ -14,6 +14,7 @@ from games.balatro.build import (
     ContextualPlayingCardSynergyEvaluator,
 )
 from games.balatro.build.aura_expectation import AuraExpectationEvaluator
+from games.balatro.build.hex_expectation import HexExpectationEvaluator
 from games.balatro.build.sigil_expectation import SigilExpectationEvaluator
 from games.balatro.build.wheel_expectation import WheelOfFortuneExpectationEvaluator
 from games.balatro.consumable import ConsumableContext
@@ -38,11 +39,11 @@ class BalatroPackPolicy:
     Joker, Planet, enhanced/edition/sealed playing-card, and deterministic immediate
     Spectral choices can be ranked immediately. Deterministic targeted Tarot/Spectral
     transformations are admitted only when the public hand supplies a validated B6
-    target. Aura and Sigil are admitted through analytic public-state expectations over
-    bounded outcomes. The Fool is valued from Balatro's public last-Tarot/Planet run
-    history. Wheel of Fortune is valued from an analytic public-state edition
-    distribution. Other stochastic, destructive, generation, or unsupported-target
-    effects remain below Skip until their outcome models are explicit.
+    target. Aura, Sigil, and Hex are admitted through analytic public-state
+    expectations over bounded outcomes. The Fool is valued from Balatro's public
+    last-Tarot/Planet run history. Wheel of Fortune is valued from an analytic
+    public-state edition distribution. Other stochastic, destructive, generation, or
+    unsupported-target effects remain below Skip until their outcome models are explicit.
 
     An optional D4 playstyle evaluator can add bounded run-intent value for choices
     whose semantics are directly observable. Joker intent is deliberately not added
@@ -73,8 +74,8 @@ class BalatroPackPolicy:
 
     # Black Hole is the only current Spectral whose complete modeled effect is both
     # deterministic and non-targeted. Four deterministic seal transforms remain on
-    # the generic B6 target path. Aura and Sigil have explicit stochastic expectation
-    # models; every other current Spectral stays deferred until its semantics are modeled.
+    # the generic B6 target path. Aura, Sigil, and Hex have explicit stochastic
+    # expectation models; every other current Spectral stays deferred until modeled.
     DETERMINISTIC_IMMEDIATE_SPECTRALS = frozenset(
         {
             "Black Hole",
@@ -84,6 +85,7 @@ class BalatroPackPolicy:
         {
             "Aura",
             "Sigil",
+            "Hex",
         }
     )
     DEFERRED_SPECTRALS = frozenset(
@@ -96,7 +98,6 @@ class BalatroPackPolicy:
             "Ectoplasm",
             "Immolate",
             "Ankh",
-            "Hex",
             "Cryptid",
             "The Soul",
         }
@@ -153,6 +154,7 @@ class BalatroPackPolicy:
         wheel_evaluator=None,
         aura_evaluator=None,
         sigil_evaluator=None,
+        hex_evaluator=None,
         playstyle_evaluator: PackPlaystyleEvaluator | None = None,
     ) -> None:
         self.skip_bias = float(skip_bias)
@@ -169,6 +171,7 @@ class BalatroPackPolicy:
         self.wheel_evaluator = wheel_evaluator or WheelOfFortuneExpectationEvaluator()
         self.aura_evaluator = aura_evaluator or AuraExpectationEvaluator()
         self.sigil_evaluator = sigil_evaluator or SigilExpectationEvaluator()
+        self.hex_evaluator = hex_evaluator or HexExpectationEvaluator()
         self.playstyle_evaluator = playstyle_evaluator
 
     @classmethod
@@ -303,6 +306,10 @@ class BalatroPackPolicy:
 
         if choice.kind == "SPECTRAL" and choice.label == "Sigil":
             scored = self._score_sigil(state, action, target)
+            return self._add_playstyle(scored, playstyle_value, playstyle_notes)
+
+        if choice.kind == "SPECTRAL" and choice.label == "Hex":
+            scored = self._score_hex(state, action)
             return self._add_playstyle(scored, playstyle_value, playstyle_notes)
 
         if (
@@ -583,6 +590,46 @@ class BalatroPackPolicy:
                 *tuple(notes),
                 "Sigil uses analytic public-state expectation; no RNG sample or seed read",
                 f"B6 Sigil expected rewrite gain={expectation.expected_total_gain:.3f}",
+                *expectation.rationale,
+            ),
+        )
+
+    def _score_hex(
+        self,
+        state,
+        action: BalatroAction,
+    ) -> PackActionScore:
+        expectation = self.hex_evaluator.evaluate(state)
+        if not expectation.available:
+            return PackActionScore(
+                action,
+                -1.0,
+                ("Hex unavailable: no public Joker target",),
+            )
+        if not expectation.complete:
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    "Hex deferred: public stochastic outcome model could not "
+                    "score every Joker branch",
+                    *expectation.rationale,
+                ),
+            )
+        if expectation.expected_build_gain <= 0.0:
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    "Hex has no positive analytic whole-build value",
+                    *expectation.rationale,
+                ),
+            )
+        return PackActionScore(
+            action,
+            float(expectation.expected_build_gain),
+            (
+                "Hex uses analytic B3 whole-build expectation; no RNG sample or seed read",
                 *expectation.rationale,
             ),
         )
