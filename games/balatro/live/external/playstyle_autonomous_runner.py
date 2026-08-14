@@ -36,7 +36,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
 
     The base runner remains the mechanics/execution implementation. This adapter
     wires one competence-layer playstyle tracker into D1 hand decisions, D2
-    Joker/shop valuation, and D4 booster choices so no subsystem can capture an
+    Joker/shop valuation, and D9 booster choices so no subsystem can capture an
     independent Ante-5 commitment. A supervisor retry creates a fresh runner and
     therefore a fresh tracker.
     """
