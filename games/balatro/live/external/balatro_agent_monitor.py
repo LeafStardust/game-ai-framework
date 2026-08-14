@@ -105,7 +105,9 @@ def build_dashboard(
     supervisor_pid: int | None,
     balatro_running: bool,
     rows: list[dict[str, Any]],
+    telemetry: dict[str, Any] | None = None,
 ) -> str:
+    telemetry = telemetry or {}
     state = str(status.get("state") or "UNKNOWN")
     last_state = _last_state(rows)
     payload = last_state.get("payload") if isinstance(last_state.get("payload"), dict) else {}
@@ -118,7 +120,7 @@ def build_dashboard(
     latest_result = _latest(rows, "action_result") or {}
     result_data = latest_result.get("data") if isinstance(latest_result.get("data"), dict) else {}
 
-    phase = last_state.get("phase") or status.get("phase") or "-"
+    phase = telemetry.get("phase") or last_state.get("phase") or status.get("phase") or "-"
     run_active = (
         supervisor_pid is not None
         and balatro_running
@@ -136,20 +138,25 @@ def build_dashboard(
     else:
         score_text = _safe(score)
 
+    activity_notes = telemetry.get("notes")
+    if not isinstance(activity_notes, list):
+        activity_notes = []
+
     lines = [
         "=" * 78,
         "BALATRO AGENT LIVE MONITOR",
         "=" * 78,
         f"Agent state      : {state}",
+        f"Agent activity   : {_safe(telemetry.get('activity'), 'WAITING')}",
         f"Supervisor      : {'RUNNING' if supervisor_pid is not None else 'STOPPED'}"
         + (f" (PID {supervisor_pid})" if supervisor_pid is not None else ""),
         f"Balatro.exe     : {'RUNNING' if balatro_running else 'NOT RUNNING'}",
         f"Run ongoing     : {'YES' if run_active else 'NO'}",
         "",
-        f"Session         : {_safe(status.get('session_id'))}",
-        f"Attempt         : {_safe(status.get('attempt'))}",
-        f"Run ID          : {_safe(status.get('run_id'))}",
-        f"Deck / Stake    : {_safe(status.get('deck'))} / {_safe(status.get('stake'))}",
+        f"Session         : {_safe(status.get('session_id') or telemetry.get('session_id'))}",
+        f"Attempt         : {_safe(status.get('attempt') if status.get('attempt') is not None else telemetry.get('attempt'))}",
+        f"Run ID          : {_safe(status.get('run_id') or telemetry.get('run_id'))}",
+        f"Deck / Stake    : {_safe(status.get('deck') or telemetry.get('deck'))} / {_safe(status.get('stake') or telemetry.get('stake'))}",
         f"Playbook        : {_safe(status.get('playbook'))} v{_safe(status.get('playbook_version'))}",
         f"Current phase   : {_safe(phase)}",
         f"Ante / Round    : {_safe(payload.get('ante_num'))} / {_safe(payload.get('round_num'))}",
@@ -157,11 +164,28 @@ def build_dashboard(
         f"Hands / Discards: {_safe(round_data.get('hands_left'))} / {_safe(round_data.get('discards_left'))}",
         f"Money           : ${_safe(payload.get('money'))}",
         "",
-        "LAST AGENT DECISION",
+        "CURRENT AGENT ACTIVITY",
         "-" * 78,
-        f"Action          : {_action_text(decision_data.get('action'))}",
-        f"Decision source : {_safe(rationale.get('decision_source'))}",
+        f"Activity        : {_safe(telemetry.get('activity'), 'WAITING')}",
+        f"Action          : {_safe(telemetry.get('action'))}",
+        f"Decision source : {_safe(telemetry.get('decision_source'))}",
+        f"Detail          : {_safe(telemetry.get('detail'))}",
     ]
+
+    if activity_notes:
+        lines.append("Current rationale:")
+        for note in activity_notes[:10]:
+            lines.append(f"  - {note}")
+
+    lines.extend(
+        [
+            "",
+            "LAST LOGGED DECISION",
+            "-" * 78,
+            f"Action          : {_action_text(decision_data.get('action'))}",
+            f"Decision source : {_safe(rationale.get('decision_source'))}",
+        ]
+    )
 
     if notes:
         lines.append("Reasoning        :")
@@ -183,7 +207,7 @@ def build_dashboard(
             ]
         )
 
-    reason = status.get("reason")
+    reason = status.get("reason") or telemetry.get("reason")
     if reason:
         lines.extend(["", f"Status reason    : {reason}"])
 
@@ -218,6 +242,7 @@ def monitor(
 
     while True:
         status = control.read_status()
+        telemetry = control.read_telemetry()
         pid = control.running_pid()
         balatro_running = _balatro_process_running()
         rows = _run_log_rows(status, run_log_directory)
@@ -226,6 +251,7 @@ def monitor(
             supervisor_pid=pid,
             balatro_running=balatro_running,
             rows=rows,
+            telemetry=telemetry,
         )
 
         if rendered != last_rendered:
