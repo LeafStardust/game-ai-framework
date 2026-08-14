@@ -6,6 +6,7 @@ from games.balatro.live.external.balatro_agent_supervisor import (
     DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS,
 )
 from games.balatro.live.external.live_memory_supervisor_observer import (
+    DEFAULT_FULL_STATE_QUIET_SECONDS,
     SupervisorLiveMemoryBalatroObserver,
     joker_visual_signature,
     native_blind_select_ready,
@@ -46,6 +47,20 @@ def _shop_snapshot(sequence: int, *, joker_x: float) -> LiveBalatroSnapshot:
                 ],
             }
         },
+    )
+
+
+def _snapshot(
+    sequence: int,
+    *,
+    phase: str = "SELECTING_HAND",
+    complete: bool = True,
+) -> LiveBalatroSnapshot:
+    return LiveBalatroSnapshot(
+        sequence=sequence,
+        phase=phase,
+        state_complete=complete,
+        payload={"same_semantic_state": True},
     )
 
 
@@ -155,6 +170,53 @@ def test_post_pack_shop_waits_until_joker_geometry_is_stable(monkeypatch):
         _shop_snapshot(99, joker_x=2.0)
     )
     assert clock.now >= 0.20
+
+
+def test_full_state_quiet_barrier_resets_on_every_sequence_advance(monkeypatch):
+    clock = _Clock()
+    monkeypatch.setattr(supervisor_observer_module, "monotonic", clock.monotonic)
+    monkeypatch.setattr(supervisor_observer_module, "sleep", clock.sleep)
+
+    observer = SupervisorLiveMemoryBalatroObserver(
+        full_state_quiet_seconds=0.10,
+        full_state_quiet_timeout_seconds=1.0,
+        full_state_quiet_poll_seconds=0.05,
+    )
+    snapshots = iter(
+        [
+            _snapshot(2),
+            _snapshot(3),
+            _snapshot(3),
+            _snapshot(3),
+            _snapshot(3),
+        ]
+    )
+    observer._observe_public = lambda: next(snapshots)
+
+    settled = observer._wait_for_full_state_quiet(_snapshot(1))
+
+    assert settled.sequence == 3
+    # Sequence 1 was not allowed to count toward the final quiet period; both
+    # later advances reset the clock before sequence 3 could be certified.
+    assert clock.now >= 0.20
+    assert observer._last_quiescent_sequence == 3
+
+
+def test_full_state_quiet_barrier_reuses_already_certified_sequence():
+    observer = SupervisorLiveMemoryBalatroObserver(
+        full_state_quiet_seconds=0.10,
+    )
+    observer._last_quiescent_sequence = 7
+    observer._observe_public = lambda: (_ for _ in ()).throw(
+        AssertionError("already-certified sequence must not be polled again")
+    )
+
+    snapshot = _snapshot(7)
+    assert observer._wait_for_full_state_quiet(snapshot) is snapshot
+
+
+def test_default_full_state_quiet_window_is_one_second():
+    assert DEFAULT_FULL_STATE_QUIET_SECONDS == 1.0
 
 
 def test_supervisor_defaults_to_readiness_aware_observer_and_longer_bridge_timeout(tmp_path):
