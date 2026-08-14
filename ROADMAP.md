@@ -369,7 +369,7 @@
 - [x] D11 reroll execution
 - [x] D11 B5 build-gap/opportunity model
 - [x] D11 dedicated reroll threshold policy foundation
-- [ ] D11 reroll EV model
+- [x] D11 reroll EV model
 - [x] D13 Blind selection execution
 - [x] **D13 first-party blind skip execution**
 - [ ] **D13 Tag valuation** — live process memory still does not expose the selected blind's tag identity; fallback unidentified-tag EV remains conservative
