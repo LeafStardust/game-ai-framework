@@ -213,6 +213,8 @@
 ### 0.9D — Playbook cartridge and build-intelligence foundations
 
 > There is one Balatro agent. Playbooks answer **how to play this deck/stake**; they do not redefine Balatro mechanics.
+>
+> **Naming:** `B` identifiers denote **build-intelligence** capabilities and `D` identifiers denote **decision layers**. Stable identifiers are retained where logs/tests already reference them; historical numbering gaps do not imply missing current architecture.
 
 **Playbook system**
 
@@ -253,7 +255,7 @@
 
 - [x] **B6 Build-aware pack choice:** visible pack offers evaluated as build transitions
 - [x] **B7 Build intent feedback into D1:** hand/discard choices should actively exploit the build's supported hand/archetype
-- [ ] **B7 Build rationale logging:** record which synergies caused a purchase/use/target choice and how build intent changed
+- [x] **B7 Build rationale logging:** record which synergies caused a purchase/use/target choice and how build intent changed
 
 ### 0.9E — Decision coverage inventory
 
@@ -403,10 +405,11 @@
 - [x] Crash report includes supervisor status, Balatro process state, live snapshot where available, bridge files, current attempt tail, agent log, exception and Windows application events
 - [x] Read-only live agent monitor terminal showing supervisor/Balatro process state, session/attempt/run identity, current phase/resources, last action and last logged decision rationale
 - [x] Agent toggle automatically opens the live monitor in a separate Windows console; closing the monitor does not stop the supervisor
+- [x] Structured build profile, detected synergy and build-intent change events in successful run logs
+- [x] Selected-decision `build_rationale` records the actual policy-supplied build/synergy/intent signals without recomputing strategy in the logger
 
 **Remaining**
 
-- [ ] Log build profile, detected synergies and build-intent changes
 - [ ] Log full decision-layer candidate scores and thresholds in addition to chosen rationale
 - [ ] Log execution failures as a dedicated diagnostic stream without corrupting successful experience transitions
 - [ ] Log purchases, sells, consumable uses and blind outcomes as dedicated semantic events
