@@ -82,8 +82,31 @@ def build_live_d9_view(
     )
 
 
+def _choice_detail(choice: LivePackChoice) -> str:
+    details: list[str] = []
+    value = choice.data.get("value") or {}
+    modifier = choice.data.get("modifier") or {}
+
+    rank = value.get("rank")
+    suit = value.get("suit")
+    if rank is not None or suit is not None:
+        details.append(f"card={rank}/{suit}")
+
+    for name in ("enhancement", "edition", "seal"):
+        value = modifier.get(name)
+        if value:
+            details.append(f"{name}={value}")
+
+    center = choice.data.get("center")
+    if center:
+        details.append(f"center={center}")
+
+    return " | ".join(details)
+
+
 def _print_candidate(candidate: LiveD9PackCandidate) -> None:
     score = candidate.score
+    choice = score.action.target if isinstance(score.action.target, LivePackChoice) else None
     if candidate.area_index is None:
         identity = "Skip"
     else:
@@ -91,6 +114,10 @@ def _print_candidate(candidate: LiveD9PackCandidate) -> None:
             f"index={candidate.area_index} label={candidate.label!r} "
             f"kind={candidate.kind}"
         )
+        if choice is not None:
+            detail = _choice_detail(choice)
+            if detail:
+                identity += f" | {detail}"
     print(f"Candidate -> {identity} score={score.total:.3f}")
     if score.action.cards:
         print(f"  B6 target count={len(score.action.cards)}")
