@@ -27,6 +27,7 @@ _BUILD_SIGNAL_PREFIXES = {
     "B4 ": "B4",
     "B6 ": "B6",
     "D1 ": "D1",
+    "D3 ": "D3",
     "D9 ": "D9",
 }
 _BUILD_SIGNAL_TERMS = (
