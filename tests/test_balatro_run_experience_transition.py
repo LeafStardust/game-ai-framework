@@ -51,6 +51,14 @@ def _decision(before: LiveBalatroSnapshot, card: object):
     )
 
 
+def _contains_key(value, key: str) -> bool:
+    if isinstance(value, dict):
+        return key in value or any(_contains_key(item, key) for item in value.values())
+    if isinstance(value, list):
+        return any(_contains_key(item, key) for item in value)
+    return False
+
+
 def test_successful_transitions_resume_sequence_and_write_terminal_summary(tmp_path):
     card = object()
     first = _decision(_snapshot(1, "SELECTING_HAND"), card)
@@ -91,7 +99,7 @@ def test_successful_transitions_resume_sequence_and_write_terminal_summary(tmp_p
         "run_finished",
     ]
     assert rows[2]["data"]["action"]["indices"] == [0]
-    assert "ui" not in json.dumps(rows)
+    assert _contains_key(rows, "ui") is False
 
     summary = json.loads(second_logger.summary_path.read_text(encoding="utf-8"))
     assert summary["schema"] == "balatro-run-summary-v1"
