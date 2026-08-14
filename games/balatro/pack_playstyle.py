@@ -21,7 +21,7 @@ _FACE_RANKS = {"J", "Q", "K", "Jack", "Queen", "King"}
 
 @dataclass(frozen=True)
 class PackPlaystyleWeights:
-    """Bounded D4 influence for directly interpretable booster choices."""
+    """Bounded D9 influence for directly interpretable booster choices."""
 
     gain: float = 3.0
     locked_conflict_multiplier: float = 1.5
@@ -99,13 +99,13 @@ class PackPlaystyleEvaluator:
             return self._neutral(
                 intent,
                 ante,
-                "D4 direct playstyle=0.000; Joker intent is already included by D2",
+                "D9 direct playstyle=0.000; Joker intent is already included by D2",
             )
         else:
             return self._neutral(
                 intent,
                 ante,
-                f"D4 direct playstyle=0.000; {kind} has no explicit direct intent signal",
+                f"D9 direct playstyle=0.000; {kind} has no explicit direct intent signal",
             )
 
         fit, details = self._fit(intent, signals)
@@ -116,8 +116,8 @@ class PackPlaystyleEvaluator:
 
         mode = "LOCKED" if intent.locked else "PIVOTABLE"
         rationale = (
-            f"D4 playstyle fit={fit:.3f} value={value:.3f} mode={mode}",
-            f"D4 direct signal={source}",
+            f"D9 playstyle fit={fit:.3f} value={value:.3f} mode={mode}",
+            f"D9 direct signal={source}",
             *details,
         )
         return PackPlaystyleEvaluation(
@@ -158,7 +158,7 @@ class PackPlaystyleEvaluator:
             total += contribution
             denominator += abs(strength)
             details.append(
-                f"D4 axis {key}: strength={strength:+.3f} "
+                f"D9 axis {key}: strength={strength:+.3f} "
                 f"signal={signal:+.3f} contribution={contribution:+.3f}"
             )
         return (total / denominator if denominator > 0.0 else 0.0), tuple(details)
