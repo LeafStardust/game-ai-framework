@@ -12,6 +12,8 @@ from games.balatro.live.hand_action_policy import (
     LiveHandActionDecisionEngine,
 )
 from games.balatro.live.hand_playstyle import BuildAwareLiveHandActionPolicy
+from games.balatro.pack_playstyle import PackPlaystyleEvaluator
+from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.playbook import default_balatro_playbooks
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
 from games.balatro.shop_policy import (
@@ -33,9 +35,10 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
     """Production single-step runner with one run-scoped build-intent lifecycle.
 
     The base runner remains the mechanics/execution implementation. This adapter
-    only wires the competence-layer playstyle tracker into both D1 and D2 so hand
-    play and Joker/shop valuation cannot capture independent Ante-5 commitments.
-    A supervisor retry creates a fresh runner, therefore a fresh tracker.
+    wires one competence-layer playstyle tracker into D1 hand decisions, D2
+    Joker/shop valuation, and D4 booster choices so no subsystem can capture an
+    independent Ante-5 commitment. A supervisor retry creates a fresh runner and
+    therefore a fresh tracker.
     """
 
     def __init__(self, observer, **kwargs) -> None:
@@ -49,10 +52,11 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             profiler=self.playstyle_profiler,
             intent_tracker=self.playstyle_intent_tracker,
         )
+        shared_item_estimator = DefaultShopItemValueEstimator(
+            joker_build_value=joker_build_value,
+        )
         self.shop_policy = BalatroShopPolicy(
-            item_value_estimator=DefaultShopItemValueEstimator(
-                joker_build_value=joker_build_value,
-            )
+            item_value_estimator=shared_item_estimator,
         )
         self.shop_reroll_policy = BuildAwareShopRerollPolicy(
             shop_policy=self.shop_policy,
@@ -60,6 +64,13 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
         self.shop_arbiter = BuildAwareShopArbiter(
             shop_policy=self.shop_policy,
             reroll_policy=self.shop_reroll_policy,
+        )
+        self.pack_policy = BalatroPackPolicy(
+            item_estimator=shared_item_estimator,
+            playstyle_evaluator=PackPlaystyleEvaluator(
+                profiler=self.playstyle_profiler,
+                intent_tracker=self.playstyle_intent_tracker,
+            ),
         )
 
         if not custom_hand_recommender:
