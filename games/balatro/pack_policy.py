@@ -13,6 +13,7 @@ from games.balatro.build import (
     ContextualConsumableTargetEvaluator,
     ContextualPlayingCardSynergyEvaluator,
 )
+from games.balatro.build.ankh_expectation import AnkhExpectationEvaluator
 from games.balatro.build.aura_expectation import AuraExpectationEvaluator
 from games.balatro.build.hex_expectation import HexExpectationEvaluator
 from games.balatro.build.sigil_expectation import SigilExpectationEvaluator
@@ -39,7 +40,7 @@ class BalatroPackPolicy:
     Joker, Planet, enhanced/edition/sealed playing-card, and deterministic immediate
     Spectral choices can be ranked immediately. Deterministic targeted Tarot/Spectral
     transformations are admitted only when the public hand supplies a validated B6
-    target. Aura, Sigil, and Hex are admitted through analytic public-state
+    target. Aura, Sigil, Hex, and Ankh are admitted through analytic public-state
     expectations over bounded outcomes. The Fool is valued from Balatro's public
     last-Tarot/Planet run history. Wheel of Fortune is valued from an analytic
     public-state edition distribution. Other stochastic, destructive, generation, or
@@ -74,7 +75,7 @@ class BalatroPackPolicy:
 
     # Black Hole is the only current Spectral whose complete modeled effect is both
     # deterministic and non-targeted. Four deterministic seal transforms remain on
-    # the generic B6 target path. Aura, Sigil, and Hex have explicit stochastic
+    # the generic B6 target path. Aura, Sigil, Hex, and Ankh have explicit stochastic
     # expectation models; every other current Spectral stays deferred until modeled.
     DETERMINISTIC_IMMEDIATE_SPECTRALS = frozenset(
         {
@@ -86,6 +87,7 @@ class BalatroPackPolicy:
             "Aura",
             "Sigil",
             "Hex",
+            "Ankh",
         }
     )
     DEFERRED_SPECTRALS = frozenset(
@@ -97,7 +99,6 @@ class BalatroPackPolicy:
             "Ouija",
             "Ectoplasm",
             "Immolate",
-            "Ankh",
             "Cryptid",
             "The Soul",
         }
@@ -155,6 +156,7 @@ class BalatroPackPolicy:
         aura_evaluator=None,
         sigil_evaluator=None,
         hex_evaluator=None,
+        ankh_evaluator=None,
         playstyle_evaluator: PackPlaystyleEvaluator | None = None,
     ) -> None:
         self.skip_bias = float(skip_bias)
@@ -172,6 +174,7 @@ class BalatroPackPolicy:
         self.aura_evaluator = aura_evaluator or AuraExpectationEvaluator()
         self.sigil_evaluator = sigil_evaluator or SigilExpectationEvaluator()
         self.hex_evaluator = hex_evaluator or HexExpectationEvaluator()
+        self.ankh_evaluator = ankh_evaluator or AnkhExpectationEvaluator()
         self.playstyle_evaluator = playstyle_evaluator
 
     @classmethod
@@ -310,6 +313,10 @@ class BalatroPackPolicy:
 
         if choice.kind == "SPECTRAL" and choice.label == "Hex":
             scored = self._score_hex(state, action)
+            return self._add_playstyle(scored, playstyle_value, playstyle_notes)
+
+        if choice.kind == "SPECTRAL" and choice.label == "Ankh":
+            scored = self._score_ankh(state, action)
             return self._add_playstyle(scored, playstyle_value, playstyle_notes)
 
         if (
@@ -630,6 +637,46 @@ class BalatroPackPolicy:
             float(expectation.expected_build_gain),
             (
                 "Hex uses analytic B3 whole-build expectation; no RNG sample or seed read",
+                *expectation.rationale,
+            ),
+        )
+
+    def _score_ankh(
+        self,
+        state,
+        action: BalatroAction,
+    ) -> PackActionScore:
+        expectation = self.ankh_evaluator.evaluate(state)
+        if not expectation.available:
+            return PackActionScore(
+                action,
+                -1.0,
+                ("Ankh unavailable: no public Joker target",),
+            )
+        if not expectation.complete:
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    "Ankh deferred: public stochastic outcome model could not "
+                    "score every Joker branch",
+                    *expectation.rationale,
+                ),
+            )
+        if expectation.expected_build_gain <= 0.0:
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    "Ankh has no positive analytic whole-build value",
+                    *expectation.rationale,
+                ),
+            )
+        return PackActionScore(
+            action,
+            float(expectation.expected_build_gain),
+            (
+                "Ankh uses analytic B3 whole-build expectation; no RNG sample or seed read",
                 *expectation.rationale,
             ),
         )
