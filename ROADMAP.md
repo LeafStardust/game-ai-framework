@@ -14,7 +14,7 @@
 >
 > **Roadmap maintenance rule:** when implementation, deterministic tests or live validation clears a milestone, update this roadmap in the same development checkpoint instead of deferring documentation cleanup.
 >
-> **Current strategic priority: durable D1 decision-quality postmortems.** The live autonomous stack has already demonstrated fresh observation/replanning through a natural `GAME_OVER`, and the guarded one-action workflow now has resumable per-run experience logging with explicit run identity, sanitized public observations, decision rationale, authoritative successful post-action checkpoints, and terminal summary generation. Immediate iteration should use those records to diagnose fragile or incorrect D1 play/discard choices before changing global search/default behavior. D9/D10 pack-choice and pack-effect coverage remains an open `v0.9.0` requirement rather than being treated as complete.
+> **Current strategic priority: toggleable 0.9G supervisor + native loss restart.** The resumable run-experience logger and terminal summary checkpoint is locally green. The controller foundation now supports one-click ON/OFF state, cooperative safe stopping before another gameplay action, automatic deck/stake playbook selection, an unbounded per-attempt loop, attempt-scoped logs, session summaries, deterministic loss -> fresh-attempt -> win lifecycle testing, and automatic OFF after a win. The immediate production blocker is a validated first-party `GAME_OVER -> fresh unseeded same deck/stake run` action; until that native callback is proven, loss retry stays deliberately fail-closed. Durable D1 postmortems and D9/D10 pack coverage remain open work rather than being treated as complete.
 
 ## v0.1.0 — Foundation
 
@@ -149,10 +149,11 @@
 - [x] No silent mouse fallback in production autonomous execution
 - [x] Joker sell execution through the first-party bridge with authoritative roster reconciliation
 - [x] Joker replacement execution through `SELL -> fresh observation/replan -> BUY`
+- [x] Cooperative safe agent deactivation request before the next gameplay action
 - [ ] Robust held-consumable use for all supported target patterns
 - [ ] Robust pack-effect targeting for Tarot/Spectral/Standard modifier flows
 - [ ] Blind skip/tag execution in the first-party production bridge
-- [ ] Emergency stop / safe agent deactivation
+- [ ] Emergency hard stop for a hung/unsafe supervisor
 - [ ] Validate an actual normal Steam achievement/unlock from agent gameplay
 
 ### 0.9C — Shared mechanics and blind planning — MUTABLE-JOKER RUNTIME GATE CLEARED
@@ -219,12 +220,14 @@
 - [x] Resume event sequencing across guarded one-action Python invocations using an explicit persistent `run_id`
 - [x] Integrate successful guarded one-action execution with the run logger while keeping preview/blocked/failed steps log-free
 - [x] Log sanitized public observation before decisions
-- [ ] Integrate the same logger into the persistent autonomous live loop
+- [x] Resumable logging, UI sanitization and terminal summary regression suite validated locally
+- [x] Integrate successful-transition logging into the persistent supervisor loop with a distinct run log per attempt
 - [ ] Log build profile, detected synergies and build-intent changes
 - [ ] Log full decision-layer candidate scores and thresholds in addition to chosen rationale
 - [ ] Log execution failures as a separate diagnostic stream without corrupting successful experience transitions
 - [ ] Log purchases, sells, consumable uses and blind outcomes as dedicated semantic events
 - [x] Log terminal `GAME_OVER` win/loss from the authoritative public `won` field and emit a final per-run summary JSON
+- [x] Emit a session summary spanning repeated supervisor attempts
 - [ ] Build replay/analysis utility over stored runs
 - [ ] Aggregate per-playbook and per-decision-layer statistics across runs
 - [ ] Identify repeated failure patterns and weak thresholds from logs
@@ -237,7 +240,7 @@
 >
 > Cross-layer state such as money, remaining hands/discards, ante, blind risk, slots and owned effects may be shared as **inputs**, but one layer's threshold constants must not be reused implicitly by another layer. The final shop/run arbiter compares normalized outputs from completed child layers instead of hiding all decisions inside one utility score.
 >
-> **The mutable-Joker 0.9C runtime projection correctness gate, D2 Joker lifecycle checkpoint, B5 + D12 shop-integration checkpoint, D4 consumable-acquisition checkpoint, D5 held-consumable autonomy foundation, D6 consumable-targeting autonomy foundation, D7 Planet autonomy foundation, and D8 booster-acquisition autonomy foundation are cleared.** B1–B4 contextual build intelligence reaches D2 and D4; B5 exposes contextual shop value and build-gap reroll context; D12 compares admitted child actions against an explicit `END_SHOP` baseline and relies on fresh authoritative re-observation after each executed shop action. D5 arbitrates held USE/HOLD before D1 during blinds and before D12 during SHOP for explicitly validated no-target effects. D6 provides effect-owned legal targets, B6 target scoring, multi-card selection, exact live target verification, and deterministic Tarot/Spectral pack follow-up targeting. D7 provides dedicated Planet USE/HOLD policy, observable duplication-aware hold value, guarded one-action Planet execution, and authoritative hand-level verification. D8 provides a dedicated BuildProfile-informed unopened-pack EV and `BUY`/`HOLD` threshold, preserves fail-closed Arcana/Spectral acquisition until D9/D10 coverage is safe, and validates one guarded purchase through authoritative `SHOP -> *_PACK` transition without chaining a pack choice. D9/D10 remain open coverage requirements; the immediate quality-analysis checkpoint is D1 using durable run records before any further global search/default changes.
+> **The mutable-Joker 0.9C runtime projection correctness gate, D2 Joker lifecycle checkpoint, B5 + D12 shop-integration checkpoint, D4 consumable-acquisition checkpoint, D5 held-consumable autonomy foundation, D6 consumable-targeting autonomy foundation, D7 Planet autonomy foundation, and D8 booster-acquisition autonomy foundation are cleared.** B1–B4 contextual build intelligence reaches D2 and D4; B5 exposes contextual shop value and build-gap reroll context; D12 compares admitted child actions against an explicit `END_SHOP` baseline and relies on fresh authoritative re-observation after each executed shop action. D5 arbitrates held USE/HOLD before D1 during blinds and before D12 during SHOP for explicitly validated no-target effects. D6 provides effect-owned legal targets, B6 target scoring, multi-card selection, exact live target verification, and deterministic Tarot/Spectral pack follow-up targeting. D7 provides dedicated Planet USE/HOLD policy, observable duplication-aware hold value, guarded one-action Planet execution, and authoritative hand-level verification. D8 provides a dedicated BuildProfile-informed unopened-pack EV and `BUY`/`HOLD` threshold, preserves fail-closed Arcana/Spectral acquisition until D9/D10 coverage is safe, and validates one guarded purchase through authoritative `SHOP -> *_PACK` transition without chaining a pack choice. D9/D10 remain open coverage requirements; D1 postmortem tooling is now available from durable run records, while the active orchestration blocker is native loss restart for 0.9G.
 
 #### B1–B7 — Shared build intelligence and synergy strategy — ACTIVE STRATEGIC PRIORITY
 
@@ -286,7 +289,7 @@ For every decision layer:
 - [ ] Armed live validator executes exactly the recommended semantic action
 - [ ] Log enough data to explain and tune the layer independently later
 
-#### D1 — Hand action: play vs discard and card subset — FOUNDATION VALIDATED; DECISION-QUALITY POSTMORTEMS ACTIVE
+#### D1 — Hand action: play vs discard and card subset — FOUNDATION VALIDATED; POSTMORTEMS ENABLED
 
 **Question:** Given the current hand, should the agent play or discard, and exactly which cards?
 
@@ -609,7 +612,7 @@ Status:
 
 #### Required implementation order
 
-The mutable-hydrated 0.9C Joker runtime projection correctness gate, D2 Joker lifecycle checkpoint, B5 + D12 shop-integration checkpoint, D4 consumable-acquisition checkpoint, D5 held-consumable autonomy foundation, D6 consumable-targeting autonomy foundation, D7 Planet autonomy foundation, and D8 booster-acquisition autonomy foundation are complete. The immediate quality-analysis checkpoint is now durable D1 postmortem work from real run records. D9/D10 remains open required `v0.9.0` coverage and is not being marked complete; after the current D1 diagnosis pass, resume the narrow coverage stack without weakening the global planner merely to reduce latency.
+The mutable-hydrated 0.9C Joker runtime projection correctness gate, D2 Joker lifecycle checkpoint, B5 + D12 shop-integration checkpoint, D4 consumable-acquisition checkpoint, D5 held-consumable autonomy foundation, D6 consumable-targeting autonomy foundation, D7 Planet autonomy foundation, and D8 booster-acquisition autonomy foundation are complete. The active orchestration checkpoint is now the toggleable 0.9G supervisor: prove native loss restart, then live-validate retry-until-win and safe ON/OFF behavior. D1 postmortems are enabled by durable logs and D9/D10 remains open required `v0.9.0` coverage; neither is being marked complete by the supervisor work.
 
 1. [x] **0.9C Joker runtime projection fidelity** — `33/33` mutable hydrated Jokers supported with `0 deferred / 0 gap / 0 error`; unsupported stateless/event semantics remain fail-closed until separately validated
 2. [x] **D2 completion** — contextual scoring/economy/non-scoring valuation, standalone sell, first-party sell execution and fresh-replan replacement are complete
@@ -621,8 +624,9 @@ The mutable-hydrated 0.9C Joker runtime projection correctness gate, D2 Joker li
 8. **D11 Reroll decision** — complete reroll EV and remaining-shop/horizon quality
 9. **D13 Blind skip/tag decision**
 10. **D14 Run-level resource arbitration and normalization**
-11. **B7 + D1 final refinement — ACTIVE QUALITY POSTMORTEM** — use durable real-run D1 records now; then feed build intent into hand/discard decisions and lock final D1 quality
-12. **0.9E + 0.9G final integration** — complete per-layer logging, remove temporary phase policies, and validate the unbounded autonomous run loop
+11. **0.9G toggleable supervisor — ACTIVE ORCHESTRATION** — control plane, unbounded per-attempt loop, attempt/session logging and deterministic retry-until-win lifecycle are implemented; validate native `GAME_OVER -> new run`, then live ON/OFF and auto-OFF-on-win behavior
+12. **B7 + D1 final refinement** — use durable real-run D1 records, feed build intent into hand/discard decisions and lock final D1 quality
+13. **0.9E + 0.9G final integration** — complete remaining per-layer logging, remove temporary phase policies, and validate the production unbounded autonomous retry loop
 
 Completion gate for each decision layer:
 
@@ -633,22 +637,32 @@ Completion gate for each decision layer:
 - [ ] Decision is logged independently
 - [ ] Layer is enabled in the autonomous orchestrator only after all above are complete
 
-### 0.9G — Single-command autonomous orchestrator
+### 0.9G — Single-command / toggleable autonomous orchestrator — ACTIVE
 
-- [ ] One activation command for an already-started Balatro run
+- [x] One toggle command foundation for an already-started supported Balatro run (`BalatroAgentToggle.bat`)
+- [x] Detached supervisor PID/status control plane with duplicate-start protection
+- [x] Cooperative OFF request that stops before another gameplay action is submitted
 - [x] Attach to current Balatro process automatically
-- [x] Read current deck/stake and load playbook automatically
+- [x] Read current deck/stake and load playbook automatically for every attempt
 - [x] Unified semantic live-action dispatcher foundation
 - [x] Persistent observer/bridge session with a fresh decision after every settled checkpoint
 - [x] Bounded stale-state replanning without consuming gameplay-step budget
+- [x] Support an unbounded `max_steps=None` attempt loop rather than an arbitrary gameplay-action cap
 - [x] Multi-step autonomous execution validated from SHOP across normal gameplay to a natural loss
 - [x] Natural `GAME_OVER` after a played hand is a clean terminal checkpoint
+- [x] Attempt-scoped run IDs/logs and session-level summary foundation
+- [x] Deterministic loss -> fresh attempt -> win supervisor lifecycle through an injectable restart strategy
+- [x] Deterministic auto-OFF after the target run wins
+- [ ] Validate and enable first-party `GAME_OVER -> fresh unseeded same deck/stake run` execution
+- [ ] Production retry losses automatically until the first win
+- [ ] Live-validate manual toggle OFF during an active run
+- [ ] Live-validate automatic OFF after a real win
 - [ ] Route each phase to its completed decision layer rather than temporary conservative policies
 - [ ] Full blind select -> hand play -> round eval -> shop -> every pack/consumable subflow -> next blind coverage without manual gameplay input
-- [ ] Continue automatically across all antes until win/loss with no bounded test-step cap
+- [ ] Continue automatically across all antes until win/loss with no bounded test-step cap in a real run
 - [ ] Detect and validate successful run terminal state as well as loss
-- [ ] Clean shutdown and complete run log
-- [ ] Validate a fresh unseeded Red Deck / White Stake autonomous run reaches terminal win/loss with no manual gameplay input
+- [ ] Clean shutdown and complete production run/session log
+- [ ] Validate a fresh unseeded Red Deck / White Stake autonomous retry session reaches a win with no manual gameplay input
 
 ### Legacy/fallback observation and input
 
