@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass, field
 from typing import Any
 
 from games.balatro.build.profile import (
@@ -100,12 +101,27 @@ def detected_build_synergies(profile: BuildProfile) -> list[dict[str, Any]]:
     )
 
 
+@dataclass(frozen=True)
+class PreparedBuildIntentLog:
+    """One not-yet-durable build event prepared for a guarded decision."""
+
+    payload: dict[str, Any]
+    signature: str
+    profile_payload: dict[str, Any]
+    intent_payload: dict[str, Any]
+    tracker: "BuildIntentLogTracker" = field(repr=False, compare=False)
+
+    def commit(self) -> None:
+        self.tracker.commit(self)
+
+
 class BuildIntentLogTracker:
-    """Emit structured build/intent telemetry only when the build meaning changes.
+    """Prepare structured build telemetry and deduplicate only durable events.
 
     Volatile cash is included in an emitted profile for context but deliberately
-    excluded from the change signature. Ordinary score/economy movement therefore
-    cannot flood the JSONL stream with duplicate build events.
+    excluded from the change signature. Preparing a decision never advances the
+    logger's deduplication state; only a successful durable JSONL write commits it.
+    Stale/failed decisions therefore cannot silently consume a build-intent event.
     """
 
     def __init__(
@@ -165,7 +181,7 @@ class BuildIntentLogTracker:
             if key != "money" and previous.get(key) != value
         )
 
-    def observe(self, state) -> dict[str, Any] | None:
+    def prepare(self, state) -> PreparedBuildIntentLog | None:
         profile = self.profiler.profile(state)
         intent = self.intent_tracker.resolve(profile)
         profile_payload = build_profile_log_payload(profile)
@@ -186,7 +202,25 @@ class BuildIntentLogTracker:
             "intent": intent_payload,
             "detected_synergies": synergies,
         }
-        self._last_signature = signature
-        self._last_profile = profile_payload
-        self._last_intent = intent_payload
-        return payload
+        return PreparedBuildIntentLog(
+            payload=payload,
+            signature=signature,
+            profile_payload=profile_payload,
+            intent_payload=intent_payload,
+            tracker=self,
+        )
+
+    def commit(self, prepared: PreparedBuildIntentLog) -> None:
+        if prepared.tracker is not self:
+            raise ValueError("prepared build-intent event belongs to another tracker")
+        self._last_signature = prepared.signature
+        self._last_profile = prepared.profile_payload
+        self._last_intent = prepared.intent_payload
+
+    def observe(self, state) -> dict[str, Any] | None:
+        """Immediate convenience path for deterministic/unit callers."""
+        prepared = self.prepare(state)
+        if prepared is None:
+            return None
+        self.commit(prepared)
+        return prepared.payload
