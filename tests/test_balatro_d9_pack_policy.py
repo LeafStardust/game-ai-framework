@@ -104,7 +104,7 @@ def test_d9_arcana_immediate_tarot_uses_b4_value_against_skip():
 
     assert ranked[0].action.name == SELECT_PACK_CARD
     assert ranked[0].total > 0.35
-    assert any("Hermit potential money gain=" in note for note in ranked[0].notes)
+    assert any("Hermit deterministic money gain=" in note for note in ranked[0].notes)
     assert any("B4 build-path gain=" in note for note in ranked[0].notes)
 
 
@@ -146,20 +146,41 @@ def test_d9_every_current_spectral_is_explicitly_classified():
     assert BalatroPackPolicy.classified_spectrals() == frozenset(SPECTRAL_CARDS)
 
 
-def test_d9_unmodeled_visible_effect_stays_below_explicit_skip_baseline():
+def test_d9_aura_uses_analytic_b6_target_expectation_against_skip():
+    card = BalatroCard("K", "Hearts")
     state = BalatroState()
     state.phase = "SPECTRAL_PACK"
-    state.hand = [BalatroCard("4", "Clubs")]
+    state.hand = [card]
+    choice = _choice("Spectral", "Aura")
+
+    ranked = _rank(state, choice)
+
+    assert ranked[0].action.name == SELECT_PACK_CARD
+    assert ranked[0].action.cards == [card]
+    assert ranked[0].total > 0.35
+    assert any(
+        "Aura uses analytic public-state expectation" in note
+        for note in ranked[0].notes
+    )
+    assert any("B6 Aura expected target gain=" in note for note in ranked[0].notes)
+    assert any("selected target index=0" in note for note in ranked[0].notes)
+
+
+def test_d9_aura_fails_closed_when_every_public_target_already_has_edition():
+    state = BalatroState()
+    state.phase = "SPECTRAL_PACK"
+    state.hand = [BalatroCard("K", "Hearts", edition="Foil")]
     choice = _choice("Spectral", "Aura")
 
     ranked = _rank(state, choice)
 
     assert ranked[0].action.name == SKIP_BOOSTER
-    unsupported = next(
+    aura = next(
         result for result in ranked if result.action.name == SELECT_PACK_CARD
     )
-    assert unsupported.total == -1.0
-    assert unsupported.action.cards == []
+    assert aura.total == -1.0
+    assert aura.action.cards == []
+    assert any("Aura unavailable" in note for note in aura.notes)
 
 
 def test_d9_live_view_preserves_policy_order_and_explicit_skip_candidate():

@@ -13,6 +13,7 @@ from games.balatro.build import (
     ContextualConsumableTargetEvaluator,
     ContextualPlayingCardSynergyEvaluator,
 )
+from games.balatro.build.aura_expectation import AuraExpectationEvaluator
 from games.balatro.build.wheel_expectation import WheelOfFortuneExpectationEvaluator
 from games.balatro.consumable import ConsumableContext
 from games.balatro.live.consumable_factory import LiveConsumableFactory
@@ -36,10 +37,11 @@ class BalatroPackPolicy:
     Joker, Planet, enhanced/edition/sealed playing-card, and deterministic immediate
     Spectral choices can be ranked immediately. Deterministic targeted Tarot/Spectral
     transformations are admitted only when the public hand supplies a validated B6
-    target. The Fool is valued from Balatro's public last-Tarot/Planet run history.
-    Wheel of Fortune is valued from an analytic public-state edition distribution.
-    Other stochastic, destructive, generation, or unsupported-target effects remain
-    below Skip until their outcome models are explicit.
+    target. Aura is admitted through an analytic public-state expectation over its
+    bounded edition outcomes and a validated target. The Fool is valued from Balatro's
+    public last-Tarot/Planet run history. Wheel of Fortune is valued from an analytic
+    public-state edition distribution. Other stochastic, destructive, generation, or
+    unsupported-target effects remain below Skip until their outcome models are explicit.
 
     An optional D4 playstyle evaluator can add bounded run-intent value for choices
     whose semantics are directly observable. Joker intent is deliberately not added
@@ -69,12 +71,17 @@ class BalatroPackPolicy:
     SAFE_IMMEDIATE_TAROTS = DETERMINISTIC_IMMEDIATE_TAROTS
 
     # Black Hole is the only current Spectral whose complete modeled effect is both
-    # deterministic and non-targeted. The four deterministic seal transforms remain
-    # on the B6 target path; every other current Spectral stays explicitly deferred
-    # until its stochastic/destructive/generation/target semantics are modeled.
+    # deterministic and non-targeted. Four deterministic seal transforms remain on
+    # the generic B6 target path, while Aura has an explicit stochastic expectation
+    # model. Every other current Spectral stays deferred until its semantics are modeled.
     DETERMINISTIC_IMMEDIATE_SPECTRALS = frozenset(
         {
             "Black Hole",
+        }
+    )
+    STOCHASTIC_MODELED_SPECTRALS = frozenset(
+        {
+            "Aura",
         }
     )
     DEFERRED_SPECTRALS = frozenset(
@@ -82,7 +89,6 @@ class BalatroPackPolicy:
             "Familiar",
             "Grim",
             "Incantation",
-            "Aura",
             "Wraith",
             "Sigil",
             "Ouija",
@@ -144,6 +150,7 @@ class BalatroPackPolicy:
         playing_card_build=None,
         consumable_target_evaluator=None,
         wheel_evaluator=None,
+        aura_evaluator=None,
         playstyle_evaluator: PackPlaystyleEvaluator | None = None,
     ) -> None:
         self.skip_bias = float(skip_bias)
@@ -158,6 +165,7 @@ class BalatroPackPolicy:
             consumable_target_evaluator or ContextualConsumableTargetEvaluator()
         )
         self.wheel_evaluator = wheel_evaluator or WheelOfFortuneExpectationEvaluator()
+        self.aura_evaluator = aura_evaluator or AuraExpectationEvaluator()
         self.playstyle_evaluator = playstyle_evaluator
 
     @classmethod
@@ -176,6 +184,7 @@ class BalatroPackPolicy:
         """Return every Spectral explicitly classified by autonomous pack policy."""
         return (
             cls.DETERMINISTIC_IMMEDIATE_SPECTRALS
+            | cls.STOCHASTIC_MODELED_SPECTRALS
             | cls.DEFERRED_SPECTRALS
             | ContextualConsumableTargetEvaluator.SUPPORTED_SPECTRALS
         )
@@ -283,6 +292,10 @@ class BalatroPackPolicy:
 
         if choice.kind == "TAROT" and choice.label == "The Wheel of Fortune":
             scored = self._score_wheel(state, action)
+            return self._add_playstyle(scored, playstyle_value, playstyle_notes)
+
+        if choice.kind == "SPECTRAL" and choice.label == "Aura":
+            scored = self._score_aura(state, action, choice, target)
             return self._add_playstyle(scored, playstyle_value, playstyle_notes)
 
         if (
@@ -453,6 +466,68 @@ class BalatroPackPolicy:
             float(expectation.expected_build_gain),
             (
                 "Wheel uses analytic public-state expectation; no RNG sample or seed read",
+                *expectation.rationale,
+            ),
+        )
+
+    def _score_aura(
+        self,
+        state,
+        action: BalatroAction,
+        choice: LivePackChoice,
+        target,
+    ) -> PackActionScore:
+        expectation = self.aura_evaluator.evaluate(state)
+        if not expectation.available:
+            return PackActionScore(
+                action,
+                -1.0,
+                ("Aura unavailable: no editionless public hand target",),
+            )
+        if not expectation.complete or expectation.target_index is None:
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    "Aura deferred: public stochastic outcome model could not "
+                    "score every edition branch",
+                    *expectation.rationale,
+                ),
+            )
+        if expectation.expected_total_gain <= 0.0:
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    "Aura has no positive analytic target value",
+                    *expectation.rationale,
+                ),
+            )
+
+        hand = list(getattr(state, "hand", ()))
+        if not (0 <= expectation.target_index < len(hand)):
+            return PackActionScore(
+                action,
+                -1.0,
+                ("Aura target index is no longer present in public hand state",),
+            )
+
+        utility, notes = self.item_estimator.estimate(
+            state,
+            BalatroAction(BUY_CONSUMABLE, target=target),
+        )
+        targeted_action = BalatroAction(
+            SELECT_PACK_CARD,
+            cards=[hand[expectation.target_index]],
+            target=choice,
+        )
+        return PackActionScore(
+            targeted_action,
+            float(utility) + float(expectation.expected_total_gain),
+            (
+                *tuple(notes),
+                "Aura uses analytic public-state expectation; no RNG sample or seed read",
+                f"B6 Aura expected target gain={expectation.expected_total_gain:.3f}",
                 *expectation.rationale,
             ),
         )

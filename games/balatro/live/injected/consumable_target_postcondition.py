@@ -11,6 +11,7 @@ from games.balatro.live.translator import DefaultBalatroStateTranslator
 
 CardSignature = tuple[str, str, str | None, str | None, str | None]
 ExpectedTarget = tuple[int | str, CardSignature | None]
+ExpectedEditionTarget = tuple[int | str, CardSignature, tuple[str, ...]]
 ExpectedHandLevel = tuple[str, int]
 
 
@@ -19,11 +20,16 @@ class ConsumableTargetPostcondition:
     """Expected semantic result for a modeled consumable use."""
 
     expected_targets: tuple[ExpectedTarget, ...] = ()
+    expected_edition_targets: tuple[ExpectedEditionTarget, ...] = ()
     expected_hand_level: ExpectedHandLevel | None = None
 
     @property
     def live_ids(self) -> tuple[int | str, ...]:
-        return tuple(live_id for live_id, _ in self.expected_targets)
+        exact = tuple(live_id for live_id, _ in self.expected_targets)
+        edition = tuple(
+            live_id for live_id, _, _ in self.expected_edition_targets
+        )
+        return (*exact, *edition)
 
     def matches(self, snapshot: LiveBalatroSnapshot) -> bool:
         cards_by_live_id = {
@@ -39,6 +45,22 @@ class ConsumableTargetPostcondition:
                     return False
                 continue
             if record is None or _snapshot_card_signature(record) != expected_signature:
+                return False
+
+        for live_id, before_signature, allowed_editions in self.expected_edition_targets:
+            record = cards_by_live_id.get(live_id)
+            if record is None:
+                return False
+            signature = _snapshot_card_signature(record)
+            if signature is None:
+                return False
+            if (
+                signature[0] != before_signature[0]
+                or signature[1] != before_signature[1]
+                or signature[2] != before_signature[2]
+                or signature[4] != before_signature[4]
+                or signature[3] not in allowed_editions
+            ):
                 return False
 
         if self.expected_hand_level is not None:
@@ -76,6 +98,7 @@ def build_consumable_target_postcondition_for_consumable(
     """Derive the same semantic postcondition for held or pack consumables."""
 
     category = str(getattr(consumable, "category", "")).upper()
+    name = str(getattr(consumable, "name", ""))
     if category == "PLANET":
         if target_indices:
             raise ValueError("modeled Planet verification does not accept hand targets")
@@ -87,6 +110,13 @@ def build_consumable_target_postcondition_for_consumable(
     hand = list(getattr(state, "hand", ()))
     if any(index < 0 or index >= len(hand) for index in target_indices):
         return None
+
+    if category == "SPECTRAL" and name == "Aura":
+        return _build_aura_edition_postcondition(
+            state,
+            consumable,
+            target_indices=target_indices,
+        )
 
     evaluator = ContextualConsumableTargetEvaluator()
     if not evaluator.supports(consumable):
@@ -126,6 +156,39 @@ def build_consumable_target_postcondition_for_consumable(
             )
         )
     return ConsumableTargetPostcondition(tuple(expected))
+
+
+def _build_aura_edition_postcondition(
+    state,
+    consumable,
+    *,
+    target_indices: tuple[int, ...],
+) -> ConsumableTargetPostcondition | None:
+    if len(target_indices) != 1:
+        raise ValueError("modeled Aura verification requires exactly one hand target")
+
+    hand = list(getattr(state, "hand", ()))
+    index = target_indices[0]
+    card = hand[index]
+    live_id = getattr(card, "live_id", None)
+    if live_id is None:
+        raise ValueError("modeled Aura verification requires live_id on its target")
+    if getattr(card, "edition", None) not in (None, ""):
+        return None
+
+    context = ConsumableContext(state=state, cards=[card])
+    if not consumable.can_use(context):
+        raise ValueError("modeled Aura failed can_use during verification")
+
+    return ConsumableTargetPostcondition(
+        expected_edition_targets=(
+            (
+                live_id,
+                _model_card_signature(card),
+                ("Foil", "Holographic", "Polychrome"),
+            ),
+        )
+    )
 
 
 def _build_planet_hand_level_postcondition(
