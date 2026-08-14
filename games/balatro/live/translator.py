@@ -297,6 +297,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
                 seal,
             ),
             live_id=live_id,
+            debuffed=bool(card.get("debuff", False)),
         )
 
     def _translate_hand_levels(
