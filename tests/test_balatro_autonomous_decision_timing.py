@@ -21,6 +21,10 @@ def test_hand_recommendation_reports_total_and_per_search_timing(monkeypatch):
             nodes_evaluated=100,
             max_nodes=2000,
             budget_exceeded=False,
+            best_action=DISCARD_CARDS,
+            best_clear_probability=0.125,
+            best_expected_score=5000.0,
+            best_exact=True,
         ),
         SimpleNamespace(
             confirmation=True,
@@ -28,7 +32,11 @@ def test_hand_recommendation_reports_total_and_per_search_timing(monkeypatch):
             samples=32,
             nodes_evaluated=150,
             max_nodes=2000,
-            budget_exceeded=False,
+            budget_exceeded=True,
+            best_action=None,
+            best_clear_probability=None,
+            best_expected_score=None,
+            best_exact=None,
         ),
     )
     decision = SimpleNamespace(
@@ -81,10 +89,19 @@ def test_hand_recommendation_reports_total_and_per_search_timing(monkeypatch):
     assert any(
         "search[0]=adaptive h=2 samples=8 nodes=100/2000" in note
         and "elapsed=1.000s" in note
+        and "best_action=DISCARD_CARDS" in note
+        and "best_clear_probability=0.125000" in note
+        and "best_expected_score=5000.000" in note
+        and "best_exact=True" in note
         for note in notes
     )
     assert any(
         "search[1]=confirmation h=2 samples=32 nodes=150/2000" in note
+        and "budget_exceeded=True" in note
         and "elapsed=2.000s" in note
+        and "best_action=NONE" in note
+        and "best_clear_probability=NONE" in note
+        and "best_expected_score=NONE" in note
+        and "best_exact=NONE" in note
         for note in notes
     )
