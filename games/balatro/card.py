@@ -35,6 +35,10 @@ class BalatroCard:
     edition: str | None = None
     seal: str | None = None
     live_id: int | str | None = None
+    # Public live-state flag set by Balatro when the card is currently debuffed.
+    # The card keeps its rank/suit for poker-hand structure, but scoring/held-card
+    # effects must treat a debuffed card as disabled.
+    debuffed: bool = False
 
     @property
     def is_wild(self) -> bool:
