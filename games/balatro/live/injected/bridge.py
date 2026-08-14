@@ -211,6 +211,9 @@ class FirstPartyBalatroBridge:
     def skip_booster(self) -> None:
         self._call("PACK_SKIP")
 
+    def restart_run(self) -> None:
+        self._call("RESTART_RUN")
+
     def _call(
         self,
         action: str,
