@@ -10,6 +10,7 @@ from pathlib import Path
 from time import perf_counter, sleep
 from typing import Callable
 
+from games.balatro.live.injected.bridge import InjectedBridgeError
 from games.balatro.live.run_experience_transition import (
     log_successful_live_transition,
 )
@@ -25,6 +26,10 @@ from .live_memory_autonomous_step_injected import (
     _same_snapshot,
 )
 from .live_memory_observer import LiveMemoryBalatroObserver
+from .live_memory_restart_run_injected import (
+    LiveRunRestartError,
+    restart_fresh_unseeded_run,
+)
 
 
 SESSION_SUMMARY_SCHEMA = "balatro-agent-session-summary-v1"
@@ -33,10 +38,6 @@ DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS = 2.0
 
 
 class BalatroAgentSupervisorError(RuntimeError):
-    pass
-
-
-class RunRestartUnavailable(BalatroAgentSupervisorError):
     pass
 
 
@@ -65,13 +66,6 @@ class BalatroAgentSessionResult:
 def _new_session_id() -> str:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     return f"balatro-{stamp}-{uuid.uuid4().hex[:8]}"
-
-
-def _native_restart_unavailable(_runner, _deck: str, _stake: str) -> None:
-    raise RunRestartUnavailable(
-        "automatic GAME_OVER -> fresh run restart is not yet validated in the "
-        "first-party Balatro bridge"
-    )
 
 
 def wait_for_stable_startup_snapshot(
@@ -110,8 +104,8 @@ class BalatroAgentSupervisor:
     """Long-lived ON/OFF supervisor around disposable Balatro run attempts.
 
     One supervisor process remains alive for the whole ON period. Each loss closes
-    the current observer/run session and starts a fresh attempt after the supplied
-    native restart strategy succeeds. Every attempt gets its own JSONL run log.
+    the current observer/run session and starts a fresh attempt after the validated
+    native restart transition succeeds. Every attempt gets its own JSONL run log.
     A win ends the supervisor automatically. A manual OFF request is cooperative:
     the underlying autonomous loop stops before submitting another gameplay action.
 
@@ -127,7 +121,7 @@ class BalatroAgentSupervisor:
         observer_factory: Callable[[], object] = LiveMemoryBalatroObserver,
         runner_factory: Callable[[object], LiveMemoryInjectedSingleStepRunner]
         | None = None,
-        restart_run: Callable[[object, str, str], None] | None = None,
+        restart_run: Callable[[object, str, str], object] | None = None,
         run_log_directory: str | Path = "logs/balatro/runs",
         session_directory: str | Path = "logs/balatro/sessions",
         session_id: str | None = None,
@@ -148,7 +142,7 @@ class BalatroAgentSupervisor:
         self.runner_factory = runner_factory or (
             lambda observer: LiveMemoryInjectedSingleStepRunner(observer)
         )
-        self.restart_run = restart_run or _native_restart_unavailable
+        self.restart_run = restart_run or restart_fresh_unseeded_run
         self.run_log_directory = Path(run_log_directory)
         self.session_directory = Path(session_directory)
         self.session_id = str(session_id or _new_session_id())
@@ -360,10 +354,10 @@ class BalatroAgentSupervisor:
                     )
                     try:
                         self.restart_run(runner, deck, stake)
-                    except RunRestartUnavailable as error:
+                    except (LiveRunRestartError, InjectedBridgeError) as error:
                         return self._finish(
                             won=False,
-                            stop_reason=f"RESTART_UNAVAILABLE: {error}",
+                            stop_reason=f"RESTART_FAILED: {error}",
                         )
 
                 attempt_number += 1
@@ -381,9 +375,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Run the toggleable Balatro autonomous supervisor. It auto-selects the "
-            "deck/stake playbook from a stable public checkpoint, runs an attempt "
-            "until terminal or safe stop, and retries fresh attempts after losses "
-            "once native restart is validated. A win always auto-disables it."
+            "deck/stake playbook from a stable public checkpoint, runs each attempt "
+            "until terminal or safe stop, retries fresh same-deck/stake attempts "
+            "after losses, and automatically disables itself after the first win."
         )
     )
     parser.add_argument("--control-dir")
@@ -415,7 +409,7 @@ def main() -> int:
     print(f"Won -> {result.won}")
     print(f"Stop reason -> {result.stop_reason}")
     print(f"Session summary -> {result.summary_path}")
-    if result.stop_reason.startswith("RESTART_UNAVAILABLE:"):
+    if result.stop_reason.startswith("RESTART_FAILED:"):
         return 3
     return 0
 
