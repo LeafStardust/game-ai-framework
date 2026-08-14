@@ -49,10 +49,10 @@ def test_targeted_spectral_pack_choice_carries_exact_b6_hand_target():
     assert any("B6 pack target gain=" in note for note in selected.notes)
 
 
-def test_unmodeled_spectral_pack_choice_remains_fail_closed():
+def test_deferred_spectral_pack_choice_remains_fail_closed():
     card = BalatroCard("4", "Clubs")
     state = _pack_state([card])
-    choice = _choice("Aura")
+    choice = _choice("Familiar")
     ranked = BalatroPackPolicy(item_estimator=_Estimator()).rank_actions(
         state,
         [BalatroAction(SELECT_PACK_CARD, target=choice), BalatroAction(SKIP_BOOSTER)],

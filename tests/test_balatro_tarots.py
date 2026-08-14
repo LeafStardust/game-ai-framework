@@ -648,7 +648,7 @@ def test_justice_applies_glass_enhancement():
     assert card.enhancement == "Glass"
 
 
-def test_hermit_doubles_money_up_to_twenty():
+def test_hermit_doubles_money_with_gain_capped_at_twenty():
 
     state = BalatroState()
     state.money = 15
@@ -661,8 +661,8 @@ def test_hermit_doubles_money_up_to_twenty():
 
     tarot.use(context)
 
-    assert state.money == 20
-    assert context.data["money"] == 20
+    assert state.money == 30
+    assert context.data["money"] == 15
 
 
 def test_hermit_doubles_money_when_below_twenty():

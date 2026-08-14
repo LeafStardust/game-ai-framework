@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import pytest
+
 from games.balatro.actions import SELECT_PACK_CARD, SKIP_BOOSTER, BalatroAction
 from games.balatro.build.hex_expectation import HexExpectation, HexExpectationEvaluator
 from games.balatro.live.pack import LivePackChoice
@@ -65,7 +67,7 @@ def test_d9_hex_expectation_averages_uniform_public_joker_branches():
     assert result.available
     assert result.complete
     assert result.branch_count == 2
-    assert result.expected_build_gain == 1.2
+    assert result.expected_build_gain == pytest.approx(1.2)
     assert any("Joker index 0 B3 Hex branch gain=2.400" in note for note in result.rationale)
     assert any("expected B3 Hex whole-build gain=1.200" in note for note in result.rationale)
 
