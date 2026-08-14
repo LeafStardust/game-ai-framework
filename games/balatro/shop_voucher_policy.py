@@ -9,6 +9,7 @@ from games.balatro.playbook import (
     BalatroPlaybookNotFound,
     default_balatro_playbooks,
 )
+from games.balatro.resource_value import RunResourceValuator
 from games.balatro.shop_policy import (
     BalatroShopPolicy,
     DefaultShopItemValueEstimator,
@@ -115,12 +116,14 @@ class VoucherAcquisitionPolicy:
         *,
         item_value_estimator: ShopItemValueEstimator | None = None,
         profiler: BalatroBuildProfiler | None = None,
+        resource_valuator: RunResourceValuator | None = None,
     ) -> None:
         self.thresholds = thresholds or VoucherAcquisitionThresholds()
         self.item_value_estimator = (
             item_value_estimator or DefaultShopItemValueEstimator()
         )
         self.profiler = profiler or BalatroBuildProfiler()
+        self.resource_valuator = resource_valuator or RunResourceValuator()
 
     def decide(self, state: BalatroState, candidate: object) -> VoucherAcquisitionDecision:
         if state.phase != "SHOP":
@@ -165,26 +168,32 @@ class VoucherAcquisitionPolicy:
             0,
             int(self.thresholds.target_ante) - int(profile.ante),
         )
+        horizon_value = self.resource_valuator.horizon_value(
+            state,
+            target_ante=int(self.thresholds.target_ante),
+            weight=(
+                float(self.thresholds.target_ante)
+                * float(self.thresholds.remaining_ante_weight)
+            ),
+        )
         horizon_bonus = min(
             float(self.thresholds.maximum_horizon_bonus),
-            remaining_antes * float(self.thresholds.remaining_ante_weight),
+            horizon_value.total,
         )
         persistent_value = float(base_value) + compatibility + horizon_bonus
 
-        price_penalty = price * float(self.thresholds.price_weight)
-        interest_penalty = (
-            self._interest(int(state.money)) - self._interest(money_after)
-        ) * float(self.thresholds.interest_weight)
-        reserve_penalty = self._incremental_reserve_shortfall(
-            int(state.money),
-            money_after,
-        ) * float(self.thresholds.reserve_weight)
-        total_advantage = (
-            persistent_value
-            - price_penalty
-            - interest_penalty
-            - reserve_penalty
+        resource_cost = self.resource_valuator.money_spend_cost(
+            money=int(state.money),
+            spend=price,
+            price_weight=float(self.thresholds.price_weight),
+            interest_weight=float(self.thresholds.interest_weight),
+            reserve_target=int(self.thresholds.reserve_target),
+            reserve_weight=float(self.thresholds.reserve_weight),
         )
+        price_penalty = resource_cost.direct
+        interest_penalty = resource_cost.interest
+        reserve_penalty = resource_cost.reserve
+        total_advantage = persistent_value - resource_cost.total
 
         persistent_enough = persistent_value >= float(
             self.thresholds.minimum_persistent_value
@@ -281,17 +290,6 @@ class VoucherAcquisitionPolicy:
         except (TypeError, ValueError):
             return 0
 
-    @staticmethod
-    def _interest(money: int) -> int:
-        # D14 later generalizes voucher-modified caps/rates. D3 uses the current
-        # ordinary public interest schedule only to avoid pretending cash is free.
-        return min(5, max(0, int(money)) // 5)
-
-    def _incremental_reserve_shortfall(self, before: int, after: int) -> int:
-        before_shortfall = max(0, int(self.thresholds.reserve_target) - before)
-        after_shortfall = max(0, int(self.thresholds.reserve_target) - after)
-        return max(0, after_shortfall - before_shortfall)
-
 
 class VoucherAwareBalatroShopPolicy(BalatroShopPolicy):
     """BalatroShopPolicy adapter that makes D3 authoritative for Vouchers.
@@ -373,4 +371,5 @@ class VoucherAwareBalatroShopPolicy(BalatroShopPolicy):
         return VoucherAcquisitionPolicy(
             thresholds,
             item_value_estimator=self.item_value_estimator,
+            resource_valuator=self.resource_valuator,
         )
