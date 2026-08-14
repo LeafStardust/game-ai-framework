@@ -38,6 +38,7 @@ class VoucherAcquisitionThresholds:
     interest_weight: float = 1.00
     reserve_target: int = 5
     reserve_weight: float = 0.45
+    minimum_money_after: int = 5
     target_ante: int = 8
     remaining_ante_weight: float = 0.20
     maximum_horizon_bonus: float = 1.40
@@ -57,6 +58,8 @@ class VoucherAcquisitionThresholds:
                 raise ValueError(f"{name} cannot be negative")
         if int(self.reserve_target) < 0:
             raise ValueError("reserve_target cannot be negative")
+        if int(self.minimum_money_after) < 0:
+            raise ValueError("minimum_money_after cannot be negative")
         if int(self.target_ante) < 1:
             raise ValueError("target_ante must be positive")
 
@@ -183,11 +186,13 @@ class VoucherAcquisitionPolicy:
             - reserve_penalty
         )
 
-        eligible = persistent_value >= float(
+        persistent_enough = persistent_value >= float(
             self.thresholds.minimum_persistent_value
         )
+        reserve_safe = money_after >= int(self.thresholds.minimum_money_after)
         should_buy = (
-            eligible
+            persistent_enough
+            and reserve_safe
             and total_advantage > float(self.thresholds.minimum_purchase_advantage)
         )
         decision = BUY if should_buy else HOLD
@@ -202,14 +207,13 @@ class VoucherAcquisitionPolicy:
             f"D3 price penalty={price_penalty:.3f}",
             f"D3 interest penalty={interest_penalty:.3f}",
             f"D3 reserve penalty={reserve_penalty:.3f}",
+            f"D3 money after=${money_after} minimum=${self.thresholds.minimum_money_after}",
             f"D3 persistent value={persistent_value:.3f}",
             f"D3 purchase advantage={total_advantage:.3f}",
             (
-                "D3 BUY: purchase advantage exceeds dedicated threshold="
-                f"{self.thresholds.minimum_purchase_advantage:.3f}"
+                "D3 BUY: persistent upgrade clears dedicated value/economy thresholds"
                 if should_buy
-                else "D3 HOLD: purchase advantage does not exceed dedicated threshold="
-                f"{self.thresholds.minimum_purchase_advantage:.3f}"
+                else "D3 HOLD: persistent upgrade fails dedicated value/economy thresholds"
             ),
         )
 
