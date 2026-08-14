@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import product
+from math import isfinite
 
 from games.balatro.actions import (
     BUY_CONSUMABLE,
@@ -16,17 +18,83 @@ from games.balatro.state import BalatroState
 
 
 @dataclass(frozen=True)
-class ShopRerollThresholds:
-    """Dedicated B5 thresholds for reroll-vs-visible-shop decisions.
+class FutureShopOfferPrior:
+    """One public/static future-shop offer archetype on the shop utility scale.
 
-    ``exploration_prior`` is deliberately a policy preference, not a prediction of
-    unseen shop contents. Build needs may raise that option value, but hidden future
-    items/RNG are never inspected or modeled here.
+    ``weight`` is a relative public pool weight, not an RNG observation.
+    ``gross_utility`` and ``expected_price`` are deterministic model priors for the
+    archetype. They deliberately avoid pretending that the exact unseen card,
+    rarity, edition, or price is known.
     """
 
-    exploration_prior: float = 2.5
-    unmet_requirement_bonus: float = 0.75
-    max_unmet_requirement_bonus: float = 3.0
+    family: str
+    weight: float
+    gross_utility: float
+    expected_price: int
+    resource: str
+
+
+@dataclass(frozen=True)
+class ShopRerollPoolPrior:
+    """Static distribution used to value the option set produced by a reroll."""
+
+    card_slots: int
+    offers: tuple[FutureShopOfferPrior, ...]
+
+    def is_valid(self) -> bool:
+        if self.card_slots <= 0 or not self.offers:
+            return False
+        total_weight = 0.0
+        for offer in self.offers:
+            if (
+                not isfinite(float(offer.weight))
+                or float(offer.weight) <= 0.0
+                or not isfinite(float(offer.gross_utility))
+                or int(offer.expected_price) < 0
+                or offer.resource not in {"JOKER", "CONSUMABLE"}
+            ):
+                return False
+            total_weight += float(offer.weight)
+        return isfinite(total_weight) and total_weight > 0.0
+
+
+# Public vanilla baseline: two random shop-card slots, with relative family
+# weights Joker 20 / Tarot 4 / Planet 4. The utility/price values are explicit
+# policy priors on the same scale already used by BalatroShopPolicy; they are not
+# claims about the exact unseen card or its rarity. Deck/voucher-specific rate
+# modifiers must replace this prior once those public modifiers are represented.
+VANILLA_SHOP_REROLL_PRIOR = ShopRerollPoolPrior(
+    card_slots=2,
+    offers=(
+        FutureShopOfferPrior(
+            family="JOKER",
+            weight=20.0,
+            gross_utility=6.0,
+            expected_price=5,
+            resource="JOKER",
+        ),
+        FutureShopOfferPrior(
+            family="TAROT",
+            weight=4.0,
+            gross_utility=3.2,
+            expected_price=3,
+            resource="CONSUMABLE",
+        ),
+        FutureShopOfferPrior(
+            family="PLANET",
+            weight=4.0,
+            gross_utility=3.5,
+            expected_price=3,
+            resource="CONSUMABLE",
+        ),
+    ),
+)
+
+
+@dataclass(frozen=True)
+class ShopRerollThresholds:
+    """Decision margin for paid reroll EV versus the best visible shop option."""
+
     minimum_margin: float = 0.25
 
 
@@ -36,19 +104,25 @@ class ShopRerollRecommendation:
     reroll_cost: int | None
     executable_action: BalatroAction | None
     current_best_score: float
-    exploration_value: float
+    future_shop_ev: float
+    reroll_resource_cost: float
     reroll_score: float
     unmet_requirements: tuple[str, ...] = ()
     rationale: tuple[str, ...] = ()
 
 
 class BuildAwareShopRerollPolicy:
-    """Choose whether to spend on another shop roll using public state only.
+    """Compare visible shop value with public-information future-shop EV.
 
-    The layer compares a configurable exploration prior against the best *visible*
-    deterministic shop action after applying the same money/interest/reserve
-    economics used by :class:`BalatroShopPolicy`. It never predicts which specific
-    Joker, consumable, voucher, booster, edition, or rarity will appear next.
+    A reroll creates a choice among future card slots. This policy computes the
+    exact expectation of the best immediately actionable offer under an explicit
+    static pool prior, then subtracts reroll money/interest/reserve opportunity
+    cost using the same :class:`RunResourceValuator` configuration as
+    :class:`BalatroShopPolicy`.
+
+    The model never reads RNG state, seed data, future pool ordering, or hidden
+    card identities. If an applicable public prior is unavailable, rerolling fails
+    closed instead of falling back to a free-form exploration bonus.
     """
 
     def __init__(
@@ -57,10 +131,12 @@ class BuildAwareShopRerollPolicy:
         shop_policy: BalatroShopPolicy | None = None,
         build_profiler: BalatroBuildProfiler | None = None,
         thresholds: ShopRerollThresholds | None = None,
+        pool_prior: ShopRerollPoolPrior | None = VANILLA_SHOP_REROLL_PRIOR,
     ) -> None:
         self.shop_policy = shop_policy or BalatroShopPolicy()
         self.build_profiler = build_profiler or BalatroBuildProfiler()
         self.thresholds = thresholds or ShopRerollThresholds()
+        self.pool_prior = pool_prior
 
     def recommend(
         self,
@@ -83,83 +159,88 @@ class BuildAwareShopRerollPolicy:
             current_best = max(current_best, float(visible_score_floor))
 
         unmet = self._unmet_requirements(state)
-        need_bonus = min(
-            self.thresholds.max_unmet_requirement_bonus,
-            len(unmet) * self.thresholds.unmet_requirement_bonus,
-        )
-        exploration = self.thresholds.exploration_prior + need_bonus
 
         if reroll_cost is None:
-            return ShopRerollRecommendation(
-                decision="HOLD",
+            return self._fail_closed(
+                current_best=current_best,
                 reroll_cost=None,
-                executable_action=None,
-                current_best_score=current_best,
-                exploration_value=exploration,
-                reroll_score=float("-inf"),
-                unmet_requirements=unmet,
-                rationale=(
-                    "current reroll cost is not observed; reroll fails closed",
-                    "exploration prior does not predict unseen shop contents",
-                ),
+                unmet=unmet,
+                reason="current reroll cost is not observed; reroll fails closed",
             )
 
         cost = int(reroll_cost)
         if cost < 0:
             raise ValueError("reroll cost cannot be negative")
-
         if cost > state.money:
-            return ShopRerollRecommendation(
-                decision="HOLD",
+            return self._fail_closed(
+                current_best=current_best,
                 reroll_cost=cost,
-                executable_action=None,
-                current_best_score=current_best,
-                exploration_value=exploration,
-                reroll_score=float("-inf"),
-                unmet_requirements=unmet,
-                rationale=(
-                    f"reroll costs ${cost} but only ${state.money} is available",
-                    "exploration prior does not predict unseen shop contents",
-                ),
+                unmet=unmet,
+                reason=f"reroll costs ${cost} but only ${state.money} is available",
             )
 
-        remaining = state.money - cost
-        price_penalty = cost * self.shop_policy.price_weight
-        interest_penalty = (
-            self.shop_policy._interest(state.money)
-            - self.shop_policy._interest(remaining)
-        ) * self.shop_policy.interest_weight
-        reserve_penalty = self.shop_policy._incremental_reserve_shortfall(
-            state.money,
-            remaining,
-        ) * self.shop_policy.reserve_weight
+        prior = self.pool_prior
+        if prior is None or not prior.is_valid():
+            return self._fail_closed(
+                current_best=current_best,
+                reroll_cost=cost,
+                unmet=unmet,
+                reason="public/static future-shop pool prior is unavailable; reroll fails closed",
+            )
 
-        reroll_score = (
-            exploration
-            - price_penalty
-            - interest_penalty
-            - reserve_penalty
+        reroll_resource = self.shop_policy.resource_valuator.money_spend_cost(
+            money=state.money,
+            spend=cost,
+            price_weight=self.shop_policy.price_weight,
+            interest_weight=self.shop_policy.interest_weight,
+            reserve_target=self.shop_policy.reserve_target,
+            reserve_weight=self.shop_policy.reserve_weight,
         )
-        required = current_best + self.thresholds.minimum_margin
+        money_after_reroll = state.money - cost
+        future_ev, offer_scores = self._future_shop_ev(
+            state,
+            prior,
+            money_after_reroll=money_after_reroll,
+        )
+        reroll_score = future_ev - reroll_resource.total
+        required = current_best + (
+            0.0 if cost == 0 else self.thresholds.minimum_margin
+        )
 
         rationale = (
             f"visible-shop best score={current_best:.3f}",
-            f"exploration prior={self.thresholds.exploration_prior:.3f}",
-            f"unmet build requirements={len(unmet)} bonus={need_bonus:.3f}",
-            f"reroll cost=${cost} price penalty={price_penalty:.3f}",
-            f"interest penalty={interest_penalty:.3f}",
-            f"reserve penalty={reserve_penalty:.3f}",
-            f"reroll score={reroll_score:.3f}; required>{required:.3f}",
-            "exploration prior does not predict unseen shop contents",
+            f"future shop EV={future_ev:.3f} across {prior.card_slots} card slots",
+            "public pool weights="
+            + ", ".join(
+                f"{offer.family}:{offer.weight:g}"
+                for offer in prior.offers
+            ),
+            "actionable offer scores="
+            + ", ".join(
+                f"{family}:{score:.3f}"
+                for family, score in offer_scores
+            ),
+            f"reroll cost=${cost} resource cost={reroll_resource.total:.3f}",
+            f"reroll price penalty={reroll_resource.direct:.3f}",
+            f"reroll interest penalty={reroll_resource.interest:.3f}",
+            f"reroll reserve penalty={reroll_resource.reserve:.3f}",
+            f"reroll score={reroll_score:.3f}; required={required:.3f}",
+            "future-shop expectation uses static public priors only; no RNG state or future ordering",
         )
 
-        if reroll_score <= required:
+        hold = (
+            reroll_score < required
+            if cost == 0
+            else reroll_score <= required
+        )
+        if hold:
             return ShopRerollRecommendation(
                 decision="HOLD",
                 reroll_cost=cost,
                 executable_action=None,
                 current_best_score=current_best,
-                exploration_value=exploration,
+                future_shop_ev=future_ev,
+                reroll_resource_cost=reroll_resource.total,
                 reroll_score=reroll_score,
                 unmet_requirements=unmet,
                 rationale=rationale,
@@ -170,10 +251,121 @@ class BuildAwareShopRerollPolicy:
             reroll_cost=cost,
             executable_action=BalatroAction(REFRESH_SHOP),
             current_best_score=current_best,
-            exploration_value=exploration,
+            future_shop_ev=future_ev,
+            reroll_resource_cost=reroll_resource.total,
             reroll_score=reroll_score,
             unmet_requirements=unmet,
             rationale=rationale,
+        )
+
+    def _fail_closed(
+        self,
+        *,
+        current_best: float,
+        reroll_cost: int | None,
+        unmet: tuple[str, ...],
+        reason: str,
+    ) -> ShopRerollRecommendation:
+        return ShopRerollRecommendation(
+            decision="HOLD",
+            reroll_cost=reroll_cost,
+            executable_action=None,
+            current_best_score=current_best,
+            future_shop_ev=float("-inf"),
+            reroll_resource_cost=float("inf"),
+            reroll_score=float("-inf"),
+            unmet_requirements=unmet,
+            rationale=(
+                reason,
+                "no heuristic exploration fallback is used",
+            ),
+        )
+
+    def _future_shop_ev(
+        self,
+        state: BalatroState,
+        prior: ShopRerollPoolPrior,
+        *,
+        money_after_reroll: int,
+    ) -> tuple[float, tuple[tuple[str, float], ...]]:
+        total_weight = sum(float(offer.weight) for offer in prior.offers)
+        probabilities = tuple(
+            float(offer.weight) / total_weight
+            for offer in prior.offers
+        )
+        scores = tuple(
+            self._future_offer_score(
+                state,
+                offer,
+                money=money_after_reroll,
+            )
+            for offer in prior.offers
+        )
+        hold = float(self.shop_policy.hold_bias)
+
+        expected_best = 0.0
+        indices = range(len(prior.offers))
+        for outcome in product(indices, repeat=prior.card_slots):
+            probability = 1.0
+            best = hold
+            for index in outcome:
+                probability *= probabilities[index]
+                best = max(best, scores[index])
+            expected_best += probability * best
+
+        return expected_best, tuple(
+            (offer.family, score)
+            for offer, score in zip(prior.offers, scores)
+        )
+
+    def _future_offer_score(
+        self,
+        state: BalatroState,
+        offer: FutureShopOfferPrior,
+        *,
+        money: int,
+    ) -> float:
+        hold = float(self.shop_policy.hold_bias)
+        price = int(offer.expected_price)
+        if price > money:
+            return hold
+
+        if offer.resource == "JOKER":
+            if len(state.jokers) >= state.joker_slots:
+                # Replacement EV requires a concrete candidate/incumbent comparison.
+                # A family-level prior cannot safely invent that delta.
+                return hold
+            slot_cost = self.shop_policy.resource_valuator.slot_opportunity_cost(
+                occupied=len(state.jokers),
+                capacity=state.joker_slots,
+                last_slot_penalty=self.shop_policy.last_joker_slot_penalty,
+                penultimate_slot_penalty=self.shop_policy.penultimate_joker_slot_penalty,
+                resource="joker",
+            ).total
+        elif offer.resource == "CONSUMABLE":
+            if len(state.consumables) >= state.consumable_slots:
+                return hold
+            slot_cost = self.shop_policy.resource_valuator.slot_opportunity_cost(
+                occupied=len(state.consumables),
+                capacity=state.consumable_slots,
+                last_slot_penalty=self.shop_policy.last_consumable_slot_penalty,
+                penultimate_slot_penalty=0.0,
+                resource="consumable",
+            ).total
+        else:
+            return hold
+
+        purchase_resource = self.shop_policy.resource_valuator.money_spend_cost(
+            money=money,
+            spend=price,
+            price_weight=self.shop_policy.price_weight,
+            interest_weight=self.shop_policy.interest_weight,
+            reserve_target=self.shop_policy.reserve_target,
+            reserve_weight=self.shop_policy.reserve_weight,
+        )
+        return max(
+            hold,
+            float(offer.gross_utility) - purchase_resource.total - slot_cost,
         )
 
     def _visible_scores(

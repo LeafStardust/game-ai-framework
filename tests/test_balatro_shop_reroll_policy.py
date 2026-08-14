@@ -9,7 +9,10 @@ from games.balatro.actions import (
 from games.balatro.shop_policy import BalatroShopPolicy
 from games.balatro.shop_reroll_policy import (
     BuildAwareShopRerollPolicy,
+    FutureShopOfferPrior,
+    ShopRerollPoolPrior,
     ShopRerollThresholds,
+    VANILLA_SHOP_REROLL_PRIOR,
 )
 from games.balatro.state import BalatroState
 
@@ -54,15 +57,24 @@ def _state(*, money: int = 20) -> BalatroState:
     return state
 
 
-def _thresholds(**overrides):
-    values = {
-        "exploration_prior": 2.5,
-        "unmet_requirement_bonus": 0.75,
-        "max_unmet_requirement_bonus": 3.0,
-        "minimum_margin": 0.25,
-    }
-    values.update(overrides)
-    return ShopRerollThresholds(**values)
+def _single_offer_prior(
+    *,
+    gross_utility: float = 10.0,
+    expected_price: int = 0,
+    resource: str = "JOKER",
+) -> ShopRerollPoolPrior:
+    return ShopRerollPoolPrior(
+        card_slots=2,
+        offers=(
+            FutureShopOfferPrior(
+                family="TEST",
+                weight=1.0,
+                gross_utility=gross_utility,
+                expected_price=expected_price,
+                resource=resource,
+            ),
+        ),
+    )
 
 
 def test_reroll_fails_closed_when_current_cost_is_not_observed():
@@ -79,8 +91,29 @@ def test_reroll_fails_closed_when_current_cost_is_not_observed():
 
     assert result.decision == "HOLD"
     assert result.executable_action is None
+    assert result.future_shop_ev == float("-inf")
     assert result.reroll_score == float("-inf")
     assert any("fails closed" in note for note in result.rationale)
+
+
+def test_reroll_fails_closed_when_public_pool_prior_is_unavailable():
+    state = _state()
+    policy = BuildAwareShopRerollPolicy(
+        build_profiler=StaticProfiler(EmptyProfile()),
+        pool_prior=None,
+    )
+
+    result = policy.recommend(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=1,
+    )
+
+    assert result.decision == "HOLD"
+    assert result.executable_action is None
+    assert result.future_shop_ev == float("-inf")
+    assert any("pool prior is unavailable" in note for note in result.rationale)
+    assert any("no heuristic exploration fallback" in note for note in result.rationale)
 
 
 def test_reroll_holds_when_current_cost_is_unaffordable():
@@ -100,11 +133,11 @@ def test_reroll_holds_when_current_cost_is_unaffordable():
     assert any("only $3" in note for note in result.rationale)
 
 
-def test_weak_visible_shop_can_reroll_when_observed_cost_is_cheap():
-    state = _state(money=20)
+def test_weak_open_capacity_build_has_positive_reroll_ev_when_cost_is_cheap():
+    state = _state(money=21)
     policy = BuildAwareShopRerollPolicy(
         build_profiler=StaticProfiler(EmptyProfile()),
-        thresholds=_thresholds(exploration_prior=3.0),
+        pool_prior=VANILLA_SHOP_REROLL_PRIOR,
     )
 
     result = policy.recommend(
@@ -116,7 +149,60 @@ def test_weak_visible_shop_can_reroll_when_observed_cost_is_cheap():
     assert result.decision == "REROLL"
     assert result.executable_action is not None
     assert result.executable_action.name == REFRESH_SHOP
+    assert result.future_shop_ev > 0.0
     assert result.reroll_score > result.current_best_score
+    assert any("JOKER:20" in note for note in result.rationale)
+
+
+def test_expensive_reroll_is_negative_for_saturated_build():
+    state = _state(money=20)
+    state.jokers = [object() for _ in range(state.joker_slots)]
+    state.consumables = [object() for _ in range(state.consumable_slots)]
+    policy = BuildAwareShopRerollPolicy(
+        build_profiler=StaticProfiler(EmptyProfile()),
+        pool_prior=VANILLA_SHOP_REROLL_PRIOR,
+    )
+
+    result = policy.recommend(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=5,
+    )
+
+    assert result.decision == "HOLD"
+    assert result.future_shop_ev == policy.shop_policy.hold_bias
+    assert result.reroll_score < 0.0
+    assert result.executable_action is None
+
+
+def test_reroll_score_is_monotonic_with_reroll_cost():
+    state = _state(money=20)
+    shop_policy = BalatroShopPolicy(
+        price_weight=1.0,
+        interest_weight=0.0,
+        reserve_weight=0.0,
+    )
+    policy = BuildAwareShopRerollPolicy(
+        shop_policy=shop_policy,
+        build_profiler=StaticProfiler(EmptyProfile()),
+        thresholds=ShopRerollThresholds(minimum_margin=0.0),
+        pool_prior=_single_offer_prior(gross_utility=10.0, expected_price=0),
+    )
+
+    scores = [
+        policy.recommend(
+            state,
+            [BalatroAction(END_SHOP)],
+            reroll_cost=cost,
+        ).reroll_score
+        for cost in (1, 2, 3, 4)
+    ]
+
+    assert scores == sorted(scores, reverse=True)
+    assert all(
+        earlier > later
+        for earlier, later in zip(scores, scores[1:])
+    )
 
 
 def test_strong_visible_purchase_suppresses_reroll():
@@ -131,7 +217,7 @@ def test_strong_visible_purchase_suppresses_reroll():
     policy = BuildAwareShopRerollPolicy(
         shop_policy=shop_policy,
         build_profiler=StaticProfiler(EmptyProfile()),
-        thresholds=_thresholds(exploration_prior=5.0),
+        pool_prior=_single_offer_prior(gross_utility=5.0, expected_price=0),
     )
 
     result = policy.recommend(
@@ -159,10 +245,8 @@ def test_reroll_uses_same_interest_and_reserve_economics_as_shop_policy():
     policy = BuildAwareShopRerollPolicy(
         shop_policy=shop_policy,
         build_profiler=StaticProfiler(EmptyProfile()),
-        thresholds=_thresholds(
-            exploration_prior=2.0,
-            minimum_margin=0.0,
-        ),
+        thresholds=ShopRerollThresholds(minimum_margin=0.0),
+        pool_prior=_single_offer_prior(gross_utility=2.0, expected_price=0),
     )
 
     result = policy.recommend(
@@ -173,15 +257,14 @@ def test_reroll_uses_same_interest_and_reserve_economics_as_shop_policy():
 
     assert result.decision == "HOLD"
     assert result.reroll_score < result.current_best_score
-    assert any("interest penalty=4.000" in note for note in result.rationale)
-    assert any("reserve penalty=2.000" in note for note in result.rationale)
+    assert any("reroll interest penalty=4.000" in note for note in result.rationale)
+    assert any("reroll reserve penalty=2.000" in note for note in result.rationale)
 
 
-def test_unmet_build_requirements_raise_exploration_value_without_predicting_items():
-    state = _state(money=20)
+def test_unmet_build_requirements_are_reported_without_free_form_ev_bonus():
+    state = _state(money=21)
     base = BuildAwareShopRerollPolicy(
         build_profiler=StaticProfiler(EmptyProfile()),
-        thresholds=_thresholds(),
     ).recommend(
         state,
         [BalatroAction(END_SHOP)],
@@ -189,7 +272,6 @@ def test_unmet_build_requirements_raise_exploration_value_without_predicting_ite
     )
     needy = BuildAwareShopRerollPolicy(
         build_profiler=StaticProfiler(MissingRequirementProfile()),
-        thresholds=_thresholds(),
     ).recommend(
         state,
         [BalatroAction(END_SHOP)],
@@ -197,18 +279,14 @@ def test_unmet_build_requirements_raise_exploration_value_without_predicting_ite
     )
 
     assert needy.unmet_requirements == ("HELD_EFFECT", "SCORE_XMULT")
-    assert needy.exploration_value == base.exploration_value + 1.5
-    assert any(
-        "does not predict unseen shop contents" in note
-        for note in needy.rationale
-    )
+    assert needy.future_shop_ev == base.future_shop_ev
+    assert needy.reroll_score == base.reroll_score
 
 
 def test_unsupported_random_visible_action_is_not_given_fake_shop_quality():
-    state = _state(money=20)
+    state = _state(money=21)
     policy = BuildAwareShopRerollPolicy(
         build_profiler=StaticProfiler(EmptyProfile()),
-        thresholds=_thresholds(exploration_prior=3.0),
     )
 
     result = policy.recommend(
