@@ -48,6 +48,7 @@ def test_crash_report_collects_status_attempt_logs_and_agent_tail(tmp_path, monk
 
     monkeypatch.setattr(report_module, "_repo_root", lambda: tmp_path)
     monkeypatch.setattr(report_module, "_git_value", lambda *_args: "test-git")
+    monkeypatch.setattr(report_module, "_balatro_process_section", lambda: "balatro-process-test")
     monkeypatch.setattr(report_module, "_snapshot_section", lambda: "snapshot-test")
     monkeypatch.setattr(report_module, "_bridge_files_section", lambda: "bridge-test")
     monkeypatch.setattr(report_module, "_windows_events_section", lambda: "windows-test")
@@ -62,6 +63,7 @@ def test_crash_report_collects_status_attempt_logs_and_agent_tail(tmp_path, monk
     assert path.read_text(encoding="utf-8") == report
     assert '"run_id": "session-crash-attempt-002"' in report
     assert "supervisor failure: boom" in report
+    assert "balatro-process-test" in report
     assert "snapshot-test" in report
     assert "bridge-test" in report
     assert '"event":"decision","sequence":7' in report
