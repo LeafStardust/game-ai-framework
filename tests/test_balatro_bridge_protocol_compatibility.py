@@ -1,5 +1,6 @@
 from games.balatro.live.injected.bridge import (
     BRIDGE_PROTOCOL_VERSION,
+    FirstPartyBalatroBridge,
     normalize_bridge_status,
 )
 
@@ -17,6 +18,21 @@ def test_known_command_pump_revision_normalizes_to_protocol_one():
     assert status["bridge"] == BRIDGE_PROTOCOL_VERSION == "1"
     assert status["bridge_revision"] == "2"
     assert status["command_pump"] == "LOVE_RUN_PRE_UPDATE"
+
+
+def test_real_bridge_status_path_normalizes_installed_v2(tmp_path):
+    bridge = FirstPartyBalatroBridge(tmp_path)
+    bridge._call = lambda action: (
+        "bridge=2;achievement_gate=ENABLED;"
+        "restart_run_callback=START_RUN_PRESENT;"
+        "command_pump=LOVE_RUN_PRE_UPDATE"
+    )
+
+    status = bridge.status()
+
+    assert status["bridge"] == "1"
+    assert status["bridge_revision"] == "2"
+    assert status["achievement_gate"] == "ENABLED"
 
 
 def test_protocol_one_status_is_unchanged():
