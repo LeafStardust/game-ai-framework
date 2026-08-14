@@ -65,6 +65,16 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
         if not custom_hand_recommender:
             self.hand_recommender = self._recommend_hand_with_playstyle
 
+    def _hand_policy(
+        self,
+        thresholds: HandActionThresholds,
+    ) -> BuildAwareLiveHandActionPolicy:
+        return BuildAwareLiveHandActionPolicy(
+            thresholds,
+            profiler=self.playstyle_profiler,
+            intent_tracker=self.playstyle_intent_tracker,
+        )
+
     def _recommend_hand_with_playstyle(self, state, snapshot):
         del snapshot
         playbook = default_balatro_playbooks().for_state(state)
@@ -88,11 +98,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             max_search_nodes_override=self.max_search_nodes,
         )
         engine = LiveHandActionDecisionEngine(
-            policy=BuildAwareLiveHandActionPolicy(
-                thresholds,
-                profiler=self.playstyle_profiler,
-                intent_tracker=self.playstyle_intent_tracker,
-            ),
+            policy=self._hand_policy(thresholds),
             max_horizon=max_horizon,
             max_search_nodes=max_search_nodes,
             exact_limit=self.exact_limit,
