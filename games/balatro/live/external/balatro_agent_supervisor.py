@@ -26,6 +26,7 @@ from .live_memory_autonomous_loop_injected import (
 )
 from .live_memory_autonomous_step_injected import (
     LiveMemoryInjectedSingleStepRunner,
+    _action_text,
     _same_snapshot,
 )
 from .live_memory_restart_run_injected import (
@@ -117,12 +118,10 @@ class BalatroAgentSupervisor:
     A win ends the supervisor automatically. A manual OFF request is cooperative:
     the underlying autonomous loop stops before submitting another gameplay action.
 
-    Deck/stake/playbook identity is selected only after two consecutive settled
-    public snapshots are semantically equal, preventing a transient attachment
-    frame from locking the supervisor to the wrong playbook. The production
-    supervisor observer additionally withholds BLIND_SELECT until Balatro's native
-    blind-selection objects are actually present, avoiding the restart-time window
-    where public state is stable but SELECT_BLIND is not yet executable.
+    Deck/stake/playbook identity is selected only after settled public observation,
+    preventing a transient attachment frame from locking the supervisor to the
+    wrong playbook. The production observer additionally withholds action-driving
+    checkpoints until native readiness and full-state quiescence are satisfied.
     """
 
     def __init__(
@@ -176,6 +175,89 @@ class BalatroAgentSupervisor:
     @property
     def summary_path(self) -> Path:
         return self.session_directory / f"{self.session_id}.summary.json"
+
+    def _publish_telemetry(self, activity: str, **data) -> None:
+        """Publish monitor-only activity without making monitoring mission-critical."""
+        try:
+            self.control.write_telemetry(
+                activity,
+                session_id=self.session_id,
+                **data,
+            )
+        except (OSError, TypeError, ValueError):
+            pass
+
+    def _instrument_runner(
+        self,
+        runner,
+        *,
+        attempt_number: int,
+        run_id: str,
+        deck: str,
+        stake: str,
+    ):
+        """Expose current planning/execution activity to the read-only monitor."""
+        original_decide = runner.decide
+        original_execute = runner.execute
+
+        def decide_with_telemetry():
+            self._publish_telemetry(
+                "THINKING",
+                attempt=attempt_number,
+                run_id=run_id,
+                deck=deck,
+                stake=stake,
+                detail="evaluating the current settled checkpoint",
+            )
+            decision = original_decide()
+            self._publish_telemetry(
+                "DECIDED",
+                attempt=attempt_number,
+                run_id=run_id,
+                deck=deck,
+                stake=stake,
+                phase=str(decision.snapshot.phase),
+                checkpoint_sequence=int(decision.snapshot.sequence),
+                action=_action_text(decision),
+                decision_source=str(decision.source),
+                notes=[str(note) for note in decision.notes],
+            )
+            return decision
+
+        def execute_with_telemetry(decision):
+            action_text = _action_text(decision)
+            self._publish_telemetry(
+                "EXECUTING",
+                attempt=attempt_number,
+                run_id=run_id,
+                deck=deck,
+                stake=stake,
+                phase=str(decision.snapshot.phase),
+                checkpoint_sequence=int(decision.snapshot.sequence),
+                action=action_text,
+                decision_source=str(decision.source),
+                notes=[str(note) for note in decision.notes],
+                detail="guarding, injecting and waiting for authoritative settlement",
+            )
+            result, status = original_execute(decision)
+            self._publish_telemetry(
+                "SETTLED",
+                attempt=attempt_number,
+                run_id=run_id,
+                deck=deck,
+                stake=stake,
+                phase=str(result.after.phase),
+                checkpoint_sequence=int(result.after.sequence),
+                action=action_text,
+                decision_source=str(decision.source),
+                notes=[str(note) for note in decision.notes],
+                detail="previous action verified; preparing the next decision",
+            )
+            return result, status
+
+        runner.decide = decide_with_telemetry
+        runner.execute = execute_with_telemetry
+        return runner
 
     def _write_summary(self, *, won: bool, stop_reason: str) -> Path:
         self.session_directory.mkdir(parents=True, exist_ok=True)
@@ -268,12 +350,18 @@ class BalatroAgentSupervisor:
 
     def run(self) -> BalatroAgentSessionResult:
         pid = self.control.claim_current_process()
+        self.control.clear_telemetry()
         self.control.write_status(
             "ON",
             pid=pid,
             session_id=self.session_id,
             attempt=0,
             retry_losses=self.retry_losses,
+        )
+        self._publish_telemetry(
+            "STARTING",
+            attempt=0,
+            detail="supervisor active; preparing first live attempt",
         )
 
         attempt_number = 1
@@ -283,6 +371,12 @@ class BalatroAgentSupervisor:
                     return self._finish(won=False, stop_reason="manual stop requested")
 
                 run_id = f"{self.session_id}-attempt-{attempt_number:03d}"
+                self._publish_telemetry(
+                    "ATTACHING",
+                    attempt=attempt_number,
+                    run_id=run_id,
+                    detail="attaching observer and waiting for a settled live checkpoint",
+                )
                 with self.observer_factory() as observer:
                     runner = self.runner_factory(observer)
                     initial = wait_for_stable_startup_snapshot(
@@ -291,6 +385,13 @@ class BalatroAgentSupervisor:
                         timeout_seconds=self.startup_stability_timeout_seconds,
                     )
                     deck, stake, playbook = self._run_identity(initial)
+                    runner = self._instrument_runner(
+                        runner,
+                        attempt_number=attempt_number,
+                        run_id=run_id,
+                        deck=deck,
+                        stake=stake,
+                    )
 
                     self.control.write_status(
                         "ON",
@@ -304,6 +405,16 @@ class BalatroAgentSupervisor:
                         playbook_version=str(playbook.version),
                         phase=str(initial.phase),
                         retry_losses=self.retry_losses,
+                    )
+                    self._publish_telemetry(
+                        "READY",
+                        attempt=attempt_number,
+                        run_id=run_id,
+                        deck=deck,
+                        stake=stake,
+                        phase=str(initial.phase),
+                        checkpoint_sequence=int(initial.sequence),
+                        detail="initial checkpoint settled; autonomous loop starting",
                     )
 
                     if str(initial.phase) == "GAME_OVER":
@@ -338,6 +449,16 @@ class BalatroAgentSupervisor:
                         run=run,
                     )
 
+                    self._publish_telemetry(
+                        "ATTEMPT_FINISHED",
+                        attempt=attempt_number,
+                        run_id=run_id,
+                        deck=deck,
+                        stake=stake,
+                        outcome=attempt.outcome,
+                        detail=attempt.stop_reason,
+                    )
+
                     if attempt.outcome == "WIN":
                         return self._finish(
                             won=True,
@@ -367,6 +488,14 @@ class BalatroAgentSupervisor:
                         run_id=run_id,
                         deck=deck,
                         stake=stake,
+                    )
+                    self._publish_telemetry(
+                        "RESTARTING",
+                        attempt=attempt_number,
+                        run_id=run_id,
+                        deck=deck,
+                        stake=stake,
+                        detail="loss confirmed; starting fresh same-deck/stake run",
                     )
                     try:
                         self.restart_run(runner, deck, stake)
