@@ -11,6 +11,7 @@ from games.balatro.live.injected.bridge import default_bridge_dir
 
 
 AGENT_STATUS_SCHEMA = "balatro-agent-status-v1"
+AGENT_TELEMETRY_SCHEMA = "balatro-agent-telemetry-v1"
 
 
 def default_agent_control_dir() -> Path:
@@ -82,6 +83,10 @@ class BalatroAgentControl:
     @property
     def status_path(self) -> Path:
         return self.directory / "status.json"
+
+    @property
+    def telemetry_path(self) -> Path:
+        return self.directory / "telemetry.json"
 
     @property
     def start_lock_path(self) -> Path:
@@ -165,20 +170,25 @@ class BalatroAgentControl:
         except OSError:
             pass
 
-    def write_status(self, state: str, **data: Any) -> None:
+    def _write_json(self, path: Path, payload: dict[str, Any]) -> None:
         self.ensure_directory()
-        payload = {
-            "schema": AGENT_STATUS_SCHEMA,
-            "state": str(state),
-            "updated_at": _utc_now(),
-            **data,
-        }
-        temporary = self.status_path.with_suffix(".json.tmp")
+        temporary = path.with_suffix(path.suffix + ".tmp")
         temporary.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True),
             encoding="utf-8",
         )
-        os.replace(temporary, self.status_path)
+        os.replace(temporary, path)
+
+    def write_status(self, state: str, **data: Any) -> None:
+        self._write_json(
+            self.status_path,
+            {
+                "schema": AGENT_STATUS_SCHEMA,
+                "state": str(state),
+                "updated_at": _utc_now(),
+                **data,
+            },
+        )
 
     def read_status(self) -> dict[str, Any]:
         try:
@@ -189,7 +199,34 @@ class BalatroAgentControl:
             return {}
         return payload
 
+    def write_telemetry(self, activity: str, **data: Any) -> None:
+        self._write_json(
+            self.telemetry_path,
+            {
+                "schema": AGENT_TELEMETRY_SCHEMA,
+                "activity": str(activity),
+                "updated_at": _utc_now(),
+                **data,
+            },
+        )
+
+    def read_telemetry(self) -> dict[str, Any]:
+        try:
+            payload = json.loads(self.telemetry_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {}
+        if payload.get("schema") != AGENT_TELEMETRY_SCHEMA:
+            return {}
+        return payload
+
+    def clear_telemetry(self) -> None:
+        try:
+            self.telemetry_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
     def mark_off(self, *, reason: str, **data: Any) -> None:
+        self.write_telemetry("OFF", reason=str(reason), **data)
         self.write_status("OFF", reason=str(reason), **data)
         self.clear_stop_request()
         self.clear_pid()
