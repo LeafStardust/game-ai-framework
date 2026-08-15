@@ -51,7 +51,7 @@ def test_recursive_d1_generates_four_fingers_four_card_straight():
     ]
     cards = [
         *straight,
-        BalatroCard("A", "Hearts"),
+        BalatroCard("9", "Hearts"),
         BalatroCard("K", "Clubs"),
         BalatroCard("Q", "Diamonds"),
     ]
@@ -75,9 +75,9 @@ def test_recursive_d1_generates_shortcut_gapped_straight():
     ]
     cards = [
         *straight,
-        BalatroCard("A", "Spades"),
-        BalatroCard("A", "Clubs"),
-        BalatroCard("A", "Diamonds"),
+        BalatroCard("K", "Spades"),
+        BalatroCard("K", "Clubs"),
+        BalatroCard("K", "Diamonds"),
     ]
     state = _state(cards, [ShortcutJoker()])
 
