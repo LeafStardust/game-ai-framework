@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from games.balatro.actions import SKIP_BOOSTER, BalatroAction
 from games.balatro.live.external.live_memory_pack_terms import LivePackSelectionTerms
-from games.balatro.live.injected.action_dispatcher import _pack_selection_complete
+from games.balatro.live.injected.action_dispatcher import (
+    LiveMemoryInjectedActionDispatcher,
+    _pack_selection_complete,
+)
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 
@@ -47,6 +51,36 @@ def test_final_standard_tag_pack_selection_rejects_blind_select_without_card_add
     )
 
 
+def test_final_buffoon_tag_pack_selection_accepts_blind_select_terminal_phase():
+    before = _snapshot(1, "BUFFOON_PACK", card_count=52)
+    after = _snapshot(2, "BLIND_SELECT", card_count=52)
+
+    assert _pack_selection_complete(
+        before,
+        after,
+        _final_standard_terms(),
+        None,
+        selected_address=1234,
+    )
+
+
+def test_nonfinal_pack_selection_rejects_blind_select_terminal_phase():
+    before = _snapshot(1, "BUFFOON_PACK", card_count=52)
+    after = _snapshot(2, "BLIND_SELECT", card_count=52)
+    terms = LivePackSelectionTerms(
+        choices_remaining=2,
+        choice_addresses=(1234, 5678),
+    )
+
+    assert not _pack_selection_complete(
+        before,
+        after,
+        terms,
+        None,
+        selected_address=1234,
+    )
+
+
 def test_final_shop_pack_selection_still_accepts_shop_terminal_phase():
     before = _snapshot(1, "STANDARD_PACK", card_count=52)
     after = _snapshot(2, "SHOP", card_count=53)
@@ -58,3 +92,39 @@ def test_final_shop_pack_selection_still_accepts_shop_terminal_phase():
         None,
         selected_address=1234,
     )
+
+
+class _Observer:
+    def __init__(self, snapshot: LiveBalatroSnapshot) -> None:
+        self.snapshot = snapshot
+
+    def observe(self) -> LiveBalatroSnapshot:
+        return self.snapshot
+
+
+class _Bridge:
+    def __init__(self) -> None:
+        self.skipped = False
+
+    def skip_booster(self) -> None:
+        self.skipped = True
+
+
+def test_tag_opened_pack_skip_accepts_blind_select_terminal_phase():
+    before = _snapshot(1, "BUFFOON_PACK", card_count=52)
+    after = _snapshot(2, "BLIND_SELECT", card_count=52)
+    bridge = _Bridge()
+    dispatcher = LiveMemoryInjectedActionDispatcher(
+        _Observer(after),
+        bridge=bridge,
+        timeout=0,
+        poll_interval=0,
+    )
+
+    result = dispatcher.dispatch(
+        BalatroAction(SKIP_BOOSTER),
+        snapshot=before,
+    )
+
+    assert bridge.skipped
+    assert result.after == after
