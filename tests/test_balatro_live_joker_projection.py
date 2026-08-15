@@ -2,6 +2,7 @@ from games.balatro.actions import BalatroAction, PLAY_CARDS
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
+from games.balatro.jokers.bloodstone import BloodstoneJoker
 from games.balatro.jokers.bootstraps import BootstrapsJoker
 from games.balatro.jokers.canio import CanioJoker
 from games.balatro.jokers.constellation import ConstellationJoker
@@ -397,7 +398,7 @@ def test_final_hydrated_projection_jokers_are_admitted_together():
     assert transition.state_after_scoring.jokers[2].rounds_remaining == 6
 
 
-def test_unsupported_joker_is_reported_and_not_silently_applied():
+def test_jolly_stateless_pair_bonus_is_projected_exactly():
     cards = [
         BalatroCard("10", "Spades"),
         BalatroCard("10", "Diamonds"),
@@ -411,9 +412,29 @@ def test_unsupported_joker_is_reported_and_not_silently_applied():
         cards,
     )
 
+    assert transition.distribution.minimum == 300
+    assert transition.distribution.maximum == 300
+    assert transition.joker_projection_complete is True
+    assert transition.unsupported_jokers == ()
+
+
+def test_unsupported_joker_is_reported_and_not_silently_applied():
+    cards = [
+        BalatroCard("10", "Hearts"),
+        BalatroCard("10", "Diamonds"),
+    ]
+    state = _state(cards)
+    state.jokers = [BloodstoneJoker()]
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.PAIR,
+        state,
+        cards,
+    )
+
     assert transition.distribution.minimum == 60
     assert transition.joker_projection_complete is False
-    assert transition.unsupported_jokers == ("Jolly",)
+    assert transition.unsupported_jokers == ("Bloodstone",)
 
 
 def test_ice_cream_public_save_state_is_narrowly_whitelisted_and_restored():

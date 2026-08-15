@@ -60,6 +60,7 @@ class LiveJokerScoreProjector:
             "HologramJoker",
             "IceCreamJoker",
             "InvisibleJoker",
+            "JollyJoker",
             "LoyaltyCardJoker",
             "LuckyCatJoker",
             "MadnessJoker",
