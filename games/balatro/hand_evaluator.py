@@ -70,6 +70,53 @@ class HandEvaluator:
 
         return PokerHand.HIGH_CARD
 
+    def contains(
+        self,
+        cards: list[BalatroCard],
+        hand: PokerHand,
+        rules: dict | None = None,
+    ) -> bool:
+        """Return whether played cards contain one poker-hand component.
+
+        Balatro distinguishes a hand being classified as one type from containing
+        another type. This predicate is shared by Joker mechanics so passive hand
+        rules such as Four Fingers, Shortcut and Smeared Joker are interpreted in
+        exactly the same way as hand recognition and scoring-card selection.
+        """
+        rules = dict(rules or {})
+        regular = self._regular_cards(cards)
+        if not regular:
+            return False
+
+        counts = Counter(str(card.rank) for card in regular)
+        values = sorted(counts.values(), reverse=True)
+
+        if hand == PokerHand.HIGH_CARD:
+            return True
+        if hand == PokerHand.PAIR:
+            return any(count >= 2 for count in values)
+        if hand == PokerHand.TWO_PAIR:
+            return sum(count >= 2 for count in values) >= 2
+        if hand == PokerHand.THREE_OF_A_KIND:
+            return any(count >= 3 for count in values)
+        if hand == PokerHand.FOUR_OF_A_KIND:
+            return any(count >= 4 for count in values)
+        if hand == PokerHand.FULL_HOUSE:
+            return (
+                any(count >= 3 for count in values)
+                and sum(count >= 2 for count in values) >= 2
+            )
+        if hand == PokerHand.STRAIGHT:
+            return bool(self._straight_cards(regular, rules))
+        if hand == PokerHand.FLUSH:
+            return bool(self._flush_cards(regular, rules))
+        if hand == PokerHand.STRAIGHT_FLUSH:
+            return bool(
+                self._straight_cards(regular, rules)
+                and self._flush_cards(regular, rules)
+            )
+        return self.evaluate(regular, rules=rules) == hand
+
     def scoring_cards(
         self,
         hand: PokerHand,

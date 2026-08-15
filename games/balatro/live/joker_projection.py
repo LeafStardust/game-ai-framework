@@ -43,7 +43,9 @@ class LiveJokerScoreProjector:
             "CleverJoker",
             "ConstellationJoker",
             "CraftyJoker",
+            "CrazyJoker",
             "DaggerJoker",
+            "DeviousJoker",
             "DrollJoker",
             "DuskJoker",
             "EggJoker",
@@ -68,6 +70,7 @@ class LiveJokerScoreProjector:
             "LoyaltyCardJoker",
             "LuckyCatJoker",
             "LustyJoker",
+            "MadJoker",
             "MadnessJoker",
             "MimeJoker",
             "MysticSummitJoker",
@@ -103,6 +106,7 @@ class LiveJokerScoreProjector:
             "WilyJoker",
             "WrathfulJoker",
             "YorickJoker",
+            "ZanyJoker",
         }
     )
 
