@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from ctypes import wintypes
 from typing import Iterator
 
-from .window import BalatroWindowLocator
+from .process_locator import BalatroWindowLocator
 
 
 class BalatroProcessMemoryError(RuntimeError):
@@ -60,9 +60,6 @@ class WindowsProcessMemoryReader:
         self.handle = int(handle)
         self._kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 
-        # Configure ctypes signatures once. A live snapshot can perform thousands
-        # of small reads while decoding Lua tables; repeatedly assigning argtypes
-        # and restype on every call is pure Python overhead on the hottest path.
         self._read_process_memory = self._kernel32.ReadProcessMemory
         self._read_process_memory.argtypes = [
             wintypes.HANDLE,
@@ -229,9 +226,6 @@ class WindowsProcessMemoryReader:
                 try:
                     data = self.read(address, size)
                 except BalatroProcessMemoryError:
-                    # VirtualQueryEx can race a live allocator. A failed chunk is
-                    # skipped rather than weakening read-only guarantees or aborting
-                    # an otherwise useful scan.
                     offset += step
                     continue
                 if data:
@@ -245,12 +239,6 @@ class WindowsProcessMemoryReader:
         max_matches: int = 256,
         chunk_size: int = 1024 * 1024,
     ) -> tuple[int, ...]:
-        """Find byte-pattern addresses across readable committed memory.
-
-        Scanning is bounded by ``max_matches`` and handles patterns crossing chunk
-        boundaries by overlapping each read by ``len(needle)-1`` bytes.
-        """
-
         if not needle:
             raise ValueError("needle cannot be empty")
         if max_matches < 1:
