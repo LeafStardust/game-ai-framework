@@ -196,17 +196,19 @@ class BuildAwareShopArbiter:
         )
 
         visible_normalized_best = max(
-            0.0,
-            *(
-                utility.gain
-                for utility in (
-                    deterministic_utility,
-                    joker_utility,
-                    consumable_utility,
-                    booster_utility,
-                )
-                if utility is not None
-            ),
+            [
+                0.0,
+                *(
+                    utility.gain
+                    for utility in (
+                        deterministic_utility,
+                        joker_utility,
+                        consumable_utility,
+                        booster_utility,
+                    )
+                    if utility is not None
+                ),
+            ]
         )
 
         # D2 and D4 are authoritative for their item families. Do not let the
