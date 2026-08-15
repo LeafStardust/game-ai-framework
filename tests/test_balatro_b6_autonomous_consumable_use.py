@@ -71,25 +71,61 @@ def _runner(state, timing_policy, *, hand_recommender):
     )
 
 
-def test_autonomous_hand_arbiter_uses_consumable_before_d1():
+def test_autonomous_hand_arbiter_deferred_clear_consumable_falls_through_to_d1():
     card = SimpleNamespace(live_id=101)
     consumable = SimpleNamespace(name="Strength", live_id=501)
     state = SimpleNamespace(hand=[card], consumables=[consumable])
-    action = BalatroAction(USE_CONSUMABLE, cards=[card], target=consumable)
+    d1_action = BalatroAction(USE_CONSUMABLE, cards=[card], target=consumable)
+    timing = _TimingPolicy(
+        [
+            _Recommendation(
+                should_use=False,
+                consumable=consumable,
+                target_indices=(0,),
+                rationale=(
+                    "HOLD: guaranteed blind-clear consumable arbitration is delegated to D1",
+                ),
+            )
+        ]
+    )
+    d1_calls = []
+
+    def d1(state_value, snapshot_value):
+        d1_calls.append((state_value, snapshot_value))
+        return d1_action, ("d1-consumable-clear",)
+
+    decision = _runner(
+        state,
+        timing,
+        hand_recommender=d1,
+    ).decide()
+
+    assert timing.calls == 1
+    assert len(d1_calls) == 1
+    assert decision.action is d1_action
+    assert decision.source == "D1 hand-action policy"
+    assert decision.notes == ("d1-consumable-clear",)
+
+
+def test_autonomous_hand_arbiter_nonclear_b6_use_still_preempts_d1():
+    card = SimpleNamespace(live_id=101)
+    consumable = SimpleNamespace(name="The Hermit", live_id=501)
+    state = SimpleNamespace(hand=[card], consumables=[consumable])
+    action = BalatroAction(USE_CONSUMABLE, target=consumable)
     timing = _TimingPolicy(
         [
             _Recommendation(
                 should_use=True,
                 action=action,
                 consumable=consumable,
-                target_indices=(0,),
-                rationale=("USE: concrete timing advantage",),
+                target_indices=(),
+                rationale=("USE: deterministic economy timing",),
             )
         ]
     )
 
     def d1_should_not_run(state, snapshot):
-        raise AssertionError("D1 must not run after B6 chooses USE_CONSUMABLE")
+        raise AssertionError("D1 must not run for an ordinary non-clear B6 use")
 
     decision = _runner(
         state,
@@ -102,8 +138,8 @@ def test_autonomous_hand_arbiter_uses_consumable_before_d1():
     assert decision.source == "B6 consumable timing policy"
     assert decision.notes[:3] == (
         "hand_decision=USE_CONSUMABLE",
-        "consumable=Strength",
-        "target_indices=(0,)",
+        "consumable=The Hermit",
+        "target_indices=()",
     )
 
 
