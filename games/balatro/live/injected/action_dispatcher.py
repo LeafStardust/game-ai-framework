@@ -185,6 +185,10 @@ def _is_pack_phase(phase: str) -> bool:
     return str(phase).endswith("_PACK")
 
 
+def _is_pack_terminal_phase(phase: str) -> bool:
+    return str(phase) in {"SHOP", "BLIND_SELECT"}
+
+
 def _pack_selection_complete(
     before: LiveBalatroSnapshot,
     after: LiveBalatroSnapshot,
@@ -198,18 +202,13 @@ def _pack_selection_complete(
         return False
 
     if before_terms.choices_remaining <= 1:
-        selection_complete = after.phase == "SHOP"
-        if not selection_complete and after.phase == "BLIND_SELECT":
-            selection_complete = (
-                (
-                    before.phase == "STANDARD_PACK"
-                    and standard_pack_card_added(before, after)
-                )
-                or (
-                    target_postcondition is not None
-                    and target_postcondition.matches(after)
-                )
-            )
+        selection_complete = _is_pack_terminal_phase(after.phase)
+        if (
+            selection_complete
+            and after.phase == "BLIND_SELECT"
+            and before.phase == "STANDARD_PACK"
+        ):
+            selection_complete = standard_pack_card_added(before, after)
     elif after.phase == "SHOP":
         selection_complete = True
     elif not _is_pack_phase(after.phase) or after_terms is None:
@@ -737,7 +736,7 @@ class LiveMemoryInjectedActionDispatcher:
                 before,
                 lambda value: (
                     value.sequence > before.sequence
-                    and value.phase == "SHOP"
+                    and _is_pack_terminal_phase(value.phase)
                     and value.state_complete
                 ),
                 "pack skip",
