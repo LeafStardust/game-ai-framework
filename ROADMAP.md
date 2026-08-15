@@ -6,7 +6,7 @@
 >
 > **Release scope is intentionally progressive.** `v0.9.0` is the autonomous integration/coverage milestone: the production agent must be able to observe, decide, execute, verify and continue through the reachable run flow without manual gameplay intervention. `v1.0.0` is the first competence milestone: the same permanent agent must actually win one unseeded Red Deck / White Stake run with no manual gameplay help after activation.
 >
-> Production Balatro integration should require no third-party bot/mod runtime if technically possible. Production observation is repository-owned, zero-dependency, read-only Windows process memory; production execution is the repository-owned first-party in-process bridge. `save.jkr`, visual observation and OS input are fallback/debug tooling only.
+> Production Balatro integration should require no third-party bot/mod runtime if technically possible. Production observation is repository-owned, zero-dependency, read-only Windows process memory; production execution is the repository-owned first-party in-process bridge. `save.jkr` remains fallback/debug/recovery input. The retired screen-capture, card-location and OS-input control stack is not part of the current production architecture.
 >
 > Agent-facing observation must exclude hidden future information: no RNG-state/seed exploitation and no ordered future draw pile. Current live objects and public deck composition are allowed.
 >
@@ -111,7 +111,7 @@
 - [x] Read current card/Joker/consumable/shop identities directly from live objects
 - [x] Complete mutable Joker live-state reconstruction contract (`33 HYDRATED / 119 STATELESS / 0 GAP / 0 ERROR`)
 - [x] Unit coverage for declared Joker state extraction and stateful factory hydration
-- [x] Read live UI object geometry for diagnostics/fallback tooling where useful
+- [x] Read live UI object geometry from process memory where it remains useful as public-state metadata
 - [x] Detect deck and stake directly from the active run
 - [x] Translate direct-memory observation into `LiveBalatroSnapshot`
 - [x] Make direct live-memory observer the production default
@@ -122,7 +122,7 @@
 - [x] Semantic stability checks and bounded stale-state replanning
 - [x] Native readiness gate for `BLIND_SELECT` before blind-control actions are exposed
 - [x] Native readiness gate for `SHOP` before shop actions are exposed
-- [x] Post-pack visual settlement guard for delayed Joker transfer/animation
+- [x] Post-pack settlement guard for delayed Joker transfer/animation
 - [x] Global production quiescence barrier: full observer sequence must remain unchanged for 1.0 continuous second before a newly changed checkpoint can drive another command
 - [x] Cache already-certified quiescent sequences so repeated reads do not pay the 1-second barrier again
 
@@ -369,9 +369,7 @@
 - [x] D10 first-party target execution for remaining required flows
 - [ ] D10 end-to-end targeted Tarot/Spectral/Standard-pack validation
 
-> **D9/D10 live-validation evidence procedure (authoritative):** run `py -m games.balatro.live.external.live_pack_validation_coverage` before searching for or creating any other D9/D10 coverage checker. The canonical implementation is `games/balatro/live/external/live_pack_validation_coverage.py`; it scans `logs/balatro/runs/*.jsonl` by default and counts only successful production transitions backed by complete before/after snapshots with `live_state_source == "process_memory"` and a later authoritative checkpoint. D10 additionally requires the logged semantic selection/target evidence enforced by that analyzer. Exit status `0` means all required D9 families and D10 flows are covered; exit status `1` means authentic evidence is still missing.
->
-> **Do not infer live validation from tests or fixtures.** `tests/test_balatro_live_pack_validation_coverage.py` is regression coverage for the analyzer itself, including rejection of non-process-memory evidence; synthetic/unit rows never satisfy ROADMAP live-validation work. Update D9/D10 live-validation checkboxes only from authentic natural production run logs. Future iterations should use this module and its report first; do not spend time searching for or building a replacement unless the canonical module is intentionally removed or superseded.
+> **D9/D10 live-validation evidence rule:** only authentic production transitions from complete before/after process-memory snapshots and later authoritative checkpoints may satisfy these live-validation boxes. Synthetic/unit fixtures remain regression evidence only. The former `games.balatro.live.external.live_pack_validation_coverage` analyzer was retired with the external-control cleanup and is not a production dependency; any replacement validation utility must live with the current runtime/diagnostic architecture rather than recreating the retired `live.external` namespace.
 
 - [x] D11 reroll execution
 - [x] D11 B5 build-gap/opportunity model
@@ -459,15 +457,13 @@
 - [x] Complete current reliability soak protocol: 3 consecutive clean complete attempts, or 10 attempts / 2 hours, without crash/UI corruption/premature injection
 - [ ] If a real win occurs during 0.9 validation, live-confirm automatic OFF and successful terminal logging; otherwise carry this live check into `v1.0.0`
 
-### Legacy/fallback observation and input
+### Legacy/fallback observation
 
-The existing `save.jkr`, visual observer and OS-input work remains useful for diagnostics and recovery, but it is no longer the production source of truth or production action backend.
+`save.jkr` remains useful for fallback/debug/recovery observation. The old screen-capture, card-location, HUD-recognition and OS-input control implementation was removed from the current live architecture and must not be reintroduced as a silent production fallback.
 
 - [x] Vanilla `save.jkr` discovery/parser
 - [x] Save-backed phase/hand/Joker/consumable/shop extraction
-- [x] Screen capture and visual phase/card-location infrastructure
-- [x] Normal OS mouse-input diagnostics
-- [x] Keep these paths isolated as fallback/debug tools
+- [x] Remove the retired screen-capture/card-location/mouse-control stack from the current live tree
 - [x] Production autonomous path has no silent mouse fallback
 - [ ] Remove live-control dependence on save-persistence timing from any remaining legacy utilities
 - [ ] Remove stale-save reconciliation from the normal autonomous loop
