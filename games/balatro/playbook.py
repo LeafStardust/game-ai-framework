@@ -4,6 +4,24 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
+DECISION_LAYER_THRESHOLD_KEYS = {
+    "D1": "hand_action",
+    "D2": "joker_acquisition",
+    "D3": "voucher_acquisition",
+    "D4": "consumable_acquisition",
+    "D5": "consumable_use",
+    "D6": "consumable_target",
+    "D7": "planet",
+    "D8": "booster_acquisition",
+    "D9": "pack_choice",
+    "D10": "pack_target",
+    "D11": "reroll",
+    "D12": "shop_arbiter",
+    "D13": "blind_skip",
+    "D14": "resource_valuation",
+}
+
+
 class BalatroPlaybookNotFound(LookupError):
     pass
 
@@ -26,6 +44,28 @@ class BalatroPlaybook:
     @property
     def key(self) -> tuple[str, str]:
         return self.deck.upper(), self.stake.upper()
+
+    def thresholds_for(self, layer: str) -> dict[str, Any]:
+        """Return an isolated threshold block for one stable decision-layer ID."""
+        layer_id = str(layer).upper()
+        try:
+            threshold_key = DECISION_LAYER_THRESHOLD_KEYS[layer_id]
+        except KeyError as error:
+            allowed = ", ".join(DECISION_LAYER_THRESHOLD_KEYS)
+            raise ValueError(
+                f"unknown Balatro decision layer {layer!r}; expected one of {allowed}"
+            ) from error
+
+        configured = self.strategy.get("decision_thresholds", {})
+        if not isinstance(configured, dict):
+            raise TypeError("playbook decision_thresholds must be a mapping")
+
+        block = configured.get(threshold_key, {})
+        if not isinstance(block, dict):
+            raise TypeError(
+                f"playbook threshold block {threshold_key!r} for {layer_id} must be a mapping"
+            )
+        return dict(block)
 
 
 class BalatroPlaybookRegistry:
