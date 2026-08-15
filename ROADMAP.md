@@ -201,7 +201,7 @@
 
 **Remaining mechanics coverage**
 
-- [ ] Extend score projection to relevant remaining stateless Jokers/effects separately from hydration
+- [x] Extend score projection to relevant remaining stateless Jokers/effects separately from hydration
 - [ ] Generalize boss-blind integration
 - [ ] Correct boss-blind **debuff/nullification scoring**: cards marked disabled/debuffed by the active boss must contribute zero chips/effects where Balatro rules suppress them, while still being allowed to participate structurally in a poker hand when legal
 - [ ] Add regression coverage proving D1 does not value boss-disabled cards as ordinary scoring cards
@@ -642,4 +642,4 @@ The existing `save.jkr`, visual observer and OS-input work remains useful for di
 
 `v0.9.0` is complete when the permanent agent, after one activation and with no manual gameplay input, can autonomously cover the required real-run phases/actions through the production bridge, wait for authoritative native/state quiescence after each action, re-observe/replan, continue through complete attempts, and terminate/restart safely without UI corruption or premature injection. A win is not required for the `v0.9.0` autonomy milestone.
 
-From `v1.0.0` onward, a deck/stake milestone is complete only when the permanent agent, using the matching threshold cartridge and no manual gameplay input after activation, **successfully completes** one full unseeded run while producing the required authoritative experience log. High win rate and optimal play remain future optimization goals, not milestone gates.
+From `v1.0.0` onward, a deck/stake milestone is complete only when the permanent agent, using the matching threshold cartridge and no manual gameplay input after activation, **successfully completes** one full unseeded run while producing the required authoritative experience log.
