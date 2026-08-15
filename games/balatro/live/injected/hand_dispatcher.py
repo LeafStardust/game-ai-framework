@@ -255,6 +255,7 @@ class LiveMemoryInjectedHandDispatcher:
                     state,
                     consumable_index=consumable_index,
                     target_indices=indices,
+                    snapshot=snapshot,
                 )
             except ValueError as error:
                 raise UnsupportedInjectedHandAction(str(error)) from error

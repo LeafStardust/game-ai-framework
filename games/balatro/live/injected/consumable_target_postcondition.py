@@ -13,6 +13,12 @@ CardSignature = tuple[str, str, str | None, str | None, str | None]
 ExpectedTarget = tuple[int | str, CardSignature | None]
 ExpectedEditionTarget = tuple[int | str, CardSignature, tuple[str, ...]]
 ExpectedHandLevel = tuple[str, int]
+JokerRecordSignature = tuple[object | None, str, str, str]
+JokerSignature = tuple[JokerRecordSignature, ...]
+
+_JOKER_MUTATING_SPECTRALS = frozenset(
+    {"Ankh", "Ectoplasm", "Hex", "The Soul", "Wraith"}
+)
 
 
 @dataclass(frozen=True)
@@ -22,6 +28,7 @@ class ConsumableTargetPostcondition:
     expected_targets: tuple[ExpectedTarget, ...] = ()
     expected_edition_targets: tuple[ExpectedEditionTarget, ...] = ()
     expected_hand_level: ExpectedHandLevel | None = None
+    expected_joker_signature_change_from: JokerSignature | None = None
 
     @property
     def live_ids(self) -> tuple[int | str, ...]:
@@ -68,6 +75,13 @@ class ConsumableTargetPostcondition:
             if _snapshot_hand_level(snapshot, hand_type) != expected_level:
                 return False
 
+        if self.expected_joker_signature_change_from is not None:
+            if (
+                _snapshot_joker_signature(snapshot)
+                == self.expected_joker_signature_change_from
+            ):
+                return False
+
         return True
 
 
@@ -76,6 +90,7 @@ def build_consumable_target_postcondition(
     *,
     consumable_index: int,
     target_indices: tuple[int, ...],
+    snapshot: LiveBalatroSnapshot | None = None,
 ) -> ConsumableTargetPostcondition | None:
     """Simulate a modeled held selection and derive its live postcondition."""
 
@@ -86,6 +101,7 @@ def build_consumable_target_postcondition(
         state,
         consumable=consumables[consumable_index],
         target_indices=target_indices,
+        snapshot=snapshot,
     )
 
 
@@ -94,6 +110,7 @@ def build_consumable_target_postcondition_for_consumable(
     *,
     consumable,
     target_indices: tuple[int, ...],
+    snapshot: LiveBalatroSnapshot | None = None,
 ) -> ConsumableTargetPostcondition | None:
     """Derive the same semantic postcondition for held or pack consumables."""
 
@@ -103,6 +120,19 @@ def build_consumable_target_postcondition_for_consumable(
         if target_indices:
             raise ValueError("modeled Planet verification does not accept hand targets")
         return _build_planet_hand_level_postcondition(state, consumable)
+
+    if (
+        category == "SPECTRAL"
+        and name in _JOKER_MUTATING_SPECTRALS
+        and snapshot is not None
+    ):
+        if target_indices:
+            raise ValueError(
+                f"modeled {name} Joker verification does not accept hand targets"
+            )
+        return ConsumableTargetPostcondition(
+            expected_joker_signature_change_from=_snapshot_joker_signature(snapshot),
+        )
 
     if not target_indices:
         return None
@@ -267,6 +297,17 @@ def _snapshot_hand_level(
             continue
         return int(level)
     return None
+
+
+def _snapshot_joker_signature(snapshot: LiveBalatroSnapshot) -> JokerSignature:
+    signatures: list[JokerRecordSignature] = []
+    for joker in _area_cards(snapshot, "jokers"):
+        live_id = joker.get("live_id", joker.get("id"))
+        center = str(joker.get("center") or joker.get("key") or "")
+        label = str(joker.get("label") or joker.get("ability_name") or "")
+        edition = repr(joker.get("edition"))
+        signatures.append((live_id, center, label, edition))
+    return tuple(sorted(signatures, key=repr))
 
 
 def _model_card_signature(card) -> CardSignature:
