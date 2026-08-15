@@ -54,6 +54,31 @@ class BalatroScorer:
         "A": 11,
     }
 
+    ON_SCORED_JOKER_CLASS_NAMES = frozenset(
+        {
+            "AncientJoker",
+            "EvenStevenJoker",
+            "FibonacciJoker",
+            "GluttonousJoker",
+            "GreedyJoker",
+            "LustyJoker",
+            "OddToddJoker",
+            "PhotographJoker",
+            "ScaryFaceJoker",
+            "ScholarJoker",
+            "SmileyFaceJoker",
+            "TribouletJoker",
+            "WeeJoker",
+            "WrathfulJoker",
+        }
+    )
+
+    ALSO_INDEPENDENT_JOKER_CLASS_NAMES = frozenset(
+        {
+            "WeeJoker",
+        }
+    )
+
     ON_HELD_JOKER_CLASS_NAMES = frozenset(
         {
             "BaronJoker",
@@ -96,13 +121,7 @@ class BalatroScorer:
 
     @staticmethod
     def _fold_x_mult(score: HandScore) -> None:
-        """Commit phase-local XMult before later +Mult can resolve.
-
-        Balatro resolves played cards, held cards and independent Jokers in distinct
-        phases. The legacy score representation stores XMult separately, so folding
-        at a phase boundary preserves the ordering between an earlier XMult and a
-        later additive Mult without changing the public HandScore contract.
-        """
+        """Commit XMult before a later additive Mult activation can resolve."""
         factor = float(score.x_mult)
         if factor != 1.0:
             score.mult *= factor
@@ -147,9 +166,17 @@ class BalatroScorer:
 
         elif card.enhancement == "Glass":
             score.x_mult *= 2
+            self._fold_x_mult(score)
 
         elif card.enhancement == "Stone":
             score.chips += 50
+
+        elif (
+            resolve_random_effects
+            and card.enhancement == "Lucky"
+            and random.random() < 0.2
+        ):
+            score.mult += 20
 
         if card.edition == "Foil":
             score.chips += 50
@@ -159,13 +186,7 @@ class BalatroScorer:
 
         elif card.edition == "Polychrome":
             score.x_mult *= 1.5
-
-        if (
-            resolve_random_effects
-            and card.enhancement == "Lucky"
-            and random.random() < 0.2
-        ):
-            score.mult += 20
+            self._fold_x_mult(score)
 
     @staticmethod
     def _apply_joker_edition(
@@ -181,6 +202,79 @@ class BalatroScorer:
             score.mult += 10
         elif edition == "POLYCHROME":
             score.x_mult *= 1.5
+
+    def _apply_scoring_card_phase(
+        self,
+        score: HandScore,
+        hand: PokerHand,
+        state,
+        played_cards,
+        scoring_cards,
+        *,
+        extra_retriggers: int = 0,
+        resolve_random_effects: bool = True,
+        context_data: dict | None = None,
+    ) -> None:
+        """Resolve scoring cards left-to-right, including on-scored Jokers."""
+        active_scoring_cards = [
+            card
+            for card in scoring_cards
+            if not self.is_card_debuffed(card)
+        ]
+        first_scoring_face_card = next(
+            (
+                card
+                for card in active_scoring_cards
+                if str(getattr(card, "rank", "")) in {"J", "Q", "K"}
+            ),
+            None,
+        )
+        on_scored_jokers = []
+        if state is not None:
+            on_scored_jokers = [
+                joker
+                for joker in getattr(state, "jokers", [])
+                if type(joker).__name__ in self.ON_SCORED_JOKER_CLASS_NAMES
+            ]
+
+        for card in active_scoring_cards:
+            trigger_count = self._played_card_trigger_count(
+                card,
+                extra_retriggers,
+            )
+            for _ in range(trigger_count):
+                score.chips += self.card_chip_value(card)
+                self._apply_single_card_modifier(
+                    score,
+                    card,
+                    resolve_random_effects=resolve_random_effects,
+                )
+
+                if not on_scored_jokers:
+                    continue
+
+                card_data = dict(context_data or {})
+                card_data.update(
+                    {
+                        "scoring_cards": [card],
+                        "current_scoring_card": card,
+                        "first_scoring_face_card": first_scoring_face_card,
+                    }
+                )
+                context = JokerContext(
+                    state=state,
+                    score=score,
+                    poker_hand=hand,
+                    cards=list(played_cards or []),
+                    held_cards=[],
+                    trigger="CARD_SCORED",
+                    data=card_data,
+                )
+                for joker in on_scored_jokers:
+                    context = joker.apply(context)
+                    # One on-scored Joker can apply XMult before a later Joker/card
+                    # adds Mult, so commit XMult after every Joker activation.
+                    self._fold_x_mult(context.score)
 
     def _apply_held_phase(
         self,
@@ -304,7 +398,6 @@ class BalatroScorer:
 
         played_cards = cards or []
         scoring_cards = self.scoring_cards(hand, played_cards)
-        modifier_cards = played_cards
         context_data = dict(joker_data or {})
         played_card_retriggers = max(
             0,
@@ -316,25 +409,24 @@ class BalatroScorer:
         )
 
         if include_card_chips:
-            modifier_cards = scoring_cards
-            score.chips += sum(
-                self.card_chip_value(card)
-                * self._played_card_trigger_count(
-                    card,
-                    played_card_retriggers,
-                )
-                for card in modifier_cards
-                if not self.is_card_debuffed(card)
+            self._apply_scoring_card_phase(
+                score,
+                hand,
+                state,
+                played_cards,
+                scoring_cards,
+                extra_retriggers=played_card_retriggers,
+                resolve_random_effects=resolve_random_effects,
+                context_data=context_data,
             )
-
-        self._apply_card_modifiers(
-            score,
-            modifier_cards,
-            resolve_random_effects=resolve_random_effects,
-            extra_retriggers=(
-                played_card_retriggers if include_card_chips else 0
-            ),
-        )
+        else:
+            # Preserve the legacy direct-scorer contract for semantic probes that do
+            # not ask for exact live scoring-card selection.
+            self._apply_card_modifiers(
+                score,
+                played_cards,
+                resolve_random_effects=resolve_random_effects,
+            )
 
         if state is not None:
 
@@ -360,14 +452,13 @@ class BalatroScorer:
                 extra_retriggers=held_card_retriggers,
             )
 
-            context_data.setdefault(
-                "scoring_cards",
-                [
-                    card
-                    for card in scoring_cards
-                    if not self.is_card_debuffed(card)
-                ],
-            )
+            # Independent Joker effects need the unique scoring-card set, not the
+            # retrigger-expanded sequence used by the old aggregate implementation.
+            context_data["scoring_cards"] = [
+                card
+                for card in scoring_cards
+                if not self.is_card_debuffed(card)
+            ]
             context_data.setdefault(
                 "most_played_hands",
                 self.most_played_hands(state),
@@ -388,7 +479,13 @@ class BalatroScorer:
             )
 
             for joker in state.jokers:
-                context = joker.apply(context)
+                class_name = type(joker).__name__
+                if (
+                    not include_card_chips
+                    or class_name not in self.ON_SCORED_JOKER_CLASS_NAMES
+                    or class_name in self.ALSO_INDEPENDENT_JOKER_CLASS_NAMES
+                ):
+                    context = joker.apply(context)
                 self._apply_joker_edition(context.score, joker)
 
             score = context.score
