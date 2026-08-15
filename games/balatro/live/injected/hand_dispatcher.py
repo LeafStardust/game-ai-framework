@@ -133,27 +133,55 @@ def _action_indices(
     state,
     action: BalatroAction,
 ) -> tuple[int, ...]:
-    selected_object_ids = {id(card) for card in action.cards}
-    selected_live_ids = {
-        getattr(card, "live_id", None)
-        for card in action.cards
-        if getattr(card, "live_id", None) is not None
-    }
-    indices = tuple(
-        index
-        for index, card in enumerate(state.hand)
-        if id(card) in selected_object_ids
-        or (
-            getattr(card, "live_id", None) is not None
-            and getattr(card, "live_id", None) in selected_live_ids
-        )
-    )
-    if len(indices) != len(action.cards):
-        raise UnsupportedInjectedHandAction(
-            "hand action cards no longer map one-to-one to the "
-            "authoritative live hand"
-        )
-    return indices
+    """Map authored action cards one-to-one onto the authoritative live hand.
+
+    Preserve ``action.cards`` order rather than rebuilding a set in hand order.
+    Most hand actions are order-insensitive, but directional consumables such as
+    Death attach semantics to the ordered target pair. Identity is preferred when
+    the action still references the authoritative object; ``live_id`` is the
+    fallback for copied/planned card objects. Ambiguous mappings fail closed.
+    """
+    hand = list(getattr(state, "hand", ()))
+    used_indices: set[int] = set()
+    indices: list[int] = []
+
+    for selected in action.cards:
+        identity_matches = [
+            index
+            for index, card in enumerate(hand)
+            if index not in used_indices and card is selected
+        ]
+        if len(identity_matches) == 1:
+            index = identity_matches[0]
+        elif len(identity_matches) > 1:
+            raise UnsupportedInjectedHandAction(
+                "hand action card maps ambiguously by object identity"
+            )
+        else:
+            selected_live_id = getattr(selected, "live_id", None)
+            if selected_live_id is None:
+                raise UnsupportedInjectedHandAction(
+                    "hand action card no longer maps to the authoritative live hand"
+                )
+            live_id_matches = [
+                index
+                for index, card in enumerate(hand)
+                if (
+                    index not in used_indices
+                    and getattr(card, "live_id", None) == selected_live_id
+                )
+            ]
+            if len(live_id_matches) != 1:
+                raise UnsupportedInjectedHandAction(
+                    "hand action card no longer maps one-to-one to the "
+                    "authoritative live hand"
+                )
+            index = live_id_matches[0]
+
+        used_indices.add(index)
+        indices.append(index)
+
+    return tuple(indices)
 
 
 def _consumable_index(state, action: BalatroAction) -> int:

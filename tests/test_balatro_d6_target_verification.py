@@ -11,7 +11,7 @@ from games.balatro.live.injected.hand_dispatcher import (
 )
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.state import BalatroState
-from games.balatro.tarots import HangedMan, Strength
+from games.balatro.tarots import Death, HangedMan, Strength, Sun
 
 
 class _RecordingBridge(FirstPartyBalatroBridge):
@@ -146,6 +146,100 @@ def test_hanged_man_postcondition_verifies_both_selected_live_ids_are_gone():
     assert postcondition.matches(
         _snapshot(32, [], [_raw_card(103, "A", "S")])
     )
+
+
+def test_three_card_tarot_waits_until_every_target_has_settled():
+    first = BalatroCard("2", "Spades", live_id=101)
+    second = BalatroCard("3", "Diamonds", live_id=102)
+    third = BalatroCard("4", "Clubs", live_id=103)
+    sun = Sun()
+    sun.live_id = 501
+    state = _state([first, second, third], sun)
+    before = _snapshot(
+        40,
+        [501],
+        [
+            _raw_card(101, "2", "S"),
+            _raw_card(102, "3", "D"),
+            _raw_card(103, "4", "C"),
+        ],
+    )
+    partially_settled = _snapshot(
+        41,
+        [],
+        [
+            _raw_card(101, "2", "H"),
+            _raw_card(102, "3", "H"),
+            _raw_card(103, "4", "C"),
+        ],
+    )
+    settled = _snapshot(
+        42,
+        [],
+        [
+            _raw_card(101, "2", "H"),
+            _raw_card(102, "3", "H"),
+            _raw_card(103, "4", "H"),
+        ],
+    )
+    observer = _Observer([partially_settled, settled])
+    bridge = _RecordingBridge()
+    action = BalatroAction(
+        USE_CONSUMABLE,
+        cards=[first, second, third],
+        target=sun,
+    )
+
+    result = LiveMemoryInjectedHandDispatcher(
+        observer,
+        bridge=bridge,
+        timeout=0.1,
+        poll_interval=0,
+    ).dispatch(action, state=state, snapshot=before)
+
+    assert bridge.calls == [("USE_CONSUMABLE", (0, 0, 1, 2))]
+    assert observer.calls == 2
+    assert result.after is settled
+    assert result.details["verified_target_live_ids"] == (101, 102, 103)
+
+
+def test_directional_consumable_preserves_authored_target_order():
+    left = BalatroCard("2", "Hearts", live_id=101)
+    right = BalatroCard("K", "Spades", live_id=102)
+    death = Death()
+    death.live_id = 501
+    state = _state([left, right], death)
+    before = _snapshot(
+        50,
+        [501],
+        [_raw_card(101, "2", "H"), _raw_card(102, "K", "S")],
+    )
+    unresolved = _snapshot(
+        51,
+        [],
+        [_raw_card(101, "2", "H"), _raw_card(102, "K", "S")],
+    )
+    settled = _snapshot(
+        52,
+        [],
+        [_raw_card(101, "2", "H"), _raw_card(102, "2", "H")],
+    )
+    observer = _Observer([unresolved, settled])
+    bridge = _RecordingBridge()
+    action = BalatroAction(USE_CONSUMABLE, cards=[right, left], target=death)
+
+    result = LiveMemoryInjectedHandDispatcher(
+        observer,
+        bridge=bridge,
+        timeout=0.1,
+        poll_interval=0,
+    ).dispatch(action, state=state, snapshot=before)
+
+    assert bridge.calls == [("USE_CONSUMABLE", (0, 1, 0))]
+    assert observer.calls == 2
+    assert result.after is settled
+    assert result.details["target_indices"] == (1, 0)
+    assert result.details["verified_target_live_ids"] == (102, 101)
 
 
 def test_unknown_targeted_consumable_keeps_legacy_consumption_postcondition():
