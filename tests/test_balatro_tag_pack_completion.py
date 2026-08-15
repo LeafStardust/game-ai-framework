@@ -16,10 +16,7 @@ def _snapshot(sequence: int, phase: str, *, card_count: int) -> LiveBalatroSnaps
 
 def _final_standard_terms() -> LivePackSelectionTerms:
     return LivePackSelectionTerms(
-        phase="STANDARD_PACK",
         choices_remaining=1,
-        choice_limit=1,
-        pack_cost=0.0,
         choice_addresses=(1234,),
     )
 
