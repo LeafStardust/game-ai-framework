@@ -166,7 +166,8 @@
 **Remaining 0.9 coverage**
 
 - [x] Robust held-consumable use for all supported target patterns
-- [ ] Robust pack-effect targeting for Tarot/Spectral/Standard modifier flows
+- [x] Robust pack-effect targeting for Tarot/Spectral/Standard modifier flows
+- [ ] First-party Joker reordering with authoritative Joker-order reconciliation
 - [ ] Emergency hard stop for a hung/unsafe supervisor
 - [ ] Validate an actual normal Steam achievement/unlock from agent gameplay
 
