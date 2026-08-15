@@ -1,11 +1,18 @@
 from __future__ import annotations
 
-from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
-from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
+from games.balatro.actions import (
+    BalatroAction,
+    DISCARD_CARDS,
+    PLAY_CARDS,
+    USE_CONSUMABLE,
+)
+from games.balatro.blinds.blind import BlindType
+from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner, _ActionEstimate
 from games.balatro.live.boss_blind_integration import (
     BossAwareLiveHandDecisionEvaluator,
     boss_play_action_is_legal,
 )
+from games.balatro.live.consumable_escape import SunConsumableEscapePlanner
 
 
 class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
@@ -36,6 +43,13 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
     layer. Root and recursive Play candidates therefore obey the same legality
     rules, while score projection can dispatch to a boss-specific evaluator without
     changing the D1 search algorithm itself.
+
+    The already-validated deterministic The Sun escape path is admitted at the
+    root only when it proves an exact guaranteed clear. The action itself spends no
+    hand/discard; execution therefore uses the consumable and then re-observes so D1
+    can choose the first real Play/Discard from the transformed checkpoint. Boss
+    blinds are excluded here because the standalone Sun escape scorer is deliberately
+    boss-agnostic; boss-aware consumable planning must not claim exactness by accident.
     """
 
     _HAND_STRENGTH = {
@@ -56,11 +70,13 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             kwargs["evaluator"] = BossAwareLiveHandDecisionEvaluator()
         super().__init__(*args, **kwargs)
         self._play_projection_cache: dict[tuple[int, ...], object] = {}
+        self._consumable_estimate_cache: dict[int, _ActionEstimate] = {}
         self.play_projections_evaluated = 0
 
     def reset_search_stats(self) -> None:
         super().reset_search_stats()
         self._play_projection_cache.clear()
+        self._consumable_estimate_cache.clear()
         self.play_projections_evaluated = 0
 
     def _play_projection(self, state, action):
@@ -82,6 +98,16 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             projection.hand_score,
             -len(action.cards),
         )
+
+    def _estimate_action(self, state, action: BalatroAction, depth: int):
+        if action.name != USE_CONSUMABLE:
+            return super()._estimate_action(state, action, depth)
+
+        self._consume_node()
+        estimate = self._consumable_estimate_cache.get(id(action))
+        if estimate is None:
+            raise ValueError("D1 consumable candidate is missing its validated estimate")
+        return estimate
 
     def _candidate_actions(
         self,
@@ -130,12 +156,17 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
                 plays,
                 play_limit,
             )
+            consumable_action = (
+                self._guaranteed_sun_action(state) if root_beam else None
+            )
 
             if (
                 not allow_discards
                 or discard_limit <= 0
                 or int(getattr(state, "discards_remaining", 0)) <= 0
             ):
+                if consumable_action is not None:
+                    return ranked_plays + [consumable_action]
                 return ranked_plays
 
             if root_beam:
@@ -147,9 +178,48 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
                 discards,
                 discard_limit,
             )
-            return ranked_plays + ranked_discards
+            result = ranked_plays + ranked_discards
+            if consumable_action is not None:
+                result.append(consumable_action)
+            return result
         finally:
             self._play_projection_cache = previous_cache
+
+    def _guaranteed_sun_action(self, state) -> BalatroAction | None:
+        blind = getattr(state, "blind", None)
+        if getattr(blind, "type", None) == BlindType.BOSS:
+            return None
+
+        consumables = list(getattr(state, "consumables", ()))
+        if not any(getattr(item, "name", None) == "The Sun" for item in consumables):
+            return None
+
+        try:
+            recommendation = SunConsumableEscapePlanner(
+                horizon=self.horizon,
+                play_width=max(1, self.play_width),
+                discard_width=max(0, self.discard_width),
+                child_play_width=max(1, self.child_play_width),
+                child_discard_width=max(0, self.child_discard_width),
+                max_nodes=(self.max_nodes if self.max_nodes is not None else 10000),
+            ).plan(state)
+        except RuntimeError:
+            return None
+
+        if not recommendation.guaranteed_clear:
+            return None
+
+        action = BalatroAction(
+            USE_CONSUMABLE,
+            cards=[state.hand[index] for index in recommendation.target_indices],
+            target=consumables[recommendation.consumable_index],
+        )
+        self._consumable_estimate_cache[id(action)] = _ActionEstimate(
+            action=action,
+            value=recommendation.plan.value,
+            exact=True,
+        )
+        return action
 
     def _child_play_candidates(self, state, play_limit: int):
         """Construct a bounded strategic child Play set without subset scans."""
