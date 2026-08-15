@@ -43,6 +43,7 @@ from .hand_dispatcher import (
     LiveMemoryInjectedHandDispatcher,
     _action_indices,
 )
+from .tag_pack_completion import standard_pack_card_added
 
 
 class UnsupportedInjectedAction(RuntimeError):
@@ -198,6 +199,17 @@ def _pack_selection_complete(
 
     if before_terms.choices_remaining <= 1:
         selection_complete = after.phase == "SHOP"
+        if not selection_complete and after.phase == "BLIND_SELECT":
+            selection_complete = (
+                (
+                    before.phase == "STANDARD_PACK"
+                    and standard_pack_card_added(before, after)
+                )
+                or (
+                    target_postcondition is not None
+                    and target_postcondition.matches(after)
+                )
+            )
     elif after.phase == "SHOP":
         selection_complete = True
     elif not _is_pack_phase(after.phase) or after_terms is None:
