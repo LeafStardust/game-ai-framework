@@ -22,8 +22,9 @@ def _pareidolia_rules():
 
 def test_pareidolia_declares_face_rule_only_for_hand_rules():
     joker = PareidoliaJoker()
-    ordinary = JokerContext(data={}, trigger="HAND_SCORED")
-    rules = JokerContext(data={}, trigger="HAND_RULES")
+    state = BalatroState()
+    ordinary = JokerContext(state=state, data={}, trigger="HAND_SCORED")
+    rules = JokerContext(state=state, data={}, trigger="HAND_RULES")
 
     joker.apply(ordinary)
     joker.apply(rules)
@@ -37,6 +38,7 @@ def test_scary_and_smiley_treat_number_scoring_card_as_face():
     card = BalatroCard("7", "Clubs")
     rules = _pareidolia_rules()
     context = JokerContext(
+        state=BalatroState(),
         score=HandScore(12, 1),
         cards=[card],
         poker_hand=PokerHand.HIGH_CARD,
@@ -56,6 +58,7 @@ def test_photograph_targets_first_number_scoring_card_under_pareidolia():
     second_pair = BalatroCard("7", "Spades")
     rules = _pareidolia_rules()
     context = JokerContext(
+        state=BalatroState(),
         score=HandScore(24, 2),
         cards=[kicker, first_pair, second_pair],
         poker_hand=PokerHand.PAIR,
@@ -76,6 +79,7 @@ def test_sock_retriggers_number_scoring_card_under_pareidolia():
     card = BalatroCard("7", "Clubs")
     rules = _pareidolia_rules()
     context = JokerContext(
+        state=BalatroState(),
         cards=[card],
         poker_hand=PokerHand.HIGH_CARD,
         trigger="HAND_PLAYED",
