@@ -1,3 +1,4 @@
+from games.balatro.hand_rules import card_is_face
 from games.balatro.joker import Joker, JokerContext
 
 
@@ -8,8 +9,9 @@ class ScaryFaceJoker(Joker):
             return context
 
         scoring_cards = context.data.get("scoring_cards", context.cards)
+        rules = context.data.get("hand_rules", {})
         faces = sum(
-            card.rank in {"J", "Q", "K"}
+            card_is_face(card, rules)
             for card in scoring_cards
         )
 

@@ -1,22 +1,33 @@
+from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.hand_rules import card_is_face
 from games.balatro.joker import Joker, JokerContext
 
 
 class PhotographJoker(Joker):
 
-    FACE_RANKS = {"J", "Q", "K"}
-
     def apply(self, context: JokerContext) -> JokerContext:
         if context.score is None:
             return context
 
+        rules = context.data.get("hand_rules", {})
+
         if context.trigger == "CARD_SCORED":
             current = context.data.get("current_scoring_card")
-            first_face = context.data.get("first_scoring_face_card")
-            if (
-                current is not None
-                and current is first_face
-                and current.rank in self.FACE_RANKS
-            ):
+            scoring_cards = HandEvaluator().scoring_cards(
+                context.poker_hand,
+                list(context.cards or []),
+                rules=rules,
+            )
+            first_face = next(
+                (
+                    card
+                    for card in scoring_cards
+                    if not getattr(card, "debuffed", False)
+                    and card_is_face(card, rules)
+                ),
+                None,
+            )
+            if current is not None and current is first_face:
                 context.score.x_mult *= 2
             return context
 
@@ -27,7 +38,8 @@ class PhotographJoker(Joker):
             (
                 card
                 for card in scoring_cards
-                if card.rank in self.FACE_RANKS
+                if not getattr(card, "debuffed", False)
+                and card_is_face(card, rules)
             ),
             None,
         )
