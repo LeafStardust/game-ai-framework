@@ -275,7 +275,7 @@
 | D10 | Pack follow-up targeting | Partial deterministic coverage; broader flows open |
 | D11 | Reroll decision | Execution + policy foundation; EV model open |
 | D12 | Shop arbiter | Foundation complete |
-| D13 | Blind play vs skip/tag | Play/skip execution + threshold foundation complete; tag-specific valuation open |
+| D13 | Blind play vs skip/tag | Foundation complete |
 | D14 | Run-level resource valuation | Foundation complete |
 
 **Implemented decision-layer details**
@@ -372,7 +372,7 @@
 - [x] D11 reroll EV model
 - [x] D13 Blind selection execution
 - [x] **D13 first-party blind skip execution**
-- [ ] **D13 Tag valuation** — live process memory still does not expose the selected blind's tag identity; fallback unidentified-tag EV remains conservative
+- [x] **D13 Tag valuation** — public Small/Big skip-tag identity is observed from live process memory and scored with conservative tag-specific utility
 - [x] **D13 Play-versus-skip threshold**
 - [x] D14 money/interest marginal-value model
 - [x] D14 survival reserve model
