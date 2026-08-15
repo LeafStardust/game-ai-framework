@@ -61,6 +61,64 @@ def _native_card_area_ready(decoder, value) -> bool:
     return _integer(config.get("card_limit"), 0) > 0
 
 
+def _native_callback_ready(decoder, root, name: str) -> bool:
+    funcs = _table_fields(decoder, root.get("FUNCS"))
+    callback = funcs.get(name)
+    return callback is not None and callback.kind == "function"
+
+
+def _native_cards_table_ready(decoder, root, area_name: str) -> bool:
+    area = _table_fields(decoder, root.get(area_name))
+    cards = area.get("cards")
+    return cards is not None and cards.kind == "table"
+
+
+def native_selecting_hand_ready(decoder, root) -> bool:
+    """Return whether every injected SELECTING_HAND action has native support."""
+    if not _native_cards_table_ready(decoder, root, "hand"):
+        return False
+
+    buttons = _table_fields(decoder, root.get("buttons"))
+    ui_root = buttons.get("UIRoot")
+    if ui_root is None or ui_root.kind not in {"table", "userdata"}:
+        return False
+
+    return all(
+        _native_callback_ready(decoder, root, name)
+        for name in (
+            "play_cards_from_highlighted",
+            "discard_cards_from_highlighted",
+            "use_card",
+        )
+    )
+
+
+def native_round_eval_ready(decoder, root) -> bool:
+    """Return whether ROUND_EVAL can invoke the bridge cash-out transition."""
+    return _native_callback_ready(decoder, root, "cash_out")
+
+
+def native_pack_ready(decoder, root) -> bool:
+    """Return whether an open booster supports select, target and skip actions."""
+    pack_cards = _table_fields(decoder, root.get("pack_cards"))
+    cards = pack_cards.get("cards")
+    if cards is None or cards.kind != "table":
+        return False
+
+    removed = pack_cards.get("REMOVED")
+    if removed is not None and removed.kind == "boolean" and bool(removed.value):
+        return False
+
+    # Targeted Tarot/Spectral/Standard choices use the native hand CardArea.
+    if not _native_cards_table_ready(decoder, root, "hand"):
+        return False
+
+    return all(
+        _native_callback_ready(decoder, root, name)
+        for name in ("use_card", "skip_booster")
+    )
+
+
 def native_shop_ready(decoder, root) -> bool:
     """Return whether Balatro's native shop card areas are action-ready.
 
@@ -361,6 +419,30 @@ class SupervisorLiveMemoryBalatroObserver(LiveMemoryBalatroObserver):
                         "blind-selection controls did not become ready before timeout"
                     ),
                 )
+            elif phase == "SELECTING_HAND":
+                snapshot = self._wait_for_native_readiness(
+                    snapshot,
+                    phase=phase,
+                    ready=native_selecting_hand_ready,
+                    timeout_seconds=self.blind_select_readiness_timeout_seconds,
+                    poll_seconds=self.blind_select_readiness_poll_seconds,
+                    timeout_message=(
+                        "SELECTING_HAND became public-state stable but Balatro's native "
+                        "hand controls did not become ready before timeout"
+                    ),
+                )
+            elif phase == "ROUND_EVAL":
+                snapshot = self._wait_for_native_readiness(
+                    snapshot,
+                    phase=phase,
+                    ready=native_round_eval_ready,
+                    timeout_seconds=self.blind_select_readiness_timeout_seconds,
+                    poll_seconds=self.blind_select_readiness_poll_seconds,
+                    timeout_message=(
+                        "ROUND_EVAL became public-state stable but Balatro's native "
+                        "cash-out callback did not become ready before timeout"
+                    ),
+                )
             elif phase == "SHOP":
                 snapshot = self._wait_for_native_readiness(
                     snapshot,
@@ -371,6 +453,18 @@ class SupervisorLiveMemoryBalatroObserver(LiveMemoryBalatroObserver):
                     timeout_message=(
                         "SHOP became public-state stable but Balatro's native shop "
                         "card areas did not become ready before timeout"
+                    ),
+                )
+            elif _is_pack_phase(phase):
+                snapshot = self._wait_for_native_readiness(
+                    snapshot,
+                    phase=phase,
+                    ready=native_pack_ready,
+                    timeout_seconds=self.blind_select_readiness_timeout_seconds,
+                    poll_seconds=self.blind_select_readiness_poll_seconds,
+                    timeout_message=(
+                        f"{phase} became public-state stable but Balatro's native "
+                        "booster controls did not become ready before timeout"
                     ),
                 )
 
