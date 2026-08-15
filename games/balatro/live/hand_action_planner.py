@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
+from games.balatro.live.boss_blind_integration import (
+    BossAwareLiveHandDecisionEvaluator,
+    boss_play_action_is_legal,
+)
 
 
 class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
@@ -27,6 +31,11 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
     subset. They construct a small deterministic public-state-only candidate set
     directly from the visible hand, then run expensive Joker/score projection only
     on those representatives. Hidden draw order is never consulted.
+
+    Validated boss-blind mechanics are supplied through the shared boss integration
+    layer. Root and recursive Play candidates therefore obey the same legality
+    rules, while score projection can dispatch to a boss-specific evaluator without
+    changing the D1 search algorithm itself.
     """
 
     _HAND_STRENGTH = {
@@ -43,6 +52,8 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
     _MAX_CHILD_PROJECTED_PLAYS = 6
 
     def __init__(self, *args, **kwargs):
+        if kwargs.get("evaluator") is None:
+            kwargs["evaluator"] = BossAwareLiveHandDecisionEvaluator()
         super().__init__(*args, **kwargs)
         self._play_projection_cache: dict[tuple[int, ...], object] = {}
         self.play_projections_evaluated = 0
@@ -94,7 +105,11 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             # construction instead of enumerating every subset.
             root_beam = self.nodes_evaluated == 0
             if root_beam:
-                plays = self.action_generator.generate_play_actions(state)
+                plays = [
+                    action
+                    for action in self.action_generator.generate_play_actions(state)
+                    if boss_play_action_is_legal(state, action)
+                ]
             else:
                 plays = self._child_play_candidates(state, play_limit)
 
@@ -150,6 +165,8 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             if not cards:
                 return
             action = BalatroAction(PLAY_CARDS, cards=cards)
+            if not boss_play_action_is_legal(state, action):
+                return
             candidates.setdefault(self._action_identity(action), action)
 
         # Cheap high-chip prefixes guarantee basic coverage for every selectable
@@ -166,7 +183,10 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
 
         rank_groups = sorted(
             by_rank.values(),
-            key=lambda cards: (len(cards), sum(self._card_visible_value(c) for c in cards)),
+            key=lambda cards: (
+                len(cards),
+                sum(self._card_visible_value(c) for c in cards),
+            ),
             reverse=True,
         )
         for cards in rank_groups:
@@ -232,7 +252,10 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             if value is None:
                 continue
             current = best_by_value.get(value)
-            if current is None or self._card_visible_value(card) > self._card_visible_value(current):
+            if (
+                current is None
+                or self._card_visible_value(card) > self._card_visible_value(current)
+            ):
                 best_by_value[value] = card
 
         sequences = ([14, 5, 4, 3, 2],) + tuple(
