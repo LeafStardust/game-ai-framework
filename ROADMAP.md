@@ -128,7 +128,7 @@
 
 **Remaining 0.9 coverage**
 
-- [ ] Validate state freshness across remaining rapid events such as targeted consumable resolution and Joker creation/destruction
+- [x] Validate state freshness across remaining rapid events such as targeted consumable resolution and Joker creation/destruction
 - [ ] Validate observation/readiness across every remaining required run phase/effect family
 - [ ] Confirm the quiescence/readiness contract survives multi-attempt live soak testing without premature injections
 
