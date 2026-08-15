@@ -84,6 +84,31 @@ def test_head_pair_scores_only_the_non_debuffed_member_with_live_jokers():
     assert state.jokers[0].chips == 70
 
 
+def test_head_d1_prefers_live_scoring_card_over_boss_debuffed_higher_rank():
+    state = BalatroState()
+    state.phase = "SELECTING_HAND"
+    state.score = 0
+    state.money = 0
+    state.hands_remaining = 1
+    state.discards_remaining = 0
+    state.blind = Blind(BlindType.BOSS, 15)
+    state.boss_name = "The Head"
+    ace = BalatroCard("A", "Hearts", live_id=0)
+    king = BalatroCard("K", "Clubs", live_id=1)
+    state.hand = [ace, king]
+    state.deck = []
+
+    plan = HeadBlindClearPlanner(horizon=1, play_width=3).plan(state)
+
+    # Treating the disabled Ace as an ordinary card would make it look stronger.
+    # The correct D1 projection values it at only the 5-chip High Card base, so
+    # the live King is the only candidate that actually clears the 15-chip boss.
+    assert plan.action.name == PLAY_CARDS
+    assert plan.action.cards == [king]
+    assert plan.value.clear_probability == 1.0
+    assert plan.value.expected_score == 15.0
+
+
 def test_head_wild_cards_are_debuffed_by_suit_boss():
     scorer = HeadScorer()
     wild_club = BalatroCard("10", "Clubs", enhancement="Wild")
