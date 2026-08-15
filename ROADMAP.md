@@ -526,6 +526,7 @@ The existing `save.jkr`, visual observer and OS-input work remains useful for di
 - [ ] D14 money/interest marginal value, survival reserve, hand/discard value, slot shadow prices and remaining-ante horizon value
 - [ ] Implement Balatro **interest breakpoint** awareness from the current run rules, including voucher-modified thresholds/caps where observable, so purchases/rerolls account for the next dollar of interest lost or preserved
 - [ ] Make shop spending compare purchase EV against both cash reserve and foregone interest, not cash price alone
+- [ ] Add an optional **undiscovered-item acquisition bias**: when public profile/collection state marks a visible shop item as undiscovered and survival/reserve constraints are already satisfied, grant bounded utility for buying it; discovery priority must never override run survival, build coherence or critical economy
 - [ ] Preserve enough economy to strengthen later shops without sacrificing immediate run survival
 
 ### 1.0E — Blind skip/tag strategy

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Callable
 
-from games.balatro.actions import END_ROUND, BalatroAction
+from games.balatro.actions import END_ROUND, SKIP_BLIND, BalatroAction
 from games.balatro.blind_skip_policy import (
     DEFAULT_BLIND_SKIP_THRESHOLD,
     DEFAULT_FALLBACK_TAG_VALUE,
@@ -52,6 +52,15 @@ class UnsupportedAutonomousPhase(RuntimeError):
 
 class AutonomousStepGuardError(RuntimeError):
     pass
+
+
+class AutonomousBridgeCapabilityError(AutonomousStepGuardError):
+    """A planned semantic action is unsupported by the installed bridge build."""
+
+
+_REQUIRED_BRIDGE_CAPABILITIES = {
+    SKIP_BLIND: "blind_skip",
+}
 
 
 @dataclass(frozen=True)
@@ -584,9 +593,27 @@ class LiveMemoryInjectedSingleStepRunner:
             )
         return status
 
+    def _require_action_capability(
+        self,
+        action: BalatroAction,
+        status: dict[str, str],
+    ) -> None:
+        capability = _REQUIRED_BRIDGE_CAPABILITIES.get(str(action.name))
+        if capability is None or status.get(capability) == "1":
+            return
+
+        revision = status.get("bridge_revision", "unknown")
+        raise AutonomousBridgeCapabilityError(
+            "installed first-party bridge does not advertise "
+            f"{action.name} support ({capability}=missing, "
+            f"bridge_revision={revision}); close Balatro and reinstall/update "
+            "the repository bridge before resuming autonomous play"
+        )
+
     def execute(self, decision: AutonomousStepDecision):
         self._verify_live_checkpoint(decision)
         status = self._achievement_status()
+        self._require_action_capability(decision.action, status)
         # STATUS itself is read-only but can take time. Recheck the exact public
         # checkpoint afterwards so the gameplay action is never submitted from a
         # stale recommendation.

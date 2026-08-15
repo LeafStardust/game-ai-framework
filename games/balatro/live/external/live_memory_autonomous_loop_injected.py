@@ -9,6 +9,7 @@ from games.balatro.live.injected.bridge import InjectedBridgeError
 
 from .live_memory_autonomous_stale_diagnostic import semantic_differences
 from .live_memory_autonomous_step_injected import (
+    AutonomousBridgeCapabilityError,
     AutonomousStepDecision,
     AutonomousStepGuardError,
     LiveMemoryInjectedSingleStepRunner,
@@ -240,6 +241,13 @@ class LiveMemoryInjectedAutonomousLoop:
 
                 try:
                     result, status = self.runner.execute(decision)
+                except AutonomousBridgeCapabilityError as error:
+                    # No gameplay command was submitted. A stale installed bridge
+                    # is an operational compatibility block, not a gameplay crash.
+                    return AutonomousLoopRun(
+                        tuple(completed),
+                        f"bridge capability blocked: {error}",
+                    )
                 except AutonomousStepGuardError as error:
                     if "live state changed after autonomous planning" not in str(error):
                         raise

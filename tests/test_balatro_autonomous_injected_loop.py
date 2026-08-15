@@ -8,6 +8,7 @@ from games.balatro.live.external.live_memory_autonomous_loop_injected import (
     LiveMemoryInjectedAutonomousLoop,
 )
 from games.balatro.live.external.live_memory_autonomous_step_injected import (
+    AutonomousBridgeCapabilityError,
     AutonomousStepDecision,
     UnsupportedAutonomousPhase,
 )
@@ -235,6 +236,29 @@ def test_transition_hook_failure_stops_after_already_executed_action():
     assert result.stop_reason == (
         "transition hook failed after executed action: disk full"
     )
+    assert runner.execute_calls == 1
+    assert runner.events == ["decide", "execute"]
+
+
+class _CapabilityBlockedRunner(_FakeRunner):
+    def execute(self, decision):
+        self.events.append("execute")
+        self.execute_calls += 1
+        raise AutonomousBridgeCapabilityError(
+            "installed first-party bridge does not advertise SKIP_BLIND support"
+        )
+
+
+def test_bridge_capability_block_stops_cleanly_without_crashing_supervisor_loop():
+    runner = _CapabilityBlockedRunner(["BLIND_SELECT"])
+    loop = LiveMemoryInjectedAutonomousLoop(runner, max_steps=None)
+
+    result = loop.execute(expected_start_phase="BLIND_SELECT")
+
+    assert result.steps == ()
+    assert result.stop_reason.startswith("bridge capability blocked:")
+    assert "SKIP_BLIND" in result.stop_reason
+    assert runner.decide_calls == 1
     assert runner.execute_calls == 1
     assert runner.events == ["decide", "execute"]
 

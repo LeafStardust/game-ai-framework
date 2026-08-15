@@ -163,7 +163,7 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   end
 
   local function bridge_status()
-    return "bridge=2;achievement_gate=" .. achievement_gate_state()
+    return "bridge=2;bridge_revision=3;blind_skip=1;achievement_gate=" .. achievement_gate_state()
       .. ";restart_run_callback=" .. restart_run_callback_state()
       .. ";command_pump=LOVE_RUN_PRE_UPDATE"
   end

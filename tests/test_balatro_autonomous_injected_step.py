@@ -10,9 +10,12 @@ from games.balatro.actions import (
     PLAY_CARDS,
     SELECT_BLIND,
     SELECT_PACK_CARD,
+    SKIP_BLIND,
     BalatroAction,
 )
 from games.balatro.live.external.live_memory_autonomous_step_injected import (
+    AutonomousBridgeCapabilityError,
+    AutonomousStepDecision,
     AutonomousStepGuardError,
     LiveMemoryInjectedSingleStepRunner,
     UnsupportedAutonomousPhase,
@@ -50,17 +53,30 @@ class FakeTranslator:
 
 
 class FakeBridge:
-    def __init__(self, *, gate="ENABLED", version="1"):
+    def __init__(
+        self,
+        *,
+        gate="ENABLED",
+        version="1",
+        blind_skip=None,
+        revision="2",
+    ):
         self.gate = gate
         self.version = version
+        self.blind_skip = blind_skip
+        self.revision = revision
         self.status_calls = 0
 
     def status(self):
         self.status_calls += 1
-        return {
+        status = {
             "bridge": self.version,
             "achievement_gate": self.gate,
+            "bridge_revision": self.revision,
         }
+        if self.blind_skip is not None:
+            status["blind_skip"] = self.blind_skip
+        return status
 
 
 class FakeDispatcher:
@@ -234,6 +250,62 @@ def test_autonomous_execute_blocks_disabled_achievement_gate():
 
     assert bridge.status_calls == 1
     assert dispatcher.calls == []
+
+
+def test_autonomous_skip_blind_blocks_stale_bridge_before_gameplay_dispatch():
+    before = _snapshot(35, "BLIND_SELECT")
+    bridge = FakeBridge(blind_skip=None, revision="2")
+    dispatcher = FakeDispatcher(_snapshot(36, "BLIND_SELECT"))
+    state = _state("BLIND_SELECT")
+    runner = LiveMemoryInjectedSingleStepRunner(
+        FakeObserver(before, before),
+        translator=FakeTranslator(state),
+        bridge=bridge,
+        dispatcher=dispatcher,
+    )
+    decision = AutonomousStepDecision(
+        snapshot=before,
+        state=state,
+        action=BalatroAction(SKIP_BLIND),
+        source="D13 blind play-vs-skip policy",
+    )
+
+    with pytest.raises(
+        AutonomousBridgeCapabilityError,
+        match="does not advertise SKIP_BLIND support",
+    ):
+        runner.execute(decision)
+
+    assert bridge.status_calls == 1
+    assert dispatcher.calls == []
+
+
+def test_autonomous_skip_blind_dispatches_when_bridge_advertises_capability():
+    before = _snapshot(37, "BLIND_SELECT")
+    after = _snapshot(38, "BLIND_SELECT")
+    bridge = FakeBridge(blind_skip="1", revision="3")
+    dispatcher = FakeDispatcher(after)
+    state = _state("BLIND_SELECT")
+    runner = LiveMemoryInjectedSingleStepRunner(
+        FakeObserver(before, before),
+        translator=FakeTranslator(state),
+        bridge=bridge,
+        dispatcher=dispatcher,
+    )
+    decision = AutonomousStepDecision(
+        snapshot=before,
+        state=state,
+        action=BalatroAction(SKIP_BLIND),
+        source="D13 blind play-vs-skip policy",
+    )
+
+    result, status = runner.execute(decision)
+
+    assert result.after is after
+    assert status["blind_skip"] == "1"
+    assert bridge.status_calls == 1
+    assert len(dispatcher.calls) == 1
+    assert dispatcher.calls[0][0] is decision.action
 
 
 def test_autonomous_pack_blocks_changed_visible_choice_identity():
