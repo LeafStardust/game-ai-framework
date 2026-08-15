@@ -18,10 +18,11 @@ class FibonacciJoker(Joker):
             "5",
             "8"
         }
+        scoring_cards = context.data.get("scoring_cards", context.cards)
 
         context.score.mult += sum(
             card.rank in fibonacci_ranks
-            for card in context.cards
+            for card in scoring_cards
         ) * 8
 
         return context

@@ -7,9 +7,16 @@ from games.balatro.jokers.banner import BannerJoker
 from games.balatro.jokers.clever_joker import CleverJoker
 from games.balatro.jokers.crafty_joker import CraftyJoker
 from games.balatro.jokers.droll_joker import DrollJoker
+from games.balatro.jokers.even_steven import EvenStevenJoker
+from games.balatro.jokers.fibonacci import FibonacciJoker
+from games.balatro.jokers.gluttonous_joker import GluttonousJoker
+from games.balatro.jokers.greedy_joker import GreedyJoker
 from games.balatro.jokers.half_joker import HalfJoker
+from games.balatro.jokers.lusty_joker import LustyJoker
+from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.wily_joker import WilyJoker
+from games.balatro.jokers.wrathful_joker import WrathfulJoker
 from games.balatro.live.score_outcomes import VisibleCardScoreOutcomeModel
 from games.balatro.state import BalatroState
 
@@ -110,3 +117,86 @@ def test_exact_stateless_score_jokers_are_admitted(joker, hand, cards, expected)
     assert transition.unsupported_jokers == ()
     assert state.jokers[0] is joker
     assert transition.state_after_scoring.jokers[0] is not joker
+
+
+@pytest.mark.parametrize(
+    ("joker", "cards", "expected"),
+    [
+        (
+            GreedyJoker(),
+            [
+                BalatroCard("10", "Diamonds"),
+                BalatroCard("10", "Spades"),
+                BalatroCard("2", "Diamonds"),
+            ],
+            150,
+        ),
+        (
+            LustyJoker(),
+            [
+                BalatroCard("10", "Hearts"),
+                BalatroCard("10", "Spades"),
+                BalatroCard("2", "Hearts"),
+            ],
+            150,
+        ),
+        (
+            WrathfulJoker(),
+            [
+                BalatroCard("10", "Spades"),
+                BalatroCard("10", "Hearts"),
+                BalatroCard("2", "Spades"),
+            ],
+            150,
+        ),
+        (
+            GluttonousJoker(),
+            [
+                BalatroCard("10", "Clubs"),
+                BalatroCard("10", "Hearts"),
+                BalatroCard("2", "Clubs"),
+            ],
+            150,
+        ),
+        (
+            FibonacciJoker(),
+            [
+                BalatroCard("10", "Spades"),
+                BalatroCard("10", "Hearts"),
+                BalatroCard("A", "Diamonds"),
+            ],
+            60,
+        ),
+        (
+            EvenStevenJoker(),
+            [
+                BalatroCard("10", "Spades"),
+                BalatroCard("10", "Hearts"),
+                BalatroCard("8", "Diamonds"),
+            ],
+            300,
+        ),
+        (
+            OddToddJoker(),
+            [
+                BalatroCard("9", "Spades"),
+                BalatroCard("9", "Hearts"),
+                BalatroCard("A", "Diamonds"),
+            ],
+            180,
+        ),
+    ],
+)
+def test_played_card_jokers_ignore_non_scoring_kickers(joker, cards, expected):
+    state = _state(cards, joker)
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.PAIR,
+        state,
+        cards,
+    )
+
+    assert transition.distribution.minimum == expected
+    assert transition.distribution.maximum == expected
+    assert transition.joker_projection_complete is True
+    assert transition.unsupported_jokers == ()

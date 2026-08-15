@@ -18,10 +18,11 @@ class OddToddJoker(Joker):
             "7",
             "9"
         }
+        scoring_cards = context.data.get("scoring_cards", context.cards)
 
         context.score.chips += sum(
             card.rank in odd_ranks
-            for card in context.cards
+            for card in scoring_cards
         ) * 31
 
         return context

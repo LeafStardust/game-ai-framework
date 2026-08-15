@@ -1,5 +1,6 @@
 from games.balatro.joker import Joker, JokerContext
 
+
 class WrathfulJoker(Joker):
 
     def apply(
@@ -10,9 +11,10 @@ class WrathfulJoker(Joker):
         if context.score is None:
             return context
 
+        scoring_cards = context.data.get("scoring_cards", context.cards)
         mult = sum(
             card.suit == "Spades"
-            for card in context.cards
+            for card in scoring_cards
         ) * 3
 
         context.score.mult += mult
