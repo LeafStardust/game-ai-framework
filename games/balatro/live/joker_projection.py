@@ -3,19 +3,14 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
 
+from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.joker import JokerContext
 from games.balatro.scoring import BalatroScorer, HandScore
 
 
 @dataclass(frozen=True)
 class JokerScoreProjection:
-    """One side-effect-free Joker-aware scoring transition.
-
-    ``state_after_scoring`` is an isolated branch state. Stateful supported Jokers
-    may mutate inside that branch, but the authoritative observed state is never
-    touched. Cards remain shared on the hot path unless a validated effect such as
-    Vampire or a per-card retrigger requires branch-local card mutation.
-    """
+    """One side-effect-free Joker-aware scoring transition."""
 
     score: HandScore
     state_after_scoring: object | None
@@ -29,17 +24,7 @@ class JokerScoreProjection:
 
 
 class LiveJokerScoreProjector:
-    """Apply explicitly validated live Jokers on an isolated branch state.
-
-    Live-state hydration and score-transition support are separate contracts. A
-    Joker can be reconstructed perfectly from public memory and still require event
-    sequencing or stochastic branch semantics that the planner does not model.
-
-    The projector executes the small pre-score ``HAND_PLAYED`` transition required
-    by admitted Jokers before delegating ordinary ``HAND_SCORED`` resolution to the
-    scorer. Card copies are created only when a supported Joker mutates card state
-    or needs branch-local per-card retrigger metadata.
-    """
+    """Apply explicitly validated live Jokers on an isolated branch state."""
 
     SUPPORTED_CLASS_NAMES = frozenset(
         {
@@ -62,6 +47,7 @@ class LiveJokerScoreProjector:
             "FibonacciJoker",
             "FlashCardJoker",
             "FortuneTellerJoker",
+            "FourFingersJoker",
             "GluttonousJoker",
             "GreenJoker",
             "GreedyJoker",
@@ -93,10 +79,12 @@ class LiveJokerScoreProjector:
             "ScholarJoker",
             "SeltzerJoker",
             "ShootTheMoonJoker",
+            "ShortcutJoker",
             "SlyJoker",
             "SmileyFaceJoker",
             "SockAndBuskinJoker",
             "SpareTrousersJoker",
+            "SplashJoker",
             "SquareJoker",
             "ThrowbackJoker",
             "TribouletJoker",
@@ -198,12 +186,16 @@ class LiveJokerScoreProjector:
             safe_cards = list(cards or [])
 
         safe_state.jokers = supported
+        hand_rules = hand_rules_for_state(safe_state)
         joker_data = self._prepare_hand_play(
             hand,
             safe_state,
             safe_cards,
             supported,
+            hand_rules=hand_rules,
         )
+        joker_data["hand_rules"] = hand_rules
+
         played_card_retriggers = self._seltzer_retriggers(supported)
         if played_card_retriggers:
             joker_data["retrigger_played_cards"] = (
@@ -238,7 +230,15 @@ class LiveJokerScoreProjector:
             played_card_retriggers=played_card_retriggers,
         )
 
-    def _prepare_hand_play(self, hand, state, cards, jokers) -> dict:
+    def _prepare_hand_play(
+        self,
+        hand,
+        state,
+        cards,
+        jokers,
+        *,
+        hand_rules: dict,
+    ) -> dict:
         active = [
             joker
             for joker in jokers
@@ -249,7 +249,11 @@ class LiveJokerScoreProjector:
 
         scoring_cards = [
             card
-            for card in self.scorer.scoring_cards(hand, cards)
+            for card in self.scorer.scoring_cards(
+                hand,
+                cards,
+                rules=hand_rules,
+            )
             if not self.scorer.is_card_debuffed(card)
         ]
         context = JokerContext(
@@ -260,6 +264,7 @@ class LiveJokerScoreProjector:
             data={
                 "scoring_cards": scoring_cards,
                 "final_hand": int(getattr(state, "hands_remaining", 0) or 0) <= 1,
+                "hand_rules": hand_rules,
             },
         )
         for joker in active:
@@ -281,8 +286,9 @@ class LiveJokerScoreProjector:
             0,
             int(joker_data.get("retrigger_played_cards", 0) or 0),
         )
+        rules = joker_data.get("hand_rules", {})
         expanded = []
-        for card in self.scorer.scoring_cards(hand, cards):
+        for card in self.scorer.scoring_cards(hand, cards, rules=rules):
             if self.scorer.is_card_debuffed(card):
                 continue
             expanded.extend(

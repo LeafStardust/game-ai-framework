@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from math import comb
 
 from games.balatro.hand import PokerHand
+from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.scoring import BalatroScorer
 
@@ -13,10 +14,6 @@ from games.balatro.scoring import BalatroScorer
 class ScoreOutcome:
     score: int
     probability: float
-    # Multi-hand planning may need a different post-score state for two random
-    # outcomes even when their numeric score is identical. Keep the state on the
-    # outcome itself so score aggregation does not erase that distinction.
-    # Exclude it from equality/repr to preserve the existing public value contract.
     state_after_scoring: object | None = field(
         default=None,
         compare=False,
@@ -96,14 +93,7 @@ class _GlassBranch:
 
 
 class VisibleCardScoreOutcomeModel:
-    """Project public visible scoring without consuming Balatro's hidden RNG.
-
-    Card-level Lucky effects and Canio-relevant Glass destruction are represented
-    analytically. Joker scoring is delegated to ``LiveJokerScoreProjector``, which
-    deep-copies the state and only executes Joker implementations that have been
-    explicitly validated for live projection. Stateful mutations therefore belong
-    to the hypothetical branch, never to the authoritative observed state.
-    """
+    """Project public visible scoring without consuming Balatro's hidden RNG."""
 
     LUCKY_MULT_PROBABILITY = 0.2
     LUCKY_MONEY_PROBABILITY = 1.0 / 15.0
@@ -155,16 +145,19 @@ class VisibleCardScoreOutcomeModel:
         copied_cards = joker_projection.cards_after_copy
         projected_state = joker_projection.state_after_scoring
         extra_retriggers = joker_projection.played_card_retriggers
+        rules = hand_rules_for_state(projected_state)
 
         lucky_triggers = self._lucky_scoring_triggers(
             hand,
             copied_cards,
+            rules=rules,
             extra_retriggers=extra_retriggers,
         )
         canio_face_glass = self._canio_face_glass_count(
             hand,
             copied_cards,
             projected_state,
+            rules=rules,
         )
 
         if lucky_triggers == 0 and canio_face_glass == 0:
@@ -236,10 +229,11 @@ class VisibleCardScoreOutcomeModel:
         hand: PokerHand,
         cards,
         *,
+        rules: dict | None = None,
         extra_retriggers: int = 0,
     ) -> int:
         triggers = 0
-        for card in self.scorer.scoring_cards(hand, cards):
+        for card in self.scorer.scoring_cards(hand, cards, rules=rules):
             if self.scorer.is_card_debuffed(card):
                 continue
             if getattr(card, "enhancement", None) != "Lucky":
@@ -250,12 +244,19 @@ class VisibleCardScoreOutcomeModel:
             )
         return triggers
 
-    def _canio_face_glass_count(self, hand: PokerHand, cards, state) -> int:
+    def _canio_face_glass_count(
+        self,
+        hand: PokerHand,
+        cards,
+        state,
+        *,
+        rules: dict | None = None,
+    ) -> int:
         if not self._jokers_named(state, "CanioJoker"):
             return 0
         return sum(
             1
-            for card in self.scorer.scoring_cards(hand, cards)
+            for card in self.scorer.scoring_cards(hand, cards, rules=rules)
             if not self.scorer.is_card_debuffed(card)
             and getattr(card, "enhancement", None) == "Glass"
             and str(getattr(card, "rank", "")) in {"J", "Q", "K"}
@@ -281,8 +282,6 @@ class VisibleCardScoreOutcomeModel:
                 for successes in range(triggers + 1)
             )
 
-        # One Lucky resolution can independently hit +20 Mult, $20, both, or
-        # neither. Lucky Cat grows once for that resolution when either effect hits.
         p_mult = self.LUCKY_MULT_PROBABILITY
         p_money = self.LUCKY_MONEY_PROBABILITY
         per_trigger = (

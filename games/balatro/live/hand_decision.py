@@ -10,6 +10,7 @@ from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.card_selector import CardSelector
 from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.scoring import BalatroScorer
 from games.balatro.live.score_outcomes import ScoreOutcome, VisibleCardScoreOutcomeModel
 
@@ -114,7 +115,7 @@ class LiveHandDecisionEvaluator(Evaluator):
         if not action.cards:
             raise ValueError("live play projection requires at least one played card")
 
-        hand = self.hand_evaluator.evaluate(action.cards)
+        hand = self._hand_for_cards(state, action.cards)
         transition = self.score_outcomes.project_transition(
             hand,
             state,
@@ -176,7 +177,7 @@ class LiveHandDecisionEvaluator(Evaluator):
             estimate = self._estimate_play(state, play)
             if estimate > best_score:
                 best_score = estimate
-                best_hand = self.hand_evaluator.evaluate(play.cards)
+                best_hand = self._hand_for_cards(state, play.cards)
 
         context = _DecisionContext(
             remaining_chips=remaining,
@@ -251,7 +252,7 @@ class LiveHandDecisionEvaluator(Evaluator):
         return value
 
     def _estimate_play(self, state, action) -> float:
-        hand = self.hand_evaluator.evaluate(action.cards)
+        hand = self._hand_for_cards(state, action.cards)
         return self.score_outcomes.project(
             hand,
             state,
@@ -268,7 +269,7 @@ class LiveHandDecisionEvaluator(Evaluator):
         if remaining <= 0:
             return True
         for play in self.action_generator.generate_play_actions(state):
-            hand = self.hand_evaluator.evaluate(play.cards)
+            hand = self._hand_for_cards(state, play.cards)
             distribution = self.score_outcomes.project(
                 hand,
                 state,
@@ -278,6 +279,12 @@ class LiveHandDecisionEvaluator(Evaluator):
             if distribution.minimum >= remaining:
                 return True
         return False
+
+    def _hand_for_cards(self, state, cards) -> PokerHand:
+        return self.hand_evaluator.evaluate(
+            list(cards or []),
+            rules=hand_rules_for_state(state),
+        )
 
     @staticmethod
     def _kept_cards(hand, discarded) -> list:

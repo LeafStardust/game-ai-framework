@@ -1,9 +1,10 @@
 import random
 
-from collections import Counter
 from dataclasses import dataclass
 
 from games.balatro.hand import PokerHand
+from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.joker import JokerContext
 from games.balatro.events import BalatroEvent, BalatroEventType
 
@@ -272,8 +273,6 @@ class BalatroScorer:
                 )
                 for joker in on_scored_jokers:
                     context = joker.apply(context)
-                    # One on-scored Joker can apply XMult before a later Joker/card
-                    # adds Mult, so commit XMult after every Joker activation.
                     self._fold_x_mult(context.score)
 
     def _apply_held_phase(
@@ -313,7 +312,6 @@ class BalatroScorer:
                 extra_retriggers,
             )
             for _ in range(trigger_count):
-                # Card enhancement resolves before on-held Jokers for this card.
                 if getattr(card, "enhancement", None) == "Steel":
                     score.x_mult *= 1.5
                     self._fold_x_mult(score)
@@ -334,7 +332,6 @@ class BalatroScorer:
                 )
                 for joker in held_jokers:
                     context = joker.apply(context)
-                    # Commit each on-held XMult before a later held-card +Mult.
                     self._fold_x_mult(context.score)
 
     def score(
@@ -349,17 +346,10 @@ class BalatroScorer:
     ) -> HandScore:
 
         base_score = self.SCORES[hand]
-
         hand_level = 1
 
         if state is not None:
-
-            hand_levels = getattr(
-                state,
-                "hand_levels",
-                {}
-            )
-
+            hand_levels = getattr(state, "hand_levels", {})
             hand_level = hand_levels.get(
                 hand.value,
                 hand_levels.get(hand, 1),
@@ -368,11 +358,10 @@ class BalatroScorer:
         score = HandScore(
             base_score.chips,
             base_score.mult,
-            base_score.x_mult
+            base_score.x_mult,
         )
 
         if hand_level > 1:
-
             from games.balatro.planets import PLANET_CARDS
 
             planet = next(
@@ -381,24 +370,23 @@ class BalatroScorer:
                     for planet in PLANET_CARDS.values()
                     if planet.hand_type == hand.value
                 ),
-                None
+                None,
             )
-
             if planet is not None:
+                score.chips += planet.chips * (hand_level - 1)
+                score.mult += planet.mult * (hand_level - 1)
 
-                score.chips += (
-                    planet.chips
-                    * (hand_level - 1)
-                )
-
-                score.mult += (
-                    planet.mult
-                    * (hand_level - 1)
-                )
-
-        played_cards = cards or []
-        scoring_cards = self.scoring_cards(hand, played_cards)
+        played_cards = list(cards or [])
         context_data = dict(joker_data or {})
+        rules = context_data.get("hand_rules")
+        if rules is None:
+            rules = hand_rules_for_state(state)
+            context_data["hand_rules"] = rules
+        scoring_cards = self.scoring_cards(
+            hand,
+            played_cards,
+            rules=rules,
+        )
         played_card_retriggers = max(
             0,
             int(context_data.get("retrigger_played_cards", 0) or 0),
@@ -420,8 +408,6 @@ class BalatroScorer:
                 context_data=context_data,
             )
         else:
-            # Preserve the legacy direct-scorer contract for semantic probes that do
-            # not ask for exact live scoring-card selection.
             self._apply_card_modifiers(
                 score,
                 played_cards,
@@ -429,12 +415,7 @@ class BalatroScorer:
             )
 
         if state is not None:
-
-            held_cards = getattr(
-                state,
-                "hand",
-                []
-            )
+            held_cards = getattr(state, "hand", [])
             if include_card_chips and played_cards:
                 played_identity = {id(card) for card in played_cards}
                 held_cards = [
@@ -443,7 +424,6 @@ class BalatroScorer:
                     if id(card) not in played_identity
                 ]
 
-            # Played-card XMult resolves before the held-card phase begins.
             self._fold_x_mult(score)
             self._apply_held_phase(
                 score,
@@ -452,8 +432,6 @@ class BalatroScorer:
                 extra_retriggers=held_card_retriggers,
             )
 
-            # Independent Joker effects need the unique scoring-card set, not the
-            # retrigger-expanded sequence used by the old aggregate implementation.
             context_data["scoring_cards"] = [
                 card
                 for card in scoring_cards
@@ -473,7 +451,7 @@ class BalatroScorer:
                 trigger="HAND_SCORED",
                 event=BalatroEvent(
                     BalatroEventType.HAND_SCORED,
-                    played_cards
+                    played_cards,
                 ),
                 data=context_data,
             )
@@ -515,83 +493,15 @@ class BalatroScorer:
         return cls.RANK_CHIPS.get(str(getattr(card, "rank", "")), 0)
 
     @classmethod
-    def scoring_cards(cls, hand: PokerHand, cards) -> list:
-        """Return ordinary cards that contribute chips for a standard poker hand.
-
-        This is used by live decision estimates. It intentionally leaves Joker-
-        specific scoring overrides such as Splash for a future Joker-aware layer.
-        Stone cards are always included because their enhancement scores directly.
-        """
-        played = list(cards or [])
-        if not played:
-            return []
-
-        stones = [
-            card
-            for card in played
-            if getattr(card, "enhancement", None) == "Stone"
-        ]
-        regular = [card for card in played if card not in stones]
-        if not regular:
-            return stones
-
-        counts = Counter(str(getattr(card, "rank", "")) for card in regular)
-
-        if hand == PokerHand.HIGH_CARD:
-            highest = max(
-                regular,
-                key=lambda card: cls.card_chip_value(card),
-            )
-            selected = [highest]
-
-        elif hand == PokerHand.PAIR:
-            pair_rank = next(
-                (rank for rank, count in counts.items() if count >= 2),
-                None,
-            )
-            selected = [
-                card
-                for card in regular
-                if str(getattr(card, "rank", "")) == pair_rank
-            ][:2]
-
-        elif hand == PokerHand.TWO_PAIR:
-            pair_ranks = {
-                rank
-                for rank, count in counts.items()
-                if count >= 2
-            }
-            selected = [
-                card
-                for card in regular
-                if str(getattr(card, "rank", "")) in pair_ranks
-            ][:4]
-
-        elif hand == PokerHand.THREE_OF_A_KIND:
-            trip_rank = next(
-                (rank for rank, count in counts.items() if count >= 3),
-                None,
-            )
-            selected = [
-                card
-                for card in regular
-                if str(getattr(card, "rank", "")) == trip_rank
-            ][:3]
-
-        elif hand == PokerHand.FOUR_OF_A_KIND:
-            quad_rank = next(
-                (rank for rank, count in counts.items() if count >= 4),
-                None,
-            )
-            selected = [
-                card
-                for card in regular
-                if str(getattr(card, "rank", "")) == quad_rank
-            ][:4]
-
-        else:
-            selected = regular
-
-        selected_ids = {id(card) for card in selected}
-        selected.extend(card for card in stones if id(card) not in selected_ids)
-        return selected
+    def scoring_cards(
+        cls,
+        hand: PokerHand,
+        cards,
+        rules: dict | None = None,
+    ) -> list:
+        """Return Joker-aware scoring-card membership for one recognized hand."""
+        return HandEvaluator().scoring_cards(
+            hand,
+            list(cards or []),
+            rules=rules,
+        )

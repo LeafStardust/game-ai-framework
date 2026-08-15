@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from collections import Counter
+from itertools import combinations
 
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
@@ -19,97 +22,201 @@ class HandEvaluator:
         "J": 11,
         "Q": 12,
         "K": 13,
-        "A": 14
+        "A": 14,
     }
 
     def evaluate(
         self,
-        cards: list[BalatroCard]
+        cards: list[BalatroCard],
+        rules: dict | None = None,
     ) -> PokerHand:
-
-        if not cards:
+        rules = dict(rules or {})
+        regular = self._regular_cards(cards)
+        if not regular:
             return PokerHand.HIGH_CARD
 
-        ranks = [
-            card.rank
-            for card in cards
-        ]
-
+        ranks = [card.rank for card in regular]
         counts = Counter(ranks)
+        values = sorted(counts.values(), reverse=True)
 
-        values = sorted(
-            counts.values(),
-            reverse=True
-        )
+        flush_cards = self._flush_cards(regular, rules)
+        straight_cards = self._straight_cards(regular, rules)
 
-        is_flush = self._is_flush(cards)
-        is_straight = self._is_straight(cards)
-
-        if is_flush and is_straight:
+        # With Four Fingers, the straight and flush portions of a Straight Flush
+        # may be supplied by different four-card subsets of the five played cards.
+        if flush_cards and straight_cards:
             return PokerHand.STRAIGHT_FLUSH
 
-        if values[0] == 4:
+        if values[0] >= 4:
             return PokerHand.FOUR_OF_A_KIND
 
-        if values[0] == 3 and len(values) > 1 and values[1] == 2:
+        if values[0] == 3 and len(values) > 1 and values[1] >= 2:
             return PokerHand.FULL_HOUSE
 
-        if is_flush:
+        if flush_cards:
             return PokerHand.FLUSH
 
-        if is_straight:
+        if straight_cards:
             return PokerHand.STRAIGHT
 
         if values[0] == 3:
             return PokerHand.THREE_OF_A_KIND
 
         if values[0] == 2:
-
             pairs = values.count(2)
-
-            if pairs == 2:
+            if pairs >= 2:
                 return PokerHand.TWO_PAIR
-
             return PokerHand.PAIR
 
         return PokerHand.HIGH_CARD
 
-    def _is_flush(
+    def scoring_cards(
         self,
-        cards: list[BalatroCard]
-    ) -> bool:
+        hand: PokerHand,
+        cards: list[BalatroCard],
+        rules: dict | None = None,
+    ) -> list[BalatroCard]:
+        """Return the exact played cards that Balatro treats as scoring cards."""
+        rules = dict(rules or {})
+        played = list(cards or [])
+        if not played:
+            return []
 
-        if len(cards) != 5:
-            return False
+        if rules.get("all_cards_score"):
+            return played
 
-        suits = [
-            card.suit
-            for card in cards
-        ]
+        stones = [card for card in played if self._is_stone(card)]
+        regular = [card for card in played if not self._is_stone(card)]
+        if not regular:
+            return stones
 
-        return len(set(suits)) == 1
+        counts = Counter(str(card.rank) for card in regular)
 
-    def _is_straight(
-        self,
-        cards: list[BalatroCard]
-    ) -> bool:
+        if hand == PokerHand.STRAIGHT_FLUSH:
+            selected = self._union_in_played_order(
+                regular,
+                self._straight_cards(regular, rules),
+                self._flush_cards(regular, rules),
+            )
+        elif hand == PokerHand.FLUSH:
+            selected = self._flush_cards(regular, rules)
+        elif hand == PokerHand.STRAIGHT:
+            selected = self._straight_cards(regular, rules)
+        elif hand == PokerHand.HIGH_CARD:
+            highest = max(
+                regular,
+                key=lambda card: self.RANK_ORDER.get(str(card.rank), -1),
+            )
+            selected = [highest]
+        elif hand == PokerHand.PAIR:
+            pair_rank = next(
+                (rank for rank, count in counts.items() if count >= 2),
+                None,
+            )
+            selected = [card for card in regular if str(card.rank) == pair_rank][:2]
+        elif hand == PokerHand.TWO_PAIR:
+            pair_ranks = {
+                rank for rank, count in counts.items() if count >= 2
+            }
+            selected = [card for card in regular if str(card.rank) in pair_ranks][:4]
+        elif hand == PokerHand.THREE_OF_A_KIND:
+            trip_rank = next(
+                (rank for rank, count in counts.items() if count >= 3),
+                None,
+            )
+            selected = [card for card in regular if str(card.rank) == trip_rank][:3]
+        elif hand == PokerHand.FOUR_OF_A_KIND:
+            quad_rank = next(
+                (rank for rank, count in counts.items() if count >= 4),
+                None,
+            )
+            selected = [card for card in regular if str(card.rank) == quad_rank][:4]
+        else:
+            selected = regular
 
-        if len(cards) != 5:
-            return False
+        selected_ids = {id(card) for card in selected}
+        selected.extend(card for card in stones if id(card) not in selected_ids)
+        return selected
 
-        values = sorted(
-            [
-                self.RANK_ORDER[card.rank]
+    def _flush_cards(self, cards: list[BalatroCard], rules: dict) -> list[BalatroCard]:
+        required = max(1, int(rules.get("flush_size", 5) or 5))
+        if len(cards) < required:
+            return []
+
+        best: list[BalatroCard] = []
+        for suit in ("Hearts", "Diamonds", "Clubs", "Spades"):
+            matching = [
+                card
                 for card in cards
+                if self._matches_suit(card, suit, rules)
             ]
-        )
+            if len(matching) >= required and len(matching) > len(best):
+                best = matching
+        return best
 
-        if values == [2, 3, 4, 5, 14]:
+    def _straight_cards(self, cards: list[BalatroCard], rules: dict) -> list[BalatroCard]:
+        required = max(1, int(rules.get("straight_size", 5) or 5))
+        if len(cards) < required:
+            return []
+
+        shortcut = bool(rules.get("shortcut"))
+        max_step = 2 if shortcut else 1
+        rank_values = {
+            str(card.rank): self.RANK_ORDER[str(card.rank)]
+            for card in cards
+            if str(card.rank) in self.RANK_ORDER
+        }
+        if len(rank_values) < required:
+            return []
+
+        value_sets: list[dict[str, int]] = [rank_values]
+        if "A" in rank_values:
+            ace_low = dict(rank_values)
+            ace_low["A"] = 1
+            value_sets.append(ace_low)
+
+        qualifying_ranks: set[str] = set()
+        for values_by_rank in value_sets:
+            for rank_combo in combinations(values_by_rank, required):
+                ordered = sorted(values_by_rank[rank] for rank in rank_combo)
+                if all(
+                    1 <= current - previous <= max_step
+                    for previous, current in zip(ordered, ordered[1:])
+                ):
+                    qualifying_ranks.update(rank_combo)
+
+        if not qualifying_ranks:
+            return []
+        return [card for card in cards if str(card.rank) in qualifying_ranks]
+
+    @staticmethod
+    def _is_stone(card: BalatroCard) -> bool:
+        return getattr(card, "enhancement", None) == "Stone"
+
+    def _regular_cards(self, cards) -> list[BalatroCard]:
+        return [card for card in list(cards or []) if not self._is_stone(card)]
+
+    @staticmethod
+    def _matches_suit(card: BalatroCard, suit: str, rules: dict) -> bool:
+        if getattr(card, "enhancement", None) == "Stone":
+            return False
+        if getattr(card, "enhancement", None) == "Wild":
             return True
 
-        return values == list(
-            range(
-                values[0],
-                values[0] + 5
-            )
-        )
+        actual = str(getattr(card, "suit", ""))
+        if actual == suit:
+            return True
+
+        smeared = rules.get("smeared_suits")
+        if not isinstance(smeared, dict):
+            return False
+        return smeared.get(actual) == smeared.get(suit)
+
+    @staticmethod
+    def _union_in_played_order(cards, *groups) -> list[BalatroCard]:
+        selected_ids = {
+            id(card)
+            for group in groups
+            for card in group
+        }
+        return [card for card in cards if id(card) in selected_ids]
