@@ -204,6 +204,7 @@
 **Remaining mechanics coverage**
 
 - [x] Extend score projection to relevant remaining stateless Jokers/effects separately from hydration
+- [x] Preserve Balatro activation order for deterministic played-card and held-card scoring/retrigger projection
 - [ ] Generalize boss-blind integration
 - [x] Correct boss-blind **debuff/nullification scoring**: cards marked disabled/debuffed by the active boss contribute zero chips/effects where Balatro rules suppress them while remaining structurally eligible to form legal poker hands
 - [x] Add regression coverage proving D1 does not value boss-disabled cards as ordinary scoring cards
