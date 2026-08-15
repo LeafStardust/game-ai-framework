@@ -142,6 +142,11 @@ def snapshot_payload_from_live_memory(
     state_complete = _boolean(root.get("STATE_COMPLETE"), False)
     stake_id = _integer(game.get("stake"), 1)
     round_joker_state = _normalize_round_joker_public_state(decoder, current_round)
+    blind_tags = _normalize_blind_tags(decoder, round_resets.get("blind_tags"))
+    normalized_blind = _normalize_blind(decoder, blind, game)
+    current_tag = blind_tags.get(str(normalized_blind.get("type") or "").lower())
+    if current_tag:
+        normalized_blind["tag"] = current_tag
 
     hand = _normalize_area(decoder, root.get("hand"), preserve_order=True)
     jokers = _normalize_item_area(
@@ -209,7 +214,7 @@ def snapshot_payload_from_live_memory(
         "shop_boosters": shop_boosters,
         "shop_vouchers": shop_vouchers,
         "hands": _normalize_hand_levels(decoder, game.get("hands")),
-        "blind": _normalize_blind(decoder, blind, game),
+        "blind": normalized_blind,
         "won": _boolean(game.get("won"), False),
         "live_state_source": "process_memory",
         "hidden_rng_exposed": False,
@@ -526,6 +531,20 @@ def _normalize_hand_levels(
             "level": _integer(hand.get("level"), 1),
             "played": _integer(hand.get("played"), 0),
         }
+    return result
+
+
+def _normalize_blind_tags(
+    decoder: LuaJITNonGC64Decoder,
+    value: LuaValue | None,
+) -> dict[str, str]:
+    """Expose only the public Small/Big skip-tag keys for the current ante."""
+    tags = _table_fields(decoder, value)
+    result: dict[str, str] = {}
+    for live_key in ("Small", "Big"):
+        tag = _string(tags.get(live_key))
+        if tag:
+            result[live_key.lower()] = tag
     return result
 
 
