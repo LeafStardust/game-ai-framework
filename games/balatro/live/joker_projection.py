@@ -14,7 +14,7 @@ class JokerScoreProjection:
     ``state_after_scoring`` is an isolated branch state. Stateful supported Jokers
     may mutate inside that branch, but the authoritative observed state is never
     touched. Cards remain shared on the hot path unless a validated effect such as
-    Vampire requires branch-local card mutation.
+    Vampire or a per-card retrigger requires branch-local card mutation.
     """
 
     score: HandScore
@@ -37,8 +37,8 @@ class LiveJokerScoreProjector:
 
     The projector executes the small pre-score ``HAND_PLAYED`` transition required
     by admitted Jokers before delegating ordinary ``HAND_SCORED`` resolution to the
-    scorer. Card copies are created only when a supported Joker mutates card state;
-    otherwise the original cheap identity-preserving branch copy remains in use.
+    scorer. Card copies are created only when a supported Joker mutates card state
+    or needs branch-local per-card retrigger metadata.
     """
 
     SUPPORTED_CLASS_NAMES = frozenset(
@@ -55,6 +55,7 @@ class LiveJokerScoreProjector:
             "CraftyJoker",
             "DaggerJoker",
             "DrollJoker",
+            "DuskJoker",
             "EggJoker",
             "EvenStevenJoker",
             "FibonacciJoker",
@@ -64,7 +65,9 @@ class LiveJokerScoreProjector:
             "GreenJoker",
             "GreedyJoker",
             "GrosMichelJoker",
+            "HackJoker",
             "HalfJoker",
+            "HangingChadJoker",
             "HitTheRoadJoker",
             "HologramJoker",
             "IceCreamJoker",
@@ -88,6 +91,7 @@ class LiveJokerScoreProjector:
             "SeltzerJoker",
             "SlyJoker",
             "SmileyFaceJoker",
+            "SockAndBuskinJoker",
             "SpareTrousersJoker",
             "SquareJoker",
             "ThrowbackJoker",
@@ -106,13 +110,20 @@ class LiveJokerScoreProjector:
 
     HAND_PLAYED_CLASS_NAMES = frozenset(
         {
+            "DuskJoker",
+            "HackJoker",
+            "HangingChadJoker",
             "LoyaltyCardJoker",
+            "SockAndBuskinJoker",
             "VampireJoker",
         }
     )
 
     CARD_MUTATING_CLASS_NAMES = frozenset(
         {
+            "HackJoker",
+            "HangingChadJoker",
+            "SockAndBuskinJoker",
             "VampireJoker",
         }
     )
@@ -195,6 +206,13 @@ class LiveJokerScoreProjector:
                 + played_card_retriggers
             )
 
+        self._apply_per_card_retriggers(joker_data, safe_cards)
+        joker_data["scoring_cards"] = self._expanded_scoring_cards(
+            hand,
+            safe_cards,
+            joker_data,
+        )
+
         score = self.scorer.score(
             hand,
             safe_state,
@@ -234,11 +252,42 @@ class LiveJokerScoreProjector:
             poker_hand=hand,
             cards=list(cards or []),
             trigger="HAND_PLAYED",
-            data={"scoring_cards": scoring_cards},
+            data={
+                "scoring_cards": scoring_cards,
+                "final_hand": int(getattr(state, "hands_remaining", 0) or 0) <= 1,
+            },
         )
         for joker in active:
             context = joker.apply(context)
         return context.data
+
+    @staticmethod
+    def _apply_per_card_retriggers(joker_data: dict, cards) -> None:
+        by_card = joker_data.get("retrigger_by_card_id", {})
+        if not isinstance(by_card, dict) or not by_card:
+            return
+        for card in cards:
+            extra = max(0, int(by_card.get(id(card), 0) or 0))
+            if extra:
+                setattr(card, "_projection_extra_retriggers", extra)
+
+    def _expanded_scoring_cards(self, hand, cards, joker_data: dict) -> list:
+        global_retriggers = max(
+            0,
+            int(joker_data.get("retrigger_played_cards", 0) or 0),
+        )
+        expanded = []
+        for card in self.scorer.scoring_cards(hand, cards):
+            if self.scorer.is_card_debuffed(card):
+                continue
+            expanded.extend(
+                [card]
+                * self.scorer._played_card_trigger_count(
+                    card,
+                    global_retriggers,
+                )
+            )
+        return expanded
 
     @staticmethod
     def _seltzer_retriggers(jokers) -> int:

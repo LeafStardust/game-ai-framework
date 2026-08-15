@@ -8,7 +8,14 @@ class PhotographJoker(Joker):
             return context
 
         scoring_cards = context.data.get("scoring_cards", context.cards)
-        if scoring_cards and scoring_cards[0].rank in {"J", "Q", "K"}:
-            context.score.x_mult *= 2
+        if not scoring_cards:
+            return context
+
+        first = scoring_cards[0]
+        if first.rank not in {"J", "Q", "K"}:
+            return context
+
+        triggers = sum(card is first for card in scoring_cards)
+        context.score.x_mult *= 2 ** triggers
 
         return context

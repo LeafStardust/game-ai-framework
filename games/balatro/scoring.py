@@ -66,9 +66,14 @@ class BalatroScorer:
     @staticmethod
     def _played_card_trigger_count(card, extra_retriggers: int = 0) -> int:
         """Return how many times one scored card resolves its scoring effects."""
+        branch_retriggers = max(
+            0,
+            int(getattr(card, "_projection_extra_retriggers", 0) or 0),
+        )
         return (
             1
             + max(0, int(extra_retriggers))
+            + branch_retriggers
             + (1 if getattr(card, "seal", None) == "Red" else 0)
         )
 
