@@ -4,7 +4,7 @@ from games.balatro.live.injected.install import bridge_asset_path
 def test_bridge_status_identifies_hardened_command_pump():
     source = bridge_asset_path().read_text(encoding="utf-8")
 
-    assert 'return "bridge=2;achievement_gate="' in source
+    assert 'return "bridge=2;bridge_revision=3;blind_skip=1;achievement_gate="' in source
     assert 'command_pump=LOVE_RUN_PRE_UPDATE' in source
 
 
