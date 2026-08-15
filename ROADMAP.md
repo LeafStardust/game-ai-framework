@@ -276,7 +276,7 @@
 | D11 | Reroll decision | Execution + policy foundation; EV model open |
 | D12 | Shop arbiter | Foundation complete |
 | D13 | Blind play vs skip/tag | Play/skip execution + threshold foundation complete; tag-specific valuation open |
-| D14 | Run-level resource valuation | Core resource models implemented; arbiter-wide normalization open |
+| D14 | Run-level resource valuation | Foundation complete |
 
 **Implemented decision-layer details**
 
@@ -379,7 +379,7 @@
 - [x] D14 hand/discard resource value
 - [x] D14 Joker/consumable slot shadow prices
 - [x] D14 remaining-ante horizon value
-- [ ] D14 shared normalized utility scale for the shop arbiter
+- [x] D14 shared normalized utility scale for the shop arbiter
 
 > D14 may begin conservatively for `v0.9.0`; strategic calibration is part of `v1.0.0`.
 
