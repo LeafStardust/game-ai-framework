@@ -67,6 +67,7 @@ class LiveJokerScoreProjector:
             "MimeJoker",
             "ObeliskJoker",
             "OddToddJoker",
+            "PareidoliaJoker",
             "PerkeoJoker",
             "PhotographJoker",
             "PopcornJoker",

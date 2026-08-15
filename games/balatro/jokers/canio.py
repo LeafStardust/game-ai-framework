@@ -1,3 +1,4 @@
+from games.balatro.hand_rules import card_is_face
 from games.balatro.joker import Joker, JokerContext
 
 
@@ -11,9 +12,9 @@ class CanioJoker(Joker):
             return context
 
         destroyed_cards = context.data.get("destroyed_cards", [])
-
+        rules = context.data.get("hand_rules", {})
         faces_destroyed = sum(
-            card.rank in {"J", "Q", "K"}
+            card_is_face(card, rules)
             for card in destroyed_cards
         )
 

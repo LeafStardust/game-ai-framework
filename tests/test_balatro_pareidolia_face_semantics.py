@@ -4,12 +4,14 @@ from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
 from games.balatro.hand_rules import card_is_face, hand_rules_for_state
 from games.balatro.joker import JokerContext
+from games.balatro.jokers.canio import CanioJoker
 from games.balatro.jokers.pareidolia import PareidoliaJoker
 from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.smiley_face import SmileyFaceJoker
 from games.balatro.jokers.sock_and_buskin import SockAndBuskinJoker
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
+from games.balatro.live.score_outcomes import VisibleCardScoreOutcomeModel
 from games.balatro.scoring import HandScore
 from games.balatro.state import BalatroState
 
@@ -18,6 +20,19 @@ def _pareidolia_rules():
     state = BalatroState()
     state.jokers = [PareidoliaJoker()]
     return hand_rules_for_state(state)
+
+
+def _live_state(card, jokers):
+    state = BalatroState()
+    state.phase = "SELECTING_HAND"
+    state.hand = [card]
+    state.deck = []
+    state.score = 0
+    state.hands_remaining = 1
+    state.discards_remaining = 0
+    state.blind = Blind(BlindType.BIG, 100)
+    state.jokers = list(jokers)
+    return state
 
 
 def test_pareidolia_declares_face_rule_only_for_hand_rules():
@@ -91,22 +106,78 @@ def test_sock_retriggers_number_scoring_card_under_pareidolia():
     assert context.data["retrigger_by_card_id"][id(card)] == 1
 
 
-def test_live_projection_remains_fail_closed_until_pareidolia_is_admitted():
+def test_canio_direct_transition_treats_destroyed_number_card_as_face():
     card = BalatroCard("7", "Clubs")
-    state = BalatroState()
-    state.phase = "SELECTING_HAND"
-    state.hand = [card]
-    state.deck = []
-    state.score = 0
-    state.hands_remaining = 1
-    state.discards_remaining = 0
-    state.blind = Blind(BlindType.BIG, 100)
-    state.jokers = [PareidoliaJoker(), ScaryFaceJoker()]
+    canio = CanioJoker()
+    context = JokerContext(
+        state=BalatroState(),
+        score=HandScore(10, 2),
+        data={
+            "destroyed_cards": [card],
+            "hand_rules": _pareidolia_rules(),
+        },
+    )
+
+    canio.apply(context)
+
+    assert canio.x_mult == 2.0
+    assert context.score.x_mult == 2.0
+
+
+def test_live_projection_admits_pareidolia_face_scoring():
+    card = BalatroCard("7", "Clubs")
+    state = _live_state(card, [PareidoliaJoker(), ScaryFaceJoker()])
 
     projection = LiveHandDecisionEvaluator().project_play(
         state,
         BalatroAction(PLAY_CARDS, cards=[card]),
     )
 
-    assert projection.joker_projection_complete is False
-    assert "Pareidolia" in projection.unsupported_jokers
+    assert projection.hand == PokerHand.HIGH_CARD
+    assert projection.hand_score == 42
+    assert projection.joker_projection_complete is True
+    assert projection.unsupported_jokers == ()
+
+
+def test_pareidolia_number_glass_break_can_grow_canio():
+    card = BalatroCard("7", "Clubs", enhancement="Glass")
+    state = _live_state(card, [PareidoliaJoker(), CanioJoker()])
+
+    distribution = VisibleCardScoreOutcomeModel().project(
+        PokerHand.HIGH_CARD,
+        state,
+        [card],
+    )
+
+    assert distribution.random_sources == ("Glass break x1",)
+    assert [(outcome.score, outcome.probability) for outcome in distribution.outcomes] == [
+        (24, 0.75),
+        (24, 0.25),
+    ]
+    assert [
+        next(
+            joker
+            for joker in outcome.state_after_scoring.jokers
+            if isinstance(joker, CanioJoker)
+        ).x_mult
+        for outcome in distribution.outcomes
+    ] == [1.0, 2.0]
+
+
+def test_pareidolia_does_not_bypass_debuff_for_number_glass_card():
+    card = BalatroCard("7", "Clubs", enhancement="Glass", debuffed=True)
+    state = _live_state(
+        card,
+        [PareidoliaJoker(), ScaryFaceJoker(), CanioJoker()],
+    )
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD,
+        state,
+        [card],
+    )
+
+    assert transition.joker_projection_complete is True
+    assert transition.distribution.random_sources == ()
+    assert transition.distribution.deterministic is True
+    assert transition.distribution.minimum == 5

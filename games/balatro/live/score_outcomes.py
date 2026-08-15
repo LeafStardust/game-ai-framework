@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from math import comb
 
 from games.balatro.hand import PokerHand
-from games.balatro.hand_rules import hand_rules_for_state
+from games.balatro.hand_rules import card_is_face, hand_rules_for_state
 from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.scoring import BalatroScorer
 
@@ -259,7 +259,7 @@ class VisibleCardScoreOutcomeModel:
             for card in self.scorer.scoring_cards(hand, cards, rules=rules)
             if not self.scorer.is_card_debuffed(card)
             and getattr(card, "enhancement", None) == "Glass"
-            and str(getattr(card, "rank", "")) in {"J", "Q", "K"}
+            and card_is_face(card, rules)
         )
 
     def _lucky_branches(self, triggers: int, state) -> tuple[_LuckyBranch, ...]:
