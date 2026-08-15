@@ -465,6 +465,7 @@ class BalatroScorer:
                 ):
                     context = joker.apply(context)
                 self._apply_joker_edition(context.score, joker)
+                self._fold_x_mult(context.score)
 
             score = context.score
 

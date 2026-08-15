@@ -28,10 +28,14 @@ class LiveJokerScoreProjector:
 
     SUPPORTED_CLASS_NAMES = frozenset(
         {
+            "AbstractJoker",
+            "AcrobatJoker",
             "AncientJoker",
             "BannerJoker",
             "BaronJoker",
+            "BlueJoker",
             "BootstrapsJoker",
+            "BullJoker",
             "CampfireJoker",
             "CanioJoker",
             "CastleJoker",
@@ -46,6 +50,7 @@ class LiveJokerScoreProjector:
             "EvenStevenJoker",
             "FibonacciJoker",
             "FlashCardJoker",
+            "FlatMultJoker",
             "FortuneTellerJoker",
             "FourFingersJoker",
             "GluttonousJoker",
@@ -65,6 +70,7 @@ class LiveJokerScoreProjector:
             "LustyJoker",
             "MadnessJoker",
             "MimeJoker",
+            "MysticSummitJoker",
             "ObeliskJoker",
             "OddToddJoker",
             "PareidoliaJoker",
@@ -88,6 +94,7 @@ class LiveJokerScoreProjector:
             "SpareTrousersJoker",
             "SplashJoker",
             "SquareJoker",
+            "SupernovaJoker",
             "ThrowbackJoker",
             "TribouletJoker",
             "TurtleBeanJoker",
