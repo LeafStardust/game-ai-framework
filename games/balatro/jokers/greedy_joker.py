@@ -1,22 +1,17 @@
+from games.balatro.hand_rules import card_matches_suit
 from games.balatro.joker import Joker, JokerContext
 
 
 class GreedyJoker(Joker):
 
-    def apply(
-        self,
-        context: JokerContext
-    ) -> JokerContext:
-
+    def apply(self, context: JokerContext) -> JokerContext:
         if context.score is None:
             return context
 
+        rules = context.data.get("hand_rules", {})
         scoring_cards = context.data.get("scoring_cards", context.cards)
-        mult = sum(
-            card.suit == "Diamonds"
+        context.score.mult += 3 * sum(
+            card_matches_suit(card, "Diamonds", rules)
             for card in scoring_cards
-        ) * 3
-
-        context.score.mult += mult
-
+        )
         return context

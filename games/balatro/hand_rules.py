@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.joker import JokerContext
 
 
@@ -19,6 +20,11 @@ def card_is_face(card, rules: dict | None = None) -> bool:
     if bool((rules or {}).get("all_cards_are_face")):
         return True
     return str(getattr(card, "rank", "")) in {"J", "Q", "K"}
+
+
+def card_matches_suit(card, suit: str, rules: dict | None = None) -> bool:
+    """Return whether one public card counts as ``suit`` under passive rules."""
+    return HandEvaluator._matches_suit(card, suit, dict(rules or {}))
 
 
 def hand_rules_for_state(state) -> dict:

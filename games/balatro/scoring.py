@@ -58,12 +58,14 @@ class BalatroScorer:
     ON_SCORED_JOKER_CLASS_NAMES = frozenset(
         {
             "AncientJoker",
+            "ArrowheadJoker",
             "EvenStevenJoker",
             "FibonacciJoker",
             "GluttonousJoker",
             "GreedyJoker",
             "LustyJoker",
             "OddToddJoker",
+            "OnyxAgateJoker",
             "PhotographJoker",
             "ScaryFaceJoker",
             "ScholarJoker",
