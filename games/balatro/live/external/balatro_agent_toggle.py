@@ -2,15 +2,20 @@ from __future__ import annotations
 
 import argparse
 import os
+import signal
 import subprocess
 import sys
+import time
 from pathlib import Path
 
+from . import agent_control as agent_control_module
 from .agent_control import BalatroAgentControl
 
 
 SUPERVISOR_MODULE = "games.balatro.live.external.balatro_agent_supervisor_entry"
 MONITOR_MODULE = "games.balatro.live.external.balatro_agent_monitor"
+HARD_STOP_EXIT_TIMEOUT_SECONDS = 3.0
+HARD_STOP_POLL_INTERVAL_SECONDS = 0.02
 
 
 def _repo_root() -> Path:
@@ -33,6 +38,99 @@ def _monitor_creation_flags() -> int:
         getattr(subprocess, "CREATE_NEW_CONSOLE", 0x00000010)
         | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
     )
+
+
+def _force_terminate_process(pid: int) -> None:
+    if pid <= 0:
+        raise ValueError("supervisor PID must be positive")
+
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+
+        PROCESS_TERMINATE = 0x0001
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        open_process = kernel32.OpenProcess
+        open_process.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        open_process.restype = wintypes.HANDLE
+        terminate_process = kernel32.TerminateProcess
+        terminate_process.argtypes = [wintypes.HANDLE, wintypes.UINT]
+        terminate_process.restype = wintypes.BOOL
+        close_handle = kernel32.CloseHandle
+        close_handle.argtypes = [wintypes.HANDLE]
+        close_handle.restype = wintypes.BOOL
+
+        handle = open_process(PROCESS_TERMINATE, False, int(pid))
+        if not handle:
+            if not agent_control_module._process_is_running(pid):
+                return
+            error_code = ctypes.get_last_error()
+            raise OSError(
+                error_code,
+                f"unable to open supervisor PID {pid} for termination",
+            )
+        try:
+            if not terminate_process(handle, 1):
+                if not agent_control_module._process_is_running(pid):
+                    return
+                error_code = ctypes.get_last_error()
+                raise OSError(
+                    error_code,
+                    f"unable to terminate supervisor PID {pid}",
+                )
+        finally:
+            close_handle(handle)
+        return
+
+    os.kill(int(pid), signal.SIGKILL)
+
+
+def _wait_for_process_exit(
+    pid: int,
+    *,
+    timeout_seconds: float = HARD_STOP_EXIT_TIMEOUT_SECONDS,
+    poll_interval: float = HARD_STOP_POLL_INTERVAL_SECONDS,
+) -> None:
+    deadline = time.monotonic() + max(0.0, float(timeout_seconds))
+    while agent_control_module._process_is_running(pid):
+        if time.monotonic() >= deadline:
+            raise RuntimeError(
+                f"supervisor PID {pid} remained alive after emergency termination"
+            )
+        if poll_interval:
+            time.sleep(max(0.0, float(poll_interval)))
+
+
+def _validated_hard_stop_status(
+    control: BalatroAgentControl,
+    pid: int,
+) -> dict:
+    status = control.read_status()
+    if not status:
+        return {}
+
+    state = str(status.get("state") or "").upper()
+    if state == "OFF":
+        raise RuntimeError(
+            "refusing emergency hard stop because control status says OFF while "
+            f"agent.pid points at running PID {pid}"
+        )
+
+    status_pid = status.get("pid")
+    if status_pid is None:
+        return status
+    try:
+        normalized_status_pid = int(status_pid)
+    except (TypeError, ValueError) as error:
+        raise RuntimeError(
+            "refusing emergency hard stop because control status PID is invalid"
+        ) from error
+    if normalized_status_pid != pid:
+        raise RuntimeError(
+            "refusing emergency hard stop because control status PID does not "
+            f"match agent.pid ({normalized_status_pid} != {pid})"
+        )
+    return status
 
 
 def launch_monitor(control: BalatroAgentControl) -> None:
@@ -134,6 +232,49 @@ def stop_agent(control: BalatroAgentControl) -> int | None:
     return pid
 
 
+def hard_stop_agent(control: BalatroAgentControl) -> int | None:
+    """Force-terminate only the recorded supervisor process.
+
+    This is an emergency fallback for a supervisor that cannot reach the normal
+    cooperative stop checkpoint. It never targets Balatro itself. An action that
+    Balatro already consumed before the kill may still finish normally.
+    """
+    pid = control.running_pid()
+    if pid is None:
+        return None
+
+    current = _validated_hard_stop_status(control, pid)
+    metadata = {
+        "pid": pid,
+        "session_id": current.get("session_id"),
+        "attempt": current.get("attempt"),
+        "run_id": current.get("run_id"),
+    }
+    control.write_status(
+        "HARD_STOPPING",
+        **metadata,
+        reason="emergency hard stop requested; force-terminating supervisor only",
+    )
+    try:
+        _force_terminate_process(pid)
+        _wait_for_process_exit(pid)
+    except Exception as error:
+        control.write_status(
+            "HARD_STOP_FAILED",
+            **metadata,
+            reason=f"emergency hard stop failed: {error}",
+        )
+        raise
+
+    control.mark_off(
+        reason="emergency hard stop; supervisor force-terminated; Balatro left running",
+        session_id=current.get("session_id"),
+        attempt=current.get("attempt"),
+        run_id=current.get("run_id"),
+    )
+    return pid
+
+
 def toggle_agent(
     control: BalatroAgentControl,
     *,
@@ -150,14 +291,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Toggle the Balatro autonomous supervisor. ON launches one detached "
-            "supervisor process plus a read-only live monitor window. OFF writes a "
-            "cooperative stop request; it never kills Balatro or interrupts an "
-            "already-submitted gameplay action."
+            "supervisor process plus a read-only live monitor window. Normal OFF "
+            "writes a cooperative stop request. --hard-stop is the explicit "
+            "emergency fallback that force-terminates only the supervisor process."
         )
     )
     parser.add_argument("--control-dir")
     parser.add_argument("--session-id")
-    parser.add_argument("--status", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--status", action="store_true")
+    mode.add_argument("--hard-stop", action="store_true")
     args = parser.parse_args()
 
     control = BalatroAgentControl(args.control_dir)
@@ -182,6 +325,24 @@ def main() -> int:
                 )
             if status.get("reason"):
                 print(f"Reason -> {status['reason']}")
+        return 0
+
+    if args.hard_stop:
+        try:
+            pid = hard_stop_agent(control)
+        except Exception as error:
+            print("Balatro Agent emergency hard stop -> FAIL")
+            print(f"Reason -> {error}")
+            return 2
+        if pid is None:
+            print("Balatro Agent -> OFF")
+            print("Emergency hard stop -> no running supervisor")
+            return 0
+        print("Balatro Agent -> OFF")
+        print(f"Supervisor PID -> {pid}")
+        print("Emergency hard stop -> supervisor force-terminated")
+        print("Balatro process -> untouched")
+        print("Already-consumed gameplay action -> may still finish")
         return 0
 
     try:
