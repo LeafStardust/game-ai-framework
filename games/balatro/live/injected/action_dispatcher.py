@@ -14,6 +14,7 @@ from games.balatro.actions import (
     END_SHOP,
     PLAY_CARDS,
     REFRESH_SHOP,
+    REORDER_JOKERS,
     SELECT_BLIND,
     SELECT_PACK_CARD,
     SELL_JOKER,
@@ -121,6 +122,69 @@ def _area_item(
             f"{name} index {index} is not a public item record"
         )
     return value
+
+
+def _joker_live_id_order(
+    snapshot: LiveBalatroSnapshot,
+) -> tuple[object, ...] | None:
+    jokers = _area_cards(snapshot, "jokers")
+    live_ids: list[object] = []
+    for joker in jokers:
+        if not isinstance(joker, dict):
+            return None
+        live_id = joker.get("live_id")
+        if live_id is None:
+            return None
+        live_ids.append(live_id)
+    try:
+        if len(set(live_ids)) != len(live_ids):
+            return None
+    except TypeError:
+        return None
+    return tuple(live_ids)
+
+
+def _joker_reorder_plan(
+    before: LiveBalatroSnapshot,
+    action: BalatroAction,
+) -> tuple[tuple[int, ...], tuple[object, ...], tuple[object, ...]]:
+    before_order = _joker_live_id_order(before)
+    if before_order is None:
+        raise UnsupportedInjectedAction(
+            "joker reorder requires unique authoritative live joker identities"
+        )
+    count = len(before_order)
+    if count < 2:
+        raise UnsupportedInjectedAction(
+            "joker reorder requires at least two jokers"
+        )
+    if not isinstance(action.target, (list, tuple)):
+        raise UnsupportedInjectedAction(
+            "REORDER_JOKERS target must be a full joker-index permutation"
+        )
+
+    indices: list[int] = []
+    for value in action.target:
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise UnsupportedInjectedAction(
+                "joker reorder indices must be non-negative integers"
+            )
+        if value < 0:
+            raise UnsupportedInjectedAction(
+                "joker reorder indices must be non-negative integers"
+            )
+        indices.append(value)
+
+    permutation = tuple(indices)
+    if len(permutation) != count or set(permutation) != set(range(count)):
+        raise UnsupportedInjectedAction(
+            "joker reorder must include every current joker index exactly once"
+        )
+    if permutation == tuple(range(count)):
+        raise UnsupportedInjectedAction("joker reorder must change the current order")
+
+    expected_order = tuple(before_order[index] for index in permutation)
+    return permutation, before_order, expected_order
 
 
 def _money(snapshot: LiveBalatroSnapshot) -> float | None:
@@ -278,6 +342,8 @@ _PACK_PHASE_AFTER_SKIP_TAG = {
     "tag_buffoon": "BUFFOON_PACK",
     "tag_ethereal": "SPECTRAL_PACK",
 }
+
+_JOKER_REORDER_PHASES = frozenset({"BLIND_SELECT", "SELECTING_HAND", "SHOP"})
 
 
 class LiveMemoryInjectedActionDispatcher:
@@ -587,6 +653,42 @@ class LiveMemoryInjectedActionDispatcher:
                 before,
                 after,
                 {"area_index": index, "item": item},
+            )
+
+        if name == REORDER_JOKERS:
+            if before.phase not in _JOKER_REORDER_PHASES:
+                raise UnsupportedInjectedAction(
+                    "REORDER_JOKERS requires BLIND_SELECT, SELECTING_HAND, or "
+                    f"SHOP, observed {before.phase}"
+                )
+            permutation, before_order, expected_order = _joker_reorder_plan(
+                before,
+                action,
+            )
+            self.bridge.reorder_jokers(permutation)
+
+            def reorder_settled(value: LiveBalatroSnapshot) -> bool:
+                return (
+                    value.sequence > before.sequence
+                    and value.phase == before.phase
+                    and value.state_complete
+                    and _joker_live_id_order(value) == expected_order
+                )
+
+            after = self._wait(
+                before,
+                reorder_settled,
+                "joker reorder",
+            )
+            return LiveInjectedActionResult(
+                action,
+                before,
+                after,
+                {
+                    "permutation": permutation,
+                    "joker_order_before": before_order,
+                    "joker_order_after": expected_order,
+                },
             )
 
         if name == BUY_VOUCHER:
