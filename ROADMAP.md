@@ -173,6 +173,8 @@
 ### 0.9C — Shared mechanics and blind-planning foundation
 
 > This section tracks reusable Balatro mechanics and the existing D1 planning foundation. Final strategic tuning is intentionally deferred to `v1.0.0`.
+>
+> **Current hand-decision ownership:** during `SELECTING_HAND`, B6/D5/D6 owns ordinary held-consumable timing and targeting. When a supported deterministic consumable turns the current visible position into a guaranteed immediate blind-clear path, B6 explicitly defers that checkpoint to D1. D1 compares the consumable with normal Play/Discard root candidates, executes only the selected first semantic action, then relies on authoritative re-observation/replanning before the next action. This prevents parallel B6/D1 arbitration paths from becoming an architecture gap.
 
 **Implemented**
 
@@ -203,9 +205,9 @@
 
 - [x] Extend score projection to relevant remaining stateless Jokers/effects separately from hydration
 - [ ] Generalize boss-blind integration
-- [ ] Correct boss-blind **debuff/nullification scoring**: cards marked disabled/debuffed by the active boss must contribute zero chips/effects where Balatro rules suppress them, while still being allowed to participate structurally in a poker hand when legal
-- [ ] Add regression coverage proving D1 does not value boss-disabled cards as ordinary scoring cards
-- [ ] Integrate supported consumable actions into the normal blind planner where execution coverage requires it
+- [x] Correct boss-blind **debuff/nullification scoring**: cards marked disabled/debuffed by the active boss contribute zero chips/effects where Balatro rules suppress them while remaining structurally eligible to form legal poker hands
+- [x] Add regression coverage proving D1 does not value boss-disabled cards as ordinary scoring cards
+- [x] Integrate supported consumable actions into the normal blind planner where execution coverage requires it
 - [ ] Replace temporary unsupported-Joker hard stops with complete supported mechanics
 
 > **Moved to `v1.0.0` competence work:** stronger blind-clear path commitment, minimum-hands clearing, remaining-score/remaining-hands pace discipline, build-intent feedback, Joker-supported hand selection and final resource/economy tuning.
