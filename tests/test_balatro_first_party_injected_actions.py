@@ -39,6 +39,17 @@ def _snapshot(sequence, phase, *, state_complete=True, money=10, **areas):
     )
 
 
+def _standard_pack_card():
+    return {
+        "value": {"rank": "A", "suit": "Spades"},
+        "modifier": {
+            "enhancement": "m_bonus",
+            "edition": "FOIL",
+            "seal": "BLUE",
+        },
+    }
+
+
 class FakeObserver:
     def __init__(self, *snapshots):
         self.snapshots = list(snapshots)
@@ -364,8 +375,15 @@ def test_injected_dispatcher_booster_purchase_waits_for_native_pack():
     ],
 )
 def test_injected_dispatcher_multi_pick_pack_select_accepts_native_pack_phases(phase):
-    before = _snapshot(30, phase)
-    after = _snapshot(31, phase)
+    selected_card = _standard_pack_card()
+    if phase == "STANDARD_PACK":
+        before = _snapshot(30, phase, owned_cards={"cards": []})
+        after = _snapshot(31, phase, owned_cards={"cards": [selected_card]})
+        target = {"area_index": 2, "data": selected_card}
+    else:
+        before = _snapshot(30, phase)
+        after = _snapshot(31, phase)
+        target = {"area_index": 2}
     bridge = FakeBridge()
     terms = iter(
         [
@@ -387,7 +405,7 @@ def test_injected_dispatcher_multi_pick_pack_select_accepts_native_pack_phases(p
     )
 
     result = dispatcher.dispatch(
-        BalatroAction(SELECT_PACK_CARD, target={"area_index": 2}),
+        BalatroAction(SELECT_PACK_CARD, target=target),
         snapshot=before,
     )
 

@@ -6,15 +6,51 @@ from games.balatro.live.injected.action_dispatcher import (
     LiveMemoryInjectedActionDispatcher,
     _pack_selection_complete,
 )
+from games.balatro.live.injected.tag_pack_completion import standard_pack_card_signature
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 
-def _snapshot(sequence: int, phase: str, *, card_count: int) -> LiveBalatroSnapshot:
+def _standard_card():
+    return {
+        "value": {"rank": "A", "suit": "Hearts"},
+        "modifier": {
+            "enhancement": "m_bonus",
+            "edition": "FOIL",
+            "seal": "RED",
+        },
+    }
+
+
+def _standard_signature():
+    signature = standard_pack_card_signature(_standard_card())
+    assert signature is not None
+    return signature
+
+
+def _snapshot(
+    sequence: int,
+    phase: str,
+    *,
+    card_count: int,
+    include_selected_standard: bool = False,
+) -> LiveBalatroSnapshot:
+    cards = [
+        {
+            "live_id": index,
+            "value": {"rank": "2", "suit": "Clubs"},
+            "modifier": {},
+        }
+        for index in range(card_count)
+    ]
+    if include_selected_standard:
+        if not cards:
+            raise ValueError("selected Standard card requires at least one card")
+        cards[-1] = {"live_id": card_count - 1, **_standard_card()}
     return LiveBalatroSnapshot(
         sequence=sequence,
         phase=phase,
         state_complete=True,
-        payload={"cards": {"cards": [{"live_id": index} for index in range(card_count)]}},
+        payload={"owned_cards": {"cards": cards}},
     )
 
 
@@ -27,7 +63,12 @@ def _final_standard_terms() -> LivePackSelectionTerms:
 
 def test_final_standard_tag_pack_selection_accepts_blind_select_after_card_added():
     before = _snapshot(1, "STANDARD_PACK", card_count=52)
-    after = _snapshot(2, "BLIND_SELECT", card_count=53)
+    after = _snapshot(
+        2,
+        "BLIND_SELECT",
+        card_count=53,
+        include_selected_standard=True,
+    )
 
     assert _pack_selection_complete(
         before,
@@ -35,6 +76,7 @@ def test_final_standard_tag_pack_selection_accepts_blind_select_after_card_added
         _final_standard_terms(),
         None,
         selected_address=1234,
+        standard_card_signature=_standard_signature(),
     )
 
 
@@ -48,6 +90,7 @@ def test_final_standard_tag_pack_selection_rejects_blind_select_without_card_add
         _final_standard_terms(),
         None,
         selected_address=1234,
+        standard_card_signature=_standard_signature(),
     )
 
 
@@ -134,7 +177,12 @@ def test_final_pack_selection_rejects_unrelated_terminal_phase():
 
 def test_final_shop_pack_selection_still_accepts_shop_terminal_phase():
     before = _snapshot(1, "STANDARD_PACK", card_count=52)
-    after = _snapshot(2, "SHOP", card_count=53)
+    after = _snapshot(
+        2,
+        "SHOP",
+        card_count=53,
+        include_selected_standard=True,
+    )
 
     assert _pack_selection_complete(
         before,
@@ -142,6 +190,7 @@ def test_final_shop_pack_selection_still_accepts_shop_terminal_phase():
         _final_standard_terms(),
         None,
         selected_address=1234,
+        standard_card_signature=_standard_signature(),
     )
 
 
