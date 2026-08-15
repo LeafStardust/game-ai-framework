@@ -1,113 +1,48 @@
 from __future__ import annotations
 
-from games.balatro.actions import (
-    BalatroAction,
-    DISCARD_CARDS,
-    PLAY_CARDS,
-    USE_CONSUMABLE,
-)
+from games.balatro.actions import BalatroAction, USE_CONSUMABLE
 from games.balatro.blinds.blind import BlindType
-from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner, _ActionEstimate
-from games.balatro.live.boss_blind_integration import (
-    BossAwareLiveHandDecisionEvaluator,
-    boss_play_action_is_legal,
+from games.balatro.live.blind_clear_planner import LiveBlindPlanValue, _ActionEstimate
+from games.balatro.live.consumable_timing import LiveConsumableTimingPolicy
+from games.balatro.live.hand_action_planner_core import (
+    D1LiveBlindClearPlanner as _CoreD1LiveBlindClearPlanner,
 )
-from games.balatro.live.consumable_escape import SunConsumableEscapePlanner
 
 
-class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
-    """D1-specific expectimax beam that preserves redraw-size diversity.
+class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
+    """D1 planner with conservative deterministic consumable clear integration.
 
-    The generic live planner ranks candidates by immediate scoring/retained
-    structure and then truncates. That is useful as a broad default, but D1 needs
-    to compare strategically distinct ways of spending a hand or discard.
+    The existing Play/Discard search remains unchanged. At the authoritative root
+    only, D1 may additionally consider one supported held consumable when the B6
+    timing model proves that its deterministic transformation changes the current
+    best visible play from non-guaranteed to a guaranteed immediate blind clear.
 
-    For Play, keep the best immediate play and reserve larger variants that use
-    the same scoring core while cycling extra non-scoring cards. For Discard,
-    reserve the best candidate for each redraw size before filling remaining beam
-    slots by the generic priority. Beam widths therefore stay bounded while D1
-    sees materially different actions instead of near-duplicates.
-
-    A guaranteed immediate blind clear is terminal for D1. When one is currently
-    visible, discard branches are suppressed entirely and only guaranteed clearing
-    plays are returned. This prevents expectimax from spending an unnecessary
-    discard to chase a higher terminal score after the blind can already be won.
-
-    Root Play/Discard candidates remain exhaustive so currently visible decisions
-    keep full coverage. Recursive hypothetical states never enumerate every card
-    subset. They construct a small deterministic public-state-only candidate set
-    directly from the visible hand, then run expensive Joker/score projection only
-    on those representatives. Hidden draw order is never consulted.
-
-    Validated boss-blind mechanics are supplied through the shared boss integration
-    layer. Root and recursive Play candidates therefore obey the same legality
-    rules, while score projection can dispatch to a boss-specific evaluator without
-    changing the D1 search algorithm itself.
-
-    The already-validated deterministic The Sun escape path is admitted at the
-    root only when it proves an exact guaranteed clear. The action itself spends no
-    hand/discard; execution therefore uses the consumable and then re-observes so D1
-    can choose the first real Play/Discard from the transformed checkpoint. Boss
-    blinds are excluded here because the standalone Sun escape scorer is deliberately
-    boss-agnostic; boss-aware consumable planning must not claim exactness by accident.
+    The consumable itself spends no hand or discard. Its plan value therefore
+    represents the already-proven next Play after the transformation, while real
+    execution still performs only USE_CONSUMABLE and then re-observes/replans.
+    Boss-blind consumable integration remains deliberately excluded until the
+    generalized boss-mechanics item is completed.
     """
 
-    _HAND_STRENGTH = {
-        "HIGH_CARD": 0,
-        "PAIR": 1,
-        "TWO_PAIR": 2,
-        "THREE_OF_A_KIND": 3,
-        "STRAIGHT": 4,
-        "FLUSH": 5,
-        "FULL_HOUSE": 6,
-        "FOUR_OF_A_KIND": 7,
-        "STRAIGHT_FLUSH": 8,
-    }
-    _MAX_CHILD_PROJECTED_PLAYS = 6
-
-    def __init__(self, *args, **kwargs):
-        if kwargs.get("evaluator") is None:
-            kwargs["evaluator"] = BossAwareLiveHandDecisionEvaluator()
+    def __init__(
+        self,
+        *args,
+        consumable_timing_policy: LiveConsumableTimingPolicy | None = None,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self._play_projection_cache: dict[tuple[int, ...], object] = {}
-        self._consumable_estimate_cache: dict[int, _ActionEstimate] = {}
-        self.play_projections_evaluated = 0
+        self.consumable_timing_policy = (
+            consumable_timing_policy
+            or LiveConsumableTimingPolicy(
+                hand_evaluator=self.evaluator,
+                defer_blind_clear_to_d1=False,
+            )
+        )
+        self._integrated_consumable_estimates: dict[int, _ActionEstimate] = {}
 
     def reset_search_stats(self) -> None:
         super().reset_search_stats()
-        self._play_projection_cache.clear()
-        self._consumable_estimate_cache.clear()
-        self.play_projections_evaluated = 0
-
-    def _play_projection(self, state, action):
-        key = self._action_identity(action)
-        cached = self._play_projection_cache.get(key)
-        if cached is not None:
-            return cached
-
-        projection = self.evaluator.project_play(state, action)
-        self._play_projection_cache[key] = projection
-        self.play_projections_evaluated += 1
-        return projection
-
-    def _play_priority(self, state, action):
-        projection = self._play_projection(state, action)
-        return (
-            projection.clear_probability,
-            projection.expected_hand_score,
-            projection.hand_score,
-            -len(action.cards),
-        )
-
-    def _estimate_action(self, state, action: BalatroAction, depth: int):
-        if action.name != USE_CONSUMABLE:
-            return super()._estimate_action(state, action, depth)
-
-        self._consume_node()
-        estimate = self._consumable_estimate_cache.get(id(action))
-        if estimate is None:
-            raise ValueError("D1 consumable candidate is missing its validated estimate")
-        return estimate
+        self._integrated_consumable_estimates.clear()
 
     def _candidate_actions(
         self,
@@ -117,371 +52,108 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         play_width: int | None = None,
         discard_width: int | None = None,
     ):
-        play_limit = self.play_width if play_width is None else int(play_width)
-        discard_limit = (
-            self.discard_width if discard_width is None else int(discard_width)
+        root_beam = self.nodes_evaluated == 0
+        actions = super()._candidate_actions(
+            state,
+            allow_discards=allow_discards,
+            play_width=play_width,
+            discard_width=discard_width,
         )
+        if not root_beam:
+            return actions
 
-        previous_cache = self._play_projection_cache
-        self._play_projection_cache = {}
-        try:
-            # rank_plans()/plan() construct the authoritative root beam before the
-            # first search node is consumed. Recursive child beams have already
-            # consumed at least one node and therefore use bounded direct candidate
-            # construction instead of enumerating every subset.
-            root_beam = self.nodes_evaluated == 0
-            if root_beam:
-                plays = [
-                    action
-                    for action in self.action_generator.generate_play_actions(state)
-                    if boss_play_action_is_legal(state, action)
-                ]
-            else:
-                plays = self._child_play_candidates(state, play_limit)
-
-            guaranteed_clears = [
-                action
-                for action in plays
-                if self._play_projection(state, action).clears_blind
-            ]
-            if guaranteed_clears:
-                return sorted(
-                    guaranteed_clears,
-                    key=lambda action: self._play_priority(state, action),
-                    reverse=True,
-                )[: max(0, play_limit)]
-
-            ranked_plays = self._diverse_play_beam(
-                state,
-                plays,
-                play_limit,
-            )
-            consumable_action = (
-                self._guaranteed_sun_action(state) if root_beam else None
-            )
-
-            if (
-                not allow_discards
-                or discard_limit <= 0
-                or int(getattr(state, "discards_remaining", 0)) <= 0
-            ):
-                if consumable_action is not None:
-                    return ranked_plays + [consumable_action]
-                return ranked_plays
-
-            if root_beam:
-                discards = self.action_generator.generate_discard_actions(state)
-            else:
-                discards = self._child_discard_candidates(state)
-            ranked_discards = self._diverse_discard_beam(
-                state,
-                discards,
-                discard_limit,
-            )
-            result = ranked_plays + ranked_discards
-            if consumable_action is not None:
-                result.append(consumable_action)
-            return result
-        finally:
-            self._play_projection_cache = previous_cache
-
-    def _guaranteed_sun_action(self, state) -> BalatroAction | None:
         blind = getattr(state, "blind", None)
         if getattr(blind, "type", None) == BlindType.BOSS:
-            return None
+            return actions
 
-        consumables = list(getattr(state, "consumables", ()))
-        if not any(getattr(item, "name", None) == "The Sun" for item in consumables):
-            return None
-
-        try:
-            recommendation = SunConsumableEscapePlanner(
-                horizon=self.horizon,
-                play_width=max(1, self.play_width),
-                discard_width=max(0, self.discard_width),
-                child_play_width=max(1, self.child_play_width),
-                child_discard_width=max(0, self.child_discard_width),
-                max_nodes=(self.max_nodes if self.max_nodes is not None else 10000),
-            ).plan(state)
-        except RuntimeError:
-            return None
-
-        if not recommendation.guaranteed_clear:
-            return None
-
-        action = BalatroAction(
-            USE_CONSUMABLE,
-            cards=[state.hand[index] for index in recommendation.target_indices],
-            target=consumables[recommendation.consumable_index],
-        )
-        self._consumable_estimate_cache[id(action)] = _ActionEstimate(
-            action=action,
-            value=recommendation.plan.value,
-            exact=True,
-        )
-        return action
-
-    def _child_play_candidates(self, state, play_limit: int):
-        """Construct a bounded strategic child Play set without subset scans."""
-        hand = list(getattr(state, "hand", ()))
-        if not hand:
-            return []
-
-        max_cards = min(self.action_generator.MAX_SELECTED_CARDS, len(hand))
-        candidates: dict[tuple[int, ...], BalatroAction] = {}
-
-        def add(cards) -> None:
-            cards = list(cards)[:max_cards]
-            if not cards:
-                return
-            action = BalatroAction(PLAY_CARDS, cards=cards)
-            if not boss_play_action_is_legal(state, action):
-                return
-            candidates.setdefault(self._action_identity(action), action)
-
-        # Cheap high-chip prefixes guarantee basic coverage for every selectable
-        # card count without constructing combinations.
-        high_cards = sorted(hand, key=self._card_visible_value, reverse=True)
-        for amount in range(1, max_cards + 1):
-            add(high_cards[:amount])
-
-        by_rank: dict[str, list] = {}
-        by_suit: dict[str, list] = {}
-        for card in hand:
-            by_rank.setdefault(str(getattr(card, "rank", "")), []).append(card)
-            by_suit.setdefault(str(getattr(card, "suit", "")), []).append(card)
-
-        rank_groups = sorted(
-            by_rank.values(),
-            key=lambda cards: (
-                len(cards),
-                sum(self._card_visible_value(c) for c in cards),
-            ),
-            reverse=True,
-        )
-        for cards in rank_groups:
-            if len(cards) >= 2:
-                add(sorted(cards, key=self._card_visible_value, reverse=True)[:4])
-
-        pairs = [cards for cards in rank_groups if len(cards) >= 2]
-        triples = [cards for cards in rank_groups if len(cards) >= 3]
-        if len(pairs) >= 2:
-            add(pairs[0][:2] + pairs[1][:2])
-        if triples:
-            pair = next((cards for cards in pairs if cards is not triples[0]), None)
-            if pair is not None:
-                add(triples[0][:3] + pair[:2])
-
-        # Flushes and straights are generated directly from rank/suit maps.
-        for cards in by_suit.values():
-            if len(cards) >= 5:
-                add(sorted(cards, key=self._card_visible_value, reverse=True)[:5])
-
-        add(self._best_straight_cards(hand))
-        for cards in by_suit.values():
-            add(self._best_straight_cards(cards))
-
-        projection_limit = min(
-            self._MAX_CHILD_PROJECTED_PLAYS,
-            max(3, max(1, play_limit) * 3),
-        )
-        ranked = sorted(
-            candidates.values(),
-            key=self._direct_child_play_priority,
-            reverse=True,
-        )
-        return ranked[:projection_limit]
-
-    def _child_discard_candidates(self, state):
-        """Construct one deterministic low-value discard for each redraw size."""
-        hand = list(getattr(state, "hand", ()))
-        if not hand:
-            return []
-        max_cards = min(self.action_generator.MAX_SELECTED_CARDS, len(hand))
-        low_cards = sorted(hand, key=self._card_visible_value)
-        return [
-            BalatroAction(DISCARD_CARDS, cards=low_cards[:amount])
-            for amount in range(1, max_cards + 1)
-        ]
-
-    def _direct_child_play_priority(self, action):
-        hand = self.evaluator.hand_evaluator.evaluate(action.cards)
-        scoring = self.evaluator.scorer.scoring_cards(hand, action.cards)
-        visible_chips = sum(self._card_visible_value(card) for card in scoring)
-        return (
-            self._HAND_STRENGTH.get(hand.value, -1),
-            visible_chips,
-            len(scoring),
-            -len(action.cards),
-        )
-
-    def _best_straight_cards(self, cards):
-        best_by_value = {}
-        for card in cards:
-            value = self.evaluator.RANK_ORDER.get(str(getattr(card, "rank", "")))
-            if value is None:
+        for recommendation in self.consumable_timing_policy.blind_clear_recommendations(
+            state
+        ):
+            # The Sun retains its separately validated multi-target escape path.
+            # This integration covers the remaining deterministic B6/D5/D6 uses.
+            if str(getattr(recommendation.consumable, "name", "")) == "The Sun":
                 continue
-            current = best_by_value.get(value)
-            if (
-                current is None
-                or self._card_visible_value(card) > self._card_visible_value(current)
-            ):
-                best_by_value[value] = card
 
-        sequences = ([14, 5, 4, 3, 2],) + tuple(
-            list(range(high, high - 5, -1)) for high in range(14, 5, -1)
-        )
-        for sequence in sequences:
-            if all(value in best_by_value for value in sequence):
-                return [best_by_value[value] for value in sequence]
-        return []
-
-    def _card_visible_value(self, card) -> float:
-        value = float(self.evaluator.scorer.card_chip_value(card))
-        if getattr(card, "enhancement", None):
-            value += 30.0
-        if getattr(card, "edition", None):
-            value += 25.0
-        if getattr(card, "seal", None):
-            value += 20.0
-        return value
-
-    def _diverse_play_beam(self, state, plays, limit: int):
-        if limit <= 0 or not plays:
-            return []
-
-        ranked = sorted(
-            plays,
-            key=lambda action: self._play_priority(state, action),
-            reverse=True,
-        )
-        top = ranked[0]
-        chosen = [top]
-        chosen_keys = {self._action_identity(top)}
-        if len(chosen) >= limit:
-            return chosen
-
-        top_hand = self.evaluator.hand_evaluator.evaluate(top.cards)
-        top_core = self._scoring_core(top_hand, top.cards)
-        max_cards = min(
-            self.action_generator.MAX_SELECTED_CARDS,
-            len(getattr(state, "hand", [])),
-        )
-
-        # A longer play with the same scoring core can act as a free redraw of
-        # otherwise non-scoring cards. Keep one representative per card count.
-        for amount in range(len(top.cards) + 1, max_cards + 1):
-            variants = []
-            for action in plays:
-                if len(action.cards) != amount:
-                    continue
-                hand = self.evaluator.hand_evaluator.evaluate(action.cards)
-                if hand != top_hand:
-                    continue
-                if self._scoring_core(hand, action.cards) != top_core:
-                    continue
-                variants.append(action)
-
-            if not variants:
+            action = recommendation.to_action()
+            if action is None:
                 continue
-            best = max(
-                variants,
-                key=lambda action: self._cycling_variant_priority(state, action),
-            )
-            key = self._action_identity(best)
-            if key in chosen_keys:
+            estimate = self._estimate_from_recommendation(state, action, recommendation)
+            if estimate is None:
                 continue
-            chosen.append(best)
-            chosen_keys.add(key)
-            if len(chosen) >= limit:
-                return chosen
 
-        for action in ranked:
-            key = self._action_identity(action)
-            if key in chosen_keys:
+            self._integrated_consumable_estimates[id(action)] = estimate
+            return [*actions, action]
+
+        return actions
+
+    def _estimate_action(self, state, action: BalatroAction, depth: int):
+        if action.name != USE_CONSUMABLE:
+            return super()._estimate_action(state, action, depth)
+
+        estimate = self._integrated_consumable_estimates.get(id(action))
+        if estimate is None:
+            estimate = self._matching_integrated_estimate(state, action)
+        if estimate is not None:
+            self._consume_node()
+            return estimate
+
+        return super()._estimate_action(state, action, depth)
+
+    def _matching_integrated_estimate(
+        self,
+        state,
+        action: BalatroAction,
+    ) -> _ActionEstimate | None:
+        """Rebuild a cached estimate for confirmation/root-action evaluation."""
+        for recommendation in self.consumable_timing_policy.blind_clear_recommendations(
+            state
+        ):
+            if str(getattr(recommendation.consumable, "name", "")) == "The Sun":
                 continue
-            chosen.append(action)
-            chosen_keys.add(key)
-            if len(chosen) >= limit:
-                break
-        return chosen
-
-    def _diverse_discard_beam(self, state, discards, limit: int):
-        if limit <= 0 or not discards:
-            return []
-
-        ranked = sorted(
-            discards,
-            key=lambda action: self._discard_priority(state, action),
-            reverse=True,
-        )
-        chosen = []
-        chosen_keys = set()
-        max_cards = min(
-            self.action_generator.MAX_SELECTED_CARDS,
-            len(getattr(state, "hand", [])),
-        )
-
-        # Redrawing 1 card and redrawing 4 cards are strategically different even
-        # when a retained-structure heuristic ranks several 1-card choices higher.
-        for amount in range(1, max_cards + 1):
-            same_size = [action for action in discards if len(action.cards) == amount]
-            if not same_size:
+            candidate = recommendation.to_action()
+            if candidate is None:
                 continue
-            best = max(
-                same_size,
-                key=lambda action: self._discard_priority(state, action),
-            )
-            key = self._action_identity(best)
-            if key in chosen_keys:
+            if candidate.target is not action.target:
                 continue
-            chosen.append(best)
-            chosen_keys.add(key)
-            if len(chosen) >= limit:
-                return chosen
-
-        for action in ranked:
-            key = self._action_identity(action)
-            if key in chosen_keys:
+            if self._selected_identity(candidate) != self._selected_identity(action):
                 continue
-            chosen.append(action)
-            chosen_keys.add(key)
-            if len(chosen) >= limit:
-                break
-        return chosen
-
-    def _cycling_variant_priority(self, state, action):
-        kept = self._kept_cards(state.hand, action.cards)
-        retained_structure = self.evaluator._retained_structure_value(kept)
-        hand = self.evaluator.hand_evaluator.evaluate(action.cards)
-        scoring_ids = set(self._scoring_core(hand, action.cards))
-        cycled = [card for card in action.cards if id(card) not in scoring_ids]
-        cycle_cost = sum(self._cycle_cost(card) for card in cycled)
-        return (
-            retained_structure,
-            -cycle_cost,
-            self._play_priority(state, action),
-        )
-
-    def _scoring_core(self, hand, cards) -> tuple[int, ...]:
-        scoring = self.evaluator.scorer.scoring_cards(hand, cards)
-        return tuple(sorted(id(card) for card in scoring))
-
-    def _cycle_cost(self, card) -> float:
-        cost = float(self.evaluator.scorer.card_chip_value(card))
-        enhancement = getattr(card, "enhancement", None)
-        edition = getattr(card, "edition", None)
-        seal = getattr(card, "seal", None)
-        if enhancement:
-            cost += 30.0
-        if enhancement in {"Steel", "Gold"}:
-            cost += 30.0
-        if edition:
-            cost += 25.0
-        if seal:
-            cost += 20.0
-        return cost
+            return self._estimate_from_recommendation(state, action, recommendation)
+        return None
 
     @staticmethod
-    def _action_identity(action) -> tuple[int, ...]:
+    def _selected_identity(action: BalatroAction) -> tuple[int, ...]:
         return tuple(sorted(id(card) for card in action.cards))
+
+    @staticmethod
+    def _estimate_from_recommendation(
+        state,
+        action: BalatroAction,
+        recommendation,
+    ) -> _ActionEstimate | None:
+        after = recommendation.after_projection
+        before = recommendation.before_projection
+        if (
+            before is None
+            or after is None
+            or not before.joker_projection_complete
+            or not after.joker_projection_complete
+            or before.clears_blind
+            or not after.clears_blind
+        ):
+            return None
+
+        return _ActionEstimate(
+            action=action,
+            value=LiveBlindPlanValue(
+                clear_probability=1.0,
+                expected_progress=1.0,
+                expected_score=float(after.expected_projected_total),
+                expected_hands_remaining=float(
+                    max(0, int(getattr(state, "hands_remaining", 0)) - 1)
+                ),
+                expected_discards_remaining=float(
+                    getattr(state, "discards_remaining", 0)
+                ),
+            ),
+            exact=True,
+        )
