@@ -54,6 +54,14 @@ class BalatroScorer:
         "A": 11,
     }
 
+    ON_HELD_JOKER_CLASS_NAMES = frozenset(
+        {
+            "BaronJoker",
+            "RaisedFistJoker",
+            "ShootTheMoonJoker",
+        }
+    )
+
     def is_card_debuffed(self, card) -> bool:
         """Return whether Balatro currently disables this card's effects.
 
@@ -76,6 +84,29 @@ class BalatroScorer:
             + branch_retriggers
             + (1 if getattr(card, "seal", None) == "Red" else 0)
         )
+
+    @staticmethod
+    def _held_card_trigger_count(card, extra_retriggers: int = 0) -> int:
+        """Return held-in-hand activations for one public card."""
+        return (
+            1
+            + max(0, int(extra_retriggers))
+            + (1 if getattr(card, "seal", None) == "Red" else 0)
+        )
+
+    @staticmethod
+    def _fold_x_mult(score: HandScore) -> None:
+        """Commit phase-local XMult before later +Mult can resolve.
+
+        Balatro resolves played cards, held cards and independent Jokers in distinct
+        phases. The legacy score representation stores XMult separately, so folding
+        at a phase boundary preserves the ordering between an earlier XMult and a
+        later additive Mult without changing the public HandScore contract.
+        """
+        factor = float(score.x_mult)
+        if factor != 1.0:
+            score.mult *= factor
+            score.x_mult = 1.0
 
     def _apply_card_modifiers(
         self,
@@ -151,19 +182,66 @@ class BalatroScorer:
         elif edition == "POLYCHROME":
             score.x_mult *= 1.5
 
-    def _apply_held_modifiers(
+    def _apply_held_phase(
         self,
         score: HandScore,
-        cards
+        cards,
+        state,
+        *,
+        extra_retriggers: int = 0,
     ) -> None:
+        """Resolve public held-card scoring effects in Balatro activation order."""
+        active_cards = [
+            card
+            for card in list(cards or [])
+            if not self.is_card_debuffed(card)
+        ]
+        ranked_cards = [
+            card
+            for card in active_cards
+            if getattr(card, "enhancement", None) != "Stone"
+            and str(getattr(card, "rank", "")) in self.RANK_CHIPS
+        ]
+        lowest = min(
+            ranked_cards,
+            key=lambda card: self.RANK_CHIPS[str(card.rank)],
+            default=None,
+        )
+        held_jokers = [
+            joker
+            for joker in getattr(state, "jokers", [])
+            if type(joker).__name__ in self.ON_HELD_JOKER_CLASS_NAMES
+        ]
 
-        for card in cards:
+        for card in active_cards:
+            trigger_count = self._held_card_trigger_count(
+                card,
+                extra_retriggers,
+            )
+            for _ in range(trigger_count):
+                # Card enhancement resolves before on-held Jokers for this card.
+                if getattr(card, "enhancement", None) == "Steel":
+                    score.x_mult *= 1.5
+                    self._fold_x_mult(score)
 
-            if self.is_card_debuffed(card):
-                continue
+                if not held_jokers:
+                    continue
 
-            if card.enhancement == "Steel":
-                score.x_mult *= 1.5
+                context = JokerContext(
+                    state=state,
+                    score=score,
+                    cards=[],
+                    held_cards=active_cards,
+                    trigger="HELD_CARD",
+                    data={
+                        "held_card": card,
+                        "lowest_held_card": lowest,
+                    },
+                )
+                for joker in held_jokers:
+                    context = joker.apply(context)
+                    # Commit each on-held XMult before a later held-card +Mult.
+                    self._fold_x_mult(context.score)
 
     def score(
         self,
@@ -232,6 +310,10 @@ class BalatroScorer:
             0,
             int(context_data.get("retrigger_played_cards", 0) or 0),
         )
+        held_card_retriggers = max(
+            0,
+            int(context_data.get("retrigger_held_abilities", 0) or 0),
+        )
 
         if include_card_chips:
             modifier_cards = scoring_cards
@@ -269,9 +351,13 @@ class BalatroScorer:
                     if id(card) not in played_identity
                 ]
 
-            self._apply_held_modifiers(
+            # Played-card XMult resolves before the held-card phase begins.
+            self._fold_x_mult(score)
+            self._apply_held_phase(
                 score,
-                held_cards
+                held_cards,
+                state,
+                extra_retriggers=held_card_retriggers,
             )
 
             context_data.setdefault(
