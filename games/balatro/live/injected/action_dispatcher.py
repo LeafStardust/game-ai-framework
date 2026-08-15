@@ -231,6 +231,12 @@ def _blind_type(snapshot: LiveBalatroSnapshot) -> str:
     return str(blind.get("type") or "UNKNOWN").upper()
 
 
+_NEXT_BLIND_AFTER_SKIP = {
+    "SMALL": "BIG",
+    "BIG": "BOSS",
+}
+
+
 class LiveMemoryInjectedActionDispatcher:
     """Execute supported Balatro actions through the first-party Lua bridge.
 
@@ -360,7 +366,8 @@ class LiveMemoryInjectedActionDispatcher:
                     f"SKIP_BLIND requires BLIND_SELECT, observed {before.phase}"
                 )
             before_blind = _blind_type(before)
-            if before_blind not in {"SMALL", "BIG"}:
+            expected_blind = _NEXT_BLIND_AFTER_SKIP.get(before_blind)
+            if expected_blind is None:
                 raise UnsupportedInjectedAction(
                     f"SKIP_BLIND requires a skippable Small/Big blind, observed {before_blind}"
                 )
@@ -371,7 +378,7 @@ class LiveMemoryInjectedActionDispatcher:
                     value.sequence > before.sequence
                     and value.phase == "BLIND_SELECT"
                     and value.state_complete
-                    and _blind_type(value) != before_blind
+                    and _blind_type(value) == expected_blind
                 ),
                 "blind skip",
             )
