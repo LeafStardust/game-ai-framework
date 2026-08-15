@@ -2,16 +2,22 @@
 
 ## Purpose
 
-The production Balatro integration connects the Python decision framework to the normal Steam version of Balatro **without modifying or injecting into the Balatro process**.
+The Balatro live integration connects the Python decision framework to the Steam version of Balatro through the injected BalatroBot API.
 
-The long-term target is an agent that plays the same visible game a human plays:
+The runtime stack is:
 
 ```text
 Steam Balatro
     |
-    | pixels
+    | Lovely + Steamodded + BalatroBot injection
     v
-External Observer
+BalatroBot JSON-RPC API
+    |
+    v
+BalatroBotBridge
+    |
+    v
+BalatroStateTranslator
     |
     v
 BalatroState
@@ -23,203 +29,79 @@ Deck Agent / Decision System
 BalatroAction
     |
     v
-External Input Controller
+BalatroBotBridge
     |
-    | normal mouse / keyboard events
     v
 Steam Balatro
 ```
 
-This keeps the production game process unmodified and allows runs to use the normal Steam profile, save data, unlock progression, and achievement system.
+The injected backend is the production backend for Balatro in this project. External screen capture, computer-vision state extraction, and mouse/keyboard control are not part of the current architecture.
 
-## Production Architecture
+## Runtime Components
 
-```text
-Unmodified Steam Balatro
-        |
-        | window capture
-        v
-BalatroExternalObserver
-        |
-        +--> UI/phase detector
-        +--> card recognizer
-        +--> HUD/state extractor
-        +--> shop/blind/joker/consumable recognizers
-        |
-        v
-BalatroStateTranslator
-        |
-        v
-BalatroState
-        |
-        v
-RedDeckAgent
-        |
-        v
-BalatroAction
-        |
-        v
-BalatroExternalActionExecutor
-        |
-        +--> screen-coordinate mapper
-        +--> mouse controller
-        +--> keyboard controller
-        |
-        v
-Unmodified Steam Balatro
-```
+### BalatroBotBridge
 
-The production boundary is strict:
+`BalatroBotBridge` owns JSON-RPC communication with the injected BalatroBot mod. It is responsible for:
 
-- no Lovely requirement;
-- no Steamodded requirement;
-- no BalatroBot requirement;
-- no runtime Lua injection;
-- no reading Balatro process memory;
-- no native in-game API calls for action execution.
+- health and connectivity checks;
+- structured game-state requests;
+- translating framework actions to BalatroBot RPC calls;
+- tracking snapshot sequence changes;
+- exposing RPC failures as framework-level exceptions.
 
-The agent observes pixels and acts through normal operating-system input events.
+### BalatroStateTranslator
 
-## Shared Live Interfaces
+The translator converts BalatroBot's structured payload into `BalatroState`.
 
-The live integration remains backend-independent. The existing bridge, snapshot, translator, executor, recovery, runner, and telemetry concepts are retained so alternate observation/control implementations can share the same agent code.
+The translation layer should be the only place that knows the exact BalatroBot payload schema. Game strategy should consume `BalatroState`, not raw RPC payloads.
 
-The deck agent must not know whether a state came from:
+### BalatroLiveRunner
 
-- a simulator;
-- a development API backend;
-- external visual observation.
+The live runner owns the autonomous loop:
 
-Likewise, the decision system returns `BalatroAction` objects rather than mouse coordinates.
+1. start or restart a run;
+2. obtain a structured snapshot;
+3. translate it into `BalatroState`;
+4. determine legal framework actions for the current phase;
+5. let the deck agent choose an action;
+6. send the corresponding RPC command;
+7. observe the resulting state;
+8. repeat until `GAME_OVER`.
 
-This separation is required for the general game framework: game-specific sensing and control belong in the adapter layer, while strategy remains in the agent/decision layer.
+### Lifecycle, Recovery, and Telemetry
 
-## External Observation
+Lifecycle helpers handle run start/restart and phase-transition RPCs. Recovery wraps bridge operations so transient failures can be retried or surfaced consistently. Telemetry records live decisions, state transitions, errors, and run results.
 
-The Windows production observer will locate the Balatro window and capture only its client area.
+## Setup
 
-Captured frames are normalized into a logical viewport so recognition and coordinate mapping do not depend directly on the user's screen position or window resolution.
+The supported Balatro integration stack is:
 
-The observer is responsible for extracting enough visible information to construct a useful `BalatroState`, including:
+- Lovely;
+- Steamodded;
+- BalatroBot.
 
-- current game phase;
-- hand cards;
-- remaining visible HUD information;
-- ante and round;
-- blind and required score;
-- current score;
-- money;
-- hands and discards remaining;
-- Jokers;
-- consumables;
-- shop contents;
-- blind-selection state.
+The setup module may install and validate these components automatically.
 
-Recognition should expose confidence where appropriate. Low-confidence observations must cause re-observation or recovery rather than an unsafe click.
+## v0.9 Scope
 
-## External Input
+v0.9 is complete when the injected live integration can autonomously operate a Red Deck / White Stake run from start to `GAME_OVER` without manual gameplay input.
 
-The production controller translates framework actions into normal mouse and keyboard operations.
+Winning is not required for v0.9. The first successful White Stake win belongs to v1.0.0.
 
-Examples:
+The remaining v0.9 work is primarily integration correctness rather than game strategy:
 
-```text
-PLAY_CARDS
-    -> map selected framework cards to current visible card positions
-    -> click those cards
-    -> click Play Hand
+1. complete BalatroBot protocol/capability compatibility checks;
+2. complete `BalatroState` translation for every field required by decisions;
+3. unify phase/lifecycle actions with the framework action model;
+4. support blind selection and skipping without special-case gaps;
+5. validate all required action RPC mappings;
+6. make phase handling robust across the full run lifecycle;
+7. improve synchronization, stall detection, and recovery;
+8. add a real injected end-to-end smoke test;
+9. validate one full autonomous Red Deck / White Stake run to `GAME_OVER`.
 
-DISCARD_CARDS
-    -> map selected framework cards to current visible card positions
-    -> click those cards
-    -> click Discard
+## Boundary With v1.0
 
-BUY_JOKER
-    -> locate the selected shop item
-    -> click Buy
-```
+v0.9 proves that the framework can reliably observe and control the live injected game.
 
-Coordinates are derived from the current normalized viewport and the current observation, not stored as fixed absolute desktop coordinates.
-
-After every mutating action, the runner waits for visual confirmation of the expected transition before choosing another action.
-
-## Development Oracle: BalatroBot
-
-BalatroBot remains supported as an **optional development and testing backend**.
-
-It is useful for:
-
-- comparing visual recognition against structured internal state;
-- generating labeled screenshots/state pairs;
-- debugging state translation;
-- exercising decision logic without relying on visual recognition;
-- validating that an externally inferred state matches the real underlying state during development.
-
-Its architecture is:
-
-```text
-Balatro
-    |
-    | Lovely + Steamodded + BalatroBot
-    v
-BalatroBotBridge
-    |
-    v
-BalatroState / BalatroAction
-```
-
-BalatroBot does not provide agent strategy; however, because it uses an injected mod/API, runs made through it **do not count** toward v0.9.0 or later deck/stake completion.
-
-The automated Lovely/Steamodded/BalatroBot setup code may remain for this optional development mode.
-
-## Steam Progression Requirement
-
-Production milestone runs must use the user's normal Steam copy and normal Balatro profile/save data.
-
-The agent should therefore behave like an external human input device from Balatro's perspective. If the agent legitimately satisfies a normal in-game unlock or Steam achievement condition during a production run, the integration must not intentionally suppress or replace that progression mechanism.
-
-No milestone depends on artificially unlocking content or editing save data.
-
-## Synchronization
-
-The external backend cannot assume an action completed simply because a mouse event was sent.
-
-The synchronization loop is:
-
-1. observe a stable frame/state;
-2. choose one framework action;
-3. execute the corresponding input sequence;
-4. wait for a visible state change or expected phase transition;
-5. re-observe and validate;
-6. only then make the next decision.
-
-Timeouts and low-confidence observations enter recovery rather than issuing repeated mutating input blindly.
-
-## Production Running Target
-
-The final production command should remain simple, for example:
-
-```powershell
-py -m games.balatro.live
-```
-
-The default target remains Red Deck / White Stake.
-
-The production command should launch or focus the normal Steam Balatro installation and use the external backend by default. A development/API backend may be selected explicitly for debugging.
-
-## v0.9 Task Boundaries
-
-1. Shared live integration abstractions.
-2. Steam Balatro window discovery and tracking.
-3. External frame capture and normalized viewport.
-4. Visual phase/state recognition.
-5. Hand/card recognition.
-6. HUD, blind, Joker, consumable, and shop recognition.
-7. External state to `BalatroState` translation.
-8. Normal mouse/keyboard action execution.
-9. Visual synchronization and recovery.
-10. Run start/restart through normal UI controls.
-11. End-to-end autonomous external loop.
-12. Validation on an unmodified Steam Red Deck White Stake run.
-
-The v0.9 milestone proves that the agent can operate the normal Steam game externally. Winning Red Deck White Stake is the v1.0.0 completion criterion.
+v1.0 adds the first complete Red Deck strategy, including shop decisions, Joker selection, consumable strategy, blind strategy, economy management, deck building, and the first successful unseeded White Stake win.
