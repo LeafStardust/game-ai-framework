@@ -103,7 +103,7 @@ def test_full_consumable_slots_can_use_positive_build_context_target():
         recommendation.after_projection.expected_hand_score
         >= recommendation.before_projection.expected_hand_score
     )
-    assert any("full consumable slots" in note for note in recommendation.rationale)
+    assert any("positive build value" in note for note in recommendation.rationale)
 
 
 def test_hermit_uses_at_peak_money_value_without_card_target():
