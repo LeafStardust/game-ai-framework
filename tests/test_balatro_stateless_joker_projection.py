@@ -14,7 +14,12 @@ from games.balatro.jokers.greedy_joker import GreedyJoker
 from games.balatro.jokers.half_joker import HalfJoker
 from games.balatro.jokers.lusty_joker import LustyJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
+from games.balatro.jokers.photograph import PhotographJoker
+from games.balatro.jokers.scary_face import ScaryFaceJoker
+from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.sly_joker import SlyJoker
+from games.balatro.jokers.smiley_face import SmileyFaceJoker
+from games.balatro.jokers.triboulet import TribouletJoker
 from games.balatro.jokers.wily_joker import WilyJoker
 from games.balatro.jokers.wrathful_joker import WrathfulJoker
 from games.balatro.live.score_outcomes import VisibleCardScoreOutcomeModel
@@ -188,6 +193,82 @@ def test_exact_stateless_score_jokers_are_admitted(joker, hand, cards, expected)
     ],
 )
 def test_played_card_jokers_ignore_non_scoring_kickers(joker, cards, expected):
+    state = _state(cards, joker)
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.PAIR,
+        state,
+        cards,
+    )
+
+    assert transition.distribution.minimum == expected
+    assert transition.distribution.maximum == expected
+    assert transition.joker_projection_complete is True
+    assert transition.unsupported_jokers == ()
+
+
+def test_photograph_uses_first_scoring_card_not_first_played_card():
+    cards = [
+        BalatroCard("2", "Diamonds"),
+        BalatroCard("K", "Hearts"),
+        BalatroCard("K", "Spades"),
+    ]
+    state = _state(cards, PhotographJoker())
+
+    transition = VisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.PAIR,
+        state,
+        cards,
+    )
+
+    assert transition.distribution.minimum == 120
+    assert transition.distribution.maximum == 120
+    assert transition.joker_projection_complete is True
+    assert transition.unsupported_jokers == ()
+
+
+@pytest.mark.parametrize(
+    ("joker", "cards", "expected"),
+    [
+        (
+            ScaryFaceJoker(),
+            [
+                BalatroCard("K", "Hearts"),
+                BalatroCard("K", "Spades"),
+                BalatroCard("Q", "Diamonds"),
+            ],
+            180,
+        ),
+        (
+            SmileyFaceJoker(),
+            [
+                BalatroCard("K", "Hearts"),
+                BalatroCard("K", "Spades"),
+                BalatroCard("Q", "Diamonds"),
+            ],
+            360,
+        ),
+        (
+            TribouletJoker(),
+            [
+                BalatroCard("K", "Hearts"),
+                BalatroCard("K", "Spades"),
+                BalatroCard("Q", "Diamonds"),
+            ],
+            240,
+        ),
+        (
+            ScholarJoker(),
+            [
+                BalatroCard("10", "Hearts"),
+                BalatroCard("10", "Spades"),
+                BalatroCard("A", "Diamonds"),
+            ],
+            60,
+        ),
+    ],
+)
+def test_face_and_rank_jokers_ignore_non_scoring_kickers(joker, cards, expected):
     state = _state(cards, joker)
 
     transition = VisibleCardScoreOutcomeModel().project_transition(

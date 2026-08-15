@@ -7,9 +7,10 @@ class TribouletJoker(Joker):
         if context.score is None:
             return context
 
+        scoring_cards = context.data.get("scoring_cards", context.cards)
         matches = sum(
             card.rank in {"K", "Q"}
-            for card in context.cards
+            for card in scoring_cards
         )
 
         context.score.x_mult *= 2 ** matches

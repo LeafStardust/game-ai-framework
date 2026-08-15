@@ -7,7 +7,8 @@ class PhotographJoker(Joker):
         if context.score is None:
             return context
 
-        if context.cards and context.cards[0].rank in {"J", "Q", "K"}:
+        scoring_cards = context.data.get("scoring_cards", context.cards)
+        if scoring_cards and scoring_cards[0].rank in {"J", "Q", "K"}:
             context.score.x_mult *= 2
 
         return context
