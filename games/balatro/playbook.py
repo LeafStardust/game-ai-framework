@@ -148,6 +148,28 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                         "remaining_ante_weight": 0.20,
                         "maximum_horizon_bonus": 1.40,
                     },
+                    "consumable_acquisition": {
+                        "minimum_purchase_build_gain": 0.0,
+                        "minimum_purchase_advantage": 0.35,
+                        "minimum_buy_and_use_advantage": 0.35,
+                        "price_weight": 0.35,
+                        "interest_weight": 1.25,
+                        "reserve_target": 5,
+                        "reserve_weight": 0.45,
+                        "last_consumable_slot_penalty": 0.6,
+                        "immediate_money_weight": 0.20,
+                    },
+                    "consumable_use": {
+                        "minimum_clear_probability_gain": 0.0,
+                        "minimum_pace_score_gain": 0.0,
+                        "minimum_full_slot_contextual_delta": 0.0,
+                        "minimum_final_hand_score_gain": 0.0,
+                        "minimum_immediate_gain": 0.0,
+                    },
+                    "consumable_target": {
+                        "minimum_total_gain": None,
+                        "minimum_contextual_delta": None,
+                    },
                 },
             },
         )
