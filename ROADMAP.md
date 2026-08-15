@@ -162,14 +162,13 @@
 - [x] Bridge v2 command pump services traffic before Balatro update and from the outer LÖVE run loop
 - [x] Compatible bridge protocol normalization keeps implementation revision separate from wire compatibility
 - [x] First-party blind skip/tag execution through Balatro's native skip callback
-
-**Remaining 0.9 coverage**
-
 - [x] Robust held-consumable use for all supported target patterns
 - [x] Robust pack-effect targeting for Tarot/Spectral/Standard modifier flows
 - [x] First-party Joker reordering with authoritative Joker-order reconciliation
 - [x] Emergency hard stop for a hung/unsafe supervisor
-- [ ] Validate an actual normal Steam achievement/unlock from agent gameplay
+- [x] Full repository test suite validated after 0.9B completion
+
+> A fresh real Steam achievement/unlock observation is deferred to the `1.0F` profile-progression validation. The 0.9 execution gate only requires the already-completed in-game achievement-gate validation; a new Steam unlock is not a 0.9B blocker.
 
 ### 0.9C — Shared mechanics and blind-planning foundation
 
