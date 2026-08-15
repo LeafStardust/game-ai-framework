@@ -231,9 +231,24 @@ def _blind_type(snapshot: LiveBalatroSnapshot) -> str:
     return str(blind.get("type") or "UNKNOWN").upper()
 
 
+def _blind_tag(snapshot: LiveBalatroSnapshot) -> str:
+    blind = snapshot.payload.get("blind")
+    if not isinstance(blind, dict):
+        return ""
+    return str(blind.get("tag") or "").strip().lower()
+
+
 _NEXT_BLIND_AFTER_SKIP = {
     "SMALL": "BIG",
     "BIG": "BOSS",
+}
+
+_PACK_PHASE_AFTER_SKIP_TAG = {
+    "tag_standard": "STANDARD_PACK",
+    "tag_charm": "TAROT_PACK",
+    "tag_meteor": "PLANET_PACK",
+    "tag_buffoon": "BUFFOON_PACK",
+    "tag_ethereal": "SPECTRAL_PACK",
 }
 
 
@@ -366,20 +381,32 @@ class LiveMemoryInjectedActionDispatcher:
                     f"SKIP_BLIND requires BLIND_SELECT, observed {before.phase}"
                 )
             before_blind = _blind_type(before)
+            before_tag = _blind_tag(before)
             expected_blind = _NEXT_BLIND_AFTER_SKIP.get(before_blind)
+            expected_pack_phase = _PACK_PHASE_AFTER_SKIP_TAG.get(before_tag)
             if expected_blind is None:
                 raise UnsupportedInjectedAction(
                     f"SKIP_BLIND requires a skippable Small/Big blind, observed {before_blind}"
                 )
             self.bridge.skip_blind()
+
+            def blind_skip_settled(value: LiveBalatroSnapshot) -> bool:
+                if (
+                    value.sequence <= before.sequence
+                    or not value.state_complete
+                    or _blind_type(value) != expected_blind
+                ):
+                    return False
+                if value.phase == "BLIND_SELECT":
+                    return True
+                return (
+                    expected_pack_phase is not None
+                    and value.phase == expected_pack_phase
+                )
+
             after = self._wait(
                 before,
-                lambda value: (
-                    value.sequence > before.sequence
-                    and value.phase == "BLIND_SELECT"
-                    and value.state_complete
-                    and _blind_type(value) == expected_blind
-                ),
+                blind_skip_settled,
                 "blind skip",
             )
             return LiveInjectedActionResult(

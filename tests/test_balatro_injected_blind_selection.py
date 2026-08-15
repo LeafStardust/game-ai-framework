@@ -18,10 +18,15 @@ def _snapshot(
     *,
     state_complete: bool = True,
     blind_type: str | None = None,
+    blind_tag: str | None = None,
 ):
     payload = {}
-    if blind_type is not None:
-        payload["blind"] = {"type": blind_type}
+    if blind_type is not None or blind_tag is not None:
+        payload["blind"] = {}
+        if blind_type is not None:
+            payload["blind"]["type"] = blind_type
+        if blind_tag is not None:
+            payload["blind"]["tag"] = blind_tag
     return LiveBalatroSnapshot(
         sequence=sequence,
         phase=phase,
@@ -133,6 +138,62 @@ def test_injected_dispatcher_skip_blind_waits_for_exact_next_blind(
     assert result.after is after
     assert result.details["blind_before"] == before_blind
     assert result.details["blind_after"] == expected_blind
+
+
+@pytest.mark.parametrize(
+    ("blind_tag", "pack_phase"),
+    [
+        ("tag_standard", "STANDARD_PACK"),
+        ("tag_ethereal", "SPECTRAL_PACK"),
+    ],
+)
+def test_injected_dispatcher_skip_blind_accepts_matching_tag_pack_phase(
+    blind_tag,
+    pack_phase,
+):
+    before = _snapshot(
+        30,
+        "BLIND_SELECT",
+        blind_type="SMALL",
+        blind_tag=blind_tag,
+    )
+    after = _snapshot(31, pack_phase, blind_type="BIG")
+    bridge = FakeBridge()
+    dispatcher = LiveMemoryInjectedActionDispatcher(
+        FakeObserver(after),
+        bridge=bridge,
+        poll_interval=0,
+    )
+
+    result = dispatcher.dispatch(BalatroAction(SKIP_BLIND), snapshot=before)
+
+    assert bridge.calls == [("skip_blind",)]
+    assert result.after is after
+    assert result.after.phase == pack_phase
+    assert result.details["blind_before"] == "SMALL"
+    assert result.details["blind_after"] == "BIG"
+
+
+def test_injected_dispatcher_skip_blind_rejects_unrelated_pack_phase():
+    before = _snapshot(
+        40,
+        "BLIND_SELECT",
+        blind_type="SMALL",
+        blind_tag="tag_standard",
+    )
+    wrong_pack = _snapshot(41, "SPECTRAL_PACK", blind_type="BIG")
+    after = _snapshot(42, "STANDARD_PACK", blind_type="BIG")
+    bridge = FakeBridge()
+    dispatcher = LiveMemoryInjectedActionDispatcher(
+        FakeObserver(wrong_pack, after),
+        bridge=bridge,
+        poll_interval=0,
+    )
+
+    result = dispatcher.dispatch(BalatroAction(SKIP_BLIND), snapshot=before)
+
+    assert bridge.calls == [("skip_blind",)]
+    assert result.after is after
 
 
 def test_injected_dispatcher_rejects_boss_blind_skip_before_bridge_call():
