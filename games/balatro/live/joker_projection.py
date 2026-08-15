@@ -81,6 +81,7 @@ class LiveJokerScoreProjector:
             "ShootTheMoonJoker",
             "ShortcutJoker",
             "SlyJoker",
+            "SmearedJoker",
             "SmileyFaceJoker",
             "SockAndBuskinJoker",
             "SpareTrousersJoker",

@@ -7,6 +7,7 @@ PASSIVE_HAND_RULE_JOKERS = frozenset(
     {
         "FourFingersJoker",
         "ShortcutJoker",
+        "SmearedJoker",
         "SplashJoker",
     }
 )

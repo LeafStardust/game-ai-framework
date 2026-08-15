@@ -7,6 +7,7 @@ from games.balatro.hand import PokerHand
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.four_fingers import FourFingersJoker
 from games.balatro.jokers.shortcut import ShortcutJoker
+from games.balatro.jokers.smeared_joker import SmearedJoker
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.live.score_outcomes import VisibleCardScoreOutcomeModel
@@ -93,6 +94,38 @@ def test_four_fingers_and_shortcut_combine_for_straight_flush():
 
     assert projection.hand == PokerHand.STRAIGHT_FLUSH
     assert projection.hand_score == 1112
+    assert projection.joker_projection_complete is True
+
+
+def test_smeared_recognizes_and_scores_mixed_red_flush():
+    cards = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("4", "Diamonds"),
+        BalatroCard("6", "Hearts"),
+        BalatroCard("8", "Diamonds"),
+        BalatroCard("10", "Hearts"),
+    ]
+
+    projection = _project(cards, [SmearedJoker()])
+
+    assert projection.hand == PokerHand.FLUSH
+    assert projection.hand_score == 260
+    assert projection.joker_projection_complete is True
+
+
+def test_smeared_recognizes_mixed_red_straight_flush():
+    cards = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("3", "Diamonds"),
+        BalatroCard("4", "Hearts"),
+        BalatroCard("5", "Diamonds"),
+        BalatroCard("6", "Hearts"),
+    ]
+
+    projection = _project(cards, [SmearedJoker()])
+
+    assert projection.hand == PokerHand.STRAIGHT_FLUSH
+    assert projection.hand_score == 960
     assert projection.joker_projection_complete is True
 
 

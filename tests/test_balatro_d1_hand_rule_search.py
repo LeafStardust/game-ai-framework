@@ -3,6 +3,7 @@ from games.balatro.card import BalatroCard
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.jokers.four_fingers import FourFingersJoker
 from games.balatro.jokers.shortcut import ShortcutJoker
+from games.balatro.jokers.smeared_joker import SmearedJoker
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
 from games.balatro.state import BalatroState
@@ -84,6 +85,30 @@ def test_recursive_d1_generates_shortcut_gapped_straight():
     candidates = _child_candidates(state)
 
     assert _identity(straight) in {
+        _identity(action.cards)
+        for action in candidates
+    }
+
+
+def test_recursive_d1_generates_smeared_mixed_red_flush():
+    flush = [
+        BalatroCard("2", "Hearts"),
+        BalatroCard("4", "Diamonds"),
+        BalatroCard("6", "Hearts"),
+        BalatroCard("8", "Diamonds"),
+        BalatroCard("10", "Hearts"),
+    ]
+    cards = [
+        *flush,
+        BalatroCard("A", "Spades"),
+        BalatroCard("K", "Clubs"),
+        BalatroCard("Q", "Spades"),
+    ]
+    state = _state(cards, [SmearedJoker()])
+
+    candidates = _child_candidates(state)
+
+    assert _identity(flush) in {
         _identity(action.cards)
         for action in candidates
     }
