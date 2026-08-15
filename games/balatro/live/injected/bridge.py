@@ -223,6 +223,9 @@ class FirstPartyBalatroBridge:
     def sell_joker(self, index: int) -> None:
         self._call("SELL_JOKER", (_validated_index(index),))
 
+    def reorder_jokers(self, indices: Iterable[int]) -> None:
+        self._call("REORDER_JOKERS", _validated_indices(indices))
+
     def select_pack_card(
         self,
         index: int,

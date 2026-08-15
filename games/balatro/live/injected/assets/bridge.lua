@@ -163,7 +163,7 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   end
 
   local function bridge_status()
-    return "bridge=2;bridge_revision=3;blind_skip=1;achievement_gate=" .. achievement_gate_state()
+    return "bridge=2;bridge_revision=4;blind_skip=1;achievement_gate=" .. achievement_gate_state()
       .. ";restart_run_callback=" .. restart_run_callback_state()
       .. ";command_pump=LOVE_RUN_PRE_UPDATE"
   end
@@ -671,6 +671,58 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return true
   end
 
+  local function execute_reorder_jokers(payload)
+    if not G or not G.STATES then
+      return false, "Balatro state is unavailable"
+    end
+    local allowed =
+      G.STATE == G.STATES.BLIND_SELECT
+      or G.STATE == G.STATES.SELECTING_HAND
+      or G.STATE == G.STATES.SHOP
+    if not allowed then
+      return false, "joker reorder requires BLIND_SELECT, SELECTING_HAND, or SHOP"
+    end
+    if not G.jokers or type(G.jokers.cards) ~= "table" then
+      return false, "joker area is unavailable"
+    end
+
+    local indices, parse_error = parse_indices(payload)
+    if not indices then
+      return false, parse_error
+    end
+    local count = #G.jokers.cards
+    if count < 2 then
+      return false, "joker reorder requires at least two jokers"
+    end
+    if #indices ~= count then
+      return false, "joker reorder must include every joker exactly once"
+    end
+
+    local reordered = {}
+    local changed = false
+    for position, index in ipairs(indices) do
+      local joker = G.jokers.cards[index + 1]
+      if not joker then
+        return false, "joker reorder index is out of range"
+      end
+      reordered[position] = joker
+      if joker ~= G.jokers.cards[position] then
+        changed = true
+      end
+    end
+    if not changed then
+      return false, "joker order is unchanged"
+    end
+
+    for position = 1, count do
+      G.jokers.cards[position] = reordered[position]
+    end
+    if type(G.jokers.align_cards) == "function" then
+      G.jokers:align_cards()
+    end
+    return true
+  end
+
   local function pack_card_requires_hand_targets(card)
     local center = card and card.config and card.config.center
     local key = center and center.key
@@ -855,6 +907,10 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     elseif action == "SELL_JOKER" then
       executor = function()
         return execute_sell_joker(payload)
+      end
+    elseif action == "REORDER_JOKERS" then
+      executor = function()
+        return execute_reorder_jokers(payload)
       end
     elseif action == "PACK_SELECT" then
       executor = function()
