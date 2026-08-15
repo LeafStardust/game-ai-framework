@@ -23,9 +23,10 @@ class AncientJoker(Joker):
         if context.score is None or self.suit is None:
             return context
 
+        scoring_cards = context.data.get("scoring_cards", context.cards)
         matching_cards = sum(
             card.matches_suit(self.suit)
-            for card in context.cards
+            for card in scoring_cards
         )
 
         context.score.x_mult *= 1.5 ** matching_cards

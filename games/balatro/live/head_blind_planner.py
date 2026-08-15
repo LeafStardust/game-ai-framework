@@ -18,6 +18,8 @@ class HeadScorer(BalatroScorer):
     DEBUFFED_SUIT = "Hearts"
 
     def is_card_debuffed(self, card) -> bool:
+        if super().is_card_debuffed(card):
+            return True
         matches_suit = getattr(card, "matches_suit", None)
         if callable(matches_suit):
             return bool(matches_suit(self.DEBUFFED_SUIT))

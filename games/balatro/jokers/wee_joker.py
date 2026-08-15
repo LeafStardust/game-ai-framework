@@ -1,5 +1,6 @@
 from games.balatro.joker import Joker, JokerContext
 
+
 class WeeJoker(Joker):
 
     def __init__(self):
@@ -9,9 +10,10 @@ class WeeJoker(Joker):
         if context.score is None:
             return context
 
+        scoring_cards = context.data.get("scoring_cards", context.cards)
         twos = sum(
             card.rank == "2"
-            for card in context.cards
+            for card in scoring_cards
         )
 
         self.chips += twos * 8
