@@ -6,7 +6,6 @@ from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.bootstraps import BootstrapsJoker
 from games.balatro.jokers.ice_cream import IceCreamJoker
-from games.balatro.live.external import head_blind_planner_action_live_validation as head_live
 from games.balatro.live.head_blind_planner import (
     HeadBlindClearPlanner,
     HeadHandDecisionEvaluator,
@@ -114,38 +113,6 @@ def test_head_wild_cards_are_debuffed_by_suit_boss():
     wild_club = BalatroCard("10", "Clubs", enhancement="Wild")
 
     assert scorer.is_card_debuffed(wild_club) is True
-
-
-def test_head_card_locator_uses_save_backed_expected_count_locator(monkeypatch):
-    calls = []
-    eight = [object() for _ in range(8)]
-    region = object()
-
-    def fake_locate(value, expected_count):
-        calls.append((value, expected_count))
-        return eight
-
-    monkeypatch.setattr(head_live, "locate_card_faces_expected_count", fake_locate)
-    monkeypatch.setattr(head_live, "_locations_form_uniform_grid", lambda locations: True)
-    locator = head_live._head_card_locator(8)
-
-    assert locator(region) is eight
-    assert calls == [(region, 8)]
-
-
-def test_head_card_locator_fails_closed_when_expected_count_locator_misses(monkeypatch):
-    seven = [object() for _ in range(7)]
-
-    def fake_locate(region, expected_count):
-        assert expected_count == 8
-        return seven
-
-    monkeypatch.setattr(head_live, "locate_card_faces_expected_count", fake_locate)
-    locator = head_live._head_card_locator(8)
-
-    # A count mismatch remains visible to the generic executor's strict abort path;
-    # the wrapper never fabricates or infers a missing card.
-    assert locator(object()) is seven
 
 
 def test_head_planner_refuses_other_bosses():

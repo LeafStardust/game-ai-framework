@@ -1,28 +1,14 @@
-from .action_executor import DefaultBalatroActionExecutor
-from .balatrobot_bridge import (
-    BalatroBotBridge,
-    BalatroBotConnectionError,
-    BalatroBotError,
-    BalatroBotRpcError,
-)
+"""Balatro live integration primitives and production runtime wiring."""
+
+import sys as _sys
+
 from .consumable_timing import (
     HOLD,
     USE,
     ConsumableTimingRecommendation,
     LiveConsumableTimingPolicy,
 )
-from .interfaces import (
-    BalatroActionExecutor,
-    BalatroLiveBridge,
-    BalatroStateTranslator,
-)
-from .lifecycle import BalatroLiveLifecycle
-from .protocol import (
-    LiveBalatroCommand,
-    LiveBalatroSnapshot,
-)
-from .recovery import BalatroLiveRecovery
-from .runner import BalatroLiveRunner
+from .protocol import LiveBalatroSnapshot
 from .shop import (
     BalatroShopActionGenerator,
     LiveShopItem,
@@ -32,31 +18,20 @@ from .shop_sync import (
     BufferedShopTransaction,
     UnsupportedBufferedShopAction,
 )
-from .synchronizer import BalatroLiveSynchronizer
-from .telemetry import BalatroConsoleTelemetry, BalatroRunStats
 from .translator import DefaultBalatroStateTranslator
+from . import runtime as _runtime
+
+# Transitional import compatibility for callers created before the runtime
+# namespace cleanup. The former external-control implementation itself is gone;
+# this alias resolves only modules that now physically live in live.runtime.
+_sys.modules[__name__ + ".external"] = _runtime
 
 __all__ = [
-    "BalatroActionExecutor",
-    "BalatroBotBridge",
-    "BalatroBotConnectionError",
-    "BalatroBotError",
-    "BalatroBotRpcError",
-    "BalatroConsoleTelemetry",
-    "BalatroLiveBridge",
-    "BalatroLiveLifecycle",
-    "BalatroLiveRecovery",
-    "BalatroLiveRunner",
-    "BalatroLiveSynchronizer",
-    "BalatroRunStats",
     "BalatroShopActionGenerator",
-    "BalatroStateTranslator",
     "BufferedShopTransaction",
     "ConsumableTimingRecommendation",
-    "DefaultBalatroActionExecutor",
     "DefaultBalatroStateTranslator",
     "HOLD",
-    "LiveBalatroCommand",
     "LiveBalatroSnapshot",
     "LiveConsumableTimingPolicy",
     "LiveShopItem",
