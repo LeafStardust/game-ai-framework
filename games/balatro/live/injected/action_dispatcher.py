@@ -43,7 +43,11 @@ from .hand_dispatcher import (
     LiveMemoryInjectedHandDispatcher,
     _action_indices,
 )
-from .tag_pack_completion import standard_pack_card_added
+from .tag_pack_completion import (
+    PlayingCardSignature,
+    standard_pack_card_added,
+    standard_pack_card_signature,
+)
 
 
 class UnsupportedInjectedAction(RuntimeError):
@@ -79,6 +83,16 @@ def _target_index(target) -> int:
             "live action target index cannot be negative"
         )
     return index
+
+
+def _target_data(target) -> dict | None:
+    if isinstance(target, dict):
+        nested = target.get("data")
+        if isinstance(nested, dict):
+            return nested
+        return target
+    data = getattr(target, "data", None)
+    return data if isinstance(data, dict) else None
 
 
 def _area(snapshot: LiveBalatroSnapshot, name: str) -> dict:
@@ -197,18 +211,13 @@ def _pack_selection_complete(
     *,
     selected_address: int,
     target_postcondition: ConsumableTargetPostcondition | None = None,
+    standard_card_signature: PlayingCardSignature | None = None,
 ) -> bool:
     if after.sequence <= before.sequence or not after.state_complete:
         return False
 
     if before_terms.choices_remaining <= 1:
         selection_complete = _is_pack_terminal_phase(after.phase)
-        if (
-            selection_complete
-            and after.phase == "BLIND_SELECT"
-            and before.phase == "STANDARD_PACK"
-        ):
-            selection_complete = standard_pack_card_added(before, after)
     elif not _is_pack_phase(after.phase) or after_terms is None:
         return False
     else:
@@ -221,6 +230,16 @@ def _pack_selection_complete(
         return False
     if target_postcondition is not None and not target_postcondition.matches(after):
         return False
+    if before.phase == "STANDARD_PACK":
+        if (
+            standard_card_signature is None
+            or not standard_pack_card_added(
+                before,
+                after,
+                expected_signature=standard_card_signature,
+            )
+        ):
+            return False
     return True
 
 
@@ -639,6 +658,21 @@ class LiveMemoryInjectedActionDispatcher:
                 raise UnsupportedInjectedAction(
                     "Balatro reports no remaining booster-pack choices"
                 )
+
+            choice_data = _target_data(action.target)
+            standard_card_signature: PlayingCardSignature | None = None
+            if before.phase == "STANDARD_PACK":
+                if choice_data is None:
+                    raise UnsupportedInjectedAction(
+                        "STANDARD_PACK selection requires normalized selected-card data"
+                    )
+                standard_card_signature = standard_pack_card_signature(choice_data)
+                if standard_card_signature is None:
+                    raise UnsupportedInjectedAction(
+                        "STANDARD_PACK selection requires a complete selected "
+                        "playing-card signature"
+                    )
+
             target_indices: tuple[int, ...] = ()
             target_postcondition: ConsumableTargetPostcondition | None = None
             if action.cards:
@@ -652,8 +686,7 @@ class LiveMemoryInjectedActionDispatcher:
                 except RuntimeError as error:
                     raise UnsupportedInjectedAction(str(error)) from error
 
-                choice_data = getattr(action.target, "data", None)
-                if not isinstance(choice_data, dict):
+                if choice_data is None:
                     raise UnsupportedInjectedAction(
                         "targeted SELECT_PACK_CARD requires modeled live pack data"
                     )
@@ -702,6 +735,7 @@ class LiveMemoryInjectedActionDispatcher:
                     after_terms,
                     selected_address=selected_address,
                     target_postcondition=target_postcondition,
+                    standard_card_signature=standard_card_signature,
                 )
 
             after = self._wait(
@@ -717,6 +751,8 @@ class LiveMemoryInjectedActionDispatcher:
             }
             if target_postcondition is not None:
                 details["verified_target_live_ids"] = target_postcondition.live_ids
+            if standard_card_signature is not None:
+                details["verified_standard_card_signature"] = standard_card_signature
             return LiveInjectedActionResult(
                 action,
                 before,
