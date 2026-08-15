@@ -130,7 +130,7 @@
 
 - [x] Validate state freshness across remaining rapid events such as targeted consumable resolution and Joker creation/destruction
 - [x] Validate observation/readiness across every remaining required run phase/effect family
-- [ ] Confirm the quiescence/readiness contract survives multi-attempt live soak testing without premature injections
+- [x] Confirm the quiescence/readiness contract survives multi-attempt live soak testing without premature injections
 
 ### 0.9B — First-party in-process execution and safety
 
@@ -165,7 +165,7 @@
 
 **Remaining 0.9 coverage**
 
-- [ ] Robust held-consumable use for all supported target patterns
+- [x] Robust held-consumable use for all supported target patterns
 - [ ] Robust pack-effect targeting for Tarot/Spectral/Standard modifier flows
 - [ ] Emergency hard stop for a hung/unsafe supervisor
 - [ ] Validate an actual normal Steam achievement/unlock from agent gameplay
