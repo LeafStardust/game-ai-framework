@@ -366,6 +366,11 @@
 - [x] D10 Build-aware target delta shared with D6 for remaining required flows
 - [x] D10 first-party target execution for remaining required flows
 - [ ] D10 end-to-end targeted Tarot/Spectral/Standard-pack validation
+
+> **D9/D10 live-validation evidence procedure (authoritative):** run `py -m games.balatro.live.external.live_pack_validation_coverage` before searching for or creating any other D9/D10 coverage checker. The canonical implementation is `games/balatro/live/external/live_pack_validation_coverage.py`; it scans `logs/balatro/runs/*.jsonl` by default and counts only successful production transitions backed by complete before/after snapshots with `live_state_source == "process_memory"` and a later authoritative checkpoint. D10 additionally requires the logged semantic selection/target evidence enforced by that analyzer. Exit status `0` means all required D9 families and D10 flows are covered; exit status `1` means authentic evidence is still missing.
+>
+> **Do not infer live validation from tests or fixtures.** `tests/test_balatro_live_pack_validation_coverage.py` is regression coverage for the analyzer itself, including rejection of non-process-memory evidence; synthetic/unit rows never satisfy ROADMAP live-validation work. Update D9/D10 live-validation checkboxes only from authentic natural production run logs. Future iterations should use this module and its report first; do not spend time searching for or building a replacement unless the canonical module is intentionally removed or superseded.
+
 - [x] D11 reroll execution
 - [x] D11 B5 build-gap/opportunity model
 - [x] D11 dedicated reroll threshold policy foundation
