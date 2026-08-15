@@ -101,6 +101,31 @@ def test_d1_head_uses_validated_head_score_projection_automatically():
     assert projection.expected_hand_score == 820.0
 
 
+def test_d1_head_prefers_non_debuffed_clearing_card_over_higher_debuffed_rank():
+    state = _state("The Head")
+    debuffed_king = BalatroCard("K", "Hearts", live_id=0)
+    live_queen = BalatroCard("Q", "Clubs", live_id=1)
+    state.hand = [debuffed_king, live_queen]
+    state.deck = []
+    state.jokers = []
+    state.hands_remaining = 1
+    state.discards_remaining = 0
+    state.blind = Blind(BlindType.BOSS, 15)
+
+    plan = D1LiveBlindClearPlanner(
+        horizon=1,
+        play_width=8,
+        discard_width=0,
+    ).plan(state)
+
+    # If The Head's disabled Heart were valued like an ordinary King, it would
+    # outrank the Queen. Correct boss scoring gives the King only the High Card
+    # base (5), while the live Queen contributes 10 rank chips and clears at 15.
+    assert plan.action.name == PLAY_CARDS
+    assert plan.action.cards == [live_queen]
+    assert plan.value.clear_probability == 1.0
+
+
 def test_d1_house_keeps_normal_play_legality():
     state = _state("The House")
     planner = D1LiveBlindClearPlanner(
