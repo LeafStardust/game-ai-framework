@@ -359,7 +359,7 @@
 - [x] D9 pack card/Joker selection and confirmation execution
 - [x] D9 Pack Skip execution
 - [x] D9 initial conservative pack-policy foundation
-- [ ] D9 complete valuation coverage across Joker/Standard/Planet/Tarot/Spectral packs using B3/B4/B6
+- [x] D9 complete valuation coverage across Joker/Standard/Planet/Tarot/Spectral packs using B3/B4/B6
 - [ ] D9 validate recommendations across pack families
 - [x] D10 follow-up target observation for remaining required flows
 - [x] D10 effect-specific target policy for remaining required flows
