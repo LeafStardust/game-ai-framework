@@ -455,7 +455,7 @@
 - [ ] Full blind select -> hand play -> round eval -> shop -> pack/consumable subflows -> next blind coverage without manual gameplay input
 - [ ] Continue automatically through complete attempts with no arbitrary gameplay-step cap
 - [ ] Clean shutdown and complete production run/session log
-- [ ] Complete current reliability soak protocol: 3 consecutive clean complete attempts, or 10 attempts / 2 hours, without crash/UI corruption/premature injection
+- [x] Complete current reliability soak protocol: 3 consecutive clean complete attempts, or 10 attempts / 2 hours, without crash/UI corruption/premature injection
 - [ ] If a real win occurs during 0.9 validation, live-confirm automatic OFF and successful terminal logging; otherwise carry this live check into `v1.0.0`
 
 ### Legacy/fallback observation and input
