@@ -209,8 +209,6 @@ def _pack_selection_complete(
             and before.phase == "STANDARD_PACK"
         ):
             selection_complete = standard_pack_card_added(before, after)
-    elif after.phase == "SHOP":
-        selection_complete = True
     elif not _is_pack_phase(after.phase) or after_terms is None:
         return False
     else:
