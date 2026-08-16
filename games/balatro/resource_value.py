@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import inf
+from typing import Mapping
 
 
 @dataclass(frozen=True)
@@ -28,11 +29,33 @@ class RunResourceValuator:
 
     INTEREST_STEP = 5
     INTEREST_CAP = 5
+    SEED_MONEY_INTEREST_CAP = 10
+    MONEY_TREE_INTEREST_CAP = 20
 
     @classmethod
-    def interest_value(cls, money: int) -> int:
+    def interest_cap(cls, vouchers=()) -> int:
+        """Return the public current-run interest payout cap from owned Vouchers."""
+        names = {cls._voucher_name(voucher) for voucher in (vouchers or ())}
+        if "Money Tree" in names:
+            return cls.MONEY_TREE_INTEREST_CAP
+        if "Seed Money" in names:
+            return cls.SEED_MONEY_INTEREST_CAP
+        return cls.INTEREST_CAP
+
+    @classmethod
+    def interest_value(cls, money: int, *, vouchers=()) -> int:
         money = max(0, int(money))
-        return min(cls.INTEREST_CAP, money // cls.INTEREST_STEP)
+        return min(cls.interest_cap(vouchers), money // cls.INTEREST_STEP)
+
+    @staticmethod
+    def _voucher_name(voucher) -> str:
+        if isinstance(voucher, str):
+            return voucher
+        if isinstance(voucher, Mapping):
+            value = voucher.get("label", voucher.get("name", ""))
+            return str(value or "")
+        value = getattr(voucher, "label", getattr(voucher, "name", ""))
+        return str(value or "")
 
     def money_transaction_cost(
         self,
@@ -43,6 +66,7 @@ class RunResourceValuator:
         interest_weight: float = 1.0,
         reserve_target: int = 5,
         reserve_weight: float = 1.0,
+        vouchers=(),
     ) -> ResourceValueBreakdown:
         """Return shared utility cost for a signed current-money transaction.
 
@@ -65,9 +89,11 @@ class RunResourceValuator:
                 ),
             )
 
+        interest_cap = self.interest_cap(vouchers)
         direct = float(price_weight) * net_spend
         interest_steps_lost = (
-            self.interest_value(money) - self.interest_value(money_after)
+            self.interest_value(money, vouchers=vouchers)
+            - self.interest_value(money_after, vouchers=vouchers)
         )
         interest = float(interest_weight) * interest_steps_lost
         reserve_before = max(0, reserve_target - money)
@@ -83,6 +109,7 @@ class RunResourceValuator:
             notes=(
                 f"money=${money}->${money_after}",
                 f"net_spend=${net_spend}",
+                f"interest_cap=${interest_cap}",
                 f"interest_steps_lost={interest_steps_lost}",
                 f"incremental_reserve_shortfall={reserve_delta}",
             ),
@@ -97,6 +124,7 @@ class RunResourceValuator:
         interest_weight: float = 1.0,
         reserve_target: int = 5,
         reserve_weight: float = 1.0,
+        vouchers=(),
     ) -> ResourceValueBreakdown:
         """Return marginal utility forfeited by spending money now."""
         return self.money_transaction_cost(
@@ -106,6 +134,7 @@ class RunResourceValuator:
             interest_weight=interest_weight,
             reserve_target=reserve_target,
             reserve_weight=reserve_weight,
+            vouchers=vouchers,
         )
 
     def slot_opportunity_cost(
