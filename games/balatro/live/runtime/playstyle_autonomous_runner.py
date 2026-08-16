@@ -4,6 +4,11 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Any
 
+from games.balatro.actions import BalatroAction
+from games.balatro.blind_skip_policy import (
+    BlindSkipThresholds,
+    BuildAwareBlindSkipPolicy,
+)
 from games.balatro.build.joker_strategy import (
     JokerBuildTransitionPlanner,
     JokerBuildValueEvaluator,
@@ -55,10 +60,10 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
 
     The base runner remains the mechanics/execution implementation. This adapter
     wires one competence-layer playstyle tracker into D1 hand decisions, D2
-    Joker/shop valuation, D7 Planet choices, D9 booster choices, D14 cross-category
-    shop valuation, structured run logging, and the dedicated D3 persistent-voucher
-    shop policy. A supervisor retry creates a fresh runner and therefore a fresh
-    playstyle tracker.
+    Joker/shop valuation, D7 Planet choices, D9 booster choices, D13 blind-skip
+    strategy, D14 cross-category shop valuation, structured run logging, and the
+    dedicated D3 persistent-voucher shop policy. A supervisor retry creates a fresh
+    runner and therefore a fresh playstyle tracker.
     """
 
     def __init__(self, observer, **kwargs) -> None:
@@ -72,6 +77,10 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
         self.playstyle_profiler = BalatroBuildProfiler()
         self.playstyle_intent_tracker = BalatroPlaystyleIntentTracker()
         self.build_intent_log_tracker = BuildIntentLogTracker(
+            profiler=self.playstyle_profiler,
+            intent_tracker=self.playstyle_intent_tracker,
+        )
+        self.blind_skip_policy = BuildAwareBlindSkipPolicy(
             profiler=self.playstyle_profiler,
             intent_tracker=self.playstyle_intent_tracker,
         )
@@ -124,6 +133,62 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
         self._pending_decision_diagnostics = {}
         decision = super().decide()
         playbook = default_balatro_playbooks().for_state(decision.state)
+
+        # The mechanics runner keeps the v0.9 snapshot-only D13 fallback for legacy
+        # callers. Production replaces only a settled BLIND_SELECT recommendation
+        # with the contextual v1.0 policy, reusing the exact translated state and
+        # run-scoped build intent already shared by the other competence layers.
+        if str(decision.snapshot.phase) == "BLIND_SELECT":
+            thresholds = BlindSkipThresholds.from_mapping(
+                playbook.thresholds_for("D13")
+            )
+            policy_started = perf_counter()
+            blind_decision = self.blind_skip_policy.decide(
+                decision.snapshot,
+                decision.state,
+                thresholds=thresholds,
+            )
+            self.last_policy_seconds = perf_counter() - policy_started
+            decision = AutonomousStepDecision(
+                snapshot=decision.snapshot,
+                state=decision.state,
+                action=BalatroAction(blind_decision.action_name),
+                source="D13 contextual blind play-vs-skip policy",
+                notes=(
+                    f"playbook={playbook.name} v{playbook.version}",
+                    *blind_decision.notes,
+                ),
+                pack_signature=decision.pack_signature,
+            )
+            self._pending_decision_diagnostics = {
+                "layer": "D13",
+                "active_thresholds": playbook.thresholds_for("D13"),
+                "selected": {
+                    "action": str(blind_decision.action_name),
+                    "blind_type": str(blind_decision.blind_type),
+                    "tag_key": blind_decision.tag_key,
+                    "build_readiness": float(blind_decision.build_readiness),
+                    "play_ev": float(blind_decision.play_ev),
+                    "blind_reward_ev": float(blind_decision.blind_reward_ev),
+                    "interest_opportunity_cost": float(
+                        blind_decision.interest_opportunity_cost
+                    ),
+                    "shop_opportunity_cost": float(
+                        blind_decision.shop_opportunity_cost
+                    ),
+                    "boss_preparation_cost": float(
+                        blind_decision.boss_preparation_cost
+                    ),
+                    "tag_ev": float(blind_decision.tag_ev),
+                    "tag_build_adjustment": float(
+                        blind_decision.tag_build_adjustment
+                    ),
+                    "skip_ev": float(blind_decision.skip_ev),
+                    "margin": float(blind_decision.margin),
+                    "threshold": float(blind_decision.threshold),
+                },
+            }
+
         diagnostics = dict(self._pending_decision_diagnostics)
         diagnostics.setdefault("decision_source", str(decision.source))
         diagnostics.setdefault(
