@@ -37,12 +37,19 @@ def _boolean(value):
     return LuaValue("boolean", bool(value), 0)
 
 
-def test_process_memory_snapshot_exposes_current_round_discards_used():
+def _snapshot(*, discards_used=1):
     GAME = 100
     CURRENT_ROUND = 101
     ROUND_RESETS = 102
     BLIND = 103
     STATES = 104
+
+    current_round = {
+        "hands_left": _integer(3),
+        "discards_left": _integer(2),
+    }
+    if discards_used is not None:
+        current_round["discards_used"] = _integer(discards_used)
 
     decoder = _FakeDecoder(
         {
@@ -57,11 +64,7 @@ def test_process_memory_snapshot_exposes_current_round_discards_used():
                 "blind_on_deck": _string("Small"),
                 "facing_blind": _boolean(True),
             },
-            CURRENT_ROUND: {
-                "hands_left": _integer(3),
-                "discards_left": _integer(2),
-                "discards_used": _integer(1),
-            },
+            CURRENT_ROUND: current_round,
             ROUND_RESETS: {"ante": _integer(1)},
             BLIND: {
                 "chips": _integer(300),
@@ -77,15 +80,11 @@ def test_process_memory_snapshot_exposes_current_round_discards_used():
         "STATE_COMPLETE": _boolean(True),
         "STATES": _table(STATES),
     }
+    return snapshot_payload_from_live_memory(decoder, root)
 
-    payload, phase, state_complete = snapshot_payload_from_live_memory(decoder, root)
 
-    assert phase == "SELECTING_HAND"
-    assert state_complete is True
-    assert payload["round"]["discards_left"] == 2
-    assert payload["round"]["discards_used"] == 1
-
-    state = DefaultBalatroStateTranslator().translate(
+def _translate(payload, phase, state_complete):
+    return DefaultBalatroStateTranslator().translate(
         LiveBalatroSnapshot(
             sequence=1,
             phase=phase,
@@ -93,5 +92,25 @@ def test_process_memory_snapshot_exposes_current_round_discards_used():
             payload=payload,
         )
     )
+
+
+def test_process_memory_snapshot_exposes_current_round_discards_used():
+    payload, phase, state_complete = _snapshot(discards_used=1)
+
+    assert phase == "SELECTING_HAND"
+    assert state_complete is True
+    assert payload["round"]["discards_left"] == 2
+    assert payload["round"]["discards_used"] == 1
+
+    state = _translate(payload, phase, state_complete)
     assert state.discards_remaining == 2
     assert state.discards_used == 1
+
+
+def test_missing_live_discard_history_stays_unobserved_instead_of_guessing_zero():
+    payload, phase, state_complete = _snapshot(discards_used=None)
+
+    assert "discards_used" not in payload["round"]
+
+    state = _translate(payload, phase, state_complete)
+    assert state.discards_used is None
