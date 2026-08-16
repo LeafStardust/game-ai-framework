@@ -87,6 +87,12 @@ PUBLIC_JOKER_STATE_SPECS_BY_CLASS: dict[str, tuple[JokerPublicFieldSpec, ...]] =
         JokerPublicFieldSpec("suit"),
     ),
     "ThrowbackJoker": (JokerPublicFieldSpec("x_mult", ("x_mult", "Xmult")),),
+    "ToDoListJoker": (
+        JokerPublicFieldSpec(
+            "target_hand",
+            ("to_do_poker_hand", "target_hand"),
+        ),
+    ),
     "TurtleBeanJoker": (
         JokerPublicFieldSpec("hand_size", ("hand_size", "h_size")),
     ),
