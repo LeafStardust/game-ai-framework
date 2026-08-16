@@ -41,6 +41,7 @@ class HandActionThresholds:
     """
 
     clear_path_probability_floor: float = 0.75
+    safe_clear_probability_tolerance: float = 0.01
     pace_ratio_floor: float = 1.0
     setup_discard_consensus_agreement: int = 3
     low_discard_reserve: int = 1
@@ -51,6 +52,10 @@ class HandActionThresholds:
     def __post_init__(self) -> None:
         if not 0.0 <= float(self.clear_path_probability_floor) <= 1.0:
             raise ValueError("clear_path_probability_floor must be between 0 and 1")
+        if not 0.0 <= float(self.safe_clear_probability_tolerance) <= 1.0:
+            raise ValueError(
+                "safe_clear_probability_tolerance must be between 0 and 1"
+            )
         if float(self.pace_ratio_floor) <= 0.0:
             raise ValueError("pace_ratio_floor must be positive")
         if self.setup_discard_consensus_agreement < 2:
@@ -192,7 +197,8 @@ class LiveHandActionPolicy:
             credible_clear_paths.append(confirmed_clear_path)
 
         if credible_clear_paths:
-            selected = max(credible_clear_paths, key=self._within_type_key)
+            selected = self._select_clear_path(credible_clear_paths)
+            assert selected is not None
             selected_score = None
             selected_ratio = None
             if selected.action.name == PLAY_CARDS:
@@ -207,6 +213,19 @@ class LiveHandActionPolicy:
             rationale = [
                 "credible blind-clear path meets the D1 probability floor",
             ]
+            guaranteed = self._guaranteed_clear_paths(credible_clear_paths)
+            if guaranteed:
+                rationale.append(
+                    "an exact guaranteed clear exists, so risky alternatives cannot trade safety for economy"
+                )
+                if len(guaranteed) > 1:
+                    rationale.append(
+                        "multiple guaranteed clears were available; prefer the line preserving more expected hands"
+                    )
+            elif len(self._safe_equivalent_clear_paths(credible_clear_paths)) > 1:
+                rationale.append(
+                    "safe-equivalent clear paths use exactness and expected hands remaining before secondary resources"
+                )
             if selected_is_confirmed_sample:
                 rationale.append(
                     "sampled path kept the same first action in a stronger same-horizon confirmation pass"
@@ -357,12 +376,95 @@ class LiveHandActionPolicy:
             for plan in plans
             if self._meets_clear_floor(plan) and (plan.exact or not exact_only)
         ]
-        return max(candidates, key=self._within_type_key) if candidates else None
+        return self._select_clear_path(candidates)
+
+    def _select_clear_path(
+        self,
+        plans: list[LiveBlindPlan] | tuple[LiveBlindPlan, ...],
+    ) -> LiveBlindPlan | None:
+        """Select a root clear line without allowing economy to dominate safety.
+
+        The comparison is deliberately global rather than pairwise. A materially
+        safer line always wins. Once the best modeled probability is above the
+        configured safety floor, only plans within the small equivalence band may
+        trade probability for confidence/hand efficiency. Exact guaranteed clears
+        form a closed pool and can never be displaced by a merely near-certain line.
+        """
+        candidates = tuple(plans)
+        if not candidates:
+            return None
+
+        guaranteed = self._guaranteed_clear_paths(candidates)
+        if guaranteed:
+            return max(guaranteed, key=self._safe_equivalent_clear_key)
+
+        best_probability = max(
+            float(plan.value.clear_probability) for plan in candidates
+        )
+        if (
+            best_probability + self.EPSILON
+            < self.thresholds.clear_path_probability_floor
+        ):
+            return max(candidates, key=self._within_type_key)
+
+        safe_equivalent = self._safe_equivalent_clear_paths(candidates)
+        if not safe_equivalent:
+            return max(candidates, key=self._within_type_key)
+        return max(safe_equivalent, key=self._safe_equivalent_clear_key)
+
+    def _guaranteed_clear_paths(
+        self,
+        plans: list[LiveBlindPlan] | tuple[LiveBlindPlan, ...],
+    ) -> tuple[LiveBlindPlan, ...]:
+        return tuple(
+            plan
+            for plan in plans
+            if plan.exact
+            and float(plan.value.clear_probability) >= 1.0 - self.EPSILON
+        )
+
+    def _safe_equivalent_clear_paths(
+        self,
+        plans: list[LiveBlindPlan] | tuple[LiveBlindPlan, ...],
+    ) -> tuple[LiveBlindPlan, ...]:
+        candidates = tuple(plans)
+        if not candidates:
+            return ()
+        best_probability = max(
+            float(plan.value.clear_probability) for plan in candidates
+        )
+        if (
+            best_probability + self.EPSILON
+            < self.thresholds.clear_path_probability_floor
+        ):
+            return ()
+        tolerance = float(self.thresholds.safe_clear_probability_tolerance)
+        return tuple(
+            plan
+            for plan in candidates
+            if self._meets_clear_floor(plan)
+            and float(plan.value.clear_probability) + tolerance + self.EPSILON
+            >= best_probability
+        )
 
     def _meets_clear_floor(self, plan: LiveBlindPlan) -> bool:
         return (
             float(plan.value.clear_probability) + self.EPSILON
             >= self.thresholds.clear_path_probability_floor
+        )
+
+    @staticmethod
+    def _safe_equivalent_clear_key(
+        plan: LiveBlindPlan,
+    ) -> tuple[int, float, float, float, float, float]:
+        value = plan.value
+        return (
+            1 if plan.exact else 0,
+            value.expected_hands_remaining,
+            value.expected_discards_remaining,
+            value.clear_probability,
+            value.expected_progress,
+            value.expected_score,
         )
 
     @staticmethod
