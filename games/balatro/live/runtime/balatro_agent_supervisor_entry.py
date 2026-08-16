@@ -13,12 +13,20 @@ from .balatro_agent_supervisor import (
     BalatroAgentSupervisor,
 )
 from .finisher_state_translator import FinisherAwareBalatroStateTranslator
+from .live_memory_autonomous_step_injected import AutonomousStepGuardError
 from .live_memory_discard_history_observer import (
     DiscardHistorySupervisorLiveMemoryBalatroObserver,
 )
 from .playstyle_autonomous_runner import (
     PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
 )
+
+
+def _is_recovered_stale_replan(error: BaseException) -> bool:
+    return (
+        isinstance(error, AutonomousStepGuardError)
+        and "live state changed after autonomous planning" in str(error)
+    )
 
 
 def _diagnostic_runner_factory(
@@ -41,6 +49,12 @@ def _diagnostic_runner_factory(
         try:
             return original_execute(decision)
         except Exception as error:
+            # A stale public checkpoint is an expected fail-closed condition. The
+            # autonomous loop discards that recommendation and replans from a newly
+            # settled snapshot, so it is not an execution failure and must not
+            # pollute the operational failure stream.
+            if _is_recovered_stale_replan(error):
+                raise
             try:
                 status = control.read_status()
                 BalatroDiagnosticLogger(
