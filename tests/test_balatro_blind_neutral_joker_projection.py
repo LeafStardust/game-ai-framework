@@ -8,7 +8,6 @@ from games.balatro.jokers.cartomancer import CartomancerJoker
 from games.balatro.jokers.certificate import CertificateJoker
 from games.balatro.jokers.chaos_the_clown import ChaosTheClownJoker
 from games.balatro.jokers.cloud_9 import Cloud9Joker
-from games.balatro.jokers.coupon_tag import CouponTagJoker
 from games.balatro.jokers.credit_card import CreditCardJoker
 from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
 from games.balatro.jokers.diet_cola import DietColaJoker
@@ -35,7 +34,6 @@ BLIND_NEUTRAL_JOKERS = (
     CertificateJoker,
     ChaosTheClownJoker,
     Cloud9Joker,
-    CouponTagJoker,
     CreditCardJoker,
     DelayedGratificationJoker,
     DietColaJoker,
