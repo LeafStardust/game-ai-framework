@@ -99,6 +99,9 @@ class _LongRunRunner:
     def __init__(self, action_count: int):
         self.action_count = int(action_count)
         self.index = 0
+        self.last_observation_seconds = 0.0
+        self.last_translation_seconds = 0.0
+        self.last_policy_seconds = 0.0
 
     def decide(self):
         snapshot = LiveBalatroSnapshot(
