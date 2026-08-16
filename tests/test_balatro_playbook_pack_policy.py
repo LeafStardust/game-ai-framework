@@ -97,7 +97,7 @@ def test_red_white_exposes_current_d9_and_d10_thresholds():
     d10 = ConsumableTargetThresholds.from_mapping(playbook.thresholds_for("D10"))
 
     assert d9 == PackChoiceThresholds(skip_bias=0.35)
-    assert d10 == ConsumableTargetThresholds()
+    assert d10 == ConsumableTargetThresholds(minimum_contextual_delta=0.0)
 
 
 def test_d9_skip_bias_resolves_from_active_playbook(monkeypatch):
