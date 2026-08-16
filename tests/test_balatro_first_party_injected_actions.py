@@ -128,15 +128,25 @@ def test_extended_bridge_commands_use_expected_wire_actions(
         deadline = time.monotonic() + bridge.timeout + 1.0
         while time.monotonic() < deadline:
             if bridge.command_path.exists():
-                text = bridge.command_path.read_text(encoding="utf-8")
-                command_id, action, payload = text.rstrip("\n").split("\t", 2)
+                try:
+                    text = bridge.command_path.read_text(encoding="utf-8")
+                    command_id, action, payload = text.rstrip("\n").split("\t", 2)
+                    bridge.command_path.unlink()
+                except OSError:
+                    # Windows may briefly deny access immediately after the atomic
+                    # command publish. Retry within the existing responder deadline.
+                    time.sleep(0.001)
+                    continue
+
                 captured.update(action=action, payload=payload)
-                bridge.command_path.unlink()
-                _atomic_response(
-                    bridge,
-                    f"{command_id}\tOK\taccepted\n",
-                )
-                return
+                response = f"{command_id}\tOK\taccepted\n"
+                while time.monotonic() < deadline:
+                    try:
+                        _atomic_response(bridge, response)
+                    except OSError:
+                        time.sleep(0.001)
+                        continue
+                    return
             time.sleep(0.001)
 
     thread = threading.Thread(target=responder)
