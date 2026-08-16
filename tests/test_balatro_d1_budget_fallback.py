@@ -160,7 +160,7 @@ def test_probe_deepest_schedule_keeps_probe_and_deepest_horizon():
 def test_red_white_default_caps_normal_d1_search_at_horizon_five():
     playbook = default_balatro_playbooks().get("RED", "WHITE")
 
-    assert playbook.version == "0.8"
+    assert playbook.version == "1.0"
     assert playbook.strategy["planner"]["max_horizon"] == 5
     assert playbook.strategy["planner"]["max_search_nodes"] == 5000
     assert playbook.strategy["planner"]["search_schedule_mode"] == "probe-deepest"
