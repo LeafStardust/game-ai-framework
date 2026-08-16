@@ -103,7 +103,7 @@ def test_translator_maps_balatrobot_cards_and_modifiers():
     assert state.deck[0].debuffed is False
 
 
-def test_translator_maps_current_blind_requirement():
+def test_translator_maps_current_blind_requirement_and_reward():
     snapshot = LiveBalatroSnapshot(
         sequence=1,
         phase="SELECTING_HAND",
@@ -115,18 +115,21 @@ def test_translator_maps_current_blind_requirement():
                     "status": "DEFEATED",
                     "name": "Small Blind",
                     "score": 300,
+                    "reward": 3,
                 },
                 "big": {
                     "type": "BIG",
                     "status": "DEFEATED",
                     "name": "Big Blind",
                     "score": 450,
+                    "reward": 4,
                 },
                 "boss": {
                     "type": "BOSS",
                     "status": "CURRENT",
                     "name": "The Wall",
                     "score": 5000,
+                    "reward": 5,
                 },
             }
         },
@@ -136,6 +139,7 @@ def test_translator_maps_current_blind_requirement():
 
     assert state.blind is not None
     assert state.blind.requirement == 5000
+    assert state.blind.reward == 5
     assert state.boss_name == "The Wall"
 
 
