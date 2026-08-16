@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from time import perf_counter
+from typing import Any
 
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 from games.balatro.build.profile import (
@@ -29,6 +30,7 @@ from .live_memory_autonomous_step_injected import (
     AutonomousStepDecision,
     LiveMemoryInjectedSingleStepRunner,
     _indices,
+    _pack_choice_signature,
     _search_schedule_mode,
 )
 
@@ -36,6 +38,7 @@ from .live_memory_autonomous_step_injected import (
 @dataclass(frozen=True)
 class PlaystyleAutonomousStepDecision(AutonomousStepDecision):
     build_intent: PreparedBuildIntentLog | None = None
+    decision_diagnostics: dict[str, Any] | None = None
 
 
 class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
@@ -52,6 +55,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
 
     def __init__(self, observer, **kwargs) -> None:
         custom_hand_recommender = kwargs.get("hand_recommender") is not None
+        custom_pack_recommender = kwargs.get("pack_recommender") is not None
         super().__init__(observer, **kwargs)
 
         self.playstyle_profiler = BalatroBuildProfiler()
@@ -85,12 +89,23 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
                 intent_tracker=self.playstyle_intent_tracker,
             ),
         )
+        self._pending_decision_diagnostics: dict[str, Any] = {}
 
         if not custom_hand_recommender:
             self.hand_recommender = self._recommend_hand_with_playstyle
+        if not custom_pack_recommender:
+            self.pack_recommender = self._recommend_pack_with_diagnostics
 
     def decide(self) -> PlaystyleAutonomousStepDecision:
+        self._pending_decision_diagnostics = {}
         decision = super().decide()
+        playbook = default_balatro_playbooks().for_state(decision.state)
+        diagnostics = dict(self._pending_decision_diagnostics)
+        diagnostics.setdefault("decision_source", str(decision.source))
+        diagnostics.setdefault(
+            "active_thresholds",
+            playbook.strategy.get("decision_thresholds", {}),
+        )
         return PlaystyleAutonomousStepDecision(
             snapshot=decision.snapshot,
             state=decision.state,
@@ -99,6 +114,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             notes=decision.notes,
             pack_signature=decision.pack_signature,
             build_intent=self.build_intent_log_tracker.prepare(decision.state),
+            decision_diagnostics=diagnostics,
         )
 
     def _hand_policy(
@@ -110,6 +126,37 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             profiler=self.playstyle_profiler,
             intent_tracker=self.playstyle_intent_tracker,
         )
+
+    def _recommend_pack_with_diagnostics(self, state, snapshot):
+        del snapshot
+        choices = tuple(self.pack_choice_reader())
+        actions = self.pack_generator.generate_actions(state, list(choices))
+        ranked = self.pack_policy.rank_actions(state, actions)
+        if not ranked:
+            raise RuntimeError("pack policy produced no scoreable action")
+
+        candidates = []
+        for result in ranked:
+            target = getattr(result.action, "target", None)
+            candidates.append(
+                {
+                    "action": str(result.action.name),
+                    "score": float(result.total),
+                    "area_index": getattr(target, "area_index", None),
+                    "label": getattr(target, "label", None),
+                    "notes": [str(note) for note in result.notes],
+                }
+            )
+        self._pending_decision_diagnostics = {
+            "layer": "D9/D10",
+            "candidate_scores": candidates,
+            "active_thresholds": {"pack_skip_bias": float(self.pack_policy.skip_bias)},
+        }
+
+        selected = ranked[0]
+        notes = [f"policy_score={selected.total:.6f}"]
+        notes.extend(str(note) for note in selected.notes)
+        return selected.action, tuple(notes), _pack_choice_signature(choices)
 
     def _recommend_hand_with_playstyle(self, state, snapshot):
         del snapshot
@@ -173,13 +220,27 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
         if decision.selected_pace_ratio is not None:
             notes.append(f"pace_ratio={decision.selected_pace_ratio:.6f}")
 
-        # Build-intent rationale belongs in the ordinary durable D1 decision notes.
         notes.extend(str(note) for note in decision.rationale if note.startswith("D1 "))
 
+        search_diagnostics = []
         for index, attempt in enumerate(decision.search_attempts):
             elapsed = rank_timings[index] if index < len(rank_timings) else float("nan")
-            stage = "confirmation" if attempt.confirmation else "adaptive"
             best_action = attempt.best_action or "NONE"
+            search_diagnostics.append(
+                {
+                    "stage": "confirmation" if attempt.confirmation else "adaptive",
+                    "horizon": int(attempt.horizon),
+                    "samples": int(attempt.samples),
+                    "nodes_evaluated": int(attempt.nodes_evaluated),
+                    "max_nodes": int(attempt.max_nodes),
+                    "budget_exceeded": bool(attempt.budget_exceeded),
+                    "best_action": best_action,
+                    "best_clear_probability": attempt.best_clear_probability,
+                    "best_expected_score": attempt.best_expected_score,
+                    "best_exact": attempt.best_exact,
+                    "elapsed_seconds": float(elapsed),
+                }
+            )
             best_clear_probability = (
                 f"{attempt.best_clear_probability:.6f}"
                 if attempt.best_clear_probability is not None
@@ -198,7 +259,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
                 "elapsed={:.3f}s best_action={} best_clear_probability={} "
                 "best_expected_score={} best_exact={}".format(
                     index,
-                    stage,
+                    "confirmation" if attempt.confirmation else "adaptive",
                     attempt.horizon,
                     attempt.samples,
                     attempt.nodes_evaluated,
@@ -211,6 +272,22 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
                     best_exact,
                 )
             )
+
+        self._pending_decision_diagnostics = {
+            "layer": "D1",
+            "active_thresholds": playbook.strategy.get("decision_thresholds", {}).get(
+                "hand_action", {}
+            ),
+            "selected": {
+                "action": str(decision.action.name),
+                "confidence": float(decision.confidence),
+                "clear_probability": float(decision.selected_plan.value.clear_probability),
+                "expected_score": float(decision.selected_plan.value.expected_score),
+                "exact": bool(decision.selected_plan.exact),
+                "pace_ratio": decision.selected_pace_ratio,
+            },
+            "search_attempts": search_diagnostics,
+        }
 
         if len(rank_timings) > len(decision.search_attempts):
             fallback_elapsed = sum(rank_timings[len(decision.search_attempts):])
