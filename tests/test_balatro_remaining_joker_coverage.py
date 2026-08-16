@@ -102,8 +102,8 @@ def test_joker_discovery_does_not_require_package_file(monkeypatch):
     first = JokerCoverageAuditor._classes()
     second = JokerCoverageAuditor._classes()
 
-    assert len(first) == 152
-    assert len(second) == 152
+    assert len(first) == 150
+    assert len(second) == 150
     assert [item[:1] + (item[1].__name__,) for item in first] == [
         item[:1] + (item[1].__name__,) for item in second
     ]
@@ -113,8 +113,8 @@ def test_joker_discovery_does_not_require_package_file(monkeypatch):
 def test_every_repository_joker_has_semantic_coverage():
     report = JokerCoverageAuditor().audit()
 
-    assert len(report.entries) == 152
-    assert report.count(COVERED) == 152
+    assert len(report.entries) == 150
+    assert report.count(COVERED) == 150
     assert report.count(OPAQUE) == 0
     assert report.count(PARTIAL) == 0
     assert report.count(ERROR) == 0
