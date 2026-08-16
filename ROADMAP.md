@@ -63,7 +63,7 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 
 ### 1.0E — Blind skip/tag strategy
 
-- [ ] Evaluate skip/tag EV against blind reward, lost shop/economy opportunity, build strength, ante and boss preparation.
+- [x] Evaluate skip/tag EV against blind reward, lost shop/economy opportunity, build strength, ante and boss preparation.
 - [ ] Validate skip/tag behavior with real-run examples before freezing thresholds.
 
 ### 1.0F — Acceptance gate
