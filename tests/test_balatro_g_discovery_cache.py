@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-from games.balatro.live.external import balatro_g_discovery as discovery
-from games.balatro.live.external.luajit_memory import LuaJITMemoryError, LuaValue
+from games.balatro.live.runtime import balatro_g_discovery as discovery
+from games.balatro.live.runtime.luajit_memory import LuaJITMemoryError, LuaValue
 
 
 def _table(address: int) -> LuaValue:

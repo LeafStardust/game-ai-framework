@@ -62,7 +62,7 @@ def test_superposition_inference_discovers_straight_and_ace_conjunction():
     assert ace in descriptor.scales_with
     assert rank_feature("K") not in descriptor.requires
     assert rank_feature("K") not in descriptor.scales_with
-    assert "context:created_tarot_cards" in descriptor.evidence
+    assert "context:created_consumables" in descriptor.evidence
 
 
 def test_mime_effect_inference_exposes_held_retrigger_synergy():
