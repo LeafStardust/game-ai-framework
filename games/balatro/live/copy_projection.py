@@ -69,9 +69,12 @@ def resolve_copy_target(joker, state) -> tuple[object | None, bool]:
 
     Returns ``(None, True)`` when the copier legitimately has no effect (for
     example a rightmost Blueprint or leftmost Brainstorm). Cycles return
-    ``(None, False)`` so projection fails closed rather than guessing.
+    ``(None, False)`` so projection fails closed rather than guessing. A Joker
+    currently disabled by Crimson Heart has no active ability to copy.
     """
 
+    if bool(getattr(joker, "debuffed", False)):
+        return None, True
     return _resolve_copy_target(joker, state, seen=set())
 
 
@@ -102,6 +105,8 @@ def _resolve_copy_target(joker, state, *, seen: set[int]):
     else:
         return joker, True
 
+    if bool(getattr(candidate, "debuffed", False)):
+        return None, True
     if id(candidate) in seen:
         return None, False
     if type(candidate).__name__ in COPY_JOKER_CLASS_NAMES:
