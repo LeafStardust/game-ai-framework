@@ -193,6 +193,13 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                         "runway_value_weight": 0.75,
                         "second_selection_value_fraction": 0.55,
                     },
+                    "pack_choice": {
+                        "skip_bias": 0.35,
+                    },
+                    "pack_target": {
+                        "minimum_total_gain": None,
+                        "minimum_contextual_delta": None,
+                    },
                     "reroll": {
                         "minimum_margin": 0.25,
                     },
