@@ -13,6 +13,12 @@ class PublicCardSignature:
     Identity and list position are deliberately excluded. The live save may retain
     the serialized order of Balatro's draw pile, but a normal player cannot know
     that order. Planner code must operate on these unordered signatures instead.
+
+    ``debuffed`` is public current-Blind state owned by each playing card. Balatro
+    applies the active Blind's debuff to every ``G.playing_cards`` object, including
+    cards still in the draw pile, so preserving this flag does not expose hidden
+    draw order. ``permanent_bonus`` is likewise public card-owned state and must
+    survive hypothetical redraws (for example after Hiker has upgraded a card).
     """
 
     rank: str
@@ -20,6 +26,8 @@ class PublicCardSignature:
     enhancement: str | None = None
     edition: str | None = None
     seal: str | None = None
+    debuffed: bool = False
+    permanent_bonus: int = 0
 
     @classmethod
     def from_card(cls, card) -> "PublicCardSignature":
@@ -29,15 +37,19 @@ class PublicCardSignature:
             enhancement=getattr(card, "enhancement", None),
             edition=getattr(card, "edition", None),
             seal=getattr(card, "seal", None),
+            debuffed=bool(getattr(card, "debuffed", False)),
+            permanent_bonus=int(getattr(card, "permanent_bonus", 0) or 0),
         )
 
-    def sort_key(self) -> tuple[str, str, str, str, str]:
+    def sort_key(self) -> tuple[str, ...]:
         return (
             self.rank,
             self.suit,
             self.enhancement or "",
             self.edition or "",
             self.seal or "",
+            "1" if self.debuffed else "0",
+            str(self.permanent_bonus),
         )
 
 
