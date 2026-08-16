@@ -14,7 +14,6 @@ class VagabondJoker(Joker):
         if int(money or 0) > 4:
             return context
 
-        context.data["create_tarot_count"] = (
-            int(context.data.get("create_tarot_count", 0) or 0) + 1
-        )
+        # Category marker only; live projection resolves random identity separately.
+        context.data.setdefault("created_consumables", []).append("Tarot")
         return context
