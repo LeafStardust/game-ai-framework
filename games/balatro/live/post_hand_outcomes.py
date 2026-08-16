@@ -3,7 +3,9 @@ from __future__ import annotations
 from copy import deepcopy
 from math import comb
 
+from games.balatro.events import BalatroEvent, BalatroEventType
 from games.balatro.hand_rules import card_is_face, hand_rules_for_state
+from games.balatro.joker import JokerContext
 from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.live.score_outcomes import (
     ScoreOutcome,
@@ -40,6 +42,7 @@ class _LiveOutcomeJokerProjector(LiveJokerScoreProjector):
                 "ChicotJoker",
                 "Cloud9Joker",
                 "CouponTagJoker",
+                "DNAJoker",
                 "DelayedGratificationJoker",
                 "FacelessJoker",
                 "GiftCardJoker",
@@ -57,6 +60,112 @@ class _LiveOutcomeJokerProjector(LiveJokerScoreProjector):
             }
         )
     )
+
+    @classmethod
+    def supports_in_state(cls, joker, state) -> bool:
+        if type(joker).__name__ == "DNAJoker":
+            return (
+                state is not None
+                and getattr(state, "owned_deck", None) is not None
+                and isinstance(getattr(state, "round_hand_play_counts", None), dict)
+            )
+        return super().supports_in_state(joker, state)
+
+    def score(
+        self,
+        hand,
+        state,
+        cards,
+        *,
+        include_card_chips: bool = True,
+        resolve_random_effects: bool = False,
+    ):
+        dna_count = self._dna_trigger_count(state, cards)
+        if dna_count <= 0:
+            return super().score(
+                hand,
+                state,
+                cards,
+                include_card_chips=include_card_chips,
+                resolve_random_effects=resolve_random_effects,
+            )
+
+        working_state = deepcopy(state)
+        source_index = self._played_card_index(state, cards[0])
+        if source_index is None:
+            return super().score(
+                hand,
+                state,
+                cards,
+                include_card_chips=include_card_chips,
+                resolve_random_effects=resolve_random_effects,
+            )
+
+        source = working_state.hand[source_index]
+        copied_cards = []
+        for _ in range(dna_count):
+            copied = deepcopy(source)
+            copied.live_id = None
+            copied_cards.append(copied)
+            working_state.hand.append(copied)
+            working_state.owned_deck.append(copied)
+
+        self._apply_cards_added_jokers(working_state, copied_cards)
+        return super().score(
+            hand,
+            working_state,
+            [source],
+            include_card_chips=include_card_chips,
+            resolve_random_effects=resolve_random_effects,
+        )
+
+    @classmethod
+    def _dna_trigger_count(cls, state, cards) -> int:
+        cards = list(cards or [])
+        if state is None or len(cards) != 1:
+            return 0
+        if getattr(state, "owned_deck", None) is None:
+            return 0
+        counts = getattr(state, "round_hand_play_counts", None)
+        if not isinstance(counts, dict):
+            return 0
+        if any(int(value or 0) > 0 for value in counts.values()):
+            return 0
+        if cls._played_card_index(state, cards[0]) is None:
+            return 0
+        return sum(
+            1
+            for joker in getattr(state, "jokers", [])
+            if type(joker).__name__ == "DNAJoker"
+        )
+
+    @staticmethod
+    def _played_card_index(state, selected) -> int | None:
+        selected_live_id = getattr(selected, "live_id", None)
+        for index, card in enumerate(getattr(state, "hand", [])):
+            if card is selected:
+                return index
+            if (
+                selected_live_id is not None
+                and getattr(card, "live_id", None) == selected_live_id
+            ):
+                return index
+        return None
+
+    @staticmethod
+    def _apply_cards_added_jokers(state, cards) -> None:
+        if not cards:
+            return
+        context = JokerContext(
+            state=state,
+            cards=list(cards),
+            trigger="CARDS_ADDED",
+            event=BalatroEvent(BalatroEventType.CARDS_ADDED, list(cards)),
+            data={},
+        )
+        for joker in getattr(state, "jokers", []):
+            if type(joker).__name__ == "HologramJoker":
+                context = joker.apply(context)
 
 
 class LiveVisibleCardScoreOutcomeModel(VisibleCardScoreOutcomeModel):
