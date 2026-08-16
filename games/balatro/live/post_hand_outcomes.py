@@ -35,10 +35,23 @@ class _LiveOutcomeJokerProjector(LiveJokerScoreProjector):
         | frozenset(
             {
                 "BusinessCardJoker",
+                "CartomancerJoker",
+                "CertificateJoker",
+                "Cloud9Joker",
+                "CouponTagJoker",
+                "DelayedGratificationJoker",
                 "FacelessJoker",
+                "GiftCardJoker",
+                "GoldenJoker",
+                "HallucinationJoker",
                 "MailInRebateJoker",
+                "MarbleJoker",
                 "MrBonesJoker",
                 "ReservedParkingJoker",
+                "RiffRaffJoker",
+                "RocketJoker",
+                "SatelliteJoker",
+                "ToTheMoonJoker",
             }
         )
     )
