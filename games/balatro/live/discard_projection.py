@@ -11,6 +11,7 @@ from games.balatro.live.copy_projection import (
     COPY_JOKER_CLASS_NAMES,
     resolve_copy_target,
 )
+from games.balatro.live.generated_consumable_outcomes import ProjectedGeneratedConsumable
 
 
 class UnsupportedDiscardProjection(RuntimeError):
@@ -18,14 +19,24 @@ class UnsupportedDiscardProjection(RuntimeError):
 
 
 class LiveDiscardJokerProjector:
-    """Project exact deterministic Joker effects caused by one visible discard."""
+    """Project exact deterministic effects caused by one visible discard event.
+
+    ``consume_discard_use`` distinguishes a player-requested discard from forced
+    game mechanics such as The Hook. Both paths trigger normal discard effects,
+    while only the player's discard advances ``current_round.discards_used``.
+    """
 
     ACTIVE_CLASS_NAMES = frozenset(
         {
             "BurntJoker",
+            "CastleJoker",
             "FacelessJoker",
+            "GreenJoker",
+            "HitTheRoadJoker",
             "MailInRebateJoker",
+            "RamenJoker",
             "TradingCardJoker",
+            "YorickJoker",
         }
     )
     FIRST_DISCARD_CLASS_NAMES = frozenset(
@@ -45,7 +56,7 @@ class LiveDiscardJokerProjector:
     def __init__(self, hand_evaluator: HandEvaluator | None = None):
         self.hand_evaluator = hand_evaluator or HandEvaluator()
 
-    def project(self, state, cards):
+    def project(self, state, cards, *, consume_discard_use: bool = True):
         if state is None:
             return None
 
@@ -74,6 +85,7 @@ class LiveDiscardJokerProjector:
                 "hand_rules": rules,
                 "first_discard": first_discard,
                 "discarded_hand": discarded_hand,
+                "consume_discard_use": bool(consume_discard_use),
                 "level_up_hands": [],
                 "destroyed_cards": [],
             },
@@ -81,12 +93,17 @@ class LiveDiscardJokerProjector:
         for joker in active:
             context = joker.apply(context)
 
+        # Purple Seals trigger on the discard event before a Trading Card can
+        # permanently destroy the same playing card. Random Tarot identity is
+        # intentionally abstracted until authoritative re-observation.
+        self._apply_purple_seals(branch_state, discarded)
         self._apply_hand_level_ups(branch_state, context.data.get("level_up_hands"))
-        project_destroyed_playing_cards(
+        destroyed = project_destroyed_playing_cards(
             branch_state,
             context.data.get("destroyed_cards", ()),
         )
-        if discards_used is not None:
+        self._append_discard_pile(branch_state, discarded, destroyed)
+        if consume_discard_use and discards_used is not None:
             branch_state.discards_used = max(0, int(discards_used)) + 1
         return branch_state
 
@@ -116,3 +133,45 @@ class LiveDiscardJokerProjector:
             if key not in getattr(state, "hand_levels", {}):
                 continue
             state.hand_levels[key] = int(state.hand_levels[key]) + 1
+
+    @staticmethod
+    def _apply_purple_seals(state, cards) -> None:
+        room = max(
+            0,
+            int(getattr(state, "consumable_slots", 0) or 0)
+            - len(getattr(state, "consumables", []) or []),
+        )
+        if room <= 0:
+            return
+
+        for card in list(cards or []):
+            if room <= 0:
+                break
+            if str(getattr(card, "seal", "") or "").upper() != "PURPLE":
+                continue
+            state.consumables.append(
+                ProjectedGeneratedConsumable(
+                    category="TAROT",
+                    name="Projected Tarot",
+                )
+            )
+            room -= 1
+
+    @staticmethod
+    def _append_discard_pile(state, discarded, destroyed) -> None:
+        destroyed_ids = {
+            ("live", getattr(card, "live_id", None))
+            if getattr(card, "live_id", None) is not None
+            else ("object", id(card))
+            for card in list(destroyed or [])
+        }
+        pile = list(getattr(state, "discard_pile", []) or [])
+        for card in list(discarded or []):
+            identity = (
+                ("live", getattr(card, "live_id", None))
+                if getattr(card, "live_id", None) is not None
+                else ("object", id(card))
+            )
+            if identity not in destroyed_ids:
+                pile.append(card)
+        state.discard_pile = pile
