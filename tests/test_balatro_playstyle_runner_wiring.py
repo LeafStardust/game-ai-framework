@@ -4,6 +4,7 @@ from games.balatro.live.external.playstyle_autonomous_runner import (
 from games.balatro.live.hand_action_policy import HandActionThresholds
 from games.balatro.live.planet_policy import LivePlanetPolicy
 from games.balatro.pack_playstyle import PackPlaystyleEvaluator
+from games.balatro.playbook_pack_policy import PlaybookBalatroPackPolicy
 from games.balatro.shop_playstyle import BuildAwareShopItemValueEstimator
 from games.balatro.shop_policy import DefaultShopItemValueEstimator
 from games.balatro.shop_voucher_policy import VoucherAwareBalatroShopPolicy
@@ -44,6 +45,7 @@ def test_production_runner_shares_one_intent_tracker_across_b3_consumers():
 
     # Joker choices in packs reuse the exact D2/D14 evaluator instead of creating
     # an independent pack-local Joker intent lifecycle.
+    assert isinstance(runner.pack_policy, PlaybookBalatroPackPolicy)
     assert runner.pack_policy.item_estimator is estimator
 
     pack_playstyle = runner.pack_policy.playstyle_evaluator
