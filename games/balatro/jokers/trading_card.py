@@ -21,6 +21,7 @@ class TradingCardJoker(Joker):
             []
         ).append(context.cards[0])
 
+        context.data["money"] = int(context.data.get("money", 0) or 0) + 3
         context.state.money = (
             int(getattr(context.state, "money", 0) or 0) + 3
         )
