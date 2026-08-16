@@ -280,8 +280,14 @@ class VisibleCardScoreOutcomeModel:
             lucky_triggers,
             projected_state,
         )
-        bloodstone_branches = self._bloodstone_branches(bloodstone_triggers)
-        glass_branches = self._glass_branches(len(glass_cards))
+        bloodstone_branches = self._bloodstone_branches(
+            bloodstone_triggers,
+            projected_state,
+        )
+        glass_branches = self._glass_branches(
+            len(glass_cards),
+            projected_state,
+        )
         grouped: dict[tuple, list] = {}
 
         for lucky_branch in lucky_branches:
@@ -422,7 +428,7 @@ class VisibleCardScoreOutcomeModel:
         if triggers <= 0:
             return (_LuckyBranch((), 0, 0, 1.0),)
 
-        p_mult = self.LUCKY_MULT_PROBABILITY
+        p_mult = self._listed_probability(self.LUCKY_MULT_PROBABILITY, state)
         if not self._requires_joint_lucky_state(state):
             branches = []
             for results in product((False, True), repeat=triggers):
@@ -441,7 +447,7 @@ class VisibleCardScoreOutcomeModel:
                 )
             return tuple(branches)
 
-        p_money = self.LUCKY_MONEY_PROBABILITY
+        p_money = self._listed_probability(self.LUCKY_MONEY_PROBABILITY, state)
         branches = []
         for results in product((False, True), repeat=triggers):
             mult_successes = sum(results)
@@ -484,11 +490,12 @@ class VisibleCardScoreOutcomeModel:
     def _bloodstone_branches(
         self,
         triggers: int,
+        state,
     ) -> tuple[_BloodstoneBranch, ...]:
         if triggers <= 0:
             return (_BloodstoneBranch((), 1.0),)
 
-        p = self.BLOODSTONE_PROBABILITY
+        p = self._listed_probability(self.BLOODSTONE_PROBABILITY, state)
         return tuple(
             _BloodstoneBranch(
                 results=tuple(results),
@@ -498,6 +505,10 @@ class VisibleCardScoreOutcomeModel:
                 ),
             )
             for results in product((False, True), repeat=triggers)
+            if (
+                (p ** sum(results))
+                * ((1.0 - p) ** (triggers - sum(results)))
+            ) > 0.0
         )
 
     def _project_stochastic_branch(
@@ -545,11 +556,15 @@ class VisibleCardScoreOutcomeModel:
 
         return branch_state
 
-    def _glass_branches(self, glass_cards: int) -> tuple[_GlassBranch, ...]:
+    def _glass_branches(
+        self,
+        glass_cards: int,
+        state,
+    ) -> tuple[_GlassBranch, ...]:
         if glass_cards <= 0:
             return (_GlassBranch((), 1.0),)
 
-        p = self.GLASS_BREAK_PROBABILITY
+        p = self._listed_probability(self.GLASS_BREAK_PROBABILITY, state)
         branches = []
         for results in product((False, True), repeat=glass_cards):
             broken_indices = tuple(
@@ -558,13 +573,16 @@ class VisibleCardScoreOutcomeModel:
                 if broken
             )
             breaks = len(broken_indices)
+            probability = (
+                (p ** breaks)
+                * ((1.0 - p) ** (glass_cards - breaks))
+            )
+            if probability <= 0.0:
+                continue
             branches.append(
                 _GlassBranch(
                     broken_indices=broken_indices,
-                    probability=(
-                        (p ** breaks)
-                        * ((1.0 - p) ** (glass_cards - breaks))
-                    ),
+                    probability=probability,
                 )
             )
         return tuple(branches)
@@ -645,6 +663,10 @@ class VisibleCardScoreOutcomeModel:
             if candidate_signature == signature:
                 return index
         return None
+
+    def _listed_probability(self, base_probability: float, state) -> float:
+        copies = len(self._jokers_named(state, "OopsAll6sJoker"))
+        return min(1.0, float(base_probability) * (2.0 ** copies))
 
     def _requires_joint_lucky_state(self, state) -> bool:
         return bool(

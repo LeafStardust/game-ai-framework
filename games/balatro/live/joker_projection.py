@@ -94,6 +94,7 @@ class LiveJokerScoreProjector:
             "ObeliskJoker",
             "OddToddJoker",
             "OnyxAgateJoker",
+            "OopsAll6sJoker",
             "PareidoliaJoker",
             "PerkeoJoker",
             "PhotographJoker",
