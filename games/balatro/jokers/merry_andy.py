@@ -8,10 +8,10 @@ class MerryAndyJoker(Joker):
             return context
 
         context.data["hand_size_modifier"] = (
-            context.data.get("hand_size_modifier", 0) + 3
+            context.data.get("hand_size_modifier", 0) - 1
         )
         context.data["discards_per_round_modifier"] = (
-            context.data.get("discards_per_round_modifier", 0) + 1
+            context.data.get("discards_per_round_modifier", 0) + 3
         )
 
         return context
