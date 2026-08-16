@@ -18,6 +18,7 @@ INDEPENDENT_COPY_TARGET_CLASS_NAMES = frozenset(
         "FlatMultJoker",
         "GlassJoker",
         "JollyJoker",
+        "MisprintJoker",
         "StuntmanJoker",
     }
 )
