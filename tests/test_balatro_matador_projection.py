@@ -156,6 +156,23 @@ def test_ox_bull_before_matador_sees_zero_dollars():
     assert transition.state_after_scoring.money == 8
 
 
+def test_ox_target_is_frozen_from_run_history_before_current_round_plays():
+    cards = [BalatroCard("2", "Spades"), BalatroCard("2", "Hearts")]
+    state = _state(cards, [MatadorJoker()], boss_name="The Ox", money=20)
+    # Pair led 3-2 when the round began. Two High Cards were then played during
+    # this boss, so the live cumulative totals are now High Card 4, Pair 3.
+    state.hand_play_counts["PAIR"] = 3
+    state.hand_play_counts["HIGH_CARD"] = 4
+    state.round_hand_play_counts["HIGH_CARD"] = 2
+
+    assert matador_boss_hand_triggered(
+        state, PokerHand.PAIR, cards
+    ).triggered is True
+    assert matador_boss_hand_triggered(
+        state, PokerHand.HIGH_CARD, cards
+    ).triggered is False
+
+
 def test_blueprint_copy_of_matador_pays_independently_in_joker_order():
     cards = [BalatroCard("2", "Spades"), BalatroCard("2", "Hearts")]
     state = _state(
