@@ -5,6 +5,7 @@ from typing import Mapping
 
 from games.balatro.build import JokerBuildTransitionPlanner
 from games.balatro.joker import Joker
+from games.balatro.joker_edition import joker_has_negative_edition
 from games.balatro.state import BalatroState
 
 
@@ -117,6 +118,10 @@ class JokerAcquisitionPolicy:
     slot opportunity cost and its own thresholds. A REPLACE recommendation remains
     strategy output only; the autonomous shop layer executes one SELL, then requires
     a fresh authoritative observation and D2 replan before any BUY can be emitted.
+
+    Negative Jokers are slot-neutral in Balatro. They are therefore scored as an
+    ADD/BUY even when the ordinary Joker roster is full and never pay ordinary
+    Joker-slot opportunity cost.
     """
 
     EDITION_BONUSES = {
@@ -155,7 +160,8 @@ class JokerAcquisitionPolicy:
             )
 
         transition = self.transition_planner.plan(state, candidate)
-        if len(state.jokers) < int(state.joker_slots):
+        slot_neutral = joker_has_negative_edition(candidate)
+        if len(state.jokers) < int(state.joker_slots) or slot_neutral:
             option = self._score_add(state, candidate, transition.candidate_value.total_gain)
             action = (
                 BUY
@@ -163,7 +169,12 @@ class JokerAcquisitionPolicy:
                 and option.total_advantage > self.thresholds.minimum_purchase_advantage
                 else HOLD
             )
-            rationale = (
+            rationale_parts = []
+            if slot_neutral:
+                rationale_parts.append(
+                    "Negative edition is slot-neutral; no incumbent replacement is required"
+                )
+            rationale_parts.append(
                 (
                     f"buy advantage={option.total_advantage:.3f} exceeds "
                     f"threshold={self.thresholds.minimum_purchase_advantage:.3f}"
@@ -180,7 +191,7 @@ class JokerAcquisitionPolicy:
                 selected=option if action == BUY else None,
                 options=(option,),
                 thresholds=self.thresholds,
-                rationale=(rationale,),
+                rationale=tuple(rationale_parts),
             )
 
         options = tuple(
@@ -328,7 +339,11 @@ class JokerAcquisitionPolicy:
             int(state.money),
             money_after,
         ) * self.thresholds.reserve_weight
-        slot_penalty = 0.0 if replacement else self._slot_penalty_after_add(state)
+        slot_penalty = (
+            0.0
+            if replacement or joker_has_negative_edition(candidate)
+            else self._slot_penalty_after_add(state)
+        )
 
         return JokerTransactionEconomics(
             price=price,
