@@ -20,7 +20,6 @@ class SixthSenseJoker(Joker):
             return context
 
         context.data.setdefault("destroyed_cards", []).append(cards[0])
-        context.data["create_spectral_count"] = (
-            int(context.data.get("create_spectral_count", 0) or 0) + 1
-        )
+        # Category marker only; live projection owns slot checks and destruction.
+        context.data.setdefault("created_consumables", []).append("Spectral")
         return context
