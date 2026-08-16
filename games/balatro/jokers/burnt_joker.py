@@ -11,11 +11,16 @@ class BurntJoker(Joker):
         if context.event.type != BalatroEventType.CARDS_DISCARDED:
             return context
 
-        cards = context.event.cards or []
+        # Generic semantic probes historically omitted round-history context, so
+        # absence keeps the standalone Joker behavior as a first-discard probe.
+        # Live projection always supplies this flag explicitly.
+        if not bool(context.data.get("first_discard", True)):
+            return context
 
-        if len(cards) == 1:
-            context.data["level_up_hand"] = context.data.get(
-                "discarded_hand"
-            )
+        discarded_hand = context.data.get("discarded_hand")
+        if discarded_hand is None:
+            return context
 
+        context.data["level_up_hand"] = discarded_hand
+        context.data.setdefault("level_up_hands", []).append(discarded_hand)
         return context
