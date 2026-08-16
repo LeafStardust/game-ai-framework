@@ -1,5 +1,6 @@
 from games.balatro.build.joker_coverage import (
     COVERED,
+    PARAMETERIZED,
     UNANALYZED,
     JokerCoverageAuditor,
 )
@@ -12,7 +13,8 @@ def test_inventory_discovers_canonical_balatro_joker_roster_without_claiming_sem
     entries = {(entry.module, entry.class_name): entry for entry in report.entries}
 
     assert len(report.entries) == 150
-    assert report.count(UNANALYZED) == 150
+    assert report.count(UNANALYZED) + report.count(PARAMETERIZED) == 150
+    assert report.count(COVERED) == 0
     assert "coupon_tag" not in {entry.module for entry in report.entries}
     assert "jokers_apprentice" not in {entry.module for entry in report.entries}
 
