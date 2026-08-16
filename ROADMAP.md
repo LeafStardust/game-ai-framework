@@ -37,8 +37,8 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 
 ### 1.0A — Blind survival and hand efficiency
 
-- [ ] Make clear probability and a feasible remaining clear path the dominant D1 objective, with pace discipline across remaining hands/discards.
-- [ ] Among similarly safe clear lines, prefer fewer hands and capture unused-hand economy.
+- [x] Make clear probability and a feasible remaining clear path the dominant D1 objective, with pace discipline across remaining hands/discards.
+- [x] Among similarly safe clear lines, prefer fewer hands and capture unused-hand economy.
 - [x] Preserve future hand value explicitly, including retained structure, Steel cards, Blue Seals and other build-relevant held cards.
 - [ ] Tune discard/recovery behavior around the active clear path rather than isolated hand value.
 
