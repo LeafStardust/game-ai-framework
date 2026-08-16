@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
 
+from games.balatro.deck_rules import starting_deck_size_for_name
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.joker import JokerContext
 from games.balatro.scoring import BalatroScorer, HandScore
@@ -58,6 +59,7 @@ class LiveJokerScoreProjector:
             "DrunkardJoker",
             "DuskJoker",
             "EggJoker",
+            "ErosionJoker",
             "EvenStevenJoker",
             "FibonacciJoker",
             "FlashCardJoker",
@@ -144,6 +146,7 @@ class LiveJokerScoreProjector:
     OWNED_DECK_REQUIRED_CLASS_NAMES = frozenset(
         {
             "DriversLicenseJoker",
+            "ErosionJoker",
             "SteelJoker",
             "StoneJoker",
         }
@@ -185,6 +188,13 @@ class LiveJokerScoreProjector:
         if (
             class_name in cls.OWNED_DECK_REQUIRED_CLASS_NAMES
             and getattr(state, "owned_deck", None) is None
+        ):
+            return False
+        if (
+            class_name == "ErosionJoker"
+            and starting_deck_size_for_name(
+                getattr(state, "deck_name", None)
+            ) is None
         ):
             return False
         return True
