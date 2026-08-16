@@ -15,7 +15,9 @@ class EightBallJoker(Joker):
             for card in cards
         )
         if attempts:
-            context.data["eight_ball_attempts"] = (
-                int(context.data.get("eight_ball_attempts", 0) or 0) + attempts
+            # Deterministic capability markers: each scored 8 is one independent
+            # Tarot-generation attempt. Live projection owns the exact 1-in-4 RNG.
+            context.data.setdefault("created_consumables", []).extend(
+                ["Random Tarot attempt"] * attempts
             )
         return context
