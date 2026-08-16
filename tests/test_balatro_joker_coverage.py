@@ -7,9 +7,14 @@ from games.balatro.build.joker_lifecycle import LifecycleJokerBehaviorAnalyzer
 from games.balatro.jokers.constellation import ConstellationJoker
 
 
-def test_inventory_discovers_repository_jokers_without_claiming_semantic_coverage():
+def test_inventory_discovers_canonical_balatro_joker_roster_without_claiming_semantic_coverage():
     report = JokerCoverageAuditor().audit(analyze_semantics=False)
     entries = {(entry.module, entry.class_name): entry for entry in report.entries}
+
+    assert len(report.entries) == 150
+    assert report.count(UNANALYZED) == 150
+    assert "coupon_tag" not in {entry.module for entry in report.entries}
+    assert "jokers_apprentice" not in {entry.module for entry in report.entries}
 
     assert entries[("constellation", "ConstellationJoker")].status == UNANALYZED
     assert entries[("castle", "CastleJoker")].status == UNANALYZED
