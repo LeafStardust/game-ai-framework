@@ -114,14 +114,7 @@ def _build_signal_kind(note: str) -> str | None:
 
 
 def build_rationale_log_payload(decision) -> dict[str, Any] | None:
-    """Project chosen policy rationale into structured build-causal telemetry.
-
-    The policy that selected the action remains authoritative. This logger never
-    reruns B3/B4/B6 or playstyle evaluation; it only classifies rationale already
-    attached to the chosen decision. That preserves the exact evidence that drove
-    the guarded action and avoids creating a second strategy implementation inside
-    telemetry code.
-    """
+    """Project chosen policy rationale into structured build-causal telemetry."""
     action_name = str(decision.action.name)
     action_family = _BUILD_ACTION_FAMILIES.get(action_name)
     if action_family is None:
@@ -223,6 +216,9 @@ def log_successful_live_transition(
     }
     if build_rationale is not None:
         rationale["build_rationale"] = build_rationale
+    decision_diagnostics = getattr(decision, "decision_diagnostics", None)
+    if isinstance(decision_diagnostics, dict) and decision_diagnostics:
+        rationale["postmortem"] = _sanitize_public_value(decision_diagnostics)
     logger.decision(
         action=action,
         rationale=rationale,
