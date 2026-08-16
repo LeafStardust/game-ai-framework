@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field
+from itertools import product
 from math import comb
 
 from games.balatro.hand import PokerHand
@@ -80,7 +81,7 @@ class ScoreProjectionTransition:
 
 @dataclass(frozen=True)
 class _LuckyBranch:
-    mult_successes: int
+    mult_results: tuple[bool, ...]
     money_successes: int
     successful_triggers: int
     probability: float
@@ -90,6 +91,49 @@ class _LuckyBranch:
 class _GlassBranch:
     face_breaks: int
     probability: float
+
+
+class _ProjectedLuckyScorer(BalatroScorer):
+    """Replay one explicit Lucky-mult branch without consuming hidden RNG."""
+
+    def __init__(self, mult_results: tuple[bool, ...]):
+        self._lucky_mult_results = tuple(bool(value) for value in mult_results)
+        self._lucky_mult_index = 0
+
+    def _apply_single_card_modifier(
+        self,
+        score,
+        card,
+        *,
+        resolve_random_effects: bool = True,
+    ) -> None:
+        if (
+            getattr(card, "enhancement", None) != "Lucky"
+            or resolve_random_effects
+        ):
+            super()._apply_single_card_modifier(
+                score,
+                card,
+                resolve_random_effects=resolve_random_effects,
+            )
+            return
+
+        success = False
+        if self._lucky_mult_index < len(self._lucky_mult_results):
+            success = self._lucky_mult_results[self._lucky_mult_index]
+        self._lucky_mult_index += 1
+
+        if success:
+            score.mult += 20
+
+        edition = getattr(card, "edition", None)
+        if edition == "Foil":
+            score.chips += 50
+        elif edition == "Holographic":
+            score.mult += 10
+        elif edition == "Polychrome":
+            score.x_mult *= 1.5
+            self._fold_x_mult(score)
 
 
 class VisibleCardScoreOutcomeModel:
@@ -176,38 +220,66 @@ class VisibleCardScoreOutcomeModel:
                 unsupported_jokers=joker_projection.unsupported_jokers,
             )
 
+        joint_lucky_state = bool(
+            lucky_triggers and self._requires_joint_lucky_state(projected_state)
+        )
         lucky_branches = self._lucky_branches(
             lucky_triggers,
             projected_state,
         )
         glass_branches = self._glass_branches(canio_face_glass)
-        outcomes: list[ScoreOutcome] = []
+        grouped: dict[tuple, list] = {}
 
         for lucky_branch in lucky_branches:
-            score = self._score_lucky_branch(
-                base,
-                projected_state,
-                lucky_branch,
-            )
+            if lucky_triggers:
+                branch_projection = self._project_lucky_branch(
+                    hand,
+                    state,
+                    cards,
+                    include_card_chips=include_card_chips,
+                    branch=lucky_branch,
+                )
+                score = branch_projection.score.total
+                score_state = branch_projection.state_after_scoring
+                branch_probability = lucky_branch.probability
+            else:
+                score = base.total
+                score_state = projected_state
+                branch_probability = 1.0
+
             for glass_branch in glass_branches:
-                branch_state = self._branch_state(
-                    projected_state,
-                    lucky_branch,
+                branch_state = self._glass_branch_state(
+                    score_state,
                     glass_branch,
                 )
-                outcomes.append(
-                    ScoreOutcome(
-                        score=score,
-                        probability=(
-                            lucky_branch.probability * glass_branch.probability
-                        ),
-                        state_after_scoring=branch_state,
+                probability = branch_probability * glass_branch.probability
+                if joint_lucky_state:
+                    key = (
+                        score,
+                        lucky_branch.money_successes,
+                        lucky_branch.successful_triggers,
+                        glass_branch.face_breaks,
                     )
-                )
+                else:
+                    key = (score, glass_branch.face_breaks)
+
+                if key not in grouped:
+                    grouped[key] = [0.0, branch_state]
+                grouped[key][0] += probability
+
+        outcomes = tuple(
+            ScoreOutcome(
+                score=key[0],
+                probability=grouped[key][0],
+                state_after_scoring=grouped[key][1],
+            )
+            for key in sorted(grouped)
+            if grouped[key][0] > 0.0
+        )
 
         random_sources: list[str] = []
         if lucky_triggers:
-            if self._requires_joint_lucky_state(projected_state):
+            if joint_lucky_state:
                 random_sources.append(f"Lucky effects x{lucky_triggers}")
             else:
                 random_sources.append(f"Lucky mult x{lucky_triggers}")
@@ -215,7 +287,7 @@ class VisibleCardScoreOutcomeModel:
             random_sources.append(f"Glass break x{canio_face_glass}")
 
         distribution = ScoreOutcomeDistribution(
-            outcomes=tuple(outcomes),
+            outcomes=outcomes,
             random_sources=tuple(random_sources),
         )
         return ScoreProjectionTransition(
@@ -264,58 +336,107 @@ class VisibleCardScoreOutcomeModel:
 
     def _lucky_branches(self, triggers: int, state) -> tuple[_LuckyBranch, ...]:
         if triggers <= 0:
-            return (_LuckyBranch(0, 0, 0, 1.0),)
-
-        if not self._requires_joint_lucky_state(state):
-            p = self.LUCKY_MULT_PROBABILITY
-            return tuple(
-                _LuckyBranch(
-                    mult_successes=successes,
-                    money_successes=0,
-                    successful_triggers=0,
-                    probability=(
-                        comb(triggers, successes)
-                        * (p ** successes)
-                        * ((1.0 - p) ** (triggers - successes))
-                    ),
-                )
-                for successes in range(triggers + 1)
-            )
+            return (_LuckyBranch((), 0, 0, 1.0),)
 
         p_mult = self.LUCKY_MULT_PROBABILITY
-        p_money = self.LUCKY_MONEY_PROBABILITY
-        per_trigger = (
-            (0, 0, 0, (1.0 - p_mult) * (1.0 - p_money)),
-            (1, 0, 1, p_mult * (1.0 - p_money)),
-            (0, 1, 1, (1.0 - p_mult) * p_money),
-            (1, 1, 1, p_mult * p_money),
-        )
-        probabilities: dict[tuple[int, int, int], float] = {(0, 0, 0): 1.0}
-        for _ in range(triggers):
-            updated: dict[tuple[int, int, int], float] = {}
-            for (mults, money, successes), probability in probabilities.items():
-                for add_mult, add_money, add_success, branch_probability in per_trigger:
-                    key = (
-                        mults + add_mult,
-                        money + add_money,
-                        successes + add_success,
+        if not self._requires_joint_lucky_state(state):
+            branches = []
+            for results in product((False, True), repeat=triggers):
+                successes = sum(results)
+                probability = (
+                    (p_mult ** successes)
+                    * ((1.0 - p_mult) ** (triggers - successes))
+                )
+                branches.append(
+                    _LuckyBranch(
+                        mult_results=tuple(results),
+                        money_successes=0,
+                        successful_triggers=successes,
+                        probability=probability,
                     )
-                    updated[key] = (
-                        updated.get(key, 0.0)
-                        + probability * branch_probability
-                    )
-            probabilities = updated
+                )
+            return tuple(branches)
 
-        return tuple(
-            _LuckyBranch(
-                mult_successes=key[0],
-                money_successes=key[1],
-                successful_triggers=key[2],
-                probability=probability,
+        p_money = self.LUCKY_MONEY_PROBABILITY
+        branches = []
+        for results in product((False, True), repeat=triggers):
+            mult_successes = sum(results)
+            mult_failures = triggers - mult_successes
+            mult_probability = (
+                (p_mult ** mult_successes)
+                * ((1.0 - p_mult) ** mult_failures)
             )
-            for key, probability in sorted(probabilities.items())
-            if probability > 0.0
+            for money_on_mult in range(mult_successes + 1):
+                p_money_on_mult = (
+                    comb(mult_successes, money_on_mult)
+                    * (p_money ** money_on_mult)
+                    * ((1.0 - p_money) ** (mult_successes - money_on_mult))
+                )
+                for money_on_failure in range(mult_failures + 1):
+                    p_money_on_failure = (
+                        comb(mult_failures, money_on_failure)
+                        * (p_money ** money_on_failure)
+                        * ((1.0 - p_money) ** (mult_failures - money_on_failure))
+                    )
+                    probability = (
+                        mult_probability
+                        * p_money_on_mult
+                        * p_money_on_failure
+                    )
+                    if probability <= 0.0:
+                        continue
+                    branches.append(
+                        _LuckyBranch(
+                            mult_results=tuple(results),
+                            money_successes=(money_on_mult + money_on_failure),
+                            successful_triggers=(
+                                mult_successes + money_on_failure
+                            ),
+                            probability=probability,
+                        )
+                    )
+        return tuple(branches)
+
+    def _project_lucky_branch(
+        self,
+        hand,
+        state,
+        cards,
+        *,
+        include_card_chips: bool,
+        branch: _LuckyBranch,
+    ):
+        branch_state = self._lucky_branch_input_state(state, branch)
+        branch_scorer = _ProjectedLuckyScorer(branch.mult_results)
+        branch_projector = LiveJokerScoreProjector(branch_scorer)
+        return branch_projector.score(
+            hand,
+            branch_state,
+            cards,
+            include_card_chips=include_card_chips,
+            resolve_random_effects=False,
         )
+
+    def _lucky_branch_input_state(self, state, branch: _LuckyBranch):
+        if state is None:
+            return None
+
+        branch_state = state.copy()
+        branch_state.jokers = deepcopy(list(getattr(state, "jokers", [])))
+        if branch.money_successes:
+            branch_state.money = (
+                int(getattr(branch_state, "money", 0) or 0)
+                + self.LUCKY_MONEY_REWARD * branch.money_successes
+            )
+
+        if branch.successful_triggers:
+            for lucky_cat in self._jokers_named(branch_state, "LuckyCatJoker"):
+                lucky_cat.x_mult = (
+                    float(getattr(lucky_cat, "x_mult", 1.0) or 1.0)
+                    + self.LUCKY_CAT_X_MULT_GAIN * branch.successful_triggers
+                )
+
+        return branch_state
 
     def _glass_branches(self, face_glass_cards: int) -> tuple[_GlassBranch, ...]:
         if face_glass_cards <= 0:
@@ -333,57 +454,15 @@ class VisibleCardScoreOutcomeModel:
             for breaks in range(face_glass_cards + 1)
         )
 
-    def _score_lucky_branch(self, base, state, branch: _LuckyBranch) -> int:
-        mult = float(base.mult + self.LUCKY_MULT_BONUS * branch.mult_successes)
-        x_mult = float(base.x_mult)
-
-        if state is not None and branch.money_successes:
-            initial_money = int(getattr(state, "money", 0) or 0)
-            money_after = (
-                initial_money
-                + self.LUCKY_MONEY_REWARD * branch.money_successes
-            )
-            bootstrap_count = len(self._jokers_named(state, "BootstrapsJoker"))
-            if bootstrap_count:
-                before_steps = initial_money // 5
-                after_steps = money_after // 5
-                mult += (after_steps - before_steps) * 2 * bootstrap_count
-
-        if state is not None and branch.successful_triggers:
-            for lucky_cat in self._jokers_named(state, "LuckyCatJoker"):
-                current = float(getattr(lucky_cat, "x_mult", 1.0) or 1.0)
-                grown = (
-                    current
-                    + self.LUCKY_CAT_X_MULT_GAIN * branch.successful_triggers
-                )
-                x_mult *= grown / current
-
-        return int(float(base.chips) * mult * x_mult)
-
-    def _branch_state(
+    def _glass_branch_state(
         self,
         state,
-        lucky_branch: _LuckyBranch,
         glass_branch: _GlassBranch,
     ):
         if state is None:
             return None
 
         branch_state = deepcopy(state)
-        if lucky_branch.money_successes:
-            branch_state.money = (
-                int(getattr(branch_state, "money", 0) or 0)
-                + self.LUCKY_MONEY_REWARD * lucky_branch.money_successes
-            )
-
-        if lucky_branch.successful_triggers:
-            for lucky_cat in self._jokers_named(branch_state, "LuckyCatJoker"):
-                lucky_cat.x_mult = (
-                    float(getattr(lucky_cat, "x_mult", 1.0) or 1.0)
-                    + self.LUCKY_CAT_X_MULT_GAIN
-                    * lucky_branch.successful_triggers
-                )
-
         if glass_branch.face_breaks:
             for canio in self._jokers_named(branch_state, "CanioJoker"):
                 canio.x_mult = (
@@ -402,6 +481,7 @@ class VisibleCardScoreOutcomeModel:
         return bool(
             self._jokers_named(state, "LuckyCatJoker")
             or self._jokers_named(state, "BootstrapsJoker")
+            or self._jokers_named(state, "BullJoker")
         )
 
     @staticmethod
