@@ -13,9 +13,9 @@ from games.balatro.live.build_intent_log import (
     BuildIntentLogTracker,
     PreparedBuildIntentLog,
 )
-from games.balatro.live.hand_action_policy import (
-    HandActionThresholds,
-    LiveHandActionDecisionEngine,
+from games.balatro.live.hand_action_policy import HandActionThresholds
+from games.balatro.live.path_aware_hand_action_engine import (
+    PathAwareLiveHandActionDecisionEngine as LiveHandActionDecisionEngine,
 )
 from games.balatro.live.hand_playstyle import BuildAwareLiveHandActionPolicy
 from games.balatro.pack_playstyle import PackPlaystyleEvaluator
