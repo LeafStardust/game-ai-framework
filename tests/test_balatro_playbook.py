@@ -55,6 +55,14 @@ def test_default_registry_selects_red_white_from_live_state():
     assert pack_target["minimum_total_gain"] is None
     assert pack_target["minimum_contextual_delta"] == 0.0
 
+    blind_skip = playbook.thresholds_for("D13")
+    assert blind_skip["minimum_skip_advantage"] == 2.0
+    assert blind_skip["fallback_tag_value"] == 4.0
+    assert blind_skip["base_shop_opportunity_value"] == 1.5
+    assert blind_skip["build_development_shop_weight"] == 2.0
+    assert blind_skip["pre_boss_shop_weight"] == 2.5
+    assert blind_skip["interest_cap"] == 5
+
 
 def test_playbook_threshold_blocks_are_independent_by_decision_layer():
     playbook = BalatroPlaybook(
