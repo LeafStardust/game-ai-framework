@@ -2,7 +2,7 @@ from games.balatro.actions import BalatroAction, PLAY_CARDS
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
-from games.balatro.jokers.bloodstone import BloodstoneJoker
+from games.balatro.joker import Joker
 from games.balatro.jokers.bootstraps import BootstrapsJoker
 from games.balatro.jokers.canio import CanioJoker
 from games.balatro.jokers.constellation import ConstellationJoker
@@ -25,6 +25,13 @@ from games.balatro.live.external.save_observer import _normalize_item
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.live.score_outcomes import VisibleCardScoreOutcomeModel
 from games.balatro.state import BalatroState
+
+
+class UnsupportedProjectionJoker(Joker):
+    def apply(self, context):
+        if context.score is not None:
+            context.score.mult += 999
+        return context
 
 
 def _state(hand, deck=None, *, target=1000, hands=2, discards=0):
@@ -424,7 +431,7 @@ def test_unsupported_joker_is_reported_and_not_silently_applied():
         BalatroCard("10", "Diamonds"),
     ]
     state = _state(cards)
-    state.jokers = [BloodstoneJoker()]
+    state.jokers = [UnsupportedProjectionJoker()]
 
     transition = VisibleCardScoreOutcomeModel().project_transition(
         PokerHand.PAIR,
@@ -434,7 +441,7 @@ def test_unsupported_joker_is_reported_and_not_silently_applied():
 
     assert transition.distribution.minimum == 60
     assert transition.joker_projection_complete is False
-    assert transition.unsupported_jokers == ("Bloodstone",)
+    assert transition.unsupported_jokers == ("UnsupportedProjection",)
 
 
 def test_ice_cream_public_save_state_is_narrowly_whitelisted_and_restored():
