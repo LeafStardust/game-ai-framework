@@ -19,7 +19,7 @@
 | 0.9D Playbook/build foundation | Complete for 0.9 | Strategic calibration moves to 1.0 |
 | 0.9E Decision coverage | Implementation/regression complete | Authentic D9/D10 live-transition evidence in 0.9G |
 | 0.9F Logging/diagnostics | **Implementation/regression complete** | Clean production shutdown/log completeness in 0.9G |
-| 0.9G Release validation | In progress | Full autonomous production-flow validation |
+| 0.9G Release validation | **Regression complete; live validation pending** | Authentic full-flow production run evidence |
 | v1.0 Red/White competence | Not started | Begins after 0.9 release gate |
 
 ## v0.1.0–v0.8.0 — Completed foundations
@@ -159,16 +159,19 @@ Replay analysis, aggregate statistics and offline playbook tuning are deferred t
 - [x] Reliability soak protocol completed without crash/UI corruption/premature injection
 - [x] Contract-level D9/D10 production-boundary regression coverage
 - [x] Logging/diagnostic recovery regression coverage, including unhandled supervisor failure artifacts
+- [x] Canonical production phase-routing inventory covers blind select, hand play, round eval, shop and all five pack families
+- [x] Unbounded-loop regression survives 128 consecutive gameplay actions with no hidden gameplay-step cap
+- [x] Supervisor regression survives multiple consecutive losses, performs fresh restarts and continues into the next attempt
 
-**Remaining v0.9 live release gate**
+**Remaining v0.9 live release gate — authentic process execution only**
 
 - [ ] Live-validate repeated production loss -> native restart -> fresh-attempt continuation across multiple attempts
-- [ ] Live-validate manual toggle OFF during an active run
-- [ ] Confirm every required phase/subflow routes to a production decision layer with no temporary unsupported gap
+- [ ] Live-validate manual toggle OFF during an active run before the next gameplay action
+- [ ] Confirm every required phase/subflow encountered in the real run routes to a production decision layer with no temporary unsupported gap
 - [ ] Validate full blind-select -> hand-play -> round-eval -> shop -> pack/consumable -> next-blind flow with no manual gameplay input
 - [ ] Obtain authentic D9/D10 before/after process-memory evidence for pack choice/Skip and targeted follow-up flows encountered during release validation
-- [ ] Confirm complete attempts continue without an arbitrary gameplay-step cap
-- [ ] Confirm clean shutdown leaves complete, internally consistent production run/session logs and separate diagnostics
+- [ ] Confirm a complete real attempt continues without an arbitrary gameplay-step cap
+- [ ] Confirm cooperative shutdown leaves complete, internally consistent production run/session logs and separate diagnostics
 - [ ] If a real win occurs during 0.9 validation, confirm automatic OFF and terminal logging; otherwise carry this live check into v1.0
 
 ### Legacy/fallback cleanup
