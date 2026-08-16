@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
-from .live_memory_observer import _integer, _table_fields
+from .live_memory_observer import (
+    _array_table_values,
+    _boolean,
+    _integer,
+    _table_fields,
+)
 from .live_memory_supervisor_observer import SupervisorLiveMemoryBalatroObserver
 
 
@@ -20,30 +25,72 @@ def public_discard_history(decoder, root) -> tuple[int, int] | None:
     return total, max(0, total - left)
 
 
+def public_forced_selection_flags(decoder, root) -> tuple[bool, ...] | None:
+    """Return the public Cerulean Bell forced-selection bit for each hand card."""
+    hand = _table_fields(decoder, root.get("hand"))
+    raw_cards = _array_table_values(decoder, hand.get("cards"))
+    if not raw_cards:
+        return ()
+
+    flags: list[bool] = []
+    try:
+        for _, address in raw_cards:
+            card = decoder.string_fields(address)
+            ability = _table_fields(decoder, card.get("ability"))
+            flags.append(_boolean(ability.get("forced_selection"), False))
+    except Exception:
+        # Missing/unstable memory must not invent a forced card. Leave the base
+        # snapshot untouched and let the translator/action layer fail open.
+        return None
+    return tuple(flags)
+
+
 class DiscardHistorySupervisorLiveMemoryBalatroObserver(
     SupervisorLiveMemoryBalatroObserver
 ):
-    """Add exact public current-round discard usage to supervisor snapshots.
+    """Add narrow public round/controller fields to supervisor snapshots.
 
-    Balatro keeps the round reset allowance in ``G.GAME.round_resets.discards``
-    and the current allowance in ``G.GAME.current_round.discards_left``. Their
-    difference is enough to identify the first discard without exposing hidden
-    RNG state or relying on controller-local action history.
+    Besides exact discard usage, Cerulean Bell's currently forced hand card is a
+    public controller constraint stored on ``card.ability.forced_selection``.
+    Exposing that bit does not reveal future RNG: it only describes the card the
+    game has already selected at the current checkpoint.
     """
 
     def _observe_public(self):
         snapshot = super()._observe_public()
         decoder, _, root = self._root()
-        history = public_discard_history(decoder, root)
-        if history is None:
-            return snapshot
-        total, used = history
-
         payload = dict(snapshot.payload)
-        round_payload = dict(payload.get("round") or {})
-        round_payload["discards_total"] = total
-        round_payload["discards_used"] = used
-        payload["round"] = round_payload
+        changed = False
+
+        history = public_discard_history(decoder, root)
+        if history is not None:
+            total, used = history
+            round_payload = dict(payload.get("round") or {})
+            round_payload["discards_total"] = total
+            round_payload["discards_used"] = used
+            payload["round"] = round_payload
+            changed = True
+
+        forced_flags = public_forced_selection_flags(decoder, root)
+        hand_payload = payload.get("hand")
+        if forced_flags is not None and isinstance(hand_payload, dict):
+            raw_cards = hand_payload.get("cards")
+            if isinstance(raw_cards, list) and len(raw_cards) == len(forced_flags):
+                hand_copy = dict(hand_payload)
+                cards_copy = []
+                for card, forced in zip(raw_cards, forced_flags):
+                    if isinstance(card, dict):
+                        value = dict(card)
+                        value["forced_selection"] = bool(forced)
+                        cards_copy.append(value)
+                    else:
+                        cards_copy.append(card)
+                hand_copy["cards"] = cards_copy
+                payload["hand"] = hand_copy
+                changed = True
+
+        if not changed:
+            return snapshot
         return LiveBalatroSnapshot(
             sequence=snapshot.sequence,
             phase=snapshot.phase,
