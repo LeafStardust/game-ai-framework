@@ -8,6 +8,7 @@ from games.balatro.live.runtime.balatro_agent_supervisor import BalatroAgentSupe
 from games.balatro.live.runtime.live_memory_autonomous_step_injected import (
     AutonomousStepDecision,
 )
+from games.balatro.live.runtime.v09g_release_report import build_release_report
 
 
 class _Observer:
@@ -74,6 +75,7 @@ def test_manual_stop_finalizes_active_run_and_session_artifacts(tmp_path):
     observer = _Observer()
     run_directory = tmp_path / "runs"
     session_directory = tmp_path / "sessions"
+    diagnostic_directory = tmp_path / "diagnostics"
     supervisor = BalatroAgentSupervisor(
         control=control,
         observer_factory=lambda: observer,
@@ -121,3 +123,15 @@ def test_manual_stop_finalizes_active_run_and_session_artifacts(tmp_path):
     assert session_summary["attempt_count"] == 1
     assert session_summary["attempts"][0]["outcome"] == "STOPPED"
     assert session_summary["stop_reason"] == "manual stop requested"
+
+    report = build_release_report(
+        session_id="manual-stop-release",
+        session_directory=session_directory,
+        run_log_directory=run_directory,
+        diagnostic_directory=diagnostic_directory,
+    )
+    assert report.integrity_ok is True
+    assert report.manual_stop is True
+    assert report.attempt_count == 1
+    assert report.loss_count == 0
+    assert report.diagnostic_events == 0
