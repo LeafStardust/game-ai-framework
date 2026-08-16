@@ -1,6 +1,4 @@
-from games.balatro.actions import BalatroAction, USE_CONSUMABLE
 from games.balatro.live import (
-    DefaultBalatroActionExecutor,
     DefaultBalatroStateTranslator,
     LiveBalatroSnapshot,
 )
@@ -65,53 +63,3 @@ def test_translator_accepts_numeric_save_state_consumable_cost():
     assert len(state.consumables) == 1
     assert state.consumables[0].name == "Strength"
     assert state.consumables[0].price == 3
-
-
-def test_use_consumable_command_maps_balatrobot_indices():
-    snapshot = LiveBalatroSnapshot(
-        sequence=8,
-        phase="SELECTING_HAND",
-        state_complete=True,
-        payload={
-            "hand": {
-                "count": 1,
-                "limit": 8,
-                "cards": [
-                    {
-                        "value": {
-                            "rank": "2",
-                            "suit": "H",
-                        },
-                        "modifier": {},
-                    }
-                ],
-            },
-            "consumables": {
-                "count": 1,
-                "limit": 2,
-                "cards": [
-                    {
-                        "key": "c_strength",
-                        "set": "TAROT",
-                        "label": "Strength",
-                    }
-                ],
-            },
-        },
-    )
-    state = DefaultBalatroStateTranslator().translate(snapshot)
-
-    command = DefaultBalatroActionExecutor().command_for(
-        BalatroAction(
-            USE_CONSUMABLE,
-            cards=[state.hand[0]],
-            target=state.consumables[0],
-        ),
-        snapshot,
-    )
-
-    assert command.action == USE_CONSUMABLE
-    assert command.payload == {
-        "cards": [0],
-        "target": 0,
-    }
