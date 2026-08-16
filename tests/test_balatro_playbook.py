@@ -49,7 +49,11 @@ def test_default_registry_selects_red_white_from_live_state():
 
     voucher_acquisition = playbook.thresholds_for("D3")
     assert voucher_acquisition["minimum_persistent_value"] == 1.0
-    assert voucher_acquisition["minimum_money_after"] == 5
+    assert voucher_acquisition["minimum_money_after"] == 0
+
+    pack_target = playbook.thresholds_for("D10")
+    assert pack_target["minimum_total_gain"] is None
+    assert pack_target["minimum_contextual_delta"] == 0.0
 
 
 def test_playbook_threshold_blocks_are_independent_by_decision_layer():
