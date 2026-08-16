@@ -23,6 +23,7 @@ from games.balatro.playbook import (
     default_balatro_playbooks,
 )
 from games.balatro.shop_booster_policy import (
+    BoosterAcquisitionThresholds,
     BuildAwareShopBoosterPolicy,
     ShopBoosterRecommendation,
 )
@@ -37,6 +38,7 @@ from games.balatro.shop_policy import BalatroShopPolicy, ShopActionScore
 from games.balatro.shop_reroll_policy import (
     BuildAwareShopRerollPolicy,
     ShopRerollRecommendation,
+    ShopRerollThresholds,
 )
 from games.balatro.shop_utility_scale import ShopUtilityScale
 from games.balatro.state import BalatroState
@@ -118,12 +120,8 @@ class BuildAwareShopArbiter:
     ) -> None:
         self.shop_policy = shop_policy or BalatroShopPolicy()
         self.utility_scale = ShopUtilityScale(self.shop_policy)
-        self.booster_policy = booster_policy or BuildAwareShopBoosterPolicy(
-            shop_policy=self.shop_policy,
-        )
-        self.reroll_policy = reroll_policy or BuildAwareShopRerollPolicy(
-            shop_policy=self.shop_policy,
-        )
+        self.booster_policy = booster_policy
+        self.reroll_policy = reroll_policy
         self.joker_policy = joker_policy
         self.consumable_policy = consumable_policy
 
@@ -154,9 +152,11 @@ class BuildAwareShopArbiter:
 
         joker_best = self._best_joker_decision(state)
         consumable_best = self._best_consumable_decision(state)
+        booster_policy = self._booster_policy_for_state(state)
+        reroll_policy = self._reroll_policy_for_state(state)
 
         booster_recommendations = tuple(
-            self.booster_policy.recommend(state, action)
+            booster_policy.recommend(state, action)
             for action in visible_actions
             if action.name == BUY_BOOSTER
         )
@@ -222,7 +222,7 @@ class BuildAwareShopArbiter:
             if action.name not in {BUY_JOKER, BUY_CONSUMABLE}
         ]
         reroll_visible_floor = hold + visible_normalized_best
-        reroll = self.reroll_policy.recommend(
+        reroll = reroll_policy.recommend(
             state,
             reroll_visible_actions,
             reroll_cost=reroll_cost,
@@ -529,6 +529,44 @@ class BuildAwareShopArbiter:
                 self.utility_scale.consumable_gain(state, recommendation).gain,
                 -recommendation.candidate_index,
             ),
+        )
+
+    def _booster_policy_for_state(
+        self,
+        state: BalatroState,
+    ) -> BuildAwareShopBoosterPolicy:
+        if self.booster_policy is not None:
+            return self.booster_policy
+
+        try:
+            playbook = default_balatro_playbooks().for_state(state)
+        except BalatroPlaybookNotFound:
+            return BuildAwareShopBoosterPolicy(shop_policy=self.shop_policy)
+
+        thresholds = BoosterAcquisitionThresholds.from_mapping(
+            playbook.thresholds_for("D8")
+        )
+        return BuildAwareShopBoosterPolicy(
+            thresholds=thresholds,
+            shop_policy=self.shop_policy,
+        )
+
+    def _reroll_policy_for_state(
+        self,
+        state: BalatroState,
+    ) -> BuildAwareShopRerollPolicy:
+        if self.reroll_policy is not None:
+            return self.reroll_policy
+
+        try:
+            playbook = default_balatro_playbooks().for_state(state)
+        except BalatroPlaybookNotFound:
+            return BuildAwareShopRerollPolicy(shop_policy=self.shop_policy)
+
+        thresholds = ShopRerollThresholds(**playbook.thresholds_for("D11"))
+        return BuildAwareShopRerollPolicy(
+            thresholds=thresholds,
+            shop_policy=self.shop_policy,
         )
 
     def _joker_policy_for_state(self, state: BalatroState) -> JokerAcquisitionPolicy:
