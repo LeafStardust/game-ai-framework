@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field
+from fractions import Fraction
 from itertools import product
 from math import comb
 
@@ -10,6 +11,10 @@ from games.balatro.hand_rules import (
     card_is_face,
     card_matches_suit,
     hand_rules_for_state,
+)
+from games.balatro.live.copy_projection import (
+    COPY_JOKER_CLASS_NAMES,
+    resolve_copy_target,
 )
 from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.scoring import BalatroScorer
@@ -104,17 +109,40 @@ class _GlassBranch:
 
 
 class _ProjectedStochasticScorer(BalatroScorer):
-    """Replay explicit scored-card RNG branches without consuming hidden RNG."""
+    """Replay explicit scored-card/Joker RNG branches without hidden RNG."""
 
     def __init__(
         self,
         lucky_mult_results: tuple[bool, ...] = (),
         bloodstone_results: tuple[bool, ...] = (),
+        misprint_results: tuple[int, ...] = (),
     ):
         self._lucky_mult_results = tuple(bool(value) for value in lucky_mult_results)
         self._lucky_mult_index = 0
         self._bloodstone_result_iter = iter(
             tuple(bool(value) for value in bloodstone_results)
+        )
+        self._misprint_results = tuple(int(value) for value in misprint_results)
+
+    def score(
+        self,
+        hand,
+        state=None,
+        cards=None,
+        *,
+        include_card_chips: bool = False,
+        resolve_random_effects: bool = True,
+        joker_data: dict | None = None,
+    ):
+        branch_data = dict(joker_data or {})
+        branch_data["misprint_results"] = iter(self._misprint_results)
+        return super().score(
+            hand,
+            state,
+            cards=cards,
+            include_card_chips=include_card_chips,
+            resolve_random_effects=resolve_random_effects,
+            joker_data=branch_data,
         )
 
     def _apply_single_card_modifier(
@@ -189,6 +217,7 @@ class VisibleCardScoreOutcomeModel:
     BLOODSTONE_PROBABILITY = 0.5
     GLASS_BREAK_PROBABILITY = 0.25
     CANIO_X_MULT_GAIN = 1.0
+    MISPRINT_RESULT_COUNT = 24
 
     def __init__(
         self,
@@ -252,11 +281,13 @@ class VisibleCardScoreOutcomeModel:
             copied_cards,
             rules=rules,
         )
+        misprint_triggers = self._misprint_activation_count(projected_state)
 
         if (
             lucky_triggers == 0
             and bloodstone_triggers == 0
             and not glass_cards
+            and misprint_triggers == 0
         ):
             distribution = ScoreOutcomeDistribution(
                 outcomes=(
@@ -292,7 +323,8 @@ class VisibleCardScoreOutcomeModel:
 
         for lucky_branch in lucky_branches:
             for bloodstone_branch in bloodstone_branches:
-                if lucky_triggers or bloodstone_triggers:
+                if lucky_triggers or bloodstone_triggers or misprint_triggers:
+                    zero_results = (0,) * misprint_triggers
                     branch_projection = self._project_stochastic_branch(
                         hand,
                         state,
@@ -300,17 +332,34 @@ class VisibleCardScoreOutcomeModel:
                         include_card_chips=include_card_chips,
                         lucky_branch=lucky_branch,
                         bloodstone_branch=bloodstone_branch,
+                        misprint_results=zero_results,
                     )
-                    score = branch_projection.score.total
+                    zero_score = branch_projection.score
                     score_state = branch_projection.state_after_scoring
                     branch_probability = (
                         lucky_branch.probability
                         * bloodstone_branch.probability
                     )
                 else:
-                    score = base.total
+                    zero_score = base
                     score_state = projected_state
                     branch_probability = 1.0
+
+                misprint_distribution = ((Fraction(0), 1.0),)
+                if misprint_triggers:
+                    coefficients = self._misprint_coefficients(
+                        hand,
+                        state,
+                        cards,
+                        include_card_chips=include_card_chips,
+                        lucky_branch=lucky_branch,
+                        bloodstone_branch=bloodstone_branch,
+                        zero_score=zero_score,
+                        triggers=misprint_triggers,
+                    )
+                    misprint_distribution = self._misprint_increment_distribution(
+                        coefficients
+                    )
 
                 for glass_branch in glass_branches:
                     branch_state = self._glass_branch_state(
@@ -319,20 +368,29 @@ class VisibleCardScoreOutcomeModel:
                         glass_cards,
                         rules=rules,
                     )
-                    probability = branch_probability * glass_branch.probability
-                    if joint_lucky_state:
-                        key = (
-                            score,
-                            lucky_branch.money_successes,
-                            lucky_branch.successful_triggers,
-                            glass_branch.broken_indices,
+                    for increment, misprint_probability in misprint_distribution:
+                        score = self._score_with_misprint_increment(
+                            zero_score,
+                            increment,
                         )
-                    else:
-                        key = (score, glass_branch.broken_indices)
+                        probability = (
+                            branch_probability
+                            * glass_branch.probability
+                            * misprint_probability
+                        )
+                        if joint_lucky_state:
+                            key = (
+                                score,
+                                lucky_branch.money_successes,
+                                lucky_branch.successful_triggers,
+                                glass_branch.broken_indices,
+                            )
+                        else:
+                            key = (score, glass_branch.broken_indices)
 
-                    if key not in grouped:
-                        grouped[key] = [0.0, branch_state]
-                    grouped[key][0] += probability
+                        if key not in grouped:
+                            grouped[key] = [0.0, branch_state]
+                        grouped[key][0] += probability
 
         outcomes = tuple(
             ScoreOutcome(
@@ -354,6 +412,8 @@ class VisibleCardScoreOutcomeModel:
             random_sources.append(f"Bloodstone x{bloodstone_triggers}")
         if glass_cards:
             random_sources.append(f"Glass break x{len(glass_cards)}")
+        if misprint_triggers:
+            random_sources.append(f"Misprint x{misprint_triggers}")
 
         distribution = ScoreOutcomeDistribution(
             outcomes=outcomes,
@@ -423,6 +483,90 @@ class VisibleCardScoreOutcomeModel:
             if not self.scorer.is_card_debuffed(card)
             and getattr(card, "enhancement", None) == "Glass"
         )
+
+    def _misprint_activation_count(self, state) -> int:
+        if state is None:
+            return 0
+
+        activations = 0
+        for joker in getattr(state, "jokers", []):
+            class_name = type(joker).__name__
+            if class_name == "MisprintJoker":
+                activations += 1
+                continue
+            if class_name not in COPY_JOKER_CLASS_NAMES:
+                continue
+            target, resolvable = resolve_copy_target(joker, state)
+            if (
+                resolvable
+                and target is not None
+                and type(target).__name__ == "MisprintJoker"
+            ):
+                activations += 1
+        return activations
+
+    def _misprint_coefficients(
+        self,
+        hand,
+        state,
+        cards,
+        *,
+        include_card_chips: bool,
+        lucky_branch: _LuckyBranch,
+        bloodstone_branch: _BloodstoneBranch,
+        zero_score,
+        triggers: int,
+    ) -> tuple[Fraction, ...]:
+        zero_mult = self._fraction(zero_score.mult)
+        coefficients = []
+        for index in range(triggers):
+            results = [0] * triggers
+            results[index] = 1
+            projection = self._project_stochastic_branch(
+                hand,
+                state,
+                cards,
+                include_card_chips=include_card_chips,
+                lucky_branch=lucky_branch,
+                bloodstone_branch=bloodstone_branch,
+                misprint_results=tuple(results),
+            )
+            coefficients.append(
+                self._fraction(projection.score.mult) - zero_mult
+            )
+        return tuple(coefficients)
+
+    def _misprint_increment_distribution(
+        self,
+        coefficients: tuple[Fraction, ...],
+    ) -> tuple[tuple[Fraction, float], ...]:
+        counts: dict[Fraction, int] = {Fraction(0): 1}
+        for coefficient in coefficients:
+            next_counts: dict[Fraction, int] = {}
+            for subtotal, count in counts.items():
+                for result in range(self.MISPRINT_RESULT_COUNT):
+                    increment = subtotal + coefficient * result
+                    next_counts[increment] = next_counts.get(increment, 0) + count
+            counts = next_counts
+
+        denominator = self.MISPRINT_RESULT_COUNT ** len(coefficients)
+        return tuple(
+            (increment, count / denominator)
+            for increment, count in sorted(counts.items())
+        )
+
+    def _score_with_misprint_increment(self, zero_score, increment: Fraction) -> int:
+        total = (
+            self._fraction(zero_score.chips)
+            * (self._fraction(zero_score.mult) + increment)
+            * self._fraction(zero_score.x_mult)
+        )
+        return int(float(total))
+
+    @staticmethod
+    def _fraction(value) -> Fraction:
+        rounded = round(float(value), 12)
+        return Fraction(str(rounded)).limit_denominator(1_000_000)
 
     def _lucky_branches(self, triggers: int, state) -> tuple[_LuckyBranch, ...]:
         if triggers <= 0:
@@ -520,13 +664,15 @@ class VisibleCardScoreOutcomeModel:
         include_card_chips: bool,
         lucky_branch: _LuckyBranch,
         bloodstone_branch: _BloodstoneBranch,
+        misprint_results: tuple[int, ...] = (),
     ):
         branch_state = self._lucky_branch_input_state(state, lucky_branch)
         branch_scorer = _ProjectedStochasticScorer(
             lucky_mult_results=lucky_branch.mult_results,
             bloodstone_results=bloodstone_branch.results,
+            misprint_results=misprint_results,
         )
-        branch_projector = LiveJokerScoreProjector(branch_scorer)
+        branch_projector = type(self.joker_projector)(branch_scorer)
         return branch_projector.score(
             hand,
             branch_state,
