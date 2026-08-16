@@ -8,12 +8,14 @@ COPY_JOKER_CLASS_NAMES = frozenset(
     }
 )
 
-# First validated copy phase: independent scoring effects only. Later 0.9C
-# batches can expand this set/architecture for on-scored, held and retrigger
-# semantics without silently approximating those activation timings here.
+# Validated copier targets whose scoring-time delegation is side-effect safe.
+# Burnt Joker is included because its copied ability activates on discard, so
+# delegating it during score projection is intentionally a no-op; discard-time
+# copy activation is handled by LiveDiscardJokerProjector.
 INDEPENDENT_COPY_TARGET_CLASS_NAMES = frozenset(
     {
         "AbstractJoker",
+        "BurntJoker",
         "CavendishJoker",
         "FlatMultJoker",
         "GlassJoker",
