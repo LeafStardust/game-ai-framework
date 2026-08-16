@@ -10,7 +10,6 @@ class SeanceJoker(Joker):
         if context.poker_hand != PokerHand.STRAIGHT_FLUSH:
             return context
 
-        context.data["create_spectral_count"] = (
-            int(context.data.get("create_spectral_count", 0) or 0) + 1
-        )
+        # Category marker only; live projection resolves random identity separately.
+        context.data.setdefault("created_consumables", []).append("Spectral")
         return context
