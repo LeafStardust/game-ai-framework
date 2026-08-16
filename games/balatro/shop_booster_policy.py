@@ -5,6 +5,7 @@ from typing import Mapping
 
 from games.balatro.actions import BUY_BOOSTER, BalatroAction
 from games.balatro.build import BalatroBuildProfiler
+from games.balatro.resource_value import RunResourceValuator
 from games.balatro.state import BalatroState
 
 
@@ -187,6 +188,11 @@ class BuildAwareShopBoosterPolicy:
         self.parent_hold_baseline = float(
             getattr(shop_policy, "hold_bias", 0.35)
         ) if shop_policy is not None else 0.35
+        self.resource_valuator = getattr(
+            shop_policy,
+            "resource_valuator",
+            None,
+        ) or RunResourceValuator()
         self.build_profiler = build_profiler or BalatroBuildProfiler()
         self.thresholds = thresholds or BoosterAcquisitionThresholds()
 
@@ -256,16 +262,18 @@ class BuildAwareShopBoosterPolicy:
         )
         option_utility = at_least_one * hit_value * selection_multiplier
 
-        remaining = int(state.money) - price
-        price_penalty = price * self.thresholds.price_weight
-        interest_penalty = (
-            self._interest(int(state.money)) - self._interest(remaining)
-        ) * self.thresholds.interest_weight
-        reserve_penalty = self._incremental_reserve_shortfall(
-            int(state.money),
-            remaining,
-        ) * self.thresholds.reserve_weight
-        advantage = option_utility - price_penalty - interest_penalty - reserve_penalty
+        resource_cost = self.resource_valuator.money_spend_cost(
+            money=int(state.money),
+            spend=price,
+            price_weight=self.thresholds.price_weight,
+            interest_weight=self.thresholds.interest_weight,
+            reserve_target=self.thresholds.reserve_target,
+            reserve_weight=self.thresholds.reserve_weight,
+        )
+        price_penalty = resource_cost.direct
+        interest_penalty = resource_cost.interest
+        reserve_penalty = resource_cost.reserve
+        advantage = option_utility - resource_cost.total
         total = self.parent_hold_baseline + advantage
 
         probability_ok = (
@@ -410,16 +418,6 @@ class BuildAwareShopBoosterPolicy:
     @staticmethod
     def _clamp_probability(value: float) -> float:
         return max(0.0, min(1.0, float(value)))
-
-    @staticmethod
-    def _interest(money: int) -> int:
-        return min(5, max(0, int(money)) // 5)
-
-    def _incremental_reserve_shortfall(self, before: int, after: int) -> int:
-        target = int(self.thresholds.reserve_target)
-        before_shortfall = max(0, target - int(before))
-        after_shortfall = max(0, target - int(after))
-        return max(0, after_shortfall - before_shortfall)
 
     @staticmethod
     def _price(item) -> int:
