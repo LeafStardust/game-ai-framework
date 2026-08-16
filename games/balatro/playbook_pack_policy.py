@@ -5,6 +5,7 @@ from typing import Mapping
 
 from games.balatro.actions import SKIP_BOOSTER
 from games.balatro.build import ContextualConsumableTargetEvaluator
+from games.balatro.discovery import is_undiscovered
 from games.balatro.live.consumable_timing_core import ConsumableTargetThresholds
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
 from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
@@ -106,6 +107,18 @@ class PlaybookBalatroPackPolicy(BalatroPackPolicy):
         except BalatroPlaybookNotFound:
             block = {}
         return float(PackChoiceThresholds.from_mapping(block).skip_bias)
+
+    def rank_actions(self, state, actions):
+        ranked = super().rank_actions(state, actions)
+        return sorted(
+            ranked,
+            key=lambda result: (
+                result.total,
+                result.action.name != SKIP_BOOSTER,
+                is_undiscovered(getattr(result.action, "target", None)),
+            ),
+            reverse=True,
+        )
 
     def score_action(self, state, action):
         if action.name == SKIP_BOOSTER:
