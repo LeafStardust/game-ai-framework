@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
 from games.balatro.joker import Joker, Playstyle
+from games.balatro.joker_edition import joker_has_negative_edition
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 
@@ -61,11 +62,12 @@ class JokerReplacementOption:
 class JokerBuildTransition:
     """Build-only recommendation for adding/replacing one Joker.
 
-    ``ADD`` means a free Joker slot exists and the candidate contributes positive
-    build value. ``REPLACE`` identifies the best occupied slot under a common
-    baseline. ``HOLD`` means no positive build transition was found. None of these
-    values authorize a live sell/buy; D2/B5 must still apply economics and execution
-    guards before acting.
+    ``ADD`` means the candidate can be added without displacing an incumbent and
+    contributes positive build value. That includes an ordinary free Joker slot and
+    Balatro's slot-neutral Negative edition. ``REPLACE`` identifies the best occupied
+    slot under a common baseline. ``HOLD`` means no positive build transition was
+    found. None of these values authorize a live sell/buy; D2/B5 must still apply
+    economics and execution guards before acting.
     """
 
     action: str
@@ -373,14 +375,20 @@ class JokerBuildTransitionPlanner:
             )
 
         free_slots = max(0, int(state.joker_slots) - len(state.jokers))
-        if free_slots > 0:
+        slot_neutral = joker_has_negative_edition(candidate)
+        if free_slots > 0 or slot_neutral:
             if candidate_value.total_gain > self.minimum_add_gain:
+                slot_note = (
+                    "Negative edition is slot-neutral"
+                    if slot_neutral and free_slots <= 0
+                    else "free Joker slot available"
+                )
                 return JokerBuildTransition(
                     action="ADD",
                     candidate=candidate_name,
                     candidate_value=candidate_value,
                     rationale=(
-                        f"free Joker slot available; build gain={candidate_value.total_gain:.3f}",
+                        f"{slot_note}; build gain={candidate_value.total_gain:.3f}",
                     ),
                 )
             return JokerBuildTransition(
