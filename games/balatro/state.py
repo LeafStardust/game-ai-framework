@@ -27,6 +27,11 @@ class BalatroState(GameState):
         self.hands_remaining: int = 4
         self.discard_pile: list[BalatroCard] = []
         self.discards_remaining: int = 3
+        # Public current-round discard history. ``None`` means the observation
+        # source did not expose enough information to distinguish the first
+        # discard from a later discard; first-discard mechanics must then fail
+        # closed instead of guessing.
+        self.discards_used: int | None = None
         self.jokers: list = []
         self.joker_slots: int = 5
         self.consumables: list = []
@@ -136,6 +141,7 @@ class BalatroState(GameState):
         new_state.hands_remaining = self.hands_remaining
         new_state.discard_pile = self.discard_pile.copy()
         new_state.discards_remaining = self.discards_remaining
+        new_state.discards_used = self.discards_used
         new_state.jokers = self.jokers.copy()
         new_state.joker_slots = self.joker_slots
         new_state.consumables = self.consumables.copy()
