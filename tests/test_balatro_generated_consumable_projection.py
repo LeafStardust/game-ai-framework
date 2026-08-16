@@ -5,6 +5,7 @@ from games.balatro.jokers.blueprint import BlueprintJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.eight_ball import EightBallJoker
 from games.balatro.jokers.four_fingers import FourFingersJoker
+from games.balatro.jokers.glass_joker import GlassJoker
 from games.balatro.jokers.oops_all_6s import OopsAll6sJoker
 from games.balatro.jokers.seance import SeanceJoker
 from games.balatro.jokers.sixth_sense import SixthSenseJoker
@@ -226,6 +227,27 @@ def test_dna_copy_survives_sixth_sense_destruction_of_original():
     assert outcome_state.owned_deck[0].live_id is None
 
 
+def test_glass_six_is_destroyed_by_sixth_sense_without_glass_break_rng():
+    six = BalatroCard("6", "Hearts", enhancement="Glass", live_id=600)
+    glass_joker = GlassJoker()
+    state = _state([six], [glass_joker, SixthSenseJoker()])
+
+    transition = _project(state, PokerHand.HIGH_CARD, [six])
+
+    assert transition.distribution.deterministic is True
+    assert "Glass break x1" not in transition.distribution.random_sources
+    outcome = transition.distribution.outcomes[0]
+    assert _generated_categories(outcome) == ["SPECTRAL"]
+    assert outcome.state_after_scoring.owned_deck == []
+    projected_glass = next(
+        joker
+        for joker in outcome.state_after_scoring.jokers
+        if isinstance(joker, GlassJoker)
+    )
+    assert projected_glass.x_mult == 1.75
+    assert glass_joker.x_mult == 1.0
+
+
 def test_eight_ball_has_exact_one_in_four_creation_branch():
     eight = BalatroCard("8", "Hearts")
     state = _state([eight], [EightBallJoker()], consumable_slots=1)
@@ -319,6 +341,35 @@ def test_blueprint_copy_of_eight_ball_adds_independent_attempt():
         ("TAROT",): 0.4375,
     }
     assert "8 Ball x2" in transition.distribution.random_sources
+
+
+def test_generated_copy_keeps_copier_edition_inside_lucky_score_branches():
+    cards = [
+        BalatroCard("4", "Hearts"),
+        BalatroCard("5", "Hearts"),
+        BalatroCard("6", "Hearts"),
+        BalatroCard("7", "Hearts"),
+        BalatroCard("8", "Hearts", enhancement="Lucky"),
+    ]
+    blueprint = BlueprintJoker()
+    blueprint.edition = "Holographic"
+    state = _state(cards, [blueprint, SeanceJoker()], consumable_slots=2)
+
+    transition = _project(state, PokerHand.STRAIGHT_FLUSH, cards)
+
+    assert transition.joker_projection_complete is True
+    assert transition.unsupported_jokers == ()
+    assert sorted(
+        (outcome.score, round(outcome.probability, 10))
+        for outcome in transition.distribution.outcomes
+    ) == [
+        (2340, 0.8),
+        (4940, 0.2),
+    ]
+    assert all(
+        _generated_categories(outcome) == ["SPECTRAL", "SPECTRAL"]
+        for outcome in transition.distribution.outcomes
+    )
 
 
 def test_eight_ball_uses_slot_before_main_seance_generation():
