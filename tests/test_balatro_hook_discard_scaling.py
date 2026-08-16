@@ -81,3 +81,22 @@ def test_hook_forced_discard_reduces_ramen_before_current_hand_scores():
     assert transition.distribution.minimum == 31
     assert branch.jokers[0].x_mult == 1.99
     assert ramen.x_mult == 2.0
+
+
+def test_hook_debuffed_purple_seal_does_not_generate_tarot():
+    played = BalatroCard("A", "Spades", live_id=1)
+    forced = BalatroCard(
+        "2",
+        "Hearts",
+        seal="Purple",
+        live_id=2,
+        debuffed=True,
+    )
+    state = _hook_state([played, forced], RamenJoker())
+    state.consumables = []
+    state.consumable_slots = 2
+
+    transition = _project(state, [played])
+    branch = transition.distribution.outcomes[0].state_after_scoring
+
+    assert branch.consumables == []
