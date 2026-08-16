@@ -6,19 +6,11 @@ class ToDoListJoker(Joker):
     REWARD = 4
 
     def __init__(self, target_hand: str | PokerHand | None = None):
-        self.target_hand = target_hand
-
-    @property
-    def target_hand(self) -> PokerHand | None:
-        return self._target_hand
-
-    @target_hand.setter
-    def target_hand(self, value: str | PokerHand | None) -> None:
-        self._target_hand = self._normalize_hand(value)
+        self.target_hand = self._normalize_hand(target_hand)
 
     def set_target_hand(self, target_hand: str | PokerHand | None) -> None:
         """Update the public target when authoritative round state changes."""
-        self.target_hand = target_hand
+        self.target_hand = self._normalize_hand(target_hand)
 
     def apply(self, context: JokerContext) -> JokerContext:
         if context.trigger != "HAND_SCORED" or context.poker_hand is None:
