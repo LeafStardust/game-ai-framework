@@ -204,7 +204,13 @@ def snapshot_payload_from_live_memory(
             "chips": _integer(blind.get("chips"), 0),
             "hands_left": _integer(current_round.get("hands_left"), 0),
             "discards_left": _integer(current_round.get("discards_left"), 0),
-            "discards_used": _integer(current_round.get("discards_used"), 0),
+            **(
+                {"discards_used": int(discards_used)}
+                if (
+                    discards_used := _number(current_round.get("discards_used"))
+                ) is not None
+                else {}
+            ),
         },
         "score": _integer(game.get("chips"), 0),
         "hand": hand,
