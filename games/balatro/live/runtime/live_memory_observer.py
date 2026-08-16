@@ -581,13 +581,32 @@ def _normalize_blind(
         config.get("key"),
     )
 
-    return {
+    result: dict[str, Any] = {
         "type": blind_type,
         "status": "CURRENT" if _boolean(game.get("facing_blind"), False) else "SELECT",
         "name": _first_string(blind.get("name"), blind_config.get("name")),
         "score": _integer(blind.get("chips"), 0),
         "key": key,
     }
+
+    # The Eye and The Mouth keep ordinary public round state on the active Blind
+    # object. Expose only those whitelisted fields; never serialize Blind recursively.
+    hands_value = blind.get("hands")
+    if hands_value is not None and hands_value.kind == "table":
+        hands = _table_fields(decoder, hands_value)
+        result["hands"] = sorted(
+            name
+            for name, value in hands.items()
+            if _boolean(value, False)
+        )
+
+    only_hand_value = blind.get("only_hand")
+    if only_hand_value is not None:
+        # Mouth initializes this field to false. Preserve key presence while
+        # normalizing false/non-string to None so the translator knows it was read.
+        result["only_hand"] = _string(only_hand_value)
+
+    return result
 
 
 def _deck_name(
