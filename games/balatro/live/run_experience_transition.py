@@ -237,3 +237,65 @@ def log_successful_live_transition(
         )
 
     return logger
+
+
+def finalize_live_run(
+    snapshot,
+    *,
+    run_id: str,
+    deck: str,
+    stake: str,
+    playbook: str,
+    playbook_version: str,
+    won: bool,
+    reason: str,
+    directory: str | Path = "logs/balatro/runs",
+) -> BalatroRunExperienceLogger:
+    """Idempotently close a live run log, including nonterminal safe-stop attempts.
+
+    Terminal transitions normally finalize themselves in
+    ``log_successful_live_transition``. Supervisor-level safe stops and blocked
+    attempts do not necessarily execute a terminal gameplay transition, so this
+    helper records their final authoritative public snapshot and writes the same
+    per-run summary contract without fabricating a successful action.
+    """
+    normalized_run_id = str(run_id).strip()
+    if not normalized_run_id:
+        raise ValueError("run_id cannot be empty")
+
+    identity = BalatroRunIdentity(
+        run_id=normalized_run_id,
+        deck=str(deck).upper(),
+        stake=str(stake).upper(),
+        playbook=str(playbook),
+        playbook_version=str(playbook_version),
+    )
+    logger = BalatroRunExperienceLogger(identity, directory=directory)
+    state = _snapshot_log_state(snapshot)
+    rows = logger._read_rows()
+
+    if any(str(row.get("event")) == "run_finished" for row in rows):
+        if not logger.summary_path.exists():
+            finished = next(
+                row for row in reversed(rows) if str(row.get("event")) == "run_finished"
+            )
+            data = finished.get("data") if isinstance(finished.get("data"), dict) else {}
+            finished_state = data.get("state") if isinstance(data.get("state"), dict) else state
+            logger.write_summary(
+                won=bool(data.get("won", won)),
+                state=finished_state,
+                reason=str(data.get("reason") or reason),
+            )
+        return logger
+
+    if logger.sequence == 0:
+        logger.run_started(state=state)
+    else:
+        logger.observation(state)
+
+    logger.run_finished(
+        won=bool(won),
+        state=state,
+        reason=str(reason),
+    )
+    return logger
