@@ -12,7 +12,9 @@ from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.scoring import BalatroScorer
-from games.balatro.live.post_hand_outcomes import LiveVisibleCardScoreOutcomeModel
+from games.balatro.live.generated_consumable_outcomes import (
+    LiveGeneratedConsumableScoreOutcomeModel,
+)
 from games.balatro.live.score_outcomes import ScoreOutcome
 
 
@@ -94,7 +96,7 @@ class LiveHandDecisionEvaluator(Evaluator):
     def __init__(self):
         self.hand_evaluator = HandEvaluator()
         self.scorer = BalatroScorer()
-        self.score_outcomes = LiveVisibleCardScoreOutcomeModel(self.scorer)
+        self.score_outcomes = LiveGeneratedConsumableScoreOutcomeModel(self.scorer)
         self.action_generator = CardSelector()
         self._cached_state_id: int | None = None
         self._cached_context: _DecisionContext | None = None
