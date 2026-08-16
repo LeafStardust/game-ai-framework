@@ -147,6 +147,8 @@ class LiveDiscardJokerProjector:
         for card in list(cards or []):
             if room <= 0:
                 break
+            if bool(getattr(card, "debuffed", False)):
+                continue
             if str(getattr(card, "seal", "") or "").upper() != "PURPLE":
                 continue
             state.consumables.append(
