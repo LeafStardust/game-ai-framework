@@ -44,12 +44,18 @@ def _state(boss_name: str) -> BalatroState:
 
 def test_boss_rule_registry_exposes_validated_planner_mechanics():
     psychic = boss_blind_planning_rule(_state("The Psychic"))
+    eye = boss_blind_planning_rule(_state("The Eye"))
+    mouth = boss_blind_planning_rule(_state("The Mouth"))
     head = boss_blind_planning_rule(_state("The Head"))
     house = boss_blind_planning_rule(_state("The House"))
     unknown = boss_blind_planning_rule(_state("The Goad"))
 
     assert psychic is not None
-    assert psychic.required_play_cards == 5
+    assert psychic.required_play_cards is None
+    assert eye is not None
+    assert eye.required_play_cards is None
+    assert mouth is not None
+    assert mouth.required_play_cards is None
     assert head is not None
     assert head.evaluator_factory is not None
     assert house is not None
@@ -58,10 +64,10 @@ def test_boss_rule_registry_exposes_validated_planner_mechanics():
     assert unknown is None
 
 
-def test_d1_psychic_filters_root_and_recursive_play_candidates_to_five_cards():
+def test_d1_psychic_keeps_short_and_five_card_play_candidates_legal():
     state = _state("The Psychic")
     planner = D1LiveBlindClearPlanner(
-        play_width=20,
+        play_width=100,
         discard_width=0,
         horizon=2,
     )
@@ -70,19 +76,21 @@ def test_d1_psychic_filters_root_and_recursive_play_candidates_to_five_cards():
     root_plays = [action for action in root if action.name == PLAY_CARDS]
 
     assert root_plays
-    assert all(len(action.cards) == 5 for action in root_plays)
+    assert any(len(action.cards) < 5 for action in root_plays)
+    assert any(len(action.cards) == 5 for action in root_plays)
 
     planner.nodes_evaluated = 1
     recursive = planner._candidate_actions(
         state,
         allow_discards=False,
-        play_width=20,
+        play_width=100,
         discard_width=0,
     )
     recursive_plays = [action for action in recursive if action.name == PLAY_CARDS]
 
     assert recursive_plays
-    assert all(len(action.cards) == 5 for action in recursive_plays)
+    assert any(len(action.cards) < 5 for action in recursive_plays)
+    assert any(len(action.cards) == 5 for action in recursive_plays)
 
 
 def test_d1_head_uses_validated_head_score_projection_automatically():
@@ -146,7 +154,7 @@ def test_d1_house_keeps_normal_play_legality():
     assert any(len(action.cards) < 5 for action in plays)
 
 
-def test_chicot_disables_psychic_play_count_restriction_while_owned():
+def test_chicot_disables_psychic_boss_rule_while_short_play_remains_legal():
     state = _state("The Psychic")
     state.jokers = [ChicotJoker()]
     short_play = BalatroAction(PLAY_CARDS, cards=[state.hand[0]])
@@ -172,15 +180,15 @@ def test_chicot_disables_head_specific_evaluator_while_owned():
     assert evaluator.evaluator_for_state(state) is evaluator
 
 
-def test_luchador_does_not_disable_boss_rules_until_separate_sell_effect_occurs():
+def test_luchador_keeps_psychic_rule_active_but_does_not_make_short_play_illegal():
     state = _state("The Psychic")
     state.jokers = [LuchadorJoker()]
     short_play = BalatroAction(PLAY_CARDS, cards=[state.hand[0]])
 
     rule = boss_blind_planning_rule(state)
     assert rule is not None
-    assert rule.required_play_cards == 5
-    assert boss_play_action_is_legal(state, short_play) is False
+    assert rule.required_play_cards is None
+    assert boss_play_action_is_legal(state, short_play) is True
 
 
 def test_chicot_and_luchador_do_not_block_current_hand_score_projection():
