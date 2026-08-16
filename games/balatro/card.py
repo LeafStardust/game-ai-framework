@@ -41,6 +41,10 @@ class BalatroCard:
     debuffed: bool = False
     # Public permanent chip bonus stored on the playing card itself (e.g. Hiker).
     permanent_bonus: int = 0
+    # Cerulean Bell marks one visible hand card as forced-selected. This is a
+    # public controller constraint, not hidden RNG; live observation hydrates the
+    # currently selected card and action generation must keep it in the action.
+    forced_selection: bool = False
 
     @property
     def is_wild(self) -> bool:
