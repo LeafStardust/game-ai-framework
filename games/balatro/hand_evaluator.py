@@ -41,16 +41,34 @@ class HandEvaluator:
 
         flush_cards = self._flush_cards(regular, rules)
         straight_cards = self._straight_cards(regular, rules)
+        five_of_a_kind = values[0] >= 5
+        full_house = (
+            values[0] >= 3
+            and len(values) > 1
+            and values[1] >= 2
+        )
+
+        # Balatro's secret hands outrank their ordinary components. Flush Five is
+        # simultaneously a flush and Five of a Kind; Flush House is simultaneously
+        # a flush and Full House.
+        if five_of_a_kind and flush_cards:
+            return PokerHand.FLUSH_FIVE
+
+        if full_house and flush_cards:
+            return PokerHand.FLUSH_HOUSE
 
         # With Four Fingers, the straight and flush portions of a Straight Flush
         # may be supplied by different four-card subsets of the five played cards.
         if flush_cards and straight_cards:
             return PokerHand.STRAIGHT_FLUSH
 
+        if five_of_a_kind:
+            return PokerHand.FIVE_OF_A_KIND
+
         if values[0] >= 4:
             return PokerHand.FOUR_OF_A_KIND
 
-        if values[0] == 3 and len(values) > 1 and values[1] >= 2:
+        if full_house:
             return PokerHand.FULL_HOUSE
 
         if flush_cards:
@@ -90,6 +108,12 @@ class HandEvaluator:
 
         counts = Counter(str(card.rank) for card in regular)
         values = sorted(counts.values(), reverse=True)
+        flush = bool(self._flush_cards(regular, rules))
+        full_house = (
+            any(count >= 3 for count in values)
+            and sum(count >= 2 for count in values) >= 2
+        )
+        five_of_a_kind = any(count >= 5 for count in values)
 
         if hand == PokerHand.HIGH_CARD:
             return True
@@ -101,19 +125,22 @@ class HandEvaluator:
             return any(count >= 3 for count in values)
         if hand == PokerHand.FOUR_OF_A_KIND:
             return any(count >= 4 for count in values)
+        if hand == PokerHand.FIVE_OF_A_KIND:
+            return five_of_a_kind
         if hand == PokerHand.FULL_HOUSE:
-            return (
-                any(count >= 3 for count in values)
-                and sum(count >= 2 for count in values) >= 2
-            )
+            return full_house
+        if hand == PokerHand.FLUSH_HOUSE:
+            return full_house and flush
+        if hand == PokerHand.FLUSH_FIVE:
+            return five_of_a_kind and flush
         if hand == PokerHand.STRAIGHT:
             return bool(self._straight_cards(regular, rules))
         if hand == PokerHand.FLUSH:
-            return bool(self._flush_cards(regular, rules))
+            return flush
         if hand == PokerHand.STRAIGHT_FLUSH:
             return bool(
                 self._straight_cards(regular, rules)
-                and self._flush_cards(regular, rules)
+                and flush
             )
         return self.evaluate(regular, rules=rules) == hand
 
@@ -145,6 +172,10 @@ class HandEvaluator:
                 self._straight_cards(regular, rules),
                 self._flush_cards(regular, rules),
             )
+        elif hand in {PokerHand.FLUSH_HOUSE, PokerHand.FLUSH_FIVE}:
+            # These categories require all five structural cards, so all regular
+            # cards in the recognized five-card play score.
+            selected = regular
         elif hand == PokerHand.FLUSH:
             selected = self._flush_cards(regular, rules)
         elif hand == PokerHand.STRAIGHT:
@@ -178,6 +209,12 @@ class HandEvaluator:
                 None,
             )
             selected = [card for card in regular if str(card.rank) == quad_rank][:4]
+        elif hand == PokerHand.FIVE_OF_A_KIND:
+            five_rank = next(
+                (rank for rank, count in counts.items() if count >= 5),
+                None,
+            )
+            selected = [card for card in regular if str(card.rank) == five_rank][:5]
         else:
             selected = regular
 
