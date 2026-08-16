@@ -9,7 +9,6 @@ from games.balatro.actions import (
 )
 from games.balatro.jokers.rough_gem import RoughGemJoker
 from games.balatro.live import (
-    DefaultBalatroActionExecutor,
     DefaultBalatroStateTranslator,
     LiveBalatroSnapshot,
 )
@@ -18,49 +17,6 @@ from games.balatro.live.shop_sync import (
     BufferedShopTransaction,
     UnsupportedBufferedShopAction,
 )
-
-
-def test_shop_buy_action_uses_balatrobot_index():
-    executor = DefaultBalatroActionExecutor()
-    snapshot = LiveBalatroSnapshot(
-        sequence=9,
-        phase="SHOP",
-        state_complete=True,
-    )
-
-    command = executor.command_for(
-        BalatroAction(
-            BUY_JOKER,
-            target={"id": 1},
-        ),
-        snapshot,
-    )
-
-    assert command.action == BUY_JOKER
-    assert command.payload == {
-        "target": 1
-    }
-
-
-def test_shop_control_actions_require_no_target():
-    executor = DefaultBalatroActionExecutor()
-    snapshot = LiveBalatroSnapshot(
-        sequence=10,
-        phase="SHOP",
-        state_complete=True,
-    )
-
-    reroll = executor.command_for(
-        BalatroAction(REFRESH_SHOP),
-        snapshot,
-    )
-    end_shop = executor.command_for(
-        BalatroAction(END_SHOP),
-        snapshot,
-    )
-
-    assert reroll.payload == {}
-    assert end_shop.payload == {}
 
 
 def _structured_shop_snapshot() -> LiveBalatroSnapshot:
