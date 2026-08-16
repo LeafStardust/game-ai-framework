@@ -1,9 +1,9 @@
 name: v0.9 release pytest gate
 
 on:
-  push:
+  pull_request:
     branches:
-      - tmp/v0.9-release-pytest
+      - main
 
 jobs:
   pytest:
