@@ -30,7 +30,7 @@ class _IntentTracker:
         return self.intent
 
 
-def _profile(*, money=0, ante=1, ready=False):
+def _profile(*, money=0, ante=1, ready=False, prospective_scoring=False):
     if ready:
         free_joker_slots = 0
         hand_levels = (("PAIR", 7),)
@@ -39,10 +39,20 @@ def _profile(*, money=0, ante=1, ready=False):
             SimpleNamespace(produces={SCORE_MULT}),
             SimpleNamespace(produces={SCORE_XMULT}),
         )
+        feature_strengths = (
+            (SCORE_CHIPS, 1.0),
+            (SCORE_MULT, 1.0),
+            (SCORE_XMULT, 1.0),
+        )
     else:
         free_joker_slots = 5
         hand_levels = (("PAIR", 1),)
-        effects = ()
+        effects = (
+            (SimpleNamespace(produces={SCORE_MULT}),)
+            if prospective_scoring
+            else ()
+        )
+        feature_strengths = ()
 
     return BuildProfile(
         money=money,
@@ -61,7 +71,7 @@ def _profile(*, money=0, ante=1, ready=False):
         joker_names=(),
         consumable_names=(),
         effects=effects,
-        feature_strengths=(),
+        feature_strengths=feature_strengths,
         playstyle_strengths=(),
     )
 
@@ -191,6 +201,18 @@ def test_strong_build_values_lost_shop_less_than_developing_build():
     assert weak.build_readiness == pytest.approx(0.0)
     assert strong.build_readiness == pytest.approx(1.0)
     assert strong.shop_opportunity_cost < weak.shop_opportunity_cost
+
+
+def test_prospective_scoring_descriptor_does_not_inflate_build_readiness():
+    decision = _policy(
+        _profile(prospective_scoring=True),
+        _intent(),
+    ).decide(
+        _snapshot(tag="tag_rare", reward=3),
+        _state(),
+    )
+
+    assert decision.build_readiness == pytest.approx(0.0)
 
 
 def test_handy_tag_uses_public_run_hand_count_when_it_exceeds_fallback():
