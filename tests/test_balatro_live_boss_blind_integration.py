@@ -48,7 +48,7 @@ def test_boss_rule_registry_exposes_validated_planner_mechanics():
     mouth = boss_blind_planning_rule(_state("The Mouth"))
     head = boss_blind_planning_rule(_state("The Head"))
     house = boss_blind_planning_rule(_state("The House"))
-    unknown = boss_blind_planning_rule(_state("The Goad"))
+    goad = boss_blind_planning_rule(_state("The Goad"))
 
     assert psychic is not None
     assert psychic.required_play_cards is None
@@ -61,7 +61,9 @@ def test_boss_rule_registry_exposes_validated_planner_mechanics():
     assert house is not None
     assert house.required_play_cards is None
     assert house.evaluator_factory is None
-    assert unknown is None
+    assert goad is not None
+    assert goad.required_play_cards is None
+    assert goad.evaluator_factory is None
 
 
 def test_d1_psychic_keeps_short_and_five_card_play_candidates_legal():
