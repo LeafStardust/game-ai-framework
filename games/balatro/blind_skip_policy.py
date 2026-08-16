@@ -255,12 +255,10 @@ def _build_readiness(
         1.0,
         sum(max(0.0, float(level) - 1.0) for _, level in profile.hand_levels) / 6.0,
     )
-    scoring_effects = sum(
-        1
-        for descriptor in profile.effects
-        if any(feature in _SCORING_FEATURES for feature in descriptor.produces)
+    scoring_features = sum(
+        1 for feature in _SCORING_FEATURES if profile.strength(feature) > 0.0
     )
-    scoring_readiness = min(1.0, scoring_effects / 3.0)
+    scoring_readiness = min(1.0, scoring_features / 3.0)
     intent_readiness = min(
         1.0,
         sum(min(1.0, abs(float(value))) for _, value in intent.strengths) / 3.0,
