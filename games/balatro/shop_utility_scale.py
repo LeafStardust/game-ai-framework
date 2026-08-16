@@ -64,6 +64,7 @@ class ShopUtilityScale:
         if selected is None:
             raise ValueError("D2 normalized utility requires a selected option")
 
+        candidate = getattr(executable, "candidate", None)
         economics = selected.economics
         money_cost = self._money_transaction_cost(
             state,
@@ -71,7 +72,7 @@ class ShopUtilityScale:
         )
         replacement = executable.source == "JOKER_REPLACE_SELL"
         slot_cost = 0.0
-        if not replacement and not joker_has_negative_edition(executable.candidate):
+        if not replacement and not joker_has_negative_edition(candidate):
             slot_cost = self.resource_valuator.slot_opportunity_cost(
                 occupied=len(state.jokers),
                 capacity=int(state.joker_slots),
@@ -87,10 +88,10 @@ class ShopUtilityScale:
         discovery_applied = (
             not replacement
             and base_gain > 0.0
-            and is_undiscovered(executable.candidate)
+            and is_undiscovered(candidate)
         )
         gain = (
-            bounded_discovery_tiebreak(base_gain, executable.candidate)
+            bounded_discovery_tiebreak(base_gain, candidate)
             if not replacement
             else base_gain
         )
@@ -111,6 +112,7 @@ class ShopUtilityScale:
         if selected is None:
             raise ValueError("D4 normalized utility requires a selected option")
 
+        candidate = getattr(executable, "candidate", None)
         economics = selected.economics
         money_cost = self._money_spend_cost(state, int(economics.price))
         slot_cost = 0.0
@@ -129,8 +131,8 @@ class ShopUtilityScale:
         build_gain = float(selected.build_gain)
         resource_cost = float(money_cost.total) + float(slot_cost)
         base_gain = build_gain + immediate_value - resource_cost
-        discovery_applied = base_gain > 0.0 and is_undiscovered(executable.candidate)
-        gain = bounded_discovery_tiebreak(base_gain, executable.candidate)
+        discovery_applied = base_gain > 0.0 and is_undiscovered(candidate)
+        gain = bounded_discovery_tiebreak(base_gain, candidate)
         return ShopNormalizedUtility(
             gain=gain,
             resource_cost=resource_cost,
