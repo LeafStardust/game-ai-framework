@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from games.balatro.discovery import bounded_discovery_tiebreak, is_undiscovered
 from games.balatro.joker_edition import joker_has_negative_edition
 from games.balatro.resource_value import RunResourceValuator
 
@@ -82,7 +83,17 @@ class ShopUtilityScale:
         edition_delta = float(getattr(economics, "edition_delta", 0.0))
         build_gain = float(selected.build_gain)
         resource_cost = float(money_cost.total) + float(slot_cost)
-        gain = build_gain + edition_delta - resource_cost
+        base_gain = build_gain + edition_delta - resource_cost
+        discovery_applied = (
+            not replacement
+            and base_gain > 0.0
+            and is_undiscovered(executable.candidate)
+        )
+        gain = (
+            bounded_discovery_tiebreak(base_gain, executable.candidate)
+            if not replacement
+            else base_gain
+        )
         return ShopNormalizedUtility(
             gain=gain,
             resource_cost=resource_cost,
@@ -91,6 +102,7 @@ class ShopUtilityScale:
                 f"D2 build gain={build_gain:.3f}",
                 f"D2 edition delta={edition_delta:.3f}",
                 f"shared resource cost={resource_cost:.3f}",
+                f"bounded discovery tie-break={'applied' if discovery_applied else 'inactive'}",
             ),
         )
 
@@ -116,7 +128,9 @@ class ShopUtilityScale:
         immediate_value = float(selected.immediate_gain) * immediate_weight
         build_gain = float(selected.build_gain)
         resource_cost = float(money_cost.total) + float(slot_cost)
-        gain = build_gain + immediate_value - resource_cost
+        base_gain = build_gain + immediate_value - resource_cost
+        discovery_applied = base_gain > 0.0 and is_undiscovered(executable.candidate)
+        gain = bounded_discovery_tiebreak(base_gain, executable.candidate)
         return ShopNormalizedUtility(
             gain=gain,
             resource_cost=resource_cost,
@@ -125,6 +139,7 @@ class ShopUtilityScale:
                 f"D4 build gain={build_gain:.3f}",
                 f"D4 immediate value={immediate_value:.3f}",
                 f"shared resource cost={resource_cost:.3f}",
+                f"bounded discovery tie-break={'applied' if discovery_applied else 'inactive'}",
             ),
         )
 
@@ -133,7 +148,11 @@ class ShopUtilityScale:
         money_cost = self._money_spend_cost(state, price)
         option_utility = float(recommendation.option_utility)
         resource_cost = float(money_cost.total)
-        gain = option_utility - resource_cost
+        base_gain = option_utility - resource_cost
+        discovery_applied = (
+            base_gain > 0.0 and is_undiscovered(recommendation.action.target)
+        )
+        gain = bounded_discovery_tiebreak(base_gain, recommendation.action.target)
         return ShopNormalizedUtility(
             gain=gain,
             resource_cost=resource_cost,
@@ -141,6 +160,7 @@ class ShopUtilityScale:
                 "D14 shared SHOP resource scale",
                 f"D8 option utility={option_utility:.3f}",
                 f"shared resource cost={resource_cost:.3f}",
+                f"bounded discovery tie-break={'applied' if discovery_applied else 'inactive'}",
             ),
         )
 
