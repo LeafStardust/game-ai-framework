@@ -2,19 +2,19 @@ import json
 from types import SimpleNamespace
 
 from games.balatro.actions import BalatroAction
-from games.balatro.live.external import agent_control as agent_control_module
-from games.balatro.live.external import balatro_agent_supervisor as supervisor_module
-from games.balatro.live.external import balatro_agent_toggle as toggle_module
-from games.balatro.live.external.agent_control import BalatroAgentControl
-from games.balatro.live.external.balatro_agent_supervisor import (
+from games.balatro.live.runtime import agent_control as agent_control_module
+from games.balatro.live.runtime import balatro_agent_supervisor as supervisor_module
+from games.balatro.live.runtime import balatro_agent_toggle as toggle_module
+from games.balatro.live.runtime.agent_control import BalatroAgentControl
+from games.balatro.live.runtime.balatro_agent_supervisor import (
     BalatroAgentSupervisor,
     wait_for_stable_startup_snapshot,
 )
-from games.balatro.live.external.balatro_agent_toggle import toggle_agent
-from games.balatro.live.external.live_memory_autonomous_step_injected import (
+from games.balatro.live.runtime.balatro_agent_toggle import toggle_agent
+from games.balatro.live.runtime.live_memory_autonomous_step_injected import (
     AutonomousStepDecision,
 )
-from games.balatro.live.external.live_memory_restart_run_injected import (
+from games.balatro.live.runtime.live_memory_restart_run_injected import (
     LiveRunRestartError,
 )
 from games.balatro.live.protocol import LiveBalatroSnapshot
