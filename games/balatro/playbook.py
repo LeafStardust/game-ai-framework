@@ -203,6 +203,15 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                     "reroll": {
                         "minimum_margin": 0.25,
                     },
+                    "resource_valuation": {
+                        "price_weight": 0.35,
+                        "interest_weight": 1.25,
+                        "reserve_target": 5,
+                        "reserve_weight": 0.45,
+                        "last_joker_slot_penalty": 1.5,
+                        "penultimate_joker_slot_penalty": 0.5,
+                        "last_consumable_slot_penalty": 0.6,
+                    },
                 },
             },
         )
