@@ -4,11 +4,11 @@ from dataclasses import replace
 
 from games.balatro.actions import DISCARD_CARDS
 from games.balatro.live.adaptive_search import AdaptiveRecommendationSummary
+from games.balatro.live.blind_clear_planner import LiveBlindPlan
 from games.balatro.live.hand_action_policy import (
     PACE_RECOVERY,
     HandActionDecision,
     LiveHandActionDecisionEngine as _BaseLiveHandActionDecisionEngine,
-    LiveBlindPlan,
 )
 
 
