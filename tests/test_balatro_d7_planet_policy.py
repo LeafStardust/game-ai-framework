@@ -92,6 +92,21 @@ class _EqualAllPlanetUpgradeEvaluator:
         )
 
 
+class _EqualPlanetOutlook:
+    def evaluate(self, state, planet):
+        del state, planet
+        return SimpleNamespace(
+            observed_plays=1,
+            total_observed_plays=2,
+            observed_frequency=0.5,
+            structural_feasibility=0.5,
+            expected_future_frequency=0.5,
+            marginal_level_gain=1.0,
+            future_value=0.5,
+            speculative=False,
+        )
+
+
 class _PairAlignedJoker(Joker):
     playstyle_affinities = {
         Playstyle.PAIR: PlaystyleAffinity.POSITIVE,
@@ -250,12 +265,16 @@ def test_equal_safety_planets_use_b3_intent_as_material_tiebreak():
     mercury = create_planet("MERCURY")
     jupiter = create_planet("JUPITER")
     state.consumables = [jupiter, mercury]
-    policy = LivePlanetPolicy(hand_evaluator=_EqualPlanetUpgradeEvaluator())
+    policy = LivePlanetPolicy(
+        hand_evaluator=_EqualPlanetUpgradeEvaluator(),
+        planet_outlook=_EqualPlanetOutlook(),
+    )
 
     decisions = policy.recommend_inventory(state)
 
     assert decisions[0].planet is mercury
     assert decisions[0].immediate_score_gain == decisions[1].immediate_score_gain
+    assert decisions[0].future_value == decisions[1].future_value
     assert decisions[0].playstyle_fit > 0.0
     assert decisions[1].playstyle_fit < 0.0
     assert any("D7 playstyle fit=" in note for note in decisions[0].rationale)
@@ -290,7 +309,10 @@ def test_d7_ante_five_lock_survives_later_conflicting_build_change():
     mercury = create_planet("MERCURY")
     jupiter = create_planet("JUPITER")
     state.consumables = [jupiter, mercury]
-    policy = LivePlanetPolicy(hand_evaluator=_EqualPlanetUpgradeEvaluator())
+    policy = LivePlanetPolicy(
+        hand_evaluator=_EqualPlanetUpgradeEvaluator(),
+        planet_outlook=_EqualPlanetOutlook(),
+    )
 
     early = policy.recommend_inventory(state)
     assert early[0].planet is mercury
