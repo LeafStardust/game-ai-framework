@@ -5,6 +5,11 @@ from games.balatro.live.hand_action_policy import HandActionThresholds
 from games.balatro.live.planet_policy import LivePlanetPolicy
 from games.balatro.pack_playstyle import PackPlaystyleEvaluator
 from games.balatro.playbook_pack_policy import PlaybookBalatroPackPolicy
+from games.balatro.playbook_shop_policy import (
+    PlaybookBuildAwareShopArbiter,
+    PlaybookShopUtilityScale,
+    PlaybookVoucherAwareBalatroShopPolicy,
+)
 from games.balatro.shop_playstyle import BuildAwareShopItemValueEstimator
 from games.balatro.shop_policy import DefaultShopItemValueEstimator
 from games.balatro.shop_voucher_policy import VoucherAwareBalatroShopPolicy
@@ -22,6 +27,12 @@ def test_production_runner_shares_one_intent_tracker_across_b3_consumers():
     runner = _runner()
 
     assert isinstance(runner.shop_policy, VoucherAwareBalatroShopPolicy)
+    assert isinstance(runner.shop_policy, PlaybookVoucherAwareBalatroShopPolicy)
+    assert isinstance(runner.shop_arbiter, PlaybookBuildAwareShopArbiter)
+    assert isinstance(runner.shop_arbiter.utility_scale, PlaybookShopUtilityScale)
+    assert runner.shop_arbiter.shop_policy is runner.shop_policy
+    assert runner.shop_reroll_policy.shop_policy is runner.shop_policy
+
     estimator = runner.shop_policy.item_value_estimator
     assert isinstance(estimator, DefaultShopItemValueEstimator)
     assert isinstance(estimator, BuildAwareShopItemValueEstimator)
