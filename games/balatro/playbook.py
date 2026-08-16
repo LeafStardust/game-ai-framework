@@ -144,7 +144,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                         "interest_weight": 1.0,
                         "reserve_target": 5,
                         "reserve_weight": 0.45,
-                        "minimum_money_after": 5,
+                        "minimum_money_after": 0,
                         "target_ante": 8,
                         "remaining_ante_weight": 0.20,
                         "maximum_horizon_bonus": 1.40,
@@ -198,7 +198,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                     },
                     "pack_target": {
                         "minimum_total_gain": None,
-                        "minimum_contextual_delta": None,
+                        "minimum_contextual_delta": 0.0,
                     },
                     "reroll": {
                         "minimum_margin": 0.25,
