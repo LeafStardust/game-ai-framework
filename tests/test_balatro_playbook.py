@@ -16,7 +16,7 @@ def test_default_registry_selects_red_white_from_live_state():
     playbook = default_balatro_playbooks().for_state(state)
 
     assert playbook.name == "red-white"
-    assert playbook.version == "0.8"
+    assert playbook.version == "1.0"
     assert playbook.key == ("RED", "WHITE")
 
     planner = playbook.strategy["planner"]
