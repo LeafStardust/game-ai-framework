@@ -7,10 +7,6 @@ class BlueJoker(Joker):
         if context.score is None:
             return context
 
-        deck_size = len(
-            context.data.get("deck", [])
-        )
-
-        context.score.chips += deck_size * 2
+        context.score.chips += len(getattr(context.state, "deck", []) or []) * 2
 
         return context

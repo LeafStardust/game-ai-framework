@@ -1,22 +1,19 @@
+from games.balatro.hand import PokerHand
+from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.joker import Joker, JokerContext
 
 
 class JollyJoker(Joker):
 
-    def apply(
-        self,
-        context: JokerContext
-    ) -> JokerContext:
-
+    def apply(self, context: JokerContext) -> JokerContext:
         if context.score is None:
             return context
 
-        if self._has_pair(context.cards):
+        if HandEvaluator().contains(
+            context.cards,
+            PokerHand.PAIR,
+            rules=context.data.get("hand_rules"),
+        ):
             context.score.mult += 8
 
         return context
-
-    @staticmethod
-    def _has_pair(cards):
-        ranks = [card.rank for card in cards]
-        return len(ranks) != len(set(ranks))

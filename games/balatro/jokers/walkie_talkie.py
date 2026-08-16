@@ -4,18 +4,14 @@ from games.balatro.joker import Joker, JokerContext
 class WalkieTalkieJoker(Joker):
 
     def apply(self, context: JokerContext) -> JokerContext:
-        if context.trigger != "HAND_SCORED":
+        if context.score is None:
             return context
 
-        ranks = {"10", "4"}
-
+        scoring_cards = context.data.get("scoring_cards", context.cards)
         count = sum(
-            card.rank in ranks
-            for card in context.cards
+            str(getattr(card, "rank", "")) in {"10", "4"}
+            for card in scoring_cards
         )
-
-        if context.score is not None:
-            context.score.chips += count * 10
-            context.score.mult += count * 4
-
+        context.score.chips += count * 10
+        context.score.mult += count * 4
         return context

@@ -7,7 +7,7 @@ class MysticSummitJoker(Joker):
         if context.score is None:
             return context
 
-        if context.data.get("discards_remaining", 0) == 0:
+        if int(getattr(context.state, "discards_remaining", 0) or 0) == 0:
             context.score.mult += 15
 
         return context

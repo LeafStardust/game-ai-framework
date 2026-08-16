@@ -7,12 +7,15 @@ class DriversLicenseJoker(Joker):
         if context.score is None:
             return context
 
-        enhanced_cards = sum(
-            getattr(card, "enhancement", None) is not None
-            for card in context.state.deck
-        )
+        owned_deck = getattr(context.state, "owned_deck", None)
+        if owned_deck is None:
+            return context
 
-        if enhanced_cards >= 16:
+        enhanced = sum(
+            getattr(card, "enhancement", None) is not None
+            for card in owned_deck
+        )
+        if enhanced >= 16:
             context.score.x_mult *= 3
 
         return context

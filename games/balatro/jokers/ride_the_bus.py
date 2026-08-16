@@ -1,8 +1,18 @@
 from games.balatro.events import BalatroEventType
-from games.balatro.joker import Joker, JokerContext
+from games.balatro.joker import (
+    Joker,
+    JokerContext,
+    Playstyle,
+    PlaystyleAffinity,
+)
 
 
 class RideTheBusJoker(Joker):
+
+    playstyle_affinities = {
+        Playstyle.NO_FACE_CARDS: PlaystyleAffinity.POSITIVE,
+        Playstyle.FACE_CARDS: PlaystyleAffinity.NEGATIVE,
+    }
 
     def __init__(self):
         self.mult = 0
@@ -18,9 +28,10 @@ class RideTheBusJoker(Joker):
         if context.event.type != BalatroEventType.HAND_SCORED:
             return context
 
+        scoring_cards = context.data.get("scoring_cards", context.cards)
         has_face_card = any(
             card.rank in ("J", "Q", "K")
-            for card in context.cards
+            for card in scoring_cards
         )
 
         if has_face_card:

@@ -196,12 +196,12 @@ class Hermit(TarotCard):
         return context.state.money > 0
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
-        context.data["money_before"] = context.state.money
-        context.state.money = min(
-            context.state.money * 2,
-            20
-        )
-        context.data["money"] = context.state.money
+        money_before = context.state.money
+        gain = min(money_before, 20)
+        context.state.money += gain
+        context.data["money_before"] = money_before
+        context.data["money_after"] = context.state.money
+        context.data["money"] = gain
 
         return context
 
@@ -332,11 +332,12 @@ class Temperance(TarotCard):
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
         total = sum(
-            getattr(joker, "sell_value", 0)
+            max(0, int(getattr(joker, "sell_value", 0)))
             for joker in context.state.jokers
         )
-
-        context.data["money"] = min(total, 50)
+        gain = min(total, 50)
+        context.state.money += gain
+        context.data["money"] = gain
 
         return context
 

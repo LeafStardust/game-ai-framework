@@ -1,29 +1,19 @@
-import random
-
 from games.balatro.joker import Joker, JokerContext
+
 
 class VagabondJoker(Joker):
 
     def apply(self, context: JokerContext) -> JokerContext:
-        money = context.data.get(
-            "money",
-            getattr(context.state, "money", 0)
-        )
-
-        if money > 4:
+        if context.trigger != "HAND_SCORED":
             return context
 
-        context.data.setdefault(
-            "created_consumables",
-            []
-        ).append(
-            random.choice([
-                "The Fool",
-                "The Magician",
-                "The High Priestess",
-                "The Empress",
-                "The Emperor",
-            ])
+        money = context.data.get(
+            "money_at_hand_play",
+            getattr(context.state, "money", 0),
         )
+        if int(money or 0) > 4:
+            return context
 
+        # Category marker only; live projection resolves random identity separately.
+        context.data.setdefault("created_consumables", []).append("Tarot")
         return context

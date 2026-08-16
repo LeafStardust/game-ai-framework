@@ -12,18 +12,19 @@ class RedCardJoker(Joker):
         context: JokerContext
     ) -> JokerContext:
 
-        if context.event is None:
-            return context
-
-        if context.event.type not in (
-            BalatroEventType.BOOSTER_SKIPPED,
-            BalatroEventType.VOUCHER_SKIPPED
+        if (
+            context.event is not None
+            and context.event.type in (
+                BalatroEventType.BOOSTER_SKIPPED,
+                BalatroEventType.VOUCHER_SKIPPED,
+            )
         ):
+            self.mult += 3
+            if context.score is not None:
+                context.score.mult += 3
             return context
-
-        self.mult += 3
 
         if context.score is not None:
-            context.score.mult += 3
+            context.score.mult += self.mult
 
         return context

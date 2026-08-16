@@ -277,14 +277,22 @@ class Ankh(SpectralCard):
         return bool(context.state.jokers)
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
-        joker = context.data["rng"].choice(
-            context.state.jokers
-        )
+        jokers = list(context.state.jokers)
+        joker = context.data["rng"].choice(jokers)
 
         copied = copy.deepcopy(joker)
-        context.state.jokers = [copied]
+        if str(getattr(copied, "edition", "") or "").upper() == "NEGATIVE":
+            copied.edition = None
 
-        context.data["joker"] = copied
+        survivors = [
+            owned
+            for owned in jokers
+            if owned is joker or bool(getattr(owned, "eternal", False))
+        ]
+        context.state.jokers = [*survivors, copied]
+
+        context.data["joker"] = joker
+        context.data["created"] = copied
 
         return context
 

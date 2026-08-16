@@ -1,22 +1,19 @@
+from games.balatro.hand import PokerHand
+from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.joker import Joker, JokerContext
 
 
 class SlyJoker(Joker):
 
-    def apply(
-        self,
-        context: JokerContext
-    ) -> JokerContext:
-
+    def apply(self, context: JokerContext) -> JokerContext:
         if context.score is None:
             return context
 
-        ranks = [
-            card.rank
-            for card in context.cards
-        ]
-
-        if len(ranks) != len(set(ranks)):
+        if HandEvaluator().contains(
+            context.cards,
+            PokerHand.PAIR,
+            rules=context.data.get("hand_rules"),
+        ):
             context.score.chips += 50
 
         return context

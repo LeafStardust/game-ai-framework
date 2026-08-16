@@ -331,9 +331,11 @@ def test_ankh_copies_one_joker_and_destroys_the_rest():
 
     spectral.use(context)
 
-    assert len(state.jokers) == 1
-    assert state.jokers[0] is not first
-    assert state.jokers[0].name == "First"
+    assert len(state.jokers) == 2
+    assert state.jokers[0] is first
+    assert state.jokers[1] is not first
+    assert state.jokers[1].name == "First"
+    assert second not in state.jokers
 
 
 def test_deja_vu_applies_red_seal():

@@ -7,7 +7,7 @@ class AcrobatJoker(Joker):
         if context.score is None:
             return context
 
-        if context.data.get("hands_remaining") == 0:
+        if int(getattr(context.state, "hands_remaining", 0) or 0) <= 1:
             context.score.x_mult *= 3
 
         return context

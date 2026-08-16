@@ -7,11 +7,7 @@ class AbstractJoker(Joker):
         if context.score is None:
             return context
 
-        joker_count = max(
-            len(getattr(context.state, "jokers", [])) - 1,
-            0
-        )
-
+        joker_count = len(getattr(context.state, "jokers", []) or [])
         context.score.mult += joker_count * 3
 
         return context

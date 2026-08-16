@@ -35,6 +35,16 @@ class BalatroCard:
     edition: str | None = None
     seal: str | None = None
     live_id: int | str | None = None
+    # Public live-state flag set by Balatro when the card is currently debuffed.
+    # The card keeps its rank/suit for poker-hand structure, but scoring/held-card
+    # effects must treat a debuffed card as disabled.
+    debuffed: bool = False
+    # Public permanent chip bonus stored on the playing card itself (e.g. Hiker).
+    permanent_bonus: int = 0
+    # Cerulean Bell marks one visible hand card as forced-selected. This is a
+    # public controller constraint, not hidden RNG; live observation hydrates the
+    # currently selected card and action generation must keep it in the action.
+    forced_selection: bool = False
 
     @property
     def is_wild(self) -> bool:

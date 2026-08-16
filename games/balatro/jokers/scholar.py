@@ -11,9 +11,10 @@ class ScholarJoker(Joker):
         if context.score is None:
             return context
 
+        scoring_cards = context.data.get("scoring_cards", context.cards)
         aces = sum(
             card.rank == "A"
-            for card in context.cards
+            for card in scoring_cards
         )
 
         context.score.chips += aces * 20

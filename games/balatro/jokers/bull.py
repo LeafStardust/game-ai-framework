@@ -3,13 +3,11 @@ from games.balatro.joker import Joker, JokerContext
 
 class BullJoker(Joker):
 
-    def apply(
-        self,
-        context: JokerContext
-    ) -> JokerContext:
+    def apply(self, context: JokerContext) -> JokerContext:
+        if context.score is None:
+            return context
 
-        context.score.mult += (
-            (context.state.money // 5) * 2
-        )
+        money = max(0, int(getattr(context.state, "money", 0) or 0))
+        context.score.chips += money * 2
 
         return context

@@ -1546,26 +1546,29 @@ def test_fortune_teller_joker():
 
 def test_supernova_joker():
 
-    joker = SupernovaJoker(PokerHand.PAIR)
+    joker = SupernovaJoker()
 
     state = type(
         "TestState",
         (),
         {
             "jokers": [joker],
-            "hand": []
+            "hand": [],
+            "hand_play_counts": {
+                PokerHand.PAIR.value: 4,
+            },
         }
     )()
 
     context = JokerContext(
         state=state,
+        score=HandScore(10, 2),
         poker_hand=PokerHand.PAIR
     )
 
     joker.apply(context)
-    joker.apply(context)
 
-    assert joker.mult == 2
+    assert context.score.mult == 7
 
 
 def test_space_joker(monkeypatch):
@@ -1972,9 +1975,9 @@ def test_bootstraps_joker():
         state
     )
 
-    assert score.chips == 13
+    assert score.chips == 10
     assert score.mult == 8
-    assert score.total == 104
+    assert score.total == 80
 
 
 def test_bootstraps_joker_below_five_dollars():
@@ -2140,12 +2143,19 @@ def test_loyalty_card_joker():
     for _ in range(6):
         context = JokerContext(
             state=state,
-            score=HandScore(10, 2),
             trigger="HAND_PLAYED"
         )
         joker.apply(context)
 
-    assert context.score.x_mult == 4.0
+    score_context = JokerContext(
+        state=state,
+        score=HandScore(10, 2),
+        trigger="HAND_SCORED"
+    )
+    joker.apply(score_context)
+
+    assert joker.hands == 6
+    assert score_context.score.x_mult == 4.0
 
 
 def test_flash_card_joker():
@@ -2948,8 +2958,11 @@ def test_blue_joker():
 def test_golden_ticket():
     joker = GoldenTicketJoker()
 
-    gold_card = BalatroCard("A", "Hearts")
-    gold_card.seal = "Gold"
+    gold_card = BalatroCard(
+        "A",
+        "Hearts",
+        enhancement="Gold",
+    )
 
     context = JokerContext(
         state=GameState(),
@@ -3462,10 +3475,10 @@ def test_throwback_joker():
 def test_baseball_card_joker():
     joker = BaseballCardJoker()
 
-    rare_joker = type(
-        "RareJoker",
+    uncommon_joker = type(
+        "UncommonJoker",
         (),
-        {"rarity": "Rare"}
+        {"rarity": "Uncommon"}
     )()
 
     common_joker = type(
@@ -3480,7 +3493,7 @@ def test_baseball_card_joker():
         {
             "jokers": [
                 joker,
-                rare_joker,
+                uncommon_joker,
                 common_joker,
             ]
         }

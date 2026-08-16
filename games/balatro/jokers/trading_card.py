@@ -7,20 +7,23 @@ class TradingCardJoker(Joker):
         if context.trigger != "DISCARD":
             return context
 
+        # Generic semantic probes historically omitted round-history context, so
+        # absence keeps the standalone Joker behavior as a first-discard probe.
+        # Live projection always supplies this flag explicitly.
+        if not bool(context.data.get("first_discard", True)):
+            return context
+
         if len(context.cards) != 1:
             return context
 
-        if context.data.get("trading_card_triggered"):
-            return context
-
-        context.data["trading_card_triggered"] = True
         context.data.setdefault(
             "destroyed_cards",
             []
         ).append(context.cards[0])
 
-        context.data["money"] = (
-            context.data.get("money", 0) + 3
+        context.data["money"] = int(context.data.get("money", 0) or 0) + 3
+        context.state.money = (
+            int(getattr(context.state, "money", 0) or 0) + 3
         )
 
         return context

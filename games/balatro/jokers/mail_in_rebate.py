@@ -3,19 +3,21 @@ from games.balatro.joker import Joker, JokerContext
 
 class MailInRebateJoker(Joker):
 
+    def __init__(self, rank: str):
+        self.rank = str(rank)
+
     def apply(self, context: JokerContext) -> JokerContext:
         if context.trigger != "DISCARD":
             return context
 
-        rank = context.data.get("mail_in_rebate_rank")
-
         discarded = sum(
-            card.rank == rank
+            str(card.rank) == self.rank
             for card in context.cards
         )
-
-        context.data["money"] = (
-            context.data.get("money", 0) + discarded * 3
-        )
+        if discarded:
+            context.state.money = (
+                int(getattr(context.state, "money", 0) or 0)
+                + discarded * 5
+            )
 
         return context

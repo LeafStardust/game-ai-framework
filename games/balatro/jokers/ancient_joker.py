@@ -1,5 +1,6 @@
 import random
 
+from games.balatro.hand_rules import card_matches_suit
 from games.balatro.joker import Joker, JokerContext
 
 
@@ -23,11 +24,12 @@ class AncientJoker(Joker):
         if context.score is None or self.suit is None:
             return context
 
+        rules = context.data.get("hand_rules", {})
+        scoring_cards = context.data.get("scoring_cards", context.cards)
         matching_cards = sum(
-            card.matches_suit(self.suit)
-            for card in context.cards
+            card_matches_suit(card, self.suit, rules)
+            for card in scoring_cards
         )
 
         context.score.x_mult *= 1.5 ** matching_cards
-
         return context

@@ -1,5 +1,5 @@
-from collections import Counter
-
+from games.balatro.hand import PokerHand
+from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.joker import Joker, JokerContext
 
 
@@ -9,17 +9,11 @@ class CleverJoker(Joker):
         if context.score is None:
             return context
 
-        counts = Counter(
-            card.rank
-            for card in context.cards
-        )
-
-        pairs = sum(
-            count >= 2
-            for count in counts.values()
-        )
-
-        if pairs >= 2:
+        if HandEvaluator().contains(
+            context.cards,
+            PokerHand.TWO_PAIR,
+            rules=context.data.get("hand_rules"),
+        ):
             context.score.chips += 80
 
         return context

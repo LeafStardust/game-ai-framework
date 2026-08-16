@@ -2,7 +2,9 @@ from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.interfaces import BalatroStateTranslator
+from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.live.protocol import LiveBalatroSnapshot
+from games.balatro.live.shop import LiveShopItemFactory
 from games.balatro.state import BalatroState
 
 
@@ -72,10 +74,15 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         "Full House": "FULL_HOUSE",
         "Four of a Kind": "FOUR_OF_A_KIND",
         "Straight Flush": "STRAIGHT_FLUSH",
+        "Five of a Kind": "FIVE_OF_A_KIND",
+        "Flush House": "FLUSH_HOUSE",
+        "Flush Five": "FLUSH_FIVE",
     }
 
     def __init__(self):
         self.consumable_factory = LiveConsumableFactory()
+        self.joker_factory = LiveJokerFactory()
+        self.shop_item_factory = LiveShopItemFactory()
 
     def translate(
         self,
@@ -88,6 +95,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         state.money = int(payload.get("money", 0))
         state.ante = int(payload.get("ante_num", payload.get("ante", 1)))
         state.round = int(payload.get("round_num", payload.get("round_number", 1)))
+        state.score = int(payload.get("score", payload.get("chips", 0)))
         state.blind_score = int(
             round_info.get("chips", payload.get("blind_score", 0))
         )
@@ -97,32 +105,70 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         state.discards_remaining = int(
             round_info.get("discards_left", payload.get("discards_left", 0))
         )
+        discards_used = round_info.get("discards_used", payload.get("discards_used"))
+        state.discards_used = (
+            max(0, int(discards_used))
+            if discards_used is not None
+            else None
+        )
         state.deck_name = str(
             payload.get("deck", payload.get("deck_name", "RED"))
         ).upper()
         state.stake_name = str(
             payload.get("stake", payload.get("stake_name", "WHITE"))
         ).upper()
+        last_tarot_planet = payload.get("last_tarot_planet")
+        state.last_tarot_planet = (
+            str(last_tarot_planet)
+            if isinstance(last_tarot_planet, str) and last_tarot_planet
+            else None
+        )
         state.phase = snapshot.phase
 
         hand_area = self._area(payload.get("hand"))
         deck_area = self._area(payload.get("cards", payload.get("deck")))
+        owned_deck_present = "owned_cards" in payload or "owned_deck" in payload
+        owned_deck_area = self._area(
+            payload.get("owned_cards", payload.get("owned_deck"))
+        )
+        joker_area = self._area(payload.get("jokers"))
         consumable_area = self._area(payload.get("consumables"))
-        shop_area = self._area(payload.get("shop"))
+        legacy_shop_area = self._area(payload.get("shop"))
+        shop_card_area = self._area(payload.get("shop_jokers"))
+        shop_booster_area = self._area(payload.get("shop_boosters"))
+        shop_voucher_area = self._area(payload.get("shop_vouchers"))
 
         state.hand_size = int(
             hand_area.get("limit", len(hand_area.get("cards", [])))
         )
+        state.joker_slots = int(joker_area.get("limit", 5))
         state.consumable_slots = int(
             consumable_area.get("limit", 2)
         )
         state.hand = self._cards(hand_area.get("cards", []))
         state.deck = self._cards(deck_area.get("cards", []))
+        if owned_deck_present:
+            state.owned_deck = self._cards(owned_deck_area.get("cards", []))
+        state.jokers = self._jokers(joker_area.get("cards", []))
         state.consumables = self._consumables(
             consumable_area.get("cards", [])
         )
-        state.shop_consumables = self._consumables(
-            shop_area.get("cards", [])
+
+        shop_jokers, shop_consumables = self._shop_cards(
+            shop_card_area.get("cards", [])
+        )
+        state.shop_jokers = shop_jokers
+        state.shop_consumables = shop_consumables
+        state.shop_consumables.extend(
+            self._consumables(legacy_shop_area.get("cards", []))
+        )
+        state.shop_boosters = self._shop_items(
+            shop_booster_area.get("cards", []),
+            kind="BOOSTER",
+        )
+        state.shop_vouchers = self._shop_items(
+            shop_voucher_area.get("cards", []),
+            kind="VOUCHER",
         )
         state.shop_active = snapshot.phase == "SHOP"
 
@@ -164,9 +210,20 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             if rank is None or suit is None:
                 continue
 
+            live_id = card.get("live_id", card.get("id", index))
             result.append(
-                self._card(card, index)
+                self._card(card, live_id)
             )
+
+        return result
+
+    def _jokers(self, values: list[dict]) -> list:
+        result = []
+
+        for value in values:
+            joker = self.joker_factory.create(value)
+            if joker is not None:
+                result.append(joker)
 
         return result
 
@@ -176,17 +233,54 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         for index, value in enumerate(values):
             consumable = self.consumable_factory.create(
                 value,
-                live_id=index,
+                live_id=value.get("live_id", value.get("id", index)),
             )
             if consumable is not None:
                 result.append(consumable)
 
         return result
 
+    def _shop_cards(self, values: list[dict]) -> tuple[list, list]:
+        jokers = []
+        consumables = []
+
+        for index, value in enumerate(values):
+            item_type = str(
+                value.get("ability_set", value.get("set", ""))
+            ).upper()
+
+            if item_type == "JOKER":
+                joker = self.joker_factory.create(value)
+                if joker is None:
+                    joker = self.shop_item_factory.create(
+                        value,
+                        kind="JOKER",
+                    )
+                if joker is not None:
+                    jokers.append(joker)
+                continue
+
+            consumable = self.consumable_factory.create(
+                value,
+                live_id=value.get("live_id", value.get("id", index)),
+            )
+            if consumable is not None:
+                consumables.append(consumable)
+
+        return jokers, consumables
+
+    def _shop_items(self, values: list[dict], *, kind: str) -> list:
+        result = []
+        for value in values:
+            item = self.shop_item_factory.create(value, kind=kind)
+            if item is not None:
+                result.append(item)
+        return result
+
     def _card(
         self,
         card: dict,
-        live_id: int,
+        live_id: int | str | None,
     ) -> BalatroCard:
         value = card.get("value") or card
         modifier = card.get("modifier") or card
@@ -212,6 +306,8 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
                 seal,
             ),
             live_id=live_id,
+            debuffed=bool(card.get("debuff", False)),
+            permanent_bonus=int(card.get("permanent_bonus", 0) or 0),
         )
 
     def _translate_hand_levels(
@@ -223,8 +319,11 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             hand_type = self.HAND_NAMES.get(name)
             if hand_type is None:
                 continue
-            state.hand_levels[hand_type] = int(
-                (data or {}).get("level", 1)
+            values = data or {}
+            state.hand_levels[hand_type] = int(values.get("level", 1))
+            state.hand_play_counts[hand_type] = int(values.get("played", 0))
+            state.round_hand_play_counts[hand_type] = int(
+                values.get("played_this_round", 0)
             )
 
     def _translate_blind(
@@ -251,6 +350,24 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
 
         if blind_type == BlindType.BOSS:
             state.boss_name = blind.get("name")
+
+            if "hands" in blind:
+                values = blind.get("hands") or []
+                if isinstance(values, (list, tuple, set)):
+                    state.boss_blind_hands = {
+                        self.HAND_NAMES.get(str(name), str(name))
+                        for name in values
+                    }
+                state.boss_blind_state_observed = True
+
+            if "only_hand" in blind:
+                only_hand = blind.get("only_hand")
+                state.boss_blind_only_hand = (
+                    self.HAND_NAMES.get(str(only_hand), str(only_hand))
+                    if only_hand
+                    else None
+                )
+                state.boss_blind_state_observed = True
 
     @staticmethod
     def _active_blind(blinds) -> dict | None:

@@ -1,18 +1,17 @@
+from games.balatro.hand_rules import card_matches_suit
 from games.balatro.joker import Joker, JokerContext
 
 
 class ArrowheadJoker(Joker):
 
     def apply(self, context: JokerContext) -> JokerContext:
-
         if context.score is None:
             return context
 
-        spades = sum(
-            card.suit == "Spades"
-            for card in context.cards
+        rules = context.data.get("hand_rules", {})
+        scoring_cards = context.data.get("scoring_cards", context.cards)
+        context.score.chips += 50 * sum(
+            card_matches_suit(card, "Spades", rules)
+            for card in scoring_cards
         )
-
-        context.score.chips += spades * 50
-
         return context

@@ -15,7 +15,7 @@ class YorickJoker(Joker):
 
                 while self.discarded_cards >= 23:
                     self.discarded_cards -= 23
-                    self.x_mult += 5
+                    self.x_mult += 1
 
         if context.score is not None:
             context.score.x_mult *= self.x_mult

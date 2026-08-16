@@ -1,0 +1,66 @@
+from games.balatro.card import BalatroCard
+from games.balatro.live.consumable_escape import (
+    SunConsumableEscapePlanner,
+    judgement_live_block_reason,
+)
+from games.balatro.state import BalatroState
+from games.balatro.tarots import create_tarot
+
+
+def test_sun_targets_only_meaningful_non_heart_cards():
+    state = BalatroState()
+    state.hand = [
+        BalatroCard("K", "Spades"),
+        BalatroCard("Q", "Hearts"),
+        BalatroCard("J", "Clubs"),
+        BalatroCard("10", "Diamonds", enhancement="Wild"),
+        BalatroCard("9", "Spades", enhancement="Stone"),
+    ]
+
+    targets = SunConsumableEscapePlanner._target_sets(state)
+
+    assert targets == ((0,), (2,), (0, 2))
+
+
+def test_apply_sun_isolated_from_authoritative_state():
+    state = BalatroState()
+    state.phase = "SELECTING_HAND"
+    state.hand = [
+        BalatroCard("K", "Spades", live_id=1),
+        BalatroCard("Q", "Diamonds", live_id=2),
+        BalatroCard("J", "Hearts", live_id=3),
+    ]
+    state.consumables = [create_tarot("The Sun"), create_tarot("Judgement")]
+
+    transformed = SunConsumableEscapePlanner._apply_sun(state, (0, 1), 0)
+
+    assert [card.suit for card in transformed.hand] == [
+        "Hearts",
+        "Hearts",
+        "Hearts",
+    ]
+    assert [card.suit for card in state.hand] == [
+        "Spades",
+        "Diamonds",
+        "Hearts",
+    ]
+    assert [item.name for item in transformed.consumables] == ["Judgement"]
+    assert [item.name for item in state.consumables] == ["The Sun", "Judgement"]
+
+
+def test_judgement_is_explicitly_blocked_for_live_blind_planning():
+    state = BalatroState()
+    state.consumables = [create_tarot("Judgement")]
+
+    reason = judgement_live_block_reason(state)
+
+    assert reason is not None
+    assert "random" in reason
+    assert "full Joker pool" in reason
+
+
+def test_judgement_block_reason_absent_when_not_held():
+    state = BalatroState()
+    state.consumables = [create_tarot("The Sun")]
+
+    assert judgement_live_block_reason(state) is None
