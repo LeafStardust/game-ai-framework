@@ -19,6 +19,7 @@ from games.balatro.build import (
 )
 from games.balatro.consumable import PlanetCard
 from games.balatro.joker import Joker
+from games.balatro.joker_edition import joker_has_negative_edition
 from games.balatro.resource_value import RunResourceValuator
 from games.balatro.state import BalatroState
 
@@ -351,10 +352,11 @@ class BalatroShopPolicy:
     ) -> ShopJokerRecommendation:
         """Map build transition semantics onto safe shop-level Joker advice.
 
-        A free-slot ``ADD`` may become an executable ``BUY`` after ordinary shop
-        economics are checked. A build ``HOLD`` is rejected. A ``REPLACE`` exposes
-        the best incumbent and whole-build delta but never synthesizes a direct buy,
-        sell, or compound action.
+        A slot-safe ``ADD`` may become an executable ``BUY`` after ordinary shop
+        economics are checked. This includes a Negative Joker on a full ordinary
+        roster. A build ``HOLD`` is rejected. A ``REPLACE`` exposes the best
+        incumbent and whole-build delta but never synthesizes a direct buy, sell, or
+        compound action.
         """
         if state.phase != "SHOP":
             raise ValueError("shop policy requires SHOP phase")
@@ -447,10 +449,14 @@ class BalatroShopPolicy:
                 f"shop policy cannot safely score action {action.name!r} yet"
             )
 
-        if action.name == BUY_JOKER and len(state.jokers) >= state.joker_slots:
+        if (
+            action.name == BUY_JOKER
+            and len(state.jokers) >= state.joker_slots
+            and not joker_has_negative_edition(action.target)
+        ):
             raise ValueError(
-                "direct BUY_JOKER requires a free Joker slot; "
-                "use recommend_joker() for advisory replacement planning"
+                "direct BUY_JOKER requires a free Joker slot unless the candidate "
+                "is Negative; use recommend_joker() for advisory replacement planning"
             )
 
         price = self._price(action.target)
@@ -519,6 +525,8 @@ class BalatroShopPolicy:
         action: BalatroAction,
     ) -> float:
         if action.name == BUY_JOKER:
+            if joker_has_negative_edition(action.target):
+                return 0.0
             return self.resource_valuator.slot_opportunity_cost(
                 occupied=len(state.jokers),
                 capacity=state.joker_slots,
