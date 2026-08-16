@@ -1,0 +1,27 @@
+name: v0.9 release pytest gate
+
+on:
+  push:
+    branches:
+      - tmp/v0.9-release-pytest
+
+jobs:
+  pytest:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout merged main release candidate
+        uses: actions/checkout@v4
+        with:
+          ref: b7a1417e40273b276bfc02290913d1e426d2f1d1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install test requirements
+        run: python -m pip install --upgrade pip; python -m pip install -r requirements.txt
+
+      - name: Run full pytest suite
+        run: python -m pytest
