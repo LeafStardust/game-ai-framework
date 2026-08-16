@@ -4,6 +4,7 @@ from dataclasses import dataclass, fields
 from typing import Mapping
 
 from games.balatro.actions import BUY_VOUCHER
+from games.balatro.discovery import bounded_discovery_tiebreak, is_undiscovered
 from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
 from games.balatro.shop_policy import BalatroShopPolicy, ShopActionScore
@@ -182,10 +183,17 @@ class PlaybookVoucherAwareBalatroShopPolicy(VoucherAwareBalatroShopPolicy):
                 vouchers=getattr(state, "vouchers", ()),
             )
             normalized_advantage = float(decision.persistent_value) - resource_cost.total
+            adjusted_advantage = bounded_discovery_tiebreak(
+                normalized_advantage,
+                action.target,
+            )
+            discovery_applied = (
+                normalized_advantage > 0.0 and is_undiscovered(action.target)
+            )
             scores.append(
                 ShopActionScore(
                     action=action,
-                    total=float(self.hold_bias) + normalized_advantage,
+                    total=float(self.hold_bias) + adjusted_advantage,
                     item_utility=float(decision.persistent_value),
                     price_penalty=resource_cost.direct,
                     interest_penalty=resource_cost.interest,
@@ -194,6 +202,7 @@ class PlaybookVoucherAwareBalatroShopPolicy(VoucherAwareBalatroShopPolicy):
                         *decision.rationale,
                         "D14 remaps admitted D3 Voucher onto shared SHOP resource scale",
                         f"D14 resource cost={resource_cost.total:.3f}",
+                        f"bounded discovery tie-break={'applied' if discovery_applied else 'inactive'}",
                     ),
                 )
             )
