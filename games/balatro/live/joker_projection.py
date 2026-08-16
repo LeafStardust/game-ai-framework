@@ -100,6 +100,7 @@ class LiveJokerScoreProjector:
             "MadJoker",
             "MadnessJoker",
             "MerryAndyJoker",
+            "MidasMaskJoker",
             "MimeJoker",
             "MysticSummitJoker",
             "ObeliskJoker",
@@ -178,6 +179,7 @@ class LiveJokerScoreProjector:
             "HackJoker",
             "HangingChadJoker",
             "LoyaltyCardJoker",
+            "MidasMaskJoker",
             "MimeJoker",
             "SockAndBuskinJoker",
             "VampireJoker",
@@ -196,6 +198,7 @@ class LiveJokerScoreProjector:
             "HackJoker",
             "HangingChadJoker",
             "HikerJoker",
+            "MidasMaskJoker",
             "SockAndBuskinJoker",
             "VampireJoker",
         }
@@ -495,16 +498,32 @@ class LiveJokerScoreProjector:
 
     @staticmethod
     def _isolate_branch_cards(state, safe_state, cards) -> list:
-        copies: dict[int, object] = {}
+        copies: dict[tuple, object] = {}
+
+        def identity(card) -> tuple:
+            live_id = getattr(card, "live_id", None)
+            if live_id is not None:
+                return ("live", live_id)
+            return ("object", id(card))
 
         def clone(card):
-            key = id(card)
+            key = identity(card)
             if key not in copies:
                 copies[key] = deepcopy(card)
             return copies[key]
 
         safe_state.hand = [clone(card) for card in getattr(state, "hand", [])]
         safe_state.deck = [clone(card) for card in getattr(state, "deck", [])]
+        safe_state.discard_pile = [
+            clone(card)
+            for card in getattr(state, "discard_pile", [])
+        ]
+        owned_deck = getattr(state, "owned_deck", None)
+        safe_state.owned_deck = (
+            [clone(card) for card in owned_deck]
+            if owned_deck is not None
+            else None
+        )
         return [clone(card) for card in list(cards or [])]
 
     @staticmethod
