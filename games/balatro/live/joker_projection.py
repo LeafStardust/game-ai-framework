@@ -50,6 +50,7 @@ class LiveJokerScoreProjector:
             "BootstrapsJoker",
             "BrainstormJoker",
             "BullJoker",
+            "BurglarJoker",
             "CampfireJoker",
             "CanioJoker",
             "CardSharpJoker",
