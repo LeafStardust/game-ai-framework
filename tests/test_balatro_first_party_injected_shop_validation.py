@@ -3,7 +3,7 @@ from games.balatro.actions import (
     BUY_JOKER,
     REFRESH_SHOP,
 )
-from games.balatro.live.external.live_memory_shop_action_injected_validation import (
+from games.balatro.live.runtime.live_memory_shop_action_injected_validation import (
     _fingerprint,
     _guard_errors,
 )
