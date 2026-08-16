@@ -11,6 +11,7 @@ from .balatro_agent_supervisor import (
     DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS,
     BalatroAgentSupervisor,
 )
+from .finisher_state_translator import FinisherAwareBalatroStateTranslator
 from .live_memory_discard_history_observer import (
     DiscardHistorySupervisorLiveMemoryBalatroObserver,
 )
@@ -39,6 +40,7 @@ def main() -> int:
         observer_factory=DiscardHistorySupervisorLiveMemoryBalatroObserver,
         runner_factory=lambda observer: PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             observer,
+            translator=FinisherAwareBalatroStateTranslator(),
             bridge=FirstPartyBalatroBridge(
                 timeout=DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS,
             ),
