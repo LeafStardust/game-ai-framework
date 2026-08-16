@@ -129,7 +129,7 @@ def test_stable_path_discard_overrides_different_one_step_recovery_discard():
 
     engine = _engine(policy)
     engine._adaptive_root_history = [
-        (_summary(state, path_discard, horizon), path_discard)
+        (_summary(state, path_discard, horizon=horizon), path_discard)
         for horizon in (5, 6, 7)
     ]
 
@@ -169,7 +169,7 @@ def test_path_discard_consensus_never_overrides_a_play_that_meets_pace():
 
     engine = _engine(policy)
     engine._adaptive_root_history = [
-        (_summary(state, path_discard, horizon), path_discard)
+        (_summary(state, path_discard, horizon=horizon), path_discard)
         for horizon in (5, 6, 7)
     ]
 
