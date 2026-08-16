@@ -346,6 +346,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         state.blind = Blind(
             blind_type,
             int(blind.get("score", blind.get("chips", 0))),
+            int(blind.get("reward", 0)),
         )
 
         if blind_type == BlindType.BOSS:
