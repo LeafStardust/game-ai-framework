@@ -1,3 +1,4 @@
+from games.balatro.blind_skip_policy import BuildAwareBlindSkipPolicy
 from games.balatro.live.external.playstyle_autonomous_runner import (
     PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
 )
@@ -64,6 +65,11 @@ def test_production_runner_shares_one_intent_tracker_across_b3_consumers():
     assert pack_playstyle.intent_tracker is runner.playstyle_intent_tracker
     assert pack_playstyle.profiler is runner.playstyle_profiler
 
+    blind_skip = runner.blind_skip_policy
+    assert isinstance(blind_skip, BuildAwareBlindSkipPolicy)
+    assert blind_skip.intent_tracker is runner.playstyle_intent_tracker
+    assert blind_skip.profiler is runner.playstyle_profiler
+
     build_log = runner.build_intent_log_tracker
     assert build_log.intent_tracker is runner.playstyle_intent_tracker
     assert build_log.profiler is runner.playstyle_profiler
@@ -75,3 +81,4 @@ def test_fresh_runner_gets_fresh_run_scoped_intent_and_logging_trackers():
 
     assert first.playstyle_intent_tracker is not second.playstyle_intent_tracker
     assert first.build_intent_log_tracker is not second.build_intent_log_tracker
+    assert first.blind_skip_policy.intent_tracker is not second.blind_skip_policy.intent_tracker
