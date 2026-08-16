@@ -91,7 +91,7 @@ def test_successful_transitions_resume_sequence_and_write_terminal_summary(tmp_p
         directory=tmp_path,
     )
 
-    assert first_logger.sequence == 4
+    assert first_logger.sequence == 5
     assert first_logger.summary_path.exists() is False
 
     second = _decision(_snapshot(2, "SELECTING_HAND"), card)
@@ -107,28 +107,33 @@ def test_successful_transitions_resume_sequence_and_write_terminal_summary(tmp_p
         json.loads(line)
         for line in second_logger.path.read_text(encoding="utf-8").splitlines()
     ]
-    assert [row["sequence"] for row in rows] == list(range(1, 9))
+    assert [row["sequence"] for row in rows] == list(range(1, 11))
     assert [row["event"] for row in rows] == [
         "run_started",
         "observation",
         "decision",
         "action_result",
+        "blind_outcome",
         "observation",
         "decision",
         "action_result",
+        "blind_outcome",
         "run_finished",
     ]
     assert rows[2]["data"]["action"]["indices"] == [0]
     assert "build_rationale" not in rows[2]["data"]["rationale"]
+    assert rows[4]["data"]["kind"] == "CLEARED"
+    assert rows[8]["data"]["kind"] == "TERMINAL"
     assert _contains_key(rows, "ui") is False
 
     summary = json.loads(second_logger.summary_path.read_text(encoding="utf-8"))
     assert summary["schema"] == "balatro-run-summary-v1"
     assert summary["won"] is False
     assert summary["reason"] == "game_over"
-    assert summary["event_count"] == 8
-    assert summary["last_sequence"] == 8
+    assert summary["event_count"] == 10
+    assert summary["last_sequence"] == 10
     assert summary["event_counts"]["run_started"] == 1
+    assert summary["event_counts"]["blind_outcome"] == 2
     assert summary["event_counts"]["run_finished"] == 1
     assert summary["final_state"]["phase"] == "GAME_OVER"
 
@@ -157,10 +162,42 @@ def test_prepared_build_intent_is_written_before_decision_then_committed(tmp_pat
         "build_intent",
         "decision",
         "action_result",
+        "blind_outcome",
     ]
     assert rows[2]["data"]["transition"] == "INITIAL"
     assert rows[2]["data"]["profile"]["jokers"] == ["JokerJoker"]
     assert prepared.committed is True
+
+
+def test_decision_postmortem_payload_is_logged_without_policy_recomputation(tmp_path):
+    card = object()
+    decision = _decision(_snapshot(1, "SELECTING_HAND"), card)
+    decision.decision_diagnostics = {
+        "layer": "D1",
+        "active_thresholds": {"play_confidence": 0.75},
+        "selected": {
+            "action": "PLAY_CARDS",
+            "expected_score": 123.0,
+        },
+    }
+    result = SimpleNamespace(after=_snapshot(2, "ROUND_EVAL"))
+
+    logger = log_successful_live_transition(
+        decision,
+        result,
+        run_id="postmortem-run-001",
+        directory=tmp_path,
+    )
+
+    rows = [
+        json.loads(line)
+        for line in logger.path.read_text(encoding="utf-8").splitlines()
+    ]
+    decision_row = next(row for row in rows if row["event"] == "decision")
+    postmortem = decision_row["data"]["rationale"]["postmortem"]
+    assert postmortem["layer"] == "D1"
+    assert postmortem["active_thresholds"] == {"play_confidence": 0.75}
+    assert postmortem["selected"]["expected_score"] == 123.0
 
 
 def test_chosen_purchase_logs_only_policy_supplied_build_causal_signals(tmp_path):
@@ -214,6 +251,8 @@ def test_chosen_purchase_logs_only_policy_supplied_build_causal_signals(tmp_path
         signal["text"] not in {"policy_score=8.000000", "price penalty=5.000"}
         for signal in rationale["signals"]
     )
+    purchase = next(row for row in rows if row["event"] == "purchase")
+    assert purchase["data"]["kind"] == "JOKER"
 
 
 def test_targeted_pack_choice_logs_b6_and_d9_rationale_without_recomputing(tmp_path):
