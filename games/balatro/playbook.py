@@ -203,6 +203,19 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                     "reroll": {
                         "minimum_margin": 0.25,
                     },
+                    "blind_skip": {
+                        "minimum_skip_advantage": 2.0,
+                        "fallback_tag_value": 4.0,
+                        "base_shop_opportunity_value": 1.5,
+                        "build_development_shop_weight": 2.0,
+                        "free_joker_slot_shop_weight": 0.4,
+                        "cash_recovery_shop_weight": 0.25,
+                        "late_ante_shop_weight": 0.2,
+                        "pre_boss_shop_weight": 2.5,
+                        "interest_cap": 5,
+                        "tag_build_fit_weight": 2.0,
+                        "max_tag_build_adjustment": 2.5,
+                    },
                     "resource_valuation": {
                         "price_weight": 0.35,
                         "interest_weight": 1.25,
