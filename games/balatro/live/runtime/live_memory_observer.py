@@ -411,6 +411,9 @@ def _normalize_item(
         "ability_set": ability_set,
         "debuff": _boolean(card.get("debuff"), False),
     }
+    rarity = _rarity_name(center.get("rarity"))
+    if rarity is not None:
+        result["rarity"] = rarity
     if area_index is not None:
         result["area_index"] = area_index
 
@@ -602,6 +605,31 @@ def _deck_name(
                 return key.removesuffix(" Deck").upper()
 
     return "BASE"
+
+
+def _rarity_name(value: LuaValue | None) -> str | None:
+    rarity = _primitive(value)
+    if isinstance(rarity, bool) or rarity is None:
+        return None
+    if isinstance(rarity, (int, float)):
+        return {
+            1: "COMMON",
+            2: "UNCOMMON",
+            3: "RARE",
+            4: "LEGENDARY",
+        }.get(int(rarity))
+    if isinstance(rarity, str):
+        normalized = rarity.strip().upper()
+        if normalized.isdigit():
+            return {
+                1: "COMMON",
+                2: "UNCOMMON",
+                3: "RARE",
+                4: "LEGENDARY",
+            }.get(int(normalized))
+        if normalized in {"COMMON", "UNCOMMON", "RARE", "LEGENDARY"}:
+            return normalized
+    return None
 
 
 def _edition_name(

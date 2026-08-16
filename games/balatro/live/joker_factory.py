@@ -73,6 +73,7 @@ class LiveJokerFactory:
             "area_index",
             "center",
             "label",
+            "rarity",
             "edition",
             "cost",
             "sell_cost",

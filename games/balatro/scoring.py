@@ -194,19 +194,55 @@ class BalatroScorer:
             self._fold_x_mult(score)
 
     @staticmethod
-    def _apply_joker_edition(
+    def _apply_joker_pre_effect_edition(
         score: HandScore,
         joker,
     ) -> None:
-        """Apply one Joker's scoring edition after that Joker's own effect."""
+        """Resolve Foil/Holographic before one Joker's independent effect."""
         edition = str(getattr(joker, "edition", "") or "").upper()
-
         if edition == "FOIL":
             score.chips += 50
         elif edition in {"HOLO", "HOLOGRAPHIC"}:
             score.mult += 10
-        elif edition == "POLYCHROME":
+
+    @staticmethod
+    def _apply_joker_polychrome(
+        score: HandScore,
+        joker,
+    ) -> None:
+        """Resolve Polychrome after independent and on-other-Joker effects."""
+        edition = str(getattr(joker, "edition", "") or "").upper()
+        if edition == "POLYCHROME":
             score.x_mult *= 1.5
+
+    @staticmethod
+    def _joker_is_uncommon(joker) -> bool:
+        return str(getattr(joker, "rarity", "") or "").upper() == "UNCOMMON"
+
+    def _apply_baseball_card_triggers(
+        self,
+        context: JokerContext,
+        baseball_cards,
+        other_joker,
+    ) -> JokerContext:
+        if not baseball_cards or not self._joker_is_uncommon(other_joker):
+            return context
+
+        other_context = JokerContext(
+            state=context.state,
+            score=context.score,
+            poker_hand=context.poker_hand,
+            cards=context.cards,
+            held_cards=context.held_cards,
+            trigger="OTHER_JOKER",
+            event=context.event,
+            data={**context.data, "other_joker": other_joker},
+        )
+        for baseball_card in baseball_cards:
+            other_context = baseball_card.apply(other_context)
+            self._fold_x_mult(other_context.score)
+        context.score = other_context.score
+        return context
 
     def _apply_scoring_card_phase(
         self,
@@ -460,15 +496,27 @@ class BalatroScorer:
                 data=context_data,
             )
 
+            baseball_cards = [
+                joker
+                for joker in state.jokers
+                if type(joker).__name__ == "BaseballCardJoker"
+            ]
             for joker in state.jokers:
                 class_name = type(joker).__name__
+                self._apply_joker_pre_effect_edition(context.score, joker)
                 if (
                     not include_card_chips
                     or class_name not in self.ON_SCORED_JOKER_CLASS_NAMES
                     or class_name in self.ALSO_INDEPENDENT_JOKER_CLASS_NAMES
                 ):
                     context = joker.apply(context)
-                self._apply_joker_edition(context.score, joker)
+                self._fold_x_mult(context.score)
+                context = self._apply_baseball_card_triggers(
+                    context,
+                    baseball_cards,
+                    joker,
+                )
+                self._apply_joker_polychrome(context.score, joker)
                 self._fold_x_mult(context.score)
 
             score = context.score

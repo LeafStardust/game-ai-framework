@@ -4,15 +4,14 @@ from games.balatro.joker import Joker, JokerContext
 class BaseballCardJoker(Joker):
 
     def apply(self, context: JokerContext) -> JokerContext:
-        if context.score is None:
+        if context.score is None or context.trigger != "OTHER_JOKER":
             return context
 
-        uncommon_jokers = sum(
-            str(getattr(joker, "rarity", "")).upper() == "UNCOMMON"
-            for joker in getattr(context.state, "jokers", [])
-            if joker is not self
-        )
+        other_joker = context.data.get("other_joker")
+        if other_joker is None or other_joker is self:
+            return context
 
-        context.score.x_mult *= 1.5 ** uncommon_jokers
+        if str(getattr(other_joker, "rarity", "")).upper() == "UNCOMMON":
+            context.score.x_mult *= 1.5
 
         return context

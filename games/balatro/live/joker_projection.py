@@ -36,6 +36,7 @@ class LiveJokerScoreProjector:
             "AstronomerJoker",
             "BannerJoker",
             "BaronJoker",
+            "BaseballCardJoker",
             "BlackboardJoker",
             "BlueJoker",
             "BootstrapsJoker",
@@ -152,6 +153,10 @@ class LiveJokerScoreProjector:
         }
     )
 
+    VALID_JOKER_RARITIES = frozenset(
+        {"COMMON", "UNCOMMON", "RARE", "LEGENDARY"}
+    )
+
     HAND_PLAYED_CLASS_NAMES = frozenset(
         {
             "DuskJoker",
@@ -197,6 +202,21 @@ class LiveJokerScoreProjector:
             ) is None
         ):
             return False
+        if (
+            class_name == "BaseballCardJoker"
+            and not cls._has_complete_baseball_rarity_metadata(state)
+        ):
+            return False
+        return True
+
+    @classmethod
+    def _has_complete_baseball_rarity_metadata(cls, state) -> bool:
+        for candidate in getattr(state, "jokers", []):
+            if type(candidate).__name__ == "BaseballCardJoker":
+                continue
+            rarity = str(getattr(candidate, "rarity", "") or "").upper()
+            if rarity not in cls.VALID_JOKER_RARITIES:
+                return False
         return True
 
     @classmethod
