@@ -123,6 +123,7 @@ class LiveJokerScoreProjector:
             "SmearedJoker",
             "SmileyFaceJoker",
             "SockAndBuskinJoker",
+            "SpaceJoker",
             "SpareTrousersJoker",
             "SplashJoker",
             "SquareJoker",
@@ -314,6 +315,7 @@ class LiveJokerScoreProjector:
             hand_rules=hand_rules,
         )
         joker_data["hand_rules"] = hand_rules
+        joker_data["resolve_random_effects"] = bool(resolve_random_effects)
 
         played_card_retriggers = self._seltzer_retriggers(supported)
         if played_card_retriggers:

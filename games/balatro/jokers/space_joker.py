@@ -7,7 +7,12 @@ class SpaceJoker(Joker):
 
     def apply(self, context: JokerContext) -> JokerContext:
 
-        if context.poker_hand is None:
+        if context.trigger != "HAND_SCORED" or context.poker_hand is None:
+            return context
+
+        # Live projection supplies explicit stochastic branches outside the scorer.
+        # Never consume hidden RNG while evaluating a hypothetical hand.
+        if context.data.get("resolve_random_effects") is False:
             return context
 
         if random.random() < 0.25:
