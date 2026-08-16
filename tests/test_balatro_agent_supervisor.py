@@ -166,7 +166,7 @@ def test_supervisor_retries_fresh_attempts_until_win_and_auto_off(tmp_path):
         "session-test-attempt-002",
     ]
     assert all(attempt.playbook == "red-white" for attempt in result.attempts)
-    assert all(attempt.playbook_version == "0.8" for attempt in result.attempts)
+    assert all(attempt.playbook_version == "1.0" for attempt in result.attempts)
     assert factory.restart_calls == [("RED", "WHITE")]
     assert control.running_pid() is None
     assert control.read_status()["state"] == "OFF"
