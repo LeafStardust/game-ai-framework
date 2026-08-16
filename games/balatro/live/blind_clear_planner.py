@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
 from games.balatro.card_selector import CardSelector
+from games.balatro.live.discard_projection import LiveDiscardJokerProjector
 from games.balatro.live.draw_model import PublicDeckComposition
 from games.balatro.live.draw_outcomes import PublicDrawOutcomeModel
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
@@ -109,6 +110,7 @@ class LiveBlindClearPlanner:
             exact_combination_limit=self.DEFAULT_EXACT_DRAW_COMBINATION_LIMIT,
             sample_count=self.DEFAULT_DRAW_SAMPLE_COUNT,
         )
+        self.discard_joker_projector = LiveDiscardJokerProjector()
         self.play_width = int(play_width)
         self.discard_width = int(discard_width)
         self.child_play_width = int(
@@ -329,9 +331,10 @@ class LiveBlindClearPlanner:
                 True,
             )
 
+        discard_state = self.discard_joker_projector.project(state, action.cards)
         discards_after = max(0, int(state.discards_remaining) - 1)
         if depth <= 1:
-            next_state = deepcopy(state)
+            next_state = deepcopy(discard_state)
             next_state.discards_remaining = discards_after
             return _ActionEstimate(
                 action,
@@ -349,7 +352,7 @@ class LiveBlindClearPlanner:
         exact = draw_distribution.exact
 
         for draw_outcome in draw_distribution.outcomes:
-            next_state = deepcopy(state)
+            next_state = deepcopy(discard_state)
             next_state.discards_remaining = discards_after
             kept = [
                 card

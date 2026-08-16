@@ -32,7 +32,14 @@ class _LiveProjectedStochasticScorer(_ProjectedStochasticScorer):
 class _LiveOutcomeJokerProjector(LiveJokerScoreProjector):
     SUPPORTED_CLASS_NAMES = (
         LiveJokerScoreProjector.SUPPORTED_CLASS_NAMES
-        | frozenset({"BusinessCardJoker"})
+        | frozenset(
+            {
+                "BusinessCardJoker",
+                "FacelessJoker",
+                "MailInRebateJoker",
+                "ReservedParkingJoker",
+            }
+        )
     )
 
 
@@ -42,6 +49,8 @@ class LiveVisibleCardScoreOutcomeModel(VisibleCardScoreOutcomeModel):
     SPACE_JOKER_PROBABILITY = 0.25
     BUSINESS_CARD_PROBABILITY = 0.5
     BUSINESS_CARD_REWARD = 2
+    RESERVED_PARKING_PROBABILITY = 0.5
+    RESERVED_PARKING_REWARD = 1
 
     def __init__(
         self,
@@ -122,7 +131,8 @@ class LiveVisibleCardScoreOutcomeModel(VisibleCardScoreOutcomeModel):
         include_card_chips: bool,
     ) -> ScoreProjectionTransition:
         business_cards = len(self._jokers_named(state, "BusinessCardJoker"))
-        if business_cards <= 0:
+        reserved_parking = len(self._jokers_named(state, "ReservedParkingJoker"))
+        if business_cards <= 0 and reserved_parking <= 0:
             return super().project_transition(
                 hand,
                 state,
@@ -139,14 +149,19 @@ class LiveVisibleCardScoreOutcomeModel(VisibleCardScoreOutcomeModel):
         )
         projected_state = probe.state_after_scoring
         rules = hand_rules_for_state(projected_state)
-        triggers = self._business_card_scoring_triggers(
+        business_triggers = self._business_card_scoring_triggers(
             hand,
             probe.cards_after_copy,
             projected_state,
             rules=rules,
             extra_retriggers=probe.played_card_retriggers,
         )
-        if triggers <= 0:
+        reserved_triggers = self._reserved_parking_held_triggers(
+            probe.cards_after_copy,
+            projected_state,
+            rules=rules,
+        )
+        if business_triggers <= 0 and reserved_triggers <= 0:
             return super().project_transition(
                 hand,
                 state,
@@ -154,39 +169,49 @@ class LiveVisibleCardScoreOutcomeModel(VisibleCardScoreOutcomeModel):
                 include_card_chips=include_card_chips,
             )
 
+        business_branches = self._business_card_branches(
+            business_triggers,
+            projected_state,
+        )
+        reserved_branches = self._reserved_parking_branches(
+            reserved_triggers,
+            projected_state,
+        )
         outcomes = []
         inner_random_sources: tuple[str, ...] = ()
-        for successes, probability in self._business_card_branches(
-            triggers,
-            projected_state,
-        ):
-            branch_state = state.copy()
-            branch_state.money = (
-                int(getattr(branch_state, "money", 0) or 0)
-                + self.BUSINESS_CARD_REWARD * successes
-            )
-            branch_transition = super().project_transition(
-                hand,
-                branch_state,
-                cards,
-                include_card_chips=include_card_chips,
-            )
-            inner_random_sources = branch_transition.distribution.random_sources
-            for outcome in branch_transition.distribution.outcomes:
-                outcomes.append(
-                    ScoreOutcome(
-                        score=outcome.score,
-                        probability=outcome.probability * probability,
-                        state_after_scoring=outcome.state_after_scoring,
-                    )
+        for business_successes, business_probability in business_branches:
+            for reserved_successes, reserved_probability in reserved_branches:
+                branch_state = state.copy()
+                branch_state.money = (
+                    int(getattr(branch_state, "money", 0) or 0)
+                    + self.BUSINESS_CARD_REWARD * business_successes
+                    + self.RESERVED_PARKING_REWARD * reserved_successes
                 )
+                branch_transition = super().project_transition(
+                    hand,
+                    branch_state,
+                    cards,
+                    include_card_chips=include_card_chips,
+                )
+                inner_random_sources = branch_transition.distribution.random_sources
+                probability = business_probability * reserved_probability
+                for outcome in branch_transition.distribution.outcomes:
+                    outcomes.append(
+                        ScoreOutcome(
+                            score=outcome.score,
+                            probability=outcome.probability * probability,
+                            state_after_scoring=outcome.state_after_scoring,
+                        )
+                    )
 
+        random_sources = list(inner_random_sources)
+        if business_triggers:
+            random_sources.append(f"Business Card x{business_triggers}")
+        if reserved_triggers:
+            random_sources.append(f"Reserved Parking x{reserved_triggers}")
         distribution = ScoreOutcomeDistribution(
             outcomes=tuple(outcomes),
-            random_sources=(
-                *inner_random_sources,
-                f"Business Card x{triggers}",
-            ),
+            random_sources=tuple(random_sources),
         )
         return ScoreProjectionTransition(
             distribution=distribution,
@@ -219,6 +244,31 @@ class LiveVisibleCardScoreOutcomeModel(VisibleCardScoreOutcomeModel):
             )
         return copies * face_triggers
 
+    def _reserved_parking_held_triggers(
+        self,
+        played_cards,
+        state,
+        *,
+        rules: dict | None = None,
+    ) -> int:
+        copies = len(self._jokers_named(state, "ReservedParkingJoker"))
+        if copies <= 0 or state is None:
+            return 0
+
+        played_ids = {id(card) for card in played_cards}
+        mime_retriggers = len(self._jokers_named(state, "MimeJoker"))
+        face_triggers = 0
+        for card in getattr(state, "hand", []):
+            if id(card) in played_ids or self.scorer.is_card_debuffed(card):
+                continue
+            if not card_is_face(card, rules):
+                continue
+            face_triggers += self.scorer._held_card_trigger_count(
+                card,
+                mime_retriggers,
+            )
+        return copies * face_triggers
+
     def _business_card_branches(
         self,
         triggers: int,
@@ -228,6 +278,26 @@ class LiveVisibleCardScoreOutcomeModel(VisibleCardScoreOutcomeModel):
             self.BUSINESS_CARD_PROBABILITY,
             state,
         )
+        return self._binomial_branches(triggers, probability)
+
+    def _reserved_parking_branches(
+        self,
+        triggers: int,
+        state,
+    ) -> tuple[tuple[int, float], ...]:
+        probability = self._listed_probability(
+            self.RESERVED_PARKING_PROBABILITY,
+            state,
+        )
+        return self._binomial_branches(triggers, probability)
+
+    @staticmethod
+    def _binomial_branches(
+        triggers: int,
+        probability: float,
+    ) -> tuple[tuple[int, float], ...]:
+        if triggers <= 0:
+            return ((0, 1.0),)
         branches = []
         for successes in range(triggers + 1):
             branch_probability = (

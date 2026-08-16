@@ -516,6 +516,11 @@ def _normalize_round_joker_public_state(
             "suit": idol_suit,
         }
 
+    mail_card = _table_fields(decoder, current_round.get("mail_card"))
+    mail_rank = _string(mail_card.get("rank"))
+    if mail_rank:
+        result["j_mail"] = {"rank": mail_rank}
+
     return result
 
 
