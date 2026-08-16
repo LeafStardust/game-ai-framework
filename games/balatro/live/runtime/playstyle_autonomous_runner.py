@@ -23,9 +23,9 @@ from games.balatro.live.path_aware_hand_action_engine import (
 from games.balatro.live.hand_playstyle import BuildAwareLiveHandActionPolicy
 from games.balatro.live.planet_policy import LivePlanetPolicy
 from games.balatro.pack_playstyle import PackPlaystyleEvaluator
-from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.playbook import default_balatro_playbooks
 from games.balatro.playbook_joker_policy import PlaybookJokerAcquisitionPolicy
+from games.balatro.playbook_pack_policy import PlaybookBalatroPackPolicy
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
 from games.balatro.shop_playstyle import BuildAwareShopItemValueEstimator
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
@@ -104,7 +104,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
                 joker_transition_planner,
             ),
         )
-        self.pack_policy = BalatroPackPolicy(
+        self.pack_policy = PlaybookBalatroPackPolicy(
             item_estimator=shared_item_estimator,
             playstyle_evaluator=PackPlaystyleEvaluator(
                 profiler=self.playstyle_profiler,
@@ -169,10 +169,14 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
                     "notes": [str(note) for note in result.notes],
                 }
             )
+        playbook = default_balatro_playbooks().for_state(state)
         self._pending_decision_diagnostics = {
             "layer": "D9/D10",
             "candidate_scores": candidates,
-            "active_thresholds": {"pack_skip_bias": float(self.pack_policy.skip_bias)},
+            "active_thresholds": {
+                "pack_choice": playbook.thresholds_for("D9"),
+                "pack_target": playbook.thresholds_for("D10"),
+            },
         }
 
         selected = ranked[0]
