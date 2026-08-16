@@ -107,17 +107,13 @@ def _semantic_phase_probe(
     held_cards,
     poker_hand=PokerHand.HIGH_CARD,
 ):
-    """Use the phase-aware base probe without treating probe inputs as outputs.
+    """Run conditional discovery across scoring phases with semantic outputs.
 
-    The semantic hierarchy previously forced every conditional probe through
-    ``HAND_SCORED``.  The phase-aware base probe is required for held/played-card
-    Jokers, but its per-card probes seed ``played_card`` / ``held_card`` in
-    ``context.data``.  Those are probe inputs, not Joker-produced capabilities, so
-    strip them from the merged result.
-
-    The Duo and similar hand-shape Jokers inspect the actual cards rather than only
-    ``context.poker_hand``.  Give the neutral Pair condition probe a real Pair so
-    generic hand-feature inference observes the same condition production uses.
+    The semantic hierarchy must preserve the higher-level interpretation performed
+    by ``_run_semantic_probe`` (for example ``created_consumables`` becoming
+    ``consumable:generate``) while also observing phase-specific held/played-card
+    Joker behavior. Per-card probes still use the low-level trigger helper because
+    those callbacks require an explicit ``played_card`` / ``held_card`` input.
     """
     probe_cards = cards
     if poker_hand is PokerHand.PAIR and cards == JokerBehaviorAnalyzer._neutral_cards():
@@ -129,30 +125,84 @@ def _semantic_phase_probe(
             BalatroCard("2", "Spades"),
         ]
 
-    result = JokerBehaviorAnalyzer._probe(
-        self,
-        joker,
-        cards=probe_cards,
-        held_cards=held_cards,
-        poker_hand=poker_hand,
+    probes = [
+        self._run_semantic_probe(
+            joker,
+            cards=probe_cards,
+            held_cards=held_cards,
+            poker_hand=poker_hand,
+            trigger="",
+            random_seed=0,
+        ),
+        self._run_semantic_probe(
+            joker,
+            cards=probe_cards,
+            held_cards=held_cards,
+            poker_hand=poker_hand,
+            trigger="HAND_SCORED",
+            random_seed=0,
+        ),
+        self._run_semantic_probe(
+            joker,
+            cards=probe_cards,
+            held_cards=held_cards,
+            poker_hand=poker_hand,
+            trigger="HAND_PLAYED",
+            random_seed=0,
+        ),
+    ]
+    probes.extend(
+        JokerBehaviorAnalyzer._probe_trigger(
+            joker,
+            cards=probe_cards,
+            held_cards=held_cards,
+            poker_hand=poker_hand,
+            trigger="PLAYED_CARD",
+            data={"played_card": card},
+        )
+        for card in probe_cards
     )
+    probes.extend(
+        JokerBehaviorAnalyzer._probe_trigger(
+            joker,
+            cards=probe_cards,
+            held_cards=held_cards,
+            poker_hand=poker_hand,
+            trigger="HELD_CARD",
+            data={"held_card": card},
+        )
+        for card in held_cards
+    )
+
     ignored_features = {"signal:played_card", "signal:held_card"}
     ignored_evidence = {"context:played_card", "context:held_card"}
-    return type(result)(
-        magnitudes=tuple(
-            (feature, amount)
-            for feature, amount in result.magnitudes
-            if feature not in ignored_features
-        ),
-        evidence=tuple(
+    magnitudes: dict[str, float] = {}
+    penalties: dict[str, float] = {}
+    evidence: set[str] = set()
+    amplifies: set[str] = set()
+
+    for result in probes:
+        amplifies.update(result.amplifies)
+        evidence.update(
             item for item in result.evidence if item not in ignored_evidence
-        ),
-        amplifies=result.amplifies,
+        )
+        for feature, amount in result.magnitudes:
+            if feature in ignored_features:
+                continue
+            magnitudes[feature] = max(magnitudes.get(feature, 0.0), amount)
+        for feature, amount in getattr(result, "penalties", ()):
+            penalties[feature] = max(penalties.get(feature, 0.0), amount)
+
+    return type(probes[0])(
+        magnitudes=tuple(sorted(magnitudes.items())),
+        penalties=tuple(sorted(penalties.items())),
+        evidence=tuple(sorted(evidence)),
+        amplifies=frozenset(amplifies),
     )
 
 
-# Reuse the phase-aware conditional probe through the semantic/lifecycle/scenario
-# hierarchy while preserving clean semantic output.
+# Reuse the phase-aware semantic probe through the semantic/lifecycle/scenario
+# hierarchy without downgrading semantic context outputs to raw signal features.
 SemanticJokerBehaviorAnalyzer._probe = _semantic_phase_probe
 
 __all__ = [
