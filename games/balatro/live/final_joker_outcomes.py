@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from games.balatro.boss_trigger import (
+    matador_boss_hand_triggered,
+    matador_state_resolvable,
+)
 from games.balatro.hand import PokerHand
 from games.balatro.live.generated_consumable_outcomes import (
     LiveGeneratedConsumableScoreOutcomeModel,
@@ -32,21 +36,26 @@ class LiveFinalJokerScoreProjector(_GeneratedConsumableOutcomeJokerProjector):
 
     SUPPORTED_CLASS_NAMES = (
         _GeneratedConsumableOutcomeJokerProjector.SUPPORTED_CLASS_NAMES
-        | frozenset({"ToDoListJoker"})
+        | frozenset({"MatadorJoker", "ToDoListJoker"})
     )
 
     @classmethod
     def supports_in_state(cls, joker, state) -> bool:
-        if type(joker).__name__ == "ToDoListJoker":
+        class_name = type(joker).__name__
+        if class_name == "ToDoListJoker":
             # The target is a public per-card ability field. Absence means live
             # observation could not reconstruct the current request, so fail closed.
             if getattr(joker, "target_hand", None) is None:
                 return False
+        if class_name == "MatadorJoker" and not matador_state_resolvable(state):
+            # The Ox's tie-broken most-played target and a corrupted/multi-hand
+            # Mouth history cannot be reconstructed exactly from current state.
+            return False
         return super().supports_in_state(joker, state)
 
 
 class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
-    """Complete D1 outcome stack, including secret hands and To Do List economy."""
+    """Complete D1 outcome stack, including the final ordered economy Jokers."""
 
     def __init__(
         self,
@@ -65,6 +74,35 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
         super().__init__(
             scorer=live_scorer,
             joker_projector=LiveFinalJokerScoreProjector(live_scorer),
+        )
+
+    def project_transition(
+        self,
+        hand,
+        state,
+        cards,
+        *,
+        include_card_chips: bool = True,
+    ):
+        # The Ox resolves before independent Jokers. Apply its public deterministic
+        # money reset before scoring so Joker order remains exact: Bull/Bootstraps
+        # before Matador see $0, while those after Matador see the earned $8.
+        projected_input = state
+        result = matador_boss_hand_triggered(state, hand, cards)
+        if (
+            state is not None
+            and result.resolvable
+            and result.triggered
+            and str(getattr(state, "boss_name", "") or "") == "The Ox"
+        ):
+            projected_input = state.copy()
+            projected_input.money = 0
+
+        return super().project_transition(
+            hand,
+            projected_input,
+            cards,
+            include_card_chips=include_card_chips,
         )
 
     def _project_stochastic_branch(
