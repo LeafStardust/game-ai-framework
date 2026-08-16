@@ -1,11 +1,6 @@
-from types import SimpleNamespace
-
 from games.balatro.actions import SELECT_PACK_CARD, SKIP_BOOSTER, BalatroAction
 from games.balatro.card import BalatroCard
-from games.balatro.live.external.live_memory_pack_policy_validation import (
-    build_live_d9_view,
-)
-from games.balatro.live.pack import LivePackChoice
+from games.balatro.live.pack import LivePackActionGenerator, LivePackChoice
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.spectrals import SPECTRAL_CARDS
 from games.balatro.state import BalatroState
@@ -183,7 +178,7 @@ def test_d9_aura_fails_closed_when_every_public_target_already_has_edition():
     assert any("Aura unavailable" in note for note in aura.notes)
 
 
-def test_d9_live_view_preserves_policy_order_and_explicit_skip_candidate():
+def test_d9_current_pack_generator_preserves_policy_order_and_skip_candidate():
     state = BalatroState()
     state.phase = "STANDARD_PACK"
     choice = _choice(
@@ -192,16 +187,12 @@ def test_d9_live_view_preserves_policy_order_and_explicit_skip_candidate():
         value={"rank": "K", "suit": "Hearts"},
         modifier={"enhancement": "m_steel"},
     )
-    snapshot = SimpleNamespace(
-        phase="STANDARD_PACK",
-        state_complete=True,
-        sequence=7,
-    )
 
-    view = build_live_d9_view(snapshot, state, [choice])
+    actions = LivePackActionGenerator().generate_actions(state, [choice])
+    ranked = BalatroPackPolicy().rank_actions(state, actions)
 
-    assert view.recommendation.score.action.name == SELECT_PACK_CARD
-    assert view.recommendation.area_index == 0
-    assert any(candidate.kind == "SKIP" for candidate in view.candidates)
-    skip = next(candidate for candidate in view.candidates if candidate.kind == "SKIP")
-    assert skip.score.total == BalatroPackPolicy().skip_bias
+    assert ranked[0].action.name == SELECT_PACK_CARD
+    assert ranked[0].action.target is choice
+    assert any(result.action.name == SKIP_BOOSTER for result in ranked)
+    skip = next(result for result in ranked if result.action.name == SKIP_BOOSTER)
+    assert skip.total == BalatroPackPolicy().skip_bias
