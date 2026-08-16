@@ -6,7 +6,11 @@ from itertools import product
 from math import comb
 
 from games.balatro.hand import PokerHand
-from games.balatro.hand_rules import card_is_face, hand_rules_for_state
+from games.balatro.hand_rules import (
+    card_is_face,
+    card_matches_suit,
+    hand_rules_for_state,
+)
 from games.balatro.live.joker_projection import LiveJokerScoreProjector
 from games.balatro.scoring import BalatroScorer
 
@@ -88,17 +92,30 @@ class _LuckyBranch:
 
 
 @dataclass(frozen=True)
+class _BloodstoneBranch:
+    results: tuple[bool, ...]
+    probability: float
+
+
+@dataclass(frozen=True)
 class _GlassBranch:
     face_breaks: int
     probability: float
 
 
-class _ProjectedLuckyScorer(BalatroScorer):
-    """Replay one explicit Lucky-mult branch without consuming hidden RNG."""
+class _ProjectedStochasticScorer(BalatroScorer):
+    """Replay explicit scored-card RNG branches without consuming hidden RNG."""
 
-    def __init__(self, mult_results: tuple[bool, ...]):
-        self._lucky_mult_results = tuple(bool(value) for value in mult_results)
+    def __init__(
+        self,
+        lucky_mult_results: tuple[bool, ...] = (),
+        bloodstone_results: tuple[bool, ...] = (),
+    ):
+        self._lucky_mult_results = tuple(bool(value) for value in lucky_mult_results)
         self._lucky_mult_index = 0
+        self._bloodstone_result_iter = iter(
+            tuple(bool(value) for value in bloodstone_results)
+        )
 
     def _apply_single_card_modifier(
         self,
@@ -135,6 +152,31 @@ class _ProjectedLuckyScorer(BalatroScorer):
             score.x_mult *= 1.5
             self._fold_x_mult(score)
 
+    def _apply_scoring_card_phase(
+        self,
+        score,
+        hand,
+        state,
+        played_cards,
+        scoring_cards,
+        *,
+        extra_retriggers: int = 0,
+        resolve_random_effects: bool = True,
+        context_data: dict | None = None,
+    ) -> None:
+        branch_data = dict(context_data or {})
+        branch_data["bloodstone_results"] = self._bloodstone_result_iter
+        super()._apply_scoring_card_phase(
+            score,
+            hand,
+            state,
+            played_cards,
+            scoring_cards,
+            extra_retriggers=extra_retriggers,
+            resolve_random_effects=resolve_random_effects,
+            context_data=branch_data,
+        )
+
 
 class VisibleCardScoreOutcomeModel:
     """Project public visible scoring without consuming Balatro's hidden RNG."""
@@ -144,6 +186,7 @@ class VisibleCardScoreOutcomeModel:
     LUCKY_MULT_BONUS = 20
     LUCKY_MONEY_REWARD = 20
     LUCKY_CAT_X_MULT_GAIN = 0.25
+    BLOODSTONE_PROBABILITY = 0.5
     GLASS_BREAK_PROBABILITY = 0.25
     CANIO_X_MULT_GAIN = 1.0
 
@@ -197,6 +240,13 @@ class VisibleCardScoreOutcomeModel:
             rules=rules,
             extra_retriggers=extra_retriggers,
         )
+        bloodstone_triggers = self._bloodstone_scoring_triggers(
+            hand,
+            copied_cards,
+            projected_state,
+            rules=rules,
+            extra_retriggers=extra_retriggers,
+        )
         canio_face_glass = self._canio_face_glass_count(
             hand,
             copied_cards,
@@ -204,7 +254,11 @@ class VisibleCardScoreOutcomeModel:
             rules=rules,
         )
 
-        if lucky_triggers == 0 and canio_face_glass == 0:
+        if (
+            lucky_triggers == 0
+            and bloodstone_triggers == 0
+            and canio_face_glass == 0
+        ):
             distribution = ScoreOutcomeDistribution(
                 outcomes=(
                     ScoreOutcome(
@@ -227,45 +281,51 @@ class VisibleCardScoreOutcomeModel:
             lucky_triggers,
             projected_state,
         )
+        bloodstone_branches = self._bloodstone_branches(bloodstone_triggers)
         glass_branches = self._glass_branches(canio_face_glass)
         grouped: dict[tuple, list] = {}
 
         for lucky_branch in lucky_branches:
-            if lucky_triggers:
-                branch_projection = self._project_lucky_branch(
-                    hand,
-                    state,
-                    cards,
-                    include_card_chips=include_card_chips,
-                    branch=lucky_branch,
-                )
-                score = branch_projection.score.total
-                score_state = branch_projection.state_after_scoring
-                branch_probability = lucky_branch.probability
-            else:
-                score = base.total
-                score_state = projected_state
-                branch_probability = 1.0
-
-            for glass_branch in glass_branches:
-                branch_state = self._glass_branch_state(
-                    score_state,
-                    glass_branch,
-                )
-                probability = branch_probability * glass_branch.probability
-                if joint_lucky_state:
-                    key = (
-                        score,
-                        lucky_branch.money_successes,
-                        lucky_branch.successful_triggers,
-                        glass_branch.face_breaks,
+            for bloodstone_branch in bloodstone_branches:
+                if lucky_triggers or bloodstone_triggers:
+                    branch_projection = self._project_stochastic_branch(
+                        hand,
+                        state,
+                        cards,
+                        include_card_chips=include_card_chips,
+                        lucky_branch=lucky_branch,
+                        bloodstone_branch=bloodstone_branch,
+                    )
+                    score = branch_projection.score.total
+                    score_state = branch_projection.state_after_scoring
+                    branch_probability = (
+                        lucky_branch.probability
+                        * bloodstone_branch.probability
                     )
                 else:
-                    key = (score, glass_branch.face_breaks)
+                    score = base.total
+                    score_state = projected_state
+                    branch_probability = 1.0
 
-                if key not in grouped:
-                    grouped[key] = [0.0, branch_state]
-                grouped[key][0] += probability
+                for glass_branch in glass_branches:
+                    branch_state = self._glass_branch_state(
+                        score_state,
+                        glass_branch,
+                    )
+                    probability = branch_probability * glass_branch.probability
+                    if joint_lucky_state:
+                        key = (
+                            score,
+                            lucky_branch.money_successes,
+                            lucky_branch.successful_triggers,
+                            glass_branch.face_breaks,
+                        )
+                    else:
+                        key = (score, glass_branch.face_breaks)
+
+                    if key not in grouped:
+                        grouped[key] = [0.0, branch_state]
+                    grouped[key][0] += probability
 
         outcomes = tuple(
             ScoreOutcome(
@@ -283,6 +343,8 @@ class VisibleCardScoreOutcomeModel:
                 random_sources.append(f"Lucky effects x{lucky_triggers}")
             else:
                 random_sources.append(f"Lucky mult x{lucky_triggers}")
+        if bloodstone_triggers:
+            random_sources.append(f"Bloodstone x{bloodstone_triggers}")
         if canio_face_glass:
             random_sources.append(f"Glass break x{canio_face_glass}")
 
@@ -315,6 +377,31 @@ class VisibleCardScoreOutcomeModel:
                 extra_retriggers,
             )
         return triggers
+
+    def _bloodstone_scoring_triggers(
+        self,
+        hand: PokerHand,
+        cards,
+        state,
+        *,
+        rules: dict | None = None,
+        extra_retriggers: int = 0,
+    ) -> int:
+        bloodstone_count = len(self._jokers_named(state, "BloodstoneJoker"))
+        if bloodstone_count <= 0:
+            return 0
+
+        heart_triggers = 0
+        for card in self.scorer.scoring_cards(hand, cards, rules=rules):
+            if self.scorer.is_card_debuffed(card):
+                continue
+            if not card_matches_suit(card, "Hearts", rules):
+                continue
+            heart_triggers += self.scorer._played_card_trigger_count(
+                card,
+                extra_retriggers,
+            )
+        return bloodstone_count * heart_triggers
 
     def _canio_face_glass_count(
         self,
@@ -397,17 +484,40 @@ class VisibleCardScoreOutcomeModel:
                     )
         return tuple(branches)
 
-    def _project_lucky_branch(
+    def _bloodstone_branches(
+        self,
+        triggers: int,
+    ) -> tuple[_BloodstoneBranch, ...]:
+        if triggers <= 0:
+            return (_BloodstoneBranch((), 1.0),)
+
+        p = self.BLOODSTONE_PROBABILITY
+        return tuple(
+            _BloodstoneBranch(
+                results=tuple(results),
+                probability=(
+                    (p ** sum(results))
+                    * ((1.0 - p) ** (triggers - sum(results)))
+                ),
+            )
+            for results in product((False, True), repeat=triggers)
+        )
+
+    def _project_stochastic_branch(
         self,
         hand,
         state,
         cards,
         *,
         include_card_chips: bool,
-        branch: _LuckyBranch,
+        lucky_branch: _LuckyBranch,
+        bloodstone_branch: _BloodstoneBranch,
     ):
-        branch_state = self._lucky_branch_input_state(state, branch)
-        branch_scorer = _ProjectedLuckyScorer(branch.mult_results)
+        branch_state = self._lucky_branch_input_state(state, lucky_branch)
+        branch_scorer = _ProjectedStochasticScorer(
+            lucky_mult_results=lucky_branch.mult_results,
+            bloodstone_results=bloodstone_branch.results,
+        )
         branch_projector = LiveJokerScoreProjector(branch_scorer)
         return branch_projector.score(
             hand,

@@ -59,6 +59,7 @@ class BalatroScorer:
         {
             "AncientJoker",
             "ArrowheadJoker",
+            "BloodstoneJoker",
             "EvenStevenJoker",
             "FibonacciJoker",
             "GluttonousJoker",
@@ -300,6 +301,7 @@ class BalatroScorer:
                         "scoring_cards": [card],
                         "current_scoring_card": card,
                         "first_scoring_face_card": first_scoring_face_card,
+                        "resolve_random_effects": resolve_random_effects,
                     }
                 )
                 context = JokerContext(

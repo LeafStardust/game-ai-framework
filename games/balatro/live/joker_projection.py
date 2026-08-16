@@ -38,6 +38,7 @@ class LiveJokerScoreProjector:
             "BaronJoker",
             "BaseballCardJoker",
             "BlackboardJoker",
+            "BloodstoneJoker",
             "BlueJoker",
             "BootstrapsJoker",
             "BullJoker",
