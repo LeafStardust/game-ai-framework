@@ -351,6 +351,24 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         if blind_type == BlindType.BOSS:
             state.boss_name = blind.get("name")
 
+            if "hands" in blind:
+                values = blind.get("hands") or []
+                if isinstance(values, (list, tuple, set)):
+                    state.boss_blind_hands = {
+                        self.HAND_NAMES.get(str(name), str(name))
+                        for name in values
+                    }
+                state.boss_blind_state_observed = True
+
+            if "only_hand" in blind:
+                only_hand = blind.get("only_hand")
+                state.boss_blind_only_hand = (
+                    self.HAND_NAMES.get(str(only_hand), str(only_hand))
+                    if only_hand
+                    else None
+                )
+                state.boss_blind_state_observed = True
+
     @staticmethod
     def _active_blind(blinds) -> dict | None:
         if not isinstance(blinds, dict):
