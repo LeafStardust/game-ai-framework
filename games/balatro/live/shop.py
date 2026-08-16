@@ -24,6 +24,7 @@ class LiveShopItem:
     area_index: int | None = None
     center: str | None = None
     edition: str | None = None
+    discovered: bool | None = None
 
 
 class LiveShopItemFactory:
@@ -35,6 +36,7 @@ class LiveShopItemFactory:
 
         item_kind = kind or data.get("ability_set") or data.get("set") or "ITEM"
         area_index = data.get("area_index")
+        discovered = data.get("discovered")
 
         return LiveShopItem(
             kind=str(item_kind).upper(),
@@ -44,6 +46,7 @@ class LiveShopItemFactory:
             area_index=(int(area_index) if area_index is not None else None),
             center=data.get("center") or data.get("key"),
             edition=data.get("edition"),
+            discovered=discovered if isinstance(discovered, bool) else None,
         )
 
     @staticmethod
