@@ -131,6 +131,8 @@ class PublicDrawOutcomeModel:
             enhancement=signature.enhancement,
             edition=signature.edition,
             seal=signature.seal,
+            debuffed=signature.debuffed,
+            permanent_bonus=signature.permanent_bonus,
         )
 
     def _exact(
