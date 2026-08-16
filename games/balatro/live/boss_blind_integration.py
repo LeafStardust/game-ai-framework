@@ -32,7 +32,23 @@ _BOSS_RULES = {
 }
 
 
+def boss_blind_disabled_by_owned_jokers(state) -> bool:
+    """Return whether an owned passive Joker disables the current boss blind.
+
+    Chicot disables boss-blind effects while it is owned. Luchador deliberately
+    does not belong here: its disable occurs only after the separate sell action,
+    so merely holding it must not erase boss constraints during D1 planning.
+    """
+    return any(
+        type(joker).__name__ == "ChicotJoker"
+        for joker in getattr(state, "jokers", [])
+    )
+
+
 def boss_blind_planning_rule(state) -> BossBlindPlanningRule | None:
+    if boss_blind_disabled_by_owned_jokers(state):
+        return None
+
     boss_name = getattr(state, "boss_name", None)
     if boss_name is None:
         return None
