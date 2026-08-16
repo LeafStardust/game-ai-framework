@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from games.balatro.joker_edition import joker_has_negative_edition
 from games.balatro.resource_value import RunResourceValuator
 
 
@@ -69,7 +70,7 @@ class ShopUtilityScale:
         )
         replacement = executable.source == "JOKER_REPLACE_SELL"
         slot_cost = 0.0
-        if not replacement:
+        if not replacement and not joker_has_negative_edition(executable.candidate):
             slot_cost = self.resource_valuator.slot_opportunity_cost(
                 occupied=len(state.jokers),
                 capacity=int(state.joker_slots),
