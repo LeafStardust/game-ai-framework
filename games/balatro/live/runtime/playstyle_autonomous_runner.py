@@ -4,7 +4,10 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Any
 
-from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
+from games.balatro.build.joker_strategy import (
+    JokerBuildTransitionPlanner,
+    JokerBuildValueEvaluator,
+)
 from games.balatro.build.profile import (
     BalatroBuildProfiler,
     BalatroPlaystyleIntentTracker,
@@ -21,6 +24,7 @@ from games.balatro.live.hand_playstyle import BuildAwareLiveHandActionPolicy
 from games.balatro.pack_playstyle import PackPlaystyleEvaluator
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.playbook import default_balatro_playbooks
+from games.balatro.playbook_joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
 from games.balatro.shop_policy import DefaultShopItemValueEstimator
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
@@ -69,6 +73,9 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             profiler=self.playstyle_profiler,
             intent_tracker=self.playstyle_intent_tracker,
         )
+        joker_transition_planner = JokerBuildTransitionPlanner(
+            evaluator=joker_build_value,
+        )
         shared_item_estimator = DefaultShopItemValueEstimator(
             joker_build_value=joker_build_value,
         )
@@ -81,6 +88,9 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
         self.shop_arbiter = BuildAwareShopArbiter(
             shop_policy=self.shop_policy,
             reroll_policy=self.shop_reroll_policy,
+            joker_policy=PlaybookJokerAcquisitionPolicy(
+                joker_transition_planner,
+            ),
         )
         self.pack_policy = BalatroPackPolicy(
             item_estimator=shared_item_estimator,
