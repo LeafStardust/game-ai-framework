@@ -16,6 +16,87 @@
 | v1.1–v1.7 Red Deck stakes | Not started | Begins after v1.0 |
 | v2+ Additional decks | Not started | Begins after Red Deck progression |
 
+## v0.1.0 — Foundation — COMPLETE
+
+- [x] Repository setup
+- [x] Core abstractions
+- [x] Game runner
+- [x] Dummy environment
+- [x] Type annotations
+
+## v0.2.0 — Framework Infrastructure — COMPLETE
+
+- [x] Configuration system
+- [x] Logging system
+- [x] Metrics system
+- [x] Event system
+
+## v0.3.0 — Decision Systems — COMPLETE
+
+- [x] Agent architecture
+- [x] Decision engine interface
+- [x] Decision pipeline
+- [x] Policy interface
+- [x] Greedy action policy
+- [x] Balatro agent integration
+
+## v0.4.0 — Evaluation Framework — COMPLETE
+
+- [x] Generic evaluator abstraction
+- [x] Heuristic evaluation system
+- [x] Balatro evaluator integration
+- [x] Play cards value heuristic
+- [x] Discard cards value heuristic
+- [x] Basic risk heuristic
+
+## v0.5.0 — Decision Strategy Expansion — COMPLETE
+
+- [x] Softmax action policy
+- [x] Configurable policy selection
+- [x] Policy factory
+- [x] Agent builder
+- [x] Reproducible random seed handling
+
+## v0.6.0 — Experiment Infrastructure — COMPLETE
+
+- [x] Agent evaluation runner
+- [x] Multi-episode execution
+- [x] Policy comparison framework
+- [x] Experiment result tracking
+- [x] Extended metrics collection
+
+## v0.7.0 — Balatro Intelligence Layer — COMPLETE
+
+- [x] Balatro card representation
+- [x] Poker hand recognition
+- [x] Balatro scoring calculation
+- [x] Play cards evaluation
+- [x] Discard cards evaluation
+- [x] Blind-aware decision evaluation
+- [x] Balatro terminology alignment
+- [x] Joker framework
+- [x] Consumable framework
+- [x] Planet card effects
+- [x] Tarot card effects
+- [x] Spectral card effects
+- [x] Card enhancements and editions
+- [x] Seals and card modifiers
+
+## v0.8.0 — Balatro Search and Planning Foundation — COMPLETE
+
+- [x] Card selection search
+- [x] Future state prediction
+- [x] Hand/discard probability analysis
+- [x] Expected value estimation
+- [x] Goal-directed path planning
+- [x] Blind completion path synthesis
+- [x] Tactical path commitment
+- [x] Stake system
+- [x] Deck-specific agent architecture foundation
+- [x] Red Deck starting-state support
+
+---
+
 ## v0.9.0 — Autonomous Real-Game Integration — COMPLETE
 
 The v0.9 milestone is closed. The production agent can observe, decide, execute, verify, log, restart and stop through real Balatro without manual gameplay input after activation.
