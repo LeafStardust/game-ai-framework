@@ -84,6 +84,7 @@ class LiveJokerScoreProjector:
             "LustyJoker",
             "MadJoker",
             "MadnessJoker",
+            "MerryAndyJoker",
             "MimeJoker",
             "MysticSummitJoker",
             "ObeliskJoker",
