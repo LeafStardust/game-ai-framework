@@ -99,7 +99,7 @@ class _BloodstoneBranch:
 
 @dataclass(frozen=True)
 class _GlassBranch:
-    face_breaks: int
+    broken_indices: tuple[int, ...]
     probability: float
 
 
@@ -247,17 +247,16 @@ class VisibleCardScoreOutcomeModel:
             rules=rules,
             extra_retriggers=extra_retriggers,
         )
-        canio_face_glass = self._canio_face_glass_count(
+        glass_cards = self._glass_scoring_cards(
             hand,
             copied_cards,
-            projected_state,
             rules=rules,
         )
 
         if (
             lucky_triggers == 0
             and bloodstone_triggers == 0
-            and canio_face_glass == 0
+            and not glass_cards
         ):
             distribution = ScoreOutcomeDistribution(
                 outcomes=(
@@ -282,7 +281,7 @@ class VisibleCardScoreOutcomeModel:
             projected_state,
         )
         bloodstone_branches = self._bloodstone_branches(bloodstone_triggers)
-        glass_branches = self._glass_branches(canio_face_glass)
+        glass_branches = self._glass_branches(len(glass_cards))
         grouped: dict[tuple, list] = {}
 
         for lucky_branch in lucky_branches:
@@ -311,6 +310,8 @@ class VisibleCardScoreOutcomeModel:
                     branch_state = self._glass_branch_state(
                         score_state,
                         glass_branch,
+                        glass_cards,
+                        rules=rules,
                     )
                     probability = branch_probability * glass_branch.probability
                     if joint_lucky_state:
@@ -318,10 +319,10 @@ class VisibleCardScoreOutcomeModel:
                             score,
                             lucky_branch.money_successes,
                             lucky_branch.successful_triggers,
-                            glass_branch.face_breaks,
+                            glass_branch.broken_indices,
                         )
                     else:
-                        key = (score, glass_branch.face_breaks)
+                        key = (score, glass_branch.broken_indices)
 
                     if key not in grouped:
                         grouped[key] = [0.0, branch_state]
@@ -345,8 +346,8 @@ class VisibleCardScoreOutcomeModel:
                 random_sources.append(f"Lucky mult x{lucky_triggers}")
         if bloodstone_triggers:
             random_sources.append(f"Bloodstone x{bloodstone_triggers}")
-        if canio_face_glass:
-            random_sources.append(f"Glass break x{canio_face_glass}")
+        if glass_cards:
+            random_sources.append(f"Glass break x{len(glass_cards)}")
 
         distribution = ScoreOutcomeDistribution(
             outcomes=outcomes,
@@ -403,22 +404,18 @@ class VisibleCardScoreOutcomeModel:
             )
         return bloodstone_count * heart_triggers
 
-    def _canio_face_glass_count(
+    def _glass_scoring_cards(
         self,
         hand: PokerHand,
         cards,
-        state,
         *,
         rules: dict | None = None,
-    ) -> int:
-        if not self._jokers_named(state, "CanioJoker"):
-            return 0
-        return sum(
-            1
+    ) -> tuple:
+        return tuple(
+            card
             for card in self.scorer.scoring_cards(hand, cards, rules=rules)
             if not self.scorer.is_card_debuffed(card)
             and getattr(card, "enhancement", None) == "Glass"
-            and card_is_face(card, rules)
         )
 
     def _lucky_branches(self, triggers: int, state) -> tuple[_LuckyBranch, ...]:
@@ -548,44 +545,106 @@ class VisibleCardScoreOutcomeModel:
 
         return branch_state
 
-    def _glass_branches(self, face_glass_cards: int) -> tuple[_GlassBranch, ...]:
-        if face_glass_cards <= 0:
-            return (_GlassBranch(0, 1.0),)
+    def _glass_branches(self, glass_cards: int) -> tuple[_GlassBranch, ...]:
+        if glass_cards <= 0:
+            return (_GlassBranch((), 1.0),)
+
         p = self.GLASS_BREAK_PROBABILITY
-        return tuple(
-            _GlassBranch(
-                face_breaks=breaks,
-                probability=(
-                    comb(face_glass_cards, breaks)
-                    * (p ** breaks)
-                    * ((1.0 - p) ** (face_glass_cards - breaks))
-                ),
+        branches = []
+        for results in product((False, True), repeat=glass_cards):
+            broken_indices = tuple(
+                index
+                for index, broken in enumerate(results)
+                if broken
             )
-            for breaks in range(face_glass_cards + 1)
-        )
+            breaks = len(broken_indices)
+            branches.append(
+                _GlassBranch(
+                    broken_indices=broken_indices,
+                    probability=(
+                        (p ** breaks)
+                        * ((1.0 - p) ** (glass_cards - breaks))
+                    ),
+                )
+            )
+        return tuple(branches)
 
     def _glass_branch_state(
         self,
         state,
         glass_branch: _GlassBranch,
+        glass_cards,
+        *,
+        rules: dict | None = None,
     ):
         if state is None:
             return None
 
         branch_state = deepcopy(state)
-        if glass_branch.face_breaks:
+        broken_cards = [
+            glass_cards[index]
+            for index in glass_branch.broken_indices
+        ]
+        if not broken_cards:
+            return branch_state
+
+        face_breaks = sum(
+            card_is_face(card, rules)
+            for card in broken_cards
+        )
+        if face_breaks:
             for canio in self._jokers_named(branch_state, "CanioJoker"):
                 canio.x_mult = (
                     float(getattr(canio, "x_mult", 1.0) or 1.0)
-                    + self.CANIO_X_MULT_GAIN * glass_branch.face_breaks
-                )
-            if hasattr(branch_state, "glass_cards_destroyed"):
-                branch_state.glass_cards_destroyed = (
-                    int(getattr(branch_state, "glass_cards_destroyed", 0) or 0)
-                    + glass_branch.face_breaks
+                    + self.CANIO_X_MULT_GAIN * face_breaks
                 )
 
+        if hasattr(branch_state, "glass_cards_destroyed"):
+            branch_state.glass_cards_destroyed = (
+                int(getattr(branch_state, "glass_cards_destroyed", 0) or 0)
+                + len(broken_cards)
+            )
+
+        self._remove_owned_cards(branch_state, broken_cards)
         return branch_state
+
+    @classmethod
+    def _remove_owned_cards(cls, state, broken_cards) -> None:
+        owned_deck = getattr(state, "owned_deck", None)
+        if owned_deck is None:
+            return
+
+        for broken in broken_cards:
+            index = cls._matching_owned_card_index(owned_deck, broken)
+            if index is not None:
+                owned_deck.pop(index)
+
+    @staticmethod
+    def _matching_owned_card_index(owned_deck, broken) -> int | None:
+        broken_live_id = getattr(broken, "live_id", None)
+        if broken_live_id is not None:
+            for index, candidate in enumerate(owned_deck):
+                if getattr(candidate, "live_id", None) == broken_live_id:
+                    return index
+
+        signature = (
+            str(getattr(broken, "rank", "")),
+            str(getattr(broken, "suit", "")),
+            getattr(broken, "enhancement", None),
+            getattr(broken, "edition", None),
+            getattr(broken, "seal", None),
+        )
+        for index, candidate in enumerate(owned_deck):
+            candidate_signature = (
+                str(getattr(candidate, "rank", "")),
+                str(getattr(candidate, "suit", "")),
+                getattr(candidate, "enhancement", None),
+                getattr(candidate, "edition", None),
+                getattr(candidate, "seal", None),
+            )
+            if candidate_signature == signature:
+                return index
+        return None
 
     def _requires_joint_lucky_state(self, state) -> bool:
         return bool(
