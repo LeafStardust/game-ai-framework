@@ -117,6 +117,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                 "decision_thresholds": {
                     "hand_action": {
                         "clear_path_probability_floor": 0.75,
+                        "safe_clear_probability_tolerance": 0.01,
                         "pace_ratio_floor": 1.0,
                         "setup_discard_consensus_agreement": 3,
                         "low_discard_reserve": 1,
