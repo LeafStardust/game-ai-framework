@@ -1,5 +1,3 @@
-import random
-
 from games.balatro.joker import Joker, JokerContext
 
 
@@ -9,32 +7,20 @@ class SixthSenseJoker(Joker):
         if context.trigger != "HAND_SCORED":
             return context
 
-        if len(context.cards) != 1:
+        cards = list(context.cards or [])
+        if len(cards) != 1 or str(getattr(cards[0], "rank", "")) != "6":
             return context
 
-        if context.cards[0].rank != "6":
+        counts = getattr(context.state, "round_hand_play_counts", None)
+        if isinstance(counts, dict) and any(
+            int(value or 0) > 0 for value in counts.values()
+        ):
+            return context
+        if context.data.get("first_hand") is False:
             return context
 
-        if context.data.get("sixth_sense_triggered"):
-            return context
-
-        context.data["sixth_sense_triggered"] = True
-        context.data.setdefault(
-            "destroyed_cards",
-            []
-        ).append(context.cards[0])
-
-        context.data.setdefault(
-            "created_consumables",
-            []
-        ).append(
-            random.choice([
-                "Familiar",
-                "Grim",
-                "Incantation",
-                "Talisman",
-                "Aura",
-            ])
+        context.data.setdefault("destroyed_cards", []).append(cards[0])
+        context.data["create_spectral_count"] = (
+            int(context.data.get("create_spectral_count", 0) or 0) + 1
         )
-
         return context
