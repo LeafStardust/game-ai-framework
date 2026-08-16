@@ -26,10 +26,12 @@ from games.balatro.pack_playstyle import PackPlaystyleEvaluator
 from games.balatro.playbook import default_balatro_playbooks
 from games.balatro.playbook_joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.playbook_pack_policy import PlaybookBalatroPackPolicy
-from games.balatro.shop_arbiter import BuildAwareShopArbiter
+from games.balatro.playbook_shop_policy import (
+    PlaybookBuildAwareShopArbiter,
+    PlaybookVoucherAwareBalatroShopPolicy,
+)
 from games.balatro.shop_playstyle import BuildAwareShopItemValueEstimator
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
-from games.balatro.shop_voucher_policy import VoucherAwareBalatroShopPolicy
 
 from .live_memory_autonomous_step_injected import (
     AutonomousStepDecision,
@@ -91,13 +93,13 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
         shared_item_estimator = BuildAwareShopItemValueEstimator(
             joker_build_value=joker_build_value,
         )
-        self.shop_policy = VoucherAwareBalatroShopPolicy(
+        self.shop_policy = PlaybookVoucherAwareBalatroShopPolicy(
             item_value_estimator=shared_item_estimator,
         )
         self.shop_reroll_policy = BuildAwareShopRerollPolicy(
             shop_policy=self.shop_policy,
         )
-        self.shop_arbiter = BuildAwareShopArbiter(
+        self.shop_arbiter = PlaybookBuildAwareShopArbiter(
             shop_policy=self.shop_policy,
             reroll_policy=self.shop_reroll_policy,
             joker_policy=PlaybookJokerAcquisitionPolicy(
