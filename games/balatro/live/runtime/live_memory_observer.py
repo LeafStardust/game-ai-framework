@@ -530,6 +530,7 @@ def _normalize_hand_levels(
         result[name] = {
             "level": _integer(hand.get("level"), 1),
             "played": _integer(hand.get("played"), 0),
+            "played_this_round": _integer(hand.get("played_this_round"), 0),
         }
     return result
 

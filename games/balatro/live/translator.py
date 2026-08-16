@@ -312,6 +312,9 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             values = data or {}
             state.hand_levels[hand_type] = int(values.get("level", 1))
             state.hand_play_counts[hand_type] = int(values.get("played", 0))
+            state.round_hand_play_counts[hand_type] = int(
+                values.get("played_this_round", 0)
+            )
 
     def _translate_blind(
         self,

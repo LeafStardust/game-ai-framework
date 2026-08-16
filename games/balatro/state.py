@@ -54,6 +54,12 @@ class BalatroState(GameState):
             hand: 0
             for hand in self.hand_levels
         }
+        # Public current-round history for Card Sharp and D1 child projections.
+        # Live observation derives this from G.GAME.hands[*].played_this_round.
+        self.round_hand_play_counts = {
+            hand: 0
+            for hand in self.hand_levels
+        }
         self.vouchers: list = []
         self.phase: str = "ROUND_START"
         self.glass_cards_destroyed: int = 0
@@ -141,6 +147,7 @@ class BalatroState(GameState):
         new_state.consumable_slots = self.consumable_slots
         new_state.hand_levels = self.hand_levels.copy()
         new_state.hand_play_counts = self.hand_play_counts.copy()
+        new_state.round_hand_play_counts = self.round_hand_play_counts.copy()
         new_state.vouchers = self.vouchers.copy()
         new_state.phase = self.phase
         new_state.glass_cards_destroyed = self.glass_cards_destroyed

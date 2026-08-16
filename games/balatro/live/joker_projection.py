@@ -40,6 +40,7 @@ class LiveJokerScoreProjector:
             "BullJoker",
             "CampfireJoker",
             "CanioJoker",
+            "CardSharpJoker",
             "CastleJoker",
             "CavendishJoker",
             "CleverJoker",
@@ -396,15 +397,16 @@ class LiveJokerScoreProjector:
 
     @staticmethod
     def _increment_hand_play_count(state, hand) -> None:
-        counts = getattr(state, "hand_play_counts", None)
-        if not isinstance(counts, dict):
-            return
+        for attribute in ("hand_play_counts", "round_hand_play_counts"):
+            counts = getattr(state, attribute, None)
+            if not isinstance(counts, dict):
+                continue
 
-        current = int(counts.get(hand.value, counts.get(hand, 0)) or 0)
-        updated = current + 1
-        counts[hand.value] = updated
-        if hand in counts:
-            counts[hand] = updated
+            current = int(counts.get(hand.value, counts.get(hand, 0)) or 0)
+            updated = current + 1
+            counts[hand.value] = updated
+            if hand in counts:
+                counts[hand] = updated
 
     @staticmethod
     def _joker_name(joker) -> str:
