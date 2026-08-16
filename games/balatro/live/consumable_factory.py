@@ -45,6 +45,10 @@ class LiveConsumableFactory:
         if area_index is not None:
             consumable.area_index = int(area_index)
 
+        discovered = data.get("discovered")
+        if isinstance(discovered, bool):
+            consumable.discovered = discovered
+
         cost = data.get("cost")
         if isinstance(cost, dict):
             buy_cost = cost.get("buy")
