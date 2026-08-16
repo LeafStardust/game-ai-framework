@@ -110,6 +110,7 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
     ) -> None:
         if joker_projector is not None:
             super().__init__(scorer=scorer, joker_projector=joker_projector)
+            self._suppress_single_glass_break = False
             return
 
         live_scorer = (
@@ -121,6 +122,7 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
             scorer=live_scorer,
             joker_projector=_GeneratedConsumableOutcomeJokerProjector(live_scorer),
         )
+        self._suppress_single_glass_break = False
 
     def _project_stochastic_branch(
         self,
@@ -149,6 +151,22 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
             resolve_random_effects=False,
         )
 
+    def _glass_scoring_cards(
+        self,
+        hand,
+        cards,
+        *,
+        rules: dict | None = None,
+    ) -> tuple:
+        glass_cards = super()._glass_scoring_cards(
+            hand,
+            cards,
+            rules=rules,
+        )
+        if self._suppress_single_glass_break and len(glass_cards) == 1:
+            return ()
+        return glass_cards
+
     def project_transition(
         self,
         hand,
@@ -170,6 +188,16 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
         first_hand = self._is_first_hand(state)
         superposition_eligible = self._superposition_eligible(state, played_cards)
 
+        # A qualifying Glass 6 is deterministically destroyed by Sixth Sense.
+        # Suppress the independent natural Glass-shatter RNG branch only when a
+        # consumable slot will still remain after earlier joker-main generators.
+        suppress_glass_break = self._sixth_sense_will_destroy_glass(
+            state,
+            played_cards,
+            first_hand=first_hand,
+            money_at_hand_play=money_at_hand_play,
+        )
+
         # Probe once on an isolated projector branch to recover exact scoring-card
         # membership and retrigger counts for 8 Ball. No generated identity or
         # Python RNG is consumed by the Joker models themselves.
@@ -187,12 +215,17 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
             extra_retriggers=probe.played_card_retriggers,
         )
 
-        transition = super().project_transition(
-            hand,
-            state,
-            played_cards,
-            include_card_chips=include_card_chips,
-        )
+        previous_suppression = self._suppress_single_glass_break
+        self._suppress_single_glass_break = suppress_glass_break
+        try:
+            transition = super().project_transition(
+                hand,
+                state,
+                played_cards,
+                include_card_chips=include_card_chips,
+            )
+        finally:
+            self._suppress_single_glass_break = previous_suppression
 
         outcomes = []
         added_random_sources = list(transition.distribution.random_sources)
@@ -351,8 +384,6 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
 
         branch_card = self._matching_owned_card(state, played_cards[0])
         if branch_card is None:
-            # A prior destruction branch (for example a Glass shatter) already
-            # removed this playing card, so Sixth Sense has nothing left to destroy.
             return False
 
         destroyed = project_destroyed_playing_cards(state, [branch_card])
@@ -360,6 +391,39 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
             return False
         self._add_abstract_consumables(state, category="SPECTRAL", count=1)
         return True
+
+    def _sixth_sense_will_destroy_glass(
+        self,
+        state,
+        played_cards,
+        *,
+        first_hand: bool,
+        money_at_hand_play: int,
+    ) -> bool:
+        if not first_hand or len(played_cards) != 1:
+            return False
+        card = played_cards[0]
+        if (
+            str(getattr(card, "rank", "")) != "6"
+            or getattr(card, "enhancement", None) != "Glass"
+        ):
+            return False
+        if not any(
+            type(joker).__name__ == "SixthSenseJoker" and self._joker_active(joker)
+            for joker in getattr(state, "jokers", []) or []
+        ):
+            return False
+
+        room = self._consumable_room(state)
+        if room <= 0:
+            return False
+
+        # On a single 6, Vagabond is the only supported earlier joker-main
+        # consumable generator that can claim capacity before Sixth Sense's
+        # destroying-card context. Its trigger uses money from hand-play time.
+        if money_at_hand_play <= 4:
+            room -= min(room, self._activation_count(state, "VagabondJoker"))
+        return room > 0
 
     def _effective_main_abilities(self, state) -> tuple[str, ...]:
         result = []
