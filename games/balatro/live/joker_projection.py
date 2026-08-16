@@ -78,6 +78,7 @@ class LiveJokerScoreProjector:
             "FortuneTellerJoker",
             "FourFingersJoker",
             "GluttonousJoker",
+            "GoldenTicketJoker",
             "GreenJoker",
             "GreedyJoker",
             "GrosMichelJoker",
@@ -111,6 +112,7 @@ class LiveJokerScoreProjector:
             "RamenJoker",
             "RedCardJoker",
             "RideTheBusJoker",
+            "RoughGemJoker",
             "RunnerJoker",
             "ScaryFaceJoker",
             "ScholarJoker",
@@ -177,6 +179,13 @@ class LiveJokerScoreProjector:
             "MimeJoker",
             "SockAndBuskinJoker",
             "VampireJoker",
+        }
+    )
+
+    SCORING_ECONOMY_CLASS_NAMES = frozenset(
+        {
+            "GoldenTicketJoker",
+            "RoughGemJoker",
         }
     )
 
@@ -330,6 +339,12 @@ class LiveJokerScoreProjector:
             safe_cards,
             joker_data,
         )
+        self._apply_scoring_economy(
+            safe_state,
+            joker_data["scoring_cards"],
+            projected_jokers,
+            hand_rules=hand_rules,
+        )
 
         score = self.scorer.score(
             hand,
@@ -420,6 +435,35 @@ class LiveJokerScoreProjector:
                 )
             )
         return expanded
+
+    def _apply_scoring_economy(
+        self,
+        state,
+        scoring_cards,
+        jokers,
+        *,
+        hand_rules: dict,
+    ) -> None:
+        active = [
+            joker
+            for joker in jokers
+            if type(joker).__name__ in self.SCORING_ECONOMY_CLASS_NAMES
+        ]
+        if not active:
+            return
+
+        for card in scoring_cards:
+            context = JokerContext(
+                state=state,
+                cards=[card],
+                trigger="CARD_SCORED",
+                data={
+                    "current_scoring_card": card,
+                    "hand_rules": hand_rules,
+                },
+            )
+            for joker in active:
+                context = joker.apply(context)
 
     @staticmethod
     def _seltzer_retriggers(jokers) -> int:

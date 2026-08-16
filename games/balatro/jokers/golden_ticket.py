@@ -4,17 +4,15 @@ from games.balatro.joker import Joker, JokerContext
 class GoldenTicketJoker(Joker):
 
     def apply(self, context: JokerContext) -> JokerContext:
-        if context.trigger != "CARDS_SCORED":
+        if context.trigger != "CARD_SCORED":
             return context
 
-        gold_cards = sum(
-            getattr(card, "enhancement", None) == "Gold"
-            for card in context.cards
-        )
+        card = context.data.get("current_scoring_card")
+        if card is None or getattr(card, "enhancement", None) != "Gold":
+            return context
 
-        context.data["money"] = (
-            context.data.get("money", 0)
-            + gold_cards * 4
+        context.state.money = (
+            int(getattr(context.state, "money", 0) or 0)
+            + 4
         )
-
         return context
