@@ -11,17 +11,23 @@ COPY_JOKER_CLASS_NAMES = frozenset(
 # Validated copier targets whose scoring-time delegation is side-effect safe.
 # Burnt Joker is included because its copied ability activates on discard, so
 # delegating it during score projection is intentionally a no-op; discard-time
-# copy activation is handled by LiveDiscardJokerProjector.
+# copy activation is handled by LiveDiscardJokerProjector. The generated-
+# consumable Jokers below expose only deterministic signals during scoring; their
+# actual Tarot/Spectral state transition is owned by the live outcome projector.
 INDEPENDENT_COPY_TARGET_CLASS_NAMES = frozenset(
     {
         "AbstractJoker",
         "BurntJoker",
         "CavendishJoker",
+        "EightBallJoker",
         "FlatMultJoker",
         "GlassJoker",
         "JollyJoker",
         "MisprintJoker",
+        "SeanceJoker",
         "StuntmanJoker",
+        "SuperpositionJoker",
+        "VagabondJoker",
     }
 )
 
