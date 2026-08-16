@@ -6,6 +6,7 @@ import re
 import unicodedata
 from pathlib import Path
 
+from games.balatro.hand import PokerHand
 from games.balatro.joker import Joker
 from games.balatro.live.joker_state_contract import (
     all_observed_public_joker_state_fields,
@@ -183,6 +184,21 @@ class LiveJokerFactory:
         return value
 
     def _normalize_public_state_value(self, name: str, value):
+        if name == "target_hand" and isinstance(value, str):
+            normalized = value.strip().upper().replace(" ", "_").replace("-", "_")
+            aliases = {
+                "HIGHCARD": "HIGH_CARD",
+                "TWOPAIR": "TWO_PAIR",
+                "THREEOFAKIND": "THREE_OF_A_KIND",
+                "FOUROFAKIND": "FOUR_OF_A_KIND",
+                "FULLHOUSE": "FULL_HOUSE",
+                "STRAIGHTFLUSH": "STRAIGHT_FLUSH",
+            }
+            normalized = aliases.get(normalized.replace("_", ""), normalized)
+            try:
+                return PokerHand[normalized]
+            except KeyError:
+                return None
         if isinstance(value, str):
             return self._normalize_constructor_value(name, value)
         return value
