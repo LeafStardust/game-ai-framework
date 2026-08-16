@@ -12,6 +12,7 @@ from games.balatro.boss_trigger import (
 )
 from games.balatro.hand import PokerHand
 from games.balatro.joker import JokerContext
+from games.balatro.live.boss_score_transform import BossBaseScoreScorerMixin
 from games.balatro.live.copy_projection import project_independent_copy_jokers
 from games.balatro.live.discard_projection import (
     LiveDiscardJokerProjector,
@@ -40,11 +41,14 @@ _SECRET_HAND_SCORES = {
 }
 
 
-class _FinalLiveScorer(_LiveOnScoredScorer):
+class _FinalLiveScorer(BossBaseScoreScorerMixin, _LiveOnScoredScorer):
     SCORES = {**BalatroScorer.SCORES, **_SECRET_HAND_SCORES}
 
 
-class _FinalProjectedStochasticScorer(_LiveProjectedStochasticScorer):
+class _FinalProjectedStochasticScorer(
+    BossBaseScoreScorerMixin,
+    _LiveProjectedStochasticScorer,
+):
     SCORES = {**BalatroScorer.SCORES, **_SECRET_HAND_SCORES}
 
 
@@ -133,16 +137,27 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
         if hand_debuff.triggered:
             return self._project_debuffed_hand(hand, state, cards)
 
-        # The Ox resolves before independent Jokers. Apply its public deterministic
-        # money reset before scoring so Joker order remains exact: Bull/Bootstraps
-        # before Matador see $0, while those after Matador see the earned $8.
         projected_input = state
         result = matador_boss_hand_triggered(state, hand, cards)
-        if (
+        boss_name = str(getattr(state, "boss_name", "") or "")
+        boss_active = (
             state is not None
-            and result.resolvable
+            and not boss_blind_disabled_by_owned_jokers(state)
+        )
+
+        # Boss money effects happen before independent Jokers. The Tooth charges
+        # every selected played card and may push dollars negative. The Ox resets
+        # money before Matador/Bull/Bootstraps resolve in Joker order.
+        if boss_active and boss_name == "The Tooth":
+            projected_input = state.copy()
+            projected_input.money = (
+                int(getattr(state, "money", 0) or 0)
+                - len(list(cards or []))
+            )
+        elif (
+            result.resolvable
             and result.triggered
-            and str(getattr(state, "boss_name", "") or "") == "The Ox"
+            and boss_name == "The Ox"
         ):
             projected_input = state.copy()
             projected_input.money = 0
@@ -153,6 +168,18 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
             cards,
             include_card_chips=include_card_chips,
         )
+
+        # The Arm's score transform uses the lower effective level without
+        # mutating state during Joker activation, so Matador still sees the
+        # pre-effect level. Persist the actual level loss only after scoring.
+        if (
+            boss_active
+            and boss_name == "The Arm"
+            and result.resolvable
+            and result.triggered
+        ):
+            self._decrement_arm_hand_level_on_transition(transition, hand)
+
         self._record_accepted_boss_hand_on_transition(transition, hand)
         return transition
 
@@ -329,22 +356,37 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
         )
 
     @staticmethod
-    def _record_accepted_boss_hand_on_transition(transition, hand) -> None:
-        branch_states = []
+    def _transition_states(transition):
+        states = []
         if transition.state_after_scoring is not None:
-            branch_states.append(transition.state_after_scoring)
-        branch_states.extend(
+            states.append(transition.state_after_scoring)
+        states.extend(
             outcome.state_after_scoring
             for outcome in transition.distribution.outcomes
             if outcome.state_after_scoring is not None
         )
-
         seen = set()
-        for branch_state in branch_states:
+        for branch_state in states:
             marker = id(branch_state)
             if marker in seen:
                 continue
             seen.add(marker)
+            yield branch_state
+
+    @classmethod
+    def _decrement_arm_hand_level_on_transition(cls, transition, hand) -> None:
+        key = getattr(hand, "value", hand)
+        key = str(key)
+        for branch_state in cls._transition_states(transition):
+            levels = getattr(branch_state, "hand_levels", None)
+            if not isinstance(levels, dict):
+                continue
+            current = int(levels.get(key, 1) or 1)
+            levels[key] = max(1, current - 1)
+
+    @classmethod
+    def _record_accepted_boss_hand_on_transition(cls, transition, hand) -> None:
+        for branch_state in cls._transition_states(transition):
             record_accepted_boss_hand(branch_state, hand)
 
     def _project_stochastic_branch(
