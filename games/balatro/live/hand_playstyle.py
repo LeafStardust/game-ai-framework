@@ -3,9 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
+from games.balatro.build.playing_card_synergy import (
+    ContextualPlayingCardSynergyEvaluator,
+)
 from games.balatro.build.profile import (
     BalatroBuildProfiler,
     BalatroPlaystyleIntentTracker,
+    BuildProfile,
     PlaystyleIntent,
 )
 from games.balatro.hand_evaluator import HandEvaluator
@@ -56,6 +60,27 @@ class HandPlaystyleWeights:
 
 
 @dataclass(frozen=True)
+class HeldCardPreservationWeights:
+    """Bounded D1 value for resources deliberately left in hand.
+
+    These weights are policy utility, not chip-equivalent claims. They apply only
+    after tactical survival evidence has established which actions are eligible.
+    """
+
+    steel: float = 18.0
+    blue_seal: float = 12.0
+    build_interaction: float = 8.0
+
+    def __post_init__(self) -> None:
+        if float(self.steel) < 0.0:
+            raise ValueError("steel preservation weight cannot be negative")
+        if float(self.blue_seal) < 0.0:
+            raise ValueError("blue_seal preservation weight cannot be negative")
+        if float(self.build_interaction) < 0.0:
+            raise ValueError("build_interaction preservation weight cannot be negative")
+
+
+@dataclass(frozen=True)
 class HandPlaystyleEvaluation:
     fit: float
     rank_fit: float
@@ -65,14 +90,23 @@ class HandPlaystyleEvaluation:
     rationale: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class HeldCardPreservationEvaluation:
+    value: float
+    steel_cards: int
+    blue_seals: int
+    build_gain: float
+    rationale: tuple[str, ...]
+
+
 class LiveHandPlaystyleEvaluator:
-    """Apply run-level playstyle intent to one currently legal D1 action.
+    """Apply run-level strategic intent to one currently legal D1 action.
 
     The signal is intentionally local to an already-generated legal action. It does
     not invent hidden draws, change clear probabilities, or alter Balatro scoring.
-    The D1 hierarchy remains responsible for survival; this layer only distinguishes
-    strategically coherent actions within that hierarchy and adds a bounded recovery
-    preference when no current play reaches pace.
+    The D1 hierarchy remains responsible for survival; this layer distinguishes
+    strategically coherent actions and preserves public held-card resources only
+    after tactical eligibility has already been established.
     """
 
     def __init__(
@@ -82,15 +116,28 @@ class LiveHandPlaystyleEvaluator:
         profiler: BalatroBuildProfiler | None = None,
         intent_tracker: BalatroPlaystyleIntentTracker | None = None,
         weights: HandPlaystyleWeights | None = None,
+        preservation_weights: HeldCardPreservationWeights | None = None,
     ) -> None:
         self.base_evaluator = base_evaluator or LiveHandDecisionEvaluator()
         self.profiler = profiler or BalatroBuildProfiler()
         self.intent_tracker = intent_tracker or BalatroPlaystyleIntentTracker()
         self.weights = weights or HandPlaystyleWeights()
+        self.preservation_weights = (
+            preservation_weights or HeldCardPreservationWeights()
+        )
+        self.playing_card_synergy = ContextualPlayingCardSynergyEvaluator(
+            profiler=self.profiler,
+        )
         self.hand_evaluator = HandEvaluator()
         self._cached_state_id: int | None = None
         self._cached_evaluations: dict[tuple, HandPlaystyleEvaluation] = {}
+        self._cached_preservation: dict[
+            tuple,
+            HeldCardPreservationEvaluation,
+        ] = {}
         self._cached_intent: PlaystyleIntent | None = None
+        self._cached_profile: BuildProfile | None = None
+        self._cached_card_preservation: dict[int, tuple[float, float]] = {}
         self._cached_ante: int = 1
 
     @staticmethod
@@ -114,14 +161,23 @@ class LiveHandPlaystyleEvaluator:
         intent = self.intent_tracker.resolve(profile)
         self._cached_state_id = state_id
         self._cached_evaluations = {}
+        self._cached_preservation = {}
         self._cached_intent = intent
+        self._cached_profile = profile
+        self._cached_card_preservation = self._card_preservation_values(
+            state,
+            profile,
+        )
         self._cached_ante = int(profile.ante)
         return intent
 
     def reset_cache(self) -> None:
         self._cached_state_id = None
         self._cached_evaluations = {}
+        self._cached_preservation = {}
         self._cached_intent = None
+        self._cached_profile = None
+        self._cached_card_preservation = {}
         self._cached_ante = 1
 
     def project_play(self, state, action):
@@ -129,7 +185,9 @@ class LiveHandPlaystyleEvaluator:
 
     def evaluate(self, state, action) -> float:
         base = float(self.base_evaluator.evaluate(state, action))
-        return base + self.evaluate_playstyle(state, action).recovery_value
+        playstyle = self.evaluate_playstyle(state, action)
+        preservation = self.evaluate_preservation(state, action)
+        return base + playstyle.recovery_value + preservation.value
 
     def evaluate_playstyle(
         self,
@@ -173,6 +231,102 @@ class LiveHandPlaystyleEvaluator:
         )
         self._cached_evaluations[signature] = result
         return result
+
+    def evaluate_preservation(
+        self,
+        state,
+        action: BalatroAction,
+    ) -> HeldCardPreservationEvaluation:
+        self.prepare(state)
+        signature = self._action_signature(action)
+        cached = self._cached_preservation.get(signature)
+        if cached is not None:
+            return cached
+
+        if action.name not in {PLAY_CARDS, DISCARD_CARDS}:
+            result = HeldCardPreservationEvaluation(
+                value=0.0,
+                steel_cards=0,
+                blue_seals=0,
+                build_gain=0.0,
+                rationale=(),
+            )
+            self._cached_preservation[signature] = result
+            return result
+
+        removed_ids = {id(card) for card in action.cards}
+        kept_cards = [
+            card
+            for card in getattr(state, "hand", [])
+            if id(card) not in removed_ids
+        ]
+        steel_cards = sum(
+            1
+            for card in kept_cards
+            if not bool(getattr(card, "debuffed", False))
+            and getattr(card, "enhancement", None) == "Steel"
+        )
+        blue_seals = sum(
+            1
+            for card in kept_cards
+            if not bool(getattr(card, "debuffed", False))
+            and getattr(card, "seal", None) == "Blue"
+        )
+        build_gain = sum(
+            self._cached_card_preservation.get(id(card), (0.0, 0.0))[1]
+            for card in kept_cards
+        )
+        value = sum(
+            self._cached_card_preservation.get(id(card), (0.0, 0.0))[0]
+            for card in kept_cards
+        )
+        rationale = (
+            (
+                f"D1 retained-card value={value:.3f} "
+                f"steel={steel_cards} blue_seal={blue_seals} "
+                f"build_gain={build_gain:.3f}"
+            ),
+        )
+        result = HeldCardPreservationEvaluation(
+            value=value,
+            steel_cards=steel_cards,
+            blue_seals=blue_seals,
+            build_gain=build_gain,
+            rationale=rationale,
+        )
+        self._cached_preservation[signature] = result
+        return result
+
+    def _card_preservation_values(
+        self,
+        state,
+        profile: BuildProfile,
+    ) -> dict[int, tuple[float, float]]:
+        values: dict[int, tuple[float, float]] = {}
+        for card in getattr(state, "hand", []):
+            active = not bool(getattr(card, "debuffed", False))
+            direct = 0.0
+            if active and getattr(card, "enhancement", None) == "Steel":
+                direct += float(self.preservation_weights.steel)
+            if active and getattr(card, "seal", None) == "Blue":
+                direct += float(self.preservation_weights.blue_seal)
+
+            build_gain = float(
+                self.playing_card_synergy.evaluate(
+                    state,
+                    rank=getattr(card, "rank", None),
+                    suit=getattr(card, "suit", None),
+                    enhancement=getattr(card, "enhancement", None),
+                    seal=getattr(card, "seal", None),
+                    edition=getattr(card, "edition", None),
+                    profile=profile,
+                ).total_gain
+            )
+            total = direct + build_gain * float(
+                self.preservation_weights.build_interaction
+            )
+            values[id(card)] = (total, build_gain)
+        return values
 
     @staticmethod
     def _action_signature(action: BalatroAction) -> tuple:
@@ -295,10 +449,11 @@ class LiveHandPlaystyleEvaluator:
 class BuildAwareLiveHandActionPolicy(LiveHandActionPolicy):
     """D1 policy with build intent inside, never above, the survival hierarchy.
 
-    Clear probability and exactness remain the first two ranking dimensions. Once
-    those are equal, playstyle fit is considered before progress/resource tie-breaks.
-    Pace-play candidates are treated the same way after they have already met the
-    pace floor. PACE_RECOVERY receives only the bounded ``recovery_gain`` adjustment.
+    Clear probability and exactness remain the leading ranking dimensions. Among
+    tactically equivalent lines, expected hands remain ahead of retained-card value;
+    held resources then break ties before longer-horizon build preference and other
+    secondary progress/resource criteria. PACE_RECOVERY receives the same bounded
+    retained-card and playstyle adjustments through the evaluator.
     """
 
     def __init__(
@@ -309,12 +464,14 @@ class BuildAwareLiveHandActionPolicy(LiveHandActionPolicy):
         profiler: BalatroBuildProfiler | None = None,
         intent_tracker: BalatroPlaystyleIntentTracker | None = None,
         weights: HandPlaystyleWeights | None = None,
+        preservation_weights: HeldCardPreservationWeights | None = None,
     ) -> None:
         self.playstyle_evaluator = LiveHandPlaystyleEvaluator(
             base_evaluator=evaluator,
             profiler=profiler,
             intent_tracker=intent_tracker,
             weights=weights,
+            preservation_weights=preservation_weights,
         )
         self._ranking_state = None
         super().__init__(thresholds, evaluator=self.playstyle_evaluator)
@@ -328,9 +485,17 @@ class BuildAwareLiveHandActionPolicy(LiveHandActionPolicy):
                 state,
                 decision.action,
             )
+            preservation = self.playstyle_evaluator.evaluate_preservation(
+                state,
+                decision.action,
+            )
             return replace(
                 decision,
-                rationale=decision.rationale + playstyle.rationale,
+                rationale=(
+                    decision.rationale
+                    + preservation.rationale
+                    + playstyle.rationale
+                ),
             )
         finally:
             self._ranking_state = None
@@ -340,31 +505,42 @@ class BuildAwareLiveHandActionPolicy(LiveHandActionPolicy):
         base = super()._within_type_key(plan)
         if self._ranking_state is None:
             return base
+        preservation = self.playstyle_evaluator.evaluate_preservation(
+            self._ranking_state,
+            plan.action,
+        ).value
         fit = self.playstyle_evaluator.evaluate_playstyle(
             self._ranking_state,
             plan.action,
         ).rank_fit
-        return (base[0], base[1], fit, *base[2:])
+        return (base[0], base[1], preservation, fit, *base[2:])
 
     def _safe_equivalent_clear_key(self, plan):
         base = super()._safe_equivalent_clear_key(plan)
         if self._ranking_state is None:
             return base
+        preservation = self.playstyle_evaluator.evaluate_preservation(
+            self._ranking_state,
+            plan.action,
+        ).value
         fit = self.playstyle_evaluator.evaluate_playstyle(
             self._ranking_state,
             plan.action,
         ).rank_fit
-        # Preserve the v1.0A D1 contract: exactness and expected hands remain
-        # ahead of build preference; playstyle only breaks otherwise equivalent
-        # safe-clear lines before secondary resources/progress.
-        return (base[0], base[1], fit, *base[2:])
+        # v1.0A contract: exactness and expected hands remain ahead of strategic
+        # tie-breaks. Retained public resources then precede broader playstyle fit.
+        return (base[0], base[1], preservation, fit, *base[2:])
 
     def _pace_play_key(self, plan, pace_ratio: float):
         base = super()._pace_play_key(plan, pace_ratio)
         if self._ranking_state is None:
             return base
+        preservation = self.playstyle_evaluator.evaluate_preservation(
+            self._ranking_state,
+            plan.action,
+        ).value
         fit = self.playstyle_evaluator.evaluate_playstyle(
             self._ranking_state,
             plan.action,
         ).rank_fit
-        return (base[0], base[1], fit, *base[2:])
+        return (base[0], base[1], preservation, fit, *base[2:])
