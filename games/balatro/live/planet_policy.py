@@ -3,7 +3,14 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass
 
-from games.balatro.build.joker_semantics import CONSUMABLE_DUPLICATE, SemanticJokerBehaviorAnalyzer
+from games.balatro.build.joker_semantics import (
+    CONSUMABLE_DUPLICATE,
+    SemanticJokerBehaviorAnalyzer,
+)
+from games.balatro.build.profile import (
+    BalatroBuildProfiler,
+    BalatroPlaystyleIntentTracker,
+)
 from games.balatro.consumable import ConsumableContext
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator, LivePlayProjection
 
@@ -32,6 +39,8 @@ class PlanetDecision:
     level_gain: int
     observed_hand_plays: int
     rationale: tuple[str, ...] = ()
+    playstyle_fit: float = 0.0
+    playstyle_locked: bool = False
 
     @property
     def should_use(self) -> bool:
@@ -39,17 +48,62 @@ class PlanetDecision:
 
 
 class LivePlanetPolicy:
-    """D7 Planet selection and USE-versus-HOLD policy from public state only."""
+    """D7 Planet selection and USE-versus-HOLD policy from public state only.
 
-    def __init__(self, *, thresholds=None, hand_evaluator=None, joker_analyzer=None) -> None:
+    Blind-clear probability and deterministic score gain remain primary. When those
+    safety signals are equal, Planet inventory ranking reuses the same run-scoped
+    B3 playstyle intent as D1/D2/D9 so a permanent hand upgrade can reinforce the
+    current direction without inventing a named build or consulting hidden state.
+    """
+
+    def __init__(
+        self,
+        *,
+        thresholds=None,
+        hand_evaluator=None,
+        joker_analyzer=None,
+        profiler=None,
+        intent_tracker=None,
+    ) -> None:
         self.thresholds = thresholds or PlanetPolicyThresholds()
         self.hand_evaluator = hand_evaluator or LiveHandDecisionEvaluator()
         self.joker_analyzer = joker_analyzer or SemanticJokerBehaviorAnalyzer()
+        self.profiler = profiler or BalatroBuildProfiler()
+        self.intent_tracker = intent_tracker or BalatroPlaystyleIntentTracker()
+
+    @staticmethod
+    def _exploratory_influence(ante: int) -> float:
+        if ante <= 1:
+            return 0.25
+        if ante == 2:
+            return 0.50
+        if ante == 3:
+            return 0.75
+        return 1.0
+
+    def _playstyle_fit(self, state, planet: object) -> tuple[float, bool]:
+        profile = self.profiler.profile(state)
+        intent = self.intent_tracker.resolve(profile)
+        hand_type = str(getattr(planet, "hand_type", ""))
+        if not hand_type:
+            return 0.0, intent.locked
+
+        strength = max(-1.0, min(1.0, float(intent.strength(hand_type))))
+        influence = (
+            1.0
+            if intent.locked
+            else self._exploratory_influence(int(profile.ante))
+        )
+        return strength * influence, intent.locked
 
     def recommend(self, state, planet: object) -> PlanetDecision:
         required = self._required_per_hand(state)
         if getattr(state, "phase", None) != "SELECTING_HAND":
-            return self._hold(planet, required, "D7 Planet timing currently requires SELECTING_HAND")
+            return self._hold(
+                planet,
+                required,
+                "D7 Planet timing currently requires SELECTING_HAND",
+            )
         if str(getattr(planet, "category", "")).upper() != "PLANET":
             return self._hold(planet, required, "candidate is not a Planet")
         planet_index = self._identity_index(getattr(state, "consumables", ()), planet)
@@ -60,42 +114,85 @@ class LivePlanetPolicy:
         if before is None:
             return self._hold(planet, required, "no legal visible play")
         if not before.joker_projection_complete:
-            return self._hold(planet, required, "current build has unsupported Joker score projection", before=before)
+            return self._hold(
+                planet,
+                required,
+                "current build has unsupported Joker score projection",
+                before=before,
+            )
 
         transformed = self._simulate_use(state, planet_index)
         if transformed is None:
-            return self._hold(planet, required, "Planet failed deterministic copied simulation", before=before)
+            return self._hold(
+                planet,
+                required,
+                "Planet failed deterministic copied simulation",
+                before=before,
+            )
         after = self._best_play_projection(transformed)
         if after is None:
-            return self._hold(planet, required, "Planet use leaves no legal visible play", before=before)
+            return self._hold(
+                planet,
+                required,
+                "Planet use leaves no legal visible play",
+                before=before,
+            )
         if not after.joker_projection_complete:
-            return self._hold(planet, required, "Planet-upgraded build has unsupported Joker score projection", before=before, after=after)
+            return self._hold(
+                planet,
+                required,
+                "Planet-upgraded build has unsupported Joker score projection",
+                before=before,
+                after=after,
+            )
 
         hand_type = str(getattr(planet, "hand_type", ""))
         before_level = int((getattr(state, "hand_levels", {}) or {}).get(hand_type, 0))
-        after_level = int((getattr(transformed, "hand_levels", {}) or {}).get(hand_type, 0))
+        after_level = int(
+            (getattr(transformed, "hand_levels", {}) or {}).get(hand_type, 0)
+        )
         level_gain = after_level - before_level
         score_gain = float(after.expected_hand_score - before.expected_hand_score)
         clear_gain = float(after.clear_probability - before.clear_probability)
-        observed_plays = int((getattr(state, "hand_play_counts", {}) or {}).get(hand_type, 0) or 0)
+        observed_plays = int(
+            (getattr(state, "hand_play_counts", {}) or {}).get(hand_type, 0) or 0
+        )
         duplicate_hold_value = self._duplicate_hold_value(state)
         slots_full = self._consumable_slots_full(state)
+        playstyle_fit, playstyle_locked = self._playstyle_fit(state, planet)
 
         if level_gain <= 0:
             decision, reason = HOLD, "Planet produced no permanent hand-level gain"
         elif clear_gain > self.thresholds.clear_probability_epsilon:
             decision, reason = USE, "Planet upgrade increases blind-clear probability"
-        elif before.expected_hand_score + self.thresholds.immediate_score_epsilon < required <= after.expected_hand_score + self.thresholds.immediate_score_epsilon:
+        elif (
+            before.expected_hand_score + self.thresholds.immediate_score_epsilon
+            < required
+            <= after.expected_hand_score + self.thresholds.immediate_score_epsilon
+        ):
             decision, reason = USE, "Planet upgrade restores required blind pace"
-        elif max(0, int(getattr(state, "hands_remaining", 0))) <= 1 and score_gain > self.thresholds.immediate_score_epsilon:
+        elif (
+            max(0, int(getattr(state, "hands_remaining", 0))) <= 1
+            and score_gain > self.thresholds.immediate_score_epsilon
+        ):
             decision, reason = USE, "final hand gains score from deterministic Planet upgrade"
         elif slots_full:
-            decision, reason = USE, "full consumable slots favor realizing the permanent Planet upgrade"
+            decision, reason = (
+                USE,
+                "full consumable slots favor realizing the permanent Planet upgrade",
+            )
         elif duplicate_hold_value >= self.thresholds.duplicate_hold_minimum:
-            decision, reason = HOLD, "observable consumable-duplication value makes preserving this Planet strategically positive"
+            decision, reason = (
+                HOLD,
+                "observable consumable-duplication value makes preserving this Planet strategically positive",
+            )
         else:
-            decision, reason = USE, "permanent Planet upgrade has no modeled positive hold advantage"
+            decision, reason = (
+                USE,
+                "permanent Planet upgrade has no modeled positive hold advantage",
+            )
 
+        mode = "LOCKED" if playstyle_locked else "PIVOTABLE"
         return PlanetDecision(
             decision=decision,
             planet=planet,
@@ -117,11 +214,18 @@ class LivePlanetPolicy:
                 f"consumable duplicate hold value={duplicate_hold_value:.3f}",
                 f"duplicate hold threshold={self.thresholds.duplicate_hold_minimum:.3f}",
                 f"consumable slots full={slots_full}",
+                f"D7 playstyle fit={playstyle_fit:.3f} mode={mode}",
             ),
+            playstyle_fit=playstyle_fit,
+            playstyle_locked=playstyle_locked,
         )
 
     def recommend_inventory(self, state) -> tuple[PlanetDecision, ...]:
-        decisions = [self.recommend(state, item) for item in getattr(state, "consumables", ()) if str(getattr(item, "category", "")).upper() == "PLANET"]
+        decisions = [
+            self.recommend(state, item)
+            for item in getattr(state, "consumables", ())
+            if str(getattr(item, "category", "")).upper() == "PLANET"
+        ]
         return tuple(sorted(decisions, key=self._decision_key, reverse=True))
 
     def _duplicate_hold_value(self, state) -> float:
@@ -131,7 +235,11 @@ class LivePlanetPolicy:
             if CONSUMABLE_DUPLICATE not in descriptor.produces:
                 continue
             magnitude = getattr(descriptor, "feature_magnitude", None)
-            amount = float(magnitude(CONSUMABLE_DUPLICATE)) if callable(magnitude) else 1.0
+            amount = (
+                float(magnitude(CONSUMABLE_DUPLICATE))
+                if callable(magnitude)
+                else 1.0
+            )
             value = max(value, amount)
         return value
 
@@ -157,7 +265,12 @@ class LivePlanetPolicy:
 
     @staticmethod
     def _projection_key(projection: LivePlayProjection) -> tuple[float, ...]:
-        return (float(projection.clear_probability), float(projection.expected_hand_score), float(projection.hand_score), float(projection.maximum_hand_score))
+        return (
+            float(projection.clear_probability),
+            float(projection.expected_hand_score),
+            float(projection.hand_score),
+            float(projection.maximum_hand_score),
+        )
 
     @staticmethod
     def _identity_index(items, candidate: object) -> int | None:
@@ -169,7 +282,10 @@ class LivePlanetPolicy:
     @staticmethod
     def _required_per_hand(state) -> float:
         requirement = int(getattr(getattr(state, "blind", None), "requirement", 0))
-        remaining = max(0.0, float(requirement - int(getattr(state, "score", 0))))
+        remaining = max(
+            0.0,
+            float(requirement - int(getattr(state, "score", 0))),
+        )
         return remaining / max(1, int(getattr(state, "hands_remaining", 1)))
 
     @staticmethod
@@ -179,8 +295,35 @@ class LivePlanetPolicy:
 
     @staticmethod
     def _decision_key(decision: PlanetDecision) -> tuple:
-        return (1 if decision.should_use else 0, float(decision.clear_probability_gain), float(decision.immediate_score_gain), int(decision.observed_hand_plays), int(decision.level_gain), str(getattr(decision.planet, "name", "")))
+        return (
+            1 if decision.should_use else 0,
+            float(decision.clear_probability_gain),
+            float(decision.immediate_score_gain),
+            float(decision.playstyle_fit),
+            int(decision.observed_hand_plays),
+            int(decision.level_gain),
+            str(getattr(decision.planet, "name", "")),
+        )
 
     @staticmethod
-    def _hold(planet, required_per_hand, reason, *, before=None, after=None) -> PlanetDecision:
-        return PlanetDecision(HOLD, planet, before, after, required_per_hand, 0.0, 0.0, 0.0, 0, 0, (f"HOLD: {reason}",))
+    def _hold(
+        planet,
+        required_per_hand,
+        reason,
+        *,
+        before=None,
+        after=None,
+    ) -> PlanetDecision:
+        return PlanetDecision(
+            HOLD,
+            planet,
+            before,
+            after,
+            required_per_hand,
+            0.0,
+            0.0,
+            0.0,
+            0,
+            0,
+            (f"HOLD: {reason}",),
+        )
