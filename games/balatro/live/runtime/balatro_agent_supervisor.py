@@ -15,6 +15,7 @@ from games.balatro.live.injected.bridge import (
     InjectedBridgeError,
 )
 from games.balatro.live.run_experience_transition import (
+    finalize_live_run,
     log_successful_live_transition,
 )
 from games.balatro.playbook import default_balatro_playbooks
@@ -423,6 +424,7 @@ class BalatroAgentSupervisor:
                             (),
                             "game over (won)" if won else "game over (lost)",
                         )
+                        final_snapshot = initial
                     else:
                         def log_transition(decision, result, _status):
                             log_successful_live_transition(
@@ -439,6 +441,7 @@ class BalatroAgentSupervisor:
                             on_transition=log_transition,
                         )
                         run = loop.execute(expected_start_phase=str(initial.phase))
+                        final_snapshot = observer.observe()
 
                     attempt = self._record_attempt(
                         number=attempt_number,
@@ -447,6 +450,17 @@ class BalatroAgentSupervisor:
                         stake=stake,
                         playbook=playbook,
                         run=run,
+                    )
+                    finalize_live_run(
+                        final_snapshot,
+                        run_id=run_id,
+                        deck=deck,
+                        stake=stake,
+                        playbook=str(playbook.name),
+                        playbook_version=str(playbook.version),
+                        won=attempt.outcome == "WIN",
+                        reason=attempt.stop_reason,
+                        directory=self.run_log_directory,
                     )
 
                     self._publish_telemetry(
