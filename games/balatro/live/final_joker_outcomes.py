@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from itertools import combinations
 
 from games.balatro.boss_trigger import (
+    boss_blind_disabled_by_owned_jokers,
     boss_hand_is_debuffed,
     matador_boss_hand_triggered,
     matador_state_resolvable,
@@ -11,6 +13,10 @@ from games.balatro.boss_trigger import (
 from games.balatro.hand import PokerHand
 from games.balatro.joker import JokerContext
 from games.balatro.live.copy_projection import project_independent_copy_jokers
+from games.balatro.live.discard_projection import (
+    LiveDiscardJokerProjector,
+    UnsupportedDiscardProjection,
+)
 from games.balatro.live.generated_consumable_outcomes import (
     LiveGeneratedConsumableScoreOutcomeModel,
     _GeneratedConsumableOutcomeJokerProjector,
@@ -66,13 +72,14 @@ class LiveFinalJokerScoreProjector(_GeneratedConsumableOutcomeJokerProjector):
 
 
 class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
-    """Complete D1 outcome stack, including boss hand-debuff semantics."""
+    """Complete D1 outcome stack, including boss hand-transition semantics."""
 
     def __init__(
         self,
         scorer: BalatroScorer | None = None,
         joker_projector=None,
     ) -> None:
+        self.discard_joker_projector = LiveDiscardJokerProjector()
         if joker_projector is not None:
             super().__init__(scorer=scorer, joker_projector=joker_projector)
             return
@@ -95,6 +102,28 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
         *,
         include_card_chips: bool = True,
     ):
+        if self._hook_active(state):
+            return self._project_hook_transition(
+                hand,
+                state,
+                cards,
+                include_card_chips=include_card_chips,
+            )
+        return self._project_non_hook_transition(
+            hand,
+            state,
+            cards,
+            include_card_chips=include_card_chips,
+        )
+
+    def _project_non_hook_transition(
+        self,
+        hand,
+        state,
+        cards,
+        *,
+        include_card_chips: bool,
+    ) -> ScoreProjectionTransition:
         hand_debuff = boss_hand_is_debuffed(state, hand, cards)
         if not hand_debuff.resolvable:
             # Exact live observation normally makes Eye/Mouth resolvable. If a
@@ -126,6 +155,81 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
         )
         self._record_accepted_boss_hand_on_transition(transition, hand)
         return transition
+
+    def _project_hook_transition(
+        self,
+        hand,
+        state,
+        cards,
+        *,
+        include_card_chips: bool,
+    ) -> ScoreProjectionTransition:
+        """Branch over The Hook's random forced discard before hand scoring."""
+        held = self._held_cards_after_play_selection(state, cards)
+        discard_count = min(2, len(held))
+        if discard_count <= 0:
+            return self._project_non_hook_transition(
+                hand,
+                state,
+                cards,
+                include_card_chips=include_card_chips,
+            )
+
+        forced_branches = tuple(combinations(held, discard_count))
+        branch_probability = 1.0 / len(forced_branches)
+        outcomes: list[ScoreOutcome] = []
+        unsupported: list[str] = []
+        random_sources: list[str] = []
+        single_transition = None
+
+        for forced_cards in forced_branches:
+            try:
+                branch_state = self.discard_joker_projector.project(
+                    state,
+                    forced_cards,
+                    consume_discard_use=False,
+                )
+            except UnsupportedDiscardProjection:
+                return self._unresolved_boss_hand_transition(state)
+
+            branch_state.hand = self._remove_cards(
+                branch_state.hand,
+                forced_cards,
+            )
+            transition = self._project_non_hook_transition(
+                hand,
+                branch_state,
+                cards,
+                include_card_chips=include_card_chips,
+            )
+            single_transition = transition
+            unsupported.extend(transition.unsupported_jokers)
+            random_sources.extend(transition.distribution.random_sources)
+
+            for outcome in transition.distribution.outcomes:
+                outcomes.append(
+                    ScoreOutcome(
+                        score=outcome.score,
+                        probability=outcome.probability * branch_probability,
+                        state_after_scoring=outcome.state_after_scoring,
+                    )
+                )
+
+        random_sources.append(f"The Hook forced discard x{discard_count}")
+        distribution = ScoreOutcomeDistribution(
+            outcomes=tuple(outcomes),
+            random_sources=tuple(dict.fromkeys(random_sources)),
+        )
+        common_state = (
+            single_transition.state_after_scoring
+            if len(forced_branches) == 1 and single_transition is not None
+            else None
+        )
+        return ScoreProjectionTransition(
+            distribution=distribution,
+            state_after_scoring=common_state,
+            unsupported_jokers=tuple(dict.fromkeys(unsupported)),
+        )
 
     def _project_debuffed_hand(self, hand, state, cards) -> ScoreProjectionTransition:
         """Project Psychic/Eye/Mouth's whole-hand debuff without normal scoring."""
@@ -169,6 +273,39 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
             state_after_scoring=safe_state,
             unsupported_jokers=unsupported,
         )
+
+    @staticmethod
+    def _hook_active(state) -> bool:
+        return (
+            state is not None
+            and str(getattr(state, "boss_name", "") or "") == "The Hook"
+            and not boss_blind_disabled_by_owned_jokers(state)
+        )
+
+    @classmethod
+    def _held_cards_after_play_selection(cls, state, played_cards) -> list:
+        return cls._remove_cards(
+            list(getattr(state, "hand", []) or []),
+            played_cards,
+        )
+
+    @classmethod
+    def _remove_cards(cls, source, removed) -> list:
+        remaining = list(source or [])
+        for selected in list(removed or []):
+            selected_identity = cls._card_identity(selected)
+            for index, candidate in enumerate(remaining):
+                if cls._card_identity(candidate) == selected_identity:
+                    del remaining[index]
+                    break
+        return remaining
+
+    @staticmethod
+    def _card_identity(card):
+        live_id = getattr(card, "live_id", None)
+        if live_id is not None:
+            return ("live", live_id)
+        return ("object", id(card))
 
     @staticmethod
     def _is_matador_activation(joker) -> bool:
