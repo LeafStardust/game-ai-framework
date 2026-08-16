@@ -1,3 +1,6 @@
+from games.balatro.card import BalatroCard
+from games.balatro.hand import PokerHand
+
 from .consumable_synergy import (
     BuildFeatureClosure,
     ConsumableBuildPath,
@@ -95,12 +98,62 @@ from .synergy import (
     SynergyContribution,
 )
 
-# ``SemanticJokerBehaviorAnalyzer`` predates phase-specific Joker activation and
-# still overrides the base conditional probe with a HAND_SCORED-only callback.
-# The base analyzer is now the canonical conditional probe implementation; reuse it
-# through the semantic/lifecycle/scenario hierarchy so held/played-card conditions
-# are discovered from the same real phase semantics used by production scoring.
-SemanticJokerBehaviorAnalyzer._probe = JokerBehaviorAnalyzer._probe
+
+def _semantic_phase_probe(
+    self,
+    joker,
+    *,
+    cards,
+    held_cards,
+    poker_hand=PokerHand.HIGH_CARD,
+):
+    """Use the phase-aware base probe without treating probe inputs as outputs.
+
+    The semantic hierarchy previously forced every conditional probe through
+    ``HAND_SCORED``.  The phase-aware base probe is required for held/played-card
+    Jokers, but its per-card probes seed ``played_card`` / ``held_card`` in
+    ``context.data``.  Those are probe inputs, not Joker-produced capabilities, so
+    strip them from the merged result.
+
+    The Duo and similar hand-shape Jokers inspect the actual cards rather than only
+    ``context.poker_hand``.  Give the neutral Pair condition probe a real Pair so
+    generic hand-feature inference observes the same condition production uses.
+    """
+    probe_cards = cards
+    if poker_hand is PokerHand.PAIR and cards == JokerBehaviorAnalyzer._neutral_cards():
+        probe_cards = [
+            BalatroCard("A", "Spades"),
+            BalatroCard("A", "Hearts"),
+            BalatroCard("Q", "Clubs"),
+            BalatroCard("9", "Diamonds"),
+            BalatroCard("2", "Spades"),
+        ]
+
+    result = JokerBehaviorAnalyzer._probe(
+        self,
+        joker,
+        cards=probe_cards,
+        held_cards=held_cards,
+        poker_hand=poker_hand,
+    )
+    ignored_features = {"signal:played_card", "signal:held_card"}
+    ignored_evidence = {"context:played_card", "context:held_card"}
+    return type(result)(
+        magnitudes=tuple(
+            (feature, amount)
+            for feature, amount in result.magnitudes
+            if feature not in ignored_features
+        ),
+        evidence=tuple(
+            item for item in result.evidence if item not in ignored_evidence
+        ),
+        amplifies=result.amplifies,
+    )
+
+
+# Reuse the phase-aware conditional probe through the semantic/lifecycle/scenario
+# hierarchy while preserving clean semantic output.
+SemanticJokerBehaviorAnalyzer._probe = _semantic_phase_probe
 
 __all__ = [
     "BOSS_CONTROL",
