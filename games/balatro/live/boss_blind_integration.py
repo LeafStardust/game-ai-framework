@@ -43,9 +43,14 @@ _BOSS_RULES = {
         boss_name="The Head",
         evaluator_factory=HeadHandDecisionEvaluator,
     ),
-    "The House": BossBlindPlanningRule(
-        boss_name="The House",
-    ),
+    # These four bosses alter only card visibility. Production process-memory
+    # observation already exposes the underlying rank/suit identity, and the
+    # project explicitly permits the agent to use it. Treat them as deterministic
+    # pass-through rules rather than manufacturing uncertain hidden-card branches.
+    "The House": BossBlindPlanningRule(boss_name="The House"),
+    "The Wheel": BossBlindPlanningRule(boss_name="The Wheel"),
+    "The Fish": BossBlindPlanningRule(boss_name="The Fish"),
+    "The Mark": BossBlindPlanningRule(boss_name="The Mark"),
 }
 
 
