@@ -80,9 +80,9 @@ def test_d9_standard_card_uses_b6_build_context_against_skip():
     assert any("B6 playing-card build gain=" in note for note in ranked[0].notes)
 
 
-def test_d9_celestial_planet_uses_b4_build_path_value_against_skip():
+def test_d9_planet_uses_b4_build_path_value_against_skip():
     state = BalatroState()
-    state.phase = "CELESTIAL_PACK"
+    state.phase = "PLANET_PACK"
     state.hand_levels["PAIR"] = 3
     choice = _choice("Planet", "Mercury")
 
