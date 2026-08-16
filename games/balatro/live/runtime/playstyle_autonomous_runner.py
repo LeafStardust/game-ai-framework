@@ -21,6 +21,7 @@ from games.balatro.live.path_aware_hand_action_engine import (
     PathAwareLiveHandActionDecisionEngine as LiveHandActionDecisionEngine,
 )
 from games.balatro.live.hand_playstyle import BuildAwareLiveHandActionPolicy
+from games.balatro.live.planet_policy import LivePlanetPolicy
 from games.balatro.pack_playstyle import PackPlaystyleEvaluator
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.playbook import default_balatro_playbooks
@@ -52,14 +53,17 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
 
     The base runner remains the mechanics/execution implementation. This adapter
     wires one competence-layer playstyle tracker into D1 hand decisions, D2
-    Joker/shop valuation, D9 booster choices, structured run logging, and the
-    dedicated D3 persistent-voucher shop policy. A supervisor retry creates a fresh
-    runner and therefore a fresh playstyle tracker.
+    Joker/shop valuation, D7 Planet choices, D9 booster choices, structured run
+    logging, and the dedicated D3 persistent-voucher shop policy. A supervisor
+    retry creates a fresh runner and therefore a fresh playstyle tracker.
     """
 
     def __init__(self, observer, **kwargs) -> None:
         custom_hand_recommender = kwargs.get("hand_recommender") is not None
         custom_pack_recommender = kwargs.get("pack_recommender") is not None
+        custom_consumable_timing_policy = (
+            kwargs.get("consumable_timing_policy") is not None
+        )
         super().__init__(observer, **kwargs)
 
         self.playstyle_profiler = BalatroBuildProfiler()
@@ -68,6 +72,13 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             profiler=self.playstyle_profiler,
             intent_tracker=self.playstyle_intent_tracker,
         )
+
+        if not custom_consumable_timing_policy:
+            self.consumable_timing_policy.planet_policy = LivePlanetPolicy(
+                hand_evaluator=self.consumable_timing_policy.hand_evaluator,
+                profiler=self.playstyle_profiler,
+                intent_tracker=self.playstyle_intent_tracker,
+            )
 
         joker_build_value = JokerBuildValueEvaluator(
             profiler=self.playstyle_profiler,
