@@ -56,6 +56,70 @@ def test_money_spend_cost_detects_interest_threshold_crossing():
     assert "interest_steps_lost=1" in threshold.notes
 
 
+def test_interest_cap_uses_owned_seed_money_and_money_tree():
+    valuator = RunResourceValuator()
+
+    assert valuator.interest_value(100) == 5
+    assert valuator.interest_value(100, vouchers=["Seed Money"]) == 10
+    assert valuator.interest_value(
+        100,
+        vouchers=[SimpleNamespace(label="Money Tree")],
+    ) == 20
+    assert valuator.interest_value(
+        100,
+        vouchers=[SimpleNamespace(name="Seed Money")],
+    ) == 10
+
+
+def test_seed_money_extends_interest_breakpoint_above_base_cap():
+    valuator = RunResourceValuator()
+
+    base = valuator.money_spend_cost(
+        money=50,
+        spend=5,
+        price_weight=0.0,
+        interest_weight=1.25,
+        reserve_weight=0.0,
+    )
+    seeded = valuator.money_spend_cost(
+        money=50,
+        spend=5,
+        price_weight=0.0,
+        interest_weight=1.25,
+        reserve_weight=0.0,
+        vouchers=["Seed Money"],
+    )
+
+    assert base.interest == pytest.approx(0.0)
+    assert seeded.interest == pytest.approx(1.25)
+    assert "interest_cap=$10" in seeded.notes
+
+
+def test_money_tree_extends_interest_breakpoint_beyond_seed_money_cap():
+    valuator = RunResourceValuator()
+
+    seeded = valuator.money_spend_cost(
+        money=100,
+        spend=5,
+        price_weight=0.0,
+        interest_weight=1.0,
+        reserve_weight=0.0,
+        vouchers=["Seed Money"],
+    )
+    tree = valuator.money_spend_cost(
+        money=100,
+        spend=5,
+        price_weight=0.0,
+        interest_weight=1.0,
+        reserve_weight=0.0,
+        vouchers=[{"label": "Money Tree"}],
+    )
+
+    assert seeded.interest == pytest.approx(0.0)
+    assert tree.interest == pytest.approx(1.0)
+    assert "interest_cap=$20" in tree.notes
+
+
 def test_money_spend_cost_only_charges_incremental_reserve_shortfall():
     valuator = RunResourceValuator()
 
