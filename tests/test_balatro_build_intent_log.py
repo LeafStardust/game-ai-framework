@@ -133,6 +133,43 @@ def test_pivot_and_ante_five_lock_are_reported_without_late_drift():
     assert later.payload["intent"]["strengths"] == {Playstyle.PAIR.value: 1.0}
 
 
+def test_locked_intent_conflict_is_logged_as_structured_public_evidence():
+    profiler = _Profiler(_profile(playstyle=Playstyle.PAIR.value))
+    tracker = BuildIntentLogTracker(
+        profiler=profiler,
+        intent_tracker=BalatroPlaystyleIntentTracker(),
+    )
+
+    initial = tracker.prepare(object())
+    assert initial is not None
+    assert initial.payload["detected_conflicts"] == []
+    initial.commit()
+
+    profiler.current = replace(profiler.current, ante=5)
+    locked = tracker.prepare(object())
+    assert locked is not None
+    assert locked.payload["detected_conflicts"] == []
+    locked.commit()
+
+    profiler.current = replace(
+        profiler.current,
+        ante=6,
+        playstyle_strengths=((Playstyle.PAIR.value, -1.0),),
+    )
+    conflict = tracker.prepare(object())
+
+    assert conflict is not None
+    assert conflict.payload["intent"]["strengths"] == {Playstyle.PAIR.value: 1.0}
+    assert conflict.payload["detected_conflicts"] == [
+        {
+            "kind": "LOCKED_INTENT_CONFLICT",
+            "axis": Playstyle.PAIR.value,
+            "committed_strength": 1.0,
+            "current_strength": -1.0,
+        }
+    ]
+
+
 def test_behavior_backed_supported_interactions_are_logged_as_detected_synergies():
     profiler = _Profiler(_profile())
     tracker = BuildIntentLogTracker(
