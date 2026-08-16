@@ -114,12 +114,19 @@ def _round_played_hands(state) -> set[str]:
 
 
 def _unique_most_played_hand(state) -> str | None:
-    counts = getattr(state, "hand_play_counts", None)
-    if not isinstance(counts, dict):
+    run_counts = getattr(state, "hand_play_counts", None)
+    round_counts = getattr(state, "round_hand_play_counts", None)
+    if not isinstance(run_counts, dict) or not isinstance(round_counts, dict):
         return None
 
+    # G.GAME.current_round.most_played_poker_hand is fixed for the round. Live
+    # run counts already include hands played during the current blind, so subtract
+    # current-round usage to reconstruct the public run totals at round start.
     by_hand = {
-        hand.value: _hand_count(counts, hand)
+        hand.value: max(
+            0,
+            _hand_count(run_counts, hand) - _hand_count(round_counts, hand),
+        )
         for hand in PokerHand
     }
     maximum = max(by_hand.values(), default=0)
