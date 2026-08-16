@@ -131,6 +131,11 @@ class BlindSkipDecision:
 
     @property
     def economy_opportunity_cost(self) -> float:
+        # Preserve the v0.9 snapshot-only compatibility contract. Contextual v1.0
+        # decisions expose blind reward and interest separately, while the legacy
+        # entry point historically used this name for only its cash-poor penalty.
+        if self.blind_reward_source == "legacy_play_ev_proxy":
+            return self.interest_opportunity_cost
         return self.blind_reward_ev + self.interest_opportunity_cost
 
     @property
