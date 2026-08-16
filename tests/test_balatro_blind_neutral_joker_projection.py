@@ -4,26 +4,52 @@ from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
 from games.balatro.jokers.astronomer import AstronomerJoker
 from games.balatro.jokers.burglar import BurglarJoker
+from games.balatro.jokers.cartomancer import CartomancerJoker
+from games.balatro.jokers.certificate import CertificateJoker
 from games.balatro.jokers.chaos_the_clown import ChaosTheClownJoker
+from games.balatro.jokers.cloud_9 import Cloud9Joker
+from games.balatro.jokers.coupon_tag import CouponTagJoker
 from games.balatro.jokers.credit_card import CreditCardJoker
+from games.balatro.jokers.delayed_gratification import DelayedGratificationJoker
 from games.balatro.jokers.diet_cola import DietColaJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
+from games.balatro.jokers.gift_card import GiftCardJoker
+from games.balatro.jokers.golden_joker import GoldenJoker
+from games.balatro.jokers.hallucination import HallucinationJoker
 from games.balatro.jokers.juggler import JugglerJoker
+from games.balatro.jokers.marble_joker import MarbleJoker
+from games.balatro.jokers.riff_raff import RiffRaffJoker
+from games.balatro.jokers.rocket import RocketJoker
+from games.balatro.jokers.satellite import SatelliteJoker
 from games.balatro.jokers.showman import ShowmanJoker
+from games.balatro.jokers.to_the_moon import ToTheMoonJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
-from games.balatro.live.score_outcomes import VisibleCardScoreOutcomeModel
+from games.balatro.live.post_hand_outcomes import LiveVisibleCardScoreOutcomeModel
 from games.balatro.state import BalatroState
 
 
 BLIND_NEUTRAL_JOKERS = (
     AstronomerJoker,
     BurglarJoker,
+    CartomancerJoker,
+    CertificateJoker,
     ChaosTheClownJoker,
+    Cloud9Joker,
+    CouponTagJoker,
     CreditCardJoker,
+    DelayedGratificationJoker,
     DietColaJoker,
     DrunkardJoker,
+    GiftCardJoker,
+    GoldenJoker,
+    HallucinationJoker,
     JugglerJoker,
+    MarbleJoker,
+    RiffRaffJoker,
+    RocketJoker,
+    SatelliteJoker,
     ShowmanJoker,
+    ToTheMoonJoker,
     TroubadourJoker,
 )
 
@@ -39,7 +65,7 @@ def _project(jokers):
     state.hands_remaining = 2
     state.discards_remaining = 4
 
-    return state, VisibleCardScoreOutcomeModel().project_transition(
+    return state, LiveVisibleCardScoreOutcomeModel().project_transition(
         PokerHand.HIGH_CARD,
         state,
         [ace],
@@ -73,7 +99,7 @@ def test_burglar_preserves_live_post_blind_resource_state():
     state.hands_remaining = 6
     state.discards_remaining = 0
 
-    transition = VisibleCardScoreOutcomeModel().project_transition(
+    transition = LiveVisibleCardScoreOutcomeModel().project_transition(
         PokerHand.HIGH_CARD,
         state,
         [ace],
