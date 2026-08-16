@@ -1,3 +1,4 @@
+from games.balatro.hand_rules import card_matches_suit
 from games.balatro.joker import Joker, JokerContext
 
 
@@ -12,8 +13,10 @@ class CastleJoker(Joker):
             cards = context.event.cards or []
 
             if context.event.type.value == "CARDS_DISCARDED":
+                rules = context.data.get("hand_rules", {})
                 matching_cards = sum(
-                    card.suit == self.suit
+                    not bool(getattr(card, "debuffed", False))
+                    and card_matches_suit(card, self.suit, rules)
                     for card in cards
                 )
 
