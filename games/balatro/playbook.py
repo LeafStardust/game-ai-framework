@@ -106,7 +106,8 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
             deck="RED",
             stake="WHITE",
             name="red-white",
-            version="0.8",
+            # Frozen Red Deck / White Stake D1-D14 threshold cartridge for v1.0 acceptance.
+            version="1.0",
             strategy={
                 "risk_tolerance": "moderate",
                 "planner": {
