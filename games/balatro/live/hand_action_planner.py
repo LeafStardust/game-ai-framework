@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from itertools import combinations
 
-from games.balatro.actions import BalatroAction, PLAY_CARDS, USE_CONSUMABLE
+from games.balatro.actions import (
+    BalatroAction,
+    DISCARD_CARDS,
+    PLAY_CARDS,
+    USE_CONSUMABLE,
+)
 from games.balatro.blinds.blind import BlindType
+from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.blind_clear_planner import LiveBlindPlanValue, _ActionEstimate
 from games.balatro.live.boss_blind_integration import boss_play_action_is_legal
 from games.balatro.live.consumable_timing import LiveConsumableTimingPolicy
+from games.balatro.live.draw_model import PublicDeckComposition
 from games.balatro.live.hand_action_planner_core import (
     D1LiveBlindClearPlanner as _CoreD1LiveBlindClearPlanner,
 )
@@ -340,6 +348,206 @@ class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
         )
         selected_ids = {id(card) for card in ranked[:required]}
         return [card for card in cards if id(card) in selected_ids]
+
+    def _estimate_play(self, state, action: BalatroAction, depth: int) -> _ActionEstimate:
+        """Project branch-specific held cards before public redraw outcomes."""
+        projection = self.evaluator.project_play(state, action)
+        total_value = self._zero_value()
+        exact = projection.joker_projection_complete
+        hands_after = max(0, int(getattr(state, "hands_remaining", 0)) - 1)
+        target = self._target(state)
+        projected_state = projection.state_after_scoring
+        if projected_state is None:
+            projected_state = deepcopy(state)
+
+        if depth <= 1:
+            for score_outcome in projection.outcomes:
+                score_after = int(getattr(state, "score", 0)) + score_outcome.score
+                outcome_state = self._score_outcome_state(
+                    score_outcome,
+                    projected_state,
+                )
+                branch_state = deepcopy(outcome_state)
+                branch_state.score = score_after
+                branch_state.hands_remaining = hands_after
+                value = self._terminal_value(
+                    branch_state,
+                    clear=(target > 0 and score_after >= target),
+                )
+                total_value = total_value.plus(
+                    value.weighted(score_outcome.probability)
+                )
+            return _ActionEstimate(action, total_value, exact)
+
+        for score_outcome in projection.outcomes:
+            outcome_state = self._score_outcome_state(
+                score_outcome,
+                projected_state,
+            )
+            score_after = int(getattr(state, "score", 0)) + score_outcome.score
+            if target > 0 and score_after >= target:
+                branch_state = deepcopy(outcome_state)
+                branch_state.score = score_after
+                branch_state.hands_remaining = hands_after
+                total_value = total_value.plus(
+                    self._terminal_value(branch_state, clear=True).weighted(
+                        score_outcome.probability
+                    )
+                )
+                continue
+
+            if hands_after <= 0:
+                branch_state = deepcopy(outcome_state)
+                branch_state.score = score_after
+                branch_state.hands_remaining = 0
+                total_value = total_value.plus(
+                    self._terminal_value(branch_state, clear=False).weighted(
+                        score_outcome.probability
+                    )
+                )
+                continue
+
+            retained_cards = self._remove_selected_cards(
+                getattr(outcome_state, "hand", []),
+                action.cards,
+            )
+            retained_state = deepcopy(outcome_state)
+            retained_state.score = score_after
+            retained_state.hands_remaining = hands_after
+            retained_state.hand = list(retained_cards)
+            draw_count = self._post_action_draw_count(
+                outcome_state,
+                retained_cards,
+            )
+
+            if draw_count <= 0:
+                guaranteed_value = self._guaranteed_next_play_value(retained_state)
+                if guaranteed_value is not None:
+                    total_value = total_value.plus(
+                        guaranteed_value.weighted(score_outcome.probability)
+                    )
+                    continue
+                value, child_exact = self._best_value(retained_state, depth - 1)
+                exact = exact and child_exact
+                total_value = total_value.plus(
+                    value.weighted(score_outcome.probability)
+                )
+                continue
+
+            composition = PublicDeckComposition.from_state(outcome_state)
+            draw_distribution = self.draw_outcomes.distribution(
+                composition,
+                draw_count,
+            )
+            exact = exact and draw_distribution.exact
+            for draw_outcome in draw_distribution.outcomes:
+                next_state = deepcopy(outcome_state)
+                next_state.score = score_after
+                next_state.hands_remaining = hands_after
+                next_state.hand = list(retained_cards) + [
+                    self.draw_outcomes.card_from_signature(signature)
+                    for signature in draw_outcome.cards
+                ]
+                next_state.deck = self.draw_outcomes.remaining_cards(
+                    composition,
+                    draw_outcome,
+                )
+                value, child_exact = self._best_value(next_state, depth - 1)
+                exact = exact and child_exact
+                probability = score_outcome.probability * draw_outcome.probability
+                total_value = total_value.plus(value.weighted(probability))
+
+        return _ActionEstimate(action, total_value, exact)
+
+    def _estimate_discard(
+        self,
+        state,
+        action: BalatroAction,
+        depth: int,
+    ) -> _ActionEstimate:
+        if int(getattr(state, "discards_remaining", 0)) <= 0:
+            return _ActionEstimate(
+                action,
+                LiveBlindPlanValue(-1.0, 0.0, 0.0, 0.0, 0.0),
+                True,
+            )
+
+        discard_state = self.discard_joker_projector.project(state, action.cards)
+        discards_after = max(0, int(state.discards_remaining) - 1)
+        kept = self._remove_selected_cards(discard_state.hand, action.cards)
+        if depth <= 1:
+            next_state = deepcopy(discard_state)
+            next_state.discards_remaining = discards_after
+            next_state.hand = list(kept)
+            return _ActionEstimate(
+                action,
+                self._terminal_value(next_state, clear=False),
+                True,
+            )
+
+        draw_count = self._post_action_draw_count(discard_state, kept)
+        if draw_count <= 0:
+            next_state = deepcopy(discard_state)
+            next_state.discards_remaining = discards_after
+            next_state.hand = list(kept)
+            value, child_exact = self._best_value(next_state, depth - 1)
+            return _ActionEstimate(action, value, child_exact)
+
+        composition = PublicDeckComposition.from_state(discard_state)
+        draw_distribution = self.draw_outcomes.distribution(
+            composition,
+            draw_count,
+        )
+        total_value = self._zero_value()
+        exact = draw_distribution.exact
+
+        for draw_outcome in draw_distribution.outcomes:
+            next_state = deepcopy(discard_state)
+            next_state.discards_remaining = discards_after
+            next_state.hand = list(kept) + [
+                self.draw_outcomes.card_from_signature(signature)
+                for signature in draw_outcome.cards
+            ]
+            next_state.deck = self.draw_outcomes.remaining_cards(
+                composition,
+                draw_outcome,
+            )
+            value, child_exact = self._best_value(next_state, depth - 1)
+            exact = exact and child_exact
+            total_value = total_value.plus(
+                value.weighted(draw_outcome.probability)
+            )
+
+        return _ActionEstimate(action, total_value, exact)
+
+    def _post_action_draw_count(self, state, retained_cards) -> int:
+        """Return the public draw rule after one Play/Discard transition."""
+        if (
+            str(getattr(state, "boss_name", "") or "") == "The Serpent"
+            and not boss_blind_disabled_by_owned_jokers(state)
+        ):
+            return 3
+
+        hand_size = max(0, int(getattr(state, "hand_size", 0) or 0))
+        return max(0, hand_size - len(list(retained_cards or [])))
+
+    @classmethod
+    def _remove_selected_cards(cls, source, selected) -> list:
+        remaining = list(source or [])
+        for card in list(selected or []):
+            identity = cls._projection_card_identity(card)
+            for index, candidate in enumerate(remaining):
+                if cls._projection_card_identity(candidate) == identity:
+                    del remaining[index]
+                    break
+        return remaining
+
+    @staticmethod
+    def _projection_card_identity(card):
+        live_id = getattr(card, "live_id", None)
+        if live_id is not None:
+            return ("live", live_id)
+        return ("object", id(card))
 
     def _estimate_action(self, state, action: BalatroAction, depth: int):
         if action.name != USE_CONSUMABLE:
