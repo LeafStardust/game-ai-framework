@@ -81,7 +81,11 @@ def test_glass_enhancement():
         ]
     )
 
-    assert score.x_mult == 2.0
+    # v0.9 folds XMult at its activation boundary so later additive Mult effects
+    # preserve real Balatro ordering instead of carrying a deferred x_mult field.
+    assert score.mult == 2.0
+    assert score.x_mult == 1.0
+    assert score.total == 10
 
 
 def test_stone_enhancement():
@@ -126,7 +130,9 @@ def test_steel_enhancement():
         state
     )
 
-    assert score.x_mult == 1.5
+    assert score.mult == 1.5
+    assert score.x_mult == 1.0
+    assert score.total == 7
 
 
 def test_foil_edition():
@@ -180,7 +186,9 @@ def test_polychrome_edition():
         ]
     )
 
-    assert score.x_mult == 1.5
+    assert score.mult == 1.5
+    assert score.x_mult == 1.0
+    assert score.total == 7
 
 
 def test_combined_card_modifiers():
@@ -201,8 +209,9 @@ def test_combined_card_modifiers():
     )
 
     assert score.chips == 5
-    assert score.mult == 5
-    assert score.x_mult == 1.5
+    assert score.mult == 7.5
+    assert score.x_mult == 1.0
+    assert score.total == 37
 
 
 def test_planet_level_one_keeps_base_score():

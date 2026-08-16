@@ -95,6 +95,13 @@ from .synergy import (
     SynergyContribution,
 )
 
+# ``SemanticJokerBehaviorAnalyzer`` predates phase-specific Joker activation and
+# still overrides the base conditional probe with a HAND_SCORED-only callback.
+# The base analyzer is now the canonical conditional probe implementation; reuse it
+# through the semantic/lifecycle/scenario hierarchy so held/played-card conditions
+# are discovered from the same real phase semantics used by production scoring.
+SemanticJokerBehaviorAnalyzer._probe = JokerBehaviorAnalyzer._probe
+
 __all__ = [
     "BOSS_CONTROL",
     "BalatroBuildProfiler",

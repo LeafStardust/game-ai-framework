@@ -252,6 +252,18 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
         if scenario.name == "self_sale":
             data["sold_joker"] = working
 
+        hands_remaining = data.get("hands_remaining")
+        if isinstance(hands_remaining, int) and not isinstance(hands_remaining, bool):
+            state.hands_remaining = hands_remaining
+        discards_remaining = data.get("discards_remaining")
+        if isinstance(discards_remaining, int) and not isinstance(discards_remaining, bool):
+            state.discards_remaining = discards_remaining
+        if data.get("poker_hand_played_twice"):
+            state.round_hand_play_counts[scenario.poker_hand.value] = max(
+                state.round_hand_play_counts.get(scenario.poker_hand.value, 0),
+                1,
+            )
+
         before_data = copy.deepcopy(data)
         if "sold_joker" in data:
             before_data["sold_joker"] = data["sold_joker"]
@@ -279,7 +291,28 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
                     data=data,
                 )
                 result = working.apply(context)
+                score = getattr(result, "score", score) or score
                 data = getattr(result, "data", data) or data
+
+            if scenario.joker_neighborhood:
+                for neighbor in state.jokers:
+                    if neighbor is working:
+                        continue
+                    neighborhood_data = dict(data)
+                    neighborhood_data["other_joker"] = neighbor
+                    context = JokerContext(
+                        state=state,
+                        score=score,
+                        poker_hand=scenario.poker_hand,
+                        cards=copy.deepcopy(cards),
+                        held_cards=copy.deepcopy(cards),
+                        trigger="OTHER_JOKER",
+                        event=copy.deepcopy(event),
+                        data=neighborhood_data,
+                    )
+                    result = working.apply(context)
+                    score = getattr(result, "score", score) or score
+                    data = getattr(result, "data", neighborhood_data) or neighborhood_data
 
             if scenario.post_score:
                 score = HandScore(100, 10, 1.0)
@@ -411,11 +444,14 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
         if mode == "ENHANCED_DECK":
             for card in state.deck[:20]:
                 card.enhancement = "Mult"
+            state.owned_deck = copy.deepcopy(state.deck)
         elif mode == "STEEL_DECK":
             for card in state.deck[:12]:
                 card.enhancement = "Steel"
+            state.owned_deck = copy.deepcopy(state.deck)
         elif mode == "SHORT_DECK":
             state.deck = state.deck[:40]
+            state.owned_deck = copy.deepcopy(state.deck)
         elif mode == "GLASS_DESTROYED":
             state.glass_cards_destroyed = 4
         return state

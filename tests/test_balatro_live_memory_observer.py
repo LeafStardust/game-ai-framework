@@ -214,4 +214,8 @@ def test_live_memory_observer_whitelists_dynamic_joker_targets_and_hand_counts()
         "j_castle": {"suit": "Clubs"},
         "j_idol": {"rank": "Ace", "suit": "Spades"},
     }
-    assert hands == {"Pair": {"level": 3, "played": 7}}
+    # ``played_this_round`` became authoritative public state in v0.9 so Card
+    # Sharp and other round-history decisions do not need to infer it indirectly.
+    assert hands == {
+        "Pair": {"level": 3, "played": 7, "played_this_round": 2}
+    }

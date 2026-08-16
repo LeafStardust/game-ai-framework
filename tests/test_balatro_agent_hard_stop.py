@@ -1,9 +1,9 @@
 import pytest
 
-from games.balatro.live.external import agent_control as agent_control_module
-from games.balatro.live.external import balatro_agent_toggle as toggle_module
-from games.balatro.live.external.agent_control import BalatroAgentControl
-from games.balatro.live.external.balatro_agent_toggle import hard_stop_agent
+from games.balatro.live.runtime import agent_control as agent_control_module
+from games.balatro.live.runtime import balatro_agent_toggle as toggle_module
+from games.balatro.live.runtime.agent_control import BalatroAgentControl
+from games.balatro.live.runtime.balatro_agent_toggle import hard_stop_agent
 
 
 def _record_running_supervisor(

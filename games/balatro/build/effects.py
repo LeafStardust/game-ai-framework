@@ -109,6 +109,10 @@ class JokerBehaviorAnalyzer:
     When a hand-type condition activates an effect, a second conditioned pass
     varies card features while keeping that hand condition fixed; this exposes
     conjunctions such as ``Straight AND Ace`` conservatively.
+
+    Joker scoring is phase-aware in the production model. Synthetic discovery
+    therefore probes the neutral semantic fallback and the public scoring phases
+    rather than assuming every Joker activates at ``HAND_SCORED``.
     """
 
     RANKS = ("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
@@ -154,13 +158,7 @@ class JokerBehaviorAnalyzer:
         def compare_variants(
             variants: list[tuple[str, _ProbeResult]],
         ) -> None:
-            """Infer positive dependencies within one already-active condition.
-
-            The minimum observed output across mutually exclusive variants is the
-            local reference. A feature is credited only when that feature produces
-            more output than the local minimum. If the local minimum is zero, the
-            feature is also an observed requirement for that conditioned effect.
-            """
+            """Infer positive dependencies within one already-active condition."""
 
             if len(variants) < 2:
                 return
@@ -269,9 +267,6 @@ class JokerBehaviorAnalyzer:
             if compare(hand_feature(poker_hand), result):
                 active_hands.append(poker_hand)
 
-        # One-factor probing cannot see conjunctions when the neutral cards already
-        # satisfy one side of the condition. Once a hand-type trigger is known to
-        # activate output, vary card features again under that fixed trigger.
         for poker_hand in active_hands:
             compare_variants(
                 [
@@ -409,6 +404,76 @@ class JokerBehaviorAnalyzer:
         held_cards: list[BalatroCard],
         poker_hand: PokerHand = PokerHand.HIGH_CARD,
     ) -> _ProbeResult:
+        probes = [
+            self._probe_trigger(
+                joker,
+                cards=cards,
+                held_cards=held_cards,
+                poker_hand=poker_hand,
+                trigger="",
+            ),
+            self._probe_trigger(
+                joker,
+                cards=cards,
+                held_cards=held_cards,
+                poker_hand=poker_hand,
+                trigger="HAND_SCORED",
+            ),
+            self._probe_trigger(
+                joker,
+                cards=cards,
+                held_cards=held_cards,
+                poker_hand=poker_hand,
+                trigger="HAND_PLAYED",
+            ),
+        ]
+        probes.extend(
+            self._probe_trigger(
+                joker,
+                cards=cards,
+                held_cards=held_cards,
+                poker_hand=poker_hand,
+                trigger="PLAYED_CARD",
+                data={"played_card": copy.deepcopy(card)},
+            )
+            for card in cards
+        )
+        probes.extend(
+            self._probe_trigger(
+                joker,
+                cards=cards,
+                held_cards=held_cards,
+                poker_hand=poker_hand,
+                trigger="HELD_CARD",
+                data={"held_card": copy.deepcopy(card)},
+            )
+            for card in held_cards
+        )
+
+        magnitudes: dict[str, float] = {}
+        evidence: set[str] = set()
+        amplifies: set[str] = set()
+        for result in probes:
+            evidence.update(result.evidence)
+            amplifies.update(result.amplifies)
+            for feature, amount in result.magnitudes:
+                magnitudes[feature] = max(magnitudes.get(feature, 0.0), amount)
+        return _ProbeResult(
+            magnitudes=tuple(sorted(magnitudes.items())),
+            evidence=tuple(sorted(evidence)),
+            amplifies=frozenset(amplifies),
+        )
+
+    @staticmethod
+    def _probe_trigger(
+        joker: Joker,
+        *,
+        cards: list[BalatroCard],
+        held_cards: list[BalatroCard],
+        poker_hand: PokerHand,
+        trigger: str,
+        data: dict | None = None,
+    ) -> _ProbeResult:
         state = BalatroState()
         state.hand = copy.deepcopy(cards)
         initial_money = float(state.money)
@@ -419,14 +484,14 @@ class JokerBehaviorAnalyzer:
             poker_hand=poker_hand,
             cards=copy.deepcopy(cards),
             held_cards=copy.deepcopy(held_cards),
-            trigger="HAND_SCORED",
-            data={},
+            trigger=trigger,
+            data=copy.deepcopy(data or {}),
         )
         random_state = random.getstate()
         try:
             random.seed(0)
             result = copy.deepcopy(joker).apply(context)
-        except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
+        except (AttributeError, ImportError, KeyError, TypeError, ValueError, ZeroDivisionError):
             return _ProbeResult()
         finally:
             random.setstate(random_state)

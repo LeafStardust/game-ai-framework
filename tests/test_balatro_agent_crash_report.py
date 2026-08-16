@@ -4,11 +4,11 @@ import json
 
 import pytest
 
-from games.balatro.live.external import balatro_agent_crash_report as report_module
-from games.balatro.live.external import balatro_agent_toggle as toggle_module
-from games.balatro.live.external.agent_control import BalatroAgentControl
-from games.balatro.live.external.balatro_agent_crash_report import write_crash_report
-from games.balatro.live.external.balatro_agent_supervisor import BalatroAgentSupervisor
+from games.balatro.live.runtime import balatro_agent_crash_report as report_module
+from games.balatro.live.runtime import balatro_agent_toggle as toggle_module
+from games.balatro.live.runtime.agent_control import BalatroAgentControl
+from games.balatro.live.runtime.balatro_agent_crash_report import write_crash_report
+from games.balatro.live.runtime.balatro_agent_supervisor import BalatroAgentSupervisor
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 
@@ -66,7 +66,7 @@ def test_crash_report_collects_status_attempt_logs_and_agent_tail(tmp_path, monk
     assert "balatro-process-test" in report
     assert "snapshot-test" in report
     assert "bridge-test" in report
-    assert '"event":"decision","sequence":7' in report
+    assert '{"event":"decision","sequence":7' in report
     assert "RuntimeError: boom" in report
     assert "windows-test" in report
 

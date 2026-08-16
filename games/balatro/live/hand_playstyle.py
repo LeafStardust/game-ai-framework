@@ -346,6 +346,19 @@ class BuildAwareLiveHandActionPolicy(LiveHandActionPolicy):
         ).rank_fit
         return (base[0], base[1], fit, *base[2:])
 
+    def _safe_equivalent_clear_key(self, plan):
+        base = super()._safe_equivalent_clear_key(plan)
+        if self._ranking_state is None:
+            return base
+        fit = self.playstyle_evaluator.evaluate_playstyle(
+            self._ranking_state,
+            plan.action,
+        ).rank_fit
+        # Preserve the v1.0A D1 contract: exactness and expected hands remain
+        # ahead of build preference; playstyle only breaks otherwise equivalent
+        # safe-clear lines before secondary resources/progress.
+        return (base[0], base[1], fit, *base[2:])
+
     def _pace_play_key(self, plan, pace_ratio: float):
         base = super()._pace_play_key(plan, pace_ratio)
         if self._ranking_state is None:

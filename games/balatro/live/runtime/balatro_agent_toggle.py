@@ -12,8 +12,8 @@ from . import agent_control as agent_control_module
 from .agent_control import BalatroAgentControl
 
 
-SUPERVISOR_MODULE = "games.balatro.live.external.balatro_agent_supervisor_entry"
-MONITOR_MODULE = "games.balatro.live.external.balatro_agent_monitor"
+SUPERVISOR_MODULE = "games.balatro.live.runtime.balatro_agent_supervisor_entry"
+MONITOR_MODULE = "games.balatro.live.runtime.balatro_agent_monitor"
 HARD_STOP_EXIT_TIMEOUT_SECONDS = 3.0
 HARD_STOP_POLL_INTERVAL_SECONDS = 0.02
 
