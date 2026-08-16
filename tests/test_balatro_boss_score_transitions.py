@@ -119,6 +119,19 @@ def test_flint_transform_survives_misprint_stochastic_replay():
     assert transition.distribution.maximum == 336
 
 
+def test_flint_triggers_matador_without_changing_base_transform_order():
+    ace = BalatroCard("A", "Spades", live_id=1)
+    state = _state("The Flint", [ace])
+    state.money = 0
+    state.jokers = [MatadorJoker()]
+
+    transition = _project(state, PokerHand.HIGH_CARD, [ace])
+    branch = transition.distribution.outcomes[0].state_after_scoring
+
+    assert transition.distribution.minimum == 14
+    assert branch.money == 8
+
+
 def test_chicot_suppresses_flint():
     ace = BalatroCard("A", "Spades", live_id=1)
     state = _state("The Flint", [ace])
@@ -180,6 +193,23 @@ def test_tooth_can_push_money_negative_and_does_not_trigger_matador():
     branch = transition.distribution.outcomes[0].state_after_scoring
 
     assert branch.money == -2
+
+
+def test_bootstraps_gives_no_negative_mult_when_tooth_pushes_balance_below_zero():
+    cards = [
+        BalatroCard("A", "Spades", live_id=1),
+        BalatroCard("2", "Hearts", live_id=2),
+        BalatroCard("3", "Clubs", live_id=3),
+    ]
+    state = _state("The Tooth", cards)
+    state.money = 1
+    state.jokers = [BootstrapsJoker()]
+
+    transition = _project(state, PokerHand.HIGH_CARD, cards)
+    branch = transition.distribution.outcomes[0].state_after_scoring
+
+    assert branch.money == -2
+    assert transition.distribution.minimum == 16
 
 
 def test_chicot_suppresses_tooth_money_loss():
