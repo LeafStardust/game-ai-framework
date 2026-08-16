@@ -5,6 +5,8 @@ from typing import Callable
 
 from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
 from games.balatro.card_selector import CardSelector
+from games.balatro.live.cerulean_bell import CeruleanBellHandDecisionEvaluator
+from games.balatro.live.crimson_heart import CrimsonHeartHandDecisionEvaluator
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.live.head_blind_planner import HeadHandDecisionEvaluator
 
@@ -51,6 +53,19 @@ _BOSS_RULES = {
     "The Wheel": BossBlindPlanningRule(boss_name="The Wheel"),
     "The Fish": BossBlindPlanningRule(boss_name="The Fish"),
     "The Mark": BossBlindPlanningRule(boss_name="The Mark"),
+    # Finisher bosses. Amber Acorn's actual post-shuffle Joker order and Verdant
+    # Leaf's card debuffs are already authoritative live state. Crimson Heart and
+    # Cerulean Bell need narrow evaluator/action constraints.
+    "Amber Acorn": BossBlindPlanningRule(boss_name="Amber Acorn"),
+    "Verdant Leaf": BossBlindPlanningRule(boss_name="Verdant Leaf"),
+    "Crimson Heart": BossBlindPlanningRule(
+        boss_name="Crimson Heart",
+        evaluator_factory=CrimsonHeartHandDecisionEvaluator,
+    ),
+    "Cerulean Bell": BossBlindPlanningRule(
+        boss_name="Cerulean Bell",
+        evaluator_factory=CeruleanBellHandDecisionEvaluator,
+    ),
 }
 
 
@@ -64,12 +79,39 @@ def boss_blind_planning_rule(state) -> BossBlindPlanningRule | None:
     return _BOSS_RULES.get(str(boss_name))
 
 
-def boss_play_action_is_legal(state, action) -> bool:
-    """Return whether a Play action satisfies modeled boss-specific legality."""
-    rule = boss_blind_planning_rule(state)
-    if rule is None or rule.required_play_cards is None:
+def _same_card(left, right) -> bool:
+    if left is right:
         return True
-    return len(getattr(action, "cards", ())) == rule.required_play_cards
+    left_id = getattr(left, "live_id", None)
+    right_id = getattr(right, "live_id", None)
+    return left_id is not None and left_id == right_id
+
+
+def boss_play_action_is_legal(state, action) -> bool:
+    """Return whether a Play/Discard action satisfies modeled boss constraints."""
+    rule = boss_blind_planning_rule(state)
+    if rule is None:
+        return True
+    if (
+        rule.required_play_cards is not None
+        and len(getattr(action, "cards", ())) != rule.required_play_cards
+    ):
+        return False
+
+    if rule.boss_name == "Cerulean Bell":
+        forced = [
+            card
+            for card in getattr(state, "hand", [])
+            if bool(getattr(card, "forced_selection", False))
+        ]
+        if forced:
+            selected = list(getattr(action, "cards", ()))
+            return all(
+                any(_same_card(card, candidate) for candidate in selected)
+                for card in forced
+            )
+
+    return True
 
 
 class BossAwareCardSelector(CardSelector):
@@ -79,6 +121,13 @@ class BossAwareCardSelector(CardSelector):
         return [
             action
             for action in super().generate_play_actions(state)
+            if boss_play_action_is_legal(state, action)
+        ]
+
+    def generate_discard_actions(self, state):
+        return [
+            action
+            for action in super().generate_discard_actions(state)
             if boss_play_action_is_legal(state, action)
         ]
 
