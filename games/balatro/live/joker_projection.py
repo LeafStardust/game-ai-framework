@@ -103,10 +103,13 @@ class LiveJokerScoreProjector:
             "SpareTrousersJoker",
             "SplashJoker",
             "SquareJoker",
+            "SteelJoker",
             "StoneJoker",
+            "StuntmanJoker",
             "SupernovaJoker",
             "TheDuoJoker",
             "TheFamilyJoker",
+            "TheIdolJoker",
             "TheOrderJoker",
             "TheTribeJoker",
             "TheTrioJoker",
@@ -114,6 +117,7 @@ class LiveJokerScoreProjector:
             "TribouletJoker",
             "TurtleBeanJoker",
             "VampireJoker",
+            "WalkieTalkieJoker",
             "WeeJoker",
             "WilyJoker",
             "WrathfulJoker",
@@ -128,6 +132,7 @@ class LiveJokerScoreProjector:
     OWNED_DECK_REQUIRED_CLASS_NAMES = frozenset(
         {
             "DriversLicenseJoker",
+            "SteelJoker",
             "StoneJoker",
         }
     )

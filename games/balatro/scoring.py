@@ -70,7 +70,9 @@ class BalatroScorer:
             "ScaryFaceJoker",
             "ScholarJoker",
             "SmileyFaceJoker",
+            "TheIdolJoker",
             "TribouletJoker",
+            "WalkieTalkieJoker",
             "WeeJoker",
             "WrathfulJoker",
         }
