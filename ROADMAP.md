@@ -52,7 +52,7 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 
 ### 1.0C — Planet and consumable competence
 
-- [ ] Value Planets by expected future hand frequency, marginal level gain, build synergy and feasibility; suppress speculative upgrades such as unsupported early Straight Flush/Neptune lines.
+- [x] Value Planets by expected future hand frequency, marginal level gain, build synergy and feasibility; suppress speculative upgrades such as unsupported early Straight Flush/Neptune lines.
 - [ ] Align consumable acquisition with use timing and finalize held-consumable use/target thresholds.
 
 ### 1.0D — Shop, pack and economy competence
