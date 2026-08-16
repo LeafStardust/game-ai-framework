@@ -70,6 +70,28 @@ class _EqualPlanetUpgradeEvaluator:
         )
 
 
+class _EqualAllPlanetUpgradeEvaluator:
+    """Make every one-level Planet upgrade equally valuable immediately."""
+
+    def __init__(self):
+        self.action_generator = _ActionGenerator()
+
+    def project_play(self, state, action):
+        del action
+        investment = sum(
+            max(0, int(level) - 1)
+            for level in state.hand_levels.values()
+        )
+        score = 100.0 + 15.0 * investment
+        return SimpleNamespace(
+            clear_probability=0.0,
+            expected_hand_score=score,
+            hand_score=int(score),
+            maximum_hand_score=int(score),
+            joker_projection_complete=True,
+        )
+
+
 class _PairAlignedJoker(Joker):
     playstyle_affinities = {
         Playstyle.PAIR: PlaystyleAffinity.POSITIVE,
@@ -117,6 +139,12 @@ def _state(*, hands_remaining=4, phase="SELECTING_HAND"):
     state.hand_play_counts["FLUSH"] = 1
     state.consumable_slots = 2
     return state
+
+
+def _standard_deck():
+    ranks = ("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
+    suits = ("Hearts", "Diamonds", "Clubs", "Spades")
+    return [BalatroCard(rank, suit) for suit in suits for rank in ranks]
 
 
 def test_planet_defaults_to_immediate_use_without_positive_hold_signal():
@@ -231,6 +259,26 @@ def test_equal_safety_planets_use_b3_intent_as_material_tiebreak():
     assert decisions[0].playstyle_fit > 0.0
     assert decisions[1].playstyle_fit < 0.0
     assert any("D7 playstyle fit=" in note for note in decisions[0].rationale)
+
+
+def test_d7_future_outlook_breaks_equal_immediate_value_against_neptune():
+    state = _state()
+    state.jokers = []
+    state.hand_play_counts.clear()
+    state.owned_deck = _standard_deck()
+    state.hand_size = 8
+    mercury = create_planet("MERCURY")
+    neptune = create_planet("NEPTUNE")
+    state.consumables = [neptune, mercury]
+    policy = LivePlanetPolicy(hand_evaluator=_EqualAllPlanetUpgradeEvaluator())
+
+    decisions = policy.recommend_inventory(state)
+
+    assert decisions[0].planet is mercury
+    assert decisions[0].immediate_score_gain == decisions[1].immediate_score_gain
+    assert decisions[0].future_value > decisions[1].future_value
+    assert decisions[1].structural_feasibility < 0.01
+    assert any("Planet speculative=True" in note for note in decisions[1].rationale)
 
 
 def test_d7_ante_five_lock_survives_later_conflicting_build_change():
