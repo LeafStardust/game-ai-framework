@@ -78,6 +78,7 @@ class LiveJokerScoreProjector:
             "FlowerPotJoker",
             "FortuneTellerJoker",
             "FourFingersJoker",
+            "GlassJoker",
             "GluttonousJoker",
             "GoldenTicketJoker",
             "GreenJoker",
