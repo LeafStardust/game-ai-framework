@@ -437,6 +437,7 @@ class SemanticJokerBehaviorAnalyzer(JokerBehaviorAnalyzer):
             "owned_cards",
             "probability",
             "hands_remaining",
+            "other_joker",
         }
         for key, value in after.items():
             if key in handled or key in internal or not changed(key):
