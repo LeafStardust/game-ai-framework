@@ -423,6 +423,8 @@ def _normalize_item(
     rarity = _rarity_name(center.get("rarity"))
     if rarity is not None:
         result["rarity"] = rarity
+    if "discovered" in center:
+        result["discovered"] = _boolean(center.get("discovered"), False)
     if area_index is not None:
         result["area_index"] = area_index
 
