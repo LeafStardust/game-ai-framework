@@ -74,6 +74,9 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         "Full House": "FULL_HOUSE",
         "Four of a Kind": "FOUR_OF_A_KIND",
         "Straight Flush": "STRAIGHT_FLUSH",
+        "Five of a Kind": "FIVE_OF_A_KIND",
+        "Flush House": "FLUSH_HOUSE",
+        "Flush Five": "FLUSH_FIVE",
     }
 
     def __init__(self):
