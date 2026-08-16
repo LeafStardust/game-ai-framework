@@ -12,6 +12,7 @@ from games.balatro.live.hand_action_policy import (
 from games.balatro.live.path_aware_hand_action_engine import (
     PathAwareLiveHandActionDecisionEngine,
 )
+from games.balatro.live.runtime import playstyle_autonomous_runner
 
 
 class _FakeEvaluator:
@@ -85,6 +86,13 @@ def _summary(state, plan, *, horizon):
 
 def _engine(policy):
     return PathAwareLiveHandActionDecisionEngine(policy=policy)
+
+
+def test_production_runner_uses_path_aware_d1_engine():
+    assert (
+        playstyle_autonomous_runner.LiveHandActionDecisionEngine
+        is PathAwareLiveHandActionDecisionEngine
+    )
 
 
 def test_stable_path_discard_overrides_different_one_step_recovery_discard():
