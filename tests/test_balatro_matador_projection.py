@@ -209,7 +209,8 @@ def test_non_triggering_tooth_never_pays_matador():
 
     transition = _project(state, PokerHand.HIGH_CARD, [card])
 
-    assert transition.state_after_scoring.money == 5
+    # Tooth itself charges $1 for the played card; Matador must add nothing.
+    assert transition.state_after_scoring.money == 4
 
 
 def test_chicot_disables_matador_trigger_with_the_boss_effect():
