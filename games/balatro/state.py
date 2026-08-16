@@ -50,7 +50,10 @@ class BalatroState(GameState):
             "FLUSH": 1,
             "FULL_HOUSE": 1,
             "FOUR_OF_A_KIND": 1,
-            "STRAIGHT_FLUSH": 1
+            "STRAIGHT_FLUSH": 1,
+            "FIVE_OF_A_KIND": 1,
+            "FLUSH_HOUSE": 1,
+            "FLUSH_FIVE": 1,
         }
         # Public run-history count for each poker hand. Live observation derives
         # this from the ordinary G.GAME.hands[*].played counters; no hidden draw or
