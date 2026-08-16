@@ -92,7 +92,7 @@ def test_generated_consumables_respect_full_slot_capacity():
         BalatroCard("7", "Hearts"),
         BalatroCard("8", "Hearts"),
     ]
-    held = object()
+    held = "held-consumable"
     state = _state(
         cards,
         [SeanceJoker()],
@@ -174,7 +174,7 @@ def test_sixth_sense_does_not_trigger_after_an_earlier_hand():
 
 def test_sixth_sense_full_slots_prevent_both_creation_and_destruction():
     six = BalatroCard("6", "Hearts", live_id=600)
-    held = object()
+    held = "held-consumable"
     state = _state(
         [six],
         [SixthSenseJoker()],
@@ -197,6 +197,20 @@ def test_duplicate_sixth_sense_only_destroys_the_six_once():
 
     assert _generated_categories(transition.distribution.outcomes[0]) == ["SPECTRAL"]
     assert transition.distribution.outcomes[0].state_after_scoring.owned_deck == []
+
+
+def test_blueprint_does_not_copy_sixth_sense():
+    six = BalatroCard("6", "Hearts", live_id=600)
+    state = _state(
+        [six],
+        [BlueprintJoker(), SixthSenseJoker()],
+        consumable_slots=2,
+    )
+
+    transition = _project(state, PokerHand.HIGH_CARD, [six])
+
+    assert _generated_categories(transition.distribution.outcomes[0]) == ["SPECTRAL"]
+    assert transition.joker_projection_complete is True
 
 
 def test_dna_copy_survives_sixth_sense_destruction_of_original():
@@ -267,6 +281,23 @@ def test_red_seal_retrigger_gives_eight_ball_two_independent_attempts():
         ("TAROT",): 0.4375,
     }
     assert "8 Ball x2" in transition.distribution.random_sources
+
+
+def test_two_eight_ball_attempts_can_fill_two_slots():
+    eight = BalatroCard("8", "Hearts", seal="Red")
+    state = _state([eight], [EightBallJoker()], consumable_slots=2)
+
+    transition = _project(state, PokerHand.HIGH_CARD, [eight])
+
+    probabilities = {
+        tuple(_generated_categories(outcome)): round(outcome.probability, 10)
+        for outcome in transition.distribution.outcomes
+    }
+    assert probabilities == {
+        (): 0.5625,
+        ("TAROT",): 0.375,
+        ("TAROT", "TAROT"): 0.0625,
+    }
 
 
 def test_blueprint_copy_of_eight_ball_adds_independent_attempt():
