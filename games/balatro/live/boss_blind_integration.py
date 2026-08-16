@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
+from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
 from games.balatro.card_selector import CardSelector
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.live.head_blind_planner import HeadHandDecisionEvaluator
@@ -30,19 +31,6 @@ _BOSS_RULES = {
         boss_name="The House",
     ),
 }
-
-
-def boss_blind_disabled_by_owned_jokers(state) -> bool:
-    """Return whether an owned passive Joker disables the current boss blind.
-
-    Chicot disables boss-blind effects while it is owned. Luchador deliberately
-    does not belong here: its disable occurs only after the separate sell action,
-    so merely holding it must not erase boss constraints during D1 planning.
-    """
-    return any(
-        type(joker).__name__ == "ChicotJoker"
-        for joker in getattr(state, "jokers", [])
-    )
 
 
 def boss_blind_planning_rule(state) -> BossBlindPlanningRule | None:
