@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 from games.balatro.actions import BUY_CONSUMABLE, BalatroAction
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
+from games.balatro.card import BalatroCard
 from games.balatro.joker import (
     Joker,
     JokerContext,
@@ -41,6 +42,12 @@ class _NoConsumableBuildPath:
             paths=(),
             contributions=(),
         )
+
+
+def _standard_deck():
+    ranks = ("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
+    suits = ("Hearts", "Diamonds", "Clubs", "Spades")
+    return [BalatroCard(rank, suit) for suit in suits for rank in ranks]
 
 
 def _state(*, ante: int, joker: Joker) -> BalatroState:
@@ -111,3 +118,24 @@ def test_d14_uses_locked_intent_after_owned_build_flips_direction():
     assert any("fit=1.000" in note for note in later_notes)
     assert any("fit=-1.000" in note for note in later_flush_notes)
     assert any("mode=LOCKED" in note for note in later_notes)
+
+
+def test_d14_standard_deck_rejects_raw_neptune_level_gain_as_strategy():
+    estimator = _estimator()
+    state = _state(ante=1, joker=_PairAlignedJoker())
+    state.jokers = []
+    state.owned_deck = _standard_deck()
+    state.hand_size = 8
+
+    mercury_value, mercury_notes = estimator.estimate(
+        state,
+        BalatroAction(BUY_CONSUMABLE, target=create_planet("MERCURY")),
+    )
+    neptune_value, neptune_notes = estimator.estimate(
+        state,
+        BalatroAction(BUY_CONSUMABLE, target=create_planet("NEPTUNE")),
+    )
+
+    assert mercury_value > neptune_value
+    assert any("Planet speculative=True" in note for note in neptune_notes)
+    assert any("Planet structural feasibility=" in note for note in mercury_notes)
