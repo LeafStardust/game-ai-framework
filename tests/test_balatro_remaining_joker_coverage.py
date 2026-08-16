@@ -104,6 +104,9 @@ def test_joker_discovery_does_not_require_package_file(monkeypatch):
 
     assert len(first) == 150
     assert len(second) == 150
+    modules = {module for module, _ in first}
+    assert "coupon_tag" not in modules
+    assert "jokers_apprentice" not in modules
     assert [item[:1] + (item[1].__name__,) for item in first] == [
         item[:1] + (item[1].__name__,) for item in second
     ]
