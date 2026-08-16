@@ -6,6 +6,20 @@ from .live_memory_observer import _integer, _table_fields
 from .live_memory_supervisor_observer import SupervisorLiveMemoryBalatroObserver
 
 
+def public_discard_history(decoder, root) -> tuple[int, int] | None:
+    """Return ``(total, used)`` from Balatro's public current-round counters."""
+    game = _table_fields(decoder, root.get("GAME"))
+    current_round = _table_fields(decoder, game.get("current_round"))
+    round_resets = _table_fields(decoder, game.get("round_resets"))
+    reset_discards = round_resets.get("discards")
+    if reset_discards is None:
+        return None
+
+    left = max(0, _integer(current_round.get("discards_left"), 0))
+    total = max(0, _integer(reset_discards, left))
+    return total, max(0, total - left)
+
+
 class DiscardHistorySupervisorLiveMemoryBalatroObserver(
     SupervisorLiveMemoryBalatroObserver
 ):
@@ -20,16 +34,10 @@ class DiscardHistorySupervisorLiveMemoryBalatroObserver(
     def _observe_public(self):
         snapshot = super()._observe_public()
         decoder, _, root = self._root()
-        game = _table_fields(decoder, root.get("GAME"))
-        current_round = _table_fields(decoder, game.get("current_round"))
-        round_resets = _table_fields(decoder, game.get("round_resets"))
-        reset_discards = round_resets.get("discards")
-        if reset_discards is None:
+        history = public_discard_history(decoder, root)
+        if history is None:
             return snapshot
-
-        left = max(0, _integer(current_round.get("discards_left"), 0))
-        total = max(0, _integer(reset_discards, left))
-        used = max(0, total - left)
+        total, used = history
 
         payload = dict(snapshot.payload)
         round_payload = dict(payload.get("round") or {})
