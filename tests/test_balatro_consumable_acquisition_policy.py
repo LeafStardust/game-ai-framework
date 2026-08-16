@@ -171,6 +171,23 @@ def test_d4_free_slot_d5_block_suppresses_buy_and_use_but_preserves_buy_option()
     assert all(option.mode != BUY_AND_USE for option in decision.options)
 
 
+def test_d4_post_purchase_timing_simulation_does_not_mutate_shop_state():
+    state = _state(money=13)
+    existing = HighPriestess()
+    state.consumables = [existing]
+    state.consumable_slots = 2
+    candidate = Hermit()
+    candidate.price = 3
+
+    ConsumableAcquisitionPolicy(
+        _no_economy_thresholds(),
+    ).decide(state, candidate)
+
+    assert state.money == 13
+    assert state.consumables == [existing]
+    assert candidate not in state.consumables
+
+
 def test_d4_full_slots_hold_targeted_consumable_without_safe_immediate_mode():
     state = _state(money=20, slots=1)
     state.consumables = [HighPriestess()]
