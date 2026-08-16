@@ -101,6 +101,38 @@ def detected_build_synergies(profile: BuildProfile) -> list[dict[str, Any]]:
     )
 
 
+def detected_build_conflicts(
+    profile: BuildProfile,
+    intent: PlaystyleIntent,
+) -> list[dict[str, Any]]:
+    """Report public current-build evidence that opposes committed run intent.
+
+    Before Ante 5 the intent is deliberately pivotable, so a changed direction is
+    not a conflict. Once locked, a negative dot product on the same declared axis is
+    direct inspectable evidence that the current owned build has drifted against the
+    run commitment. No named archetype or hidden-state rule is required.
+    """
+    if not intent.locked:
+        return []
+
+    current = dict(profile.playstyle_strengths)
+    detected: list[dict[str, Any]] = []
+    for axis, committed_raw in intent.strengths:
+        committed = float(committed_raw)
+        present = float(current.get(str(axis), 0.0))
+        if committed == 0.0 or present == 0.0 or committed * present >= 0.0:
+            continue
+        detected.append(
+            {
+                "kind": "LOCKED_INTENT_CONFLICT",
+                "axis": str(axis),
+                "committed_strength": committed,
+                "current_strength": present,
+            }
+        )
+    return sorted(detected, key=lambda item: item["axis"])
+
+
 @dataclass(frozen=True)
 class PreparedBuildIntentLog:
     """One not-yet-durable build event prepared for a guarded decision."""
@@ -141,6 +173,7 @@ class BuildIntentLogTracker:
         profile_payload: dict[str, Any],
         intent_payload: dict[str, Any],
         synergies: list[dict[str, Any]],
+        conflicts: list[dict[str, Any]],
     ) -> str:
         structural_profile = dict(profile_payload)
         structural_profile.pop("money", None)
@@ -149,6 +182,7 @@ class BuildIntentLogTracker:
                 "profile": structural_profile,
                 "intent": intent_payload,
                 "detected_synergies": synergies,
+                "detected_conflicts": conflicts,
             },
             ensure_ascii=False,
             sort_keys=True,
@@ -187,7 +221,13 @@ class BuildIntentLogTracker:
         profile_payload = build_profile_log_payload(profile)
         intent_payload = playstyle_intent_log_payload(intent)
         synergies = detected_build_synergies(profile)
-        signature = self._signature(profile_payload, intent_payload, synergies)
+        conflicts = detected_build_conflicts(profile, intent)
+        signature = self._signature(
+            profile_payload,
+            intent_payload,
+            synergies,
+            conflicts,
+        )
 
         if signature == self._last_signature:
             return None
@@ -201,6 +241,7 @@ class BuildIntentLogTracker:
             "profile": profile_payload,
             "intent": intent_payload,
             "detected_synergies": synergies,
+            "detected_conflicts": conflicts,
         }
         return PreparedBuildIntentLog(
             payload=payload,
