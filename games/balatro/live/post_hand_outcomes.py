@@ -46,6 +46,7 @@ class _LiveOutcomeJokerProjector(LiveJokerScoreProjector):
                 "DelayedGratificationJoker",
                 "FacelessJoker",
                 "GiftCardJoker",
+                "GlassJoker",
                 "GoldenJoker",
                 "HallucinationJoker",
                 "LuchadorJoker",
@@ -176,6 +177,7 @@ class LiveVisibleCardScoreOutcomeModel(VisibleCardScoreOutcomeModel):
     BUSINESS_CARD_REWARD = 2
     RESERVED_PARKING_PROBABILITY = 0.5
     RESERVED_PARKING_REWARD = 1
+    GLASS_JOKER_X_MULT_GAIN = 0.75
 
     def __init__(
         self,
@@ -457,6 +459,34 @@ class LiveVisibleCardScoreOutcomeModel(VisibleCardScoreOutcomeModel):
             include_card_chips=include_card_chips,
             resolve_random_effects=False,
         )
+
+    def _glass_branch_state(
+        self,
+        state,
+        glass_branch,
+        glass_cards,
+        *,
+        rules: dict | None = None,
+    ):
+        branch_state = super()._glass_branch_state(
+            state,
+            glass_branch,
+            glass_cards,
+            rules=rules,
+        )
+        if branch_state is None:
+            return None
+
+        breaks = len(glass_branch.broken_indices)
+        if breaks <= 0:
+            return branch_state
+
+        for glass_joker in self._jokers_named(branch_state, "GlassJoker"):
+            glass_joker.x_mult = (
+                float(getattr(glass_joker, "x_mult", 1.0) or 1.0)
+                + self.GLASS_JOKER_X_MULT_GAIN * breaks
+            )
+        return branch_state
 
     def _space_joker_branches(self, copies: int, state) -> tuple[tuple[int, float], ...]:
         probability = self._listed_probability(
