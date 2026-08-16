@@ -21,6 +21,17 @@ PARAMETERIZED = "PARAMETERIZED"
 ERROR = "ERROR"
 UNANALYZED = "UNANALYZED"
 
+# These modules are historical framework artifacts rather than playable Balatro
+# Jokers. Coupon is a Tag in the real game, while JokersApprentice was an
+# experimental helper with no live center. Keep repository discovery aligned with
+# Balatro's canonical 150-Joker roster instead of inflating the denominator.
+NON_CANONICAL_JOKER_MODULES = frozenset(
+    {
+        "coupon_tag",
+        "jokers_apprentice",
+    }
+)
+
 
 @dataclass(frozen=True)
 class JokerCoverageEntry:
@@ -51,7 +62,7 @@ class JokerCoverageReport:
 
 
 class JokerCoverageAuditor:
-    """Enumerate every repository Joker class and measure semantic coverage.
+    """Enumerate every canonical repository Joker class and measure semantic coverage.
 
     Repository discovery is automatic. Jokers with genuinely public dynamic
     constructor targets may declare representative *probe-only* fixtures here so
@@ -171,7 +182,7 @@ class JokerCoverageAuditor:
 
     @staticmethod
     def _classes() -> tuple[tuple[str, type[Joker]], ...]:
-        """Discover repository Joker models without mutating imported class identity.
+        """Discover canonical repository Joker models without mutating class identity.
 
         ``__file__`` is optional for packages, while ``__path__`` is the package
         contract for submodule discovery. Enumerate Python files directly from each
@@ -194,6 +205,8 @@ class JokerCoverageAuditor:
             for module_path in package_path.glob("*.py"):
                 module_name = module_path.stem
                 if module_name == "__init__" or module_name.startswith("_"):
+                    continue
+                if module_name in NON_CANONICAL_JOKER_MODULES:
                     continue
                 module_names.add(module_name)
 
