@@ -6,6 +6,12 @@ from dataclasses import dataclass
 from games.balatro.deck_rules import starting_deck_size_for_name
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.joker import JokerContext
+from games.balatro.live.copy_projection import (
+    COPY_JOKER_CLASS_NAMES,
+    INDEPENDENT_COPY_TARGET_CLASS_NAMES,
+    project_independent_copy_jokers,
+    resolve_copy_target,
+)
 from games.balatro.scoring import BalatroScorer, HandScore
 
 
@@ -40,7 +46,9 @@ class LiveJokerScoreProjector:
             "BlackboardJoker",
             "BloodstoneJoker",
             "BlueJoker",
+            "BlueprintJoker",
             "BootstrapsJoker",
+            "BrainstormJoker",
             "BullJoker",
             "CampfireJoker",
             "CanioJoker",
@@ -192,6 +200,16 @@ class LiveJokerScoreProjector:
         if not cls.supports(joker):
             return False
         class_name = type(joker).__name__
+        if class_name in COPY_JOKER_CLASS_NAMES:
+            target, resolvable = resolve_copy_target(joker, state)
+            if not resolvable:
+                return False
+            if target is None:
+                return True
+            if type(target).__name__ not in INDEPENDENT_COPY_TARGET_CLASS_NAMES:
+                return False
+            if not cls.supports_in_state(target, state):
+                return False
         if (
             class_name in cls.OWNED_DECK_REQUIRED_CLASS_NAMES
             and getattr(state, "owned_deck", None) is None
@@ -282,13 +300,17 @@ class LiveJokerScoreProjector:
         else:
             safe_cards = list(cards or [])
 
-        safe_state.jokers = supported
+        projected_jokers = project_independent_copy_jokers(
+            supported,
+            safe_state,
+        )
+        safe_state.jokers = projected_jokers
         hand_rules = hand_rules_for_state(safe_state)
         joker_data = self._prepare_hand_play(
             hand,
             safe_state,
             safe_cards,
-            supported,
+            projected_jokers,
             hand_rules=hand_rules,
         )
         joker_data["hand_rules"] = hand_rules
