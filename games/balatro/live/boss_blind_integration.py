@@ -30,6 +30,15 @@ _BOSS_RULES = {
     "The Mouth": BossBlindPlanningRule(
         boss_name="The Mouth",
     ),
+    # Card-debuff bosses are represented by Balatro's authoritative per-card
+    # public ``debuff`` flag. The live observer reads that flag for the hand and
+    # unordered deck composition, and public draw signatures preserve it through
+    # hypothetical redraws. No boss-specific scorer is required here.
+    "The Club": BossBlindPlanningRule(boss_name="The Club"),
+    "The Goad": BossBlindPlanningRule(boss_name="The Goad"),
+    "The Window": BossBlindPlanningRule(boss_name="The Window"),
+    "The Plant": BossBlindPlanningRule(boss_name="The Plant"),
+    "The Pillar": BossBlindPlanningRule(boss_name="The Pillar"),
     "The Head": BossBlindPlanningRule(
         boss_name="The Head",
         evaluator_factory=HeadHandDecisionEvaluator,
