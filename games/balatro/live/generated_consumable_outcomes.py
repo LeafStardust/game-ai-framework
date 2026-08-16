@@ -16,6 +16,7 @@ from games.balatro.live.post_hand_outcomes import (
     LiveVisibleCardScoreOutcomeModel,
     _LiveOnScoredScorer,
     _LiveOutcomeJokerProjector,
+    _LiveProjectedStochasticScorer,
 )
 from games.balatro.live.score_outcomes import (
     ScoreOutcome,
@@ -119,6 +120,33 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
         super().__init__(
             scorer=live_scorer,
             joker_projector=_GeneratedConsumableOutcomeJokerProjector(live_scorer),
+        )
+
+    def _project_stochastic_branch(
+        self,
+        hand,
+        state,
+        cards,
+        *,
+        include_card_chips: bool,
+        lucky_branch,
+        bloodstone_branch,
+        misprint_results: tuple[int, ...] = (),
+    ):
+        """Keep generated-Joker support inside nested score RNG branches."""
+        branch_state = self._lucky_branch_input_state(state, lucky_branch)
+        branch_scorer = _LiveProjectedStochasticScorer(
+            lucky_mult_results=lucky_branch.mult_results,
+            bloodstone_results=bloodstone_branch.results,
+            misprint_results=misprint_results,
+        )
+        branch_projector = _GeneratedConsumableOutcomeJokerProjector(branch_scorer)
+        return branch_projector.score(
+            hand,
+            branch_state,
+            cards,
+            include_card_chips=include_card_chips,
+            resolve_random_effects=False,
         )
 
     def project_transition(
@@ -396,7 +424,11 @@ class LiveGeneratedConsumableScoreOutcomeModel(LiveVisibleCardScoreOutcomeModel)
     @classmethod
     def _add_abstract_consumables(cls, state, *, category: str, count: int) -> int:
         created = min(max(0, int(count)), cls._consumable_room(state))
-        label = "Projected random Tarot" if category == "TAROT" else "Projected random Spectral"
+        label = (
+            "Projected random Tarot"
+            if category == "TAROT"
+            else "Projected random Spectral"
+        )
         for _ in range(created):
             state.consumables.append(
                 ProjectedGeneratedConsumable(
