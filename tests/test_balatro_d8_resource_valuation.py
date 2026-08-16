@@ -74,6 +74,7 @@ def test_d8_uses_parent_shared_resource_valuator_with_d8_owned_coefficients():
             "interest_weight": 1.9,
             "reserve_target": 9,
             "reserve_weight": 0.8,
+            "vouchers": [],
         }
     ]
     assert result.price_penalty == 1.0
