@@ -70,7 +70,13 @@ def test_d9_decision_carries_actual_ranked_candidates_and_skip_threshold():
     assert diagnostics is not None
     assert diagnostics["layer"] == "D9/D10"
     assert diagnostics["active_thresholds"] == {
-        "pack_skip_bias": runner.pack_policy.skip_bias,
+        "pack_choice": {
+            "skip_bias": runner.pack_policy.skip_bias,
+        },
+        "pack_target": {
+            "minimum_total_gain": None,
+            "minimum_contextual_delta": 0.0,
+        },
     }
 
     candidates = diagnostics["candidate_scores"]
