@@ -27,8 +27,8 @@ class _FinalProjectedStochasticScorer(_LiveProjectedStochasticScorer):
     SCORES = {**BalatroScorer.SCORES, **_SECRET_HAND_SCORES}
 
 
-class _FinalOutcomeJokerProjector(_GeneratedConsumableOutcomeJokerProjector):
-    """Final live scorer admission layer for ordered deterministic effects."""
+class LiveFinalJokerScoreProjector(_GeneratedConsumableOutcomeJokerProjector):
+    """Final D1 support contract for every admitted live Joker."""
 
     SUPPORTED_CLASS_NAMES = (
         _GeneratedConsumableOutcomeJokerProjector.SUPPORTED_CLASS_NAMES
@@ -64,7 +64,7 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
         )
         super().__init__(
             scorer=live_scorer,
-            joker_projector=_FinalOutcomeJokerProjector(live_scorer),
+            joker_projector=LiveFinalJokerScoreProjector(live_scorer),
         )
 
     def _project_stochastic_branch(
@@ -85,7 +85,7 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
             bloodstone_results=bloodstone_branch.results,
             misprint_results=misprint_results,
         )
-        branch_projector = _FinalOutcomeJokerProjector(branch_scorer)
+        branch_projector = LiveFinalJokerScoreProjector(branch_scorer)
         return branch_projector.score(
             hand,
             branch_state,
