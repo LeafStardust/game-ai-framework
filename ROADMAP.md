@@ -68,7 +68,7 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 
 ### 1.0F — Acceptance gate
 
-- [ ] Freeze final Red/White D1–D14 thresholds after live tuning.
+- [x] Freeze final Red/White D1–D14 thresholds after live tuning.
 - [ ] Complete **one unseeded Red Deck / White Stake win** with no manual gameplay input after activation, normal Steam progression preserved, a complete replayable authoritative run log with decision/build rationales, and automatic OFF after the win.
 
 ---
