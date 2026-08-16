@@ -1,7 +1,8 @@
 from types import SimpleNamespace
 
-from games.balatro.actions import PLAY_CARDS, BalatroAction
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.card import BalatroCard
+from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.business_card import BusinessCardJoker
 from games.balatro.jokers.ride_the_bus import RideTheBusJoker
 from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
@@ -10,7 +11,7 @@ from games.balatro.state import BalatroState
 
 
 class _FlatHandEvaluator:
-    """Keep tactical score evidence equal so tests isolate playstyle ordering."""
+    """Keep tactical score evidence equal so tests isolate strategic ordering."""
 
     def project_play(self, state, action):
         del state, action
@@ -50,6 +51,10 @@ def _no_face_play() -> BalatroAction:
             BalatroCard("7", "Hearts"),
         ],
     )
+
+
+def _discard(card: BalatroCard) -> BalatroAction:
+    return BalatroAction(DISCARD_CARDS, cards=[card])
 
 
 def _plan(
@@ -133,3 +138,61 @@ def test_ante_five_lock_keeps_d1_direction_after_joker_change():
 
     assert after_replacement.action is no_face.action
     assert any("NO_FACE_CARDS:+1.000" in note for note in after_replacement.rationale)
+
+
+def test_equal_safety_clear_paths_preserve_steel_card():
+    state = _state(3, RideTheBusJoker())
+    steel = BalatroCard("2", "Spades", enhancement="Steel")
+    plain = BalatroCard("2", "Hearts")
+    state.hand = [
+        steel,
+        plain,
+        BalatroCard("5", "Clubs"),
+        BalatroCard("8", "Diamonds"),
+    ]
+    discard_steel = _plan(_discard(steel))
+    discard_plain = _plan(_discard(plain))
+
+    decision = _policy().decide(state, [discard_steel, discard_plain])
+
+    assert decision.action is discard_plain.action
+    assert any("steel=1" in note for note in decision.rationale)
+
+
+def test_equal_safety_clear_paths_preserve_blue_seal():
+    state = _state(3, RideTheBusJoker())
+    blue = BalatroCard("3", "Spades", seal="Blue")
+    plain = BalatroCard("3", "Hearts")
+    state.hand = [
+        blue,
+        plain,
+        BalatroCard("6", "Clubs"),
+        BalatroCard("9", "Diamonds"),
+    ]
+    discard_blue = _plan(_discard(blue))
+    discard_plain = _plan(_discard(plain))
+
+    decision = _policy().decide(state, [discard_blue, discard_plain])
+
+    assert decision.action is discard_plain.action
+    assert any("blue_seal=1" in note for note in decision.rationale)
+
+
+def test_equal_safety_clear_paths_preserve_semantic_baron_king_source():
+    state = _state(3, BaronJoker())
+    king = BalatroCard("K", "Hearts")
+    queen = BalatroCard("Q", "Hearts")
+    state.hand = [
+        king,
+        queen,
+        BalatroCard("2", "Spades"),
+        BalatroCard("5", "Diamonds"),
+        BalatroCard("8", "Clubs"),
+    ]
+    discard_king = _plan(_discard(king))
+    discard_queen = _plan(_discard(queen))
+
+    decision = _policy().decide(state, [discard_king, discard_queen])
+
+    assert decision.action is discard_queen.action
+    assert any("build_gain=" in note for note in decision.rationale)
