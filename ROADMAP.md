@@ -44,11 +44,11 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 
 ### 1.0B — Build coherence
 
-- [ ] Maintain persistent public build/archetype intent and apply B3–B7 reasoning consistently across D1–D14.
-- [ ] Make Joker, hand, discard, Planet, consumable and pack decisions reinforce the active build.
-- [ ] Detect and penalize anti-synergies/conflicts, including a Ride the Bus + Business Card regression case.
-- [ ] Give useful Negative Jokers explicit slot-free acquisition value.
-- [ ] Log meaningful build-intent changes and detected conflicts.
+- [x] Maintain persistent public build/archetype intent and apply B3–B7 reasoning consistently across D1–D14.
+- [x] Make Joker, hand, discard, Planet, consumable and pack decisions reinforce the active build.
+- [x] Detect and penalize anti-synergies/conflicts, including a Ride the Bus + Business Card regression case.
+- [x] Give useful Negative Jokers explicit slot-free acquisition value.
+- [x] Log meaningful build-intent changes and detected conflicts.
 
 ### 1.0C — Planet and consumable competence
 
