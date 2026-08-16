@@ -78,6 +78,11 @@ def _plan(
     )
 
 
+def _noncredible_play() -> LiveBlindPlan:
+    """Satisfy the D1 policy invariant without entering clear-path selection."""
+    return _plan(_face_play(), clear_probability=0.10)
+
+
 def _policy() -> BuildAwareLiveHandActionPolicy:
     return BuildAwareLiveHandActionPolicy(evaluator=_FlatHandEvaluator())
 
@@ -153,7 +158,10 @@ def test_equal_safety_clear_paths_preserve_steel_card():
     discard_steel = _plan(_discard(steel))
     discard_plain = _plan(_discard(plain))
 
-    decision = _policy().decide(state, [discard_steel, discard_plain])
+    decision = _policy().decide(
+        state,
+        [_noncredible_play(), discard_steel, discard_plain],
+    )
 
     assert decision.action is discard_plain.action
     assert any("steel=1" in note for note in decision.rationale)
@@ -172,7 +180,10 @@ def test_equal_safety_clear_paths_preserve_blue_seal():
     discard_blue = _plan(_discard(blue))
     discard_plain = _plan(_discard(plain))
 
-    decision = _policy().decide(state, [discard_blue, discard_plain])
+    decision = _policy().decide(
+        state,
+        [_noncredible_play(), discard_blue, discard_plain],
+    )
 
     assert decision.action is discard_plain.action
     assert any("blue_seal=1" in note for note in decision.rationale)
@@ -192,7 +203,10 @@ def test_equal_safety_clear_paths_preserve_semantic_baron_king_source():
     discard_king = _plan(_discard(king))
     discard_queen = _plan(_discard(queen))
 
-    decision = _policy().decide(state, [discard_king, discard_queen])
+    decision = _policy().decide(
+        state,
+        [_noncredible_play(), discard_king, discard_queen],
+    )
 
     assert decision.action is discard_queen.action
     assert any("build_gain=" in note for note in decision.rationale)
