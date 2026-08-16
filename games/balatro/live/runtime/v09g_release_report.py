@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .v09g_diagnostic_report import _is_recovered_stale_replan
+
 
 SESSION_SCHEMA = "balatro-agent-session-summary-v1"
 RUN_SCHEMA = "balatro-run-experience-v1"
@@ -27,6 +29,8 @@ class ReleaseReport:
     manual_stop: bool
     terminal_attempts: int
     diagnostic_events: int
+    recovered_stale_replans: int
+    actionable_diagnostic_events: int
 
     @property
     def integrity_ok(self) -> bool:
@@ -51,10 +55,7 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for line_number, raw in enumerate(
-        path.read_text(encoding="utf-8").splitlines(),
-        start=1,
-    ):
+    for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not raw.strip():
             continue
         value = json.loads(raw)
@@ -73,56 +74,35 @@ def _latest_session_summary(session_directory: Path) -> Path:
     return max(candidates, key=lambda path: path.stat().st_mtime_ns)
 
 
-def _session_summary_path(
-    session_directory: Path,
-    session_id: str | None,
-) -> Path:
+def _session_summary_path(session_directory: Path, session_id: str | None) -> Path:
     if session_id is None:
         return _latest_session_summary(session_directory)
     return session_directory / f"{session_id}.summary.json"
 
 
-def _decision_notes(row: dict[str, Any]) -> tuple[str, ...]:
-    data = row.get("data")
-    if not isinstance(data, dict):
-        return ()
-    rationale = data.get("rationale")
-    if not isinstance(rationale, dict):
-        return ()
-    notes = rationale.get("notes")
-    if not isinstance(notes, list):
-        return ()
-    return tuple(str(note) for note in notes)
-
-
 def _decision_source(row: dict[str, Any]) -> str:
     data = row.get("data")
-    if not isinstance(data, dict):
-        return ""
-    rationale = data.get("rationale")
-    if not isinstance(rationale, dict):
-        return ""
-    return str(rationale.get("decision_source") or "")
+    rationale = data.get("rationale") if isinstance(data, dict) else None
+    return str(rationale.get("decision_source") or "") if isinstance(rationale, dict) else ""
+
+
+def _decision_notes(row: dict[str, Any]) -> tuple[str, ...]:
+    data = row.get("data")
+    rationale = data.get("rationale") if isinstance(data, dict) else None
+    notes = rationale.get("notes") if isinstance(rationale, dict) else None
+    return tuple(str(note) for note in notes) if isinstance(notes, list) else ()
 
 
 def _action_name(row: dict[str, Any]) -> str:
     data = row.get("data")
-    if not isinstance(data, dict):
-        return ""
-    action = data.get("action")
-    if not isinstance(action, dict):
-        return ""
-    return str(action.get("name") or "")
+    action = data.get("action") if isinstance(data, dict) else None
+    return str(action.get("name") or "") if isinstance(action, dict) else ""
 
 
 def _state_phase(row: dict[str, Any]) -> str | None:
     data = row.get("data")
-    if not isinstance(data, dict):
-        return None
-    state = data.get("state")
-    if not isinstance(state, dict):
-        return None
-    phase = state.get("phase")
+    state = data.get("state") if isinstance(data, dict) else None
+    phase = state.get("phase") if isinstance(state, dict) else None
     return str(phase) if phase else None
 
 
@@ -173,12 +153,10 @@ def build_release_report(
     if not isinstance(attempts, list):
         errors.append("session summary attempts is not a list")
         attempts = []
-
-    declared_attempt_count = summary.get("attempt_count")
-    if declared_attempt_count != len(attempts):
+    if summary.get("attempt_count") != len(attempts):
         errors.append(
             "session attempt_count mismatch: "
-            f"declared {declared_attempt_count!r}, observed {len(attempts)}"
+            f"declared {summary.get('attempt_count')!r}, observed {len(attempts)}"
         )
 
     terminal_attempts = 0
@@ -190,9 +168,7 @@ def build_release_report(
         if not run_id:
             errors.append("attempt missing run_id")
             continue
-
-        outcome = str(attempt.get("outcome") or "")
-        if outcome in {"WIN", "LOSS"}:
+        if str(attempt.get("outcome") or "") in {"WIN", "LOSS"}:
             terminal_attempts += 1
 
         run_path = runs / f"{run_id}.jsonl"
@@ -212,12 +188,10 @@ def build_release_report(
             errors.append(f"empty run log: {run_path}")
             continue
 
-        expected_sequences = list(range(1, len(rows) + 1))
-        observed_sequences = [row.get("sequence") for row in rows]
-        if observed_sequences != expected_sequences:
+        if [row.get("sequence") for row in rows] != list(range(1, len(rows) + 1)):
             errors.append(f"non-contiguous run sequence: {run_id}")
 
-        finished_rows = []
+        finished_rows: list[dict[str, Any]] = []
         action_results = 0
         for row in rows:
             if row.get("schema") != RUN_SCHEMA:
@@ -229,15 +203,14 @@ def build_release_report(
             event = str(row.get("event") or "")
             if event == "run_finished":
                 finished_rows.append(row)
-            if event == "decision":
+            elif event == "decision":
                 action_name = _action_name(row)
                 if action_name:
                     actions.add(action_name)
                 if _decision_source(row) == "pack policy":
                     pack_decisions += 1
-                    if _looks_targeted_pack_decision(row):
-                        targeted_pack_decisions += 1
-            if event == "action_result":
+                    targeted_pack_decisions += int(_looks_targeted_pack_decision(row))
+            elif event == "action_result":
                 action_results += 1
                 data = row.get("data")
                 if not isinstance(data, dict) or data.get("success") is not True:
@@ -253,7 +226,6 @@ def build_release_report(
                 f"run {run_id} must contain exactly one run_finished event; "
                 f"observed {len(finished_rows)}"
             )
-
         declared_actions = attempt.get("actions")
         if isinstance(declared_actions, int) and action_results != declared_actions:
             errors.append(
@@ -275,6 +247,8 @@ def build_release_report(
                     errors.append(f"run-summary last_sequence mismatch: {run_id}")
 
     diagnostic_events = 0
+    recovered_stale_replans = 0
+    actionable_diagnostic_events = 0
     diagnostic_path = diagnostics / f"{actual_session_id}.jsonl"
     if diagnostic_path.exists():
         try:
@@ -283,9 +257,9 @@ def build_release_report(
             errors.append(f"unable to read {diagnostic_path}: {error}")
         else:
             diagnostic_events = len(diagnostic_rows)
-            expected = list(range(1, diagnostic_events + 1))
-            observed = [row.get("sequence") for row in diagnostic_rows]
-            if observed != expected:
+            if [row.get("sequence") for row in diagnostic_rows] != list(
+                range(1, diagnostic_events + 1)
+            ):
                 errors.append("diagnostic sequence is not contiguous")
             if any(row.get("schema") != DIAGNOSTIC_SCHEMA for row in diagnostic_rows):
                 errors.append("unexpected diagnostic schema")
@@ -294,13 +268,16 @@ def build_release_report(
                 for row in diagnostic_rows
             ):
                 errors.append("diagnostic session identity mismatch")
-            if diagnostic_events:
-                warnings.append(
-                    f"session contains {diagnostic_events} diagnostic failure/block event(s)"
-                )
 
-    loss_count = int(summary.get("loss_count") or 0)
-    manual_stop = str(summary.get("stop_reason") or "") == "manual stop requested"
+            recovered_stale_replans = sum(
+                1 for row in diagnostic_rows if _is_recovered_stale_replan(row)
+            )
+            actionable_diagnostic_events = diagnostic_events - recovered_stale_replans
+            if actionable_diagnostic_events:
+                warnings.append(
+                    f"session contains {actionable_diagnostic_events} actionable "
+                    "diagnostic failure/block event(s)"
+                )
 
     return ReleaseReport(
         session_id=actual_session_id,
@@ -310,11 +287,13 @@ def build_release_report(
         actions=tuple(sorted(actions)),
         pack_decisions=pack_decisions,
         targeted_pack_decisions=targeted_pack_decisions,
-        loss_count=loss_count,
+        loss_count=int(summary.get("loss_count") or 0),
         attempt_count=len(attempts),
-        manual_stop=manual_stop,
+        manual_stop=str(summary.get("stop_reason") or "") == "manual stop requested",
         terminal_attempts=terminal_attempts,
         diagnostic_events=diagnostic_events,
+        recovered_stale_replans=recovered_stale_replans,
+        actionable_diagnostic_events=actionable_diagnostic_events,
     )
 
 
@@ -333,6 +312,17 @@ def render_release_report(report: ReleaseReport) -> str:
     has_pack = any(phase.endswith("_PACK") for phase in phases)
     repeated_losses = report.loss_count >= 2
     complete_attempt = report.terminal_attempts >= 1
+    required_live_coverage = all(
+        (
+            repeated_losses,
+            report.manual_stop,
+            has_core_flow,
+            has_pack,
+            report.pack_decisions > 0,
+            report.targeted_pack_decisions > 0,
+            complete_attempt,
+        )
+    )
 
     lines = [
         "=" * 78,
@@ -341,7 +331,9 @@ def render_release_report(report: ReleaseReport) -> str:
         f"Session                         : {report.session_id}",
         f"Artifact integrity              : {'PASS' if report.integrity_ok else 'FAIL'}",
         f"Attempts / losses               : {report.attempt_count} / {report.loss_count}",
-        f"Diagnostic failure events       : {report.diagnostic_events}",
+        f"Diagnostic events               : {report.diagnostic_events}",
+        f"Recovered stale replans         : {report.recovered_stale_replans}",
+        f"Actionable diagnostic events    : {report.actionable_diagnostic_events}",
         f"Observed phases                 : {', '.join(report.phases) or '-'}",
         f"Observed actions                : {', '.join(report.actions) or '-'}",
         "",
@@ -355,7 +347,7 @@ def render_release_report(report: ReleaseReport) -> str:
         _coverage_line(
             "Manual cooperative OFF",
             report.manual_stop,
-            "session ended by manual stop" if report.manual_stop else "not demonstrated in this session",
+            "session ended by manual stop" if report.manual_stop else "not demonstrated",
         ),
         _coverage_line(
             "Core production flow",
@@ -393,22 +385,10 @@ def render_release_report(report: ReleaseReport) -> str:
 
     if not report.integrity_ok:
         overall = "FAIL — repair artifacts/runtime before release"
-    elif report.diagnostic_events:
-        overall = "REVIEW — inspect diagnostic events before release"
-    elif all(
-        (
-            repeated_losses,
-            report.manual_stop,
-            has_core_flow,
-            has_pack,
-            report.pack_decisions > 0,
-            complete_attempt,
-        )
-    ):
-        overall = (
-            "LIVE EVIDENCE STRONG — D10 may remain encounter-dependent if no targeted "
-            "pack appeared"
-        )
+    elif report.actionable_diagnostic_events:
+        overall = "REVIEW — genuine diagnostic events remain"
+    elif required_live_coverage:
+        overall = "PASS — v0.9G live release gate satisfied"
     else:
         overall = "PENDING — artifact integrity is clean; more live coverage is required"
 
@@ -439,7 +419,11 @@ def main() -> int:
         return 2
 
     print(render_release_report(report))
-    return 0 if report.integrity_ok else 3
+    if not report.integrity_ok:
+        return 3
+    if report.actionable_diagnostic_events:
+        return 4
+    return 0
 
 
 if __name__ == "__main__":
