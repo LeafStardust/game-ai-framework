@@ -1,3 +1,5 @@
+import games.balatro.shop_arbiter as shop_arbiter_module
+
 from games.balatro.actions import (
     BUY_BOOSTER,
     BUY_VOUCHER,
@@ -6,8 +8,17 @@ from games.balatro.actions import (
     BalatroAction,
 )
 from games.balatro.live.shop import LiveShopItem
+from games.balatro.playbook import (
+    BalatroPlaybook,
+    BalatroPlaybookRegistry,
+    default_balatro_playbooks,
+)
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
-from games.balatro.shop_booster_policy import BuildAwareShopBoosterPolicy
+from games.balatro.shop_booster_policy import (
+    BoosterAcquisitionThresholds,
+    BuildAwareShopBoosterPolicy,
+)
+from games.balatro.shop_reroll_policy import ShopRerollThresholds
 from games.balatro.state import BalatroState
 
 
@@ -215,3 +226,62 @@ def test_unknown_reroll_cost_does_not_block_booster_arbitration():
     assert decision.source == "BOOSTER"
     assert decision.reroll is not None
     assert decision.reroll.decision == "HOLD"
+
+
+def test_red_white_exposes_current_d8_and_d11_thresholds():
+    playbook = default_balatro_playbooks().get("RED", "WHITE")
+
+    d8 = BoosterAcquisitionThresholds.from_mapping(playbook.thresholds_for("D8"))
+    d11 = ShopRerollThresholds(**playbook.thresholds_for("D11"))
+
+    assert d8 == BoosterAcquisitionThresholds()
+    assert d11 == ShopRerollThresholds()
+
+
+def test_arbiter_resolves_d8_and_d11_from_active_playbook(monkeypatch):
+    registry = BalatroPlaybookRegistry()
+    registry.register(
+        BalatroPlaybook(
+            deck="RED",
+            stake="WHITE",
+            name="threshold-regression",
+            strategy={
+                "decision_thresholds": {
+                    "booster_acquisition": {
+                        "minimum_buy_advantage": 9.0,
+                    },
+                    "reroll": {
+                        "minimum_margin": 4.0,
+                    },
+                }
+            },
+        )
+    )
+    monkeypatch.setattr(
+        shop_arbiter_module,
+        "default_balatro_playbooks",
+        lambda: registry,
+    )
+    state = _state()
+    state.deck_name = "RED"
+    state.stake_name = "WHITE"
+    arbiter = BuildAwareShopArbiter()
+
+    booster_policy = arbiter._booster_policy_for_state(state)
+    reroll_policy = arbiter._reroll_policy_for_state(state)
+
+    assert booster_policy.thresholds.minimum_buy_advantage == 9.0
+    assert reroll_policy.thresholds.minimum_margin == 4.0
+
+    booster = BalatroAction(
+        BUY_BOOSTER,
+        target=_booster("Celestial Pack", center="p_celestial_normal_4"),
+    )
+    decision = arbiter.decide(
+        state,
+        [booster, BalatroAction(END_SHOP)],
+        reroll_cost=None,
+    )
+
+    assert decision.source == "END_SHOP"
+    assert decision.booster is None
