@@ -1,9 +1,9 @@
 from games.balatro.build import (
     BalatroBuildProfiler,
-    BalatroPlaystyleIntentTracker,
     JokerBuildTransitionPlanner,
     JokerBuildValueEvaluator,
 )
+from games.balatro.build.profile import BalatroPlaystyleIntentTracker
 from games.balatro.joker import Joker, JokerContext
 from games.balatro.joker_policy import JokerAcquisitionThresholds
 from games.balatro.jokers.business_card import BusinessCardJoker
