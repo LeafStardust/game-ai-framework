@@ -19,9 +19,16 @@ class BossBlindPlanningRule:
 
 
 _BOSS_RULES = {
+    # Psychic/Eye/Mouth do not make Play actions illegal. Their conditions debuff
+    # the whole hand after it is played; final score projection owns that path.
     "The Psychic": BossBlindPlanningRule(
         boss_name="The Psychic",
-        required_play_cards=5,
+    ),
+    "The Eye": BossBlindPlanningRule(
+        boss_name="The Eye",
+    ),
+    "The Mouth": BossBlindPlanningRule(
+        boss_name="The Mouth",
     ),
     "The Head": BossBlindPlanningRule(
         boss_name="The Head",
