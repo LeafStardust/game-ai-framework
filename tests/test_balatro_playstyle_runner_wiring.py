@@ -2,7 +2,9 @@ from games.balatro.live.external.playstyle_autonomous_runner import (
     PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
 )
 from games.balatro.live.hand_action_policy import HandActionThresholds
+from games.balatro.live.planet_policy import LivePlanetPolicy
 from games.balatro.pack_playstyle import PackPlaystyleEvaluator
+from games.balatro.shop_playstyle import BuildAwareShopItemValueEstimator
 from games.balatro.shop_policy import DefaultShopItemValueEstimator
 from games.balatro.shop_voucher_policy import VoucherAwareBalatroShopPolicy
 
@@ -15,12 +17,13 @@ def _runner():
     )
 
 
-def test_production_runner_shares_one_intent_tracker_across_d1_d2_d9_and_logging():
+def test_production_runner_shares_one_intent_tracker_across_b3_consumers():
     runner = _runner()
 
     assert isinstance(runner.shop_policy, VoucherAwareBalatroShopPolicy)
     estimator = runner.shop_policy.item_value_estimator
     assert isinstance(estimator, DefaultShopItemValueEstimator)
+    assert isinstance(estimator, BuildAwareShopItemValueEstimator)
     assert (
         estimator.joker_build_value.intent_tracker
         is runner.playstyle_intent_tracker
@@ -34,8 +37,13 @@ def test_production_runner_shares_one_intent_tracker_across_d1_d2_d9_and_logging
     )
     assert hand_policy.playstyle_evaluator.profiler is runner.playstyle_profiler
 
-    # Joker choices in packs reuse the exact D2 evaluator instead of creating an
-    # independent pack-local Joker intent lifecycle.
+    planet_policy = runner.consumable_timing_policy.planet_policy
+    assert isinstance(planet_policy, LivePlanetPolicy)
+    assert planet_policy.intent_tracker is runner.playstyle_intent_tracker
+    assert planet_policy.profiler is runner.playstyle_profiler
+
+    # Joker choices in packs reuse the exact D2/D14 evaluator instead of creating
+    # an independent pack-local Joker intent lifecycle.
     assert runner.pack_policy.item_estimator is estimator
 
     pack_playstyle = runner.pack_policy.playstyle_evaluator
