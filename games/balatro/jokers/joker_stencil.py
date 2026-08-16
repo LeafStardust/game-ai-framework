@@ -7,23 +7,12 @@ class JokerStencil(Joker):
         if context.score is None:
             return context
 
-        joker_slots = context.data.get(
-            "joker_slots",
-            5
+        slots = max(0, int(getattr(context.state, "joker_slots", 5) or 0))
+        non_stencil_jokers = sum(
+            type(joker).__name__ != "JokerStencil"
+            for joker in (getattr(context.state, "jokers", []) or [])
         )
-
-        occupied = len(
-            getattr(context.state, "jokers", [])
-        )
-
-        empty = max(
-            joker_slots - occupied,
-            0
-        )
-
-        context.score.x_mult *= max(
-            empty,
-            1
-        )
+        multiplier = max(slots - non_stencil_jokers, 1)
+        context.score.x_mult *= multiplier
 
         return context

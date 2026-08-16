@@ -34,6 +34,7 @@ class LiveJokerScoreProjector:
             "ArrowheadJoker",
             "BannerJoker",
             "BaronJoker",
+            "BlackboardJoker",
             "BlueJoker",
             "BootstrapsJoker",
             "BullJoker",
@@ -47,6 +48,7 @@ class LiveJokerScoreProjector:
             "CrazyJoker",
             "DaggerJoker",
             "DeviousJoker",
+            "DriversLicenseJoker",
             "DrollJoker",
             "DuskJoker",
             "EggJoker",
@@ -67,6 +69,7 @@ class LiveJokerScoreProjector:
             "HologramJoker",
             "IceCreamJoker",
             "InvisibleJoker",
+            "JokerStencil",
             "JollyJoker",
             "LoyaltyCardJoker",
             "LuckyCatJoker",
@@ -100,6 +103,7 @@ class LiveJokerScoreProjector:
             "SpareTrousersJoker",
             "SplashJoker",
             "SquareJoker",
+            "StoneJoker",
             "SupernovaJoker",
             "TheDuoJoker",
             "TheFamilyJoker",
@@ -120,6 +124,13 @@ class LiveJokerScoreProjector:
 
     DEFERRED_HYDRATED_CLASS_NAMES = frozenset()
     DEFERRED_REASONS_BY_CLASS = {}
+
+    OWNED_DECK_REQUIRED_CLASS_NAMES = frozenset(
+        {
+            "DriversLicenseJoker",
+            "StoneJoker",
+        }
+    )
 
     HAND_PLAYED_CLASS_NAMES = frozenset(
         {
@@ -150,6 +161,18 @@ class LiveJokerScoreProjector:
         return type(joker).__name__ in cls.SUPPORTED_CLASS_NAMES
 
     @classmethod
+    def supports_in_state(cls, joker, state) -> bool:
+        if not cls.supports(joker):
+            return False
+        class_name = type(joker).__name__
+        if (
+            class_name in cls.OWNED_DECK_REQUIRED_CLASS_NAMES
+            and getattr(state, "owned_deck", None) is None
+        ):
+            return False
+        return True
+
+    @classmethod
     def deferred_reason(cls, class_name: str) -> str | None:
         if class_name not in cls.DEFERRED_HYDRATED_CLASS_NAMES:
             return None
@@ -164,7 +187,7 @@ class LiveJokerScoreProjector:
         return tuple(
             self._joker_name(joker)
             for joker in getattr(state, "jokers", [])
-            if not self.supports(joker)
+            if not self.supports_in_state(joker, state)
         )
 
     def score(
@@ -194,11 +217,15 @@ class LiveJokerScoreProjector:
         safe_state.jokers = deepcopy(list(getattr(state, "jokers", [])))
 
         all_jokers = list(getattr(safe_state, "jokers", []))
-        supported = [joker for joker in all_jokers if self.supports(joker)]
+        supported = [
+            joker
+            for joker in all_jokers
+            if self.supports_in_state(joker, safe_state)
+        ]
         unsupported = tuple(
             self._joker_name(joker)
             for joker in all_jokers
-            if not self.supports(joker)
+            if not self.supports_in_state(joker, safe_state)
         )
 
         if self._requires_card_isolation(supported):

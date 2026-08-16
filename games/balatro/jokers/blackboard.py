@@ -1,3 +1,4 @@
+from games.balatro.hand_rules import card_matches_suit
 from games.balatro.joker import Joker, JokerContext
 
 
@@ -7,8 +8,10 @@ class BlackboardJoker(Joker):
         if context.score is None:
             return context
 
-        if context.held_cards and all(
-            card.suit in ("Spades", "Clubs")
+        rules = context.data.get("hand_rules", {})
+        if all(
+            card_matches_suit(card, "Spades", rules)
+            or card_matches_suit(card, "Clubs", rules)
             for card in context.held_cards
         ):
             context.score.x_mult *= 3
