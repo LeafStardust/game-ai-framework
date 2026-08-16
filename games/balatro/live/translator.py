@@ -102,6 +102,12 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         state.discards_remaining = int(
             round_info.get("discards_left", payload.get("discards_left", 0))
         )
+        discards_used = round_info.get("discards_used", payload.get("discards_used"))
+        state.discards_used = (
+            max(0, int(discards_used))
+            if discards_used is not None
+            else None
+        )
         state.deck_name = str(
             payload.get("deck", payload.get("deck_name", "RED"))
         ).upper()
