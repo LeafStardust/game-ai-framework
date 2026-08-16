@@ -44,6 +44,20 @@ class _NoConsumableBuildPath:
         )
 
 
+class _EqualPlanetOutlook:
+    def evaluate(self, state, planet):
+        del state, planet
+        return SimpleNamespace(
+            expected_future_frequency=0.5,
+            structural_feasibility=0.5,
+            observed_plays=1,
+            total_observed_plays=2,
+            marginal_level_gain=1.0,
+            future_value=0.5,
+            speculative=False,
+        )
+
+
 def _standard_deck():
     ranks = ("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
     suits = ("Hearts", "Diamonds", "Clubs", "Spades")
@@ -61,10 +75,14 @@ def _state(*, ante: int, joker: Joker) -> BalatroState:
     return state
 
 
-def _estimator() -> BuildAwareShopItemValueEstimator:
+def _estimator(*, real_outlook: bool = False) -> BuildAwareShopItemValueEstimator:
+    kwargs = {}
+    if not real_outlook:
+        kwargs["planet_outlook"] = _EqualPlanetOutlook()
     return BuildAwareShopItemValueEstimator(
         joker_build_value=JokerBuildValueEvaluator(),
         consumable_build=_NoConsumableBuildPath(),
+        **kwargs,
     )
 
 
@@ -121,7 +139,7 @@ def test_d14_uses_locked_intent_after_owned_build_flips_direction():
 
 
 def test_d14_standard_deck_rejects_raw_neptune_level_gain_as_strategy():
-    estimator = _estimator()
+    estimator = _estimator(real_outlook=True)
     state = _state(ante=1, joker=_PairAlignedJoker())
     state.jokers = []
     state.owned_deck = _standard_deck()
