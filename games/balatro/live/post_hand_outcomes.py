@@ -37,6 +37,7 @@ class _LiveOutcomeJokerProjector(LiveJokerScoreProjector):
                 "BusinessCardJoker",
                 "FacelessJoker",
                 "MailInRebateJoker",
+                "MrBonesJoker",
                 "ReservedParkingJoker",
             }
         )
