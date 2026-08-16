@@ -62,6 +62,61 @@ class BalatroRunEvent:
         }
 
 
+def _semantic_event_for_action(
+    action: dict[str, Any],
+    state: dict[str, Any],
+) -> tuple[str, dict[str, Any]] | None:
+    name = str(action.get("name") or "")
+    phase = str(state.get("phase") or "")
+
+    if name in {"BUY_JOKER", "BUY_CONSUMABLE", "BUY_BOOSTER", "BUY_VOUCHER"}:
+        return "purchase", {
+            "kind": name.removeprefix("BUY_"),
+            "action": action,
+            "phase_after": phase,
+        }
+    if name == "SELL_JOKER":
+        return "sale", {
+            "kind": "JOKER",
+            "action": action,
+            "phase_after": phase,
+        }
+    if name in {"USE_CONSUMABLE", "BUY_AND_USE_CONSUMABLE"}:
+        return "consumable_use", {
+            "kind": name,
+            "action": action,
+            "phase_after": phase,
+        }
+    if name == "SELECT_BLIND":
+        return "blind_outcome", {
+            "kind": "STARTED",
+            "action": action,
+            "phase_after": phase,
+        }
+    if name == "SKIP_BLIND":
+        return "blind_outcome", {
+            "kind": "SKIPPED",
+            "action": action,
+            "phase_after": phase,
+        }
+    if name == "END_ROUND":
+        return "blind_outcome", {
+            "kind": "CASHED_OUT",
+            "action": action,
+            "phase_after": phase,
+        }
+    if name == "PLAY_CARDS" and phase in {"ROUND_EVAL", "GAME_OVER"}:
+        payload = state.get("payload")
+        won = payload.get("won") if isinstance(payload, dict) else None
+        return "blind_outcome", {
+            "kind": "CLEARED" if phase == "ROUND_EVAL" else "TERMINAL",
+            "action": action,
+            "phase_after": phase,
+            "won": won,
+        }
+    return None
+
+
 class BalatroRunExperienceLogger:
     """Append-only JSONL experience log for completed and in-progress runs.
 
@@ -204,12 +259,18 @@ class BalatroRunExperienceLogger:
         success: bool,
         state: dict[str, Any],
     ) -> BalatroRunEvent:
-        return self.record(
+        event = self.record(
             "action_result",
             action=action,
             success=bool(success),
             state=state,
         )
+        if success:
+            semantic = _semantic_event_for_action(action, state)
+            if semantic is not None:
+                event_name, payload = semantic
+                self.record(event_name, **payload)
+        return event
 
     def run_finished(
         self,
