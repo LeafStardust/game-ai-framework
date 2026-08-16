@@ -27,7 +27,7 @@ from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.playbook import default_balatro_playbooks
 from games.balatro.playbook_joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
-from games.balatro.shop_policy import DefaultShopItemValueEstimator
+from games.balatro.shop_playstyle import BuildAwareShopItemValueEstimator
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.shop_voucher_policy import VoucherAwareBalatroShopPolicy
 
@@ -53,9 +53,10 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
 
     The base runner remains the mechanics/execution implementation. This adapter
     wires one competence-layer playstyle tracker into D1 hand decisions, D2
-    Joker/shop valuation, D7 Planet choices, D9 booster choices, structured run
-    logging, and the dedicated D3 persistent-voucher shop policy. A supervisor
-    retry creates a fresh runner and therefore a fresh playstyle tracker.
+    Joker/shop valuation, D7 Planet choices, D9 booster choices, D14 cross-category
+    shop valuation, structured run logging, and the dedicated D3 persistent-voucher
+    shop policy. A supervisor retry creates a fresh runner and therefore a fresh
+    playstyle tracker.
     """
 
     def __init__(self, observer, **kwargs) -> None:
@@ -87,7 +88,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
         joker_transition_planner = JokerBuildTransitionPlanner(
             evaluator=joker_build_value,
         )
-        shared_item_estimator = DefaultShopItemValueEstimator(
+        shared_item_estimator = BuildAwareShopItemValueEstimator(
             joker_build_value=joker_build_value,
         )
         self.shop_policy = VoucherAwareBalatroShopPolicy(
