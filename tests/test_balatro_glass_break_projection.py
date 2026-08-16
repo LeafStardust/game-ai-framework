@@ -102,19 +102,18 @@ def test_multiple_glass_cards_preserve_distinct_break_states():
     transition = _project([first, second], state, PokerHand.PAIR)
 
     assert transition.distribution.random_sources == ("Glass break x2",)
-    assert [
-        (outcome.score, round(outcome.probability, 10))
+    assert {
+        tuple(card.live_id for card in outcome.state_after_scoring.owned_deck): (
+            outcome.score,
+            round(outcome.probability, 10),
+        )
         for outcome in transition.distribution.outcomes
-    ] == [
-        (240, 0.5625),
-        (240, 0.1875),
-        (240, 0.1875),
-        (240, 0.0625),
-    ]
-    assert sorted(
-        len(outcome.state_after_scoring.owned_deck)
-        for outcome in transition.distribution.outcomes
-    ) == [1, 2, 2, 3]
+    } == {
+        (31, 32, 33): (240, 0.5625),
+        (32, 33): (240, 0.1875),
+        (31, 33): (240, 0.1875),
+        (33,): (240, 0.0625),
+    }
     assert sorted(
         outcome.state_after_scoring.glass_cards_destroyed
         for outcome in transition.distribution.outcomes
