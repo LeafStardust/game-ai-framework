@@ -7,16 +7,19 @@ class SwashbucklerJoker(Joker):
         if context.score is None:
             return context
 
-        jokers = getattr(
-            context.state,
-            "jokers",
-            []
-        )
-
         context.score.mult += sum(
-            getattr(joker, "sell_value", 0)
-            for joker in jokers
+            self._sell_value(joker)
+            for joker in getattr(context.state, "jokers", [])
             if joker is not self
         )
-
         return context
+
+    @staticmethod
+    def _sell_value(joker) -> int:
+        value = getattr(joker, "sell_cost", None)
+        if value is None:
+            value = getattr(joker, "sell_value", 0)
+        try:
+            return max(0, int(value or 0))
+        except (TypeError, ValueError):
+            return 0
