@@ -58,7 +58,7 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 ### 1.0D — Shop, pack and economy competence
 
 - [ ] Calibrate D3/D8/D9/D10/D11 acquisition, sale, reroll and pack thresholds around survival, build value and economy; keep D12 threshold-free and calibrate D14 shared resource valuation on the same scale.
-- [ ] Model run-wide voucher value plus reserve/interest breakpoints, including observable voucher-modified caps or thresholds.
+- [x] Model run-wide voucher value plus reserve/interest breakpoints, including observable voucher-modified caps or thresholds.
 - [ ] Keep undiscovered-item acquisition bias bounded so it never overrides survival or build coherence.
 
 ### 1.0E — Blind skip/tag strategy
