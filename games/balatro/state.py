@@ -14,6 +14,14 @@ class BalatroState(GameState):
         self.blind_score: int = 0
         self.blind = None
         self.boss_name: str | None = None
+        # Public mutable state owned by the active Blind object. The Eye records
+        # accepted hand types in ``Blind.hands`` while The Mouth stores its first
+        # accepted type in ``Blind.only_hand``. Keep an observation bit so an
+        # empty/false live value is distinguishable from a source that never
+        # exposed the fields at all.
+        self.boss_blind_state_observed: bool = False
+        self.boss_blind_hands: set[str] = set()
+        self.boss_blind_only_hand: str | None = None
         self.deck_name: str = "BASE"
         self.stake_name: str = "WHITE"
         self.deck: list[BalatroCard] = self._create_deck()
@@ -131,6 +139,9 @@ class BalatroState(GameState):
         if self.blind is not None:
             new_state.blind = self.blind.copy()
         new_state.boss_name = self.boss_name
+        new_state.boss_blind_state_observed = self.boss_blind_state_observed
+        new_state.boss_blind_hands = self.boss_blind_hands.copy()
+        new_state.boss_blind_only_hand = self.boss_blind_only_hand
         new_state.deck_name = self.deck_name
         new_state.stake_name = self.stake_name
         new_state.deck = self.deck.copy()
