@@ -224,6 +224,12 @@ class LiveBlindClearPlanner:
             for index, card in enumerate(projected_state.hand)
             if index not in played_indices
         ]
+        joker_drawn_cards = max(
+            0,
+            len(getattr(projected_state, "hand", []))
+            - len(getattr(state, "hand", [])),
+        )
+        replacement_draw_count = max(0, len(action.cards) - joker_drawn_cards)
         composition = None
         draw_distribution = None
 
@@ -266,11 +272,19 @@ class LiveBlindClearPlanner:
                 )
                 continue
 
+            if replacement_draw_count <= 0:
+                value, child_exact = self._best_value(retained_state, depth - 1)
+                exact = exact and child_exact
+                total_value = total_value.plus(
+                    value.weighted(score_outcome.probability)
+                )
+                continue
+
             if draw_distribution is None:
                 composition = PublicDeckComposition.from_state(state)
                 draw_distribution = self.draw_outcomes.distribution(
                     composition,
-                    len(action.cards),
+                    replacement_draw_count,
                 )
                 exact = exact and draw_distribution.exact
 
