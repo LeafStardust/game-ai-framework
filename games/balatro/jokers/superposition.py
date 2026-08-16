@@ -23,7 +23,6 @@ class SuperpositionJoker(Joker):
         if not any(str(getattr(card, "rank", "")) == "A" for card in straight_cards):
             return context
 
-        context.data["create_tarot_count"] = (
-            int(context.data.get("create_tarot_count", 0) or 0) + 1
-        )
+        # Category marker only; live projection resolves random identity separately.
+        context.data.setdefault("created_consumables", []).append("Tarot")
         return context
