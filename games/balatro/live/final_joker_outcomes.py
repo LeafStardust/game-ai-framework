@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from games.balatro.hand import PokerHand
 from games.balatro.live.generated_consumable_outcomes import (
     LiveGeneratedConsumableScoreOutcomeModel,
     _GeneratedConsumableOutcomeJokerProjector,
@@ -8,7 +9,22 @@ from games.balatro.live.post_hand_outcomes import (
     _LiveOnScoredScorer,
     _LiveProjectedStochasticScorer,
 )
-from games.balatro.scoring import BalatroScorer
+from games.balatro.scoring import BalatroScorer, HandScore
+
+
+_SECRET_HAND_SCORES = {
+    PokerHand.FIVE_OF_A_KIND: HandScore(120, 12),
+    PokerHand.FLUSH_HOUSE: HandScore(140, 14),
+    PokerHand.FLUSH_FIVE: HandScore(160, 16),
+}
+
+
+class _FinalLiveScorer(_LiveOnScoredScorer):
+    SCORES = {**BalatroScorer.SCORES, **_SECRET_HAND_SCORES}
+
+
+class _FinalProjectedStochasticScorer(_LiveProjectedStochasticScorer):
+    SCORES = {**BalatroScorer.SCORES, **_SECRET_HAND_SCORES}
 
 
 class _FinalOutcomeJokerProjector(_GeneratedConsumableOutcomeJokerProjector):
@@ -22,16 +38,15 @@ class _FinalOutcomeJokerProjector(_GeneratedConsumableOutcomeJokerProjector):
     @classmethod
     def supports_in_state(cls, joker, state) -> bool:
         if type(joker).__name__ == "ToDoListJoker":
-            # The target is a public per-card ability field. If it was not observed,
-            # or is a secret hand the current PokerHand model cannot represent yet,
-            # fail closed rather than inventing a target or reward.
+            # The target is a public per-card ability field. Absence means live
+            # observation could not reconstruct the current request, so fail closed.
             if getattr(joker, "target_hand", None) is None:
                 return False
         return super().supports_in_state(joker, state)
 
 
 class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
-    """Current complete D1 outcome stack, including ordered To Do List economy."""
+    """Complete D1 outcome stack, including secret hands and To Do List economy."""
 
     def __init__(
         self,
@@ -44,8 +59,8 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
 
         live_scorer = (
             scorer
-            if isinstance(scorer, _LiveOnScoredScorer)
-            else _LiveOnScoredScorer()
+            if isinstance(scorer, _FinalLiveScorer)
+            else _FinalLiveScorer()
         )
         super().__init__(
             scorer=live_scorer,
@@ -63,9 +78,9 @@ class LiveFinalJokerScoreOutcomeModel(LiveGeneratedConsumableScoreOutcomeModel):
         bloodstone_branch,
         misprint_results: tuple[int, ...] = (),
     ):
-        """Preserve To Do List admission inside nested visible-RNG branches."""
+        """Preserve final Joker support inside nested visible-RNG branches."""
         branch_state = self._lucky_branch_input_state(state, lucky_branch)
-        branch_scorer = _LiveProjectedStochasticScorer(
+        branch_scorer = _FinalProjectedStochasticScorer(
             lucky_mult_results=lucky_branch.mult_results,
             bloodstone_results=bloodstone_branch.results,
             misprint_results=misprint_results,
