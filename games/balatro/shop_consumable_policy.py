@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass, fields
 from typing import Mapping
 
@@ -10,6 +11,7 @@ from games.balatro.actions import (
 )
 from games.balatro.build import ContextualConsumableSynergyEvaluator
 from games.balatro.consumable import Consumable
+from games.balatro.live.consumable_timing import LiveConsumableTimingPolicy
 from games.balatro.state import BalatroState
 
 
@@ -112,22 +114,29 @@ class ConsumableAcquisitionDecision:
 class ConsumableAcquisitionPolicy:
     """D4 HOLD/BUY/BUY_AND_USE policy over public shop state.
 
-    B4 supplies behavior-backed whole-build value. D4 adds only transaction
-    economics, consumable-slot opportunity cost and its own acquisition thresholds.
-    Immediate Buy & Use is deliberately fail-closed: only deterministic no-target
-    economy consumables with a concrete timing reason are admitted here. Targeted
-    effects remain D6 work, Planet timing remains D7 work, and stochastic effects
-    are never promoted merely because Balatro exposes a Buy & Use button.
+    B4 supplies behavior-backed whole-build value and D4 owns only transaction
+    economics, consumable-slot opportunity cost, and acquisition thresholds.
+
+    Immediate Buy & Use does not carry a second timing model. D4 simulates the
+    deterministic post-purchase state and asks the ordinary held-consumable timing
+    policy whether immediate use is admitted. D5/D6/D7 therefore remain the sole
+    owners of USE/HOLD and target admission. For now the direct shop transaction is
+    deliberately restricted to deterministic no-target economy consumables; target
+    transforms, Planets, and stochastic effects remain fail-closed here.
     """
+
+    DETERMINISTIC_BUY_AND_USE_NAMES = frozenset({"The Hermit", "Temperance"})
 
     def __init__(
         self,
         thresholds: ConsumableAcquisitionThresholds | None = None,
         *,
         evaluator: ContextualConsumableSynergyEvaluator | None = None,
+        timing_policy: LiveConsumableTimingPolicy | None = None,
     ) -> None:
         self.thresholds = thresholds or ConsumableAcquisitionThresholds()
         self.evaluator = evaluator or ContextualConsumableSynergyEvaluator()
+        self.timing_policy = timing_policy or LiveConsumableTimingPolicy()
 
     def decide(
         self,
@@ -299,7 +308,7 @@ class ConsumableAcquisitionPolicy:
             ),
             rationale=(
                 f"B4 whole-build gain={build_gain:.3f}",
-                f"exact immediate money gain=${immediate_gain:g}",
+                f"D5 admitted deterministic immediate gain=${immediate_gain:g}",
                 f"weighted immediate value={immediate_value:.3f}",
                 f"price=${economics.price}",
                 f"money after purchase=${economics.money_after}",
@@ -314,39 +323,32 @@ class ConsumableAcquisitionPolicy:
         candidate: Consumable,
     ) -> tuple[float, tuple[str, ...]] | None:
         name = str(getattr(candidate, "name", ""))
+        if name not in self.DETERMINISTIC_BUY_AND_USE_NAMES:
+            return None
+
         price = self._price(candidate)
         money_after = int(state.money) - price
-        slots_full = len(state.consumables) >= int(state.consumable_slots)
-
-        if name == "The Hermit":
-            gain = max(0, min(money_after * 2, 20) - money_after)
-            if gain <= 0:
-                return None
-            if money_after >= 10:
-                return float(gain), (
-                    "Hermit reaches its maximum-value $10 post-purchase threshold",
-                )
-            if slots_full:
-                return float(gain), (
-                    "consumable slots are full; immediate Hermit use is the only acquisition mode",
-                )
+        if money_after < 0:
             return None
 
-        if name == "Temperance":
-            payout = self._temperance_payout(state)
-            if payout <= 0:
-                return None
-            if payout >= 50:
-                return float(payout), (
-                    "Temperance reaches its deterministic $50 payout cap",
-                )
-            if slots_full:
-                return float(payout), (
-                    "consumable slots are full; immediate Temperance use is the only acquisition mode",
-                )
+        simulated = copy.deepcopy(state)
+        simulated_candidate = copy.deepcopy(candidate)
+        simulated.money = money_after
+        simulated.consumables.append(simulated_candidate)
+
+        recommendation = self.timing_policy.recommend(
+            simulated,
+            simulated_candidate,
+        )
+        if not recommendation.should_use:
+            return None
+        if float(recommendation.immediate_gain) <= 0.0:
             return None
 
-        return None
+        return float(recommendation.immediate_gain), (
+            "D4 immediate transaction delegated to post-purchase held-consumable timing",
+            *tuple(str(note) for note in recommendation.rationale),
+        )
 
     def _economics(
         self,
@@ -389,18 +391,6 @@ class ConsumableAcquisitionPolicy:
         before_shortfall = max(0, int(self.thresholds.reserve_target) - before)
         after_shortfall = max(0, int(self.thresholds.reserve_target) - after)
         return max(0, after_shortfall - before_shortfall)
-
-    @staticmethod
-    def _temperance_payout(state: BalatroState) -> int:
-        total = 0.0
-        for joker in state.jokers:
-            value = getattr(joker, "sell_cost", None)
-            if value is None:
-                value = getattr(joker, "sell_value", 0)
-            if isinstance(value, bool) or not isinstance(value, (int, float)):
-                continue
-            total += max(0.0, float(value))
-        return int(min(total, 50.0))
 
     @staticmethod
     def _price(item: object) -> int:
