@@ -135,14 +135,7 @@ class PlaybookShopUtilityScale(ShopUtilityScale):
 
 
 class PlaybookVoucherAwareBalatroShopPolicy(VoucherAwareBalatroShopPolicy):
-    """D3 admission mapped onto the same D14 scale used by the parent arbiter.
-
-    D3 still decides whether a visible Voucher is admissible using its own persistent
-    value/economy thresholds. Once admitted, the score returned to D12 is rebuilt
-    from D3 persistent value and D14 resource cost so D3 coefficients cannot distort
-    cross-family comparison. Applying D14 to this shared shop policy also keeps D11
-    reroll economics on the same resource scale during the parent decision.
-    """
+    """D3 admission mapped onto the same D14 scale used by the parent arbiter."""
 
     def __init__(
         self,
@@ -179,6 +172,7 @@ class PlaybookVoucherAwareBalatroShopPolicy(VoucherAwareBalatroShopPolicy):
                 interest_weight=float(thresholds.interest_weight),
                 reserve_target=int(thresholds.reserve_target),
                 reserve_weight=float(thresholds.reserve_weight),
+                vouchers=getattr(state, "vouchers", ()),
             )
             normalized_advantage = float(decision.persistent_value) - resource_cost.total
             scores.append(
