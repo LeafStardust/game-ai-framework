@@ -1,29 +1,20 @@
-import random
-
 from games.balatro.joker import Joker, JokerContext
+
 
 class VagabondJoker(Joker):
 
     def apply(self, context: JokerContext) -> JokerContext:
-        money = context.data.get(
-            "money",
-            getattr(context.state, "money", 0)
-        )
-
-        if money > 4:
+        if context.trigger != "HAND_SCORED":
             return context
 
-        context.data.setdefault(
-            "created_consumables",
-            []
-        ).append(
-            random.choice([
-                "The Fool",
-                "The Magician",
-                "The High Priestess",
-                "The Empress",
-                "The Emperor",
-            ])
+        money = context.data.get(
+            "money_at_hand_play",
+            getattr(context.state, "money", 0),
         )
+        if int(money or 0) > 4:
+            return context
 
+        context.data["create_tarot_count"] = (
+            int(context.data.get("create_tarot_count", 0) or 0) + 1
+        )
         return context
