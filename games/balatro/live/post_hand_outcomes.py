@@ -41,7 +41,6 @@ class _LiveOutcomeJokerProjector(LiveJokerScoreProjector):
                 "CertificateJoker",
                 "ChicotJoker",
                 "Cloud9Joker",
-                "CouponTagJoker",
                 "DNAJoker",
                 "DelayedGratificationJoker",
                 "FacelessJoker",
@@ -52,6 +51,7 @@ class _LiveOutcomeJokerProjector(LiveJokerScoreProjector):
                 "LuchadorJoker",
                 "MailInRebateJoker",
                 "MarbleJoker",
+                "MisprintJoker",
                 "MrBonesJoker",
                 "ReservedParkingJoker",
                 "RiffRaffJoker",
@@ -445,11 +445,13 @@ class LiveVisibleCardScoreOutcomeModel(VisibleCardScoreOutcomeModel):
         include_card_chips: bool,
         lucky_branch,
         bloodstone_branch,
+        misprint_results: tuple[int, ...] = (),
     ):
         branch_state = self._lucky_branch_input_state(state, lucky_branch)
         branch_scorer = _LiveProjectedStochasticScorer(
             lucky_mult_results=lucky_branch.mult_results,
             bloodstone_results=bloodstone_branch.results,
+            misprint_results=misprint_results,
         )
         branch_projector = _LiveOutcomeJokerProjector(branch_scorer)
         return branch_projector.score(
