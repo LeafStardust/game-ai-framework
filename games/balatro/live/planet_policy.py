@@ -13,6 +13,7 @@ from games.balatro.build.profile import (
 )
 from games.balatro.consumable import ConsumableContext
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator, LivePlayProjection
+from games.balatro.planet_outlook import PlanetOutlookEvaluator
 
 
 USE = "USE"
@@ -41,6 +42,10 @@ class PlanetDecision:
     rationale: tuple[str, ...] = ()
     playstyle_fit: float = 0.0
     playstyle_locked: bool = False
+    structural_feasibility: float = 0.0
+    expected_future_frequency: float = 0.0
+    marginal_level_gain: float = 0.0
+    future_value: float = 0.0
 
     @property
     def should_use(self) -> bool:
@@ -50,10 +55,10 @@ class PlanetDecision:
 class LivePlanetPolicy:
     """D7 Planet selection and USE-versus-HOLD policy from public state only.
 
-    Blind-clear probability and deterministic score gain remain primary. When those
-    safety signals are equal, Planet inventory ranking reuses the same run-scoped
-    B3 playstyle intent as D1/D2/D9 so a permanent hand upgrade can reinforce the
-    current direction without inventing a named build or consulting hidden state.
+    Blind-clear probability and deterministic score gain remain primary. Among
+    similarly safe upgrades, D7 combines the shared run-scoped B3 intent with a
+    public Planet outlook derived from observed hand usage and unordered owned-deck
+    feasibility. No future draw order or RNG state is consulted.
     """
 
     def __init__(
@@ -64,12 +69,14 @@ class LivePlanetPolicy:
         joker_analyzer=None,
         profiler=None,
         intent_tracker=None,
+        planet_outlook=None,
     ) -> None:
         self.thresholds = thresholds or PlanetPolicyThresholds()
         self.hand_evaluator = hand_evaluator or LiveHandDecisionEvaluator()
         self.joker_analyzer = joker_analyzer or SemanticJokerBehaviorAnalyzer()
         self.profiler = profiler or BalatroBuildProfiler()
         self.intent_tracker = intent_tracker or BalatroPlaystyleIntentTracker()
+        self.planet_outlook = planet_outlook or PlanetOutlookEvaluator()
 
     @staticmethod
     def _exploratory_influence(ante: int) -> float:
@@ -160,6 +167,7 @@ class LivePlanetPolicy:
         duplicate_hold_value = self._duplicate_hold_value(state)
         slots_full = self._consumable_slots_full(state)
         playstyle_fit, playstyle_locked = self._playstyle_fit(state, planet)
+        outlook = self.planet_outlook.evaluate(state, planet)
 
         if level_gain <= 0:
             decision, reason = HOLD, "Planet produced no permanent hand-level gain"
@@ -211,6 +219,11 @@ class LivePlanetPolicy:
                 f"best-play expected score {before.expected_hand_score:.3f} -> {after.expected_hand_score:.3f}",
                 f"required pace per remaining hand={required:.3f}",
                 f"observed hand plays={observed_plays}",
+                f"Planet structural feasibility={outlook.structural_feasibility:.6f}",
+                f"Planet expected future frequency={outlook.expected_future_frequency:.6f}",
+                f"Planet marginal level gain={outlook.marginal_level_gain:.3f}",
+                f"Planet future value={outlook.future_value:.6f}",
+                f"Planet speculative={outlook.speculative}",
                 f"consumable duplicate hold value={duplicate_hold_value:.3f}",
                 f"duplicate hold threshold={self.thresholds.duplicate_hold_minimum:.3f}",
                 f"consumable slots full={slots_full}",
@@ -218,6 +231,10 @@ class LivePlanetPolicy:
             ),
             playstyle_fit=playstyle_fit,
             playstyle_locked=playstyle_locked,
+            structural_feasibility=outlook.structural_feasibility,
+            expected_future_frequency=outlook.expected_future_frequency,
+            marginal_level_gain=outlook.marginal_level_gain,
+            future_value=outlook.future_value,
         )
 
     def recommend_inventory(self, state) -> tuple[PlanetDecision, ...]:
@@ -299,6 +316,7 @@ class LivePlanetPolicy:
             1 if decision.should_use else 0,
             float(decision.clear_probability_gain),
             float(decision.immediate_score_gain),
+            float(decision.future_value),
             float(decision.playstyle_fit),
             int(decision.observed_hand_plays),
             int(decision.level_gain),
