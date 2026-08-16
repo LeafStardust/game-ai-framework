@@ -1,13 +1,18 @@
 from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
+from games.balatro.hand import PokerHand
 from games.balatro.jokers.bootstraps import BootstrapsJoker
+from games.balatro.jokers.chicot import ChicotJoker
 from games.balatro.jokers.ice_cream import IceCreamJoker
+from games.balatro.jokers.luchador import LuchadorJoker
 from games.balatro.live.boss_blind_integration import (
     BossAwareLiveHandDecisionEvaluator,
     boss_blind_planning_rule,
+    boss_play_action_is_legal,
 )
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
+from games.balatro.live.post_hand_outcomes import LiveVisibleCardScoreOutcomeModel
 from games.balatro.state import BalatroState
 
 
@@ -139,3 +144,60 @@ def test_d1_house_keeps_normal_play_legality():
 
     assert plays
     assert any(len(action.cards) < 5 for action in plays)
+
+
+def test_chicot_disables_psychic_play_count_restriction_while_owned():
+    state = _state("The Psychic")
+    state.jokers = [ChicotJoker()]
+    short_play = BalatroAction(PLAY_CARDS, cards=[state.hand[0]])
+
+    assert boss_blind_planning_rule(state) is None
+    assert boss_play_action_is_legal(state, short_play) is True
+
+    plays = D1LiveBlindClearPlanner(
+        play_width=20,
+        discard_width=0,
+        horizon=1,
+    )._candidate_actions(state, allow_discards=False)
+    assert plays
+    assert any(len(action.cards) < 5 for action in plays)
+
+
+def test_chicot_disables_head_specific_evaluator_while_owned():
+    state = _state("The Head")
+    state.jokers = [ChicotJoker()]
+    evaluator = BossAwareLiveHandDecisionEvaluator()
+
+    assert boss_blind_planning_rule(state) is None
+    assert evaluator.evaluator_for_state(state) is evaluator
+
+
+def test_luchador_does_not_disable_boss_rules_until_separate_sell_effect_occurs():
+    state = _state("The Psychic")
+    state.jokers = [LuchadorJoker()]
+    short_play = BalatroAction(PLAY_CARDS, cards=[state.hand[0]])
+
+    rule = boss_blind_planning_rule(state)
+    assert rule is not None
+    assert rule.required_play_cards == 5
+    assert boss_play_action_is_legal(state, short_play) is False
+
+
+def test_chicot_and_luchador_do_not_block_current_hand_score_projection():
+    ace = BalatroCard("A", "Spades")
+    state = _state("The House")
+    state.hand = [ace]
+    state.deck = []
+    state.jokers = [ChicotJoker(), LuchadorJoker()]
+
+    transition = LiveVisibleCardScoreOutcomeModel().project_transition(
+        PokerHand.HIGH_CARD,
+        state,
+        [ace],
+    )
+
+    assert transition.joker_projection_complete is True
+    assert transition.unsupported_jokers == ()
+    assert transition.distribution.deterministic is True
+    assert transition.distribution.minimum == 16
+    assert transition.distribution.maximum == 16
