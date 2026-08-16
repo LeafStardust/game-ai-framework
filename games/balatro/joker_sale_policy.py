@@ -98,7 +98,14 @@ class JokerSaleDecision:
 
 
 class JokerSalePolicy:
-    """D2 standalone SELL-vs-HOLD policy over the complete current build."""
+    """D2 standalone SELL-vs-HOLD policy over the complete current build.
+
+    Every owned Joker is evaluated against the common baseline that excludes that
+    Joker. The keep baseline is always zero advantage. A sale is admitted only
+    when public sell metadata is available, the Joker is not observably unsellable,
+    its build loss is within the dedicated D2 threshold, and the resulting sale
+    advantage strictly exceeds the HOLD baseline threshold.
+    """
 
     EDITION_RETENTION_VALUE = {
         "FOIL": 0.8,
@@ -136,7 +143,9 @@ class JokerSalePolicy:
         ]
         if not eligible:
             best = ranked[0] if ranked else None
-            best_text = f"{best.total_advantage:.3f}" if best is not None else "none"
+            best_text = (
+                f"{best.total_advantage:.3f}" if best is not None else "none"
+            )
             return JokerSaleDecision(
                 action=HOLD,
                 selected=None,
@@ -160,7 +169,12 @@ class JokerSalePolicy:
             ),
         )
 
-    def _score_sale(self, state: BalatroState, index: int, joker: Joker) -> JokerSaleOption:
+    def _score_sale(
+        self,
+        state: BalatroState,
+        index: int,
+        joker: Joker,
+    ) -> JokerSaleOption:
         baseline = copy.deepcopy(state)
         removed = baseline.jokers.pop(index)
         build_value = self.evaluator.evaluate(baseline, removed)
@@ -172,8 +186,14 @@ class JokerSalePolicy:
         if sell_credit is None:
             blocked_reason = blocked_reason or "public sell value is unavailable"
 
-        money_after = int(state.money) + sell_credit if sell_credit is not None else None
-        cash_value = sell_credit * self.thresholds.sell_credit_weight if sell_credit is not None else 0.0
+        money_after = (
+            int(state.money) + sell_credit if sell_credit is not None else None
+        )
+        cash_value = (
+            sell_credit * self.thresholds.sell_credit_weight
+            if sell_credit is not None
+            else 0.0
+        )
         vouchers = getattr(state, "vouchers", ())
         interest_gain = (
             (
@@ -193,7 +213,15 @@ class JokerSalePolicy:
         slot_release_value = self._slot_release_value(state, joker)
         edition_penalty = self._edition_retention_value(joker)
 
-        total = removal_gain - build_loss + cash_value + interest_gain + reserve_recovery + slot_release_value - edition_penalty
+        total = (
+            removal_gain
+            - build_loss
+            + cash_value
+            + interest_gain
+            + reserve_recovery
+            + slot_release_value
+            - edition_penalty
+        )
         eligible = (
             blocked_reason is None
             and sell_credit is not None
@@ -213,9 +241,15 @@ class JokerSalePolicy:
             f"sale advantage={total:.3f}",
         ]
         if build_loss > self.thresholds.maximum_build_loss:
-            rationale.append(f"build loss exceeds maximum={self.thresholds.maximum_build_loss:.3f}")
-        if sell_credit is not None and sell_credit < int(self.thresholds.minimum_sell_credit):
-            rationale.append(f"sell credit is below minimum=${self.thresholds.minimum_sell_credit}")
+            rationale.append(
+                f"build loss exceeds maximum={self.thresholds.maximum_build_loss:.3f}"
+            )
+        if sell_credit is not None and sell_credit < int(
+            self.thresholds.minimum_sell_credit
+        ):
+            rationale.append(
+                f"sell credit is below minimum=${self.thresholds.minimum_sell_credit}"
+            )
         if blocked_reason is not None:
             rationale.append(blocked_reason)
 
@@ -238,6 +272,8 @@ class JokerSalePolicy:
         )
 
     def _slot_release_value(self, state: BalatroState, joker: Joker) -> float:
+        # A Negative Joker's edition is itself what supplies extra capacity in
+        # vanilla Balatro, so selling it is not credited with ordinary slot release.
         if self._edition_name(joker) == "NEGATIVE":
             return 0.0
         if len(state.jokers) >= int(state.joker_slots):
@@ -260,6 +296,7 @@ class JokerSalePolicy:
             return "Joker is marked not sellable"
         if getattr(joker, "can_sell", None) is False:
             return "Joker is marked not sellable"
+
         ability = getattr(joker, "ability", None)
         if isinstance(ability, Mapping):
             if bool(ability.get("eternal", False)):
