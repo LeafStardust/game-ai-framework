@@ -427,13 +427,14 @@ class LiveBlindClearPlanner:
     def _terminal_value(self, state, *, clear: bool) -> LiveBlindPlanValue:
         target = self._target(state)
         score = float(getattr(state, "score", 0))
+        effective_clear = bool(clear or self._mr_bones_rescues(state))
         if target > 0:
             progress = min(1.0, max(0.0, score / target))
         else:
             progress = 0.0
         return LiveBlindPlanValue(
-            clear_probability=1.0 if clear else 0.0,
-            expected_progress=1.0 if clear else progress,
+            clear_probability=1.0 if effective_clear else 0.0,
+            expected_progress=1.0 if effective_clear else progress,
             expected_score=score,
             expected_hands_remaining=float(getattr(state, "hands_remaining", 0)),
             expected_discards_remaining=float(
@@ -471,6 +472,20 @@ class LiveBlindClearPlanner:
     def _is_cleared(self, state) -> bool:
         target = self._target(state)
         return target > 0 and int(getattr(state, "score", 0)) >= target
+
+    def _mr_bones_rescues(self, state) -> bool:
+        if int(getattr(state, "hands_remaining", 0) or 0) > 0:
+            return False
+
+        target = self._target(state)
+        score = int(getattr(state, "score", 0) or 0)
+        if target <= 0 or score >= target or score * 4 < target:
+            return False
+
+        return any(
+            type(joker).__name__ == "MrBonesJoker"
+            for joker in getattr(state, "jokers", [])
+        )
 
     @classmethod
     def _estimate_key(cls, estimate: _ActionEstimate) -> tuple[float, int, float, float, float, float]:
