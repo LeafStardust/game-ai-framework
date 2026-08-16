@@ -97,7 +97,7 @@ def test_full_joker_slots_remove_buffoon_choices():
     assert [action.name for action in actions] == [SKIP_BOOSTER]
 
 
-def test_targeted_tarot_is_ranked_below_skip_until_followup_is_supported():
+def test_targeted_tarot_without_a_legal_target_is_ranked_below_skip():
     choice = LivePackChoice(
         area_index=0,
         address=104,
