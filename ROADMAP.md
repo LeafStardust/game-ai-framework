@@ -17,8 +17,8 @@
 | 0.9B Execution/safety | Complete | — |
 | 0.9C Mechanics/planning foundation | **Complete** | — |
 | 0.9D Playbook/build foundation | Complete for 0.9 | Strategic calibration moves to 1.0 |
-| 0.9E Decision coverage | In progress | D9/D10 production validation |
-| 0.9F Logging/diagnostics | In progress | Release-required diagnostic completeness |
+| 0.9E Decision coverage | Implementation/regression complete | Authentic D9/D10 live-transition evidence in 0.9G |
+| 0.9F Logging/diagnostics | **Implementation/regression complete** | Clean production shutdown/log completeness in 0.9G |
 | 0.9G Release validation | In progress | Full autonomous production-flow validation |
 | v1.0 Red/White competence | Not started | Begins after 0.9 release gate |
 
@@ -103,7 +103,7 @@ There is one Balatro agent. Playbooks specify deck/stake strategy; they do not r
 
 Per-layer production calibration and the first Red/White threshold cartridge are **v1.0 competence work**, not 0.9 integration blockers.
 
-### 0.9E — Decision coverage inventory
+### 0.9E — Decision coverage inventory — IMPLEMENTATION/REGRESSION COMPLETE
 
 | Layer | Decision | 0.9 status |
 |---|---|---|
@@ -115,25 +115,16 @@ Per-layer production calibration and the first Red/White threshold cartridge are
 | D6 | Consumable targeting | Complete deterministic foundation |
 | D7 | Planet choice/use timing | Complete foundation; live validated |
 | D8 | Booster acquisition | Complete foundation; live validated |
-| D9 | Pack choice vs Skip | **Implementation complete; production validation open** |
-| D10 | Pack follow-up targeting | **Implementation complete; production validation open** |
+| D9 | Pack choice vs Skip | Implementation + production-boundary regression complete; authentic live evidence open |
+| D10 | Pack follow-up targeting | Implementation + production-boundary regression complete; authentic live evidence open |
 | D11 | Reroll decision | Complete foundation |
 | D12 | Shop arbiter | Complete foundation |
 | D13 | Blind play vs skip/tag | Complete foundation |
 | D14 | Run-level resource valuation | Complete conservative foundation |
 
-**Remaining 0.9 decision work**
+D9/D10 regression coverage now verifies the production recommendation -> semantic injected action -> authoritative-postcondition contract across Joker/Standard/Planet/Tarot/Spectral packs, Skip, and targeted Tarot/Spectral/Standard flows. Final acceptance still requires authentic process-memory before/after transitions during the 0.9G live release run; synthetic/unit fixtures are regression evidence, not substitutes for that live evidence.
 
-- [ ] **D9:** validate recommendations across Joker/Standard/Planet/Tarot/Spectral pack families at the production boundary
-- [ ] **D9:** verify recommendation -> semantic injected action -> authoritative postcondition for choice and Skip
-- [ ] **D10:** validate end-to-end targeted Tarot/Spectral/Standard-pack flows at the production boundary
-- [ ] **D10:** verify target recommendation -> injected targeting/confirmation -> authoritative postcondition
-
-D9/D10 live-validation boxes may only be satisfied by authentic production transitions using complete before/after process-memory snapshots and later authoritative checkpoints. Synthetic/unit fixtures remain regression evidence only.
-
-### 0.9F — Run logging, diagnostics and recovery
-
-**Implemented**
+### 0.9F — Run logging, diagnostics and recovery — IMPLEMENTATION/REGRESSION COMPLETE
 
 - [x] Append-only per-run JSONL experience log
 - [x] Deck/stake/playbook/playbook-version run identity
@@ -144,19 +135,18 @@ D9/D10 live-validation boxes may only be satisfied by authentic production trans
 - [x] Supervisor traceback/crash-report capture
 - [x] Read-only live monitor and agent toggle integration
 - [x] Build profile, synergy, build-intent and selected-decision rationale events
+- [x] Decision-layer candidate scores and active thresholds required for postmortem, including ranked D9/D10 candidates and D1 search diagnostics
+- [x] Dedicated append-only execution/supervisor failure diagnostic stream that does not contaminate successful experience transitions
+- [x] Dedicated semantic events for purchases, sells, consumable uses and blind outcomes after successful authoritative transitions
+- [x] Failure-safe session summary generation on unhandled supervisor errors
 
-**Remaining 0.9 logging gate**
-
-- [ ] Log full decision-layer candidate scores and active thresholds where required for postmortem
-- [ ] Log execution failures in a dedicated diagnostic stream without corrupting successful experience transitions
-- [ ] Log purchases, sells, consumable uses and blind outcomes as dedicated semantic events
-- [ ] Confirm clean shutdown produces a complete production run/session log
+The remaining logging acceptance criterion is **live** rather than an implementation gap: 0.9G must confirm that cooperative shutdown and complete production attempts leave internally consistent run/session logs and diagnostics.
 
 Replay analysis, aggregate statistics and offline playbook tuning are deferred to v1.0 competence work after log quality is validated.
 
 ### 0.9G — Single-command autonomous supervisor and release validation
 
-**Implemented**
+**Implemented/regression-validated**
 
 - [x] Single toggle command for an already-started supported run
 - [x] Detached supervisor control plane and duplicate-start protection
@@ -167,15 +157,18 @@ Replay analysis, aggregate statistics and offline playbook tuning are deferred t
 - [x] Native automatic restart after loss
 - [x] Automatic OFF after target-run win path
 - [x] Reliability soak protocol completed without crash/UI corruption/premature injection
+- [x] Contract-level D9/D10 production-boundary regression coverage
+- [x] Logging/diagnostic recovery regression coverage, including unhandled supervisor failure artifacts
 
-**Remaining v0.9 release gate**
+**Remaining v0.9 live release gate**
 
 - [ ] Live-validate repeated production loss -> native restart -> fresh-attempt continuation across multiple attempts
 - [ ] Live-validate manual toggle OFF during an active run
 - [ ] Confirm every required phase/subflow routes to a production decision layer with no temporary unsupported gap
 - [ ] Validate full blind-select -> hand-play -> round-eval -> shop -> pack/consumable -> next-blind flow with no manual gameplay input
+- [ ] Obtain authentic D9/D10 before/after process-memory evidence for pack choice/Skip and targeted follow-up flows encountered during release validation
 - [ ] Confirm complete attempts continue without an arbitrary gameplay-step cap
-- [ ] Confirm clean shutdown and complete production run/session logging
+- [ ] Confirm clean shutdown leaves complete, internally consistent production run/session logs and separate diagnostics
 - [ ] If a real win occurs during 0.9 validation, confirm automatic OFF and terminal logging; otherwise carry this live check into v1.0
 
 ### Legacy/fallback cleanup
