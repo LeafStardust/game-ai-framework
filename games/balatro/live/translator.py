@@ -298,6 +298,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             ),
             live_id=live_id,
             debuffed=bool(card.get("debuff", False)),
+            permanent_bonus=int(card.get("permanent_bonus", 0) or 0),
         )
 
     def _translate_hand_levels(

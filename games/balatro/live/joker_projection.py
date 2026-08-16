@@ -86,6 +86,7 @@ class LiveJokerScoreProjector:
             "HackJoker",
             "HalfJoker",
             "HangingChadJoker",
+            "HikerJoker",
             "HitTheRoadJoker",
             "HologramJoker",
             "IceCreamJoker",
@@ -194,6 +195,7 @@ class LiveJokerScoreProjector:
         {
             "HackJoker",
             "HangingChadJoker",
+            "HikerJoker",
             "SockAndBuskinJoker",
             "VampireJoker",
         }

@@ -343,6 +343,7 @@ def _normalize_card(
 ) -> dict[str, Any]:
     card = decoder.string_fields(address)
     base = _table_fields(decoder, card.get("base"))
+    ability = _table_fields(decoder, card.get("ability"))
     config = _table_fields(decoder, card.get("config"))
     center = _table_fields(decoder, config.get("center"))
 
@@ -372,6 +373,7 @@ def _normalize_card(
         ),
         "center": center_key,
         "debuff": _boolean(card.get("debuff"), False),
+        "permanent_bonus": _integer(ability.get("perma_bonus"), 0),
         "label": _first_string(card.get("label"), center.get("name")),
     }
 
@@ -676,6 +678,7 @@ def _public_card_sort_key(card: dict[str, Any]) -> tuple[str, ...]:
         str(modifier.get("enhancement") or ""),
         str(modifier.get("edition") or ""),
         str(modifier.get("seal") or ""),
+        str(card.get("permanent_bonus") or ""),
         str(card.get("live_id") or ""),
     )
 

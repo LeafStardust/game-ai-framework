@@ -39,6 +39,8 @@ class BalatroCard:
     # The card keeps its rank/suit for poker-hand structure, but scoring/held-card
     # effects must treat a debuffed card as disabled.
     debuffed: bool = False
+    # Public permanent chip bonus stored on the playing card itself (e.g. Hiker).
+    permanent_bonus: int = 0
 
     @property
     def is_wild(self) -> bool:

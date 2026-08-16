@@ -543,9 +543,13 @@ class BalatroScorer:
 
     @classmethod
     def card_chip_value(cls, card) -> int:
+        permanent_bonus = int(getattr(card, "permanent_bonus", 0) or 0)
         if getattr(card, "enhancement", None) == "Stone":
-            return 0
-        return cls.RANK_CHIPS.get(str(getattr(card, "rank", "")), 0)
+            return permanent_bonus
+        return (
+            cls.RANK_CHIPS.get(str(getattr(card, "rank", "")), 0)
+            + permanent_bonus
+        )
 
     @classmethod
     def scoring_cards(
