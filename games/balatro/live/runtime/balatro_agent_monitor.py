@@ -99,6 +99,94 @@ def _safe(value: Any, default: str = "-") -> str:
     return str(value)
 
 
+def _strategy_display_name(strategy_id: str) -> str:
+    return str(strategy_id).replace("_", " ").title()
+
+
+def _strategy_dashboard_fields(rationale: dict[str, Any]) -> dict[str, str]:
+    empty = {
+        "strategy": "-",
+        "status": "-",
+        "score": "-",
+        "pressure": "-",
+        "relevant": "-",
+        "path": "-",
+    }
+    postmortem = rationale.get("postmortem")
+    if not isinstance(postmortem, dict):
+        return empty
+    strategy = postmortem.get("strategy")
+    if not isinstance(strategy, dict):
+        return empty
+
+    ranked = strategy.get("ranked")
+    ranked_rows = ranked if isinstance(ranked, list) else []
+    assessment_by_id = {
+        str(row.get("strategy_id")): row
+        for row in ranked_rows
+        if isinstance(row, dict) and row.get("strategy_id")
+    }
+
+    dominant_id = strategy.get("dominant_strategy_id")
+    if dominant_id is None:
+        dominant_name = "NONE (ordinary/meta value leads)"
+        dominant = None
+    else:
+        dominant_id = str(dominant_id)
+        dominant = assessment_by_id.get(dominant_id)
+        dominant_name = (
+            str(dominant.get("name"))
+            if dominant is not None and dominant.get("name")
+            else _strategy_display_name(dominant_id)
+        )
+
+    relevant_ids = strategy.get("relevant_strategy_ids")
+    relevant_names: list[str] = []
+    if isinstance(relevant_ids, list):
+        for raw_id in relevant_ids:
+            strategy_id = str(raw_id)
+            row = assessment_by_id.get(strategy_id)
+            relevant_names.append(
+                str(row.get("name"))
+                if row is not None and row.get("name")
+                else _strategy_display_name(strategy_id)
+            )
+
+    path_names: list[str] = []
+    nodes = strategy.get("nodes")
+    if dominant_id is not None and isinstance(nodes, list):
+        for node in nodes:
+            if not isinstance(node, dict) or str(node.get("strategy_id")) != dominant_id:
+                continue
+            raw_path = node.get("path")
+            if isinstance(raw_path, list):
+                for raw_id in raw_path:
+                    strategy_id = str(raw_id)
+                    row = assessment_by_id.get(strategy_id)
+                    if strategy_id == dominant_id:
+                        path_names.append(dominant_name)
+                    elif row is not None and row.get("name"):
+                        path_names.append(str(row.get("name")))
+                    else:
+                        path_names.append(_strategy_display_name(strategy_id))
+            break
+
+    score = dominant.get("score") if dominant is not None else None
+    pressure = strategy.get("strategy_pressure")
+    return {
+        "strategy": dominant_name,
+        "status": _safe(strategy.get("active_status")),
+        "score": f"{float(score):.3f}" if isinstance(score, (int, float)) else "-",
+        "pressure": (
+            f"{float(pressure):.3f}"
+            if isinstance(pressure, (int, float))
+            else "-"
+        ),
+        "relevant": ", ".join(relevant_names) if relevant_names else "NONE",
+        "path": " -> ".join(path_names) if path_names else "-",
+    }
+
+
 def build_dashboard(
     status: dict[str, Any],
     *,
@@ -116,6 +204,7 @@ def build_dashboard(
     decision_data = latest_decision.get("data") if isinstance(latest_decision.get("data"), dict) else {}
     rationale = decision_data.get("rationale") if isinstance(decision_data.get("rationale"), dict) else {}
     notes = rationale.get("notes") if isinstance(rationale.get("notes"), list) else []
+    strategy_fields = _strategy_dashboard_fields(rationale)
 
     latest_result = _latest(rows, "action_result") or {}
     result_data = latest_result.get("data") if isinstance(latest_result.get("data"), dict) else {}
@@ -163,6 +252,15 @@ def build_dashboard(
         f"Score / Blind   : {score_text}",
         f"Hands / Discards: {_safe(round_data.get('hands_left'))} / {_safe(round_data.get('discards_left'))}",
         f"Money           : ${_safe(payload.get('money'))}",
+        "",
+        "CURRENT STRATEGY",
+        "-" * 78,
+        f"Strategy        : {strategy_fields['strategy']}",
+        f"Status          : {strategy_fields['status']}",
+        f"Score           : {strategy_fields['score']}",
+        f"Pressure        : {strategy_fields['pressure']}",
+        f"Relevant        : {strategy_fields['relevant']}",
+        f"Path            : {strategy_fields['path']}",
         "",
         "CURRENT AGENT ACTIVITY",
         "-" * 78,

@@ -95,3 +95,96 @@ def test_dashboard_reports_stopped_run():
     assert "Balatro.exe     : NOT RUNNING" in text
     assert "Run ongoing     : NO" in text
     assert "Status reason    : manual stop requested" in text
+
+
+def test_dashboard_shows_strategy_diagnostics_outside_truncated_reasoning():
+    rows = [
+        {
+            "sequence": 11,
+            "event": "decision",
+            "data": {
+                "action": {"name": "PLAY_CARDS", "indices": [0]},
+                "rationale": {
+                    "decision_source": "D1 hand-action policy",
+                    "notes": [f"ordinary note {index}" for index in range(12)],
+                    "postmortem": {
+                        "strategy": {
+                            "dominant_strategy_id": "high_card_stuntman",
+                            "relevant_strategy_ids": ["pair"],
+                            "active_status": "HIGHLIGHTED",
+                            "strategy_pressure": 0.625,
+                            "ranked": [
+                                {
+                                    "strategy_id": "high_card_stuntman",
+                                    "name": "Stuntman / Small-Hand High Card",
+                                    "score": 8.25,
+                                },
+                                {
+                                    "strategy_id": "pair",
+                                    "name": "Pair",
+                                    "score": 3.5,
+                                },
+                            ],
+                            "nodes": [
+                                {
+                                    "strategy_id": "high_card_stuntman",
+                                    "path": ["high_card", "high_card_stuntman"],
+                                }
+                            ],
+                        }
+                    },
+                },
+            },
+        }
+    ]
+
+    text = build_dashboard(
+        {"state": "ON"},
+        supervisor_pid=1234,
+        balatro_running=True,
+        rows=rows,
+    )
+
+    assert "CURRENT STRATEGY" in text
+    assert "Strategy        : Stuntman / Small-Hand High Card" in text
+    assert "Status          : HIGHLIGHTED" in text
+    assert "Score           : 8.250" in text
+    assert "Pressure        : 0.625" in text
+    assert "Relevant        : Pair" in text
+    assert "Path            : High Card -> Stuntman / Small-Hand High Card" in text
+
+
+def test_dashboard_reports_when_no_strategy_has_positive_evidence():
+    rows = [
+        {
+            "event": "decision",
+            "data": {
+                "rationale": {
+                    "postmortem": {
+                        "strategy": {
+                            "dominant_strategy_id": None,
+                            "relevant_strategy_ids": [],
+                            "active_status": "AVAILABLE",
+                            "strategy_pressure": 0.0,
+                            "ranked": [],
+                            "nodes": [],
+                        }
+                    }
+                }
+            },
+        }
+    ]
+
+    text = build_dashboard(
+        {"state": "ON"},
+        supervisor_pid=1234,
+        balatro_running=True,
+        rows=rows,
+    )
+
+    assert "Strategy        : NONE (ordinary/meta value leads)" in text
+    assert "Status          : AVAILABLE" in text
+    assert "Score           : -" in text
+    assert "Pressure        : 0.000" in text
+    assert "Relevant        : NONE" in text
+    assert "Path            : -" in text
