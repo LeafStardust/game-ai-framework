@@ -14,6 +14,7 @@ from games.balatro.playbook_shop_policy import PlaybookVoucherAwareBalatroShopPo
 from games.balatro.shop_playstyle import BuildAwareShopItemValueEstimator
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.strategy import BalatroStrategyTracker
+from games.balatro.strategy_blind_skip_policy import StrategyAwareBlindSkipPolicy
 from games.balatro.strategy_booster_policy import StrategyAwarePlaybookShopArbiter
 from games.balatro.strategy_catalog import UNIVERSAL_BALATRO_STRATEGIES
 from games.balatro.strategy_compat import NeutralLegacyPlaystyleIntentTracker
@@ -52,9 +53,9 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
 
         # The parent wires several mature policies to one legacy Ante-5-locking
         # playstyle tracker. Keep the mechanics but neutralize that strategic signal
-        # before constructing the universal-strategy wrappers. Existing D13 and
-        # build-intent plumbing receives the same neutral bridge until dedicated
-        # playbook-aware replacements are wired.
+        # before constructing the universal-strategy wrappers. Build-intent logging
+        # keeps the neutral bridge while D1/D2/D7/D8/D9/D13 and shop valuation use
+        # the shared universal strategy tracker below.
         self.playstyle_intent_tracker = NeutralLegacyPlaystyleIntentTracker()
         self.build_intent_log_tracker.intent_tracker = self.playstyle_intent_tracker
         self.blind_skip_policy.intent_tracker = self.playstyle_intent_tracker
@@ -62,6 +63,11 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
         self.strategy_tracker = BalatroStrategyTracker(
             UNIVERSAL_BALATRO_STRATEGIES,
             modifier_provider=_strategy_modifiers_for_state,
+        )
+        self.blind_skip_policy = StrategyAwareBlindSkipPolicy(
+            profiler=self.playstyle_profiler,
+            intent_tracker=self.playstyle_intent_tracker,
+            strategy_tracker=self.strategy_tracker,
         )
 
         self.consumable_timing_policy.planet_policy = StrategyAwareLivePlanetPolicy(
