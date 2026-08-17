@@ -33,7 +33,10 @@ Two Pair [I]
 └── Spare Trousers + Square Joker Two Pair [L]
     └── repeated four-card Two Pair hands scale both Mult and Chips
 
-Three of a Kind [L]
+Three of a Kind [I]
+├── Core Three of a Kind [L]
+└── DNA / Cryptid Rank-Copy Three of a Kind [L]
+    └── concentrate one rank until Trips are consistently available without requiring a five-card hand
 
 Straight [I]
 ├── Core Straight [L]
@@ -48,12 +51,18 @@ Flush [I]
     └── reduce suit/hand-size requirements to make Flushes highly repeatable
 
 Full House [L]
-Four of a Kind [L]
+
+Four of a Kind [I]
+├── Core Four of a Kind [L]
+└── DNA / Cryptid Rank-Copy Four of a Kind [L]
+    └── concentrate one rank until Quads are routine even before a Five-of-a-Kind shell exists
 
 Straight Flush [I]
 ├── Core Straight Flush [L]
-└── Shortcut / Four Fingers / Smeared Straight Flush [L]
-    └── rule-changing consistency shell for an otherwise difficult hand
+├── Shortcut / Four Fingers / Smeared Straight Flush [L]
+│   └── rule-changing consistency shell for an otherwise difficult hand
+└── Seance Straight-Flush Spectral Engine [L]
+    └── repeatedly form Straight Flushes partly to generate Spectral cards while preserving blind safety
 
 Five of a Kind [I]
 ├── Core Five of a Kind [L]
@@ -83,11 +92,26 @@ Aces [I]
 └── DNA + Scholar Ace Concentration [L]
     └── repeatedly copy Aces, then score duplicate-Ace poker hands through Scholar
 
+Low-Rank Scoring [I]
+├── Fibonacci Low-Rank Scoring [L]
+│   └── concentrate useful Fibonacci ranks and score them repeatedly
+└── Hack + Fibonacci Retrigger [L]
+    └── concentrate overlapping low ranks so Hack retriggers Fibonacci scoring cards
+
 Twos [I]
 ├── Wee Joker Twos [L]
 │   └── concentrate and repeatedly score 2s to scale Wee Joker
 └── Wee Joker + Hack Retrigger Twos [L]
     └── retrigger scored 2s to accelerate Wee Joker scaling
+
+Sixes / Sixth Sense [L]
+    └── preserve/copy enough 6s to feed a single 6 as the first hand and repeatedly generate Spectral cards
+
+Jacks / Hit the Road [L]
+    └── preserve and concentrate Jacks specifically so discards can build temporary XMult each Blind
+
+Queens / Shoot the Moon [L]
+    └── preserve Queens in hand while scoring with another small/reliable hand to convert held Queens into Mult
 
 Face Cards [I]
 ├── Core Face-Card Scoring [L]
@@ -95,8 +119,10 @@ Face Cards [I]
 │   └── place a face card first and retrigger Photograph's XMult activation
 ├── Triboulet + Sock and Buskin [L]
 │   └── score Kings/Queens and retrigger every face-card XMult trigger
-└── Pareidolia Universal Face Scoring [L]
-    └── make all cards satisfy face-card payoff Jokers
+├── Pareidolia Universal Face Scoring [L]
+│   └── make all cards satisfy face-card payoff Jokers
+└── Held Face-Card Economy [L]
+    └── preserve useful face cards for Reserved Parking / related held-card economy without forcing them to score
 
 Faceless / No-Face [I]
 ├── Ride the Bus No-Face Scaling [L]
@@ -108,11 +134,11 @@ The Idol Exact-Card Concentration [L]
     └── collapse the deck around the current target rank+suit so every scoring card can trigger The Idol
 ```
 
-`PhotoChad`, Triboulet, and Pareidolia stay under Face Cards rather than under one poker hand because they can support several poker-hand roots.
+`PhotoChad`, Triboulet, Pareidolia, Hit the Road, and Shoot the Moon stay outside any one poker-hand root because they can support several poker-hand strategies.
 
 ---
 
-## 3. Suit strategies
+## 3. Suit and held-card strategies
 
 ```text
 Hearts [I]
@@ -136,6 +162,9 @@ Spades [I]
 ├── Core Spades Scoring [L]
 └── Arrowhead Spade Chips [L]
     └── concentrate Spades and convert each scored Spade into a large Chip source
+
+Blackboard Held-Black Cards [L]
+    └── shape play/retention so every card left in hand is a Spade or Club when Blackboard scores
 
 Ancient Joker Suit-Rotation [L]
     └── preserve enough flexible suit structure to follow Ancient Joker's current suit efficiently
@@ -261,7 +290,7 @@ Erosion Deck-Thinning [I]
 
 ---
 
-## 7. Deck-growth and card-addition engines
+## 7. Deck-growth, card-addition, and card-training engines
 
 ```text
 Hologram Deck-Growth [I]
@@ -272,6 +301,12 @@ Hologram Deck-Growth [I]
 │   └── add a card every round while scaling Hologram
 └── Marble Joker + Hologram [L]
     └── add a Stone card every Blind for automatic Hologram scaling
+
+Hiker Card Training [I]
+├── Core Hiker Card Training [L]
+│   └── repeatedly score a compact set of important cards so their permanent Chip bonuses accumulate
+└── Hiker Retrigger / Copy Training [L]
+    └── repeatedly retrigger or copy the same trained scoring targets so permanent card value compounds
 
 Driver's License Enhancement-Density [L]
     └── rapidly create enough enhanced cards to activate and maintain Driver's License XMult
@@ -287,8 +322,13 @@ DNA itself is not a standalone strategy. It is a card-copy engine used by concre
 ## 8. Planet, Tarot, and consumable engines
 
 ```text
-Constellation Planet-Scaling [L]
-    └── buy/use Planets repeatedly to grow Constellation XMult while reinforcing the chosen hand
+Planet Engine [I]
+├── Constellation Planet-Scaling [L]
+│   └── buy/use Planets repeatedly to grow Constellation XMult while reinforcing the chosen hand
+├── Satellite Planet-Economy [L]
+│   └── diversify discovered Planet cards enough to turn Planet access into reliable end-of-round income
+└── Constellation + Satellite Planet Engine [L]
+    └── make Planet acquisition simultaneously improve scaling XMult, hand investment, and economy
 
 Perkeo Consumable Duplication [I]
 ├── Perkeo + Observatory Planet Stack [L]
@@ -305,11 +345,27 @@ Vagabond Low-Money Tarot Engine [L]
     └── keep cash low enough to repeatedly generate Tarots, accepting the economy tradeoff intentionally
 ```
 
+Astronomer and generic Planet discounts/access are support for these leaves or for poker-hand investment; they do not require separate ranked strategies unless later evidence shows distinct behavior.
+
 ---
 
-## 9. Shop, pack, reroll, and blind-skip engines
+## 9. Economy, cash-hoard, shop, pack, reroll, and blind-skip engines
 
 ```text
+Cash Hoard / Interest [I]
+├── Core Cash-Reserve Economy [L]
+│   └── preserve interest breakpoints and reject marginal spending when cash compounding is more valuable
+├── Rocket / To the Moon Cash Growth [L]
+│   └── prioritize sustained cash accumulation and interest growth over marginal short-term purchases
+├── Bull Cash-to-Chips [L]
+│   └── preserve a large bankroll because every dollar directly increases Chips
+├── Bootstraps Cash-to-Mult [L]
+│   └── preserve a large bankroll because every $5 directly increases Mult
+├── Bull + Bootstraps Cash Scoring [L]
+│   └── treat cash as a major scoring resource and strongly resist unnecessary spending
+└── Cloud 9 Nines Economy [L]
+    └── increase/preserve 9 density so recurring Cloud 9 income feeds the run's cash foundation
+
 Campfire Sell-Scaling [L]
     └── buy/sell expendable cards deliberately to grow Campfire during the current Ante
 
@@ -323,7 +379,7 @@ Throwback Blind-Skip Scaling [L]
     └── intentionally skip selected Blinds because the tag EV and Throwback XMult jointly justify it
 ```
 
-These leaves are important because they change resource behavior, not merely scoring math.
+Economy leaves are allowed to dominate early/midgame and later be overtaken by a scoring leaf. A leaf does not have to be the final Ante-8 scoring engine to be strategically meaningful.
 
 ---
 
@@ -349,17 +405,29 @@ Blueprint and Brainstorm are **amplifiers**, not standalone strategy leaves. The
 
 ---
 
-## 11. Discard and hand-rotation engines
+## 11. Discard, no-discard, and hand-rotation engines
 
 ```text
-Yorick Discard-Scaling [L]
+Discard Utilization [I]
+├── Castle Suit-Discard Scaling [L]
+│   └── deliberately discard the currently requested suit to grow persistent Castle Chips
+├── Mail-In Rebate Rank-Discard Economy [L]
+│   └── deliberately discard the currently requested rank for cash and value extra discard capacity
+└── Yorick Discard-Scaling [L]
     └── allocate enough discards to trigger repeated Yorick upgrades without sacrificing blind survival
+
+No-Discard / Discard-Preservation [I]
+├── Green Joker No-Discard Scaling [L]
+│   └── prioritize playing rather than discarding so Green Joker scales continuously
+├── Banner + Delayed Gratification Discard Reserve [L]
+│   └── preserve unused discards so they retain Chip/economy value instead of being spent casually
+├── Ramen Preservation [L]
+│   └── minimize discarded cards to preserve Ramen's XMult
+└── Burglar Zero-Discard / Extra-Hand [L]
+    └── accept zero discards and exploit extra hands with a sufficiently consistent scoring plan
 
 Obelisk Hand-Rotation [L]
     └── establish a most-played hand, then deliberately avoid it long enough to scale Obelisk without resetting
-
-Green Joker No-Discard Scaling [L]
-    └── prioritize playing rather than discarding so Green Joker scales continuously
 
 Burnt Joker Hand-Level Engine [L]
     └── deliberately make the first discard represent the hand type being permanently leveled
@@ -367,29 +435,71 @@ Burnt Joker Hand-Level Engine [L]
 
 `Burnt Joker Hand-Level Engine` can coexist with poker-hand leaves. For example, it may strongly reinforce Core High Card, Pair, Straight, or another selected poker-hand strategy without forcing a separate poker-hand transition.
 
+Castle, Mail-In Rebate, Purple Seal, Hit the Road, Faceless Joker, and Yorick may share discard support without becoming the same strategy; their targeting rules are materially different.
+
 ---
 
-## 12. Explicitly cross-cutting combinations
+## 12. Hand-scheduling and held-state engines
+
+```text
+Last-Hand Burst [I]
+├── Acrobat Last-Hand XMult [L]
+│   └── preserve a safe route to the final available hand when Acrobat's XMult justifies the risk
+└── Dusk Last-Hand Retrigger [L]
+    └── route important scored-card triggers into the final hand so Dusk retriggers them
+```
+
+These leaves remain subordinate to blind survival. They describe how to exploit the final-hand state when it is safe, not an instruction to waste hands merely to activate them.
+
+---
+
+## 13. Explicitly cross-cutting combinations
 
 The following are **not extra parent edges**. They are important compatibility relationships that the later Gold/Silver/Bronze/Banned audit must represent across nodes:
 
 ```text
-Baron-Mime High Card        <-> Steel / Red Seal / DNA / hand-size support
-PhotoChad                   <-> Face Cards / Lucky / Glass / Red Seal
+Baron-Mime High Card        <-> Steel / Red Seal / DNA / hand-size support / Shoot the Moon
+PhotoChad                   <-> Face Cards / Lucky / Glass / Red Seal / Hiker
 Triboulet + Sock and Buskin <-> Face Cards / Red Seal / Glass
 Bloodstone Hearts           <-> Oops! All 6s / retriggers / Lucky
 Marble Joker                <-> Stone / Hologram / Vampire / Driver's License
-DNA                         <-> Aces / Stone / Hologram / Baron / Five of a Kind / Flush Five / Vampire
+DNA                         <-> Aces / Stone / Hologram / Baron / Trips / Quads / Five of a Kind / Flush Five / Vampire / Mail-In Rebate
 Pareidolia                  <-> Face scoring / Canio / Midas Mask / Vampire
 Perkeo                      <-> chosen Planet / Cryptid / transformation consumables
 Blueprint / Brainstorm      <-> strongest copyable engine in the current dominant leaf
+Cash Hoard                  <-> Bull / Bootstraps / Rocket / To the Moon / Cloud 9 / economy sources
+Discard Utilization         <-> Castle / Mail-In Rebate / Purple Seal / Hit the Road / Faceless / Yorick
+No-Discard                  <-> Green Joker / Banner / Delayed Gratification / Ramen / Burglar
+Hack / Fibonacci            <-> Twos / low-rank deck shaping / retrigger enhancements
+Hiker                       <-> compact-deck shaping / retriggers / DNA copies / high-value scoring cards
+Blackboard                  <-> Spades / Clubs / High Card / Pair / held-card preservation
+Planet Engine               <-> Constellation / Satellite / Blue Seal / Astronomer / chosen poker-hand investment
 ```
 
 These relationships are why a component may contribute evidence to several leaves even though the tree itself avoids fake multiple-parent topology.
 
 ---
 
-## 13. Tree-freeze boundary
+## 14. Deliberately not standalone strategies
+
+The following remain support/amplifier mechanics unless a later audit proves they create enough distinct run-level decisions:
+
+```text
+Blueprint / Brainstorm   -> copy the strongest relevant target in the active leaf
+Astronomer               -> Planet access/support
+Chaos the Clown          -> reroll economy support
+Drunkard / Merry Andy    -> discard-supply support
+Juggler / Troubadour     -> hand-size support
+Splash                   -> scoring-rule/support component outside explicit Flower Pot leaves
+Showman                   -> duplicate-access support
+Invisible Joker          -> timed duplication opportunity rather than a persistent build identity
+```
+
+This prevents the tree from degenerating into one node per useful Joker.
+
+---
+
+## 15. Tree-freeze boundary
 
 Before the Gold/Silver/Bronze/Banned catalogue begins, this file should be reviewed for:
 
