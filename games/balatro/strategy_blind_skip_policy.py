@@ -12,7 +12,7 @@ from games.balatro.strategy import BalatroStrategyTracker, StrategyDefinition
 from games.balatro.strategy_compat import NeutralLegacyPlaystyleIntentTracker
 
 
-_STRATEGY_SENSITIVE_TAGS = frozenset(
+_STRATEGY_REINFORCEMENT_TAGS = frozenset(
     {
         "tag_buffoon",
         "tag_charm",
@@ -23,6 +23,7 @@ _STRATEGY_SENSITIVE_TAGS = frozenset(
         "tag_voucher",
     }
 )
+_DETERMINISTIC_OFF_STRATEGY_TAGS = frozenset({"tag_orbital"})
 
 
 @dataclass(frozen=True)
@@ -164,7 +165,7 @@ class StrategyAwareBlindSkipPolicy(BuildAwareBlindSkipPolicy):
         relevant_ids = resolution.relevant_strategy_ids
         if dominant_id is None:
             return 0.0, "no-positive-strategy-evidence", None, relevant_ids
-        if tag_key not in _STRATEGY_SENSITIVE_TAGS:
+        if tag_key not in _STRATEGY_REINFORCEMENT_TAGS:
             return 0.0, "tag-has-no-strategy-specific-public-effect", dominant_id, relevant_ids
 
         shortlist = resolution.shortlist_strategy_ids
@@ -193,15 +194,19 @@ class StrategyAwareBlindSkipPolicy(BuildAwareBlindSkipPolicy):
                 relevant_ids,
             )
 
-        # An unsupported development tag is never hard-banned. Early exploration
-        # remains neutral; convergence introduces only a bounded opportunity-cost
-        # penalty as the run becomes more committed to its current shortlist.
+        # Pack/choice tags remain neutral when they cannot currently reinforce the
+        # shortlist because D9/D10 can inspect the visible post-open choices and
+        # Skip. Only deterministic tags such as Orbital receive an off-strategy
+        # penalty when their public effect is known to reinforce the wrong route.
+        if tag_key not in _DETERMINISTIC_OFF_STRATEGY_TAGS:
+            return 0.0, "choice-preserving-tag-neutral", dominant_id, relevant_ids
+
         ante = max(1, int(getattr(state, "ante", 1) or 1))
         if ante <= 2:
             return 0.0, "early-exploration-neutral", dominant_id, relevant_ids
         penalty_fraction = 0.25 if ante <= 5 else 0.50
         adjustment = -min(cap, penalty_fraction * pressure * fit_weight)
-        return adjustment, "off-shortlist-development-tag", dominant_id, relevant_ids
+        return adjustment, "off-shortlist-deterministic-tag", dominant_id, relevant_ids
 
     def decide(
         self,
