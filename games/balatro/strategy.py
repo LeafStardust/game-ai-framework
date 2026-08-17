@@ -495,17 +495,13 @@ class BalatroStrategyTracker:
                 notes.append(f"owned {relationship.lower()} voucher: {gain:+.3f}")
 
         hand_levels = getattr(state, "hand_levels", {}) or {}
-        hand_counts = getattr(state, "hand_play_counts", {}) or {}
         hand_level_weight = self._number(config, "hand_level_evidence_weight", 0.50)
-        hand_history_weight = self._number(config, "hand_history_evidence_weight", 0.20)
         structural_hand_evidence = False
         for hand in definition.primary_hands:
             extra_levels = max(0, int(hand_levels.get(hand, 1) or 1) - 1)
-            played = min(8, max(0, int(hand_counts.get(hand, 0) or 0)))
-            if extra_levels or played:
+            if extra_levels:
                 structural_hand_evidence = True
             raw += extra_levels * hand_level_weight
-            raw += played * hand_history_weight
 
         deck_raw, deck_notes = self._deck_evidence(state, definition, config)
         raw += deck_raw
