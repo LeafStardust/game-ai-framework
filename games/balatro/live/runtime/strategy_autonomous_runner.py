@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from games.balatro.build.joker_strategy import JokerBuildTransitionPlanner
 from games.balatro.live.hand_action_policy import HandActionThresholds
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 from games.balatro.live.strategy_planet_policy import StrategyAwareLivePlanetPolicy
@@ -23,6 +22,7 @@ from games.balatro.strategy_conditional_relationships import (
 from games.balatro.strategy_pack_playstyle import StrategyAwarePackPlaystyleEvaluator
 from games.balatro.strategy_value import (
     StrategyAwareConsumableSynergyEvaluator,
+    StrategyAwareJokerBuildTransitionPlanner,
     StrategyAwareJokerBuildValueEvaluator,
 )
 
@@ -83,7 +83,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
             intent_tracker=self.playstyle_intent_tracker,
             strategy_tracker=self.strategy_tracker,
         )
-        joker_transition_planner = JokerBuildTransitionPlanner(
+        joker_transition_planner = StrategyAwareJokerBuildTransitionPlanner(
             evaluator=joker_build_value,
         )
         consumable_build = StrategyAwareConsumableSynergyEvaluator(
