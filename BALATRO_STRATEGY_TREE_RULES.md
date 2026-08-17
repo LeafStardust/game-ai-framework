@@ -10,6 +10,7 @@ Development rules for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md). Re
 - Do not create `Core ...`, `... Scoring`, or other fallback leaves that merely duplicate their indexed parent.
 - No natural poker-hand progression edges.
 - Cross-cutting synergy does not create fake parent edges.
+- Similar or composite poker hands remain separate when their evidence does not inherit cleanly across every evidence column.
 
 An indexed strategy remains a valid actionable strategy. When a specialization is materially established, the specialization may replace the generic indexed strategy for that branch in the actionable ranking.
 
@@ -36,16 +37,16 @@ Example:
 
 ```text
 High Card [I]
-  generic High Card evidence only
+  generic evidence shared by both High Card specializations
 
 Stuntman / Small-Hand High Card [L]
   Stuntman-specific evidence only
 
 Baron-Mime Steel-King High Card [L]
-  Baron/Mime/Steel-specific evidence only
+  Baron/Mime-specific evidence only
 ```
 
-`Stuntman`, `Baron`, `Mime`, `The Chariot`, and `Steel` therefore do not also appear on the High Card row.
+`Stuntman`, `Baron`, and `Mime` therefore do not also appear on the High Card row. `The Chariot` and `Steel` do appear on the High Card row because they benefit both current High Card specializations and are not unique evidence for Baron-Mime.
 
 ## 3. Evidence types
 
