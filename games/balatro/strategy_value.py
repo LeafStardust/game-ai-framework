@@ -5,7 +5,7 @@ from dataclasses import dataclass, replace
 from games.balatro.build.consumable_synergy import ContextualConsumableSynergyEvaluator
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 
-from .strategy import BalatroStrategyTracker
+from .strategy import BRONZE, GOLD, SILVER, BalatroStrategyTracker
 from .strategy_compat import NeutralLegacyPlaystyleIntentTracker
 
 
@@ -70,7 +70,12 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
 
 
 class StrategyAwareConsumableSynergyEvaluator(ContextualConsumableSynergyEvaluator):
-    """B4 value that blocks irrelevant Planets and rewards strategy components."""
+    """B4 consumable value under the universal strategy feedback loop.
+
+    Planets are evidence-gated reinforcers. Tarot and Spectral cards may seed a run
+    early from ordinary/contextual value, then become progressively less attractive
+    when they only advance strategies outside an established shortlist.
+    """
 
     def __init__(self, *args, strategy_tracker: BalatroStrategyTracker, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -105,11 +110,54 @@ class StrategyAwareConsumableSynergyEvaluator(ContextualConsumableSynergyEvaluat
             )
         else:
             adjustment = float(strategic.value)
-            rationale = (
+            rationale_parts = [
                 *base.rationale,
                 *strategic.rationale,
-                f"environment strategy adjustment={adjustment:+.3f}",
+            ]
+
+            # Tarot/Spectral effects are legitimate early strategy seeders. Once a
+            # run has an established direction, however, mapped structural effects
+            # that advance no shortlisted strategy pay an increasing opportunity
+            # penalty. This is intentionally not a hard ban: sufficiently strong
+            # immediate/contextual value may still outweigh the penalty.
+            ante = max(1, int(getattr(state, "ante", 1) or 1))
+            resolution = self.strategy_tracker.observe(state)
+            positive_relationship = strategic.tier in {GOLD, SILVER, BRONZE}
+            if (
+                category in {"TAROT", "SPECTRAL"}
+                and ante >= 3
+                and resolution.dominant_strategy_id is not None
+                and positive_relationship
+                and not strategic.active_alignment
+            ):
+                config = self.strategy_tracker._config(state)
+                if ante >= 6:
+                    penalty = self.strategy_tracker._number(
+                        config,
+                        "late_off_strategy_consumable_penalty",
+                        3.0,
+                    )
+                    phase = "late"
+                else:
+                    penalty = self.strategy_tracker._number(
+                        config,
+                        "mid_off_strategy_consumable_penalty",
+                        0.75,
+                    )
+                    phase = "convergence"
+                adjustment -= max(0.0, penalty)
+                rationale_parts.append(
+                    f"{phase} off-shortlist {category} penalty={max(0.0, penalty):.3f}"
+                )
+            elif category in {"TAROT", "SPECTRAL"} and ante <= 2:
+                rationale_parts.append(
+                    f"early {category} remains exploration-eligible; no off-strategy penalty"
+                )
+
+            rationale_parts.append(
+                f"environment strategy adjustment={adjustment:+.3f}"
             )
+            rationale = tuple(rationale_parts)
 
         return StrategyAdjustedConsumableEvaluation(
             total_gain=float(base.total_gain) + adjustment,
