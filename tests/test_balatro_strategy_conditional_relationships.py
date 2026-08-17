@@ -18,6 +18,9 @@ from games.balatro.strategy_conditional_relationships import (
 from games.balatro.strategy_tree_catalog import (
     TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES,
 )
+from games.balatro.strategy_tree_tracker import (
+    TreeAwareStateAwareBalatroStrategyTracker,
+)
 
 
 def _state() -> BalatroState:
@@ -253,10 +256,10 @@ def test_baron_and_mime_together_are_defining_evidence_even_before_deck_shaping(
     assert assessment.silver_owned == 2
 
 
-def test_production_strategy_runner_uses_state_aware_strategy_tracker():
+def test_production_strategy_runner_uses_tree_state_aware_strategy_tracker():
     assert (
         StrategyAwareLiveMemoryInjectedSingleStepRunner.__init__.__globals__[
-            "StateAwareBalatroStrategyTracker"
+            "TreeAwareStateAwareBalatroStrategyTracker"
         ]
-        is StateAwareBalatroStrategyTracker
+        is TreeAwareStateAwareBalatroStrategyTracker
     )
