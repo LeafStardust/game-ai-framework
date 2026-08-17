@@ -9,7 +9,16 @@ from games.balatro.build.joker_strategy import (
     JokerBuildValueEvaluator,
 )
 
-from .strategy import BANNED, BRONZE, GOLD, SILVER, BalatroStrategyTracker
+from .strategy import (
+    BANNED,
+    BRONZE,
+    COMMITTED,
+    GOLD,
+    HIGHLIGHTED,
+    MATURE,
+    SILVER,
+    BalatroStrategyTracker,
+)
 from .strategy_compat import NeutralLegacyPlaystyleIntentTracker
 
 
@@ -78,6 +87,28 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
             kind="JOKER",
         )
         adjustment = float(strategic.value)
+        policy_rationale: tuple[str, ...] = ()
+        resolution = self.strategy_tracker.observe(state)
+        if (
+            resolution.active_status in {HIGHLIGHTED, COMMITTED, MATURE}
+            and strategic.tier in {GOLD, SILVER, BRONZE}
+            and not strategic.active_alignment
+            and not strategic.pivot_candidate
+        ):
+            config = self.strategy_tracker._config(state)
+            base_discount = (
+                max(0.0, float(base.total_gain))
+                * self.strategy_tracker._number(
+                    config,
+                    "off_strategy_joker_base_discount",
+                    1.0,
+                )
+            )
+            adjustment -= base_discount
+            policy_rationale = (
+                "highlighted-strategy off-path Joker generic probe discount="
+                f"-{base_discount:.3f}; candidate is neither aligned nor a valid Gold pivot",
+            )
         total = float(base.total_gain) + adjustment
         return StrategyAdjustedJokerBuildValue(
             joker=base.joker,
@@ -91,6 +122,7 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
             rationale=(
                 *base.rationale,
                 *strategic.rationale,
+                *policy_rationale,
                 "legacy playstyle strategy influence=0.000 in universal-strategy path",
                 f"environment-adjusted universal strategy value={adjustment:+.3f}",
                 f"strategy-adjusted whole-build gain={total:.3f}",

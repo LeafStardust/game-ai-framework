@@ -17,7 +17,7 @@ COMMITTED = "COMMITTED"
 MATURE = "MATURE"
 
 _DEFAULT_RELATIONSHIP_SCORE = {
-    GOLD: 5.0,
+    GOLD: 8.0,
     SILVER: 3.0,
     BRONZE: 1.0,
     NEUTRAL: 0.0,
@@ -277,7 +277,7 @@ class BalatroStrategyTracker:
     def relationship_score(self, state, relationship: str) -> float:
         config = self._config(state)
         defaults = {
-            GOLD: self._number(config, "gold_evidence", 5.0),
+            GOLD: self._number(config, "gold_evidence", 8.0),
             SILVER: self._number(config, "silver_evidence", 3.0),
             BRONZE: self._number(config, "bronze_evidence", 1.0),
             NEUTRAL: 0.0,
@@ -700,6 +700,7 @@ class BalatroStrategyTracker:
         fallback_priority = -1
         pivot = False
         dominant = by_id.get(resolution.dominant_strategy_id)
+        strongest_off_strategy_weight = 0.0
 
         for strategy_id, relationship in relationships.items():
             assessment = by_id.get(strategy_id)
@@ -726,6 +727,11 @@ class BalatroStrategyTracker:
             shortlisted = strategy_id in resolution.shortlist_strategy_ids
             if shortlisted and relationship in {GOLD, SILVER, BRONZE}:
                 active_alignment = True
+            elif relationship in {GOLD, SILVER, BRONZE}:
+                strongest_off_strategy_weight = max(
+                    strongest_off_strategy_weight,
+                    relation_weight,
+                )
             if (
                 dominant is not None
                 and relationship == GOLD
@@ -770,6 +776,24 @@ class BalatroStrategyTracker:
             strongest_strategy_id = fallback_strategy_id
             strongest_relationship = fallback_relationship
             strongest_projected = fallback_projected
+
+        if (
+            kind == "JOKER"
+            and dominant is not None
+            and not active_alignment
+            and not pivot
+            and strongest_off_strategy_weight > 0.0
+        ):
+            opportunity_cost = (
+                max(0.0, float(dominant.score))
+                * strongest_off_strategy_weight
+                * self._number(config, "off_strategy_joker_penalty_factor", 1.0)
+            )
+            total_alignment -= opportunity_cost
+            rationale.append(
+                f"mapped off-strategy Joker opportunity cost=-{opportunity_cost:.3f} "
+                f"against dominant {dominant.name}"
+            )
 
         value = total_alignment * alignment_scale * pressure
         strongest_definition = self.definitions.get(strongest_strategy_id or "")

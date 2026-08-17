@@ -127,7 +127,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                     # Universal evidence relationship weights. Future cartridges may
                     # tune how readily their environment converts playbook evidence
                     # into strategy score without redefining any component mapping.
-                    "gold_evidence": 5.0,
+                    "gold_evidence": 8.0,
                     "silver_evidence": 3.0,
                     "bronze_evidence": 1.0,
                     "banned_evidence": -8.0,
@@ -164,6 +164,8 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                     "late_strategy_pressure_cap": 1.50,
                     "strategy_pressure_multiplier": 1.0,
                     "candidate_alignment_scale": 0.08,
+                    "off_strategy_joker_penalty_factor": 1.0,
+                    "off_strategy_joker_base_discount": 1.0,
                     "mid_strategy_rank_decay": 0.15,
                     "mid_strategy_rank_floor": 0.25,
                     "first_relevant_strategy_factor": 0.80,
@@ -210,6 +212,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                         "minimum_purchase_advantage": 0.35,
                         "minimum_replacement_build_delta": 0.0,
                         "minimum_replacement_advantage": 0.75,
+                        "aligned_minimum_replacement_advantage": 0.25,
                         "price_weight": 0.35,
                         "interest_weight": 1.25,
                         "reserve_target": 5,

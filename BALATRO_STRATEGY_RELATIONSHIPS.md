@@ -6,7 +6,7 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 
 | Evidence | Score |
 |---|---:|
-| Gold Joker | +5.00 |
+| Gold Joker | +8.00 |
 | Silver Joker | +3.00 |
 | Bronze Joker | +1.00 |
 | Banned component | -8.00 |
@@ -30,7 +30,7 @@ A component must not be duplicated between a parent and child row. If it is spec
 | High Card | High Card `[I]` | Burnt Joker | Card Sharp; Supernova; Space Joker; Half Joker; Green Joker; Burglar | — | Obelisk | The Chariot | Pluto | — | Steel |
 | High Card | ↳ Stuntman / Small-Hand High Card `[L]` | Stuntman | — | — | — | — | — | — | — |
 | High Card | ↳ Baron-Mime Steel-King High Card `[L]` | Baron; Mime | Blackboard; Shoot the Moon; Troubadour; Juggler | Raised Fist; Reserved Parking | Stuntman | — | — | — | — |
-| Pair | Pair `[L]` | The Duo | Jolly Joker; Sly Joker; Half Joker | — | Obelisk | — | Mercury | — | — |
+| Pair | Pair `[L]` | The Duo | Jolly Joker; Sly Joker; Half Joker; Supernova; Card Sharp; Space Joker; Burnt Joker; Green Joker; Burglar *(generic support requires Pair commitment)* | Square Joker; Raised Fist; Blackboard; Shoot the Moon; Hiker; Hanging Chad *(fillers require Pair commitment)* | Obelisk | — | Mercury | — | — |
 | Two Pair | Two Pair `[L]` | Spare Trousers | Mad Joker; Clever Joker; Square Joker; The Duo | Jolly Joker; Sly Joker | Obelisk | Death; Strength | Uranus | — | — |
 | Three of a Kind | Three of a Kind `[L]` | The Trio | Zany Joker; Wily Joker; DNA; Half Joker; The Duo | Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Venus | Cryptid; Ouija | — |
 | Straight | Straight `[L]` | The Order; Shortcut; Four Fingers; Runner; Superposition | Crazy Joker; Devious Joker | — | Obelisk | Strength; Death | Saturn | — | — |
@@ -74,7 +74,7 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Diamonds / Rough Gem Economy | Diamonds / Rough Gem Economy `[L]` | Rough Gem | Greedy Joker; Smeared Joker *(with Diamond payoff)*; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(retrigger support requires Rough Gem or Greedy Joker)* | — | — | The Star; Death; The Hanged Man | — | Sigil | Wild |
 | Clubs | Clubs `[I]` | — | Gluttonous Joker; Smeared Joker *(with Club payoff)* | — | — | The Moon; Death; The Hanged Man | — | Sigil | Wild |
 | Clubs | ↳ Onyx Agate Club Scoring `[L]` | Onyx Agate | Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(all with Onyx Agate)* | — | — | — | — | Deja Vu | — |
-| Clubs | ↳ Seeing Double Mixed-Suit Clubs `[L]` | Seeing Double | — | — | — | The Lovers | — | — | Wild |
+| Clubs | ↳ Seeing Double Mixed-Suit Clubs `[L]` | Seeing Double | — | — | — | The Lovers | — | — | — |
 | Spades / Arrowhead Chips | Spades / Arrowhead Chips `[L]` | Arrowhead | Wrathful Joker; Smeared Joker *(with Spade payoff)*; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(retrigger support requires Arrowhead or Wrathful Joker)* | — | — | The World; Death; The Hanged Man | — | Sigil | Wild |
 | Blackboard Held-Black Cards | Blackboard Held-Black Cards `[L]` | Blackboard | — | — | — | The Moon; The World | — | — | Wild |
 | Raised Fist Held-Minimum | Raised Fist Held-Minimum `[L]` | Raised Fist | Mime *(with Raised Fist)* | — | — | Strength; Death; The Hanged Man | — | Familiar; Grim; Cryptid; Deja Vu | — |

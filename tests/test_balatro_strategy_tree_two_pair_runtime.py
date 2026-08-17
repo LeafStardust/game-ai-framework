@@ -148,7 +148,7 @@ def test_spare_trousers_ranks_standalone_two_pair_leaf():
     resolution = tracker.observe(state)
     by_id = _by_id(resolution)
 
-    assert by_id["two_pair"].score == pytest.approx(5.0)
+    assert by_id["two_pair"].score == pytest.approx(8.0)
     assert resolution.dominant_strategy_id == "two_pair"
 
 

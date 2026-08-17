@@ -27,7 +27,9 @@ def test_default_registry_selects_red_white_from_live_state():
     assert "min_pace_ratio" not in planner
 
     strategy_modifiers = playbook.strategy_modifiers()
-    assert strategy_modifiers["gold_evidence"] == 5.0
+    assert strategy_modifiers["gold_evidence"] == 8.0
+    assert strategy_modifiers["off_strategy_joker_penalty_factor"] == 1.0
+    assert strategy_modifiers["off_strategy_joker_base_discount"] == 1.0
     assert strategy_modifiers["silver_evidence"] == 3.0
     assert strategy_modifiers["bronze_evidence"] == 1.0
     assert strategy_modifiers["banned_evidence"] == -8.0
@@ -54,6 +56,7 @@ def test_default_registry_selects_red_white_from_live_state():
     assert joker_acquisition["minimum_purchase_advantage"] == 0.35
     assert joker_acquisition["minimum_replacement_build_delta"] == 0.0
     assert joker_acquisition["minimum_replacement_advantage"] == 0.75
+    assert joker_acquisition["aligned_minimum_replacement_advantage"] == 0.25
     assert joker_acquisition["price_weight"] == 0.35
     assert joker_acquisition["interest_weight"] == 1.25
     assert joker_acquisition["reserve_target"] == 5

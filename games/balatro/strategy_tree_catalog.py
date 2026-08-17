@@ -35,12 +35,37 @@ SECTION_TWO_ROOT_IDS = frozenset(
         "aces",
         "low_rank",
         "twos",
+        "ten_four",
         "sixes",
         "jacks_hit_road",
         "queens_shoot_moon",
         "face_cards",
         "faceless",
         "idol_exact",
+    }
+)
+
+SECTION_THREE_ROOT_IDS = frozenset(
+    {
+        "hearts",
+        "diamonds",
+        "clubs",
+        "spades",
+        "blackboard",
+        "raised_fist",
+        "ancient_suit_rotation",
+        "flower_pot",
+    }
+)
+SECTION_THREE_NODE_IDS = frozenset(
+    {
+        *SECTION_THREE_ROOT_IDS,
+        "hearts_bloodstone_oops",
+        "hearts_bloodstone_retrigger",
+        "clubs_onyx",
+        "clubs_seeing_double",
+        "flower_pot_splash",
+        "flower_pot_smeared",
     }
 )
 SECTION_TWO_NODE_IDS = frozenset(
@@ -274,7 +299,6 @@ def _section_two_definitions():
             "Low-Rank Scoring",
             gold_jokers=("Fibonacci", "Hack"),
             silver_jokers=("Odd Todd", "Even Steven"),
-            bronze_jokers=("Walkie Talkie",),
             silver_consumables=("Death", "Strength", "The Hanged Man", "Incantation", "Cryptid"),
             directed_tarots=("Death", "Strength", "The Hanged Man"),
             directed_spectrals=("Incantation", "Cryptid"),
@@ -288,6 +312,15 @@ def _section_two_definitions():
             directed_tarots=("Death", "Strength", "The Hanged Man"),
             directed_spectrals=("Cryptid",),
             preferred_ranks=("2",),
+        ),
+        "ten_four": _strategy(
+            "ten_four",
+            "Ten-Four / Walkie Talkie",
+            gold_jokers=("Walkie Talkie",),
+            silver_consumables=("Death", "Strength", "The Hanged Man", "Cryptid"),
+            directed_tarots=("Death", "Strength", "The Hanged Man"),
+            directed_spectrals=("Cryptid",),
+            preferred_ranks=("10", "4"),
         ),
         "sixes": _strategy(
             "sixes",
@@ -394,13 +427,151 @@ def _section_two_definitions():
     }
 
 
+def _section_three_definitions():
+    """Return the audited suit and held-card strategy catalogue.
+
+    One-child upgrade ladders are collapsed. Clubs remains indexed because Onyx
+    rewards scoring many Clubs while Seeing Double requires a Club plus another
+    suit. Flower Pot's Splash and Smeared routes remain peers; owning both activates
+    both leaves instead of manufacturing a redundant combination node.
+    """
+
+    return {
+        "hearts": _strategy(
+            "hearts",
+            "Hearts",
+            gold_jokers=("Bloodstone",),
+            silver_jokers=("Lusty Joker",),
+            gold_consumables=("The Sun",),
+            silver_consumables=("Death", "The Hanged Man", "Sigil"),
+            directed_tarots=("The Sun", "Death", "The Hanged Man"),
+            directed_spectrals=("Sigil",),
+            preferred_suits=("Hearts",),
+            preferred_enhancements=("Wild",),
+        ),
+        "hearts_bloodstone_oops": _strategy(
+            "hearts_bloodstone_oops",
+            "Bloodstone + Oops! All 6s Hearts",
+        ),
+        "hearts_bloodstone_retrigger": _strategy(
+            "hearts_bloodstone_retrigger",
+            "Bloodstone Retrigger Hearts",
+            silver_consumables=("Deja Vu",),
+            directed_spectrals=("Deja Vu",),
+        ),
+        "diamonds": _strategy(
+            "diamonds",
+            "Diamonds / Rough Gem Economy",
+            gold_jokers=("Rough Gem",),
+            silver_jokers=("Greedy Joker",),
+            gold_consumables=("The Star",),
+            silver_consumables=("Death", "The Hanged Man", "Sigil"),
+            directed_tarots=("The Star", "Death", "The Hanged Man"),
+            directed_spectrals=("Sigil",),
+            preferred_suits=("Diamonds",),
+            preferred_enhancements=("Wild",),
+        ),
+        "clubs": _strategy(
+            "clubs",
+            "Clubs",
+            silver_jokers=("Gluttonous Joker",),
+            gold_consumables=("The Moon",),
+            silver_consumables=("Death", "The Hanged Man", "Sigil"),
+            directed_tarots=("The Moon", "Death", "The Hanged Man"),
+            directed_spectrals=("Sigil",),
+            preferred_suits=("Clubs",),
+            preferred_enhancements=("Wild",),
+        ),
+        "clubs_onyx": _strategy(
+            "clubs_onyx",
+            "Onyx Agate Club Scoring",
+            gold_jokers=("Onyx Agate",),
+            silver_consumables=("Deja Vu",),
+            directed_spectrals=("Deja Vu",),
+        ),
+        "clubs_seeing_double": _strategy(
+            "clubs_seeing_double",
+            "Seeing Double Mixed-Suit Clubs",
+            gold_jokers=("Seeing Double",),
+            silver_consumables=("The Lovers",),
+            directed_tarots=("The Lovers",),
+        ),
+        "spades": _strategy(
+            "spades",
+            "Spades / Arrowhead Chips",
+            gold_jokers=("Arrowhead",),
+            silver_jokers=("Wrathful Joker",),
+            gold_consumables=("The World",),
+            silver_consumables=("Death", "The Hanged Man", "Sigil"),
+            directed_tarots=("The World", "Death", "The Hanged Man"),
+            directed_spectrals=("Sigil",),
+            preferred_suits=("Spades",),
+            preferred_enhancements=("Wild",),
+        ),
+        "blackboard": _strategy(
+            "blackboard",
+            "Blackboard Held-Black Cards",
+            gold_jokers=("Blackboard",),
+            gold_consumables=("The Moon", "The World"),
+            directed_tarots=("The Moon", "The World"),
+            preferred_suits=("Clubs", "Spades"),
+            preferred_enhancements=("Wild",),
+        ),
+        "raised_fist": _strategy(
+            "raised_fist",
+            "Raised Fist Held-Minimum",
+            gold_jokers=("Raised Fist",),
+            silver_consumables=(
+                "Strength", "Death", "The Hanged Man", "Familiar", "Grim",
+                "Cryptid", "Deja Vu",
+            ),
+            directed_tarots=("Strength", "Death", "The Hanged Man"),
+            directed_spectrals=("Familiar", "Grim", "Cryptid", "Deja Vu"),
+        ),
+        "ancient_suit_rotation": _strategy(
+            "ancient_suit_rotation",
+            "Ancient Joker Suit-Rotation",
+            gold_jokers=("Ancient Joker",),
+            silver_consumables=(
+                "The Star", "The Moon", "The Sun", "The World", "Sigil",
+                "Deja Vu",
+            ),
+            directed_tarots=("The Star", "The Moon", "The Sun", "The World"),
+            directed_spectrals=("Sigil", "Deja Vu"),
+            preferred_enhancements=("Wild",),
+        ),
+        "flower_pot": _strategy(
+            "flower_pot",
+            "Flower Pot Multi-Suit",
+            gold_jokers=("Flower Pot",),
+            silver_consumables=(
+                "The Star", "The Moon", "The Sun", "The World", "Sigil",
+            ),
+            directed_tarots=("The Star", "The Moon", "The Sun", "The World"),
+            directed_spectrals=("Sigil",),
+            preferred_enhancements=("Wild",),
+        ),
+        "flower_pot_splash": _strategy(
+            "flower_pot_splash",
+            "Splash + Flower Pot",
+        ),
+        "flower_pot_smeared": _strategy(
+            "flower_pot_smeared",
+            "Smeared Joker + Flower Pot",
+        ),
+    }
+
+
 _tree_definitions = dict(UNIVERSAL_BALATRO_STRATEGIES)
 for _strategy_id in SECTION_ONE_ROOT_IDS:
     _tree_definitions.pop(_strategy_id, None)
 for _strategy_id in SECTION_TWO_ROOT_IDS:
     _tree_definitions.pop(_strategy_id, None)
+for _strategy_id in SECTION_THREE_ROOT_IDS:
+    _tree_definitions.pop(_strategy_id, None)
 _tree_definitions.update(_section_one_definitions())
 _tree_definitions.update(_section_two_definitions())
+_tree_definitions.update(_section_three_definitions())
 
 TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES = MappingProxyType(_tree_definitions)
 
@@ -454,6 +625,39 @@ _runtime_nodes = [
         "Faceless Joker Discard Economy",
         parent_strategy_id="faceless",
     ),
+    StrategyNodeSpec("hearts", "Hearts"),
+    StrategyNodeSpec(
+        "hearts_bloodstone_oops",
+        "Bloodstone + Oops! All 6s Hearts",
+        parent_strategy_id="hearts",
+    ),
+    StrategyNodeSpec(
+        "hearts_bloodstone_retrigger",
+        "Bloodstone Retrigger Hearts",
+        parent_strategy_id="hearts",
+    ),
+    StrategyNodeSpec("clubs", "Clubs"),
+    StrategyNodeSpec(
+        "clubs_onyx",
+        "Onyx Agate Club Scoring",
+        parent_strategy_id="clubs",
+    ),
+    StrategyNodeSpec(
+        "clubs_seeing_double",
+        "Seeing Double Mixed-Suit Clubs",
+        parent_strategy_id="clubs",
+    ),
+    StrategyNodeSpec("flower_pot", "Flower Pot Multi-Suit"),
+    StrategyNodeSpec(
+        "flower_pot_splash",
+        "Splash + Flower Pot",
+        parent_strategy_id="flower_pot",
+    ),
+    StrategyNodeSpec(
+        "flower_pot_smeared",
+        "Smeared Joker + Flower Pot",
+        parent_strategy_id="flower_pot",
+    ),
 ]
 _runtime_nodes.extend(
     StrategyNodeSpec(strategy_id, definition.name)
@@ -472,6 +676,15 @@ _runtime_nodes.extend(
         "faceless",
         "faceless_ride_bus",
         "faceless_discard_economy",
+        "hearts",
+        "hearts_bloodstone_oops",
+        "hearts_bloodstone_retrigger",
+        "clubs",
+        "clubs_onyx",
+        "clubs_seeing_double",
+        "flower_pot",
+        "flower_pot_splash",
+        "flower_pot_smeared",
     }
 )
 

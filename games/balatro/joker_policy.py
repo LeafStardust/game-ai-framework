@@ -22,6 +22,7 @@ class JokerAcquisitionThresholds:
     minimum_purchase_advantage: float = 0.35
     minimum_replacement_build_delta: float = 0.0
     minimum_replacement_advantage: float = 0.75
+    aligned_minimum_replacement_advantage: float = 0.25
     price_weight: float = 0.35
     interest_weight: float = 1.25
     reserve_target: int = 5
@@ -35,6 +36,7 @@ class JokerAcquisitionThresholds:
             "minimum_purchase_advantage",
             "minimum_replacement_build_delta",
             "minimum_replacement_advantage",
+            "aligned_minimum_replacement_advantage",
             "price_weight",
             "interest_weight",
             "reserve_weight",
@@ -207,12 +209,26 @@ class JokerAcquisitionPolicy:
                 ),
             )
         )
+        candidate_value = transition.candidate_value
+        aligned_candidate = bool(
+            getattr(candidate_value, "active_alignment", False)
+            and getattr(candidate_value, "strategy_tier", None)
+            in {"GOLD", "SILVER", "BRONZE"}
+        )
+        replacement_advantage_threshold = (
+            min(
+                self.thresholds.minimum_replacement_advantage,
+                self.thresholds.aligned_minimum_replacement_advantage,
+            )
+            if aligned_candidate
+            else self.thresholds.minimum_replacement_advantage
+        )
         eligible = [
             option
             for option in ranked
             if option.eligible
             and option.total_advantage
-            > self.thresholds.minimum_replacement_advantage
+            > replacement_advantage_threshold
         ]
         if not eligible:
             best = ranked[0] if ranked else None
@@ -227,7 +243,7 @@ class JokerAcquisitionPolicy:
                 thresholds=self.thresholds,
                 rationale=(
                     f"best replacement advantage={best_text}; threshold="
-                    f"{self.thresholds.minimum_replacement_advantage:.3f}",
+                    f"{replacement_advantage_threshold:.3f}",
                 ),
             )
 
@@ -241,6 +257,12 @@ class JokerAcquisitionPolicy:
             rationale=(
                 f"replace slot {selected.replace_index} {selected.replace_joker}",
                 f"replacement advantage={selected.total_advantage:.3f}",
+                (
+                    "active strategy alignment uses replacement threshold="
+                    f"{replacement_advantage_threshold:.3f}"
+                    if aligned_candidate
+                    else f"replacement threshold={replacement_advantage_threshold:.3f}"
+                ),
             ),
         )
 

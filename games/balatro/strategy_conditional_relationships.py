@@ -48,7 +48,25 @@ _PAIR_DIRECT_COMMITMENT_JOKERS = frozenset(
     {"theduojoker", "jollyjoker", "slyjoker"}
 )
 _PAIR_CONDITIONAL_SUPPORT_JOKERS = frozenset(
-    {"halfjoker", "supernovajoker", "cardsharpjoker", "spacejoker", "burntjoker"}
+    {
+        "halfjoker",
+        "supernovajoker",
+        "cardsharpjoker",
+        "spacejoker",
+        "burntjoker",
+        "greenjoker",
+        "burglarjoker",
+    }
+)
+_PAIR_CONDITIONAL_FILLER_JOKERS = frozenset(
+    {
+        "squarejoker",
+        "raisedfistjoker",
+        "blackboardjoker",
+        "shootthemoonjoker",
+        "hikerjoker",
+        "hangingchadjoker",
+    }
 )
 _TWO_PAIR_STRATEGY_ID = "two_pair"
 _TWO_PAIR_DIRECT_COMMITMENT_JOKERS = frozenset(
@@ -67,6 +85,30 @@ _TWOS_SILVER_SUPPORT_JOKERS = frozenset(
     {"hackjoker", "fibonaccijoker", "evenstevenjoker"}
 )
 _TWOS_BRONZE_SUPPORT_JOKERS = frozenset({"dnajoker", "hologramjoker"})
+_TEN_FOUR_BRONZE_SUPPORT_JOKERS = frozenset(
+    {"dnajoker", "hologramjoker"}
+)
+_PLAYED_CARD_RETRIGGER_JOKERS = frozenset(
+    {
+        "hangingchadjoker",
+        "seltzerjoker",
+        "duskjoker",
+        "sockandbuskinjoker",
+        "hackjoker",
+    }
+)
+_SUIT_STRATEGY_PAYOFF_JOKERS = {
+    "hearts": frozenset({"bloodstonejoker", "lustyjoker"}),
+    "diamonds": frozenset({"roughgemjoker", "greedyjoker"}),
+    "clubs": frozenset(
+        {"onyxagatejoker", "seeingdoublejoker", "gluttonousjoker"}
+    ),
+    "spades": frozenset({"arrowheadjoker", "wrathfuljoker"}),
+}
+_SUIT_RETRIGGER_PAYOFF_JOKERS = {
+    "diamonds": frozenset({"roughgemjoker", "greedyjoker"}),
+    "spades": frozenset({"arrowheadjoker", "wrathfuljoker"}),
+}
 _FACE_PAREIDOLIA_PAYOFF_JOKERS = frozenset(
     {
         "scaryfacejoker",
@@ -350,6 +392,28 @@ def _rank_strategy_relationship(state, strategy_id: str, item: object) -> str:
                 else NEUTRAL
             )
 
+    if strategy_id == "ten_four":
+        committed = "walkietalkiejoker" in owned or _rank_is_concentrated(
+            state, frozenset({"10", "4"})
+        )
+        if token == "evenstevenjoker":
+            return SILVER if committed else NEUTRAL
+        if token == "hackjoker":
+            four_committed = "walkietalkiejoker" in owned and (
+                _rank_is_concentrated(state, frozenset({"4"}))
+                or _rank_is_concentrated(state, frozenset({"10", "4"}))
+            )
+            return SILVER if four_committed else NEUTRAL
+        if token in _TEN_FOUR_BRONZE_SUPPORT_JOKERS:
+            return BRONZE if committed else NEUTRAL
+        if token == "theidoljoker":
+            _, exact = _idol_counts(state, item)
+            return (
+                BRONZE
+                if str(getattr(item, "rank", "")) in {"10", "4"} and exact >= 2
+                else NEUTRAL
+            )
+
     if strategy_id == "sixes" and token == "evenstevenjoker":
         committed = "sixthsensejoker" in owned or _rank_is_concentrated(
             state, frozenset({"6"})
@@ -375,6 +439,54 @@ def _rank_strategy_relationship(state, strategy_id: str, item: object) -> str:
             return SILVER if committed else NEUTRAL
         if token == "reservedparkingjoker":
             return BRONZE if committed else NEUTRAL
+
+    return NEUTRAL
+
+
+def _section_three_relationship(state, strategy_id: str, item: object) -> str:
+    """Resolve exact suit/held-card support without generic synergy leakage."""
+    token = _item_token(item)
+    owned = _owned_joker_tokens(state)
+
+    if strategy_id in _SUIT_STRATEGY_PAYOFF_JOKERS and token == "smearedjoker":
+        return (
+            SILVER
+            if owned & _SUIT_STRATEGY_PAYOFF_JOKERS[strategy_id]
+            else NEUTRAL
+        )
+
+    if strategy_id in _SUIT_RETRIGGER_PAYOFF_JOKERS:
+        if token in _PLAYED_CARD_RETRIGGER_JOKERS:
+            return (
+                SILVER
+                if owned & _SUIT_RETRIGGER_PAYOFF_JOKERS[strategy_id]
+                else NEUTRAL
+            )
+
+    if strategy_id == "hearts_bloodstone_oops" and token == "oopsall6sjoker":
+        return GOLD if "bloodstonejoker" in owned else NEUTRAL
+
+    if (
+        strategy_id == "hearts_bloodstone_retrigger"
+        and token in _PLAYED_CARD_RETRIGGER_JOKERS
+    ):
+        return SILVER if "bloodstonejoker" in owned else NEUTRAL
+
+    if strategy_id == "clubs_onyx" and token in _PLAYED_CARD_RETRIGGER_JOKERS:
+        return SILVER if "onyxagatejoker" in owned else NEUTRAL
+
+    if strategy_id == "raised_fist" and token == "mimejoker":
+        return SILVER if "raisedfistjoker" in owned else NEUTRAL
+
+    if strategy_id == "ancient_suit_rotation":
+        if token == "smearedjoker" or token in _PLAYED_CARD_RETRIGGER_JOKERS:
+            return SILVER if "ancientjoker" in owned else NEUTRAL
+
+    if strategy_id == "flower_pot_splash" and token == "splashjoker":
+        return GOLD if "flowerpotjoker" in owned else NEUTRAL
+
+    if strategy_id == "flower_pot_smeared" and token == "smearedjoker":
+        return GOLD if "flowerpotjoker" in owned else NEUTRAL
 
     return NEUTRAL
 
@@ -552,9 +664,13 @@ def _pair_has_independent_commitment(state) -> bool:
 
 
 def _pair_conditional_support_relationship(state, token: str) -> str:
-    if token not in _PAIR_CONDITIONAL_SUPPORT_JOKERS:
+    if token not in (
+        _PAIR_CONDITIONAL_SUPPORT_JOKERS | _PAIR_CONDITIONAL_FILLER_JOKERS
+    ):
         return NEUTRAL
-    return SILVER if _pair_has_independent_commitment(state) else NEUTRAL
+    if not _pair_has_independent_commitment(state):
+        return NEUTRAL
+    return SILVER if token in _PAIR_CONDITIONAL_SUPPORT_JOKERS else BRONZE
 
 
 def _pair_obelisk_conflicts(state) -> bool:
@@ -605,6 +721,7 @@ def conditional_joker_relationship(
     if strategy_id in {
         "aces",
         "twos",
+        "ten_four",
         "sixes",
         "jacks_hit_road",
         "queens_shoot_moon",
@@ -616,6 +733,26 @@ def conditional_joker_relationship(
         )
         if rank_relationship != NEUTRAL:
             return rank_relationship
+
+    if strategy_id in {
+        "hearts",
+        "hearts_bloodstone_oops",
+        "hearts_bloodstone_retrigger",
+        "diamonds",
+        "clubs",
+        "clubs_onyx",
+        "clubs_seeing_double",
+        "spades",
+        "blackboard",
+        "raised_fist",
+        "ancient_suit_rotation",
+        "flower_pot",
+        "flower_pot_splash",
+        "flower_pot_smeared",
+    }:
+        section_three = _section_three_relationship(state, strategy_id, item)
+        if section_three != NEUTRAL:
+            return section_three
 
     if strategy_id in {
         "face_photochad",
@@ -648,7 +785,9 @@ def conditional_joker_relationship(
     if strategy_id == _PAIR_STRATEGY_ID:
         if token == "obeliskjoker":
             return BANNED if _pair_obelisk_conflicts(state) else NEUTRAL
-        if token in _PAIR_CONDITIONAL_SUPPORT_JOKERS:
+        if token in (
+            _PAIR_CONDITIONAL_SUPPORT_JOKERS | _PAIR_CONDITIONAL_FILLER_JOKERS
+        ):
             return _pair_conditional_support_relationship(state, token)
 
     if strategy_id == _TWO_PAIR_STRATEGY_ID:

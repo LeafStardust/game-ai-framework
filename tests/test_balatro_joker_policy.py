@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
@@ -27,6 +29,27 @@ class PlusMultJoker(Joker):
         if context.score is not None:
             context.score.mult += 8
         return context
+
+
+class FixedReplacementPlanner:
+    def __init__(self, *, aligned: bool) -> None:
+        self.aligned = aligned
+
+    def plan(self, state, candidate):
+        return SimpleNamespace(
+            candidate_value=SimpleNamespace(
+                total_gain=0.5,
+                active_alignment=self.aligned,
+                strategy_tier="SILVER",
+            ),
+            alternatives=(
+                SimpleNamespace(
+                    replace_index=0,
+                    build_delta=0.5,
+                    rationale=("fixed low-margin replacement",),
+                ),
+            ),
+        )
 
 
 def _state(*, money: int = 20, slots: int = 2) -> BalatroState:
@@ -222,3 +245,29 @@ def test_d2_never_uses_sell_credit_to_justify_a_build_downgrade():
     assert decision.options
     assert decision.options[0].build_gain <= 0.0
     assert decision.options[0].eligible is False
+
+
+def test_d2_uses_lower_positive_buffer_for_active_strategy_replacement():
+    state = _state(money=20, slots=1)
+    state.jokers = [InertJoker()]
+    candidate = PlusMultJoker()
+    candidate.cost = 0
+    thresholds = _no_economy_thresholds(
+        minimum_replacement_advantage=0.75,
+        aligned_minimum_replacement_advantage=0.25,
+    )
+
+    aligned = JokerAcquisitionPolicy(
+        thresholds,
+        transition_planner=FixedReplacementPlanner(aligned=True),
+    ).decide(state, candidate)
+    speculative = JokerAcquisitionPolicy(
+        thresholds,
+        transition_planner=FixedReplacementPlanner(aligned=False),
+    ).decide(state, candidate)
+
+    assert aligned.action == REPLACE
+    assert aligned.selected is not None
+    assert aligned.selected.total_advantage == pytest.approx(0.5)
+    assert any("active strategy alignment" in note for note in aligned.rationale)
+    assert speculative.action == HOLD

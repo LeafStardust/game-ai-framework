@@ -1,4 +1,5 @@
 from games.balatro.build.effects import EffectDescriptor
+from games.balatro.build.joker_strategy import JokerBuildValueWeights
 from games.balatro.build.synergy import ContextualBuildEvaluation
 from games.balatro.joker import Joker, JokerContext
 from games.balatro.joker_policy import HOLD, REPLACE, JokerAcquisitionPolicy, JokerAcquisitionThresholds
@@ -80,6 +81,9 @@ def _planner():
     evaluator = FixedProbeStrategyEvaluator(
         strategy_tracker=_tracker(),
         contextual=NeutralContextualEvaluator(),
+        # Keep the survival regression above the deliberately stronger Gold-core
+        # strategy pressure introduced by the 8/3/1 evidence scale.
+        weights=JokerBuildValueWeights(direct_scoring_cap=30.0),
     )
     return StrategyAwareJokerBuildTransitionPlanner(evaluator=evaluator)
 

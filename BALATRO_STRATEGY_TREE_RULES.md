@@ -52,10 +52,14 @@ Baron-Mime Steel-King High Card [L]
 
 Joker relationship tiers:
 
-- Gold: `+5.00`
+- Gold: `+8.00`
 - Silver: `+3.00`
 - Bronze: `+1.00`
 - Banned: `-8.00`
+
+Gold is the defining core of a strategy, so one Gold relationship must outweigh
+two Silvers and remain the largest single evidence step. Silver and Bronze are
+support and filler tiers; they strengthen a route but should not displace its core.
 
 Non-Joker evidence is independent from Gold/Silver/Bronze:
 

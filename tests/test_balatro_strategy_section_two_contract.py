@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from games.balatro.jokers.dna import DNAJoker
+from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.hack import HackJoker
 from games.balatro.jokers.hanging_chad import HangingChadJoker
@@ -12,6 +13,7 @@ from games.balatro.jokers.ride_the_bus import RideTheBusJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.the_idol import TheIdolJoker
+from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.jokers.wee_joker import WeeJoker
 from games.balatro.strategy import BRONZE, GOLD, NEUTRAL, SILVER
 from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
@@ -78,8 +80,8 @@ def _by_id(resolution):
 def test_section_two_collapses_upgrade_stacks_and_keeps_real_branches():
     topology = TREE_MIGRATED_BALATRO_STRATEGY_TOPOLOGY
 
-    assert len(SECTION_TWO_ROOT_IDS) == 9
-    assert len(SECTION_TWO_NODE_IDS) == 16
+    assert len(SECTION_TWO_ROOT_IDS) == 10
+    assert len(SECTION_TWO_NODE_IDS) == 17
     assert topology.is_leaf("aces") is True
     assert topology.is_leaf("low_rank") is True
     assert topology.is_leaf("twos") is True
@@ -100,7 +102,7 @@ def test_section_two_collapses_upgrade_stacks_and_keeps_real_branches():
     )
 
 
-def test_section_two_contains_fourteen_terminal_strategies():
+def test_section_two_contains_fifteen_terminal_strategies():
     topology = TREE_MIGRATED_BALATRO_STRATEGY_TOPOLOGY
     terminal = {
         strategy_id
@@ -108,7 +110,7 @@ def test_section_two_contains_fourteen_terminal_strategies():
         if topology.is_leaf(strategy_id)
     }
 
-    assert len(terminal) == 14
+    assert len(terminal) == 15
     assert terminal == SECTION_TWO_NODE_IDS - {"face_cards", "faceless"}
 
 
@@ -121,6 +123,12 @@ def test_collapsed_rank_relationships_match_the_frozen_contract():
     assert definitions["low_rank"].relationship_for(HackJoker(), kind="JOKER") == GOLD
     assert definitions["twos"].relationship_for(WeeJoker(), kind="JOKER") == GOLD
     assert definitions["twos"].relationship_for(HackJoker(), kind="JOKER") == NEUTRAL
+    assert definitions["ten_four"].relationship_for(
+        WalkieTalkieJoker(), kind="JOKER"
+    ) == GOLD
+    assert definitions["low_rank"].relationship_for(
+        WalkieTalkieJoker(), kind="JOKER"
+    ) == NEUTRAL
 
 
 def test_scholar_establishes_aces_and_dna_only_supports_a_real_ace_route():
@@ -129,7 +137,7 @@ def test_scholar_establishes_aces_and_dna_only_supports_a_real_ace_route():
     scholar_dna = tracker.observe(_state(jokers=(ScholarJoker(), DNAJoker())))
 
     assert dna_only.assessment("aces").score == pytest.approx(0.0)
-    assert scholar_dna.assessment("aces").score == pytest.approx(8.0)
+    assert scholar_dna.assessment("aces").score == pytest.approx(11.0)
     assert scholar_dna.dominant_strategy_id == "aces"
 
 
@@ -137,13 +145,26 @@ def test_wee_hack_is_one_twos_strategy_while_hack_fibonacci_is_one_low_rank_stra
     tracker = _tracker()
 
     twos = tracker.observe(_state(jokers=(WeeJoker(), HackJoker())))
-    assert twos.assessment("twos").score == pytest.approx(8.0)
-    assert twos.assessment("low_rank").score == pytest.approx(5.0)
+    assert twos.assessment("twos").score == pytest.approx(11.0)
+    assert twos.assessment("low_rank").score == pytest.approx(8.0)
     assert twos.dominant_strategy_id == "twos"
 
     low_rank = tracker.observe(_state(jokers=(HackJoker(), FibonacciJoker())))
-    assert low_rank.assessment("low_rank").score == pytest.approx(10.0)
+    assert low_rank.assessment("low_rank").score == pytest.approx(16.0)
     assert low_rank.dominant_strategy_id == "low_rank"
+
+
+def test_ten_four_owns_walkie_talkie_and_even_steven_support_is_conditional():
+    tracker = _tracker()
+
+    unsupported = tracker.observe(_state(jokers=(EvenStevenJoker(),)))
+    supported = tracker.observe(
+        _state(jokers=(WalkieTalkieJoker(), EvenStevenJoker()))
+    )
+
+    assert unsupported.assessment("ten_four").score == pytest.approx(0.0)
+    assert supported.assessment("ten_four").score == pytest.approx(11.0)
+    assert supported.dominant_strategy_id == "ten_four"
 
 
 def test_generic_face_evidence_stays_on_parent_until_a_real_child_exists():
@@ -167,7 +188,7 @@ def test_photochad_replaces_face_parent_and_inherits_parent_evidence_once():
     by_id = _by_id(resolution)
 
     assert "face_cards" not in by_id
-    assert by_id["face_photochad"].score == pytest.approx(13.0)
+    assert by_id["face_photochad"].score == pytest.approx(19.0)
     assert resolution.dominant_strategy_id == "face_photochad"
 
 
@@ -179,7 +200,7 @@ def test_pareidolia_requires_an_inherited_face_payoff_before_selecting_its_leaf(
     )
 
     assert "face_pareidolia" not in _by_id(unsupported)
-    assert supported.assessment("face_pareidolia").score == pytest.approx(8.0)
+    assert supported.assessment("face_pareidolia").score == pytest.approx(11.0)
     assert supported.dominant_strategy_id == "face_pareidolia"
 
 

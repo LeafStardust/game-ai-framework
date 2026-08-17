@@ -68,10 +68,10 @@ def test_burnt_joker_keeps_generic_high_card_parent_actionable():
     by_id = _assessment_by_id(resolution)
     nodes = tracker.tree_node_scores()
 
-    assert by_id["high_card"].score == pytest.approx(5.0)
+    assert by_id["high_card"].score == pytest.approx(8.0)
     assert "high_card_stuntman" not in by_id
     assert "high_card_baron_mime" not in by_id
-    assert nodes["high_card"].direct_evidence == pytest.approx(5.0)
+    assert nodes["high_card"].direct_evidence == pytest.approx(8.0)
     assert nodes["high_card"].on_frontier is True
     assert nodes["high_card"].active is True
     assert nodes["high_card_stuntman"].active is False
@@ -92,10 +92,10 @@ def test_stuntman_specific_evidence_replaces_parent_and_inherits_its_evidence():
     by_id = _assessment_by_id(resolution)
     nodes = tracker.tree_node_scores()
 
-    assert by_id["high_card_stuntman"].score == pytest.approx(10.0)
+    assert by_id["high_card_stuntman"].score == pytest.approx(16.0)
     assert "high_card" not in by_id
-    assert nodes["high_card"].foundation_score == pytest.approx(7.5)
-    assert nodes["high_card_stuntman"].direct_evidence == pytest.approx(5.0)
+    assert nodes["high_card"].foundation_score == pytest.approx(12.0)
+    assert nodes["high_card_stuntman"].direct_evidence == pytest.approx(8.0)
     assert resolution.dominant_strategy_id == "high_card_stuntman"
 
 
@@ -112,7 +112,7 @@ def test_baron_mime_leaf_can_establish_deep_high_card_route_early():
     resolution = tracker.observe(state)
     by_id = _assessment_by_id(resolution)
 
-    assert by_id["high_card_baron_mime"].score == pytest.approx(15.0)
+    assert by_id["high_card_baron_mime"].score == pytest.approx(24.0)
     assert "high_card" not in by_id
     assert resolution.dominant_strategy_id == "high_card_baron_mime"
 
@@ -127,7 +127,7 @@ def test_subthreshold_held_structure_does_not_choose_baron_mime_branch():
     resolution = tracker.observe(state)
     by_id = _assessment_by_id(resolution)
 
-    assert by_id["high_card"].score == pytest.approx(5.35)
+    assert by_id["high_card"].score == pytest.approx(8.35)
     assert "high_card_baron_mime" not in by_id
     assert resolution.dominant_strategy_id == "high_card"
 
@@ -145,7 +145,7 @@ def test_high_card_leaf_inherits_parent_hand_prescription_without_duplicate_hand
     assert tracker.primary_hands_for("high_card_stuntman") == ("HIGH_CARD",)
     # Root receives +1.0 from two permanent hand levels; the child receives only
     # its own Stuntman evidence and then inherits the root once.
-    assert by_id["high_card_stuntman"].score == pytest.approx(6.0)
+    assert by_id["high_card_stuntman"].score == pytest.approx(9.0)
 
 
 def test_parent_candidate_relationship_maps_to_current_specific_leaf():
@@ -161,7 +161,7 @@ def test_parent_candidate_relationship_maps_to_current_specific_leaf():
     assert evaluation.strategy_id == "high_card_stuntman"
     assert evaluation.tier == GOLD
     assert evaluation.active_alignment is True
-    assert evaluation.projected_score == pytest.approx(10.0)
+    assert evaluation.projected_score == pytest.approx(16.0)
     assert evaluation.value > 0.0
 
 
@@ -177,7 +177,7 @@ def test_specific_candidate_projects_parent_inheritance_without_self_funding_bon
 
     assert evaluation.strategy_id == "high_card_stuntman"
     assert evaluation.tier == GOLD
-    assert evaluation.projected_score == pytest.approx(10.0)
+    assert evaluation.projected_score == pytest.approx(16.0)
     assert evaluation.pivot_candidate is True
     # The candidate can reveal a pivot but cannot create its own current-strategy
     # purchase bonus before it is actually owned.
@@ -196,7 +196,7 @@ def test_obelisk_parent_conflict_maps_to_generic_parent():
     resolution = tracker.observe(state)
     nodes = tracker.tree_node_scores()
     assert resolution.dominant_strategy_id == "high_card"
-    assert nodes["high_card"].direct_evidence == pytest.approx(5.5)
+    assert nodes["high_card"].direct_evidence == pytest.approx(8.5)
 
     evaluation = tracker.evaluate_item(state, ObeliskJoker(), kind="JOKER")
 

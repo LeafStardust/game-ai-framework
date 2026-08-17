@@ -350,6 +350,7 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
         fallback_strategy_id: str | None = None
         fallback_relationship: str | None = None
         fallback_projected = 0.0
+        strongest_off_strategy_weight = 0.0
 
         for actionable_id, (relationship, source_strategy_id) in mapped.items():
             assessment = by_id.get(actionable_id)
@@ -380,6 +381,11 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
             shortlisted = actionable_id in resolution.shortlist_strategy_ids
             if shortlisted and relationship in {GOLD, SILVER, BRONZE}:
                 active_alignment = True
+            elif relationship in {GOLD, SILVER, BRONZE}:
+                strongest_off_strategy_weight = max(
+                    strongest_off_strategy_weight,
+                    relation_weight,
+                )
 
             ante = max(1, int(getattr(state, "ante", 1) or 1))
             pivot_margin = self._number(
@@ -422,6 +428,24 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
             strongest_strategy_id = fallback_strategy_id
             strongest_relationship = fallback_relationship
             strongest_projected = fallback_projected
+
+        if (
+            kind == "JOKER"
+            and dominant is not None
+            and not active_alignment
+            and not pivot
+            and strongest_off_strategy_weight > 0.0
+        ):
+            opportunity_cost = (
+                max(0.0, float(dominant.score))
+                * strongest_off_strategy_weight
+                * self._number(config, "off_strategy_joker_penalty_factor", 1.0)
+            )
+            total_alignment -= opportunity_cost
+            rationale.append(
+                f"mapped off-strategy Joker opportunity cost=-{opportunity_cost:.3f} "
+                f"against dominant {dominant.name}"
+            )
 
         value = total_alignment * alignment_scale * pressure
         strongest_definition = self.definitions.get(strongest_strategy_id or "")

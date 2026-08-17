@@ -2,7 +2,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from games.balatro.strategy import BANNED, GOLD, NEUTRAL, SILVER
+from games.balatro.jokers.droll_joker import DrollJoker as RealDrollJoker
+from games.balatro.jokers.square_joker import SquareJoker as RealSquareJoker
+from games.balatro.jokers.the_duo import TheDuoJoker as RealTheDuoJoker
+from games.balatro.state import BalatroState
+from games.balatro.strategy import BANNED, BRONZE, GOLD, NEUTRAL, SILVER
 from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
 from games.balatro.strategy_conditional_relationships import (
     conditional_joker_relationship,
@@ -13,6 +17,7 @@ from games.balatro.strategy_tree_catalog import (
 from games.balatro.strategy_tree_tracker import (
     TreeAwareStateAwareBalatroStrategyTracker,
 )
+from games.balatro.strategy_value import StrategyAwareJokerBuildValueEvaluator
 
 
 class TheDuoJoker:
@@ -44,6 +49,38 @@ class SpaceJoker:
 
 
 class BurntJoker:
+    pass
+
+
+class GreenJoker:
+    pass
+
+
+class BurglarJoker:
+    pass
+
+
+class SquareJoker:
+    pass
+
+
+class RaisedFistJoker:
+    pass
+
+
+class BlackboardJoker:
+    pass
+
+
+class ShootTheMoonJoker:
+    pass
+
+
+class HikerJoker:
+    pass
+
+
+class HangingChadJoker:
     pass
 
 
@@ -126,10 +163,10 @@ def test_pair_direct_joker_establishes_standalone_leaf():
     node = tracker.tree_node_scores()["pair"]
 
     assert pair.gold_owned == 1
-    assert pair.score == pytest.approx(5.0)
+    assert pair.score == pytest.approx(8.0)
     assert node.is_leaf is True
     assert node.active is True
-    assert node.direct_evidence == pytest.approx(5.0)
+    assert node.direct_evidence == pytest.approx(8.0)
     # Global dominance is intentionally not asserted during hybrid migration:
     # The Duo still appears in some not-yet-migrated legacy hand definitions.
 
@@ -142,6 +179,8 @@ def test_generic_small_hand_and_repeat_support_requires_independent_pair_commitm
         CardSharpJoker(),
         SpaceJoker(),
         BurntJoker(),
+        GreenJoker(),
+        BurglarJoker(),
     ):
         assert conditional_joker_relationship(ordinary, "pair", joker) == NEUTRAL
 
@@ -152,8 +191,21 @@ def test_generic_small_hand_and_repeat_support_requires_independent_pair_commitm
         CardSharpJoker(),
         SpaceJoker(),
         BurntJoker(),
+        GreenJoker(),
+        BurglarJoker(),
     ):
         assert conditional_joker_relationship(invested, "pair", joker) == SILVER
+
+    for joker in (
+        SquareJoker(),
+        RaisedFistJoker(),
+        BlackboardJoker(),
+        ShootTheMoonJoker(),
+        HikerJoker(),
+        HangingChadJoker(),
+    ):
+        assert conditional_joker_relationship(ordinary, "pair", joker) == NEUTRAL
+        assert conditional_joker_relationship(invested, "pair", joker) == BRONZE
 
     direct = _state(jokers=(JollyJoker(),))
     assert conditional_joker_relationship(direct, "pair", HalfJoker()) == SILVER
@@ -214,3 +266,28 @@ def test_pair_candidate_index_uses_conditional_support_and_obelisk_conflict():
 
     assert half_relationships["pair"] == SILVER
     assert obelisk_relationships["pair"] == BANNED
+
+
+def test_established_pair_prefers_aligned_bronze_filler_over_flush_joker():
+    state = BalatroState()
+    state.ante = 3
+    state.jokers = [RealTheDuoJoker()]
+    evaluator = StrategyAwareJokerBuildValueEvaluator(
+        strategy_tracker=_tracker(),
+    )
+
+    aligned = evaluator.evaluate(state, RealSquareJoker())
+    off_path = evaluator.evaluate(state, RealDrollJoker())
+
+    assert aligned.strategy_id == "pair"
+    assert aligned.strategy_tier == BRONZE
+    assert aligned.active_alignment is True
+    assert aligned.strategic_adjustment > 0.0
+    assert off_path.active_alignment is False
+    assert off_path.pivot_candidate is False
+    assert off_path.strategic_adjustment < 0.0
+    assert aligned.total_gain > off_path.total_gain
+    assert any(
+        "off-path Joker generic probe discount" in note
+        for note in off_path.rationale
+    )
