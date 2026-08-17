@@ -2,169 +2,29 @@
 
 > Concrete universal mechanic-specific strategy definitions.
 >
-> These are documentation groupings only. At runtime every strategy is a peer in the same universal strategy pool. See [`BALATRO_STRATEGY_PLAYBOOKS.md`](BALATRO_STRATEGY_PLAYBOOKS.md) for architecture and lifecycle rules.
+> The grouping is documentation-only. At runtime every strategy is a peer in the same universal strategy pool. See [`BALATRO_STRATEGY_PLAYBOOKS.md`](BALATRO_STRATEGY_PLAYBOOKS.md) for architecture and lifecycle rules.
 
----
+| Strategy | Gold | Silver | Bronze | Must avoid / conflicts | Key Tarot/Spectral/support | Entry evidence |
+|---|---|---|---|---|---|---|
+| **Face Cards** | Major face-card multiplier/scaler such as Triboulet-style payoff; Pareidolia when it unlocks multiple face effects; strong face-card retrigger package with real face density | Smiley Face; Scary Face; Business Card; Photograph; Sock and Buskin with sufficient face density; Baron with real King/held-card support | Generic scoring/economy that preserves face cards | Faceless/No-Face; Ride the Bus-style no-face requirements; Canio Destruction once destruction is the plan | Strength/rank manipulation increasing useful face density; selective low-rank destruction; Death/copy on valuable face cards | Owned face-payoff Jokers; meaningful face density; repeated face-card scoring |
+| **Faceless / No-Face** | Ride the Bus when face scoring can be reliably avoided; Faceless Joker when discard structure supports it | Low-rank payoff engines; destruction tools that remove face cards while improving consistency; matching non-face rank engines | Generic scoring/economy compatible with low-rank play | Face Cards; Baron/King-heavy shells | Hanged Man on face cards; rank manipulation away from faces when it also improves the scoring shell | No-face payoff owned; reduced face density; actual ability to avoid scoring faces |
+| **Glass** | Glass Joker; reliable Glass creation/duplication engine after meaningful Glass density exists | Retriggers/multipliers magnifying Glass; copy effects replenishing strong Glass targets; compatible repeated scoring shell | Generic scoring/economy compatible with fragile cards | Wasteful Glass use; transformations that remove essential Glass cards; survival lines depending on consuming the only reliable Glass scorer | Justice; Death/copy on premium Glass cards; deck control that avoids unnecessary Glass plays | Existing Glass cards; Glass Joker; repeatable Glass creation. Theoretical future Justice alone is weak evidence |
+| **Steel** | Steel Joker; Mime; Baron when Steel Kings/King density make the package coherent | Held-card scoring/retriggers; hand-size support; generation of useful held cards; High Card/Pair shells that naturally leave cards held | Generic low-card scoring; compatible economy | Vampire when it consumes needed Steel enhancements; five-card shells that repeatedly force premium Steel cards to score | Chariot; Death/copy on valuable Steel cards; hand-size/held-card support | Existing Steel cards; Steel Joker/Mime; held-card build structure |
+| **Lucky** | Lucky Cat after Lucky usage exists; strong retrigger engines that materially increase Lucky proc opportunities | Magician; copy effects on strong Lucky cards; compatible per-card retriggers/scoring | Generic scoring/economy preserving Lucky cards | Vampire when it consumes Lucky enhancements needed by the strategy | Magician; Death/copy; deck shaping increasing Lucky draw/play frequency | Actual Lucky cards or a repeatable Lucky-creation path; theoretical future Magician alone is insufficient |
 
-## Face Cards
+## Candidate future mechanic strategies
 
-**Identity:** preserve/create Jacks, Queens, and Kings and exploit face-card triggers.
+Only add one when it changes **multiple downstream decisions**, not merely because a Joker references the mechanic.
 
-### Gold
-- Major face-card multipliers/scalers such as Triboulet-style payoff.
-- Pareidolia when it unlocks multiple face-card effects.
-- Strong face-card retrigger packages when face density is already meaningful.
+| Candidate | Why it may deserve a playbook | Do not add until |
+|---|---|---|
+| Stone | Card-identity-independent scoring and deck-shape changes | Enough concrete Joker/consumable interactions form a coherent acquisition and play plan |
+| Gold cards | Held-card economy and enhancement preservation | It has a real run direction beyond generic economy valuation |
+| Seal-specific | Blue/Purple/Red seal engines can alter hand preservation and consumable value | Dedicated support is sufficient to drive repeated decisions |
+| Edition-driven | Edition generation/copying may create coherent Joker/card acquisition priorities | It affects strategy beyond simply “edition is good” |
 
-### Silver
-- Smiley Face.
-- Scary Face.
-- Business Card.
-- Photograph.
-- Sock and Buskin when sufficient face density exists.
-- Baron when King density and held-card use are real.
+## Mechanic-strategy rule
 
-### Bronze
-- Generic scoring/economy that does not require destroying face cards.
+Tarot and Spectral cards may **seed these strategies during Antes 1–2**. Unlike Planets, the agent does not need an already dominant strategy before accepting a transformative early enhancement, destruction, rank, suit, or copying opportunity.
 
-### Preferred Tarot/Spectral support
-- Rank manipulation that increases useful face density.
-- Selective destruction of irrelevant low ranks.
-- Copy effects targeting strong face cards.
-
-### Conflicts
-- Faceless/No-Face.
-- Ride the Bus-style no-face requirements.
-- Canio Destruction once destruction becomes the dominant plan.
-
----
-
-## Faceless / No-Face
-
-**Identity:** remove or avoid face cards and exploit effects that benefit from their absence, non-use, or destruction.
-
-### Gold
-- Ride the Bus when the deck can reliably avoid scoring face cards.
-- Faceless Joker when discard structure supports it.
-
-### Silver
-- Low-rank payoff engines.
-- Destruction tools that remove face cards while improving deck consistency.
-- Rank-specific engines naturally concentrated below face ranks.
-
-### Bronze
-- Generic scoring/economy compatible with low-rank play.
-
-### Preferred Tarot/Spectral support
-- Hanged Man and other safe destruction applied to face cards.
-- Rank manipulation away from face ranks when it also improves the active scoring shell.
-
-### Conflicts
-- Face Cards.
-- Baron/King-heavy held-card packages.
-
----
-
-## Glass
-
-**Identity:** create and exploit Glass cards while managing breakage and replacement risk.
-
-### Gold
-- Glass Joker.
-- Reliable Glass creation/duplication engines once meaningful Glass density exists.
-
-### Silver
-- Retriggers/multipliers that magnify Glass scoring.
-- Copy effects that replenish or duplicate strong Glass targets.
-- Hand shells that can repeatedly score strategically valuable Glass cards.
-
-### Bronze
-- Generic scoring/economy compatible with fragile scoring cards.
-
-### Preferred Tarot/Spectral support
-- Justice.
-- Copy effects targeting strategically valuable Glass ranks/suits.
-- Deck control that avoids wasting Glass cards on unnecessary plays.
-
-### Risk rule
-- Do not destroy the only reliable clear line merely to maximize Glass value.
-- Existing Glass count and replacement capacity must matter to strategy evidence.
-
----
-
-## Steel
-
-**Identity:** keep Steel cards in hand and multiply held-card value.
-
-### Gold
-- Steel Joker.
-- Mime.
-- Baron when Steel Kings or King density make the package coherent.
-
-### Silver
-- Held-card scoring/retrigger effects.
-- Hand-size support.
-- Card generation that increases useful held cards.
-- High Card/Pair shells that naturally leave many cards held.
-
-### Bronze
-- Generic scoring requiring few played cards.
-- Economy that does not force excessive played-card commitment.
-
-### Preferred Tarot/Spectral support
-- Chariot.
-- Death/copy effects targeting valuable Steel cards.
-- Enhancement generation that preserves cards for held use.
-
-### Natural compatibility
-- High Card.
-- Pair.
-- Face Cards where King/face density is useful.
-
-### Conflicts
-- Vampire when it consumes Steel enhancements needed by the strategy.
-- Five-card strategies that repeatedly force important Steel cards into scoring hands.
-
----
-
-## Lucky
-
-**Identity:** create Lucky-card density and exploit repeated Lucky triggers/scaling.
-
-### Gold
-- Lucky Cat once Lucky-card usage is real.
-- Strong retrigger engines that substantially increase Lucky proc opportunities.
-
-### Silver
-- Magician.
-- Copy effects targeting strong Lucky cards.
-- Compatible per-card scoring/retrigger effects.
-
-### Bronze
-- Generic scoring/economy that keeps Lucky cards playable.
-
-### Preferred Tarot/Spectral support
-- Magician and card-copying effects.
-- Deck shaping that increases the frequency of drawing/playing Lucky cards.
-
-### Entry evidence
-- Actual Lucky cards or a real repeatable Lucky-creation path.
-- Theoretical future Magician access alone is not sufficient evidence.
-
-### Conflicts
-- Vampire when it is expected to consume Lucky enhancements the strategy needs to preserve.
-
----
-
-## Future mechanic playbooks
-
-Additional mechanic-specific strategies should be added here when they represent a coherent run direction rather than a one-off synergy.
-
-Candidates may include:
-
-- Stone-card concentration;
-- Gold-card/economy shells;
-- enhancement-specific retrigger shells;
-- seal-specific strategies when enough dedicated support exists;
-- edition-driven strategy packages when they produce coherent acquisition/play behavior.
-
-Do not create a new playbook merely because one Joker references a mechanic. A playbook should change multiple downstream decisions: acquisition, deck shaping, consumable value, hand preservation, or scoring behavior.
+As the run converges, generic transformation value decreases and contribution to the dominant/relevant strategies becomes increasingly important.
