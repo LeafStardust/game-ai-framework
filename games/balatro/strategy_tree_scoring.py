@@ -49,6 +49,18 @@ class StrategyTreeEvidenceScorer:
         self.upward_decay = float(upward_decay)
         self.ancestor_inheritance_decay = float(ancestor_inheritance_decay)
 
+    def _branch_has_positive_direct(
+        self,
+        strategy_id: str,
+        direct: Mapping[str, float],
+    ) -> bool:
+        if direct[strategy_id] > 0.0:
+            return True
+        return any(
+            self._branch_has_positive_direct(child_id, direct)
+            for child_id in self.topology.children_by_id[strategy_id]
+        )
+
     def score(
         self,
         direct_evidence: Mapping[str, float],
@@ -109,7 +121,7 @@ class StrategyTreeEvidenceScorer:
                 sibling_specific_active = any(
                     sibling_id != strategy_id
                     and not self.topology.nodes[sibling_id].is_fallback_leaf
-                    and direct[sibling_id] > 0.0
+                    and self._branch_has_positive_direct(sibling_id, direct)
                     for sibling_id in self.topology.children_by_id[parent_id]
                 )
 
