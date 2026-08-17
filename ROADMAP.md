@@ -83,12 +83,13 @@ The first flat universal-strategy implementation proved current-state evidence, 
 - [x] **Freeze the v1.0F strategy forest topology.** Roots/children/leaves cover the audited poker-hand, rank, suit, enhancement, seal, named-engine, economy, discard, deck-growth, consumable, and Joker-board strategies. Further topology changes require a real defect or live-validation finding.
 - [x] Define leaf-only ranking, parent-foundation semantics, descendant-upward evidence, no blind downward activation, no natural poker-hand transition graph, and Negative-Joker retention rules in the design contract.
 - [x] Add the first runtime topology scaffold with validated node IDs, parent links, roots, leaves, ancestor paths, fallback-leaf metadata, cycle rejection, and the initial High Card subtree.
+- [x] Add the topology-only evidence-scoring kernel and deterministic regressions for discounted upward foundation, no blind downward activation, no recursive self-double-counting, fallback suppression, and leaf-only ranking. Production tracker wiring remains pending.
 - [ ] Migrate `StrategyDefinition`/catalogue ownership onto topology node IDs and encode the remaining frozen nodes without duplicating component metadata.
-- [ ] Separate `direct_evidence`, internal `foundation_score`, and leaf `effective_score` in the runtime.
-- [ ] Implement discounted descendant -> ancestor evidence propagation while preventing recursive self-evidence double counting.
-- [ ] Do not automatically propagate ancestor evidence downward. A specific non-fallback child must first have qualifying child evidence before inheriting ancestor native/direct foundation.
-- [ ] Rank leaves only; suppress a fallback/core leaf once a sufficiently established specific sibling represents the same branch.
-- [ ] Remove generic poker-hand play count from universal strategy evidence. Preserve hand history only for mechanics that explicitly use it; retain persistent hand-level/Planet investment evidence.
+- [ ] Separate `direct_evidence`, internal `foundation_score`, and leaf `effective_score` in the production runtime.
+- [ ] Wire discounted descendant -> ancestor evidence propagation into production while preventing recursive self-evidence double counting.
+- [ ] Wire child-gated ancestor native/direct foundation inheritance into production; ancestor evidence must not automatically activate a specific non-fallback child.
+- [ ] Rank leaves only in production; suppress a fallback/core leaf once a sufficiently established specific sibling represents the same branch.
+- [x] Remove generic poker-hand play count from universal strategy evidence. Preserve hand history only for mechanics that explicitly use it; retain persistent hand-level/Planet investment evidence.
 - [ ] Implement the global Negative-Joker retention rule in sell/replace policy: protect Negative Jokers from ordinary replacement pressure unless their active mechanic materially harms the build or intentional sacrifice/destruction is justified by the active strategy.
 - [ ] Rebuild Gold/Silver/Bronze/Banned/conditional relationships **node by node**, beginning with the High Card root and its leaves. Banned must mean genuine strategic conflict, not merely support for a competing strategy.
 - [ ] Rebuild the inverse `component -> strategy/relationship` index from tree-owned catalogue data without editing all 150 Joker classes.
