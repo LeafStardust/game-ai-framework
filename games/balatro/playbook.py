@@ -30,9 +30,10 @@ class BalatroPlaybookNotFound(LookupError):
 class BalatroPlaybook:
     """Strategy cartridge selected from the live run's deck and stake.
 
-    The playbook contains strategic preferences only. Poker rules, card/Joker
-    mechanics, blind mechanics and stake/deck factual effects remain in the shared
-    Balatro engine and must not be duplicated here.
+    Universal Balatro strategy definitions live outside the cartridge. The playbook
+    owns only environment-specific strategy effectiveness/availability plus decision
+    thresholds. Poker rules, card/Joker mechanics, blind mechanics and stake/deck
+    factual effects remain in the shared Balatro engine.
     """
 
     deck: str
@@ -66,6 +67,13 @@ class BalatroPlaybook:
                 f"playbook threshold block {threshold_key!r} for {layer_id} must be a mapping"
             )
         return dict(block)
+
+    def strategy_modifiers(self) -> dict[str, Any]:
+        """Return deck/stake modifiers for the shared universal strategy catalog."""
+        configured = self.strategy.get("strategy_modifiers", {})
+        if not isinstance(configured, dict):
+            raise TypeError("playbook strategy_modifiers must be a mapping")
+        return dict(configured)
 
 
 class BalatroPlaybookRegistry:
@@ -106,7 +114,6 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
             deck="RED",
             stake="WHITE",
             name="red-white",
-            # Frozen Red Deck / White Stake D1-D14 threshold cartridge for v1.0 acceptance.
             version="1.0",
             strategy={
                 "risk_tolerance": "moderate",
@@ -114,6 +121,34 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                     "max_horizon": 5,
                     "max_search_nodes": 5000,
                     "search_schedule_mode": "probe-deepest",
+                },
+                "strategy_modifiers": {
+                    "candidate_threshold": 1.5,
+                    "highlight_threshold": 3.5,
+                    "commit_threshold": 9.0,
+                    "mature_threshold": 16.0,
+                    "early_pivot_margin": 1.5,
+                    "late_pivot_margin": 4.0,
+                    "held_consumable_fraction": 0.35,
+                    "hand_level_weight": 1.25,
+                    "hand_history_weight": 0.45,
+                    "conflict_penalty": 5.0,
+                    "active_alignment_multiplier": 1.35,
+                    "off_strategy_penalty": 2.0,
+                    "strategies": {
+                        "high_card": {"effectiveness": 1.0},
+                        "pair": {"effectiveness": 1.0},
+                        "two_pair": {"effectiveness": 1.0},
+                        "three_kind": {"effectiveness": 1.0},
+                        "straight": {"effectiveness": 1.10},
+                        "flush": {"effectiveness": 1.10},
+                        "full_house": {"effectiveness": 1.10},
+                        "four_kind": {"effectiveness": 0.75},
+                        "straight_flush": {"enabled": False},
+                        "five_kind": {"enabled": False},
+                        "flush_house": {"enabled": False},
+                        "flush_five": {"enabled": False},
+                    },
                 },
                 "decision_thresholds": {
                     "hand_action": {
