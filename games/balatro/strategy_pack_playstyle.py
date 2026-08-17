@@ -29,9 +29,9 @@ class StrategyAwarePackPlaystyleEvaluator(PackPlaystyleEvaluator):
             target,
             kind="PLANET",
         )
-        # A disabled/irrelevant Planet is not useful merely because generic
-        # playstyle happens to have a weak hand-axis signal.
-        if strategic.tier is None:
+        # Planets refine the selected hand plan. They are not allowed to create a
+        # new strategy merely because the pack happened to offer one.
+        if strategic.tier is None or not strategic.active_alignment:
             value = min(0.0, float(base.value)) - 4.0
             return replace(
                 base,
@@ -40,7 +40,11 @@ class StrategyAwarePackPlaystyleEvaluator(PackPlaystyleEvaluator):
                 rationale=(
                     *base.rationale,
                     *strategic.rationale,
-                    "D9 Planet is outside every enabled universal strategy",
+                    (
+                        "D9 Planet is outside every enabled universal strategy"
+                        if strategic.tier is None
+                        else "D9 Planet does not match the active universal strategy"
+                    ),
                 ),
             )
 
@@ -53,6 +57,6 @@ class StrategyAwarePackPlaystyleEvaluator(PackPlaystyleEvaluator):
             rationale=(
                 *base.rationale,
                 *strategic.rationale,
-                f"D9 cartridge-adjusted strategy value={strategic.value:+.3f}",
+                f"D9 environment-adjusted strategy value={strategic.value:+.3f}",
             ),
         )
