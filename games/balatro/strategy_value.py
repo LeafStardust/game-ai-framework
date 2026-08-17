@@ -78,15 +78,21 @@ class StrategyAwareConsumableSynergyEvaluator(ContextualConsumableSynergyEvaluat
             kind=kind,
         )
 
-        if kind == "PLANET" and strategic.tier is None:
-            # A generic permanent level increase is not enough to invent a build.
-            # An environment-disabled or universally unrelated Planet must lose D4
-            # admission unless another explicit strategic path enables it later.
+        if kind == "PLANET" and (
+            strategic.tier is None or not strategic.active_alignment
+        ):
+            # Planets refine an already-selected hand strategy; they do not choose
+            # the strategy. This is the direct guard against random Neptune/Jupiter
+            # fishing from a neutral run.
             adjustment = -max(4.0, float(base.total_gain) + 1.0)
             rationale = (
                 *base.rationale,
                 *strategic.rationale,
-                "Planet blocked because no enabled universal strategy values it",
+                (
+                    "Planet blocked because no enabled universal strategy values it"
+                    if strategic.tier is None
+                    else "Planet blocked because its universal strategy is not active"
+                ),
                 f"environment strategy adjustment={adjustment:+.3f}",
             )
         else:
