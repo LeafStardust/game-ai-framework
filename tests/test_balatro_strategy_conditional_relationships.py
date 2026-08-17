@@ -4,6 +4,7 @@ from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.seeing_double import SeeingDoubleJoker
+from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.jokers.the_idol import TheIdolJoker
 from games.balatro.live.runtime.strategy_autonomous_runner import (
     StrategyAwareLiveMemoryInjectedSingleStepRunner,
@@ -254,6 +255,100 @@ def test_baron_and_mime_together_are_defining_evidence_even_before_deck_shaping(
     )
 
     assert assessment.silver_owned == 2
+
+
+def test_stuntman_conflict_requires_a_material_held_card_engine():
+    ordinary = _state()
+    assert (
+        conditional_joker_relationship(
+            ordinary,
+            "high_card_baron_mime",
+            StuntmanJoker(),
+        )
+        == NEUTRAL
+    )
+
+    isolated_steel_king = _state()
+    isolated_steel_king.owned_deck.append(
+        BalatroCard("K", "Hearts", enhancement="Steel")
+    )
+    assert (
+        conditional_joker_relationship(
+            isolated_steel_king,
+            "high_card_baron_mime",
+            StuntmanJoker(),
+        )
+        == NEUTRAL
+    )
+
+    paired = _state()
+    paired.jokers = [BaronJoker(), MimeJoker()]
+    assert (
+        conditional_joker_relationship(
+            paired,
+            "high_card_baron_mime",
+            StuntmanJoker(),
+        )
+        == BANNED
+    )
+
+    steel_shell = _state()
+    steel_shell.owned_deck.extend(
+        (
+            BalatroCard("K", "Hearts", enhancement="Steel"),
+            BalatroCard("K", "Spades", enhancement="Steel"),
+        )
+    )
+    assert (
+        conditional_joker_relationship(
+            steel_shell,
+            "high_card_baron_mime",
+            StuntmanJoker(),
+        )
+        == BANNED
+    )
+
+
+def test_static_stuntman_ban_is_neutralized_then_recomputed_from_current_state():
+    state = _state()
+    state.jokers = [StuntmanJoker()]
+    tracker = _tree_definition_tracker()
+
+    ordinary = next(
+        assessment
+        for assessment in tracker.assess(state)
+        if assessment.strategy_id == "high_card_baron_mime"
+    )
+    assert ordinary.banned_owned == 0
+
+    state.jokers = [BaronJoker(), MimeJoker(), StuntmanJoker()]
+    established = next(
+        assessment
+        for assessment in tracker.assess(state)
+        if assessment.strategy_id == "high_card_baron_mime"
+    )
+    assert established.silver_owned == 2
+    assert established.banned_owned == 1
+
+    state.jokers = [StuntmanJoker()]
+    reverted = next(
+        assessment
+        for assessment in tracker.assess(state)
+        if assessment.strategy_id == "high_card_baron_mime"
+    )
+    assert reverted.banned_owned == 0
+
+
+def test_stuntman_candidate_is_gold_for_small_hand_leaf_and_banned_for_established_held_leaf():
+    state = _state()
+    state.jokers = [BaronJoker(), MimeJoker()]
+    tracker = _tree_definition_tracker()
+    tracker.assess(state)
+
+    relationships = tracker._relationships_for(StuntmanJoker(), kind="JOKER")
+
+    assert relationships["high_card_stuntman"] == GOLD
+    assert relationships["high_card_baron_mime"] == BANNED
 
 
 def test_production_strategy_runner_uses_tree_state_aware_strategy_tracker():
