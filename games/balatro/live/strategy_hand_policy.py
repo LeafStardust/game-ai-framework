@@ -7,6 +7,7 @@ from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.live.hand_playstyle import BuildAwareLiveHandActionPolicy
 from games.balatro.strategy import BalatroStrategyTracker
+from games.balatro.strategy_compat import NeutralLegacyPlaystyleIntentTracker
 
 
 _RANK_VALUE = {
@@ -27,16 +28,16 @@ _RANK_VALUE = {
 
 
 class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
-    """D1 survival hierarchy with explicit universal-strategy pursuit beneath it.
+    """D1 survival hierarchy with universal-playbook pursuit beneath it.
 
     The inherited clear-probability/exactness/expected-hands dimensions remain
-    ahead of strategy. Strategy therefore cannot throw a safe blind merely to force
-    its preferred hand. Among tactically equivalent lines, however, playing the
-    active strategic hand is preferred and discards retain visible structure that
-    moves toward that hand instead of fishing without direction.
+    ahead of strategy. Its retained-card preservation mechanics are also kept, but
+    the legacy playstyle-intent signal is neutralized so the universal playbooks are
+    the only strategic direction used by this policy.
     """
 
     def __init__(self, *args, strategy_tracker: BalatroStrategyTracker, **kwargs) -> None:
+        kwargs["intent_tracker"] = NeutralLegacyPlaystyleIntentTracker()
         super().__init__(*args, **kwargs)
         self.strategy_tracker = strategy_tracker
         self._hand_evaluator = HandEvaluator()
@@ -48,6 +49,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             decision,
             rationale=(
                 *decision.rationale,
+                "D1 legacy playstyle strategy influence=0.000",
                 f"D1 universal-strategy fit={fit:+.3f}",
                 *rationale,
             ),
