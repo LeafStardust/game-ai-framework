@@ -17,17 +17,19 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 
 `TBD` = not audited yet. `—` = intentionally none.
 
-`[I]` rows are aggregate index rows. Their Joker columns are the union of the generic strategy plus descendant leaf relationships and are not additive with child rows. `[L]` rows contain only specialization-specific relationships.
+`[I]` rows contain only generic evidence shared by every specialization under that indexed strategy. `[L]` rows contain only additional evidence specific to that specialization. This factoring rule applies to every column: Gold, Silver, Bronze, Banned, Tarot, Planet, Spectral, and Enhancement.
+
+A component must not be duplicated between a parent and child row. If it is specific to one specialization, it belongs only on that specialization.
 
 ## 1. Poker hands
 
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|
-| High Card `[I]` | Burnt Joker; Stuntman; Baron; Mime | Card Sharp; Supernova; Space Joker; Half Joker; Green Joker; Burglar; Blackboard; Shoot the Moon; Troubadour; Juggler | Raised Fist; Reserved Parking | Obelisk | The Chariot | Pluto | — | Steel |
-| Stuntman / Small-Hand High Card `[L]` | Stuntman | — | — | — | — | — | — | — |
+| High Card `[I]` | Burnt Joker | Card Sharp; Supernova; Space Joker; Green Joker; Burglar | — | Obelisk | — | Pluto | — | — |
+| Stuntman / Small-Hand High Card `[L]` | Stuntman | Half Joker | — | — | — | — | — | — |
 | Baron-Mime Steel-King High Card `[L]` | Baron; Mime | Blackboard; Shoot the Moon; Troubadour; Juggler | Raised Fist; Reserved Parking | Stuntman | The Chariot | — | — | Steel |
 | Pair `[L]` | The Duo | Jolly Joker; Sly Joker | — | Obelisk | — | Mercury | — | — |
-| Two Pair `[I]` | Spare Trousers | Mad Joker; Clever Joker; Square Joker | — | Obelisk | — | Uranus | — | — |
+| Two Pair `[I]` | — | Mad Joker; Clever Joker | — | Obelisk | — | Uranus | — | — |
 | Spare Trousers + Square Joker Two Pair `[L]` | Spare Trousers | Square Joker | — | — | — | — | — | — |
 | Three of a Kind `[I]` | TBD | TBD | TBD | TBD | TBD | Venus | TBD | TBD |
 | DNA / Cryptid Rank-Copy Three of a Kind `[L]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid | TBD |
@@ -35,18 +37,18 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 | Shortcut / Four Fingers Straight `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Runner Scaling Straight `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Superposition Ace-Straight Tarot `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Flush `[I]` | TBD | TBD | TBD | TBD | The Star; The Moon; The Sun; The World | Jupiter | Sigil | TBD |
+| Flush `[I]` | TBD | TBD | TBD | TBD | TBD | Jupiter | TBD | TBD |
 | Smeared / Four Fingers Consistency Flush `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Full House `[L]` | TBD | TBD | TBD | TBD | TBD | Earth | TBD | TBD |
-| Four of a Kind `[I]` | TBD | TBD | TBD | TBD | TBD | Mars | Cryptid; Ouija | TBD |
+| Four of a Kind `[I]` | TBD | TBD | TBD | TBD | TBD | Mars | TBD | TBD |
 | DNA / Cryptid Rank-Copy Four of a Kind `[L]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid | TBD |
 | Straight Flush `[I]` | TBD | TBD | TBD | TBD | TBD | Neptune | TBD | TBD |
 | Shortcut / Four Fingers / Smeared Straight Flush `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Seance Straight-Flush Spectral Engine `[L]` | TBD | TBD | TBD | TBD | — | — | TBD | TBD |
-| Five of a Kind `[I]` | TBD | TBD | TBD | TBD | TBD | Planet X | Cryptid; Ouija | TBD |
+| Five of a Kind `[I]` | TBD | TBD | TBD | TBD | TBD | Planet X | TBD | TBD |
 | DNA / Cryptid Rank-Copy Five of a Kind `[L]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid | TBD |
 | Flush House `[L]` | TBD | TBD | TBD | TBD | TBD | Ceres | TBD | TBD |
-| Flush Five `[I]` | TBD | TBD | TBD | TBD | TBD | Eris | Cryptid; Ouija | TBD |
+| Flush Five `[I]` | TBD | TBD | TBD | TBD | TBD | Eris | TBD | TBD |
 | DNA / Cryptid Exact-Card Flush Five `[L]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid | TBD |
 | The Idol Monoculture Flush Five `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Four-Card Hand Spam `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
@@ -57,25 +59,25 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|
-| Aces `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | Grim; Ouija | TBD |
+| Aces `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Scholar Ace Scoring `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | DNA + Scholar Ace Concentration `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Cryptid | TBD |
-| Low-Rank Scoring `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | Incantation | TBD |
+| Low-Rank Scoring `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Fibonacci Low-Rank Scoring `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Hack + Fibonacci Retrigger `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Twos `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | Ouija | TBD |
+| Twos `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Wee Joker Twos `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Wee Joker + Hack Retrigger Twos `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Sixes / Sixth Sense `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Jacks / Hit the Road `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Ouija | TBD |
-| Queens / Shoot the Moon `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Ouija | TBD |
-| Face Cards `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | Familiar | TBD |
+| Jacks / Hit the Road `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Queens / Shoot the Moon `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Face Cards `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Photograph + Hanging Chad `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Triboulet + Sock and Buskin `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Pareidolia Universal Face Scoring `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Familiar | TBD |
 | Held Face-Card Economy `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Business Card Face Economy `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Faceless / No-Face `[I]` | TBD | TBD | TBD | TBD | The Hanged Man | TBD | Immolate | TBD |
+| Faceless / No-Face `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Ride the Bus No-Face Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Faceless Joker Discard Economy `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | The Idol Exact-Card Concentration `[L]` | TBD | TBD | TBD | TBD | Death | TBD | Cryptid | TBD |
@@ -85,64 +87,64 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|
 | Hearts `[I]` | TBD | TBD | TBD | TBD | The Sun | TBD | Sigil | Wild |
-| Bloodstone + Oops! All 6s Hearts `[L]` | TBD | TBD | TBD | TBD | The Sun | TBD | Sigil | Wild |
-| Bloodstone Retrigger Hearts `[L]` | TBD | TBD | TBD | TBD | The Sun | TBD | Sigil | Wild |
+| Bloodstone + Oops! All 6s Hearts `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Bloodstone Retrigger Hearts `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Diamonds `[I]` | TBD | TBD | TBD | TBD | The Star | TBD | Sigil | Wild |
-| Rough Gem Diamond Economy / Scoring `[L]` | TBD | TBD | TBD | TBD | The Star | TBD | Sigil | Wild |
+| Rough Gem Diamond Economy / Scoring `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Clubs `[I]` | TBD | TBD | TBD | TBD | The Moon | TBD | Sigil | Wild |
-| Onyx Agate / Seeing Double Clubs `[L]` | TBD | TBD | TBD | TBD | The Moon | TBD | Sigil | Wild |
+| Onyx Agate / Seeing Double Clubs `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Spades `[I]` | TBD | TBD | TBD | TBD | The World | TBD | Sigil | Wild |
-| Arrowhead Spade Chips `[L]` | TBD | TBD | TBD | TBD | The World | TBD | Sigil | Wild |
+| Arrowhead Spade Chips `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Blackboard Held-Black Cards `[L]` | TBD | TBD | TBD | TBD | The Moon; The World | TBD | Sigil | TBD |
 | Ancient Joker Suit-Rotation `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | Sigil | Wild |
-| Ancient + Smeared Suit-Rotation `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Sigil | Wild |
+| Ancient + Smeared Suit-Rotation `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Flower Pot Multi-Suit `[I]` | TBD | TBD | TBD | TBD | The Star; The Moon; The Sun; The World | TBD | Sigil | Wild |
-| Splash + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | Wild |
-| Smeared Joker + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | Wild |
-| Smeared + Splash + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | Wild |
+| Splash + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Smeared Joker + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Smeared + Splash + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 
 ## 4. Enhancements
 
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|
 | Stone `[I]` | TBD | TBD | TBD | TBD | The Tower | TBD | TBD | Stone |
-| Marble Joker + Stone Joker Scaling `[L]` | TBD | TBD | TBD | TBD | The Tower | TBD | TBD | Stone |
-| Marble Joker + Vampire Stone Feed `[L]` | TBD | TBD | TBD | TBD | The Tower | TBD | TBD | Stone |
-| DNA + Stone Joker Duplication `[L]` | TBD | TBD | TBD | TBD | The Tower | TBD | Cryptid | Stone |
-| Stone High Card `[L]` | TBD | TBD | TBD | TBD | The Tower | Pluto | TBD | Stone |
+| Marble Joker + Stone Joker Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Marble Joker + Vampire Stone Feed `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| DNA + Stone Joker Duplication `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Cryptid | TBD |
+| Stone High Card `[L]` | TBD | TBD | TBD | TBD | TBD | Pluto | TBD | TBD |
 | Glass `[I]` | TBD | TBD | TBD | TBD | Justice | TBD | TBD | Glass |
-| Glass Joker Breakage Scaling `[L]` | TBD | TBD | TBD | TBD | Justice | TBD | TBD | Glass |
-| Glass Retrigger Scoring `[L]` | TBD | TBD | TBD | TBD | Justice | TBD | Cryptid | Glass |
+| Glass Joker Breakage Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Glass Retrigger Scoring `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Cryptid | TBD |
 | Steel `[I]` | TBD | TBD | TBD | TBD | The Chariot | TBD | TBD | Steel |
-| Steel Joker Density Scaling `[L]` | TBD | TBD | TBD | TBD | The Chariot | TBD | TBD | Steel |
-| Mime Steel Retrigger `[L]` | TBD | TBD | TBD | TBD | The Chariot | TBD | Deja Vu | Steel |
+| Steel Joker Density Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Mime Steel Retrigger `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Deja Vu | TBD |
 | Lucky `[I]` | TBD | TBD | TBD | TBD | The Magician | TBD | TBD | Lucky |
-| Lucky Cat Scaling `[L]` | TBD | TBD | TBD | TBD | The Magician | TBD | TBD | Lucky |
-| Lucky Cat + Oops! All 6s `[L]` | TBD | TBD | TBD | TBD | The Magician | TBD | TBD | Lucky |
-| Lucky Retrigger `[L]` | TBD | TBD | TBD | TBD | The Magician | TBD | Deja Vu | Lucky |
+| Lucky Cat Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Lucky Cat + Oops! All 6s `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Lucky Retrigger `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Deja Vu | TBD |
 | Gold Cards `[I]` | TBD | TBD | TBD | TBD | The Devil | TBD | Talisman | Gold |
-| Held Gold + Mime Economy `[L]` | TBD | TBD | TBD | TBD | The Devil | TBD | Talisman; Deja Vu | Gold |
-| Golden Ticket Gold Scoring `[L]` | TBD | TBD | TBD | TBD | The Devil | TBD | Talisman | Gold |
-| Midas Mask Gold Generation `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | Gold |
-| Midas Mask + Golden Ticket Economy `[L]` | TBD | TBD | TBD | TBD | The Devil | TBD | Talisman | Gold |
+| Held Gold + Mime Economy `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Deja Vu | TBD |
+| Golden Ticket Gold Scoring `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Midas Mask Gold Generation `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Midas Mask + Golden Ticket Economy `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 
 ## 5. Seals
 
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|
 | Red Seal `[I]` | TBD | TBD | TBD | TBD | — | — | Deja Vu | — |
-| Played Red-Seal Retrigger `[L]` | TBD | TBD | TBD | TBD | — | — | Deja Vu | — |
-| Held Red-Seal Retrigger `[L]` | TBD | TBD | TBD | TBD | — | — | Deja Vu | — |
+| Played Red-Seal Retrigger `[L]` | TBD | TBD | TBD | TBD | — | — | TBD | — |
+| Held Red-Seal Retrigger `[L]` | TBD | TBD | TBD | TBD | — | — | TBD | — |
 | Blue Seal Hand-Level Scaling `[L]` | TBD | TBD | TBD | TBD | — | — | Trance | — |
 | Purple Seal Tarot Engine `[L]` | TBD | TBD | TBD | TBD | — | — | Medium | — |
 | Gold Seal Economy `[I]` | TBD | TBD | TBD | TBD | — | — | Talisman | — |
-| Gold-Seal Retrigger Economy `[L]` | TBD | TBD | TBD | TBD | — | — | Talisman; Deja Vu | — |
+| Gold-Seal Retrigger Economy `[L]` | TBD | TBD | TBD | TBD | — | — | Deja Vu | — |
 
 ## 6. Destruction, sacrifice, consumption, thinning
 
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|
-| Canio Destruction `[I]` | TBD | TBD | TBD | TBD | The Hanged Man | — | Immolate | TBD |
+| Canio Destruction `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Trading Card Canio `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Pareidolia Canio `[L]` | TBD | TBD | TBD | TBD | TBD | — | Familiar | TBD |
 | Glass Canio `[L]` | TBD | TBD | TBD | TBD | Justice | — | Familiar | Glass |
@@ -155,7 +157,7 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 | Madness Destruction `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Solo Madness `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Eternal-Joker Madness `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Deck Thinning `[I]` | TBD | TBD | TBD | TBD | The Hanged Man | — | Immolate | TBD |
+| Deck Thinning `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Trading Card Thinning / Economy `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Erosion Thinning `[L]` | TBD | TBD | TBD | TBD | The Hanged Man | — | Immolate | TBD |
 | Trading Card + Erosion `[L]` | TBD | TBD | TBD | TBD | The Hanged Man | — | Immolate | TBD |
@@ -164,11 +166,11 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|
-| Hologram Deck-Growth `[I]` | TBD | TBD | TBD | TBD | TBD | — | Familiar; Grim; Incantation; Cryptid | TBD |
+| Hologram Deck-Growth `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | DNA + Hologram `[L]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid | TBD |
 | Certificate + Hologram `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Marble Joker + Hologram `[L]` | TBD | TBD | TBD | TBD | The Tower | — | TBD | Stone |
-| Hiker Card Training `[I]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid | TBD |
+| Hiker Card Training `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Hiker Retrigger / Copy Training `[L]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid; Deja Vu | TBD |
 | Driver's License Enhancement-Density `[L]` | TBD | TBD | TBD | TBD | The Magician; The Empress; The Hierophant; The Lovers; The Chariot; Justice; The Devil; The Tower | — | Familiar; Grim; Incantation | Any |
 | Blue Joker Large-Deck Chips `[L]` | TBD | TBD | TBD | TBD | TBD | — | Familiar; Grim; Incantation; Cryptid | TBD |
@@ -178,9 +180,9 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|
 | Planet Engine `[I]` | TBD | TBD | TBD | TBD | The High Priestess | Any | Black Hole | — |
-| Constellation Planet-Scaling `[L]` | TBD | TBD | TBD | TBD | The High Priestess | Any | Black Hole | — |
-| Satellite Planet-Economy `[L]` | TBD | TBD | TBD | TBD | The High Priestess | Unique | Black Hole | — |
-| Constellation + Satellite Planet Engine `[L]` | TBD | TBD | TBD | TBD | The High Priestess | Any/Unique | Black Hole | — |
+| Constellation Planet-Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | — |
+| Satellite Planet-Economy `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | — |
+| Constellation + Satellite Planet Engine `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | — |
 | Perkeo Consumable Duplication `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Perkeo + Observatory Planet Stack `[L]` | TBD | TBD | TBD | TBD | — | TBD | — | — |
 | Perkeo + Cryptid Copy Engine `[L]` | TBD | TBD | TBD | TBD | — | — | Cryptid | — |
@@ -192,7 +194,7 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|
-| Cash Hoard / Interest `[I]` | TBD | TBD | TBD | TBD | The Hermit; Temperance | — | Immolate | TBD |
+| Cash Hoard / Interest `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Rocket / To the Moon Cash Growth `[L]` | TBD | TBD | TBD | TBD | The Hermit; Temperance | — | Immolate | TBD |
 | Bull Cash-to-Chips `[L]` | TBD | TBD | TBD | TBD | The Hermit; Temperance | — | Immolate | TBD |
 | Bootstraps Cash-to-Mult `[L]` | TBD | TBD | TBD | TBD | The Hermit; Temperance | — | Immolate | TBD |
@@ -207,18 +209,18 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|
-| Joker Stencil `[I]` | TBD | TBD | TBD | TBD | Judgement | — | Ankh; Ectoplasm; Wraith; The Soul | TBD |
+| Joker Stencil `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Joker Stencil + Ankh / Invisible Duplication `[L]` | TBD | TBD | TBD | TBD | — | — | Ankh | TBD |
 | Baseball Card Uncommon Stack `[L]` | TBD | TBD | TBD | TBD | Judgement | — | Wraith; The Soul | TBD |
 | Abstract Joker Wide-Board `[L]` | TBD | TBD | TBD | TBD | Judgement | — | Wraith; The Soul | TBD |
-| Swashbuckler Sell-Value Stack `[I]` | TBD | TBD | TBD | TBD | Judgement | — | Wraith; The Soul | TBD |
+| Swashbuckler Sell-Value Stack `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
 | Egg / Gift-Card Swashbuckler `[L]` | TBD | TBD | TBD | TBD | Judgement | — | Wraith; The Soul | TBD |
 
 ## 11. Discard and hand rotation
 
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|
-| Discard Utilization `[I]` | TBD | TBD | TBD | TBD | — | — | Medium | — |
+| Discard Utilization `[I]` | TBD | TBD | TBD | TBD | — | — | TBD | — |
 | Castle Suit-Discard Scaling `[L]` | TBD | TBD | TBD | TBD | The Star; The Moon; The Sun; The World | — | Sigil | Wild |
 | Mail-In Rebate Rank-Discard Economy `[L]` | TBD | TBD | TBD | TBD | Strength; Death | — | Ouija | — |
 | Yorick Discard-Scaling `[L]` | TBD | TBD | TBD | TBD | — | — | Medium | — |
