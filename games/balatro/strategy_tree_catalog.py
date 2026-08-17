@@ -61,6 +61,7 @@ def _high_card_tree_definitions():
                 "Juggler",
             ),
             bronze_jokers=("Raised Fist", "Reserved Parking"),
+            banned_jokers=("Stuntman",),
             silver_consumables=("The Chariot",),
             preferred_enhancements=("Steel",),
             preferred_seals=("Red",),
