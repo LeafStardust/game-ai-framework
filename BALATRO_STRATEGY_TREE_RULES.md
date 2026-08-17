@@ -15,11 +15,37 @@ An indexed strategy remains a valid actionable strategy. When a specialization i
 
 ## 2. Relationship table semantics
 
-The `[I]` row in `BALATRO_STRATEGY_RELATIONSHIPS.md` is an aggregate development index. Its Joker columns contain the union of the generic strategy and descendant specialization relationships.
+An `[I]` row contains only evidence that belongs to the generic indexed strategy and is shared by every specialization below it.
 
-The aggregate row and a descendant row are **not additive**. The same Joker/component must never be counted twice merely because it appears in both the indexed row and a specialization row.
+A specialization row contains only the additional evidence that distinguishes that specialization from its parent and siblings.
 
-Specialization rows contain only the relationships that distinguish that specialization.
+This factoring rule applies to every evidence column:
+
+- Gold;
+- Silver;
+- Bronze;
+- Banned;
+- Tarot;
+- Planet;
+- Spectral;
+- Enhancement.
+
+A component must never be copied into an indexed row merely because one descendant uses it. If a component is specific to one descendant, it belongs only on that descendant.
+
+Example:
+
+```text
+High Card [I]
+  generic High Card evidence only
+
+Stuntman / Small-Hand High Card [L]
+  Stuntman-specific evidence only
+
+Baron-Mime Steel-King High Card [L]
+  Baron/Mime/Steel-specific evidence only
+```
+
+`Stuntman`, `Baron`, `Mime`, `The Chariot`, and `Steel` therefore do not also appear on the High Card row.
 
 ## 3. Evidence types
 
@@ -43,7 +69,7 @@ There is **no universal Seal evidence weight**. Seal presence is too cross-cutti
 
 A component may support multiple strategies when the mechanics are genuinely different.
 
-If two nodes use the same component for the same reason, one semantic owner is preferred. If an indexed strategy lists a component because a descendant uses it, that index entry is reference/coverage data and must not create a second copy of the same evidence.
+If two nodes use the same component for the same reason, one semantic owner is preferred. Parent/child factoring must preserve one ownership location for each piece of evidence.
 
 Repeated components such as DNA, Glass, Vampire, Pareidolia, Midas Mask, Marble Joker, and Trading Card require distinct payoff requirements when used by multiple specializations.
 
@@ -57,7 +83,9 @@ Persistent hand levels remain valid evidence because they represent permanent in
 
 ## 6. Tree propagation
 
-Specific evidence may support its broader indexed strategy, but scoring must preserve provenance so the same component is not counted once on a specialization and again through its indexed parent.
+A specialization inherits generic parent evidence once the specialization itself is materially established.
+
+Specific child evidence may support confidence in the broader parent strategy, but it must retain provenance and must not be re-counted as parent direct evidence.
 
 Broad indexed evidence does not blindly activate every specialization. A specialization requires its own distinguishing evidence.
 
