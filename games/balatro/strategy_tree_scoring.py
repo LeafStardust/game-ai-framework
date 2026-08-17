@@ -129,8 +129,14 @@ class StrategyTreeEvidenceScorer:
                     for sibling_id in self.topology.children_by_id[parent_id]
                 )
 
+            # A standalone root/leaf has no specialization ambiguity, so any
+            # positive direct evidence remains meaningful. The qualifying floor is
+            # only for child leaves where tiny structural noise must not choose a
+            # specialization or suppress the Core fallback.
             own_specific_evidence = (
-                direct[strategy_id] >= self.specific_activation_floor
+                direct[strategy_id] > 0.0
+                if parent_id is None
+                else direct[strategy_id] >= self.specific_activation_floor
             )
             inherited_ancestor_direct = 0.0
             if own_specific_evidence or node.is_fallback_leaf:
