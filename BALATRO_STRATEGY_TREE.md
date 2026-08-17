@@ -16,39 +16,27 @@ High Card [I]
 
 Pair [L]
 Two Pair [L]
-
-Three of a Kind [I]
-└── DNA / Cryptid Rank-Copy Three of a Kind [L]
+Three of a Kind [L]
 
 Straight [I]
 ├── Shortcut / Four Fingers Straight [L]
 ├── Runner Scaling Straight [L]
 └── Superposition Ace-Straight Tarot [L]
 
-Flush [I]
-└── Smeared / Four Fingers Consistency Flush [L]
-
+Flush [L]
 Full House [L]
-
-Four of a Kind [I]
-└── DNA / Cryptid Rank-Copy Four of a Kind [L]
+Four of a Kind [L]
 
 Straight Flush [I]
 ├── Shortcut / Four Fingers / Smeared Straight Flush [L]
 └── Seance Straight-Flush Spectral Engine [L]
 
-Five of a Kind [I]
-└── DNA / Cryptid Rank-Copy Five of a Kind [L]
-
+Five of a Kind [L]
 Flush House [L]
 
 Flush Five [I]
 ├── DNA / Cryptid Exact-Card Flush Five [L]
 └── The Idol Monoculture Flush Five [L]
-
-Four-Card Hand Spam [I]
-├── Square Joker Four-Card Chips [L]
-└── Square + Green Joker Four-Card Spam [L]
 ```
 
 ## 2. Rank and face-card strategies
