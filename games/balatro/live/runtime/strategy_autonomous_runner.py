@@ -19,10 +19,13 @@ from games.balatro.strategy_blind_skip_policy import StrategyAwareBlindSkipPolic
 from games.balatro.strategy_booster_policy import StrategyAwarePlaybookShopArbiter
 from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
 from games.balatro.strategy_compat import NeutralLegacyPlaystyleIntentTracker
-from games.balatro.strategy_conditional_relationships import (
-    StateAwareBalatroStrategyTracker,
-)
 from games.balatro.strategy_pack_playstyle import StrategyAwarePackPlaystyleEvaluator
+from games.balatro.strategy_tree_catalog import (
+    TREE_MIGRATED_BALATRO_STRATEGY_TOPOLOGY,
+)
+from games.balatro.strategy_tree_tracker import (
+    TreeAwareStateAwareBalatroStrategyTracker,
+)
 from games.balatro.strategy_value import (
     StrategyAwareConsumableSynergyEvaluator,
     StrategyAwareJokerBuildTransitionPlanner,
@@ -64,8 +67,9 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
         self.playstyle_intent_tracker = NeutralLegacyPlaystyleIntentTracker()
         self.build_intent_log_tracker.intent_tracker = self.playstyle_intent_tracker
 
-        self.strategy_tracker = StateAwareBalatroStrategyTracker(
+        self.strategy_tracker = TreeAwareStateAwareBalatroStrategyTracker(
             RUNTIME_UNIVERSAL_BALATRO_STRATEGIES,
+            topology=TREE_MIGRATED_BALATRO_STRATEGY_TOPOLOGY,
             modifier_provider=_strategy_modifiers_for_state,
         )
         self.blind_skip_policy = StrategyAwareBlindSkipPolicy(
@@ -149,6 +153,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
     def decide(self):
         decision = super().decide()
         resolution = self.strategy_tracker.observe(decision.state)
+        tree_nodes = self.strategy_tracker.tree_node_scores()
         diagnostics = dict(decision.decision_diagnostics or {})
         diagnostics["strategy"] = {
             "dominant_strategy_id": resolution.dominant_strategy_id,
@@ -163,6 +168,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
             ),
             "legacy_playstyle_strategy_enabled": False,
             "changed": resolution.changed,
+            # Actionable rankings contain leaves only.
             "ranked": [
                 {
                     "strategy_id": assessment.strategy_id,
@@ -177,6 +183,22 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
                     "banned_owned": int(assessment.banned_owned),
                 }
                 for assessment in resolution.assessments
+            ],
+            # Internal/root nodes remain visible as diagnostics/foundation only.
+            "nodes": [
+                {
+                    "strategy_id": strategy_id,
+                    "path": list(
+                        self.strategy_tracker.topology.path(strategy_id)
+                    ),
+                    "is_leaf": bool(node.is_leaf),
+                    "is_fallback_leaf": bool(node.is_fallback_leaf),
+                    "active": bool(node.active),
+                    "direct_evidence": float(node.direct_evidence),
+                    "foundation_score": float(node.foundation_score),
+                    "effective_score": float(node.effective_score),
+                }
+                for strategy_id, node in sorted(tree_nodes.items())
             ],
         }
         return replace(
