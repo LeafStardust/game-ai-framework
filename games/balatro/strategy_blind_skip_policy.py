@@ -127,6 +127,29 @@ def _definition_supports_tag(
     return False
 
 
+def _path_supports_tag(strategy_tracker, strategy_id: str, tag_key: str | None, state) -> bool:
+    path_getter = getattr(strategy_tracker, "definitions_for_path", None)
+    if callable(path_getter):
+        definitions = tuple(path_getter(strategy_id))
+    else:
+        definition = strategy_tracker.definitions.get(strategy_id)
+        definitions = () if definition is None else (definition,)
+
+    if tag_key == "tag_meteor":
+        has_hand = any(definition.primary_hands for definition in definitions)
+        has_planet = any(_positive_planet_support(definition) for definition in definitions)
+        return has_hand and has_planet
+    if tag_key == "tag_orbital":
+        most_played = _unique_most_played_hand(state)
+        return most_played is not None and any(
+            most_played in definition.primary_hands for definition in definitions
+        )
+    return any(
+        _definition_supports_tag(definition, tag_key, state)
+        for definition in definitions
+    )
+
+
 class StrategyAwareBlindSkipPolicy(BuildAwareBlindSkipPolicy):
     """D13 tag EV with bounded universal-strategy reinforcement.
 
@@ -172,10 +195,12 @@ class StrategyAwareBlindSkipPolicy(BuildAwareBlindSkipPolicy):
         support = 0.0
         supporting: list[str] = []
         for index, strategy_id in enumerate(shortlist):
-            definition = self.strategy_tracker.definitions.get(strategy_id)
-            if definition is None:
-                continue
-            if not _definition_supports_tag(definition, tag_key, state):
+            if not _path_supports_tag(
+                self.strategy_tracker,
+                strategy_id,
+                tag_key,
+                state,
+            ):
                 continue
             weight = shortlist_weights[min(index, len(shortlist_weights) - 1)]
             support = max(support, weight)
