@@ -9,8 +9,8 @@
 The concrete strategy definitions are maintained separately:
 
 - [`BALATRO_STRATEGIES_POKER_HANDS.md`](BALATRO_STRATEGIES_POKER_HANDS.md) — High Card, Pair, Two Pair, Three of a Kind, Straight, Flush, Full House, Four of a Kind, Straight Flush, Five of a Kind, Flush House, Flush Five.
-- [`BALATRO_STRATEGIES_MECHANICS.md`](BALATRO_STRATEGIES_MECHANICS.md) — Face Cards, Faceless/No-Face, Glass, Steel, Lucky.
-- [`BALATRO_STRATEGIES_NICHE.md`](BALATRO_STRATEGIES_NICHE.md) — Aces, Smeared/Splash + Flower Pot, Canio Destruction, Vampire, and future narrow synergy packages.
+- [`BALATRO_STRATEGIES_MECHANICS.md`](BALATRO_STRATEGIES_MECHANICS.md) — Face Cards, Faceless/No-Face, Glass, Steel, Lucky, Stone, Gold Cards, Blue/Purple/Red/Gold Seal, Edition.
+- [`BALATRO_STRATEGIES_NICHE.md`](BALATRO_STRATEGIES_NICHE.md) — Aces, Smeared/Splash + Flower Pot, Canio Destruction, Vampire, with additional niche packages added explicitly later.
 
 The file grouping is documentation-only. **Every strategy is a peer in one flat universal runtime strategy pool.** There are no primary, advanced, overlay, mechanic, or niche runtime strategy classes.
 
@@ -20,7 +20,7 @@ The file grouping is documentation-only. **Every strategy is a peer in one flat 
 
 The agent must not treat every Joker, Tarot, Planet, Spectral card, voucher, booster pack, and deck modification as an isolated purchase.
 
-Instead, meaningful build components contribute evidence toward one or more universal strategy playbooks.
+Instead, explicitly mapped build components contribute evidence toward one or more universal strategy playbooks.
 
 A run may pursue several compatible strategies while evidence is weak, then gradually converge as its actual inventory and deck shape develop.
 
@@ -41,11 +41,10 @@ Each universal strategy should eventually be encoded as data containing at least
 - stable strategy ID;
 - human-readable name;
 - strategic identity / intended scoring engine;
-- Gold components;
-- Silver components;
-- Bronze components;
-- hard conflicts;
-- soft conflicts;
+- **explicit named Gold components**;
+- **explicit named Silver components**;
+- **explicit named Bronze components**;
+- **explicit named banned/conflict components**;
 - relevant poker hands, when applicable;
 - preferred Planets, when applicable;
 - preferred Tarot/Spectral transformations;
@@ -60,6 +59,34 @@ A component may belong to several strategies at different tiers.
 
 Gold/Silver/Bronze are therefore **strategy-relative relationships**, not global item rankings.
 
+### 2.1 Exact component mapping is mandatory
+
+The catalogue is intended to become executable data later. Therefore tier/conflict lists must use exact component identities.
+
+Correct:
+
+```text
+Flush
+  Gold: The Tribe; Smeared Joker; Four Fingers
+  Silver: Droll Joker; Crafty Joker; Castle; Ancient Joker
+  Banned/conflict: The Order; Runner; Crazy Joker; Devious Joker
+```
+
+Incorrect:
+
+```text
+Flush
+  Silver: good suit Jokers
+  Bronze: generic Mult/Chips
+  Conflicts: rank stuff
+```
+
+**Unlisted component = Neutral for that strategy.** Neutral is not Bronze and is not banned.
+
+Generic immediate scoring, economy, survival, edition, sell value, and other standalone item value may still be evaluated by the ordinary policy layer. A Joker does not need to be stuffed into Bronze merely to remain buyable.
+
+Bronze therefore means **explicit weak/conditional strategic synergy**, not "generically useful."
+
 ---
 
 ## 3. Canonical data ownership
@@ -72,6 +99,7 @@ StrategyDefinition(
     gold_components={...},
     silver_components={...},
     bronze_components={...},
+    banned_components={...},
     conflicts={...},
     ...
 )
@@ -95,7 +123,7 @@ The same rule applies to consumables and other components: strategy files own th
 
 ---
 
-## 4. Gold / Silver / Bronze semantics
+## 4. Gold / Silver / Bronze / banned semantics
 
 ### Gold — defining / premium synergy
 
@@ -117,20 +145,22 @@ A Silver component works extremely well in the strategy but does not define it a
 
 Several Silver components can collectively provide enough evidence to elevate a strategy without a Gold component.
 
-### Bronze — compatible / bridge support
+### Bronze — explicit weak/conditional synergy
 
-A Bronze component is useful but replaceable, generic, or only moderately synergistic.
-
-Bronze pieces are especially important in Antes 1–2 because the agent cannot wait for perfect Gold/Silver rolls before purchasing anything.
+A Bronze component has a real named relationship to the strategy, but is weaker, more conditional, more replaceable, or less central than Silver.
 
 Bronze evidence alone must not hard-lock a strategy.
 
-### Conflicts
+### Banned / conflict
 
-A strategy may identify:
+A named banned/conflict component is one the strategy should normally suppress once dominant because it:
 
-- **hard conflict** — directly undermines the strategy;
-- **soft conflict** — pulls resources or deck structure away from the strategy but may coexist temporarily.
+- fails to trigger under the intended play pattern;
+- directly destroys required deck structure;
+- consumes enhancements/cards/resources the strategy needs to preserve; or
+- strongly pulls the run into an incompatible route.
+
+A banned/conflict mapping is still overridable by immediate survival or an intentional pivot. It is not a universal game ban.
 
 ---
 
@@ -140,15 +170,15 @@ The agent maintains a score for every universal strategy from **public run state
 
 Evidence may include:
 
-- owned Jokers and their Gold/Silver/Bronze relationships;
-- held Tarot/Spectral/other consumables;
+- owned Jokers and their explicit Gold/Silver/Bronze relationships;
+- held Tarot/Spectral/other consumables with explicit strategy mappings;
 - permanent deck modifications;
 - rank/suit/enhancement/seal/edition structure;
 - poker-hand level investment;
 - actual repeated hand usage;
 - current Joker and consumable slot investment;
 - synergistic component combinations;
-- conflicts already present;
+- explicit conflicts already present;
 - deck/stake effectiveness modifiers;
 - sunk economic/build investment.
 
@@ -190,9 +220,8 @@ The agent must therefore **not refuse useful purchases because no strategy exist
 
 It should intentionally acquire useful scoring, economy, Joker, Tarot, and Spectral opportunities that:
 
-- improve immediate survival;
-- have broadly useful Bronze value;
-- create Silver/Gold evidence for one or more strategies;
+- improve immediate survival through the ordinary evaluator;
+- provide an explicitly mapped Bronze/Silver/Gold relationship to one or more strategies;
 - create useful deck structure or seed a strategy;
 - do not catastrophically damage economy.
 
@@ -222,7 +251,7 @@ By Ante 6 the run should normally expose:
 
 Future purchases are strongly biased toward this shortlist.
 
-Shortlist membership is **not a prohibition system**. If a Joker slot is empty and no on-strategy option appears, the agent may still buy a strong generic or off-strategy bridge when doing so materially improves survival or scoring.
+Shortlist membership is **not a prohibition system**. If a Joker slot is empty and no on-strategy option appears, the agent may still buy a strong Neutral/off-strategy bridge when the ordinary evaluator says it materially improves survival or scoring.
 
 The important late-game behavior is:
 
@@ -263,14 +292,7 @@ The strategy system must prevent pointless consumable and booster spending witho
 
 Tarot cards may be valuable before a dominant strategy exists because they can create permanent deck structure.
 
-Early Tarot acquisition/use may legitimately:
-
-- create enhancements;
-- convert suits;
-- copy ranks/cards;
-- destroy weak/off-plan cards;
-- increase rank concentration;
-- seed Glass, Steel, Lucky, Face, Faceless, Flush, rank-concentration, or other future strategies.
+Early Tarot acquisition/use may legitimately create enhancements, convert suits, copy cards, destroy cards, or increase rank concentration when those effects have explicit playbook relationships or strong immediate utility.
 
 Therefore Tarot value in Antes 1–2 may come from both immediate utility and **strategy-seeding potential**.
 
@@ -309,7 +331,7 @@ Pack value should derive from expected contents relative to the current phase:
 
 - **Arcana/Spectral:** can have genuine exploration and strategy-seeding value early;
 - **Celestial:** should be much more tightly gated by actual poker-hand evidence;
-- **Joker/other packs:** should account for immediate survival value and the chance of advancing leading strategies.
+- **Joker/other packs:** should account for immediate survival value and the chance of revealing explicitly mapped components for leading strategies.
 
 Late-game packs should lose value when most plausible outcomes do not advance the dominant/relevant strategies.
 
@@ -329,7 +351,7 @@ All three remain independent peer strategies. The runtime does not need a nested
 
 Compatibility emerges from:
 
-- shared components;
+- shared explicitly mapped components;
 - deck shape;
 - lack of conflicts;
 - actual run evidence.
@@ -343,16 +365,16 @@ By Ante 6, one should normally become dominant while at most two remain relevant
 A future shop evaluation should be able to explain a candidate in strategy terms.
 
 ```text
-Candidate: Joker X
+Candidate: Photograph
 
 Dominant: Face Cards
   tier: Gold
 
 Relevant: Pair
-  tier: Silver
+  tier: Neutral
 
 Relevant: Steel
-  tier: none
+  tier: Neutral
 
 Result: strongly preferred if affordable and survival-safe.
 ```
@@ -376,7 +398,7 @@ Straight Flush evidence: negligible
 Result: reject.
 ```
 
-The same strategy relationships should inform Joker acquisition, consumables, vouchers, packs, rerolls, sell/replace decisions, and resource valuation.
+The same explicit strategy relationships should inform Joker acquisition, consumables, vouchers, packs, rerolls, sell/replace decisions, and resource valuation.
 
 ---
 
@@ -402,7 +424,7 @@ A cartridge may:
 - disable a genuinely infeasible/unsupported strategy;
 - adjust commitment or pivot pressure for the environment.
 
-A cartridge must **not** redefine the universal Gold/Silver/Bronze component relationships.
+A cartridge must **not** redefine the universal Gold/Silver/Bronze/banned component relationships.
 
 ---
 
@@ -411,7 +433,7 @@ A cartridge must **not** redefine the universal Gold/Silver/Bronze component rel
 Do **not** continue strategy-aware production wiring until the catalogue is sufficiently complete.
 
 1. Finalize the universal strategy list across the catalogue files.
-2. Fill concrete Gold/Silver/Bronze mappings for every strategy.
+2. Audit and fill exact named Gold/Silver/Bronze/banned mappings for every strategy.
 3. Encode universal `StrategyDefinition` data.
 4. Generate inverse component -> strategy/tier indices automatically.
 5. Add deck/stake effectiveness modifiers.
@@ -426,6 +448,8 @@ Do **not** continue strategy-aware production wiring until the catalogue is suff
 ## 13. Non-negotiable behavioral rules
 
 - The agent starts with **no assumed strategy**.
+- Strategy catalogues use exact named components; vague categories are not implementation data.
+- Unlisted component means Neutral, not Bronze.
 - Antes 1–2 must permit and normally require useful purchases so RNG can create strategy evidence.
 - Tarot/Spectral cards may seed strategies early; they are not subject to the same evidence gate as Planets.
 - Planets should normally reinforce an evidenced poker-hand direction rather than create one from nothing.
@@ -433,7 +457,7 @@ Do **not** continue strategy-aware production wiring until the catalogue is suff
 - By Ante 6, when evidence exists, the run should normally have **one dominant strategy and at most two relevant strategies**.
 - The dominant strategy guides future build decisions but does not override guaranteed blind survival.
 - Relevant strategies prevent over-locking and allow compatible offers to fill remaining slots.
-- Off-strategy generic survival purchases remain legal when needed; speculative late strategy fishing does not.
+- Neutral/off-strategy generic survival purchases remain legal when needed; speculative late strategy fishing does not.
 - Gold/Silver/Bronze are strategy-relative relationships, never global item tiers.
 - Strategy files own component-tier metadata; individual Joker classes do not.
 - Deck/stake cartridges modify strategy effectiveness; they do not own or redefine universal strategies.
