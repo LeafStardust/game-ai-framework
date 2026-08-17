@@ -15,7 +15,11 @@ from games.balatro.shop_consumable_policy import (
 from games.balatro.state import BalatroState
 from games.balatro.strategy import BANNED, GOLD, BalatroStrategyTracker
 from games.balatro.strategy_catalog import UNIVERSAL_BALATRO_STRATEGIES
-from games.balatro.strategy_value import StrategyAwareConsumableSynergyEvaluator
+from games.balatro.strategy_pack_playstyle import StrategyAwarePackPlaystyleEvaluator
+from games.balatro.strategy_value import (
+    StrategyAwareConsumableSynergyEvaluator,
+    StrategyAwareJokerBuildValueEvaluator,
+)
 
 
 def _state() -> BalatroState:
@@ -190,6 +194,54 @@ def test_cartridge_can_bias_or_disable_universal_strategies_without_redefining_t
     assert resolution.assessment("hearts").effectiveness == 1.20
     assert resolution.assessment("spades") is None
     assert resolution.dominant_strategy_id == "hearts"
+
+
+def test_strategy_aware_d2_neutralizes_legacy_playstyle_lock():
+    state = _state()
+    state.ante = 6
+    state.jokers = [RideTheBusJoker()]
+
+    evaluator = StrategyAwareJokerBuildValueEvaluator(
+        strategy_tracker=_tracker(),
+    )
+    result = evaluator.evaluate(state, PareidoliaJoker())
+
+    assert result.playstyle_fit == 0.0
+    assert result.playstyle_value == 0.0
+    assert not result.playstyle_locked
+
+
+def test_strategy_aware_d1_keeps_legacy_playstyle_intent_neutral():
+    state = _state()
+    state.ante = 6
+    state.jokers = [RideTheBusJoker()]
+    policy = StrategyAwareLiveHandActionPolicy(
+        strategy_tracker=_tracker(),
+    )
+
+    intent = policy.playstyle_evaluator.prepare(state)
+
+    assert intent.strengths == ()
+    assert not intent.locked
+
+
+def test_strategy_aware_d9_keeps_legacy_playstyle_intent_neutral():
+    state = _state()
+    state.ante = 6
+    state.jokers = [RideTheBusJoker()]
+    evaluator = StrategyAwarePackPlaystyleEvaluator(
+        strategy_tracker=_tracker(),
+    )
+
+    result = evaluator.evaluate(
+        state,
+        kind="PLAYING_CARD",
+        rank="K",
+        suit="Hearts",
+    )
+
+    assert result.intent.strengths == ()
+    assert not result.intent.locked
 
 
 def test_red_white_blocks_neptune_and_other_planets_until_their_strategy_is_active():
