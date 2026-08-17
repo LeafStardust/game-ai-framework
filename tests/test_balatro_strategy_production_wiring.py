@@ -14,6 +14,9 @@ from games.balatro.live.strategy_consumable_timing import (
 from games.balatro.state import BalatroState
 from games.balatro.strategy_blind_skip_policy import StrategyAwareBlindSkipPolicy
 from games.balatro.strategy_booster_policy import StrategyAwarePlaybookShopArbiter
+from games.balatro.strategy_tree_tracker import (
+    TreeAwareStateAwareBalatroStrategyTracker,
+)
 from games.balatro.strategy_value import StrategyAwareJokerBuildTransitionPlanner
 
 
@@ -25,6 +28,15 @@ def test_production_supervisor_entry_uses_strategy_aware_runner():
     assert issubclass(
         StrategyAwareLiveMemoryInjectedSingleStepRunner,
         PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
+    )
+
+
+def test_production_strategy_runner_uses_tree_aware_strategy_tracker():
+    assert (
+        StrategyAwareLiveMemoryInjectedSingleStepRunner.__init__.__globals__[
+            "TreeAwareStateAwareBalatroStrategyTracker"
+        ]
+        is TreeAwareStateAwareBalatroStrategyTracker
     )
 
 
