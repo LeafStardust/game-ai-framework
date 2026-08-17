@@ -6,6 +6,7 @@ from games.balatro.build.consumable_synergy import ContextualConsumableSynergyEv
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 
 from .strategy import BalatroStrategyTracker
+from .strategy_compat import NeutralLegacyPlaystyleIntentTracker
 
 
 @dataclass(frozen=True)
@@ -35,9 +36,15 @@ class StrategyAdjustedConsumableEvaluation:
 
 
 class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
-    """Add explicit universal-strategy component priority to ordinary B3 value."""
+    """Ordinary Joker value plus the universal playbook strategy adjustment.
+
+    The legacy playstyle-affinity tracker is deliberately neutralized here. Direct
+    scoring and contextual B3 value remain intact, but universal playbooks are the
+    only strategic direction signal in the v1.0 strategy-aware production path.
+    """
 
     def __init__(self, *args, strategy_tracker: BalatroStrategyTracker, **kwargs) -> None:
+        kwargs["intent_tracker"] = NeutralLegacyPlaystyleIntentTracker()
         super().__init__(*args, **kwargs)
         self.strategy_tracker = strategy_tracker
 
@@ -55,6 +62,7 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
             rationale=(
                 *base.rationale,
                 *strategic.rationale,
+                "legacy playstyle strategy influence=0.000 in universal-strategy path",
                 f"environment-adjusted universal strategy value={strategic.value:+.3f}",
                 f"strategy-adjusted whole-build gain={total:.3f}",
             ),
