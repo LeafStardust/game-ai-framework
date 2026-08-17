@@ -1,162 +1,102 @@
 # Balatro Strategy Tree Rules
 
-Design rules for the v1.0F strategy-tree migration. Topology: [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md). Relationship table: [`BALATRO_STRATEGY_RELATIONSHIPS.md`](BALATRO_STRATEGY_RELATIONSHIPS.md).
+Development rules for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md). Relationship data lives in [`BALATRO_STRATEGY_RELATIONSHIPS.md`](BALATRO_STRATEGY_RELATIONSHIPS.md).
 
-## 1. Tree edges
+## 1. Tree semantics
 
-A parent -> child edge means the child is a more specific realization of the parent.
+- `[I]` is a real generic strategy that has more specific descendants.
+- `[L]` is a specialization with no descendants.
+- A standalone `[L]` is a strategy with no specializations.
+- Do not create `Core ...`, `... Scoring`, or other fallback leaves that merely duplicate their indexed parent.
+- No natural poker-hand progression edges.
+- Cross-cutting synergy does not create fake parent edges.
 
-It does not mean:
+An indexed strategy remains a valid actionable strategy. When a specialization is materially established, the specialization may replace the generic indexed strategy for that branch in the actionable ranking.
 
-- the child is globally stronger;
-- the child must be reached later;
-- the agent automatically progresses downward;
-- adjacent poker hands naturally transition into each other.
+## 2. Relationship table semantics
 
-High Card -> Pair -> Three of a Kind -> Four of a Kind progression is forbidden.
+The `[I]` row in `BALATRO_STRATEGY_RELATIONSHIPS.md` is an aggregate development index. Its Joker columns contain the union of the generic strategy and descendant specialization relationships.
 
-Cross-cutting synergy does not create fake multiple parents.
+The aggregate row and a descendant row are **not additive**. The same Joker/component must never be counted twice merely because it appears in both the indexed row and a specialization row.
 
-## 2. Node roles
+Specialization rows contain only the relationships that distinguish that specialization.
 
-- **Root** — broadest strategy in a tree.
-- **Internal node** — strategy with children; not actionable.
-- **Leaf** — actionable strategy.
-- A root with no children is also a leaf.
-- A split root may have a fallback leaf, but the fallback must have a concrete strategy name. Do not use empty `Core ...` placeholder names in the development topology.
+## 3. Evidence types
 
-Only leaves appear in actionable ranking.
+Joker relationship tiers:
 
-## 3. Evidence model
+- Gold: `+5.00`
+- Silver: `+3.00`
+- Bronze: `+1.00`
+- Banned: `-8.00`
 
-Keep these separate:
+Non-Joker evidence is independent from Gold/Silver/Bronze:
 
-- `direct_evidence(node)`
-- `foundation_score(node)`
-- `effective_score(leaf)`
+- matching Planet / permanent hand level gained: `+0.50` per level;
+- strategy-directed Tarot use: `+0.30` per use;
+- strategy-directed Spectral use: `+0.50` per use;
+- matching enhancement in current deck: `+0.35` per card.
 
-### Joker evidence
+There is **no universal Seal evidence weight**. Seal presence is too cross-cutting to prove most strategies. A seal matters only when an exact strategy mechanic explicitly depends on it; that logic is handled by that strategy rather than by a generic `+score per seal` rule.
 
-| Relationship | Score |
-|---|---:|
-| Gold | +5.00 |
-| Silver | +3.00 |
-| Bronze | +1.00 |
-| Neutral | 0.00 |
-| Banned | -8.00 |
+## 4. Evidence ownership and duplication
 
-Gold/Silver/Bronze are **Joker relationship tiers only**.
+A component may support multiple strategies when the mechanics are genuinely different.
 
-### Non-Joker evidence
+If two nodes use the same component for the same reason, one semantic owner is preferred. If an indexed strategy lists a component because a descendant uses it, that index entry is reference/coverage data and must not create a second copy of the same evidence.
 
-| Evidence | Score |
-|---|---:|
-| Matching Planet / permanent hand level gained | +0.50 per level |
-| Strategy-directed Tarot use | +0.30 per use |
-| Strategy-directed Spectral use | +0.50 per use |
-| Matching enhancement in current deck | +0.35 per card |
-| Matching seal in current deck | +0.40 per card |
+Repeated components such as DNA, Glass, Vampire, Pareidolia, Midas Mask, Marble Joker, and Trading Card require distinct payoff requirements when used by multiple specializations.
 
-Tarot, Planet, Spectral, enhancement, and seal evidence does not use Gold/Silver/Bronze.
+## 5. Generic play counts
 
-`Banned` may still apply to any component when it is a genuine mechanical conflict.
+Generic `hand_play_counts` are not positive strategy evidence.
 
-Held/unopened consumables are not current positive strategy evidence. Positive Tarot/Spectral evidence comes from an actual strategy-directed use or its surviving current-state result.
+Play counts remain legal only for mechanics that explicitly depend on them, such as Obelisk or Supernova.
 
-Do not double count the same persistent transformation as both historical-use evidence and structural deck evidence unless the two values represent different mechanics.
+Persistent hand levels remain valid evidence because they represent permanent investment.
 
-## 4. Evidence propagation
+## 6. Tree propagation
 
-### Descendant -> ancestor
+Specific evidence may support its broader indexed strategy, but scoring must preserve provenance so the same component is not counted once on a specialization and again through its indexed parent.
 
-Positive descendant evidence propagates upward with decay.
+Broad indexed evidence does not blindly activate every specialization. A specialization requires its own distinguishing evidence.
 
-```text
-Baron-Mime evidence
-    -> Baron-Mime direct evidence
-    -> discounted High Card foundation
-```
+There is no fallback-child suppression rule because there are no duplicate fallback children.
 
-### Ancestor -> descendant
-
-Parent evidence does not blindly activate specific children.
-
-A specialized child needs qualifying child-specific evidence before inheriting ancestor direct foundation.
-
-### No recursive double counting
-
-A leaf must never propagate its own evidence upward and then re-inherit that propagated evidence through the parent. Descendants inherit ancestor native/direct foundation only.
-
-## 5. Ranking by Ante
+## 7. Ante behavior
 
 ### Antes 1-2
 
-- strategy values normally start at zero;
-- inherent/meta/survival/economy value dominates;
-- several strategies may gain evidence;
-- a complete early package may establish immediately.
+- inherent/meta/survival/economy value leads;
+- several strategies may acquire evidence;
+- a strong specific package may establish immediately.
 
 ### Antes 3-5
 
 - strategy pressure increases;
-- replacement and reroll choices increasingly use leaf ranking;
-- the agent converges while allowing stronger pivots.
+- replacement and acquisition should increasingly reinforce established strategies;
+- pivots remain allowed when current-state evidence changes.
 
 ### Ante 6+
 
-- strongest viable leaf dominates;
-- up to two compatible materially supported leaves may remain relevant;
+- strongest viable strategy/specialization leads;
+- up to two compatible materially supported peers may remain relevant;
 - survival overrides strategic purity.
 
-## 6. Poker-hand play counts
+## 8. Negative Joker retention
 
-Generic `hand_play_counts` are not positive strategy evidence.
+Negative Jokers are protected from ordinary replacement pressure because they normally offset their slot cost.
 
-Play history remains legal only for mechanics that explicitly use it, including Supernova and Obelisk.
+Removal requires a real mechanical conflict, unavoidable ongoing harm, or an intentional sacrifice/destruction payoff that exceeds retention value.
 
-Permanent poker-hand levels are valid evidence at `+0.50` per gained level.
+## 9. Banned relationships
 
-## 7. Negative Joker retention
+Banned means genuine mechanical conflict, not merely support for a competing strategy.
 
-Negative Jokers are protected from ordinary sell/replacement pressure because the Negative edition normally offsets slot cost with +1 Joker slot.
+Competing positive strategies should normally compete through their own evidence rather than by banning each other.
 
-A Negative Joker may be removed when:
+## 10. Strategy-node admission
 
-1. its active mechanic materially harms a dominant/relevant strategy;
-2. it creates a hard contradiction that cannot be neutralized;
-3. ongoing harm exceeds the free-slot benefit;
-4. a deliberate sacrifice/destruction strategy proves the trade worthwhile.
+Create a new node only when it materially changes downstream decisions such as acquisition/retention, ordering, hand/discard behavior, deck shaping, consumable use, economy, blind skipping, or sacrifice/destruction behavior.
 
-## 8. Relationship ownership
-
-Gold/Silver/Bronze describe strategy evidence, not generic Joker strength.
-
-- **Gold** — defining Joker evidence.
-- **Silver** — strong Joker reinforcement.
-- **Bronze** — weaker/secondary Joker reinforcement.
-- **Banned** — genuine mechanical conflict.
-
-A competing strategy is not automatically Banned.
-
-A component may appear in multiple strategy nodes only when the mechanical requirements are distinct. If the same component means the same thing in both places, one node owns it.
-
-Examples:
-
-- Glass Canio and Glass Joker scaling may both reference Glass only when Canio payoff and Glass-Joker payoff are independently present.
-- Midas + Vampire and Gold-card economy may both reference Midas only when enhancement consumption and Gold retention are independently represented.
-- Trading Card Canio and Trading Card thinning may both reference Trading Card only when both destruction payoffs are independently present.
-
-## 9. Strategy-node admission
-
-Create a node only when it materially changes multiple downstream decisions such as:
-
-- Joker acquisition/retention/order;
-- hand/discard behavior;
-- rank/suit/deck shaping;
-- enhancement/seal targeting;
-- Tarot/Spectral/Planet use;
-- packs/rerolls/blind skips;
-- economy/resource allocation;
-- sacrifice/destruction behavior.
-
-Do not create a node for every two-Joker interaction. If two proposed strategies make essentially the same decisions, keep one node and express the synergy through relationships.
+Do not create a node for every synergy. If the generic indexed strategy already represents the policy, do not add a duplicate generic child.
