@@ -67,6 +67,28 @@ def test_specific_child_evidence_suppresses_core_fallback_leaf():
     assert scores["core"].effective_score == 0.0
 
 
+def test_descendant_evidence_inside_specific_sibling_branch_suppresses_fallback():
+    topology = StrategyTopology(
+        (
+            StrategyNodeSpec("root", "Root"),
+            StrategyNodeSpec(
+                "core",
+                "Core",
+                parent_strategy_id="root",
+                is_fallback_leaf=True,
+            ),
+            StrategyNodeSpec("branch", "Branch", parent_strategy_id="root"),
+            StrategyNodeSpec("deep_leaf", "Deep Leaf", parent_strategy_id="branch"),
+        )
+    )
+    scorer = StrategyTreeEvidenceScorer(topology)
+
+    scores = scorer.score({"root": 3.0, "deep_leaf": 2.0})
+
+    assert scores["deep_leaf"].active is True
+    assert scores["core"].active is False
+
+
 def test_leaf_ranking_excludes_internal_and_inactive_nodes():
     scorer = StrategyTreeEvidenceScorer(_split_topology())
 
