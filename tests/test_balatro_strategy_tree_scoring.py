@@ -49,10 +49,7 @@ def test_specific_child_inherits_only_native_ancestor_evidence_without_double_co
 
     scores = scorer.score({"root": 2.0, "specific_a": 4.0})
 
-    # The child contributes 2.0 to root foundation, so root foundation is 4.0.
     assert scores["root"].foundation_score == 4.0
-    # The child inherits only root DIRECT evidence (2.0), not root foundation
-    # (4.0), so its own evidence is never counted twice.
     assert scores["specific_a"].effective_score == 6.0
 
 
@@ -65,6 +62,30 @@ def test_specific_child_evidence_suppresses_core_fallback_leaf():
     assert scores["specific_a"].effective_score == 5.0
     assert scores["core"].active is False
     assert scores["core"].effective_score == 0.0
+
+
+def test_subthreshold_child_structure_does_not_suppress_core_fallback():
+    scorer = StrategyTreeEvidenceScorer(
+        _split_topology(),
+        specific_activation_floor=1.0,
+    )
+
+    scores = scorer.score({"root": 3.0, "specific_a": 0.35})
+
+    assert scores["specific_a"].active is False
+    assert scores["specific_a"].effective_score == 0.0
+    assert scores["core"].active is True
+    assert scores["core"].effective_score == 3.0
+
+
+def test_weak_positive_evidence_remains_active_for_unsplit_root_leaf():
+    topology = StrategyTopology((StrategyNodeSpec("pair", "Pair"),))
+    scorer = StrategyTreeEvidenceScorer(topology, specific_activation_floor=1.0)
+
+    scores = scorer.score({"pair": 0.5})
+
+    assert scores["pair"].active is True
+    assert scores["pair"].effective_score == 0.5
 
 
 def test_descendant_evidence_inside_specific_sibling_branch_suppresses_fallback():
