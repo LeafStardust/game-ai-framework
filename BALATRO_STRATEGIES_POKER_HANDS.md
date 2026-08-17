@@ -2,7 +2,7 @@
 
 > Concrete universal poker-hand strategy definitions.
 >
-> The grouping is documentation-only. At runtime every strategy is a peer in the same universal strategy pool. See [`BALATRO_STRATEGY_PLAYBOOKS.md`](BALATRO_STRATEGY_PLAYBOOKS.md) for architecture, tier semantics, Ante progression, and implementation rules.
+> The grouping is documentation-only. At runtime every strategy is a peer in the same universal strategy pool. See [`BALATRO_STRATEGY_PLAYBOOKS.md`](BALATRO_STRATEGY_PLAYBOOKS.md) for architecture, current-state scoring, Ante pressure, and implementation rules.
 
 ## Catalogue rule
 
@@ -11,11 +11,13 @@ The Joker tier columns are **explicit implementation data**.
 - Every entry is a specific Joker name.
 - **Unlisted Joker = Neutral** for that strategy. Neutral is not Bronze and is not banned.
 - Bronze is reserved for named Jokers with a real but weaker relationship to the strategy.
-- `Banned / conflict Jokers` are explicit Jokers that should normally not be purchased once the strategy is dominant unless the agent is intentionally pivoting or a survival override applies.
-- Generic survival/economy value remains outside the strategy catalogue and is handled by the ordinary acquisition evaluator.
+- Gold/Silver/Bronze/Banned are **strategy-evidence relationships**, not direct flat shop bonuses. An owned Gold Joker strongly raises that strategy's current score; a Gold shop Joker only receives a large strategy purchase bonus when that strategy is already positively ranked and Ante pressure makes strategy important.
+- `Banned / conflict Jokers` contribute negative evidence to the strategy and therefore lower retention/purchase value when that strategy is important. They are not unconditional universal bans.
+- Selling a mapped Joker removes its evidence on the next current-state recomputation.
+- Generic survival/economy/meta value remains outside the strategy catalogue and is handled by the ordinary acquisition evaluator.
 - Parenthetical conditions are part of the future rule: e.g. `Baron (King density)` is not equivalent to unconditional Baron evidence.
 
-A Planet is **support for an evidenced poker-hand strategy**, not sufficient strategy evidence by itself. Joker ownership, Tarot/Spectral effects, deck shape, hand-level investment, and actual repeated hand use should establish the direction first.
+A Planet is **support for an evidenced poker-hand strategy**, not sufficient purchase intent by itself. Buying/holding an unused Planet does not raise strategy score. After use, the permanent hand-level investment contributes a **small persistent amount of evidence** to the corresponding poker-hand strategy.
 
 | Strategy | Planet | Gold Jokers | Silver Jokers | Bronze Jokers | Banned / conflict Jokers | Key Tarot / Spectral support | Entry evidence |
 |---|---|---|---|---|---|---|---|
@@ -47,12 +49,14 @@ These are **pivot relationships**, not parent/child runtime classes.
 | Full House | Four of a Kind; Five of a Kind; Flush House |
 | Four of a Kind | Five of a Kind; Flush Five |
 
-## Planet acquisition rule
+## Planet acquisition and evidence rule
 
-Celestial value should be derived from these strategy states:
+Celestial **purchase** value should be derived from current strategy state:
 
 1. dominant matching poker-hand strategy — high value;
 2. relevant matching strategy — meaningful value;
 3. convergence-phase hand with strong structural/usage evidence — conditional value;
 4. no real hand evidence — normally reject paid Planet acquisition;
 5. speculative advanced hand with no structure — strongly reject.
+
+After the Planet is **used**, its permanent hand-level gain becomes small current-state evidence for that poker-hand strategy. Repeated investment may accumulate, but Planet evidence remains weaker than defining Joker/deck evidence.
