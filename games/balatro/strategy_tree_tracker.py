@@ -48,8 +48,8 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
 
     Existing ``StrategyAssessment.score`` remains the compatibility surface for all
     already-green D1-D14 consumers. Internally, node direct evidence is separated
-    from ancestor foundation and only leaf effective scores are exposed to the
-    actionable ranking.
+    from ancestor foundation and only the current branch frontier is exposed to
+    the actionable ranking.
     """
 
     def __init__(
@@ -157,8 +157,12 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
         self._last_direct_evidence = MappingProxyType(dict(direct_evidence))
         self._last_tree_node_scores = node_scores
 
-        leaf_assessments = []
-        for strategy_id in self.topology.leaves:
+        actionable_assessments = []
+        for strategy_id in sorted(
+            node_id
+            for node_id, node in node_scores.items()
+            if node.on_frontier
+        ):
             direct = direct_by_id.get(strategy_id)
             if direct is None:
                 # Disabled cartridge strategies are absent from direct assessment.
@@ -175,7 +179,7 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
                     effective_score += (
                         float(node.effective_score) * float(direct.effectiveness)
                     )
-            leaf_assessments.append(
+            actionable_assessments.append(
                 replace(
                     direct,
                     score=effective_score,
@@ -185,7 +189,8 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
                         *node.rationale,
                         f"tree direct_evidence={node.direct_evidence:.3f}",
                         f"tree foundation_score={node.foundation_score:.3f}",
-                        f"tree effective_leaf_evidence={node.effective_score:.3f}",
+                        f"tree effective_frontier_evidence={node.effective_score:.3f}",
+                        f"tree on_frontier={'yes' if node.on_frontier else 'no'}",
                         f"tree active={'yes' if node.active else 'no'}",
                     ),
                 )
@@ -193,7 +198,7 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
 
         return tuple(
             sorted(
-                leaf_assessments,
+                actionable_assessments,
                 key=lambda assessment: (-assessment.score, assessment.strategy_id),
             )
         )
@@ -208,73 +213,55 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
             self.assess(state)
         return self._last_direct_evidence
 
-    def _descendant_leaves(self, strategy_id: str) -> tuple[str, ...]:
-        if self.topology.is_leaf(strategy_id):
-            return (strategy_id,)
-        values: list[str] = []
+    def _branch_nodes(self, strategy_id: str) -> tuple[str, ...]:
+        values: list[str] = [strategy_id]
         for child_id in self.topology.children_by_id[strategy_id]:
-            values.extend(self._descendant_leaves(child_id))
+            values.extend(self._branch_nodes(child_id))
         return tuple(values)
 
-    def _actionable_leaf_for_node(
+    def _actionable_strategy_for_node(
         self,
         strategy_id: str,
         resolution,
         projected_scores: Mapping[str, StrategyTreeNodeScore],
     ) -> str | None:
-        if self.topology.is_leaf(strategy_id):
-            return strategy_id
-
-        leaf_ids = self._descendant_leaves(strategy_id)
+        branch_ids = self._branch_nodes(strategy_id)
+        projected_frontier = tuple(
+            node_id
+            for node_id in branch_ids
+            if projected_scores[node_id].on_frontier
+        )
+        if not projected_frontier:
+            return None
         current_by_id = {
             assessment.strategy_id: assessment
             for assessment in resolution.assessments
         }
         current = [
-            current_by_id[leaf_id]
-            for leaf_id in leaf_ids
-            if leaf_id in current_by_id and current_by_id[leaf_id].score > 0.0
+            current_by_id[node_id]
+            for node_id in projected_frontier
+            if node_id in current_by_id and current_by_id[node_id].score > 0.0
         ]
         if current:
             return max(current, key=lambda item: (item.score, item.strategy_id)).strategy_id
 
-        projected = [
-            projected_scores[leaf_id]
-            for leaf_id in leaf_ids
-            if projected_scores[leaf_id].active
-            and projected_scores[leaf_id].effective_score > 0.0
-        ]
-        if projected:
-            return max(
-                projected,
-                key=lambda item: (item.effective_score, item.strategy_id),
-            ).strategy_id
+        return max(
+            (projected_scores[node_id] for node_id in projected_frontier),
+            key=lambda item: (item.effective_score, item.strategy_id),
+        ).strategy_id
 
-        return next(
-            (
-                leaf_id
-                for leaf_id in leaf_ids
-                if self.topology.nodes[leaf_id].is_fallback_leaf
-            ),
-            None,
-        )
-
-    def _projected_leaf_score(
+    def _projected_strategy_score(
         self,
         state,
-        leaf_id: str,
+        strategy_id: str,
         projected_scores: Mapping[str, StrategyTreeNodeScore],
     ) -> float:
-        direct = self._last_direct_assessments.get(leaf_id)
+        direct = self._last_direct_assessments.get(strategy_id)
         if direct is None:
             return 0.0
-        node = projected_scores[leaf_id]
-        if self.topology.parent_by_id[leaf_id] is None:
-            return float(direct.base_score) + (
-                float(node.direct_evidence) * float(direct.effectiveness)
-            )
+        node = projected_scores[strategy_id]
         value = float(direct.base_score)
-        if node.active:
+        if node.on_frontier:
             value += float(node.effective_score) * float(direct.effectiveness)
         return value
 
@@ -316,16 +303,16 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
         for source_strategy_id, relationship in raw_relationships.items():
             if source_strategy_id not in self.topology.nodes:
                 continue
-            leaf_id = self._actionable_leaf_for_node(
+            actionable_id = self._actionable_strategy_for_node(
                 source_strategy_id,
                 resolution,
                 projected_scores,
             )
-            if leaf_id is None:
+            if actionable_id is None:
                 continue
-            previous = mapped.get(leaf_id)
+            previous = mapped.get(actionable_id)
             if previous is None or _RELATIONSHIP_PRIORITY[relationship] > _RELATIONSHIP_PRIORITY[previous[0]]:
-                mapped[leaf_id] = (relationship, source_strategy_id)
+                mapped[actionable_id] = (relationship, source_strategy_id)
 
         if not mapped:
             return StrategicItemEvaluation(
@@ -338,7 +325,7 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
                 projected_score=0.0,
                 active_alignment=False,
                 pivot_candidate=False,
-                rationale=("item has no actionable leaf relationship",),
+                rationale=("item has no actionable strategy relationship",),
             )
 
         config = self._config(state)
@@ -364,15 +351,14 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
         fallback_relationship: str | None = None
         fallback_projected = 0.0
 
-        for leaf_id, (relationship, source_strategy_id) in mapped.items():
-            assessment = by_id.get(leaf_id)
-            if assessment is None:
-                continue
-            current_positive = max(0.0, float(assessment.score))
+        for actionable_id, (relationship, source_strategy_id) in mapped.items():
+            assessment = by_id.get(actionable_id)
+            current_score = float(assessment.score) if assessment is not None else 0.0
+            current_positive = max(0.0, current_score)
             scope = self._scope_factor(
                 state,
-                leaf_id,
-                rank_by_id.get(leaf_id, 999),
+                actionable_id,
+                rank_by_id.get(actionable_id, 999),
                 resolution,
             )
             relation_weight = self.relationship_score(state, relationship)
@@ -386,12 +372,12 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
                 contribution = current_positive * relation_weight * scope
             total_alignment += contribution
 
-            projected = self._projected_leaf_score(
+            projected = self._projected_strategy_score(
                 state,
-                leaf_id,
+                actionable_id,
                 projected_scores,
             )
-            shortlisted = leaf_id in resolution.shortlist_strategy_ids
+            shortlisted = actionable_id in resolution.shortlist_strategy_ids
             if shortlisted and relationship in {GOLD, SILVER, BRONZE}:
                 active_alignment = True
 
@@ -404,7 +390,7 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
             if (
                 dominant is not None
                 and relationship == GOLD
-                and leaf_id != dominant.strategy_id
+                and actionable_id != dominant.strategy_id
                 and projected >= float(dominant.score) + pivot_margin
             ):
                 pivot = True
@@ -412,7 +398,7 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
             positive_priority = _POSITIVE_RELATIONSHIP_PRIORITY[relationship]
             if positive_priority > fallback_priority:
                 fallback_priority = positive_priority
-                fallback_strategy_id = leaf_id
+                fallback_strategy_id = actionable_id
                 fallback_relationship = relationship
                 fallback_projected = projected
 
@@ -422,13 +408,13 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
                 > _RELATIONSHIP_PRIORITY.get(strongest_relationship or NEUTRAL, 0)
             ):
                 strongest_abs = abs(contribution)
-                strongest_strategy_id = leaf_id
+                strongest_strategy_id = actionable_id
                 strongest_relationship = relationship
                 strongest_projected = projected
 
             rationale.append(
-                f"{candidate}: {relationship} at node {source_strategy_id} -> leaf {leaf_id}; "
-                f"current={assessment.score:.3f}; projected={projected:.3f}; "
+                f"{candidate}: {relationship} at node {source_strategy_id} -> actionable {actionable_id}; "
+                f"current={current_score:.3f}; projected={projected:.3f}; "
                 f"scope={scope:.3f}; raw_alignment={contribution:+.3f}"
             )
 

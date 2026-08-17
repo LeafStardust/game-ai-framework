@@ -89,9 +89,9 @@ def test_pair_tree_owned_static_relationships_are_pair_specific():
     assert definition.relationship_for(JollyJoker(), kind="JOKER") == SILVER
     assert definition.relationship_for(SlyJoker(), kind="JOKER") == SILVER
 
-    # Small-hand/repetition support is conditional so it cannot create Pair from
-    # zero by ownership alone.
-    assert definition.relationship_for(HalfJoker(), kind="JOKER") == NEUTRAL
+    assert definition.relationship_for(HalfJoker(), kind="JOKER") == SILVER
+    # Repeat-hand support is conditional so it cannot create Pair from zero by
+    # ownership alone.
     assert definition.relationship_for(CardSharpJoker(), kind="JOKER") == NEUTRAL
 
     # Supporting a different poker hand is not a mechanical contradiction.
@@ -159,11 +159,11 @@ def test_generic_small_hand_and_repeat_support_requires_independent_pair_commitm
     assert conditional_joker_relationship(direct, "pair", HalfJoker()) == SILVER
 
 
-def test_conditional_pair_support_reinforces_existing_pair_without_self_starting():
+def test_half_joker_is_direct_pair_evidence_while_repeat_support_is_conditional():
     tracker = _tracker()
 
     unsupported = _state(jokers=(HalfJoker(),))
-    assert _pair_assessment(tracker, unsupported).score == pytest.approx(0.0)
+    assert _pair_assessment(tracker, unsupported).score == pytest.approx(3.0)
 
     invested = _state(
         jokers=(HalfJoker(),),

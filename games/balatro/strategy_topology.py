@@ -17,15 +17,14 @@ class StrategyNodeSpec:
     strategy_id: str
     name: str
     parent_strategy_id: str | None = None
-    is_fallback_leaf: bool = False
 
 
 class StrategyTopology:
     """Validated forest of strategy specialization nodes.
 
     Parent -> child means "more specific realization", never natural poker-hand
-    progression. Only leaves are actionable strategy candidates once consumers are
-    migrated to the tree runtime.
+    progression. An indexed parent remains actionable until qualifying evidence
+    establishes one or more of its specialized descendants.
     """
 
     def __init__(self, nodes: Iterable[StrategyNodeSpec]) -> None:
@@ -54,6 +53,7 @@ class StrategyTopology:
             parent_by_id[strategy_id] = parent_id
 
         self._validate_acyclic(parent_by_id)
+        self._validate_branching(children)
 
         self.nodes: Mapping[str, StrategyNodeSpec] = MappingProxyType(by_id)
         self.parent_by_id: Mapping[str, str | None] = MappingProxyType(parent_by_id)
@@ -90,6 +90,20 @@ class StrategyTopology:
                 seen.add(current)
                 current = parent_by_id[current]
 
+    @staticmethod
+    def _validate_branching(children_by_id: Mapping[str, list[str]]) -> None:
+        one_child = {
+            strategy_id: child_ids[0]
+            for strategy_id, child_ids in children_by_id.items()
+            if len(child_ids) == 1
+        }
+        if one_child:
+            parent_id, child_id = next(iter(sorted(one_child.items())))
+            raise ValueError(
+                "indexed strategy must have at least two specializations; "
+                f"collapse one-child branch {parent_id} -> {child_id}"
+            )
+
     def is_leaf(self, strategy_id: str) -> bool:
         if strategy_id not in self.nodes:
             raise KeyError(strategy_id)
@@ -117,12 +131,6 @@ HIGH_CARD_STRATEGY_NODES: tuple[StrategyNodeSpec, ...] = (
     StrategyNodeSpec(
         strategy_id="high_card",
         name="High Card",
-    ),
-    StrategyNodeSpec(
-        strategy_id="high_card_core",
-        name="Core Repetition / Level High Card",
-        parent_strategy_id="high_card",
-        is_fallback_leaf=True,
     ),
     StrategyNodeSpec(
         strategy_id="high_card_stuntman",

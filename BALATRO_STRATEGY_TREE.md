@@ -18,8 +18,7 @@ Pair [L]
 Two Pair [L]
 Three of a Kind [L]
 
-Straight [I]
-└── Superposition Ace-Straight Tarot [L]
+Straight [L]
 
 Flush [L]
 Full House [L]

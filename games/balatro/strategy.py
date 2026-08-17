@@ -23,6 +23,10 @@ _DEFAULT_RELATIONSHIP_SCORE = {
     NEUTRAL: 0.0,
     BANNED: -8.0,
 }
+HAND_LEVEL_EVIDENCE_WEIGHT = 0.50
+TAROT_USE_EVIDENCE_WEIGHT = 0.30
+SPECTRAL_USE_EVIDENCE_WEIGHT = 0.50
+ENHANCEMENT_EVIDENCE_WEIGHT = 0.35
 _RELATIONSHIP_PRIORITY = {
     BANNED: 4,
     GOLD: 3,
@@ -75,6 +79,12 @@ class StrategyDefinition:
     silver_consumables: frozenset[str] = frozenset()
     bronze_consumables: frozenset[str] = frozenset()
     banned_consumables: frozenset[str] = frozenset()
+
+    # Strategy-directed use evidence is intentionally separate from acquisition
+    # tiers. The live state does not yet expose cumulative per-card use counts, but
+    # the catalogue must preserve exact ownership for future public-state wiring.
+    directed_tarots: frozenset[str] = frozenset()
+    directed_spectrals: frozenset[str] = frozenset()
 
     gold_planets: frozenset[str] = frozenset()
     silver_planets: frozenset[str] = frozenset()
@@ -405,7 +415,11 @@ class BalatroStrategyTracker:
                 for card in deck
             )
             if matches:
-                gain = matches * self._number(config, "deck_enhancement_evidence_weight", 0.35)
+                gain = matches * self._number(
+                    config,
+                    "deck_enhancement_evidence_weight",
+                    ENHANCEMENT_EVIDENCE_WEIGHT,
+                )
                 raw += gain
                 notes.append(f"enhancement evidence={gain:.3f} from {matches} cards")
 
@@ -495,7 +509,11 @@ class BalatroStrategyTracker:
                 notes.append(f"owned {relationship.lower()} voucher: {gain:+.3f}")
 
         hand_levels = getattr(state, "hand_levels", {}) or {}
-        hand_level_weight = self._number(config, "hand_level_evidence_weight", 0.50)
+        hand_level_weight = self._number(
+            config,
+            "hand_level_evidence_weight",
+            HAND_LEVEL_EVIDENCE_WEIGHT,
+        )
         structural_hand_evidence = False
         for hand in definition.primary_hands:
             extra_levels = max(0, int(hand_levels.get(hand, 1) or 1) - 1)

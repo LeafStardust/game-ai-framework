@@ -22,14 +22,13 @@ def test_flat_nodes_are_both_roots_and_rankable_leaves():
     assert topology.path("pair") == ("pair",)
 
 
-def test_high_card_subtree_exposes_only_specific_children_as_leaves():
+def test_high_card_subtree_has_no_duplicate_core_leaf():
     topology = HIGH_CARD_STRATEGY_TOPOLOGY
 
     assert topology.roots == ("high_card",)
     assert topology.is_leaf("high_card") is False
     assert topology.leaves == (
         "high_card_baron_mime",
-        "high_card_core",
         "high_card_stuntman",
     )
     assert topology.ancestors("high_card_baron_mime") == ("high_card",)
@@ -37,7 +36,17 @@ def test_high_card_subtree_exposes_only_specific_children_as_leaves():
         "high_card",
         "high_card_baron_mime",
     )
-    assert topology.nodes["high_card_core"].is_fallback_leaf is True
+    assert "high_card_core" not in topology.nodes
+
+
+def test_topology_rejects_one_child_indexed_strategy():
+    with pytest.raises(ValueError, match="one-child branch root -> only_child"):
+        StrategyTopology(
+            (
+                StrategyNodeSpec("root", "Root"),
+                StrategyNodeSpec("only_child", "Only Child", parent_strategy_id="root"),
+            )
+        )
 
 
 def test_topology_rejects_missing_parent():

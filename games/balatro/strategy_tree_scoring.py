@@ -12,8 +12,9 @@ class StrategyTreeNodeScore:
     """One topology node's evidence decomposition.
 
     ``foundation_score`` is diagnostic branch evidence and may include discounted
-    positive descendant evidence. ``effective_score`` is actionable only for
-    leaves and never reuses descendant evidence that already propagated upward.
+    positive descendant evidence. ``effective_score`` is actionable only on the
+    current branch frontier and never reuses descendant evidence that already
+    propagated upward.
     """
 
     strategy_id: str
@@ -22,7 +23,7 @@ class StrategyTreeNodeScore:
     effective_score: float
     active: bool
     is_leaf: bool
-    is_fallback_leaf: bool
+    on_frontier: bool
     rationale: tuple[str, ...] = ()
 
 
@@ -65,6 +66,32 @@ class StrategyTreeEvidenceScorer:
             for child_id in self.topology.children_by_id[strategy_id]
         )
 
+    def _frontier(
+        self,
+        strategy_id: str,
+        direct: Mapping[str, float],
+    ) -> tuple[str, ...]:
+        """Return the actionable nodes for one specialization branch.
+
+        A generic indexed node represents its branch until distinguishing evidence
+        materially establishes a child branch. Once that happens, only the
+        established child frontier replaces the parent. This is the runtime form of
+        the no-fake-Core rule.
+        """
+
+        established_children = tuple(
+            child_id
+            for child_id in self.topology.children_by_id[strategy_id]
+            if self._branch_has_qualifying_direct(child_id, direct)
+        )
+        if not established_children:
+            return (strategy_id,)
+
+        frontier: list[str] = []
+        for child_id in established_children:
+            frontier.extend(self._frontier(child_id, direct))
+        return tuple(frontier)
+
     def score(
         self,
         direct_evidence: Mapping[str, float],
@@ -103,43 +130,19 @@ class StrategyTreeEvidenceScorer:
                     f"{descendant_id} at distance {distance}"
                 )
 
+        frontier_ids = frozenset(
+            node_id
+            for root_id in self.topology.roots
+            for node_id in self._frontier(root_id, direct)
+        )
+
         scores: dict[str, StrategyTreeNodeScore] = {}
-        for strategy_id, node in self.topology.nodes.items():
+        for strategy_id in self.topology.nodes:
             is_leaf = self.topology.is_leaf(strategy_id)
-            if not is_leaf:
-                scores[strategy_id] = StrategyTreeNodeScore(
-                    strategy_id=strategy_id,
-                    direct_evidence=direct[strategy_id],
-                    foundation_score=foundation[strategy_id],
-                    effective_score=0.0,
-                    active=False,
-                    is_leaf=False,
-                    is_fallback_leaf=False,
-                    rationale=tuple(notes[strategy_id]),
-                )
-                continue
-
+            on_frontier = strategy_id in frontier_ids
             parent_id = self.topology.parent_by_id[strategy_id]
-            sibling_specific_active = False
-            if node.is_fallback_leaf and parent_id is not None:
-                sibling_specific_active = any(
-                    sibling_id != strategy_id
-                    and not self.topology.nodes[sibling_id].is_fallback_leaf
-                    and self._branch_has_qualifying_direct(sibling_id, direct)
-                    for sibling_id in self.topology.children_by_id[parent_id]
-                )
-
-            # A standalone root/leaf has no specialization ambiguity, so any
-            # positive direct evidence remains meaningful. The qualifying floor is
-            # only for child leaves where tiny structural noise must not choose a
-            # specialization or suppress the Core fallback.
-            own_specific_evidence = (
-                direct[strategy_id] > 0.0
-                if parent_id is None
-                else direct[strategy_id] >= self.specific_activation_floor
-            )
             inherited_ancestor_direct = 0.0
-            if own_specific_evidence or node.is_fallback_leaf:
+            if on_frontier and parent_id is not None:
                 for distance, ancestor_id in enumerate(
                     self.topology.ancestors(strategy_id),
                     start=1,
@@ -148,28 +151,19 @@ class StrategyTreeEvidenceScorer:
                         self.ancestor_inheritance_decay ** distance
                     )
 
-            if node.is_fallback_leaf:
-                active = not sibling_specific_active and (
-                    direct[strategy_id] > 0.0 or inherited_ancestor_direct > 0.0
-                )
-                if sibling_specific_active:
-                    notes[strategy_id].append(
-                        "fallback suppressed by qualifying child-specific sibling evidence"
-                    )
-            else:
-                # Broad parent evidence alone never activates a specific child.
-                active = own_specific_evidence
-                if inherited_ancestor_direct and not own_specific_evidence:
-                    notes[strategy_id].append(
-                        "ancestor foundation present but qualifying child-specific evidence absent"
-                    )
-
             effective = (
-                direct[strategy_id] + inherited_ancestor_direct if active else 0.0
+                direct[strategy_id] + inherited_ancestor_direct
+                if on_frontier
+                else 0.0
             )
+            active = on_frontier and effective > 0.0
             if active and inherited_ancestor_direct:
                 notes[strategy_id].append(
                     f"{inherited_ancestor_direct:+.3f} inherited native ancestor evidence"
+                )
+            if not on_frontier:
+                notes[strategy_id].append(
+                    "replaced on actionable frontier by materially established specialization"
                 )
 
             scores[strategy_id] = StrategyTreeNodeScore(
@@ -178,14 +172,14 @@ class StrategyTreeEvidenceScorer:
                 foundation_score=foundation[strategy_id],
                 effective_score=effective,
                 active=active,
-                is_leaf=True,
-                is_fallback_leaf=node.is_fallback_leaf,
+                is_leaf=is_leaf,
+                on_frontier=on_frontier,
                 rationale=tuple(notes[strategy_id]),
             )
 
         return MappingProxyType(scores)
 
-    def rank_leaves(
+    def rank_actionable(
         self,
         direct_evidence: Mapping[str, float],
     ) -> tuple[StrategyTreeNodeScore, ...]:
@@ -195,8 +189,18 @@ class StrategyTreeEvidenceScorer:
                 (
                     score
                     for score in scores.values()
-                    if score.is_leaf and score.active and score.effective_score > 0.0
+                    if score.on_frontier
+                    and score.active
+                    and score.effective_score > 0.0
                 ),
                 key=lambda score: (-score.effective_score, score.strategy_id),
             )
         )
+
+    def rank_leaves(
+        self,
+        direct_evidence: Mapping[str, float],
+    ) -> tuple[StrategyTreeNodeScore, ...]:
+        """Compatibility alias for callers migrated before indexed actionability."""
+
+        return self.rank_actionable(direct_evidence)

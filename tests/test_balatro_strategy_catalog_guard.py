@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from games.balatro.live.runtime.strategy_autonomous_runner import (
     StrategyAwareLiveMemoryInjectedSingleStepRunner,
 )
-from games.balatro.strategy import GOLD, NEUTRAL
+from games.balatro.strategy import GOLD, NEUTRAL, SILVER
 from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
 
 
@@ -15,7 +15,7 @@ def test_conditional_flush_joker_is_not_unconditional_runtime_evidence():
     flush = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES["flush"]
 
     assert flush.relationship_for(_joker("Seeing Double"), kind="JOKER") == NEUTRAL
-    assert flush.relationship_for(_joker("Four Fingers"), kind="JOKER") == GOLD
+    assert flush.relationship_for(_joker("Four Fingers"), kind="JOKER") == SILVER
 
 
 def test_conditional_straight_flush_components_stay_neutral_until_state_rule_exists():

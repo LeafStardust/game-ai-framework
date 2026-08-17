@@ -161,7 +161,7 @@ def test_baron_is_neutral_until_current_deck_has_deliberate_king_support():
             "high_card_baron_mime",
             BaronJoker(),
         )
-        == SILVER
+        == GOLD
     )
 
 
@@ -186,7 +186,7 @@ def test_mime_requires_a_real_held_king_payoff_or_baron_partner():
             "high_card_baron_mime",
             MimeJoker(),
         )
-        == SILVER
+        == GOLD
     )
 
     paired = _state()
@@ -197,7 +197,7 @@ def test_mime_requires_a_real_held_king_payoff_or_baron_partner():
             "high_card_baron_mime",
             MimeJoker(),
         )
-        == SILVER
+        == GOLD
     )
 
 
@@ -219,7 +219,7 @@ def test_static_baron_tier_is_authoritatively_neutralized_and_recomputed():
         for assessment in tracker.assess(state)
         if assessment.strategy_id == "high_card_baron_mime"
     )
-    assert shaped.silver_owned == 1
+    assert shaped.gold_owned == 1
 
     state.owned_deck = list(state.deck)
     reverted = next(
@@ -241,7 +241,7 @@ def test_candidate_index_uses_same_baron_mime_downgrade_semantics():
     state.owned_deck.append(BalatroCard("K", "Diamonds"))
     tracker.assess(state)
     relationships = tracker._relationships_for(BaronJoker(), kind="JOKER")
-    assert relationships["high_card_baron_mime"] == SILVER
+    assert relationships["high_card_baron_mime"] == GOLD
 
 
 def test_baron_and_mime_together_are_defining_evidence_even_before_deck_shaping():
@@ -255,7 +255,7 @@ def test_baron_and_mime_together_are_defining_evidence_even_before_deck_shaping(
         if assessment.strategy_id == "high_card_baron_mime"
     )
 
-    assert assessment.silver_owned == 2
+    assert assessment.gold_owned == 2
 
 
 def test_stuntman_conflict_requires_a_material_held_card_engine():
@@ -328,7 +328,7 @@ def test_static_stuntman_ban_is_neutralized_then_recomputed_from_current_state()
         for assessment in tracker.assess(state)
         if assessment.strategy_id == "high_card_baron_mime"
     )
-    assert established.silver_owned == 2
+    assert established.gold_owned == 2
     assert established.banned_owned == 1
 
     state.jokers = [StuntmanJoker()]

@@ -168,7 +168,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
             ),
             "legacy_playstyle_strategy_enabled": False,
             "changed": resolution.changed,
-            # Actionable rankings contain leaves only.
+            # Actionable rankings contain the current specialization frontier.
             "ranked": [
                 {
                     "strategy_id": assessment.strategy_id,
@@ -184,7 +184,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
                 }
                 for assessment in resolution.assessments
             ],
-            # Internal/root nodes remain visible as diagnostics/foundation only.
+            # Replaced and inactive nodes remain visible for diagnostics.
             "nodes": [
                 {
                     "strategy_id": strategy_id,
@@ -192,7 +192,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
                         self.strategy_tracker.topology.path(strategy_id)
                     ),
                     "is_leaf": bool(node.is_leaf),
-                    "is_fallback_leaf": bool(node.is_fallback_leaf),
+                    "on_frontier": bool(node.on_frontier),
                     "active": bool(node.active),
                     "direct_evidence": float(node.direct_evidence),
                     "foundation_score": float(node.foundation_score),

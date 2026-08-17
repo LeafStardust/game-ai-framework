@@ -60,7 +60,7 @@ def _assessment_by_id(resolution):
     return {assessment.strategy_id: assessment for assessment in resolution.assessments}
 
 
-def test_burnt_joker_builds_high_card_parent_and_ranks_only_core_leaf():
+def test_burnt_joker_keeps_generic_high_card_parent_actionable():
     tracker = _tracker()
     state = _state(jokers=(_joker("Burnt Joker"),))
 
@@ -68,19 +68,18 @@ def test_burnt_joker_builds_high_card_parent_and_ranks_only_core_leaf():
     by_id = _assessment_by_id(resolution)
     nodes = tracker.tree_node_scores()
 
-    assert "high_card" not in by_id
-    assert by_id["high_card_core"].score == pytest.approx(5.0)
-    assert by_id["high_card_stuntman"].score == pytest.approx(0.0)
-    assert by_id["high_card_baron_mime"].score == pytest.approx(0.0)
+    assert by_id["high_card"].score == pytest.approx(5.0)
+    assert "high_card_stuntman" not in by_id
+    assert "high_card_baron_mime" not in by_id
     assert nodes["high_card"].direct_evidence == pytest.approx(5.0)
-    assert nodes["high_card_core"].direct_evidence == pytest.approx(0.0)
-    assert nodes["high_card_core"].active is True
+    assert nodes["high_card"].on_frontier is True
+    assert nodes["high_card"].active is True
     assert nodes["high_card_stuntman"].active is False
     assert nodes["high_card_baron_mime"].active is False
-    assert resolution.dominant_strategy_id == "high_card_core"
+    assert resolution.dominant_strategy_id == "high_card"
 
 
-def test_stuntman_specific_evidence_suppresses_core_and_inherits_parent_foundation():
+def test_stuntman_specific_evidence_replaces_parent_and_inherits_its_evidence():
     tracker = _tracker()
     state = _state(
         jokers=(
@@ -94,7 +93,7 @@ def test_stuntman_specific_evidence_suppresses_core_and_inherits_parent_foundati
     nodes = tracker.tree_node_scores()
 
     assert by_id["high_card_stuntman"].score == pytest.approx(10.0)
-    assert by_id["high_card_core"].score == pytest.approx(0.0)
+    assert "high_card" not in by_id
     assert nodes["high_card"].foundation_score == pytest.approx(7.5)
     assert nodes["high_card_stuntman"].direct_evidence == pytest.approx(5.0)
     assert resolution.dominant_strategy_id == "high_card_stuntman"
@@ -113,8 +112,8 @@ def test_baron_mime_leaf_can_establish_deep_high_card_route_early():
     resolution = tracker.observe(state)
     by_id = _assessment_by_id(resolution)
 
-    assert by_id["high_card_baron_mime"].score == pytest.approx(11.0)
-    assert by_id["high_card_core"].score == pytest.approx(0.0)
+    assert by_id["high_card_baron_mime"].score == pytest.approx(15.0)
+    assert "high_card" not in by_id
     assert resolution.dominant_strategy_id == "high_card_baron_mime"
 
 
@@ -128,9 +127,9 @@ def test_subthreshold_held_structure_does_not_choose_baron_mime_branch():
     resolution = tracker.observe(state)
     by_id = _assessment_by_id(resolution)
 
-    assert by_id["high_card_core"].score == pytest.approx(5.0)
-    assert by_id["high_card_baron_mime"].score == pytest.approx(0.0)
-    assert resolution.dominant_strategy_id == "high_card_core"
+    assert by_id["high_card"].score == pytest.approx(5.35)
+    assert "high_card_baron_mime" not in by_id
+    assert resolution.dominant_strategy_id == "high_card"
 
 
 def test_high_card_leaf_inherits_parent_hand_prescription_without_duplicate_hand_evidence():
@@ -185,7 +184,7 @@ def test_specific_candidate_projects_parent_inheritance_without_self_funding_bon
     assert evaluation.value == pytest.approx(0.0)
 
 
-def test_obelisk_parent_conflict_maps_to_core_fallback_without_making_core_evidence():
+def test_obelisk_parent_conflict_maps_to_generic_parent():
     tracker = _tracker()
     state = _state(
         jokers=(_joker("Burnt Joker"),),
@@ -196,12 +195,12 @@ def test_obelisk_parent_conflict_maps_to_core_fallback_without_making_core_evide
 
     resolution = tracker.observe(state)
     nodes = tracker.tree_node_scores()
-    assert resolution.dominant_strategy_id == "high_card_core"
-    assert nodes["high_card_core"].direct_evidence == pytest.approx(0.0)
+    assert resolution.dominant_strategy_id == "high_card"
+    assert nodes["high_card"].direct_evidence == pytest.approx(5.5)
 
     evaluation = tracker.evaluate_item(state, ObeliskJoker(), kind="JOKER")
 
-    assert evaluation.strategy_id == "high_card_core"
+    assert evaluation.strategy_id == "high_card"
     assert evaluation.tier == BANNED
     assert evaluation.value < 0.0
 
@@ -237,8 +236,12 @@ def test_unsplit_strategy_positive_scores_remain_identical_during_hybrid_migrati
     assert tree_three_kind.score == pytest.approx(legacy_three_kind.score)
 
 
-def test_unsplit_strategy_negative_scores_remain_identical_during_hybrid_migration():
-    state = _state(jokers=(_joker("Marble Joker"),))
+def test_standalone_strategy_negative_scores_remain_identical():
+    state = _state(
+        jokers=(ObeliskJoker(),),
+        hand_levels={"STRAIGHT": 2},
+    )
+    state.hand_play_counts = {"STRAIGHT": 4, "PAIR": 1}
     legacy = StateAwareBalatroStrategyTracker(RUNTIME_UNIVERSAL_BALATRO_STRATEGIES)
     tree = _tracker()
 

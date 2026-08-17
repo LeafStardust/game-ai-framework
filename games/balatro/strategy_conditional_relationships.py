@@ -62,6 +62,80 @@ _BARON_MIME_CONDITIONAL_POSITIVE_JOKERS = frozenset({"baronjoker", "mimejoker"})
 _BARON_MIME_AUTHORITATIVE_CONDITIONAL_JOKERS = frozenset(
     {"baronjoker", "mimejoker", "stuntmanjoker"}
 )
+_POKER_HAND_OBELISK_COMMITMENTS = {
+    "three_kind": (
+        "THREE_OF_A_KIND",
+        frozenset({
+            "thetriojoker", "zanyjoker", "wilyjoker", "dnajoker",
+            "halfjoker", "theduojoker", "jollyjoker", "slyjoker",
+            "tradingcardjoker",
+        }),
+    ),
+    "straight": (
+        "STRAIGHT",
+        frozenset({
+            "theorderjoker", "shortcutjoker", "fourfingersjoker", "runnerjoker",
+            "superpositionjoker", "crazyjoker", "deviousjoker",
+        }),
+    ),
+    "flush": (
+        "FLUSH",
+        frozenset({
+            "thetribejoker", "drolljoker", "craftyjoker", "smearedjoker",
+            "fourfingersjoker",
+        }),
+    ),
+    "full_house": (
+        "FULL_HOUSE",
+        frozenset({
+            "thetriojoker", "theduojoker", "sparetrousersjoker", "zanyjoker",
+            "wilyjoker", "madjoker", "cleverjoker", "jollyjoker", "slyjoker",
+            "dnajoker", "tradingcardjoker",
+        }),
+    ),
+    "four_kind": (
+        "FOUR_OF_A_KIND",
+        frozenset({
+            "thefamilyjoker", "thetriojoker", "dnajoker", "zanyjoker",
+            "wilyjoker", "squarejoker", "theduojoker", "jollyjoker",
+            "slyjoker", "tradingcardjoker",
+        }),
+    ),
+    "straight_flush": (
+        "STRAIGHT_FLUSH",
+        frozenset({
+            "theorderjoker", "thetribejoker", "shortcutjoker", "fourfingersjoker",
+            "runnerjoker", "smearedjoker", "seancejoker", "crazyjoker",
+            "deviousjoker", "drolljoker", "craftyjoker",
+        }),
+    ),
+    "five_kind": (
+        "FIVE_OF_A_KIND",
+        frozenset({
+            "thefamilyjoker", "thetriojoker", "dnajoker", "theidoljoker",
+            "zanyjoker", "wilyjoker", "theduojoker", "jollyjoker", "slyjoker",
+            "tradingcardjoker",
+        }),
+    ),
+    "flush_house": (
+        "FLUSH_HOUSE",
+        frozenset({
+            "thetribejoker", "thetriojoker", "theduojoker", "sparetrousersjoker",
+            "zanyjoker", "wilyjoker", "madjoker", "cleverjoker", "smearedjoker",
+            "drolljoker", "craftyjoker", "jollyjoker", "slyjoker", "dnajoker",
+            "tradingcardjoker",
+        }),
+    ),
+    "flush_five": (
+        "FLUSH_FIVE",
+        frozenset({
+            "thefamilyjoker", "dnajoker", "theidoljoker", "thetribejoker",
+            "thetriojoker", "zanyjoker", "wilyjoker", "smearedjoker",
+            "drolljoker", "craftyjoker", "theduojoker", "jollyjoker",
+            "slyjoker", "tradingcardjoker",
+        }),
+    ),
+}
 
 
 def _normalize(value: object) -> str:
@@ -239,7 +313,7 @@ def _baron_mime_relationship(state, token: str) -> str:
         # Baron itself supplies the held-King payoff. Require either deliberate
         # King infrastructure or the defining Mime partner before treating ownership
         # as evidence for this specific leaf.
-        return SILVER if shaped_king_shell or _has_joker(state, "mimejoker") else NEUTRAL
+        return GOLD if shaped_king_shell or _has_joker(state, "mimejoker") else NEUTRAL
 
     if token == "mimejoker":
         # Mime alone does not make ordinary Kings useful. A Steel King gives Mime a
@@ -249,7 +323,7 @@ def _baron_mime_relationship(state, token: str) -> str:
             _normalize(getattr(card, "enhancement", "")) == "steel"
             for card in kings
         )
-        return SILVER if steel_king or _has_joker(state, "baronjoker") else NEUTRAL
+        return GOLD if steel_king or _has_joker(state, "baronjoker") else NEUTRAL
 
     return NEUTRAL
 
@@ -330,6 +404,14 @@ def _two_pair_obelisk_conflicts(state) -> bool:
     return _hand_is_most_played(state, "TWO_PAIR") and _two_pair_has_independent_commitment(state)
 
 
+def _other_poker_hand_obelisk_conflicts(state, strategy_id: str) -> bool:
+    hand_key, commitment_jokers = _POKER_HAND_OBELISK_COMMITMENTS[strategy_id]
+    committed = _hand_level_is_invested(state, hand_key) or bool(
+        _owned_joker_tokens(state) & commitment_jokers
+    )
+    return committed and _hand_is_most_played(state, hand_key)
+
+
 def _is_authoritative_conditional_relationship(strategy_id: str, item: object) -> bool:
     """Return whether conditional state is allowed to downgrade a static tier."""
     return (
@@ -360,6 +442,13 @@ def conditional_joker_relationship(
             return BANNED if _two_pair_obelisk_conflicts(state) else NEUTRAL
         if token in _TWO_PAIR_CONDITIONAL_SUPPORT_JOKERS:
             return _two_pair_conditional_support_relationship(state, token)
+
+    if token == "obeliskjoker" and strategy_id in _POKER_HAND_OBELISK_COMMITMENTS:
+        return (
+            BANNED
+            if _other_poker_hand_obelisk_conflicts(state, strategy_id)
+            else NEUTRAL
+        )
 
     if strategy_id == _BARON_MIME_STRATEGY_ID:
         if token in _BARON_MIME_CONDITIONAL_POSITIVE_JOKERS:

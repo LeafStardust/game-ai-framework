@@ -6,30 +6,38 @@ from games.balatro.strategy_catalog import UNIVERSAL_BALATRO_STRATEGIES, _strate
 from games.balatro.strategy_topology import StrategyNodeSpec, StrategyTopology
 
 
-_HIGH_CARD_TREE_IDS = frozenset(
+SECTION_ONE_ROOT_IDS = frozenset(
     {
         "high_card",
-        "high_card_core",
+        "pair",
+        "two_pair",
+        "three_kind",
+        "straight",
+        "flush",
+        "full_house",
+        "four_kind",
+        "straight_flush",
+        "five_kind",
+        "flush_house",
+        "flush_five",
+    }
+)
+SECTION_ONE_NODE_IDS = frozenset(
+    {
+        *SECTION_ONE_ROOT_IDS,
         "high_card_stuntman",
         "high_card_baron_mime",
     }
 )
-_PAIR_STRATEGY_ID = "pair"
-_TWO_PAIR_TREE_IDS = frozenset(
-    {
-        "two_pair",
-        "two_pair_core",
-        "two_pair_trousers_square",
-    }
-)
 
 
-def _high_card_tree_definitions():
-    """Return the first tree-owned strategy subtree.
+def _section_one_definitions():
+    """Return the frozen poker-hand strategy catalogue.
 
-    Relationship tiers describe strategy evidence, not generic Joker strength.
-    Broad High Card evidence belongs to the parent. Specific leaves contain only
-    evidence that distinguishes that realization from its siblings.
+    These definitions mirror section 1 of ``BALATRO_STRATEGY_RELATIONSHIPS.md``.
+    High Card is the only indexed branch: its parent owns generic evidence and its
+    children own only differentiating evidence. Every other poker hand is a
+    standalone strategy leaf.
     """
 
     return {
@@ -46,11 +54,10 @@ def _high_card_tree_definitions():
                 "Green Joker",
                 "Burglar",
             ),
+            silver_consumables=("The Chariot",),
+            directed_tarots=("The Chariot",),
             gold_planets=("Pluto",),
-        ),
-        "high_card_core": _strategy(
-            "high_card_core",
-            "Core Repetition / Level High Card",
+            preferred_enhancements=("Steel",),
         ),
         "high_card_stuntman": _strategy(
             "high_card_stuntman",
@@ -60,9 +67,8 @@ def _high_card_tree_definitions():
         "high_card_baron_mime": _strategy(
             "high_card_baron_mime",
             "Baron-Mime Steel-King High Card",
+            gold_jokers=("Baron", "Mime"),
             silver_jokers=(
-                "Baron",
-                "Mime",
                 "Blackboard",
                 "Shoot the Moon",
                 "Troubadour",
@@ -70,82 +76,164 @@ def _high_card_tree_definitions():
             ),
             bronze_jokers=("Raised Fist", "Reserved Parking"),
             banned_jokers=("Stuntman",),
-            silver_consumables=("The Chariot",),
-            preferred_enhancements=("Steel",),
-            preferred_seals=("Red",),
-            preferred_ranks=("K",),
-            face_mode="FACE",
         ),
-    }
-
-
-def _pair_tree_definition():
-    """Return the audited standalone Pair leaf.
-
-    Static relationships are limited to components that directly indicate Pair.
-    Generic repeated-hand and small-hand support is resolved conditionally once
-    independent Pair evidence already exists, so those Jokers cannot create a Pair
-    strategy from zero by themselves.
-    """
-
-    return _strategy(
-        "pair",
-        "Pair",
-        "PAIR",
-        gold_jokers=("The Duo",),
-        silver_jokers=("Jolly Joker", "Sly Joker"),
-        gold_planets=("Mercury",),
-    )
-
-
-def _two_pair_tree_definitions():
-    """Return the frozen Two Pair branch with a true Core fallback.
-
-    The parent owns broad evidence that specifically indicates Two Pair. The Core
-    leaf intentionally owns no direct evidence and becomes actionable only by
-    inheriting that parent foundation. Spare Trousers is placed on the specialized
-    child immediately because its mechanic explicitly scales on Two Pair; Square
-    Joker's conditional relationship is audited in the next leaf slice.
-    """
-
-    return {
+        "pair": _strategy(
+            "pair",
+            "Pair",
+            "PAIR",
+            gold_jokers=("The Duo",),
+            silver_jokers=("Jolly Joker", "Sly Joker", "Half Joker"),
+            gold_planets=("Mercury",),
+        ),
         "two_pair": _strategy(
             "two_pair",
             "Two Pair",
             "TWO_PAIR",
-            silver_jokers=("Mad Joker", "Clever Joker"),
+            gold_jokers=("Spare Trousers",),
+            silver_jokers=("Mad Joker", "Clever Joker", "Square Joker", "The Duo"),
+            bronze_jokers=("Jolly Joker", "Sly Joker"),
+            silver_consumables=("Death", "Strength"),
+            directed_tarots=("Death", "Strength"),
             gold_planets=("Uranus",),
         ),
-        "two_pair_core": _strategy(
-            "two_pair_core",
-            "Core Two Pair",
+        "three_kind": _strategy(
+            "three_kind",
+            "Three of a Kind",
+            "THREE_OF_A_KIND",
+            gold_jokers=("The Trio",),
+            silver_jokers=("Zany Joker", "Wily Joker", "DNA", "Half Joker", "The Duo"),
+            bronze_jokers=("Jolly Joker", "Sly Joker", "Trading Card"),
+            silver_consumables=("Death", "Strength", "Cryptid", "Ouija"),
+            directed_tarots=("Death", "Strength"),
+            directed_spectrals=("Cryptid", "Ouija"),
+            gold_planets=("Venus",),
         ),
-        "two_pair_trousers_square": _strategy(
-            "two_pair_trousers_square",
-            "Spare Trousers + Square Joker Two Pair",
-            gold_jokers=("Spare Trousers",),
+        "straight": _strategy(
+            "straight",
+            "Straight",
+            "STRAIGHT",
+            gold_jokers=("The Order", "Shortcut", "Four Fingers", "Runner", "Superposition"),
+            silver_jokers=("Crazy Joker", "Devious Joker"),
+            silver_consumables=("Strength", "Death"),
+            directed_tarots=("Strength", "Death"),
+            gold_planets=("Saturn",),
+        ),
+        "flush": _strategy(
+            "flush",
+            "Flush",
+            "FLUSH",
+            gold_jokers=("The Tribe",),
+            silver_jokers=("Droll Joker", "Crafty Joker", "Smeared Joker", "Four Fingers"),
+            silver_consumables=("The Lovers", "Sigil"),
+            directed_tarots=("The Lovers",),
+            directed_spectrals=("Sigil",),
+            gold_planets=("Jupiter",),
+            preferred_enhancements=("Wild",),
+            any_suit_concentration=True,
+        ),
+        "full_house": _strategy(
+            "full_house",
+            "Full House",
+            "FULL_HOUSE",
+            silver_jokers=(
+                "The Trio", "The Duo", "Spare Trousers", "Zany Joker",
+                "Wily Joker", "Mad Joker", "Clever Joker",
+            ),
+            bronze_jokers=("Jolly Joker", "Sly Joker", "DNA", "Trading Card"),
+            silver_consumables=("Death", "Strength", "Cryptid", "Ouija"),
+            directed_tarots=("Death", "Strength"),
+            directed_spectrals=("Cryptid", "Ouija"),
+            gold_planets=("Earth",),
+            minimum_positive_jokers=2,
+        ),
+        "four_kind": _strategy(
+            "four_kind",
+            "Four of a Kind",
+            "FOUR_OF_A_KIND",
+            gold_jokers=("The Family",),
+            silver_jokers=("The Trio", "DNA", "Zany Joker", "Wily Joker", "Square Joker"),
+            bronze_jokers=("The Duo", "Jolly Joker", "Sly Joker", "Trading Card"),
+            silver_consumables=("Death", "Strength", "Cryptid", "Ouija"),
+            directed_tarots=("Death", "Strength"),
+            directed_spectrals=("Cryptid", "Ouija"),
+            gold_planets=("Mars",),
+        ),
+        "straight_flush": _strategy(
+            "straight_flush",
+            "Straight Flush",
+            "STRAIGHT_FLUSH",
+            gold_jokers=(
+                "The Order", "The Tribe", "Shortcut", "Four Fingers", "Runner",
+                "Smeared Joker", "Seance",
+            ),
+            silver_jokers=("Crazy Joker", "Devious Joker", "Droll Joker", "Crafty Joker"),
+            silver_consumables=("Strength", "Death", "The Lovers", "Sigil"),
+            directed_tarots=("Strength", "Death", "The Lovers"),
+            directed_spectrals=("Sigil",),
+            gold_planets=("Neptune",),
+            preferred_enhancements=("Wild",),
+            any_suit_concentration=True,
+            minimum_positive_jokers=2,
+        ),
+        "five_kind": _strategy(
+            "five_kind",
+            "Five of a Kind",
+            "FIVE_OF_A_KIND",
+            gold_jokers=("The Family",),
+            silver_jokers=("The Trio", "DNA", "The Idol", "Zany Joker", "Wily Joker"),
+            bronze_jokers=("The Duo", "Jolly Joker", "Sly Joker", "Trading Card"),
+            silver_consumables=("Death", "Strength", "Cryptid", "Ouija"),
+            directed_tarots=("Death", "Strength"),
+            directed_spectrals=("Cryptid", "Ouija"),
+            gold_planets=("Planet X",),
+            minimum_positive_jokers=2,
+        ),
+        "flush_house": _strategy(
+            "flush_house",
+            "Flush House",
+            "FLUSH_HOUSE",
+            gold_jokers=("The Tribe",),
+            silver_jokers=(
+                "The Trio", "The Duo", "Spare Trousers", "Zany Joker", "Wily Joker",
+                "Mad Joker", "Clever Joker", "Smeared Joker", "Droll Joker", "Crafty Joker",
+            ),
+            bronze_jokers=("Jolly Joker", "Sly Joker", "DNA", "Trading Card"),
+            silver_consumables=("Death", "Strength", "The Lovers", "Cryptid", "Ouija", "Sigil"),
+            directed_tarots=("Death", "Strength", "The Lovers"),
+            directed_spectrals=("Cryptid", "Ouija", "Sigil"),
+            gold_planets=("Ceres",),
+            preferred_enhancements=("Wild",),
+            any_suit_concentration=True,
+            minimum_positive_jokers=2,
+        ),
+        "flush_five": _strategy(
+            "flush_five",
+            "Flush Five",
+            "FLUSH_FIVE",
+            gold_jokers=("The Family", "DNA", "The Idol", "The Tribe"),
+            silver_jokers=("The Trio", "Zany Joker", "Wily Joker", "Smeared Joker", "Droll Joker", "Crafty Joker"),
+            bronze_jokers=("The Duo", "Jolly Joker", "Sly Joker", "Trading Card"),
+            silver_consumables=("Death", "Strength", "The Lovers", "Cryptid", "Ouija", "Sigil"),
+            directed_tarots=("Death", "Strength", "The Lovers"),
+            directed_spectrals=("Cryptid", "Ouija", "Sigil"),
+            gold_planets=("Eris",),
+            preferred_enhancements=("Wild",),
+            any_suit_concentration=True,
+            minimum_positive_jokers=2,
         ),
     }
 
 
 _tree_definitions = dict(UNIVERSAL_BALATRO_STRATEGIES)
-_tree_definitions.pop("high_card", None)
-_tree_definitions.pop("two_pair", None)
-_tree_definitions[_PAIR_STRATEGY_ID] = _pair_tree_definition()
-_tree_definitions.update(_high_card_tree_definitions())
-_tree_definitions.update(_two_pair_tree_definitions())
+for _strategy_id in SECTION_ONE_ROOT_IDS:
+    _tree_definitions.pop(_strategy_id, None)
+_tree_definitions.update(_section_one_definitions())
 
 TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES = MappingProxyType(_tree_definitions)
 
 
 _runtime_nodes = [
     StrategyNodeSpec("high_card", "High Card"),
-    StrategyNodeSpec(
-        "high_card_core",
-        "Core Repetition / Level High Card",
-        parent_strategy_id="high_card",
-        is_fallback_leaf=True,
-    ),
     StrategyNodeSpec(
         "high_card_stuntman",
         "Stuntman / Small-Hand High Card",
@@ -156,24 +244,11 @@ _runtime_nodes = [
         "Baron-Mime Steel-King High Card",
         parent_strategy_id="high_card",
     ),
-    StrategyNodeSpec("two_pair", "Two Pair"),
-    StrategyNodeSpec(
-        "two_pair_core",
-        "Core Two Pair",
-        parent_strategy_id="two_pair",
-        is_fallback_leaf=True,
-    ),
-    StrategyNodeSpec(
-        "two_pair_trousers_square",
-        "Spare Trousers + Square Joker Two Pair",
-        parent_strategy_id="two_pair",
-    ),
 ]
 _runtime_nodes.extend(
     StrategyNodeSpec(strategy_id, definition.name)
     for strategy_id, definition in TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES.items()
-    if strategy_id not in _HIGH_CARD_TREE_IDS
-    and strategy_id not in _TWO_PAIR_TREE_IDS
+    if strategy_id not in {"high_card", "high_card_stuntman", "high_card_baron_mime"}
 )
 
 TREE_MIGRATED_BALATRO_STRATEGY_TOPOLOGY = StrategyTopology(_runtime_nodes)
