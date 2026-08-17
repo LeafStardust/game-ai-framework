@@ -35,6 +35,7 @@ Flush Five [L]
 Aces [L]
 Low-Rank Scoring [L]
 Twos / Wee-Hack [L]
+Ten-Four / Walkie Talkie [L]
 
 Sixes / Sixth Sense [L]
 Jacks / Hit the Road [L]
@@ -61,24 +62,22 @@ Hearts [I]
 ├── Bloodstone + Oops! All 6s Hearts [L]
 └── Bloodstone Retrigger Hearts [L]
 
-Diamonds [I]
-└── Rough Gem Diamond Economy / Scoring [L]
+Diamonds / Rough Gem Economy [L]
 
 Clubs [I]
-└── Onyx Agate / Seeing Double Clubs [L]
+├── Onyx Agate Club Scoring [L]
+└── Seeing Double Mixed-Suit Clubs [L]
 
-Spades [I]
-└── Arrowhead Spade Chips [L]
+Spades / Arrowhead Chips [L]
 
 Blackboard Held-Black Cards [L]
+Raised Fist Held-Minimum [L]
 
-Ancient Joker Suit-Rotation [I]
-└── Ancient + Smeared Suit-Rotation [L]
+Ancient Joker Suit-Rotation [L]
 
 Flower Pot Multi-Suit [I]
 ├── Splash + Flower Pot [L]
-├── Smeared Joker + Flower Pot [L]
-└── Smeared + Splash + Flower Pot [L]
+└── Smeared Joker + Flower Pot [L]
 ```
 
 ## 4. Enhancement strategies
@@ -178,7 +177,11 @@ Perkeo Consumable Duplication [I]
 ├── Perkeo + Cryptid Copy Engine [L]
 └── Perkeo Tarot / Spectral Engine [L]
 
-Fortune Teller Tarot-Use Scaling [L]
+Tarot Engine [I]
+├── Cartomancer Blind-Select Generation [L]
+├── Hallucination Pack-Open Generation [L]
+└── 8 Ball / Eights Tarot Generation [L]
+
 Vagabond Low-Money Tarot Engine [L]
 ```
 
@@ -235,6 +238,8 @@ Burnt Joker Hand-Level Engine [L]
 Last-Hand Burst [I]
 ├── Acrobat Last-Hand XMult [L]
 └── Dusk Last-Hand Retrigger [L]
+
+Loyalty Card Six-Hand Cycle [L]
 ```
 
 ## 13. Cross-cutting links
@@ -253,9 +258,12 @@ Cash Hoard                  <-> Bull / Bootstraps / Rocket / To the Moon / Cloud
 Discard Utilization         <-> Castle / Mail-In Rebate / Purple Seal / Hit the Road / Faceless / Yorick
 No-Discard                  <-> Green Joker / Banner / Delayed Gratification / Ramen / Burglar
 Hack / Fibonacci            <-> Twos / low-rank shaping / retriggers
+Walkie Talkie               <-> Fours / Tens / Even Steven / Hack-on-Fours / retriggers
 Hiker                       <-> compact deck / retriggers / DNA / trained scoring cards
 Blackboard                  <-> Spades / Clubs / High Card / Pair / held-card preservation
+Raised Fist                 <-> held-card minimum / Mime / Red Seal / high held ranks
 Planet Engine               <-> Constellation / Satellite / Blue Seal / Astronomer / hand levels
+Tarot Engine                <-> Fortune Teller / Cartomancer / Hallucination / 8 Ball / Purple Seal / Vagabond / Perkeo
 Business Card               <-> Face Cards / Pareidolia / retriggers / Red Seal
 Midas + Golden Ticket       <-> Face Cards / Gold Cards / retriggers
 Ancient Joker               <-> suit flexibility / Smeared Joker

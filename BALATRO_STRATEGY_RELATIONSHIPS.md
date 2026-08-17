@@ -47,8 +47,9 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
 | Aces | Aces `[L]` | Scholar | DNA *(with Ace commitment)*; Fibonacci *(with Ace commitment)*; Odd Todd *(with Ace commitment)* | The Idol *(Ace target + concentration)* | — | Death; Strength; The Hanged Man | — | Grim; Cryptid | — |
-| Low-Rank Scoring | Low-Rank Scoring `[L]` | Fibonacci; Hack | Odd Todd; Even Steven | Walkie Talkie | — | Death; Strength; The Hanged Man | — | Incantation; Cryptid | — |
+| Low-Rank Scoring | Low-Rank Scoring `[L]` | Fibonacci; Hack | Odd Todd; Even Steven | — | — | Death; Strength; The Hanged Man | — | Incantation; Cryptid | — |
 | Twos | Twos / Wee-Hack `[L]` | Wee Joker | Hack *(with Two commitment)*; Fibonacci *(with Two commitment)*; Even Steven *(with Two commitment)* | DNA *(with Two commitment)*; Hologram *(with Two commitment)*; The Idol *(Two target + concentration)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
+| Ten-Four | Ten-Four / Walkie Talkie `[L]` | Walkie Talkie | Even Steven *(with Ten-Four commitment)*; Hack *(with Four commitment)* | DNA; Hologram; The Idol *(all with Ten-Four commitment)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
 | Sixes / Sixth Sense | Sixes / Sixth Sense `[L]` | Sixth Sense | Even Steven *(with Six commitment)* | — | — | Death; Strength | — | — | — |
 | Jacks / Hit the Road | Jacks / Hit the Road `[L]` | Hit the Road | Faceless Joker *(with Jack commitment)*; Mail-In Rebate *(Jack target)* | Merry Andy *(with Hit the Road)*; Drunkard *(with Hit the Road)* | — | Death; Strength | — | Cryptid | — |
 | Queens / Shoot the Moon | Queens / Shoot the Moon `[L]` | Shoot the Moon | Mime *(with Queen commitment)* | Reserved Parking *(with Queen commitment)* | — | Death; Strength | — | Cryptid | Steel Queens |
@@ -67,22 +68,20 @@ A component must not be duplicated between a parent and child row. If it is spec
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Hearts | Hearts `[I]` | TBD | TBD | TBD | TBD | The Sun | TBD | Sigil | Wild |
-| Hearts | ↳ Bloodstone + Oops! All 6s Hearts `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Hearts | ↳ Bloodstone Retrigger Hearts `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Diamonds | Diamonds `[I]` | TBD | TBD | TBD | TBD | The Star | TBD | Sigil | Wild |
-| Diamonds | ↳ Rough Gem Diamond Economy / Scoring `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Clubs | Clubs `[I]` | TBD | TBD | TBD | TBD | The Moon | TBD | Sigil | Wild |
-| Clubs | ↳ Onyx Agate / Seeing Double Clubs `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Spades | Spades `[I]` | TBD | TBD | TBD | TBD | The World | TBD | Sigil | Wild |
-| Spades | ↳ Arrowhead Spade Chips `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Blackboard Held-Black Cards | Blackboard Held-Black Cards `[L]` | TBD | TBD | TBD | TBD | The Moon; The World | TBD | Sigil | TBD |
-| Ancient Joker Suit-Rotation | Ancient Joker Suit-Rotation `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | Sigil | Wild |
-| Ancient Joker Suit-Rotation | ↳ Ancient + Smeared Suit-Rotation `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Flower Pot Multi-Suit | Flower Pot Multi-Suit `[I]` | TBD | TBD | TBD | TBD | The Star; The Moon; The Sun; The World | TBD | Sigil | Wild |
-| Flower Pot Multi-Suit | ↳ Splash + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | Wild |
-| Flower Pot Multi-Suit | ↳ Smeared Joker + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | Wild |
-| Flower Pot Multi-Suit | ↳ Smeared + Splash + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | Wild |
+| Hearts | Hearts `[I]` | Bloodstone | Lusty Joker; Smeared Joker *(with Heart payoff)* | — | — | The Sun; Death; The Hanged Man | — | Sigil | Wild |
+| Hearts | ↳ Bloodstone + Oops! All 6s Hearts `[L]` | Oops! All 6s *(with Bloodstone)* | — | — | — | — | — | — | — |
+| Hearts | ↳ Bloodstone Retrigger Hearts `[L]` | — | Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(all with Bloodstone)* | — | — | — | — | Deja Vu | — |
+| Diamonds / Rough Gem Economy | Diamonds / Rough Gem Economy `[L]` | Rough Gem | Greedy Joker; Smeared Joker *(with Diamond payoff)*; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(retrigger support requires Rough Gem or Greedy Joker)* | — | — | The Star; Death; The Hanged Man | — | Sigil | Wild |
+| Clubs | Clubs `[I]` | — | Gluttonous Joker; Smeared Joker *(with Club payoff)* | — | — | The Moon; Death; The Hanged Man | — | Sigil | Wild |
+| Clubs | ↳ Onyx Agate Club Scoring `[L]` | Onyx Agate | Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(all with Onyx Agate)* | — | — | — | — | Deja Vu | — |
+| Clubs | ↳ Seeing Double Mixed-Suit Clubs `[L]` | Seeing Double | — | — | — | The Lovers | — | — | Wild |
+| Spades / Arrowhead Chips | Spades / Arrowhead Chips `[L]` | Arrowhead | Wrathful Joker; Smeared Joker *(with Spade payoff)*; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(retrigger support requires Arrowhead or Wrathful Joker)* | — | — | The World; Death; The Hanged Man | — | Sigil | Wild |
+| Blackboard Held-Black Cards | Blackboard Held-Black Cards `[L]` | Blackboard | — | — | — | The Moon; The World | — | — | Wild |
+| Raised Fist Held-Minimum | Raised Fist Held-Minimum `[L]` | Raised Fist | Mime *(with Raised Fist)* | — | — | Strength; Death; The Hanged Man | — | Familiar; Grim; Cryptid; Deja Vu | — |
+| Ancient Joker Suit-Rotation | Ancient Joker Suit-Rotation `[L]` | Ancient Joker | Smeared Joker; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(all with Ancient Joker)* | — | — | The Star; The Moon; The Sun; The World | — | Sigil; Deja Vu | Wild |
+| Flower Pot Multi-Suit | Flower Pot Multi-Suit `[I]` | Flower Pot | — | — | — | The Star; The Moon; The Sun; The World | — | Sigil | Wild |
+| Flower Pot Multi-Suit | ↳ Splash + Flower Pot `[L]` | Splash *(with Flower Pot)* | — | — | — | — | — | — | — |
+| Flower Pot Multi-Suit | ↳ Smeared Joker + Flower Pot `[L]` | Smeared Joker *(with Flower Pot)* | — | — | — | — | — | — | — |
 
 ## 4. Enhancements
 
@@ -168,7 +167,10 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Perkeo Consumable Duplication | ↳ Perkeo + Observatory Planet Stack `[L]` | TBD | TBD | TBD | TBD | — | TBD | — | — |
 | Perkeo Consumable Duplication | ↳ Perkeo + Cryptid Copy Engine `[L]` | TBD | TBD | TBD | TBD | — | — | Cryptid | — |
 | Perkeo Consumable Duplication | ↳ Perkeo Tarot / Spectral Engine `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Fortune Teller Tarot-Use Scaling | Fortune Teller Tarot-Use Scaling `[L]` | TBD | TBD | TBD | TBD | Any | — | — | — |
+| Tarot Engine | Tarot Engine `[I]` | Fortune Teller | — | — | — | Any | — | — | — |
+| Tarot Engine | ↳ Cartomancer Blind-Select Generation `[L]` | Cartomancer | — | — | — | Any | — | — | — |
+| Tarot Engine | ↳ Hallucination Pack-Open Generation `[L]` | Hallucination | — | — | — | Any | — | — | — |
+| Tarot Engine | ↳ 8 Ball / Eights Tarot Generation `[L]` | 8 Ball | Oops! All 6s; Hanging Chad; Seltzer; Dusk *(all with 8 Ball)* | Fibonacci *(with Eight commitment)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
 | Vagabond Low-Money Tarot Engine | Vagabond Low-Money Tarot Engine `[L]` | TBD | TBD | TBD | TBD | Any | — | — | — |
 
 ## 9. Economy, shop, reroll, blind skip
@@ -220,3 +222,4 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Last-Hand Burst | Last-Hand Burst `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Last-Hand Burst | ↳ Acrobat Last-Hand XMult `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Last-Hand Burst | ↳ Dusk Last-Hand Retrigger `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Loyalty Card Six-Hand Cycle | Loyalty Card Six-Hand Cycle `[L]` | Loyalty Card | TBD | TBD | TBD | — | — | — | — |
