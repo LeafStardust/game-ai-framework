@@ -63,7 +63,7 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 
 - [x] Calibrate D3/D8/D9/D10/D11 acquisition, reroll and pack thresholds around survival, build value and economy; keep D12 threshold-free and calibrate D14 shared resource valuation on the same scale.
 - [x] Model run-wide voucher value plus reserve/interest breakpoints, including observable voucher-modified caps or thresholds.
-- [x] Keep undiscovered-item acquisition bias bounded so it never overrides survival or build coherence.
+- [x] Keep undiscovered-item acquisition bias bounded so it never overrides survival or build coherence. Explicitly undiscovered positive options receive only a one-ULP tie-break, never a value-changing exploration bonus.
 
 ### 1.0E — Blind skip/tag strategy
 
@@ -72,31 +72,33 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 
 ### 1.0F — Universal strategy tree and scoring
 
-The first flat universal-strategy implementation proved the current-state evidence, candidate alignment, Ante-pressure, D1/D13 integration, replacement, consumable, and conditional-relationship concepts. Its flat catalogue/topology is now **legacy design** and is being replaced by the tree model in `BALATRO_STRATEGY_TREE.md` before further catalogue work.
+The first flat universal-strategy implementation proved current-state evidence, candidate alignment, Ante pressure, D1/D13 integration, replacement, consumable, and conditional-relationship concepts. Its flat catalogue/topology is now **legacy design**. The frozen replacement topology is in `BALATRO_STRATEGY_TREE.md`; implementation now migrates that tree into the runtime without discarding already-green strategic consumers.
 
 - [x] Establish zero-evidence early buying: ordinary/meta/context value leads before the run owns strategic evidence.
+- [x] Preserve the bounded explicitly-undiscovered item tie-break; discovery may separate otherwise equal positive options but must never override survival, economy, or strategy.
 - [x] Establish current-state recomputation, used-Planet evidence, unopened-consumable exclusion, Ante pressure, dominant/relevant diagnostics, candidate alignment, and negative-times-negative protection in the prototype runtime.
 - [x] Integrate strategy awareness into major deterministic slices already completed, including D1 hand hierarchy, D13 blind skip/tag, booster acquisition, consumable timing/targeting, and Joker replacement/retention.
 - [x] Add state-aware conditional relationship infrastructure and conservative runtime guards for unresolved conditional catalogue entries.
-- [x] Replace the four obsolete flat strategy Markdown files with one `BALATRO_STRATEGY_TREE.md` design contract and align `ARCHITECTURE.md` with the redesign.
-- [ ] **Freeze the strategy forest topology before assigning new tiers.** Confirm every current flat strategy is retained, split, replaced, or explicitly removed; admit new named-engine leaves only when they materially change multiple downstream decisions.
-- [ ] Finalize the first known structural splits: High Card (`Core`, `Stuntman/Small-Hand`, `Baron-Mime`), Face Cards (`Played`, `Held`), Gold Cards (`Held Economy`, `Golden Ticket Scoring`), and Red Seal (`Played`, `Held`), then audit the remaining roots for any similarly real specialization.
-- [ ] Encode node IDs, parent IDs, internal/leaf roles, core/fallback-leaf behavior, and the rule that **only leaves appear in the actionable ranking**.
-- [ ] Separate `direct_evidence`, internal `foundation/branch_score`, and leaf `effective_score`.
+- [x] Replace the four obsolete flat strategy Markdown files with separate topology (`BALATRO_STRATEGY_TREE.md`) and rules (`BALATRO_STRATEGY_TREE_RULES.md`) documents; align `ARCHITECTURE.md` with the redesign.
+- [x] **Freeze the v1.0F strategy forest topology.** Roots/children/leaves cover the audited poker-hand, rank, suit, enhancement, seal, named-engine, economy, discard, deck-growth, consumable, and Joker-board strategies. Further topology changes require a real defect or live-validation finding.
+- [x] Define leaf-only ranking, parent-foundation semantics, descendant-upward evidence, no blind downward activation, no natural poker-hand transition graph, and Negative-Joker retention rules in the design contract.
+- [x] Add the first runtime topology scaffold with validated node IDs, parent links, roots, leaves, ancestor paths, fallback-leaf metadata, cycle rejection, and the initial High Card subtree.
+- [ ] Migrate `StrategyDefinition`/catalogue ownership onto topology node IDs and encode the remaining frozen nodes without duplicating component metadata.
+- [ ] Separate `direct_evidence`, internal `foundation_score`, and leaf `effective_score` in the runtime.
 - [ ] Implement discounted descendant -> ancestor evidence propagation while preventing recursive self-evidence double counting.
-- [ ] Do not automatically propagate ancestor evidence downward. A specific non-fallback child must first have qualifying child evidence before inheriting ancestor direct foundation.
-- [ ] Remove generic poker-hand play count from universal strategy evidence. Preserve hand history only for mechanics that explicitly use it.
-- [ ] Implement the global Negative-Joker retention rule: protect Negative Jokers from ordinary replacement pressure unless their active mechanic materially harms the build or intentional sacrifice/destruction is justified by the active strategy.
-- [ ] Add explicit destructive/named-engine strategy contexts where required, including Ceremonial Dagger and Vampire, rather than handling them as unexplained one-off exceptions.
-- [ ] Audit and assign exact Gold/Silver/Bronze/Banned/conditional relationships **one tree node at a time**, beginning only after topology freeze. Banned must mean genuine strategic conflict, not merely support for a competing strategy.
-- [ ] Rebuild the inverse `component -> strategy/relationship` index from the tree-owned catalogue without editing all 150 Joker classes.
+- [ ] Do not automatically propagate ancestor evidence downward. A specific non-fallback child must first have qualifying child evidence before inheriting ancestor native/direct foundation.
+- [ ] Rank leaves only; suppress a fallback/core leaf once a sufficiently established specific sibling represents the same branch.
+- [ ] Remove generic poker-hand play count from universal strategy evidence. Preserve hand history only for mechanics that explicitly use it; retain persistent hand-level/Planet investment evidence.
+- [ ] Implement the global Negative-Joker retention rule in sell/replace policy: protect Negative Jokers from ordinary replacement pressure unless their active mechanic materially harms the build or intentional sacrifice/destruction is justified by the active strategy.
+- [ ] Rebuild Gold/Silver/Bronze/Banned/conditional relationships **node by node**, beginning with the High Card root and its leaves. Banned must mean genuine strategic conflict, not merely support for a competing strategy.
+- [ ] Rebuild the inverse `component -> strategy/relationship` index from tree-owned catalogue data without editing all 150 Joker classes.
 - [ ] Keep strategy evidence separate from candidate purchase/retention value: inherent/meta/survival/economy value remains independently available at every Ante.
 - [ ] Preserve the intended Ante behavior: broad exploration/foundation in Antes 1–2, convergence in Antes 3–5 as Joker slots become scarce, and specialization from Ante 6 around the highest-ranked viable leaf plus up to two compatible relevant leaves.
 - [ ] Keep early Tarot/Spectral strategy-seeding available while requiring real poker-hand evidence before meaningful paid Planet investment.
 - [ ] Add Red Deck / White Stake cartridge modifiers over the universal strategy tree without redefining topology or component relationships.
-- [ ] Migrate D1–D14 consumers from the legacy flat ranking to leaf rankings while guaranteed blind survival remains superior to strategy purity.
-- [ ] Log leaf rankings, node direct evidence, ancestor foundation, score contributors, candidate strategy adjustment, Ante pressure, pivots, conflicts, Negative-Joker protection, sell/replacement rationale, and final decision decomposition.
-- [ ] Add deterministic regressions for tree propagation, no downward auto-activation, no recursive double count, fallback-leaf suppression, leaf-only ranking, zero-evidence buying, removal on sale, Planet investment, Negative retention, conflicts, Ante pressure, consumables, packs, and D1 hand preference.
+- [ ] Migrate existing D1–D14 strategy consumers from legacy flat ranking to leaf ranking rather than reimplementing already-green policy layers; guaranteed blind survival remains superior to strategy purity.
+- [ ] Log leaf rankings, node direct evidence, ancestor foundation, effective score, path, score contributors, candidate strategy adjustment, Ante pressure, pivots, conflicts, Negative-Joker protection, sell/replacement rationale, and final decision decomposition.
+- [ ] Add deterministic regressions for propagation, no downward auto-activation, no recursive double count, fallback-leaf suppression, leaf-only ranking, zero-evidence buying, removal on sale, Planet investment, Negative retention, conflicts, Ante pressure, consumables, packs, and D1 hand preference.
 - [ ] Run specialized live validation only after deterministic tree behavior is stable.
 
 ### 1.0G — Final freeze and acceptance gate
