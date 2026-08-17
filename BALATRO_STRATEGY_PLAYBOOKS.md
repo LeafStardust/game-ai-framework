@@ -197,11 +197,14 @@ In Antes 1–2 it should intentionally acquire useful scoring/economy/build piec
 - improve immediate survival;
 - have broadly useful Bronze value;
 - create Silver/Gold evidence for one or more strategies;
+- include worthwhile Tarot/Spectral cards or packs capable of creating useful deck structure or seeding a strategy;
 - do not catastrophically damage economy.
 
 The objective is to create strategic evidence from RNG rather than demand that RNG already match a nonexistent strategy.
 
 A completely empty Joker board caused by "nothing matches my strategy" is a policy failure during this phase.
+
+Planet spending is different: a Planet primarily reinforces one poker hand, so the agent should normally require actual evidence for that poker-hand direction before buying or consuming it.
 
 ### Antes 3–5 — convergence
 
@@ -268,40 +271,50 @@ Priority remains approximately:
 
 ## 8. Consumables, Planets, and packs
 
-This strategy model is specifically intended to eliminate pointless consumable and booster spending.
+This strategy model is specifically intended to eliminate pointless consumable and booster spending, but **Tarot/Spectral exploration and Planet investment must not use the same gate**.
 
-### Planets
+### Tarot / Spectral cards — allowed to seed strategies
 
-A Planet must not become attractive merely because its effect is generically positive.
+Tarot and especially Spectral cards can materially reshape the deck, create enhanced cards, duplicate ranks, destroy cards, change suits, or otherwise create the structural evidence that a strategy needs.
 
-It should receive meaningful strategic value when:
-
-- its poker hand is the dominant strategy;
-- its poker hand is a relevant strategy;
-- the current deck/hand investment provides strong evidence for that hand during the convergence phase.
-
-Late-game off-strategy Planets should normally be ignored.
-
-A Planet by itself should not create a new strategy late in a run.
-
-### Tarot / Spectral cards
-
-Tarot/Spectral acquisition and use should be scored against the playbooks they advance.
+Therefore in Antes 1–2 they may be acquired and used **before a dominant or relevant strategy exists** when their effect has credible standalone structural value or can seed one or more viable playbooks.
 
 Examples:
 
-- suit conversion can support Flush or Smeared/Splash + Flower Pot;
-- card destruction can support rank concentration, Canio Destruction, Faceless shaping, or deck thinning;
-- enhancement creation can support Steel, Glass, Lucky, etc.;
-- rank conversion can support Aces, Three/Four/Five of a Kind, or other rank-concentration plans.
+- suit conversion can seed Flush or Smeared/Splash + Flower Pot;
+- card destruction can begin rank concentration, Canio Destruction, Faceless shaping, or general deck thinning;
+- enhancement creation can seed Steel, Glass, Lucky, Vampire, etc.;
+- rank conversion/duplication can seed Aces, Three/Four/Five of a Kind, Full House, or other rank-concentration plans.
 
-A random transformation with no credible relationship to the dominant/relevant strategies should lose most of its speculative value by late game.
+Early Tarot/Spectral openness is deliberate exploration, not random use. The agent should still reject transformations that are immediately harmful, have negligible structural value, or destroy stronger existing evidence.
+
+As the run converges during Antes 3–5, Tarot/Spectral value should increasingly depend on whether the effect advances the leading strategies. By Ante 6+, unrelated transformations should lose most speculative value unless they enable a genuinely transformative pivot or are required for survival.
+
+### Planets — require poker-hand evidence
+
+Planets are fundamentally different because they mostly spend resources to permanently upgrade **one specific poker hand** rather than opening a broad family of future build directions.
+
+A Planet must not become attractive merely because its effect is generically positive, and a Planet should not be used as the thing that invents a poker-hand strategy from nothing.
+
+Before buying or consuming a Planet, the run should normally have meaningful evidence for that poker-hand direction through one or more of:
+
+- the poker hand is already dominant or relevant;
+- owned Jokers materially reward that poker hand;
+- deck shape makes the poker hand reliably constructible;
+- actual repeated hand usage demonstrates that it is a real scoring line;
+- existing hand-level investment and supporting components show an intentional transition toward it.
+
+Late-game off-strategy Planets should normally be ignored. Unsupported speculative upgrades such as Neptune with no Straight-Flush structure are explicit policy failures.
 
 ### Booster packs
 
-Pack value should be derived from the probability/value of obtaining components for existing promising strategies, plus immediate survival utility.
+Pack families inherit the same asymmetry.
 
-The agent should not buy a Celestial/Arcana/Spectral pack simply because "packs are good" when the plausible contents are mostly irrelevant to the run.
+- **Arcana/Spectral packs:** may have real exploratory value in Antes 1–2 because their contents can create strategy evidence and deck structure.
+- **Celestial packs:** should normally require credible poker-hand evidence because their primary value is hand-specific Planet investment.
+- As convergence increases, all pack purchases should increasingly derive value from the dominant/relevant strategies plus immediate survival utility.
+
+The agent should never reduce pack evaluation to "packs are good." It should ask whether the plausible contents can create or reinforce useful strategic structure at the current Ante.
 
 ---
 
@@ -761,7 +774,8 @@ Implementation order:
 
 - The agent starts with **no assumed strategy**.
 - Antes 1–2 must permit and normally require useful purchases so RNG can create strategy evidence.
-- A random Planet/Tarot/Joker must not create a strong late strategy merely because its standalone effect is positive.
+- Tarot/Spectral cards may seed strategies during early exploration when their structural effect is useful; they do not require a pre-existing dominant strategy.
+- Planets normally require actual poker-hand strategy evidence before purchase/use and must not create a poker-hand strategy merely because upgrading a hand is generically positive.
 - Antes 3–5 progressively favor coherent existing directions.
 - By Ante 6, when evidence exists, the run should normally have **one dominant strategy and at most two relevant strategies**.
 - The dominant strategy guides future build decisions but does not override guaranteed blind survival.
