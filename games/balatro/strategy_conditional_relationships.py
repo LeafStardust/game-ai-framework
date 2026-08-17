@@ -30,6 +30,8 @@ _STRAIGHT_FLUSH_SUIT_JOKERS = {
     "onyxagatejoker": "Clubs",
     "roughgemjoker": "Diamonds",
 }
+_BARON_MIME_STRATEGY_ID = "high_card_baron_mime"
+_BARON_MIME_CONDITIONAL_JOKERS = frozenset({"baronjoker", "mimejoker"})
 
 
 def _normalize(value: object) -> str:
@@ -53,6 +55,10 @@ def _regular_deck(state) -> list:
 
 def _item_token(item: object) -> str:
     return _normalize(type(item).__name__)
+
+
+def _has_joker(state, token: str) -> bool:
+    return any(_item_token(joker) == token for joker in getattr(state, "jokers", ()) or ())
 
 
 def _straight_exists_in_effective_suit(state, suit: str) -> bool:
@@ -133,6 +139,61 @@ def _dna_rank_collapse_conflicts_with_straight_flush(state) -> bool:
     return not HandEvaluator().contains(deck, PokerHand.STRAIGHT, rules=rules)
 
 
+def _baron_mime_king_shell(state) -> tuple[list, bool]:
+    """Return current Kings and whether public deck shaping deliberately supports them."""
+    deck = _regular_deck(state)
+    kings = [card for card in deck if str(getattr(card, "rank", "")) == "K"]
+    if not kings:
+        return kings, False
+
+    # Rank density is evidence only above the current deck's natural 1/13 share.
+    # This also correctly recognizes King-preserving deck thinning without needing
+    # hidden card-add/remove history.
+    if len(kings) > len(deck) / 13.0:
+        return kings, True
+
+    # A transformed King is deliberate held-card infrastructure even when the raw
+    # number of Kings has not increased.
+    shaped = any(
+        _normalize(getattr(card, "enhancement", "")) == "steel"
+        or _normalize(getattr(card, "seal", "")) == "red"
+        for card in kings
+    )
+    return kings, shaped
+
+
+def _baron_mime_relationship(state, token: str) -> str:
+    kings, shaped_king_shell = _baron_mime_king_shell(state)
+    if not kings:
+        return NEUTRAL
+
+    if token == "baronjoker":
+        # Baron itself supplies the held-King payoff. Require either deliberate
+        # King infrastructure or the defining Mime partner before treating ownership
+        # as evidence for this specific leaf.
+        return SILVER if shaped_king_shell or _has_joker(state, "mimejoker") else NEUTRAL
+
+    if token == "mimejoker":
+        # Mime alone does not make ordinary Kings useful. A Steel King gives Mime a
+        # held-card ability to retrigger; alternatively an owned Baron makes every
+        # held King a relevant retrigger target immediately.
+        steel_king = any(
+            _normalize(getattr(card, "enhancement", "")) == "steel"
+            for card in kings
+        )
+        return SILVER if steel_king or _has_joker(state, "baronjoker") else NEUTRAL
+
+    return NEUTRAL
+
+
+def _is_authoritative_conditional_relationship(strategy_id: str, item: object) -> bool:
+    """Return whether conditional state is allowed to downgrade a static tier."""
+    return (
+        strategy_id == _BARON_MIME_STRATEGY_ID
+        and _item_token(item) in _BARON_MIME_CONDITIONAL_JOKERS
+    )
+
+
 def conditional_joker_relationship(
     state,
     strategy_id: str,
@@ -140,6 +201,9 @@ def conditional_joker_relationship(
 ) -> str:
     """Resolve state-dependent Joker relationships from current public run state."""
     token = _item_token(item)
+
+    if strategy_id == _BARON_MIME_STRATEGY_ID and token in _BARON_MIME_CONDITIONAL_JOKERS:
+        return _baron_mime_relationship(state, token)
 
     if strategy_id == "flush" and token == "seeingdoublejoker":
         return BRONZE if _seeing_double_flush_is_feasible(state) else NEUTRAL
@@ -192,6 +256,11 @@ class _ConditionalDefinitionView:
             self._definition.strategy_id,
             item,
         )
+        if _is_authoritative_conditional_relationship(
+            self._definition.strategy_id,
+            item,
+        ):
+            return conditional
         return (
             conditional
             if _RELATIONSHIP_PRIORITY[conditional] > _RELATIONSHIP_PRIORITY[static]
@@ -237,6 +306,12 @@ class StateAwareBalatroStrategyTracker(BalatroStrategyTracker):
                 strategy_id,
                 item,
             )
+            if _is_authoritative_conditional_relationship(strategy_id, item):
+                if conditional == NEUTRAL:
+                    found.pop(strategy_id, None)
+                else:
+                    found[strategy_id] = conditional
+                continue
             if conditional == NEUTRAL:
                 continue
             previous = found.get(strategy_id, NEUTRAL)
