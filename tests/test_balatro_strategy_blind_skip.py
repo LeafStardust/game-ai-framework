@@ -1,4 +1,5 @@
 from games.balatro.actions import SELECT_BLIND
+from games.balatro.blind_skip_policy import BlindSkipThresholds
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.playbook import default_balatro_playbooks
@@ -48,9 +49,7 @@ def _snapshot(*, blind_type="SMALL", tag="tag_meteor", reward=3):
     )
 
 
-def _thresholds(state):
-    from games.balatro.blind_skip_policy import BlindSkipThresholds
-
+def _thresholds(state) -> BlindSkipThresholds:
     return BlindSkipThresholds.from_mapping(
         default_balatro_playbooks().for_state(state).thresholds_for("D13")
     )
@@ -102,17 +101,18 @@ def test_d13_orbital_tag_is_bounded_penalty_when_it_upgrades_off_strategy_hand_l
     state = _state()
     state.hand_play_counts["HIGH_CARD"] = 5
     state.hand_play_counts["PAIR"] = 2
+    thresholds = _thresholds(state)
 
     decision = _policy().decide(
         _snapshot(tag="tag_orbital"),
         state,
-        thresholds=_thresholds(state),
+        thresholds=thresholds,
     )
 
     assert decision.dominant_strategy_id == "pair"
     assert decision.strategy_tag_adjustment < 0.0
     assert decision.strategy_tag_support == "off-shortlist-development-tag"
-    assert abs(decision.strategy_tag_adjustment) <= decision.thresholds.max_tag_build_adjustment if hasattr(decision, "thresholds") else True
+    assert abs(decision.strategy_tag_adjustment) <= thresholds.max_tag_build_adjustment
 
 
 def test_d13_strategy_tag_value_does_not_override_big_blind_boss_preparation_cost():
