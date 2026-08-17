@@ -3,6 +3,7 @@ from games.balatro.jokers.arrowhead import ArrowheadJoker
 from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.dna import DNAJoker
 from games.balatro.jokers.mime import MimeJoker
+from games.balatro.jokers.obelisk import ObeliskJoker
 from games.balatro.jokers.seeing_double import SeeingDoubleJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.jokers.the_idol import TheIdolJoker
@@ -349,6 +350,50 @@ def test_stuntman_candidate_is_gold_for_small_hand_leaf_and_banned_for_establish
 
     assert relationships["high_card_stuntman"] == GOLD
     assert relationships["high_card_baron_mime"] == BANNED
+
+
+def test_obelisk_uses_play_history_only_after_non_history_high_card_commitment_exists():
+    state = _state()
+    state.hand_play_counts["HIGH_CARD"] = 8
+
+    assert (
+        conditional_joker_relationship(state, "high_card", ObeliskJoker())
+        == NEUTRAL
+    )
+
+    state.hand_levels["HIGH_CARD"] = 2
+    assert (
+        conditional_joker_relationship(state, "high_card", ObeliskJoker())
+        == BANNED
+    )
+
+
+def test_obelisk_stops_conflicting_when_high_card_is_not_a_most_played_hand():
+    state = _state()
+    state.hand_levels["HIGH_CARD"] = 2
+    state.hand_play_counts["HIGH_CARD"] = 4
+    state.hand_play_counts["PAIR"] = 5
+
+    assert (
+        conditional_joker_relationship(state, "high_card", ObeliskJoker())
+        == NEUTRAL
+    )
+
+
+def test_obelisk_candidate_index_uses_same_current_mechanical_conflict():
+    state = _state()
+    state.hand_levels["HIGH_CARD"] = 2
+    state.hand_play_counts["HIGH_CARD"] = 4
+    tracker = _tree_definition_tracker()
+    tracker.assess(state)
+
+    relationships = tracker._relationships_for(ObeliskJoker(), kind="JOKER")
+    assert relationships["high_card"] == BANNED
+
+    state.hand_play_counts["PAIR"] = 5
+    tracker.assess(state)
+    relationships = tracker._relationships_for(ObeliskJoker(), kind="JOKER")
+    assert "high_card" not in relationships
 
 
 def test_production_strategy_runner_uses_tree_state_aware_strategy_tracker():
