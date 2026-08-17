@@ -190,7 +190,7 @@ def test_old_competing_hand_jokers_are_not_high_card_banned_relationships():
     assert definition.relationship_for(_joker("The Trio"), kind="JOKER") == NEUTRAL
 
 
-def test_unsplit_strategy_scores_remain_identical_during_hybrid_migration():
+def test_unsplit_strategy_positive_scores_remain_identical_during_hybrid_migration():
     state = _state(
         jokers=(
             _joker("The Duo"),
@@ -211,4 +211,24 @@ def test_unsplit_strategy_scores_remain_identical_during_hybrid_migration():
         if assessment.strategy_id == "pair"
     )
 
+    assert tree_pair.score == pytest.approx(legacy_pair.score)
+
+
+def test_unsplit_strategy_negative_scores_remain_identical_during_hybrid_migration():
+    state = _state(jokers=(_joker("The Trio"),))
+    legacy = StateAwareBalatroStrategyTracker(RUNTIME_UNIVERSAL_BALATRO_STRATEGIES)
+    tree = _tracker()
+
+    legacy_pair = next(
+        assessment
+        for assessment in legacy.assess(state)
+        if assessment.strategy_id == "pair"
+    )
+    tree_pair = next(
+        assessment
+        for assessment in tree.assess(state)
+        if assessment.strategy_id == "pair"
+    )
+
+    assert legacy_pair.score < 0.0
     assert tree_pair.score == pytest.approx(legacy_pair.score)
