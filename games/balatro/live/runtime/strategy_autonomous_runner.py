@@ -16,7 +16,7 @@ from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.strategy import BalatroStrategyTracker
 from games.balatro.strategy_blind_skip_policy import StrategyAwareBlindSkipPolicy
 from games.balatro.strategy_booster_policy import StrategyAwarePlaybookShopArbiter
-from games.balatro.strategy_catalog import UNIVERSAL_BALATRO_STRATEGIES
+from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
 from games.balatro.strategy_compat import NeutralLegacyPlaystyleIntentTracker
 from games.balatro.strategy_pack_playstyle import StrategyAwarePackPlaystyleEvaluator
 from games.balatro.strategy_value import (
@@ -54,14 +54,13 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
         # The parent wires several mature policies to one legacy Ante-5-locking
         # playstyle tracker. Keep the mechanics but neutralize that strategic signal
         # before constructing the universal-strategy wrappers. Build-intent logging
-        # keeps the neutral bridge while D1/D2/D7/D8/D9/D13 and shop valuation use
-        # the shared universal strategy tracker below.
+        # retains the neutral bridge while strategy diagnostics below become the
+        # authoritative strategic record.
         self.playstyle_intent_tracker = NeutralLegacyPlaystyleIntentTracker()
         self.build_intent_log_tracker.intent_tracker = self.playstyle_intent_tracker
-        self.blind_skip_policy.intent_tracker = self.playstyle_intent_tracker
 
         self.strategy_tracker = BalatroStrategyTracker(
-            UNIVERSAL_BALATRO_STRATEGIES,
+            RUNTIME_UNIVERSAL_BALATRO_STRATEGIES,
             modifier_provider=_strategy_modifiers_for_state,
         )
         self.blind_skip_policy = StrategyAwareBlindSkipPolicy(
