@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import replace
 
 from games.balatro.live.hand_action_policy import HandActionThresholds
+from games.balatro.live.strategy_consumable_timing import (
+    StrategyAwareLiveConsumableTimingPolicy,
+)
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 from games.balatro.live.strategy_planet_policy import StrategyAwareLivePlanetPolicy
 from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
@@ -71,11 +74,16 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
             strategy_tracker=self.strategy_tracker,
         )
 
-        self.consumable_timing_policy.planet_policy = StrategyAwareLivePlanetPolicy(
+        strategy_planet_policy = StrategyAwareLivePlanetPolicy(
             hand_evaluator=self.consumable_timing_policy.hand_evaluator,
             profiler=self.playstyle_profiler,
             intent_tracker=self.playstyle_intent_tracker,
             strategy_tracker=self.strategy_tracker,
+        )
+        self.consumable_timing_policy = StrategyAwareLiveConsumableTimingPolicy.from_policy(
+            self.consumable_timing_policy,
+            strategy_tracker=self.strategy_tracker,
+            planet_policy=strategy_planet_policy,
         )
 
         joker_build_value = StrategyAwareJokerBuildValueEvaluator(
