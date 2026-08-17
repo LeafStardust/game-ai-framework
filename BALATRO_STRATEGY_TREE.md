@@ -1,462 +1,405 @@
 # Balatro Strategy Tree
 
-> **v1.0F design draft — authoritative for the strategy-tree redesign, but not yet the runtime implementation.**
+> **Topology only.** This file exists so the strategy forest can be reviewed without scrolling through scoring rules or tier explanations.
 >
-> This document replaces the previous flat strategy-playbook documents. Do not begin the Gold/Silver/Bronze/Banned catalogue rewrite until this tree is reviewed and frozen.
-
-## 1. Core model
-
-Balatro strategy is represented as a **forest of strategy trees**: multiple independent roots, each of which may specialize into more specific descendants.
-
-A parent -> child edge means only:
-
-> the child is a more specific realization of the parent strategy and therefore requires or benefits from the parent's strategic foundation.
-
-It does **not** mean:
-
-- the child is globally stronger than the parent;
-- the child is a later poker hand in a natural progression;
-- the agent should automatically move downward;
-- Pair naturally becomes Three of a Kind, Four of a Kind, etc.;
-- every strategy must have children.
-
-Poker-hand adjacency is never strategy evidence. A pivot between different poker-hand roots happens only because the current build creates stronger evidence for another root/leaf.
-
-Cross-cutting synergies do not create fake multi-parent trees. For example, Steel and Red Seal may strongly support Baron-Mime High Card, but they remain independent strategies/components rather than additional parents of Baron-Mime.
-
----
-
-## 2. Node terminology and ranking
-
-- **Root** — broadest strategy in one tree.
-- **Internal node** — a strategy with one or more children.
-- **Leaf** — the deepest defined strategy on a branch. A root with no children is also a leaf.
-- **Core/fallback leaf** — an explicit leaf used when a split root remains strategically valid without satisfying any more-specific child.
-
-### Only leaves are ranked
-
-Internal nodes never consume positions in the actionable strategy ranking.
-
-Example:
-
-```text
-High Card                         [internal]
-├── Core High Card               [leaf]
-├── Stuntman High Card           [leaf]
-└── Baron-Mime High Card         [leaf]
-```
-
-If Baron-Mime is the strongest High Card realization, the ranking contains `Baron-Mime High Card`; it does not separately contain `High Card` as another ranked strategy.
-
-The internal High Card score still matters because it is the strategic foundation inherited by eligible High Card leaves.
-
-A core/fallback leaf is suppressed once a sufficiently established more-specific sibling leaf exists. This prevents `Core High Card` from occupying a second ranking slot beside an already established `Stuntman High Card` or `Baron-Mime High Card`.
-
----
-
-## 3. Evidence and score model
-
-Every node will eventually own its own exact Gold/Silver/Bronze/Banned relationships, structural evidence, conditions, and support rules.
-
-The redesign separates three concepts.
-
-### 3.1 Direct evidence
-
-`direct_evidence(node)` is evidence that belongs to that exact node.
-
-Examples:
-
-- a broad High Card component may contribute directly to the High Card root;
-- Stuntman-specific evidence belongs to the Stuntman High Card leaf;
-- Baron/Mime-specific evidence belongs to the Baron-Mime High Card leaf.
-
-A more-specific component should normally provide stronger evidence to its exact leaf than broad parent components provide through inherited foundation.
-
-### 3.2 Branch/foundation score
-
-Internal nodes maintain a non-ranked foundation/branch score for diagnostics and descendant readiness.
-
-Specific descendant evidence propagates **upward with decay** so that an early lucky leaf package also establishes its ancestors.
-
-Conceptually:
-
-```text
-Baron-Mime direct evidence        100%
-        -> High Card foundation   discounted
-```
-
-If additional internal levels later exist, each upward edge applies further decay.
-
-Exact propagation coefficients are intentionally not frozen yet.
-
-### 3.3 Effective leaf score
-
-Only leaves receive an actionable `effective_score`.
-
-Conceptually:
-
-```text
-leaf effective score
-=
-leaf direct evidence
-+ eligible inherited ancestor DIRECT foundation
-+ leaf structural/current-state evidence
-+ environment/deck/stake modifier
-- conflicts / unmet requirements
-```
-
-Important anti-double-counting rule:
-
-> A leaf must never re-inherit its own evidence after that evidence has propagated upward into an ancestor's branch score.
-
-Therefore descendant propagation may contribute to an ancestor's diagnostic/foundation score, but a leaf inherits only the ancestor's **native/direct** foundation, not the ancestor total containing that same leaf's propagated evidence.
-
----
-
-## 4. Direction of evidence flow
-
-### Descendant -> ancestor: yes
-
-Strong specific evidence also proves the broader strategy is credible.
-
-```text
-Baron + Mime
--> strong Baron-Mime evidence
--> discounted High Card foundation
-```
-
-This allows the run to become committed to a deep leaf early when RNG supplies the specific package before the broad foundation is otherwise complete.
-
-### Ancestor -> descendant: not automatically
-
-Broad evidence must not blindly activate every child.
-
-```text
-Burnt Joker supports High Card
-!= automatically activate Stuntman High Card
-!= automatically activate Baron-Mime High Card
-```
-
-A non-fallback child must first obtain qualifying child-specific evidence. Once activated, its effective score may inherit appropriate **ancestor direct foundation**.
-
-This makes parent readiness a strong preference rather than a hard gate.
-
----
-
-## 5. Strategy progression by Ante
-
-### Antes 1-2 — exploration and foundation
-
-- Normal strategy evidence starts at zero unless the deck/environment explicitly supplies evidence.
-- Joker candidates retain their independent inherent/meta/survival/economy values.
-- Strategy purchase pressure is weak.
-- Empty Joker slots should normally be populated with useful Jokers rather than reserved for an imagined perfect build.
-- Several roots/leaves may obtain evidence simultaneously.
-- A lucky deep package may establish a leaf immediately; the agent does not have to finish the parent first.
-
-### Antes 3-5 — convergence
-
-- Strategy pressure increases.
-- Filled Joker slots make replacement decisions strategically meaningful.
-- More-specific leaf evidence separates otherwise similar roots.
-- The agent increasingly concentrates resources on the strongest root/branch instead of continuing broad exploration.
-- A genuinely stronger alternative may still pivot the run if RNG supplies enough current-state evidence.
-
-### Ante 6+ — specialization
-
-- The highest-ranked viable leaf becomes the dominant strategy.
-- Up to two compatible, materially supported leaves may remain relevant.
-- Purchases, replacement, rerolls, deck shaping, packs, consumables, and hand behavior primarily reinforce this established strategy state.
-- Survival and guaranteed blind clears remain above strategic purity.
-
----
-
-## 6. Poker-hand play count is not strategy evidence
-
-`hand_play_counts` must not contribute to universal strategy inference.
-
-A High Card played several times in early Antes may simply reflect poor draws. By mid/late Antes, persistent build structure already provides better evidence.
-
-Play count remains legal wherever an actual Balatro mechanic explicitly uses it, for example a Joker whose effect depends on played-hand history. The rule is only:
-
-```text
-mechanic-specific hand history: allowed
-strategy inference from hand count: forbidden
-```
-
-Persistent poker-hand investment such as used Planets / actual hand levels may still provide small strategy evidence because that investment remains part of the current run state.
-
----
-
-## 7. Negative Joker retention rule
-
-Negative Jokers are protected by default because the Negative edition supplies +1 Joker slot and therefore normally removes the slot-opportunity cost of keeping that Joker.
-
-### Default
-
-Do **not** sell or replace a Negative Joker merely because:
-
-- it is Neutral to the dominant strategy;
-- another ordinary Joker has better strategic alignment;
-- its inherent value has fallen;
-- the run is converging and wants cleaner strategy slots.
-
-### Exceptions
-
-A Negative Joker may be removed when its active mechanic materially harms the current run, including when:
-
-1. it directly damages the dominant/relevant strategy;
-2. it causes a hard functional contradiction that cannot be safely neutralized by ordering/targeting/play;
-3. its expected ongoing harm exceeds the value of keeping the effectively free slot;
-4. the active strategy intentionally consumes/sacrifices it and the strategy evaluator proves that trade is worthwhile.
-
-Examples of Jokers requiring contextual treatment include Ceremonial Dagger and Vampire. Their destructive behavior is not automatically considered harmful when the run is intentionally following the corresponding strategy.
-
-A Negative Joker should not be used as sacrificial fodder merely because it is slot-free; intentional destruction needs explicit strategy justification.
-
----
-
-# 8. Strategy forest — structural draft
+> Rules for evidence propagation, leaf-only ranking, Ante behavior, Negative Joker retention, and later Gold/Silver/Bronze/Banned assignment live in [`BALATRO_STRATEGY_TREE_RULES.md`](BALATRO_STRATEGY_TREE_RULES.md).
+>
+> Exact Gold/Silver/Bronze/Banned tables are intentionally **not** assigned until this topology is frozen.
 
 Legend:
 
-- `[I]` internal node; never directly ranked.
-- `[L]` ranked leaf.
-- `[L/new]` new leaf not represented by the old flat catalogue.
-- `[L/provisional]` retained structurally for now but requires an explicit keep/remove decision before tree freeze.
+- `[I]` internal/root node — contributes foundation but is not directly ranked.
+- `[L]` actionable leaf — appears in strategy rankings.
+- A standalone `[L]` is both root and leaf.
+- `Core ...` is a fallback leaf for a valid unspecialized version of a split root.
 
-## 8.1 Poker-hand trees
+---
+
+## 1. Poker-hand strategies
 
 ```text
 High Card [I]
-├── Core High Card [L]
-│   fallback for an established High Card foundation with no stronger specialization
+├── Core Repetition / Level High Card [L]
+│   └── broad High Card foundation: repeated-hand and hand-level scaling
 ├── Stuntman / Small-Hand High Card [L]
-│   small-hand, Joker-driven and repeated-hand scoring realization
-└── Baron-Mime Held-Card High Card [L]
-    held Kings / held-card triggers / hand-size preservation realization
+│   └── tiny played hands; hand-size cost is acceptable because hand construction is trivial
+└── Baron-Mime Steel-King High Card [L]
+    └── preserve Kings/Steel/Red-Seal held cards; maximize held-card retriggers and hand size
 
 Pair [L]
-Two Pair [L]
+
+Two Pair [I]
+├── Core Two Pair [L]
+└── Spare Trousers + Square Joker Two Pair [L]
+    └── repeated four-card Two Pair hands scale both Mult and Chips
+
 Three of a Kind [L]
-Straight [L]
-Flush [L]
+
+Straight [I]
+├── Core Straight [L]
+├── Shortcut / Four Fingers Straight [L]
+│   └── structural consistency through relaxed Straight requirements
+└── Runner Scaling Straight [L]
+    └── repeatedly score Straights to scale Runner Chips
+
+Flush [I]
+├── Core Flush [L]
+└── Smeared / Four Fingers Consistency Flush [L]
+    └── reduce suit/hand-size requirements to make Flushes highly repeatable
+
 Full House [L]
 Four of a Kind [L]
-Straight Flush [L]
-Five of a Kind [L]
+
+Straight Flush [I]
+├── Core Straight Flush [L]
+└── Shortcut / Four Fingers / Smeared Straight Flush [L]
+    └── rule-changing consistency shell for an otherwise difficult hand
+
+Five of a Kind [I]
+├── Core Five of a Kind [L]
+└── DNA / Cryptid Rank-Copy Five of a Kind [L]
+    └── concentrate one rank until five-copy hands become routine
+
 Flush House [L]
-Flush Five [L]
+
+Flush Five [I]
+├── Core Flush Five [L]
+├── DNA / Cryptid Exact-Card Flush Five [L]
+│   └── copy identical rank+suit cards until the hand is deterministic
+└── The Idol Monoculture Flush Five [L]
+    └── exact-card concentration built to exploit The Idol's current target
 ```
 
-There are deliberately **no** edges such as:
+There are intentionally no `High Card -> Pair -> Trips -> Quads -> Five of a Kind` edges. Those are different poker-hand roots, not natural progression levels.
+
+---
+
+## 2. Rank and face-card strategies
 
 ```text
-High Card -> Pair -> Three of a Kind -> Four of a Kind -> Five of a Kind
-```
+Aces [I]
+├── Scholar Ace Scoring [L]
+│   └── score concentrated Aces for direct Chips/Mult payoff
+└── DNA + Scholar Ace Concentration [L]
+    └── repeatedly copy Aces, then score duplicate-Ace poker hands through Scholar
 
-Those are different poker-hand strategies, not specializations of one another.
+Twos [I]
+├── Wee Joker Twos [L]
+│   └── concentrate and repeatedly score 2s to scale Wee Joker
+└── Wee Joker + Hack Retrigger Twos [L]
+    └── retrigger scored 2s to accelerate Wee Joker scaling
 
-`Straight Flush`, `Flush House`, and `Flush Five` also remain separate roots rather than being forced under one of their component poker hands. They require multiple structures simultaneously and do not have a single truthful parent.
-
-## 8.2 Face/rank structure
-
-```text
 Face Cards [I]
-├── Played Face Cards [L]
-│   face-card scoring / retrigger realization
-└── Held Face Cards [L]
-    face-card held-in-hand payoff realization
+├── Core Face-Card Scoring [L]
+├── Photograph + Hanging Chad (PhotoChad) [L]
+│   └── place a face card first and retrigger Photograph's XMult activation
+├── Triboulet + Sock and Buskin [L]
+│   └── score Kings/Queens and retrigger every face-card XMult trigger
+└── Pareidolia Universal Face Scoring [L]
+    └── make all cards satisfy face-card payoff Jokers
 
-Faceless / No-Face [L]
-Aces [L]
+Faceless / No-Face [I]
+├── Ride the Bus No-Face Scaling [L]
+│   └── avoid scoring face cards while scaling repeated hands
+└── Faceless Joker Discard Economy [L]
+    └── deliberately discard face cards for money while maintaining a non-face scoring shell
+
+The Idol Exact-Card Concentration [L]
+    └── collapse the deck around the current target rank+suit so every scoring card can trigger The Idol
 ```
 
-The Face Cards split exists because scoring face cards and deliberately retaining face cards in hand can produce materially different card-preservation, hand-selection, and Joker choices.
+`PhotoChad`, Triboulet, and Pareidolia stay under Face Cards rather than under one poker hand because they can support several poker-hand roots.
 
-Baron-Mime High Card remains under High Card because it is a specific High Card realization; `Held Face Cards` is an independent compatible leaf that may reinforce it without becoming a second parent.
+---
 
-## 8.3 Suit strategies
+## 3. Suit strategies
 
 ```text
-Hearts [L]
-Diamonds [L]
-Clubs [L]
-Spades [L]
+Hearts [I]
+├── Core Hearts Scoring [L]
+├── Bloodstone + Oops! All 6s Hearts [L]
+│   └── turn Bloodstone's chance-based XMult into a reliable trigger
+└── Bloodstone Retrigger Hearts [L]
+    └── use Hanging Chad / Dusk / Seltzer / Red Seals or similar retriggers to multiply Heart triggers
+
+Diamonds [I]
+├── Core Diamonds Scoring [L]
+└── Rough Gem Diamond Economy/Scoring [L]
+    └── repeatedly score Diamonds while converting suit density into money and score support
+
+Clubs [I]
+├── Core Clubs Scoring [L]
+└── Onyx Agate / Seeing Double Clubs [L]
+    └── exploit Club density while satisfying Seeing Double where the current suit shell permits it
+
+Spades [I]
+├── Core Spades Scoring [L]
+└── Arrowhead Spade Chips [L]
+    └── concentrate Spades and convert each scored Spade into a large Chip source
+
+Ancient Joker Suit-Rotation [L]
+    └── preserve enough flexible suit structure to follow Ancient Joker's current suit efficiently
+
+Flower Pot Multi-Suit [I]
+├── Splash + Flower Pot [L]
+├── Smeared Joker + Flower Pot [L]
+└── Smeared + Splash + Flower Pot [L]
+    └── reliably satisfy all four effective suits in one scoring hand
 ```
 
-No artificial `Suit Strategy` parent is added merely for taxonomy. The four suit plans do not need a shared parent unless a later audit discovers genuine shared foundation evidence that changes decisions.
+Suit leaves remain independent from Flush. A Hearts/Bloodstone run may play Flush, Five of a Kind, High Card, or another hand depending on the rest of the build.
 
-## 8.4 Enhancement strategies
+---
+
+## 4. Enhancement strategies
 
 ```text
-Glass [L]
-Steel [L]
-Lucky [L]
-Stone [L]
+Stone [I]
+├── Marble Joker + Stone Joker Scaling [L]
+│   └── generate Stone cards every Blind and convert total Stone count into permanent Chips
+├── Marble Joker + Vampire Stone Feed [L]
+│   └── generate a fresh enhancement every Blind and feed those Stone enhancements into Vampire
+├── DNA + Stone Joker Duplication [L]
+│   └── copy Stone cards to accelerate Stone Joker's deck-wide Chip scaling
+└── Stone High Card [L]
+    └── score large groups of Stone cards through High Card while using independent Mult scaling
+
+Glass [I]
+├── Glass Joker Breakage Scaling [L]
+│   └── intentionally create/play Glass cards and profit from their destruction
+└── Glass Retrigger Scoring [L]
+    └── retrigger high-value Glass cards with Hanging Chad / Sock and Buskin / Dusk / Seltzer / Red Seal
+
+Steel [I]
+├── Core Steel Held-Card Scaling [L]
+│   └── hold Steel cards while scoring with a separate small hand
+├── Steel Joker Density Scaling [L]
+│   └── increase Steel-card count so Steel Joker becomes a large independent XMult source
+└── Mime Steel Retrigger [L]
+    └── retrigger held Steel-card effects through Mime
+
+Lucky [I]
+├── Lucky Cat Scaling [L]
+│   └── repeatedly trigger Lucky cards to grow Lucky Cat
+├── Lucky Cat + Oops! All 6s [L]
+│   └── increase Lucky trigger reliability and accelerate Lucky Cat growth
+└── Lucky Retrigger [L]
+    └── retrigger Lucky cards to multiply money/Mult procs and Lucky Cat growth
 
 Gold Cards [I]
-├── Held Gold Economy [L]
-└── Golden Ticket Gold Scoring [L]
+├── Held Gold + Mime Economy [L]
+│   └── retain Gold cards through end of round and retrigger held-card payout with Mime
+├── Golden Ticket Gold Scoring [L]
+│   └── deliberately score Gold cards for repeated Golden Ticket money
+└── Midas Mask Gold Generation [L]
+    └── repeatedly convert scored face cards into Gold cards for later economy/use
 ```
 
-Gold Cards is split because holding Gold cards for end-of-round value and deliberately scoring Gold cards for Golden Ticket create different target-selection behavior.
+Baron-Mime Steel Kings remains a High Card leaf because the scoring plan is specifically a High Card held-card realization; Steel and Red Seal independently provide compatible supporting evidence.
 
-The other enhancement strategies currently have one coherent trigger pattern and remain root/leaves unless their later audit proves a real incompatible specialization.
+---
 
-## 8.5 Seal strategies
+## 5. Seal strategies
 
 ```text
-Blue Seal [L]
-Purple Seal [L]
-
 Red Seal [I]
-├── Played Red Seal [L]
-└── Held Red Seal [L]
+├── Played Red-Seal Retrigger [L]
+│   └── place Red Seal on the build's strongest scored-card trigger target
+└── Held Red-Seal Retrigger [L]
+    └── use Red Seal on held-effect cards such as Steel/Baron-compatible targets
 
-Gold Seal [L]
+Blue Seal Hand-Level Scaling [L]
+    └── preserve Blue Seals to round end and repeatedly generate the intended Planet
+
+Purple Seal Tarot Engine [L]
+    └── preserve discard capacity and repeatedly discard Purple Seals for Tarot generation
+
+Gold Seal Economy [I]
+├── Core Gold-Seal Scoring Economy [L]
+└── Gold-Seal Retrigger Economy [L]
+    └── retrigger Gold-Seal cards to multiply payout
 ```
 
-Red Seal is split because a played-card retrigger target and a held-card retrigger target require materially different preservation and targeting decisions.
+---
 
-Blue, Purple, and Gold Seal currently have sufficiently coherent trigger patterns to remain root/leaves.
-
-## 8.6 Existing synergy / named-engine strategies
+## 6. Destruction, sacrifice, and consumption engines
 
 ```text
-Smeared / Splash + Flower Pot [L]
-Canio Destruction [L]
-Vampire [L]
-Ceremonial Dagger Sacrifice [L/new]
+Canio Destruction [I]
+├── Trading Card Canio [L]
+│   └── destroy a face card with the first discard each Blind to scale Canio
+├── Pareidolia Canio [L]
+│   └── make every playing card a valid Canio destruction target
+├── Glass Canio [L]
+│   └── destroy Glass face cards so Glass/Canio scaling can overlap
+└── Consumable Canio [L]
+    └── use The Hanged Man / Immolate / compatible Spectrals as repeatable face-card destruction sources
+
+Vampire [I]
+├── Core Enhancement-Feed Vampire [L]
+│   └── continuously create enhanced cards and intentionally consume them for Vampire XMult
+├── Midas Mask + Vampire [L]
+│   └── convert scored face cards to Gold, then let Vampire consume the enhancement
+└── Pareidolia + Midas Mask + Vampire [L]
+    └── turn every scored card into a repeatable enhancement feed source
+
+Ceremonial Dagger Sacrifice [I]
+├── Core Dagger Sacrifice [L]
+└── Riff-Raff / Disposable-Joker Dagger Feed [L]
+    └── generate expendable Jokers specifically to convert sell value into Dagger Mult
+
+Madness Destruction [I]
+├── Solo Madness [L]
+└── Eternal-Joker Madness [L]
+    └── preserve Eternal support while allowing Madness to destroy ordinary Jokers and scale
+
+Erosion Deck-Thinning [I]
+├── Core Erosion Thinning [L]
+└── Trading Card / Consumable Erosion [L]
+    └── repeatedly destroy cards to accelerate Erosion while improving draw consistency
 ```
 
-Ceremonial Dagger becomes an explicit strategy because intentionally feeding Jokers to it changes acquisition, Joker ordering, retention, sacrifice, and replacement behavior. This also gives the Negative-Joker exception a real strategy context instead of a one-off hardcoded exemption.
+---
 
-## 8.7 Additional engine strategies accepted for tree audit
-
-These engines materially change several downstream decisions and therefore deserve explicit leaves rather than being treated only as generic Joker strength:
+## 7. Deck-growth and card-addition engines
 
 ```text
-Campfire Sell-Scaling [L/new]
-Hologram Deck-Growth [L/new]
-Erosion Deck-Thinning [L/new]
-Madness Solo/Sacrifice [L/new]
-Obelisk Hand-Rotation [L/new]
-Constellation Planet-Scaling [L/new]
-Red Card Pack-Skip Scaling [L/new]
-Throwback Blind-Skip Scaling [L/new]
-Joker Stencil Empty-Slot [L/new]
-Flash Card Reroll-Scaling [L/new]
+Hologram Deck-Growth [I]
+├── Core Hologram Growth [L]
+├── DNA + Hologram [L]
+│   └── every copied card advances both deck concentration and Hologram XMult
+├── Certificate + Hologram [L]
+│   └── add a card every round while scaling Hologram
+└── Marble Joker + Hologram [L]
+    └── add a Stone card every Blind for automatic Hologram scaling
+
+Driver's License Enhancement-Density [L]
+    └── rapidly create enough enhanced cards to activate and maintain Driver's License XMult
+
+Blue Joker Large-Deck Chips [L]
+    └── intentionally tolerate/grow deck size when remaining-deck Chips remain strategically valuable
 ```
 
-Their exact relationships and viability conditions are **not** assigned here. Each must pass the same later Gold/Silver/Bronze/Banned audit as every other leaf.
-
-## 8.8 Removed as a standalone strategy
-
-### Generic `Edition`
-
-The old flat `Edition` strategy is removed from the structural tree.
-
-Foil/Holographic/Polychrome are normally component value modifiers, not by themselves a coherent run strategy. Negative receives the global retention rule above. A future edition-specific leaf may be added only if it changes enough downstream decisions to satisfy the strategy criterion.
+DNA itself is not a standalone strategy. It is a card-copy engine used by concrete leaves such as DNA/Scholar Aces, Hologram growth, Stone duplication, Baron/Mime King concentration, and rank-copy poker hands.
 
 ---
 
-# 9. Strategy-node admission rule
-
-Do not create a child or new root merely because two Jokers have synergy.
-
-A node belongs in the forest only when following it materially changes multiple decisions such as:
-
-- Joker acquisition;
-- Joker retention/replacement;
-- Joker ordering;
-- poker-hand preference;
-- discard/play behavior;
-- deck growth/thinning;
-- rank/suit targeting;
-- enhancement/seal targeting;
-- Tarot/Spectral/Planet use;
-- pack purchase/open/skip behavior;
-- reroll behavior;
-- blind skip behavior;
-- economy/resource allocation.
-
-If two proposed nodes would make essentially the same decisions, keep them as one strategy.
-
-If one node is simply compatible with another but is not a specialization of it, keep them as independent roots/leaves rather than creating a false parent edge.
-
----
-
-# 10. Component relationship rule for the later catalogue
-
-Every node — root, internal node, and leaf — may own exact named:
-
-- Gold relationships;
-- Silver relationships;
-- Bronze relationships;
-- Banned/conflict relationships;
-- conditional relationships;
-- structural evidence;
-- consumable / Planet / voucher support.
-
-A component is mapped to the **most truthful node(s)** rather than being copied into every descendant.
-
-Examples conceptually:
+## 8. Planet, Tarot, and consumable engines
 
 ```text
-Burnt Joker
--> broad High Card relationship at the High Card root
+Constellation Planet-Scaling [L]
+    └── buy/use Planets repeatedly to grow Constellation XMult while reinforcing the chosen hand
 
-Stuntman
--> specific Stuntman High Card leaf relationship
+Perkeo Consumable Duplication [I]
+├── Perkeo + Observatory Planet Stack [L]
+│   └── duplicate the chosen Planet and exploit Observatory held-Planet XMult
+├── Perkeo + Cryptid Copy Engine [L]
+│   └── repeatedly duplicate Cryptid to clone the build's highest-value playing card
+└── Perkeo Tarot/Spectral Engine [L]
+    └── repeatedly duplicate a transformation consumable that directly advances the established build
 
-Baron / Mime
--> specific Baron-Mime High Card leaf relationships when conditions are met
+Fortune Teller Tarot-Use Scaling [L]
+    └── deliberately generate and use Tarots throughout the run to build persistent +Mult
+
+Vagabond Low-Money Tarot Engine [L]
+    └── keep cash low enough to repeatedly generate Tarots, accepting the economy tradeoff intentionally
 ```
 
-The exact tier values are intentionally deferred until the tree is frozen.
+---
 
-Banned means a genuine strategic conflict, not merely that a Joker supports a competing strategy. Competition should usually emerge because the competing leaf gains positive evidence, not because every other leaf applies duplicate negative evidence.
+## 9. Shop, pack, reroll, and blind-skip engines
+
+```text
+Campfire Sell-Scaling [L]
+    └── buy/sell expendable cards deliberately to grow Campfire during the current Ante
+
+Flash Card Reroll-Scaling [L]
+    └── turn repeated shop rerolls into permanent Mult while balancing reroll cost/economy
+
+Red Card Pack-Skip Scaling [L]
+    └── open packs primarily to skip their contents and scale Red Card when the skipped value is worthwhile
+
+Throwback Blind-Skip Scaling [L]
+    └── intentionally skip selected Blinds because the tag EV and Throwback XMult jointly justify it
+```
+
+These leaves are important because they change resource behavior, not merely scoring math.
 
 ---
 
-# 11. Runtime migration boundary
+## 10. Joker-board and composition strategies
 
-The current Python strategy runtime still implements the previous flat catalogue. That implementation remains legacy behavior until this design is frozen and the migration slice begins.
+```text
+Joker Stencil Empty-Slot [L]
+    └── intentionally preserve empty Joker capacity when Stencil XMult outweighs filling the slots
 
-The migration must not be attempted piecemeal while the tree is still changing.
+Baseball Card Uncommon Stack [L]
+    └── prefer a board dense with strategically useful Uncommon Jokers to multiply Baseball Card triggers
 
-Required implementation sequence after tree freeze:
+Abstract Joker Wide-Board [L]
+    └── value filling Joker capacity because Abstract Joker scales directly with total Joker count
 
-1. encode node IDs, parent IDs, leaf/internal role, and fallback-leaf behavior;
-2. separate `direct_evidence`, internal `foundation/branch_score`, and leaf `effective_score`;
-3. implement upward descendant evidence propagation without recursive double counting;
-4. implement controlled ancestor-direct inheritance only for eligible/activated leaves;
-5. rank leaves only;
-6. remove poker-hand play-count strategy evidence;
-7. implement Negative Joker retention protection and destructive-strategy exceptions;
-8. rebuild Gold/Silver/Bronze/Banned mappings one strategy node at a time;
-9. regenerate component -> strategy relationship indices;
-10. update acquisition, replacement, consumable, pack, blind-skip, reroll, and D1 integrations to consume leaf rankings;
-11. add deterministic tree/evidence/ranking tests before live validation.
+Swashbuckler Sell-Value Stack [I]
+├── Core Swashbuckler [L]
+└── Egg / Gift-Card Swashbuckler [L]
+    └── deliberately grow Joker sell values and convert them into Swashbuckler Mult
+```
+
+Blueprint and Brainstorm are **amplifiers**, not standalone strategy leaves. They inherit value from whichever established leaf has the best copy target.
 
 ---
 
-# 12. Tree-freeze checklist
+## 11. Discard and hand-rotation engines
 
-Before Gold/Silver/Bronze/Banned work starts, confirm:
+```text
+Yorick Discard-Scaling [L]
+    └── allocate enough discards to trigger repeated Yorick upgrades without sacrificing blind survival
 
-- every current flat strategy has been retained, split, replaced, or explicitly removed;
-- every split represents a real behavioral difference;
-- no parent edge encodes a fake natural poker-hand transition;
-- no useful unspecialized root becomes unrankable merely because it has children;
-- core/fallback leaves exist where needed;
-- cross-cutting mechanics do not create false multiple-parent relationships;
-- obvious named engines have been accepted or rejected;
-- only leaves appear in the strategy ranking;
-- descendant evidence propagates upward only;
-- ancestor direct foundation is inherited only by eligible leaves;
-- no evidence can feed back through an ancestor and count twice;
-- poker-hand play count is excluded from universal strategy evidence;
-- Negative Joker retention protection is explicit;
-- destructive Jokers are evaluated according to whether their destructive behavior is intentional for the active leaf.
+Obelisk Hand-Rotation [L]
+    └── establish a most-played hand, then deliberately avoid it long enough to scale Obelisk without resetting
+
+Green Joker No-Discard Scaling [L]
+    └── prioritize playing rather than discarding so Green Joker scales continuously
+
+Burnt Joker Hand-Level Engine [L]
+    └── deliberately make the first discard represent the hand type being permanently leveled
+```
+
+`Burnt Joker Hand-Level Engine` can coexist with poker-hand leaves. For example, it may strongly reinforce Core High Card, Pair, Straight, or another selected poker-hand strategy without forcing a separate poker-hand transition.
+
+---
+
+## 12. Explicitly cross-cutting combinations
+
+The following are **not extra parent edges**. They are important compatibility relationships that the later Gold/Silver/Bronze/Banned audit must represent across nodes:
+
+```text
+Baron-Mime High Card        <-> Steel / Red Seal / DNA / hand-size support
+PhotoChad                   <-> Face Cards / Lucky / Glass / Red Seal
+Triboulet + Sock and Buskin <-> Face Cards / Red Seal / Glass
+Bloodstone Hearts           <-> Oops! All 6s / retriggers / Lucky
+Marble Joker                <-> Stone / Hologram / Vampire / Driver's License
+DNA                         <-> Aces / Stone / Hologram / Baron / Five of a Kind / Flush Five / Vampire
+Pareidolia                  <-> Face scoring / Canio / Midas Mask / Vampire
+Perkeo                      <-> chosen Planet / Cryptid / transformation consumables
+Blueprint / Brainstorm      <-> strongest copyable engine in the current dominant leaf
+```
+
+These relationships are why a component may contribute evidence to several leaves even though the tree itself avoids fake multiple-parent topology.
+
+---
+
+## 13. Tree-freeze boundary
+
+Before the Gold/Silver/Bronze/Banned catalogue begins, this file should be reviewed for:
+
+```text
+1. missing major/popular effective strategies
+2. false leaves that are only minor two-Joker synergies
+3. branches that should be split further because they make materially different decisions
+4. branches that should be merged because they behave the same
+5. incorrect parent-child relationships
+6. missing Core/fallback leaves where a split parent can still be valid on its own
+```
+
+After topology freeze, tier assignment proceeds **node by node**, beginning with the High Card tree.
