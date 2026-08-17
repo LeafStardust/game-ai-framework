@@ -2,7 +2,7 @@
 
 > Concrete universal niche/synergy strategy definitions.
 >
-> The grouping is documentation-only. At runtime every strategy is a peer in the same universal strategy pool. See [`BALATRO_STRATEGY_PLAYBOOKS.md`](BALATRO_STRATEGY_PLAYBOOKS.md) for architecture and lifecycle rules.
+> The grouping is documentation-only. At runtime every strategy is a peer in the same universal strategy pool. See [`BALATRO_STRATEGY_PLAYBOOKS.md`](BALATRO_STRATEGY_PLAYBOOKS.md) for architecture, current-state scoring, Ante pressure, and implementation rules.
 
 ## Catalogue rule
 
@@ -11,8 +11,11 @@ The Joker tier columns are **explicit implementation data**.
 - Every Joker entry is a specific Joker name.
 - **Unlisted Joker = Neutral** for that strategy.
 - Bronze is an explicit weak/conditional synergy tier, not a catch-all for generic value.
-- `Banned / conflict Jokers` are explicit negative relationships once the niche strategy is dominant.
-- Generic survival/economy value stays in the ordinary evaluator outside the playbook.
+- Gold/Silver/Bronze/Banned are **strategy-evidence relationships**. Owned mapped Jokers modify the current strategy score; candidates use those mappings only through the current strategy ranking and Ante-scaled strategy pressure.
+- `Banned / conflict Jokers` contribute negative evidence once present and lower retention/purchase value when the niche strategy is important. They are not unconditional immediate-sell commands.
+- Selling a mapped Joker removes its contribution on the next current-state recomputation.
+- Generic survival/economy/meta value stays in the ordinary evaluator outside the playbook.
+- Held/unopened Tarot/Spectral cards are potential future support, not achieved current strategy evidence. Their resulting persistent state matters after use.
 
 | Strategy | Gold Jokers | Silver Jokers | Bronze Jokers | Banned / conflict Jokers | Key Tarot / Spectral support | Entry evidence |
 |---|---|---|---|---|---|---|
@@ -31,7 +34,7 @@ Niche strategies frequently require a **combination** rather than one globally s
 - a package component that is weak in isolation;
 - a completed or nearly completed synergy package.
 
-For example, Flower Pot alone should not cause the agent to spend heavily chasing Smeared Joker/Splash from nothing late in a run, but Flower Pot + Smeared Joker should sharply increase the value of Splash and compatible suit manipulation.
+For example, Flower Pot alone should not cause the agent to spend heavily chasing Smeared Joker/Splash from nothing late in a run, but Flower Pot + Smeared Joker should sharply increase that strategy's current score and therefore increase the strategy purchase value of Splash and compatible support.
 
 ### Named-engine activation
 
@@ -41,7 +44,13 @@ Some strategies should not become serious candidates until their defining engine
 - Vampire requires Vampire;
 - future named-engine strategies should follow the same rule when the payoff depends on one specific Joker.
 
-Tarot/Spectral cards may still be useful before the engine exists for other strategies, but they should not falsely create Canio/Vampire strategy evidence by themselves.
+Tarot/Spectral cards may still be useful before the engine exists for other strategies, but merely holding them must not falsely create Canio/Vampire strategy evidence. Their used effects may create relevant persistent state after activation.
+
+### Conflict behavior
+
+A banned/conflicting Joker lowers the niche strategy's current coherence rather than forcing an unconditional instant sale. If the niche strategy remains dominant/relevant despite that conflict, the conflicting Joker should receive increasing replacement pressure as Ante strategy pressure rises.
+
+Direct functional contradictions may justify stronger urgency. For example, a Pareidolia-backed plan and Ride the Bus are functionally incompatible because Pareidolia makes every card count as a face card.
 
 ### Future niche playbooks
 
