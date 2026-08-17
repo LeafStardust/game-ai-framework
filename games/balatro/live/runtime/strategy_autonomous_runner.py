@@ -10,13 +10,11 @@ from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_play
 from games.balatro.playbook_consumable_policy import PlaybookConsumableAcquisitionPolicy
 from games.balatro.playbook_joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.playbook_pack_policy import PlaybookBalatroPackPolicy
-from games.balatro.playbook_shop_policy import (
-    PlaybookBuildAwareShopArbiter,
-    PlaybookVoucherAwareBalatroShopPolicy,
-)
+from games.balatro.playbook_shop_policy import PlaybookVoucherAwareBalatroShopPolicy
 from games.balatro.shop_playstyle import BuildAwareShopItemValueEstimator
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.strategy import BalatroStrategyTracker
+from games.balatro.strategy_booster_policy import StrategyAwarePlaybookShopArbiter
 from games.balatro.strategy_catalog import UNIVERSAL_BALATRO_STRATEGIES
 from games.balatro.strategy_compat import NeutralLegacyPlaystyleIntentTracker
 from games.balatro.strategy_pack_playstyle import StrategyAwarePackPlaystyleEvaluator
@@ -96,7 +94,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
         self.shop_reroll_policy = BuildAwareShopRerollPolicy(
             shop_policy=self.shop_policy,
         )
-        self.shop_arbiter = PlaybookBuildAwareShopArbiter(
+        self.shop_arbiter = StrategyAwarePlaybookShopArbiter(
             shop_policy=self.shop_policy,
             reroll_policy=self.shop_reroll_policy,
             joker_policy=PlaybookJokerAcquisitionPolicy(
@@ -106,6 +104,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
                 evaluator=consumable_build,
                 timing_policy=self.consumable_timing_policy,
             ),
+            strategy_tracker=self.strategy_tracker,
         )
         self.pack_policy = PlaybookBalatroPackPolicy(
             item_estimator=shared_item_estimator,
