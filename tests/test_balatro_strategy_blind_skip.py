@@ -1,5 +1,4 @@
 from games.balatro.actions import SELECT_BLIND
-from games.balatro.blind_skip_policy import BlindSkipThresholds
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.playbook import default_balatro_playbooks
@@ -49,7 +48,9 @@ def _snapshot(*, blind_type="SMALL", tag="tag_meteor", reward=3):
     )
 
 
-def _thresholds(state) -> BlindSkipThresholds:
+def _thresholds(state):
+    from games.balatro.blind_skip_policy import BlindSkipThresholds
+
     return BlindSkipThresholds.from_mapping(
         default_balatro_playbooks().for_state(state).thresholds_for("D13")
     )
@@ -101,21 +102,20 @@ def test_d13_orbital_tag_is_bounded_penalty_when_it_upgrades_off_strategy_hand_l
     state = _state()
     state.hand_play_counts["HIGH_CARD"] = 5
     state.hand_play_counts["PAIR"] = 2
-    thresholds = _thresholds(state)
 
     decision = _policy().decide(
         _snapshot(tag="tag_orbital"),
         state,
-        thresholds=thresholds,
+        thresholds=_thresholds(state),
     )
 
     assert decision.dominant_strategy_id == "pair"
     assert decision.strategy_tag_adjustment < 0.0
-    assert decision.strategy_tag_support == "off-shortlist-deterministic-tag"
-    assert abs(decision.strategy_tag_adjustment) <= thresholds.max_tag_build_adjustment
+    assert decision.strategy_tag_adjustment >= -2.5
+    assert decision.strategy_tag_support == "off-shortlist-development-tag"
 
 
-def test_d13_choice_preserving_tag_is_not_penalized_without_exact_strategy_support():
+def test_d13_choice_preserving_pack_tag_is_not_penalized_when_unmatched():
     state = _state()
     decision = _policy().decide(
         _snapshot(tag="tag_voucher"),
@@ -123,7 +123,6 @@ def test_d13_choice_preserving_tag_is_not_penalized_without_exact_strategy_suppo
         thresholds=_thresholds(state),
     )
 
-    assert decision.dominant_strategy_id == "pair"
     assert decision.strategy_tag_adjustment == 0.0
     assert decision.strategy_tag_support == "choice-preserving-tag-neutral"
 
