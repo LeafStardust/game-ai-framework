@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
+from games.balatro.playbook_shop_policy import PlaybookBuildAwareShopArbiter
 from games.balatro.shop_booster_policy import (
     HOLD,
+    BoosterAcquisitionThresholds,
     BuildAwareShopBoosterPolicy,
     ShopBoosterRecommendation,
 )
@@ -72,4 +75,38 @@ class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
                 f"Celestial admitted by poker-hand strategy={best_name} score={best_score:.3f}",
                 f"Celestial poker-strategy evidence floor={evidence_floor:.3f}",
             ),
+        )
+
+
+class StrategyAwarePlaybookShopArbiter(PlaybookBuildAwareShopArbiter):
+    """Resolve D8 from the active cartridge while sharing universal strategy state."""
+
+    def __init__(
+        self,
+        *args,
+        strategy_tracker: BalatroStrategyTracker,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.strategy_tracker = strategy_tracker
+
+    def _booster_policy_for_state(self, state) -> BuildAwareShopBoosterPolicy:
+        if self.booster_policy is not None:
+            return self.booster_policy
+
+        try:
+            playbook = default_balatro_playbooks().for_state(state)
+        except BalatroPlaybookNotFound:
+            return StrategyAwareShopBoosterPolicy(
+                shop_policy=self.shop_policy,
+                strategy_tracker=self.strategy_tracker,
+            )
+
+        thresholds = BoosterAcquisitionThresholds.from_mapping(
+            playbook.thresholds_for("D8")
+        )
+        return StrategyAwareShopBoosterPolicy(
+            thresholds=thresholds,
+            shop_policy=self.shop_policy,
+            strategy_tracker=self.strategy_tracker,
         )
