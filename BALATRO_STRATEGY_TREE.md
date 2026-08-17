@@ -1,59 +1,50 @@
 # Balatro Strategy Tree
 
-> **v1.0F topology development reference.** Relationships and evidence weights live in [`BALATRO_STRATEGY_RELATIONSHIPS.md`](BALATRO_STRATEGY_RELATIONSHIPS.md). Scoring/propagation rules live in [`BALATRO_STRATEGY_TREE_RULES.md`](BALATRO_STRATEGY_TREE_RULES.md).
+Development topology reference. Relationships and evidence weights live in [`BALATRO_STRATEGY_RELATIONSHIPS.md`](BALATRO_STRATEGY_RELATIONSHIPS.md). Scoring/propagation rules live in [`BALATRO_STRATEGY_TREE_RULES.md`](BALATRO_STRATEGY_TREE_RULES.md).
 
 Legend:
-- `[I]` internal/root node.
-- `[L]` actionable leaf.
-- Standalone `[L]` = root + leaf.
+- `[I]` indexed strategy with specialized descendants.
+- `[L]` specialization with no descendants.
+- Standalone `[L]` = strategy with no specializations.
 
 ## 1. Poker-hand strategies
 
 ```text
 High Card [I]
-├── Repetition / Level High Card [L]
 ├── Stuntman / Small-Hand High Card [L]
 └── Baron-Mime Steel-King High Card [L]
 
 Pair [L]
 
 Two Pair [I]
-├── Two Pair Scoring [L]
 └── Spare Trousers + Square Joker Two Pair [L]
 
 Three of a Kind [I]
-├── Three of a Kind Scoring [L]
 └── DNA / Cryptid Rank-Copy Three of a Kind [L]
 
 Straight [I]
-├── Straight Scoring [L]
 ├── Shortcut / Four Fingers Straight [L]
 ├── Runner Scaling Straight [L]
 └── Superposition Ace-Straight Tarot [L]
 
 Flush [I]
-├── Flush Scoring [L]
 └── Smeared / Four Fingers Consistency Flush [L]
 
 Full House [L]
 
 Four of a Kind [I]
-├── Four of a Kind Scoring [L]
 └── DNA / Cryptid Rank-Copy Four of a Kind [L]
 
 Straight Flush [I]
-├── Straight Flush Scoring [L]
 ├── Shortcut / Four Fingers / Smeared Straight Flush [L]
 └── Seance Straight-Flush Spectral Engine [L]
 
 Five of a Kind [I]
-├── Five of a Kind Scoring [L]
 └── DNA / Cryptid Rank-Copy Five of a Kind [L]
 
 Flush House [L]
 
 Flush Five [I]
-├── Flush Five Scoring [L]
 ├── DNA / Cryptid Exact-Card Flush Five [L]
 └── The Idol Monoculture Flush Five [L]
 
@@ -61,8 +52,6 @@ Four-Card Hand Spam [I]
 ├── Square Joker Four-Card Chips [L]
 └── Square + Green Joker Four-Card Spam [L]
 ```
-
-**No natural poker-hand progression edges.**
 
 ## 2. Rank and face-card strategies
 
@@ -84,7 +73,6 @@ Jacks / Hit the Road [L]
 Queens / Shoot the Moon [L]
 
 Face Cards [I]
-├── Face-Card Scoring [L]
 ├── Photograph + Hanging Chad (PhotoChad) [L]
 ├── Triboulet + Sock and Buskin [L]
 ├── Pareidolia Universal Face Scoring [L]
@@ -102,26 +90,21 @@ The Idol Exact-Card Concentration [L]
 
 ```text
 Hearts [I]
-├── Hearts Scoring [L]
 ├── Bloodstone + Oops! All 6s Hearts [L]
 └── Bloodstone Retrigger Hearts [L]
 
 Diamonds [I]
-├── Diamonds Scoring [L]
 └── Rough Gem Diamond Economy / Scoring [L]
 
 Clubs [I]
-├── Clubs Scoring [L]
 └── Onyx Agate / Seeing Double Clubs [L]
 
 Spades [I]
-├── Spades Scoring [L]
 └── Arrowhead Spade Chips [L]
 
 Blackboard Held-Black Cards [L]
 
 Ancient Joker Suit-Rotation [I]
-├── Ancient Joker Rotation [L]
 └── Ancient + Smeared Suit-Rotation [L]
 
 Flower Pot Multi-Suit [I]
@@ -144,7 +127,6 @@ Glass [I]
 └── Glass Retrigger Scoring [L]
 
 Steel [I]
-├── Steel Held-Card Scaling [L]
 ├── Steel Joker Density Scaling [L]
 └── Mime Steel Retrigger [L]
 
@@ -171,7 +153,6 @@ Blue Seal Hand-Level Scaling [L]
 Purple Seal Tarot Engine [L]
 
 Gold Seal Economy [I]
-├── Gold-Seal Scoring Economy [L]
 └── Gold-Seal Retrigger Economy [L]
 ```
 
@@ -185,12 +166,10 @@ Canio Destruction [I]
 └── Consumable Canio [L]
 
 Vampire [I]
-├── Enhancement-Feed Vampire [L]
 ├── Midas Mask + Vampire [L]
 └── Pareidolia + Midas Mask + Vampire [L]
 
 Ceremonial Dagger Sacrifice [I]
-├── Dagger Sacrifice [L]
 └── Riff-Raff / Disposable-Joker Dagger Feed [L]
 
 Madness Destruction [I]
@@ -207,13 +186,11 @@ Deck Thinning [I]
 
 ```text
 Hologram Deck-Growth [I]
-├── Hologram Growth [L]
 ├── DNA + Hologram [L]
 ├── Certificate + Hologram [L]
 └── Marble Joker + Hologram [L]
 
 Hiker Card Training [I]
-├── Hiker Card Training [L]
 └── Hiker Retrigger / Copy Training [L]
 
 Driver's License Enhancement-Density [L]
@@ -241,7 +218,6 @@ Vagabond Low-Money Tarot Engine [L]
 
 ```text
 Cash Hoard / Interest [I]
-├── Cash-Reserve Economy [L]
 ├── Rocket / To the Moon Cash Growth [L]
 ├── Bull Cash-to-Chips [L]
 ├── Bootstraps Cash-to-Mult [L]
@@ -258,14 +234,12 @@ Throwback Blind-Skip Scaling [L]
 
 ```text
 Joker Stencil [I]
-├── Joker Stencil Empty-Slot [L]
 └── Joker Stencil + Ankh / Invisible Duplication [L]
 
 Baseball Card Uncommon Stack [L]
 Abstract Joker Wide-Board [L]
 
 Swashbuckler Sell-Value Stack [I]
-├── Swashbuckler [L]
 └── Egg / Gift-Card Swashbuckler [L]
 ```
 
