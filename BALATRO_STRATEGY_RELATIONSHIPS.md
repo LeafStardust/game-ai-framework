@@ -25,8 +25,8 @@ A component must not be duplicated between a parent and child row. If it is spec
 
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|
-| High Card `[I]` | Burnt Joker | Card Sharp; Supernova; Space Joker; Green Joker; Burglar | — | Obelisk | — | Pluto | — | — |
-| Stuntman / Small-Hand High Card `[L]` | Stuntman | Half Joker | — | — | — | — | — | — |
+| High Card `[I]` | Burnt Joker | Card Sharp; Supernova; Space Joker; Half Joker; Green Joker; Burglar | — | Obelisk | — | Pluto | — | — |
+| Stuntman / Small-Hand High Card `[L]` | Stuntman | — | — | — | — | — | — | — |
 | Baron-Mime Steel-King High Card `[L]` | Baron; Mime | Blackboard; Shoot the Moon; Troubadour; Juggler | Raised Fist; Reserved Parking | Stuntman | The Chariot | — | — | Steel |
 | Pair `[L]` | The Duo | Jolly Joker; Sly Joker | — | Obelisk | — | Mercury | — | — |
 | Two Pair `[I]` | — | Mad Joker; Clever Joker | — | Obelisk | — | Uranus | — | — |
