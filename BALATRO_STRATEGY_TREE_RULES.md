@@ -61,6 +61,27 @@ Gold is the defining core of a strategy, so one Gold relationship must outweigh
 two Silvers and remain the largest single evidence step. Silver and Bronze are
 support and filler tiers; they strengthen a route but should not displace its core.
 
+These tiers are strategy evidence, not a universal Joker-value catalogue. A
+strategy-agnostic Joker keeps its ordinary scoring, economy, scaling, and survival
+value without being copied into every row as Bronze. Conversely, a route-bound
+Joker mapped only to another strategy can be `OFF_PATH` even though that other row
+calls it Silver or Gold.
+
+Candidate applicability is reported separately:
+
+- `UNIVERSAL`: useful without the active route; no strategy bonus or off-path penalty;
+- `ALIGNED`: supports the active route and receives its tier reinforcement;
+- `PIVOT`: a pre-Ante-6 Gold candidate that clears the evidence margin;
+- `OFF_PATH`: requires another route and receives a dynamic opportunity cost;
+- `CONFLICT`: explicitly Banned by the active route.
+
+Foil, Holographic, Polychrome, and Negative values are universal rather than
+strategy tiers. Negative additionally avoids ordinary slot opportunity cost and
+should be acquired when affordable unless its active mechanic is an explicit
+conflict. Other editions strongly improve a candidate but still must justify the
+occupied slot and transaction cost; an edition does not make a useless off-path
+mechanic automatically replace a useful aligned Joker.
+
 Non-Joker evidence is independent from Gold/Silver/Bronze:
 
 - matching Planet / permanent hand level gained: `+0.50` per level;
@@ -112,23 +133,39 @@ There is no fallback-child suppression rule because there are no duplicate fallb
 
 ### Ante 6+
 
-- strongest viable strategy/specialization leads;
-- up to two compatible materially supported peers may remain relevant;
+- the strongest viable strategy/specialization is the only prescriptive route;
+- secondary strategies remain visible for diagnostics but contribute no purchase bonus, hand preference, or pivot authorization;
+- a route-bound secondary-strategy Joker is eligible for replacement by a positively valued universal or dominant-strategy Joker;
 - survival overrides strategic purity.
 
-## 8. Negative Joker retention
+## 8. Joker ordering
+
+Joker order is an executable build decision, not presentation state. In stable
+phases the agent evaluates legal permutations against the complete active build.
+The selected order must account for:
+
+- additive Mult resolving before later multiplicative Mult when that scores higher;
+- Blueprint copying the Joker immediately to its right;
+- Brainstorm copying the leftmost Joker;
+- Ceremonial Dagger destroying the Joker immediately to its right on blind select.
+
+Ceremonial Dagger permutations are evaluated after projecting the sacrifice and
+its gained Mult. A reorder is emitted only when it strictly improves the projected
+whole-build score; an already-optimal order remains untouched.
+
+## 9. Negative Joker retention
 
 Negative Jokers are protected from ordinary replacement pressure because they normally offset their slot cost.
 
 Removal requires a real mechanical conflict, unavoidable ongoing harm, or an intentional sacrifice/destruction payoff that exceeds retention value.
 
-## 9. Banned relationships
+## 10. Banned relationships
 
 Banned means genuine mechanical conflict, not merely support for a competing strategy.
 
 Competing positive strategies should normally compete through their own evidence rather than by banning each other.
 
-## 10. Strategy-node admission
+## 11. Strategy-node admission
 
 Create a new node only when it materially changes downstream decisions such as acquisition/retention, ordering, hand/discard behavior, deck shaping, consumable use, economy, blind skipping, or sacrifice/destruction behavior.
 

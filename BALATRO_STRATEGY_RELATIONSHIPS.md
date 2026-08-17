@@ -17,6 +17,34 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 
 `TBD` = not audited yet. `—` = intentionally none.
 
+## Universal value versus strategy relationship
+
+Joker value and strategy evidence are independent axes. Gold/Silver/Bronze say
+how strongly a Joker supports one route; they do not replace the ordinary
+whole-build score, economy, scaling, or survival evaluator.
+
+| Applicability | Meaning | Strategy behavior |
+|---|---|---|
+| `UNIVERSAL` | The Joker has positive intrinsic/contextual value without requiring the active route. Misprint, Bull, and Cloud 9 are examples. | Keep ordinary value; do not create false strategy evidence and do not apply an off-path penalty. |
+| `ALIGNED` | A positive relationship supports the active strategy. | Keep ordinary value and add Gold/Silver/Bronze reinforcement. |
+| `PIVOT` | Before Ante 6, a different Gold core supplies enough projected evidence to justify a real pivot. | Keep ordinary value and allow the pivot. |
+| `OFF_PATH` | The Joker's trigger or enabling rule requires another route, such as Crafty Joker under Pair. | Remove generic probes from the unrelated route and apply a dynamic opportunity cost. |
+| `CONFLICT` | An explicit Banned mechanic harms the active route. | Apply the Banned penalty; survival value can still override a sale. |
+
+Joker editions are universal modifiers on the same independent value axis: Foil
+`+0.8`, Holographic `+1.5`, Polychrome `+2.5`, and Negative `+4.0` for
+acquisition/retention economics, in addition to their modeled scoring effect.
+Negative is also slot-neutral. Edition value cannot override an explicit
+`CONFLICT`; non-Negative editions still consume money and a Joker slot, so their
+bonus must beat the incumbent and transaction opportunity cost.
+
+`OFF_PATH` is not a fixed `-1` or `-2`. It scales with dominant-strategy score,
+the candidate's relationship tier, Ante pressure, and the configured alignment
+scale. At full pressure against a score-8 strategy, the strategy term is about
+`-0.64` for Bronze, `-1.92` for Silver, and `-5.12` for Gold, before the generic
+off-route probe discount. Merely appearing in another strategy table is not enough
+to make a portable Joker off-path.
+
 `Branch` is the top-level strategy branch. `Node` is the exact strategy node. `[I]` nodes have specialized descendants; `[L]` nodes have none.
 
 An `[I]` node contains only evidence shared by every specialization beneath it. A child row contains only additional evidence specific to that child. This factoring rule applies to Gold, Silver, Bronze, Banned, Tarot, Planet, Spectral, and Enhancement.
@@ -30,27 +58,27 @@ A component must not be duplicated between a parent and child row. If it is spec
 | High Card | High Card `[I]` | Burnt Joker | Card Sharp; Supernova; Space Joker; Half Joker; Green Joker; Burglar | — | Obelisk | The Chariot | Pluto | — | Steel |
 | High Card | ↳ Stuntman / Small-Hand High Card `[L]` | Stuntman | — | — | — | — | — | — | — |
 | High Card | ↳ Baron-Mime Steel-King High Card `[L]` | Baron; Mime | Blackboard; Shoot the Moon; Troubadour; Juggler | Raised Fist; Reserved Parking | Stuntman | — | — | — | — |
-| Pair | Pair `[L]` | The Duo | Jolly Joker; Sly Joker; Half Joker; Supernova; Card Sharp; Space Joker; Burnt Joker; Green Joker; Burglar *(generic support requires Pair commitment)* | Square Joker; Raised Fist; Blackboard; Shoot the Moon; Hiker; Hanging Chad *(fillers require Pair commitment)* | Obelisk | — | Mercury | — | — |
-| Two Pair | Two Pair `[L]` | Spare Trousers | Mad Joker; Clever Joker; Square Joker; The Duo | Jolly Joker; Sly Joker | Obelisk | Death; Strength | Uranus | — | — |
-| Three of a Kind | Three of a Kind `[L]` | The Trio | Zany Joker; Wily Joker; DNA; Half Joker; The Duo | Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Venus | Cryptid; Ouija | — |
-| Straight | Straight `[L]` | The Order; Shortcut; Four Fingers; Runner; Superposition | Crazy Joker; Devious Joker | — | Obelisk | Strength; Death | Saturn | — | — |
-| Straight Flush | Straight Flush `[L]` | The Order; The Tribe; Shortcut; Four Fingers; Runner; Smeared Joker; Seance | Crazy Joker; Devious Joker; Droll Joker; Crafty Joker | — | Obelisk | Strength; Death; The Lovers | Neptune | Sigil | Wild |
-| Flush | Flush `[L]` | The Tribe | Droll Joker; Crafty Joker; Smeared Joker; Four Fingers | — | Obelisk | The Lovers | Jupiter | Sigil | Wild |
-| Full House | Full House `[L]` | — | The Trio; The Duo; Spare Trousers; Zany Joker; Wily Joker; Mad Joker; Clever Joker | Jolly Joker; Sly Joker; DNA; Trading Card | Obelisk | Death; Strength | Earth | Cryptid; Ouija | — |
-| Flush House | Flush House `[L]` | The Tribe | The Trio; The Duo; Spare Trousers; Zany Joker; Wily Joker; Mad Joker; Clever Joker; Smeared Joker; Droll Joker; Crafty Joker | Jolly Joker; Sly Joker; DNA; Trading Card | Obelisk | Death; Strength; The Lovers | Ceres | Cryptid; Ouija; Sigil | Wild |
-| Four of a Kind | Four of a Kind `[L]` | The Family | The Trio; DNA; Zany Joker; Wily Joker; Square Joker | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Mars | Cryptid; Ouija | — |
-| Five of a Kind | Five of a Kind `[L]` | The Family | The Trio; DNA; The Idol; Zany Joker; Wily Joker | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Planet X | Cryptid; Ouija | — |
-| Flush Five | Flush Five `[L]` | The Family; DNA; The Idol; The Tribe | The Trio; Zany Joker; Wily Joker; Smeared Joker; Droll Joker; Crafty Joker | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength; The Lovers | Eris | Cryptid; Ouija; Sigil | Wild |
+| Pair | Pair `[L]` | The Duo | Jolly Joker; Sly Joker; Half Joker; Supernova; Card Sharp; Space Joker; Burnt Joker; Green Joker; Burglar *(generic support requires Pair commitment)* | DNA; Trading Card *(with Pair commitment)*; Hologram *(with Pair commitment + DNA)* | Obelisk | — | Mercury | — | — |
+| Two Pair | Two Pair `[L]` | Spare Trousers | Mad Joker; Clever Joker; Square Joker; The Duo; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Two Pair commitment)* | Jolly Joker; Sly Joker | Obelisk | Death; Strength | Uranus | — | — |
+| Three of a Kind | Three of a Kind `[L]` | The Trio | Zany Joker; Wily Joker; DNA; Half Joker; The Duo; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Trips commitment)* | Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Venus | Cryptid; Ouija | — |
+| Straight | Straight `[L]` | The Order; Shortcut; Four Fingers; Runner; Superposition | Crazy Joker; Devious Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Straight commitment)* | Fibonacci; Hack *(rank support requires Straight commitment)* | Obelisk | Strength; Death | Saturn | — | — |
+| Straight Flush | Straight Flush `[L]` | The Order; The Tribe; Shortcut; Four Fingers; Runner; Smeared Joker; Seance | Crazy Joker; Devious Joker; Droll Joker; Crafty Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Straight Flush commitment)* | Arrowhead; Bloodstone; Onyx Agate; Rough Gem *(requires an effective same-suit Straight)* | Obelisk | Strength; Death; The Lovers | Neptune | Sigil | Wild |
+| Flush | Flush `[L]` | The Tribe | Droll Joker; Crafty Joker; Smeared Joker; Four Fingers; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Flush commitment)* | Arrowhead; Bloodstone; Onyx Agate; Rough Gem *(requires matching suit concentration)* | Obelisk | The Lovers | Jupiter | Sigil | Wild |
+| Full House | Full House `[L]` | — | The Trio; The Duo; Spare Trousers; Zany Joker; Wily Joker; Mad Joker; Clever Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Full House commitment)* | Jolly Joker; Sly Joker; DNA; Trading Card | Obelisk | Death; Strength | Earth | Cryptid; Ouija | — |
+| Flush House | Flush House `[L]` | The Tribe | The Trio; The Duo; Spare Trousers; Zany Joker; Wily Joker; Mad Joker; Clever Joker; Smeared Joker; Droll Joker; Crafty Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Flush House commitment)* | Jolly Joker; Sly Joker; DNA; Trading Card | Obelisk | Death; Strength; The Lovers | Ceres | Cryptid; Ouija; Sigil | Wild |
+| Four of a Kind | Four of a Kind `[L]` | The Family | The Trio; DNA; Zany Joker; Wily Joker; Square Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Quads commitment)* | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Mars | Cryptid; Ouija | — |
+| Five of a Kind | Five of a Kind `[L]` | The Family | The Trio; DNA; The Idol; Zany Joker; Wily Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Five Kind commitment)* | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Planet X | Cryptid; Ouija | — |
+| Flush Five | Flush Five `[L]` | The Family; DNA; The Idol; The Tribe | The Trio; Zany Joker; Wily Joker; Smeared Joker; Droll Joker; Crafty Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Flush Five commitment)* | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength; The Lovers | Eris | Cryptid; Ouija; Sigil | Wild |
 
 ## 2. Rank and face cards
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
 | Aces | Aces `[L]` | Scholar | DNA *(with Ace commitment)*; Fibonacci *(with Ace commitment)*; Odd Todd *(with Ace commitment)* | The Idol *(Ace target + concentration)* | — | Death; Strength; The Hanged Man | — | Grim; Cryptid | — |
-| Low-Rank Scoring | Low-Rank Scoring `[L]` | Fibonacci; Hack | Odd Todd; Even Steven | — | — | Death; Strength; The Hanged Man | — | Incantation; Cryptid | — |
+| Low-Rank Scoring | Low-Rank Scoring `[L]` | Fibonacci; Hack | Odd Todd; Even Steven; Hanging Chad; Seltzer; Dusk *(retriggers require low-rank commitment)* | — | — | Death; Strength; The Hanged Man | — | Incantation; Cryptid | — |
 | Twos | Twos / Wee-Hack `[L]` | Wee Joker | Hack *(with Two commitment)*; Fibonacci *(with Two commitment)*; Even Steven *(with Two commitment)* | DNA *(with Two commitment)*; Hologram *(with Two commitment)*; The Idol *(Two target + concentration)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
 | Ten-Four | Ten-Four / Walkie Talkie `[L]` | Walkie Talkie | Even Steven *(with Ten-Four commitment)*; Hack *(with Four commitment)* | DNA; Hologram; The Idol *(all with Ten-Four commitment)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
-| Sixes / Sixth Sense | Sixes / Sixth Sense `[L]` | Sixth Sense | Even Steven *(with Six commitment)* | — | — | Death; Strength | — | — | — |
+| Sixes / Sixth Sense | Sixes / Sixth Sense `[L]` | Sixth Sense | Even Steven *(with Six commitment)* | DNA; Hologram *(with Six commitment)*; The Idol *(Six target + concentration)* | — | Death; Strength | — | — | — |
 | Jacks / Hit the Road | Jacks / Hit the Road `[L]` | Hit the Road | Faceless Joker *(with Jack commitment)*; Mail-In Rebate *(Jack target)* | Merry Andy *(with Hit the Road)*; Drunkard *(with Hit the Road)* | — | Death; Strength | — | Cryptid | — |
 | Queens / Shoot the Moon | Queens / Shoot the Moon `[L]` | Shoot the Moon | Mime *(with Queen commitment)* | Reserved Parking *(with Queen commitment)* | — | Death; Strength | — | Cryptid | Steel Queens |
 | Face Cards | Face Cards `[I]` | — | Scary Face; Smiley Face; Midas Mask | — | Ride the Bus | Death; Strength; The Hanged Man | — | Familiar | — |
@@ -74,9 +102,9 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Diamonds / Rough Gem Economy | Diamonds / Rough Gem Economy `[L]` | Rough Gem | Greedy Joker; Smeared Joker *(with Diamond payoff)*; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(retrigger support requires Rough Gem or Greedy Joker)* | — | — | The Star; Death; The Hanged Man | — | Sigil | Wild |
 | Clubs | Clubs `[I]` | — | Gluttonous Joker; Smeared Joker *(with Club payoff)* | — | — | The Moon; Death; The Hanged Man | — | Sigil | Wild |
 | Clubs | ↳ Onyx Agate Club Scoring `[L]` | Onyx Agate | Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(all with Onyx Agate)* | — | — | — | — | Deja Vu | — |
-| Clubs | ↳ Seeing Double Mixed-Suit Clubs `[L]` | Seeing Double | — | — | — | The Lovers | — | — | — |
+| Clubs | ↳ Seeing Double Mixed-Suit Clubs `[L]` | Seeing Double | — | Splash *(with Seeing Double)* | — | The Lovers | — | — | — |
 | Spades / Arrowhead Chips | Spades / Arrowhead Chips `[L]` | Arrowhead | Wrathful Joker; Smeared Joker *(with Spade payoff)*; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(retrigger support requires Arrowhead or Wrathful Joker)* | — | — | The World; Death; The Hanged Man | — | Sigil | Wild |
-| Blackboard Held-Black Cards | Blackboard Held-Black Cards `[L]` | Blackboard | — | — | — | The Moon; The World | — | — | Wild |
+| Blackboard Held-Black Cards | Blackboard Held-Black Cards `[L]` | Blackboard | Smeared Joker *(with Blackboard)* | — | — | The Moon; The World | — | — | Wild |
 | Raised Fist Held-Minimum | Raised Fist Held-Minimum `[L]` | Raised Fist | Mime *(with Raised Fist)* | — | — | Strength; Death; The Hanged Man | — | Familiar; Grim; Cryptid; Deja Vu | — |
 | Ancient Joker Suit-Rotation | Ancient Joker Suit-Rotation `[L]` | Ancient Joker | Smeared Joker; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(all with Ancient Joker)* | — | — | The Star; The Moon; The Sun; The World | — | Sigil; Deja Vu | Wild |
 | Flower Pot Multi-Suit | Flower Pot Multi-Suit `[I]` | Flower Pot | — | — | — | The Star; The Moon; The Sun; The World | — | Sigil | Wild |

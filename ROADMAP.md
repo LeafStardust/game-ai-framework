@@ -47,7 +47,7 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 - [x] Maintain persistent public build/archetype intent and apply B3–B7 reasoning consistently across D1–D14.
 - [x] Make Joker, hand, discard, Planet, consumable and pack decisions reinforce the active build.
 - [x] Detect and penalize anti-synergies/conflicts, including a Ride the Bus + Business Card regression case.
-- [x] Give useful Negative Jokers explicit slot-free acquisition value.
+- [x] Give Joker editions strategy-independent acquisition/retention value; Negative is slot-neutral and buyable even on a full board, while explicit mechanical/strategy conflict remains authoritative.
 - [x] Log meaningful build-intent changes and detected conflicts.
 
 > 1.0B established the first build-intent layer. 1.0F replaces its loose archetype inference with explicit universal strategy-tree evidence while preserving useful public-state/build profiling work.
@@ -62,6 +62,8 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 ### 1.0D — Shop, pack and economy competence
 
 - [x] Calibrate D3/D8/D9/D10/D11 acquisition, reroll and pack thresholds around survival, build value and economy; keep D12 threshold-free and calibrate D14 shared resource valuation on the same scale.
+- [x] Keep full-roster Joker replacement search in reroll EV, allowing cash-rich runs to reroll for upgrades while escalating reroll cost still supplies a deterministic stop condition.
+- [x] Memoize deterministic Joker behavior descriptors by complete modeled Joker state so full-slot shop comparisons reuse analysis without making stale assumptions about stateful Jokers.
 - [x] Model run-wide voucher value plus reserve/interest breakpoints, including observable voucher-modified caps or thresholds.
 - [x] Keep undiscovered-item acquisition bias bounded so it never overrides survival or build coherence. Explicitly undiscovered positive options receive only a one-ULP tie-break, never a value-changing exploration bonus.
 
@@ -94,7 +96,10 @@ The first flat universal-strategy implementation proved current-state evidence, 
 - [ ] Finish Gold/Silver/Bronze/Banned/conditional relationships **node by node**. High Card is complete; all other frozen nodes still require audit. Banned must mean genuine strategic conflict, not merely support for a competing strategy.
 - [ ] Rebuild the inverse `component -> strategy/relationship` index from fully tree-owned catalogue data without editing all 150 Joker classes.
 - [x] Keep strategy evidence separate from candidate purchase/retention value: candidate tree projection can reveal a pivot, but a candidate cannot fund its own current-strategy purchase bonus before it is owned.
-- [ ] Preserve and validate the intended Ante behavior across the fully migrated forest: broad exploration/foundation in Antes 1–2, convergence in Antes 3–5 as Joker slots become scarce, and specialization from Ante 6 around the highest-ranked viable leaf plus up to two compatible relevant leaves.
+- [x] Separate portable universal Joker value from route-bound strategy value. Portable mapped Jokers retain intrinsic value; only mechanically route-bound Jokers receive dynamic `OFF_PATH` pressure.
+- [x] Enforce exclusive dominant-strategy behavior from Ante 6: secondary strategies remain diagnostic but cannot add purchase value, prescribe hands, or authorize pivots.
+- [x] Add autonomous Joker-board reordering through the validated injected action, including Blueprint/Brainstorm copy targeting, additive-before-XMult scoring, and projected Ceremonial Dagger sacrifice.
+- [x] Apply universal-strategy alignment to Tarot/Spectral pack choices so highlighted routes such as Aces prefer aligned deck shaping over unrelated enhancement value.
 - [ ] Keep early Tarot/Spectral strategy-seeding available while requiring real poker-hand evidence before meaningful paid Planet investment across migrated leaves.
 - [ ] Add Red Deck / White Stake cartridge modifiers over the full universal strategy tree without redefining topology or component relationships.
 - [ ] Migrate remaining D1–D14 direct-definition lookups to inherited path semantics where required; guaranteed blind survival remains superior to strategy purity. D1 hand fit, D8 Celestial evidence and D13 tag support already honor the migrated High Card path.
