@@ -2,7 +2,7 @@
 
 > Concrete universal mechanic-specific strategy definitions.
 >
-> The grouping is documentation-only. At runtime every strategy is a peer in the same universal strategy pool. See [`BALATRO_STRATEGY_PLAYBOOKS.md`](BALATRO_STRATEGY_PLAYBOOKS.md) for architecture and lifecycle rules.
+> The grouping is documentation-only. At runtime every strategy is a peer in the same universal strategy pool. See [`BALATRO_STRATEGY_PLAYBOOKS.md`](BALATRO_STRATEGY_PLAYBOOKS.md) for architecture, current-state scoring, Ante pressure, and implementation rules.
 
 ## Catalogue rule
 
@@ -11,8 +11,11 @@ The Joker tier columns are **explicit implementation data**.
 - Every Joker entry is a specific Joker name.
 - **Unlisted Joker = Neutral** for that strategy. Neutral is not Bronze and is not banned.
 - Bronze contains only explicitly named weak/conditional synergy, never phrases such as "generic scoring" or "generic economy".
-- `Banned / conflict Jokers` are explicit negative relationships to apply once the strategy is dominant unless a pivot/survival override applies.
+- Gold/Silver/Bronze/Banned are **strategy-evidence relationships**, not unconditional shop-value bonuses. Owned mapped Jokers affect the current strategy score; shop candidates receive strategy adjustment according to the current rank/score of the strategies they support and the current Ante pressure.
+- `Banned / conflict Jokers` contribute negative evidence and therefore lower purchase/retention value when that strategy matters. They are not universal immediate-sell commands.
+- Selling a mapped Joker removes its evidence on the next recomputation.
 - Generic item strength remains available through the ordinary evaluator outside this strategy layer.
+- Held/unopened Tarot/Spectral cards do not count as achieved strategy evidence merely because they are owned. Their expected transformation may justify acquisition/use; the resulting persistent state is evidence after use.
 
 | Strategy | Gold Jokers | Silver Jokers | Bronze Jokers | Banned / conflict Jokers | Key Tarot / Spectral / voucher support | Entry evidence |
 |---|---|---|---|---|---|---|
@@ -29,10 +32,12 @@ The Joker tier columns are **explicit implementation data**.
 | **Gold Seal** | Hanging Chad; Seltzer; Dusk | Sock and Buskin; Hack; Bull; Bootstraps; To the Moon; Rocket; Cloud 9; Golden Joker; Certificate | Business Card | — | Talisman; Death; Cryptid | Gold Seal on a reliably scorable card, or repeatable Gold-Seal generation with a scoring shell able to cash it |
 | **Edition** | Abstract Joker (Negative-capacity shell); Baseball Card (Negative Uncommon shell) | Swashbuckler; Riff-Raff; Ceremonial Dagger | — | — | Aura; Ectoplasm; Hex; The Wheel of Fortune; Hone; Glow Up | Multiple strategically useful editions, a Negative-enabled extra-Joker shell, or repeatable edition access |
 
-## Mechanic-strategy rule
+## Mechanic-strategy scoring rule
 
 Tarot and Spectral cards may **seed these strategies during Antes 1–2**. Unlike Planets, the agent does not need an already dominant strategy before accepting a transformative early enhancement, seal, edition, destruction, rank, suit, or copying opportunity.
 
-As the run converges, generic transformation value decreases and contribution to the dominant/relevant strategies becomes increasingly important.
+However, an unopened consumable is only **potential future value**. The strategy score is based on the actual current build. After a Tarot/Spectral card is used, the resulting enhancement/seal/edition/deck mutation is included in the next strategy recomputation.
+
+As the run converges, candidate value from these tables increasingly depends on the current scores of the supported strategies. An early Gold Joker for a zero-score strategy is not automatically forced; a Gold Joker for a highly ranked late strategy receives a much stronger strategy bonus.
 
 A mechanic deserves a playbook when it changes multiple downstream decisions such as acquisition, deck shaping, preservation, targeting, discard/play behavior, economy, or replacement logic.
