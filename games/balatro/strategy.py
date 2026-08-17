@@ -30,6 +30,13 @@ _RELATIONSHIP_PRIORITY = {
     BRONZE: 1,
     NEUTRAL: 0,
 }
+_POSITIVE_RELATIONSHIP_PRIORITY = {
+    GOLD: 3,
+    SILVER: 2,
+    BRONZE: 1,
+    BANNED: 0,
+    NEUTRAL: 0,
+}
 
 
 def _normalize(value: object) -> str:
@@ -673,6 +680,10 @@ class BalatroStrategyTracker:
         strongest_relationship: str | None = None
         strongest_abs = -1.0
         strongest_projected = 0.0
+        fallback_strategy_id: str | None = None
+        fallback_relationship: str | None = None
+        fallback_projected = 0.0
+        fallback_priority = -1
         pivot = False
         dominant = by_id.get(resolution.dominant_strategy_id)
 
@@ -715,6 +726,13 @@ class BalatroStrategyTracker:
             ):
                 pivot = True
 
+            positive_priority = _POSITIVE_RELATIONSHIP_PRIORITY[relationship]
+            if positive_priority > fallback_priority:
+                fallback_priority = positive_priority
+                fallback_strategy_id = strategy_id
+                fallback_relationship = relationship
+                fallback_projected = projected
+
             if abs(contribution) > strongest_abs or (
                 abs(contribution) == strongest_abs
                 and _RELATIONSHIP_PRIORITY[relationship]
@@ -728,6 +746,16 @@ class BalatroStrategyTracker:
             rationale.append(
                 f"{candidate}: {relationship} for {definition.name}; current={assessment.score:.3f}; scope={scope:.3f}; raw_alignment={contribution:+.3f}"
             )
+
+        # With no existing strategy evidence every relationship contributes zero.
+        # Report the strongest positive relationship in that neutral case so a
+        # Gold component remains identifiable as Gold without receiving any
+        # strategy purchase bonus. Banned remains primary once it produces an
+        # actual negative alignment against a positively evidenced strategy.
+        if strongest_abs <= 0.0 and fallback_relationship in {GOLD, SILVER, BRONZE}:
+            strongest_strategy_id = fallback_strategy_id
+            strongest_relationship = fallback_relationship
+            strongest_projected = fallback_projected
 
         value = total_alignment * alignment_scale * pressure
         strongest_definition = self.definitions.get(strongest_strategy_id or "")
