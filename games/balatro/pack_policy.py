@@ -23,6 +23,7 @@ from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.live.pack import LivePackChoice
 from games.balatro.live.shop import LiveShopItemFactory
+from games.balatro.joker_edition import EDITION_UNIVERSAL_VALUES
 from games.balatro.pack_playstyle import PackPlaystyleEvaluator
 from games.balatro.shop_policy import DefaultShopItemValueEstimator
 
@@ -110,13 +111,7 @@ class BalatroPackPolicy:
     SOUL_EARLY_ANTE_CUTOFF = 5
     SOUL_EARLY_ANTE_BONUS = 1.5
 
-    EDITION_BONUS = {
-        "FOIL": 0.8,
-        "HOLO": 1.5,
-        "HOLOGRAPHIC": 1.5,
-        "POLYCHROME": 2.5,
-        "NEGATIVE": 4.0,
-    }
+    EDITION_BONUS = EDITION_UNIVERSAL_VALUES
 
     PLAYING_ENHANCEMENT_VALUE = {
         "m_bonus": 0.9,

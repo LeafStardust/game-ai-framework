@@ -1,3 +1,5 @@
+import pytest
+
 from games.balatro.build.effects import EffectDescriptor
 from games.balatro.build.joker_strategy import JokerBuildValueWeights
 from games.balatro.build.synergy import ContextualBuildEvaluation
@@ -160,3 +162,20 @@ def test_strategy_conflict_does_not_force_sale_when_incumbent_carries_build_surv
         for note in transition.rationale
     )
     assert decision.action == HOLD
+
+
+def test_negative_edition_does_not_override_explicit_strategy_conflict():
+    state = _state()
+    state.joker_slots = 4
+    candidate = ConflictJoker()
+    candidate.cost = 0
+    candidate.edition = "Negative"
+
+    decision = JokerAcquisitionPolicy(
+        _thresholds(),
+        transition_planner=_planner(),
+    ).decide(state, candidate)
+
+    assert decision.action == HOLD
+    assert decision.options
+    assert decision.options[0].economics.edition_delta == pytest.approx(4.0)

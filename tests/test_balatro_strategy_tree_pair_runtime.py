@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from games.balatro.jokers.droll_joker import DrollJoker as RealDrollJoker
-from games.balatro.jokers.square_joker import SquareJoker as RealSquareJoker
+from games.balatro.jokers.dna import DNAJoker as RealDNAJoker
 from games.balatro.jokers.the_duo import TheDuoJoker as RealTheDuoJoker
 from games.balatro.state import BalatroState
 from games.balatro.strategy import BANNED, BRONZE, GOLD, NEUTRAL, SILVER
@@ -60,27 +60,15 @@ class BurglarJoker:
     pass
 
 
-class SquareJoker:
+class DNAJoker:
     pass
 
 
-class RaisedFistJoker:
+class TradingCardJoker:
     pass
 
 
-class BlackboardJoker:
-    pass
-
-
-class ShootTheMoonJoker:
-    pass
-
-
-class HikerJoker:
-    pass
-
-
-class HangingChadJoker:
+class HologramJoker:
     pass
 
 
@@ -197,15 +185,16 @@ def test_generic_small_hand_and_repeat_support_requires_independent_pair_commitm
         assert conditional_joker_relationship(invested, "pair", joker) == SILVER
 
     for joker in (
-        SquareJoker(),
-        RaisedFistJoker(),
-        BlackboardJoker(),
-        ShootTheMoonJoker(),
-        HikerJoker(),
-        HangingChadJoker(),
+        DNAJoker(),
+        TradingCardJoker(),
     ):
         assert conditional_joker_relationship(ordinary, "pair", joker) == NEUTRAL
         assert conditional_joker_relationship(invested, "pair", joker) == BRONZE
+
+    # Hologram is structural filler only after DNA supplies the card-add engine.
+    assert conditional_joker_relationship(invested, "pair", HologramJoker()) == NEUTRAL
+    dna_invested = _state(jokers=(DNAJoker(),), hand_levels={"PAIR": 2})
+    assert conditional_joker_relationship(dna_invested, "pair", HologramJoker()) == BRONZE
 
     direct = _state(jokers=(JollyJoker(),))
     assert conditional_joker_relationship(direct, "pair", HalfJoker()) == SILVER
@@ -276,7 +265,7 @@ def test_established_pair_prefers_aligned_bronze_filler_over_flush_joker():
         strategy_tracker=_tracker(),
     )
 
-    aligned = evaluator.evaluate(state, RealSquareJoker())
+    aligned = evaluator.evaluate(state, RealDNAJoker())
     off_path = evaluator.evaluate(state, RealDrollJoker())
 
     assert aligned.strategy_id == "pair"
@@ -287,6 +276,8 @@ def test_established_pair_prefers_aligned_bronze_filler_over_flush_joker():
     assert off_path.pivot_candidate is False
     assert off_path.strategic_adjustment < 0.0
     assert aligned.total_gain > off_path.total_gain
+    assert aligned.applicability == "ALIGNED"
+    assert off_path.applicability == "OFF_PATH"
     assert any(
         "off-path Joker generic probe discount" in note
         for note in off_path.rationale

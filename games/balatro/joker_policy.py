@@ -5,7 +5,11 @@ from typing import Mapping
 
 from games.balatro.build import JokerBuildTransitionPlanner
 from games.balatro.joker import Joker
-from games.balatro.joker_edition import joker_has_negative_edition
+from games.balatro.joker_edition import (
+    EDITION_UNIVERSAL_VALUES,
+    joker_edition_universal_value,
+    joker_has_negative_edition,
+)
 from games.balatro.state import BalatroState
 
 
@@ -126,12 +130,7 @@ class JokerAcquisitionPolicy:
     Joker-slot opportunity cost.
     """
 
-    EDITION_BONUSES = {
-        "FOIL": 0.8,
-        "HOLOGRAPHIC": 1.5,
-        "POLYCHROME": 2.5,
-        "NEGATIVE": 4.0,
-    }
+    EDITION_BONUSES = EDITION_UNIVERSAL_VALUES
 
     def __init__(
         self,
@@ -164,7 +163,16 @@ class JokerAcquisitionPolicy:
         transition = self.transition_planner.plan(state, candidate)
         slot_neutral = joker_has_negative_edition(candidate)
         if len(state.jokers) < int(state.joker_slots) or slot_neutral:
-            option = self._score_add(state, candidate, transition.candidate_value.total_gain)
+            strategic_conflict = bool(
+                getattr(transition.candidate_value, "applicability", None)
+                == "CONFLICT"
+            )
+            option = self._score_add(
+                state,
+                candidate,
+                transition.candidate_value.total_gain,
+                strategic_conflict=strategic_conflict,
+            )
             action = (
                 BUY
                 if option.eligible
@@ -271,6 +279,8 @@ class JokerAcquisitionPolicy:
         state: BalatroState,
         candidate: Joker,
         build_gain: float,
+        *,
+        strategic_conflict: bool = False,
     ) -> JokerAcquisitionOption:
         economics = self._economics(
             state,
@@ -280,7 +290,11 @@ class JokerAcquisitionPolicy:
         )
         eligible = (
             economics.money_after >= 0
-            and build_gain > self.thresholds.minimum_purchase_build_gain
+            and not strategic_conflict
+            and (
+                build_gain > self.thresholds.minimum_purchase_build_gain
+                or joker_edition_universal_value(candidate) > 0.0
+            )
         )
         total = build_gain + economics.total_adjustment
         return JokerAcquisitionOption(
@@ -423,16 +437,4 @@ class JokerAcquisitionPolicy:
         return min(5, max(0, int(money)) // 5)
 
     def _edition_bonus(self, item: object | None) -> float:
-        if item is None:
-            return 0.0
-        edition = getattr(item, "edition", None)
-        if isinstance(edition, dict):
-            for name, enabled in edition.items():
-                if enabled:
-                    edition = name
-                    break
-            else:
-                edition = None
-        if not edition:
-            return 0.0
-        return self.EDITION_BONUSES.get(str(edition).upper(), 0.0)
+        return joker_edition_universal_value(item)

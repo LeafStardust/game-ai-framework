@@ -17,6 +17,7 @@ from games.balatro.strategy import (
     SILVER,
     StrategicItemEvaluation,
 )
+from games.balatro.strategy_joker_applicability import joker_is_strategy_bound
 from games.balatro.strategy_conditional_relationships import (
     StateAwareBalatroStrategyTracker,
 )
@@ -378,7 +379,10 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
                 actionable_id,
                 projected_scores,
             )
-            shortlisted = actionable_id in resolution.shortlist_strategy_ids
+            ante = max(1, int(getattr(state, "ante", 1) or 1))
+            shortlisted = actionable_id in resolution.shortlist_strategy_ids and (
+                ante <= 5 or actionable_id == resolution.dominant_strategy_id
+            )
             if shortlisted and relationship in {GOLD, SILVER, BRONZE}:
                 active_alignment = True
             elif relationship in {GOLD, SILVER, BRONZE}:
@@ -387,14 +391,14 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
                     relation_weight,
                 )
 
-            ante = max(1, int(getattr(state, "ante", 1) or 1))
             pivot_margin = self._number(
                 config,
                 "early_pivot_margin" if ante <= 5 else "late_pivot_margin",
                 1.5 if ante <= 5 else 4.0,
             )
             if (
-                dominant is not None
+                ante <= 5
+                and dominant is not None
                 and relationship == GOLD
                 and actionable_id != dominant.strategy_id
                 and projected >= float(dominant.score) + pivot_margin
@@ -431,6 +435,7 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
 
         if (
             kind == "JOKER"
+            and joker_is_strategy_bound(item)
             and dominant is not None
             and not active_alignment
             and not pivot
@@ -474,7 +479,10 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
         hand_type = str(hand_type).upper()
         pressure = self.strategy_pressure(state)
         mapped_hand_strategy = False
-        for index, strategy_id in enumerate(resolution.shortlist_strategy_ids):
+        shortlist = resolution.shortlist_strategy_ids
+        if max(1, int(getattr(state, "ante", 1) or 1)) >= 6:
+            shortlist = (resolution.dominant_strategy_id,)
+        for index, strategy_id in enumerate(shortlist):
             primary_hands = self.primary_hands_for(strategy_id)
             if not primary_hands:
                 continue

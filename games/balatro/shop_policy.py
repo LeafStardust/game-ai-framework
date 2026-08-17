@@ -19,7 +19,11 @@ from games.balatro.build import (
 )
 from games.balatro.consumable import PlanetCard
 from games.balatro.joker import Joker
-from games.balatro.joker_edition import joker_has_negative_edition
+from games.balatro.joker_edition import (
+    EDITION_UNIVERSAL_VALUES,
+    joker_edition_universal_value,
+    joker_has_negative_edition,
+)
 from games.balatro.resource_value import RunResourceValuator
 from games.balatro.state import BalatroState
 
@@ -251,12 +255,7 @@ class DefaultShopItemValueEstimator:
 class BalatroShopPolicy:
     """Rank deterministic shop actions against the option to save money."""
 
-    EDITION_BONUSES = {
-        "FOIL": 0.8,
-        "HOLOGRAPHIC": 1.5,
-        "POLYCHROME": 2.5,
-        "NEGATIVE": 4.0,
-    }
+    EDITION_BONUSES = EDITION_UNIVERSAL_VALUES
 
     def __init__(
         self,
@@ -547,14 +546,4 @@ class BalatroShopPolicy:
         return 0.0
 
     def _edition_bonus(self, item) -> float:
-        edition = getattr(item, "edition", None)
-        if isinstance(edition, dict):
-            for name, enabled in edition.items():
-                if enabled:
-                    edition = name
-                    break
-            else:
-                edition = None
-        if not edition:
-            return 0.0
-        return self.EDITION_BONUSES.get(str(edition).upper(), 0.0)
+        return joker_edition_universal_value(item)

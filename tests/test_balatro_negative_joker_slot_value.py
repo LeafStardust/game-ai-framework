@@ -5,7 +5,10 @@ import pytest
 from games.balatro.actions import BUY_JOKER
 from games.balatro.build import JokerBuildTransitionPlanner
 from games.balatro.joker import Joker, JokerContext
-from games.balatro.joker_edition import joker_has_negative_edition
+from games.balatro.joker_edition import (
+    joker_edition_universal_value,
+    joker_has_negative_edition,
+)
 from games.balatro.joker_policy import (
     BUY,
     REPLACE,
@@ -63,6 +66,35 @@ def test_negative_edition_predicate_supports_string_and_live_mapping_forms():
         SimpleNamespace(edition={"negative": True, "foil": False})
     )
     assert not joker_has_negative_edition(SimpleNamespace(edition="Foil"))
+
+
+@pytest.mark.parametrize(
+    ("edition", "expected"),
+    (
+        ("Foil", 0.8),
+        ("Holographic", 1.5),
+        ("Polychrome", 2.5),
+        ("Negative", 4.0),
+    ),
+)
+def test_joker_editions_have_strategy_independent_universal_value(edition, expected):
+    assert joker_edition_universal_value(
+        SimpleNamespace(edition=edition)
+    ) == pytest.approx(expected)
+
+
+def test_inert_negative_is_buyable_for_slot_neutral_edition_value():
+    state = _state()
+    candidate = InertJoker()
+    candidate.cost = 0
+    candidate.edition = "Negative"
+
+    decision = JokerAcquisitionPolicy(_thresholds()).decide(state, candidate)
+
+    assert decision.action == BUY
+    assert decision.selected is not None
+    assert decision.selected.build_gain == pytest.approx(0.0)
+    assert decision.selected.economics.edition_delta == pytest.approx(4.0)
 
 
 def test_build_transition_treats_full_roster_negative_as_add():

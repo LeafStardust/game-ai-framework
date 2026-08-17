@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Callable, Mapping
 
+from games.balatro.strategy_joker_applicability import joker_is_strategy_bound
+
 GOLD = "GOLD"
 SILVER = "SILVER"
 BRONZE = "BRONZE"
@@ -649,16 +651,10 @@ class BalatroStrategyTracker:
             decay = self._number(config, "mid_strategy_rank_decay", 0.15)
             floor = self._number(config, "mid_strategy_rank_floor", 0.25)
             return max(floor, 1.0 - rank * decay)
-        if strategy_id == resolution.dominant_strategy_id:
-            return 1.0
-        if strategy_id in resolution.relevant_strategy_ids:
-            index = resolution.relevant_strategy_ids.index(strategy_id)
-            return self._number(
-                config,
-                "first_relevant_strategy_factor" if index == 0 else "second_relevant_strategy_factor",
-                0.80 if index == 0 else 0.65,
-            )
-        return self._number(config, "late_off_shortlist_factor", 0.05)
+        # Ante 6 is the hard convergence boundary. Secondary strategies may remain
+        # visible as diagnostics, but only the dominant strategy may steer play or
+        # purchases from this point onward.
+        return 1.0 if strategy_id == resolution.dominant_strategy_id else 0.0
 
     def evaluate_item(self, state, item: object, *, kind: str) -> StrategicItemEvaluation:
         kind = str(kind).upper()
@@ -724,7 +720,10 @@ class BalatroStrategyTracker:
             total_alignment += contribution
 
             projected = assessment.score + relation_weight * assessment.effectiveness
-            shortlisted = strategy_id in resolution.shortlist_strategy_ids
+            ante = max(1, int(getattr(state, "ante", 1) or 1))
+            shortlisted = strategy_id in resolution.shortlist_strategy_ids and (
+                ante <= 5 or strategy_id == resolution.dominant_strategy_id
+            )
             if shortlisted and relationship in {GOLD, SILVER, BRONZE}:
                 active_alignment = True
             elif relationship in {GOLD, SILVER, BRONZE}:
@@ -733,7 +732,8 @@ class BalatroStrategyTracker:
                     relation_weight,
                 )
             if (
-                dominant is not None
+                ante <= 5
+                and dominant is not None
                 and relationship == GOLD
                 and strategy_id != dominant.strategy_id
                 and projected
@@ -779,6 +779,7 @@ class BalatroStrategyTracker:
 
         if (
             kind == "JOKER"
+            and joker_is_strategy_bound(item)
             and dominant is not None
             and not active_alignment
             and not pivot
@@ -821,6 +822,8 @@ class BalatroStrategyTracker:
         hand_type = str(hand_type).upper()
         pressure = self.strategy_pressure(state)
         shortlist = resolution.shortlist_strategy_ids
+        if max(1, int(getattr(state, "ante", 1) or 1)) >= 6:
+            shortlist = (resolution.dominant_strategy_id,)
         mapped_hand_strategy = False
         for index, strategy_id in enumerate(shortlist):
             definition = self.definitions.get(strategy_id)

@@ -20,6 +20,15 @@ from .strategy import (
     BalatroStrategyTracker,
 )
 from .strategy_compat import NeutralLegacyPlaystyleIntentTracker
+from .strategy_joker_applicability import (
+    ALIGNED,
+    CONFLICT,
+    NEUTRAL_APPLICABILITY,
+    OFF_PATH,
+    PIVOT,
+    UNIVERSAL,
+    joker_is_strategy_bound,
+)
 
 
 @dataclass(frozen=True)
@@ -38,6 +47,7 @@ class StrategyAdjustedJokerBuildValue(JokerBuildValue):
     strategy_tier: str | None
     active_alignment: bool
     pivot_candidate: bool
+    applicability: str
 
 
 @dataclass(frozen=True)
@@ -79,6 +89,31 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
         super().__init__(*args, **kwargs)
         self.strategy_tracker = strategy_tracker
 
+    def _active_probe_hands(self, state) -> tuple[str, ...]:
+        resolution = self.strategy_tracker.observe(state)
+        if resolution.active_status not in {HIGHLIGHTED, COMMITTED, MATURE}:
+            return ()
+        strategy_id = resolution.dominant_strategy_id
+        if strategy_id is None:
+            return ()
+
+        inherited = getattr(self.strategy_tracker, "primary_hands_for", None)
+        if callable(inherited):
+            return tuple(str(value) for value in inherited(strategy_id))
+        definition = self.strategy_tracker.definitions.get(strategy_id)
+        return tuple(definition.primary_hands) if definition is not None else ()
+
+    def _scoring_probes(self, state):
+        active_hands = set(self._active_probe_hands(state))
+        if not active_hands:
+            return super()._scoring_probes(state)
+        scoped = tuple(
+            probe
+            for probe in super()._scoring_probes(state)
+            if probe[0].value in active_hands
+        )
+        return scoped or super()._scoring_probes(state)
+
     def evaluate(self, state, joker):
         base = super().evaluate(state, joker)
         strategic = self.strategy_tracker.evaluate_item(
@@ -88,12 +123,23 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
         )
         adjustment = float(strategic.value)
         policy_rationale: tuple[str, ...] = ()
+        active_probe_hands = self._active_probe_hands(state)
+        probe_rationale = (
+            (
+                "strategy-scoped scoring probes="
+                + ", ".join(active_probe_hands)
+            ),
+        ) if active_probe_hands else (
+            "no active poker-hand prescription; broad scoring probes retained",
+        )
         resolution = self.strategy_tracker.observe(state)
+        strategy_bound = joker_is_strategy_bound(joker)
         if (
             resolution.active_status in {HIGHLIGHTED, COMMITTED, MATURE}
             and strategic.tier in {GOLD, SILVER, BRONZE}
             and not strategic.active_alignment
             and not strategic.pivot_candidate
+            and strategy_bound
         ):
             config = self.strategy_tracker._config(state)
             base_discount = (
@@ -109,6 +155,22 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
                 "highlighted-strategy off-path Joker generic probe discount="
                 f"-{base_discount:.3f}; candidate is neither aligned nor a valid Gold pivot",
             )
+        if strategic.tier == BANNED and adjustment < 0.0:
+            applicability = CONFLICT
+        elif strategic.active_alignment and strategic.tier in {GOLD, SILVER, BRONZE}:
+            applicability = ALIGNED
+        elif strategic.pivot_candidate:
+            applicability = PIVOT
+        elif (
+            strategy_bound
+            and strategic.tier in {GOLD, SILVER, BRONZE}
+            and resolution.active_status in {HIGHLIGHTED, COMMITTED, MATURE}
+        ):
+            applicability = OFF_PATH
+        elif float(base.total_gain) > 0.0:
+            applicability = UNIVERSAL
+        else:
+            applicability = NEUTRAL_APPLICABILITY
         total = float(base.total_gain) + adjustment
         return StrategyAdjustedJokerBuildValue(
             joker=base.joker,
@@ -121,8 +183,10 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
             total_gain=total,
             rationale=(
                 *base.rationale,
+                *probe_rationale,
                 *strategic.rationale,
                 *policy_rationale,
+                f"Joker applicability={applicability}",
                 "legacy playstyle strategy influence=0.000 in universal-strategy path",
                 f"environment-adjusted universal strategy value={adjustment:+.3f}",
                 f"strategy-adjusted whole-build gain={total:.3f}",
@@ -133,19 +197,17 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
             strategy_tier=strategic.tier,
             active_alignment=bool(strategic.active_alignment),
             pivot_candidate=bool(strategic.pivot_candidate),
+            applicability=applicability,
         )
 
 
 class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
-    """Expose strategy sell pressure without double-counting it.
+    """Keep hypothetical replacements anchored to the authoritative build.
 
-    Strategy pressure is already part of ``StrategyAwareJokerBuildValueEvaluator``.
-    The inherited common-baseline planner therefore performs the correct numeric
-    comparison: removing a Banned incumbent clears its negative strategy evidence,
-    while re-adding it receives the conflict penalty against the restored strategy.
-
-    This subclass changes no score. It only makes that replacement pressure and the
-    survival/context override explicit in transition diagnostics.
+    Removing an incumbent for a common-baseline probe can also remove the evidence
+    that established the current strategy. Anchor each option to the pre-sale
+    state so a Gold core does not lose its protection inside its own hypothetical,
+    while replacing an OFF_PATH/Banned incumbent clears its real pressure.
     """
 
     @staticmethod
@@ -186,20 +248,44 @@ class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
         if not transition.alternatives:
             return transition
 
-        alternatives = tuple(
-            self._annotate_option(option)
-            for option in transition.alternatives
-        )
-        replacement = None
-        if transition.replacement is not None:
-            replacement = next(
-                (
-                    option
-                    for option in alternatives
-                    if option.replace_index == transition.replacement.replace_index
-                ),
-                transition.replacement,
+        anchored = []
+        for option in transition.alternatives:
+            incumbent = state.jokers[int(option.replace_index)]
+            strategic = self.evaluator.strategy_tracker.evaluate_item(
+                state,
+                incumbent,
+                kind="JOKER",
             )
+            retention = float(strategic.value)
+            anchored.append(
+                self._annotate_option(
+                    replace(
+                        option,
+                        build_delta=float(option.build_delta) - retention,
+                        rationale=(
+                            *option.rationale,
+                            "authoritative pre-sale strategy retention="
+                            f"{retention:+.3f}",
+                            "strategy-anchored replacement delta="
+                            f"{float(option.build_delta) - retention:.3f}",
+                        ),
+                    )
+                )
+            )
+
+        alternatives = tuple(
+            sorted(
+                anchored,
+                key=lambda option: (-option.build_delta, option.replace_index),
+            )
+        )
+        replacement = (
+            alternatives[0]
+            if alternatives
+            and alternatives[0].build_delta > self.minimum_replacement_delta
+            else None
+        )
+        action = "REPLACE" if replacement is not None else "HOLD"
 
         notes = list(transition.rationale)
         conflict_options = [
@@ -213,13 +299,14 @@ class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
             notes.append(
                 "strategy-conflicting incumbent selected only after whole-build replacement delta cleared threshold"
             )
-        elif transition.action == "HOLD" and conflict_options:
+        elif action == "HOLD" and conflict_options:
             notes.append(
                 "strategy-conflicting incumbent retained because no whole-build replacement cleared threshold; scoring/context survival value can override strategic purity"
             )
 
         return replace(
             transition,
+            action=action,
             replacement=replacement,
             alternatives=alternatives,
             rationale=tuple(notes),

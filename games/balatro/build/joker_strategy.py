@@ -309,7 +309,7 @@ class JokerBuildValueEvaluator:
     def _direct_scoring_gain(self, state: BalatroState, joker: Joker) -> float:
         gains: list[float] = []
 
-        for hand, template_cards in self.PROBES:
+        for hand, template_cards in self._scoring_probes(state):
             cards = copy.deepcopy(list(template_cards))
             before_state = copy.deepcopy(state)
             before_state.hand = copy.deepcopy(cards)
@@ -335,6 +335,10 @@ class JokerBuildValueEvaluator:
             gains.append((float(after) - float(before)) / max(abs(float(before)), 1.0))
 
         return sum(gains) / len(gains) if gains else 0.0
+
+    def _scoring_probes(self, state: BalatroState):
+        """Return representative hands used to value a candidate Joker."""
+        return self.PROBES
 
 
 class JokerBuildTransitionPlanner:

@@ -6,6 +6,11 @@ from typing import Mapping
 
 from games.balatro.build import JokerBuildValue, JokerBuildValueEvaluator
 from games.balatro.joker import Joker
+from games.balatro.joker_edition import (
+    EDITION_UNIVERSAL_VALUES,
+    joker_edition_name,
+    joker_edition_universal_value,
+)
 from games.balatro.joker_policy import HOLD
 from games.balatro.resource_value import RunResourceValuator
 from games.balatro.state import BalatroState
@@ -107,12 +112,7 @@ class JokerSalePolicy:
     advantage strictly exceeds the HOLD baseline threshold.
     """
 
-    EDITION_RETENTION_VALUE = {
-        "FOIL": 0.8,
-        "HOLOGRAPHIC": 1.5,
-        "POLYCHROME": 2.5,
-        "NEGATIVE": 4.0,
-    }
+    EDITION_RETENTION_VALUE = EDITION_UNIVERSAL_VALUES
 
     def __init__(
         self,
@@ -325,22 +325,11 @@ class JokerSalePolicy:
         return RunResourceValuator.interest_value(money, vouchers=vouchers)
 
     def _edition_retention_value(self, joker: Joker) -> float:
-        edition = self._edition_name(joker)
-        if edition is None:
-            return 0.0
-        return self.EDITION_RETENTION_VALUE.get(edition, 0.0)
+        return joker_edition_universal_value(joker)
 
     @staticmethod
     def _edition_name(joker: Joker) -> str | None:
-        edition = getattr(joker, "edition", None)
-        if isinstance(edition, Mapping):
-            for name, enabled in edition.items():
-                if enabled:
-                    return str(name).upper()
-            return None
-        if not edition:
-            return None
-        return str(edition).upper()
+        return joker_edition_name(joker)
 
     @staticmethod
     def _format_money(value: int | None) -> str:
