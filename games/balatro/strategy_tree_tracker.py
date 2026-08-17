@@ -164,11 +164,17 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
                 # Disabled cartridge strategies are absent from direct assessment.
                 continue
             node = node_scores[strategy_id]
-            effective_score = float(direct.base_score)
-            if node.active:
-                effective_score += (
-                    float(node.effective_score) * float(direct.effectiveness)
-                )
+            if self.topology.parent_by_id[strategy_id] is None:
+                # Unsplit strategies remain numerically identical to the legacy
+                # tracker until their own topology is explicitly migrated. This
+                # preserves positive, zero and negative conflict scores exactly.
+                effective_score = float(direct.score)
+            else:
+                effective_score = float(direct.base_score)
+                if node.active:
+                    effective_score += (
+                        float(node.effective_score) * float(direct.effectiveness)
+                    )
             leaf_assessments.append(
                 replace(
                     direct,
@@ -263,6 +269,10 @@ class TreeAwareStateAwareBalatroStrategyTracker(StateAwareBalatroStrategyTracker
         if direct is None:
             return 0.0
         node = projected_scores[leaf_id]
+        if self.topology.parent_by_id[leaf_id] is None:
+            return float(direct.base_score) + (
+                float(node.direct_evidence) * float(direct.effectiveness)
+            )
         value = float(direct.base_score)
         if node.active:
             value += float(node.effective_score) * float(direct.effectiveness)
