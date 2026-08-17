@@ -35,13 +35,13 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Three of a Kind | Three of a Kind `[L]` | The Trio | Zany Joker; Wily Joker; DNA; Half Joker; The Duo | Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Venus | Cryptid; Ouija | — |
 | Straight | Straight `[I]` | The Order; Shortcut; Four Fingers; Runner | Crazy Joker; Devious Joker | — | Obelisk | Strength; Death | Saturn | — | — |
 | Straight | ↳ Superposition Ace-Straight Tarot `[L]` | Superposition | — | — | — | — | — | — | — |
-| Straight | ↳ Straight Flush `[L]` | The Tribe; Smeared Joker; Seance | Droll Joker; Crafty Joker | — | — | The Lovers | Neptune | Sigil | Wild |
+| Straight Flush | Straight Flush `[L]` | The Order; The Tribe; Shortcut; Four Fingers; Runner; Smeared Joker; Seance | Crazy Joker; Devious Joker; Droll Joker; Crafty Joker | — | Obelisk | Strength; Death; The Lovers | Neptune | Sigil | Wild |
 | Flush | Flush `[L]` | The Tribe | Droll Joker; Crafty Joker; Smeared Joker; Four Fingers | — | Obelisk | The Lovers | Jupiter | Sigil | Wild |
-| Full House | Full House `[I]` | — | The Trio; The Duo; Spare Trousers; Zany Joker; Wily Joker; Mad Joker; Clever Joker | Jolly Joker; Sly Joker; DNA; Trading Card | Obelisk | Death; Strength | Earth | Cryptid; Ouija | — |
-| Full House | ↳ Flush House `[L]` | The Tribe | Smeared Joker; Droll Joker; Crafty Joker | — | — | The Lovers | Ceres | Sigil | Wild |
+| Full House | Full House `[L]` | — | The Trio; The Duo; Spare Trousers; Zany Joker; Wily Joker; Mad Joker; Clever Joker | Jolly Joker; Sly Joker; DNA; Trading Card | Obelisk | Death; Strength | Earth | Cryptid; Ouija | — |
+| Flush House | Flush House `[L]` | The Tribe | The Trio; The Duo; Spare Trousers; Zany Joker; Wily Joker; Mad Joker; Clever Joker; Smeared Joker; Droll Joker; Crafty Joker | Jolly Joker; Sly Joker; DNA; Trading Card | Obelisk | Death; Strength; The Lovers | Ceres | Cryptid; Ouija; Sigil | Wild |
 | Four of a Kind | Four of a Kind `[L]` | The Family | The Trio; DNA; Zany Joker; Wily Joker; Square Joker | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Mars | Cryptid; Ouija | — |
-| Five of a Kind | Five of a Kind `[I]` | The Family | The Trio; Zany Joker; Wily Joker | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Planet X | Ouija | — |
-| Five of a Kind | ↳ Flush Five `[L]` | DNA; The Idol; The Tribe | Smeared Joker; Droll Joker; Crafty Joker | — | — | The Lovers | Eris | Cryptid; Sigil | Wild |
+| Five of a Kind | Five of a Kind `[L]` | The Family | The Trio; DNA; The Idol; Zany Joker; Wily Joker | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Planet X | Cryptid; Ouija | — |
+| Flush Five | Flush Five `[L]` | The Family; DNA; The Idol; The Tribe | The Trio; Zany Joker; Wily Joker; Smeared Joker; Droll Joker; Crafty Joker | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength; The Lovers | Eris | Cryptid; Ouija; Sigil | Wild |
 
 ## 2. Rank and face cards
 
