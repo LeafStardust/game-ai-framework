@@ -170,6 +170,13 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                     "second_relevant_strategy_factor": 0.65,
                     "late_off_shortlist_factor": 0.05,
 
+                    # Consumable/booster staging. Tarot and Spectral remain open
+                    # seeders early; Celestial requires a real poker-hand direction;
+                    # unrelated structural consumables lose value as commitment rises.
+                    "celestial_poker_evidence_floor": 1.5,
+                    "mid_off_strategy_consumable_penalty": 0.75,
+                    "late_off_strategy_consumable_penalty": 3.0,
+
                     # Per-strategy cartridge modifiers. Future decks/stakes may set
                     # enabled, effectiveness and/or base_score independently.
                     "strategies": {
