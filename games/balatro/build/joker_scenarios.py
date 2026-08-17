@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import copy
+import pickle
 import random
+import threading
+from collections import OrderedDict
 from dataclasses import dataclass
 
 from games.balatro.card import BalatroCard
@@ -126,7 +129,61 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
         "trading_card_triggered",
     }
 
+    # Behavior discovery is intentionally exhaustive and therefore much more
+    # expensive than consuming its immutable descriptor. Shop replacement
+    # planning asks the same question many times on deep-copied baselines, so
+    # share descriptors across analyzer instances and key them by the complete
+    # serialized public Joker state. Stateful Jokers naturally miss the cache
+    # whenever one of their modeled attributes changes.
+    _DESCRIPTOR_CACHE_LIMIT = 512
+    _descriptor_cache: OrderedDict[
+        tuple[type, type, bytes], SemanticEffectDescriptor
+    ] = (
+        OrderedDict()
+    )
+    _descriptor_cache_lock = threading.RLock()
+
+    def _descriptor_cache_key(
+        self,
+        joker: object,
+    ) -> tuple[type, type, bytes] | None:
+        if not isinstance(joker, Joker):
+            return None
+        try:
+            return (
+                type(self),
+                type(joker),
+                pickle.dumps(joker, protocol=pickle.HIGHEST_PROTOCOL),
+            )
+        except (AttributeError, pickle.PickleError, TypeError):
+            # A custom Joker may contain an unpickleable callback or runtime
+            # handle. It remains fully supported; only memoization is skipped.
+            return None
+
+    @classmethod
+    def reset_descriptor_cache(cls) -> None:
+        with cls._descriptor_cache_lock:
+            cls._descriptor_cache.clear()
+
     def describe(self, joker: object) -> SemanticEffectDescriptor:
+        key = self._descriptor_cache_key(joker)
+        if key is not None:
+            with self._descriptor_cache_lock:
+                cached = self._descriptor_cache.get(key)
+                if cached is not None:
+                    self._descriptor_cache.move_to_end(key)
+                    return cached
+
+        descriptor = self._describe_uncached(joker)
+        if key is not None:
+            with self._descriptor_cache_lock:
+                self._descriptor_cache[key] = descriptor
+                self._descriptor_cache.move_to_end(key)
+                while len(self._descriptor_cache) > self._DESCRIPTOR_CACHE_LIMIT:
+                    self._descriptor_cache.popitem(last=False)
+        return descriptor
+
+    def _describe_uncached(self, joker: object) -> SemanticEffectDescriptor:
         base = super().describe(joker)
         if not isinstance(joker, Joker):
             return base

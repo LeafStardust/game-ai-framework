@@ -8,6 +8,7 @@ from games.balatro.build.joker_scenarios import (
     ScenarioJokerBehaviorAnalyzer,
     scenario_feature,
 )
+from games.balatro.build.joker_semantics import SemanticEffectDescriptor
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.acrobat import AcrobatJoker
 from games.balatro.jokers.baseball_card import BaseballCardJoker
@@ -24,6 +25,37 @@ from games.balatro.jokers.mr_bones import MrBonesJoker
 
 def _describe(joker):
     return ScenarioJokerBehaviorAnalyzer().describe(joker)
+
+
+class _CountingScenarioAnalyzer(ScenarioJokerBehaviorAnalyzer):
+    def __init__(self):
+        self.uncached_calls = 0
+
+    def _describe_uncached(self, joker):
+        self.uncached_calls += 1
+        marker = int(getattr(joker, "cache_test_marker", 0))
+        return SemanticEffectDescriptor(
+            source=type(joker).__name__,
+            kind="JOKER",
+            evidence=(f"marker={marker}",),
+        )
+
+
+def test_descriptor_cache_is_shared_and_invalidates_on_joker_state_change():
+    _CountingScenarioAnalyzer.reset_descriptor_cache()
+    first = _CountingScenarioAnalyzer()
+    second = _CountingScenarioAnalyzer()
+    joker = CardSharpJoker()
+
+    initial = first.describe(joker)
+    repeated = second.describe(joker)
+    joker.cache_test_marker = 1
+    mutated = second.describe(joker)
+
+    assert initial is repeated
+    assert first.uncached_calls == 1
+    assert second.uncached_calls == 1
+    assert mutated.evidence == ("marker=1",)
 
 
 def test_owned_joker_neighborhood_exposes_joker_count_scoring():

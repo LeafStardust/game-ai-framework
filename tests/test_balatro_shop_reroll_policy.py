@@ -170,9 +170,39 @@ def test_expensive_reroll_is_negative_for_saturated_build():
     )
 
     assert result.decision == "HOLD"
-    assert result.future_shop_ev == policy.shop_policy.hold_bias
+    assert result.future_shop_ev > policy.shop_policy.hold_bias
     assert result.reroll_score < 0.0
     assert result.executable_action is None
+
+
+def test_cash_rich_full_roster_rerolls_for_replacement_options_then_stops():
+    state = _state(money=121)
+    state.jokers = [object() for _ in range(state.joker_slots)]
+    state.consumables = [object() for _ in range(state.consumable_slots)]
+    policy = BuildAwareShopRerollPolicy(
+        build_profiler=StaticProfiler(EmptyProfile()),
+        pool_prior=VANILLA_SHOP_REROLL_PRIOR,
+    )
+
+    affordable_search = policy.recommend(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=5,
+    )
+    expensive_search = policy.recommend(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=6,
+    )
+
+    assert affordable_search.decision == "REROLL"
+    assert affordable_search.executable_action is not None
+    assert affordable_search.executable_action.name == REFRESH_SHOP
+    assert expensive_search.decision == "HOLD"
+    assert any(
+        "replacement-option penalty=1.500" in note
+        for note in affordable_search.rationale
+    )
 
 
 def test_reroll_score_is_monotonic_with_reroll_cost():

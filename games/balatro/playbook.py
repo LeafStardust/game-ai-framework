@@ -285,6 +285,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                     },
                     "reroll": {
                         "minimum_margin": 0.25,
+                        "full_joker_replacement_penalty": 1.5,
                     },
                     "blind_skip": {
                         "minimum_skip_advantage": 2.0,

@@ -96,6 +96,7 @@ class ShopRerollThresholds:
     """Decision margin for paid reroll EV versus the best visible shop option."""
 
     minimum_margin: float = 0.25
+    full_joker_replacement_penalty: float = 1.5
 
 
 @dataclass(frozen=True)
@@ -226,6 +227,8 @@ class BuildAwareShopRerollPolicy:
             f"reroll interest penalty={reroll_resource.interest:.3f}",
             f"reroll reserve penalty={reroll_resource.reserve:.3f}",
             f"reroll score={reroll_score:.3f}; required={required:.3f}",
+            "full Joker roster replacement-option penalty="
+            f"{self.thresholds.full_joker_replacement_penalty:.3f}",
             "future-shop expectation uses static public priors only; no RNG state or future ordering",
         )
 
@@ -341,16 +344,23 @@ class BuildAwareShopRerollPolicy:
 
         if offer.resource == "JOKER":
             if len(state.jokers) >= state.joker_slots:
-                # Replacement EV requires a concrete candidate/incumbent comparison.
-                # A family-level prior cannot safely invent that delta.
-                return hold
-            slot_cost = self.shop_policy.resource_valuator.slot_opportunity_cost(
-                occupied=len(state.jokers),
-                capacity=state.joker_slots,
-                last_slot_penalty=self.shop_policy.last_joker_slot_penalty,
-                penultimate_slot_penalty=self.shop_policy.penultimate_joker_slot_penalty,
-                resource="joker",
-            ).total
+                # A full roster does not make future Jokers worthless: rerolling
+                # creates a real option to replace a weak, off-path or obsolete
+                # incumbent. Keep that option conservative with an explicit
+                # family-level penalty; the concrete D2 comparison remains
+                # authoritative after the candidate is actually observed.
+                slot_cost = max(
+                    0.0,
+                    float(self.thresholds.full_joker_replacement_penalty),
+                )
+            else:
+                slot_cost = self.shop_policy.resource_valuator.slot_opportunity_cost(
+                    occupied=len(state.jokers),
+                    capacity=state.joker_slots,
+                    last_slot_penalty=self.shop_policy.last_joker_slot_penalty,
+                    penultimate_slot_penalty=self.shop_policy.penultimate_joker_slot_penalty,
+                    resource="joker",
+                ).total
         elif offer.resource == "CONSUMABLE":
             if len(state.consumables) >= state.consumable_slots:
                 return hold
