@@ -87,6 +87,10 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 
 Each stake milestone adds only the adaptation required by that stake, retunes the Red Deck playbook as needed, and requires one successful unseeded run.
 
+### Higher-stake economy and hand-efficiency requirement
+
+- [ ] In higher-stake runs, explicitly prioritize clearing blinds with as few hands as safely possible to maximize unused-hand cash-out, and pursue >2× blind-target finishes for their extra-cash benefit when the line is strategically safe and EV-positive.
+
 ## v2+ — Additional decks
 
 Planned deck order after Red Deck completion:
