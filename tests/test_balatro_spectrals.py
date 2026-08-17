@@ -475,6 +475,18 @@ def test_soul_creates_legendary_joker():
     assert state.jokers == [joker]
 
 
+def test_soul_uses_the_public_joker_slot_capacity():
+    state = BalatroState()
+    state.joker_slots = 6
+    state.jokers = [object() for _ in range(5)]
+    spectral = create_spectral("The Soul")
+
+    assert spectral.can_use(ConsumableContext(state=state)) is True
+
+    state.jokers.append(object())
+    assert spectral.can_use(ConsumableContext(state=state)) is False
+
+
 def test_black_hole_upgrades_every_poker_hand():
 
     state = BalatroState()

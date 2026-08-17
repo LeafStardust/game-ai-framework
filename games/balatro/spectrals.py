@@ -408,7 +408,11 @@ class Soul(SpectralCard):
         super().__init__("The Soul")
 
     def can_use(self, context: ConsumableContext) -> bool:
-        return len(context.state.jokers) < 5
+        joker_slots = max(
+            0,
+            int(getattr(context.state, "joker_slots", 5) or 5),
+        )
+        return len(context.state.jokers) < joker_slots
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
         joker = context.data["random_legendary_joker"]()

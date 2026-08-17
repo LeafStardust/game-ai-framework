@@ -38,12 +38,14 @@ class BalatroPackPolicy:
     """Conservative ranking for visible booster-pack choices.
 
     Joker, Planet, enhanced/edition/sealed playing-card, and deterministic immediate
-    Spectral choices can be ranked immediately. Deterministic targeted Tarot/Spectral
-    transformations are admitted only when the public hand supplies a validated B6
-    target. Aura, Sigil, Hex, and Ankh are admitted through analytic public-state
-    expectations over bounded outcomes. The Fool is valued from Balatro's public
-    last-Tarot/Planet run history. Wheel of Fortune is valued from an analytic
-    public-state edition distribution. Other stochastic, destructive, generation, or
+    Spectral choices can be ranked immediately. The Soul receives a bounded
+    Legendary-Joker option value with an early-Ante scaling premium. Deterministic
+    targeted Tarot/Spectral transformations are admitted only when the public hand
+    supplies a validated B6 target. Aura, Sigil, Hex, and Ankh are admitted through
+    analytic public-state expectations over bounded outcomes. The Fool is valued
+    from Balatro's public last-Tarot/Planet run history. Wheel of Fortune is valued
+    from an analytic public-state edition distribution. Other stochastic,
+    destructive, generation, or
     unsupported-target effects remain below Skip until their outcome models are explicit.
 
     An optional D4 playstyle evaluator can add bounded run-intent value for choices
@@ -75,8 +77,8 @@ class BalatroPackPolicy:
 
     # Black Hole is the only current Spectral whose complete modeled effect is both
     # deterministic and non-targeted. Four deterministic seal transforms remain on
-    # the generic B6 target path. Aura, Sigil, Hex, and Ankh have explicit stochastic
-    # expectation models; every other current Spectral stays deferred until modeled.
+    # the generic B6 target path. Aura, Sigil, Hex, Ankh, and The Soul have explicit
+    # stochastic value models; every other current Spectral stays deferred until modeled.
     DETERMINISTIC_IMMEDIATE_SPECTRALS = frozenset(
         {
             "Black Hole",
@@ -88,6 +90,7 @@ class BalatroPackPolicy:
             "Sigil",
             "Hex",
             "Ankh",
+            "The Soul",
         }
     )
     DEFERRED_SPECTRALS = frozenset(
@@ -100,9 +103,12 @@ class BalatroPackPolicy:
             "Ectoplasm",
             "Immolate",
             "Cryptid",
-            "The Soul",
         }
     )
+
+    SOUL_BASE_VALUE = 8.0
+    SOUL_EARLY_ANTE_CUTOFF = 5
+    SOUL_EARLY_ANTE_BONUS = 1.5
 
     EDITION_BONUS = {
         "FOIL": 0.8,
@@ -319,6 +325,10 @@ class BalatroPackPolicy:
             scored = self._score_ankh(state, action)
             return self._add_playstyle(scored, playstyle_value, playstyle_notes)
 
+        if choice.kind == "SPECTRAL" and choice.label == "The Soul":
+            scored = self._score_soul(state, action, target)
+            return self._add_playstyle(scored, playstyle_value, playstyle_notes)
+
         if (
             choice.kind == "TAROT"
             and choice.label in self.STOCHASTIC_DEFERRED_TAROTS
@@ -488,6 +498,43 @@ class BalatroPackPolicy:
             (
                 "Wheel uses analytic public-state expectation; no RNG sample or seed read",
                 *expectation.rationale,
+            ),
+        )
+
+    def _score_soul(
+        self,
+        state,
+        action: BalatroAction,
+        target,
+    ) -> PackActionScore:
+        joker_slots = max(0, int(getattr(state, "joker_slots", 5) or 5))
+        owned_jokers = len(getattr(state, "jokers", ()) or ())
+        if owned_jokers >= joker_slots or not target.can_use(
+            ConsumableContext(state=state)
+        ):
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    "The Soul unavailable: no free Joker slot "
+                    f"({owned_jokers}/{joker_slots})",
+                ),
+            )
+
+        ante = max(1, int(getattr(state, "ante", 1) or 1))
+        early_ante_bonus = max(
+            0,
+            self.SOUL_EARLY_ANTE_CUTOFF - ante,
+        ) * self.SOUL_EARLY_ANTE_BONUS
+        total = self.SOUL_BASE_VALUE + early_ante_bonus
+        return PackActionScore(
+            action,
+            total,
+            (
+                "The Soul creates a random Legendary Joker in a free slot",
+                f"Legendary Joker option value={self.SOUL_BASE_VALUE:.3f}",
+                f"early-Ante scaling opportunity bonus={early_ante_bonus:.3f}",
+                f"free Joker slots={joker_slots - owned_jokers}",
             ),
         )
 

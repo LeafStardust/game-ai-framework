@@ -137,6 +137,77 @@ def test_d9_black_hole_uses_b4_immediate_spectral_value_against_skip():
     assert any("B4 build-path gain=" in note for note in ranked[0].notes)
 
 
+def test_d9_soul_is_prioritized_for_early_ante_legendary_joker_value():
+    state = BalatroState()
+    state.phase = "SPECTRAL_PACK"
+    state.ante = 1
+    state.joker_slots = 5
+    soul = _choice("Spectral", "The Soul", area_index=0)
+    black_hole = _choice("Spectral", "Black Hole", area_index=1)
+
+    ranked = BalatroPackPolicy().rank_actions(
+        state,
+        [
+            BalatroAction(SELECT_PACK_CARD, target=black_hole),
+            BalatroAction(SELECT_PACK_CARD, target=soul),
+            BalatroAction(SKIP_BOOSTER),
+        ],
+    )
+
+    assert ranked[0].action.target is soul
+    assert ranked[0].total == 14.0
+    assert any("Legendary Joker option value=8.000" in note for note in ranked[0].notes)
+    assert any("early-Ante scaling opportunity bonus=6.000" in note for note in ranked[0].notes)
+
+
+def test_d9_soul_early_priority_decays_but_remains_above_skip():
+    soul = _choice("Spectral", "The Soul")
+    policy = BalatroPackPolicy()
+
+    early = BalatroState()
+    early.phase = "SPECTRAL_PACK"
+    early.ante = 2
+    late = BalatroState()
+    late.phase = "SPECTRAL_PACK"
+    late.ante = 7
+
+    early_score = policy.score_action(
+        early,
+        BalatroAction(SELECT_PACK_CARD, target=soul),
+    )
+    late_score = policy.score_action(
+        late,
+        BalatroAction(SELECT_PACK_CARD, target=soul),
+    )
+
+    assert early_score.total == 12.5
+    assert late_score.total == 8.0
+    assert early_score.total > late_score.total > policy.skip_bias
+
+
+def test_d9_soul_fails_closed_without_a_free_joker_slot():
+    state = BalatroState()
+    state.phase = "SPECTRAL_PACK"
+    state.joker_slots = 5
+    state.jokers = [object() for _ in range(5)]
+    soul = _choice("Spectral", "The Soul")
+
+    ranked = BalatroPackPolicy().rank_actions(
+        state,
+        [
+            BalatroAction(SELECT_PACK_CARD, target=soul),
+            BalatroAction(SKIP_BOOSTER),
+        ],
+    )
+
+    assert ranked[0].action.name == SKIP_BOOSTER
+    soul_score = next(
+        result for result in ranked if result.action.name == SELECT_PACK_CARD
+    )
+    assert soul_score.total == -1.0
+    assert any("no free Joker slot (5/5)" in note for note in soul_score.notes)
+
+
 def test_d9_every_current_spectral_is_explicitly_classified():
     assert BalatroPackPolicy.classified_spectrals() == frozenset(SPECTRAL_CARDS)
 
