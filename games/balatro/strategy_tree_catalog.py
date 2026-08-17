@@ -14,6 +14,7 @@ _HIGH_CARD_TREE_IDS = frozenset(
         "high_card_baron_mime",
     }
 )
+_PAIR_STRATEGY_ID = "pair"
 
 
 def _high_card_tree_definitions():
@@ -71,8 +72,28 @@ def _high_card_tree_definitions():
     }
 
 
+def _pair_tree_definition():
+    """Return the audited standalone Pair leaf.
+
+    Static relationships are limited to components that directly indicate Pair.
+    Generic repeated-hand and small-hand support is resolved conditionally once
+    independent Pair evidence already exists, so those Jokers cannot create a Pair
+    strategy from zero by themselves.
+    """
+
+    return _strategy(
+        "pair",
+        "Pair",
+        "PAIR",
+        gold_jokers=("The Duo",),
+        silver_jokers=("Jolly Joker", "Sly Joker"),
+        gold_planets=("Mercury",),
+    )
+
+
 _tree_definitions = dict(UNIVERSAL_BALATRO_STRATEGIES)
 _tree_definitions.pop("high_card", None)
+_tree_definitions[_PAIR_STRATEGY_ID] = _pair_tree_definition()
 _tree_definitions.update(_high_card_tree_definitions())
 
 TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES = MappingProxyType(_tree_definitions)
