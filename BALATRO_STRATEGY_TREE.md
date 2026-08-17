@@ -19,18 +19,15 @@ Two Pair [L]
 Three of a Kind [L]
 
 Straight [I]
-├── Superposition Ace-Straight Tarot [L]
-└── Straight Flush [L]
+└── Superposition Ace-Straight Tarot [L]
 
 Flush [L]
-
-Full House [I]
-└── Flush House [L]
-
+Full House [L]
 Four of a Kind [L]
-
-Five of a Kind [I]
-└── Flush Five [L]
+Straight Flush [L]
+Five of a Kind [L]
+Flush House [L]
+Flush Five [L]
 ```
 
 ## 2. Rank and face-card strategies
@@ -253,9 +250,6 @@ Last-Hand Burst [I]
 
 ```text
 Baron-Mime High Card        <-> Steel / Red Seal / DNA / hand-size support / Shoot the Moon
-Straight Flush              <-> Flush / suit concentration
-Flush House                 <-> Flush
-Flush Five                  <-> Flush
 PhotoChad                   <-> Face Cards / Lucky / Glass / Red Seal / Hiker
 Triboulet + Sock and Buskin <-> Face Cards / Red Seal / Glass
 Bloodstone Hearts           <-> Oops! All 6s / retriggers / Lucky
