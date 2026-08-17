@@ -183,7 +183,7 @@ class StrategyAwareLiveConsumableTimingPolicy(LiveConsumableTimingPolicy):
             return recommendations
 
         fits = {
-            id(recommendation): self._strategy_use_fit(state, recommendation)
+            id(recommendation.consumable): self._strategy_use_fit(state, recommendation)
             for recommendation in recommendations
         }
         annotated = tuple(
@@ -191,7 +191,7 @@ class StrategyAwareLiveConsumableTimingPolicy(LiveConsumableTimingPolicy):
                 recommendation,
                 rationale=(
                     *recommendation.rationale,
-                    f"D5 universal-strategy use fit={fits[id(recommendation)]:+.6f}",
+                    f"D5 universal-strategy use fit={fits[id(recommendation.consumable)]:+.6f}",
                 ),
             )
             for recommendation in recommendations
@@ -201,7 +201,7 @@ class StrategyAwareLiveConsumableTimingPolicy(LiveConsumableTimingPolicy):
                 annotated,
                 key=lambda recommendation: self._strategy_recommendation_key(
                     recommendation,
-                    fits[id(recommendation)],
+                    fits[id(recommendation.consumable)],
                 ),
                 reverse=True,
             )
