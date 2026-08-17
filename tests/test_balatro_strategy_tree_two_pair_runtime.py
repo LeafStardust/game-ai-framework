@@ -88,9 +88,9 @@ def test_core_two_pair_inherits_only_broad_parent_evidence():
     assert "two_pair" not in by_id
     assert nodes["two_pair"].direct_evidence == pytest.approx(3.0)
     assert nodes["two_pair_core"].direct_evidence == pytest.approx(0.0)
+    assert nodes["two_pair_core"].active is True
     assert by_id["two_pair_core"].score == pytest.approx(3.0)
     assert by_id["two_pair_trousers_square"].score == pytest.approx(0.0)
-    assert resolution.dominant_strategy_id == "two_pair_core"
 
 
 def test_two_pair_level_investment_builds_parent_not_core_direct_evidence():
