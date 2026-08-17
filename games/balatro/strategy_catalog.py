@@ -10,9 +10,6 @@ def _names(*values: str) -> frozenset[str]:
         "".join(character for character in value.lower() if character.isalnum())
         for value in values
     }
-    # Joker model classes conventionally append "Joker" to the in-game name
-    # (TheDuoJoker, RunnerJoker, etc.). Keep strategy knowledge in game-name form
-    # while accepting either representation from mechanics/live translation.
     return frozenset(
         {
             *normalized,
@@ -52,8 +49,6 @@ def _strategy(
     )
 
 
-# Universal Balatro strategy knowledge. Deck/stake cartridges do not redefine this
-# catalog; they only enable/disable or scale strategies for their environment.
 UNIVERSAL_BALATRO_STRATEGIES = MappingProxyType(
     {
         "high_card": _strategy(
@@ -125,9 +120,8 @@ UNIVERSAL_BALATRO_STRATEGIES = MappingProxyType(
             "full_house",
             "Full House scaling",
             "FULL_HOUSE",
-            gold_jokers=("TheDuo", "TheTrio"),
-            silver_jokers=("JollyJoker", "ZanyJoker", "SlyJoker", "WilyJoker"),
-            bronze_jokers=("Supernova",),
+            silver_jokers=("TheDuo", "TheTrio"),
+            bronze_jokers=("JollyJoker", "ZanyJoker", "SlyJoker", "WilyJoker", "Supernova"),
             silver_consumables=("Strength", "Death"),
             bronze_consumables=("The Hanged Man",),
             gold_planets=("Earth",),
