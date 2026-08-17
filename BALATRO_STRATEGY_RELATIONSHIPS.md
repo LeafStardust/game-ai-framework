@@ -16,7 +16,7 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 | Matching enhancement in current deck | +0.35 per card |
 | Matching seal in current deck | +0.40 per card |
 
-`TBD` = not audited yet. `—` = intentionally none. `[condition]` is an inline runtime condition. Internal nodes own shared evidence inherited by descendants.
+`TBD` = not audited yet. `—` = intentionally none. Internal nodes own shared evidence inherited by descendants.
 
 A component may appear on multiple strategy rows only when the mechanical requirements are distinct. Otherwise one node owns it.
 
@@ -25,13 +25,13 @@ A component may appear on multiple strategy rows only when the mechanical requir
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement | Seal |
 |---|---|---|---|---|---|---|---|---|---|
 | High Card `[I]` | — | — | — | — | — | Pluto | — | — | — |
-| Repetition / Level High Card `[L]` | Burnt Joker | Card Sharp; Supernova; Space Joker; Half Joker; Green Joker; Burglar | — | Obelisk[most-played=High Card] | — | — | — | — | — |
+| Repetition / Level High Card `[L]` | Burnt Joker | Card Sharp; Supernova; Space Joker; Half Joker; Green Joker; Burglar | — | Obelisk | — | — | — | — | — |
 | Stuntman / Small-Hand High Card `[L]` | Stuntman | — | — | — | — | — | — | — | — |
-| Baron-Mime Steel-King High Card `[L]` | Baron; Mime | Blackboard; Shoot the Moon; Troubadour; Juggler | Raised Fist; Reserved Parking | Stuntman[material held engine] | The Chariot | — | — | Steel | Red |
-| Pair `[L]` | The Duo | Jolly Joker; Sly Joker | — | Obelisk[most-played=Pair] | — | Mercury | — | — | — |
-| Two Pair `[I]` | — | — | — | Obelisk[most-played=Two Pair] | — | Uranus | — | — | — |
+| Baron-Mime Steel-King High Card `[L]` | Baron; Mime | Blackboard; Shoot the Moon; Troubadour; Juggler | Raised Fist; Reserved Parking | Stuntman | The Chariot | — | — | Steel | Red |
+| Pair `[L]` | The Duo | Jolly Joker; Sly Joker | — | Obelisk | — | Mercury | — | — | — |
+| Two Pair `[I]` | — | — | — | Obelisk | — | Uranus | — | — | — |
 | Two Pair Scoring `[L]` | — | Mad Joker; Clever Joker | — | — | — | — | — | — | — |
-| Spare Trousers + Square Joker Two Pair `[L]` | Spare Trousers | TBD | TBD | TBD | TBD | — | TBD | TBD | TBD |
+| Spare Trousers + Square Joker Two Pair `[L]` | Spare Trousers | Square Joker | — | — | — | — | — | — | — |
 | Three of a Kind `[I]` | TBD | TBD | TBD | TBD | TBD | Venus | TBD | TBD | TBD |
 | Three of a Kind Scoring `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD | TBD |
 | DNA / Cryptid Rank-Copy Three of a Kind `[L]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid | TBD | TBD |
