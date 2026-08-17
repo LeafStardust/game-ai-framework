@@ -35,6 +35,13 @@ class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
         super().__init__(*args, **kwargs)
         self.strategy_tracker = strategy_tracker
 
+    def _primary_hands(self, strategy_id: str) -> tuple[str, ...]:
+        getter = getattr(self.strategy_tracker, "primary_hands_for", None)
+        if callable(getter):
+            return tuple(getter(strategy_id))
+        definition = self.strategy_tracker.definitions.get(strategy_id)
+        return () if definition is None else tuple(definition.primary_hands)
+
     def recommend(self, state, action) -> ShopBoosterRecommendation:
         recommendation = super().recommend(state, action)
         if recommendation.family != "CELESTIAL":
@@ -50,7 +57,7 @@ class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
         poker_assessments = [
             assessment
             for assessment in resolution.assessments
-            if self.strategy_tracker.definitions[assessment.strategy_id].primary_hands
+            if self._primary_hands(assessment.strategy_id)
         ]
         best = max(poker_assessments, key=lambda item: item.score, default=None)
         best_score = float(best.score) if best is not None else 0.0
