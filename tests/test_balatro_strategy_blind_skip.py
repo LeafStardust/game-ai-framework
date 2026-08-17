@@ -111,8 +111,21 @@ def test_d13_orbital_tag_is_bounded_penalty_when_it_upgrades_off_strategy_hand_l
 
     assert decision.dominant_strategy_id == "pair"
     assert decision.strategy_tag_adjustment < 0.0
-    assert decision.strategy_tag_support == "off-shortlist-development-tag"
+    assert decision.strategy_tag_support == "off-shortlist-deterministic-tag"
     assert abs(decision.strategy_tag_adjustment) <= thresholds.max_tag_build_adjustment
+
+
+def test_d13_choice_preserving_tag_is_not_penalized_without_exact_strategy_support():
+    state = _state()
+    decision = _policy().decide(
+        _snapshot(tag="tag_voucher"),
+        state,
+        thresholds=_thresholds(state),
+    )
+
+    assert decision.dominant_strategy_id == "pair"
+    assert decision.strategy_tag_adjustment == 0.0
+    assert decision.strategy_tag_support == "choice-preserving-tag-neutral"
 
 
 def test_d13_strategy_tag_value_does_not_override_big_blind_boss_preparation_cost():
