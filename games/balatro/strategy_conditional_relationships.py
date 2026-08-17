@@ -62,6 +62,32 @@ _BARON_MIME_CONDITIONAL_POSITIVE_JOKERS = frozenset({"baronjoker", "mimejoker"})
 _BARON_MIME_AUTHORITATIVE_CONDITIONAL_JOKERS = frozenset(
     {"baronjoker", "mimejoker", "stuntmanjoker"}
 )
+_ACES_SUPPORT_JOKERS = frozenset({"dnajoker", "fibonaccijoker", "oddtoddjoker"})
+_TWOS_SILVER_SUPPORT_JOKERS = frozenset(
+    {"hackjoker", "fibonaccijoker", "evenstevenjoker"}
+)
+_TWOS_BRONZE_SUPPORT_JOKERS = frozenset({"dnajoker", "hologramjoker"})
+_FACE_PAREIDOLIA_PAYOFF_JOKERS = frozenset(
+    {
+        "scaryfacejoker",
+        "smileyfacejoker",
+        "businesscardjoker",
+        "midasmaskjoker",
+        "photographjoker",
+        "sockandbuskinjoker",
+        "reservedparkingjoker",
+    }
+)
+_BUSINESS_CARD_SUPPORT_JOKERS = frozenset(
+    {
+        "oopsall6sjoker",
+        "pareidoliajoker",
+        "sockandbuskinjoker",
+        "hangingchadjoker",
+        "seltzerjoker",
+        "duskjoker",
+    }
+)
 _POKER_HAND_OBELISK_COMMITMENTS = {
     "three_kind": (
         "THREE_OF_A_KIND",
@@ -262,6 +288,154 @@ def _idol_counts(state, idol) -> tuple[int, int]:
     return len(rank_cards), effective_target
 
 
+def _rank_is_concentrated(state, ranks: frozenset[str]) -> bool:
+    deck = _regular_deck(state)
+    if not deck or not ranks:
+        return False
+    matches = sum(str(getattr(card, "rank", "")) in ranks for card in deck)
+    return matches > len(deck) * len(ranks) / 13.0
+
+
+def _owned_idol(state):
+    return next(
+        (
+            joker
+            for joker in getattr(state, "jokers", ()) or ()
+            if _item_token(joker) == "theidoljoker"
+        ),
+        None,
+    )
+
+
+def _idol_exact_relationship(state, idol) -> str:
+    _, effective_target_count = _idol_counts(state, idol)
+    if effective_target_count >= 4:
+        return GOLD
+    if effective_target_count >= 2:
+        return SILVER
+    return NEUTRAL
+
+
+def _rank_strategy_relationship(state, strategy_id: str, item: object) -> str:
+    token = _item_token(item)
+    owned = _owned_joker_tokens(state)
+
+    if strategy_id == "aces":
+        committed = "scholarjoker" in owned or _rank_is_concentrated(
+            state, frozenset({"A"})
+        )
+        if token in _ACES_SUPPORT_JOKERS:
+            return SILVER if committed else NEUTRAL
+        if token == "theidoljoker":
+            _, exact = _idol_counts(state, item)
+            return (
+                BRONZE
+                if str(getattr(item, "rank", "")) == "A" and exact >= 2
+                else NEUTRAL
+            )
+
+    if strategy_id == "twos":
+        committed = "weejoker" in owned or _rank_is_concentrated(
+            state, frozenset({"2"})
+        )
+        if token in _TWOS_SILVER_SUPPORT_JOKERS:
+            return SILVER if committed else NEUTRAL
+        if token in _TWOS_BRONZE_SUPPORT_JOKERS:
+            return BRONZE if committed else NEUTRAL
+        if token == "theidoljoker":
+            _, exact = _idol_counts(state, item)
+            return (
+                BRONZE
+                if str(getattr(item, "rank", "")) == "2" and exact >= 2
+                else NEUTRAL
+            )
+
+    if strategy_id == "sixes" and token == "evenstevenjoker":
+        committed = "sixthsensejoker" in owned or _rank_is_concentrated(
+            state, frozenset({"6"})
+        )
+        return SILVER if committed else NEUTRAL
+
+    if strategy_id == "jacks_hit_road":
+        if token == "mailinrebatejoker":
+            return SILVER if str(getattr(item, "rank", "")) == "J" else NEUTRAL
+        if token == "facelessjoker":
+            committed = "hittheroadjoker" in owned or _rank_is_concentrated(
+                state, frozenset({"J"})
+            )
+            return SILVER if committed else NEUTRAL
+        if token in {"merryandyjoker", "drunkardjoker"}:
+            return BRONZE if "hittheroadjoker" in owned else NEUTRAL
+
+    if strategy_id == "queens_shoot_moon":
+        committed = "shootthemoonjoker" in owned or _rank_is_concentrated(
+            state, frozenset({"Q"})
+        )
+        if token == "mimejoker":
+            return SILVER if committed else NEUTRAL
+        if token == "reservedparkingjoker":
+            return BRONZE if committed else NEUTRAL
+
+    return NEUTRAL
+
+
+def _face_branch_relationship(state, strategy_id: str, item: object) -> str:
+    token = _item_token(item)
+    owned = _owned_joker_tokens(state)
+
+    if strategy_id == "face_photochad":
+        if token == "hangingchadjoker":
+            return GOLD if "photographjoker" in owned else NEUTRAL
+        if token in {"sockandbuskinjoker", "seltzerjoker", "duskjoker"}:
+            return SILVER if "photographjoker" in owned else NEUTRAL
+
+    if strategy_id == "face_triboulet_sock":
+        if token == "sockandbuskinjoker":
+            return GOLD if "tribouletjoker" in owned else NEUTRAL
+        if token in {"hangingchadjoker", "seltzerjoker", "duskjoker"}:
+            return SILVER if "tribouletjoker" in owned else NEUTRAL
+
+    if strategy_id == "face_pareidolia":
+        if token == "pareidoliajoker":
+            return (
+                GOLD
+                if owned & _FACE_PAREIDOLIA_PAYOFF_JOKERS
+                else NEUTRAL
+            )
+
+    if strategy_id == "face_held_economy":
+        if token in {"mimejoker", "pareidoliajoker"}:
+            return SILVER if "reservedparkingjoker" in owned else NEUTRAL
+
+    if strategy_id == "face_business_card" and token in _BUSINESS_CARD_SUPPORT_JOKERS:
+        if "businesscardjoker" not in owned:
+            return NEUTRAL
+        return GOLD if token == "oopsall6sjoker" else SILVER
+
+    if strategy_id == "faceless_ride_bus":
+        if "ridethebusjoker" not in owned:
+            return NEUTRAL
+        if token == "tradingcardjoker":
+            return SILVER
+        if token in {"facelessjoker", "hittheroadjoker"}:
+            return BRONZE
+
+    if strategy_id == "faceless_discard_economy":
+        if "facelessjoker" not in owned:
+            return NEUTRAL
+        if token == "pareidoliajoker":
+            return GOLD
+        if token in {
+            "merryandyjoker",
+            "drunkardjoker",
+            "hittheroadjoker",
+            "mailinrebatejoker",
+        }:
+            return SILVER
+
+    return NEUTRAL
+
+
 def _dna_rank_collapse_conflicts_with_straight_flush(state) -> bool:
     """Fail closed unless public deck shape shows unambiguous rank collapse.
 
@@ -427,6 +601,46 @@ def conditional_joker_relationship(
 ) -> str:
     """Resolve state-dependent Joker relationships from current public run state."""
     token = _item_token(item)
+
+    if strategy_id in {
+        "aces",
+        "twos",
+        "sixes",
+        "jacks_hit_road",
+        "queens_shoot_moon",
+    }:
+        rank_relationship = _rank_strategy_relationship(
+            state,
+            strategy_id,
+            item,
+        )
+        if rank_relationship != NEUTRAL:
+            return rank_relationship
+
+    if strategy_id in {
+        "face_photochad",
+        "face_triboulet_sock",
+        "face_pareidolia",
+        "face_held_economy",
+        "face_business_card",
+        "faceless_ride_bus",
+        "faceless_discard_economy",
+    }:
+        branch_relationship = _face_branch_relationship(
+            state,
+            strategy_id,
+            item,
+        )
+        if branch_relationship != NEUTRAL:
+            return branch_relationship
+
+    if strategy_id == "idol_exact":
+        if token == "theidoljoker":
+            return _idol_exact_relationship(state, item)
+        if token in {"dnajoker", "tradingcardjoker"}:
+            idol = _owned_idol(state)
+            if idol is not None and _idol_exact_relationship(state, idol) != NEUTRAL:
+                return SILVER
 
     if strategy_id == _HIGH_CARD_STRATEGY_ID and token == "obeliskjoker":
         return BANNED if _high_card_obelisk_conflicts(state) else NEUTRAL

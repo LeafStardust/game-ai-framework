@@ -46,28 +46,22 @@ A component must not be duplicated between a parent and child row. If it is spec
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Aces | Aces `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Aces | ↳ Scholar Ace Scoring `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Aces | ↳ DNA + Scholar Ace Concentration `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Cryptid | TBD |
-| Low-Rank Scoring | Low-Rank Scoring `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Low-Rank Scoring | ↳ Fibonacci Low-Rank Scoring `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Low-Rank Scoring | ↳ Hack + Fibonacci Retrigger `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Twos | Twos `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Twos | ↳ Wee Joker Twos `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Twos | ↳ Wee Joker + Hack Retrigger Twos `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Sixes / Sixth Sense | Sixes / Sixth Sense `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Jacks / Hit the Road | Jacks / Hit the Road `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Queens / Shoot the Moon | Queens / Shoot the Moon `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Face Cards | Face Cards `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Face Cards | ↳ Photograph + Hanging Chad `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Face Cards | ↳ Triboulet + Sock and Buskin `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Face Cards | ↳ Pareidolia Universal Face Scoring `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Familiar | TBD |
-| Face Cards | ↳ Held Face-Card Economy `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Face Cards | ↳ Business Card Face Economy `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Faceless / No-Face | Faceless / No-Face `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Faceless / No-Face | ↳ Ride the Bus No-Face Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Faceless / No-Face | ↳ Faceless Joker Discard Economy `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| The Idol Exact-Card Concentration | The Idol Exact-Card Concentration `[L]` | TBD | TBD | TBD | TBD | Death | TBD | Cryptid | TBD |
+| Aces | Aces `[L]` | Scholar | DNA *(with Ace commitment)*; Fibonacci *(with Ace commitment)*; Odd Todd *(with Ace commitment)* | The Idol *(Ace target + concentration)* | — | Death; Strength; The Hanged Man | — | Grim; Cryptid | — |
+| Low-Rank Scoring | Low-Rank Scoring `[L]` | Fibonacci; Hack | Odd Todd; Even Steven | Walkie Talkie | — | Death; Strength; The Hanged Man | — | Incantation; Cryptid | — |
+| Twos | Twos / Wee-Hack `[L]` | Wee Joker | Hack *(with Two commitment)*; Fibonacci *(with Two commitment)*; Even Steven *(with Two commitment)* | DNA *(with Two commitment)*; Hologram *(with Two commitment)*; The Idol *(Two target + concentration)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
+| Sixes / Sixth Sense | Sixes / Sixth Sense `[L]` | Sixth Sense | Even Steven *(with Six commitment)* | — | — | Death; Strength | — | — | — |
+| Jacks / Hit the Road | Jacks / Hit the Road `[L]` | Hit the Road | Faceless Joker *(with Jack commitment)*; Mail-In Rebate *(Jack target)* | Merry Andy *(with Hit the Road)*; Drunkard *(with Hit the Road)* | — | Death; Strength | — | Cryptid | — |
+| Queens / Shoot the Moon | Queens / Shoot the Moon `[L]` | Shoot the Moon | Mime *(with Queen commitment)* | Reserved Parking *(with Queen commitment)* | — | Death; Strength | — | Cryptid | Steel Queens |
+| Face Cards | Face Cards `[I]` | — | Scary Face; Smiley Face; Midas Mask | — | Ride the Bus | Death; Strength; The Hanged Man | — | Familiar | — |
+| Face Cards | ↳ Photograph + Hanging Chad `[L]` | Photograph; Hanging Chad *(with Photograph)* | Sock and Buskin *(with Photograph)*; Seltzer *(with Photograph)*; Dusk *(with Photograph)* | — | — | Justice | — | Deja Vu; Cryptid | Glass face cards |
+| Face Cards | ↳ Triboulet + Sock and Buskin `[L]` | Triboulet; Sock and Buskin *(with Triboulet)* | Hanging Chad *(with Triboulet)*; Seltzer *(with Triboulet)*; Dusk *(with Triboulet)* | — | — | Justice | — | Deja Vu; Cryptid | Glass Queens / Kings |
+| Face Cards | ↳ Pareidolia Universal Face Scoring `[L]` | Pareidolia *(with inherited face-card payoff)* | — | — | — | — | — | — | — |
+| Face Cards | ↳ Held Face-Card Economy `[L]` | Reserved Parking | Mime *(with Reserved Parking)*; Pareidolia *(with Reserved Parking)* | — | — | The Devil | — | — | Gold face cards |
+| Face Cards | ↳ Business Card Face Economy `[L]` | Business Card; Oops! All 6s *(with Business Card)* | Pareidolia; Sock and Buskin; Hanging Chad; Seltzer; Dusk *(all with Business Card)* | — | — | — | — | — | — |
+| Faceless / No-Face | Faceless / No-Face `[I]` | — | — | — | — | The Hanged Man; Death | — | Incantation; Grim | — |
+| Faceless / No-Face | ↳ Ride the Bus No-Face Scaling `[L]` | Ride the Bus | Trading Card *(with Ride the Bus)* | Faceless Joker *(with Ride the Bus)*; Hit the Road *(with Ride the Bus)* | Pareidolia; Splash; Photograph; Sock and Buskin; Triboulet; Scary Face; Smiley Face; Business Card; Midas Mask; Familiar | — | — | — | — |
+| Faceless / No-Face | ↳ Faceless Joker Discard Economy `[L]` | Faceless Joker; Pareidolia *(with Faceless Joker)* | Merry Andy; Drunkard; Hit the Road; Mail-In Rebate *(all with Faceless Joker)* | — | — | — | — | Familiar | — |
+| The Idol Exact-Card Concentration | The Idol Exact-Card Concentration `[L]` | The Idol *(4+ effective target cards)* | The Idol *(2–3 effective target cards)*; DNA; Trading Card *(support requires active Idol target)* | — | — | Death; The Hanged Man | — | Cryptid | Glass target cards |
 
 ## 3. Suits and held cards
 

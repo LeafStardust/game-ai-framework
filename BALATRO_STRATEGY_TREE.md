@@ -32,17 +32,9 @@ Flush Five [L]
 ## 2. Rank and face-card strategies
 
 ```text
-Aces [I]
-├── Scholar Ace Scoring [L]
-└── DNA + Scholar Ace Concentration [L]
-
-Low-Rank Scoring [I]
-├── Fibonacci Low-Rank Scoring [L]
-└── Hack + Fibonacci Retrigger [L]
-
-Twos [I]
-├── Wee Joker Twos [L]
-└── Wee Joker + Hack Retrigger Twos [L]
+Aces [L]
+Low-Rank Scoring [L]
+Twos / Wee-Hack [L]
 
 Sixes / Sixth Sense [L]
 Jacks / Hit the Road [L]
