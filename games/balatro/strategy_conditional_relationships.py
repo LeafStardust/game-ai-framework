@@ -60,12 +60,9 @@ _PAIR_CONDITIONAL_SUPPORT_JOKERS = frozenset(
 )
 _PAIR_CONDITIONAL_FILLER_JOKERS = frozenset(
     {
-        "squarejoker",
-        "raisedfistjoker",
-        "blackboardjoker",
-        "shootthemoonjoker",
-        "hikerjoker",
-        "hangingchadjoker",
+        "dnajoker",
+        "tradingcardjoker",
+        "hologramjoker",
     }
 )
 _TWO_PAIR_STRATEGY_ID = "two_pair"
@@ -87,6 +84,18 @@ _TWOS_SILVER_SUPPORT_JOKERS = frozenset(
 _TWOS_BRONZE_SUPPORT_JOKERS = frozenset({"dnajoker", "hologramjoker"})
 _TEN_FOUR_BRONZE_SUPPORT_JOKERS = frozenset(
     {"dnajoker", "hologramjoker"}
+)
+_SIXES_BRONZE_SUPPORT_JOKERS = frozenset({"dnajoker", "hologramjoker"})
+_POKER_HAND_REPEAT_SUPPORT_JOKERS = frozenset(
+    {"supernovajoker", "cardsharpjoker", "spacejoker", "burntjoker"}
+)
+_POKER_HAND_BRONZE_SUPPORT_JOKERS = {
+    "straight": frozenset({"fibonaccijoker", "hackjoker"}),
+    "flush": frozenset(_STRAIGHT_FLUSH_SUIT_JOKERS),
+    "straight_flush": frozenset(_STRAIGHT_FLUSH_SUIT_JOKERS),
+}
+_LOW_RANK_RETRIGGER_SUPPORT_JOKERS = frozenset(
+    {"hangingchadjoker", "seltzerjoker", "duskjoker"}
 )
 _PLAYED_CARD_RETRIGGER_JOKERS = frozenset(
     {
@@ -289,6 +298,15 @@ def _straight_exists_in_effective_suit(state, suit: str) -> bool:
     return HandEvaluator().contains(suited, PokerHand.STRAIGHT, rules=rules)
 
 
+def _suit_is_concentrated(state, suit: str) -> bool:
+    rules = hand_rules_for_state(state)
+    deck = _regular_deck(state)
+    if not deck:
+        return False
+    matching = sum(card_matches_suit(card, suit, rules) for card in deck)
+    return matching > len(deck) / 4.0
+
+
 def _seeing_double_flush_is_feasible(state) -> bool:
     """Return whether one current flush can also satisfy Seeing Double's trigger."""
     rules = hand_rules_for_state(state)
@@ -392,6 +410,12 @@ def _rank_strategy_relationship(state, strategy_id: str, item: object) -> str:
                 else NEUTRAL
             )
 
+    if strategy_id == "low_rank" and token in _LOW_RANK_RETRIGGER_SUPPORT_JOKERS:
+        committed = bool(owned & {"fibonaccijoker", "hackjoker"}) or (
+            _rank_is_concentrated(state, frozenset({"2", "3", "4", "5"}))
+        )
+        return SILVER if committed else NEUTRAL
+
     if strategy_id == "ten_four":
         committed = "walkietalkiejoker" in owned or _rank_is_concentrated(
             state, frozenset({"10", "4"})
@@ -419,6 +443,22 @@ def _rank_strategy_relationship(state, strategy_id: str, item: object) -> str:
             state, frozenset({"6"})
         )
         return SILVER if committed else NEUTRAL
+
+    if strategy_id == "sixes":
+        committed = "sixthsensejoker" in owned or _rank_is_concentrated(
+            state, frozenset({"6"})
+        )
+        if token in _SIXES_BRONZE_SUPPORT_JOKERS:
+            return BRONZE if committed else NEUTRAL
+        if token == "theidoljoker":
+            _, exact = _idol_counts(state, item)
+            return (
+                BRONZE
+                if committed
+                and str(getattr(item, "rank", "")) == "6"
+                and exact >= 2
+                else NEUTRAL
+            )
 
     if strategy_id == "jacks_hit_road":
         if token == "mailinrebatejoker":
@@ -474,6 +514,12 @@ def _section_three_relationship(state, strategy_id: str, item: object) -> str:
 
     if strategy_id == "clubs_onyx" and token in _PLAYED_CARD_RETRIGGER_JOKERS:
         return SILVER if "onyxagatejoker" in owned else NEUTRAL
+
+    if strategy_id == "clubs_seeing_double" and token == "splashjoker":
+        return BRONZE if "seeingdoublejoker" in owned else NEUTRAL
+
+    if strategy_id == "blackboard" and token == "smearedjoker":
+        return SILVER if "blackboardjoker" in owned else NEUTRAL
 
     if strategy_id == "raised_fist" and token == "mimejoker":
         return SILVER if "raisedfistjoker" in owned else NEUTRAL
@@ -670,6 +716,8 @@ def _pair_conditional_support_relationship(state, token: str) -> str:
         return NEUTRAL
     if not _pair_has_independent_commitment(state):
         return NEUTRAL
+    if token == "hologramjoker" and "dnajoker" not in _owned_joker_tokens(state):
+        return NEUTRAL
     return SILVER if token in _PAIR_CONDITIONAL_SUPPORT_JOKERS else BRONZE
 
 
@@ -702,6 +750,32 @@ def _other_poker_hand_obelisk_conflicts(state, strategy_id: str) -> bool:
     return committed and _hand_is_most_played(state, hand_key)
 
 
+def _other_poker_hand_has_independent_commitment(state, strategy_id: str) -> bool:
+    hand_key, commitment_jokers = _POKER_HAND_OBELISK_COMMITMENTS[strategy_id]
+    return _hand_level_is_invested(state, hand_key) or bool(
+        _owned_joker_tokens(state) & commitment_jokers
+    )
+
+
+def _other_poker_hand_support_relationship(
+    state,
+    strategy_id: str,
+    token: str,
+) -> str:
+    if not _other_poker_hand_has_independent_commitment(state, strategy_id):
+        return NEUTRAL
+    if token in _POKER_HAND_REPEAT_SUPPORT_JOKERS:
+        return SILVER
+    if token not in _POKER_HAND_BRONZE_SUPPORT_JOKERS.get(strategy_id, ()):
+        return NEUTRAL
+    if token in _STRAIGHT_FLUSH_SUIT_JOKERS:
+        suit = _STRAIGHT_FLUSH_SUIT_JOKERS[token]
+        if strategy_id == "straight_flush":
+            return BRONZE if _straight_exists_in_effective_suit(state, suit) else NEUTRAL
+        return BRONZE if _suit_is_concentrated(state, suit) else NEUTRAL
+    return BRONZE
+
+
 def _is_authoritative_conditional_relationship(strategy_id: str, item: object) -> bool:
     """Return whether conditional state is allowed to downgrade a static tier."""
     return (
@@ -720,6 +794,7 @@ def conditional_joker_relationship(
 
     if strategy_id in {
         "aces",
+        "low_rank",
         "twos",
         "ten_four",
         "sixes",
@@ -796,12 +871,20 @@ def conditional_joker_relationship(
         if token in _TWO_PAIR_CONDITIONAL_SUPPORT_JOKERS:
             return _two_pair_conditional_support_relationship(state, token)
 
-    if token == "obeliskjoker" and strategy_id in _POKER_HAND_OBELISK_COMMITMENTS:
-        return (
-            BANNED
-            if _other_poker_hand_obelisk_conflicts(state, strategy_id)
-            else NEUTRAL
+    if strategy_id in _POKER_HAND_OBELISK_COMMITMENTS:
+        if token == "obeliskjoker":
+            return (
+                BANNED
+                if _other_poker_hand_obelisk_conflicts(state, strategy_id)
+                else NEUTRAL
+            )
+        support = _other_poker_hand_support_relationship(
+            state,
+            strategy_id,
+            token,
         )
+        if support != NEUTRAL:
+            return support
 
     if strategy_id == _BARON_MIME_STRATEGY_ID:
         if token in _BARON_MIME_CONDITIONAL_POSITIVE_JOKERS:

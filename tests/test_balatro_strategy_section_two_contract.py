@@ -154,6 +154,28 @@ def test_wee_hack_is_one_twos_strategy_while_hack_fibonacci_is_one_low_rank_stra
     assert low_rank.dominant_strategy_id == "low_rank"
 
 
+def test_low_rank_retrigger_support_requires_real_low_rank_commitment():
+    unsupported = _state()
+    committed = _state(jokers=(FibonacciJoker(),))
+
+    assert (
+        conditional_joker_relationship(
+            unsupported,
+            "low_rank",
+            HangingChadJoker(),
+        )
+        == NEUTRAL
+    )
+    assert (
+        conditional_joker_relationship(
+            committed,
+            "low_rank",
+            HangingChadJoker(),
+        )
+        == SILVER
+    )
+
+
 def test_ten_four_owns_walkie_talkie_and_even_steven_support_is_conditional():
     tracker = _tracker()
 
