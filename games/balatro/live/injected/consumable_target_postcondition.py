@@ -27,6 +27,7 @@ class ConsumableTargetPostcondition:
 
     expected_targets: tuple[ExpectedTarget, ...] = ()
     expected_edition_targets: tuple[ExpectedEditionTarget, ...] = ()
+    expected_hand_absent_live_ids: tuple[int | str, ...] = ()
     expected_hand_level: ExpectedHandLevel | None = None
     expected_joker_signature_change_from: JokerSignature | None = None
 
@@ -36,7 +37,7 @@ class ConsumableTargetPostcondition:
         edition = tuple(
             live_id for live_id, _, _ in self.expected_edition_targets
         )
-        return (*exact, *edition)
+        return (*exact, *edition, *self.expected_hand_absent_live_ids)
 
     def matches(self, snapshot: LiveBalatroSnapshot) -> bool:
         cards_by_live_id = {
@@ -67,6 +68,23 @@ class ConsumableTargetPostcondition:
                 or signature[2] != before_signature[2]
                 or signature[4] != before_signature[4]
                 or signature[3] not in allowed_editions
+            ):
+                return False
+
+        if self.expected_hand_absent_live_ids:
+            hand_area = snapshot.payload.get("hand")
+            if not isinstance(hand_area, dict) or not isinstance(
+                hand_area.get("cards"), list
+            ):
+                return False
+            hand_live_ids = {
+                card.get("live_id")
+                for card in _area_cards(snapshot, "hand")
+                if card.get("live_id") is not None
+            }
+            if any(
+                live_id in hand_live_ids
+                for live_id in self.expected_hand_absent_live_ids
             ):
                 return False
 
@@ -177,15 +195,17 @@ def build_consumable_target_postcondition_for_consumable(
     }
 
     expected: list[ExpectedTarget] = []
+    expected_hand_absent: list[int | str] = []
     for live_id in live_ids:
         card = post_hand_by_live_id.get(live_id)
-        expected.append(
-            (
-                live_id,
-                _model_card_signature(card) if card is not None else None,
-            )
-        )
-    return ConsumableTargetPostcondition(tuple(expected))
+        if card is None:
+            expected_hand_absent.append(live_id)
+        else:
+            expected.append((live_id, _model_card_signature(card)))
+    return ConsumableTargetPostcondition(
+        expected_targets=tuple(expected),
+        expected_hand_absent_live_ids=tuple(expected_hand_absent),
+    )
 
 
 def _build_aura_edition_postcondition(
