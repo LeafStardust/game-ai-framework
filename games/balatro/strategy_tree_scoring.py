@@ -40,24 +40,28 @@ class StrategyTreeEvidenceScorer:
         *,
         upward_decay: float = 0.50,
         ancestor_inheritance_decay: float = 1.0,
+        specific_activation_floor: float = 1.0,
     ) -> None:
         if not 0.0 <= float(upward_decay) <= 1.0:
             raise ValueError("upward_decay must be within [0, 1]")
         if not 0.0 <= float(ancestor_inheritance_decay) <= 1.0:
             raise ValueError("ancestor_inheritance_decay must be within [0, 1]")
+        if float(specific_activation_floor) < 0.0:
+            raise ValueError("specific_activation_floor must be non-negative")
         self.topology = topology
         self.upward_decay = float(upward_decay)
         self.ancestor_inheritance_decay = float(ancestor_inheritance_decay)
+        self.specific_activation_floor = float(specific_activation_floor)
 
-    def _branch_has_positive_direct(
+    def _branch_has_qualifying_direct(
         self,
         strategy_id: str,
         direct: Mapping[str, float],
     ) -> bool:
-        if direct[strategy_id] > 0.0:
+        if direct[strategy_id] >= self.specific_activation_floor:
             return True
         return any(
-            self._branch_has_positive_direct(child_id, direct)
+            self._branch_has_qualifying_direct(child_id, direct)
             for child_id in self.topology.children_by_id[strategy_id]
         )
 
@@ -121,11 +125,13 @@ class StrategyTreeEvidenceScorer:
                 sibling_specific_active = any(
                     sibling_id != strategy_id
                     and not self.topology.nodes[sibling_id].is_fallback_leaf
-                    and self._branch_has_positive_direct(sibling_id, direct)
+                    and self._branch_has_qualifying_direct(sibling_id, direct)
                     for sibling_id in self.topology.children_by_id[parent_id]
                 )
 
-            own_specific_evidence = direct[strategy_id] > 0.0
+            own_specific_evidence = (
+                direct[strategy_id] >= self.specific_activation_floor
+            )
             inherited_ancestor_direct = 0.0
             if own_specific_evidence or node.is_fallback_leaf:
                 for distance, ancestor_id in enumerate(
@@ -138,18 +144,18 @@ class StrategyTreeEvidenceScorer:
 
             if node.is_fallback_leaf:
                 active = not sibling_specific_active and (
-                    own_specific_evidence or inherited_ancestor_direct > 0.0
+                    direct[strategy_id] > 0.0 or inherited_ancestor_direct > 0.0
                 )
                 if sibling_specific_active:
                     notes[strategy_id].append(
-                        "fallback suppressed by child-specific sibling evidence"
+                        "fallback suppressed by qualifying child-specific sibling evidence"
                     )
             else:
                 # Broad parent evidence alone never activates a specific child.
                 active = own_specific_evidence
                 if inherited_ancestor_direct and not own_specific_evidence:
                     notes[strategy_id].append(
-                        "ancestor foundation present but child-specific evidence absent"
+                        "ancestor foundation present but qualifying child-specific evidence absent"
                     )
 
             effective = (
