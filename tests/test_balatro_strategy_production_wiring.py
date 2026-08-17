@@ -11,6 +11,7 @@ from games.balatro.live.runtime.strategy_autonomous_runner import (
 from games.balatro.state import BalatroState
 from games.balatro.strategy_blind_skip_policy import StrategyAwareBlindSkipPolicy
 from games.balatro.strategy_booster_policy import StrategyAwarePlaybookShopArbiter
+from games.balatro.strategy_value import StrategyAwareJokerBuildTransitionPlanner
 
 
 def test_production_supervisor_entry_uses_strategy_aware_runner():
@@ -53,4 +54,13 @@ def test_production_strategy_runner_uses_strategy_aware_d13_policy():
             "StrategyAwareBlindSkipPolicy"
         ]
         is StrategyAwareBlindSkipPolicy
+    )
+
+
+def test_production_strategy_runner_uses_strategy_aware_joker_transition_planner():
+    assert (
+        StrategyAwareLiveMemoryInjectedSingleStepRunner.__init__.__globals__[
+            "StrategyAwareJokerBuildTransitionPlanner"
+        ]
+        is StrategyAwareJokerBuildTransitionPlanner
     )
