@@ -25,35 +25,27 @@ A component must not be duplicated between a parent and child row. If it is spec
 
 | Strategy | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|
-| High Card `[I]` | Burnt Joker | Card Sharp; Supernova; Space Joker; Half Joker; Green Joker; Burglar | — | Obelisk | — | Pluto | — | — |
+| High Card `[I]` | Burnt Joker | Card Sharp; Supernova; Space Joker; Half Joker; Green Joker; Burglar | — | Obelisk | The Chariot | Pluto | — | Steel |
 | Stuntman / Small-Hand High Card `[L]` | Stuntman | — | — | — | — | — | — | — |
-| Baron-Mime Steel-King High Card `[L]` | Baron; Mime | Blackboard; Shoot the Moon; Troubadour; Juggler | Raised Fist; Reserved Parking | Stuntman | The Chariot | — | — | Steel |
-| Pair `[L]` | The Duo | Jolly Joker; Sly Joker | — | Obelisk | — | Mercury | — | — |
-| Two Pair `[I]` | — | Mad Joker; Clever Joker | — | Obelisk | — | Uranus | — | — |
-| Spare Trousers + Square Joker Two Pair `[L]` | Spare Trousers | Square Joker | — | — | — | — | — | — |
-| Three of a Kind `[I]` | TBD | TBD | TBD | TBD | TBD | Venus | TBD | TBD |
-| DNA / Cryptid Rank-Copy Three of a Kind `[L]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid | TBD |
-| Straight `[I]` | TBD | TBD | TBD | TBD | TBD | Saturn | TBD | TBD |
-| Shortcut / Four Fingers Straight `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Runner Scaling Straight `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Superposition Ace-Straight Tarot `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Flush `[I]` | TBD | TBD | TBD | TBD | TBD | Jupiter | TBD | TBD |
-| Smeared / Four Fingers Consistency Flush `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Full House `[L]` | TBD | TBD | TBD | TBD | TBD | Earth | TBD | TBD |
-| Four of a Kind `[I]` | TBD | TBD | TBD | TBD | TBD | Mars | TBD | TBD |
-| DNA / Cryptid Rank-Copy Four of a Kind `[L]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid | TBD |
-| Straight Flush `[I]` | TBD | TBD | TBD | TBD | TBD | Neptune | TBD | TBD |
-| Shortcut / Four Fingers / Smeared Straight Flush `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Seance Straight-Flush Spectral Engine `[L]` | TBD | TBD | TBD | TBD | — | — | TBD | TBD |
-| Five of a Kind `[I]` | TBD | TBD | TBD | TBD | TBD | Planet X | TBD | TBD |
-| DNA / Cryptid Rank-Copy Five of a Kind `[L]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid | TBD |
-| Flush House `[L]` | TBD | TBD | TBD | TBD | TBD | Ceres | TBD | TBD |
-| Flush Five `[I]` | TBD | TBD | TBD | TBD | TBD | Eris | TBD | TBD |
-| DNA / Cryptid Exact-Card Flush Five `[L]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid | TBD |
-| The Idol Monoculture Flush Five `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Four-Card Hand Spam `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Square Joker Four-Card Chips `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Square + Green Joker Four-Card Spam `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Baron-Mime Steel-King High Card `[L]` | Baron; Mime | Blackboard; Shoot the Moon; Troubadour; Juggler | Raised Fist; Reserved Parking | Stuntman | — | — | — | — |
+| Pair `[L]` | The Duo | Jolly Joker; Sly Joker; Half Joker | — | Obelisk | — | Mercury | — | — |
+| Two Pair `[L]` | Spare Trousers | Mad Joker; Clever Joker; Square Joker; The Duo | Jolly Joker; Sly Joker | Obelisk | Death; Strength | Uranus | — | — |
+| Three of a Kind `[L]` | The Trio | Zany Joker; Wily Joker; DNA; Half Joker; The Duo | Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Venus | Cryptid; Ouija | — |
+| Straight `[I]` | The Order | Crazy Joker; Devious Joker | — | Obelisk | Strength; Death | Saturn | — | — |
+| Shortcut / Four Fingers Straight `[L]` | Shortcut; Four Fingers | — | — | — | — | — | — | — |
+| Runner Scaling Straight `[L]` | Runner | — | — | — | — | — | — | — |
+| Superposition Ace-Straight Tarot `[L]` | Superposition | — | — | — | — | — | — | — |
+| Flush `[L]` | The Tribe | Droll Joker; Crafty Joker; Smeared Joker; Four Fingers | — | Obelisk | The Star; The Moon; The Sun; The World | Jupiter | Sigil | Wild |
+| Full House `[L]` | — | The Trio; The Duo; Spare Trousers; Zany Joker; Wily Joker; Mad Joker; Clever Joker | Jolly Joker; Sly Joker; DNA; Trading Card | Obelisk | Death; Strength | Earth | Cryptid; Ouija | — |
+| Four of a Kind `[L]` | The Family | The Trio; DNA; Zany Joker; Wily Joker; Square Joker | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Mars | Cryptid; Ouija | — |
+| Straight Flush `[I]` | The Order; The Tribe | Crazy Joker; Devious Joker; Droll Joker; Crafty Joker | — | Obelisk | Strength; Death; The Star; The Moon; The Sun; The World | Neptune | Sigil | Wild |
+| Shortcut / Four Fingers / Smeared Straight Flush `[L]` | Shortcut; Four Fingers; Smeared Joker | — | — | — | — | — | — | — |
+| Seance Straight-Flush Spectral Engine `[L]` | Seance | — | — | — | — | — | — | — |
+| Five of a Kind `[L]` | The Family | The Trio; DNA; The Idol; Zany Joker; Wily Joker | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Planet X | Cryptid; Ouija | — |
+| Flush House `[L]` | The Tribe; The Trio | Spare Trousers; Smeared Joker; Droll Joker; Crafty Joker; Zany Joker; Wily Joker; Mad Joker; Clever Joker | The Duo; Jolly Joker; Sly Joker; DNA; Trading Card | Obelisk | Death; Strength; The Star; The Moon; The Sun; The World | Ceres | Cryptid; Sigil | Wild |
+| Flush Five `[I]` | The Tribe; The Family | The Trio; The Duo; Smeared Joker; Droll Joker; Crafty Joker; Zany Joker; Wily Joker | Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength; The Star; The Moon; The Sun; The World | Eris | Sigil | Wild |
+| DNA / Cryptid Exact-Card Flush Five `[L]` | DNA | — | — | — | — | — | Cryptid | — |
+| The Idol Monoculture Flush Five `[L]` | The Idol | — | — | — | — | — | — | — |
 
 ## 2. Rank and face cards
 
@@ -99,9 +91,9 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Ancient Joker Suit-Rotation `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | Sigil | Wild |
 | Ancient + Smeared Suit-Rotation `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 | Flower Pot Multi-Suit `[I]` | TBD | TBD | TBD | TBD | The Star; The Moon; The Sun; The World | TBD | Sigil | Wild |
-| Splash + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Smeared Joker + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Smeared + Splash + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Splash + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | Wild |
+| Smeared Joker + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | Wild |
+| Smeared + Splash + Flower Pot `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | Wild |
 
 ## 4. Enhancements
 
