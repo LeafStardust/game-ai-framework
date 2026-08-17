@@ -31,7 +31,10 @@ _STRAIGHT_FLUSH_SUIT_JOKERS = {
     "roughgemjoker": "Diamonds",
 }
 _BARON_MIME_STRATEGY_ID = "high_card_baron_mime"
-_BARON_MIME_CONDITIONAL_JOKERS = frozenset({"baronjoker", "mimejoker"})
+_BARON_MIME_CONDITIONAL_POSITIVE_JOKERS = frozenset({"baronjoker", "mimejoker"})
+_BARON_MIME_AUTHORITATIVE_CONDITIONAL_JOKERS = frozenset(
+    {"baronjoker", "mimejoker", "stuntmanjoker"}
+)
 
 
 def _normalize(value: object) -> str:
@@ -186,11 +189,35 @@ def _baron_mime_relationship(state, token: str) -> str:
     return NEUTRAL
 
 
+def _baron_mime_held_engine_is_material(state) -> bool:
+    """Return whether losing two held-card slots materially harms this exact leaf."""
+    if (
+        _has_joker(state, "baronjoker")
+        and _baron_mime_relationship(state, "baronjoker") != NEUTRAL
+    ):
+        return True
+    if (
+        _has_joker(state, "mimejoker")
+        and _baron_mime_relationship(state, "mimejoker") != NEUTRAL
+    ):
+        return True
+
+    # Multiple Steel Kings are already a real held-card scoring shell even before
+    # Baron/Mime arrives. One isolated Steel King remains below the specialization
+    # floor and must not turn Stuntman into a hard conflict by itself.
+    kings, _ = _baron_mime_king_shell(state)
+    steel_kings = sum(
+        _normalize(getattr(card, "enhancement", "")) == "steel"
+        for card in kings
+    )
+    return steel_kings >= 2
+
+
 def _is_authoritative_conditional_relationship(strategy_id: str, item: object) -> bool:
     """Return whether conditional state is allowed to downgrade a static tier."""
     return (
         strategy_id == _BARON_MIME_STRATEGY_ID
-        and _item_token(item) in _BARON_MIME_CONDITIONAL_JOKERS
+        and _item_token(item) in _BARON_MIME_AUTHORITATIVE_CONDITIONAL_JOKERS
     )
 
 
@@ -202,8 +229,11 @@ def conditional_joker_relationship(
     """Resolve state-dependent Joker relationships from current public run state."""
     token = _item_token(item)
 
-    if strategy_id == _BARON_MIME_STRATEGY_ID and token in _BARON_MIME_CONDITIONAL_JOKERS:
-        return _baron_mime_relationship(state, token)
+    if strategy_id == _BARON_MIME_STRATEGY_ID:
+        if token in _BARON_MIME_CONDITIONAL_POSITIVE_JOKERS:
+            return _baron_mime_relationship(state, token)
+        if token == "stuntmanjoker":
+            return BANNED if _baron_mime_held_engine_is_material(state) else NEUTRAL
 
     if strategy_id == "flush" and token == "seeingdoublejoker":
         return BRONZE if _seeing_double_flush_is_feasible(state) else NEUTRAL
