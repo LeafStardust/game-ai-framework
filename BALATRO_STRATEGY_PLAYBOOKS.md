@@ -1,1003 +1,772 @@
 # Balatro Strategy Playbooks
 
-> Design contract for the hardcoded build strategies the Balatro agent will implement after this document is reviewed. This file defines **what a coherent build is** before any further strategy/runtime wiring is added.
+> Design contract for the universal hardcoded strategy catalogue that will drive future Balatro production behavior.
 >
-> These are **build archetype playbooks**, not deck/stake cartridges. Deck and stake playbooks will later modify the value and feasibility of these archetypes without redefining them.
+> **This file defines strategies before implementation.** Deck/stake cartridges do not own strategies. They may disable, amplify, suppress, or otherwise modify the effectiveness of universal strategies for a particular deck/stake environment.
 
-## 1. Purpose
+## 1. Core model
 
-The agent should not infer a build merely from isolated Joker affinities. It should compare the current public run state against a small catalogue of explicit strategic playbooks and ask:
+The Balatro agent must stop treating every Joker, Tarot, Planet, Spectral card, voucher, booster pack, and deck modification as an isolated purchase.
 
-1. Which archetypes are currently feasible?
-2. Which archetypes are already supported by owned components and deck shape?
-3. Which purchases or transformations materially advance one of those archetypes?
-4. Which candidate conflicts with the active archetype?
-5. When should the run remain flexible, pivot, commit, or declare the build mature?
+Instead, every meaningful build component contributes evidence toward one or more **universal strategy playbooks**.
 
-The first implementation should remain deterministic and inspectable. Every build decision should be explainable in terms of one or more entries in this catalogue.
+Examples of universal playbooks include:
 
----
+- poker-hand strategies: High Card, Pair, Two Pair, Three of a Kind, Straight, Flush, Full House, Four of a Kind, Straight Flush, Five of a Kind, Flush House, Flush Five;
+- mechanic strategies: Face Cards, Faceless, Glass, Steel, Lucky;
+- niche/synergy strategies: Aces, Smeared/Splash + Flower Pot, Canio Destruction, Vampire.
 
-## 2. Tier semantics
+These labels are useful for humans organizing the catalogue, but **the runtime must treat every playbook as a peer in one flat strategy pool**. There are no primary, advanced, or overlay strategy classes.
 
-The Gold/Silver/Bronze labels are **archetype-relative component tiers**, not global Joker power rankings.
+A run may pursue several compatible playbooks while evidence is weak. It must gradually converge as the run develops.
 
-### Gold — defining component
+By late game the intended state is:
 
-A Gold component either:
+- **1 dominant strategy** — the main direction of future purchases and deck shaping;
+- **0–2 relevant strategies** — still sufficiently compatible and supported to influence decisions;
+- all other strategies heavily suppressed unless a genuinely transformative pivot appears.
 
-- directly multiplies the target hand/archetype;
-- materially changes the feasibility of repeatedly making that hand;
-- provides a primary scaling engine whose natural use pattern is the archetype; or
-- creates the deck structure needed for the archetype to exist reliably.
-
-A Gold component is strong evidence that the corresponding playbook should become a candidate, but it is **not an automatic purchase or commitment**. Cost, survival, anti-synergy, current deck shape and opportunity cost still matter.
-
-### Silver — strong support
-
-A Silver component:
-
-- directly rewards the target hand without defining the entire run;
-- improves consistency, card selection or hand construction;
-- provides secondary scaling; or
-- becomes excellent once Gold-level structure already exists.
-
-Multiple Silver components plus matching deck structure may justify a build even without a Gold Joker.
-
-### Bronze — bridge / generic support
-
-A Bronze component:
-
-- keeps the run alive while the build is forming;
-- provides generic Chips/Mult/economy compatible with the archetype;
-- has useful but non-exclusive synergy; or
-- is a temporary bridge expected to be replaceable later.
-
-Bronze pieces **must never be sufficient evidence by themselves to lock an archetype**.
-
-### Conflict classes
-
-Each playbook may also identify:
-
-- **Hard conflict** — the component or deck requirement directly prevents the intended strategy from functioning reliably.
-- **Soft conflict** — the component pulls resources or deck shaping in another direction but can coexist temporarily.
-- **Conditional conflict** — compatible only under a named overlay or special deck state.
+The dominant strategy does not dictate every hand the agent must play. Survival and guaranteed blind clears remain superior to strategic purity.
 
 ---
 
-## 3. Playbook lifecycle
-
-The future implementation should expose a per-archetype state similar to:
-
-`INACTIVE -> CANDIDATE -> FOCUSED -> LOCKED -> MATURE`
-
-### INACTIVE
-
-No meaningful evidence beyond generic Bronze support.
-
-### CANDIDATE
-
-At least one defining signal exists: a Gold component, strong hand-level investment, meaningful deck structure, or a combination of direct Silver components.
-
-### FOCUSED
-
-The run should begin preferring purchases, Planets, Tarot/Spectral transformations and D1 lines that reinforce the archetype, while still allowing a pivot.
-
-### LOCKED
-
-The active build direction is committed. The existing public build-intent boundary remains the default: Antes 1-4 are pivotable and the build locks starting at Ante 5.
-
-Locking must require **coherence**, not merely elapsed Ante. If the run has no meaningful archetype evidence, it may lock as neutral rather than inventing a strategy.
-
-### MATURE
-
-The archetype has enough structure that the agent should stop paying significant speculative cost for unrelated pivots. A mature build normally has:
-
-- repeatable access to its strategic hand;
-- at least one reliable base Chips/Mult source;
-- at least one scaling or multiplicative endgame source;
-- deck structure that supports the target hand rather than fighting it; and
-- sufficient economy/survival to reach the next shop/boss.
-
-The exact numeric thresholds for these states belong in implementation/configuration, not in this document.
-
----
-
-## 4. Shared decision rules
-
-These rules apply to every playbook.
-
-### 4.1 Survival still dominates
-
-A theoretically perfect build component must not be bought, held or pursued when doing so makes the current blind materially unsafe.
-
-### 4.2 Gold does not mean auto-buy
-
-A Gold component can be wrong when:
-
-- its activation requirement is not currently feasible;
-- its cost destroys necessary reserve/interest;
-- the run already has a stronger conflicting locked build;
-- it consumes the last critical Joker/consumable slot for insufficient gain; or
-- the current blind/boss makes the transition unsafe.
-
-### 4.3 Deck shape is first-class evidence
-
-Owned-deck rank counts, suit counts, enhancements, seals, editions and hand-level investment must contribute to archetype evidence independently of Joker names.
-
-### 4.4 Temporary Bronze pieces are replaceable
-
-The shop arbiter should be willing to sell a Bronze bridge when a Silver/Gold component creates a materially stronger coherent build.
-
-### 4.5 Advanced hands are transitions, not early fantasies
-
-Straight Flush, Five of a Kind, Flush House and Flush Five should generally be entered from an already functional parent build. The agent must not spend early resources chasing them from an ordinary 52-card deck without structural evidence.
-
----
-
-# 5. Primary playbooks
-
-## 5.1 High Card
-
-**Strategic hand:** High Card  
-**Planet:** Pluto  
-**Identity:** Minimal hand-construction burden. Convert consistency, Joker scaling and held-card value into repeated safe scores while playing as few cards as possible.
-
-### Gold components
-
-- **Stuntman** — large card-independent Chips and naturally compatible with a low-card strategy.
-- **Supernova** — repeated use of one hand type rewards committing to High Card.
-- **Card Sharp** — rewards repeating High Card within the same round once the first hand establishes it.
-- **Burnt Joker** — can repeatedly level High Card when the first discard is intentionally shaped as High Card.
-- **Baron + Mime package** — Gold only under the Held Kings overlay; High Card is the natural shell because it can leave Kings in hand.
-
-### Silver components
-
-- Half Joker.
-- Space Joker.
-- Green Joker.
-- Ride the Bus under a No-Face overlay.
-- Burglar / no-discard support.
-- Blackboard when the held-card suit condition is realistically maintainable.
-- Shoot the Moon / Raised Fist / other held-card scoring under the appropriate deck shape.
-
-### Bronze components
-
-- Generic flat Chips or Mult Jokers that do not require a larger poker hand.
-- Generic economy Jokers.
-- Blue Joker, Abstract Joker and similar bridge scoring when they do not create a conflicting build requirement.
-
-### Preferred deck manipulation
-
-- Thin cards that do not contribute to held-card or enhancement plans.
-- Prefer valuable single scoring cards over broad rank/suit restructuring.
-- Steel cards and held-card value become premium under Baron/Mime or other held-card overlays.
-- Do not spend heavily manufacturing pairs/straights/flushes unless pivot evidence already exists.
-
-### D1 play/discard profile
-
-- Prefer the minimum number of played cards that preserves clear probability.
-- Preserve valuable held cards.
-- Avoid unnecessary discards when Green Joker, Banner, Delayed Gratification or similar no-discard value is active.
-- Intentionally use the first discard for Burnt Joker only when the level gain is worth the lost immediate line quality.
-
-### Conflicts
-
-- **Hard/near-hard:** effects requiring four or five played cards when the build depends on one-card plays.
-- **Soft:** heavy Straight/Flush/rank-concentration investment.
-- **Conditional:** Obelisk is not a High Card engine; it is a pivot engine and should eventually punish continued use of the most-played hand.
-
-### Natural pivots
-
-- Pair if rank duplication and Pair-specific pieces appear.
-- Held Kings High Card if Baron/Mime/King density appears.
-- No-Face High Card if Ride the Bus and low-rank support become dominant.
-
-### Mature signal
-
-High Card is repeatably clear-capable without hand-shape hunting, has meaningful High Card level/repetition scaling, and has at least one strong late-score source beyond generic Bronze flat stats.
-
----
-
-## 5.2 Pair
-
-**Strategic hand:** Pair  
-**Planet:** Mercury  
-**Identity:** Low construction cost with more base scoring than High Card. Build around reliable duplicated ranks while retaining room for held-card and utility effects.
-
-### Gold components
-
-- **The Duo** — direct multiplicative Pair payoff.
-- **Half Joker** — Pair naturally fits its small-hand requirement.
-- **Supernova** when Pair is already the repeated hand.
-- **Burnt Joker / Space Joker** when they are clearly being used to scale Pair levels.
-
-### Silver components
-
-- Jolly Joker.
-- Sly Joker.
-- Card Sharp.
-- Green Joker / generic repeat-hand scaling.
-- Rank-specific Jokers when the duplicated rank naturally supports them.
-
-### Bronze components
-
-- Generic Chips/Mult/economy.
-- Temporary rank payoffs that do not require destructive deck reshaping.
-
-### Preferred deck manipulation
-
-- Light rank duplication using Death, Strength or card generation.
-- Thin isolated low-value cards when doing so raises pair frequency.
-- Avoid excessive single-rank concentration until a Three/Four/Five-of-a-Kind pivot is justified.
-
-### D1 play/discard profile
-
-- Prefer two-card Pair plays unless extra scoring cards are necessary.
-- Discard toward duplicated ranks while preserving enhanced/held-value cards.
-- Do not sacrifice a safe Pair merely to hunt a speculative higher hand.
-
-### Conflicts
-
-- Heavy Straight structure.
-- Suit conversion that consumes rank consistency without creating a stronger Flush route.
-- Five-card-only scoring packages.
-
-### Natural pivots
-
-- Two Pair when a second duplicated rank and Two Pair pieces appear.
-- Three of a Kind when one rank becomes dominant.
-- Full House when two rank clusters become reliable.
-
-### Mature signal
-
-Pair is available with little or no discard expenditure, Mercury investment or repeated-hand scaling is meaningful, and the build has a multiplier/scaler capable of carrying late blinds.
-
----
-
-## 5.3 Two Pair
-
-**Strategic hand:** Two Pair  
-**Planet:** Uranus  
-**Identity:** Four-card hand with moderate construction requirements and excellent access to pair-based and dedicated Two Pair scaling.
-
-### Gold components
-
-- **Spare Trousers** — defining long-run Two Pair scaling engine.
-- **Mad Joker** — direct Two Pair Mult.
-- **Clever Joker** — direct Two Pair Chips.
-- **The Duo** when the hand-condition model confirms the played Two Pair satisfies Pair-based payoff.
-- **Square Joker** when the build consistently plays exactly four cards.
-
-### Silver components
-
-- Jolly Joker / Sly Joker.
-- Supernova.
-- Card Sharp.
-- Burnt Joker / Space Joker when Two Pair is the chosen level target.
-
-### Bronze components
-
-- Generic scoring and economy.
-- Temporary Pair support that remains useful inside Two Pair.
-
-### Preferred deck manipulation
-
-- Build several duplicated ranks rather than one dominant rank.
-- Death/Strength should improve pair density without collapsing the deck into an unintended single-rank build too early.
-- Thinning isolated ranks is useful when it increases the chance of drawing two separate pairs.
-
-### D1 play/discard profile
-
-- Prefer four scoring cards; avoid a fifth kicker unless it materially improves score or triggers another owned effect.
-- Preserve multiple pair candidates during discard search.
-- When Spare Trousers is active, value safely triggering its scaling even if another hand would score slightly more immediately.
-
-### Conflicts
-
-- Heavy Straight rank-spacing requirements.
-- Five-card-only hand packages unless Full House transition is active.
-- Over-concentrating one rank can reduce Two Pair reliability and should be treated as a pivot signal instead.
-
-### Natural pivots
-
-- Full House when one pair becomes a triple.
-- Three/Four of a Kind when one rank starts dominating.
-- Pair if hand size/economy makes Two Pair too expensive to assemble.
-
-### Mature signal
-
-Two Pair is produced consistently, Spare Trousers or another dedicated engine has meaningful scaling, and the deck still contains enough distinct duplicated ranks to sustain the hand.
-
----
-
-## 5.4 Three of a Kind
-
-**Strategic hand:** Three of a Kind  
-**Planet:** Venus  
-**Identity:** Rank-concentration build that begins the transition from common hands into high-value repeated-rank strategies.
-
-### Gold components
-
-- **The Trio** — direct multiplicative Three-of-a-Kind payoff.
-- **Zany Joker** — direct Mult.
-- **Wily Joker** — direct Chips.
-- **Cryptid / Death / Ouija-style rank concentration** once a target rank is established.
-- **Half Joker** when the hand is consistently played as exactly three cards.
-
-### Silver components
-
-- Pair-condition Jokers that remain active on the chosen hand.
-- Supernova / Card Sharp.
-- Rank-specific Jokers matching the target rank.
-- Hack/Fibonacci/Wee Joker when the chosen rank makes them naturally relevant.
-
-### Bronze components
-
-- Generic scoring/economy that does not require preserving broad rank diversity.
-
-### Preferred deck manipulation
-
-- Select one or two target ranks and copy/upgrade toward them.
-- Destroy off-plan ranks.
-- Avoid random rank changes once concentration is valuable.
-
-### D1 play/discard profile
-
-- Preserve all copies of the target rank unless survival requires otherwise.
-- Discard aggressively away from isolated ranks when a clear Three-of-a-Kind line is feasible.
-- Do not spend excessive discards chasing a third copy when Pair or High Card already provides a safe clear.
-
-### Conflicts
-
-- Straight builds requiring broad rank coverage.
-- Full-spectrum suit/rank diversity packages.
-
-### Natural pivots
-
-- Full House if a second rank cluster develops.
-- Four of a Kind / Five of a Kind as target-rank density increases.
-- Flush Five if the dominant rank also becomes suit-concentrated.
-
-### Mature signal
-
-The target rank is sufficiently duplicated that Three of a Kind is routine, Venus/repetition scaling is meaningful, and the build owns a late multiplicative or scaling payoff.
-
----
-
-## 5.5 Straight
-
-**Strategic hand:** Straight  
-**Planet:** Saturn  
-**Identity:** Preserve rank connectivity and use consistency enablers to turn a fragile five-card hand into a repeatable high-scaling line.
-
-### Gold components
-
-- **Shortcut** — fundamentally changes Straight feasibility.
-- **Four Fingers** — reduces the number of cards required for Straight construction.
-- **Runner** — dedicated Straight scaling.
-- **The Order** — direct multiplicative Straight payoff.
-
-### Silver components
-
-- Crazy Joker.
-- Devious Joker.
-- Superposition when Ace-containing Straights are realistic.
-- Fibonacci when the deck naturally favors compatible low/mid ranks.
-- Card Sharp / Supernova after Straight consistency is already established.
-
-### Bronze components
-
-- Generic scoring/economy.
-- Temporary rank-specific value that does not require destroying Straight coverage.
-
-### Preferred deck manipulation
-
-- Preserve connected rank bands and valuable internal ranks.
-- Remove excess duplicate or isolated edge ranks before removing central connectors.
-- Strength/Death may repair gaps, but should not blindly collapse rank diversity.
-- Avoid Ouija-style full rank conversion unless intentionally pivoting out of Straight.
-
-### D1 play/discard profile
-
-- Track rank outs, duplicate redundancy and open-ended/gapped Straight possibilities.
-- Preserve central connectors over isolated high-card value when clear probability supports the search.
-- Four Fingers/Shortcut must change discard evaluation, not merely final-hand scoring.
-
-### Conflicts
-
-- **Hard:** mature single-rank concentration.
-- **Soft:** mono-suit conversion unless Straight Flush is a real transition.
-- Heavy held-card shells that cannot spare the cards needed to assemble Straights.
-
-### Natural pivots
-
-- Straight Flush only when suit density and suit/straight enablers are already present.
-- High Card/Pair if hand-size penalties or deck damage make Straight consistency collapse.
-
-### Mature signal
-
-A Straight can be assembled reliably within the available hand/discard budget, Saturn or Runner has meaningful scaling, and at least one direct Straight payoff/enabler makes the strategy safer than generic alternatives.
-
----
-
-## 5.6 Flush
-
-**Strategic hand:** Flush  
-**Planet:** Jupiter  
-**Identity:** Concentrate suit density and exploit suit-specific or Flush-specific payoffs while maintaining enough consistency to make five-card suit hands repeatedly.
-
-### Gold components
-
-- **Smeared Joker** — materially changes suit feasibility by pairing red and black suits.
-- **The Tribe** — direct multiplicative Flush payoff.
-- **Four Fingers** — major consistency enabler.
-- **Bloodstone** in a Hearts-focused shell.
-- **Arrowhead** in a Spades-focused shell.
-- **Onyx Agate** in a Clubs-focused shell.
-- **Rough Gem** in a Diamonds-focused shell when its economy contribution is strategically relevant.
-
-### Silver components
-
-- Droll Joker.
-- Crafty Joker.
-- Castle when discard routing can scale it without sacrificing survival.
-- Ancient Joker when the current deck/suit flexibility can exploit its selected suit often enough.
-- Seeing Double / Flower Pot only under deck states that actually satisfy their multi-suit conditions.
-
-### Bronze components
-
-- Generic Chips/Mult/economy.
-- Temporary suit payoffs that do not justify changing the whole deck by themselves.
-
-### Preferred deck manipulation
-
-- Suit Tarot cards are high priority when they increase the dominant-suit share.
-- Lovers/Wild, Death and targeted destruction can improve suit density.
-- Sigil is a major structural enabler when the hand-size loss is survivable.
-- Avoid splitting transformations across incompatible suit-specific Gold pieces unless Smeared Joker or another concrete bridge makes both useful.
-
-### D1 play/discard profile
-
-- Count dominant-suit outs explicitly.
-- Preserve suit density even when individual off-suit cards have higher nominal rank value.
-- With Four Fingers, evaluate four-card Flush clears directly rather than continuing to hunt a fifth suit card.
-
-### Conflicts
-
-- Multiple incompatible single-suit payoffs without Smeared Joker.
-- Mature rank-concentration strategies unless transitioning to Flush House/Flush Five.
-- Straight-specific deck shaping unless Straight Flush is already feasible.
-
-### Natural pivots
-
-- Straight Flush if rank connectivity becomes strong.
-- Flush House if two/three rank clusters emerge inside the target suit structure.
-- Flush Five if one rank becomes overwhelmingly dominant.
-
-### Mature signal
-
-The dominant effective suit count makes Flushes routine, Jupiter/Flush scaling is meaningful, and at least one strong suit/Flush payoff exists beyond generic Bronze stats.
-
----
-
-## 5.7 Full House
-
-**Strategic hand:** Full House  
-**Planet:** Earth  
-**Identity:** Maintain two concentrated rank groups so a three-plus-two structure is repeatable. It is a natural bridge between Two Pair/Three of a Kind and the advanced rank builds.
-
-### Gold components
-
-- **The Trio** — multiplicative payoff for the three-of-a-kind portion.
-- **The Duo** — multiplicative payoff for the pair portion when the hand-condition model recognizes the contained Pair.
-- **Spare Trousers** when Full House legally satisfies its contained Two Pair condition in the game model.
-- Strong rank-copying tools that deliberately maintain **two** useful rank clusters rather than collapsing immediately to one.
-
-### Silver components
-
-- Zany Joker / Wily Joker.
-- Mad Joker / Clever Joker when their contained-hand conditions are satisfied.
-- Jolly Joker / Sly Joker.
-- Supernova / Card Sharp after Full House frequency is proven.
-
-### Bronze components
-
-- Generic scoring/economy.
-- Rank-specific payoffs matching either of the two primary ranks.
-
-### Preferred deck manipulation
-
-- Duplicate two chosen ranks.
-- Thin unrelated ranks.
-- Death/Cryptid should normally copy one of the established clusters.
-- Do not overuse Ouija or single-rank conversion unless intentionally pivoting to Four/Five of a Kind.
-
-### D1 play/discard profile
-
-- Preserve pairs/triples and complementary rank groups.
-- Evaluate whether a current Pair/Two Pair is a safe clear before spending all discards searching for the full five-card hand.
-
-### Conflicts
-
-- Half Joker and other <=3-card requirements.
-- Severe hand-size penalties that make five-card assembly unreliable.
-- Broad Straight rank diversity.
-
-### Natural pivots
-
-- Four/Five of a Kind if one rank dominates.
-- Flush House if the rank clusters also become suit-concentrated.
-- Two Pair/Three of a Kind if five-card reliability is insufficient.
-
-### Mature signal
-
-Two rank clusters are dense enough for repeatable Full Houses, Earth investment/direct hand-condition payoffs are meaningful, and hand-size/discard economy can support the five-card requirement.
-
----
-
-# 6. Advanced transition playbooks
-
-These should not normally become early-run primary targets from an untouched deck.
-
-## 6.1 Four of a Kind
-
-**Strategic hand:** Four of a Kind  
-**Planet:** Mars
-
-### Gold components
-
-- **The Family** — direct multiplicative Four-of-a-Kind payoff.
-- Strong single-rank cloning/conversion: Cryptid, Death, Ouija and equivalent persistent deck shaping.
-- Rank-specific retrigger/scaling pieces when they match the chosen rank.
-
-### Silver components
-
-- The Trio / Three-of-a-Kind direct payoffs that remain useful inside Four of a Kind.
-- Pair-condition payoffs that remain active.
-- Square Joker when exactly four cards are the normal played hand.
-- Supernova / Card Sharp once repetition is reliable.
-
-### Bronze components
-
-- Generic score/economy compatible with single-rank concentration.
-
-### Deck objective
-
-One dominant rank with enough copies that four can be drawn within the normal hand/discard budget.
-
-### Conflicts
-
-Straight rank coverage and any strategy requiring broad rank diversity.
-
-### Natural pivots
-
-Five of a Kind, or Flush Five if the dominant rank also becomes suit-concentrated.
-
-### Mature signal
-
-Four copies of the target rank are routinely accessible and the build has a direct high-end multiplier/scaler rather than relying solely on Mars levels.
-
----
-
-## 6.2 Five of a Kind
-
-**Strategic hand:** Five of a Kind  
-**Planet:** Planet X
-
-### Gold components
-
-- **The Family** as a contained Four-of-a-Kind multiplier where applicable.
-- Extreme rank-copying/conversion: Cryptid, Death, Ouija.
-- Rank-specific retrigger/multiplier pieces matching the chosen rank.
-
-### Silver components
-
-- The Trio / Pair-condition payoffs that remain active.
-- Supernova / Card Sharp once Five of a Kind is genuinely repeatable.
-
-### Bronze components
-
-- Generic score/economy.
-
-### Deck objective
-
-A heavily concentrated single-rank deck with enough copies to make five-card draws realistic.
-
-### Conflicts
-
-Straight, ordinary Two Pair and broad multi-rank deck plans.
-
-### Natural pivots
-
-Flush Five when one suit also becomes dominant.
-
-### Mature signal
-
-Five copies are routinely accessible without spending the entire discard budget, and the build has multiplicative scaling suitable for late blinds.
-
----
-
-## 6.3 Straight Flush
-
-**Strategic hand:** Straight Flush  
-**Planet:** Neptune  
-**Parent playbooks:** Straight + Flush
-
-### Gold components
-
-- Shortcut.
-- Four Fingers.
-- The Order.
-- The Tribe.
-- Seance when Straight Flush frequency is already high enough to generate Spectral value reliably.
-- Smeared Joker when it materially increases valid suit connectivity.
-
-### Silver components
-
-- Runner.
-- Crazy/Devious Joker.
-- Droll/Crafty Joker.
-- Superposition in an Ace-capable sequence.
-- Suit-specific scoring matching the chosen effective suit.
-
-### Bronze components
-
-- Generic score/economy that does not damage either parent structure.
-
-### Deck objective
-
-A connected rank band concentrated into one effective suit group.
-
-### Entry rule
-
-Do not focus Straight Flush merely because one Neptune appears. Require an already-functional Straight or Flush parent plus concrete evidence that the second constraint is achievable.
-
-### Conflicts
-
-Single-rank concentration and transformations that destroy rank connectivity.
-
-### Natural fallback
-
-Return to whichever parent, Straight or Flush, remains more reliable.
-
-### Mature signal
-
-Straight Flushes are repeatable within normal resource budgets and both rank and suit structure are robust enough that a single bad draw does not collapse the run.
-
----
-
-## 6.4 Flush House
-
-**Strategic hand:** Flush House  
-**Planet:** Ceres  
-**Parent playbooks:** Full House + Flush
-
-### Gold components
-
-- The Tribe.
-- The Trio / The Duo where their contained hand conditions apply.
-- Smeared Joker or equivalent suit consistency enabler.
-- Persistent transformations that copy the chosen two ranks while preserving the chosen effective suit.
-
-### Silver components
-
-- Droll/Crafty Joker.
-- Pair/Two Pair/Three-of-a-Kind direct scoring that remains active.
-- Suit-specific scoring matching the target suit.
-
-### Bronze components
-
-- Generic scoring/economy.
-
-### Deck objective
-
-Two dense rank clusters contained primarily inside one effective suit group.
-
-### Entry rule
-
-Require a mature Flush or Full House parent plus strong evidence for the missing dimension. Never chase Ceres from a normal deck solely because the Planet is available.
-
-### Conflicts
-
-Broad Straight structure, incompatible suit splitting and premature collapse to one rank.
-
-### Natural fallback
-
-Full House or Flush, whichever retains the stronger current consistency/payoff package.
-
-### Mature signal
-
-Both the 3+2 rank requirement and suit requirement are repeatedly satisfied with ordinary hand/discard resources.
-
----
-
-## 6.5 Flush Five
-
-**Strategic hand:** Flush Five  
-**Planet:** Eris  
-**Parent playbooks:** Five of a Kind + Flush
-
-### Gold components
-
-- The Tribe.
-- The Family where its contained Four-of-a-Kind condition applies.
-- Smeared Joker if it expands the effective suit set without damaging rank concentration.
-- Cryptid/Death/Ouija plus suit conversion sufficient to reproduce one rank in one effective suit.
-- Suit-specific scoring matching the chosen suit.
-
-### Silver components
-
-- The Trio / Pair-condition payoffs that remain active.
-- Droll/Crafty Joker.
-- Retrigger effects matching the chosen card identity.
-
-### Bronze components
-
-- Generic score/economy.
-
-### Deck objective
-
-Extreme concentration toward one rank and one effective suit/card identity.
-
-### Entry rule
-
-Only transition from an already-functional Five-of-a-Kind or very concentrated Flush shell. Do not reserve resources for Flush Five without persistent deck evidence.
-
-### Conflicts
-
-Nearly every broad rank/suit diversity strategy.
-
-### Natural fallback
-
-Five of a Kind or Flush depending on which structural axis remains stronger.
-
-### Mature signal
-
-Five same-rank, same-effective-suit cards are routinely accessible and the score engine scales multiplicatively enough for endgame targets.
-
----
-
-# 7. Composable overlay playbooks
-
-These overlays modify a primary poker-hand playbook. They should not automatically replace it.
-
-## 7.1 Face Cards
-
-### Gold examples
-
-- Triboulet.
-- Sock and Buskin.
-- Photograph + retrigger support.
-- Pareidolia only when making all cards face cards creates positive net value rather than disabling another engine.
-
-### Silver examples
-
-- Scary Face.
-- Smiley Joker.
-- Business Card when economy is useful.
-- Reserved Parking.
-
-### Main conflicts
-
-- Ride the Bus / explicit No-Face strategies.
-- Boss or deck conditions that make face dependence unsafe unless mitigated.
-
----
-
-## 7.2 No Face Cards / low-rank shell
-
-### Gold examples
-
-- Ride the Bus.
-- Hack when the deck is concentrated in 2-5.
-- Wee Joker when 2 density is intentionally increased.
-- Fibonacci when the deck naturally centers on its supported ranks.
-
-### Silver examples
-
-- Even Steven / Odd Todd when parity concentration supports them.
-- Walkie Talkie when 10/4 concentration is deliberate.
-
-### Main conflicts
-
-- Pareidolia, Triboulet, Sock and Buskin, Photograph and other face-dependent engines.
-
----
-
-## 7.3 Held Cards
-
-### Gold examples
-
-- Baron.
-- Mime.
-- Steel-card concentration.
-
-### Silver examples
-
-- Shoot the Moon.
-- Raised Fist.
-- Blackboard.
-- Reserved Parking.
-
-### Play rule
-
-D1 must explicitly value cards remaining in hand; playing an otherwise unnecessary held-value card is a strategic cost.
-
----
-
-## 7.4 Discard scaling
-
-### Gold examples
-
-- Burnt Joker.
-- Castle.
-- Yorick when discard volume is the intended long-run engine.
-
-### Play rule
-
-The agent may spend discards for persistent scaling only after accounting for the current blind clear path and the value of keeping emergency recovery resources.
-
-### Main conflicts
-
-- Green Joker.
-- Banner / Delayed Gratification style rewards for retaining or avoiding discards.
-- Burglar when discards are removed.
-
----
-
-## 7.5 No-discard / hand-volume shell
-
-### Gold examples
-
-- Green Joker.
-- Burglar.
-- Ramen where preserving its multiplier favors avoiding discard expenditure.
-
-### Silver examples
-
-- Banner.
-- Delayed Gratification.
-- repeat-hand scaling that benefits from additional hands.
-
-### Main conflicts
-
-- Burnt Joker, Castle and other effects that require intentional discarding to scale.
-
----
-
-## 7.6 Economy shell
-
-### Gold examples
-
-- Bull when banked money is converted into meaningful Chips.
-- Bootstraps when banked money is converted into meaningful Mult.
-- Rocket / To the Moon when the run can protect capital long enough to compound.
-
-### Silver examples
-
-- Golden Joker.
-- Business Card.
-- Reserved Parking.
-- Rough Gem in Diamond-compatible scoring.
-
-### Play rule
-
-Economy is an amplifier, not a reason to lose the run. The resource valuator still protects current blind survival before interest or long-horizon scaling.
-
----
-
-## 7.7 Consumable / Planet shell
-
-### Gold examples
-
-- Constellation for sustained Planet acquisition/use.
-- Fortune Teller for sustained Tarot use.
-- Perkeo when duplicated consumables create a concrete scoring/economy engine.
-
-### Silver examples
-
-- Hallucination and other pack/consumable generation when slots and economy can support it.
-- Astronomer/Telescope-style Planet support when it advances the active primary hand.
-
-### Play rule
-
-Consumable generation is only valuable when the generated category has a plausible use path and inventory slots are not blocking higher-value tactical consumables.
-
----
-
-# 8. Planet priority map
-
-| Playbook | Primary Planet |
-|---|---|
-| High Card | Pluto |
-| Pair | Mercury |
-| Two Pair | Uranus |
-| Three of a Kind | Venus |
-| Straight | Saturn |
-| Flush | Jupiter |
-| Full House | Earth |
-| Four of a Kind | Mars |
-| Straight Flush | Neptune |
-| Five of a Kind | Planet X |
-| Flush House | Ceres |
-| Flush Five | Eris |
-
-Planet acquisition must still consider expected future hand frequency and marginal level gain. Merely matching the active playbook does not make a Planet an automatic buy/take.
-
----
-
-# 9. Transformation priorities by archetype
-
-This is a directional guide for D4-D10 later; exact card-level EV remains contextual.
-
-| Transformation | Usually helps | Usually hurts / risks |
-|---|---|---|
-| Suit conversion | Flush, Straight Flush, Flush House, Flush Five | unrelated single-rank plans if it consumes better transformations |
-| Rank copying | Pair, Two Pair, Trips, Full House, Four/Five, Flush House/Five | Straight rank diversity |
-| Rank shifting | Straight repair, rank concentration when targeted | can destroy existing pairs/connectivity if used blindly |
-| Card destruction | almost every focused deck when removing off-plan cards | can damage Straight/Full House redundancy if target choice is poor |
-| Steel creation | High Card/Held Cards, low-card shells | opportunity cost when all cards must score in a five-card hand |
-| Glass creation | boss/finisher scoring, concentrated repeated-rank hands | long-run fragility if the card is repeatedly required |
-| Wild creation | Flush and hybrid suit hands | may be inferior to permanent suit concentration when a specific suit payoff matters |
-| Cryptid-style copying | rank builds, exact-card builds, Flush Five | consumes slot/opportunity and can overconcentrate away from Straight |
-| Ouija-style rank conversion | Trips/Four/Five and exact-rank transitions | Straight and multi-rank Full House structure; hand-size penalty |
-| Sigil-style suit conversion | Flush-family builds | non-Flush plans; hand-size penalty |
-
----
-
-# 10. Future implementation shape
-
-The first code implementation should use explicit data structures rather than scattered `if joker == ...` logic across D1-D14.
-
-A playbook record should eventually contain fields equivalent to:
+## 2. What a playbook contains
+
+Each universal playbook will eventually be encoded as data with at least:
+
+- stable strategy ID;
+- human-readable name;
+- strategic identity / intended scoring engine;
+- Gold components;
+- Silver components;
+- Bronze components;
+- hard conflicts;
+- soft conflicts;
+- relevant poker hands, when applicable;
+- preferred Planets, when applicable;
+- preferred Tarot/Spectral transformations;
+- preferred vouchers / booster families when materially relevant;
+- deck-shape evidence;
+- entry evidence;
+- maturity/completion evidence;
+- natural pivot relationships;
+- abandonment conditions.
+
+A component may belong to several playbooks at different tiers.
+
+Example conceptually:
 
 ```text
-id
-primary_hand
-parent_playbooks
-gold_components
-silver_components
-bronze_components
-hard_conflicts
-soft_conflicts
-preferred_planet
-preferred_transformations
-deck_shape_requirements
-hand_construction_rules
-entry_signals
-focus_signals
-lock_signals
-mature_signals
-pivot_targets
-overlays
+Mime
+  High Card: Gold
+  Steel: Gold
+  Face Cards: Silver
+  Flush: Bronze
 ```
 
-The scorer should produce diagnostics such as:
-
-```text
-playbook = FLUSH
-state = FOCUSED
-evidence = [Smeared Joker, 18 effective Hearts, Jupiter level 3]
-gold_hits = 1
-silver_hits = 2
-conflicts = []
-next_needs = [multiplicative payoff, more suit concentration]
-pivot_candidates = [STRAIGHT_FLUSH: weak]
-```
-
-Those diagnostics should then be shared by D1-D14 so hand play, Joker acquisition, consumables, Planets, packs, rerolls, blind skips and resource valuation are all reasoning from the same build definition.
+The tier is therefore **not a global item ranking**. It describes how valuable that component is *inside a particular strategy*.
 
 ---
 
-# 11. Implementation order
+## 3. Canonical data ownership
 
-1. Review/freeze this catalogue at the design level.
-2. Encode playbook records and component memberships.
-3. Add deck-shape evidence and conflict scoring.
-4. Replace the current loose affinity-only build intent with playbook candidate/focus/lock state while preserving public-information constraints.
-5. Feed the resolved playbook context into D1-D14.
-6. Add deterministic playbook unit tests and anti-synergy regressions.
-7. Only then resume live strategy tuning and the final Red Deck / White Stake acceptance run.
+The canonical source of truth should remain **strategy-centric**:
 
-No acceptance result should be treated as the final v1.0 strategy baseline until this playbook layer is implemented.
+```python
+StrategyDefinition(
+    id="steel",
+    gold_components={...},
+    silver_components={...},
+    bronze_components={...},
+    conflicts={...},
+    ...
+)
+```
+
+The runtime should automatically generate the inverse lookup:
+
+```python
+component -> [(strategy, tier), ...]
+```
+
+This gives shop evaluation the convenient question:
+
+> "Which strategies does this Joker/consumable advance, and by how much?"
+
+without duplicating tier metadata inside every Joker/consumable implementation.
+
+This also prevents the 150 Joker classes from becoming the authoritative strategy database.
+
+---
+
+## 4. Gold / Silver / Bronze semantics
+
+### Gold — defining / premium synergy
+
+Gold means the component is one of the strongest reasons to pursue or continue that playbook.
+
+Typical Gold evidence:
+
+- directly defines the strategy;
+- creates a major multiplicative/scaling engine for it;
+- dramatically increases its consistency;
+- provides a core transformation the strategy needs;
+- turns an otherwise weak strategy into a realistic run-winning route.
+
+Gold is **not an unconditional auto-buy**. Survival, affordability, slot pressure, boss constraints, and stronger existing strategies can still override it.
+
+### Silver — strong reinforcement
+
+Silver means the component works extremely well in the playbook but does not define it alone.
+
+Several Silver components can collectively create enough evidence to elevate a strategy even without a Gold component.
+
+### Bronze — compatible / bridge support
+
+Bronze means the component contributes usefully but is replaceable, generic, or only moderately synergistic.
+
+Bronze pieces are important early because the agent cannot wait for perfect Gold/Silver rolls before buying anything.
+
+Bronze evidence alone must not hard-lock a strategy.
+
+### Conflict
+
+A strategy may also mark components or deck shapes as:
+
+- **hard conflict** — directly undermines the strategy;
+- **soft conflict** — pulls resources/build structure away from it but may coexist temporarily.
+
+---
+
+## 5. Strategy evidence and ranking
+
+The agent maintains a score for every universal playbook from **public run state only**.
+
+Evidence may include:
+
+- owned Jokers and their Gold/Silver/Bronze relationships;
+- held consumables;
+- permanent deck modifications;
+- card ranks/suits/enhancements/seals/editions;
+- poker-hand level investment;
+- actual repeated hand usage;
+- current Joker/consumable slot investment;
+- existing synergistic combinations;
+- conflicts already present;
+- deck/stake effectiveness modifiers;
+- economic cost already sunk into the strategy.
+
+Conceptually:
+
+```text
+Ante 2
+Face Cards       4.2
+Pair             3.5
+Steel            1.7
+Lucky            0.8
+Straight         0.2
+
+Ante 4
+Face Cards       8.9
+Pair             6.1
+Steel            4.4
+Lucky            1.0
+Straight         0.0
+
+Ante 6
+DOMINANT: Face Cards   13.6
+RELEVANT: Pair          8.4
+RELEVANT: Steel         7.2
+All others: suppressed
+```
+
+The exact numerical weights belong in implementation and testing, not this document.
+
+---
+
+## 6. Ante progression: explore -> converge -> commit
+
+### Antes 1–2 — mandatory exploration / foundation
+
+The run normally begins with no meaningful playbook evidence.
+
+Therefore the agent **must not refuse useful purchases simply because no active strategy exists yet**.
+
+In Antes 1–2 it should intentionally acquire useful scoring/economy/build pieces that:
+
+- improve immediate survival;
+- have broadly useful Bronze value;
+- create Silver/Gold evidence for one or more strategies;
+- do not catastrophically damage economy.
+
+The objective is to create strategic evidence from RNG rather than demand that RNG already match a nonexistent strategy.
+
+A completely empty Joker board caused by "nothing matches my strategy" is a policy failure during this phase.
+
+### Antes 3–5 — convergence
+
+By Ante 3 the current inventory and deck shape should begin separating promising strategies from noise.
+
+The agent increasingly prefers:
+
+- Gold/Silver components of leading strategies;
+- transformations that make those strategies more reliable;
+- Planets matching poker-hand strategies that have real evidence;
+- packs whose expected contents have meaningful strategic utility.
+
+Pivots remain allowed. A new Gold component can overtake the current leader when the existing investment is still shallow.
+
+The agent should gradually stop paying for unrelated speculative directions.
+
+### Ante 6+ — dominant + relevant shortlist
+
+By Ante 6 the run should normally expose:
+
+- exactly **one dominant strategy**, when meaningful evidence exists;
+- up to **two relevant strategies** that remain compatible and sufficiently supported.
+
+Future purchases are strongly biased toward those strategies.
+
+However, shortlist membership is **not a prohibition system**. If the agent has an empty Joker slot and the shop provides no on-strategy component, it may buy a strong generic/off-strategy bridge when doing so materially improves survival or scoring.
+
+The important behavior is:
+
+> stop spending scarce resources chasing random new strategies that have little relationship to the established run.
+
+A late transformative pivot remains possible, but its required advantage must increase with sunk investment and Ante.
+
+---
+
+## 7. Dominant strategy versus hand selection
+
+A playbook describes **what the run is building toward**, not an absolute command for D1.
+
+Example:
+
+- dominant strategy: Flush;
+- current hand contains a viable Flush line;
+- another available hand already guarantees the blind clear.
+
+The agent may take the guaranteed clear instead of forcing the Flush.
+
+When survival is not at risk, D1 should prefer:
+
+- playing the strategic hand;
+- discarding toward the strategic hand;
+- preserving cards important to the dominant/relevant strategies;
+- triggering strategic scaling engines when the lost immediate value is acceptable.
+
+Priority remains approximately:
+
+1. guarantee / preserve blind survival;
+2. minimize unnecessary hand expenditure when strategically safe;
+3. pursue the dominant strategy's intended scoring pattern;
+4. reinforce relevant strategies when compatible;
+5. avoid unrelated speculative behavior.
+
+---
+
+## 8. Consumables, Planets, and packs
+
+This strategy model is specifically intended to eliminate pointless consumable and booster spending.
+
+### Planets
+
+A Planet must not become attractive merely because its effect is generically positive.
+
+It should receive meaningful strategic value when:
+
+- its poker hand is the dominant strategy;
+- its poker hand is a relevant strategy;
+- the current deck/hand investment provides strong evidence for that hand during the convergence phase.
+
+Late-game off-strategy Planets should normally be ignored.
+
+A Planet by itself should not create a new strategy late in a run.
+
+### Tarot / Spectral cards
+
+Tarot/Spectral acquisition and use should be scored against the playbooks they advance.
+
+Examples:
+
+- suit conversion can support Flush or Smeared/Splash + Flower Pot;
+- card destruction can support rank concentration, Canio Destruction, Faceless shaping, or deck thinning;
+- enhancement creation can support Steel, Glass, Lucky, etc.;
+- rank conversion can support Aces, Three/Four/Five of a Kind, or other rank-concentration plans.
+
+A random transformation with no credible relationship to the dominant/relevant strategies should lose most of its speculative value by late game.
+
+### Booster packs
+
+Pack value should be derived from the probability/value of obtaining components for existing promising strategies, plus immediate survival utility.
+
+The agent should not buy a Celestial/Arcana/Spectral pack simply because "packs are good" when the plausible contents are mostly irrelevant to the run.
+
+---
+
+# 9. Universal playbook catalogue
+
+The following sections define the initial catalogue to encode. The grouping is documentation-only; runtime strategies remain peers.
+
+## 9.1 Poker-hand playbooks
+
+### High Card
+
+**Identity:** low construction burden; repeated safe scoring with Joker scaling and/or held-card value.
+
+**Gold examples:** Stuntman; strong High-Card repetition/scaling engines; Baron + Mime when the deck actually supports held Kings.
+
+**Silver examples:** Supernova/Card Sharp when High Card is already repeated; held-card scoring that naturally preserves cards in hand; reliable card-independent scaling.
+
+**Bronze examples:** generic flat Chips/Mult/economy compatible with one-card play.
+
+**Strategic support:** Pluto; deck thinning; Steel/held-card manipulation when compatible.
+
+**Conflicts:** five-card-only engines; heavy rank/suit restructuring for unrelated hands.
+
+---
+
+### Pair
+
+**Identity:** low-cost hand construction around reliable duplicated ranks.
+
+**Gold examples:** The Duo; strong Pair-specific scaling/payoff.
+
+**Silver examples:** Jolly Joker; Sly Joker; Half Joker; repeated-hand scaling once Pair is established.
+
+**Bronze examples:** generic scoring/economy and compatible rank payoffs.
+
+**Strategic support:** Mercury; light rank duplication; selective thinning.
+
+**Natural transitions:** Two Pair, Three of a Kind, Full House.
+
+---
+
+### Two Pair
+
+**Identity:** repeated four-card scoring around several duplicated ranks.
+
+**Gold examples:** Spare Trousers; dedicated Two-Pair scaling.
+
+**Silver examples:** Mad Joker; Clever Joker; Pair-compatible payoff; Square Joker when exactly-four-card play is reliable.
+
+**Bronze examples:** generic scoring/economy and temporary Pair support.
+
+**Strategic support:** Uranus; multiple duplicated-rank clusters.
+
+---
+
+### Three of a Kind
+
+**Identity:** deliberate single-rank concentration without requiring full endgame rank collapse.
+
+**Gold examples:** The Trio; dedicated Three-of-a-Kind multipliers/scalers; powerful rank-copying when a target rank is already established.
+
+**Silver examples:** Zany Joker; Wily Joker; compatible rank-specific payoff.
+
+**Bronze examples:** generic scoring/economy that does not require rank diversity.
+
+**Strategic support:** Venus; Death/Strength/Cryptid-style concentration where feasible.
+
+**Natural transitions:** Full House, Four of a Kind, Five of a Kind.
+
+---
+
+### Straight
+
+**Identity:** preserve rank connectivity and invest in consistency enablers.
+
+**Gold examples:** Shortcut; Four Fingers; Runner; The Order.
+
+**Silver examples:** Crazy Joker; Devious Joker; Superposition where Ace Straights are genuinely common.
+
+**Bronze examples:** generic scoring/economy that does not destroy rank coverage.
+
+**Strategic support:** Saturn; connector preservation; removal of isolated/excess duplicate ranks.
+
+**Conflicts:** mature single-rank concentration.
+
+---
+
+### Flush
+
+**Identity:** concentrate effective suit density and exploit Flush/suit payoff.
+
+**Gold examples:** The Tribe; Smeared Joker when it materially increases effective suit density; Four Fingers; strong suit payoff matching the actual deck.
+
+**Silver examples:** Droll Joker; Crafty Joker; Castle; suit-specific scoring matching existing conversion.
+
+**Bronze examples:** generic scoring/economy and temporary suit support.
+
+**Strategic support:** Jupiter; suit conversion; selective off-suit destruction.
+
+**Natural transitions:** Straight Flush when Straight structure also becomes real; Flush House/Flush Five after strong rank concentration.
+
+---
+
+### Full House
+
+**Identity:** maintain at least two meaningful rank clusters and repeatedly assemble 3+2.
+
+**Gold examples:** The Family; strong rank-manipulation packages that preserve two clusters rather than collapsing to one.
+
+**Silver examples:** dedicated Full-House Chips/Mult; Pair/Three-of-a-Kind components that remain useful inside Full House.
+
+**Bronze examples:** generic scoring and rank-compatible economy.
+
+**Strategic support:** Earth; controlled duplication/destruction.
+
+**Conflicts:** indiscriminate single-rank collapse unless intentionally pivoting upward.
+
+---
+
+### Four of a Kind
+
+**Identity:** heavy concentration around one target rank.
+
+**Gold examples:** The Family; powerful rank-copy/destruction engines once target-rank density exists.
+
+**Silver examples:** Four-of-a-Kind direct Chips/Mult; rank-specific payoff matching the target rank.
+
+**Bronze examples:** generic scoring compatible with concentrated ranks.
+
+**Strategic support:** Mars; repeated target-rank creation; off-rank destruction.
+
+**Natural transitions:** Five of a Kind; Flush Five when suit concentration also exists.
+
+---
+
+### Straight Flush
+
+**Identity:** simultaneously reliable Straight structure and effective suit concentration.
+
+**Gold examples:** Shortcut/Four Fingers combined with real suit control; The Order/The Tribe when both conditions are realistically repeatable.
+
+**Silver examples:** compatible Straight or Flush engines already supported by deck shape.
+
+**Bronze examples:** generic scoring that does not damage either requirement.
+
+**Strategic support:** Neptune.
+
+**Entry requirement:** must have substantial existing structural evidence. Neptune alone is never enough.
+
+---
+
+### Five of a Kind
+
+**Identity:** extreme single-rank concentration.
+
+**Gold examples:** Cryptid/Ouija/rank-copy engines after a target rank has already become dominant; rank payoff matching that rank.
+
+**Silver examples:** Four/Three-of-a-Kind engines that remain active while transitioning.
+
+**Bronze examples:** generic scaling compatible with rank collapse.
+
+**Strategic support:** Planet X.
+
+**Entry requirement:** sufficient target-rank density; never an early speculative default.
+
+---
+
+### Flush House
+
+**Identity:** Full-House rank clustering plus suit concentration.
+
+**Gold examples:** rank-copy + suit-conversion packages capable of repeatedly creating 3+2 in one suit/effective suit.
+
+**Silver examples:** Full-House and Flush components already supported simultaneously.
+
+**Strategic support:** Ceres.
+
+**Entry requirement:** mature Full-House/Flush structural evidence.
+
+---
+
+### Flush Five
+
+**Identity:** same-rank same-suit concentration.
+
+**Gold examples:** rank-copy and suit-copy/conversion effects when the deck already contains a meaningful nucleus of identical rank+suit cards.
+
+**Silver examples:** Five-of-a-Kind and Flush components that remain compatible.
+
+**Strategic support:** Eris.
+
+**Entry requirement:** strong existing identical-card concentration; never speculative from a normal deck.
+
+---
+
+## 9.2 Mechanic-specific playbooks
+
+### Face Cards
+
+**Identity:** preserve/create Jacks, Queens, and Kings and exploit face-card triggers.
+
+**Gold examples:** major face-card multipliers/scalers such as Triboulet-style payoff; Pareidolia when it unlocks multiple face-card effects; strong face-card retrigger packages.
+
+**Silver examples:** Smiley Face; Scary Face; Business Card; Photograph; Sock and Buskin when sufficient face density exists.
+
+**Bronze examples:** generic scoring/economy that does not require destroying face cards.
+
+**Preferred transformations:** Strength/rank manipulation that increases useful face density; selective destruction of irrelevant low ranks.
+
+**Conflicts:** Faceless/No-Face strategies; Ride the Bus-style no-face requirements.
+
+---
+
+### Faceless / No-Face
+
+**Identity:** remove or avoid face cards and exploit effects that benefit from their absence/destruction.
+
+**Gold examples:** Ride the Bus when the deck can reliably avoid scoring face cards; Faceless Joker when discard structure supports it.
+
+**Silver examples:** low-rank payoff engines; destruction tools that remove face cards while improving deck consistency.
+
+**Bronze examples:** generic scoring/economy compatible with low-rank play.
+
+**Conflicts:** Face Cards; Baron/King-heavy held-card packages.
+
+---
+
+### Glass
+
+**Identity:** create and repeatedly exploit Glass cards while managing breakage/replacement risk.
+
+**Gold examples:** Glass Joker; reliable Glass creation/duplication engines when enough Glass density exists.
+
+**Silver examples:** retriggers/multipliers that magnify Glass scoring; deck-copy effects that replenish strong Glass targets.
+
+**Bronze examples:** generic scoring/economy compatible with fragile scoring cards.
+
+**Preferred transformations:** Justice and copy effects applied to strategically valuable ranks/suits.
+
+**Risk:** do not destroy the only reliable clear line merely to maximize Glass value.
+
+---
+
+### Steel
+
+**Identity:** keep Steel cards in hand and multiply held-card value.
+
+**Gold examples:** Steel Joker; Mime; Baron when Steel Kings/King density make the package coherent.
+
+**Silver examples:** held-card scoring/retrigger effects; hand-size support; card generation that increases useful held cards.
+
+**Bronze examples:** generic scoring requiring few played cards.
+
+**Preferred transformations:** Chariot; Death/copy effects targeting valuable Steel cards.
+
+**Natural compatibility:** High Card, Pair, Face Cards depending on deck shape.
+
+---
+
+### Lucky
+
+**Identity:** create Lucky-card density and exploit repeated Lucky triggers/scaling.
+
+**Gold examples:** Lucky Cat once Lucky-card usage is real; retrigger engines that substantially increase Lucky proc opportunities.
+
+**Silver examples:** Magician; card-copy effects targeting strong Lucky cards; compatible per-card scoring.
+
+**Bronze examples:** generic scoring/economy that keeps Lucky cards playable.
+
+**Requirement:** Lucky evidence must come from actual enhanced cards/components, not theoretical future Magician access.
+
+---
+
+## 9.3 Niche synergy playbooks
+
+### Aces
+
+**Identity:** concentrate and exploit Ace-specific scoring while retaining compatible poker-hand routes.
+
+**Gold examples:** Scholar; strong Ace duplication/concentration engines when Ace density is already meaningful.
+
+**Silver examples:** Fibonacci where its rank set remains compatible; Superposition in Straight/Ace shells; compatible rank retriggers.
+
+**Bronze examples:** generic scoring/economy that does not require destroying Aces.
+
+**Preferred transformations:** Strength/rank manipulation and copy effects that increase useful Ace density.
+
+**Potential hand shells:** Pair/Three/Four/Five of a Kind, High Card, Straight depending on the rest of the build.
+
+---
+
+### Smeared / Splash + Flower Pot
+
+**Identity:** satisfy Flower Pot's multi-suit requirement reliably by manipulating what counts as scored/effective suits and by ensuring required cards score.
+
+**Gold examples:** Flower Pot plus Smeared Joker and/or Splash when that combination materially raises trigger consistency.
+
+**Silver examples:** suit-generation/conversion tools that fill missing color/suit requirements; retrigger/scoring pieces compatible with playing the required mixed-suit hand.
+
+**Bronze examples:** generic scaling that works with multi-card mixed-suit plays.
+
+**Requirement:** individual pieces should not overvalue this strategy until enough of the package exists to make Flower Pot triggering realistic.
+
+---
+
+### Canio Destruction
+
+**Identity:** scale Canio by deliberately destroying face cards while preserving a reliable scoring shell.
+
+**Gold examples:** Canio; repeatable face-card destruction tools once Canio is owned.
+
+**Silver examples:** Hanged Man/other destruction effects targeting face cards; deck-shaping tools that create expendable face cards if economically sensible.
+
+**Bronze examples:** scoring/economy that keeps the run safe during destruction scaling.
+
+**Conflict:** Face Cards is normally incompatible once Canio destruction becomes the dominant plan.
+
+**Requirement:** destruction should be intentional and valuation-aware, not random thinning.
+
+---
+
+### Vampire
+
+**Identity:** feed enhanced cards into Vampire to scale its multiplier while maintaining enough enhancement generation to sustain growth.
+
+**Gold examples:** Vampire; repeatable enhancement-generation engines that can create cards for Vampire to consume.
+
+**Silver examples:** Tarot generation; enhancement creation that is cheap/repeatable; deck-control tools that route expendable enhanced cards into scoring hands.
+
+**Bronze examples:** generic scoring/economy that supports the scaling period.
+
+**Conflict:** Steel/Glass/Lucky strategies may conflict when Vampire consumes enhancements those strategies need to preserve.
+
+**Requirement:** the agent must value the *conversion pipeline* (create enhancement -> safely score it -> Vampire consumes it -> permanent scaling), not merely the presence of Vampire.
+
+---
+
+## 10. Multiple strategies and compatibility
+
+The agent should intentionally chase several strategies when their components overlap.
+
+Example:
+
+```text
+Face Cards + Pair + Steel
+```
+
+can coexist because:
+
+- Pair may provide the poker-hand shell;
+- Face Cards may define which ranks matter;
+- Steel may define held-card/value manipulation.
+
+All three remain peer playbooks. The agent does not need a special nested "Face Pair Steel" strategy object.
+
+Compatibility emerges from:
+
+- shared components;
+- deck shape;
+- lack of conflicts;
+- actual run evidence.
+
+Eventually one becomes dominant because it accumulates the strongest evidence and sunk investment.
+
+---
+
+## 11. Shop behavior implied by the catalogue
+
+When evaluating a shop item, the future policy should be able to produce reasoning such as:
+
+```text
+Candidate: Joker X
+
+Dominant strategy: Face Cards
+  tier: Gold
+  contribution: very high
+
+Relevant strategy: Pair
+  tier: Silver
+  contribution: high
+
+Relevant strategy: Steel
+  tier: none
+
+Result: strongly preferred if affordable and survival-safe.
+```
+
+A different item might be:
+
+```text
+Candidate: Neptune
+
+Dominant strategy: Face Cards
+  tier: none
+
+Relevant strategy: Pair
+  tier: none
+
+Relevant strategy: Steel
+  tier: none
+
+Straight Flush evidence: negligible
+
+Result: reject except for exceptional independent survival/value reasons.
+```
+
+This same model should govern Jokers, consumables, Planets, vouchers, packs, rerolls, and sell/replace decisions.
+
+---
+
+## 12. Deck/stake cartridges
+
+Universal playbooks remain unchanged across decks/stakes.
+
+A cartridge may provide only environment-specific modifiers such as:
+
+```python
+StrategyModifier(
+    strategy_id="flush",
+    enabled=True,
+    effectiveness=1.10,
+    score_bonus=0.0,
+)
+```
+
+Examples:
+
+- a deck with unusual suit structure may amplify or suppress Flush-related strategies;
+- reduced discard availability may reduce the effectiveness of Straight/Flush strategies that depend heavily on digging;
+- stake mechanics may change economy/scaling risk and therefore alter strategy effectiveness;
+- a strategy can be disabled for an environment only when it is genuinely infeasible or outside that cartridge's supported competence.
+
+The cartridge must never redefine what Gold/Silver/Bronze means for a universal strategy.
+
+---
+
+## 13. Implementation order
+
+Do **not** continue strategy-aware production wiring until this catalogue is sufficiently complete.
+
+Implementation order:
+
+1. Review and finalize the universal playbook list.
+2. Fill concrete Gold/Silver/Bronze component mappings for each playbook.
+3. Encode the universal strategy definitions.
+4. Generate inverse component -> strategy/tier indices automatically.
+5. Add deck/stake strategy-effectiveness modifiers.
+6. Implement per-run evidence scoring and Ante-based exploration/convergence/commitment pressure.
+7. Integrate strategy state into D1–D14.
+8. Add deterministic unit/regression tests for strategy ranking, pivots, consumable/Planet suppression, packs, and hand preference.
+9. Run specialized live validation.
+10. Only then resume the v1.0 autonomous acceptance gate.
+
+---
+
+## 14. Non-negotiable behavioral rules
+
+- The agent starts with **no assumed strategy**.
+- Antes 1–2 must permit and normally require useful purchases so RNG can create strategy evidence.
+- A random Planet/Tarot/Joker must not create a strong late strategy merely because its standalone effect is positive.
+- Antes 3–5 progressively favor coherent existing directions.
+- By Ante 6, when evidence exists, the run should normally have **one dominant strategy and at most two relevant strategies**.
+- The dominant strategy guides future build decisions but does not override guaranteed blind survival.
+- Relevant strategies prevent over-locking and allow compatible components/offers to fill remaining slots.
+- Off-strategy generic survival purchases remain legal when needed; speculative new-strategy fishing does not.
+- Gold/Silver/Bronze are strategy-relative relationships, never global item tiers.
+- Deck/stake cartridges modify strategy effectiveness; they do not own or redefine universal strategies.
+- Strategy decisions must be explainable in authoritative logs.
