@@ -2,7 +2,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from games.balatro.strategy import GOLD, NEUTRAL
+from games.balatro.jokers.obelisk import ObeliskJoker
+from games.balatro.strategy import BANNED, GOLD, NEUTRAL
 from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
 from games.balatro.strategy_conditional_relationships import (
     StateAwareBalatroStrategyTracker,
@@ -72,6 +73,7 @@ def test_burnt_joker_builds_high_card_parent_and_ranks_only_core_leaf():
     assert by_id["high_card_stuntman"].score == pytest.approx(0.0)
     assert by_id["high_card_baron_mime"].score == pytest.approx(0.0)
     assert nodes["high_card"].direct_evidence == pytest.approx(5.0)
+    assert nodes["high_card_core"].direct_evidence == pytest.approx(0.0)
     assert nodes["high_card_core"].active is True
     assert nodes["high_card_stuntman"].active is False
     assert nodes["high_card_baron_mime"].active is False
@@ -181,6 +183,27 @@ def test_specific_candidate_projects_parent_inheritance_without_self_funding_bon
     # The candidate can reveal a pivot but cannot create its own current-strategy
     # purchase bonus before it is actually owned.
     assert evaluation.value == pytest.approx(0.0)
+
+
+def test_obelisk_parent_conflict_maps_to_core_fallback_without_making_core_evidence():
+    tracker = _tracker()
+    state = _state(
+        jokers=(_joker("Burnt Joker"),),
+        hand_levels={"HIGH_CARD": 2},
+        ante=4,
+    )
+    state.hand_play_counts = {"HIGH_CARD": 4, "PAIR": 1}
+
+    resolution = tracker.observe(state)
+    nodes = tracker.tree_node_scores()
+    assert resolution.dominant_strategy_id == "high_card_core"
+    assert nodes["high_card_core"].direct_evidence == pytest.approx(0.0)
+
+    evaluation = tracker.evaluate_item(state, ObeliskJoker(), kind="JOKER")
+
+    assert evaluation.strategy_id == "high_card_core"
+    assert evaluation.tier == BANNED
+    assert evaluation.value < 0.0
 
 
 def test_old_competing_hand_jokers_are_not_high_card_banned_relationships():
