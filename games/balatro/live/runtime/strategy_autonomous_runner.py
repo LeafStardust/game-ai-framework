@@ -18,6 +18,7 @@ from games.balatro.shop_playstyle import BuildAwareShopItemValueEstimator
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.strategy import BalatroStrategyTracker
 from games.balatro.strategy_catalog import UNIVERSAL_BALATRO_STRATEGIES
+from games.balatro.strategy_compat import NeutralLegacyPlaystyleIntentTracker
 from games.balatro.strategy_pack_playstyle import StrategyAwarePackPlaystyleEvaluator
 from games.balatro.strategy_value import (
     StrategyAwareConsumableSynergyEvaluator,
@@ -39,12 +40,26 @@ def _strategy_modifiers_for_state(state):
 class StrategyAwareLiveMemoryInjectedSingleStepRunner(
     PlaystyleAwareLiveMemoryInjectedSingleStepRunner
 ):
-    """Production runner with run-scoped universal strategy scoring."""
+    """Production runner with run-scoped universal strategy scoring.
+
+    The parent runner remains useful mechanics/plumbing, but its old playstyle
+    intent is neutralized here. Universal playbooks are the only strategic source
+    of truth in this production subclass.
+    """
 
     def __init__(self, observer, **kwargs) -> None:
         custom_hand_recommender = kwargs.get("hand_recommender") is not None
         custom_pack_recommender = kwargs.get("pack_recommender") is not None
         super().__init__(observer, **kwargs)
+
+        # The parent wires several mature policies to one legacy Ante-5-locking
+        # playstyle tracker. Keep the mechanics but neutralize that strategic signal
+        # before constructing the universal-strategy wrappers. Existing D13 and
+        # build-intent plumbing receives the same neutral bridge until dedicated
+        # playbook-aware replacements are wired.
+        self.playstyle_intent_tracker = NeutralLegacyPlaystyleIntentTracker()
+        self.build_intent_log_tracker.intent_tracker = self.playstyle_intent_tracker
+        self.blind_skip_policy.intent_tracker = self.playstyle_intent_tracker
 
         self.strategy_tracker = BalatroStrategyTracker(
             UNIVERSAL_BALATRO_STRATEGIES,
@@ -132,6 +147,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
             "strategy_pressure": float(
                 self.strategy_tracker.strategy_pressure(decision.state)
             ),
+            "legacy_playstyle_strategy_enabled": False,
             "changed": resolution.changed,
             "ranked": [
                 {
