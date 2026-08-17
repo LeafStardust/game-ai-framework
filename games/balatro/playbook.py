@@ -31,9 +31,10 @@ class BalatroPlaybook:
     """Strategy cartridge selected from the live run's deck and stake.
 
     Universal Balatro strategy definitions live outside the cartridge. The playbook
-    owns only environment-specific strategy effectiveness/availability plus decision
-    thresholds. Poker rules, card/Joker mechanics, blind mechanics and stake/deck
-    factual effects remain in the shared Balatro engine.
+    owns only environment-specific strategy effectiveness/availability/base bias,
+    strategy pressure controls, and decision thresholds. Poker rules, component
+    relationships, card/Joker mechanics, blind mechanics and factual deck/stake
+    effects remain in the shared Balatro implementation.
     """
 
     deck: str
@@ -123,18 +124,54 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                     "search_schedule_mode": "probe-deepest",
                 },
                 "strategy_modifiers": {
+                    # Universal evidence relationship weights. Future cartridges may
+                    # tune how readily their environment converts playbook evidence
+                    # into strategy score without redefining any component mapping.
+                    "gold_evidence": 5.0,
+                    "silver_evidence": 3.0,
+                    "bronze_evidence": 1.0,
+                    "banned_evidence": -8.0,
+                    "hand_level_evidence_weight": 0.50,
+                    "hand_history_evidence_weight": 0.20,
+                    "deck_suit_evidence_weight": 0.25,
+                    "deck_enhancement_evidence_weight": 0.35,
+                    "deck_seal_evidence_weight": 0.40,
+                    "deck_edition_evidence_weight": 0.25,
+                    "deck_rank_evidence_weight": 0.30,
+                    "deck_face_evidence_weight": 0.30,
+
+                    # Ranking/shortlist state. These are policy thresholds, not
+                    # universal strategy definitions.
                     "candidate_threshold": 1.5,
                     "highlight_threshold": 3.5,
                     "commit_threshold": 9.0,
                     "mature_threshold": 16.0,
+                    "max_relevant_strategies": 2,
+                    "relevant_strategy_floor": 1.0,
+                    "relevant_strategy_ratio": 0.35,
                     "early_pivot_margin": 1.5,
                     "late_pivot_margin": 4.0,
-                    "held_consumable_fraction": 0.35,
-                    "hand_level_weight": 1.25,
-                    "hand_history_weight": 0.45,
-                    "conflict_penalty": 5.0,
-                    "active_alignment_multiplier": 1.35,
-                    "off_strategy_penalty": 2.0,
+
+                    # Strategy alignment gets louder as the run progresses while
+                    # early shops remain driven mainly by ordinary/meta value.
+                    "ante_1_strategy_pressure": 0.20,
+                    "ante_2_strategy_pressure": 0.35,
+                    "ante_3_strategy_pressure": 0.60,
+                    "ante_4_strategy_pressure": 0.80,
+                    "ante_5_strategy_pressure": 1.00,
+                    "ante_6_strategy_pressure": 1.25,
+                    "late_strategy_pressure_step": 0.10,
+                    "late_strategy_pressure_cap": 1.50,
+                    "strategy_pressure_multiplier": 1.0,
+                    "candidate_alignment_scale": 0.08,
+                    "mid_strategy_rank_decay": 0.15,
+                    "mid_strategy_rank_floor": 0.25,
+                    "first_relevant_strategy_factor": 0.80,
+                    "second_relevant_strategy_factor": 0.65,
+                    "late_off_shortlist_factor": 0.05,
+
+                    # Per-strategy cartridge modifiers. Future decks/stakes may set
+                    # enabled, effectiveness and/or base_score independently.
                     "strategies": {
                         "high_card": {"effectiveness": 1.0},
                         "pair": {"effectiveness": 1.0},
