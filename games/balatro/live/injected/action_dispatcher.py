@@ -564,7 +564,6 @@ class LiveMemoryInjectedActionDispatcher:
                     or value.phase != "SHOP"
                     or not value.state_complete
                     or len(after_cards) != before_count - 1
-                    or not _purchase_money_matches(before, value, item)
                 ):
                     return False
                 if target_live_id is None:
