@@ -13,11 +13,13 @@ from games.balatro.playbook_pack_policy import PlaybookBalatroPackPolicy
 from games.balatro.playbook_shop_policy import PlaybookVoucherAwareBalatroShopPolicy
 from games.balatro.shop_playstyle import BuildAwareShopItemValueEstimator
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
-from games.balatro.strategy import BalatroStrategyTracker
 from games.balatro.strategy_blind_skip_policy import StrategyAwareBlindSkipPolicy
 from games.balatro.strategy_booster_policy import StrategyAwarePlaybookShopArbiter
 from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
 from games.balatro.strategy_compat import NeutralLegacyPlaystyleIntentTracker
+from games.balatro.strategy_conditional_relationships import (
+    StateAwareBalatroStrategyTracker,
+)
 from games.balatro.strategy_pack_playstyle import StrategyAwarePackPlaystyleEvaluator
 from games.balatro.strategy_value import (
     StrategyAwareConsumableSynergyEvaluator,
@@ -59,7 +61,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
         self.playstyle_intent_tracker = NeutralLegacyPlaystyleIntentTracker()
         self.build_intent_log_tracker.intent_tracker = self.playstyle_intent_tracker
 
-        self.strategy_tracker = BalatroStrategyTracker(
+        self.strategy_tracker = StateAwareBalatroStrategyTracker(
             RUNTIME_UNIVERSAL_BALATRO_STRATEGIES,
             modifier_provider=_strategy_modifiers_for_state,
         )
