@@ -1,6 +1,8 @@
 from games.balatro.card import BalatroCard
 from games.balatro.jokers.arrowhead import ArrowheadJoker
+from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.dna import DNAJoker
+from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.seeing_double import SeeingDoubleJoker
 from games.balatro.jokers.the_idol import TheIdolJoker
 from games.balatro.live.runtime.strategy_autonomous_runner import (
@@ -12,6 +14,9 @@ from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRAT
 from games.balatro.strategy_conditional_relationships import (
     StateAwareBalatroStrategyTracker,
     conditional_joker_relationship,
+)
+from games.balatro.strategy_tree_catalog import (
+    TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES,
 )
 
 
@@ -25,6 +30,12 @@ def _state() -> BalatroState:
 
 def _tracker() -> StateAwareBalatroStrategyTracker:
     return StateAwareBalatroStrategyTracker(RUNTIME_UNIVERSAL_BALATRO_STRATEGIES)
+
+
+def _tree_definition_tracker() -> StateAwareBalatroStrategyTracker:
+    return StateAwareBalatroStrategyTracker(
+        TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES
+    )
 
 
 def test_seeing_double_is_neutral_for_ordinary_flush_structure():
@@ -123,6 +134,123 @@ def test_dna_stays_neutral_until_public_deck_is_structurally_rank_collapsed():
         conditional_joker_relationship(collapsed, "straight_flush", DNAJoker())
         == BANNED
     )
+
+
+def test_baron_is_neutral_until_current_deck_has_deliberate_king_support():
+    state = _state()
+
+    assert (
+        conditional_joker_relationship(
+            state,
+            "high_card_baron_mime",
+            BaronJoker(),
+        )
+        == NEUTRAL
+    )
+
+    state.owned_deck.append(BalatroCard("K", "Hearts"))
+
+    assert (
+        conditional_joker_relationship(
+            state,
+            "high_card_baron_mime",
+            BaronJoker(),
+        )
+        == SILVER
+    )
+
+
+def test_mime_requires_a_real_held_king_payoff_or_baron_partner():
+    ordinary = _state()
+    assert (
+        conditional_joker_relationship(
+            ordinary,
+            "high_card_baron_mime",
+            MimeJoker(),
+        )
+        == NEUTRAL
+    )
+
+    steel_king = _state()
+    steel_king.owned_deck.append(
+        BalatroCard("K", "Hearts", enhancement="Steel")
+    )
+    assert (
+        conditional_joker_relationship(
+            steel_king,
+            "high_card_baron_mime",
+            MimeJoker(),
+        )
+        == SILVER
+    )
+
+    paired = _state()
+    paired.jokers = [BaronJoker()]
+    assert (
+        conditional_joker_relationship(
+            paired,
+            "high_card_baron_mime",
+            MimeJoker(),
+        )
+        == SILVER
+    )
+
+
+def test_static_baron_tier_is_authoritatively_neutralized_and_recomputed():
+    state = _state()
+    state.jokers = [BaronJoker()]
+    tracker = _tree_definition_tracker()
+
+    ordinary = next(
+        assessment
+        for assessment in tracker.assess(state)
+        if assessment.strategy_id == "high_card_baron_mime"
+    )
+    assert ordinary.silver_owned == 0
+
+    state.owned_deck.append(BalatroCard("K", "Spades"))
+    shaped = next(
+        assessment
+        for assessment in tracker.assess(state)
+        if assessment.strategy_id == "high_card_baron_mime"
+    )
+    assert shaped.silver_owned == 1
+
+    state.owned_deck = list(state.deck)
+    reverted = next(
+        assessment
+        for assessment in tracker.assess(state)
+        if assessment.strategy_id == "high_card_baron_mime"
+    )
+    assert reverted.silver_owned == 0
+
+
+def test_candidate_index_uses_same_baron_mime_downgrade_semantics():
+    state = _state()
+    tracker = _tree_definition_tracker()
+    tracker.assess(state)
+
+    relationships = tracker._relationships_for(BaronJoker(), kind="JOKER")
+    assert "high_card_baron_mime" not in relationships
+
+    state.owned_deck.append(BalatroCard("K", "Diamonds"))
+    tracker.assess(state)
+    relationships = tracker._relationships_for(BaronJoker(), kind="JOKER")
+    assert relationships["high_card_baron_mime"] == SILVER
+
+
+def test_baron_and_mime_together_are_defining_evidence_even_before_deck_shaping():
+    state = _state()
+    state.jokers = [BaronJoker(), MimeJoker()]
+    tracker = _tree_definition_tracker()
+
+    assessment = next(
+        assessment
+        for assessment in tracker.assess(state)
+        if assessment.strategy_id == "high_card_baron_mime"
+    )
+
+    assert assessment.silver_owned == 2
 
 
 def test_production_strategy_runner_uses_state_aware_strategy_tracker():
