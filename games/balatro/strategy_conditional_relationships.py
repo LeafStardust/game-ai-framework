@@ -43,6 +43,13 @@ _HIGH_CARD_OBELISK_COMMITMENT_JOKERS = frozenset(
         "stuntmanjoker",
     }
 )
+_PAIR_STRATEGY_ID = "pair"
+_PAIR_DIRECT_COMMITMENT_JOKERS = frozenset(
+    {"theduojoker", "jollyjoker", "slyjoker"}
+)
+_PAIR_CONDITIONAL_SUPPORT_JOKERS = frozenset(
+    {"halfjoker", "supernovajoker", "cardsharpjoker", "spacejoker", "burntjoker"}
+)
 _BARON_MIME_STRATEGY_ID = "high_card_baron_mime"
 _BARON_MIME_CONDITIONAL_POSITIVE_JOKERS = frozenset({"baronjoker", "mimejoker"})
 _BARON_MIME_AUTHORITATIVE_CONDITIONAL_JOKERS = frozenset(
@@ -73,8 +80,46 @@ def _item_token(item: object) -> str:
     return _normalize(type(item).__name__)
 
 
+def _owned_joker_tokens(state) -> frozenset[str]:
+    return frozenset(
+        _item_token(joker)
+        for joker in getattr(state, "jokers", ()) or ()
+    )
+
+
 def _has_joker(state, token: str) -> bool:
-    return any(_item_token(joker) == token for joker in getattr(state, "jokers", ()) or ())
+    return token in _owned_joker_tokens(state)
+
+
+def _hand_level_is_invested(state, hand_key: str) -> bool:
+    levels = getattr(state, "hand_levels", {}) or {}
+    try:
+        return int(levels.get(hand_key, 1) or 1) > 1
+    except (TypeError, ValueError, AttributeError):
+        return False
+
+
+def _hand_is_most_played(state, hand_key: str) -> bool:
+    """Use public play history only for mechanics that explicitly depend on it."""
+    counts = getattr(state, "hand_play_counts", {}) or {}
+    try:
+        hand_count = int(counts.get(hand_key, 0) or 0)
+    except (TypeError, ValueError, AttributeError):
+        return False
+    if hand_count <= 0:
+        return False
+
+    normalized_counts = []
+    try:
+        values = counts.values()
+    except AttributeError:
+        return False
+    for value in values:
+        try:
+            normalized_counts.append(int(value or 0))
+        except (TypeError, ValueError):
+            normalized_counts.append(0)
+    return hand_count == max(normalized_counts, default=0)
 
 
 def _straight_exists_in_effective_suit(state, suit: str) -> bool:
@@ -226,43 +271,12 @@ def _baron_mime_held_engine_is_material(state) -> bool:
     return steel_kings >= 2
 
 
-def _high_card_is_most_played(state) -> bool:
-    """Use public play history only for Obelisk's own most-played-hand mechanic."""
-    counts = getattr(state, "hand_play_counts", {}) or {}
-    try:
-        high_card_count = int(counts.get("HIGH_CARD", 0) or 0)
-    except (TypeError, ValueError, AttributeError):
-        return False
-    if high_card_count <= 0:
-        return False
-
-    normalized_counts = []
-    try:
-        values = counts.values()
-    except AttributeError:
-        return False
-    for value in values:
-        try:
-            normalized_counts.append(int(value or 0))
-        except (TypeError, ValueError):
-            normalized_counts.append(0)
-    return high_card_count == max(normalized_counts, default=0)
-
-
 def _high_card_has_obelisk_commitment(state) -> bool:
     """Require non-history build evidence before treating Obelisk as a conflict."""
-    levels = getattr(state, "hand_levels", {}) or {}
-    try:
-        if int(levels.get("HIGH_CARD", 1) or 1) > 1:
-            return True
-    except (TypeError, ValueError, AttributeError):
-        pass
+    if _hand_level_is_invested(state, "HIGH_CARD"):
+        return True
 
-    owned_tokens = {
-        _item_token(joker)
-        for joker in getattr(state, "jokers", ()) or ()
-    }
-    if owned_tokens & _HIGH_CARD_OBELISK_COMMITMENT_JOKERS:
+    if _owned_joker_tokens(state) & _HIGH_CARD_OBELISK_COMMITMENT_JOKERS:
         return True
 
     # Baron/Mime count only when their held engine already passes the same material
@@ -272,7 +286,24 @@ def _high_card_has_obelisk_commitment(state) -> bool:
 
 
 def _high_card_obelisk_conflicts(state) -> bool:
-    return _high_card_is_most_played(state) and _high_card_has_obelisk_commitment(state)
+    return _hand_is_most_played(state, "HIGH_CARD") and _high_card_has_obelisk_commitment(state)
+
+
+def _pair_has_independent_commitment(state) -> bool:
+    """Return Pair evidence that does not come from generic repeat/small-hand support."""
+    if _hand_level_is_invested(state, "PAIR"):
+        return True
+    return bool(_owned_joker_tokens(state) & _PAIR_DIRECT_COMMITMENT_JOKERS)
+
+
+def _pair_conditional_support_relationship(state, token: str) -> str:
+    if token not in _PAIR_CONDITIONAL_SUPPORT_JOKERS:
+        return NEUTRAL
+    return SILVER if _pair_has_independent_commitment(state) else NEUTRAL
+
+
+def _pair_obelisk_conflicts(state) -> bool:
+    return _hand_is_most_played(state, "PAIR") and _pair_has_independent_commitment(state)
 
 
 def _is_authoritative_conditional_relationship(strategy_id: str, item: object) -> bool:
@@ -293,6 +324,12 @@ def conditional_joker_relationship(
 
     if strategy_id == _HIGH_CARD_STRATEGY_ID and token == "obeliskjoker":
         return BANNED if _high_card_obelisk_conflicts(state) else NEUTRAL
+
+    if strategy_id == _PAIR_STRATEGY_ID:
+        if token == "obeliskjoker":
+            return BANNED if _pair_obelisk_conflicts(state) else NEUTRAL
+        if token in _PAIR_CONDITIONAL_SUPPORT_JOKERS:
+            return _pair_conditional_support_relationship(state, token)
 
     if strategy_id == _BARON_MIME_STRATEGY_ID:
         if token in _BARON_MIME_CONDITIONAL_POSITIVE_JOKERS:
