@@ -26,6 +26,20 @@ def test_default_registry_selects_red_white_from_live_state():
     assert "min_clear_probability" not in planner
     assert "min_pace_ratio" not in planner
 
+    strategy_modifiers = playbook.strategy_modifiers()
+    assert strategy_modifiers["gold_evidence"] == 5.0
+    assert strategy_modifiers["silver_evidence"] == 3.0
+    assert strategy_modifiers["bronze_evidence"] == 1.0
+    assert strategy_modifiers["banned_evidence"] == -8.0
+    assert strategy_modifiers["ante_1_strategy_pressure"] == 0.20
+    assert strategy_modifiers["ante_6_strategy_pressure"] == 1.25
+    assert strategy_modifiers["max_relevant_strategies"] == 2
+    assert strategy_modifiers["strategies"]["straight"]["effectiveness"] == 1.10
+    assert strategy_modifiers["strategies"]["straight_flush"]["enabled"] is False
+    assert "held_consumable_fraction" not in strategy_modifiers
+    assert "active_alignment_multiplier" not in strategy_modifiers
+    assert "off_strategy_penalty" not in strategy_modifiers
+
     hand_action = playbook.thresholds_for("D1")
     assert hand_action["clear_path_probability_floor"] == 0.75
     assert hand_action["pace_ratio_floor"] == 1.0
