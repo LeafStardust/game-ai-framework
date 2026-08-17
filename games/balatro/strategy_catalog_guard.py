@@ -5,7 +5,9 @@ from types import MappingProxyType
 from typing import Mapping
 
 from games.balatro.strategy import StrategyDefinition
-from games.balatro.strategy_catalog import UNIVERSAL_BALATRO_STRATEGIES
+from games.balatro.strategy_tree_catalog import (
+    TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES,
+)
 
 
 def _normalize(value: str) -> str:
@@ -88,5 +90,5 @@ def guard_unresolved_conditional_relationships(
 
 
 RUNTIME_UNIVERSAL_BALATRO_STRATEGIES = guard_unresolved_conditional_relationships(
-    UNIVERSAL_BALATRO_STRATEGIES
+    TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES
 )
