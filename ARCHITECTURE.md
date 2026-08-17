@@ -152,9 +152,10 @@ A game may provide:
 - universal strategy definitions for that game;
 - component-to-strategy relationships;
 - strategy conflicts;
-- strategy evidence derived from public state;
+- strategy evidence derived from current public state;
 - environment/deck/difficulty modifiers;
-- run-scoped strategy ranking and commitment state.
+- run-scoped strategy ranking and commitment state;
+- strategy-aware candidate-value adjustments.
 
 The generic framework may expose interfaces for these concepts later, but it must not depend on Balatro-specific strategy IDs, Jokers, poker hands, or consumables.
 
@@ -162,7 +163,7 @@ The generic framework may expose interfaces for these concepts later, but it mus
 
 # Balatro Strategy Architecture
 
-Balatro uses three distinct layers that must not be conflated.
+Balatro uses four distinct concepts that must not be conflated.
 
 ## 1. Universal Balatro strategy catalogue
 
@@ -172,29 +173,29 @@ The universal catalogue describes **game-wide build strategies** such as:
 - enhancement/mechanic strategies;
 - specific synergy packages.
 
-Each strategy owns its Gold/Silver/Bronze component relationships, conflicts, support, and entry/maturity evidence.
-
-Canonical ownership is strategy-centric:
+Each strategy owns exact named component relationships:
 
 ```text
 Universal Strategy
     Gold components
     Silver components
     Bronze components
-    conflicts
+    Banned/conflict components
     support
     evidence rules
 ```
 
 Individual Joker classes do **not** each store duplicated strategy-tier metadata.
 
-At initialization, Balatro may generate an inverse index:
+At initialization, Balatro generates an inverse index:
 
 ```text
-component -> [(strategy, tier), ...]
+component -> [(strategy, relationship), ...]
 ```
 
 for efficient shop and policy evaluation.
+
+Unlisted component means **Neutral** for that strategy. Neutral is distinct from Bronze and from banned/conflict.
 
 The documentation contract is split across:
 
@@ -205,23 +206,101 @@ The documentation contract is split across:
 
 The documentation grouping does not create runtime subclasses. Every Balatro strategy is a peer in one universal strategy pool.
 
-## 2. Run-scoped strategy state
+## 2. Run-scoped strategy scoring
 
-A live run starts with no assumed strategy.
+Every live run begins with strategy scores derived from its **current public build state**. For a normal unmodified start, these scores are approximately zero.
 
-The Balatro policy layer ranks universal strategies from public state and changes commitment pressure by run phase:
+Strategy evidence is recomputed from the current state rather than accumulated as historical memory.
+
+Conceptually:
 
 ```text
-Antes 1-2: explore / acquire useful foundations
-Antes 3-5: converge on supported strategies
-Ante 6+:   one dominant strategy + up to two relevant strategies
+Gold relationship      -> strong positive evidence
+Silver relationship    -> medium positive evidence
+Bronze relationship    -> weak positive evidence
+Neutral                 -> no strategy evidence
+Banned/conflict         -> strong negative evidence
 ```
 
-The dominant strategy guides acquisition, deck shaping, consumables, packs, rerolls, and preferred scoring patterns, but survival and guaranteed blind clears remain higher priority.
+Initial tunable weights may be approximately `+5 / +3 / +1 / 0 / -8`, but exact values belong to implementation and testing.
 
-Tarot/Spectral opportunities may seed strategies early because they can transform deck structure. Planets normally reinforce an already evidenced poker-hand direction rather than creating one from nothing.
+Current-state evidence may also include persistent deck and hand investment such as:
 
-## 3. Deck/stake cartridge
+- rank/suit structure;
+- enhancements;
+- seals;
+- editions;
+- poker-hand levels;
+- actual hand-use structure where relevant;
+- permanent effects created by used Tarot/Spectral/Planet cards.
+
+Buying or selling a Joker changes the next strategy score immediately because the current build changed. Selling The Duo, for example, removes its Pair evidence.
+
+Unopened/held consumables do **not** raise strategy score merely because they are owned. Their potential effect may influence acquisition/use value; their actual result becomes evidence only after use.
+
+Used Planets provide small persistent evidence through the resulting poker-hand level investment.
+
+The strategy state should be recomputed after meaningful public-state mutations rather than relying on stale incremental history.
+
+## 3. Strategy-aware candidate valuation
+
+Strategy score and candidate purchase score are separate quantities.
+
+A shop Joker still has ordinary/meta, survival, economy, affordability, slot, and context value. Strategy contributes an additional adjustment.
+
+Conceptually:
+
+```text
+candidate value
+=
+base/meta value
++ survival/economy/context
++ Ante pressure * strategy alignment
+```
+
+Strategy alignment is derived from the candidate's exact Gold/Silver/Bronze/banned relationships multiplied by the **current positive relevance** of those strategies.
+
+Therefore:
+
+- a Gold Joker for a zero-score strategy receives little/no strategy bonus;
+- a Gold Joker for a highly ranked strategy receives a large strategy bonus;
+- Silver/Bronze reinforce high-ranked strategies more weakly;
+- a banned/conflicting Joker is penalized when it clashes with a high-ranked strategy;
+- Neutral Jokers remain buyable through ordinary/meta value.
+
+Negative strategy scores must not create accidental positive purchase bonuses through negative-times-negative arithmetic.
+
+This feedback loop is the core Balatro build-discovery mechanism:
+
+```text
+current build
+    -> strategy scores
+    -> ranked strategies
+    -> strategy-aware shop/use/sell values
+    -> action
+    -> changed current build
+    -> recompute strategy scores
+```
+
+## 4. Ante-dependent strategy pressure
+
+Ante changes how strongly strategy affects decisions; it does not create strategy evidence by itself.
+
+```text
+Antes 1-2: weak strategy pressure; explore useful/meta-strong Jokers and transformative Tarot/Spectral options
+Antes 3-5: increasing strategy pressure; converge on higher-scoring strategies
+Ante 6+:   strong strategy pressure; one dominant strategy + up to two relevant strategies
+```
+
+At the start, with all strategy scores near zero, Joker buying is therefore driven mostly by ordinary/meta value. The first purchases create the first strategy evidence.
+
+By Ante 6, future buying, replacement, rerolling, pack selection, deck shaping, and consumable use should strongly favor the dominant strategy and up to two relevant strategies while still allowing survival-critical Neutral/off-strategy purchases.
+
+Banned/conflicting Jokers create replacement pressure rather than unconditional immediate selling. Direct functional contradictions, such as Pareidolia + Ride the Bus, may receive exceptional replacement urgency.
+
+Survival and guaranteed blind clears remain higher priority than strategy purity.
+
+## 5. Deck/stake cartridge
 
 A Balatro deck/stake cartridge does **not** define the universal strategies.
 
@@ -243,16 +322,18 @@ A cartridge may:
 - amplify a strategy;
 - suppress a strategy;
 - disable a genuinely infeasible/unsupported strategy;
-- adjust economy, pivot, commitment, or decision thresholds for that environment.
+- adjust economy, pivot, commitment, or strategy-pressure thresholds for that environment.
 
-It must not redefine the universal Gold/Silver/Bronze relationships.
+It must not redefine the universal Gold/Silver/Bronze/banned relationships.
 
 This preserves the intended cartridge model:
 
 ```text
 Permanent Balatro mechanics/state/execution stack
                 +
-Universal Balatro strategy knowledge
+Universal Balatro strategy catalogue
+                +
+Run-scoped current-state strategy scoring
                 +
 Replaceable deck/stake environment cartridge
                 =
