@@ -6,7 +6,6 @@ from games.balatro.build.joker_strategy import JokerBuildTransitionPlanner
 from games.balatro.live.hand_action_policy import HandActionThresholds
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 from games.balatro.live.strategy_planet_policy import StrategyAwareLivePlanetPolicy
-from games.balatro.pack_playstyle import PackPlaystyleEvaluator
 from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
 from games.balatro.playbook_consumable_policy import PlaybookConsumableAcquisitionPolicy
 from games.balatro.playbook_joker_policy import PlaybookJokerAcquisitionPolicy
@@ -40,7 +39,7 @@ def _strategy_modifiers_for_state(state):
 class StrategyAwareLiveMemoryInjectedSingleStepRunner(
     PlaystyleAwareLiveMemoryInjectedSingleStepRunner
 ):
-    """Production runner with one run-scoped universal strategy lifecycle."""
+    """Production runner with run-scoped universal strategy scoring."""
 
     def __init__(self, observer, **kwargs) -> None:
         custom_hand_recommender = kwargs.get("hand_recommender") is not None
@@ -123,21 +122,29 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
         resolution = self.strategy_tracker.observe(decision.state)
         diagnostics = dict(decision.decision_diagnostics or {})
         diagnostics["strategy"] = {
+            "dominant_strategy_id": resolution.dominant_strategy_id,
+            "relevant_strategy_ids": list(resolution.relevant_strategy_ids),
+            # Compatibility names remain during the v1.0 migration.
             "active_strategy_id": resolution.active_strategy_id,
             "highlighted_strategy_id": resolution.highlighted_strategy_id,
             "committed_strategy_id": resolution.committed_strategy_id,
             "active_status": resolution.active_status,
+            "strategy_pressure": float(
+                self.strategy_tracker.strategy_pressure(decision.state)
+            ),
             "changed": resolution.changed,
             "ranked": [
                 {
                     "strategy_id": assessment.strategy_id,
                     "name": assessment.name,
                     "score": float(assessment.score),
+                    "base_score": float(assessment.base_score),
                     "effectiveness": float(assessment.effectiveness),
                     "status": assessment.status,
                     "gold_owned": int(assessment.gold_owned),
                     "silver_owned": int(assessment.silver_owned),
                     "bronze_owned": int(assessment.bronze_owned),
+                    "banned_owned": int(assessment.banned_owned),
                 }
                 for assessment in resolution.assessments
             ],
