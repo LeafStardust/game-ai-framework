@@ -223,35 +223,35 @@ def test_unsplit_strategy_positive_scores_remain_identical_during_hybrid_migrati
     legacy = StateAwareBalatroStrategyTracker(RUNTIME_UNIVERSAL_BALATRO_STRATEGIES)
     tree = _tracker()
 
-    legacy_pair = next(
+    legacy_three_kind = next(
         assessment
         for assessment in legacy.assess(state)
-        if assessment.strategy_id == "pair"
+        if assessment.strategy_id == "three_kind"
     )
-    tree_pair = next(
+    tree_three_kind = next(
         assessment
         for assessment in tree.assess(state)
-        if assessment.strategy_id == "pair"
+        if assessment.strategy_id == "three_kind"
     )
 
-    assert tree_pair.score == pytest.approx(legacy_pair.score)
+    assert tree_three_kind.score == pytest.approx(legacy_three_kind.score)
 
 
 def test_unsplit_strategy_negative_scores_remain_identical_during_hybrid_migration():
-    state = _state(jokers=(_joker("The Trio"),))
+    state = _state(jokers=(_joker("Marble Joker"),))
     legacy = StateAwareBalatroStrategyTracker(RUNTIME_UNIVERSAL_BALATRO_STRATEGIES)
     tree = _tracker()
 
-    legacy_pair = next(
+    legacy_straight = next(
         assessment
         for assessment in legacy.assess(state)
-        if assessment.strategy_id == "pair"
+        if assessment.strategy_id == "straight"
     )
-    tree_pair = next(
+    tree_straight = next(
         assessment
         for assessment in tree.assess(state)
-        if assessment.strategy_id == "pair"
+        if assessment.strategy_id == "straight"
     )
 
-    assert legacy_pair.score < 0.0
-    assert tree_pair.score == pytest.approx(legacy_pair.score)
+    assert legacy_straight.score < 0.0
+    assert tree_straight.score == pytest.approx(legacy_straight.score)
