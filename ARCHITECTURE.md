@@ -150,6 +150,7 @@ Some games require persistent strategic knowledge beyond isolated action heurist
 A game may provide:
 
 - universal strategy definitions for that game;
+- parent/child specialization relationships when they are strategically real;
 - component-to-strategy relationships;
 - strategy conflicts;
 - strategy evidence derived from current public state;
@@ -163,84 +164,100 @@ The generic framework may expose interfaces for these concepts later, but it mus
 
 # Balatro Strategy Architecture
 
-Balatro uses four distinct concepts that must not be conflated.
+The target v1.0F strategy architecture is defined in [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md).
 
-## 1. Universal Balatro strategy catalogue
+The current Python implementation still contains the previous flat strategy catalogue while the redesign is being specified. The tree document is the design target; runtime migration should begin only after the tree is frozen.
 
-The universal catalogue describes **game-wide build strategies** such as:
+## 1. Universal Balatro strategy forest
 
-- poker-hand strategies;
-- enhancement/mechanic strategies;
-- specific synergy packages.
+Balatro uses a **forest of strategy trees** rather than one flat peer list.
 
-Each strategy owns exact named component relationships:
+A tree edge means only that the child is a more specific realization of the parent strategy. It does not encode a natural poker-hand progression and it does not make descendants globally better than ancestors.
+
+Examples:
 
 ```text
-Universal Strategy
+High Card
+├── Core High Card
+├── Stuntman / Small-Hand High Card
+└── Baron-Mime Held-Card High Card
+```
+
+Different poker hands such as Pair, Three of a Kind, Four of a Kind, and Five of a Kind are separate roots unless a real specialization relationship is proven. Poker-hand adjacency itself is never a reason to create a parent/child edge.
+
+Every strategy node may eventually own exact named relationships:
+
+```text
+Strategy Node
     Gold components
     Silver components
     Bronze components
     Banned/conflict components
+    conditions
+    structural evidence
     support
-    evidence rules
 ```
 
-Individual Joker classes do **not** each store duplicated strategy-tier metadata.
+Individual Joker classes do **not** store duplicated strategy-tier metadata.
 
-At initialization, Balatro generates an inverse index:
-
-```text
-component -> [(strategy, relationship), ...]
-```
-
-for efficient shop and policy evaluation.
+At initialization, Balatro should generate inverse component indices from the strategy data rather than duplicating relationships across item implementations.
 
 Unlisted component means **Neutral** for that strategy. Neutral is distinct from Bronze and from banned/conflict.
 
-The documentation contract is split across:
+### Leaf-only ranking
 
-- `BALATRO_STRATEGY_PLAYBOOKS.md` — architecture and behavioral rules;
-- `BALATRO_STRATEGIES_POKER_HANDS.md` — poker-hand catalogue;
-- `BALATRO_STRATEGIES_MECHANICS.md` — mechanic catalogue;
-- `BALATRO_STRATEGIES_NICHE.md` — narrow synergy catalogue.
+Only leaves are actionable ranked strategies.
 
-The documentation grouping does not create runtime subclasses. Every Balatro strategy is a peer in one universal strategy pool.
+Internal nodes retain evidence/foundation scores because their foundation contributes to eligible descendants, but they never consume separate ranking slots beside those descendants.
 
-## 2. Run-scoped strategy scoring
+A root with no children is itself a leaf and can therefore be ranked.
 
-Every live run begins with strategy scores derived from its **current public build state**. For a normal unmodified start, these scores are approximately zero.
+Split roots may define a core/fallback leaf so a valid unspecialized strategy remains rankable without placing the internal parent in the ranking.
 
-Strategy evidence is recomputed from the current state rather than accumulated as historical memory.
+## 2. Run-scoped strategy evidence
 
-Conceptually:
+Strategy state describes the **current public build**, not historical ownership.
+
+The redesign distinguishes:
 
 ```text
-Gold relationship      -> strong positive evidence
-Silver relationship    -> medium positive evidence
-Bronze relationship    -> weak positive evidence
-Neutral                 -> no strategy evidence
-Banned/conflict         -> strong negative evidence
+direct_evidence(node)
+    evidence that belongs to this exact strategy node
+
+foundation / branch score
+    non-ranked internal evidence used for ancestry/readiness/diagnostics
+
+effective_score(leaf)
+    actionable score used to rank a leaf
 ```
 
-Initial tunable weights may be approximately `+5 / +3 / +1 / 0 / -8`, but exact values belong to implementation and testing.
+Specific descendant evidence propagates upward with decay because a specific package also supports the credibility of its broader ancestors.
 
-Current-state evidence may also include persistent deck and hand investment such as:
+Ancestor evidence does **not** blindly propagate downward. A specific non-fallback child must have qualifying child evidence before it may inherit appropriate ancestor direct foundation.
 
+The implementation must prevent recursive double counting: a leaf cannot propagate evidence into an ancestor and then re-inherit that same evidence through the ancestor's total branch score.
+
+Current-state evidence may include:
+
+- owned Jokers and other persistent components;
 - rank/suit structure;
 - enhancements;
 - seals;
-- editions;
-- poker-hand levels;
-- actual hand-use structure where relevant;
-- permanent effects created by used Tarot/Spectral/Planet cards.
+- persistent card editions where strategically relevant;
+- poker-hand levels created by actual permanent investment;
+- used Tarot/Spectral effects reflected in the current deck;
+- used Planet investment;
+- environment/deck/stake modifiers.
 
-Buying or selling a Joker changes the next strategy score immediately because the current build changed. Selling The Duo, for example, removes its Pair evidence.
+Buying or selling a Joker changes the next strategy evidence immediately because the current build changed.
 
 Unopened/held consumables do **not** raise strategy score merely because they are owned. Their potential effect may influence acquisition/use value; their actual result becomes evidence only after use.
 
-Used Planets provide small persistent evidence through the resulting poker-hand level investment.
+### Poker-hand play counts
 
-The strategy state should be recomputed after meaningful public-state mutations rather than relying on stale incremental history.
+Poker-hand play counts are **not universal strategy evidence**.
+
+A hand may be played early because of draw quality rather than intent, and persistent current-build structure is a more reliable signal later. Hand history remains available to mechanics that explicitly depend on it, but strategy inference must not treat generic play frequency as commitment.
 
 ## 3. Strategy-aware candidate valuation
 
@@ -258,51 +275,66 @@ base/meta value
 + Ante pressure * strategy alignment
 ```
 
-Strategy alignment is derived from the candidate's exact Gold/Silver/Bronze/banned relationships multiplied by the **current positive relevance** of those strategies.
+At a normal zero-evidence start, strategy alignment contributes approximately zero. The first useful purchases are therefore selected mostly by ordinary value and create the first strategy evidence.
+
+Once evidence exists, candidate strategic value is derived from the relationships between the candidate and the currently evidenced/ranked strategy leaves and their foundations.
 
 Therefore:
 
-- a Gold Joker for a zero-score strategy receives little/no strategy bonus;
-- a Gold Joker for a highly ranked strategy receives a large strategy bonus;
-- Silver/Bronze reinforce high-ranked strategies more weakly;
-- a banned/conflicting Joker is penalized when it clashes with a high-ranked strategy;
+- a strong relationship to an unestablished strategy does not force an early purchase;
+- a strong relationship to an established leaf gains increasing value as strategy pressure rises;
+- Silver/Bronze relationships reinforce more weakly than Gold;
+- Banned/conflicting relationships reduce value when they genuinely harm an established strategy;
 - Neutral Jokers remain buyable through ordinary/meta value.
 
 Negative strategy scores must not create accidental positive purchase bonuses through negative-times-negative arithmetic.
 
-This feedback loop is the core Balatro build-discovery mechanism:
-
-```text
-current build
-    -> strategy scores
-    -> ranked strategies
-    -> strategy-aware shop/use/sell values
-    -> action
-    -> changed current build
-    -> recompute strategy scores
-```
-
 ## 4. Ante-dependent strategy pressure
 
-Ante changes how strongly strategy affects decisions; it does not create strategy evidence by itself.
+Ante changes how strongly strategy affects decisions; it does not manufacture strategy evidence.
 
 ```text
-Antes 1-2: weak strategy pressure; explore useful/meta-strong Jokers and transformative Tarot/Spectral options
-Antes 3-5: increasing strategy pressure; converge on higher-scoring strategies
-Ante 6+:   strong strategy pressure; one dominant strategy + up to two relevant strategies
+Antes 1-2: exploration/foundation
+Antes 3-5: convergence
+Ante 6+:   specialization
 ```
 
-At the start, with all strategy scores near zero, Joker buying is therefore driven mostly by ordinary/meta value. The first purchases create the first strategy evidence.
+### Antes 1-2
 
-By Ante 6, future buying, replacement, rerolling, pack selection, deck shaping, and consumable use should strongly favor the dominant strategy and up to two relevant strategies while still allowing survival-critical Neutral/off-strategy purchases.
+- Strategy pressure is weak.
+- Empty Joker slots may be populated by independently useful Jokers.
+- Multiple roots/leaves may accumulate evidence.
+- A lucky deep package may establish a specific leaf immediately; parent completion is a preference, not a hard gate.
 
-Banned/conflicting Jokers create replacement pressure rather than unconditional immediate selling. Direct functional contradictions, such as Pareidolia + Ride the Bus, may receive exceptional replacement urgency.
+### Antes 3-5
+
+- Strategy pressure increases.
+- Filled Joker slots make retention/replacement decisions strategically important.
+- Specific leaf evidence separates coherent branches from incidental early purchases.
+- The agent increasingly concentrates resources on its strongest branch while retaining pivot capability when RNG supplies materially stronger evidence.
+
+### Ante 6+
+
+- One viable highest-ranked leaf normally becomes dominant.
+- Up to two compatible, materially supported leaves may remain relevant.
+- Buying, replacement, rerolling, pack selection, deck shaping, consumable use, and hand behavior should strongly reinforce this established state.
+- Survival-critical Neutral/off-strategy actions remain legal.
 
 Survival and guaranteed blind clears remain higher priority than strategy purity.
 
-## 5. Deck/stake cartridge
+## 5. Negative Joker retention
 
-A Balatro deck/stake cartridge does **not** define the universal strategies.
+Negative Jokers are protected from ordinary sell/replace pressure by default because their +1 Joker slot normally makes them effectively slot-neutral.
+
+A Negative Joker should not be sold merely because it is Neutral, weakly aligned, or lower-value than another ordinary Joker.
+
+Removal is justified only when its active mechanic materially harms the current run, creates a hard functional contradiction that cannot be safely neutralized, or is intentionally consumed by an active strategy whose expected benefit justifies the sacrifice.
+
+Destructive engines such as Ceremonial Dagger or Vampire must therefore be evaluated in context: their destructive behavior is not automatically considered harmful when the run is deliberately following the corresponding strategy.
+
+## 6. Deck/stake cartridge
+
+A Balatro deck/stake cartridge does **not** define the universal strategy forest.
 
 It only modifies how effective those universal strategies are in the current environment.
 
@@ -322,18 +354,18 @@ A cartridge may:
 - amplify a strategy;
 - suppress a strategy;
 - disable a genuinely infeasible/unsupported strategy;
-- adjust economy, pivot, commitment, or strategy-pressure thresholds for that environment.
+- adjust economy, pivot, commitment, evidence, or strategy-pressure thresholds for the environment.
 
-It must not redefine the universal Gold/Silver/Bronze/banned relationships.
+It must not redefine the universal Gold/Silver/Bronze/Banned relationships or parent/child topology.
 
 This preserves the intended cartridge model:
 
 ```text
 Permanent Balatro mechanics/state/execution stack
                 +
-Universal Balatro strategy catalogue
+Universal Balatro strategy forest
                 +
-Run-scoped current-state strategy scoring
+Run-scoped current-state evidence/ranking
                 +
 Replaceable deck/stake environment cartridge
                 =
@@ -351,7 +383,7 @@ Framework components must not depend on specific games.
 Incorrect:
 
 ```text
-Framework -> Balatro strategy catalogue
+Framework -> Balatro strategy knowledge
 ```
 
 Correct:
@@ -379,13 +411,13 @@ Specific Game Environment
 
 Universal **within one game** does not mean universal across the framework.
 
-Balatro's universal strategy catalogue is shared across Balatro decks/stakes, but remains inside the Balatro game layer.
+Balatro's universal strategy forest is shared across Balatro decks/stakes, but remains inside the Balatro game layer.
 
 ---
 
 ## Rule 4: Environment Configuration Must Not Duplicate Game Knowledge
 
-A deck/stake cartridge may alter effectiveness and thresholds but must not duplicate the full universal strategy definitions.
+A deck/stake cartridge may alter effectiveness and thresholds but must not duplicate the universal strategy definitions or topology.
 
 This keeps game knowledge centralized and makes cartridges small, replaceable environment-specific policy modules.
 
