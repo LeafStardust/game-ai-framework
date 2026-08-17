@@ -6,9 +6,18 @@ from .strategy import StrategyDefinition
 
 
 def _names(*values: str) -> frozenset[str]:
-    return frozenset(
+    normalized = {
         "".join(character for character in value.lower() if character.isalnum())
         for value in values
+    }
+    # Joker model classes conventionally append "Joker" to the in-game name
+    # (TheDuoJoker, RunnerJoker, etc.). Keep strategy knowledge in game-name form
+    # while accepting either representation from mechanics/live translation.
+    return frozenset(
+        {
+            *normalized,
+            *(f"{value}joker" for value in normalized if not value.endswith("joker")),
+        }
     )
 
 
