@@ -3,10 +3,32 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 
 from games.balatro.build.consumable_synergy import ContextualConsumableSynergyEvaluator
-from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
+from games.balatro.build.joker_strategy import (
+    JokerBuildTransitionPlanner,
+    JokerBuildValue,
+    JokerBuildValueEvaluator,
+)
 
-from .strategy import BRONZE, GOLD, SILVER, BalatroStrategyTracker
+from .strategy import BANNED, BRONZE, GOLD, SILVER, BalatroStrategyTracker
 from .strategy_compat import NeutralLegacyPlaystyleIntentTracker
+
+
+@dataclass(frozen=True)
+class StrategyAdjustedJokerBuildValue(JokerBuildValue):
+    """Whole-build Joker value with the strategy term kept auditable.
+
+    ``total_gain`` remains the single value consumed by the mature transition and
+    D2 economics layers. The extra fields expose how much of that value came from
+    the universal strategy feedback loop so replacement diagnostics never need to
+    infer conflict pressure from formatted rationale strings.
+    """
+
+    base_total_gain: float
+    strategic_adjustment: float
+    strategy_id: str | None
+    strategy_tier: str | None
+    active_alignment: bool
+    pivot_candidate: bool
 
 
 @dataclass(frozen=True)
@@ -55,17 +77,120 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
             joker,
             kind="JOKER",
         )
-        total = float(base.total_gain) + float(strategic.value)
-        return replace(
-            base,
+        adjustment = float(strategic.value)
+        total = float(base.total_gain) + adjustment
+        return StrategyAdjustedJokerBuildValue(
+            joker=base.joker,
+            direct_scoring_gain=base.direct_scoring_gain,
+            direct_scoring_value=base.direct_scoring_value,
+            contextual=base.contextual,
+            playstyle_fit=base.playstyle_fit,
+            playstyle_value=base.playstyle_value,
+            playstyle_locked=base.playstyle_locked,
             total_gain=total,
             rationale=(
                 *base.rationale,
                 *strategic.rationale,
                 "legacy playstyle strategy influence=0.000 in universal-strategy path",
-                f"environment-adjusted universal strategy value={strategic.value:+.3f}",
+                f"environment-adjusted universal strategy value={adjustment:+.3f}",
                 f"strategy-adjusted whole-build gain={total:.3f}",
             ),
+            base_total_gain=float(base.total_gain),
+            strategic_adjustment=adjustment,
+            strategy_id=strategic.strategy_id,
+            strategy_tier=strategic.tier,
+            active_alignment=bool(strategic.active_alignment),
+            pivot_candidate=bool(strategic.pivot_candidate),
+        )
+
+
+class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
+    """Expose strategy sell pressure without double-counting it.
+
+    Strategy pressure is already part of ``StrategyAwareJokerBuildValueEvaluator``.
+    The inherited common-baseline planner therefore performs the correct numeric
+    comparison: removing a Banned incumbent clears its negative strategy evidence,
+    while re-adding it receives the conflict penalty against the restored strategy.
+
+    This subclass changes no score. It only makes that replacement pressure and the
+    survival/context override explicit in transition diagnostics.
+    """
+
+    @staticmethod
+    def _annotate_option(option):
+        incumbent = option.incumbent_value
+        candidate = option.candidate_value
+        notes = list(option.rationale)
+
+        if (
+            isinstance(incumbent, StrategyAdjustedJokerBuildValue)
+            and incumbent.strategy_tier == BANNED
+            and incumbent.strategic_adjustment < 0.0
+        ):
+            notes.append(
+                "universal-strategy conflict replacement pressure="
+                f"{incumbent.strategic_adjustment:+.3f} on incumbent"
+            )
+            if incumbent.base_total_gain > 0.0:
+                notes.append(
+                    "incumbent retains non-strategy scoring/context value="
+                    f"{incumbent.base_total_gain:.3f}; whole-build delta remains authoritative"
+                )
+
+        if (
+            isinstance(candidate, StrategyAdjustedJokerBuildValue)
+            and candidate.strategy_tier in {GOLD, SILVER, BRONZE}
+            and candidate.strategic_adjustment > 0.0
+        ):
+            notes.append(
+                "candidate universal-strategy reinforcement="
+                f"{candidate.strategic_adjustment:+.3f} ({candidate.strategy_tier})"
+            )
+
+        return replace(option, rationale=tuple(notes))
+
+    def plan(self, state, candidate):
+        transition = super().plan(state, candidate)
+        if not transition.alternatives:
+            return transition
+
+        alternatives = tuple(
+            self._annotate_option(option)
+            for option in transition.alternatives
+        )
+        replacement = None
+        if transition.replacement is not None:
+            replacement = next(
+                (
+                    option
+                    for option in alternatives
+                    if option.replace_index == transition.replacement.replace_index
+                ),
+                transition.replacement,
+            )
+
+        notes = list(transition.rationale)
+        conflict_options = [
+            option
+            for option in alternatives
+            if isinstance(option.incumbent_value, StrategyAdjustedJokerBuildValue)
+            and option.incumbent_value.strategy_tier == BANNED
+            and option.incumbent_value.strategic_adjustment < 0.0
+        ]
+        if replacement is not None and replacement in conflict_options:
+            notes.append(
+                "strategy-conflicting incumbent selected only after whole-build replacement delta cleared threshold"
+            )
+        elif transition.action == "HOLD" and conflict_options:
+            notes.append(
+                "strategy-conflicting incumbent retained because no whole-build replacement cleared threshold; scoring/context survival value can override strategic purity"
+            )
+
+        return replace(
+            transition,
+            replacement=replacement,
+            alternatives=alternatives,
+            rationale=tuple(notes),
         )
 
 
