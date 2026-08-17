@@ -83,23 +83,22 @@ The first flat universal-strategy implementation proved current-state evidence, 
 - [x] **Freeze the v1.0F strategy forest topology.** Roots/children/leaves cover the audited poker-hand, rank, suit, enhancement, seal, named-engine, economy, discard, deck-growth, consumable, and Joker-board strategies. Further topology changes require a real defect or live-validation finding.
 - [x] Define leaf-only ranking, parent-foundation semantics, descendant-upward evidence, no blind downward activation, no natural poker-hand transition graph, and Negative-Joker retention rules in the design contract.
 - [x] Add the first runtime topology scaffold with validated node IDs, parent links, roots, leaves, ancestor paths, fallback-leaf metadata, cycle rejection, and the initial High Card subtree.
-- [x] Add the topology-only evidence-scoring kernel and deterministic regressions for discounted upward foundation, no blind downward activation, no recursive self-double-counting, fallback suppression, and leaf-only ranking. Production tracker wiring remains pending.
-- [ ] Migrate `StrategyDefinition`/catalogue ownership onto topology node IDs and encode the remaining frozen nodes without duplicating component metadata.
-- [ ] Separate `direct_evidence`, internal `foundation_score`, and leaf `effective_score` in the production runtime.
-- [ ] Wire discounted descendant -> ancestor evidence propagation into production while preventing recursive self-evidence double counting.
-- [ ] Wire child-gated ancestor native/direct foundation inheritance into production; ancestor evidence must not automatically activate a specific non-fallback child.
-- [ ] Rank leaves only in production; suppress a fallback/core leaf once a sufficiently established specific sibling represents the same branch.
+- [x] Add the topology-only evidence-scoring kernel and deterministic regressions for discounted upward foundation, no blind downward activation, no recursive self-double-counting, fallback suppression, and leaf-only ranking.
+- [x] Wire the tree scorer into the production tracker with separate node direct evidence, ancestor foundation, leaf effective evidence, child-gated inheritance, fallback suppression, and leaf-only actionable rankings.
+- [x] Migrate the High Card subtree into the production catalogue: `High Card -> Core / Stuntman-Small-Hand / Baron-Mime`, remove the obsolete competing-hand High Card Banned list, inherit the parent hand/Planet semantics, and preserve zero-start candidate economics with tree-aware pivot projection.
+- [x] Keep all not-yet-migrated strategies numerically identical to the legacy tracker as standalone root/leaves, including negative conflict scores, until each subtree is explicitly migrated.
+- [ ] Migrate the remaining frozen `StrategyDefinition`/catalogue ownership onto topology node IDs without duplicating component metadata.
 - [x] Remove generic poker-hand play count from universal strategy evidence. Preserve hand history only for mechanics that explicitly use it; retain persistent hand-level/Planet investment evidence.
 - [ ] Implement the global Negative-Joker retention rule in sell/replace policy: protect Negative Jokers from ordinary replacement pressure unless their active mechanic materially harms the build or intentional sacrifice/destruction is justified by the active strategy.
-- [ ] Rebuild Gold/Silver/Bronze/Banned/conditional relationships **node by node**, beginning with the High Card root and its leaves. Banned must mean genuine strategic conflict, not merely support for a competing strategy.
-- [ ] Rebuild the inverse `component -> strategy/relationship` index from tree-owned catalogue data without editing all 150 Joker classes.
-- [ ] Keep strategy evidence separate from candidate purchase/retention value: inherent/meta/survival/economy value remains independently available at every Ante.
-- [ ] Preserve the intended Ante behavior: broad exploration/foundation in Antes 1–2, convergence in Antes 3–5 as Joker slots become scarce, and specialization from Ante 6 around the highest-ranked viable leaf plus up to two compatible relevant leaves.
-- [ ] Keep early Tarot/Spectral strategy-seeding available while requiring real poker-hand evidence before meaningful paid Planet investment.
-- [ ] Add Red Deck / White Stake cartridge modifiers over the universal strategy tree without redefining topology or component relationships.
-- [ ] Migrate existing D1–D14 strategy consumers from legacy flat ranking to leaf ranking rather than reimplementing already-green policy layers; guaranteed blind survival remains superior to strategy purity.
-- [ ] Log leaf rankings, node direct evidence, ancestor foundation, effective score, path, score contributors, candidate strategy adjustment, Ante pressure, pivots, conflicts, Negative-Joker protection, sell/replacement rationale, and final decision decomposition.
-- [ ] Add deterministic regressions for propagation, no downward auto-activation, no recursive double count, fallback-leaf suppression, leaf-only ranking, zero-evidence buying, removal on sale, Planet investment, Negative retention, conflicts, Ante pressure, consumables, packs, and D1 hand preference.
+- [ ] Finish Gold/Silver/Bronze/Banned/conditional relationships **node by node**. High Card now has its first tree-owned pass; remaining High Card conditionals and the other frozen nodes still require audit. Banned must mean genuine strategic conflict, not merely support for a competing strategy.
+- [ ] Rebuild the inverse `component -> strategy/relationship` index from fully tree-owned catalogue data without editing all 150 Joker classes.
+- [x] Keep strategy evidence separate from candidate purchase/retention value: candidate tree projection can reveal a pivot, but a candidate cannot fund its own current-strategy purchase bonus before it is owned.
+- [ ] Preserve and validate the intended Ante behavior across the fully migrated forest: broad exploration/foundation in Antes 1–2, convergence in Antes 3–5 as Joker slots become scarce, and specialization from Ante 6 around the highest-ranked viable leaf plus up to two compatible relevant leaves.
+- [ ] Keep early Tarot/Spectral strategy-seeding available while requiring real poker-hand evidence before meaningful paid Planet investment across migrated leaves.
+- [ ] Add Red Deck / White Stake cartridge modifiers over the full universal strategy tree without redefining topology or component relationships.
+- [ ] Migrate remaining D1–D14 direct-definition lookups to inherited path semantics where required; guaranteed blind survival remains superior to strategy purity. D1 hand fit, D8 Celestial evidence and D13 tag support already honor the migrated High Card path.
+- [x] Log production leaf rankings plus node path, direct evidence, ancestor foundation and effective leaf evidence; richer contributor/pivot/conflict/Negative diagnostics remain pending.
+- [ ] Add remaining deterministic regressions for removal on sale, Planet investment, Negative retention, conflicts, Ante pressure, consumables, packs, and D1 hand preference across the fully migrated forest.
 - [ ] Run specialized live validation only after deterministic tree behavior is stable.
 
 ### 1.0G — Final freeze and acceptance gate
