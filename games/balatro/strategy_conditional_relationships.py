@@ -50,6 +50,13 @@ _PAIR_DIRECT_COMMITMENT_JOKERS = frozenset(
 _PAIR_CONDITIONAL_SUPPORT_JOKERS = frozenset(
     {"halfjoker", "supernovajoker", "cardsharpjoker", "spacejoker", "burntjoker"}
 )
+_TWO_PAIR_STRATEGY_ID = "two_pair"
+_TWO_PAIR_DIRECT_COMMITMENT_JOKERS = frozenset(
+    {"madjoker", "cleverjoker", "sparetrousersjoker"}
+)
+_TWO_PAIR_CONDITIONAL_SUPPORT_JOKERS = frozenset(
+    {"theduojoker", "jollyjoker", "slyjoker", "supernovajoker", "cardsharpjoker", "spacejoker", "burntjoker"}
+)
 _BARON_MIME_STRATEGY_ID = "high_card_baron_mime"
 _BARON_MIME_CONDITIONAL_POSITIVE_JOKERS = frozenset({"baronjoker", "mimejoker"})
 _BARON_MIME_AUTHORITATIVE_CONDITIONAL_JOKERS = frozenset(
@@ -306,6 +313,23 @@ def _pair_obelisk_conflicts(state) -> bool:
     return _hand_is_most_played(state, "PAIR") and _pair_has_independent_commitment(state)
 
 
+def _two_pair_has_independent_commitment(state) -> bool:
+    """Return Two Pair evidence independent of generic pair/repetition support."""
+    if _hand_level_is_invested(state, "TWO_PAIR"):
+        return True
+    return bool(_owned_joker_tokens(state) & _TWO_PAIR_DIRECT_COMMITMENT_JOKERS)
+
+
+def _two_pair_conditional_support_relationship(state, token: str) -> str:
+    if token not in _TWO_PAIR_CONDITIONAL_SUPPORT_JOKERS:
+        return NEUTRAL
+    return SILVER if _two_pair_has_independent_commitment(state) else NEUTRAL
+
+
+def _two_pair_obelisk_conflicts(state) -> bool:
+    return _hand_is_most_played(state, "TWO_PAIR") and _two_pair_has_independent_commitment(state)
+
+
 def _is_authoritative_conditional_relationship(strategy_id: str, item: object) -> bool:
     """Return whether conditional state is allowed to downgrade a static tier."""
     return (
@@ -330,6 +354,12 @@ def conditional_joker_relationship(
             return BANNED if _pair_obelisk_conflicts(state) else NEUTRAL
         if token in _PAIR_CONDITIONAL_SUPPORT_JOKERS:
             return _pair_conditional_support_relationship(state, token)
+
+    if strategy_id == _TWO_PAIR_STRATEGY_ID:
+        if token == "obeliskjoker":
+            return BANNED if _two_pair_obelisk_conflicts(state) else NEUTRAL
+        if token in _TWO_PAIR_CONDITIONAL_SUPPORT_JOKERS:
+            return _two_pair_conditional_support_relationship(state, token)
 
     if strategy_id == _BARON_MIME_STRATEGY_ID:
         if token in _BARON_MIME_CONDITIONAL_POSITIVE_JOKERS:
