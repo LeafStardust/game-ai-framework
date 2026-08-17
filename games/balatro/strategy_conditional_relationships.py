@@ -30,6 +30,19 @@ _STRAIGHT_FLUSH_SUIT_JOKERS = {
     "onyxagatejoker": "Clubs",
     "roughgemjoker": "Diamonds",
 }
+_HIGH_CARD_STRATEGY_ID = "high_card"
+_HIGH_CARD_OBELISK_COMMITMENT_JOKERS = frozenset(
+    {
+        "burntjoker",
+        "cardsharpjoker",
+        "supernovajoker",
+        "spacejoker",
+        "halfjoker",
+        "greenjoker",
+        "burglarjoker",
+        "stuntmanjoker",
+    }
+)
 _BARON_MIME_STRATEGY_ID = "high_card_baron_mime"
 _BARON_MIME_CONDITIONAL_POSITIVE_JOKERS = frozenset({"baronjoker", "mimejoker"})
 _BARON_MIME_AUTHORITATIVE_CONDITIONAL_JOKERS = frozenset(
@@ -213,6 +226,55 @@ def _baron_mime_held_engine_is_material(state) -> bool:
     return steel_kings >= 2
 
 
+def _high_card_is_most_played(state) -> bool:
+    """Use public play history only for Obelisk's own most-played-hand mechanic."""
+    counts = getattr(state, "hand_play_counts", {}) or {}
+    try:
+        high_card_count = int(counts.get("HIGH_CARD", 0) or 0)
+    except (TypeError, ValueError, AttributeError):
+        return False
+    if high_card_count <= 0:
+        return False
+
+    normalized_counts = []
+    try:
+        values = counts.values()
+    except AttributeError:
+        return False
+    for value in values:
+        try:
+            normalized_counts.append(int(value or 0))
+        except (TypeError, ValueError):
+            normalized_counts.append(0)
+    return high_card_count == max(normalized_counts, default=0)
+
+
+def _high_card_has_obelisk_commitment(state) -> bool:
+    """Require non-history build evidence before treating Obelisk as a conflict."""
+    levels = getattr(state, "hand_levels", {}) or {}
+    try:
+        if int(levels.get("HIGH_CARD", 1) or 1) > 1:
+            return True
+    except (TypeError, ValueError, AttributeError):
+        pass
+
+    owned_tokens = {
+        _item_token(joker)
+        for joker in getattr(state, "jokers", ()) or ()
+    }
+    if owned_tokens & _HIGH_CARD_OBELISK_COMMITMENT_JOKERS:
+        return True
+
+    # Baron/Mime count only when their held engine already passes the same material
+    # state checks used by the specialized leaf; ordinary unsupported ownership is
+    # not enough to manufacture a High Card commitment.
+    return _baron_mime_held_engine_is_material(state)
+
+
+def _high_card_obelisk_conflicts(state) -> bool:
+    return _high_card_is_most_played(state) and _high_card_has_obelisk_commitment(state)
+
+
 def _is_authoritative_conditional_relationship(strategy_id: str, item: object) -> bool:
     """Return whether conditional state is allowed to downgrade a static tier."""
     return (
@@ -228,6 +290,9 @@ def conditional_joker_relationship(
 ) -> str:
     """Resolve state-dependent Joker relationships from current public run state."""
     token = _item_token(item)
+
+    if strategy_id == _HIGH_CARD_STRATEGY_ID and token == "obeliskjoker":
+        return BANNED if _high_card_obelisk_conflicts(state) else NEUTRAL
 
     if strategy_id == _BARON_MIME_STRATEGY_ID:
         if token in _BARON_MIME_CONDITIONAL_POSITIVE_JOKERS:
