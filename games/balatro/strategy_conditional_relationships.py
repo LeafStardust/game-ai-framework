@@ -57,11 +57,19 @@ def _item_token(item: object) -> str:
 
 def _straight_exists_in_effective_suit(state, suit: str) -> bool:
     rules = hand_rules_for_state(state)
+    deck = _regular_deck(state)
+    if not deck:
+        return False
     suited = [
         card
-        for card in _regular_deck(state)
+        for card in deck
         if card_matches_suit(card, suit, rules)
     ]
+    # A normal undeveloped deck contains 13 cards of every suit and therefore many
+    # theoretical same-suit straights. Treat the Joker as strategy evidence only
+    # after its effective suit shell exceeds that ordinary 25% baseline.
+    if len(suited) <= len(deck) / 4.0:
+        return False
     return HandEvaluator().contains(suited, PokerHand.STRAIGHT, rules=rules)
 
 
