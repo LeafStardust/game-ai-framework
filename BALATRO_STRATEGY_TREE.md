@@ -15,9 +15,7 @@ High Card [I]
 └── Baron-Mime Steel-King High Card [L]
 
 Pair [L]
-
-Two Pair [I]
-└── Spare Trousers + Square Joker Two Pair [L]
+Two Pair [L]
 
 Three of a Kind [I]
 └── DNA / Cryptid Rank-Copy Three of a Kind [L]
