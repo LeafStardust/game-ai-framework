@@ -11,6 +11,7 @@ from games.balatro.live.runtime.strategy_autonomous_runner import (
 from games.balatro.live.strategy_consumable_timing import (
     StrategyAwareLiveConsumableTimingPolicy,
 )
+from games.balatro.joker_order_policy import JokerOrderPolicy
 from games.balatro.state import BalatroState
 from games.balatro.strategy_blind_skip_policy import StrategyAwareBlindSkipPolicy
 from games.balatro.strategy_booster_policy import StrategyAwarePlaybookShopArbiter
@@ -87,4 +88,13 @@ def test_production_strategy_runner_uses_strategy_aware_joker_transition_planner
             "StrategyAwareJokerBuildTransitionPlanner"
         ]
         is StrategyAwareJokerBuildTransitionPlanner
+    )
+
+
+def test_production_strategy_runner_uses_autonomous_joker_order_policy():
+    assert (
+        StrategyAwareLiveMemoryInjectedSingleStepRunner.__init__.__globals__[
+            "JokerOrderPolicy"
+        ]
+        is JokerOrderPolicy
     )

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from games.balatro.live.hand_action_policy import HandActionThresholds
+from games.balatro.joker_order_policy import JokerOrderPolicy
 from games.balatro.live.strategy_consumable_timing import (
     StrategyAwareLiveConsumableTimingPolicy,
 )
@@ -98,6 +99,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
         joker_transition_planner = StrategyAwareJokerBuildTransitionPlanner(
             evaluator=joker_build_value,
         )
+        self.joker_order_policy = JokerOrderPolicy(evaluator=joker_build_value)
         consumable_build = StrategyAwareConsumableSynergyEvaluator(
             profiler=self.playstyle_profiler,
             strategy_tracker=self.strategy_tracker,
@@ -152,6 +154,25 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
 
     def decide(self):
         decision = super().decide()
+        order_decision = self.joker_order_policy.recommend(
+            decision.state,
+            phase=str(decision.snapshot.phase),
+        )
+        if order_decision is not None:
+            decision = replace(
+                decision,
+                action=order_decision.to_action(),
+                source="Joker-order policy",
+                notes=order_decision.rationale,
+                decision_diagnostics={
+                    "layer": "JOKER_ORDER",
+                    "selected": {
+                        "permutation": list(order_decision.permutation),
+                        "current_score": float(order_decision.current_score),
+                        "ordered_score": float(order_decision.ordered_score),
+                    },
+                },
+            )
         resolution = self.strategy_tracker.observe(decision.state)
         tree_nodes = self.strategy_tracker.tree_node_scores()
         diagnostics = dict(decision.decision_diagnostics or {})
