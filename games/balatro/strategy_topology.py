@@ -110,7 +110,7 @@ class StrategyTopology:
     def path(self, strategy_id: str) -> tuple[str, ...]:
         """Return root -> ... -> strategy_id for diagnostics."""
 
-        return tuple(reversed((*self.ancestors(strategy_id), strategy_id)))
+        return (*reversed(self.ancestors(strategy_id)), strategy_id)
 
 
 HIGH_CARD_STRATEGY_NODES: tuple[StrategyNodeSpec, ...] = (
