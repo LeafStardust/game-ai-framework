@@ -130,16 +130,36 @@ The earlier Red/White threshold freeze was performed against the pre-tree policy
 - [x] Complete **one unseeded Red Deck / White Stake win** with no manual gameplay input after activation and normal Steam progression preserved (2026-08-18, Amber Acorn; the authoritative transition records `won=true`).
 - [ ] Validate a complete replayable authoritative winning run log with decision/build/strategy rationales and automatic OFF immediately after the win. The first win exposed and fixed a `won=true`/`ROUND_EVAL` terminal-detection gap, so this finalization half of the gate still requires one live confirmation.
 
-### 1.0H — Generalized collection progression — PLANNED
+### 1.0H — Autonomous fresh-profile collection progression — PLANNED
 
 The bounded collection preference is already production-complete for explicitly
 undiscovered positive Jokers, consumables, Vouchers, boosters and visible pack
 choices. It is exactly one floating-point ULP and therefore cannot override a
 stronger option, rescue a rejected purchase, trigger destructive replacement, or
-compete with survival/strategy/economy.
+compete with survival/strategy/economy. That bounded preference remains the rule
+for ordinary competence runs.
 
-What remains is active pursuit of **locked** collection entries beyond the current
-default-off Hit the Road and Stuntman campaigns:
+1.0H adds a separate, explicit **collection-first mode** intended to let the agent
+own and progress a fresh Balatro profile. In this mode, permanent profile progress
+is the primary objective and winning the current run is secondary. Losing early
+runs is acceptable; survival and strategy value are tie-breakers used to reach
+more shops and collection opportunities per run, not gates that may veto progress.
+
+For an authoritative `discovered=false` shop or pack item, collection-first mode
+uses a hard lexicographic priority class rather than a very large floating-point
+score. The item must be bought or selected whenever the action is legal and
+affordable. A full Joker area triggers capacity-aware replacement of the least
+valuable sellable incumbent. Eternal Jokers are ineligible, and selling a Negative
+Joker is not treated as freeing capacity because its extra slot disappears with it.
+Missing or unreadable discovery state remains unknown and does not trigger a
+destructive action.
+
+That general rule discovers every already-unlocked item that can appear. Truly
+**locked** entries cannot appear yet, so they additionally require declarative
+condition/progress planning beyond the current Hit the Road and Stuntman handlers.
+Vouchers use the same model: buy an undiscovered visible Voucher unconditionally,
+and deliberately repeat already-discovered prerequisite actions when the unlock
+registry identifies account-wide or within-run progress such as Blank -> Antimatter.
 
 The initial locked-Joker backlog reported from the live collection on 2026-08-18
 is deliberately split by acquisition mechanism. A "locked" collection tile does
@@ -147,27 +167,31 @@ not imply that every target should receive a hand override:
 
 | Joker | Requirement / acquisition route | 1.0H handling | Status |
 |---|---|---|---|
-| Golden Ticket | Play a five-card hand containing only Gold cards | Declarative deck-shaping and safe-play campaign | Planned |
+| Golden Ticket | Play a five-card hand containing only Gold cards | Declarative deck-shaping and play campaign; universal discovery priority buys it afterward | Planned |
 | Arrowhead | Have at least 30 Spade cards in the deck | Declarative suit-conversion campaign | Planned |
 | Merry Andy | Win a run in 12 or fewer rounds | Declarative run-length and skip-planning campaign | Planned |
 | Seeing Double | Play a hand containing four 7s of Clubs | Declarative rank-and-suit shaping campaign | Planned |
-| Hit the Road | Discard five Jacks simultaneously | Existing explicit, default-off campaign | Implemented |
-| Stuntman | Score at least 100,000,000 Chips in one hand | Existing explicit, default-off campaign | Implemented |
+| Hit the Road | Discard five Jacks simultaneously | Existing handler; replace its competence-only clear-probability veto when collection-first mode is active | Partially implemented |
+| Stuntman | Score at least 100,000,000 Chips in one hand | Existing handler; replace its competence-only clear-probability veto when collection-first mode is active | Partially implemented |
 | Satellite | Hold at least $400 | Declarative long-horizon cash-reserve campaign | Planned |
 | Astronomer | Discover every Planet card | Collection-state-driven Planet discovery campaign | Planned |
-| Triboulet | Obtain the random Legendary from The Soul | Preserve a free Joker slot and prioritize safe Soul opportunities; no fabricated condition override | Partially covered by current early-Ante Soul policy |
-| Yorick | Obtain the random Legendary from The Soul | Preserve a free Joker slot and prioritize safe Soul opportunities; no fabricated condition override | Partially covered by current early-Ante Soul policy |
+| Triboulet | Obtain the random Legendary from The Soul | Preserve a free Joker slot and maximize Soul opportunities; no fabricated condition override | Partially covered by current early-Ante Soul policy |
+| Yorick | Obtain the random Legendary from The Soul | Preserve a free Joker slot and maximize Soul opportunities; no fabricated condition override | Partially covered by current early-Ante Soul policy |
 
 Triboulet and Yorick are discovery targets, not ordinary condition-locked targets.
 The Soul remains random, so 1.0H may improve opportunity capture and diagnostics
 but must not claim that it can deterministically select either Legendary.
 
 - [ ] Expose authoritative unlocked/discovered state for every relevant Joker, consumable, Voucher, booster and other collection center while preserving unknown state as unknown.
+- [ ] Add the explicit collection-first operating mode and hard `COLLECTION_CRITICAL` action priority; never emulate this guarantee with `inf` or an arbitrary numeric score inside ordinary utility arithmetic.
+- [ ] Guarantee purchase/selection of every legal, affordable, explicitly undiscovered visible Joker, consumable, Voucher and pack choice, including capacity-aware Joker replacement and consumable-slot handling.
+- [ ] Rank unopened boosters by expected missing-collection opportunity, then hard-prioritize explicitly undiscovered choices after the pack is opened.
 - [ ] Add a declarative unlock-condition registry instead of hard-coding conditions into the permanent agent.
+- [ ] Model repeatable Voucher prerequisites and account-wide counters even when the prerequisite item itself is already discovered.
 - [ ] Cover the six new deterministic/collection targets in the observed backlog: Golden Ticket, Arrowhead, Merry Andy, Seeing Double, Satellite and Astronomer.
-- [ ] Extend Soul-opportunity diagnostics to identify which Legendary collection entries remain undiscovered while retaining the existing early-Ante priority and free-slot safety.
-- [ ] Add opt-in campaign planning for safe unlock progress, including action progress, run prerequisites, conflict detection, and abandonment when survival or the committed strategy would be weakened.
-- [ ] Keep ordinary Red/White competence unchanged when no collection campaign is enabled; campaign actions may never reduce the selected D1 clear probability.
+- [ ] Extend Soul-opportunity diagnostics to identify which Legendary collection entries remain undiscovered while retaining the existing early-Ante priority and free-slot requirement.
+- [ ] Add opt-in planning for unlock progress, including action progress, run prerequisites, conflicts and impossible conditions. Collection progress may intentionally weaken or sacrifice the current run.
+- [ ] Keep ordinary Red/White competence unchanged when collection-first mode is disabled; its one-ULP discovery preference and clear-probability safeguards remain intact.
 - [ ] Add live-monitor/log diagnostics and deterministic regressions for campaign admission, progress, completion, impossible conditions, and safe fallback.
 
 ---
