@@ -163,8 +163,9 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   end
 
   local function bridge_status()
-    return "bridge=2;bridge_revision=5;blind_skip=1;hand_reorder=1;achievement_gate=" .. achievement_gate_state()
+    return "bridge=2;bridge_revision=6;blind_skip=1;hand_reorder=1;achievement_gate=" .. achievement_gate_state()
       .. ";restart_run_callback=" .. restart_run_callback_state()
+      .. ";restart_unlock_drain=1"
       .. ";command_pump=LOVE_RUN_PRE_UPDATE"
   end
 
@@ -896,6 +897,37 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return true
   end
 
+  local function unlock_continue_button()
+    if not G or not G.OVERLAY_MENU or type(G.OVERLAY_MENU.get_UIE_by_ID) ~= "function" then
+      return nil
+    end
+    local button = G.OVERLAY_MENU:get_UIE_by_ID("overlay_menu_back_button")
+    local config = button and button.config
+    if config and config.button == "continue_unlock" then
+      return button
+    end
+    return nil
+  end
+
+  local function drain_unlock_confirmations()
+    local count = 0
+    while unlock_continue_button() do
+      count = count + 1
+      if count > 64 then
+        return false, "unlock confirmation drain exceeded safety limit"
+      end
+      local callback = G.FUNCS and G.FUNCS.continue_unlock
+      if type(callback) ~= "function" then
+        return false, "continue_unlock callback is unavailable"
+      end
+      local ok, error_message = pcall(callback)
+      if not ok then
+        return false, error_message
+      end
+    end
+    return true
+  end
+
   local function execute_restart_run()
     if not G or not G.STATES or G.STATE ~= G.STATES.GAME_OVER then
       return false, "run restart requires GAME_OVER"
@@ -919,6 +951,18 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     if not stake or stake < 1 or stake ~= math.floor(stake) then
       return false, "current stake is unavailable"
     end
+
+    -- A failed run can finish with one or more native unlock overlays stacked over
+    -- GAME_OVER. Balatro's Continue control calls continue_unlock, which removes
+    -- the current overlay and immediately exposes the next queued unlock. Drain
+    -- that exact native control until no unlock confirmation remains, then perform
+    -- the normal same-deck/stake restart. This deliberately ignores unrelated
+    -- overlays and never synthesizes mouse input.
+    local drained, drain_error = drain_unlock_confirmations()
+    if not drained then
+      return false, drain_error
+    end
+
     local callback = G.FUNCS and G.FUNCS.start_setup_run
     if type(callback) ~= "function" then
       return false, "start_setup_run callback is unavailable"
