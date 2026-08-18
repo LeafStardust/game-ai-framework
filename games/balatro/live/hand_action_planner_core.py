@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from time import perf_counter
+
 from games.balatro.actions import (
     BalatroAction,
     DISCARD_CARDS,
@@ -7,7 +9,11 @@ from games.balatro.actions import (
     USE_CONSUMABLE,
 )
 from games.balatro.blinds.blind import BlindType
-from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner, _ActionEstimate
+from games.balatro.live.blind_clear_planner import (
+    LiveBlindClearPlanner,
+    PlannerSearchBudgetExceeded,
+    _ActionEstimate,
+)
 from games.balatro.live.boss_blind_integration import (
     BossAwareLiveHandDecisionEvaluator,
     boss_play_action_is_legal,
@@ -33,11 +39,10 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
     plays are returned. This prevents expectimax from spending an unnecessary
     discard to chase a higher terminal score after the blind can already be won.
 
-    Root Play/Discard candidates remain exhaustive so currently visible decisions
-    keep full coverage. Recursive hypothetical states never enumerate every card
-    subset. They construct a small deterministic public-state-only candidate set
-    directly from the visible hand, then run expensive Joker/score projection only
-    on those representatives. Hidden draw order is never consulted.
+    Root Play candidates preserve broad visible coverage through a cheap structural
+    pre-beam, but expensive Joker-aware score projection is hard-bounded. Recursive
+    hypothetical states construct an even smaller deterministic public-state-only
+    candidate set directly from the visible hand. Hidden draw order is never used.
 
     Validated boss-blind mechanics are supplied through the shared boss integration
     layer. Root and recursive Play candidates therefore obey the same legality
@@ -64,6 +69,7 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         "STRAIGHT_FLUSH": 8,
     }
     _MAX_CHILD_PROJECTED_PLAYS = 6
+    _MAX_ROOT_PROJECTED_PLAYS = 24
 
     def __init__(self, *args, **kwargs):
         if kwargs.get("evaluator") is None:
@@ -79,12 +85,22 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         self._consumable_estimate_cache.clear()
         self.play_projections_evaluated = 0
 
+    def _check_wall_clock_budget(self) -> None:
+        if self.deadline is not None and perf_counter() >= self.deadline:
+            raise PlannerSearchBudgetExceeded(
+                "live blind planner search exceeded wall-clock budget"
+            )
+
     def _play_projection(self, state, action):
         key = self._action_identity(action)
         cached = self._play_projection_cache.get(key)
         if cached is not None:
             return cached
 
+        # Candidate ranking used to perform hundreds of Joker-aware projections
+        # before the first planner node was consumed. Check the shared D1 deadline
+        # before every expensive projection so pre-beam work is part of the budget.
+        self._check_wall_clock_budget()
         projection = self.evaluator.project_play(state, action)
         self._play_projection_cache[key] = projection
         self.play_projections_evaluated += 1
@@ -126,16 +142,12 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         self._play_projection_cache = {}
         try:
             # rank_plans()/plan() construct the authoritative root beam before the
-            # first search node is consumed. Recursive child beams have already
-            # consumed at least one node and therefore use bounded direct candidate
-            # construction instead of enumerating every subset.
+            # first search node is consumed. Root play enumeration remains cheap and
+            # exhaustive, but only a bounded structural shortlist receives expensive
+            # Joker-aware projection. Recursive child beams stay directly bounded.
             root_beam = self.nodes_evaluated == 0
             if root_beam:
-                plays = [
-                    action
-                    for action in self.action_generator.generate_play_actions(state)
-                    if boss_play_action_is_legal(state, action)
-                ]
+                plays = self._root_play_candidates(state, play_limit)
             else:
                 plays = self._child_play_candidates(state, play_limit)
 
@@ -184,6 +196,63 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             return result
         finally:
             self._play_projection_cache = previous_cache
+
+    def _root_play_candidates(self, state, play_limit: int):
+        """Cheaply pre-beam exhaustive visible root plays before full projection.
+
+        Full root enumeration is inexpensive at normal hand sizes; full Joker-aware
+        projection of every subset is not. Preserve the structurally strongest
+        actions, one representative for every selectable card count, and the direct
+        strategic child representatives, then cap expensive projection to a small
+        deterministic set.
+        """
+        plays = [
+            action
+            for action in self.action_generator.generate_play_actions(state)
+            if boss_play_action_is_legal(state, action)
+        ]
+        if len(plays) <= self._MAX_ROOT_PROJECTED_PLAYS:
+            return plays
+
+        ranked = sorted(
+            plays,
+            key=self._direct_child_play_priority,
+            reverse=True,
+        )
+        chosen: dict[tuple[int, ...], BalatroAction] = {}
+
+        def add(action) -> None:
+            if action is not None:
+                chosen.setdefault(self._action_identity(action), action)
+
+        # Keep a broad top slice by cheap poker-hand strength and visible chips.
+        top_count = min(
+            self._MAX_ROOT_PROJECTED_PLAYS,
+            max(12, max(1, play_limit) * 3),
+        )
+        for action in ranked[:top_count]:
+            add(action)
+
+        # Preserve redraw/cycling diversity across every selectable card count.
+        max_cards = min(
+            self.action_generator.MAX_SELECTED_CARDS,
+            len(getattr(state, "hand", [])),
+        )
+        for amount in range(1, max_cards + 1):
+            same_size = [action for action in plays if len(action.cards) == amount]
+            if same_size:
+                add(max(same_size, key=self._direct_child_play_priority))
+
+        # Child construction adds deterministic rank/suit/straight/flush coverage
+        # without depending on expensive Joker projection.
+        for action in self._child_play_candidates(state, max(play_limit, 1)):
+            add(action)
+
+        return sorted(
+            chosen.values(),
+            key=self._direct_child_play_priority,
+            reverse=True,
+        )[: self._MAX_ROOT_PROJECTED_PLAYS]
 
     def _guaranteed_sun_action(self, state) -> BalatroAction | None:
         blind = getattr(state, "blind", None)
