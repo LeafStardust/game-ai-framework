@@ -1,8 +1,9 @@
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from games.balatro.live.external.live_memory_restart_run_injected import (
+from games.balatro.live.runtime.live_memory_restart_run_injected import (
     DEFAULT_RESTART_TIMEOUT_SECONDS,
     LiveRunRestartError,
     _snapshot_diagnostic,
@@ -40,17 +41,24 @@ class _Observer:
 
 
 class _Bridge:
-    def __init__(self, *, callback="START_RUN_PRESENT"):
+    def __init__(
+        self,
+        *,
+        callback="START_RUN_PRESENT",
+        restart_unlock_drain="1",
+    ):
         self.callback = callback
+        self.restart_unlock_drain = restart_unlock_drain
         self.restart_calls = 0
         self.status_calls = 0
 
     def status(self):
         self.status_calls += 1
         return {
-            "bridge": "1",
+            "bridge": "2",
             "achievement_gate": "ENABLED",
             "restart_run_callback": self.callback,
+            "restart_unlock_drain": self.restart_unlock_drain,
         }
 
     def restart_run(self):
@@ -136,6 +144,23 @@ def test_restart_fails_closed_if_bridge_callback_is_not_reported():
     assert bridge.restart_calls == 0
 
 
+def test_restart_fails_closed_if_unlock_drain_capability_is_missing():
+    observer = _Observer([_snapshot(10, "GAME_OVER")])
+    bridge = _Bridge(restart_unlock_drain="0")
+    runner = SimpleNamespace(observer=observer, bridge=bridge)
+
+    with pytest.raises(LiveRunRestartError, match="unlock-confirmation draining"):
+        restart_fresh_unseeded_run(
+            runner,
+            "RED",
+            "WHITE",
+            timeout_seconds=0.1,
+            poll_interval_seconds=0,
+        )
+
+    assert bridge.restart_calls == 0
+
+
 def test_restart_fails_closed_on_changed_deck_or_stake_after_command():
     observer = _Observer(
         [
@@ -177,3 +202,25 @@ def test_bridge_restart_method_emits_control_command_without_payload():
     bridge.restart_run()
 
     assert calls == [("RESTART_RUN", ())]
+
+
+def test_restart_bridge_drains_native_unlock_confirmations_before_setup():
+    source = (
+        Path(__file__).parents[1]
+        / "games"
+        / "balatro"
+        / "live"
+        / "injected"
+        / "assets"
+        / "bridge.lua"
+    ).read_text(encoding="utf-8")
+
+    assert "bridge_revision=6" in source
+    assert ";restart_unlock_drain=1" in source
+    assert 'config.button == "continue_unlock"' in source
+    assert "while unlock_continue_button() do" in source
+    assert "pcall(callback)" in source
+    assert "unlock confirmation drain exceeded safety limit" in source
+    assert source.index("drain_unlock_confirmations()") < source.index(
+        "G.FUNCS and G.FUNCS.start_setup_run"
+    )
