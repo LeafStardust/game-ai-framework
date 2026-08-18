@@ -638,9 +638,17 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   end
 
   local function execute_sell_joker(payload)
-    local ready, state_error = require_state("SHOP")
-    if not ready then
-      return false, state_error
+    if not G or not G.STATES then
+      return false, "Balatro state is unavailable"
+    end
+    local in_shop = G.STATE == G.STATES.SHOP
+    local blind = G.GAME and G.GAME.blind
+    local verdant_leaf =
+      G.STATE == G.STATES.SELECTING_HAND
+      and blind
+      and blind.name == "Verdant Leaf"
+    if not in_shop and not verdant_leaf then
+      return false, "joker sale requires SHOP or active Verdant Leaf"
     end
 
     local index, parse_error = parse_single_index(payload)

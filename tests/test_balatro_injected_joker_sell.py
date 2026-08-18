@@ -175,3 +175,8 @@ def test_injected_lua_bridge_routes_sell_joker_through_native_callback():
     assert 'action == "SELL_JOKER"' in asset
     assert "G.FUNCS and G.FUNCS.sell_card" in asset
     assert "G.jokers.cards[index + 1]" in asset
+    assert 'blind.name == "Verdant Leaf"' in asset
+    assert 'require_state("SHOP")' not in asset[
+        asset.index("local function execute_sell_joker") :
+        asset.index("local function execute_reorder_jokers")
+    ]
