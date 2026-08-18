@@ -78,6 +78,9 @@ class PlaybookBalatroPackPolicy(BalatroPackPolicy):
     shared pack implementation.
     """
 
+    JUDGEMENT_EMPTY_SLOT_BASE_VALUE = 5.0
+    JUDGEMENT_EMPTY_SLOT_BONUS = 0.5
+
     def __init__(
         self,
         *,
@@ -128,4 +131,30 @@ class PlaybookBalatroPackPolicy(BalatroPackPolicy):
                 bias,
                 (f"skip booster; D9 skip_bias={bias:.3f}",),
             )
+
+        choice = getattr(action, "target", None)
+        if (
+            getattr(choice, "kind", None) == "TAROT"
+            and getattr(choice, "label", None) == "Judgement"
+        ):
+            joker_slots = max(0, int(getattr(state, "joker_slots", 5) or 5))
+            free_slots = max(
+                0,
+                joker_slots - len(getattr(state, "jokers", ()) or ()),
+            )
+            if free_slots > 0:
+                value = (
+                    self.JUDGEMENT_EMPTY_SLOT_BASE_VALUE
+                    + min(3, free_slots) * self.JUDGEMENT_EMPTY_SLOT_BONUS
+                )
+                return PackActionScore(
+                    action,
+                    value,
+                    (
+                        f"Judgement has {free_slots} empty Joker slot(s)",
+                        "random Joker identity is unresolved, but generating a Joker into an empty slot has positive default option value",
+                        f"Judgement empty-slot option value={value:.3f}",
+                    ),
+                )
+
         return super().score_action(state, action)
