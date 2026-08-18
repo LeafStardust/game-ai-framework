@@ -13,9 +13,10 @@ from .live_memory_autonomous_step_injected import (
 from .live_memory_observer import LiveMemoryBalatroObserver
 
 
-DEFAULT_RESTART_TIMEOUT_SECONDS = 20.0
+DEFAULT_RESTART_TIMEOUT_SECONDS = 60.0
 DEFAULT_RESTART_POLL_INTERVAL_SECONDS = 0.05
 DEFAULT_RESTART_STABLE_CONFIRMATIONS = 6
+DEFAULT_RESTART_RETRY_INTERVAL_SECONDS = 1.0
 
 
 class LiveRunRestartError(RuntimeError):
@@ -75,21 +76,20 @@ def restart_fresh_unseeded_run(
     timeout_seconds: float = DEFAULT_RESTART_TIMEOUT_SECONDS,
     poll_interval_seconds: float = DEFAULT_RESTART_POLL_INTERVAL_SECONDS,
     stable_confirmations: int = DEFAULT_RESTART_STABLE_CONFIRMATIONS,
+    retry_interval_seconds: float = DEFAULT_RESTART_RETRY_INTERVAL_SECONDS,
 ) -> LiveRunRestartResult:
     """Restart one lost normal run and verify a sustained fresh checkpoint.
 
-    The Lua bridge owns the destructive guard and mirrors Balatro's native held-R
-    restart setup. Before setup begins, bridge revision 6+ also drains every native
-    unlock confirmation currently stacked over the failed GAME_OVER screen by
-    invoking Balatro's own ``continue_unlock`` callback. Python never writes process
-    memory; it independently requires a sustained settled BLIND_SELECT checkpoint
-    with the same deck/stake before returning.
+    Loss restart is intentionally resilient. Unlock notifications and GAME_OVER UI
+    teardown are asynchronous, so a RESTART_RUN command can be temporarily rejected
+    while Balatro is still exposing the same authoritative lost GAME_OVER state.
+    While that source remains valid, retry the guarded native restart command instead
+    of treating a transient bridge/UI rejection as an agent-fatal condition.
 
-    Unlock notifications are event-queue driven. A single or even two consecutive
-    BLIND_SELECT observations can therefore occur before a late unlock/UI event
-    finishes settling. Require several consecutive semantically equal fresh-run
-    observations so the supervisor never reattaches in the middle of that tail and
-    mistakes a resurfacing GAME_OVER/unlock frame for a new terminal attempt.
+    Once Balatro leaves GAME_OVER, never issue another destructive restart command.
+    Only observe until a sustained same-deck/stake BLIND_SELECT checkpoint appears.
+    This prevents a command whose result was merely delayed from restarting the new
+    run a second time. Python never writes process memory.
     """
     if timeout_seconds <= 0:
         raise ValueError("timeout_seconds must be positive")
@@ -97,6 +97,8 @@ def restart_fresh_unseeded_run(
         raise ValueError("poll_interval_seconds cannot be negative")
     if stable_confirmations < 2:
         raise ValueError("stable_confirmations must be at least 2")
+    if retry_interval_seconds <= 0:
+        raise ValueError("retry_interval_seconds must be positive")
 
     expected_deck = str(deck).upper()
     expected_stake = str(stake).upper()
@@ -120,55 +122,86 @@ def restart_fresh_unseeded_run(
             "draining; close Balatro and reinstall/update the repository bridge"
         )
 
-    runner.bridge.restart_run()
-
     deadline = monotonic() + timeout_seconds
+    next_restart_attempt = monotonic()
+    command_accepted = False
+    last_command_error: Exception | None = None
     previous = None
     stable_count = 0
-    last_observed = None
+    last_observed = before
+
     while monotonic() < deadline:
-        if poll_interval_seconds:
-            sleep(poll_interval_seconds)
         current = runner.observer.observe()
         last_observed = current
+        phase = str(current.phase)
 
-        # The restart is asynchronous. Any incomplete frame, terminal frame,
-        # unlock overlay tail, or identity transition resets the sustained-fresh
-        # confirmation window instead of being accepted as attempt startup.
-        if not current.state_complete or str(current.phase) != "BLIND_SELECT":
-            previous = None
-            stable_count = 0
-            continue
-
-        current_deck, current_stake = _identity(current)
-        if (current_deck, current_stake) != (expected_deck, expected_stake):
-            raise LiveRunRestartError(
-                "restart reached BLIND_SELECT with changed deck/stake: expected "
-                f"{expected_deck}/{expected_stake}, observed "
-                f"{current_deck}/{current_stake}"
-            )
-        if current.sequence <= before.sequence:
-            previous = None
-            stable_count = 0
-            continue
-
-        if previous is not None and _same_snapshot(previous, current):
-            stable_count += 1
+        if current.state_complete and phase == "BLIND_SELECT":
+            current_deck, current_stake = _identity(current)
+            if (current_deck, current_stake) != (expected_deck, expected_stake):
+                raise LiveRunRestartError(
+                    "restart reached BLIND_SELECT with changed deck/stake: expected "
+                    f"{expected_deck}/{expected_stake}, observed "
+                    f"{current_deck}/{current_stake}"
+                )
+            if current.sequence > before.sequence:
+                if previous is not None and _same_snapshot(previous, current):
+                    stable_count += 1
+                else:
+                    stable_count = 1
+                previous = current
+                if stable_count >= stable_confirmations:
+                    return LiveRunRestartResult(
+                        before=before,
+                        after=current,
+                        bridge_status=dict(status),
+                    )
+            else:
+                previous = None
+                stable_count = 0
         else:
-            stable_count = 1
+            previous = None
+            stable_count = 0
 
-        previous = current
-        if stable_count >= stable_confirmations:
-            return LiveRunRestartResult(
-                before=before,
-                after=current,
-                bridge_status=dict(status),
-            )
+        # Retry only while the authoritative state still says this is the same
+        # lost GAME_OVER run. As soon as the first restart starts transitioning,
+        # observation-only verification takes over.
+        now = monotonic()
+        if (
+            current.state_complete
+            and phase == "GAME_OVER"
+            and not bool(current.payload.get("won"))
+            and now >= next_restart_attempt
+        ):
+            current_deck, current_stake = _identity(current)
+            if (current_deck, current_stake) != (expected_deck, expected_stake):
+                raise LiveRunRestartError(
+                    "restart source changed deck/stake while retrying: expected "
+                    f"{expected_deck}/{expected_stake}, observed "
+                    f"{current_deck}/{current_stake}"
+                )
+            try:
+                runner.bridge.restart_run()
+                command_accepted = True
+                last_command_error = None
+            except InjectedBridgeError as error:
+                # Unlock overlays/event queues can make the native callback
+                # temporarily unavailable. Keep the supervisor alive and retry
+                # from the still-authoritative lost GAME_OVER checkpoint.
+                last_command_error = error
+            next_restart_attempt = now + retry_interval_seconds
 
+        if poll_interval_seconds:
+            sleep(poll_interval_seconds)
+
+    detail = _snapshot_diagnostic(last_observed)
+    if last_command_error is not None and not command_accepted:
+        raise LiveRunRestartError(
+            "restart remained transiently blocked while the lost GAME_OVER run "
+            f"was still active; last_bridge_error={last_command_error}; {detail}"
+        )
     raise LiveRunRestartError(
-        "restart command was accepted but no sustained settled same-deck/stake "
-        "BLIND_SELECT checkpoint appeared before timeout; "
-        + _snapshot_diagnostic(last_observed)
+        "restart did not reach a sustained settled same-deck/stake BLIND_SELECT "
+        f"checkpoint before timeout; command_accepted={command_accepted}; {detail}"
     )
 
 
@@ -177,7 +210,8 @@ def main() -> int:
         description=(
             "Validate one guarded GAME_OVER -> fresh unseeded same deck/stake "
             "Balatro restart through the first-party injected bridge. Preview is "
-            "read-only; --execute sends exactly one RESTART_RUN control command."
+            "read-only; --execute sends guarded RESTART_RUN commands only while "
+            "the same lost GAME_OVER source remains authoritative."
         )
     )
     parser.add_argument("--execute", action="store_true")
@@ -203,6 +237,7 @@ def main() -> int:
             print(f"Won before -> {bool(before.payload.get('won'))}")
             print("Restart target -> fresh unseeded same deck/stake run")
             print("Unlock confirmations -> drain all before restart")
+            print("Transient restart rejection -> guarded retry while GAME_OVER remains")
             print("Process-memory writes -> False")
             print("Mouse input sent -> False")
 
@@ -212,8 +247,8 @@ def main() -> int:
                 return 0
 
             print(
-                "WARNING -> --execute is armed: exactly one native RESTART_RUN "
-                "control command may now be invoked"
+                "WARNING -> --execute is armed: guarded native RESTART_RUN retries "
+                "may occur only while the same lost GAME_OVER source remains"
             )
             result = restart_fresh_unseeded_run(
                 runner,
@@ -222,7 +257,7 @@ def main() -> int:
                 timeout_seconds=args.timeout,
             )
             print("Execution guard -> PASS")
-            print("Restart command sent -> True")
+            print("Restart completed -> True")
             print(f"Bridge version -> {result.bridge_status.get('bridge', '?')}")
             print("Unlock confirmations drained -> True")
             print(f"Phase after -> {result.after.phase}")
