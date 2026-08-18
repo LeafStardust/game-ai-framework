@@ -121,6 +121,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                 "planner": {
                     "max_horizon": 5,
                     "max_search_nodes": 5000,
+                    "max_search_seconds": 8.0,
                     "search_schedule_mode": "probe-deepest",
                 },
                 "strategy_modifiers": {

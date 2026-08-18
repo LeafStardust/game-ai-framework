@@ -315,6 +315,7 @@ class LiveMemoryInjectedSingleStepRunner:
             if self.max_search_nodes is not None
             else int(planner_config.get("max_search_nodes", 5000))
         )
+        max_search_seconds = float(planner_config.get("max_search_seconds", 8.0))
         search_schedule_mode = _search_schedule_mode(
             planner_config,
             max_horizon_override=self.max_horizon,
@@ -327,6 +328,7 @@ class LiveMemoryInjectedSingleStepRunner:
             exact_limit=self.exact_limit,
             child_exact_limit=self.child_exact_limit,
             search_schedule_mode=search_schedule_mode,
+            max_search_seconds=max_search_seconds,
         )
 
         rank_timings: list[float] = []
@@ -356,6 +358,7 @@ class LiveMemoryInjectedSingleStepRunner:
             ),
             f"path_exact={decision.selected_plan.exact}",
             f"d1_decision_seconds={d1_elapsed:.3f}",
+            f"d1_search_time_budget={max_search_seconds:.3f}s",
         ]
         if decision.selected_pace_ratio is not None:
             notes.append(f"pace_ratio={decision.selected_pace_ratio:.6f}")

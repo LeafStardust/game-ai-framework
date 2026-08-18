@@ -248,3 +248,17 @@ def test_planner_hard_node_budget_aborts_recursive_search():
     # The hard cap must never be exceeded: the second node is rejected before
     # it is counted as evaluated.
     assert planner.nodes_evaluated == planner.max_nodes == 1
+
+
+def test_planner_wall_clock_budget_aborts_before_another_node(monkeypatch):
+    planner = _planner(max_nodes=100)
+    planner.deadline = 10.0
+    monkeypatch.setattr(
+        "games.balatro.live.blind_clear_planner.perf_counter",
+        lambda: 10.0,
+    )
+
+    with pytest.raises(PlannerSearchBudgetExceeded, match="wall-clock budget"):
+        planner._consume_node()
+
+    assert planner.nodes_evaluated == 0

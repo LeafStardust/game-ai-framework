@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+from time import perf_counter
 
 from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
 from games.balatro.card_selector import CardSelector
@@ -90,6 +91,7 @@ class LiveBlindClearPlanner:
         child_discard_width: int | None = None,
         horizon: int = 2,
         max_nodes: int | None = None,
+        deadline: float | None = None,
     ):
         if play_width < 1:
             raise ValueError("play_width must be positive")
@@ -121,6 +123,7 @@ class LiveBlindClearPlanner:
         )
         self.horizon = int(horizon)
         self.max_nodes = int(max_nodes) if max_nodes is not None else None
+        self.deadline = float(deadline) if deadline is not None else None
         self.nodes_evaluated = 0
 
     def reset_search_stats(self) -> None:
@@ -150,6 +153,10 @@ class LiveBlindClearPlanner:
         )
 
     def _consume_node(self) -> None:
+        if self.deadline is not None and perf_counter() >= self.deadline:
+            raise PlannerSearchBudgetExceeded(
+                "live blind planner search exceeded wall-clock budget"
+            )
         if self.max_nodes is not None and self.nodes_evaluated >= self.max_nodes:
             raise PlannerSearchBudgetExceeded(
                 "live blind planner search exceeded node budget "

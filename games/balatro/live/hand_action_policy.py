@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
+from time import perf_counter
 from typing import Mapping
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
@@ -583,6 +584,7 @@ class LiveHandActionDecisionEngine:
         exact_limit: int = LiveBlindClearPlanner.DEFAULT_EXACT_DRAW_COMBINATION_LIMIT,
         child_exact_limit: int = 8,
         search_schedule_mode: str = SEARCH_SCHEDULE_FULL,
+        max_search_seconds: float | None = None,
     ) -> None:
         if max_horizon < 1:
             raise ValueError("max_horizon must be positive")
@@ -595,6 +597,8 @@ class LiveHandActionDecisionEngine:
         if search_schedule_mode not in _SEARCH_SCHEDULE_MODES:
             allowed = ", ".join(sorted(_SEARCH_SCHEDULE_MODES))
             raise ValueError(f"search_schedule_mode must be one of: {allowed}")
+        if max_search_seconds is not None and float(max_search_seconds) <= 0.0:
+            raise ValueError("max_search_seconds must be positive when supplied")
 
         self.planner = planner or D1LiveBlindClearPlanner(
             play_width=6,
@@ -610,6 +614,12 @@ class LiveHandActionDecisionEngine:
         self.exact_limit = int(exact_limit)
         self.child_exact_limit = int(child_exact_limit)
         self.search_schedule_mode = str(search_schedule_mode)
+        self.max_search_seconds = (
+            float(max_search_seconds)
+            if max_search_seconds is not None
+            else None
+        )
+        self._search_deadline: float | None = None
 
     def rank_plans(
         self,
@@ -697,6 +707,11 @@ class LiveHandActionDecisionEngine:
         )
 
     def decide(self, state) -> HandActionDecision:
+        self._search_deadline = (
+            perf_counter() + self.max_search_seconds
+            if self.max_search_seconds is not None
+            else None
+        )
         schedule = self._search_schedule(state)
         attempts: list[HandActionSearchAttempt] = []
         summaries: list[AdaptiveRecommendationSummary] = []
@@ -877,6 +892,7 @@ class LiveHandActionDecisionEngine:
             child_discard_width=config.child_discard_width,
             horizon=config.horizon,
             max_nodes=config.max_nodes,
+            deadline=self._search_deadline,
         )
 
     def _confirmation_config(

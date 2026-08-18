@@ -163,4 +163,5 @@ def test_red_white_default_caps_normal_d1_search_at_horizon_five():
     assert playbook.version == "1.0"
     assert playbook.strategy["planner"]["max_horizon"] == 5
     assert playbook.strategy["planner"]["max_search_nodes"] == 5000
+    assert playbook.strategy["planner"]["max_search_seconds"] == 8.0
     assert playbook.strategy["planner"]["search_schedule_mode"] == "probe-deepest"

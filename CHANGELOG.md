@@ -38,6 +38,7 @@ This file records notable development changes to the project. Active and future 
 - Wired Cerulean Bell forced-card handling and Verdant Leaf emergency Joker sales through authoritative injected actions.
 - Prevented blind-selection Joker-order searches from blocking the start of a blind.
 - Corrected late-run Small/Big Blind stalls caused by unbounded hand search.
+- Added an eight-second wall-clock budget across each complete D1 decision so an individually expensive expectimax node cannot leave early or mid-run hands appearing frozen after the existing node budget.
 - Stopped paid rerolls from continuing past configured cost and reserve limits.
 - Treated an authoritative `won=true` snapshot as terminal even while Balatro still reports `ROUND_EVAL`, preventing unintended entry into Endless and allowing immediate run finalization.
 - Allowed a freshly restarted agent to recognize and resume a manually continued post-win Endless run while retaining the default automatic stop at the initial Ante-8 win.

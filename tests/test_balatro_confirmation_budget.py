@@ -46,3 +46,24 @@ def test_confirmation_budget_never_exceeds_smaller_originating_search():
     confirmation = engine._confirmation_config(config)
 
     assert confirmation.max_nodes == 500
+
+
+def test_adaptive_and_confirmation_searches_share_one_wall_clock_deadline():
+    engine = LiveHandActionDecisionEngine(max_search_seconds=8.0)
+    engine._search_deadline = 123.0
+    config = AdaptiveBlindSearchConfig(
+        horizon=2,
+        samples=8,
+        child_samples=1,
+        play_width=3,
+        discard_width=1,
+        child_play_width=1,
+        child_discard_width=1,
+        max_nodes=500,
+    )
+
+    adaptive = engine._adaptive_planner(config)
+    confirmation = engine._adaptive_planner(engine._confirmation_config(config))
+
+    assert adaptive.deadline == 123.0
+    assert confirmation.deadline == 123.0

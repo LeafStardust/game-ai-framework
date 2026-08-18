@@ -115,8 +115,10 @@ def test_hand_recommendation_reports_total_and_per_search_timing(monkeypatch):
 
     assert recommended is action
     assert engine_kwargs["search_schedule_mode"] == "probe-deepest"
+    assert engine_kwargs["max_search_seconds"] == 8.0
     assert "search_schedule=probe-deepest" in notes
     assert "d1_decision_seconds=8.000" in notes
+    assert "d1_search_time_budget=8.000s" in notes
     assert any(
         "search[0]=adaptive h=2 samples=8 nodes=100/2000" in note
         and "elapsed=1.000s" in note

@@ -120,6 +120,7 @@ Current migration snapshot: Sections 1–12 are production-owned and tested. The
 - [x] Repeat the deterministic topology, relationship, conflict, conditional-support, inverse-index, cartridge-inheritance and production-consumer behavior suite across Sections 5–12.
 - [x] Add global Negative-retention regressions for ordinary standalone sale, measured-harm exceptions, replacement-slot protection, ordinary-incumbent selection, Dagger protection, and active-Dagger intentional sacrifice.
 - [x] Use the first unseeded live Red/White win to identify late-run latency, reroll overspending, held-Steel ordering, boss handling, and post-win finalization defects; preserve each correction with deterministic regressions.
+- [x] Bound the complete D1 search by wall-clock time as well as nodes after a fresh-profile Ante-1 Big Blind exposed that individual expectimax nodes could still make the live agent appear frozen.
 - [ ] Run final specialized live validation after the complete deterministic tree is stable.
 
 ### 1.0G — Final freeze and acceptance gate

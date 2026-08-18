@@ -295,6 +295,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             if self.max_search_nodes is not None
             else int(planner_config.get("max_search_nodes", 5000))
         )
+        max_search_seconds = float(planner_config.get("max_search_seconds", 8.0))
         max_horizon, max_search_nodes, search_bound_reason = _bounded_d1_limits(
             state,
             max_horizon,
@@ -312,6 +313,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             exact_limit=self.exact_limit,
             child_exact_limit=self.child_exact_limit,
             search_schedule_mode=search_schedule_mode,
+            max_search_seconds=max_search_seconds,
         )
 
         rank_timings: list[float] = []
@@ -343,6 +345,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             ),
             f"path_exact={decision.selected_plan.exact}",
             f"d1_decision_seconds={d1_elapsed:.3f}",
+            f"d1_search_time_budget={max_search_seconds:.3f}s",
         ]
         if search_bound_reason is not None:
             notes.append(
