@@ -6,6 +6,9 @@ from time import perf_counter, sleep
 from typing import Callable
 
 from games.balatro.live.injected.bridge import InjectedBridgeError
+from games.balatro.live.injected.hand_dispatcher import (
+    InjectedHandActionPostconditionError,
+)
 
 from .live_memory_autonomous_stale_diagnostic import semantic_differences
 from .live_memory_autonomous_step_injected import (
@@ -291,6 +294,24 @@ class LiveMemoryInjectedAutonomousLoop:
                         "stale-state replan limit exceeded after "
                         f"{stale_replans} attempts; {error}{suffix}"
                     ) from error
+                except InjectedHandActionPostconditionError as error:
+                    # A held consumable may be accepted by Balatro's native callback
+                    # while the engine is still in a transient UI/action lock, then
+                    # never actually consume or mutate its intended target. The
+                    # dispatcher correctly refuses to claim success. Quarantine that
+                    # exact live consumable and replan from fresh public state instead
+                    # of crashing or retrying the same no-op forever.
+                    if "timed out verifying injected consumable use" not in str(error):
+                        raise
+                    quarantine = getattr(
+                        self.runner,
+                        "quarantine_failed_consumable",
+                        None,
+                    )
+                    if not callable(quarantine) or not quarantine(decision):
+                        raise
+                    stale_replans += 1
+                    continue
                 except InjectedBridgeError as error:
                     if "action requires " not in str(error):
                         raise
