@@ -77,8 +77,11 @@ def restart_fresh_unseeded_run(
     """Restart one lost normal run and verify the new public checkpoint.
 
     The Lua bridge owns the destructive guard and mirrors Balatro's native held-R
-    restart setup. Python never writes process memory; it independently requires a
-    settled BLIND_SELECT checkpoint with the same deck/stake before returning.
+    restart setup. Before setup begins, bridge revision 6+ also drains every native
+    unlock confirmation currently stacked over the failed GAME_OVER screen by
+    invoking Balatro's own ``continue_unlock`` callback. Python never writes process
+    memory; it independently requires a settled BLIND_SELECT checkpoint with the
+    same deck/stake before returning.
 
     Balatro's native restart is asynchronous and includes wipe/setup animation, so
     the verifier deliberately allows the same 20-second settling envelope used by
@@ -105,6 +108,11 @@ def restart_fresh_unseeded_run(
     if status.get("restart_run_callback") != "START_RUN_PRESENT":
         raise LiveRunRestartError(
             "first-party bridge does not report START_RUN_PRESENT"
+        )
+    if status.get("restart_unlock_drain") != "1":
+        raise LiveRunRestartError(
+            "first-party bridge does not advertise restart unlock-confirmation "
+            "draining; close Balatro and reinstall/update the repository bridge"
         )
 
     runner.bridge.restart_run()
@@ -183,6 +191,7 @@ def main() -> int:
             print(f"Stake before -> {stake}")
             print(f"Won before -> {bool(before.payload.get('won'))}")
             print("Restart target -> fresh unseeded same deck/stake run")
+            print("Unlock confirmations -> drain all before restart")
             print("Process-memory writes -> False")
             print("Mouse input sent -> False")
 
@@ -204,6 +213,7 @@ def main() -> int:
             print("Execution guard -> PASS")
             print("Restart command sent -> True")
             print(f"Bridge version -> {result.bridge_status.get('bridge', '?')}")
+            print("Unlock confirmations drained -> True")
             print(f"Phase after -> {result.after.phase}")
             after_deck, after_stake = _identity(result.after)
             print(f"Deck after -> {after_deck}")
