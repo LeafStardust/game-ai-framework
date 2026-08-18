@@ -248,27 +248,71 @@ class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
         if not transition.alternatives:
             return transition
 
-        anchored = []
-        for option in transition.alternatives:
-            incumbent = state.jokers[int(option.replace_index)]
-            strategic = self.evaluator.strategy_tracker.evaluate_item(
+        resolution = self.evaluator.strategy_tracker.observe(state)
+        incumbent_strategy = {}
+        for index, incumbent in enumerate(state.jokers):
+            incumbent_strategy[index] = self.evaluator.strategy_tracker.evaluate_item(
                 state,
                 incumbent,
                 kind="JOKER",
             )
+
+        has_off_path_incumbent = any(
+            (
+                strategic.tier == BANNED
+                and float(strategic.value) < 0.0
+            )
+            or (
+                joker_is_strategy_bound(state.jokers[index])
+                and strategic.tier in {GOLD, SILVER, BRONZE}
+                and not strategic.active_alignment
+                and not strategic.pivot_candidate
+            )
+            for index, strategic in incumbent_strategy.items()
+        )
+        prefer_off_path_replacement = (
+            resolution.active_status in {COMMITTED, MATURE}
+            and getattr(transition.candidate_value, "applicability", None) == UNIVERSAL
+            and has_off_path_incumbent
+        )
+
+        anchored = []
+        for option in transition.alternatives:
+            index = int(option.replace_index)
+            strategic = incumbent_strategy[index]
             retention = float(strategic.value)
+            protected_aligned_core = (
+                prefer_off_path_replacement
+                and strategic.active_alignment
+                and strategic.tier in {GOLD, SILVER, BRONZE}
+            )
+            blocked_reason = option.blocked_reason
+            eligible = option.eligible
+            rationale = [
+                *option.rationale,
+                "authoritative pre-sale strategy retention="
+                f"{retention:+.3f}",
+                "strategy-anchored replacement delta="
+                f"{float(option.build_delta) - retention:.3f}",
+            ]
+            if protected_aligned_core:
+                eligible = False
+                blocked_reason = (
+                    blocked_reason
+                    or "committed aligned Joker protected while an off-path incumbent remains"
+                )
+                rationale.append(
+                    "universal candidate must replace an off-path/Banned incumbent before an aligned committed-strategy Joker"
+                )
+
             anchored.append(
                 self._annotate_option(
                     replace(
                         option,
                         build_delta=float(option.build_delta) - retention,
-                        rationale=(
-                            *option.rationale,
-                            "authoritative pre-sale strategy retention="
-                            f"{retention:+.3f}",
-                            "strategy-anchored replacement delta="
-                            f"{float(option.build_delta) - retention:.3f}",
-                        ),
+                        rationale=tuple(rationale),
+                        eligible=eligible,
+                        blocked_reason=blocked_reason,
                     )
                 )
             )
