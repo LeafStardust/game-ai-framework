@@ -43,9 +43,14 @@ class LivePackChoice:
 
 
 class LivePackActionGenerator:
-    """Generate legal actions for a currently visible booster pack."""
+    """Generate candidate actions for a currently visible booster pack.
 
-    def __init__(self, *, include_capacity_blocked_jokers: bool = False) -> None:
+    Full-roster Buffoon Jokers remain visible to policy by default. They are not
+    directly selectable while capacity is full; the playbook pack policy may turn
+    a worthwhile visible replacement into a separate SELL_JOKER checkpoint first.
+    """
+
+    def __init__(self, *, include_capacity_blocked_jokers: bool = True) -> None:
         self.include_capacity_blocked_jokers = bool(
             include_capacity_blocked_jokers
         )
@@ -108,9 +113,11 @@ class LivePackActionGenerator:
             ):
                 continue
 
-            # Balatro cannot take another Joker from a Buffoon pack when all Joker
-            # slots are occupied unless the player first sells one. That is a
-            # separate action and is deliberately not hidden inside pack selection.
+            # Full-roster Buffoon choices are policy candidates, not immediately
+            # executable selections. Playbook D9 may convert one into SELL_JOKER
+            # after a concrete visible replacement clears D2. Legacy callers may
+            # explicitly disable these candidates if they cannot perform pack-state
+            # Joker sales.
             if (
                 choice.kind == "JOKER"
                 and joker_count >= joker_slots
@@ -125,8 +132,8 @@ class LivePackActionGenerator:
         # one of its visible Jokers. In particular, Joker Stencil's temporary value
         # from an empty slot may influence which Joker is preferred, but must never
         # make the agent throw away the whole pack while capacity is available.
-        # Full-roster Buffoon packs keep Skip because replacement requires a
-        # separate sell action.
+        # Full-roster Buffoon packs keep Skip available so policy can reject all
+        # visible replacements without sacrificing an incumbent.
         force_joker_pick = (
             phase == "BUFFOON_PACK"
             and has_free_joker_slot
