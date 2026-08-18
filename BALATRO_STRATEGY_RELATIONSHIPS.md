@@ -115,26 +115,26 @@ A component must not be duplicated between a parent and child row. If it is spec
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Stone | Stone `[I]` | TBD | TBD | TBD | TBD | The Tower | TBD | TBD | Stone |
-| Stone | ↳ Marble Joker + Stone Joker Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Stone | ↳ Marble Joker + Vampire Stone Feed `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Stone | ↳ DNA + Stone Joker Duplication `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Cryptid | TBD |
-| Stone | ↳ Stone High Card `[L]` | TBD | TBD | TBD | TBD | TBD | Pluto | TBD | TBD |
-| Glass | Glass `[I]` | TBD | TBD | TBD | TBD | Justice | TBD | TBD | Glass |
-| Glass | ↳ Glass Joker Breakage Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Glass | ↳ Glass Retrigger Scoring `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Cryptid | TBD |
-| Steel | Steel `[I]` | TBD | TBD | TBD | TBD | The Chariot | TBD | TBD | Steel |
-| Steel | ↳ Steel Joker Density Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Steel | ↳ Mime Steel Retrigger `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Deja Vu | TBD |
-| Lucky | Lucky `[I]` | TBD | TBD | TBD | TBD | The Magician | TBD | TBD | Lucky |
-| Lucky | ↳ Lucky Cat Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Lucky | ↳ Lucky Cat + Oops! All 6s `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Lucky | ↳ Lucky Retrigger `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Deja Vu | TBD |
-| Gold Cards | Gold Cards `[I]` | TBD | TBD | TBD | TBD | The Devil | TBD | Talisman | Gold |
-| Gold Cards | ↳ Held Gold + Mime Economy `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | Deja Vu | TBD |
-| Gold Cards | ↳ Golden Ticket Gold Scoring `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Gold Cards | ↳ Midas Mask Gold Generation `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Gold Cards | ↳ Midas Mask + Golden Ticket Economy `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Stone | Stone `[I]` | — | — | — | — | The Tower; Death | — | Cryptid | Stone |
+| Stone | ↳ Marble Joker + Stone Joker Scaling `[L]` | Marble Joker; Stone Joker *(with Marble)* | Hologram; Driver's License *(with Marble)* | Blue Joker; Certificate *(with Marble)* | — | — | — | — | — |
+| Stone | ↳ Marble Joker + Vampire Stone Feed `[L]` | Marble Joker; Vampire *(with Marble + Stone shell)* | Hologram *(with Marble)* | Certificate *(with Marble)* | — | — | — | — | — |
+| Stone | ↳ DNA + Stone Joker Duplication `[L]` | DNA *(with Stone shell)* | Hologram; Stone Joker *(with Stone shell)* | Certificate; Blue Joker *(with Stone shell)* | — | — | — | — | — |
+| Stone | ↳ Stone High Card `[L]` | — | Half Joker; Burnt Joker; Card Sharp; Supernova *(with Stone shell)* | Blue Joker; Raised Fist *(with Stone shell)* | — | — | Pluto | — | — |
+| Glass | Glass `[I]` | — | — | — | Vampire; Midas Mask | Justice; Death | — | Cryptid; Ankh | Glass |
+| Glass | ↳ Glass Joker Breakage Scaling `[L]` | Glass Joker | DNA; Hologram *(with Glass shell)* | Certificate *(with Glass shell)* | — | — | — | — | — |
+| Glass | ↳ Glass Retrigger Scoring `[L]` | Hanging Chad *(with Glass shell)* | Dusk; Seltzer; Sock and Buskin; Hack *(with Glass shell)* | Splash; DNA; Hologram *(with Glass shell)* | — | — | — | Deja Vu | — |
+| Steel | Steel `[I]` | — | — | — | Vampire; Midas Mask | The Chariot; Death | — | Cryptid; Trance | Steel |
+| Steel | ↳ Steel Joker Density Scaling `[L]` | Steel Joker | DNA; Hologram *(with Steel shell)* | Certificate; Blue Joker *(with Steel shell)* | — | — | — | — | — |
+| Steel | ↳ Mime Steel Retrigger `[L]` | Mime *(with Steel shell)* | Troubadour; Juggler *(with Steel shell)* | Raised Fist; Reserved Parking; Shoot the Moon *(with Steel shell)* | — | — | — | Deja Vu | — |
+| Lucky | Lucky `[I]` | — | — | — | Vampire; Midas Mask | The Magician; Death | — | Cryptid | Lucky |
+| Lucky | ↳ Lucky Cat Scaling `[L]` | Lucky Cat | DNA; Hologram *(with Lucky shell)* | Certificate *(with Lucky shell)* | — | — | — | — | — |
+| Lucky | ↳ Lucky Cat + Oops! All 6s `[L]` | Oops! All 6s *(with Lucky Cat)* | — | Business Card *(with Lucky Cat)* | — | — | — | — | — |
+| Lucky | ↳ Lucky Retrigger `[L]` | Hanging Chad *(with Lucky shell)* | Dusk; Seltzer; Sock and Buskin; Hack *(with Lucky shell)* | DNA; Hologram *(with Lucky shell)* | — | — | — | Deja Vu | — |
+| Gold Cards | Gold Cards `[I]` | — | — | — | Vampire | The Devil; Death | — | Cryptid; Talisman | Gold |
+| Gold Cards | ↳ Held Gold + Mime Economy `[L]` | Mime *(with Gold-card shell)* | Reserved Parking; To the Moon; Bull; Bootstraps *(with Gold-card shell)* | Rocket; Cloud 9; Golden Joker *(with Gold-card shell)* | — | — | — | Deja Vu | — |
+| Gold Cards | ↳ Golden Ticket Gold Scoring `[L]` | Golden Ticket; Hanging Chad *(with Golden Ticket)* | Dusk; Seltzer; Sock and Buskin; Hack *(with Golden Ticket)* | Business Card; Bull; Bootstraps *(with Golden Ticket)* | — | — | — | — | — |
+| Gold Cards | ↳ Midas Mask Gold Generation `[L]` | Midas Mask | Pareidolia; Splash *(with Midas Mask)* | Scary Face; Smiley Face; Business Card; Reserved Parking *(with Midas Mask)* | — | — | — | — | — |
+| Gold Cards | ↳ Midas Mask + Golden Ticket Economy `[L]` | Midas Mask; Golden Ticket *(when paired)* | Hanging Chad; Dusk; Seltzer; Sock and Buskin; Hack *(with pair)* | Business Card; Bull; Bootstraps *(with pair)* | — | — | — | — | — |
 
 ## 5. Seals
 

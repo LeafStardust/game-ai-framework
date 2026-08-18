@@ -106,6 +106,8 @@ The first flat universal-strategy implementation proved current-state evidence, 
 - [x] Bound Joker-order search on late-run/Negative-edition boards and keep ordinary scoring-order optimization out of the blind-selection critical path.
 - [x] Bound every Ante-7+ D1 replan, including Small/Big blinds, to an interactive horizon/node envelope; re-observe after every real action instead of blocking on deep late-run trees.
 - [x] Apply universal-strategy alignment to Tarot/Spectral pack choices so highlighted routes such as Aces prefer aligned deck shaping over unrelated enhancement value.
+- [x] Migrate and audit the enhancement subtree: Stone, Glass, Steel, Lucky and Gold Card parents now gate route-bound support behind material matching infrastructure, with 15 ranked leaves and no off-route generic Joker seeding.
+- [x] Price cash spent while Bootstraps or Bull is owned by the scoring value lost across every paid shop-action family, in addition to ordinary interest/reserve economics.
 - [ ] Keep early Tarot/Spectral strategy-seeding available while requiring real poker-hand evidence before meaningful paid Planet investment across migrated leaves.
 - [ ] Add Red Deck / White Stake cartridge modifiers over the full universal strategy tree without redefining topology or component relationships.
 - [ ] Migrate remaining D1–D14 direct-definition lookups to inherited path semantics where required; guaranteed blind survival remains superior to strategy purity. D1 hand fit, D8 Celestial evidence and D13 tag support already honor the migrated High Card path.
@@ -118,7 +120,8 @@ The first flat universal-strategy implementation proved current-state evidence, 
 The earlier Red/White threshold freeze was performed against the pre-tree policy and is therefore **historical/provisional**, not the final v1.0 freeze.
 
 - [ ] Run the full test suite only after 1.0F is complete; re-tune only where strategy integration proves it necessary, then freeze the final Red/White D1–D14 thresholds and strategy evidence/pressure/effectiveness parameters.
-- [ ] Complete **one unseeded Red Deck / White Stake win** with no manual gameplay input after activation, normal Steam progression preserved, a complete replayable authoritative run log with decision/build/strategy rationales, and automatic OFF after the win.
+- [x] Complete **one unseeded Red Deck / White Stake win** with no manual gameplay input after activation and normal Steam progression preserved (2026-08-18, Amber Acorn; the authoritative transition records `won=true`).
+- [ ] Validate a complete replayable authoritative winning run log with decision/build/strategy rationales and automatic OFF immediately after the win. The first win exposed and fixed a `won=true`/`ROUND_EVAL` terminal-detection gap, so this finalization half of the gate still requires one live confirmation.
 
 ---
 

@@ -537,6 +537,167 @@ def _section_three_relationship(state, strategy_id: str, item: object) -> str:
     return NEUTRAL
 
 
+def _enhancement_route_is_material(
+    state,
+    enhancement: str,
+    *,
+    payoff_tokens: frozenset[str] = frozenset(),
+) -> bool:
+    target = _normalize(enhancement)
+    if any(
+        _normalize(getattr(card, "enhancement", "")) == target
+        for card in _owned_deck(state)
+    ):
+        return True
+    return bool(_owned_joker_tokens(state) & payoff_tokens)
+
+
+def _section_four_relationship(state, strategy_id: str, item: object) -> str:
+    """Resolve enhancement-leaf support only after its real engine exists."""
+    token = _item_token(item)
+    owned = _owned_joker_tokens(state)
+    stone = _enhancement_route_is_material(
+        state,
+        "Stone",
+        payoff_tokens=frozenset({"marblejoker", "stonejoker"}),
+    )
+    glass = _enhancement_route_is_material(
+        state,
+        "Glass",
+        payoff_tokens=frozenset({"glassjoker"}),
+    )
+    steel = _enhancement_route_is_material(
+        state,
+        "Steel",
+        payoff_tokens=frozenset({"steeljoker"}),
+    )
+    lucky = _enhancement_route_is_material(
+        state,
+        "Lucky",
+        payoff_tokens=frozenset({"luckycatjoker"}),
+    )
+    gold_cards = _enhancement_route_is_material(
+        state,
+        "Gold",
+        payoff_tokens=frozenset({"goldenticketjoker", "midasmaskjoker"}),
+    )
+
+    if strategy_id == "stone_marble_scaling" and "marblejoker" in owned:
+        if token == "stonejoker":
+            return GOLD
+        if token in {"hologramjoker", "driverslicensejoker"}:
+            return SILVER
+        if token in {"bluejoker", "certificatejoker"}:
+            return BRONZE
+
+    if strategy_id == "stone_marble_vampire" and "marblejoker" in owned:
+        if token == "vampirejoker" and stone:
+            return GOLD
+        if token == "hologramjoker":
+            return SILVER
+        if token == "certificatejoker":
+            return BRONZE
+
+    if strategy_id == "stone_dna_duplication" and stone:
+        if token == "dnajoker":
+            return GOLD
+        if token in {"hologramjoker", "stonejoker"}:
+            return SILVER
+        if token in {"certificatejoker", "bluejoker"}:
+            return BRONZE
+
+    if strategy_id == "stone_high_card" and stone:
+        if token in {"halfjoker", "burntjoker", "cardsharpjoker", "supernovajoker"}:
+            return SILVER
+        if token in {"bluejoker", "raisedfistjoker"}:
+            return BRONZE
+
+    if strategy_id == "glass_breakage" and glass:
+        if token in {"dnajoker", "hologramjoker"}:
+            return SILVER
+        if token == "certificatejoker":
+            return BRONZE
+
+    if strategy_id == "glass_retrigger" and glass:
+        if token == "hangingchadjoker":
+            return GOLD
+        if token in _PLAYED_CARD_RETRIGGER_JOKERS - {"hangingchadjoker"}:
+            return SILVER
+        if token in {"splashjoker", "dnajoker", "hologramjoker"}:
+            return BRONZE
+
+    if strategy_id == "steel_density" and steel:
+        if token in {"dnajoker", "hologramjoker"}:
+            return SILVER
+        if token in {"certificatejoker", "bluejoker"}:
+            return BRONZE
+
+    if strategy_id == "steel_mime" and steel:
+        if token == "mimejoker":
+            return GOLD
+        if token in {"troubadourjoker", "jugglerjoker"}:
+            return SILVER
+        if token in {"raisedfistjoker", "reservedparkingjoker", "shootthemoonjoker"}:
+            return BRONZE
+
+    if strategy_id == "lucky_cat" and lucky:
+        if token in {"dnajoker", "hologramjoker"}:
+            return SILVER
+        if token == "certificatejoker":
+            return BRONZE
+
+    if strategy_id == "lucky_cat_oops" and "luckycatjoker" in owned:
+        if token == "luckycatjoker" and "oopsall6sjoker" in owned:
+            return GOLD
+        if token == "oopsall6sjoker":
+            return GOLD
+        if token == "businesscardjoker":
+            return BRONZE
+
+    if strategy_id == "lucky_retrigger" and lucky:
+        if token == "hangingchadjoker":
+            return GOLD
+        if token in _PLAYED_CARD_RETRIGGER_JOKERS - {"hangingchadjoker"}:
+            return SILVER
+        if token in {"dnajoker", "hologramjoker"}:
+            return BRONZE
+
+    if strategy_id == "gold_cards_held_mime" and gold_cards:
+        if token == "mimejoker":
+            return GOLD
+        if token in {"reservedparkingjoker", "tothemoonjoker", "bulljoker", "bootstrapsjoker"}:
+            return SILVER
+        if token in {"rocketjoker", "cloud9joker", "goldenjoker"}:
+            return BRONZE
+
+    if strategy_id == "gold_cards_ticket" and "goldenticketjoker" in owned:
+        if token == "hangingchadjoker":
+            return GOLD
+        if token in _PLAYED_CARD_RETRIGGER_JOKERS - {"hangingchadjoker"}:
+            return SILVER
+        if token in {"businesscardjoker", "bulljoker", "bootstrapsjoker"}:
+            return BRONZE
+
+    if strategy_id == "gold_cards_midas" and "midasmaskjoker" in owned:
+        if token in {"pareidoliajoker", "splashjoker"}:
+            return SILVER
+        if token in {"scaryfacejoker", "smileyfacejoker", "businesscardjoker", "reservedparkingjoker"}:
+            return BRONZE
+
+    if strategy_id == "gold_cards_midas_ticket":
+        paired = {"midasmaskjoker", "goldenticketjoker"}.issubset(owned)
+        if not paired:
+            return NEUTRAL
+        if token in {"midasmaskjoker", "goldenticketjoker"}:
+            return GOLD
+        if token in _PLAYED_CARD_RETRIGGER_JOKERS:
+            return SILVER
+        if token in {"businesscardjoker", "bulljoker", "bootstrapsjoker"}:
+            return BRONZE
+
+    return NEUTRAL
+
+
 def _face_branch_relationship(state, strategy_id: str, item: object) -> str:
     token = _item_token(item)
     owned = _owned_joker_tokens(state)
@@ -828,6 +989,27 @@ def conditional_joker_relationship(
         section_three = _section_three_relationship(state, strategy_id, item)
         if section_three != NEUTRAL:
             return section_three
+
+    if strategy_id in {
+        "stone_marble_scaling",
+        "stone_marble_vampire",
+        "stone_dna_duplication",
+        "stone_high_card",
+        "glass_breakage",
+        "glass_retrigger",
+        "steel_density",
+        "steel_mime",
+        "lucky_cat",
+        "lucky_cat_oops",
+        "lucky_retrigger",
+        "gold_cards_held_mime",
+        "gold_cards_ticket",
+        "gold_cards_midas",
+        "gold_cards_midas_ticket",
+    }:
+        section_four = _section_four_relationship(state, strategy_id, item)
+        if section_four != NEUTRAL:
+            return section_four
 
     if strategy_id in {
         "face_photochad",

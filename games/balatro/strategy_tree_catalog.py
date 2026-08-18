@@ -68,6 +68,35 @@ SECTION_THREE_NODE_IDS = frozenset(
         "flower_pot_smeared",
     }
 )
+SECTION_FOUR_ROOT_IDS = frozenset(
+    {
+        "stone",
+        "glass",
+        "steel",
+        "lucky",
+        "gold_cards",
+    }
+)
+SECTION_FOUR_NODE_IDS = frozenset(
+    {
+        *SECTION_FOUR_ROOT_IDS,
+        "stone_marble_scaling",
+        "stone_marble_vampire",
+        "stone_dna_duplication",
+        "stone_high_card",
+        "glass_breakage",
+        "glass_retrigger",
+        "steel_density",
+        "steel_mime",
+        "lucky_cat",
+        "lucky_cat_oops",
+        "lucky_retrigger",
+        "gold_cards_held_mime",
+        "gold_cards_ticket",
+        "gold_cards_midas",
+        "gold_cards_midas_ticket",
+    }
+)
 SECTION_TWO_NODE_IDS = frozenset(
     {
         *SECTION_TWO_ROOT_IDS,
@@ -562,6 +591,145 @@ def _section_three_definitions():
     }
 
 
+def _section_four_definitions():
+    """Return enhancement strategy parents and mechanically distinct leaves.
+
+    Parents own enhancement creation and broad preservation semantics. Leaves own
+    only their defining payoff or route-specific support; conditional runtime
+    relationships prevent a generic retrigger/Mime/economy Joker from seeding an
+    enhancement route before matching cards or the defining payoff exist.
+    """
+
+    return {
+        "stone": _strategy(
+            "stone",
+            "Stone",
+            gold_consumables=("The Tower",),
+            silver_consumables=("Death", "Cryptid"),
+            directed_tarots=("The Tower", "Death"),
+            directed_spectrals=("Cryptid",),
+            preferred_enhancements=("Stone",),
+        ),
+        "stone_marble_scaling": _strategy(
+            "stone_marble_scaling",
+            "Marble Joker + Stone Joker Scaling",
+            gold_jokers=("Marble Joker",),
+        ),
+        "stone_marble_vampire": _strategy(
+            "stone_marble_vampire",
+            "Marble Joker + Vampire Stone Feed",
+            gold_jokers=("Marble Joker",),
+        ),
+        "stone_dna_duplication": _strategy(
+            "stone_dna_duplication",
+            "DNA + Stone Joker Duplication",
+        ),
+        "stone_high_card": _strategy(
+            "stone_high_card",
+            "Stone High Card",
+            "HIGH_CARD",
+            gold_planets=("Pluto",),
+        ),
+        "glass": _strategy(
+            "glass",
+            "Glass",
+            banned_jokers=("Vampire", "Midas Mask"),
+            gold_consumables=("Justice",),
+            silver_consumables=("Death", "Cryptid", "Ankh"),
+            directed_tarots=("Justice", "Death"),
+            directed_spectrals=("Cryptid", "Ankh"),
+            preferred_enhancements=("Glass",),
+        ),
+        "glass_breakage": _strategy(
+            "glass_breakage",
+            "Glass Joker Breakage Scaling",
+            gold_jokers=("Glass Joker",),
+        ),
+        "glass_retrigger": _strategy(
+            "glass_retrigger",
+            "Glass Retrigger Scoring",
+            silver_consumables=("Deja Vu",),
+            directed_spectrals=("Deja Vu",),
+        ),
+        "steel": _strategy(
+            "steel",
+            "Steel",
+            banned_jokers=("Vampire", "Midas Mask"),
+            gold_consumables=("The Chariot",),
+            silver_consumables=("Death", "Cryptid", "Trance"),
+            directed_tarots=("The Chariot", "Death"),
+            directed_spectrals=("Cryptid", "Trance"),
+            preferred_enhancements=("Steel",),
+        ),
+        "steel_density": _strategy(
+            "steel_density",
+            "Steel Joker Density Scaling",
+            gold_jokers=("Steel Joker",),
+        ),
+        "steel_mime": _strategy(
+            "steel_mime",
+            "Mime Steel Retrigger",
+            silver_consumables=("Deja Vu",),
+            directed_spectrals=("Deja Vu",),
+        ),
+        "lucky": _strategy(
+            "lucky",
+            "Lucky",
+            banned_jokers=("Vampire", "Midas Mask"),
+            gold_consumables=("The Magician",),
+            silver_consumables=("Death", "Cryptid"),
+            directed_tarots=("The Magician", "Death"),
+            directed_spectrals=("Cryptid",),
+            preferred_enhancements=("Lucky",),
+        ),
+        "lucky_cat": _strategy(
+            "lucky_cat",
+            "Lucky Cat Scaling",
+            gold_jokers=("Lucky Cat",),
+        ),
+        "lucky_cat_oops": _strategy(
+            "lucky_cat_oops",
+            "Lucky Cat + Oops! All 6s",
+        ),
+        "lucky_retrigger": _strategy(
+            "lucky_retrigger",
+            "Lucky Retrigger",
+            silver_consumables=("Deja Vu",),
+            directed_spectrals=("Deja Vu",),
+        ),
+        "gold_cards": _strategy(
+            "gold_cards",
+            "Gold Cards",
+            banned_jokers=("Vampire",),
+            gold_consumables=("The Devil",),
+            silver_consumables=("Death", "Cryptid", "Talisman"),
+            directed_tarots=("The Devil", "Death"),
+            directed_spectrals=("Cryptid", "Talisman"),
+            preferred_enhancements=("Gold",),
+        ),
+        "gold_cards_held_mime": _strategy(
+            "gold_cards_held_mime",
+            "Held Gold + Mime Economy",
+            silver_consumables=("Deja Vu",),
+            directed_spectrals=("Deja Vu",),
+        ),
+        "gold_cards_ticket": _strategy(
+            "gold_cards_ticket",
+            "Golden Ticket Gold Scoring",
+            gold_jokers=("Golden Ticket",),
+        ),
+        "gold_cards_midas": _strategy(
+            "gold_cards_midas",
+            "Midas Mask Gold Generation",
+            gold_jokers=("Midas Mask",),
+        ),
+        "gold_cards_midas_ticket": _strategy(
+            "gold_cards_midas_ticket",
+            "Midas Mask + Golden Ticket Economy",
+        ),
+    }
+
+
 _tree_definitions = dict(UNIVERSAL_BALATRO_STRATEGIES)
 for _strategy_id in SECTION_ONE_ROOT_IDS:
     _tree_definitions.pop(_strategy_id, None)
@@ -569,9 +737,12 @@ for _strategy_id in SECTION_TWO_ROOT_IDS:
     _tree_definitions.pop(_strategy_id, None)
 for _strategy_id in SECTION_THREE_ROOT_IDS:
     _tree_definitions.pop(_strategy_id, None)
+for _strategy_id in SECTION_FOUR_ROOT_IDS:
+    _tree_definitions.pop(_strategy_id, None)
 _tree_definitions.update(_section_one_definitions())
 _tree_definitions.update(_section_two_definitions())
 _tree_definitions.update(_section_three_definitions())
+_tree_definitions.update(_section_four_definitions())
 
 TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES = MappingProxyType(_tree_definitions)
 
@@ -658,6 +829,26 @@ _runtime_nodes = [
         "Smeared Joker + Flower Pot",
         parent_strategy_id="flower_pot",
     ),
+    StrategyNodeSpec("stone", "Stone"),
+    StrategyNodeSpec("stone_marble_scaling", "Marble Joker + Stone Joker Scaling", parent_strategy_id="stone"),
+    StrategyNodeSpec("stone_marble_vampire", "Marble Joker + Vampire Stone Feed", parent_strategy_id="stone"),
+    StrategyNodeSpec("stone_dna_duplication", "DNA + Stone Joker Duplication", parent_strategy_id="stone"),
+    StrategyNodeSpec("stone_high_card", "Stone High Card", parent_strategy_id="stone"),
+    StrategyNodeSpec("glass", "Glass"),
+    StrategyNodeSpec("glass_breakage", "Glass Joker Breakage Scaling", parent_strategy_id="glass"),
+    StrategyNodeSpec("glass_retrigger", "Glass Retrigger Scoring", parent_strategy_id="glass"),
+    StrategyNodeSpec("steel", "Steel"),
+    StrategyNodeSpec("steel_density", "Steel Joker Density Scaling", parent_strategy_id="steel"),
+    StrategyNodeSpec("steel_mime", "Mime Steel Retrigger", parent_strategy_id="steel"),
+    StrategyNodeSpec("lucky", "Lucky"),
+    StrategyNodeSpec("lucky_cat", "Lucky Cat Scaling", parent_strategy_id="lucky"),
+    StrategyNodeSpec("lucky_cat_oops", "Lucky Cat + Oops! All 6s", parent_strategy_id="lucky"),
+    StrategyNodeSpec("lucky_retrigger", "Lucky Retrigger", parent_strategy_id="lucky"),
+    StrategyNodeSpec("gold_cards", "Gold Cards"),
+    StrategyNodeSpec("gold_cards_held_mime", "Held Gold + Mime Economy", parent_strategy_id="gold_cards"),
+    StrategyNodeSpec("gold_cards_ticket", "Golden Ticket Gold Scoring", parent_strategy_id="gold_cards"),
+    StrategyNodeSpec("gold_cards_midas", "Midas Mask Gold Generation", parent_strategy_id="gold_cards"),
+    StrategyNodeSpec("gold_cards_midas_ticket", "Midas Mask + Golden Ticket Economy", parent_strategy_id="gold_cards"),
 ]
 _runtime_nodes.extend(
     StrategyNodeSpec(strategy_id, definition.name)
@@ -685,6 +876,7 @@ _runtime_nodes.extend(
         "flower_pot",
         "flower_pot_splash",
         "flower_pot_smeared",
+        *SECTION_FOUR_NODE_IDS,
     }
 )
 
