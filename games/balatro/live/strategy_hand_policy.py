@@ -60,21 +60,23 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         if self._ranking_state is None:
             return base
         fit, _ = self._strategy_fit(self._ranking_state, plan.action)
-        return (base[0], base[1], fit, *base[2:])
+        # BuildAware D1 places held Steel/Blue-Seal preservation at base[2].
+        # Universal strategy fit must not jump ahead of that public card value.
+        return (base[0], base[1], base[2], fit, *base[3:])
 
     def _safe_equivalent_clear_key(self, plan):
         base = super()._safe_equivalent_clear_key(plan)
         if self._ranking_state is None:
             return base
         fit, _ = self._strategy_fit(self._ranking_state, plan.action)
-        return (base[0], base[1], fit, *base[2:])
+        return (base[0], base[1], base[2], fit, *base[3:])
 
     def _pace_play_key(self, plan, pace_ratio: float):
         base = super()._pace_play_key(plan, pace_ratio)
         if self._ranking_state is None:
             return base
         fit, _ = self._strategy_fit(self._ranking_state, plan.action)
-        return (base[0], base[1], fit, *base[2:])
+        return (base[0], base[1], base[2], fit, *base[3:])
 
     def _strategy_fit(self, state, action) -> tuple[float, tuple[str, ...]]:
         if action.name == PLAY_CARDS:

@@ -100,6 +100,7 @@ The first flat universal-strategy implementation proved current-state evidence, 
 - [x] Keep strategy evidence separate from candidate purchase/retention value: candidate tree projection can reveal a pivot, but a candidate cannot fund its own current-strategy purchase bonus before it is owned.
 - [x] Separate portable universal Joker value from route-bound strategy value. Portable mapped Jokers retain intrinsic value; only mechanically route-bound Jokers receive dynamic `OFF_PATH` pressure.
 - [x] Enforce exclusive dominant-strategy behavior from Ante 6: secondary strategies remain diagnostic but cannot add purchase value, prescribe hands, or authorize pivots.
+- [x] Keep exact held Steel/Blue-Seal preservation ahead of universal hand-strategy fit when D1 clear safety and hand efficiency are equivalent.
 - [x] Add autonomous Joker-board reordering through the validated injected action, including Blueprint/Brainstorm copy targeting, additive-before-XMult scoring, and projected Ceremonial Dagger sacrifice.
 - [x] Add authoritative pre-play hand reordering so Hanging Chad and Photograph place the strongest scoring trigger first, then replan before committing the play.
 - [x] Bound Joker-order search on late-run/Negative-edition boards and keep ordinary scoring-order optimization out of the blind-selection critical path.

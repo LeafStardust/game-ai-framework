@@ -149,6 +149,30 @@ def test_d1_hand_efficiency_stays_above_strategy_among_guaranteed_clears():
     assert selected is more_efficient_high_card
 
 
+def test_d1_held_steel_value_stays_above_strategy_fit_for_equal_clears():
+    state = _state()
+    steel_ace = BalatroCard("A", "Spades", enhancement="Steel")
+    plain_ace = BalatroCard("A", "Hearts")
+    king = BalatroCard("K", "Clubs")
+    queen = BalatroCard("Q", "Diamonds")
+    state.hand = [steel_ace, plain_ace, king, queen]
+    policy = _policy(state)
+    aligned_pair = _plan(
+        BalatroAction(PLAY_CARDS, [steel_ace, plain_ace]),
+        clear_probability=1.0,
+        expected_hands_remaining=3.0,
+    )
+    preserve_steel = _plan(
+        BalatroAction(PLAY_CARDS, [king, queen]),
+        clear_probability=1.0,
+        expected_hands_remaining=3.0,
+    )
+
+    selected = _select(policy, state, aligned_pair, preserve_steel)
+
+    assert selected is preserve_steel
+
+
 def test_d1_discard_shaping_preserves_dominant_pair_structure():
     state = _state()
     ace_spades = BalatroCard("A", "Spades")
