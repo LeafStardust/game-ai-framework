@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from games.balatro.live.hand_action_policy import HandActionThresholds
+from games.balatro.hand_order_policy import HandOrderPolicy
 from games.balatro.live.blind_clear_planner import (
     LiveBlindPlan,
     PlannerSearchBudgetExceeded,
@@ -109,6 +110,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
         self.unlock_campaign_policy = UnlockCampaignPolicy(
             unlock_campaign_config or UnlockCampaignConfig(),
         )
+        self.hand_order_policy = HandOrderPolicy()
         joker_transition_planner = StrategyAwareJokerBuildTransitionPlanner(
             evaluator=joker_build_value,
         )
@@ -200,6 +202,39 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
                             "permutation": list(order_decision.permutation),
                             "current_score": float(order_decision.current_score),
                             "ordered_score": float(order_decision.ordered_score),
+                        },
+                    },
+                )
+        if str(decision.source) == "D1 hand-action policy":
+            engine = self.last_hand_action_engine
+            evaluator = engine.planner.evaluator if engine is not None else None
+            hand_order = self.hand_order_policy.recommend(
+                decision.state,
+                decision.action,
+                evaluator=evaluator,
+            )
+            if hand_order is not None:
+                decision = replace(
+                    decision,
+                    action=hand_order.to_action(),
+                    source="Hand-order policy",
+                    notes=hand_order.rationale,
+                    decision_diagnostics={
+                        "layer": "HAND_ORDER",
+                        "selected": {
+                            "permutation": list(hand_order.permutation),
+                            "current_guaranteed_score": int(
+                                hand_order.current_guaranteed_score
+                            ),
+                            "ordered_guaranteed_score": int(
+                                hand_order.ordered_guaranteed_score
+                            ),
+                            "current_expected_score": float(
+                                hand_order.current_expected_score
+                            ),
+                            "ordered_expected_score": float(
+                                hand_order.ordered_expected_score
+                            ),
                         },
                     },
                 )

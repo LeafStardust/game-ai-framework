@@ -226,6 +226,9 @@ class FirstPartyBalatroBridge:
     def reorder_jokers(self, indices: Iterable[int]) -> None:
         self._call("REORDER_JOKERS", _validated_indices(indices))
 
+    def reorder_hand(self, indices: Iterable[int]) -> None:
+        self._call("REORDER_HAND", _validated_indices(indices))
+
     def select_pack_card(
         self,
         index: int,

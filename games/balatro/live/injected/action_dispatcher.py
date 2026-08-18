@@ -14,6 +14,7 @@ from games.balatro.actions import (
     END_SHOP,
     PLAY_CARDS,
     REFRESH_SHOP,
+    REORDER_HAND,
     REORDER_JOKERS,
     SELECT_BLIND,
     SELECT_PACK_CARD,
@@ -164,6 +165,55 @@ def _joker_live_id_order(
     except TypeError:
         return None
     return tuple(live_ids)
+
+
+def _hand_live_id_order(
+    snapshot: LiveBalatroSnapshot,
+) -> tuple[object, ...] | None:
+    cards = _area_cards(snapshot, "hand")
+    live_ids: list[object] = []
+    for card in cards:
+        if not isinstance(card, dict):
+            return None
+        live_id = card.get("live_id")
+        if live_id is None:
+            return None
+        live_ids.append(live_id)
+    try:
+        if len(set(live_ids)) != len(live_ids):
+            return None
+    except TypeError:
+        return None
+    return tuple(live_ids)
+
+
+def _hand_reorder_plan(
+    before: LiveBalatroSnapshot,
+    action: BalatroAction,
+) -> tuple[tuple[int, ...], tuple[object, ...], tuple[object, ...]]:
+    before_order = _hand_live_id_order(before)
+    if before_order is None:
+        raise UnsupportedInjectedAction(
+            "hand reorder requires unique authoritative live card identities"
+        )
+    count = len(before_order)
+    if count < 2:
+        raise UnsupportedInjectedAction("hand reorder requires at least two cards")
+    if not isinstance(action.target, (list, tuple)):
+        raise UnsupportedInjectedAction(
+            "REORDER_HAND target must be a full hand-index permutation"
+        )
+    permutation = tuple(action.target)
+    if any(isinstance(value, bool) or not isinstance(value, int) for value in permutation):
+        raise UnsupportedInjectedAction("hand reorder indices must be integers")
+    if len(permutation) != count or set(permutation) != set(range(count)):
+        raise UnsupportedInjectedAction(
+            "hand reorder target must contain every current index exactly once"
+        )
+    expected = tuple(before_order[index] for index in permutation)
+    if expected == before_order:
+        raise UnsupportedInjectedAction("hand order is unchanged")
+    return permutation, before_order, expected
 
 
 def _joker_reorder_plan(
@@ -720,6 +770,38 @@ class LiveMemoryInjectedActionDispatcher:
                     "permutation": permutation,
                     "joker_order_before": before_order,
                     "joker_order_after": expected_order,
+                },
+            )
+
+        if name == REORDER_HAND:
+            if before.phase != "SELECTING_HAND":
+                raise UnsupportedInjectedAction(
+                    f"REORDER_HAND requires SELECTING_HAND, observed {before.phase}"
+                )
+            permutation, before_order, expected_order = _hand_reorder_plan(
+                before,
+                action,
+            )
+            self.bridge.reorder_hand(permutation)
+
+            after = self._wait(
+                before,
+                lambda value: (
+                    value.sequence > before.sequence
+                    and value.phase == "SELECTING_HAND"
+                    and value.state_complete
+                    and _hand_live_id_order(value) == expected_order
+                ),
+                "hand reorder",
+            )
+            return LiveInjectedActionResult(
+                action,
+                before,
+                after,
+                {
+                    "permutation": permutation,
+                    "hand_order_before": before_order,
+                    "hand_order_after": expected_order,
                 },
             )
 

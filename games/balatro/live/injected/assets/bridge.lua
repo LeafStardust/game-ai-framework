@@ -163,7 +163,7 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   end
 
   local function bridge_status()
-    return "bridge=2;bridge_revision=4;blind_skip=1;achievement_gate=" .. achievement_gate_state()
+    return "bridge=2;bridge_revision=5;blind_skip=1;hand_reorder=1;achievement_gate=" .. achievement_gate_state()
       .. ";restart_run_callback=" .. restart_run_callback_state()
       .. ";command_pump=LOVE_RUN_PRE_UPDATE"
   end
@@ -731,6 +731,52 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return true
   end
 
+  local function execute_reorder_hand(payload)
+    local ready, state_error = require_state("SELECTING_HAND")
+    if not ready then
+      return false, state_error
+    end
+    if not G.hand or type(G.hand.cards) ~= "table" then
+      return false, "hand area is unavailable"
+    end
+
+    local indices, parse_error = parse_indices(payload)
+    if not indices then
+      return false, parse_error
+    end
+    local count = #G.hand.cards
+    if count < 2 then
+      return false, "hand reorder requires at least two cards"
+    end
+    if #indices ~= count then
+      return false, "hand reorder must include every card exactly once"
+    end
+
+    local reordered = {}
+    local changed = false
+    for position, index in ipairs(indices) do
+      local card = G.hand.cards[index + 1]
+      if not card then
+        return false, "hand reorder index is out of range"
+      end
+      reordered[position] = card
+      if card ~= G.hand.cards[position] then
+        changed = true
+      end
+    end
+    if not changed then
+      return false, "hand order is unchanged"
+    end
+
+    for position = 1, count do
+      G.hand.cards[position] = reordered[position]
+    end
+    if type(G.hand.align_cards) == "function" then
+      G.hand:align_cards()
+    end
+    return true
+  end
+
   local function pack_card_requires_hand_targets(card)
     local center = card and card.config and card.config.center
     local key = center and center.key
@@ -919,6 +965,10 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     elseif action == "REORDER_JOKERS" then
       executor = function()
         return execute_reorder_jokers(payload)
+      end
+    elseif action == "REORDER_HAND" then
+      executor = function()
+        return execute_reorder_hand(payload)
       end
     elseif action == "PACK_SELECT" then
       executor = function()

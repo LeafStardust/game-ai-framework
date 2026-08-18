@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Callable
 
-from games.balatro.actions import END_ROUND, SKIP_BLIND, BalatroAction
+from games.balatro.actions import END_ROUND, REORDER_HAND, SKIP_BLIND, BalatroAction
 from games.balatro.blind_skip_policy import (
     DEFAULT_BLIND_SKIP_THRESHOLD,
     DEFAULT_FALLBACK_TAG_VALUE,
@@ -60,6 +60,7 @@ class AutonomousBridgeCapabilityError(AutonomousStepGuardError):
 
 _REQUIRED_BRIDGE_CAPABILITIES = {
     SKIP_BLIND: "blind_skip",
+    REORDER_HAND: "hand_reorder",
 }
 
 
