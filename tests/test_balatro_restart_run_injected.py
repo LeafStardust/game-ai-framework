@@ -204,7 +204,7 @@ def test_bridge_restart_method_emits_control_command_without_payload():
     assert calls == [("RESTART_RUN", ())]
 
 
-def test_restart_bridge_drains_native_unlock_confirmations_before_setup():
+def test_restart_bridge_triggers_and_drains_native_unlock_queue_before_setup():
     source = (
         Path(__file__).parents[1]
         / "games"
@@ -218,9 +218,14 @@ def test_restart_bridge_drains_native_unlock_confirmations_before_setup():
     assert "bridge_revision=6" in source
     assert ";restart_unlock_drain=1" in source
     assert 'config.button == "continue_unlock"' in source
-    assert "while unlock_continue_button() do" in source
+    assert 'type(unlock_notify) ~= "function"' in source
+    assert "pcall(unlock_notify)" in source
+    assert "unlock_queue_size() > 0" in source
+    assert "pump_unlock_events()" in source
     assert "pcall(callback)" in source
     assert "unlock confirmation drain exceeded safety limit" in source
-    assert source.index("drain_unlock_confirmations()") < source.index(
+
+    restart_body = source[source.index("local function execute_restart_run()") :]
+    assert restart_body.index("drain_unlock_confirmations()") < restart_body.index(
         "G.FUNCS and G.FUNCS.start_setup_run"
     )
