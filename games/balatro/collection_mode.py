@@ -431,8 +431,10 @@ class CollectionFirstPackPolicy:
             for action in actions
             if not (
                 action.name == SELECT_PACK_CARD
-                and self._requires_free_joker_slot(action.target)
-                and full
+                and (
+                    (self._requires_free_joker_slot(action.target) and full)
+                    or not self._is_executable_targeted_action(action)
+                )
             )
         ]
         ranked = list(self.delegate.rank_actions(state, scoreable_actions))
