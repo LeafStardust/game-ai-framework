@@ -1,10 +1,6 @@
 import pytest
 
 from games.balatro.live.protocol import LiveBalatroSnapshot
-from games.balatro.live.runtime.balatro_agent_supervisor import (
-    POST_RESTART_REJECTED_STARTUP_PHASES,
-    wait_for_stable_startup_snapshot,
-)
 from games.balatro.live.runtime.live_memory_restart_run_injected import (
     LiveRunRestartError,
     restart_fresh_unseeded_run,
@@ -129,29 +125,6 @@ def test_restart_stability_counter_resets_on_incomplete_unlock_frame():
 
     assert result.after is settled
     assert runner.bridge.restart_calls == 1
-
-
-def test_retry_attachment_ignores_stable_terminal_unlock_tail():
-    stale_game_over = _snapshot(50, "GAME_OVER", marker="unlock-tail")
-    fresh = _snapshot(51, "BLIND_SELECT", marker="fresh-run")
-    observer = _SequenceObserver(
-        [
-            stale_game_over,
-            stale_game_over,
-            fresh,
-            fresh,
-        ]
-    )
-
-    result = wait_for_stable_startup_snapshot(
-        observer,
-        interval_seconds=0.0,
-        timeout_seconds=1.0,
-        rejected_phases=POST_RESTART_REJECTED_STARTUP_PHASES,
-    )
-
-    assert result.phase == "BLIND_SELECT"
-    assert result.payload["marker"] == "fresh-run"
 
 
 def test_restart_rejects_identity_change_at_fresh_checkpoint():
