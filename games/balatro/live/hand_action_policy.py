@@ -14,6 +14,7 @@ from games.balatro.live.adaptive_search import (
 from games.balatro.live.blind_clear_planner import (
     LiveBlindClearPlanner,
     LiveBlindPlan,
+    LiveBlindPlanValue,
     PlannerSearchBudgetExceeded,
 )
 from games.balatro.live.depth_draw_outcomes import DepthAwarePublicDrawOutcomeModel
@@ -563,12 +564,11 @@ class LiveHandActionPolicy:
         )
 
 
-# Compatibility name for older imports while D1 callers migrate to the clearer name.
 LiveHandActionThresholdPolicy = LiveHandActionPolicy
 
 
 class LiveHandActionDecisionEngine:
-    """Adaptive D1 search followed by the pace fallback hierarchy."""
+    """Adaptive D1 search followed by a hard-bounded pace fallback hierarchy."""
 
     CONFIRMATION_MIN_ROOT_SAMPLES = 32
     CONFIRMATION_MIN_CHILD_SAMPLES = 4
@@ -658,14 +658,9 @@ class LiveHandActionDecisionEngine:
         ]
 
     def _rank_immediate_plans(self, state) -> list[LiveBlindPlan]:
-        """Rank a bounded one-action fallback from only the current public state.
-
-        This path is used after adaptive clear-path search has exhausted its useful
-        horizon. Depth one cannot recurse into draw outcomes, while explicitly
-        retaining legal discard candidates keeps the pace-recovery hierarchy intact.
-        """
         planner = self.planner
         planner._require_state(state)
+        planner.deadline = self._search_deadline
         planner.reset_search_stats()
         candidates = planner._candidate_actions(state, allow_discards=True)
         if not candidates:
@@ -683,6 +678,69 @@ class LiveHandActionDecisionEngine:
             for estimate in estimates
         ]
 
+    def _budget_exhausted(self) -> bool:
+        return self._search_deadline is not None and perf_counter() >= self._search_deadline
+
+    def _structural_timeout_fallback(
+        self,
+        state,
+        *,
+        search_attempts: tuple[HandActionSearchAttempt, ...],
+    ) -> HandActionDecision:
+        """Return a legal bounded Play without any further Joker-aware projection."""
+        planner = self.planner
+        planner._require_state(state)
+        child_candidates = getattr(planner, "_child_play_candidates", None)
+        if callable(child_candidates):
+            plays = list(child_candidates(state, max(1, int(planner.play_width))))
+        else:
+            plays = list(planner.action_generator.generate_play_actions(state))
+        if not plays:
+            raise RuntimeError("D1 timeout fallback found no legal Play action")
+
+        action = plays[0]
+        target = float(getattr(getattr(state, "blind", None), "requirement", 0) or 0)
+        score = float(getattr(state, "score", 0) or 0)
+        progress = min(1.0, max(0.0, score / target)) if target > 0 else 0.0
+        value = LiveBlindPlanValue(
+            clear_probability=0.0,
+            expected_progress=progress,
+            expected_score=score,
+            expected_hands_remaining=float(getattr(state, "hands_remaining", 0)),
+            expected_discards_remaining=float(getattr(state, "discards_remaining", 0)),
+        )
+        plan = LiveBlindPlan(
+            action=action,
+            value=value,
+            horizon=1,
+            exact=False,
+            candidate_count=len(plays),
+        )
+        pace_target = self.policy._pace_target(state)
+        return self.policy._decision(
+            mode=PACE_RECOVERY,
+            selected=plan,
+            best_play=plan,
+            best_discard=None,
+            pace_target=pace_target,
+            best_play_immediate_score=0.0,
+            best_play_pace_ratio=0.0,
+            selected_immediate_score=None,
+            selected_pace_ratio=None,
+            selected_fallback_value=None,
+            clear_path_candidates=0,
+            sampled_clear_path_confirmed=False,
+            setup_discard_consensus=False,
+            confidence=0.25,
+            rationale=(
+                "D1 wall-clock budget exhausted before pace fallback completed",
+                "selected a bounded structural Play without further Joker-aware projection",
+                "take only this action, then re-observe and replan",
+            ),
+            plans=(plan,),
+            search_attempts=search_attempts,
+        )
+
     def _search_schedule(self, state) -> tuple[AdaptiveBlindSearchConfig, ...]:
         schedule = adaptive_blind_search_schedule(
             hands_remaining=int(getattr(state, "hands_remaining", 0)),
@@ -694,9 +752,6 @@ class LiveHandActionDecisionEngine:
             return schedule
 
         deepest_horizon = max(config.horizon for config in schedule)
-        # Keep the cheapest probe, then jump to every configuration at the deepest
-        # useful horizon. This preserves explicit same-horizon intensification while
-        # avoiding intermediate searches that the deeper pass will supersede.
         return (
             schedule[0],
             *tuple(
@@ -722,6 +777,8 @@ class LiveHandActionDecisionEngine:
                 plans = self.rank_plans(state, planner=planner)
             except PlannerSearchBudgetExceeded:
                 attempts.append(self._attempt(config, planner, confirmation=False))
+                if self._budget_exhausted():
+                    break
                 continue
 
             best = plans[0]
@@ -746,6 +803,8 @@ class LiveHandActionDecisionEngine:
 
             clear_path = self.policy.best_clear_path(plans)
             if clear_path is None:
+                if self._budget_exhausted():
+                    break
                 continue
 
             if clear_path.exact:
@@ -772,6 +831,8 @@ class LiveHandActionDecisionEngine:
                         confirmation=True,
                     )
                 )
+                if self._budget_exhausted():
+                    break
                 continue
 
             attempts.append(
@@ -787,8 +848,12 @@ class LiveHandActionDecisionEngine:
                 state,
                 clear_path.action,
             ):
+                if self._budget_exhausted():
+                    break
                 continue
             if not self.policy._meets_clear_floor(confirmed):
+                if self._budget_exhausted():
+                    break
                 continue
 
             confirmed_plans = self._replace_matching_plan(
@@ -816,16 +881,32 @@ class LiveHandActionDecisionEngine:
             tuple(summaries),
             minimum_agreement=self.policy.thresholds.setup_discard_consensus_agreement,
         )
+        attempts_tuple = tuple(attempts)
 
-        # No credible adaptive search survived the exact/sampled confirmation gate.
-        # Pace/recovery needs broad current-action coverage, not another recursive
-        # draw search. Go directly to the bounded one-action beam so autonomy cannot
-        # spend a second search budget re-proving that no clear path was confirmed.
-        fallback_plans = self._rank_immediate_plans(state)
+        if self._budget_exhausted():
+            return self._structural_timeout_fallback(
+                state,
+                search_attempts=attempts_tuple,
+            )
+
+        try:
+            fallback_plans = self._rank_immediate_plans(state)
+        except PlannerSearchBudgetExceeded:
+            return self._structural_timeout_fallback(
+                state,
+                search_attempts=attempts_tuple,
+            )
+
+        if self._budget_exhausted():
+            return self._structural_timeout_fallback(
+                state,
+                search_attempts=attempts_tuple,
+            )
+
         return self.policy.decide(
             state,
             fallback_plans,
-            search_attempts=tuple(attempts),
+            search_attempts=attempts_tuple,
             setup_discard_consensus=consensus,
         )
 
@@ -836,14 +917,6 @@ class LiveHandActionDecisionEngine:
         *,
         planner: LiveBlindClearPlanner,
     ) -> LiveBlindPlan:
-        """Re-evaluate only the sampled first action under stronger sampling.
-
-        Confirmation is not a second root policy search. Its purpose is to ask
-        whether the exact same first action survives a stronger same-horizon
-        public-state estimate. Recursive continuations remain fully searched by
-        the confirmation planner; only redundant root action enumeration is
-        removed.
-        """
         setattr(planner, "_confirmation_root_action", original.action)
         try:
             plans = self.rank_plans(state, planner=planner)
