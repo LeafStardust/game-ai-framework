@@ -2,6 +2,11 @@
 
 Development topology reference. Relationships and evidence weights live in [`BALATRO_STRATEGY_RELATIONSHIPS.md`](BALATRO_STRATEGY_RELATIONSHIPS.md). Scoring/propagation rules live in [`BALATRO_STRATEGY_TREE_RULES.md`](BALATRO_STRATEGY_TREE_RULES.md).
 
+Implementation status:
+- **Part 4 / Section 4 — Enhancements: IMPLEMENTED.** All 5 enhancement roots and 15 specialization leaves are runtime-migrated, tree-scored, and guarded against generic support seeding a route before matching enhancement/payoff infrastructure exists.
+- **Part 5 / Section 5 — Seals: IMPLEMENTED.** All 6 seal nodes are present in the runtime forest. Red-Seal played/held support and Blue/Purple/Gold Seal engines are conditionally activated from matching live deck state instead of static Joker ownership alone.
+- Sections 6–12 are also present in the current runtime forest; this file remains the canonical frozen topology rather than a progress checklist.
+
 Legend:
 - `[I]` indexed strategy with specialized descendants.
 - `[L]` specialization with no descendants.
@@ -80,7 +85,9 @@ Flower Pot Multi-Suit [I]
 └── Smeared Joker + Flower Pot [L]
 ```
 
-## 4. Enhancement strategies
+## 4. Enhancement strategies — runtime implemented
+
+All 20 Section 4 nodes below are wired into the runtime topology. Indexed parents own the shared enhancement shell; specialization-only Joker evidence is factored into the leaves and is conditionally gated so generic support cannot seed an enhancement route by itself.
 
 ```text
 Stone [I]
@@ -109,7 +116,9 @@ Gold Cards [I]
 └── Midas Mask + Golden Ticket Economy [L]
 ```
 
-## 5. Seal strategies
+## 5. Seal strategies — runtime implemented
+
+Section 5 is implemented as six runtime nodes. Red Seal remains the only indexed seal parent because played and held retriggers are mechanically distinct. Blue, Purple, and Gold Seal routes are standalone leaves. Support relationships activate only when a matching seal/card context is materially present.
 
 ```text
 Red Seal [I]
@@ -286,4 +295,4 @@ Joker Stencil, and Swashbuckler) are collapsed into leaves. This preserves their
 mechanics while satisfying the global rule that an indexed parent must expose at
 least two genuine specializations.
 
-**Topology frozen for v1.0F unless deterministic/live validation proves a defect.**
+**Topology frozen for v1.0F; Sections 4 and 5 are now runtime implemented. Further topology changes require deterministic/live validation proving a defect.**
