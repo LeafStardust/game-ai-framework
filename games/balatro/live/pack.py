@@ -90,6 +90,8 @@ class LivePackActionGenerator:
         actions: list[BalatroAction] = []
         joker_slots = int(getattr(state, "joker_slots", 0))
         joker_count = len(getattr(state, "jokers", []))
+        has_free_joker_slot = joker_count < joker_slots
+        has_selectable_joker = False
 
         for choice in choices:
             # Balatro cannot take another Joker from a Buffoon pack when all Joker
@@ -101,9 +103,24 @@ class LivePackActionGenerator:
                 and not self.include_capacity_blocked_jokers
             ):
                 continue
+            if choice.kind == "JOKER" and has_free_joker_slot:
+                has_selectable_joker = True
             actions.append(BalatroAction(SELECT_PACK_CARD, target=choice))
 
-        # Every normal booster-pack screen exposes Skip. The executor still requires
-        # the exact live skip_booster/can_skip_booster identity before it can click.
-        actions.append(BalatroAction(SKIP_BOOSTER))
+        # A Buffoon pack with a genuinely free Joker slot should resolve by taking
+        # one of its visible Jokers. In particular, Joker Stencil's temporary value
+        # from an empty slot may influence which Joker is preferred, but must never
+        # make the agent throw away the whole pack while capacity is available.
+        # Full-roster Buffoon packs keep Skip because replacement requires a
+        # separate sell action.
+        force_joker_pick = (
+            phase == "BUFFOON_PACK"
+            and has_free_joker_slot
+            and has_selectable_joker
+        )
+        if not force_joker_pick:
+            # Every normal booster-pack screen exposes Skip. The executor still
+            # requires the exact live skip_booster/can_skip_booster identity before
+            # it can click.
+            actions.append(BalatroAction(SKIP_BOOSTER))
         return actions
