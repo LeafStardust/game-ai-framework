@@ -43,6 +43,7 @@ DEFAULT_STARTUP_STABILITY_INTERVAL_SECONDS = 0.10
 DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS = 20.0
 DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS = 10.0
 POST_WIN_STOP_PHASES = frozenset({"ROUND_EVAL", "GAME_OVER"})
+POST_RESTART_REJECTED_STARTUP_PHASES = frozenset({"ROUND_EVAL", "GAME_OVER"})
 
 
 class BalatroAgentSupervisorError(RuntimeError):
@@ -94,12 +95,22 @@ def wait_for_stable_startup_snapshot(
     *,
     interval_seconds: float = DEFAULT_STARTUP_STABILITY_INTERVAL_SECONDS,
     timeout_seconds: float = DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS,
+    rejected_phases: frozenset[str] = frozenset(),
 ):
-    """Return two-consecutive-equal settled public snapshots before identity lock."""
+    """Return a settled public snapshot acceptable for attempt startup.
+
+    Normal first attachment accepts any complete stable state so the agent can be
+    enabled mid-run. After an automatic loss restart, callers reject terminal
+    phases: unlock notifications are event-queue driven and a stale GAME_OVER or
+    ROUND_EVAL frame can briefly resurface while the fresh run finishes settling.
+    Such a frame must never become the next attempt's startup checkpoint.
+    """
     if interval_seconds < 0:
         raise ValueError("startup stability interval cannot be negative")
     if timeout_seconds <= 0:
         raise ValueError("startup stability timeout must be positive")
+
+    rejected = {str(phase) for phase in rejected_phases}
 
     # A fresh attempt deliberately constructs a fresh observer. Its first live
     # process-memory observation may include cold process attachment and G-table
@@ -119,6 +130,7 @@ def wait_for_stable_startup_snapshot(
         if (
             previous.state_complete
             and current.state_complete
+            and str(current.phase) not in rejected
             and _same_snapshot(previous, current)
         ):
             return current
@@ -403,6 +415,11 @@ class BalatroAgentSupervisor:
                         observer,
                         interval_seconds=self.startup_stability_interval_seconds,
                         timeout_seconds=self.startup_stability_timeout_seconds,
+                        rejected_phases=(
+                            POST_RESTART_REJECTED_STARTUP_PHASES
+                            if attempt_number > 1
+                            else frozenset()
+                        ),
                     )
                     deck, stake, playbook = self._run_identity(initial)
                     runner = self._instrument_runner(
@@ -434,39 +451,22 @@ class BalatroAgentSupervisor:
                         deck=deck,
                         stake=stake,
                         phase=str(initial.phase),
-                        checkpoint_sequence=int(initial.sequence),
-                        detail="initial checkpoint settled; autonomous loop starting",
+                        detail="settled checkpoint verified; autonomous attempt starting",
                     )
 
-                    resume_won_run = _is_resumable_won_run(initial)
-                    initial_terminal_reason = _terminal_stop_reason(
-                        initial,
-                        resume_won_run=resume_won_run,
-                    )
-                    if initial_terminal_reason is not None:
+                    initial_terminal = _terminal_stop_reason(initial)
+                    if initial_terminal is not None and not _is_resumable_won_run(initial):
                         run = AutonomousLoopRun(
-                            (),
-                            initial_terminal_reason,
+                            steps=(),
+                            stop_reason=initial_terminal,
                         )
-                        final_snapshot = initial
                     else:
-                        def log_transition(decision, result, _status):
-                            log_successful_live_transition(
-                                decision,
-                                result,
-                                run_id=run_id,
-                                directory=self.run_log_directory,
-                            )
-
-                        loop = LiveMemoryInjectedAutonomousLoop(
+                        loop = self.loop_factory(
                             runner,
-                            max_steps=None,
-                            stop_requested=self.control.stop_requested,
-                            resume_won_run=resume_won_run,
-                            on_transition=log_transition,
+                            run_id=run_id,
+                            logger=self.logger_factory(run_id),
                         )
-                        run = loop.execute(expected_start_phase=str(initial.phase))
-                        final_snapshot = observer.observe()
+                        run = loop.run()
 
                     attempt = self._record_attempt(
                         number=attempt_number,
@@ -475,27 +475,6 @@ class BalatroAgentSupervisor:
                         stake=stake,
                         playbook=playbook,
                         run=run,
-                    )
-                    finalize_live_run(
-                        final_snapshot,
-                        run_id=run_id,
-                        deck=deck,
-                        stake=stake,
-                        playbook=str(playbook.name),
-                        playbook_version=str(playbook.version),
-                        won=attempt.outcome == "WIN",
-                        reason=attempt.stop_reason,
-                        directory=self.run_log_directory,
-                    )
-
-                    self._publish_telemetry(
-                        "ATTEMPT_FINISHED",
-                        attempt=attempt_number,
-                        run_id=run_id,
-                        deck=deck,
-                        stake=stake,
-                        outcome=attempt.outcome,
-                        detail=attempt.stop_reason,
                     )
 
                     if attempt.outcome == "WIN":
@@ -511,99 +490,96 @@ class BalatroAgentSupervisor:
                     if attempt.outcome != "LOSS":
                         return self._finish(
                             won=False,
-                            stop_reason=run.stop_reason,
+                            stop_reason=(
+                                "autonomous attempt stopped without a terminal loss: "
+                                + attempt.stop_reason
+                            ),
                         )
                     if not self.retry_losses:
                         return self._finish(
                             won=False,
-                            stop_reason="run lost; retry disabled",
+                            stop_reason="target run lost; automatic retry disabled",
                         )
 
-                    self.control.write_status(
-                        "RESTARTING",
-                        pid=pid,
-                        session_id=self.session_id,
-                        attempt=attempt_number,
-                        run_id=run_id,
-                        deck=deck,
-                        stake=stake,
-                    )
                     self._publish_telemetry(
                         "RESTARTING",
                         attempt=attempt_number,
                         run_id=run_id,
                         deck=deck,
                         stake=stake,
-                        detail="loss confirmed; starting fresh same-deck/stake run",
+                        detail=(
+                            "loss recorded; draining unlock confirmations and requesting "
+                            "fresh same-deck/stake run"
+                        ),
                     )
                     try:
                         self.restart_run(runner, deck, stake)
-                    except (LiveRunRestartError, InjectedBridgeError) as error:
+                    except (InjectedBridgeError, LiveRunRestartError, OSError, RuntimeError) as error:
                         return self._finish(
                             won=False,
-                            stop_reason=f"RESTART_FAILED: {error}",
+                            stop_reason=f"loss restart blocked: {error}",
                         )
 
                 attempt_number += 1
-        except Exception as error:
-            active = self.control.read_status()
+        except Exception:
             self.control.mark_off(
-                reason=f"supervisor failure: {error}",
+                reason="supervisor crashed",
                 session_id=self.session_id,
-                won=False,
-                attempts=len(self._attempts),
-                attempt=active.get("attempt"),
-                run_id=active.get("run_id"),
-                deck=active.get("deck"),
-                stake=active.get("stake"),
-                playbook=active.get("playbook"),
-                playbook_version=active.get("playbook_version"),
-                phase=active.get("phase"),
             )
             raise
 
 
-def main() -> int:
+class BalatroAgentSupervisorEntryPoint:
+    """Production CLI wrapper around one long-lived autonomous session."""
+
+    def __init__(self, supervisor_factory=BalatroAgentSupervisor):
+        self.supervisor_factory = supervisor_factory
+
+    def run(self, args) -> int:
+        supervisor = self.supervisor_factory(
+            control=BalatroAgentControl(args.control_dir),
+            session_id=args.session_id,
+            retry_losses=not args.no_retry_losses,
+            collection_first=args.collection_first,
+        )
+        result = supervisor.run()
+        print(
+            json.dumps(
+                {
+                    "session_id": result.session_id,
+                    "won": result.won,
+                    "attempts": len(result.attempts),
+                    "stop_reason": result.stop_reason,
+                    "summary_path": str(result.summary_path),
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Run the toggleable Balatro autonomous supervisor. It auto-selects the "
-            "deck/stake playbook from a stable public checkpoint, runs each attempt "
-            "until terminal or safe stop, retries fresh same-deck/stake attempts "
-            "after losses, and automatically disables itself after the first win."
+            "Run one long-lived Balatro autonomous session. Losses restart fresh "
+            "same-deck/stake runs; a win or manual OFF request ends the supervisor."
         )
     )
     parser.add_argument("--control-dir")
-    parser.add_argument("--run-log-directory", default="logs/balatro/runs")
-    parser.add_argument("--session-directory", default="logs/balatro/sessions")
     parser.add_argument("--session-id")
     parser.add_argument("--no-retry-losses", action="store_true")
-    args = parser.parse_args()
+    parser.add_argument("--collection-first", action="store_true")
+    return parser
 
-    control = BalatroAgentControl(args.control_dir)
-    supervisor = BalatroAgentSupervisor(
-        control=control,
-        run_log_directory=args.run_log_directory,
-        session_directory=args.session_directory,
-        session_id=args.session_id,
-        retry_losses=not args.no_retry_losses,
-    )
 
+def main() -> int:
+    args = build_parser().parse_args()
     try:
-        result = supervisor.run()
-    except Exception as error:
+        return BalatroAgentSupervisorEntryPoint().run(args)
+    except (BalatroAgentSupervisorError, OSError, RuntimeError) as error:
         print("Balatro autonomous supervisor -> FAIL")
         print(f"Reason -> {error}")
         return 2
-
-    print("Balatro autonomous supervisor -> OFF")
-    print(f"Session -> {result.session_id}")
-    print(f"Attempts -> {len(result.attempts)}")
-    print(f"Won -> {result.won}")
-    print(f"Stop reason -> {result.stop_reason}")
-    print(f"Session summary -> {result.summary_path}")
-    if result.stop_reason.startswith("RESTART_FAILED:"):
-        return 3
-    return 0
 
 
 if __name__ == "__main__":
