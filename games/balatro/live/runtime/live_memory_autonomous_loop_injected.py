@@ -295,6 +295,36 @@ class LiveMemoryInjectedAutonomousLoop:
                         "stale-state replan limit exceeded after "
                         f"{stale_replans} attempts; {error}{suffix}"
                     ) from error
+                except InjectedBridgeError as error:
+                    # The bridge has a final authoritative phase guard. Balatro can
+                    # advance into a booster pack in the tiny interval after the
+                    # runner's last stale-state check but before the command reaches
+                    # Lua. If a fresh public snapshot proves that happened, the
+                    # rejected command is safe to discard and replan. Do not mask
+                    # bridge failures while the planned public state is unchanged.
+                    if "action requires " not in str(error):
+                        raise
+                    observer = getattr(self.runner, "observer", None)
+                    if observer is None or not hasattr(observer, "observe"):
+                        raise
+                    latest = observer.observe()
+                    if _same_snapshot(decision.snapshot, latest):
+                        raise
+
+                    stale_replans += 1
+                    if stale_replans <= self.stale_replan_limit:
+                        continue
+
+                    details = _stale_difference_details(decision, latest)
+                    suffix = (
+                        "; semantic differences: " + "; ".join(details)
+                        if details
+                        else "; semantic differences unavailable on follow-up snapshot"
+                    )
+                    raise AutonomousLoopGuardError(
+                        "stale-state replan limit exceeded after bridge phase race "
+                        f"({stale_replans} attempts); {error}{suffix}"
+                    ) from error
 
                 after = result.after
                 if after.sequence <= decision.snapshot.sequence:
