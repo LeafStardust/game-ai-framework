@@ -41,6 +41,7 @@ def _diagnostic_runner_factory(
     session_id: str,
     diagnostic_directory: str,
     unlock_campaign_config: UnlockCampaignConfig | None = None,
+    collection_first: bool = False,
 ):
     runner = StrategyAwareLiveMemoryInjectedSingleStepRunner(
         observer,
@@ -49,6 +50,7 @@ def _diagnostic_runner_factory(
             timeout=DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS,
         ),
         unlock_campaign_config=unlock_campaign_config,
+        collection_first=collection_first,
     )
     original_execute = runner.execute
 
@@ -93,6 +95,14 @@ def main() -> int:
     parser.add_argument("--session-id")
     parser.add_argument("--no-retry-losses", action="store_true")
     parser.add_argument(
+        "--collection-first",
+        action="store_true",
+        help=(
+            "make permanent profile discovery/unlock progress outrank ordinary "
+            "strategy, economy and current-run win probability"
+        ),
+    )
+    parser.add_argument(
         "--unlock-joker",
         action="append",
         choices=(AUTO, *SUPPORTED_JOKER_UNLOCK_TARGETS),
@@ -115,6 +125,7 @@ def main() -> int:
             session_id=supervisor.session_id,
             diagnostic_directory=args.diagnostic_directory,
             unlock_campaign_config=unlock_campaign_config,
+            collection_first=args.collection_first,
         )
 
     supervisor = BalatroAgentSupervisor(
@@ -125,6 +136,7 @@ def main() -> int:
         session_directory=args.session_directory,
         session_id=args.session_id,
         retry_losses=not args.no_retry_losses,
+        collection_first=args.collection_first,
     )
 
     try:

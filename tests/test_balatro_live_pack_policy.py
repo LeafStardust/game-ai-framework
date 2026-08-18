@@ -97,6 +97,28 @@ def test_full_joker_slots_remove_buffoon_choices():
     assert [action.name for action in actions] == [SKIP_BOOSTER]
 
 
+def test_collection_mode_can_observe_capacity_blocked_buffoon_choice():
+    state = _state()
+    state.jokers = [object()] * state.joker_slots
+    choice = LivePackChoice(
+        area_index=0,
+        address=103,
+        data={
+            "area_index": 0,
+            "label": "Undiscovered",
+            "ability_set": "Joker",
+            "live_id": 4,
+            "discovered": False,
+        },
+    )
+
+    actions = LivePackActionGenerator(
+        include_capacity_blocked_jokers=True,
+    ).generate_actions(state, [choice])
+
+    assert [action.name for action in actions] == [SELECT_PACK_CARD, SKIP_BOOSTER]
+
+
 def test_targeted_tarot_without_a_legal_target_is_ranked_below_skip():
     choice = LivePackChoice(
         area_index=0,

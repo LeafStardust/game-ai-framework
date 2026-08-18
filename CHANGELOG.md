@@ -16,6 +16,7 @@ This file records notable development changes to the project. Active and future 
 - Autonomous Joker-board ordering for Blueprint, Brainstorm, additive/XMult placement, and projected Ceremonial Dagger sacrifice.
 - Pre-play hand ordering for first-card retriggers such as Hanging Chad and Photograph.
 - Default-off collection unlock campaigns for Hit the Road and Stuntman, guarded by authoritative unlock state and blind-clear safety.
+- Opt-in collection-first profile progression with hard priority for explicitly undiscovered visible Jokers, consumables, Vouchers, boosters, and pack choices. The mode can sell a lower-retention incumbent to free Joker or consumable capacity, and its Hit the Road/Stuntman campaigns may intentionally sacrifice the current run.
 - Live-monitor strategy diagnostics showing the dominant leaf, status, score, pressure, relevant components, and topology path.
 
 #### Changed
@@ -39,6 +40,7 @@ This file records notable development changes to the project. Active and future 
 - Corrected late-run Small/Big Blind stalls caused by unbounded hand search.
 - Stopped paid rerolls from continuing past configured cost and reserve limits.
 - Treated an authoritative `won=true` snapshot as terminal even while Balatro still reports `ROUND_EVAL`, preventing unintended entry into Endless and allowing immediate run finalization.
+- Allowed a freshly restarted agent to recognize and resume a manually continued post-win Endless run while retaining the default automatic stop at the initial Ante-8 win.
 
 #### Validation
 

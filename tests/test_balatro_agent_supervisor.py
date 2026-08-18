@@ -284,3 +284,29 @@ def test_toggle_launches_once_then_requests_cooperative_stop(tmp_path, monkeypat
     status = control.read_status()
     assert status["state"] == "STOPPING"
     assert "before the next gameplay action" in status["reason"]
+
+
+def test_toggle_threads_collection_first_mode_to_supervisor(tmp_path, monkeypatch):
+    control = BalatroAgentControl(tmp_path / "control")
+    launched = []
+
+    class _Process:
+        pid = 4343
+
+    monkeypatch.setattr(
+        toggle_module.subprocess,
+        "Popen",
+        lambda command, **_kwargs: launched.append(list(command)) or _Process(),
+    )
+    monkeypatch.setattr(toggle_module, "_repo_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        agent_control_module,
+        "_process_is_running",
+        lambda pid: pid == 4343,
+    )
+
+    state, pid = toggle_agent(control, collection_first=True)
+
+    assert state == "STARTING"
+    assert pid == 4343
+    assert launched[0][-1] == "--collection-first"

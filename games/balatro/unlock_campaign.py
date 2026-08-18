@@ -94,8 +94,14 @@ class UnlockCampaignPolicy:
     STUNTMAN_SCORE = 100_000_000
     EPSILON = 1e-12
 
-    def __init__(self, config: UnlockCampaignConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: UnlockCampaignConfig | None = None,
+        *,
+        preserve_clear_probability: bool = True,
+    ) -> None:
         self.config = config or UnlockCampaignConfig()
+        self.preserve_clear_probability = bool(preserve_clear_probability)
 
     def active_targets(self, state) -> tuple[JokerUnlockTarget, ...]:
         if not self.config.enabled:
@@ -220,6 +226,8 @@ class UnlockCampaignPolicy:
     def _preserves_clear_probability(self, baseline_plan, candidate_plan) -> bool:
         if candidate_plan is None:
             return False
+        if not self.preserve_clear_probability:
+            return True
         return (
             self._clear_probability(candidate_plan) + self.EPSILON
             >= self._clear_probability(baseline_plan)

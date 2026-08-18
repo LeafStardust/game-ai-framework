@@ -74,6 +74,29 @@ def test_hit_the_road_discards_five_jacks_only_when_clear_probability_is_preserv
     assert rejected is None
 
 
+def test_collection_first_unlock_campaign_can_sacrifice_clear_probability():
+    state = _state(HIT_THE_ROAD)
+    state.hand = [
+        BalatroCard("J", suit)
+        for suit in ("Spades", "Hearts", "Clubs", "Diamonds", "Spades")
+    ]
+    policy = UnlockCampaignPolicy(
+        UnlockCampaignConfig((HIT_THE_ROAD,)),
+        preserve_clear_probability=False,
+    )
+
+    recommendation = policy.recommend_hand(
+        state,
+        baseline_plan=_plan(1.0),
+        evaluate_forced_action=lambda _action: _plan(0.01),
+        play_actions=(),
+        project_play=lambda _action: None,
+    )
+
+    assert recommendation is not None
+    assert recommendation.action.name == DISCARD_CARDS
+
+
 def test_stuntman_uses_a_guaranteed_hundred_million_play_without_reducing_safety():
     state = _state(STUNTMAN)
     ace = BalatroCard("A", "Spades")

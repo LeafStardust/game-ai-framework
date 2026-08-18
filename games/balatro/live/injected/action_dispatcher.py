@@ -19,6 +19,7 @@ from games.balatro.actions import (
     SELECT_BLIND,
     SELECT_PACK_CARD,
     SELL_JOKER,
+    SELL_CONSUMABLE,
     SKIP_BLIND,
     SKIP_BOOSTER,
     USE_CONSUMABLE,
@@ -691,9 +692,10 @@ class LiveMemoryInjectedActionDispatcher:
                 before.phase == "SELECTING_HAND"
                 and _active_boss_name(before) == "Verdant Leaf"
             )
-            if before.phase != "SHOP" and not verdant_sale:
+            pack_sale = _is_pack_phase(before.phase)
+            if before.phase != "SHOP" and not verdant_sale and not pack_sale:
                 raise UnsupportedInjectedAction(
-                    "SELL_JOKER requires SHOP or active Verdant Leaf, "
+                    "SELL_JOKER requires SHOP, an open pack, or active Verdant Leaf, "
                     f"observed {before.phase}"
                 )
             index = _target_index(action.target)
@@ -729,6 +731,47 @@ class LiveMemoryInjectedActionDispatcher:
                 before,
                 sale_settled,
                 "Verdant Leaf joker sale" if verdant_sale else "joker sale",
+            )
+            return LiveInjectedActionResult(
+                action,
+                before,
+                after,
+                {"area_index": index, "item": item},
+            )
+
+        if name == SELL_CONSUMABLE:
+            if before.phase != "SHOP" and not _is_pack_phase(before.phase):
+                raise UnsupportedInjectedAction(
+                    "SELL_CONSUMABLE requires SHOP or an open pack, "
+                    f"observed {before.phase}"
+                )
+            index = _target_index(action.target)
+            item = _area_item(before, "consumables", index)
+            before_count = len(_area_cards(before, "consumables"))
+            target_live_id = item.get("live_id")
+            self.bridge.sell_consumable(index)
+
+            def consumable_sale_settled(value: LiveBalatroSnapshot) -> bool:
+                after_consumables = _area_cards(value, "consumables")
+                if (
+                    value.sequence <= before.sequence
+                    or value.phase != before.phase
+                    or not value.state_complete
+                    or len(after_consumables) != before_count - 1
+                ):
+                    return False
+                if target_live_id is None:
+                    return True
+                return all(
+                    not isinstance(consumable, dict)
+                    or consumable.get("live_id") != target_live_id
+                    for consumable in after_consumables
+                )
+
+            after = self._wait(
+                before,
+                consumable_sale_settled,
+                "consumable sale",
             )
             return LiveInjectedActionResult(
                 action,

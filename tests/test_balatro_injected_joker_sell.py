@@ -89,6 +89,28 @@ def test_injected_dispatcher_sells_joker_and_reconciles_live_identity():
     assert result.details["item"] == sold
 
 
+def test_injected_dispatcher_can_sell_joker_while_pack_is_open():
+    sold = {"live_id": 101, "label": "Joker", "sell_cost": 2}
+    kept = {"live_id": 202, "label": "Misprint", "sell_cost": 2}
+    before = _snapshot(12, "BUFFOON_PACK", [sold, kept])
+    after = _snapshot(13, "BUFFOON_PACK", [kept])
+    bridge = FakeBridge()
+    dispatcher = LiveMemoryInjectedActionDispatcher(
+        FakeObserver(after),
+        bridge=bridge,
+        timeout=0.0,
+        poll_interval=0.0,
+    )
+
+    result = dispatcher.dispatch(
+        BalatroAction(SELL_JOKER, target=0),
+        snapshot=before,
+    )
+
+    assert bridge.sold == [0]
+    assert result.after is after
+
+
 def test_injected_dispatcher_rejects_joker_sale_outside_shop():
     before = _snapshot(20, "SELECTING_HAND", [{"live_id": 101}])
     bridge = FakeBridge()
@@ -176,6 +198,10 @@ def test_injected_lua_bridge_routes_sell_joker_through_native_callback():
     assert "G.FUNCS and G.FUNCS.sell_card" in asset
     assert "G.jokers.cards[index + 1]" in asset
     assert 'blind.name == "Verdant Leaf"' in asset
+    assert "is_pack_state()" in asset[
+        asset.index("local function execute_sell_joker") :
+        asset.index("local function execute_reorder_jokers")
+    ]
     assert 'require_state("SHOP")' not in asset[
         asset.index("local function execute_sell_joker") :
         asset.index("local function execute_reorder_jokers")

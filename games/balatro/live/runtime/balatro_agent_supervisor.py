@@ -152,6 +152,7 @@ class BalatroAgentSupervisor:
         session_directory: str | Path = "logs/balatro/sessions",
         session_id: str | None = None,
         retry_losses: bool = True,
+        collection_first: bool = False,
         startup_stability_interval_seconds: float = (
             DEFAULT_STARTUP_STABILITY_INTERVAL_SECONDS
         ),
@@ -178,6 +179,7 @@ class BalatroAgentSupervisor:
         self.session_directory = Path(session_directory)
         self.session_id = str(session_id or _new_session_id())
         self.retry_losses = bool(retry_losses)
+        self.collection_first = bool(collection_first)
         self.startup_stability_interval_seconds = float(
             startup_stability_interval_seconds
         )
@@ -287,6 +289,7 @@ class BalatroAgentSupervisor:
             "attempts": [asdict(item) for item in self._attempts],
             "target_deck": self._target_deck,
             "target_stake": self._target_stake,
+            "collection_first": self.collection_first,
         }
         temporary = self.summary_path.with_suffix(".json.tmp")
         temporary.write_text(
@@ -373,6 +376,7 @@ class BalatroAgentSupervisor:
             session_id=self.session_id,
             attempt=0,
             retry_losses=self.retry_losses,
+            collection_first=self.collection_first,
         )
         self._publish_telemetry(
             "STARTING",
@@ -421,6 +425,7 @@ class BalatroAgentSupervisor:
                         playbook_version=str(playbook.version),
                         phase=str(initial.phase),
                         retry_losses=self.retry_losses,
+                        collection_first=self.collection_first,
                     )
                     self._publish_telemetry(
                         "READY",

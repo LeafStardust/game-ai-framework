@@ -1,6 +1,7 @@
 from games.balatro.live.runtime.balatro_agent_supervisor_entry import (
     _diagnostic_runner_factory,
 )
+from games.balatro.collection_mode import CollectionFirstPolicy
 from games.balatro.live.runtime.playstyle_autonomous_runner import (
     PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
 )
@@ -117,4 +118,13 @@ def test_production_strategy_runner_uses_default_off_unlock_campaign_policy():
             "UnlockCampaignPolicy"
         ]
         is UnlockCampaignPolicy
+    )
+
+
+def test_production_strategy_runner_exposes_opt_in_collection_first_policy():
+    assert (
+        StrategyAwareLiveMemoryInjectedSingleStepRunner.__init__.__globals__[
+            "CollectionFirstPolicy"
+        ]
+        is CollectionFirstPolicy
     )

@@ -642,13 +642,14 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       return false, "Balatro state is unavailable"
     end
     local in_shop = G.STATE == G.STATES.SHOP
+    local in_pack = is_pack_state()
     local blind = G.GAME and G.GAME.blind
     local verdant_leaf =
       G.STATE == G.STATES.SELECTING_HAND
       and blind
       and blind.name == "Verdant Leaf"
-    if not in_shop and not verdant_leaf then
-      return false, "joker sale requires SHOP or active Verdant Leaf"
+    if not in_shop and not in_pack and not verdant_leaf then
+      return false, "joker sale requires SHOP, an open pack, or active Verdant Leaf"
     end
 
     local index, parse_error = parse_single_index(payload)
@@ -672,6 +673,42 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     local ok, error_message = pcall(
       callback,
       { config = { ref_table = joker } }
+    )
+    if not ok then
+      return false, error_message
+    end
+    return true
+  end
+
+  local function execute_sell_consumable(payload)
+    if not G or not G.STATES then
+      return false, "Balatro state is unavailable"
+    end
+    if G.STATE ~= G.STATES.SHOP and not is_pack_state() then
+      return false, "consumable sale requires SHOP or an open pack"
+    end
+
+    local index, parse_error = parse_single_index(payload)
+    if index == nil then
+      return false, parse_error
+    end
+    if not G.consumeables or not G.consumeables.cards then
+      return false, "consumable area is unavailable"
+    end
+
+    local consumable = G.consumeables.cards[index + 1]
+    if not consumable then
+      return false, "consumable index is out of range"
+    end
+
+    local callback = G.FUNCS and G.FUNCS.sell_card
+    if type(callback) ~= "function" then
+      return false, "sell_card callback is unavailable"
+    end
+
+    local ok, error_message = pcall(
+      callback,
+      { config = { ref_table = consumable } }
     )
     if not ok then
       return false, error_message
@@ -961,6 +998,10 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     elseif action == "SELL_JOKER" then
       executor = function()
         return execute_sell_joker(payload)
+      end
+    elseif action == "SELL_CONSUMABLE" then
+      executor = function()
+        return execute_sell_consumable(payload)
       end
     elseif action == "REORDER_JOKERS" then
       executor = function()

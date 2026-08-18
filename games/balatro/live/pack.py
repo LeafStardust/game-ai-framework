@@ -45,6 +45,11 @@ class LivePackChoice:
 class LivePackActionGenerator:
     """Generate legal actions for a currently visible booster pack."""
 
+    def __init__(self, *, include_capacity_blocked_jokers: bool = False) -> None:
+        self.include_capacity_blocked_jokers = bool(
+            include_capacity_blocked_jokers
+        )
+
     def read_choices(self, observer: LiveMemoryBalatroObserver) -> list[LivePackChoice]:
         snapshot = observer.observe()
         if not snapshot.phase.endswith("_PACK"):
@@ -90,7 +95,11 @@ class LivePackActionGenerator:
             # Balatro cannot take another Joker from a Buffoon pack when all Joker
             # slots are occupied unless the player first sells one. That is a
             # separate action and is deliberately not hidden inside pack selection.
-            if choice.kind == "JOKER" and joker_count >= joker_slots:
+            if (
+                choice.kind == "JOKER"
+                and joker_count >= joker_slots
+                and not self.include_capacity_blocked_jokers
+            ):
                 continue
             actions.append(BalatroAction(SELECT_PACK_CARD, target=choice))
 

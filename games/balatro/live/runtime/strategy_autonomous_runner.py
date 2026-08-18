@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from games.balatro.collection_mode import (
+    CollectionFirstPackPolicy,
+    CollectionFirstPolicy,
+)
 from games.balatro.live.hand_action_policy import HandActionThresholds
 from games.balatro.hand_order_policy import HandOrderPolicy
 from games.balatro.live.blind_clear_planner import (
@@ -9,11 +13,13 @@ from games.balatro.live.blind_clear_planner import (
     PlannerSearchBudgetExceeded,
 )
 from games.balatro.joker_order_policy import JokerOrderPolicy
+from games.balatro.joker_sale_policy import JokerSalePolicy
 from games.balatro.live.strategy_consumable_timing import (
     StrategyAwareLiveConsumableTimingPolicy,
 )
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 from games.balatro.live.strategy_planet_policy import StrategyAwareLivePlanetPolicy
+from games.balatro.live.pack import LivePackActionGenerator
 from games.balatro.live.verdant_leaf import VerdantLeafSalePolicy
 from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
 from games.balatro.playbook_consumable_policy import PlaybookConsumableAcquisitionPolicy
@@ -40,7 +46,11 @@ from games.balatro.strategy_value import (
     StrategyAwareJokerBuildTransitionPlanner,
     StrategyAwareJokerBuildValueEvaluator,
 )
-from games.balatro.unlock_campaign import UnlockCampaignConfig, UnlockCampaignPolicy
+from games.balatro.unlock_campaign import (
+    AUTO,
+    UnlockCampaignConfig,
+    UnlockCampaignPolicy,
+)
 
 from .playstyle_autonomous_runner import (
     PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
@@ -66,6 +76,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
 
     def __init__(self, observer, **kwargs) -> None:
         unlock_campaign_config = kwargs.pop("unlock_campaign_config", None)
+        self.collection_first = bool(kwargs.pop("collection_first", False))
         custom_hand_recommender = kwargs.get("hand_recommender") is not None
         custom_pack_recommender = kwargs.get("pack_recommender") is not None
         super().__init__(observer, **kwargs)
@@ -109,9 +120,6 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
         self.verdant_leaf_sale_policy = VerdantLeafSalePolicy(
             evaluator=joker_build_value,
         )
-        self.unlock_campaign_policy = UnlockCampaignPolicy(
-            unlock_campaign_config or UnlockCampaignConfig(),
-        )
         self.hand_order_policy = HandOrderPolicy()
         joker_transition_planner = StrategyAwareJokerBuildTransitionPlanner(
             evaluator=joker_build_value,
@@ -124,6 +132,17 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
         shared_item_estimator = BuildAwareShopItemValueEstimator(
             joker_build_value=joker_build_value,
             consumable_build=consumable_build,
+        )
+        effective_unlock_config = unlock_campaign_config or UnlockCampaignConfig()
+        if self.collection_first and not effective_unlock_config.enabled:
+            effective_unlock_config = UnlockCampaignConfig.from_targets((AUTO,))
+        self.unlock_campaign_policy = UnlockCampaignPolicy(
+            effective_unlock_config,
+            preserve_clear_probability=not self.collection_first,
+        )
+        self.collection_policy = CollectionFirstPolicy(
+            joker_sale_policy=JokerSalePolicy(evaluator=joker_build_value),
+            item_estimator=shared_item_estimator,
         )
 
         self.shop_policy = PlaybookVoucherAwareBalatroShopPolicy(
@@ -153,6 +172,14 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
                 strategy_tracker=self.strategy_tracker,
             ),
         )
+        if self.collection_first:
+            self.pack_generator = LivePackActionGenerator(
+                include_capacity_blocked_jokers=True,
+            )
+            self.pack_policy = CollectionFirstPackPolicy(
+                self.pack_policy,
+                collection_policy=self.collection_policy,
+            )
 
         if not custom_hand_recommender:
             self.hand_recommender = self._recommend_hand_with_playstyle
@@ -172,8 +199,30 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
 
     def decide(self):
         decision = super().decide()
-        unlock = self._unlock_campaign_recommendation(decision)
-        if unlock is not None:
+        collection = (
+            self.collection_policy.recommend_shop(decision.state)
+            if self.collection_first
+            else None
+        )
+        if collection is not None:
+            decision = replace(
+                decision,
+                action=collection.action,
+                source=f"Collection-first: {collection.priority}",
+                notes=collection.rationale,
+                decision_diagnostics={
+                    "layer": collection.priority,
+                    "selected": {
+                        "target_kind": collection.target_kind,
+                        "target_label": collection.target_label,
+                        "action": str(collection.action.name),
+                    },
+                },
+            )
+            unlock = None
+        else:
+            unlock = self._unlock_campaign_recommendation(decision)
+        if collection is None and unlock is not None:
             decision = replace(
                 decision,
                 action=unlock.action,
@@ -188,7 +237,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
                     },
                 },
             )
-        else:
+        elif collection is None:
             order_decision = self.joker_order_policy.recommend(
                 decision.state,
                 phase=str(decision.snapshot.phase),

@@ -155,6 +155,7 @@ def start_agent(
     *,
     session_id: str | None = None,
     unlock_jokers: tuple[str, ...] = (),
+    collection_first: bool = False,
 ) -> int:
     running = control.running_pid()
     if running is not None:
@@ -174,6 +175,8 @@ def start_agent(
         command.extend(("--session-id", str(session_id)))
     for target in unlock_jokers:
         command.extend(("--unlock-joker", str(target)))
+    if collection_first:
+        command.append("--collection-first")
 
     control.ensure_directory()
     log_path = control.directory / "agent.log"
@@ -283,6 +286,7 @@ def toggle_agent(
     *,
     session_id: str | None = None,
     unlock_jokers: tuple[str, ...] = (),
+    collection_first: bool = False,
 ) -> tuple[str, int | None]:
     running = control.running_pid()
     if running is not None:
@@ -292,6 +296,7 @@ def toggle_agent(
         control,
         session_id=session_id,
         unlock_jokers=unlock_jokers,
+        collection_first=collection_first,
     )
 
 
@@ -312,6 +317,11 @@ def main() -> int:
         choices=("auto", "hit_the_road", "stuntman"),
         default=[],
         help="enable a default-off Joker unlock campaign when turning the agent ON",
+    )
+    parser.add_argument(
+        "--collection-first",
+        action="store_true",
+        help="prioritize permanent profile collection progress over winning the run",
     )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--status", action="store_true")
@@ -365,6 +375,7 @@ def main() -> int:
             control,
             session_id=args.session_id,
             unlock_jokers=tuple(args.unlock_joker),
+            collection_first=args.collection_first,
         )
     except Exception as error:
         print("Balatro Agent toggle -> FAIL")
@@ -381,6 +392,10 @@ def main() -> int:
             print("Unlock campaign -> " + ", ".join(args.unlock_joker))
         else:
             print("Unlock campaign -> OFF")
+        print(
+            "Collection-first mode -> "
+            + ("ON" if args.collection_first else "OFF")
+        )
         print("Loss handling -> automatic fresh same-deck/stake native retry")
         print("Win handling -> automatic OFF")
         print("Crash reporting -> automatic traceback + report file")
