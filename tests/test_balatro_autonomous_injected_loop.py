@@ -90,6 +90,20 @@ class _GameOverRunner(_FakeRunner):
         return result, status
 
 
+class _RoundEvalWinRunner(_FakeRunner):
+    def execute(self, decision):
+        result, status = super().execute(decision)
+        result = SimpleNamespace(
+            after=LiveBalatroSnapshot(
+                sequence=self.sequence,
+                phase="ROUND_EVAL",
+                state_complete=True,
+                payload={"step": self.index, "won": True},
+            )
+        )
+        return result, status
+
+
 def test_preview_decides_once_without_executing():
     runner = _FakeRunner(["SELECTING_HAND"])
     loop = LiveMemoryInjectedAutonomousLoop(runner, max_steps=5)
@@ -173,6 +187,48 @@ def test_unbounded_execute_runs_until_authoritative_game_over():
     assert result.stop_reason == "game over (won)"
     assert result.steps[-1].after_phase == "GAME_OVER"
     assert runner.execute_calls == 3
+
+
+def test_unbounded_execute_stops_on_win_bit_before_endless_cash_out():
+    runner = _RoundEvalWinRunner(["SELECTING_HAND"])
+    loop = LiveMemoryInjectedAutonomousLoop(runner, max_steps=None)
+
+    result = loop.execute(expected_start_phase="SELECTING_HAND")
+
+    assert len(result.steps) == 1
+    assert result.stop_reason == "game over (won)"
+    assert result.steps[-1].after_phase == "ROUND_EVAL"
+    assert runner.execute_calls == 1
+
+
+def test_execute_does_not_act_when_start_snapshot_already_has_win_bit():
+    runner = _FakeRunner(["ROUND_EVAL"])
+
+    original_decide = runner.decide
+
+    def decide_won():
+        decision = original_decide()
+        return AutonomousStepDecision(
+            snapshot=LiveBalatroSnapshot(
+                sequence=decision.snapshot.sequence,
+                phase=decision.snapshot.phase,
+                state_complete=True,
+                payload={"step": 0, "won": True},
+            ),
+            state=decision.state,
+            action=decision.action,
+            source=decision.source,
+            notes=decision.notes,
+        )
+
+    runner.decide = decide_won
+    loop = LiveMemoryInjectedAutonomousLoop(runner, max_steps=None)
+
+    result = loop.execute(expected_start_phase="ROUND_EVAL")
+
+    assert result.stop_reason == "game over (won)"
+    assert result.steps == ()
+    assert runner.execute_calls == 0
 
 
 def test_stop_request_arriving_during_planning_cancels_before_execution():

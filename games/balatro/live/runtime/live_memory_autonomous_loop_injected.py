@@ -90,6 +90,13 @@ def _stale_difference_details(
 
 def _terminal_stop_reason(snapshot) -> str | None:
     phase = str(snapshot.phase)
+    # Balatro publishes G.GAME.won as soon as the Ante-8 final Boss is cleared,
+    # while the public phase may still be ROUND_EVAL.  Waiting exclusively for
+    # GAME_OVER lets END_ROUND cash out into Endless and permits more shop play.
+    # The win bit is therefore the authoritative terminal signal for the target
+    # run regardless of the transient post-hand phase.
+    if bool(snapshot.payload.get("won")):
+        return "game over (won)"
     if phase not in TERMINAL_PHASES:
         return None
     if phase == "GAME_OVER":
@@ -225,6 +232,10 @@ class LiveMemoryInjectedAutonomousLoop:
                         f"expected start phase {expected_start_phase}, "
                         f"observed {decision.snapshot.phase}"
                     )
+
+                terminal_reason = _terminal_stop_reason(decision.snapshot)
+                if terminal_reason is not None:
+                    return AutonomousLoopRun(tuple(completed), terminal_reason)
 
                 if (
                     previous_after_sequence is not None

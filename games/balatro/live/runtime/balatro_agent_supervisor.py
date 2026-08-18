@@ -24,6 +24,7 @@ from .agent_control import BalatroAgentControl
 from .live_memory_autonomous_loop_injected import (
     AutonomousLoopRun,
     LiveMemoryInjectedAutonomousLoop,
+    _terminal_stop_reason,
 )
 from .live_memory_autonomous_step_injected import (
     LiveMemoryInjectedSingleStepRunner,
@@ -418,11 +419,11 @@ class BalatroAgentSupervisor:
                         detail="initial checkpoint settled; autonomous loop starting",
                     )
 
-                    if str(initial.phase) == "GAME_OVER":
-                        won = bool(initial.payload.get("won"))
+                    initial_terminal_reason = _terminal_stop_reason(initial)
+                    if initial_terminal_reason is not None:
                         run = AutonomousLoopRun(
                             (),
-                            "game over (won)" if won else "game over (lost)",
+                            initial_terminal_reason,
                         )
                         final_snapshot = initial
                     else:
