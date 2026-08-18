@@ -909,23 +909,64 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return nil
   end
 
-  local function drain_unlock_confirmations()
-    local count = 0
-    while unlock_continue_button() do
-      count = count + 1
-      if count > 64 then
-        return false, "unlock confirmation drain exceeded safety limit"
-      end
-      local callback = G.FUNCS and G.FUNCS.continue_unlock
-      if type(callback) ~= "function" then
-        return false, "continue_unlock callback is unavailable"
-      end
-      local ok, error_message = pcall(callback)
-      if not ok then
-        return false, error_message
-      end
+  local function unlock_queue_size()
+    local manager = G and G.E_MANAGER
+    local queues = manager and manager.queues
+    local queue = queues and queues.unlock
+    return type(queue) == "table" and #queue or 0
+  end
+
+  local function pump_unlock_events()
+    local manager = G and G.E_MANAGER
+    if not manager or type(manager.update) ~= "function" then
+      return false, "event manager update callback is unavailable"
+    end
+    local ok, error_message = pcall(manager.update, manager, 0, true)
+    if not ok then
+      return false, error_message
     end
     return true
+  end
+
+  local function drain_unlock_confirmations()
+    if type(unlock_notify) ~= "function" then
+      return false, "unlock_notify callback is unavailable"
+    end
+
+    -- Match notify_then_setup_run: remove the GAME_OVER overlay first, then ask
+    -- Balatro to populate its native unlock queue. We intentionally do not add
+    -- notify_then_setup_run's follow-up setup event because this bridge performs
+    -- the guarded same-deck/stake restart itself after every unlock is acknowledged.
+    if G.OVERLAY_MENU then
+      G.OVERLAY_MENU:remove()
+      G.OVERLAY_MENU = nil
+    end
+    local notified, notify_error = pcall(unlock_notify)
+    if not notified then
+      return false, notify_error
+    end
+
+    for _ = 1, 128 do
+      local button = unlock_continue_button()
+      if button then
+        local callback = G.FUNCS and G.FUNCS.continue_unlock
+        if type(callback) ~= "function" then
+          return false, "continue_unlock callback is unavailable"
+        end
+        local ok, error_message = pcall(callback)
+        if not ok then
+          return false, error_message
+        end
+      elseif unlock_queue_size() > 0 then
+        local pumped, pump_error = pump_unlock_events()
+        if not pumped then
+          return false, pump_error
+        end
+      else
+        return true
+      end
+    end
+    return false, "unlock confirmation drain exceeded safety limit"
   end
 
   local function execute_restart_run()
@@ -952,12 +993,9 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       return false, "current stake is unavailable"
     end
 
-    -- A failed run can finish with one or more native unlock overlays stacked over
-    -- GAME_OVER. Balatro's Continue control calls continue_unlock, which removes
-    -- the current overlay and immediately exposes the next queued unlock. Drain
-    -- that exact native control until no unlock confirmation remains, then perform
-    -- the normal same-deck/stake restart. This deliberately ignores unrelated
-    -- overlays and never synthesizes mouse input.
+    -- Native Start New Run first calls unlock_notify() and blocks setup until the
+    -- unlock queue is empty. Reproduce that sequence in-process so a failed run
+    -- acknowledges every newly unlocked Joker/deck/item before automatic restart.
     local drained, drain_error = drain_unlock_confirmations()
     if not drained then
       return false, drain_error
