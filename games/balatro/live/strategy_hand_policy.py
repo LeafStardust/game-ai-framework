@@ -5,6 +5,7 @@ from dataclasses import replace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.live.hand_action_policy import PACE_PLAY, PACE_RECOVERY
 from games.balatro.live.hand_playstyle import BuildAwareLiveHandActionPolicy
 from games.balatro.strategy import BalatroStrategyTracker
 from games.balatro.strategy_compat import NeutralLegacyPlaystyleIntentTracker
@@ -44,6 +45,67 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
 
     def decide(self, state, plans, **kwargs):
         decision = super().decide(state, plans, **kwargs)
+
+        # Base D1 returns PACE_PLAY immediately when any current hand reaches
+        # remaining_blind_score / hands_remaining. That threshold is a fallback,
+        # not a command to throw away available setup equity. Before accepting it,
+        # compare legal discards on the same pace-aware cross-action evaluator used
+        # by PACE_RECOVERY. A materially better discard is allowed to improve the
+        # next hand first; low-discard-reserve protection remains intact.
+        if decision.mode == PACE_PLAY:
+            discards = [plan for plan in plans if plan.action.name == DISCARD_CARDS]
+            if discards:
+                play_value = float(self.evaluator.evaluate(state, decision.action))
+                scored_discards = []
+                for plan in discards:
+                    value = float(self.evaluator.evaluate(state, plan.action))
+                    if (
+                        int(getattr(state, "discards_remaining", 0))
+                        <= self.thresholds.low_discard_reserve
+                    ):
+                        value -= self.thresholds.low_discard_fallback_penalty
+                    if (
+                        int(getattr(state, "hands_remaining", 0))
+                        <= self.thresholds.low_hand_reserve
+                    ):
+                        value += self.thresholds.low_hand_discard_fallback_bonus
+                    strategy_fit, _ = self._strategy_fit(state, plan.action)
+                    scored_discards.append((value, strategy_fit, plan))
+
+                discard_value, _, discard_plan = max(
+                    scored_discards,
+                    key=lambda item: (
+                        item[0],
+                        item[1],
+                        self._within_type_key(item[2]),
+                    ),
+                )
+                consensus = bool(kwargs.get("setup_discard_consensus", False))
+                if discard_value > play_value:
+                    fit, fit_rationale = self._strategy_fit(state, discard_plan.action)
+                    decision = replace(
+                        decision,
+                        mode=PACE_RECOVERY,
+                        action=discard_plan.action,
+                        selected_plan=discard_plan,
+                        selected_immediate_score=None,
+                        selected_pace_ratio=None,
+                        selected_fallback_value=discard_value,
+                        setup_discard_consensus=consensus,
+                        rationale=(
+                            "adaptive search found no credible blind-clear path",
+                            "a current play reaches required pace, but pace is only the fallback floor",
+                            "pace-aware setup discard has higher recovery value than immediate pace play",
+                            *(
+                                ("deep adaptive searches also agree on the setup discard",)
+                                if consensus
+                                else ()
+                            ),
+                            f"D1 setup-discard strategy fit={fit:+.3f}",
+                            *fit_rationale,
+                        ),
+                    )
+
         fit, rationale = self._strategy_fit(state, decision.action)
         return replace(
             decision,
