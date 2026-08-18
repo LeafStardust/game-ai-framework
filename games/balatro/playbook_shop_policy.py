@@ -181,6 +181,7 @@ class PlaybookVoucherAwareBalatroShopPolicy(VoucherAwareBalatroShopPolicy):
                 reserve_target=int(thresholds.reserve_target),
                 reserve_weight=float(thresholds.reserve_weight),
                 vouchers=getattr(state, "vouchers", ()),
+                jokers=getattr(state, "jokers", ()),
             )
             normalized_advantage = float(decision.persistent_value) - resource_cost.total
             adjusted_advantage = bounded_discovery_tiebreak(
@@ -198,6 +199,7 @@ class PlaybookVoucherAwareBalatroShopPolicy(VoucherAwareBalatroShopPolicy):
                     price_penalty=resource_cost.direct,
                     interest_penalty=resource_cost.interest,
                     reserve_penalty=resource_cost.reserve,
+                    cash_scaling_penalty=resource_cost.cash_scaling,
                     notes=(
                         *decision.rationale,
                         "D14 remaps admitted D3 Voucher onto shared SHOP resource scale",

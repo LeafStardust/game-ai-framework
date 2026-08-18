@@ -3,6 +3,8 @@ from types import SimpleNamespace
 import pytest
 
 from games.balatro.actions import BUY_BOOSTER, BalatroAction
+from games.balatro.jokers.bootstraps import BootstrapsJoker
+from games.balatro.jokers.bull import BullJoker
 from games.balatro.resource_value import RunResourceValuator
 from games.balatro.shop_policy import BalatroShopPolicy
 from games.balatro.shop_utility_scale import ShopUtilityScale
@@ -36,6 +38,23 @@ def test_signed_money_transaction_preserves_deterministic_sale_credit_value():
     assert result.reserve == pytest.approx(0.0)
     assert result.total == pytest.approx(-4.6)
     assert "money=$4->$10" in result.notes
+
+
+def test_cash_spend_prices_bootstraps_breakpoints_and_bull_chip_loss():
+    result = RunResourceValuator().money_spend_cost(
+        money=50,
+        spend=6,
+        price_weight=0.0,
+        interest_weight=0.0,
+        reserve_weight=0.0,
+        jokers=(BootstrapsJoker(), BullJoker()),
+    )
+
+    # $50->$44 crosses two Bootstraps $5 steps: 4 Mult utility.
+    # Bull loses 12 Chips, normalized at 0.05 utility per chip: 0.6.
+    assert result.cash_scaling == pytest.approx(4.6)
+    assert result.total == pytest.approx(4.6)
+    assert "cash_scaling_value_lost=4.600" in result.notes
 
 
 def test_d14_maps_d2_d4_and_d8_onto_one_parent_money_scale():

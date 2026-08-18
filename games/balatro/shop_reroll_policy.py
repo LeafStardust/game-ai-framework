@@ -250,6 +250,7 @@ class BuildAwareShopRerollPolicy:
             reserve_target=self.shop_policy.reserve_target,
             reserve_weight=self.shop_policy.reserve_weight,
             vouchers=getattr(state, "vouchers", ()),
+            jokers=getattr(state, "jokers", ()),
         )
         money_after_reroll = state.money - cost
         future_ev, offer_scores = self._future_shop_ev(
@@ -280,6 +281,7 @@ class BuildAwareShopRerollPolicy:
             f"reroll price penalty={reroll_resource.direct:.3f}",
             f"reroll interest penalty={reroll_resource.interest:.3f}",
             f"reroll reserve penalty={reroll_resource.reserve:.3f}",
+            f"reroll cash-scaling penalty={reroll_resource.cash_scaling:.3f}",
             f"reroll score={reroll_score:.3f}; required={required:.3f}",
             "full Joker roster replacement-option penalty="
             f"{thresholds.full_joker_replacement_penalty:.3f}",
@@ -439,6 +441,7 @@ class BuildAwareShopRerollPolicy:
             reserve_target=self.shop_policy.reserve_target,
             reserve_weight=self.shop_policy.reserve_weight,
             vouchers=getattr(state, "vouchers", ()),
+            jokers=getattr(state, "jokers", ()),
         )
         return max(
             hold,

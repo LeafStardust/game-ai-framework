@@ -270,6 +270,7 @@ class BuildAwareShopBoosterPolicy:
             reserve_target=self.thresholds.reserve_target,
             reserve_weight=self.thresholds.reserve_weight,
             vouchers=getattr(state, "vouchers", ()),
+            jokers=getattr(state, "jokers", ()),
         )
         price_penalty = resource_cost.direct
         interest_penalty = resource_cost.interest

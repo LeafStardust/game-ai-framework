@@ -13,6 +13,7 @@ class ResourceValueBreakdown:
     direct: float = 0.0
     interest: float = 0.0
     reserve: float = 0.0
+    cash_scaling: float = 0.0
     survival: float = 0.0
     slot: float = 0.0
     horizon: float = 0.0
@@ -31,6 +32,9 @@ class RunResourceValuator:
     INTEREST_CAP = 5
     SEED_MONEY_INTEREST_CAP = 10
     MONEY_TREE_INTEREST_CAP = 20
+    BOOTSTRAPS_MULT_PER_STEP = 2.0
+    BULL_CHIPS_PER_DOLLAR = 2.0
+    BULL_CHIP_UTILITY_WEIGHT = 0.05
 
     @classmethod
     def interest_cap(cls, vouchers=()) -> int:
@@ -57,6 +61,34 @@ class RunResourceValuator:
         value = getattr(voucher, "label", getattr(voucher, "name", ""))
         return str(value or "")
 
+    @staticmethod
+    def _joker_token(joker) -> str:
+        if isinstance(joker, Mapping):
+            value = joker.get("label", joker.get("name", joker.get("center", "")))
+        else:
+            value = getattr(joker, "name", type(joker).__name__)
+        return "".join(
+            character
+            for character in str(value).lower()
+            if character.isalnum()
+        )
+
+    @classmethod
+    def cash_scaling_value(cls, money: int, *, jokers=()) -> float:
+        """Return shop utility currently supplied by cash-scaling Jokers."""
+        money = max(0, int(money))
+        tokens = {cls._joker_token(joker) for joker in (jokers or ())}
+        value = 0.0
+        if tokens & {"bootstraps", "bootstrapsjoker"}:
+            value += cls.BOOTSTRAPS_MULT_PER_STEP * (money // cls.INTEREST_STEP)
+        if tokens & {"bull", "bulljoker"}:
+            value += (
+                cls.BULL_CHIPS_PER_DOLLAR
+                * cls.BULL_CHIP_UTILITY_WEIGHT
+                * money
+            )
+        return value
+
     def money_transaction_cost(
         self,
         *,
@@ -67,6 +99,7 @@ class RunResourceValuator:
         reserve_target: int = 5,
         reserve_weight: float = 1.0,
         vouchers=(),
+        jokers=(),
     ) -> ResourceValueBreakdown:
         """Return shared utility cost for a signed current-money transaction.
 
@@ -100,18 +133,27 @@ class RunResourceValuator:
         reserve_after = max(0, reserve_target - money_after)
         reserve_delta = max(0, reserve_after - reserve_before)
         reserve = float(reserve_weight) * reserve_delta
-        total = direct + interest + reserve
+        cash_scaling = self.cash_scaling_value(
+            money,
+            jokers=jokers,
+        ) - self.cash_scaling_value(
+            money_after,
+            jokers=jokers,
+        )
+        total = direct + interest + reserve + cash_scaling
         return ResourceValueBreakdown(
             total=total,
             direct=direct,
             interest=interest,
             reserve=reserve,
+            cash_scaling=cash_scaling,
             notes=(
                 f"money=${money}->${money_after}",
                 f"net_spend=${net_spend}",
                 f"interest_cap=${interest_cap}",
                 f"interest_steps_lost={interest_steps_lost}",
                 f"incremental_reserve_shortfall={reserve_delta}",
+                f"cash_scaling_value_lost={cash_scaling:.3f}",
             ),
         )
 
@@ -125,6 +167,7 @@ class RunResourceValuator:
         reserve_target: int = 5,
         reserve_weight: float = 1.0,
         vouchers=(),
+        jokers=(),
     ) -> ResourceValueBreakdown:
         """Return marginal utility forfeited by spending money now."""
         return self.money_transaction_cost(
@@ -135,6 +178,7 @@ class RunResourceValuator:
             reserve_target=reserve_target,
             reserve_weight=reserve_weight,
             vouchers=vouchers,
+            jokers=jokers,
         )
 
     def slot_opportunity_cost(

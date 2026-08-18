@@ -175,6 +175,7 @@ class ShopUtilityScale:
             reserve_target=self.reserve_target,
             reserve_weight=self.reserve_weight,
             vouchers=getattr(state, "vouchers", ()),
+            jokers=getattr(state, "jokers", ()),
         )
 
     def _money_transaction_cost(self, state, net_spend: int):
@@ -186,6 +187,7 @@ class ShopUtilityScale:
             reserve_target=self.reserve_target,
             reserve_weight=self.reserve_weight,
             vouchers=getattr(state, "vouchers", ()),
+            jokers=getattr(state, "jokers", ()),
         )
 
     @staticmethod

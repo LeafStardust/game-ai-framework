@@ -39,6 +39,7 @@ class ShopActionScore:
     price_penalty: float = 0.0
     interest_penalty: float = 0.0
     reserve_penalty: float = 0.0
+    cash_scaling_penalty: float = 0.0
     slot_penalty: float = 0.0
     notes: tuple[str, ...] = ()
 
@@ -472,10 +473,13 @@ class BalatroShopPolicy:
             interest_weight=self.interest_weight,
             reserve_target=self.reserve_target,
             reserve_weight=self.reserve_weight,
+            vouchers=getattr(state, "vouchers", ()),
+            jokers=getattr(state, "jokers", ()),
         )
         price_penalty = resource_cost.direct
         interest_penalty = resource_cost.interest
         reserve_penalty = resource_cost.reserve
+        cash_scaling_penalty = resource_cost.cash_scaling
         slot_penalty = self._slot_penalty(state, action)
 
         total = (
@@ -484,6 +488,7 @@ class BalatroShopPolicy:
             - price_penalty
             - interest_penalty
             - reserve_penalty
+            - cash_scaling_penalty
             - slot_penalty
         )
 
@@ -495,8 +500,9 @@ class BalatroShopPolicy:
             price_penalty=price_penalty,
             interest_penalty=interest_penalty,
             reserve_penalty=reserve_penalty,
+            cash_scaling_penalty=cash_scaling_penalty,
             slot_penalty=slot_penalty,
-            notes=notes,
+            notes=(*notes, *resource_cost.notes),
         )
 
     @staticmethod
