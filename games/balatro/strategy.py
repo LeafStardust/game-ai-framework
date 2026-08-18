@@ -255,6 +255,26 @@ class BalatroStrategyTracker:
         self._last_dominant_strategy_id = None
         self._last_relevant_strategy_ids = ()
 
+    def definitions_for_path(self, strategy_id: str) -> tuple[StrategyDefinition, ...]:
+        """Return the definitions whose semantics apply to ``strategy_id``.
+
+        Flat catalogues have a one-definition path. Tree-aware trackers override
+        this method to return the complete root-to-leaf path, allowing production
+        consumers to inherit hand and card preferences without knowing which
+        tracker implementation they received.
+        """
+
+        definition = self.definitions.get(strategy_id)
+        return () if definition is None else (definition,)
+
+    def primary_hands_for(self, strategy_id: str) -> tuple[str, ...]:
+        values: list[str] = []
+        for definition in self.definitions_for_path(strategy_id):
+            for hand in definition.primary_hands:
+                if hand not in values:
+                    values.append(hand)
+        return tuple(values)
+
     def _config(self, state) -> Mapping[str, object]:
         value = self.modifier_provider(state) or {}
         if not isinstance(value, Mapping):

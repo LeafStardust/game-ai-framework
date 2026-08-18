@@ -99,21 +99,21 @@ class StrategyAwareConsumableTargetEvaluator:
         for strategy_id in shortlist:
             if strategy_id is None:
                 continue
-            definition = self.strategy_tracker.definitions.get(strategy_id)
+            definitions = self.strategy_tracker.definitions_for_path(strategy_id)
             assessment = assessment_by_id.get(strategy_id)
-            if definition is None or assessment is None:
+            if not definitions or assessment is None:
                 continue
             score = max(0.0, float(assessment.score))
             if score <= 0.0:
                 continue
             relative_strength = min(1.0, score / dominant_score)
-            before_fit = sum(self._card_fit(card, definition) for card in before_cards)
-            after_fit = sum(self._card_fit(card, definition) for card in transformed_cards)
+            before_fit = sum(self._card_fit(card, definitions) for card in before_cards)
+            after_fit = sum(self._card_fit(card, definitions) for card in transformed_cards)
             total += (after_fit - before_fit) * relative_strength
         return total
 
     @staticmethod
-    def _card_fit(card, definition) -> float:
+    def _card_fit(card, definitions) -> float:
         fit = 0.0
         suit = str(getattr(card, "suit", ""))
         rank = str(getattr(card, "rank", ""))
@@ -121,24 +121,30 @@ class StrategyAwareConsumableTargetEvaluator:
         seal = str(getattr(card, "seal", ""))
         edition = str(getattr(card, "edition", ""))
 
-        if suit and suit in definition.preferred_suits:
+        if suit and any(suit in definition.preferred_suits for definition in definitions):
             fit += 1.0
-        if enhancement and enhancement in definition.preferred_enhancements:
+        if enhancement and any(
+            enhancement in definition.preferred_enhancements
+            for definition in definitions
+        ):
             fit += 1.0
-        if seal and seal in definition.preferred_seals:
+        if seal and any(seal in definition.preferred_seals for definition in definitions):
             fit += 1.0
-        if edition and edition in definition.preferred_editions:
+        if edition and any(
+            edition in definition.preferred_editions for definition in definitions
+        ):
             fit += 1.0
-        if rank and rank in definition.preferred_ranks:
+        if rank and any(rank in definition.preferred_ranks for definition in definitions):
             fit += 1.0
 
-        face_mode = str(getattr(definition, "face_mode", "") or "").upper()
-        if face_mode:
-            is_face = rank in {"J", "Q", "K"}
-            if (face_mode == "FACE" and is_face) or (
-                face_mode == "FACELESS" and not is_face
-            ):
-                fit += 1.0
+        is_face = rank in {"J", "Q", "K"}
+        if any(
+            (face_mode == "FACE" and is_face)
+            or (face_mode == "FACELESS" and not is_face)
+            for definition in definitions
+            if (face_mode := str(getattr(definition, "face_mode", "") or "").upper())
+        ):
+            fit += 1.0
         return fit
 
 

@@ -91,14 +91,15 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         if strategy_id is None:
             return 0.0, ("no active universal strategy for discard shaping",)
         definition = self.strategy_tracker.definitions.get(strategy_id)
-        if definition is None or not definition.primary_hands:
+        primary_hands = self.strategy_tracker.primary_hands_for(strategy_id)
+        if definition is None or not primary_hands:
             return 0.0, ("active strategy has no primary hand",)
 
         removed = {id(card) for card in action.cards}
         kept = [card for card in getattr(state, "hand", ()) if id(card) not in removed]
         structure = max(
             self._structure_fit(kept, hand_type)
-            for hand_type in definition.primary_hands
+            for hand_type in primary_hands
         )
         effectiveness = self.strategy_tracker.effectiveness(state, strategy_id)
         value = structure * effectiveness

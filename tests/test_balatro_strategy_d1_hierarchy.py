@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.card import BalatroCard
 from games.balatro.jokers.jolly_joker import JollyJoker
@@ -187,5 +189,34 @@ def test_d1_discard_shaping_preserves_dominant_pair_structure():
 
     preserve_fit, _ = policy._strategy_fit(state, preserve_pair)
     break_fit, _ = policy._strategy_fit(state, break_pair)
+
+    assert preserve_fit > break_fit
+
+
+def test_d1_discard_shaping_inherits_parent_hand_from_active_leaf():
+    state = BalatroState()
+    state.ante = 6
+    ace_spades = BalatroCard("A", "Spades")
+    ace_hearts = BalatroCard("A", "Hearts")
+    king = BalatroCard("K", "Clubs")
+    queen = BalatroCard("Q", "Diamonds")
+    state.hand = [ace_spades, ace_hearts, king, queen]
+
+    tracker = SimpleNamespace(
+        definitions={"pair_leaf": SimpleNamespace(name="Pair Leaf")},
+        observe=lambda current: SimpleNamespace(active_strategy_id="pair_leaf"),
+        primary_hands_for=lambda strategy_id: ("PAIR",),
+        effectiveness=lambda current, strategy_id: 1.0,
+    )
+    policy = StrategyAwareLiveHandActionPolicy(strategy_tracker=tracker)
+
+    preserve_fit, _ = policy._strategy_fit(
+        state,
+        BalatroAction(DISCARD_CARDS, [king, queen]),
+    )
+    break_fit, _ = policy._strategy_fit(
+        state,
+        BalatroAction(DISCARD_CARDS, [ace_hearts, king]),
+    )
 
     assert preserve_fit > break_fit

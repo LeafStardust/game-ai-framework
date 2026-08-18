@@ -156,6 +156,37 @@ class _StructuralTracker:
             assessments=(assessment,),
         )
 
+    def definitions_for_path(self, strategy_id):
+        definition = self.definitions.get(strategy_id)
+        return () if definition is None else (definition,)
+
+
+class _InheritedStructuralTracker(_StructuralTracker):
+    def __init__(self) -> None:
+        super().__init__()
+        parent = self.definitions.pop("gold_cards")
+        leaf = SimpleNamespace(
+            preferred_suits=frozenset(),
+            preferred_enhancements=frozenset(),
+            preferred_seals=frozenset(),
+            preferred_editions=frozenset(),
+            preferred_ranks=frozenset(),
+            face_mode=None,
+        )
+        self.definitions = {"gold_parent": parent, "gold_leaf": leaf}
+
+    def observe(self, state):
+        assessment = SimpleNamespace(strategy_id="gold_leaf", score=10.0)
+        return SimpleNamespace(
+            dominant_strategy_id="gold_leaf",
+            relevant_strategy_ids=(),
+            assessments=(assessment,),
+        )
+
+    def definitions_for_path(self, strategy_id):
+        assert strategy_id == "gold_leaf"
+        return (self.definitions["gold_parent"], self.definitions["gold_leaf"])
+
 
 def _target(index: int, card: BalatroCard, *, gain: float = 1.0):
     return ConsumableTargetEvaluation(
@@ -179,6 +210,22 @@ def test_d6_strategy_breaks_equal_legal_target_tie_by_projected_structure():
     evaluator = StrategyAwareConsumableTargetEvaluator(
         _FixedTargetEvaluator((first, second)),
         strategy_tracker=_StructuralTracker(),
+    )
+
+    ranked = evaluator.rank_targets(state, _GoldEnhancer())
+
+    assert ranked[0].target_indices == (1,)
+
+
+def test_d6_target_fit_inherits_parent_card_preferences_at_a_leaf():
+    already_gold = BalatroCard("A", "Spades", enhancement="Gold")
+    plain = BalatroCard("K", "Hearts")
+    state = BalatroState()
+    state.hand = [already_gold, plain]
+
+    evaluator = StrategyAwareConsumableTargetEvaluator(
+        _FixedTargetEvaluator((_target(0, already_gold), _target(1, plain))),
+        strategy_tracker=_InheritedStructuralTracker(),
     )
 
     ranked = evaluator.rank_targets(state, _GoldEnhancer())
