@@ -4,9 +4,9 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 
 ## Runtime implementation status
 
-- **Part 4 / Section 4 — Enhancements: IMPLEMENTED.** The runtime catalogue contains 5 enhancement roots and 15 leaves. Conditional relationships require real Stone/Glass/Steel/Lucky/Gold infrastructure (or the defining payoff where appropriate) before generic support Jokers can contribute route evidence. Parent/child static components are disjoint.
-- **Part 5 / Section 5 — Seals: IMPLEMENTED.** The runtime catalogue contains all 6 seal nodes. Played Red-Seal support requires an actual Red Seal; held Red-Seal support additionally checks material held effects/ranks; Blue, Purple, and Gold Seal support is likewise gated on matching seals in the live deck.
-- The current runtime contract also includes Sections 6–12. The tables below remain the canonical relationship/evidence specification; these status notes describe which frozen rows are now enforced by runtime code and tests.
+- **Part 4 / Section 4 — Enhancements: IMPLEMENTED.** Runtime support exists for the enhancement strategies below. The canonical relationship table folds synergy-only combinations into the defining strategy rather than treating every strong combination as a separate leaf.
+- **Part 5 / Section 5 — Seals: IMPLEMENTED.** Played Red-Seal support requires an actual Red Seal; held Red-Seal support additionally checks material held effects/ranks; Blue, Purple, and Gold Seal support is likewise gated on matching seals in the live deck.
+- Sections 6–12 are also represented in runtime. This table is the canonical relationship/evidence specification.
 
 ## Evidence weights
 
@@ -56,7 +56,7 @@ to make a portable Joker off-path.
 
 An `[I]` node contains only evidence shared by every specialization beneath it. A child row contains only additional evidence specific to that child. This factoring rule applies to Gold, Silver, Bronze, Banned, Tarot, Planet, Spectral, and Enhancement.
 
-A component must not be duplicated between a parent and child row. If it is specific to one specialization, it belongs only on that specialization.
+A component must not be duplicated between a parent and child row. If it is specific to one specialization, it belongs only on that specialization. A child leaf exists only when it represents a genuinely different play/build route; synergy-only combinations stay in the defining row.
 
 ## 1. Poker hands
 
@@ -103,9 +103,7 @@ A component must not be duplicated between a parent and child row. If it is spec
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Hearts | Hearts `[I]` | Bloodstone | Lusty Joker; Smeared Joker *(with Heart payoff)* | — | — | The Sun; Death; The Hanged Man | — | Sigil | Wild |
-| Hearts | ↳ Bloodstone + Oops! All 6s Hearts `[L]` | Oops! All 6s *(with Bloodstone)* | — | — | — | — | — | — | — |
-| Hearts | ↳ Bloodstone Retrigger Hearts `[L]` | — | Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(all with Bloodstone)* | — | — | — | — | Deja Vu | — |
+| Hearts / Bloodstone | Hearts / Bloodstone `[L]` | Bloodstone; Oops! All 6s *(with Bloodstone)* | Lusty Joker; Smeared Joker; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(support requires Heart/Bloodstone commitment)* | — | — | The Sun; Death; The Hanged Man | — | Sigil; Deja Vu | Wild |
 | Diamonds / Rough Gem Economy | Diamonds / Rough Gem Economy `[L]` | Rough Gem | Greedy Joker; Smeared Joker *(with Diamond payoff)*; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(retrigger support requires Rough Gem or Greedy Joker)* | — | — | The Star; Death; The Hanged Man | — | Sigil | Wild |
 | Clubs | Clubs `[I]` | — | Gluttonous Joker; Smeared Joker *(with Club payoff)* | — | — | The Moon; Death; The Hanged Man | — | Sigil | Wild |
 | Clubs | ↳ Onyx Agate Club Scoring `[L]` | Onyx Agate | Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(all with Onyx Agate)* | — | — | — | — | Deja Vu | — |
@@ -114,13 +112,9 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Blackboard Held-Black Cards | Blackboard Held-Black Cards `[L]` | Blackboard | Smeared Joker *(with Blackboard)* | — | — | The Moon; The World | — | — | Wild |
 | Raised Fist Held-Minimum | Raised Fist Held-Minimum `[L]` | Raised Fist | Mime *(with Raised Fist)* | — | — | Strength; Death; The Hanged Man | — | Familiar; Grim; Cryptid; Deja Vu | — |
 | Ancient Joker Suit-Rotation | Ancient Joker Suit-Rotation `[L]` | Ancient Joker | Smeared Joker; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(all with Ancient Joker)* | — | — | The Star; The Moon; The Sun; The World | — | Sigil; Deja Vu | Wild |
-| Flower Pot Multi-Suit | Flower Pot Multi-Suit `[I]` | Flower Pot | — | — | — | The Star; The Moon; The Sun; The World | — | Sigil | Wild |
-| Flower Pot Multi-Suit | ↳ Splash + Flower Pot `[L]` | Splash *(with Flower Pot)* | — | — | — | — | — | — | — |
-| Flower Pot Multi-Suit | ↳ Smeared Joker + Flower Pot `[L]` | Smeared Joker *(with Flower Pot)* | — | — | — | — | — | — | — |
+| Flower Pot Multi-Suit | Flower Pot Multi-Suit `[L]` | Flower Pot; Splash *(with Flower Pot)*; Smeared Joker *(with Flower Pot)* | — | — | — | The Star; The Moon; The Sun; The World | — | Sigil | Wild |
 
 ## 4. Enhancements — runtime implemented
-
-Runtime status: **complete for Part 4.** The five parent enhancement shells and fifteen leaves are present in the tree-aware tracker. Conditional leaf support is deliberately delayed until the matching enhancement or defining payoff is material; e.g. DNA does not seed Stone duplication from a natural deck, Hanging Chad does not seed Glass retrigger, and Mime does not seed Steel-Mime without Steel infrastructure.
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
@@ -136,18 +130,14 @@ Runtime status: **complete for Part 4.** The five parent enhancement shells and 
 | Steel | ↳ Steel Joker Density Scaling `[L]` | Steel Joker | DNA; Hologram *(with Steel shell)* | Certificate; Blue Joker *(with Steel shell)* | — | — | — | — | — |
 | Steel | ↳ Mime Steel Retrigger `[L]` | Mime *(with Steel shell)* | Troubadour; Juggler *(with Steel shell)* | Raised Fist; Reserved Parking; Shoot the Moon *(with Steel shell)* | — | — | — | Deja Vu | — |
 | Lucky | Lucky `[I]` | — | — | — | Vampire; Midas Mask | The Magician; Death | — | Cryptid | Lucky |
-| Lucky | ↳ Lucky Cat Scaling `[L]` | Lucky Cat | DNA; Hologram *(with Lucky shell)* | Certificate *(with Lucky shell)* | — | — | — | — | — |
-| Lucky | ↳ Lucky Cat + Oops! All 6s `[L]` | Oops! All 6s *(with Lucky Cat)* | — | Business Card *(with Lucky Cat)* | — | — | — | — | — |
+| Lucky | ↳ Lucky Cat Scaling `[L]` | Lucky Cat; Oops! All 6s *(with Lucky Cat)* | DNA; Hologram *(with Lucky shell)* | Certificate; Business Card *(with Lucky Cat)* | — | — | — | — | — |
 | Lucky | ↳ Lucky Retrigger `[L]` | Hanging Chad *(with Lucky shell)* | Dusk; Seltzer; Sock and Buskin; Hack *(with Lucky shell)* | DNA; Hologram *(with Lucky shell)* | — | — | — | Deja Vu | — |
 | Gold Cards | Gold Cards `[I]` | — | — | — | Vampire | The Devil; Death | — | Cryptid; Talisman | Gold |
 | Gold Cards | ↳ Held Gold + Mime Economy `[L]` | Mime *(with Gold-card shell)* | Reserved Parking; To the Moon; Bull; Bootstraps *(with Gold-card shell)* | Rocket; Cloud 9; Golden Joker *(with Gold-card shell)* | — | — | — | Deja Vu | — |
-| Gold Cards | ↳ Golden Ticket Gold Scoring `[L]` | Golden Ticket; Hanging Chad *(with Golden Ticket)* | Dusk; Seltzer; Sock and Buskin; Hack *(with Golden Ticket)* | Business Card; Bull; Bootstraps *(with Golden Ticket)* | — | — | — | — | — |
-| Gold Cards | ↳ Midas Mask Gold Generation `[L]` | Midas Mask | Pareidolia; Splash *(with Midas Mask)* | Scary Face; Smiley Face; Business Card; Reserved Parking *(with Midas Mask)* | — | — | — | — | — |
-| Gold Cards | ↳ Midas Mask + Golden Ticket Economy `[L]` | Midas Mask; Golden Ticket *(when paired)* | Hanging Chad; Dusk; Seltzer; Sock and Buskin; Hack *(with pair)* | Business Card; Bull; Bootstraps *(with pair)* | — | — | — | — | — |
+| Gold Cards | ↳ Golden Ticket Gold Scoring `[L]` | Golden Ticket; Hanging Chad *(with Golden Ticket)*; Midas Mask *(when paired with Golden Ticket)* | Dusk; Seltzer; Sock and Buskin; Hack *(with Golden Ticket)* | Business Card; Bull; Bootstraps *(with Golden Ticket)* | — | — | — | — | — |
+| Gold Cards | ↳ Midas Mask Gold Generation `[L]` | Midas Mask | Pareidolia; Splash; Golden Ticket *(with Midas Mask)* | Scary Face; Smiley Face; Business Card; Reserved Parking *(with Midas Mask)* | — | — | — | — | — |
 
 ## 5. Seals — runtime implemented
-
-Runtime status: **implemented for Part 5.** Section 5 contains six runtime nodes: Red Seal plus its played/held leaves, and standalone Blue, Purple, and Gold Seal routes. Generic support remains Neutral until the appropriate live seal context exists. Held Red-Seal Mime additionally requires a material held effect; Red Kings/Queens and low cards gate Baron, Shoot the Moon, and Raised Fist relationships respectively.
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
@@ -163,30 +153,23 @@ Runtime status: **implemented for Part 5.** Section 5 contains six runtime nodes
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
 | Canio Destruction | Canio Destruction `[I]` | Canio | — | — | — | The Hanged Man; Justice | — | Familiar; Immolate | Glass |
-| Canio Destruction | ↳ Trading Card Canio `[L]` | Trading Card *(with Canio)* | Pareidolia *(with Canio)* | Faceless Joker; Merry Andy; Drunkard *(with Canio)* | — | — | — | — | — |
-| Canio Destruction | ↳ Pareidolia Canio `[L]` | Pareidolia *(with Canio)* | Trading Card *(with Canio)* | Midas Mask; Splash *(with Canio)* | — | — | — | Familiar | — |
+| Canio Destruction | ↳ Trading Card / Pareidolia Canio `[L]` | Trading Card *(with Canio)*; Pareidolia *(with Canio + destruction source)* | Midas Mask; Splash *(with Pareidolia + Canio)* | Faceless Joker; Merry Andy; Drunkard *(with Trading Card + Canio)* | — | — | — | Familiar | — |
 | Canio Destruction | ↳ Glass Canio `[L]` | Glass Joker *(with Canio + Glass)* | Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(with Canio + Glass)* | DNA; Hologram *(with Canio + Glass)* | — | Justice | — | Familiar | Glass |
 | Canio Destruction | ↳ Consumable Canio `[L]` | Scaled Canio *(public XMult state)* | — | — | — | The Hanged Man | — | Immolate | — |
-| Vampire | Vampire `[I]` | Vampire | — | — | — | Any enhancement Tarot | — | Familiar; Grim; Incantation | Any scoring enhancement |
-| Vampire | ↳ Midas Mask + Vampire `[L]` | Midas Mask *(with Vampire)* | Pareidolia; Splash *(with Vampire)* | — | — | The Devil | — | — | Gold |
-| Vampire | ↳ Pareidolia + Midas Mask + Vampire `[L]` | Pareidolia; Midas Mask *(paired with Vampire)* | Splash *(with trio)* | — | — | The Devil | — | Familiar | Gold |
+| Vampire | Vampire `[L]` | Vampire; Midas Mask *(with Vampire)* | Pareidolia; Splash *(with Vampire/Midas)* | — | — | Any enhancement Tarot; The Devil | — | Familiar; Grim; Incantation | Any scoring enhancement; Gold |
 | Ceremonial Dagger Sacrifice | Ceremonial Dagger / Disposable-Joker Feed `[L]` | Ceremonial Dagger | Riff-Raff; Egg; Gift Card; Blueprint; Brainstorm *(with Dagger)* | Invisible Joker | Eternal sacrifice targets | — | — | — | — |
 | Madness Destruction | Madness Destruction `[I]` | Madness | Blueprint; Brainstorm *(with Madness)* | — | — | — | — | — | — |
 | Madness Destruction | ↳ Solo Madness `[L]` | Madness *(no other destroyable Jokers)* | Joker Stencil | — | — | — | — | — | — |
 | Madness Destruction | ↳ Eternal-Joker Madness `[L]` | Eternal Jokers *(with Madness)* | — | — | — | — | — | — | — |
 | Deck Thinning | Deck Thinning `[I]` | — | — | — | — | The Hanged Man | — | Immolate | — |
-| Deck Thinning | ↳ Trading Card Thinning / Economy `[L]` | Trading Card | — | — | — | — | — | — | — |
-| Deck Thinning | ↳ Erosion Thinning `[L]` | Erosion | — | — | — | — | — | — | — |
-| Deck Thinning | ↳ Trading Card + Erosion `[L]` | Trading Card; Erosion *(when paired)* | — | — | — | The Hanged Man | — | Immolate | — |
+| Deck Thinning | ↳ Trading Card Thinning / Economy `[L]` | Trading Card | Erosion *(when paired with Trading Card thinning)* | — | — | — | — | — | — |
+| Deck Thinning | ↳ Erosion Thinning `[L]` | Erosion | Trading Card *(when paired with Erosion)* | — | — | — | — | — | — |
 
 ## 7. Deck growth and card training
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Hologram Deck-Growth | Hologram Deck-Growth `[I]` | Hologram | Blueprint; Brainstorm *(with Hologram)* | — | — | — | — | Cryptid; Familiar; Grim; Incantation | — |
-| Hologram Deck-Growth | ↳ DNA + Hologram `[L]` | DNA *(with Hologram)* | Blueprint; Brainstorm *(with pair)* | — | — | — | — | Cryptid | — |
-| Hologram Deck-Growth | ↳ Certificate + Hologram `[L]` | Certificate *(with Hologram)* | Blueprint; Brainstorm *(with pair)* | — | — | — | — | — | — |
-| Hologram Deck-Growth | ↳ Marble Joker + Hologram `[L]` | Marble Joker *(with Hologram)* | Blueprint; Brainstorm *(with pair)* | — | — | The Tower | — | — | Stone |
+| Hologram Deck-Growth | Hologram Deck-Growth `[L]` | Hologram; DNA *(with Hologram)*; Certificate *(with Hologram)*; Marble Joker *(with Hologram)* | Blueprint; Brainstorm *(with Hologram)* | — | — | The Tower *(with Marble Joker)* | — | Cryptid; Familiar; Grim; Incantation | Stone *(with Marble Joker)* |
 | Hiker Card Training | Hiker Retrigger / Copy Training `[L]` | Hiker | Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack; Splash; DNA; Blueprint; Brainstorm *(with Hiker)* | Certificate *(with Hiker)* | — | — | — | Cryptid; Deja Vu | — |
 | Driver's License Enhancement-Density | Driver's License Enhancement-Density `[L]` | Driver's License | Midas Mask; Marble Joker; Certificate; Blueprint; Brainstorm *(with Driver's License)* | DNA; Hologram *(with Driver's License)* | Vampire | The Magician; The Empress; The Hierophant; The Lovers; The Chariot; Justice; The Devil; The Tower | — | Familiar; Grim; Incantation | Any |
 | Blue Joker Large-Deck Chips | Blue Joker Large-Deck Chips `[L]` | Blue Joker | Hologram; Certificate; Marble Joker *(with Blue Joker)* | DNA *(with Blue Joker)* | Erosion; Trading Card | — | — | Familiar; Grim; Incantation; Cryptid | — |
@@ -196,16 +179,14 @@ Runtime status: **implemented for Part 5.** Section 5 contains six runtime nodes
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
 | Planet Engine | Planet Engine `[I]` | — | Astronomer | — | — | The High Priestess | Any | Black Hole | — |
-| Planet Engine | ↳ Constellation Planet-Scaling `[L]` | Constellation | Astronomer; Perkeo; Blueprint; Brainstorm *(with Constellation)* | Satellite *(without full pair)* | — | — | Any | — | — |
-| Planet Engine | ↳ Satellite Planet-Economy `[L]` | Satellite | Astronomer; Perkeo; Blueprint; Brainstorm *(with Satellite)* | Constellation *(without full pair)* | — | — | Any | — | — |
-| Planet Engine | ↳ Constellation + Satellite Planet Engine `[L]` | Constellation; Satellite *(when paired)* | Astronomer; Perkeo *(with pair)* | — | — | — | Any | — | — |
+| Planet Engine | ↳ Constellation Planet-Scaling `[L]` | Constellation; Satellite *(when paired)* | Perkeo; Blueprint; Brainstorm *(with Constellation)* | Satellite *(without pair)* | — | — | Any | — | — |
+| Planet Engine | ↳ Satellite Planet-Economy `[L]` | Satellite; Constellation *(when paired)* | Perkeo; Blueprint; Brainstorm *(with Satellite)* | Constellation *(without pair)* | — | — | Any | — | — |
 | Perkeo Consumable Duplication | Perkeo Consumable Duplication `[I]` | Perkeo | — | — | — | — | — | — | — |
 | Perkeo Consumable Duplication | ↳ Perkeo + Observatory Planet Stack `[L]` | Perkeo *(with Observatory)* | — | — | — | — | Any held Planet | — | — |
 | Perkeo Consumable Duplication | ↳ Perkeo + Cryptid Copy Engine `[L]` | Perkeo *(with held Cryptid)* | — | — | — | — | — | Cryptid | — |
 | Perkeo Consumable Duplication | ↳ Perkeo Tarot / Spectral Engine `[L]` | Perkeo *(with held Tarot/Spectral)* | — | — | — | Any held Tarot | — | Any held Spectral | — |
 | Tarot Engine | Tarot Engine `[I]` | Fortune Teller | — | — | — | Any | — | — | — |
-| Tarot Engine | ↳ Cartomancer Blind-Select Generation `[L]` | Cartomancer | — | — | — | Any | — | — | — |
-| Tarot Engine | ↳ Hallucination Pack-Open Generation `[L]` | Hallucination | — | — | — | Any | — | — | — |
+| Tarot Engine | ↳ Passive Tarot Generation `[L]` | Cartomancer; Hallucination | — | — | — | Any | — | — | — |
 | Tarot Engine | ↳ 8 Ball / Eights Tarot Generation `[L]` | 8 Ball | Oops! All 6s; Hanging Chad; Seltzer; Dusk *(all with 8 Ball)* | Fibonacci *(with Eight commitment)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
 | Vagabond Low-Money Tarot Engine | Vagabond Low-Money Tarot Engine `[L]` | Vagabond | Fortune Teller; Blueprint; Brainstorm *(with Vagabond)* | — | Cash-hoard commitments that prevent the $4 trigger | Any | — | — | — |
 
@@ -215,9 +196,8 @@ Runtime status: **implemented for Part 5.** Section 5 contains six runtime nodes
 |---|---|---|---|---|---|---|---|---|---|
 | Cash Hoard / Interest | Cash Hoard / Interest `[I]` | — | — | — | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
 | Cash Hoard / Interest | ↳ Rocket / To the Moon Cash Growth `[L]` | Rocket; To the Moon | Blueprint; Brainstorm *(with owned core)* | Golden Joker; Cloud 9; Golden Ticket | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
-| Cash Hoard / Interest | ↳ Bull Cash-to-Chips `[L]` | Bull | Rocket; To the Moon; Blueprint; Brainstorm *(with Bull)* | Golden Joker; Cloud 9; Golden Ticket *(with Bull)* | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
-| Cash Hoard / Interest | ↳ Bootstraps Cash-to-Mult `[L]` | Bootstraps | Rocket; To the Moon; Blueprint; Brainstorm *(with Bootstraps)* | Golden Joker; Cloud 9; Golden Ticket *(with Bootstraps)* | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
-| Cash Hoard / Interest | ↳ Bull + Bootstraps Cash Scoring `[L]` | Bull; Bootstraps *(when paired)* | Rocket; To the Moon *(with pair)* | — | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
+| Cash Hoard / Interest | ↳ Bull Cash-to-Chips `[L]` | Bull; Bootstraps *(when paired)* | Rocket; To the Moon; Blueprint; Brainstorm *(with Bull)* | Golden Joker; Cloud 9; Golden Ticket *(with Bull)* | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
+| Cash Hoard / Interest | ↳ Bootstraps Cash-to-Mult `[L]` | Bootstraps; Bull *(when paired)* | Rocket; To the Moon; Blueprint; Brainstorm *(with Bootstraps)* | Golden Joker; Cloud 9; Golden Ticket *(with Bootstraps)* | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
 | Cash Hoard / Interest | ↳ Cloud 9 Nines Economy `[L]` | Cloud 9 | DNA; Hologram *(with Cloud 9)* | — | Vagabond commitment | — | — | Ouija | Nines |
 | Campfire Sell-Scaling | Campfire Sell-Scaling `[L]` | Campfire | Gift Card; Egg; Riff-Raff; Blueprint; Brainstorm *(with Campfire)* | Cartomancer; Hallucination; Perkeo *(with Campfire)* | — | Temperance | — | — | — |
 | Flash Card Reroll-Scaling | Flash Card Reroll-Scaling `[L]` | Flash Card; Chaos the Clown *(with Flash Card)* | Blueprint; Brainstorm *(with Flash Card)* | Rocket; To the Moon *(with Flash Card)* | — | — | — | — | — |
