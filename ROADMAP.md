@@ -41,6 +41,7 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 - [x] Among similarly safe clear lines, prefer fewer hands and capture unused-hand economy.
 - [x] Preserve future hand value explicitly, including retained structure, Steel cards, Blue Seals and other build-relevant held cards.
 - [x] Tune discard/recovery behavior around the active clear path rather than isolated hand value.
+- [x] Bound Boss-Blind D1 search to an interactive live budget so debuff bosses such as The Club cannot stall autonomy for minutes; retain single-step re-observation and pace fallback.
 
 ### 1.0B — Initial build coherence
 
@@ -66,6 +67,7 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 - [x] Memoize deterministic Joker behavior descriptors by complete modeled Joker state so full-slot shop comparisons reuse analysis without making stale assumptions about stateful Jokers.
 - [x] Model run-wide voucher value plus reserve/interest breakpoints, including observable voucher-modified caps or thresholds.
 - [x] Keep undiscovered-item acquisition bias bounded so it never overrides survival or build coherence. Explicitly undiscovered positive options receive only a one-ULP tie-break, never a value-changing exploration bonus.
+- [x] Add explicit default-off collection unlock campaigns for Hit the Road and Stuntman. Campaign actions require authoritative locked status and may not reduce the selected D1 clear probability; ordinary runs remain unchanged.
 
 ### 1.0E — Blind skip/tag strategy
 

@@ -223,15 +223,16 @@ def test_supervisor_fails_closed_when_native_restart_postcondition_fails(tmp_pat
 
 def test_toggle_launches_once_then_requests_cooperative_stop(tmp_path, monkeypatch):
     control = BalatroAgentControl(tmp_path / "control")
+    launched = []
 
     class _Process:
         pid = 4242
 
-    monkeypatch.setattr(
-        toggle_module.subprocess,
-        "Popen",
-        lambda *_args, **_kwargs: _Process(),
-    )
+    def fake_popen(command, **_kwargs):
+        launched.append(list(command))
+        return _Process()
+
+    monkeypatch.setattr(toggle_module.subprocess, "Popen", fake_popen)
     monkeypatch.setattr(toggle_module, "_repo_root", lambda: tmp_path)
     monkeypatch.setattr(
         agent_control_module,
@@ -239,13 +240,23 @@ def test_toggle_launches_once_then_requests_cooperative_stop(tmp_path, monkeypat
         lambda pid: pid == 4242,
     )
 
-    state, pid = toggle_agent(control, session_id="toggle-test")
+    state, pid = toggle_agent(
+        control,
+        session_id="toggle-test",
+        unlock_jokers=("hit_the_road", "stuntman"),
+    )
 
     assert state == "STARTING"
     assert pid == 4242
     assert control.read_pid() == 4242
     assert control.stop_requested() is False
     assert control.read_status()["state"] == "STARTING"
+    assert launched[0][-4:] == [
+        "--unlock-joker",
+        "hit_the_road",
+        "--unlock-joker",
+        "stuntman",
+    ]
 
     state, pid = toggle_agent(control)
 

@@ -47,6 +47,21 @@ from .live_memory_autonomous_step_injected import (
 )
 
 
+BOSS_D1_MAX_HORIZON = 2
+BOSS_D1_MAX_SEARCH_NODES = 500
+
+
+def _bounded_d1_limits(state, max_horizon: int, max_search_nodes: int):
+    """Keep live Boss-Blind replans within an interactive search envelope."""
+    if not getattr(state, "boss_name", None):
+        return int(max_horizon), int(max_search_nodes), False
+    return (
+        min(int(max_horizon), BOSS_D1_MAX_HORIZON),
+        min(int(max_search_nodes), BOSS_D1_MAX_SEARCH_NODES),
+        True,
+    )
+
+
 @dataclass(frozen=True)
 class PlaystyleAutonomousStepDecision(AutonomousStepDecision):
     build_intent: PreparedBuildIntentLog | None = None
@@ -123,6 +138,8 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             ),
         )
         self._pending_decision_diagnostics: dict[str, Any] = {}
+        self.last_hand_action_engine = None
+        self.last_hand_action_decision = None
 
         if not custom_hand_recommender:
             self.hand_recommender = self._recommend_hand_with_playstyle
@@ -268,6 +285,11 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             if self.max_search_nodes is not None
             else int(planner_config.get("max_search_nodes", 5000))
         )
+        max_horizon, max_search_nodes, boss_search_bounded = _bounded_d1_limits(
+            state,
+            max_horizon,
+            max_search_nodes,
+        )
         search_schedule_mode = _search_schedule_mode(
             planner_config,
             max_horizon_override=self.max_horizon,
@@ -295,6 +317,8 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
         engine.rank_plans = timed_rank_plans
         decision_started = perf_counter()
         decision = engine.decide(state)
+        self.last_hand_action_engine = engine
+        self.last_hand_action_decision = decision
         d1_elapsed = perf_counter() - decision_started
 
         notes = [
@@ -310,6 +334,11 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             f"path_exact={decision.selected_plan.exact}",
             f"d1_decision_seconds={d1_elapsed:.3f}",
         ]
+        if boss_search_bounded:
+            notes.append(
+                "boss_search_bound="
+                f"horizon<={max_horizon},nodes<={max_search_nodes}"
+            )
         if decision.selected_pace_ratio is not None:
             notes.append(f"pace_ratio={decision.selected_pace_ratio:.6f}")
 

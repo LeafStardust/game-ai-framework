@@ -1,4 +1,5 @@
 from games.balatro.live.external.live_memory_observer import (
+    _normalize_joker_unlocks,
     _normalize_hand_levels,
     _normalize_round_joker_public_state,
     snapshot_payload_from_live_memory,
@@ -36,6 +37,31 @@ def _integer(value):
 
 def _boolean(value):
     return LuaValue("boolean", bool(value), 0)
+
+
+def test_live_memory_exposes_only_supported_joker_unlock_bits():
+    CENTERS = 50
+    HIT = 51
+    STUNTMAN = 52
+    UNRELATED = 53
+    decoder = _FakeDecoder(
+        {
+            CENTERS: {
+                "j_hit_the_road": _table(HIT),
+                "j_stuntman": _table(STUNTMAN),
+                "j_unrelated": _table(UNRELATED),
+            },
+            HIT: {"unlocked": _boolean(False)},
+            STUNTMAN: {"unlocked": _boolean(True)},
+            UNRELATED: {"unlocked": _boolean(False)},
+        },
+        {},
+    )
+
+    assert _normalize_joker_unlocks(decoder, _table(CENTERS)) == {
+        "j_hit_the_road": {"unlocked": False},
+        "j_stuntman": {"unlocked": True},
+    }
 
 
 def _card_tables(base_address, *, rank, suit, live_id):

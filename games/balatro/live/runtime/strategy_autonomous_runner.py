@@ -3,6 +3,10 @@ from __future__ import annotations
 from dataclasses import replace
 
 from games.balatro.live.hand_action_policy import HandActionThresholds
+from games.balatro.live.blind_clear_planner import (
+    LiveBlindPlan,
+    PlannerSearchBudgetExceeded,
+)
 from games.balatro.joker_order_policy import JokerOrderPolicy
 from games.balatro.live.strategy_consumable_timing import (
     StrategyAwareLiveConsumableTimingPolicy,
@@ -33,6 +37,7 @@ from games.balatro.strategy_value import (
     StrategyAwareJokerBuildTransitionPlanner,
     StrategyAwareJokerBuildValueEvaluator,
 )
+from games.balatro.unlock_campaign import UnlockCampaignConfig, UnlockCampaignPolicy
 
 from .playstyle_autonomous_runner import (
     PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
@@ -57,6 +62,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
     """
 
     def __init__(self, observer, **kwargs) -> None:
+        unlock_campaign_config = kwargs.pop("unlock_campaign_config", None)
         custom_hand_recommender = kwargs.get("hand_recommender") is not None
         custom_pack_recommender = kwargs.get("pack_recommender") is not None
         super().__init__(observer, **kwargs)
@@ -99,6 +105,9 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
         )
         self.verdant_leaf_sale_policy = VerdantLeafSalePolicy(
             evaluator=joker_build_value,
+        )
+        self.unlock_campaign_policy = UnlockCampaignPolicy(
+            unlock_campaign_config or UnlockCampaignConfig(),
         )
         joker_transition_planner = StrategyAwareJokerBuildTransitionPlanner(
             evaluator=joker_build_value,
@@ -158,25 +167,42 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
 
     def decide(self):
         decision = super().decide()
-        order_decision = self.joker_order_policy.recommend(
-            decision.state,
-            phase=str(decision.snapshot.phase),
-        )
-        if order_decision is not None:
+        unlock = self._unlock_campaign_recommendation(decision)
+        if unlock is not None:
             decision = replace(
                 decision,
-                action=order_decision.to_action(),
-                source="Joker-order policy",
-                notes=order_decision.rationale,
+                action=unlock.action,
+                source=f"Joker unlock campaign: {unlock.target_label}",
+                notes=unlock.rationale,
                 decision_diagnostics={
-                    "layer": "JOKER_ORDER",
+                    "layer": "JOKER_UNLOCK_CAMPAIGN",
                     "selected": {
-                        "permutation": list(order_decision.permutation),
-                        "current_score": float(order_decision.current_score),
-                        "ordered_score": float(order_decision.ordered_score),
+                        "target_id": unlock.target_id,
+                        "target_label": unlock.target_label,
+                        "action": str(unlock.action.name),
                     },
                 },
             )
+        else:
+            order_decision = self.joker_order_policy.recommend(
+                decision.state,
+                phase=str(decision.snapshot.phase),
+            )
+            if order_decision is not None:
+                decision = replace(
+                    decision,
+                    action=order_decision.to_action(),
+                    source="Joker-order policy",
+                    notes=order_decision.rationale,
+                    decision_diagnostics={
+                        "layer": "JOKER_ORDER",
+                        "selected": {
+                            "permutation": list(order_decision.permutation),
+                            "current_score": float(order_decision.current_score),
+                            "ordered_score": float(order_decision.ordered_score),
+                        },
+                    },
+                )
         verdant_sale = self.verdant_leaf_sale_policy.recommend(decision.state)
         if verdant_sale is not None:
             decision = replace(
@@ -246,4 +272,56 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
             decision,
             notes=(*decision.notes, *resolution.rationale),
             decision_diagnostics=diagnostics,
+        )
+
+    def _unlock_campaign_recommendation(self, decision):
+        state = decision.state
+        if str(decision.snapshot.phase) != "SELECTING_HAND":
+            return None
+        if str(decision.source) != "D1 hand-action policy":
+            return None
+        if not self.unlock_campaign_policy.active_targets(state):
+            return None
+
+        hand_decision = self.last_hand_action_decision
+        engine = self.last_hand_action_engine
+        if hand_decision is None or engine is None:
+            return None
+
+        depth = max(1, int(getattr(hand_decision.selected_plan, "horizon", 1)))
+        planner = engine.planner
+
+        def evaluate_forced_action(action):
+            try:
+                planner._require_state(state)
+                planner.reset_search_stats()
+                estimate = planner._estimate_action(state, action, depth)
+            except (PlannerSearchBudgetExceeded, RuntimeError, ValueError):
+                return None
+            return LiveBlindPlan(
+                action=action,
+                value=estimate.value,
+                horizon=depth,
+                exact=estimate.exact,
+                candidate_count=1,
+            )
+
+        baseline = evaluate_forced_action(hand_decision.action)
+        if baseline is None:
+            return None
+
+        evaluator = planner.evaluator
+        play_actions = tuple(
+            plan.action
+            for plan in getattr(hand_decision, "plans", ())
+            if str(plan.action.name) == "PLAY_CARDS"
+        )
+        if not play_actions and str(hand_decision.action.name) == "PLAY_CARDS":
+            play_actions = (hand_decision.action,)
+        return self.unlock_campaign_policy.recommend_hand(
+            state,
+            baseline_plan=baseline,
+            evaluate_forced_action=evaluate_forced_action,
+            play_actions=play_actions,
+            project_play=lambda action: evaluator.project_play(state, action),
         )

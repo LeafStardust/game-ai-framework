@@ -123,6 +123,20 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             if isinstance(last_tarot_planet, str) and last_tarot_planet
             else None
         )
+        joker_unlocks = payload.get("joker_unlocks")
+        state.joker_unlocks = (
+            {
+                str(key): {
+                    str(field): bool(field_value)
+                    for field, field_value in value.items()
+                    if isinstance(field_value, bool)
+                }
+                for key, value in joker_unlocks.items()
+                if isinstance(value, dict)
+            }
+            if isinstance(joker_unlocks, dict)
+            else {}
+        )
         state.phase = snapshot.phase
 
         hand_area = self._area(payload.get("hand"))

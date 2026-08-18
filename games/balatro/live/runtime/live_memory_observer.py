@@ -14,6 +14,12 @@ from .process_memory import BalatroProcessMemoryError, WindowsProcessMemoryReade
 from .save_observer import STAKE_NAMES
 
 
+_UNLOCK_CAMPAIGN_JOKER_CENTERS = (
+    "j_hit_the_road",
+    "j_stuntman",
+)
+
+
 class LiveMemoryObservationError(RuntimeError):
     pass
 
@@ -144,6 +150,7 @@ def snapshot_payload_from_live_memory(
     round_joker_state = _normalize_round_joker_public_state(decoder, current_round)
     blind_tags = _normalize_blind_tags(decoder, round_resets.get("blind_tags"))
     normalized_blind = _normalize_blind(decoder, blind, game)
+    joker_unlocks = _normalize_joker_unlocks(decoder, root.get("P_CENTERS"))
     current_tag = blind_tags.get(str(normalized_blind.get("type") or "").lower())
     if current_tag:
         normalized_blind["tag"] = current_tag
@@ -200,6 +207,7 @@ def snapshot_payload_from_live_memory(
         "deck": _deck_name(decoder, game),
         "stake": STAKE_NAMES.get(stake_id, str(stake_id)),
         "last_tarot_planet": _string(game.get("last_tarot_planet")),
+        "joker_unlocks": joker_unlocks,
         "round": {
             "chips": _integer(blind.get("chips"), 0),
             "hands_left": _integer(current_round.get("hands_left"), 0),
@@ -342,6 +350,24 @@ def _normalize_item_area(
         "limit": _integer(config.get("card_limit"), len(cards)),
         "cards": cards,
     }
+
+
+def _normalize_joker_unlocks(
+    decoder: LuaJITNonGC64Decoder,
+    centers_value: LuaValue | None,
+) -> dict[str, dict[str, bool]]:
+    """Expose only explicitly supported public collection unlock bits."""
+    centers = _table_fields(decoder, centers_value)
+    result: dict[str, dict[str, bool]] = {}
+    for center_key in _UNLOCK_CAMPAIGN_JOKER_CENTERS:
+        center_value = centers.get(center_key)
+        center = _table_fields(decoder, center_value)
+        if "unlocked" not in center:
+            continue
+        result[center_key] = {
+            "unlocked": _boolean(center.get("unlocked"), False),
+        }
+    return result
 
 
 def _normalize_card(

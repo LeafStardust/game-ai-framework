@@ -1,0 +1,23 @@
+from types import SimpleNamespace
+
+from games.balatro.live.runtime.playstyle_autonomous_runner import (
+    BOSS_D1_MAX_HORIZON,
+    BOSS_D1_MAX_SEARCH_NODES,
+    _bounded_d1_limits,
+)
+
+
+def test_club_boss_search_is_capped_to_interactive_budget():
+    state = SimpleNamespace(boss_name="The Club")
+
+    horizon, nodes, bounded = _bounded_d1_limits(state, 5, 5000)
+
+    assert bounded is True
+    assert horizon == BOSS_D1_MAX_HORIZON == 2
+    assert nodes == BOSS_D1_MAX_SEARCH_NODES == 500
+
+
+def test_non_boss_search_keeps_playbook_budget():
+    state = SimpleNamespace(boss_name=None)
+
+    assert _bounded_d1_limits(state, 5, 5000) == (5, 5000, False)

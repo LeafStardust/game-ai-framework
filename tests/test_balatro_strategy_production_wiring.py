@@ -20,6 +20,7 @@ from games.balatro.strategy_tree_tracker import (
     TreeAwareStateAwareBalatroStrategyTracker,
 )
 from games.balatro.strategy_value import StrategyAwareJokerBuildTransitionPlanner
+from games.balatro.unlock_campaign import UnlockCampaignPolicy
 
 
 def test_production_supervisor_entry_uses_strategy_aware_runner():
@@ -107,4 +108,13 @@ def test_production_strategy_runner_uses_verdant_leaf_emergency_sale_policy():
             "VerdantLeafSalePolicy"
         ]
         is VerdantLeafSalePolicy
+    )
+
+
+def test_production_strategy_runner_uses_default_off_unlock_campaign_policy():
+    assert (
+        StrategyAwareLiveMemoryInjectedSingleStepRunner.__init__.__globals__[
+            "UnlockCampaignPolicy"
+        ]
+        is UnlockCampaignPolicy
     )

@@ -5,6 +5,11 @@ import traceback
 
 from games.balatro.live.injected.bridge import FirstPartyBalatroBridge
 from games.balatro.live.run_diagnostics import BalatroDiagnosticLogger
+from games.balatro.unlock_campaign import (
+    AUTO,
+    SUPPORTED_JOKER_UNLOCK_TARGETS,
+    UnlockCampaignConfig,
+)
 
 from .agent_control import BalatroAgentControl
 from .balatro_agent_crash_report_repo import write_repo_crash_report
@@ -35,6 +40,7 @@ def _diagnostic_runner_factory(
     control: BalatroAgentControl,
     session_id: str,
     diagnostic_directory: str,
+    unlock_campaign_config: UnlockCampaignConfig | None = None,
 ):
     runner = StrategyAwareLiveMemoryInjectedSingleStepRunner(
         observer,
@@ -42,6 +48,7 @@ def _diagnostic_runner_factory(
         bridge=FirstPartyBalatroBridge(
             timeout=DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS,
         ),
+        unlock_campaign_config=unlock_campaign_config,
     )
     original_execute = runner.execute
 
@@ -85,7 +92,18 @@ def main() -> int:
     parser.add_argument("--diagnostic-directory", default="logs/balatro/diagnostics")
     parser.add_argument("--session-id")
     parser.add_argument("--no-retry-losses", action="store_true")
+    parser.add_argument(
+        "--unlock-joker",
+        action="append",
+        choices=(AUTO, *SUPPORTED_JOKER_UNLOCK_TARGETS),
+        default=[],
+        help=(
+            "explicitly enable a default-off collection unlock campaign; repeat "
+            "for multiple targets or use auto"
+        ),
+    )
     args = parser.parse_args()
+    unlock_campaign_config = UnlockCampaignConfig.from_targets(args.unlock_joker)
 
     control = BalatroAgentControl(args.control_dir)
     supervisor: BalatroAgentSupervisor
@@ -96,6 +114,7 @@ def main() -> int:
             control=control,
             session_id=supervisor.session_id,
             diagnostic_directory=args.diagnostic_directory,
+            unlock_campaign_config=unlock_campaign_config,
         )
 
     supervisor = BalatroAgentSupervisor(

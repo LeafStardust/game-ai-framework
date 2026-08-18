@@ -154,6 +154,7 @@ def start_agent(
     control: BalatroAgentControl,
     *,
     session_id: str | None = None,
+    unlock_jokers: tuple[str, ...] = (),
 ) -> int:
     running = control.running_pid()
     if running is not None:
@@ -171,6 +172,8 @@ def start_agent(
     ]
     if session_id:
         command.extend(("--session-id", str(session_id)))
+    for target in unlock_jokers:
+        command.extend(("--unlock-joker", str(target)))
 
     control.ensure_directory()
     log_path = control.directory / "agent.log"
@@ -279,12 +282,17 @@ def toggle_agent(
     control: BalatroAgentControl,
     *,
     session_id: str | None = None,
+    unlock_jokers: tuple[str, ...] = (),
 ) -> tuple[str, int | None]:
     running = control.running_pid()
     if running is not None:
         stop_agent(control)
         return "STOPPING", running
-    return "STARTING", start_agent(control, session_id=session_id)
+    return "STARTING", start_agent(
+        control,
+        session_id=session_id,
+        unlock_jokers=unlock_jokers,
+    )
 
 
 def main() -> int:
@@ -298,6 +306,13 @@ def main() -> int:
     )
     parser.add_argument("--control-dir")
     parser.add_argument("--session-id")
+    parser.add_argument(
+        "--unlock-joker",
+        action="append",
+        choices=("auto", "hit_the_road", "stuntman"),
+        default=[],
+        help="enable a default-off Joker unlock campaign when turning the agent ON",
+    )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--status", action="store_true")
     mode.add_argument("--hard-stop", action="store_true")
@@ -346,7 +361,11 @@ def main() -> int:
         return 0
 
     try:
-        state, pid = toggle_agent(control, session_id=args.session_id)
+        state, pid = toggle_agent(
+            control,
+            session_id=args.session_id,
+            unlock_jokers=tuple(args.unlock_joker),
+        )
     except Exception as error:
         print("Balatro Agent toggle -> FAIL")
         print(f"Reason -> {error}")
@@ -358,6 +377,10 @@ def main() -> int:
         print(f"Supervisor PID -> {pid}")
         print("Live monitor -> opening in a separate terminal window")
         print("Playbook selection -> automatic from live deck/stake")
+        if args.unlock_joker:
+            print("Unlock campaign -> " + ", ".join(args.unlock_joker))
+        else:
+            print("Unlock campaign -> OFF")
         print("Loss handling -> automatic fresh same-deck/stake native retry")
         print("Win handling -> automatic OFF")
         print("Crash reporting -> automatic traceback + report file")
