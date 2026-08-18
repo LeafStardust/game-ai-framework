@@ -306,10 +306,12 @@ class ContextualConsumableTargetEvaluator:
             category == "SPECTRAL"
             and name in self.SUPPORTED_SPECTRALS
         )
+        is_purple_seal = category == "SPECTRAL" and name == "Medium"
         contextual_delta = 0.0
         intrinsic_delta = 0.0
         effective_changes = 0
         overwrite_penalty = 0.0
+        discard_opportunity_cost = 0.0
         change_notes: list[str] = []
 
         for original, transformed in zip(before_cards, after_cards):
@@ -320,6 +322,18 @@ class ContextualConsumableTargetEvaluator:
                 intrinsic_delta += (
                     self._card_intrinsic_value(transformed)
                     - self._card_intrinsic_value(original)
+                )
+
+            # Purple Seal only pays when this card is discarded. Treating it as a
+            # generic permanent upgrade made the old target ranking prefer cards
+            # that the active build wanted to keep/play (for example an Ace in an
+            # Aces strategy). Medium must instead prefer expendable cards. Charge
+            # the target's existing build relevance plus intrinsic card quality as
+            # opportunity cost; the Purple Seal benefit itself remains represented
+            # by contextual/intrinsic delta above.
+            if is_purple_seal:
+                discard_opportunity_cost += (
+                    before_value + self._card_intrinsic_value(original)
                 )
 
             changed = self._changed_properties(original, transformed)
@@ -352,6 +366,7 @@ class ContextualConsumableTargetEvaluator:
             + intrinsic_delta
             + change_bonus
             - overwrite_penalty
+            - discard_opportunity_cost
         )
         copy_notes: tuple[str, ...] = ()
         if is_directional_copy and len(indices) == 2:
@@ -366,6 +381,12 @@ class ContextualConsumableTargetEvaluator:
         if is_spectral_seal:
             spectral_notes = (
                 f"intrinsic seal delta={intrinsic_delta:.3f}",
+            )
+        if is_purple_seal:
+            spectral_notes = (
+                *spectral_notes,
+                "Purple Seal is a discard-trigger payoff; prefer expendable targets",
+                f"discard opportunity cost={discard_opportunity_cost:.3f}",
             )
         rationale = (
             f"contextual target delta={contextual_delta:.3f}",
