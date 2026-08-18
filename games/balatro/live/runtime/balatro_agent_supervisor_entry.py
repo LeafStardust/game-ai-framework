@@ -34,6 +34,31 @@ def _is_recovered_stale_replan(error: BaseException) -> bool:
     )
 
 
+def _validated_supervisor_bridge() -> FirstPartyBalatroBridge:
+    """Require the currently loaded in-process bridge to match supervisor features.
+
+    Balatro loads the bridge Lua from the fused executable only when the game starts.
+    Updating the repository while Balatro is already running therefore leaves the
+    process on the older bridge until Balatro is fully restarted. Revision 6 added
+    restart unlock draining and was built on top of the pack-state Joker-sale fix,
+    so requiring that capability also guarantees BUFFOON_PACK/TAROT_PACK/etc. sale
+    support before the autonomous loop is allowed to issue any gameplay action.
+    """
+    bridge = FirstPartyBalatroBridge(
+        timeout=DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS,
+    )
+    status = bridge.status()
+    if status.get("restart_unlock_drain") != "1":
+        revision = status.get("bridge_revision", "unknown")
+        raise RuntimeError(
+            "loaded Balatro bridge is stale "
+            f"(revision={revision}); this process does not contain required pack-state "
+            "Joker-sale/restart support. Close Balatro completely, update/reinstall "
+            "the repository bridge, then relaunch Balatro before starting the agent"
+        )
+    return bridge
+
+
 def _diagnostic_runner_factory(
     observer,
     *,
@@ -46,9 +71,7 @@ def _diagnostic_runner_factory(
     runner = StrategyAwareLiveMemoryInjectedSingleStepRunner(
         observer,
         translator=FinisherAwareBalatroStateTranslator(),
-        bridge=FirstPartyBalatroBridge(
-            timeout=DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS,
-        ),
+        bridge=_validated_supervisor_bridge(),
         unlock_campaign_config=unlock_campaign_config,
         collection_first=collection_first,
     )
