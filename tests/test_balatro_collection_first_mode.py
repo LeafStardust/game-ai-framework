@@ -260,3 +260,51 @@ def test_full_pack_joker_choice_emits_a_sale_before_selection():
     assert len(ranked) == 1
     assert ranked[0].action.name == SELL_JOKER
     assert ranked[0].action.target == 0
+
+
+def test_targeted_collection_tarot_without_hand_targets_is_not_ranked():
+    state = BalatroState()
+    state.phase = "TAROT_PACK"
+    targeted = _pack_choice("The Devil", discovered=False, kind="Tarot")
+    known = _pack_choice("Known", discovered=True, kind="Tarot")
+    policy = CollectionFirstPackPolicy(
+        _PackDelegate(),
+        collection_policy=CollectionFirstPolicy(),
+    )
+
+    ranked = policy.rank_actions(
+        state,
+        [
+            BalatroAction(SELECT_PACK_CARD, target=targeted),
+            BalatroAction(SELECT_PACK_CARD, target=known),
+            BalatroAction(SKIP_BOOSTER),
+        ],
+    )
+
+    assert all(score.action.target is not targeted for score in ranked)
+    assert ranked[0].action.target is known
+
+
+def test_targeted_collection_tarot_with_hand_targets_remains_critical():
+    state = BalatroState()
+    state.phase = "TAROT_PACK"
+    targeted = _pack_choice("The Devil", discovered=False, kind="Tarot")
+    known = _pack_choice("Known", discovered=True, kind="Tarot")
+    target_card = SimpleNamespace(rank="Ace", suit="Spades")
+    policy = CollectionFirstPackPolicy(
+        _PackDelegate(),
+        collection_policy=CollectionFirstPolicy(),
+    )
+
+    ranked = policy.rank_actions(
+        state,
+        [
+            BalatroAction(SELECT_PACK_CARD, target=targeted, cards=(target_card,)),
+            BalatroAction(SELECT_PACK_CARD, target=known),
+            BalatroAction(SKIP_BOOSTER),
+        ],
+    )
+
+    assert ranked[0].action.target is targeted
+    assert ranked[0].action.cards == (target_card,)
+    assert "COLLECTION_CRITICAL" in " ".join(ranked[0].notes)
