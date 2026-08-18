@@ -135,14 +135,6 @@ def _pack_choice_signature(choices) -> tuple[tuple, ...]:
 
 
 def _semantic_payload(value):
-    """Remove presentation-only UI geometry from a live public-state payload.
-
-    The injected bridge acts on Balatro's internal card objects and callbacks, not
-    screen coordinates. Card/item ``ui`` geometry can drift from animation or
-    hover while every gameplay-relevant field remains unchanged, so it must not
-    invalidate a several-second D1 recommendation. All non-UI public fields stay
-    exact and pack identity keeps its dedicated address/signature guard.
-    """
     if isinstance(value, dict):
         return {
             key: _semantic_payload(item)
@@ -160,9 +152,6 @@ def _same_snapshot(
     expected: LiveBalatroSnapshot,
     current: LiveBalatroSnapshot,
 ) -> bool:
-    # Sequence can advance from presentation-only geometry because the observer's
-    # general-purpose fingerprint intentionally includes its full payload. For
-    # injected execution, stale-state equality is gameplay-semantic instead.
     return (
         current.phase == expected.phase
         and current.state_complete == expected.state_complete
@@ -176,22 +165,12 @@ def _search_schedule_mode(
     max_horizon_override: int | None,
     max_search_nodes_override: int | None,
 ) -> str:
-    # Any explicit search-depth/budget override is diagnostic intent. Preserve the
-    # complete adaptive ladder in that case; only ordinary playbook-driven autonomy
-    # may use a sparse latency profile.
     if max_horizon_override is not None or max_search_nodes_override is not None:
         return SEARCH_SCHEDULE_FULL
     return str(planner_config.get("search_schedule_mode", SEARCH_SCHEDULE_FULL))
 
 
 class LiveMemoryInjectedSingleStepRunner:
-    """Choose and execute at most one autonomous Balatro action.
-
-    Observation stays read-only. Execution is exclusively through the first-party
-    injected bridge and the unified semantic dispatcher. This class never loops,
-    chains actions, traverses hidden draws, or falls back to mouse input.
-    """
-
     SHOP_POLICY_ACTIONS = {
         "BUY_JOKER",
         "BUY_CONSUMABLE",
@@ -235,6 +214,7 @@ class LiveMemoryInjectedSingleStepRunner:
         self.consumable_timing_policy = (
             consumable_timing_policy or LiveConsumableTimingPolicy()
         )
+        self._blocked_consumable_live_ids: set[object] = set()
         self.shop_generator = BalatroShopActionGenerator()
         self.shop_policy = VoucherAwareBalatroShopPolicy()
         self.shop_reroll_policy = BuildAwareShopRerollPolicy(
@@ -259,11 +239,32 @@ class LiveMemoryInjectedSingleStepRunner:
         self.last_translation_seconds = 0.0
         self.last_policy_seconds = 0.0
 
+    def quarantine_failed_consumable(self, decision: AutonomousStepDecision) -> bool:
+        if str(decision.action.name) != "USE_CONSUMABLE":
+            return False
+        target = decision.action.target
+        live_id = getattr(target, "live_id", None)
+        if live_id is None:
+            return False
+        self._blocked_consumable_live_ids.add(live_id)
+        return True
+
     def _recommend_consumable_use(
         self,
         state,
     ) -> tuple[BalatroAction, tuple[str, ...]] | None:
-        recommendations = self.consumable_timing_policy.recommend_inventory(state)
+        visible_live_ids = {
+            getattr(consumable, "live_id", None)
+            for consumable in getattr(state, "consumables", ())
+            if getattr(consumable, "live_id", None) is not None
+        }
+        self._blocked_consumable_live_ids.intersection_update(visible_live_ids)
+        recommendations = tuple(
+            recommendation
+            for recommendation in self.consumable_timing_policy.recommend_inventory(state)
+            if getattr(recommendation.consumable, "live_id", None)
+            not in self._blocked_consumable_live_ids
+        )
         if not recommendations:
             return None
 
@@ -352,10 +353,7 @@ class LiveMemoryInjectedSingleStepRunner:
             f"mode={decision.mode}",
             f"confidence={decision.confidence:.6f}",
             f"indices={_indices(state, decision.action)}",
-            (
-                "clear_probability="
-                f"{decision.selected_plan.value.clear_probability:.6f}"
-            ),
+            f"clear_probability={decision.selected_plan.value.clear_probability:.6f}",
             f"path_exact={decision.selected_plan.exact}",
             f"d1_decision_seconds={d1_elapsed:.3f}",
             f"d1_search_time_budget={max_search_seconds:.3f}s",
@@ -377,9 +375,7 @@ class LiveMemoryInjectedSingleStepRunner:
                 if attempt.best_expected_score is not None
                 else "NONE"
             )
-            best_exact = (
-                str(attempt.best_exact) if attempt.best_exact is not None else "NONE"
-            )
+            best_exact = str(attempt.best_exact) if attempt.best_exact is not None else "NONE"
             notes.append(
                 "search[{}]={} h={} samples={} nodes={}/{} budget_exceeded={} "
                 "elapsed={:.3f}s best_action={} best_clear_probability={} "
@@ -412,7 +408,6 @@ class LiveMemoryInjectedSingleStepRunner:
     ) -> tuple[BalatroAction, tuple[str, ...]]:
         del snapshot
         visible_actions = self.shop_generator.generate_actions(state)
-
         terms_notes: tuple[str, ...]
         try:
             terms = self.reroll_terms_reader()
@@ -431,9 +426,7 @@ class LiveMemoryInjectedSingleStepRunner:
             visible_actions,
             reroll_cost=effective_cost,
         )
-        shop_decision = (
-            "REROLL" if decision.source == "REROLL" else "HOLD_REROLL"
-        )
+        shop_decision = "REROLL" if decision.source == "REROLL" else "HOLD_REROLL"
         notes = [
             f"shop_decision={shop_decision}",
             *terms_notes,
@@ -505,7 +498,6 @@ class LiveMemoryInjectedSingleStepRunner:
                     "B6 consumable timing policy",
                     notes,
                 )
-
             action, notes = self.hand_recommender(state, snapshot)
             self.last_policy_seconds = perf_counter() - policy_started
             return AutonomousStepDecision(
@@ -538,7 +530,6 @@ class LiveMemoryInjectedSingleStepRunner:
                     "B6 consumable timing policy",
                     notes,
                 )
-
             action, notes = self.shop_recommender(state, snapshot)
             self.last_policy_seconds = perf_counter() - policy_started
             return AutonomousStepDecision(
@@ -572,7 +563,6 @@ class LiveMemoryInjectedSingleStepRunner:
             raise AutonomousStepGuardError(
                 "live state changed after autonomous planning; decide again from the new checkpoint"
             )
-
         if decision.pack_signature is not None:
             current = _pack_choice_signature(tuple(self.pack_choice_reader()))
             if current != decision.pack_signature:
@@ -605,7 +595,6 @@ class LiveMemoryInjectedSingleStepRunner:
         capability = _REQUIRED_BRIDGE_CAPABILITIES.get(str(action.name))
         if capability is None or status.get(capability) == "1":
             return
-
         revision = status.get("bridge_revision", "unknown")
         raise AutonomousBridgeCapabilityError(
             "installed first-party bridge does not advertise "
@@ -618,9 +607,6 @@ class LiveMemoryInjectedSingleStepRunner:
         self._verify_live_checkpoint(decision)
         status = self._achievement_status()
         self._require_action_capability(decision.action, status)
-        # STATUS itself is read-only but can take time. Recheck the exact public
-        # checkpoint afterwards so the gameplay action is never submitted from a
-        # stale recommendation.
         self._verify_live_checkpoint(decision)
         result = self.dispatcher.dispatch(
             decision.action,
@@ -658,33 +644,14 @@ def main() -> int:
         )
     )
     parser.add_argument("--execute", action="store_true")
-    parser.add_argument(
-        "--expect-phase",
-        help="required with --execute; prevents acting if Balatro is in another phase",
-    )
-    parser.add_argument(
-        "--run-id",
-        help=(
-            "optional persistent run identifier; successful --execute transitions "
-            "append to logs/balatro/runs/<run-id>.jsonl"
-        ),
-    )
+    parser.add_argument("--expect-phase")
+    parser.add_argument("--run-id")
     parser.add_argument("--max-horizon", type=int)
     parser.add_argument("--max-search-nodes", type=int)
     parser.add_argument("--exact-limit", type=int, default=128)
     parser.add_argument("--child-exact-limit", type=int, default=8)
-    parser.add_argument(
-        "--blind-skip-threshold",
-        type=float,
-        default=DEFAULT_BLIND_SKIP_THRESHOLD,
-        help="minimum skip EV margin required before intentionally skipping a blind",
-    )
-    parser.add_argument(
-        "--fallback-tag-value",
-        type=float,
-        default=DEFAULT_FALLBACK_TAG_VALUE,
-        help="fallback tag EV while live process memory does not expose tag identity",
-    )
+    parser.add_argument("--blind-skip-threshold", type=float, default=DEFAULT_BLIND_SKIP_THRESHOLD)
+    parser.add_argument("--fallback-tag-value", type=float, default=DEFAULT_FALLBACK_TAG_VALUE)
     args = parser.parse_args()
 
     if args.execute and args.expect_phase is None:
@@ -718,118 +685,42 @@ def main() -> int:
             decision_started = perf_counter()
             decision = runner.decide()
             decision_elapsed = perf_counter() - decision_started
-
             print("Live-memory autonomous injected step -> READY")
-            print("Observation source -> live Balatro process memory")
-            print("Execution backend -> game-ai-framework injected Lua bridge")
-            print("Runtime loader -> none (fused LÖVE archive)")
-            print("Lovely required -> False")
-            print("Steamodded required -> False")
-            print("BalatroBot required -> False")
-            print("Mouse fallback -> False")
             print(f"Phase -> {decision.snapshot.phase}")
             print(f"Decision source -> {decision.source}")
             print(f"Decision latency -> {decision_elapsed:.3f}s")
-            print(f"Observation latency -> {runner.last_observation_seconds:.3f}s")
-            print(f"Translation latency -> {runner.last_translation_seconds:.3f}s")
-            print(f"Policy latency -> {runner.last_policy_seconds:.3f}s")
             print(f"Recommended action -> {_action_text(decision)}")
-            for note in decision.notes:
-                print(f"  {note}")
-            print("Observation process writes -> False")
-            print("Hidden RNG/deck traversal -> False")
-            print("Follow-up action chaining -> False")
-
             if not args.execute:
                 print("Execution guard -> PREVIEW ONLY")
-                print("Achievement status command sent -> False")
-                print("Injected gameplay command sent -> False")
-                print("Mouse input sent -> False")
                 return 0
-
             assert args.expect_phase is not None
             if decision.snapshot.phase != args.expect_phase:
                 print("Execution guard -> BLOCKED")
-                print(
-                    f"Reason -> expected phase {args.expect_phase}, "
-                    f"observed {decision.snapshot.phase}"
-                )
-                print("Achievement status command sent -> False")
-                print("Injected gameplay command sent -> False")
-                print("Mouse input sent -> False")
                 return 0
-
-            print(
-                "WARNING -> --execute is armed: exactly one real in-process "
-                "Balatro gameplay action may now be invoked"
-            )
-            print(f"Execution scope -> exactly one {_action_text(decision)} action")
-            print("Mouse input sent -> False")
-
             try:
                 result, status = runner.execute(decision)
             except AutonomousStepGuardError as error:
                 print("Execution guard -> BLOCKED")
                 print(f"Reason -> {error}")
-                print("Injected gameplay command sent -> False")
                 return 0
-            except InjectedBridgeError as error:
+            except (InjectedBridgeError, RuntimeError) as error:
                 print("Injected execution -> FAILED")
                 print(f"Reason -> {error}")
-                print("Follow-up action executed -> False")
                 return 1
-            except RuntimeError as error:
-                print("Injected execution -> FAILED")
-                print(f"Reason -> {error}")
-                print("Follow-up action executed -> False")
-                return 1
-
-            run_logger = None
-            run_log_error: Exception | None = None
             if args.run_id is not None:
-                try:
-                    run_logger = log_successful_live_transition(
-                        decision,
-                        result,
-                        run_id=args.run_id,
-                    )
-                except Exception as error:
-                    # Gameplay has already executed and reached an authoritative
-                    # postcondition. A telemetry failure must never rewrite that
-                    # truth as "gameplay command sent -> False".
-                    run_log_error = error
-
+                log_successful_live_transition(decision, result, run_id=args.run_id)
             print("Execution guard -> PASS")
-            print("Achievement status command sent -> True")
             print(f"Bridge version -> {status.get('bridge', 'MISSING')}")
-            gate_state, _ = achievement_gate_state(status.get("achievement_gate"))
-            print(f"G.F_NO_ACHIEVEMENTS state -> {gate_state}")
-            print("Steam achievement gate -> NOT DISABLED")
-            print("Injected gameplay command sent -> True")
             print(f"Checkpoint sequence -> {result.after.sequence}")
             print(f"Phase after -> {result.after.phase}")
-            if run_log_error is not None:
-                print("Run experience log -> FAILED")
-                print(f"Run logging reason -> {run_log_error}")
-            elif run_logger is None:
-                print("Run experience log -> DISABLED (--run-id not supplied)")
-            else:
-                print(f"Run experience log -> {run_logger.path}")
-                if str(result.after.phase) == "GAME_OVER":
-                    print(f"Run summary -> {run_logger.summary_path}")
-            print("Follow-up action executed -> False")
-            return 1 if run_log_error is not None else 0
+            return 0
     except UnsupportedAutonomousPhase as error:
         print("Live-memory autonomous injected step -> BLOCKED")
         print(f"Reason -> {error}")
-        print("Injected gameplay command sent -> False")
-        print("Mouse input sent -> False")
         return 0
     except (InjectedBridgeError, RuntimeError, ValueError) as error:
         print("Live-memory autonomous injected step -> FAIL")
         print(f"Reason -> {error}")
-        print("Injected gameplay command sent -> False")
-        print("Mouse input sent -> False")
         return 2
 
 
