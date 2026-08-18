@@ -239,7 +239,7 @@ def test_supervisor_fails_closed_when_native_restart_postcondition_fails(tmp_pat
     assert control.read_status()["state"] == "OFF"
 
 
-def test_toggle_launches_once_then_requests_cooperative_stop(tmp_path, monkeypatch):
+def test_toggle_launches_once_then_completes_cooperative_stop(tmp_path, monkeypatch):
     control = BalatroAgentControl(tmp_path / "control")
     launched = []
 
@@ -257,6 +257,7 @@ def test_toggle_launches_once_then_requests_cooperative_stop(tmp_path, monkeypat
         "_process_is_running",
         lambda pid: pid == 4242,
     )
+    monkeypatch.setattr(toggle_module, "_wait_for_cooperative_stop", lambda pid: True)
 
     state, pid = toggle_agent(
         control,
@@ -278,12 +279,13 @@ def test_toggle_launches_once_then_requests_cooperative_stop(tmp_path, monkeypat
 
     state, pid = toggle_agent(control)
 
-    assert state == "STOPPING"
+    assert state == "OFF"
     assert pid == 4242
     assert control.stop_requested() is True
+    assert control.read_pid() is None
     status = control.read_status()
     assert status["state"] == "STOPPING"
-    assert "before the next gameplay action" in status["reason"]
+    assert "cooperative stop in progress" in status["reason"]
 
 
 def test_toggle_threads_collection_first_mode_to_supervisor(tmp_path, monkeypatch):
