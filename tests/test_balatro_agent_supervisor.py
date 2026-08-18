@@ -8,6 +8,7 @@ from games.balatro.live.runtime import balatro_agent_toggle as toggle_module
 from games.balatro.live.runtime.agent_control import BalatroAgentControl
 from games.balatro.live.runtime.balatro_agent_supervisor import (
     BalatroAgentSupervisor,
+    _is_resumable_won_run,
     wait_for_stable_startup_snapshot,
 )
 from games.balatro.live.runtime.balatro_agent_toggle import toggle_agent
@@ -140,6 +141,23 @@ def test_stable_startup_snapshot_ignores_transient_first_attachment_frame():
     assert stable.state_complete is True
     assert stable.payload["deck"] == "RED"
     assert stable.payload["stake"] == "WHITE"
+
+
+def test_only_actionable_post_continue_win_snapshot_is_resumable():
+    def snapshot(phase):
+        return LiveBalatroSnapshot(
+            sequence=1,
+            phase=phase,
+            state_complete=True,
+            payload={"won": True},
+        )
+
+    assert _is_resumable_won_run(snapshot("SHOP")) is True
+    assert _is_resumable_won_run(snapshot("BLIND_SELECT")) is True
+    assert _is_resumable_won_run(snapshot("SELECTING_HAND")) is True
+    assert _is_resumable_won_run(snapshot("ARCANA_PACK")) is True
+    assert _is_resumable_won_run(snapshot("ROUND_EVAL")) is False
+    assert _is_resumable_won_run(snapshot("GAME_OVER")) is False
 
 
 def test_supervisor_retries_fresh_attempts_until_win_and_auto_off(tmp_path):

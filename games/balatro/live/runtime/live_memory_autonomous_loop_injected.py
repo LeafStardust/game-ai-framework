@@ -88,14 +88,23 @@ def _stale_difference_details(
     return tuple(details[:limit])
 
 
-def _terminal_stop_reason(snapshot) -> str | None:
+def _terminal_stop_reason(
+    snapshot,
+    *,
+    resume_won_run: bool = False,
+) -> str | None:
     phase = str(snapshot.phase)
     # Balatro publishes G.GAME.won as soon as the Ante-8 final Boss is cleared,
     # while the public phase may still be ROUND_EVAL.  Waiting exclusively for
     # GAME_OVER lets END_ROUND cash out into Endless and permits more shop play.
     # The win bit is therefore the authoritative terminal signal for the target
     # run regardless of the transient post-hand phase.
-    if bool(snapshot.payload.get("won")):
+    # ``won`` remains true after the player manually chooses Continue and enters
+    # Endless. A newly started supervisor may explicitly resume that already-won
+    # run; in that case only the actual GAME_OVER phase is terminal. The default
+    # remains stop-on-win so the Ante-8 victory screen is never advanced
+    # automatically.
+    if bool(snapshot.payload.get("won")) and not resume_won_run:
         return "game over (won)"
     if phase not in TERMINAL_PHASES:
         return None
@@ -139,6 +148,7 @@ class LiveMemoryInjectedAutonomousLoop:
         stability_interval_seconds: float = DEFAULT_STABILITY_INTERVAL_SECONDS,
         stability_timeout_seconds: float = DEFAULT_STABILITY_TIMEOUT_SECONDS,
         stop_requested: Callable[[], bool] | None = None,
+        resume_won_run: bool = False,
         on_transition: Callable[[AutonomousStepDecision, object, dict[str, str]], None]
         | None = None,
     ):
@@ -156,6 +166,7 @@ class LiveMemoryInjectedAutonomousLoop:
         self.stability_interval_seconds = float(stability_interval_seconds)
         self.stability_timeout_seconds = float(stability_timeout_seconds)
         self.stop_requested = stop_requested or (lambda: False)
+        self.resume_won_run = bool(resume_won_run)
         self.on_transition = on_transition
 
     def preview(self) -> AutonomousLoopStep:
@@ -233,7 +244,10 @@ class LiveMemoryInjectedAutonomousLoop:
                         f"observed {decision.snapshot.phase}"
                     )
 
-                terminal_reason = _terminal_stop_reason(decision.snapshot)
+                terminal_reason = _terminal_stop_reason(
+                    decision.snapshot,
+                    resume_won_run=self.resume_won_run,
+                )
                 if terminal_reason is not None:
                     return AutonomousLoopRun(tuple(completed), terminal_reason)
 
@@ -313,7 +327,10 @@ class LiveMemoryInjectedAutonomousLoop:
                             f"transition hook failed after executed action: {error}",
                         )
 
-                terminal_reason = _terminal_stop_reason(after)
+                terminal_reason = _terminal_stop_reason(
+                    after,
+                    resume_won_run=self.resume_won_run,
+                )
                 if terminal_reason is not None:
                     return AutonomousLoopRun(tuple(completed), terminal_reason)
 

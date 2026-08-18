@@ -42,10 +42,24 @@ SESSION_SUMMARY_SCHEMA = "balatro-agent-session-summary-v1"
 DEFAULT_STARTUP_STABILITY_INTERVAL_SECONDS = 0.10
 DEFAULT_STARTUP_STABILITY_TIMEOUT_SECONDS = 20.0
 DEFAULT_SUPERVISOR_BRIDGE_TIMEOUT_SECONDS = 10.0
+POST_WIN_STOP_PHASES = frozenset({"ROUND_EVAL", "GAME_OVER"})
 
 
 class BalatroAgentSupervisorError(RuntimeError):
     pass
+
+
+def _is_resumable_won_run(snapshot) -> bool:
+    """Return whether startup is inside a manually continued Endless run.
+
+    The first authoritative Ante-8 win checkpoint is ROUND_EVAL and must still
+    auto-stop. After the user presses Continue, Balatro keeps ``won=true`` while
+    returning to an actionable phase. A later agent activation may resume from
+    that phase without treating the persistent win bit as a new terminal event.
+    """
+    return bool(snapshot.payload.get("won")) and str(snapshot.phase) not in (
+        POST_WIN_STOP_PHASES
+    )
 
 
 @dataclass(frozen=True)
@@ -419,7 +433,11 @@ class BalatroAgentSupervisor:
                         detail="initial checkpoint settled; autonomous loop starting",
                     )
 
-                    initial_terminal_reason = _terminal_stop_reason(initial)
+                    resume_won_run = _is_resumable_won_run(initial)
+                    initial_terminal_reason = _terminal_stop_reason(
+                        initial,
+                        resume_won_run=resume_won_run,
+                    )
                     if initial_terminal_reason is not None:
                         run = AutonomousLoopRun(
                             (),
@@ -439,6 +457,7 @@ class BalatroAgentSupervisor:
                             runner,
                             max_steps=None,
                             stop_requested=self.control.stop_requested,
+                            resume_won_run=resume_won_run,
                             on_transition=log_transition,
                         )
                         run = loop.execute(expected_start_phase=str(initial.phase))

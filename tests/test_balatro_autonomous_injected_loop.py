@@ -104,6 +104,34 @@ class _RoundEvalWinRunner(_FakeRunner):
         return result, status
 
 
+class _ResumedWonRunner(_GameOverRunner):
+    def __init__(self, phases):
+        super().__init__(phases, won=True)
+
+    @staticmethod
+    def _with_win(snapshot):
+        return LiveBalatroSnapshot(
+            sequence=snapshot.sequence,
+            phase=snapshot.phase,
+            state_complete=snapshot.state_complete,
+            payload={**snapshot.payload, "won": True},
+        )
+
+    def decide(self):
+        decision = super().decide()
+        return AutonomousStepDecision(
+            snapshot=self._with_win(decision.snapshot),
+            state=decision.state,
+            action=decision.action,
+            source=decision.source,
+            notes=decision.notes,
+        )
+
+    def execute(self, decision):
+        result, status = super().execute(decision)
+        return SimpleNamespace(after=self._with_win(result.after)), status
+
+
 def test_preview_decides_once_without_executing():
     runner = _FakeRunner(["SELECTING_HAND"])
     loop = LiveMemoryInjectedAutonomousLoop(runner, max_steps=5)
@@ -229,6 +257,22 @@ def test_execute_does_not_act_when_start_snapshot_already_has_win_bit():
     assert result.stop_reason == "game over (won)"
     assert result.steps == ()
     assert runner.execute_calls == 0
+
+
+def test_restarted_loop_can_resume_manually_continued_won_run_until_game_over():
+    runner = _ResumedWonRunner(["SHOP", "BLIND_SELECT"])
+    loop = LiveMemoryInjectedAutonomousLoop(
+        runner,
+        max_steps=None,
+        resume_won_run=True,
+    )
+
+    result = loop.execute(expected_start_phase="SHOP")
+
+    assert len(result.steps) == 2
+    assert result.stop_reason == "game over (won)"
+    assert result.steps[-1].after_phase == "GAME_OVER"
+    assert runner.execute_calls == 2
 
 
 def test_stop_request_arriving_during_planning_cancels_before_execution():
