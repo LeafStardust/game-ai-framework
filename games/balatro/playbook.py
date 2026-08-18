@@ -286,6 +286,10 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                     "reroll": {
                         "minimum_margin": 0.25,
                         "full_joker_replacement_penalty": 1.5,
+                        "maximum_paid_reroll_cost": 8,
+                        "minimum_money_after_paid_reroll": 10,
+                        "late_ante_start": 6,
+                        "late_ante_minimum_money_after_paid_reroll": 20,
                     },
                     "blind_skip": {
                         "minimum_skip_advantage": 2.0,

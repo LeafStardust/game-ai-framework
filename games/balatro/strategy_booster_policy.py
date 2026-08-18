@@ -10,6 +10,10 @@ from games.balatro.shop_booster_policy import (
     BuildAwareShopBoosterPolicy,
     ShopBoosterRecommendation,
 )
+from games.balatro.shop_reroll_policy import (
+    BuildAwareShopRerollPolicy,
+    ShopRerollThresholds,
+)
 from games.balatro.strategy import BalatroStrategyTracker
 
 
@@ -81,6 +85,54 @@ class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
                 *recommendation.rationale,
                 f"Celestial admitted by poker-hand strategy={best_name} score={best_score:.3f}",
                 f"Celestial poker-strategy evidence floor={evidence_floor:.3f}",
+            ),
+        )
+
+
+class StrategyAwareShopRerollPolicy(BuildAwareShopRerollPolicy):
+    """Apply a larger paid-reroll reserve to Gold economy routes."""
+
+    GOLD_ECONOMY_ROOTS = frozenset({"gold_cards", "gold_seal"})
+    GOLD_EARLY_RESERVE = 25
+    GOLD_LATE_RESERVE = 40
+    GOLD_MAXIMUM_PAID_REROLL_COST = 6
+
+    def __init__(
+        self,
+        *args,
+        strategy_tracker: BalatroStrategyTracker,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.strategy_tracker = strategy_tracker
+
+    def _is_gold_economy_route(self, strategy_id: str | None) -> bool:
+        if strategy_id is None:
+            return False
+        path = (str(strategy_id),)
+        topology = getattr(self.strategy_tracker, "topology", None)
+        if topology is not None and strategy_id in topology.nodes:
+            path = topology.path(strategy_id)
+        return bool(self.GOLD_ECONOMY_ROOTS.intersection(path))
+
+    def thresholds_for_state(self, state) -> ShopRerollThresholds:
+        thresholds = super().thresholds_for_state(state)
+        resolution = self.strategy_tracker.observe(state)
+        if not self._is_gold_economy_route(resolution.dominant_strategy_id):
+            return thresholds
+        return replace(
+            thresholds,
+            maximum_paid_reroll_cost=min(
+                int(thresholds.maximum_paid_reroll_cost),
+                self.GOLD_MAXIMUM_PAID_REROLL_COST,
+            ),
+            minimum_money_after_paid_reroll=max(
+                int(thresholds.minimum_money_after_paid_reroll),
+                self.GOLD_EARLY_RESERVE,
+            ),
+            late_ante_minimum_money_after_paid_reroll=max(
+                int(thresholds.late_ante_minimum_money_after_paid_reroll),
+                self.GOLD_LATE_RESERVE,
             ),
         )
 

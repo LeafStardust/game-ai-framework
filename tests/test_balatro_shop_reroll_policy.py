@@ -275,7 +275,10 @@ def test_reroll_uses_same_interest_and_reserve_economics_as_shop_policy():
     policy = BuildAwareShopRerollPolicy(
         shop_policy=shop_policy,
         build_profiler=StaticProfiler(EmptyProfile()),
-        thresholds=ShopRerollThresholds(minimum_margin=0.0),
+        thresholds=ShopRerollThresholds(
+            minimum_margin=0.0,
+            minimum_money_after_paid_reroll=0,
+        ),
         pool_prior=_single_offer_prior(gross_utility=2.0, expected_price=0),
     )
 
@@ -289,6 +292,41 @@ def test_reroll_uses_same_interest_and_reserve_economics_as_shop_policy():
     assert result.reroll_score < result.current_best_score
     assert any("reroll interest penalty=4.000" in note for note in result.rationale)
     assert any("reroll reserve penalty=2.000" in note for note in result.rationale)
+
+
+def test_paid_reroll_stop_loss_caps_cash_rich_search():
+    state = _state(money=121)
+    policy = BuildAwareShopRerollPolicy(
+        build_profiler=StaticProfiler(EmptyProfile()),
+        pool_prior=_single_offer_prior(gross_utility=100.0, expected_price=0),
+    )
+
+    result = policy.recommend(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=9,
+    )
+
+    assert result.decision == "HOLD"
+    assert any("exceeds stop-loss cap $8" in note for note in result.rationale)
+
+
+def test_late_ante_paid_reroll_preserves_survival_reserve():
+    state = _state(money=24)
+    state.ante = 8
+    policy = BuildAwareShopRerollPolicy(
+        build_profiler=StaticProfiler(EmptyProfile()),
+        pool_prior=_single_offer_prior(gross_utility=100.0, expected_price=0),
+    )
+
+    result = policy.recommend(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=5,
+    )
+
+    assert result.decision == "HOLD"
+    assert any("ante-8 stop-loss reserve $20" in note for note in result.rationale)
 
 
 def test_unmet_build_requirements_are_reported_without_free_form_ev_bonus():

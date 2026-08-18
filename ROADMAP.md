@@ -63,7 +63,7 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 ### 1.0D — Shop, pack and economy competence
 
 - [x] Calibrate D3/D8/D9/D10/D11 acquisition, reroll and pack thresholds around survival, build value and economy; keep D12 threshold-free and calibrate D14 shared resource valuation on the same scale.
-- [x] Keep full-roster Joker replacement search in reroll EV, allowing cash-rich runs to reroll for upgrades while escalating reroll cost still supplies a deterministic stop condition.
+- [x] Keep full-roster Joker replacement search in reroll EV while enforcing paid-reroll stop losses: a cost cap, a larger Ante-6+ survival reserve, and stricter Gold Card/Gold Seal economy reserves; free rerolls remain exempt.
 - [x] Memoize deterministic Joker behavior descriptors by complete modeled Joker state so full-slot shop comparisons reuse analysis without making stale assumptions about stateful Jokers.
 - [x] Model run-wide voucher value plus reserve/interest breakpoints, including observable voucher-modified caps or thresholds.
 - [x] Keep undiscovered-item acquisition bias bounded so it never overrides survival or build coherence. Explicitly undiscovered positive options receive only a one-ULP tie-break, never a value-changing exploration bonus.

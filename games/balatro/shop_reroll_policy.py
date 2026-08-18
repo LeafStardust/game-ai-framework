@@ -97,6 +97,24 @@ class ShopRerollThresholds:
 
     minimum_margin: float = 0.25
     full_joker_replacement_penalty: float = 1.5
+    maximum_paid_reroll_cost: int = 8
+    minimum_money_after_paid_reroll: int = 10
+    late_ante_start: int = 6
+    late_ante_minimum_money_after_paid_reroll: int = 20
+
+    def __post_init__(self) -> None:
+        if float(self.minimum_margin) < 0.0:
+            raise ValueError("minimum_margin cannot be negative")
+        if float(self.full_joker_replacement_penalty) < 0.0:
+            raise ValueError("full_joker_replacement_penalty cannot be negative")
+        for name in (
+            "maximum_paid_reroll_cost",
+            "minimum_money_after_paid_reroll",
+            "late_ante_start",
+            "late_ante_minimum_money_after_paid_reroll",
+        ):
+            if int(getattr(self, name)) < 0:
+                raise ValueError(f"{name} cannot be negative")
 
 
 @dataclass(frozen=True)
@@ -139,6 +157,10 @@ class BuildAwareShopRerollPolicy:
         self.thresholds = thresholds or ShopRerollThresholds()
         self.pool_prior = pool_prior
 
+    def thresholds_for_state(self, state: BalatroState) -> ShopRerollThresholds:
+        del state
+        return self.thresholds
+
     def recommend(
         self,
         state: BalatroState,
@@ -149,6 +171,7 @@ class BuildAwareShopRerollPolicy:
     ) -> ShopRerollRecommendation:
         if state.phase != "SHOP":
             raise ValueError("reroll policy requires SHOP phase")
+        thresholds = self.thresholds_for_state(state)
 
         current_scores = self._visible_scores(state, visible_actions)
         current_best = (
@@ -180,6 +203,36 @@ class BuildAwareShopRerollPolicy:
                 reason=f"reroll costs ${cost} but only ${state.money} is available",
             )
 
+        if cost > 0:
+            if cost > int(thresholds.maximum_paid_reroll_cost):
+                return self._fail_closed(
+                    current_best=current_best,
+                    reroll_cost=cost,
+                    unmet=unmet,
+                    reason=(
+                        f"paid reroll cost ${cost} exceeds stop-loss cap "
+                        f"${int(thresholds.maximum_paid_reroll_cost)}"
+                    ),
+                )
+            ante = max(1, int(getattr(state, "ante", 1) or 1))
+            reserve = int(thresholds.minimum_money_after_paid_reroll)
+            if ante >= int(thresholds.late_ante_start):
+                reserve = max(
+                    reserve,
+                    int(thresholds.late_ante_minimum_money_after_paid_reroll),
+                )
+            money_after = int(state.money) - cost
+            if money_after < reserve:
+                return self._fail_closed(
+                    current_best=current_best,
+                    reroll_cost=cost,
+                    unmet=unmet,
+                    reason=(
+                        f"paid reroll would leave ${money_after}, below the "
+                        f"ante-{ante} stop-loss reserve ${reserve}"
+                    ),
+                )
+
         prior = self.pool_prior
         if prior is None or not prior.is_valid():
             return self._fail_closed(
@@ -203,10 +256,11 @@ class BuildAwareShopRerollPolicy:
             state,
             prior,
             money_after_reroll=money_after_reroll,
+            thresholds=thresholds,
         )
         reroll_score = future_ev - reroll_resource.total
         required = current_best + (
-            0.0 if cost == 0 else self.thresholds.minimum_margin
+            0.0 if cost == 0 else thresholds.minimum_margin
         )
 
         rationale = (
@@ -228,7 +282,7 @@ class BuildAwareShopRerollPolicy:
             f"reroll reserve penalty={reroll_resource.reserve:.3f}",
             f"reroll score={reroll_score:.3f}; required={required:.3f}",
             "full Joker roster replacement-option penalty="
-            f"{self.thresholds.full_joker_replacement_penalty:.3f}",
+            f"{thresholds.full_joker_replacement_penalty:.3f}",
             "future-shop expectation uses static public priors only; no RNG state or future ordering",
         )
 
@@ -291,6 +345,7 @@ class BuildAwareShopRerollPolicy:
         prior: ShopRerollPoolPrior,
         *,
         money_after_reroll: int,
+        thresholds: ShopRerollThresholds,
     ) -> tuple[float, tuple[tuple[str, float], ...]]:
         total_weight = sum(float(offer.weight) for offer in prior.offers)
         probabilities = tuple(
@@ -302,6 +357,7 @@ class BuildAwareShopRerollPolicy:
                 state,
                 offer,
                 money=money_after_reroll,
+                thresholds=thresholds,
             )
             for offer in prior.offers
         )
@@ -336,6 +392,7 @@ class BuildAwareShopRerollPolicy:
         offer: FutureShopOfferPrior,
         *,
         money: int,
+        thresholds: ShopRerollThresholds,
     ) -> float:
         hold = float(self.shop_policy.hold_bias)
         price = int(offer.expected_price)
@@ -351,7 +408,7 @@ class BuildAwareShopRerollPolicy:
                 # authoritative after the candidate is actually observed.
                 slot_cost = max(
                     0.0,
-                    float(self.thresholds.full_joker_replacement_penalty),
+                    float(thresholds.full_joker_replacement_penalty),
                 )
             else:
                 slot_cost = self.shop_policy.resource_valuator.slot_opportunity_cost(
