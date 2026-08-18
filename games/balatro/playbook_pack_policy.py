@@ -3,12 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass, fields
 from typing import Mapping
 
-from games.balatro.actions import SKIP_BOOSTER
-from games.balatro.build import ContextualConsumableTargetEvaluator
+from games.balatro.actions import SELL_JOKER, SKIP_BOOSTER, BalatroAction
+from games.balatro.build import ContextualConsumableTargetEvaluator, JokerBuildTransitionPlanner
 from games.balatro.discovery import is_undiscovered
+from games.balatro.joker_policy import REPLACE
 from games.balatro.live.consumable_timing_core import ConsumableTargetThresholds
+from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
 from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
+from games.balatro.playbook_joker_policy import PlaybookJokerAcquisitionPolicy
 
 
 @dataclass(frozen=True)
@@ -101,6 +104,7 @@ class PlaybookBalatroPackPolicy(BalatroPackPolicy):
             consumable_target_evaluator=wrapped_target_evaluator,
             **kwargs,
         )
+        self._pack_joker_factory = LiveJokerFactory()
 
     def skip_bias_for_state(self, state) -> float:
         if self._skip_bias_override is not None:
@@ -123,6 +127,62 @@ class PlaybookBalatroPackPolicy(BalatroPackPolicy):
             reverse=True,
         )
 
+    def _buffoon_replacement_score(self, state, action, choice):
+        if str(getattr(state, "phase", "")) != "BUFFOON_PACK":
+            return None
+        if getattr(choice, "kind", None) != "JOKER":
+            return None
+        joker_slots = max(0, int(getattr(state, "joker_slots", 0) or 0))
+        if len(getattr(state, "jokers", ()) or ()) < joker_slots:
+            return None
+
+        data = getattr(choice, "data", None)
+        if not isinstance(data, dict):
+            return PackActionScore(
+                action,
+                -1.0,
+                ("full-roster Buffoon Joker cannot be modeled for replacement",),
+            )
+        candidate = self._pack_joker_factory.create(data)
+        evaluator = getattr(self.item_estimator, "joker_build_value", None)
+        if candidate is None or evaluator is None:
+            return PackActionScore(
+                action,
+                -1.0,
+                ("full-roster Buffoon Joker replacement evaluator unavailable",),
+            )
+
+        policy = PlaybookJokerAcquisitionPolicy(
+            JokerBuildTransitionPlanner(evaluator=evaluator),
+        )
+        decision = policy.decide(state, candidate)
+        selected = decision.selected
+        if decision.action != REPLACE or selected is None or selected.replace_index is None:
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    "visible Buffoon Joker does not justify replacing an incumbent",
+                    *decision.rationale,
+                ),
+            )
+
+        # Pack replacement is deliberately two checkpoints. Sell only after the
+        # pack is open and a concrete visible Joker has cleared D2. The next pack
+        # observation then sees the free slot and may select the Joker normally.
+        sell = BalatroAction(SELL_JOKER, target=int(selected.replace_index))
+        return PackActionScore(
+            sell,
+            float(selected.total_advantage),
+            (
+                f"visible Buffoon Joker selected for replacement: {decision.candidate}",
+                f"sell incumbent slot {selected.replace_index} only after pack reveal",
+                "re-observe the same Buffoon pack after the sale, then take the selected Joker",
+                *decision.rationale,
+                *selected.rationale,
+            ),
+        )
+
     def score_action(self, state, action):
         if action.name == SKIP_BOOSTER:
             bias = self.skip_bias_for_state(state)
@@ -133,6 +193,10 @@ class PlaybookBalatroPackPolicy(BalatroPackPolicy):
             )
 
         choice = getattr(action, "target", None)
+        replacement = self._buffoon_replacement_score(state, action, choice)
+        if replacement is not None:
+            return replacement
+
         if (
             getattr(choice, "kind", None) == "TAROT"
             and getattr(choice, "label", None) == "Judgement"
