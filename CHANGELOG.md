@@ -9,7 +9,8 @@ This file records notable development changes to the project. Active and future 
 #### Added
 
 - Universal Balatro strategy-tree semantics with leaf-only ranking, parent-foundation evidence, descendant inheritance, fallback suppression, Ante pressure, and production diagnostics.
-- Production catalogue migrations for strategy-tree Sections 1–4: poker hands, rank/face cards, suits/held cards, and enhancements. These comprise 65 topology nodes, including 15 enhancement leaves across Stone, Glass, Steel, Lucky, and Gold Card routes.
+- Complete production catalogue migration for strategy-tree Sections 1–12. The 136-node forest now owns poker hands, ranks/faces, suits/held cards, enhancements, seals, destruction/thinning, deck growth/training, consumable engines, economy, Joker-board composition, discard rotation, and hand scheduling.
+- Conditional placement of Section 14 support Jokers into compatible existing routes, including Blueprint/Brainstorm copy support, Astronomer, Chaos the Clown, Drunkard/Merry Andy, Juggler/Troubadour, Splash, Showman, and Invisible Joker. These components do not seed unsupported standalone strategies.
 - Portable universal Joker value separated from route-bound strategy value, including dynamic off-path pressure and exclusive dominant-strategy behavior from Ante 6.
 - Strategy-aware decisions across hand play, discards, Joker acquisition/replacement, consumables, packs, Planets, rerolls, vouchers, boosters, and blind skips.
 - Autonomous Joker-board ordering for Blueprint, Brainstorm, additive/XMult placement, and projected Ceremonial Dagger sacrifice.
@@ -20,6 +21,8 @@ This file records notable development changes to the project. Active and future 
 #### Changed
 
 - Expanded strategy catalogues with meaningful Silver and Bronze support while keeping route-specific Jokers Neutral outside compatible infrastructure.
+- Retired the seven coarse compatibility strategies and the standalone Edition strategy after the complete tree assumed catalogue ownership; Joker editions remain portable universal value.
+- Migrated production policy lookups to root-to-leaf inherited semantics so child routes retain parent hand, card, pack, tag, and cartridge behavior.
 - Increased Gold relationship influence for defining strategy cores and strengthened Silver support where the relationship is materially useful.
 - Prioritized The Soul in early Antes when a Legendary Joker is a safe, legal choice.
 - Added strategy-aware paid-reroll stop losses, late-Ante survival reserves, and stricter Gold Card/Gold Seal economy reserves.
@@ -38,6 +41,7 @@ This file records notable development changes to the project. Active and future 
 
 #### Validation
 
+- Passed the complete deterministic repository suite after the Sections 5–12 migration: 1,781 tests on 2026-08-18.
 - Completed the first unseeded, fully autonomous Red Deck / White Stake win on 2026-08-18 against Amber Acorn with normal Steam progression preserved.
 - The first win exposed the post-win `ROUND_EVAL` finalization gap. The fix is deterministic-test covered; one additional live win is required to validate the complete winning log and immediate automatic OFF behavior.
 

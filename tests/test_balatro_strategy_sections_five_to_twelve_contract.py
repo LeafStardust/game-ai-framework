@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 from pathlib import Path
 
-from games.balatro.strategy import BANNED, GOLD, NEUTRAL, SILVER
+from games.balatro.strategy import BANNED, BRONZE, GOLD, NEUTRAL, SILVER
 from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
 from games.balatro.strategy_conditional_relationships import conditional_joker_relationship
 from games.balatro.strategy_tree_catalog import (
@@ -180,12 +180,20 @@ def test_section_ten_board_relationships_obey_slot_direction():
     riff_raff = _joker("RiffRaffJoker")
     baseball = _joker("BaseballCardJoker")
     uncommon = _joker("FlatMultJoker", rarity="Uncommon")
+    showman = _joker("ShowmanJoker")
+    invisible = _joker("InvisibleJoker")
 
     assert conditional_joker_relationship(
         _state(jokers=(stencil,)), "joker_stencil", riff_raff
     ) == BANNED
     assert conditional_joker_relationship(
         _state(jokers=(baseball,)), "baseball_card", uncommon
+    ) == SILVER
+    assert conditional_joker_relationship(
+        _state(jokers=(baseball,)), "baseball_card", showman
+    ) == SILVER
+    assert conditional_joker_relationship(
+        _state(jokers=(stencil,)), "joker_stencil", invisible
     ) == SILVER
 
 
@@ -219,6 +227,42 @@ def test_section_twelve_and_part_fourteen_copy_support_require_a_real_core():
     assert conditional_joker_relationship(
         _state(jokers=(acrobat,)), "last_hand_acrobat", blueprint
     ) == SILVER
+
+
+def test_part_fourteen_space_and_splash_support_slot_into_existing_routes():
+    splash = _joker("SplashJoker")
+    juggler = _joker("JugglerJoker")
+    troubadour = _joker("TroubadourJoker")
+
+    assert conditional_joker_relationship(
+        _state(seal="Red"), "red_seal_played", splash
+    ) == SILVER
+    assert conditional_joker_relationship(
+        _state(enhancement="Steel"), "steel_mime", juggler
+    ) == SILVER
+    assert conditional_joker_relationship(
+        _state(seal="Blue"), "blue_seal", troubadour
+    ) == BRONZE
+
+
+def test_red_white_root_modifier_is_inherited_across_the_completed_tree():
+    tracker = TreeAwareStateAwareBalatroStrategyTracker(
+        RUNTIME_UNIVERSAL_BALATRO_STRATEGIES,
+        topology=TREE_MIGRATED_BALATRO_STRATEGY_TOPOLOGY,
+        modifier_provider=lambda state: {
+            "strategies": {"cash_hoard": {"effectiveness": 0.75}}
+        },
+    )
+
+    assert tracker.effectiveness(_state(), "cash_bull_bootstraps") == 0.75
+    assert tracker.effectiveness(_state(), "last_hand_dusk") == 1.0
+
+
+def test_inverse_component_index_is_generated_from_the_full_tree_catalogue():
+    tracker = _tracker()
+
+    assert ("campfire", GOLD) in tracker.component_index["JOKER"]["campfirejoker"]
+    assert ("blue_seal", GOLD) in tracker.component_index["CONSUMABLE"]["trance"]
 
 
 def test_sections_five_to_twelve_parent_child_static_components_are_disjoint():

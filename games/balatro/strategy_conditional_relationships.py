@@ -1165,7 +1165,7 @@ def _section_ten_relationship(state, strategy_id: str, item: object) -> str:
     owned = _owned_joker_tokens(state)
 
     if strategy_id == "joker_stencil" and "jokerstencil" in owned:
-        if token == "invisiblejokerjoker" or token == "invisiblejoker":
+        if token == "invisiblejoker":
             return SILVER
         if token == "riffraffjoker":
             return BANNED
@@ -1180,13 +1180,13 @@ def _section_ten_relationship(state, strategy_id: str, item: object) -> str:
     if strategy_id == "abstract_joker" and "abstractjoker" in owned:
         if token == "riffraffjoker":
             return SILVER
-        if token in {"showmanjoker", "invisiblejokerjoker", "invisiblejoker"}:
+        if token in {"showmanjoker", "invisiblejoker"}:
             return BRONZE
 
     if strategy_id == "swashbuckler" and "swashbucklerjoker" in owned:
         if token in {"eggjoker", "giftcardjoker"}:
             return GOLD
-        if token in {"riffraffjoker", "invisiblejokerjoker", "invisiblejoker"}:
+        if token in {"riffraffjoker", "invisiblejoker"}:
             return BRONZE
 
     return NEUTRAL
@@ -1213,7 +1213,7 @@ def _section_eleven_relationship(state, strategy_id: str, item: object) -> str:
             return SILVER
         if strategy_id == "discard_mail_rebate" and core in owned and token == "tradingcardjoker":
             return BRONZE
-        if strategy_id == "discard_yorick" and core in owned and token in {"purple", "certificatejoker"}:
+        if strategy_id == "discard_yorick" and core in owned and token == "certificatejoker":
             return BRONZE
 
     no_discard_cores = {
