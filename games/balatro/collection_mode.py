@@ -388,6 +388,7 @@ class CollectionFirstPackPolicy:
             *ContextualConsumableTargetEvaluator.SUPPORTED_TAROTS,
             *ContextualConsumableTargetEvaluator.SUPPORTED_SPECTRALS,
             "Aura",
+            "Cryptid",
         }
     )
 
