@@ -97,6 +97,164 @@ SECTION_FOUR_NODE_IDS = frozenset(
         "gold_cards_midas_ticket",
     }
 )
+SECTION_FIVE_ROOT_IDS = frozenset(
+    {
+        "red_seal",
+        "blue_seal",
+        "purple_seal",
+        "gold_seal",
+    }
+)
+SECTION_FIVE_NODE_IDS = frozenset(
+    {
+        *SECTION_FIVE_ROOT_IDS,
+        "red_seal_played",
+        "red_seal_held",
+    }
+)
+SECTION_SIX_ROOT_IDS = frozenset(
+    {
+        "canio_destruction",
+        "vampire",
+        "dagger_sacrifice",
+        "madness",
+        "deck_thinning",
+    }
+)
+SECTION_SIX_NODE_IDS = frozenset(
+    {
+        *SECTION_SIX_ROOT_IDS,
+        "canio_trading",
+        "canio_pareidolia",
+        "canio_glass",
+        "canio_consumable",
+        "vampire_midas",
+        "vampire_pareidolia_midas",
+        "madness_solo",
+        "madness_eternal",
+        "thinning_trading",
+        "thinning_erosion",
+        "thinning_trading_erosion",
+    }
+)
+SECTION_SEVEN_ROOT_IDS = frozenset(
+    {
+        "hologram_growth",
+        "hiker_training",
+        "drivers_license",
+        "blue_joker_deck",
+    }
+)
+SECTION_SEVEN_NODE_IDS = frozenset(
+    {
+        *SECTION_SEVEN_ROOT_IDS,
+        "hologram_dna",
+        "hologram_certificate",
+        "hologram_marble",
+    }
+)
+SECTION_EIGHT_ROOT_IDS = frozenset(
+    {
+        "planet_engine",
+        "perkeo",
+        "tarot_engine",
+        "vagabond",
+    }
+)
+SECTION_EIGHT_NODE_IDS = frozenset(
+    {
+        *SECTION_EIGHT_ROOT_IDS,
+        "planet_constellation",
+        "planet_satellite",
+        "planet_constellation_satellite",
+        "perkeo_observatory",
+        "perkeo_cryptid",
+        "perkeo_tarot_spectral",
+        "tarot_cartomancer",
+        "tarot_hallucination",
+        "tarot_eight_ball",
+    }
+)
+SECTION_NINE_ROOT_IDS = frozenset(
+    {
+        "cash_hoard",
+        "campfire",
+        "flash_card",
+        "red_card",
+        "throwback",
+    }
+)
+SECTION_NINE_NODE_IDS = frozenset(
+    {
+        *SECTION_NINE_ROOT_IDS,
+        "cash_growth",
+        "cash_bull",
+        "cash_bootstraps",
+        "cash_bull_bootstraps",
+        "cash_cloud_nine",
+    }
+)
+SECTION_TEN_ROOT_IDS = frozenset(
+    {
+        "joker_stencil",
+        "baseball_card",
+        "abstract_joker",
+        "swashbuckler",
+    }
+)
+SECTION_TEN_NODE_IDS = SECTION_TEN_ROOT_IDS
+SECTION_ELEVEN_ROOT_IDS = frozenset(
+    {
+        "discard_utilization",
+        "no_discard",
+        "obelisk_rotation",
+        "burnt_joker_engine",
+    }
+)
+SECTION_ELEVEN_NODE_IDS = frozenset(
+    {
+        *SECTION_ELEVEN_ROOT_IDS,
+        "discard_castle",
+        "discard_mail_rebate",
+        "discard_yorick",
+        "no_discard_green",
+        "no_discard_reserve",
+        "no_discard_ramen",
+        "no_discard_burglar",
+    }
+)
+SECTION_TWELVE_ROOT_IDS = frozenset({"last_hand_burst", "loyalty_cycle"})
+SECTION_TWELVE_NODE_IDS = frozenset(
+    {
+        *SECTION_TWELVE_ROOT_IDS,
+        "last_hand_acrobat",
+        "last_hand_dusk",
+    }
+)
+REMAINING_SECTION_ROOT_IDS = frozenset(
+    {
+        *SECTION_FIVE_ROOT_IDS,
+        *SECTION_SIX_ROOT_IDS,
+        *SECTION_SEVEN_ROOT_IDS,
+        *SECTION_EIGHT_ROOT_IDS,
+        *SECTION_NINE_ROOT_IDS,
+        *SECTION_TEN_ROOT_IDS,
+        *SECTION_ELEVEN_ROOT_IDS,
+        *SECTION_TWELVE_ROOT_IDS,
+    }
+)
+REMAINING_SECTION_NODE_IDS = frozenset(
+    {
+        *SECTION_FIVE_NODE_IDS,
+        *SECTION_SIX_NODE_IDS,
+        *SECTION_SEVEN_NODE_IDS,
+        *SECTION_EIGHT_NODE_IDS,
+        *SECTION_NINE_NODE_IDS,
+        *SECTION_TEN_NODE_IDS,
+        *SECTION_ELEVEN_NODE_IDS,
+        *SECTION_TWELVE_NODE_IDS,
+    }
+)
 SECTION_TWO_NODE_IDS = frozenset(
     {
         *SECTION_TWO_ROOT_IDS,
@@ -730,6 +888,425 @@ def _section_four_definitions():
     }
 
 
+def _remaining_section_definitions():
+    """Return topology-owned catalogue definitions for frozen Sections 5–12.
+
+    Parents own shared mechanics and transformation tools.  Children own only
+    unconditional defining cores; context-dependent combo/support tiers are kept
+    in ``strategy_conditional_relationships`` so an off-route Joker cannot seed a
+    strategy merely by being generally useful.
+    """
+
+    return {
+        # Section 5: seals.
+        "red_seal": _strategy(
+            "red_seal",
+            "Red Seal",
+            gold_consumables=("Deja Vu",),
+            silver_consumables=("Death", "Cryptid"),
+            directed_spectrals=("Deja Vu", "Cryptid"),
+            preferred_seals=("Red",),
+        ),
+        "red_seal_played": _strategy(
+            "red_seal_played",
+            "Played Red-Seal Retrigger",
+        ),
+        "red_seal_held": _strategy(
+            "red_seal_held",
+            "Held Red-Seal Retrigger",
+        ),
+        "blue_seal": _strategy(
+            "blue_seal",
+            "Blue Seal Hand-Level Scaling",
+            gold_consumables=("Trance",),
+            silver_consumables=("Death", "Cryptid"),
+            directed_spectrals=("Trance", "Cryptid"),
+            preferred_seals=("Blue",),
+        ),
+        "purple_seal": _strategy(
+            "purple_seal",
+            "Purple Seal Tarot Engine",
+            banned_jokers=(
+                "Burglar",
+                "Delayed Gratification",
+                "Green Joker",
+                "Ramen",
+                "Banner",
+            ),
+            gold_consumables=("The Medium",),
+            silver_consumables=("Death", "Cryptid"),
+            directed_spectrals=("The Medium", "Cryptid"),
+            preferred_seals=("Purple",),
+        ),
+        "gold_seal": _strategy(
+            "gold_seal",
+            "Gold-Seal Retrigger Economy",
+            gold_consumables=("Talisman",),
+            silver_consumables=("Death", "Cryptid"),
+            directed_spectrals=("Talisman", "Cryptid"),
+            preferred_seals=("Gold",),
+        ),
+
+        # Section 6: destruction, sacrifice, consumption and thinning.
+        "canio_destruction": _strategy(
+            "canio_destruction",
+            "Canio Destruction",
+            gold_jokers=("Canio",),
+            silver_consumables=("The Hanged Man", "Justice", "Familiar", "Immolate"),
+            directed_tarots=("The Hanged Man", "Justice"),
+            directed_spectrals=("Familiar", "Immolate"),
+        ),
+        "canio_trading": _strategy("canio_trading", "Trading Card Canio"),
+        "canio_pareidolia": _strategy("canio_pareidolia", "Pareidolia Canio"),
+        "canio_glass": _strategy(
+            "canio_glass",
+            "Glass Canio",
+            preferred_enhancements=("Glass",),
+        ),
+        "canio_consumable": _strategy("canio_consumable", "Consumable Canio"),
+        "vampire": _strategy(
+            "vampire",
+            "Vampire",
+            gold_jokers=("Vampire",),
+            silver_consumables=(
+                "The Magician", "The Empress", "The Hierophant", "The Lovers",
+                "The Chariot", "Justice", "The Devil", "The Tower",
+                "Familiar", "Grim", "Incantation",
+            ),
+            directed_tarots=(
+                "The Magician", "The Empress", "The Hierophant", "The Lovers",
+                "The Chariot", "Justice", "The Devil", "The Tower",
+            ),
+            directed_spectrals=("Familiar", "Grim", "Incantation"),
+        ),
+        "vampire_midas": _strategy(
+            "vampire_midas",
+            "Midas Mask + Vampire",
+            preferred_enhancements=("Gold",),
+        ),
+        "vampire_pareidolia_midas": _strategy(
+            "vampire_pareidolia_midas",
+            "Pareidolia + Midas Mask + Vampire",
+            preferred_enhancements=("Gold",),
+        ),
+        "dagger_sacrifice": _strategy(
+            "dagger_sacrifice",
+            "Ceremonial Dagger / Disposable-Joker Feed",
+            gold_jokers=("Ceremonial Dagger", "Dagger"),
+            silver_jokers=("Riff-Raff", "Egg", "Gift Card"),
+            bronze_jokers=("Invisible Joker",),
+        ),
+        "madness": _strategy("madness", "Madness Destruction", gold_jokers=("Madness",)),
+        "madness_solo": _strategy("madness_solo", "Solo Madness"),
+        "madness_eternal": _strategy("madness_eternal", "Eternal-Joker Madness"),
+        "deck_thinning": _strategy(
+            "deck_thinning",
+            "Deck Thinning",
+            silver_consumables=("The Hanged Man", "Immolate"),
+            directed_tarots=("The Hanged Man",),
+            directed_spectrals=("Immolate",),
+        ),
+        "thinning_trading": _strategy(
+            "thinning_trading",
+            "Trading Card Thinning / Economy",
+            gold_jokers=("Trading Card",),
+        ),
+        "thinning_erosion": _strategy(
+            "thinning_erosion",
+            "Erosion Thinning",
+            gold_jokers=("Erosion",),
+        ),
+        "thinning_trading_erosion": _strategy(
+            "thinning_trading_erosion",
+            "Trading Card + Erosion",
+        ),
+
+        # Section 7: deck growth and card training.
+        "hologram_growth": _strategy(
+            "hologram_growth",
+            "Hologram Deck-Growth",
+            gold_jokers=("Hologram",),
+            silver_consumables=("Cryptid", "Familiar", "Grim", "Incantation"),
+            directed_spectrals=("Cryptid", "Familiar", "Grim", "Incantation"),
+        ),
+        "hologram_dna": _strategy(
+            "hologram_dna",
+            "DNA + Hologram",
+        ),
+        "hologram_certificate": _strategy("hologram_certificate", "Certificate + Hologram"),
+        "hologram_marble": _strategy(
+            "hologram_marble",
+            "Marble Joker + Hologram",
+            gold_consumables=("The Tower",),
+            directed_tarots=("The Tower",),
+            preferred_enhancements=("Stone",),
+        ),
+        "hiker_training": _strategy(
+            "hiker_training",
+            "Hiker Retrigger / Copy Training",
+            gold_jokers=("Hiker",),
+            silver_consumables=("Cryptid", "Deja Vu"),
+            directed_spectrals=("Cryptid", "Deja Vu"),
+        ),
+        "drivers_license": _strategy(
+            "drivers_license",
+            "Driver's License Enhancement-Density",
+            gold_jokers=("Driver's License",),
+            banned_jokers=("Vampire",),
+            gold_consumables=(
+                "The Magician", "The Empress", "The Hierophant", "The Lovers",
+                "The Chariot", "Justice", "The Devil", "The Tower",
+            ),
+            silver_consumables=("Familiar", "Grim", "Incantation"),
+            directed_tarots=(
+                "The Magician", "The Empress", "The Hierophant", "The Lovers",
+                "The Chariot", "Justice", "The Devil", "The Tower",
+            ),
+            directed_spectrals=("Familiar", "Grim", "Incantation"),
+            preferred_enhancements=(
+                "Lucky", "Mult", "Bonus", "Wild", "Steel", "Glass", "Gold", "Stone",
+            ),
+        ),
+        "blue_joker_deck": _strategy(
+            "blue_joker_deck",
+            "Blue Joker Large-Deck Chips",
+            gold_jokers=("Blue Joker",),
+            banned_jokers=("Erosion", "Trading Card"),
+            silver_consumables=("Familiar", "Grim", "Incantation", "Cryptid"),
+            directed_spectrals=("Familiar", "Grim", "Incantation", "Cryptid"),
+        ),
+
+        # Section 8: Planet, Tarot and consumable engines.
+        "planet_engine": _strategy(
+            "planet_engine",
+            "Planet Engine",
+            silver_jokers=("Astronomer",),
+            gold_consumables=("The High Priestess", "Black Hole"),
+            directed_tarots=("The High Priestess",),
+            directed_spectrals=("Black Hole",),
+        ),
+        "planet_constellation": _strategy(
+            "planet_constellation",
+            "Constellation Planet-Scaling",
+            gold_jokers=("Constellation",),
+        ),
+        "planet_satellite": _strategy(
+            "planet_satellite",
+            "Satellite Planet-Economy",
+            gold_jokers=("Satellite",),
+        ),
+        "planet_constellation_satellite": _strategy(
+            "planet_constellation_satellite",
+            "Constellation + Satellite Planet Engine",
+        ),
+        "perkeo": _strategy("perkeo", "Perkeo Consumable Duplication", gold_jokers=("Perkeo",)),
+        "perkeo_observatory": _strategy(
+            "perkeo_observatory",
+            "Perkeo + Observatory Planet Stack",
+        ),
+        "perkeo_cryptid": _strategy(
+            "perkeo_cryptid",
+            "Perkeo + Cryptid Copy Engine",
+            gold_consumables=("Cryptid",),
+            directed_spectrals=("Cryptid",),
+        ),
+        "perkeo_tarot_spectral": _strategy(
+            "perkeo_tarot_spectral",
+            "Perkeo Tarot / Spectral Engine",
+        ),
+        "tarot_engine": _strategy(
+            "tarot_engine",
+            "Tarot Engine",
+            gold_jokers=("Fortune Teller",),
+        ),
+        "tarot_cartomancer": _strategy(
+            "tarot_cartomancer",
+            "Cartomancer Blind-Select Generation",
+            gold_jokers=("Cartomancer",),
+        ),
+        "tarot_hallucination": _strategy(
+            "tarot_hallucination",
+            "Hallucination Pack-Open Generation",
+            gold_jokers=("Hallucination",),
+        ),
+        "tarot_eight_ball": _strategy(
+            "tarot_eight_ball",
+            "8 Ball / Eights Tarot Generation",
+            gold_jokers=("8 Ball", "Eight Ball"),
+            silver_consumables=("Death", "Strength", "The Hanged Man", "Cryptid"),
+            directed_tarots=("Death", "Strength", "The Hanged Man"),
+            directed_spectrals=("Cryptid",),
+            preferred_ranks=("8",),
+        ),
+        "vagabond": _strategy(
+            "vagabond",
+            "Vagabond Low-Money Tarot Engine",
+            gold_jokers=("Vagabond",),
+            silver_jokers=("Fortune Teller",),
+        ),
+
+        # Section 9: economy, shop, reroll and blind-skip engines.
+        "cash_hoard": _strategy(
+            "cash_hoard",
+            "Cash Hoard / Interest",
+            gold_consumables=("The Hermit", "Temperance", "Immolate"),
+            directed_tarots=("The Hermit", "Temperance"),
+            directed_spectrals=("Immolate",),
+        ),
+        "cash_growth": _strategy(
+            "cash_growth",
+            "Rocket / To the Moon Cash Growth",
+            gold_jokers=("Rocket", "To the Moon"),
+        ),
+        "cash_bull": _strategy("cash_bull", "Bull Cash-to-Chips", gold_jokers=("Bull",)),
+        "cash_bootstraps": _strategy(
+            "cash_bootstraps",
+            "Bootstraps Cash-to-Mult",
+            gold_jokers=("Bootstraps",),
+        ),
+        "cash_bull_bootstraps": _strategy(
+            "cash_bull_bootstraps",
+            "Bull + Bootstraps Cash Scoring",
+        ),
+        "cash_cloud_nine": _strategy(
+            "cash_cloud_nine",
+            "Cloud 9 Nines Economy",
+            gold_jokers=("Cloud 9",),
+            silver_consumables=("Ouija",),
+            directed_spectrals=("Ouija",),
+            preferred_ranks=("9",),
+        ),
+        "campfire": _strategy(
+            "campfire",
+            "Campfire Sell-Scaling",
+            gold_jokers=("Campfire",),
+            silver_consumables=("Temperance",),
+            directed_tarots=("Temperance",),
+        ),
+        "flash_card": _strategy(
+            "flash_card",
+            "Flash Card Reroll-Scaling",
+            gold_jokers=("Flash Card",),
+        ),
+        "red_card": _strategy("red_card", "Red Card Pack-Skip Scaling", gold_jokers=("Red Card",)),
+        "throwback": _strategy("throwback", "Throwback Blind-Skip Scaling", gold_jokers=("Throwback",)),
+
+        # Section 10: Joker-board composition.
+        "joker_stencil": _strategy(
+            "joker_stencil",
+            "Joker Stencil / Duplication",
+            gold_jokers=("Joker Stencil",),
+            silver_consumables=("Ankh",),
+            directed_spectrals=("Ankh",),
+            preferred_editions=("Negative",),
+        ),
+        "baseball_card": _strategy(
+            "baseball_card",
+            "Baseball Card Uncommon Stack",
+            gold_jokers=("Baseball Card",),
+            silver_consumables=("Judgement", "Wraith", "The Soul"),
+            directed_tarots=("Judgement",),
+            directed_spectrals=("Wraith", "The Soul"),
+        ),
+        "abstract_joker": _strategy(
+            "abstract_joker",
+            "Abstract Joker Wide-Board",
+            gold_jokers=("Abstract Joker",),
+            silver_consumables=("Judgement", "Wraith", "The Soul"),
+            directed_tarots=("Judgement",),
+            directed_spectrals=("Wraith", "The Soul"),
+            preferred_editions=("Negative",),
+        ),
+        "swashbuckler": _strategy(
+            "swashbuckler",
+            "Egg / Gift-Card Swashbuckler",
+            gold_jokers=("Swashbuckler",),
+            silver_consumables=("Judgement", "Wraith", "The Soul"),
+            directed_tarots=("Judgement",),
+            directed_spectrals=("Wraith", "The Soul"),
+        ),
+
+        # Section 11: discard and hand rotation.
+        "discard_utilization": _strategy("discard_utilization", "Discard Utilization"),
+        "discard_castle": _strategy(
+            "discard_castle",
+            "Castle Suit-Discard Scaling",
+            gold_jokers=("Castle",),
+            silver_consumables=("The Star", "The Moon", "The Sun", "The World", "Sigil"),
+            directed_tarots=("The Star", "The Moon", "The Sun", "The World"),
+            directed_spectrals=("Sigil",),
+            preferred_enhancements=("Wild",),
+        ),
+        "discard_mail_rebate": _strategy(
+            "discard_mail_rebate",
+            "Mail-In Rebate Rank-Discard Economy",
+            gold_jokers=("Mail-In Rebate",),
+            silver_consumables=("Strength", "Death", "Ouija"),
+            directed_tarots=("Strength", "Death"),
+            directed_spectrals=("Ouija",),
+        ),
+        "discard_yorick": _strategy(
+            "discard_yorick",
+            "Yorick Discard-Scaling",
+            gold_jokers=("Yorick",),
+            silver_consumables=("The Medium",),
+            directed_spectrals=("The Medium",),
+        ),
+        "no_discard": _strategy("no_discard", "No-Discard / Discard-Preservation"),
+        "no_discard_green": _strategy(
+            "no_discard_green",
+            "Green Joker No-Discard Scaling",
+            gold_jokers=("Green Joker",),
+        ),
+        "no_discard_reserve": _strategy(
+            "no_discard_reserve",
+            "Banner + Delayed Gratification Discard Reserve",
+            gold_jokers=("Banner", "Delayed Gratification"),
+        ),
+        "no_discard_ramen": _strategy(
+            "no_discard_ramen",
+            "Ramen Preservation",
+            gold_jokers=("Ramen",),
+        ),
+        "no_discard_burglar": _strategy(
+            "no_discard_burglar",
+            "Burglar Zero-Discard / Extra-Hand",
+            gold_jokers=("Burglar",),
+        ),
+        "obelisk_rotation": _strategy(
+            "obelisk_rotation",
+            "Obelisk Hand-Rotation",
+            gold_jokers=("Obelisk",),
+        ),
+        "burnt_joker_engine": _strategy(
+            "burnt_joker_engine",
+            "Burnt Joker Hand-Level Engine",
+            gold_jokers=("Burnt Joker",),
+            silver_jokers=("Astronomer",),
+            gold_consumables=("Black Hole",),
+            directed_spectrals=("Black Hole",),
+        ),
+
+        # Section 12: hand scheduling.
+        "last_hand_burst": _strategy("last_hand_burst", "Last-Hand Burst"),
+        "last_hand_acrobat": _strategy(
+            "last_hand_acrobat",
+            "Acrobat Last-Hand XMult",
+            gold_jokers=("Acrobat",),
+        ),
+        "last_hand_dusk": _strategy(
+            "last_hand_dusk",
+            "Dusk Last-Hand Retrigger",
+            gold_jokers=("Dusk",),
+        ),
+        "loyalty_cycle": _strategy(
+            "loyalty_cycle",
+            "Loyalty Card Six-Hand Cycle",
+            gold_jokers=("Loyalty Card",),
+        ),
+    }
+
+
 _tree_definitions = dict(UNIVERSAL_BALATRO_STRATEGIES)
 for _strategy_id in SECTION_ONE_ROOT_IDS:
     _tree_definitions.pop(_strategy_id, None)
@@ -739,10 +1316,16 @@ for _strategy_id in SECTION_THREE_ROOT_IDS:
     _tree_definitions.pop(_strategy_id, None)
 for _strategy_id in SECTION_FOUR_ROOT_IDS:
     _tree_definitions.pop(_strategy_id, None)
+for _strategy_id in REMAINING_SECTION_ROOT_IDS:
+    _tree_definitions.pop(_strategy_id, None)
+# Editions are portable item value, not a strategy branch.  The former flat
+# ``edition`` definition is intentionally retired during the final migration.
+_tree_definitions.pop("edition", None)
 _tree_definitions.update(_section_one_definitions())
 _tree_definitions.update(_section_two_definitions())
 _tree_definitions.update(_section_three_definitions())
 _tree_definitions.update(_section_four_definitions())
+_tree_definitions.update(_remaining_section_definitions())
 
 TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES = MappingProxyType(_tree_definitions)
 
@@ -851,6 +1434,106 @@ _runtime_nodes = [
     StrategyNodeSpec("gold_cards_midas_ticket", "Midas Mask + Golden Ticket Economy", parent_strategy_id="gold_cards"),
 ]
 _runtime_nodes.extend(
+    StrategyNodeSpec(strategy_id, name, parent_strategy_id=parent_id)
+    for strategy_id, name, parent_id in (
+        # Section 5.
+        ("red_seal", "Red Seal", None),
+        ("red_seal_played", "Played Red-Seal Retrigger", "red_seal"),
+        ("red_seal_held", "Held Red-Seal Retrigger", "red_seal"),
+        ("blue_seal", "Blue Seal Hand-Level Scaling", None),
+        ("purple_seal", "Purple Seal Tarot Engine", None),
+        ("gold_seal", "Gold-Seal Retrigger Economy", None),
+        # Section 6.
+        ("canio_destruction", "Canio Destruction", None),
+        ("canio_trading", "Trading Card Canio", "canio_destruction"),
+        ("canio_pareidolia", "Pareidolia Canio", "canio_destruction"),
+        ("canio_glass", "Glass Canio", "canio_destruction"),
+        ("canio_consumable", "Consumable Canio", "canio_destruction"),
+        ("vampire", "Vampire", None),
+        ("vampire_midas", "Midas Mask + Vampire", "vampire"),
+        (
+            "vampire_pareidolia_midas",
+            "Pareidolia + Midas Mask + Vampire",
+            "vampire",
+        ),
+        ("dagger_sacrifice", "Ceremonial Dagger / Disposable-Joker Feed", None),
+        ("madness", "Madness Destruction", None),
+        ("madness_solo", "Solo Madness", "madness"),
+        ("madness_eternal", "Eternal-Joker Madness", "madness"),
+        ("deck_thinning", "Deck Thinning", None),
+        ("thinning_trading", "Trading Card Thinning / Economy", "deck_thinning"),
+        ("thinning_erosion", "Erosion Thinning", "deck_thinning"),
+        ("thinning_trading_erosion", "Trading Card + Erosion", "deck_thinning"),
+        # Section 7.
+        ("hologram_growth", "Hologram Deck-Growth", None),
+        ("hologram_dna", "DNA + Hologram", "hologram_growth"),
+        ("hologram_certificate", "Certificate + Hologram", "hologram_growth"),
+        ("hologram_marble", "Marble Joker + Hologram", "hologram_growth"),
+        ("hiker_training", "Hiker Retrigger / Copy Training", None),
+        ("drivers_license", "Driver's License Enhancement-Density", None),
+        ("blue_joker_deck", "Blue Joker Large-Deck Chips", None),
+        # Section 8.
+        ("planet_engine", "Planet Engine", None),
+        ("planet_constellation", "Constellation Planet-Scaling", "planet_engine"),
+        ("planet_satellite", "Satellite Planet-Economy", "planet_engine"),
+        (
+            "planet_constellation_satellite",
+            "Constellation + Satellite Planet Engine",
+            "planet_engine",
+        ),
+        ("perkeo", "Perkeo Consumable Duplication", None),
+        ("perkeo_observatory", "Perkeo + Observatory Planet Stack", "perkeo"),
+        ("perkeo_cryptid", "Perkeo + Cryptid Copy Engine", "perkeo"),
+        ("perkeo_tarot_spectral", "Perkeo Tarot / Spectral Engine", "perkeo"),
+        ("tarot_engine", "Tarot Engine", None),
+        ("tarot_cartomancer", "Cartomancer Blind-Select Generation", "tarot_engine"),
+        ("tarot_hallucination", "Hallucination Pack-Open Generation", "tarot_engine"),
+        ("tarot_eight_ball", "8 Ball / Eights Tarot Generation", "tarot_engine"),
+        ("vagabond", "Vagabond Low-Money Tarot Engine", None),
+        # Section 9.
+        ("cash_hoard", "Cash Hoard / Interest", None),
+        ("cash_growth", "Rocket / To the Moon Cash Growth", "cash_hoard"),
+        ("cash_bull", "Bull Cash-to-Chips", "cash_hoard"),
+        ("cash_bootstraps", "Bootstraps Cash-to-Mult", "cash_hoard"),
+        ("cash_bull_bootstraps", "Bull + Bootstraps Cash Scoring", "cash_hoard"),
+        ("cash_cloud_nine", "Cloud 9 Nines Economy", "cash_hoard"),
+        ("campfire", "Campfire Sell-Scaling", None),
+        ("flash_card", "Flash Card Reroll-Scaling", None),
+        ("red_card", "Red Card Pack-Skip Scaling", None),
+        ("throwback", "Throwback Blind-Skip Scaling", None),
+        # Section 10.
+        ("joker_stencil", "Joker Stencil / Duplication", None),
+        ("baseball_card", "Baseball Card Uncommon Stack", None),
+        ("abstract_joker", "Abstract Joker Wide-Board", None),
+        ("swashbuckler", "Egg / Gift-Card Swashbuckler", None),
+        # Section 11.
+        ("discard_utilization", "Discard Utilization", None),
+        ("discard_castle", "Castle Suit-Discard Scaling", "discard_utilization"),
+        (
+            "discard_mail_rebate",
+            "Mail-In Rebate Rank-Discard Economy",
+            "discard_utilization",
+        ),
+        ("discard_yorick", "Yorick Discard-Scaling", "discard_utilization"),
+        ("no_discard", "No-Discard / Discard-Preservation", None),
+        ("no_discard_green", "Green Joker No-Discard Scaling", "no_discard"),
+        (
+            "no_discard_reserve",
+            "Banner + Delayed Gratification Discard Reserve",
+            "no_discard",
+        ),
+        ("no_discard_ramen", "Ramen Preservation", "no_discard"),
+        ("no_discard_burglar", "Burglar Zero-Discard / Extra-Hand", "no_discard"),
+        ("obelisk_rotation", "Obelisk Hand-Rotation", None),
+        ("burnt_joker_engine", "Burnt Joker Hand-Level Engine", None),
+        # Section 12.
+        ("last_hand_burst", "Last-Hand Burst", None),
+        ("last_hand_acrobat", "Acrobat Last-Hand XMult", "last_hand_burst"),
+        ("last_hand_dusk", "Dusk Last-Hand Retrigger", "last_hand_burst"),
+        ("loyalty_cycle", "Loyalty Card Six-Hand Cycle", None),
+    )
+)
+_runtime_nodes.extend(
     StrategyNodeSpec(strategy_id, definition.name)
     for strategy_id, definition in TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES.items()
     if strategy_id
@@ -877,6 +1560,7 @@ _runtime_nodes.extend(
         "flower_pot_splash",
         "flower_pot_smeared",
         *SECTION_FOUR_NODE_IDS,
+        *REMAINING_SECTION_NODE_IDS,
     }
 )
 

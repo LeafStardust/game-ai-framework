@@ -139,6 +139,87 @@ _BUSINESS_CARD_SUPPORT_JOKERS = frozenset(
         "duskjoker",
     }
 )
+_FACE_RANKS = frozenset({"J", "Q", "K", "JACK", "QUEEN", "KING"})
+_LOW_HACK_RANKS = frozenset({"2", "3", "4", "5"})
+_COPY_ENGINE_TOKENS = frozenset({"blueprintjoker", "brainstormjoker"})
+_PART_FOURTEEN_COPY_CORES = {
+    "canio_destruction": frozenset({"caniojoker"}),
+    "vampire": frozenset({"vampirejoker"}),
+    "dagger_sacrifice": frozenset({"daggerjoker"}),
+    "madness": frozenset({"madnessjoker"}),
+    "hologram_growth": frozenset({"hologramjoker"}),
+    "hiker_training": frozenset({"hikerjoker"}),
+    "drivers_license": frozenset({"driverslicensejoker"}),
+    "planet_constellation": frozenset({"constellationjoker"}),
+    "planet_satellite": frozenset({"satellitejoker"}),
+    "tarot_engine": frozenset({"fortunetellerjoker"}),
+    "vagabond": frozenset({"vagabondjoker"}),
+    "cash_bull": frozenset({"bulljoker"}),
+    "cash_bootstraps": frozenset({"bootstrapsjoker"}),
+    "campfire": frozenset({"campfirejoker"}),
+    "flash_card": frozenset({"flashcardjoker"}),
+    "red_card": frozenset({"redcardjoker"}),
+    "throwback": frozenset({"throwbackjoker"}),
+    "joker_stencil": frozenset({"jokerstencil"}),
+    "baseball_card": frozenset({"baseballcardjoker"}),
+    "abstract_joker": frozenset({"abstractjoker"}),
+    "swashbuckler": frozenset({"swashbucklerjoker"}),
+    "discard_castle": frozenset({"castlejoker"}),
+    "discard_mail_rebate": frozenset({"mailinrebatejoker"}),
+    "discard_yorick": frozenset({"yorickjoker"}),
+    "no_discard_green": frozenset({"greenjoker"}),
+    "no_discard_ramen": frozenset({"ramenjoker"}),
+    "obelisk_rotation": frozenset({"obeliskjoker"}),
+    "burnt_joker_engine": frozenset({"burntjoker"}),
+    "last_hand_acrobat": frozenset({"acrobatjoker"}),
+    "last_hand_dusk": frozenset({"duskjoker"}),
+    "loyalty_cycle": frozenset({"loyaltycardjoker"}),
+}
+_SECTION_FIVE_IDS = frozenset(
+    {"red_seal", "red_seal_played", "red_seal_held", "blue_seal", "purple_seal", "gold_seal"}
+)
+_SECTION_SIX_IDS = frozenset(
+    {
+        "canio_destruction", "canio_trading", "canio_pareidolia", "canio_glass",
+        "canio_consumable", "vampire", "vampire_midas",
+        "vampire_pareidolia_midas", "dagger_sacrifice", "madness",
+        "madness_solo", "madness_eternal", "deck_thinning", "thinning_trading",
+        "thinning_erosion", "thinning_trading_erosion",
+    }
+)
+_SECTION_SEVEN_IDS = frozenset(
+    {
+        "hologram_growth", "hologram_dna", "hologram_certificate",
+        "hologram_marble", "hiker_training", "drivers_license", "blue_joker_deck",
+    }
+)
+_SECTION_EIGHT_IDS = frozenset(
+    {
+        "planet_engine", "planet_constellation", "planet_satellite",
+        "planet_constellation_satellite", "perkeo", "perkeo_observatory",
+        "perkeo_cryptid", "perkeo_tarot_spectral", "tarot_engine",
+        "tarot_cartomancer", "tarot_hallucination", "tarot_eight_ball", "vagabond",
+    }
+)
+_SECTION_NINE_IDS = frozenset(
+    {
+        "cash_hoard", "cash_growth", "cash_bull", "cash_bootstraps",
+        "cash_bull_bootstraps", "cash_cloud_nine", "campfire", "flash_card",
+        "red_card", "throwback",
+    }
+)
+_SECTION_TEN_IDS = frozenset({"joker_stencil", "baseball_card", "abstract_joker", "swashbuckler"})
+_SECTION_ELEVEN_IDS = frozenset(
+    {
+        "discard_utilization", "discard_castle", "discard_mail_rebate",
+        "discard_yorick", "no_discard", "no_discard_green", "no_discard_reserve",
+        "no_discard_ramen", "no_discard_burglar", "obelisk_rotation",
+        "burnt_joker_engine",
+    }
+)
+_SECTION_TWELVE_IDS = frozenset(
+    {"last_hand_burst", "last_hand_acrobat", "last_hand_dusk", "loyalty_cycle"}
+)
 _POKER_HAND_OBELISK_COMMITMENTS = {
     "three_kind": (
         "THREE_OF_A_KIND",
@@ -247,6 +328,52 @@ def _owned_joker_tokens(state) -> frozenset[str]:
 
 def _has_joker(state, token: str) -> bool:
     return token in _owned_joker_tokens(state)
+
+
+def _cards_with_seal(state, seal: str) -> list:
+    target = _normalize(seal)
+    return [
+        card
+        for card in _owned_deck(state)
+        if _normalize(getattr(card, "seal", "")) == target
+    ]
+
+
+def _card_rank(card) -> str:
+    return str(getattr(card, "rank", "")).upper()
+
+
+def _card_is_face(card) -> bool:
+    return _card_rank(card) in _FACE_RANKS
+
+
+def _held_consumable_tokens(state) -> frozenset[str]:
+    values = set()
+    for item in getattr(state, "consumables", ()) or ():
+        values.add(_normalize(getattr(item, "name", type(item).__name__)))
+        values.add(_normalize(type(item).__name__))
+    return frozenset(value for value in values if value)
+
+
+def _has_voucher(state, name: str) -> bool:
+    target = _normalize(name)
+    return any(
+        target
+        in {
+            _normalize(voucher),
+            _normalize(getattr(voucher, "name", "")),
+            _normalize(getattr(voucher, "label", "")),
+            _normalize(type(voucher).__name__),
+        }
+        for voucher in getattr(state, "vouchers", ()) or ()
+    )
+
+
+def _part_fourteen_copy_relationship(state, strategy_id: str, token: str) -> str:
+    if token not in _COPY_ENGINE_TOKENS:
+        return NEUTRAL
+    cores = _PART_FOURTEEN_COPY_CORES.get(strategy_id, frozenset())
+    return SILVER if _owned_joker_tokens(state) & cores else NEUTRAL
 
 
 def _hand_level_is_invested(state, hand_key: str) -> bool:
@@ -698,6 +825,402 @@ def _section_four_relationship(state, strategy_id: str, item: object) -> str:
     return NEUTRAL
 
 
+def _section_five_relationship(state, strategy_id: str, item: object) -> str:
+    """Resolve Seal support only when the matching permanent Seal exists."""
+    token = _item_token(item)
+    red = _cards_with_seal(state, "Red")
+    blue = _cards_with_seal(state, "Blue")
+    purple = _cards_with_seal(state, "Purple")
+    gold = _cards_with_seal(state, "Gold")
+
+    if strategy_id == "red_seal_played" and red:
+        if token == "hangingchadjoker":
+            return GOLD
+        if token in {"seltzerjoker", "duskjoker", "hikerjoker", "splashjoker"}:
+            return SILVER
+        if token == "sockandbuskinjoker" and any(map(_card_is_face, red)):
+            return SILVER
+        if token == "hackjoker" and any(_card_rank(card) in _LOW_HACK_RANKS for card in red):
+            return SILVER
+        if token in {"photographjoker", "tribouletjoker"} and any(map(_card_is_face, red)):
+            return SILVER
+        if token == "bloodstonejoker" and any(
+            str(getattr(card, "suit", "")) == "Hearts" for card in red
+        ):
+            return SILVER
+        if token == "luckycatjoker" and any(
+            _normalize(getattr(card, "enhancement", "")) == "lucky" for card in red
+        ):
+            return SILVER
+        if token in {"scaryfacejoker", "smileyfacejoker", "businesscardjoker"} and any(
+            map(_card_is_face, red)
+        ):
+            return BRONZE
+        if token == "fibonaccijoker" and any(
+            _card_rank(card) in {"2", "3", "5", "8", "A", "ACE"} for card in red
+        ):
+            return BRONZE
+
+    if strategy_id == "red_seal_held" and red:
+        red_kings = [card for card in red if _card_rank(card) in {"K", "KING"}]
+        red_queens = [card for card in red if _card_rank(card) in {"Q", "QUEEN"}]
+        held_effect = any(
+            _normalize(getattr(card, "enhancement", "")) in {"steel", "gold"}
+            or _card_is_face(card)
+            for card in red
+        )
+        if token == "mimejoker" and held_effect:
+            return GOLD
+        if token == "baronjoker" and red_kings:
+            return GOLD
+        if token == "shootthemoonjoker" and red_queens:
+            return SILVER
+        if token == "reservedparkingjoker" and any(map(_card_is_face, red)):
+            return SILVER
+        if token == "raisedfistjoker" and any(
+            _card_rank(card) in _LOW_HACK_RANKS for card in red
+        ):
+            return SILVER
+        if token in {"jugglerjoker", "troubadourjoker"} and held_effect:
+            return BRONZE
+
+    if strategy_id == "blue_seal" and blue:
+        if token in {"constellationjoker", "satellitejoker"}:
+            return GOLD
+        if token in {"certificatejoker", "perkeojoker", "astronomerjoker"}:
+            return SILVER
+        if token in {"burntjoker", "spacejoker", "jugglerjoker", "troubadourjoker"}:
+            return BRONZE
+
+    if strategy_id == "purple_seal" and purple:
+        if token in {"fortunetellerjoker", "merryandyjoker", "drunkardjoker"}:
+            return GOLD
+        if token in {
+            "burntjoker", "castlejoker", "mailinrebatejoker",
+            "facelessjoker", "certificatejoker",
+        }:
+            return SILVER
+        if token in {
+            "perkeojoker", "cartomancerjoker", "hallucinationjoker",
+            "vagabondjoker", "mysticsummitjoker",
+        }:
+            return BRONZE
+
+    if strategy_id == "gold_seal" and gold:
+        if token in {"hangingchadjoker", "seltzerjoker", "duskjoker"}:
+            return GOLD
+        if token == "sockandbuskinjoker" and any(map(_card_is_face, gold)):
+            return SILVER
+        if token == "hackjoker" and any(
+            _card_rank(card) in _LOW_HACK_RANKS for card in gold
+        ):
+            return SILVER
+        if token in {"bulljoker", "bootstrapsjoker", "tothemoonjoker", "rocketjoker"}:
+            return SILVER
+        if token == "businesscardjoker" and any(map(_card_is_face, gold)):
+            return BRONZE
+        if token in {"certificatejoker", "dnajoker", "splashjoker"}:
+            return BRONZE
+
+    return NEUTRAL
+
+
+def _section_six_relationship(state, strategy_id: str, item: object) -> str:
+    token = _item_token(item)
+    owned = _owned_joker_tokens(state)
+    has_canio = "caniojoker" in owned
+    has_vampire = "vampirejoker" in owned
+
+    if strategy_id == "canio_trading" and has_canio:
+        if token == "tradingcardjoker":
+            return GOLD
+        if token == "pareidoliajoker":
+            return SILVER
+        if token in {"facelessjoker", "merryandyjoker", "drunkardjoker"}:
+            return BRONZE
+
+    if strategy_id == "canio_pareidolia" and has_canio:
+        if token == "pareidoliajoker":
+            return GOLD
+        if token == "tradingcardjoker":
+            return SILVER
+        if token in {"midasmaskjoker", "splashjoker"}:
+            return BRONZE
+
+    if strategy_id == "canio_glass" and has_canio:
+        glass = _enhancement_route_is_material(
+            state, "Glass", payoff_tokens=frozenset({"glassjoker"})
+        )
+        if glass and token == "glassjoker":
+            return GOLD
+        if glass and token in _PLAYED_CARD_RETRIGGER_JOKERS:
+            return SILVER
+        if glass and token in {"dnajoker", "hologramjoker"}:
+            return BRONZE
+
+    if strategy_id == "canio_consumable" and token == "caniojoker":
+        canio = next((joker for joker in getattr(state, "jokers", ()) if _item_token(joker) == token), item)
+        if float(getattr(canio, "x_mult", 1.0) or 1.0) > 1.0:
+            return GOLD
+
+    if strategy_id == "vampire_midas" and has_vampire:
+        if token == "midasmaskjoker":
+            return GOLD
+        if token in {"pareidoliajoker", "splashjoker"}:
+            return SILVER
+
+    if strategy_id == "vampire_pareidolia_midas" and has_vampire:
+        paired = {"midasmaskjoker", "pareidoliajoker"}.issubset(owned)
+        if paired and token in {"midasmaskjoker", "pareidoliajoker"}:
+            return GOLD
+        if paired and token == "splashjoker":
+            return SILVER
+
+    if strategy_id == "madness_solo" and token == "madnessjoker":
+        others = [
+            joker for joker in getattr(state, "jokers", ()) or ()
+            if _item_token(joker) != "madnessjoker" and not bool(getattr(joker, "eternal", False))
+        ]
+        return GOLD if not others else NEUTRAL
+
+    if strategy_id == "madness_eternal" and "madnessjoker" in owned:
+        if bool(getattr(item, "eternal", False)):
+            return GOLD
+
+    if strategy_id == "thinning_trading_erosion":
+        paired = {"tradingcardjoker", "erosionjoker"}.issubset(owned)
+        if paired and token in {"tradingcardjoker", "erosionjoker"}:
+            return GOLD
+
+    return NEUTRAL
+
+
+def _section_seven_relationship(state, strategy_id: str, item: object) -> str:
+    token = _item_token(item)
+    owned = _owned_joker_tokens(state)
+    hologram = "hologramjoker" in owned
+
+    pair_by_leaf = {
+        "hologram_dna": "dnajoker",
+        "hologram_certificate": "certificatejoker",
+        "hologram_marble": "marblejoker",
+    }
+    partner = pair_by_leaf.get(strategy_id)
+    if partner and hologram:
+        if token == partner:
+            return GOLD
+        if token in _COPY_ENGINE_TOKENS:
+            return SILVER
+
+    if strategy_id == "hiker_training" and "hikerjoker" in owned:
+        if token in _PLAYED_CARD_RETRIGGER_JOKERS or token in {"splashjoker", "dnajoker"}:
+            return SILVER
+        if token == "certificatejoker":
+            return BRONZE
+
+    if strategy_id == "drivers_license" and "driverslicensejoker" in owned:
+        if token in {"midasmaskjoker", "marblejoker", "certificatejoker"}:
+            return SILVER
+        if token in {"dnajoker", "hologramjoker"}:
+            return BRONZE
+
+    if strategy_id == "blue_joker_deck" and "bluejoker" in owned:
+        if token in {"hologramjoker", "certificatejoker", "marblejoker"}:
+            return SILVER
+        if token == "dnajoker":
+            return BRONZE
+
+    return NEUTRAL
+
+
+def _section_eight_relationship(state, strategy_id: str, item: object) -> str:
+    token = _item_token(item)
+    owned = _owned_joker_tokens(state)
+
+    if strategy_id == "planet_constellation" and "constellationjoker" in owned:
+        if token in {"astronomerjoker", "perkeojoker"}:
+            return SILVER
+        if token == "satellitejoker":
+            return BRONZE
+
+    if strategy_id == "planet_satellite" and "satellitejoker" in owned:
+        if token in {"astronomerjoker", "perkeojoker"}:
+            return SILVER
+        if token == "constellationjoker":
+            return BRONZE
+
+    if strategy_id == "planet_constellation_satellite":
+        paired = {"constellationjoker", "satellitejoker"}.issubset(owned)
+        if paired and token in {"constellationjoker", "satellitejoker"}:
+            return GOLD
+        if paired and token in {"astronomerjoker", "perkeojoker"}:
+            return SILVER
+
+    if token == "perkeojoker" and "perkeojoker" in owned:
+        held = _held_consumable_tokens(state)
+        if strategy_id == "perkeo_observatory" and _has_voucher(state, "Observatory"):
+            return GOLD
+        if strategy_id == "perkeo_cryptid" and held & {"cryptid", "cryptidcard"}:
+            return GOLD
+        if strategy_id == "perkeo_tarot_spectral":
+            categories = {
+                str(getattr(consumable, "category", "")).upper()
+                for consumable in getattr(state, "consumables", ()) or ()
+            }
+            if categories & {"TAROT", "SPECTRAL"}:
+                return GOLD
+
+    if strategy_id == "tarot_eight_ball" and "eightballjoker" in owned:
+        if token in {"oopsall6sjoker", "hangingchadjoker", "seltzerjoker", "duskjoker"}:
+            return SILVER
+        if token == "fibonaccijoker" and _rank_is_concentrated(state, frozenset({"8"})):
+            return BRONZE
+
+    return NEUTRAL
+
+
+def _section_nine_relationship(state, strategy_id: str, item: object) -> str:
+    token = _item_token(item)
+    owned = _owned_joker_tokens(state)
+
+    if strategy_id == "cash_bull" and "bulljoker" in owned:
+        if token in {"rocketjoker", "tothemoonjoker"}:
+            return SILVER
+        if token in {"goldenjoker", "cloud9joker", "goldenticketjoker"}:
+            return BRONZE
+    if strategy_id == "cash_bootstraps" and "bootstrapsjoker" in owned:
+        if token in {"rocketjoker", "tothemoonjoker"}:
+            return SILVER
+        if token in {"goldenjoker", "cloud9joker", "goldenticketjoker"}:
+            return BRONZE
+    if strategy_id == "cash_bull_bootstraps":
+        paired = {"bulljoker", "bootstrapsjoker"}.issubset(owned)
+        if paired and token in {"bulljoker", "bootstrapsjoker"}:
+            return GOLD
+        if paired and token in {"rocketjoker", "tothemoonjoker"}:
+            return SILVER
+    if strategy_id == "cash_cloud_nine" and "cloud9joker" in owned:
+        if token in {"dnajoker", "hologramjoker"}:
+            return SILVER
+
+    if strategy_id == "campfire" and "campfirejoker" in owned:
+        if token in {"giftcardjoker", "eggjoker", "riffraffjoker"}:
+            return SILVER
+        if token in {"cartomancerjoker", "hallucinationjoker", "perkeojoker"}:
+            return BRONZE
+    if strategy_id == "flash_card" and "flashcardjoker" in owned:
+        if token == "chaostheclownjoker":
+            return GOLD
+        if token in {"rocketjoker", "tothemoonjoker"}:
+            return BRONZE
+    if strategy_id == "red_card" and "redcardjoker" in owned:
+        if token == "hallucinationjoker":
+            return SILVER
+        if token == "fortunetellerjoker":
+            return BRONZE
+    if strategy_id == "throwback" and "throwbackjoker" in owned:
+        if token == "dietcolajoker":
+            return SILVER
+        if token == "redcardjoker":
+            return BRONZE
+
+    return NEUTRAL
+
+
+def _section_ten_relationship(state, strategy_id: str, item: object) -> str:
+    token = _item_token(item)
+    owned = _owned_joker_tokens(state)
+
+    if strategy_id == "joker_stencil" and "jokerstencil" in owned:
+        if token == "invisiblejokerjoker" or token == "invisiblejoker":
+            return SILVER
+        if token == "riffraffjoker":
+            return BANNED
+
+    if strategy_id == "baseball_card" and "baseballcardjoker" in owned:
+        if token == "showmanjoker":
+            return SILVER
+        rarity = _normalize(getattr(item, "rarity", ""))
+        if rarity in {"uncommon", "2"} and token != "baseballcardjoker":
+            return SILVER
+
+    if strategy_id == "abstract_joker" and "abstractjoker" in owned:
+        if token == "riffraffjoker":
+            return SILVER
+        if token in {"showmanjoker", "invisiblejokerjoker", "invisiblejoker"}:
+            return BRONZE
+
+    if strategy_id == "swashbuckler" and "swashbucklerjoker" in owned:
+        if token in {"eggjoker", "giftcardjoker"}:
+            return GOLD
+        if token in {"riffraffjoker", "invisiblejokerjoker", "invisiblejoker"}:
+            return BRONZE
+
+    return NEUTRAL
+
+
+def _section_eleven_relationship(state, strategy_id: str, item: object) -> str:
+    token = _item_token(item)
+    owned = _owned_joker_tokens(state)
+
+    if strategy_id in {"discard_castle", "discard_mail_rebate", "discard_yorick"}:
+        core = {
+            "discard_castle": "castlejoker",
+            "discard_mail_rebate": "mailinrebatejoker",
+            "discard_yorick": "yorickjoker",
+        }[strategy_id]
+        if core in owned and token in {"merryandyjoker", "drunkardjoker"}:
+            return SILVER
+        if strategy_id == "discard_castle" and core in owned and token == "smearedjoker":
+            return SILVER
+        if strategy_id == "discard_mail_rebate" and core in owned and token == "tradingcardjoker":
+            return BRONZE
+        if strategy_id == "discard_yorick" and core in owned and token in {"purple", "certificatejoker"}:
+            return BRONZE
+
+    no_discard_cores = {
+        "no_discard_green": frozenset({"greenjoker"}),
+        "no_discard_reserve": frozenset({"bannerjoker", "delayedgratificationjoker"}),
+        "no_discard_ramen": frozenset({"ramenjoker"}),
+        "no_discard_burglar": frozenset({"burglarjoker"}),
+    }
+    cores = no_discard_cores.get(strategy_id, frozenset())
+    if owned & cores:
+        if token == "burglarjoker" and strategy_id != "no_discard_burglar":
+            return GOLD
+        if token in {"greenjoker", "bannerjoker", "delayedgratificationjoker", "ramenjoker"}:
+            return SILVER
+        if token in {"tradingcardjoker", "castlejoker", "mailinrebatejoker", "yorickjoker"}:
+            return BANNED
+
+    if strategy_id == "burnt_joker_engine" and "burntjoker" in owned:
+        if token in {"spacejoker", "certificatejoker"}:
+            return SILVER
+        if token in {"merryandyjoker", "drunkardjoker"}:
+            return BRONZE
+
+    return NEUTRAL
+
+
+def _section_twelve_relationship(state, strategy_id: str, item: object) -> str:
+    token = _item_token(item)
+    owned = _owned_joker_tokens(state)
+
+    if strategy_id == "last_hand_acrobat" and "acrobatjoker" in owned:
+        if token in {"loyaltycardjoker", "burglarjoker"}:
+            return BRONZE
+    if strategy_id == "last_hand_dusk" and "duskjoker" in owned:
+        if token in {"hangingchadjoker", "seltzerjoker", "splashjoker"}:
+            return SILVER
+        if token in {"sockandbuskinjoker", "hackjoker", "hikerjoker"}:
+            return BRONZE
+    if strategy_id == "loyalty_cycle" and "loyaltycardjoker" in owned:
+        if token in {"burglarjoker", "acrobatjoker"}:
+            return BRONZE
+
+    return NEUTRAL
+
+
 def _face_branch_relationship(state, strategy_id: str, item: object) -> str:
     token = _item_token(item)
     owned = _owned_joker_tokens(state)
@@ -1010,6 +1533,30 @@ def conditional_joker_relationship(
         section_four = _section_four_relationship(state, strategy_id, item)
         if section_four != NEUTRAL:
             return section_four
+
+    section_relationship = NEUTRAL
+    if strategy_id in _SECTION_FIVE_IDS:
+        section_relationship = _section_five_relationship(state, strategy_id, item)
+    elif strategy_id in _SECTION_SIX_IDS:
+        section_relationship = _section_six_relationship(state, strategy_id, item)
+    elif strategy_id in _SECTION_SEVEN_IDS:
+        section_relationship = _section_seven_relationship(state, strategy_id, item)
+    elif strategy_id in _SECTION_EIGHT_IDS:
+        section_relationship = _section_eight_relationship(state, strategy_id, item)
+    elif strategy_id in _SECTION_NINE_IDS:
+        section_relationship = _section_nine_relationship(state, strategy_id, item)
+    elif strategy_id in _SECTION_TEN_IDS:
+        section_relationship = _section_ten_relationship(state, strategy_id, item)
+    elif strategy_id in _SECTION_ELEVEN_IDS:
+        section_relationship = _section_eleven_relationship(state, strategy_id, item)
+    elif strategy_id in _SECTION_TWELVE_IDS:
+        section_relationship = _section_twelve_relationship(state, strategy_id, item)
+    if section_relationship != NEUTRAL:
+        return section_relationship
+
+    copy_relationship = _part_fourteen_copy_relationship(state, strategy_id, token)
+    if copy_relationship != NEUTRAL:
+        return copy_relationship
 
     if strategy_id in {
         "face_photochad",
