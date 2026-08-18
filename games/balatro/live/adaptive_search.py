@@ -5,7 +5,11 @@ from dataclasses import dataclass
 from games.balatro.actions import DISCARD_CARDS
 
 
-LIVE_ADAPTIVE_MAX_HORIZON = 4
+# Five actions is the smallest live horizon that can represent the common opening
+# line of one setup discard followed by all four available hands. Capping at four
+# made those otherwise viable lines report a mathematically exact 0 clear
+# probability simply because the search horizon ended before the final hand.
+LIVE_ADAPTIVE_MAX_HORIZON = 5
 
 
 @dataclass(frozen=True)
@@ -66,12 +70,11 @@ def adaptive_blind_search_schedule(
     """Return a cheap-to-deep bounded search schedule for the current blind.
 
     The maximum useful horizon is bounded by the remaining real action budget and
-    by ``LIVE_ADAPTIVE_MAX_HORIZON``. The latter is a live-runtime safety guard:
-    recursive public-draw projections can spend substantial wall-clock time inside
-    one planner node, so the planner's per-node deadline check is not by itself a
-    hard latency bound. Keeping ordinary live D1 search at horizon four prevents
-    early-ante 4-hand/4-discard states from expanding to horizon eight and stalling
-    the autonomous supervisor for minutes.
+    by ``LIVE_ADAPTIVE_MAX_HORIZON``. Five actions allows the standard four-hand
+    opening state to model one setup discard plus all four scoring hands, avoiding
+    artificial zero clear probabilities caused solely by a four-action cutoff.
+    The horizon-five pass remains narrow and capped at 3000 nodes so it does not
+    reopen the old unbounded early-ante search problem.
 
     Search starts at horizon two whenever possible so the first pass is genuinely
     cheap enough to complete on an ordinary opening hand. Deeper horizons are
