@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from games.balatro.actions import DISCARD_CARDS
 
 
+LIVE_ADAPTIVE_MAX_HORIZON = 4
+
+
 @dataclass(frozen=True)
 class AdaptiveBlindSearchConfig:
     """One bounded blind-planner search configuration.
@@ -62,12 +65,18 @@ def adaptive_blind_search_schedule(
 ) -> tuple[AdaptiveBlindSearchConfig, ...]:
     """Return a cheap-to-deep bounded search schedule for the current blind.
 
-    The maximum useful horizon is bounded by the remaining real action budget:
-    every play consumes one hand and every discard consumes one discard. Search
-    starts at horizon two whenever possible so the first pass is genuinely cheap
-    enough to complete on an ordinary opening hand. Deeper horizons are attempted
-    only after a shallower result exists or the shallower search itself exhausts
-    its bounded budget.
+    The maximum useful horizon is bounded by the remaining real action budget and
+    by ``LIVE_ADAPTIVE_MAX_HORIZON``. The latter is a live-runtime safety guard:
+    recursive public-draw projections can spend substantial wall-clock time inside
+    one planner node, so the planner's per-node deadline check is not by itself a
+    hard latency bound. Keeping ordinary live D1 search at horizon four prevents
+    early-ante 4-hand/4-discard states from expanding to horizon eight and stalling
+    the autonomous supervisor for minutes.
+
+    Search starts at horizon two whenever possible so the first pass is genuinely
+    cheap enough to complete on an ordinary opening hand. Deeper horizons are
+    attempted only after a shallower result exists or the shallower search itself
+    exhausts its bounded budget.
 
     The normal schedule deliberately caps deep searches at 5000 nodes. When the
     caller explicitly supplies a larger ``max_nodes`` value, the schedule spends
@@ -90,7 +99,7 @@ def adaptive_blind_search_schedule(
     if action_budget <= 0:
         return ()
 
-    deepest = min(max_horizon, action_budget)
+    deepest = min(max_horizon, action_budget, LIVE_ADAPTIVE_MAX_HORIZON)
     first = 1 if deepest == 1 else 2
     configs = []
     for horizon in range(first, deepest + 1):
