@@ -231,6 +231,9 @@ class JokerOrderPolicy:
             if phase == "BLIND_SELECT"
             else ()
         )
+        # The early diagnostic describes the current order. Once a different
+        # permutation is selected, report only the selected order's outcome.
+        self.last_negative_retention_diagnostics = ()
         retention_notes: list[str] = []
         if retention_improved:
             retention_notes.extend(
