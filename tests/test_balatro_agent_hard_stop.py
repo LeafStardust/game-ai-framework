@@ -3,7 +3,7 @@ import pytest
 from games.balatro.live.runtime import agent_control as agent_control_module
 from games.balatro.live.runtime import balatro_agent_toggle as toggle_module
 from games.balatro.live.runtime.agent_control import BalatroAgentControl
-from games.balatro.live.runtime.balatro_agent_toggle import hard_stop_agent
+from games.balatro.live.runtime.balatro_agent_toggle import hard_stop_agent, stop_agent
 
 
 def _record_running_supervisor(
@@ -56,6 +56,71 @@ def test_emergency_hard_stop_force_terminates_only_recorded_supervisor(
     assert status["session_id"] == "hard-stop-session"
     assert status["attempt"] == 3
     assert status["run_id"] == "hard-stop-session-attempt-003"
+    assert "supervisor force-terminated" in status["reason"]
+    assert "Balatro left running" in status["reason"]
+
+
+def test_normal_stop_uses_cooperative_exit_without_force_termination(
+    tmp_path,
+    monkeypatch,
+):
+    control = BalatroAgentControl(tmp_path / "control")
+    _record_running_supervisor(control, 4242)
+    terminated = []
+
+    monkeypatch.setattr(
+        agent_control_module,
+        "_process_is_running",
+        lambda pid: pid == 4242,
+    )
+    monkeypatch.setattr(toggle_module, "_wait_for_cooperative_stop", lambda pid: True)
+    monkeypatch.setattr(
+        toggle_module,
+        "_force_terminate_process",
+        lambda pid: terminated.append(pid),
+    )
+
+    pid = stop_agent(control)
+
+    assert pid == 4242
+    assert terminated == []
+    assert control.read_pid() is None
+    assert control.stop_requested() is True
+    status = control.read_status()
+    assert status["state"] == "STOPPING"
+    assert "cooperative stop in progress" in status["reason"]
+
+
+def test_normal_stop_escalates_when_supervisor_misses_grace_window(
+    tmp_path,
+    monkeypatch,
+):
+    control = BalatroAgentControl(tmp_path / "control")
+    _record_running_supervisor(control, 4242)
+    running = {4242}
+    terminated = []
+
+    monkeypatch.setattr(
+        agent_control_module,
+        "_process_is_running",
+        lambda pid: pid in running,
+    )
+    monkeypatch.setattr(toggle_module, "_wait_for_cooperative_stop", lambda pid: False)
+
+    def terminate(pid):
+        terminated.append(pid)
+        running.discard(pid)
+
+    monkeypatch.setattr(toggle_module, "_force_terminate_process", terminate)
+
+    pid = stop_agent(control)
+
+    assert pid == 4242
+    assert terminated == [4242]
+    assert control.read_pid() is None
+    assert control.stop_requested() is False
+    status = control.read_status()
+    assert status["state"] == "OFF"
     assert "supervisor force-terminated" in status["reason"]
     assert "Balatro left running" in status["reason"]
 
