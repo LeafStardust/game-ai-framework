@@ -97,7 +97,7 @@ Current migration snapshot: Sections 1–12 are production-owned and tested. The
 - [x] Migrate frozen Sections 1–4—poker hands, ranks/faces, suits/held cards, and enhancements—onto topology-owned `StrategyDefinition` node IDs without parent/child component duplication.
 - [x] Expand the seven remaining legacy standalone definitions into the frozen Section 5–12 topology and move their catalogue ownership onto the resulting node IDs.
 - [x] Remove generic poker-hand play count from universal strategy evidence. Preserve hand history only for mechanics that explicitly use it; retain persistent hand-level/Planet investment evidence.
-- [ ] Implement the global Negative-Joker retention rule in sell/replace policy: protect Negative Jokers from ordinary replacement pressure unless their active mechanic materially harms the build or intentional sacrifice/destruction is justified by the active strategy.
+- [x] Implement the global Negative-Joker retention rule across standalone sale, shop replacement and Ceremonial Dagger ordering. Ordinary sales require measured material whole-build harm; Negative Jokers cannot masquerade as replacement slots; intentional destruction requires the matching active route; Verdant Leaf remains a survival-scoped emergency exception.
 - [x] Finish the Gold/Silver/Bronze/Banned/conditional relationship audit for Sections 1–4. Route-bound support is Neutral off-path, and Banned means genuine strategic conflict rather than support for a competing route.
 - [x] Finish the Gold/Silver/Bronze/Banned/conditional relationship audit node by node for Sections 5–12: seals; destruction/thinning; deck growth/training; consumable engines; economy; Joker-board composition; discard rotation; and hand scheduling.
 - [x] Rebuild the inverse `component -> strategy/relationship` index from fully tree-owned catalogue data without editing all 150 Joker classes.
@@ -115,10 +115,10 @@ Current migration snapshot: Sections 1–12 are production-owned and tested. The
 - [x] Keep early Tarot/Spectral strategy-seeding available while requiring real active poker-hand strategy evidence before meaningful paid Planet investment; preserve inherited component semantics across migrated leaves.
 - [x] Apply Red Deck / White Stake cartridge modifiers over the full universal strategy tree without redefining topology or component relationships. Root modifiers inherit through descendant paths; otherwise-neutral routes retain the cartridge's default effectiveness.
 - [x] Migrate D1–D14 direct-definition lookups to inherited path semantics where required; guaranteed blind survival remains superior to strategy purity. D1 play/discard shaping, D5/D6 consumable targeting, D8 Celestial evidence, Joker scoring probes and D13 tag support now honor complete root-to-leaf paths.
-- [x] Log production leaf rankings plus node path, direct evidence, ancestor foundation and effective leaf evidence; richer contributor/pivot/conflict/Negative diagnostics remain pending.
+- [x] Log production leaf rankings plus node path, direct evidence, ancestor foundation and effective leaf evidence, together with candidate contributor/pivot/conflict rationales and structured Negative-retention protection/exception diagnostics.
 - [x] Add deterministic regressions for evidence removal on sale, used-Planet investment, conflicts, Ante pressure, consumable seeding, pack selection, and D1 hand preference across the currently migrated forest.
 - [x] Repeat the deterministic topology, relationship, conflict, conditional-support, inverse-index, cartridge-inheritance and production-consumer behavior suite across Sections 5–12.
-- [ ] Add global Negative-retention regressions once the remaining sell/replace protection rule is implemented.
+- [x] Add global Negative-retention regressions for ordinary standalone sale, measured-harm exceptions, replacement-slot protection, ordinary-incumbent selection, Dagger protection, and active-Dagger intentional sacrifice.
 - [x] Use the first unseeded live Red/White win to identify late-run latency, reroll overspending, held-Steel ordering, boss handling, and post-win finalization defects; preserve each correction with deterministic regressions.
 - [ ] Run final specialized live validation after the complete deterministic tree is stable.
 
@@ -126,9 +126,26 @@ Current migration snapshot: Sections 1–12 are production-owned and tested. The
 
 The earlier Red/White threshold freeze was performed against the pre-tree policy and is therefore **historical/provisional**, not the final v1.0 freeze.
 
-- [ ] Run the full test suite only after 1.0F is complete; re-tune only where strategy integration proves it necessary, then freeze the final Red/White D1–D14 thresholds and strategy evidence/pressure/effectiveness parameters.
+- [x] Run the full deterministic suite after the 1.0F implementation is complete (1,787 passing on 2026-08-18). No integration regression required retuning; freeze the final Red/White D1–D14 thresholds and strategy evidence/pressure/effectiveness parameters pending live acceptance.
 - [x] Complete **one unseeded Red Deck / White Stake win** with no manual gameplay input after activation and normal Steam progression preserved (2026-08-18, Amber Acorn; the authoritative transition records `won=true`).
 - [ ] Validate a complete replayable authoritative winning run log with decision/build/strategy rationales and automatic OFF immediately after the win. The first win exposed and fixed a `won=true`/`ROUND_EVAL` terminal-detection gap, so this finalization half of the gate still requires one live confirmation.
+
+### 1.0H — Generalized collection progression — PLANNED
+
+The bounded collection preference is already production-complete for explicitly
+undiscovered positive Jokers, consumables, Vouchers, boosters and visible pack
+choices. It is exactly one floating-point ULP and therefore cannot override a
+stronger option, rescue a rejected purchase, trigger destructive replacement, or
+compete with survival/strategy/economy.
+
+What remains is active pursuit of **locked** collection entries beyond the current
+default-off Hit the Road and Stuntman campaigns:
+
+- [ ] Expose authoritative unlocked/discovered state for every relevant Joker, consumable, Voucher, booster and other collection center while preserving unknown state as unknown.
+- [ ] Add a declarative unlock-condition registry instead of hard-coding conditions into the permanent agent.
+- [ ] Add opt-in campaign planning for safe unlock progress, including action progress, run prerequisites, conflict detection, and abandonment when survival or the committed strategy would be weakened.
+- [ ] Keep ordinary Red/White competence unchanged when no collection campaign is enabled; campaign actions may never reduce the selected D1 clear probability.
+- [ ] Add live-monitor/log diagnostics and deterministic regressions for campaign admission, progress, completion, impossible conditions, and safe fallback.
 
 ---
 

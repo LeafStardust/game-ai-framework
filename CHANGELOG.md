@@ -23,6 +23,7 @@ This file records notable development changes to the project. Active and future 
 - Expanded strategy catalogues with meaningful Silver and Bronze support while keeping route-specific Jokers Neutral outside compatible infrastructure.
 - Retired the seven coarse compatibility strategies and the standalone Edition strategy after the complete tree assumed catalogue ownership; Joker editions remain portable universal value.
 - Migrated production policy lookups to root-to-leaf inherited semantics so child routes retain parent hand, card, pack, tag, and cartridge behavior.
+- Protected Negative Jokers from ordinary standalone sales, shop replacement transactions and non-Dagger sacrifice ordering. Measured whole-build harm and active-strategy intentional destruction are explicit, logged exceptions; Verdant Leaf remains a survival emergency.
 - Increased Gold relationship influence for defining strategy cores and strengthened Silver support where the relationship is materially useful.
 - Prioritized The Soul in early Antes when a Legendary Joker is a safe, legal choice.
 - Added strategy-aware paid-reroll stop losses, late-Ante survival reserves, and stricter Gold Card/Gold Seal economy reserves.
@@ -41,7 +42,7 @@ This file records notable development changes to the project. Active and future 
 
 #### Validation
 
-- Passed the complete deterministic repository suite after the Sections 5–12 migration: 1,781 tests on 2026-08-18.
+- Passed the complete deterministic repository suite after the full strategy-tree and Negative-retention migration: 1,787 tests on 2026-08-18.
 - Completed the first unseeded, fully autonomous Red Deck / White Stake win on 2026-08-18 against Amber Acorn with normal Steam progression preserved.
 - The first win exposed the post-win `ROUND_EVAL` finalization gap. The fix is deterministic-test covered; one additional live win is required to validate the complete winning log and immediate automatic OFF behavior.
 

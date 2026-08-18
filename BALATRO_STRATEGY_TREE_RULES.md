@@ -150,14 +150,23 @@ The selected order must account for:
 - Ceremonial Dagger destroying the Joker immediately to its right on blind select.
 
 Ceremonial Dagger permutations are evaluated after projecting the sacrifice and
-its gained Mult. A reorder is emitted only when it strictly improves the projected
-whole-build score; an already-optimal order remains untouched.
+its gained Mult. Ordinary reorders require a strict projected whole-build score
+improvement. Negative-retention safety is stronger than that ordinary threshold:
+when Dagger is not the active strategy, the policy may accept a lower immediate
+score to move a Negative Joker out of the sacrifice slot. An active Dagger route
+may intentionally consume a Negative only when its projected build ordering still
+justifies that sacrifice.
 
 ## 9. Negative Joker retention
 
-Negative Jokers are protected from ordinary replacement pressure because they normally offset their slot cost.
+Negative Jokers are protected from ordinary sell/replacement pressure because they normally offset their slot cost. Selling one cannot fund an ordinary replacement slot because the extra slot disappears with it.
 
-Removal requires a real mechanical conflict, unavoidable ongoing harm, or an intentional sacrifice/destruction payoff that exceeds retention value.
+Standalone sale requires measured whole-build harm to clear the configured
+material-harm floor. Neutrality, off-path status, low sell value, full ordinary
+slots, or a stronger shop candidate are not removal exceptions. Boss-required
+emergency actions such as Verdant Leaf remain survival-scoped. Intentional
+destruction requires an active matching route, such as Ceremonial Dagger, and is
+logged as an explicit retention exception.
 
 ## 10. Banned relationships
 
