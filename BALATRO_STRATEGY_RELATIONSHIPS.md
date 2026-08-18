@@ -2,6 +2,12 @@
 
 Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md).
 
+## Runtime implementation status
+
+- **Part 4 / Section 4 — Enhancements: IMPLEMENTED.** The runtime catalogue contains 5 enhancement roots and 15 leaves. Conditional relationships require real Stone/Glass/Steel/Lucky/Gold infrastructure (or the defining payoff where appropriate) before generic support Jokers can contribute route evidence. Parent/child static components are disjoint.
+- **Part 5 / Section 5 — Seals: IMPLEMENTED.** The runtime catalogue contains all 6 seal nodes. Played Red-Seal support requires an actual Red Seal; held Red-Seal support additionally checks material held effects/ranks; Blue, Purple, and Gold Seal support is likewise gated on matching seals in the live deck.
+- The current runtime contract also includes Sections 6–12. The tables below remain the canonical relationship/evidence specification; these status notes describe which frozen rows are now enforced by runtime code and tests.
+
 ## Evidence weights
 
 | Evidence | Score |
@@ -112,7 +118,9 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Flower Pot Multi-Suit | ↳ Splash + Flower Pot `[L]` | Splash *(with Flower Pot)* | — | — | — | — | — | — | — |
 | Flower Pot Multi-Suit | ↳ Smeared Joker + Flower Pot `[L]` | Smeared Joker *(with Flower Pot)* | — | — | — | — | — | — | — |
 
-## 4. Enhancements
+## 4. Enhancements — runtime implemented
+
+Runtime status: **complete for Part 4.** The five parent enhancement shells and fifteen leaves are present in the tree-aware tracker. Conditional leaf support is deliberately delayed until the matching enhancement or defining payoff is material; e.g. DNA does not seed Stone duplication from a natural deck, Hanging Chad does not seed Glass retrigger, and Mime does not seed Steel-Mime without Steel infrastructure.
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
@@ -137,7 +145,9 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Gold Cards | ↳ Midas Mask Gold Generation `[L]` | Midas Mask | Pareidolia; Splash *(with Midas Mask)* | Scary Face; Smiley Face; Business Card; Reserved Parking *(with Midas Mask)* | — | — | — | — | — |
 | Gold Cards | ↳ Midas Mask + Golden Ticket Economy `[L]` | Midas Mask; Golden Ticket *(when paired)* | Hanging Chad; Dusk; Seltzer; Sock and Buskin; Hack *(with pair)* | Business Card; Bull; Bootstraps *(with pair)* | — | — | — | — | — |
 
-## 5. Seals
+## 5. Seals — runtime implemented
+
+Runtime status: **implemented for Part 5.** Section 5 contains six runtime nodes: Red Seal plus its played/held leaves, and standalone Blue, Purple, and Gold Seal routes. Generic support remains Neutral until the appropriate live seal context exists. Held Red-Seal Mime additionally requires a material held effect; Red Kings/Queens and low cards gate Baron, Shoot the Moon, and Raised Fist relationships respectively.
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
