@@ -94,16 +94,6 @@ def _terminal_stop_reason(
     resume_won_run: bool = False,
 ) -> str | None:
     phase = str(snapshot.phase)
-    # Balatro publishes G.GAME.won as soon as the Ante-8 final Boss is cleared,
-    # while the public phase may still be ROUND_EVAL.  Waiting exclusively for
-    # GAME_OVER lets END_ROUND cash out into Endless and permits more shop play.
-    # The win bit is therefore the authoritative terminal signal for the target
-    # run regardless of the transient post-hand phase.
-    # ``won`` remains true after the player manually chooses Continue and enters
-    # Endless. A newly started supervisor may explicitly resume that already-won
-    # run; in that case only the actual GAME_OVER phase is terminal. The default
-    # remains stop-on-win so the Ante-8 victory screen is never advanced
-    # automatically.
     if bool(snapshot.payload.get("won")) and not resume_won_run:
         return "game over (won)"
     if phase not in TERMINAL_PHASES:
@@ -123,10 +113,14 @@ class LiveMemoryInjectedAutonomousLoop:
     and settled postcondition before another decision is even considered.
 
     ``STATE_COMPLETE`` alone is not sufficient to prove that every public number
-    has stopped animating. Before planning a real action, production runners wait
-    for two consecutive semantically equal public snapshots. If the state still
-    changes after planning, that recommendation is discarded and replanned from
-    the new authoritative checkpoint. Stale replans never consume a gameplay step.
+    has stopped animating. Before planning a real action, production runners prefer
+    two consecutive semantically equal public snapshots. Some native Balatro
+    transitions (notably booster-pack opening/reveal animations) can keep changing
+    legitimate public fields for longer than the nominal stability window while
+    still reporting a complete actionable state. In that case the stability timeout
+    is a soft boundary: planning may proceed from the newest complete snapshot and
+    the runner's mandatory pre-execution stale-state guard remains authoritative.
+    An incomplete snapshot at timeout still fails closed.
 
     ``max_steps=None`` means run until a terminal/unsupported/safe-stop condition.
     A stop request is checked before planning and again immediately before action
@@ -176,10 +170,14 @@ class LiveMemoryInjectedAutonomousLoop:
         return self._step(1, decision, elapsed)
 
     def _wait_for_stable_checkpoint(self):
-        """Wait read-only for two consecutive equal semantic snapshots.
+        """Prefer a stable checkpoint, but do not crash on complete animation churn.
 
-        Test doubles and non-live runners may not expose an observer; in that case
-        the existing runner-level stale guard remains the only authority.
+        A two-snapshot semantic match is the preferred planning boundary. If the
+        timeout expires while Balatro still exposes a complete public snapshot,
+        return that newest checkpoint and let the runner's final stale-state check
+        decide whether execution is still safe. This prevents long native pack/UI
+        animations from being misclassified as fatal instability without weakening
+        the action-submission guard. Incomplete state continues to fail closed.
         """
         observer = getattr(self.runner, "observer", None)
         if observer is None or not hasattr(observer, "observe"):
@@ -187,15 +185,20 @@ class LiveMemoryInjectedAutonomousLoop:
 
         deadline = perf_counter() + self.stability_timeout_seconds
         previous = observer.observe()
+        latest_complete = previous if previous.state_complete else None
         while True:
             if perf_counter() >= deadline:
+                if latest_complete is not None:
+                    return latest_complete
                 raise AutonomousLoopGuardError(
-                    "live public state did not become semantically stable before planning"
+                    "live public state remained incomplete before planning"
                 )
 
             if self.stability_interval_seconds:
                 sleep(self.stability_interval_seconds)
             current = observer.observe()
+            if current.state_complete:
+                latest_complete = current
 
             if (
                 previous.state_complete
@@ -259,16 +262,12 @@ class LiveMemoryInjectedAutonomousLoop:
                         "observer checkpoint sequence regressed between autonomous steps"
                     )
 
-                # An OFF request that arrives during a long planning call cancels
-                # the recommendation before any gameplay command is submitted.
                 if self.stop_requested():
                     return AutonomousLoopRun(tuple(completed), "stop requested")
 
                 try:
                     result, status = self.runner.execute(decision)
                 except AutonomousBridgeCapabilityError as error:
-                    # No gameplay command was submitted. A stale installed bridge
-                    # is an operational compatibility block, not a gameplay crash.
                     return AutonomousLoopRun(
                         tuple(completed),
                         f"bridge capability blocked: {error}",
@@ -279,9 +278,6 @@ class LiveMemoryInjectedAutonomousLoop:
 
                     stale_replans += 1
                     if stale_replans <= self.stale_replan_limit:
-                        # No gameplay command was submitted. Discard the old
-                        # recommendation and restart this same gameplay step from
-                        # a newly stabilized authoritative public checkpoint.
                         continue
 
                     latest = self.runner.observer.observe()
@@ -296,12 +292,6 @@ class LiveMemoryInjectedAutonomousLoop:
                         f"{stale_replans} attempts; {error}{suffix}"
                     ) from error
                 except InjectedBridgeError as error:
-                    # The bridge has a final authoritative phase guard. Balatro can
-                    # advance into a booster pack in the tiny interval after the
-                    # runner's last stale-state check but before the command reaches
-                    # Lua. If a fresh public snapshot proves that happened, the
-                    # rejected command is safe to discard and replan. Do not mask
-                    # bridge failures while the planned public state is unchanged.
                     if "action requires " not in str(error):
                         raise
                     observer = getattr(self.runner, "observer", None)
@@ -349,9 +339,6 @@ class LiveMemoryInjectedAutonomousLoop:
                     try:
                         self.on_transition(decision, result, status)
                     except Exception as error:
-                        # The gameplay action already happened. Stop immediately so
-                        # subsequent autonomous actions do not proceed without the
-                        # requested durable telemetry.
                         return AutonomousLoopRun(
                             tuple(completed),
                             f"transition hook failed after executed action: {error}",
