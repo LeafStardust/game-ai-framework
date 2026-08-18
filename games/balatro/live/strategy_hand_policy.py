@@ -37,6 +37,8 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
     the only strategic direction used by this policy.
     """
 
+    VAGABOND_PLAY_OPPORTUNITY_VALUE = 35.0
+
     def __init__(self, *args, strategy_tracker: BalatroStrategyTracker, **kwargs) -> None:
         kwargs["intent_tracker"] = NeutralLegacyPlaystyleIntentTracker()
         super().__init__(*args, **kwargs)
@@ -45,6 +47,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
 
     def decide(self, state, plans, **kwargs):
         decision = super().decide(state, plans, **kwargs)
+        vagabond_active = self._vagabond_generation_active(state)
 
         # Base D1 returns PACE_PLAY immediately when any current hand reaches
         # remaining_blind_score / hands_remaining. That threshold is a fallback,
@@ -81,7 +84,12 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                     ),
                 )
                 consensus = bool(kwargs.get("setup_discard_consensus", False))
-                if discard_value > play_value:
+                discard_margin = (
+                    self.VAGABOND_PLAY_OPPORTUNITY_VALUE
+                    if vagabond_active
+                    else 0.0
+                )
+                if discard_value > play_value + discard_margin:
                     fit, fit_rationale = self._strategy_fit(state, discard_plan.action)
                     decision = replace(
                         decision,
@@ -97,6 +105,11 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                             "a current play reaches required pace, but pace is only the fallback floor",
                             "pace-aware setup discard has higher recovery value than immediate pace play",
                             *(
+                                ("Vagabond generation opportunity cost was charged before giving up a scored hand",)
+                                if vagabond_active
+                                else ()
+                            ),
+                            *(
                                 ("deep adaptive searches also agree on the setup discard",)
                                 if consensus
                                 else ()
@@ -111,6 +124,13 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             decision,
             rationale=(
                 *decision.rationale,
+                *(
+                    (
+                        "Vagabond active at <=$4 with consumable space; safe lines value additional scored hands for Tarot generation",
+                    )
+                    if vagabond_active
+                    else ()
+                ),
                 "D1 legacy playstyle strategy influence=0.000",
                 f"D1 universal-strategy fit={fit:+.3f}",
                 *rationale,
@@ -122,15 +142,25 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         if self._ranking_state is None:
             return base
         fit, _ = self._strategy_fit(self._ranking_state, plan.action)
+        vagabond = self._vagabond_generation_active(self._ranking_state)
+        hand_use = (
+            -float(plan.value.expected_hands_remaining)
+            if vagabond and plan.action.name == PLAY_CARDS
+            else float(plan.value.expected_hands_remaining)
+        )
         # BuildAware D1 places held Steel/Blue-Seal preservation at base[2].
         # Universal strategy fit must not jump ahead of that public card value.
-        return (base[0], base[1], base[2], fit, *base[3:])
+        return (base[0], base[1], base[2], fit, hand_use, *base[4:])
 
     def _safe_equivalent_clear_key(self, plan):
         base = super()._safe_equivalent_clear_key(plan)
         if self._ranking_state is None:
             return base
         fit, _ = self._strategy_fit(self._ranking_state, plan.action)
+        if self._vagabond_generation_active(self._ranking_state):
+            # Only inside the already-safe equivalence set: prefer consuming another
+            # real hand so Vagabond produces another Tarot instead of speed-clearing.
+            return (base[0], -base[1], base[2], fit, *base[3:])
         return (base[0], base[1], base[2], fit, *base[3:])
 
     def _pace_play_key(self, plan, pace_ratio: float):
@@ -139,6 +169,18 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             return base
         fit, _ = self._strategy_fit(self._ranking_state, plan.action)
         return (base[0], base[1], base[2], fit, *base[3:])
+
+    @staticmethod
+    def _vagabond_generation_active(state) -> bool:
+        if int(getattr(state, "money", 0) or 0) > 4:
+            return False
+        if not any(
+            type(joker).__name__ == "VagabondJoker"
+            for joker in getattr(state, "jokers", ()) or ()
+        ):
+            return False
+        consumable_slots = int(getattr(state, "consumable_slots", 2) or 2)
+        return len(getattr(state, "consumables", ()) or ()) < consumable_slots
 
     def _strategy_fit(self, state, action) -> tuple[float, tuple[str, ...]]:
         if action.name == PLAY_CARDS:
