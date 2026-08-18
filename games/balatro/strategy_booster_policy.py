@@ -149,6 +149,39 @@ class StrategyAwarePlaybookShopArbiter(PlaybookBuildAwareShopArbiter):
         super().__init__(*args, **kwargs)
         self.strategy_tracker = strategy_tracker
 
+    def decide(self, state, visible_actions, *, reroll_cost):
+        decision = super().decide(
+            state,
+            visible_actions,
+            reroll_cost=reroll_cost,
+        )
+
+        # Shop packs are option-value purchases. An already visible, D2-admitted
+        # Joker is concrete build value and must be resolved first. The autonomous
+        # loop re-observes the settled shop after the Joker purchase, so the same
+        # pack can still be considered immediately afterward with the updated build.
+        if decision.source == "BOOSTER":
+            joker_best = self._best_joker_decision(state)
+            if joker_best is not None:
+                joker_utility = self.utility_scale.joker_gain(state, joker_best)
+                if joker_utility.gain > 0.0:
+                    return replace(
+                        decision,
+                        action=joker_best.action,
+                        source="JOKER",
+                        total=float(joker_best.total),
+                        normalized_gain=float(joker_utility.gain),
+                        joker=joker_best.decision,
+                        booster=None,
+                        rationale=(
+                            *decision.rationale,
+                            "visible D2-admitted Joker takes precedence over unopened shop booster",
+                            "re-observe shop after Joker transaction before reconsidering packs",
+                        ),
+                    )
+
+        return decision
+
     def _booster_policy_for_state(self, state) -> BuildAwareShopBoosterPolicy:
         if self.booster_policy is not None:
             return self.booster_policy
