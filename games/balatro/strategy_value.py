@@ -279,10 +279,14 @@ class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
                 key=lambda option: (-option.build_delta, option.replace_index),
             )
         )
+        eligible_alternatives = tuple(
+            option for option in alternatives if option.eligible
+        )
         replacement = (
-            alternatives[0]
-            if alternatives
-            and alternatives[0].build_delta > self.minimum_replacement_delta
+            eligible_alternatives[0]
+            if eligible_alternatives
+            and eligible_alternatives[0].build_delta
+            > self.minimum_replacement_delta
             else None
         )
         action = "REPLACE" if replacement is not None else "HOLD"
@@ -291,6 +295,7 @@ class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
         conflict_options = [
             option
             for option in alternatives
+            if option.eligible
             if isinstance(option.incumbent_value, StrategyAdjustedJokerBuildValue)
             and option.incumbent_value.strategy_tier == BANNED
             and option.incumbent_value.strategic_adjustment < 0.0
@@ -302,6 +307,21 @@ class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
         elif action == "HOLD" and conflict_options:
             notes.append(
                 "strategy-conflicting incumbent retained because no whole-build replacement cleared threshold; scoring/context survival value can override strategic purity"
+            )
+        protected_negative_options = [
+            option
+            for option in alternatives
+            if not option.eligible
+            and option.blocked_reason is not None
+            and "Negative Joker" in option.blocked_reason
+        ]
+        if protected_negative_options:
+            notes.append(
+                "Negative retention protected replacement slots="
+                + ",".join(
+                    str(option.replace_index)
+                    for option in protected_negative_options
+                )
             )
 
         return replace(

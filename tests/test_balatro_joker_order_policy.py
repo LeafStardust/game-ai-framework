@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from games.balatro.joker_order_policy import JokerOrderPolicy
 from games.balatro.jokers.blueprint import BlueprintJoker
 from games.balatro.jokers.cavendish import CavendishJoker
@@ -86,3 +88,58 @@ def test_six_joker_board_uses_bounded_neighbour_search():
 
     # Current order plus C(6, 2) one-swap neighbours, not 6! permutations.
     assert policy.scored == 16
+
+
+def test_dagger_order_protects_negative_feed_even_when_safe_order_scores_lower():
+    class _CurrentOrderBiasedPolicy(JokerOrderPolicy):
+        def _score(self, state, permutation, *, phase):
+            del state, phase
+            return (100.0 if permutation == (0, 1, 2) else 0.0), ()
+
+    dagger = DaggerJoker()
+    negative_feed = EggJoker()
+    negative_feed.edition = "Negative"
+    valuable = FlatMultJoker(20)
+    state = _state(dagger, negative_feed, valuable, phase="BLIND_SELECT")
+
+    policy = _CurrentOrderBiasedPolicy()
+    decision = policy.recommend(state)
+
+    assert decision is not None
+    assert decision.ordered_score < decision.current_score
+    assert any(
+        "PROTECTED_FROM_DAGGER_SACRIFICE" in note
+        for note in decision.rationale
+    )
+    ordered = [state.jokers[index] for index in decision.permutation]
+    assert all(
+        getattr(target, "edition", None) != "Negative"
+        for target in policy._dagger_sacrifice_targets(ordered)
+    )
+
+
+def test_active_dagger_strategy_can_intentionally_sacrifice_negative_feed():
+    class _CurrentOrderBiasedPolicy(JokerOrderPolicy):
+        def _score(self, state, permutation, *, phase):
+            del state, phase
+            return (100.0 if permutation == (0, 1, 2) else 0.0), ()
+
+    policy = _CurrentOrderBiasedPolicy()
+    policy.evaluator.strategy_tracker = SimpleNamespace(
+        observe=lambda state: SimpleNamespace(
+            active_status="HIGHLIGHTED",
+            dominant_strategy_id="dagger_sacrifice",
+        ),
+        topology=SimpleNamespace(path=lambda strategy_id: (strategy_id,)),
+    )
+    dagger = DaggerJoker()
+    negative_feed = EggJoker()
+    negative_feed.edition = "Negative"
+    valuable = FlatMultJoker(20)
+    state = _state(dagger, negative_feed, valuable, phase="BLIND_SELECT")
+
+    assert policy.recommend(state) is None
+    assert any(
+        "ACTIVE_DAGGER_STRATEGY_INTENTIONAL_SACRIFICE" in note
+        for note in policy.last_negative_retention_diagnostics
+    )

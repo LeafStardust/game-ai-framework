@@ -136,6 +136,46 @@ def test_same_useful_nonnegative_candidate_still_uses_full_roster_replacement():
     assert decision.selected.replace_index == 0
 
 
+def test_owned_negative_cannot_be_used_as_a_replacement_slot():
+    state = _state()
+    state.jokers[0].edition = "Negative"
+    candidate = _candidate(negative=False)
+
+    transition = JokerBuildTransitionPlanner().plan(state, candidate)
+    decision = JokerAcquisitionPolicy(_thresholds()).decide(state, candidate)
+
+    assert transition.action == "HOLD"
+    assert transition.alternatives
+    assert transition.alternatives[0].eligible is False
+    assert "removes its extra slot" in (
+        transition.alternatives[0].blocked_reason or ""
+    )
+    assert decision.action == "HOLD"
+    assert decision.options[0].eligible is False
+
+
+def test_replacement_skips_negative_and_targets_an_ordinary_incumbent():
+    state = _state()
+    negative = InertJoker()
+    negative.edition = "Negative"
+    ordinary = InertJoker()
+    state.joker_slots = 2
+    state.jokers = [negative, ordinary]
+    candidate = _candidate(negative=False)
+
+    transition = JokerBuildTransitionPlanner().plan(state, candidate)
+    decision = JokerAcquisitionPolicy(_thresholds()).decide(state, candidate)
+
+    assert transition.action == "REPLACE"
+    assert transition.replacement is not None
+    assert transition.replacement.replace_index == 1
+    assert transition.alternatives[0].replace_index == 0
+    assert transition.alternatives[0].eligible is False
+    assert decision.action == REPLACE
+    assert decision.selected is not None
+    assert decision.selected.replace_index == 1
+
+
 def test_generic_shop_recommendation_can_buy_negative_on_full_roster():
     state = _state()
     candidate = _candidate(negative=True)

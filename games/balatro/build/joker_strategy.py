@@ -56,6 +56,8 @@ class JokerReplacementOption:
     candidate_value: JokerBuildValue
     build_delta: float
     rationale: tuple[str, ...]
+    eligible: bool = True
+    blocked_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -415,6 +417,26 @@ class JokerBuildTransitionPlanner:
             incumbent_value = self.evaluator.evaluate(baseline, removed)
             replacement_value = self.evaluator.evaluate(baseline, candidate)
             delta = replacement_value.total_gain - incumbent_value.total_gain
+            negative_retention = joker_has_negative_edition(incumbent)
+            blocked_reason = (
+                "Negative Joker is retention-protected and cannot create a "
+                "replacement slot; selling it also removes its extra slot"
+                if negative_retention
+                else None
+            )
+            rationale = [
+                f"common baseline excludes slot {index} {type(incumbent).__name__}",
+                f"candidate gain={replacement_value.total_gain:.3f}",
+                f"incumbent gain={incumbent_value.total_gain:.3f}",
+                f"replacement delta={delta:.3f}",
+            ]
+            if blocked_reason is not None:
+                rationale.extend(
+                    (
+                        blocked_reason,
+                        "Negative retention result=PROTECTED_FROM_REPLACEMENT",
+                    )
+                )
             options.append(
                 JokerReplacementOption(
                     replace_index=index,
@@ -422,12 +444,9 @@ class JokerBuildTransitionPlanner:
                     incumbent_value=incumbent_value,
                     candidate_value=replacement_value,
                     build_delta=delta,
-                    rationale=(
-                        f"common baseline excludes slot {index} {type(incumbent).__name__}",
-                        f"candidate gain={replacement_value.total_gain:.3f}",
-                        f"incumbent gain={incumbent_value.total_gain:.3f}",
-                        f"replacement delta={delta:.3f}",
-                    ),
+                    rationale=tuple(rationale),
+                    eligible=not negative_retention,
+                    blocked_reason=blocked_reason,
                 )
             )
 
@@ -437,8 +456,10 @@ class JokerBuildTransitionPlanner:
                 key=lambda option: (-option.build_delta, option.replace_index),
             )
         )
-        best = ranked[0] if ranked else None
+        eligible_ranked = tuple(option for option in ranked if option.eligible)
+        best = eligible_ranked[0] if eligible_ranked else None
         if best is not None and best.build_delta > self.minimum_replacement_delta:
+            protected = sum(not option.eligible for option in ranked)
             return JokerBuildTransition(
                 action="REPLACE",
                 candidate=candidate_name,
@@ -448,10 +469,12 @@ class JokerBuildTransitionPlanner:
                 rationale=(
                     f"best whole-build replacement delta={best.build_delta:.3f}",
                     f"replace slot {best.replace_index} {best.replace_joker}",
+                    f"Negative retention protected replacement options={protected}",
                 ),
             )
 
         best_delta = best.build_delta if best is not None else float("-inf")
+        protected = sum(not option.eligible for option in ranked)
         return JokerBuildTransition(
             action="HOLD",
             candidate=candidate_name,
@@ -460,5 +483,6 @@ class JokerBuildTransitionPlanner:
             rationale=(
                 f"best replacement delta={best_delta:.3f}; threshold="
                 f"{self.minimum_replacement_delta:.3f}",
+                f"Negative retention protected replacement options={protected}",
             ),
         )

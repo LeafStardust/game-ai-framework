@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 
 from games.balatro.card import BalatroCard
@@ -162,3 +164,45 @@ def test_d2_standalone_sale_values_full_slot_release_without_guessing_future_sho
     assert decision.selected is not None
     assert decision.selected.slot_release_value == pytest.approx(1.0)
     assert decision.selected.total_advantage == pytest.approx(1.35)
+
+
+def test_negative_joker_is_protected_from_ordinary_standalone_sale():
+    state = _state(money=0, slots=1)
+    joker = InertJoker()
+    joker.edition = "Negative"
+    joker.sell_cost = 50
+    state.jokers = [joker]
+
+    decision = JokerSalePolicy(_thresholds()).decide(state)
+
+    assert decision.action == HOLD
+    assert decision.options[0].eligible is False
+    assert decision.options[0].negative_retention_protected is True
+    assert decision.options[0].negative_retention_exception is None
+    assert "Negative Joker is protected" in decision.options[0].blocked_reason
+    assert "Negative retention result=PROTECTED_FROM_SALE" in decision.options[0].rationale
+
+
+def test_materially_harmful_negative_joker_uses_explicit_sale_exception():
+    class _HarmEvaluator:
+        def evaluate(self, state, joker):
+            del state, joker
+            return SimpleNamespace(total_gain=-10.0)
+
+    state = _state(money=0, slots=1)
+    joker = InertJoker()
+    joker.edition = "Negative"
+    joker.sell_cost = 1
+    state.jokers = [joker]
+
+    decision = JokerSalePolicy(
+        _thresholds(minimum_negative_harm=0.75),
+        evaluator=_HarmEvaluator(),
+    ).decide(state)
+
+    assert decision.action == SELL
+    assert decision.selected is not None
+    assert decision.selected.negative_retention_protected is False
+    assert "MEASURED_WHOLE_BUILD_HARM" in (
+        decision.selected.negative_retention_exception or ""
+    )

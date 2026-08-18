@@ -327,7 +327,9 @@ class JokerAcquisitionPolicy:
         )
         build_gain = float(replacement.build_delta)
         eligible = (
-            economics.money_after >= 0
+            bool(getattr(replacement, "eligible", True))
+            and getattr(replacement, "blocked_reason", None) is None
+            and economics.money_after >= 0
             and build_gain > self.thresholds.minimum_replacement_build_delta
         )
         total = build_gain + economics.total_adjustment

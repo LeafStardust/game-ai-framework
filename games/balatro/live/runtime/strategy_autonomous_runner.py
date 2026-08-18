@@ -208,6 +208,24 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
                         },
                     },
                 )
+            retention_diagnostics = tuple(
+                self.joker_order_policy.last_negative_retention_diagnostics
+            )
+            if retention_diagnostics:
+                diagnostics = dict(decision.decision_diagnostics or {})
+                diagnostics["negative_retention"] = {
+                    "source": "JOKER_ORDER",
+                    "rationale": list(retention_diagnostics),
+                }
+                decision = replace(
+                    decision,
+                    notes=(
+                        decision.notes
+                        if order_decision is not None
+                        else (*decision.notes, *retention_diagnostics)
+                    ),
+                    decision_diagnostics=diagnostics,
+                )
         if str(decision.source) == "D1 hand-action policy":
             engine = self.last_hand_action_engine
             evaluator = engine.planner.evaluator if engine is not None else None

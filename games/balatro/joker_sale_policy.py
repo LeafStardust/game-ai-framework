@@ -10,6 +10,7 @@ from games.balatro.joker_edition import (
     EDITION_UNIVERSAL_VALUES,
     joker_edition_name,
     joker_edition_universal_value,
+    joker_has_negative_edition,
 )
 from games.balatro.joker_policy import HOLD
 from games.balatro.resource_value import RunResourceValuator
@@ -37,6 +38,7 @@ class JokerSaleThresholds:
     reserve_recovery_weight: float = 0.45
     reserve_target: int = 5
     full_slot_release_value: float = 1.0
+    minimum_negative_harm: float = 0.75
 
     def __post_init__(self) -> None:
         nonnegative = (
@@ -46,6 +48,7 @@ class JokerSaleThresholds:
             "interest_gain_weight",
             "reserve_recovery_weight",
             "full_slot_release_value",
+            "minimum_negative_harm",
         )
         for name in nonnegative:
             if float(getattr(self, name)) < 0.0:
@@ -90,6 +93,8 @@ class JokerSaleOption:
     total_advantage: float
     eligible: bool
     blocked_reason: str | None = None
+    negative_retention_protected: bool = False
+    negative_retention_exception: str | None = None
     rationale: tuple[str, ...] = ()
 
 
@@ -182,6 +187,22 @@ class JokerSalePolicy:
         removal_gain = max(0.0, -float(build_value.total_gain))
 
         blocked_reason = self._blocked_reason(joker)
+        negative_harm = removal_gain if joker_has_negative_edition(joker) else 0.0
+        negative_retention_exception = None
+        negative_retention_protected = False
+        if joker_has_negative_edition(joker):
+            if negative_harm >= float(self.thresholds.minimum_negative_harm):
+                negative_retention_exception = (
+                    "Negative retention exception=MEASURED_WHOLE_BUILD_HARM "
+                    f"({negative_harm:.3f}>="
+                    f"{self.thresholds.minimum_negative_harm:.3f})"
+                )
+            else:
+                negative_retention_protected = True
+                blocked_reason = blocked_reason or (
+                    "Negative Joker is protected from ordinary standalone sale; "
+                    "its measured whole-build harm does not meet the explicit exception"
+                )
         sell_credit = self._sell_value(joker)
         if sell_credit is None:
             blocked_reason = blocked_reason or "public sell value is unavailable"
@@ -252,6 +273,10 @@ class JokerSalePolicy:
             )
         if blocked_reason is not None:
             rationale.append(blocked_reason)
+        if negative_retention_protected:
+            rationale.append("Negative retention result=PROTECTED_FROM_SALE")
+        if negative_retention_exception is not None:
+            rationale.append(negative_retention_exception)
 
         return JokerSaleOption(
             joker_index=index,
@@ -268,6 +293,8 @@ class JokerSalePolicy:
             total_advantage=total,
             eligible=eligible,
             blocked_reason=blocked_reason,
+            negative_retention_protected=negative_retention_protected,
+            negative_retention_exception=negative_retention_exception,
             rationale=tuple(rationale),
         )
 
