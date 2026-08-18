@@ -15,6 +15,7 @@ from .live_memory_observer import LiveMemoryBalatroObserver
 
 DEFAULT_RESTART_TIMEOUT_SECONDS = 20.0
 DEFAULT_RESTART_POLL_INTERVAL_SECONDS = 0.05
+DEFAULT_RESTART_STABLE_CONFIRMATIONS = 6
 
 
 class LiveRunRestartError(RuntimeError):
@@ -73,25 +74,29 @@ def restart_fresh_unseeded_run(
     *,
     timeout_seconds: float = DEFAULT_RESTART_TIMEOUT_SECONDS,
     poll_interval_seconds: float = DEFAULT_RESTART_POLL_INTERVAL_SECONDS,
+    stable_confirmations: int = DEFAULT_RESTART_STABLE_CONFIRMATIONS,
 ) -> LiveRunRestartResult:
-    """Restart one lost normal run and verify the new public checkpoint.
+    """Restart one lost normal run and verify a sustained fresh checkpoint.
 
     The Lua bridge owns the destructive guard and mirrors Balatro's native held-R
     restart setup. Before setup begins, bridge revision 6+ also drains every native
     unlock confirmation currently stacked over the failed GAME_OVER screen by
     invoking Balatro's own ``continue_unlock`` callback. Python never writes process
-    memory; it independently requires a settled BLIND_SELECT checkpoint with the
-    same deck/stake before returning.
+    memory; it independently requires a sustained settled BLIND_SELECT checkpoint
+    with the same deck/stake before returning.
 
-    Balatro's native restart is asynchronous and includes wipe/setup animation, so
-    the verifier deliberately allows the same 20-second settling envelope used by
-    older live transition synchronization instead of treating a five-second visual
-    transition as a control-path failure.
+    Unlock notifications are event-queue driven. A single or even two consecutive
+    BLIND_SELECT observations can therefore occur before a late unlock/UI event
+    finishes settling. Require several consecutive semantically equal fresh-run
+    observations so the supervisor never reattaches in the middle of that tail and
+    mistakes a resurfacing GAME_OVER/unlock frame for a new terminal attempt.
     """
     if timeout_seconds <= 0:
         raise ValueError("timeout_seconds must be positive")
     if poll_interval_seconds < 0:
         raise ValueError("poll_interval_seconds cannot be negative")
+    if stable_confirmations < 2:
+        raise ValueError("stable_confirmations must be at least 2")
 
     expected_deck = str(deck).upper()
     expected_stake = str(stake).upper()
@@ -119,6 +124,7 @@ def restart_fresh_unseeded_run(
 
     deadline = monotonic() + timeout_seconds
     previous = None
+    stable_count = 0
     last_observed = None
     while monotonic() < deadline:
         if poll_interval_seconds:
@@ -126,13 +132,12 @@ def restart_fresh_unseeded_run(
         current = runner.observer.observe()
         last_observed = current
 
-        # The restart is asynchronous. Ignore incomplete/transient wipe frames and
-        # require two consecutive semantically equal authoritative snapshots.
-        if not current.state_complete:
+        # The restart is asynchronous. Any incomplete frame, terminal frame,
+        # unlock overlay tail, or identity transition resets the sustained-fresh
+        # confirmation window instead of being accepted as attempt startup.
+        if not current.state_complete or str(current.phase) != "BLIND_SELECT":
             previous = None
-            continue
-        if str(current.phase) != "BLIND_SELECT":
-            previous = current
+            stable_count = 0
             continue
 
         current_deck, current_stake = _identity(current)
@@ -143,19 +148,25 @@ def restart_fresh_unseeded_run(
                 f"{current_deck}/{current_stake}"
             )
         if current.sequence <= before.sequence:
-            previous = current
+            previous = None
+            stable_count = 0
             continue
 
         if previous is not None and _same_snapshot(previous, current):
+            stable_count += 1
+        else:
+            stable_count = 1
+
+        previous = current
+        if stable_count >= stable_confirmations:
             return LiveRunRestartResult(
                 before=before,
                 after=current,
                 bridge_status=dict(status),
             )
-        previous = current
 
     raise LiveRunRestartError(
-        "restart command was accepted but no settled same-deck/stake "
+        "restart command was accepted but no sustained settled same-deck/stake "
         "BLIND_SELECT checkpoint appeared before timeout; "
         + _snapshot_diagnostic(last_observed)
     )
