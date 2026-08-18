@@ -49,17 +49,27 @@ from .live_memory_autonomous_step_injected import (
 
 BOSS_D1_MAX_HORIZON = 2
 BOSS_D1_MAX_SEARCH_NODES = 500
+LATE_ANTE_D1_START = 7
+LATE_ANTE_D1_MAX_HORIZON = 2
+LATE_ANTE_D1_MAX_SEARCH_NODES = 750
 
 
 def _bounded_d1_limits(state, max_horizon: int, max_search_nodes: int):
-    """Keep live Boss-Blind replans within an interactive search envelope."""
-    if not getattr(state, "boss_name", None):
-        return int(max_horizon), int(max_search_nodes), False
-    return (
-        min(int(max_horizon), BOSS_D1_MAX_HORIZON),
-        min(int(max_search_nodes), BOSS_D1_MAX_SEARCH_NODES),
-        True,
-    )
+    """Keep live high-complexity replans within an interactive envelope."""
+    if getattr(state, "boss_name", None):
+        return (
+            min(int(max_horizon), BOSS_D1_MAX_HORIZON),
+            min(int(max_search_nodes), BOSS_D1_MAX_SEARCH_NODES),
+            "boss",
+        )
+    ante = max(1, int(getattr(state, "ante", 1) or 1))
+    if ante >= LATE_ANTE_D1_START:
+        return (
+            min(int(max_horizon), LATE_ANTE_D1_MAX_HORIZON),
+            min(int(max_search_nodes), LATE_ANTE_D1_MAX_SEARCH_NODES),
+            "late_ante",
+        )
+    return int(max_horizon), int(max_search_nodes), None
 
 
 @dataclass(frozen=True)
@@ -285,7 +295,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             if self.max_search_nodes is not None
             else int(planner_config.get("max_search_nodes", 5000))
         )
-        max_horizon, max_search_nodes, boss_search_bounded = _bounded_d1_limits(
+        max_horizon, max_search_nodes, search_bound_reason = _bounded_d1_limits(
             state,
             max_horizon,
             max_search_nodes,
@@ -334,9 +344,9 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             f"path_exact={decision.selected_plan.exact}",
             f"d1_decision_seconds={d1_elapsed:.3f}",
         ]
-        if boss_search_bounded:
+        if search_bound_reason is not None:
             notes.append(
-                "boss_search_bound="
+                f"d1_search_bound={search_bound_reason};"
                 f"horizon<={max_horizon},nodes<={max_search_nodes}"
             )
         if decision.selected_pace_ratio is not None:

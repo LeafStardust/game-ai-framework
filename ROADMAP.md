@@ -104,6 +104,7 @@ The first flat universal-strategy implementation proved current-state evidence, 
 - [x] Add autonomous Joker-board reordering through the validated injected action, including Blueprint/Brainstorm copy targeting, additive-before-XMult scoring, and projected Ceremonial Dagger sacrifice.
 - [x] Add authoritative pre-play hand reordering so Hanging Chad and Photograph place the strongest scoring trigger first, then replan before committing the play.
 - [x] Bound Joker-order search on late-run/Negative-edition boards and keep ordinary scoring-order optimization out of the blind-selection critical path.
+- [x] Bound every Ante-7+ D1 replan, including Small/Big blinds, to an interactive horizon/node envelope; re-observe after every real action instead of blocking on deep late-run trees.
 - [x] Apply universal-strategy alignment to Tarot/Spectral pack choices so highlighted routes such as Aces prefer aligned deck shaping over unrelated enhancement value.
 - [ ] Keep early Tarot/Spectral strategy-seeding available while requiring real poker-hand evidence before meaningful paid Planet investment across migrated leaves.
 - [ ] Add Red Deck / White Stake cartridge modifiers over the full universal strategy tree without redefining topology or component relationships.
