@@ -141,8 +141,31 @@ compete with survival/strategy/economy.
 What remains is active pursuit of **locked** collection entries beyond the current
 default-off Hit the Road and Stuntman campaigns:
 
+The initial locked-Joker backlog reported from the live collection on 2026-08-18
+is deliberately split by acquisition mechanism. A "locked" collection tile does
+not imply that every target should receive a hand override:
+
+| Joker | Requirement / acquisition route | 1.0H handling | Status |
+|---|---|---|---|
+| Golden Ticket | Play a five-card hand containing only Gold cards | Declarative deck-shaping and safe-play campaign | Planned |
+| Arrowhead | Have at least 30 Spade cards in the deck | Declarative suit-conversion campaign | Planned |
+| Merry Andy | Win a run in 12 or fewer rounds | Declarative run-length and skip-planning campaign | Planned |
+| Seeing Double | Play a hand containing four 7s of Clubs | Declarative rank-and-suit shaping campaign | Planned |
+| Hit the Road | Discard five Jacks simultaneously | Existing explicit, default-off campaign | Implemented |
+| Stuntman | Score at least 100,000,000 Chips in one hand | Existing explicit, default-off campaign | Implemented |
+| Satellite | Hold at least $400 | Declarative long-horizon cash-reserve campaign | Planned |
+| Astronomer | Discover every Planet card | Collection-state-driven Planet discovery campaign | Planned |
+| Triboulet | Obtain the random Legendary from The Soul | Preserve a free Joker slot and prioritize safe Soul opportunities; no fabricated condition override | Partially covered by current early-Ante Soul policy |
+| Yorick | Obtain the random Legendary from The Soul | Preserve a free Joker slot and prioritize safe Soul opportunities; no fabricated condition override | Partially covered by current early-Ante Soul policy |
+
+Triboulet and Yorick are discovery targets, not ordinary condition-locked targets.
+The Soul remains random, so 1.0H may improve opportunity capture and diagnostics
+but must not claim that it can deterministically select either Legendary.
+
 - [ ] Expose authoritative unlocked/discovered state for every relevant Joker, consumable, Voucher, booster and other collection center while preserving unknown state as unknown.
 - [ ] Add a declarative unlock-condition registry instead of hard-coding conditions into the permanent agent.
+- [ ] Cover the six new deterministic/collection targets in the observed backlog: Golden Ticket, Arrowhead, Merry Andy, Seeing Double, Satellite and Astronomer.
+- [ ] Extend Soul-opportunity diagnostics to identify which Legendary collection entries remain undiscovered while retaining the existing early-Ante priority and free-slot safety.
 - [ ] Add opt-in campaign planning for safe unlock progress, including action progress, run prerequisites, conflict detection, and abandonment when survival or the committed strategy would be weakened.
 - [ ] Keep ordinary Red/White competence unchanged when no collection campaign is enabled; campaign actions may never reduce the selected D1 clear probability.
 - [ ] Add live-monitor/log diagnostics and deterministic regressions for campaign admission, progress, completion, impossible conditions, and safe fallback.
