@@ -92,8 +92,22 @@ class LivePackActionGenerator:
         joker_count = len(getattr(state, "jokers", []))
         has_free_joker_slot = joker_count < joker_slots
         has_selectable_joker = False
+        owns_blue_joker = any(
+            type(joker).__name__ == "BlueJoker"
+            for joker in (getattr(state, "jokers", ()) or ())
+        )
 
         for choice in choices:
+            # Hanged Man permanently removes cards. Blue Joker's live scoring is
+            # explicitly proportional to cards remaining in the deck, so do not
+            # even offer this destructive pack action while Blue Joker is owned.
+            if (
+                owns_blue_joker
+                and choice.kind == "TAROT"
+                and choice.label == "The Hanged Man"
+            ):
+                continue
+
             # Balatro cannot take another Joker from a Buffoon pack when all Joker
             # slots are occupied unless the player first sells one. That is a
             # separate action and is deliberately not hidden inside pack selection.
