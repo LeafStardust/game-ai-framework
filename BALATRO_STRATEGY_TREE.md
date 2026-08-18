@@ -3,14 +3,15 @@
 Development topology reference. Relationships and evidence weights live in [`BALATRO_STRATEGY_RELATIONSHIPS.md`](BALATRO_STRATEGY_RELATIONSHIPS.md). Scoring/propagation rules live in [`BALATRO_STRATEGY_TREE_RULES.md`](BALATRO_STRATEGY_TREE_RULES.md).
 
 Implementation status:
-- **Part 4 / Section 4 — Enhancements: IMPLEMENTED.** All 5 enhancement roots and 15 specialization leaves are runtime-migrated, tree-scored, and guarded against generic support seeding a route before matching enhancement/payoff infrastructure exists.
-- **Part 5 / Section 5 — Seals: IMPLEMENTED.** All 6 seal nodes are present in the runtime forest. Red-Seal played/held support and Blue/Purple/Gold Seal engines are conditionally activated from matching live deck state instead of static Joker ownership alone.
-- Sections 6–12 are also present in the current runtime forest; this file remains the canonical frozen topology rather than a progress checklist.
+- **Part 4 / Section 4 — Enhancements: IMPLEMENTED.** Runtime support exists for the enhancement strategies below; this document is the canonical topology reference and folds synergy-only variants back into their defining route.
+- **Part 5 / Section 5 — Seals: IMPLEMENTED.** Red-Seal played/held support and Blue/Purple/Gold Seal engines are conditionally activated from matching live deck state instead of static Joker ownership alone.
+- Sections 6–12 are also present in the current runtime forest; this file remains the canonical topology reference rather than a progress checklist.
 
 Legend:
 - `[I]` indexed strategy with specialized descendants.
 - `[L]` specialization with no descendants.
 - Standalone `[L]` = strategy with no specializations.
+- A child exists only when it represents a genuinely distinct build/play route. Synergy-only variants stay inside the defining node's relationship row.
 
 ## 1. Poker-hand strategies
 
@@ -63,9 +64,7 @@ The Idol Exact-Card Concentration [L]
 ## 3. Suit and held-card strategies
 
 ```text
-Hearts [I]
-├── Bloodstone + Oops! All 6s Hearts [L]
-└── Bloodstone Retrigger Hearts [L]
+Hearts / Bloodstone [L]
 
 Diamonds / Rough Gem Economy [L]
 
@@ -79,15 +78,10 @@ Blackboard Held-Black Cards [L]
 Raised Fist Held-Minimum [L]
 
 Ancient Joker Suit-Rotation [L]
-
-Flower Pot Multi-Suit [I]
-├── Splash + Flower Pot [L]
-└── Smeared Joker + Flower Pot [L]
+Flower Pot Multi-Suit [L]
 ```
 
 ## 4. Enhancement strategies — runtime implemented
-
-All 20 Section 4 nodes below are wired into the runtime topology. Indexed parents own the shared enhancement shell; specialization-only Joker evidence is factored into the leaves and is conditionally gated so generic support cannot seed an enhancement route by itself.
 
 ```text
 Stone [I]
@@ -106,19 +100,15 @@ Steel [I]
 
 Lucky [I]
 ├── Lucky Cat Scaling [L]
-├── Lucky Cat + Oops! All 6s [L]
 └── Lucky Retrigger [L]
 
 Gold Cards [I]
 ├── Held Gold + Mime Economy [L]
 ├── Golden Ticket Gold Scoring [L]
-├── Midas Mask Gold Generation [L]
-└── Midas Mask + Golden Ticket Economy [L]
+└── Midas Mask Gold Generation [L]
 ```
 
 ## 5. Seal strategies — runtime implemented
-
-Section 5 is implemented as six runtime nodes. Red Seal remains the only indexed seal parent because played and held retriggers are mechanically distinct. Blue, Purple, and Gold Seal routes are standalone leaves. Support relationships activate only when a matching seal/card context is materially present.
 
 ```text
 Red Seal [I]
@@ -127,7 +117,6 @@ Red Seal [I]
 
 Blue Seal Hand-Level Scaling [L]
 Purple Seal Tarot Engine [L]
-
 Gold-Seal Retrigger Economy [L]
 ```
 
@@ -135,14 +124,11 @@ Gold-Seal Retrigger Economy [L]
 
 ```text
 Canio Destruction [I]
-├── Trading Card Canio [L]
-├── Pareidolia Canio [L]
+├── Trading Card / Pareidolia Canio [L]
 ├── Glass Canio [L]
 └── Consumable Canio [L]
 
-Vampire [I]
-├── Midas Mask + Vampire [L]
-└── Pareidolia + Midas Mask + Vampire [L]
+Vampire [L]
 
 Ceremonial Dagger / Disposable-Joker Feed [L]
 
@@ -152,20 +138,15 @@ Madness Destruction [I]
 
 Deck Thinning [I]
 ├── Trading Card Thinning / Economy [L]
-├── Erosion Thinning [L]
-└── Trading Card + Erosion [L]
+└── Erosion Thinning [L]
 ```
 
 ## 7. Deck-growth, card-addition, and card-training engines
 
 ```text
-Hologram Deck-Growth [I]
-├── DNA + Hologram [L]
-├── Certificate + Hologram [L]
-└── Marble Joker + Hologram [L]
+Hologram Deck-Growth [L]
 
 Hiker Retrigger / Copy Training [L]
-
 Driver's License Enhancement-Density [L]
 Blue Joker Large-Deck Chips [L]
 ```
@@ -175,8 +156,7 @@ Blue Joker Large-Deck Chips [L]
 ```text
 Planet Engine [I]
 ├── Constellation Planet-Scaling [L]
-├── Satellite Planet-Economy [L]
-└── Constellation + Satellite Planet Engine [L]
+└── Satellite Planet-Economy [L]
 
 Perkeo Consumable Duplication [I]
 ├── Perkeo + Observatory Planet Stack [L]
@@ -184,8 +164,7 @@ Perkeo Consumable Duplication [I]
 └── Perkeo Tarot / Spectral Engine [L]
 
 Tarot Engine [I]
-├── Cartomancer Blind-Select Generation [L]
-├── Hallucination Pack-Open Generation [L]
+├── Passive Tarot Generation [L]
 └── 8 Ball / Eights Tarot Generation [L]
 
 Vagabond Low-Money Tarot Engine [L]
@@ -198,7 +177,6 @@ Cash Hoard / Interest [I]
 ├── Rocket / To the Moon Cash Growth [L]
 ├── Bull Cash-to-Chips [L]
 ├── Bootstraps Cash-to-Mult [L]
-├── Bull + Bootstraps Cash Scoring [L]
 └── Cloud 9 Nines Economy [L]
 
 Campfire Sell-Scaling [L]
@@ -290,9 +268,4 @@ conditional support and remain Neutral when their destination engine is absent.
 | Showman | Baseball Card duplicate-Uncommon support and Bronze wide-board support for Abstract Joker |
 | Invisible Joker | Joker Stencil duplication, Swashbuckler sell-value feed, Abstract wide-board support, and situational engine duplication |
 
-The five former one-child branches (Gold Seal, Ceremonial Dagger, Hiker,
-Joker Stencil, and Swashbuckler) are collapsed into leaves. This preserves their
-mechanics while satisfying the global rule that an indexed parent must expose at
-least two genuine specializations.
-
-**Topology frozen for v1.0F; Sections 4 and 5 are now runtime implemented. Further topology changes require deterministic/live validation proving a defect.**
+Synergy-only combinations are folded into their defining strategy rows. Indexed parents are reserved for genuinely different play/build routes, not merely stronger combinations of the same route.
