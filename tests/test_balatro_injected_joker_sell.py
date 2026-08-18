@@ -17,12 +17,21 @@ def _snapshot(
     sequence: int,
     phase: str,
     jokers: list[dict],
+    *,
+    boss_name: str | None = None,
+    hand: list[dict] | None = None,
 ) -> LiveBalatroSnapshot:
+    payload = {
+        "jokers": {"cards": jokers},
+        "hand": {"cards": list(hand or [])},
+    }
+    if boss_name is not None:
+        payload["blind"] = {"type": "BOSS", "name": boss_name}
     return LiveBalatroSnapshot(
         sequence=sequence,
         phase=phase,
         state_complete=True,
-        payload={"jokers": {"cards": jokers}},
+        payload=payload,
     )
 
 
@@ -97,6 +106,40 @@ def test_injected_dispatcher_rejects_joker_sale_outside_shop():
         )
 
     assert bridge.sold == []
+
+
+def test_injected_dispatcher_sells_during_verdant_leaf_and_waits_for_debuff_lift():
+    sold = {"live_id": 101, "label": "Joker", "sell_cost": 2}
+    kept = {"live_id": 202, "label": "Misprint", "sell_cost": 2}
+    before = _snapshot(
+        20,
+        "SELECTING_HAND",
+        [sold, kept],
+        boss_name="Verdant Leaf",
+        hand=[{"live_id": 1, "debuff": True}],
+    )
+    after = _snapshot(
+        21,
+        "SELECTING_HAND",
+        [kept],
+        boss_name="Verdant Leaf",
+        hand=[{"live_id": 1, "debuff": False}],
+    )
+    bridge = FakeBridge()
+    dispatcher = LiveMemoryInjectedActionDispatcher(
+        FakeObserver(after),
+        bridge=bridge,
+        timeout=0.0,
+        poll_interval=0.0,
+    )
+
+    result = dispatcher.dispatch(
+        BalatroAction(SELL_JOKER, target=0),
+        snapshot=before,
+    )
+
+    assert bridge.sold == [0]
+    assert result.after is after
 
 
 def test_injected_dispatcher_rejects_out_of_range_joker_index():

@@ -20,6 +20,7 @@ from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.runtime.finisher_state_translator import (
     FinisherAwareBalatroStateTranslator,
 )
+from games.balatro.live.verdant_leaf import VerdantLeafSalePolicy
 from games.balatro.state import BalatroState
 
 
@@ -235,6 +236,32 @@ def test_verdant_leaf_uses_authoritative_card_debuff_state():
 
     # Debuffed Ace contributes no card chips; only Level-1 High Card base remains.
     assert projection.hand_score == 5
+
+
+def test_verdant_leaf_sells_lowest_value_non_eternal_joker_to_lift_debuff():
+    ace = BalatroCard("A", "Spades", debuffed=True)
+    eternal_weak = FlatMultJoker(0)
+    eternal_weak.eternal = True
+    weak = FlatMultJoker(1)
+    weak.label = "Weak Joker"
+    strong = FlatMultJoker(20)
+    strong.label = "Strong Joker"
+    state = _state("Verdant Leaf", [ace], [eternal_weak, weak, strong])
+
+    decision = VerdantLeafSalePolicy().recommend(state)
+
+    assert decision is not None
+    assert decision.joker_index == 1
+    assert decision.joker == "Weak Joker"
+    assert decision.to_action().name == "SELL_JOKER"
+    assert decision.to_action().target["area_index"] == 1
+
+
+def test_verdant_leaf_sale_policy_is_inert_after_debuff_lifts():
+    ace = BalatroCard("A", "Spades", debuffed=False)
+    state = _state("Verdant Leaf", [ace], [FlatMultJoker(1)])
+
+    assert VerdantLeafSalePolicy().recommend(state) is None
 
 
 def test_chicot_suppresses_finisher_rule_constraints():

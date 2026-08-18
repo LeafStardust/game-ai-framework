@@ -124,6 +124,28 @@ def _area_item(
     return value
 
 
+def _active_boss_name(snapshot: LiveBalatroSnapshot) -> str | None:
+    blind = snapshot.payload.get("blind")
+    if isinstance(blind, dict):
+        name = blind.get("name")
+        return str(name) if name is not None else None
+
+    blinds = snapshot.payload.get("blinds")
+    if not isinstance(blinds, dict):
+        return None
+    if "name" in blinds:
+        name = blinds.get("name")
+        return str(name) if name is not None else None
+    for status in ("CURRENT", "SELECT"):
+        for value in blinds.values():
+            if not isinstance(value, dict):
+                continue
+            if str(value.get("status", "")).upper() == status:
+                name = value.get("name")
+                return str(name) if name is not None else None
+    return None
+
+
 def _joker_live_id_order(
     snapshot: LiveBalatroSnapshot,
 ) -> tuple[object, ...] | None:
@@ -615,9 +637,14 @@ class LiveMemoryInjectedActionDispatcher:
             )
 
         if name == SELL_JOKER:
-            if before.phase != "SHOP":
+            verdant_sale = (
+                before.phase == "SELECTING_HAND"
+                and _active_boss_name(before) == "Verdant Leaf"
+            )
+            if before.phase != "SHOP" and not verdant_sale:
                 raise UnsupportedInjectedAction(
-                    f"SELL_JOKER requires SHOP, observed {before.phase}"
+                    "SELL_JOKER requires SHOP or active Verdant Leaf, "
+                    f"observed {before.phase}"
                 )
             index = _target_index(action.target)
             item = _area_item(before, "jokers", index)
@@ -629,9 +656,15 @@ class LiveMemoryInjectedActionDispatcher:
                 after_jokers = _area_cards(value, "jokers")
                 if (
                     value.sequence <= before.sequence
-                    or value.phase != "SHOP"
+                    or value.phase != before.phase
                     or not value.state_complete
                     or len(after_jokers) != before_count - 1
+                ):
+                    return False
+                if verdant_sale and any(
+                    bool(card.get("debuff", False))
+                    for card in _area_cards(value, "hand")
+                    if isinstance(card, dict)
                 ):
                     return False
                 if target_live_id is None:
@@ -645,7 +678,7 @@ class LiveMemoryInjectedActionDispatcher:
             after = self._wait(
                 before,
                 sale_settled,
-                "joker sale",
+                "Verdant Leaf joker sale" if verdant_sale else "joker sale",
             )
             return LiveInjectedActionResult(
                 action,

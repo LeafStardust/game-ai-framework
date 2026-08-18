@@ -9,6 +9,7 @@ from games.balatro.live.strategy_consumable_timing import (
 )
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 from games.balatro.live.strategy_planet_policy import StrategyAwareLivePlanetPolicy
+from games.balatro.live.verdant_leaf import VerdantLeafSalePolicy
 from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
 from games.balatro.playbook_consumable_policy import PlaybookConsumableAcquisitionPolicy
 from games.balatro.playbook_joker_policy import PlaybookJokerAcquisitionPolicy
@@ -96,6 +97,9 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
             intent_tracker=self.playstyle_intent_tracker,
             strategy_tracker=self.strategy_tracker,
         )
+        self.verdant_leaf_sale_policy = VerdantLeafSalePolicy(
+            evaluator=joker_build_value,
+        )
         joker_transition_planner = StrategyAwareJokerBuildTransitionPlanner(
             evaluator=joker_build_value,
         )
@@ -170,6 +174,22 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
                         "permutation": list(order_decision.permutation),
                         "current_score": float(order_decision.current_score),
                         "ordered_score": float(order_decision.ordered_score),
+                    },
+                },
+            )
+        verdant_sale = self.verdant_leaf_sale_policy.recommend(decision.state)
+        if verdant_sale is not None:
+            decision = replace(
+                decision,
+                action=verdant_sale.to_action(),
+                source="Verdant Leaf emergency sale policy",
+                notes=verdant_sale.rationale,
+                decision_diagnostics={
+                    "layer": "BOSS_VERDANT_LEAF",
+                    "selected": {
+                        "joker_index": int(verdant_sale.joker_index),
+                        "joker": verdant_sale.joker,
+                        "retention_cost": float(verdant_sale.retention_cost),
                     },
                 },
             )

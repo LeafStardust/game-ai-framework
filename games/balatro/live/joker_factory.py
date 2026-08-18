@@ -79,6 +79,7 @@ class LiveJokerFactory:
             "cost",
             "sell_cost",
             "discovered",
+            "eternal",
         ):
             value = data.get(field)
             if value is not None:

@@ -11,6 +11,7 @@ from games.balatro.live.runtime.strategy_autonomous_runner import (
 from games.balatro.live.strategy_consumable_timing import (
     StrategyAwareLiveConsumableTimingPolicy,
 )
+from games.balatro.live.verdant_leaf import VerdantLeafSalePolicy
 from games.balatro.joker_order_policy import JokerOrderPolicy
 from games.balatro.state import BalatroState
 from games.balatro.strategy_blind_skip_policy import StrategyAwareBlindSkipPolicy
@@ -97,4 +98,13 @@ def test_production_strategy_runner_uses_autonomous_joker_order_policy():
             "JokerOrderPolicy"
         ]
         is JokerOrderPolicy
+    )
+
+
+def test_production_strategy_runner_uses_verdant_leaf_emergency_sale_policy():
+    assert (
+        StrategyAwareLiveMemoryInjectedSingleStepRunner.__init__.__globals__[
+            "VerdantLeafSalePolicy"
+        ]
+        is VerdantLeafSalePolicy
     )

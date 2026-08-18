@@ -28,6 +28,18 @@ def test_live_joker_factory_resolves_save_center_and_preserves_metadata():
     assert joker.cost == 6
 
 
+def test_live_joker_factory_preserves_eternal_sticker_for_sale_safety():
+    joker = LiveJokerFactory().create(
+        {
+            "center": "j_joker",
+            "label": "Joker",
+            "eternal": True,
+        }
+    )
+
+    assert joker.eternal is True
+
+
 def test_live_joker_factory_uses_label_alias_for_numeric_names():
     joker = LiveJokerFactory().create(
         {

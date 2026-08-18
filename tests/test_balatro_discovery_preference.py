@@ -106,6 +106,37 @@ def test_live_memory_exposes_only_explicit_center_discovery_status():
     assert "discovered" not in unknown
 
 
+def test_live_memory_exposes_eternal_sticker_for_sale_safety():
+    CARD = 110
+    ABILITY = 111
+    CONFIG = 112
+    CENTER = 113
+    decoder = _Decoder(
+        {
+            CARD: {
+                "ability": _table(ABILITY),
+                "config": _table(CONFIG),
+                "sort_id": _integer(8),
+            },
+            ABILITY: {
+                "name": _string("Joker"),
+                "set": _string("Joker"),
+                "eternal": _boolean(True),
+            },
+            CONFIG: {"center": _table(CENTER)},
+            CENTER: {
+                "key": _string("j_joker"),
+                "name": _string("Joker"),
+                "set": _string("Joker"),
+            },
+        }
+    )
+
+    item = _normalize_item(decoder, CARD, area_index=0)
+
+    assert item["eternal"] is True
+
+
 def test_live_factories_preserve_explicit_discovery_status():
     fallback = LiveShopItemFactory().create(
         {

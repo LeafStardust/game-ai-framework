@@ -419,6 +419,7 @@ def _normalize_item(
         "ability_name": ability_name or center_name,
         "ability_set": ability_set,
         "debuff": _boolean(card.get("debuff"), False),
+        "eternal": _boolean(ability.get("eternal"), False),
     }
     rarity = _rarity_name(center.get("rarity"))
     if rarity is not None:
