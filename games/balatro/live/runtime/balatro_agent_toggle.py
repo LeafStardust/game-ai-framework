@@ -14,6 +14,8 @@ from .agent_control import BalatroAgentControl
 
 SUPERVISOR_MODULE = "games.balatro.live.runtime.balatro_agent_supervisor_entry"
 MONITOR_MODULE = "games.balatro.live.runtime.balatro_agent_monitor"
+COOPERATIVE_STOP_GRACE_SECONDS = 1.5
+COOPERATIVE_STOP_POLL_INTERVAL_SECONDS = 0.02
 HARD_STOP_EXIT_TIMEOUT_SECONDS = 3.0
 HARD_STOP_POLL_INTERVAL_SECONDS = 0.02
 
@@ -101,6 +103,22 @@ def _wait_for_process_exit(
             time.sleep(max(0.0, float(poll_interval)))
 
 
+def _wait_for_cooperative_stop(
+    pid: int,
+    *,
+    timeout_seconds: float = COOPERATIVE_STOP_GRACE_SECONDS,
+    poll_interval: float = COOPERATIVE_STOP_POLL_INTERVAL_SECONDS,
+) -> bool:
+    """Return True when the supervisor exits inside the cooperative grace window."""
+    deadline = time.monotonic() + max(0.0, float(timeout_seconds))
+    while agent_control_module._process_is_running(pid):
+        if time.monotonic() >= deadline:
+            return False
+        if poll_interval:
+            time.sleep(max(0.0, float(poll_interval)))
+    return True
+
+
 def _validated_hard_stop_status(
     control: BalatroAgentControl,
     pid: int,
@@ -180,9 +198,6 @@ def start_agent(
 
     control.ensure_directory()
     log_path = control.directory / "agent.log"
-    # Publish STARTING before the child exists. The supervisor is the only process
-    # allowed to advance this to ON, so the parent can never race and overwrite a
-    # fast child's ON status with an older STARTING state.
     control.write_status(
         "STARTING",
         pid=None,
@@ -203,15 +218,10 @@ def start_agent(
             )
         finally:
             log_handle.close()
-        # Publish the child PID immediately so a second toggle cannot start a
-        # duplicate supervisor during Python import/attachment startup. This does
-        # not rewrite status; a child that already reached ON remains ON.
         control.claim_current_process(process.pid)
         try:
             launch_monitor(control)
         except (OSError, subprocess.SubprocessError):
-            # Monitoring is convenience-only. Never tear down a healthy autonomous
-            # supervisor merely because Windows could not create the read-only UI.
             pass
         return int(process.pid)
     except Exception:
@@ -219,23 +229,6 @@ def start_agent(
         control.clear_pid()
         control.write_status("OFF", reason="supervisor launch failed")
         raise
-
-
-def stop_agent(control: BalatroAgentControl) -> int | None:
-    pid = control.running_pid()
-    if pid is None:
-        return None
-    control.request_stop()
-    current = control.read_status()
-    control.write_status(
-        "STOPPING",
-        pid=pid,
-        session_id=current.get("session_id"),
-        attempt=current.get("attempt"),
-        run_id=current.get("run_id"),
-        reason="manual toggle OFF requested; stop before the next gameplay action",
-    )
-    return pid
 
 
 def hard_stop_agent(control: BalatroAgentControl) -> int | None:
@@ -281,6 +274,36 @@ def hard_stop_agent(control: BalatroAgentControl) -> int | None:
     return pid
 
 
+def stop_agent(control: BalatroAgentControl) -> int | None:
+    """Stop the supervisor with bounded cooperative shutdown and safe escalation."""
+    pid = control.running_pid()
+    if pid is None:
+        return None
+
+    control.request_stop()
+    current = control.read_status()
+    control.write_status(
+        "STOPPING",
+        pid=pid,
+        session_id=current.get("session_id"),
+        attempt=current.get("attempt"),
+        run_id=current.get("run_id"),
+        reason=(
+            "manual toggle OFF requested; cooperative stop in progress; "
+            "supervisor-only hard stop will follow if the grace window expires"
+        ),
+    )
+
+    if _wait_for_cooperative_stop(pid):
+        # A healthy supervisor owns its normal OFF bookkeeping. Only clean stale
+        # PID state here in case process exit beat its final control-file cleanup.
+        control.clear_pid(expected_pid=pid)
+        return pid
+
+    hard_stop_agent(control)
+    return pid
+
+
 def toggle_agent(
     control: BalatroAgentControl,
     *,
@@ -291,7 +314,7 @@ def toggle_agent(
     running = control.running_pid()
     if running is not None:
         stop_agent(control)
-        return "STOPPING", running
+        return "OFF", running
     return "STARTING", start_agent(
         control,
         session_id=session_id,
@@ -305,8 +328,9 @@ def main() -> int:
         description=(
             "Toggle the Balatro autonomous supervisor. ON launches one detached "
             "supervisor process plus a read-only live monitor window. Normal OFF "
-            "writes a cooperative stop request. --hard-stop is the explicit "
-            "emergency fallback that force-terminates only the supervisor process."
+            "requests a cooperative stop and automatically escalates to a validated "
+            "supervisor-only hard stop if the grace window expires. --hard-stop "
+            "forces that emergency path immediately."
         )
     )
     parser.add_argument("--control-dir")
@@ -401,10 +425,15 @@ def main() -> int:
         print("Crash reporting -> automatic traceback + report file")
         return 0
 
-    print("Balatro Agent is ON.")
+    print("Balatro Agent was ON.")
     print("Turning OFF...")
     print(f"Supervisor PID -> {pid}")
-    print("Stop semantics -> before the next gameplay action")
+    print("Balatro Agent -> OFF")
+    print(
+        "Stop semantics -> cooperative first; automatic supervisor-only hard stop "
+        f"after {COOPERATIVE_STOP_GRACE_SECONDS:.1f}s if still running"
+    )
+    print("Balatro process -> untouched")
     return 0
 
 
