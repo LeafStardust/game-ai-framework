@@ -337,6 +337,13 @@ class ContextualConsumableTargetEvaluator:
             ):
                 overwrite_penalty += self.enhancement_overwrite_penalty
 
+        # A deterministic target that changes no public card property is not a
+        # legal autonomous use. This is a final generic guard in addition to each
+        # consumable's ``can_use`` contract, so a future transformation cannot
+        # spend a Tarot/Spectral on an already-identical target.
+        if effective_changes == 0:
+            return None
+
         change_bonus = 0.0 if is_directional_copy else (
             effective_changes * self.effective_change_value
         )

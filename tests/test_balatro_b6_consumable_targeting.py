@@ -3,7 +3,7 @@ from games.balatro.card import BalatroCard
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.spectrals import Aura, Cryptid, DejaVu, Medium, Talisman, Trance
 from games.balatro.state import BalatroState
-from games.balatro.tarots import HangedMan, Magician, Strength
+from games.balatro.tarots import HangedMan, Justice, Magician, Strength
 
 
 def _state(cards: list[BalatroCard]) -> BalatroState:
@@ -63,6 +63,18 @@ def test_targeting_avoids_overwriting_existing_enhancement_when_plain_target_exi
     )
     assert glass_only.overwrite_penalty > 0.0
     assert recommendation.total_gain > glass_only.total_gain
+
+
+def test_justice_never_returns_an_already_glass_noop_target():
+    already_glass = BalatroCard("9", "Clubs", enhancement="Glass")
+    plain = BalatroCard("7", "Hearts")
+    evaluator = ContextualConsumableTargetEvaluator()
+
+    ranked = evaluator.rank_targets(_state([already_glass, plain]), Justice())
+
+    assert [evaluation.target_indices for evaluation in ranked] == [(1,)]
+    assert ranked[0].cards == (plain,)
+    assert evaluator.rank_targets(_state([already_glass]), Justice()) == ()
 
 
 def test_hanged_man_is_supported_but_fails_closed_without_complete_owned_deck():

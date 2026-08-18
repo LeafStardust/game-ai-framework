@@ -27,6 +27,7 @@ class Magician(TarotCard):
         return (
             0 < len(context.cards) <= 2
             and context.has_valid_cards()
+            and any(card.enhancement != "Lucky" for card in context.cards)
         )
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
@@ -70,6 +71,7 @@ class Empress(TarotCard):
         return (
             0 < len(context.cards) <= 2
             and context.has_valid_cards()
+            and any(card.enhancement != "Mult" for card in context.cards)
         )
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
@@ -113,6 +115,7 @@ class Hierophant(TarotCard):
         return (
             0 < len(context.cards) <= 2
             and context.has_valid_cards()
+            and any(card.enhancement != "Bonus" for card in context.cards)
         )
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
@@ -139,6 +142,7 @@ class Lovers(TarotCard):
         return (
             len(context.cards) == 1
             and context.has_valid_cards()
+            and context.cards[0].enhancement != "Wild"
         )
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
@@ -158,6 +162,7 @@ class Chariot(TarotCard):
         return (
             len(context.cards) == 1
             and context.has_valid_cards()
+            and context.cards[0].enhancement != "Steel"
         )
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
@@ -177,6 +182,7 @@ class Justice(TarotCard):
         return (
             len(context.cards) == 1
             and context.has_valid_cards()
+            and context.cards[0].enhancement != "Glass"
         )
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
@@ -351,6 +357,7 @@ class Devil(TarotCard):
         return (
             len(context.cards) == 1
             and context.has_valid_cards()
+            and context.cards[0].enhancement != "Gold"
         )
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
@@ -370,6 +377,7 @@ class Tower(TarotCard):
         return (
             len(context.cards) == 1
             and context.has_valid_cards()
+            and context.cards[0].enhancement != "Stone"
         )
 
     def use(self, context: ConsumableContext) -> ConsumableContext:

@@ -103,6 +103,23 @@ def test_d9_arcana_immediate_tarot_uses_b4_value_against_skip():
     assert any("B4 build-path gain=" in note for note in ranked[0].notes)
 
 
+def test_d9_justice_skips_when_every_visible_target_is_already_glass():
+    state = BalatroState()
+    state.phase = "TAROT_PACK"
+    state.hand = [BalatroCard("9", "Clubs", enhancement="Glass")]
+    state.deck = [BalatroCard("9", "Clubs", enhancement="Glass")]
+    choice = _choice("Tarot", "Justice")
+
+    ranked = _rank(state, choice)
+
+    assert ranked[0].action.name == SKIP_BOOSTER
+    justice = next(
+        result for result in ranked if result.action.name == SELECT_PACK_CARD
+    )
+    assert justice.total < 0.0
+    assert any("no positive B6 target" in note for note in justice.notes)
+
+
 def test_d9_spectral_targeted_choice_uses_b6_target_value_against_skip():
     card = BalatroCard("4", "Clubs")
     state = BalatroState()

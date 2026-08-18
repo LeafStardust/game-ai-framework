@@ -648,6 +648,14 @@ def test_justice_applies_glass_enhancement():
     assert card.enhancement == "Glass"
 
 
+def test_justice_rejects_an_already_glass_noop_target():
+    card = BalatroCard("2", "Hearts", enhancement="Glass")
+    tarot = create_tarot("Justice")
+    context = ConsumableContext(state=BalatroState(), cards=[card])
+
+    assert tarot.can_use(context) is False
+
+
 def test_hermit_doubles_money_with_gain_capped_at_twenty():
 
     state = BalatroState()
