@@ -308,3 +308,25 @@ def test_targeted_collection_tarot_with_hand_targets_remains_critical():
     assert ranked[0].action.target is targeted
     assert ranked[0].action.cards == (target_card,)
     assert "COLLECTION_CRITICAL" in " ".join(ranked[0].notes)
+
+
+def test_undiscovered_cryptid_without_hand_target_is_never_collection_critical():
+    state = BalatroState()
+    state.phase = "SPECTRAL_PACK"
+    cryptid = _pack_choice("Cryptid", discovered=False, kind="Spectral")
+    known = _pack_choice("Known", discovered=True, kind="Spectral")
+    policy = CollectionFirstPackPolicy(
+        _PackDelegate(),
+        collection_policy=CollectionFirstPolicy(),
+    )
+
+    ranked = policy.rank_actions(
+        state,
+        [
+            BalatroAction(SELECT_PACK_CARD, target=cryptid),
+            BalatroAction(SELECT_PACK_CARD, target=known),
+            BalatroAction(SKIP_BOOSTER),
+        ],
+    )
+
+    assert all(score.action.target is not cryptid for score in ranked)
