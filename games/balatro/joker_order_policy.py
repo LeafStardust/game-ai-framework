@@ -23,14 +23,15 @@ class JokerOrderDecision:
 class JokerOrderPolicy:
     """Choose an auditable whole-build Joker permutation.
 
-    Balatro resolves independent Joker effects from left to right. Exhaustively
-    scoring at most five ordinary slots is both cheap and more reliable than a
-    hand-written additive/XMult sort: it also captures validated Blueprint and
-    Brainstorm copy targets. At BLIND_SELECT, each permutation additionally
-    projects Ceremonial Dagger's mandatory right-neighbour sacrifice.
+    Balatro resolves independent Joker effects from left to right. Small boards
+    can be searched exhaustively; larger boards use bounded one-swap neighbours
+    and converge over successive settled checkpoints. At BLIND_SELECT, ordinary
+    scoring order is deferred until the hand is visible. Only Ceremonial Dagger
+    justifies delaying blind selection for a pre-blind rearrangement.
     """
 
     STABLE_PHASES = frozenset({"BLIND_SELECT", "SELECTING_HAND", "SHOP"})
+    MAX_EXHAUSTIVE_JOKERS = 4
 
     def __init__(
         self,
@@ -102,6 +103,13 @@ class JokerOrderPolicy:
         jokers = tuple(getattr(state, "jokers", ()) or ())
         if phase not in self.STABLE_PHASES or len(jokers) < 2:
             return None
+        if phase == "BLIND_SELECT" and not any(
+            type(joker).__name__ == "DaggerJoker" for joker in jokers
+        ):
+            # Selecting the blind is time-sensitive and no other Joker resolves
+            # before the hand appears. Scoring order can be optimized immediately
+            # afterward without blocking the round transition.
+            return None
 
         current = tuple(range(len(jokers)))
         current_score, current_notes = self._score(state, current, phase=phase)
@@ -109,13 +117,12 @@ class JokerOrderPolicy:
         best_score = current_score
         best_notes = current_notes
 
-        if len(current) <= 6:
+        if len(current) <= self.MAX_EXHAUSTIVE_JOKERS:
             candidates = permutations(current)
         else:
-            # Negative editions can exceed the ordinary five-slot cap. A complete
-            # factorial search would then be an avoidable latency hazard; every
-            # one-swap neighbour still permits copy targeting, Dagger feeding, and
-            # additive/XMult pair correction in successive settled steps.
+            # Negative editions can exceed the ordinary slot cap. Every one-swap
+            # neighbour still permits copy targeting, Dagger feeding, and
+            # additive/XMult correction without factorial latency.
             candidates = (
                 tuple(
                     current[right] if index == left else

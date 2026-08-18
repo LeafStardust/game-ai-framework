@@ -52,3 +52,37 @@ def test_order_policy_does_not_emit_noop_for_already_optimal_order():
     )
 
     assert JokerOrderPolicy().recommend(state) is None
+
+
+def test_blind_select_bypasses_scoring_order_without_dagger():
+    class _NoScoringPolicy(JokerOrderPolicy):
+        def _score(self, state, permutation, *, phase):
+            raise AssertionError("blind selection must not run scoring-order search")
+
+    state = _state(
+        FlatMultJoker(10),
+        BlueprintJoker(),
+        CavendishJoker(),
+        phase="BLIND_SELECT",
+    )
+
+    assert _NoScoringPolicy().recommend(state) is None
+
+
+def test_six_joker_board_uses_bounded_neighbour_search():
+    class _CountingPolicy(JokerOrderPolicy):
+        def __init__(self):
+            super().__init__()
+            self.scored = 0
+
+        def _score(self, state, permutation, *, phase):
+            self.scored += 1
+            return float(sum(index * value for index, value in enumerate(permutation))), ()
+
+    policy = _CountingPolicy()
+    state = _state(*(FlatMultJoker(index) for index in range(1, 7)))
+
+    policy.recommend(state)
+
+    # Current order plus C(6, 2) one-swap neighbours, not 6! permutations.
+    assert policy.scored == 16
