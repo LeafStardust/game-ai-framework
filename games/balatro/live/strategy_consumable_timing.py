@@ -28,6 +28,19 @@ class StrategyAwareConsumableTargetEvaluator:
         return ranked[0] if ranked else None
 
     def rank_targets(self, state, consumable: object):
+        # Blue Joker's scoring is directly proportional to cards remaining in the
+        # deck. Hanged Man permanently removes cards, so its generic deck-thinning
+        # heuristic is strategically inverted while Blue Joker is actually owned.
+        # Do not spend it until that Joker is no longer part of the live build.
+        if (
+            str(getattr(consumable, "name", "")) == "The Hanged Man"
+            and any(
+                type(joker).__name__ == "BlueJoker"
+                for joker in (getattr(state, "jokers", ()) or ())
+            )
+        ):
+            return ()
+
         ranked = tuple(self.base_evaluator.rank_targets(state, consumable))
         if len(ranked) <= 1:
             return ranked
@@ -131,7 +144,8 @@ class StrategyAwareConsumableTargetEvaluator:
         if seal and any(seal in definition.preferred_seals for definition in definitions):
             fit += 1.0
         if edition and any(
-            edition in definition.preferred_editions for definition in definitions
+            edition in definition.preferred_editions
+            for definition in definitions
         ):
             fit += 1.0
         if rank and any(rank in definition.preferred_ranks for definition in definitions):
