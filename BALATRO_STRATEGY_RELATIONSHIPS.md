@@ -15,7 +15,8 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 | Strategy-directed Spectral use | +0.50 per use |
 | Matching enhancement in current deck | +0.35 per card |
 
-`TBD` = not audited yet. `—` = intentionally none.
+`—` = intentionally none. All frozen v1.0 relationship rows are audited; no
+`TBD` entries remain.
 
 ## Universal value versus strategy relationship
 
@@ -140,114 +141,109 @@ A component must not be duplicated between a parent and child row. If it is spec
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Red Seal | Red Seal `[I]` | TBD | TBD | TBD | TBD | — | — | Deja Vu | — |
-| Red Seal | ↳ Played Red-Seal Retrigger `[L]` | TBD | TBD | TBD | TBD | — | — | TBD | — |
-| Red Seal | ↳ Held Red-Seal Retrigger `[L]` | TBD | TBD | TBD | TBD | — | — | TBD | — |
-| Blue Seal Hand-Level Scaling | Blue Seal Hand-Level Scaling `[L]` | TBD | TBD | TBD | TBD | — | — | Trance | — |
-| Purple Seal Tarot Engine | Purple Seal Tarot Engine `[L]` | TBD | TBD | TBD | TBD | — | — | Medium | — |
-| Gold Seal Economy | Gold Seal Economy `[I]` | TBD | TBD | TBD | TBD | — | — | Talisman | — |
-| Gold Seal Economy | ↳ Gold-Seal Retrigger Economy `[L]` | TBD | TBD | TBD | TBD | — | — | Deja Vu | — |
+| Red Seal | Red Seal `[I]` | — | — | — | — | — | — | Deja Vu; Cryptid | — |
+| Red Seal | ↳ Played Red-Seal Retrigger `[L]` | Hanging Chad *(with Red Seal)* | Seltzer; Dusk; Hiker; Splash; Sock and Buskin *(Red face)*; Hack *(Red 2–5)*; Photograph; Triboulet; Bloodstone; Lucky Cat *(matching Red card)* | Scary Face; Smiley Face; Business Card; Fibonacci *(matching Red card)* | — | — | — | — | — |
+| Red Seal | ↳ Held Red-Seal Retrigger `[L]` | Mime *(Red held-effect card)*; Baron *(Red King)* | Shoot the Moon *(Red Queen)*; Reserved Parking *(Red face)*; Raised Fist *(Red low card)* | Juggler; Troubadour *(material held Red card)* | — | — | — | — | Steel; Gold |
+| Blue Seal Hand-Level Scaling | Blue Seal Hand-Level Scaling `[L]` | Constellation; Satellite *(with Blue Seal)* | Certificate; Perkeo; Astronomer *(with Blue Seal)* | Burnt Joker; Space Joker; Juggler; Troubadour *(with Blue Seal)* | — | — | Any | Trance; Cryptid | — |
+| Purple Seal Tarot Engine | Purple Seal Tarot Engine `[L]` | Fortune Teller; Merry Andy; Drunkard *(with Purple Seal)* | Burnt Joker; Castle; Mail-In Rebate; Faceless Joker; Certificate *(with Purple Seal)* | Perkeo; Cartomancer; Hallucination; Vagabond; Mystic Summit *(with Purple Seal)* | Burglar; Delayed Gratification; Green Joker; Ramen; Banner | Any | — | Medium; Cryptid | — |
+| Gold Seal Economy | Gold-Seal Retrigger Economy `[L]` | Hanging Chad; Seltzer; Dusk *(with Gold Seal)* | Sock and Buskin *(Gold face)*; Hack *(Gold 2–5)*; Bull; Bootstraps; To the Moon; Rocket *(with Gold Seal)* | Business Card *(Gold face)*; Certificate; DNA; Splash *(with Gold Seal)* | — | — | — | Talisman; Cryptid | — |
 
 ## 6. Destruction, sacrifice, consumption, thinning
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Canio Destruction | Canio Destruction `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Canio Destruction | ↳ Trading Card Canio `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Canio Destruction | ↳ Pareidolia Canio `[L]` | TBD | TBD | TBD | TBD | TBD | — | Familiar | TBD |
-| Canio Destruction | ↳ Glass Canio `[L]` | TBD | TBD | TBD | TBD | Justice | — | Familiar | Glass |
-| Canio Destruction | ↳ Consumable Canio `[L]` | TBD | TBD | TBD | TBD | The Hanged Man | — | Immolate | TBD |
-| Vampire | Vampire `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Vampire | ↳ Midas Mask + Vampire `[L]` | TBD | TBD | TBD | TBD | The Devil | — | TBD | Gold |
-| Vampire | ↳ Pareidolia + Midas Mask + Vampire `[L]` | TBD | TBD | TBD | TBD | The Devil | — | Familiar | Gold |
-| Ceremonial Dagger Sacrifice | Ceremonial Dagger Sacrifice `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Ceremonial Dagger Sacrifice | ↳ Riff-Raff / Disposable-Joker Dagger Feed `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Madness Destruction | Madness Destruction `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Madness Destruction | ↳ Solo Madness `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Madness Destruction | ↳ Eternal-Joker Madness `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Deck Thinning | Deck Thinning `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Deck Thinning | ↳ Trading Card Thinning / Economy `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Deck Thinning | ↳ Erosion Thinning `[L]` | TBD | TBD | TBD | TBD | The Hanged Man | — | Immolate | TBD |
-| Deck Thinning | ↳ Trading Card + Erosion `[L]` | TBD | TBD | TBD | TBD | The Hanged Man | — | Immolate | TBD |
+| Canio Destruction | Canio Destruction `[I]` | Canio | — | — | — | The Hanged Man; Justice | — | Familiar; Immolate | Glass |
+| Canio Destruction | ↳ Trading Card Canio `[L]` | Trading Card *(with Canio)* | Pareidolia *(with Canio)* | Faceless Joker; Merry Andy; Drunkard *(with Canio)* | — | — | — | — | — |
+| Canio Destruction | ↳ Pareidolia Canio `[L]` | Pareidolia *(with Canio)* | Trading Card *(with Canio)* | Midas Mask; Splash *(with Canio)* | — | — | — | Familiar | — |
+| Canio Destruction | ↳ Glass Canio `[L]` | Glass Joker *(with Canio + Glass)* | Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(with Canio + Glass)* | DNA; Hologram *(with Canio + Glass)* | — | Justice | — | Familiar | Glass |
+| Canio Destruction | ↳ Consumable Canio `[L]` | Scaled Canio *(public XMult state)* | — | — | — | The Hanged Man | — | Immolate | — |
+| Vampire | Vampire `[I]` | Vampire | — | — | — | Any enhancement Tarot | — | Familiar; Grim; Incantation | Any scoring enhancement |
+| Vampire | ↳ Midas Mask + Vampire `[L]` | Midas Mask *(with Vampire)* | Pareidolia; Splash *(with Vampire)* | — | — | The Devil | — | — | Gold |
+| Vampire | ↳ Pareidolia + Midas Mask + Vampire `[L]` | Pareidolia; Midas Mask *(paired with Vampire)* | Splash *(with trio)* | — | — | The Devil | — | Familiar | Gold |
+| Ceremonial Dagger Sacrifice | Ceremonial Dagger / Disposable-Joker Feed `[L]` | Ceremonial Dagger | Riff-Raff; Egg; Gift Card; Blueprint; Brainstorm *(with Dagger)* | Invisible Joker | Eternal sacrifice targets | — | — | — | — |
+| Madness Destruction | Madness Destruction `[I]` | Madness | Blueprint; Brainstorm *(with Madness)* | — | — | — | — | — | — |
+| Madness Destruction | ↳ Solo Madness `[L]` | Madness *(no other destroyable Jokers)* | Joker Stencil | — | — | — | — | — | — |
+| Madness Destruction | ↳ Eternal-Joker Madness `[L]` | Eternal Jokers *(with Madness)* | — | — | — | — | — | — | — |
+| Deck Thinning | Deck Thinning `[I]` | — | — | — | — | The Hanged Man | — | Immolate | — |
+| Deck Thinning | ↳ Trading Card Thinning / Economy `[L]` | Trading Card | — | — | — | — | — | — | — |
+| Deck Thinning | ↳ Erosion Thinning `[L]` | Erosion | — | — | — | — | — | — | — |
+| Deck Thinning | ↳ Trading Card + Erosion `[L]` | Trading Card; Erosion *(when paired)* | — | — | — | The Hanged Man | — | Immolate | — |
 
 ## 7. Deck growth and card training
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Hologram Deck-Growth | Hologram Deck-Growth `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Hologram Deck-Growth | ↳ DNA + Hologram `[L]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid | TBD |
-| Hologram Deck-Growth | ↳ Certificate + Hologram `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Hologram Deck-Growth | ↳ Marble Joker + Hologram `[L]` | TBD | TBD | TBD | TBD | The Tower | — | TBD | Stone |
-| Hiker Card Training | Hiker Card Training `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Hiker Card Training | ↳ Hiker Retrigger / Copy Training `[L]` | TBD | TBD | TBD | TBD | TBD | — | Cryptid; Deja Vu | TBD |
-| Driver's License Enhancement-Density | Driver's License Enhancement-Density `[L]` | TBD | TBD | TBD | TBD | The Magician; The Empress; The Hierophant; The Lovers; The Chariot; Justice; The Devil; The Tower | — | Familiar; Grim; Incantation | Any |
-| Blue Joker Large-Deck Chips | Blue Joker Large-Deck Chips `[L]` | TBD | TBD | TBD | TBD | TBD | — | Familiar; Grim; Incantation; Cryptid | TBD |
+| Hologram Deck-Growth | Hologram Deck-Growth `[I]` | Hologram | Blueprint; Brainstorm *(with Hologram)* | — | — | — | — | Cryptid; Familiar; Grim; Incantation | — |
+| Hologram Deck-Growth | ↳ DNA + Hologram `[L]` | DNA *(with Hologram)* | Blueprint; Brainstorm *(with pair)* | — | — | — | — | Cryptid | — |
+| Hologram Deck-Growth | ↳ Certificate + Hologram `[L]` | Certificate *(with Hologram)* | Blueprint; Brainstorm *(with pair)* | — | — | — | — | — | — |
+| Hologram Deck-Growth | ↳ Marble Joker + Hologram `[L]` | Marble Joker *(with Hologram)* | Blueprint; Brainstorm *(with pair)* | — | — | The Tower | — | — | Stone |
+| Hiker Card Training | Hiker Retrigger / Copy Training `[L]` | Hiker | Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack; Splash; DNA; Blueprint; Brainstorm *(with Hiker)* | Certificate *(with Hiker)* | — | — | — | Cryptid; Deja Vu | — |
+| Driver's License Enhancement-Density | Driver's License Enhancement-Density `[L]` | Driver's License | Midas Mask; Marble Joker; Certificate; Blueprint; Brainstorm *(with Driver's License)* | DNA; Hologram *(with Driver's License)* | Vampire | The Magician; The Empress; The Hierophant; The Lovers; The Chariot; Justice; The Devil; The Tower | — | Familiar; Grim; Incantation | Any |
+| Blue Joker Large-Deck Chips | Blue Joker Large-Deck Chips `[L]` | Blue Joker | Hologram; Certificate; Marble Joker *(with Blue Joker)* | DNA *(with Blue Joker)* | Erosion; Trading Card | — | — | Familiar; Grim; Incantation; Cryptid | — |
 
 ## 8. Planet, Tarot, consumable engines
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Planet Engine | Planet Engine `[I]` | TBD | TBD | TBD | TBD | The High Priestess | Any | Black Hole | — |
-| Planet Engine | ↳ Constellation Planet-Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | — |
-| Planet Engine | ↳ Satellite Planet-Economy `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | — |
-| Planet Engine | ↳ Constellation + Satellite Planet Engine `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | — |
-| Perkeo Consumable Duplication | Perkeo Consumable Duplication `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Perkeo Consumable Duplication | ↳ Perkeo + Observatory Planet Stack `[L]` | TBD | TBD | TBD | TBD | — | TBD | — | — |
-| Perkeo Consumable Duplication | ↳ Perkeo + Cryptid Copy Engine `[L]` | TBD | TBD | TBD | TBD | — | — | Cryptid | — |
-| Perkeo Consumable Duplication | ↳ Perkeo Tarot / Spectral Engine `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
+| Planet Engine | Planet Engine `[I]` | — | Astronomer | — | — | The High Priestess | Any | Black Hole | — |
+| Planet Engine | ↳ Constellation Planet-Scaling `[L]` | Constellation | Astronomer; Perkeo; Blueprint; Brainstorm *(with Constellation)* | Satellite *(without full pair)* | — | — | Any | — | — |
+| Planet Engine | ↳ Satellite Planet-Economy `[L]` | Satellite | Astronomer; Perkeo; Blueprint; Brainstorm *(with Satellite)* | Constellation *(without full pair)* | — | — | Any | — | — |
+| Planet Engine | ↳ Constellation + Satellite Planet Engine `[L]` | Constellation; Satellite *(when paired)* | Astronomer; Perkeo *(with pair)* | — | — | — | Any | — | — |
+| Perkeo Consumable Duplication | Perkeo Consumable Duplication `[I]` | Perkeo | — | — | — | — | — | — | — |
+| Perkeo Consumable Duplication | ↳ Perkeo + Observatory Planet Stack `[L]` | Perkeo *(with Observatory)* | — | — | — | — | Any held Planet | — | — |
+| Perkeo Consumable Duplication | ↳ Perkeo + Cryptid Copy Engine `[L]` | Perkeo *(with held Cryptid)* | — | — | — | — | — | Cryptid | — |
+| Perkeo Consumable Duplication | ↳ Perkeo Tarot / Spectral Engine `[L]` | Perkeo *(with held Tarot/Spectral)* | — | — | — | Any held Tarot | — | Any held Spectral | — |
 | Tarot Engine | Tarot Engine `[I]` | Fortune Teller | — | — | — | Any | — | — | — |
 | Tarot Engine | ↳ Cartomancer Blind-Select Generation `[L]` | Cartomancer | — | — | — | Any | — | — | — |
 | Tarot Engine | ↳ Hallucination Pack-Open Generation `[L]` | Hallucination | — | — | — | Any | — | — | — |
 | Tarot Engine | ↳ 8 Ball / Eights Tarot Generation `[L]` | 8 Ball | Oops! All 6s; Hanging Chad; Seltzer; Dusk *(all with 8 Ball)* | Fibonacci *(with Eight commitment)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
-| Vagabond Low-Money Tarot Engine | Vagabond Low-Money Tarot Engine `[L]` | TBD | TBD | TBD | TBD | Any | — | — | — |
+| Vagabond Low-Money Tarot Engine | Vagabond Low-Money Tarot Engine `[L]` | Vagabond | Fortune Teller; Blueprint; Brainstorm *(with Vagabond)* | — | Cash-hoard commitments that prevent the $4 trigger | Any | — | — | — |
 
 ## 9. Economy, shop, reroll, blind skip
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Cash Hoard / Interest | Cash Hoard / Interest `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Cash Hoard / Interest | ↳ Rocket / To the Moon Cash Growth `[L]` | TBD | TBD | TBD | TBD | The Hermit; Temperance | — | Immolate | TBD |
-| Cash Hoard / Interest | ↳ Bull Cash-to-Chips `[L]` | TBD | TBD | TBD | TBD | The Hermit; Temperance | — | Immolate | TBD |
-| Cash Hoard / Interest | ↳ Bootstraps Cash-to-Mult `[L]` | TBD | TBD | TBD | TBD | The Hermit; Temperance | — | Immolate | TBD |
-| Cash Hoard / Interest | ↳ Bull + Bootstraps Cash Scoring `[L]` | TBD | TBD | TBD | TBD | The Hermit; Temperance | — | Immolate | TBD |
-| Cash Hoard / Interest | ↳ Cloud 9 Nines Economy `[L]` | TBD | TBD | TBD | TBD | TBD | — | Ouija | TBD |
-| Campfire Sell-Scaling | Campfire Sell-Scaling `[L]` | TBD | TBD | TBD | TBD | Temperance | — | TBD | TBD |
-| Flash Card Reroll-Scaling | Flash Card Reroll-Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Red Card Pack-Skip Scaling | Red Card Pack-Skip Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Throwback Blind-Skip Scaling | Throwback Blind-Skip Scaling `[L]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
+| Cash Hoard / Interest | Cash Hoard / Interest `[I]` | — | — | — | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
+| Cash Hoard / Interest | ↳ Rocket / To the Moon Cash Growth `[L]` | Rocket; To the Moon | Blueprint; Brainstorm *(with owned core)* | Golden Joker; Cloud 9; Golden Ticket | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
+| Cash Hoard / Interest | ↳ Bull Cash-to-Chips `[L]` | Bull | Rocket; To the Moon; Blueprint; Brainstorm *(with Bull)* | Golden Joker; Cloud 9; Golden Ticket *(with Bull)* | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
+| Cash Hoard / Interest | ↳ Bootstraps Cash-to-Mult `[L]` | Bootstraps | Rocket; To the Moon; Blueprint; Brainstorm *(with Bootstraps)* | Golden Joker; Cloud 9; Golden Ticket *(with Bootstraps)* | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
+| Cash Hoard / Interest | ↳ Bull + Bootstraps Cash Scoring `[L]` | Bull; Bootstraps *(when paired)* | Rocket; To the Moon *(with pair)* | — | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
+| Cash Hoard / Interest | ↳ Cloud 9 Nines Economy `[L]` | Cloud 9 | DNA; Hologram *(with Cloud 9)* | — | Vagabond commitment | — | — | Ouija | Nines |
+| Campfire Sell-Scaling | Campfire Sell-Scaling `[L]` | Campfire | Gift Card; Egg; Riff-Raff; Blueprint; Brainstorm *(with Campfire)* | Cartomancer; Hallucination; Perkeo *(with Campfire)* | — | Temperance | — | — | — |
+| Flash Card Reroll-Scaling | Flash Card Reroll-Scaling `[L]` | Flash Card; Chaos the Clown *(with Flash Card)* | Blueprint; Brainstorm *(with Flash Card)* | Rocket; To the Moon *(with Flash Card)* | — | — | — | — | — |
+| Red Card Pack-Skip Scaling | Red Card Pack-Skip Scaling `[L]` | Red Card | Hallucination; Blueprint; Brainstorm *(with Red Card)* | Fortune Teller *(with Red Card)* | — | — | — | — | — |
+| Throwback Blind-Skip Scaling | Throwback Blind-Skip Scaling `[L]` | Throwback | Diet Cola; Blueprint; Brainstorm *(with Throwback)* | Red Card *(with Throwback)* | — | — | — | — | — |
 
 ## 10. Joker board
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Joker Stencil | Joker Stencil `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Joker Stencil | ↳ Joker Stencil + Ankh / Invisible Duplication `[L]` | TBD | TBD | TBD | TBD | — | — | Ankh | TBD |
-| Baseball Card Uncommon Stack | Baseball Card Uncommon Stack `[L]` | TBD | TBD | TBD | TBD | Judgement | — | Wraith; The Soul | TBD |
-| Abstract Joker Wide-Board | Abstract Joker Wide-Board `[L]` | TBD | TBD | TBD | TBD | Judgement | — | Wraith; The Soul | TBD |
-| Swashbuckler Sell-Value Stack | Swashbuckler Sell-Value Stack `[I]` | TBD | TBD | TBD | TBD | TBD | — | TBD | TBD |
-| Swashbuckler Sell-Value Stack | ↳ Egg / Gift-Card Swashbuckler `[L]` | TBD | TBD | TBD | TBD | Judgement | — | Wraith; The Soul | TBD |
+| Joker Stencil | Joker Stencil / Ankh / Invisible Duplication `[L]` | Joker Stencil | Invisible Joker; Blueprint; Brainstorm *(with Stencil)* | Negative Jokers | Riff-Raff *(fills empty slots)* | — | — | Ankh | — |
+| Baseball Card Uncommon Stack | Baseball Card Uncommon Stack `[L]` | Baseball Card | Owned/candidate Uncommon Jokers; Showman; Blueprint; Brainstorm *(with Baseball Card)* | — | — | Judgement | — | Wraith; The Soul | — |
+| Abstract Joker Wide-Board | Abstract Joker Wide-Board `[L]` | Abstract Joker | Riff-Raff; Blueprint; Brainstorm *(with Abstract)* | Showman; Invisible Joker *(with Abstract)* | — | Judgement | — | Wraith; The Soul | — |
+| Swashbuckler Sell-Value Stack | Egg / Gift-Card Swashbuckler `[L]` | Swashbuckler; Egg; Gift Card *(with Swashbuckler)* | Blueprint; Brainstorm *(with Swashbuckler)* | Riff-Raff; Invisible Joker *(with Swashbuckler)* | — | Judgement | — | Wraith; The Soul | — |
 
 ## 11. Discard and hand rotation
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Discard Utilization | Discard Utilization `[I]` | TBD | TBD | TBD | TBD | — | — | TBD | — |
-| Discard Utilization | ↳ Castle Suit-Discard Scaling `[L]` | TBD | TBD | TBD | TBD | The Star; The Moon; The Sun; The World | — | Sigil | Wild |
-| Discard Utilization | ↳ Mail-In Rebate Rank-Discard Economy `[L]` | TBD | TBD | TBD | TBD | Strength; Death | — | Ouija | — |
-| Discard Utilization | ↳ Yorick Discard-Scaling `[L]` | TBD | TBD | TBD | TBD | — | — | Medium | — |
-| No-Discard / Discard-Preservation | No-Discard / Discard-Preservation `[I]` | TBD | TBD | TBD | TBD | — | — | — | — |
-| No-Discard / Discard-Preservation | ↳ Green Joker No-Discard Scaling `[L]` | TBD | TBD | TBD | TBD | — | — | — | — |
-| No-Discard / Discard-Preservation | ↳ Banner + Delayed Gratification Discard Reserve `[L]` | TBD | TBD | TBD | TBD | — | — | — | — |
-| No-Discard / Discard-Preservation | ↳ Ramen Preservation `[L]` | TBD | TBD | TBD | TBD | — | — | — | — |
-| No-Discard / Discard-Preservation | ↳ Burglar Zero-Discard / Extra-Hand `[L]` | TBD | TBD | TBD | TBD | — | — | — | — |
-| Obelisk Hand-Rotation | Obelisk Hand-Rotation `[L]` | TBD | TBD | TBD | TBD | — | — | — | — |
-| Burnt Joker Hand-Level Engine | Burnt Joker Hand-Level Engine `[L]` | TBD | TBD | TBD | TBD | — | Any | Black Hole | — |
+| Discard Utilization | Discard Utilization `[I]` | — | — | — | No-discard commitments | — | — | Medium | — |
+| Discard Utilization | ↳ Castle Suit-Discard Scaling `[L]` | Castle | Merry Andy; Drunkard; Smeared Joker; Blueprint; Brainstorm *(with Castle)* | — | No-discard commitments | The Star; The Moon; The Sun; The World | — | Sigil | Wild |
+| Discard Utilization | ↳ Mail-In Rebate Rank-Discard Economy `[L]` | Mail-In Rebate | Merry Andy; Drunkard; Blueprint; Brainstorm *(with Rebate)* | Trading Card *(with Rebate)* | No-discard commitments | Strength; Death | — | Ouija | — |
+| Discard Utilization | ↳ Yorick Discard-Scaling `[L]` | Yorick | Merry Andy; Drunkard; Blueprint; Brainstorm *(with Yorick)* | Certificate *(with Yorick)* | No-discard commitments | — | — | Medium | — |
+| No-Discard / Discard-Preservation | No-Discard / Discard-Preservation `[I]` | — | — | — | Discard-engine commitments | — | — | — | — |
+| No-Discard / Discard-Preservation | ↳ Green Joker No-Discard Scaling `[L]` | Green Joker; Burglar *(paired)* | Banner; Delayed Gratification; Ramen *(with Green Joker)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with Green Joker)* | — | — | — | — |
+| No-Discard / Discard-Preservation | ↳ Banner + Delayed Gratification Discard Reserve `[L]` | Banner; Delayed Gratification | Burglar; Green Joker; Ramen *(with reserve core)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with reserve core)* | — | — | — | — |
+| No-Discard / Discard-Preservation | ↳ Ramen Preservation `[L]` | Ramen; Burglar *(paired)* | Green Joker; Banner; Delayed Gratification *(with Ramen)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with Ramen)* | — | — | — | — |
+| No-Discard / Discard-Preservation | ↳ Burglar Zero-Discard / Extra-Hand `[L]` | Burglar | Green Joker; Banner; Delayed Gratification; Ramen *(with Burglar)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with Burglar)* | — | — | — | — |
+| Obelisk Hand-Rotation | Obelisk Hand-Rotation `[L]` | Obelisk | Blueprint; Brainstorm *(with Obelisk)* | — | A committed currently-most-played hand route | — | — | — | — |
+| Burnt Joker Hand-Level Engine | Burnt Joker Hand-Level Engine `[L]` | Burnt Joker | Astronomer; Space Joker; Certificate; Blueprint; Brainstorm *(with Burnt Joker)* | Merry Andy; Drunkard *(with Burnt Joker)* | — | — | Any | Black Hole | — |
 
 ## 12. Hand scheduling
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Last-Hand Burst | Last-Hand Burst `[I]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Last-Hand Burst | ↳ Acrobat Last-Hand XMult `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Last-Hand Burst | ↳ Dusk Last-Hand Retrigger `[L]` | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| Loyalty Card Six-Hand Cycle | Loyalty Card Six-Hand Cycle `[L]` | Loyalty Card | TBD | TBD | TBD | — | — | — | — |
+| Last-Hand Burst | Last-Hand Burst `[I]` | — | — | — | — | — | — | — | — |
+| Last-Hand Burst | ↳ Acrobat Last-Hand XMult `[L]` | Acrobat | Blueprint; Brainstorm *(with Acrobat)* | Loyalty Card; Burglar *(with Acrobat)* | — | — | — | — | — |
+| Last-Hand Burst | ↳ Dusk Last-Hand Retrigger `[L]` | Dusk | Hanging Chad; Seltzer; Splash; Blueprint; Brainstorm *(with Dusk)* | Sock and Buskin; Hack; Hiker *(with Dusk)* | — | — | — | — | — |
+| Loyalty Card Six-Hand Cycle | Loyalty Card Six-Hand Cycle `[L]` | Loyalty Card | Blueprint; Brainstorm *(with Loyalty Card)* | Burglar; Acrobat *(with Loyalty Card)* | — | — | — | — | — |

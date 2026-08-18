@@ -60,7 +60,7 @@ def _assessment_by_id(resolution):
     return {assessment.strategy_id: assessment for assessment in resolution.assessments}
 
 
-def test_burnt_joker_keeps_generic_high_card_parent_actionable():
+def test_burnt_joker_keeps_generic_high_card_actionable_beneath_its_engine():
     tracker = _tracker()
     state = _state(jokers=(_joker("Burnt Joker"),))
 
@@ -76,7 +76,8 @@ def test_burnt_joker_keeps_generic_high_card_parent_actionable():
     assert nodes["high_card"].active is True
     assert nodes["high_card_stuntman"].active is False
     assert nodes["high_card_baron_mime"].active is False
-    assert resolution.dominant_strategy_id == "high_card"
+    assert resolution.dominant_strategy_id == "burnt_joker_engine"
+    assert by_id["burnt_joker_engine"].score >= by_id["high_card"].score
 
 
 def test_stuntman_specific_evidence_replaces_parent_and_inherits_its_evidence():

@@ -6,6 +6,19 @@ from games.balatro.strategy_catalog import UNIVERSAL_BALATRO_STRATEGIES, _strate
 from games.balatro.strategy_topology import StrategyNodeSpec, StrategyTopology
 
 
+ALL_TAROT_NAMES = (
+    "The Fool", "The Magician", "The High Priestess", "The Empress",
+    "The Emperor", "The Hierophant", "The Lovers", "The Chariot", "Justice",
+    "The Hermit", "The Wheel of Fortune", "Strength", "The Hanged Man", "Death",
+    "Temperance", "The Devil", "The Tower", "The Star", "The Moon", "The Sun",
+    "Judgement", "The World",
+)
+ALL_PLANET_NAMES = (
+    "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus",
+    "Neptune", "Pluto", "Planet X", "Ceres", "Eris",
+)
+
+
 SECTION_ONE_ROOT_IDS = frozenset(
     {
         "high_card",
@@ -933,9 +946,9 @@ def _remaining_section_definitions():
                 "Ramen",
                 "Banner",
             ),
-            gold_consumables=("The Medium",),
+            gold_consumables=("Medium",),
             silver_consumables=("Death", "Cryptid"),
-            directed_spectrals=("The Medium", "Cryptid"),
+            directed_spectrals=("Medium", "Cryptid"),
             preferred_seals=("Purple",),
         ),
         "gold_seal": _strategy(
@@ -1082,6 +1095,7 @@ def _remaining_section_definitions():
             "Planet Engine",
             silver_jokers=("Astronomer",),
             gold_consumables=("The High Priestess", "Black Hole"),
+            gold_planets=ALL_PLANET_NAMES,
             directed_tarots=("The High Priestess",),
             directed_spectrals=("Black Hole",),
         ),
@@ -1118,6 +1132,8 @@ def _remaining_section_definitions():
             "tarot_engine",
             "Tarot Engine",
             gold_jokers=("Fortune Teller",),
+            silver_consumables=ALL_TAROT_NAMES,
+            directed_tarots=ALL_TAROT_NAMES,
         ),
         "tarot_cartomancer": _strategy(
             "tarot_cartomancer",
@@ -1133,9 +1149,6 @@ def _remaining_section_definitions():
             "tarot_eight_ball",
             "8 Ball / Eights Tarot Generation",
             gold_jokers=("8 Ball", "Eight Ball"),
-            silver_consumables=("Death", "Strength", "The Hanged Man", "Cryptid"),
-            directed_tarots=("Death", "Strength", "The Hanged Man"),
-            directed_spectrals=("Cryptid",),
             preferred_ranks=("8",),
         ),
         "vagabond": _strategy(
@@ -1143,6 +1156,8 @@ def _remaining_section_definitions():
             "Vagabond Low-Money Tarot Engine",
             gold_jokers=("Vagabond",),
             silver_jokers=("Fortune Teller",),
+            silver_consumables=ALL_TAROT_NAMES,
+            directed_tarots=ALL_TAROT_NAMES,
         ),
 
         # Section 9: economy, shop, reroll and blind-skip engines.
@@ -1249,8 +1264,8 @@ def _remaining_section_definitions():
             "discard_yorick",
             "Yorick Discard-Scaling",
             gold_jokers=("Yorick",),
-            silver_consumables=("The Medium",),
-            directed_spectrals=("The Medium",),
+            silver_consumables=("Medium",),
+            directed_spectrals=("Medium",),
         ),
         "no_discard": _strategy("no_discard", "No-Discard / Discard-Preservation"),
         "no_discard_green": _strategy(
@@ -1284,6 +1299,7 @@ def _remaining_section_definitions():
             gold_jokers=("Burnt Joker",),
             silver_jokers=("Astronomer",),
             gold_consumables=("Black Hole",),
+            silver_planets=ALL_PLANET_NAMES,
             directed_spectrals=("Black Hole",),
         ),
 

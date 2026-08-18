@@ -119,8 +119,7 @@ Red Seal [I]
 Blue Seal Hand-Level Scaling [L]
 Purple Seal Tarot Engine [L]
 
-Gold Seal Economy [I]
-└── Gold-Seal Retrigger Economy [L]
+Gold-Seal Retrigger Economy [L]
 ```
 
 ## 6. Destruction, sacrifice, consumption, and thinning
@@ -136,8 +135,7 @@ Vampire [I]
 ├── Midas Mask + Vampire [L]
 └── Pareidolia + Midas Mask + Vampire [L]
 
-Ceremonial Dagger Sacrifice [I]
-└── Riff-Raff / Disposable-Joker Dagger Feed [L]
+Ceremonial Dagger / Disposable-Joker Feed [L]
 
 Madness Destruction [I]
 ├── Solo Madness [L]
@@ -157,8 +155,7 @@ Hologram Deck-Growth [I]
 ├── Certificate + Hologram [L]
 └── Marble Joker + Hologram [L]
 
-Hiker Card Training [I]
-└── Hiker Retrigger / Copy Training [L]
+Hiker Retrigger / Copy Training [L]
 
 Driver's License Enhancement-Density [L]
 Blue Joker Large-Deck Chips [L]
@@ -204,14 +201,12 @@ Throwback Blind-Skip Scaling [L]
 ## 10. Joker-board and composition strategies
 
 ```text
-Joker Stencil [I]
-└── Joker Stencil + Ankh / Invisible Duplication [L]
+Joker Stencil / Ankh / Invisible Duplication [L]
 
 Baseball Card Uncommon Stack [L]
 Abstract Joker Wide-Board [L]
 
-Swashbuckler Sell-Value Stack [I]
-└── Egg / Gift-Card Swashbuckler [L]
+Egg / Gift-Card Swashbuckler [L]
 ```
 
 ## 11. Discard, no-discard, and hand-rotation engines
@@ -272,15 +267,23 @@ Joker Stencil               <-> Ankh / Invisible Joker / Negative Jokers / empty
 
 ## 14. Not standalone
 
-```text
-Blueprint / Brainstorm
-Astronomer
-Chaos the Clown
-Drunkard / Merry Andy
-Juggler / Troubadour
-Splash
-Showman
-Invisible Joker
-```
+These components do not form independent strategies. They are assigned as
+conditional support and remain Neutral when their destination engine is absent.
+
+| Component | Integrated destination |
+|---|---|
+| Blueprint / Brainstorm | Silver support for an owned, copyable defining engine; never independent strategy evidence |
+| Astronomer | Planet Engine, Blue Seal hand-level scaling, and Burnt Joker hand-level support |
+| Chaos the Clown | Gold support for an owned Flash Card reroll engine |
+| Drunkard / Merry Andy | Purple Seal, Castle, Mail-In Rebate, Yorick, and Burnt Joker discard engines |
+| Juggler / Troubadour | Held Red-Seal, Blue Seal, Steel-Mime, Baron-Mime, and other material held-card engines |
+| Splash | Played Red-Seal, Hiker, Flower Pot, Midas Mask, and Vampire/Canio card-processing engines |
+| Showman | Baseball Card duplicate-Uncommon support and Bronze wide-board support for Abstract Joker |
+| Invisible Joker | Joker Stencil duplication, Swashbuckler sell-value feed, Abstract wide-board support, and situational engine duplication |
+
+The five former one-child branches (Gold Seal, Ceremonial Dagger, Hiker,
+Joker Stencil, and Swashbuckler) are collapsed into leaves. This preserves their
+mechanics while satisfying the global rule that an indexed parent must expose at
+least two genuine specializations.
 
 **Topology frozen for v1.0F unless deterministic/live validation proves a defect.**

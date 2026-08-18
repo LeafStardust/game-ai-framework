@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from pathlib import Path
 
 from games.balatro.strategy import BANNED, GOLD, NEUTRAL, SILVER
 from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
@@ -128,6 +129,11 @@ def test_section_six_combo_leaves_require_their_defining_engine():
         _state(jokers=(madness, eternal)), "madness_eternal", eternal
     ) == GOLD
 
+    dagger = _joker("DaggerJoker")
+    assert conditional_joker_relationship(
+        _state(jokers=(dagger,)), "dagger_sacrifice", eternal
+    ) == BANNED
+
 
 def test_section_seven_growth_partner_does_not_seed_without_hologram():
     dna = _joker("DNAJoker")
@@ -149,6 +155,12 @@ def test_section_eight_combo_and_part_fourteen_astronomer_support():
     assert conditional_joker_relationship(
         _state(jokers=(constellation,)), "planet_constellation", astronomer
     ) == SILVER
+
+    vagabond = _joker("VagabondJoker")
+    bull = _joker("BullJoker")
+    assert conditional_joker_relationship(
+        _state(jokers=(vagabond,)), "vagabond", bull
+    ) == BANNED
 
 
 def test_section_nine_cash_combo_and_chaos_reroll_support_are_contextual():
@@ -235,3 +247,25 @@ def test_full_tree_tracker_resolves_a_late_section_leaf():
 
     assert resolution.assessment("campfire").score >= 8.0
     assert resolution.dominant_strategy_id == "campfire"
+
+
+def test_relationship_document_has_no_unaudited_rows_and_part_fourteen_is_integrated():
+    root = Path(__file__).resolve().parents[1]
+    relationships = (root / "BALATRO_STRATEGY_RELATIONSHIPS.md").read_text(encoding="utf-8")
+    topology = (root / "BALATRO_STRATEGY_TREE.md").read_text(encoding="utf-8")
+
+    assert not any("TBD" in line for line in relationships.splitlines() if line.startswith("|"))
+    for component in (
+        "Blueprint / Brainstorm",
+        "Astronomer",
+        "Chaos the Clown",
+        "Drunkard / Merry Andy",
+        "Juggler / Troubadour",
+        "Splash",
+        "Showman",
+        "Invisible Joker",
+    ):
+        assert f"| {component} |" in topology
+
+    assert "Gold Seal Economy [I]" not in topology
+    assert "Ceremonial Dagger Sacrifice [I]" not in topology

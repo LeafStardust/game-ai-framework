@@ -156,6 +156,7 @@ _PART_FOURTEEN_COPY_CORES = {
     "vagabond": frozenset({"vagabondjoker"}),
     "cash_bull": frozenset({"bulljoker"}),
     "cash_bootstraps": frozenset({"bootstrapsjoker"}),
+    "cash_growth": frozenset({"rocketjoker", "tothemoonjoker"}),
     "campfire": frozenset({"campfirejoker"}),
     "flash_card": frozenset({"flashcardjoker"}),
     "red_card": frozenset({"redcardjoker"}),
@@ -931,6 +932,10 @@ def _section_six_relationship(state, strategy_id: str, item: object) -> str:
     has_canio = "caniojoker" in owned
     has_vampire = "vampirejoker" in owned
 
+    if strategy_id == "dagger_sacrifice" and "daggerjoker" in owned:
+        if bool(getattr(item, "eternal", False)):
+            return BANNED
+
     if strategy_id == "canio_trading" and has_canio:
         if token == "tradingcardjoker":
             return GOLD
@@ -982,6 +987,12 @@ def _section_six_relationship(state, strategy_id: str, item: object) -> str:
             if _item_token(joker) != "madnessjoker" and not bool(getattr(joker, "eternal", False))
         ]
         return GOLD if not others else NEUTRAL
+    if (
+        strategy_id == "madness_solo"
+        and "madnessjoker" in owned
+        and token == "jokerstencil"
+    ):
+        return SILVER
 
     if strategy_id == "madness_eternal" and "madnessjoker" in owned:
         if bool(getattr(item, "eternal", False)):
@@ -1037,6 +1048,13 @@ def _section_eight_relationship(state, strategy_id: str, item: object) -> str:
     token = _item_token(item)
     owned = _owned_joker_tokens(state)
 
+    if strategy_id == "vagabond" and "vagabondjoker" in owned:
+        if token in {
+            "rocketjoker", "tothemoonjoker", "bulljoker",
+            "bootstrapsjoker", "cloud9joker",
+        }:
+            return BANNED
+
     if strategy_id == "planet_constellation" and "constellationjoker" in owned:
         if token in {"astronomerjoker", "perkeojoker"}:
             return SILVER
@@ -1082,6 +1100,21 @@ def _section_eight_relationship(state, strategy_id: str, item: object) -> str:
 def _section_nine_relationship(state, strategy_id: str, item: object) -> str:
     token = _item_token(item)
     owned = _owned_joker_tokens(state)
+    cash_cores = {
+        "rocketjoker", "tothemoonjoker", "bulljoker", "bootstrapsjoker", "cloud9joker"
+    }
+    if strategy_id == "cash_hoard" and owned & cash_cores and token == "vagabondjoker":
+        return BANNED
+    if strategy_id.startswith("cash_") and token == "vagabondjoker":
+        leaf_core = {
+            "cash_growth": frozenset({"rocketjoker", "tothemoonjoker"}),
+            "cash_bull": frozenset({"bulljoker"}),
+            "cash_bootstraps": frozenset({"bootstrapsjoker"}),
+            "cash_bull_bootstraps": frozenset({"bulljoker", "bootstrapsjoker"}),
+            "cash_cloud_nine": frozenset({"cloud9joker"}),
+        }.get(strategy_id, frozenset())
+        if owned & leaf_core:
+            return BANNED
 
     if strategy_id == "cash_bull" and "bulljoker" in owned:
         if token in {"rocketjoker", "tothemoonjoker"}:
@@ -1169,6 +1202,11 @@ def _section_eleven_relationship(state, strategy_id: str, item: object) -> str:
             "discard_mail_rebate": "mailinrebatejoker",
             "discard_yorick": "yorickjoker",
         }[strategy_id]
+        if core in owned and token in {
+            "greenjoker", "bannerjoker", "delayedgratificationjoker",
+            "ramenjoker", "burglarjoker",
+        }:
+            return BANNED
         if core in owned and token in {"merryandyjoker", "drunkardjoker"}:
             return SILVER
         if strategy_id == "discard_castle" and core in owned and token == "smearedjoker":
