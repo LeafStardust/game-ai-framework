@@ -48,6 +48,29 @@ class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
 
     def recommend(self, state, action) -> ShopBoosterRecommendation:
         recommendation = super().recommend(state, action)
+
+        if recommendation.family == "BUFFOON":
+            full = len(getattr(state, "jokers", ()) or ()) >= int(
+                getattr(state, "joker_slots", 5) or 5
+            )
+            if full:
+                # D8 must not demand a speculative sale before hidden Buffoon
+                # contents are visible. Revalue the unopened pack as having one
+                # replacement opportunity; D9 may Skip after reveal, and only a
+                # visible desirable Joker may justify selling an incumbent.
+                shadow = state.copy()
+                shadow.joker_slots = len(getattr(state, "jokers", ()) or ()) + 1
+                recommendation = super().recommend(shadow, action)
+                recommendation = replace(
+                    recommendation,
+                    rationale=(
+                        *recommendation.rationale,
+                        "full Joker roster does not force a pre-open sale for Buffoon packs",
+                        "Buffoon pack is valued as a replacement opportunity; inspect visible Jokers first, then sell only if an actual replacement is selected",
+                    ),
+                )
+            return recommendation
+
         if recommendation.family != "CELESTIAL":
             return recommendation
 
@@ -90,12 +113,18 @@ class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
 
 
 class StrategyAwareShopRerollPolicy(BuildAwareShopRerollPolicy):
-    """Apply a larger paid-reroll reserve to Gold economy routes."""
+    """Increase reroll pressure once a build direction exists or the run is late."""
 
     GOLD_ECONOMY_ROOTS = frozenset({"gold_cards", "gold_seal"})
     GOLD_EARLY_RESERVE = 25
     GOLD_LATE_RESERVE = 40
     GOLD_MAXIMUM_PAID_REROLL_COST = 6
+
+    STRATEGY_SEARCH_SCORE_FLOOR = 1.0
+    STRATEGY_SEARCH_MAXIMUM_PAID_REROLL_COST = 10
+    STRATEGY_SEARCH_EARLY_RESERVE = 5
+    STRATEGY_SEARCH_LATE_RESERVE = 10
+    STRATEGY_SEARCH_LATE_ANTE = 6
 
     def __init__(
         self,
@@ -115,9 +144,37 @@ class StrategyAwareShopRerollPolicy(BuildAwareShopRerollPolicy):
             path = topology.path(strategy_id)
         return bool(self.GOLD_ECONOMY_ROOTS.intersection(path))
 
+    def _search_pressure(self, state) -> tuple[bool, float, str | None]:
+        resolution = self.strategy_tracker.observe(state)
+        assessment = resolution.assessment(resolution.dominant_strategy_id)
+        score = float(assessment.score) if assessment is not None else 0.0
+        ante = max(1, int(getattr(state, "ante", 1) or 1))
+        enabled = score >= self.STRATEGY_SEARCH_SCORE_FLOOR or ante >= self.STRATEGY_SEARCH_LATE_ANTE
+        return enabled, score, resolution.dominant_strategy_id
+
     def thresholds_for_state(self, state) -> ShopRerollThresholds:
         thresholds = super().thresholds_for_state(state)
         resolution = self.strategy_tracker.observe(state)
+        search, _, _ = self._search_pressure(state)
+
+        if search:
+            thresholds = replace(
+                thresholds,
+                minimum_margin=0.0,
+                maximum_paid_reroll_cost=max(
+                    int(thresholds.maximum_paid_reroll_cost),
+                    self.STRATEGY_SEARCH_MAXIMUM_PAID_REROLL_COST,
+                ),
+                minimum_money_after_paid_reroll=min(
+                    int(thresholds.minimum_money_after_paid_reroll),
+                    self.STRATEGY_SEARCH_EARLY_RESERVE,
+                ),
+                late_ante_minimum_money_after_paid_reroll=min(
+                    int(thresholds.late_ante_minimum_money_after_paid_reroll),
+                    self.STRATEGY_SEARCH_LATE_RESERVE,
+                ),
+            )
+
         if not self._is_gold_economy_route(resolution.dominant_strategy_id):
             return thresholds
         return replace(
@@ -133,6 +190,25 @@ class StrategyAwareShopRerollPolicy(BuildAwareShopRerollPolicy):
             late_ante_minimum_money_after_paid_reroll=max(
                 int(thresholds.late_ante_minimum_money_after_paid_reroll),
                 self.GOLD_LATE_RESERVE,
+            ),
+        )
+
+    def recommend(self, state, visible_actions, *, reroll_cost, visible_score_floor=None):
+        recommendation = super().recommend(
+            state,
+            visible_actions,
+            reroll_cost=reroll_cost,
+            visible_score_floor=visible_score_floor,
+        )
+        search, score, strategy_id = self._search_pressure(state)
+        if not search:
+            return recommendation
+        return replace(
+            recommendation,
+            rationale=(
+                *recommendation.rationale,
+                f"strategy-search pressure active: dominant={strategy_id or 'none'} score={score:.3f} ante={int(getattr(state, 'ante', 1) or 1)}",
+                "established/late run lowers passive waiting tolerance and favors paid search for Jokers/consumables when public EV supports it",
             ),
         )
 
