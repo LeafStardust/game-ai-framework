@@ -31,7 +31,7 @@
 
 ---
 
-## v1.0.0 — Red Deck / White Stake Competence — IN PROGRESS
+## v1.0 — Red Deck / White Stake Competence — IN PROGRESS
 
 Goal: turn the completed autonomous stack into a **deliberate, repeatable Red Deck / White Stake player** that discovers and reinforces coherent strategies from the current run instead of relying on isolated local-value purchases.
 
@@ -78,6 +78,8 @@ Goal: turn the completed autonomous stack into a **deliberate, repeatable Red De
 
 The first flat universal-strategy implementation proved current-state evidence, candidate alignment, Ante pressure, D1/D13 integration, replacement, consumable, and conditional-relationship concepts. Its flat catalogue/topology is now **legacy design**. The frozen replacement topology is in `BALATRO_STRATEGY_TREE.md`; implementation now migrates that tree into the runtime without discarding already-green strategic consumers.
 
+Current migration snapshot: Sections 1–4 are production-owned and tested (65 topology nodes). Seven coarse legacy standalone definitions still preserve behavior for the not-yet-expanded Sections 5–12.
+
 - [x] Establish zero-evidence early buying: ordinary/meta/context value leads before the run owns strategic evidence.
 - [x] Preserve the bounded explicitly-undiscovered item tie-break; discovery may separate otherwise equal positive options but must never override survival, economy, or strategy.
 - [x] Establish current-state recomputation, used-Planet evidence, unopened-consumable exclusion, Ante pressure, dominant/relevant diagnostics, candidate alignment, and negative-times-negative protection in the prototype runtime.
@@ -92,10 +94,12 @@ The first flat universal-strategy implementation proved current-state evidence, 
 - [x] Migrate the High Card subtree into the production catalogue: `High Card -> Core / Stuntman-Small-Hand / Baron-Mime`, remove the obsolete competing-hand High Card Banned list, inherit the parent hand/Planet semantics, and preserve zero-start candidate economics with tree-aware pivot projection.
 - [x] Finish the High Card node-by-node relationship pass: Core remains a true fallback; Baron/Mime evidence is state-dependent on real held-King infrastructure; Stuntman conflicts with Baron-Mime only when the held-card engine is materially established; Obelisk conflicts with committed High Card only through its explicit most-played-hand mechanic, never as generic play-count evidence.
 - [x] Keep all not-yet-migrated strategies numerically identical to the legacy tracker as standalone root/leaves, including negative conflict scores, until each subtree is explicitly migrated.
-- [ ] Migrate the remaining frozen `StrategyDefinition`/catalogue ownership onto topology node IDs without duplicating component metadata.
+- [x] Migrate frozen Sections 1–4—poker hands, ranks/faces, suits/held cards, and enhancements—onto topology-owned `StrategyDefinition` node IDs without parent/child component duplication.
+- [ ] Expand the seven remaining legacy standalone definitions into the frozen Section 5–12 topology and move their catalogue ownership onto the resulting node IDs.
 - [x] Remove generic poker-hand play count from universal strategy evidence. Preserve hand history only for mechanics that explicitly use it; retain persistent hand-level/Planet investment evidence.
 - [ ] Implement the global Negative-Joker retention rule in sell/replace policy: protect Negative Jokers from ordinary replacement pressure unless their active mechanic materially harms the build or intentional sacrifice/destruction is justified by the active strategy.
-- [ ] Finish Gold/Silver/Bronze/Banned/conditional relationships **node by node**. High Card is complete; all other frozen nodes still require audit. Banned must mean genuine strategic conflict, not merely support for a competing strategy.
+- [x] Finish the Gold/Silver/Bronze/Banned/conditional relationship audit for Sections 1–4. Route-bound support is Neutral off-path, and Banned means genuine strategic conflict rather than support for a competing route.
+- [ ] Finish the Gold/Silver/Bronze/Banned/conditional relationship audit node by node for Sections 5–12: seals; destruction/thinning; deck growth/training; consumable engines; economy; Joker-board composition; discard rotation; and hand scheduling.
 - [ ] Rebuild the inverse `component -> strategy/relationship` index from fully tree-owned catalogue data without editing all 150 Joker classes.
 - [x] Keep strategy evidence separate from candidate purchase/retention value: candidate tree projection can reveal a pivot, but a candidate cannot fund its own current-strategy purchase bonus before it is owned.
 - [x] Separate portable universal Joker value from route-bound strategy value. Portable mapped Jokers retain intrinsic value; only mechanically route-bound Jokers receive dynamic `OFF_PATH` pressure.
@@ -106,14 +110,15 @@ The first flat universal-strategy implementation proved current-state evidence, 
 - [x] Bound Joker-order search on late-run/Negative-edition boards and keep ordinary scoring-order optimization out of the blind-selection critical path.
 - [x] Bound every Ante-7+ D1 replan, including Small/Big blinds, to an interactive horizon/node envelope; re-observe after every real action instead of blocking on deep late-run trees.
 - [x] Apply universal-strategy alignment to Tarot/Spectral pack choices so highlighted routes such as Aces prefer aligned deck shaping over unrelated enhancement value.
-- [x] Migrate and audit the enhancement subtree: Stone, Glass, Steel, Lucky and Gold Card parents now gate route-bound support behind material matching infrastructure, with 15 ranked leaves and no off-route generic Joker seeding.
 - [x] Price cash spent while Bootstraps or Bull is owned by the scoring value lost across every paid shop-action family, in addition to ordinary interest/reserve economics.
-- [ ] Keep early Tarot/Spectral strategy-seeding available while requiring real poker-hand evidence before meaningful paid Planet investment across migrated leaves.
+- [x] Keep early Tarot/Spectral strategy-seeding available while requiring real active poker-hand strategy evidence before meaningful paid Planet investment; preserve inherited component semantics across migrated leaves.
 - [ ] Add Red Deck / White Stake cartridge modifiers over the full universal strategy tree without redefining topology or component relationships.
 - [ ] Migrate remaining D1–D14 direct-definition lookups to inherited path semantics where required; guaranteed blind survival remains superior to strategy purity. D1 hand fit, D8 Celestial evidence and D13 tag support already honor the migrated High Card path.
 - [x] Log production leaf rankings plus node path, direct evidence, ancestor foundation and effective leaf evidence; richer contributor/pivot/conflict/Negative diagnostics remain pending.
-- [ ] Add remaining deterministic regressions for removal on sale, Planet investment, Negative retention, conflicts, Ante pressure, consumables, packs, and D1 hand preference across the fully migrated forest.
-- [ ] Run specialized live validation only after deterministic tree behavior is stable.
+- [x] Add deterministic regressions for evidence removal on sale, used-Planet investment, conflicts, Ante pressure, consumable seeding, pack selection, and D1 hand preference across the currently migrated forest.
+- [ ] Add Negative-retention regressions and repeat the completed behavior suite across Sections 5–12 as those subtrees migrate.
+- [x] Use the first unseeded live Red/White win to identify late-run latency, reroll overspending, held-Steel ordering, boss handling, and post-win finalization defects; preserve each correction with deterministic regressions.
+- [ ] Run final specialized live validation after the complete deterministic tree is stable.
 
 ### 1.0G — Final freeze and acceptance gate
 

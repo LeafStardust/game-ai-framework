@@ -2,6 +2,11 @@
 
 A general framework for building autonomous AI agents for different games.
 
+## Development
+
+- [Changelog](CHANGELOG.md) — completed milestones and notable implementation changes.
+- [Roadmap](ROADMAP.md) — current milestone status and remaining work.
+
 ## Balatro
 
 Install Python dependencies:
