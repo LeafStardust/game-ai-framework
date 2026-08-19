@@ -111,6 +111,7 @@ def guard_unresolved_conditional_relationships(
         "face_held_economy": ("Reserved Parking",),
         "face_business_card": ("Business Card",),
         "faceless_discard_economy": ("Faceless Joker",),
+        "faceless_ride_bus": ("Ride the Bus",),
         "sixes": ("Sixth Sense",),
         "queens_shoot_moon": ("Shoot the Moon",),
         "hiker_training": ("Hiker",),
