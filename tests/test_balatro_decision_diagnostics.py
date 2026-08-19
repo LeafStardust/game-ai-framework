@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from games.balatro.actions import SELECT_PACK_CARD, SKIP_BOOSTER
+from games.balatro.actions import SELECT_PACK_CARD
 from games.balatro.live.pack import LivePackChoice
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.runtime.playstyle_autonomous_runner import (
@@ -41,7 +41,7 @@ def _choice():
     )
 
 
-def test_d9_decision_carries_actual_ranked_candidates_and_skip_threshold():
+def test_d9_decision_carries_actual_ranked_candidates_and_pack_threshold():
     snapshot = LiveBalatroSnapshot(
         sequence=7,
         phase="BUFFOON_PACK",
@@ -79,12 +79,10 @@ def test_d9_decision_carries_actual_ranked_candidates_and_skip_threshold():
         },
     }
 
+    # Buffoon packs with free Joker capacity intentionally suppress Skip: opening
+    # the pack already spent the money, so one visible Joker must be taken rather
+    # than throwing the pack away because an empty slot itself has temporary value.
     candidates = diagnostics["candidate_scores"]
-    assert [candidate["action"] for candidate in candidates] == [
-        SELECT_PACK_CARD,
-        SKIP_BOOSTER,
-    ]
-    assert candidates[0]["score"] > candidates[1]["score"]
+    assert [candidate["action"] for candidate in candidates] == [SELECT_PACK_CARD]
     assert candidates[0]["area_index"] == 0
     assert candidates[0]["label"] == "Golden Joker"
-    assert candidates[1]["score"] == runner.pack_policy.skip_bias
