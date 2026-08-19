@@ -145,7 +145,7 @@ def test_final_fallback_goes_directly_to_immediate_beam(monkeypatch):
     assert decision.action.cards == ["discard"]
 
 
-def test_live_schedule_caps_probe_and_deepest_horizon_at_five():
+def test_live_schedule_uses_single_shallow_advisory_pass_under_safe_pace_policy():
     state = _state()
     full = LiveHandActionDecisionEngine(max_horizon=5)
     sparse = LiveHandActionDecisionEngine(
@@ -153,11 +153,13 @@ def test_live_schedule_caps_probe_and_deepest_horizon_at_five():
         search_schedule_mode="probe-deepest",
     )
 
-    assert [config.horizon for config in full._search_schedule(state)] == [2, 3, 4, 5]
-    assert [config.horizon for config in sparse._search_schedule(state)] == [2, 5]
+    assert [config.horizon for config in full._search_schedule(state)] == [2]
+    assert [config.horizon for config in sparse._search_schedule(state)] == [2]
+    assert full._search_schedule(state)[0].max_nodes <= 750
+    assert sparse._search_schedule(state)[0].max_nodes <= 750
 
 
-def test_red_white_playbook_retains_configured_ceiling_at_live_safety_cap():
+def test_red_white_playbook_retains_configured_ceiling_even_when_live_policy_is_shallower():
     playbook = default_balatro_playbooks().get("RED", "WHITE")
 
     assert playbook.version == "1.0"
