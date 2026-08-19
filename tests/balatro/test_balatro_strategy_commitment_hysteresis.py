@@ -55,13 +55,19 @@ def test_post_commit_clear_score_leader_can_pivot_immediately():
     )
 
 
-def test_post_commit_near_tie_uses_total_positive_support_after_gold():
-    sparse = _assessment("sparse", 10.5, gold=1, silver=0, bronze=0)
+def test_post_commit_equal_gold_keeps_raw_score_leader_despite_more_support():
+    leader = _assessment("leader", 10.5, gold=1, silver=0, bronze=0)
     supported = _assessment("supported", 9.5, gold=1, silver=1, bronze=1)
-    assert choose_post_commit_dominant((sparse, supported), ante=7) is supported
+    assert choose_post_commit_dominant((leader, supported), ante=7) is leader
 
 
-def test_maturity_is_only_tiebreak_after_concrete_component_evidence():
+def test_post_commit_equal_gold_keeps_raw_score_leader_despite_maturity_label():
     mature = _assessment("mature", 9.0, gold=1, status=MATURE)
     committed = _assessment("committed", 9.5, gold=1, status=COMMITTED)
-    assert choose_post_commit_dominant((committed, mature), ante=8) is mature
+    assert choose_post_commit_dominant((committed, mature), ante=8) is committed
+
+
+def test_pair_raw_leader_is_not_displaced_by_two_pair_generic_support():
+    pair = _assessment("pair", 10.0, gold=1, silver=1)
+    two_pair = _assessment("two_pair", 9.0, gold=1, silver=2, bronze=2)
+    assert choose_post_commit_dominant((pair, two_pair), ante=7) is pair
