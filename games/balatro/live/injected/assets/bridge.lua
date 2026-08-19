@@ -163,7 +163,7 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
   end
 
   local function bridge_status()
-    return "bridge=2;bridge_revision=6;blind_skip=1;hand_reorder=1;achievement_gate=" .. achievement_gate_state()
+    return "bridge=2;bridge_revision=7;blind_skip=1;hand_reorder=1;preblind_joker_sale=1;achievement_gate=" .. achievement_gate_state()
       .. ";restart_run_callback=" .. restart_run_callback_state()
       .. ";restart_unlock_drain=1"
       .. ";command_pump=LOVE_RUN_PRE_UPDATE"
@@ -644,13 +644,14 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     end
     local in_shop = G.STATE == G.STATES.SHOP
     local in_pack = is_pack_state()
+    local in_blind_select = G.STATE == G.STATES.BLIND_SELECT
     local blind = G.GAME and G.GAME.blind
     local verdant_leaf =
       G.STATE == G.STATES.SELECTING_HAND
       and blind
       and blind.name == "Verdant Leaf"
-    if not in_shop and not in_pack and not verdant_leaf then
-      return false, "joker sale requires SHOP, an open pack, or active Verdant Leaf"
+    if not in_shop and not in_pack and not in_blind_select and not verdant_leaf then
+      return false, "joker sale requires SHOP, BLIND_SELECT, an open pack, or active Verdant Leaf"
     end
 
     local index, parse_error = parse_single_index(payload)
@@ -933,10 +934,6 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       return false, "unlock_notify callback is unavailable"
     end
 
-    -- Match notify_then_setup_run: remove the GAME_OVER overlay first, then ask
-    -- Balatro to populate its native unlock queue. We intentionally do not add
-    -- notify_then_setup_run's follow-up setup event because this bridge performs
-    -- the guarded same-deck/stake restart itself after every unlock is acknowledged.
     if G.OVERLAY_MENU then
       G.OVERLAY_MENU:remove()
       G.OVERLAY_MENU = nil
@@ -993,9 +990,6 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       return false, "current stake is unavailable"
     end
 
-    -- Native Start New Run first calls unlock_notify() and blocks setup until the
-    -- unlock queue is empty. Reproduce that sequence in-process so a failed run
-    -- acknowledges every newly unlocked Joker/deck/item before automatic restart.
     local drained, drain_error = drain_unlock_confirmations()
     if not drained then
       return false, drain_error
@@ -1015,7 +1009,6 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
       return false, "current streak state is unavailable"
     end
 
-    -- Mirror Balatro's native held-R restart setup for a normal unseeded run.
     streak.amt = 0
     G:save_settings()
     G.SETTINGS.current_setup = "New Run"
@@ -1028,8 +1021,6 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
 
     local ok, error_message = pcall(callback)
 
-    -- start_setup_run consumes these synchronously while building the args table;
-    -- clear the temporary globals exactly as the native controller path does.
     G.forced_stake = nil
     G.challenge_tab = nil
     G.forced_seed = nil
@@ -1140,9 +1131,6 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     end
   end
 
-  -- Service bridge traffic before Balatro's update callback. The previous bridge
-  -- polled only after original_love_update returned, so any long/yielding update
-  -- during a state transition could starve even STATUS/PING commands.
   local original_love_update = love.update
   love.update = function(dt)
     safe_poll_bridge()
@@ -1151,11 +1139,6 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     end
   end
 
-  -- Also poll from the outer LÖVE frame loop. This survives a later replacement
-  -- of love.update by game code and keeps command transport independent of any
-  -- particular Balatro phase callback. The command slot is single-consumer:
-  -- read_command removes command.txt before execution, so the redundant pre-update
-  -- poll cannot execute the same command twice.
   local original_love_run = love.run
   if type(original_love_run) == "function" then
     love.run = function(...)
