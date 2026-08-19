@@ -41,7 +41,8 @@ def test_smiley_face_is_silver_support_once_pareidolia_is_owned():
 
 def test_pareidolia_primary_route_retains_smiley_as_real_engine_support():
     state = _state(jokers=(PareidoliaJoker(), SmileyFaceJoker()))
-    evaluator = StrategyAwareJokerBuildValueEvaluator(_tracker())
+    tracker = _tracker()
+    evaluator = StrategyAwareJokerBuildValueEvaluator(strategy_tracker=tracker)
     value = evaluator.evaluate(state, SmileyFaceJoker())
     assert value.total_gain >= 6.0
     assert any("Pareidolia" in note for note in value.rationale)
