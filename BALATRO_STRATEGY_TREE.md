@@ -175,8 +175,7 @@ Vagabond Low-Money Tarot Engine [L]
 ```text
 Cash Hoard / Interest [I]
 ├── Rocket / To the Moon Cash Growth [L]
-├── Bull Cash-to-Chips [L]
-├── Bootstraps Cash-to-Mult [L]
+├── Bull / Bootstraps Cash Scoring [L]
 └── Cloud 9 Nines Economy [L]
 
 Campfire Sell-Scaling [L]
