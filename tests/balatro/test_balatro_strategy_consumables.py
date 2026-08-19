@@ -82,14 +82,15 @@ def test_celestial_pack_is_blocked_without_real_poker_hand_strategy_evidence():
 
     assert recommendation.decision == HOLD
     assert any("Celestial blocked" in note for note in recommendation.rationale)
-    assert any("do not seed one" in note for note in recommendation.rationale)
+    assert any("refinement spending" in note for note in recommendation.rationale)
 
 
 def test_celestial_pack_unlocks_after_meaningful_poker_hand_strategy_evidence():
     state = _state()
     state.jokers = [JollyJoker()]
+    state.hand_levels["PAIR"] = 2
     tracker = _tracker()
-    assert tracker.observe(state).assessment("pair").score >= 1.5
+    assert tracker.observe(state).assessment("pair").score >= 3.5
     policy = StrategyAwareShopBoosterPolicy(
         thresholds=_booster_thresholds(),
         strategy_tracker=tracker,
@@ -132,7 +133,4 @@ def test_late_off_shortlist_structural_tarot_is_suppressed_not_hard_banned():
 
     assert result.strategic_adjustment < 0.0
     assert any("late off-shortlist TAROT penalty" in note for note in result.rationale)
-    # The strategy layer applies a penalty rather than returning an unconditional
-    # rejection sentinel; sufficiently strong immediate/contextual value may still
-    # make the complete acquisition decision positive.
     assert result.total_gain == result.base_evaluation.total_gain + result.strategic_adjustment
