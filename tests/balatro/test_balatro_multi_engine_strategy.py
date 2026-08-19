@@ -74,6 +74,23 @@ def test_drivers_license_stays_active_as_secondary_engine_after_ante_six():
     assert tracker._scope_factor(state, "drivers_license", 0, resolution) == 0.65
 
 
+def test_bull_bootstraps_cash_scoring_stays_active_beside_hand_primary():
+    tracker = BalatroStrategyTracker({
+        "no_discard_green": StrategyDefinition("no_discard_green", "Green Joker No-Discard"),
+        "cash_bull_bootstraps": StrategyDefinition("cash_bull_bootstraps", "Bull / Bootstraps Cash Scoring"),
+    })
+    resolution = _resolution(
+        _assessment("cash_bull_bootstraps", 8.0),
+        _assessment("no_discard_green", 6.0),
+    )
+    state = SimpleNamespace(ante=8)
+
+    assert tracker.strategy_role("cash_bull_bootstraps") == SECONDARY
+    assert tracker.primary_strategy_id(resolution) == "no_discard_green"
+    assert tracker.active_engine_ids(resolution) == ("cash_bull_bootstraps",)
+    assert tracker._scope_factor(state, "cash_bull_bootstraps", 0, resolution) == 0.65
+
+
 def test_competing_poker_hand_routes_do_not_become_simultaneous_engines():
     tracker = BalatroStrategyTracker({
         "straight": StrategyDefinition("straight", "Straight", primary_hands=("STRAIGHT",)),
