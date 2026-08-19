@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 
 from games.balatro.actions import SELECT_BLIND, SKIP_BLIND, BalatroAction
@@ -8,6 +6,7 @@ from games.balatro.live.injected.action_dispatcher import (
     LiveMemoryInjectedActionDispatcher,
     UnsupportedInjectedAction,
 )
+from games.balatro.live.injected.install import bridge_asset_path
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 
@@ -127,15 +126,7 @@ def test_dispatcher_rejects_boss_skip_before_bridge_call():
 
 
 def test_lua_bridge_routes_skip_blind_to_native_callback():
-    bridge_lua = (
-        Path(__file__).parents[1]
-        / "games"
-        / "balatro"
-        / "live"
-        / "injected"
-        / "assets"
-        / "bridge.lua"
-    ).read_text(encoding="utf-8")
+    bridge_lua = bridge_asset_path().read_text(encoding="utf-8")
 
     assert 'action == "SKIP_BLIND"' in bridge_lua
     assert "G.FUNCS and G.FUNCS.skip_blind" in bridge_lua
