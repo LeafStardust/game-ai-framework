@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from games.balatro.actions import PLAY_CARDS
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.live.hand_action_policy import (
     CLEAR_PATH,
     PACE_RECOVERY,
     LiveHandActionDecisionEngine,
 )
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
+
+
+BOSS_PROJECTION_SAFETY_MARGIN = 1.05
 
 
 def _boss_active(state) -> bool:
@@ -128,9 +131,7 @@ def install_d1_log_resilience_policy() -> None:
                 )
 
         if boss_unconfirmed and decision.mode == CLEAR_PATH:
-            # Defensive fail-closed guard. In normal operation the exact downgrade
-            # above means the engine must provide independent confirmation first.
-            return replace(
+            decision = replace(
                 decision,
                 confidence=min(float(decision.confidence), 0.95),
                 rationale=(
@@ -138,6 +139,46 @@ def install_d1_log_resilience_policy() -> None:
                     *decision.rationale,
                 ),
             )
+
+        # The batch contained a projected 22,212/23,145 clear against a 22,000 boss
+        # that actually finished at 21,522. A barely pace-qualified boss play is
+        # therefore not treated as deterministic truth. When a legal discard still
+        # exists, demand 5% projected headroom before consuming that hand.
+        ratio = getattr(decision, "selected_pace_ratio", None)
+        if (
+            _boss_active(state)
+            and decision.mode != CLEAR_PATH
+            and decision.action.name == PLAY_CARDS
+            and ratio is not None
+            and 1.0 <= float(ratio) < BOSS_PROJECTION_SAFETY_MARGIN
+            and int(getattr(state, "discards_remaining", 0) or 0) > 0
+        ):
+            discards = [plan for plan in supplied if plan.action.name == DISCARD_CARDS]
+            if discards:
+                selected = max(
+                    discards,
+                    key=lambda plan: (
+                        float(self.evaluator.evaluate(state, plan.action)),
+                        self._within_type_key(plan),
+                    ),
+                )
+                decision = replace(
+                    decision,
+                    mode=PACE_RECOVERY,
+                    action=selected.action,
+                    selected_plan=selected,
+                    selected_immediate_score=None,
+                    selected_pace_ratio=None,
+                    selected_fallback_value=float(
+                        self.evaluator.evaluate(state, selected.action)
+                    ),
+                    confidence=min(float(decision.confidence), 0.90),
+                    rationale=(
+                        f"boss projected pace ratio={float(ratio):.3f} is below the {BOSS_PROJECTION_SAFETY_MARGIN:.2f} model-uncertainty margin",
+                        "a legal discard remains; seek a safer hand instead of trusting a marginal score projection",
+                        *decision.rationale,
+                    ),
+                )
         return decision
 
     StrategyAwareLiveHandActionPolicy.decide = policy_decide
