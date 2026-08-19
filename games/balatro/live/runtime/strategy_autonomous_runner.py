@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from games.balatro.actions import SELECT_BLIND
 from games.balatro.collection_mode import (
     CollectionFirstPackPolicy,
     CollectionFirstPolicy,
@@ -14,6 +15,7 @@ from games.balatro.live.blind_clear_planner import (
 )
 from games.balatro.joker_order_policy import JokerOrderPolicy
 from games.balatro.joker_sale_policy import JokerSalePolicy
+from games.balatro.live.riff_raff_cycle import RiffRaffCyclePolicy
 from games.balatro.live.strategy_consumable_timing import (
     StrategyAwareLiveConsumableTimingPolicy,
 )
@@ -118,6 +120,9 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
             strategy_tracker=self.strategy_tracker,
         )
         self.verdant_leaf_sale_policy = VerdantLeafSalePolicy(
+            evaluator=joker_build_value,
+        )
+        self.riff_raff_cycle_policy = RiffRaffCyclePolicy(
             evaluator=joker_build_value,
         )
         self.hand_order_policy = HandOrderPolicy()
@@ -308,6 +313,31 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
                         },
                     },
                 )
+
+        riff_raff_sale = self.riff_raff_cycle_policy.recommend(
+            decision.state,
+            will_select_blind=(
+                str(decision.snapshot.phase) == "BLIND_SELECT"
+                and str(decision.action.name) == SELECT_BLIND
+            ),
+        )
+        if riff_raff_sale is not None:
+            decision = replace(
+                decision,
+                action=riff_raff_sale.to_action(),
+                source="Riff-Raff pre-round cycle policy",
+                notes=riff_raff_sale.rationale,
+                decision_diagnostics={
+                    "layer": "RIFF_RAFF_CYCLE",
+                    "selected": {
+                        "joker_index": int(riff_raff_sale.joker_index),
+                        "joker": riff_raff_sale.joker,
+                        "retention_cost": float(riff_raff_sale.retention_cost),
+                        "free_slots_before": int(riff_raff_sale.free_slots_before),
+                    },
+                },
+            )
+
         verdant_sale = self.verdant_leaf_sale_policy.recommend(decision.state)
         if verdant_sale is not None:
             decision = replace(
