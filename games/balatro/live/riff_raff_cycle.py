@@ -27,17 +27,21 @@ class RiffRaffCycleDecision:
 
 
 class RiffRaffCyclePolicy:
-    """Open up to two Joker slots before selecting a blind for Riff-Raff.
+    """Pre-blind Joker cleanup plus Riff-Raff slot cycling.
 
-    Riff-Raff creates up to two Common Jokers when a blind is selected. The policy
-    sells at most one low-retention Joker per autonomous checkpoint, then relies on
-    the normal re-observe/replan loop. Once two slots are open, it stops naturally;
-    this prevents duplicate sells while still allowing two sequential sales before
-    the blind is selected.
+    First, sell temporary scoring Jokers whose native effect is on its final legs:
+    Popcorn at +4 Mult or less and Ice Cream at +20 Chips or less. This banks their
+    remaining sell value before another round consumes most or all of their effect.
+
+    Then, when Riff-Raff is owned, open up to two Joker slots before selecting a
+    blind. At most one Joker is sold per autonomous checkpoint; the normal
+    re-observe/replan loop prevents stale indices and duplicate transactions.
     """
 
     TARGET_FREE_SLOTS = 2
     MAX_RETENTION_COST = 1.0
+    POPCORN_LAST_LEGS_MULT = 4
+    ICE_CREAM_LAST_LEGS_CHIPS = 20
 
     def __init__(self, *, evaluator: JokerBuildValueEvaluator | None = None) -> None:
         self.evaluator = evaluator or JokerBuildValueEvaluator()
@@ -49,11 +53,68 @@ class RiffRaffCyclePolicy:
             return None
 
         jokers = list(getattr(state, "jokers", ()) or ())
+        slots = max(0, int(getattr(state, "joker_slots", 0) or 0))
+        free_slots = max(0, slots - len(jokers))
+
+        # Temporary Jokers should be cashed out once their remaining contribution
+        # is too small to justify carrying into another round. This path is
+        # independent of Riff-Raff ownership.
+        exhausted = []
+        for index, joker in enumerate(jokers):
+            if not isinstance(joker, Joker) or not self._sellable(joker):
+                continue
+            tokens = self._tokens(joker)
+            label = str(
+                getattr(joker, "label", None)
+                or getattr(joker, "name", None)
+                or type(joker).__name__
+            )
+            area_index = int(getattr(joker, "area_index", index))
+
+            if self._is_popcorn(tokens):
+                mult = int(getattr(joker, "mult", 0) or 0)
+                if mult <= self.POPCORN_LAST_LEGS_MULT:
+                    exhausted.append(
+                        RiffRaffCycleDecision(
+                            joker_index=area_index,
+                            joker=label,
+                            retention_cost=float(mult),
+                            free_slots_before=free_slots,
+                            rationale=(
+                                "Popcorn is on its final legs before the next blind",
+                                f"current Popcorn Mult=+{mult}; sell threshold=+{self.POPCORN_LAST_LEGS_MULT}",
+                                "bank remaining sell value instead of carrying a nearly exhausted temporary Joker into another round",
+                            ),
+                        )
+                    )
+                    continue
+
+            if self._is_ice_cream(tokens):
+                chips = int(getattr(joker, "chips", 0) or 0)
+                if chips <= self.ICE_CREAM_LAST_LEGS_CHIPS:
+                    exhausted.append(
+                        RiffRaffCycleDecision(
+                            joker_index=area_index,
+                            joker=label,
+                            retention_cost=float(chips) / 20.0,
+                            free_slots_before=free_slots,
+                            rationale=(
+                                "Ice Cream is on its final legs before the next blind",
+                                f"current Ice Cream Chips=+{chips}; sell threshold=+{self.ICE_CREAM_LAST_LEGS_CHIPS}",
+                                "bank remaining sell value instead of carrying a nearly exhausted temporary Joker into another round",
+                            ),
+                        )
+                    )
+
+        if exhausted:
+            return min(
+                exhausted,
+                key=lambda candidate: (candidate.retention_cost, candidate.joker_index),
+            )
+
         if not any(self._is_riff_raff(joker) for joker in jokers):
             return None
 
-        slots = max(0, int(getattr(state, "joker_slots", 0) or 0))
-        free_slots = max(0, slots - len(jokers))
         if free_slots >= self.TARGET_FREE_SLOTS:
             return None
 
@@ -74,7 +135,11 @@ class RiffRaffCyclePolicy:
             if retention_cost > self.MAX_RETENTION_COST:
                 continue
 
-            label = str(getattr(joker, "label", None) or getattr(joker, "name", None) or type(joker).__name__)
+            label = str(
+                getattr(joker, "label", None)
+                or getattr(joker, "name", None)
+                or type(joker).__name__
+            )
             candidates.append(
                 RiffRaffCycleDecision(
                     joker_index=int(getattr(joker, "area_index", index)),
@@ -114,7 +179,21 @@ class RiffRaffCyclePolicy:
 
     @classmethod
     def _is_riff_raff(cls, joker) -> bool:
-        return any(token in {"riffraff", "riffraffjoker", "jriffraff"} for token in cls._tokens(joker))
+        return any(
+            token in {"riffraff", "riffraffjoker", "jriffraff"}
+            for token in cls._tokens(joker)
+        )
+
+    @staticmethod
+    def _is_popcorn(tokens: set[str]) -> bool:
+        return any(token in {"popcorn", "popcornjoker", "jpopcorn"} for token in tokens)
+
+    @staticmethod
+    def _is_ice_cream(tokens: set[str]) -> bool:
+        return any(
+            token in {"icecream", "icecreamjoker", "jicecream"}
+            for token in tokens
+        )
 
     @staticmethod
     def _sellable(joker: Joker) -> bool:
