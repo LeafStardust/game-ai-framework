@@ -13,6 +13,12 @@ Legend:
 - Standalone `[L]` = strategy with no specializations.
 - A child exists only when it represents a genuinely distinct build/play route. Synergy-only variants stay inside the defining node's relationship row.
 
+Runtime role note:
+- The tree is topology, **not** a requirement that exactly one positive node survives.
+- Runtime orchestration resolves one **Primary** scoring/win-condition route plus compatible **Secondary** scoring engines and **Support** engines.
+- Ante 6+ keeps the Primary fully prescriptive while compatible engines may remain active at reduced influence; incompatible hand prescriptions and explicit conflicts are suppressed.
+- Some leaves are dependency-gated payoffs rather than self-starting routes. Their exact prerequisites live in `BALATRO_STRATEGY_RELATIONSHIPS.md` and `BALATRO_STRATEGY_TREE_RULES.md`.
+
 ## 1. Poker-hand strategies
 
 ```text
@@ -60,6 +66,11 @@ Faceless / No-Face [I]
 
 The Idol Exact-Card Concentration [L]
 ```
+
+Relationship notes:
+- Aces is Scholar-defined: DNA, Fibonacci, and Odd Todd are support only after Scholar establishes the route.
+- Ride the Bus is Silver evidence for its no-face scaling leaf, not a Gold self-defining core.
+- Pareidolia can protect compatible face-payoff Jokers such as Smiley Face while its leaf is active, but inherited Face Cards evidence is counted only once.
 
 ## 3. Suit and held-card strategies
 
@@ -151,6 +162,8 @@ Driver's License Enhancement-Density [L]
 Blue Joker Large-Deck Chips [L]
 ```
 
+These are often compatible engines rather than mutually exclusive replacements for the Primary poker-hand/scoring route. Driver's License, Hiker, and Blue Joker may remain active beside a compatible Primary when their mechanics reinforce the same build.
+
 ## 8. Planet, Tarot, and consumable engines
 
 ```text
@@ -169,6 +182,8 @@ Tarot Engine [I]
 
 Vagabond Low-Money Tarot Engine [L]
 ```
+
+Constellation is dependency-gated: it is not a self-starting Planet core. Astronomer enables it as Silver support; Satellite makes the Constellation/Satellite combination Gold-level evidence. Unsupported Constellation is not an ordinary acquisition target.
 
 ## 9. Economy, shop, pack, reroll, and blind-skip engines
 
@@ -213,6 +228,8 @@ Obelisk Hand-Rotation [L]
 Burnt Joker Hand-Level Engine [L]
 ```
 
+Green Joker, Banner, Delayed Gratification, and Ramen are support-scale evidence rather than automatic Gold commitments. No-discard incentives never override the tactical survival rule that discarding is mandatory when the final hand cannot clear and legal discards remain.
+
 ## 12. Hand-scheduling engines
 
 ```text
@@ -231,7 +248,7 @@ PhotoChad                   <-> Face Cards / Lucky / Glass / Red Seal / Hiker
 Triboulet + Sock and Buskin <-> Face Cards / Red Seal / Glass
 Bloodstone Hearts           <-> Oops! All 6s / retriggers / Lucky
 Marble Joker                <-> Stone / Hologram / Vampire / Driver's License
-DNA                         <-> Aces / Stone / Hologram / Baron / Trips / Quads / Five Kind / Flush Five / Vampire
+DNA                         <-> Scholar-backed Aces / Stone / Hologram / Baron / Trips / Quads / Five Kind / Flush Five / Vampire
 Pareidolia                  <-> Face scoring / Canio / Midas Mask / Vampire
 Perkeo                      <-> Planet / Cryptid / Tarot / Spectral
 Blueprint / Brainstorm      <-> strongest copyable active engine
@@ -243,7 +260,7 @@ Walkie Talkie               <-> Fours / Tens / Even Steven / Hack-on-Fours / ret
 Hiker                       <-> compact deck / retriggers / DNA / trained scoring cards
 Blackboard                  <-> Spades / Clubs / High Card / Pair / held-card preservation
 Raised Fist                 <-> held-card minimum / Mime / Red Seal / high held ranks
-Planet Engine               <-> Constellation / Satellite / Blue Seal / Astronomer / hand levels
+Planet Engine               <-> Constellation (Astronomer/Satellite gated) / Satellite / Blue Seal / Astronomer / hand levels
 Tarot Engine                <-> Fortune Teller / Cartomancer / Hallucination / 8 Ball / Purple Seal / Vagabond / Perkeo
 Business Card               <-> Face Cards / Pareidolia / retriggers / Red Seal
 Midas + Golden Ticket       <-> Face Cards / Gold Cards / retriggers
@@ -259,7 +276,7 @@ conditional support and remain Neutral when their destination engine is absent.
 | Component | Integrated destination |
 |---|---|
 | Blueprint / Brainstorm | Silver support for an owned, copyable defining engine; never independent strategy evidence |
-| Astronomer | Planet Engine, Blue Seal hand-level scaling, and Burnt Joker hand-level support |
+| Astronomer | Planet Engine, Blue Seal hand-level scaling, Burnt Joker hand-level support, and prerequisite for Silver Constellation support |
 | Chaos the Clown | Gold support for an owned Flash Card reroll engine |
 | Drunkard / Merry Andy | Purple Seal, Castle, Mail-In Rebate, Yorick, and Burnt Joker discard engines |
 | Juggler / Troubadour | Held Red-Seal, Blue Seal, Steel-Mime, Baron-Mime, and other material held-card engines |
