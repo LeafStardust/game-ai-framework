@@ -5,7 +5,6 @@ from dataclasses import replace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.hand_evaluator import HandEvaluator
-from games.balatro.live.hand_action_policy import PACE_PLAY, PACE_RECOVERY
 from games.balatro.live.hand_playstyle import BuildAwareLiveHandActionPolicy
 from games.balatro.strategy import BRONZE, GOLD, SILVER, BalatroStrategyTracker
 from games.balatro.strategy_compat import NeutralLegacyPlaystyleIntentTracker
@@ -41,6 +40,12 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
     ahead of strategy. Its retained-card preservation mechanics are also kept, but
     the legacy playstyle-intent signal is neutralized so the universal playbooks are
     the only strategic direction used by this policy.
+
+    Critically, the base D1 pace floor is authoritative. If a legal current play
+    can score at least remaining blind score / hands remaining, strategy shaping
+    may choose among qualifying plays but may not replace that play with a discard.
+    Discards are therefore the default setup tool only while no current hand meets
+    the required pace.
     """
 
     VAGABOND_PLAY_OPPORTUNITY_VALUE = 35.0
@@ -55,76 +60,10 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         decision = super().decide(state, plans, **kwargs)
         vagabond_active = self._vagabond_generation_active(state)
 
-        # Base D1 returns PACE_PLAY immediately when any current hand reaches
-        # remaining_blind_score / hands_remaining. That threshold is a fallback,
-        # not a command to throw away available setup equity. Before accepting it,
-        # compare legal discards on the same pace-aware cross-action evaluator used
-        # by PACE_RECOVERY. A materially better discard is allowed to improve the
-        # next hand first; low-discard-reserve protection remains intact.
-        if decision.mode == PACE_PLAY:
-            discards = [plan for plan in plans if plan.action.name == DISCARD_CARDS]
-            if discards:
-                play_value = float(self.evaluator.evaluate(state, decision.action))
-                scored_discards = []
-                for plan in discards:
-                    value = float(self.evaluator.evaluate(state, plan.action))
-                    if (
-                        int(getattr(state, "discards_remaining", 0))
-                        <= self.thresholds.low_discard_reserve
-                    ):
-                        value -= self.thresholds.low_discard_fallback_penalty
-                    if (
-                        int(getattr(state, "hands_remaining", 0))
-                        <= self.thresholds.low_hand_reserve
-                    ):
-                        value += self.thresholds.low_hand_discard_fallback_bonus
-                    strategy_fit, _ = self._strategy_fit(state, plan.action)
-                    scored_discards.append((value, strategy_fit, plan))
-
-                discard_value, _, discard_plan = max(
-                    scored_discards,
-                    key=lambda item: (
-                        item[0],
-                        item[1],
-                        self._within_type_key(item[2]),
-                    ),
-                )
-                consensus = bool(kwargs.get("setup_discard_consensus", False))
-                discard_margin = (
-                    self.VAGABOND_PLAY_OPPORTUNITY_VALUE
-                    if vagabond_active
-                    else 0.0
-                )
-                if discard_value > play_value + discard_margin:
-                    fit, fit_rationale = self._strategy_fit(state, discard_plan.action)
-                    decision = replace(
-                        decision,
-                        mode=PACE_RECOVERY,
-                        action=discard_plan.action,
-                        selected_plan=discard_plan,
-                        selected_immediate_score=None,
-                        selected_pace_ratio=None,
-                        selected_fallback_value=discard_value,
-                        setup_discard_consensus=consensus,
-                        rationale=(
-                            "adaptive search found no credible blind-clear path",
-                            "a current play reaches required pace, but pace is only the fallback floor",
-                            "pace-aware setup discard has higher recovery value than immediate pace play",
-                            *(
-                                ("Vagabond generation opportunity cost was charged before giving up a scored hand",)
-                                if vagabond_active
-                                else ()
-                            ),
-                            *(
-                                ("deep adaptive searches also agree on the setup discard",)
-                                if consensus
-                                else ()
-                            ),
-                            f"D1 setup-discard strategy fit={fit:+.3f}",
-                            *fit_rationale,
-                        ),
-                    )
-
+        # Do not override a base PACE_PLAY decision with a setup discard. The base
+        # policy already establishes that some current hand meets the mandatory
+        # remaining-score / hands-remaining pace floor. Strategy/Joker intent is a
+        # tie-breaker beneath survival, not permission to postpone a qualifying play.
         fit, rationale = self._strategy_fit(state, decision.action)
         return replace(
             decision,
@@ -132,11 +71,12 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                 *decision.rationale,
                 *(
                     (
-                        "Vagabond active at <=$4 with consumable space; safe lines value additional scored hands for Tarot generation",
+                        "Vagabond active at <=$4 with consumable space; safe equivalent lines may value additional scored hands for Tarot generation",
                     )
                     if vagabond_active
                     else ()
                 ),
+                "pace-qualified PLAY is authoritative; strategy shaping cannot replace it with DISCARD",
                 "D1 legacy playstyle strategy influence=0.000",
                 f"D1 universal-strategy fit={fit:+.3f}",
                 *rationale,
