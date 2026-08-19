@@ -83,6 +83,9 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
         if resolution.active_status not in {HIGHLIGHTED, COMMITTED, MATURE}:
             return ()
         strategy_id = resolution.dominant_strategy_id
+        primary_getter = getattr(self.strategy_tracker, "primary_strategy_id", None)
+        if callable(primary_getter):
+            strategy_id = primary_getter(resolution)
         if strategy_id is None:
             return ()
         inherited = getattr(self.strategy_tracker, "primary_hands_for", None)
@@ -116,16 +119,44 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
         resolution = self.strategy_tracker.observe(state)
         strategy_bound = joker_is_strategy_bound(joker)
 
-        # HIGHLIGHTED is still an exploratory phase. A single early hand-specific
-        # Joker (for example Runner) must not make a useful Joker for another hand
-        # archetype effectively unbuyable when there is open roster capacity.
-        # Hard Banned/off-path strategy penalties begin only after commitment.
+        # Weak highlighted evidence remains exploratory so one early pickup does not
+        # lock the run. Once the leading route is strongly highlighted, however,
+        # strategy-bound off-path Jokers must stop beating aligned support merely
+        # because their generic one-hand probe is large. This keeps the agent
+        # actively strengthening an established route at every ante while still
+        # allowing an explicit pivot candidate to win.
         if resolution.active_status == HIGHLIGHTED and strategic.tier == BANNED:
             if adjustment < 0.0:
                 policy_rationale = (
                     "highlighted strategy remains exploratory; defer hard Banned Joker penalty until COMMITTED/MATURE",
                 )
                 adjustment = 0.0
+
+        if resolution.active_status == HIGHLIGHTED and strategy_bound:
+            primary_id = resolution.dominant_strategy_id
+            primary_getter = getattr(self.strategy_tracker, "primary_strategy_id", None)
+            if callable(primary_getter):
+                primary_id = primary_getter(resolution)
+            primary = resolution.assessment(primary_id) if primary_id is not None else None
+            strong_floor = self.strategy_tracker._number(
+                self.strategy_tracker._config(state),
+                "strong_highlighted_strategy_floor",
+                6.0,
+            )
+            if (
+                primary is not None
+                and float(primary.score) >= strong_floor
+                and strategic.tier in {GOLD, SILVER, BRONZE}
+                and not strategic.active_alignment
+                and not strategic.pivot_candidate
+            ):
+                base_discount = max(0.0, float(base.total_gain))
+                adjustment -= base_discount
+                policy_rationale = (
+                    *policy_rationale,
+                    "strong highlighted route actively pursued; off-path Joker generic probe discount="
+                    f"-{base_discount:.3f}",
+                )
 
         if (
             resolution.active_status in {COMMITTED, MATURE}
@@ -158,7 +189,7 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
         elif (
             strategy_bound
             and strategic.tier in {GOLD, SILVER, BRONZE}
-            and resolution.active_status in {COMMITTED, MATURE}
+            and resolution.active_status in {HIGHLIGHTED, COMMITTED, MATURE}
         ):
             applicability = OFF_PATH
         elif float(base.total_gain) > 0.0:
