@@ -241,18 +241,16 @@ class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
 
 
 class StrategyAwareShopRerollPolicy(BuildAwareShopRerollPolicy):
-    """Increase reroll pressure once a build direction exists or the run is late."""
+    """Pursue any positive build direction at every ante."""
 
     GOLD_ECONOMY_ROOTS = frozenset({"gold_cards", "gold_seal"})
     GOLD_EARLY_RESERVE = 25
     GOLD_LATE_RESERVE = 40
     GOLD_MAXIMUM_PAID_REROLL_COST = 6
 
-    STRATEGY_SEARCH_SCORE_FLOOR = 1.0
     STRATEGY_SEARCH_MAXIMUM_PAID_REROLL_COST = 10
     STRATEGY_SEARCH_EARLY_RESERVE = 5
     STRATEGY_SEARCH_LATE_RESERVE = 10
-    STRATEGY_SEARCH_LATE_ANTE = 6
 
     def __init__(self, *args, strategy_tracker: BalatroStrategyTracker, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -269,11 +267,15 @@ class StrategyAwareShopRerollPolicy(BuildAwareShopRerollPolicy):
 
     def _search_pressure(self, state) -> tuple[bool, float, str | None]:
         resolution = self.strategy_tracker.observe(state)
-        assessment = resolution.assessment(resolution.dominant_strategy_id)
+        strategy_id = resolution.dominant_strategy_id
+        assessment = resolution.assessment(strategy_id)
         score = float(assessment.score) if assessment is not None else 0.0
-        ante = max(1, int(getattr(state, "ante", 1) or 1))
-        enabled = score >= self.STRATEGY_SEARCH_SCORE_FLOOR or ante >= self.STRATEGY_SEARCH_LATE_ANTE
-        return enabled, score, resolution.dominant_strategy_id
+        # Any real positive dominant route is worth actively strengthening. There is
+        # no ante gate and no arbitrary 1.0 evidence floor: weak early evidence may
+        # search cautiously, while the underlying reroll EV/reserve checks still
+        # prevent spending when the search is not economically justified.
+        enabled = strategy_id is not None and assessment is not None and score > 0.0
+        return enabled, score, strategy_id
 
     def thresholds_for_state(self, state) -> ShopRerollThresholds:
         thresholds = super().thresholds_for_state(state)
@@ -331,7 +333,7 @@ class StrategyAwareShopRerollPolicy(BuildAwareShopRerollPolicy):
             rationale=(
                 *recommendation.rationale,
                 f"strategy-search pressure active: dominant={strategy_id or 'none'} score={score:.3f} ante={int(getattr(state, 'ante', 1) or 1)}",
-                "established/late run lowers passive waiting tolerance and favors paid search for Jokers/consumables when public EV supports it",
+                "any positive dominant strategy is actively strengthened at every ante when public reroll EV and reserves permit",
             ),
         )
 
