@@ -13,6 +13,9 @@ from .hand_dispatcher import (
     LiveInjectedActionResult,
     LiveMemoryInjectedHandDispatcher,
 )
+from .preblind_sell_patch import install_preblind_joker_sale_support
+
+install_preblind_joker_sale_support()
 
 __all__ = [
     "FirstPartyBalatroBridge",
