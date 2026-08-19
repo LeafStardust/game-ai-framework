@@ -38,7 +38,14 @@ def _token(item: object) -> str:
 
 
 def _owned_tokens(state) -> frozenset[str]:
-    return frozenset(_token(j) for j in getattr(state, "jokers", ()) or ())
+    """Return canonical Joker tokens while supporting name-only live/test objects."""
+    tokens: set[str] = set()
+    for joker in getattr(state, "jokers", ()) or ():
+        token = _token(joker)
+        tokens.add(token)
+        if token and not token.endswith("joker"):
+            tokens.add(f"{token}joker")
+    return frozenset(tokens)
 
 
 def _is_owned_instance(state, joker: object) -> bool:
@@ -82,23 +89,23 @@ def _live_scaler_floor(state, joker: object) -> tuple[float, str] | None:
 # the child. Each entry lists at least one defining/core token that must already be
 # owned before direct child evidence is allowed to become actionable.
 _DEPENDENT_LEAF_CORES: dict[str, frozenset[str]] = {
-    "high_card_baron_mime": frozenset({"baron", "mime", "baronjoker", "mimejoker"}),
-    "face_photochad": frozenset({"photograph", "photographjoker"}),
-    "face_triboulet_sock": frozenset({"triboulet", "tribouletjoker"}),
-    "face_pareidolia": frozenset({"pareidolia", "pareidoliajoker"}),
-    "face_business_card": frozenset({"businesscard", "businesscardjoker"}),
-    "faceless_ride_bus": frozenset({"ridethebus", "ridethebusjoker"}),
+    "high_card_baron_mime": frozenset({"baronjoker", "mimejoker"}),
+    "face_photochad": frozenset({"photographjoker"}),
+    "face_triboulet_sock": frozenset({"tribouletjoker"}),
+    "face_pareidolia": frozenset({"pareidoliajoker"}),
+    "face_business_card": frozenset({"businesscardjoker"}),
+    "faceless_ride_bus": frozenset({"ridethebusjoker"}),
     "faceless_discard_economy": frozenset({"facelessjoker"}),
-    "hearts_bloodstone_oops": frozenset({"bloodstone", "bloodstonejoker"}),
-    "hearts_bloodstone_retrigger": frozenset({"bloodstone", "bloodstonejoker"}),
-    "clubs_onyx": frozenset({"onyxagate", "onyxagatejoker"}),
-    "clubs_seeing_double": frozenset({"seeingdouble", "seeingdoublejoker"}),
-    "flower_pot_splash": frozenset({"flowerpot", "flowerpotjoker"}),
-    "flower_pot_smeared": frozenset({"flowerpot", "flowerpotjoker"}),
-    "hologram_dna": frozenset({"hologram", "hologramjoker"}),
-    "hologram_certificate": frozenset({"hologram", "hologramjoker"}),
-    "hologram_marble": frozenset({"hologram", "hologramjoker"}),
-    "cash_bull_bootstraps": frozenset({"bull", "bootstraps", "bulljoker", "bootstrapsjoker"}),
+    "hearts_bloodstone_oops": frozenset({"bloodstonejoker"}),
+    "hearts_bloodstone_retrigger": frozenset({"bloodstonejoker"}),
+    "clubs_onyx": frozenset({"onyxagatejoker"}),
+    "clubs_seeing_double": frozenset({"seeingdoublejoker"}),
+    "flower_pot_splash": frozenset({"flowerpotjoker"}),
+    "flower_pot_smeared": frozenset({"flowerpotjoker"}),
+    "hologram_dna": frozenset({"hologramjoker"}),
+    "hologram_certificate": frozenset({"hologramjoker"}),
+    "hologram_marble": frozenset({"hologramjoker"}),
+    "cash_bull_bootstraps": frozenset({"bulljoker", "bootstrapsjoker"}),
 }
 
 
@@ -266,7 +273,7 @@ def install_log_batch_calibration_policy() -> None:
         if self._is_gold_economy_route(resolution.dominant_strategy_id):
             return thresholds
         owned = _owned_tokens(state)
-        if owned & {"bull", "bootstraps", "bulljoker", "bootstrapsjoker"}:
+        if owned & {"bulljoker", "bootstrapsjoker"}:
             return thresholds
         return replace(
             thresholds,
