@@ -52,7 +52,7 @@ def _booster_action(label: str) -> BalatroAction:
     )
 
 
-def test_arcana_and_spectral_packs_are_autonomous_safe_for_strategy_runner():
+def test_weak_scoring_readiness_defers_arcana_but_keeps_spectral_exploration_safe():
     state = _state()
     policy = StrategyAwareShopBoosterPolicy(
         thresholds=_booster_thresholds(),
@@ -62,9 +62,12 @@ def test_arcana_and_spectral_packs_are_autonomous_safe_for_strategy_runner():
     arcana = policy.recommend(state, _booster_action("Arcana Pack"))
     spectral = policy.recommend(state, _booster_action("Spectral Pack"))
 
-    assert arcana.decision == BUY
+    # Five-run calibration: generic Arcana spending is deferred while the board has
+    # essentially no real scoring capacity, but Spectral remains exempt so rare
+    # high-upside effects (including Soul access) are still available.
+    assert arcana.decision == HOLD
     assert spectral.decision == BUY
-    assert any("autonomous-safe" in note for note in arcana.rationale)
+    assert any("scoring-readiness gate" in note for note in arcana.rationale)
     assert any("autonomous-safe" in note for note in spectral.rationale)
 
 
