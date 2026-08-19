@@ -10,6 +10,7 @@ from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.pareidolia_face_policy import install_pareidolia_face_policy
 from games.balatro.safe_pace_blind_skip_patch import install_safe_pace_blind_skip_patch
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
+from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_correction
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
 from games.balatro.shop_regression_policy import install_shop_regression_policy
 from games.balatro.strategy_commitment_hysteresis import install_strategy_commitment_hysteresis
@@ -32,3 +33,4 @@ install_strategy_commitment_hysteresis()
 install_safe_pace_optimization_policy()
 install_safe_pace_timeout_patch()
 install_safe_pace_blind_skip_patch()
+install_safe_pace_scope_correction()
