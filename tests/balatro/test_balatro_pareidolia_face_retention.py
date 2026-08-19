@@ -44,5 +44,14 @@ def test_pareidolia_primary_route_retains_smiley_as_real_engine_support():
     tracker = _tracker()
     evaluator = StrategyAwareJokerBuildValueEvaluator(strategy_tracker=tracker)
     value = evaluator.evaluate(state, SmileyFaceJoker())
+
+    # Contract: Pareidolia + Smiley must keep Smiley at a real aligned retention
+    # value. The exact rationale text is diagnostic and may legitimately differ
+    # when another aligned-value path already reaches the same floor.
+    assert conditional_joker_relationship(
+        state,
+        "face_pareidolia",
+        SmileyFaceJoker(),
+    ) == SILVER
     assert value.total_gain >= 6.0
-    assert any("Pareidolia" in note for note in value.rationale)
+    assert value.strategic_adjustment > 0.0
