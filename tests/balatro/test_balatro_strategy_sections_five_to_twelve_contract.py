@@ -294,7 +294,7 @@ def test_full_tree_tracker_resolves_a_late_section_leaf():
 
 
 def test_relationship_document_has_no_unaudited_rows_and_part_fourteen_is_integrated():
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     relationships = (root / "BALATRO_STRATEGY_RELATIONSHIPS.md").read_text(encoding="utf-8")
     topology = (root / "BALATRO_STRATEGY_TREE.md").read_text(encoding="utf-8")
 
