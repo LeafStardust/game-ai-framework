@@ -78,7 +78,7 @@ def test_enhanced_playing_card_beats_skip():
     assert ranked[0].action.name == SELECT_PACK_CARD
 
 
-def test_full_joker_slots_remove_buffoon_choices():
+def test_full_joker_slots_keep_buffoon_choice_visible_for_replacement_policy():
     state = _state()
     state.jokers = [object()] * state.joker_slots
     choice = LivePackChoice(
@@ -94,10 +94,10 @@ def test_full_joker_slots_remove_buffoon_choices():
 
     actions = LivePackActionGenerator().generate_actions(state, [choice])
 
-    assert [action.name for action in actions] == [SKIP_BOOSTER]
+    assert [action.name for action in actions] == [SELECT_PACK_CARD, SKIP_BOOSTER]
 
 
-def test_collection_mode_can_observe_capacity_blocked_buffoon_choice():
+def test_legacy_caller_can_remove_capacity_blocked_buffoon_choice():
     state = _state()
     state.jokers = [object()] * state.joker_slots
     choice = LivePackChoice(
@@ -113,10 +113,10 @@ def test_collection_mode_can_observe_capacity_blocked_buffoon_choice():
     )
 
     actions = LivePackActionGenerator(
-        include_capacity_blocked_jokers=True,
+        include_capacity_blocked_jokers=False,
     ).generate_actions(state, [choice])
 
-    assert [action.name for action in actions] == [SELECT_PACK_CARD, SKIP_BOOSTER]
+    assert [action.name for action in actions] == [SKIP_BOOSTER]
 
 
 def test_targeted_tarot_without_a_legal_target_is_ranked_below_skip():
