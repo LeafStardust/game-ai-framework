@@ -86,6 +86,30 @@ def guard_unresolved_conditional_relationships(
         gold_jokers=_without(flush_five.gold_jokers, "The Idol"),
     )
 
+    # Bull and Bootstraps are two cash-scaling payoffs for the exact same economic
+    # shell. They should not compete as separate strategy leaves. Keep the legacy
+    # node ids topology-compatible but make them permanently non-actionable, then
+    # put both defining Jokers on the combined cash scoring leaf. Conditional
+    # support that still references the retired ids is capped to zero by the
+    # impossible defining requirement, so only cash_bull_bootstraps can surface.
+    retired_cash_requirement = _joker_tokens("__retired_cash_leaf__")
+    for strategy_id in ("cash_bull", "cash_bootstraps"):
+        legacy = guarded[strategy_id]
+        guarded[strategy_id] = replace(
+            legacy,
+            gold_jokers=frozenset(),
+            silver_jokers=frozenset(),
+            bronze_jokers=frozenset(),
+            required_jokers=retired_cash_requirement,
+            entry_evidence_cap=0.0,
+        )
+
+    cash_scoring = guarded["cash_bull_bootstraps"]
+    guarded["cash_bull_bootstraps"] = replace(
+        cash_scoring,
+        gold_jokers=_joker_tokens("Bull", "Bootstraps"),
+    )
+
     return MappingProxyType(guarded)
 
 
