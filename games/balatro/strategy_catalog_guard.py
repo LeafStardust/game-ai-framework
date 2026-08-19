@@ -32,11 +32,11 @@ def _downgrade_gold_to_silver(
     definition: StrategyDefinition,
     *joker_names: str,
 ) -> StrategyDefinition:
-    """Move modest single-Joker evidence from Gold to Silver.
+    """Move supportive evidence from Gold to Silver.
 
-    Gold is reserved for components strong enough to define/commit a route by
-    themselves. Weak or merely supportive Jokers should raise a strategy without
-    causing the tracker to overcommit around one modest pickup.
+    Gold is reserved for components strong enough to make a strategy viable and
+    unusually effective by themselves. Supportive or merely direction-setting
+    Jokers should raise a route without manufacturing a commitment signal.
     """
 
     tokens = _joker_tokens(*joker_names)
@@ -93,9 +93,8 @@ def guard_unresolved_conditional_relationships(
         gold_jokers=_without(flush_five.gold_jokers, "The Idol"),
     )
 
-    # Weak single-Joker routes should not receive a full Gold (+8) commitment
-    # signal from one modest/common pickup. They remain meaningful Silver (+3)
-    # evidence and can still become dominant when reinforced by board/deck context.
+    # Gold means a Joker can make the route genuinely viable/strong on its own.
+    # These are useful support/direction pieces, but not sufficient for +8 evidence.
     weak_single_joker_cores = {
         "abstract_joker": ("Abstract Joker",),
         "swashbuckler": ("Swashbuckler",),
@@ -104,6 +103,8 @@ def guard_unresolved_conditional_relationships(
         "cash_cloud_nine": ("Cloud 9",),
         "red_card": ("Red Card",),
         "no_discard_ramen": ("Ramen",),
+        "no_discard_reserve": ("Banner", "Delayed Gratification"),
+        "last_hand_acrobat": ("Acrobat",),
         # Run-log calibration: these generator/scaler pieces repeatedly produced
         # an immediate Gold ~=8 dominant strategy before the rest of the route
         # existed. They should create direction, not commitment, by themselves.
