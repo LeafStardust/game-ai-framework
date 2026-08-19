@@ -33,13 +33,7 @@ from .strategy_joker_applicability import (
 
 @dataclass(frozen=True)
 class StrategyAdjustedJokerBuildValue(JokerBuildValue):
-    """Whole-build Joker value with the strategy term kept auditable.
-
-    ``total_gain`` remains the single value consumed by the mature transition and
-    D2 economics layers. The extra fields expose how much of that value came from
-    the universal strategy feedback loop so replacement diagnostics never need to
-    infer conflict pressure from formatted rationale strings.
-    """
+    """Whole-build Joker value with the strategy term kept auditable."""
 
     base_total_gain: float
     strategic_adjustment: float
@@ -77,12 +71,7 @@ class StrategyAdjustedConsumableEvaluation:
 
 
 class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
-    """Ordinary Joker value plus the universal playbook strategy adjustment.
-
-    The legacy playstyle-affinity tracker is deliberately neutralized here. Direct
-    scoring and contextual B3 value remain intact, but universal playbooks are the
-    only strategic direction signal in the v1.0 strategy-aware production path.
-    """
+    """Ordinary Joker value plus the universal playbook strategy adjustment."""
 
     def __init__(self, *args, strategy_tracker: BalatroStrategyTracker, **kwargs) -> None:
         kwargs["intent_tracker"] = NeutralLegacyPlaystyleIntentTracker()
@@ -96,7 +85,6 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
         strategy_id = resolution.dominant_strategy_id
         if strategy_id is None:
             return ()
-
         inherited = getattr(self.strategy_tracker, "primary_hands_for", None)
         if callable(inherited):
             return tuple(str(value) for value in inherited(strategy_id))
@@ -116,26 +104,31 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
 
     def evaluate(self, state, joker):
         base = super().evaluate(state, joker)
-        strategic = self.strategy_tracker.evaluate_item(
-            state,
-            joker,
-            kind="JOKER",
-        )
+        strategic = self.strategy_tracker.evaluate_item(state, joker, kind="JOKER")
         adjustment = float(strategic.value)
         policy_rationale: tuple[str, ...] = ()
         active_probe_hands = self._active_probe_hands(state)
         probe_rationale = (
-            (
-                "strategy-scoped scoring probes="
-                + ", ".join(active_probe_hands)
-            ),
+            ("strategy-scoped scoring probes=" + ", ".join(active_probe_hands)),
         ) if active_probe_hands else (
             "no active poker-hand prescription; broad scoring probes retained",
         )
         resolution = self.strategy_tracker.observe(state)
         strategy_bound = joker_is_strategy_bound(joker)
+
+        # HIGHLIGHTED is still an exploratory phase. A single early hand-specific
+        # Joker (for example Runner) must not make a useful Joker for another hand
+        # archetype effectively unbuyable when there is open roster capacity.
+        # Hard Banned/off-path strategy penalties begin only after commitment.
+        if resolution.active_status == HIGHLIGHTED and strategic.tier == BANNED:
+            if adjustment < 0.0:
+                policy_rationale = (
+                    "highlighted strategy remains exploratory; defer hard Banned Joker penalty until COMMITTED/MATURE",
+                )
+                adjustment = 0.0
+
         if (
-            resolution.active_status in {HIGHLIGHTED, COMMITTED, MATURE}
+            resolution.active_status in {COMMITTED, MATURE}
             and strategic.tier in {GOLD, SILVER, BRONZE}
             and not strategic.active_alignment
             and not strategic.pivot_candidate
@@ -151,10 +144,11 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
                 )
             )
             adjustment -= base_discount
-            policy_rationale = (
-                "highlighted-strategy off-path Joker generic probe discount="
-                f"-{base_discount:.3f}; candidate is neither aligned nor a valid Gold pivot",
+            policy_rationale = (*policy_rationale,
+                "committed-strategy off-path Joker generic probe discount="
+                f"-{base_discount:.3f}; candidate is neither aligned nor a valid pivot",
             )
+
         if strategic.tier == BANNED and adjustment < 0.0:
             applicability = CONFLICT
         elif strategic.active_alignment and strategic.tier in {GOLD, SILVER, BRONZE}:
@@ -164,13 +158,14 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
         elif (
             strategy_bound
             and strategic.tier in {GOLD, SILVER, BRONZE}
-            and resolution.active_status in {HIGHLIGHTED, COMMITTED, MATURE}
+            and resolution.active_status in {COMMITTED, MATURE}
         ):
             applicability = OFF_PATH
         elif float(base.total_gain) > 0.0:
             applicability = UNIVERSAL
         else:
             applicability = NEUTRAL_APPLICABILITY
+
         total = float(base.total_gain) + adjustment
         return StrategyAdjustedJokerBuildValue(
             joker=base.joker,
@@ -202,20 +197,13 @@ class StrategyAwareJokerBuildValueEvaluator(JokerBuildValueEvaluator):
 
 
 class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
-    """Keep hypothetical replacements anchored to the authoritative build.
-
-    Removing an incumbent for a common-baseline probe can also remove the evidence
-    that established the current strategy. Anchor each option to the pre-sale
-    state so a Gold core does not lose its protection inside its own hypothetical,
-    while replacing an OFF_PATH/Banned incumbent clears its real pressure.
-    """
+    """Keep hypothetical replacements anchored to the authoritative build."""
 
     @staticmethod
     def _annotate_option(option):
         incumbent = option.incumbent_value
         candidate = option.candidate_value
         notes = list(option.rationale)
-
         if (
             isinstance(incumbent, StrategyAdjustedJokerBuildValue)
             and incumbent.strategy_tier == BANNED
@@ -230,7 +218,6 @@ class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
                     "incumbent retains non-strategy scoring/context value="
                     f"{incumbent.base_total_gain:.3f}; whole-build delta remains authoritative"
                 )
-
         if (
             isinstance(candidate, StrategyAdjustedJokerBuildValue)
             and candidate.strategy_tier in {GOLD, SILVER, BRONZE}
@@ -240,27 +227,21 @@ class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
                 "candidate universal-strategy reinforcement="
                 f"{candidate.strategic_adjustment:+.3f} ({candidate.strategy_tier})"
             )
-
         return replace(option, rationale=tuple(notes))
 
     def plan(self, state, candidate):
         transition = super().plan(state, candidate)
         if not transition.alternatives:
             return transition
-
         resolution = self.evaluator.strategy_tracker.observe(state)
         incumbent_strategy = {}
         for index, incumbent in enumerate(state.jokers):
             incumbent_strategy[index] = self.evaluator.strategy_tracker.evaluate_item(
-                state,
-                incumbent,
-                kind="JOKER",
+                state, incumbent, kind="JOKER"
             )
-
         has_off_path_incumbent = any(
             (
-                strategic.tier == BANNED
-                and float(strategic.value) < 0.0
+                strategic.tier == BANNED and float(strategic.value) < 0.0
             )
             or (
                 joker_is_strategy_bound(state.jokers[index])
@@ -275,7 +256,6 @@ class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
             and getattr(transition.candidate_value, "applicability", None) == UNIVERSAL
             and has_off_path_incumbent
         )
-
         anchored = []
         for option in transition.alternatives:
             index = int(option.replace_index)
@@ -290,21 +270,15 @@ class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
             eligible = option.eligible
             rationale = [
                 *option.rationale,
-                "authoritative pre-sale strategy retention="
-                f"{retention:+.3f}",
-                "strategy-anchored replacement delta="
-                f"{float(option.build_delta) - retention:.3f}",
+                "authoritative pre-sale strategy retention=" f"{retention:+.3f}",
+                "strategy-anchored replacement delta=" f"{float(option.build_delta) - retention:.3f}",
             ]
             if protected_aligned_core:
                 eligible = False
-                blocked_reason = (
-                    blocked_reason
-                    or "committed aligned Joker protected while an off-path incumbent remains"
-                )
+                blocked_reason = blocked_reason or "committed aligned Joker protected while an off-path incumbent remains"
                 rationale.append(
                     "universal candidate must replace an off-path/Banned incumbent before an aligned committed-strategy Joker"
                 )
-
             anchored.append(
                 self._annotate_option(
                     replace(
@@ -316,58 +290,34 @@ class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
                     )
                 )
             )
-
-        alternatives = tuple(
-            sorted(
-                anchored,
-                key=lambda option: (-option.build_delta, option.replace_index),
-            )
-        )
-        eligible_alternatives = tuple(
-            option for option in alternatives if option.eligible
-        )
+        alternatives = tuple(sorted(anchored, key=lambda option: (-option.build_delta, option.replace_index)))
+        eligible_alternatives = tuple(option for option in alternatives if option.eligible)
         replacement = (
             eligible_alternatives[0]
-            if eligible_alternatives
-            and eligible_alternatives[0].build_delta
-            > self.minimum_replacement_delta
+            if eligible_alternatives and eligible_alternatives[0].build_delta > self.minimum_replacement_delta
             else None
         )
         action = "REPLACE" if replacement is not None else "HOLD"
-
         notes = list(transition.rationale)
         conflict_options = [
-            option
-            for option in alternatives
+            option for option in alternatives
             if option.eligible
             if isinstance(option.incumbent_value, StrategyAdjustedJokerBuildValue)
             and option.incumbent_value.strategy_tier == BANNED
             and option.incumbent_value.strategic_adjustment < 0.0
         ]
         if replacement is not None and replacement in conflict_options:
-            notes.append(
-                "strategy-conflicting incumbent selected only after whole-build replacement delta cleared threshold"
-            )
+            notes.append("strategy-conflicting incumbent selected only after whole-build replacement delta cleared threshold")
         elif action == "HOLD" and conflict_options:
-            notes.append(
-                "strategy-conflicting incumbent retained because no whole-build replacement cleared threshold; scoring/context survival value can override strategic purity"
-            )
+            notes.append("strategy-conflicting incumbent retained because no whole-build replacement cleared threshold; scoring/context survival value can override strategic purity")
         protected_negative_options = [
-            option
-            for option in alternatives
+            option for option in alternatives
             if not option.eligible
             and option.blocked_reason is not None
             and "Negative Joker" in option.blocked_reason
         ]
         if protected_negative_options:
-            notes.append(
-                "Negative retention protected replacement slots="
-                + ",".join(
-                    str(option.replace_index)
-                    for option in protected_negative_options
-                )
-            )
-
+            notes.append("Negative retention protected replacement slots=" + ",".join(str(option.replace_index) for option in protected_negative_options))
         return replace(
             transition,
             action=action,
@@ -378,12 +328,7 @@ class StrategyAwareJokerBuildTransitionPlanner(JokerBuildTransitionPlanner):
 
 
 class StrategyAwareConsumableSynergyEvaluator(ContextualConsumableSynergyEvaluator):
-    """B4 consumable value under the universal strategy feedback loop.
-
-    Planets are evidence-gated reinforcers. Tarot and Spectral cards may seed a run
-    early from ordinary/contextual value, then become progressively less attractive
-    when they only advance strategies outside an established shortlist.
-    """
+    """B4 consumable value under the universal strategy feedback loop."""
 
     def __init__(self, *args, strategy_tracker: BalatroStrategyTracker, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -393,43 +338,28 @@ class StrategyAwareConsumableSynergyEvaluator(ContextualConsumableSynergyEvaluat
         base = super().evaluate(candidate, state, profile=profile)
         category = str(getattr(candidate, "category", "")).upper()
         kind = "PLANET" if category == "PLANET" else "CONSUMABLE"
-        strategic = self.strategy_tracker.evaluate_item(
-            state,
-            candidate,
-            kind=kind,
-        )
+        strategic = self.strategy_tracker.evaluate_item(state, candidate, kind=kind)
+        resolution = self.strategy_tracker.observe(state)
 
+        # Planets are refinement purchases, not exploration purchases. They receive
+        # no autonomous build value until a poker-hand strategy is at least
+        # HIGHLIGHTED, and the Planet must reinforce that active route.
         if kind == "PLANET" and (
-            strategic.tier is None or not strategic.active_alignment
+            resolution.active_status not in {HIGHLIGHTED, COMMITTED, MATURE}
+            or strategic.tier is None
+            or not strategic.active_alignment
         ):
-            # Planets refine an already-selected hand strategy; they do not choose
-            # the strategy. This is the direct guard against random Neptune/Jupiter
-            # fishing from a neutral run.
-            adjustment = -max(4.0, float(base.total_gain) + 1.0)
+            adjustment = -max(6.0, float(base.total_gain) + 2.0)
             rationale = (
                 *base.rationale,
                 *strategic.rationale,
-                (
-                    "Planet blocked because no enabled universal strategy values it"
-                    if strategic.tier is None
-                    else "Planet blocked because its universal strategy is not active"
-                ),
+                "Planet blocked until a poker-hand strategy is solidified (HIGHLIGHTED or stronger) and this Planet reinforces it",
                 f"environment strategy adjustment={adjustment:+.3f}",
             )
         else:
             adjustment = float(strategic.value)
-            rationale_parts = [
-                *base.rationale,
-                *strategic.rationale,
-            ]
-
-            # Tarot/Spectral effects are legitimate early strategy seeders. Once a
-            # run has an established direction, however, mapped structural effects
-            # that advance no shortlisted strategy pay an increasing opportunity
-            # penalty. This is intentionally not a hard ban: sufficiently strong
-            # immediate/contextual value may still outweigh the penalty.
+            rationale_parts = [*base.rationale, *strategic.rationale]
             ante = max(1, int(getattr(state, "ante", 1) or 1))
-            resolution = self.strategy_tracker.observe(state)
             positive_relationship = strategic.tier in {GOLD, SILVER, BRONZE}
             if (
                 category in {"TAROT", "SPECTRAL"}
@@ -440,31 +370,16 @@ class StrategyAwareConsumableSynergyEvaluator(ContextualConsumableSynergyEvaluat
             ):
                 config = self.strategy_tracker._config(state)
                 if ante >= 6:
-                    penalty = self.strategy_tracker._number(
-                        config,
-                        "late_off_strategy_consumable_penalty",
-                        3.0,
-                    )
+                    penalty = self.strategy_tracker._number(config, "late_off_strategy_consumable_penalty", 3.0)
                     phase = "late"
                 else:
-                    penalty = self.strategy_tracker._number(
-                        config,
-                        "mid_off_strategy_consumable_penalty",
-                        0.75,
-                    )
+                    penalty = self.strategy_tracker._number(config, "mid_off_strategy_consumable_penalty", 0.75)
                     phase = "convergence"
                 adjustment -= max(0.0, penalty)
-                rationale_parts.append(
-                    f"{phase} off-shortlist {category} penalty={max(0.0, penalty):.3f}"
-                )
+                rationale_parts.append(f"{phase} off-shortlist {category} penalty={max(0.0, penalty):.3f}")
             elif category in {"TAROT", "SPECTRAL"} and ante <= 2:
-                rationale_parts.append(
-                    f"early {category} remains exploration-eligible; no off-strategy penalty"
-                )
-
-            rationale_parts.append(
-                f"environment strategy adjustment={adjustment:+.3f}"
-            )
+                rationale_parts.append(f"early {category} remains exploration-eligible; no off-strategy penalty")
+            rationale_parts.append(f"environment strategy adjustment={adjustment:+.3f}")
             rationale = tuple(rationale_parts)
 
         return StrategyAdjustedConsumableEvaluation(
