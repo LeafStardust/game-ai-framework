@@ -9,7 +9,7 @@ because shop/build evaluation frequently observes hypothetical copied states.
 From Ante 6 onward:
 * a clear score leader keeps control;
 * a lead smaller than the pivot margin is treated as ambiguous;
-* ambiguous leaders are resolved by stronger concrete Joker evidence first.
+* only strictly stronger Gold/core evidence may overturn that near-tied raw leader.
 
 This prevents small deck-shape or support-score changes from repeatedly flipping the
 primary route while still allowing a genuinely stronger build to pivot immediately.
@@ -57,10 +57,11 @@ def choose_post_commit_dominant(
     """Choose a stable late-game leader without hidden/history-dependent state.
 
     Before Ante 6, raw score ordering remains authoritative. From Ante 6 onward a
-    challenger with a lead >= ``pivot_margin`` is also authoritative. Otherwise all
-    positive routes inside the margin are treated as a near-tie and concrete build
-    evidence breaks the tie: Gold cores first, then total positive Joker support,
-    then maturity/status, and finally score.
+    challenger with a lead >= ``pivot_margin`` is also authoritative. Inside that
+    margin, the raw score leader remains authoritative unless another near-tied
+    route owns strictly more Gold/core evidence. Silver/Bronze support count alone
+    may never overthrow the raw leader: inherited/generic support is exactly the
+    transient evidence that caused Pair/Two-Pair and other late-route oscillation.
     """
 
     positive = tuple(a for a in assessments if float(a.score) > 0.0)
@@ -81,14 +82,20 @@ def choose_post_commit_dominant(
         for assessment in positive
         if float(leader.score) - float(assessment.score) < margin
     )
+    strongest_gold = max(int(a.gold_owned) for a in near_tied)
+    if strongest_gold <= int(leader.gold_owned):
+        return leader
+
+    gold_challengers = tuple(
+        a for a in near_tied if int(a.gold_owned) == strongest_gold
+    )
     return max(
-        near_tied,
+        gold_challengers,
         key=lambda assessment: (
-            int(assessment.gold_owned),
+            float(assessment.score),
             _positive_owned(assessment),
             _status_strength(assessment.status),
             -int(assessment.banned_owned),
-            float(assessment.score),
             assessment.strategy_id,
         ),
     )
@@ -139,7 +146,7 @@ def install_strategy_commitment_hysteresis() -> None:
         previous_name = resolution.dominant_strategy_id or "none"
         rationale = (
             *resolution.rationale,
-            "post-commit hysteresis retained stronger concrete route="
+            "post-commit hysteresis retained stronger Gold/core route="
             f"{selected.name} score={selected.score:.3f}; raw leader={previous_name}; "
             f"pivot margin={pivot_margin:.3f}; gold={selected.gold_owned}; "
             f"positive_jokers={_positive_owned(selected)}",
