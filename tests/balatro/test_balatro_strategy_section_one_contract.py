@@ -6,6 +6,7 @@ from games.balatro.strategy import (
     GOLD,
     HAND_LEVEL_EVIDENCE_WEIGHT,
     NEUTRAL,
+    SILVER,
     SPECTRAL_USE_EVIDENCE_WEIGHT,
     TAROT_USE_EVIDENCE_WEIGHT,
 )
@@ -62,12 +63,12 @@ def test_section_one_has_no_one_child_or_fake_core_nodes():
     )
 
 
-def test_straight_is_standalone_and_superposition_is_direct_gold_evidence():
+def test_straight_is_standalone_and_superposition_is_support_evidence():
     topology = TREE_MIGRATED_BALATRO_STRATEGY_TOPOLOGY
     straight = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES["straight"]
 
     assert topology.is_leaf("straight") is True
-    assert straight.relationship_for(_joker("Superposition"), kind="JOKER") == GOLD
+    assert straight.relationship_for(_joker("Superposition"), kind="JOKER") == SILVER
     assert straight.relationship_for(_joker("The Order"), kind="JOKER") == GOLD
     assert straight.directed_tarots == frozenset({"strength", "death"})
 
