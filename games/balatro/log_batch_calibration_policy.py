@@ -27,7 +27,14 @@ from games.balatro.strategy_value import StrategyAwareJokerBuildValueEvaluator
 
 
 def _token(item: object) -> str:
-    return "".join(c for c in type(item).__name__.lower() if c.isalnum())
+    value = getattr(item, "name", None) or type(item).__name__
+    token = "".join(c for c in str(value).lower() if c.isalnum())
+    if token.endswith("joker"):
+        return token
+    class_token = "".join(c for c in type(item).__name__.lower() if c.isalnum())
+    if class_token.endswith("joker"):
+        return class_token
+    return token
 
 
 def _owned_tokens(state) -> frozenset[str]:
@@ -75,23 +82,23 @@ def _live_scaler_floor(state, joker: object) -> tuple[float, str] | None:
 # the child. Each entry lists at least one defining/core token that must already be
 # owned before direct child evidence is allowed to become actionable.
 _DEPENDENT_LEAF_CORES: dict[str, frozenset[str]] = {
-    "high_card_baron_mime": frozenset({"baronjoker", "mimejoker"}),
-    "face_photochad": frozenset({"photographjoker"}),
-    "face_triboulet_sock": frozenset({"tribouletjoker"}),
-    "face_pareidolia": frozenset({"pareidoliajoker"}),
-    "face_business_card": frozenset({"businesscardjoker"}),
-    "faceless_ride_bus": frozenset({"ridethebusjoker"}),
+    "high_card_baron_mime": frozenset({"baron", "mime", "baronjoker", "mimejoker"}),
+    "face_photochad": frozenset({"photograph", "photographjoker"}),
+    "face_triboulet_sock": frozenset({"triboulet", "tribouletjoker"}),
+    "face_pareidolia": frozenset({"pareidolia", "pareidoliajoker"}),
+    "face_business_card": frozenset({"businesscard", "businesscardjoker"}),
+    "faceless_ride_bus": frozenset({"ridethebus", "ridethebusjoker"}),
     "faceless_discard_economy": frozenset({"facelessjoker"}),
-    "hearts_bloodstone_oops": frozenset({"bloodstonejoker"}),
-    "hearts_bloodstone_retrigger": frozenset({"bloodstonejoker"}),
-    "clubs_onyx": frozenset({"onyxagatejoker"}),
-    "clubs_seeing_double": frozenset({"seeingdoublejoker"}),
-    "flower_pot_splash": frozenset({"flowerpotjoker"}),
-    "flower_pot_smeared": frozenset({"flowerpotjoker"}),
-    "hologram_dna": frozenset({"hologramjoker"}),
-    "hologram_certificate": frozenset({"hologramjoker"}),
-    "hologram_marble": frozenset({"hologramjoker"}),
-    "cash_bull_bootstraps": frozenset({"bulljoker", "bootstrapsjoker"}),
+    "hearts_bloodstone_oops": frozenset({"bloodstone", "bloodstonejoker"}),
+    "hearts_bloodstone_retrigger": frozenset({"bloodstone", "bloodstonejoker"}),
+    "clubs_onyx": frozenset({"onyxagate", "onyxagatejoker"}),
+    "clubs_seeing_double": frozenset({"seeingdouble", "seeingdoublejoker"}),
+    "flower_pot_splash": frozenset({"flowerpot", "flowerpotjoker"}),
+    "flower_pot_smeared": frozenset({"flowerpot", "flowerpotjoker"}),
+    "hologram_dna": frozenset({"hologram", "hologramjoker"}),
+    "hologram_certificate": frozenset({"hologram", "hologramjoker"}),
+    "hologram_marble": frozenset({"hologram", "hologramjoker"}),
+    "cash_bull_bootstraps": frozenset({"bull", "bootstraps", "bulljoker", "bootstrapsjoker"}),
 }
 
 
@@ -245,7 +252,8 @@ def install_log_batch_calibration_policy() -> None:
     StrategyAwareShopBoosterPolicy.recommend = booster_recommend
 
     # 5) Late-game boss-readiness pressure: surplus cash should search for power,
-    # except when Bull/Bootstraps themselves convert that cash into scoring.
+    # except when cash itself is the scoring/economy route. Existing Gold economy
+    # route stop-loss reserves remain authoritative.
     original_thresholds_for_state = StrategyAwareShopRerollPolicy.thresholds_for_state
 
     def thresholds_for_state(self, state):
@@ -254,8 +262,11 @@ def install_log_batch_calibration_policy() -> None:
         money = max(0, int(getattr(state, "money", 0) or 0))
         if ante < 7 or money < 40:
             return thresholds
+        resolution = self.strategy_tracker.observe(state)
+        if self._is_gold_economy_route(resolution.dominant_strategy_id):
+            return thresholds
         owned = _owned_tokens(state)
-        if owned & {"bulljoker", "bootstrapsjoker"}:
+        if owned & {"bull", "bootstraps", "bulljoker", "bootstrapsjoker"}:
             return thresholds
         return replace(
             thresholds,
