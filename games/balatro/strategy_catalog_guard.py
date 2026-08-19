@@ -105,6 +105,7 @@ def guard_unresolved_conditional_relationships(
         "no_discard_ramen": ("Ramen",),
         "no_discard_reserve": ("Banner", "Delayed Gratification"),
         "last_hand_acrobat": ("Acrobat",),
+        "green_joker": ("Green Joker",),
         # Hand/economy enablers are useful but do not by themselves make the route
         # powerful enough to deserve a Gold commitment signal.
         "straight": ("Shortcut", "Four Fingers", "Superposition"),
