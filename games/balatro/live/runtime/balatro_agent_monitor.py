@@ -99,6 +99,39 @@ def _safe(value: Any, default: str = "-") -> str:
     return str(value)
 
 
+def _modeled_clear_probability(rationale: dict[str, Any]) -> tuple[float | None, float | None]:
+    """Return the useful D1 blind-clear estimate and the selected-plan diagnostic.
+
+    PACE_PLAY/PACE_RECOVERY may ultimately select a depth-1 fallback plan. Such a
+    plan commonly has clear_probability=0 because it only models the immediate
+    action, even though the completed adaptive searches estimated the probability
+    of clearing the blind over subsequent hands. For the live dashboard, the last
+    completed search estimate is the useful blind-clear number; the selected-plan
+    value is retained separately so the distinction remains auditable.
+    """
+    postmortem = rationale.get("postmortem")
+    if not isinstance(postmortem, dict) or postmortem.get("layer") != "D1":
+        return None, None
+
+    selected = postmortem.get("selected")
+    selected_probability = None
+    if isinstance(selected, dict):
+        value = selected.get("clear_probability")
+        if isinstance(value, (int, float)):
+            selected_probability = float(value)
+
+    attempts = postmortem.get("search_attempts")
+    if isinstance(attempts, list):
+        for attempt in reversed(attempts):
+            if not isinstance(attempt, dict):
+                continue
+            value = attempt.get("best_clear_probability")
+            if isinstance(value, (int, float)):
+                return float(value), selected_probability
+
+    return selected_probability, selected_probability
+
+
 def _strategy_display_name(strategy_id: str) -> str:
     return str(strategy_id).replace("_", " ").title()
 
@@ -204,7 +237,28 @@ def build_dashboard(
     decision_data = latest_decision.get("data") if isinstance(latest_decision.get("data"), dict) else {}
     rationale = decision_data.get("rationale") if isinstance(decision_data.get("rationale"), dict) else {}
     notes = rationale.get("notes") if isinstance(rationale.get("notes"), list) else []
+    notes = list(notes)
     strategy_fields = _strategy_dashboard_fields(rationale)
+    modeled_clear_probability, selected_plan_probability = _modeled_clear_probability(rationale)
+
+    if modeled_clear_probability is not None:
+        replacement = f"clear_probability={modeled_clear_probability:.6f}"
+        replaced = False
+        for index, note in enumerate(notes):
+            if str(note).startswith("clear_probability="):
+                notes[index] = replacement
+                replaced = True
+                break
+        if not replaced:
+            notes.insert(0, replacement)
+        if (
+            selected_plan_probability is not None
+            and abs(selected_plan_probability - modeled_clear_probability) > 1e-12
+        ):
+            notes.append(
+                "selected_plan_clear_probability="
+                f"{selected_plan_probability:.6f} (depth-1/fallback diagnostic)"
+            )
 
     latest_result = _latest(rows, "action_result") or {}
     result_data = latest_result.get("data") if isinstance(latest_result.get("data"), dict) else {}
