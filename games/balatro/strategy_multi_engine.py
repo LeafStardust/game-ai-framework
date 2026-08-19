@@ -30,7 +30,7 @@ SECONDARY_STRATEGIES = frozenset({
     "planet_engine", "planet_constellation", "planet_satellite",
     "planet_constellation_satellite",
     "tarot_engine", "tarot_cartomancer", "tarot_hallucination", "tarot_eight_ball",
-    "cash_hoard", "cash_growth", "cash_cloud_nine",
+    "cash_hoard", "cash_growth", "cash_cloud_nine", "cash_bull_bootstraps",
     "discard_utilization", "discard_castle", "discard_mail_rebate",
     "no_discard", "no_discard_reserve", "no_discard_ramen",
     "loyalty_cycle",
@@ -147,12 +147,6 @@ def install_multi_engine_strategy_policy() -> None:
         return 0.65 if self.strategy_role(strategy_id) == SECONDARY else 0.40
 
     def evaluate_item(self, state, item, *, kind):
-        """Restore positive value for items that strengthen a compatible active engine.
-
-        The legacy evaluator hard-converges its shortlist to the raw dominant node at
-        Ante 6. We retain its full scoring, then undo that convergence only when the
-        candidate positively reinforces one of the explicitly compatible engines.
-        """
         result = original_evaluate_item(self, state, item, kind=kind)
         resolution = self.observe(state)
         engine_ids = set(self.active_engine_ids(resolution))
