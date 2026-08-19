@@ -79,18 +79,28 @@ def _patched_main(main_lua: bytes) -> tuple[bytes, bool]:
 
 
 def _bridge_with_runtime_hotfixes(bridge_lua: bytes) -> bytes:
-    """Apply execution-only bridge fixes before embedding the first-party asset.
+    """Apply verified execution-only fixes to the production bridge payload.
 
-    D2 correctly treats Negative Jokers as slot-neutral, but bridge revision 7's
-    generic capacity guard rejected every Joker at a full ordinary roster. Patch
-    that guard at install time so a Negative card can use Balatro's native buy
-    callback at 5/5 while ordinary Jokers remain blocked.
+    Custom bridge sources are supported by the fused patcher tests and by callers
+    using ``bridge_source=``. They do not advertise a production bridge revision and
+    must be embedded byte-for-byte rather than being rejected by a production-only
+    migration.
 
-    The repository asset may be checked out with CRLF on Windows. Normalize the
-    in-memory bridge to LF before matching so the verified guard does not depend on
-    Git's working-tree newline conversion. The embedded Lua accepts LF normally.
+    Production bridge revision 7 incorrectly rejects Negative Jokers when the
+    ordinary Joker roster is full. For an identified revision-7 payload, normalize
+    line endings in memory, require exactly one known capacity guard, patch that
+    guard, and bump the embedded revision to 8. An identified production payload
+    whose expected guard changed still fails closed.
     """
+    if b"bridge_revision=7" not in bridge_lua:
+        return bridge_lua
+
     normalized = bridge_lua.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    if normalized.count(b"bridge_revision=7") != 1:
+        raise BalatroFusedPatchError(
+            "bridge revision marker changed; refusing to embed an unverified bridge"
+        )
+
     old_guard = (
         b'    if set == "Joker" then\n'
         b'      local count = G.jokers and G.jokers.config and tonumber(G.jokers.config.card_count or 0) or 0\n'
@@ -112,11 +122,8 @@ def _bridge_with_runtime_hotfixes(bridge_lua: bytes) -> bytes:
         raise BalatroFusedPatchError(
             "bridge Negative-slot hotfix target changed; refusing to embed an unverified bridge"
         )
+
     patched = normalized.replace(old_guard, new_guard, 1)
-    if patched.count(b"bridge_revision=7") != 1:
-        raise BalatroFusedPatchError(
-            "bridge revision marker changed; refusing to embed an unverified bridge"
-        )
     return patched.replace(b"bridge_revision=7", b"bridge_revision=8", 1)
 
 
