@@ -8,6 +8,7 @@ from games.balatro.live.injected.action_dispatcher import (
     UnsupportedInjectedAction,
 )
 from games.balatro.live.injected.bridge import FirstPartyBalatroBridge
+from games.balatro.live.injected.install import bridge_asset_path
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 
@@ -90,15 +91,7 @@ def test_dispatcher_rejects_consumable_sale_outside_shop_or_pack():
 
 
 def test_injected_lua_bridge_routes_consumable_sale_through_native_callback():
-    asset = (
-        Path(__file__).parents[1]
-        / "games"
-        / "balatro"
-        / "live"
-        / "injected"
-        / "assets"
-        / "bridge.lua"
-    ).read_text(encoding="utf-8")
+    asset = bridge_asset_path().read_text(encoding="utf-8")
 
     block = asset[
         asset.index("local function execute_sell_consumable") :
