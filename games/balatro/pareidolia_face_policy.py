@@ -59,18 +59,15 @@ def install_pareidolia_face_policy() -> None:
             return result
 
         resolution = self.strategy_tracker.observe(state)
-        primary_id = resolution.dominant_strategy_id
-        primary_getter = getattr(self.strategy_tracker, "primary_strategy_id", None)
-        if callable(primary_getter):
-            primary_id = primary_getter(resolution)
-        if primary_id != "face_pareidolia":
+        pareidolia_assessment = resolution.assessment("face_pareidolia")
+        if pareidolia_assessment is None or float(pareidolia_assessment.score) <= 0.0:
             return result
 
-        # Pareidolia makes every played card a face card. Once this route is the
-        # primary build, face-payoff Jokers are real engine pieces and must not be
-        # treated as disposable generic filler merely because another route's raw
-        # score temporarily rises. This is a retention floor, not an immortality
-        # rule: materially stronger replacements can still win.
+        # Pareidolia makes every played card a face card. Once that leaf has real
+        # positive evidence, its face-payoff Jokers remain genuine engine pieces
+        # even if a broader parent/sibling temporarily wins the primary-id tie.
+        # This is a retention floor, not an immortality rule: a materially stronger
+        # replacement can still beat the support Joker.
         floor = 6.0
         if float(result.total_gain) >= floor:
             return result
@@ -81,7 +78,7 @@ def install_pareidolia_face_policy() -> None:
             strategic_adjustment=float(result.strategic_adjustment) + delta,
             rationale=(
                 *result.rationale,
-                "Pareidolia primary route keeps face-payoff Joker as aligned engine support",
+                "Pareidolia leaf active; keep face-payoff Joker as aligned engine support",
                 f"Pareidolia support retention floor={floor:.3f}",
             ),
         )
