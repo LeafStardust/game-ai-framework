@@ -1,4 +1,3 @@
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -10,6 +9,7 @@ from games.balatro.live.runtime.live_memory_restart_run_injected import (
     restart_fresh_unseeded_run,
 )
 from games.balatro.live.injected.bridge import FirstPartyBalatroBridge
+from games.balatro.live.injected.install import bridge_asset_path
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 
@@ -205,17 +205,9 @@ def test_bridge_restart_method_emits_control_command_without_payload():
 
 
 def test_restart_bridge_triggers_and_drains_native_unlock_queue_before_setup():
-    source = (
-        Path(__file__).parents[1]
-        / "games"
-        / "balatro"
-        / "live"
-        / "injected"
-        / "assets"
-        / "bridge.lua"
-    ).read_text(encoding="utf-8")
+    source = bridge_asset_path().read_text(encoding="utf-8")
 
-    assert "bridge_revision=6" in source
+    assert "bridge_revision=7" in source
     assert ";restart_unlock_drain=1" in source
     assert 'config.button == "continue_unlock"' in source
     assert 'type(unlock_notify) ~= "function"' in source
