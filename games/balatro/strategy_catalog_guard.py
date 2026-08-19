@@ -57,16 +57,12 @@ def guard_unresolved_conditional_relationships(
     flush = guarded["flush"]
     guarded["flush"] = replace(
         flush,
-        # Seeing Double is Bronze only with compatible mixed/effective-suit
-        # structure; owning it alone is not Flush evidence.
         bronze_jokers=_without(flush.bronze_jokers, "Seeing Double"),
     )
 
     straight_flush = guarded["straight_flush"]
     guarded["straight_flush"] = replace(
         straight_flush,
-        # Suit-payoff Jokers require their matching suit shell. DNA is a conflict
-        # only when rank-copying has actually collapsed Straight connectivity.
         bronze_jokers=_without(
             straight_flush.bronze_jokers,
             "Arrowhead",
@@ -80,21 +76,15 @@ def guard_unresolved_conditional_relationships(
     five_kind = guarded["five_kind"]
     guarded["five_kind"] = replace(
         five_kind,
-        # The Idol supports this route only after concentrated rank+suit structure
-        # exists; an arbitrary rolled target is not Five-of-a-Kind evidence.
         silver_jokers=_without(five_kind.silver_jokers, "The Idol"),
     )
 
     flush_five = guarded["flush_five"]
     guarded["flush_five"] = replace(
         flush_five,
-        # Flush Five requires identical rank+suit concentration before The Idol is
-        # defining evidence.
         gold_jokers=_without(flush_five.gold_jokers, "The Idol"),
     )
 
-    # Gold means a Joker can make the route genuinely viable/strong on its own.
-    # These are useful support/direction pieces, but not sufficient for +8 evidence.
     weak_single_joker_cores = {
         "abstract_joker": ("Abstract Joker",),
         "swashbuckler": ("Swashbuckler",),
@@ -105,9 +95,7 @@ def guard_unresolved_conditional_relationships(
         "no_discard_ramen": ("Ramen",),
         "no_discard_reserve": ("Banner", "Delayed Gratification"),
         "last_hand_acrobat": ("Acrobat",),
-        "green_joker": ("Green Joker",),
-        # Hand/economy enablers are useful but do not by themselves make the route
-        # powerful enough to deserve a Gold commitment signal.
+        "no_discard_green": ("Green Joker",),
         "straight": ("Shortcut", "Four Fingers", "Superposition"),
         "face_held_economy": ("Reserved Parking",),
         "face_business_card": ("Business Card",),
@@ -119,9 +107,6 @@ def guard_unresolved_conditional_relationships(
         "planet_satellite": ("Satellite",),
         "discard_mail_rebate": ("Mail-In Rebate",),
         "loyalty_cycle": ("Loyalty Card",),
-        # Run-log calibration: these generator/scaler pieces repeatedly produced
-        # an immediate Gold ~=8 dominant strategy before the rest of the route
-        # existed. They should create direction, not commitment, by themselves.
         "tarot_engine": ("Fortune Teller",),
         "tarot_cartomancer": ("Cartomancer",),
         "tarot_hallucination": ("Hallucination",),
@@ -133,10 +118,6 @@ def guard_unresolved_conditional_relationships(
             *joker_names,
         )
 
-    # PhotoChad is a combo route, not a Photograph-only route. The logs showed
-    # Photograph alone creating an ~8-point highlighted leaf for long stretches.
-    # Require both positive components in the leaf and make each Silver: one piece
-    # is exploratory evidence; the pair is a meaningful ~6-point build direction.
     photochad = guarded["face_photochad"]
     guarded["face_photochad"] = replace(
         photochad,
@@ -148,10 +129,9 @@ def guard_unresolved_conditional_relationships(
         minimum_positive_jokers=2,
     )
 
-    # Bull and Bootstraps are two cash-scaling payoffs for the exact same economic
-    # shell. They should not compete as separate strategy leaves. Keep the legacy
-    # node ids topology-compatible but make them permanently non-actionable, then
-    # put both defining Jokers on the combined cash scoring leaf.
+    # Bull and Bootstraps share one cash-scoring leaf, but each is independently
+    # strong enough to make that leaf viable. Keep the legacy leaves retired while
+    # preserving each Joker as standalone Gold evidence on the combined route.
     retired_cash_requirement = _joker_tokens("__retired_cash_leaf__")
     for strategy_id in ("cash_bull", "cash_bootstraps"):
         legacy = guarded[strategy_id]
