@@ -2,10 +2,73 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from games.balatro.build import ContextualConsumableTargetEvaluator
 from games.balatro.live.consumable_timing_core import *  # noqa: F401,F403
 from games.balatro.live.consumable_timing_core import (
     LiveConsumableTimingPolicy as _CoreLiveConsumableTimingPolicy,
 )
+
+
+class SteelAwareConsumableTargetEvaluator(ContextualConsumableTargetEvaluator):
+    """Prefer cards that are cheap to keep in hand when creating Steel cards."""
+
+    _RANK_COST = {
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8,
+        "9": 9,
+        "10": 10,
+        "J": 10,
+        "Q": 10,
+        "K": 10,
+        "A": 11,
+    }
+
+    def rank_targets(self, state, consumable):
+        ranked = super().rank_targets(state, consumable)
+        if str(getattr(consumable, "name", "")) != "The Chariot":
+            return ranked
+
+        def hold_cost(evaluation):
+            card = evaluation.cards[0]
+            enhancement = str(getattr(card, "enhancement", "") or "")
+            edition = str(getattr(card, "edition", "") or "")
+            seal = str(getattr(card, "seal", "") or "")
+
+            # Steel only pays while held. Do not consume cards that are already
+            # valuable scoring pieces merely because Steel has a high generic
+            # enhancement value. Blue Seal is intentionally exempt: it already
+            # wants to remain in hand and therefore naturally pairs with Steel.
+            scoring_enhancement_cost = 20.0 if enhancement else 0.0
+            edition_cost = 12.0 if edition else 0.0
+            permanent_chip_cost = max(
+                0.0,
+                float(getattr(card, "permanent_bonus", 0) or 0) / 5.0,
+            )
+            seal_cost = 0.0 if seal in {"", "Blue"} else 8.0
+            rank_cost = float(self._RANK_COST.get(str(getattr(card, "rank", "")), 0))
+            return (
+                scoring_enhancement_cost
+                + edition_cost
+                + permanent_chip_cost
+                + seal_cost
+                + rank_cost
+            )
+
+        return tuple(
+            sorted(
+                ranked,
+                key=lambda evaluation: (
+                    hold_cost(evaluation),
+                    -float(evaluation.total_gain),
+                    evaluation.target_indices,
+                ),
+            )
+        )
 
 
 class LiveConsumableTimingPolicy(_CoreLiveConsumableTimingPolicy):
@@ -25,6 +88,7 @@ class LiveConsumableTimingPolicy(_CoreLiveConsumableTimingPolicy):
         defer_blind_clear_to_d1: bool = True,
         **kwargs,
     ) -> None:
+        kwargs.setdefault("target_evaluator", SteelAwareConsumableTargetEvaluator())
         super().__init__(**kwargs)
         self.defer_blind_clear_to_d1 = bool(defer_blind_clear_to_d1)
 
