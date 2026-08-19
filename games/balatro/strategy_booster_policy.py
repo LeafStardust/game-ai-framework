@@ -14,16 +14,20 @@ from games.balatro.shop_reroll_policy import (
     BuildAwareShopRerollPolicy,
     ShopRerollThresholds,
 )
-from games.balatro.strategy import BalatroStrategyTracker
+from games.balatro.strategy import (
+    COMMITTED,
+    HIGHLIGHTED,
+    MATURE,
+    BalatroStrategyTracker,
+)
 
 
 class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
     """D8 booster policy driven by the universal playbook strategy state.
 
-    Arcana and Spectral packs are safe to open because D9/D10 still inspect the
-    visible post-open choices and may Skip. Celestial packs are different: Planets
-    reinforce an existing poker-hand direction, so D8 requires meaningful current
-    poker-hand evidence before spending on the unopened pack.
+    Arcana and Spectral packs remain exploration-capable. Celestial packs are
+    refinement purchases: do not spend on them until the dominant strategy has
+    actually solidified around a poker-hand archetype.
     """
 
     AUTONOMOUS_SAFE_FAMILIES = frozenset(
@@ -54,10 +58,6 @@ class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
                 getattr(state, "joker_slots", 5) or 5
             )
             if full:
-                # D8 must not demand a speculative sale before hidden Buffoon
-                # contents are visible. Revalue the unopened pack as having one
-                # replacement opportunity; D9 may Skip after reveal, and only a
-                # visible desirable Joker may justify selling an incumbent.
                 shadow = state.copy()
                 shadow.joker_slots = len(getattr(state, "jokers", ()) or ()) + 1
                 recommendation = super().recommend(shadow, action)
@@ -78,27 +78,31 @@ class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
         evidence_floor = self.strategy_tracker._number(
             config,
             "celestial_poker_evidence_floor",
-            1.5,
+            3.5,
         )
         resolution = self.strategy_tracker.observe(state)
-        poker_assessments = [
-            assessment
-            for assessment in resolution.assessments
-            if self._primary_hands(assessment.strategy_id)
-        ]
-        best = max(poker_assessments, key=lambda item: item.score, default=None)
-        best_score = float(best.score) if best is not None else 0.0
-        best_name = best.name if best is not None else "none"
+        dominant_id = resolution.dominant_strategy_id
+        dominant = resolution.assessment(dominant_id)
+        dominant_hands = self._primary_hands(dominant_id) if dominant_id else ()
+        dominant_score = float(dominant.score) if dominant is not None else 0.0
+        dominant_name = dominant.name if dominant is not None else "none"
+        solid = (
+            dominant is not None
+            and bool(dominant_hands)
+            and resolution.active_status in {HIGHLIGHTED, COMMITTED, MATURE}
+            and dominant_score >= evidence_floor
+        )
 
-        if best_score < evidence_floor:
+        if not solid:
             return replace(
                 recommendation,
                 decision=HOLD,
                 rationale=(
                     *recommendation.rationale,
-                    f"Celestial blocked: best poker-hand strategy={best_name} score={best_score:.3f}",
-                    f"Celestial poker-strategy evidence floor={evidence_floor:.3f}",
-                    "Planets reinforce an evidenced poker-hand route; they do not seed one",
+                    f"Celestial blocked: dominant strategy={dominant_name} score={dominant_score:.3f} status={resolution.active_status}",
+                    f"dominant poker hands={','.join(dominant_hands) if dominant_hands else 'none'}",
+                    f"Celestial solidified poker-strategy floor={evidence_floor:.3f}",
+                    "Planet packs are refinement spending; wait until a poker-hand style is actually solidified",
                 ),
             )
 
@@ -106,8 +110,9 @@ class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
             recommendation,
             rationale=(
                 *recommendation.rationale,
-                f"Celestial admitted by poker-hand strategy={best_name} score={best_score:.3f}",
-                f"Celestial poker-strategy evidence floor={evidence_floor:.3f}",
+                f"Celestial admitted by solidified poker-hand strategy={dominant_name} score={dominant_score:.3f}",
+                f"dominant poker hands={','.join(dominant_hands)}",
+                f"Celestial solidified poker-strategy floor={evidence_floor:.3f}",
             ),
         )
 
@@ -126,12 +131,7 @@ class StrategyAwareShopRerollPolicy(BuildAwareShopRerollPolicy):
     STRATEGY_SEARCH_LATE_RESERVE = 10
     STRATEGY_SEARCH_LATE_ANTE = 6
 
-    def __init__(
-        self,
-        *args,
-        strategy_tracker: BalatroStrategyTracker,
-        **kwargs,
-    ) -> None:
+    def __init__(self, *args, strategy_tracker: BalatroStrategyTracker, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.strategy_tracker = strategy_tracker
 
@@ -216,26 +216,12 @@ class StrategyAwareShopRerollPolicy(BuildAwareShopRerollPolicy):
 class StrategyAwarePlaybookShopArbiter(PlaybookBuildAwareShopArbiter):
     """Resolve D8 from the active cartridge while sharing universal strategy state."""
 
-    def __init__(
-        self,
-        *args,
-        strategy_tracker: BalatroStrategyTracker,
-        **kwargs,
-    ) -> None:
+    def __init__(self, *args, strategy_tracker: BalatroStrategyTracker, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.strategy_tracker = strategy_tracker
 
     def decide(self, state, visible_actions, *, reroll_cost):
-        decision = super().decide(
-            state,
-            visible_actions,
-            reroll_cost=reroll_cost,
-        )
-
-        # Shop packs are option-value purchases. An already visible, D2-admitted
-        # Joker is concrete build value and must be resolved first. The autonomous
-        # loop re-observes the settled shop after the Joker purchase, so the same
-        # pack can still be considered immediately afterward with the updated build.
+        decision = super().decide(state, visible_actions, reroll_cost=reroll_cost)
         if decision.source == "BOOSTER":
             joker_best = self._best_joker_decision(state)
             if joker_best is not None:
@@ -255,13 +241,11 @@ class StrategyAwarePlaybookShopArbiter(PlaybookBuildAwareShopArbiter):
                             "re-observe shop after Joker transaction before reconsidering packs",
                         ),
                     )
-
         return decision
 
     def _booster_policy_for_state(self, state) -> BuildAwareShopBoosterPolicy:
         if self.booster_policy is not None:
             return self.booster_policy
-
         try:
             playbook = default_balatro_playbooks().for_state(state)
         except BalatroPlaybookNotFound:
@@ -269,7 +253,6 @@ class StrategyAwarePlaybookShopArbiter(PlaybookBuildAwareShopArbiter):
                 shop_policy=self.shop_policy,
                 strategy_tracker=self.strategy_tracker,
             )
-
         thresholds = BoosterAcquisitionThresholds.from_mapping(
             playbook.thresholds_for("D8")
         )
