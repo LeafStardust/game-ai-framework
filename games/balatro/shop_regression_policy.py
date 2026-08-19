@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from games.balatro.joker_edition import joker_has_negative_edition
 from games.balatro.joker_policy import (
     BUY,
     HOLD,
@@ -109,25 +108,9 @@ def install_shop_regression_policy() -> None:
                     ),
                 )
 
-        # Bridge revision 7 rejects any Joker purchase at a full ordinary roster,
-        # even though D2 correctly knows Negative editions are slot-neutral. Until
-        # the bridge-side capacity check is upgraded, never let that recoverable
-        # execution mismatch terminate the supervisor. Defer the purchase instead.
-        if (
-            decision.action == BUY
-            and joker_has_negative_edition(candidate)
-            and len(tuple(getattr(state, "jokers", ()) or ()))
-            >= int(getattr(state, "joker_slots", 0) or 0)
-        ):
-            return _hold_decision(
-                self,
-                candidate,
-                (
-                    "Negative Joker is strategically slot-neutral but bridge revision 7 rejects full-roster BUY_CARD",
-                    "defer purchase instead of crashing the autonomous supervisor",
-                ),
-            )
-
+        # Negative Jokers remain buyable at a full ordinary roster. Their edition
+        # is slot-neutral; bridge capacity validation owns the matching execution
+        # rule and must not be approximated here by converting a valid BUY to HOLD.
         return decision
 
     JokerAcquisitionPolicy.decide = decide
