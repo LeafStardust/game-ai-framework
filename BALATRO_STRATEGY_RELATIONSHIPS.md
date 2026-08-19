@@ -28,7 +28,11 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 
 Gold is reserved for a Joker that can make the strategy **viable and unusually effective by itself**, rather than merely making the route easier to execute. Scholar for Aces, Glass Joker for Glass breakage, Steel Joker for Steel density, Runner / The Order for Straight, Hologram for deck growth, Yorick for discard scaling, and Obelisk for hand rotation are representative Gold cores.
 
-Silver is the normal support tier. Consistency tools, weak single-Joker routes, modest economy pieces, and setup/enabling Jokers remain meaningful evidence without manufacturing a +8 commitment signal. Banner, Delayed Gratification, Acrobat, Abstract Joker, Shortcut, Four Fingers, Superposition, Reserved Parking, Business Card, Faceless Joker, Sixth Sense, Shoot the Moon, Hiker, Satellite, Mail-In Rebate, Loyalty Card, Fortune Teller, Cartomancer, Hallucination, and 8 Ball are Silver under this rule.
+Silver is the normal support tier. Consistency tools, weak single-Joker routes, modest economy pieces, and setup/enabling Jokers remain meaningful evidence without manufacturing a +8 commitment signal. Banner, Delayed Gratification, Acrobat, Abstract Joker, Shortcut, Four Fingers, Superposition, Reserved Parking, Business Card, Faceless Joker, Ride the Bus, Green Joker, Sixth Sense, Shoot the Moon, Hiker, Satellite, Mail-In Rebate, Loyalty Card, Fortune Teller, Cartomancer, Hallucination, and 8 Ball are Silver under this rule.
+
+### Primary strategy and compatible engines
+
+The runtime no longer treats every positive strategy node as mutually exclusive. It resolves one **Primary** scoring/win-condition route while allowing compatible **Secondary** scoring engines and **Support** engines to remain active. A positive dominant strategy is pursued at every Ante; Ante 6+ convergence keeps the Primary fully prescriptive while compatible engines retain reduced influence. Incompatible poker-hand prescriptions and explicit Banned conflicts do not remain simultaneously prescriptive.
 
 ## Universal value versus strategy relationship
 
@@ -87,7 +91,7 @@ A component must not be duplicated between a parent and child row. If it is spec
 
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
-| Aces | Aces `[L]` | Scholar | DNA *(with Ace commitment)*; Fibonacci *(with Ace commitment)*; Odd Todd *(with Ace commitment)* | The Idol *(Ace target + concentration)* | — | Death; Strength; The Hanged Man | — | Grim; Cryptid | — |
+| Aces | Aces `[L]` | Scholar | DNA *(requires Scholar)*; Fibonacci *(requires Scholar)*; Odd Todd *(requires Scholar)* | The Idol *(Ace target + concentration)* | — | Death; Strength; The Hanged Man | — | Grim; Cryptid | — |
 | Low-Rank Scoring | Low-Rank Scoring `[L]` | Fibonacci; Hack | Odd Todd; Even Steven; Hanging Chad; Seltzer; Dusk *(retriggers require low-rank commitment)* | — | — | Death; Strength; The Hanged Man | — | Incantation; Cryptid | — |
 | Twos | Twos / Wee-Hack `[L]` | Wee Joker | Hack *(with Two commitment)*; Fibonacci *(with Two commitment)*; Even Steven *(with Two commitment)* | DNA *(with Two commitment)*; Hologram *(with Two commitment)*; The Idol *(Two target + concentration)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
 | Ten-Four | Ten-Four / Walkie Talkie `[L]` | Walkie Talkie | Even Steven *(with Ten-Four commitment)*; Hack *(with Four commitment)* | DNA; Hologram; The Idol *(all with Ten-Four commitment)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
@@ -101,9 +105,11 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Face Cards | ↳ Held Face-Card Economy `[L]` | — | Reserved Parking; Mime *(with Reserved Parking)*; Pareidolia *(with Reserved Parking)* | — | — | The Devil | — | — | Gold face cards |
 | Face Cards | ↳ Business Card Face Economy `[L]` | Oops! All 6s *(with Business Card)* | Business Card; Pareidolia; Sock and Buskin; Hanging Chad; Seltzer; Dusk *(all with Business Card)* | — | — | — | — | — | — |
 | Faceless / No-Face | Faceless / No-Face `[I]` | — | — | — | — | The Hanged Man; Death | — | Incantation; Grim | — |
-| Faceless / No-Face | ↳ Ride the Bus No-Face Scaling `[L]` | Ride the Bus | Trading Card *(with Ride the Bus)* | Faceless Joker *(with Ride the Bus)*; Hit the Road *(with Ride the Bus)* | Pareidolia; Splash; Photograph; Sock and Buskin; Triboulet; Scary Face; Smiley Face; Business Card; Midas Mask; Familiar | — | — | — | — |
+| Faceless / No-Face | ↳ Ride the Bus No-Face Scaling `[L]` | — | Ride the Bus; Trading Card *(with Ride the Bus)* | Faceless Joker *(with Ride the Bus)*; Hit the Road *(with Ride the Bus)* | Pareidolia; Splash; Photograph; Sock and Buskin; Triboulet; Scary Face; Smiley Face; Business Card; Midas Mask; Familiar | — | — | — | — |
 | Faceless / No-Face | ↳ Faceless Joker Discard Economy `[L]` | Pareidolia *(with Faceless Joker)* | Faceless Joker; Merry Andy; Drunkard; Hit the Road; Mail-In Rebate *(all with Faceless Joker)* | — | — | — | — | Familiar | — |
 | The Idol Exact-Card Concentration | The Idol Exact-Card Concentration `[L]` | The Idol *(4+ effective target cards)* | The Idol *(2–3 effective target cards)*; DNA; Trading Card *(support requires active Idol target)* | — | — | Death; The Hanged Man | — | Cryptid | Glass target cards |
+
+Pareidolia face-payoff retention is intentionally **not** duplicated as child relationship evidence. The Face Cards parent contributes Smiley Face / Scary Face / Midas Mask evidence once; when Pareidolia is owned and the Pareidolia leaf is active, compatible face-payoff Jokers receive a retention/value floor so the agent does not dismantle the engine merely because another raw strategy score temporarily rises.
 
 ## 3. Suits and held cards
 
@@ -185,8 +191,8 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
 | Planet Engine | Planet Engine `[I]` | — | Astronomer | — | — | The High Priestess | Any | Black Hole | — |
-| Planet Engine | ↳ Constellation Planet-Scaling `[L]` | Constellation; Satellite *(when paired)* | Perkeo; Blueprint; Brainstorm *(with Constellation)* | Satellite *(without pair)* | — | — | Any | — | — |
-| Planet Engine | ↳ Satellite Planet-Economy `[L]` | Constellation *(when paired with Satellite)* | Satellite; Perkeo; Blueprint; Brainstorm *(with Satellite)* | Constellation *(without pair)* | — | — | Any | — | — |
+| Planet Engine | ↳ Constellation Planet-Scaling `[L]` | Constellation *(only while Satellite is owned)* | Constellation *(while Astronomer is owned)*; Perkeo; Blueprint; Brainstorm *(with Constellation)* | — | — | — | Any | — | — |
+| Planet Engine | ↳ Satellite Planet-Economy `[L]` | Constellation *(when paired with Satellite)* | Satellite; Perkeo; Blueprint; Brainstorm *(with Satellite)* | — | — | — | Any | — | — |
 | Perkeo Consumable Duplication | Perkeo Consumable Duplication `[I]` | Perkeo | — | — | — | — | — | — | — |
 | Perkeo Consumable Duplication | ↳ Perkeo + Observatory Planet Stack `[L]` | Perkeo *(with Observatory)* | — | — | — | — | Any held Planet | — | — |
 | Perkeo Consumable Duplication | ↳ Perkeo + Cryptid Copy Engine `[L]` | Perkeo *(with held Cryptid)* | — | — | — | — | — | Cryptid | — |
@@ -195,6 +201,8 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Tarot Engine | ↳ Passive Tarot Generation `[L]` | — | Cartomancer; Hallucination | — | — | Any | — | — | — |
 | Tarot Engine | ↳ 8 Ball / Eights Tarot Generation `[L]` | — | 8 Ball; Oops! All 6s; Hanging Chad; Seltzer; Dusk *(support requires 8 Ball)* | Fibonacci *(with Eight commitment)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
 | Vagabond Low-Money Tarot Engine | Vagabond Low-Money Tarot Engine `[L]` | Vagabond | Fortune Teller; Blueprint; Brainstorm *(with Vagabond)* | — | Cash-hoard commitments that prevent the $4 trigger | Any | — | — | — |
+
+Constellation is a **dependent payoff, not a self-starting strategy core**. Without Astronomer or Satellite it is Neutral for this route and is explicitly blocked from ordinary acquisition. Astronomer enables Silver Constellation support; Satellite upgrades the pair to Gold-level Planet-engine evidence.
 
 ## 9. Economy, shop, reroll, blind skip
 
@@ -227,7 +235,7 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Discard Utilization | ↳ Mail-In Rebate Rank-Discard Economy `[L]` | — | Mail-In Rebate; Merry Andy; Drunkard; Blueprint; Brainstorm *(with Rebate)* | Trading Card *(with Rebate)* | No-discard commitments | Strength; Death | — | Ouija | — |
 | Discard Utilization | ↳ Yorick Discard-Scaling `[L]` | Yorick | Merry Andy; Drunkard; Blueprint; Brainstorm *(with Yorick)* | Certificate *(with Yorick)* | No-discard commitments | — | — | Medium | — |
 | No-Discard / Discard-Preservation | No-Discard / Discard-Preservation `[I]` | — | — | — | Discard-engine commitments | — | — | — | — |
-| No-Discard / Discard-Preservation | ↳ Green Joker No-Discard Scaling `[L]` | Green Joker; Burglar *(paired)* | Banner; Delayed Gratification; Ramen *(with Green Joker)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with Green Joker)* | — | — | — | — |
+| No-Discard / Discard-Preservation | ↳ Green Joker No-Discard Scaling `[L]` | Burglar *(paired)* | Green Joker; Banner; Delayed Gratification; Ramen *(with Green Joker)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with Green Joker)* | — | — | — | — |
 | No-Discard / Discard-Preservation | ↳ Banner + Delayed Gratification Discard Reserve `[L]` | — | Banner; Delayed Gratification; Burglar; Green Joker; Ramen *(with reserve core)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with reserve core)* | — | — | — | — |
 | No-Discard / Discard-Preservation | ↳ Ramen Preservation `[L]` | Burglar *(paired)* | Ramen; Green Joker; Banner; Delayed Gratification *(with Ramen)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with Ramen)* | — | — | — | — |
 | No-Discard / Discard-Preservation | ↳ Burglar Zero-Discard / Extra-Hand `[L]` | Burglar | Green Joker; Banner; Delayed Gratification; Ramen *(with Burglar)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with Burglar)* | — | — | — | — |
