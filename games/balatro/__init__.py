@@ -9,6 +9,7 @@ from games.balatro.log_batch_calibration_policy import install_log_batch_calibra
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.pareidolia_face_policy import install_pareidolia_face_policy
 from games.balatro.shop_regression_policy import install_shop_regression_policy
+from games.balatro.strategy_commitment_hysteresis import install_strategy_commitment_hysteresis
 from games.balatro.strategy_multi_engine import install_multi_engine_strategy_policy
 from games.balatro.three_run_review_policy import install_three_run_review_policy
 
@@ -24,3 +25,4 @@ install_d1_log_resilience_policy()
 install_log_batch_calibration_policy()
 install_shop_regression_policy()
 install_three_run_review_policy()
+install_strategy_commitment_hysteresis()
