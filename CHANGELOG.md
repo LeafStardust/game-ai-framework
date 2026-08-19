@@ -31,6 +31,9 @@ This file records notable development changes to the project. Active and future 
 - Added marginal cash-scaling cost to every paid shop action while Bootstraps or Bull is owned.
 - Preserved held Steel cards and Blue Seals before ordinary strategy-fit tie-breaking.
 - Bounded late-Ante D1 search, Boss-Blind search, and Joker-order analysis to interactive live budgets.
+- Scoped the new safe-pace survival invariant to the production strategy-aware D1 policy instead of changing the reusable base hand-action policy. The live agent now plays a hand when it can meet the current remaining-score-per-hand pace, otherwise prefers a legal discard, and only falls back to its strongest bounded play when no discard remains. Equal-safety decisions still use the established playstyle, strategy, Steel-card, and Blue-Seal tie-breaks.
+- Applied weak-build scoring-readiness vetoes only at the final strategy-aware D13 blind-skip layer. Base tag economics remain authoritative inputs, while production may reject a profitable-looking skip when the current build is not sufficiently ready to survive the resulting progression.
+- Tightened weak-board booster spending: Arcana may be held when scoring readiness does not justify speculative spending, while Spectral exploration remains eligible under the existing strategy-seeding rules.
 
 #### Fixed
 
@@ -39,6 +42,8 @@ This file records notable development changes to the project. Active and future 
 - Prevented blind-selection Joker-order searches from blocking the start of a blind.
 - Corrected late-run Small/Big Blind stalls caused by unbounded hand search.
 - Added an eight-second wall-clock budget across each complete D1 decision so an individually expensive expectimax node cannot leave early or mid-run hands appearing frozen after the existing node budget.
+- Made expired-budget D1 recovery strictly bounded: production may take one legal discard and re-observe, while minimal/test planners that do not expose discard generation retain the original bounded structural play fallback rather than entering unbounded immediate recovery.
+- Prevented the production safe-pace rule from overriding lower-level `CLEAR_PATH` planner contracts or equal-safety hand-selection contracts used by reusable policy tests.
 - Stopped paid rerolls from continuing past configured cost and reserve limits.
 - Treated an authoritative `won=true` snapshot as terminal even while Balatro still reports `ROUND_EVAL`, preventing unintended entry into Endless and allowing immediate run finalization.
 - Allowed a freshly restarted agent to recognize and resume a manually continued post-win Endless run while retaining the default automatic stop at the initial Ante-8 win.
