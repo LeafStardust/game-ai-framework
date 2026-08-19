@@ -322,7 +322,34 @@ Ante 6+:   specialization
 
 Survival and guaranteed blind clears remain higher priority than strategy purity.
 
-## 5. Negative Joker retention
+## 5. Production survival-policy boundary
+
+The reusable D1 planner and the production strategy-aware D1 policy have different responsibilities.
+
+The base `LiveHandActionPolicy` and its planner retain general search semantics such as `CLEAR_PATH`, sampled-path confirmation, setup-discard consensus, and equal-safety playstyle/card-preservation tie-breaks. Production Red/White survival rules must not monkey-patch those reusable contracts globally.
+
+The live strategy-aware policy adds a final **safe-pace invariant**:
+
+```text
+pace_target = remaining_blind_score / hands_remaining
+
+if a legal play can satisfy the current pace target:
+    play the strongest qualifying safe hand
+elif a discard remains:
+    discard once, then re-observe and replan
+else:
+    take the strongest bounded legal play
+```
+
+A speculative multi-step clear path cannot force the production agent to burn an under-pace scoring hand while a legal recovery discard remains. This is deliberately a production policy overlay, not a redefinition of the lower-level planner's `CLEAR_PATH` mode.
+
+When multiple actions are equivalently safe, existing tie-break semantics remain authoritative. In particular, current playstyle/strategy direction and preservation of valuable held cards such as Steel cards and Blue Seals are still used after survival equivalence is established.
+
+The complete D1 decision remains wall-clock bounded. Once that budget expires, the engine must not enter unbounded immediate recovery. A production planner with legal discard generation may take one structural discard and re-observe; minimal or test planners without that capability fall back to the existing bounded structural play path.
+
+D13 follows the same layering principle. Base blind/tag valuation continues to compute public tag economics. The final strategy-aware blind-skip policy may apply a scoring-readiness survival veto so a high nominal tag value cannot justify skipping when the current build is too weak for the resulting progression. This veto is not part of the reusable base tag-economics contract.
+
+## 6. Negative Joker retention
 
 Negative Jokers are protected from ordinary sell/replace pressure by default because their +1 Joker slot normally makes them effectively slot-neutral.
 
@@ -332,7 +359,7 @@ Removal is justified only when its active mechanic materially harms the current 
 
 Destructive engines such as Ceremonial Dagger or Vampire must therefore be evaluated in context: their destructive behavior is not automatically considered harmful when the run is deliberately following the corresponding strategy.
 
-## 6. Deck/stake cartridge
+## 7. Deck/stake cartridge
 
 A Balatro deck/stake cartridge does **not** define the universal strategy forest.
 
