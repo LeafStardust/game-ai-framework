@@ -105,6 +105,18 @@ def guard_unresolved_conditional_relationships(
         "no_discard_ramen": ("Ramen",),
         "no_discard_reserve": ("Banner", "Delayed Gratification"),
         "last_hand_acrobat": ("Acrobat",),
+        # Hand/economy enablers are useful but do not by themselves make the route
+        # powerful enough to deserve a Gold commitment signal.
+        "straight": ("Shortcut", "Four Fingers", "Superposition"),
+        "face_held_economy": ("Reserved Parking",),
+        "face_business_card": ("Business Card",),
+        "faceless_discard_economy": ("Faceless Joker",),
+        "sixes": ("Sixth Sense",),
+        "queens_shoot_moon": ("Shoot the Moon",),
+        "hiker_training": ("Hiker",),
+        "planet_satellite": ("Satellite",),
+        "discard_mail_rebate": ("Mail-In Rebate",),
+        "loyalty_cycle": ("Loyalty Card",),
         # Run-log calibration: these generator/scaler pieces repeatedly produced
         # an immediate Gold ~=8 dominant strategy before the rest of the route
         # existed. They should create direction, not commitment, by themselves.
