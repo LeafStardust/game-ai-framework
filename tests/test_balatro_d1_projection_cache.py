@@ -26,14 +26,14 @@ def _state() -> BalatroState:
     return state
 
 
-def test_d1_candidate_beam_projects_each_play_once_per_search():
+def test_d1_candidate_beam_projects_each_shortlisted_play_once_per_search():
     state = _state()
     planner = D1LiveBlindClearPlanner(
         play_width=6,
         discard_width=0,
         horizon=2,
     )
-    plays = planner.action_generator.generate_play_actions(state)
+    exhaustive_plays = planner.action_generator.generate_play_actions(state)
     calls: dict[tuple[int, tuple[int, ...]], int] = {}
     original = planner.evaluator.project_play
 
@@ -46,18 +46,20 @@ def test_d1_candidate_beam_projects_each_play_once_per_search():
 
     planner._candidate_actions(state, allow_discards=False)
 
-    assert len(plays) > planner.play_width
-    assert planner.play_projections_evaluated == len(plays)
-    assert len(calls) == len(plays)
+    assert len(exhaustive_plays) > planner.play_width
+    assert planner.play_projections_evaluated <= planner._MAX_ROOT_PROJECTED_PLAYS
+    assert planner.play_projections_evaluated < len(exhaustive_plays)
+    assert len(calls) == planner.play_projections_evaluated
     assert set(calls.values()) == {1}
     assert planner._play_projection_cache == {}
 
+    first_projection_count = planner.play_projections_evaluated
     planner.reset_search_stats()
     assert planner.play_projections_evaluated == 0
 
     planner._candidate_actions(state, allow_discards=False)
 
-    assert planner.play_projections_evaluated == len(plays)
+    assert planner.play_projections_evaluated == first_projection_count
     assert set(calls.values()) == {2}
     assert planner._play_projection_cache == {}
 
