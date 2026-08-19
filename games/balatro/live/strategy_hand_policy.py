@@ -5,6 +5,7 @@ from dataclasses import replace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.live.hand_action_policy import PACE_RECOVERY
 from games.balatro.live.hand_playstyle import BuildAwareLiveHandActionPolicy
 from games.balatro.strategy import BRONZE, GOLD, SILVER, BalatroStrategyTracker
 from games.balatro.strategy_compat import NeutralLegacyPlaystyleIntentTracker
@@ -59,6 +60,49 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
     def decide(self, state, plans, **kwargs):
         decision = super().decide(state, plans, **kwargs)
         vagabond_active = self._vagabond_generation_active(state)
+
+        # Final-hand survival is absolute. If no current play meets pace, spending
+        # the final remaining hand loses immediately. Any legal discard is therefore
+        # better than an under-pace PLAY regardless of Banner/no-discard strategy,
+        # retained-card utility, or other strategic shaping.
+        if (
+            decision.action.name == PLAY_CARDS
+            and int(getattr(state, "hands_remaining", 0) or 0) <= 1
+            and int(getattr(state, "discards_remaining", 0) or 0) > 0
+            and (
+                decision.selected_pace_ratio is None
+                or float(decision.selected_pace_ratio) + self.EPSILON
+                < float(self.thresholds.pace_ratio_floor)
+            )
+        ):
+            discards = [
+                plan for plan in plans if plan.action.name == DISCARD_CARDS
+            ]
+            if discards:
+                selected = max(
+                    discards,
+                    key=lambda plan: (
+                        float(self.evaluator.evaluate(state, plan.action)),
+                        self._within_type_key(plan),
+                    ),
+                )
+                selected_value = float(self.evaluator.evaluate(state, selected.action))
+                decision = replace(
+                    decision,
+                    mode=PACE_RECOVERY,
+                    action=selected.action,
+                    selected_plan=selected,
+                    selected_immediate_score=None,
+                    selected_pace_ratio=None,
+                    selected_fallback_value=selected_value,
+                    confidence=max(float(decision.confidence), 0.95),
+                    rationale=(
+                        "final hand cannot currently clear the blind",
+                        "legal discards remain, so playing an under-pace final hand would lose immediately",
+                        "survival overrides Banner/no-discard and all other strategy preferences",
+                        "use a discard and re-observe for a stronger final hand",
+                    ),
+                )
 
         # Do not override a base PACE_PLAY decision with a setup discard. The base
         # policy already establishes that some current hand meets the mandatory
