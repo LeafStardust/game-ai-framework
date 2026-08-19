@@ -5,11 +5,19 @@ def test_bridge_status_identifies_hardened_command_pump():
     source = bridge_asset_path().read_text(encoding="utf-8")
 
     assert (
-        'return "bridge=2;bridge_revision=6;blind_skip=1;hand_reorder=1;'
-        'achievement_gate="' in source
+        'return "bridge=2;bridge_revision=7;blind_skip=1;hand_reorder=1;'
+        'preblind_joker_sale=1;achievement_gate="' in source
     )
     assert ';restart_unlock_drain=1' in source
     assert 'command_pump=LOVE_RUN_PRE_UPDATE' in source
+
+
+def test_bridge_allows_preblind_joker_sales():
+    source = bridge_asset_path().read_text(encoding="utf-8")
+
+    assert "local in_blind_select = G.STATE == G.STATES.BLIND_SELECT" in source
+    assert "not in_blind_select" in source
+    assert "joker sale requires SHOP, BLIND_SELECT, an open pack, or active Verdant Leaf" in source
 
 
 def test_bridge_polls_before_balatro_update_and_from_outer_frame_loop():
