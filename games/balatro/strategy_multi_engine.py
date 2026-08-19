@@ -3,63 +3,44 @@ from __future__ import annotations
 """Primary-win-condition plus compatible-engine strategy orchestration.
 
 The universal strategy catalogue contains both actual win conditions and useful
-engines.  Treating every positive node as a mutually-exclusive build causes support
+engines. Treating every positive node as a mutually-exclusive build causes support
 engines to hijack the run, especially after the old Ante-6 convergence boundary.
 This layer keeps one primary scoring direction while allowing compatible secondary
 and support engines to remain prescriptive.
 """
 
-from games.balatro.strategy import BANNED, AVAILABLE, BalatroStrategyTracker
+from dataclasses import replace
+
+from games.balatro.strategy import (
+    AVAILABLE,
+    BRONZE,
+    GOLD,
+    SILVER,
+    BalatroStrategyTracker,
+)
 
 PRIMARY = "PRIMARY"
 SECONDARY = "SECONDARY"
 SUPPORT = "SUPPORT"
 
-# These nodes improve a build but normally do not specify enough scoring structure
-# to be the sole strategic destination. SECONDARY nodes may become the fallback
-# primary when no true primary has positive evidence, but otherwise ride alongside
-# the primary route. SUPPORT nodes never displace a positive primary/secondary.
 SECONDARY_STRATEGIES = frozenset({
     "drivers_license",
-    "blue_seal",
-    "gold_seal",
-    "red_seal",
-    "purple_seal",
+    "blue_seal", "gold_seal", "red_seal", "purple_seal",
     "hiker_training",
-    "planet_engine",
-    "planet_constellation",
-    "planet_satellite",
+    "planet_engine", "planet_constellation", "planet_satellite",
     "planet_constellation_satellite",
-    "tarot_engine",
-    "tarot_cartomancer",
-    "tarot_hallucination",
-    "tarot_eight_ball",
-    "cash_hoard",
-    "cash_growth",
-    "cash_cloud_nine",
-    "discard_utilization",
-    "discard_castle",
-    "discard_mail_rebate",
-    "no_discard",
-    "no_discard_reserve",
-    "no_discard_ramen",
+    "tarot_engine", "tarot_cartomancer", "tarot_hallucination", "tarot_eight_ball",
+    "cash_hoard", "cash_growth", "cash_cloud_nine",
+    "discard_utilization", "discard_castle", "discard_mail_rebate",
+    "no_discard", "no_discard_reserve", "no_discard_ramen",
     "loyalty_cycle",
 })
 
 SUPPORT_STRATEGIES = frozenset({
-    "face_held_economy",
-    "face_business_card",
-    "faceless_discard_economy",
-    "deck_thinning",
-    "thinning_trading",
-    "thinning_erosion",
-    "thinning_trading_erosion",
-    "abstract_joker",
-    "swashbuckler",
-    "raised_fist",
-    "flower_pot",
-    "last_hand_burst",
-    "last_hand_acrobat",
+    "face_held_economy", "face_business_card", "faceless_discard_economy",
+    "deck_thinning", "thinning_trading", "thinning_erosion", "thinning_trading_erosion",
+    "abstract_joker", "swashbuckler", "raised_fist", "flower_pot",
+    "last_hand_burst", "last_hand_acrobat",
 })
 
 
@@ -98,8 +79,6 @@ def _compatible(tracker: BalatroStrategyTracker, primary_id: str, other_id: str)
     primary_hands = set(tracker.primary_hands_for(primary_id))
     other_hands = set(tracker.primary_hands_for(other_id))
     if primary_hands and other_hands and primary_hands.isdisjoint(other_hands):
-        # Two distinct hand prescriptions compete for hand/deck shaping. They may
-        # coexist as diagnostics before a pivot, but not as simultaneous engines.
         return False
     return True
 
@@ -119,7 +98,6 @@ def active_engine_ids(tracker: BalatroStrategyTracker, resolution) -> tuple[str,
     primary_id = primary_strategy_id(tracker, resolution)
     if primary_id is None:
         return ()
-    config = tracker._config(None) if False else None  # keep policy config-free by default
     engines: list[str] = []
     for assessment in resolution.assessments:
         strategy_id = assessment.strategy_id
@@ -145,12 +123,7 @@ def prescriptive_strategy_ids(tracker: BalatroStrategyTracker, resolution) -> tu
 
 
 def install_multi_engine_strategy_policy() -> None:
-    """Teach existing consumers to keep compatible engines alive after Ante 6.
-
-    This is deliberately additive/backward-compatible: StrategyResolution keeps its
-    existing public fields for monitor/tests, while the tracker gains explicit
-    primary/engine helpers and its scope/hand-fit behavior uses them.
-    """
+    """Keep compatible engines prescriptive without letting them hijack the primary."""
     if getattr(BalatroStrategyTracker, "_multi_engine_policy_installed", False):
         return
 
@@ -160,7 +133,7 @@ def install_multi_engine_strategy_policy() -> None:
     BalatroStrategyTracker.prescriptive_strategy_ids = lambda self, resolution: prescriptive_strategy_ids(self, resolution)
 
     original_scope_factor = BalatroStrategyTracker._scope_factor
-    original_hand_fit = BalatroStrategyTracker.hand_fit
+    original_evaluate_item = BalatroStrategyTracker.evaluate_item
 
     def _scope_factor(self, state, strategy_id, rank, resolution):
         ante = max(1, int(getattr(state, "ante", 1) or 1))
@@ -171,10 +144,58 @@ def install_multi_engine_strategy_policy() -> None:
             return 0.0
         if strategy_id == self.primary_strategy_id(resolution):
             return 1.0
-        # Compatible engines remain meaningful but cannot outweigh the primary
-        # scoring route merely because they have a large raw evidence score.
-        role = self.strategy_role(strategy_id)
-        return 0.65 if role == SECONDARY else 0.40
+        return 0.65 if self.strategy_role(strategy_id) == SECONDARY else 0.40
+
+    def evaluate_item(self, state, item, *, kind):
+        """Restore positive value for items that strengthen a compatible active engine.
+
+        The legacy evaluator hard-converges its shortlist to the raw dominant node at
+        Ante 6. We retain its full scoring, then undo that convergence only when the
+        candidate positively reinforces one of the explicitly compatible engines.
+        """
+        result = original_evaluate_item(self, state, item, kind=kind)
+        resolution = self.observe(state)
+        engine_ids = set(self.active_engine_ids(resolution))
+        if not engine_ids:
+            return result
+        relationships = self._relationships_for(item, kind=str(kind).upper())
+        aligned = [
+            (strategy_id, relationship)
+            for strategy_id, relationship in relationships.items()
+            if strategy_id in engine_ids and relationship in {GOLD, SILVER, BRONZE}
+        ]
+        if not aligned:
+            return result
+
+        by_id = {a.strategy_id: a for a in resolution.assessments}
+        best_id, best_tier = max(
+            aligned,
+            key=lambda pair: self.relationship_score(state, pair[1]),
+        )
+        assessment = by_id.get(best_id)
+        if assessment is None:
+            return result
+        role_factor = 0.65 if self.strategy_role(best_id) == SECONDARY else 0.40
+        relation_weight = self.relationship_score(state, best_tier)
+        alignment = max(0.0, float(assessment.score)) * relation_weight * role_factor
+        config = self._config(state)
+        bonus = alignment * self._number(config, "candidate_alignment_scale", 0.08) * self.strategy_pressure(state)
+        definition = self.definitions.get(best_id)
+        projected = float(assessment.score) + relation_weight * float(assessment.effectiveness)
+        return replace(
+            result,
+            strategy_id=best_id if bonus > float(result.value) else result.strategy_id,
+            strategy_name=(definition.name if definition is not None and bonus > float(result.value) else result.strategy_name),
+            tier=best_tier if bonus > float(result.value) else result.tier,
+            value=max(float(result.value), bonus),
+            projected_score=max(float(result.projected_score), projected),
+            active_alignment=True,
+            rationale=(
+                *result.rationale,
+                f"compatible {self.strategy_role(best_id).lower()} engine remains prescriptive: {best_id} {best_tier}",
+                f"multi-engine alignment floor={bonus:+.3f}; primary={self.primary_strategy_id(resolution)}",
+            ),
+        )
 
     def hand_fit(self, state, hand_type):
         resolution = self.observe(state)
@@ -200,10 +221,9 @@ def install_multi_engine_strategy_policy() -> None:
                 )
         if not mapped:
             return 0.0, ("active primary/engine strategies do not prescribe a poker-hand type",)
-        return -0.25 * pressure, (
-            f"{hand_type} does not reinforce the active primary scoring route",
-        )
+        return -0.25 * pressure, (f"{hand_type} does not reinforce the active primary scoring route",)
 
     BalatroStrategyTracker._scope_factor = _scope_factor
+    BalatroStrategyTracker.evaluate_item = evaluate_item
     BalatroStrategyTracker.hand_fit = hand_fit
     BalatroStrategyTracker._multi_engine_policy_installed = True
