@@ -14,15 +14,12 @@ base_toggle.MONITOR_MODULE = (
 
 
 def _strip_selector(argv: list[str]) -> None:
-    """Consume the batch-only --five selector if it was forwarded by cmd.exe.
-
-    Windows batch SHIFT updates %1/%2/etc. but leaves %* unchanged, so the wrapper
-    can still forward the original selector. The five-attempt entrypoint treats it
-    purely as a launcher selector and removes it before argparse sees the args.
-    """
+    """Consume the batch-only --five selector if it was forwarded by cmd.exe."""
     argv[:] = [arg for arg in argv if arg.lower() != "--five"]
 
 
 if __name__ == "__main__":
-    _strip_selector(sys.argv[1:])
+    # Mutate the actual sys.argv list. ``sys.argv[1:]`` would create a copy and
+    # leave argparse seeing the original ``--five`` selector.
+    _strip_selector(sys.argv)
     raise SystemExit(base_toggle.main())
