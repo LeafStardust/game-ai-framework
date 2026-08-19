@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from games.balatro.actions import SELL_JOKER, BalatroAction
@@ -10,6 +8,7 @@ from games.balatro.live.injected.action_dispatcher import (
     UnsupportedInjectedAction,
 )
 from games.balatro.live.injected.bridge import FirstPartyBalatroBridge
+from games.balatro.live.injected.install import bridge_asset_path
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 
@@ -184,15 +183,7 @@ def test_injected_dispatcher_rejects_out_of_range_joker_index():
 
 
 def test_injected_lua_bridge_routes_sell_joker_through_native_callback():
-    asset = (
-        Path(__file__).parents[1]
-        / "games"
-        / "balatro"
-        / "live"
-        / "injected"
-        / "assets"
-        / "bridge.lua"
-    ).read_text(encoding="utf-8")
+    asset = bridge_asset_path().read_text(encoding="utf-8")
 
     assert 'action == "SELL_JOKER"' in asset
     assert "G.FUNCS and G.FUNCS.sell_card" in asset
