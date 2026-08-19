@@ -15,10 +15,10 @@ def test_full_action_budget_is_capped_for_live_autonomy():
         discards_remaining=4,
     )
 
-    assert LIVE_ADAPTIVE_MAX_HORIZON == 4
-    assert [config.horizon for config in schedule] == [2, 3, 4]
-    assert [config.samples for config in schedule] == [8, 8, 8]
-    assert [config.max_nodes for config in schedule] == [2000, 2000, 2000]
+    assert LIVE_ADAPTIVE_MAX_HORIZON == 5
+    assert [config.horizon for config in schedule] == [2, 3, 4, 5]
+    assert [config.samples for config in schedule] == [8, 8, 8, 8]
+    assert [config.max_nodes for config in schedule] == [2000, 2000, 2000, 3000]
     assert all(config.child_play_width == 1 for config in schedule)
     assert all(config.child_discard_width == 1 for config in schedule)
 
@@ -62,8 +62,8 @@ def test_requested_horizon_above_live_cap_cannot_expand_search():
         max_nodes=2500,
     )
 
-    assert [config.horizon for config in schedule] == [2, 3, 4]
-    assert [config.max_nodes for config in schedule] == [2000, 2000, 2000]
+    assert [config.horizon for config in schedule] == [2, 3, 4, 5]
+    assert [config.max_nodes for config in schedule] == [2000, 2000, 2000, 2500]
 
 
 def test_extended_node_budget_intensifies_only_live_capped_horizon():
@@ -74,11 +74,12 @@ def test_extended_node_budget_intensifies_only_live_capped_horizon():
         max_nodes=10000,
     )
 
-    assert [config.horizon for config in schedule] == [2, 3, 4, 4, 4]
+    assert [config.horizon for config in schedule] == [2, 3, 4, 5, 5, 5]
     assert [config.max_nodes for config in schedule] == [
         2000,
         2000,
         2000,
+        3000,
         10000,
         10000,
     ]
