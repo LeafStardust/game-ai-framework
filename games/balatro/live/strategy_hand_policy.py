@@ -7,7 +7,7 @@ from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.live.hand_action_policy import PACE_PLAY, PACE_RECOVERY
 from games.balatro.live.hand_playstyle import BuildAwareLiveHandActionPolicy
-from games.balatro.strategy import BalatroStrategyTracker
+from games.balatro.strategy import BRONZE, GOLD, SILVER, BalatroStrategyTracker
 from games.balatro.strategy_compat import NeutralLegacyPlaystyleIntentTracker
 
 
@@ -25,6 +25,12 @@ _RANK_VALUE = {
     "Q": 12,
     "K": 13,
     "A": 14,
+}
+
+_JOKER_HAND_TIER_WEIGHT = {
+    GOLD: 1.00,
+    SILVER: 0.65,
+    BRONZE: 0.30,
 }
 
 
@@ -149,7 +155,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             else float(plan.value.expected_hands_remaining)
         )
         # BuildAware D1 places held Steel/Blue-Seal preservation at base[2].
-        # Universal strategy fit must not jump ahead of that public card value.
+        # Universal/owned-Joker hand fit stays below survival and retained-card value.
         return (base[0], base[1], base[2], fit, hand_use, *base[4:])
 
     def _safe_equivalent_clear_key(self, plan):
@@ -182,34 +188,99 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         consumable_slots = int(getattr(state, "consumable_slots", 2) or 2)
         return len(getattr(state, "consumables", ()) or ()) < consumable_slots
 
+    def _owned_joker_hand_weights(self, state) -> dict[str, float]:
+        """Return poker-hand incentives implied directly by currently owned Jokers.
+
+        Shop/strategy scoring already knows which Jokers are Gold/Silver/Bronze for
+        each poker-hand strategy. D1 must use the same information before the route
+        is formally committed; otherwise a hand-trigger Joker can be owned while the
+        discard policy ignores the hand that makes that Joker useful.
+        """
+        weights: dict[str, float] = {}
+        relationships_for = getattr(self.strategy_tracker, "_relationships_for", None)
+        if not callable(relationships_for):
+            return weights
+
+        for joker in getattr(state, "jokers", ()) or ():
+            relationships = relationships_for(joker, kind="JOKER")
+            for strategy_id, tier in relationships.items():
+                tier_weight = _JOKER_HAND_TIER_WEIGHT.get(tier)
+                if tier_weight is None:
+                    continue
+                effectiveness = self.strategy_tracker.effectiveness(state, strategy_id)
+                if effectiveness <= 0.0:
+                    continue
+                for hand_type in self.strategy_tracker.primary_hands_for(strategy_id):
+                    hand = str(hand_type).upper()
+                    weights[hand] = weights.get(hand, 0.0) + tier_weight * effectiveness
+        return weights
+
     def _strategy_fit(self, state, action) -> tuple[float, tuple[str, ...]]:
+        joker_hand_weights = self._owned_joker_hand_weights(state)
+
         if action.name == PLAY_CARDS:
             hand_type = self._hand_evaluator.evaluate(list(action.cards)).value
-            return self.strategy_tracker.hand_fit(state, hand_type)
+            strategy_value, strategy_rationale = self.strategy_tracker.hand_fit(
+                state,
+                hand_type,
+            )
+            joker_value = joker_hand_weights.get(str(hand_type).upper(), 0.0)
+            return strategy_value + joker_value, (
+                *strategy_rationale,
+                f"D1 owned-Joker hand incentive {hand_type}={joker_value:+.3f}",
+            )
 
         if action.name != DISCARD_CARDS:
             return 0.0, ("D1 action has no strategic-hand structure signal",)
 
-        resolution = self.strategy_tracker.observe(state)
-        strategy_id = resolution.active_strategy_id
-        if strategy_id is None:
-            return 0.0, ("no active universal strategy for discard shaping",)
-        definition = self.strategy_tracker.definitions.get(strategy_id)
-        primary_hands = self.strategy_tracker.primary_hands_for(strategy_id)
-        if definition is None or not primary_hands:
-            return 0.0, ("active strategy has no primary hand",)
-
         removed = {id(card) for card in action.cards}
         kept = [card for card in getattr(state, "hand", ()) if id(card) not in removed]
-        structure = max(
-            self._structure_fit(kept, hand_type)
-            for hand_type in primary_hands
+        intents: list[tuple[str, float, str]] = []
+
+        resolution = self.strategy_tracker.observe(state)
+        strategy_id = resolution.active_strategy_id
+        if strategy_id is not None:
+            definition = self.strategy_tracker.definitions.get(strategy_id)
+            effectiveness = self.strategy_tracker.effectiveness(state, strategy_id)
+            for hand_type in self.strategy_tracker.primary_hands_for(strategy_id):
+                intents.append(
+                    (
+                        str(hand_type).upper(),
+                        effectiveness,
+                        definition.name if definition is not None else str(strategy_id),
+                    )
+                )
+
+        for hand_type, weight in joker_hand_weights.items():
+            intents.append((hand_type, weight, "owned Jokers"))
+
+        if not intents:
+            return 0.0, (
+                "no active strategy or owned hand-specific Joker for discard shaping",
+            )
+
+        scored = [
+            (
+                self._structure_fit(kept, hand_type) * weight,
+                self._structure_fit(kept, hand_type),
+                hand_type,
+                weight,
+                source,
+            )
+            for hand_type, weight, source in intents
+            if weight > 0.0
+        ]
+        if not scored:
+            return 0.0, ("no positive hand intent for discard shaping",)
+
+        value, structure, hand_type, weight, source = max(
+            scored,
+            key=lambda item: (item[0], item[1], item[3], item[2]),
         )
-        effectiveness = self.strategy_tracker.effectiveness(state, strategy_id)
-        value = structure * effectiveness
         return value, (
-            f"D1 discard retains {definition.name} structure={structure:.3f}",
-            f"D1 strategy environment effectiveness={effectiveness:.3f}",
+            f"D1 discard preserves {hand_type} structure={structure:.3f}",
+            f"D1 hand intent source={source} weight={weight:.3f}",
+            "owned Joker hand requirements participate before formal strategy commitment",
         )
 
     @classmethod
