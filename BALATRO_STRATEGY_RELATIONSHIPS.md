@@ -24,6 +24,12 @@ Development reference for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md)
 `—` = intentionally none. All frozen v1.0 relationship rows are audited; no
 `TBD` entries remain.
 
+### Gold-tier standard
+
+Gold is reserved for a Joker that can make the strategy **viable and unusually effective by itself**, rather than merely making the route easier to execute. Scholar for Aces, Glass Joker for Glass breakage, Steel Joker for Steel density, Runner / The Order for Straight, Hologram for deck growth, Yorick for discard scaling, and Obelisk for hand rotation are representative Gold cores.
+
+Silver is the normal support tier. Consistency tools, weak single-Joker routes, modest economy pieces, and setup/enabling Jokers remain meaningful evidence without manufacturing a +8 commitment signal. Banner, Delayed Gratification, Acrobat, Abstract Joker, Shortcut, Four Fingers, Superposition, Reserved Parking, Business Card, Faceless Joker, Sixth Sense, Shoot the Moon, Hiker, Satellite, Mail-In Rebate, Loyalty Card, Fortune Teller, Cartomancer, Hallucination, and 8 Ball are Silver under this rule.
+
 ## Universal value versus strategy relationship
 
 Joker value and strategy evidence are independent axes. Gold/Silver/Bronze say
@@ -68,14 +74,14 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Pair | Pair `[L]` | The Duo | Jolly Joker; Sly Joker; Half Joker; Supernova; Card Sharp; Space Joker; Burnt Joker; Green Joker; Burglar *(generic support requires Pair commitment)* | DNA; Trading Card *(with Pair commitment)*; Hologram *(with Pair commitment + DNA)* | Obelisk | — | Mercury | — | — |
 | Two Pair | Two Pair `[L]` | Spare Trousers | Mad Joker; Clever Joker; Square Joker; The Duo; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Two Pair commitment)* | Jolly Joker; Sly Joker | Obelisk | Death; Strength | Uranus | — | — |
 | Three of a Kind | Three of a Kind `[L]` | The Trio | Zany Joker; Wily Joker; DNA; Half Joker; The Duo; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Trips commitment)* | Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Venus | Cryptid; Ouija | — |
-| Straight | Straight `[L]` | The Order; Shortcut; Four Fingers; Runner; Superposition | Crazy Joker; Devious Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Straight commitment)* | Fibonacci; Hack *(rank support requires Straight commitment)* | Obelisk | Strength; Death | Saturn | — | — |
+| Straight | Straight `[L]` | The Order; Runner | Shortcut; Four Fingers; Superposition; Crazy Joker; Devious Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Straight commitment)* | Fibonacci; Hack *(rank support requires Straight commitment)* | Obelisk | Strength; Death | Saturn | — | — |
 | Straight Flush | Straight Flush `[L]` | The Order; The Tribe; Shortcut; Four Fingers; Runner; Smeared Joker; Seance | Crazy Joker; Devious Joker; Droll Joker; Crafty Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Straight Flush commitment)* | Arrowhead; Bloodstone; Onyx Agate; Rough Gem *(requires an effective same-suit Straight)* | Obelisk | Strength; Death; The Lovers | Neptune | Sigil | Wild |
 | Flush | Flush `[L]` | The Tribe | Droll Joker; Crafty Joker; Smeared Joker; Four Fingers; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Flush commitment)* | Arrowhead; Bloodstone; Onyx Agate; Rough Gem *(requires matching suit concentration)* | Obelisk | The Lovers | Jupiter | Sigil | Wild |
 | Full House | Full House `[L]` | — | The Trio; The Duo; Spare Trousers; Zany Joker; Wily Joker; Mad Joker; Clever Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Full House commitment)* | Jolly Joker; Sly Joker; DNA; Trading Card | Obelisk | Death; Strength | Earth | Cryptid; Ouija | — |
 | Flush House | Flush House `[L]` | The Tribe | The Trio; The Duo; Spare Trousers; Zany Joker; Wily Joker; Mad Joker; Clever Joker; Smeared Joker; Droll Joker; Crafty Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Flush House commitment)* | Jolly Joker; Sly Joker; DNA; Trading Card | Obelisk | Death; Strength; The Lovers | Ceres | Cryptid; Ouija; Sigil | Wild |
 | Four of a Kind | Four of a Kind `[L]` | The Family | The Trio; DNA; Zany Joker; Wily Joker; Square Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Quads commitment)* | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Mars | Cryptid; Ouija | — |
-| Five of a Kind | Five of a Kind `[L]` | The Family | The Trio; DNA; The Idol; Zany Joker; Wily Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Five Kind commitment)* | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Planet X | Cryptid; Ouija | — |
-| Flush Five | Flush Five `[L]` | The Family; DNA; The Idol; The Tribe | The Trio; Zany Joker; Wily Joker; Smeared Joker; Droll Joker; Crafty Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Flush Five commitment)* | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength; The Lovers | Eris | Cryptid; Ouija; Sigil | Wild |
+| Five of a Kind | Five of a Kind `[L]` | The Family | The Trio; DNA; Zany Joker; Wily Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Five Kind commitment)* | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength | Planet X | Cryptid; Ouija | — |
+| Flush Five | Flush Five `[L]` | The Family; DNA; The Tribe | The Trio; Zany Joker; Wily Joker; Smeared Joker; Droll Joker; Crafty Joker; Supernova; Card Sharp; Space Joker; Burnt Joker *(repeat support requires Flush Five commitment)* | The Duo; Jolly Joker; Sly Joker; Trading Card | Obelisk | Death; Strength; The Lovers | Eris | Cryptid; Ouija; Sigil | Wild |
 
 ## 2. Rank and face cards
 
@@ -85,18 +91,18 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Low-Rank Scoring | Low-Rank Scoring `[L]` | Fibonacci; Hack | Odd Todd; Even Steven; Hanging Chad; Seltzer; Dusk *(retriggers require low-rank commitment)* | — | — | Death; Strength; The Hanged Man | — | Incantation; Cryptid | — |
 | Twos | Twos / Wee-Hack `[L]` | Wee Joker | Hack *(with Two commitment)*; Fibonacci *(with Two commitment)*; Even Steven *(with Two commitment)* | DNA *(with Two commitment)*; Hologram *(with Two commitment)*; The Idol *(Two target + concentration)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
 | Ten-Four | Ten-Four / Walkie Talkie `[L]` | Walkie Talkie | Even Steven *(with Ten-Four commitment)*; Hack *(with Four commitment)* | DNA; Hologram; The Idol *(all with Ten-Four commitment)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
-| Sixes / Sixth Sense | Sixes / Sixth Sense `[L]` | Sixth Sense | Even Steven *(with Six commitment)* | DNA; Hologram *(with Six commitment)*; The Idol *(Six target + concentration)* | — | Death; Strength | — | — | — |
+| Sixes / Sixth Sense | Sixes / Sixth Sense `[L]` | — | Sixth Sense; Even Steven *(with Six commitment)* | DNA; Hologram *(with Six commitment)*; The Idol *(Six target + concentration)* | — | Death; Strength | — | — | — |
 | Jacks / Hit the Road | Jacks / Hit the Road `[L]` | Hit the Road | Faceless Joker *(with Jack commitment)*; Mail-In Rebate *(Jack target)* | Merry Andy *(with Hit the Road)*; Drunkard *(with Hit the Road)* | — | Death; Strength | — | Cryptid | — |
-| Queens / Shoot the Moon | Queens / Shoot the Moon `[L]` | Shoot the Moon | Mime *(with Queen commitment)* | Reserved Parking *(with Queen commitment)* | — | Death; Strength | — | Cryptid | Steel Queens |
+| Queens / Shoot the Moon | Queens / Shoot the Moon `[L]` | — | Shoot the Moon; Mime *(with Queen commitment)* | Reserved Parking *(with Queen commitment)* | — | Death; Strength | — | Cryptid | Steel Queens |
 | Face Cards | Face Cards `[I]` | — | Scary Face; Smiley Face; Midas Mask | — | Ride the Bus | Death; Strength; The Hanged Man | — | Familiar | — |
-| Face Cards | ↳ Photograph + Hanging Chad `[L]` | Photograph; Hanging Chad *(with Photograph)* | Sock and Buskin *(with Photograph)*; Seltzer *(with Photograph)*; Dusk *(with Photograph)* | — | — | Justice | — | Deja Vu; Cryptid | Glass face cards |
+| Face Cards | ↳ Photograph + Hanging Chad `[L]` | — | Photograph; Hanging Chad; Sock and Buskin *(with PhotoChad)*; Seltzer *(with PhotoChad)*; Dusk *(with PhotoChad)* | — | — | Justice | — | Deja Vu; Cryptid | Glass face cards |
 | Face Cards | ↳ Triboulet + Sock and Buskin `[L]` | Triboulet; Sock and Buskin *(with Triboulet)* | Hanging Chad *(with Triboulet)*; Seltzer *(with Triboulet)*; Dusk *(with Triboulet)* | — | — | Justice | — | Deja Vu; Cryptid | Glass Queens / Kings |
 | Face Cards | ↳ Pareidolia Universal Face Scoring `[L]` | Pareidolia *(with inherited face-card payoff)* | — | — | — | — | — | — | — |
-| Face Cards | ↳ Held Face-Card Economy `[L]` | Reserved Parking | Mime *(with Reserved Parking)*; Pareidolia *(with Reserved Parking)* | — | — | The Devil | — | — | Gold face cards |
-| Face Cards | ↳ Business Card Face Economy `[L]` | Business Card; Oops! All 6s *(with Business Card)* | Pareidolia; Sock and Buskin; Hanging Chad; Seltzer; Dusk *(all with Business Card)* | — | — | — | — | — | — |
+| Face Cards | ↳ Held Face-Card Economy `[L]` | — | Reserved Parking; Mime *(with Reserved Parking)*; Pareidolia *(with Reserved Parking)* | — | — | The Devil | — | — | Gold face cards |
+| Face Cards | ↳ Business Card Face Economy `[L]` | Oops! All 6s *(with Business Card)* | Business Card; Pareidolia; Sock and Buskin; Hanging Chad; Seltzer; Dusk *(all with Business Card)* | — | — | — | — | — | — |
 | Faceless / No-Face | Faceless / No-Face `[I]` | — | — | — | — | The Hanged Man; Death | — | Incantation; Grim | — |
 | Faceless / No-Face | ↳ Ride the Bus No-Face Scaling `[L]` | Ride the Bus | Trading Card *(with Ride the Bus)* | Faceless Joker *(with Ride the Bus)*; Hit the Road *(with Ride the Bus)* | Pareidolia; Splash; Photograph; Sock and Buskin; Triboulet; Scary Face; Smiley Face; Business Card; Midas Mask; Familiar | — | — | — | — |
-| Faceless / No-Face | ↳ Faceless Joker Discard Economy `[L]` | Faceless Joker; Pareidolia *(with Faceless Joker)* | Merry Andy; Drunkard; Hit the Road; Mail-In Rebate *(all with Faceless Joker)* | — | — | — | — | Familiar | — |
+| Faceless / No-Face | ↳ Faceless Joker Discard Economy `[L]` | Pareidolia *(with Faceless Joker)* | Faceless Joker; Merry Andy; Drunkard; Hit the Road; Mail-In Rebate *(all with Faceless Joker)* | — | — | — | — | Familiar | — |
 | The Idol Exact-Card Concentration | The Idol Exact-Card Concentration `[L]` | The Idol *(4+ effective target cards)* | The Idol *(2–3 effective target cards)*; DNA; Trading Card *(support requires active Idol target)* | — | — | Death; The Hanged Man | — | Cryptid | Glass target cards |
 
 ## 3. Suits and held cards
@@ -110,9 +116,9 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Clubs | ↳ Seeing Double Mixed-Suit Clubs `[L]` | Seeing Double | — | Splash *(with Seeing Double)* | — | The Lovers | — | — | — |
 | Spades / Arrowhead Chips | Spades / Arrowhead Chips `[L]` | Arrowhead | Wrathful Joker; Smeared Joker *(with Spade payoff)*; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(retrigger support requires Arrowhead or Wrathful Joker)* | — | — | The World; Death; The Hanged Man | — | Sigil | Wild |
 | Blackboard Held-Black Cards | Blackboard Held-Black Cards `[L]` | Blackboard | Smeared Joker *(with Blackboard)* | — | — | The Moon; The World | — | — | Wild |
-| Raised Fist Held-Minimum | Raised Fist Held-Minimum `[L]` | Raised Fist | Mime *(with Raised Fist)* | — | — | Strength; Death; The Hanged Man | — | Familiar; Grim; Cryptid; Deja Vu | — |
+| Raised Fist Held-Minimum | Raised Fist Held-Minimum `[L]` | — | Raised Fist; Mime *(with Raised Fist)* | — | — | Strength; Death; The Hanged Man | — | Familiar; Grim; Cryptid; Deja Vu | — |
 | Ancient Joker Suit-Rotation | Ancient Joker Suit-Rotation `[L]` | Ancient Joker | Smeared Joker; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack *(all with Ancient Joker)* | — | — | The Star; The Moon; The Sun; The World | — | Sigil; Deja Vu | Wild |
-| Flower Pot Multi-Suit | Flower Pot Multi-Suit `[L]` | Flower Pot; Splash *(with Flower Pot)*; Smeared Joker *(with Flower Pot)* | — | — | — | The Star; The Moon; The Sun; The World | — | Sigil | Wild |
+| Flower Pot Multi-Suit | Flower Pot Multi-Suit `[L]` | Splash *(with Flower Pot)*; Smeared Joker *(with Flower Pot)* | Flower Pot | — | — | The Star; The Moon; The Sun; The World | — | Sigil | Wild |
 
 ## 4. Enhancements — runtime implemented
 
@@ -170,9 +176,9 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
 | Hologram Deck-Growth | Hologram Deck-Growth `[L]` | Hologram; DNA *(with Hologram)*; Certificate *(with Hologram)*; Marble Joker *(with Hologram)* | Blueprint; Brainstorm *(with Hologram)* | — | — | The Tower *(with Marble Joker)* | — | Cryptid; Familiar; Grim; Incantation | Stone *(with Marble Joker)* |
-| Hiker Card Training | Hiker Retrigger / Copy Training `[L]` | Hiker | Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack; Splash; DNA; Blueprint; Brainstorm *(with Hiker)* | Certificate *(with Hiker)* | — | — | — | Cryptid; Deja Vu | — |
+| Hiker Card Training | Hiker Retrigger / Copy Training `[L]` | — | Hiker; Hanging Chad; Seltzer; Dusk; Sock and Buskin; Hack; Splash; DNA; Blueprint; Brainstorm *(with Hiker)* | Certificate *(with Hiker)* | — | — | — | Cryptid; Deja Vu | — |
 | Driver's License Enhancement-Density | Driver's License Enhancement-Density `[L]` | Driver's License | Midas Mask; Marble Joker; Certificate; Blueprint; Brainstorm *(with Driver's License)* | DNA; Hologram *(with Driver's License)* | Vampire | The Magician; The Empress; The Hierophant; The Lovers; The Chariot; Justice; The Devil; The Tower | — | Familiar; Grim; Incantation | Any |
-| Blue Joker Large-Deck Chips | Blue Joker Large-Deck Chips `[L]` | Blue Joker | Hologram; Certificate; Marble Joker *(with Blue Joker)* | DNA *(with Blue Joker)* | Erosion; Trading Card | — | — | Familiar; Grim; Incantation; Cryptid | — |
+| Blue Joker Large-Deck Chips | Blue Joker Large-Deck Chips `[L]` | Blue Joker *(only while Marble Joker or Certificate is also owned)* | Blue Joker *(without a deck-growth partner)*; Certificate; Marble Joker; Hologram | DNA *(with Blue Joker)* | Erosion; Trading Card; Sixth Sense | — | — | Familiar; Grim; Incantation; Cryptid | — |
 
 ## 8. Planet, Tarot, consumable engines
 
@@ -180,14 +186,14 @@ A component must not be duplicated between a parent and child row. If it is spec
 |---|---|---|---|---|---|---|---|---|---|
 | Planet Engine | Planet Engine `[I]` | — | Astronomer | — | — | The High Priestess | Any | Black Hole | — |
 | Planet Engine | ↳ Constellation Planet-Scaling `[L]` | Constellation; Satellite *(when paired)* | Perkeo; Blueprint; Brainstorm *(with Constellation)* | Satellite *(without pair)* | — | — | Any | — | — |
-| Planet Engine | ↳ Satellite Planet-Economy `[L]` | Satellite; Constellation *(when paired)* | Perkeo; Blueprint; Brainstorm *(with Satellite)* | Constellation *(without pair)* | — | — | Any | — | — |
+| Planet Engine | ↳ Satellite Planet-Economy `[L]` | Constellation *(when paired with Satellite)* | Satellite; Perkeo; Blueprint; Brainstorm *(with Satellite)* | Constellation *(without pair)* | — | — | Any | — | — |
 | Perkeo Consumable Duplication | Perkeo Consumable Duplication `[I]` | Perkeo | — | — | — | — | — | — | — |
 | Perkeo Consumable Duplication | ↳ Perkeo + Observatory Planet Stack `[L]` | Perkeo *(with Observatory)* | — | — | — | — | Any held Planet | — | — |
 | Perkeo Consumable Duplication | ↳ Perkeo + Cryptid Copy Engine `[L]` | Perkeo *(with held Cryptid)* | — | — | — | — | — | Cryptid | — |
 | Perkeo Consumable Duplication | ↳ Perkeo Tarot / Spectral Engine `[L]` | Perkeo *(with held Tarot/Spectral)* | — | — | — | Any held Tarot | — | Any held Spectral | — |
-| Tarot Engine | Tarot Engine `[I]` | Fortune Teller | — | — | — | Any | — | — | — |
-| Tarot Engine | ↳ Passive Tarot Generation `[L]` | Cartomancer; Hallucination | — | — | — | Any | — | — | — |
-| Tarot Engine | ↳ 8 Ball / Eights Tarot Generation `[L]` | 8 Ball | Oops! All 6s; Hanging Chad; Seltzer; Dusk *(all with 8 Ball)* | Fibonacci *(with Eight commitment)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
+| Tarot Engine | Tarot Engine `[I]` | — | Fortune Teller | — | — | Any | — | — | — |
+| Tarot Engine | ↳ Passive Tarot Generation `[L]` | — | Cartomancer; Hallucination | — | — | Any | — | — | — |
+| Tarot Engine | ↳ 8 Ball / Eights Tarot Generation `[L]` | — | 8 Ball; Oops! All 6s; Hanging Chad; Seltzer; Dusk *(support requires 8 Ball)* | Fibonacci *(with Eight commitment)* | — | Death; Strength; The Hanged Man | — | Cryptid | — |
 | Vagabond Low-Money Tarot Engine | Vagabond Low-Money Tarot Engine `[L]` | Vagabond | Fortune Teller; Blueprint; Brainstorm *(with Vagabond)* | — | Cash-hoard commitments that prevent the $4 trigger | Any | — | — | — |
 
 ## 9. Economy, shop, reroll, blind skip
@@ -196,12 +202,11 @@ A component must not be duplicated between a parent and child row. If it is spec
 |---|---|---|---|---|---|---|---|---|---|
 | Cash Hoard / Interest | Cash Hoard / Interest `[I]` | — | — | — | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
 | Cash Hoard / Interest | ↳ Rocket / To the Moon Cash Growth `[L]` | Rocket; To the Moon | Blueprint; Brainstorm *(with owned core)* | Golden Joker; Cloud 9; Golden Ticket | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
-| Cash Hoard / Interest | ↳ Bull Cash-to-Chips `[L]` | Bull; Bootstraps *(when paired)* | Rocket; To the Moon; Blueprint; Brainstorm *(with Bull)* | Golden Joker; Cloud 9; Golden Ticket *(with Bull)* | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
-| Cash Hoard / Interest | ↳ Bootstraps Cash-to-Mult `[L]` | Bootstraps; Bull *(when paired)* | Rocket; To the Moon; Blueprint; Brainstorm *(with Bootstraps)* | Golden Joker; Cloud 9; Golden Ticket *(with Bootstraps)* | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
-| Cash Hoard / Interest | ↳ Cloud 9 Nines Economy `[L]` | Cloud 9 | DNA; Hologram *(with Cloud 9)* | — | Vagabond commitment | — | — | Ouija | Nines |
+| Cash Hoard / Interest | ↳ Bull / Bootstraps Cash Scoring `[L]` | Bull; Bootstraps | Rocket; To the Moon; Blueprint; Brainstorm *(with Bull/Bootstraps)* | Golden Joker; Cloud 9; Golden Ticket *(with cash-scoring core)* | Vagabond commitment | The Hermit; Temperance | — | Immolate | — |
+| Cash Hoard / Interest | ↳ Cloud 9 Nines Economy `[L]` | — | Cloud 9; DNA; Hologram *(with Cloud 9)* | — | Vagabond commitment | — | — | Ouija | Nines |
 | Campfire Sell-Scaling | Campfire Sell-Scaling `[L]` | Campfire | Gift Card; Egg; Riff-Raff; Blueprint; Brainstorm *(with Campfire)* | Cartomancer; Hallucination; Perkeo *(with Campfire)* | — | Temperance | — | — | — |
 | Flash Card Reroll-Scaling | Flash Card Reroll-Scaling `[L]` | Flash Card; Chaos the Clown *(with Flash Card)* | Blueprint; Brainstorm *(with Flash Card)* | Rocket; To the Moon *(with Flash Card)* | — | — | — | — | — |
-| Red Card Pack-Skip Scaling | Red Card Pack-Skip Scaling `[L]` | Red Card | Hallucination; Blueprint; Brainstorm *(with Red Card)* | Fortune Teller *(with Red Card)* | — | — | — | — | — |
+| Red Card Pack-Skip Scaling | Red Card Pack-Skip Scaling `[L]` | — | Red Card; Hallucination; Blueprint; Brainstorm *(with Red Card)* | Fortune Teller *(with Red Card)* | — | — | — | — | — |
 | Throwback Blind-Skip Scaling | Throwback Blind-Skip Scaling `[L]` | Throwback | Diet Cola; Blueprint; Brainstorm *(with Throwback)* | Red Card *(with Throwback)* | — | — | — | — | — |
 
 ## 10. Joker board
@@ -210,8 +215,8 @@ A component must not be duplicated between a parent and child row. If it is spec
 |---|---|---|---|---|---|---|---|---|---|
 | Joker Stencil | Joker Stencil / Ankh / Invisible Duplication `[L]` | Joker Stencil | Invisible Joker; Blueprint; Brainstorm *(with Stencil)* | Negative Jokers | Riff-Raff *(fills empty slots)* | — | — | Ankh | — |
 | Baseball Card Uncommon Stack | Baseball Card Uncommon Stack `[L]` | Baseball Card | Owned/candidate Uncommon Jokers; Showman; Blueprint; Brainstorm *(with Baseball Card)* | — | — | Judgement | — | Wraith; The Soul | — |
-| Abstract Joker Wide-Board | Abstract Joker Wide-Board `[L]` | Abstract Joker | Riff-Raff; Blueprint; Brainstorm *(with Abstract)* | Showman; Invisible Joker *(with Abstract)* | — | Judgement | — | Wraith; The Soul | — |
-| Swashbuckler Sell-Value Stack | Egg / Gift-Card Swashbuckler `[L]` | Swashbuckler; Egg; Gift Card *(with Swashbuckler)* | Blueprint; Brainstorm *(with Swashbuckler)* | Riff-Raff; Invisible Joker *(with Swashbuckler)* | — | Judgement | — | Wraith; The Soul | — |
+| Abstract Joker Wide-Board | Abstract Joker Wide-Board `[L]` | — | Abstract Joker; Riff-Raff; Blueprint; Brainstorm *(with Abstract)* | Showman; Invisible Joker *(with Abstract)* | — | Judgement | — | Wraith; The Soul | — |
+| Swashbuckler Sell-Value Stack | Egg / Gift-Card Swashbuckler `[L]` | Egg; Gift Card *(with Swashbuckler)* | Swashbuckler; Blueprint; Brainstorm *(with Swashbuckler)* | Riff-Raff; Invisible Joker *(with Swashbuckler)* | — | Judgement | — | Wraith; The Soul | — |
 
 ## 11. Discard and hand rotation
 
@@ -219,12 +224,12 @@ A component must not be duplicated between a parent and child row. If it is spec
 |---|---|---|---|---|---|---|---|---|---|
 | Discard Utilization | Discard Utilization `[I]` | — | — | — | No-discard commitments | — | — | Medium | — |
 | Discard Utilization | ↳ Castle Suit-Discard Scaling `[L]` | Castle | Merry Andy; Drunkard; Smeared Joker; Blueprint; Brainstorm *(with Castle)* | — | No-discard commitments | The Star; The Moon; The Sun; The World | — | Sigil | Wild |
-| Discard Utilization | ↳ Mail-In Rebate Rank-Discard Economy `[L]` | Mail-In Rebate | Merry Andy; Drunkard; Blueprint; Brainstorm *(with Rebate)* | Trading Card *(with Rebate)* | No-discard commitments | Strength; Death | — | Ouija | — |
+| Discard Utilization | ↳ Mail-In Rebate Rank-Discard Economy `[L]` | — | Mail-In Rebate; Merry Andy; Drunkard; Blueprint; Brainstorm *(with Rebate)* | Trading Card *(with Rebate)* | No-discard commitments | Strength; Death | — | Ouija | — |
 | Discard Utilization | ↳ Yorick Discard-Scaling `[L]` | Yorick | Merry Andy; Drunkard; Blueprint; Brainstorm *(with Yorick)* | Certificate *(with Yorick)* | No-discard commitments | — | — | Medium | — |
 | No-Discard / Discard-Preservation | No-Discard / Discard-Preservation `[I]` | — | — | — | Discard-engine commitments | — | — | — | — |
 | No-Discard / Discard-Preservation | ↳ Green Joker No-Discard Scaling `[L]` | Green Joker; Burglar *(paired)* | Banner; Delayed Gratification; Ramen *(with Green Joker)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with Green Joker)* | — | — | — | — |
-| No-Discard / Discard-Preservation | ↳ Banner + Delayed Gratification Discard Reserve `[L]` | Banner; Delayed Gratification | Burglar; Green Joker; Ramen *(with reserve core)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with reserve core)* | — | — | — | — |
-| No-Discard / Discard-Preservation | ↳ Ramen Preservation `[L]` | Ramen; Burglar *(paired)* | Green Joker; Banner; Delayed Gratification *(with Ramen)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with Ramen)* | — | — | — | — |
+| No-Discard / Discard-Preservation | ↳ Banner + Delayed Gratification Discard Reserve `[L]` | — | Banner; Delayed Gratification; Burglar; Green Joker; Ramen *(with reserve core)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with reserve core)* | — | — | — | — |
+| No-Discard / Discard-Preservation | ↳ Ramen Preservation `[L]` | Burglar *(paired)* | Ramen; Green Joker; Banner; Delayed Gratification *(with Ramen)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with Ramen)* | — | — | — | — |
 | No-Discard / Discard-Preservation | ↳ Burglar Zero-Discard / Extra-Hand `[L]` | Burglar | Green Joker; Banner; Delayed Gratification; Ramen *(with Burglar)* | — | Trading Card; Castle; Mail-In Rebate; Yorick *(with Burglar)* | — | — | — | — |
 | Obelisk Hand-Rotation | Obelisk Hand-Rotation `[L]` | Obelisk | Blueprint; Brainstorm *(with Obelisk)* | — | A committed currently-most-played hand route | — | — | — | — |
 | Burnt Joker Hand-Level Engine | Burnt Joker Hand-Level Engine `[L]` | Burnt Joker | Astronomer; Space Joker; Certificate; Blueprint; Brainstorm *(with Burnt Joker)* | Merry Andy; Drunkard *(with Burnt Joker)* | — | — | Any | Black Hole | — |
@@ -234,6 +239,6 @@ A component must not be duplicated between a parent and child row. If it is spec
 | Branch | Node | Gold | Silver | Bronze | Banned | Tarot | Planet | Spectral | Enhancement |
 |---|---|---|---|---|---|---|---|---|---|
 | Last-Hand Burst | Last-Hand Burst `[I]` | — | — | — | — | — | — | — | — |
-| Last-Hand Burst | ↳ Acrobat Last-Hand XMult `[L]` | Acrobat | Blueprint; Brainstorm *(with Acrobat)* | Loyalty Card; Burglar *(with Acrobat)* | — | — | — | — | — |
+| Last-Hand Burst | ↳ Acrobat Last-Hand XMult `[L]` | — | Acrobat; Blueprint; Brainstorm *(with Acrobat)* | Loyalty Card; Burglar *(with Acrobat)* | — | — | — | — | — |
 | Last-Hand Burst | ↳ Dusk Last-Hand Retrigger `[L]` | Dusk | Hanging Chad; Seltzer; Splash; Blueprint; Brainstorm *(with Dusk)* | Sock and Buskin; Hack; Hiker *(with Dusk)* | — | — | — | — | — |
-| Loyalty Card Six-Hand Cycle | Loyalty Card Six-Hand Cycle `[L]` | Loyalty Card | Blueprint; Brainstorm *(with Loyalty Card)* | Burglar; Acrobat *(with Loyalty Card)* | — | — | — | — | — |
+| Loyalty Card Six-Hand Cycle | Loyalty Card Six-Hand Cycle `[L]` | — | Loyalty Card; Blueprint; Brainstorm *(with Loyalty Card)* | Burglar; Acrobat *(with Loyalty Card)* | — | — | — | — | — |
