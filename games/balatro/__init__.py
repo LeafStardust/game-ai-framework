@@ -2,6 +2,7 @@
 
 from games.balatro.aces_scholar_policy import install_aces_scholar_policy
 from games.balatro.blue_joker_strategy_rules import apply_blue_joker_strategy_rules
+from games.balatro.card_sharp_strategy_rules import install_card_sharp_strategy_rules
 from games.balatro.constellation_strategy_rules import apply_constellation_strategy_rules
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.pareidolia_face_policy import install_pareidolia_face_policy
@@ -14,3 +15,4 @@ install_multi_engine_strategy_policy()
 install_mouth_first_hand_policy()
 install_aces_scholar_policy()
 install_pareidolia_face_policy()
+install_card_sharp_strategy_rules()
