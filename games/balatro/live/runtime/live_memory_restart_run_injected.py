@@ -123,17 +123,30 @@ def restart_fresh_unseeded_run(
         )
 
     deadline = monotonic() + timeout_seconds
-    next_restart_attempt = monotonic()
     command_accepted = False
     last_command_error: Exception | None = None
+
+    # Issue the first guarded restart while the validated GAME_OVER source is still
+    # authoritative. The retry loop exists for transient bridge/UI rejection; it
+    # must not delay the initial command until after observing a transition frame.
+    try:
+        runner.bridge.restart_run()
+        command_accepted = True
+    except InjectedBridgeError as error:
+        last_command_error = error
+    next_restart_attempt = monotonic() + retry_interval_seconds
+
     previous = None
     stable_count = 0
     last_observed = before
+    left_game_over = False
 
     while monotonic() < deadline:
         current = runner.observer.observe()
         last_observed = current
         phase = str(current.phase)
+        if phase != "GAME_OVER":
+            left_game_over = True
 
         if current.state_complete and phase == "BLIND_SELECT":
             current_deck, current_stake = _identity(current)
@@ -163,11 +176,12 @@ def restart_fresh_unseeded_run(
             stable_count = 0
 
         # Retry only while the authoritative state still says this is the same
-        # lost GAME_OVER run. As soon as the first restart starts transitioning,
-        # observation-only verification takes over.
+        # lost GAME_OVER run and no transition away from it has ever been observed.
+        # A later unlock-tail GAME_OVER frame must never trigger a second restart.
         now = monotonic()
         if (
-            current.state_complete
+            not left_game_over
+            and current.state_complete
             and phase == "GAME_OVER"
             and not bool(current.payload.get("won"))
             and now >= next_restart_attempt
