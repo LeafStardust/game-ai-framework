@@ -78,6 +78,40 @@ def _patched_main(main_lua: bytes) -> tuple[bytes, bool]:
     return main_lua.rstrip(b"\r\n") + _load_hook(), False
 
 
+def _bridge_with_runtime_hotfixes(bridge_lua: bytes) -> bytes:
+    """Apply execution-only bridge fixes before embedding the first-party asset.
+
+    D2 correctly treats Negative Jokers as slot-neutral, but bridge revision 7's
+    generic capacity guard rejected every Joker at a full ordinary roster. Patch
+    that guard at install time so a Negative card can use Balatro's native buy
+    callback at 5/5 while ordinary Jokers remain blocked.
+    """
+    old_guard = (
+        b'    if set == "Joker" then\n'
+        b'      local count = G.jokers and G.jokers.config and tonumber(G.jokers.config.card_count or 0) or 0\n'
+        b'      local limit = G.jokers and G.jokers.config and tonumber(G.jokers.config.card_limit or 0) or 0\n'
+        b'      if count >= limit then\n'
+        b'        return false, "joker slots are full"\n'
+        b'      end\n'
+    )
+    new_guard = (
+        b'    if set == "Joker" then\n'
+        b'      local count = G.jokers and G.jokers.config and tonumber(G.jokers.config.card_count or 0) or 0\n'
+        b'      local limit = G.jokers and G.jokers.config and tonumber(G.jokers.config.card_limit or 0) or 0\n'
+        b'      local negative = card and card.edition and card.edition.negative == true\n'
+        b'      if count >= limit and not negative then\n'
+        b'        return false, "joker slots are full"\n'
+        b'      end\n'
+    )
+    if bridge_lua.count(old_guard) != 1:
+        raise BalatroFusedPatchError(
+            "bridge Negative-slot hotfix target changed; refusing to embed an unverified bridge"
+        )
+    patched = bridge_lua.replace(old_guard, new_guard, 1)
+    patched = patched.replace(b"bridge_revision=7", b"bridge_revision=8", 1)
+    return patched
+
+
 def _fused_archive(executable: Path) -> tuple[list[zipfile.ZipInfo], int, bytes]:
     if not executable.is_file():
         raise BalatroFusedPatchError(f"Balatro executable not found: {executable}")
@@ -183,7 +217,7 @@ def _rewrite_fused_executable(
         raise BalatroFusedPatchError(
             f"first-party bridge asset is missing: {bridge_source}"
         )
-    bridge_lua = bridge_source.read_bytes()
+    bridge_lua = _bridge_with_runtime_hotfixes(bridge_source.read_bytes())
 
     with executable.open("rb") as source:
         prefix = source.read(prefix_size)
