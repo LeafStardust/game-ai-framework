@@ -28,22 +28,29 @@ def _without(values: frozenset[str], *names: str) -> frozenset[str]:
     return frozenset(set(values) - set(_joker_tokens(*names)))
 
 
+def _downgrade_gold_to_silver(
+    definition: StrategyDefinition,
+    *joker_names: str,
+) -> StrategyDefinition:
+    """Move modest single-Joker evidence from Gold to Silver.
+
+    Gold is reserved for components strong enough to define/commit a route by
+    themselves.  Weak or merely supportive Jokers should raise a strategy without
+    causing the tracker to overcommit around one modest pickup.
+    """
+
+    tokens = _joker_tokens(*joker_names)
+    return replace(
+        definition,
+        gold_jokers=frozenset(set(definition.gold_jokers) - set(tokens)),
+        silver_jokers=frozenset(set(definition.silver_jokers) | set(tokens)),
+    )
+
+
 def guard_unresolved_conditional_relationships(
     definitions: Mapping[str, StrategyDefinition],
 ) -> Mapping[str, StrategyDefinition]:
-    """Keep unresolved parenthetical catalogue rules Neutral at runtime.
-
-    The concrete strategy documents deliberately distinguish unconditional evidence
-    from parenthetical, state-dependent relationships. Until those public-state
-    predicates are encoded, flattening a conditional relationship into the static
-    Gold/Silver/Bronze/Banned buckets creates false strategy evidence. This guard
-    removes only relationships that are currently flattened incorrectly; entries
-    already omitted from the static catalogue remain untouched.
-
-    This is intentionally conservative and temporary. A later 1.0F catalogue slice
-    should replace each guarded Neutral relationship with an explicit public-state
-    condition rather than restoring it unconditionally.
-    """
+    """Keep unresolved/overstated catalogue relationships conservative at runtime."""
 
     guarded = dict(definitions)
 
@@ -86,12 +93,28 @@ def guard_unresolved_conditional_relationships(
         gold_jokers=_without(flush_five.gold_jokers, "The Idol"),
     )
 
+    # Weak single-Joker routes should not receive a full Gold (+8) commitment
+    # signal from one modest/common pickup.  They remain meaningful Silver (+3)
+    # evidence and can still become dominant when reinforced by board/deck context.
+    weak_single_joker_cores = {
+        "abstract_joker": ("Abstract Joker",),
+        "swashbuckler": ("Swashbuckler",),
+        "raised_fist": ("Raised Fist",),
+        "flower_pot": ("Flower Pot",),
+        "cash_cloud_nine": ("Cloud 9",),
+        "red_card": ("Red Card",),
+        "no_discard_ramen": ("Ramen",),
+    }
+    for strategy_id, joker_names in weak_single_joker_cores.items():
+        guarded[strategy_id] = _downgrade_gold_to_silver(
+            guarded[strategy_id],
+            *joker_names,
+        )
+
     # Bull and Bootstraps are two cash-scaling payoffs for the exact same economic
     # shell. They should not compete as separate strategy leaves. Keep the legacy
     # node ids topology-compatible but make them permanently non-actionable, then
-    # put both defining Jokers on the combined cash scoring leaf. Conditional
-    # support that still references the retired ids is capped to zero by the
-    # impossible defining requirement, so only cash_bull_bootstraps can surface.
+    # put both defining Jokers on the combined cash scoring leaf.
     retired_cash_requirement = _joker_tokens("__retired_cash_leaf__")
     for strategy_id in ("cash_bull", "cash_bootstraps"):
         legacy = guarded[strategy_id]
