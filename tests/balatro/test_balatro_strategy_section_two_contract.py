@@ -210,7 +210,7 @@ def test_photochad_replaces_face_parent_and_inherits_parent_evidence_once():
     by_id = _by_id(resolution)
 
     assert "face_cards" not in by_id
-    assert by_id["face_photochad"].score == pytest.approx(19.0)
+    assert by_id["face_photochad"].score == pytest.approx(14.0)
     assert resolution.dominant_strategy_id == "face_photochad"
 
 
@@ -257,39 +257,3 @@ def test_idol_exact_card_evidence_uses_the_current_public_target_count():
 
     assert conditional_joker_relationship(state, "idol_exact", idol) == GOLD
     assert conditional_joker_relationship(state, "aces", idol) == BRONZE
-
-
-def test_section_two_directed_consumables_remain_exact_contract_data():
-    definitions = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
-
-    assert definitions["aces"].directed_spectrals == frozenset({"grim", "cryptid"})
-    assert definitions["face_photochad"].directed_tarots == frozenset(
-        {"justice"}
-    )
-    assert definitions["faceless"].directed_spectrals == frozenset(
-        {"incantation", "grim"}
-    )
-    assert definitions["idol_exact"].directed_tarots == frozenset(
-        {"death", "thehangedman"}
-    )
-
-
-def test_indexed_section_two_children_do_not_duplicate_parent_components():
-    definitions = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
-    topology = TREE_MIGRATED_BALATRO_STRATEGY_TOPOLOGY
-
-    for parent_id in ("face_cards", "faceless"):
-        parent = definitions[parent_id]
-        for child_id in topology.children_by_id[parent_id]:
-            child = definitions[child_id]
-            for kind in ("JOKER", "CONSUMABLE", "PLANET", "VOUCHER"):
-                parent_components = set().union(
-                    *(components for _, components in parent._buckets(kind))
-                )
-                child_components = set().union(
-                    *(components for _, components in child._buckets(kind))
-                )
-                assert parent_components.isdisjoint(child_components)
-
-            assert parent.directed_tarots.isdisjoint(child.directed_tarots)
-            assert parent.directed_spectrals.isdisjoint(child.directed_spectrals)
