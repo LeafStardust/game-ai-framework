@@ -3,7 +3,7 @@ from __future__ import annotations
 from .balatro_agent_supervisor import BalatroAgentSupervisor
 
 
-DEFAULT_MAX_ATTEMPTS = 10
+DEFAULT_MAX_ATTEMPTS = 5
 
 
 class BoundedBalatroAgentSupervisor(BalatroAgentSupervisor):
