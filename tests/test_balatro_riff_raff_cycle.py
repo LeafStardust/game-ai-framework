@@ -81,3 +81,41 @@ def test_riff_raff_cycle_only_runs_before_actual_blind_selection():
 
     state.phase = "SHOP"
     assert _policy().recommend(state, will_select_blind=True) is None
+
+
+def test_popcorn_is_sold_on_final_mult_step_without_riff_raff():
+    popcorn = StubJoker("Popcorn", area_index=2, value=99.0)
+    popcorn.mult = 4
+    state = StubState([popcorn])
+
+    decision = _policy().recommend(state, will_select_blind=True)
+    assert decision is not None
+    assert decision.joker == "Popcorn"
+    assert decision.joker_index == 2
+
+
+def test_popcorn_is_kept_above_final_mult_step():
+    popcorn = StubJoker("Popcorn", area_index=0, value=99.0)
+    popcorn.mult = 8
+    state = StubState([popcorn])
+
+    assert _policy().recommend(state, will_select_blind=True) is None
+
+
+def test_ice_cream_is_sold_when_twenty_chips_or_less_without_riff_raff():
+    ice_cream = StubJoker("Ice Cream", area_index=3, value=99.0)
+    ice_cream.chips = 20
+    state = StubState([ice_cream])
+
+    decision = _policy().recommend(state, will_select_blind=True)
+    assert decision is not None
+    assert decision.joker == "Ice Cream"
+    assert decision.joker_index == 3
+
+
+def test_ice_cream_is_kept_above_last_legs_threshold():
+    ice_cream = StubJoker("Ice Cream", area_index=0, value=99.0)
+    ice_cream.chips = 25
+    state = StubState([ice_cream])
+
+    assert _policy().recommend(state, will_select_blind=True) is None
