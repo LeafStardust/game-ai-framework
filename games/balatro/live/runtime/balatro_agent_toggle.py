@@ -174,6 +174,7 @@ def start_agent(
     session_id: str | None = None,
     unlock_jokers: tuple[str, ...] = (),
     collection_first: bool = False,
+    launch_live_monitor: bool = True,
 ) -> int:
     running = control.running_pid()
     if running is not None:
@@ -219,10 +220,11 @@ def start_agent(
         finally:
             log_handle.close()
         control.claim_current_process(process.pid)
-        try:
-            launch_monitor(control)
-        except (OSError, subprocess.SubprocessError):
-            pass
+        if launch_live_monitor:
+            try:
+                launch_monitor(control)
+            except (OSError, subprocess.SubprocessError):
+                pass
         return int(process.pid)
     except Exception:
         control.release_start_lock()
@@ -309,7 +311,7 @@ def restart_agent(
     unlock_jokers: tuple[str, ...] = (),
     collection_first: bool = False,
 ) -> tuple[int | None, int]:
-    """Restart the supervisor, safely stopping the current process when present."""
+    """Restart the supervisor without opening another live-monitor window."""
     previous_pid = control.running_pid()
     if previous_pid is not None:
         stop_agent(control)
@@ -319,6 +321,7 @@ def restart_agent(
         session_id=session_id,
         unlock_jokers=unlock_jokers,
         collection_first=collection_first,
+        launch_live_monitor=False,
     )
     return previous_pid, new_pid
 
@@ -441,7 +444,7 @@ def main() -> int:
         print(f"New supervisor PID -> {new_pid}")
         print("Balatro Agent -> ON")
         print("Balatro process -> untouched")
-        print("Live monitor -> opening in a separate terminal window")
+        print("Live monitor -> unchanged; no new window opened")
         return 0
 
     try:
