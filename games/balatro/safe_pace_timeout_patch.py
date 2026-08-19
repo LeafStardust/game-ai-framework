@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
+from games.balatro.actions import DISCARD_CARDS
 from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
 from games.balatro.live.hand_action_policy import PACE_RECOVERY, LiveHandActionDecisionEngine
 
@@ -17,11 +17,15 @@ def install_safe_pace_timeout_patch() -> None:
         pace_target = self.policy._pace_target(state)
 
         # The structural path must be cheap: no Joker-aware projections after the
-        # wall-clock deadline.  If a discard is legal, use it rather than burning
-        # a scoring hand below pace.  This is the fail-safe invariant from the
-        # five-run review.
-        if int(getattr(state, "discards_remaining", 0) or 0) > 0:
-            discards = list(planner.action_generator.generate_discard_actions(state))
+        # wall-clock deadline. Production planners expose a discard generator; tiny
+        # test/fake planners may not, in which case retain the original bounded
+        # structural PLAY fallback rather than assuming an unavailable interface.
+        generator = getattr(getattr(planner, "action_generator", None), "generate_discard_actions", None)
+        if (
+            int(getattr(state, "discards_remaining", 0) or 0) > 0
+            and callable(generator)
+        ):
+            discards = list(generator(state))
             if discards:
                 action = discards[0]
                 value = LiveBlindPlanValue(
@@ -29,7 +33,9 @@ def install_safe_pace_timeout_patch() -> None:
                     expected_progress=0.0,
                     expected_score=float(getattr(state, "score", 0) or 0),
                     expected_hands_remaining=float(getattr(state, "hands_remaining", 0) or 0),
-                    expected_discards_remaining=float(max(0, int(getattr(state, "discards_remaining", 0) or 0) - 1)),
+                    expected_discards_remaining=float(
+                        max(0, int(getattr(state, "discards_remaining", 0) or 0) - 1)
+                    ),
                 )
                 plan = LiveBlindPlan(
                     action=action,
@@ -62,7 +68,9 @@ def install_safe_pace_timeout_patch() -> None:
                     search_attempts=search_attempts,
                 )
 
-        # With no discard available, retain the original bounded structural Play.
+        # With no observable discard generator/choice available, retain the
+        # original bounded structural Play. This keeps the timeout path total and
+        # avoids entering any unbounded immediate recovery after expiry.
         return original(self, state, search_attempts=search_attempts)
 
     LiveHandActionDecisionEngine._structural_timeout_fallback = fallback
