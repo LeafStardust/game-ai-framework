@@ -295,13 +295,32 @@ def stop_agent(control: BalatroAgentControl) -> int | None:
     )
 
     if _wait_for_cooperative_stop(pid):
-        # A healthy supervisor owns its normal OFF bookkeeping. Only clean stale
-        # PID state here in case process exit beat its final control-file cleanup.
         control.clear_pid(expected_pid=pid)
         return pid
 
     hard_stop_agent(control)
     return pid
+
+
+def restart_agent(
+    control: BalatroAgentControl,
+    *,
+    session_id: str | None = None,
+    unlock_jokers: tuple[str, ...] = (),
+    collection_first: bool = False,
+) -> tuple[int | None, int]:
+    """Restart the supervisor, safely stopping the current process when present."""
+    previous_pid = control.running_pid()
+    if previous_pid is not None:
+        stop_agent(control)
+
+    new_pid = start_agent(
+        control,
+        session_id=session_id,
+        unlock_jokers=unlock_jokers,
+        collection_first=collection_first,
+    )
+    return previous_pid, new_pid
 
 
 def toggle_agent(
@@ -326,11 +345,11 @@ def toggle_agent(
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Toggle the Balatro autonomous supervisor. ON launches one detached "
-            "supervisor process plus a read-only live monitor window. Normal OFF "
-            "requests a cooperative stop and automatically escalates to a validated "
-            "supervisor-only hard stop if the grace window expires. --hard-stop "
-            "forces that emergency path immediately."
+            "Toggle or restart the Balatro autonomous supervisor. ON launches one "
+            "detached supervisor process plus a read-only live monitor window. "
+            "Normal OFF/restart requests a cooperative stop and automatically "
+            "escalates to a validated supervisor-only hard stop if the grace window "
+            "expires. --hard-stop forces that emergency path immediately."
         )
     )
     parser.add_argument("--control-dir")
@@ -350,6 +369,11 @@ def main() -> int:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--status", action="store_true")
     mode.add_argument("--hard-stop", action="store_true")
+    mode.add_argument(
+        "--restart",
+        action="store_true",
+        help="restart the supervisor; if currently OFF, start it normally",
+    )
     args = parser.parse_args()
 
     control = BalatroAgentControl(args.control_dir)
@@ -392,6 +416,32 @@ def main() -> int:
         print("Emergency hard stop -> supervisor force-terminated")
         print("Balatro process -> untouched")
         print("Already-consumed gameplay action -> may still finish")
+        return 0
+
+    if args.restart:
+        try:
+            previous_pid, new_pid = restart_agent(
+                control,
+                session_id=args.session_id,
+                unlock_jokers=tuple(args.unlock_joker),
+                collection_first=args.collection_first,
+            )
+        except Exception as error:
+            print("Balatro Agent restart -> FAIL")
+            print(f"Reason -> {error}")
+            return 2
+
+        if previous_pid is None:
+            print("Balatro Agent was OFF.")
+            print("Starting...")
+        else:
+            print("Balatro Agent was ON.")
+            print(f"Previous supervisor PID -> {previous_pid}")
+            print("Restarting...")
+        print(f"New supervisor PID -> {new_pid}")
+        print("Balatro Agent -> ON")
+        print("Balatro process -> untouched")
+        print("Live monitor -> opening in a separate terminal window")
         return 0
 
     try:
