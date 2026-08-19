@@ -65,8 +65,8 @@ class _Bridge:
         self.restart_calls += 1
 
 
-def test_restart_default_timeout_allows_native_wipe_and_setup_animation():
-    assert DEFAULT_RESTART_TIMEOUT_SECONDS == 20.0
+def test_restart_default_timeout_allows_slow_native_wipe_unlock_and_setup_animation():
+    assert DEFAULT_RESTART_TIMEOUT_SECONDS == 60.0
 
 
 def test_restart_waits_for_settled_same_identity_blind_select():
