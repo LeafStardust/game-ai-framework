@@ -36,7 +36,7 @@ def test_buffoon_pack_with_free_joker_slot_cannot_skip() -> None:
     assert all(action.name != SKIP_BOOSTER for action in actions)
 
 
-def test_buffoon_pack_keeps_skip_when_joker_roster_is_full() -> None:
+def test_buffoon_pack_exposes_full_roster_replacement_candidate_and_skip() -> None:
     state = SimpleNamespace(
         phase="BUFFOON_PACK",
         joker_slots=5,
@@ -45,5 +45,20 @@ def test_buffoon_pack_keeps_skip_when_joker_roster_is_full() -> None:
     choices = [_joker_choice(0, "Scholar")]
 
     actions = LivePackActionGenerator().generate_actions(state, choices)
+
+    assert [action.name for action in actions] == [SELECT_PACK_CARD, SKIP_BOOSTER]
+
+
+def test_buffoon_pack_can_hide_capacity_blocked_candidates_for_legacy_callers() -> None:
+    state = SimpleNamespace(
+        phase="BUFFOON_PACK",
+        joker_slots=5,
+        jokers=[object(), object(), object(), object(), object()],
+    )
+    choices = [_joker_choice(0, "Scholar")]
+
+    actions = LivePackActionGenerator(
+        include_capacity_blocked_jokers=False,
+    ).generate_actions(state, choices)
 
     assert [action.name for action in actions] == [SKIP_BOOSTER]
