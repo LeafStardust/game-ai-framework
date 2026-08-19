@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from games.balatro import strategy_conditional_relationships as conditional_module
-from games.balatro.strategy import NEUTRAL, SILVER
 from games.balatro.strategy_value import StrategyAwareJokerBuildValueEvaluator
 
 
@@ -34,21 +32,16 @@ def _has_pareidolia(state) -> bool:
 
 
 def install_pareidolia_face_policy() -> None:
-    if getattr(conditional_module, "_pareidolia_face_policy_installed", False):
+    """Protect Pareidolia face payoffs without duplicating inherited tree evidence.
+
+    Face Cards parent evidence is already inherited once when the Pareidolia child
+    becomes the active leaf. Reclassifying the same payoff Jokers on the child would
+    count them twice (for example Pareidolia + Scary Face becoming 14 instead of 11).
+    This policy therefore affects Joker retention/acquisition value only; it does not
+    add another conditional strategy relationship.
+    """
+    if getattr(StrategyAwareJokerBuildValueEvaluator, "_pareidolia_face_policy_installed", False):
         return
-
-    original_conditional = conditional_module.conditional_joker_relationship
-
-    def conditional_joker_relationship(state, strategy_id: str, item: object) -> str:
-        token = _token(item)
-        if (
-            strategy_id == "face_pareidolia"
-            and token in _PAREIDOLIA_FACE_SUPPORT
-        ):
-            return SILVER if _has_pareidolia(state) else NEUTRAL
-        return original_conditional(state, strategy_id, item)
-
-    conditional_module.conditional_joker_relationship = conditional_joker_relationship
 
     original_evaluate = StrategyAwareJokerBuildValueEvaluator.evaluate
 
@@ -84,4 +77,4 @@ def install_pareidolia_face_policy() -> None:
         )
 
     StrategyAwareJokerBuildValueEvaluator.evaluate = evaluate
-    conditional_module._pareidolia_face_policy_installed = True
+    StrategyAwareJokerBuildValueEvaluator._pareidolia_face_policy_installed = True
