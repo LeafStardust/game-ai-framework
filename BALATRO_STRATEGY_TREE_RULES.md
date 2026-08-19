@@ -59,7 +59,7 @@ Joker relationship tiers:
 
 Gold is deliberately narrow. A Joker belongs in Gold only when **owning that Joker can make the strategy viable and unusually effective by itself**, rather than merely making the strategy easier to execute or adding modest value. Examples include Scholar for Aces, Glass Joker for Glass breakage, Steel Joker for Steel density, Runner / The Order for Straight, Hologram for deck-growth, Yorick for discard scaling, and Obelisk for hand rotation.
 
-Silver is the normal support tier. Enablers, consistency tools, modest economy pieces, hand-shape helpers, and weak single-Joker routes belong here even when they are strongly associated with a strategy. Examples include Banner, Delayed Gratification, Acrobat, Abstract Joker, Shortcut, Four Fingers, Superposition, Reserved Parking, Business Card, Faceless Joker, Sixth Sense, Shoot the Moon, Hiker, Satellite, Mail-In Rebate, Loyalty Card, Fortune Teller, Cartomancer, Hallucination, and 8 Ball.
+Silver is the normal support tier. Enablers, consistency tools, modest economy pieces, hand-shape helpers, and weak single-Joker routes belong here even when they are strongly associated with a strategy. Examples include Banner, Delayed Gratification, Acrobat, Abstract Joker, Shortcut, Four Fingers, Superposition, Reserved Parking, Business Card, Faceless Joker, Ride the Bus, Green Joker, Sixth Sense, Shoot the Moon, Hiker, Satellite, Mail-In Rebate, Loyalty Card, Fortune Teller, Cartomancer, Hallucination, and 8 Ball.
 
 Bronze remains secondary or conditional support. A Gold relationship must outweigh two Silvers and remain the largest single evidence step, but Gold must not be used merely to manufacture an early commitment signal.
 
@@ -92,6 +92,8 @@ If two nodes use the same component for the same reason, one semantic owner is p
 
 Repeated components such as DNA, Glass, Vampire, Pareidolia, Midas Mask, Marble Joker, and Trading Card require distinct payoff requirements when used by multiple specializations.
 
+Conditional support must not be duplicated merely to protect retention. For example, Face Cards owns generic Smiley Face / Scary Face / Midas Mask evidence. Pareidolia may protect compatible face-payoff Jokers through contextual retention/value logic while its leaf is active, but that protection does not add the same Silver evidence a second time.
+
 ## 5. Generic play counts
 
 Generic `hand_play_counts` are not positive strategy evidence.
@@ -110,7 +112,13 @@ Broad indexed evidence does not blindly activate every specialization. A special
 
 There is no fallback-child suppression rule because there are no duplicate fallback children.
 
-## 7. Strategy pursuit and Ante behavior
+## 7. Strategy roles, pursuit, and Ante behavior
+
+The runtime distinguishes three functional strategy roles:
+
+- **Primary** — the actual scoring/win-condition route. One Primary remains the main prescriptive direction.
+- **Secondary** — a meaningful scoring/build engine that can coexist with the Primary when mechanically compatible.
+- **Support** — economy, consistency, deck-shaping, or other utility that helps the build without becoming the main scoring identity.
 
 A positive dominant strategy is always worth trying to strengthen, regardless of Ante. There is no minimum Ante and no arbitrary score floor before strategy-search pressure may activate. If the current dominant strategy has positive evidence, shop rerolls, Joker acquisition, consumable acquisition, deck shaping, and hand preference may all seek additional matching evidence immediately.
 
@@ -127,17 +135,29 @@ This is **not** permission to spend recklessly. Survival, blind-clear probabilit
 
 - strategy pressure increases naturally through accumulated evidence;
 - replacement and acquisition should reinforce the strongest viable strategy while pivots remain allowed when current-state evidence changes;
+- compatible Secondary/Support engines may remain active beside the Primary;
 - the agent should actively search rather than waiting for aligned pieces to fall into the shop on their own when reroll EV supports it.
 
 ### Ante 6+
 
-- the strongest viable strategy/specialization is the only prescriptive route;
-- secondary strategies remain visible for diagnostics but contribute no purchase bonus, hand preference, or pivot authorization;
-- a route-bound secondary-strategy Joker is eligible for replacement by a positively valued universal or dominant-strategy Joker;
-- the dominant route remains under active search pressure;
+- one **Primary** win condition remains fully prescriptive;
+- compatible **Secondary** scoring engines remain active at reduced influence rather than being discarded merely because they are not the raw dominant node;
+- compatible **Support** engines may remain active at lower influence when they continue to improve the Primary build;
+- incompatible poker-hand prescriptions, explicit Banned conflicts, and unrelated route-bound strategies receive no prescriptive influence;
+- the Primary and compatible engines remain under active search pressure;
+- a support/secondary route cannot hijack the run simply by posting a larger raw score than a genuine scoring Primary;
 - survival overrides strategic purity.
 
-## 8. Tactical survival overrides strategy preferences
+## 8. Dependency-gated relationships
+
+Some Jokers are useful only after another component establishes the route. These dependencies are part of relationship semantics rather than separate strategies.
+
+- **Aces:** Scholar is the Gold defining core. DNA, Fibonacci, and Odd Todd are Silver support only while Scholar is owned. Generic Ace concentration alone does not activate them as Aces support.
+- **Constellation:** Constellation is not a self-starting Planet strategy. Without Astronomer or Satellite it is Neutral and ordinary acquisition is blocked. Astronomer enables Silver Constellation support; Satellite upgrades the pair to Gold-level Planet-engine evidence.
+- **Blue Joker:** Blue Joker is Silver by itself and reaches Gold only with a qualifying deck-growth partner such as Marble Joker or Certificate.
+- Other conditional rows follow the same principle: a contextual support Joker must not seed the route whose prerequisite it depends on.
+
+## 9. Tactical survival overrides strategy preferences
 
 Strategy is always subordinate to winning the current blind.
 
@@ -146,7 +166,7 @@ Strategy is always subordinate to winning the current blind.
 - If only one hand remains, no current play can clear/reach pace, and at least one legal discard remains, the agent **must discard** rather than spend the final hand on a known losing play.
 - No-discard incentives such as Banner, Delayed Gratification, Green Joker, or Ramen cannot override that final-hand survival rule.
 
-## 9. Joker ordering
+## 10. Joker ordering
 
 Joker order is an executable build decision, not presentation state. In stable
 phases the agent evaluates legal permutations against the complete active build.
@@ -165,7 +185,7 @@ score to move a Negative Joker out of the sacrifice slot. An active Dagger route
 may intentionally consume a Negative only when its projected build ordering still
 justifies that sacrifice.
 
-## 10. Negative Joker retention
+## 11. Negative Joker retention
 
 Negative Jokers are protected from ordinary sell/replacement pressure because they normally offset their slot cost. Selling one cannot fund an ordinary replacement slot because the extra slot disappears with it.
 
@@ -176,13 +196,13 @@ emergency actions such as Verdant Leaf remain survival-scoped. Intentional
 destruction requires an active matching route, such as Ceremonial Dagger, and is
 logged as an explicit retention exception.
 
-## 11. Banned relationships
+## 12. Banned relationships
 
 Banned means genuine mechanical conflict, not merely support for a competing strategy.
 
 Competing positive strategies should normally compete through their own evidence rather than by banning each other.
 
-## 12. Strategy-node admission
+## 13. Strategy-node admission
 
 Create a new node only when it materially changes downstream decisions such as acquisition/retention, ordering, hand/discard behavior, deck shaping, consumable use, economy, blind skipping, or sacrifice/destruction behavior.
 
