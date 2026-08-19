@@ -15,7 +15,10 @@ class _Tracker:
 
     def observe(self, state):
         del state
-        return SimpleNamespace(dominant_strategy_id=self.dominant_strategy_id)
+        return SimpleNamespace(
+            dominant_strategy_id=self.dominant_strategy_id,
+            assessment=lambda strategy_id: None,
+        )
 
 
 class _Profile:
