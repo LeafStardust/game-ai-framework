@@ -5,6 +5,7 @@ from dataclasses import replace
 from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
 from games.balatro.playbook_shop_policy import PlaybookBuildAwareShopArbiter
 from games.balatro.shop_booster_policy import (
+    BUY,
     HOLD,
     BoosterAcquisitionThresholds,
     BuildAwareShopBoosterPolicy,
@@ -25,14 +26,19 @@ from games.balatro.strategy import (
 class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
     """D8 booster policy driven by the universal playbook strategy state.
 
-    Arcana and Spectral packs remain exploration-capable. Celestial packs are
-    refinement purchases: do not spend on them until the dominant strategy has
-    actually solidified around a poker-hand archetype.
+    Arcana and Standard packs remain exploration-capable, but are deliberately
+    discounted when the active strategy has no Tarot/card-building relationship.
+    This preserves a small lottery/exploration value (including rare Soul access)
+    without treating generic packs as routine spending. Celestial packs are
+    refinement purchases and remain gated behind a solid poker-hand strategy.
     """
 
     AUTONOMOUS_SAFE_FAMILIES = frozenset(
         {*BuildAwareShopBoosterPolicy.AUTONOMOUS_SAFE_FAMILIES, "ARCANA", "SPECTRAL"}
     )
+
+    OFF_STRATEGY_ARCANA_VALUE_FACTOR = 0.55
+    OFF_STRATEGY_STANDARD_VALUE_FACTOR = 0.60
 
     def __init__(
         self,
@@ -49,6 +55,86 @@ class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
             return tuple(getter(strategy_id))
         definition = self.strategy_tracker.definitions.get(strategy_id)
         return () if definition is None else tuple(definition.primary_hands)
+
+    def _strategy_path_definitions(self, strategy_id: str | None):
+        if not strategy_id:
+            return ()
+        getter = getattr(self.strategy_tracker, "definitions_for_path", None)
+        if callable(getter):
+            return tuple(getter(strategy_id))
+        definition = self.strategy_tracker.definitions.get(strategy_id)
+        return () if definition is None else (definition,)
+
+    def _tarot_related(self, strategy_id: str | None) -> bool:
+        """Return whether the active route explicitly wants Tarot-directed play."""
+        return any(
+            bool(getattr(definition, "directed_tarots", ()))
+            for definition in self._strategy_path_definitions(strategy_id)
+        )
+
+    def _standard_related(self, strategy_id: str | None) -> bool:
+        """Return whether extra/modifiable playing cards directly support the route."""
+        for definition in self._strategy_path_definitions(strategy_id):
+            if (
+                getattr(definition, "preferred_suits", ())
+                or getattr(definition, "preferred_enhancements", ())
+                or getattr(definition, "preferred_seals", ())
+                or getattr(definition, "preferred_editions", ())
+                or getattr(definition, "preferred_ranks", ())
+                or bool(getattr(definition, "any_suit_concentration", False))
+            ):
+                return True
+        return False
+
+    def _discount_off_strategy_pack(
+        self,
+        state,
+        recommendation: ShopBoosterRecommendation,
+        *,
+        factor: float,
+        reason: str,
+    ) -> ShopBoosterRecommendation:
+        """Lower generic pack EV without hard-blocking rare exploration hits."""
+        factor = max(0.0, min(1.0, float(factor)))
+        discounted_option_utility = float(recommendation.option_utility) * factor
+        resource_cost = (
+            float(recommendation.price_penalty)
+            + float(recommendation.interest_penalty)
+            + float(recommendation.reserve_penalty)
+        )
+        discounted_advantage = discounted_option_utility - resource_cost
+        discounted_total = self.parent_hold_baseline + discounted_advantage
+        probability_ok = (
+            float(recommendation.at_least_one_hit_probability)
+            >= float(self.thresholds.minimum_pack_hit_probability)
+        )
+        advantage_ok = discounted_advantage > float(
+            self.thresholds.minimum_buy_advantage
+        )
+        autonomy_safe = recommendation.family in self.AUTONOMOUS_SAFE_FAMILIES
+        decision = (
+            BUY
+            if recommendation.decision == BUY
+            and probability_ok
+            and advantage_ok
+            and autonomy_safe
+            else HOLD
+        )
+        return replace(
+            recommendation,
+            decision=decision,
+            option_utility=discounted_option_utility,
+            advantage_over_save=discounted_advantage,
+            total=discounted_total,
+            rationale=(
+                *recommendation.rationale,
+                reason,
+                f"off-strategy pack value factor={factor:.2f}",
+                "pack remains exploration-capable rather than hard-blocked so rare premium outcomes still retain some value",
+                f"discounted option EV={discounted_option_utility:.3f}",
+                f"discounted D8 advantage over SAVE={discounted_advantage:.3f}",
+            ),
+        )
 
     def recommend(self, state, action) -> ShopBoosterRecommendation:
         recommendation = super().recommend(state, action)
@@ -71,6 +157,45 @@ class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
                 )
             return recommendation
 
+        resolution = self.strategy_tracker.observe(state)
+        dominant_id = resolution.dominant_strategy_id
+
+        if recommendation.family == "ARCANA":
+            if not self._tarot_related(dominant_id):
+                return self._discount_off_strategy_pack(
+                    state,
+                    recommendation,
+                    factor=self.OFF_STRATEGY_ARCANA_VALUE_FACTOR,
+                    reason=(
+                        f"Arcana discounted: dominant strategy={dominant_id or 'none'} has no directed-Tarot relationship"
+                    ),
+                )
+            return replace(
+                recommendation,
+                rationale=(
+                    *recommendation.rationale,
+                    f"Arcana retains full value: dominant strategy={dominant_id or 'none'} explicitly uses directed Tarots",
+                ),
+            )
+
+        if recommendation.family == "STANDARD":
+            if not self._standard_related(dominant_id):
+                return self._discount_off_strategy_pack(
+                    state,
+                    recommendation,
+                    factor=self.OFF_STRATEGY_STANDARD_VALUE_FACTOR,
+                    reason=(
+                        f"Standard discounted: dominant strategy={dominant_id or 'none'} has no playing-card construction preference"
+                    ),
+                )
+            return replace(
+                recommendation,
+                rationale=(
+                    *recommendation.rationale,
+                    f"Standard retains full value: dominant strategy={dominant_id or 'none'} benefits from card/rank/suit/enhancement/seal/edition construction",
+                ),
+            )
+
         if recommendation.family != "CELESTIAL":
             return recommendation
 
@@ -80,8 +205,6 @@ class StrategyAwareShopBoosterPolicy(BuildAwareShopBoosterPolicy):
             "celestial_poker_evidence_floor",
             3.5,
         )
-        resolution = self.strategy_tracker.observe(state)
-        dominant_id = resolution.dominant_strategy_id
         dominant = resolution.assessment(dominant_id)
         dominant_hands = self._primary_hands(dominant_id) if dominant_id else ()
         dominant_score = float(dominant.score) if dominant is not None else 0.0
