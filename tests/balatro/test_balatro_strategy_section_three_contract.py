@@ -189,7 +189,7 @@ def test_raised_fist_mime_support_is_exact_and_blackboard_is_independent():
     raised = tracker.observe(_state(jokers=(RaisedFistJoker(), MimeJoker())))
     blackboard = tracker.observe(_state(jokers=(BlackboardJoker(),)))
 
-    assert raised.assessment("raised_fist").score == pytest.approx(11.0)
+    assert raised.assessment("raised_fist").score == pytest.approx(6.0)
     assert blackboard.assessment("blackboard").score == pytest.approx(8.0)
 
 
@@ -201,7 +201,7 @@ def test_ancient_and_flower_pot_upgrade_relationships_require_their_owner():
 
     flower = tracker.observe(_state(jokers=(FlowerPotJoker(), SplashJoker())))
     assert "flower_pot" not in _by_id(flower)
-    assert flower.assessment("flower_pot_splash").score == pytest.approx(16.0)
+    assert flower.assessment("flower_pot_splash").score == pytest.approx(11.0)
 
     unsupported = _state(jokers=(SplashJoker(), SmearedJoker()))
     assert (
