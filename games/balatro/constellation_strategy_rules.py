@@ -14,6 +14,7 @@ _PLANET_STRATEGY_IDS = (
     "planet_satellite",
     "planet_constellation_satellite",
 )
+_UNSUPPORTED_ACQUISITION_VALUE = -1000.0
 
 
 def _normalize(value: object) -> str:
@@ -39,6 +40,16 @@ def _with_joker_aliases(tokens: frozenset[str]) -> frozenset[str]:
     return frozenset(values)
 
 
+def constellation_partner_tier(state) -> str:
+    """Return Constellation's relationship from currently owned planet engines."""
+    owned = _owned_joker_tokens(state)
+    if _SATELLITE in owned:
+        return GOLD
+    if _ASTRONOMER in owned:
+        return SILVER
+    return NEUTRAL
+
+
 def apply_constellation_strategy_rules() -> None:
     """Make Constellation a dependent planet-engine payoff, never a route starter.
 
@@ -46,10 +57,12 @@ def apply_constellation_strategy_rules() -> None:
     useful only after the run already owns Astronomer (free Planet acquisition) or
     Satellite (a committed Planet-economy partner). Satellite is the stronger pair
     and therefore upgrades candidate Constellation to Gold; Astronomer makes it
-    Silver support.
+    Silver support. Without either partner, ordinary Joker scoring is also blocked
+    from buying Constellation as a generic speculative pickup.
     """
     from games.balatro import strategy_conditional_relationships as relationships
     from games.balatro import strategy_tree_catalog as catalog
+    from games.balatro.strategy_value import StrategyAwareJokerBuildValueEvaluator
 
     constellation_aliases = _with_joker_aliases(frozenset({_CONSTELLATION}))
     exported = dict(catalog.TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES)
@@ -70,18 +83,37 @@ def apply_constellation_strategy_rules() -> None:
     catalog.TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES = MappingProxyType(exported)
 
     original = relationships.conditional_joker_relationship
-    if getattr(original, "_constellation_rules_installed", False):
+    if not getattr(original, "_constellation_rules_installed", False):
+        def conditional_joker_relationship(state, strategy_id: str, item: object) -> str:
+            if strategy_id in _PLANET_STRATEGY_IDS and _item_token(item) == _CONSTELLATION:
+                return constellation_partner_tier(state)
+            return original(state, strategy_id, item)
+
+        conditional_joker_relationship._constellation_rules_installed = True
+        relationships.conditional_joker_relationship = conditional_joker_relationship
+
+    original_evaluate = StrategyAwareJokerBuildValueEvaluator.evaluate
+    if getattr(original_evaluate, "_constellation_acquisition_gate_installed", False):
         return
 
-    def conditional_joker_relationship(state, strategy_id: str, item: object) -> str:
-        if strategy_id in _PLANET_STRATEGY_IDS and _item_token(item) == _CONSTELLATION:
-            owned = _owned_joker_tokens(state)
-            if _SATELLITE in owned:
-                return GOLD
-            if _ASTRONOMER in owned:
-                return SILVER
-            return NEUTRAL
-        return original(state, strategy_id, item)
+    def evaluate(self, state, joker):
+        result = original_evaluate(self, state, joker)
+        if _item_token(joker) != _CONSTELLATION:
+            return result
+        if constellation_partner_tier(state) != NEUTRAL:
+            return result
 
-    conditional_joker_relationship._constellation_rules_installed = True
-    relationships.conditional_joker_relationship = conditional_joker_relationship
+        delta = _UNSUPPORTED_ACQUISITION_VALUE - float(result.total_gain)
+        return replace(
+            result,
+            total_gain=_UNSUPPORTED_ACQUISITION_VALUE,
+            strategic_adjustment=float(result.strategic_adjustment) + delta,
+            rationale=(
+                *result.rationale,
+                "Constellation acquisition blocked without owned Astronomer or Satellite",
+                "Constellation is a dependent Planet payoff, not a standalone route starter",
+            ),
+        )
+
+    evaluate._constellation_acquisition_gate_installed = True
+    StrategyAwareJokerBuildValueEvaluator.evaluate = evaluate
