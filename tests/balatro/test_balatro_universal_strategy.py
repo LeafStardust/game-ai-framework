@@ -161,8 +161,6 @@ def test_persistent_suit_conversion_creates_suit_strategy_evidence():
         BalatroCard(card.rank, card.suit, card.enhancement, card.edition, card.seal)
         for card in state.deck
     ]
-    # Move two permanent cards from Diamonds into Hearts. A normal 13/13/13/13
-    # deck has zero suit-concentration evidence; this creates real Hearts evidence.
     changed = 0
     for card in state.owned_deck:
         if card.suit == "Diamonds" and changed < 2:
@@ -271,13 +269,16 @@ def test_red_white_blocks_neptune_and_other_planets_until_their_strategy_is_acti
     assert policy.decide(state, jupiter).action == HOLD
 
 
-def test_active_pair_strategy_admits_mercury_but_rejects_off_strategy_jupiter():
+def test_solid_pair_strategy_admits_mercury_but_rejects_off_strategy_jupiter():
     state = _state()
     state.phase = "SHOP"
     state.money = 20
     state.jokers = [JollyJoker()]
+    state.hand_levels["PAIR"] = 2
     tracker = _tracker()
-    assert tracker.observe(state).active_strategy_id == "pair"
+    resolution = tracker.observe(state)
+    assert resolution.active_strategy_id == "pair"
+    assert resolution.assessment("pair").score >= 3.5
 
     evaluator = StrategyAwareConsumableSynergyEvaluator(
         strategy_tracker=tracker,
