@@ -5,6 +5,20 @@ from games.balatro.consumable import ConsumableContext, TarotCard
 from games.balatro.planets import create_planet, random_planet
 
 
+def _enhancement_targets(state, enhancement: str, *, maximum: int) -> list[list[BalatroCard]]:
+    eligible = [
+        card
+        for card in state.hand
+        if getattr(card, "enhancement", None) != enhancement
+    ]
+    return [
+        list(cards)
+        for size in range(1, maximum + 1)
+        if size <= len(eligible)
+        for cards in combinations(eligible, size)
+    ]
+
+
 class Fool(TarotCard):
 
     def __init__(self):
@@ -27,7 +41,7 @@ class Magician(TarotCard):
         return (
             0 < len(context.cards) <= 2
             and context.has_valid_cards()
-            and any(card.enhancement != "Lucky" for card in context.cards)
+            and all(card.enhancement != "Lucky" for card in context.cards)
         )
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
@@ -37,12 +51,7 @@ class Magician(TarotCard):
         return context
 
     def get_target_cards(self, state) -> list[list[BalatroCard]]:
-        return [
-            list(cards)
-            for size in (1, 2)
-            if size <= len(state.hand)
-            for cards in combinations(state.hand, size)
-        ]
+        return _enhancement_targets(state, "Lucky", maximum=2)
 
 
 class HighPriestess(TarotCard):
@@ -71,7 +80,7 @@ class Empress(TarotCard):
         return (
             0 < len(context.cards) <= 2
             and context.has_valid_cards()
-            and any(card.enhancement != "Mult" for card in context.cards)
+            and all(card.enhancement != "Mult" for card in context.cards)
         )
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
@@ -81,12 +90,7 @@ class Empress(TarotCard):
         return context
 
     def get_target_cards(self, state) -> list[list[BalatroCard]]:
-        return [
-            list(cards)
-            for size in (1, 2)
-            if size <= len(state.hand)
-            for cards in combinations(state.hand, size)
-        ]
+        return _enhancement_targets(state, "Mult", maximum=2)
 
 
 class Emperor(TarotCard):
@@ -115,7 +119,7 @@ class Hierophant(TarotCard):
         return (
             0 < len(context.cards) <= 2
             and context.has_valid_cards()
-            and any(card.enhancement != "Bonus" for card in context.cards)
+            and all(card.enhancement != "Bonus" for card in context.cards)
         )
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
@@ -125,12 +129,7 @@ class Hierophant(TarotCard):
         return context
 
     def get_target_cards(self, state) -> list[list[BalatroCard]]:
-        return [
-            list(cards)
-            for size in (1, 2)
-            if size <= len(state.hand)
-            for cards in combinations(state.hand, size)
-        ]
+        return _enhancement_targets(state, "Bonus", maximum=2)
 
 
 class Lovers(TarotCard):
@@ -150,7 +149,7 @@ class Lovers(TarotCard):
         return context
 
     def get_target_cards(self, state) -> list[list[BalatroCard]]:
-        return [[card] for card in state.hand]
+        return _enhancement_targets(state, "Wild", maximum=1)
 
 
 class Chariot(TarotCard):
@@ -170,7 +169,7 @@ class Chariot(TarotCard):
         return context
 
     def get_target_cards(self, state) -> list[list[BalatroCard]]:
-        return [[card] for card in state.hand]
+        return _enhancement_targets(state, "Steel", maximum=1)
 
 
 class Justice(TarotCard):
@@ -190,7 +189,7 @@ class Justice(TarotCard):
         return context
 
     def get_target_cards(self, state) -> list[list[BalatroCard]]:
-        return [[card] for card in state.hand]
+        return _enhancement_targets(state, "Glass", maximum=1)
 
 
 class Hermit(TarotCard):
@@ -365,7 +364,7 @@ class Devil(TarotCard):
         return context
 
     def get_target_cards(self, state) -> list[list[BalatroCard]]:
-        return [[card] for card in state.hand]
+        return _enhancement_targets(state, "Gold", maximum=1)
 
 
 class Tower(TarotCard):
@@ -385,7 +384,7 @@ class Tower(TarotCard):
         return context
 
     def get_target_cards(self, state) -> list[list[BalatroCard]]:
-        return [[card] for card in state.hand]
+        return _enhancement_targets(state, "Stone", maximum=1)
 
 
 class Star(TarotCard):
