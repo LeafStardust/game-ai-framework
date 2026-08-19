@@ -35,7 +35,7 @@ def _downgrade_gold_to_silver(
     """Move modest single-Joker evidence from Gold to Silver.
 
     Gold is reserved for components strong enough to define/commit a route by
-    themselves.  Weak or merely supportive Jokers should raise a strategy without
+    themselves. Weak or merely supportive Jokers should raise a strategy without
     causing the tracker to overcommit around one modest pickup.
     """
 
@@ -94,7 +94,7 @@ def guard_unresolved_conditional_relationships(
     )
 
     # Weak single-Joker routes should not receive a full Gold (+8) commitment
-    # signal from one modest/common pickup.  They remain meaningful Silver (+3)
+    # signal from one modest/common pickup. They remain meaningful Silver (+3)
     # evidence and can still become dominant when reinforced by board/deck context.
     weak_single_joker_cores = {
         "abstract_joker": ("Abstract Joker",),
@@ -104,12 +104,34 @@ def guard_unresolved_conditional_relationships(
         "cash_cloud_nine": ("Cloud 9",),
         "red_card": ("Red Card",),
         "no_discard_ramen": ("Ramen",),
+        # Run-log calibration: these generator/scaler pieces repeatedly produced
+        # an immediate Gold ~=8 dominant strategy before the rest of the route
+        # existed. They should create direction, not commitment, by themselves.
+        "tarot_engine": ("Fortune Teller",),
+        "tarot_cartomancer": ("Cartomancer",),
+        "tarot_hallucination": ("Hallucination",),
+        "tarot_eight_ball": ("8 Ball", "Eight Ball"),
     }
     for strategy_id, joker_names in weak_single_joker_cores.items():
         guarded[strategy_id] = _downgrade_gold_to_silver(
             guarded[strategy_id],
             *joker_names,
         )
+
+    # PhotoChad is a combo route, not a Photograph-only route. The logs showed
+    # Photograph alone creating an ~8-point highlighted leaf for long stretches.
+    # Require both positive components in the leaf and make each Silver: one piece
+    # is exploratory evidence; the pair is a meaningful ~6-point build direction.
+    photochad = guarded["face_photochad"]
+    guarded["face_photochad"] = replace(
+        photochad,
+        gold_jokers=_without(photochad.gold_jokers, "Photograph"),
+        silver_jokers=frozenset(
+            set(photochad.silver_jokers)
+            | set(_joker_tokens("Photograph", "Hanging Chad"))
+        ),
+        minimum_positive_jokers=2,
+    )
 
     # Bull and Bootstraps are two cash-scaling payoffs for the exact same economic
     # shell. They should not compete as separate strategy leaves. Keep the legacy
