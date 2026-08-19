@@ -85,7 +85,12 @@ def _bridge_with_runtime_hotfixes(bridge_lua: bytes) -> bytes:
     generic capacity guard rejected every Joker at a full ordinary roster. Patch
     that guard at install time so a Negative card can use Balatro's native buy
     callback at 5/5 while ordinary Jokers remain blocked.
+
+    The repository asset may be checked out with CRLF on Windows. Normalize the
+    in-memory bridge to LF before matching so the verified guard does not depend on
+    Git's working-tree newline conversion. The embedded Lua accepts LF normally.
     """
+    normalized = bridge_lua.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
     old_guard = (
         b'    if set == "Joker" then\n'
         b'      local count = G.jokers and G.jokers.config and tonumber(G.jokers.config.card_count or 0) or 0\n'
@@ -103,13 +108,16 @@ def _bridge_with_runtime_hotfixes(bridge_lua: bytes) -> bytes:
         b'        return false, "joker slots are full"\n'
         b'      end\n'
     )
-    if bridge_lua.count(old_guard) != 1:
+    if normalized.count(old_guard) != 1:
         raise BalatroFusedPatchError(
             "bridge Negative-slot hotfix target changed; refusing to embed an unverified bridge"
         )
-    patched = bridge_lua.replace(old_guard, new_guard, 1)
-    patched = patched.replace(b"bridge_revision=7", b"bridge_revision=8", 1)
-    return patched
+    patched = normalized.replace(old_guard, new_guard, 1)
+    if patched.count(b"bridge_revision=7") != 1:
+        raise BalatroFusedPatchError(
+            "bridge revision marker changed; refusing to embed an unverified bridge"
+        )
+    return patched.replace(b"bridge_revision=7", b"bridge_revision=8", 1)
 
 
 def _fused_archive(executable: Path) -> tuple[list[zipfile.ZipInfo], int, bytes]:
