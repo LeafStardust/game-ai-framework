@@ -3,15 +3,15 @@ from __future__ import annotations
 """Observatory held-Planet scoring and D7 preservation policy.
 
 Observatory (the Telescope upgrade) gives X1.5 Mult for each held Planet whose
-specified poker hand is scored. The passive is public deterministic state, so both
-D1 score projection and D7 Planet timing must account for losing it when a Planet
-is consumed.
+specified poker hand is scored. The passive is public deterministic state, so D1
+score projection, D3 voucher valuation and D7 Planet timing must all account for it.
 """
 
 from dataclasses import replace
 
 from games.balatro.live.planet_policy import HOLD, USE, LivePlanetPolicy
 from games.balatro.scoring import BalatroScorer
+from games.balatro.shop_policy import DefaultShopItemValueEstimator
 
 
 def _normalize(value: object) -> str:
@@ -51,6 +51,14 @@ def _matching_held_planet_count(state, hand_value: str) -> int:
     )
 
 
+def _joker_token(joker: object) -> str:
+    return _normalize(
+        getattr(joker, "name", "")
+        or getattr(joker, "label", "")
+        or type(joker).__name__
+    )
+
+
 def install_observatory_planet_policy() -> None:
     if getattr(BalatroScorer, "_observatory_planet_policy_installed", False):
         return
@@ -82,7 +90,7 @@ def install_observatory_planet_policy() -> None:
         decision = original_recommend(self, state, planet)
         if not _has_observatory(state):
             return decision
-        if not _planet_matches_hand(planet, getattr(planet, "hand_type", "")):
+        if str(getattr(planet, "category", "")).upper() != "PLANET":
             return decision
         if not any(item is planet for item in getattr(state, "consumables", ()) or ()):
             return decision
@@ -138,3 +146,35 @@ def install_observatory_planet_policy() -> None:
 
     LivePlanetPolicy.recommend = recommend
     LivePlanetPolicy._observatory_planet_policy_installed = True
+
+    original_voucher_value = DefaultShopItemValueEstimator._voucher_value
+
+    def voucher_value(self, state, target):
+        label = str(getattr(target, "label", getattr(target, "name", "")))
+        if _normalize(label) != "observatory":
+            return original_voucher_value(self, state, target)
+
+        held_planets = sum(
+            str(getattr(item, "category", "")).upper() == "PLANET"
+            for item in getattr(state, "consumables", ()) or ()
+        )
+        perkeo = any(
+            token in {"perkeo", "perkeojoker"}
+            for token in (_joker_token(joker) for joker in getattr(state, "jokers", ()) or ())
+        )
+        infrastructure_bonus = min(
+            4.0,
+            held_planets * 1.5 + (2.0 if perkeo else 0.0),
+        )
+        return (
+            7.0 + infrastructure_bonus,
+            (
+                "Observatory: held matching Planets provide deterministic X1.5 Mult each",
+                f"held Planet cards={held_planets}",
+                f"Perkeo duplication infrastructure={perkeo}",
+                f"Observatory infrastructure bonus={infrastructure_bonus:.3f}",
+            ),
+        )
+
+    DefaultShopItemValueEstimator._voucher_value = voucher_value
+    DefaultShopItemValueEstimator._observatory_planet_policy_installed = True
