@@ -22,12 +22,41 @@ def transform_boss_base_score(state, chips: int, mult: int) -> tuple[int, int]:
     return int(chips), int(mult)
 
 
+def boss_hand_scores_zero(state, hand) -> bool:
+    """Return whether public mutable boss state makes this hand score zero."""
+    if state is None or boss_blind_disabled_by_owned_jokers(state):
+        return False
+
+    boss_name = str(getattr(state, "boss_name", "") or "")
+    hand_name = str(getattr(hand, "value", hand) or "")
+
+    if boss_name == "The Mouth":
+        only_hand = getattr(state, "boss_blind_only_hand", None)
+        return bool(only_hand) and hand_name != str(only_hand)
+
+    if boss_name == "The Eye":
+        prior_hands = {
+            str(value)
+            for value in (getattr(state, "boss_blind_hands", set()) or set())
+        }
+        return hand_name in prior_hands
+
+    return False
+
+
 class BossBaseScoreScorerMixin:
-    """Transform only the leveled poker-hand base before card/Joker scoring."""
+    """Apply validated boss transformations before ordinary score projection."""
 
     def score(self, hand, state=None, cards=None, **kwargs):
         if state is None or boss_blind_disabled_by_owned_jokers(state):
             return super().score(hand, state, cards, **kwargs)
+
+        # The Mouth debuffs every hand type except the first accepted one for the
+        # rest of the blind; The Eye debuffs a type after it has scored once. Public
+        # live state exposes those histories. Model them as literal zero-score hands
+        # so D1 never treats a forbidden/repeated play as useful progress.
+        if boss_hand_scores_zero(state, hand):
+            return HandScore(0, 0, 1.0)
 
         boss_name = str(getattr(state, "boss_name", "") or "")
         if boss_name not in {"The Arm", "The Flint"}:
