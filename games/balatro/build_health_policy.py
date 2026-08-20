@@ -3,7 +3,7 @@ from __future__ import annotations
 """Build-Health decision integration for the Red/White calibration line.
 
 This layer compares current public-state health against projected legal Joker
-transitions.  It does not add raw catalogue points.  Existing committed-component,
+transitions. It does not add raw catalogue points. Existing committed-component,
 Negative-retention, Eternal, affordability and D2 legality guards remain upstream
 and authoritative.
 """
@@ -13,10 +13,7 @@ from dataclasses import is_dataclass, replace
 from types import SimpleNamespace
 
 from games.balatro.actions import END_SHOP, REFRESH_SHOP, BalatroAction
-from games.balatro.build_health_runtime import (
-    RuntimeBuildHealthEvaluator,
-    projected_state_with_jokers,
-)
+from games.balatro.build_health_runtime import RuntimeBuildHealthEvaluator, projected_state_with_jokers
 from games.balatro.joker_policy import BUY, HOLD, REPLACE
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.short_horizon_shop_planner import recommend_bounded_shop_bundle
@@ -54,17 +51,43 @@ def _joker_token(joker: object) -> str:
     return "".join(character for character in str(value).lower() if character.isalnum())
 
 
+def _stable_public_value(value):
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, dict):
+        return tuple(
+            sorted((str(key), _stable_public_value(item)) for key, item in value.items())
+        )
+    if isinstance(value, (list, tuple, set, frozenset)):
+        items = tuple(_stable_public_value(item) for item in value)
+        if isinstance(value, (set, frozenset)):
+            return tuple(sorted(items, key=repr))
+        return items
+    # Complex helper/cache objects are deliberately excluded from the public
+    # fingerprint rather than using memory-address repr values that would destroy
+    # caching without adding gameplay-state correctness.
+    return (type(value).__name__,)
+
+
+def _public_object_signature(item: object):
+    values = []
+    try:
+        mapping = vars(item)
+    except TypeError:
+        mapping = {}
+    for key, value in sorted(mapping.items()):
+        if str(key).startswith("_") or callable(value):
+            continue
+        values.append((str(key), _stable_public_value(value)))
+    return (type(item).__name__, tuple(values))
+
+
 def _joker_progress_signature(joker: object):
     public = getattr(joker, "public_state", None)
-    if isinstance(public, dict):
-        public_values = tuple(sorted((str(k), repr(v)) for k, v in public.items()))
-    else:
-        public_values = ()
+    public_values = _stable_public_value(public) if public is not None else ()
     return (
         _joker_token(joker),
-        round(float(getattr(joker, "x_mult", 0.0) or 0.0), 4),
-        round(float(getattr(joker, "mult", 0.0) or 0.0), 4),
-        round(float(getattr(joker, "chips", 0.0) or 0.0), 4),
+        _public_object_signature(joker),
         bool(getattr(joker, "eternal", False)),
         str(getattr(joker, "edition", "") or ""),
         public_values,
@@ -94,6 +117,7 @@ def _deck_signature(state):
 def _state_signature(state):
     levels = getattr(state, "hand_levels", {}) or {}
     play_counts = getattr(state, "hand_play_counts", {}) or {}
+    round_counts = getattr(state, "round_hand_play_counts", {}) or {}
     return (
         max(1, int(getattr(state, "ante", 1) or 1)),
         int(getattr(state, "round", getattr(state, "round_num", 0)) or 0),
@@ -103,15 +127,35 @@ def _state_signature(state):
         int(getattr(state, "blind_score", 0) or 0),
         int(getattr(state, "hands_remaining", 0) or 0),
         int(getattr(state, "discards_remaining", 0) or 0),
+        int(getattr(state, "hand_size", 0) or 0),
+        int(getattr(state, "joker_slots", 0) or 0),
+        int(getattr(state, "consumable_slots", 0) or 0),
+        str(getattr(state, "last_played_hand", "") or ""),
+        str(getattr(state, "boss_name", "") or ""),
+        bool(getattr(state, "boss_blind_state_observed", False)),
+        tuple(sorted(str(value) for value in getattr(state, "boss_blind_hands", ()) or ())),
+        str(getattr(state, "boss_blind_only_hand", "") or ""),
         tuple(_joker_progress_signature(joker) for joker in getattr(state, "jokers", ()) or ()),
+        tuple(_public_object_signature(value) for value in getattr(state, "consumables", ()) or ()),
+        tuple(_public_object_signature(value) for value in getattr(state, "vouchers", ()) or ()),
         tuple(sorted((str(key), int(value or 1)) for key, value in levels.items())),
         tuple(sorted((str(key), int(value or 0)) for key, value in play_counts.items())),
+        tuple(sorted((str(key), int(value or 0)) for key, value in round_counts.items())),
         _deck_signature(state),
     )
 
 
+def _tracker_signature(tracker):
+    if tracker is None:
+        return None
+    return (
+        str(getattr(tracker, "_last_dominant_strategy_id", "") or ""),
+        tuple(str(value) for value in getattr(tracker, "_last_relevant_strategy_ids", ()) or ()),
+    )
+
+
 def _cached_health(owner, state, tracker):
-    signature = _state_signature(state)
+    signature = (_state_signature(state), _tracker_signature(tracker))
     cached = getattr(owner, "_build_health_cache", None)
     if cached is not None and cached[0] == signature:
         return cached[1]
@@ -126,17 +170,12 @@ def _projection_tracker(tracker):
     try:
         return deepcopy(tracker)
     except (TypeError, ValueError):
-        # Hypothetical branches must never mutate the run-scoped strategy tracker.
-        # Losing projected coherence is preferable to contaminating commitment state.
         return None
 
 
 def _projected_health(state, jokers, tracker):
     projected = projected_state_with_jokers(state, jokers)
-    return _HEALTH.evaluate(
-        projected,
-        strategy_tracker=_projection_tracker(tracker),
-    )
+    return _HEALTH.evaluate(projected, strategy_tracker=_projection_tracker(tracker))
 
 
 def _health_notes(prefix: str, health) -> tuple[str, ...]:
@@ -188,18 +227,9 @@ def _health_aware_joker_decision(policy, state, candidate, decision):
         option = options[0]
         if not bool(getattr(option, "eligible", False)):
             return decision
-        projected = _projected_health(
-            state,
-            _free_slot_projected_jokers(state, candidate),
-            tracker,
-        )
+        projected = _projected_health(state, _free_slot_projected_jokers(state, candidate), tracker)
         survival_gain = projected.survival - current.survival
         scaling_gain = projected.scaling - current.scaling
-
-        # Foundation survival: if the board is still inadequate, a purchase that
-        # measurably improves the modeled next-blind survival state may override a
-        # HOLD.  This is stronger than the former "positive scorer" rule because a
-        # token +chips contribution that leaves survival unchanged does not qualify.
         early_survival_fix = (
             ante <= 2
             and current.survival < _EARLY_SURVIVAL_ADEQUACY
@@ -207,22 +237,13 @@ def _health_aware_joker_decision(policy, state, candidate, decision):
             and projected.immediate >= current.immediate
             and _option_money_after(option) >= 0
         )
-
-        # Convergence scaling: preserve the normal reserve and never pay for future
-        # growth by materially reducing current survival.  Crossing the scaling
-        # adequacy floor is preferred, but a clearly measurable delta also counts.
         scaling_fix = (
             ante >= 3
             and current.scaling_deficit
-            and (
-                projected.scaling >= 50.0
-                or scaling_gain >= _MATERIAL_SCALING_DELTA
-            )
-            and projected.survival
-            >= current.survival - _MAX_SURVIVAL_SACRIFICE_FOR_SCALING
+            and (projected.scaling >= 50.0 or scaling_gain >= _MATERIAL_SCALING_DELTA)
+            and projected.survival >= current.survival - _MAX_SURVIVAL_SACRIFICE_FOR_SCALING
             and _option_money_after(option) >= _reserve_target(decision)
         )
-
         if decision.action == HOLD and (early_survival_fix or scaling_fix):
             reason = "early survival adequacy" if early_survival_fix else "midgame scaling adequacy"
             selected = _updated(
@@ -246,9 +267,6 @@ def _health_aware_joker_decision(policy, state, candidate, decision):
             )
         return decision
 
-    # Full-roster health replacement.  Existing option.eligible already contains
-    # Negative/Eternal/committed-build protection.  Health may only select among
-    # those legal alternatives and only when the transaction remains net-positive.
     if not current.scaling_deficit:
         return decision
 
@@ -266,10 +284,7 @@ def _health_aware_joker_decision(policy, state, candidate, decision):
         projected = _projected_health(state, projected_jokers, tracker)
         scaling_gain = projected.scaling - current.scaling
         survival_loss = current.survival - projected.survival
-        if (
-            scaling_gain < _MATERIAL_SCALING_DELTA
-            and projected.scaling < 50.0
-        ):
+        if scaling_gain < _MATERIAL_SCALING_DELTA and projected.scaling < 50.0:
             continue
         if survival_loss > _MAX_SURVIVAL_SACRIFICE_FOR_SCALING:
             continue
@@ -316,10 +331,7 @@ def _bundle_decision(state, result, arbiter):
         action=recommendation.action,
         source="BUILD_HEALTH_BUNDLE",
         normalized_gain=max(0.001, float(getattr(result, "normalized_gain", 0.0))),
-        rationale=(
-            *recommendation.rationale,
-            *getattr(result, "rationale", ()),
-        ),
+        rationale=(*recommendation.rationale, *getattr(result, "rationale", ())),
     )
 
 
@@ -339,18 +351,11 @@ def _health_reroll_decision(arbiter, state, result, reroll_cost):
     ante = max(1, int(getattr(state, "ante", 1) or 1))
     money = max(0, int(getattr(state, "money", 0) or 0))
     remaining = money - cost
-
     early_survival_search = (
-        ante <= 2
-        and health.survival < _EARLY_SURVIVAL_ADEQUACY
-        and cost <= 5
-        and remaining >= 2
+        ante <= 2 and health.survival < _EARLY_SURVIVAL_ADEQUACY and cost <= 5 and remaining >= 2
     )
     scaling_search = (
-        ante >= 3
-        and health.scaling_deficit
-        and cost <= 8
-        and remaining >= 15
+        ante >= 3 and health.scaling_deficit and cost <= 8 and remaining >= 15
     )
     if not (early_survival_search or scaling_search):
         return result
@@ -389,12 +394,7 @@ def install_build_health_policy() -> None:
         original_shop_decide = BuildAwareShopArbiter.decide
 
         def shop_decide(self, state, visible_actions, *, reroll_cost: int | None):
-            result = original_shop_decide(
-                self,
-                state,
-                visible_actions,
-                reroll_cost=reroll_cost,
-            )
+            result = original_shop_decide(self, state, visible_actions, reroll_cost=reroll_cost)
             result = _bundle_decision(state, result, self)
             return _health_reroll_decision(self, state, result, reroll_cost)
 
