@@ -2,11 +2,11 @@ from types import SimpleNamespace
 
 from games.balatro.strategy import (
     BANNED,
+    BRONZE,
     ENHANCEMENT_EVIDENCE_WEIGHT,
     GOLD,
     HAND_LEVEL_EVIDENCE_WEIGHT,
     NEUTRAL,
-    SILVER,
     SPECTRAL_USE_EVIDENCE_WEIGHT,
     TAROT_USE_EVIDENCE_WEIGHT,
 )
@@ -68,7 +68,7 @@ def test_straight_is_standalone_and_superposition_is_support_evidence():
     straight = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES["straight"]
 
     assert topology.is_leaf("straight") is True
-    assert straight.relationship_for(_joker("Superposition"), kind="JOKER") == SILVER
+    assert straight.relationship_for(_joker("Superposition"), kind="JOKER") == BRONZE
     assert straight.relationship_for(_joker("The Order"), kind="JOKER") == GOLD
     assert straight.directed_tarots == frozenset({"strength", "death"})
 
