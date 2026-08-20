@@ -4,9 +4,24 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+### Added
+
+- Added the Red/White **Build Health** layer with auditable Survival, Immediate Scoring, Scaling, Coherence, and Runway dimensions so a full Joker roster is no longer assumed to be a functioning build.
+- Added realized engine lifecycle diagnostics (`OWNED_INACTIVE`, `ACTIVATED_WEAK`, `ACTIVATED_HEALTHY`, `MATURE`) for Blue/Hologram deck growth, Burnt Joker, Castle, Green Joker, Red Card, Runner, and Bull/Bootstraps cash scoring.
+- Added structural `CORE` / `ENGINE` / `SUPPORT` / `FILLER` / `CONFLICT` Joker-role diagnostics relative to the realized active build.
+- Added bounded two-component shop planning for Bull + Bootstraps and Blue/Hologram + Certificate/Marble. The planner emits exactly one sell/buy action and requires authoritative re-observation before continuing the sequence.
+- Added Build Health, scaling-deficit/inactive-engine warnings, and realized component roles to structured decision postmortems and the live agent monitor.
+- Added deterministic regression contracts for Build Health evaluation, shop admission/replacement/reroll behavior, realized pivot readiness, bounded bundles, component roles, monitor output, tracker side-effect isolation, production arbiter inheritance, and cache invalidation. These regressions are present on the calibration branch but have not yet been executed on the current branch head.
+
 ### Changed
 
 - Continued Red Deck / White Stake post-release calibration from repeated five-run autonomous batches before advancing stake progression.
+- Replaced the old Ante 1–2 “any positive immediate scorer” exception with Build-Health-based survival admission: an off-route purchase must materially improve projected survival rather than merely add local scoring value. The shop-time adapter currently uses a bounded public-state scoring-capacity estimate; full D1 whole-blind expectimax remains authoritative during actual hand play.
+- Made midgame Joker acquisition, legal replacement, bounded rerolls, and complementary shop bundles respond to realized scaling deficits instead of relying on Joker count or isolated candidate value.
+- Added realized-maturity pivot pressure so late theoretical engines pay buildup/runway cost: an untrained late Runner or inactive Hologram no longer gets the same pivot treatment as an already-realized high-cash Bull/Bootstraps route.
+- Made Blue Joker recognize Certificate/Marble as realized future deck-growth capacity, matching the bounded deck-growth bundle planner.
+- Made Build Health hypothetical transitions and diagnostics clone run-scoped strategy trackers, preventing “what-if” shop branches or monitor telemetry from changing live commitment history.
+- Expanded Build Health cache identity from deck size alone to complete public deck structure, preventing same-size rank/suit/enhancement/seal/edition changes from reusing stale health.
 - Retired support-only catalogue leaves from active Primary/Secondary/Tertiary strategy competition when they cannot plausibly clear a run as an independent scoring engine. Abstract Joker, standalone face-economy leaves, Satellite economy, Cloud 9 economy, Mail-In Rebate economy, Banner/Delayed Gratification reserve, and standalone cash-growth/hoard leaves remain ordinary or conditional support rather than win conditions. Raised Fist remains a deliberately weak active scoring route rather than a retired support leaf.
 - Consolidated cash generation under **Bull / Bootstraps Cash Scoring**. Bull or Bootstraps activates the scoring route; Rocket, To the Moon, Cloud 9, Satellite, Reserved Parking, Business Card, Faceless Joker, Mail-In Rebate, Delayed Gratification, Golden Joker, Golden Ticket, and Rough Gem may reinforce it when their own trigger infrastructure is usable. Rocket + To the Moon together are Gold support after a cash scorer exists; cash generators alone cannot activate the route.
 - Made **Pareidolia Gold activation evidence for the Face Cards family**. Pareidolia is also Gold support for PhotoChad when Photograph is present and for the Triboulet route when Triboulet is present, without fabricating those specialized routes by itself.
@@ -94,12 +109,12 @@ This file records notable development changes to the project. Active and future 
 
 ## v0.8 — Balatro planning and environment
 
-- Added Balatro search/planning, probability/EV analysis, blind-clear paths, stake rules, and deck architecture.
+- Added Balatro search/planning, probability/EV analysis, blind-clear paths, stakes and deck architecture.
 
 ## v0.7 — Balatro mechanics
 
-- Added cards, hands, scoring, Jokers, consumables, editions, enhancements, and card modifiers.
+- Added cards, hands, scoring, Jokers, consumables, editions, enhancements and card modifiers.
 
 ## v0.1–v0.6 — Framework foundation
 
-- Established repository structure, configuration, logging, metrics, events, agent and policy abstractions, heuristic evaluation, softmax selection, experiment execution, reproducible seeds, comparisons, and aggregate metrics.
+- Established repository structure, configuration, logging, metrics, events, agent and policy abstractions, heuristic evaluation, softmax selection, experiment execution, reproducible seeds, comparisons and aggregate metrics.
