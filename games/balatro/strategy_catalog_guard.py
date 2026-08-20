@@ -128,6 +128,25 @@ def guard_unresolved_conditional_relationships(
             *joker_names,
         )
 
+    # Low-rank scoring wants 2-5 cards to score repeatedly, while Raised Fist wants
+    # the lowest relevant rank preserved in hand. Treat that mechanical tension as
+    # an explicit conflict in both directions so the strategy system will not protect
+    # or acquire one route's defining Joker while pursuing the other.
+    low_rank = guarded["low_rank"]
+    guarded["low_rank"] = replace(
+        low_rank,
+        banned_jokers=frozenset(
+            set(low_rank.banned_jokers) | set(_joker_tokens("Raised Fist"))
+        ),
+    )
+    raised_fist = guarded["raised_fist"]
+    guarded["raised_fist"] = replace(
+        raised_fist,
+        banned_jokers=frozenset(
+            set(raised_fist.banned_jokers) | set(_joker_tokens("Hack"))
+        ),
+    )
+
     # Support/economy mechanisms do not compete as standalone routes. Cash-producing
     # components are rehomed conditionally under Bull/Bootstraps by the state-aware
     # cash-scoring support policy; they cannot activate that scoring route alone.
