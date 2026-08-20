@@ -17,7 +17,8 @@ Runtime role note:
 - The tree is topology, **not** a requirement that exactly one positive node survives.
 - Runtime orchestration resolves one **Primary** scoring/win-condition route plus compatible **Secondary** scoring engines and **Support** engines.
 - Ante 6+ keeps the Primary fully prescriptive while compatible engines may remain active at reduced influence; incompatible hand prescriptions and explicit conflicts are suppressed.
-- Some leaves are dependency-gated payoffs rather than self-starting routes. Their exact prerequisites live in `BALATRO_STRATEGY_RELATIONSHIPS.md` and `BALATRO_STRATEGY_TREE_RULES.md`.
+- A standalone strategy must contain a plausible run-clearing scoring engine, not merely cash generation, static filler value, or generic support.
+- Support-only catalogue IDs may remain internally for topology compatibility but are retired from active strategy competition.
 
 ## 1. Poker-hand strategies
 
@@ -56,13 +57,10 @@ Queens / Shoot the Moon [L]
 Face Cards [I]
 ├── Photograph + Hanging Chad (PhotoChad) [L]
 ├── Triboulet + Sock and Buskin [L]
-├── Pareidolia Universal Face Scoring [L]
-├── Held Face-Card Economy [L]
-└── Business Card Face Economy [L]
+└── Pareidolia Universal Face Scoring [L]
 
 Faceless / No-Face [I]
-├── Ride the Bus No-Face Scaling [L]
-└── Faceless Joker Discard Economy [L]
+└── Ride the Bus No-Face Scaling [L]
 
 The Idol Exact-Card Concentration [L]
 ```
@@ -71,6 +69,7 @@ Relationship notes:
 - Aces is Scholar-defined: DNA, Fibonacci, and Odd Todd are support only after Scholar establishes the route.
 - Ride the Bus is Silver evidence for its no-face scaling leaf, not a Gold self-defining core.
 - Pareidolia can protect compatible face-payoff Jokers such as Smiley Face while its leaf is active, but inherited Face Cards evidence is counted only once.
+- Reserved Parking, Business Card, and Faceless Joker economy are support components, not standalone run-clearing routes.
 
 ## 3. Suit and held-card strategies
 
@@ -86,11 +85,11 @@ Clubs [I]
 Spades / Arrowhead Chips [L]
 
 Blackboard Held-Black Cards [L]
-Raised Fist Held-Minimum [L]
-
 Ancient Joker Suit-Rotation [L]
 Flower Pot Multi-Suit [L]
 ```
+
+Raised Fist is held-card support rather than an independent strategy.
 
 ## 4. Enhancement strategies — runtime implemented
 
@@ -168,8 +167,7 @@ These are often compatible engines rather than mutually exclusive replacements f
 
 ```text
 Planet Engine [I]
-├── Constellation Planet-Scaling [L]
-└── Satellite Planet-Economy [L]
+└── Constellation Planet-Scaling [L]
 
 Perkeo Consumable Duplication [I]
 ├── Perkeo + Observatory Planet Stack [L]
@@ -183,15 +181,14 @@ Tarot Engine [I]
 Vagabond Low-Money Tarot Engine [L]
 ```
 
-Constellation is dependency-gated: it is not a self-starting Planet core. Astronomer enables it as Silver support; Satellite makes the Constellation/Satellite combination Gold-level evidence. Unsupported Constellation is not an ordinary acquisition target.
+Constellation is dependency-gated: it is not a self-starting Planet core. Astronomer enables it as Silver support. Satellite is economy support for a real Planet/Constellation engine and is no longer a standalone strategy.
 
 ## 9. Economy, shop, pack, reroll, and blind-skip engines
 
 ```text
 Cash Hoard / Interest [I]
 ├── Rocket / To the Moon Cash Growth [L]
-├── Bull / Bootstraps Cash Scoring [L]
-└── Cloud 9 Nines Economy [L]
+└── Bull / Bootstraps Cash Scoring [L]
 
 Campfire Sell-Scaling [L]
 Flash Card Reroll-Scaling [L]
@@ -199,28 +196,28 @@ Red Card Pack-Skip Scaling [L]
 Throwback Blind-Skip Scaling [L]
 ```
 
+Cloud 9 is economy support, not a standalone run-clearing route.
+
 ## 10. Joker-board and composition strategies
 
 ```text
 Joker Stencil / Ankh / Invisible Duplication [L]
 
 Baseball Card Uncommon Stack [L]
-Abstract Joker Wide-Board [L]
-
 Egg / Gift-Card Swashbuckler [L]
 ```
+
+Abstract Joker is generic wide-board additive Mult and is not a standalone strategy. It remains an ordinary Joker/support component where relevant.
 
 ## 11. Discard, no-discard, and hand-rotation engines
 
 ```text
 Discard Utilization [I]
 ├── Castle Suit-Discard Scaling [L]
-├── Mail-In Rebate Rank-Discard Economy [L]
 └── Yorick Discard-Scaling [L]
 
 No-Discard / Discard-Preservation [I]
 ├── Green Joker No-Discard Scaling [L]
-├── Banner + Delayed Gratification Discard Reserve [L]
 ├── Ramen Preservation [L]
 └── Burglar Zero-Discard / Extra-Hand [L]
 
@@ -228,7 +225,7 @@ Obelisk Hand-Rotation [L]
 Burnt Joker Hand-Level Engine [L]
 ```
 
-Green Joker, Banner, Delayed Gratification, and Ramen are support-scale evidence rather than automatic Gold commitments. No-discard incentives never override the tactical survival rule that discarding is mandatory when the final hand cannot clear and legal discards remain.
+Mail-In Rebate and Banner + Delayed Gratification are support/economy packages rather than independent strategies. No-discard incentives never override the tactical survival rule that discarding is mandatory when the final hand cannot clear and legal discards remain.
 
 ## 12. Hand-scheduling engines
 
@@ -270,18 +267,26 @@ Joker Stencil               <-> Ankh / Invisible Joker / Negative Jokers / empty
 
 ## 14. Not standalone
 
-These components do not form independent strategies. They are assigned as
-conditional support and remain Neutral when their destination engine is absent.
+These components do not form independent strategies. They are assigned as conditional support, generic item value, or integrated economy support and must not compete for Primary/Secondary/Tertiary strategy rank by themselves.
 
 | Component | Integrated destination |
 |---|---|
+| Abstract Joker | Generic wide-board additive Mult; ordinary Joker value only, never a standalone route |
+| Raised Fist | High Card / Pair / held-card / Mime and Red-Seal support |
+| Reserved Parking | Face-card held economy support |
+| Business Card | Face Cards / Pareidolia / retriggers / Red Seal economy support |
+| Faceless Joker | Faceless / discard economy support |
+| Satellite | Planet / Constellation economy support |
+| Cloud 9 | Cash-hoard / Nines economy support |
+| Mail-In Rebate | Discard-utilization economy support |
+| Banner / Delayed Gratification | No-discard / discard-preservation support |
 | Blueprint / Brainstorm | Silver support for an owned, copyable defining engine; never independent strategy evidence |
 | Astronomer | Planet Engine, Blue Seal hand-level scaling, Burnt Joker hand-level support, and prerequisite for Silver Constellation support |
 | Chaos the Clown | Gold support for an owned Flash Card reroll engine |
 | Drunkard / Merry Andy | Purple Seal, Castle, Mail-In Rebate, Yorick, and Burnt Joker discard engines |
 | Juggler / Troubadour | Held Red-Seal, Blue Seal, Steel-Mime, Baron-Mime, and other material held-card engines |
 | Splash | Played Red-Seal, Hiker, Flower Pot, Midas Mask, and Vampire/Canio card-processing engines |
-| Showman | Baseball Card duplicate-Uncommon support and Bronze wide-board support for Abstract Joker |
-| Invisible Joker | Joker Stencil duplication, Swashbuckler sell-value feed, Abstract wide-board support, and situational engine duplication |
+| Showman | Baseball Card duplicate-Uncommon support and generic wide-board support |
+| Invisible Joker | Joker Stencil duplication, Swashbuckler sell-value feed, and situational engine duplication |
 
 Synergy-only combinations are folded into their defining strategy rows. Indexed parents are reserved for genuinely different play/build routes, not merely stronger combinations of the same route.
