@@ -12,6 +12,7 @@ from games.balatro.log_batch_calibration_policy import install_log_batch_calibra
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
 from games.balatro.pareidolia_face_policy import install_pareidolia_face_policy
+from games.balatro.relationship_contract_policy import install_relationship_contract_policy
 from games.balatro.safe_pace_blind_skip_patch import install_safe_pace_blind_skip_patch
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
 from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_correction
@@ -48,3 +49,4 @@ install_five_run_followup_policy()
 install_cash_scoring_support_policy()
 install_observatory_planet_policy()
 install_sixth_sense_policy()
+install_relationship_contract_policy()
