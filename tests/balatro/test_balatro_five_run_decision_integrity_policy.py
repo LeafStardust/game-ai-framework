@@ -71,6 +71,33 @@ def test_madness_guard_does_not_fire_for_eternal_core_or_weak_highlight():
     assert not _madness_threatens_established_build(weak, weak_state, _joker("Madness"))
 
 
+def test_buffoon_free_slot_madness_is_blocked_for_established_aces():
+    tracker = _Tracker(score=6.0, tier=GOLD)
+    policy = SimpleNamespace(
+        item_estimator=SimpleNamespace(
+            joker_build_value=SimpleNamespace(strategy_tracker=tracker)
+        ),
+        _pack_joker_factory=SimpleNamespace(
+            create=lambda data: _joker(data["label"])
+        ),
+    )
+    state = SimpleNamespace(
+        phase="BUFFOON_PACK",
+        joker_slots=5,
+        jokers=[_joker("Scholar")],
+    )
+    choice = SimpleNamespace(
+        kind="JOKER",
+        data={"label": "Madness"},
+    )
+    action = BalatroAction(SELECT_PACK_CARD, target=choice)
+
+    result = integrity.PlaybookBalatroPackPolicy.score_action(policy, state, action)
+
+    assert result.total == -1.0
+    assert any("Madness Buffoon choice blocked" in note for note in result.notes)
+
+
 def test_buffoon_full_roster_uses_strategy_aware_transition_planner(monkeypatch):
     used = {}
 
