@@ -40,12 +40,12 @@ class _Evaluator:
         return self.project_play(state, action).expected_hand_score
 
 
-def _plan(action, expected_score):
+def _plan(action, expected_score, *, expected_progress=0.0):
     return LiveBlindPlan(
         action=action,
         value=LiveBlindPlanValue(
             clear_probability=0.0,
-            expected_progress=0.0,
+            expected_progress=float(expected_progress),
             expected_score=float(expected_score),
             expected_hands_remaining=3.0,
             expected_discards_remaining=3.0,
@@ -86,7 +86,15 @@ def test_pace_play_avoids_all_debuffed_hand_when_active_alternative_meets_pace()
     active = [BalatroCard("A", "Hearts"), BalatroCard("A", "Diamonds")]
     bad_action = BalatroAction(PLAY_CARDS, cards=debuffed)
     good_action = BalatroAction(PLAY_CARDS, cards=active)
-    plans = [_plan(bad_action, 200), _plan(good_action, 150)]
+
+    # Give the debuffed line stronger planner progress so ordinary D1 selects it
+    # before the suit-boss follow-up correction runs. Both plays still satisfy the
+    # 100-chip pace target; the regression is specifically that the wrapper must
+    # replace the otherwise-preferred all-debuffed play with the active alternative.
+    plans = [
+        _plan(bad_action, 200, expected_progress=1.0),
+        _plan(good_action, 150, expected_progress=0.0),
+    ]
 
     decision = LiveHandActionPolicy(evaluator=_Evaluator()).decide(state, plans)
 
