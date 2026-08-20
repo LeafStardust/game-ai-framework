@@ -7,6 +7,7 @@ from games.balatro.cash_scoring_support_policy import install_cash_scoring_suppo
 from games.balatro.committed_build_replacement_policy import install_committed_build_replacement_policy
 from games.balatro.constellation_strategy_rules import apply_constellation_strategy_rules
 from games.balatro.d1_log_resilience_policy import install_d1_log_resilience_policy
+from games.balatro.deck_growth_pack_policy import install_deck_growth_pack_policy
 from games.balatro.early_capacity_policy import install_early_capacity_policy
 from games.balatro.five_run_followup_policy import install_five_run_followup_policy
 from games.balatro.five_run_optimization_policy import install_five_run_optimization_policy
@@ -60,3 +61,4 @@ install_strategy_phase_weight_policy()
 install_five_run_release_candidate_policy()
 install_five_run_validation_policy()
 install_committed_build_replacement_policy()
+install_deck_growth_pack_policy()
