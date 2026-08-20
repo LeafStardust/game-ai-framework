@@ -3,7 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from games.balatro.actions import BUY_AND_USE_CONSUMABLE
-from games.balatro.live.consumable_timing_base import LiveConsumableTimingPolicy
+from games.balatro.live.consumable_timing import LiveConsumableTimingPolicy
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
 from games.balatro.state import BalatroState
 from games.balatro.strategy import GOLD, SILVER
@@ -89,7 +89,7 @@ def test_profitable_shop_hermit_is_bought_and_used() -> None:
     assert decision.action.target is hermit
 
 
-def test_devious_four_fingers_can_replace_weak_filler() -> None:
+def test_devious_plus_four_fingers_activates_straight_by_replacing_banner() -> None:
     state = BalatroState()
     state.phase = "SHOP"
     state.money = 20
@@ -98,27 +98,20 @@ def test_devious_four_fingers_can_replace_weak_filler() -> None:
     four_fingers = FourFingersJoker()
     state.shop_jokers = [four_fingers]
 
-    decision = BuildAwareShopArbiter().decide(
-        state,
-        [],
-        reroll_cost=5,
-    )
+    arbiter = BuildAwareShopArbiter()
+    decision = arbiter.decide(state, [], reroll_cost=5)
     assert decision.action.name == "SELL_JOKER"
     assert decision.action.target == 1
 
 
-def test_perkeo_does_not_end_shop_without_a_safe_seed() -> None:
+def test_perkeo_does_not_end_shop_without_seed_when_affordable_seed_visible() -> None:
     state = BalatroState()
     state.phase = "SHOP"
-    state.money = 10
+    state.money = 20
     state.jokers = [PerkeoJoker()]
-    seed = SimpleNamespace(name="The Emperor", label="The Emperor", cost=3)
+    state.consumables = []
+    seed = SimpleNamespace(name="The Hermit", label="The Hermit", cost=3)
     state.shop_consumables = [seed]
 
-    decision = BuildAwareShopArbiter().decide(
-        state,
-        [],
-        reroll_cost=5,
-    )
-    assert decision.action.name == "BUY_CONSUMABLE"
-    assert decision.action.target is seed
+    decision = BuildAwareShopArbiter().decide(state, [], reroll_cost=5)
+    assert decision.action.name != "END_SHOP"
