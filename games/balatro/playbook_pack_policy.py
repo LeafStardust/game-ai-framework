@@ -1,3 +1,7 @@
-"""Compatibility import for the Red/White playbook pack policy."""
+"""Compatibility alias for the Red/White playbook pack policy."""
 
-from games.balatro.playbook.red_white.pack_policy import *  # noqa: F401,F403
+import sys
+
+from games.balatro.playbook.red_white import pack_policy as _impl
+
+sys.modules[__name__] = _impl
