@@ -4,8 +4,29 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
-- Red Deck stake progression begins with v1.1.
-- Fresh-profile collection progression remains active but is non-blocking for the v1.0.0 competence release.
+### Changed
+
+- Continued Red Deck / White Stake post-release calibration from repeated five-run autonomous batches before advancing stake progression.
+- Retired support-only catalogue leaves from active Primary/Secondary/Tertiary strategy competition when they cannot plausibly clear a run as an independent scoring engine. Abstract Joker, Raised Fist, standalone face-economy leaves, Satellite economy, Cloud 9 economy, Mail-In Rebate economy, Banner/Delayed Gratification reserve, and standalone cash-growth/hoard leaves remain ordinary or conditional support rather than win conditions.
+- Consolidated cash generation under **Bull / Bootstraps Cash Scoring**. Bull or Bootstraps activates the scoring route; Rocket, To the Moon, Cloud 9, Satellite, Reserved Parking, Business Card, Faceless Joker, Mail-In Rebate, Delayed Gratification, Golden Joker, Golden Ticket, and Rough Gem may reinforce it when their own trigger infrastructure is usable. Rocket + To the Moon together are Gold support after a cash scorer exists; cash generators alone cannot activate the route.
+- Made **Pareidolia Gold activation evidence for the Face Cards family**. Pareidolia is also Gold support for PhotoChad when Photograph is present and for the Triboulet route when Triboulet is present, without fabricating those specialized routes by itself.
+- Reduced Joker Stencil from Gold to Silver standalone evidence and Banner from Silver to Bronze support where applicable.
+- Kept Red Card as a real scaling route but made an owned Red Card prioritize booster-pack skips so its Mult actually develops.
+- Added realized-roster pressure to shop decisions so weak/full boards with surplus cash can spend on bounded rerolls rather than preserving money into a losing blind.
+- Added final-discard opportunity cost so the last discard is preserved unless its modeled survival/scoring improvement is material.
+- Added Burnt Joker first-discard training when the blind has sufficient safety margin.
+- Corrected Rocket / To the Moon semantics: individually cash support rather than standalone Gold strategy cores.
+
+### Fixed
+
+- Corrected Hermit payout/timing integration while preserving the established B6/D4 use contract and Buy-and-Use metadata.
+- Added threatened-boss Luchador activation through the autonomous mid-blind sale path.
+- Prevented D1 from preferring an all-debuffed scoring hand against suit-debuff bosses when an active-card alternative still satisfies required pace.
+- Added Devious Joker + Four Fingers activation logic so a viable Straight route can replace weak filler instead of being blocked by the current first-place strategy.
+- Added Perkeo consumable seeding/surplus-copy economy behavior instead of leaving its duplication ability idle.
+
+- Red Deck stake progression begins with v1.1 after the current Red/White calibration branch is accepted.
+- Fresh-profile collection progression remains active but is non-blocking for the v1.0 competence line.
 
 ## v1.0.0 — Red Deck / White Stake competence — 2026-08-20
 
@@ -68,7 +89,7 @@ This file records notable development changes to the project. Active and future 
 
 ## v0.8 — Balatro planning and environment
 
-- Added Balatro search/planning, probability and expected-value analysis, blind-clear paths, stake rules, and deck architecture.
+- Added Balatro search/planning, probability/EV analysis, blind-clear paths, stake rules, and deck architecture.
 
 ## v0.7 — Balatro mechanics
 
