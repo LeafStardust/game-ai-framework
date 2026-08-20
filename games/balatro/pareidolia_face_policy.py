@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from games.balatro import strategy_conditional_relationships as relationships
-from games.balatro.strategy import GOLD
+from games.balatro.strategy import GOLD, NEUTRAL
 from games.balatro.strategy_value import StrategyAwareJokerBuildValueEvaluator
 
 
@@ -36,13 +36,11 @@ def _has_pareidolia(state) -> bool:
 def install_pareidolia_face_policy() -> None:
     """Make Pareidolia an activator for genuine face-card scoring routes.
 
-    Pareidolia makes every card a face card, so it is defining Gold evidence for the
-    generic Face Cards route. For specialized face routes it becomes Gold only after
-    the actual scoring payoff exists (Photograph or Triboulet); Pareidolia alone must
-    not manufacture those specialized strategies.
-
-    The existing build-value retention floor remains separate from strategy scoring
-    so inherited face-payoff Jokers are not counted twice.
+    Pareidolia alone is Gold activation evidence for the generic Face Cards parent.
+    Once a real face payoff exists, the Pareidolia specialization owns that Gold
+    evidence and the parent deliberately stops counting the same Joker. This keeps
+    tree inheritance from counting Pareidolia twice while still allowing it to start
+    the generic face route by itself.
     """
     if getattr(StrategyAwareJokerBuildValueEvaluator, "_pareidolia_face_policy_installed", False):
         return
@@ -56,7 +54,9 @@ def install_pareidolia_face_policy() -> None:
 
         owned = _owned_tokens(state)
         if strategy_id == "face_cards":
-            return GOLD
+            # If a real face payoff already exists, the face_pareidolia child owns
+            # this Gold evidence. Do not also inherit a second Gold from the parent.
+            return NEUTRAL if owned & _PAREIDOLIA_FACE_SUPPORT else GOLD
         if strategy_id == "face_photochad" and "photographjoker" in owned:
             return GOLD
         if strategy_id == "face_triboulet_sock" and "tribouletjoker" in owned:
