@@ -12,6 +12,7 @@ from games.balatro.jokers.bootstraps import BootstrapsJoker
 from games.balatro.jokers.bull import BullJoker
 from games.balatro.jokers.certificate import CertificateJoker
 from games.balatro.jokers.hologram import HologramJoker
+from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.state import BalatroState
 
 
@@ -135,6 +136,22 @@ def test_duplicate_blue_jokers_stack_chip_contribution():
     state.owned_deck = [BalatroCard("A", "Spades") for _ in range(52)]
     engine = next(value for value in RealizedEngineAnalyzer().analyze(state) if value.engine_id == "blue_joker")
     assert engine.current_strength == 176.0
+
+
+def test_runner_growth_history_counts_straight_flushes_too():
+    state = _state(ante=4, blind_score=5000, jokers=(RunnerJoker(),))
+    state.jokers[0].chips = 30
+    state.hand_play_counts["STRAIGHT"] = 1
+    state.hand_play_counts["STRAIGHT_FLUSH"] = 1
+
+    engine = next(
+        value
+        for value in RealizedEngineAnalyzer().analyze(state)
+        if value.engine_id == "runner"
+    )
+
+    assert engine.growth_rate == 0.25
+    assert any("history=2" in note for note in engine.rationale)
 
 
 def test_cash_scoring_is_immediately_mature_when_existing_cash_already_realizes_it():
