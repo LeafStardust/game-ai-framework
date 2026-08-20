@@ -56,6 +56,23 @@ def test_hologram_public_growth_changes_realized_engine_state():
     assert engine.current_strength == 1.5
 
 
+def test_duplicate_holograms_multiply_realized_xmult():
+    first = HologramJoker()
+    second = HologramJoker()
+    first.x_mult = 1.5
+    second.x_mult = 2.0
+    state = _state(ante=4, blind_score=5000, jokers=(first, second))
+
+    engine = next(
+        value
+        for value in RealizedEngineAnalyzer().analyze(state)
+        if value.engine_id == "hologram"
+    )
+
+    assert engine.current_strength == 3.0
+    assert any("copies=2" in note for note in engine.rationale)
+
+
 def test_blue_joker_card_generator_realizes_future_growth_capacity():
     blue = BlueJoker()
     without_generator = _state(ante=4, blind_score=5000, jokers=(blue,))
@@ -104,6 +121,24 @@ def test_blue_uses_remaining_draw_pile_in_blind_and_owned_deck_in_shop():
     assert shop.current_strength == 104.0
 
 
+def test_duplicate_blue_jokers_stack_chip_contribution():
+    state = _state(
+        ante=4,
+        blind_score=5000,
+        jokers=(BlueJoker(), BlueJoker()),
+    )
+    state.phase = "SHOP"
+    state.owned_deck = [BalatroCard("A", "Spades") for _ in range(52)]
+
+    engine = next(
+        value
+        for value in RealizedEngineAnalyzer().analyze(state)
+        if value.engine_id == "blue_joker"
+    )
+
+    assert engine.current_strength == 208.0
+
+
 def test_cash_scoring_is_immediately_mature_when_existing_cash_already_realizes_it():
     state = _state(
         ante=5,
@@ -118,6 +153,25 @@ def test_cash_scoring_is_immediately_mature_when_existing_cash_already_realizes_
     assert cash.state == EngineState.MATURE
     assert cash.runway_need == 0.0
     assert cash.current_strength > 0.0
+
+
+def test_duplicate_cash_scorers_stack_actual_contribution():
+    state = _state(
+        ante=5,
+        blind_score=16500,
+        jokers=(BullJoker(), BullJoker(), BootstrapsJoker(), BootstrapsJoker()),
+    )
+    state.money = 50
+
+    cash = next(
+        engine
+        for engine in RealizedEngineAnalyzer().analyze(state)
+        if engine.engine_id == "cash_scoring"
+    )
+
+    assert cash.current_strength == 240.0
+    assert any("Bull copies=2" in note for note in cash.rationale)
+    assert any("Bootstraps copies=2" in note for note in cash.rationale)
 
 
 def test_midgame_static_board_reports_scaling_deficit_when_immediate_output_is_adequate():
