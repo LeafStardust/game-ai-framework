@@ -258,6 +258,58 @@ def test_health_cache_invalidates_when_same_size_deck_structure_changes(monkeypa
     assert health.calls == 2
 
 
+def test_health_cache_invalidates_when_score_or_runner_history_changes(monkeypatch):
+    class _CountingHealth:
+        def __init__(self):
+            self.calls = 0
+
+        def evaluate(self, state, *, strategy_tracker=None):
+            del state, strategy_tracker
+            self.calls += 1
+            return _health(survival=80, scaling=60)
+
+    health = _CountingHealth()
+    monkeypatch.setattr(policy, "_HEALTH", health)
+    owner = SimpleNamespace()
+    state = _state(ante=4)
+    state.phase = "SELECTING_HAND"
+    state.score = 0
+    state.hand_play_counts = {"STRAIGHT": 0}
+
+    policy._cached_health(owner, state, None)
+    state.score = 250
+    policy._cached_health(owner, state, None)
+    state.hand_play_counts["STRAIGHT"] = 1
+    policy._cached_health(owner, state, None)
+
+    assert health.calls == 3
+
+
+def test_active_blind_cache_tracks_remaining_draw_pile_not_owned_deck(monkeypatch):
+    class _CountingHealth:
+        def __init__(self):
+            self.calls = 0
+
+        def evaluate(self, state, *, strategy_tracker=None):
+            del state, strategy_tracker
+            self.calls += 1
+            return _health(survival=80, scaling=60)
+
+    health = _CountingHealth()
+    monkeypatch.setattr(policy, "_HEALTH", health)
+    owner = SimpleNamespace()
+    state = _state(ante=4)
+    state.phase = "SELECTING_HAND"
+    state.owned_deck = [BalatroCard("A", "Spades"), BalatroCard("K", "Hearts")]
+    state.deck = [BalatroCard("A", "Spades"), BalatroCard("K", "Hearts")]
+
+    policy._cached_health(owner, state, None)
+    state.deck = [BalatroCard("K", "Hearts")]
+    policy._cached_health(owner, state, None)
+
+    assert health.calls == 2
+
+
 def test_production_strategy_arbiter_reaches_patched_base_decide():
     # The live runner constructs StrategyAwarePlaybookShopArbiter. Its explicit
     # decide() delegates to super(), and PlaybookBuildAwareShopArbiter does not
