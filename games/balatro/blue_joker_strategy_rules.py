@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import replace
 from types import MappingProxyType
 
@@ -67,6 +68,19 @@ def _retired_requirement() -> frozenset[str]:
     return frozenset({"__merged_into_blue_hologram_deck_growth__"})
 
 
+def _refresh_runtime_guard_if_loaded(catalog) -> None:
+    """Keep an already-materialized guarded catalogue aligned with this mutation."""
+    guard = sys.modules.get("games.balatro.strategy_catalog_guard")
+    if guard is None:
+        return
+    rebuild = getattr(guard, "guard_unresolved_conditional_relationships", None)
+    if not callable(rebuild):
+        return
+    guard.RUNTIME_UNIVERSAL_BALATRO_STRATEGIES = rebuild(
+        catalog.TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES
+    )
+
+
 def apply_blue_joker_strategy_rules() -> None:
     """Merge Blue Joker and Hologram into one card-growth strategy family.
 
@@ -118,6 +132,7 @@ def apply_blue_joker_strategy_rules() -> None:
         catalog._tree_definitions[strategy_id] = retired
 
     catalog.TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES = MappingProxyType(definitions)
+    _refresh_runtime_guard_if_loaded(catalog)
 
     original = relationships.conditional_joker_relationship
     if getattr(original, "_blue_joker_rules_installed", False):
