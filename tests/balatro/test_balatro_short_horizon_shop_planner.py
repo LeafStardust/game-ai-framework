@@ -24,10 +24,7 @@ def _health(total, survival, scaling, *, deficit=False):
 class _Health:
     def evaluate(self, state, *, strategy_tracker=None):
         del strategy_tracker
-        names = {
-            planner._canonical_joker(joker)
-            for joker in state.jokers
-        }
+        names = {planner._canonical_joker(joker) for joker in state.jokers}
         if {"bull", "bootstraps"} <= names:
             return _health(82, 90, 90)
         if {"hologram", "certificate"} <= names:
@@ -197,3 +194,47 @@ def test_bundle_planner_prefers_better_economics_between_duplicate_offers(monkey
     assert result is not None
     assert result.action.name == BUY_JOKER
     assert result.action.target is cheap
+
+
+def test_bundle_rejects_good_final_pair_when_every_first_buy_harms_survival(monkeypatch):
+    class _UnsafeFirstBuyHealth:
+        def evaluate(self, state, *, strategy_tracker=None):
+            del strategy_tracker
+            names = {planner._canonical_joker(joker) for joker in state.jokers}
+            if {"bull", "bootstraps"} <= names:
+                return _health(80, 90, 90)
+            if names & {"bull", "bootstraps"}:
+                return _health(45, 70, 35, deficit=True)
+            return _health(55, 90, 25, deficit=True)
+
+    monkeypatch.setattr(planner, "_HEALTH", _UnsafeFirstBuyHealth())
+    state = _state(
+        shop=(_joker("Bull", cost=6), _joker("Bootstraps", cost=7)),
+        slots=5,
+        money=50,
+    )
+
+    assert planner.recommend_bounded_shop_bundle(_arbiter(), state) is None
+
+
+def test_bundle_rejects_good_final_pair_when_required_presale_harms_survival(monkeypatch):
+    class _UnsafeSaleHealth:
+        def evaluate(self, state, *, strategy_tracker=None):
+            del strategy_tracker
+            names = {planner._canonical_joker(joker) for joker in state.jokers}
+            if {"bull", "bootstraps"} <= names:
+                return _health(80, 90, 90)
+            if "filler" not in names:
+                return _health(40, 65, 30, deficit=True)
+            return _health(55, 90, 25, deficit=True)
+
+    monkeypatch.setattr(planner, "_HEALTH", _UnsafeSaleHealth())
+    filler = _joker("Filler", sell_cost=3)
+    state = _state(
+        jokers=(filler,),
+        shop=(_joker("Bull", cost=6), _joker("Bootstraps", cost=7)),
+        slots=2,
+        money=50,
+    )
+
+    assert planner.recommend_bounded_shop_bundle(_arbiter(), state) is None
