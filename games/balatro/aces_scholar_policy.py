@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from games.balatro.strategy import NEUTRAL, SILVER
+from games.balatro.strategy import GOLD, NEUTRAL, SILVER
 from games.balatro import strategy_conditional_relationships as conditional_module
 from games.balatro.strategy_value import StrategyAwareJokerBuildValueEvaluator
 
@@ -18,6 +18,10 @@ def _has_scholar(state) -> bool:
     return any(_token(joker) == "scholarjoker" for joker in getattr(state, "jokers", ()) or ())
 
 
+def _has_dna(state) -> bool:
+    return any(_token(joker) == "dnajoker" for joker in getattr(state, "jokers", ()) or ())
+
+
 def install_aces_scholar_policy() -> None:
     if getattr(conditional_module, "_aces_scholar_policy_installed", False):
         return
@@ -26,6 +30,8 @@ def install_aces_scholar_policy() -> None:
 
     def conditional_joker_relationship(state, strategy_id: str, item: object) -> str:
         token = _token(item)
+        if strategy_id == "aces" and token == "scholarjoker" and _has_dna(state):
+            return GOLD
         if strategy_id == "aces" and token in _ACES_SUPPORT_TOKENS:
             return SILVER if _has_scholar(state) else NEUTRAL
         return original_conditional(state, strategy_id, item)
@@ -47,10 +53,9 @@ def install_aces_scholar_policy() -> None:
         if primary_id != "aces":
             return result
 
-        # Scholar is the defining Aces core. When a Joker slot is still open,
-        # Scholar-backed Silver support must remain an affirmative build pickup
-        # even if its immediate generic scoring probe is weak (DNA is the common
-        # case). This is a floor, not a forced replacement rule.
+        # Scholar is a Silver Aces core by itself. DNA is the pair that promotes
+        # Scholar to Gold, so Scholar-backed support still receives a useful open-slot
+        # floor while the agent is assembling that stronger Aces package.
         joker_slots = int(getattr(state, "joker_slots", 5) or 5)
         open_slot = len(getattr(state, "jokers", ()) or ()) < joker_slots
         if not open_slot:
