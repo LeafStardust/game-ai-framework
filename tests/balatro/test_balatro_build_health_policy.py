@@ -205,3 +205,24 @@ def test_build_health_reroll_is_bounded_to_one_per_shop(monkeypatch):
     assert first.action.name == REFRESH_SHOP
     assert first.source == "BUILD_HEALTH_REROLL"
     assert second.action.name == END_SHOP
+
+
+def test_projected_health_uses_isolated_strategy_tracker(monkeypatch):
+    class _Tracker:
+        def __init__(self):
+            self.calls = 0
+
+    class _MutatingHealth:
+        def evaluate(self, state, *, strategy_tracker=None):
+            del state
+            strategy_tracker.calls += 1
+            return _health(survival=80, scaling=60)
+
+    tracker = _Tracker()
+    state = _state(ante=4, jokers=(_joker("Base"),))
+    monkeypatch.setattr(policy, "_HEALTH", _MutatingHealth())
+
+    result = policy._projected_health(state, (_joker("Candidate"),), tracker)
+
+    assert result.survival == 80
+    assert tracker.calls == 0
