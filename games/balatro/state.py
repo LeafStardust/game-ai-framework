@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from framework.core.state import GameState
 
 from games.balatro.card import BalatroCard
@@ -140,7 +142,12 @@ class BalatroState(GameState):
         new_state.score = self.score
         new_state.blind_score = self.blind_score
         if self.blind is not None:
-            new_state.blind = self.blind.copy()
+            copy_method = getattr(self.blind, "copy", None)
+            new_state.blind = (
+                copy_method()
+                if callable(copy_method)
+                else deepcopy(self.blind)
+            )
         new_state.boss_name = self.boss_name
         new_state.boss_blind_state_observed = self.boss_blind_state_observed
         new_state.boss_blind_hands = self.boss_blind_hands.copy()
