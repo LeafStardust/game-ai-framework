@@ -365,8 +365,12 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
 
         if blind_type == BlindType.BOSS:
             state.boss_name = blind.get("name")
+            boss_name = str(state.boss_name or "")
 
-            if "hands" in blind:
+            # Balatro's mutable Blind table can retain fields written by a previous
+            # boss. Accept each field only for the boss that owns that mechanic so
+            # The Eye/The Mouth state cannot leak into later bosses such as The Wheel.
+            if boss_name == "The Eye" and "hands" in blind:
                 values = blind.get("hands") or []
                 if isinstance(values, (list, tuple, set)):
                     state.boss_blind_hands = {
@@ -375,7 +379,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
                     }
                 state.boss_blind_state_observed = True
 
-            if "only_hand" in blind:
+            if boss_name == "The Mouth" and "only_hand" in blind:
                 only_hand = blind.get("only_hand")
                 state.boss_blind_only_hand = (
                     self.HAND_NAMES.get(str(only_hand), str(only_hand))
