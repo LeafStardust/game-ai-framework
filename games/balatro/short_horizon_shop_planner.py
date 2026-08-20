@@ -9,7 +9,7 @@ must re-observe the shop and re-plan from authoritative state.
 
 from copy import deepcopy
 from dataclasses import dataclass
-from itertools import combinations
+from itertools import combinations, product
 
 from games.balatro.actions import BUY_JOKER, SELL_JOKER, BalatroAction
 from games.balatro.build_health_runtime import RuntimeBuildHealthEvaluator, projected_state_with_jokers
@@ -75,8 +75,17 @@ def _tracker_from_arbiter(arbiter, state):
 
 
 def _protected_indices(state, tracker) -> set[int]:
+    jokers = tuple(getattr(state, "jokers", ()) or ())
+    if tracker is not None:
+        try:
+            tracker = deepcopy(tracker)
+        except (TypeError, ValueError):
+            # Bundle planning must never mutate the live strategy tracker. If the
+            # tracker cannot be isolated, fail closed and pre-sell nothing.
+            return set(range(len(jokers)))
+
     protected: set[int] = set()
-    for index, joker in enumerate(getattr(state, "jokers", ()) or ()):
+    for index, joker in enumerate(jokers):
         if bool(getattr(joker, "eternal", False)) or joker_has_negative_edition(joker):
             protected.add(index)
             continue
@@ -92,7 +101,14 @@ def _protected_indices(state, tracker) -> set[int]:
     return protected
 
 
-def _bundle_specs(owned: set[str], visible: dict[str, object]):
+def _visible_offers(shop) -> dict[str, tuple[object, ...]]:
+    grouped: dict[str, list[object]] = {}
+    for joker in shop:
+        grouped.setdefault(_canonical_joker(joker), []).append(joker)
+    return {token: tuple(values) for token, values in grouped.items()}
+
+
+def _bundle_specs(owned: set[str], visible) -> tuple[tuple[str, tuple[str, ...]], ...]:
     available = owned | set(visible)
     specs: list[tuple[str, tuple[str, ...]]] = []
     if {"bull", "bootstraps"} <= available:
@@ -119,8 +135,6 @@ def _projection_tracker(tracker):
     try:
         return deepcopy(tracker)
     except (TypeError, ValueError):
-        # Failing closed on strategic coherence is safer than mutating the live
-        # run-scoped tracker during a hypothetical shop branch.
         return None
 
 
@@ -140,7 +154,7 @@ def recommend_bounded_shop_bundle(arbiter, state) -> ShopBundleRecommendation | 
         return None
 
     owned_by_token = {_canonical_joker(joker): joker for joker in jokers}
-    visible_by_token = {_canonical_joker(joker): joker for joker in shop}
+    visible_by_token = _visible_offers(shop)
     tracker = _tracker_from_arbiter(arbiter, state)
     current = _HEALTH.evaluate(state, strategy_tracker=tracker)
     slots = max(0, int(getattr(state, "joker_slots", 0) or 0))
@@ -163,52 +177,55 @@ def recommend_bounded_shop_bundle(arbiter, state) -> ShopBundleRecommendation | 
         if needed_sells > _MAX_PRE_SALES or needed_sells > len(replaceable):
             continue
         sell_sets = ((),) if needed_sells == 0 else combinations(replaceable, needed_sells)
+        offer_sets = product(*(visible_by_token[token] for token in missing))
 
+        # Materialize because sell-set iteration may need to compare every visible
+        # edition/cost variant of the same semantic bundle component.
+        offer_sets = tuple(tuple(values) for values in offer_sets)
         for sell_indices in sell_sets:
             sell_indices = tuple(sorted(sell_indices))
             remaining_roster = [
                 joker for index, joker in enumerate(jokers) if index not in sell_indices
             ]
-            added = [visible_by_token[token] for token in missing]
-            final_roster = tuple((*remaining_roster, *added))
-            final_money = (
-                money
-                + sum(_sell_credit(jokers[index]) for index in sell_indices)
-                - sum(_price(joker) for joker in added)
-            )
-            if final_money < reserve:
-                continue
+            for added in offer_sets:
+                final_roster = tuple((*remaining_roster, *added))
+                final_money = (
+                    money
+                    + sum(_sell_credit(jokers[index]) for index in sell_indices)
+                    - sum(_price(joker) for joker in added)
+                )
+                if final_money < reserve:
+                    continue
 
-            projected_state, projected = _project(state, final_roster, final_money, tracker)
-            if not _health_improves(current, projected):
-                continue
+                projected_state, projected = _project(state, final_roster, final_money, tracker)
+                if not _health_improves(current, projected):
+                    continue
 
-            score = (
-                projected.total,
-                projected.scaling,
-                projected.survival,
-                final_money,
-            )
-            candidate = (
-                score,
-                bundle_id,
-                missing,
-                sell_indices,
-                final_money,
-                projected_state,
-                projected,
-            )
-            if best is None or candidate[0] > best[0]:
-                best = candidate
+                score = (
+                    projected.total,
+                    projected.scaling,
+                    projected.survival,
+                    final_money,
+                )
+                candidate = (
+                    score,
+                    bundle_id,
+                    missing,
+                    added,
+                    sell_indices,
+                    final_money,
+                    projected_state,
+                    projected,
+                )
+                if best is None or candidate[0] > best[0]:
+                    best = candidate
 
     if best is None:
         return None
 
-    _, bundle_id, missing, sell_indices, final_money, _projected_state, projected = best
+    _, bundle_id, missing, added, sell_indices, final_money, _projected_state, projected = best
 
     if sell_indices:
-        # Choose the least damaging member of the approved sell subset as this
-        # checkpoint's only action.  The next observation recomputes the bundle.
         ranked_sales = []
         for index in sell_indices:
             interim_roster = tuple(
@@ -221,12 +238,8 @@ def recommend_bounded_shop_bundle(arbiter, state) -> ShopBundleRecommendation | 
         action = BalatroAction(SELL_JOKER, target=index)
         step = f"sell filler slot {index} first; re-observe before any purchase"
     else:
-        # If both components are missing, take the first one that produces the best
-        # intermediate public-state health.  Final bundle admission has already been
-        # validated, so the intermediate step need not independently clear D2.
         ranked_buys = []
-        for token in missing:
-            candidate = visible_by_token[token]
+        for token, candidate in zip(missing, added):
             interim_roster = tuple((*jokers, candidate))
             interim_money = money - _price(candidate)
             _, interim_health = _project(state, interim_roster, interim_money, tracker)
