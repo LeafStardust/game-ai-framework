@@ -57,6 +57,10 @@ def _state():
     return state
 
 
+def _played_ranks(action):
+    return tuple(str(card.rank) for card in getattr(action, "cards", ()) or ())
+
+
 def test_sixth_sense_is_bronze_alone_and_silver_with_tarot_consumable_engine():
     definition = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES["sixes"]
     sixth = SixthSenseJoker()
@@ -79,7 +83,8 @@ def test_first_hand_sixth_sense_is_used_when_single_six_still_meets_pace():
         [_plan(normal_action, 150), _plan(six_action, 100)],
     )
 
-    assert decision.action is six_action
+    assert decision.action.name == PLAY_CARDS
+    assert _played_ranks(decision.action) == ("6",)
     assert any("Sixth Sense opportunity" in note for note in decision.rationale)
 
 
@@ -95,7 +100,8 @@ def test_sixth_sense_does_not_sabotage_pace_to_trigger():
         [_plan(normal_action, 150), _plan(six_action, 60)],
     )
 
-    assert decision.action is normal_action
+    assert decision.action.name == PLAY_CARDS
+    assert _played_ranks(decision.action) == ("A", "A")
 
 
 def test_sixth_sense_does_not_destroy_six_when_consumable_slots_are_full():
@@ -111,4 +117,5 @@ def test_sixth_sense_does_not_destroy_six_when_consumable_slots_are_full():
         [_plan(normal_action, 150), _plan(six_action, 100)],
     )
 
-    assert decision.action is normal_action
+    assert decision.action.name == PLAY_CARDS
+    assert _played_ranks(decision.action) == ("A", "A")
