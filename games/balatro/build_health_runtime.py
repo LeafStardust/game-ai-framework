@@ -97,9 +97,6 @@ def _opening_hand_size(state) -> int:
         value = int(getattr(state, "hand_size", 0) or 0)
     except (TypeError, ValueError):
         value = 0
-    # Shop snapshots should normally expose the authoritative limit. Fail to the
-    # ordinary Red/White hand size rather than treating a missing shop hand area as
-    # a zero-card opening hand.
     return value if value > 0 else 8
 
 
@@ -203,11 +200,7 @@ class RealizedEngineAnalyzer:
                     engine_id="hologram",
                     state=engine_state,
                     current_strength=combined_x_mult,
-                    growth_rate=(
-                        1.0
-                        if has_card_generator
-                        else 0.25 if total_gain > 0 else 0.0
-                    ),
+                    growth_rate=(1.0 if has_card_generator else 0.25 if total_gain > 0 else 0.0),
                     runway_need=_runway_need(engine_state, ante),
                     rationale=(
                         f"Hologram copies={len(holograms)}; combined public xMult={combined_x_mult:.3f}",
@@ -346,20 +339,22 @@ class RealizedEngineAnalyzer:
             money = max(0, int(getattr(state, "money", 0) or 0))
             target_cash = max(10.0, float(ante * 5))
             engine_state = _progress_state(money / target_cash)
-            contribution = (
-                len(bulls) * money * 2.0
-                + len(bootstraps) * (money // 5) * 2.0
-            )
+            bull_chips = len(bulls) * money * 2.0
+            bootstraps_mult = len(bootstraps) * (money // 5) * 2.0
             engines.append(
                 RealizedEngineStrength(
                     engine_id="cash_scoring",
                     state=engine_state,
-                    current_strength=contribution,
+                    # Bull chips and Bootstraps Mult are not commensurate units.
+                    # Current strength therefore records the shared realized cash
+                    # resource while rationale exposes each exact scoring output.
+                    current_strength=float(money),
                     growth_rate=0.75 if money >= 5 else 0.25,
                     runway_need=_runway_need(engine_state, ante),
                     rationale=(
                         f"cash=${money}; realized Ante {ante} cash target=${target_cash:.0f}",
-                        f"Bull copies={len(bulls)}; Bootstraps copies={len(bootstraps)}; aggregate contribution={contribution:.0f}",
+                        f"Bull copies={len(bulls)}; aggregate Bull output=+{bull_chips:.0f} chips",
+                        f"Bootstraps copies={len(bootstraps)}; aggregate Bootstraps output=+{bootstraps_mult:.0f} Mult",
                     ),
                 )
             )
@@ -392,12 +387,7 @@ class RuntimeBuildHealthEvaluator:
                 cards = deepcopy(list(owned))
                 cards.sort(key=_card_public_sort_key)
                 opening = min(len(cards), _opening_hand_size(state))
-                # Use only public composition and hand-size information. Sorting
-                # deliberately destroys any serialized deck ordering before the
-                # synthetic opening draw is removed.
                 probe_state.deck = cards[opening:]
-            # A shop snapshot may retain the completed Blind's accumulated score.
-            # Representative next-Blind scoring starts from zero by definition.
             probe_state.score = 0
         return probe_state
 
