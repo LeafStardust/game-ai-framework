@@ -10,6 +10,7 @@ from games.balatro.card import BalatroCard
 from games.balatro.jokers.blue_joker import BlueJoker
 from games.balatro.jokers.bootstraps import BootstrapsJoker
 from games.balatro.jokers.bull import BullJoker
+from games.balatro.jokers.burnt_joker import BurntJoker
 from games.balatro.jokers.certificate import CertificateJoker
 from games.balatro.jokers.hologram import HologramJoker
 from games.balatro.jokers.runner import RunnerJoker
@@ -152,6 +153,44 @@ def test_runner_growth_history_counts_straight_flushes_too():
 
     assert engine.growth_rate == 0.25
     assert any("history=2" in note for note in engine.rationale)
+
+
+def test_burnt_growth_requires_first_discard_to_still_be_available_mid_blind():
+    state = _state(ante=4, blind_score=5000, jokers=(BurntJoker(),))
+    state.phase = "SELECTING_HAND"
+    state.discards_remaining = 2
+    state.discards_used = 0
+    available = next(
+        value
+        for value in RealizedEngineAnalyzer().analyze(state)
+        if value.engine_id == "burnt_joker"
+    )
+
+    state.discards_used = 1
+    spent = next(
+        value
+        for value in RealizedEngineAnalyzer().analyze(state)
+        if value.engine_id == "burnt_joker"
+    )
+
+    assert available.growth_rate == 1.0
+    assert spent.growth_rate == 0.50
+    assert any("available now/next=no" in note for note in spent.rationale)
+
+
+def test_burnt_shop_projection_restores_next_round_first_discard_opportunity():
+    state = _state(ante=4, blind_score=5000, jokers=(BurntJoker(),))
+    state.phase = "SHOP"
+    state.discards_remaining = 0
+    state.discards_used = 3
+
+    engine = next(
+        value
+        for value in RealizedEngineAnalyzer().analyze(state)
+        if value.engine_id == "burnt_joker"
+    )
+
+    assert engine.growth_rate == 1.0
 
 
 def test_cash_scoring_is_immediately_mature_when_existing_cash_already_realizes_it():
