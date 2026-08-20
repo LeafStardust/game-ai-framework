@@ -4,6 +4,9 @@ import games.balatro  # noqa: F401 - install production stack
 import games.balatro.build_health_policy as policy
 from games.balatro.actions import END_SHOP, REFRESH_SHOP, BalatroAction
 from games.balatro.build_health import BuildHealth
+from games.balatro.playbook.red_white.shop_policy import PlaybookBuildAwareShopArbiter
+from games.balatro.shop_arbiter import BuildAwareShopArbiter
+from games.balatro.strategy_booster_policy import StrategyAwarePlaybookShopArbiter
 
 
 def _health(*, survival, scaling, immediate=80.0, deficit=False):
@@ -226,3 +229,13 @@ def test_projected_health_uses_isolated_strategy_tracker(monkeypatch):
 
     assert result.survival == 80
     assert tracker.calls == 0
+
+
+def test_production_strategy_arbiter_reaches_patched_base_decide():
+    # The live runner constructs StrategyAwarePlaybookShopArbiter. Its explicit
+    # decide() delegates to super(), and PlaybookBuildAwareShopArbiter does not
+    # replace decide(), so the final target must remain the Build-Health-patched
+    # BuildAwareShopArbiter method.
+    assert "decide" not in PlaybookBuildAwareShopArbiter.__dict__
+    assert PlaybookBuildAwareShopArbiter.decide is BuildAwareShopArbiter.decide
+    assert issubclass(StrategyAwarePlaybookShopArbiter, PlaybookBuildAwareShopArbiter)
