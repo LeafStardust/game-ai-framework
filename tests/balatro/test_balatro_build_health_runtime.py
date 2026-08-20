@@ -6,6 +6,7 @@ from games.balatro.build_health_runtime import (
     RuntimeBuildHealthEvaluator,
     projected_state_with_jokers,
 )
+from games.balatro.card import BalatroCard
 from games.balatro.jokers.blue_joker import BlueJoker
 from games.balatro.jokers.bootstraps import BootstrapsJoker
 from games.balatro.jokers.bull import BullJoker
@@ -81,6 +82,28 @@ def test_blue_joker_card_generator_realizes_future_growth_capacity():
     assert any("card generator owned=yes" in note for note in activated.rationale)
 
 
+def test_blue_uses_remaining_draw_pile_in_blind_and_owned_deck_in_shop():
+    state = _state(ante=4, blind_score=5000, jokers=(BlueJoker(),))
+    state.owned_deck = [BalatroCard("A", "Spades") for _ in range(52)]
+    state.deck = [BalatroCard("A", "Spades") for _ in range(40)]
+    state.phase = "SELECTING_HAND"
+
+    active = next(
+        engine
+        for engine in RealizedEngineAnalyzer().analyze(state)
+        if engine.engine_id == "blue_joker"
+    )
+    state.phase = "SHOP"
+    shop = next(
+        engine
+        for engine in RealizedEngineAnalyzer().analyze(state)
+        if engine.engine_id == "blue_joker"
+    )
+
+    assert active.current_strength == 80.0
+    assert shop.current_strength == 104.0
+
+
 def test_cash_scoring_is_immediately_mature_when_existing_cash_already_realizes_it():
     state = _state(
         ante=5,
@@ -114,7 +137,6 @@ def test_mid_blind_survival_uses_remaining_chips_not_original_target():
 
     health = RuntimeBuildHealthEvaluator(scorer=_FixedScorer(500)).evaluate(state)
 
-    # 1000 chips remain and two 500-chip hands exactly cover the blind.
     assert health.survival == 100.0
     assert health.immediate == 100.0
 
@@ -126,8 +148,6 @@ def test_shop_survival_does_not_subtract_completed_blind_score_from_proxy_target
 
     health = RuntimeBuildHealthEvaluator(scorer=_FixedScorer(500)).evaluate(state)
 
-    # SHOP deliberately uses the full-target bounded proxy; the completed blind's
-    # score must not make next-blind readiness appear automatically perfect.
     assert health.survival == 40.0
     assert health.immediate == 40.0
 
