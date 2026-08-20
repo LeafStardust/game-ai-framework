@@ -12,7 +12,8 @@
 |---|---|---|
 | v0.1–v0.9 Foundation + autonomous integration | Complete | — |
 | **v1.0.0 Red Deck / White Stake competence** | **Complete** | Released 2026-08-20 |
-| v1.1–v1.7 Red Deck stake progression | Next | Begins from Red Stake |
+| **v1.0.x Red/White calibration** | **In progress** | Build Health / realized-strength validation before Red Stake work |
+| v1.1–v1.7 Red Deck stake progression | Next | Begins from Red Stake after Red/White calibration |
 | Fresh-profile collection progression | In progress, non-blocking | May continue alongside stake progression |
 | v2+ Additional decks | Not started | Begins after Red Deck progression |
 
@@ -69,6 +70,38 @@ Goal achieved: the permanent Balatro agent can play Red Deck / White Stake auton
 - [x] Fixed the final Section 1 Straight contract so **Superposition remains Bronze support** while Straight remains a standalone leaf.
 
 The additional live confirmation of immediate automatic OFF after a winning `ROUND_EVAL` transition remains useful regression validation, but it is no longer a blocker for the v1.0.0 competence release because the terminal fix is deterministic-test covered and the autonomous win itself is already authoritative.
+
+---
+
+## v1.0.x — Red/White calibration — IN PROGRESS
+
+The initial Red/White release demonstrated competence, but repeated five-run calibration exposed a higher-level decision gap: the agent can own several individually useful Jokers and accumulate strong strategy evidence while the **realized build remains inactive, incoherent, or too slow to scale**.
+
+The implementation contract is documented in [`docs/balatro/BUILD_HEALTH_AND_REALIZED_STRENGTH.md`](docs/balatro/BUILD_HEALTH_AND_REALIZED_STRENGTH.md).
+
+### Build Health / realized-strength work
+
+- [ ] Add a pure `BuildHealth` evaluator with auditable Survival, Immediate Scoring, Scaling, Coherence, and Runway dimensions.
+- [ ] Distinguish catalogue relationship from realized engine state (`NOT_OWNED`, `OWNED_INACTIVE`, `ACTIVATED_WEAK`, `ACTIVATED_HEALTHY`, `MATURE`).
+- [ ] Cover an initial engine set: Blue/Hologram growth, Burnt Joker, Castle, Green Joker, Red Card, Runner, and Bull/Bootstraps.
+- [ ] Replace early-game "positive scorer" admission with next-blind **survival adequacy** using the existing whole-blind clear-probability model.
+- [ ] Detect midgame scaling deficits when present strength can clear current blinds but is unlikely to keep pace with the next one to two Antes.
+- [ ] Make shop buy/replace/reroll decisions sensitive to Build Health delta rather than Joker count or isolated item value alone.
+- [ ] Keep committed Gold/Silver structure protected while still allowing immediate stronger same-route upgrades.
+- [ ] Make pivot decisions compare realized current strength, transition cost, required buildup, and remaining runway; theoretical ceiling alone is insufficient.
+- [ ] Add bounded short-horizon multi-action planning for complementary shop pairs and activation sequences.
+- [ ] Expose Build Health and inactive-engine/scaling-deficit warnings in the live monitor and structured logs.
+- [ ] Add deterministic regressions before each behavior change.
+- [ ] Run a fresh unchanged-HEAD five-run Red/White validation batch only after the complete layer is green.
+
+### Calibration gate before Red Stake
+
+Do not begin Red/Red `1.1.0` implementation until:
+
+- [ ] the full Balatro deterministic suite is green;
+- [ ] Build Health diagnostics are stable and auditable;
+- [ ] repeated five-run losses no longer show obvious "full board but non-functioning build" failures;
+- [ ] at least one fresh unchanged-HEAD Red/White batch contains an Ante-8 clear without a repeated release-blocking decision defect.
 
 ---
 
