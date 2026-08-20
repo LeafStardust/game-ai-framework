@@ -86,7 +86,7 @@ def _hands_budget(state) -> int:
         hands = int(getattr(state, "hands_remaining", 0) or 0)
     except (TypeError, ValueError):
         hands = 0
-    # Shop observations may retain zero hands from the completed blind.  The next
+    # Shop observations may retain zero hands from the completed blind. The next
     # Red/White blind restores the ordinary four-hand budget, so do not diagnose a
     # certain loss merely from that stale round counter.
     if hands <= 0 and str(getattr(state, "phase", "")).upper() == "SHOP":
@@ -184,11 +184,7 @@ class RealizedEngineAnalyzer:
             chips = max(0.0, cards * 2.0)
             progress = chips / max(pace * 0.20, 1.0) if pace > 0 else chips / 100.0
             engine_state = _progress_state(progress)
-            growth_rate = (
-                1.0
-                if has_card_generator
-                else 0.50 if cards >= 52 else 0.20
-            )
+            growth_rate = 1.0 if has_card_generator else 0.50 if cards >= 52 else 0.20
             engines.append(
                 RealizedEngineStrength(
                     engine_id="blue_joker",
@@ -372,16 +368,32 @@ class RuntimeBuildHealthEvaluator:
             scores.append(max(0.0, float(score)))
         return max(scores, default=0.0)
 
+    @staticmethod
+    def _effective_survival_target(state, target: float) -> float:
+        if str(getattr(state, "phase", "")).upper() == "SHOP":
+            # SHOP has no playable starting hand for the next blind yet. Keep the
+            # bounded full-target proxy rather than subtracting the completed
+            # blind's retained score from its retained target.
+            return target
+        try:
+            score = max(0.0, float(getattr(state, "score", 0) or 0))
+        except (TypeError, ValueError):
+            score = 0.0
+        return max(0.0, target - score)
+
     def _survival_and_immediate(self, state) -> tuple[float, float]:
         target = _blind_target(state)
         if target <= 0:
             return 0.50, 0.50
+        remaining = self._effective_survival_target(state, target)
+        if remaining <= 0:
+            return 1.0, 1.0
         hands = _hands_budget(state)
         best = self._representative_best_score(state)
-        pace = target / max(1, hands)
+        pace = remaining / max(1, hands)
         immediate = min(1.0, best / max(pace, 1.0))
         capacity = best * hands
-        survival = min(1.0, capacity / target)
+        survival = min(1.0, capacity / remaining)
         return survival, immediate
 
     def _scaling(self, state, engines: tuple[RealizedEngineStrength, ...]) -> float:
