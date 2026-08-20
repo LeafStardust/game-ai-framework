@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import traceback
+from dataclasses import replace
 
+from games.balatro.build_health_diagnostics import build_health_diagnostics_payload
 from games.balatro.live.injected.bridge import FirstPartyBalatroBridge
 from games.balatro.live.run_diagnostics import BalatroDiagnosticLogger
 from games.balatro.unlock_campaign import (
@@ -75,7 +77,26 @@ def _diagnostic_runner_factory(
         unlock_campaign_config=unlock_campaign_config,
         collection_first=collection_first,
     )
+    original_decide = runner.decide
     original_execute = runner.execute
+
+    def decide_with_build_health():
+        decision = original_decide()
+        diagnostics = dict(decision.decision_diagnostics or {})
+        try:
+            diagnostics["build_health"] = build_health_diagnostics_payload(
+                decision.state,
+                strategy_tracker=runner.strategy_tracker,
+            )
+        except Exception as error:
+            # Observability must never become an autonomous-gameplay failure mode.
+            # The production decision layer still owns its own Build Health errors;
+            # this guard is only for the post-decision telemetry attachment.
+            diagnostics["build_health_error"] = {
+                "type": type(error).__name__,
+                "message": str(error),
+            }
+        return replace(decision, decision_diagnostics=diagnostics)
 
     def execute_with_diagnostics(decision):
         try:
@@ -100,6 +121,7 @@ def _diagnostic_runner_factory(
                 pass
             raise
 
+    runner.decide = decide_with_build_health
     runner.execute = execute_with_diagnostics
     return runner
 
