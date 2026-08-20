@@ -44,22 +44,10 @@ def _downgrade_gold_to_silver(
 
 
 def _retire_standalone_strategy(definition: StrategyDefinition) -> StrategyDefinition:
-    """Keep a topology/catalog ID but remove it from active strategy competition."""
+    """Prevent active competition while preserving relationship metadata."""
 
     return replace(
         definition,
-        gold_jokers=frozenset(),
-        silver_jokers=frozenset(),
-        bronze_jokers=frozenset(),
-        gold_consumables=frozenset(),
-        silver_consumables=frozenset(),
-        bronze_consumables=frozenset(),
-        gold_planets=frozenset(),
-        silver_planets=frozenset(),
-        bronze_planets=frozenset(),
-        gold_vouchers=frozenset(),
-        silver_vouchers=frozenset(),
-        bronze_vouchers=frozenset(),
         required_jokers=_joker_tokens("__retired_non_standalone_strategy__"),
         minimum_positive_jokers=0,
         entry_evidence_cap=0.0,
@@ -121,6 +109,8 @@ def guard_unresolved_conditional_relationships(
         "tarot_hallucination": ("Hallucination",),
         "tarot_eight_ball": ("8 Ball", "Eight Ball"),
         "joker_stencil": ("Joker Stencil",),
+        "cash_growth": ("Rocket", "To the Moon"),
+        "raised_fist": ("Raised Fist",),
     }
     for strategy_id, joker_names in weak_single_joker_cores.items():
         guarded[strategy_id] = _downgrade_gold_to_silver(
@@ -128,17 +118,22 @@ def guard_unresolved_conditional_relationships(
             *joker_names,
         )
 
-    # Low-rank scoring wants 2-5 cards to score repeatedly, while Raised Fist wants
-    # the lowest relevant rank preserved in hand. Treat that mechanical tension as
-    # an explicit conflict in both directions so the strategy system will not protect
-    # or acquire one route's defining Joker while pursuing the other.
+    # Low-Rank Scoring is the Hack retrigger engine. Fibonacci, Even Steven and
+    # low-rank deck shaping may strengthen it, but they cannot establish this route
+    # without Hack. Raised Fist wants the same low cards retained in hand, so it is
+    # an explicit conflict.
     low_rank = guarded["low_rank"]
     guarded["low_rank"] = replace(
         low_rank,
+        required_jokers=_joker_tokens("Hack"),
         banned_jokers=frozenset(
             set(low_rank.banned_jokers) | set(_joker_tokens("Raised Fist"))
         ),
+        entry_evidence_cap=0.0,
     )
+
+    # Raised Fist remains a weak but real held-minimum route. Its defining Joker is
+    # Silver rather than Gold, Mime is conditional Silver support, and Hack is banned.
     raised_fist = guarded["raised_fist"]
     guarded["raised_fist"] = replace(
         raised_fist,
@@ -147,13 +142,24 @@ def guard_unresolved_conditional_relationships(
         ),
     )
 
-    # Support/economy mechanisms do not compete as standalone routes. Cash-producing
-    # components are rehomed conditionally under Bull/Bootstraps by the state-aware
-    # cash-scoring support policy; they cannot activate that scoring route alone.
+    # Banner is weak reserve support while Delayed Gratification is the stronger
+    # cash payoff. The package remains support-only but retains exact tier metadata.
+    reserve = guarded["no_discard_reserve"]
+    banner = _joker_tokens("Banner")
+    delayed = _joker_tokens("Delayed Gratification")
+    guarded["no_discard_reserve"] = replace(
+        reserve,
+        gold_jokers=frozenset(set(reserve.gold_jokers) - set(banner) - set(delayed)),
+        silver_jokers=frozenset(set(reserve.silver_jokers) | set(delayed)),
+        bronze_jokers=frozenset(set(reserve.bronze_jokers) | set(banner)),
+    )
+
+    # Support/economy mechanisms do not compete as standalone routes. Their tier
+    # metadata remains available to relationship queries and support policies, but
+    # the impossible defining requirement prevents positive standalone activation.
     non_standalone_strategy_ids = frozenset(
         {
             "abstract_joker",
-            "raised_fist",
             "face_held_economy",
             "face_business_card",
             "faceless_discard_economy",
