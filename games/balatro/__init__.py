@@ -9,6 +9,7 @@ from games.balatro.d1_log_resilience_policy import install_d1_log_resilience_pol
 from games.balatro.early_capacity_policy import install_early_capacity_policy
 from games.balatro.five_run_followup_policy import install_five_run_followup_policy
 from games.balatro.five_run_optimization_policy import install_five_run_optimization_policy
+from games.balatro.five_run_release_candidate_policy import install_five_run_release_candidate_policy
 from games.balatro.log_batch_calibration_policy import install_log_batch_calibration_policy
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
@@ -54,3 +55,4 @@ install_sixth_sense_policy()
 install_early_capacity_policy()
 install_relationship_contract_policy()
 install_strategy_phase_weight_policy()
+install_five_run_release_candidate_policy()
