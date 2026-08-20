@@ -14,10 +14,7 @@ class RedCardJoker(Joker):
 
         if (
             context.event is not None
-            and context.event.type in (
-                BalatroEventType.BOOSTER_SKIPPED,
-                BalatroEventType.VOUCHER_SKIPPED,
-            )
+            and context.event.type == BalatroEventType.BOOSTER_SKIPPED
         ):
             self.mult += 3
             if context.score is not None:
