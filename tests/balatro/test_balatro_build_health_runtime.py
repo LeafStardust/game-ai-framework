@@ -6,8 +6,10 @@ from games.balatro.build_health_runtime import (
     RuntimeBuildHealthEvaluator,
     projected_state_with_jokers,
 )
+from games.balatro.jokers.blue_joker import BlueJoker
 from games.balatro.jokers.bootstraps import BootstrapsJoker
 from games.balatro.jokers.bull import BullJoker
+from games.balatro.jokers.certificate import CertificateJoker
 from games.balatro.jokers.hologram import HologramJoker
 from games.balatro.state import BalatroState
 
@@ -51,6 +53,32 @@ def test_hologram_public_growth_changes_realized_engine_state():
 
     assert engine.state in {EngineState.ACTIVATED_HEALTHY, EngineState.MATURE}
     assert engine.current_strength == 1.5
+
+
+def test_blue_joker_card_generator_realizes_future_growth_capacity():
+    blue = BlueJoker()
+    without_generator = _state(ante=4, blind_score=5000, jokers=(blue,))
+    with_generator = _state(
+        ante=4,
+        blind_score=5000,
+        jokers=(BlueJoker(), CertificateJoker()),
+    )
+
+    base = next(
+        engine
+        for engine in RealizedEngineAnalyzer().analyze(without_generator)
+        if engine.engine_id == "blue_joker"
+    )
+    activated = next(
+        engine
+        for engine in RealizedEngineAnalyzer().analyze(with_generator)
+        if engine.engine_id == "blue_joker"
+    )
+
+    assert activated.current_strength == base.current_strength
+    assert activated.growth_rate == 1.0
+    assert activated.growth_rate > base.growth_rate
+    assert any("card generator owned=yes" in note for note in activated.rationale)
 
 
 def test_cash_scoring_is_immediately_mature_when_existing_cash_already_realizes_it():
