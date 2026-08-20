@@ -65,6 +65,51 @@ def _definition_for_primary(tracker, state):
     return primary, tracker.definitions.get(primary)
 
 
+def _enforce_celestial_planet_pick(state, ranked):
+    """Prevent a paid/open Celestial pack from yielding nothing without Red Card."""
+    ranked = list(ranked)
+    if str(getattr(state, "phase", "") or "") != "CELESTIAL_PACK":
+        return ranked
+    if _owns_red_card(state):
+        return ranked
+
+    planets = [
+        result
+        for result in ranked
+        if getattr(getattr(result.action, "target", None), "kind", None) == "PLANET"
+    ]
+    if not planets:
+        return ranked
+
+    best_planet = max(planets, key=lambda result: result.total)
+    skip_total = max(
+        (
+            float(result.total)
+            for result in ranked
+            if result.action.name == SKIP_BOOSTER
+        ),
+        default=float("-inf"),
+    )
+    if float(best_planet.total) > skip_total:
+        return ranked
+
+    replacement = PackActionScore(
+        best_planet.action,
+        skip_total + 1e-6,
+        (
+            *best_planet.notes,
+            "opened Celestial pack contract: take the best visible Planet rather than receive no permanent upgrade",
+            "Red Card is not owned, so no explicit pack-skip payoff overrides the Planet",
+        ),
+    )
+    rewritten = [replacement if result is best_planet else result for result in ranked]
+    return sorted(
+        rewritten,
+        key=lambda result: (result.total, result.action.name != SKIP_BOOSTER),
+        reverse=True,
+    )
+
+
 def install_committed_pack_choice_policy() -> None:
     if getattr(BalatroPackPolicy, "_committed_pack_choice_policy_installed", False):
         return
@@ -73,49 +118,9 @@ def install_committed_pack_choice_policy() -> None:
     original_score_playing_card = BalatroPackPolicy._score_playing_card
 
     def rank_actions(self, state, actions):
-        ranked = original_rank_actions(self, state, actions)
-        phase = str(getattr(state, "phase", "") or "")
-        if phase != "CELESTIAL_PACK" or _owns_red_card(state):
-            return ranked
-
-        planets = [
-            result
-            for result in ranked
-            if getattr(getattr(result.action, "target", None), "kind", None) == "PLANET"
-        ]
-        if not planets:
-            return ranked
-
-        # Keep all existing Planet strategy/outlook ordering. The only correction is
-        # that Skip may not beat every visible permanent Planet upgrade after the pack
-        # has already been opened and paid for.
-        best_planet = max(planets, key=lambda result: result.total)
-        skip_total = max(
-            (
-                float(result.total)
-                for result in ranked
-                if result.action.name == SKIP_BOOSTER
-            ),
-            default=float("-inf"),
-        )
-        if float(best_planet.total) > skip_total:
-            return ranked
-
-        forced_total = skip_total + 1e-6
-        replacement = PackActionScore(
-            best_planet.action,
-            forced_total,
-            (
-                *best_planet.notes,
-                "opened Celestial pack contract: take the best visible Planet rather than receive no permanent upgrade",
-                "Red Card is not owned, so no explicit pack-skip payoff overrides the Planet",
-            ),
-        )
-        rewritten = [replacement if result is best_planet else result for result in ranked]
-        return sorted(
-            rewritten,
-            key=lambda result: (result.total, result.action.name != SKIP_BOOSTER),
-            reverse=True,
+        return _enforce_celestial_planet_pick(
+            state,
+            original_rank_actions(self, state, actions),
         )
 
     def score_playing_card(self, state, action, choice):
