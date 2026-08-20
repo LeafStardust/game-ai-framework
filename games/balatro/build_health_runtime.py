@@ -150,6 +150,10 @@ class RealizedEngineAnalyzer:
                     return joker
             return None
 
+        certificate = find("certificate", "certificatejoker")
+        marble = find("marblejoker", "marble")
+        has_card_generator = certificate is not None or marble is not None
+
         hologram = find("hologram", "hologramjoker")
         if hologram is not None:
             x_mult = max(1.0, _public_number(hologram, "x_mult", 1.0))
@@ -159,18 +163,17 @@ class RealizedEngineAnalyzer:
             target_gain = max(0.25, 0.25 * max(1, ante - 1))
             progress = gain / target_gain if target_gain else 0.0
             engine_state = _progress_state(progress)
-            has_generator = find("certificate", "certificatejoker", "marblejoker", "marble") is not None
             engines.append(
                 RealizedEngineStrength(
                     engine_id="hologram",
                     state=engine_state,
                     current_strength=x_mult,
-                    growth_rate=1.0 if has_generator else (0.25 if gain > 0 else 0.0),
+                    growth_rate=1.0 if has_card_generator else (0.25 if gain > 0 else 0.0),
                     runway_need=_runway_need(engine_state, ante),
                     rationale=(
                         f"public Hologram xMult={x_mult:.2f}",
                         f"realized growth target for Ante {ante}=+{target_gain:.2f} xMult",
-                        f"card generator owned={'yes' if has_generator else 'no'}",
+                        f"card generator owned={'yes' if has_card_generator else 'no'}",
                     ),
                 )
             )
@@ -181,16 +184,22 @@ class RealizedEngineAnalyzer:
             chips = max(0.0, cards * 2.0)
             progress = chips / max(pace * 0.20, 1.0) if pace > 0 else chips / 100.0
             engine_state = _progress_state(progress)
+            growth_rate = (
+                1.0
+                if has_card_generator
+                else 0.50 if cards >= 52 else 0.20
+            )
             engines.append(
                 RealizedEngineStrength(
                     engine_id="blue_joker",
                     state=engine_state,
                     current_strength=chips,
-                    growth_rate=0.50 if cards >= 52 else 0.20,
+                    growth_rate=growth_rate,
                     runway_need=_runway_need(engine_state, ante),
                     rationale=(
                         f"owned deck size={cards}; Blue Joker contribution={chips:.0f} chips",
                         "strength normalized against 20% of current per-hand blind pace",
+                        f"card generator owned={'yes' if has_card_generator else 'no'}",
                     ),
                 )
             )
@@ -396,6 +405,7 @@ class RuntimeBuildHealthEvaluator:
         if tracker is None:
             return 0.50
         try:
+            tracker = deepcopy(tracker)
             resolution = tracker.observe(state)
         except (AttributeError, KeyError, TypeError, ValueError):
             return 0.50
