@@ -7,15 +7,17 @@ This file records notable development changes to the project. Active and future 
 ### Changed
 
 - Continued Red Deck / White Stake post-release calibration from repeated five-run autonomous batches before advancing stake progression.
-- Retired support-only catalogue leaves from active Primary/Secondary/Tertiary strategy competition when they cannot plausibly clear a run as an independent scoring engine. Abstract Joker, Raised Fist, standalone face-economy leaves, Satellite economy, Cloud 9 economy, Mail-In Rebate economy, Banner/Delayed Gratification reserve, and standalone cash-growth/hoard leaves remain ordinary or conditional support rather than win conditions.
+- Retired support-only catalogue leaves from active Primary/Secondary/Tertiary strategy competition when they cannot plausibly clear a run as an independent scoring engine. Abstract Joker, standalone face-economy leaves, Satellite economy, Cloud 9 economy, Mail-In Rebate economy, Banner/Delayed Gratification reserve, and standalone cash-growth/hoard leaves remain ordinary or conditional support rather than win conditions. Raised Fist remains a deliberately weak active scoring route rather than a retired support leaf.
 - Consolidated cash generation under **Bull / Bootstraps Cash Scoring**. Bull or Bootstraps activates the scoring route; Rocket, To the Moon, Cloud 9, Satellite, Reserved Parking, Business Card, Faceless Joker, Mail-In Rebate, Delayed Gratification, Golden Joker, Golden Ticket, and Rough Gem may reinforce it when their own trigger infrastructure is usable. Rocket + To the Moon together are Gold support after a cash scorer exists; cash generators alone cannot activate the route.
 - Made **Pareidolia Gold activation evidence for the Face Cards family**. Pareidolia is also Gold support for PhotoChad when Photograph is present and for the Triboulet route when Triboulet is present, without fabricating those specialized routes by itself.
 - Reduced Joker Stencil from Gold to Silver standalone evidence and Banner from Silver to Bronze support where applicable.
 - Kept Red Card as a real scaling route but made an owned Red Card prioritize booster-pack skips so its Mult actually develops.
-- Added realized-roster pressure to shop decisions so weak/full boards with surplus cash can spend on bounded rerolls rather than preserving money into a losing blind.
+- Added realized-roster pressure to shop decisions so weak/full boards with surplus cash can spend on bounded rerolls rather than preserving money into a losing blind. The release-candidate calibration broadens this beyond a small hard-coded filler set, recognizes decaying public Joker state, allows a deeper one-reroll search for clearly weak full boards, and makes cash-rich Ante 5+ boards search once even when they are not classified as filler-heavy.
+- Added weak-full-roster booster reserves so repeated speculative packs cannot drain the run to near-zero cash while the board still needs a Joker upgrade.
 - Added final-discard opportunity cost so the last discard is preserved unless its modeled survival/scoring improvement is material.
 - Added Burnt Joker first-discard training when the blind has sufficient safety margin.
 - Corrected Rocket / To the Moon semantics: individually cash support rather than standalone Gold strategy cores.
+- Made Ante phase pressure authoritative across all strategy consumers: Foundation Antes 1-2 use 25%, Formation Antes 3-5 use 50%/70%/90%, and Commitment Ante 6+ uses 100%. Removed an accidental second phase multiplication in Joker build evaluation.
 
 ### Fixed
 
@@ -24,6 +26,9 @@ This file records notable development changes to the project. Active and future 
 - Prevented D1 from preferring an all-debuffed scoring hand against suit-debuff bosses when an active-card alternative still satisfies required pace.
 - Added Devious Joker + Four Fingers activation logic so a viable Straight route can replace weak filler instead of being blocked by the current first-place strategy.
 - Added Perkeo consumable seeding/surplus-copy economy behavior instead of leaving its duplication ability idle.
+- Made Low-Rank Scoring require Hack as its defining engine, with Raised Fist banned from that route and Hack banned from the Raised Fist route.
+- Made Scholar Silver alone and Gold only with DNA, and reduced Sixth Sense standalone evidence while adding safe first-hand single-6 utilization when consumable capacity and pace permit it.
+- Modeled Observatory held-Planet x1.5 scoring, preservation timing, and infrastructure-aware voucher valuation.
 
 - Red Deck stake progression begins with v1.1 after the current Red/White calibration branch is accepted.
 - Fresh-profile collection progression remains active but is non-blocking for the v1.0 competence line.
