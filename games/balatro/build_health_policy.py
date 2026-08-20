@@ -8,7 +8,6 @@ Negative-retention, Eternal, affordability and D2 legality guards remain upstrea
 and authoritative.
 """
 
-from copy import deepcopy
 from dataclasses import is_dataclass, replace
 from types import SimpleNamespace
 
@@ -19,6 +18,7 @@ from games.balatro.build_health_runtime import (
 )
 from games.balatro.joker_policy import BUY, HOLD, REPLACE
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
+from games.balatro.short_horizon_shop_planner import recommend_bounded_shop_bundle
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
 
 
@@ -266,6 +266,24 @@ def _shop_signature(state):
     )
 
 
+def _bundle_decision(state, result, arbiter):
+    if str(getattr(result.action, "name", "")) not in {END_SHOP, REFRESH_SHOP}:
+        return result
+    recommendation = recommend_bounded_shop_bundle(arbiter, state)
+    if recommendation is None:
+        return result
+    return replace(
+        result,
+        action=recommendation.action,
+        source="BUILD_HEALTH_BUNDLE",
+        normalized_gain=max(0.001, float(getattr(result, "normalized_gain", 0.0))),
+        rationale=(
+            *recommendation.rationale,
+            *getattr(result, "rationale", ()),
+        ),
+    )
+
+
 def _health_reroll_decision(arbiter, state, result, reroll_cost):
     if str(getattr(result.action, "name", "")) != END_SHOP or reroll_cost is None:
         return result
@@ -338,6 +356,7 @@ def install_build_health_policy() -> None:
                 visible_actions,
                 reroll_cost=reroll_cost,
             )
+            result = _bundle_decision(state, result, self)
             return _health_reroll_decision(self, state, result, reroll_cost)
 
         BuildAwareShopArbiter.decide = shop_decide
