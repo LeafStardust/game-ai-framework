@@ -123,6 +123,11 @@ def _deck_size(state) -> int:
         return 0
 
 
+def _normal_blue_remainder(state) -> int:
+    """Normal 52-card first-hand remainder under the public hand-size limit."""
+    return max(0, 52 - _opening_hand_size(state))
+
+
 def _card_public_sort_key(card: object) -> tuple[str, ...]:
     return (
         str(getattr(card, "rank", "") or ""),
@@ -213,10 +218,15 @@ class RealizedEngineAnalyzer:
         blue_jokers = find_all("bluejoker", "bluejokerjoker")
         if blue_jokers:
             cards = _deck_size(state)
+            normal_remainder = _normal_blue_remainder(state)
             chips = max(0.0, cards * 2.0 * len(blue_jokers))
             progress = chips / max(pace * 0.20, 1.0) if pace > 0 else chips / 100.0
             engine_state = _progress_state(progress)
-            growth_rate = 1.0 if has_card_generator else 0.50 if cards >= 44 else 0.20
+            growth_rate = (
+                1.0
+                if has_card_generator
+                else 0.50 if cards >= normal_remainder else 0.20
+            )
             engines.append(
                 RealizedEngineStrength(
                     engine_id="blue_joker",
@@ -226,6 +236,7 @@ class RealizedEngineAnalyzer:
                     runway_need=_runway_need(engine_state, ante),
                     rationale=(
                         f"Blue Joker copies={len(blue_jokers)}; scoring deck size={cards}; contribution={chips:.0f} chips",
+                        f"normal 52-card first-hand remainder={normal_remainder} at hand size {_opening_hand_size(state)}",
                         "active-blind strength uses remaining draw pile; shop projection subtracts the public opening hand size from the permanent owned deck",
                         f"card generator owned={'yes' if has_card_generator else 'no'}",
                     ),
@@ -345,9 +356,6 @@ class RealizedEngineAnalyzer:
                 RealizedEngineStrength(
                     engine_id="cash_scoring",
                     state=engine_state,
-                    # Bull chips and Bootstraps Mult are not commensurate units.
-                    # Current strength therefore records the shared realized cash
-                    # resource while rationale exposes each exact scoring output.
                     current_strength=float(money),
                     growth_rate=0.75 if money >= 5 else 0.25,
                     runway_need=_runway_need(engine_state, ante),
