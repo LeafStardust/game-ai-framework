@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""Ante-scaled strategy pressure for Joker build evaluation.
+"""Ante-scaled strategy pressure for the Balatro run lifecycle.
 
 The run lifecycle is intentionally asymmetric:
 
@@ -8,13 +8,16 @@ The run lifecycle is intentionally asymmetric:
 * Antes 3-5: Formation. Increase pressure toward the routes actually assembling.
 * Ante 6+: Commitment. Use full strategy pressure and existing late hysteresis.
 
-This policy scales only the strategy-derived component of whole-build Joker value.
-The generic scoring/context value remains untouched, so strong universal pieces can
-still carry early runs while aligned pieces become progressively more important.
+The authoritative phase multiplier is installed at ``BalatroStrategyTracker`` so
+Joker purchases, consumables, hand fit, rerolls and every other strategy consumer
+see the same pressure exactly once. Generic Joker scoring/context value remains
+untouched. Foundation also keeps scoring probes broad so a provisional route does
+not become a poker-hand commitment prematurely.
 """
 
 from dataclasses import replace
 
+from games.balatro.strategy import BalatroStrategyTracker
 from games.balatro.strategy_value import StrategyAwareJokerBuildValueEvaluator
 
 
@@ -43,43 +46,46 @@ def strategy_phase_name(ante: int) -> str:
 
 
 def install_strategy_phase_weight_policy() -> None:
-    if getattr(StrategyAwareJokerBuildValueEvaluator, "_phase_weight_policy_installed", False):
+    if getattr(BalatroStrategyTracker, "_phase_weight_policy_installed", False):
         return
 
-    original_evaluate = StrategyAwareJokerBuildValueEvaluator.evaluate
     original_active_probe_hands = StrategyAwareJokerBuildValueEvaluator._active_probe_hands
+    original_evaluate = StrategyAwareJokerBuildValueEvaluator.evaluate
+
+    def strategy_pressure(self, state) -> float:
+        ante = max(1, int(getattr(state, "ante", 1) or 1))
+        config = self._config(state)
+        return max(
+            0.0,
+            strategy_phase_weight(ante)
+            * self._number(config, "strategy_pressure_multiplier", 1.0),
+        )
 
     def _active_probe_hands(self, state):
         ante = max(1, int(getattr(state, "ante", 1) or 1))
         if ante <= 2:
-            # Foundation must keep generic scoring probes broad. A provisional
-            # strategy leader is evidence, not a hand-type commitment yet.
             return ()
         return original_active_probe_hands(self, state)
 
     def evaluate(self, state, joker):
+        # ``original_evaluate`` already obtains its strategy adjustment from the
+        # tracker, whose strategy_pressure is now the phase schedule above. Do not
+        # multiply that adjustment a second time.
         result = original_evaluate(self, state, joker)
         ante = max(1, int(getattr(state, "ante", 1) or 1))
-        weight = strategy_phase_weight(ante)
-        if weight >= 1.0 or abs(float(result.strategic_adjustment)) <= 1e-12:
-            return result
-
-        raw_adjustment = float(result.strategic_adjustment)
-        weighted_adjustment = raw_adjustment * weight
-        total = float(result.base_total_gain) + weighted_adjustment
         phase = strategy_phase_name(ante)
+        weight = strategy_phase_weight(ante)
         return replace(
             result,
-            strategic_adjustment=weighted_adjustment,
-            total_gain=total,
             rationale=(
                 *result.rationale,
-                f"strategy phase={phase} ante={ante} weight={weight:.2f}",
-                f"phase-weighted strategy adjustment={raw_adjustment:+.3f}->{weighted_adjustment:+.3f}",
-                f"phase-weighted whole-build gain={total:.3f}",
+                f"strategy phase={phase} ante={ante} authoritative pressure={weight:.2f}",
+                "Ante phase pressure is applied once by BalatroStrategyTracker.strategy_pressure",
             ),
         )
 
+    BalatroStrategyTracker.strategy_pressure = strategy_pressure
     StrategyAwareJokerBuildValueEvaluator._active_probe_hands = _active_probe_hands
     StrategyAwareJokerBuildValueEvaluator.evaluate = evaluate
+    BalatroStrategyTracker._phase_weight_policy_installed = True
     StrategyAwareJokerBuildValueEvaluator._phase_weight_policy_installed = True
