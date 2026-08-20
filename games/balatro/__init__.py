@@ -4,6 +4,7 @@ from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
 from games.balatro.aces_scholar_policy import install_aces_scholar_policy
 from games.balatro.ankh_presale_policy import install_ankh_presale_policy
 from games.balatro.blue_joker_strategy_rules import apply_blue_joker_strategy_rules
+from games.balatro.build_health_policy import install_build_health_policy
 from games.balatro.card_sharp_strategy_rules import install_card_sharp_strategy_rules
 from games.balatro.cash_scoring_support_policy import install_cash_scoring_support_policy
 from games.balatro.committed_build_replacement_policy import install_committed_build_replacement_policy
@@ -70,3 +71,7 @@ install_committed_pack_choice_policy()
 install_aces_dna_hand_policy()
 install_ankh_presale_policy()
 install_five_run_decision_integrity_policy()
+# Build Health is intentionally installed last so it evaluates the legal outcomes
+# produced by all existing retention/commitment/safety policies rather than
+# bypassing them with another raw-value layer.
+install_build_health_policy()
