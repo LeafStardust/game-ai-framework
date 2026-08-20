@@ -8,6 +8,7 @@ Negative-retention, Eternal, affordability and D2 legality guards remain upstrea
 and authoritative.
 """
 
+from copy import deepcopy
 from dataclasses import is_dataclass, replace
 from types import SimpleNamespace
 
@@ -95,9 +96,23 @@ def _cached_health(owner, state, tracker):
     return health
 
 
+def _projection_tracker(tracker):
+    if tracker is None:
+        return None
+    try:
+        return deepcopy(tracker)
+    except (TypeError, ValueError):
+        # Hypothetical branches must never mutate the run-scoped strategy tracker.
+        # Losing projected coherence is preferable to contaminating commitment state.
+        return None
+
+
 def _projected_health(state, jokers, tracker):
     projected = projected_state_with_jokers(state, jokers)
-    return _HEALTH.evaluate(projected, strategy_tracker=tracker)
+    return _HEALTH.evaluate(
+        projected,
+        strategy_tracker=_projection_tracker(tracker),
+    )
 
 
 def _health_notes(prefix: str, health) -> tuple[str, ...]:
