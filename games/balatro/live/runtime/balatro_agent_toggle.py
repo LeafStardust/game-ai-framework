@@ -13,7 +13,7 @@ from .agent_control import BalatroAgentControl
 
 
 SUPERVISOR_MODULE = "games.balatro.live.runtime.balatro_agent_supervisor_entry"
-MONITOR_MODULE = "games.balatro.live.runtime.balatro_agent_monitor"
+MONITOR_MODULE = "games.balatro.live.runtime.balatro_agent_monitor_targets"
 COOPERATIVE_STOP_GRACE_SECONDS = 1.5
 COOPERATIVE_STOP_POLL_INTERVAL_SECONDS = 0.02
 HARD_STOP_EXIT_TIMEOUT_SECONDS = 3.0
@@ -259,234 +259,70 @@ def hard_stop_agent(control: BalatroAgentControl) -> int | None:
     try:
         _force_terminate_process(pid)
         _wait_for_process_exit(pid)
-    except Exception as error:
+    finally:
+        control.clear_pid()
+        control.clear_stop_request()
+        control.clear_start_lock()
+        control.clear_telemetry()
         control.write_status(
-            "HARD_STOP_FAILED",
+            "OFF",
             **metadata,
-            reason=f"emergency hard stop failed: {error}",
+            reason="emergency hard stop completed; supervisor force-terminated",
         )
-        raise
-
-    control.mark_off(
-        reason="emergency hard stop; supervisor force-terminated; Balatro left running",
-        session_id=current.get("session_id"),
-        attempt=current.get("attempt"),
-        run_id=current.get("run_id"),
-    )
     return pid
 
 
-def stop_agent(control: BalatroAgentControl) -> int | None:
-    """Stop the supervisor with bounded cooperative shutdown and safe escalation."""
+def stop_agent(control: BalatroAgentControl, *, hard: bool = False) -> int | None:
+    if hard:
+        return hard_stop_agent(control)
+
     pid = control.running_pid()
     if pid is None:
+        control.clear_stop_request()
+        control.clear_start_lock()
+        control.clear_telemetry()
+        control.write_status("OFF", reason="agent already stopped")
         return None
 
     control.request_stop()
-    current = control.read_status()
-    control.write_status(
-        "STOPPING",
-        pid=pid,
-        session_id=current.get("session_id"),
-        attempt=current.get("attempt"),
-        run_id=current.get("run_id"),
-        reason=(
-            "manual toggle OFF requested; cooperative stop in progress; "
-            "supervisor-only hard stop will follow if the grace window expires"
-        ),
-    )
-
     if _wait_for_cooperative_stop(pid):
-        control.clear_pid(expected_pid=pid)
         return pid
 
-    hard_stop_agent(control)
-    return pid
-
-
-def restart_agent(
-    control: BalatroAgentControl,
-    *,
-    session_id: str | None = None,
-    unlock_jokers: tuple[str, ...] = (),
-    collection_first: bool = False,
-) -> tuple[int | None, int]:
-    """Restart the supervisor without opening another live-monitor window."""
-    previous_pid = control.running_pid()
-    if previous_pid is not None:
-        stop_agent(control)
-
-    new_pid = start_agent(
-        control,
-        session_id=session_id,
-        unlock_jokers=unlock_jokers,
-        collection_first=collection_first,
-        launch_live_monitor=False,
-    )
-    return previous_pid, new_pid
-
-
-def toggle_agent(
-    control: BalatroAgentControl,
-    *,
-    session_id: str | None = None,
-    unlock_jokers: tuple[str, ...] = (),
-    collection_first: bool = False,
-) -> tuple[str, int | None]:
-    running = control.running_pid()
-    if running is not None:
-        stop_agent(control)
-        return "OFF", running
-    return "STARTING", start_agent(
-        control,
-        session_id=session_id,
-        unlock_jokers=unlock_jokers,
-        collection_first=collection_first,
-    )
+    # A cooperative stop may be delayed by a long policy calculation. Escalate only
+    # the recorded supervisor PID; never terminate Balatro itself.
+    return hard_stop_agent(control)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description=(
-            "Toggle or restart the Balatro autonomous supervisor. ON launches one "
-            "detached supervisor process plus a read-only live monitor window. "
-            "Normal OFF/restart requests a cooperative stop and automatically "
-            "escalates to a validated supervisor-only hard stop if the grace window "
-            "expires. --hard-stop forces that emergency path immediately."
-        )
+        description="Toggle the persistent Balatro autonomous supervisor ON/OFF."
     )
     parser.add_argument("--control-dir")
     parser.add_argument("--session-id")
-    parser.add_argument(
-        "--unlock-joker",
-        action="append",
-        choices=("auto", "hit_the_road", "stuntman"),
-        default=[],
-        help="enable a default-off Joker unlock campaign when turning the agent ON",
-    )
-    parser.add_argument(
-        "--collection-first",
-        action="store_true",
-        help="prioritize permanent profile collection progress over winning the run",
-    )
-    mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--status", action="store_true")
-    mode.add_argument("--hard-stop", action="store_true")
-    mode.add_argument(
-        "--restart",
-        action="store_true",
-        help="restart the supervisor; if currently OFF, start it normally",
-    )
+    parser.add_argument("--unlock-joker", action="append", default=[])
+    parser.add_argument("--collection-first", action="store_true")
+    parser.add_argument("--hard-stop", action="store_true")
+    parser.add_argument("--no-monitor", action="store_true")
     args = parser.parse_args()
 
     control = BalatroAgentControl(args.control_dir)
-    if args.status:
-        pid = control.running_pid()
-        status = control.read_status()
-        print(f"Balatro Agent -> {'ON' if pid is not None else 'OFF'}")
-        if pid is not None:
-            print(f"PID -> {pid}")
-        if status:
-            print(f"State -> {status.get('state', 'UNKNOWN')}")
-            if status.get("session_id"):
-                print(f"Session -> {status['session_id']}")
-            if status.get("attempt") is not None:
-                print(f"Attempt -> {status['attempt']}")
-            if status.get("deck") and status.get("stake"):
-                print(f"Run -> {status['deck']} / {status['stake']}")
-            if status.get("playbook"):
-                print(
-                    "Playbook -> "
-                    f"{status['playbook']} v{status.get('playbook_version', '?')}"
-                )
-            if status.get("reason"):
-                print(f"Reason -> {status['reason']}")
-        return 0
-
-    if args.hard_stop:
-        try:
-            pid = hard_stop_agent(control)
-        except Exception as error:
-            print("Balatro Agent emergency hard stop -> FAIL")
-            print(f"Reason -> {error}")
-            return 2
-        if pid is None:
-            print("Balatro Agent -> OFF")
-            print("Emergency hard stop -> no running supervisor")
-            return 0
-        print("Balatro Agent -> OFF")
-        print(f"Supervisor PID -> {pid}")
-        print("Emergency hard stop -> supervisor force-terminated")
-        print("Balatro process -> untouched")
-        print("Already-consumed gameplay action -> may still finish")
-        return 0
-
-    if args.restart:
-        try:
-            previous_pid, new_pid = restart_agent(
-                control,
-                session_id=args.session_id,
-                unlock_jokers=tuple(args.unlock_joker),
-                collection_first=args.collection_first,
-            )
-        except Exception as error:
-            print("Balatro Agent restart -> FAIL")
-            print(f"Reason -> {error}")
-            return 2
-
-        if previous_pid is None:
-            print("Balatro Agent was OFF.")
-            print("Starting...")
+    pid = control.running_pid()
+    if pid is not None:
+        stopped = stop_agent(control, hard=bool(args.hard_stop))
+        if args.hard_stop:
+            print(f"Balatro agent HARD STOP complete (supervisor PID {stopped}).")
         else:
-            print("Balatro Agent was ON.")
-            print(f"Previous supervisor PID -> {previous_pid}")
-            print("Restarting...")
-        print(f"New supervisor PID -> {new_pid}")
-        print("Balatro Agent -> ON")
-        print("Balatro process -> untouched")
-        print("Live monitor -> unchanged; no new window opened")
+            print(f"Balatro agent stop requested (supervisor PID {stopped}).")
         return 0
 
-    try:
-        state, pid = toggle_agent(
-            control,
-            session_id=args.session_id,
-            unlock_jokers=tuple(args.unlock_joker),
-            collection_first=args.collection_first,
-        )
-    except Exception as error:
-        print("Balatro Agent toggle -> FAIL")
-        print(f"Reason -> {error}")
-        return 2
-
-    if state == "STARTING":
-        print("Balatro Agent is OFF.")
-        print("Turning ON...")
-        print(f"Supervisor PID -> {pid}")
-        print("Live monitor -> opening in a separate terminal window")
-        print("Playbook selection -> automatic from live deck/stake")
-        if args.unlock_joker:
-            print("Unlock campaign -> " + ", ".join(args.unlock_joker))
-        else:
-            print("Unlock campaign -> OFF")
-        print(
-            "Collection-first mode -> "
-            + ("ON" if args.collection_first else "OFF")
-        )
-        print("Loss handling -> automatic fresh same-deck/stake native retry")
-        print("Win handling -> automatic OFF")
-        print("Crash reporting -> automatic traceback + report file")
-        return 0
-
-    print("Balatro Agent was ON.")
-    print("Turning OFF...")
-    print(f"Supervisor PID -> {pid}")
-    print("Balatro Agent -> OFF")
-    print(
-        "Stop semantics -> cooperative first; automatic supervisor-only hard stop "
-        f"after {COOPERATIVE_STOP_GRACE_SECONDS:.1f}s if still running"
+    started = start_agent(
+        control,
+        session_id=args.session_id,
+        unlock_jokers=tuple(args.unlock_joker),
+        collection_first=bool(args.collection_first),
+        launch_live_monitor=not args.no_monitor,
     )
-    print("Balatro process -> untouched")
+    print(f"Balatro agent ON (supervisor PID {started}).")
     return 0
 
 
