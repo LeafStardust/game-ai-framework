@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Public-state adapters for realized engine strength and Build Health.
 
-This module intentionally reads only ordinary BalatroState/Joker state.  It does
+This module intentionally reads only ordinary BalatroState/Joker state. It does
 not inspect hidden draw order, RNG state, seed data, or future shop contents.
 """
 
@@ -86,23 +86,33 @@ def _hands_budget(state) -> int:
         hands = int(getattr(state, "hands_remaining", 0) or 0)
     except (TypeError, ValueError):
         hands = 0
-    # Shop observations may retain zero hands from the completed blind. The next
-    # Red/White blind restores the ordinary four-hand budget, so do not diagnose a
-    # certain loss merely from that stale round counter.
     if hands <= 0 and str(getattr(state, "phase", "")).upper() == "SHOP":
         return 4
     return max(1, hands)
 
 
 def _deck_size(state) -> int:
-    owned = getattr(state, "owned_deck", None)
-    if owned is not None:
-        try:
-            return len(owned)
-        except TypeError:
-            pass
+    """Return the card pool Blue Joker is expected to score against now/next."""
+    phase = str(getattr(state, "phase", "")).upper()
+    if phase == "SHOP":
+        # At shop time the next blind has not dealt its opening hand yet. The
+        # permanent owned deck is the public pool that will be shuffled/dealt.
+        owned = getattr(state, "owned_deck", None)
+        if owned is not None:
+            try:
+                return len(owned)
+            except TypeError:
+                pass
+    # During an active blind Blue Joker literally counts the remaining draw pile.
     try:
-        return len(getattr(state, "deck", ()) or ())
+        deck = getattr(state, "deck", ()) or ()
+        if deck or phase != "SHOP":
+            return len(deck)
+    except TypeError:
+        pass
+    owned = getattr(state, "owned_deck", None)
+    try:
+        return len(owned or ())
     except TypeError:
         return 0
 
@@ -158,8 +168,6 @@ class RealizedEngineAnalyzer:
         if hologram is not None:
             x_mult = max(1.0, _public_number(hologram, "x_mult", 1.0))
             gain = max(0.0, x_mult - 1.0)
-            # One added playing card per completed Ante is a deliberately modest
-            # realized-growth schedule; the relationship catalogue remains separate.
             target_gain = max(0.25, 0.25 * max(1, ante - 1))
             progress = gain / target_gain if target_gain else 0.0
             engine_state = _progress_state(progress)
@@ -193,8 +201,8 @@ class RealizedEngineAnalyzer:
                     growth_rate=growth_rate,
                     runway_need=_runway_need(engine_state, ante),
                     rationale=(
-                        f"owned deck size={cards}; Blue Joker contribution={chips:.0f} chips",
-                        "strength normalized against 20% of current per-hand blind pace",
+                        f"Blue Joker scoring deck size={cards}; contribution={chips:.0f} chips",
+                        "active-blind strength uses remaining draw pile; shop projection uses permanent owned deck",
                         f"card generator owned={'yes' if has_card_generator else 'no'}",
                     ),
                 )
@@ -339,13 +347,7 @@ class RuntimeBuildHealthEvaluator:
         EngineState.MATURE: 1.0,
     }
 
-    def __init__(
-        self,
-        *,
-        scorer: BalatroScorer | None = None,
-        engine_analyzer: RealizedEngineAnalyzer | None = None,
-        health_evaluator: BuildHealthEvaluator | None = None,
-    ) -> None:
+    def __init__(self, *, scorer=None, engine_analyzer=None, health_evaluator=None) -> None:
         self.scorer = scorer or BalatroScorer()
         self.engine_analyzer = engine_analyzer or RealizedEngineAnalyzer()
         self.health_evaluator = health_evaluator or BuildHealthEvaluator()
@@ -371,9 +373,6 @@ class RuntimeBuildHealthEvaluator:
     @staticmethod
     def _effective_survival_target(state, target: float) -> float:
         if str(getattr(state, "phase", "")).upper() == "SHOP":
-            # SHOP has no playable starting hand for the next blind yet. Keep the
-            # bounded full-target proxy rather than subtracting the completed
-            # blind's retained score from its retained target.
             return target
         try:
             score = max(0.0, float(getattr(state, "score", 0) or 0))
@@ -396,11 +395,9 @@ class RuntimeBuildHealthEvaluator:
         survival = min(1.0, capacity / remaining)
         return survival, immediate
 
-    def _scaling(self, state, engines: tuple[RealizedEngineStrength, ...]) -> float:
+    def _scaling(self, state, engines) -> float:
         ante = max(1, int(getattr(state, "ante", 1) or 1))
         if not engines:
-            # Lack of a scaler is not a crisis during Foundation, but it is a real
-            # midgame warning once blind growth begins to outrun static filler.
             return 0.65 if ante <= 2 else 0.25
         values = sorted(
             (
@@ -430,28 +427,24 @@ class RuntimeBuildHealthEvaluator:
         assessment = resolution.assessment(dominant_id)
         score = max(0.0, float(getattr(assessment, "score", 0.0) or 0.0)) if assessment is not None else 0.0
         score_ratio = min(1.0, score / 9.0)
-
         jokers = tuple(getattr(state, "jokers", ()) or ())
-        if not jokers:
-            aligned_ratio = 0.0
-        else:
-            aligned = 0
-            for joker in jokers:
-                try:
-                    relation = tracker.evaluate_item(state, joker, kind="JOKER")
-                except (AttributeError, KeyError, TypeError, ValueError):
-                    continue
-                if (
-                    bool(getattr(relation, "active_alignment", False))
-                    and getattr(relation, "strategy_id", None) == dominant_id
-                    and getattr(relation, "tier", None) in _POSITIVE_TIERS
-                ):
-                    aligned += 1
-            aligned_ratio = aligned / len(jokers)
+        aligned = 0
+        for joker in jokers:
+            try:
+                relation = tracker.evaluate_item(state, joker, kind="JOKER")
+            except (AttributeError, KeyError, TypeError, ValueError):
+                continue
+            if (
+                bool(getattr(relation, "active_alignment", False))
+                and getattr(relation, "strategy_id", None) == dominant_id
+                and getattr(relation, "tier", None) in _POSITIVE_TIERS
+            ):
+                aligned += 1
+        aligned_ratio = aligned / len(jokers) if jokers else 0.0
         return min(1.0, score_ratio * 0.60 + aligned_ratio * 0.40)
 
     @staticmethod
-    def _runway(state, engines: tuple[RealizedEngineStrength, ...]) -> float:
+    def _runway(state, engines) -> float:
         ante = max(1, int(getattr(state, "ante", 1) or 1))
         horizon = max(0.0, min(1.0, (9.0 - ante) / 8.0))
         if not engines:
@@ -459,9 +452,7 @@ class RuntimeBuildHealthEvaluator:
         need = max((max(0.0, min(1.0, engine.runway_need)) for engine in engines), default=0.0)
         if need <= 0.0:
             return 1.0
-        if horizon >= need:
-            return 1.0
-        return max(0.0, min(1.0, horizon / need))
+        return 1.0 if horizon >= need else max(0.0, min(1.0, horizon / need))
 
     def inputs(self, state, *, strategy_tracker=None) -> BuildHealthInputs:
         engines = self.engine_analyzer.analyze(state)
@@ -476,13 +467,10 @@ class RuntimeBuildHealthEvaluator:
         )
 
     def evaluate(self, state, *, strategy_tracker=None) -> BuildHealth:
-        return self.health_evaluator.evaluate(
-            self.inputs(state, strategy_tracker=strategy_tracker)
-        )
+        return self.health_evaluator.evaluate(self.inputs(state, strategy_tracker=strategy_tracker))
 
 
 def projected_state_with_jokers(state, jokers: Iterable[object]):
-    """Copy a state and replace only its Joker roster for side-effect-free probes."""
     copier = getattr(state, "copy", None)
     projected = copier() if callable(copier) else deepcopy(state)
     projected.jokers = list(jokers)
