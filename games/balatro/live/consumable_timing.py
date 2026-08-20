@@ -92,6 +92,33 @@ class LiveConsumableTimingPolicy(_CoreLiveConsumableTimingPolicy):
         super().__init__(**kwargs)
         self.defer_blind_clear_to_d1 = bool(defer_blind_clear_to_d1)
 
+    def recommend(self, state, consumable: object) -> ConsumableTimingRecommendation:
+        recommendation = super().recommend(state, consumable)
+
+        # Wheel has no deterministic setup payoff from waiting for a smaller target
+        # pool: its success probability is unchanged, and every eligible edition is
+        # beneficial. The old policy held a positive-EV Wheel whenever >1 editionless
+        # Joker existed, which caused chronic inventory hoarding. In SHOP, consume it
+        # whenever the analytic evaluator reports positive expected build gain. Blind
+        # checkpoints retain the ordinary D1/D5 timing hierarchy.
+        if (
+            getattr(state, "phase", None) == "SHOP"
+            and str(getattr(consumable, "name", "")) == "The Wheel of Fortune"
+            and not recommendation.should_use
+            and float(recommendation.immediate_gain) > self.EPSILON
+        ):
+            return replace(
+                recommendation,
+                decision=USE,
+                rationale=(
+                    "USE: positive-EV Wheel should not be hoarded in SHOP solely because multiple editionless Jokers are eligible",
+                    "Wheel success odds do not improve merely by waiting for a smaller eligible target pool",
+                    *recommendation.rationale,
+                ),
+            )
+
+        return recommendation
+
     def blind_clear_recommendations(
         self,
         state,
