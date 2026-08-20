@@ -32,11 +32,13 @@ def _downgrade_gold_to_silver(
     definition: StrategyDefinition,
     *joker_names: str,
 ) -> StrategyDefinition:
-    """Move supportive evidence from Gold to Silver.
+    """Move supportive evidence to Silver and keep tier membership exclusive.
 
     Gold is reserved for components strong enough to make a strategy viable and
     unusually effective by themselves. Supportive or merely direction-setting
-    Jokers should raise a route without manufacturing a commitment signal.
+    Jokers should raise a route without manufacturing a commitment signal. Any
+    stale Bronze membership is removed so the runtime relationship is unambiguously
+    Silver.
     """
 
     tokens = _joker_tokens(*joker_names)
@@ -44,6 +46,7 @@ def _downgrade_gold_to_silver(
         definition,
         gold_jokers=frozenset(set(definition.gold_jokers) - set(tokens)),
         silver_jokers=frozenset(set(definition.silver_jokers) | set(tokens)),
+        bronze_jokers=frozenset(set(definition.bronze_jokers) - set(tokens)),
     )
 
 
