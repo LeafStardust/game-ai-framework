@@ -16,6 +16,7 @@ from games.balatro.shop_regression_policy import install_shop_regression_policy
 from games.balatro.strategy_commitment_hysteresis import install_strategy_commitment_hysteresis
 from games.balatro.strategy_multi_engine import install_multi_engine_strategy_policy
 from games.balatro.three_run_review_policy import install_three_run_review_policy
+from games.balatro.v1_0_0_policy import install_v1_0_0_policy
 
 
 apply_blue_joker_strategy_rules()
@@ -34,3 +35,4 @@ install_safe_pace_optimization_policy()
 install_safe_pace_timeout_patch()
 install_safe_pace_blind_skip_patch()
 install_safe_pace_scope_correction()
+install_v1_0_0_policy()
