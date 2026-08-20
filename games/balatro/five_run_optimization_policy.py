@@ -80,12 +80,22 @@ def _shop_decision(
 ) -> ShopArbiterDecision:
     hold = float(self.shop_policy.hold_bias)
     gain = max(0.001, float(gain))
+    consumable_decision = None
+    if source in {"CONSUMABLE_BUY", "CONSUMABLE_BUY_AND_USE"} and action.target is not None:
+        try:
+            consumable_decision = self._consumable_policy_for_state(state).decide(
+                state,
+                action.target,
+            )
+        except (AttributeError, TypeError, ValueError):
+            consumable_decision = None
     return ShopArbiterDecision(
         action=action,
         source=source,
         total=hold + gain,
         hold_baseline=hold,
         normalized_gain=gain,
+        consumable=consumable_decision,
         rationale=rationale,
     )
 
