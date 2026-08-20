@@ -22,6 +22,7 @@ from games.balatro.shop_regression_policy import install_shop_regression_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
 from games.balatro.strategy_commitment_hysteresis import install_strategy_commitment_hysteresis
 from games.balatro.strategy_multi_engine import install_multi_engine_strategy_policy
+from games.balatro.strategy_phase_weight_policy import install_strategy_phase_weight_policy
 from games.balatro.three_run_review_policy import install_three_run_review_policy
 from games.balatro.v1_0_0_luchador_policy import install_v1_0_0_luchador_policy
 from games.balatro.v1_0_0_policy import install_v1_0_0_policy
@@ -52,3 +53,4 @@ install_observatory_planet_policy()
 install_sixth_sense_policy()
 install_early_capacity_policy()
 install_relationship_contract_policy()
+install_strategy_phase_weight_policy()
