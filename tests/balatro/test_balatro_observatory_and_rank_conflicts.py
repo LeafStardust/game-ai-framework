@@ -1,13 +1,15 @@
 from types import SimpleNamespace
 
+from games.balatro.actions import BUY_VOUCHER, BalatroAction
+from games.balatro.card import BalatroCard
+from games.balatro.hand import PokerHand
 from games.balatro.live.planet_policy import HOLD, LivePlanetPolicy
 from games.balatro.planets import create_planet
 from games.balatro.scoring import BalatroScorer
+from games.balatro.shop_policy import DefaultShopItemValueEstimator
 from games.balatro.state import BalatroState
 from games.balatro.strategy import BANNED
 from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
-from games.balatro.hand import PokerHand
-from games.balatro.card import BalatroCard
 
 
 class RaisedFistJoker:
@@ -16,6 +18,10 @@ class RaisedFistJoker:
 
 class HackJoker:
     name = "Hack"
+
+
+class PerkeoJoker:
+    name = "Perkeo"
 
 
 def _flush_cards():
@@ -84,3 +90,27 @@ def test_d7_preserves_observatory_planet_without_survival_gain() -> None:
 
     assert decision.decision == HOLD
     assert any("Observatory" in reason for reason in decision.rationale)
+
+
+def test_observatory_voucher_value_rises_with_planet_and_perkeo_infrastructure() -> None:
+    estimator = DefaultShopItemValueEstimator()
+    candidate = SimpleNamespace(label="Observatory", price=10)
+
+    plain = BalatroState()
+    plain.phase = "SHOP"
+    plain_value, _ = estimator.estimate(
+        plain,
+        BalatroAction(BUY_VOUCHER, target=candidate),
+    )
+
+    developed = BalatroState()
+    developed.phase = "SHOP"
+    developed.consumables = [create_planet("JUPITER")]
+    developed.jokers = [PerkeoJoker()]
+    developed_value, notes = estimator.estimate(
+        developed,
+        BalatroAction(BUY_VOUCHER, target=candidate),
+    )
+
+    assert developed_value > plain_value
+    assert any("Perkeo" in note for note in notes)
