@@ -333,17 +333,29 @@ class RealizedEngineAnalyzer:
             progress_levels = max(0, max_level - 1)
             target_levels = max(1, ante - 1)
             engine_state = _progress_state(progress_levels / target_levels)
-            discards = int(getattr(state, "discards_remaining", 0) or 0)
+            phase = str(getattr(state, "phase", "")).upper()
+            discards = max(0, int(getattr(state, "discards_remaining", 0) or 0))
+            discards_used = getattr(state, "discards_used", None)
+            first_discard_available = (
+                phase == "SHOP"
+                or (
+                    discards > 0
+                    and discards_used is not None
+                    and int(discards_used) == 0
+                )
+            )
+            growth_rate = 1.0 if first_discard_available else 0.50
             engines.append(
                 RealizedEngineStrength(
                     engine_id="burnt_joker",
                     state=engine_state,
                     current_strength=float(max_level),
-                    growth_rate=1.0 if discards > 0 else 0.50,
+                    growth_rate=growth_rate,
                     runway_need=_runway_need(engine_state, ante),
                     rationale=(
                         f"Burnt Joker copies={len(burnt_jokers)}; highest public hand level={max_level}",
                         f"realized Burnt target by Ante {ante}=level {target_levels + 1}",
+                        f"first-discard activation available now/next={'yes' if first_discard_available else 'no'}; discards_remaining={discards}; discards_used={discards_used}",
                     ),
                 )
             )
