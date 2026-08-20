@@ -53,12 +53,24 @@ def _state(*, jokers=(), shop=(), slots=5, money=50, ante=4):
         money=money,
         ante=ante,
         phase="SHOP",
+        score=0,
         blind_score=5000,
         hands_remaining=4,
         discards_remaining=3,
         hand_levels={},
+        hand_play_counts={},
         owned_deck=[],
         deck=[],
+    )
+
+
+def _arbiter(tracker=None):
+    return SimpleNamespace(
+        _joker_policy_for_state=lambda state: SimpleNamespace(
+            transition_planner=SimpleNamespace(
+                evaluator=SimpleNamespace(strategy_tracker=tracker)
+            )
+        )
     )
 
 
@@ -67,9 +79,8 @@ def test_bull_bootstraps_pair_can_be_started_even_when_neither_single_buy_is_req
     bull = _joker("Bull", cost=6)
     bootstraps = _joker("Bootstraps", cost=7)
     state = _state(shop=(bull, bootstraps), money=50)
-    arbiter = SimpleNamespace(_joker_policy_for_state=lambda state: SimpleNamespace(transition_planner=SimpleNamespace(evaluator=SimpleNamespace(strategy_tracker=None))))
 
-    result = planner.recommend_bounded_shop_bundle(arbiter, state)
+    result = planner.recommend_bounded_shop_bundle(_arbiter(), state)
 
     assert result is not None
     assert result.bundle_id == "bull_bootstraps"
@@ -83,9 +94,8 @@ def test_hologram_certificate_bundle_is_recognized(monkeypatch):
     hologram = _joker("Hologram", cost=7)
     certificate = _joker("Certificate", cost=6)
     state = _state(shop=(hologram, certificate), money=40)
-    arbiter = SimpleNamespace(_joker_policy_for_state=lambda state: SimpleNamespace(transition_planner=SimpleNamespace(evaluator=SimpleNamespace(strategy_tracker=None))))
 
-    result = planner.recommend_bounded_shop_bundle(arbiter, state)
+    result = planner.recommend_bounded_shop_bundle(_arbiter(), state)
 
     assert result is not None
     assert result.bundle_id == "deck_growth:hologram+certificate"
@@ -110,20 +120,11 @@ def test_full_roster_bundle_sells_only_unprotected_filler(monkeypatch):
         def evaluate_item(self, state, joker, *, kind):
             del state, kind
             return SimpleNamespace(
-                active_alignment=joker is core,
-                tier=GOLD if joker is core else None,
+                active_alignment=joker.name == "Core",
+                tier=GOLD if joker.name == "Core" else None,
             )
 
-    tracker = _Tracker()
-    arbiter = SimpleNamespace(
-        _joker_policy_for_state=lambda state: SimpleNamespace(
-            transition_planner=SimpleNamespace(
-                evaluator=SimpleNamespace(strategy_tracker=tracker)
-            )
-        )
-    )
-
-    result = planner.recommend_bounded_shop_bundle(arbiter, state)
+    result = planner.recommend_bounded_shop_bundle(_arbiter(_Tracker()), state)
 
     assert result is not None
     assert result.action.name == SELL_JOKER
@@ -136,6 +137,63 @@ def test_bundle_is_rejected_when_final_cash_breaks_reserve(monkeypatch):
     bull = _joker("Bull", cost=6)
     bootstraps = _joker("Bootstraps", cost=7)
     state = _state(shop=(bull, bootstraps), money=15, ante=4)
-    arbiter = SimpleNamespace(_joker_policy_for_state=lambda state: SimpleNamespace(transition_planner=SimpleNamespace(evaluator=SimpleNamespace(strategy_tracker=None))))
 
-    assert planner.recommend_bounded_shop_bundle(arbiter, state) is None
+    assert planner.recommend_bounded_shop_bundle(_arbiter(), state) is None
+
+
+def test_bundle_protection_uses_isolated_strategy_tracker():
+    class _Tracker:
+        def __init__(self):
+            self.calls = 0
+
+        def evaluate_item(self, state, joker, *, kind):
+            del state, joker, kind
+            self.calls += 1
+            return SimpleNamespace(active_alignment=True, tier=GOLD)
+
+    tracker = _Tracker()
+    state = _state(jokers=(_joker("Core"),))
+
+    protected = planner._protected_indices(state, tracker)
+
+    assert protected == {0}
+    assert tracker.calls == 0
+
+
+def test_bundle_protection_fails_closed_when_tracker_cannot_be_copied():
+    class _UncopyableTracker:
+        def __deepcopy__(self, memo):
+            del memo
+            raise TypeError("not copyable")
+
+    state = _state(jokers=(_joker("One"), _joker("Two")))
+
+    assert planner._protected_indices(state, _UncopyableTracker()) == {0, 1}
+
+
+def test_duplicate_visible_semantic_offers_are_preserved():
+    expensive = _joker("Certificate Joker", cost=9)
+    cheap = _joker("Certificate Joker", cost=4)
+
+    offers = planner._visible_offers((expensive, cheap))
+
+    assert offers["certificate"] == (expensive, cheap)
+
+
+def test_bundle_planner_prefers_better_economics_between_duplicate_offers(monkeypatch):
+    monkeypatch.setattr(planner, "_HEALTH", _Health())
+    hologram = _joker("Hologram")
+    expensive = _joker("Certificate Joker", cost=9)
+    cheap = _joker("Certificate Joker", cost=4)
+    state = _state(
+        jokers=(hologram,),
+        shop=(expensive, cheap),
+        slots=5,
+        money=30,
+    )
+
+    result = planner.recommend_bounded_shop_bundle(_arbiter(), state)
+
+    assert result is not None
+    assert result.action.name == BUY_JOKER
+    assert result.action.target is cheap
