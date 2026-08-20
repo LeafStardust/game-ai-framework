@@ -33,13 +33,12 @@ def _tracker_from_policy(policy):
     return getattr(evaluator, "strategy_tracker", None)
 
 
-def _madness_threatens_established_build(policy, state, candidate) -> bool:
+def _madness_threatens_tracker(tracker, state, candidate) -> bool:
     if _normalize(getattr(candidate, "name", type(candidate).__name__)) not in {
         "madness",
         "madnessjoker",
     }:
         return False
-    tracker = _tracker_from_policy(policy)
     if tracker is None:
         return False
     resolution = tracker.observe(state)
@@ -64,6 +63,10 @@ def _madness_threatens_established_build(policy, state, candidate) -> bool:
         ):
             return True
     return False
+
+
+def _madness_threatens_established_build(policy, state, candidate) -> bool:
+    return _madness_threatens_tracker(_tracker_from_policy(policy), state, candidate)
 
 
 def _definition_is_retired(definition) -> bool:
@@ -165,6 +168,42 @@ def install_five_run_decision_integrity_policy() -> None:
 
         PlaybookBalatroPackPolicy._buffoon_replacement_score = _buffoon_replacement_score
         PlaybookBalatroPackPolicy._strategy_aware_buffoon_replacement_installed = True
+
+    if not getattr(
+        PlaybookBalatroPackPolicy,
+        "_madness_buffoon_guard_installed",
+        False,
+    ):
+        original_score_action = PlaybookBalatroPackPolicy.score_action
+
+        def score_action(self, state, action):
+            choice = getattr(action, "target", None)
+            if (
+                str(getattr(state, "phase", "")) == "BUFFOON_PACK"
+                and getattr(choice, "kind", None) == "JOKER"
+            ):
+                data = getattr(choice, "data", None)
+                candidate = (
+                    self._pack_joker_factory.create(data)
+                    if isinstance(data, dict)
+                    else None
+                )
+                evaluator = getattr(self.item_estimator, "joker_build_value", None)
+                tracker = getattr(evaluator, "strategy_tracker", None)
+                if candidate is not None and _madness_threatens_tracker(
+                    tracker, state, candidate
+                ):
+                    return PackActionScore(
+                        action,
+                        -1.0,
+                        (
+                            "Madness Buffoon choice blocked: blind-selection destruction threatens non-Eternal Gold/Silver components of the established build",
+                        ),
+                    )
+            return original_score_action(self, state, action)
+
+        PlaybookBalatroPackPolicy.score_action = score_action
+        PlaybookBalatroPackPolicy._madness_buffoon_guard_installed = True
 
     if not getattr(
         TreeAwareStateAwareBalatroStrategyTracker,
