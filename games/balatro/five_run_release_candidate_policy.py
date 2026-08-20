@@ -34,6 +34,7 @@ _STATIC_WEAKNESS = {
     "todolistjoker": 1.00,
     "jokerstencil": 1.00,
     "jokerstenciljoker": 1.00,
+    "raisedfist": 0.50,
     "raisedfistjoker": 0.50,
     # These are legitimate support pieces, but without the defining engine they
     # should not make a full board look finished.
