@@ -54,6 +54,9 @@ def _joker_token(joker: object) -> str:
 def _stable_public_value(value):
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
+    enum_value = getattr(value, "value", None)
+    if isinstance(enum_value, (str, int, float, bool)):
+        return (type(value).__name__, enum_value)
     if isinstance(value, dict):
         return tuple(
             sorted((str(key), _stable_public_value(item)) for key, item in value.items())
