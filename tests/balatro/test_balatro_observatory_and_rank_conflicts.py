@@ -10,6 +10,8 @@ from games.balatro.shop_policy import DefaultShopItemValueEstimator
 from games.balatro.state import BalatroState
 from games.balatro.strategy import BANNED
 from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
+from games.balatro.strategy_tree_catalog import TREE_MIGRATED_BALATRO_STRATEGY_TOPOLOGY
+from games.balatro.strategy_tree_tracker import TreeAwareStateAwareBalatroStrategyTracker
 
 
 class RaisedFistJoker:
@@ -18,6 +20,14 @@ class RaisedFistJoker:
 
 class HackJoker:
     name = "Hack"
+
+
+class FibonacciJoker:
+    name = "Fibonacci"
+
+
+class EvenStevenJoker:
+    name = "Even Steven"
 
 
 class PerkeoJoker:
@@ -37,6 +47,25 @@ def test_low_rank_bans_raised_fist_and_raised_fist_bans_hack() -> None:
 
     assert low_rank.relationship_for(RaisedFistJoker(), kind="JOKER") == BANNED
     assert raised_fist.relationship_for(HackJoker(), kind="JOKER") == BANNED
+
+
+def test_low_rank_cannot_activate_without_hack() -> None:
+    tracker = TreeAwareStateAwareBalatroStrategyTracker(
+        RUNTIME_UNIVERSAL_BALATRO_STRATEGIES,
+        topology=TREE_MIGRATED_BALATRO_STRATEGY_TOPOLOGY,
+    )
+    state = BalatroState()
+    state.jokers = [FibonacciJoker(), EvenStevenJoker()]
+
+    without_hack = tracker.observe(state).assessment("low_rank")
+    assert without_hack is not None
+    assert without_hack.score == 0.0
+    assert any("defining Joker requirement not met" in note for note in without_hack.rationale)
+
+    state.jokers.append(HackJoker())
+    with_hack = tracker.observe(state).assessment("low_rank")
+    assert with_hack is not None
+    assert with_hack.score > 0.0
 
 
 def test_observatory_applies_x15_for_one_matching_held_planet() -> None:
