@@ -16,11 +16,11 @@ _TAROT_CONSUMABLE_ENGINE_JOKERS = frozenset(
         "hallucinationjoker",
         "eightballjoker",
         "vagabondjoker",
-        # Perkeo is not Tarot-specific, but it directly turns the Spectral generated
-        # by Sixth Sense into repeatable consumable value and is therefore material
-        # consumable infrastructure for this pairing.
         "perkeojoker",
     }
+)
+_SIXTH_SENSE_RATIONALE = (
+    "Sixth Sense opportunity: first-hand single 6 still meets required pace, so harvest the Spectral without sacrificing survival pace"
 )
 
 
@@ -71,6 +71,24 @@ def _is_single_six_play(action) -> bool:
     return len(cards) == 1 and str(getattr(cards[0], "rank", "")) == "6"
 
 
+def _best_non_six_pace_plan(policy, state, result):
+    candidates = []
+    for plan in result.plans:
+        if getattr(plan.action, "name", None) != PLAY_CARDS or _is_single_six_play(plan.action):
+            continue
+        projected = float(policy.evaluator.project_play(state, plan.action).expected_hand_score)
+        ratio = policy._pace_ratio(projected, result.pace_target)
+        if ratio + policy.EPSILON < policy.thresholds.pace_ratio_floor:
+            continue
+        candidates.append((ratio, projected, plan))
+    if not candidates:
+        return None
+    return max(
+        candidates,
+        key=lambda item: (item[0], item[1], policy._within_type_key(item[2])),
+    )
+
+
 def install_sixth_sense_policy() -> None:
     if getattr(conditional_module, "_sixth_sense_policy_installed", False):
         return
@@ -89,27 +107,51 @@ def install_sixth_sense_policy() -> None:
 
     def decide(self, state, plans, **kwargs):
         result = original_decide(self, state, plans, **kwargs)
-
-        # Sixth Sense is optional utility, never a survival override. Only divert a
-        # PACE_PLAY decision to the first-hand single-6 trigger when that trigger
-        # independently satisfies the same D1 pace floor and has room to create its
-        # Spectral reward. CLEAR_PATH and PACE_RECOVERY remain untouched.
         if result.mode != PACE_PLAY:
             return result
-        if _SIXTH_SENSE not in _owned_tokens(state):
+        if _SIXTH_SENSE not in _owned_tokens(state) or not _first_hand_of_round(state):
             return result
-        if not _first_hand_of_round(state) or not _consumable_slot_available(state):
+
+        slot_available = _consumable_slot_available(state)
+
+        # If D1 independently chose the single 6 while the Spectral slot is full,
+        # avoid destroying the 6 whenever another pace-satisfying play exists.
+        if not slot_available and _is_single_six_play(result.action):
+            fallback = _best_non_six_pace_plan(self, state, result)
+            if fallback is None:
+                return result
+            ratio, projected, selected = fallback
+            return replace(
+                result,
+                action=selected.action,
+                selected_plan=selected,
+                selected_immediate_score=projected,
+                selected_pace_ratio=ratio,
+                confidence=min(float(result.confidence), self._pace_confidence(ratio)),
+                rationale=(
+                    "Sixth Sense preservation: consumable slots are full, so do not destroy a 6 when another play still meets required pace",
+                    *result.rationale,
+                ),
+            )
+
+        if not slot_available:
             return result
+
+        # D1 may already have selected the correct single-6 line. Mark that choice
+        # explicitly so telemetry/tests can distinguish intentional Sixth Sense use.
         if _is_single_six_play(result.action):
-            return result
+            if any("Sixth Sense opportunity" in note for note in result.rationale):
+                return result
+            return replace(
+                result,
+                rationale=(_SIXTH_SENSE_RATIONALE, *result.rationale),
+            )
 
         candidates = []
         for plan in result.plans:
             if not _is_single_six_play(plan.action):
                 continue
-            projected = float(
-                self.evaluator.project_play(state, plan.action).expected_hand_score
-            )
+            projected = float(self.evaluator.project_play(state, plan.action).expected_hand_score)
             ratio = self._pace_ratio(projected, result.pace_target)
             if ratio + self.EPSILON < self.thresholds.pace_ratio_floor:
                 continue
@@ -120,11 +162,7 @@ def install_sixth_sense_policy() -> None:
 
         ratio, projected, selected = max(
             candidates,
-            key=lambda item: (
-                item[0],
-                item[1],
-                self._within_type_key(item[2]),
-            ),
+            key=lambda item: (item[0], item[1], self._within_type_key(item[2])),
         )
         return replace(
             result,
@@ -133,10 +171,7 @@ def install_sixth_sense_policy() -> None:
             selected_immediate_score=projected,
             selected_pace_ratio=ratio,
             confidence=min(float(result.confidence), self._pace_confidence(ratio)),
-            rationale=(
-                "Sixth Sense opportunity: first-hand single 6 still meets required pace, so harvest the Spectral without sacrificing survival pace",
-                *result.rationale,
-            ),
+            rationale=(_SIXTH_SENSE_RATIONALE, *result.rationale),
         )
 
     LiveHandActionPolicy.decide = decide
