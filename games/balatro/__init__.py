@@ -17,6 +17,7 @@ from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimi
 from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_correction
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
 from games.balatro.shop_regression_policy import install_shop_regression_policy
+from games.balatro.sixth_sense_policy import install_sixth_sense_policy
 from games.balatro.strategy_commitment_hysteresis import install_strategy_commitment_hysteresis
 from games.balatro.strategy_multi_engine import install_multi_engine_strategy_policy
 from games.balatro.three_run_review_policy import install_three_run_review_policy
@@ -46,3 +47,4 @@ install_five_run_optimization_policy()
 install_five_run_followup_policy()
 install_cash_scoring_support_policy()
 install_observatory_planet_policy()
+install_sixth_sense_policy()
