@@ -92,6 +92,17 @@ def _hands_budget(state) -> int:
     return max(1, hands)
 
 
+def _opening_hand_size(state) -> int:
+    try:
+        value = int(getattr(state, "hand_size", 0) or 0)
+    except (TypeError, ValueError):
+        value = 0
+    # Shop snapshots should normally expose the authoritative limit. Fail to the
+    # ordinary Red/White hand size rather than treating a missing shop hand area as
+    # a zero-card opening hand.
+    return value if value > 0 else 8
+
+
 def _deck_size(state) -> int:
     """Return the card pool Blue Joker is expected to score against now/next."""
     phase = str(getattr(state, "phase", "")).upper()
@@ -99,7 +110,7 @@ def _deck_size(state) -> int:
         owned = getattr(state, "owned_deck", None)
         if owned is not None:
             try:
-                return len(owned)
+                return max(0, len(owned) - _opening_hand_size(state))
             except TypeError:
                 pass
     try:
@@ -110,9 +121,21 @@ def _deck_size(state) -> int:
         pass
     owned = getattr(state, "owned_deck", None)
     try:
-        return len(owned or ())
+        return max(0, len(owned or ()) - _opening_hand_size(state))
     except TypeError:
         return 0
+
+
+def _card_public_sort_key(card: object) -> tuple[str, ...]:
+    return (
+        str(getattr(card, "rank", "") or ""),
+        str(getattr(card, "suit", "") or ""),
+        str(getattr(card, "enhancement", "") or ""),
+        str(getattr(card, "seal", "") or ""),
+        str(getattr(card, "edition", "") or ""),
+        str(int(getattr(card, "permanent_bonus", 0) or 0)),
+        "1" if bool(getattr(card, "debuffed", False)) else "0",
+    )
 
 
 def _progress_state(progress_ratio: float) -> EngineState:
@@ -200,7 +223,7 @@ class RealizedEngineAnalyzer:
             chips = max(0.0, cards * 2.0 * len(blue_jokers))
             progress = chips / max(pace * 0.20, 1.0) if pace > 0 else chips / 100.0
             engine_state = _progress_state(progress)
-            growth_rate = 1.0 if has_card_generator else 0.50 if cards >= 52 else 0.20
+            growth_rate = 1.0 if has_card_generator else 0.50 if cards >= 44 else 0.20
             engines.append(
                 RealizedEngineStrength(
                     engine_id="blue_joker",
@@ -210,7 +233,7 @@ class RealizedEngineAnalyzer:
                     runway_need=_runway_need(engine_state, ante),
                     rationale=(
                         f"Blue Joker copies={len(blue_jokers)}; scoring deck size={cards}; contribution={chips:.0f} chips",
-                        "active-blind strength uses remaining draw pile; shop projection uses permanent owned deck",
+                        "active-blind strength uses remaining draw pile; shop projection subtracts the public opening hand size from the permanent owned deck",
                         f"card generator owned={'yes' if has_card_generator else 'no'}",
                     ),
                 )
@@ -366,7 +389,13 @@ class RuntimeBuildHealthEvaluator:
         if str(getattr(state, "phase", "")).upper() == "SHOP":
             owned = getattr(state, "owned_deck", None)
             if owned is not None:
-                probe_state.deck = deepcopy(list(owned))
+                cards = deepcopy(list(owned))
+                cards.sort(key=_card_public_sort_key)
+                opening = min(len(cards), _opening_hand_size(state))
+                # Use only public composition and hand-size information. Sorting
+                # deliberately destroys any serialized deck ordering before the
+                # synthetic opening draw is removed.
+                probe_state.deck = cards[opening:]
             # A shop snapshot may retain the completed Blind's accumulated score.
             # Representative next-Blind scoring starts from zero by definition.
             probe_state.score = 0
