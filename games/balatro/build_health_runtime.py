@@ -360,10 +360,22 @@ class RuntimeBuildHealthEvaluator:
         self.engine_analyzer = engine_analyzer or RealizedEngineAnalyzer()
         self.health_evaluator = health_evaluator or BuildHealthEvaluator()
 
+    @staticmethod
+    def _scoring_probe_state(state):
+        probe_state = deepcopy(state)
+        if str(getattr(state, "phase", "")).upper() == "SHOP":
+            owned = getattr(state, "owned_deck", None)
+            if owned is not None:
+                probe_state.deck = deepcopy(list(owned))
+            # A shop snapshot may retain the completed Blind's accumulated score.
+            # Representative next-Blind scoring starts from zero by definition.
+            probe_state.score = 0
+        return probe_state
+
     def _representative_best_score(self, state) -> float:
         scores: list[float] = []
         for hand, template_cards in JokerBuildValueEvaluator.PROBES:
-            probe_state = deepcopy(state)
+            probe_state = self._scoring_probe_state(state)
             cards = deepcopy(list(template_cards))
             probe_state.hand = deepcopy(cards)
             try:
