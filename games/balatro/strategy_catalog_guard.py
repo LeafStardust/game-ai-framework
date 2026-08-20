@@ -43,6 +43,21 @@ def _downgrade_gold_to_silver(
     )
 
 
+def _downgrade_to_bronze(
+    definition: StrategyDefinition,
+    *joker_names: str,
+) -> StrategyDefinition:
+    """Move weak standalone evidence to Bronze regardless of its previous tier."""
+
+    tokens = _joker_tokens(*joker_names)
+    return replace(
+        definition,
+        gold_jokers=frozenset(set(definition.gold_jokers) - set(tokens)),
+        silver_jokers=frozenset(set(definition.silver_jokers) - set(tokens)),
+        bronze_jokers=frozenset(set(definition.bronze_jokers) | set(tokens)),
+    )
+
+
 def _retire_standalone_strategy(definition: StrategyDefinition) -> StrategyDefinition:
     """Prevent active competition while preserving relationship metadata."""
 
@@ -101,6 +116,7 @@ def guard_unresolved_conditional_relationships(
         "no_discard_green": ("Green Joker",),
         "straight": ("Shortcut", "Four Fingers"),
         "sixes": ("Sixth Sense",),
+        "aces": ("Scholar",),
         "queens_shoot_moon": ("Shoot the Moon",),
         "hiker_training": ("Hiker",),
         "loyalty_cycle": ("Loyalty Card",),
@@ -117,6 +133,14 @@ def guard_unresolved_conditional_relationships(
             guarded[strategy_id],
             *joker_names,
         )
+
+    # Sixth Sense alone is a utility generator rather than a sufficient scoring
+    # engine. Tarot/consumable infrastructure may conditionally promote it back to
+    # Silver, but its standalone Sixes evidence is only Bronze.
+    guarded["sixes"] = _downgrade_to_bronze(
+        guarded["sixes"],
+        "Sixth Sense",
+    )
 
     # Low-Rank Scoring is the Hack retrigger engine. Fibonacci, Even Steven and
     # low-rank deck shaping may strengthen it, but they cannot establish this route
