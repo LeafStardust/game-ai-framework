@@ -7,6 +7,7 @@ SELL/BUY that belongs to a verified short-horizon plan, then the autonomous loop
 must re-observe the shop and re-plan from authoritative state.
 """
 
+from copy import deepcopy
 from dataclasses import dataclass
 from itertools import combinations
 
@@ -112,10 +113,24 @@ def _health_improves(current, projected) -> bool:
     return survival_ok and total_ok and (fixes_deficit or material_growth)
 
 
+def _projection_tracker(tracker):
+    if tracker is None:
+        return None
+    try:
+        return deepcopy(tracker)
+    except (TypeError, ValueError):
+        # Failing closed on strategic coherence is safer than mutating the live
+        # run-scoped tracker during a hypothetical shop branch.
+        return None
+
+
 def _project(state, roster, money, tracker):
     projected = projected_state_with_jokers(state, roster)
     projected.money = max(0, int(money))
-    return projected, _HEALTH.evaluate(projected, strategy_tracker=tracker)
+    return projected, _HEALTH.evaluate(
+        projected,
+        strategy_tracker=_projection_tracker(tracker),
+    )
 
 
 def recommend_bounded_shop_bundle(arbiter, state) -> ShopBundleRecommendation | None:
