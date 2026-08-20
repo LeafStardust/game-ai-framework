@@ -2,7 +2,8 @@ from __future__ import annotations
 
 """Decision-integrity fixes exposed by the 2026-08-20 five-run batch."""
 
-from dataclasses import replace
+from dataclasses import is_dataclass, replace
+from types import SimpleNamespace
 
 from games.balatro.actions import SELL_JOKER, BalatroAction
 from games.balatro.build import JokerBuildTransitionPlanner
@@ -17,6 +18,14 @@ from games.balatro.strategy_value import StrategyAwareJokerBuildTransitionPlanne
 
 def _normalize(value: object) -> str:
     return "".join(character for character in str(value).lower() if character.isalnum())
+
+
+def _updated(value, **changes):
+    if is_dataclass(value):
+        return replace(value, **changes)
+    data = dict(getattr(value, "__dict__", {}))
+    data.update(changes)
+    return SimpleNamespace(**data)
 
 
 def _primary_id(tracker, resolution):
@@ -64,9 +73,6 @@ def _early_survival_buy(policy, state, candidate, decision):
     if int(option.economics.money_after) < reserve_target:
         return decision
 
-    # Strategy-adjusted values may suppress an otherwise useful immediate scorer.
-    # During Antes 1-2, compare the same transaction after removing only that
-    # strategy-purity penalty. Price, interest, reserve, and slot costs remain.
     total_gain = float(getattr(value, "total_gain", 0.0) or 0.0)
     base_gain = float(getattr(value, "base_total_gain", total_gain) or 0.0)
     relaxed_advantage = float(option.total_advantage) + max(0.0, base_gain - total_gain)
@@ -74,7 +80,7 @@ def _early_survival_buy(policy, state, candidate, decision):
     if relaxed_advantage <= threshold:
         return decision
 
-    selected = replace(
+    selected = _updated(
         option,
         total_advantage=relaxed_advantage,
         rationale=(
@@ -85,7 +91,7 @@ def _early_survival_buy(policy, state, candidate, decision):
             f"survival-adjusted buy advantage={relaxed_advantage:.3f}",
         ),
     )
-    return replace(
+    return _updated(
         decision,
         action=BUY,
         selected=selected,
