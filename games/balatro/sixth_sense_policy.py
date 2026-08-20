@@ -29,16 +29,18 @@ def _normalize(value: object) -> str:
 
 
 def _token(item: object) -> str:
-    values = (
-        type(item).__name__,
+    type_token = _normalize(type(item).__name__)
+    if type_token and type_token not in {"simplenamespace", "object"}:
+        return type_token if type_token.endswith("joker") else type_token + "joker"
+    for value in (
         getattr(item, "name", ""),
         getattr(item, "label", ""),
-    )
-    tokens = [_normalize(value) for value in values if value]
-    for token in tokens:
-        if token.endswith("joker"):
-            return token
-    return tokens[0] if tokens else ""
+        getattr(item, "ability_name", ""),
+    ):
+        token = _normalize(value)
+        if token:
+            return token if token.endswith("joker") else token + "joker"
+    return type_token
 
 
 def _owned_tokens(state) -> frozenset[str]:
