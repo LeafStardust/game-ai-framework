@@ -5,6 +5,7 @@ import games.balatro.five_run_decision_integrity_policy as integrity
 from games.balatro.actions import SELECT_PACK_CARD, BalatroAction
 from games.balatro.five_run_decision_integrity_policy import (
     _definition_is_retired,
+    _early_survival_buy,
     _madness_threatens_established_build,
 )
 from games.balatro.strategy import GOLD, HIGHLIGHTED, SILVER
@@ -69,6 +70,103 @@ def test_madness_guard_does_not_fire_for_eternal_core_or_weak_highlight():
     weak_state = SimpleNamespace(jokers=[_joker("Scholar")])
     weak = _Policy(_Tracker(score=5.99, tier=GOLD))
     assert not _madness_threatens_established_build(weak, weak_state, _joker("Madness"))
+
+
+def test_ante_one_survival_scorer_can_override_strategy_purity_when_reserve_survives():
+    option = SimpleNamespace(
+        eligible=True,
+        total_advantage=0.10,
+        economics=SimpleNamespace(money_after=7),
+        rationale=("fixture economics",),
+    )
+    decision = SimpleNamespace(
+        action="HOLD",
+        options=(option,),
+        selected=None,
+        thresholds=SimpleNamespace(
+            reserve_target=5,
+            minimum_purchase_advantage=0.35,
+        ),
+        rationale=("off-strategy hold",),
+    )
+    value = SimpleNamespace(
+        direct_scoring_value=2.0,
+        total_gain=-0.5,
+        base_total_gain=1.5,
+    )
+    policy = SimpleNamespace(
+        transition_planner=SimpleNamespace(
+            plan=lambda state, candidate: SimpleNamespace(candidate_value=value)
+        )
+    )
+    state = SimpleNamespace(ante=1, jokers=[_joker("Flash Card")], joker_slots=5)
+
+    result = _early_survival_buy(policy, state, _joker("Crazy Joker"), decision)
+
+    assert result.action == "BUY"
+    assert result.selected.total_advantage > decision.thresholds.minimum_purchase_advantage
+    assert any("survival takes precedence" in note for note in result.rationale)
+
+
+def test_early_survival_override_does_not_spend_below_reserve_or_force_non_scorer():
+    base = SimpleNamespace(
+        action="HOLD",
+        selected=None,
+        thresholds=SimpleNamespace(reserve_target=5, minimum_purchase_advantage=0.35),
+        rationale=(),
+    )
+    low_cash_option = SimpleNamespace(
+        eligible=True,
+        total_advantage=0.10,
+        economics=SimpleNamespace(money_after=4),
+        rationale=(),
+    )
+    non_scoring_option = SimpleNamespace(
+        eligible=True,
+        total_advantage=0.10,
+        economics=SimpleNamespace(money_after=7),
+        rationale=(),
+    )
+    state = SimpleNamespace(ante=1, jokers=[], joker_slots=5)
+
+    low_cash_policy = SimpleNamespace(
+        transition_planner=SimpleNamespace(
+            plan=lambda state, candidate: SimpleNamespace(
+                candidate_value=SimpleNamespace(
+                    direct_scoring_value=2.0,
+                    total_gain=-0.5,
+                    base_total_gain=1.5,
+                )
+            )
+        )
+    )
+    non_scoring_policy = SimpleNamespace(
+        transition_planner=SimpleNamespace(
+            plan=lambda state, candidate: SimpleNamespace(
+                candidate_value=SimpleNamespace(
+                    direct_scoring_value=0.0,
+                    total_gain=-0.5,
+                    base_total_gain=1.5,
+                )
+            )
+        )
+    )
+
+    low_cash = _early_survival_buy(
+        low_cash_policy,
+        state,
+        _joker("Crazy Joker"),
+        SimpleNamespace(**{**base.__dict__, "options": (low_cash_option,)}),
+    )
+    non_scoring = _early_survival_buy(
+        non_scoring_policy,
+        state,
+        _joker("Egg"),
+        SimpleNamespace(**{**base.__dict__, "options": (non_scoring_option,)}),
+    )
+
+    assert low_cash.action == "HOLD"
+    assert non_scoring.action == "HOLD"
 
 
 def test_buffoon_free_slot_madness_is_blocked_for_established_aces():
