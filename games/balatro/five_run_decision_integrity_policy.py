@@ -6,7 +6,7 @@ from dataclasses import replace
 
 from games.balatro.actions import SELL_JOKER, BalatroAction
 from games.balatro.build import JokerBuildTransitionPlanner
-from games.balatro.joker_policy import HOLD, REPLACE
+from games.balatro.joker_policy import BUY, HOLD, REPLACE
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.playbook.red_white.pack_policy import PlaybookBalatroPackPolicy
 from games.balatro.pack_policy import PackActionScore
@@ -31,6 +31,70 @@ def _tracker_from_policy(policy):
     planner = getattr(policy, "transition_planner", None)
     evaluator = getattr(planner, "evaluator", None)
     return getattr(evaluator, "strategy_tracker", None)
+
+
+def _early_survival_buy(policy, state, candidate, decision):
+    """Admit immediate scoring in Antes 1-2 when strategy purity would reject it.
+
+    The ordinary D2 economics remain authoritative. The only thing relaxed is an
+    early off-strategy adjustment: survival comes before route purity while the run
+    is still in its foundation phase. The candidate must have a free slot, produce
+    positive immediate scoring on the shared build evaluator, and leave at least the
+    configured reserve after purchase.
+    """
+
+    if decision.action != HOLD or not getattr(decision, "options", None):
+        return decision
+    ante = max(1, int(getattr(state, "ante", 1) or 1))
+    if ante > 2:
+        return decision
+    if len(getattr(state, "jokers", ()) or ()) >= int(getattr(state, "joker_slots", 0) or 0):
+        return decision
+
+    transition = policy.transition_planner.plan(state, candidate)
+    value = transition.candidate_value
+    direct_value = float(getattr(value, "direct_scoring_value", 0.0) or 0.0)
+    if direct_value <= 0.0:
+        return decision
+
+    option = decision.options[0]
+    if not option.eligible:
+        return decision
+    reserve_target = int(getattr(decision.thresholds, "reserve_target", 5) or 0)
+    if int(option.economics.money_after) < reserve_target:
+        return decision
+
+    # Strategy-adjusted values may suppress an otherwise useful immediate scorer.
+    # During Antes 1-2, compare the same transaction after removing only that
+    # strategy-purity penalty. Price, interest, reserve, and slot costs remain.
+    total_gain = float(getattr(value, "total_gain", 0.0) or 0.0)
+    base_gain = float(getattr(value, "base_total_gain", total_gain) or 0.0)
+    relaxed_advantage = float(option.total_advantage) + max(0.0, base_gain - total_gain)
+    threshold = float(decision.thresholds.minimum_purchase_advantage)
+    if relaxed_advantage <= threshold:
+        return decision
+
+    selected = replace(
+        option,
+        total_advantage=relaxed_advantage,
+        rationale=(
+            *option.rationale,
+            "Ante 1-2 survival override: immediate scoring is allowed to ignore off-strategy purity pressure",
+            "price/interest/reserve/slot economics remain authoritative",
+            f"immediate scoring value={direct_value:.3f}",
+            f"survival-adjusted buy advantage={relaxed_advantage:.3f}",
+        ),
+    )
+    return replace(
+        decision,
+        action=BUY,
+        selected=selected,
+        rationale=(
+            *decision.rationale,
+            "Ante 1-2 survival takes precedence over strategy purity",
+            f"purchase leaves ${int(option.economics.money_after)} >= reserve ${reserve_target}",
+        ),
+    )
 
 
 def _madness_threatens_tracker(tracker, state, candidate) -> bool:
@@ -88,6 +152,7 @@ def install_five_run_decision_integrity_policy() -> None:
 
         def decide(self, state, candidate):
             decision = original_decide(self, state, candidate)
+            decision = _early_survival_buy(self, state, candidate, decision)
             if not _madness_threatens_established_build(self, state, candidate):
                 return decision
             return replace(
