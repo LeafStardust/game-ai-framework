@@ -55,13 +55,24 @@ def _pretty_token(token: str) -> str:
     return value.replace("_", " ").title() if value else "?"
 
 
-def _latest_strategy_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def _latest_postmortem_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
     latest = base_monitor._latest(rows, "decision") or {}
     data = latest.get("data") if isinstance(latest.get("data"), dict) else {}
     rationale = data.get("rationale") if isinstance(data.get("rationale"), dict) else {}
     postmortem = rationale.get("postmortem") if isinstance(rationale.get("postmortem"), dict) else {}
+    return postmortem
+
+
+def _latest_strategy_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    postmortem = _latest_postmortem_payload(rows)
     strategy = postmortem.get("strategy") if isinstance(postmortem.get("strategy"), dict) else {}
     return strategy
+
+
+def _latest_build_health_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    postmortem = _latest_postmortem_payload(rows)
+    health = postmortem.get("build_health") if isinstance(postmortem.get("build_health"), dict) else {}
+    return health
 
 
 def _owned_cards(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -228,6 +239,65 @@ def _strategy_targets(rows: list[dict[str, Any]]) -> list[str]:
     return targets
 
 
+def _number(payload: dict[str, Any], key: str) -> float | None:
+    value = payload.get(key)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
+
+
+def _build_health_lines(rows: list[dict[str, Any]]) -> list[str]:
+    health = _latest_build_health_payload(rows)
+    if not health:
+        return []
+
+    total = _number(health, "total")
+    survival = _number(health, "survival")
+    immediate = _number(health, "immediate")
+    scaling = _number(health, "scaling")
+    coherence = _number(health, "coherence")
+    runway = _number(health, "runway")
+    deficit = bool(health.get("scaling_deficit"))
+    critical = bool(health.get("critical"))
+
+    lines: list[str] = []
+    if total is not None:
+        suffix = " [CRITICAL]" if critical else ""
+        lines.append(f"Build Health    : {total:.1f}{suffix}")
+    if survival is not None:
+        lines.append(f"Survival        : {survival:.1f}")
+    if immediate is not None:
+        lines.append(f"Immediate       : {immediate:.1f}")
+    if scaling is not None:
+        suffix = " [DEFICIT]" if deficit else ""
+        lines.append(f"Scaling         : {scaling:.1f}{suffix}")
+    if coherence is not None:
+        lines.append(f"Coherence       : {coherence:.1f}")
+    if runway is not None:
+        lines.append(f"Runway          : {runway:.1f}")
+
+    components = health.get("components")
+    if isinstance(components, list):
+        rendered_components = []
+        for component in components:
+            if not isinstance(component, dict):
+                continue
+            name = str(component.get("name") or "?")
+            role = str(component.get("role") or "?")
+            engine = component.get("realized_engine_id")
+            text = f"{name}={role}"
+            if engine:
+                text += f"/{engine}"
+            rendered_components.append(text)
+        if rendered_components:
+            lines.append("Components      : " + " | ".join(rendered_components[:5]))
+
+    warnings = health.get("warnings")
+    if isinstance(warnings, list) and warnings:
+        lines.append("Health warnings : " + " | ".join(str(value) for value in warnings[:3]))
+    return lines
+
+
 def build_dashboard(status, *, supervisor_pid, balatro_running, rows, telemetry=None):
     rendered = _original_build_dashboard(
         status,
@@ -240,12 +310,20 @@ def build_dashboard(status, *, supervisor_pid, balatro_running, rows, telemetry=
     has_text = "NONE" if not evidence else " | ".join(evidence)
     targets = _strategy_targets(rows)
     target_text = "NONE" if not targets else " | ".join(targets)
+    health_lines = _build_health_lines(rows)
     marker = "Path            : "
     lines = rendered.splitlines()
     for index, line in enumerate(lines):
         if line.startswith(marker):
-            lines.insert(index + 1, f"Has             : {has_text}")
-            lines.insert(index + 2, f"Seeking         : {target_text}")
+            insert_at = index + 1
+            additions = [
+                f"Has             : {has_text}",
+                f"Seeking         : {target_text}",
+            ]
+            if health_lines:
+                additions.append("")
+                additions.extend(health_lines)
+            lines[insert_at:insert_at] = additions
             break
     return "\n".join(lines)
 
