@@ -74,7 +74,7 @@ def test_bull_bootstraps_pair_can_be_started_even_when_neither_single_buy_is_req
     assert result is not None
     assert result.bundle_id == "bull_bootstraps"
     assert result.action.name == BUY_JOKER
-    assert result.action.target in {bull, bootstraps}
+    assert result.action.target in (bull, bootstraps)
     assert any("re-observe" in note for note in result.rationale)
 
 
@@ -127,7 +127,7 @@ def test_full_roster_bundle_sells_only_unprotected_filler(monkeypatch):
 
     assert result is not None
     assert result.action.name == SELL_JOKER
-    assert result.action.target in {1, 2}
+    assert result.action.target in (1, 2)
     assert result.action.target != 0
 
 
