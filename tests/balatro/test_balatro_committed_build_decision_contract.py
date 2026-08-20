@@ -4,9 +4,12 @@ import pytest
 
 import games.balatro  # noqa: F401 - installs the production policy stack
 from games.balatro.aces_dna_hand_policy import DNA_SAFE_CLEAR_PROBABILITY, _safe_ace_plan
+from games.balatro.actions import SELECT_PACK_CARD, SKIP_BOOSTER, BalatroAction
 from games.balatro.ankh_presale_policy import best_ankh_presale_plan
 from games.balatro.blue_joker_strategy_rules import BLUE_JOKER_STRATEGY_ID
 from games.balatro.committed_build_replacement_policy import _same_route_immediate_upgrade
+from games.balatro.committed_pack_choice_policy import _enforce_celestial_planet_pick
+from games.balatro.pack_policy import PackActionScore
 from games.balatro.strategy import COMMITTED, GOLD, NEUTRAL, SILVER
 from games.balatro import strategy_conditional_relationships as conditional
 
@@ -100,6 +103,31 @@ def test_dna_ace_setup_requires_ninety_percent_whole_blind_clear_probability():
 
     assert _safe_ace_plan((unsafe,), dna_single=True) is None
     assert _safe_ace_plan((unsafe, safe), dna_single=True) is safe
+
+
+def _planet_action(label):
+    target = SimpleNamespace(kind="PLANET", label=label)
+    return BalatroAction(SELECT_PACK_CARD, target=target)
+
+
+def test_opened_celestial_pack_takes_best_visible_planet_without_red_card():
+    state = SimpleNamespace(phase="CELESTIAL_PACK", jokers=[])
+    mercury = PackActionScore(_planet_action("Mercury"), -3.0, ("off route",))
+    venus = PackActionScore(_planet_action("Venus"), -2.0, ("off route",))
+    skip = PackActionScore(BalatroAction(SKIP_BOOSTER), 0.35, ("skip",))
+
+    ranked = _enforce_celestial_planet_pick(state, [skip, mercury, venus])
+    assert ranked[0].action.target.label == "Venus"
+    assert ranked[0].total > skip.total
+
+
+def test_red_card_may_still_skip_opened_celestial_pack():
+    state = SimpleNamespace(phase="CELESTIAL_PACK", jokers=[_joker("Red Card")])
+    venus = PackActionScore(_planet_action("Venus"), -2.0, ("off route",))
+    skip = PackActionScore(BalatroAction(SKIP_BOOSTER), 0.35, ("skip",))
+
+    ranked = _enforce_celestial_planet_pick(state, [skip, venus])
+    assert ranked[0].action.name == SKIP_BOOSTER
 
 
 class _Expectation:
