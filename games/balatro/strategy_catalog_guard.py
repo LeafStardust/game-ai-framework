@@ -32,14 +32,7 @@ def _downgrade_gold_to_silver(
     definition: StrategyDefinition,
     *joker_names: str,
 ) -> StrategyDefinition:
-    """Move supportive evidence to Silver and keep tier membership exclusive.
-
-    Gold is reserved for components strong enough to make a strategy viable and
-    unusually effective by themselves. Supportive or merely direction-setting
-    Jokers should raise a route without manufacturing a commitment signal. Any
-    stale Bronze membership is removed so the runtime relationship is unambiguously
-    Silver.
-    """
+    """Move supportive evidence to Silver and keep tier membership exclusive."""
 
     tokens = _joker_tokens(*joker_names)
     return replace(
@@ -47,6 +40,36 @@ def _downgrade_gold_to_silver(
         gold_jokers=frozenset(set(definition.gold_jokers) - set(tokens)),
         silver_jokers=frozenset(set(definition.silver_jokers) | set(tokens)),
         bronze_jokers=frozenset(set(definition.bronze_jokers) - set(tokens)),
+    )
+
+
+def _retire_standalone_strategy(definition: StrategyDefinition) -> StrategyDefinition:
+    """Keep a topology/catalog ID but remove it from active strategy competition.
+
+    Some catalogue leaves describe useful support components rather than a complete
+    run-clearing route. Preserve the ID for topology compatibility and documentation,
+    but remove all positive acquisition evidence and make the requirement impossible
+    to satisfy. The component may still be valued normally or as support by another
+    genuine strategy.
+    """
+
+    return replace(
+        definition,
+        gold_jokers=frozenset(),
+        silver_jokers=frozenset(),
+        bronze_jokers=frozenset(),
+        gold_consumables=frozenset(),
+        silver_consumables=frozenset(),
+        bronze_consumables=frozenset(),
+        gold_planets=frozenset(),
+        silver_planets=frozenset(),
+        bronze_planets=frozenset(),
+        gold_vouchers=frozenset(),
+        silver_vouchers=frozenset(),
+        bronze_vouchers=frozenset(),
+        required_jokers=_joker_tokens("__retired_non_standalone_strategy__"),
+        minimum_positive_jokers=0,
+        entry_evidence_cap=0.0,
     )
 
 
@@ -89,26 +112,16 @@ def guard_unresolved_conditional_relationships(
     )
 
     weak_single_joker_cores = {
-        "abstract_joker": ("Abstract Joker",),
         "swashbuckler": ("Swashbuckler",),
-        "raised_fist": ("Raised Fist",),
         "flower_pot": ("Flower Pot",),
-        "cash_cloud_nine": ("Cloud 9",),
         "red_card": ("Red Card",),
         "no_discard_ramen": ("Ramen",),
-        "no_discard_reserve": ("Banner", "Delayed Gratification"),
         "last_hand_acrobat": ("Acrobat",),
         "no_discard_green": ("Green Joker",),
         "straight": ("Shortcut", "Four Fingers"),
-        "face_held_economy": ("Reserved Parking",),
-        "face_business_card": ("Business Card",),
-        "faceless_discard_economy": ("Faceless Joker",),
-        "faceless_ride_bus": ("Ride the Bus",),
         "sixes": ("Sixth Sense",),
         "queens_shoot_moon": ("Shoot the Moon",),
         "hiker_training": ("Hiker",),
-        "planet_satellite": ("Satellite",),
-        "discard_mail_rebate": ("Mail-In Rebate",),
         "loyalty_cycle": ("Loyalty Card",),
         "tarot_engine": ("Fortune Teller",),
         "tarot_cartomancer": ("Cartomancer",),
@@ -123,16 +136,25 @@ def guard_unresolved_conditional_relationships(
             *joker_names,
         )
 
-    # Banner's no-discard chip payoff is useful filler, but it is too fragile to
-    # provide Silver commitment evidence: any discard shuts it off for the round.
-    no_discard_reserve = guarded["no_discard_reserve"]
-    banner = _joker_tokens("Banner")
-    guarded["no_discard_reserve"] = replace(
-        no_discard_reserve,
-        gold_jokers=frozenset(set(no_discard_reserve.gold_jokers) - set(banner)),
-        silver_jokers=frozenset(set(no_discard_reserve.silver_jokers) - set(banner)),
-        bronze_jokers=frozenset(set(no_discard_reserve.bronze_jokers) | set(banner)),
+    # These leaves describe support/economy mechanisms rather than a complete
+    # run-clearing engine. They must never become top/secondary/tertiary strategy
+    # candidates on their own. Their Jokers remain usable as generic value or as
+    # evidence in other genuine routes.
+    non_standalone_strategy_ids = frozenset(
+        {
+            "abstract_joker",
+            "raised_fist",
+            "face_held_economy",
+            "face_business_card",
+            "faceless_discard_economy",
+            "planet_satellite",
+            "cash_cloud_nine",
+            "discard_mail_rebate",
+            "no_discard_reserve",
+        }
     )
+    for strategy_id in non_standalone_strategy_ids:
+        guarded[strategy_id] = _retire_standalone_strategy(guarded[strategy_id])
 
     # Superposition is only weak support for Straight: keep it Bronze rather than
     # allowing it to manufacture a Silver commitment signal.
