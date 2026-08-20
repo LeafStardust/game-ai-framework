@@ -22,6 +22,7 @@ from games.balatro.log_batch_calibration_policy import install_log_batch_calibra
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
 from games.balatro.pareidolia_face_policy import install_pareidolia_face_policy
+from games.balatro.realized_pivot_policy import install_realized_pivot_policy
 from games.balatro.relationship_contract_policy import install_relationship_contract_policy
 from games.balatro.safe_pace_blind_skip_patch import install_safe_pace_blind_skip_patch
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
@@ -71,6 +72,9 @@ install_committed_pack_choice_policy()
 install_aces_dna_hand_policy()
 install_ankh_presale_policy()
 install_five_run_decision_integrity_policy()
+# Realized pivot maturity must run before Build Health so candidate transition
+# probes see the same buildup/runway gate as the production strategy tracker.
+install_realized_pivot_policy()
 # Build Health is intentionally installed last so it evaluates the legal outcomes
 # produced by all existing retention/commitment/safety policies rather than
 # bypassing them with another raw-value layer.
