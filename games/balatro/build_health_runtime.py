@@ -289,16 +289,20 @@ class RealizedEngineAnalyzer:
             engine_state = _progress_state(progress)
             counts = getattr(state, "hand_play_counts", {}) or {}
             straight_plays = int(counts.get("STRAIGHT", counts.get("Straight", 0)) or 0)
+            straight_flush_plays = int(
+                counts.get("STRAIGHT_FLUSH", counts.get("Straight Flush", 0)) or 0
+            )
+            runner_growth_plays = straight_plays + straight_flush_plays
             engines.append(
                 RealizedEngineStrength(
                     engine_id="runner",
                     state=engine_state,
                     current_strength=chips,
-                    growth_rate=min(1.0, straight_plays / max(1.0, float(ante * 2))),
+                    growth_rate=min(1.0, runner_growth_plays / max(1.0, float(ante * 2))),
                     runway_need=_runway_need(engine_state, ante),
                     rationale=(
                         f"Runner copies={len(runners)}; aggregate chips=+{chips:.0f}",
-                        f"Straight play history={straight_plays}",
+                        f"Runner growth-hand history={runner_growth_plays} (Straight={straight_plays}, Straight Flush={straight_flush_plays})",
                     ),
                 )
             )
