@@ -9,6 +9,12 @@ A general framework for building autonomous AI agents for different games.
 
 ## Balatro
 
+Strategy references:
+
+- [Strategy tree](docs/balatro/BALATRO_STRATEGY_TREE.md)
+- [Strategy relationships](docs/balatro/BALATRO_STRATEGY_RELATIONSHIPS.md)
+- [Strategy tree rules](docs/balatro/BALATRO_STRATEGY_TREE_RULES.md)
+
 Install Python dependencies:
 
 ```powershell
