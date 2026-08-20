@@ -123,6 +123,17 @@ def guard_unresolved_conditional_relationships(
             *joker_names,
         )
 
+    # Banner's no-discard chip payoff is useful filler, but it is too fragile to
+    # provide Silver commitment evidence: any discard shuts it off for the round.
+    no_discard_reserve = guarded["no_discard_reserve"]
+    banner = _joker_tokens("Banner")
+    guarded["no_discard_reserve"] = replace(
+        no_discard_reserve,
+        gold_jokers=frozenset(set(no_discard_reserve.gold_jokers) - set(banner)),
+        silver_jokers=frozenset(set(no_discard_reserve.silver_jokers) - set(banner)),
+        bronze_jokers=frozenset(set(no_discard_reserve.bronze_jokers) | set(banner)),
+    )
+
     # Superposition is only weak support for Straight: keep it Bronze rather than
     # allowing it to manufacture a Silver commitment signal.
     straight = guarded["straight"]
