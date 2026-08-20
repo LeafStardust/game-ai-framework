@@ -4,6 +4,7 @@ import games.balatro  # noqa: F401 - install production stack
 import games.balatro.build_health_policy as policy
 from games.balatro.actions import END_SHOP, REFRESH_SHOP, BalatroAction
 from games.balatro.build_health import BuildHealth
+from games.balatro.card import BalatroCard
 from games.balatro.playbook.red_white.shop_policy import PlaybookBuildAwareShopArbiter
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
 from games.balatro.strategy_booster_policy import StrategyAwarePlaybookShopArbiter
@@ -229,6 +230,32 @@ def test_projected_health_uses_isolated_strategy_tracker(monkeypatch):
 
     assert result.survival == 80
     assert tracker.calls == 0
+
+
+def test_health_cache_invalidates_when_same_size_deck_structure_changes(monkeypatch):
+    class _CountingHealth:
+        def __init__(self):
+            self.calls = 0
+
+        def evaluate(self, state, *, strategy_tracker=None):
+            del state, strategy_tracker
+            self.calls += 1
+            return _health(survival=80, scaling=60)
+
+    health = _CountingHealth()
+    monkeypatch.setattr(policy, "_HEALTH", health)
+    owner = SimpleNamespace()
+    state = _state(ante=4)
+    state.owned_deck = [BalatroCard("A", "Spades"), BalatroCard("K", "Hearts")]
+
+    policy._cached_health(owner, state, None)
+    policy._cached_health(owner, state, None)
+    assert health.calls == 1
+
+    state.owned_deck = [BalatroCard("A", "Hearts"), BalatroCard("K", "Spades")]
+    policy._cached_health(owner, state, None)
+
+    assert health.calls == 2
 
 
 def test_production_strategy_arbiter_reaches_patched_base_decide():
