@@ -66,9 +66,6 @@ def _stable_public_value(value):
         if isinstance(value, (set, frozenset)):
             return tuple(sorted(items, key=repr))
         return items
-    # Complex helper/cache objects are deliberately excluded from the public
-    # fingerprint rather than using memory-address repr values that would destroy
-    # caching without adding gameplay-state correctness.
     return (type(value).__name__,)
 
 
@@ -249,25 +246,8 @@ def _health_aware_joker_decision(policy, state, candidate, decision):
         )
         if decision.action == HOLD and (early_survival_fix or scaling_fix):
             reason = "early survival adequacy" if early_survival_fix else "midgame scaling adequacy"
-            selected = _updated(
-                option,
-                rationale=(
-                    *getattr(option, "rationale", ()),
-                    f"Build Health transition admitted for {reason}",
-                    f"survival delta={survival_gain:+.1f}; scaling delta={scaling_gain:+.1f}",
-                ),
-            )
-            return _updated(
-                decision,
-                action=BUY,
-                selected=selected,
-                rationale=(
-                    *getattr(decision, "rationale", ()),
-                    f"Build Health overrides HOLD: {reason} materially improves without violating its safety guard",
-                    *_health_notes("before", current),
-                    *_health_notes("after", projected),
-                ),
-            )
+            selected = _updated(option, rationale=(*getattr(option, "rationale", ()), f"Build Health transition admitted for {reason}", f"survival delta={survival_gain:+.1f}; scaling delta={scaling_gain:+.1f}"))
+            return _updated(decision, action=BUY, selected=selected, rationale=(*getattr(decision, "rationale", ()), f"Build Health overrides HOLD: {reason} materially improves without violating its safety guard", *_health_notes("before", current), *_health_notes("after", projected)))
         return decision
 
     if not current.scaling_deficit:
@@ -303,17 +283,7 @@ def _health_aware_joker_decision(policy, state, candidate, decision):
     _, _, _, option, projected = max(candidates, key=lambda item: item[:3])
     if decision.action == REPLACE and getattr(decision, "selected", None) is option:
         return decision
-    return _updated(
-        decision,
-        action=REPLACE,
-        selected=option,
-        rationale=(
-            *getattr(decision, "rationale", ()),
-            "Build Health selected a legal filler/support replacement because the current board has a scaling deficit",
-            *_health_notes("before", current),
-            *_health_notes("after", projected),
-        ),
-    )
+    return _updated(decision, action=REPLACE, selected=option, rationale=(*getattr(decision, "rationale", ()), "Build Health selected a legal filler/support replacement because the current board has a scaling deficit", *_health_notes("before", current), *_health_notes("after", projected)))
 
 
 def _shop_signature(state):
@@ -329,13 +299,7 @@ def _bundle_decision(state, result, arbiter):
     recommendation = recommend_bounded_shop_bundle(arbiter, state)
     if recommendation is None:
         return result
-    return replace(
-        result,
-        action=recommendation.action,
-        source="BUILD_HEALTH_BUNDLE",
-        normalized_gain=max(0.001, float(getattr(result, "normalized_gain", 0.0))),
-        rationale=(*recommendation.rationale, *getattr(result, "rationale", ())),
-    )
+    return _updated(result, action=recommendation.action, source="BUILD_HEALTH_BUNDLE", normalized_gain=max(0.001, float(getattr(result, "normalized_gain", 0.0))), rationale=(*recommendation.rationale, *getattr(result, "rationale", ())))
 
 
 def _health_reroll_decision(arbiter, state, result, reroll_cost):
@@ -354,12 +318,8 @@ def _health_reroll_decision(arbiter, state, result, reroll_cost):
     ante = max(1, int(getattr(state, "ante", 1) or 1))
     money = max(0, int(getattr(state, "money", 0) or 0))
     remaining = money - cost
-    early_survival_search = (
-        ante <= 2 and health.survival < _EARLY_SURVIVAL_ADEQUACY and cost <= 5 and remaining >= 2
-    )
-    scaling_search = (
-        ante >= 3 and health.scaling_deficit and cost <= 8 and remaining >= 15
-    )
+    early_survival_search = ante <= 2 and health.survival < _EARLY_SURVIVAL_ADEQUACY and cost <= 5 and remaining >= 2
+    scaling_search = ante >= 3 and health.scaling_deficit and cost <= 8 and remaining >= 15
     if not (early_survival_search or scaling_search):
         return result
 
@@ -368,18 +328,7 @@ def _health_reroll_decision(arbiter, state, result, reroll_cost):
         return result
     arbiter._build_health_reroll_signature = signature
     reason = "survival inadequacy" if early_survival_search else "scaling deficit"
-    return replace(
-        result,
-        action=BalatroAction(REFRESH_SHOP),
-        source="BUILD_HEALTH_REROLL",
-        normalized_gain=max(0.001, float(getattr(result, "normalized_gain", 0.0))),
-        rationale=(
-            f"Build Health bounded search: {reason} remains unresolved after visible shop choices",
-            f"reroll=${cost}; cash after=${remaining}; one Build-Health reroll allowed for this shop checkpoint",
-            *_health_notes("current", health),
-            *getattr(result, "rationale", ()),
-        ),
-    )
+    return _updated(result, action=BalatroAction(REFRESH_SHOP), source="BUILD_HEALTH_REROLL", normalized_gain=max(0.001, float(getattr(result, "normalized_gain", 0.0))), rationale=(f"Build Health bounded search: {reason} remains unresolved after visible shop choices", f"reroll=${cost}; cash after=${remaining}; one Build-Health reroll allowed for this shop checkpoint", *_health_notes("current", health), *getattr(result, "rationale", ())))
 
 
 def install_build_health_policy() -> None:
