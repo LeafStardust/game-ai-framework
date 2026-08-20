@@ -119,11 +119,6 @@ def install_five_run_optimization_policy() -> None:
     if getattr(BuildAwareShopArbiter, "_five_run_optimization_installed", False):
         return
 
-    # ------------------------------------------------------------------
-    # Rocket / To the Moon: the catalogue guard makes either Joker Silver.
-    # Owning one and evaluating the other upgrades the pair to Gold, and once
-    # both are held each member remains Gold evidence for the combined route.
-    # ------------------------------------------------------------------
     original_conditional = conditional_relationships.conditional_joker_relationship
 
     def conditional_joker_relationship(state, strategy_id: str, item: object) -> str:
@@ -137,12 +132,10 @@ def install_five_run_optimization_policy() -> None:
 
     conditional_relationships.conditional_joker_relationship = conditional_joker_relationship
 
-    # ------------------------------------------------------------------
-    # Hermit: current Balatro doubles money with a +$20 gain cap. The old timing
-    # formula incorrectly treated $20 as a final-money cap, producing zero gain
-    # at $20+. Preserve below $20 when there is room, but spend at the maximum
-    # deterministic +$20 payout or under slot pressure.
-    # ------------------------------------------------------------------
+    # Hermit doubles current money with a maximum +$20 gain. Keep the established
+    # B6 timing contract of spending at $10+ (already strong deterministic value),
+    # while fixing the old payout formula so $20+ correctly yields +$20 instead of
+    # zero. Below $10, preserve it unless consumable-slot pressure makes use better.
     original_economy = BaseConsumableTimingPolicy._recommend_economy
 
     def recommend_economy(self, state, consumable, *, name: str):
@@ -160,15 +153,19 @@ def install_five_run_optimization_policy() -> None:
                 "Hermit has no positive deterministic money gain",
                 immediate_gain=0.0,
             )
-        if money >= 20:
+        if money >= 10:
             decision = USE
-            reason = "Hermit has reached its maximum deterministic +$20 payout"
+            reason = (
+                "Hermit is at or past its maximum-value $10 threshold"
+                if money < 20
+                else "Hermit has reached its maximum deterministic +$20 payout"
+            )
         elif slots_full:
             decision = USE
             reason = "full consumable slots plus positive deterministic Hermit gain"
         else:
             decision = HOLD
-            reason = "Hermit is below $20, so preserving it can increase deterministic payout"
+            reason = "Hermit is below $10, so preserving it can increase deterministic payout"
         return ConsumableTimingRecommendation(
             decision=decision,
             consumable=consumable,
@@ -187,14 +184,6 @@ def install_five_run_optimization_policy() -> None:
 
     BaseConsumableTimingPolicy._recommend_economy = recommend_economy
 
-    # ------------------------------------------------------------------
-    # Shop arbitration:
-    #   * take a guaranteed net-profitable Hermit Buy & Use transaction;
-    #   * never leave a shop with Perkeo and no consumable when a cheap safe seed
-    #     is visible, because that throws away Perkeo's free Negative copy;
-    #   * monetize surplus Negative Perkeo copies while retaining an identical seed;
-    #   * activate Straight when Devious is already owned and Four Fingers appears.
-    # ------------------------------------------------------------------
     original_shop_decide = BuildAwareShopArbiter.decide
 
     def shop_decide(self, state, visible_actions, *, reroll_cost: int | None):
@@ -229,9 +218,6 @@ def install_five_run_optimization_policy() -> None:
                 )
             self._five_run_pending_four_fingers = False
 
-        # A Hermit purchase is a deterministic cash arbitrage whenever the payout
-        # after paying its price exceeds that price. Execute it immediately rather
-        # than letting interest/reserve utility hide literal net profit.
         for consumable in getattr(state, "shop_consumables", ()) or ():
             if _normalize(_label(consumable)) not in {"thehermit", "hermit"}:
                 continue
@@ -260,9 +246,6 @@ def install_five_run_optimization_policy() -> None:
         has_perkeo = "perkeojoker" in owned
         if has_perkeo:
             held = list(getattr(state, "consumables", ()) or ())
-            # A Negative copy created by Perkeo is free and consumes no slot. If an
-            # identical seed remains, selling one surplus Negative copy converts
-            # the ability into deterministic cash without disabling next-shop copy.
             for index, consumable in enumerate(held):
                 if not _is_negative(consumable):
                     continue
@@ -290,9 +273,6 @@ def install_five_run_optimization_policy() -> None:
             reroll_cost=reroll_cost,
         )
 
-        # Devious + Four Fingers is a real Straight engine. The second/third-place
-        # shortlist is meant to permit this activation instead of preserving weak
-        # no-discard filler merely because it is already owned.
         four_fingers = next(
             (
                 joker
@@ -337,10 +317,6 @@ def install_five_run_optimization_policy() -> None:
                     ),
                 )
 
-        # Do not throw away Perkeo's end-of-shop trigger. Only intervene when the
-        # ordinary arbiter would leave and there is no held seed at all. Preserve a
-        # $5 reserve so the copy engine cannot sabotage survival for an expensive
-        # speculative consumable.
         if has_perkeo and not getattr(state, "consumables", ()) and result.action.name == END_SHOP:
             affordable = [
                 consumable
@@ -366,12 +342,6 @@ def install_five_run_optimization_policy() -> None:
 
     BuildAwareShopArbiter.decide = shop_decide
 
-    # ------------------------------------------------------------------
-    # Burnt Joker training. Burnt triggers on the first discard of the round.
-    # If D1 already has a comfortable pace play, one spare discard and one spare
-    # hand, prefer its best modeled discard so the permanent hand-level upgrade is
-    # not left idle. CLEAR_PATH and marginal-pace states are never overridden.
-    # ------------------------------------------------------------------
     original_hand_decide = LiveHandActionPolicy.decide
 
     def hand_decide(self, state, plans, **kwargs):
