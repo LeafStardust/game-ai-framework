@@ -84,7 +84,8 @@ def _card_signature(card: object):
 
 
 def _deck_signature(state):
-    deck = getattr(state, "owned_deck", None)
+    phase = str(getattr(state, "phase", "")).upper()
+    deck = getattr(state, "owned_deck", None) if phase == "SHOP" else None
     if deck is None:
         deck = getattr(state, "deck", ()) or ()
     return tuple(sorted(_card_signature(card) for card in deck))
@@ -92,16 +93,19 @@ def _deck_signature(state):
 
 def _state_signature(state):
     levels = getattr(state, "hand_levels", {}) or {}
+    play_counts = getattr(state, "hand_play_counts", {}) or {}
     return (
         max(1, int(getattr(state, "ante", 1) or 1)),
         int(getattr(state, "round", getattr(state, "round_num", 0)) or 0),
         str(getattr(state, "phase", "")),
         int(getattr(state, "money", 0) or 0),
+        int(getattr(state, "score", 0) or 0),
         int(getattr(state, "blind_score", 0) or 0),
         int(getattr(state, "hands_remaining", 0) or 0),
         int(getattr(state, "discards_remaining", 0) or 0),
         tuple(_joker_progress_signature(joker) for joker in getattr(state, "jokers", ()) or ()),
         tuple(sorted((str(key), int(value or 1)) for key, value in levels.items())),
+        tuple(sorted((str(key), int(value or 0)) for key, value in play_counts.items())),
         _deck_signature(state),
     )
 
