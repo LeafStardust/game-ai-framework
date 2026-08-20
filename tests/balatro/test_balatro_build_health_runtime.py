@@ -24,6 +24,12 @@ class _FixedScorer:
         return SimpleNamespace(total=self.total)
 
 
+class _DeckLengthScorer:
+    def score(self, hand, *, state, cards, resolve_random_effects):
+        del hand, cards, resolve_random_effects
+        return SimpleNamespace(total=float(len(state.deck)))
+
+
 def _state(*, ante=1, blind_score=600, hands=4, jokers=()):
     state = BalatroState()
     state.ante = ante
@@ -99,7 +105,7 @@ def test_blue_joker_card_generator_realizes_future_growth_capacity():
     assert any("card generator owned=yes" in note for note in activated.rationale)
 
 
-def test_blue_uses_remaining_draw_pile_in_blind_and_owned_deck_in_shop():
+def test_blue_uses_remaining_draw_pile_in_blind_and_post_opening_owned_deck_in_shop():
     state = _state(ante=4, blind_score=5000, jokers=(BlueJoker(),))
     state.owned_deck = [BalatroCard("A", "Spades") for _ in range(52)]
     state.deck = [BalatroCard("A", "Spades") for _ in range(40)]
@@ -118,7 +124,18 @@ def test_blue_uses_remaining_draw_pile_in_blind_and_owned_deck_in_shop():
     )
 
     assert active.current_strength == 80.0
-    assert shop.current_strength == 104.0
+    assert shop.current_strength == 88.0
+
+
+def test_shop_scoring_probe_uses_post_opening_owned_deck_without_hidden_order():
+    state = _state(ante=4, blind_score=5000)
+    state.phase = "SHOP"
+    state.owned_deck = [BalatroCard("A", "Spades") for _ in range(52)]
+    state.deck = []
+
+    evaluator = RuntimeBuildHealthEvaluator(scorer=_DeckLengthScorer())
+
+    assert evaluator._representative_best_score(state) == 44.0
 
 
 def test_duplicate_blue_jokers_stack_chip_contribution():
@@ -136,7 +153,7 @@ def test_duplicate_blue_jokers_stack_chip_contribution():
         if value.engine_id == "blue_joker"
     )
 
-    assert engine.current_strength == 208.0
+    assert engine.current_strength == 176.0
 
 
 def test_cash_scoring_is_immediately_mature_when_existing_cash_already_realizes_it():
