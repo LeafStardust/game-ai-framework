@@ -2,6 +2,7 @@
 
 from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
 from games.balatro.aces_scholar_policy import install_aces_scholar_policy
+from games.balatro.ankh_presale_policy import install_ankh_presale_policy
 from games.balatro.blue_joker_strategy_rules import apply_blue_joker_strategy_rules
 from games.balatro.card_sharp_strategy_rules import install_card_sharp_strategy_rules
 from games.balatro.cash_scoring_support_policy import install_cash_scoring_support_policy
@@ -66,3 +67,4 @@ install_committed_build_replacement_policy()
 install_deck_growth_pack_policy()
 install_committed_pack_choice_policy()
 install_aces_dna_hand_policy()
+install_ankh_presale_policy()
