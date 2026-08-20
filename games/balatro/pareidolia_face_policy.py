@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from games.balatro import strategy_conditional_relationships as relationships
+from games.balatro.strategy import GOLD
 from games.balatro.strategy_value import StrategyAwareJokerBuildValueEvaluator
 
 
@@ -32,16 +34,36 @@ def _has_pareidolia(state) -> bool:
 
 
 def install_pareidolia_face_policy() -> None:
-    """Protect Pareidolia face payoffs without duplicating inherited tree evidence.
+    """Make Pareidolia an activator for genuine face-card scoring routes.
 
-    Face Cards parent evidence is already inherited once when the Pareidolia child
-    becomes the active leaf. Reclassifying the same payoff Jokers on the child would
-    count them twice (for example Pareidolia + Scary Face becoming 14 instead of 11).
-    This policy therefore affects Joker retention/acquisition value only; it does not
-    add another conditional strategy relationship.
+    Pareidolia makes every card a face card, so it is defining Gold evidence for the
+    generic Face Cards route. For specialized face routes it becomes Gold only after
+    the actual scoring payoff exists (Photograph or Triboulet); Pareidolia alone must
+    not manufacture those specialized strategies.
+
+    The existing build-value retention floor remains separate from strategy scoring
+    so inherited face-payoff Jokers are not counted twice.
     """
     if getattr(StrategyAwareJokerBuildValueEvaluator, "_pareidolia_face_policy_installed", False):
         return
+
+    original_conditional = relationships.conditional_joker_relationship
+
+    def conditional_joker_relationship(state, strategy_id: str, item: object) -> str:
+        base = original_conditional(state, strategy_id, item)
+        if _token(item) != _PAREIDOLIA:
+            return base
+
+        owned = _owned_tokens(state)
+        if strategy_id == "face_cards":
+            return GOLD
+        if strategy_id == "face_photochad" and "photographjoker" in owned:
+            return GOLD
+        if strategy_id == "face_triboulet_sock" and "tribouletjoker" in owned:
+            return GOLD
+        return base
+
+    relationships.conditional_joker_relationship = conditional_joker_relationship
 
     original_evaluate = StrategyAwareJokerBuildValueEvaluator.evaluate
 
@@ -56,11 +78,6 @@ def install_pareidolia_face_policy() -> None:
         if pareidolia_assessment is None or float(pareidolia_assessment.score) <= 0.0:
             return result
 
-        # Pareidolia makes every played card a face card. Once that leaf has real
-        # positive evidence, its face-payoff Jokers remain genuine engine pieces
-        # even if a broader parent/sibling temporarily wins the primary-id tie.
-        # This is a retention floor, not an immortality rule: a materially stronger
-        # replacement can still beat the support Joker.
         floor = 6.0
         if float(result.total_gain) >= floor:
             return result
