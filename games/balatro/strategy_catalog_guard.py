@@ -44,14 +44,7 @@ def _downgrade_gold_to_silver(
 
 
 def _retire_standalone_strategy(definition: StrategyDefinition) -> StrategyDefinition:
-    """Keep a topology/catalog ID but remove it from active strategy competition.
-
-    Some catalogue leaves describe useful support components rather than a complete
-    run-clearing route. Preserve the ID for topology compatibility and documentation,
-    but remove all positive acquisition evidence and make the requirement impossible
-    to satisfy. The component may still be valued normally or as support by another
-    genuine strategy.
-    """
+    """Keep a topology/catalog ID but remove it from active strategy competition."""
 
     return replace(
         definition,
@@ -128,7 +121,6 @@ def guard_unresolved_conditional_relationships(
         "tarot_hallucination": ("Hallucination",),
         "tarot_eight_ball": ("8 Ball", "Eight Ball"),
         "joker_stencil": ("Joker Stencil",),
-        "cash_growth": ("Rocket", "To the Moon"),
     }
     for strategy_id, joker_names in weak_single_joker_cores.items():
         guarded[strategy_id] = _downgrade_gold_to_silver(
@@ -136,10 +128,9 @@ def guard_unresolved_conditional_relationships(
             *joker_names,
         )
 
-    # These leaves describe support/economy mechanisms rather than a complete
-    # run-clearing engine. They must never become top/secondary/tertiary strategy
-    # candidates on their own. Their Jokers remain usable as generic value or as
-    # evidence in other genuine routes.
+    # Support/economy mechanisms do not compete as standalone routes. Cash-producing
+    # components are rehomed conditionally under Bull/Bootstraps by the state-aware
+    # cash-scoring support policy; they cannot activate that scoring route alone.
     non_standalone_strategy_ids = frozenset(
         {
             "abstract_joker",
@@ -148,6 +139,8 @@ def guard_unresolved_conditional_relationships(
             "face_business_card",
             "faceless_discard_economy",
             "planet_satellite",
+            "cash_hoard",
+            "cash_growth",
             "cash_cloud_nine",
             "discard_mail_rebate",
             "no_discard_reserve",
@@ -178,9 +171,9 @@ def guard_unresolved_conditional_relationships(
         minimum_positive_jokers=2,
     )
 
-    # Bull and Bootstraps share one cash-scoring leaf, but each is independently
-    # strong enough to make that leaf viable. Keep the legacy leaves retired while
-    # preserving each Joker as standalone Gold evidence on the combined route.
+    # Bull and Bootstraps are the defining cash-to-score cores. Their old individual
+    # leaves stay retired so there is one cash-scoring index. Either core can activate
+    # the combined route; owning both strengthens it further through conditional rules.
     retired_cash_requirement = _joker_tokens("__retired_cash_leaf__")
     for strategy_id in ("cash_bull", "cash_bootstraps"):
         legacy = guarded[strategy_id]
