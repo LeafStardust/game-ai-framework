@@ -99,7 +99,7 @@ def guard_unresolved_conditional_relationships(
         "no_discard_reserve": ("Banner", "Delayed Gratification"),
         "last_hand_acrobat": ("Acrobat",),
         "no_discard_green": ("Green Joker",),
-        "straight": ("Shortcut", "Four Fingers", "Superposition"),
+        "straight": ("Shortcut", "Four Fingers"),
         "face_held_economy": ("Reserved Parking",),
         "face_business_card": ("Business Card",),
         "faceless_discard_economy": ("Faceless Joker",),
@@ -120,6 +120,17 @@ def guard_unresolved_conditional_relationships(
             guarded[strategy_id],
             *joker_names,
         )
+
+    # Superposition is only weak support for Straight: keep it Bronze rather than
+    # allowing it to manufacture a Silver commitment signal.
+    straight = guarded["straight"]
+    superposition = _joker_tokens("Superposition")
+    guarded["straight"] = replace(
+        straight,
+        gold_jokers=frozenset(set(straight.gold_jokers) - set(superposition)),
+        silver_jokers=frozenset(set(straight.silver_jokers) - set(superposition)),
+        bronze_jokers=frozenset(set(straight.bronze_jokers) | set(superposition)),
+    )
 
     photochad = guarded["face_photochad"]
     guarded["face_photochad"] = replace(
