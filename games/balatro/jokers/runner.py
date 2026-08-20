@@ -11,10 +11,8 @@ class RunnerJoker(Joker):
         if context.score is None:
             return context
 
-        if context.poker_hand != PokerHand.STRAIGHT:
-            return context
+        if context.poker_hand in {PokerHand.STRAIGHT, PokerHand.STRAIGHT_FLUSH}:
+            self.chips += 15
 
-        self.chips += 15
         context.score.chips += self.chips
-
         return context
