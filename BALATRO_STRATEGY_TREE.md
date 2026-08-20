@@ -30,9 +30,7 @@ High Card [I]
 Pair [L]
 Two Pair [L]
 Three of a Kind [L]
-
 Straight [L]
-
 Flush [L]
 Full House [L]
 Four of a Kind [L]
@@ -49,7 +47,6 @@ Aces [L]
 Low-Rank Scoring [L]
 Twos / Wee-Hack [L]
 Ten-Four / Walkie Talkie [L]
-
 Sixes / Sixth Sense [L]
 Jacks / Hit the Road [L]
 Queens / Shoot the Moon [L]
@@ -68,14 +65,14 @@ The Idol Exact-Card Concentration [L]
 Relationship notes:
 - Aces is Scholar-defined: DNA, Fibonacci, and Odd Todd are support only after Scholar establishes the route.
 - Ride the Bus is Silver evidence for its no-face scaling leaf, not a Gold self-defining core.
-- Pareidolia can protect compatible face-payoff Jokers such as Smiley Face while its leaf is active, but inherited Face Cards evidence is counted only once.
+- **Pareidolia is Gold activation evidence for the Face Cards family.** It is also Gold support for PhotoChad when Photograph is present and for the Triboulet route when Triboulet is present; Pareidolia alone does not fabricate those specialized payoff cores.
+- Pareidolia continues to protect compatible face-payoff Jokers such as Smiley Face while its route is active, with inherited Face Cards evidence counted only once.
 - Reserved Parking, Business Card, and Faceless Joker economy are support components, not standalone run-clearing routes.
 
 ## 3. Suit and held-card strategies
 
 ```text
 Hearts / Bloodstone [L]
-
 Diamonds / Rough Gem Economy [L]
 
 Clubs [I]
@@ -83,7 +80,6 @@ Clubs [I]
 └── Seeing Double Mixed-Suit Clubs [L]
 
 Spades / Arrowhead Chips [L]
-
 Blackboard Held-Black Cards [L]
 Ancient Joker Suit-Rotation [L]
 Flower Pot Multi-Suit [L]
@@ -124,7 +120,6 @@ Gold Cards [I]
 Red Seal [I]
 ├── Played Red-Seal Retrigger [L]
 └── Held Red-Seal Retrigger [L]
-
 Blue Seal Hand-Level Scaling [L]
 Purple Seal Tarot Engine [L]
 Gold-Seal Retrigger Economy [L]
@@ -137,15 +132,11 @@ Canio Destruction [I]
 ├── Trading Card / Pareidolia Canio [L]
 ├── Glass Canio [L]
 └── Consumable Canio [L]
-
 Vampire [L]
-
 Ceremonial Dagger / Disposable-Joker Feed [L]
-
 Madness Destruction [I]
 ├── Solo Madness [L]
 └── Eternal-Joker Madness [L]
-
 Deck Thinning [I]
 ├── Trading Card Thinning / Economy [L]
 └── Erosion Thinning [L]
@@ -155,7 +146,6 @@ Deck Thinning [I]
 
 ```text
 Hologram Deck-Growth [L]
-
 Hiker Retrigger / Copy Training [L]
 Driver's License Enhancement-Density [L]
 Blue Joker Large-Deck Chips [L]
@@ -177,7 +167,6 @@ Perkeo Consumable Duplication [I]
 Tarot Engine [I]
 ├── Passive Tarot Generation [L]
 └── 8 Ball / Eights Tarot Generation [L]
-
 Vagabond Low-Money Tarot Engine [L]
 ```
 
@@ -186,9 +175,7 @@ Constellation is dependency-gated: it is not a self-starting Planet core. Astron
 ## 9. Economy, shop, pack, reroll, and blind-skip engines
 
 ```text
-Cash Hoard / Interest [I]
-├── Rocket / To the Moon Cash Growth [L]
-└── Bull / Bootstraps Cash Scoring [L]
+Bull / Bootstraps Cash Scoring [L]
 
 Campfire Sell-Scaling [L]
 Flash Card Reroll-Scaling [L]
@@ -196,13 +183,12 @@ Red Card Pack-Skip Scaling [L]
 Throwback Blind-Skip Scaling [L]
 ```
 
-Cloud 9 is economy support, not a standalone run-clearing route.
+**Bull / Bootstraps is the cash-scoring strategy.** Bull or Bootstraps must be present to activate it. Cash generators do not compete as standalone strategies; instead they widen this route as conditional support. Rocket, To the Moon, Cloud 9, Satellite, Reserved Parking, Business Card, Faceless Joker, Mail-In Rebate, Delayed Gratification, Golden Joker, Golden Ticket, and Rough Gem may feed the cash-scoring index when their own trigger infrastructure is usable. Rocket + To the Moon together are Gold support once Bull/Bootstraps is active; individually they are Silver support. Cash generation alone cannot activate the route.
 
 ## 10. Joker-board and composition strategies
 
 ```text
 Joker Stencil / Ankh / Invisible Duplication [L]
-
 Baseball Card Uncommon Stack [L]
 Egg / Gift-Card Swashbuckler [L]
 ```
@@ -233,7 +219,6 @@ Mail-In Rebate and Banner + Delayed Gratification are support/economy packages r
 Last-Hand Burst [I]
 ├── Acrobat Last-Hand XMult [L]
 └── Dusk Last-Hand Retrigger [L]
-
 Loyalty Card Six-Hand Cycle [L]
 ```
 
@@ -241,15 +226,15 @@ Loyalty Card Six-Hand Cycle [L]
 
 ```text
 Baron-Mime High Card        <-> Steel / Red Seal / DNA / hand-size support / Shoot the Moon
-PhotoChad                   <-> Face Cards / Lucky / Glass / Red Seal / Hiker
-Triboulet + Sock and Buskin <-> Face Cards / Red Seal / Glass
+PhotoChad                   <-> Face Cards / Pareidolia / Lucky / Glass / Red Seal / Hiker
+Triboulet + Sock and Buskin <-> Face Cards / Pareidolia / Red Seal / Glass
 Bloodstone Hearts           <-> Oops! All 6s / retriggers / Lucky
 Marble Joker                <-> Stone / Hologram / Vampire / Driver's License
 DNA                         <-> Scholar-backed Aces / Stone / Hologram / Baron / Trips / Quads / Five Kind / Flush Five / Vampire
-Pareidolia                  <-> Face scoring / Canio / Midas Mask / Vampire
+Pareidolia                  <-> Gold face-route activation / face scoring / Canio / Midas Mask / Vampire
 Perkeo                      <-> Planet / Cryptid / Tarot / Spectral
 Blueprint / Brainstorm      <-> strongest copyable active engine
-Cash Hoard                  <-> Bull / Bootstraps / Rocket / To the Moon / Cloud 9
+Bull / Bootstraps Cash      <-> Rocket / To the Moon / Cloud 9 / Satellite / Reserved Parking / Business Card / Faceless / Mail-In Rebate / Delayed Gratification / Golden Joker / Golden Ticket / Rough Gem
 Discard Utilization         <-> Castle / Mail-In Rebate / Purple Seal / Hit the Road / Faceless / Yorick
 No-Discard                  <-> Green Joker / Banner / Delayed Gratification / Ramen / Burglar
 Hack / Fibonacci            <-> Twos / low-rank shaping / retriggers
@@ -259,8 +244,8 @@ Blackboard                  <-> Spades / Clubs / High Card / Pair / held-card pr
 Raised Fist                 <-> held-card minimum / Mime / Red Seal / high held ranks
 Planet Engine               <-> Constellation (Astronomer/Satellite gated) / Satellite / Blue Seal / Astronomer / hand levels
 Tarot Engine                <-> Fortune Teller / Cartomancer / Hallucination / 8 Ball / Purple Seal / Vagabond / Perkeo
-Business Card               <-> Face Cards / Pareidolia / retriggers / Red Seal
-Midas + Golden Ticket       <-> Face Cards / Gold Cards / retriggers
+Business Card               <-> Face Cards / Pareidolia / retriggers / Red Seal / Bull-Bootstraps cash scoring
+Midas + Golden Ticket       <-> Face Cards / Gold Cards / retriggers / Bull-Bootstraps cash scoring
 Ancient Joker               <-> suit flexibility / Smeared Joker
 Joker Stencil               <-> Ankh / Invisible Joker / Negative Jokers / empty slots
 ```
@@ -273,13 +258,17 @@ These components do not form independent strategies. They are assigned as condit
 |---|---|
 | Abstract Joker | Generic wide-board additive Mult; ordinary Joker value only, never a standalone route |
 | Raised Fist | High Card / Pair / held-card / Mime and Red-Seal support |
-| Reserved Parking | Face-card held economy support |
-| Business Card | Face Cards / Pareidolia / retriggers / Red Seal economy support |
-| Faceless Joker | Faceless / discard economy support |
-| Satellite | Planet / Constellation economy support |
-| Cloud 9 | Cash-hoard / Nines economy support |
-| Mail-In Rebate | Discard-utilization economy support |
-| Banner / Delayed Gratification | No-discard / discard-preservation support |
+| Rocket / To the Moon | Bull / Bootstraps cash scoring; Silver individually and Gold together after a cash scorer exists |
+| Cloud 9 | Bull / Bootstraps cash scoring / Nines economy support |
+| Reserved Parking | Face-card held economy; Bull / Bootstraps cash support when its face-card trigger is usable |
+| Business Card | Face Cards / Pareidolia / retriggers / Red Seal; Bull / Bootstraps cash support when face-card infrastructure is usable |
+| Faceless Joker | Faceless / discard economy; Bull / Bootstraps cash support when its discard trigger is usable |
+| Satellite | Planet / Constellation economy; Bull / Bootstraps cash support when its Planet infrastructure is usable |
+| Mail-In Rebate | Discard-utilization economy; Bull / Bootstraps cash support when its discard target is usable |
+| Banner / Delayed Gratification | No-discard / discard-preservation support; Delayed Gratification may feed Bull / Bootstraps cash scoring |
+| Golden Joker | Bull / Bootstraps unconditional cash support |
+| Golden Ticket | Gold-card scoring/economy; Bull / Bootstraps cash support when Gold-card infrastructure exists |
+| Rough Gem | Diamond scoring/economy; Bull / Bootstraps cash support when Diamond infrastructure exists |
 | Blueprint / Brainstorm | Silver support for an owned, copyable defining engine; never independent strategy evidence |
 | Astronomer | Planet Engine, Blue Seal hand-level scaling, Burnt Joker hand-level support, and prerequisite for Silver Constellation support |
 | Chaos the Clown | Gold support for an owned Flash Card reroll engine |
