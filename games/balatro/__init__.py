@@ -10,6 +10,7 @@ from games.balatro.five_run_followup_policy import install_five_run_followup_pol
 from games.balatro.five_run_optimization_policy import install_five_run_optimization_policy
 from games.balatro.log_batch_calibration_policy import install_log_batch_calibration_policy
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
+from games.balatro.observatory_planet_policy import install_observatory_planet_policy
 from games.balatro.pareidolia_face_policy import install_pareidolia_face_policy
 from games.balatro.safe_pace_blind_skip_patch import install_safe_pace_blind_skip_patch
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
@@ -44,3 +45,4 @@ install_v1_0_0_luchador_policy()
 install_five_run_optimization_policy()
 install_five_run_followup_policy()
 install_cash_scoring_support_policy()
+install_observatory_planet_policy()
