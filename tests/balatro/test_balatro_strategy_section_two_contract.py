@@ -117,7 +117,7 @@ def test_section_two_contains_fifteen_terminal_strategies():
 def test_collapsed_rank_relationships_match_the_frozen_contract():
     definitions = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
 
-    assert definitions["aces"].relationship_for(ScholarJoker(), kind="JOKER") == GOLD
+    assert definitions["aces"].relationship_for(ScholarJoker(), kind="JOKER") == SILVER
     assert definitions["aces"].relationship_for(DNAJoker(), kind="JOKER") == NEUTRAL
     assert definitions["low_rank"].relationship_for(FibonacciJoker(), kind="JOKER") == GOLD
     assert definitions["low_rank"].relationship_for(HackJoker(), kind="JOKER") == GOLD
@@ -131,14 +131,30 @@ def test_collapsed_rank_relationships_match_the_frozen_contract():
     ) == NEUTRAL
 
 
-def test_scholar_establishes_aces_and_dna_only_supports_a_real_ace_route():
+def test_scholar_is_silver_solo_and_gold_with_dna():
+    tracker = _tracker()
+    scholar = ScholarJoker()
+    solo_state = _state(jokers=(scholar,))
+    solo = tracker.observe(solo_state)
+
+    assert solo.assessment("aces").score == pytest.approx(3.0)
+    assert conditional_joker_relationship(solo_state, "aces", scholar) == SILVER
+
+    scholar = ScholarJoker()
+    dna = DNAJoker()
+    paired_state = _state(jokers=(scholar, dna))
+    paired = tracker.observe(paired_state)
+
+    assert conditional_joker_relationship(paired_state, "aces", scholar) == GOLD
+    assert conditional_joker_relationship(paired_state, "aces", dna) == SILVER
+    assert paired.assessment("aces").score == pytest.approx(11.0)
+    assert paired.dominant_strategy_id == "aces"
+
+
+def test_dna_without_scholar_does_not_establish_aces():
     tracker = _tracker()
     dna_only = tracker.observe(_state(jokers=(DNAJoker(),)))
-    scholar_dna = tracker.observe(_state(jokers=(ScholarJoker(), DNAJoker())))
-
     assert dna_only.assessment("aces").score == pytest.approx(0.0)
-    assert scholar_dna.assessment("aces").score == pytest.approx(11.0)
-    assert scholar_dna.dominant_strategy_id == "aces"
 
 
 def test_wee_hack_is_one_twos_strategy_while_hack_fibonacci_is_one_low_rank_strategy():
@@ -154,9 +170,9 @@ def test_wee_hack_is_one_twos_strategy_while_hack_fibonacci_is_one_low_rank_stra
     assert low_rank.dominant_strategy_id == "low_rank"
 
 
-def test_low_rank_retrigger_support_requires_real_low_rank_commitment():
-    unsupported = _state()
-    committed = _state(jokers=(FibonacciJoker(),))
+def test_low_rank_retrigger_support_requires_hack_engine():
+    unsupported = _state(jokers=(FibonacciJoker(),))
+    committed = _state(jokers=(HackJoker(), FibonacciJoker()))
 
     assert (
         conditional_joker_relationship(
