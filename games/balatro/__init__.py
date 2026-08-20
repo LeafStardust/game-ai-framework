@@ -3,6 +3,7 @@
 from games.balatro.aces_scholar_policy import install_aces_scholar_policy
 from games.balatro.blue_joker_strategy_rules import apply_blue_joker_strategy_rules
 from games.balatro.card_sharp_strategy_rules import install_card_sharp_strategy_rules
+from games.balatro.cash_scoring_support_policy import install_cash_scoring_support_policy
 from games.balatro.constellation_strategy_rules import apply_constellation_strategy_rules
 from games.balatro.d1_log_resilience_policy import install_d1_log_resilience_policy
 from games.balatro.five_run_followup_policy import install_five_run_followup_policy
@@ -42,3 +43,4 @@ install_v1_0_0_policy()
 install_v1_0_0_luchador_policy()
 install_five_run_optimization_policy()
 install_five_run_followup_policy()
+install_cash_scoring_support_policy()
