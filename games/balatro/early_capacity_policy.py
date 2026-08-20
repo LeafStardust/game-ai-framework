@@ -21,6 +21,8 @@ def _normalize(value: object) -> str:
 
 
 def _label(item: object) -> str:
+    if isinstance(item, str):
+        return item
     return str(
         getattr(item, "label", None)
         or getattr(item, "name", None)
