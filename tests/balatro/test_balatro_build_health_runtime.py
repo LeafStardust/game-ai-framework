@@ -93,6 +93,23 @@ def test_blue_uses_remaining_draw_pile_in_blind_and_post_opening_owned_deck_in_s
     assert shop.current_strength == 88.0
 
 
+def test_blue_normal_growth_baseline_tracks_modified_hand_size():
+    state = _state(ante=4, blind_score=5000, jokers=(BlueJoker(),))
+    state.phase = "SHOP"
+    state.hand_size = 10
+    state.owned_deck = [BalatroCard("A", "Spades") for _ in range(52)]
+
+    engine = next(
+        value
+        for value in RealizedEngineAnalyzer().analyze(state)
+        if value.engine_id == "blue_joker"
+    )
+
+    assert engine.current_strength == 84.0
+    assert engine.growth_rate == 0.50
+    assert any("remainder=42" in note and "hand size 10" in note for note in engine.rationale)
+
+
 def test_shop_scoring_probe_uses_post_opening_owned_deck_without_hidden_order():
     state = _state(ante=4, blind_score=5000)
     state.phase = "SHOP"
@@ -100,6 +117,16 @@ def test_shop_scoring_probe_uses_post_opening_owned_deck_without_hidden_order():
     state.deck = []
     evaluator = RuntimeBuildHealthEvaluator(scorer=_DeckLengthScorer())
     assert evaluator._representative_best_score(state) == 44.0
+
+
+def test_shop_scoring_probe_tracks_modified_hand_size():
+    state = _state(ante=4, blind_score=5000)
+    state.phase = "SHOP"
+    state.hand_size = 10
+    state.owned_deck = [BalatroCard("A", "Spades") for _ in range(52)]
+    state.deck = []
+    evaluator = RuntimeBuildHealthEvaluator(scorer=_DeckLengthScorer())
+    assert evaluator._representative_best_score(state) == 42.0
 
 
 def test_duplicate_blue_jokers_stack_chip_contribution():
