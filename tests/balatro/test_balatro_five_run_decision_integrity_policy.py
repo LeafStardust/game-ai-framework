@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 
 import games.balatro  # noqa: F401 - installs production policy stack
+import games.balatro.five_run_decision_integrity_policy as integrity
+from games.balatro.actions import SELECT_PACK_CARD, BalatroAction
 from games.balatro.five_run_decision_integrity_policy import (
     _definition_is_retired,
     _madness_threatens_established_build,
@@ -67,6 +69,48 @@ def test_madness_guard_does_not_fire_for_eternal_core_or_weak_highlight():
     weak_state = SimpleNamespace(jokers=[_joker("Scholar")])
     weak = _Policy(_Tracker(score=5.99, tier=GOLD))
     assert not _madness_threatens_established_build(weak, weak_state, _joker("Madness"))
+
+
+def test_buffoon_full_roster_uses_strategy_aware_transition_planner(monkeypatch):
+    used = {}
+
+    class _StrategyPlanner:
+        def __init__(self, *, evaluator):
+            used["evaluator"] = evaluator
+
+    class _AcquisitionPolicy:
+        def __init__(self, planner):
+            used["planner"] = planner
+
+        def decide(self, state, candidate):
+            del state, candidate
+            return SimpleNamespace(
+                action="HOLD",
+                selected=None,
+                candidate="GreenJoker",
+                rationale=("fixture hold",),
+            )
+
+    monkeypatch.setattr(integrity, "StrategyAwareJokerBuildTransitionPlanner", _StrategyPlanner)
+    monkeypatch.setattr(integrity, "PlaybookJokerAcquisitionPolicy", _AcquisitionPolicy)
+
+    evaluator = SimpleNamespace(strategy_tracker=object())
+    policy = SimpleNamespace(
+        item_estimator=SimpleNamespace(joker_build_value=evaluator),
+        _pack_joker_factory=SimpleNamespace(create=lambda data: _joker(data["label"])),
+    )
+    state = SimpleNamespace(phase="BUFFOON_PACK", joker_slots=1, jokers=[_joker("Walkie Talkie")])
+    choice = SimpleNamespace(kind="JOKER", data={"label": "Green Joker"})
+    action = BalatroAction(SELECT_PACK_CARD, target=choice)
+
+    result = integrity.PlaybookBalatroPackPolicy._buffoon_replacement_score(
+        policy, state, action, choice
+    )
+
+    assert used["evaluator"] is evaluator
+    assert isinstance(used["planner"], _StrategyPlanner)
+    assert result.total == -1.0
+    assert any("does not justify replacing" in note for note in result.notes)
 
 
 def test_retired_support_and_merged_legacy_routes_are_not_actionable():
