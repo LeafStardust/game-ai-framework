@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Bounded public-information multi-action shop planning.
 
-The planner never executes a sequence in one step.  It chooses exactly one legal
+The planner never executes a sequence in one step. It chooses exactly one legal
 SELL/BUY that belongs to a verified short-horizon plan, then the autonomous loop
 must re-observe the shop and re-plan from authoritative state.
 """
@@ -80,8 +80,6 @@ def _protected_indices(state, tracker) -> set[int]:
         try:
             tracker = deepcopy(tracker)
         except (TypeError, ValueError):
-            # Bundle planning must never mutate the live strategy tracker. If the
-            # tracker cannot be isolated, fail closed and pre-sell nothing.
             return set(range(len(jokers)))
 
     protected: set[int] = set()
@@ -129,6 +127,11 @@ def _health_improves(current, projected) -> bool:
     return survival_ok and total_ok and (fixes_deficit or material_growth)
 
 
+def _first_step_survival_safe(current, projected) -> bool:
+    """Every emitted checkpoint must preserve the run, not only the final bundle."""
+    return projected.survival >= current.survival - _MAX_SURVIVAL_LOSS
+
+
 def _projection_tracker(tracker):
     if tracker is None:
         return None
@@ -145,6 +148,39 @@ def _project(state, roster, money, tracker):
         projected,
         strategy_tracker=_projection_tracker(tracker),
     )
+
+
+def _safe_first_steps(state, current, tracker, *, jokers, money, missing, added, sell_indices):
+    steps: list[tuple] = []
+    if sell_indices:
+        for index in sell_indices:
+            interim_roster = tuple(
+                joker for current_index, joker in enumerate(jokers) if current_index != index
+            )
+            interim_money = money + _sell_credit(jokers[index])
+            _, health = _project(state, interim_roster, interim_money, tracker)
+            if _first_step_survival_safe(current, health):
+                steps.append(("SELL", health.survival, health.total, -index, index, health))
+        return tuple(steps)
+
+    for token, candidate in zip(missing, added):
+        interim_roster = tuple((*jokers, candidate))
+        interim_money = money - _price(candidate)
+        _, health = _project(state, interim_roster, interim_money, tracker)
+        if _first_step_survival_safe(current, health):
+            steps.append(
+                (
+                    "BUY",
+                    health.survival,
+                    health.scaling,
+                    health.total,
+                    -_price(candidate),
+                    token,
+                    candidate,
+                    health,
+                )
+            )
+    return tuple(steps)
 
 
 def recommend_bounded_shop_bundle(arbiter, state) -> ShopBundleRecommendation | None:
@@ -177,11 +213,11 @@ def recommend_bounded_shop_bundle(arbiter, state) -> ShopBundleRecommendation | 
         if needed_sells > _MAX_PRE_SALES or needed_sells > len(replaceable):
             continue
         sell_sets = ((),) if needed_sells == 0 else combinations(replaceable, needed_sells)
-        offer_sets = product(*(visible_by_token[token] for token in missing))
+        offer_sets = tuple(
+            tuple(values)
+            for values in product(*(visible_by_token[token] for token in missing))
+        )
 
-        # Materialize because sell-set iteration may need to compare every visible
-        # edition/cost variant of the same semantic bundle component.
-        offer_sets = tuple(tuple(values) for values in offer_sets)
         for sell_indices in sell_sets:
             sell_indices = tuple(sorted(sell_indices))
             remaining_roster = [
@@ -197,14 +233,29 @@ def recommend_bounded_shop_bundle(arbiter, state) -> ShopBundleRecommendation | 
                 if final_money < reserve:
                     continue
 
-                projected_state, projected = _project(state, final_roster, final_money, tracker)
+                _, projected = _project(state, final_roster, final_money, tracker)
                 if not _health_improves(current, projected):
                     continue
+
+                first_steps = _safe_first_steps(
+                    state,
+                    current,
+                    tracker,
+                    jokers=jokers,
+                    money=money,
+                    missing=missing,
+                    added=added,
+                    sell_indices=sell_indices,
+                )
+                if not first_steps:
+                    continue
+                first_survival = max(float(step[1]) for step in first_steps)
 
                 score = (
                     projected.total,
                     projected.scaling,
                     projected.survival,
+                    first_survival,
                     final_money,
                 )
                 candidate = (
@@ -213,8 +264,8 @@ def recommend_bounded_shop_bundle(arbiter, state) -> ShopBundleRecommendation | 
                     missing,
                     added,
                     sell_indices,
+                    first_steps,
                     final_money,
-                    projected_state,
                     projected,
                 )
                 if best is None or candidate[0] > best[0]:
@@ -223,39 +274,24 @@ def recommend_bounded_shop_bundle(arbiter, state) -> ShopBundleRecommendation | 
     if best is None:
         return None
 
-    _, bundle_id, missing, added, sell_indices, final_money, _projected_state, projected = best
+    _, bundle_id, missing, added, sell_indices, first_steps, final_money, projected = best
 
     if sell_indices:
-        ranked_sales = []
-        for index in sell_indices:
-            interim_roster = tuple(
-                joker for current_index, joker in enumerate(jokers) if current_index != index
-            )
-            interim_money = money + _sell_credit(jokers[index])
-            _, interim_health = _project(state, interim_roster, interim_money, tracker)
-            ranked_sales.append((interim_health.survival, interim_health.total, -index, index))
-        index = max(ranked_sales)[-1]
+        chosen = max(first_steps, key=lambda step: (step[1], step[2], step[3]))
+        _, first_survival, first_total, _, index, _ = chosen
         action = BalatroAction(SELL_JOKER, target=index)
-        step = f"sell filler slot {index} first; re-observe before any purchase"
+        step = (
+            f"sell filler slot {index} first; checkpoint survival={first_survival:.1f} "
+            f"health={first_total:.1f}; re-observe before any purchase"
+        )
     else:
-        ranked_buys = []
-        for token, candidate in zip(missing, added):
-            interim_roster = tuple((*jokers, candidate))
-            interim_money = money - _price(candidate)
-            _, interim_health = _project(state, interim_roster, interim_money, tracker)
-            ranked_buys.append(
-                (
-                    interim_health.survival,
-                    interim_health.scaling,
-                    interim_health.total,
-                    -_price(candidate),
-                    token,
-                    candidate,
-                )
-            )
-        _, _, _, _, token, candidate = max(ranked_buys)
+        chosen = max(first_steps, key=lambda step: (step[1], step[2], step[3], step[4]))
+        _, first_survival, _, first_total, _, token, candidate, _ = chosen
         action = BalatroAction(BUY_JOKER, target=candidate)
-        step = f"buy {token} first; re-observe before complementary purchase"
+        step = (
+            f"buy {token} first; checkpoint survival={first_survival:.1f} "
+            f"health={first_total:.1f}; re-observe before complementary purchase"
+        )
 
     return ShopBundleRecommendation(
         action=action,
@@ -266,6 +302,7 @@ def recommend_bounded_shop_bundle(arbiter, state) -> ShopBundleRecommendation | 
             f"missing components={','.join(missing)}; planned pre-sales={sell_indices or 'none'}",
             f"projected final cash=${final_money}",
             f"Build Health {current.total:.1f}->{projected.total:.1f}; survival {current.survival:.1f}->{projected.survival:.1f}; scaling {current.scaling:.1f}->{projected.scaling:.1f}",
+            "every emitted first step independently preserves the configured survival-loss bound",
             step,
             "only one action is emitted; authoritative re-observation is mandatory before continuing the bundle",
         ),
