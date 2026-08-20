@@ -20,21 +20,40 @@ def install_safe_pace_timeout_patch() -> None:
         # wall-clock deadline. Production planners expose a discard generator; tiny
         # test/fake planners may not, in which case retain the original bounded
         # structural PLAY fallback rather than assuming an unavailable interface.
-        generator = getattr(getattr(planner, "action_generator", None), "generate_discard_actions", None)
+        generator = getattr(
+            getattr(planner, "action_generator", None),
+            "generate_discard_actions",
+            None,
+        )
         if (
             int(getattr(state, "discards_remaining", 0) or 0) > 0
             and callable(generator)
         ):
             discards = list(generator(state))
             if discards:
-                action = discards[0]
+                # The five-attempt 1.0.0 review exposed repeated timeout recovery
+                # that spent four discards one card at a time (notably The Tooth).
+                # Once the expensive planner has timed out, favor the legal action
+                # that refreshes the most cards.  Generator order remains the
+                # deterministic tie-break, so structurally equivalent max-width
+                # choices remain stable.
+                action = max(
+                    enumerate(discards),
+                    key=lambda pair: (len(getattr(pair[1], "cards", ()) or ()), -pair[0]),
+                )[1]
+                discarded_count = len(getattr(action, "cards", ()) or ())
                 value = LiveBlindPlanValue(
                     clear_probability=0.0,
                     expected_progress=0.0,
                     expected_score=float(getattr(state, "score", 0) or 0),
-                    expected_hands_remaining=float(getattr(state, "hands_remaining", 0) or 0),
+                    expected_hands_remaining=float(
+                        getattr(state, "hands_remaining", 0) or 0
+                    ),
                     expected_discards_remaining=float(
-                        max(0, int(getattr(state, "discards_remaining", 0) or 0) - 1)
+                        max(
+                            0,
+                            int(getattr(state, "discards_remaining", 0) or 0) - 1,
+                        )
                     ),
                 )
                 plan = LiveBlindPlan(
@@ -62,6 +81,7 @@ def install_safe_pace_timeout_patch() -> None:
                     rationale=(
                         "D1 wall-clock budget exhausted",
                         "safe-pace timeout invariant: a legal discard remains, so do not burn an under-pace scoring hand",
+                        f"timeout recovery refreshes {discarded_count} cards instead of spending a discard on the first one-card candidate",
                         "take only this discard, then re-observe and replan",
                     ),
                     plans=(plan,),
