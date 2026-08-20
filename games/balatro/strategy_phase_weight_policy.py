@@ -28,6 +28,7 @@ _PHASE_WEIGHTS = {
     4: 0.70,
     5: 0.90,
 }
+_FOUNDATION_SCOPE = (1.00, 0.50, 0.25)
 
 
 def strategy_phase_weight(ante: int) -> float:
@@ -51,6 +52,7 @@ def install_strategy_phase_weight_policy() -> None:
 
     original_active_probe_hands = StrategyAwareJokerBuildValueEvaluator._active_probe_hands
     original_evaluate = StrategyAwareJokerBuildValueEvaluator.evaluate
+    original_scope_factor = BalatroStrategyTracker._scope_factor
 
     def strategy_pressure(self, state) -> float:
         ante = max(1, int(getattr(state, "ante", 1) or 1))
@@ -60,6 +62,20 @@ def install_strategy_phase_weight_policy() -> None:
             strategy_phase_weight(ante)
             * self._number(config, "strategy_pressure_multiplier", 1.0),
         )
+
+    def _scope_factor(self, state, strategy_id, rank, resolution):
+        ante = max(1, int(getattr(state, "ante", 1) or 1))
+        if ante <= 2:
+            # Foundation is exploratory, not an invitation to stack alignment from
+            # every vaguely compatible strategy. Keep the best three provisional
+            # routes visible with steep decay; all lower-ranked routes contribute
+            # no purchase pressure. This guarantees that early multi-route overlap
+            # cannot outweigh a mature Ante-6 commitment merely by summation.
+            resolved_rank = max(0, int(rank))
+            if resolved_rank < len(_FOUNDATION_SCOPE):
+                return float(_FOUNDATION_SCOPE[resolved_rank])
+            return 0.0
+        return original_scope_factor(self, state, strategy_id, rank, resolution)
 
     def _active_probe_hands(self, state):
         ante = max(1, int(getattr(state, "ante", 1) or 1))
@@ -85,6 +101,7 @@ def install_strategy_phase_weight_policy() -> None:
         )
 
     BalatroStrategyTracker.strategy_pressure = strategy_pressure
+    BalatroStrategyTracker._scope_factor = _scope_factor
     StrategyAwareJokerBuildValueEvaluator._active_probe_hands = _active_probe_hands
     StrategyAwareJokerBuildValueEvaluator.evaluate = evaluate
     BalatroStrategyTracker._phase_weight_policy_installed = True
