@@ -114,6 +114,8 @@ def guard_unresolved_conditional_relationships(
         "tarot_cartomancer": ("Cartomancer",),
         "tarot_hallucination": ("Hallucination",),
         "tarot_eight_ball": ("8 Ball", "Eight Ball"),
+        "joker_stencil": ("Joker Stencil",),
+        "cash_growth": ("Rocket", "To the Moon"),
     }
     for strategy_id, joker_names in weak_single_joker_cores.items():
         guarded[strategy_id] = _downgrade_gold_to_silver(
