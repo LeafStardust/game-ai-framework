@@ -44,16 +44,24 @@ def _tracker_from_policy(policy):
     return getattr(evaluator, "strategy_tracker", None)
 
 
-def _protected_indices(policy, state) -> frozenset[int]:
+def _committed_context(policy, state):
     tracker = _tracker_from_policy(policy)
     if tracker is None:
-        return frozenset()
+        return None
     resolution = tracker.observe(state)
     if resolution.active_status not in {COMMITTED, MATURE}:
-        return frozenset()
+        return None
     primary = _primary_id(tracker, resolution)
     if primary is None:
+        return None
+    return tracker, resolution, primary
+
+
+def _protected_indices(policy, state) -> frozenset[int]:
+    context = _committed_context(policy, state)
+    if context is None:
         return frozenset()
+    tracker, _, primary = context
 
     protected = set()
     for index, joker in enumerate(getattr(state, "jokers", ()) or ()):
@@ -79,6 +87,12 @@ def _evaluate_after_sales(evaluator: AnkhExpectationEvaluator, state, indices: t
 
 
 def best_ankh_presale_plan(policy, state) -> AnkhPresalePlan | None:
+    # Without a committed/mature route we cannot authoritatively distinguish the
+    # intended copy target from expendable setup Jokers. Fall back to the existing
+    # analytic Ankh evaluation rather than making an assumption-driven pre-sale.
+    if _committed_context(policy, state) is None:
+        return None
+
     jokers = tuple(getattr(state, "jokers", ()) or ())
     if len(jokers) <= 1:
         return None
