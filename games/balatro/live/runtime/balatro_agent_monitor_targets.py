@@ -55,15 +55,26 @@ def _pretty_token(token: str) -> str:
     return value.replace("_", " ").title() if value else "?"
 
 
-def _owned_tokens(rows: list[dict[str, Any]]) -> set[str]:
+def _latest_strategy_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    latest = base_monitor._latest(rows, "decision") or {}
+    data = latest.get("data") if isinstance(latest.get("data"), dict) else {}
+    rationale = data.get("rationale") if isinstance(data.get("rationale"), dict) else {}
+    postmortem = rationale.get("postmortem") if isinstance(rationale.get("postmortem"), dict) else {}
+    strategy = postmortem.get("strategy") if isinstance(postmortem.get("strategy"), dict) else {}
+    return strategy
+
+
+def _owned_cards(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     state = base_monitor._last_state(rows)
     payload = state.get("payload") if isinstance(state.get("payload"), dict) else {}
     jokers = payload.get("jokers") if isinstance(payload.get("jokers"), dict) else {}
     cards = jokers.get("cards") if isinstance(jokers.get("cards"), list) else []
+    return [card for card in cards if isinstance(card, dict)]
+
+
+def _owned_tokens(rows: list[dict[str, Any]]) -> set[str]:
     owned: set[str] = set()
-    for card in cards:
-        if not isinstance(card, dict):
-            continue
+    for card in _owned_cards(rows):
         for key in ("label", "name", "center", "key"):
             token = _normalize(card.get(key, ""))
             if token:
@@ -74,13 +85,21 @@ def _owned_tokens(rows: list[dict[str, Any]]) -> set[str]:
 
 
 def _dominant_strategy_id(rows: list[dict[str, Any]]) -> str | None:
-    latest = base_monitor._latest(rows, "decision") or {}
-    data = latest.get("data") if isinstance(latest.get("data"), dict) else {}
-    rationale = data.get("rationale") if isinstance(data.get("rationale"), dict) else {}
-    postmortem = rationale.get("postmortem") if isinstance(rationale.get("postmortem"), dict) else {}
-    strategy = postmortem.get("strategy") if isinstance(postmortem.get("strategy"), dict) else {}
-    value = strategy.get("dominant_strategy_id")
+    value = _latest_strategy_payload(rows).get("dominant_strategy_id")
     return str(value) if value else None
+
+
+def _dominant_assessment(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
+    strategy = _latest_strategy_payload(rows)
+    dominant_id = strategy.get("dominant_strategy_id")
+    ranked = strategy.get("ranked")
+    if dominant_id is None or not isinstance(ranked, list):
+        return None
+    target = str(dominant_id)
+    for row in ranked:
+        if isinstance(row, dict) and str(row.get("strategy_id")) == target:
+            return row
+    return None
 
 
 def _unique_components(values) -> list[str]:
@@ -94,6 +113,60 @@ def _unique_components(values) -> list[str]:
         seen.add(canonical)
         result.append(_pretty_token(raw))
     return result
+
+
+def _tiered_owned_components(rows: list[dict[str, Any]], strategy_id: str) -> list[str]:
+    definition = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES.get(strategy_id)
+    if definition is None:
+        return []
+    owned = _owned_tokens(rows)
+    result: list[str] = []
+    for label, values in (
+        ("G", definition.gold_jokers),
+        ("S", definition.silver_jokers),
+        ("B", definition.bronze_jokers),
+    ):
+        matched = []
+        for raw in values:
+            token = _normalize(raw)
+            base = token[:-5] if token.endswith("joker") else token
+            if token in owned or base in owned:
+                matched.append(raw)
+        names = _unique_components(matched)
+        if names:
+            result.append(f"{label}: " + ", ".join(names))
+    return result
+
+
+def _strategy_has(rows: list[dict[str, Any]]) -> list[str]:
+    """Explain the dominant strategy's current score from public evidence."""
+    strategy_id = _dominant_strategy_id(rows)
+    if not strategy_id:
+        return []
+
+    assessment = _dominant_assessment(rows)
+    evidence: list[str] = []
+    if assessment is not None:
+        rationale = assessment.get("rationale")
+        if isinstance(rationale, list):
+            for raw in rationale:
+                note = str(raw)
+                lowered = note.lower()
+                if lowered.startswith("owned "):
+                    evidence.append(note)
+                elif "evidence=" in lowered and not lowered.startswith("tree "):
+                    evidence.append(note)
+                elif "requirement not met" in lowered:
+                    evidence.append(note)
+
+    # Older logs may not serialize assessment rationale. In that case still show
+    # the current owned catalogue components, tiered exactly as the strategy sees
+    # them, rather than leaving the explanation blank.
+    if not evidence:
+        evidence = _tiered_owned_components(rows, strategy_id)
+
+    # Keep the terminal monitor readable. The full postmortem remains in the run log.
+    return evidence[:6]
 
 
 def _strategy_targets(rows: list[dict[str, Any]]) -> list[str]:
@@ -163,13 +236,16 @@ def build_dashboard(status, *, supervisor_pid, balatro_running, rows, telemetry=
         rows=rows,
         telemetry=telemetry,
     )
+    evidence = _strategy_has(rows)
+    has_text = "NONE" if not evidence else " | ".join(evidence)
     targets = _strategy_targets(rows)
     target_text = "NONE" if not targets else " | ".join(targets)
     marker = "Path            : "
     lines = rendered.splitlines()
     for index, line in enumerate(lines):
         if line.startswith(marker):
-            lines.insert(index + 1, f"Seeking         : {target_text}")
+            lines.insert(index + 1, f"Has             : {has_text}")
+            lines.insert(index + 2, f"Seeking         : {target_text}")
             break
     return "\n".join(lines)
 
