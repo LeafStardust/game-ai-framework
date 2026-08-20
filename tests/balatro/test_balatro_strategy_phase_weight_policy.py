@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from games.balatro.strategy import BalatroStrategyTracker
 from games.balatro.strategy_phase_weight_policy import (
     strategy_phase_name,
     strategy_phase_weight,
@@ -38,3 +39,14 @@ def test_foundation_phase_keeps_scoring_probes_broad():
     evaluator = object.__new__(StrategyAwareJokerBuildValueEvaluator)
     assert evaluator._active_probe_hands(SimpleNamespace(ante=1)) == ()
     assert evaluator._active_probe_hands(SimpleNamespace(ante=2)) == ()
+
+
+def test_foundation_strategy_scope_decays_after_top_three_routes():
+    tracker = BalatroStrategyTracker({})
+    state = SimpleNamespace(ante=1)
+    resolution = SimpleNamespace(dominant_strategy_id="first")
+
+    assert tracker._scope_factor(state, "first", 0, resolution) == pytest.approx(1.0)
+    assert tracker._scope_factor(state, "second", 1, resolution) == pytest.approx(0.5)
+    assert tracker._scope_factor(state, "third", 2, resolution) == pytest.approx(0.25)
+    assert tracker._scope_factor(state, "fourth", 3, resolution) == pytest.approx(0.0)
