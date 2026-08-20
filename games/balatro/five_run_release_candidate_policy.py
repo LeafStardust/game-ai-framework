@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-"""Current-HEAD calibrations derived from the mixed-version five-run batch.
-
-Only failure patterns that remain relevant after the overlapping patch window live
-here. Older Abstract/phase/Sixth-Sense observations are deliberately not replayed.
-"""
+"""Current-HEAD calibrations derived from repeated five-run Red/White batches."""
 
 from dataclasses import replace
 
@@ -166,18 +162,40 @@ def install_five_run_release_candidate_policy() -> None:
             return result
 
         ante = max(1, int(getattr(state, "ante", 1) or 1))
-        if ante < 4 or not _full_roster(state):
+        jokers = tuple(getattr(state, "jokers", ()) or ())
+        slots = max(0, int(getattr(state, "joker_slots", 0) or 0))
+        full_roster = slots > 0 and len(jokers) >= slots
+        # A four-of-five midgame board is not 'done'. If the ordinary arbiter found
+        # nothing worth buying, one affordable search roll is preferable to carrying
+        # a vacant scoring slot into the next blind while cash sits unused.
+        open_slot_search = (
+            ante >= 4
+            and slots >= 5
+            and len(jokers) >= 4
+            and len(jokers) < slots
+        )
+        if ante < 4 or not (full_roster or open_slot_search):
             return result
+
         cost = int(reroll_cost)
         if cost <= 0 or cost > 8:
             return result
 
-        pressure = roster_upgrade_pressure(state)
+        pressure = (
+            roster_upgrade_pressure(state)
+            if full_roster
+            else sum(_joker_upgrade_weakness(joker) for joker in jokers)
+        )
         money = max(0, int(getattr(state, "money", 0) or 0))
         remaining = money - cost
-        high_cash_search = ante >= 5 and remaining >= 30
-        pressure_search = pressure >= 1.5 and remaining >= _reroll_reserve_floor(pressure)
-        if not (high_cash_search or pressure_search):
+        high_cash_search = full_roster and ante >= 5 and remaining >= 30
+        pressure_search = (
+            full_roster
+            and pressure >= 1.5
+            and remaining >= _reroll_reserve_floor(pressure)
+        )
+        vacant_slot_search = open_slot_search and remaining >= 20
+        if not (high_cash_search or pressure_search or vacant_slot_search):
             return result
 
         signature = _shop_signature(state)
@@ -191,9 +209,9 @@ def install_five_run_release_candidate_policy() -> None:
             source="RELEASE_CANDIDATE_ROSTER_REROLL",
             normalized_gain=max(0.001, float(result.normalized_gain)),
             rationale=(
-                "release-candidate calibration: full roster has enough cash to search once for a Joker upgrade before leaving shop",
-                f"ante={ante}; roster upgrade pressure={pressure:.2f}; reroll=${cost}; cash after reroll=${remaining}",
-                "high-cash runs search even when the current board is not classified as filler-heavy",
+                "release-candidate calibration: roster has enough cash to search once for a Joker upgrade before leaving shop",
+                f"ante={ante}; joker slots={len(jokers)}/{slots}; roster upgrade pressure={pressure:.2f}; reroll=${cost}; cash after reroll=${remaining}",
+                "full weak boards and four-of-five midgame boards may each spend one bounded search roll while preserving reserve",
                 *result.rationale,
             ),
         )
