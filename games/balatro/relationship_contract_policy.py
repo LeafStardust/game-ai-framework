@@ -11,8 +11,15 @@ from games.balatro import strategy_conditional_relationships as conditional_modu
 from games.balatro.strategy import GOLD, NEUTRAL, SILVER
 
 
-_LOW_RANK_RETRIGGER_SUPPORT = frozenset(
-    {"hangingchadjoker", "seltzerjoker", "duskjoker"}
+_LOW_RANK_SUPPORT = frozenset(
+    {
+        "fibonaccijoker",
+        "oddtoddjoker",
+        "evenstevenjoker",
+        "hangingchadjoker",
+        "seltzerjoker",
+        "duskjoker",
+    }
 )
 
 
@@ -54,10 +61,10 @@ def install_relationship_contract_policy() -> None:
         if strategy_id == "aces" and token == "scholarjoker":
             return GOLD if "dnajoker" in owned else SILVER
 
-        # Played-card retriggers do not establish Low-Rank Scoring on their own.
-        # Hack is the actual low-rank retrigger engine; without Hack these Jokers
-        # remain neutral even if deck shape or Fibonacci points toward low ranks.
-        if strategy_id == "low_rank" and token in _LOW_RANK_RETRIGGER_SUPPORT:
+        # Hack is the defining Low-Rank Scoring engine. Fibonacci, ordinary
+        # low-rank payoffs, and played-card retriggers become relationship support
+        # only after Hack exists; none of them may manufacture this route alone.
+        if strategy_id == "low_rank" and token in _LOW_RANK_SUPPORT:
             return SILVER if "hackjoker" in owned else NEUTRAL
 
         return original(state, strategy_id, item)
