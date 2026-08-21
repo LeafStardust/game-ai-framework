@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 from games.balatro.actions import SELECT_PACK_CARD, SKIP_BOOSTER, BalatroAction
 from games.balatro.latest_five_run_calibration_policy import (
+    _banner_pack_replacement_is_speculative,
     _enforce_latest_pack_calibration,
     hieroglyph_blocked,
     sock_scary_face_synergy,
@@ -89,6 +90,28 @@ def test_dead_stencil_pack_choice_loses_to_skip():
     )
 
     assert ranked[0].action.name == SKIP_BOOSTER
+
+
+def test_full_roster_banner_replacement_requires_real_no_discard_support():
+    ordinary = _state(
+        _joker("Swashbuckler"),
+        _joker("Crafty Joker"),
+        _joker("Sly Joker"),
+        _joker("Droll Joker"),
+        _joker("Golden Joker"),
+        ante=5,
+    )
+    no_discard = _state(
+        _joker("Swashbuckler"),
+        _joker("Crafty Joker"),
+        _joker("Sly Joker"),
+        _joker("Droll Joker"),
+        _joker("Ramen"),
+        ante=5,
+    )
+
+    assert _banner_pack_replacement_is_speculative(ordinary, _choice("Banner")) is True
+    assert _banner_pack_replacement_is_speculative(no_discard, _choice("Banner")) is False
 
 
 def test_red_white_hieroglyph_is_blocked_from_formation_onward():
