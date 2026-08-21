@@ -23,6 +23,36 @@ BURNT_RANK_THRESHOLDS: dict[BondRank, float] = {
     BondRank.R5: 30.0,
 }
 
+# Policy authority unlocked by rank. These strings are the canonical first-Bond
+# contract for later D1/shop/pack integrations; they are deliberately descriptive
+# rather than direct score bonuses.
+BURNT_RANK_POLICIES: dict[BondRank, tuple[str, ...]] = {
+    BondRank.R1: (
+        "recognize_first_discard_level_value",
+        "default_target_high_card_without_stronger_hand_bond",
+    ),
+    BondRank.R2: (
+        "reinforce_selected_target_hand",
+        "prefer_targeted_hand_level_infrastructure",
+        "preserve_reasonable_first_discard_access",
+    ),
+    BondRank.R3: (
+        "actively_shape_resources_around_target_hand",
+        "protect_material_burnt_contributors",
+        "increase_search_value_for_burnt_reinforcement",
+    ),
+    BondRank.R4: (
+        "eligible_as_power_engine",
+        "activate_first_discard_before_trivial_clear_when_safe",
+        "strongly_prioritize_targeted_permanent_hand_scaling",
+    ),
+    BondRank.R5: (
+        "capstone_burnt_commitment",
+        "aggressively_optimize_compatible_build_around_burnt",
+        "abandon_only_for_survival_or_clearly_superior_composition",
+    ),
+}
+
 
 @dataclass(frozen=True)
 class BurntBondContext:
@@ -38,9 +68,12 @@ class BurntBondContext:
 
 
 def _name(value: Any) -> str:
-    raw = getattr(value, "name", None)
-    if raw is None:
-        raw = value.__class__.__name__
+    if isinstance(value, str):
+        raw = value
+    else:
+        raw = getattr(value, "name", None)
+        if raw is None:
+            raw = value.__class__.__name__
     return "".join(ch for ch in str(raw).lower() if ch.isalnum())
 
 
