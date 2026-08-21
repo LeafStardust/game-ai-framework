@@ -11,6 +11,7 @@ from games.balatro.committed_build_replacement_policy import install_committed_b
 from games.balatro.committed_pack_choice_policy import install_committed_pack_choice_policy
 from games.balatro.constellation_strategy_rules import apply_constellation_strategy_rules
 from games.balatro.d1_log_resilience_policy import install_d1_log_resilience_policy
+from games.balatro.d1_strategy_fit_cache_policy import install_d1_strategy_fit_cache_policy
 from games.balatro.deck_growth_pack_policy import install_deck_growth_pack_policy
 from games.balatro.early_capacity_policy import install_early_capacity_policy
 from games.balatro.five_run_decision_integrity_policy import install_five_run_decision_integrity_policy
@@ -104,3 +105,6 @@ install_latest_batch_build_quality_policy()
 # Cash deployment intentionally runs after Build Health so it only spends excess cash
 # when the final public-state health assessment says the non-cash build is inadequate.
 install_noncash_cash_deployment_policy()
+# D1 caching is installed last because it is a semantics-preserving wrapper around
+# the final composed strategy-aware hand policy.
+install_d1_strategy_fit_cache_policy()
