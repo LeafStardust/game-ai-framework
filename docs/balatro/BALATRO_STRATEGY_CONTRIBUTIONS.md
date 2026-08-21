@@ -114,6 +114,38 @@ Rough Gem +6; Greedy Joker +4; Diamonds density 13/17/21/26/32+ = +1/+3/+5/+7/+9
 ### Low Ranks (2-5) — `4 / 9 / 15 / 22 / 30`
 Hack +6; Wee Joker +6; Fibonacci +5; Even Steven +3; Walkie-Talkie +2; 2-5 density 16/20/24/30+ = +1/+3/+5/+7. Walkie-Talkie alone remains R0 and does not define a standalone Bond.
 
+## Bonds 33-42
+
+### Kings — `4 / 9 / 15 / 22 / 30`
+Baron +7; Triboulet +6; King density 4/6/9/13/18+ = +1/+3/+5/+7/+9.
+
+### Queens — `4 / 9 / 15 / 22 / 30`
+Shoot the Moon +6; Triboulet +5; Queen density 4/6/9/13/18+ = +1/+3/+5/+7/+9.
+
+### Jacks — `4 / 9 / 15 / 22 / 30`
+Hit the Road +7; Jack density 4/6/9/13/18+ = +1/+3/+5/+7/+9. Narrow Bond; audit later for depth.
+
+### Tens — `4 / 9 / 15 / 22 / 30`
+Walkie-Talkie +3; Ten density 4/6/9/13/18+ = +1/+3/+5/+7/+9. Walkie alone remains R0.
+
+### Wild Cards — `4 / 8 / 13 / 19 / 26`
+Flower Pot +3; Wild-card density 1/3/6/10+ = +1/+3/+5/+7. Audit whether Wild deserves independent Bond authority.
+
+### Mult Cards — `4 / 8 / 13 / 19 / 26`
+Vampire +2 minor bridge; Mult-card density 1/3/6/10+ = +1/+3/+5/+7. Explicit pruning/merge candidate for audit.
+
+### Bonus Cards — `4 / 8 / 13 / 19 / 26`
+Bonus-card density 1/3/6/10+ = +1/+3/+5/+7. Explicit weak/pruning candidate for audit.
+
+### Tarot — `4 / 9 / 15 / 22 / 30`
+Cartomancer +6; Vagabond +5; Hallucination +4; Fortune Teller +4; Tarot Merchant +4; Tarot Tycoon +6.
+
+### Planet — `4 / 9 / 15 / 22 / 30`
+Constellation +6; Astronomer +4; Space Joker +3; Telescope +5; Planet Merchant +4; Planet Tycoon +6; Blue Seals 1/2/4/7+ = +1/+3/+5/+7.
+
+### Spectral — `4 / 9 / 15 / 22 / 30`
+Sixth Sense +6; Seance +6. Narrow Bond; audit later for depth/authority.
+
 ## Sparse relationships currently encoded
 
 ```text
