@@ -1,8 +1,11 @@
 from types import SimpleNamespace
 
+from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.joker_order_policy import JokerOrderPolicy
-from games.balatro.live.hand_action_policy import LiveHandActionDecisionEngine
-from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
+from games.balatro.live.hand_action_policy import (
+    LiveHandActionDecisionEngine,
+    LiveHandActionPolicy,
+)
 from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
 
 
@@ -10,44 +13,68 @@ def _joker(name: str, *, x_mult: float = 1.0):
     return SimpleNamespace(name=name, x_mult=x_mult)
 
 
-def test_timeout_fallback_delegates_without_fabricating_max_width_discard(monkeypatch):
-    calls = []
-
-    def original(self, state, *, search_attempts):
-        calls.append((self, state, search_attempts))
-        return "ORIGINAL_STRUCTURAL_FALLBACK"
-
-    monkeypatch.setattr(
-        LiveHandActionDecisionEngine,
-        "_structural_timeout_fallback",
-        original,
+def test_timeout_fallback_never_fabricates_a_discard_without_completed_search():
+    play = BalatroAction(PLAY_CARDS, cards=(object(),))
+    planner = SimpleNamespace(
+        play_width=3,
+        _require_state=lambda _state: None,
+        _child_play_candidates=lambda _state, _width: [play],
     )
-    monkeypatch.setattr(
-        LiveHandActionDecisionEngine,
-        "_safe_pace_timeout_installed",
-        False,
-    )
-
-    install_safe_pace_timeout_patch()
-
-    state = SimpleNamespace(discards_remaining=4)
     engine = SimpleNamespace(
-        planner=SimpleNamespace(
-            action_generator=SimpleNamespace(
-                generate_discard_actions=lambda _state: [
-                    SimpleNamespace(cards=(0, 1, 2, 3, 4))
-                ]
-            )
-        )
+        planner=planner,
+        policy=LiveHandActionPolicy(),
+        _safe_pace_completed_root_plans=(),
     )
+    state = SimpleNamespace(
+        blind=SimpleNamespace(requirement=600),
+        score=0,
+        hands_remaining=4,
+        discards_remaining=4,
+    )
+
     result = LiveHandActionDecisionEngine._structural_timeout_fallback(
         engine,
         state,
         search_attempts=("timeout",),
     )
 
-    assert result == "ORIGINAL_STRUCTURAL_FALLBACK"
-    assert calls == [(engine, state, ("timeout",))]
+    assert result.action.name == PLAY_CARDS
+    assert result.best_discard is None
+
+
+def test_timeout_reuses_completed_root_search_before_structural_fallback():
+    completed = (SimpleNamespace(action=SimpleNamespace(name="PLAY_CARDS")),)
+    calls = []
+    sentinel = SimpleNamespace(rationale=("completed search policy decision",))
+
+    class _Policy:
+        def decide(self, state, plans, **kwargs):
+            calls.append((state, tuple(plans), kwargs))
+            return sentinel
+
+    state = SimpleNamespace()
+    engine = SimpleNamespace(
+        policy=_Policy(),
+        _safe_pace_completed_root_plans=completed,
+    )
+
+    result = LiveHandActionDecisionEngine._structural_timeout_fallback(
+        engine,
+        state,
+        search_attempts=("shallow-complete", "deep-timeout"),
+    )
+
+    assert result is sentinel
+    assert calls == [
+        (
+            state,
+            completed,
+            {
+                "search_attempts": ("shallow-complete", "deep-timeout"),
+                "setup_discard_consensus": False,
+            },
+        )
+    ]
 
 
 def test_blackboard_is_silver_not_gold():
