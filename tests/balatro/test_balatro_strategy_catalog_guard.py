@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from games.balatro.live.runtime.strategy_autonomous_runner import (
     StrategyAwareLiveMemoryInjectedSingleStepRunner,
 )
-from games.balatro.strategy import GOLD, NEUTRAL, SILVER
+from games.balatro.strategy import NEUTRAL, SILVER
 from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
 
 
@@ -30,7 +30,8 @@ def test_conditional_straight_flush_components_stay_neutral_until_state_rule_exi
     ):
         assert straight_flush.relationship_for(_joker(name), kind="JOKER") == NEUTRAL
 
-    assert straight_flush.relationship_for(_joker("Shortcut"), kind="JOKER") == GOLD
+    # Shortcut is consistency support, not a standalone Straight-Flush core.
+    assert straight_flush.relationship_for(_joker("Shortcut"), kind="JOKER") == SILVER
 
 
 def test_the_idol_requires_structural_condition_before_advanced_hand_evidence():
