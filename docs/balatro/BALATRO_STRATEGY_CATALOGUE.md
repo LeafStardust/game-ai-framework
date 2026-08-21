@@ -14,75 +14,105 @@ R0     = naturally available Bond below first development threshold
 R1-R5  = increasing development
 ```
 
-Rank measures development. Realization (`DORMANT/PARTIAL/ACTIVE/MATURE`) measures whether that development is functioning. Build Health measures whether it is actually strong enough.
+Rank measures development. Realization (`DORMANT/PARTIAL/ACTIVE/MATURE`) measures whether that development is functioning. Build Health measures whether it is actually strong enough. Contributors are alternative/additive paths into one Bond meter; they are not sequential rank recipes.
 
 ## Accepted Bonds
 
 ### 1. Burnt
-Defining-Joker Bond for deliberate permanent specialization of a chosen poker hand through first-discard leveling. Hard unlock: Burnt Joker. Target hand comes from the strongest compatible poker-hand Bond; fallback is High Card. Explicit conflict: No-Discard.
+Defining-Joker Bond for deliberate permanent specialization of a chosen poker hand through first-discard leveling. Hard unlock: Burnt Joker. Target comes from the strongest compatible poker-hand Bond, with High Card fallback. Conflict: No-Discard.
 
 ### 2. Held Cards
-Cards intentionally retained for direct held-card payoff. No hard unlock. Current direct contributors: Baron, Shoot the Moon, Raised Fist, Steel density, extra hand size. **Mime, Gold Cards, and Blue Seals do not add Held Cards quota.**
+Direct held-card payoff. Contributors include Baron, Shoot the Moon, Raised Fist, Steel density and extra hand size. Mime, Gold Cards and Blue Seals add zero Held Cards quota.
 
 ### 3. Held Retrigger
-Retriggering held-card effects. Mime is the principal direct contributor; Red Seals and copy-Joker support can deepen it. Separate from Held Cards. Explicit synergy: Held Cards and Steel.
+Retriggering held-card effects. Mime is principal direct contributor; Red Seals and Mime-copy support deepen it. Synergy: Held Cards and Steel.
 
 ### 4. Steel
-Persistent Steel-card density and Steel-specific payoff. Separate from Held Cards and Held Retrigger but synergizes with both.
+Persistent Steel-card density and Steel-specific payoff. Separate from Held Cards/Held Retrigger while synergizing with both.
 
 ### 5. Pair
-Poker-hand specialization around Pair. Permanent Pair levels and Pair-specific Jokers contribute.
+Poker-hand specialization around Pair.
 
 ### 6. High Card
-Poker-hand specialization around High Card. Permanent High Card levels and High-Card-specific Jokers contribute.
+Poker-hand specialization around High Card.
 
 ### 7. Aces
-Rank-specialization Bond centered on Ace density and Ace payoffs such as Scholar. DNA may bridge when it is actually supporting Ace concentration.
+Ace density and Ace-specific payoff, with conditional DNA bridge support.
 
 ### 8. No-Discard
-Zero/low-discard execution built around Green Joker, Burglar and other no-discard payoffs. Explicit conflict: Burnt.
+Zero/low-discard execution around Green Joker, Burglar and related payoff. Conflict: Burnt.
 
 ### 9. Cash
-Money as strategic infrastructure and, when relevant, direct scoring power. Includes Bull/Bootstraps and economy/scaling support. Build Health remains responsible for deciding when cash must be spent for survival.
+Money as strategic infrastructure/direct scoring when relevant. Build Health still decides when survival requires spending.
 
 ### 10. Lucky
 Lucky-card density and Lucky-specific payoff/scaling.
 
 ### 11. Glass
-Glass-card density and Glass-specific payoff. Realization must eventually account for break risk and whether Glass is actually used as scoring payoff rather than wasted.
+Glass-card density and Glass-specific payoff/scaling.
 
 ### 12. Face Cards
-Face-card density and face-specific payoff. This is distinct from individual rank Bonds such as Aces. Boss suppression affects realization, not development.
+Face-card density and face-specific payoff. Boss suppression affects realization, not development.
 
 ### 13. Two Pair
-Poker-hand specialization around Two Pair. Spare Trousers is a major contributor; permanent Two Pair levels contribute.
+Poker-hand specialization around Two Pair; Spare Trousers is a major contributor.
 
 ### 14. Three of a Kind
-Poker-hand specialization around Three of a Kind, including The Trio and matching hand-level investment.
+Poker-hand specialization around Three of a Kind.
 
 ### 15. Four of a Kind
-Poker-hand specialization around Four of a Kind, including The Family and matching hand-level investment. Flower Pot is temporarily treated as a minor contributor per catalogue direction; audit this classification later because its mechanic is not intrinsically Four-of-a-Kind-only.
+Poker-hand specialization around Four of a Kind. Flower Pot remains a provisional minor contributor only and is explicitly flagged for audit because its mechanic is broader than Four of a Kind.
 
 ### 16. Straight
-Poker-hand specialization around Straights. Shortcut, Four Fingers, Runner and Straight-specific scoring Jokers contribute.
+Poker-hand specialization around Straights.
 
 ### 17. Flush
-Poker-hand specialization around Flushes. Suit density, Smeared Joker, Four Fingers and Flush-specific scoring Jokers contribute.
+Poker-hand specialization around Flushes, including suit-density infrastructure.
 
 ### 18. Played Retrigger
-Retriggering played/scoring cards. Sock and Buskin, Hack, Hanging Chad, Dusk and Red-Seal played-card infrastructure contribute. This is separate from Held Retrigger.
+Retriggering played/scoring cards. Separate from Held Retrigger.
 
 ### 19. Stone
-Stone-card density and Stone-specific creation/payoff, including Stone Joker and Marble Joker.
+Stone-card density and Stone-specific creation/payoff.
 
 ### 20. Gold Economy
-Gold-card-specific economy. Golden Ticket, Midas Mask and actual Gold-card density contribute. Gold Cards do **not** add Held Cards quota merely because their ordinary economy trigger occurs while held.
+Gold-card-specific economy. Gold Cards do not add Held Cards quota merely because they trigger while held.
 
 ### 21. Deck Thinning
-Persistent reduction/concentration of the playing-card deck. Trading Card, Sixth Sense and actual permanent reduction contribute. Removal only helps when it improves the combined build; Build Health/transition logic remains authoritative.
+Persistent playing-card removal/concentration. Removal is valuable only when it improves the combined build.
 
 ### 22. Deck Growth
-Persistent addition of playing cards as a strategic engine. DNA, Certificate, Marble Joker, Hologram and actual permanent deck growth contribute. Added-card quality is still evaluated separately; raw bloat is not automatically good.
+Persistent addition of playing cards as an engine. Added-card quality remains a separate composition/Build Health concern.
+
+### 23. Full House
+Poker-hand specialization around Full House. Permanent hand levels are the cleanest direct development; Duo/Trio provide small bridge contribution rather than defining it.
+
+### 24. Straight Flush
+Poker-hand specialization around Straight Flush. Four Fingers, Shortcut and Smeared Joker are infrastructure contributors; none is a sequential requirement.
+
+### 25. Five of a Kind
+Extreme single-rank concentration. DNA is useful direct growth infrastructure, while actual rank concentration and permanent Five-of-a-Kind levels are persistent development.
+
+### 26. Flush House
+Advanced hand specialization requiring compatible suit and pair/trips structure. Smeared/Duo/Trio are low bridge contributors; permanent hand investment can independently establish the Bond.
+
+### 27. Flush Five
+Advanced same-rank/same-suit specialization. DNA/Smeared are bridge contributors; actual same-rank same-suit concentration and permanent hand investment carry structural authority.
+
+### 28. Hearts
+Suit-specialization Bond. Bloodstone and Lusty Joker are direct contributors; actual Hearts density provides persistent development.
+
+### 29. Spades
+Suit-specialization Bond. Arrowhead and Wrathful Joker are direct contributors; actual Spades density provides persistent development.
+
+### 30. Clubs
+Suit-specialization Bond. Onyx Agate and Gluttonous Joker are direct contributors; actual Clubs density provides persistent development.
+
+### 31. Diamonds
+Suit-specialization Bond. Rough Gem and Greedy Joker are direct contributors; actual Diamonds density provides persistent development.
+
+### 32. Low Ranks (2-5)
+Rank-family specialization around 2-5 payoff. Hack, Wee Joker and Fibonacci are strong contributors; Even Steven is moderate. Walkie-Talkie is deliberately only a weak contributor and does **not** define its own Bond. This preserves the earlier conclusion that Walkie-Talkie should not regain high strategic authority simply because it pairs well with one support Joker.
 
 ## Sparse relationships currently frozen
 
@@ -110,6 +140,7 @@ Baron itself is not a Bond. Mime itself is not Held Cards. The composition layer
 - Held Cards: dedicated evaluator.
 - Bonds 3-12: `catalogue_batch_one.py`.
 - Bonds 13-22: `catalogue_batch_two.py`.
+- Bonds 23-32: `catalogue_batch_three.py`.
 - Production Primary/Secondary/Third strategy selection is still legacy migration infrastructure and should not be half-replaced before the full Bond composer is ready.
 
 ## Audit note
