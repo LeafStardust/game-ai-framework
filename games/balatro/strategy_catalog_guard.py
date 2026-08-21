@@ -94,6 +94,15 @@ def guard_unresolved_conditional_relationships(
         ),
         banned_jokers=_without(straight_flush.banned_jokers, "DNA"),
     )
+    # Straight-Flush consistency/payoff pieces help an established route but do
+    # not independently define one. Keep actual hand/scoring cores Gold.
+    guarded["straight_flush"] = _downgrade_gold_to_silver(
+        guarded["straight_flush"],
+        "Shortcut",
+        "Four Fingers",
+        "Smeared Joker",
+        "Seance",
+    )
 
     five_kind = guarded["five_kind"]
     guarded["five_kind"] = replace(
@@ -169,6 +178,10 @@ def guard_unresolved_conditional_relationships(
             set(low_rank.banned_jokers) | set(_joker_tokens("Raised Fist"))
         ),
         entry_evidence_cap=0.0,
+    )
+    guarded["low_rank"] = _downgrade_gold_to_silver(
+        guarded["low_rank"],
+        "Fibonacci",
     )
 
     # Raised Fist remains a weak but real held-minimum route. Its defining Joker is
