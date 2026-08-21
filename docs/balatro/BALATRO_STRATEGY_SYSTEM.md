@@ -2,9 +2,9 @@
 
 Canonical architecture contract for the Red/White Balatro strategy redesign.
 
-## 1. Mental model
+## 1. Mental model — Currency Wars analogue
 
-The intended abstraction is Currency Wars-like:
+The intended abstraction deliberately mirrors Honkai: Star Rail Currency Wars closely enough that future maintainers should use it as the primary mental model:
 
 ```text
 Currency Wars character        = Balatro Joker/card/persistent state
@@ -13,9 +13,37 @@ Bond quota/rank                = weighted contribution + Bond rank
 Currency Wars player strategy  = Balatro composition motif / combined build
 ```
 
-A component may advance multiple Bonds simultaneously. Bonds develop independently. Compatible Bonds compose into a run-specific build; known super-additive combinations may be represented as composition motifs. There is no Primary/Secondary/Third requirement.
+In Currency Wars, one character can add quota to multiple Bonds; the player assembles whatever Bond mixture RNG permits, tries to raise useful Bonds as high as practical, and may pin/follow a strategy that combines several Bonds into a coherent power plan. Balatro does not expose Bond labels or quota itself, so this system infers them from actual Balatro mechanics.
+
+The same principles apply here:
+
+- one Joker/card/state source may contribute to several Bonds;
+- contributions are Bond-specific and weighted rather than uniform;
+- Bonds develop independently and have ranks;
+- RNG means the agent cannot demand one predetermined build;
+- a high-rank useful Bond is a strong strategic foundation but not a guaranteed win;
+- several compatible Bonds may be combined when no single Bond can be maximized;
+- known super-additive combinations are represented as motifs/combined strategies above the Bond layer.
 
 Example: Baron is not a Bond. `Held Cards` is. Baron + Mime + Steel Kings is a composition motif built from Held Cards, Held Retrigger, Steel and relevant rank/card structure.
+
+The final architecture is therefore:
+
+```text
+Balatro components/state
+      ↓ weighted contribution to one or more
+Bonds
+      ↓ independent R1-R5 development
+compatible Bond mixture
+      ↓
+composition motifs / combined build
+      ↓
+power engine + prescriptions
+      ↓
+actual Balatro decisions
+```
+
+There is no Primary/Secondary/Third requirement.
 
 ## 2. Bond admission
 
@@ -30,7 +58,44 @@ A single defining Joker may establish a Bond when owning it creates a deep strat
 
 Do not make every Joker, famous build or mechanic a Bond. Exact packages such as PhotoChad or Baron-Mime-Steel belong above Bonds as motifs/compositions.
 
-## 3. Weighted contribution — no G/S/B replacement
+## 3. Bond unlock vs Bond rank
+
+A Bond may have a **hard unlock prerequisite** when the strategic axis literally does not exist without a defining component.
+
+Canonical example:
+
+```text
+Burnt Joker absent  -> Burnt Bond LOCKED / R0
+Burnt Joker owned   -> Burnt Bond exists and can reach R1+
+```
+
+Once a Bond is unlocked, higher ranks are reached through weighted contribution. Do not turn individual contributors into sequential rank keys.
+
+Wrong:
+
+```text
+R1 requires Burnt
+R2 requires Telescope
+R3 requires Blueprint
+```
+
+Correct:
+
+```text
+Burnt unlock prerequisite satisfied
+        ↓
+all legitimate Burnt contributors add weighted contribution
+        ↓
+contribution thresholds determine R1-R5
+```
+
+Therefore Telescope may strongly advance Burnt without becoming a gate that prevents a different Burnt build from reaching R2/R3 through Blueprint, Brainstorm, Blue Seal infrastructure, permanent target-hand development, or another legitimate route.
+
+Hard unlock prerequisites should be rare and mechanically defining. Many Bonds may need no special unlock at all because their underlying strategic axis can emerge gradually from ordinary state.
+
+Do not use rank-specific hard conditions merely to prove that a Bond is functioning. Functional conditions belong primarily to **Realization**. Rank measures development.
+
+## 4. Weighted contribution — no G/S/B replacement
 
 Gold/Silver/Bronze/Banned is legacy migration evidence only. Do not recreate categorical contribution tiers under new names.
 
@@ -50,7 +115,7 @@ State/density contribution should use mechanically appropriate bands/caps/condit
 
 Permanent additions remain permanent contribution while they remain in game state. Dynamic sources disappear when sold/destroyed. Eternal/otherwise locked components remain contribution while present. No artificial historical Bond decay exists; recalculate from actual state.
 
-## 4. Five-rank framework
+## 5. Five-rank framework
 
 Use approximately five standardized development ranks:
 
@@ -64,23 +129,25 @@ R5 Capstone / maximum strategic commitment
 
 The names may be refined, but the progression meaning is shared.
 
-Each Bond still defines its own:
+Each Bond defines its own:
 
+- optional hard unlock prerequisite(s);
 - weighted contributors;
-- numerical thresholds;
-- mechanically necessary rank gates;
+- numerical R1-R5 thresholds;
 - effects/prescriptions unlocked or strengthened at each rank.
 
-Threshold geometry does not need to be identical between Bonds. Density mechanics such as Steel can differ from defining-Joker mechanics such as Burnt. Mandatory gates are used only where allowing the rank without them would be mechanically nonsensical.
+Threshold geometry does not need to be identical between Bonds. Density mechanics such as Steel can differ from defining-Joker mechanics such as Burnt.
 
 Generic rank authority increases with rank: R1 is opportunistic recognition; R2 begins meaningful reinforcement/basic prescriptions; R3 protects and actively develops the Bond; R4 may serve as a power engine and strongly influences decisions; R5 is capstone commitment. The Bond-specific rank definition says exactly what that authority means for that mechanic.
 
-## 5. Development rank is not realization
+Rank is intentionally numerical/developmental. Do not smuggle execution tests back into R2-R5 as arbitrary gates.
 
-Every Bond has two separate axes:
+## 6. Development rank is not realization
+
+Every unlocked Bond has two separate axes:
 
 ```text
-Development = contribution total + R1..R5
+Development = weighted contribution total + R1..R5
 Realization = DORMANT / PARTIAL / ACTIVE / MATURE
 ```
 
@@ -88,7 +155,16 @@ Development says what has been assembled/invested. Realization says whether that
 
 Example: Steel may be R4 structurally but only PARTIAL until enough useful Steel cards are actually held/triggered by the current plan. Bosses temporarily suppress realization, not persistent development. After the boss, the underlying Bond rank remains unless actual build state changed.
 
-## 6. Sparse Bond relationships
+This separation is deliberate:
+
+```text
+UNLOCK      Does this Bond exist for this run?
+RANK        How developed is it?
+REALIZATION Is the developed engine actually functioning?
+BUILD HEALTH Is it strong enough to survive/scale?
+```
+
+## 7. Sparse Bond relationships
 
 Do not build an exhaustive pair matrix.
 
@@ -103,9 +179,9 @@ Canonical conflict example: Burnt x No-Discard.
 
 A Bond-level mechanical contradiction should normally be represented as CONFLICT so contradictory Bonds are not composed into the same build.
 
-## 7. Composition motifs
+## 8. Composition motifs
 
-A motif is a known strategy/composition whose value cannot safely be represented by additive Bond development alone. It is analogous to a Currency Wars player strategy, not another Bond.
+A motif is a known strategy/composition whose value cannot safely be represented by additive Bond development alone. It is analogous to a Currency Wars player/pinned strategy, not another Bond.
 
 Motifs may be:
 
@@ -128,7 +204,7 @@ Baron + Mime + Steel Kings
 
 The motif can then value Steel/Red-Seal Kings, hand-size support and held retriggers appropriately and prescribe keeping payoff Kings held.
 
-## 8. Prescription resolution
+## 9. Prescription resolution
 
 Do not create a second complicated prescription-conflict subsystem.
 
@@ -137,7 +213,7 @@ Do not create a second complicated prescription-conflict subsystem.
 - unusual/super-additive combination behavior -> motif prescription.
 - immediate survival -> final authority and may override strategic prescriptions.
 
-## 9. Multi-Bond contributors and slot efficiency
+## 10. Multi-Bond contributors and slot efficiency
 
 A component that advances several relevant Bonds is strategically valuable because one Joker slot can develop several parts of the combined build.
 
@@ -153,7 +229,7 @@ Its shop/build value should consider:
 
 Do not convert overlapping Bond contribution into imaginary scoring power. Bond ranks are structural information, not additive score estimates.
 
-## 10. Pivot and transition
+## 11. Pivot and transition
 
 Potential high-ceiling Bonds/motifs must not automatically destroy a functioning build.
 
@@ -174,7 +250,7 @@ Existing rank creates pivot resistance:
 
 This is a cost, never a lock. Survival or a clearly superior composition can justify abandoning even R5.
 
-## 11. Build Health integration
+## 12. Build Health integration
 
 Bond rank answers:
 
@@ -212,7 +288,7 @@ combined-build coherence + realization + score projection
 
 A coherent R5 build may still be too weak to survive. Build Health must expose that rather than allowing strategic rank to hide mechanical failure.
 
-## 12. Observability contract
+## 13. Observability contract
 
 Live monitor should show only relevant Bonds; full telemetry may retain all Bond states.
 
@@ -225,6 +301,8 @@ Contribution : 17.5 / 21.0 -> R5
 Realization  : ACTIVE
 ```
 
+Locked defining-component Bonds should not clutter normal output; full telemetry may retain their locked state.
+
 Composition section:
 
 ```text
@@ -235,22 +313,23 @@ Conflicts    : ...
 Prescriptions: ...
 ```
 
-Shop/action telemetry should explain threshold/motif effects, e.g. a Mime purchase crossing Held Cards R4 and Held Retrigger R3 while activating Baron-Mime-Steel. Do not flood the live monitor with every dormant R0 Bond.
+Shop/action telemetry should explain threshold/motif effects, e.g. a Mime purchase crossing Held Cards R4 and Held Retrigger R3 while activating Baron-Mime-Steel. Do not flood the live monitor with every dormant R0/locked Bond.
 
-## 13. Migration order
+## 14. Migration order
 
-1. Freeze the Bond catalogue.
+1. Freeze the Bond catalogue, including which Bonds require hard unlock prerequisites.
 2. Define weighted component/state contributions.
-3. Define per-Bond R1-R5 thresholds, gates and rank effects.
-4. Define sparse SYNERGY/CONFLICT edges.
-5. Define important composition motifs and activation/distance rules.
-6. Implement all-Bond evaluation and realization.
-7. Implement combined-build composer and power-engine selection.
-8. Integrate score projection / Build Health.
-9. Integrate rank/motif prescriptions into D1, shop, packs, deck shaping, economy, skips and bosses.
-10. Migrate component roles and filler logic to combined-build participation.
-11. Migrate telemetry/live monitor.
-12. Retire legacy Primary/Secondary/Third and G/S/B assumptions after regression parity.
-13. Calibrate weights/thresholds from unchanged-HEAD multi-run telemetry rather than arbitrary inflation.
+3. Define per-Bond R1-R5 thresholds and rank effects.
+4. Define realization rules separately from rank progression.
+5. Define sparse SYNERGY/CONFLICT edges.
+6. Define important composition motifs and activation/distance rules.
+7. Implement all-Bond evaluation and realization.
+8. Implement combined-build composer and power-engine selection.
+9. Integrate score projection / Build Health.
+10. Integrate rank/motif prescriptions into D1, shop, packs, deck shaping, economy, skips and bosses.
+11. Migrate component roles and filler logic to combined-build participation.
+12. Migrate telemetry/live monitor.
+13. Retire legacy Primary/Secondary/Third and G/S/B assumptions after regression parity.
+14. Calibrate weights/thresholds from unchanged-HEAD multi-run telemetry rather than arbitrary inflation.
 
 The current runtime/tests remain migration evidence. Do not preserve obsolete conceptual behavior merely because an old test encodes it; remove/update tests when the architecture intentionally supersedes them.
