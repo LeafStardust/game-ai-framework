@@ -49,13 +49,13 @@ def test_steel_density_can_establish_held_cards_without_a_held_joker():
     assert result.contribution == 5.0
 
 
-def test_mime_is_a_bridge_not_enough_to_establish_held_cards_by_itself():
+def test_mime_alone_does_not_contribute_to_held_cards():
     result = evaluate_held_cards_bond(_state(jokers=(_joker("Mime"),)))
     assert result.rank == BondRank.R0
-    assert result.contribution == 2.0
+    assert result.contribution == 0.0
 
 
-def test_baron_plus_mime_crosses_r2_without_steel():
+def test_mime_becomes_bridge_when_real_held_payoff_exists():
     result = evaluate_held_cards_bond(
         _state(jokers=(_joker("Baron"), _joker("Mime")))
     )
@@ -63,7 +63,31 @@ def test_baron_plus_mime_crosses_r2_without_steel():
     assert result.contribution == 8.0
 
 
-def test_alternative_held_sources_share_one_pool():
+def test_mime_can_bridge_meaningful_steel_infrastructure():
+    result = evaluate_held_cards_bond(
+        _state(
+            jokers=(_joker("Mime"),),
+            deck=tuple(_card(enhancement="Steel") for _ in range(4)),
+        )
+    )
+    assert result.contribution == 7.0
+    assert result.rank == BondRank.R1
+
+
+def test_gold_cards_and_blue_seals_do_not_add_held_cards_quota():
+    result = evaluate_held_cards_bond(
+        _state(
+            deck=(
+                *tuple(_card(enhancement="Gold") for _ in range(8)),
+                *tuple(_card(seal="Blue") for _ in range(8)),
+            )
+        )
+    )
+    assert result.contribution == 0.0
+    assert result.rank == BondRank.R0
+
+
+def test_alternative_direct_held_sources_share_one_pool():
     result = evaluate_held_cards_bond(
         _state(
             jokers=(
@@ -74,18 +98,12 @@ def test_alternative_held_sources_share_one_pool():
             deck=(
                 _card(enhancement="Steel"),
                 _card(enhancement="Steel"),
-                _card(enhancement="Gold"),
-                _card(enhancement="Gold"),
-                _card(enhancement="Gold"),
-                _card(seal="Blue"),
-                _card(seal="Blue"),
-                _card(seal="Blue"),
             ),
             hand_size=10,
         )
     )
-    # 4 Shoot + 2 Fist + 2 Mime + 3 Steel + 1.5 Gold + 1.5 Blue + 2 hand size = 16
-    assert result.contribution == 16.0
+    # 4 Shoot + 2 Fist + 3 Steel + 2 conditional Mime + 2 hand size = 13.
+    assert result.contribution == 13.0
     assert result.rank == BondRank.R3
 
 
