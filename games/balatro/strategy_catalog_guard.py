@@ -109,6 +109,7 @@ def guard_unresolved_conditional_relationships(
 
     weak_single_joker_cores = {
         "swashbuckler": ("Swashbuckler",),
+        "blackboard": ("Blackboard",),
         "flower_pot": ("Flower Pot",),
         "red_card": ("Red Card",),
         "no_discard_ramen": ("Ramen",),
@@ -133,6 +134,20 @@ def guard_unresolved_conditional_relationships(
             guarded[strategy_id],
             *joker_names,
         )
+
+    # Swashbuckler is the required scoring engine for this route. Egg and Gift
+    # Card do not establish it by themselves, but once Swashbuckler is owned they
+    # are Gold engine support because their sell-value growth directly increases
+    # Swashbuckler's Mult.
+    swashbuckler = guarded["swashbuckler"]
+    guarded["swashbuckler"] = replace(
+        swashbuckler,
+        required_jokers=_joker_tokens("Swashbuckler"),
+        gold_jokers=frozenset(
+            set(swashbuckler.gold_jokers)
+            | set(_joker_tokens("Egg", "Gift Card"))
+        ),
+    )
 
     # Sixth Sense alone is a utility generator rather than a sufficient scoring
     # engine. Tarot/consumable infrastructure may conditionally promote it back to
