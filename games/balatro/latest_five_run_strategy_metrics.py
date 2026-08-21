@@ -3,7 +3,7 @@ from __future__ import annotations
 """Five-run telemetry calibration for strategy strength and Build Health metrics."""
 
 from copy import copy
-from dataclasses import replace
+from dataclasses import is_dataclass, replace
 
 from games.balatro.build_health_runtime import RuntimeBuildHealthEvaluator
 from games.balatro.strategy import BRONZE, GOLD, SILVER, BalatroStrategyTracker
@@ -44,12 +44,49 @@ def _throwback_scaled(state) -> bool:
     return False
 
 
+def _relationship_variant(definition, *, gold_jokers, silver_jokers, bronze_jokers):
+    """Return one relationship-adjusted definition without assuming dataclass shape.
+
+    Flat trackers use frozen StrategyDefinition dataclasses. Tree/state-aware layers
+    may temporarily pass definition-like wrappers/proxies through ``_assess``. Those
+    objects must not be fed to ``dataclasses.replace``. For mutable/copyable wrappers,
+    clone and assign the three relationship sets; if the wrapper is intentionally
+    immutable and exposes no supported replacement surface, leave it unchanged and
+    let the underlying canonical definition remain authoritative.
+    """
+    values = {
+        "gold_jokers": frozenset(gold_jokers),
+        "silver_jokers": frozenset(silver_jokers),
+        "bronze_jokers": frozenset(bronze_jokers),
+    }
+    if is_dataclass(definition) and not isinstance(definition, type):
+        return replace(definition, **values)
+
+    named_replace = getattr(definition, "_replace", None)
+    if callable(named_replace):
+        try:
+            return named_replace(**values)
+        except (TypeError, ValueError, AttributeError):
+            pass
+
+    try:
+        cloned = copy(definition)
+        for name, value in values.items():
+            setattr(cloned, name, value)
+        return cloned
+    except (AttributeError, TypeError):
+        return definition
+
+
 def _static_throwback(definition):
-    return replace(
+    gold = set(getattr(definition, "gold_jokers", ()) or ()) - set(_THROWBACK_TOKENS)
+    silver = set(getattr(definition, "silver_jokers", ()) or ()) | set(_THROWBACK_TOKENS)
+    bronze = set(getattr(definition, "bronze_jokers", ()) or ()) - set(_THROWBACK_TOKENS)
+    return _relationship_variant(
         definition,
-        gold_jokers=frozenset(set(definition.gold_jokers) - set(_THROWBACK_TOKENS)),
-        silver_jokers=frozenset(set(definition.silver_jokers) | set(_THROWBACK_TOKENS)),
-        bronze_jokers=frozenset(set(definition.bronze_jokers) - set(_THROWBACK_TOKENS)),
+        gold_jokers=gold,
+        silver_jokers=silver,
+        bronze_jokers=bronze,
     )
 
 
@@ -57,10 +94,14 @@ def _realized_throwback(definition, state):
     definition = _static_throwback(definition)
     if not _throwback_scaled(state):
         return definition
-    return replace(
+    gold = set(getattr(definition, "gold_jokers", ()) or ()) | set(_THROWBACK_TOKENS)
+    silver = set(getattr(definition, "silver_jokers", ()) or ()) - set(_THROWBACK_TOKENS)
+    bronze = set(getattr(definition, "bronze_jokers", ()) or ()) - set(_THROWBACK_TOKENS)
+    return _relationship_variant(
         definition,
-        gold_jokers=frozenset(set(definition.gold_jokers) | set(_THROWBACK_TOKENS)),
-        silver_jokers=frozenset(set(definition.silver_jokers) - set(_THROWBACK_TOKENS)),
+        gold_jokers=gold,
+        silver_jokers=silver,
+        bronze_jokers=bronze,
     )
 
 
@@ -146,7 +187,7 @@ def install_latest_five_run_strategy_metrics() -> None:
             # Trackers contain a MappingProxyType inverse component index, so a
             # deepcopy can fail and silently collapse coherence to the neutral 0.50
             # fallback. A shallow clone preserves the immutable catalogue/index and
-            # subclass behavior while isolating observe()'s two mutable history fields.
+            # subclass behavior while isolating observe()'s mutable history fields.
             working = copy(tracker)
             working._last_dominant_strategy_id = getattr(
                 tracker, "_last_dominant_strategy_id", None
