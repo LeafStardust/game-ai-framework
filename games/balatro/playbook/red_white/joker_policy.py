@@ -6,12 +6,48 @@ from games.balatro.build import JokerBuildTransitionPlanner
 from games.balatro.joker_policy import (
     BUY,
     HOLD,
+    REPLACE,
     JokerAcquisitionDecision,
     JokerAcquisitionPolicy,
     JokerAcquisitionThresholds,
 )
 from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
 from games.balatro.state import BalatroState
+
+
+def _joker_token(joker: object) -> str:
+    value = (
+        getattr(joker, "name", None)
+        or getattr(joker, "label", None)
+        or getattr(joker, "ability_name", None)
+        or type(joker).__name__
+    )
+    return "".join(character for character in str(value).lower() if character.isalnum())
+
+
+def _discard_conflict_indices(state: BalatroState, candidate: object) -> tuple[int, ...]:
+    """Return owned slots mechanically incompatible with this candidate.
+
+    Burnt needs the first discard. Green loses Mult on every discard; Burglar removes
+    all discards. Green and Burglar are intentionally compatible with each other.
+    """
+    candidate_token = _joker_token(candidate)
+    burnt = {"burnt", "burntjoker"}
+    green = {"green", "greenjoker"}
+    burglar = {"burglar", "burglarjoker"}
+
+    if candidate_token in burnt:
+        opposing = green | burglar
+    elif candidate_token in green | burglar:
+        opposing = burnt
+    else:
+        return ()
+
+    return tuple(
+        index
+        for index, joker in enumerate(getattr(state, "jokers", ()) or ())
+        if _joker_token(joker) in opposing
+    )
 
 
 class PlaybookJokerAcquisitionPolicy:
@@ -43,6 +79,48 @@ class PlaybookJokerAcquisitionPolicy:
             thresholds,
             transition_planner=self.transition_planner,
         ).decide(state, candidate)
+
+        # Pairwise mechanic safety is stronger than whichever poker-hand route is
+        # currently Primary. A Burnt/Green/Burglar conflict may be resolved by a
+        # REPLACE that removes the opposing Joker; it may never be admitted as a
+        # coexistence BUY or as a replacement of some unrelated slot.
+        conflict_indices = _discard_conflict_indices(state, candidate)
+        if conflict_indices:
+            if decision.action == REPLACE and getattr(decision, "selected", None) is not None:
+                try:
+                    replace_index = int(decision.selected.replace_index)
+                except (AttributeError, TypeError, ValueError):
+                    replace_index = -1
+                if replace_index in conflict_indices:
+                    return replace(
+                        decision,
+                        rationale=(
+                            *decision.rationale,
+                            "discard-mechanic conflict resolved by replacing the opposing Burnt/Green/Burglar component",
+                        ),
+                    )
+
+            if decision.action != HOLD:
+                return replace(
+                    decision,
+                    action=HOLD,
+                    selected=None,
+                    rationale=(
+                        *decision.rationale,
+                        "mechanical conflict: Burnt requires a discard while Green punishes discards and Burglar removes them",
+                        "candidate may only enter by replacing the opposing discard/no-discard component",
+                    ),
+                )
+
+            # Preserve an existing HOLD and prevent the final-slot alignment waiver
+            # below from resurrecting the contradictory candidate as a BUY.
+            return replace(
+                decision,
+                rationale=(
+                    *decision.rationale,
+                    "mechanical conflict retained: Burnt and Green/Burglar cannot coexist",
+                ),
+            )
 
         # The generic D2 last-slot penalty represents the option value of keeping
         # one ordinary Joker slot open. Once the universal strategy is established,
