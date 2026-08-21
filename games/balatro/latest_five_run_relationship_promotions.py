@@ -2,9 +2,10 @@ from __future__ import annotations
 
 """State-dependent relationship promotions learned from the latest five-run batch.
 
-This layer wraps the existing public-state conditional relationship resolver. It
-never patches tracker assessment/evaluation methods, so flat and tree-aware
-trackers share one non-recursive assessment pipeline.
+The promotion must be visible in both owned-item assessment and candidate relationship
+mapping.  Patch those two state-aware relationship surfaces directly; never call
+``observe`` and never wrap private tracker assessment methods, so tree-aware tracking
+retains one non-recursive assessment pipeline.
 """
 
 from games.balatro import strategy_conditional_relationships as conditional
@@ -49,36 +50,50 @@ def _throwback_scaled(state) -> bool:
     return False
 
 
+def _promotion(state, strategy_id: str, item: object) -> str | None:
+    tokens = _item_tokens(item)
+    owned = _owned_tokens(state)
+    if (
+        strategy_id == "ten_four"
+        and tokens & {"walkietalkie", "walkietalkiejoker"}
+        and owned & {"evensteven", "evenstevenjoker"}
+    ):
+        return GOLD
+    if (
+        strategy_id == "throwback"
+        and tokens & {"throwback", "throwbackjoker"}
+        and _throwback_scaled(state)
+    ):
+        return GOLD
+    return None
+
+
 def install_latest_five_run_relationship_promotions() -> None:
     if getattr(conditional, "_latest_five_run_relationship_promotions_installed", False):
         return
 
-    original = conditional.conditional_joker_relationship
+    original_view_relationship = conditional._ConditionalDefinitionView.relationship_for
 
-    def conditional_joker_relationship(state, strategy_id: str, item: object) -> str:
-        tokens = _item_tokens(item)
-        owned = _owned_tokens(state)
+    def relationship_for(self, item: object, *, kind: str) -> str:
+        if str(kind).upper() == "JOKER":
+            promoted = _promotion(self._state, self._definition.strategy_id, item)
+            if promoted is not None:
+                return promoted
+        return original_view_relationship(self, item, kind=kind)
 
-        # Walkie Talkie is only a defining Ten-Four core once Even Steven makes
-        # the shared even-rank package materially stronger. Static Walkie and Even
-        # relationships remain Silver.
-        if (
-            strategy_id == "ten_four"
-            and tokens & {"walkietalkie", "walkietalkiejoker"}
-            and owned & {"evensteven", "evenstevenjoker"}
-        ):
-            return GOLD
+    conditional._ConditionalDefinitionView.relationship_for = relationship_for
 
-        # Throwback is ordinary Silver value at x1.0. Once public skip scaling has
-        # actually increased its XMult, it becomes a realized Gold core.
-        if (
-            strategy_id == "throwback"
-            and tokens & {"throwback", "throwbackjoker"}
-            and _throwback_scaled(state)
-        ):
-            return GOLD
+    original_relationships_for = conditional.StateAwareBalatroStrategyTracker._relationships_for
 
-        return original(state, strategy_id, item)
+    def _relationships_for(self, item: object, *, kind: str) -> dict[str, str]:
+        found = original_relationships_for(self, item, kind=kind)
+        if str(kind).upper() != "JOKER" or self._relationship_state is None:
+            return found
+        for strategy_id in self.definitions:
+            promoted = _promotion(self._relationship_state, strategy_id, item)
+            if promoted is not None:
+                found[strategy_id] = promoted
+        return found
 
-    conditional.conditional_joker_relationship = conditional_joker_relationship
+    conditional.StateAwareBalatroStrategyTracker._relationships_for = _relationships_for
     conditional._latest_five_run_relationship_promotions_installed = True
