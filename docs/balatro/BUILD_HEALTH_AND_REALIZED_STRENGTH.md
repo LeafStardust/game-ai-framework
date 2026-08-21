@@ -1,74 +1,64 @@
 # Balatro Build Health and Realized Strength
 
-This document defines the next decision-quality layer for the Red Deck / White Stake agent. It complements the strategy topology in `BALATRO_STRATEGY_TREE.md` and the strategy/evidence rules in `BALATRO_STRATEGY_TREE_RULES.md`.
+Build Health is the viability layer beneath the strategy-track system. Strategy contribution/rank says **what coherent mechanics the run has assembled**; Build Health says **whether the resulting combined build actually works, survives, and scales fast enough**.
 
-The problem this layer solves is simple: **owning five individually useful Jokers is not the same as owning a functioning build**. Strategy evidence says what a run is trying to become; Build Health says whether that build is actually surviving, functioning, and scaling quickly enough to finish the run.
+See `BALATRO_STRATEGY_TREE_RULES.md` for the Bond-like strategy-track architecture and migration plan.
 
-## 1. Decision hierarchy
+## 1. Core distinction
 
-The agent should reason in this order:
-
-1. **Can the current run survive the next blind?**
-2. **Is the current build actually functioning?**
-3. **Is it scaling quickly enough for the next one to two Antes?**
-4. **Which strategy is currently the best realized route?**
-5. **Which action or missing component most improves that realized build?**
-6. **Would an alternative route be stronger after transition cost and required buildup?**
-7. Execute the best legal action.
-
-Strategy purity never overrides survival. A strategy is useful only if the run lives long enough to realize it.
-
-## 2. Build Health
-
-`BuildHealth` is a normalized 0–100 diagnostic and decision input composed from five independently auditable dimensions:
-
-- **Survival** — projected ability to clear the next blind/boss from the current state.
-- **Immediate scoring** — current scoring output relative to present blind requirements.
-- **Scaling** — realized growth rate and multiplicative/scaling capacity relative to future blind growth.
-- **Coherence** — how much of the current Joker/card/consumable board reinforces the same Primary/Secondary build instead of acting as disconnected filler.
-- **Runway** — whether engines that still require buildup have enough remaining time/resources to become useful before the run outgrows them.
-
-The initial aggregate may be weighted, but every component must remain visible in logs and the live monitor. The aggregate must never hide a critical zero/near-zero survival state.
-
-Example diagnostic:
+Do not confuse:
 
 ```text
-Build Health : 58
-Survival     : 82
-Immediate    : 74
-Scaling      : 31
-Coherence    : 67
-Runway       : 40
-
-Warnings:
-- Hologram x1.0 — inactive scaler
-- Ante 5 scaling deficit
+structural contribution / track rank
+with
+realized engine strength / build viability
 ```
 
-## 3. Survival adequacy
+A highly developed track can still lose. Roguelike RNG, bosses, current scaling, economy, execution and runway matter. Conversely, a temporarily ugly survival board can be correct early even when it has weak strategic coherence.
 
-Antes 1–2 are primarily survival/flexibility stages.
+The target decision hierarchy is:
 
-A Joker is not an adequate survival purchase merely because its immediate scoring contribution is positive. The agent must ask whether the purchase materially improves the projected probability of clearing the next blind or boss.
+1. Can the current run survive the current/next blind?
+2. Which strategy tracks are materially developed?
+3. Which developed tracks are mutually compatible?
+4. What is the best combined build from them?
+5. Which track is the principal power engine?
+6. Is that combined build actually functioning now?
+7. Is it scaling quickly enough for the next one to two Antes?
+8. Which action/component most improves survival or the combined build?
+9. Would changing composition/power engine beat transition cost?
+10. Execute the best legal action.
 
-Rules:
+## 2. Build Health dimensions
 
-- Off-route immediate scorers may be purchased in Antes 1–2 when survival needs them.
-- Strategy alignment is a preference/tiebreaker during this phase, not a veto.
-- If one weak scorer does not make the next blind sufficiently survivable and another affordable scorer is available, the agent may continue strengthening immediate survival.
-- Reserve/economy constraints still matter, but preserving cash must not knowingly walk the run into a likely loss.
-- A non-scoring utility Joker does not satisfy the survival requirement merely by occupying a Joker slot.
+`BuildHealth` remains a normalized diagnostic composed from:
 
-The exact survival threshold should be derived from the existing whole-blind clear-probability model rather than from a separate arbitrary scoring scale.
+- **Survival** — projected clear ability.
+- **Immediate** — present scoring relative to blind requirements.
+- **Scaling** — growth/multiplicative capacity relative to future blind growth.
+- **Coherence** — how much of the board contributes to the same **compatible combined build**, not a legacy Primary/top-three shortlist.
+- **Runway** — whether engines needing buildup have time/resources to mature.
 
-## 4. Realized engine strength
+A critical survival failure must not be hidden by the aggregate.
 
-Every strategy-relevant engine has two separate concepts:
+## 3. Coherence under the new architecture
 
-- **Catalogue relationship** — how strongly the item belongs to a strategy in principle.
-- **Realized engine strength** — how much that engine is actually contributing now and how quickly it is progressing.
+Legacy coherence logic based on `Primary + Relevant` is migration-only.
 
-The runtime must distinguish at least:
+Target coherence should measure:
+
+- fraction of occupied Joker slots contributing materially to at least one developed compatible track;
+- multi-track contribution value;
+- explicit conflicts;
+- disconnected generic filler;
+- whether the board has a credible power engine;
+- whether support actually reinforces that engine/combined build.
+
+A Joker that contributes to a developed compatible track is **not FILLER** simply because another track has a higher score. On-path does not mean irreplaceable: weak support can still be replaced when another component improves the combined build more.
+
+## 4. Realized engine states
+
+Retain the realized-state vocabulary:
 
 ```text
 NOT_OWNED
@@ -78,163 +68,188 @@ ACTIVATED_HEALTHY
 MATURE
 ```
 
-An engine may be Gold/Silver catalogue evidence while still being `OWNED_INACTIVE` in realized state.
-
 Examples:
 
-- **Hologram x1.0**: owned but inactive; should create pressure to add playing cards or eventually replace/pivot if no realistic activation path exists.
-- **Blue Joker**: realized strength depends on actual remaining deck size; card generation can strengthen it immediately.
-- **Burnt Joker**: realized development depends on useful first-discard hand upgrades actually occurring without sabotaging survival.
-- **Castle**: realized development depends on accumulated chips and safe opportunities to discard the current suit.
-- **Green Joker**: realized strength depends on current Mult and whether the current tactical plan can preserve/grow it without sacrificing survival.
-- **Red Card**: realized scaling depends on packs actually being skipped when the skip value beats the pack contents.
-- **Runner**: a nominally strong Straight scaler may have low realized strength when acquired late with no historical buildup.
-- **Bull/Bootstraps**: can have high realized strength immediately when current cash already makes the engine strong; it does not require historical buildup in the same way as Runner.
+- Hologram x1.0: structurally relevant, realized inactive.
+- Throwback x1.0: structurally relevant, not yet a mature skip engine.
+- Burnt owned but first-discard upgrades repeatedly unused: structurally strong but operationally under-realized.
+- Green with negligible Mult: correct track membership but weak current engine.
+- Castle with little accumulated chips: weak realized scaler.
+- Bull/Bootstraps with high cash: can be immediately mature because the required state already exists.
 
-## 5. Scaling adequacy
+## 5. Prescriptions are part of realized strength
 
-From Ante 3 onward, the agent must judge whether the current build is keeping pace with blind growth.
+An engine cannot be called healthy if the action policy repeatedly violates the mechanic that creates its power.
 
-A scaling deficit exists when the current board can still clear some present blinds but its projected scoring trajectory is unlikely to keep pace with the next one to two Antes.
+Required examples:
 
-Under scaling deficit pressure, the shop system should prefer actions that materially improve the build's future scoring trajectory, including:
+### Burnt
 
-- activating an owned inactive scaler;
-- buying a multiplicative/scaling engine compatible with the current route;
-- replacing filler or weak additive support with a stronger realized engine;
-- rerolling when the current board lacks adequate scaling and the bankroll can safely support search;
-- pivoting to a mature alternative route whose current-state strength exceeds the existing build after transition cost.
+Realized strength depends on actually using safe first-discard hand upgrades. If the first scoring hand trivially clears the blind and a safe discard exists, a developed Burnt engine should normally activate Burnt first. Green and Burglar are conflicts; Burglar cannot coexist as Burnt support because it removes discards.
 
-A full 5/5 Joker roster is not evidence of a healthy build.
+### Ride the Bus
 
-## 6. Build component roles
+Realized strength depends on preserving accumulated Mult. D1 should avoid playing face cards when a safe comparable non-face line exists. Repeatedly resetting Bus while calling the route healthy is a model error.
 
-Every owned Joker should be classified relative to the active build as one of:
+### Green + Burglar
 
-- **CORE** — defining scoring/win-condition component.
-- **ENGINE** — component that materially scales or activates the route.
-- **SUPPORT** — consistency/economy/deck-shaping component that materially reinforces the route.
-- **FILLER** — positive generic value but not important to the realized route.
-- **CONFLICT** — mechanically harmful to the realized route.
+Burglar is a strong no-discard partner for Green: no discards prevents Green reset while extra hands provide more opportunities to exploit/grow the engine. Burnt is incompatible.
 
-Replacement priority is structural:
+### Aces / Scholar / DNA
 
-1. CONFLICT
-2. FILLER
-3. weaker same-route SUPPORT
-4. weaker same-route ENGINE when a stronger immediate same-route upgrade exists
-5. CORE only as part of an explicit, sufficiently mature pivot
+Scholar should be valued as an Aces contribution inside a compatible combined build. DNA can become especially valuable by duplicating the target rank/card. Burnt + Aces + Pair/High Card is a composition, not three rival strategy candidates.
 
-Committed Gold/Silver components remain protected unless the replacement is an immediate stronger same-route upgrade or the whole build is explicitly pivoting.
+## 6. Survival adequacy
 
-## 7. Realized strategy maturity and pivot cost
+Antes 1–2 remain survival/flexibility stages. Immediate off-track scoring is legal when necessary. The opening policy may bank a near-pace scoring hand rather than exhaust all discards chasing a perfect hand.
 
-Strategy commitment must consider both catalogue evidence and realized strength.
+A developed engine may intentionally spend a tactical resource when survival margin makes it safe and doing so creates permanent value—for example Burnt's first discard. Survival is the envelope; strategy chooses the best action inside it.
 
-A strategy with strong theoretical relationships but weak current activation must not automatically beat a route that is already producing sufficient score.
+## 7. Scaling adequacy
 
-Pivot evaluation should compare:
+From Ante 3 onward, detect when the current combined build cannot keep pace with the next one to two Antes.
+
+Under scaling deficit pressure prefer:
+
+- raising the rank/realized strength of an existing compatible power engine;
+- activating an inactive scaler;
+- buying a component that advances several developed tracks;
+- replacing filler/conflict/weak support with stronger compatible scaling;
+- rerolling when bankroll and survival permit;
+- changing the combined build when new RNG creates a materially stronger composition.
+
+Five occupied Joker slots are not evidence of health.
+
+## 8. Component roles
+
+Retain:
 
 ```text
-realized candidate strength
-+ immediate synergy
-+ current deck/resource compatibility
-+ short-horizon growth
-- transition cost
-- required future buildup
-- risk to current blind survival
+CORE
+ENGINE
+SUPPORT
+FILLER
+CONFLICT
 ```
 
-Examples:
+but derive them from the **combined build**.
 
-- **Bull + Bootstraps with high current cash** can be an easy late pivot because most of the power is realized immediately.
-- **Runner acquired late with no Straight buildup** should pay a large runway/buildup penalty even though Runner is a strong Straight engine in principle.
-- A new Gold same-route Joker may replace a Silver same-route component only when the resulting current build is already stronger and does not jeopardize survival through required buildup.
+- CORE: defining component of the power engine or a capstone developed track.
+- ENGINE: materially creates/scales a developed track.
+- SUPPORT: materially reinforces one or more compatible developed tracks.
+- FILLER: generic positive value with no material contribution to the current combined build.
+- CONFLICT: mechanically damages a developed track/composition.
 
-## 8. Short-horizon transition planning
+Replacement priority remains broadly conflict -> filler -> weak support -> weak engine -> core only during explicit composition change, subject to whole-build value and survival.
 
-The shop/pack planner should support bounded multi-action reasoning where a sequence materially changes build quality.
+## 9. Composition change / pivot cost
 
-Initial supported patterns should include:
+The target system does not pivot between single strategy IDs. It changes the **combined build and/or power engine**.
 
-- `sell filler -> buy stronger same-route Joker`;
-- `buy card generator -> activate Hologram/Blue growth`;
-- `sell expendable Jokers -> use Ankh`;
-- `buy Bull -> buy Bootstraps` or the reverse when the pair is jointly strong at current cash;
-- `buy component -> re-observe -> buy complementary component` within the same shop when legal and affordable.
+Evaluate:
 
-This is not unrestricted combinatorial search. Use a small public-information horizon and reuse existing affordability/reserve/survival guards.
+```text
+new combined realized strength
++ useful rank thresholds crossed
++ multi-track synergy
++ deck/resource compatibility
++ short-horizon growth
+- sold/abandoned track value
+- slot/economy transition cost
+- required future buildup
+- survival risk
+```
 
-## 9. Interaction with strategy phases
+Late theoretical ceiling without runway is insufficient.
 
-### Antes 1–2: Foundation
+## 10. Short-horizon shop planning
 
-Priority: **survive and remain flexible**.
+Retain bounded multi-action planning for sequences such as:
 
-- survival adequacy dominates strategy purity;
-- immediate scoring purchases may be off-route;
-- early evidence may guide choices but should not cause the agent to reject necessary survival strength;
-- inactive long-horizon engines should not be treated as sufficient immediate defense.
+- sell filler/conflict -> buy stronger compatible component;
+- buy generator -> activate Hologram/Blue growth;
+- sell expendables -> Ankh;
+- buy Bull/Bootstraps pair when jointly strong at current cash;
+- buy component -> re-evaluate all track meters -> buy complementary component.
 
-### Antes 3–5: Convergence
+Add target support for `component crosses useful track rank` and `one component advances multiple developed tracks`.
 
-Priority: **turn survival pieces into a coherent scaling build**.
+## 11. Phase behavior
 
-- Build Health and scaling adequacy become strong shop inputs;
-- inactive engines create activation pressure;
-- filler should be replaced as stronger aligned engines appear;
-- reroll/search pressure increases when scaling is behind schedule;
-- pivots remain legal when the new route is materially stronger after buildup/runway cost.
+### Ante 1–2 — foundation
 
-### Ante 6+: Commitment
+Survive, collect useful contribution, remain flexible. Do not force a predetermined build.
 
-Priority: **execute and strengthen the realized Primary build**.
+### Ante 3–5 — composition formation
 
-- committed build structure is protected;
-- incompatible route-bound filler is aggressively deprioritized;
-- pivots require decisive realized advantage and acceptable transition risk;
-- theoretical ceiling without enough runway is not sufficient;
-- survival remains the final override.
+Identify developed compatible tracks, select/strengthen a power engine, replace disconnected filler, and converge resource use around the emergent combined build.
 
-## 10. Observability requirements
+### Ante 6+ — execution
 
-The live monitor and structured logs should expose:
+Strongly reinforce the best realized combined build. Do not discard compatible developed tracks merely because they are not the single highest-scoring node. Composition changes require decisive realized advantage and acceptable transition risk. Survival remains final authority.
 
-- Build Health aggregate;
-- Survival;
-- Immediate scoring;
-- Scaling;
-- Coherence;
-- Runway;
-- Primary realized strategy;
-- owned CORE/ENGINE/SUPPORT/FILLER/CONFLICT components;
-- inactive/underperforming engine warnings;
-- scaling-deficit warning;
-- pivot reason and transition-cost rationale when a pivot is selected.
+## 12. Observability target
 
-This is necessary so five-run calibration can distinguish:
+Migrate logs/live monitor toward:
 
-- the model correctly detecting a weak build but failing to act;
-- the model incorrectly believing the build is healthy;
-- ordinary RNG losses after otherwise sound decisions.
+```text
+Build Health  : ...
+Survival      : ...
+Immediate     : ...
+Scaling       : ...
+Coherence     : ...
+Runway        : ...
 
-## 11. Implementation sequence
+Combined build: Burnt + Aces + Pair + DNA support
+Power engine  : Burnt
 
-Implement in this order, with regression tests before each behavior change:
+Track meters:
+Burnt          contribution/rank/realized state
+Aces           contribution/rank/realized state
+Pair           contribution/rank/realized state
+...
 
-1. `BuildHealth` data model and pure evaluator.
-2. Realized engine-strength descriptors for a small initial engine set: Hologram/Blue growth, Burnt Joker, Castle, Green Joker, Red Card, Runner, Bull/Bootstraps.
-3. Survival-adequacy calculation for early Joker acquisition using existing whole-blind clear probability.
-4. Scaling-deficit detection and diagnostics.
-5. Shop acquisition/replacement/reroll integration using Build Health deltas.
-6. Realized-maturity-aware pivot evaluation with buildup/runway cost.
-7. Bounded short-horizon bundle/transition planner.
-8. Live monitor and structured-log fields.
-9. Deterministic regression suite.
-10. Fresh unchanged-HEAD five-run Red/White validation batch.
+Components:
+Burnt Joker    CORE
+Scholar        ENGINE/SUPPORT (Aces)
+DNA            multi-track SUPPORT
+...
 
-Do not start with per-Joker score inflation. The point of this layer is to make the permanent decision system reason about whether the current build works, rather than to accumulate more isolated exceptions.
+Conflicts      : Green, Burglar
+Prescriptions  : activate first discard; favor Ace target; reinforce Pair
+Warnings       : scaling deficit / inactive engine / prescription violation
+```
 
-## 12. Release criterion impact
+Legacy Primary/Relevant fields may remain during migration but should be visibly marked compatibility fields once the new meters exist.
 
-This work remains part of the Red/White `1.0.x` calibration line because it corrects the competence model used by the already-released Red/White agent. It is not Red Stake-specific functionality and should be complete and validated before Red/Red `1.1.0` development begins.
+## 13. Implementation sequence
+
+Current Build Health/runtime work already exists. Next architecture work should proceed without a flag-day rewrite:
+
+1. Add strategy-track meter/rank model over the existing relationship catalogue.
+2. Evaluate **all** tracks from state rather than truncating to top three.
+3. Add explicit compatibility/synergy/conflict composition graph.
+4. Build a combined-build resolver and power-engine selector.
+5. Make component-role classification consume the combined build.
+6. Make realized-engine analysis detect prescription compliance/violations where measurable.
+7. Feed combined prescriptions into D1, shop, packs/consumables, deck shaping, ordering, economy, skips and bosses.
+8. Update monitor/log schema.
+9. Retire legacy Primary/Secondary/Third assumptions after regression parity.
+10. Run unchanged-HEAD five-run batches and calibrate contribution/rank geometry from telemetry.
+
+Do not solve this by indiscriminately increasing per-Joker scores. The purpose is coherent composition reasoning.
+
+## 14. Regression targets carried from telemetry
+
+- early Red/White should not routinely exhaust all discards and die just below ordinary Ante 1–2 targets;
+- Burnt + Green and Burnt + Burglar are conflicts;
+- Green + Burglar synergize;
+- developed Burnt should actually use safe first-discard upgrades;
+- Scholar/Aces/DNA should be recognized as compatible reinforcement around a Burnt + cheap-hand build when offered;
+- developed Ride the Bus should avoid face-card plays when safely possible;
+- on-path components must not be logged FILLER due to legacy shortlist plumbing;
+- Build Health must distinguish structural coherence from realized underperformance.
+
+## 15. Release scope
+
+This remains Red/White competence work. Complete and validate the strategy-track migration before treating the strategy model as frozen for subsequent stakes.
