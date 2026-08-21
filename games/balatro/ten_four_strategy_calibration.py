@@ -18,7 +18,8 @@ This keeps the viable paired package while preventing one common Joker from
 manufacturing a committed strategy by itself.
 """
 
-from dataclasses import replace
+from copy import copy
+from dataclasses import is_dataclass, replace
 
 from games.balatro.strategy import (
     GOLD,
@@ -52,13 +53,42 @@ def _owned(state, tokens: frozenset[str]) -> bool:
     return any(_item_tokens(joker) & tokens for joker in getattr(state, "jokers", ()) or ())
 
 
+def _relationship_variant(definition, *, gold_jokers, silver_jokers, bronze_jokers):
+    """Return a relationship-adjusted definition for flat or tree-aware trackers."""
+    values = {
+        "gold_jokers": frozenset(gold_jokers),
+        "silver_jokers": frozenset(silver_jokers),
+        "bronze_jokers": frozenset(bronze_jokers),
+    }
+    if is_dataclass(definition) and not isinstance(definition, type):
+        return replace(definition, **values)
+
+    named_replace = getattr(definition, "_replace", None)
+    if callable(named_replace):
+        try:
+            return named_replace(**values)
+        except (TypeError, ValueError, AttributeError):
+            pass
+
+    try:
+        cloned = copy(definition)
+        for name, value in values.items():
+            setattr(cloned, name, value)
+        return cloned
+    except (AttributeError, TypeError):
+        return definition
+
+
 def _static_ten_four(definition):
     walkie_even = set(_WALKIE | _EVEN)
-    return replace(
+    gold = set(getattr(definition, "gold_jokers", ()) or ()) - walkie_even
+    silver = set(getattr(definition, "silver_jokers", ()) or ()) | walkie_even
+    bronze = set(getattr(definition, "bronze_jokers", ()) or ()) - walkie_even
+    return _relationship_variant(
         definition,
-        gold_jokers=frozenset(set(definition.gold_jokers) - walkie_even),
-        silver_jokers=frozenset(set(definition.silver_jokers) | walkie_even),
-        bronze_jokers=frozenset(set(definition.bronze_jokers) - walkie_even),
+        gold_jokers=gold,
+        silver_jokers=silver,
+        bronze_jokers=bronze,
     )
 
 
@@ -66,10 +96,14 @@ def _realized_ten_four(definition, state):
     definition = _static_ten_four(definition)
     if not (_owned(state, _WALKIE) and _owned(state, _EVEN)):
         return definition
-    return replace(
+    gold = set(getattr(definition, "gold_jokers", ()) or ()) | set(_WALKIE)
+    silver = set(getattr(definition, "silver_jokers", ()) or ()) - set(_WALKIE)
+    bronze = set(getattr(definition, "bronze_jokers", ()) or ()) - set(_WALKIE)
+    return _relationship_variant(
         definition,
-        gold_jokers=frozenset(set(definition.gold_jokers) | set(_WALKIE)),
-        silver_jokers=frozenset(set(definition.silver_jokers) - set(_WALKIE)),
+        gold_jokers=gold,
+        silver_jokers=silver,
+        bronze_jokers=bronze,
     )
 
 
@@ -114,7 +148,7 @@ def install_ten_four_strategy_calibration() -> None:
         if getattr(result, "tier", None) == GOLD:
             return result
 
-        # The static component index is deliberately Silver.  When the paired
+        # The static component index is deliberately Silver. When the paired
         # package is realized, expose the conditional Gold tier to downstream
         # component-role diagnostics and add the exact Gold-vs-Silver alignment
         # delta to candidate value rather than merely relabelling telemetry.
