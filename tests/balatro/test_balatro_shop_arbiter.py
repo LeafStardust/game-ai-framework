@@ -89,10 +89,12 @@ def test_buffoon_requires_currently_usable_joker_capacity():
     assert any("replacement" in note for note in result.rationale)
 
 
-def test_celestial_option_value_uses_existing_hand_specialization_only():
+def test_celestial_option_value_uses_observed_hand_specialization_not_level_alone():
     base_state = _state()
-    specialized_state = _state()
-    specialized_state.hand_levels["PAIR"] = 5
+    level_only_state = _state()
+    level_only_state.hand_levels["PAIR"] = 5
+    repeated_state = _state()
+    repeated_state.hand_play_counts["PAIR"] = 8
     action = BalatroAction(
         BUY_BOOSTER,
         target=_booster("Celestial Pack", center="p_celestial_normal_4"),
@@ -100,13 +102,14 @@ def test_celestial_option_value_uses_existing_hand_specialization_only():
     policy = BuildAwareShopBoosterPolicy()
 
     base = policy.recommend(base_state, action)
-    specialized = policy.recommend(specialized_state, action)
+    level_only = policy.recommend(level_only_state, action)
+    repeated = policy.recommend(repeated_state, action)
 
-    assert base.decision == "BUY"
-    assert specialized.decision == "BUY"
-    assert specialized.option_utility > base.option_utility
-    assert any("hand-level investment=4" in note for note in specialized.rationale)
-    assert any("contents are not predicted" in note for note in specialized.rationale)
+    assert level_only.option_utility == base.option_utility
+    assert repeated.option_utility > base.option_utility
+    assert any("no observed poker-hand history" in note for note in level_only.rationale)
+    assert any("most-played hand=PAIR plays=8/8" in note for note in repeated.rationale)
+    assert any("contents are not predicted" in note for note in repeated.rationale)
 
 
 def test_expensive_booster_can_lose_to_hold_after_shop_economics():
