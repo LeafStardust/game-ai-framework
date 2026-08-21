@@ -1,274 +1,256 @@
 # Balatro Strategy System
 
-Canonical architecture contract for the Balatro strategy system.
+Canonical architecture contract for the Red/White Balatro strategy redesign.
 
-## Core model
+## 1. Mental model
 
-Balatro strategy tracks are analogous to Currency Wars **Bonds**. A Joker/card/state component may contribute to multiple tracks simultaneously. Tracks develop independently.
-
-A **composition motif** is analogous to a Currency Wars player strategy: a known, useful combination of multiple tracks/components that becomes super-additive when assembled. Motifs are NOT additional Bonds and must not receive independent quota merely for existing.
-
-Example:
+The intended abstraction is Currency Wars-like:
 
 ```text
-Currency Wars                         Balatro
-character                             Joker/card/state
-Bond                                  strategy track
-Bond quota/rank                       track contribution/rank
-pinned/player strategy                composition motif / combined build
-
-Baron + Mime + Steel Kings is therefore a composition motif:
-  Held Cards + Held Retrigger + Steel + King concentration
+Currency Wars character        = Balatro Joker/card/persistent state
+Currency Wars Bond             = Balatro strategy track (Bond)
+Bond quota/rank                = weighted contribution + Bond rank
+Currency Wars player strategy  = Balatro composition motif / combined build
 ```
 
-The runtime target is:
+A component may advance multiple Bonds simultaneously. Bonds develop independently. Compatible Bonds compose into a run-specific build; known super-additive combinations may be represented as composition motifs. There is no Primary/Secondary/Third requirement.
+
+Example: Baron is not a Bond. `Held Cards` is. Baron + Mime + Steel Kings is a composition motif built from Held Cards, Held Retrigger, Steel and relevant rank/card structure.
+
+## 2. Bond admission
+
+A Bond is a persistent, developable strategic axis. A candidate should normally satisfy most of:
+
+- further investment can meaningfully develop it;
+- multiple components or persistent state features can contribute;
+- greater development materially improves the plan;
+- greater development changes acquisition, deck shaping or execution.
+
+A single defining Joker may establish a Bond when owning it creates a deep strategic axis that other components/state can develop. Burnt is the canonical example.
+
+Do not make every Joker, famous build or mechanic a Bond. Exact packages such as PhotoChad or Baron-Mime-Steel belong above Bonds as motifs/compositions.
+
+## 3. Weighted contribution — no G/S/B replacement
+
+Gold/Silver/Bronze/Banned is legacy migration evidence only. Do not recreate categorical contribution tiers under new names.
+
+Every contributor receives its own Bond-specific numerical contribution. One component may contribute different amounts to several Bonds:
 
 ```text
-components
-   ↓ contribute to one or more
-strategy tracks (Bonds)
-   ↓ independent ranks
-compatibility / synergy / conflict graph
-   ↓
-composition motifs + emergent combinations
-   ↓
-combined build
-   ↓
-power engine + supporting tracks
-   ↓
-merged rank-aware prescriptions
-   ↓
-D1 / shop / packs / deck shaping / economy / bosses
+component -> Bond A +x
+          -> Bond B +y
+          -> Bond C +z
 ```
 
-The old Primary/Secondary/Third candidate-build model is legacy migration infrastructure and must not define the final architecture.
+Contribution means `how much this component genuinely develops this Bond`, not global strategy commitment and not direct scoring power.
 
-## Strategy tracks vs composition motifs
+Sources may include Jokers, permanent deck composition, rank/suit density, enhancements, seals, hand levels, permanent card upgrades, accumulated scaler state, consumable infrastructure and other persistent public state. Current-hand accidents are tactical state, not Bond development.
 
-A strategy track must be independently developable by accumulating multiple meaningful contributions. It represents one coherent mechanic or axis of power.
+State/density contribution should use mechanically appropriate bands/caps/conditions rather than unbounded per-card inflation.
 
-A composition motif describes a particularly important combination of tracks/components whose value is greater than treating them independently.
+Permanent additions remain permanent contribution while they remain in game state. Dynamic sources disappear when sold/destroyed. Eternal/otherwise locked components remain contribution while present. No artificial historical Bond decay exists; recalculate from actual state.
 
-Do NOT create a new track for every famous build. Examples such as PhotoChad, Baron-Mime-Steel, Midas-Vampire, Marble-Stone, etc. should normally emerge as motifs/combinations of underlying tracks.
+## 4. Five-rank framework
 
-Motifs exist so the agent can recognize super-additive packages and their prescriptions without polluting the Bond catalogue.
-
-A motif should define only what cannot be derived safely from additive track ranks alone:
-
-- activation/prerequisite conditions;
-- super-additive synergy value;
-- bridge components that advance several required tracks;
-- targetable missing pieces;
-- realized-strength gates;
-- special prescriptions;
-- transition/pivot cost.
-
-Motifs may be `POTENTIAL`, `ACTIVE`, or `MATURE` based on actual owned/deck state. Seeing one component must not pretend the full motif exists.
-
-## Canonical example: Baron-Mime-Steel
-
-Baron-Mime-Steel must be understandable without a `Baron-Mime-Steel Bond`.
-
-Conceptually:
+Use approximately five standardized development ranks:
 
 ```text
-Baron          -> Held Cards / King-held payoff
-Mime           -> Held Retrigger
-Steel Kings    -> Steel + Held Cards + King concentration
-Red Seal Kings -> Held Retrigger + King concentration
-hand size      -> Held Cards support
-
-when sufficient pieces/density coexist:
-  motif = Baron-Mime-Steel
-  synergy = strongly super-additive
+R1 Emerging
+R2 Established
+R3 Strong
+R4 Power-engine capable
+R5 Capstone / maximum strategic commitment
 ```
 
-The motif then increases acquisition/deck-shaping value for Steel Kings, Mime/Baron-compatible held effects, Red Seal Kings and hand-size support, while prescribing that payoff Kings remain held rather than being unnecessarily played.
+The names may be refined, but the progression meaning is shared.
 
-## Design order
+Each Bond still defines its own:
 
-1. Define the strategy-track catalogue from first principles.
-2. Define component -> track contribution matrix.
-3. Define track ranks/thresholds.
-4. Define track-to-track compatibility, synergy and conflicts.
-5. Define important composition motifs and activation conditions.
-6. Define rank/motif-aware prescriptions.
-7. Evaluate all tracks from public state.
-8. Detect potential/active/mature motifs.
-9. Compose the best viable combined build and identify its power engine.
-10. Derive component roles and realized strength from that combined build.
-11. Feed prescriptions into every relevant decision layer.
-12. Replace legacy Primary/Secondary/Third telemetry and assumptions once parity/regression coverage exists.
-13. Calibrate from unchanged-HEAD run telemetry.
+- weighted contributors;
+- numerical thresholds;
+- mechanically necessary rank gates;
+- effects/prescriptions unlocked or strengthened at each rank.
 
-Do not implement new legacy ranking patches while the catalogue is being reformulated unless necessary to fix a proven runtime regression.
+Threshold geometry does not need to be identical between Bonds. Density mechanics such as Steel can differ from defining-Joker mechanics such as Burnt. Mandatory gates are used only where allowing the rank without them would be mechanically nonsensical.
 
-## Contribution
+Generic rank authority increases with rank: R1 is opportunistic recognition; R2 begins meaningful reinforcement/basic prescriptions; R3 protects and actively develops the Bond; R4 may serve as a power engine and strongly influences decisions; R5 is capstone commitment. The Bond-specific rank definition says exactly what that authority means for that mechanic.
 
-Contribution answers: `how much does this component genuinely advance this track?`
+## 5. Development rank is not realization
 
-The old Gold/Silver/Bronze/Banned relationship data is migration evidence, not a final quota system. Do not mechanically translate old tiers into new ranks. Re-audit every component after the catalogue is defined.
-
-A component can contribute to multiple tracks. Multi-track contributors are strategically valuable because one Joker slot can advance several parts of the combined build.
-
-Do not double-count one component as several independent engines merely because it contributes to several tracks. Structural quota and realized scoring power are separate axes.
-
-## Track rank
-
-A track rank represents how developed that strategy is. Exact thresholds and names are not frozen until the catalogue and contribution distribution are known.
-
-Higher rank must increasingly affect behavior. A rank that only changes telemetry is useless.
-
-Thresholds do not have to be globally identical. Some tracks require density; some become useful from a defining component. Per-track threshold geometry is permitted when mechanically justified.
-
-## Combined build
-
-The agent does not demand a predetermined strategy. It assembles the best compatible composition that RNG makes available.
-
-A combined build may contain:
-
-- one highly developed power engine plus support tracks;
-- several medium-strength mutually reinforcing tracks;
-- one or more active composition motifs;
-- an early flexible board with no committed engine;
-- a temporary survival board awaiting better components.
-
-There is no fixed top-three requirement.
-
-## Compatibility and synergy
-
-Track interactions are explicit and conditional where necessary:
-
-- `CONFLICT` — mechanics materially contradict one another;
-- `COMPATIBLE` — can coexist without meaningful super-additive benefit;
-- `SYNERGY` — materially reinforce each other;
-- `STRONG_SYNERGY` — super-additive enough to influence composition/pivot decisions.
-
-Known authoritative examples:
+Every Bond has two separate axes:
 
 ```text
-Burnt <X> Green
-Burnt <X> Burglar
-Green <-> Burglar : strong synergy
-Held Cards + Held Retrigger + Steel + King density : Baron-Mime-Steel motif
+Development = contribution total + R1..R5
+Realization = DORMANT / PARTIAL / ACTIVE / MATURE
 ```
 
-Conflict must affect acquisition, retention/replacement and execution regardless of which poker-hand track currently has the largest score.
+Development says what has been assembled/invested. Realization says whether that structure is actually functioning in the current environment.
 
-Compatibility alone must not be scored as if it were synergy.
+Example: Steel may be R4 structurally but only PARTIAL until enough useful Steel cards are actually held/triggered by the current plan. Bosses temporarily suppress realization, not persistent development. After the boss, the underlying Bond rank remains unless actual build state changed.
 
-## Dependencies and realized gates
+## 6. Sparse Bond relationships
 
-Some tracks/motifs depend on deck state or other tracks. A high structural rank cannot bypass a missing mechanical prerequisite.
-
-Examples:
-
-- Steel requires useful Steel cards and an execution plan that holds/triggers them.
-- Baron alone with negligible King density is only a potential held-King route, not a mature engine.
-- Hologram x1.0 can be structurally relevant while realized inactive.
-- Throwback x1.0 is not a mature skip engine.
-
-The system must distinguish `targetable potential` from `realized engine`.
-
-## Prescription resolution
-
-Developed tracks and active motifs change actions. Prescriptions may affect:
-
-- hand selection;
-- discarding;
-- card holding/order;
-- Joker purchase/sale/replacement/order;
-- Planet/Tarot/Spectral/pack decisions;
-- deck manipulation;
-- economy and rerolls;
-- skips;
-- boss adaptation.
-
-Prescriptions can conflict. They must not simply be concatenated. Resolve them using:
-
-1. immediate survival;
-2. active power-engine importance;
-3. realized motif/track strength;
-4. track rank;
-5. transition cost and future value.
-
-Examples carried as regression targets:
-
-- developed Burnt should use a safe first-discard hand-level upgrade even if the first scoring hand would already clear;
-- Burnt cannot coexist with Burglar or Green as one combined build;
-- developed Ride the Bus/no-face should avoid playing face cards when a safe comparable non-face line exists;
-- Scholar/Aces/DNA should be allowed to reinforce a compatible Burnt + cheap-hand composition rather than being treated as rival global strategies;
-- active Baron-Mime-Steel should preserve payoff Kings in hand, favor Steel/Red-Seal King shaping, and value hand-size/held retrigger support.
-
-Survival remains authoritative: strategy chooses the highest-value compliant action inside the safe survival envelope.
-
-## Card/deck state is first-class evidence
-
-The system must not derive tracks only from owned Jokers. Contributions and motif gates may come from:
-
-- rank density;
-- suit density;
-- enhancements;
-- seals;
-- editions where strategically relevant;
-- hand levels;
-- deck size/concentration;
-- accumulated Joker scaler state;
-- available hands/discards;
-- consumable state.
-
-This is required for Steel, Glass, seals, exact-card concentration, rank/suit builds, DNA targets and similar plans.
-
-## Structural contribution vs realized strength
-
-A track can be highly developed structurally while currently weak in practice. Build Health and realized-engine analysis remain separate from track rank.
-
-High rank improves the power plan; it never guarantees a win.
-
-## Component roles
-
-`CORE`, `ENGINE`, `SUPPORT`, `FILLER`, and `CONFLICT` remain useful, but must eventually derive from combined-build participation rather than a legacy top-three shortlist.
-
-A component contributing materially to a developed compatible track is not filler merely because another track is stronger. On-path components can still be replaced when their realized value is poor and a better component improves the whole build.
-
-## Transition / pivot
-
-A new component must not trigger a pivot merely because it starts a high-ceiling motif.
-
-Composition change should consider:
+Do not build an exhaustive pair matrix.
 
 ```text
-current realized build power
-vs
-new realized/potential composition power
-+ useful track thresholds crossed
-+ active motif synergy
-+ existing deck compatibility
-- missing-piece distance
-- sold/abandoned value
-- slot/economy cost
-- buildup time
-- survival risk
+default relationship = NEUTRAL
+explicit relationships = SYNERGY or CONFLICT only
 ```
 
-Baron alone with two Kings should not destroy a functioning build. Baron + Mime + substantial King/Steel infrastructure may justify aggressive completion.
+Only store relationships that materially matter. Complex/super-additive combinations belong to motifs rather than adding more relationship tiers.
 
-## Migration discipline
+Canonical conflict example: Burnt x No-Discard.
 
-The runtime contains substantial useful strategy knowledge and tests. Preserve it as migration input. Do not perform a flag-day rewrite.
+A Bond-level mechanical contradiction should normally be represented as CONFLICT so contradictory Bonds are not composed into the same build.
 
-Target implementation sequence after catalogue formulation:
+## 7. Composition motifs
 
-1. explicit track data model;
-2. all-track meter evaluation;
-3. compatibility/synergy/conflict graph;
-4. composition-motif model;
-5. motif detector and distance-to-activation evaluation;
-6. combined-build composer;
-7. power-engine selector;
-8. combined-build component roles;
-9. rank/motif-aware prescription resolver;
-10. D1/shop/consumable/deck/economy integration;
-11. telemetry/live-monitor migration;
-12. removal of legacy ranking assumptions;
-13. telemetry-driven calibration.
+A motif is a known strategy/composition whose value cannot safely be represented by additive Bond development alone. It is analogous to a Currency Wars player strategy, not another Bond.
+
+Motifs may be:
+
+```text
+POTENTIAL -> ACTIVE -> MATURE
+```
+
+They can define prerequisites, super-additive synergy, bridge components, missing-piece distance, special prescriptions and realized gates.
+
+Canonical example:
+
+```text
+Baron + Mime + Steel Kings
+  Held Cards
+  Held Retrigger
+  Steel
+  relevant King/card concentration
+        -> Baron-Mime-Steel motif
+```
+
+The motif can then value Steel/Red-Seal Kings, hand-size support and held retriggers appropriately and prescribe keeping payoff Kings held.
+
+## 8. Prescription resolution
+
+Do not create a second complicated prescription-conflict subsystem.
+
+- Bond-level contradictions -> CONFLICT -> do not compose.
+- Compatible Bond prescriptions -> combine.
+- unusual/super-additive combination behavior -> motif prescription.
+- immediate survival -> final authority and may override strategic prescriptions.
+
+## 9. Multi-Bond contributors and slot efficiency
+
+A component that advances several relevant Bonds is strategically valuable because one Joker slot can develop several parts of the combined build.
+
+Its shop/build value should consider:
+
+- progress added to currently relevant Bonds;
+- useful rank thresholds crossed;
+- motifs activated/advanced;
+- synergy among those Bonds;
+- slot efficiency;
+- replacement/transition cost;
+- actual immediate scoring/economic value separately.
+
+Do not convert overlapping Bond contribution into imaginary scoring power. Bond ranks are structural information, not additive score estimates.
+
+## 10. Pivot and transition
+
+Potential high-ceiling Bonds/motifs must not automatically destroy a functioning build.
+
+Track motif/composition distance roughly as:
+
+```text
+FAR -> DEVELOPING -> NEAR -> ACTIVE -> MATURE
+```
+
+Pivot evaluation considers current realized build power, new potential/realized power, useful thresholds crossed, motif synergy, deck compatibility, missing pieces, money/slots, abandoned value, reshaping/buildup time, remaining runway and survival risk.
+
+Existing rank creates pivot resistance:
+
+- R1/R2: cheap to abandon;
+- R3: meaningful transition cost;
+- R4: strong pivot resistance;
+- R5: very strong pivot resistance.
+
+This is a cost, never a lock. Survival or a clearly superior composition can justify abandoning even R5.
+
+## 11. Build Health integration
+
+Bond rank answers:
+
+```text
+What have I built?
+What should I reinforce?
+How should it be played?
+```
+
+Build Health / score projection answers:
+
+```text
+Does it actually clear?
+Is it powerful enough now?
+Is it scaling fast enough?
+```
+
+Never sum Bond ranks into build power.
+
+Pipeline:
+
+```text
+components/state
+  -> Bond contributions
+  -> Bond ranks + realization
+  -> combined build + motifs
+  -> intended engine/prescriptions
+
+actual Balatro mechanics + intended engine
+  -> score projection
+
+combined-build coherence + realization + score projection
+  -> Build Health
+```
+
+A coherent R5 build may still be too weak to survive. Build Health must expose that rather than allowing strategic rank to hide mechanical failure.
+
+## 12. Observability contract
+
+Live monitor should show only relevant Bonds; full telemetry may retain all Bond states.
+
+Per relevant Bond expose approximately:
+
+```text
+Held Cards
+Rank         : R4
+Contribution : 17.5 / 21.0 -> R5
+Realization  : ACTIVE
+```
+
+Composition section:
+
+```text
+Power engine : ...
+Bonds        : relevant rank + realization
+Motifs       : POTENTIAL/ACTIVE/MATURE + distance/next requirement
+Conflicts    : ...
+Prescriptions: ...
+```
+
+Shop/action telemetry should explain threshold/motif effects, e.g. a Mime purchase crossing Held Cards R4 and Held Retrigger R3 while activating Baron-Mime-Steel. Do not flood the live monitor with every dormant R0 Bond.
+
+## 13. Migration order
+
+1. Freeze the Bond catalogue.
+2. Define weighted component/state contributions.
+3. Define per-Bond R1-R5 thresholds, gates and rank effects.
+4. Define sparse SYNERGY/CONFLICT edges.
+5. Define important composition motifs and activation/distance rules.
+6. Implement all-Bond evaluation and realization.
+7. Implement combined-build composer and power-engine selection.
+8. Integrate score projection / Build Health.
+9. Integrate rank/motif prescriptions into D1, shop, packs, deck shaping, economy, skips and bosses.
+10. Migrate component roles and filler logic to combined-build participation.
+11. Migrate telemetry/live monitor.
+12. Retire legacy Primary/Secondary/Third and G/S/B assumptions after regression parity.
+13. Calibrate weights/thresholds from unchanged-HEAD multi-run telemetry rather than arbitrary inflation.
+
+The current runtime/tests remain migration evidence. Do not preserve obsolete conceptual behavior merely because an old test encodes it; remove/update tests when the architecture intentionally supersedes them.
