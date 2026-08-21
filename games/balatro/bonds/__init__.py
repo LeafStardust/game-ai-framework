@@ -1,4 +1,5 @@
 from games.balatro.bonds.burnt import (
+    BURNT_RANK_POLICIES,
     BURNT_RANK_THRESHOLDS,
     BurntBondContext,
     evaluate_burnt_bond,
@@ -11,6 +12,7 @@ from games.balatro.bonds.model import (
 )
 
 __all__ = [
+    "BURNT_RANK_POLICIES",
     "BURNT_RANK_THRESHOLDS",
     "BondContribution",
     "BondDevelopment",
