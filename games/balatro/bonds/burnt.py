@@ -11,7 +11,7 @@ from games.balatro.bonds.model import (
 )
 
 
-BURNt_BOND_ID = "burnt"
+BURNT_BOND_ID = "burnt"
 
 # Provisional Red/White calibration. These are weighted contribution thresholds,
 # not sequential item requirements.
@@ -142,7 +142,7 @@ def evaluate_burnt_bond(
     has_burnt = _contains_named(jokers, "burntjoker")
     if not has_burnt:
         return BondDevelopment(
-            bond_id=BURNt_BOND_ID,
+            bond_id=BURNT_BOND_ID,
             unlocked=False,
             contribution=0.0,
             rank=BondRank.LOCKED,
@@ -186,7 +186,7 @@ def evaluate_burnt_bond(
     rank, next_threshold = _rank_for(total)
 
     return BondDevelopment(
-        bond_id=BURNt_BOND_ID,
+        bond_id=BURNT_BOND_ID,
         unlocked=True,
         contribution=total,
         rank=rank,
