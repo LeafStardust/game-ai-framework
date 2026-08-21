@@ -1,209 +1,243 @@
-# Balatro Strategy Tree Rules
+# Balatro Strategy System Rules
 
-Development rules for [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md). Relationship data lives in [`BALATRO_STRATEGY_RELATIONSHIPS.md`](BALATRO_STRATEGY_RELATIONSHIPS.md).
+Development contract for the Red/White strategy system. Topology is in `BALATRO_STRATEGY_TREE.md`; contribution data is in `BALATRO_STRATEGY_RELATIONSHIPS.md`; realized viability is in `BUILD_HEALTH_AND_REALIZED_STRENGTH.md`.
 
-## 1. Tree semantics
+## 0. Architectural decision — strategy tracks are Bond-like
 
-- `[I]` is a real generic strategy that has more specific descendants.
-- `[L]` is a specialization with no descendants.
-- A standalone `[L]` is a strategy with no specializations.
-- Do not create `Core ...`, `... Scoring`, or other fallback leaves that merely duplicate their indexed parent.
-- No natural poker-hand progression edges.
-- Cross-cutting synergy does not create fake parent edges.
-- Similar or composite poker hands remain separate when their evidence does not inherit cleanly across every evidence column.
+The strategy system is being migrated from **competing Primary/Secondary/Third candidate builds** to **independent strategy tracks that combine into one emergent build**.
 
-An indexed strategy remains a valid actionable strategy. When a specialization is materially established, the specialization may replace the generic indexed strategy for that branch in the actionable ranking.
+Mental model:
 
-## 2. Relationship table semantics
+```text
+Joker -> contribution(s) -> independent strategy tracks -> track ranks
+      -> compatibility/synergy composition -> combined build plan
+      -> power-engine selection + prescriptions -> actions
+```
 
-An `[I]` row contains only evidence that belongs to the generic indexed strategy and is shared by every specialization below it.
-
-A specialization row contains only the additional evidence that distinguishes that specialization from its parent and siblings.
-
-This factoring rule applies to every evidence column:
-
-- Gold;
-- Silver;
-- Bronze;
-- Banned;
-- Tarot;
-- Planet;
-- Spectral;
-- Enhancement.
-
-A component must never be copied into an indexed row merely because one descendant uses it. If a component is specific to one descendant, it belongs only on that descendant.
+A Joker may contribute to several strategy tracks simultaneously. This is intentional and is the Balatro equivalent of one unit contributing quota to several Bonds in an autobattler. A strategy track is not a complete build by itself. The complete build is the compatible combination of developed tracks.
 
 Example:
 
 ```text
-High Card [I]
-  generic evidence shared by both High Card specializations
+Burnt Joker + Scholar + DNA
+    Burnt hand-level engine  -> high development
+    Aces                     -> high development
+    High Card / Pair         -> compatible hand plan
+    DNA/card duplication     -> supporting deck plan
 
-Stuntman / Small-Hand High Card [L]
-  Stuntman-specific evidence only
-
-Baron-Mime Steel-King High Card [L]
-  Baron/Mime-specific evidence only
+Combined build: Burnt + Aces + chosen cheap repeatable hand + DNA support.
 ```
 
-`Stuntman`, `Baron`, and `Mime` therefore do not also appear on the High Card row. `The Chariot` and `Steel` do appear on the High Card row because they benefit both current High Card specializations and are not unique evidence for Baron-Mime.
+The strongest developed track may be the principal **power engine**, but other tracks are not competitors merely because they have lower scores.
 
-## 3. Evidence types
+### Migration status
 
-Joker relationship tiers:
+The current runtime still contains legacy Primary/Secondary/Relevant/commitment machinery. Treat it as compatibility infrastructure while migrating. **Do not extend that abstraction with new special cases unless required to preserve behavior during migration.** New strategic work should target independent track contribution, rank, compatibility, and prescriptions.
 
-- Gold: `+8.00`
-- Silver: `+3.00`
-- Bronze: `+1.00`
-- Banned: `-8.00`
+Existing Gold/Silver/Bronze/Banned data is retained as useful curated domain knowledge and migration input. It is not the final architecture.
 
-Gold is deliberately narrow. A Joker belongs in Gold only when **owning that Joker can make the strategy viable and unusually effective by itself**, rather than merely making the strategy easier to execute or adding modest value. Examples include Scholar for Aces, Glass Joker for Glass breakage, Steel Joker for Steel density, Runner / The Order for Straight, Hologram for deck-growth, Yorick for discard scaling, and Obelisk for hand rotation.
+## 1. Vocabulary
 
-Silver is the normal support tier. Enablers, consistency tools, modest economy pieces, hand-shape helpers, and weak single-Joker routes belong here even when they are strongly associated with a strategy. Examples include Banner, Delayed Gratification, Acrobat, Abstract Joker, Shortcut, Four Fingers, Superposition, Reserved Parking, Business Card, Faceless Joker, Ride the Bus, Green Joker, Sixth Sense, Shoot the Moon, Hiker, Satellite, Mail-In Rebate, Loyalty Card, Fortune Teller, Cartomancer, Hallucination, and 8 Ball.
+Preferred terms going forward:
 
-Bronze remains secondary or conditional support. A Gold relationship must outweigh two Silvers and remain the largest single evidence step, but Gold must not be used merely to manufacture an early commitment signal.
+- **Strategy track** — one independently developed mechanic/plan (Burnt, Pair, Aces, Green, Red Seal, etc.). Existing docs/code may still call this a strategy/node.
+- **Contribution** — how much a Joker/card/consumable/state feature advances a track. Existing Gold/Silver/Bronze values are the current coarse contribution encoding.
+- **Track rank** — development threshold reached by accumulated contribution. Final thresholds must be calibrated from the catalogue and telemetry; do not invent them ad hoc.
+- **Combined build** — mutually compatible set of developed tracks currently being executed.
+- **Power engine** — the track supplying the main scaling/win-condition power and normally deserving the strongest reinforcement.
+- **Prescription** — behavioral consequence of a developed track: hand/discard choice, acquisition, retention, deck shaping, ordering, economy, pack/consumable use, etc.
+- **Conflict** — mechanical incompatibility. Conflict is stronger than ordinary opportunity cost.
 
-These tiers are strategy evidence, not a universal Joker-value catalogue. A strategy-agnostic Joker keeps its ordinary scoring, economy, scaling, and survival value without being copied into every row as Bronze. Conversely, a route-bound Joker mapped only to another strategy can be `OFF_PATH` even though that other row calls it Silver or Gold.
+Legacy `Primary`, `Secondary`, `Support`, `Highlighted`, `Committed`, and `Mature` names describe the current implementation, not the target conceptual model.
 
-Candidate applicability is reported separately:
+## 2. Contribution semantics
 
-- `UNIVERSAL`: useful without the active route; no strategy bonus or off-path penalty;
-- `ALIGNED`: supports the active route and receives its tier reinforcement;
-- `PIVOT`: a sufficiently strong alternative route whose projected evidence clears the pivot margin while pivots remain allowed;
-- `OFF_PATH`: requires another route and receives a dynamic opportunity cost;
-- `CONFLICT`: explicitly Banned by the active route.
+A component contributes to every track it genuinely advances. Multi-track contribution is desirable when mechanics justify it.
 
-Foil, Holographic, Polychrome, and Negative values are universal rather than strategy tiers. Negative additionally avoids ordinary slot opportunity cost and should be acquired when affordable unless its active mechanic is an explicit conflict. Other editions strongly improve a candidate but still must justify the occupied slot and transaction cost; an edition does not make a useless off-path mechanic automatically replace a useful aligned Joker.
+Gold/Silver/Bronze currently encode coarse contribution strength:
 
-Non-Joker evidence is independent from Gold/Silver/Bronze:
+- Gold: defining/very strong contribution after prerequisites are satisfied;
+- Silver: material support;
+- Bronze: weak/conditional support;
+- Banned: explicit mechanical conflict.
 
-- matching Planet / permanent hand level gained: `+0.50` per level;
-- strategy-directed Tarot use: `+0.30` per use;
-- strategy-directed Spectral use: `+0.50` per use;
-- matching enhancement in current deck: `+0.35` per card.
+Red/White runtime currently uses Gold `+10`, Silver `+3`, Bronze `+1`, Banned `-12`. These values are **migration-era contribution weights**, not sacred final Bond-rank geometry.
 
-There is **no universal Seal evidence weight**. Seal presence is too cross-cutting to prove most strategies. A seal matters only when an exact strategy mechanic explicitly depends on it; that logic is handled by that strategy rather than by a generic `+score per seal` rule.
+Do not inflate a relationship merely to force legacy commitment. Under the target model, contribution should describe actual mechanical contribution; rank emerges from accumulated quota.
 
-## 4. Evidence ownership and duplication
+Non-Joker evidence (hand levels, deck composition, consumable investment, realized scaler state) may also advance a track where mechanically justified. Generic hand play counts are not evidence unless the mechanic itself depends on repetition/history; observed use may, however, be used by tactical/resource systems to detect actual hand specialization.
 
-A component may support multiple strategies when the mechanics are genuinely different.
+## 3. Topology and inheritance
 
-If two nodes use the same component for the same reason, one semantic owner is preferred. Parent/child factoring must preserve one ownership location for each piece of evidence.
+`[I]` remains an indexed/generic strategy track with specialized descendants. `[L]` remains a leaf/specialization. Parent-child factoring exists to avoid duplicate evidence, not to force a single winning branch.
 
-Repeated components such as DNA, Glass, Vampire, Pareidolia, Midas Mask, Marble Joker, and Trading Card require distinct payoff requirements when used by multiple specializations.
+An indexed row contains only evidence genuinely shared by every specialization below it. A child contains only distinguishing evidence. Child evidence may inherit compatible parent contribution once materially established, but must not be double-counted.
 
-Conditional support must not be duplicated merely to protect retention. For example, Face Cards owns generic Smiley Face / Scary Face / Midas Mask evidence. Pareidolia may protect compatible face-payoff Jokers through contextual retention/value logic while its leaf is active, but that protection does not add the same Silver evidence a second time.
+Do not create fake parent edges for cross-cutting synergy. Cross-track synergy belongs in the compatibility/synergy graph.
 
-## 5. Generic play counts
+## 4. Combined-build composition
 
-Generic `hand_play_counts` are not positive strategy evidence.
+Developed tracks are composed rather than globally ranked against one another.
 
-Play counts remain legal only for mechanics that explicitly depend on them, such as Obelisk or Supernova.
+The composer must eventually answer:
 
-Persistent hand levels remain valid evidence because they represent permanent investment.
+1. Which tracks are materially developed from current public state?
+2. Which tracks are mutually compatible?
+3. Which combination has the best realized short/medium-horizon power after transition cost?
+4. Which track is the principal power engine?
+5. Which prescriptions follow from the entire combination?
+6. Which missing components most efficiently raise useful track ranks?
 
-## 6. Tree propagation
+A run may have one dominant capstone engine plus several supporting tracks, several medium tracks when RNG does not provide a capstone, or a temporary survival board with little strategic development. All are valid roguelike states.
 
-A specialization inherits generic parent evidence once the specialization itself is materially established.
+There is no requirement that exactly three tracks survive.
 
-Specific child evidence may support confidence in the broader parent strategy, but it must retain provenance and must not be re-counted as parent direct evidence.
+## 5. Compatibility and conflicts
 
-Broad indexed evidence does not blindly activate every specialization. A specialization requires its own distinguishing evidence.
+Positive tracks normally coexist. Banned/conflict means genuine mechanical contradiction, not merely that two routes compete for slots.
 
-There is no fallback-child suppression rule because there are no duplicate fallback children.
+Known authoritative examples:
 
-## 7. Strategy roles, pursuit, and Ante behavior
+```text
+Burnt <X> Green
+Burnt <X> Burglar
+Green <-> Burglar : strong synergy
+Burnt <-> cheap repeatable hand plans (High Card/Pair etc.) : compatible
+Scholar/Aces <-> DNA : strong synergy when duplication is usable
+```
 
-The runtime distinguishes three functional strategy roles:
+Burnt needs a usable first discard. Green loses scaling when discarding. Burglar removes discards. Therefore Green/Burglar cannot be part of a Burnt combined build unless the run explicitly abandons Burnt; Green and Burglar reinforce each other.
 
-- **Primary** — the actual scoring/win-condition route. One Primary remains the main prescriptive direction.
-- **Secondary** — a meaningful scoring/build engine that can coexist with the Primary when mechanically compatible.
-- **Support** — economy, consistency, deck-shaping, or other utility that helps the build without becoming the main scoring identity.
+Conflicts must affect acquisition, retention/replacement, and prescriptions even when a different poker-hand track has the largest raw score.
 
-A positive dominant strategy is always worth trying to strengthen, regardless of Ante. There is no minimum Ante and no arbitrary score floor before strategy-search pressure may activate. If the current dominant strategy has positive evidence, shop rerolls, Joker acquisition, consumable acquisition, deck shaping, and hand preference may all seek additional matching evidence immediately.
+## 6. Track rank must change behavior
 
-This is **not** permission to spend recklessly. Survival, blind-clear probability, affordability, cash reserve, reroll EV, and immediate board strength remain higher-priority constraints. Strategy pursuit means the agent should not passively wait for the exact next component to appear when active search is economically justified.
+A strategy score/status that only appears in telemetry is insufficient. Higher development must increase the authority of the track's prescriptions.
 
-### Antes 1-2
+Conceptual progression (names/thresholds TBD from calibration):
 
-- inherent/meta/survival/economy value still leads when no route has positive evidence;
-- several strategies may acquire evidence and remain pivotable;
-- once a dominant route has positive evidence, the agent should already look for aligned Jokers/consumables and other ways to increase its score;
-- a strong specific package may establish immediately.
+```text
+emerging -> established -> strong -> engine -> capstone
+```
 
-### Antes 3-5
+The exact thresholds are not frozen yet. Required behavior is monotonic: stronger development means stronger reinforcement and stronger protection, subject to survival.
 
-- strategy pressure increases naturally through accumulated evidence;
-- replacement and acquisition should reinforce the strongest viable strategy while pivots remain allowed when current-state evidence changes;
-- compatible Secondary/Support engines may remain active beside the Primary;
-- the agent should actively search rather than waiting for aligned pieces to fall into the shop on their own when reroll EV supports it.
+Examples:
 
-### Ante 6+
+### Burnt
 
-- one **Primary** win condition remains fully prescriptive;
-- compatible **Secondary** scoring engines remain active at reduced influence rather than being discarded merely because they are not the raw dominant node;
-- compatible **Support** engines may remain active at lower influence when they continue to improve the Primary build;
-- incompatible poker-hand prescriptions, explicit Banned conflicts, and unrelated route-bound strategies receive no prescriptive influence;
-- the Primary and compatible engines remain under active search pressure;
-- a support/secondary route cannot hijack the run simply by posting a larger raw score than a genuine scoring Primary;
-- survival overrides strategic purity.
+- low development: value safe first-discard opportunities;
+- developed: preserve a discard opportunity and prefer compatible repeatable hands;
+- strong engine: when a blind is already safely clearable, activate Burnt before scoring instead of wasting the permanent level gain;
+- any meaningful Burnt build: Burglar and Green are conflicts;
+- survival may override Burnt activation when discarding would materially risk the blind.
 
-## 8. Dependency-gated relationships
+### Ride the Bus / no-face
 
-Some Jokers are useful only after another component establishes the route. These dependencies are part of relationship semantics rather than separate strategies.
+- developed Bus route: playing face cards is strategically harmful because it resets accumulated Mult;
+- D1 should avoid face-card scoring lines when a comparable legal non-face line exists;
+- deck shaping should increasingly remove/avoid face cards;
+- survival remains authoritative if face cards are required to clear.
 
-- **Aces:** Scholar is the Gold defining core. DNA, Fibonacci, and Odd Todd are Silver support only while Scholar is owned. Generic Ace concentration alone does not activate them as Aces support.
-- **Constellation:** Constellation is not a self-starting Planet strategy. Without Astronomer or Satellite it is Neutral and ordinary acquisition is blocked. Astronomer enables Silver Constellation support; Satellite upgrades the pair to Gold-level Planet-engine evidence.
-- **Blue Joker:** Blue Joker is Silver by itself and reaches Gold only with a qualifying deck-growth partner such as Marble Joker or Certificate.
-- Other conditional rows follow the same principle: a contextual support Joker must not seed the route whose prerequisite it depends on.
+### Green + Burglar
 
-## 9. Tactical survival overrides strategy preferences
+- Burglar is a strong Green/no-discard partner because it removes discards and adds hands;
+- the combined build should exploit extra hands while preserving Green scaling;
+- Burnt is excluded.
 
-Strategy is always subordinate to winning the current blind.
+### Aces / Scholar / DNA
 
-- If a current legal hand can score at least `remaining blind score / hands remaining`, a pace-qualified play is authoritative over strategy shaping.
-- If no current play reaches that pace, discards are the normal setup/recovery tool when available.
-- If only one hand remains, no current play can clear/reach pace, and at least one legal discard remains, the agent **must discard** rather than spend the final hand on a known losing play.
-- No-discard incentives such as Banner, Delayed Gratification, Green Joker, or Ramen cannot override that final-hand survival rule.
+- Scholar materially advances Aces;
+- DNA becomes especially valuable when it can duplicate the rank/card the developed build wants;
+- a Burnt + Aces + cheap-hand composition should value Scholar/DNA as multi-track reinforcement rather than asking whether Aces should replace Burnt as the single Primary.
 
-## 10. Joker ordering
+## 7. Tactical survival
 
-Joker order is an executable build decision, not presentation state. In stable
-phases the agent evaluates legal permutations against the complete active build.
-The selected order must account for:
+Strategy is subordinate to winning the blind.
 
-- additive Mult resolving before later multiplicative Mult when that scores higher;
-- Blueprint copying the Joker immediately to its right;
-- Brainstorm copying the leftmost Joker;
-- Ceremonial Dagger destroying the Joker immediately to its right on blind select.
+Existing pace/clear-probability rules remain authoritative. Opening survival may bank near-pace hands rather than exhaust every discard chasing perfection. Conversely, a developed engine may intentionally spend a resource (for example Burnt's first discard) when survival margin is sufficient and the permanent gain is valuable.
 
-Ceremonial Dagger permutations are evaluated after projecting the sacrifice and
-its gained Mult. Ordinary reorders require a strict projected whole-build score
-improvement. Negative-retention safety is stronger than that ordinary threshold:
-when Dagger is not the active strategy, the policy may accept a lower immediate
-score to move a Negative Joker out of the sacrifice slot. An active Dagger route
-may intentionally consume a Negative only when its projected build ordering still
-justifies that sacrifice.
+The correct question is not `strategy or survival`; it is `what is the highest-value strategy-compliant action inside the safe survival envelope?`
 
-## 11. Negative Joker retention
+## 8. Realized strength is separate from contribution
 
-Negative Jokers are protected from ordinary sell/replacement pressure because they normally offset their slot cost. Selling one cannot fund an ordinary replacement slot because the extra slot disappears with it.
+Contribution answers whether a component belongs to a track. Realized strength answers whether the engine is actually working now.
 
-Standalone sale requires measured whole-build harm to clear the configured
-material-harm floor. Neutrality, off-path status, low sell value, full ordinary
-slots, or a stronger shop candidate are not removal exceptions. Boss-required
-emergency actions such as Verdant Leaf remain survival-scoped. Intentional
-destruction requires an active matching route, such as Ceremonial Dagger, and is
-logged as an explicit retention exception.
+Examples: Hologram x1.0, unscaled Throwback, unused Burnt, unscaled Castle, or Green with negligible current Mult may have correct structural membership but poor realized power.
 
-## 12. Banned relationships
+The combined-build composer and Build Health must use both axes. High quota cannot guarantee a win; it merely means the build has assembled a strong strategic package. Roguelike state, realized scaling, bosses, economy, and execution still decide survival.
 
-Banned means genuine mechanical conflict, not merely support for a competing strategy.
+## 9. Component roles
 
-Competing positive strategies should normally compete through their own evidence rather than by banning each other.
+`CORE/ENGINE/SUPPORT/FILLER/CONFLICT` remains useful, but roles must be derived from the **combined build**, not membership in a legacy top-three shortlist.
 
-## 13. Strategy-node admission
+A Joker contributing materially to any developed compatible track is not filler. A multi-track Joker may be especially valuable because one slot advances several tracks. A Joker can still be replaceable despite being on-path if its realized contribution is weak and a better component raises the combined build more.
 
-Create a new node only when it materially changes downstream decisions such as acquisition/retention, ordering, hand/discard behavior, deck shaping, consumable use, economy, blind skipping, or sacrifice/destruction behavior.
+## 10. Acquisition, pivoting, and RNG
 
-Do not create a node for every synergy. If the generic indexed strategy already represents the policy, do not add a duplicate generic child.
+The agent cannot demand a predetermined build. It must build from what the run offers.
+
+Acquisition should value:
+
+- contribution to already-developed compatible tracks;
+- components that cross a useful rank threshold;
+- multi-track contribution;
+- creation of a new high-ceiling compatible engine;
+- immediate survival and realized score;
+- transition/slot/economy cost;
+- conflicts with developed engines.
+
+A `pivot` is best understood as changing the combined build/power engine because new RNG makes another compatible composition materially stronger, not switching a single global strategy ID.
+
+## 11. Observability target
+
+Logs/live monitor should migrate toward:
+
+```text
+Combined build : Burnt + Aces + Pair + DNA support
+Power engine   : Burnt
+
+Track          Contribution/Rank   Realized
+Burnt          ...                 healthy
+Aces           ...                 developing
+Pair           ...                 healthy
+Deck copy      ...                 developing
+
+Conflicts      : Burglar, Green
+Prescriptions  : activate first discard; favor Aces; reinforce Pair; copy target card
+```
+
+Legacy Primary/Relevant fields may remain during migration but must not be treated as the final truth.
+
+## 12. Migration plan
+
+Implement incrementally with deterministic tests:
+
+1. Introduce explicit strategy-track contribution/rank data model while preserving current relationship catalogue.
+2. Produce all track meters from one state; do not truncate to top three.
+3. Add compatibility/conflict/synergy graph.
+4. Compose a combined build and select a power engine from compatible developed tracks.
+5. Derive component roles from combined-build membership.
+6. Convert existing prescriptions to rank-aware combined prescriptions.
+7. Wire prescriptions into D1 play/discard, Joker shop/replacement, packs, Tarot/Planet/Spectral, deck shaping, ordering, economy, skips, and bosses.
+8. Migrate telemetry/live monitor to track meters + combined build.
+9. Remove legacy Primary/Secondary/Third assumptions only after parity/regression coverage exists.
+10. Recalibrate contribution weights/rank thresholds from unchanged-HEAD five-run telemetry.
+
+Do not perform a flag-day rewrite and do not delete useful existing relationship data. The current catalogue is the seed dataset for the new system.
+
+## 13. Immediate regression cases for migration
+
+Preserve these as concrete behavioral targets from observed runs/user review:
+
+- Burnt + Green must conflict.
+- Burnt + Burglar must conflict; Burglar must not appear as Burnt support.
+- Green + Burglar must synergize.
+- With Burnt active and a safely clearable blind, do not skip the first-discard level gain merely because the first scoring hand can already clear.
+- Scholar must receive strong value in a compatible Burnt + Aces/cheap-hand composition; DNA should further reinforce that composition when usable.
+- Developed Ride the Bus/no-face play should avoid playing face cards when a safe comparable non-face line exists.
+- A Joker structurally contributing to any developed compatible track must not be labelled FILLER solely because it is outside a legacy top-three shortlist.
+
+## 14. Existing operational rules retained
+
+Joker ordering, Negative retention, boss/survival overrides, edition handling, and bounded shop transition planning remain valid. They should consume the combined-build prescriptions as migration proceeds rather than being rewritten as independent strategy catalogues.
