@@ -1,167 +1,90 @@
 # Balatro Strategy Catalogue
 
-Canonical list of accepted Balatro Bonds. Architecture and Currency Wars analogy: `BALATRO_STRATEGY_SYSTEM.md`. Exact component/state weights: `BALATRO_STRATEGY_CONTRIBUTIONS.md`.
+Canonical catalogue of Balatro strategy tracks (Bonds). Architecture rules live in `BALATRO_STRATEGY_SYSTEM.md`; numeric contribution data lives in `BALATRO_STRATEGY_CONTRIBUTIONS.md`.
 
-## Catalogue rules
+## Status
 
-A Bond is a persistent, developable strategic axis. It is not every Joker, every synergy pair, or every named build.
+Implementation pass in progress. The catalogue is being built in batches and will receive a deliberate full audit after all Bonds are implemented. Legacy strategy-tree and Gold/Silver/Bronze data are migration evidence only.
+
+## State vocabulary
 
 ```text
-LOCKED = defining prerequisite absent
-R0     = naturally available Bond below R1
-R1-R5  = increasingly developed rank
+LOCKED = defining prerequisite absent; Bond does not exist yet
+R0     = naturally available Bond below first development threshold
+R1-R5  = increasing development
 ```
 
-Ranks measure structural development. Realization (`DORMANT/PARTIAL/ACTIVE/MATURE`) measures whether the engine is actually functioning. Build Health answers whether it is strong enough to survive/scale.
+Rank measures development. Realization (`DORMANT/PARTIAL/ACTIVE/MATURE`) measures whether that development is functioning. Build Health measures whether it is actually strong enough.
 
-Contributors are alternative/additive paths into one Bond meter; R2-R5 are never sequential item recipes.
+## Accepted Bonds
 
----
+### 1. Burnt
+Defining-Joker Bond for deliberate permanent specialization of a chosen poker hand through first-discard leveling. Hard unlock: Burnt Joker. Target hand comes from the strongest compatible poker-hand Bond; fallback is High Card. Explicit conflict: No-Discard.
 
-# Accepted Bonds
+### 2. Held Cards
+Cards intentionally retained for direct held-card payoff. No hard unlock. Current direct contributors: Baron, Shoot the Moon, Raised Fist, Steel density, extra hand size. **Mime, Gold Cards, and Blue Seals do not add Held Cards quota.**
 
-## 1. Burnt
+### 3. Held Retrigger
+Retriggering held-card effects. Mime is the principal direct contributor; Red Seals and copy-Joker support can deepen it. Separate from Held Cards. Explicit synergy: Held Cards and Steel.
 
-**Identity:** deliberate permanent specialization of a selected poker hand through the Burnt first-discard leveling engine.
+### 4. Steel
+Persistent Steel-card density and Steel-specific payoff. Separate from Held Cards and Held Retrigger but synergizes with both.
 
-**Unlock:** Burnt Joker required. **Thresholds:** `8 / 12 / 17 / 23 / 30`.
+### 5. Pair
+Poker-hand specialization around Pair. Permanent Pair levels and Pair-specific Jokers contribute.
 
-**Target:** strongest compatible poker-hand Bond; High Card fallback when no meaningful specialization exists. Existing permanent hand investment creates switching resistance.
+### 6. High Card
+Poker-hand specialization around High Card. Permanent High Card levels and High-Card-specific Jokers contribute.
 
-**Rank behavior:**
-- R1 recognize first-discard permanent value;
-- R2 reinforce selected target and targeted leveling infrastructure;
-- R3 actively shape/protect Burnt specialization;
-- R4 may be principal power engine and should take safe first-discard scaling before trivial clears;
-- R5 capstone commitment with very high pivot resistance.
+### 7. Aces
+Rank-specialization Bond centered on Ace density and Ace payoffs such as Scholar. DNA may bridge when it is actually supporting Ace concentration.
 
-**Conflict:** No-Discard.
+### 8. No-Discard
+Zero/low-discard execution built around Green Joker, Burglar and other no-discard payoffs. Explicit conflict: Burnt.
 
-Implementation: `games/balatro/bonds/burnt.py`.
+### 9. Cash
+Money as strategic infrastructure and, when relevant, direct scoring power. Includes Bull/Bootstraps and economy/scaling support. Build Health remains responsible for deciding when cash must be spent for survival.
 
-## 2. Held Cards
+### 10. Lucky
+Lucky-card density and Lucky-specific payoff/scaling.
 
-**Identity:** strategic value created by cards intentionally retained in hand for direct held-card payoff.
+### 11. Glass
+Glass-card density and Glass-specific payoff. Realization must eventually account for break risk and whether Glass is actually used as scoring payoff rather than wasted.
 
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`.
+### 12. Face Cards
+Face-card density and face-specific payoff. This is distinct from individual rank Bonds such as Aces. Boss suppression affects realization, not development.
 
-Direct contributors currently include Baron, Shoot the Moon, Raised Fist, Steel held infrastructure, and extra hand size.
+### 13. Two Pair
+Poker-hand specialization around Two Pair. Spare Trousers is a major contributor; permanent Two Pair levels contribute.
 
-**Important boundary:** Mime contributes **zero** Held Cards quota; it belongs to Held Retrigger. Gold Cards and Blue Seals are excluded from Held Cards. Their held state is a trigger condition, not this Bond's strategic identity.
+### 14. Three of a Kind
+Poker-hand specialization around Three of a Kind, including The Trio and matching hand-level investment.
 
-Rank progression increasingly preserves held payoff cards, shapes hand/deck state around them, and at R4+ may make held-card value a power engine.
+### 15. Four of a Kind
+Poker-hand specialization around Four of a Kind, including The Family and matching hand-level investment. Flower Pot is temporarily treated as a minor contributor per catalogue direction; audit this classification later because its mechanic is not intrinsically Four-of-a-Kind-only.
 
-Implementation: `games/balatro/bonds/held_cards.py`.
+### 16. Straight
+Poker-hand specialization around Straights. Shortcut, Four Fingers, Runner and Straight-specific scoring Jokers contribute.
 
-## 3. Held Retrigger
+### 17. Flush
+Poker-hand specialization around Flushes. Suit density, Smeared Joker, Four Fingers and Flush-specific scoring Jokers contribute.
 
-**Identity:** repeated triggering of abilities on cards held in hand.
+### 18. Played Retrigger
+Retriggering played/scoring cards. Sock and Buskin, Hack, Hanging Chad, Dusk and Red-Seal played-card infrastructure contribute. This is separate from Held Retrigger.
 
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`.
+### 19. Stone
+Stone-card density and Stone-specific creation/payoff, including Stone Joker and Marble Joker.
 
-Mime is the strongest current direct contributor. Red Seal density is an independent route. Blueprint/Brainstorm contribute conditionally when Mime exists because copying Mime increases held retrigger capacity.
+### 20. Gold Economy
+Gold-card-specific economy. Golden Ticket, Midas Mask and actual Gold-card density contribute. Gold Cards do **not** add Held Cards quota merely because their ordinary economy trigger occurs while held.
 
-Rank progression increasingly values retriggerable held effects and at high rank actively seeks Held Cards/Steel compositions.
+### 21. Deck Thinning
+Persistent reduction/concentration of the playing-card deck. Trading Card, Sixth Sense and actual permanent reduction contribute. Removal only helps when it improves the combined build; Build Health/transition logic remains authoritative.
 
-**Synergy:** Held Cards, Steel.
+### 22. Deck Growth
+Persistent addition of playing cards as a strategic engine. DNA, Certificate, Marble Joker, Hologram and actual permanent deck growth contribute. Added-card quality is still evaluated separately; raw bloat is not automatically good.
 
-## 4. Steel
-
-**Identity:** deck development around Steel cards as repeatable held XMult infrastructure.
-
-**Unlock:** none. **Thresholds:** `4 / 8 / 14 / 21 / 29`.
-
-Steel density is the core persistent state; Steel Joker and Red-Seal Steel overlap add structural development. Steel cards may contribute to both Steel and Held Cards without double-counting mechanical score.
-
-Rank progression increasingly avoids needlessly playing Steel payoff cards, shapes deck density, and at R4+ can become a power engine.
-
-**Synergy:** Held Cards, Held Retrigger.
-
-## 5. Pair
-
-**Identity:** deliberate scoring specialization around Pair as the repeated poker-hand plan.
-
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`.
-
-The Duo, Jolly Joker, Sly Joker, Half Joker and permanent Pair levels currently contribute. Play-count history alone does not create Pair development.
-
-At higher ranks Pair increasingly governs Planet/deck/scoring choices and may become the principal poker-hand engine.
-
-## 6. High Card
-
-**Identity:** deliberate scoring specialization around reliable High Card execution.
-
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`.
-
-Stuntman, Half Joker and permanent High Card levels currently contribute. Burnt targeting High Card does not make Burnt itself High Card quota.
-
-At higher ranks High Card increasingly governs scoring/deck choices and may become the principal poker-hand engine.
-
-## 7. Aces
-
-**Identity:** deck/rank specialization around Ace density and Ace-specific payoff.
-
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`.
-
-Scholar is the strongest current direct contributor; Fibonacci is weaker shared rank support; Ace density is persistent state. DNA contributes only once meaningful Ace density exists, because DNA alone does not create an Ace strategy.
-
-At higher ranks the agent should intentionally preserve/create Ace density and value compatible poker-hand/scoring Bonds around it.
-
-## 8. No-Discard
-
-**Identity:** power/economy gained by deliberately avoiding discards.
-
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`.
-
-Current contributors: Green Joker, Burglar, Delayed Gratification, Ramen, Banner.
-
-At higher ranks the agent increasingly refuses low-value discards, protects zero-discard scaling, and may make no-discard execution a power engine.
-
-**Conflict:** Burnt. Green/Burglar may coexist here; Burglar must never again be described as Burnt support.
-
-## 9. Cash
-
-**Identity:** persistent bankroll/economy infrastructure whose retained money materially improves future power and/or direct scoring.
-
-**Unlock:** none. **Thresholds:** `4 / 9 / 15 / 22 / 30`.
-
-Current contributors include Bull, Bootstraps, Rocket, Golden Joker, To the Moon, Satellite, Reserved Parking and bankroll bands.
-
-A high Cash rank is **not a command to hoard money blindly**. Build Health and projected improvement still decide whether spending is correct. Bull/Bootstraps-style scoring makes bankroll preservation much more authoritative than ordinary economy.
-
-## 10. Lucky
-
-**Identity:** deck development around Lucky-card triggers and Lucky-specific scaling/probability support.
-
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`.
-
-Current contributors: Lucky Cat, Oops! All 6s, Lucky-card density.
-
-Higher ranks increasingly value Lucky creation, trigger support, and deck density while actual trigger output remains a realization/scoring concern.
-
-## 11. Glass
-
-**Identity:** deck development around Glass XMult and Glass-specific persistent scaling.
-
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`.
-
-Current contributors: Glass Joker, Glass-card density, and accumulated Glass destruction while Glass Joker remains owned.
-
-Higher ranks increasingly shape deck/play around Glass payoff and may make Glass a power engine. Break risk remains part of score/survival evaluation, not rank itself.
-
-## 12. Face Cards
-
-**Identity:** deck/scoring specialization around cards treated as face cards and face-card-specific payoff.
-
-**Unlock:** none. **Thresholds:** `4 / 9 / 15 / 22 / 30`.
-
-Current contributors: Pareidolia, Sock and Buskin, Photograph, Scary Face, Smiley Face, Business Card, and natural face-card density.
-
-Higher ranks increasingly shape the deck and scoring line around face cards. Bosses such as The Plant suppress realization/score projection rather than deleting structural Face Cards rank.
-
----
-
-## Sparse relationship graph currently frozen
+## Sparse relationships currently frozen
 
 ```text
 Burnt x No-Discard             = CONFLICT
@@ -170,21 +93,25 @@ Held Cards <-> Steel           = SYNERGY
 Held Retrigger <-> Steel       = SYNERGY
 ```
 
-All unlisted pairs default to neutral. Do not construct an exhaustive pair matrix.
+Do not add exhaustive pair relationships. Add only mechanically meaningful synergy/conflict edges; super-additive named packages belong in motifs.
 
-## Composition motifs
-
-Named builds remain above the Bond layer. Canonical example:
+## Canonical motif direction
 
 ```text
 Held Cards + Held Retrigger + Steel + King structure
         -> Baron-Mime-Steel motif
 ```
 
-Baron-Mime-Steel is therefore not another Bond.
+Baron itself is not a Bond. Mime itself is not Held Cards. The composition layer combines their Bonds into the power plan.
 
 ## Implementation status
 
-Burnt and Held Cards have dedicated evaluators. Bonds 3-12 are currently implemented in `games/balatro/bonds/catalogue_batch_one.py` during the catalogue build-out. This may be split into per-Bond modules during the final audit if that improves maintainability.
+- Burnt: dedicated evaluator.
+- Held Cards: dedicated evaluator.
+- Bonds 3-12: `catalogue_batch_one.py`.
+- Bonds 13-22: `catalogue_batch_two.py`.
+- Production Primary/Secondary/Third strategy selection is still legacy migration infrastructure and should not be half-replaced before the full Bond composer is ready.
 
-Production Primary/Secondary/Third runtime selection is still legacy migration infrastructure. Do not wire half the catalogue into live authority until the full Bond set/composer is ready.
+## Audit note
+
+This file records implementation-pass truth, not final calibration truth. After all Bonds are implemented, perform a full independent catalogue audit for misclassified contributors, duplicated Bonds, missing synergies/conflicts, weak/pointless Bonds, and threshold distortion before production integration.
