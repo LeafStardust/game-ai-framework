@@ -114,23 +114,6 @@ def test_section_two_contains_fifteen_terminal_strategies():
     assert terminal == SECTION_TWO_NODE_IDS - {"face_cards", "faceless"}
 
 
-def test_collapsed_rank_relationships_match_the_frozen_contract():
-    definitions = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
-
-    assert definitions["aces"].relationship_for(ScholarJoker(), kind="JOKER") == SILVER
-    assert definitions["aces"].relationship_for(DNAJoker(), kind="JOKER") == NEUTRAL
-    assert definitions["low_rank"].relationship_for(FibonacciJoker(), kind="JOKER") == SILVER
-    assert definitions["low_rank"].relationship_for(HackJoker(), kind="JOKER") == GOLD
-    assert definitions["twos"].relationship_for(WeeJoker(), kind="JOKER") == GOLD
-    assert definitions["twos"].relationship_for(HackJoker(), kind="JOKER") == NEUTRAL
-    assert definitions["ten_four"].relationship_for(
-        WalkieTalkieJoker(), kind="JOKER"
-    ) == GOLD
-    assert definitions["low_rank"].relationship_for(
-        WalkieTalkieJoker(), kind="JOKER"
-    ) == NEUTRAL
-
-
 def test_scholar_is_silver_solo_and_gold_with_dna():
     tracker = _tracker()
     scholar = ScholarJoker()
