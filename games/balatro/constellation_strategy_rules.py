@@ -82,6 +82,28 @@ def apply_constellation_strategy_rules() -> None:
 
     catalog.TREE_MIGRATED_UNIVERSAL_BALATRO_STRATEGIES = MappingProxyType(exported)
 
+    # strategy_catalog_guard can be imported before this installer runs because
+    # games.balatro.__init__ imports all policies before invoking installers. Keep
+    # the guarded runtime catalogue synchronized as well; otherwise Constellation
+    # can remain static Gold there even though the tree catalogue was corrected.
+    try:
+        from games.balatro import strategy_catalog_guard as guard
+    except ImportError:
+        guard = None
+    if guard is not None:
+        guarded = dict(guard.RUNTIME_UNIVERSAL_BALATRO_STRATEGIES)
+        for strategy_id in _PLANET_STRATEGY_IDS:
+            definition = guarded.get(strategy_id)
+            if definition is None:
+                continue
+            guarded[strategy_id] = replace(
+                definition,
+                gold_jokers=frozenset(definition.gold_jokers - constellation_aliases),
+                silver_jokers=frozenset(definition.silver_jokers - constellation_aliases),
+                bronze_jokers=frozenset(definition.bronze_jokers - constellation_aliases),
+            )
+        guard.RUNTIME_UNIVERSAL_BALATRO_STRATEGIES = MappingProxyType(guarded)
+
     original = relationships.conditional_joker_relationship
     if not getattr(original, "_constellation_rules_installed", False):
         def conditional_joker_relationship(state, strategy_id: str, item: object) -> str:
