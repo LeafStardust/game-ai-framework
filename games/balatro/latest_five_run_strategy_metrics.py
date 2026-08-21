@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Five-run telemetry calibration for strategy strength and Build Health metrics."""
 
-from copy import deepcopy
+from copy import copy
 from dataclasses import replace
 
 from games.balatro.build_health_runtime import RuntimeBuildHealthEvaluator
@@ -143,7 +143,18 @@ def install_latest_five_run_strategy_metrics() -> None:
         if tracker is None:
             return original_coherence(self, state, tracker)
         try:
-            working = deepcopy(tracker)
+            # Trackers contain a MappingProxyType inverse component index, so a
+            # deepcopy can fail and silently collapse coherence to the neutral 0.50
+            # fallback. A shallow clone preserves the immutable catalogue/index and
+            # subclass behavior while isolating observe()'s two mutable history fields.
+            working = copy(tracker)
+            working._last_dominant_strategy_id = getattr(
+                tracker, "_last_dominant_strategy_id", None
+            )
+            working._last_relevant_strategy_ids = tuple(
+                getattr(tracker, "_last_relevant_strategy_ids", ()) or ()
+            )
+
             resolution = working.observe(state)
             dominant_id = getattr(resolution, "dominant_strategy_id", None)
             if dominant_id is None:
