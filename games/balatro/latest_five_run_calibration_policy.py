@@ -2,12 +2,14 @@ from __future__ import annotations
 
 """Targeted corrections from the 2026-08-21 Red/White five-run batch.
 
-These rules use public state only and repair four deterministic mistakes observed in
+These rules use public state only and repair deterministic mistakes observed in
 that batch:
 
 * Buffoon-pack Scary Face must recognize an owned Sock and Buskin retrigger engine.
 * Joker Stencil must not be admitted into a roster where its post-acquisition XMult
   is only x1 (unless the candidate is Negative and therefore changes slot capacity).
+* Ordinary Banner must not displace a full formation-stage roster without realized
+  no-discard support; its chips disappear as D1 spends discards.
 * Hieroglyph is not a safe formation/commitment purchase for Red/White because the
   permanent -1 hand can erase more scoring capacity than the extra ante supplies.
 * After The Mouth has locked a hand type, D1 must not spend later hands on a
@@ -22,6 +24,16 @@ from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionP
 from games.balatro.mouth_hand_policy import _hand_type, _replace_with_play
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
+
+
+_NO_DISCARD_SUPPORT = frozenset(
+    {
+        "delayedgratificationjoker",
+        "burglarjoker",
+        "ramenjoker",
+        "greenjoker",
+    }
+)
 
 
 def _normalize(value: object) -> str:
@@ -55,13 +67,7 @@ def sock_scary_face_synergy(state, label: str) -> bool:
 
 
 def stencil_would_be_dead(state, candidate: object) -> bool:
-    """True when acquiring this ordinary Stencil can produce only x1 Mult.
-
-    Joker Stencil's own slot behaves as an empty slot for its multiplier. With only
-    one effective empty slot after acquisition it is x1 and contributes no scoring.
-    Negative candidates are excluded because their slot-capacity change is handled
-    by the normal edition-aware path.
-    """
+    """True when acquiring this ordinary Stencil can produce only x1 Mult."""
     if _joker_token(candidate) != "jokerstenciljoker":
         return False
     if _normalize(getattr(candidate, "edition", "")) == "negative":
@@ -73,7 +79,6 @@ def stencil_would_be_dead(state, candidate: object) -> bool:
         _joker_token(joker) != "jokerstenciljoker"
         for joker in getattr(state, "jokers", ()) or ()
     )
-    # ADD from slots-1 occupied leaves x1; a full-roster REPLACE also leaves x1.
     return non_stencil >= slots - 1
 
 
@@ -81,8 +86,8 @@ def hieroglyph_blocked(state, candidate: object) -> bool:
     """Block mid/late Hieroglyph on the Red/White calibration target."""
     if _normalize(_label(candidate)) != "hieroglyph":
         return False
-    deck = _normalize(getattr(state, "deck_name", getattr(state, "deck", "RED")) or "RED")
-    stake = _normalize(getattr(state, "stake_name", getattr(state, "stake", "WHITE")) or "WHITE")
+    deck = _normalize(getattr(state, "deck_name", "RED") or "RED")
+    stake = _normalize(getattr(state, "stake_name", "WHITE") or "WHITE")
     ante = max(1, int(getattr(state, "ante", 1) or 1))
     return deck in {"", "red"} and stake in {"", "white"} and ante >= 3
 
@@ -111,6 +116,19 @@ def _stencil_pack_dead(state, result: PackActionScore) -> bool:
     return slots > 0 and non_stencil >= slots - 1
 
 
+def _banner_pack_replacement_is_speculative(state, result: PackActionScore) -> bool:
+    if _normalize(_pack_choice_label(result)) != "banner":
+        return False
+    if _normalize(_pack_choice_edition(result)) == "negative":
+        return False
+    ante = max(1, int(getattr(state, "ante", 1) or 1))
+    slots = max(0, int(getattr(state, "joker_slots", 0) or 0))
+    jokers = tuple(getattr(state, "jokers", ()) or ())
+    if ante < 3 or slots <= 0 or len(jokers) < slots:
+        return False
+    return not bool(_owned_tokens(state) & _NO_DISCARD_SUPPORT)
+
+
 def _enforce_latest_pack_calibration(state, ranked):
     ranked = list(ranked)
     if not ranked:
@@ -135,10 +153,19 @@ def _enforce_latest_pack_calibration(state, ranked):
                 )
             )
             continue
+        if _banner_pack_replacement_is_speculative(state, item):
+            rewritten.append(
+                replace(
+                    item,
+                    total=-1.0,
+                    notes=(
+                        *item.notes,
+                        "latest five-run calibration: ordinary Banner cannot replace a full formation-stage roster without realized no-discard support",
+                    ),
+                )
+            )
+            continue
         if sock_scary_face_synergy(state, label):
-            # The observed miss was replacement advantage 0.668 vs 0.750. Do not
-            # encode that specific threshold; instead establish a clear positive
-            # retrigger-engine floor so the candidate survives replacement gating.
             floor = skip_total + 1.25
             rewritten.append(
                 replace(
@@ -213,7 +240,12 @@ def install_latest_five_run_calibration_policy() -> None:
         locked = str(getattr(state, "boss_blind_only_hand", "") or "").upper()
         if not locked:
             return decision
-        if decision.action.name == PLAY_CARDS and _hand_type(self, decision.selected_plan) == locked:
+        selected = getattr(decision, "selected_plan", None)
+        if (
+            decision.action.name == PLAY_CARDS
+            and selected is not None
+            and _hand_type(self, selected) == locked
+        ):
             return decision
 
         matching = _matching_mouth_plays(self, state, plans)
