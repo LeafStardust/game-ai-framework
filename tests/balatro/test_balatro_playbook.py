@@ -27,12 +27,14 @@ def test_default_registry_selects_red_white_from_live_state():
     assert "min_pace_ratio" not in planner
 
     strategy_modifiers = playbook.strategy_modifiers()
-    assert strategy_modifiers["gold_evidence"] == 8.0
+    assert strategy_modifiers["gold_evidence"] == 10.0
     assert strategy_modifiers["off_strategy_joker_penalty_factor"] == 1.0
     assert strategy_modifiers["off_strategy_joker_base_discount"] == 1.0
     assert strategy_modifiers["silver_evidence"] == 3.0
     assert strategy_modifiers["bronze_evidence"] == 1.0
-    assert strategy_modifiers["banned_evidence"] == -8.0
+    assert strategy_modifiers["banned_evidence"] == -12.0
+    assert strategy_modifiers["commit_threshold"] == 10.0
+    assert strategy_modifiers["mature_threshold"] == 20.0
     assert strategy_modifiers["ante_1_strategy_pressure"] == 0.20
     assert strategy_modifiers["ante_6_strategy_pressure"] == 1.25
     assert strategy_modifiers["max_relevant_strategies"] == 2
