@@ -13,8 +13,7 @@ from games.balatro.bonds.model import (
 HELD_CARDS_BOND_ID = "held_cards"
 
 # Provisional Red/White calibration. Held Cards has no defining unlock Joker;
-# it emerges gradually from held-card payoff infrastructure and persistent deck
-# state. R0 therefore means the axis exists but is not yet meaningfully developed.
+# it emerges gradually from genuine held-card payoff infrastructure.
 HELD_CARDS_RANK_THRESHOLDS: dict[BondRank, float] = {
     BondRank.R1: 4.0,
     BondRank.R2: 8.0,
@@ -94,29 +93,18 @@ def _steel_contribution(state: Any) -> float:
     return _band(count, ((1, 1.0), (2, 3.0), (4, 5.0), (6, 7.0)))
 
 
-def _gold_card_contribution(state: Any) -> float:
-    count = sum(
-        1
-        for card in _owned_deck(state)
-        if str(getattr(card, "enhancement", "") or "").strip().lower() == "gold"
-    )
-    return _band(count, ((1, 0.5), (3, 1.5), (5, 2.5)))
-
-
-def _blue_seal_contribution(state: Any) -> float:
-    # Blue Seals are held-to-end-of-round infrastructure, but their primary
-    # purpose belongs to hand-level/other Bonds. Keep Held Cards credit modest.
-    count = sum(
-        1
-        for card in _owned_deck(state)
-        if str(getattr(card, "seal", "") or "").strip().lower() == "blue"
-    )
-    return _band(count, ((1, 0.5), (3, 1.5), (5, 2.0)))
-
-
 def _hand_size_contribution(state: Any) -> float:
     size = int(getattr(state, "hand_size", 8) or 8)
     return float(min(3, max(0, size - 8)))
+
+
+def _has_direct_held_payoff(jokers: list[Any], steel: float) -> bool:
+    return (
+        _contains_named(jokers, "baronjoker", "baron")
+        or _contains_named(jokers, "shootthemoonjoker", "shootthemoon")
+        or _contains_named(jokers, "raisedfistjoker", "raisedfist")
+        or steel > 0.0
+    )
 
 
 def _rank_for(total: float) -> tuple[BondRank, float | None]:
@@ -138,15 +126,18 @@ def _rank_for(total: float) -> tuple[BondRank, float | None]:
 def evaluate_held_cards_bond(state: Any) -> BondDevelopment:
     """Evaluate structural Held Cards Bond development.
 
-    Unlike Burnt, Held Cards has no hard unlock prerequisite. It may emerge from
-    multiple independent paths. Baron is the strongest single direct held-card
-    payoff, while Shoot the Moon, Raised Fist, useful Steel/Gold/Blue-card state,
-    hand-size growth, and Mime as a cross-Bond bridge can combine to raise the
-    same shared meter.
+    Held Cards has no hard unlock prerequisite. Only mechanics whose strategic
+    payoff genuinely depends on cards remaining in hand contribute directly.
 
-    Mime receives only modest Held Cards contribution because its primary Bond is
-    Held Retrigger. Steel likewise contributes here because Steel cards are held
-    payoff infrastructure while still remaining a separate Steel Bond.
+    Baron, Shoot the Moon and Raised Fist are direct held-card payoff Jokers.
+    Steel density contributes because Steel itself scores while held. Extra hand
+    size supports the axis modestly. Mime is a conditional bridge: it contributes
+    here only when a genuine held-card payoff already exists, while its primary
+    identity remains the separate Held Retrigger Bond.
+
+    Gold cards and Blue Seals are intentionally excluded. Although they trigger
+    while held, their strategic purpose is economy/Planet generation rather than
+    development of the Held Cards power axis.
     """
 
     jokers = list(getattr(state, "jokers", ()) or ())
@@ -158,20 +149,16 @@ def evaluate_held_cards_bond(state: Any) -> BondDevelopment:
         parts.append(BondContribution("Shoot the Moon", 4.0))
     if _contains_named(jokers, "raisedfistjoker", "raisedfist"):
         parts.append(BondContribution("Raised Fist", 2.0))
-    if _contains_named(jokers, "mimejoker", "mime"):
-        parts.append(BondContribution("Mime bridge", 2.0))
 
     steel = _steel_contribution(state)
     if steel > 0.0:
         parts.append(BondContribution("Steel held-card infrastructure", steel))
 
-    gold = _gold_card_contribution(state)
-    if gold > 0.0:
-        parts.append(BondContribution("Gold held-card infrastructure", gold))
-
-    blue = _blue_seal_contribution(state)
-    if blue > 0.0:
-        parts.append(BondContribution("Blue Seal held infrastructure", blue))
+    if (
+        _contains_named(jokers, "mimejoker", "mime")
+        and _has_direct_held_payoff(jokers, steel)
+    ):
+        parts.append(BondContribution("Mime bridge", 2.0))
 
     hand_size = _hand_size_contribution(state)
     if hand_size > 0.0:
