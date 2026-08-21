@@ -46,6 +46,37 @@ class JokerOrderPolicy:
         self.last_negative_retention_diagnostics: tuple[str, ...] = ()
 
     @staticmethod
+    def _xmult_factor(joker: object) -> float:
+        """Return observable active XMult without assuming a Joker class."""
+
+        values = [getattr(joker, "x_mult", None)]
+        public = getattr(joker, "public_state", None)
+        if isinstance(public, dict):
+            values.append(public.get("x_mult"))
+        for value in values:
+            try:
+                factor = float(value)
+            except (TypeError, ValueError):
+                continue
+            if factor > 1.0:
+                return factor
+        return 1.0
+
+    @classmethod
+    def _xmult_right_alignment(cls, jokers, permutation) -> tuple[int, float]:
+        """Tie-break equal-score orders by keeping active XMult farther right."""
+
+        weighted_position = 0.0
+        active_count = 0
+        for position, source_index in enumerate(permutation):
+            factor = cls._xmult_factor(jokers[source_index])
+            if factor <= 1.0:
+                continue
+            active_count += 1
+            weighted_position += float(position) * factor
+        return active_count, weighted_position
+
+    @staticmethod
     def _project_dagger_sacrifices(state) -> tuple[str, ...]:
         notes: list[str] = []
         index = 0
@@ -162,6 +193,7 @@ class JokerOrderPolicy:
 
         current = tuple(range(len(jokers)))
         current_score, current_notes = self._score(state, current, phase=phase)
+        current_alignment = self._xmult_right_alignment(jokers, current)
         active_dagger_strategy = (
             phase == "BLIND_SELECT" and self._active_dagger_strategy(state)
         )
@@ -183,6 +215,7 @@ class JokerOrderPolicy:
         best_score = current_score
         best_notes = current_notes
         best_negative_count = current_negative_count
+        best_alignment = current_alignment
 
         if len(current) <= self.MAX_EXHAUSTIVE_JOKERS:
             candidates = permutations(current)
@@ -210,18 +243,27 @@ class JokerOrderPolicy:
                 else ()
             )
             negative_count = 0 if active_dagger_strategy else len(negative_targets)
+            alignment = self._xmult_right_alignment(jokers, permutation)
             if negative_count < best_negative_count or (
-                negative_count == best_negative_count and score > best_score
+                negative_count == best_negative_count
+                and (
+                    score > best_score
+                    or (score == best_score and alignment > best_alignment)
+                )
             ):
                 best_permutation = permutation
                 best_score = score
                 best_notes = notes
                 best_negative_count = negative_count
+                best_alignment = alignment
 
         improvement = best_score - current_score
         retention_improved = best_negative_count < current_negative_count
+        alignment_improved = best_alignment > current_alignment
         if best_permutation == current or (
-            not retention_improved and improvement <= self.minimum_improvement
+            not retention_improved
+            and not alignment_improved
+            and improvement <= self.minimum_improvement
         ):
             return None
 
@@ -250,6 +292,10 @@ class JokerOrderPolicy:
                 "Negative retention exception=ACTIVE_DAGGER_STRATEGY_INTENTIONAL_SACRIFICE"
             )
             self.last_negative_retention_diagnostics = tuple(retention_notes)
+        if alignment_improved and improvement <= self.minimum_improvement:
+            retention_notes.append(
+                "equal-score tie-break right-aligns active XMult Jokers"
+            )
         return JokerOrderDecision(
             permutation=best_permutation,
             current_score=current_score,
