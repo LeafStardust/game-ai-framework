@@ -99,6 +99,36 @@ def _fallback_shortlist_relationship(tracker, joker, shortlist):
     return None, None
 
 
+def _runtime_strategy_tracker(state):
+    """Reconstruct the public-state tracker when telemetry callers omit it.
+
+    Build Health is emitted from more than one production path.  Some of those
+    paths historically called the role classifier without forwarding the D1/D2
+    tracker, which made every non-realized-engine Joker look like FILLER even while
+    the same decision logged a valid dominant/relevant strategy shortlist.
+
+    Resolve the normal playbook from the same public state and build the same
+    state-aware runtime catalogue.  If the state is not sufficient to select a
+    playbook, preserve the old no-tracker behavior rather than guessing.
+    """
+    try:
+        from games.balatro.playbook import default_balatro_playbooks
+        from games.balatro.strategy_catalog_guard import (
+            RUNTIME_UNIVERSAL_BALATRO_STRATEGIES,
+        )
+        from games.balatro.strategy_conditional_relationships import (
+            StateAwareBalatroStrategyTracker,
+        )
+
+        playbook = default_balatro_playbooks().for_state(state)
+        return StateAwareBalatroStrategyTracker(
+            RUNTIME_UNIVERSAL_BALATRO_STRATEGIES,
+            modifier_provider=lambda _state: playbook.strategy_modifiers(),
+        )
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return None
+
+
 class BuildComponentRoleClassifier:
     """Classify each owned Joker relative to the current realized build.
 
@@ -113,6 +143,9 @@ class BuildComponentRoleClassifier:
         self.engine_analyzer = engine_analyzer or RealizedEngineAnalyzer()
 
     def classify(self, state, *, strategy_tracker=None) -> tuple[BuildComponentAssessment, ...]:
+        if strategy_tracker is None:
+            strategy_tracker = _runtime_strategy_tracker(state)
+
         engines = {
             engine.engine_id: engine
             for engine in self.engine_analyzer.analyze(state)
