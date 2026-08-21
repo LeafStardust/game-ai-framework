@@ -1,27 +1,24 @@
-# Balatro Strategy Tree
+# Balatro Strategy Track Topology
 
-Development topology reference. Relationships and evidence weights live in [`BALATRO_STRATEGY_RELATIONSHIPS.md`](BALATRO_STRATEGY_RELATIONSHIPS.md). Scoring/propagation rules live in [`BALATRO_STRATEGY_TREE_RULES.md`](BALATRO_STRATEGY_TREE_RULES.md). Runtime build viability, realized engine strength, and scaling adequacy are defined in [`BUILD_HEALTH_AND_REALIZED_STRENGTH.md`](BUILD_HEALTH_AND_REALIZED_STRENGTH.md).
+Canonical topology reference for the Red/White strategy system. Contribution data lives in `BALATRO_STRATEGY_RELATIONSHIPS.md`; semantics/migration rules live in `BALATRO_STRATEGY_TREE_RULES.md`; realized viability lives in `BUILD_HEALTH_AND_REALIZED_STRENGTH.md`.
 
-Implementation status:
-- **Part 4 / Section 4 — Enhancements: IMPLEMENTED.** Runtime support exists for the enhancement strategies below; this document is the canonical topology reference and folds synergy-only variants back into their defining route.
-- **Part 5 / Section 5 — Seals: IMPLEMENTED.** Red-Seal played/held support and Blue/Purple/Gold Seal engines are conditionally activated from matching live deck state instead of static Joker ownership alone.
-- Sections 6–12 are also present in the current runtime forest; this file remains the canonical topology reference rather than a progress checklist.
+## Architectural status
 
-Legend:
-- `[I]` indexed strategy with specialized descendants.
-- `[L]` specialization with no descendants.
-- Standalone `[L]` = strategy with no specializations.
-- A child exists only when it represents a genuinely distinct build/play route. Synergy-only variants stay inside the defining node's relationship row.
+The historical name **Strategy Tree** remains in filenames/code, but the target model is a **strategy-track / Bond-like system**:
 
-Runtime role note:
-- The tree is topology, **not** a requirement that exactly one positive node survives.
-- Runtime orchestration resolves one **Primary** scoring/win-condition route plus compatible **Secondary** scoring engines and **Support** engines.
-- Catalogue evidence describes strategic compatibility; it does **not** prove that an owned engine is currently activated, sufficiently scaled, or healthy. Realized strength is evaluated separately by Build Health.
-- Ante 6+ keeps the Primary fully prescriptive while compatible engines may remain active at reduced influence; incompatible hand prescriptions and explicit conflicts are suppressed.
-- A standalone strategy must contain a plausible run-clearing scoring engine, not merely cash generation, static filler value, or generic support.
-- Support-only catalogue IDs may remain internally for topology compatibility but are retired from active strategy competition.
+- every Joker may contribute to multiple tracks;
+- tracks develop independently;
+- compatible developed tracks compose one emergent build;
+- one track may become the principal power engine;
+- other tracks reinforce hand shape, rank/suit, enhancements, economy, deck shaping, retriggers, etc.;
+- conflicts exclude mechanically contradictory combinations;
+- rank-aware prescriptions control actual decisions.
 
-## 1. Poker-hand strategies
+The runtime still contains legacy Primary/Secondary/Relevant machinery. It is migration infrastructure, not the final model. Do not interpret this topology as a tournament where exactly one node must win.
+
+Legend: `[I]` = generic/indexed track with specializations; `[L]` = leaf/specialization. Parent-child edges mean evidence inheritance/factoring. Cross-cutting compatibility belongs in the composition graph, not fake parent edges.
+
+## 1. Poker-hand tracks
 
 ```text
 High Card [I]
@@ -41,7 +38,9 @@ Flush House [L]
 Flush Five [L]
 ```
 
-## 2. Rank and face-card strategies
+Poker-hand tracks usually combine with a power engine rather than replacing it. Example: Burnt + Pair or Burnt + High Card.
+
+## 2. Rank / face tracks
 
 ```text
 Aces [L]
@@ -53,9 +52,11 @@ Jacks / Hit the Road [L]
 Queens / Shoot the Moon [L]
 
 Face Cards [I]
-├── Photograph + Hanging Chad (PhotoChad) [L]
+├── Photograph + Hanging Chad [L]
 ├── Triboulet + Sock and Buskin [L]
-└── Pareidolia Universal Face Scoring [L]
+├── Pareidolia Universal Face Scoring [L]
+├── Held Face-Card Economy [L]
+└── Business Card Face Economy [L]
 
 Faceless / No-Face [I]
 └── Ride the Bus No-Face Scaling [L]
@@ -63,32 +64,29 @@ Faceless / No-Face [I]
 The Idol Exact-Card Concentration [L]
 ```
 
-Relationship notes:
-- Aces is Scholar-defined: DNA, Fibonacci, and Odd Todd are support only after Scholar establishes the route.
-- Ride the Bus is Silver evidence for its no-face scaling leaf, not a Gold self-defining core.
-- **Pareidolia is Gold activation evidence for the Face Cards family.** It is also Gold support for PhotoChad when Photograph is present and for the Triboulet route when Triboulet is present; Pareidolia alone does not fabricate those specialized payoff cores.
-- Pareidolia continues to protect compatible face-payoff Jokers such as Smiley Face while its route is active, with inherited Face Cards evidence counted only once.
-- Reserved Parking, Business Card, and Faceless Joker economy are support components, not standalone run-clearing routes.
+Important composition rules:
+- Scholar is the defining Aces component; DNA/Fibonacci/Odd Todd reinforce Aces when prerequisites are real.
+- Ten-Four is a paired package, not `Walkie alone = complete build`: Walkie is weak alone and materially stronger with Even Steven/compatible Four support.
+- Ride the Bus creates an execution prescription: avoid playing face cards when a safe comparable non-face line exists; playing a face card resets its scaling.
+- Face and no-face tracks can conflict when their prescriptions are materially developed.
 
-## 3. Suit and held-card strategies
+## 3. Suit / held-card tracks
 
 ```text
 Hearts / Bloodstone [L]
 Diamonds / Rough Gem Economy [L]
-
 Clubs [I]
 ├── Onyx Agate Club Scoring [L]
 └── Seeing Double Mixed-Suit Clubs [L]
-
 Spades / Arrowhead Chips [L]
 Blackboard Held-Black Cards [L]
 Ancient Joker Suit-Rotation [L]
 Flower Pot Multi-Suit [L]
 ```
 
-Raised Fist is held-card support rather than an independent strategy.
+Raised Fist is held-card support rather than an independent track.
 
-## 4. Enhancement strategies — runtime implemented
+## 4. Enhancement tracks
 
 ```text
 Stone [I]
@@ -115,7 +113,7 @@ Gold Cards [I]
 └── Midas Mask Gold Generation [L]
 ```
 
-## 5. Seal strategies — runtime implemented
+## 5. Seal tracks
 
 ```text
 Red Seal [I]
@@ -126,7 +124,7 @@ Purple Seal Tarot Engine [L]
 Gold-Seal Retrigger Economy [L]
 ```
 
-## 6. Destruction, sacrifice, consumption, and thinning
+## 6. Destruction / thinning tracks
 
 ```text
 Canio Destruction [I]
@@ -143,7 +141,7 @@ Deck Thinning [I]
 └── Erosion Thinning [L]
 ```
 
-## 7. Deck-growth, card-addition, and card-training engines
+## 7. Deck-growth / training tracks
 
 ```text
 Blue Joker / Hologram Deck-Growth [L]
@@ -151,13 +149,9 @@ Hiker Retrigger / Copy Training [L]
 Driver's License Enhancement-Density [L]
 ```
 
-Blue Joker and Hologram share one deck-growth family rather than competing as separate strategies. Either scorer is Silver by itself and becomes Gold when paired with a true card generator such as Certificate or Marble Joker. The generator is support evidence only once a scorer exists. Standard Packs are Bronze support for this route because adding cards directly advances its growth plan.
+Blue/Hologram growth is a good example of structural contribution versus realized power: Hologram x1.0 may belong strongly to the track while still being an inactive engine.
 
-Realized strength is separate from catalogue tier: Hologram at x1.0 is an inactive scaler even if it belongs to the route, while Blue Joker's realized chip strength depends on actual deck size. Card-destruction/thinning conflicts are conditional on Blue Joker being part of the active engine; Hologram alone does not require a large remaining deck.
-
-These are often compatible engines rather than mutually exclusive replacements for the Primary poker-hand/scoring route. Driver's License, Hiker, and Blue/Hologram growth may remain active beside a compatible Primary when their mechanics reinforce the same build.
-
-## 8. Planet, Tarot, and consumable engines
+## 8. Planet / Tarot / consumable tracks
 
 ```text
 Planet Engine [I]
@@ -174,24 +168,21 @@ Tarot Engine [I]
 Vagabond Low-Money Tarot Engine [L]
 ```
 
-Constellation is dependency-gated: it is not a self-starting Planet core. Astronomer enables it as Silver support. Satellite is economy support for a real Planet/Constellation engine and is no longer a standalone strategy.
+Constellation remains dependency-gated; Planet infrastructure must actually exist.
 
-## 9. Economy, shop, pack, reroll, and blind-skip engines
+## 9. Economy / shop / skip tracks
 
 ```text
 Bull / Bootstraps Cash Scoring [L]
-
 Campfire Sell-Scaling [L]
 Flash Card Reroll-Scaling [L]
 Red Card Pack-Skip Scaling [L]
 Throwback Blind-Skip Scaling [L]
 ```
 
-**Bull / Bootstraps is the cash-scoring strategy.** Bull or Bootstraps must be present to activate it. Cash generators do not compete as standalone strategies; instead they widen this route as conditional support. Rocket, To the Moon, Cloud 9, Satellite, Reserved Parking, Business Card, Faceless Joker, Mail-In Rebate, Delayed Gratification, Golden Joker, Golden Ticket, and Rough Gem may feed the cash-scoring index when their own trigger infrastructure is usable. Rocket + To the Moon together are Gold support once Bull/Bootstraps is active; individually they are Silver support. Cash generation alone cannot activate the route.
+Economy support can feed a scoring track without becoming the power engine. Bull/Bootstraps is different because cash itself becomes scoring power.
 
-Realized maturity depends on current cash. Bull/Bootstraps with substantial existing money may become powerful immediately and therefore pays little buildup cost compared with scalers that require repeated future triggers.
-
-## 10. Joker-board and composition strategies
+## 10. Joker-board composition tracks
 
 ```text
 Joker Stencil / Ankh / Invisible Duplication [L]
@@ -199,9 +190,9 @@ Baseball Card Uncommon Stack [L]
 Egg / Gift-Card Swashbuckler [L]
 ```
 
-Abstract Joker is generic wide-board additive Mult and is not a standalone strategy. It remains an ordinary Joker/support component where relevant.
+Abstract Joker remains generic board value, not an independent track.
 
-## 11. Discard, no-discard, and hand-rotation engines
+## 11. Discard / no-discard / rotation tracks
 
 ```text
 Discard Utilization [I]
@@ -217,11 +208,17 @@ Obelisk Hand-Rotation [L]
 Burnt Joker Hand-Level Engine [L]
 ```
 
-Mail-In Rebate and Banner + Delayed Gratification are support/economy packages rather than independent strategies. No-discard incentives never override the tactical survival rule that discarding is mandatory when the final hand cannot clear and legal discards remain.
+Authoritative compatibility:
 
-These engines also require realized-state tracking. Owning Castle without accumulating chips, Burnt Joker without safely using first-discard hand upgrades, or Green Joker without maintaining meaningful Mult is not equivalent to a mature functioning engine.
+```text
+Burnt <X> Green
+Burnt <X> Burglar
+Green <-> Burglar : strong synergy
+```
 
-## 12. Hand-scheduling engines
+Burnt is a discard-using permanent hand-level engine. When sufficiently developed and survival is safe, its first-discard activation must be deliberately used even if the first available scoring hand would already clear the blind. Burglar must never be treated as Burnt support because it removes Burnt's activation resource.
+
+## 12. Hand-scheduling tracks
 
 ```text
 Last-Hand Burst [I]
@@ -230,60 +227,61 @@ Last-Hand Burst [I]
 Loyalty Card Six-Hand Cycle [L]
 ```
 
-## 13. Cross-cutting links
+## 13. Cross-track composition examples
+
+These are compatibility/synergy links, not parent edges and not exhaustive complete builds.
 
 ```text
-Baron-Mime High Card        <-> Steel / Red Seal / DNA / hand-size support / Shoot the Moon
-PhotoChad                   <-> Face Cards / Pareidolia / Lucky / Glass / Red Seal / Hiker
-Triboulet + Sock and Buskin <-> Face Cards / Pareidolia / Red Seal / Glass
-Bloodstone Hearts           <-> Oops! All 6s / retriggers / Lucky
-Marble Joker                <-> Stone / Blue-Hologram growth / Vampire / Driver's License
-DNA                         <-> Scholar-backed Aces / Stone / Blue-Hologram growth / Baron / Trips / Quads / Five Kind / Flush Five / Vampire
-Pareidolia                  <-> Gold face-route activation / face scoring / Canio / Midas Mask / Vampire
-Perkeo                      <-> Planet / Cryptid / Tarot / Spectral
-Blueprint / Brainstorm      <-> strongest copyable active engine
-Bull / Bootstraps Cash      <-> Rocket / To the Moon / Cloud 9 / Satellite / Reserved Parking / Business Card / Faceless / Mail-In Rebate / Delayed Gratification / Golden Joker / Golden Ticket / Rough Gem
-Discard Utilization         <-> Castle / Mail-In Rebate / Purple Seal / Hit the Road / Faceless / Yorick
-No-Discard                  <-> Green Joker / Banner / Delayed Gratification / Ramen / Burglar
-Hack / Fibonacci            <-> Twos / low-rank shaping / retriggers
-Walkie Talkie               <-> Fours / Tens / Even Steven / Hack-on-Fours / retriggers
-Hiker                       <-> compact deck / retriggers / DNA / trained scoring cards
-Blackboard                  <-> Spades / Clubs / High Card / Pair / held-card preservation
-Raised Fist                 <-> held-card minimum / Mime / Red Seal / high held ranks
-Planet Engine               <-> Constellation (Astronomer/Satellite gated) / Satellite / Blue Seal / Astronomer / hand levels
-Tarot Engine                <-> Fortune Teller / Cartomancer / Hallucination / 8 Ball / Purple Seal / Vagabond / Perkeo
-Business Card               <-> Face Cards / Pareidolia / retriggers / Red Seal / Bull-Bootstraps cash scoring
-Midas + Golden Ticket       <-> Face Cards / Gold Cards / retriggers / Bull-Bootstraps cash scoring
-Ancient Joker               <-> suit flexibility / Smeared Joker
-Joker Stencil               <-> Ankh / Invisible Joker / Negative Jokers / empty slots
+Burnt                      <-> High Card / Pair / other cheap repeatable hand tracks
+Burnt                      <-> Aces / Scholar / DNA when the card plan is compatible
+Green                      <-> Burglar / no-discard / extra hands
+Baron-Mime High Card       <-> Steel / Red Seal / DNA / hand-size / Shoot the Moon
+PhotoChad                  <-> Face Cards / Pareidolia / Lucky / Glass / Red Seal / Hiker
+Triboulet + Sock and Buskin<-> Face Cards / Pareidolia / Red Seal / Glass
+Bloodstone Hearts          <-> Oops! All 6s / retriggers / Lucky
+Marble Joker               <-> Stone / Blue-Hologram growth / Vampire / Driver's License
+DNA                        <-> Aces / Stone / growth / Baron / Trips / Quads / Five Kind / Flush Five / Vampire
+Pareidolia                 <-> face scoring / Canio / Midas Mask / Vampire
+Perkeo                     <-> Planet / Cryptid / Tarot / Spectral
+Blueprint / Brainstorm     <-> strongest compatible copyable engine
+Bull / Bootstraps          <-> cash generators
+Discard Utilization        <-> Castle / Mail-In Rebate / Purple Seal / Hit the Road / Faceless / Yorick
+Hack / Fibonacci           <-> Twos / low ranks / retriggers
+Walkie Talkie              <-> Tens / Fours / Even Steven / Hack-on-Fours / retriggers
+Hiker                      <-> compact deck / retriggers / DNA / trained cards
+Blackboard                 <-> Spades / Clubs / High Card / Pair / held-card preservation
+Planet Engine              <-> Constellation / Satellite / Blue Seal / Astronomer / hand levels
+Tarot Engine               <-> Fortune Teller / Cartomancer / Hallucination / 8 Ball / Purple Seal / Vagabond / Perkeo
+Ancient Joker              <-> suit flexibility / Smeared Joker
+Joker Stencil              <-> Ankh / Invisible / Negative / empty slots
 ```
 
-## 14. Not standalone
+## 14. Components that are not standalone tracks
 
-These components do not form independent strategies. They are assigned as conditional support, generic item value, or integrated economy support and must not compete for Primary/Secondary/Tertiary strategy rank by themselves.
+These can contribute to one or several tracks but should not compete as independent builds merely because they are useful:
 
-| Component | Integrated destination |
-|---|---|
-| Abstract Joker | Generic wide-board additive Mult; ordinary Joker value only, never a standalone route |
-| Raised Fist | High Card / Pair / held-card / Mime and Red-Seal support |
-| Rocket / To the Moon | Bull / Bootstraps cash scoring; Silver individually and Gold together after a cash scorer exists |
-| Cloud 9 | Bull / Bootstraps cash scoring / Nines economy support |
-| Reserved Parking | Face-card held economy; Bull / Bootstraps cash support when its face-card trigger is usable |
-| Business Card | Face Cards / Pareidolia / retriggers / Red Seal; Bull / Bootstraps cash support when face-card infrastructure is usable |
-| Faceless Joker | Faceless / discard economy; Bull / Bootstraps cash support when its discard trigger is usable |
-| Satellite | Planet / Constellation economy; Bull / Bootstraps cash support when its Planet infrastructure is usable |
-| Mail-In Rebate | Discard-utilization economy; Bull / Bootstraps cash support when its discard target is usable |
-| Banner / Delayed Gratification | No-discard / discard-preservation support; Delayed Gratification may feed Bull / Bootstraps cash scoring |
-| Golden Joker | Bull / Bootstraps unconditional cash support |
-| Golden Ticket | Gold-card scoring/economy; Bull / Bootstraps cash support when Gold-card infrastructure exists |
-| Rough Gem | Diamond scoring/economy; Bull / Bootstraps cash support when Diamond infrastructure exists |
-| Blueprint / Brainstorm | Silver support for an owned, copyable defining engine; never independent strategy evidence |
-| Astronomer | Planet Engine, Blue Seal hand-level scaling, Burnt Joker hand-level support, and prerequisite for Silver Constellation support |
-| Chaos the Clown | Gold support for an owned Flash Card reroll engine |
-| Drunkard / Merry Andy | Purple Seal, Castle, Mail-In Rebate, Yorick, and Burnt Joker discard engines |
-| Juggler / Troubadour | Held Red-Seal, Blue Seal, Steel-Mime, Baron-Mime, and other material held-card engines |
-| Splash | Played Red-Seal, Hiker, Flower Pot, Midas Mask, and Vampire/Canio card-processing engines |
-| Showman | Baseball Card duplicate-Uncommon support and generic wide-board support |
-| Invisible Joker | Joker Stencil duplication, Swashbuckler sell-value feed, and situational engine duplication |
+- Abstract Joker — generic wide-board additive Mult.
+- Raised Fist — held-card/hand support.
+- Rocket / To the Moon / Cloud 9 / Golden Joker and similar cash pieces — feed cash-scoring/economy tracks when usable.
+- Reserved Parking / Business Card / Faceless Joker — contextual economy/support.
+- Banner / Delayed Gratification — no-discard/discard-preservation support.
+- Blueprint / Brainstorm — copy support for a compatible owned engine.
+- Astronomer — Planet/Blue Seal/Burnt hand-level support and Constellation prerequisite.
+- Drunkard / Merry Andy — discard-resource support where discards are actually desired.
+- Juggler / Troubadour — held-card support.
+- Splash — played-card processing support.
+- Showman / Invisible Joker — board/duplication support.
 
-Synergy-only combinations are folded into their defining strategy rows. Indexed parents are reserved for genuinely different play/build routes, not merely stronger combinations of the same route.
+## 15. Target runtime output
+
+The topology should eventually produce a state like:
+
+```text
+Combined build : Burnt + Aces + Pair + DNA support
+Power engine   : Burnt
+Developed tracks: Burnt, Aces, Pair
+Emerging tracks : deck copy
+Conflicts       : Green, Burglar
+```
+
+It should **not** reduce the same state to `Primary=Burnt, Secondary=Aces, Third=Pair` and then treat those as competing alternative builds.
