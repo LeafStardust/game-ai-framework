@@ -1,126 +1,149 @@
 # Balatro Build Health and Realized Strength
 
-Build Health is the viability layer beneath the strategy-track system. Strategy contribution/rank says **what coherent mechanics the run has assembled**; Build Health says **whether the resulting combined build actually works, survives, and scales fast enough**.
+Build Health is the reality-check layer beneath `BALATRO_STRATEGY_SYSTEM.md`.
 
-See `BALATRO_STRATEGY_TREE_RULES.md` for the Bond-like strategy-track architecture and migration plan.
+The Bond system says **what has been built, what is worth reinforcing, and how it should be played**. Build Health and score projection say **whether it actually works, clears, and scales quickly enough**.
 
-## 1. Core distinction
+## 1. Hard separation
 
-Do not confuse:
+Never equate or sum Bond rank with mechanical power.
 
 ```text
-structural contribution / track rank
-with
-realized engine strength / build viability
+Bond development -> strategic structure
+Bond realization -> whether that structure is functioning
+Score projection -> actual expected Balatro output
+Build Health     -> current/future viability diagnosis
 ```
 
-A highly developed track can still lose. Roguelike RNG, bosses, current scaling, economy, execution and runway matter. Conversely, a temporarily ugly survival board can be correct early even when it has weak strategic coherence.
+An R5 coherent build can still be too weak to survive. A disconnected temporary board can still have excellent immediate survival.
 
-The target decision hierarchy is:
-
-1. Can the current run survive the current/next blind?
-2. Which strategy tracks are materially developed?
-3. Which developed tracks are mutually compatible?
-4. What is the best combined build from them?
-5. Which track is the principal power engine?
-6. Is that combined build actually functioning now?
-7. Is it scaling quickly enough for the next one to two Antes?
-8. Which action/component most improves survival or the combined build?
-9. Would changing composition/power engine beat transition cost?
-10. Execute the best legal action.
-
-## 2. Build Health dimensions
-
-`BuildHealth` remains a normalized diagnostic composed from:
-
-- **Survival** — projected clear ability.
-- **Immediate** — present scoring relative to blind requirements.
-- **Scaling** — growth/multiplicative capacity relative to future blind growth.
-- **Coherence** — how much of the board contributes to the same **compatible combined build**, not a legacy Primary/top-three shortlist.
-- **Runway** — whether engines needing buildup have time/resources to mature.
-
-A critical survival failure must not be hidden by the aggregate.
-
-## 3. Coherence under the new architecture
-
-Legacy coherence logic based on `Primary + Relevant` is migration-only.
-
-Target coherence should measure:
-
-- fraction of occupied Joker slots contributing materially to at least one developed compatible track;
-- multi-track contribution value;
-- explicit conflicts;
-- disconnected generic filler;
-- whether the board has a credible power engine;
-- whether support actually reinforces that engine/combined build.
-
-A Joker that contributes to a developed compatible track is **not FILLER** simply because another track has a higher score. On-path does not mean irreplaceable: weak support can still be replaced when another component improves the combined build more.
-
-## 4. Realized engine states
-
-Retain the realized-state vocabulary:
+## 2. Integration pipeline
 
 ```text
-NOT_OWNED
-OWNED_INACTIVE
-ACTIVATED_WEAK
-ACTIVATED_HEALTHY
+components / persistent state
+  -> weighted Bond contributions
+  -> Bond ranks + realization
+  -> compatible combined build + motifs
+  -> intended power engine + prescriptions
+
+actual Balatro mechanics + intended lines
+  -> score / clear projection
+
+projection + realization + combined-build coherence + runway
+  -> Build Health
+```
+
+The Bond system helps the projector know which intended engines/lines deserve evaluation, but actual cards, hand levels, Joker effects, Chips/Mult/XMult, retriggers, scaler values, blind/boss state and consistency determine projected output.
+
+## 3. Build Health dimensions
+
+Retain normalized diagnostics approximately as:
+
+- **Survival** — projected ability to clear current/next blind;
+- **Immediate Power** — current scoring relative to blind requirement;
+- **Scaling** — realized growth/multiplicative capacity versus future blind growth;
+- **Coherence** — how much of the board/state participates in one compatible combined build/motifs;
+- **Runway** — whether developing engines/motifs can mature before they are needed.
+
+Critical survival failure must not be hidden by a good aggregate or high Bond ranks.
+
+## 4. Realization
+
+Canonical Bond realization states:
+
+```text
+DORMANT
+PARTIAL
+ACTIVE
 MATURE
 ```
 
+Realization is Bond-specific and may depend on actual density, execution, compatible support, accumulated scaler state, current boss/environment and prescription compliance.
+
 Examples:
 
-- Hologram x1.0: structurally relevant, realized inactive.
-- Throwback x1.0: structurally relevant, not yet a mature skip engine.
-- Burnt owned but first-discard upgrades repeatedly unused: structurally strong but operationally under-realized.
-- Green with negligible Mult: correct track membership but weak current engine.
-- Castle with little accumulated chips: weak realized scaler.
-- Bull/Bootstraps with high cash: can be immediately mature because the required state already exists.
+- Steel R4 can remain PARTIAL if useful Steel density/held triggering is inadequate.
+- Burnt can be highly developed but under-realized if safe first-discard upgrades are repeatedly skipped.
+- Throwback can be structurally relevant while x1.0 and therefore weakly realized.
+- Bull/Bootstraps-style cash scoring may become immediately mature when the required bankroll already exists.
 
-## 5. Prescriptions are part of realized strength
+Temporary bosses/environment change realization and score projection, not persistent Bond rank. Example: a Face Cards Bond remains structurally developed under The Plant while its realization may collapse for that blind.
 
-An engine cannot be called healthy if the action policy repeatedly violates the mechanic that creates its power.
+## 5. Coherence
 
-Required examples:
+Coherence is based on the **combined build**, not legacy Primary/Secondary/Third.
 
-### Burnt
+Measure approximately:
 
-Realized strength depends on actually using safe first-discard hand upgrades. If the first scoring hand trivially clears the blind and a safe discard exists, a developed Burnt engine should normally activate Burnt first. Green and Burglar are conflicts; Burglar cannot coexist as Burnt support because it removes discards.
+- occupied slots materially advancing relevant compatible Bonds;
+- active/mature motifs;
+- useful multi-Bond bridge components;
+- explicit conflicts;
+- disconnected filler;
+- presence of a credible realized power engine;
+- whether support reinforces that engine/composition.
 
-### Ride the Bus
+A component is not filler merely because another Bond is higher rank.
 
-Realized strength depends on preserving accumulated Mult. D1 should avoid playing face cards when a safe comparable non-face line exists. Repeatedly resetting Bus while calling the route healthy is a model error.
+## 6. Diagnosing unrealized investment
 
-### Green + Burglar
+The separation of rank, realization and projection should produce actionable diagnoses.
 
-Burglar is a strong no-discard partner for Green: no discards prevents Green reset while extra hands provide more opportunities to exploit/grow the engine. Burnt is incompatible.
+Example:
 
-### Aces / Scholar / DNA
+```text
+Steel: R4 PARTIAL
+Held Cards: R3 ACTIVE
+Projected clear: poor
+```
 
-Scholar should be valued as an Aces contribution inside a compatible combined build. DNA can become especially valuable by duplicating the target rank/card. Burnt + Aces + Pair/High Card is a composition, not three rival strategy candidates.
+Interpretation: substantial Steel investment exists but is not producing enough power. Acquisition should prefer components that activate/realize the existing investment (for example held retrigger/motif completion where applicable) over blindly adding more structural Steel quota.
 
-## 6. Survival adequacy
+Conversely, high immediate power with poor coherence/scaling means the run may need to consolidate into an emerging compatible composition before future blinds outgrow it.
 
-Antes 1–2 remain survival/flexibility stages. Immediate off-track scoring is legal when necessary. The opening policy may bank a near-pace scoring hand rather than exhaust all discards chasing a perfect hand.
+## 7. Survival and prescriptions
 
-A developed engine may intentionally spend a tactical resource when survival margin makes it safe and doing so creates permanent value—for example Burnt's first discard. Survival is the envelope; strategy chooses the best action inside it.
+Immediate survival is the final authority. Strategy chooses the highest-value compliant action inside the survival envelope.
 
-## 7. Scaling adequacy
+Compatible Bond prescriptions combine. Bond-level contradictions should already be excluded by explicit CONFLICT relationships. Special combined behavior belongs to motifs.
 
-From Ante 3 onward, detect when the current combined build cannot keep pace with the next one to two Antes.
+A developed engine cannot be called healthy if the agent repeatedly violates the action that creates its power when a safe compliant line exists.
 
-Under scaling deficit pressure prefer:
+Carried regression examples:
 
-- raising the rank/realized strength of an existing compatible power engine;
-- activating an inactive scaler;
-- buying a component that advances several developed tracks;
-- replacing filler/conflict/weak support with stronger compatible scaling;
-- rerolling when bankroll and survival permit;
-- changing the combined build when new RNG creates a materially stronger composition.
+- developed Burnt should use a safe first-discard upgrade before a trivial clear;
+- developed Ride the Bus/no-face should avoid face-card plays when a safe comparable non-face line exists;
+- active Baron-Mime-Steel should preserve payoff held cards and exploit appropriate held/retrigger shaping;
+- Green/no-discard and Burnt must not be composed together.
 
-Five occupied Joker slots are not evidence of health.
+## 8. Scaling and emergency power
 
-## 8. Component roles
+When Survival/Immediate Power is poor despite high coherence, stop spending solely to perfect already-developed Bonds. Prefer immediate compatible scoring, activation of under-realized investment, or another action that materially raises clear probability.
+
+When Survival is healthy but Scaling/Coherence is poor, the agent can spend runway consolidating/advancing useful Bonds and motifs.
+
+Five occupied Joker slots and high Bond ranks are not evidence of health by themselves.
+
+## 9. Pivot cost
+
+Composition change evaluates actual expected improvement against transition cost:
+
+```text
+new realized/potential power
++ useful rank thresholds crossed
++ motif activation/synergy
++ existing deck compatibility
++ short-horizon growth
+- missing-piece distance
+- money/slot cost
+- abandoned component/Bond value
+- deck reshaping/buildup time
+- survival risk
+```
+
+R1/R2 Bonds are cheap to abandon; R3 creates meaningful resistance; R4 strong resistance; R5 very strong resistance. Rank resistance is a cost, not a lock.
+
+## 10. Component roles
 
 Retain:
 
@@ -132,124 +155,68 @@ FILLER
 CONFLICT
 ```
 
-but derive them from the **combined build**.
+but derive them from combined-build participation and realized value.
 
-- CORE: defining component of the power engine or a capstone developed track.
-- ENGINE: materially creates/scales a developed track.
-- SUPPORT: materially reinforces one or more compatible developed tracks.
-- FILLER: generic positive value with no material contribution to the current combined build.
-- CONFLICT: mechanically damages a developed track/composition.
+- CORE: defining/capstone component of the current power plan;
+- ENGINE: materially creates/scales a developed Bond or active motif;
+- SUPPORT: materially reinforces relevant compatible Bonds/motifs;
+- FILLER: generic positive value with no material participation in the current combined build;
+- CONFLICT: mechanically damages the chosen composition.
 
-Replacement priority remains broadly conflict -> filler -> weak support -> weak engine -> core only during explicit composition change, subject to whole-build value and survival.
+Replacement normally trends conflict -> filler -> weak support -> weak engine -> core only during explicit composition change, subject to survival and whole-build value.
 
-## 9. Composition change / pivot cost
+## 11. Shop/build-health interaction
 
-The target system does not pivot between single strategy IDs. It changes the **combined build and/or power engine**.
+Strategic acquisition value may include multi-Bond progress, threshold crossings, motif activation and slot efficiency. These are not direct scoring points.
 
-Evaluate:
+Shop decisions should combine:
 
-```text
-new combined realized strength
-+ useful rank thresholds crossed
-+ multi-track synergy
-+ deck/resource compatibility
-+ short-horizon growth
-- sold/abandoned track value
-- slot/economy transition cost
-- required future buildup
-- survival risk
-```
+- immediate mechanical value;
+- Build Health deficits;
+- Bond/motif structural progress;
+- realization improvement;
+- transition cost;
+- economy/runway.
 
-Late theoretical ceiling without runway is insufficient.
+A component that crosses two useful Bond thresholds and activates a motif may be strategically exceptional even before its raw immediate score is exceptional.
 
-## 10. Short-horizon shop planning
+## 12. Observability
 
-Retain bounded multi-action planning for sequences such as:
-
-- sell filler/conflict -> buy stronger compatible component;
-- buy generator -> activate Hologram/Blue growth;
-- sell expendables -> Ankh;
-- buy Bull/Bootstraps pair when jointly strong at current cash;
-- buy component -> re-evaluate all track meters -> buy complementary component.
-
-Add target support for `component crosses useful track rank` and `one component advances multiple developed tracks`.
-
-## 11. Phase behavior
-
-### Ante 1–2 — foundation
-
-Survive, collect useful contribution, remain flexible. Do not force a predetermined build.
-
-### Ante 3–5 — composition formation
-
-Identify developed compatible tracks, select/strengthen a power engine, replace disconnected filler, and converge resource use around the emergent combined build.
-
-### Ante 6+ — execution
-
-Strongly reinforce the best realized combined build. Do not discard compatible developed tracks merely because they are not the single highest-scoring node. Composition changes require decisive realized advantage and acceptable transition risk. Survival remains final authority.
-
-## 12. Observability target
-
-Migrate logs/live monitor toward:
+Live monitor target:
 
 ```text
-Build Health  : ...
-Survival      : ...
-Immediate     : ...
-Scaling       : ...
-Coherence     : ...
-Runway        : ...
+Build Health : ...
+Survival     : ...
+Immediate    : ...
+Scaling      : ...
+Coherence    : ...
+Runway       : ...
 
-Combined build: Burnt + Aces + Pair + DNA support
-Power engine  : Burnt
+Power engine : ...
+Relevant Bonds:
+  Held Cards      R4  ACTIVE  17.5/21 -> R5
+  Steel           R3  MATURE  ...
 
-Track meters:
-Burnt          contribution/rank/realized state
-Aces           contribution/rank/realized state
-Pair           contribution/rank/realized state
-...
+Motifs:
+  Baron-Mime-Steel ACTIVE
+  -> next/maturity requirement ...
 
-Components:
-Burnt Joker    CORE
-Scholar        ENGINE/SUPPORT (Aces)
-DNA            multi-track SUPPORT
-...
-
-Conflicts      : Green, Burglar
-Prescriptions  : activate first discard; favor Ace target; reinforce Pair
-Warnings       : scaling deficit / inactive engine / prescription violation
+Conflicts     : ...
+Prescriptions : ...
+Warnings      : under-realized investment / scaling deficit / etc.
 ```
 
-Legacy Primary/Relevant fields may remain during migration but should be visibly marked compatibility fields once the new meters exist.
+Full telemetry may retain all Bond states. Do not flood the live monitor with dormant R0 Bonds.
 
-## 13. Implementation sequence
+Decision logs should state when a purchase/action crosses useful thresholds, changes realization, activates a motif, or addresses a Build Health deficit.
 
-Current Build Health/runtime work already exists. Next architecture work should proceed without a flag-day rewrite:
+## 13. Migration/regression targets
 
-1. Add strategy-track meter/rank model over the existing relationship catalogue.
-2. Evaluate **all** tracks from state rather than truncating to top three.
-3. Add explicit compatibility/synergy/conflict composition graph.
-4. Build a combined-build resolver and power-engine selector.
-5. Make component-role classification consume the combined build.
-6. Make realized-engine analysis detect prescription compliance/violations where measurable.
-7. Feed combined prescriptions into D1, shop, packs/consumables, deck shaping, ordering, economy, skips and bosses.
-8. Update monitor/log schema.
-9. Retire legacy Primary/Secondary/Third assumptions after regression parity.
-10. Run unchanged-HEAD five-run batches and calibrate contribution/rank geometry from telemetry.
+- remove legacy Primary/Relevant/top-three assumptions from coherence/component roles once new combined-build plumbing exists;
+- remove Gold/Silver/Bronze as strategic truth;
+- preserve proven useful runtime behavior while migrating architecture;
+- update/remove tests that intentionally encode superseded architecture;
+- calibrate contribution/rank geometry and Build Health thresholds from unchanged-HEAD multi-run telemetry;
+- keep structural coherence distinct from realized underperformance.
 
-Do not solve this by indiscriminately increasing per-Joker scores. The purpose is coherent composition reasoning.
-
-## 14. Regression targets carried from telemetry
-
-- early Red/White should not routinely exhaust all discards and die just below ordinary Ante 1–2 targets;
-- Burnt + Green and Burnt + Burglar are conflicts;
-- Green + Burglar synergize;
-- developed Burnt should actually use safe first-discard upgrades;
-- Scholar/Aces/DNA should be recognized as compatible reinforcement around a Burnt + cheap-hand build when offered;
-- developed Ride the Bus should avoid face-card plays when safely possible;
-- on-path components must not be logged FILLER due to legacy shortlist plumbing;
-- Build Health must distinguish structural coherence from realized underperformance.
-
-## 15. Release scope
-
-This remains Red/White competence work. Complete and validate the strategy-track migration before treating the strategy model as frozen for subsequent stakes.
+This remains Red/White competence scope until the Bond migration is implemented and validated.
