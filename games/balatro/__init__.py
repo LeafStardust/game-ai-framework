@@ -22,6 +22,7 @@ from games.balatro.five_run_validation_policy import install_five_run_validation
 from games.balatro.latest_batch_build_quality_policy import install_latest_batch_build_quality_policy
 from games.balatro.latest_batch_no_discard_policy import install_latest_batch_no_discard_policy
 from games.balatro.latest_five_run_calibration_policy import install_latest_five_run_calibration_policy
+from games.balatro.latest_five_run_discard_conflict_policy import install_latest_five_run_discard_conflict_policy
 from games.balatro.latest_five_run_relationship_promotions import install_latest_five_run_relationship_promotions
 from games.balatro.latest_five_run_resource_metrics import install_latest_five_run_resource_metrics
 from games.balatro.latest_five_run_strategy_metrics import install_latest_five_run_strategy_metrics
@@ -82,6 +83,7 @@ install_strategy_phase_weight_policy()
 install_strategy_relationship_calibration()
 install_ten_four_strategy_calibration()
 install_latest_five_run_strategy_metrics()
+install_latest_five_run_discard_conflict_policy()
 # Dynamic Walkie+Even and scaled-Throwback promotions belong in the existing
 # state-aware relationship resolver, never in private tracker assessment methods.
 install_latest_five_run_relationship_promotions()
