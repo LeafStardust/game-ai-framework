@@ -105,10 +105,12 @@ def test_celestial_option_value_uses_observed_hand_specialization_not_level_alon
     level_only = policy.recommend(level_only_state, action)
     repeated = policy.recommend(repeated_state, action)
 
+    # Current telemetry contract: permanent hand levels by themselves do not create
+    # new Celestial demand. Repeated public use of an underleveled hand does.
+    assert level_only.build_need_score == base.build_need_score == 0.0
     assert level_only.option_utility == base.option_utility
+    assert repeated.build_need_score > 0.90
     assert repeated.option_utility > base.option_utility
-    assert any("no observed poker-hand history" in note for note in level_only.rationale)
-    assert any("most-played hand=PAIR plays=8/8" in note for note in repeated.rationale)
     assert any("contents are not predicted" in note for note in repeated.rationale)
 
 
