@@ -68,12 +68,42 @@ def _primary_id(tracker, resolution):
     return primary
 
 
+def _shortlist_ids(resolution, primary: str | None) -> tuple[str, ...]:
+    if resolution is None:
+        return ()
+    values = getattr(resolution, "shortlist_strategy_ids", None)
+    if values is None:
+        values = (
+            primary,
+            *tuple(getattr(resolution, "relevant_strategy_ids", ()) or ()),
+        )
+    return tuple(str(value) for value in values if value)
+
+
+def _fallback_shortlist_relationship(tracker, joker, shortlist):
+    """Resolve structural membership when aggregate item scoring is ambiguous."""
+    definitions = getattr(tracker, "definitions", {}) or {}
+    for strategy_id in shortlist:
+        definition = definitions.get(strategy_id)
+        if definition is None:
+            continue
+        try:
+            tier = definition.relationship_for(joker, kind="JOKER")
+        except (AttributeError, KeyError, TypeError, ValueError):
+            continue
+        if tier in {GOLD, SILVER, BRONZE, BANNED}:
+            return strategy_id, tier
+    return None, None
+
+
 class BuildComponentRoleClassifier:
     """Classify each owned Joker relative to the current realized build.
 
-    Roles are structural, not a second score catalogue.  The classifier consumes
-    the existing strategy relationship and realized-engine state, preserving their
-    provenance in its rationale.
+    Roles are structural, not a second score catalogue. The classifier consumes
+    existing strategy relationships and realized-engine state. A Joker that is a
+    positive component of the current Primary or one of its relevant Secondary
+    routes is never labelled FILLER merely because aggregate item evaluation could
+    not select one strongest relationship.
     """
 
     def __init__(self, *, engine_analyzer: RealizedEngineAnalyzer | None = None) -> None:
@@ -86,13 +116,16 @@ class BuildComponentRoleClassifier:
         }
         resolution = None
         primary = None
+        shortlist: tuple[str, ...] = ()
         if strategy_tracker is not None:
             try:
                 resolution = strategy_tracker.observe(state)
                 primary = _primary_id(strategy_tracker, resolution)
+                shortlist = _shortlist_ids(resolution, primary)
             except (AttributeError, KeyError, TypeError, ValueError):
                 resolution = None
                 primary = None
+                shortlist = ()
 
         assessments: list[BuildComponentAssessment] = []
         for index, joker in enumerate(getattr(state, "jokers", ()) or ()):
@@ -114,9 +147,31 @@ class BuildComponentRoleClassifier:
             aligned = bool(getattr(relation, "active_alignment", False)) if relation is not None else False
             notes: list[str] = []
 
+            if (
+                strategy_tracker is not None
+                and shortlist
+                and (
+                    relation_strategy not in shortlist
+                    or tier not in {GOLD, SILVER, BRONZE, BANNED}
+                    or not aligned
+                )
+            ):
+                fallback_strategy, fallback_tier = _fallback_shortlist_relationship(
+                    strategy_tracker,
+                    joker,
+                    shortlist,
+                )
+                if fallback_strategy is not None:
+                    relation_strategy = fallback_strategy
+                    tier = fallback_tier
+                    aligned = True
+                    notes.append(
+                        "structural relationship recovered directly from the active strategy shortlist"
+                    )
+
             if tier == BANNED and (aligned or relation_strategy == primary):
                 role = BuildComponentRole.CONFLICT
-                notes.append("current Primary relationship is mechanically Banned")
+                notes.append("current shortlisted relationship is mechanically Banned")
             elif engine is not None and aligned:
                 role = BuildComponentRole.ENGINE
                 notes.append(
@@ -128,11 +183,9 @@ class BuildComponentRoleClassifier:
             elif aligned and relation_strategy == primary and tier in {SILVER, BRONZE}:
                 role = BuildComponentRole.SUPPORT
                 notes.append(f"{tier.title()} component reinforcing the current Primary route")
-            elif aligned and tier in {GOLD, SILVER}:
-                # Compatible Secondary engines/support remain useful even when they
-                # are not the Primary identifier.
+            elif aligned and relation_strategy in shortlist and tier in {GOLD, SILVER, BRONZE}:
                 role = BuildComponentRole.ENGINE if engine is not None else BuildComponentRole.SUPPORT
-                notes.append("positive component of a compatible active route")
+                notes.append("positive component of a current relevant Secondary route")
             else:
                 role = BuildComponentRole.FILLER
                 notes.append("positive/general value may remain, but Joker is not structural to the realized active build")
