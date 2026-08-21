@@ -3,16 +3,18 @@ from __future__ import annotations
 """Red/White strategy-relationship weight calibration.
 
 The relationship catalogue distinguishes defining Gold cores from ordinary Silver
-support.  The old 8/3/1/-8 geometry allowed three Silver supports (9) to outrank a
+support. The old 8/3/1/-8 geometry allowed three Silver supports (9) to outrank a
 Gold core (8), left a Gold core below the configured commitment threshold (9), and
-made one explicit Banned conflict merely cancel one Gold component.  Red/White now
+made one explicit Banned conflict merely cancel one Gold component. Red/White now
 uses 10/3/1/-12 with commitment at 10 and maturity at 20.
 
-This is installed at the tracker config boundary so every strategy consumer sees
-one authoritative effective configuration without redefining catalogue membership.
-Future cartridges remain free to use their own calibration.
+The calibration is exposed through the Red/White playbook API and enforced again at
+the tracker config boundary. The second guard keeps hypothetical/copied states and
+callers with cached modifier mappings on the same effective contract. Future
+cartridges remain free to use their own calibration.
 """
 
+from games.balatro.playbook.red_white.core import BalatroPlaybook
 from games.balatro.strategy import BalatroStrategyTracker
 
 
@@ -35,6 +37,16 @@ def _identity(state) -> tuple[str, str]:
 def install_strategy_relationship_calibration() -> None:
     if getattr(BalatroStrategyTracker, "_relationship_calibration_installed", False):
         return
+
+    original_strategy_modifiers = BalatroPlaybook.strategy_modifiers
+
+    def strategy_modifiers(self):
+        configured = original_strategy_modifiers(self)
+        if self.key == ("RED", "WHITE"):
+            configured.update(RED_WHITE_RELATIONSHIP_CALIBRATION)
+        return configured
+
+    BalatroPlaybook.strategy_modifiers = strategy_modifiers
 
     original_config = BalatroStrategyTracker._config
 
