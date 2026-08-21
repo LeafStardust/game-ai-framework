@@ -72,7 +72,10 @@ def _shortlist_ids(resolution, primary: str | None) -> tuple[str, ...]:
     if resolution is None:
         return ()
     values = getattr(resolution, "shortlist_strategy_ids", None)
-    if values is None:
+    # Some production resolution wrappers expose an empty shortlist tuple even
+    # while dominant/relevant ids are populated. Treat empty as unavailable rather
+    # than authoritative, otherwise every owned Joker falls through to FILLER.
+    if not values:
         values = (
             primary,
             *tuple(getattr(resolution, "relevant_strategy_ids", ()) or ()),
