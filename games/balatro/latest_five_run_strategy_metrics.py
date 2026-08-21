@@ -2,10 +2,11 @@ from __future__ import annotations
 
 """Five-run telemetry calibration for strategy strength and Build Health metrics."""
 
+from copy import deepcopy
 from dataclasses import replace
 
 from games.balatro.build_health_runtime import RuntimeBuildHealthEvaluator
-from games.balatro.strategy import GOLD, SILVER, BalatroStrategyTracker
+from games.balatro.strategy import BRONZE, GOLD, SILVER, BalatroStrategyTracker
 
 
 _THROWBACK = "throwback"
@@ -96,12 +97,40 @@ def install_latest_five_run_strategy_metrics() -> None:
             return result
         if getattr(result, "strategy_id", None) != _THROWBACK or getattr(result, "tier", None) == GOLD:
             return result
+
+        resolution = self.observe(state)
+        assessment = resolution.assessment(_THROWBACK)
+        if assessment is None:
+            return replace(
+                result,
+                tier=GOLD,
+                rationale=(
+                    *result.rationale,
+                    "five-run calibration: realized Throwback skip scaling promotes the core Silver->Gold",
+                ),
+            )
+
+        rank = next(
+            (index for index, value in enumerate(resolution.assessments) if value.strategy_id == _THROWBACK),
+            999,
+        )
+        scope = self._scope_factor(state, _THROWBACK, rank, resolution)
+        config = self._config(state)
+        pressure = self.strategy_pressure(state)
+        alignment_scale = self._number(config, "candidate_alignment_scale", 0.08)
+        relationship_delta = self.relationship_score(state, GOLD) - self.relationship_score(state, SILVER)
+        alignment_delta = max(0.0, float(assessment.score)) * relationship_delta * scope
+        value_delta = alignment_delta * alignment_scale * pressure
+        projected_delta = relationship_delta * float(assessment.effectiveness)
         return replace(
             result,
             tier=GOLD,
+            value=float(result.value) + value_delta,
+            projected_score=float(result.projected_score) + projected_delta,
             rationale=(
                 *result.rationale,
                 "five-run calibration: realized Throwback skip scaling promotes the core Silver->Gold",
+                f"conditional Gold alignment delta={value_delta:+.3f}",
             ),
         )
 
@@ -114,7 +143,7 @@ def install_latest_five_run_strategy_metrics() -> None:
         if tracker is None:
             return original_coherence(self, state, tracker)
         try:
-            working = __import__("copy").deepcopy(tracker)
+            working = deepcopy(tracker)
             resolution = working.observe(state)
             dominant_id = getattr(resolution, "dominant_strategy_id", None)
             if dominant_id is None:
@@ -138,7 +167,7 @@ def install_latest_five_run_strategy_metrics() -> None:
                 if (
                     bool(getattr(relation, "active_alignment", False))
                     and getattr(relation, "strategy_id", None) in shortlist
-                    and getattr(relation, "tier", None) in {GOLD, SILVER, "BRONZE"}
+                    and getattr(relation, "tier", None) in {GOLD, SILVER, BRONZE}
                 ):
                     aligned += 1
             aligned_ratio = aligned / len(jokers) if jokers else 0.0
