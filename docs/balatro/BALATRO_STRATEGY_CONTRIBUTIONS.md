@@ -1,188 +1,86 @@
 # Balatro Strategy Contributions
 
-Canonical component/state -> Bond contribution values. Architecture is defined in `BALATRO_STRATEGY_SYSTEM.md`; catalogue identity/rank behavior is in `BALATRO_STRATEGY_CATALOGUE.md`.
+Canonical component/state -> Bond contribution values. Architecture is in `BALATRO_STRATEGY_SYSTEM.md`; Bond identity/rank behavior is in `BALATRO_STRATEGY_CATALOGUE.md`.
 
 ## Rules
 
-- Gold/Silver/Bronze/Banned is legacy migration evidence only.
-- Every accepted source contributes its own numerical weight to one or more Bonds.
-- All valid sources for one Bond feed one shared pool; contributors are alternative/additive routes, never sequential rank keys.
-- Persistent deck/state contribution uses bands/caps where appropriate.
-- `LOCKED` means a defining prerequisite is absent. `R0` means the Bond exists as a possible axis but is below R1.
-- Rank is structural development. Realization and Build Health remain separate.
+- Gold/Silver/Bronze/Banned is legacy evidence only.
+- Every Bond uses one shared weighted contribution pool.
+- Contributors are alternative/additive paths, never sequential rank keys.
+- Persistent density/state uses bands and caps where appropriate.
+- Rank is development only; realization and Build Health remain separate.
 - Multi-Bond contribution is intentional and never becomes fake additive scoring power.
+- All values below are provisional Red/White calibration pending the full catalogue audit.
 
-All values below are provisional Red/White calibration and must be audited again after the catalogue is complete.
+## Bonds 1-12
 
----
+### Burnt — thresholds `8 / 12 / 17 / 23 / 30`
+Unlock: Burnt Joker required. Burnt +8; Blueprint +5; Brainstorm +5; Telescope +4; Space Joker +2; Blue Seals 1/2/3/4+ = +1/+3/+5/+6; target-hand levels 2-3/4-6/7-10/11+ = +1/+3/+5/+7; extra discards above 3 = +1 each, +3 cap.
 
-## 1. Burnt
+### Held Cards — thresholds `4 / 8 / 13 / 19 / 26`
+Baron +6; Shoot the Moon +4; Raised Fist +2; Steel cards 1/2-3/4-5/6+ = +1/+3/+5/+7; hand size above 8 = +1 each, +3 cap. Explicit exclusions: Mime, Gold Cards, Blue Seals.
 
-**Unlock:** Burnt Joker required.
+### Held Retrigger — thresholds `4 / 8 / 13 / 19 / 26`
+Mime +6; Red Seals 1/2-3/4-5/6+ = +1/+3/+5/+7; Blueprint +4 only while Mime exists; Brainstorm +4 only while Mime exists.
 
-**Thresholds:** `8 / 12 / 17 / 23 / 30`
+### Steel — thresholds `4 / 8 / 14 / 21 / 29`
+Steel Joker +5; Steel cards 1/2-3/4-5/6-9/10+ = +1/+3/+6/+9/+12; Red-Seal Steel 1/2-3/4+ = +1/+2/+3.
 
-| Source | Contribution |
-|---|---:|
-| Burnt Joker | +8 |
-| Blueprint | +5 |
-| Brainstorm | +5 |
-| Telescope | +4 |
-| Space Joker | +2 |
-| Blue Seals: 1 / 2 / 3 / 4+ | +1 / +3 / +5 / +6 cap |
-| Target hand level: 2-3 / 4-6 / 7-10 / 11+ | +1 / +3 / +5 / +7 cap |
-| Extra discards above 3 | +1 each, +3 cap |
+### Pair — thresholds `4 / 8 / 13 / 19 / 26`
+The Duo +6; Jolly Joker +4; Sly Joker +4; Half Joker +2; Pair levels 2-3/4-6/7-10/11+ = +1/+3/+5/+7.
 
-Excluded: Astronomer, generic Planets, Scholar/Aces infrastructure, generic scoring.
+### High Card — thresholds `4 / 8 / 13 / 19 / 26`
+Stuntman +6; Half Joker +3; High Card levels 2-3/4-6/7-10/11+ = +1/+3/+5/+7.
 
-## 2. Held Cards
+### Aces — thresholds `4 / 8 / 13 / 19 / 26`
+Scholar +6; Fibonacci +3; Ace density 4/6/8/12+ = +1/+3/+5/+7; DNA +4 only with at least 6 Aces.
 
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`
+### No-Discard — thresholds `4 / 8 / 13 / 19 / 26`
+Green Joker +6; Burglar +6; Delayed Gratification +4; Ramen +4; Banner +2.
 
-| Source | Contribution |
-|---|---:|
-| Baron | +6 |
-| Shoot the Moon | +4 |
-| Raised Fist | +2 |
-| Steel cards: 1 / 2-3 / 4-5 / 6+ | +1 / +3 / +5 / +7 cap |
-| Hand size above 8 | +1 each, +3 cap |
+### Cash — thresholds `4 / 9 / 15 / 22 / 30`
+Bull +5; Bootstraps +5; Rocket +4; Golden Joker +3; To the Moon +3; Satellite +3; Reserved Parking +2; bankroll $25/$50/$100/$150+ = +1/+3/+5/+7.
 
-**Explicit exclusions:** Mime, Gold Cards, Blue Seals. Mime belongs to Held Retrigger; Gold/Blue being held is a trigger condition rather than this Bond's identity.
+### Lucky — thresholds `4 / 8 / 13 / 19 / 26`
+Lucky Cat +6; Oops! All 6s +4; Lucky cards 1/3/6/10+ = +1/+3/+5/+7.
 
-## 3. Held Retrigger
+### Glass — thresholds `4 / 8 / 13 / 19 / 26`
+Glass Joker +6; Glass cards 1/3/6/10+ = +1/+3/+5/+7; destroyed Glass while Glass Joker owned 1/3/6/10+ = +1/+2/+4/+6.
 
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`
+### Face Cards — thresholds `4 / 9 / 15 / 22 / 30`
+Pareidolia +6; Sock and Buskin +5; Photograph +4; Scary Face +4; Smiley Face +4; Business Card +2; natural face density 12/16/20/26+ = +1/+3/+5/+7.
 
-| Source | Contribution |
-|---|---:|
-| Mime | +6 |
-| Red Seals: 1 / 2-3 / 4-5 / 6+ | +1 / +3 / +5 / +7 cap |
-| Blueprint while Mime exists | +4 |
-| Brainstorm while Mime exists | +4 |
+## Bonds 13-22
 
-Mime contributes here, not to Held Cards. Its super-additive value with Baron/Steel/etc. is represented by Bond synergy/motifs.
+### Two Pair — thresholds `4 / 8 / 13 / 19 / 26`
+Spare Trousers +7; Jolly Joker +2; Sly Joker +2; Two Pair levels 2-3/4-6/7-10/11+ = +1/+3/+5/+7.
 
-## 4. Steel
+### Three of a Kind — thresholds `4 / 8 / 13 / 19 / 26`
+The Trio +6; Zany Joker +4; Wily Joker +4; Three-of-a-Kind levels use +1/+3/+5/+7 bands.
 
-**Unlock:** none. **Thresholds:** `4 / 8 / 14 / 21 / 29`
+### Four of a Kind — thresholds `4 / 8 / 13 / 19 / 26`
+The Family +7; Mad Joker +4; Clever Joker +4; Flower Pot +2 provisional/minor; Four-of-a-Kind levels use +1/+3/+5/+7 bands. Flower Pot classification is explicitly flagged for audit.
 
-| Source | Contribution |
-|---|---:|
-| Steel Joker | +5 |
-| Steel cards: 1 / 2-3 / 4-5 / 6-9 / 10+ | +1 / +3 / +6 / +9 / +12 cap |
-| Red-Seal Steel cards: 1 / 2-3 / 4+ | +1 / +2 / +3 cap |
+### Straight — thresholds `4 / 8 / 13 / 19 / 26`
+The Order +6; Crazy Joker +4; Devious Joker +4; Shortcut +5; Four Fingers +3; Runner +4; Straight levels use +1/+3/+5/+7 bands.
 
-Steel cards legitimately contribute to Steel and Held Cards simultaneously.
+### Flush — thresholds `4 / 8 / 13 / 19 / 26`
+The Tribe +6; Droll Joker +4; Crafty Joker +4; Smeared Joker +5; Four Fingers +3; Flush levels +1/+3/+5/+7; dominant-suit density 16/20/24/30+ = +1/+3/+5/+7.
 
-## 5. Pair
+### Played Retrigger — thresholds `4 / 8 / 14 / 21 / 29`
+Sock and Buskin +6; Hack +6; Hanging Chad +6; Dusk +4; Red Seals 1/2/4/7+ = +1/+3/+5/+7.
 
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`
+### Stone — thresholds `4 / 8 / 13 / 19 / 26`
+Stone Joker +6; Marble Joker +5; Stone cards 1/3/6/10+ = +1/+3/+6/+9.
 
-| Source | Contribution |
-|---|---:|
-| The Duo | +6 |
-| Jolly Joker | +4 |
-| Sly Joker | +4 |
-| Half Joker | +2 |
-| Pair level: 2-3 / 4-6 / 7-10 / 11+ | +1 / +3 / +5 / +7 cap |
+### Gold Economy — thresholds `4 / 8 / 13 / 19 / 26`
+Golden Ticket +5; Midas Mask +5; Reserved Parking +2; Gold cards 1/3/6/10+ = +1/+3/+6/+9. Gold Cards remain excluded from Held Cards.
 
-Hand play-count history alone does not create Pair development.
+### Deck Thinning — thresholds `4 / 8 / 13 / 19 / 26`
+Trading Card +5; Sixth Sense +4; permanent reduction from 52 cards: 4/8/12/18+ removed = +1/+3/+5/+7.
 
-## 6. High Card
-
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`
-
-| Source | Contribution |
-|---|---:|
-| Stuntman | +6 |
-| Half Joker | +3 |
-| High Card level: 2-3 / 4-6 / 7-10 / 11+ | +1 / +3 / +5 / +7 cap |
-
-Burnt may target High Card by composition/fallback, but Burnt is not itself High Card quota.
-
-## 7. Aces
-
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`
-
-| Source | Contribution |
-|---|---:|
-| Scholar | +6 |
-| Fibonacci | +3 |
-| Ace density: 4 / 6 / 8 / 12+ | +1 / +3 / +5 / +7 cap |
-| DNA with at least 6 Aces | +4 |
-
-DNA is a conditional bridge: it does not establish Aces merely by being owned.
-
-## 8. No-Discard
-
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`
-
-| Source | Contribution |
-|---|---:|
-| Green Joker | +6 |
-| Burglar | +6 |
-| Delayed Gratification | +4 |
-| Ramen | +4 |
-| Banner | +2 |
-
-Explicit relationship: `Burnt x No-Discard = CONFLICT`.
-
-## 9. Cash
-
-**Unlock:** none. **Thresholds:** `4 / 9 / 15 / 22 / 30`
-
-| Source | Contribution |
-|---|---:|
-| Bull | +5 |
-| Bootstraps | +5 |
-| Rocket | +4 |
-| Golden Joker | +3 |
-| To the Moon | +3 |
-| Satellite | +3 |
-| Reserved Parking | +2 |
-| Bankroll: $25 / $50 / $100 / $150+ | +1 / +3 / +5 / +7 cap |
-
-Cash rank represents developed cash infrastructure, not a command to hoard regardless of Build Health.
-
-## 10. Lucky
-
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`
-
-| Source | Contribution |
-|---|---:|
-| Lucky Cat | +6 |
-| Oops! All 6s | +4 |
-| Lucky cards: 1 / 3 / 6 / 10+ | +1 / +3 / +5 / +7 cap |
-
-## 11. Glass
-
-**Unlock:** none. **Thresholds:** `4 / 8 / 13 / 19 / 26`
-
-| Source | Contribution |
-|---|---:|
-| Glass Joker | +6 |
-| Glass cards: 1 / 3 / 6 / 10+ | +1 / +3 / +5 / +7 cap |
-| Destroyed Glass while Glass Joker owned: 1 / 3 / 6 / 10+ | +1 / +2 / +4 / +6 cap |
-
-The destruction term reflects persistent Glass Joker development only while the Joker remains owned.
-
-## 12. Face Cards
-
-**Unlock:** none. **Thresholds:** `4 / 9 / 15 / 22 / 30`
-
-| Source | Contribution |
-|---|---:|
-| Pareidolia | +6 |
-| Sock and Buskin | +5 |
-| Photograph | +4 |
-| Scary Face | +4 |
-| Smiley Face | +4 |
-| Business Card | +2 |
-| Natural face-card density: 12 / 16 / 20 / 26+ | +1 / +3 / +5 / +7 cap |
-
-Bosses such as The Plant affect realization/score projection, not structural Bond rank.
-
----
+### Deck Growth — thresholds `4 / 8 / 13 / 19 / 26`
+Certificate +5; DNA +6; Marble Joker +3; Hologram +4; permanent growth above 52: +4/+8/+12/+18 cards = +1/+3/+5/+7. Added-card quality remains a separate Build Health/composition concern.
 
 ## Sparse relationships currently encoded
 
@@ -193,4 +91,4 @@ Held Cards <-> Steel           = SYNERGY
 Held Retrigger <-> Steel       = SYNERGY
 ```
 
-Everything else defaults to `NEUTRAL` until a mechanically meaningful edge is established. Complex packages belong to motifs rather than an exhaustive relationship matrix.
+Everything else defaults to `NEUTRAL` until a mechanically meaningful relationship is established. Complex packages belong to motifs.
