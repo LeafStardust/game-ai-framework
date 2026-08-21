@@ -26,6 +26,7 @@ from games.balatro.latest_five_run_discard_conflict_policy import install_latest
 from games.balatro.latest_five_run_relationship_promotions import install_latest_five_run_relationship_promotions
 from games.balatro.latest_five_run_resource_metrics import install_latest_five_run_resource_metrics
 from games.balatro.latest_five_run_strategy_metrics import install_latest_five_run_strategy_metrics
+from games.balatro.latest_zero_five_survival_policy import install_latest_zero_five_survival_policy
 from games.balatro.log_batch_calibration_policy import install_log_batch_calibration_policy
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.noncash_cash_deployment_policy import install_noncash_cash_deployment_policy
@@ -111,6 +112,9 @@ install_latest_batch_build_quality_policy()
 # Cash deployment intentionally runs after Build Health so it only spends excess cash
 # when the final public-state health assessment says the non-cash build is inadequate.
 install_noncash_cash_deployment_policy()
+# The 0/5 opening-survival layer must see the final composed safe-pace decision and
+# may only turn an Ante 1-2 near-pace discard into a scoring play.
+install_latest_zero_five_survival_policy()
 # D1 caching is installed last because it is a semantics-preserving wrapper around
 # the final composed strategy-aware hand policy.
 install_d1_strategy_fit_cache_policy()
