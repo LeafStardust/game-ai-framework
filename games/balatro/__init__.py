@@ -22,6 +22,7 @@ from games.balatro.latest_batch_no_discard_policy import install_latest_batch_no
 from games.balatro.latest_five_run_calibration_policy import install_latest_five_run_calibration_policy
 from games.balatro.log_batch_calibration_policy import install_log_batch_calibration_policy
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
+from games.balatro.noncash_cash_deployment_policy import install_noncash_cash_deployment_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
 from games.balatro.pareidolia_face_policy import install_pareidolia_face_policy
 from games.balatro.realized_pivot_policy import install_realized_pivot_policy
@@ -79,7 +80,8 @@ install_latest_batch_no_discard_policy()
 # Realized pivot maturity must run before Build Health so candidate transition
 # probes see the same buildup/runway gate as the production strategy tracker.
 install_realized_pivot_policy()
-# Build Health is intentionally installed last so it evaluates the legal outcomes
-# produced by all existing retention/commitment/safety policies rather than
-# bypassing them with another raw-value layer.
+# Build Health evaluates legal outcomes produced by all earlier safety/retention layers.
 install_build_health_policy()
+# Cash deployment intentionally runs after Build Health so it only spends excess cash
+# when the final public-state health assessment says the non-cash build is inadequate.
+install_noncash_cash_deployment_policy()
