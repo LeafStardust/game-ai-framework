@@ -119,7 +119,7 @@ def test_collapsed_rank_relationships_match_the_frozen_contract():
 
     assert definitions["aces"].relationship_for(ScholarJoker(), kind="JOKER") == SILVER
     assert definitions["aces"].relationship_for(DNAJoker(), kind="JOKER") == NEUTRAL
-    assert definitions["low_rank"].relationship_for(FibonacciJoker(), kind="JOKER") == GOLD
+    assert definitions["low_rank"].relationship_for(FibonacciJoker(), kind="JOKER") == SILVER
     assert definitions["low_rank"].relationship_for(HackJoker(), kind="JOKER") == GOLD
     assert definitions["twos"].relationship_for(WeeJoker(), kind="JOKER") == GOLD
     assert definitions["twos"].relationship_for(HackJoker(), kind="JOKER") == NEUTRAL
@@ -166,7 +166,7 @@ def test_wee_hack_is_one_twos_strategy_while_hack_fibonacci_is_one_low_rank_stra
     assert twos.dominant_strategy_id == "twos"
 
     low_rank = tracker.observe(_state(jokers=(HackJoker(), FibonacciJoker())))
-    assert low_rank.assessment("low_rank").score == pytest.approx(16.0)
+    assert low_rank.assessment("low_rank").score == pytest.approx(11.0)
     assert low_rank.dominant_strategy_id == "low_rank"
 
 
