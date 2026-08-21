@@ -190,7 +190,9 @@ def test_raised_fist_mime_support_is_exact_and_blackboard_is_independent():
     blackboard = tracker.observe(_state(jokers=(BlackboardJoker(),)))
 
     assert raised.assessment("raised_fist").score == pytest.approx(6.0)
-    assert blackboard.assessment("blackboard").score == pytest.approx(8.0)
+    # Blackboard remains an independent Section 3 route, but post-Build-Health
+    # calibration intentionally treats its standalone evidence as Silver.
+    assert blackboard.assessment("blackboard").score == pytest.approx(3.0)
 
 
 def test_ancient_and_flower_pot_upgrade_relationships_require_their_owner():
