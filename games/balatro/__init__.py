@@ -18,6 +18,7 @@ from games.balatro.five_run_followup_policy import install_five_run_followup_pol
 from games.balatro.five_run_optimization_policy import install_five_run_optimization_policy
 from games.balatro.five_run_release_candidate_policy import install_five_run_release_candidate_policy
 from games.balatro.five_run_validation_policy import install_five_run_validation_policy
+from games.balatro.latest_batch_build_quality_policy import install_latest_batch_build_quality_policy
 from games.balatro.latest_batch_no_discard_policy import install_latest_batch_no_discard_policy
 from games.balatro.latest_five_run_calibration_policy import install_latest_five_run_calibration_policy
 from games.balatro.log_batch_calibration_policy import install_log_batch_calibration_policy
@@ -90,6 +91,10 @@ install_latest_batch_no_discard_policy()
 install_realized_pivot_policy()
 # Build Health evaluates legal outcomes produced by all earlier safety/retention layers.
 install_build_health_policy()
+# Latest-batch build-quality pressure runs after Build Health and after committed-build
+# protection, so it can relax only the ordinary replacement margin while preserving
+# existing legality/protection decisions.
+install_latest_batch_build_quality_policy()
 # Cash deployment intentionally runs after Build Health so it only spends excess cash
 # when the final public-state health assessment says the non-cash build is inadequate.
 install_noncash_cash_deployment_policy()
