@@ -22,6 +22,10 @@ def _tokens(*names: str) -> frozenset[str]:
 
 
 _NON_AUTHORITATIVE_UNTIL_RESTORABLE = {
+    # Half Joker is direct Pair evidence by itself. The Pair conditional helper
+    # also returns Silver once Pair is independently committed, but that helper is
+    # not an activation prerequisite for Half Joker's own static relationship.
+    "pair": _tokens("Half Joker"),
     "dagger_sacrifice": _tokens("Riff-Raff", "Egg", "Gift Card", "Invisible Joker"),
     "madness_eternal": _tokens("Madness"),
     # The combined cash-scoring route deliberately activates from either Bull or
