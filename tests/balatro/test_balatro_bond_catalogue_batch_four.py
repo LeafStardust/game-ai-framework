@@ -65,7 +65,8 @@ def test_wild_cards_can_establish_from_density_without_flower_pot():
     result = evaluate_wild_bond(
         _state(deck=tuple(_card(enhancement="Wild") for _ in range(6)))
     )
-    assert result.rank == BondRank.R2
+    assert result.contribution == 5.0
+    assert result.rank == BondRank.R1
 
 
 def test_mult_cards_are_density_driven_and_vampire_is_minor_only():
@@ -74,14 +75,34 @@ def test_mult_cards_are_density_driven_and_vampire_is_minor_only():
     dense = evaluate_mult_cards_bond(
         _state(deck=tuple(_card(enhancement="Mult") for _ in range(6)))
     )
-    assert dense.rank == BondRank.R2
+    assert dense.contribution == 5.0
+    assert dense.rank == BondRank.R1
 
 
 def test_bonus_cards_require_actual_density_to_establish():
     result = evaluate_bonus_cards_bond(
         _state(deck=tuple(_card(enhancement="Bonus") for _ in range(6)))
     )
-    assert result.rank == BondRank.R2
+    assert result.contribution == 5.0
+    assert result.rank == BondRank.R1
+
+
+def test_enhancement_density_needs_deeper_commitment_for_r2():
+    wild = evaluate_wild_bond(
+        _state(deck=tuple(_card(enhancement="Wild") for _ in range(10)))
+    )
+    mult = evaluate_mult_cards_bond(
+        _state(deck=tuple(_card(enhancement="Mult") for _ in range(10)))
+    )
+    bonus = evaluate_bonus_cards_bond(
+        _state(deck=tuple(_card(enhancement="Bonus") for _ in range(10)))
+    )
+    assert wild.contribution == 7.0
+    assert mult.contribution == 7.0
+    assert bonus.contribution == 7.0
+    assert wild.rank == BondRank.R1
+    assert mult.rank == BondRank.R1
+    assert bonus.rank == BondRank.R1
 
 
 def test_tarot_has_multiple_independent_infrastructure_paths():
