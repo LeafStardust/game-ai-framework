@@ -49,29 +49,25 @@ def test_steel_density_can_establish_held_cards_without_a_held_joker():
     assert result.contribution == 5.0
 
 
-def test_mime_alone_does_not_contribute_to_held_cards():
-    result = evaluate_held_cards_bond(_state(jokers=(_joker("Mime"),)))
-    assert result.rank == BondRank.R0
-    assert result.contribution == 0.0
+def test_mime_never_contributes_direct_held_cards_quota():
+    alone = evaluate_held_cards_bond(_state(jokers=(_joker("Mime"),)))
+    assert alone.rank == BondRank.R0
+    assert alone.contribution == 0.0
 
-
-def test_mime_becomes_bridge_when_real_held_payoff_exists():
-    result = evaluate_held_cards_bond(
+    with_baron = evaluate_held_cards_bond(
         _state(jokers=(_joker("Baron"), _joker("Mime")))
     )
-    assert result.rank == BondRank.R2
-    assert result.contribution == 8.0
+    assert with_baron.contribution == 6.0
+    assert with_baron.rank == BondRank.R1
 
-
-def test_mime_can_bridge_meaningful_steel_infrastructure():
-    result = evaluate_held_cards_bond(
+    with_steel = evaluate_held_cards_bond(
         _state(
             jokers=(_joker("Mime"),),
             deck=tuple(_card(enhancement="Steel") for _ in range(4)),
         )
     )
-    assert result.contribution == 7.0
-    assert result.rank == BondRank.R1
+    assert with_steel.contribution == 5.0
+    assert with_steel.rank == BondRank.R1
 
 
 def test_gold_cards_and_blue_seals_do_not_add_held_cards_quota():
@@ -102,9 +98,10 @@ def test_alternative_direct_held_sources_share_one_pool():
             hand_size=10,
         )
     )
-    # 4 Shoot + 2 Fist + 3 Steel + 2 conditional Mime + 2 hand size = 13.
-    assert result.contribution == 13.0
-    assert result.rank == BondRank.R3
+    # 4 Shoot + 2 Fist + 3 Steel + 2 hand size = 11. Mime belongs only to
+    # Held Retrigger and contributes no Held Cards quota.
+    assert result.contribution == 11.0
+    assert result.rank == BondRank.R2
 
 
 def test_hand_size_support_is_capped():
