@@ -88,10 +88,11 @@ def test_celestial_pack_is_blocked_without_real_poker_hand_strategy_evidence():
     assert any("refinement spending" in note for note in recommendation.rationale)
 
 
-def test_celestial_pack_unlocks_after_meaningful_poker_hand_strategy_evidence():
+def test_celestial_pack_unlocks_after_meaningful_poker_hand_strategy_and_usage_evidence():
     state = _state()
     state.jokers = [JollyJoker()]
     state.hand_levels["PAIR"] = 2
+    state.hand_play_counts["PAIR"] = 8
     tracker = _tracker()
     assert tracker.observe(state).assessment("pair").score >= 3.5
     policy = StrategyAwareShopBoosterPolicy(
@@ -106,6 +107,7 @@ def test_celestial_pack_unlocks_after_meaningful_poker_hand_strategy_evidence():
 
     assert recommendation.decision == BUY
     assert any("Celestial admitted" in note for note in recommendation.rationale)
+    assert any("most-played hand=PAIR plays=8/8" in note for note in recommendation.rationale)
 
 
 def test_early_tarot_and_spectral_seeders_are_not_penalized_without_strategy():
