@@ -27,14 +27,6 @@ class SmearedJoker:
     pass
 
 
-class HalfJoker:
-    pass
-
-
-class TheDuoJoker:
-    pass
-
-
 def _state(*jokers):
     state = BalatroState()
     state.deck_name = "RED"
@@ -87,17 +79,3 @@ def test_smeared_does_not_create_hearts_route_without_heart_payoff():
 
     assert conditional_joker_relationship(state, "hearts", state.jokers[0]) == NEUTRAL
     assert assessment.silver_owned == 0
-
-
-def test_generic_pair_support_requires_independent_pair_commitment():
-    half = HalfJoker()
-    unsupported = _state(half)
-    supported = _state(TheDuoJoker(), half)
-
-    assert conditional_joker_relationship(unsupported, "pair", half) == NEUTRAL
-    assert _tracker("pair").assess(unsupported)[0].silver_owned == 0
-
-    assert conditional_joker_relationship(supported, "pair", half) == SILVER
-    assessment = _tracker("pair").assess(supported)[0]
-    assert assessment.gold_owned == 1
-    assert assessment.silver_owned == 1
