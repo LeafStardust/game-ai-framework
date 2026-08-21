@@ -109,6 +109,7 @@ def guard_unresolved_conditional_relationships(
 
     weak_single_joker_cores = {
         "swashbuckler": ("Swashbuckler",),
+        "blackboard": ("Blackboard",),
         "flower_pot": ("Flower Pot",),
         "red_card": ("Red Card",),
         "no_discard_ramen": ("Ramen",),
