@@ -18,6 +18,7 @@ from games.balatro.five_run_followup_policy import install_five_run_followup_pol
 from games.balatro.five_run_optimization_policy import install_five_run_optimization_policy
 from games.balatro.five_run_release_candidate_policy import install_five_run_release_candidate_policy
 from games.balatro.five_run_validation_policy import install_five_run_validation_policy
+from games.balatro.latest_batch_no_discard_policy import install_latest_batch_no_discard_policy
 from games.balatro.latest_five_run_calibration_policy import install_latest_five_run_calibration_policy
 from games.balatro.log_batch_calibration_policy import install_log_batch_calibration_policy
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
@@ -74,6 +75,7 @@ install_aces_dna_hand_policy()
 install_ankh_presale_policy()
 install_five_run_decision_integrity_policy()
 install_latest_five_run_calibration_policy()
+install_latest_batch_no_discard_policy()
 # Realized pivot maturity must run before Build Health so candidate transition
 # probes see the same buildup/runway gate as the production strategy tracker.
 install_realized_pivot_policy()
