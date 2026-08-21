@@ -16,6 +16,16 @@ A single defining Joker may establish a Bond if it creates a sufficiently deep s
 
 Do not create Bonds for every Joker, every famous build, every synergy pair, or generic value that does not create a developable plan. Those may instead be contributors, specializations, or composition motifs.
 
+## Bond state vocabulary
+
+```text
+LOCKED = a defining prerequisite is absent, so the Bond does not exist yet
+R0     = the Bond can emerge naturally, but contribution is below R1
+R1-R5  = increasingly developed Bond ranks
+```
+
+Not every Bond has a hard unlock prerequisite. Burnt does; Held Cards does not.
+
 ## Classification during catalogue audit
 
 For every old node/candidate classify it as one of:
@@ -70,8 +80,8 @@ A component can contribute to several Bonds without becoming a Bond itself. Blue
 ### Unlock
 
 ```text
-Burnt Joker absent -> LOCKED / R0
-Burnt Joker owned  -> Bond unlocked
+Burnt Joker absent -> LOCKED
+Burnt Joker owned  -> Bond unlocked and contribution determines R1-R5
 ```
 
 Burnt Joker is the only hard unlock prerequisite currently accepted. After unlock, there are **no required sequential contributors for R2-R5**. Telescope, Blueprint, Brainstorm, Blue Seal infrastructure, target-hand development, Space Joker and discard capacity are alternative/additive paths into one weighted contribution pool.
@@ -135,8 +145,6 @@ A high-rank Burnt Bond can still be `PARTIAL` if the agent repeatedly fails to u
 
 ### Relationships
 
-Explicit known relationship:
-
 ```text
 Burnt x No-Discard = CONFLICT
 ```
@@ -147,10 +155,91 @@ Green/Burglar-style zero-discard execution therefore cannot be composed with Bur
 
 Pure structural evaluator: `games/balatro/bonds/burnt.py`
 
-The evaluator is intentionally isolated from legacy Primary/Secondary/Third runtime selection while the Bond catalogue is still being formulated. It is the reference implementation for subsequent Bonds.
+---
+
+## 2. Held Cards
+
+**Status:** `BOND` — naturally emerging Bond with no hard unlock prerequisite.
+
+**Identity:** build value around cards intentionally retained in hand for held-card payoff, capacity, economy, or later retrigger synergy.
+
+Held Cards is intentionally broader than Baron and intentionally narrower than `everything that happens to remain in hand`. A source contributes only when retaining cards is itself strategically useful.
+
+### Unlock
+
+No defining unlock Joker.
+
+```text
+Held Cards always exists as a possible axis
+contribution < R1 threshold -> R0
+contribution >= threshold   -> R1+
+```
+
+This makes Held Cards the reference template for naturally emerging Bonds.
+
+### Provisional thresholds
+
+```text
+R1 >= 4
+R2 >= 8
+R3 >= 13
+R4 >= 19
+R5 >= 26
+```
+
+### Rank authority
+
+**R1 — Emerging**
+- recognize held-card payoff;
+- stop needlessly spending useful held payoff cards.
+
+**R2 — Established**
+- prefer additional held-card infrastructure when compatible;
+- preserve useful held cards more consistently.
+
+**R3 — Strong**
+- actively shape hand/deck state toward held payoff;
+- protect material Held Cards contributors;
+- increase the value of Held Retrigger and Steel synergy.
+
+**R4 — Power-engine capable**
+- Held Cards may serve as a principal power axis;
+- strongly value hand-size and held-payoff efficiency;
+- actively seek compatible held-card composition motifs.
+
+**R5 — Capstone**
+- aggressively optimize the compatible build around held value;
+- very high pivot resistance subject to survival / clearly superior composition.
+
+### Contributor boundary
+
+Current direct/cross-Bond contributors include Baron, Shoot the Moon, Raised Fist, useful Steel/Gold/Blue held infrastructure, extra hand size, and a deliberately modest Mime bridge contribution.
+
+Mime is **not** primarily a Held Cards component: its main role belongs to the separate Held Retrigger Bond. Steel cards similarly contribute here because they are genuine held payoff infrastructure while still belonging strongly to the separate Steel Bond. This is intentional multi-Bond contribution, not duplicate power scoring.
+
+### Relationships / motifs
+
+Held Cards is expected to have sparse synergy edges with at least Held Retrigger and Steel after those Bonds are formulated.
+
+Canonical future motif:
+
+```text
+Held Cards + Held Retrigger + Steel + King structure
+        -> Baron-Mime-Steel
+```
+
+The motif, not Held Cards alone, will encode the super-additive Baron/Mime/Steel-King behavior.
+
+### Realization
+
+The pure evaluator currently reports R1+ as `PARTIAL` until the realization layer can measure whether the agent is actually retaining/triggering valuable held cards. R0 is `DORMANT`.
+
+### Implementation
+
+Pure structural evaluator: `games/balatro/bonds/held_cards.py`
 
 ---
 
 ## Candidate catalogue status
 
-The broader candidate set remains intentionally unfrozen. The immediate next task after validating Burnt is to select and formulate the next Bond under the same rules rather than bulk-importing the old strategy tree.
+The broader candidate set remains intentionally unfrozen. Next priority after Held Cards is expected to be Held Retrigger, followed by Steel, so the first multi-Bond composition stack can be represented without inventing a Baron-Mime-Steel Bond.
