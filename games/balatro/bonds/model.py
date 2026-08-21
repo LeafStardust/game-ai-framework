@@ -5,7 +5,11 @@ from enum import IntEnum, StrEnum
 
 
 class BondRank(IntEnum):
-    LOCKED = 0
+    # LOCKED means a defining prerequisite is absent. R0 means the Bond is a
+    # valid strategic axis for the run but current contribution has not reached
+    # its first meaningful development threshold.
+    LOCKED = -1
+    R0 = 0
     R1 = 1
     R2 = 2
     R3 = 3
