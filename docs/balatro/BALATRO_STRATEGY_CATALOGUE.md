@@ -112,7 +112,37 @@ Suit-specialization Bond. Onyx Agate and Gluttonous Joker are direct contributor
 Suit-specialization Bond. Rough Gem and Greedy Joker are direct contributors; actual Diamonds density provides persistent development.
 
 ### 32. Low Ranks (2-5)
-Rank-family specialization around 2-5 payoff. Hack, Wee Joker and Fibonacci are strong contributors; Even Steven is moderate. Walkie-Talkie is deliberately only a weak contributor and does **not** define its own Bond. This preserves the earlier conclusion that Walkie-Talkie should not regain high strategic authority simply because it pairs well with one support Joker.
+Rank-family specialization around 2-5 payoff. Hack, Wee Joker and Fibonacci are strong contributors; Even Steven is moderate. Walkie-Talkie is deliberately only a weak contributor and does **not** define its own Bond.
+
+### 33. Kings
+King density and King-specific payoff. Baron is the strongest current contributor; Triboulet also materially develops the axis. This Bond is deliberately separate from Held Cards so Baron can contribute to both without collapsing rank structure into held-card structure.
+
+### 34. Queens
+Queen density and Queen-specific payoff. Shoot the Moon is the strongest current contributor; Triboulet also contributes.
+
+### 35. Jacks
+Jack density and Jack-specific payoff, currently centered on Hit the Road. This may remain a narrower/weak Bond and is flagged for later audit if its strategic depth proves insufficient.
+
+### 36. Tens
+Ten density and Ten-specific payoff. Walkie-Talkie contributes only modestly and does not establish the Bond alone. This prevents the old Walkie-Talkie strategy from reappearing under another label.
+
+### 37. Wild Cards
+Wild-card density and suit-flexibility infrastructure. Flower Pot is currently a small contributor because Wild cards directly help its multi-suit requirement. Audit later whether this axis has enough independent authority to survive as a full Bond.
+
+### 38. Mult Cards
+Mult-enhancement density as a persistent flat-Mult support axis. Vampire is only a small bridge because it consumes enhancements rather than representing Mult-card commitment. Explicitly audit whether this should remain a full Bond or merge into a broader enhancement/scoring axis.
+
+### 39. Bonus Cards
+Bonus-enhancement density as a persistent chip-support axis. No defining Joker is currently required. This is intentionally marked as a weak candidate for the later pruning audit.
+
+### 40. Tarot
+Tarot generation/access as a persistent deck-shaping resource engine. Cartomancer, Vagabond, Hallucination, Fortune Teller and Tarot-voucher infrastructure contribute. Rank indicates access/development, not whether any specific Tarot use is correct.
+
+### 41. Planet
+Planet generation/access and hand-level infrastructure. Constellation, Astronomer, Space Joker, Telescope, Planet-voucher infrastructure and Blue Seals contribute. This Bond is broader than Burnt: Burnt may use Planet infrastructure, but Planet access exists independently.
+
+### 42. Spectral
+Spectral generation/access as a high-impact transformation resource axis. Sixth Sense and Seance are current direct contributors. This is a narrow Bond and is explicitly subject to later audit for depth/authority.
 
 ## Sparse relationships currently frozen
 
@@ -141,8 +171,9 @@ Baron itself is not a Bond. Mime itself is not Held Cards. The composition layer
 - Bonds 3-12: `catalogue_batch_one.py`.
 - Bonds 13-22: `catalogue_batch_two.py`.
 - Bonds 23-32: `catalogue_batch_three.py`.
+- Bonds 33-42: `catalogue_batch_four.py`.
 - Production Primary/Secondary/Third strategy selection is still legacy migration infrastructure and should not be half-replaced before the full Bond composer is ready.
 
 ## Audit note
 
-This file records implementation-pass truth, not final calibration truth. After all Bonds are implemented, perform a full independent catalogue audit for misclassified contributors, duplicated Bonds, missing synergies/conflicts, weak/pointless Bonds, and threshold distortion before production integration.
+This file records implementation-pass truth, not final calibration truth. After all Bonds are implemented, perform a full independent catalogue audit for misclassified contributors, duplicated Bonds, missing synergies/conflicts, weak/pointless Bonds, threshold distortion and Bonds that should be merged or removed before production integration.
