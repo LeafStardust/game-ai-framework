@@ -36,7 +36,6 @@ from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patc
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.shop_regression_policy import install_shop_regression_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
-from games.balatro.three_run_review_policy import install_three_run_review_policy
 from games.balatro.v1_0_0_luchador_policy import install_v1_0_0_luchador_policy
 from games.balatro.v1_0_0_policy import install_v1_0_0_policy
 
@@ -46,7 +45,6 @@ install_pareidolia_face_policy()
 install_d1_log_resilience_policy()
 install_log_batch_calibration_policy()
 install_shop_regression_policy()
-install_three_run_review_policy()
 install_safe_pace_optimization_policy()
 install_safe_pace_timeout_patch()
 install_safe_pace_blind_skip_patch()
