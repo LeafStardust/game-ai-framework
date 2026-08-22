@@ -218,29 +218,26 @@ For production SHOP hypothetical states, Survival should use the bounded next-bl
 
 ## 12. Observability
 
-Live monitor target:
+The production live monitor is observational: it renders the structured diagnostics emitted by the decision pipeline rather than recomputing Build Health in the UI. The desktop `BalatroAgentMonitor.bat` path displays one canonical health block alongside the existing strategy `Has` / `Seeking` evidence.
+
+Current monitor contract:
 
 ```text
-Build Health : ...
-Survival     : ...
-Immediate    : ...
-Scaling      : ...
-Coherence    : ...
-Runway       : ...
-
-Power engine : ...
-Relevant Bonds:
-  Held Cards      R4  ACTIVE  17.5/21 -> R5
-  Steel           R3  MATURE  ...
-
-Motifs:
-  Baron-Mime-Steel ACTIVE
-  -> next/maturity requirement ...
-
-Conflicts     : ...
-Prescriptions : ...
-Warnings      : under-realized investment / scaling deficit / etc.
+BUILD HEALTH / REALIZED STRENGTH
+Health total    : ...%
+Survival        : ...%
+Immediate       : ...%
+Scaling         : ...%
+Coherence       : ...%
+Runway          : ...%
+Critical        : True/False
+Scaling deficit : True/False
+Engines         : engine=OWNED_INACTIVE / ACTIVATED_WEAK / ACTIVATED_HEALTHY / MATURE ...
+Component roles : Joker=CORE / ENGINE / SUPPORT / FILLER / CONFLICT ...
+Warnings         : inactive-engine / scaling-deficit / survival warnings ...
 ```
+
+The renderer accepts the canonical top-level postmortem diagnostics and the nested realized-strength diagnostic shape used by structured producers. Missing diagnostics degrade to explicit `-`/`NONE` values rather than being inferred from UI state.
 
 Full telemetry may retain all Bond states. Do not flood the live monitor with dormant R0 Bonds.
 
@@ -254,6 +251,6 @@ Decision logs should state when a purchase/action crosses useful thresholds, cha
 - update/remove tests that intentionally encode superseded architecture;
 - calibrate contribution/rank geometry and Build Health thresholds from unchanged-HEAD multi-run telemetry;
 - keep structural coherence distinct from realized underperformance;
-- retain regression coverage for unknown Joker-slot telemetry, motif-state non-double-counting, bounded prescription authority, normalized public naming/telemetry variants, SHOP planner fallback, custom-scorer isolation, and owned-deck order invariance.
+- retain regression coverage for unknown Joker-slot telemetry, motif-state non-double-counting, bounded prescription authority, normalized public naming/telemetry variants, SHOP planner fallback, custom-scorer isolation, owned-deck order invariance, and live-monitor rendering.
 
-The Bond pivot/prescription boundary subsystem is deterministic-test green as of 2026-08-22. The bounded SHOP clear-probability survival subsystem is implemented with targeted regressions pending validation. This remains Red/White competence scope until the broader Bond migration and unchanged-HEAD validation gate are complete.
+The Bond pivot/prescription boundary subsystem, bounded SHOP clear-probability survival subsystem, and live Build Health monitor contract are deterministic-test green as of 2026-08-22. The next calibration gate is a fresh unchanged-HEAD five-run Red/White validation batch. This remains Red/White competence scope until the broader Bond migration and unchanged-HEAD validation gate are complete.
