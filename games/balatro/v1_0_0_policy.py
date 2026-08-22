@@ -1,39 +1,19 @@
 from __future__ import annotations
 
-"""Balatro v1.0.0 live-optimization contract.
+"""Balatro v1.0.0 deterministic shop transaction corrections.
 
-This release layer contains corrections derived from the 2026-08-20 five-attempt
-Red/White review.  The rules are deliberately narrow and public-state only:
+The surviving release-layer rules are independent of the retired categorical
+strategy architecture:
 
-* Clearance Sale is bought before other paid shop development when it is already
-  an admitted purchase, because delaying the permanent discount is dominated.
-* A D2 Joker replacement is a two-checkpoint *committed transaction*: sell,
+* an admitted Clearance Sale is bought before other paid development;
+* a Joker replacement remains a two-checkpoint committed transaction: sell,
   re-observe, then buy the exact visible Joker that justified the sale.
-* A dominant strategy at the normal commit threshold is committed regardless of
-  Ante.  Early Antes may still explore secondary routes with spare capacity, but
-  they may not destroy an aligned component of the strong dominant route.
-* Superposition is Bronze, not Silver, for Straight.
 
-No rule uses hidden RNG state or future shop/draw ordering.
+No rule uses hidden RNG state, future shop/draw ordering, or legacy strategy tiers.
 """
 
-from dataclasses import replace
-
 from games.balatro.actions import BUY_JOKER, BUY_VOUCHER, BalatroAction
-from games.balatro.strategy import (
-    BRONZE,
-    COMMITTED,
-    GOLD,
-    MATURE,
-    SILVER,
-    BalatroStrategyTracker,
-    StrategyDefinition,
-)
-from games.balatro.strategy_value import StrategyAwareJokerBuildTransitionPlanner
 from games.balatro.shop_arbiter import BuildAwareShopArbiter, ShopArbiterDecision
-
-
-_POSITIVE_TIERS = frozenset({GOLD, SILVER, BRONZE})
 
 
 def _normalize(value: object) -> str:
@@ -87,148 +67,11 @@ def install_v1_0_0_policy() -> None:
     if getattr(BuildAwareShopArbiter, "_v1_0_0_policy_installed", False):
         return
 
-    # ------------------------------------------------------------------
-    # Relationship correction: Superposition supports Straight, but it is
-    # not a defining/scoring engine and must not contribute Silver evidence.
-    # ------------------------------------------------------------------
-    original_relationship_for = StrategyDefinition.relationship_for
-
-    def relationship_for(self, item, *, kind: str):
-        if (
-            self.strategy_id == "straight"
-            and str(kind).upper() == "JOKER"
-            and "superposition" in {
-                _normalize(type(item).__name__),
-                _normalize(getattr(item, "name", "")),
-                _normalize(getattr(item, "label", "")),
-                _normalize(getattr(item, "center", "")),
-            }
-        ):
-            return BRONZE
-        return original_relationship_for(self, item, kind=kind)
-
-    StrategyDefinition.relationship_for = relationship_for
-
-    # ------------------------------------------------------------------
-    # Score-based commitment.  The catalogue relationship scores determine
-    # whether a route reaches the commit threshold; Ante only controls how
-    # freely secondary routes may be explored after that point.
-    # ------------------------------------------------------------------
-    original_observe = BalatroStrategyTracker.observe
-
-    def observe(self, state):
-        resolution = original_observe(self, state)
-        dominant = resolution.assessment(resolution.dominant_strategy_id)
-        if dominant is None or resolution.active_status == MATURE:
-            return resolution
-        commit_floor = self._number(self._config(state), "commit_threshold", 9.0)
-        if float(dominant.score) < commit_floor:
-            return resolution
-        return replace(
-            resolution,
-            active_status=COMMITTED,
-            active_strategy_id=dominant.strategy_id,
-            highlighted_strategy_id=dominant.strategy_id,
-            committed_strategy_id=dominant.strategy_id,
-            rationale=(
-                *resolution.rationale,
-                f"v1.0.0 score-based commitment: dominant score={dominant.score:.3f} >= commit threshold={commit_floor:.3f}",
-                "early Ante may explore secondary strategies only when doing so does not sabotage the committed dominant route",
-            ),
-        )
-
-    BalatroStrategyTracker.observe = observe
-
-    # ------------------------------------------------------------------
-    # Strong-route replacement protection.  Secondary/pivot exploration can
-    # occupy a free slot, but a candidate that is not positive for the strong
-    # dominant route may not evict one of that route's aligned components.
-    # ------------------------------------------------------------------
-    original_transition_plan = StrategyAwareJokerBuildTransitionPlanner.plan
-
-    def transition_plan(self, state, candidate):
-        transition = original_transition_plan(self, state, candidate)
-        if not transition.alternatives:
-            return transition
-
-        tracker = self.evaluator.strategy_tracker
-        resolution = tracker.observe(state)
-        dominant = resolution.assessment(resolution.dominant_strategy_id)
-        if dominant is None:
-            return transition
-        commit_floor = tracker._number(tracker._config(state), "commit_threshold", 9.0)
-        if float(dominant.score) < commit_floor:
-            return transition
-
-        dominant_id = dominant.strategy_id
-        candidate_relationship = tracker._relationships_for(candidate, kind="JOKER").get(
-            dominant_id
-        )
-        if candidate_relationship in _POSITIVE_TIERS:
-            return transition
-
-        guarded = []
-        changed = False
-        for option in transition.alternatives:
-            index = int(option.replace_index)
-            incumbent = state.jokers[index]
-            incumbent_relationship = tracker._relationships_for(
-                incumbent, kind="JOKER"
-            ).get(dominant_id)
-            if incumbent_relationship not in _POSITIVE_TIERS:
-                guarded.append(option)
-                continue
-            changed = True
-            guarded.append(
-                replace(
-                    option,
-                    eligible=False,
-                    blocked_reason=(
-                        option.blocked_reason
-                        or "strong dominant strategy component cannot be displaced by an off-primary candidate"
-                    ),
-                    rationale=(
-                        *option.rationale,
-                        f"v1.0.0 dominant-route protection: {dominant.name} score={dominant.score:.3f}",
-                        f"incumbent is {incumbent_relationship} for the dominant route; candidate is not positive for that route",
-                        "secondary/pivot exploration may use spare capacity but cannot sabotage first-place strategy infrastructure",
-                    ),
-                )
-            )
-
-        if not changed:
-            return transition
-        alternatives = tuple(
-            sorted(guarded, key=lambda option: (-float(option.build_delta), int(option.replace_index)))
-        )
-        eligible = tuple(option for option in alternatives if option.eligible)
-        replacement = eligible[0] if eligible else None
-        if replacement is not None and float(replacement.build_delta) <= self.minimum_replacement_delta:
-            replacement = None
-        return replace(
-            transition,
-            action="REPLACE" if replacement is not None else "HOLD",
-            replacement=replacement,
-            alternatives=alternatives,
-            rationale=(
-                *transition.rationale,
-                "v1.0.0 strong-dominant replacement guard applied",
-            ),
-        )
-
-    StrategyAwareJokerBuildTransitionPlanner.plan = transition_plan
-
-    # ------------------------------------------------------------------
-    # Shop transaction ordering/state.  This state belongs to the arbiter
-    # instance and therefore survives the required post-sale re-observation.
-    # ------------------------------------------------------------------
     original_decide = BuildAwareShopArbiter.decide
 
     def decide(self, state, visible_actions, *, reroll_cost: int | None):
         hold = float(self.shop_policy.hold_bias)
 
-        # Complete an already-authorized Joker replacement before doing anything
-        # else.  The sell was justified only by this exact visible candidate.
         pending = getattr(self, "_v1_0_0_pending_replacement", None)
         if pending is not None:
             target = next(
@@ -258,13 +101,8 @@ def install_v1_0_0_policy() -> None:
                         "the preceding sale is not allowed to become an orphan sale after a fresh shop replan",
                     ),
                 )
-            # The target genuinely disappeared or became illegal/unaffordable.
-            # Release the transaction rather than looping forever.
             self._v1_0_0_pending_replacement = None
 
-        # Clearance Sale is a permanent discount.  If the deterministic voucher
-        # policy already admits it at this state, taking other paid shop actions
-        # before it is dominated because those actions could have been cheaper.
         clearance_action = next(
             (
                 action
