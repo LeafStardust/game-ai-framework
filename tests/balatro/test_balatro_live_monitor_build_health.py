@@ -1,4 +1,4 @@
-from games.balatro.live.runtime.balatro_agent_monitor import build_dashboard
+from games.balatro.live.runtime.balatro_agent_monitor_targets import build_dashboard
 
 
 def _rows(postmortem):
@@ -41,7 +41,7 @@ def test_monitor_renders_all_build_health_dimensions_and_flags():
         ],
     }
     text = build_dashboard(_status(), supervisor_pid=1, balatro_running=True, rows=_rows(postmortem))
-    assert "BUILD HEALTH / REALIZED STRENGTH" in text
+    assert text.count("BUILD HEALTH / REALIZED STRENGTH") == 1
     assert "Health total    : 63.5%" in text
     assert "Survival        : 82.0%" in text
     assert "Immediate       : 71.0%" in text
@@ -83,6 +83,31 @@ def test_monitor_accepts_nested_structured_build_health_payload():
     assert "CORE=[Runner]" in text
     assert "SUPPORT=[Shortcut]" in text
     assert "Warnings         : NONE" in text
+
+
+def test_actual_monitor_uses_canonical_postmortem_components_for_roles_and_engines():
+    postmortem = {
+        "build_health": {
+            "total": 54.0,
+            "survival": 70.0,
+            "immediate": 68.0,
+            "scaling": 30.0,
+            "coherence": 60.0,
+            "runway": 42.0,
+            "critical": False,
+            "scaling_deficit": True,
+            "warnings": ["hologram — owned inactive engine"],
+            "components": [
+                {"name": "Hologram", "role": "ENGINE", "realized_engine_id": "hologram", "realized_engine_state": "OWNED_INACTIVE"},
+                {"name": "Abstract Joker", "role": "FILLER"},
+            ],
+        }
+    }
+    text = build_dashboard(_status(), supervisor_pid=1, balatro_running=True, rows=_rows(postmortem))
+    assert "Hologram=ENGINE" in text
+    assert "Abstract Joker=FILLER" in text
+    assert "hologram=OWNED_INACTIVE" in text
+    assert "owned inactive engine" in text
 
 
 def test_monitor_degrades_cleanly_when_health_diagnostics_are_absent():
