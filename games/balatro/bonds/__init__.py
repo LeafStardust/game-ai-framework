@@ -58,7 +58,16 @@ from games.balatro.bonds.vampire import (
     VAMPIRE_THRESHOLDS,
     evaluate_vampire_bond,
 )
+from games.balatro.bonds.realization_held import (
+    HELD_REALIZERS,
+    realize_held_cards,
+    realize_held_family,
+    realize_held_retrigger,
+    realize_kings,
+    realize_queens,
+    realize_steel,
+)
 
-__all__ = [name for name in globals() if name.isupper() or name.startswith("evaluate_") or name.startswith("enrich_") or name in {
+__all__ = [name for name in globals() if name.isupper() or name.startswith("evaluate_") or name.startswith("enrich_") or name.startswith("realize_") or name in {
     "BondContribution", "BondDevelopment", "BondRank", "BondRealization", "MechanicalRole", "BurntBondContext"
 }]
