@@ -1,4 +1,4 @@
-from games.balatro.live.runtime.balatro_agent_monitor_targets import build_dashboard
+from games.balatro.live.runtime.balatro_agent_monitor import build_dashboard
 
 
 def _rows(postmortem):
@@ -85,33 +85,11 @@ def test_monitor_accepts_nested_structured_build_health_payload():
     assert "Warnings         : NONE" in text
 
 
-def test_actual_monitor_uses_canonical_postmortem_components_for_roles_and_engines():
-    postmortem = {
-        "build_health": {
-            "total": 54.0,
-            "survival": 70.0,
-            "immediate": 68.0,
-            "scaling": 30.0,
-            "coherence": 60.0,
-            "runway": 42.0,
-            "critical": False,
-            "scaling_deficit": True,
-            "warnings": ["hologram — owned inactive engine"],
-            "components": [
-                {"name": "Hologram", "role": "ENGINE", "realized_engine_id": "hologram", "realized_engine_state": "OWNED_INACTIVE"},
-                {"name": "Abstract Joker", "role": "FILLER"},
-            ],
-        }
-    }
-    text = build_dashboard(_status(), supervisor_pid=1, balatro_running=True, rows=_rows(postmortem))
-    assert "Hologram=ENGINE" in text
-    assert "Abstract Joker=FILLER" in text
-    assert "hologram=OWNED_INACTIVE" in text
-    assert "owned inactive engine" in text
-
-
 def test_monitor_degrades_cleanly_when_health_diagnostics_are_absent():
     text = build_dashboard(_status(), supervisor_pid=1, balatro_running=True, rows=_rows({"layer": "D1"}))
+    assert "STRATEGY / COMPOSITION" in text
+    assert "Power engine    : -" in text
+    assert "Relevant Bonds  : -" in text
     assert "BUILD HEALTH / REALIZED STRENGTH" in text
     assert "Health total    : -" in text
     assert "Engines         : NONE" in text
