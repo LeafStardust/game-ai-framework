@@ -1,24 +1,22 @@
 from __future__ import annotations
 
-"""Targeted corrections from the 2026-08-21 Red/White five-run batch.
+"""Targeted corrections from repeated Red/White five-run calibration batches.
 
-These rules use public state only and repair deterministic mistakes observed in
-that batch:
+This module remains intentionally public-state-only.  The 2026-08-22 batch added
+three important lessons on top of the earlier pack/Mouth corrections:
 
-* Buffoon-pack Scary Face must recognize an owned Sock and Buskin retrigger engine.
-* Joker Stencil must not be admitted into a roster where its post-acquisition XMult
-  is only x1 (unless the candidate is Negative and therefore changes slot capacity).
-* Ordinary Banner must not displace a full formation-stage roster without realized
-  no-discard support; its chips disappear as D1 spends discards.
-* Hieroglyph is not a safe formation/commitment purchase for Red/White because the
-  permanent -1 hand can erase more scoring capacity than the extra ante supplies.
-* After The Mouth has locked a hand type, D1 must not spend later hands on a
-  different hand type that the boss will score for zero.
+* generator-only deck growth is not a realized scoring engine;
+* a small Green Joker value must not make a failing board look 85% scaled;
+* full boards made from several static conditional Common Jokers must keep upgrade
+  pressure instead of being mistaken for a finished build.
 """
 
 from dataclasses import replace
 
 from games.balatro.actions import BUY_JOKER, BUY_VOUCHER, DISCARD_CARDS, PLAY_CARDS, SKIP_BOOSTER
+from games.balatro.build_health import EngineState, RealizedEngineStrength
+from games.balatro.build_health_runtime import RealizedEngineAnalyzer
+from games.balatro import five_run_release_candidate_policy as release_candidate
 from games.balatro.live.hand_action_policy import PACE_RECOVERY
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 from games.balatro.mouth_hand_policy import _hand_type, _replace_with_play
@@ -34,6 +32,18 @@ _NO_DISCARD_SUPPORT = frozenset(
         "greenjoker",
     }
 )
+
+# Static/conditional pieces observed occupying essentially an entire board in the
+# 2026-08-22 losses.  They can be useful early, but none should suppress search for
+# an actual scaling or multiplicative engine on a full formation-stage roster.
+_20260822_STATIC_WEAKNESS = {
+    "drolljoker": 0.70,
+    "wilyjoker": 0.65,
+    "mysticsummitjoker": 0.75,
+    "cloud9joker": 0.80,
+    "swashbucklerjoker": 0.50,
+    "smileyfacejoker": 0.45,
+}
 
 
 def _normalize(value: object) -> str:
@@ -198,7 +208,89 @@ def _matching_mouth_plays(policy, state, plans):
     )
 
 
+def _recalibrate_realized_engines(state, engines):
+    """Correct two optimistic Build Health diagnoses exposed by live telemetry."""
+
+    ante = max(1, int(getattr(state, "ante", 1) or 1))
+    jokers = tuple(getattr(state, "jokers", ()) or ())
+    tokens = {_joker_token(joker) for joker in jokers}
+    rewritten: list[RealizedEngineStrength] = []
+
+    for engine in engines:
+        if engine.engine_id != "green_joker":
+            rewritten.append(engine)
+            continue
+
+        # +7 Mult at Ante 4 was previously classified ACTIVATED_HEALTHY and gave
+        # Scaling=85 despite the run dying at 5,134/7,500.  A linear +1/hand
+        # scaler needs materially more realized Mult by formation/commitment.
+        target_mult = max(8.0, float(ante * 4))
+        strength = max(0.0, float(engine.current_strength))
+        ratio = strength / target_mult
+        if ratio <= 0.0:
+            state_name = EngineState.OWNED_INACTIVE
+        elif ratio < 0.50:
+            state_name = EngineState.ACTIVATED_WEAK
+        elif ratio < 1.50:
+            state_name = EngineState.ACTIVATED_HEALTHY
+        else:
+            state_name = EngineState.MATURE
+        runway = 0.50 if state_name == EngineState.ACTIVATED_WEAK else engine.runway_need
+        rewritten.append(
+            replace(
+                engine,
+                state=state_name,
+                growth_rate=0.75,
+                runway_need=runway,
+                rationale=(
+                    *engine.rationale,
+                    f"2026-08-22 calibration target=+{target_mult:.0f} Mult by Ante {ante}; linear Green growth cannot stand in for a multiplicative engine",
+                ),
+            )
+        )
+
+    generator_owned = bool(tokens & {"marblejoker", "certificatejoker"})
+    generator_payoff = bool(
+        tokens
+        & {
+            "hologramjoker",
+            "bluejoker",
+            "stonejoker",
+        }
+    )
+    if generator_owned and not generator_payoff:
+        rewritten.append(
+            RealizedEngineStrength(
+                engine_id="orphan_deck_growth",
+                state=EngineState.OWNED_INACTIVE,
+                current_strength=0.0,
+                growth_rate=0.0,
+                runway_need=0.75,
+                rationale=(
+                    "Marble/Certificate is generating cards without Hologram, Blue Joker, or Stone Joker payoff",
+                    "deck growth alone is not realized scoring strength and should not suppress shop upgrade pressure",
+                ),
+            )
+        )
+
+    return tuple(rewritten)
+
+
+def _install_20260822_strength_calibration() -> None:
+    release_candidate._STATIC_WEAKNESS.update(_20260822_STATIC_WEAKNESS)
+    if getattr(RealizedEngineAnalyzer, "_five_run_20260822_installed", False):
+        return
+    original_analyze = RealizedEngineAnalyzer.analyze
+
+    def analyze(self, state):
+        return _recalibrate_realized_engines(state, original_analyze(self, state))
+
+    RealizedEngineAnalyzer.analyze = analyze
+    RealizedEngineAnalyzer._five_run_20260822_installed = True
+
+
 def install_latest_five_run_calibration_policy() -> None:
+    _install_20260822_strength_calibration()
     if getattr(BalatroPackPolicy, "_latest_five_run_calibration_installed", False):
         return
 
