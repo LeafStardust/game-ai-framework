@@ -1,10 +1,10 @@
 # Balatro Strategy Catalogue
 
-Canonical catalogue after **Catalogue Audit Pass 2**. Architecture rules live in `BALATRO_STRATEGY_SYSTEM.md`; exact weights live in `BALATRO_STRATEGY_CONTRIBUTIONS.md`.
+Canonical catalogue after **Catalogue Audit Pass 3**. Architecture rules live in `BALATRO_STRATEGY_SYSTEM.md`; exact weights and audited threshold geometry live in `BALATRO_STRATEGY_CONTRIBUTIONS.md`.
 
 ## Audit status
 
-Implementation produced 50 candidates. Pass 1 pruned six weak/non-independent axes. Pass 2 audited contributor overlap and narrow/resource Bonds. **Current accepted count remains 44.** Flower Pot was removed from Four-of-a-Kind quota; Jacks, Tarot and Planet survive with narrower authority.
+Implementation produced 50 candidate Bonds. Pass 1 pruned six weak/non-independent axes. Pass 2 corrected contributor overlap/misclassification. Pass 3 audited R1-R5 authority and fixed unreachable R4/R5 ceilings. **Accepted count is frozen at 44 pending runtime telemetry evidence.**
 
 A Bond is a persistent, independently developable strategic axis. Components may contribute to multiple Bonds only when they genuinely develop each axis; overlap never becomes additive score power.
 
@@ -13,10 +13,14 @@ A Bond is a persistent, independently developable strategic axis. Components may
 ```text
 LOCKED = defining prerequisite absent
 R0     = valid naturally available Bond below R1
-R1-R5  = increasing development
+R1     = emerging / recognized
+R2     = established enough to reinforce deliberately
+R3     = committed development
+R4     = power-engine-capable authority for that axis
+R5     = capstone / extreme legitimate commitment
 ```
 
-Rank = development. Realization = whether the engine functions. Build Health = whether it actually survives/scales.
+Rank = development. Realization = whether the engine functions. Build Health = whether it actually survives/scales. R5 does not guarantee a win.
 
 ## Accepted Bonds
 
@@ -34,7 +38,7 @@ Rank = development. Realization = whether the engine functions. Build Health = w
 12. **Face Cards** — face-card density/payoff.
 13. **Two Pair** — Two Pair specialization.
 14. **Three of a Kind** — Three-of-a-Kind specialization.
-15. **Four of a Kind** — Four-of-a-Kind specialization. Flower Pot is explicitly excluded from quota after Pass 2; it is generic four-suit payoff, not Four-of-a-Kind development.
+15. **Four of a Kind** — Four-of-a-Kind specialization. Flower Pot is excluded from quota.
 16. **Straight** — Straight specialization.
 17. **Flush** — Flush specialization plus suit-density infrastructure.
 18. **Played Retrigger** — retriggering played/scoring cards; separate from Held Retrigger.
@@ -54,7 +58,7 @@ Rank = development. Realization = whether the engine functions. Build Health = w
 32. **Low Ranks (2-5)** — 2-5 rank-family specialization. Walkie-Talkie remains weak support.
 33. **Kings** — King density/payoff; Baron/Triboulet support.
 34. **Queens** — Queen density/payoff; Shoot the Moon/Triboulet support.
-35. **Jacks** — Hit-the-Road-centered Jack specialization. Retained: the defining payoff creates a real rank-specific deck-shaping loop. Density alone has low authority.
+35. **Jacks** — Hit-the-Road-centered Jack specialization. Density alone has low authority; extreme concentration plus the defining payoff can reach capstone.
 36. **Tarot** — persistent Tarot-generation/access deck-shaping engine. Structural/resource Bond, not direct scoring power.
 37. **Planet** — persistent Planet-generation/access hand-level engine. Prescriptions must reinforce relevant poker-hand Bonds rather than indiscriminate Planet acquisition.
 38. **Discard** — discard-payoff axis. Hard unlock requires Yorick/Castle/Mail-In Rebate/Faceless Joker/Hit the Road; Burnt and extra capacity only deepen it after unlock.
@@ -98,15 +102,28 @@ Held Cards + Held Retrigger + Steel + Kings
     -> Baron-Mime-Steel motif
 ```
 
-## Audit Pass 2 conclusions
+## Audit Pass 3 conclusions
 
-- Flower Pot was a real misclassification and is removed from Four of a Kind.
-- Multi-Bond components are retained where mechanically genuine; structural overlap is intentional and does not imply score double-counting.
-- Advanced poker hands may receive low-weight support from mechanics that genuinely increase their feasibility.
-- Jacks survives because Hit the Road supplies a defining payoff and reason to reshape the deck around Jacks.
-- Tarot and Planet survive as resource/development Bonds, but their rank authority is constrained to deck shaping/hand leveling; they are not automatically power engines.
-- No additional Bond was admitted in Pass 2.
+- The implementation-pass catalogue contained several Bonds whose mathematical contribution ceiling could never reach R4 or R5. Those ceilings were corrected rather than leaving decorative unreachable ranks.
+- Early/mid contribution bands remain conservative. High-end permanent poker-hand, suit and rank concentration now gains additional authority only at extreme investment.
+- Complete Held Cards, Held Retrigger, Steel, Lucky, Glass, Stone, Gold Economy and several defining-payoff engines can now reach R5 through legitimate near-complete packages.
+- Deck Thinning and Deck Growth now recognize extreme persistent structure more strongly without treating raw deck size as direct score power.
+- Tarot can reach R5 only with essentially full infrastructure; Planet retains the higher original capstone threshold.
+- Shared implementation-pass threshold dictionaries are not allowed to cross-mutate audited siblings; `authority_calibration.py` rebinds per-Bond tables and tests this explicitly.
+- No Bond was added or removed in Pass 3.
 
-## Next work
+## Freeze status / next work
 
-Run the affected focused tests. If green, Audit Pass 3 should inspect **rank-threshold geometry and R1-R5 authority** across all 44 Bonds, then freeze the catalogue/contribution model before implementing realization and composition motifs.
+The **44-Bond catalogue, contributor classification and rank-authority geometry are now frozen for implementation**. Changes from here should require either a discovered mechanical error or runtime telemetry evidence rather than further speculative catalogue expansion.
+
+Next architecture stage:
+
+```text
+1. define realization rules per Bond
+2. evaluate all Bonds + realization together
+3. implement sparse relationship consumption
+4. implement composition motifs, beginning with Baron-Mime-Steel
+5. compose a combined build / power engine
+6. connect score projection + Build Health
+7. only then migrate live strategy authority away from legacy Primary/Secondary/Third
+```
