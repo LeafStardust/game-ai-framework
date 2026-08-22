@@ -42,7 +42,22 @@ def realize_face_cards(dev,state):
     return _finish(dev,bool(hits and payoff),hits>=3 and payoff)
 
 def realize_low_ranks(dev,state):
-    played=_played(state);hits=sum(1 for c in played if _rank(c) in {"2","3","4","5"});payoff=_has(_jokers(state),"hack","weejoker","fibonacci","evensteven","walkietalkie");return _finish(dev,bool(hits and payoff),hits>=3 and payoff)
+    played=_played(state);jokers=_jokers(state)
+    # Each low-rank Joker has a different actual trigger set. Do not let ownership
+    # of one Joker make every 2-5 card count as realized support.
+    matching = 0
+    for card in played:
+        rank = _rank(card)
+        triggered = (
+            (_has(jokers,"hack") and rank in {"2","3","4","5"})
+            or (_has(jokers,"weejoker") and rank == "2")
+            or (_has(jokers,"fibonacci") and rank in {"2","3","5"})
+            or (_has(jokers,"evensteven") and rank in {"2","4"})
+            or (_has(jokers,"walkietalkie") and rank == "4")
+        )
+        if triggered:
+            matching += 1
+    return _finish(dev, matching>0, matching>=3)
 
 def realize_jacks(dev,state):
     discarded=_cards(state,"discarded_cards","current_discard_cards");jacks=sum(1 for c in discarded if _rank(c)=="J");payoff=_has(_jokers(state),"hittheroad");return _finish(dev,bool(jacks and payoff),jacks>=3 and payoff)
@@ -60,10 +75,7 @@ def _realize_suit(dev,state,suit,*payoffs):
     if smeared:
         if suit in {"hearts","diamonds"}:compatible={"hearts","diamonds"}
         elif suit in {"spades","clubs"}:compatible={"spades","clubs"}
-    # Wild Cards count as every suit for suit-triggered Joker effects. Stone is
-    # excluded because it has no suit identity.
-    hits=sum(1 for c in played if _enh(c)!="stone" and (_suit(c) in compatible or _enh(c)=="wild"))
-    payoff=_has(jokers,*payoffs);return _finish(dev,bool(hits and payoff),hits>=4 and payoff)
+    hits=sum(1 for c in played if _suit(c) in compatible or _enh(c)=="wild");payoff=_has(jokers,*payoffs);return _finish(dev,bool(hits and payoff),hits>=4 and payoff)
 def realize_hearts(dev,state): return _realize_suit(dev,state,"hearts","bloodstone","lustyjoker")
 def realize_spades(dev,state): return _realize_suit(dev,state,"spades","arrowhead","wrathfuljoker")
 def realize_clubs(dev,state): return _realize_suit(dev,state,"clubs","onyxagate","gluttonousjoker")
