@@ -31,6 +31,10 @@ class MotifEvaluation:
     missing_components: tuple[str, ...]
     prescriptions: tuple[str, ...]
 
+    @property
+    def missing_count(self) -> int:
+        return len(self.missing_components)
+
 
 def _name(value: Any) -> str:
     raw = value if isinstance(value, str) else getattr(value, "name", None) or value.__class__.__name__
@@ -53,55 +57,83 @@ def _dev_map(developments: Iterable[BondDevelopment]) -> dict[str, BondDevelopme
     return {dev.bond_id: dev for dev in developments}
 
 
+def _active(dev: BondDevelopment | None) -> bool:
+    return dev is not None and REALIZATION_STRENGTH[dev.realization] >= REALIZATION_STRENGTH[BondRealization.ACTIVE]
+
+
+def _mature(dev: BondDevelopment | None) -> bool:
+    return dev is not None and dev.rank >= BondRank.R4 and _active(dev)
+
+
+def _package_state(present_count: int, missing: list[str], related: Iterable[BondDevelopment | None]) -> MotifState:
+    related = tuple(related)
+    if present_count < 2:
+        return MotifState.ABSENT
+    if missing:
+        return MotifState.POTENTIAL
+    if all(_mature(dev) for dev in related):
+        return MotifState.MATURE
+    if all(_active(dev) for dev in related):
+        return MotifState.ACTIVE
+    return MotifState.POTENTIAL
+
+
 def evaluate_baron_mime_steel(state: Any, developments: Iterable[BondDevelopment]) -> MotifEvaluation:
-    """Recognize the canonical Baron-Mime-Steel held-card composition."""
-    devs = _dev_map(developments)
-    jokers = list(getattr(state, "jokers", ()) or ())
-    deck = _deck(state)
-
-    has_baron = _has(jokers, "baron")
-    has_mime = _has(jokers, "mime")
-    kings = sum(1 for c in deck if str(getattr(c, "rank", "") or "").upper() == "K")
-    steel = sum(1 for c in deck if str(getattr(c, "enhancement", "") or "").lower() == "steel")
-
-    present: list[str] = []
-    missing: list[str] = []
-    for ok, label in ((has_baron, "BARON"), (has_mime, "MIME"), (kings >= 4, "KING_INFRASTRUCTURE"), (steel >= 2, "STEEL_INFRASTRUCTURE")):
-        (present if ok else missing).append(label)
-
-    related = tuple(devs.get(b) for b in ("held_cards", "held_retrigger", "steel", "kings"))
-
-    if len(present) < 2:
-        state_value = MotifState.ABSENT
-    elif missing:
-        state_value = MotifState.POTENTIAL
-    else:
-        active = all(dev is not None and REALIZATION_STRENGTH[dev.realization] >= REALIZATION_STRENGTH[BondRealization.ACTIVE] for dev in related)
-        if active and all(dev is not None and dev.rank >= BondRank.R4 for dev in related):
-            state_value = MotifState.MATURE
-        elif active:
-            state_value = MotifState.ACTIVE
-        else:
-            state_value = MotifState.POTENTIAL
-
-    return MotifEvaluation(
-        motif_id="baron_mime_steel",
-        state=state_value,
-        relevant_bonds=("held_cards", "held_retrigger", "steel", "kings"),
-        present_components=tuple(present),
-        missing_components=tuple(missing),
-        prescriptions=(
-            "prefer_kings_and_steel_creation",
-            "preserve_held_kings_and_steel",
-            "prefer_hand_size_when_survival_allows",
-            "avoid_playing_engine_cards_without_clear_need",
-            "value_red_seal_steel_and_copy_effects_highly",
-        ),
-    )
+    devs = _dev_map(developments); jokers=list(getattr(state,"jokers",()) or ()); deck=_deck(state)
+    checks=((_has(jokers,"baron"),"BARON"),(_has(jokers,"mime"),"MIME"),(sum(1 for c in deck if str(getattr(c,"rank","") or "").upper()=="K")>=4,"KING_INFRASTRUCTURE"),(sum(1 for c in deck if str(getattr(c,"enhancement","") or "").lower()=="steel")>=2,"STEEL_INFRASTRUCTURE"))
+    present=[label for ok,label in checks if ok]; missing=[label for ok,label in checks if not ok]
+    related=tuple(devs.get(b) for b in ("held_cards","held_retrigger","steel","kings"))
+    return MotifEvaluation("baron_mime_steel",_package_state(len(present),missing,related),("held_cards","held_retrigger","steel","kings"),tuple(present),tuple(missing),("prefer_kings_and_steel_creation","preserve_held_kings_and_steel","prefer_hand_size_when_survival_allows","avoid_playing_engine_cards_without_clear_need","value_red_seal_steel_and_copy_effects_highly"))
 
 
-MOTIF_EVALUATORS = {"baron_mime_steel": evaluate_baron_mime_steel}
+def evaluate_photo_chad(state: Any, developments: Iterable[BondDevelopment]) -> MotifEvaluation:
+    devs=_dev_map(developments); jokers=list(getattr(state,"jokers",()) or ()); deck=_deck(state)
+    face=sum(1 for c in deck if str(getattr(c,"rank","") or "").upper() in {"J","Q","K"})
+    checks=((_has(jokers,"photograph"),"PHOTOGRAPH"),(_has(jokers,"hangingchad"),"HANGING_CHAD"),(face>=8,"FACE_CARD_INFRASTRUCTURE"))
+    present=[l for ok,l in checks if ok];missing=[l for ok,l in checks if not ok]
+    related=tuple(devs.get(b) for b in ("face_cards","played_retrigger"))
+    return MotifEvaluation("photograph_hanging_chad",_package_state(len(present),missing,related),("face_cards","played_retrigger"),tuple(present),tuple(missing),("lead_with_strong_face_scoring_card","preserve_face_card_density","value_red_seal_face_cards_and_copy_effects","avoid_wasting_first_scoring_card_slot"))
+
+
+def evaluate_vampire_midas(state: Any, developments: Iterable[BondDevelopment]) -> MotifEvaluation:
+    devs=_dev_map(developments); jokers=list(getattr(state,"jokers",()) or ()); deck=_deck(state)
+    enhanced=sum(1 for c in deck if str(getattr(c,"enhancement","") or "").strip())
+    checks=((_has(jokers,"vampire"),"VAMPIRE"),(_has(jokers,"midasmask"),"MIDAS_MASK"),(enhanced>=3,"ENHANCEMENT_FEEDSTOCK"))
+    present=[l for ok,l in checks if ok];missing=[l for ok,l in checks if not ok]
+    related=(devs.get("vampire"),)
+    return MotifEvaluation("vampire_midas",_package_state(len(present),missing,related),("vampire",),tuple(present),tuple(missing),("prefer_face_cards_as_renewable_vampire_feed","cycle_midas_created_gold_into_vampire","avoid_preserving_enhancements_needed_only_as_feed","protect_vampire_scaler"))
+
+
+def evaluate_burnt_target_level(state: Any, developments: Iterable[BondDevelopment]) -> MotifEvaluation:
+    devs=_dev_map(developments); jokers=list(getattr(state,"jokers",()) or ()); burnt=devs.get("burnt")
+    target=(burnt.target if burnt is not None else None) or "HIGH_CARD"
+    levels=getattr(state,"hand_levels",{}) or {}; level=int(levels.get(target,1) or 1)
+    support=_has(jokers,"spacejoker","blueprint","brainstorm") or _has(list(getattr(state,"vouchers",()) or ()),"telescope")
+    checks=((_has(jokers,"burntjoker"),"BURNT_JOKER"),(level>=4,"TARGET_HAND_LEVEL"),(support,"LEVELING_SUPPORT"))
+    present=[l for ok,l in checks if ok];missing=[l for ok,l in checks if not ok]
+    related=(burnt,devs.get(str(target).lower()))
+    state_value=_package_state(len(present),missing,(burnt,))
+    return MotifEvaluation("burnt_target_level",state_value,tuple(b for b in ("burnt",str(target).lower()) if b in devs),tuple(present),tuple(missing),("use_first_discard_to_level_target_hand","prefer_target_hand_planets_and_blue_seals","preserve_discard_access","play_target_hand_as_primary_scoring_shape"))
+
+
+def evaluate_low_rank_hack_retrigger(state: Any, developments: Iterable[BondDevelopment]) -> MotifEvaluation:
+    devs=_dev_map(developments); jokers=list(getattr(state,"jokers",()) or ()); deck=_deck(state)
+    low=sum(1 for c in deck if str(getattr(c,"rank","") or "") in {"2","3","4","5"})
+    checks=((_has(jokers,"hack"),"HACK"),(low>=12,"LOW_RANK_INFRASTRUCTURE"))
+    present=[l for ok,l in checks if ok];missing=[l for ok,l in checks if not ok]
+    related=tuple(devs.get(b) for b in ("low_ranks","played_retrigger"))
+    return MotifEvaluation("low_rank_hack_retrigger",_package_state(len(present),missing,related),("low_ranks","played_retrigger"),tuple(present),tuple(missing),("prefer_scoring_2_to_5_cards","value_red_seal_low_cards_highly","preserve_low_rank_density","combine_with_on_score_enhancements_when_safe"))
+
+
+MOTIF_EVALUATORS = {
+    "baron_mime_steel": evaluate_baron_mime_steel,
+    "photograph_hanging_chad": evaluate_photo_chad,
+    "vampire_midas": evaluate_vampire_midas,
+    "burnt_target_level": evaluate_burnt_target_level,
+    "low_rank_hack_retrigger": evaluate_low_rank_hack_retrigger,
+}
 
 
 def evaluate_motifs(state: Any, developments: Iterable[BondDevelopment]) -> tuple[MotifEvaluation, ...]:
-    return tuple(fn(state, developments) for fn in MOTIF_EVALUATORS.values())
+    devs=tuple(developments)
+    return tuple(fn(state, devs) for fn in MOTIF_EVALUATORS.values())
