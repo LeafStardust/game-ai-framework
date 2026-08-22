@@ -56,6 +56,11 @@ def test_installation_marks_production_authorities_once():
 def test_joker_utility_weak_health_only_scales_positive_admitted_gain():
     scale = ShopUtilityScale(SimpleNamespace())
     state = SimpleNamespace(
+        phase="SHOP",
+        deck_name="RED",
+        stake_name="WHITE",
+        ante=3,
+        round=5,
         money=100,
         jokers=(),
         joker_slots=5,
@@ -72,13 +77,19 @@ def test_joker_utility_weak_health_only_scales_positive_admitted_gain():
         decision=SimpleNamespace(selected=selected),
     )
 
-    policy._LAST_STRATEGY_HEALTH = None
+    policy.clear_strategy_health()
     baseline = scale.joker_gain(state, executable)
     assert baseline.gain > 0.0
 
     policy._LAST_STRATEGY_HEALTH = _health(StrategyHealthMode.SURVIVE)
+    policy._LAST_STRATEGY_HEALTH_PROVENANCE = policy.StrategyHealthProvenance(
+        "RED",
+        "WHITE",
+        3,
+        5,
+    )
     adjusted = scale.joker_gain(state, executable)
     # Replacement churn receives half of the 25% SURVIVE boost: 1.125x.
     assert adjusted.gain == baseline.gain * 1.125
 
-    policy._LAST_STRATEGY_HEALTH = None
+    policy.clear_strategy_health()
