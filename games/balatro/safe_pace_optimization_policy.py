@@ -1,23 +1,17 @@
 from __future__ import annotations
 
-"""Safety-first Balatro policy calibrated from the 2026-08-19 five-run batch.
+"""Safety-first Balatro policy calibrated from repeated Red/White runs.
 
-This layer deliberately separates *build coherence* from *can the run survive the
-next blind?*.  The live logs showed that deep engineered-clear search could erase
-a good discard recommendation, play below required pace, and spend tens of seconds
-on a decision even though the basic survival invariant was simple.
-
-The policy therefore owns seven narrow corrections:
+This layer separates build coherence from immediate blind survival. It owns the
+runtime corrections that remain valid under the canonical Bond/composition model:
 
 * current-hand pace is authoritative over multi-step engineered clear paths;
 * when no current hand reaches pace and a discard exists, discard instead of
   burning a hand below pace;
-* live adaptive search is advisory and shallow rather than a deep authoritative
-  hand-play planner;
-* Hologram is Silver alone and only becomes Gold with a repeatable card generator;
-* generic pack spending is suppressed while independent scoring readiness is low;
+* live adaptive search is advisory and shallow rather than authoritative;
 * undeveloped builds may not skip blinds merely because a tag has large nominal EV;
-* scoring readiness is computed independently from universal strategy score.
+* scoring readiness is computed from actual scoring effects, not legacy strategy
+  scores or categorical tiers.
 """
 
 from dataclasses import replace
@@ -33,37 +27,10 @@ from games.balatro.live.hand_action_policy import (
     PACE_RECOVERY,
     LiveHandActionPolicy,
 )
-from games.balatro.strategy import AVAILABLE
-from games.balatro.strategy_booster_policy import StrategyAwareShopBoosterPolicy
-from games.balatro.strategy_conditional_relationships import StateAwareBalatroStrategyTracker
-
-
-_HOLOGRAM_GENERATORS = frozenset({"marblejoker", "certificatejoker", "dnajoker"})
-
-
-def _token(item: object) -> str:
-    value = getattr(item, "name", None) or getattr(item, "label", None) or type(item).__name__
-    token = "".join(ch for ch in str(value).lower() if ch.isalnum())
-    if token and not token.endswith("joker"):
-        token = f"{token}joker"
-    return token
-
-
-def _owned_tokens(state) -> frozenset[str]:
-    return frozenset(_token(joker) for joker in (getattr(state, "jokers", ()) or ()))
-
-
-def _hologram_has_generator(state) -> bool:
-    return bool(_owned_tokens(state) & _HOLOGRAM_GENERATORS)
 
 
 def _scoring_readiness(state) -> float:
-    """Return scoring readiness independent from strategy-coherence score.
-
-    This intentionally ignores strategy score and Joker-slot fill.  A full board
-    with no chips/mult/xmult and no leveled hand is still weak.  Conversely, a
-    compact board with real scoring effects can be ready.
-    """
+    """Return scoring readiness independently from composition coherence."""
     try:
         profile = BalatroBuildProfiler().profile(state)
     except Exception:
@@ -79,7 +46,6 @@ def _scoring_readiness(state) -> float:
         1.0,
         sum(max(0.0, float(level) - 1.0) for _, level in profile.hand_levels) / 5.0,
     )
-    # XMult is the strongest qualitative readiness signal; give it a small bump.
     xmult_bonus = 0.10 if float(profile.strength(SCORE_XMULT)) > 0.0 else 0.0
     return min(1.0, 0.65 * feature_score + 0.35 * hand_investment + xmult_bonus)
 
@@ -118,9 +84,6 @@ def install_safe_pace_optimization_policy() -> None:
     if getattr(LiveHandActionPolicy, "_safe_pace_optimization_installed", False):
         return
 
-    # D1: eliminate authoritative multi-step engineered-clear play.  Search may
-    # suggest which discard is attractive, but the actual play invariant is local
-    # and deterministic: clear now, meet pace now, or discard to improve the hand.
     original_decide = LiveHandActionPolicy.decide
 
     def decide(
@@ -157,8 +120,6 @@ def install_safe_pace_optimization_policy() -> None:
         best_score = scores[id(best_immediate)]
         best_ratio = self._pace_ratio(best_score, pace_target)
 
-        # Only a current-hand deterministic clear bypasses the pace rule.  A
-        # multi-action expectimax line is never an authoritative PLAY decision.
         immediate_clears = [
             plan
             for plan in plays
@@ -198,8 +159,6 @@ def install_safe_pace_optimization_policy() -> None:
             >= self.thresholds.pace_ratio_floor
         ]
         if pace_plays:
-            # The survival rule is satisfied; use the highest projected current
-            # score rather than preserving hands for a speculative future line.
             selected = max(pace_plays, key=lambda plan: scores[id(plan)])
             selected_score = scores[id(selected)]
             selected_ratio = self._pace_ratio(selected_score, pace_target)
@@ -220,16 +179,13 @@ def install_safe_pace_optimization_policy() -> None:
                 confidence=self._pace_confidence(selected_ratio),
                 rationale=(
                     "safe-pace policy: play the strongest current hand that meets remaining-score / hands-left pace",
-                    "strategy shaping cannot justify an under-pace play",
+                    "Bond/composition shaping cannot justify an under-pace play",
                 ),
                 plans=plans,
                 search_attempts=search_attempts,
             )
 
         if discards and int(getattr(state, "discards_remaining", 0) or 0) > 0:
-            # Never burn a hand below pace while a legal discard can search for a
-            # better scoring hand.  Search/evaluator value only chooses *which*
-            # discard; it no longer decides whether to waste the scoring hand.
             selected = max(
                 discards,
                 key=lambda plan: (
@@ -260,7 +216,6 @@ def install_safe_pace_optimization_policy() -> None:
                 search_attempts=search_attempts,
             )
 
-        # No discard remains: now and only now is an under-pace play unavoidable.
         selected = best_immediate
         selected_score = scores[id(selected)]
         selected_ratio = self._pace_ratio(selected_score, pace_target)
@@ -289,69 +244,6 @@ def install_safe_pace_optimization_policy() -> None:
 
     LiveHandActionPolicy.decide = decide
 
-    # Hologram: owning Hologram alone is support, not a complete Gold engine.
-    original_assess = StateAwareBalatroStrategyTracker.assess
-
-    def assess(self, state):
-        assessments = tuple(original_assess(self, state))
-        if _hologram_has_generator(state):
-            return assessments
-        adjusted = []
-        for assessment in assessments:
-            if assessment.strategy_id != "hologram_growth":
-                adjusted.append(assessment)
-                continue
-            score = min(float(assessment.score), 3.0)
-            base_score = min(float(getattr(assessment, "base_score", score)), 3.0)
-            status = assessment.status if score > 0.0 else AVAILABLE
-            adjusted.append(
-                replace(
-                    assessment,
-                    score=score,
-                    base_score=base_score,
-                    status=status,
-                    rationale=(
-                        *assessment.rationale,
-                        "Hologram is Silver alone; Gold requires Marble Joker, Certificate, or DNA to repeatedly add playing cards",
-                    ),
-                )
-            )
-        return tuple(sorted(adjusted, key=lambda item: (-float(item.score), item.strategy_id)))
-
-    StateAwareBalatroStrategyTracker.assess = assess
-
-    # Independent scoring-readiness gate for generic booster spending.
-    original_booster_recommend = StrategyAwareShopBoosterPolicy.recommend
-
-    def booster_recommend(self, state, action):
-        recommendation = original_booster_recommend(self, state, action)
-        family = str(getattr(recommendation, "family", "")).upper()
-        if family in {"BUFFOON", "SPECTRAL"}:
-            return recommendation
-        readiness = _scoring_readiness(state)
-        if readiness >= 0.40:
-            return recommendation
-        # A weak build should spend on visible scoring Jokers/rerolls first.  Keep
-        # generic packs possible only when their modeled advantage is exceptional.
-        advantage = float(getattr(recommendation, "advantage_over_save", 0.0))
-        if advantage >= 2.5:
-            return recommendation
-        decision = getattr(recommendation, "decision", None)
-        hold_value = "HOLD" if isinstance(decision, str) else decision
-        return replace(
-            recommendation,
-            decision=hold_value,
-            rationale=(
-                *recommendation.rationale,
-                f"scoring-readiness gate={readiness:.3f} < 0.400",
-                "generic pack deferred until the build has enough real scoring capacity; Joker development/rerolls take priority",
-            ),
-        )
-
-    StrategyAwareShopBoosterPolicy.recommend = booster_recommend
-
-    # Survival gate for D13.  Large nominal tag EV cannot skip a blind when the
-    # build still lacks real scoring capacity.
     original_skip_decide = BuildAwareBlindSkipPolicy.decide
 
     def blind_skip_decide(self, snapshot, state, *, thresholds=None):
@@ -373,9 +265,6 @@ def install_safe_pace_optimization_policy() -> None:
 
     BuildAwareBlindSkipPolicy.decide = blind_skip_decide
 
-    # Reduce deep-search authority/cost in the module that owns live D1 deepening.
-    # This keeps the public helper unchanged for offline diagnostics/tests while the
-    # live hand-action engine receives a single bounded advisory pass.
     import games.balatro.live.hand_action_policy as hand_action_module
 
     hand_action_module.adaptive_blind_search_schedule = _safe_search_schedule
