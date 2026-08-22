@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-"""The Mouth first-hand lock policy for strategy-aware D1.
+"""The Mouth first-hand lock policy for Bond-aware D1.
 
 The Mouth allows only the first accepted poker-hand type to score for the rest of
 that blind. Generic pace logic must therefore not casually lock the run into an
-inferior off-strategy hand just because that hand happens to meet the immediate
-pace floor.
+inferior hand when developed canonical Bonds already express a hand target.
 """
 
 from dataclasses import replace
@@ -29,30 +28,18 @@ def _mouth_is_unlocked(state) -> bool:
     return True
 
 
-def _primary_hand_types(policy, state) -> tuple[str, ...]:
-    resolution = policy.strategy_tracker.observe(state)
-    strategy_id = resolution.dominant_strategy_id
-    primary_getter = getattr(policy.strategy_tracker, "primary_strategy_id", None)
-    if callable(primary_getter):
-        strategy_id = primary_getter(resolution)
-    if strategy_id is None:
-        return ()
-    return tuple(
-        str(hand).upper()
-        for hand in policy.strategy_tracker.primary_hands_for(strategy_id)
-    )
+def _bond_hand_types(policy, state) -> tuple[str, ...]:
+    """Return all developed hand targets selected by canonical Bond composition."""
+    intents = policy._hand_bond_intents(state)
+    return tuple(sorted({str(target).upper() for target, weight, _ in intents if weight > 0.0}))
 
 
 def _hand_type(policy, plan) -> str:
-    return str(
-        policy._hand_evaluator.evaluate(list(plan.action.cards)).value
-    ).upper()
+    return str(policy._hand_evaluator.evaluate(list(plan.action.cards)).value).upper()
 
 
 def _projected_score(policy, state, plan) -> float:
-    return float(
-        policy.evaluator.project_play(state, plan.action).expected_hand_score
-    )
+    return float(policy.evaluator.project_play(state, plan.action).expected_hand_score)
 
 
 def _replace_with_play(policy, state, decision, plan, *, rationale: tuple[str, ...]):
@@ -92,11 +79,11 @@ def apply_mouth_first_hand_policy(policy, state, plans, decision):
 
     Priority:
       1. Any immediate one-hand blind clear. The Mouth cannot matter afterwards.
-      2. A currently playable hand type prescribed by the primary strategy; among
-         those, lock the highest projected scoring hand.
-      3. If the prescribed type is not currently playable and discards remain,
-         discard toward it instead of locking an off-strategy hand.
-      4. With no prescribed hand route (or no discards), lock the highest projected
+      2. A currently playable hand targeted by developed Bonds in the canonical
+         composition; among those, lock the highest projected scoring hand.
+      3. If a Bond-targeted type is not currently playable and discards remain,
+         discard toward the canonical Bond intent instead of locking an unrelated hand.
+      4. With no Bond hand target (or no discards), lock the highest projected
          scoring legal hand under the actual current Joker/build projection.
     """
     if not _mouth_is_unlocked(state):
@@ -137,7 +124,7 @@ def apply_mouth_first_hand_policy(policy, state, plans, decision):
             ),
         )
 
-    preferred = set(_primary_hand_types(policy, state))
+    preferred = set(_bond_hand_types(policy, state))
     if preferred:
         matching = [entry for entry in scored_plays if entry[2] in preferred]
         if matching:
@@ -155,15 +142,13 @@ def apply_mouth_first_hand_policy(policy, state, plans, decision):
                 decision,
                 plan,
                 rationale=(
-                    f"The Mouth is not locked; primary strategy prescribes {','.join(sorted(preferred))}",
-                    f"lock The Mouth to {hand_type}, the highest projected scoring available primary-strategy hand ({score:.3f})",
-                    "do not let a merely pace-qualified off-strategy hand determine the entire boss blind",
+                    f"The Mouth is not locked; developed Bonds target {','.join(sorted(preferred))}",
+                    f"lock The Mouth to {hand_type}, the highest projected scoring available Bond-targeted hand ({score:.3f})",
+                    "do not let a merely pace-qualified unrelated hand determine the entire boss blind",
                 ),
             )
 
-        discards = tuple(
-            plan for plan in plans if plan.action.name == DISCARD_CARDS
-        )
+        discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
         if discards and int(getattr(state, "discards_remaining", 0) or 0) > 0:
             plan = max(
                 discards,
@@ -179,8 +164,8 @@ def apply_mouth_first_hand_policy(policy, state, plans, decision):
                 decision,
                 plan,
                 rationale=(
-                    f"The Mouth is not locked and primary strategy wants {','.join(sorted(preferred))}",
-                    "no preferred hand type is currently playable; use a discard instead of locking an inferior hand type",
+                    f"The Mouth is not locked and developed Bonds target {','.join(sorted(preferred))}",
+                    "no Bond-targeted hand type is currently playable; use a discard instead of locking an unrelated hand type",
                 ),
             )
 
@@ -198,7 +183,7 @@ def apply_mouth_first_hand_policy(policy, state, plans, decision):
         decision,
         plan,
         rationale=(
-            "The Mouth is not locked and no playable primary-strategy hand is available",
+            "The Mouth is not locked and no developed Bond hand target is currently playable",
             f"lock to the highest projected scoring legal hand: {hand_type} ({score:.3f})",
         ),
     )
