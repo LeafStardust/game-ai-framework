@@ -32,7 +32,6 @@ __all__ = [
     "HOLD",
     "LiveBalatroSnapshot",
     "LiveBondHealthSnapshot",
-    "LiveBalatroSnapshot",
     "LiveConsumableTimingPolicy",
     "LiveShopItem",
     "LiveShopItemFactory",
