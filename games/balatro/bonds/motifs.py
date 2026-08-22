@@ -14,6 +14,14 @@ class MotifState(IntEnum):
     MATURE = 3
 
 
+REALIZATION_STRENGTH = {
+    BondRealization.DORMANT: 0,
+    BondRealization.PARTIAL: 1,
+    BondRealization.ACTIVE: 2,
+    BondRealization.MATURE: 3,
+}
+
+
 @dataclass(frozen=True)
 class MotifEvaluation:
     motif_id: str
@@ -46,12 +54,7 @@ def _dev_map(developments: Iterable[BondDevelopment]) -> dict[str, BondDevelopme
 
 
 def evaluate_baron_mime_steel(state: Any, developments: Iterable[BondDevelopment]) -> MotifEvaluation:
-    """Recognize the canonical Baron-Mime-Steel held-card composition.
-
-    The motif is intentionally role/package-specific. Blackboard can develop Held
-    Cards but cannot substitute for Baron's King payoff; generic held-card rank
-    therefore does not activate this motif by itself.
-    """
+    """Recognize the canonical Baron-Mime-Steel held-card composition."""
     devs = _dev_map(developments)
     jokers = list(getattr(state, "jokers", ()) or ())
     deck = _deck(state)
@@ -66,21 +69,15 @@ def evaluate_baron_mime_steel(state: Any, developments: Iterable[BondDevelopment
     for ok, label in ((has_baron, "BARON"), (has_mime, "MIME"), (kings >= 4, "KING_INFRASTRUCTURE"), (steel >= 2, "STEEL_INFRASTRUCTURE")):
         (present if ok else missing).append(label)
 
-    held = devs.get("held_cards")
-    retrigger = devs.get("held_retrigger")
-    steel_dev = devs.get("steel")
-    kings_dev = devs.get("kings")
+    related = tuple(devs.get(b) for b in ("held_cards", "held_retrigger", "steel", "kings"))
 
     if len(present) < 2:
         state_value = MotifState.ABSENT
     elif missing:
         state_value = MotifState.POTENTIAL
     else:
-        active = all(
-            dev is not None and dev.realization >= BondRealization.ACTIVE
-            for dev in (held, retrigger, steel_dev, kings_dev)
-        )
-        if active and all(dev is not None and dev.rank >= BondRank.R4 for dev in (held, retrigger, steel_dev, kings_dev)):
+        active = all(dev is not None and REALIZATION_STRENGTH[dev.realization] >= REALIZATION_STRENGTH[BondRealization.ACTIVE] for dev in related)
+        if active and all(dev is not None and dev.rank >= BondRank.R4 for dev in related):
             state_value = MotifState.MATURE
         elif active:
             state_value = MotifState.ACTIVE
@@ -103,9 +100,7 @@ def evaluate_baron_mime_steel(state: Any, developments: Iterable[BondDevelopment
     )
 
 
-MOTIF_EVALUATORS = {
-    "baron_mime_steel": evaluate_baron_mime_steel,
-}
+MOTIF_EVALUATORS = {"baron_mime_steel": evaluate_baron_mime_steel}
 
 
 def evaluate_motifs(state: Any, developments: Iterable[BondDevelopment]) -> tuple[MotifEvaluation, ...]:
