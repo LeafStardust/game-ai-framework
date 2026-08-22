@@ -22,7 +22,10 @@ def test_pareidolia_makes_reserved_parking_live_on_non_face_held_cards():
         cards_in_hand=hand,
         owned_deck=hand,
         deck=hand,
-        money=0,
+        # Reserved Parking is intentionally only minor Cash-Bond authority (+2).
+        # Establish R1 with bankroll infrastructure so this test isolates the
+        # realization question: does Pareidolia make the held 7 a live face?
+        money=50,
     )
     dev = evaluate_cash_bond(state)
     assert dev.rank.value >= 1
