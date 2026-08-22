@@ -245,11 +245,15 @@ components/state
   -> intended engine/prescriptions
 
 actual Balatro mechanics + intended engine
-  -> score projection
+  -> score / whole-blind clear projection
 
 combined-build coherence + realization + score projection
   -> Build Health
 ```
+
+D1 and production SHOP Build Health should share the same **whole-blind clear-probability semantics** rather than two incompatible definitions of survival. D1 begins from the actual visible hand. SHOP has no next opening hand, so it constructs only bounded possibilities from the unordered public owned-deck composition and runs narrow node-capped D1 planning from those hypothetical openings. Serialized future draw order and hidden RNG remain prohibited.
+
+The SHOP projection is advisory and bounded. Failure to complete all sampled openings falls back to the generic Build Health capacity estimator rather than renormalizing partial samples or blocking SHOP. Custom/injected scorers remain on the generic path. This keeps the permanent live agent probability-aware without coupling offline evaluator contracts to production D1 infrastructure.
 
 ## 13. Observability contract
 
@@ -285,4 +289,4 @@ Composition section should expose Power engine, relevant Bonds, motifs, conflict
 13. Retire legacy Primary/Secondary/Third and G/S/B assumptions after regression parity.
 14. Calibrate weights/thresholds from unchanged-HEAD multi-run telemetry rather than arbitrary inflation.
 
-The current runtime/tests remain migration evidence. Do not preserve obsolete conceptual behavior merely because an old test encodes it; remove/update tests when the architecture intentionally supersedes them. The pivot/prescription boundary implementation and its normalization regressions are green as of 2026-08-22; broader Bond migration and unchanged-HEAD validation remain active calibration work.
+The current runtime/tests remain migration evidence. Do not preserve obsolete conceptual behavior merely because an old test encodes it; remove/update tests when the architecture intentionally supersedes them. The pivot/prescription boundary implementation and its normalization regressions are green as of 2026-08-22. The bounded SHOP clear-probability adapter is implemented with targeted regressions pending validation; broader Bond migration and unchanged-HEAD validation remain active calibration work.
