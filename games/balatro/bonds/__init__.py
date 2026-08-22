@@ -21,16 +21,23 @@ from games.balatro.bonds.no_face_cards import (
     NO_FACE_CARDS_RELATIONSHIPS,
     evaluate_no_face_cards_bond,
 )
+from games.balatro.bonds.vampire import (
+    VAMPIRE_BOND_ID,
+    VAMPIRE_POLICIES,
+    VAMPIRE_RELATIONSHIPS,
+    VAMPIRE_THRESHOLDS,
+    evaluate_vampire_bond,
+)
 from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank, BondRealization
 from games.balatro.bonds.authority_calibration import apply_rank_authority_audit
 
-# Catalogue Audit Pass 3: evaluator modules own identity/contributions; this layer
-# calibrates only rank geometry and high-end persistent-state authority.
 apply_rank_authority_audit()
 
-# Some implementation-pass threshold constants alias shared dictionaries. Audit
-# Pass 3 intentionally rebinds selected module constants, so refresh public
-# package exports after calibration to prevent stale pre-audit tables.
+from games.balatro.bonds.contributor_corrections import apply_contributor_corrections
+apply_contributor_corrections()
+
+# Refresh public exports after calibration/corrections because several evaluator
+# names and threshold tables are rebound intentionally by the audit layers.
 from games.balatro.bonds.catalogue_batch_one import *
 from games.balatro.bonds.catalogue_batch_two import *
 from games.balatro.bonds.catalogue_batch_three import *
@@ -43,6 +50,13 @@ from games.balatro.bonds.no_face_cards import (
     NO_FACE_CARDS_RANK_THRESHOLDS,
     NO_FACE_CARDS_RELATIONSHIPS,
     evaluate_no_face_cards_bond,
+)
+from games.balatro.bonds.vampire import (
+    VAMPIRE_BOND_ID,
+    VAMPIRE_POLICIES,
+    VAMPIRE_RELATIONSHIPS,
+    VAMPIRE_THRESHOLDS,
+    evaluate_vampire_bond,
 )
 
 __all__ = [name for name in globals() if name.isupper() or name.startswith("evaluate_") or name in {
