@@ -58,6 +58,36 @@ def test_shortcut_can_realize_gapped_straight_flush():
     assert realize_bond(_dev("straight_flush"), state).realization == BondRealization.ACTIVE
 
 
+def test_four_fingers_can_realize_flush_house_with_offsuit_full_house_card():
+    state = SimpleNamespace(
+        current_hand_type="",
+        jokers=[_joker("Four Fingers")],
+        hand=[
+            _card("8", "Spades"),
+            _card("8", "Spades"),
+            _card("8", "Hearts"),
+            _card("6", "Spades"),
+            _card("6", "Spades"),
+        ],
+    )
+    assert realize_bond(_dev("flush_house"), state).realization == BondRealization.ACTIVE
+
+
+def test_four_fingers_can_realize_flush_five_with_fifth_card_offsuit():
+    state = SimpleNamespace(
+        current_hand_type="",
+        jokers=[_joker("Four Fingers")],
+        hand=[
+            _card("7", "Clubs"),
+            _card("7", "Clubs"),
+            _card("7", "Clubs"),
+            _card("7", "Clubs"),
+            _card("7", "Hearts"),
+        ],
+    )
+    assert realize_bond(_dev("flush_five"), state).realization == BondRealization.ACTIVE
+
+
 def test_smeared_joker_can_realize_mixed_red_flush_house():
     state = SimpleNamespace(
         current_hand_type="",
