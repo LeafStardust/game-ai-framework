@@ -171,7 +171,6 @@ def realize_played_retrigger(dev: BondDevelopment, state: Any) -> BondDevelopmen
     if _floor(dev) == BondRealization.DORMANT:
         return replace(dev, realization=BondRealization.DORMANT)
     jokers = list(getattr(state, "jokers", ()) or ())
-
     scoring = getattr(state, "scoring_cards", None)
     if scoring is not None:
         played = list(scoring or ())
@@ -179,41 +178,68 @@ def realize_played_retrigger(dev: BondDevelopment, state: Any) -> BondDevelopmen
         played = _cards(state, "selected_cards", "cards_to_play")
         if not played:
             played = _cards(state, "hand", "current_hand", "cards_in_hand")
-
     pareidolia = _has(jokers, "pareidolia")
     red_seal = sum(1 for c in played if _seal(c) == "red")
-    # Stone cards have no rank or face identity. Pareidolia may give them the
-    # face-card property, but their hidden base rank still cannot feed Hack.
     face = len(played) if pareidolia else sum(1 for c in played if not _stone(c) and _rank(c) in {"J", "Q", "K"})
     hack_target = sum(1 for c in played if not _stone(c) and _rank(c) in {"2", "3", "4", "5"})
     sources = 0
-    if _has(jokers, "sockandbuskin") and face:
-        sources += 1
-    if _has(jokers, "hack") and hack_target:
-        sources += 1
-    if _has(jokers, "hangingchad") and played:
-        sources += 1
-    if _has(jokers, "dusk") and played and int(getattr(state, "hands_left", 2) or 2) == 1:
-        sources += 1
-    if red_seal:
-        sources += 1
+    if _has(jokers, "sockandbuskin") and face: sources += 1
+    if _has(jokers, "hack") and hack_target: sources += 1
+    if _has(jokers, "hangingchad") and played: sources += 1
+    if _has(jokers, "dusk") and played and int(getattr(state, "hands_left", 2) or 2) == 1: sources += 1
+    if red_seal: sources += 1
     return _finish(dev, active=sources > 0, strong=sources >= 2 or red_seal >= 2)
 
 
 def realize_deck_thinning(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    dev=enrich_development(dev)
-    if _floor(dev)==BondRealization.DORMANT:return replace(dev,realization=BondRealization.DORMANT)
-    deck=_deck(state);reduction=max(0,52-len(deck)) if deck else int(getattr(state,"permanent_cards_removed",0) or 0);jokers=list(getattr(state,"jokers",()) or ());payoff=_has(jokers,"erosion") and reduction>0;engine=_has(jokers,"tradingcard","sixthsense")
-    active=engine or payoff or (reduction>0 and dev.rank>=BondRank.R2)
-    strong=reduction>=12 and (payoff or engine);return _finish(dev,active=active,strong=strong)
+    dev = enrich_development(dev)
+    if _floor(dev) == BondRealization.DORMANT:
+        return replace(dev, realization=BondRealization.DORMANT)
+    deck = _deck(state)
+    reduction = max(0, 52 - len(deck)) if deck else int(getattr(state, "permanent_cards_removed", 0) or 0)
+    jokers = list(getattr(state, "jokers", ()) or ())
+    payoff = _has(jokers, "erosion") and reduction > 0
+
+    first_discard = bool(getattr(state, "first_discard_available", int(getattr(state, "discards_used_this_round", 0) or 0) == 0))
+    selected_discard = _cards(state, "cards_to_discard", "selected_cards")
+    trading_live = _has(jokers, "tradingcard") and first_discard and len(selected_discard) == 1
+
+    first_hand = bool(getattr(state, "first_hand_available", int(getattr(state, "hands_played_this_round", 0) or 0) == 0))
+    selected_play = _cards(state, "cards_to_play", "selected_cards")
+    sixth_live = (
+        _has(jokers, "sixthsense")
+        and first_hand
+        and len(selected_play) == 1
+        and not _stone(selected_play[0])
+        and _rank(selected_play[0]) == "6"
+    )
+    engine_live = trading_live or sixth_live
+    active = engine_live or payoff or (reduction > 0 and dev.rank >= BondRank.R2)
+    strong = reduction >= 12 and (payoff or engine_live)
+    return _finish(dev, active=active, strong=strong)
 
 
 def realize_deck_growth(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    dev=enrich_development(dev)
-    if _floor(dev)==BondRealization.DORMANT:return replace(dev,realization=BondRealization.DORMANT)
-    deck=_deck(state);growth=max(0,len(deck)-52) if deck else int(getattr(state,"permanent_cards_added",0) or 0);jokers=list(getattr(state,"jokers",()) or ());engine=_has(jokers,"certificate","dna","marblejoker");payoff=_has(jokers,"hologram") and growth>0
-    active=engine or payoff or (growth>0 and dev.rank>=BondRank.R2)
-    strong=growth>=12 and (payoff or engine);return _finish(dev,active=active,strong=strong)
+    dev = enrich_development(dev)
+    if _floor(dev) == BondRealization.DORMANT:
+        return replace(dev, realization=BondRealization.DORMANT)
+    deck = _deck(state)
+    growth = max(0, len(deck) - 52) if deck else int(getattr(state, "permanent_cards_added", 0) or 0)
+    jokers = list(getattr(state, "jokers", ()) or ())
+    payoff = _has(jokers, "hologram") and growth > 0
+
+    blind_pending = bool(getattr(state, "blind_selection_pending", False))
+    certificate_live = _has(jokers, "certificate") and blind_pending
+    marble_live = _has(jokers, "marblejoker") and blind_pending
+
+    first_hand = bool(getattr(state, "first_hand_available", int(getattr(state, "hands_played_this_round", 0) or 0) == 0))
+    selected_play = _cards(state, "cards_to_play", "selected_cards")
+    dna_live = _has(jokers, "dna") and first_hand and len(selected_play) == 1
+
+    engine_live = certificate_live or marble_live or dna_live
+    active = engine_live or payoff or (growth > 0 and dev.rank >= BondRank.R2)
+    strong = growth >= 12 and (payoff or engine_live)
+    return _finish(dev, active=active, strong=strong)
 
 
 COMMON_REALIZERS={"pair":realize_pair,"high_card":realize_high_card,"two_pair":realize_two_pair,"three_kind":realize_three_kind,"four_kind":realize_four_kind,"straight":realize_straight,"flush":realize_flush,"played_retrigger":realize_played_retrigger,"deck_thinning":realize_deck_thinning,"deck_growth":realize_deck_growth}
