@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""Standard Pack support for the merged Blue Joker/Hologram deck-growth route."""
+"""Standard Pack support for the Blue Joker/Hologram deck-growth composition."""
 
 from dataclasses import replace
 
@@ -8,7 +8,7 @@ from games.balatro.shop_booster_policy import BuildAwareShopBoosterPolicy
 
 
 _DECK_GROWTH_SCORERS = frozenset({"bluejoker", "hologramjoker"})
-_BRONZE_SUPPORT_VALUE = 1.0
+_DECK_GROWTH_SUPPORT_VALUE = 1.0
 
 
 def _normalize(value: object) -> str:
@@ -45,9 +45,9 @@ def install_deck_growth_pack_policy() -> None:
         if result.family != "STANDARD" or not _deck_growth_active(state):
             return result
 
-        advantage = float(result.advantage_over_save) + _BRONZE_SUPPORT_VALUE
-        total = float(result.total) + _BRONZE_SUPPORT_VALUE
-        option_utility = float(result.option_utility) + _BRONZE_SUPPORT_VALUE
+        advantage = float(result.advantage_over_save) + _DECK_GROWTH_SUPPORT_VALUE
+        total = float(result.total) + _DECK_GROWTH_SUPPORT_VALUE
+        option_utility = float(result.option_utility) + _DECK_GROWTH_SUPPORT_VALUE
         decision = result.decision
         if advantage > self.thresholds.minimum_buy_advantage:
             decision = "BUY"
@@ -60,8 +60,8 @@ def install_deck_growth_pack_policy() -> None:
             option_utility=option_utility,
             rationale=(
                 *result.rationale,
-                "merged Blue Joker/Hologram deck-growth route: Standard Pack is Bronze support because any selected playing card advances the growth engine",
-                f"deck-growth Bronze pack support=+{_BRONZE_SUPPORT_VALUE:.3f}",
+                "Blue Joker/Hologram deck-growth composition: Standard Pack support advances the growth engine whenever a playing card is selected",
+                f"deck-growth pack support=+{_DECK_GROWTH_SUPPORT_VALUE:.3f}",
             ),
         )
 
