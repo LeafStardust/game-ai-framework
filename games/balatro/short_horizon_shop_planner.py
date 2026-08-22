@@ -22,6 +22,7 @@ _MAX_BUNDLE_COMPONENTS = 2
 _MAX_PRE_SALES = 2
 _MAX_SURVIVAL_LOSS = 2.0
 _MIN_SCALING_GAIN = 7.5
+_ACTIVE_MOTIF_STRENGTH = 2
 
 
 @dataclass(frozen=True)
@@ -109,7 +110,7 @@ def _protected_indices(state) -> set[int]:
             motif.motif_id: _motif_strength(motif) for motif in projected.motifs
         }
         loses_realized_motif = any(
-            strength >= _motif_strength(type("M", (), {"state": MotifState.ACTIVE})())
+            strength >= _ACTIVE_MOTIF_STRENGTH
             and projected_motifs.get(motif_id, 0) < strength
             for motif_id, strength in current_motifs.items()
         )
