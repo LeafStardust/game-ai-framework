@@ -44,11 +44,11 @@ def test_sell_value_needs_actual_sell_value():
     assert realize_sell_value(dev("sell_value"), state).realization == BondRealization.ACTIVE
 
 
-def test_hand_repetition_cardsharp_needs_same_hand_twice():
+def test_hand_repetition_cardsharp_uses_any_prior_same_hand_this_round():
     state = SimpleNamespace(jokers=[joker("Card Sharp")], current_hand_type="PAIR", previous_hand_type="HIGH_CARD", hand_play_counts={"PAIR": 4})
-    assert realize_hand_repetition(dev("hand_repetition"), state).realization == BondRealization.PARTIAL
-    state.previous_hand_type = "PAIR"
     assert realize_hand_repetition(dev("hand_repetition"), state).realization == BondRealization.ACTIVE
+    state.hand_play_counts = {"HIGH_CARD": 4}
+    assert realize_hand_repetition(dev("hand_repetition"), state).realization == BondRealization.PARTIAL
 
 
 def test_drivers_license_requires_threshold_to_realize():
