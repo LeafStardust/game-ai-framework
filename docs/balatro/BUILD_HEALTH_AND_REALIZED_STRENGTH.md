@@ -107,6 +107,10 @@ Immediate survival is the final authority. Strategy chooses the highest-value co
 
 Compatible Bond prescriptions combine. Bond-level contradictions should already be excluded by explicit CONFLICT relationships. Special combined behavior belongs to motifs.
 
+Prescription authority is **preference-only beneath child-policy legality and safety**. A motif bonus may reorder already-admitted shop or pack options, but it must not convert an unsupported, unaffordable, deferred, unsafe, or otherwise rejected choice into an autonomous action. Runtime prescription bonuses are bounded for this reason.
+
+Live matching must normalize equivalent public telemetry rather than depend on one display spelling. Current contracts normalize consumable labels, Planet target-hand naming, rank aliases, Steel enhancement naming, and Red/Blue Seal naming before motif preference is applied.
+
 A developed engine cannot be called healthy if the agent repeatedly violates the action that creates its power when a safe compliant line exists.
 
 Carried regression examples:
@@ -114,7 +118,10 @@ Carried regression examples:
 - developed Burnt should use a safe first-discard upgrade before a trivial clear;
 - developed Ride the Bus/no-face should avoid face-card plays when a safe comparable non-face line exists;
 - active Baron-Mime-Steel should preserve payoff held cards and exploit appropriate held/retrigger shaping;
-- Green/no-discard and Burnt must not be composed together.
+- Green/no-discard and Burnt must not be composed together;
+- Baron/Mime/Steel should prefer safe Steel creation, Red Seal support, and King engine targets without bypassing pack/shop safety;
+- Burnt target leveling should value the Planet matching the actual evaluated target hand rather than a hard-coded default;
+- Photograph/Hanging Chad and Hack retrigger motifs may both value Red Seal creation while targeting their own mechanically relevant card bodies.
 
 ## 8. Scaling and emergency power
 
@@ -142,6 +149,12 @@ new realized/potential power
 ```
 
 R1/R2 Bonds are cheap to abandon; R3 creates meaningful resistance; R4 strong resistance; R5 very strong resistance. Rank resistance is a cost, not a lock.
+
+Canonical runtime pivot authority uses the current same-run/same-round Strategy Health mode to set how much net structural gain is required before an eligible positive D2 replacement may be promoted, and how much realized disruption is tolerated before an existing replacement is vetoed. Stronger modes require larger structural gains than SURVIVE/REPAIR.
+
+Pivot scoring must not double-count motif state already represented inside composition coherence. Explicit disruption remains asymmetric: losing realized motifs or pivot resistance is penalized because dismantling functioning machinery carries practical risk even when a projected composition has higher raw coherence.
+
+The authority only applies when the live state proves the Joker roster is full. Missing, zero, negative, or otherwise invalid Joker-slot telemetry is treated as unknown rather than as evidence that replacement is required; in that case the underlying Joker acquisition policy remains authoritative.
 
 ## 10. Component roles
 
@@ -180,6 +193,8 @@ Shop decisions should combine:
 
 A component that crosses two useful Bond thresholds and activates a motif may be strategically exceptional even before its raw immediate score is exceptional.
 
+Motif prescriptions may add bounded preference to already-positive admitted consumable/shop utility. D4 admission, resource guards, affordability, slot legality, and the underlying child utility remain authoritative.
+
 ## 12. Observability
 
 Live monitor target:
@@ -208,7 +223,7 @@ Warnings      : under-realized investment / scaling deficit / etc.
 
 Full telemetry may retain all Bond states. Do not flood the live monitor with dormant R0 Bonds.
 
-Decision logs should state when a purchase/action crosses useful thresholds, changes realization, activates a motif, or addresses a Build Health deficit.
+Decision logs should state when a purchase/action crosses useful thresholds, changes realization, activates a motif, addresses a Build Health deficit, receives a bounded canonical prescription bonus, or is promoted/vetoed by canonical pivot authority.
 
 ## 13. Migration/regression targets
 
@@ -217,6 +232,7 @@ Decision logs should state when a purchase/action crosses useful thresholds, cha
 - preserve proven useful runtime behavior while migrating architecture;
 - update/remove tests that intentionally encode superseded architecture;
 - calibrate contribution/rank geometry and Build Health thresholds from unchanged-HEAD multi-run telemetry;
-- keep structural coherence distinct from realized underperformance.
+- keep structural coherence distinct from realized underperformance;
+- retain regression coverage for unknown Joker-slot telemetry, motif-state non-double-counting, bounded prescription authority, and normalized public naming/telemetry variants.
 
-This remains Red/White competence scope until the Bond migration is implemented and validated.
+The Bond pivot/prescription boundary subsystem is deterministic-test green as of 2026-08-22. This remains Red/White competence scope until the broader Bond migration and unchanged-HEAD validation gate are complete.
