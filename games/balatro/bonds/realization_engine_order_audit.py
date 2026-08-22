@@ -24,6 +24,10 @@ def _jokers(state: Any) -> list[Any]:
     return list(getattr(state, "jokers", ()) or ())
 
 
+def _stone(card: Any) -> bool:
+    return bool(getattr(card, "is_stone", False)) or str(getattr(card, "enhancement", "") or "").lower() == "stone"
+
+
 def _finish(dev: BondDevelopment, active: bool, strong: bool = False) -> BondDevelopment:
     dev = enrich_development(dev)
     if not dev.unlocked or dev.rank in (BondRank.LOCKED, BondRank.R0):
@@ -52,12 +56,7 @@ def realize_joker_sacrifice_ordered(dev: BondDevelopment, state: Any) -> BondDev
         if value:
             blind = _name(value)
             break
-    if "boss" in blind:
-        madness_can_trigger = False
-    elif "small" in blind or "big" in blind:
-        madness_can_trigger = pending
-    else:
-        madness_can_trigger = pending
+    madness_can_trigger = pending and "boss" not in blind
 
     active = ordered_fodder or (madness and madness_can_trigger)
     return _finish(dev, active, active and int(getattr(state, "jokers_destroyed", 0) or 0) >= 6)
@@ -76,6 +75,7 @@ def realize_card_destruction_scoring(dev: BondDevelopment, state: Any) -> BondDe
         any("sixthsense" in name for name in names)
         and first_hand
         and len(selected_play) == 1
+        and not _stone(selected_play[0])
         and str(getattr(selected_play[0], "rank", "") or "") == "6"
     )
 
@@ -110,7 +110,8 @@ def realize_vampire_ordered(dev: BondDevelopment, state: Any) -> BondDevelopment
     pareidolia = any("pareidolia" in _name(joker) for joker in jokers)
     face_pool = scoring if scoring_raw is not None else (scoring or _cards(state, "hand", "current_hand", "cards_in_hand"))
     face_available = bool(face_pool) if pareidolia else any(
-        str(getattr(card, "rank", "") or "").upper() in {"J", "Q", "K"} for card in face_pool
+        not _stone(card) and str(getattr(card, "rank", "") or "").upper() in {"J", "Q", "K"}
+        for card in face_pool
     )
     same_hand_midas_feed = midas_before_vampire and face_available
 
