@@ -13,7 +13,7 @@ This file records notable development changes to the project. Active and future 
 - Added Build Health, scaling-deficit/inactive-engine warnings, and realized component roles to structured decision postmortems and the live agent monitor.
 - Added canonical Bond motif prescription preferences beneath existing pack/shop safety authorities for Baron/Mime/Steel, Photograph/Hanging Chad, Vampire/Midas, Burnt target leveling, and Hack low-rank retrigger engines.
 - Added a production SHOP survival adapter that samples only unordered public owned-deck opening hands and runs a narrow, node-bounded D1 `LiveBlindClearPlanner` from each opening to estimate next-blind clear probability.
-- Added deterministic regression contracts for Build Health evaluation, shop admission/replacement/reroll behavior, realized pivot readiness, bounded bundles, component roles, monitor output, tracker side-effect isolation, production arbiter inheritance, cache invalidation, Bond pivot authority, Bond prescription normalization, SHOP clear-probability fallback/isolation, and public deck-order invariance.
+- Added deterministic regression contracts for Build Health evaluation, shop admission/replacement/reroll behavior, realized pivot readiness, bounded bundles, component roles, monitor output, tracker side-effect isolation, production arbiter inheritance, cache invalidation, Bond pivot authority, Bond prescription normalization, SHOP clear-probability fallback/isolation, public deck-order invariance, copy-Joker projection safety, and the Red/White live planner budget.
 
 ### Changed
 
@@ -39,6 +39,8 @@ This file records notable development changes to the project. Active and future 
 - Corrected Rocket / To the Moon semantics: individually cash support rather than standalone Gold strategy cores.
 - Made Ante phase pressure authoritative across all strategy consumers: Foundation Antes 1-2 use 25%, Formation Antes 3-5 use 50%/70%/90%, and Commitment Ante 6+ uses 100%. Removed an accidental second phase multiplication in Joker build evaluation.
 - Reconciled Bond realization semantics so ordinary public-state realization tracks currently available engines/opportunities, while explicit discard/scoring/blind-selection telemetry remains authoritative for exact trigger windows and Joker-order-sensitive effects such as Vampire/Midas.
+- Tightened Red/White live D1 from 5,000 to **2,500 maximum search nodes** while preserving horizon 5, `probe-deepest`, and the 8-second hard wall clock. This is a cartridge-level calibration response to repeated wall-clock exhaustion on an oversized Marble-grown deck; core D1 mechanics remain unchanged.
+- Increased upgrade pressure against weak full rosters and stopped generator-only Marble/Certificate structures from being treated as completed deck-growth scoring routes when their actual scoring payoff is absent.
 
 ### Fixed
 
@@ -51,13 +53,15 @@ This file records notable development changes to the project. Active and future 
 - Made Scholar Silver alone and Gold only with DNA, and reduced Sixth Sense standalone evidence while adding safe first-hand single-6 utilization when consumable capacity and pace permit it.
 - Modeled Observatory held-Planet x1.5 scoring, preservation timing, and infrastructure-aware voucher valuation.
 - Corrected realization edge cases across discard triggers, debuffed cards, Gold/Blue Seal timing, Card Sharp repetition history, Four Fingers advanced hands, held retriggers, Vampire/Midas order, Satellite unknown history, and renewable-feed fallback semantics.
+- Fixed Blueprint/Brainstorm live projection so supported scored-card and held-card targets such as Photograph can contribute to Joker-order optimization instead of leaving Blueprint as a rightmost no-op. Unsupported copy targets remain fail-closed; Bloodstone is not treated as an independently validated copy target.
+- Fixed the desktop live-monitor Build Health block so the actual launcher target displays the canonical compact health diagnostics without losing existing `Has` / `Seeking` strategy targets.
 
 ### Validation
 
 - Bond pivot/prescription boundary regression batch passed on 2026-08-22 after telemetry and naming normalization hardening.
 - SHOP clear-probability survival boundary regressions passed on 2026-08-22.
 - Bond/realization mechanical and compatibility reconciliation is complete, including strict explicit-event telemetry precedence and ordinary-state engine availability.
-- **The complete Balatro deterministic suite is green on 2026-08-22 at the current Red/White calibration head.** The next gate is a fresh unchanged-HEAD five-run Red/White live validation batch.
+- **The complete Balatro deterministic suite was green on 2026-08-23 immediately before the planner-budget-only calibration change.** The focused Red/White planner-budget + adaptive-search batch is green afterward. The next gate is a fresh unchanged-HEAD five-run Red/White live validation batch.
 
 - Red Deck stake progression begins with v1.1 after the current Red/White calibration branch is accepted.
 - Fresh-profile collection progression remains active but is non-blocking for the v1.0 competence line.
@@ -117,18 +121,4 @@ This file records notable development changes to the project. Active and future 
 
 ## v0.9 — Autonomous live integration
 
-- Completed the real-game observe → decide → execute → verify → log → restart/stop loop.
-- Added authoritative Windows process-memory observation and first-party injected execution without hidden RNG or future draw-pile access.
-- Completed modeled behavior validation for all 150 Jokers and Boss Blind coverage.
-
-## v0.8 — Balatro planning and environment
-
-- Added Balatro search/planning, probability/EV analysis, blind-clear paths, stakes and deck architecture.
-
-## v0.7 — Balatro mechanics
-
-- Added cards, hands, scoring, Jokers, consumables, editions, enhancements and card modifiers.
-
-## v0.1–v0.6 — Framework foundation
-
-- Established repository structure, configuration, logging, metrics, events, agent and policy abstractions, heuristic evaluation, softmax selection, experiment execution, reproducible seeds, comparisons and aggregate metrics.
+- Completed the real-game observe → decide → execute → verify → log → restart/stop loop; authoritative live state, injected execution, stochastic projection, 150/150 Joker validation and Boss Blind coverage.
