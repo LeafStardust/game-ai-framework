@@ -15,7 +15,10 @@ def _card(rank):
 
 def _state(joker, ranks):
     played = [_card(rank) for rank in ranks]
-    deck = played + [_card("2") for _ in range(max(0, 16 - len(played)))]
+    # Keep the Low Ranks Bond structurally established even for minor-only
+    # contributors such as Walkie Talkie, so these tests isolate realization
+    # semantics rather than R0 -> DORMANT behavior.
+    deck = played + [_card("2") for _ in range(max(0, 20 - len(played)))]
     return SimpleNamespace(
         jokers=[_joker(joker)],
         scoring_cards=played,
