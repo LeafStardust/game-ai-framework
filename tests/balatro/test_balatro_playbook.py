@@ -21,7 +21,7 @@ def test_default_registry_selects_red_white_from_live_state():
 
     planner = playbook.strategy["planner"]
     assert planner["max_horizon"] == 5
-    assert planner["max_search_nodes"] == 5000
+    assert planner["max_search_nodes"] == 2500
     assert planner["search_schedule_mode"] == "probe-deepest"
     assert "min_clear_probability" not in planner
     assert "min_pace_ratio" not in planner
