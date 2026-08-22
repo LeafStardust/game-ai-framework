@@ -4,6 +4,8 @@ from __future__ import annotations
 
 This module intentionally reads only ordinary BalatroState/Joker state. It does
 not inspect hidden draw order, RNG state, seed data, or future shop contents.
+Legacy strategy-tier coherence is intentionally not reconstructed here; canonical
+Bond/composition health owns structural coherence.
 """
 
 from copy import deepcopy
@@ -20,10 +22,6 @@ from games.balatro.build_health import (
     RealizedEngineStrength,
 )
 from games.balatro.scoring import BalatroScorer
-from games.balatro.strategy import BRONZE, GOLD, SILVER
-
-
-_POSITIVE_TIERS = {GOLD, SILVER, BRONZE}
 
 
 def _normalize(value: object) -> str:
@@ -31,13 +29,12 @@ def _normalize(value: object) -> str:
 
 
 def _joker_token(joker: object) -> str:
-    candidates = (
+    for candidate in (
         getattr(joker, "name", None),
         getattr(joker, "label", None),
         getattr(joker, "ability_name", None),
         type(joker).__name__,
-    )
-    for candidate in candidates:
+    ):
         token = _normalize(candidate or "")
         if token:
             return token
@@ -101,7 +98,6 @@ def _opening_hand_size(state) -> int:
 
 
 def _deck_size(state) -> int:
-    """Return the card pool Blue Joker is expected to score against now/next."""
     phase = str(getattr(state, "phase", "")).upper()
     if phase == "SHOP":
         owned = getattr(state, "owned_deck", None)
@@ -124,7 +120,6 @@ def _deck_size(state) -> int:
 
 
 def _normal_blue_remainder(state) -> int:
-    """Normal 52-card first-hand remainder under the public hand-size limit."""
     return max(0, 52 - _opening_hand_size(state))
 
 
@@ -190,22 +185,17 @@ class RealizedEngineAnalyzer:
 
         holograms = find_all("hologram", "hologramjoker")
         if holograms:
-            x_mults = tuple(
-                max(1.0, _public_number(joker, "x_mult", 1.0))
-                for joker in holograms
-            )
+            x_mults = tuple(max(1.0, _public_number(joker, "x_mult", 1.0)) for joker in holograms)
             combined_x_mult = float(prod(x_mults))
             total_gain = sum(max(0.0, value - 1.0) for value in x_mults)
-            per_copy_target = max(0.25, 0.25 * max(1, ante - 1))
-            target_gain = per_copy_target * len(holograms)
-            progress = total_gain / target_gain if target_gain else 0.0
-            engine_state = _progress_state(progress)
+            target_gain = max(0.25, 0.25 * max(1, ante - 1)) * len(holograms)
+            engine_state = _progress_state(total_gain / target_gain if target_gain else 0.0)
             engines.append(
                 RealizedEngineStrength(
                     engine_id="hologram",
                     state=engine_state,
                     current_strength=combined_x_mult,
-                    growth_rate=(1.0 if has_card_generator else 0.25 if total_gain > 0 else 0.0),
+                    growth_rate=1.0 if has_card_generator else 0.25 if total_gain > 0 else 0.0,
                     runway_need=_runway_need(engine_state, ante),
                     rationale=(
                         f"Hologram copies={len(holograms)}; combined public xMult={combined_x_mult:.3f}",
@@ -220,13 +210,8 @@ class RealizedEngineAnalyzer:
             cards = _deck_size(state)
             normal_remainder = _normal_blue_remainder(state)
             chips = max(0.0, cards * 2.0 * len(blue_jokers))
-            progress = chips / max(pace * 0.20, 1.0) if pace > 0 else chips / 100.0
-            engine_state = _progress_state(progress)
-            growth_rate = (
-                1.0
-                if has_card_generator
-                else 0.50 if cards >= normal_remainder else 0.20
-            )
+            engine_state = _progress_state(chips / max(pace * 0.20, 1.0) if pace > 0 else chips / 100.0)
+            growth_rate = 1.0 if has_card_generator else 0.50 if cards >= normal_remainder else 0.20
             engines.append(
                 RealizedEngineStrength(
                     engine_id="blue_joker",
@@ -248,83 +233,51 @@ class RealizedEngineAnalyzer:
             mult = sum(max(0.0, _public_number(joker, "mult", 0.0)) for joker in green_jokers)
             target_mult = max(4.0, float(ante * 2)) * len(green_jokers)
             engine_state = _progress_state(mult / target_mult)
-            engines.append(
-                RealizedEngineStrength(
-                    engine_id="green_joker",
-                    state=engine_state,
-                    current_strength=mult,
-                    growth_rate=1.0,
-                    runway_need=_runway_need(engine_state, ante),
-                    rationale=(
-                        f"Green Joker copies={len(green_jokers)}; aggregate Mult=+{mult:.0f}",
-                        f"aggregate realized Ante {ante} target=+{target_mult:.0f} Mult",
-                    ),
-                )
-            )
+            engines.append(RealizedEngineStrength(
+                engine_id="green_joker", state=engine_state, current_strength=mult,
+                growth_rate=1.0, runway_need=_runway_need(engine_state, ante),
+                rationale=(f"Green Joker copies={len(green_jokers)}; aggregate Mult=+{mult:.0f}", f"aggregate realized Ante {ante} target=+{target_mult:.0f} Mult"),
+            ))
 
         castles = find_all("castle", "castlejoker")
         if castles:
             chips = sum(max(0.0, _public_number(joker, "chips", 0.0)) for joker in castles)
-            progress = chips / max(pace * 0.10, 1.0) if pace > 0 else chips / 30.0
-            engine_state = _progress_state(progress)
+            engine_state = _progress_state(chips / max(pace * 0.10, 1.0) if pace > 0 else chips / 30.0)
             discards = max(0, int(getattr(state, "discards_remaining", 0) or 0))
-            engines.append(
-                RealizedEngineStrength(
-                    engine_id="castle",
-                    state=engine_state,
-                    current_strength=chips,
-                    growth_rate=min(1.0, discards / 3.0),
-                    runway_need=_runway_need(engine_state, ante),
-                    rationale=(
-                        f"Castle copies={len(castles)}; aggregate chips=+{chips:.0f}",
-                        f"discards currently available={discards}",
-                    ),
-                )
-            )
+            engines.append(RealizedEngineStrength(
+                engine_id="castle", state=engine_state, current_strength=chips,
+                growth_rate=min(1.0, discards / 3.0), runway_need=_runway_need(engine_state, ante),
+                rationale=(f"Castle copies={len(castles)}; aggregate chips=+{chips:.0f}", f"discards currently available={discards}"),
+            ))
 
         runners = find_all("runner", "runnerjoker")
         if runners:
             chips = sum(max(0.0, _public_number(joker, "chips", 0.0)) for joker in runners)
-            progress = chips / max(pace * 0.10, 15.0) if pace > 0 else chips / 30.0
-            engine_state = _progress_state(progress)
+            engine_state = _progress_state(chips / max(pace * 0.10, 15.0) if pace > 0 else chips / 30.0)
             counts = getattr(state, "hand_play_counts", {}) or {}
             straight_plays = int(counts.get("STRAIGHT", counts.get("Straight", 0)) or 0)
-            straight_flush_plays = int(
-                counts.get("STRAIGHT_FLUSH", counts.get("Straight Flush", 0)) or 0
-            )
+            straight_flush_plays = int(counts.get("STRAIGHT_FLUSH", counts.get("Straight Flush", 0)) or 0)
             runner_growth_plays = straight_plays + straight_flush_plays
-            engines.append(
-                RealizedEngineStrength(
-                    engine_id="runner",
-                    state=engine_state,
-                    current_strength=chips,
-                    growth_rate=min(1.0, runner_growth_plays / max(1.0, float(ante * 2))),
-                    runway_need=_runway_need(engine_state, ante),
-                    rationale=(
-                        f"Runner copies={len(runners)}; aggregate chips=+{chips:.0f}",
-                        f"Runner growth-hand history={runner_growth_plays} (Straight={straight_plays}, Straight Flush={straight_flush_plays})",
-                    ),
-                )
-            )
+            engines.append(RealizedEngineStrength(
+                engine_id="runner", state=engine_state, current_strength=chips,
+                growth_rate=min(1.0, runner_growth_plays / max(1.0, float(ante * 2))),
+                runway_need=_runway_need(engine_state, ante),
+                rationale=(
+                    f"Runner copies={len(runners)}; aggregate chips=+{chips:.0f}",
+                    f"Runner growth-hand history={runner_growth_plays} (Straight={straight_plays}, Straight Flush={straight_flush_plays})",
+                ),
+            ))
 
         red_cards = find_all("redcard", "redcardjoker")
         if red_cards:
             mult = sum(max(0.0, _public_number(joker, "mult", 0.0)) for joker in red_cards)
             target_mult = max(3.0, float(max(1, ante - 1) * 3)) * len(red_cards)
             engine_state = _progress_state(mult / target_mult)
-            engines.append(
-                RealizedEngineStrength(
-                    engine_id="red_card",
-                    state=engine_state,
-                    current_strength=mult,
-                    growth_rate=0.50,
-                    runway_need=_runway_need(engine_state, ante),
-                    rationale=(
-                        f"Red Card copies={len(red_cards)}; aggregate Mult=+{mult:.0f}",
-                        f"aggregate realized Ante {ante} target=+{target_mult:.0f} Mult",
-                    ),
-                )
-            )
+            engines.append(RealizedEngineStrength(
+                engine_id="red_card", state=engine_state, current_strength=mult,
+                growth_rate=0.50, runway_need=_runway_need(engine_state, ante),
+                rationale=(f"Red Card copies={len(red_cards)}; aggregate Mult=+{mult:.0f}", f"aggregate realized Ante {ante} target=+{target_mult:.0f} Mult"),
+            ))
 
         burnt_jokers = find_all("burntjoker", "burnt")
         if burnt_jokers:
@@ -336,29 +289,19 @@ class RealizedEngineAnalyzer:
             phase = str(getattr(state, "phase", "")).upper()
             discards = max(0, int(getattr(state, "discards_remaining", 0) or 0))
             discards_used = getattr(state, "discards_used", None)
-            first_discard_available = (
-                phase == "SHOP"
-                or (
-                    discards > 0
-                    and discards_used is not None
-                    and int(discards_used) == 0
-                )
+            first_discard_available = phase == "SHOP" or (
+                discards > 0 and discards_used is not None and int(discards_used) == 0
             )
-            growth_rate = 1.0 if first_discard_available else 0.50
-            engines.append(
-                RealizedEngineStrength(
-                    engine_id="burnt_joker",
-                    state=engine_state,
-                    current_strength=float(max_level),
-                    growth_rate=growth_rate,
-                    runway_need=_runway_need(engine_state, ante),
-                    rationale=(
-                        f"Burnt Joker copies={len(burnt_jokers)}; highest public hand level={max_level}",
-                        f"realized Burnt target by Ante {ante}=level {target_levels + 1}",
-                        f"first-discard activation available now/next={'yes' if first_discard_available else 'no'}; discards_remaining={discards}; discards_used={discards_used}",
-                    ),
-                )
-            )
+            engines.append(RealizedEngineStrength(
+                engine_id="burnt_joker", state=engine_state, current_strength=float(max_level),
+                growth_rate=1.0 if first_discard_available else 0.50,
+                runway_need=_runway_need(engine_state, ante),
+                rationale=(
+                    f"Burnt Joker copies={len(burnt_jokers)}; highest public hand level={max_level}",
+                    f"realized Burnt target by Ante {ante}=level {target_levels + 1}",
+                    f"first-discard activation available now/next={'yes' if first_discard_available else 'no'}; discards_remaining={discards}; discards_used={discards_used}",
+                ),
+            ))
 
         bulls = find_all("bull", "bulljoker")
         bootstraps = find_all("bootstraps", "bootstrapsjoker")
@@ -368,26 +311,27 @@ class RealizedEngineAnalyzer:
             engine_state = _progress_state(money / target_cash)
             bull_chips = len(bulls) * money * 2.0
             bootstraps_mult = len(bootstraps) * (money // 5) * 2.0
-            engines.append(
-                RealizedEngineStrength(
-                    engine_id="cash_scoring",
-                    state=engine_state,
-                    current_strength=float(money),
-                    growth_rate=0.75 if money >= 5 else 0.25,
-                    runway_need=_runway_need(engine_state, ante),
-                    rationale=(
-                        f"cash=${money}; realized Ante {ante} cash target=${target_cash:.0f}",
-                        f"Bull copies={len(bulls)}; aggregate Bull output=+{bull_chips:.0f} chips",
-                        f"Bootstraps copies={len(bootstraps)}; aggregate Bootstraps output=+{bootstraps_mult:.0f} Mult",
-                    ),
-                )
-            )
+            engines.append(RealizedEngineStrength(
+                engine_id="cash_scoring", state=engine_state, current_strength=float(money),
+                growth_rate=0.75 if money >= 5 else 0.25,
+                runway_need=_runway_need(engine_state, ante),
+                rationale=(
+                    f"cash=${money}; realized Ante {ante} cash target=${target_cash:.0f}",
+                    f"Bull copies={len(bulls)}; aggregate Bull output=+{bull_chips:.0f} chips",
+                    f"Bootstraps copies={len(bootstraps)}; aggregate Bootstraps output=+{bootstraps_mult:.0f} Mult",
+                ),
+            ))
 
         return tuple(engines)
 
 
 class RuntimeBuildHealthEvaluator:
-    """Evaluate Build Health from current public state and optional strategy tracker."""
+    """Evaluate legacy numeric Build Health from current public state.
+
+    ``strategy_tracker`` is retained as a compatibility keyword only. Structural
+    coherence is neutral here because canonical Bond/composition health owns that
+    dimension after the strategy-tree retirement.
+    """
 
     _ENGINE_SCORE = {
         EngineState.NOT_OWNED: 0.0,
@@ -454,8 +398,7 @@ class RuntimeBuildHealthEvaluator:
         best = self._representative_best_score(state)
         pace = remaining / max(1, hands)
         immediate = min(1.0, best / max(pace, 1.0))
-        capacity = best * hands
-        survival = min(1.0, capacity / remaining)
+        survival = min(1.0, best * hands / remaining)
         return survival, immediate
 
     def _scaling(self, state, engines) -> float:
@@ -473,38 +416,10 @@ class RuntimeBuildHealthEvaluator:
             return values[0]
         return min(1.0, values[0] * 0.70 + values[1] * 0.30)
 
-    def _coherence(self, state, tracker) -> float:
-        if tracker is None:
-            return 0.50
-        try:
-            tracker = deepcopy(tracker)
-            resolution = tracker.observe(state)
-        except (AttributeError, KeyError, TypeError, ValueError):
-            return 0.50
-        dominant_id = getattr(resolution, "dominant_strategy_id", None)
-        if dominant_id is None:
-            return 0.35
-        getter = getattr(tracker, "primary_strategy_id", None)
-        if callable(getter):
-            dominant_id = getter(resolution) or dominant_id
-        assessment = resolution.assessment(dominant_id)
-        score = max(0.0, float(getattr(assessment, "score", 0.0) or 0.0)) if assessment is not None else 0.0
-        score_ratio = min(1.0, score / 9.0)
-        jokers = tuple(getattr(state, "jokers", ()) or ())
-        aligned = 0
-        for joker in jokers:
-            try:
-                relation = tracker.evaluate_item(state, joker, kind="JOKER")
-            except (AttributeError, KeyError, TypeError, ValueError):
-                continue
-            if (
-                bool(getattr(relation, "active_alignment", False))
-                and getattr(relation, "strategy_id", None) == dominant_id
-                and getattr(relation, "tier", None) in _POSITIVE_TIERS
-            ):
-                aligned += 1
-        aligned_ratio = aligned / len(jokers) if jokers else 0.0
-        return min(1.0, score_ratio * 0.60 + aligned_ratio * 0.40)
+    @staticmethod
+    def _coherence(state, tracker) -> float:
+        del state, tracker
+        return 0.50
 
     @staticmethod
     def _runway(state, engines) -> float:
