@@ -241,17 +241,66 @@ def _canonical_health_fields(rationale: dict[str, Any]) -> dict[str, Any]:
     return fields
 
 
+def _health_number(value: Any) -> str:
+    if isinstance(value, (int, float)):
+        return f"{float(value):.1f}"
+    return str(value) if value not in {None, ""} else "-"
+
+
+def _build_health_lines(rows: list[dict[str, Any]]) -> list[str]:
+    health = _latest_build_health_payload(rows)
+    if not health:
+        return []
+
+    total = _health_number(health.get("total"))
+    critical = bool(health.get("critical", False))
+    scaling_deficit = bool(health.get("scaling_deficit", False))
+    lines = [
+        f"Build Health    : {total}" + (" [CRITICAL]" if critical else ""),
+        f"Survival        : {_health_number(health.get('survival'))}",
+        f"Immediate       : {_health_number(health.get('immediate'))}",
+        f"Scaling         : {_health_number(health.get('scaling'))}" + (" [DEFICIT]" if scaling_deficit else ""),
+        f"Coherence       : {_health_number(health.get('coherence'))}",
+        f"Runway          : {_health_number(health.get('runway'))}",
+    ]
+
+    components = health.get("components") if isinstance(health.get("components"), list) else []
+    component_text: list[str] = []
+    for component in components:
+        if not isinstance(component, dict):
+            continue
+        name = component.get("name") or component.get("joker") or component.get("component") or component.get("id")
+        role = component.get("role") or component.get("state")
+        if not name or not role:
+            continue
+        text = f"{name}={role}"
+        engine_id = component.get("realized_engine_id") or component.get("engine_id")
+        if engine_id:
+            text += f"/{engine_id}"
+        component_text.append(text)
+    if component_text:
+        lines.append("Components      : " + " | ".join(component_text))
+
+    warnings = health.get("warnings")
+    if isinstance(warnings, (list, tuple)) and warnings:
+        lines.append("Health warnings : " + " | ".join(str(item) for item in warnings))
+    return lines
+
+
 def build_dashboard(status, *, supervisor_pid, balatro_running, rows, telemetry=None):
     rendered = _original_build_dashboard(status, supervisor_pid=supervisor_pid, balatro_running=balatro_running, rows=rows, telemetry=telemetry)
     evidence = _strategy_has(rows)
     has_text = "NONE" if not evidence else " | ".join(evidence)
     targets = _strategy_targets(rows)
     target_text = "NONE" if not targets else " | ".join(targets)
+    health_lines = _build_health_lines(rows)
     marker = "Path            : "
     lines = rendered.splitlines()
     for index, line in enumerate(lines):
         if line.startswith(marker):
-            lines[index + 1:index + 1] = [f"Has             : {has_text}", f"Seeking         : {target_text}"]
+            insertion = [f"Has             : {has_text}", f"Seeking         : {target_text}"]
+            insertion.extend(health_lines)
+            lines[index + 1:index + 1] = insertion
             break
     return "\n".join(lines)
 
