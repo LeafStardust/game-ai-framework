@@ -10,15 +10,15 @@ Canonical component/state -> Bond contribution values. Architecture is in `BALAT
 - Persistent density/state uses bands and caps where appropriate.
 - Rank is development only; realization and Build Health remain separate.
 - Multi-Bond contribution is intentional and never becomes fake additive scoring power.
-- All values below are provisional Red/White calibration pending the full catalogue audit.
+- Values below are provisional Red/White calibration pending the independent full-catalogue audit.
 
 ## Bonds 1-12
 
-### Burnt — thresholds `8 / 12 / 17 / 23 / 30`
-Burnt +8; Blueprint +5; Brainstorm +5; Telescope +4; Space Joker +2; Blue Seals 1/2/3/4+ = +1/+3/+5/+6; target-hand levels 2-3/4-6/7-10/11+ = +1/+3/+5/+7; extra discards above 3 = +1 each, +3 cap. Hard unlock: Burnt Joker.
+### Burnt — `8 / 12 / 17 / 23 / 30`
+Hard unlock: Burnt Joker. Burnt +8; Blueprint +5; Brainstorm +5; Telescope +4; Space Joker +2; Blue Seals 1/2/3/4+ = +1/+3/+5/+6; target-hand level 2-3/4-6/7-10/11+ = +1/+3/+5/+7; extra discards above 3 = +1 each, +3 cap.
 
 ### Held Cards — `4 / 8 / 13 / 19 / 26`
-Baron +6; Shoot the Moon +4; Raised Fist +2; Steel cards 1/2-3/4-5/6+ = +1/+3/+5/+7; hand size above 8 = +1 each, +3 cap. Mime/Gold/Blue explicitly excluded.
+Baron +6; Shoot the Moon +4; Raised Fist +2; Steel cards 1/2-3/4-5/6+ = +1/+3/+5/+7; hand size above 8 = +1 each, +3 cap. Mime/Gold/Blue excluded.
 
 ### Held Retrigger — `4 / 8 / 13 / 19 / 26`
 Mime +6; Red Seals 1/2-3/4-5/6+ = +1/+3/+5/+7; Blueprint +4 and Brainstorm +4 only while Mime exists.
@@ -59,7 +59,7 @@ Spare Trousers +7; Jolly +2; Sly +2; Two Pair levels +1/+3/+5/+7.
 The Trio +6; Zany +4; Wily +4; levels +1/+3/+5/+7.
 
 ### Four of a Kind — `4 / 8 / 13 / 19 / 26`
-The Family +7; Mad +4; Clever +4; Flower Pot +2 provisional/audit; levels +1/+3/+5/+7.
+The Family +7; Mad +4; Clever +4; Flower Pot +2 provisional; levels +1/+3/+5/+7.
 
 ### Straight — `4 / 8 / 13 / 19 / 26`
 The Order +6; Crazy +4; Devious +4; Shortcut +5; Four Fingers +3; Runner +4; levels +1/+3/+5/+7.
@@ -85,34 +85,34 @@ Certificate +5; DNA +6; Marble Joker +3; Hologram +4; growth above 52: +4/+8/+12
 ## Bonds 23-32
 
 ### Full House — `4 / 8 / 13 / 19 / 26`
-The Duo +2; The Trio +2; Full House levels 2-3/4-6/7-10/11+ = +1/+3/+5/+7.
+The Duo +2; The Trio +2; Full House levels +1/+3/+5/+7.
 
 ### Straight Flush — `4 / 8 / 13 / 19 / 26`
-Four Fingers +4; Shortcut +3; Smeared Joker +3; Straight Flush levels +1/+3/+5/+7.
+Four Fingers +4; Shortcut +3; Smeared +3; levels +1/+3/+5/+7.
 
 ### Five of a Kind — `4 / 8 / 13 / 19 / 26`
-DNA +4; maximum single-rank concentration 5/7/10/14+ = +2/+4/+6/+8; Five-of-a-Kind levels +1/+3/+5/+7.
+DNA +4; maximum rank concentration 5/7/10/14+ = +2/+4/+6/+8; levels +1/+3/+5/+7.
 
 ### Flush House — `4 / 8 / 13 / 19 / 26`
-Smeared Joker +3; The Duo +1; The Trio +1; Flush House levels +1/+3/+5/+7.
+Smeared +3; The Duo +1; The Trio +1; levels +1/+3/+5/+7.
 
 ### Flush Five — `4 / 8 / 13 / 19 / 26`
-DNA +3; Smeared Joker +2; same-rank same-suit concentration 5/7/10+ = +3/+5/+7; Flush Five levels +1/+3/+5/+7.
+DNA +3; Smeared +2; same-rank same-suit concentration 5/7/10+ = +3/+5/+7; levels +1/+3/+5/+7.
 
 ### Hearts — `4 / 9 / 15 / 22 / 30`
-Bloodstone +7; Lusty Joker +4; Hearts density 13/17/21/26/32+ = +1/+3/+5/+7/+9.
+Bloodstone +7; Lusty +4; Hearts density 13/17/21/26/32+ = +1/+3/+5/+7/+9.
 
 ### Spades — `4 / 9 / 15 / 22 / 30`
-Arrowhead +6; Wrathful Joker +4; Spades density 13/17/21/26/32+ = +1/+3/+5/+7/+9.
+Arrowhead +6; Wrathful +4; Spades density 13/17/21/26/32+ = +1/+3/+5/+7/+9.
 
 ### Clubs — `4 / 9 / 15 / 22 / 30`
-Onyx Agate +6; Gluttonous Joker +4; Clubs density 13/17/21/26/32+ = +1/+3/+5/+7/+9.
+Onyx Agate +6; Gluttonous +4; Clubs density 13/17/21/26/32+ = +1/+3/+5/+7/+9.
 
 ### Diamonds — `4 / 9 / 15 / 22 / 30`
-Rough Gem +6; Greedy Joker +4; Diamonds density 13/17/21/26/32+ = +1/+3/+5/+7/+9.
+Rough Gem +6; Greedy +4; Diamonds density 13/17/21/26/32+ = +1/+3/+5/+7/+9.
 
 ### Low Ranks (2-5) — `4 / 9 / 15 / 22 / 30`
-Hack +6; Wee Joker +6; Fibonacci +5; Even Steven +3; Walkie-Talkie +2; 2-5 density 16/20/24/30+ = +1/+3/+5/+7. Walkie-Talkie alone remains R0 and does not define a standalone Bond.
+Hack +6; Wee Joker +6; Fibonacci +5; Even Steven +3; Walkie-Talkie +2; 2-5 density 16/20/24/30+ = +1/+3/+5/+7.
 
 ## Bonds 33-42
 
@@ -123,19 +123,19 @@ Baron +7; Triboulet +6; King density 4/6/9/13/18+ = +1/+3/+5/+7/+9.
 Shoot the Moon +6; Triboulet +5; Queen density 4/6/9/13/18+ = +1/+3/+5/+7/+9.
 
 ### Jacks — `4 / 9 / 15 / 22 / 30`
-Hit the Road +7; Jack density 4/6/9/13/18+ = +1/+3/+5/+7/+9. Narrow Bond; audit later for depth.
+Hit the Road +7; Jack density 4/6/9/13/18+ = +1/+3/+5/+7/+9.
 
 ### Tens — `4 / 9 / 15 / 22 / 30`
 Walkie-Talkie +3; Ten density 4/6/9/13/18+ = +1/+3/+5/+7/+9. Walkie alone remains R0.
 
 ### Wild Cards — `4 / 8 / 13 / 19 / 26`
-Flower Pot +3; Wild-card density 1/3/6/10+ = +1/+3/+5/+7. Audit whether Wild deserves independent Bond authority.
+Flower Pot +3; Wild density 1/3/6/10+ = +1/+3/+5/+7. Density alone caps at R1.
 
 ### Mult Cards — `4 / 8 / 13 / 19 / 26`
-Vampire +2 minor bridge; Mult-card density 1/3/6/10+ = +1/+3/+5/+7. Explicit pruning/merge candidate for audit.
+Vampire +2 minor bridge; Mult density 1/3/6/10+ = +1/+3/+5/+7. Density alone caps at R1.
 
 ### Bonus Cards — `4 / 8 / 13 / 19 / 26`
-Bonus-card density 1/3/6/10+ = +1/+3/+5/+7. Explicit weak/pruning candidate for audit.
+Bonus density 1/3/6/10+ = +1/+3/+5/+7. Density alone caps at R1.
 
 ### Tarot — `4 / 9 / 15 / 22 / 30`
 Cartomancer +6; Vagabond +5; Hallucination +4; Fortune Teller +4; Tarot Merchant +4; Tarot Tycoon +6.
@@ -144,15 +144,44 @@ Cartomancer +6; Vagabond +5; Hallucination +4; Fortune Teller +4; Tarot Merchant
 Constellation +6; Astronomer +4; Space Joker +3; Telescope +5; Planet Merchant +4; Planet Tycoon +6; Blue Seals 1/2/4/7+ = +1/+3/+5/+7.
 
 ### Spectral — `4 / 9 / 15 / 22 / 30`
-Sixth Sense +6; Seance +6. Narrow Bond; audit later for depth/authority.
+Sixth Sense +6; Seance +6.
+
+## Bonds 43-50
+
+### Discard — `4 / 9 / 15 / 22 / 30`
+Yorick +7; Castle +5; Mail-In Rebate +4; Faceless Joker +4; Hit the Road +3; Burnt Joker +3; extra discards above 3 = +1 each, +4 cap. Burnt alone contributes but does not establish Discard.
+
+### Blind Skip — `4 / 9 / 15 / 22 / 30`
+Throwback +7; Diet Cola +4; blinds skipped 1/3/5/8+ = +1/+3/+5/+7. Skip-history weighting is explicitly flagged for later audit because historical skips may not always represent current actionable structure.
+
+### Sell Value — `4 / 9 / 15 / 22 / 30`
+Swashbuckler +7; Gift Card +6; Egg +5; current total Joker sell value $10/$20/$35/$60+ = +1/+3/+5/+7.
+
+### Hand Size — `4 / 9 / 15 / 22 / 30`
+Troubadour +6; Juggler +4; Turtle Bean +4; bonus hand size +1/+2/+4/+6 = +1/+3/+5/+7.
+
+### Joker Sacrifice — `4 / 9 / 15 / 22 / 30`
+Ceremonial Dagger +7; Madness +6; Riff-Raff +3; Jokers destroyed 1/3/6/10+ = +1/+3/+5/+7.
+
+### Card Destruction — `4 / 9 / 15 / 22 / 30`
+Canio +7; Trading Card +5; Sixth Sense +4; Glass Joker +3; playing cards destroyed 2/5/10/16+ = +1/+3/+5/+7.
+
+### Hand Repetition — `4 / 9 / 15 / 22 / 30`
+Card Sharp +7; Supernova +6; maximum observed hand-play count 5/10/18/30+ = +1/+3/+5/+7. Small play history alone remains R0.
+
+### Enhanced Cards — `4 / 9 / 15 / 22 / 30`
+Driver's License +7; Midas Mask +3; Marble Joker +3; enhanced-card density 8/12/16/24+ = +1/+3/+5/+7. Broad overlap with specific enhancement Bonds is flagged for audit.
 
 ## Sparse relationships currently encoded
 
 ```text
-Burnt x No-Discard             = CONFLICT
-Held Cards <-> Held Retrigger  = SYNERGY
-Held Cards <-> Steel           = SYNERGY
-Held Retrigger <-> Steel       = SYNERGY
+Burnt x No-Discard                 = CONFLICT
+Discard x No-Discard               = CONFLICT
+Burnt <-> Discard                  = SYNERGY
+Held Cards <-> Held Retrigger      = SYNERGY
+Held Cards <-> Steel               = SYNERGY
+Held Retrigger <-> Steel           = SYNERGY
+Card Destruction <-> Deck Thinning = SYNERGY
 ```
 
 Everything else defaults to `NEUTRAL` until a mechanically meaningful relationship is established. Complex packages belong to motifs.
