@@ -172,11 +172,13 @@ def realize_played_retrigger(dev: BondDevelopment, state: Any) -> BondDevelopmen
     pareidolia = _has(jokers, "pareidolia")
     red_seal = sum(1 for c in played if _seal(c) == "red")
     face = len(played) if pareidolia else sum(1 for c in played if _rank(c) in {"J", "Q", "K"})
-    low = sum(1 for c in played if _rank(c) in {"2", "3", "4", "5"})
+    # Hack retriggers 2, 3, 4, and 5. Keep this exact rather than treating all
+    # vaguely low ranks as equivalent; Ace/6+ must not realize the engine.
+    hack_target = sum(1 for c in played if _rank(c) in {"2", "3", "4", "5"})
     sources = 0
     if _has(jokers, "sockandbuskin") and face:
         sources += 1
-    if _has(jokers, "hack") and low:
+    if _has(jokers, "hack") and hack_target:
         sources += 1
     if _has(jokers, "hangingchad") and played:
         sources += 1
