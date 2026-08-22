@@ -30,8 +30,6 @@ from games.balatro.live.hand_action_policy import (
     LiveHandActionPolicy,
 )
 from games.balatro.shop_arbiter import BuildAwareShopArbiter, ShopArbiterDecision
-from games.balatro.strategy import GOLD
-import games.balatro.strategy_conditional_relationships as conditional_relationships
 
 
 def _normalize(value: object) -> str:
@@ -128,19 +126,6 @@ def _straight_replacement_index(state) -> int | None:
 def install_five_run_optimization_policy() -> None:
     if getattr(BuildAwareShopArbiter, "_five_run_optimization_installed", False):
         return
-
-    original_conditional = conditional_relationships.conditional_joker_relationship
-
-    def conditional_joker_relationship(state, strategy_id: str, item: object) -> str:
-        token = _token(item)
-        if strategy_id == "cash_growth" and token in {"rocketjoker", "tothemoonjoker"}:
-            owned = _held_joker_tokens(state)
-            other = "tothemoonjoker" if token == "rocketjoker" else "rocketjoker"
-            if other in owned:
-                return GOLD
-        return original_conditional(state, strategy_id, item)
-
-    conditional_relationships.conditional_joker_relationship = conditional_joker_relationship
 
     # Hermit doubles current money with a maximum +$20 gain. Keep the established
     # B6 timing contract of spending at $10+ (already strong deterministic value),
@@ -307,8 +292,8 @@ def install_five_run_optimization_policy() -> None:
                     source="JOKER_BUY",
                     gain=3.0,
                     rationale=(
-                        "five-run correction: Four Fingers activates the existing Devious Straight route",
-                        "secondary/third-place strategy infrastructure may be developed when the combined route outranks weak filler",
+                        "five-run correction: Four Fingers activates the existing Devious Straight composition",
+                        "a supporting composition line may be developed when the combined route outranks weak filler",
                     ),
                 )
             replace_index = _straight_replacement_index(state)
