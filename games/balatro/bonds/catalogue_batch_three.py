@@ -96,8 +96,11 @@ def _suit_bond(state: Any, bond_id: str, suit: str, specs: tuple[tuple[str, floa
     parts = _joker_parts(jokers, specs)
     count = sum(
         1 for card in _deck(state)
-        if str(getattr(card, "suit", "") or "").lower() == suit.lower()
-        and str(getattr(card, "enhancement", "") or "").lower() != "stone"
+        if str(getattr(card, "enhancement", "") or "").lower() != "stone"
+        and (
+            str(getattr(card, "suit", "") or "").lower() == suit.lower()
+            or str(getattr(card, "enhancement", "") or "").lower() == "wild"
+        )
     )
     density = _band(count, ((13, 1.0), (17, 3.0), (21, 5.0), (26, 7.0), (32, 9.0)))
     if density:
@@ -205,88 +208,29 @@ def evaluate_flush_five_bond(state: Any) -> BondDevelopment:
     for card in _deck(state):
         if str(getattr(card, "enhancement", "") or "").lower() == "stone":
             continue
-        key = (str(getattr(card, "rank", "") or ""), str(getattr(card, "suit", "") or ""))
-        if all(key):
-            groups[key] = groups.get(key, 0) + 1
-    concentration = _band(max(groups.values(), default=0), ((5, 3.0), (7, 5.0), (10, 7.0)))
-    if concentration:
-        parts.append(BondContribution("Same-rank same-suit concentration", concentration))
-    lvl = _level_score(_level(state, "FLUSH_FIVE"))
-    if lvl:
-        parts.append(BondContribution("FLUSH_FIVE permanent hand level", lvl))
-    return _finish("flush_five", parts, FLUSH_FIVE_THRESHOLDS, target="FLUSH_FIVE")
+        key = (str(getattr(card,"rank","") or ""), str(getattr(card,"suit","") or ""))
+        if all(key): groups[key]=groups.get(key,0)+1
+    concentration=_band(max(groups.values(),default=0),((5,3.0),(7,5.0),(10,7.0)))
+    if concentration:parts.append(BondContribution("Same-rank same-suit concentration",concentration))
+    lvl=_level_score(_level(state,"FLUSH_FIVE"))
+    if lvl:parts.append(BondContribution("FLUSH_FIVE permanent hand level",lvl))
+    return _finish("flush_five",parts,FLUSH_FIVE_THRESHOLDS,target="FLUSH_FIVE")
 
+HEARTS_THRESHOLDS=SUIT_THRESHOLDS;SPADES_THRESHOLDS=SUIT_THRESHOLDS;CLUBS_THRESHOLDS=SUIT_THRESHOLDS;DIAMONDS_THRESHOLDS=SUIT_THRESHOLDS
+HEARTS_POLICIES={BondRank.R1:("recognize_hearts_specialization",),BondRank.R2:("prefer_hearts_density",),BondRank.R3:("actively_shape_toward_hearts",),BondRank.R4:("eligible_as_power_engine_support",),BondRank.R5:("capstone_hearts_commitment",)}
+SPADES_POLICIES={BondRank.R1:("recognize_spades_specialization",),BondRank.R2:("prefer_spades_density",),BondRank.R3:("actively_shape_toward_spades",),BondRank.R4:("eligible_as_power_engine_support",),BondRank.R5:("capstone_spades_commitment",)}
+CLUBS_POLICIES={BondRank.R1:("recognize_clubs_specialization",),BondRank.R2:("prefer_clubs_density",),BondRank.R3:("actively_shape_toward_clubs",),BondRank.R4:("eligible_as_power_engine_support",),BondRank.R5:("capstone_clubs_commitment",)}
+DIAMONDS_POLICIES={BondRank.R1:("recognize_diamonds_specialization",),BondRank.R2:("prefer_diamonds_density",),BondRank.R3:("actively_shape_toward_diamonds",),BondRank.R4:("eligible_as_power_engine_support",),BondRank.R5:("capstone_diamonds_commitment",)}
+def evaluate_hearts_bond(state):return _suit_bond(state,"hearts","Hearts",(("Bloodstone",7.0,("bloodstone",)),("Lusty Joker",4.0,("lustyjoker",))))
+def evaluate_spades_bond(state):return _suit_bond(state,"spades","Spades",(("Arrowhead",6.0,("arrowhead",)),("Wrathful Joker",4.0,("wrathfuljoker",))))
+def evaluate_clubs_bond(state):return _suit_bond(state,"clubs","Clubs",(("Onyx Agate",6.0,("onyxagate",)),("Gluttonous Joker",4.0,("gluttonousjoker",))))
+def evaluate_diamonds_bond(state):return _suit_bond(state,"diamonds","Diamonds",(("Rough Gem",6.0,("roughgem",)),("Greedy Joker",4.0,("greedyjoker",))))
 
-# 28-31. Suit Bonds
-HEARTS_THRESHOLDS = SUIT_THRESHOLDS
-SPADES_THRESHOLDS = SUIT_THRESHOLDS
-CLUBS_THRESHOLDS = SUIT_THRESHOLDS
-DIAMONDS_THRESHOLDS = SUIT_THRESHOLDS
-HEARTS_POLICIES = {BondRank.R1: ("recognize_hearts_specialization",), BondRank.R2: ("prefer_hearts_density",), BondRank.R3: ("actively_shape_toward_hearts",), BondRank.R4: ("eligible_as_power_engine_support",), BondRank.R5: ("capstone_hearts_commitment",)}
-SPADES_POLICIES = {BondRank.R1: ("recognize_spades_specialization",), BondRank.R2: ("prefer_spades_density",), BondRank.R3: ("actively_shape_toward_spades",), BondRank.R4: ("eligible_as_power_engine_support",), BondRank.R5: ("capstone_spades_commitment",)}
-CLUBS_POLICIES = {BondRank.R1: ("recognize_clubs_specialization",), BondRank.R2: ("prefer_clubs_density",), BondRank.R3: ("actively_shape_toward_clubs",), BondRank.R4: ("eligible_as_power_engine_support",), BondRank.R5: ("capstone_clubs_commitment",)}
-DIAMONDS_POLICIES = {BondRank.R1: ("recognize_diamonds_specialization",), BondRank.R2: ("prefer_diamonds_density",), BondRank.R3: ("actively_shape_toward_diamonds",), BondRank.R4: ("eligible_as_power_engine_support",), BondRank.R5: ("capstone_diamonds_commitment",)}
+LOW_RANKS_THRESHOLDS={BondRank.R1:4.0,BondRank.R2:9.0,BondRank.R3:15.0,BondRank.R4:22.0,BondRank.R5:30.0}
+LOW_RANKS_POLICIES={BondRank.R1:("recognize_low_rank_payoff",),BondRank.R2:("prefer_2_to_5_density_and_payoff",),BondRank.R3:("actively_shape_deck_toward_low_ranks",),BondRank.R4:("eligible_as_power_engine_support",),BondRank.R5:("capstone_low_rank_commitment",)}
+def evaluate_low_ranks_bond(state:Any)->BondDevelopment:
+ jokers=list(getattr(state,"jokers",()) or ());parts=_joker_parts(jokers,(("Hack",6.0,("hackjoker","hack")),("Wee Joker",5.0,("weejoker",)),("Fibonacci",4.0,("fibonaccijoker","fibonacci")),("Even Steven",3.0,("evenstevenjoker","evensteven")),("Walkie Talkie",2.0,("walkietalkiejoker","walkietalkie"))));deck=_deck(state);n=sum(1 for c in deck if str(getattr(c,"rank","") or "") in {"2","3","4","5"});score=_band(n,((16,1.0),(20,3.0),(24,5.0),(30,7.0)))
+ if score:parts.append(BondContribution("2-5 density",score))
+ return _finish("low_ranks",parts,LOW_RANKS_THRESHOLDS,target="2-5")
 
-def evaluate_hearts_bond(state: Any) -> BondDevelopment:
-    return _suit_bond(state, "hearts", "Hearts", (
-        ("Bloodstone", 7.0, ("bloodstone",)),
-        ("Lusty Joker", 4.0, ("lustyjoker",)),
-    ))
-
-def evaluate_spades_bond(state: Any) -> BondDevelopment:
-    return _suit_bond(state, "spades", "Spades", (
-        ("Arrowhead", 6.0, ("arrowhead",)),
-        ("Wrathful Joker", 4.0, ("wrathfuljoker",)),
-    ))
-
-def evaluate_clubs_bond(state: Any) -> BondDevelopment:
-    return _suit_bond(state, "clubs", "Clubs", (
-        ("Onyx Agate", 6.0, ("onyxagate",)),
-        ("Gluttonous Joker", 4.0, ("gluttonousjoker",)),
-    ))
-
-def evaluate_diamonds_bond(state: Any) -> BondDevelopment:
-    return _suit_bond(state, "diamonds", "Diamonds", (
-        ("Rough Gem", 6.0, ("roughgem",)),
-        ("Greedy Joker", 4.0, ("greedyjoker",)),
-    ))
-
-
-# 32. Low Ranks (2-5)
-LOW_RANKS_THRESHOLDS = {BondRank.R1: 4.0, BondRank.R2: 9.0, BondRank.R3: 15.0, BondRank.R4: 22.0, BondRank.R5: 30.0}
-LOW_RANKS_POLICIES = {
-    BondRank.R1: ("recognize_low_rank_payoff",),
-    BondRank.R2: ("prefer_2_to_5_density_and_payoff",),
-    BondRank.R3: ("actively_shape_deck_toward_low_ranks",),
-    BondRank.R4: ("eligible_as_power_engine_support",),
-    BondRank.R5: ("capstone_low_rank_commitment",),
-}
-
-def evaluate_low_ranks_bond(state: Any) -> BondDevelopment:
-    jokers = list(getattr(state, "jokers", ()) or ())
-    parts = _joker_parts(jokers, (
-        ("Hack", 6.0, ("hackjoker", "hack")),
-        ("Wee Joker", 6.0, ("weejoker",)),
-        ("Fibonacci", 5.0, ("fibonaccijoker", "fibonacci")),
-        ("Even Steven", 3.0, ("evensteven",)),
-        ("Walkie Talkie", 2.0, ("walkietalkie",)),
-    ))
-    low = sum(1 for c in _deck(state) if str(getattr(c, "rank", "") or "") in {"2", "3", "4", "5"})
-    density = _band(low, ((16, 1.0), (20, 3.0), (24, 5.0), (30, 7.0)))
-    if density:
-        parts.append(BondContribution("2-5 rank density", density))
-    return _finish("low_ranks", parts, LOW_RANKS_THRESHOLDS, target="2-5")
-
-
-BATCH_THREE_EVALUATORS = {
-    "full_house": evaluate_full_house_bond,
-    "straight_flush": evaluate_straight_flush_bond,
-    "five_kind": evaluate_five_kind_bond,
-    "flush_house": evaluate_flush_house_bond,
-    "flush_five": evaluate_flush_five_bond,
-    "hearts": evaluate_hearts_bond,
-    "spades": evaluate_spades_bond,
-    "clubs": evaluate_clubs_bond,
-    "diamonds": evaluate_diamonds_bond,
-    "low_ranks": evaluate_low_ranks_bond,
-}
+BATCH_THREE_EVALUATORS={"full_house":evaluate_full_house_bond,"straight_flush":evaluate_straight_flush_bond,"five_kind":evaluate_five_kind_bond,"flush_house":evaluate_flush_house_bond,"flush_five":evaluate_flush_five_bond,"hearts":evaluate_hearts_bond,"spades":evaluate_spades_bond,"clubs":evaluate_clubs_bond,"diamonds":evaluate_diamonds_bond,"low_ranks":evaluate_low_ranks_bond}
