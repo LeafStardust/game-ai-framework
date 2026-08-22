@@ -65,7 +65,7 @@ def test_non_face_cards_do_not_enable_these_face_engines_without_pareidolia():
     state = SimpleNamespace(
         jokers=[_joker("Reserved Parking")],
         hand=[card],
-        current_hand=hand if False else [card],
+        current_hand=[card],
         cards_in_hand=[card],
         owned_deck=[card],
         deck=[card],
