@@ -21,7 +21,6 @@ from games.balatro.latest_batch_no_discard_policy import install_latest_batch_no
 from games.balatro.latest_five_run_calibration_policy import install_latest_five_run_calibration_policy
 from games.balatro.latest_five_run_resource_metrics import install_latest_five_run_resource_metrics
 from games.balatro.latest_zero_five_survival_policy import install_latest_zero_five_survival_policy
-from games.balatro.log_batch_calibration_policy import install_log_batch_calibration_policy
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.noncash_cash_deployment_policy import install_noncash_cash_deployment_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
@@ -40,7 +39,6 @@ from games.balatro.v1_0_0_policy import install_v1_0_0_policy
 install_mouth_first_hand_policy()
 install_pareidolia_face_policy()
 install_d1_log_resilience_policy()
-install_log_batch_calibration_policy()
 install_shop_regression_policy()
 install_safe_pace_optimization_policy()
 install_safe_pace_timeout_patch()
