@@ -130,31 +130,14 @@ def realize_joker_sacrifice(dev: BondDevelopment, state: Any) -> BondDevelopment
 def realize_card_destruction(dev: BondDevelopment, state: Any) -> BondDevelopment:
     jokers = _jokers(state)
     hand = _cards(state, "hand", "current_hand", "cards_in_hand")
-
-    # Trading Card and Sixth Sense are first-action engines. Merely owning the
-    # Joker plus having any card/6 in hand is not enough once that opportunity
-    # has already been spent this round.
     first_discard_available = bool(
-        getattr(
-            state,
-            "first_discard_available",
-            int(getattr(state, "discards_used_this_round", 0) or 0) == 0,
-        )
+        getattr(state, "first_discard_available", int(getattr(state, "discards_used_this_round", 0) or 0) == 0)
     )
     first_hand_available = bool(
-        getattr(
-            state,
-            "first_hand_available",
-            int(getattr(state, "hands_played_this_round", 0) or 0) == 0,
-        )
+        getattr(state, "first_hand_available", int(getattr(state, "hands_played_this_round", 0) or 0) == 0)
     )
     trading = _has(jokers, "tradingcard") and first_discard_available and bool(hand)
-    sixth = (
-        _has(jokers, "sixthsense")
-        and first_hand_available
-        and any(str(getattr(c, "rank", "")) == "6" for c in hand)
-    )
-
+    sixth = _has(jokers, "sixthsense") and first_hand_available and any(str(getattr(c, "rank", "")) == "6" for c in hand)
     glass = _has(jokers, "glassjoker") and any(str(getattr(c, "enhancement", "") or "").lower() == "glass" for c in hand)
     canio = _has(jokers, "canio") and int(getattr(state, "cards_destroyed", 0) or 0) > 0
     active = trading or sixth or glass or canio
@@ -185,11 +168,24 @@ def realize_vampire(dev: BondDevelopment, state: Any) -> BondDevelopment:
     jokers = _jokers(state)
     if not _has(jokers, "vampire"):
         return _finish(dev, False)
+
     hand = _cards(state, "hand", "current_hand", "cards_in_hand")
-    feed = sum(1 for c in hand if str(getattr(c, "enhancement", "") or "").strip())
-    renewable = _has(jokers, "midasmask")
+    scoring = _cards(state, "scoring_cards", "played_cards", "current_played_cards")
+    deck = _cards(state, "owned_deck", "deck")
+
+    # Vampire can immediately consume any scoring/held enhanced card. Midas Mask
+    # is renewable feed only if the run actually contains a face card that Midas
+    # can turn Gold when scored; owning Midas alone is not a live engine in a
+    # face-free deck such as Abandoned Deck after all faces have been removed.
+    feed_cards = scoring or hand
+    feed = sum(1 for c in feed_cards if str(getattr(c, "enhancement", "") or "").strip())
+    has_midas = _has(jokers, "midasmask")
+    face_available = any(str(getattr(c, "rank", "") or "").upper() in {"J", "Q", "K"} for c in (scoring or hand or deck))
+    renewable = has_midas and face_available
+
     active = feed > 0 or renewable
-    return _finish(dev, active, feed >= 2 or (renewable and int(getattr(state, "vampire_enhancements_consumed", 0) or 0) >= 15))
+    strong = feed >= 2 or (renewable and int(getattr(state, "vampire_enhancements_consumed", 0) or 0) >= 15)
+    return _finish(dev, active, strong)
 
 
 ENGINE_REALIZERS = {
