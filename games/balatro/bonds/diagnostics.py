@@ -55,11 +55,10 @@ def _bond_payload(development: BondDevelopment) -> dict[str, Any]:
 
 
 def bond_strategy_diagnostics(state: Any) -> dict[str, Any]:
-    """Return the canonical strategy/composition telemetry for one public state.
+    """Return canonical Bond/composition telemetry from one public state.
 
-    Only developed Bonds selected into the compatible composition are surfaced in
-    the operator-facing payload. Locked/R0 axes remain available to the evaluator
-    but intentionally do not clutter live strategy telemetry.
+    Only R1+ Bonds selected into the compatible composition are operator-facing.
+    Locked and R0 axes remain evaluator state and do not clutter the live monitor.
     """
     developments, composition = evaluate_bond_composition(state)
     by_id = {development.bond_id: development for development in developments}
@@ -70,21 +69,21 @@ def bond_strategy_diagnostics(state: Any) -> dict[str, Any]:
     ]
     relevant.sort(key=_bond_priority, reverse=True)
 
-    power_engine = relevant[0].bond_id if relevant else None
     motifs = [
         {
             "motif_id": motif.motif_id,
             "state": motif.state.name,
             "missing_count": int(motif.missing_count),
-            "bond_ids": list(motif.bond_ids),
-            "bridge_components": list(motif.bridge_components),
+            "relevant_bonds": list(motif.relevant_bonds),
+            "present_components": list(motif.present_components),
+            "missing_components": list(motif.missing_components),
             "prescriptions": list(motif.prescriptions),
         }
         for motif in composition.motifs
     ]
 
     return {
-        "power_engine": power_engine,
+        "power_engine": relevant[0].bond_id if relevant else None,
         "relevant_bonds": [_bond_payload(development) for development in relevant],
         "composition": {
             "bond_ids": list(composition.bond_ids),
