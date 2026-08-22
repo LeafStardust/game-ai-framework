@@ -70,9 +70,28 @@ def _held_effect_count(card: Any, jokers: list[Any]) -> int:
         effects += 1
     if _has(jokers, "shootthemoon") and _rank(card) == "Q":
         effects += 1
-    if _has(jokers, "raisedfist"):
-        effects += 1
     return effects
+
+
+def _raised_fist_target(hand: list[Any], jokers: list[Any]) -> int | None:
+    """Return the card index that actually receives Raised Fist's on-held effect.
+
+    Stone cards have no rank for Raised Fist and are ignored. Balatro resolves
+    ties to the rightmost card of the lowest rank, which matters for Red Seal.
+    """
+    if not _has(jokers, "raisedfist"):
+        return None
+    values = {"2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9,
+              "10": 10, "T": 10, "J": 10, "Q": 10, "K": 10, "A": 11}
+    ranked = [
+        (values[_rank(card)], index)
+        for index, card in enumerate(hand)
+        if _enhancement(card) != "stone" and _rank(card) in values
+    ]
+    if not ranked:
+        return None
+    lowest = min(value for value, _ in ranked)
+    return max(index for value, index in ranked if value == lowest)
 
 
 def realize_held_cards(dev: BondDevelopment, state: Any) -> BondDevelopment:
@@ -103,7 +122,7 @@ def realize_held_cards(dev: BondDevelopment, state: Any) -> BondDevelopment:
         active_sources += 1
     if has_stm and queen_hits:
         active_sources += 1
-    if has_fist and hand:
+    if has_fist and _raised_fist_target(hand, jokers) is not None:
         active_sources += 1
     if has_blackboard and blackboard_ok:
         active_sources += 1
@@ -124,12 +143,18 @@ def realize_held_retrigger(dev: BondDevelopment, state: Any) -> BondDevelopment:
     if not hand:
         return replace(dev, realization=BondRealization.PARTIAL)
 
-    held_effect_cards = sum(1 for card in hand if _held_effect_count(card, jokers) > 0)
+    fist_target = _raised_fist_target(hand, jokers)
+    held_effect_cards = sum(
+        1
+        for index, card in enumerate(hand)
+        if _held_effect_count(card, jokers) > 0 or index == fist_target
+    )
     mime = _has(jokers, "mime")
     red_held = sum(
         1
-        for card in hand
-        if _seal(card) == "red" and _held_effect_count(card, jokers) > 0
+        for index, card in enumerate(hand)
+        if _seal(card) == "red"
+        and (_held_effect_count(card, jokers) > 0 or index == fist_target)
     )
 
     active_sources = int(mime and held_effect_cards > 0) + red_held
