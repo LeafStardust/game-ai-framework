@@ -1,18 +1,17 @@
-"""Balatro package policy registration."""
+"""Balatro package policy registration.
+
+The active strategic layer is the canonical Bond/composition system. Historical
+categorical strategy-tree patches are intentionally not imported or installed.
+"""
 
 from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
 from games.balatro.aces_scholar_policy import install_aces_scholar_policy
 from games.balatro.ankh_presale_policy import install_ankh_presale_policy
-from games.balatro.blue_joker_strategy_rules import apply_blue_joker_strategy_rules
 from games.balatro.bond_pivot_authority import install_bond_pivot_authority
 from games.balatro.bond_prescription_policy import install_bond_prescription_policy
 from games.balatro.bond_shop_health_policy import install_bond_shop_health_policy
 from games.balatro.build_health_policy import install_build_health_policy
-from games.balatro.card_sharp_strategy_rules import install_card_sharp_strategy_rules
 from games.balatro.cash_scoring_support_policy import install_cash_scoring_support_policy
-from games.balatro.committed_build_replacement_policy import install_committed_build_replacement_policy
-from games.balatro.committed_pack_choice_policy import install_committed_pack_choice_policy
-from games.balatro.constellation_strategy_rules import apply_constellation_strategy_rules
 from games.balatro.d1_log_resilience_policy import install_d1_log_resilience_policy
 from games.balatro.d1_strategy_fit_cache_policy import install_d1_strategy_fit_cache_policy
 from games.balatro.deck_growth_pack_policy import install_deck_growth_pack_policy
@@ -26,17 +25,13 @@ from games.balatro.latest_batch_build_quality_policy import install_latest_batch
 from games.balatro.latest_batch_no_discard_policy import install_latest_batch_no_discard_policy
 from games.balatro.latest_five_run_calibration_policy import install_latest_five_run_calibration_policy
 from games.balatro.latest_five_run_discard_conflict_policy import install_latest_five_run_discard_conflict_policy
-from games.balatro.latest_five_run_relationship_promotions import install_latest_five_run_relationship_promotions
 from games.balatro.latest_five_run_resource_metrics import install_latest_five_run_resource_metrics
-from games.balatro.latest_five_run_strategy_metrics import install_latest_five_run_strategy_metrics
 from games.balatro.latest_zero_five_survival_policy import install_latest_zero_five_survival_policy
 from games.balatro.log_batch_calibration_policy import install_log_batch_calibration_policy
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.noncash_cash_deployment_policy import install_noncash_cash_deployment_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
 from games.balatro.pareidolia_face_policy import install_pareidolia_face_policy
-from games.balatro.realized_pivot_policy import install_realized_pivot_policy
-from games.balatro.relationship_contract_policy import install_relationship_contract_policy
 from games.balatro.safe_pace_blind_skip_patch import install_safe_pace_blind_skip_patch
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
 from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_correction
@@ -44,31 +39,18 @@ from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patc
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.shop_regression_policy import install_shop_regression_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
-from games.balatro.strategy_banned_conflict_policy import install_strategy_banned_conflict_policy
-from games.balatro.strategy_commitment_hysteresis import install_strategy_commitment_hysteresis
-from games.balatro.strategy_conditional_authority_correction import install_strategy_conditional_authority_correction
-from games.balatro.strategy_conditional_authority_policy import install_strategy_conditional_authority_policy
-from games.balatro.strategy_multi_engine import install_multi_engine_strategy_policy
-from games.balatro.strategy_phase_weight_policy import install_strategy_phase_weight_policy
-from games.balatro.strategy_relationship_calibration import install_strategy_relationship_calibration
-from games.balatro.ten_four_strategy_calibration import install_ten_four_strategy_calibration
 from games.balatro.three_run_review_policy import install_three_run_review_policy
 from games.balatro.v1_0_0_luchador_policy import install_v1_0_0_luchador_policy
 from games.balatro.v1_0_0_policy import install_v1_0_0_policy
 
 
-apply_blue_joker_strategy_rules()
-apply_constellation_strategy_rules()
-install_multi_engine_strategy_policy()
 install_mouth_first_hand_policy()
 install_aces_scholar_policy()
 install_pareidolia_face_policy()
-install_card_sharp_strategy_rules()
 install_d1_log_resilience_policy()
 install_log_batch_calibration_policy()
 install_shop_regression_policy()
 install_three_run_review_policy()
-install_strategy_commitment_hysteresis()
 install_safe_pace_optimization_policy()
 install_safe_pace_timeout_patch()
 install_safe_pace_blind_skip_patch()
@@ -81,57 +63,22 @@ install_cash_scoring_support_policy()
 install_observatory_planet_policy()
 install_sixth_sense_policy()
 install_early_capacity_policy()
-install_relationship_contract_policy()
-install_strategy_conditional_authority_policy()
-install_strategy_conditional_authority_correction()
-install_strategy_phase_weight_policy()
-install_strategy_relationship_calibration()
-install_ten_four_strategy_calibration()
-install_latest_five_run_strategy_metrics()
 install_latest_five_run_discard_conflict_policy()
-# Dynamic Walkie+Even and scaled-Throwback promotions belong in the existing
-# state-aware relationship resolver, never in private tracker assessment methods.
-install_latest_five_run_relationship_promotions()
 install_latest_five_run_resource_metrics()
-install_strategy_banned_conflict_policy()
 install_five_run_release_candidate_policy()
 install_five_run_validation_policy()
-install_committed_build_replacement_policy()
 install_deck_growth_pack_policy()
-install_committed_pack_choice_policy()
 install_aces_dna_hand_policy()
 install_ankh_presale_policy()
 install_five_run_decision_integrity_policy()
 install_latest_five_run_calibration_policy()
 install_latest_batch_no_discard_policy()
-# Realized pivot maturity must run before Build Health so candidate transition
-# probes see the same buildup/runway gate as the production strategy tracker.
-install_realized_pivot_policy()
-# Build Health evaluates legal outcomes produced by all earlier safety/retention layers.
 install_build_health_policy()
-# SHOP has no visible current hand. Replace only production SHOP survival with a
-# bounded public opening-hand + D1 whole-blind clear-probability projection; all
-# generic/injected-scorer Build Health contracts retain their existing fallback.
 install_shop_clear_probability_health_policy()
-# Latest-batch build-quality pressure runs after Build Health and after committed-build
-# protection, so it can relax only the ordinary replacement margin while preserving
-# existing legality/protection decisions.
 install_latest_batch_build_quality_policy()
-# Cash deployment intentionally runs after Build Health so it only spends excess cash
-# when the final public-state health assessment says the non-cash build is inadequate.
 install_noncash_cash_deployment_policy()
-# The 0/5 opening-survival layer must see the final composed safe-pace decision and
-# may only turn an Ante 1-2 near-pace discard into a scoring play.
 install_latest_zero_five_survival_policy()
-# D1 caching is installed late because it is a semantics-preserving wrapper around
-# the final composed strategy-aware hand policy.
 install_d1_strategy_fit_cache_policy()
-# Canonical 46-Bond Strategy Health observes the final D1 decision and may only
-# reweight SHOP options already admitted by existing child legality/safety policies.
 install_bond_shop_health_policy()
-# Canonical pivot authority may promote/veto only D2-eligible, economically positive
-# replacement transitions after every older protection layer.
 install_bond_pivot_authority()
-# Motif prescriptions are the final bounded preference layer for already-safe pack
-# choices and already-admitted shop consumables. They cannot create legality.
 install_bond_prescription_policy()
