@@ -115,7 +115,7 @@ def realize_held_cards(dev: BondDevelopment, state: Any) -> BondDevelopment:
     queen_hits = sum(1 for c in hand if not _stone(c) and _rank(c) == "Q")
     steel_hits = sum(1 for c in hand if _enhancement(c) == "steel")
 
-    blackboard_ok = bool(hand) and all(
+    blackboard_ok = all(
         not _stone(c)
         and (_suit(c) in {"spades", "clubs"} or _enhancement(c) == "wild")
         for c in hand
