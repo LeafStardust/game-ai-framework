@@ -1,10 +1,10 @@
 # Balatro Strategy Catalogue
 
-Canonical catalogue after **Catalogue Audit Pass 3**. Architecture rules live in `BALATRO_STRATEGY_SYSTEM.md`; exact weights and audited threshold geometry live in `BALATRO_STRATEGY_CONTRIBUTIONS.md`.
+Canonical catalogue after **Catalogue Audit Pass 3** plus one post-freeze mechanical correction. Architecture rules live in `BALATRO_STRATEGY_SYSTEM.md`; exact weights and audited threshold geometry live in `BALATRO_STRATEGY_CONTRIBUTIONS.md`.
 
 ## Audit status
 
-Implementation produced 50 candidate Bonds. Pass 1 pruned six weak/non-independent axes. Pass 2 corrected contributor overlap/misclassification. Pass 3 audited R1-R5 authority and fixed unreachable R4/R5 ceilings. **Accepted count is frozen at 44 pending runtime telemetry evidence.**
+Implementation produced 50 candidate Bonds. Pass 1 pruned six weak/non-independent axes. Pass 2 corrected contributor overlap/misclassification. Pass 3 audited R1-R5 authority and fixed unreachable R4/R5 ceilings. A post-freeze mechanical review identified one genuine missing inverse-payoff axis: **No Face Cards**, defined by Ride the Bus. **Accepted count is now frozen at 45 pending runtime telemetry evidence.**
 
 A Bond is a persistent, independently developable strategic axis. Components may contribute to multiple Bonds only when they genuinely develop each axis; overlap never becomes additive score power.
 
@@ -68,6 +68,7 @@ Rank = development. Realization = whether the engine functions. Build Health = w
 42. **Card Destruction** — current destruction payoff/engine. Historical reduction after engine loss belongs to Deck Thinning.
 43. **Hand Repetition** — Card Sharp/Supernova-defined repeated-hand payoff. Play-count history alone never creates it.
 44. **Enhanced Cards** — Driver's-License-defined enhanced-density XMult axis. Generic enhancement density alone is not a Bond.
+45. **No Face Cards** — Ride-the-Bus-defined avoidance/scaling axis. Hard unlock: Ride the Bus. Natural J/Q/K depletion develops the Bond because it reduces reset risk. Generic face-card interaction does not contribute. Explicit conflict: Face Cards.
 
 ## Removed / demoted mechanics
 
@@ -86,6 +87,7 @@ Flower Pot  -> tactical/motif valuation, not Four-of-a-Kind quota
 ```text
 Burnt x No-Discard                 = CONFLICT
 Discard x No-Discard               = CONFLICT
+Face Cards x No Face Cards         = CONFLICT
 Burnt <-> Discard                  = SYNERGY
 Held Cards <-> Held Retrigger      = SYNERGY
 Held Cards <-> Steel               = SYNERGY
@@ -110,11 +112,11 @@ Held Cards + Held Retrigger + Steel + Kings
 - Deck Thinning and Deck Growth now recognize extreme persistent structure more strongly without treating raw deck size as direct score power.
 - Tarot can reach R5 only with essentially full infrastructure; Planet retains the higher original capstone threshold.
 - Shared implementation-pass threshold dictionaries are not allowed to cross-mutate audited siblings; `authority_calibration.py` rebinds per-Bond tables and tests this explicitly.
-- No Bond was added or removed in Pass 3.
+- No Face Cards was added after freeze only because it was a discovered mechanical omission, not speculative catalogue expansion.
 
 ## Freeze status / next work
 
-The **44-Bond catalogue, contributor classification and rank-authority geometry are now frozen for implementation**. Changes from here should require either a discovered mechanical error or runtime telemetry evidence rather than further speculative catalogue expansion.
+The **45-Bond catalogue, contributor classification and rank-authority geometry are now frozen for implementation**. Changes from here should require either a discovered mechanical error or runtime telemetry evidence rather than further speculative catalogue expansion.
 
 Next architecture stage:
 
