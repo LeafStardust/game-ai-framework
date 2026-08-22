@@ -152,8 +152,11 @@ def realize_enhanced_cards(dev: BondDevelopment, state: Any) -> BondDevelopment:
         return _finish(dev, False)
     deck = _cards(state, "owned_deck", "deck")
     enhanced = sum(1 for c in deck if str(getattr(c, "enhancement", "") or "").strip())
+    # Driver's License turns on at 16 enhanced cards. Once that threshold is met,
+    # the defining payoff is live; R4+ structural development is sufficient for
+    # MATURE rather than inventing a second 24-card mechanical threshold.
     active = enhanced >= 16
-    return _finish(dev, active, enhanced >= 24)
+    return _finish(dev, active, active)
 
 
 def realize_vampire(dev: BondDevelopment, state: Any) -> BondDevelopment:
