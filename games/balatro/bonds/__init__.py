@@ -130,8 +130,24 @@ from games.balatro.bonds.realization import (
     missing_realizers,
     realize_bond,
 )
+from games.balatro.bonds.relationships import (
+    RELATIONSHIPS,
+    BondRelationship,
+    conflicts_with_any,
+    relationship_between,
+    synergies_with,
+)
+from games.balatro.bonds.motifs import (
+    MOTIF_EVALUATORS,
+    MotifEvaluation,
+    MotifState,
+    evaluate_baron_mime_steel,
+    evaluate_motifs,
+)
+from games.balatro.bonds.composer import Composition, compose_build
 
-__all__ = [name for name in globals() if name.isupper() or name.startswith("evaluate_") or name.startswith("enrich_") or name.startswith("realize_") or name in {
+__all__ = [name for name in globals() if name.isupper() or name.startswith("evaluate_") or name.startswith("enrich_") or name.startswith("realize_") or name.startswith("compose_") or name in {
     "BondContribution", "BondDevelopment", "BondRank", "BondRealization", "MechanicalRole", "BurntBondContext",
-    "extra_realizers", "missing_realizers",
+    "BondRelationship", "MotifEvaluation", "MotifState", "Composition",
+    "relationship_between", "conflicts_with_any", "synergies_with", "extra_realizers", "missing_realizers",
 }]
