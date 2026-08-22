@@ -28,6 +28,13 @@ def _stone(card: Any) -> bool:
     return bool(getattr(card, "is_stone", False)) or str(getattr(card, "enhancement", "") or "").lower() == "stone"
 
 
+def _eternal(joker: Any) -> bool:
+    if bool(getattr(joker, "eternal", False) or getattr(joker, "is_eternal", False)):
+        return True
+    sticker = str(getattr(joker, "sticker", getattr(joker, "stake_sticker", "")) or "").lower()
+    return "eternal" in sticker
+
+
 def _finish(dev: BondDevelopment, active: bool, strong: bool = False) -> BondDevelopment:
     dev = enrich_development(dev)
     if not dev.unlocked or dev.rank in (BondRank.LOCKED, BondRank.R0):
@@ -42,11 +49,11 @@ def _finish(dev: BondDevelopment, active: bool, strong: bool = False) -> BondDev
 def realize_joker_sacrifice_ordered(dev: BondDevelopment, state: Any) -> BondDevelopment:
     jokers = _jokers(state)
     dagger_index = next((i for i, joker in enumerate(jokers) if "ceremonialdagger" in _name(joker)), None)
-    dagger_has_target = dagger_index is not None and dagger_index + 1 < len(jokers)
-    ordered_fodder = dagger_has_target and (
-        bool(getattr(state, "sacrificable_joker_available", False))
-        or "riffraff" in _name(jokers[dagger_index + 1])
-    )
+    dagger_target = jokers[dagger_index + 1] if dagger_index is not None and dagger_index + 1 < len(jokers) else None
+    # Ceremonial Dagger destroys whatever Joker is immediately to its right;
+    # it does not require a special "fodder" class. Eternal is the mechanical
+    # exception because that Joker cannot be destroyed.
+    dagger_live = dagger_target is not None and not _eternal(dagger_target)
 
     madness = any("madness" in _name(joker) for joker in jokers)
     pending = bool(getattr(state, "blind_selection_pending", True))
@@ -58,7 +65,7 @@ def realize_joker_sacrifice_ordered(dev: BondDevelopment, state: Any) -> BondDev
             break
     madness_can_trigger = pending and "boss" not in blind
 
-    active = ordered_fodder or (madness and madness_can_trigger)
+    active = dagger_live or (madness and madness_can_trigger)
     return _finish(dev, active, active and int(getattr(state, "jokers_destroyed", 0) or 0) >= 6)
 
 
