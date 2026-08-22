@@ -9,7 +9,6 @@ from games.balatro.bond_pivot_authority import install_bond_pivot_authority
 from games.balatro.bond_prescription_policy import install_bond_prescription_policy
 from games.balatro.bond_shop_health_policy import install_bond_shop_health_policy
 from games.balatro.build_health_policy import install_build_health_policy
-from games.balatro.cash_scoring_support_policy import install_cash_scoring_support_policy
 from games.balatro.d1_log_resilience_policy import install_d1_log_resilience_policy
 from games.balatro.d1_strategy_fit_cache_policy import install_d1_strategy_fit_cache_policy
 from games.balatro.deck_growth_pack_policy import install_deck_growth_pack_policy
@@ -52,7 +51,6 @@ install_v1_0_0_policy()
 install_v1_0_0_luchador_policy()
 install_five_run_optimization_policy()
 install_five_run_followup_policy()
-install_cash_scoring_support_policy()
 install_observatory_planet_policy()
 install_sixth_sense_policy()
 install_early_capacity_policy()
