@@ -89,9 +89,12 @@ The implementation contract is documented in [`docs/balatro/BUILD_HEALTH_AND_REA
 - [x] Make shop buy/replace/reroll decisions sensitive to Build Health delta rather than Joker count or isolated item value alone.
 - [x] Keep committed Gold/Silver structure protected while still allowing immediate stronger same-route upgrades.
 - [x] Make pivot decisions compare realized current strength, transition cost, required buildup, and remaining runway; theoretical ceiling alone is insufficient.
+- [x] Harden canonical pivot authority against missing/invalid Joker-slot telemetry so structural replacement veto/promotion only runs when a full roster is actually known.
+- [x] Apply bounded motif prescriptions beneath existing pack/shop safety authorities, including Baron/Mime/Steel, Photograph/Chad, Vampire/Midas, Burnt target leveling, and Hack retrigger support.
+- [x] Normalize prescription matching across live naming/telemetry variants for consumables, Planet target hands, ranks, Steel enhancements, and Red/Blue Seals.
 - [x] Add bounded short-horizon multi-action planning for complementary shop pairs and activation sequences.
 - [x] Expose Build Health and inactive-engine/scaling-deficit warnings in the live monitor and structured logs.
-- [x] Add deterministic regressions before each behavior change. **Regression files are present but have not yet been executed on the current branch head.**
+- [x] Add deterministic regressions before each behavior change. The Bond pivot/prescription boundary batch is green as of 2026-08-22; broader current-HEAD validation remains required before live five-run calibration.
 - [ ] Run a fresh unchanged-HEAD five-run Red/White validation batch only after the complete layer is green.
 
 ### Calibration gate before Red Stake
