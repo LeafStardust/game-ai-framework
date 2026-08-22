@@ -9,6 +9,7 @@ from games.balatro.bond_shop_health_policy import (
     last_strategy_health,
 )
 from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.model import BondRank
 from games.balatro.bonds.motifs import MotifState
 from games.balatro.live.strategy_health import StrategyHealthMode
 from games.balatro.state import BalatroState
@@ -77,9 +78,6 @@ def test_baron_mime_steel_scenario_activates_and_prescribes_engine_cards():
         _card("2", enhancement="Steel"),
         _card("3", enhancement="Steel"),
     ]
-    # Realization is current-state authority, not deck-theory authority. Put the
-    # held engine in the current hand so Held Cards / Held Retrigger / Steel / Kings
-    # can actually fire now.
     state.hand = [
         _card("K", enhancement="Steel"),
         _card("K"),
@@ -87,7 +85,13 @@ def test_baron_mime_steel_scenario_activates_and_prescribes_engine_cards():
     ]
     developments, composition = evaluate_bond_composition(state)
     motif = next(m for m in composition.motifs if m.motif_id == "baron_mime_steel")
-    assert motif.state >= MotifState.ACTIVE
+    steel = next(d for d in developments if d.bond_id == "steel")
+
+    # The motif contract intentionally activates at two Steel cards because Baron
+    # + Mime makes that small Steel package super-additive. The standalone Steel
+    # Bond may still be R0; it is required only for MATURE motif status.
+    assert steel.rank == BondRank.R0
+    assert motif.state == MotifState.ACTIVE
 
     steel_bonus, _ = prescription_bonus(state, kind="TAROT", label="The Chariot")
     king_bonus, _ = prescription_bonus(
@@ -109,8 +113,6 @@ def test_burnt_scenario_targets_actual_hand_not_generic_high_card():
     _, composition = evaluate_bond_composition(state)
     motif = next((m for m in composition.motifs if m.motif_id == "burnt_target_level"), None)
     if motif is None or motif.state < MotifState.ACTIVE:
-        # This test is about target-specific prescription semantics; active motif
-        # prerequisites beyond the target hand are covered in motif unit tests.
         return
     mercury_bonus, _ = prescription_bonus(state, kind="PLANET", label="Mercury")
     pluto_bonus, _ = prescription_bonus(state, kind="PLANET", label="Pluto")
