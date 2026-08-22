@@ -57,7 +57,15 @@ def _audited_suit_density(state, suit: str) -> float:
 def _audited_rank_density(state, ranks: set[str]) -> float:
     from games.balatro.bonds import catalogue_batch_four as b4
 
-    count = sum(1 for card in b4._deck(state) if str(getattr(card, "rank", "") or "").upper() in ranks)
+    # Stone cards retain a hidden underlying rank in the save, but mechanically
+    # have no rank while Stone. Do not let that hidden rank establish Kings,
+    # Queens, Jacks, or other rank-density authority.
+    count = sum(
+        1
+        for card in b4._deck(state)
+        if str(getattr(card, "enhancement", "") or "").lower() != "stone"
+        and str(getattr(card, "rank", "") or "").upper() in ranks
+    )
     return b4._band(
         count,
         ((4, 1.0), (6, 3.0), (9, 5.0), (13, 7.0), (18, 9.0), (24, 13.0), (32, 17.0), (40, 21.0), (44, 23.0)),
