@@ -33,9 +33,10 @@ from games.balatro.bonds.authority_calibration import apply_rank_authority_audit
 
 apply_rank_authority_audit()
 
-# Refresh public exports after calibration because several threshold tables are
-# rebound intentionally by the audit layer. Contributor ownership now lives in
-# the canonical evaluator modules; no post-import contributor wrapper remains.
+from games.balatro.bonds.joker_coverage_extensions import apply_joker_coverage_extensions
+apply_joker_coverage_extensions()
+
+# Refresh public exports after calibration and post-freeze coverage extensions.
 from games.balatro.bonds.catalogue_batch_one import *
 from games.balatro.bonds.catalogue_batch_two import *
 from games.balatro.bonds.catalogue_batch_three import *
