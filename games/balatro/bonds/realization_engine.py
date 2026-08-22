@@ -130,8 +130,31 @@ def realize_joker_sacrifice(dev: BondDevelopment, state: Any) -> BondDevelopment
 def realize_card_destruction(dev: BondDevelopment, state: Any) -> BondDevelopment:
     jokers = _jokers(state)
     hand = _cards(state, "hand", "current_hand", "cards_in_hand")
-    trading = _has(jokers, "tradingcard") and bool(hand)
-    sixth = _has(jokers, "sixthsense") and any(str(getattr(c, "rank", "")) == "6" for c in hand)
+
+    # Trading Card and Sixth Sense are first-action engines. Merely owning the
+    # Joker plus having any card/6 in hand is not enough once that opportunity
+    # has already been spent this round.
+    first_discard_available = bool(
+        getattr(
+            state,
+            "first_discard_available",
+            int(getattr(state, "discards_used_this_round", 0) or 0) == 0,
+        )
+    )
+    first_hand_available = bool(
+        getattr(
+            state,
+            "first_hand_available",
+            int(getattr(state, "hands_played_this_round", 0) or 0) == 0,
+        )
+    )
+    trading = _has(jokers, "tradingcard") and first_discard_available and bool(hand)
+    sixth = (
+        _has(jokers, "sixthsense")
+        and first_hand_available
+        and any(str(getattr(c, "rank", "")) == "6" for c in hand)
+    )
+
     glass = _has(jokers, "glassjoker") and any(str(getattr(c, "enhancement", "") or "").lower() == "glass" for c in hand)
     canio = _has(jokers, "canio") and int(getattr(state, "cards_destroyed", 0) or 0) > 0
     active = trading or sixth or glass or canio
