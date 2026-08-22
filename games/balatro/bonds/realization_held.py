@@ -59,6 +59,30 @@ def _mature_if_rank(dev: BondDevelopment, active: bool, strong: bool = False) ->
     return BondRealization.ACTIVE
 
 
+def _held_effect_count(card: Any, jokers: list[Any]) -> int:
+    """Number of meaningful held-in-hand effects on this card.
+
+    Red Seal retriggers the card itself, so it is useful for held retrigger only
+    when the held card already has at least one held effect (Steel/Gold/Blue or
+    a rank/state payoff such as Baron/Shoot the Moon/Raised Fist).
+    """
+    effects = 0
+    enh = _enhancement(card)
+    if enh in {"steel", "gold"}:
+        effects += 1
+    if _seal(card) == "blue":
+        effects += 1
+    if _has(jokers, "baron") and _rank(card) == "K":
+        effects += 1
+    if _has(jokers, "shootthemoon") and _rank(card) == "Q":
+        effects += 1
+    if _has(jokers, "raisedfist"):
+        # Raised Fist applies to the lowest-ranked held card. Without modelling
+        # the exact minimum here, at least one held card is a valid target.
+        effects += 1
+    return effects
+
+
 def realize_held_cards(dev: BondDevelopment, state: Any) -> BondDevelopment:
     dev = enrich_development(dev)
     if _development_floor(dev) == BondRealization.DORMANT:
@@ -66,8 +90,6 @@ def realize_held_cards(dev: BondDevelopment, state: Any) -> BondDevelopment:
 
     hand = _cards(state, "hand", "current_hand", "cards_in_hand")
     jokers = _jokers(state)
-    if not hand:
-        return replace(dev, realization=BondRealization.PARTIAL)
 
     has_baron = _has(jokers, "baron")
     has_stm = _has(jokers, "shootthemoon")
@@ -77,14 +99,26 @@ def realize_held_cards(dev: BondDevelopment, state: Any) -> BondDevelopment:
     king_hits = sum(1 for c in hand if _rank(c) == "K")
     queen_hits = sum(1 for c in hand if _rank(c) == "Q")
     steel_hits = sum(1 for c in hand if _enhancement(c) == "steel")
-    blackboard_ok = bool(hand) and all(_suit(c) in {"spades", "clubs"} for c in hand if _enhancement(c) != "stone")
+
+    # Blackboard requires every held card to be a Spade or Club. Wild cards
+    # count as every suit; Stone cards have no suit and therefore block it.
+    blackboard_ok = all(
+        _enhancement(c) != "stone"
+        and (_suit(c) in {"spades", "clubs"} or _enhancement(c) == "wild")
+        for c in hand
+    )
 
     active_sources = 0
-    if has_baron and king_hits: active_sources += 1
-    if has_stm and queen_hits: active_sources += 1
-    if has_fist and hand: active_sources += 1
-    if has_blackboard and blackboard_ok: active_sources += 1
-    if steel_hits: active_sources += 1
+    if has_baron and king_hits:
+        active_sources += 1
+    if has_stm and queen_hits:
+        active_sources += 1
+    if has_fist and hand:
+        active_sources += 1
+    if has_blackboard and blackboard_ok:
+        active_sources += 1
+    if steel_hits:
+        active_sources += 1
 
     strong = active_sources >= 2 or king_hits + queen_hits + steel_hits >= 3
     return replace(dev, realization=_mature_if_rank(dev, active_sources > 0, strong))
@@ -97,19 +131,23 @@ def realize_held_retrigger(dev: BondDevelopment, state: Any) -> BondDevelopment:
 
     hand = _cards(state, "hand", "current_hand", "cards_in_hand")
     jokers = _jokers(state)
-    if not _has(jokers, "mime"):
-        return replace(dev, realization=BondRealization.PARTIAL)
     if not hand:
         return replace(dev, realization=BondRealization.PARTIAL)
 
-    retriggerable = 0
-    for card in hand:
-        if _enhancement(card) in {"steel", "gold"} or _seal(card) in {"blue", "red"}:
-            retriggerable += 1
-    if _has(jokers, "baron", "shootthemoon", "raisedfist"):
-        retriggerable += 1
+    held_effect_cards = sum(1 for card in hand if _held_effect_count(card, jokers) > 0)
+    mime = _has(jokers, "mime")
+    red_held = sum(
+        1
+        for card in hand
+        if _seal(card) == "red" and _held_effect_count(card, jokers) > 0
+    )
 
-    return replace(dev, realization=_mature_if_rank(dev, retriggerable > 0, retriggerable >= 3))
+    # Mime and Red Seal are independent held-card retrigger sources. Mime does
+    # not need to be present for a Red-Seal Steel/Gold/Blue/rank-payoff card to
+    # realize this Bond.
+    active_sources = int(mime and held_effect_cards > 0) + red_held
+    strong = active_sources >= 2 or (mime and red_held >= 1) or red_held >= 2
+    return replace(dev, realization=_mature_if_rank(dev, active_sources > 0, strong))
 
 
 def realize_steel(dev: BondDevelopment, state: Any) -> BondDevelopment:
