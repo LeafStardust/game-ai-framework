@@ -8,28 +8,50 @@ COPY_JOKER_CLASS_NAMES = frozenset(
     }
 )
 
-# Validated copier targets whose scoring-time delegation is side-effect safe.
-# Burnt Joker is included because its copied ability activates on discard, so
-# delegating it during score projection is intentionally a no-op; discard-time
-# copy activation is handled by LiveDiscardJokerProjector. The generated-
-# consumable Jokers below expose only deterministic signals during scoring; their
-# actual Tarot/Spectral state transition is owned by the live outcome projector.
+# Validated copier targets whose score projection is side-effect safe.  The
+# original list only covered Jokers that resolve through the generic HAND_SCORED
+# path.  That made Blueprint/Brainstorm look inert when copying card-scored or
+# held-card payoffs such as Photograph, even though the live scorer models those
+# effects explicitly.  Keep this list conservative, but include every pure
+# CARD_SCORED / HELD_CARD payoff currently owned by BalatroScorer.
 INDEPENDENT_COPY_TARGET_CLASS_NAMES = frozenset(
     {
         "AbstractJoker",
+        "AncientJoker",
+        "ArrowheadJoker",
+        "BaronJoker",
+        "BloodstoneJoker",
         "BurntJoker",
         "CavendishJoker",
         "EightBallJoker",
+        "EvenStevenJoker",
+        "FibonacciJoker",
         "FlatMultJoker",
         "GlassJoker",
+        "GluttonousJoker",
+        "GreedyJoker",
         "JollyJoker",
+        "LustyJoker",
         "MatadorJoker",
         "MisprintJoker",
+        "OddToddJoker",
+        "OnyxAgateJoker",
+        "PhotographJoker",
+        "RaisedFistJoker",
+        "ScaryFaceJoker",
+        "ScholarJoker",
         "SeanceJoker",
+        "ShootTheMoonJoker",
+        "SmileyFaceJoker",
         "StuntmanJoker",
         "SuperpositionJoker",
+        "TheIdolJoker",
         "ToDoListJoker",
+        "TribouletJoker",
         "VagabondJoker",
+        "WalkieTalkieJoker",
+        "WeeJoker",
+        "WrathfulJoker",
     }
 )
 
@@ -46,13 +68,7 @@ _COPY_METADATA_FIELDS = (
 
 
 class ProjectedIndependentCopyJoker:
-    """Delegate one independent effect while retaining copier metadata.
-
-    Blueprint/Brainstorm copy the target Joker's compatible ability, not the
-    target's Edition, rarity, stickers or identity. The scorer therefore sees
-    the copier's metadata for edition/Baseball ordering while ``apply`` delegates
-    only the validated independent scoring effect to the resolved target.
-    """
+    """Delegate one copied effect while retaining the copier's metadata."""
 
     def __init__(self, copier, target):
         self._target = target
@@ -62,6 +78,27 @@ class ProjectedIndependentCopyJoker:
 
     def apply(self, context):
         return self._target.apply(context)
+
+
+_PROJECTED_PROXY_TYPES: dict[str, type] = {}
+
+
+def _projected_copy_proxy(copier, target):
+    """Return a proxy dispatched through the target's scorer trigger family.
+
+    BalatroScorer intentionally dispatches CARD_SCORED and HELD_CARD effects by
+    Joker class name.  A generic proxy therefore suppresses copied Photograph,
+    Baron, Odd Todd, etc.  The ephemeral proxy keeps the *target* class name for
+    trigger dispatch while retaining Blueprint/Brainstorm metadata and delegating
+    only the target ability through ``apply``.
+    """
+
+    class_name = type(target).__name__
+    proxy_type = _PROJECTED_PROXY_TYPES.get(class_name)
+    if proxy_type is None:
+        proxy_type = type(class_name, (ProjectedIndependentCopyJoker,), {})
+        _PROJECTED_PROXY_TYPES[class_name] = proxy_type
+    return proxy_type(copier, target)
 
 
 def resolve_copy_target(joker, state) -> tuple[object | None, bool]:
@@ -128,6 +165,6 @@ def project_independent_copy_jokers(jokers, state) -> list:
             projected.append(joker)
             continue
 
-        projected.append(ProjectedIndependentCopyJoker(joker, target))
+        projected.append(_projected_copy_proxy(joker, target))
 
     return projected
