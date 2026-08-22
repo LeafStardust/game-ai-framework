@@ -38,7 +38,16 @@ def realize_vampire_ordered(d,s):
  if vi is None:return _finish(d,False)
  hand=_cards(s,"hand","current_hand","cards_in_hand");deck=_cards(s,"owned_deck","deck");has_scoring=hasattr(s,"scoring_cards");sc=_cards(s,"scoring_cards") if has_scoring else _cards(s,"played_cards","current_played_cards");mi=next((i for i,x in enumerate(j) if "midasmask" in _name(x)),None);par=any("pareidolia" in _name(x) for x in j)
  if has_scoring:
-  feed=sum(1 for c in sc if not _debuffed(c) and str(getattr(c,"enhancement","") or "").strip());renew=mi is not None and mi<vi and any(_face(c,par) for c in sc)
+  # Direct enhancement feed is restricted to the explicitly scoring cards.
+  feed=sum(1 for c in sc if not _debuffed(c) and str(getattr(c,"enhancement","") or "").strip())
+  if sc:
+   # During an actual scoring event, Joker order controls whether Midas can
+   # create Gold before Vampire consumes it in that same hand.
+   renew=mi is not None and mi<vi and any(_face(c,par) for c in sc)
+  else:
+   # An explicitly empty scoring snapshot means no direct feed this frame, but
+   # Midas plus face cards elsewhere still constitutes renewable future feed.
+   renew=mi is not None and any(_face(c,par) for c in (hand or deck))
  else:
   pool=sc or hand or deck;feed=sum(1 for c in pool if not _debuffed(c) and str(getattr(c,"enhancement","") or "").strip());renew=mi is not None and any(_face(c,par) for c in pool)
  a=feed>0 or renew;return _finish(d,a,feed>=2 or (renew and int(getattr(s,"vampire_enhancements_consumed",0) or 0)>=15))
