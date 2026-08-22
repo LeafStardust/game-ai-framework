@@ -78,7 +78,7 @@ The production base `LiveHandActionDecisionEngine` records this result after its
 
 ## SHOP integration
 
-Canonical 46-Bond Strategy Health is installed last in the Balatro policy stack and therefore sits above the existing SHOP child legality/admission layers.
+Canonical 46-Bond Strategy Health is installed late in the Balatro policy stack and therefore sits above the existing SHOP child legality/admission layers.
 
 Weak health may increase urgency only for options that those child policies have already admitted:
 
@@ -140,3 +140,43 @@ Pivot invariants:
 3. Canonical authority cannot bypass Eternal, committed-component, affordability, reserve, or other upstream guards.
 4. Existing replacements may be vetoed when realized Bond/motif disruption exceeds the health-adjusted structural gain.
 5. A prior `HOLD` may become `REPLACE` only when an upstream-eligible positive option exceeds the canonical structural threshold.
+
+## Motif prescription authority
+
+Active and mature motifs emit concrete prescriptions. `bond_prescription_policy.py` converts only prescriptions with directly observable public semantics into bounded preference value for safe pack choices and already-admitted shop consumables.
+
+Initial mappings are deliberately narrow:
+
+```text
+Baron-Mime-Steel
+  prefer The Chariot / Steel creation
+  prefer Deja Vu / Red Seal creation
+  prefer King, Steel and Red-Seal playing cards
+  prefer targeting Kings with Steel/Red-Seal transformations
+
+Photograph-Hanging Chad
+  prefer face-card playing choices
+  prefer Deja Vu, especially on face cards
+
+Vampire-Midas
+  prefer face-card feedstock
+  recognize enhanced playing cards as Vampire feedstock
+
+Burnt target-hand leveling
+  prefer the Planet matching the Bond's actual target hand
+  prefer Trance / Blue Seal support
+  prefer Blue-Seal playing cards
+
+Low-rank Hack retrigger
+  prefer ranks 2-5
+  prefer Deja Vu, especially on ranks 2-5
+```
+
+Prescription invariants:
+
+1. Only `ACTIVE` or `MATURE` motifs emit prescription authority; `POTENTIAL` motifs do not receive the same reinforcement pressure.
+2. Unsupported, deferred, unavailable, zero-value, or negative-value pack choices cannot be rescued by a prescription bonus.
+3. Shop consumables must first be admitted by D4 and retain positive normalized utility before motif preference is applied.
+4. Prescription bonuses are bounded (`2.50` in visible pack ranking and `1.25` on admitted SHOP consumable utility).
+5. Burnt uses the Bond evaluator's actual target hand. It never silently defaults prescription authority to High Card when another Bond/hand is the target.
+6. Prescription authority does not alter chip arithmetic, Build Health classification, legality, affordability, or immediate survival authority.
