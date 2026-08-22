@@ -33,7 +33,9 @@ def realize_low_ranks(d,s):
  p=_played(s);j=_jokers(s);m=0
  for c in p:
   if _debuffed(c) or _stone(c):continue
-  r=_rank(c);tr=(_has(j,"hack") and r in {"2","3","4","5"}) or (_has(j,"weejoker") and r=="2") or (_has(j,"fibonacci") and r in {"2","3","5","8","A"}) or (_has(j,"evensteven") and r in {"2","4","6","8","10","T"}) or (_has(j,"walkietalkie") and r in {"4","10","T"})
+  r=_rank(c)
+  if r not in {"2","3","4","5"}:continue
+  tr=(_has(j,"hack") and r in {"2","3","4","5"}) or (_has(j,"weejoker") and r=="2") or (_has(j,"fibonacci") and r in {"2","3","5"}) or (_has(j,"evensteven") and r in {"2","4"}) or (_has(j,"walkietalkie") and r=="4")
   if tr:m+=1
  return _finish(d,m>0,m>=3)
 def realize_jacks(d,s):
