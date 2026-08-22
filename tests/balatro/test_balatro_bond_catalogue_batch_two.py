@@ -24,12 +24,7 @@ def _card(rank="2", suit="Hearts", enhancement="", seal=""):
 
 
 def _state(*, jokers=(), deck=(), hand_levels=None):
-    return SimpleNamespace(
-        jokers=list(jokers),
-        owned_deck=list(deck),
-        deck=list(deck),
-        hand_levels=dict(hand_levels or {}),
-    )
+    return SimpleNamespace(jokers=list(jokers), owned_deck=list(deck), deck=list(deck), hand_levels=dict(hand_levels or {}))
 
 
 def test_two_pair_can_emerge_from_spare_trousers_or_levels():
@@ -43,10 +38,10 @@ def test_three_kind_has_direct_joker_path():
     assert result.contribution == 6.0
 
 
-def test_four_kind_includes_flower_pot_as_minor_contributor_not_own_bond():
+def test_flower_pot_does_not_contribute_to_four_kind():
     result = evaluate_four_kind_bond(_state(jokers=(_joker("The Family"), _joker("Flower Pot"))))
-    assert result.contribution == 9.0
-    assert result.rank == BondRank.R2
+    assert result.contribution == 7.0
+    assert result.rank == BondRank.R1
 
 
 def test_straight_combines_shortcut_and_hand_levels():
