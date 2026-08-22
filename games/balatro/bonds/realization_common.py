@@ -167,13 +167,23 @@ def realize_played_retrigger(dev: BondDevelopment, state: Any) -> BondDevelopmen
 def realize_deck_thinning(dev: BondDevelopment, state: Any) -> BondDevelopment:
     dev=enrich_development(dev)
     if _floor(dev)==BondRealization.DORMANT:return replace(dev,realization=BondRealization.DORMANT)
-    deck=_deck(state);reduction=max(0,52-len(deck)) if deck else int(getattr(state,"permanent_cards_removed",0) or 0);jokers=list(getattr(state,"jokers",()) or ());payoff=_has(jokers,"erosion") and reduction>0;engine=_has(jokers,"tradingcard","sixthsense");active=reduction>0 and (payoff or engine or dev.rank>=BondRank.R2);strong=reduction>=12 and (payoff or engine);return _finish(dev,active=active,strong=strong)
+    deck=_deck(state);reduction=max(0,52-len(deck)) if deck else int(getattr(state,"permanent_cards_removed",0) or 0);jokers=list(getattr(state,"jokers",()) or ());payoff=_has(jokers,"erosion") and reduction>0;engine=_has(jokers,"tradingcard","sixthsense")
+    # Trading Card / Sixth Sense are live removal engines even before the first
+    # permanent removal has happened. Erosion, by contrast, needs actual deck
+    # reduction because its payoff scales from missing cards.
+    active=engine or payoff or (reduction>0 and dev.rank>=BondRank.R2)
+    strong=reduction>=12 and (payoff or engine);return _finish(dev,active=active,strong=strong)
 
 
 def realize_deck_growth(dev: BondDevelopment, state: Any) -> BondDevelopment:
     dev=enrich_development(dev)
     if _floor(dev)==BondRealization.DORMANT:return replace(dev,realization=BondRealization.DORMANT)
-    deck=_deck(state);growth=max(0,len(deck)-52) if deck else int(getattr(state,"permanent_cards_added",0) or 0);jokers=list(getattr(state,"jokers",()) or ());engine=_has(jokers,"certificate","dna","marblejoker","hologram");payoff=_has(jokers,"hologram") and growth>0;active=growth>0 and (engine or dev.rank>=BondRank.R2);strong=growth>=12 and (payoff or engine);return _finish(dev,active=active,strong=strong)
+    deck=_deck(state);growth=max(0,len(deck)-52) if deck else int(getattr(state,"permanent_cards_added",0) or 0);jokers=list(getattr(state,"jokers",()) or ());engine=_has(jokers,"certificate","dna","marblejoker");payoff=_has(jokers,"hologram") and growth>0
+    # Certificate, DNA and Marble Joker are live growth engines immediately;
+    # Hologram is the growth payoff and requires at least one added card before
+    # its scaling is mechanically realized.
+    active=engine or payoff or (growth>0 and dev.rank>=BondRank.R2)
+    strong=growth>=12 and (payoff or engine);return _finish(dev,active=active,strong=strong)
 
 
 COMMON_REALIZERS={"pair":realize_pair,"high_card":realize_high_card,"two_pair":realize_two_pair,"three_kind":realize_three_kind,"four_kind":realize_four_kind,"straight":realize_straight,"flush":realize_flush,"played_retrigger":realize_played_retrigger,"deck_thinning":realize_deck_thinning,"deck_growth":realize_deck_growth}
