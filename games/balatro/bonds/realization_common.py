@@ -24,6 +24,7 @@ def _suit(c):return str(getattr(c,"suit","") or "").lower()
 def _enh(c):return str(getattr(c,"enhancement","") or "").lower()
 def _seal(c):return str(getattr(c,"seal","") or "").lower()
 def _stone(c):return bool(getattr(c,"is_stone",False)) or _enh(c)=="stone"
+def _debuffed(c):return bool(getattr(c,"debuffed",False) or getattr(c,"is_debuffed",False))
 def _floor(dev):return BondRealization.DORMANT if not dev.unlocked or dev.rank in (BondRank.LOCKED,BondRank.R0) else BondRealization.PARTIAL
 def _finish(dev,*,active,strong=False):
     if not active:return replace(dev,realization=_floor(dev))
@@ -83,19 +84,16 @@ def realize_played_retrigger(dev,state):
     if _floor(dev)==BondRealization.DORMANT:return replace(dev,realization=BondRealization.DORMANT)
     j=list(getattr(state,"jokers",()) or ());raw=getattr(state,"scoring_cards",None);played=list(raw or ()) if raw is not None else _cards(state,"selected_cards","cards_to_play")
     if raw is None and not played:played=_cards(state,"hand","current_hand","cards_in_hand")
-    par=_has(j,"pareidolia");red=sum(1 for c in played if _seal(c)=="red");face=len(played) if par else sum(1 for c in played if not _stone(c) and _rank(c) in {"J","Q","K"});hack=sum(1 for c in played if not _stone(c) and _rank(c) in {"2","3","4","5"});src=0
+    live=[c for c in played if not _debuffed(c)];par=_has(j,"pareidolia");red=sum(1 for c in live if _seal(c)=="red");face=len(live) if par else sum(1 for c in live if not _stone(c) and _rank(c) in {"J","Q","K"});hack=sum(1 for c in live if not _stone(c) and _rank(c) in {"2","3","4","5"});src=0
     if _has(j,"sockandbuskin") and face:src+=1
     if _has(j,"hack") and hack:src+=1
-    if _has(j,"hangingchad") and played:src+=1
-    # Dusk retriggers on the final hand of the round. Depending on telemetry,
-    # hands_left may be observed immediately before play (1) or after decrement (0).
+    if _has(j,"hangingchad") and played and not _debuffed(played[0]):src+=1
     hands_left=getattr(state,"hands_left",None)
-    if _has(j,"dusk") and played and hands_left is not None and int(hands_left)==0:src+=1
-    elif _has(j,"dusk") and played and hands_left is not None and int(hands_left)==1:src+=1
+    if _has(j,"dusk") and live and hands_left is not None and int(hands_left) in {0,1}:src+=1
     if red:src+=1
     return _finish(dev,active=src>0,strong=src>=2 or red>=2)
 def realize_deck_thinning(dev,state):
-    dev=enrich_development(dev);deck=_deck(state);reduction=max(0,52-len(deck)) if deck else int(getattr(state,"permanent_cards_removed",0) or 0);j=list(getattr(state,"jokers",()) or ());pay=_has(j,"erosion") and reduction>0;fd=bool(getattr(state,"first_discard_available",int(getattr(state,"discards_used_this_round",0) or 0)==0));sd=_cards(state,"cards_to_discard","selected_cards");tr=_has(j,"tradingcard") and fd and len(sd)==1;fh=bool(getattr(state,"first_hand_available",int(getattr(state,"hands_played_this_round",0) or 0)==0));sp=_cards(state,"cards_to_play","selected_cards");six=_has(j,"sixthsense") and fh and len(sp)==1 and not _stone(sp[0]) and _rank(sp[0])=="6";live=tr or six;return _finish(dev,active=live or pay or (reduction>0 and dev.rank>=BondRank.R2),strong=reduction>=12 and (pay or live))
+    dev=enrich_development(dev);deck=_deck(state);reduction=max(0,52-len(deck)) if deck else int(getattr(state,"permanent_cards_removed",0) or 0);j=list(getattr(state,"jokers",()) or ());pay=_has(j,"erosion") and reduction>0;fd=bool(getattr(state,"first_discard_available",int(getattr(state,"discards_used_this_round",0) or 0)==0));sd=_cards(state,"cards_to_discard","selected_cards");tr=_has(j,"tradingcard") and fd and len(sd)==1;fh=bool(getattr(state,"first_hand_available",int(getattr(state,"hands_played_this_round",0) or 0)==0));sp=_cards(state,"cards_to_play","selected_cards");six=_has(j,"sixthsense") and fh and len(sp)==1 and not _debuffed(sp[0]) and not _stone(sp[0]) and _rank(sp[0])=="6";live_engine=tr or six;return _finish(dev,active=live_engine or pay or (reduction>0 and dev.rank>=BondRank.R2),strong=reduction>=12 and (pay or live_engine))
 def realize_deck_growth(dev,state):
     dev=enrich_development(dev);deck=_deck(state);growth=max(0,len(deck)-52) if deck else int(getattr(state,"permanent_cards_added",0) or 0);j=list(getattr(state,"jokers",()) or ());pay=_has(j,"hologram") and growth>0;pending=bool(getattr(state,"blind_selection_pending",False));cert=_has(j,"certificate") and pending;marble=_has(j,"marblejoker") and pending;fh=bool(getattr(state,"first_hand_available",int(getattr(state,"hands_played_this_round",0) or 0)==0));sp=_cards(state,"cards_to_play","selected_cards");dna=_has(j,"dna") and fh and len(sp)==1;live=cert or marble or dna;return _finish(dev,active=live or pay or (growth>0 and dev.rank>=BondRank.R2),strong=growth>=12 and (pay or live))
 COMMON_REALIZERS={"pair":realize_pair,"high_card":realize_high_card,"two_pair":realize_two_pair,"three_kind":realize_three_kind,"four_kind":realize_four_kind,"straight":realize_straight,"flush":realize_flush,"played_retrigger":realize_played_retrigger,"deck_thinning":realize_deck_thinning,"deck_growth":realize_deck_growth}
