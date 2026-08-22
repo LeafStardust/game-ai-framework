@@ -45,6 +45,10 @@ def _seal(card: Any) -> str:
     return str(getattr(card, "seal", "") or "").lower()
 
 
+def _stone(card: Any) -> bool:
+    return _enhancement(card) == "stone" or bool(getattr(card, "is_stone", False))
+
+
 def _development_floor(dev: BondDevelopment) -> BondRealization:
     if not dev.unlocked or dev.rank in (BondRank.LOCKED, BondRank.R0):
         return BondRealization.DORMANT
@@ -66,9 +70,9 @@ def _held_effect_count(card: Any, jokers: list[Any]) -> int:
         effects += 1
     if _seal(card) == "blue":
         effects += 1
-    if _has(jokers, "baron") and _rank(card) == "K":
+    if not _stone(card) and _has(jokers, "baron") and _rank(card) == "K":
         effects += 1
-    if _has(jokers, "shootthemoon") and _rank(card) == "Q":
+    if not _stone(card) and _has(jokers, "shootthemoon") and _rank(card) == "Q":
         effects += 1
     return effects
 
@@ -86,7 +90,7 @@ def _raised_fist_target(hand: list[Any], jokers: list[Any]) -> int | None:
     ranked = [
         (values[_rank(card)], index)
         for index, card in enumerate(hand)
-        if _enhancement(card) != "stone" and _rank(card) in values
+        if not _stone(card) and _rank(card) in values
     ]
     if not ranked:
         return None
@@ -107,12 +111,12 @@ def realize_held_cards(dev: BondDevelopment, state: Any) -> BondDevelopment:
     has_fist = _has(jokers, "raisedfist")
     has_blackboard = _has(jokers, "blackboard")
 
-    king_hits = sum(1 for c in hand if _rank(c) == "K")
-    queen_hits = sum(1 for c in hand if _rank(c) == "Q")
+    king_hits = sum(1 for c in hand if not _stone(c) and _rank(c) == "K")
+    queen_hits = sum(1 for c in hand if not _stone(c) and _rank(c) == "Q")
     steel_hits = sum(1 for c in hand if _enhancement(c) == "steel")
 
-    blackboard_ok = all(
-        _enhancement(c) != "stone"
+    blackboard_ok = bool(hand) and all(
+        not _stone(c)
         and (_suit(c) in {"spades", "clubs"} or _enhancement(c) == "wild")
         for c in hand
     )
@@ -187,8 +191,8 @@ def realize_rank_payoff(
     """Realize a rank Bond from the actual timing of its payoff Jokers.
 
     Baron/Shoot the Moon trigger while the matching rank is held. Triboulet
-    triggers when Kings/Queens are played and scored, so merely holding a matching
-    rank must not make the Triboulet branch live.
+    triggers when Kings/Queens are played and scored. Stone cards have no rank,
+    so their hidden base rank must not leak into either timing path.
     """
     dev = enrich_development(dev)
     if _development_floor(dev) == BondRealization.DORMANT:
@@ -198,8 +202,8 @@ def realize_rank_payoff(
     hand = _cards(state, "hand", "current_hand", "cards_in_hand")
     scoring = _cards(state, "scoring_cards", "played_cards", "current_played_cards")
 
-    held_count = sum(1 for c in hand if _rank(c) == rank)
-    scored_count = sum(1 for c in scoring if _rank(c) == rank)
+    held_count = sum(1 for c in hand if not _stone(c) and _rank(c) == rank)
+    scored_count = sum(1 for c in scoring if not _stone(c) and _rank(c) == rank)
     held_live = bool(held_tokens) and _has(jokers, *held_tokens) and held_count > 0
     scored_live = bool(scored_tokens) and _has(jokers, *scored_tokens) and scored_count > 0
 
