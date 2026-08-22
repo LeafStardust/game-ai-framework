@@ -29,6 +29,10 @@ def _jokers(state: Any) -> list[Any]:
     return list(getattr(state, "jokers", ()) or ())
 
 
+def _stone(card: Any) -> bool:
+    return bool(getattr(card, "is_stone", False)) or str(getattr(card, "enhancement", "") or "").lower() == "stone"
+
+
 def _floor(dev: BondDevelopment) -> BondRealization:
     if not dev.unlocked or dev.rank in (BondRank.LOCKED, BondRank.R0):
         return BondRealization.DORMANT
@@ -59,9 +63,9 @@ def realize_cash(dev: BondDevelopment, state: Any) -> BondDevelopment:
     hand = _cards(state, "hand", "current_hand", "cards_in_hand"); deck = _cards(state, "owned_deck", "deck")
     pareidolia = _has(jokers, "pareidolia"); payoff = _has(jokers, "bull", "bootstraps")
     unconditional_engine = _has(jokers, "rocket", "goldenjoker"); interest_engine = _has(jokers, "tothemoon") and money >= 5
-    held_faces = bool(hand) if pareidolia else any(str(getattr(c, "rank", "") or "").upper() in {"J", "Q", "K"} for c in hand)
+    held_faces = bool(hand) if pareidolia else any(not _stone(c) and str(getattr(c, "rank", "") or "").upper() in {"J", "Q", "K"} for c in hand)
     parking_engine = _has(jokers, "reservedparking") and held_faces
-    cloud9_engine = _has(jokers, "cloud9") and any(str(getattr(c, "rank", "") or "") == "9" for c in deck)
+    cloud9_engine = _has(jokers, "cloud9") and any(not _stone(c) and str(getattr(c, "rank", "") or "") == "9" for c in deck)
     satellite = _has(jokers, "satellite"); planet_history = getattr(state, "unique_planets_used", getattr(state, "satellite_planets_used", None))
     satellite_engine = satellite and (planet_history is None or int(planet_history or 0) > 0)
     engine_sources = sum((unconditional_engine, interest_engine, parking_engine, cloud9_engine, satellite_engine))
