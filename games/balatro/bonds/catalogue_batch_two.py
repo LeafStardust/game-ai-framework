@@ -43,10 +43,16 @@ def evaluate_flush_bond(state:Any)->BondDevelopment:
  jokers=list(getattr(state,"jokers",()) or ());parts=_joker_parts(jokers,(("The Tribe",6.0,("thetribe",)),("Droll Joker",4.0,("drolljoker",)),("Crafty Joker",4.0,("craftyjoker",)),("Smeared Joker",5.0,("smearedjoker",)),("Four Fingers",3.0,("fourfingers",))))
  score=_level_score(_level(state,"FLUSH"));
  if score:parts.append(BondContribution("FLUSH permanent hand level",score))
- suits={}
- for c in [c for c in _deck(state) if not bool(getattr(c,"is_stone",False))]:
-  suit=str(getattr(c,"suit","") or "");
-  if suit:suits[suit]=suits.get(suit,0)+1
+ smeared=_contains(jokers,"smearedjoker","smeared");suits={}
+ for c in _deck(state):
+  enhancement=str(getattr(c,"enhancement","") or "").lower()
+  if bool(getattr(c,"is_stone",False)) or enhancement=="stone":continue
+  suit=str(getattr(c,"suit","") or "").lower()
+  if enhancement=="wild":effective=("red","black") if smeared else ("hearts","diamonds","spades","clubs")
+  elif smeared and suit in {"hearts","diamonds"}:effective=("red",)
+  elif smeared and suit in {"spades","clubs"}:effective=("black",)
+  else:effective=(suit,) if suit else ()
+  for key in effective:suits[key]=suits.get(key,0)+1
  density=_band(max(suits.values(),default=0),((16,1.0),(20,3.0),(24,5.0),(30,7.0)))
  if density:parts.append(BondContribution("Dominant suit density",density))
  return _finish("flush",parts,FLUSH_THRESHOLDS,target="FLUSH")
