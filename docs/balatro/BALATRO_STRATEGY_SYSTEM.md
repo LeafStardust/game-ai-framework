@@ -43,7 +43,7 @@ power engine + prescriptions
 actual Balatro decisions
 ```
 
-There is no Primary/Secondary/Third requirement.
+No categorical primary/secondary hierarchy exists in the canonical architecture.
 
 ## 2. Bond admission
 
@@ -102,9 +102,7 @@ Hard unlock prerequisites should be rare and mechanically defining. Many Bonds m
 
 Do not use rank-specific hard conditions merely to prove that a Bond is functioning. Functional conditions belong primarily to **Realization**. Rank measures development.
 
-## 4. Weighted contribution — no G/S/B replacement
-
-Gold/Silver/Bronze/Banned is legacy migration evidence only. Do not recreate categorical contribution tiers under new names.
+## 4. Weighted contribution
 
 Every contributor receives its own Bond-specific numerical contribution. One component may contribute different amounts to several Bonds:
 
@@ -270,9 +268,9 @@ Realization  : ACTIVE
 
 Locked defining-component Bonds should not clutter normal output; full telemetry may retain their locked state.
 
-Composition section should expose Power engine, relevant Bonds, motifs, conflicts, and prescriptions. Shop/action telemetry should explain threshold/motif effects without flooding the monitor with dormant R0/locked Bonds. When canonical prescription or pivot authority changes a ranking/action, logs should preserve the bounded bonus, structural-gain/disruption terms, current Strategy Health mode, and the fact that child-policy admission remained authoritative.
+Composition section should expose Power engine, relevant Bonds, motifs, synergies, conflicts, and prescriptions. Shop/action telemetry should explain threshold/motif effects without flooding the monitor with dormant R0/locked Bonds. When canonical prescription or pivot authority changes a ranking/action, logs should preserve the bounded bonus, structural-gain/disruption terms, current Strategy Health mode, and the fact that child-policy admission remained authoritative.
 
-## 14. Migration order
+## 14. Architecture maintenance order
 
 1. Freeze and audit the Bond catalogue, including hard unlock prerequisites.
 2. Define and audit weighted component/state contributions.
@@ -280,13 +278,12 @@ Composition section should expose Power engine, relevant Bonds, motifs, conflict
 4. Define realization rules separately from rank progression.
 5. Define sparse SYNERGY/CONFLICT edges.
 6. Define important composition motifs and activation/distance rules.
-7. Implement all-Bond evaluation and realization.
-8. Implement combined-build composer and power-engine selection.
+7. Evaluate all Bonds and realization from current public state.
+8. Compose the combined build and select the power engine.
 9. Integrate score projection / Build Health.
-10. Integrate rank/motif prescriptions into D1, shop, packs, deck shaping, economy, skips and bosses.
-11. Migrate component roles and filler logic to combined-build participation.
-12. Migrate telemetry/live monitor.
-13. Retire legacy Primary/Secondary/Third and G/S/B assumptions after regression parity.
-14. Calibrate weights/thresholds from unchanged-HEAD multi-run telemetry rather than arbitrary inflation.
+10. Apply rank/motif prescriptions through D1, shop, packs, deck shaping, economy, skips and bosses.
+11. Derive component roles and filler logic from combined-build participation.
+12. Expose canonical telemetry through the live monitor.
+13. Calibrate weights/thresholds from unchanged-HEAD multi-run telemetry rather than arbitrary inflation.
 
-The current runtime/tests remain migration evidence. Do not preserve obsolete conceptual behavior merely because an old test encodes it; remove/update tests when the architecture intentionally supersedes them. The pivot/prescription boundary implementation and its normalization regressions are green as of 2026-08-22. The bounded SHOP clear-probability adapter is implemented with targeted regressions pending validation; broader Bond migration and unchanged-HEAD validation remain active calibration work.
+Do not preserve obsolete conceptual behavior merely because an old test encodes it; remove or update tests when the architecture intentionally supersedes them. The pivot/prescription boundary implementation and its normalization regressions are green as of 2026-08-22. The bounded SHOP clear-probability adapter is implemented with targeted regressions pending validation; broader Bond calibration and unchanged-HEAD validation remain active work.
