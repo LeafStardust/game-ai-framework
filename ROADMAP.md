@@ -84,7 +84,7 @@ The implementation contract is documented in [`docs/balatro/BUILD_HEALTH_AND_REA
 - [x] Add a pure `BuildHealth` evaluator with auditable Survival, Immediate Scoring, Scaling, Coherence, and Runway dimensions.
 - [x] Distinguish catalogue relationship from realized engine state (`NOT_OWNED`, `OWNED_INACTIVE`, `ACTIVATED_WEAK`, `ACTIVATED_HEALTHY`, `MATURE`).
 - [x] Cover an initial engine set: Blue/Hologram growth, Burnt Joker, Castle, Green Joker, Red Card, Runner, and Bull/Bootstraps.
-- [ ] Replace early-game "positive scorer" admission with next-blind **survival adequacy** using the existing whole-blind clear-probability model. The legacy positive-scorer override is retired and Build Health now owns survival admission, but the shop-time health adapter still uses a bounded public-state scoring-capacity estimate rather than invoking the full D1 expectimax planner.
+- [x] Replace early-game "positive scorer" admission with next-blind **survival adequacy** using the existing whole-blind clear-probability model. SHOP now samples only unordered public owned-deck opening hands and runs a strictly bounded D1 `LiveBlindClearPlanner` from each opening; missing/failed bounded projection falls back to the generic Build Health estimate rather than blocking decisions.
 - [x] Detect midgame scaling deficits when present strength can clear current blinds but is unlikely to keep pace with the next one to two Antes.
 - [x] Make shop buy/replace/reroll decisions sensitive to Build Health delta rather than Joker count or isolated item value alone.
 - [x] Keep committed Gold/Silver structure protected while still allowing immediate stronger same-route upgrades.
@@ -94,7 +94,7 @@ The implementation contract is documented in [`docs/balatro/BUILD_HEALTH_AND_REA
 - [x] Normalize prescription matching across live naming/telemetry variants for consumables, Planet target hands, ranks, Steel enhancements, and Red/Blue Seals.
 - [x] Add bounded short-horizon multi-action planning for complementary shop pairs and activation sequences.
 - [x] Expose Build Health and inactive-engine/scaling-deficit warnings in the live monitor and structured logs.
-- [x] Add deterministic regressions before each behavior change. The Bond pivot/prescription boundary batch is green as of 2026-08-22; broader current-HEAD validation remains required before live five-run calibration.
+- [x] Add deterministic regressions before each behavior change. Bond pivot/prescription and shop clear-probability boundary batches are implemented as of 2026-08-22; broader current-HEAD validation remains required before live five-run calibration.
 - [ ] Run a fresh unchanged-HEAD five-run Red/White validation batch only after the complete layer is green.
 
 ### Calibration gate before Red Stake
