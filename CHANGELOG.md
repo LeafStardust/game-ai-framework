@@ -12,12 +12,14 @@ This file records notable development changes to the project. Active and future 
 - Added bounded two-component shop planning for Bull + Bootstraps and Blue/Hologram + Certificate/Marble. The planner emits exactly one sell/buy action and requires authoritative re-observation before continuing the sequence.
 - Added Build Health, scaling-deficit/inactive-engine warnings, and realized component roles to structured decision postmortems and the live agent monitor.
 - Added canonical Bond motif prescription preferences beneath existing pack/shop safety authorities for Baron/Mime/Steel, Photograph/Hanging Chad, Vampire/Midas, Burnt target leveling, and Hack low-rank retrigger engines.
-- Added deterministic regression contracts for Build Health evaluation, shop admission/replacement/reroll behavior, realized pivot readiness, bounded bundles, component roles, monitor output, tracker side-effect isolation, production arbiter inheritance, cache invalidation, Bond pivot authority, and Bond prescription normalization.
+- Added a production SHOP survival adapter that samples only unordered public owned-deck opening hands and runs a narrow, node-bounded D1 `LiveBlindClearPlanner` from each opening to estimate next-blind clear probability.
+- Added deterministic regression contracts for Build Health evaluation, shop admission/replacement/reroll behavior, realized pivot readiness, bounded bundles, component roles, monitor output, tracker side-effect isolation, production arbiter inheritance, cache invalidation, Bond pivot authority, Bond prescription normalization, SHOP clear-probability fallback/isolation, and public deck-order invariance.
 
 ### Changed
 
 - Continued Red Deck / White Stake post-release calibration from repeated five-run autonomous batches before advancing stake progression.
-- Replaced the old Ante 1–2 “any positive immediate scorer” exception with Build-Health-based survival admission: an off-route purchase must materially improve projected survival rather than merely add local scoring value. The shop-time adapter currently uses a bounded public-state scoring-capacity estimate; full D1 whole-blind expectimax remains authoritative during actual hand play.
+- Replaced the old Ante 1–2 “any positive immediate scorer” exception with Build-Health-based survival admission: an off-route purchase must materially improve projected survival rather than merely add local scoring value. Production SHOP survival now reuses D1 whole-blind clear-probability semantics through a strictly bounded public-state opening-hand projection; if that bounded projection is unavailable, the generic Build Health capacity estimate remains the fail-safe.
+- Kept the new SHOP D1 projection production-only so injected/custom Build Health scorers and offline deterministic contracts retain the generic estimator rather than unexpectedly invoking live planner semantics.
 - Made midgame Joker acquisition, legal replacement, bounded rerolls, and complementary shop bundles respond to realized scaling deficits instead of relying on Joker count or isolated candidate value.
 - Added realized-maturity pivot pressure so late theoretical engines pay buildup/runway cost: an untrained late Runner or inactive Hologram no longer gets the same pivot treatment as an already-realized high-cash Bull/Bootstraps route.
 - Made canonical pivot authority require trustworthy Joker-slot telemetry before treating the roster as full, preventing missing/zero/invalid slot observations from triggering structural replacement promotion or veto logic.
@@ -50,7 +52,9 @@ This file records notable development changes to the project. Active and future 
 
 ### Validation
 
-- Bond pivot/prescription boundary regression batch passed on 2026-08-22 after telemetry and naming normalization hardening. Broader current-HEAD deterministic validation remains part of the Red/White calibration gate before the next unchanged-HEAD five-run batch.
+- Bond pivot/prescription boundary regression batch passed on 2026-08-22 after telemetry and naming normalization hardening.
+- SHOP clear-probability survival boundary regressions are added and awaiting the current targeted validation run before the next broader deterministic gate.
+- Broader current-HEAD deterministic validation remains part of the Red/White calibration gate before the next unchanged-HEAD five-run batch.
 
 - Red Deck stake progression begins with v1.1 after the current Red/White calibration branch is accepted.
 - Fresh-profile collection progression remains active but is non-blocking for the v1.0 competence line.
