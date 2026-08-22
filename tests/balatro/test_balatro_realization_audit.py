@@ -65,3 +65,20 @@ def test_intrinsic_card_effects_realize_without_joker_payoff():
         )
         out = realize_bond(_intrinsic_dev(bond_id), state)
         assert out.realization == BondRealization.ACTIVE
+
+
+def test_drivers_license_realizes_at_its_actual_sixteen_enhanced_threshold():
+    joker = type("DriversLicense", (), {})()
+    enhanced = [SimpleNamespace(enhancement="Bonus") for _ in range(16)]
+    state = SimpleNamespace(jokers=[joker], owned_deck=enhanced, deck=enhanced)
+    dev = BondDevelopment(
+        bond_id="enhanced_cards",
+        unlocked=True,
+        contribution=22.0,
+        rank=BondRank.R4,
+        next_rank_threshold=30.0,
+        contributions=(),
+        realization=BondRealization.PARTIAL,
+    )
+    out = realize_bond(dev, state)
+    assert out.realization == BondRealization.MATURE
