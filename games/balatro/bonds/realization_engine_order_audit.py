@@ -36,14 +36,10 @@ def realize_card_destruction_scoring(d,s):
 def realize_vampire_ordered(d,s):
  j=_jokers(s);vi=next((i for i,x in enumerate(j) if "vampire" in _name(x)),None)
  if vi is None:return _finish(d,False)
- has_scoring=hasattr(s,"scoring_cards");sc=_cards(s,"scoring_cards") if has_scoring else _cards(s,"played_cards","current_played_cards");hand=_cards(s,"hand","current_hand","cards_in_hand");deck=_cards(s,"owned_deck","deck");feed_pool=sc if has_scoring and sc else (sc or hand or deck);feed=sum(1 for c in feed_pool if not _debuffed(c) and str(getattr(c,"enhancement","") or "").strip());mi=next((i for i,x in enumerate(j) if "midasmask" in _name(x)),None);par=any("pareidolia" in _name(x) for x in j)
- if has_scoring and sc:
-  # During an explicit scoring event, only a Midas to Vampire's left can create
-  # same-hand feed before Vampire evaluates.
-  renew=mi is not None and mi<vi and any(_face(c,par) for c in sc)
+ hand=_cards(s,"hand","current_hand","cards_in_hand");deck=_cards(s,"owned_deck","deck");has_scoring=hasattr(s,"scoring_cards");sc=_cards(s,"scoring_cards") if has_scoring else _cards(s,"played_cards","current_played_cards");mi=next((i for i,x in enumerate(j) if "midasmask" in _name(x)),None);par=any("pareidolia" in _name(x) for x in j)
+ if has_scoring:
+  feed=sum(1 for c in sc if not _debuffed(c) and str(getattr(c,"enhancement","") or "").strip());renew=mi is not None and mi<vi and any(_face(c,par) for c in sc)
  else:
-  # Outside an active scoring event, Midas anywhere is renewable future feed
-  # infrastructure if a usable face exists in current/public card state.
-  pool=hand or deck;renew=mi is not None and any(_face(c,par) for c in pool)
+  pool=sc or hand or deck;feed=sum(1 for c in pool if not _debuffed(c) and str(getattr(c,"enhancement","") or "").strip());renew=mi is not None and any(_face(c,par) for c in pool)
  a=feed>0 or renew;return _finish(d,a,feed>=2 or (renew and int(getattr(s,"vampire_enhancements_consumed",0) or 0)>=15))
 ENGINE_AUDIT_REALIZERS={"joker_sacrifice":realize_joker_sacrifice_ordered,"card_destruction":realize_card_destruction_scoring,"vampire":realize_vampire_ordered}
