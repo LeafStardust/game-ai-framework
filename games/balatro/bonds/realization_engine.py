@@ -47,8 +47,6 @@ def _finish(dev: BondDevelopment, active: bool, strong: bool = False) -> BondDev
 
 
 def realize_burnt(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    # Burnt functions when a first-discard opportunity remains and the run has a
-    # target hand to level. Actual discard selection belongs to action search.
     discards_left = int(getattr(state, "discards_left", getattr(state, "discards_remaining", 0)) or 0)
     first_discard_available = bool(getattr(state, "first_discard_available", discards_left > 0))
     target = dev.target or str(getattr(state, "target_hand", "HIGH_CARD") or "HIGH_CARD")
@@ -76,21 +74,27 @@ def realize_no_discard(dev: BondDevelopment, state: Any) -> BondDevelopment:
 
 def realize_tarot(dev: BondDevelopment, state: Any) -> BondDevelopment:
     jokers = _jokers(state)
+    vouchers = list(getattr(state, "vouchers", ()) or ())
     consumables = _cards(state, "consumables", "consumable_cards")
     tarot_in_hand = any("tarot" in _name(c) or str(getattr(c, "set", "")).lower() == "tarot" for c in consumables)
-    engine = _has(jokers, "cartomancer", "vagabond", "hallucination", "fortuneteller", "superposition", "8ball")
-    active = tarot_in_hand or engine
-    return _finish(dev, active, tarot_in_hand and engine)
+    engine = _has(jokers, "cartomancer", "vagabond", "hallucination", "fortuneteller", "superposition", "8ball", "eightball")
+    shop_infrastructure = _has(vouchers, "tarotmerchant", "tarottycoon")
+    active = tarot_in_hand or engine or shop_infrastructure
+    strong = sum((tarot_in_hand, engine, shop_infrastructure)) >= 2
+    return _finish(dev, active, strong)
 
 
 def realize_planet(dev: BondDevelopment, state: Any) -> BondDevelopment:
     jokers = _jokers(state)
+    vouchers = list(getattr(state, "vouchers", ()) or ())
     consumables = _cards(state, "consumables", "consumable_cards")
     planet_in_hand = any("planet" in _name(c) or str(getattr(c, "set", "")).lower() == "planet" for c in consumables)
     engine = _has(jokers, "constellation", "astronomer", "spacejoker")
     blue = any(str(getattr(c, "seal", "") or "").lower() == "blue" for c in _cards(state, "hand", "current_hand", "cards_in_hand"))
-    active = planet_in_hand or engine or blue
-    return _finish(dev, active, sum((planet_in_hand, engine, blue)) >= 2)
+    shop_infrastructure = _has(vouchers, "planetmerchant", "planettycoon", "telescope")
+    active = planet_in_hand or engine or blue or shop_infrastructure
+    strong = sum((planet_in_hand, engine, blue, shop_infrastructure)) >= 2
+    return _finish(dev, active, strong)
 
 
 def realize_discard(dev: BondDevelopment, state: Any) -> BondDevelopment:
@@ -102,8 +106,6 @@ def realize_discard(dev: BondDevelopment, state: Any) -> BondDevelopment:
 
 
 def realize_blind_skip(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    # Throwback itself is always live once owned; whether the current blind should
-    # actually be skipped is a planner decision, not realization.
     active = _has(_jokers(state), "throwback")
     skipped = int(getattr(state, "blinds_skipped", 0) or 0)
     return _finish(dev, active, active and skipped >= 5)
@@ -152,9 +154,6 @@ def realize_enhanced_cards(dev: BondDevelopment, state: Any) -> BondDevelopment:
         return _finish(dev, False)
     deck = _cards(state, "owned_deck", "deck")
     enhanced = sum(1 for c in deck if str(getattr(c, "enhancement", "") or "").strip())
-    # Driver's License turns on at 16 enhanced cards. Once that threshold is met,
-    # the defining payoff is live; R4+ structural development is sufficient for
-    # MATURE rather than inventing a second 24-card mechanical threshold.
     active = enhanced >= 16
     return _finish(dev, active, active)
 
