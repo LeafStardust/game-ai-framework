@@ -72,7 +72,9 @@ def test_raised_fist_red_seal_retrigger_only_uses_lowest_ranked_card():
 def test_raised_fist_red_seal_retrigger_uses_rightmost_lowest_rank_on_tie():
     low_plain = _card(rank="3")
     low_red = _card(rank="3", seal="Red")
-    deck = [low_plain, low_red, _card(rank="4", seal="Red"), _card(rank="5", seal="Red")]
+    # Four Red Seals establish Held Retrigger at R1 so this test isolates the
+    # timing rule: Raised Fist resolves tied lowest ranks to the rightmost card.
+    deck = [low_plain, low_red, _card(rank="4", seal="Red"), _card(rank="5", seal="Red"), _card(rank="6", seal="Red")]
     state = SimpleNamespace(
         jokers=[_joker("Raised Fist")],
         hand=[low_plain, low_red], current_hand=[low_plain, low_red], cards_in_hand=[low_plain, low_red],
