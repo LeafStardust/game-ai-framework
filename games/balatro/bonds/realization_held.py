@@ -20,32 +20,42 @@ def _enhancement(card):return str(getattr(card,"enhancement","") or "").lower()
 def _seal(card):return str(getattr(card,"seal","") or "").lower()
 def _stone(card):return _enhancement(card)=="stone" or bool(getattr(card,"is_stone",False))
 def _debuffed(card):return bool(getattr(card,"debuffed",False) or getattr(card,"is_debuffed",False))
+def _round_end(state):
+ hands=getattr(state,"hands_left",None);return bool(getattr(state,"round_end_pending",False) or getattr(state,"last_hand_played",False) or (hands is not None and int(hands)==0))
 def _development_floor(dev):return BondRealization.DORMANT if not dev.unlocked or dev.rank in (BondRank.LOCKED,BondRank.R0) else BondRealization.PARTIAL
 def _mature_if_rank(dev,active,strong=False):
  if not active:return _development_floor(dev)
  return BondRealization.MATURE if strong and dev.rank>=BondRank.R4 else BondRealization.ACTIVE
-def _held_effect_count(card,jokers):
+def _held_effect_count(card,jokers,round_end=False):
  if _debuffed(card):return 0
  effects=0;enh=_enhancement(card)
- if enh in {"steel","gold"}:effects+=1
- if not _stone(card) and _has(jokers,"baron") and _rank(card)=="K":effects+=1
- if not _stone(card) and _has(jokers,"shootthemoon") and _rank(card)=="Q":effects+=1
+ if round_end:
+  if enh=="gold":effects+=1
+  if _seal(card)=="blue":effects+=1
+ else:
+  if enh=="steel":effects+=1
+  if not _stone(card) and _has(jokers,"baron") and _rank(card)=="K":effects+=1
+  if not _stone(card) and _has(jokers,"shootthemoon") and _rank(card)=="Q":effects+=1
  return effects
 def _raised_fist_target(hand,jokers):
  if not _has(jokers,"raisedfist"):return None
- values={"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,"T":10,"J":10,"Q":10,"K":10,"A":11};ranked=[(values[_rank(c)],i) for i,c in enumerate(hand) if not _debuffed(c) and not _stone(c) and _rank(c) in values]
+ values={"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,"T":10,"J":10,"Q":10,"K":10,"A":11};ranked=[(values[_rank(c)],i) for i,c in enumerate(hand) if not _stone(c) and _rank(c) in values]
  if not ranked:return None
  low=min(v for v,_ in ranked);return max(i for v,i in ranked if v==low)
+def _blackboard_card_ok(card):
+ if _stone(card):return False
+ if not _debuffed(card) and _enhancement(card)=="wild":return True
+ return _suit(card) in {"spades","clubs"}
 def realize_held_cards(dev,state):
  dev=enrich_development(dev)
  if _development_floor(dev)==BondRealization.DORMANT:return replace(dev,realization=BondRealization.DORMANT)
- hand=_cards(state,"hand","current_hand","cards_in_hand");j=_jokers(state);kh=sum(1 for c in hand if not _debuffed(c) and not _stone(c) and _rank(c)=="K");qh=sum(1 for c in hand if not _debuffed(c) and not _stone(c) and _rank(c)=="Q");steel=sum(1 for c in hand if not _debuffed(c) and _enhancement(c)=="steel");black=all(not _debuffed(c) and not _stone(c) and (_suit(c) in {"spades","clubs"} or _enhancement(c)=="wild") for c in hand);src=sum((_has(j,"baron") and kh>0,_has(j,"shootthemoon") and qh>0,_has(j,"raisedfist") and _raised_fist_target(hand,j) is not None,_has(j,"blackboard") and black,steel>0));strong=src>=2 or kh+qh+steel>=3;return replace(dev,realization=_mature_if_rank(dev,src>0,strong))
+ hand=_cards(state,"hand","current_hand","cards_in_hand");j=_jokers(state);kh=sum(1 for c in hand if not _debuffed(c) and not _stone(c) and _rank(c)=="K");qh=sum(1 for c in hand if not _debuffed(c) and not _stone(c) and _rank(c)=="Q");steel=sum(1 for c in hand if not _debuffed(c) and _enhancement(c)=="steel");black=all(_blackboard_card_ok(c) for c in hand);fist=_raised_fist_target(hand,j);fist_live=fist is not None and not _debuffed(hand[fist]);src=sum((_has(j,"baron") and kh>0,_has(j,"shootthemoon") and qh>0,_has(j,"raisedfist") and fist_live,_has(j,"blackboard") and black,steel>0));strong=src>=2 or kh+qh+steel>=3;return replace(dev,realization=_mature_if_rank(dev,src>0,strong))
 def realize_held_retrigger(dev,state):
  dev=enrich_development(dev)
  if _development_floor(dev)==BondRealization.DORMANT:return replace(dev,realization=BondRealization.DORMANT)
  hand=_cards(state,"hand","current_hand","cards_in_hand");j=_jokers(state)
  if not hand:return replace(dev,realization=BondRealization.PARTIAL)
- fist=_raised_fist_target(hand,j);effect=sum(1 for i,c in enumerate(hand) if _held_effect_count(c,j)>0 or i==fist);mime=_has(j,"mime");red=sum(1 for i,c in enumerate(hand) if not _debuffed(c) and _seal(c)=="red" and (_held_effect_count(c,j)>0 or i==fist));src=int(mime and effect>0)+red;strong=src>=2 or (mime and red>=1) or red>=2;return replace(dev,realization=_mature_if_rank(dev,src>0,strong))
+ end=_round_end(state);fist=None if end else _raised_fist_target(hand,j);effect=sum(1 for i,c in enumerate(hand) if _held_effect_count(c,j,end)>0 or (i==fist and not _debuffed(c)));mime=_has(j,"mime");red=sum(1 for i,c in enumerate(hand) if not _debuffed(c) and _seal(c)=="red" and (_held_effect_count(c,j,end)>0 or (i==fist and not _debuffed(c))));src=int(mime and effect>0)+red;strong=src>=2 or (mime and red>=1) or red>=2;return replace(dev,realization=_mature_if_rank(dev,src>0,strong))
 def realize_steel(dev,state):
  dev=enrich_development(dev)
  if _development_floor(dev)==BondRealization.DORMANT:return replace(dev,realization=BondRealization.DORMANT)
