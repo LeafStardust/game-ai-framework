@@ -39,23 +39,21 @@ def _motif_map(composition):
     return {motif.motif_id: motif for motif in composition.motifs}
 
 
-def _motif_score(composition) -> float:
-    return sum(_MOTIF_VALUE.get(motif.state, 0.0) for motif in composition.motifs)
-
-
 def _distance_score(composition) -> float:
     # Lower missing-count is better. Only visible/potential motifs are represented.
     return -sum(int(missing) for _, missing in composition.motif_distance)
 
 
 def _transition_score(current, projected) -> tuple[float, tuple[str, ...]]:
+    # Composition coherence already contains rank/realization, sparse synergy,
+    # motif-state bonus and conflict penalty. Do not add motif-state delta again
+    # here: doing so double-counts the same structural evidence.
     coherence_delta = float(projected.coherence_score) - float(current.coherence_score)
-    motif_delta = _motif_score(projected) - _motif_score(current)
     distance_delta = _distance_score(projected) - _distance_score(current)
 
     current_motifs = _motif_map(current)
     projected_motifs = _motif_map(projected)
-    lost_mature = 0.0
+    lost_realized_motif = 0.0
     for motif_id, motif in current_motifs.items():
         before = _MOTIF_VALUE.get(motif.state, 0.0)
         after = _MOTIF_VALUE.get(
@@ -63,17 +61,20 @@ def _transition_score(current, projected) -> tuple[float, tuple[str, ...]]:
             0.0,
         )
         if before >= _MOTIF_VALUE[MotifState.ACTIVE] and after < before:
-            lost_mature += before - after
+            lost_realized_motif += before - after
 
     resistance_loss = max(
         0.0,
         float(current.pivot_resistance) - float(projected.pivot_resistance),
     )
-    disruption = resistance_loss + lost_mature
-    net = coherence_delta + 1.5 * motif_delta + 0.5 * distance_delta - disruption
+    # Explicit disruption is intentionally asymmetric. Coherence says the new
+    # composition is better/worse overall; this extra cost represents the practical
+    # risk of dismantling already-realized machinery and established structure.
+    disruption = resistance_loss + lost_realized_motif
+    net = coherence_delta + 0.5 * distance_delta - disruption
     return net, (
         f"canonical pivot coherence delta={coherence_delta:+.3f}",
-        f"canonical pivot motif delta={motif_delta:+.3f}",
+        "canonical pivot motif-state value is already included in coherence delta",
         f"canonical pivot motif-distance delta={distance_delta:+.3f}",
         f"canonical pivot disruption cost={disruption:.3f}",
         f"canonical pivot net structural gain={net:+.3f}",
