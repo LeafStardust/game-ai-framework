@@ -4,6 +4,7 @@ from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
 from games.balatro.aces_scholar_policy import install_aces_scholar_policy
 from games.balatro.ankh_presale_policy import install_ankh_presale_policy
 from games.balatro.blue_joker_strategy_rules import apply_blue_joker_strategy_rules
+from games.balatro.bond_pivot_authority import install_bond_pivot_authority
 from games.balatro.bond_shop_health_policy import install_bond_shop_health_policy
 from games.balatro.build_health_policy import install_build_health_policy
 from games.balatro.card_sharp_strategy_rules import install_card_sharp_strategy_rules
@@ -119,7 +120,9 @@ install_latest_zero_five_survival_policy()
 # D1 caching is installed late because it is a semantics-preserving wrapper around
 # the final composed strategy-aware hand policy.
 install_d1_strategy_fit_cache_policy()
-# Canonical 46-Bond Strategy Health is installed last. It observes the final D1
-# decision and may only reweight SHOP options already admitted by existing child
-# legality/safety policies; it never manufactures a purchase or reroll.
+# Canonical 46-Bond Strategy Health observes the final D1 decision and may only
+# reweight SHOP options already admitted by existing child legality/safety policies.
 install_bond_shop_health_policy()
+# Canonical pivot authority is last: it may promote/veto only D2-eligible,
+# economically positive replacement transitions after every older protection layer.
+install_bond_pivot_authority()
