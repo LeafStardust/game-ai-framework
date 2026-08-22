@@ -29,7 +29,7 @@ def _state(*, jokers=(), vouchers=(), hand=(), deck=()):
 
 def test_eight_ball_is_registered_as_minor_tarot_engine_support():
     dev = evaluate_tarot_bond(_state(jokers=(_joker("8 Ball"),)))
-    assert dev.contribution == 3.0
+    assert dev.contribution == 2.0
 
 
 def test_tarot_merchant_voucher_is_live_tarot_infrastructure():
