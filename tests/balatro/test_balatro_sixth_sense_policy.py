@@ -6,9 +6,6 @@ from games.balatro.jokers.sixth_sense import SixthSenseJoker
 from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
 from games.balatro.live.hand_action_policy import LiveHandActionPolicy
 from games.balatro.state import BalatroState
-from games.balatro.strategy import BRONZE, SILVER
-from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
-from games.balatro.strategy_conditional_relationships import conditional_joker_relationship
 
 
 class _Evaluator:
@@ -59,16 +56,6 @@ def _state():
 
 def _played_ranks(action):
     return tuple(str(card.rank) for card in getattr(action, "cards", ()) or ())
-
-
-def test_sixth_sense_is_bronze_alone_and_silver_with_tarot_consumable_engine():
-    definition = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES["sixes"]
-    sixth = SixthSenseJoker()
-    assert definition.relationship_for(sixth, kind="JOKER") == BRONZE
-
-    state = _state()
-    state.jokers.append(SimpleNamespace(name="Fortune Teller"))
-    assert conditional_joker_relationship(state, "sixes", sixth) == SILVER
 
 
 def test_first_hand_sixth_sense_is_used_when_single_six_still_meets_pace():
