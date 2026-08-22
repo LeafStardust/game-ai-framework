@@ -147,9 +147,17 @@ from games.balatro.bonds.motifs import (
 from games.balatro.bonds.composer import Composition, compose_build
 from games.balatro.bonds.score_projection import ScoreProjection, project_score
 from games.balatro.bonds.build_health import BuildHealth, BuildHealthState, evaluate_build_health
+from games.balatro.bonds.evaluation import (
+    EVALUATORS,
+    evaluate_all_bonds,
+    evaluate_bond_composition,
+    extra_evaluators,
+    missing_evaluators,
+)
 
 __all__ = [name for name in globals() if name.isupper() or name.startswith("evaluate_") or name.startswith("enrich_") or name.startswith("realize_") or name.startswith("compose_") or name.startswith("project_") or name in {
     "BondContribution", "BondDevelopment", "BondRank", "BondRealization", "MechanicalRole", "BurntBondContext",
     "BondRelationship", "MotifEvaluation", "MotifState", "Composition", "ScoreProjection", "BuildHealth", "BuildHealthState",
     "relationship_between", "conflicts_with_any", "synergies_with", "extra_realizers", "missing_realizers",
+    "extra_evaluators", "missing_evaluators",
 }]
