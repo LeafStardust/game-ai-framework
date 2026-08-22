@@ -155,12 +155,22 @@ def realize_played_retrigger(dev: BondDevelopment, state: Any) -> BondDevelopmen
     dev = enrich_development(dev)
     if _floor(dev) == BondRealization.DORMANT:
         return replace(dev, realization=BondRealization.DORMANT)
-
     jokers = list(getattr(state, "jokers", ()) or ())
-    hand = _cards(state, "hand", "current_hand", "cards_in_hand")
-    played = _cards(state, "selected_cards", "cards_to_play", "scoring_cards") or hand
-    red_seal = sum(1 for c in played if _seal(c) == "red")
+
+    # All currently modelled played-card retrigger sources operate on cards that
+    # actually score. Prefer explicit scoring_cards whenever the runtime exposes
+    # that field, even when it is empty. Fall back to a proposed play only when
+    # scoring telemetry is genuinely unavailable.
+    scoring = getattr(state, "scoring_cards", None)
+    if scoring is not None:
+        played = list(scoring or ())
+    else:
+        played = _cards(state, "selected_cards", "cards_to_play")
+        if not played:
+            played = _cards(state, "hand", "current_hand", "cards_in_hand")
+
     pareidolia = _has(jokers, "pareidolia")
+    red_seal = sum(1 for c in played if _seal(c) == "red")
     face = len(played) if pareidolia else sum(1 for c in played if _rank(c) in {"J", "Q", "K"})
     low = sum(1 for c in played if _rank(c) in {"2", "3", "4", "5"})
     sources = 0
@@ -181,6 +191,9 @@ def realize_deck_thinning(dev: BondDevelopment, state: Any) -> BondDevelopment:
     dev=enrich_development(dev)
     if _floor(dev)==BondRealization.DORMANT:return replace(dev,realization=BondRealization.DORMANT)
     deck=_deck(state);reduction=max(0,52-len(deck)) if deck else int(getattr(state,"permanent_cards_removed",0) or 0);jokers=list(getattr(state,"jokers",()) or ());payoff=_has(jokers,"erosion") and reduction>0;engine=_has(jokers,"tradingcard","sixthsense")
+    # Trading Card / Sixth Sense are live removal engines even before the first
+    # permanent removal has happened. Erosion, by contrast, needs actual deck
+    # reduction because its payoff scales from missing cards.
     active=engine or payoff or (reduction>0 and dev.rank>=BondRank.R2)
     strong=reduction>=12 and (payoff or engine);return _finish(dev,active=active,strong=strong)
 
@@ -189,6 +202,9 @@ def realize_deck_growth(dev: BondDevelopment, state: Any) -> BondDevelopment:
     dev=enrich_development(dev)
     if _floor(dev)==BondRealization.DORMANT:return replace(dev,realization=BondRealization.DORMANT)
     deck=_deck(state);growth=max(0,len(deck)-52) if deck else int(getattr(state,"permanent_cards_added",0) or 0);jokers=list(getattr(state,"jokers",()) or ());engine=_has(jokers,"certificate","dna","marblejoker");payoff=_has(jokers,"hologram") and growth>0
+    # Certificate, DNA and Marble Joker are live growth engines immediately;
+    # Hologram is the growth payoff and requires at least one added card before
+    # its scaling is mechanically realized.
     active=engine or payoff or (growth>0 and dev.rank>=BondRank.R2)
     strong=growth>=12 and (payoff or engine);return _finish(dev,active=active,strong=strong)
 
