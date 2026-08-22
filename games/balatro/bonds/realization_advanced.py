@@ -61,23 +61,30 @@ def _straight_available(ranks,needed,shortcut):
    length+=1;prev=value
    if length>=needed:return True
  return False
+def _rank_values(hand):
+ m={"A":14,"K":13,"Q":12,"J":11,"10":10,"T":10,"9":9,"8":8,"7":7,"6":6,"5":5,"4":4,"3":3,"2":2};return {m[_rank(c)] for c in hand if _rank(c) in m}
 def realize_full_house(dev,state):
  if _explicit_type(state)=="FULL_HOUSE":return _finish(dev,True,True)
  vals=sorted(_counts(_cards(state)).values(),reverse=True);a=len(vals)>=2 and vals[0]>=3 and vals[1]>=2;return _finish(dev,a,a)
 def realize_straight_flush(dev,state):
  if _explicit_type(state)=="STRAIGHT_FLUSH":return _finish(dev,True,True)
- hand=[c for c in _cards(state) if not _stone(c)];j=list(getattr(state,"jokers",()) or ());ff=_has(j,"fourfingers");shortcut=_has(j,"shortcut");sm=_has(j,"smearedjoker","smeared");needed=4 if ff else 5;rankmap={"A":14,"K":13,"Q":12,"J":11,"10":10,"T":10,"9":9,"8":8,"7":7,"6":6,"5":5,"4":4,"3":3,"2":2};allr=set();counts=Counter();suits={}
- for c in hand:
-  r=rankmap.get(_rank(c))
-  if not r:continue
-  allr.add(r)
-  for s in _effective_suits(c,sm):counts[s]+=1;suits.setdefault(s,set()).add(r)
- a=_straight_available(allr,4,shortcut) and any(v>=4 for v in counts.values()) if ff else any(_straight_available(rs,needed,shortcut) for rs in suits.values());return _finish(dev,a,a)
+ hand=[c for c in _cards(state) if not _stone(c)];j=list(getattr(state,"jokers",()) or ());ff=_has(j,"fourfingers");shortcut=_has(j,"shortcut");sm=_has(j,"smearedjoker","smeared")
+ if ff:
+  # Four Fingers may use different 4-card subsets for Straight and Flush, but
+  # their union still has to fit inside one legal hand of at most five cards.
+  candidates=[hand] if len(hand)<=5 else combinations(hand,5);a=any(_straight_available(_rank_values(c),4,shortcut) and _flush_available(c,4,sm) for c in candidates)
+ else:
+  suits={}
+  for c in hand:
+   r=next(iter(_rank_values([c])),None)
+   if r is None:continue
+   for s in _effective_suits(c,sm):suits.setdefault(s,set()).add(r)
+  a=any(_straight_available(rs,5,shortcut) for rs in suits.values())
+ return _finish(dev,a,a)
 def realize_five_kind(dev,state):
  if _explicit_type(state)=="FIVE_OF_A_KIND":return _finish(dev,True,True)
  a=max(_counts(_cards(state)).values(),default=0)>=5;return _finish(dev,a,a)
-def _five_card_candidates(hand):
- return combinations(hand,5) if len(hand)>=5 else ()
+def _five_card_candidates(hand):return combinations(hand,5) if len(hand)>=5 else ()
 def realize_flush_house(dev,state):
  if _explicit_type(state)=="FLUSH_HOUSE":return _finish(dev,True,True)
  hand=[c for c in _cards(state) if not _stone(c)];j=list(getattr(state,"jokers",()) or ());ff=_has(j,"fourfingers");sm=_has(j,"smearedjoker","smeared");needed=4 if ff else 5;a=False
