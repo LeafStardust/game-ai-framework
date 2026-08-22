@@ -13,14 +13,15 @@ COPY_JOKER_CLASS_NAMES = frozenset(
 # path.  That made Blueprint/Brainstorm look inert when copying card-scored or
 # held-card payoffs such as Photograph, even though the live scorer models those
 # effects explicitly.  Keep this list conservative, but include every pure
-# CARD_SCORED / HELD_CARD payoff currently owned by BalatroScorer.
+# CARD_SCORED / HELD_CARD payoff currently owned by BalatroScorer. Random or
+# otherwise not independently validated targets must remain excluded so copy
+# projection fails closed rather than silently claiming exactness.
 INDEPENDENT_COPY_TARGET_CLASS_NAMES = frozenset(
     {
         "AbstractJoker",
         "AncientJoker",
         "ArrowheadJoker",
         "BaronJoker",
-        "BloodstoneJoker",
         "BurntJoker",
         "CavendishJoker",
         "EightBallJoker",
