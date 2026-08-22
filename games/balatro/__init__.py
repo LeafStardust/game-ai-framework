@@ -41,6 +41,7 @@ from games.balatro.safe_pace_blind_skip_patch import install_safe_pace_blind_ski
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
 from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_correction
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
+from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.shop_regression_policy import install_shop_regression_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
 from games.balatro.strategy_banned_conflict_policy import install_strategy_banned_conflict_policy
@@ -108,6 +109,10 @@ install_latest_batch_no_discard_policy()
 install_realized_pivot_policy()
 # Build Health evaluates legal outcomes produced by all earlier safety/retention layers.
 install_build_health_policy()
+# SHOP has no visible current hand. Replace only production SHOP survival with a
+# bounded public opening-hand + D1 whole-blind clear-probability projection; all
+# generic/injected-scorer Build Health contracts retain their existing fallback.
+install_shop_clear_probability_health_policy()
 # Latest-batch build-quality pressure runs after Build Health and after committed-build
 # protection, so it can relax only the ordinary replacement margin while preserving
 # existing legality/protection decisions.
