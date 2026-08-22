@@ -56,7 +56,7 @@ A Bond is a persistent, developable strategic axis. A candidate should normally 
 
 A single defining Joker may establish a Bond when owning it creates a deep strategic axis that other components/state can develop. Burnt is the canonical example.
 
-Do not make every Joker, famous build or mechanic a Bond. Exact packages such as PhotoChad or Baron-Mime-Steel belong above Bonds as motifs/compositions.
+Do not make every Joker, famous build or mechanic a Bond. Exact packages such as PhotoChad or Baron-Mime-Steel belong above Bonds as motifs/compositions. Support-only mechanics such as generic hand size or a card enhancement type should remain contributors/state unless they have an independent developable power plan.
 
 ## 3. Bond unlock vs Bond rank
 
@@ -65,8 +65,15 @@ A Bond may have a **hard unlock prerequisite** when the strategic axis literally
 Canonical example:
 
 ```text
-Burnt Joker absent  -> Burnt Bond LOCKED / R0
-Burnt Joker owned   -> Burnt Bond exists and can reach R1+
+Burnt Joker absent  -> Burnt Bond LOCKED
+Burnt Joker owned   -> Burnt Bond unlocked and eligible for R1+
+```
+
+`LOCKED` and `R0` are distinct:
+
+```text
+LOCKED = defining prerequisite absent; support/history cannot create the Bond
+R0     = Bond is valid/unlocked but contribution has not reached R1
 ```
 
 Once a Bond is unlocked, higher ranks are reached through weighted contribution. Do not turn individual contributors into sequential rank keys.
@@ -113,7 +120,7 @@ Sources may include Jokers, permanent deck composition, rank/suit density, enhan
 
 State/density contribution should use mechanically appropriate bands/caps/conditions rather than unbounded per-card inflation.
 
-Permanent additions remain permanent contribution while they remain in game state. Dynamic sources disappear when sold/destroyed. Eternal/otherwise locked components remain contribution while present. No artificial historical Bond decay exists; recalculate from actual state.
+Permanent additions remain permanent contribution while they remain in game state. Dynamic sources disappear when sold/destroyed. Eternal/otherwise locked components remain contribution while present. No artificial historical Bond decay exists; recalculate from actual state. Historical counters may deepen an unlocked scaler when the current payoff still exists, but history alone must not keep a defining-payoff Bond alive after that payoff disappears.
 
 ## 5. Five-rank framework
 
@@ -127,14 +134,7 @@ R4 Power-engine capable
 R5 Capstone / maximum strategic commitment
 ```
 
-The names may be refined, but the progression meaning is shared.
-
-Each Bond defines its own:
-
-- optional hard unlock prerequisite(s);
-- weighted contributors;
-- numerical R1-R5 thresholds;
-- effects/prescriptions unlocked or strengthened at each rank.
+Each Bond defines its own optional hard unlock prerequisite(s), weighted contributors, numerical R1-R5 thresholds, and effects/prescriptions strengthened at each rank.
 
 Threshold geometry does not need to be identical between Bonds. Density mechanics such as Steel can differ from defining-Joker mechanics such as Burnt.
 
@@ -155,12 +155,10 @@ Development says what has been assembled/invested. Realization says whether that
 
 Example: Steel may be R4 structurally but only PARTIAL until enough useful Steel cards are actually held/triggered by the current plan. Bosses temporarily suppress realization, not persistent development. After the boss, the underlying Bond rank remains unless actual build state changed.
 
-This separation is deliberate:
-
 ```text
-UNLOCK      Does this Bond exist for this run?
-RANK        How developed is it?
-REALIZATION Is the developed engine actually functioning?
+UNLOCK       Does this Bond exist for this run?
+RANK         How developed is it?
+REALIZATION  Is the developed engine actually functioning?
 BUILD HEALTH Is it strong enough to survive/scale?
 ```
 
@@ -173,23 +171,13 @@ default relationship = NEUTRAL
 explicit relationships = SYNERGY or CONFLICT only
 ```
 
-Only store relationships that materially matter. Complex/super-additive combinations belong to motifs rather than adding more relationship tiers.
-
-Canonical conflict example: Burnt x No-Discard.
-
-A Bond-level mechanical contradiction should normally be represented as CONFLICT so contradictory Bonds are not composed into the same build.
+Only store relationships that materially matter. Complex/super-additive combinations belong to motifs rather than adding more relationship tiers. A Bond-level mechanical contradiction should normally be represented as CONFLICT so contradictory Bonds are not composed into the same build.
 
 ## 8. Composition motifs
 
 A motif is a known strategy/composition whose value cannot safely be represented by additive Bond development alone. It is analogous to a Currency Wars player/pinned strategy, not another Bond.
 
-Motifs may be:
-
-```text
-POTENTIAL -> ACTIVE -> MATURE
-```
-
-They can define prerequisites, super-additive synergy, bridge components, missing-piece distance, special prescriptions and realized gates.
+Motifs may be `POTENTIAL -> ACTIVE -> MATURE` and can define prerequisites, super-additive synergy, bridge components, missing-piece distance, special prescriptions and realized gates.
 
 Canonical example:
 
@@ -201,8 +189,6 @@ Baron + Mime + Steel Kings
   relevant King/card concentration
         -> Baron-Mime-Steel motif
 ```
-
-The motif can then value Steel/Red-Seal Kings, hand-size support and held retriggers appropriately and prescribe keeping payoff Kings held.
 
 ## 9. Prescription resolution
 
@@ -217,15 +203,7 @@ Do not create a second complicated prescription-conflict subsystem.
 
 A component that advances several relevant Bonds is strategically valuable because one Joker slot can develop several parts of the combined build.
 
-Its shop/build value should consider:
-
-- progress added to currently relevant Bonds;
-- useful rank thresholds crossed;
-- motifs activated/advanced;
-- synergy among those Bonds;
-- slot efficiency;
-- replacement/transition cost;
-- actual immediate scoring/economic value separately.
+Its shop/build value should consider progress added to relevant Bonds, useful thresholds crossed, motifs activated/advanced, synergy, slot efficiency, replacement/transition cost, and actual immediate scoring/economic value separately.
 
 Do not convert overlapping Bond contribution into imaginary scoring power. Bond ranks are structural information, not additive score estimates.
 
@@ -241,36 +219,13 @@ FAR -> DEVELOPING -> NEAR -> ACTIVE -> MATURE
 
 Pivot evaluation considers current realized build power, new potential/realized power, useful thresholds crossed, motif synergy, deck compatibility, missing pieces, money/slots, abandoned value, reshaping/buildup time, remaining runway and survival risk.
 
-Existing rank creates pivot resistance:
-
-- R1/R2: cheap to abandon;
-- R3: meaningful transition cost;
-- R4: strong pivot resistance;
-- R5: very strong pivot resistance.
-
-This is a cost, never a lock. Survival or a clearly superior composition can justify abandoning even R5.
+Existing rank creates pivot resistance: R1/R2 cheap to abandon; R3 meaningful transition cost; R4 strong resistance; R5 very strong resistance. This is a cost, never a lock.
 
 ## 12. Build Health integration
 
-Bond rank answers:
-
-```text
-What have I built?
-What should I reinforce?
-How should it be played?
-```
-
-Build Health / score projection answers:
-
-```text
-Does it actually clear?
-Is it powerful enough now?
-Is it scaling fast enough?
-```
+Bond rank answers what has been built, what should be reinforced, and how it should be played. Build Health / score projection answers whether it actually clears, is powerful enough now, and is scaling fast enough.
 
 Never sum Bond ranks into build power.
-
-Pipeline:
 
 ```text
 components/state
@@ -285,8 +240,6 @@ actual Balatro mechanics + intended engine
 combined-build coherence + realization + score projection
   -> Build Health
 ```
-
-A coherent R5 build may still be too weak to survive. Build Health must expose that rather than allowing strategic rank to hide mechanical failure.
 
 ## 13. Observability contract
 
@@ -303,23 +256,13 @@ Realization  : ACTIVE
 
 Locked defining-component Bonds should not clutter normal output; full telemetry may retain their locked state.
 
-Composition section:
-
-```text
-Power engine : ...
-Bonds        : relevant rank + realization
-Motifs       : POTENTIAL/ACTIVE/MATURE + distance/next requirement
-Conflicts    : ...
-Prescriptions: ...
-```
-
-Shop/action telemetry should explain threshold/motif effects, e.g. a Mime purchase crossing Held Cards R4 and Held Retrigger R3 while activating Baron-Mime-Steel. Do not flood the live monitor with every dormant R0/locked Bond.
+Composition section should expose Power engine, relevant Bonds, motifs, conflicts, and prescriptions. Shop/action telemetry should explain threshold/motif effects without flooding the monitor with dormant R0/locked Bonds.
 
 ## 14. Migration order
 
-1. Freeze the Bond catalogue, including which Bonds require hard unlock prerequisites.
-2. Define weighted component/state contributions.
-3. Define per-Bond R1-R5 thresholds and rank effects.
+1. Freeze and audit the Bond catalogue, including hard unlock prerequisites.
+2. Define and audit weighted component/state contributions.
+3. Define/audit per-Bond R1-R5 thresholds and rank effects.
 4. Define realization rules separately from rank progression.
 5. Define sparse SYNERGY/CONFLICT edges.
 6. Define important composition motifs and activation/distance rules.
