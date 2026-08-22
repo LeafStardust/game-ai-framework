@@ -71,7 +71,31 @@ def _known_hand_type(state: Any) -> str:
     return ""
 
 
-def _hand_shape(cards: list[Any]) -> set[str]:
+def _straight_available(nums: set[int], *, needed: int, shortcut: bool) -> bool:
+    seq = set(nums)
+    if 14 in seq:
+        seq.add(1)
+    vals = sorted(seq)
+    if len(vals) < needed:
+        return False
+    max_gap = 2 if shortcut else 1
+    for start in range(len(vals)):
+        length = 1
+        prev = vals[start]
+        for value in vals[start + 1:]:
+            gap = value - prev
+            if gap <= 0:
+                continue
+            if gap > max_gap:
+                break
+            length += 1
+            prev = value
+            if length >= needed:
+                return True
+    return False
+
+
+def _hand_shape(cards: list[Any], jokers: list[Any]) -> set[str]:
     natural = [c for c in cards if not _stone(c)]
     ranks = Counter(_rank(c) for c in natural if _rank(c))
     counts = sorted(ranks.values(), reverse=True)
@@ -88,14 +112,20 @@ def _hand_shape(cards: list[Any]) -> set[str]:
         shapes.add("FOUR_OF_A_KIND")
 
     values = {"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,"T":10,"J":11,"Q":12,"K":13,"A":14}
-    nums = sorted({values[r] for r in ranks if r in values})
-    ace_low = 14 in nums and {2,3,4,5}.issubset(nums)
-    straight = ace_low or any(all(v in nums for v in range(start, start + 5)) for start in range(2, 11))
-    if straight:
+    nums = {values[r] for r in ranks if r in values}
+    needed = 4 if _has(jokers, "fourfingers") else 5
+    if _straight_available(nums, needed=needed, shortcut=_has(jokers, "shortcut")):
         shapes.add("STRAIGHT")
 
-    suit_counts = Counter(_suit(c) for c in natural if _suit(c))
-    if any(v >= 5 for v in suit_counts.values()):
+    if _has(jokers, "smearedjoker", "smeared"):
+        suit_counts = Counter(
+            "red" if _suit(c) in {"hearts", "diamonds"} else "black" if _suit(c) in {"spades", "clubs"} else _suit(c)
+            for c in natural if _suit(c)
+        )
+    else:
+        suit_counts = Counter(_suit(c) for c in natural if _suit(c))
+    flush_needed = 4 if _has(jokers, "fourfingers") else 5
+    if any(v >= flush_needed for v in suit_counts.values()):
         shapes.add("FLUSH")
     return shapes
 
@@ -104,118 +134,49 @@ def realize_hand_bond(dev: BondDevelopment, state: Any, hand_type: str) -> BondD
     dev = enrich_development(dev)
     if _floor(dev) == BondRealization.DORMANT:
         return replace(dev, realization=BondRealization.DORMANT)
-
     known = _known_hand_type(state)
     hand = _cards(state, "hand", "current_hand", "cards_in_hand")
-    active = known == hand_type or hand_type in _hand_shape(hand)
-    # A mature hand Bond needs both high structural authority and evidence the
-    # hand is currently available, plus repeatability evidence when exposed.
+    jokers = list(getattr(state, "jokers", ()) or ())
+    active = known == hand_type or hand_type in _hand_shape(hand, jokers)
     repeatable = bool(getattr(state, "target_hand_repeatable", False) or getattr(state, "hand_consistency_high", False))
     return _finish(dev, active=active, strong=active and repeatable)
 
 
-def realize_pair(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    return realize_hand_bond(dev, state, "PAIR")
-
-
-def realize_high_card(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    return realize_hand_bond(dev, state, "HIGH_CARD")
-
-
-def realize_two_pair(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    return realize_hand_bond(dev, state, "TWO_PAIR")
-
-
-def realize_three_kind(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    return realize_hand_bond(dev, state, "THREE_OF_A_KIND")
-
-
-def realize_four_kind(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    return realize_hand_bond(dev, state, "FOUR_OF_A_KIND")
-
-
-def realize_straight(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    return realize_hand_bond(dev, state, "STRAIGHT")
-
-
-def realize_flush(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    return realize_hand_bond(dev, state, "FLUSH")
+def realize_pair(dev: BondDevelopment, state: Any) -> BondDevelopment: return realize_hand_bond(dev, state, "PAIR")
+def realize_high_card(dev: BondDevelopment, state: Any) -> BondDevelopment: return realize_hand_bond(dev, state, "HIGH_CARD")
+def realize_two_pair(dev: BondDevelopment, state: Any) -> BondDevelopment: return realize_hand_bond(dev, state, "TWO_PAIR")
+def realize_three_kind(dev: BondDevelopment, state: Any) -> BondDevelopment: return realize_hand_bond(dev, state, "THREE_OF_A_KIND")
+def realize_four_kind(dev: BondDevelopment, state: Any) -> BondDevelopment: return realize_hand_bond(dev, state, "FOUR_OF_A_KIND")
+def realize_straight(dev: BondDevelopment, state: Any) -> BondDevelopment: return realize_hand_bond(dev, state, "STRAIGHT")
+def realize_flush(dev: BondDevelopment, state: Any) -> BondDevelopment: return realize_hand_bond(dev, state, "FLUSH")
 
 
 def realize_played_retrigger(dev: BondDevelopment, state: Any) -> BondDevelopment:
     dev = enrich_development(dev)
-    if _floor(dev) == BondRealization.DORMANT:
-        return replace(dev, realization=BondRealization.DORMANT)
-
-    jokers = list(getattr(state, "jokers", ()) or ())
-    hand = _cards(state, "hand", "current_hand", "cards_in_hand")
-    played = _cards(state, "selected_cards", "cards_to_play", "scoring_cards") or hand
-    red_seal = sum(1 for c in played if _seal(c) == "red")
-    face = sum(1 for c in played if _rank(c) in {"J", "Q", "K"})
-    low = sum(1 for c in played if _rank(c) in {"2", "3", "4", "5"})
-
-    sources = 0
-    if _has(jokers, "sockandbuskin") and face:
-        sources += 1
-    if _has(jokers, "hack") and low:
-        sources += 1
-    if _has(jokers, "hangingchad") and played:
-        sources += 1
-    if _has(jokers, "dusk") and played and int(getattr(state, "hands_left", 2) or 2) == 1:
-        sources += 1
-    if red_seal:
-        sources += 1
-
-    strong = sources >= 2 or red_seal >= 2
-    return _finish(dev, active=sources > 0, strong=strong)
+    if _floor(dev) == BondRealization.DORMANT: return replace(dev, realization=BondRealization.DORMANT)
+    jokers=list(getattr(state,"jokers",()) or ());hand=_cards(state,"hand","current_hand","cards_in_hand");played=_cards(state,"selected_cards","cards_to_play","scoring_cards") or hand
+    red_seal=sum(1 for c in played if _seal(c)=="red");face=sum(1 for c in played if _rank(c) in {"J","Q","K"});low=sum(1 for c in played if _rank(c) in {"2","3","4","5"});sources=0
+    if _has(jokers,"sockandbuskin") and face:sources+=1
+    if _has(jokers,"hack") and low:sources+=1
+    if _has(jokers,"hangingchad") and played:sources+=1
+    if _has(jokers,"dusk") and played and int(getattr(state,"hands_left",2) or 2)==1:sources+=1
+    if red_seal:sources+=1
+    return _finish(dev,active=sources>0,strong=sources>=2 or red_seal>=2)
 
 
 def realize_deck_thinning(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    dev = enrich_development(dev)
-    if _floor(dev) == BondRealization.DORMANT:
-        return replace(dev, realization=BondRealization.DORMANT)
-
-    deck = _deck(state)
-    reduction = max(0, 52 - len(deck)) if deck else int(getattr(state, "permanent_cards_removed", 0) or 0)
-    jokers = list(getattr(state, "jokers", ()) or ())
-    payoff = _has(jokers, "erosion") and reduction > 0
-    engine = _has(jokers, "tradingcard", "sixthsense")
-    active = reduction > 0 and (payoff or engine or dev.rank >= BondRank.R2)
-    strong = reduction >= 12 and (payoff or engine)
-    return _finish(dev, active=active, strong=strong)
+    dev=enrich_development(dev)
+    if _floor(dev)==BondRealization.DORMANT:return replace(dev,realization=BondRealization.DORMANT)
+    deck=_deck(state);reduction=max(0,52-len(deck)) if deck else int(getattr(state,"permanent_cards_removed",0) or 0);jokers=list(getattr(state,"jokers",()) or ());payoff=_has(jokers,"erosion") and reduction>0;engine=_has(jokers,"tradingcard","sixthsense");active=reduction>0 and (payoff or engine or dev.rank>=BondRank.R2);strong=reduction>=12 and (payoff or engine);return _finish(dev,active=active,strong=strong)
 
 
 def realize_deck_growth(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    dev = enrich_development(dev)
-    if _floor(dev) == BondRealization.DORMANT:
-        return replace(dev, realization=BondRealization.DORMANT)
-
-    deck = _deck(state)
-    growth = max(0, len(deck) - 52) if deck else int(getattr(state, "permanent_cards_added", 0) or 0)
-    jokers = list(getattr(state, "jokers", ()) or ())
-    engine = _has(jokers, "certificate", "dna", "marblejoker", "hologram")
-    payoff = _has(jokers, "hologram") and growth > 0
-    active = growth > 0 and (engine or dev.rank >= BondRank.R2)
-    strong = growth >= 12 and (payoff or engine)
-    return _finish(dev, active=active, strong=strong)
+    dev=enrich_development(dev)
+    if _floor(dev)==BondRealization.DORMANT:return replace(dev,realization=BondRealization.DORMANT)
+    deck=_deck(state);growth=max(0,len(deck)-52) if deck else int(getattr(state,"permanent_cards_added",0) or 0);jokers=list(getattr(state,"jokers",()) or ());engine=_has(jokers,"certificate","dna","marblejoker","hologram");payoff=_has(jokers,"hologram") and growth>0;active=growth>0 and (engine or dev.rank>=BondRank.R2);strong=growth>=12 and (payoff or engine);return _finish(dev,active=active,strong=strong)
 
 
-COMMON_REALIZERS = {
-    "pair": realize_pair,
-    "high_card": realize_high_card,
-    "two_pair": realize_two_pair,
-    "three_kind": realize_three_kind,
-    "four_kind": realize_four_kind,
-    "straight": realize_straight,
-    "flush": realize_flush,
-    "played_retrigger": realize_played_retrigger,
-    "deck_thinning": realize_deck_thinning,
-    "deck_growth": realize_deck_growth,
-}
-
+COMMON_REALIZERS={"pair":realize_pair,"high_card":realize_high_card,"two_pair":realize_two_pair,"three_kind":realize_three_kind,"four_kind":realize_four_kind,"straight":realize_straight,"flush":realize_flush,"played_retrigger":realize_played_retrigger,"deck_thinning":realize_deck_thinning,"deck_growth":realize_deck_growth}
 
 def realize_common_family(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    fn = COMMON_REALIZERS.get(dev.bond_id)
-    if fn is None:
-        return enrich_development(dev)
-    return fn(dev, state)
+    fn=COMMON_REALIZERS.get(dev.bond_id);return enrich_development(dev) if fn is None else fn(dev,state)
