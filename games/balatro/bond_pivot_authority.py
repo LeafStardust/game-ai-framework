@@ -40,14 +40,10 @@ def _motif_map(composition):
 
 
 def _distance_score(composition) -> float:
-    # Lower missing-count is better. Only visible/potential motifs are represented.
     return -sum(int(missing) for _, missing in composition.motif_distance)
 
 
 def _transition_score(current, projected) -> tuple[float, tuple[str, ...]]:
-    # Composition coherence already contains rank/realization, sparse synergy,
-    # motif-state bonus and conflict penalty. Do not add motif-state delta again
-    # here: doing so double-counts the same structural evidence.
     coherence_delta = float(projected.coherence_score) - float(current.coherence_score)
     distance_delta = _distance_score(projected) - _distance_score(current)
 
@@ -67,9 +63,6 @@ def _transition_score(current, projected) -> tuple[float, tuple[str, ...]]:
         0.0,
         float(current.pivot_resistance) - float(projected.pivot_resistance),
     )
-    # Explicit disruption is intentionally asymmetric. Coherence says the new
-    # composition is better/worse overall; this extra cost represents the practical
-    # risk of dismantling already-realized machinery and established structure.
     disruption = resistance_loss + lost_realized_motif
     net = coherence_delta + 0.5 * distance_delta - disruption
     return net, (
@@ -82,17 +75,33 @@ def _transition_score(current, projected) -> tuple[float, tuple[str, ...]]:
 
 
 def _canonical_pivot_decision(state, candidate, decision):
-    # Pivots are SHOP transitions and must use health from the exact same public
-    # run/round identity. A stale prior-round/run health snapshot is ignored.
     health = last_strategy_health(state)
-    if health is None:
+    if health is None or getattr(decision, "action", None) not in {HOLD, REPLACE}:
         return decision
+
     options = tuple(getattr(decision, "options", ()) or ())
-    if not options or len(getattr(state, "jokers", ()) or ()) < int(getattr(state, "joker_slots", 0) or 0):
+    if not options:
+        return decision
+
+    # Replacement authority is only valid when public capacity telemetry proves
+    # the Joker roster is full. Missing/zero/malformed slot counts must not turn an
+    # add-capable state into a fabricated replacement decision.
+    slots_raw = getattr(state, "joker_slots", None)
+    try:
+        slots = int(slots_raw)
+    except (TypeError, ValueError):
+        return decision
+    if slots <= 0:
+        return decision
+    jokers_now = tuple(getattr(state, "jokers", ()) or ())
+    if len(jokers_now) < slots:
+        return decision
+
+    threshold = _REQUIRED_NET_GAIN.get(getattr(health, "mode", None))
+    if threshold is None:
         return decision
 
     _, current = evaluate_bond_composition(state)
-    threshold = _REQUIRED_NET_GAIN[health.mode]
     scored = []
     for option in options:
         if not bool(getattr(option, "eligible", False)):
