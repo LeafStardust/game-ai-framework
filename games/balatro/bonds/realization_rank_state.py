@@ -124,6 +124,8 @@ def realize_lucky(dev: BondDevelopment, state: Any) -> BondDevelopment:
     played = _played(state)
     lucky = sum(1 for c in played if _enh(c) == "lucky")
     payoff = _has(_jokers(state), "luckycat", "oopsall6s")
+    # Lucky cards themselves are a live scoring effect; payoff Jokers strengthen
+    # maturity rather than gate ACTIVE realization.
     return _finish(dev, bool(lucky), lucky >= 3 and payoff)
 
 
@@ -131,6 +133,8 @@ def realize_glass(dev: BondDevelopment, state: Any) -> BondDevelopment:
     played = _played(state)
     glass = sum(1 for c in played if _enh(c) == "glass")
     payoff = _has(_jokers(state), "glassjoker")
+    # Glass cards themselves provide XMult when scored. Glass Joker is a
+    # destruction payoff and therefore strengthens maturity only.
     return _finish(dev, bool(glass), glass >= 2 and payoff)
 
 
@@ -138,6 +142,8 @@ def realize_stone(dev: BondDevelopment, state: Any) -> BondDevelopment:
     played = _played(state)
     stone = sum(1 for c in played if _enh(c) == "stone" or bool(getattr(c, "is_stone", False)))
     payoff = _has(_jokers(state), "stonejoker", "marblejoker")
+    # Stone cards themselves score chips, so their use realizes the Bond even
+    # without a Joker. Joker infrastructure is maturity evidence.
     return _finish(dev, bool(stone), stone >= 3 and payoff)
 
 
