@@ -28,6 +28,6 @@ def test_triboulet_does_not_realize_from_scoring_stone_hidden_rank():
     assert realize_bond(_dev("kings"), state).realization == BondRealization.PARTIAL
 
 
-def test_blackboard_does_not_realize_from_empty_hand():
+def test_blackboard_realizes_with_empty_hand():
     state = SimpleNamespace(jokers=[SimpleNamespace(name="Blackboard")], hand=[])
-    assert realize_bond(_dev("held_cards"), state).realization == BondRealization.PARTIAL
+    assert realize_bond(_dev("held_cards"), state).realization == BondRealization.ACTIVE
