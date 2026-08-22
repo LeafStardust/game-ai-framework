@@ -22,9 +22,6 @@ def test_pareidolia_makes_reserved_parking_live_on_non_face_held_cards():
         cards_in_hand=hand,
         owned_deck=hand,
         deck=hand,
-        # Reserved Parking is intentionally only minor Cash-Bond authority (+2).
-        # Establish R1 with bankroll infrastructure so this test isolates the
-        # realization question: does Pareidolia make the held 7 a live face?
         money=50,
     )
     dev = evaluate_cash_bond(state)
@@ -48,10 +45,10 @@ def test_pareidolia_makes_midas_and_parking_live_inside_gold_economy():
     assert realize_bond(dev, state).realization == BondRealization.ACTIVE
 
 
-def test_pareidolia_supplies_midas_face_feed_for_vampire():
+def test_pareidolia_supplies_midas_face_feed_for_vampire_when_midas_is_left():
     card = _card("7")
     state = SimpleNamespace(
-        jokers=[_joker("Vampire"), _joker("Midas Mask"), _joker("Pareidolia")],
+        jokers=[_joker("Midas Mask"), _joker("Vampire"), _joker("Pareidolia")],
         scoring_cards=[card],
         hand=[card],
         owned_deck=[card],
@@ -68,7 +65,7 @@ def test_non_face_cards_do_not_enable_these_face_engines_without_pareidolia():
     state = SimpleNamespace(
         jokers=[_joker("Reserved Parking")],
         hand=[card],
-        current_hand=[card],
+        current_hand=hand if False else [card],
         cards_in_hand=[card],
         owned_deck=[card],
         deck=[card],
