@@ -32,5 +32,5 @@ def realize_cash_live(d,s):
 def realize_no_discard_live(d,s):
  j=_jokers(s);used=int(getattr(s,"discards_used_this_round",0) or 0);owned=sum(1 for t in ("greenjoker","burglar","delayedgratification","ramen","banner") if _has(j,t))
  if not _has_window(s):return _finish(d,owned>0 and used==0,owned>=2 and used==0)
- scoring=_scoring(s);end=_round_end(s);pending=bool(getattr(s,"blind_selection_pending",False));left=int(getattr(s,"discards_left",getattr(s,"discards_remaining",0)) or 0);src=sum((_has(j,"greenjoker") and scoring and used==0,_has(j,"burglar") and pending,_has(j,"delayedgratification") and end and used==0,_has(j,"ramen") and scoring and used==0,_has(j,"banner") and scoring and left>0));return _finish(d,src>0,src>=2)
+ scoring=_scoring(s);end=_round_end(s);pending=bool(getattr(s,"blind_selection_pending",False));left=int(getattr(s,"discards_left",getattr(s,"discards_remaining",0)) or 0);src=sum((_has(j,"greenjoker") and scoring,_has(j,"burglar") and pending,_has(j,"delayedgratification") and end and used==0,_has(j,"ramen") and scoring,_has(j,"banner") and scoring and left>0));return _finish(d,src>0,src>=2)
 ENGINE_LIVENESS_AUDIT_REALIZERS={"cash":realize_cash_live,"no_discard":realize_no_discard_live}
