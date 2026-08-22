@@ -43,8 +43,6 @@ def realize_face_cards(dev,state):
 
 def realize_low_ranks(dev,state):
     played=_played(state);jokers=_jokers(state)
-    # Each low-rank Joker has a different actual trigger set. Do not let ownership
-    # of one Joker make every 2-5 card count as realized support.
     matching = 0
     for card in played:
         rank = _rank(card)
@@ -90,10 +88,11 @@ def realize_stone(dev,state):
 
 def realize_gold_economy(dev,state):
     jokers=_jokers(state);hand=_cards(state,"hand","current_hand","cards_in_hand");played=_played(state)
+    pareidolia=_has(jokers,"pareidolia")
     held_gold=sum(1 for c in hand if _enh(c)=="gold")
     played_gold=sum(1 for c in played if _enh(c)=="gold")
-    played_faces=sum(1 for c in played if _rank(c) in {"J","Q","K"})
-    held_faces=sum(1 for c in hand if _rank(c) in {"J","Q","K"})
+    played_faces=len(played) if pareidolia else sum(1 for c in played if _rank(c) in {"J","Q","K"})
+    held_faces=len(hand) if pareidolia else sum(1 for c in hand if _rank(c) in {"J","Q","K"})
     golden_ticket=_has(jokers,"goldenticket") and played_gold>0
     midas=_has(jokers,"midasmask") and played_faces>0
     parking=_has(jokers,"reservedparking") and held_faces>0
