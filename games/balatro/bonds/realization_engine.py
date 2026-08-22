@@ -48,7 +48,10 @@ def _finish(dev: BondDevelopment, active: bool, strong: bool = False) -> BondDev
 
 def realize_burnt(dev: BondDevelopment, state: Any) -> BondDevelopment:
     discards_left = int(getattr(state, "discards_left", getattr(state, "discards_remaining", 0)) or 0)
-    first_discard_available = bool(getattr(state, "first_discard_available", discards_left > 0))
+    discards_used = int(getattr(state, "discards_used_this_round", 0) or 0)
+    first_discard_available = bool(
+        getattr(state, "first_discard_available", discards_left > 0 and discards_used == 0)
+    )
     target = dev.target or str(getattr(state, "target_hand", "HIGH_CARD") or "HIGH_CARD")
     strong = first_discard_available and bool(target) and dev.rank >= BondRank.R4
     return _finish(dev, first_discard_available and bool(target), strong)
@@ -67,10 +70,6 @@ def realize_cash(dev: BondDevelopment, state: Any) -> BondDevelopment:
         str(getattr(c, "rank", "") or "").upper() in {"J", "Q", "K"} for c in hand
     )
     cloud9_engine = _has(jokers, "cloud9") and any(str(getattr(c, "rank", "") or "") == "9" for c in deck)
-
-    # Satellite only pays after at least one distinct Planet has been used. If the
-    # runtime exposes that history, respect it; otherwise keep ownership as a live
-    # engine rather than inventing a false negative from missing telemetry.
     satellite = _has(jokers, "satellite")
     planet_history = getattr(state, "unique_planets_used", getattr(state, "satellite_planets_used", None))
     satellite_engine = satellite and (planet_history is None or int(planet_history or 0) > 0)
