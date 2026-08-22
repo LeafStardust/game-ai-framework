@@ -62,6 +62,22 @@ def test_motif_upgrade_and_closer_distance_reward_reinforcement():
     assert net > 0.0
 
 
+def test_motif_state_delta_is_not_counted_again_outside_coherence():
+    current = _composition(
+        coherence=5.0,
+        resistance=2.0,
+        motifs=(_motif("engine", MotifState.POTENTIAL, missing=0),),
+    )
+    projected = _composition(
+        coherence=8.0,
+        resistance=2.0,
+        motifs=(_motif("engine", MotifState.ACTIVE, missing=0),),
+    )
+    net, notes = _transition_score(current, projected)
+    assert net == 3.0
+    assert any("already included in coherence" in note for note in notes)
+
+
 def test_more_coherence_without_structure_loss_is_positive():
     current = _composition(coherence=5.0, resistance=2.0)
     projected = _composition(coherence=8.0, resistance=2.0)
