@@ -18,19 +18,32 @@ MATURE  = an R4+ Bond is actively functioning with strong/stacked realization
 
 Realization must never change contribution or rank.
 
-## Held-family first slice
+## Coverage status
+
+All 46 frozen Bonds now have exactly one registered Realizer. `games/balatro/bonds/realization.py` is the canonical dispatcher and audit surface.
+
+```text
+46 frozen Bond IDs
+46 registered Realizers
+0 missing
+0 extras
+```
+
+The dispatcher asserts that rank and contribution are unchanged by Realization.
+
+## Held family
 
 ### Held Cards
-ACTIVE when at least one actual held-card payoff is currently functioning, e.g. Baron with a held King, Shoot the Moon with a held Queen, Raised Fist with a held card, Blackboard with an all-black-suit held state, or Steel cards currently held.
+ACTIVE when at least one actual held-card payoff is functioning: Baron with a held King, Shoot the Moon with a held Queen, Raised Fist with a held card, Blackboard with an all-black-suit held state, or Steel cards currently held.
 
 ### Held Retrigger
-Mime alone does not make the Bond ACTIVE. A retriggerable held effect must actually be present in hand.
+Mime alone is PARTIAL. ACTIVE requires an actual retriggerable held effect.
 
 ### Steel
-Deck density alone can create high structural rank, but realization is only ACTIVE when Steel is actually held.
+Deck density is structural; ACTIVE requires Steel currently held.
 
 ### Kings / Queens
-Rank density alone is structural. Realization requires the matching rank to be in the current hand and a matching payoff Joker to be present.
+Density is structural. ACTIVE requires the matching rank in hand plus a matching payoff Joker.
 
 ### Blackboard distinction
 ```text
@@ -38,44 +51,68 @@ Baron      -> held King payoff
 Blackboard -> all remaining held cards are Spades/Clubs
 ```
 
-## Common hand/deck realization batch
+## Common hand/deck family
 
-### Pair / High Card / Two Pair / Three of a Kind / Four of a Kind / Straight / Flush
-ACTIVE when the corresponding hand shape is actually available in current public hand state (or the runtime exposes the current hand type). MATURE requires R4+ plus consistency evidence.
+Pair, High Card, Two Pair, Three of a Kind, Four of a Kind, Straight and Flush are ACTIVE when the corresponding current hand shape is available. MATURE requires R4+ plus consistency evidence.
 
-### Played Retrigger
+Played Retrigger is target-specific:
+
 ```text
-Hack            -> requires played/scoring 2-5 cards
-Sock and Buskin -> requires played/scoring face cards
-Hanging Chad    -> requires a scoring card
-Dusk            -> requires last-hand timing
-Red Seal        -> requires a played/scoring Red-Seal card
+Hack            -> scoring 2-5
+Sock and Buskin -> scoring face card
+Hanging Chad    -> scoring card
+Dusk            -> last-hand timing
+Red Seal        -> scoring Red-Seal card
 ```
 
-### Deck Thinning / Deck Growth
-Structural size change alone affects rank. ACTIVE requires that changed deck structure to be usable with a current engine/payoff.
+Deck Thinning/Growth require actual changed deck structure plus a current engine/payoff for ACTIVE realization.
 
-## Rank / suit / enhancement realization batch
+## Rank / suit / enhancement family
 
-### Aces / Face Cards / Low Ranks
-ACTIVE requires a matching current scoring card plus a relevant payoff Joker. Density alone remains structural.
+Aces, Face Cards and Low Ranks require matching current scoring cards plus relevant payoff. Jacks is Hit-the-Road/discard driven. No Face Cards requires a currently face-free scoring play.
 
-### Jacks
-Hit the Road is discard-driven. Scoring a Jack does not realize the Jacks Bond for Hit the Road; discarding Jacks does.
+Suit Bonds require current scoring cards of the relevant suit plus a matching suit payoff. Lucky, Glass and Stone realize from actual current scoring use of that enhancement. Gold Economy realizes from Gold cards currently retained in hand.
 
-### No Face Cards
-Ride the Bus realization is based on the current scoring play being face-free. A face-depleted deck can raise structural rank, but a scoring face card leaves the Bond PARTIAL for that play.
+## Engine / resource family
 
-### Hearts / Spades / Clubs / Diamonds
-Suit Bonds realize when current scoring cards match the relevant suit and the build has the corresponding suit payoff. Rotating-payoff mechanics such as Ancient Joker are handled through Flush/composer logic rather than fixed-suit realization.
+### Burnt
+ACTIVE when Burnt has a valid target hand and the first-discard opportunity remains available.
 
-### Lucky / Glass / Stone
-These enhancement Bonds realize from actual current scoring use of the matching enhancement. Persistent deck density can raise rank while a draw with no usable matching cards remains PARTIAL.
+### Cash
+Cash payoff Jokers such as Bull/Bootstraps require meaningful bankroll; income engines such as Rocket/Cloud 9 can be ACTIVE while generating economy.
 
-### Gold Economy
-Gold cards realize when they are actually retained in hand for end-of-round value. Gold density without a currently held Gold card remains structural only.
+### No-Discard / Discard
+No-Discard requires its payoff to be live while no discard has been spent in the round. Discard requires both a discard payoff and remaining discard resource.
 
-## Rule for future batches
+### Tarot / Planet
+ACTIVE when current consumables or persistent generation/access infrastructure can actually produce/use the relevant resource. Blue-Seal Planet realization is based on a currently held Blue Seal rather than deck density alone.
+
+### Blind Skip
+Throwback is a persistent live payoff; whether a particular blind should be skipped remains a planner decision.
+
+### Sell Value
+Swashbuckler requires actual current Joker sell value to convert into Mult.
+
+### Joker Sacrifice
+Ceremonial Dagger requires available fodder; Madness requires a blind-selection opportunity. Historical destruction alone does not realize the Bond.
+
+### Card Destruction
+ACTIVE requires a current destruction line/payoff such as Trading Card with a usable hand, Sixth Sense with a 6, Glass Joker with Glass available, or Canio with accumulated destruction payoff.
+
+### Hand Repetition
+Card Sharp requires the repeated current hand condition; Supernova remains live for the currently played hand family. Historical repetition raises development but is not by itself realization.
+
+### Enhanced Cards
+Driver's License becomes ACTIVE only at its actual enhanced-card threshold. Density below threshold can still develop the Bond without realizing the payoff.
+
+### Vampire
+ACTIVE requires current enhancement feedstock or renewable feed infrastructure such as Midas Mask. Historical Vampire scaling alone does not guarantee current feed realization.
+
+## Advanced hands
+
+Full House, Straight Flush, Five of a Kind, Flush House and Flush Five realize only when that advanced hand is actually available/identified. Permanent concentration and hand levels remain structural development when the current hand cannot execute the shape.
+
+## Invariants
 
 Every Realizer must:
 
