@@ -12,7 +12,7 @@
 |---|---|---|
 | v0.1–v0.9 Foundation + autonomous integration | Complete | — |
 | **v1.0.0 Red Deck / White Stake competence** | **Complete** | Released 2026-08-20 |
-| **v1.0.x Red/White calibration** | **In progress** | Build Health / realized-strength validation before Red Stake work |
+| **v1.0.x Red/White calibration** | **In progress** | Unchanged-HEAD five-run live validation before Red Stake work |
 | v1.1–v1.7 Red Deck stake progression | Next | Begins from Red Stake after Red/White calibration |
 | Fresh-profile collection progression | In progress, non-blocking | May continue alongside stake progression |
 | v2+ Additional decks | Not started | Begins after Red Deck progression |
@@ -94,15 +94,15 @@ The implementation contract is documented in [`docs/balatro/BUILD_HEALTH_AND_REA
 - [x] Normalize prescription matching across live naming/telemetry variants for consumables, Planet target hands, ranks, Steel enhancements, and Red/Blue Seals.
 - [x] Add bounded short-horizon multi-action planning for complementary shop pairs and activation sequences.
 - [x] Expose Build Health and inactive-engine/scaling-deficit warnings in the live monitor and structured logs.
-- [x] Add deterministic regressions before each behavior change. Bond pivot/prescription and shop clear-probability boundary batches are implemented as of 2026-08-22; broader current-HEAD validation remains required before live five-run calibration.
-- [ ] Run a fresh unchanged-HEAD five-run Red/White validation batch only after the complete layer is green.
+- [x] Add deterministic regressions before each behavior change. Bond/realization, Bond pivot/prescription, and SHOP clear-probability reconciliation are complete; the **full Balatro deterministic suite is green on 2026-08-22** at the current calibration head.
+- [ ] Run a fresh unchanged-HEAD five-run Red/White validation batch after the now-green deterministic gate.
 
 ### Calibration gate before Red Stake
 
 Do not begin Red/Red `1.1.0` implementation until:
 
-- [ ] the full Balatro deterministic suite is green;
-- [ ] Build Health diagnostics are stable and auditable;
+- [x] the full Balatro deterministic suite is green;
+- [x] Build Health diagnostics are stable and auditable;
 - [ ] repeated five-run losses no longer show obvious "full board but non-functioning build" failures;
 - [ ] at least one fresh unchanged-HEAD Red/White batch contains an Ante-8 clear without a repeated release-blocking decision defect.
 
