@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from games.balatro.bonds.diagnostics import bond_strategy_diagnostics
 from games.balatro.playbook import default_balatro_playbooks
 
 from .run_experience import BalatroRunExperienceLogger, BalatroRunIdentity
@@ -162,14 +163,7 @@ def log_successful_live_transition(
     directory: str | Path = "logs/balatro/runs",
     build_intent: dict[str, Any] | None = None,
 ) -> BalatroRunExperienceLogger:
-    """Append one already-successful guarded live transition to a durable run log.
-
-    This function deliberately runs only after the injected dispatcher has returned
-    a settled authoritative post-action snapshot. Preview, stale-state rejection,
-    achievement-gate rejection and failed bridge execution therefore write nothing.
-    A structured ``build_intent`` event may be inserted before the decision when
-    the production run-scoped tracker reports a meaningful public build change.
-    """
+    """Append one already-successful guarded live transition to a durable run log."""
     normalized_run_id = str(run_id).strip()
     if not normalized_run_id:
         raise ValueError("run_id cannot be empty")
@@ -192,11 +186,7 @@ def log_successful_live_transition(
     prepared_build_intent = getattr(decision, "build_intent", None)
     commit_prepared_build_intent = False
     if build_intent is None and prepared_build_intent is not None:
-        build_intent = getattr(
-            prepared_build_intent,
-            "payload",
-            prepared_build_intent,
-        )
+        build_intent = getattr(prepared_build_intent, "payload", prepared_build_intent)
         commit_prepared_build_intent = hasattr(prepared_build_intent, "commit")
 
     if logger.sequence == 0:
@@ -204,10 +194,7 @@ def log_successful_live_transition(
 
     logger.observation(before_state)
     if build_intent is not None:
-        logger.record(
-            "build_intent",
-            **_sanitize_public_value(build_intent),
-        )
+        logger.record("build_intent", **_sanitize_public_value(build_intent))
         if commit_prepared_build_intent:
             prepared_build_intent.commit()
     rationale = {
@@ -216,18 +203,19 @@ def log_successful_live_transition(
     }
     if build_rationale is not None:
         rationale["build_rationale"] = build_rationale
+
     decision_diagnostics = getattr(decision, "decision_diagnostics", None)
-    if isinstance(decision_diagnostics, dict) and decision_diagnostics:
-        rationale["postmortem"] = _sanitize_public_value(decision_diagnostics)
-    logger.decision(
-        action=action,
-        rationale=rationale,
-    )
-    logger.action_result(
-        action=action,
-        success=True,
-        state=after_state,
-    )
+    postmortem = dict(decision_diagnostics) if isinstance(decision_diagnostics, dict) else {}
+    try:
+        postmortem["bond_strategy"] = bond_strategy_diagnostics(state)
+    except (AttributeError, KeyError, TypeError, ValueError):
+        # Strategy telemetry is observational and must never block a successful action.
+        pass
+    if postmortem:
+        rationale["postmortem"] = _sanitize_public_value(postmortem)
+
+    logger.decision(action=action, rationale=rationale)
+    logger.action_result(action=action, success=True, state=after_state)
 
     if str(result.after.phase) in TERMINAL_PHASES:
         logger.run_finished(
@@ -251,14 +239,7 @@ def finalize_live_run(
     reason: str,
     directory: str | Path = "logs/balatro/runs",
 ) -> BalatroRunExperienceLogger:
-    """Idempotently close a live run log, including nonterminal safe-stop attempts.
-
-    Terminal transitions normally finalize themselves in
-    ``log_successful_live_transition``. Supervisor-level safe stops and blocked
-    attempts do not necessarily execute a terminal gameplay transition, so this
-    helper records their final authoritative public snapshot and writes the same
-    per-run summary contract without fabricating a successful action.
-    """
+    """Idempotently close a live run log, including nonterminal safe-stop attempts."""
     normalized_run_id = str(run_id).strip()
     if not normalized_run_id:
         raise ValueError("run_id cannot be empty")
@@ -293,9 +274,5 @@ def finalize_live_run(
     else:
         logger.observation(state)
 
-    logger.run_finished(
-        won=bool(won),
-        state=state,
-        reason=str(reason),
-    )
+    logger.run_finished(won=bool(won), state=state, reason=str(reason))
     return logger
