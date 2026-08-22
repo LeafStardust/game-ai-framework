@@ -112,7 +112,10 @@ def realize_joker_sacrifice(dev: BondDevelopment, state: Any) -> BondDevelopment
 def realize_card_destruction(dev: BondDevelopment, state: Any) -> BondDevelopment:
     jokers = _jokers(state); hand = _cards(state, "hand", "current_hand", "cards_in_hand")
     first_discard = bool(getattr(state, "first_discard_available", int(getattr(state, "discards_used_this_round", 0) or 0) == 0)); first_hand = bool(getattr(state, "first_hand_available", int(getattr(state, "hands_played_this_round", 0) or 0) == 0))
-    trading = _has(jokers, "tradingcard") and first_discard and bool(hand); sixth = _has(jokers, "sixthsense") and first_hand and any(str(getattr(c, "rank", "")) == "6" for c in hand)
+    selected_discard = _cards(state, "selected_cards", "cards_to_discard")
+    selected_play = _cards(state, "cards_to_play", "selected_cards")
+    trading = _has(jokers, "tradingcard") and first_discard and len(selected_discard) == 1
+    sixth = _has(jokers, "sixthsense") and first_hand and len(selected_play) == 1 and str(getattr(selected_play[0], "rank", "")) == "6"
     glass = _has(jokers, "glassjoker") and any(str(getattr(c, "enhancement", "") or "").lower() == "glass" for c in hand); canio = _has(jokers, "canio") and int(getattr(state, "cards_destroyed", 0) or 0) > 0
     active = trading or sixth or glass or canio; return _finish(dev, active, sum((trading, sixth, glass, canio)) >= 2)
 
@@ -134,9 +137,6 @@ def realize_vampire(dev: BondDevelopment, state: Any) -> BondDevelopment:
     jokers = _jokers(state)
     if not _has(jokers, "vampire"): return _finish(dev, False)
     hand = _cards(state, "hand", "current_hand", "cards_in_hand"); deck = _cards(state, "owned_deck", "deck")
-    # When scoring_cards exists, even an empty list is authoritative: Vampire
-    # strips enhancements only from scoring cards. Falling back to the whole
-    # hand in that case falsely realizes Vampire from cards that will not score.
     scoring_raw = getattr(state, "scoring_cards", None)
     if scoring_raw is not None:
         scoring = list(scoring_raw or ()); feed_cards = scoring
