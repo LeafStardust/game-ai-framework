@@ -54,3 +54,29 @@ def test_blackboard_realizes_with_empty_hand():
     state = SimpleNamespace(jokers=[_joker("Blackboard")], hand=[], current_hand=[], cards_in_hand=[], owned_deck=[], deck=[])
     dev = evaluate_held_cards_bond(state)
     assert realize_bond(dev, state).realization == BondRealization.ACTIVE
+
+
+def test_raised_fist_red_seal_retrigger_only_uses_lowest_ranked_card():
+    low = _card(rank="3")
+    high_red = _card(rank="9", seal="Red")
+    deck = [low, high_red, _card(rank="4", seal="Red"), _card(rank="5", seal="Red"), _card(rank="6", seal="Red")]
+    state = SimpleNamespace(
+        jokers=[_joker("Raised Fist")],
+        hand=[low, high_red], current_hand=[low, high_red], cards_in_hand=[low, high_red],
+        owned_deck=deck, deck=deck,
+    )
+    dev = evaluate_held_retrigger_bond(state)
+    assert realize_bond(dev, state).realization == BondRealization.PARTIAL
+
+
+def test_raised_fist_red_seal_retrigger_uses_rightmost_lowest_rank_on_tie():
+    low_plain = _card(rank="3")
+    low_red = _card(rank="3", seal="Red")
+    deck = [low_plain, low_red, _card(rank="4", seal="Red"), _card(rank="5", seal="Red")]
+    state = SimpleNamespace(
+        jokers=[_joker("Raised Fist")],
+        hand=[low_plain, low_red], current_hand=[low_plain, low_red], cards_in_hand=[low_plain, low_red],
+        owned_deck=deck, deck=deck,
+    )
+    dev = evaluate_held_retrigger_bond(state)
+    assert realize_bond(dev, state).realization == BondRealization.ACTIVE
