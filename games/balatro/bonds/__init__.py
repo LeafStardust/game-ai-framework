@@ -29,7 +29,7 @@ from games.balatro.bonds.vampire import (
     evaluate_vampire_bond,
 )
 from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank, BondRealization, MechanicalRole
-from games.balatro.bonds.mechanical_roles import ROLE_REGISTRY, enrich_contribution, enrich_contributions
+from games.balatro.bonds.mechanical_roles import ROLE_REGISTRY, enrich_contribution, enrich_contributions, enrich_development
 from games.balatro.bonds.authority_calibration import apply_rank_authority_audit
 
 apply_rank_authority_audit()
