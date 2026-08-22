@@ -8,6 +8,7 @@ from games.balatro.bonds.realization_common import COMMON_REALIZERS
 from games.balatro.bonds.realization_rank_state import RANK_STATE_REALIZERS
 from games.balatro.bonds.realization_engine import ENGINE_REALIZERS
 from games.balatro.bonds.realization_advanced import ADVANCED_REALIZERS
+from games.balatro.bonds.realization_engine_order_audit import ENGINE_AUDIT_REALIZERS
 
 Realizer = Callable[[BondDevelopment, Any], BondDevelopment]
 
@@ -17,6 +18,10 @@ for family in (HELD_REALIZERS, COMMON_REALIZERS, RANK_STATE_REALIZERS, ENGINE_RE
     if overlap:
         raise RuntimeError(f"Duplicate Bond realizer registration: {sorted(overlap)}")
     REALIZERS.update(family)
+
+# Mechanical self-audit overrides intentionally replace a small subset of the
+# engine-family realizers while preserving the frozen Bond registry.
+REALIZERS.update(ENGINE_AUDIT_REALIZERS)
 
 FROZEN_BOND_IDS = (
     "burnt", "held_cards", "held_retrigger", "steel", "pair", "high_card", "aces",
