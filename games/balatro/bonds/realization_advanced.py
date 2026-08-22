@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import replace
 from typing import Any, Iterable
 
@@ -75,8 +76,6 @@ def _counts(hand: list[Any]) -> dict[str, int]:
 
 
 def _effective_suits(card: Any, smeared: bool) -> tuple[str, ...]:
-    # Wild cards count as every suit. Under Smeared Joker, those four suits
-    # collapse into the two color-equivalence classes used by flush logic.
     if _enh(card) == "wild":
         return ("red", "black") if smeared else ("hearts", "diamonds", "spades", "clubs")
     suit = _suit(card)
@@ -131,14 +130,25 @@ def realize_straight_flush(dev: BondDevelopment, state: Any) -> BondDevelopment:
     smeared = _has(jokers, "smearedjoker", "smeared")
     needed = 4 if four_fingers else 5
     rank_map = {"A":14,"K":13,"Q":12,"J":11,"10":10,"T":10,"9":9,"8":8,"7":7,"6":6,"5":5,"4":4,"3":3,"2":2}
+
+    all_ranks: set[int] = set()
+    suit_counts: Counter[str] = Counter()
     suits: dict[str, set[int]] = {}
     for c in hand:
         rank = rank_map.get(_rank(c))
         if not rank:
             continue
+        all_ranks.add(rank)
         for suit in _effective_suits(c, smeared):
+            suit_counts[suit] += 1
             suits.setdefault(suit, set()).add(rank)
-    active = any(_straight_available(ranks, needed=needed, shortcut=shortcut) for ranks in suits.values())
+
+    if four_fingers:
+        # Four Fingers checks the four-card straight and four-card flush
+        # independently; they do not need to be the same four cards.
+        active = _straight_available(all_ranks, needed=4, shortcut=shortcut) and any(v >= 4 for v in suit_counts.values())
+    else:
+        active = any(_straight_available(ranks, needed=needed, shortcut=shortcut) for ranks in suits.values())
     return _finish(dev, active, active)
 
 
