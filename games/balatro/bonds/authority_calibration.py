@@ -42,8 +42,11 @@ def _audited_suit_density(state, suit: str) -> float:
 
     count = sum(
         1 for card in b3._deck(state)
-        if str(getattr(card, "suit", "") or "").lower() == suit.lower()
-        and str(getattr(card, "enhancement", "") or "").lower() != "stone"
+        if str(getattr(card, "enhancement", "") or "").lower() != "stone"
+        and (
+            str(getattr(card, "suit", "") or "").lower() == suit.lower()
+            or str(getattr(card, "enhancement", "") or "").lower() == "wild"
+        )
     )
     return b3._band(
         count,
@@ -69,14 +72,10 @@ def apply_rank_authority_audit() -> None:
     from games.balatro.bonds import catalogue_batch_five as b5
     from games.balatro.bonds import held_cards as hc
 
-    # Permanent poker-hand investment gains additional high-end bands so extreme
-    # leveling can carry R4/R5 authority. Early-game 1/3/5 values are unchanged.
     b1._level_band = _audited_hand_level_band
     b2._level_score = _audited_hand_level_band
     b3._level_score = _audited_hand_level_band
 
-    # Ordinary suit/rank density remains low authority. Extreme concentration can
-    # eventually become R4/R5 structural commitment.
     def audited_suit_bond(state, bond_id, suit, specs):
         jokers = list(getattr(state, "jokers", ()) or ())
         parts = b3._joker_parts(jokers, specs)
@@ -88,8 +87,6 @@ def apply_rank_authority_audit() -> None:
     b3._suit_bond = audited_suit_bond
     b4._rank_density = _audited_rank_density
 
-    # IMPORTANT: rebind each table. Several implementation-pass constants alias
-    # one shared dict; mutating those dicts would silently recalibrate siblings.
     hc.HELD_CARDS_RANK_THRESHOLDS = _table(4, 8, 13, 18, 22)
     b1.HELD_RETRIGGER_THRESHOLDS = _table(4, 8, 13, 17, 21)
     b1.STEEL_THRESHOLDS = _table(4, 8, 13, 17, 20)
@@ -103,17 +100,11 @@ def apply_rank_authority_audit() -> None:
     b2.DECK_THINNING_THRESHOLDS = _table(4, 7, 10, 13, 16)
     b2.DECK_GROWTH_THRESHOLDS = _table(4, 7, 12, 18, 25)
 
-    # Batch-three hand constants originally alias HAND_THRESHOLDS; rebind only the
-    # two narrow advanced hands that need a lower reachable capstone ceiling.
     b3.FULL_HOUSE_THRESHOLDS = _table(4, 8, 13, 19, 22)
     b3.FLUSH_HOUSE_THRESHOLDS = _table(4, 8, 13, 19, 23)
 
-    # TAROT_THRESHOLDS and PLANET_THRESHOLDS originally alias one consumable table.
-    # Rebind Tarot only; Planet keeps its original 4/9/15/22/30 geometry.
     b4.TAROT_THRESHOLDS = _table(4, 9, 15, 22, 28)
 
-    # Batch-five constants originally alias DEFAULT_THRESHOLDS. Each defining-
-    # payoff Bond therefore gets its own independent audited table.
     b5.BLIND_SKIP_THRESHOLDS = _table(4, 8, 12, 15, 18)
     b5.SELL_VALUE_THRESHOLDS = _table(4, 9, 15, 20, 25)
     b5.JOKER_SACRIFICE_THRESHOLDS = _table(4, 9, 14, 18, 23)
