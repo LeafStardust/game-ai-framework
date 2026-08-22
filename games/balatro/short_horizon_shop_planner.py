@@ -7,14 +7,14 @@ SELL/BUY that belongs to a verified short-horizon plan, then the autonomous loop
 must re-observe the shop and re-plan from authoritative state.
 """
 
-from copy import deepcopy
 from dataclasses import dataclass
 from itertools import combinations, product
 
 from games.balatro.actions import BUY_JOKER, SELL_JOKER, BalatroAction
+from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.motifs import MotifState
 from games.balatro.build_health_runtime import RuntimeBuildHealthEvaluator, projected_state_with_jokers
 from games.balatro.joker_edition import joker_has_negative_edition
-from games.balatro.strategy import GOLD, SILVER
 
 
 _HEALTH = RuntimeBuildHealthEvaluator()
@@ -64,37 +64,60 @@ def _sell_credit(joker: object) -> int:
     return 0
 
 
-def _tracker_from_arbiter(arbiter, state):
-    try:
-        policy = arbiter._joker_policy_for_state(state)
-    except (AttributeError, TypeError, ValueError):
-        return None
-    planner = getattr(policy, "transition_planner", None)
-    evaluator = getattr(planner, "evaluator", None)
-    return getattr(evaluator, "strategy_tracker", None)
+def _motif_strength(motif) -> int:
+    return {
+        MotifState.ABSENT: 0,
+        MotifState.POTENTIAL: 1,
+        MotifState.ACTIVE: 2,
+        MotifState.MATURE: 3,
+    }.get(getattr(motif, "state", MotifState.ABSENT), 0)
 
 
-def _protected_indices(state, tracker) -> set[int]:
+def _protected_indices(state) -> set[int]:
+    """Protect immutable Jokers and components whose removal breaks realized Bond structure."""
     jokers = tuple(getattr(state, "jokers", ()) or ())
-    if tracker is not None:
-        try:
-            tracker = deepcopy(tracker)
-        except (TypeError, ValueError):
-            return set(range(len(jokers)))
-
     protected: set[int] = set()
+    try:
+        _, current = evaluate_bond_composition(state)
+    except (AttributeError, KeyError, TypeError, ValueError, RuntimeError):
+        current = None
+
+    current_motifs = (
+        {motif.motif_id: _motif_strength(motif) for motif in current.motifs}
+        if current is not None
+        else {}
+    )
+
     for index, joker in enumerate(jokers):
         if bool(getattr(joker, "eternal", False)) or joker_has_negative_edition(joker):
             protected.add(index)
             continue
-        if tracker is None:
+        if current is None:
             continue
+
+        projected_state = projected_state_with_jokers(
+            state,
+            tuple(value for current_index, value in enumerate(jokers) if current_index != index),
+        )
         try:
-            relation = tracker.evaluate_item(state, joker, kind="JOKER")
-        except (AttributeError, KeyError, TypeError, ValueError):
+            _, projected = evaluate_bond_composition(projected_state)
+        except (AttributeError, KeyError, TypeError, ValueError, RuntimeError):
             protected.add(index)
             continue
-        if bool(getattr(relation, "active_alignment", False)) and getattr(relation, "tier", None) in {GOLD, SILVER}:
+
+        projected_motifs = {
+            motif.motif_id: _motif_strength(motif) for motif in projected.motifs
+        }
+        loses_realized_motif = any(
+            strength >= _motif_strength(type("M", (), {"state": MotifState.ACTIVE})())
+            and projected_motifs.get(motif_id, 0) < strength
+            for motif_id, strength in current_motifs.items()
+        )
+        loses_resistance = (
+            float(projected.pivot_resistance) + 1e-12
+            < float(current.pivot_resistance)
+        )
+        if loses_realized_motif or loses_resistance:
             protected.add(index)
     return protected
 
@@ -132,25 +155,13 @@ def _first_step_survival_safe(current, projected) -> bool:
     return projected.survival >= current.survival - _MAX_SURVIVAL_LOSS
 
 
-def _projection_tracker(tracker):
-    if tracker is None:
-        return None
-    try:
-        return deepcopy(tracker)
-    except (TypeError, ValueError):
-        return None
-
-
-def _project(state, roster, money, tracker):
+def _project(state, roster, money):
     projected = projected_state_with_jokers(state, roster)
     projected.money = max(0, int(money))
-    return projected, _HEALTH.evaluate(
-        projected,
-        strategy_tracker=_projection_tracker(tracker),
-    )
+    return projected, _HEALTH.evaluate(projected)
 
 
-def _safe_first_steps(state, current, tracker, *, jokers, money, missing, added, sell_indices):
+def _safe_first_steps(state, current, *, jokers, money, missing, added, sell_indices):
     steps: list[tuple] = []
     if sell_indices:
         for index in sell_indices:
@@ -158,7 +169,7 @@ def _safe_first_steps(state, current, tracker, *, jokers, money, missing, added,
                 joker for current_index, joker in enumerate(jokers) if current_index != index
             )
             interim_money = money + _sell_credit(jokers[index])
-            _, health = _project(state, interim_roster, interim_money, tracker)
+            _, health = _project(state, interim_roster, interim_money)
             if _first_step_survival_safe(current, health):
                 steps.append(("SELL", health.survival, health.total, -index, index, health))
         return tuple(steps)
@@ -166,7 +177,7 @@ def _safe_first_steps(state, current, tracker, *, jokers, money, missing, added,
     for token, candidate in zip(missing, added):
         interim_roster = tuple((*jokers, candidate))
         interim_money = money - _price(candidate)
-        _, health = _project(state, interim_roster, interim_money, tracker)
+        _, health = _project(state, interim_roster, interim_money)
         if _first_step_survival_safe(current, health):
             steps.append(
                 (
@@ -184,6 +195,7 @@ def _safe_first_steps(state, current, tracker, *, jokers, money, missing, added,
 
 
 def recommend_bounded_shop_bundle(arbiter, state) -> ShopBundleRecommendation | None:
+    del arbiter
     jokers = tuple(getattr(state, "jokers", ()) or ())
     shop = tuple(getattr(state, "shop_jokers", ()) or ())
     if not shop:
@@ -191,14 +203,13 @@ def recommend_bounded_shop_bundle(arbiter, state) -> ShopBundleRecommendation | 
 
     owned_by_token = {_canonical_joker(joker): joker for joker in jokers}
     visible_by_token = _visible_offers(shop)
-    tracker = _tracker_from_arbiter(arbiter, state)
-    current = _HEALTH.evaluate(state, strategy_tracker=tracker)
+    current = _HEALTH.evaluate(state)
     slots = max(0, int(getattr(state, "joker_slots", 0) or 0))
     free_slots = max(0, slots - len(jokers))
     money = max(0, int(getattr(state, "money", 0) or 0))
     ante = max(1, int(getattr(state, "ante", 1) or 1))
     reserve = 5 if ante <= 2 else 10
-    protected = _protected_indices(state, tracker)
+    protected = _protected_indices(state)
     replaceable = tuple(index for index in range(len(jokers)) if index not in protected)
 
     best = None
@@ -233,14 +244,13 @@ def recommend_bounded_shop_bundle(arbiter, state) -> ShopBundleRecommendation | 
                 if final_money < reserve:
                     continue
 
-                _, projected = _project(state, final_roster, final_money, tracker)
+                _, projected = _project(state, final_roster, final_money)
                 if not _health_improves(current, projected):
                     continue
 
                 first_steps = _safe_first_steps(
                     state,
                     current,
-                    tracker,
                     jokers=jokers,
                     money=money,
                     missing=missing,
