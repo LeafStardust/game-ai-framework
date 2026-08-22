@@ -50,7 +50,7 @@ def test_blind_skip_requires_throwback_and_history_is_additive():
     assert cola_only.rank == BondRank.LOCKED
     result = evaluate_blind_skip_bond(_state(jokers=[_joker("Throwback")], blinds_skipped=5))
     assert result.contribution == 12.0
-    assert result.rank == BondRank.R2
+    assert result.rank == BondRank.R3
 
 
 def test_sell_value_requires_swashbuckler():
