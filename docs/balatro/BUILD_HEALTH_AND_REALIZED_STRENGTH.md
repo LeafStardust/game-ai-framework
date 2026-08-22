@@ -47,6 +47,25 @@ Retain normalized diagnostics approximately as:
 
 Critical survival failure must not be hidden by a good aggregate or high Bond ranks.
 
+### SHOP survival contract
+
+During live hand play, D1 already evaluates whole-blind clear probability from the visible hand and public redraw composition. SHOP has no visible next opening hand, so production Build Health must not pretend that one representative best hand can be repeated for every remaining hand.
+
+Production SHOP Survival therefore uses a bounded public-state projection:
+
+1. take the authoritative permanent/owned playing-card composition when available;
+2. discard serialized card order and represent it as an unordered public multiset;
+3. deterministically sample a small set of possible opening hands from that multiset;
+4. for each opening, create an isolated next-blind state with round score/history reset;
+5. run the same `LiveBlindClearPlanner` used by D1 with narrow action beams, deterministic public redraw sampling, full round hand horizon, and a hard node cap;
+6. probability-weight the resulting whole-blind clear probabilities.
+
+The projection may use only ordinary public state. It must never inspect hidden future draw order, RNG state, run seed, or future shop contents.
+
+If any sampled opening cannot complete inside the bounded planner contract, partial coverage is not renormalized because that would bias Survival. The SHOP adapter instead falls back to the generic Build Health capacity estimate. Custom/injected scorers also retain the generic estimator so offline/unit-test contracts are not silently converted into live D1 semantics.
+
+Immediate Power remains a separate diagnostic. Replacing SHOP Survival with P(clear) must not overwrite scaling, coherence, runway, or mid-blind survival behavior.
+
 ## 4. Realization
 
 Canonical Bond realization states:
@@ -195,6 +214,8 @@ A component that crosses two useful Bond thresholds and activates a motif may be
 
 Motif prescriptions may add bounded preference to already-positive admitted consumable/shop utility. D4 admission, resource guards, affordability, slot legality, and the underlying child utility remain authoritative.
 
+For production SHOP hypothetical states, Survival should use the bounded next-blind D1 clear-probability adapter described above. This makes acquisition/replacement comparison sensitive to whether the candidate actually improves a plausible full-round clear path rather than whether it merely raises one synthetic best-hand score.
+
 ## 12. Observability
 
 Live monitor target:
@@ -233,6 +254,6 @@ Decision logs should state when a purchase/action crosses useful thresholds, cha
 - update/remove tests that intentionally encode superseded architecture;
 - calibrate contribution/rank geometry and Build Health thresholds from unchanged-HEAD multi-run telemetry;
 - keep structural coherence distinct from realized underperformance;
-- retain regression coverage for unknown Joker-slot telemetry, motif-state non-double-counting, bounded prescription authority, and normalized public naming/telemetry variants.
+- retain regression coverage for unknown Joker-slot telemetry, motif-state non-double-counting, bounded prescription authority, normalized public naming/telemetry variants, SHOP planner fallback, custom-scorer isolation, and owned-deck order invariance.
 
-The Bond pivot/prescription boundary subsystem is deterministic-test green as of 2026-08-22. This remains Red/White competence scope until the broader Bond migration and unchanged-HEAD validation gate are complete.
+The Bond pivot/prescription boundary subsystem is deterministic-test green as of 2026-08-22. The bounded SHOP clear-probability survival subsystem is implemented with targeted regressions pending validation. This remains Red/White competence scope until the broader Bond migration and unchanged-HEAD validation gate are complete.
