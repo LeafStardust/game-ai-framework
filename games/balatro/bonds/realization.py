@@ -10,6 +10,7 @@ from games.balatro.bonds.realization_engine import ENGINE_REALIZERS
 from games.balatro.bonds.realization_advanced import ADVANCED_REALIZERS
 from games.balatro.bonds.realization_engine_order_audit import ENGINE_AUDIT_REALIZERS
 from games.balatro.bonds.realization_engine_triggered import TRIGGERED_ENGINE_OVERRIDES
+from games.balatro.bonds.realization_engine_liveness_audit import ENGINE_LIVENESS_AUDIT_REALIZERS
 
 Realizer = Callable[[BondDevelopment, Any], BondDevelopment]
 
@@ -24,6 +25,7 @@ for family in (HELD_REALIZERS, COMMON_REALIZERS, RANK_STATE_REALIZERS, ENGINE_RE
 # engine-family realizers while preserving the frozen Bond registry.
 REALIZERS.update(ENGINE_AUDIT_REALIZERS)
 REALIZERS.update(TRIGGERED_ENGINE_OVERRIDES)
+REALIZERS.update(ENGINE_LIVENESS_AUDIT_REALIZERS)
 
 FROZEN_BOND_IDS = (
     "burnt", "held_cards", "held_retrigger", "steel", "pair", "high_card", "aces",
