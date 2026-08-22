@@ -105,7 +105,9 @@ def realize_joker_sacrifice(dev: BondDevelopment, state: Any) -> BondDevelopment
     jokers = _jokers(state); dagger_index = next((i for i, j in enumerate(jokers) if "ceremonialdagger" in _name(j)), None)
     dagger_has_target = dagger_index is not None and dagger_index + 1 < len(jokers)
     ordered_fodder = dagger_has_target and (bool(getattr(state, "sacrificable_joker_available", False)) or "riffraff" in _name(jokers[dagger_index + 1]))
-    madness = _has(jokers, "madness"); pending = bool(getattr(state, "blind_selection_pending", True)); active = ordered_fodder or (madness and pending)
+    blind_kind = _name(getattr(state, "blind_type", getattr(state, "blind_kind", "")))
+    boss = bool(getattr(state, "is_boss_blind", False)) or "boss" in blind_kind
+    madness = _has(jokers, "madness"); pending = bool(getattr(state, "blind_selection_pending", True)); active = ordered_fodder or (madness and pending and not boss)
     return _finish(dev, active, active and int(getattr(state, "jokers_destroyed", 0) or 0) >= 6)
 
 
@@ -116,7 +118,10 @@ def realize_card_destruction(dev: BondDevelopment, state: Any) -> BondDevelopmen
     selected_play = _cards(state, "cards_to_play", "selected_cards")
     trading = _has(jokers, "tradingcard") and first_discard and len(selected_discard) == 1
     sixth = _has(jokers, "sixthsense") and first_hand and len(selected_play) == 1 and str(getattr(selected_play[0], "rank", "")) == "6"
-    glass = _has(jokers, "glassjoker") and any(str(getattr(c, "enhancement", "") or "").lower() == "glass" for c in hand); canio = _has(jokers, "canio") and int(getattr(state, "cards_destroyed", 0) or 0) > 0
+    scoring_raw = getattr(state, "scoring_cards", None)
+    glass_pool = list(scoring_raw or ()) if scoring_raw is not None else (_cards(state, "played_cards", "current_played_cards") or hand)
+    glass = _has(jokers, "glassjoker") and any(str(getattr(c, "enhancement", "") or "").lower() == "glass" for c in glass_pool)
+    canio = _has(jokers, "canio") and int(getattr(state, "cards_destroyed", 0) or 0) > 0
     active = trading or sixth or glass or canio; return _finish(dev, active, sum((trading, sixth, glass, canio)) >= 2)
 
 
@@ -135,7 +140,8 @@ def realize_enhanced_cards(dev: BondDevelopment, state: Any) -> BondDevelopment:
 
 def realize_vampire(dev: BondDevelopment, state: Any) -> BondDevelopment:
     jokers = _jokers(state)
-    if not _has(jokers, "vampire"): return _finish(dev, False)
+    vampire_index = next((i for i, j in enumerate(jokers) if "vampire" in _name(j)), None)
+    if vampire_index is None: return _finish(dev, False)
     hand = _cards(state, "hand", "current_hand", "cards_in_hand"); deck = _cards(state, "owned_deck", "deck")
     scoring_raw = getattr(state, "scoring_cards", None)
     if scoring_raw is not None:
@@ -143,10 +149,12 @@ def realize_vampire(dev: BondDevelopment, state: Any) -> BondDevelopment:
     else:
         scoring = _cards(state, "played_cards", "current_played_cards"); feed_cards = scoring or hand
     feed = sum(1 for c in feed_cards if str(getattr(c, "enhancement", "") or "").strip())
-    has_midas = _has(jokers, "midasmask"); pareidolia = _has(jokers, "pareidolia")
+    midas_index = next((i for i, j in enumerate(jokers) if "midasmask" in _name(j)), None)
+    midas_before_vampire = midas_index is not None and midas_index < vampire_index
+    pareidolia = _has(jokers, "pareidolia")
     face_pool = scoring if scoring_raw is not None else (scoring or hand or deck)
     face_available = bool(face_pool) if pareidolia else any(str(getattr(c, "rank", "") or "").upper() in {"J", "Q", "K"} for c in face_pool)
-    renewable = has_midas and face_available; active = feed > 0 or renewable
+    renewable = midas_before_vampire and face_available; active = feed > 0 or renewable
     return _finish(dev, active, feed >= 2 or (renewable and int(getattr(state, "vampire_enhancements_consumed", 0) or 0) >= 15))
 
 
