@@ -4,6 +4,7 @@ from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
 from games.balatro.aces_scholar_policy import install_aces_scholar_policy
 from games.balatro.ankh_presale_policy import install_ankh_presale_policy
 from games.balatro.blue_joker_strategy_rules import apply_blue_joker_strategy_rules
+from games.balatro.bond_shop_health_policy import install_bond_shop_health_policy
 from games.balatro.build_health_policy import install_build_health_policy
 from games.balatro.card_sharp_strategy_rules import install_card_sharp_strategy_rules
 from games.balatro.cash_scoring_support_policy import install_cash_scoring_support_policy
@@ -115,6 +116,10 @@ install_noncash_cash_deployment_policy()
 # The 0/5 opening-survival layer must see the final composed safe-pace decision and
 # may only turn an Ante 1-2 near-pace discard into a scoring play.
 install_latest_zero_five_survival_policy()
-# D1 caching is installed last because it is a semantics-preserving wrapper around
+# D1 caching is installed late because it is a semantics-preserving wrapper around
 # the final composed strategy-aware hand policy.
 install_d1_strategy_fit_cache_policy()
+# Canonical 46-Bond Strategy Health is installed last. It observes the final D1
+# decision and may only reweight SHOP options already admitted by existing child
+# legality/safety policies; it never manufactures a purchase or reroll.
+install_bond_shop_health_policy()
