@@ -199,6 +199,10 @@ Do not create a second complicated prescription-conflict subsystem.
 - unusual/super-additive combination behavior -> motif prescription.
 - immediate survival -> final authority and may override strategic prescriptions.
 
+Runtime prescription authority is **bounded preference beneath existing child-policy legality/safety**. It may increase the score of an already-admitted pack/shop option, but it must never make an unsupported, deferred, unaffordable, illegal, or child-policy-rejected action autonomous-safe.
+
+Prescription matching must use canonical semantics rather than fragile display spelling. Equivalent live representations of consumable names, Planet target-hand labels, face-rank aliases, Steel enhancements, and Red/Blue Seals should resolve to the same prescription. Current implemented motif preferences include Baron-Mime-Steel, Photograph-Hanging Chad, Vampire-Midas, Burnt target leveling, and low-rank Hack retrigger support.
+
 ## 10. Multi-Bond contributors and slot efficiency
 
 A component that advances several relevant Bonds is strategically valuable because one Joker slot can develop several parts of the combined build.
@@ -220,6 +224,12 @@ FAR -> DEVELOPING -> NEAR -> ACTIVE -> MATURE
 Pivot evaluation considers current realized build power, new potential/realized power, useful thresholds crossed, motif synergy, deck compatibility, missing pieces, money/slots, abandoned value, reshaping/buildup time, remaining runway and survival risk.
 
 Existing rank creates pivot resistance: R1/R2 cheap to abandon; R3 meaningful transition cost; R4 strong resistance; R5 very strong resistance. This is a cost, never a lock.
+
+The canonical runtime pivot authority compares projected combined-build coherence/distance against explicit realized-structure disruption and applies a Strategy-Health-dependent minimum net gain. SURVIVE/REPAIR permit lower-gain pivots than HOLD/REINFORCE/EXPLOIT; stronger functioning builds therefore require materially better replacements before disruption is accepted.
+
+Do not double-count motif state outside composition coherence. Explicit disruption may still penalize loss of active/mature motifs and pivot resistance because dismantling already-realized machinery carries transition risk not captured by a symmetric coherence delta.
+
+Pivot authority only overrides the lower-level acquisition decision when the public live state proves the Joker roster is full and the candidate transition is already an eligible positive D2 option. Missing, zero, negative, or invalid Joker-slot telemetry is unknown state, not evidence of a full roster; the lower-level policy remains authoritative in that case.
 
 ## 12. Build Health integration
 
@@ -256,7 +266,7 @@ Realization  : ACTIVE
 
 Locked defining-component Bonds should not clutter normal output; full telemetry may retain their locked state.
 
-Composition section should expose Power engine, relevant Bonds, motifs, conflicts, and prescriptions. Shop/action telemetry should explain threshold/motif effects without flooding the monitor with dormant R0/locked Bonds.
+Composition section should expose Power engine, relevant Bonds, motifs, conflicts, and prescriptions. Shop/action telemetry should explain threshold/motif effects without flooding the monitor with dormant R0/locked Bonds. When canonical prescription or pivot authority changes a ranking/action, logs should preserve the bounded bonus, structural-gain/disruption terms, current Strategy Health mode, and the fact that child-policy admission remained authoritative.
 
 ## 14. Migration order
 
@@ -275,4 +285,4 @@ Composition section should expose Power engine, relevant Bonds, motifs, conflict
 13. Retire legacy Primary/Secondary/Third and G/S/B assumptions after regression parity.
 14. Calibrate weights/thresholds from unchanged-HEAD multi-run telemetry rather than arbitrary inflation.
 
-The current runtime/tests remain migration evidence. Do not preserve obsolete conceptual behavior merely because an old test encodes it; remove/update tests when the architecture intentionally supersedes them.
+The current runtime/tests remain migration evidence. Do not preserve obsolete conceptual behavior merely because an old test encodes it; remove/update tests when the architecture intentionally supersedes them. The pivot/prescription boundary implementation and its normalization regressions are green as of 2026-08-22; broader Bond migration and unchanged-HEAD validation remain active calibration work.
