@@ -1,6 +1,7 @@
 from __future__ import annotations
 from collections import Counter
 from dataclasses import replace
+from itertools import combinations
 from typing import Any,Iterable
 from games.balatro.bonds.mechanical_roles import enrich_development
 from games.balatro.bonds.model import BondDevelopment,BondRank,BondRealization
@@ -75,26 +76,21 @@ def realize_straight_flush(dev,state):
 def realize_five_kind(dev,state):
  if _explicit_type(state)=="FIVE_OF_A_KIND":return _finish(dev,True,True)
  a=max(_counts(_cards(state)).values(),default=0)>=5;return _finish(dev,a,a)
+def _five_card_candidates(hand):
+ return combinations(hand,5) if len(hand)>=5 else ()
 def realize_flush_house(dev,state):
  if _explicit_type(state)=="FLUSH_HOUSE":return _finish(dev,True,True)
- hand=[c for c in _cards(state) if not _stone(c)];j=list(getattr(state,"jokers",()) or ());sm=_has(j,"smearedjoker","smeared")
- # Flush House requires the same five cards to be both a Full House and a Flush.
- # Checking those properties independently can combine off-suit rank groups with
- # unrelated suited cards when the state exposes more than five candidates.
- by_suit={}
- for c in hand:
-  for s in _effective_suits(c,sm):by_suit.setdefault(s,[]).append(c)
- a=False
- for suited in by_suit.values():
-  vals=sorted(_counts(suited).values(),reverse=True)
-  if len(suited)>=5 and len(vals)>=2 and vals[0]>=3 and vals[1]>=2:a=True;break
+ hand=[c for c in _cards(state) if not _stone(c)];j=list(getattr(state,"jokers",()) or ());ff=_has(j,"fourfingers");sm=_has(j,"smearedjoker","smeared");needed=4 if ff else 5;a=False
+ for five in _five_card_candidates(hand):
+  vals=sorted(_counts(five).values(),reverse=True)
+  if len(vals)>=2 and vals[0]>=3 and vals[1]>=2 and _flush_available(five,needed,sm):a=True;break
  return _finish(dev,a,a)
 def realize_flush_five(dev,state):
  if _explicit_type(state)=="FLUSH_FIVE":return _finish(dev,True,True)
- hand=[c for c in _cards(state) if not _stone(c)];j=list(getattr(state,"jokers",()) or ());sm=_has(j,"smearedjoker","smeared");by_suit={}
- for c in hand:
-  for s in _effective_suits(c,sm):by_suit.setdefault(s,[]).append(c)
- a=any(max(_counts(cards).values(),default=0)>=5 for cards in by_suit.values());return _finish(dev,a,a)
+ hand=[c for c in _cards(state) if not _stone(c)];j=list(getattr(state,"jokers",()) or ());ff=_has(j,"fourfingers");sm=_has(j,"smearedjoker","smeared");needed=4 if ff else 5;a=False
+ for five in _five_card_candidates(hand):
+  if max(_counts(five).values(),default=0)>=5 and _flush_available(five,needed,sm):a=True;break
+ return _finish(dev,a,a)
 ADVANCED_REALIZERS={"full_house":realize_full_house,"straight_flush":realize_straight_flush,"five_kind":realize_five_kind,"flush_house":realize_flush_house,"flush_five":realize_flush_five}
 def realize_advanced_family(dev,state):
  fn=ADVANCED_REALIZERS.get(dev.bond_id);return enrich_development(dev) if fn is None else fn(dev,state)
