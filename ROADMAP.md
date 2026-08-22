@@ -94,8 +94,9 @@ The implementation contract is documented in [`docs/balatro/BUILD_HEALTH_AND_REA
 - [x] Normalize prescription matching across live naming/telemetry variants for consumables, Planet target hands, ranks, Steel enhancements, and Red/Blue Seals.
 - [x] Add bounded short-horizon multi-action planning for complementary shop pairs and activation sequences.
 - [x] Expose Build Health and inactive-engine/scaling-deficit warnings in the live monitor and structured logs.
-- [x] Add deterministic regressions before each behavior change. Bond/realization, Bond pivot/prescription, and SHOP clear-probability reconciliation are complete; the **full Balatro deterministic suite is green on 2026-08-22** at the current calibration head.
-- [ ] Run a fresh unchanged-HEAD five-run Red/White validation batch after the now-green deterministic gate.
+- [x] Add deterministic regressions before each behavior change. Bond/realization, Bond pivot/prescription, SHOP clear-probability reconciliation, copy-Joker projection/order, live-monitor health rendering, and Red/White planner-budget contracts are covered; the **full Balatro deterministic suite was green on 2026-08-23 before the latest planner-budget-only calibration change**, and the focused planner/adaptive-search batch is green afterward.
+- [x] Audit the latest five-run loss batch and correct repeated architecture defects: Blueprint/Brainstorm copy projection now recognizes supported card/held-trigger targets such as Photograph while unsupported targets remain fail-closed; generator-only Marble/Certificate structures no longer masquerade as completed scoring routes; weak full rosters receive stronger upgrade pressure; and Red/White live D1 uses a 2,500-node playbook cap to reduce repeated oversized-deck wall-clock exhaustion without changing core D1 mechanics.
+- [ ] Run a fresh unchanged-HEAD five-run Red/White validation batch after the latest optimization pass.
 
 ### Calibration gate before Red Stake
 
