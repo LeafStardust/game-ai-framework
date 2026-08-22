@@ -4,21 +4,9 @@ from dataclasses import replace
 
 from games.balatro.actions import PLAY_CARDS
 from games.balatro.live.hand_action_policy import PACE_PLAY, LiveHandActionPolicy
-from games.balatro.strategy import SILVER
-from games.balatro import strategy_conditional_relationships as conditional_module
 
 
 _SIXTH_SENSE = "sixthsensejoker"
-_TAROT_CONSUMABLE_ENGINE_JOKERS = frozenset(
-    {
-        "fortunetellerjoker",
-        "cartomancerjoker",
-        "hallucinationjoker",
-        "eightballjoker",
-        "vagabondjoker",
-        "perkeojoker",
-    }
-)
 _SIXTH_SENSE_RATIONALE = (
     "Sixth Sense opportunity: first-hand single 6 still meets required pace, so harvest the Spectral without sacrificing survival pace"
 )
@@ -90,18 +78,8 @@ def _best_non_six_pace_plan(policy, state, result):
 
 
 def install_sixth_sense_policy() -> None:
-    if getattr(conditional_module, "_sixth_sense_policy_installed", False):
+    if getattr(LiveHandActionPolicy, "_sixth_sense_policy_installed", False):
         return
-
-    original_conditional = conditional_module.conditional_joker_relationship
-
-    def conditional_joker_relationship(state, strategy_id: str, item: object) -> str:
-        if strategy_id == "sixes" and _token(item) == _SIXTH_SENSE:
-            if _owned_tokens(state) & _TAROT_CONSUMABLE_ENGINE_JOKERS:
-                return SILVER
-        return original_conditional(state, strategy_id, item)
-
-    conditional_module.conditional_joker_relationship = conditional_joker_relationship
 
     original_decide = LiveHandActionPolicy.decide
 
@@ -175,4 +153,4 @@ def install_sixth_sense_policy() -> None:
         )
 
     LiveHandActionPolicy.decide = decide
-    conditional_module._sixth_sense_policy_installed = True
+    LiveHandActionPolicy._sixth_sense_policy_installed = True
