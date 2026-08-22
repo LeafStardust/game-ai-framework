@@ -82,7 +82,9 @@ def _transition_score(current, projected) -> tuple[float, tuple[str, ...]]:
 
 
 def _canonical_pivot_decision(state, candidate, decision):
-    health = last_strategy_health()
+    # Pivots are SHOP transitions and must use health from the exact same public
+    # run/round identity. A stale prior-round/run health snapshot is ignored.
+    health = last_strategy_health(state)
     if health is None:
         return decision
     options = tuple(getattr(decision, "options", ()) or ())
