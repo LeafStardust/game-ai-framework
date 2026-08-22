@@ -2,6 +2,11 @@ from types import SimpleNamespace
 
 from games.balatro.bonds import (
     BondRank,
+    BLIND_SKIP_THRESHOLDS,
+    CARD_DESTRUCTION_THRESHOLDS,
+    ENHANCED_CARDS_THRESHOLDS,
+    PLANET_THRESHOLDS,
+    TAROT_THRESHOLDS,
     evaluate_blind_skip_bond,
     evaluate_deck_thinning_bond,
     evaluate_glass_bond,
@@ -125,3 +130,11 @@ def test_extreme_jack_density_can_eventually_reach_capstone_with_hit_the_road():
     result = evaluate_jacks_bond(_state(jokers=[_joker("Hit the Road")], owned_deck=deck))
     assert result.contribution == 30.0
     assert result.rank == BondRank.R5
+
+
+def test_rank_authority_tables_do_not_cross_mutate_shared_implementation_aliases():
+    assert TAROT_THRESHOLDS[BondRank.R5] == 28.0
+    assert PLANET_THRESHOLDS[BondRank.R5] == 30.0
+    assert BLIND_SKIP_THRESHOLDS[BondRank.R5] == 18.0
+    assert CARD_DESTRUCTION_THRESHOLDS[BondRank.R5] == 26.0
+    assert ENHANCED_CARDS_THRESHOLDS[BondRank.R5] == 20.0
