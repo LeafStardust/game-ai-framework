@@ -29,7 +29,25 @@ expected hands to clear
 optional externally supplied clear probability
 ```
 
-The initial projection layer is an aggregation/pressure model. The authoritative Balatro scoring/search engine should supply candidate score estimates when live integration is added.
+The live bridge consumes the runtime's existing scoring evidence rather than inventing a second scorer:
+
+```text
+LivePlayProjection.minimum/expected/maximum
+        -> ScoreProjection conservative/expected/ceiling
+
+LiveBlindPlanValue.clear_probability + expected terminal score
+        -> search-level ScoreProjection
+```
+
+`LiveBlindPlanValue.expected_score` is an expected terminal round score, not a guaranteed hand score. The search adapter therefore never treats it as a conservative floor.
+
+The generic projector also understands the live state shape directly:
+
+```text
+state.score
+state.blind.requirement
+state.hands_remaining
+```
 
 ## Build Health
 
@@ -61,3 +79,30 @@ Important invariants:
 3. Low realization may downgrade confidence in a theoretically strong composition.
 4. Bond rank and composer coherence never enter chip arithmetic.
 5. Build Health is advisory planning state; survival/score search remains final authority for immediate actions.
+
+## Live strategy authority
+
+The frozen catalogue now has one unified live evaluator:
+
+```text
+live state
+  -> evaluate all 46 Bond developments
+  -> realize all 46 Bonds
+  -> compose compatible Bonds/motifs
+  -> selected D1 LiveBlindPlan score evidence
+  -> ScoreProjection
+  -> Build Health
+  -> strategy-health mode
+```
+
+Strategy-health modes are deliberately downstream of D1 survival selection:
+
+```text
+COLLAPSING -> SURVIVE   authority 0.00
+FRAGILE    -> REPAIR    authority 0.20
+STABLE     -> HOLD      authority 0.50
+STRONG     -> REINFORCE authority 0.75
+DOMINANT   -> EXPLOIT   authority 1.00
+```
+
+`PathAwareLiveHandActionDecisionEngine` evaluates this after its final action, including consensus-recovery replacement, has already been selected. The result is exposed as `last_strategy_health`. This ordering is mandatory: Build Health may govern reinforcement, shop/pivot pressure, prescriptions and telemetry, but it must not replace a safer immediate D1 action with a strategically attractive losing action.
