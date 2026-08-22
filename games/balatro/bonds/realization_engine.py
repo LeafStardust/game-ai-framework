@@ -138,11 +138,18 @@ def realize_sell_value(dev: BondDevelopment, state: Any) -> BondDevelopment:
 
 def realize_joker_sacrifice(dev: BondDevelopment, state: Any) -> BondDevelopment:
     jokers = _jokers(state)
-    dagger = _has(jokers, "ceremonialdagger")
+    dagger_index = next((i for i, joker in enumerate(jokers) if "ceremonialdagger" in _name(joker)), None)
+    dagger_has_target = dagger_index is not None and dagger_index + 1 < len(jokers)
+    # Ceremonial Dagger destroys exactly the Joker immediately to its right on
+    # Blind selection. A fodder Joker elsewhere in the row does not make the
+    # sacrifice line mechanically live until the ordering is corrected.
+    ordered_fodder = dagger_has_target and (
+        bool(getattr(state, "sacrificable_joker_available", False))
+        or "riffraff" in _name(jokers[dagger_index + 1])
+    )
     madness = _has(jokers, "madness")
-    fodder = bool(getattr(state, "sacrificable_joker_available", False)) or _has(jokers, "riffraff")
     blind_can_trigger = bool(getattr(state, "blind_selection_pending", True))
-    active = (dagger and fodder) or (madness and blind_can_trigger)
+    active = ordered_fodder or (madness and blind_can_trigger)
     return _finish(dev, active, active and int(getattr(state, "jokers_destroyed", 0) or 0) >= 6)
 
 
