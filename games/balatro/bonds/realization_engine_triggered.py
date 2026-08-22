@@ -25,6 +25,14 @@ def _cards(state: Any, *names: str) -> list[Any]:
     return []
 
 
+def _enh(card: Any) -> str:
+    return str(getattr(card, "enhancement", "") or "").lower()
+
+
+def _stone(card: Any) -> bool:
+    return _enh(card) == "stone" or bool(getattr(card, "is_stone", False))
+
+
 def _finish(dev: BondDevelopment, active: bool, strong: bool = False) -> BondDevelopment:
     dev = enrich_development(dev)
     if not dev.unlocked or dev.rank in (BondRank.LOCKED, BondRank.R0):
@@ -72,24 +80,13 @@ def realize_tarot_triggered(dev: BondDevelopment, state: Any) -> BondDevelopment
 
     hand_type = _known_hand_type(state)
     straight = hand_type in {"STRAIGHT", "STRAIGHT_FLUSH"}
-    ace_in_scoring = any(str(getattr(c, "rank", "") or "").upper() == "A" for c in scoring)
+    ace_in_scoring = any(not _stone(c) and str(getattr(c, "rank", "") or "").upper() == "A" for c in scoring)
     superposition = _has(jokers, "superposition") and straight and ace_in_scoring
 
-    eight_scoring = any(str(getattr(c, "rank", "") or "").upper() in {"8", "EIGHT"} for c in scoring)
+    eight_scoring = any(not _stone(c) and str(getattr(c, "rank", "") or "").upper() in {"8", "EIGHT"} for c in scoring)
     eight_ball = _has(jokers, "8ball", "eightball") and eight_scoring
 
-    sources = sum(
-        (
-            tarot_in_hand,
-            shop_infrastructure,
-            cartomancer,
-            vagabond,
-            hallucination,
-            fortune_teller,
-            superposition,
-            eight_ball,
-        )
-    )
+    sources = sum((tarot_in_hand, shop_infrastructure, cartomancer, vagabond, hallucination, fortune_teller, superposition, eight_ball))
     return _finish(dev, sources > 0, sources >= 2)
 
 
