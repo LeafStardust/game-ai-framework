@@ -60,12 +60,6 @@ def _mature_if_rank(dev: BondDevelopment, active: bool, strong: bool = False) ->
 
 
 def _held_effect_count(card: Any, jokers: list[Any]) -> int:
-    """Number of meaningful held-in-hand effects on this card.
-
-    Red Seal retriggers the card itself, so it is useful for held retrigger only
-    when the held card already has at least one held effect (Steel/Gold/Blue or
-    a rank/state payoff such as Baron/Shoot the Moon/Raised Fist).
-    """
     effects = 0
     enh = _enhancement(card)
     if enh in {"steel", "gold"}:
@@ -77,8 +71,6 @@ def _held_effect_count(card: Any, jokers: list[Any]) -> int:
     if _has(jokers, "shootthemoon") and _rank(card) == "Q":
         effects += 1
     if _has(jokers, "raisedfist"):
-        # Raised Fist applies to the lowest-ranked held card. Without modelling
-        # the exact minimum here, at least one held card is a valid target.
         effects += 1
     return effects
 
@@ -100,8 +92,6 @@ def realize_held_cards(dev: BondDevelopment, state: Any) -> BondDevelopment:
     queen_hits = sum(1 for c in hand if _rank(c) == "Q")
     steel_hits = sum(1 for c in hand if _enhancement(c) == "steel")
 
-    # Blackboard requires every held card to be a Spade or Club. Wild cards
-    # count as every suit; Stone cards have no suit and therefore block it.
     blackboard_ok = all(
         _enhancement(c) != "stone"
         and (_suit(c) in {"spades", "clubs"} or _enhancement(c) == "wild")
@@ -142,9 +132,6 @@ def realize_held_retrigger(dev: BondDevelopment, state: Any) -> BondDevelopment:
         if _seal(card) == "red" and _held_effect_count(card, jokers) > 0
     )
 
-    # Mime and Red Seal are independent held-card retrigger sources. Mime does
-    # not need to be present for a Red-Seal Steel/Gold/Blue/rank-payoff card to
-    # realize this Bond.
     active_sources = int(mime and held_effect_cards > 0) + red_held
     strong = active_sources >= 2 or (mime and red_held >= 1) or red_held >= 2
     return replace(dev, realization=_mature_if_rank(dev, active_sources > 0, strong))
@@ -164,26 +151,44 @@ def realize_steel(dev: BondDevelopment, state: Any) -> BondDevelopment:
     return replace(dev, realization=_mature_if_rank(dev, held_steel > 0, strong))
 
 
-def realize_rank_held_payoff(dev: BondDevelopment, state: Any, rank: str, *joker_tokens: str) -> BondDevelopment:
+def realize_rank_payoff(
+    dev: BondDevelopment,
+    state: Any,
+    rank: str,
+    *,
+    held_tokens: tuple[str, ...] = (),
+    scored_tokens: tuple[str, ...] = (),
+) -> BondDevelopment:
+    """Realize a rank Bond from the actual timing of its payoff Jokers.
+
+    Baron/Shoot the Moon trigger while the matching rank is held. Triboulet
+    triggers when Kings/Queens are played and scored, so merely holding a matching
+    rank must not make the Triboulet branch live.
+    """
     dev = enrich_development(dev)
     if _development_floor(dev) == BondRealization.DORMANT:
         return replace(dev, realization=BondRealization.DORMANT)
+
+    jokers = _jokers(state)
     hand = _cards(state, "hand", "current_hand", "cards_in_hand")
-    if not hand:
-        return replace(dev, realization=BondRealization.PARTIAL)
-    count = sum(1 for c in hand if _rank(c) == rank)
-    payoff_owned = _has(_jokers(state), *joker_tokens)
-    active = count > 0 and payoff_owned
-    strong = count >= 3 and payoff_owned
+    scoring = _cards(state, "scoring_cards", "played_cards", "current_played_cards")
+
+    held_count = sum(1 for c in hand if _rank(c) == rank)
+    scored_count = sum(1 for c in scoring if _rank(c) == rank)
+    held_live = bool(held_tokens) and _has(jokers, *held_tokens) and held_count > 0
+    scored_live = bool(scored_tokens) and _has(jokers, *scored_tokens) and scored_count > 0
+
+    active = held_live or scored_live
+    strong = (held_live and held_count >= 3) or (scored_live and scored_count >= 3) or (held_live and scored_live)
     return replace(dev, realization=_mature_if_rank(dev, active, strong))
 
 
 def realize_kings(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    return realize_rank_held_payoff(dev, state, "K", "baron", "triboulet")
+    return realize_rank_payoff(dev, state, "K", held_tokens=("baron",), scored_tokens=("triboulet",))
 
 
 def realize_queens(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    return realize_rank_held_payoff(dev, state, "Q", "shootthemoon", "triboulet")
+    return realize_rank_payoff(dev, state, "Q", held_tokens=("shootthemoon",), scored_tokens=("triboulet",))
 
 
 HELD_REALIZERS = {
