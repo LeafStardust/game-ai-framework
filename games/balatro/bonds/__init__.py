@@ -8,6 +8,7 @@ from games.balatro.bonds.catalogue_batch_one import *
 from games.balatro.bonds.catalogue_batch_two import *
 from games.balatro.bonds.catalogue_batch_three import *
 from games.balatro.bonds.catalogue_batch_four import *
+from games.balatro.bonds.catalogue_batch_five import *
 from games.balatro.bonds.held_cards import (
     HELD_CARDS_RANK_POLICIES,
     HELD_CARDS_RANK_THRESHOLDS,
