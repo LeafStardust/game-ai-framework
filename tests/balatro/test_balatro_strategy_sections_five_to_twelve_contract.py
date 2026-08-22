@@ -94,7 +94,11 @@ def test_full_tree_tracker_resolves_a_late_section_leaf():
     campfire=_joker("CampfireJoker");resolution=_tracker().observe(_state(jokers=(campfire,)));assert resolution.assessment("campfire").score>=8.0;assert resolution.dominant_strategy_id=="campfire"
 
 def test_relationship_document_has_no_unaudited_rows_and_part_fourteen_is_integrated():
-    root=Path(__file__).resolve().parents[2];docs=root/"docs"/"balatro";relationships=(docs/"BALATRO_RELATIONSHIPS_MOTIFS.md").read_text(encoding="utf-8");topology=(docs/"BALATRO_STRATEGY_TREE.md").read_text(encoding="utf-8")
+    root=Path(__file__).resolve().parents[2];docs=root/"docs"/"balatro"
+    relationships=(docs/"BALATRO_RELATIONSHIPS_MOTIFS.md").read_text(encoding="utf-8")
+    architecture=(docs/"BALATRO_STRATEGY_SYSTEM.md").read_text(encoding="utf-8")
     assert not any("TBD" in line for line in relationships.splitlines() if line.startswith("|"))
-    for component in ("Blueprint / Brainstorm","Astronomer","Chaos the Clown","Drunkard / Merry Andy","Juggler / Troubadour","Splash","Showman","Invisible Joker"):assert f"| {component} |" in topology
-    assert "Gold Seal Economy [I]" not in topology;assert "Ceremonial Dagger Sacrifice [I]" not in topology
+    # Section-14 integration is now enforced by the runtime relationship tests above.
+    # The deleted legacy BALATRO_STRATEGY_TREE.md is intentionally not a canonical doc.
+    assert "Primary/Secondary/Third requirement" in architecture
+    assert "Gold/Silver/Bronze/Banned is legacy migration evidence only" in architecture
