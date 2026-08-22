@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import Any
+from typing import Any, Iterable
 
 from games.balatro.bonds.mechanical_roles import enrich_development
 from games.balatro.bonds.model import BondDevelopment, BondRank, BondRealization
@@ -21,6 +21,16 @@ def _cards(state: Any) -> list[Any]:
     return []
 
 
+def _name(value: Any) -> str:
+    raw = value if isinstance(value, str) else getattr(value, "name", None) or value.__class__.__name__
+    return "".join(ch for ch in str(raw).lower() if ch.isalnum())
+
+
+def _has(values: Iterable[Any], *tokens: str) -> bool:
+    names = {_name(value) for value in values}
+    return any(any(token in name for name in names) for token in tokens)
+
+
 def _rank(card: Any) -> str:
     return str(getattr(card, "rank", "") or "").upper()
 
@@ -34,7 +44,8 @@ def _stone(card: Any) -> bool:
 
 
 def _explicit_type(state: Any) -> str:
-    return str(getattr(state, "current_hand_type", getattr(state, "best_hand_type", "")) or "").upper()
+    raw = getattr(state, "current_hand_type", None) or getattr(state, "best_hand_type", "")
+    return str(raw or "").upper().replace(" ", "_")
 
 
 def _finish(dev: BondDevelopment, active: bool, strong: bool = False) -> BondDevelopment:
@@ -59,6 +70,41 @@ def _counts(hand: list[Any]) -> dict[str, int]:
     return out
 
 
+def _effective_suit(card: Any, smeared: bool) -> str:
+    suit = _suit(card)
+    if not smeared:
+        return suit
+    if suit in {"hearts", "diamonds"}:
+        return "red"
+    if suit in {"spades", "clubs"}:
+        return "black"
+    return suit
+
+
+def _straight_available(ranks: set[int], *, needed: int, shortcut: bool) -> bool:
+    if 14 in ranks:
+        ranks = set(ranks)
+        ranks.add(1)
+    vals = sorted(ranks)
+    if len(vals) < needed:
+        return False
+    max_gap = 2 if shortcut else 1
+    for start in range(len(vals)):
+        length = 1
+        prev = vals[start]
+        for value in vals[start + 1:]:
+            gap = value - prev
+            if gap <= 0:
+                continue
+            if gap > max_gap:
+                break
+            length += 1
+            prev = value
+            if length >= needed:
+                return True
+    return needed <= 1
+
+
 def realize_full_house(dev: BondDevelopment, state: Any) -> BondDevelopment:
     if _explicit_type(state) == "FULL_HOUSE":
         return _finish(dev, True, True)
@@ -71,21 +117,19 @@ def realize_straight_flush(dev: BondDevelopment, state: Any) -> BondDevelopment:
     if _explicit_type(state) == "STRAIGHT_FLUSH":
         return _finish(dev, True, True)
     hand = [c for c in _cards(state) if not _stone(c)]
+    jokers = list(getattr(state, "jokers", ()) or ())
+    four_fingers = _has(jokers, "fourfingers")
+    shortcut = _has(jokers, "shortcut")
+    smeared = _has(jokers, "smearedjoker", "smeared")
+    needed = 4 if four_fingers else 5
+    rank_map = {"A":14,"K":13,"Q":12,"J":11,"10":10,"T":10,"9":9,"8":8,"7":7,"6":6,"5":5,"4":4,"3":3,"2":2}
     suits: dict[str, set[int]] = {}
-    rank_map = {"A":14,"K":13,"Q":12,"J":11,"10":10,"9":9,"8":8,"7":7,"6":6,"5":5,"4":4,"3":3,"2":2}
     for c in hand:
-        s = _suit(c); r = rank_map.get(_rank(c))
-        if s and r:
-            suits.setdefault(s, set()).add(r)
-    active = False
-    for ranks in suits.values():
-        seq = set(ranks)
-        if 14 in seq: seq.add(1)
-        vals = sorted(seq)
-        for i in range(len(vals)-4):
-            if vals[i+4]-vals[i] == 4 and len(set(vals[i:i+5])) == 5:
-                active = True; break
-        if active: break
+        suit = _effective_suit(c, smeared)
+        rank = rank_map.get(_rank(c))
+        if suit and rank:
+            suits.setdefault(suit, set()).add(rank)
+    active = any(_straight_available(ranks, needed=needed, shortcut=shortcut) for ranks in suits.values())
     return _finish(dev, active, active)
 
 
@@ -100,28 +144,33 @@ def realize_flush_house(dev: BondDevelopment, state: Any) -> BondDevelopment:
     if _explicit_type(state) == "FLUSH_HOUSE":
         return _finish(dev, True, True)
     hand = [c for c in _cards(state) if not _stone(c)]
+    smeared = _has(list(getattr(state, "jokers", ()) or ()), "smearedjoker", "smeared")
     by_suit: dict[str, dict[str, int]] = {}
     for c in hand:
-        s, r = _suit(c), _rank(c)
-        if s and r:
-            ranks = by_suit.setdefault(s, {})
-            ranks[r] = ranks.get(r, 0) + 1
+        suit, rank = _effective_suit(c, smeared), _rank(c)
+        if suit and rank:
+            ranks = by_suit.setdefault(suit, {})
+            ranks[rank] = ranks.get(rank, 0) + 1
     active = False
     for ranks in by_suit.values():
         vals = sorted(ranks.values(), reverse=True)
         if len(vals) >= 2 and vals[0] >= 3 and vals[1] >= 2:
-            active = True; break
+            active = True
+            break
     return _finish(dev, active, active)
 
 
 def realize_flush_five(dev: BondDevelopment, state: Any) -> BondDevelopment:
     if _explicit_type(state) == "FLUSH_FIVE":
         return _finish(dev, True, True)
-    groups: dict[tuple[str,str], int] = {}
+    smeared = _has(list(getattr(state, "jokers", ()) or ()), "smearedjoker", "smeared")
+    groups: dict[tuple[str, str], int] = {}
     for c in _cards(state):
-        if _stone(c): continue
-        key = (_rank(c), _suit(c))
-        if all(key): groups[key] = groups.get(key, 0) + 1
+        if _stone(c):
+            continue
+        key = (_rank(c), _effective_suit(c, smeared))
+        if all(key):
+            groups[key] = groups.get(key, 0) + 1
     active = max(groups.values(), default=0) >= 5
     return _finish(dev, active, active)
 
