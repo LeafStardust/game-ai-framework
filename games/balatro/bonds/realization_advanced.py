@@ -88,6 +88,16 @@ def _effective_suits(card: Any, smeared: bool) -> tuple[str, ...]:
     return (suit,) if suit else ()
 
 
+def _flush_available(hand: list[Any], *, needed: int, smeared: bool) -> bool:
+    suit_counts: Counter[str] = Counter()
+    for card in hand:
+        if _stone(card):
+            continue
+        for suit in _effective_suits(card, smeared):
+            suit_counts[suit] += 1
+    return any(count >= needed for count in suit_counts.values())
+
+
 def _straight_available(ranks: set[int], *, needed: int, shortcut: bool) -> bool:
     if 14 in ranks:
         ranks = set(ranks)
@@ -163,39 +173,28 @@ def realize_flush_house(dev: BondDevelopment, state: Any) -> BondDevelopment:
     if _explicit_type(state) == "FLUSH_HOUSE":
         return _finish(dev, True, True)
     hand = [c for c in _cards(state) if not _stone(c)]
-    smeared = _has(list(getattr(state, "jokers", ()) or ()), "smearedjoker", "smeared")
-    by_suit: dict[str, dict[str, int]] = {}
-    for c in hand:
-        rank = _rank(c)
-        if not rank:
-            continue
-        for suit in _effective_suits(c, smeared):
-            ranks = by_suit.setdefault(suit, {})
-            ranks[rank] = ranks.get(rank, 0) + 1
-    active = False
-    for ranks in by_suit.values():
-        vals = sorted(ranks.values(), reverse=True)
-        if len(vals) >= 2 and vals[0] >= 3 and vals[1] >= 2:
-            active = True
-            break
+    jokers = list(getattr(state, "jokers", ()) or ())
+    four_fingers = _has(jokers, "fourfingers")
+    smeared = _has(jokers, "smearedjoker", "smeared")
+
+    vals = sorted(_counts(hand).values(), reverse=True)
+    full_house = len(vals) >= 2 and vals[0] >= 3 and vals[1] >= 2
+    flush = _flush_available(hand, needed=4 if four_fingers else 5, smeared=smeared)
+    active = full_house and flush
     return _finish(dev, active, active)
 
 
 def realize_flush_five(dev: BondDevelopment, state: Any) -> BondDevelopment:
     if _explicit_type(state) == "FLUSH_FIVE":
         return _finish(dev, True, True)
-    smeared = _has(list(getattr(state, "jokers", ()) or ()), "smearedjoker", "smeared")
-    groups: dict[tuple[str, str], int] = {}
-    for c in _cards(state):
-        if _stone(c):
-            continue
-        rank = _rank(c)
-        if not rank:
-            continue
-        for suit in _effective_suits(c, smeared):
-            key = (rank, suit)
-            groups[key] = groups.get(key, 0) + 1
-    active = max(groups.values(), default=0) >= 5
+    hand = [c for c in _cards(state) if not _stone(c)]
+    jokers = list(getattr(state, "jokers", ()) or ())
+    four_fingers = _has(jokers, "fourfingers")
+    smeared = _has(jokers, "smearedjoker", "smeared")
+
+    five_kind = max(_counts(hand).values(), default=0) >= 5
+    flush = _flush_available(hand, needed=4 if four_fingers else 5, smeared=smeared)
+    active = five_kind and flush
     return _finish(dev, active, active)
 
 
