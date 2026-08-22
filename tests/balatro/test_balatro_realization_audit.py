@@ -36,3 +36,32 @@ def test_unified_realizer_preserves_rank_and_contribution():
         assert out.rank == BondRank.R2
         assert out.contribution == 10.0
         assert out.realization in set(BondRealization)
+
+
+def _intrinsic_dev(bond_id: str) -> BondDevelopment:
+    return BondDevelopment(
+        bond_id=bond_id,
+        unlocked=True,
+        contribution=10.0,
+        rank=BondRank.R2,
+        next_rank_threshold=15.0,
+        contributions=(),
+        realization=BondRealization.PARTIAL,
+    )
+
+
+def test_intrinsic_card_effects_realize_without_joker_payoff():
+    # Lucky, Glass and Stone cards have intrinsic live effects. Their dedicated
+    # payoff Jokers may deepen/mature the Bond but must not gate ACTIVE status.
+    cases = (
+        ("lucky", SimpleNamespace(enhancement="Lucky", rank="7", suit="Hearts")),
+        ("glass", SimpleNamespace(enhancement="Glass", rank="8", suit="Clubs")),
+        ("stone", SimpleNamespace(enhancement="Stone", is_stone=True, rank="", suit="")),
+    )
+    for bond_id, card in cases:
+        state = SimpleNamespace(
+            jokers=[], scoring_cards=[card], played_cards=[], current_played_cards=[],
+            hand=[], current_hand=[], cards_in_hand=[],
+        )
+        out = realize_bond(_intrinsic_dev(bond_id), state)
+        assert out.realization == BondRealization.ACTIVE
