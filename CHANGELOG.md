@@ -11,7 +11,8 @@ This file records notable development changes to the project. Active and future 
 - Added structural `CORE` / `ENGINE` / `SUPPORT` / `FILLER` / `CONFLICT` Joker-role diagnostics relative to the realized active build.
 - Added bounded two-component shop planning for Bull + Bootstraps and Blue/Hologram + Certificate/Marble. The planner emits exactly one sell/buy action and requires authoritative re-observation before continuing the sequence.
 - Added Build Health, scaling-deficit/inactive-engine warnings, and realized component roles to structured decision postmortems and the live agent monitor.
-- Added deterministic regression contracts for Build Health evaluation, shop admission/replacement/reroll behavior, realized pivot readiness, bounded bundles, component roles, monitor output, tracker side-effect isolation, production arbiter inheritance, and cache invalidation. These regressions are present on the calibration branch but have not yet been executed on the current branch head.
+- Added canonical Bond motif prescription preferences beneath existing pack/shop safety authorities for Baron/Mime/Steel, Photograph/Hanging Chad, Vampire/Midas, Burnt target leveling, and Hack low-rank retrigger engines.
+- Added deterministic regression contracts for Build Health evaluation, shop admission/replacement/reroll behavior, realized pivot readiness, bounded bundles, component roles, monitor output, tracker side-effect isolation, production arbiter inheritance, cache invalidation, Bond pivot authority, and Bond prescription normalization.
 
 ### Changed
 
@@ -19,6 +20,8 @@ This file records notable development changes to the project. Active and future 
 - Replaced the old Ante 1–2 “any positive immediate scorer” exception with Build-Health-based survival admission: an off-route purchase must materially improve projected survival rather than merely add local scoring value. The shop-time adapter currently uses a bounded public-state scoring-capacity estimate; full D1 whole-blind expectimax remains authoritative during actual hand play.
 - Made midgame Joker acquisition, legal replacement, bounded rerolls, and complementary shop bundles respond to realized scaling deficits instead of relying on Joker count or isolated candidate value.
 - Added realized-maturity pivot pressure so late theoretical engines pay buildup/runway cost: an untrained late Runner or inactive Hologram no longer gets the same pivot treatment as an already-realized high-cash Bull/Bootstraps route.
+- Made canonical pivot authority require trustworthy Joker-slot telemetry before treating the roster as full, preventing missing/zero/invalid slot observations from triggering structural replacement promotion or veto logic.
+- Normalized Bond prescription matching across live naming/telemetry variants for consumables, Planet target hands, rank aliases, Steel enhancements, and Red/Blue Seals while retaining bounded bonuses and child-policy legality/safety authority.
 - Made Blue Joker recognize Certificate/Marble as realized future deck-growth capacity, matching the bounded deck-growth bundle planner.
 - Made Build Health hypothetical transitions and diagnostics clone run-scoped strategy trackers, preventing “what-if” shop branches or monitor telemetry from changing live commitment history.
 - Expanded Build Health cache identity from deck size alone to complete public deck structure, preventing same-size rank/suit/enhancement/seal/edition changes from reusing stale health.
@@ -44,6 +47,10 @@ This file records notable development changes to the project. Active and future 
 - Made Low-Rank Scoring require Hack as its defining engine, with Raised Fist banned from that route and Hack banned from the Raised Fist route.
 - Made Scholar Silver alone and Gold only with DNA, and reduced Sixth Sense standalone evidence while adding safe first-hand single-6 utilization when consumable capacity and pace permit it.
 - Modeled Observatory held-Planet x1.5 scoring, preservation timing, and infrastructure-aware voucher valuation.
+
+### Validation
+
+- Bond pivot/prescription boundary regression batch passed on 2026-08-22 after telemetry and naming normalization hardening. Broader current-HEAD deterministic validation remains part of the Red/White calibration gate before the next unchanged-HEAD five-run batch.
 
 - Red Deck stake progression begins with v1.1 after the current Red/White calibration branch is accepted.
 - Fresh-profile collection progression remains active but is non-blocking for the v1.0 competence line.
