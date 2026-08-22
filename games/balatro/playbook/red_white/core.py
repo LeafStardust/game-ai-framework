@@ -28,13 +28,12 @@ class BalatroPlaybookNotFound(LookupError):
 
 @dataclass(frozen=True)
 class BalatroPlaybook:
-    """Strategy cartridge selected from the live run's deck and stake.
+    """Deck/stake policy cartridge for the live Balatro agent.
 
-    Universal Balatro strategy definitions live outside the cartridge. The playbook
-    owns only environment-specific strategy effectiveness/availability/base bias,
-    strategy pressure controls, and decision thresholds. Poker rules, component
-    relationships, card/Joker mechanics, blind mechanics and factual deck/stake
-    effects remain in the shared Balatro implementation.
+    Canonical strategic direction comes from Bond development and composition.
+    The playbook contains environment policy and stable decision-layer thresholds;
+    it does not define categorical strategy tiers, strategy trees, or commitment
+    shortlists.
     """
 
     deck: str
@@ -68,13 +67,6 @@ class BalatroPlaybook:
                 f"playbook threshold block {threshold_key!r} for {layer_id} must be a mapping"
             )
         return dict(block)
-
-    def strategy_modifiers(self) -> dict[str, Any]:
-        """Return deck/stake modifiers for the shared universal strategy catalog."""
-        configured = self.strategy.get("strategy_modifiers", {})
-        if not isinstance(configured, dict):
-            raise TypeError("playbook strategy_modifiers must be a mapping")
-        return dict(configured)
 
 
 class BalatroPlaybookRegistry:
@@ -123,79 +115,6 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                     "max_search_nodes": 5000,
                     "max_search_seconds": 8.0,
                     "search_schedule_mode": "probe-deepest",
-                },
-                "strategy_modifiers": {
-                    # Universal evidence relationship weights. Future cartridges may
-                    # tune how readily their environment converts playbook evidence
-                    # into strategy score without redefining any component mapping.
-                    "gold_evidence": 8.0,
-                    "silver_evidence": 3.0,
-                    "bronze_evidence": 1.0,
-                    "banned_evidence": -8.0,
-                    "hand_level_evidence_weight": 0.50,
-                    "hand_history_evidence_weight": 0.20,
-                    "deck_suit_evidence_weight": 0.25,
-                    "deck_enhancement_evidence_weight": 0.35,
-                    "deck_seal_evidence_weight": 0.40,
-                    "deck_edition_evidence_weight": 0.25,
-                    "deck_rank_evidence_weight": 0.30,
-                    "deck_face_evidence_weight": 0.30,
-
-                    # Ranking/shortlist state. These are policy thresholds, not
-                    # universal strategy definitions.
-                    "candidate_threshold": 1.5,
-                    "highlight_threshold": 3.5,
-                    "commit_threshold": 9.0,
-                    "mature_threshold": 16.0,
-                    "max_relevant_strategies": 2,
-                    "relevant_strategy_floor": 1.0,
-                    "relevant_strategy_ratio": 0.35,
-                    "early_pivot_margin": 1.5,
-                    "late_pivot_margin": 4.0,
-
-                    # Strategy alignment gets louder as the run progresses while
-                    # early shops remain driven mainly by ordinary/meta value.
-                    "ante_1_strategy_pressure": 0.20,
-                    "ante_2_strategy_pressure": 0.35,
-                    "ante_3_strategy_pressure": 0.60,
-                    "ante_4_strategy_pressure": 0.80,
-                    "ante_5_strategy_pressure": 1.00,
-                    "ante_6_strategy_pressure": 1.25,
-                    "late_strategy_pressure_step": 0.10,
-                    "late_strategy_pressure_cap": 1.50,
-                    "strategy_pressure_multiplier": 1.0,
-                    "candidate_alignment_scale": 0.08,
-                    "off_strategy_joker_penalty_factor": 1.0,
-                    "off_strategy_joker_base_discount": 1.0,
-                    "mid_strategy_rank_decay": 0.15,
-                    "mid_strategy_rank_floor": 0.25,
-                    "first_relevant_strategy_factor": 0.80,
-                    "second_relevant_strategy_factor": 0.65,
-                    "late_off_shortlist_factor": 0.05,
-
-                    # Consumable/booster staging. Tarot and Spectral remain open
-                    # seeders early; Celestial requires a real poker-hand direction;
-                    # unrelated structural consumables lose value as commitment rises.
-                    "celestial_poker_evidence_floor": 1.5,
-                    "mid_off_strategy_consumable_penalty": 0.75,
-                    "late_off_strategy_consumable_penalty": 3.0,
-
-                    # Per-strategy cartridge modifiers. Future decks/stakes may set
-                    # enabled, effectiveness and/or base_score independently.
-                    "strategies": {
-                        "high_card": {"effectiveness": 1.0},
-                        "pair": {"effectiveness": 1.0},
-                        "two_pair": {"effectiveness": 1.0},
-                        "three_kind": {"effectiveness": 1.0},
-                        "straight": {"effectiveness": 1.10},
-                        "flush": {"effectiveness": 1.10},
-                        "full_house": {"effectiveness": 1.10},
-                        "four_kind": {"effectiveness": 0.75},
-                        "straight_flush": {"enabled": False},
-                        "five_kind": {"enabled": False},
-                        "flush_house": {"enabled": False},
-                        "flush_five": {"enabled": False},
-                    },
                 },
                 "decision_thresholds": {
                     "hand_action": {
