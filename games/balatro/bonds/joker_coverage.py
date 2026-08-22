@@ -1,8 +1,8 @@
 """Explicit disposition registry for Jokers not represented purely by Bond quota.
 
-This prevents coverage from being confused with quota. A Joker may be strategically
-accounted for as a Bond contributor, motif component, or tactical/support piece.
-The registry is intentionally conservative: being scalable does not make a Bond.
+Coverage is broader than quota: a Joker may be represented as a Bond contributor,
+motif/composer component, or tactical/support piece. Being scalable does not by
+itself justify Bond authority.
 """
 from __future__ import annotations
 
@@ -12,13 +12,18 @@ BOND_WIRED = {
     "Square Joker": ("two_pair",),
     "Erosion": ("deck_thinning",),
     "Vampire": ("vampire",),
+    "Cloud 9": ("cash",),
+    "8 Ball": ("tarot",),
+    "Ancient Joker": ("flush",),
 }
 
 MOTIF_OR_COMPOSER = {
-    "Ancient Joker": "rotating-suit scoring payoff; evaluate against current suit/flush composition rather than permanent suit quota",
     "The Idol": "dynamic rank+suit payoff for highly concentrated decks",
     "Hiker": "permanent per-card quality growth, not an independent strategic axis",
     "Flower Pot": "multi-suit scoring condition; explicitly removed from Four-of-a-Kind quota",
+    "Perkeo": "consumable duplication identity depends on the held consumable; resolve at composer/motif level",
+    "Baseball Card": "rarity-composition payoff rather than a Bond-specific axis",
+    "Joker Stencil": "empty-slot composition payoff rather than a Bond-specific axis",
 }
 
 TACTICAL_SUPPORT = {
@@ -27,17 +32,17 @@ TACTICAL_SUPPORT = {
     "Obelisk": "rotation scaler; intentionally unsupported due to brittle planning cost versus value",
     "Flash Card": "reroll scaler; shop/economy tactical valuation rather than Bond authority",
     "Red Card": "pack-skip scaler; tactical shop valuation rather than persistent deck architecture",
+    "Seltzer": "temporary ten-hand retrigger window; tactical Played-Retrigger support but not persistent Bond development",
+    "Seeing Double": "broad multi-suit XMult condition compatible with several hand families; composer-level tactical payoff",
 }
 
-# Generic, temporary, boss utility, slot/hand modifiers, or standalone value pieces.
 GENERIC_OR_TACTICAL = {
-    "8 Ball", "Abstract Joker", "Acrobat", "Baseball Card", "Blue Joker",
-    "Cavendish", "Chaos the Clown", "Chicot", "Cloud 9", "Credit Card",
-    "Drunkard", "Gros Michel", "Ice Cream", "Invisible Joker", "Joker",
-    "Joker Stencil", "Juggler", "Loyalty Card", "Luchador", "Matador",
-    "Merry Andy", "Misprint", "Mr. Bones", "Mystic Summit", "Odd Todd",
-    "Perkeo", "Popcorn", "Seeing Double", "Seltzer", "Showman", "Splash",
-    "To Do List", "Troubadour", "Turtle Bean",
+    "Abstract Joker", "Acrobat", "Blue Joker", "Cavendish", "Chaos the Clown",
+    "Chicot", "Credit Card", "Drunkard", "Gros Michel", "Ice Cream",
+    "Invisible Joker", "Joker", "Juggler", "Loyalty Card", "Luchador",
+    "Matador", "Merry Andy", "Misprint", "Mr. Bones", "Mystic Summit",
+    "Odd Todd", "Popcorn", "Showman", "Splash", "To Do List", "Troubadour",
+    "Turtle Bean",
 }
 
 def disposition(name: str) -> str:
