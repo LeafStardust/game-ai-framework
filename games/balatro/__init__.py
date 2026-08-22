@@ -5,7 +5,6 @@ categorical strategy-tree patches are intentionally not imported or installed.
 """
 
 from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
-from games.balatro.ankh_presale_policy import install_ankh_presale_policy
 from games.balatro.bond_pivot_authority import install_bond_pivot_authority
 from games.balatro.bond_prescription_policy import install_bond_prescription_policy
 from games.balatro.bond_shop_health_policy import install_bond_shop_health_policy
@@ -67,7 +66,6 @@ install_five_run_release_candidate_policy()
 install_five_run_validation_policy()
 install_deck_growth_pack_policy()
 install_aces_dna_hand_policy()
-install_ankh_presale_policy()
 install_five_run_decision_integrity_policy()
 install_latest_five_run_calibration_policy()
 install_latest_batch_no_discard_policy()
