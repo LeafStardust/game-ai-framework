@@ -29,25 +29,7 @@ expected hands to clear
 optional externally supplied clear probability
 ```
 
-The live bridge consumes the runtime's existing scoring evidence rather than inventing a second scorer:
-
-```text
-LivePlayProjection.minimum/expected/maximum
-        -> ScoreProjection conservative/expected/ceiling
-
-LiveBlindPlanValue.clear_probability + expected terminal score
-        -> search-level ScoreProjection
-```
-
-`LiveBlindPlanValue.expected_score` is an expected terminal round score, not a guaranteed hand score. The search adapter therefore never treats it as a conservative floor.
-
-The generic projector also understands the live state shape directly:
-
-```text
-state.score
-state.blind.requirement
-state.hands_remaining
-```
+The live bridge consumes the public scoring/search evidence already produced by the Balatro runtime. Bond rank and composer coherence remain absent from chip arithmetic.
 
 ## Build Health
 
@@ -80,29 +62,47 @@ Important invariants:
 4. Bond rank and composer coherence never enter chip arithmetic.
 5. Build Health is advisory planning state; survival/score search remains final authority for immediate actions.
 
-## Live strategy authority
+## Live strategy-health authority
 
-The frozen catalogue now has one unified live evaluator:
-
-```text
-live state
-  -> evaluate all 46 Bond developments
-  -> realize all 46 Bonds
-  -> compose compatible Bonds/motifs
-  -> selected D1 LiveBlindPlan score evidence
-  -> ScoreProjection
-  -> Build Health
-  -> strategy-health mode
-```
-
-Strategy-health modes are deliberately downstream of D1 survival selection:
+The exact D1-selected blind plan is converted into canonical strategy posture only after D1 has finished survival selection:
 
 ```text
-COLLAPSING -> SURVIVE   authority 0.00
-FRAGILE    -> REPAIR    authority 0.20
-STABLE     -> HOLD      authority 0.50
-STRONG     -> REINFORCE authority 0.75
-DOMINANT   -> EXPLOIT   authority 1.00
+COLLAPSING -> SURVIVE    authority 0.00
+FRAGILE    -> REPAIR     authority 0.20
+STABLE     -> HOLD       authority 0.50
+STRONG     -> REINFORCE  authority 0.75
+DOMINANT   -> EXPLOIT    authority 1.00
 ```
 
-`PathAwareLiveHandActionDecisionEngine` evaluates this after its final action, including consensus-recovery replacement, has already been selected. The result is exposed as `last_strategy_health`. This ordering is mandatory: Build Health may govern reinforcement, shop/pivot pressure, prescriptions and telemetry, but it must not replace a safer immediate D1 action with a strategically attractive losing action.
+The production base `LiveHandActionDecisionEngine` records this result after its final decision. This is intentionally downstream of D1; strategy health cannot replace a safer hand action.
+
+## SHOP integration
+
+Canonical 46-Bond Strategy Health is installed last in the Balatro policy stack and therefore sits above the existing SHOP child legality/admission layers.
+
+Weak health may increase urgency only for options that those child policies have already admitted:
+
+```text
+SURVIVE:
+  positive Joker utility      x1.25
+  replacement Joker utility   x1.125
+  positive consumable utility x1.15
+  admitted reroll margin      x1.35
+
+REPAIR:
+  positive Joker utility      x1.15
+  replacement Joker utility   x1.075
+  positive consumable utility x1.08
+  admitted reroll margin      x1.20
+
+HOLD / REINFORCE / EXPLOIT:
+  no canonical health multiplier
+```
+
+The SHOP bridge obeys these invariants:
+
+1. Negative or zero utility is never turned positive by Strategy Health.
+2. A purchase rejected by D2/D4/D8 remains rejected.
+3. A reroll rejected by D11 remains rejected; only an already-admitted positive reroll margin may be amplified.
+4. Affordability, reserve, slot, Eternal, replacement, and transaction guards remain authoritative.
+5. Strong/dominant health does not manufacture extra spending. Existing strategy tiers, motifs, and item valuation remain the reinforcement authority, avoiding double-counting.
