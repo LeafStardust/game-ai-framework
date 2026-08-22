@@ -11,8 +11,8 @@ def state(*jokers):
     return SimpleNamespace(jokers=list(jokers), owned_deck=[], hand_levels={}, vouchers=[], hand_size=8)
 
 
-def labels(dev):
-    return {p.label for p in dev.contributions}
+def sources(dev):
+    return {p.source for p in dev.contributions}
 
 
 def test_superposition_is_low_authority_straight_and_tarot_support():
@@ -28,7 +28,7 @@ def test_blackboard_is_held_state_support_not_baron_equivalent():
     dev = evaluate_held_cards_bond(state("Blackboard"))
     assert dev.contribution == 4.0
     assert dev.rank == BondRank.R1
-    assert labels(dev) == {"Blackboard"}
+    assert sources(dev) == {"Blackboard"}
 
 
 def test_registry_records_deliberately_unwired_jokers():
