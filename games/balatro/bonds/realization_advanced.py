@@ -39,8 +39,12 @@ def _suit(card: Any) -> str:
     return str(getattr(card, "suit", "") or "").lower()
 
 
+def _enh(card: Any) -> str:
+    return str(getattr(card, "enhancement", "") or "").lower()
+
+
 def _stone(card: Any) -> bool:
-    return str(getattr(card, "enhancement", "") or "").lower() == "stone"
+    return _enh(card) == "stone"
 
 
 def _explicit_type(state: Any) -> str:
@@ -70,15 +74,19 @@ def _counts(hand: list[Any]) -> dict[str, int]:
     return out
 
 
-def _effective_suit(card: Any, smeared: bool) -> str:
+def _effective_suits(card: Any, smeared: bool) -> tuple[str, ...]:
+    # Wild cards count as every suit. Under Smeared Joker, those four suits
+    # collapse into the two color-equivalence classes used by flush logic.
+    if _enh(card) == "wild":
+        return ("red", "black") if smeared else ("hearts", "diamonds", "spades", "clubs")
     suit = _suit(card)
     if not smeared:
-        return suit
+        return (suit,) if suit else ()
     if suit in {"hearts", "diamonds"}:
-        return "red"
+        return ("red",)
     if suit in {"spades", "clubs"}:
-        return "black"
-    return suit
+        return ("black",)
+    return (suit,) if suit else ()
 
 
 def _straight_available(ranks: set[int], *, needed: int, shortcut: bool) -> bool:
@@ -125,9 +133,10 @@ def realize_straight_flush(dev: BondDevelopment, state: Any) -> BondDevelopment:
     rank_map = {"A":14,"K":13,"Q":12,"J":11,"10":10,"T":10,"9":9,"8":8,"7":7,"6":6,"5":5,"4":4,"3":3,"2":2}
     suits: dict[str, set[int]] = {}
     for c in hand:
-        suit = _effective_suit(c, smeared)
         rank = rank_map.get(_rank(c))
-        if suit and rank:
+        if not rank:
+            continue
+        for suit in _effective_suits(c, smeared):
             suits.setdefault(suit, set()).add(rank)
     active = any(_straight_available(ranks, needed=needed, shortcut=shortcut) for ranks in suits.values())
     return _finish(dev, active, active)
@@ -147,8 +156,10 @@ def realize_flush_house(dev: BondDevelopment, state: Any) -> BondDevelopment:
     smeared = _has(list(getattr(state, "jokers", ()) or ()), "smearedjoker", "smeared")
     by_suit: dict[str, dict[str, int]] = {}
     for c in hand:
-        suit, rank = _effective_suit(c, smeared), _rank(c)
-        if suit and rank:
+        rank = _rank(c)
+        if not rank:
+            continue
+        for suit in _effective_suits(c, smeared):
             ranks = by_suit.setdefault(suit, {})
             ranks[rank] = ranks.get(rank, 0) + 1
     active = False
@@ -168,8 +179,11 @@ def realize_flush_five(dev: BondDevelopment, state: Any) -> BondDevelopment:
     for c in _cards(state):
         if _stone(c):
             continue
-        key = (_rank(c), _effective_suit(c, smeared))
-        if all(key):
+        rank = _rank(c)
+        if not rank:
+            continue
+        for suit in _effective_suits(c, smeared):
+            key = (rank, suit)
             groups[key] = groups.get(key, 0) + 1
     active = max(groups.values(), default=0) >= 5
     return _finish(dev, active, active)
