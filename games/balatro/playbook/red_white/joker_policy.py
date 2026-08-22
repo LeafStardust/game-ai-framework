@@ -80,10 +80,10 @@ class PlaybookJokerAcquisitionPolicy:
             transition_planner=self.transition_planner,
         ).decide(state, candidate)
 
-        # Pairwise mechanic safety is stronger than whichever poker-hand route is
-        # currently Primary. A Burnt/Green/Burglar conflict may be resolved by a
-        # REPLACE that removes the opposing Joker; it may never be admitted as a
-        # coexistence BUY or as a replacement of some unrelated slot.
+        # Pairwise mechanical safety is stronger than any current build preference.
+        # A Burnt/Green/Burglar conflict may be resolved by a REPLACE that removes
+        # the opposing Joker; it may never be admitted as a coexistence BUY or as a
+        # replacement of some unrelated slot.
         conflict_indices = _discard_conflict_indices(state, candidate)
         if conflict_indices:
             if decision.action == REPLACE and getattr(decision, "selected", None) is not None:
@@ -99,66 +99,14 @@ class PlaybookJokerAcquisitionPolicy:
                             "discard-mechanic conflict resolved by replacing the opposing Burnt/Green/Burglar component",
                         ),
                     )
-
-            if decision.action != HOLD:
-                return replace(
-                    decision,
-                    action=HOLD,
-                    selected=None,
-                    rationale=(
-                        *decision.rationale,
-                        "mechanical conflict: Burnt requires a discard while Green punishes discards and Burglar removes them",
-                        "candidate may only enter by replacing the opposing discard/no-discard component",
-                    ),
-                )
-
-            # Preserve an existing HOLD and prevent the final-slot alignment waiver
-            # below from resurrecting the contradictory candidate as a BUY.
             return replace(
                 decision,
+                action=HOLD,
+                selected=None,
                 rationale=(
                     *decision.rationale,
-                    "mechanical conflict retained: Burnt and Green/Burglar cannot coexist",
+                    "discard-mechanic conflict blocks coexistence: Burnt cannot share a build with Green Joker or Burglar",
                 ),
             )
-
-        # The generic D2 last-slot penalty represents the option value of keeping
-        # one ordinary Joker slot open. Once the universal strategy is established,
-        # that option value must not veto a positively valued Joker that is already
-        # aligned with the active route. This is especially important for paired
-        # scoring components (for example chips + mult Jokers for the same hand).
-        # Price, interest and cash-reserve costs remain fully authoritative.
-        if (
-            decision.action == HOLD
-            and len(state.jokers) < int(state.joker_slots)
-            and decision.options
-        ):
-            transition = self.transition_planner.plan(state, candidate)
-            candidate_value = transition.candidate_value
-            aligned = bool(
-                getattr(candidate_value, "active_alignment", False)
-                and getattr(candidate_value, "strategy_tier", None)
-                in {"GOLD", "SILVER", "BRONZE"}
-            )
-            option = decision.options[0]
-            slot_adjusted_advantage = (
-                float(option.total_advantage) + float(option.economics.slot_penalty)
-            )
-            if (
-                aligned
-                and option.eligible
-                and slot_adjusted_advantage > thresholds.minimum_purchase_advantage
-            ):
-                return replace(
-                    decision,
-                    action=BUY,
-                    selected=option,
-                    rationale=(
-                        *decision.rationale,
-                        "active-strategy aligned Joker may consume the final free slot",
-                        "final-slot opportunity penalty is waived for admission only; price/interest/reserve costs remain",
-                        f"slot-adjusted buy advantage={slot_adjusted_advantage:.3f} exceeds threshold={thresholds.minimum_purchase_advantage:.3f}",
-                    ),
-                )
 
         return decision
