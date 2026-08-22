@@ -57,19 +57,37 @@ def realize_burnt(dev: BondDevelopment, state: Any) -> BondDevelopment:
 def realize_cash(dev: BondDevelopment, state: Any) -> BondDevelopment:
     money = int(getattr(state, "money", 0) or 0)
     jokers = _jokers(state)
+    hand = _cards(state, "hand", "current_hand", "cards_in_hand")
+    deck = _cards(state, "owned_deck", "deck")
+
     payoff = _has(jokers, "bull", "bootstraps")
-    engine = _has(jokers, "rocket", "goldenjoker", "tothemoon", "satellite", "reservedparking", "cloud9")
-    active = (payoff and money >= 25) or engine
-    strong = (payoff and money >= 75) or (engine and money >= 50)
+    unconditional_engine = _has(jokers, "rocket", "goldenjoker")
+    interest_engine = _has(jokers, "tothemoon") and money >= 5
+    parking_engine = _has(jokers, "reservedparking") and any(
+        str(getattr(c, "rank", "") or "").upper() in {"J", "Q", "K"} for c in hand
+    )
+    cloud9_engine = _has(jokers, "cloud9") and any(str(getattr(c, "rank", "") or "") == "9" for c in deck)
+
+    # Satellite only pays after at least one distinct Planet has been used. If the
+    # runtime exposes that history, respect it; otherwise keep ownership as a live
+    # engine rather than inventing a false negative from missing telemetry.
+    satellite = _has(jokers, "satellite")
+    planet_history = getattr(state, "unique_planets_used", getattr(state, "satellite_planets_used", None))
+    satellite_engine = satellite and (planet_history is None or int(planet_history or 0) > 0)
+
+    engine_sources = sum((unconditional_engine, interest_engine, parking_engine, cloud9_engine, satellite_engine))
+    active = (payoff and money >= 25) or engine_sources > 0
+    strong = (payoff and money >= 75) or (engine_sources >= 2) or (engine_sources > 0 and money >= 50)
     return _finish(dev, active, strong)
 
 
 def realize_no_discard(dev: BondDevelopment, state: Any) -> BondDevelopment:
     jokers = _jokers(state)
-    no_discard_payoff = _has(jokers, "greenjoker", "burglar", "delayedgratification", "ramen", "banner")
+    source_tokens = ("greenjoker", "burglar", "delayedgratification", "ramen", "banner")
+    source_count = sum(1 for token in source_tokens if _has(jokers, token))
     discarded = int(getattr(state, "discards_used_this_round", 0) or 0)
-    active = no_discard_payoff and discarded == 0
-    return _finish(dev, active, active and len(jokers) >= 2)
+    active = source_count > 0 and discarded == 0
+    return _finish(dev, active, active and source_count >= 2)
 
 
 def realize_tarot(dev: BondDevelopment, state: Any) -> BondDevelopment:
@@ -172,11 +190,6 @@ def realize_vampire(dev: BondDevelopment, state: Any) -> BondDevelopment:
     hand = _cards(state, "hand", "current_hand", "cards_in_hand")
     scoring = _cards(state, "scoring_cards", "played_cards", "current_played_cards")
     deck = _cards(state, "owned_deck", "deck")
-
-    # Vampire can immediately consume any scoring/held enhanced card. Midas Mask
-    # is renewable feed only if the run actually contains a face card that Midas
-    # can turn Gold when scored; owning Midas alone is not a live engine in a
-    # face-free deck such as Abandoned Deck after all faces have been removed.
     feed_cards = scoring or hand
     feed = sum(1 for c in feed_cards if str(getattr(c, "enhancement", "") or "").strip())
     has_midas = _has(jokers, "midasmask")
