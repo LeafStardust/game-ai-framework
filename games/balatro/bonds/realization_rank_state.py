@@ -37,8 +37,6 @@ def realize_aces(dev,state):
 
 def realize_face_cards(dev,state):
     played=_played(state);jokers=_jokers(state);pareidolia=_has(jokers,"pareidolia")
-    # Pareidolia makes every played card count as a face card, so realization must
-    # use the mechanical face identity rather than only printed J/Q/K ranks.
     hits=len(played) if pareidolia else sum(1 for c in played if _rank(c) in {"J","Q","K"})
     payoff=_has(jokers,"pareidolia","sockandbuskin","photograph","scaryface","smileyface","businesscard")
     return _finish(dev,bool(hits and payoff),hits>=3 and payoff)
@@ -53,8 +51,6 @@ def realize_no_face_cards(dev,state):
     played=_played(state)
     if not played:return _finish(dev,False)
     jokers=_jokers(state);payoff=_has(jokers,"ridethebus")
-    # Pareidolia makes every card a face card and therefore invalidates a live
-    # Ride the Bus no-face line even when printed ranks are low.
     no_faces=not _has(jokers,"pareidolia") and all(_rank(c) not in {"J","Q","K"} for c in played)
     streak=int(getattr(state,"ride_the_bus_streak",0) or 0);return _finish(dev,payoff and no_faces,payoff and no_faces and streak>=8)
 
@@ -64,7 +60,10 @@ def _realize_suit(dev,state,suit,*payoffs):
     if smeared:
         if suit in {"hearts","diamonds"}:compatible={"hearts","diamonds"}
         elif suit in {"spades","clubs"}:compatible={"spades","clubs"}
-    hits=sum(1 for c in played if _suit(c) in compatible);payoff=_has(jokers,*payoffs);return _finish(dev,bool(hits and payoff),hits>=4 and payoff)
+    # Wild Cards count as every suit for suit-triggered Joker effects. Stone is
+    # excluded because it has no suit identity.
+    hits=sum(1 for c in played if _enh(c)!="stone" and (_suit(c) in compatible or _enh(c)=="wild"))
+    payoff=_has(jokers,*payoffs);return _finish(dev,bool(hits and payoff),hits>=4 and payoff)
 def realize_hearts(dev,state): return _realize_suit(dev,state,"hearts","bloodstone","lustyjoker")
 def realize_spades(dev,state): return _realize_suit(dev,state,"spades","arrowhead","wrathfuljoker")
 def realize_clubs(dev,state): return _realize_suit(dev,state,"clubs","onyxagate","gluttonousjoker")
