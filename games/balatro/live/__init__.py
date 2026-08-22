@@ -1,5 +1,11 @@
 """Balatro live integration primitives and production runtime wiring."""
 
+from .bond_health import (
+    LiveBondHealthSnapshot,
+    evaluate_live_build_health,
+    score_projection_from_blind_plan,
+    score_projection_from_live_play,
+)
 from .consumable_timing import (
     HOLD,
     USE,
@@ -25,9 +31,14 @@ __all__ = [
     "DefaultBalatroStateTranslator",
     "HOLD",
     "LiveBalatroSnapshot",
+    "LiveBondHealthSnapshot",
+    "LiveBalatroSnapshot",
     "LiveConsumableTimingPolicy",
     "LiveShopItem",
     "LiveShopItemFactory",
     "USE",
     "UnsupportedBufferedShopAction",
+    "evaluate_live_build_health",
+    "score_projection_from_blind_plan",
+    "score_projection_from_live_play",
 ]
