@@ -8,6 +8,7 @@ from . import balatro_agent_monitor as base_monitor
 
 
 _original_build_dashboard = base_monitor.build_dashboard
+_original_health_dashboard_fields = base_monitor._health_dashboard_fields
 
 
 _PRETTY = {
@@ -30,10 +31,6 @@ _PRETTY = {
     "glass": "Glass",
 }
 
-# Conditional runtime relationships are deliberately absent from some static
-# catalogue buckets. Keep the monitor honest for the most important dependent
-# routes by surfacing their candidate supports here as targets; the evaluator still
-# decides whether the dependency is currently satisfied.
 _CONDITIONAL_TARGETS = {
     "aces": (("S", "DNA"), ("S", "Fibonacci"), ("S", "Odd Todd")),
     "planet_constellation": (("S", "Constellation"),),
@@ -132,11 +129,7 @@ def _tiered_owned_components(rows: list[dict[str, Any]], strategy_id: str) -> li
         return []
     owned = _owned_tokens(rows)
     result: list[str] = []
-    for label, values in (
-        ("G", definition.gold_jokers),
-        ("S", definition.silver_jokers),
-        ("B", definition.bronze_jokers),
-    ):
+    for label, values in (("G", definition.gold_jokers), ("S", definition.silver_jokers), ("B", definition.bronze_jokers)):
         matched = []
         for raw in values:
             token = _normalize(raw)
@@ -150,11 +143,9 @@ def _tiered_owned_components(rows: list[dict[str, Any]], strategy_id: str) -> li
 
 
 def _strategy_has(rows: list[dict[str, Any]]) -> list[str]:
-    """Explain the dominant strategy's current score from public evidence."""
     strategy_id = _dominant_strategy_id(rows)
     if not strategy_id:
         return []
-
     assessment = _dominant_assessment(rows)
     evidence: list[str] = []
     if assessment is not None:
@@ -169,14 +160,8 @@ def _strategy_has(rows: list[dict[str, Any]]) -> list[str]:
                     evidence.append(note)
                 elif "requirement not met" in lowered:
                     evidence.append(note)
-
-    # Older logs may not serialize assessment rationale. In that case still show
-    # the current owned catalogue components, tiered exactly as the strategy sees
-    # them, rather than leaving the explanation blank.
     if not evidence:
         evidence = _tiered_owned_components(rows, strategy_id)
-
-    # Keep the terminal monitor readable. The full postmortem remains in the run log.
     return evidence[:6]
 
 
@@ -187,7 +172,6 @@ def _strategy_targets(rows: list[dict[str, Any]]) -> list[str]:
     definition = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES.get(strategy_id)
     if definition is None:
         return []
-
     owned = _owned_tokens(rows)
 
     def missing(values):
@@ -201,29 +185,21 @@ def _strategy_targets(rows: list[dict[str, Any]]) -> list[str]:
         return _unique_components(result)
 
     targets: list[str] = []
-    for label, values in (
-        ("G", definition.gold_jokers),
-        ("S", definition.silver_jokers),
-        ("B", definition.bronze_jokers),
-    ):
+    for label, values in (("G", definition.gold_jokers), ("S", definition.silver_jokers), ("B", definition.bronze_jokers)):
         names = missing(values)
         if names:
             targets.append(f"{label}: " + ", ".join(names))
-
     for tier, label in _CONDITIONAL_TARGETS.get(strategy_id, ()):
         token = _normalize(label)
         if token not in owned and (token + "joker") not in owned:
             text = f"{tier}: {label}"
             if text not in targets:
                 targets.append(text)
-
     utility: list[str] = []
     if definition.directed_tarots:
         utility.append("Tarot: " + ", ".join(_unique_components(definition.directed_tarots)))
     if definition.gold_planets or definition.silver_planets or definition.bronze_planets:
-        planets = _unique_components(
-            (*definition.gold_planets, *definition.silver_planets, *definition.bronze_planets)
-        )
+        planets = _unique_components((*definition.gold_planets, *definition.silver_planets, *definition.bronze_planets))
         if planets:
             utility.append("Planet: " + ", ".join(planets))
     if definition.directed_spectrals:
@@ -234,100 +210,53 @@ def _strategy_targets(rows: list[dict[str, Any]]) -> list[str]:
         utility.append("Ranks: " + ", ".join(map(str, definition.preferred_ranks)))
     if definition.preferred_suits:
         utility.append("Suits: " + ", ".join(map(str, definition.preferred_suits)))
-
     targets.extend(utility)
     return targets
 
 
-def _number(payload: dict[str, Any], key: str) -> float | None:
-    value = payload.get(key)
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return None
-    return float(value)
-
-
-def _build_health_lines(rows: list[dict[str, Any]]) -> list[str]:
-    health = _latest_build_health_payload(rows)
-    if not health:
-        return []
-
-    total = _number(health, "total")
-    survival = _number(health, "survival")
-    immediate = _number(health, "immediate")
-    scaling = _number(health, "scaling")
-    coherence = _number(health, "coherence")
-    runway = _number(health, "runway")
-    deficit = bool(health.get("scaling_deficit"))
-    critical = bool(health.get("critical"))
-
-    lines: list[str] = []
-    if total is not None:
-        suffix = " [CRITICAL]" if critical else ""
-        lines.append(f"Build Health    : {total:.1f}{suffix}")
-    if survival is not None:
-        lines.append(f"Survival        : {survival:.1f}")
-    if immediate is not None:
-        lines.append(f"Immediate       : {immediate:.1f}")
-    if scaling is not None:
-        suffix = " [DEFICIT]" if deficit else ""
-        lines.append(f"Scaling         : {scaling:.1f}{suffix}")
-    if coherence is not None:
-        lines.append(f"Coherence       : {coherence:.1f}")
-    if runway is not None:
-        lines.append(f"Runway          : {runway:.1f}")
-
-    components = health.get("components")
-    if isinstance(components, list):
-        rendered_components = []
+def _canonical_health_fields(rationale: dict[str, Any]) -> dict[str, Any]:
+    fields = _original_health_dashboard_fields(rationale)
+    postmortem = rationale.get("postmortem") if isinstance(rationale.get("postmortem"), dict) else {}
+    health = postmortem.get("build_health") if isinstance(postmortem.get("build_health"), dict) else {}
+    components = health.get("components") if isinstance(health.get("components"), list) else []
+    if fields.get("roles") in {None, "", "NONE"} and components:
+        fields["roles"] = base_monitor._roles_text(components)
+    if fields.get("engines") in {None, "", "NONE"} and components:
+        engines: list[dict[str, Any]] = []
+        seen: set[tuple[str, str]] = set()
         for component in components:
             if not isinstance(component, dict):
                 continue
-            name = str(component.get("name") or "?")
-            role = str(component.get("role") or "?")
-            engine = component.get("realized_engine_id")
-            text = f"{name}={role}"
-            if engine:
-                text += f"/{engine}"
-            rendered_components.append(text)
-        if rendered_components:
-            lines.append("Components      : " + " | ".join(rendered_components[:5]))
-
-    warnings = health.get("warnings")
-    if isinstance(warnings, list) and warnings:
-        lines.append("Health warnings : " + " | ".join(str(value) for value in warnings[:3]))
-    return lines
+            engine_id = component.get("realized_engine_id") or component.get("engine_id")
+            state = component.get("realized_engine_state") or component.get("engine_state")
+            if not engine_id:
+                continue
+            key = (str(engine_id), str(state or "-"))
+            if key in seen:
+                continue
+            seen.add(key)
+            engines.append({"engine_id": engine_id, "state": state or "-"})
+        if engines:
+            fields["engines"] = base_monitor._engine_text(engines)
+    return fields
 
 
 def build_dashboard(status, *, supervisor_pid, balatro_running, rows, telemetry=None):
-    rendered = _original_build_dashboard(
-        status,
-        supervisor_pid=supervisor_pid,
-        balatro_running=balatro_running,
-        rows=rows,
-        telemetry=telemetry,
-    )
+    rendered = _original_build_dashboard(status, supervisor_pid=supervisor_pid, balatro_running=balatro_running, rows=rows, telemetry=telemetry)
     evidence = _strategy_has(rows)
     has_text = "NONE" if not evidence else " | ".join(evidence)
     targets = _strategy_targets(rows)
     target_text = "NONE" if not targets else " | ".join(targets)
-    health_lines = _build_health_lines(rows)
     marker = "Path            : "
     lines = rendered.splitlines()
     for index, line in enumerate(lines):
         if line.startswith(marker):
-            insert_at = index + 1
-            additions = [
-                f"Has             : {has_text}",
-                f"Seeking         : {target_text}",
-            ]
-            if health_lines:
-                additions.append("")
-                additions.extend(health_lines)
-            lines[insert_at:insert_at] = additions
+            lines[index + 1:index + 1] = [f"Has             : {has_text}", f"Seeking         : {target_text}"]
             break
     return "\n".join(lines)
 
 
+base_monitor._health_dashboard_fields = _canonical_health_fields
 base_monitor.build_dashboard = build_dashboard
 
 
