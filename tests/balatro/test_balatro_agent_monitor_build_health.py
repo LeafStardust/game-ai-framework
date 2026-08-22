@@ -1,4 +1,4 @@
-import games.balatro.live.runtime.balatro_agent_monitor_targets as monitor
+from games.balatro.live.runtime import balatro_agent_monitor as monitor
 
 
 def _rows(build_health):
@@ -8,7 +8,6 @@ def _rows(build_health):
             "data": {
                 "rationale": {
                     "postmortem": {
-                        "strategy": {},
                         "build_health": build_health,
                     }
                 }
@@ -17,7 +16,7 @@ def _rows(build_health):
     ]
 
 
-def test_build_health_lines_render_deficit_components_and_warning():
+def test_dashboard_renders_build_health_after_bond_composition_section():
     rows = _rows(
         {
             "total": 58.0,
@@ -29,62 +28,38 @@ def test_build_health_lines_render_deficit_components_and_warning():
             "critical": False,
             "scaling_deficit": True,
             "warnings": ["Ante 5 scaling deficit"],
-            "components": [
-                {
-                    "name": "Hologram",
-                    "role": "ENGINE",
-                    "realized_engine_id": "hologram",
-                },
-                {
-                    "name": "Banner",
-                    "role": "FILLER",
-                    "realized_engine_id": None,
-                },
-            ],
-        }
-    )
-
-    lines = monitor._build_health_lines(rows)
-
-    assert "Build Health    : 58.0" in lines
-    assert "Scaling         : 31.0 [DEFICIT]" in lines
-    assert any("Hologram=ENGINE/hologram" in line for line in lines)
-    assert any("Banner=FILLER" in line for line in lines)
-    assert "Health warnings : Ante 5 scaling deficit" in lines
-
-
-def test_dashboard_places_health_after_strategy_targets(monkeypatch):
-    monkeypatch.setattr(
-        monitor,
-        "_original_build_dashboard",
-        lambda *args, **kwargs: "Strategy        : TEST\nPath            : root > test\nFooter          : ok",
-    )
-    monkeypatch.setattr(monitor, "_strategy_has", lambda rows: [])
-    monkeypatch.setattr(monitor, "_strategy_targets", lambda rows: [])
-    rows = _rows(
-        {
-            "total": 42.0,
-            "survival": 10.0,
-            "immediate": 20.0,
-            "scaling": 50.0,
-            "coherence": 50.0,
-            "runway": 50.0,
-            "critical": True,
-            "scaling_deficit": False,
-            "warnings": [],
-            "components": [],
+            "engines": [{"engine_id": "hologram", "state": "OWNED_INACTIVE"}],
         }
     )
 
     rendered = monitor.build_dashboard(
-        {},
+        {"state": "ON"},
         supervisor_pid=None,
         balatro_running=True,
         rows=rows,
         telemetry=None,
     )
 
-    assert "Has             : NONE" in rendered
-    assert "Seeking         : NONE" in rendered
-    assert "Build Health    : 42.0 [CRITICAL]" in rendered
-    assert rendered.index("Seeking         : NONE") < rendered.index("Build Health    : 42.0 [CRITICAL]")
+    assert "STRATEGY / COMPOSITION" in rendered
+    assert "Power engine    : -" in rendered
+    assert "Relevant Bonds  : -" in rendered
+    assert "BUILD HEALTH / REALIZED STRENGTH" in rendered
+    assert "Health total    : 58.0%" in rendered
+    assert "Scaling         : 31.0%" in rendered
+    assert "Scaling deficit : True" in rendered
+    assert "hologram=OWNED_INACTIVE" in rendered
+    assert "Ante 5 scaling deficit" in rendered
+    assert rendered.index("STRATEGY / COMPOSITION") < rendered.index("BUILD HEALTH / REALIZED STRENGTH")
+
+
+def test_dashboard_has_no_retired_has_or_seeking_rows_without_bond_data():
+    rendered = monitor.build_dashboard(
+        {"state": "ON"},
+        supervisor_pid=None,
+        balatro_running=True,
+        rows=_rows({}),
+        telemetry=None,
+    )
+
+    assert "Has             :" not in rendered
+    assert "Seeking         :" not in rendered
