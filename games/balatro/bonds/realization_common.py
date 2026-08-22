@@ -41,12 +41,16 @@ def _suit(card: Any) -> str:
     return str(getattr(card, "suit", "") or "").lower()
 
 
+def _enh(card: Any) -> str:
+    return str(getattr(card, "enhancement", "") or "").lower()
+
+
 def _seal(card: Any) -> str:
     return str(getattr(card, "seal", "") or "").lower()
 
 
 def _stone(card: Any) -> bool:
-    return bool(getattr(card, "is_stone", False)) or str(getattr(card, "enhancement", "") or "").lower() == "stone"
+    return bool(getattr(card, "is_stone", False)) or _enh(card) == "stone"
 
 
 def _floor(dev: BondDevelopment) -> BondRealization:
@@ -95,6 +99,19 @@ def _straight_available(nums: set[int], *, needed: int, shortcut: bool) -> bool:
     return False
 
 
+def _effective_suits(card: Any, *, smeared: bool) -> tuple[str, ...]:
+    if _enh(card) == "wild":
+        return ("red", "black") if smeared else ("hearts", "diamonds", "spades", "clubs")
+    suit = _suit(card)
+    if not smeared:
+        return (suit,) if suit else ()
+    if suit in {"hearts", "diamonds"}:
+        return ("red",)
+    if suit in {"spades", "clubs"}:
+        return ("black",)
+    return (suit,) if suit else ()
+
+
 def _hand_shape(cards: list[Any], jokers: list[Any]) -> set[str]:
     natural = [c for c in cards if not _stone(c)]
     ranks = Counter(_rank(c) for c in natural if _rank(c))
@@ -117,13 +134,11 @@ def _hand_shape(cards: list[Any], jokers: list[Any]) -> set[str]:
     if _straight_available(nums, needed=needed, shortcut=_has(jokers, "shortcut")):
         shapes.add("STRAIGHT")
 
-    if _has(jokers, "smearedjoker", "smeared"):
-        suit_counts = Counter(
-            "red" if _suit(c) in {"hearts", "diamonds"} else "black" if _suit(c) in {"spades", "clubs"} else _suit(c)
-            for c in natural if _suit(c)
-        )
-    else:
-        suit_counts = Counter(_suit(c) for c in natural if _suit(c))
+    smeared = _has(jokers, "smearedjoker", "smeared")
+    suit_counts: Counter[str] = Counter()
+    for card in natural:
+        for suit in _effective_suits(card, smeared=smeared):
+            suit_counts[suit] += 1
     flush_needed = 4 if _has(jokers, "fourfingers") else 5
     if any(v >= flush_needed for v in suit_counts.values()):
         shapes.add("FLUSH")
