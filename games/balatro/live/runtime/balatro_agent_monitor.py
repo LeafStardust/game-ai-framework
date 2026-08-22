@@ -119,64 +119,104 @@ def _modeled_clear_probability(rationale: dict[str, Any]) -> tuple[float | None,
     return selected_probability, selected_probability
 
 
-def _strategy_display_name(strategy_id: str) -> str:
-    return str(strategy_id).replace("_", " ").title()
+def _latest_postmortem(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    latest = _latest(rows, "decision") or {}
+    data = latest.get("data") if isinstance(latest.get("data"), dict) else {}
+    rationale = data.get("rationale") if isinstance(data.get("rationale"), dict) else {}
+    return rationale.get("postmortem") if isinstance(rationale.get("postmortem"), dict) else {}
 
 
-def _strategy_dashboard_fields(rationale: dict[str, Any]) -> dict[str, str]:
-    empty = {"strategy": "-", "status": "-", "score": "-", "pressure": "-", "relevant": "-", "path": "-"}
-    postmortem = rationale.get("postmortem")
-    if not isinstance(postmortem, dict):
-        return empty
-    strategy = postmortem.get("strategy")
-    if not isinstance(strategy, dict):
-        return empty
-    ranked = strategy.get("ranked")
-    ranked_rows = ranked if isinstance(ranked, list) else []
-    assessment_by_id = {str(row.get("strategy_id")): row for row in ranked_rows if isinstance(row, dict) and row.get("strategy_id")}
-    dominant_id = strategy.get("dominant_strategy_id")
-    if dominant_id is None:
-        dominant_name = "NONE (ordinary/meta value leads)"
-        dominant = None
-    else:
-        dominant_id = str(dominant_id)
-        dominant = assessment_by_id.get(dominant_id)
-        dominant_name = str(dominant.get("name")) if dominant is not None and dominant.get("name") else _strategy_display_name(dominant_id)
-    relevant_ids = strategy.get("relevant_strategy_ids")
-    relevant_names: list[str] = []
-    if isinstance(relevant_ids, list):
-        for raw_id in relevant_ids:
-            strategy_id = str(raw_id)
-            row = assessment_by_id.get(strategy_id)
-            relevant_names.append(str(row.get("name")) if row is not None and row.get("name") else _strategy_display_name(strategy_id))
-    path_names: list[str] = []
-    nodes = strategy.get("nodes")
-    if dominant_id is not None and isinstance(nodes, list):
-        for node in nodes:
-            if not isinstance(node, dict) or str(node.get("strategy_id")) != dominant_id:
-                continue
-            raw_path = node.get("path")
-            if isinstance(raw_path, list):
-                for raw_id in raw_path:
-                    strategy_id = str(raw_id)
-                    row = assessment_by_id.get(strategy_id)
-                    if strategy_id == dominant_id:
-                        path_names.append(dominant_name)
-                    elif row is not None and row.get("name"):
-                        path_names.append(str(row.get("name")))
-                    else:
-                        path_names.append(_strategy_display_name(strategy_id))
-            break
-    score = dominant.get("score") if dominant is not None else None
-    pressure = strategy.get("strategy_pressure")
-    return {
-        "strategy": dominant_name,
-        "status": _safe(strategy.get("active_status")),
-        "score": f"{float(score):.3f}" if isinstance(score, (int, float)) else "-",
-        "pressure": f"{float(pressure):.3f}" if isinstance(pressure, (int, float)) else "-",
-        "relevant": ", ".join(relevant_names) if relevant_names else "NONE",
-        "path": " -> ".join(path_names) if path_names else "-",
-    }
+def _bond_strategy_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    postmortem = _latest_postmortem(rows)
+    return postmortem.get("bond_strategy") if isinstance(postmortem.get("bond_strategy"), dict) else {}
+
+
+def _pretty(value: Any) -> str:
+    return str(value or "-").replace("_", " ").title()
+
+
+def _pair_text(values: Any) -> str:
+    if not isinstance(values, list) or not values:
+        return "NONE"
+    parts: list[str] = []
+    for value in values:
+        if isinstance(value, (list, tuple)):
+            parts.append(" <-> ".join(_pretty(item) for item in value))
+        else:
+            parts.append(_pretty(value))
+    return " | ".join(parts)
+
+
+def _strategy_lines(rows: list[dict[str, Any]]) -> list[str]:
+    payload = _bond_strategy_payload(rows)
+    if not payload:
+        return [
+            "STRATEGY / COMPOSITION",
+            "-" * 78,
+            "Power engine    : -",
+            "Relevant Bonds  : -",
+            "Motifs          : -",
+            "Synergies       : -",
+            "Conflicts       : -",
+            "Prescriptions   : -",
+        ]
+
+    composition = payload.get("composition") if isinstance(payload.get("composition"), dict) else {}
+    bonds = payload.get("relevant_bonds") if isinstance(payload.get("relevant_bonds"), list) else []
+    lines = [
+        "STRATEGY / COMPOSITION",
+        "-" * 78,
+        f"Power engine    : {_pretty(payload.get('power_engine'))}",
+        "Relevant Bonds  :" if bonds else "Relevant Bonds  : NONE",
+    ]
+    for bond in bonds:
+        if not isinstance(bond, dict):
+            continue
+        rank = str(bond.get("rank") or "-")
+        contribution = bond.get("contribution")
+        threshold = bond.get("next_rank_threshold")
+        realization = str(bond.get("realization") or "-")
+        if isinstance(contribution, (int, float)):
+            if isinstance(threshold, (int, float)):
+                progress = f"{float(contribution):.1f} / {float(threshold):.1f} -> next rank"
+            else:
+                progress = f"{float(contribution):.1f} / MAX"
+        else:
+            progress = "-"
+        lines.extend(
+            [
+                f"  {_pretty(bond.get('bond_id'))}",
+                f"    Rank         : {rank}",
+                f"    Contribution : {progress}",
+                f"    Realization  : {realization}",
+            ]
+        )
+
+    motifs = composition.get("motifs") if isinstance(composition.get("motifs"), list) else []
+    motif_text: list[str] = []
+    for motif in motifs:
+        if not isinstance(motif, dict):
+            continue
+        text = f"{_pretty(motif.get('motif_id'))}={motif.get('state') or '-'}"
+        missing = motif.get("missing_components")
+        if isinstance(missing, list) and missing:
+            text += " missing[" + ", ".join(map(str, missing)) + "]"
+        motif_text.append(text)
+    prescriptions = composition.get("prescriptions")
+    lines.extend(
+        [
+            "Motifs          : " + (" | ".join(motif_text) if motif_text else "NONE"),
+            f"Synergies       : {_pair_text(composition.get('synergies'))}",
+            f"Conflicts       : {_pair_text(composition.get('conflicts'))}",
+            "Prescriptions   : "
+            + (
+                " | ".join(str(item) for item in prescriptions)
+                if isinstance(prescriptions, list) and prescriptions
+                else "NONE"
+            ),
+        ]
+    )
+    return lines
 
 
 def _find_health_dict(value: Any) -> dict[str, Any] | None:
@@ -185,8 +225,7 @@ def _find_health_dict(value: Any) -> dict[str, Any] | None:
         if required.issubset(value):
             return value
         for key in ("build_health", "health", "realized_strength"):
-            child = value.get(key)
-            found = _find_health_dict(child)
+            found = _find_health_dict(value.get(key))
             if found is not None:
                 return found
         for child in value.values():
@@ -245,13 +284,12 @@ def _roles_text(raw: Any) -> str:
         parts: list[str] = []
         for key, value in raw.items():
             if isinstance(value, (list, tuple, set)):
-                label = ",".join(str(v) for v in value)
-                parts.append(f"{key}=[{label}]")
+                parts.append(f"{key}=[{','.join(str(v) for v in value)}]")
             else:
                 parts.append(f"{key}={value}")
         return "; ".join(parts) if parts else "NONE"
     if isinstance(raw, (list, tuple)):
-        parts = []
+        parts: list[str] = []
         for item in raw:
             if isinstance(item, dict):
                 name = item.get("name") or item.get("joker") or item.get("component") or item.get("id") or "component"
@@ -267,15 +305,30 @@ def _health_dashboard_fields(rationale: dict[str, Any]) -> dict[str, Any]:
     postmortem = rationale.get("postmortem") if isinstance(rationale.get("postmortem"), dict) else rationale
     health = _find_health_dict(postmortem)
     if health is None:
-        return {"available": False, "total": "-", "survival": "-", "immediate": "-", "scaling": "-", "coherence": "-", "runway": "-", "critical": "-", "scaling_deficit": "-", "engines": "NONE", "roles": "NONE", "warnings": []}
+        return {
+            "available": False,
+            "total": "-",
+            "survival": "-",
+            "immediate": "-",
+            "scaling": "-",
+            "coherence": "-",
+            "runway": "-",
+            "critical": "-",
+            "scaling_deficit": "-",
+            "engines": "NONE",
+            "roles": "NONE",
+            "warnings": [],
+        }
     warnings = health.get("warnings")
     if not isinstance(warnings, list):
         warnings = list(warnings) if isinstance(warnings, tuple) else []
     extra_warnings = _find_named(postmortem, ("inactive_engine_warnings", "build_health_warnings"))
     if isinstance(extra_warnings, (list, tuple)):
+        existing = {str(item) for item in warnings}
         for warning in extra_warnings:
-            if str(warning) not in {str(item) for item in warnings}:
+            if str(warning) not in existing:
                 warnings.append(warning)
+                existing.add(str(warning))
     engines = health.get("engines")
     if engines is None:
         engines = _find_named(postmortem, ("realized_engines", "engine_states", "engines"))
@@ -296,7 +349,14 @@ def _health_dashboard_fields(rationale: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_dashboard(status: dict[str, Any], *, supervisor_pid: int | None, balatro_running: bool, rows: list[dict[str, Any]], telemetry: dict[str, Any] | None = None) -> str:
+def build_dashboard(
+    status: dict[str, Any],
+    *,
+    supervisor_pid: int | None,
+    balatro_running: bool,
+    rows: list[dict[str, Any]],
+    telemetry: dict[str, Any] | None = None,
+) -> str:
     telemetry = telemetry or {}
     state = str(status.get("state") or "UNKNOWN")
     last_state = _last_state(rows)
@@ -305,7 +365,6 @@ def build_dashboard(status: dict[str, Any], *, supervisor_pid: int | None, balat
     decision_data = latest_decision.get("data") if isinstance(latest_decision.get("data"), dict) else {}
     rationale = decision_data.get("rationale") if isinstance(decision_data.get("rationale"), dict) else {}
     notes = list(rationale.get("notes")) if isinstance(rationale.get("notes"), list) else []
-    strategy_fields = _strategy_dashboard_fields(rationale)
     health_fields = _health_dashboard_fields(rationale)
     modeled_clear_probability, selected_plan_probability = _modeled_clear_probability(rationale)
     if modeled_clear_probability is not None:
@@ -319,24 +378,37 @@ def build_dashboard(status: dict[str, Any], *, supervisor_pid: int | None, balat
         if not replaced:
             notes.insert(0, replacement)
         if selected_plan_probability is not None and abs(selected_plan_probability - modeled_clear_probability) > 1e-12:
-            notes.append("selected_plan_clear_probability=" f"{selected_plan_probability:.6f} (depth-1/fallback diagnostic)")
+            notes.append(
+                f"selected_plan_clear_probability={selected_plan_probability:.6f} "
+                "(depth-1/fallback diagnostic)"
+            )
     latest_result = _latest(rows, "action_result") or {}
     result_data = latest_result.get("data") if isinstance(latest_result.get("data"), dict) else {}
     phase = telemetry.get("phase") or last_state.get("phase") or status.get("phase") or "-"
-    run_active = supervisor_pid is not None and balatro_running and state in {"STARTING", "ON", "RESTARTING", "STOPPING"} and str(phase) != "GAME_OVER"
+    run_active = (
+        supervisor_pid is not None
+        and balatro_running
+        and state in {"STARTING", "ON", "RESTARTING", "STOPPING"}
+        and str(phase) != "GAME_OVER"
+    )
     round_data = payload.get("round") if isinstance(payload.get("round"), dict) else {}
     blind = payload.get("blind") if isinstance(payload.get("blind"), dict) else {}
     score = payload.get("score")
     blind_score = blind.get("score")
     score_text = f"{score} / {blind_score}" if score is not None and blind_score is not None else _safe(score)
     activity_notes = telemetry.get("notes") if isinstance(telemetry.get("notes"), list) else []
+
     lines = [
-        "=" * 78, "BALATRO AGENT LIVE MONITOR", "=" * 78,
+        "=" * 78,
+        "BALATRO AGENT LIVE MONITOR",
+        "=" * 78,
         f"Agent state      : {state}",
         f"Agent activity   : {_safe(telemetry.get('activity'), 'WAITING')}",
-        f"Supervisor      : {'RUNNING' if supervisor_pid is not None else 'STOPPED'}" + (f" (PID {supervisor_pid})" if supervisor_pid is not None else ""),
+        f"Supervisor      : {'RUNNING' if supervisor_pid is not None else 'STOPPED'}"
+        + (f" (PID {supervisor_pid})" if supervisor_pid is not None else ""),
         f"Balatro.exe     : {'RUNNING' if balatro_running else 'NOT RUNNING'}",
-        f"Run ongoing     : {'YES' if run_active else 'NO'}", "",
+        f"Run ongoing     : {'YES' if run_active else 'NO'}",
+        "",
         f"Session         : {_safe(status.get('session_id') or telemetry.get('session_id'))}",
         f"Attempt         : {_safe(status.get('attempt') if status.get('attempt') is not None else telemetry.get('attempt'))}",
         f"Run ID          : {_safe(status.get('run_id') or telemetry.get('run_id'))}",
@@ -346,15 +418,12 @@ def build_dashboard(status: dict[str, Any], *, supervisor_pid: int | None, balat
         f"Ante / Round    : {_safe(payload.get('ante_num'))} / {_safe(payload.get('round_num'))}",
         f"Score / Blind   : {score_text}",
         f"Hands / Discards: {_safe(round_data.get('hands_left'))} / {_safe(round_data.get('discards_left'))}",
-        f"Money           : ${_safe(payload.get('money'))}", "",
-        "CURRENT STRATEGY", "-" * 78,
-        f"Strategy        : {strategy_fields['strategy']}",
-        f"Status          : {strategy_fields['status']}",
-        f"Score           : {strategy_fields['score']}",
-        f"Pressure        : {strategy_fields['pressure']}",
-        f"Relevant        : {strategy_fields['relevant']}",
-        f"Path            : {strategy_fields['path']}", "",
-        "BUILD HEALTH / REALIZED STRENGTH", "-" * 78,
+        f"Money           : ${_safe(payload.get('money'))}",
+        "",
+        *_strategy_lines(rows),
+        "",
+        "BUILD HEALTH / REALIZED STRENGTH",
+        "-" * 78,
         f"Health total    : {health_fields['total']}",
         f"Survival        : {health_fields['survival']}",
         f"Immediate       : {health_fields['immediate']}",
@@ -372,34 +441,61 @@ def build_dashboard(status: dict[str, Any], *, supervisor_pid: int | None, balat
             lines.append(f"  - {warning}")
     else:
         lines.append("Warnings         : NONE" if health_fields["available"] else "Warnings         : -")
-    lines.extend(["", "CURRENT AGENT ACTIVITY", "-" * 78,
-        f"Activity        : {_safe(telemetry.get('activity'), 'WAITING')}",
-        f"Action          : {_safe(telemetry.get('action'))}",
-        f"Decision source : {_safe(telemetry.get('decision_source'))}",
-        f"Detail          : {_safe(telemetry.get('detail'))}"])
+
+    lines.extend(
+        [
+            "",
+            "CURRENT AGENT ACTIVITY",
+            "-" * 78,
+            f"Activity        : {_safe(telemetry.get('activity'), 'WAITING')}",
+            f"Action          : {_safe(telemetry.get('action'))}",
+            f"Decision source : {_safe(telemetry.get('decision_source'))}",
+            f"Detail          : {_safe(telemetry.get('detail'))}",
+        ]
+    )
     if activity_notes:
         lines.append("Current rationale:")
         for note in activity_notes[:10]:
             lines.append(f"  - {note}")
-    lines.extend(["", "LAST LOGGED DECISION", "-" * 78,
-        f"Action          : {_action_text(decision_data.get('action'))}",
-        f"Decision source : {_safe(rationale.get('decision_source'))}"])
+
+    lines.extend(
+        [
+            "",
+            "LAST LOGGED DECISION",
+            "-" * 78,
+            f"Action          : {_action_text(decision_data.get('action'))}",
+            f"Decision source : {_safe(rationale.get('decision_source'))}",
+        ]
+    )
     if notes:
         lines.append("Reasoning        :")
         for note in notes[:10]:
             lines.append(f"  - {note}")
     else:
         lines.append("Reasoning        : -")
+
     if latest_result:
-        lines.extend(["", "LAST EXECUTION RESULT", "-" * 78,
-            f"Success         : {_safe(result_data.get('success'))}",
-            f"Result action   : {_action_text(result_data.get('action'))}",
-            f"Log event       : {_safe(latest_result.get('sequence'))}",
-            f"Logged at UTC   : {_safe(latest_result.get('timestamp'))}"])
+        lines.extend(
+            [
+                "",
+                "LAST EXECUTION RESULT",
+                "-" * 78,
+                f"Success         : {_safe(result_data.get('success'))}",
+                f"Result action   : {_action_text(result_data.get('action'))}",
+                f"Log event       : {_safe(latest_result.get('sequence'))}",
+                f"Logged at UTC   : {_safe(latest_result.get('timestamp'))}",
+            ]
+        )
     reason = status.get("reason") or telemetry.get("reason")
     if reason:
         lines.extend(["", f"Status reason    : {reason}"])
-    lines.extend(["", "This window is read-only. Close it at any time; the agent keeps running.", "Use BalatroAgentToggle.bat to stop the agent cooperatively."])
+    lines.extend(
+        [
+            "",
+            "This window is read-only. Close it at any time; the agent keeps running.",
+            "Use BalatroAgentToggle.bat to stop the agent cooperatively.",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -410,7 +506,13 @@ def _run_log_rows(status: dict[str, Any], run_log_directory: Path) -> list[dict[
     return _read_jsonl_tail(run_log_directory / f"{run_id}.jsonl")
 
 
-def monitor(control: BalatroAgentControl, *, run_log_directory: Path, refresh_seconds: float = DEFAULT_REFRESH_SECONDS, final_hold_seconds: float = DEFAULT_FINAL_HOLD_SECONDS) -> int:
+def monitor(
+    control: BalatroAgentControl,
+    *,
+    run_log_directory: Path,
+    refresh_seconds: float = DEFAULT_REFRESH_SECONDS,
+    final_hold_seconds: float = DEFAULT_FINAL_HOLD_SECONDS,
+) -> int:
     refresh_seconds = max(0.10, float(refresh_seconds))
     final_hold_seconds = max(0.0, float(final_hold_seconds))
     last_rendered: str | None = None
@@ -421,7 +523,13 @@ def monitor(control: BalatroAgentControl, *, run_log_directory: Path, refresh_se
         pid = control.running_pid()
         balatro_running = _balatro_process_running()
         rows = _run_log_rows(status, run_log_directory)
-        rendered = build_dashboard(status, supervisor_pid=pid, balatro_running=balatro_running, rows=rows, telemetry=telemetry)
+        rendered = build_dashboard(
+            status,
+            supervisor_pid=pid,
+            balatro_running=balatro_running,
+            rows=rows,
+            telemetry=telemetry,
+        )
         if rendered != last_rendered:
             os.system("cls" if os.name == "nt" else "clear")
             print(rendered, flush=True)
@@ -437,7 +545,9 @@ def monitor(control: BalatroAgentControl, *, run_log_directory: Path, refresh_se
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Read-only live dashboard for the Balatro autonomous supervisor.")
+    parser = argparse.ArgumentParser(
+        description="Read-only live dashboard for the Balatro autonomous supervisor."
+    )
     parser.add_argument("--control-dir")
     parser.add_argument("--run-log-directory", default="logs/balatro/runs")
     parser.add_argument("--refresh-seconds", type=float, default=DEFAULT_REFRESH_SECONDS)
@@ -446,7 +556,12 @@ def main() -> int:
     run_log_directory = Path(args.run_log_directory)
     if not run_log_directory.is_absolute():
         run_log_directory = _repo_root() / run_log_directory
-    return monitor(BalatroAgentControl(args.control_dir), run_log_directory=run_log_directory, refresh_seconds=args.refresh_seconds, final_hold_seconds=args.final_hold_seconds)
+    return monitor(
+        BalatroAgentControl(args.control_dir),
+        run_log_directory=run_log_directory,
+        refresh_seconds=args.refresh_seconds,
+        final_hold_seconds=args.final_hold_seconds,
+    )
 
 
 if __name__ == "__main__":
