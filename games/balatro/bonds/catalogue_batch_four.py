@@ -37,7 +37,7 @@ JACKS_THRESHOLDS=RANK_THRESHOLDS;JACKS_POLICIES={BondRank.R1:("recognize_jack_pa
 def evaluate_jacks_bond(state:Any)->BondDevelopment:return _rank_bond(state,"jacks",{"J"},(("Hit the Road",7.0,("hittheroad",)),))
 TAROT_THRESHOLDS=CONSUMABLE_THRESHOLDS;TAROT_POLICIES={BondRank.R1:("recognize_tarot_generation_and_use",),BondRank.R2:("prefer_tarot_access_when_deck_shaping_is_useful",),BondRank.R3:("actively_use_tarots_to_shape_combined_build",),BondRank.R4:("eligible_as_deck_shaping_resource_engine",),BondRank.R5:("capstone_tarot_infrastructure",)}
 def evaluate_tarot_bond(state:Any)->BondDevelopment:
- jokers=list(getattr(state,"jokers",()) or ());vouchers=list(getattr(state,"vouchers",()) or ());parts=_joker_parts(jokers,(("Cartomancer",6.0,("cartomancer",)),("Vagabond",5.0,("vagabond",)),("Hallucination",4.0,("hallucination",)),("Fortune Teller",4.0,("fortuneteller",)),("Superposition",2.0,("superposition",))))
+ jokers=list(getattr(state,"jokers",()) or ());vouchers=list(getattr(state,"vouchers",()) or ());parts=_joker_parts(jokers,(("Cartomancer",6.0,("cartomancer",)),("Vagabond",5.0,("vagabond",)),("Hallucination",4.0,("hallucination",)),("Fortune Teller",4.0,("fortuneteller",)),("8 Ball",3.0,("8ball","eightball")),("Superposition",2.0,("superposition",))))
  if _contains(vouchers,"tarotmerchant"):parts.append(BondContribution("Tarot Merchant",4.0))
  if _contains(vouchers,"tarottycoon"):parts.append(BondContribution("Tarot Tycoon",6.0))
  return _finish("tarot",parts,TAROT_THRESHOLDS)
