@@ -62,13 +62,15 @@ def realize_cash(dev: BondDevelopment, state: Any) -> BondDevelopment:
     jokers = _jokers(state)
     hand = _cards(state, "hand", "current_hand", "cards_in_hand")
     deck = _cards(state, "owned_deck", "deck")
+    pareidolia = _has(jokers, "pareidolia")
 
     payoff = _has(jokers, "bull", "bootstraps")
     unconditional_engine = _has(jokers, "rocket", "goldenjoker")
     interest_engine = _has(jokers, "tothemoon") and money >= 5
-    parking_engine = _has(jokers, "reservedparking") and any(
+    held_faces = bool(hand) if pareidolia else any(
         str(getattr(c, "rank", "") or "").upper() in {"J", "Q", "K"} for c in hand
     )
+    parking_engine = _has(jokers, "reservedparking") and held_faces
     cloud9_engine = _has(jokers, "cloud9") and any(str(getattr(c, "rank", "") or "") == "9" for c in deck)
     satellite = _has(jokers, "satellite")
     planet_history = getattr(state, "unique_planets_used", getattr(state, "satellite_planets_used", None))
@@ -166,11 +168,6 @@ def realize_hand_repetition(dev: BondDevelopment, state: Any) -> BondDevelopment
     current = str(getattr(state, "current_hand_type", getattr(state, "last_hand_type", "")) or "").upper().replace(" ", "_")
     counts = getattr(state, "hand_play_counts", {}) or {}
     normalized_counts = {str(k).upper().replace(" ", "_"): int(v or 0) for k, v in counts.items()}
-
-    # Card Sharp checks whether the current poker hand has already been played
-    # this round. It does not require the immediately previous hand to match.
-    # Prefer round-local hand counts when available; previous_hand_type remains a
-    # compatibility fallback for runtimes that do not expose those counts.
     prior_count = normalized_counts.get(current, 0) if current else 0
     previous = str(getattr(state, "previous_hand_type", "") or "").upper().replace(" ", "_")
     cardsharp_history = prior_count > 0 if normalized_counts else bool(current) and current == previous
@@ -201,7 +198,11 @@ def realize_vampire(dev: BondDevelopment, state: Any) -> BondDevelopment:
     feed_cards = scoring or hand
     feed = sum(1 for c in feed_cards if str(getattr(c, "enhancement", "") or "").strip())
     has_midas = _has(jokers, "midasmask")
-    face_available = any(str(getattr(c, "rank", "") or "").upper() in {"J", "Q", "K"} for c in (scoring or hand or deck))
+    pareidolia = _has(jokers, "pareidolia")
+    face_pool = scoring or hand or deck
+    face_available = bool(face_pool) if pareidolia else any(
+        str(getattr(c, "rank", "") or "").upper() in {"J", "Q", "K"} for c in face_pool
+    )
     renewable = has_midas and face_available
 
     active = feed > 0 or renewable
