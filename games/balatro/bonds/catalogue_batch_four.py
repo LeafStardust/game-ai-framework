@@ -71,7 +71,6 @@ def _joker_parts(jokers: list[Any], specs: tuple[tuple[str, float, tuple[str, ..
 
 
 RANK_THRESHOLDS = {BondRank.R1: 4.0, BondRank.R2: 9.0, BondRank.R3: 15.0, BondRank.R4: 22.0, BondRank.R5: 30.0}
-ENHANCEMENT_THRESHOLDS = {BondRank.R1: 4.0, BondRank.R2: 8.0, BondRank.R3: 13.0, BondRank.R4: 19.0, BondRank.R5: 26.0}
 CONSUMABLE_THRESHOLDS = {BondRank.R1: 4.0, BondRank.R2: 9.0, BondRank.R3: 15.0, BondRank.R4: 22.0, BondRank.R5: 30.0}
 
 
@@ -89,17 +88,7 @@ def _rank_bond(state: Any, bond_id: str, ranks: set[str], specs: tuple[tuple[str
     return _finish(bond_id, parts, RANK_THRESHOLDS, target="/".join(sorted(ranks)))
 
 
-def _enhancement_bond(state: Any, bond_id: str, enhancement: str, specs: tuple[tuple[str, float, tuple[str, ...]], ...]) -> BondDevelopment:
-    jokers = list(getattr(state, "jokers", ()) or ())
-    parts = _joker_parts(jokers, specs)
-    count = sum(1 for card in _deck(state) if str(getattr(card, "enhancement", "") or "").lower() == enhancement.lower())
-    density = _band(count, ((1, 1.0), (3, 3.0), (6, 5.0), (10, 7.0)))
-    if density:
-        parts.append(BondContribution(f"{enhancement} card density", density))
-    return _finish(bond_id, parts, ENHANCEMENT_THRESHOLDS)
-
-
-# 33. Kings
+# Kings
 KINGS_THRESHOLDS = RANK_THRESHOLDS
 KINGS_POLICIES = {
     BondRank.R1: ("recognize_king_payoff",),
@@ -116,7 +105,7 @@ def evaluate_kings_bond(state: Any) -> BondDevelopment:
     ))
 
 
-# 34. Queens
+# Queens
 QUEENS_THRESHOLDS = RANK_THRESHOLDS
 QUEENS_POLICIES = {
     BondRank.R1: ("recognize_queen_payoff",),
@@ -133,7 +122,7 @@ def evaluate_queens_bond(state: Any) -> BondDevelopment:
     ))
 
 
-# 35. Jacks
+# Jacks
 JACKS_THRESHOLDS = RANK_THRESHOLDS
 JACKS_POLICIES = {
     BondRank.R1: ("recognize_jack_payoff",),
@@ -144,74 +133,10 @@ JACKS_POLICIES = {
 }
 
 def evaluate_jacks_bond(state: Any) -> BondDevelopment:
-    return _rank_bond(state, "jacks", {"J"}, (
-        ("Hit the Road", 7.0, ("hittheroad",)),
-    ))
+    return _rank_bond(state, "jacks", {"J"}, (("Hit the Road", 7.0, ("hittheroad",)),))
 
 
-# 36. Tens
-TENS_THRESHOLDS = RANK_THRESHOLDS
-TENS_POLICIES = {
-    BondRank.R1: ("recognize_ten_payoff",),
-    BondRank.R2: ("prefer_ten_density_when_supported",),
-    BondRank.R3: ("actively_shape_deck_toward_tens",),
-    BondRank.R4: ("eligible_as_power_engine_support",),
-    BondRank.R5: ("capstone_ten_commitment",),
-}
-
-def evaluate_tens_bond(state: Any) -> BondDevelopment:
-    return _rank_bond(state, "tens", {"10"}, (
-        ("Walkie Talkie", 3.0, ("walkietalkie",)),
-    ))
-
-
-# 37. Wild Cards
-WILD_THRESHOLDS = ENHANCEMENT_THRESHOLDS
-WILD_POLICIES = {
-    BondRank.R1: ("recognize_wild_card_flexibility",),
-    BondRank.R2: ("prefer_wild_creation_when_suit_flexibility_matters",),
-    BondRank.R3: ("actively_use_wild_density_to_support_suit_plans",),
-    BondRank.R4: ("eligible_as_multi_suit_support_engine",),
-    BondRank.R5: ("capstone_wild_commitment",),
-}
-
-def evaluate_wild_bond(state: Any) -> BondDevelopment:
-    return _enhancement_bond(state, "wild", "Wild", (
-        ("Flower Pot", 3.0, ("flowerpot",)),
-    ))
-
-
-# 38. Mult Cards
-MULT_CARDS_THRESHOLDS = ENHANCEMENT_THRESHOLDS
-MULT_CARDS_POLICIES = {
-    BondRank.R1: ("recognize_mult_card_value",),
-    BondRank.R2: ("prefer_mult_card_creation_when_scoring_needs_flat_mult",),
-    BondRank.R3: ("actively_shape_scoring_cards_around_mult_enhancements",),
-    BondRank.R4: ("eligible_as_scoring_support_engine",),
-    BondRank.R5: ("capstone_mult_card_commitment",),
-}
-
-def evaluate_mult_cards_bond(state: Any) -> BondDevelopment:
-    return _enhancement_bond(state, "mult_cards", "Mult", (
-        ("Vampire", 2.0, ("vampire",)),
-    ))
-
-
-# 39. Bonus Cards
-BONUS_CARDS_THRESHOLDS = ENHANCEMENT_THRESHOLDS
-BONUS_CARDS_POLICIES = {
-    BondRank.R1: ("recognize_bonus_card_chip_value",),
-    BondRank.R2: ("prefer_bonus_creation_when_chip_scaling_matters",),
-    BondRank.R3: ("actively_shape_scoring_cards_around_bonus_enhancements",),
-    BondRank.R4: ("eligible_as_chip_support_engine",),
-    BondRank.R5: ("capstone_bonus_card_commitment",),
-}
-
-def evaluate_bonus_cards_bond(state: Any) -> BondDevelopment:
-    return _enhancement_bond(state, "bonus_cards", "Bonus", ())
-
-
-# 40. Tarot
+# Tarot
 TAROT_THRESHOLDS = CONSUMABLE_THRESHOLDS
 TAROT_POLICIES = {
     BondRank.R1: ("recognize_tarot_generation_and_use",),
@@ -237,7 +162,7 @@ def evaluate_tarot_bond(state: Any) -> BondDevelopment:
     return _finish("tarot", parts, TAROT_THRESHOLDS)
 
 
-# 41. Planet
+# Planet
 PLANET_THRESHOLDS = CONSUMABLE_THRESHOLDS
 PLANET_POLICIES = {
     BondRank.R1: ("recognize_planet_generation_and_hand_leveling",),
@@ -268,34 +193,10 @@ def evaluate_planet_bond(state: Any) -> BondDevelopment:
     return _finish("planet", parts, PLANET_THRESHOLDS)
 
 
-# 42. Spectral
-SPECTRAL_THRESHOLDS = CONSUMABLE_THRESHOLDS
-SPECTRAL_POLICIES = {
-    BondRank.R1: ("recognize_spectral_generation_and_transform_value",),
-    BondRank.R2: ("prefer_spectral_access_when_transformations_fit_build",),
-    BondRank.R3: ("actively_use_spectrals_for_high_impact_structure",),
-    BondRank.R4: ("eligible_as_transformation_resource_engine",),
-    BondRank.R5: ("capstone_spectral_infrastructure",),
-}
-
-def evaluate_spectral_bond(state: Any) -> BondDevelopment:
-    jokers = list(getattr(state, "jokers", ()) or ())
-    parts = _joker_parts(jokers, (
-        ("Sixth Sense", 6.0, ("sixthsense",)),
-        ("Seance", 6.0, ("seance",)),
-    ))
-    return _finish("spectral", parts, SPECTRAL_THRESHOLDS)
-
-
 BATCH_FOUR_EVALUATORS = {
     "kings": evaluate_kings_bond,
     "queens": evaluate_queens_bond,
     "jacks": evaluate_jacks_bond,
-    "tens": evaluate_tens_bond,
-    "wild": evaluate_wild_bond,
-    "mult_cards": evaluate_mult_cards_bond,
-    "bonus_cards": evaluate_bonus_cards_bond,
     "tarot": evaluate_tarot_bond,
     "planet": evaluate_planet_bond,
-    "spectral": evaluate_spectral_bond,
 }
