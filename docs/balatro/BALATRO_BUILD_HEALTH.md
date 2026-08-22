@@ -106,3 +106,37 @@ The SHOP bridge obeys these invariants:
 3. A reroll rejected by D11 remains rejected; only an already-admitted positive reroll margin may be amplified.
 4. Affordability, reserve, slot, Eternal, replacement, and transaction guards remain authoritative.
 5. Strong/dominant health does not manufacture extra spending. Existing strategy tiers, motifs, and item valuation remain the reinforcement authority, avoiding double-counting.
+
+## Pivot / replacement authority
+
+Canonical pivot authority runs after existing D2 replacement legality and protection layers. It compares the current realized composition against each eligible projected replacement state using only public-state structure.
+
+The transition score includes:
+
+```text
++ composition coherence delta
++ motif-state improvement
++ reduced motif distance
+- lost pivot resistance
+- disruption from degrading active/mature motifs
+```
+
+Health determines how much net structural improvement is required before a pivot is allowed:
+
+```text
+SURVIVE    0.50
+REPAIR     1.00
+HOLD       2.50
+REINFORCE  4.00
+EXPLOIT    6.00
+```
+
+Therefore weak builds may escape into a clearly better already-legal route, while strong/mature builds require a substantially better transition before abandoning realized structure.
+
+Pivot invariants:
+
+1. Canonical authority may consider only D2 options whose replacement legality is already `eligible`.
+2. The candidate transition must remain economically positive (`total_advantage > 0`).
+3. Canonical authority cannot bypass Eternal, committed-component, affordability, reserve, or other upstream guards.
+4. Existing replacements may be vetoed when realized Bond/motif disruption exceeds the health-adjusted structural gain.
+5. A prior `HOLD` may become `REPLACE` only when an upstream-eligible positive option exceeds the canonical structural threshold.
