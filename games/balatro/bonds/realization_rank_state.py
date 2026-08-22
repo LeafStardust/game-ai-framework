@@ -10,101 +10,56 @@ from games.balatro.bonds.model import BondDevelopment, BondRank, BondRealization
 def _cards(state: Any, *names: str) -> list[Any]:
     for name in names:
         value = getattr(state, name, None)
-        if value is not None:
-            return list(value or ())
+        if value is not None:return list(value or ())
     return []
-
-
-def _jokers(state: Any) -> list[Any]: return list(getattr(state, "jokers", ()) or ())
-def _name(value: Any) -> str:
+def _jokers(state: Any)->list[Any]:return list(getattr(state,"jokers",()) or ())
+def _name(value:Any)->str:
     raw=value if isinstance(value,str) else getattr(value,"name",None) or value.__class__.__name__;return "".join(ch for ch in str(raw).lower() if ch.isalnum())
-def _has(values: Iterable[Any], *tokens: str) -> bool:
+def _has(values:Iterable[Any],*tokens:str)->bool:
     names={_name(v) for v in values};return any(any(token in name for name in names) for token in tokens)
-def _rank(card: Any) -> str: return str(getattr(card,"rank","") or "").upper()
-def _suit(card: Any) -> str: return str(getattr(card,"suit","") or "").lower()
-def _enh(card: Any) -> str: return str(getattr(card,"enhancement","") or "").lower()
-def _stone(card: Any) -> bool: return _enh(card)=="stone" or bool(getattr(card,"is_stone",False))
-def _floor(dev: BondDevelopment) -> BondRealization:
-    if not dev.unlocked or dev.rank in (BondRank.LOCKED,BondRank.R0): return BondRealization.DORMANT
-    return BondRealization.PARTIAL
-def _finish(dev: BondDevelopment, active: bool, strong: bool=False) -> BondDevelopment:
+def _rank(card:Any)->str:return str(getattr(card,"rank","") or "").upper()
+def _suit(card:Any)->str:return str(getattr(card,"suit","") or "").lower()
+def _enh(card:Any)->str:return str(getattr(card,"enhancement","") or "").lower()
+def _stone(card:Any)->bool:return _enh(card)=="stone" or bool(getattr(card,"is_stone",False))
+def _floor(dev):return BondRealization.DORMANT if not dev.unlocked or dev.rank in (BondRank.LOCKED,BondRank.R0) else BondRealization.PARTIAL
+def _finish(dev,active,strong=False):
     if _floor(dev)==BondRealization.DORMANT:return replace(enrich_development(dev),realization=BondRealization.DORMANT)
     realization=BondRealization.MATURE if active and strong and dev.rank>=BondRank.R4 else BondRealization.ACTIVE if active else BondRealization.PARTIAL
     return replace(enrich_development(dev),realization=realization)
-def _played(state: Any) -> list[Any]: return _cards(state,"scoring_cards","played_cards","current_played_cards")
-
+def _played(state):return _cards(state,"scoring_cards","played_cards","current_played_cards")
 def realize_aces(dev,state):
-    played=_played(state);hits=sum(1 for c in played if not _stone(c) and _rank(c)=="A");payoff=_has(_jokers(state),"scholar","fibonacci");return _finish(dev,bool(hits and payoff),hits>=3 and payoff)
-
+    p=_played(state);h=sum(1 for c in p if not _stone(c) and _rank(c)=="A");pay=_has(_jokers(state),"scholar","fibonacci");return _finish(dev,bool(h and pay),h>=3 and pay)
 def realize_face_cards(dev,state):
-    played=_played(state);jokers=_jokers(state);pareidolia=_has(jokers,"pareidolia")
-    # Pareidolia gives even Stone cards the face-card property; without it,
-    # Stone's hidden rank must not leak through as J/Q/K.
-    hits=len(played) if pareidolia else sum(1 for c in played if not _stone(c) and _rank(c) in {"J","Q","K"})
-    payoff=_has(jokers,"pareidolia","sockandbuskin","photograph","scaryface","smileyface","businesscard")
-    return _finish(dev,bool(hits and payoff),hits>=3 and payoff)
-
+    p=_played(state);j=_jokers(state);par=_has(j,"pareidolia");h=len(p) if par else sum(1 for c in p if not _stone(c) and _rank(c) in {"J","Q","K"});pay=_has(j,"pareidolia","sockandbuskin","photograph","scaryface","smileyface","businesscard");return _finish(dev,bool(h and pay),h>=3 and pay)
 def realize_low_ranks(dev,state):
-    played=_played(state);jokers=_jokers(state)
-    matching = 0
-    for card in played:
-        if _stone(card):
-            continue
-        rank = _rank(card)
-        triggered = (
-            (_has(jokers,"hack") and rank in {"2","3","4","5"})
-            or (_has(jokers,"weejoker") and rank == "2")
-            or (_has(jokers,"fibonacci") and rank in {"2","3","5"})
-            or (_has(jokers,"evensteven") and rank in {"2","4"})
-            or (_has(jokers,"walkietalkie") and rank == "4")
-        )
-        if triggered:
-            matching += 1
-    return _finish(dev, matching>0, matching>=3)
-
+    p=_played(state);j=_jokers(state);m=0
+    for c in p:
+        if _stone(c):continue
+        r=_rank(c);tr=(_has(j,"hack") and r in {"2","3","4","5"}) or (_has(j,"weejoker") and r=="2") or (_has(j,"fibonacci") and r in {"2","3","5"}) or (_has(j,"evensteven") and r in {"2","4"}) or (_has(j,"walkietalkie") and r=="4")
+        if tr:m+=1
+    return _finish(dev,m>0,m>=3)
 def realize_jacks(dev,state):
-    discarded=_cards(state,"discarded_cards","current_discard_cards");jacks=sum(1 for c in discarded if not _stone(c) and _rank(c)=="J");payoff=_has(_jokers(state),"hittheroad");return _finish(dev,bool(jacks and payoff),jacks>=3 and payoff)
-
+    d=_cards(state,"discarded_cards","current_discard_cards");n=sum(1 for c in d if not _stone(c) and _rank(c)=="J");pay=_has(_jokers(state),"hittheroad");return _finish(dev,bool(n and pay),n>=3 and pay)
 def realize_no_face_cards(dev,state):
-    played=_played(state)
-    if not played:return _finish(dev,False)
-    jokers=_jokers(state);payoff=_has(jokers,"ridethebus")
-    no_faces=not _has(jokers,"pareidolia") and all(_stone(c) or _rank(c) not in {"J","Q","K"} for c in played)
-    streak=int(getattr(state,"ride_the_bus_streak",0) or 0);return _finish(dev,payoff and no_faces,payoff and no_faces and streak>=8)
-
+    p=_played(state)
+    if not p:return _finish(dev,False)
+    j=_jokers(state);pay=_has(j,"ridethebus");nf=not _has(j,"pareidolia") and all(_stone(c) or _rank(c) not in {"J","Q","K"} for c in p);st=int(getattr(state,"ride_the_bus_streak",0) or 0);return _finish(dev,pay and nf,pay and nf and st>=8)
 def _realize_suit(dev,state,suit,*payoffs):
-    played=_played(state);jokers=_jokers(state);smeared=_has(jokers,"smearedjoker","smeared")
-    compatible={suit}
-    if smeared:
-        if suit in {"hearts","diamonds"}:compatible={"hearts","diamonds"}
-        elif suit in {"spades","clubs"}:compatible={"spades","clubs"}
-    hits=sum(1 for c in played if not _stone(c) and (_suit(c) in compatible or _enh(c)=="wild"));payoff=_has(jokers,*payoffs);return _finish(dev,bool(hits and payoff),hits>=4 and payoff)
-def realize_hearts(dev,state): return _realize_suit(dev,state,"hearts","bloodstone","lustyjoker")
-def realize_spades(dev,state): return _realize_suit(dev,state,"spades","arrowhead","wrathfuljoker")
-def realize_clubs(dev,state): return _realize_suit(dev,state,"clubs","onyxagate","gluttonousjoker")
-def realize_diamonds(dev,state): return _realize_suit(dev,state,"diamonds","roughgem","greedyjoker")
-
+    p=_played(state);j=_jokers(state);sm=_has(j,"smearedjoker","smeared");comp={suit}
+    if sm:comp={"hearts","diamonds"} if suit in {"hearts","diamonds"} else {"spades","clubs"}
+    h=sum(1 for c in p if not _stone(c) and (_suit(c) in comp or _enh(c)=="wild"));pay=_has(j,*payoffs);return _finish(dev,bool(h and pay),h>=4 and pay)
+def realize_hearts(dev,state):return _realize_suit(dev,state,"hearts","bloodstone","lustyjoker")
+def realize_spades(dev,state):return _realize_suit(dev,state,"spades","arrowhead","wrathfuljoker")
+def realize_clubs(dev,state):return _realize_suit(dev,state,"clubs","onyxagate","gluttonousjoker")
+def realize_diamonds(dev,state):return _realize_suit(dev,state,"diamonds","roughgem","greedyjoker")
 def realize_lucky(dev,state):
-    played=_played(state);lucky=sum(1 for c in played if _enh(c)=="lucky");payoff=_has(_jokers(state),"luckycat","oopsall6s");return _finish(dev,bool(lucky),lucky>=3 and payoff)
+    p=_played(state);l=sum(1 for c in p if _enh(c)=="lucky");pay=_has(_jokers(state),"luckycat","oopsall6s");return _finish(dev,bool(l and pay),l>=3 and pay)
 def realize_glass(dev,state):
-    played=_played(state);glass=sum(1 for c in played if _enh(c)=="glass");payoff=_has(_jokers(state),"glassjoker");return _finish(dev,bool(glass),glass>=2 and payoff)
+    p=_played(state);g=sum(1 for c in p if _enh(c)=="glass");pay=_has(_jokers(state),"glassjoker");return _finish(dev,bool(g),g>=2 and pay)
 def realize_stone(dev,state):
-    played=_played(state);stone=sum(1 for c in played if _stone(c));payoff=_has(_jokers(state),"stonejoker","marblejoker");return _finish(dev,bool(stone),stone>=3 and payoff)
-
+    p=_played(state);s=sum(1 for c in p if _stone(c));pay=_has(_jokers(state),"stonejoker","marblejoker");return _finish(dev,bool(s),s>=3 and pay)
 def realize_gold_economy(dev,state):
-    jokers=_jokers(state);hand=_cards(state,"hand","current_hand","cards_in_hand");played=_played(state)
-    pareidolia=_has(jokers,"pareidolia")
-    held_gold=sum(1 for c in hand if _enh(c)=="gold")
-    played_gold=sum(1 for c in played if _enh(c)=="gold")
-    played_faces=len(played) if pareidolia else sum(1 for c in played if not _stone(c) and _rank(c) in {"J","Q","K"})
-    held_faces=len(hand) if pareidolia else sum(1 for c in hand if not _stone(c) and _rank(c) in {"J","Q","K"})
-    golden_ticket=_has(jokers,"goldenticket") and played_gold>0
-    midas=_has(jokers,"midasmask") and played_faces>0
-    parking=_has(jokers,"reservedparking") and held_faces>0
-    intrinsic=held_gold>0
-    sources=sum((intrinsic,golden_ticket,midas,parking))
-    return _finish(dev,sources>0,sources>=2 or held_gold>=3)
-
+    j=_jokers(state);hand=_cards(state,"hand","current_hand","cards_in_hand");p=_played(state);par=_has(j,"pareidolia");hg=sum(1 for c in hand if _enh(c)=="gold");pg=sum(1 for c in p if _enh(c)=="gold");pf=len(p) if par else sum(1 for c in p if not _stone(c) and _rank(c) in {"J","Q","K"});hf=len(hand) if par else sum(1 for c in hand if not _stone(c) and _rank(c) in {"J","Q","K"});ticket=_has(j,"goldenticket") and pg>0;midas=_has(j,"midasmask") and pf>0;parking=_has(j,"reservedparking") and hf>0;intrinsic=hg>0;sources=sum((intrinsic,ticket,midas,parking));return _finish(dev,sources>0,sources>=2 or hg>=3)
 RANK_STATE_REALIZERS={"aces":realize_aces,"face_cards":realize_face_cards,"low_ranks":realize_low_ranks,"jacks":realize_jacks,"no_face_cards":realize_no_face_cards,"hearts":realize_hearts,"spades":realize_spades,"clubs":realize_clubs,"diamonds":realize_diamonds,"lucky":realize_lucky,"glass":realize_glass,"stone":realize_stone,"gold_economy":realize_gold_economy}
-def realize_rank_state_family(dev: BondDevelopment,state: Any)->BondDevelopment:
+def realize_rank_state_family(dev,state):
     fn=RANK_STATE_REALIZERS.get(dev.bond_id);return fn(dev,state) if fn else enrich_development(dev)
