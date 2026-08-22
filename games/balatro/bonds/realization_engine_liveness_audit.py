@@ -79,31 +79,22 @@ def realize_cash_live(dev: BondDevelopment, state: Any) -> BondDevelopment:
     )
 
     deck = _cards(state, "owned_deck", "deck")
-    nines = sum(
-        1
-        for card in deck
-        if not _stone(card) and str(getattr(card, "rank", "") or "").upper() == "9"
-    )
-
+    nines = sum(1 for card in deck if not _stone(card) and str(getattr(card, "rank", "") or "").upper() == "9")
     planet_history = getattr(state, "unique_planets_used", getattr(state, "satellite_planets_used", None))
     satellite_planets = int(planet_history or 0) if planet_history is not None else 0
 
-    scoring_sources = sum(
-        (
-            _has(jokers, "bull") and scoring and money > 0,
-            _has(jokers, "bootstraps") and scoring and money >= 5,
-            _has(jokers, "reservedparking") and scoring and face_held,
-        )
-    )
-    end_sources = sum(
-        (
-            _has(jokers, "goldenjoker") and round_end,
-            _has(jokers, "rocket") and round_end,
-            _has(jokers, "tothemoon") and round_end and money >= 5,
-            _has(jokers, "cloud9") and round_end and nines > 0,
-            _has(jokers, "satellite") and round_end and satellite_planets > 0,
-        )
-    )
+    scoring_sources = sum((
+        _has(jokers, "bull") and scoring,
+        _has(jokers, "bootstraps") and scoring and money >= 5,
+        _has(jokers, "reservedparking") and scoring and face_held,
+    ))
+    end_sources = sum((
+        _has(jokers, "goldenjoker") and round_end,
+        _has(jokers, "rocket") and round_end,
+        _has(jokers, "tothemoon") and round_end and money >= 5,
+        _has(jokers, "cloud9") and round_end and nines > 0,
+        _has(jokers, "satellite") and round_end and satellite_planets > 0,
+    ))
     sources = scoring_sources + end_sources
     strong = sources >= 2 or (scoring and money >= 75 and (_has(jokers, "bull") or _has(jokers, "bootstraps")))
     return _finish(dev, sources > 0, strong)
@@ -117,15 +108,17 @@ def realize_no_discard_live(dev: BondDevelopment, state: Any) -> BondDevelopment
     discards_used = int(getattr(state, "discards_used_this_round", 0) or 0)
     discards_left = int(getattr(state, "discards_left", getattr(state, "discards_remaining", 0)) or 0)
 
-    sources = sum(
-        (
-            _has(jokers, "greenjoker") and scoring,
-            _has(jokers, "burglar") and blind_pending,
-            _has(jokers, "delayedgratification") and round_end and discards_used == 0,
-            _has(jokers, "ramen") and scoring,
-            _has(jokers, "banner") and scoring and discards_left > 0,
-        )
-    )
+    # Green Joker gains Mult on every played hand, regardless of prior discards.
+    # Ramen is also a scoring payoff regardless of whether a discard happened;
+    # discarding only reduces its stored XMult. The other members have explicit
+    # no-discard/remaining-discard trigger conditions.
+    sources = sum((
+        _has(jokers, "greenjoker") and scoring,
+        _has(jokers, "burglar") and blind_pending,
+        _has(jokers, "delayedgratification") and round_end and discards_used == 0,
+        _has(jokers, "ramen") and scoring,
+        _has(jokers, "banner") and scoring and discards_left > 0,
+    ))
     return _finish(dev, sources > 0, sources >= 2)
 
 
