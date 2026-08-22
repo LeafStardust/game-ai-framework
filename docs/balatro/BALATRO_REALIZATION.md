@@ -21,63 +21,59 @@ Realization must never change contribution or rank.
 ## Held-family first slice
 
 ### Held Cards
-
 ACTIVE when at least one actual held-card payoff is currently functioning, e.g. Baron with a held King, Shoot the Moon with a held Queen, Raised Fist with a held card, Blackboard with an all-black-suit held state, or Steel cards currently held.
 
-MATURE requires R4+ development plus multiple/strong simultaneous held-payoff conditions.
-
 ### Held Retrigger
-
-Mime alone does not make the Bond ACTIVE. A retriggerable held effect must actually be present in hand. Steel/Gold cards, relevant seals, or held-effect Jokers supply the retrigger target.
+Mime alone does not make the Bond ACTIVE. A retriggerable held effect must actually be present in hand.
 
 ### Steel
-
-Deck density alone can create high structural rank, but realization is only ACTIVE when Steel is actually held. Multiple held Steel cards, especially with Mime, can make an R4+ Steel Bond MATURE.
+Deck density alone can create high structural rank, but realization is only ACTIVE when Steel is actually held.
 
 ### Kings / Queens
-
-Rank density alone is structural. Realization requires the matching rank to be in the current hand and a payoff Joker such as Baron/Triboulet or Shoot the Moon/Triboulet to be present.
+Rank density alone is structural. Realization requires the matching rank to be in the current hand and a matching payoff Joker to be present.
 
 ### Blackboard distinction
-
-Blackboard shares the Held Cards Bond but has a different realization condition from Baron:
-
 ```text
 Baron      -> held King payoff
 Blackboard -> all remaining held cards are Spades/Clubs
 ```
 
-This is why contributor mechanical roles exist. Bond membership defines strategic axis; role/condition defines actual execution.
-
 ## Common hand/deck realization batch
 
 ### Pair / High Card / Two Pair / Three of a Kind / Four of a Kind / Straight / Flush
-
-These Bonds are ACTIVE when the corresponding hand shape is actually available in current public hand state (or the runtime already exposes the current hand type). Structural hand levels and supporting Jokers may keep a Bond highly ranked while the current draw leaves it PARTIAL.
-
-MATURE requires R4+ development plus repeatability/consistency evidence rather than one lucky current draw.
+ACTIVE when the corresponding hand shape is actually available in current public hand state (or the runtime exposes the current hand type). MATURE requires R4+ plus consistency evidence.
 
 ### Played Retrigger
-
-Realization is target-specific. Examples:
-
 ```text
 Hack            -> requires played/scoring 2-5 cards
 Sock and Buskin -> requires played/scoring face cards
-Hanging Chad    -> requires a scoring card to retrigger
+Hanging Chad    -> requires a scoring card
 Dusk            -> requires last-hand timing
 Red Seal        -> requires a played/scoring Red-Seal card
 ```
 
-Owning a retrigger Joker without a compatible current target leaves the Bond PARTIAL.
+### Deck Thinning / Deck Growth
+Structural size change alone affects rank. ACTIVE requires that changed deck structure to be usable with a current engine/payoff.
 
-### Deck Thinning
+## Rank / suit / enhancement realization batch
 
-Reduction below the starting 52-card deck is structural evidence. ACTIVE requires actual permanent reduction plus a current thinning payoff/engine (such as Erosion, Trading Card, or Sixth Sense) or already-established thinning structure. Deep reduction plus an active engine can make R4+ MATURE.
+### Aces / Face Cards / Low Ranks
+ACTIVE requires a matching current scoring card plus a relevant payoff Joker. Density alone remains structural.
 
-### Deck Growth
+### Jacks
+Hit the Road is discard-driven. Scoring a Jack does not realize the Jacks Bond for Hit the Road; discarding Jacks does.
 
-Growth above 52 cards is structural evidence. ACTIVE requires actual permanent growth plus a current growth engine/payoff (Certificate, DNA, Marble Joker, Hologram) or already-established growth structure. Deep growth with an active engine can make R4+ MATURE.
+### No Face Cards
+Ride the Bus realization is based on the current scoring play being face-free. A face-depleted deck can raise structural rank, but a scoring face card leaves the Bond PARTIAL for that play.
+
+### Hearts / Spades / Clubs / Diamonds
+Suit Bonds realize when current scoring cards match the relevant suit and the build has the corresponding suit payoff. Rotating-payoff mechanics such as Ancient Joker are handled through Flush/composer logic rather than fixed-suit realization.
+
+### Lucky / Glass / Stone
+These enhancement Bonds realize from actual current scoring use of the matching enhancement. Persistent deck density can raise rank while a draw with no usable matching cards remains PARTIAL.
+
+### Gold Economy
+Gold cards realize when they are actually retained in hand for end-of-round value. Gold density without a currently held Gold card remains structural only.
 
 ## Rule for future batches
 
