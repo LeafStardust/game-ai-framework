@@ -163,12 +163,21 @@ def realize_card_destruction(dev: BondDevelopment, state: Any) -> BondDevelopmen
 
 def realize_hand_repetition(dev: BondDevelopment, state: Any) -> BondDevelopment:
     jokers = _jokers(state)
-    current = str(getattr(state, "current_hand_type", getattr(state, "last_hand_type", "")) or "").upper()
-    previous = str(getattr(state, "previous_hand_type", "") or "").upper()
-    cardsharp = _has(jokers, "cardsharp") and bool(current) and current == previous
+    current = str(getattr(state, "current_hand_type", getattr(state, "last_hand_type", "")) or "").upper().replace(" ", "_")
+    counts = getattr(state, "hand_play_counts", {}) or {}
+    normalized_counts = {str(k).upper().replace(" ", "_"): int(v or 0) for k, v in counts.items()}
+
+    # Card Sharp checks whether the current poker hand has already been played
+    # this round. It does not require the immediately previous hand to match.
+    # Prefer round-local hand counts when available; previous_hand_type remains a
+    # compatibility fallback for runtimes that do not expose those counts.
+    prior_count = normalized_counts.get(current, 0) if current else 0
+    previous = str(getattr(state, "previous_hand_type", "") or "").upper().replace(" ", "_")
+    cardsharp_history = prior_count > 0 if normalized_counts else bool(current) and current == previous
+    cardsharp = _has(jokers, "cardsharp") and bool(current) and cardsharp_history
     supernova = _has(jokers, "supernova") and bool(current)
     active = cardsharp or supernova
-    repeated = max((int(v or 0) for v in (getattr(state, "hand_play_counts", {}) or {}).values()), default=0)
+    repeated = max(normalized_counts.values(), default=0)
     return _finish(dev, active, active and repeated >= 18)
 
 
