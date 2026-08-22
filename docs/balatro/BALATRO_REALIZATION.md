@@ -49,6 +49,36 @@ Blackboard -> all remaining held cards are Spades/Clubs
 
 This is why contributor mechanical roles exist. Bond membership defines strategic axis; role/condition defines actual execution.
 
+## Common hand/deck realization batch
+
+### Pair / High Card / Two Pair / Three of a Kind / Four of a Kind / Straight / Flush
+
+These Bonds are ACTIVE when the corresponding hand shape is actually available in current public hand state (or the runtime already exposes the current hand type). Structural hand levels and supporting Jokers may keep a Bond highly ranked while the current draw leaves it PARTIAL.
+
+MATURE requires R4+ development plus repeatability/consistency evidence rather than one lucky current draw.
+
+### Played Retrigger
+
+Realization is target-specific. Examples:
+
+```text
+Hack            -> requires played/scoring 2-5 cards
+Sock and Buskin -> requires played/scoring face cards
+Hanging Chad    -> requires a scoring card to retrigger
+Dusk            -> requires last-hand timing
+Red Seal        -> requires a played/scoring Red-Seal card
+```
+
+Owning a retrigger Joker without a compatible current target leaves the Bond PARTIAL.
+
+### Deck Thinning
+
+Reduction below the starting 52-card deck is structural evidence. ACTIVE requires actual permanent reduction plus a current thinning payoff/engine (such as Erosion, Trading Card, or Sixth Sense) or already-established thinning structure. Deep reduction plus an active engine can make R4+ MATURE.
+
+### Deck Growth
+
+Growth above 52 cards is structural evidence. ACTIVE requires actual permanent growth plus a current growth engine/payoff (Certificate, DNA, Marble Joker, Hologram) or already-established growth structure. Deep growth with an active engine can make R4+ MATURE.
+
 ## Rule for future batches
 
 Every Realizer must:
