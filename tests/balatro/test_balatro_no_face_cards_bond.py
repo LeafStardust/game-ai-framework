@@ -22,10 +22,10 @@ def test_no_face_cards_requires_ride_the_bus():
     assert result.contribution == 0.0
 
 
-def test_ride_the_bus_establishes_no_face_cards_bond():
+def test_ride_the_bus_establishes_no_face_cards_bond_without_assuming_empty_deck_is_face_free():
     result = evaluate_no_face_cards_bond(_state(jokers=(_joker("Ride the Bus"),)))
-    assert result.contribution == 14.0
-    assert result.rank == BondRank.R5
+    assert result.contribution == 7.0
+    assert result.rank == BondRank.R1
 
 
 def test_standard_face_density_keeps_ride_the_bus_at_r1():
