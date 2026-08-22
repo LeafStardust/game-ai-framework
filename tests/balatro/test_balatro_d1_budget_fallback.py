@@ -159,11 +159,11 @@ def test_live_schedule_uses_single_shallow_advisory_pass_under_safe_pace_policy(
     assert sparse._search_schedule(state)[0].max_nodes <= 750
 
 
-def test_red_white_playbook_retains_configured_ceiling_even_when_live_policy_is_shallower():
+def test_red_white_playbook_retains_calibrated_ceiling_even_when_live_policy_is_shallower():
     playbook = default_balatro_playbooks().get("RED", "WHITE")
 
     assert playbook.version == "1.0"
     assert playbook.strategy["planner"]["max_horizon"] == 5
-    assert playbook.strategy["planner"]["max_search_nodes"] == 5000
+    assert playbook.strategy["planner"]["max_search_nodes"] == 2500
     assert playbook.strategy["planner"]["max_search_seconds"] == 8.0
     assert playbook.strategy["planner"]["search_schedule_mode"] == "probe-deepest"
