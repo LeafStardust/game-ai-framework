@@ -24,10 +24,37 @@ class BondRealization(StrEnum):
     MATURE = "MATURE"
 
 
+class MechanicalRole(StrEnum):
+    HELD_RANK_PAYOFF = "HELD_RANK_PAYOFF"
+    HELD_STATE_PAYOFF = "HELD_STATE_PAYOFF"
+    HELD_RETRIGGER = "HELD_RETRIGGER"
+    HELD_CARD_XMULT = "HELD_CARD_XMULT"
+    PLAYED_RETRIGGER = "PLAYED_RETRIGGER"
+    HAND_PAYOFF = "HAND_PAYOFF"
+    HAND_LEVEL_ENGINE = "HAND_LEVEL_ENGINE"
+    RANK_PAYOFF = "RANK_PAYOFF"
+    SUIT_PAYOFF = "SUIT_PAYOFF"
+    DENSITY_INFRASTRUCTURE = "DENSITY_INFRASTRUCTURE"
+    DECK_THIN_PAYOFF = "DECK_THIN_PAYOFF"
+    DECK_THIN_ENGINE = "DECK_THIN_ENGINE"
+    DECK_GROWTH_ENGINE = "DECK_GROWTH_ENGINE"
+    ECONOMY_PAYOFF = "ECONOMY_PAYOFF"
+    ECONOMY_ENGINE = "ECONOMY_ENGINE"
+    CONSUMABLE_ENGINE = "CONSUMABLE_ENGINE"
+    ENHANCEMENT_PAYOFF = "ENHANCEMENT_PAYOFF"
+    ENHANCEMENT_FEED = "ENHANCEMENT_FEED"
+    SCALER = "SCALER"
+    COPY_ENGINE = "COPY_ENGINE"
+    SUPPORT = "SUPPORT"
+
+
 @dataclass(frozen=True)
 class BondContribution:
     source: str
     value: float
+    roles: tuple[MechanicalRole, ...] = ()
+    targets: tuple[str, ...] = ()
+    conditions: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
