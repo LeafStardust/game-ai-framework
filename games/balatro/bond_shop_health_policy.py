@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 
 from games.balatro.live.hand_action_policy import LiveHandActionDecisionEngine
 from games.balatro.live.strategy_health import LiveStrategyHealth, StrategyHealthMode, evaluate_live_strategy_health
@@ -8,7 +8,16 @@ from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.shop_utility_scale import ShopNormalizedUtility, ShopUtilityScale
 
 
+@dataclass(frozen=True)
+class StrategyHealthProvenance:
+    deck_name: str
+    stake_name: str
+    ante: int
+    round: int
+
+
 _LAST_STRATEGY_HEALTH: LiveStrategyHealth | None = None
+_LAST_STRATEGY_HEALTH_PROVENANCE: StrategyHealthProvenance | None = None
 
 
 _JOKER_GAIN_FACTOR = {
@@ -36,20 +45,44 @@ _REROLL_MARGIN_FACTOR = {
 }
 
 
-def last_strategy_health() -> LiveStrategyHealth | None:
+def _provenance(state) -> StrategyHealthProvenance:
+    return StrategyHealthProvenance(
+        deck_name=str(getattr(state, "deck_name", "") or ""),
+        stake_name=str(getattr(state, "stake_name", "") or ""),
+        ante=max(1, int(getattr(state, "ante", 1) or 1)),
+        round=int(getattr(state, "round", getattr(state, "round_num", 0)) or 0),
+    )
+
+
+def _provenance_matches(state) -> bool:
+    if _LAST_STRATEGY_HEALTH_PROVENANCE is None:
+        return False
+    return _provenance(state) == _LAST_STRATEGY_HEALTH_PROVENANCE
+
+
+def last_strategy_health(state=None) -> LiveStrategyHealth | None:
+    if state is not None and not _provenance_matches(state):
+        return None
     return _LAST_STRATEGY_HEALTH
 
 
+def clear_strategy_health() -> None:
+    global _LAST_STRATEGY_HEALTH, _LAST_STRATEGY_HEALTH_PROVENANCE
+    _LAST_STRATEGY_HEALTH = None
+    _LAST_STRATEGY_HEALTH_PROVENANCE = None
+
+
 def _record_strategy_health(state, decision) -> None:
-    global _LAST_STRATEGY_HEALTH
+    global _LAST_STRATEGY_HEALTH, _LAST_STRATEGY_HEALTH_PROVENANCE
     try:
         _LAST_STRATEGY_HEALTH = evaluate_live_strategy_health(
             state,
             selected_plan=decision.selected_plan,
         )
+        _LAST_STRATEGY_HEALTH_PROVENANCE = _provenance(state)
     except (AttributeError, TypeError, ValueError):
         # Strategy health is advisory. Failure to derive it must never block D1.
-        _LAST_STRATEGY_HEALTH = None
+        clear_strategy_health()
 
 
 def _positive_gain_with_health(
@@ -79,6 +112,10 @@ def install_bond_shop_health_policy() -> None:
     acquisition utility and already-admitted reroll margin. It cannot turn a rejected
     purchase/reroll into an executable action, cannot make negative utility positive,
     and cannot weaken affordability, reserve, slot, Eternal, or replacement guards.
+
+    Cached health is valid only for the same public run/round identity that produced
+    it. This prevents a module-global D1->SHOP bridge from leaking stale authority
+    across restarts, different rounds, decks, stakes, or direct SHOP entry.
     """
 
     if not getattr(LiveHandActionDecisionEngine, "_bond_shop_health_capture_installed", False):
@@ -99,7 +136,7 @@ def install_bond_shop_health_policy() -> None:
 
         def joker_gain(self, state, executable):
             utility = original_joker_gain(self, state, executable)
-            health = _LAST_STRATEGY_HEALTH
+            health = last_strategy_health(state)
             if health is None:
                 return utility
             factor = _JOKER_GAIN_FACTOR[health.mode]
@@ -114,7 +151,7 @@ def install_bond_shop_health_policy() -> None:
 
         def consumable_gain(self, state, executable):
             utility = original_consumable_gain(self, state, executable)
-            health = _LAST_STRATEGY_HEALTH
+            health = last_strategy_health(state)
             if health is None:
                 return utility
             return _positive_gain_with_health(
@@ -138,7 +175,7 @@ def install_bond_shop_health_policy() -> None:
                 reroll_cost=reroll_cost,
                 visible_score_floor=visible_score_floor,
             )
-            health = _LAST_STRATEGY_HEALTH
+            health = last_strategy_health(state)
             if health is None or recommendation.decision != "REROLL":
                 return recommendation
 
