@@ -49,7 +49,7 @@ def _downgrade_to_bronze(
 ) -> StrategyDefinition:
     """Move weak standalone evidence to Bronze regardless of its previous tier."""
 
-    tokens = _joker_tokens(*joker_names)
+    tokens = _joker_tokens(*names) if False else _joker_tokens(*joker_names)
     return replace(
         definition,
         gold_jokers=frozenset(set(definition.gold_jokers) - set(tokens)),
@@ -94,8 +94,6 @@ def guard_unresolved_conditional_relationships(
         ),
         banned_jokers=_without(straight_flush.banned_jokers, "DNA"),
     )
-    # Straight-Flush consistency/payoff pieces help an established route but do
-    # not independently define one. Keep actual hand/scoring cores Gold.
     guarded["straight_flush"] = _downgrade_gold_to_silver(
         guarded["straight_flush"],
         "Shortcut",
@@ -114,6 +112,17 @@ def guard_unresolved_conditional_relationships(
     guarded["flush_five"] = replace(
         flush_five,
         gold_jokers=_without(flush_five.gold_jokers, "The Idol"),
+    )
+
+    # Marble Joker is a generator, not the payoff.  The 2026-08-22 live batch
+    # committed to this route from Marble + accumulated Stone cards, bought more
+    # Towers, grew to 64 cards, and died without ever owning Stone Joker.  Require
+    # the actual Stone scoring payoff before this leaf may compete as a strategy.
+    stone_marble = guarded["stone_marble_scaling"]
+    guarded["stone_marble_scaling"] = replace(
+        stone_marble,
+        required_jokers=_joker_tokens("Stone Joker"),
+        entry_evidence_cap=0.0,
     )
 
     weak_single_joker_cores = {
@@ -144,10 +153,6 @@ def guard_unresolved_conditional_relationships(
             *joker_names,
         )
 
-    # Swashbuckler is the required scoring engine for this route. Egg and Gift
-    # Card do not establish it by themselves, but once Swashbuckler is owned they
-    # are Gold engine support because their sell-value growth directly increases
-    # Swashbuckler's Mult.
     swashbuckler = guarded["swashbuckler"]
     guarded["swashbuckler"] = replace(
         swashbuckler,
@@ -158,18 +163,11 @@ def guard_unresolved_conditional_relationships(
         ),
     )
 
-    # Sixth Sense alone is a utility generator rather than a sufficient scoring
-    # engine. Tarot/consumable infrastructure may conditionally promote it back to
-    # Silver, but its standalone Sixes evidence is only Bronze.
     guarded["sixes"] = _downgrade_to_bronze(
         guarded["sixes"],
         "Sixth Sense",
     )
 
-    # Low-Rank Scoring is the Hack retrigger engine. Fibonacci, Even Steven and
-    # low-rank deck shaping may strengthen it, but they cannot establish this route
-    # without Hack. Raised Fist wants the same low cards retained in hand, so it is
-    # an explicit conflict.
     low_rank = guarded["low_rank"]
     guarded["low_rank"] = replace(
         low_rank,
@@ -184,8 +182,6 @@ def guard_unresolved_conditional_relationships(
         "Fibonacci",
     )
 
-    # Raised Fist remains a weak but real held-minimum route. Its defining Joker is
-    # Silver rather than Gold, Mime is conditional Silver support, and Hack is banned.
     raised_fist = guarded["raised_fist"]
     guarded["raised_fist"] = replace(
         raised_fist,
@@ -194,8 +190,6 @@ def guard_unresolved_conditional_relationships(
         ),
     )
 
-    # Banner is weak reserve support while Delayed Gratification is the stronger
-    # cash payoff. The package remains support-only but retains exact tier metadata.
     reserve = guarded["no_discard_reserve"]
     banner = _joker_tokens("Banner")
     delayed = _joker_tokens("Delayed Gratification")
@@ -206,9 +200,6 @@ def guard_unresolved_conditional_relationships(
         bronze_jokers=frozenset(set(reserve.bronze_jokers) | set(banner)),
     )
 
-    # Support/economy mechanisms do not compete as standalone routes. Their tier
-    # metadata remains available to relationship queries and support policies, but
-    # the impossible defining requirement prevents positive standalone activation.
     non_standalone_strategy_ids = frozenset(
         {
             "abstract_joker",
@@ -226,8 +217,6 @@ def guard_unresolved_conditional_relationships(
     for strategy_id in non_standalone_strategy_ids:
         guarded[strategy_id] = _retire_standalone_strategy(guarded[strategy_id])
 
-    # Superposition is only weak support for Straight: keep it Bronze rather than
-    # allowing it to manufacture a Silver commitment signal.
     straight = guarded["straight"]
     superposition = _joker_tokens("Superposition")
     guarded["straight"] = replace(
@@ -248,9 +237,6 @@ def guard_unresolved_conditional_relationships(
         minimum_positive_jokers=2,
     )
 
-    # Bull and Bootstraps are the defining cash-to-score cores. Their old individual
-    # leaves stay retired so there is one cash-scoring index. Either core can activate
-    # the combined route; owning both strengthens it further through conditional rules.
     retired_cash_requirement = _joker_tokens("__retired_cash_leaf__")
     for strategy_id in ("cash_bull", "cash_bootstraps"):
         legacy = guarded[strategy_id]
