@@ -37,7 +37,6 @@ apply_rank_authority_audit()
 from games.balatro.bonds.joker_coverage_extensions import apply_joker_coverage_extensions
 apply_joker_coverage_extensions()
 
-# Refresh public exports after calibration and post-freeze coverage extensions.
 from games.balatro.bonds.catalogue_batch_one import *
 from games.balatro.bonds.catalogue_batch_two import *
 from games.balatro.bonds.catalogue_batch_three import *
@@ -66,6 +65,20 @@ from games.balatro.bonds.realization_held import (
     realize_kings,
     realize_queens,
     realize_steel,
+)
+from games.balatro.bonds.realization_common import (
+    COMMON_REALIZERS,
+    realize_common_family,
+    realize_pair,
+    realize_high_card,
+    realize_two_pair,
+    realize_three_kind,
+    realize_four_kind,
+    realize_straight,
+    realize_flush,
+    realize_played_retrigger,
+    realize_deck_thinning,
+    realize_deck_growth,
 )
 
 __all__ = [name for name in globals() if name.isupper() or name.startswith("evaluate_") or name.startswith("enrich_") or name.startswith("realize_") or name in {
