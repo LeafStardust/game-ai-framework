@@ -79,28 +79,30 @@ def evaluate_no_face_cards_bond(state: Any) -> BondDevelopment:
         return _locked()
 
     parts = [BondContribution("Ride the Bus", 7.0)]
+    deck = _deck(state)
 
-    face_count = sum(
-        1
-        for card in _deck(state)
-        if str(getattr(card, "rank", "") or "").upper() in {"J", "Q", "K"}
-        and str(getattr(card, "enhancement", "") or "").lower() != "stone"
-    )
+    if deck:
+        face_count = sum(
+            1
+            for card in deck
+            if str(getattr(card, "rank", "") or "").upper() in {"J", "Q", "K"}
+            and str(getattr(card, "enhancement", "") or "").lower() != "stone"
+        )
 
-    # Standard 52-card deck starts with 12 natural face cards. Lower density is
-    # persistent structural commitment; zero natural faces is capstone support.
-    density_score = 0.0
-    if face_count == 0:
-        density_score = 7.0
-    elif face_count <= 3:
-        density_score = 5.0
-    elif face_count <= 6:
-        density_score = 3.0
-    elif face_count <= 9:
-        density_score = 1.0
+        # Standard 52-card deck starts with 12 natural face cards. Lower density
+        # is persistent structural commitment; zero natural faces is capstone support.
+        density_score = 0.0
+        if face_count == 0:
+            density_score = 7.0
+        elif face_count <= 3:
+            density_score = 5.0
+        elif face_count <= 6:
+            density_score = 3.0
+        elif face_count <= 9:
+            density_score = 1.0
 
-    if density_score:
-        parts.append(BondContribution("Low natural face-card density", density_score))
+        if density_score:
+            parts.append(BondContribution("Low natural face-card density", density_score))
 
     total = sum(part.value for part in parts)
     rank, next_threshold = _rank(total)
