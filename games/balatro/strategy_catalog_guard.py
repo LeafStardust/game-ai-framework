@@ -32,8 +32,6 @@ def _downgrade_gold_to_silver(
     definition: StrategyDefinition,
     *joker_names: str,
 ) -> StrategyDefinition:
-    """Move supportive evidence to Silver and keep tier membership exclusive."""
-
     tokens = _joker_tokens(*joker_names)
     return replace(
         definition,
@@ -47,9 +45,7 @@ def _downgrade_to_bronze(
     definition: StrategyDefinition,
     *joker_names: str,
 ) -> StrategyDefinition:
-    """Move weak standalone evidence to Bronze regardless of its previous tier."""
-
-    tokens = _joker_tokens(*names) if False else _joker_tokens(*joker_names)
+    tokens = _joker_tokens(*joker_names)
     return replace(
         definition,
         gold_jokers=frozenset(set(definition.gold_jokers) - set(tokens)),
@@ -59,8 +55,6 @@ def _downgrade_to_bronze(
 
 
 def _retire_standalone_strategy(definition: StrategyDefinition) -> StrategyDefinition:
-    """Prevent active competition while preserving relationship metadata."""
-
     return replace(
         definition,
         required_jokers=_joker_tokens("__retired_non_standalone_strategy__"),
@@ -114,14 +108,14 @@ def guard_unresolved_conditional_relationships(
         gold_jokers=_without(flush_five.gold_jokers, "The Idol"),
     )
 
-    # Marble Joker is a generator, not the payoff.  The 2026-08-22 live batch
-    # committed to this route from Marble + accumulated Stone cards, bought more
-    # Towers, grew to 64 cards, and died without ever owning Stone Joker.  Require
-    # the actual Stone scoring payoff before this leaf may compete as a strategy.
+    # Marble is a generator, not the scoring payoff. Preserve any original
+    # defining requirements and add Stone Joker as mandatory payoff evidence.
     stone_marble = guarded["stone_marble_scaling"]
     guarded["stone_marble_scaling"] = replace(
         stone_marble,
-        required_jokers=_joker_tokens("Stone Joker"),
+        required_jokers=frozenset(
+            set(stone_marble.required_jokers) | set(_joker_tokens("Stone Joker"))
+        ),
         entry_evidence_cap=0.0,
     )
 
