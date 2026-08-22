@@ -10,6 +10,7 @@ from games.balatro.live.hand_action_policy import (
     HandActionDecision,
     LiveHandActionDecisionEngine as _BaseLiveHandActionDecisionEngine,
 )
+from games.balatro.live.strategy_health import LiveStrategyHealth, evaluate_live_strategy_health
 
 
 class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
@@ -25,6 +26,11 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
     discard consensus, D1 keeps the agreed setup discard instead of silently
     switching to a different one-step recovery action. ``CLEAR_PATH`` and
     ``PACE_PLAY`` behavior is unchanged.
+
+    After the final D1 action is fixed, the engine evaluates the frozen 46-Bond
+    composition and Build Health from that selected plan. The result is exposed as
+    ``last_strategy_health`` for strategy/shop/telemetry consumers. It is deliberately
+    downstream of D1 selection and cannot change the survival-ranked action.
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -33,6 +39,7 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         self._adaptive_root_history: list[
             tuple[AdaptiveRecommendationSummary, LiveBlindPlan]
         ] = []
+        self.last_strategy_health: LiveStrategyHealth | None = None
 
     def rank_plans(self, state, *, planner=None):
         plans = super().rank_plans(state, planner=planner)
@@ -63,11 +70,17 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
     def decide(self, state) -> HandActionDecision:
         self._adaptive_root_history = []
         self._record_adaptive_roots = True
+        self.last_strategy_health = None
         try:
             decision = super().decide(state)
         finally:
             self._record_adaptive_roots = False
-        return self._apply_consensus_recovery(state, decision)
+        decision = self._apply_consensus_recovery(state, decision)
+        self.last_strategy_health = evaluate_live_strategy_health(
+            state,
+            selected_plan=decision.selected_plan,
+        )
+        return decision
 
     def _apply_consensus_recovery(
         self,
