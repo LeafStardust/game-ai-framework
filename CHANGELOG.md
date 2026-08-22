@@ -38,6 +38,7 @@ This file records notable development changes to the project. Active and future 
 - Added Burnt Joker first-discard training when the blind has sufficient safety margin.
 - Corrected Rocket / To the Moon semantics: individually cash support rather than standalone Gold strategy cores.
 - Made Ante phase pressure authoritative across all strategy consumers: Foundation Antes 1-2 use 25%, Formation Antes 3-5 use 50%/70%/90%, and Commitment Ante 6+ uses 100%. Removed an accidental second phase multiplication in Joker build evaluation.
+- Reconciled Bond realization semantics so ordinary public-state realization tracks currently available engines/opportunities, while explicit discard/scoring/blind-selection telemetry remains authoritative for exact trigger windows and Joker-order-sensitive effects such as Vampire/Midas.
 
 ### Fixed
 
@@ -49,12 +50,14 @@ This file records notable development changes to the project. Active and future 
 - Made Low-Rank Scoring require Hack as its defining engine, with Raised Fist banned from that route and Hack banned from the Raised Fist route.
 - Made Scholar Silver alone and Gold only with DNA, and reduced Sixth Sense standalone evidence while adding safe first-hand single-6 utilization when consumable capacity and pace permit it.
 - Modeled Observatory held-Planet x1.5 scoring, preservation timing, and infrastructure-aware voucher valuation.
+- Corrected realization edge cases across discard triggers, debuffed cards, Gold/Blue Seal timing, Card Sharp repetition history, Four Fingers advanced hands, held retriggers, Vampire/Midas order, Satellite unknown history, and renewable-feed fallback semantics.
 
 ### Validation
 
 - Bond pivot/prescription boundary regression batch passed on 2026-08-22 after telemetry and naming normalization hardening.
-- SHOP clear-probability survival boundary regressions are added and awaiting the current targeted validation run before the next broader deterministic gate.
-- Broader current-HEAD deterministic validation remains part of the Red/White calibration gate before the next unchanged-HEAD five-run batch.
+- SHOP clear-probability survival boundary regressions passed on 2026-08-22.
+- Bond/realization mechanical and compatibility reconciliation is complete, including strict explicit-event telemetry precedence and ordinary-state engine availability.
+- **The complete Balatro deterministic suite is green on 2026-08-22 at the current Red/White calibration head.** The next gate is a fresh unchanged-HEAD five-run Red/White live validation batch.
 
 - Red Deck stake progression begins with v1.1 after the current Red/White calibration branch is accepted.
 - Fresh-profile collection progression remains active but is non-blocking for the v1.0 competence line.
