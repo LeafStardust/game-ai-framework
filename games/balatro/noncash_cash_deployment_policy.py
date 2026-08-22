@@ -3,9 +3,10 @@ from __future__ import annotations
 """Spend excess cash on weak non-cash Red/White builds instead of hoarding it.
 
 This layer runs after Build Health. It only converts END_SHOP into a bounded reroll
-when the public build is materially weak, the reroll is affordable, and the current
-run is not a realized Bull/Bootstraps or cash-growth strategy. It never predicts
-hidden shop contents and never rerolls below a small emergency reserve.
+when the public build is materially weak, the reroll is affordable, and owned
+cash-scoring components do not make money itself part of the scoring engine. It
+never predicts hidden shop contents and never rerolls below a small emergency
+reserve.
 """
 
 from dataclasses import replace
@@ -36,36 +37,10 @@ def _joker_token(joker: object) -> str:
     return ""
 
 
-def _strategy_tracker(arbiter, state):
-    try:
-        policy = arbiter._joker_policy_for_state(state)
-    except (AttributeError, TypeError, ValueError):
-        return None
-    planner = getattr(policy, "transition_planner", None)
-    evaluator = getattr(planner, "evaluator", None)
-    return getattr(evaluator, "strategy_tracker", None)
-
-
 def cash_scaling_active(arbiter, state) -> bool:
+    del arbiter
     owned = {_joker_token(joker) for joker in getattr(state, "jokers", ()) or ()}
-    if owned & _CASH_JOKERS:
-        return True
-
-    tracker = _strategy_tracker(arbiter, state)
-    if tracker is None:
-        return False
-    try:
-        resolution = tracker.observe(state)
-    except (AttributeError, TypeError, ValueError):
-        return False
-    strategy_id = getattr(resolution, "dominant_strategy_id", None)
-    getter = getattr(tracker, "primary_strategy_id", None)
-    if callable(getter):
-        try:
-            strategy_id = getter(resolution)
-        except (AttributeError, TypeError, ValueError):
-            pass
-    return str(strategy_id or "") == "cash_growth"
+    return bool(owned & _CASH_JOKERS)
 
 
 def weak_build_for_cash_deployment(health) -> bool:
@@ -109,8 +84,7 @@ def install_noncash_cash_deployment_policy() -> None:
         if cash_scaling_active(self, state):
             return result
 
-        tracker = _strategy_tracker(self, state)
-        health = _HEALTH.evaluate(state, strategy_tracker=tracker)
+        health = _HEALTH.evaluate(state)
         if not weak_build_for_cash_deployment(health):
             return result
 
@@ -150,7 +124,7 @@ def install_noncash_cash_deployment_policy() -> None:
                 f"cash ${money}; reroll ${cost}; post-reroll reserve ${money - cost} >= ${reserve}",
                 f"bounded deployment reroll {count + 1}/{limit}",
                 f"Build Health survival={float(getattr(health, 'survival', 0.0)):.1f} immediate={float(getattr(health, 'immediate', 0.0)):.1f} scaling={float(getattr(health, 'scaling', 0.0)):.1f}",
-                "Bull/Bootstraps/cash-growth runs are explicitly exempt so money remains scoring power",
+                "Bull/Bootstraps runs are exempt because money is directly part of their scoring power",
                 *result.rationale,
             ),
         )
