@@ -49,6 +49,21 @@ def _integer(state: Any, names: tuple[str, ...], default: int = 0) -> int:
     return max(0, int(_number(state, names, float(default))))
 
 
+def _blind_requirement(state: Any) -> float:
+    flat = _number(
+        state,
+        ("blind_requirement", "blind_score_requirement", "blind_target", "target_score"),
+        -1.0,
+    )
+    if flat >= 0.0:
+        return flat
+    blind = getattr(state, "blind", None)
+    try:
+        return max(0.0, float(getattr(blind, "requirement", 0) or 0))
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _candidate_scores(state: Any, explicit: Iterable[float] | None) -> list[float]:
     if explicit is not None:
         return [max(0.0, float(v)) for v in explicit]
@@ -84,8 +99,8 @@ def project_score(
     mechanics/search/runtime estimates. The projection only aggregates them
     against the current blind requirement.
     """
-    blind = _number(state, ("blind_requirement", "blind_score_requirement", "blind_target", "target_score"), 0.0)
-    current = _number(state, ("current_score", "round_score", "chips_scored"), 0.0)
+    blind = _blind_requirement(state)
+    current = _number(state, ("current_score", "round_score", "chips_scored", "score"), 0.0)
     hands = _integer(state, ("hands_remaining", "hands_left"), 1)
     remaining = max(0.0, blind - current)
 
@@ -123,9 +138,9 @@ def project_score(
         conservative_total=conservative_total,
         expected_total=expected_total,
         ceiling_total=ceiling_total,
-        conservative_margin=conservative_total-blind,
-        expected_margin=expected_total-blind,
-        ceiling_margin=ceiling_total-blind,
+        conservative_margin=conservative_total - blind,
+        expected_margin=expected_total - blind,
+        ceiling_margin=ceiling_total - blind,
         expected_clear_ratio=expected_clear_ratio,
         hands_to_clear_expected=hands_to_clear,
         clear_probability=probability,
