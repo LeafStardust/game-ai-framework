@@ -26,19 +26,21 @@ def _finish(dev,active,strong=False):
  r=BondRealization.MATURE if active and strong and dev.rank>=BondRank.R4 else BondRealization.ACTIVE if active else BondRealization.PARTIAL;return replace(enrich_development(dev),realization=r)
 def _played(state):return _cards(state,"scoring_cards","played_cards","current_played_cards")
 def realize_aces(dev,state):
- p=_played(state);j=_jokers(state);m=sum(1 for c in p if _live(c) and not _stone(c) and _rank(c)=="A" and _has(j,"scholar"));return _finish(dev,m>0,m>=3)
+ p=_played(state);j=_jokers(state);pay=_has(j,"scholar","fibonacci");m=sum(1 for c in p if _live(c) and not _stone(c) and _rank(c)=="A");return _finish(dev,bool(m and pay),m>=3 and pay)
 def realize_face_cards(dev,state):
- p=_played(state);j=_jokers(state);par=_has(j,"pareidolia");m=0
+ p=_played(state);j=_jokers(state);par=_has(j,"pareidolia");m=0;pay=_has(j,"pareidolia","sockandbuskin","photograph","scaryface","smileyface","businesscard")
  for c in p:
   if not _live(c):continue
   face=par or (not _stone(c) and _rank(c) in {"J","Q","K"})
-  if face and _has(j,"sockandbuskin","photograph","scaryface","smileyface","businesscard"):m+=1
- return _finish(dev,m>0,m>=3)
+  if face:m+=1
+ return _finish(dev,bool(m and pay),m>=3 and pay)
 def realize_low_ranks(dev,state):
  p=_played(state);j=_jokers(state);m=0
  for c in p:
   if _debuffed(c) or _stone(c):continue
-  r=_rank(c);tr=(_has(j,"hack") and r in {"2","3","4","5"}) or (_has(j,"weejoker") and r=="2") or (_has(j,"fibonacci") and r in {"2","3","5","8","A"}) or (_has(j,"evensteven") and r in {"2","4","6","8","10","T"}) or (_has(j,"walkietalkie") and r in {"4","10","T"})
+  r=_rank(c)
+  if r not in {"2","3","4","5"}:continue
+  tr=(_has(j,"hack") and r in {"2","3","4","5"}) or (_has(j,"weejoker") and r=="2") or (_has(j,"fibonacci") and r in {"2","3","5"}) or (_has(j,"evensteven") and r in {"2","4"}) or (_has(j,"walkietalkie") and r=="4")
   if tr:m+=1
  return _finish(dev,m>0,m>=3)
 def realize_jacks(dev,state):
@@ -46,7 +48,7 @@ def realize_jacks(dev,state):
 def realize_no_face_cards(dev,state):
  p=_played(state)
  if not p:return _finish(dev,False)
- j=_jokers(state);pay=_has(j,"ridethebus");interactive=[c for c in p if _live(c)];nf=not _has(j,"pareidolia") and all(_stone(c) or _rank(c) not in {"J","Q","K"} for c in interactive);st=int(getattr(state,"ride_the_bus_streak",0) or 0);return _finish(dev,pay and nf,pay and nf and st>=8)
+ j=_jokers(state);pay=_has(j,"ridethebus");interactive=[c for c in p if _live(c)];par=_has(j,"pareidolia");nf=(len(interactive)==0) if par else all(_stone(c) or _rank(c) not in {"J","Q","K"} for c in interactive);st=int(getattr(state,"ride_the_bus_streak",0) or 0);return _finish(dev,pay and nf,pay and nf and st>=8)
 def _realize_suit(dev,state,suit,*payoffs):
  p=_played(state);j=_jokers(state);sm=_has(j,"smearedjoker","smeared");comp={suit}
  if sm:comp={"hearts","diamonds"} if suit in {"hearts","diamonds"} else {"spades","clubs"}
@@ -56,7 +58,7 @@ def realize_spades(dev,state):return _realize_suit(dev,state,"spades","arrowhead
 def realize_clubs(dev,state):return _realize_suit(dev,state,"clubs","onyxagate","gluttonousjoker")
 def realize_diamonds(dev,state):return _realize_suit(dev,state,"diamonds","roughgem","greedyjoker")
 def realize_lucky(dev,state):
- p=_played(state);l=sum(1 for c in p if _live(c) and _enh(c)=="lucky");pay=_has(_jokers(state),"luckycat","oopsall6s");return _finish(dev,bool(l and pay),l>=3 and pay)
+ p=_played(state);l=sum(1 for c in p if _live(c) and _enh(c)=="lucky");pay=_has(_jokers(state),"luckycat","oopsall6s");return _finish(dev,l>0,l>=3 or (l>=2 and pay))
 def realize_glass(dev,state):
  p=_played(state);g=sum(1 for c in p if _live(c) and _enh(c)=="glass");pay=_has(_jokers(state),"glassjoker");return _finish(dev,bool(g),g>=2 and pay)
 def realize_stone(dev,state):
