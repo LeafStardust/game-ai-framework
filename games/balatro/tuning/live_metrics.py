@@ -2,8 +2,10 @@ from __future__ import annotations
 
 """Public-log metric extraction for authoritative unseeded Balatro tuning.
 
-This parser is deliberately tolerant of older log rows: unavailable metrics remain
-zero rather than being invented.  Identity/schema errors still fail closed.
+This parser is deliberately tolerant of older *fields*: unavailable metrics remain
+zero rather than being invented. Structural provenance is strict. Corrupt identity,
+schema, sequence, or incomplete episode logs fail closed and cannot become Optuna
+training signal.
 """
 
 import json
@@ -18,8 +20,12 @@ RUN_SCHEMA = "balatro-run-experience-v1"
 
 
 def _rows(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        raise FileNotFoundError(path)
     rows: list[dict[str, Any]] = []
     expected_run_id = path.name.removesuffix(".jsonl")
+    expected_sequence = 1
+    identity: tuple[str, str, str, str] | None = None
     for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not raw.strip():
             continue
@@ -27,10 +33,27 @@ def _rows(path: Path) -> list[dict[str, Any]]:
             row = json.loads(raw)
         except json.JSONDecodeError as exc:
             raise ValueError(f"invalid JSON at {path}:{line_number}") from exc
+        if not isinstance(row, dict):
+            raise ValueError(f"run log row is not an object at {path}:{line_number}")
         if row.get("schema") != RUN_SCHEMA:
             raise ValueError(f"unexpected run schema at {path}:{line_number}")
         if str(row.get("run_id")) != expected_run_id:
             raise ValueError(f"run id mismatch at {path}:{line_number}")
+        sequence = row.get("sequence")
+        if isinstance(sequence, bool) or not isinstance(sequence, int) or sequence != expected_sequence:
+            raise ValueError(
+                f"non-contiguous run sequence at {path}:{line_number}: "
+                f"expected {expected_sequence}, observed {sequence!r}"
+            )
+        expected_sequence += 1
+        current_identity = tuple(
+            str(row.get(key) or "")
+            for key in ("deck", "stake", "playbook", "playbook_version")
+        )
+        if identity is None:
+            identity = current_identity
+        elif current_identity != identity:
+            raise ValueError(f"run identity changed at {path}:{line_number}")
         rows.append(row)
     return rows
 
@@ -104,20 +127,24 @@ def episode_metrics_from_run_log(path: str | Path) -> EpisodeMetrics:
     if not rows:
         raise ValueError(f"empty Balatro run log: {path}")
 
+    terminal_rows = [row for row in rows if row.get("event") == "run_finished"]
+    if len(terminal_rows) != 1:
+        raise ValueError(
+            f"completed tuning run must contain exactly one run_finished event: {path}"
+        )
+    terminal = terminal_rows[0]
+
     state_rows = [row for row in rows if row.get("event") in {"observation", "action_result", "run_finished"}]
     payloads = [_state_payload(row) for row in state_rows]
-    terminal = next((row for row in reversed(rows) if row.get("event") == "run_finished"), None)
-    terminal_data = terminal.get("data") if isinstance(terminal, dict) and isinstance(terminal.get("data"), dict) else {}
+    terminal_data = terminal.get("data") if isinstance(terminal.get("data"), dict) else {}
     won = bool(terminal_data.get("won", False))
 
     ante_reached = max((_ante(payload) for payload in payloads), default=0)
-    last_payload = payloads[-1] if payloads else {}
+    last_payload = _state_payload(terminal)
     score = _score(last_payload)
     requirement = _blind_requirement(last_payload)
     blind_clear_margin = (score - requirement) / requirement if requirement > 0 else 0.0
 
-    # Boss clear rate uses only public blind labels/types when present. Older logs
-    # that omit them simply do not contribute boss opportunities.
     boss_attempts = 0
     boss_clears = 0
     for row in rows:
@@ -128,7 +155,9 @@ def episode_metrics_from_run_log(path: str | Path) -> EpisodeMetrics:
         is_boss = str(blind.get("type", "")).upper() == "BOSS" or bool(blind.get("boss"))
         if not is_boss:
             continue
-        phase = str((row.get("data") or {}).get("state", {}).get("phase", ""))
+        data = row.get("data") if isinstance(row.get("data"), dict) else {}
+        state = data.get("state") if isinstance(data.get("state"), dict) else {}
+        phase = str(state.get("phase", ""))
         if phase in {"ROUND_EVAL", "GAME_OVER"}:
             boss_attempts += 1
             if phase == "ROUND_EVAL" or bool(payload.get("won")):
@@ -172,7 +201,11 @@ def episode_metrics_from_run_log(path: str | Path) -> EpisodeMetrics:
     for bond in bonds:
         realization = str(bond.get("power_engine_realization", "")).upper()
         if bond.get("power_engine"):
-            engine_utilization.append(1.0 if realization in {"ACTIVE", "MATURE"} else 0.5 if realization == "PARTIAL" else 0.0)
+            engine_utilization.append(
+                1.0 if realization in {"ACTIVE", "MATURE"}
+                else 0.5 if realization == "PARTIAL"
+                else 0.0
+            )
         motifs = bond.get("motifs")
         if isinstance(motifs, list):
             mature_motifs += sum(
@@ -180,8 +213,6 @@ def episode_metrics_from_run_log(path: str | Path) -> EpisodeMetrics:
                 if isinstance(motif, dict) and str(motif.get("state", "")).upper() == "MATURE"
             )
 
-    # Normalize Build Health dimensions to the tuning objective's roughly 0..1
-    # dense signal range. Raw diagnostics are conventionally 0..100.
     scaling = mean(scaling_values) / 100.0 if scaling_values else 0.0
     survival = mean(survival_values) / 100.0 if survival_values else 0.0
 
@@ -209,4 +240,9 @@ def episode_metrics_from_run_ids(
     run_ids: Iterable[str], *, directory: str | Path = "logs/balatro/runs"
 ) -> tuple[EpisodeMetrics, ...]:
     root = Path(directory)
-    return tuple(episode_metrics_from_run_log(root / f"{run_id}.jsonl") for run_id in run_ids)
+    normalized = tuple(str(run_id).strip() for run_id in run_ids)
+    if any(not run_id for run_id in normalized):
+        raise ValueError("run IDs must not be empty")
+    if len(set(normalized)) != len(normalized):
+        raise ValueError("run IDs must be unique within one tuning batch")
+    return tuple(episode_metrics_from_run_log(root / f"{run_id}.jsonl") for run_id in normalized)
