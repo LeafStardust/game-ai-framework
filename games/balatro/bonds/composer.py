@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Iterable
 
 from games.balatro.bonds.behavior_strategy import form_behavior_strategy_candidates, merge_strategy_candidates
@@ -8,7 +8,12 @@ from games.balatro.bonds.calibration import current_bond_calibration
 from games.balatro.bonds.model import BondDevelopment, BondRank
 from games.balatro.bonds.motifs import MotifEvaluation, MotifState, REALIZATION_STRENGTH, evaluate_motifs
 from games.balatro.bonds.relationships import BondRelationship, relationship_between
-from games.balatro.bonds.strategy_semantics import StrategyCandidate, form_strategy_candidates, pinned_strategy
+from games.balatro.bonds.strategy_semantics import (
+    StrategyCandidate,
+    StrategyCommitment,
+    form_strategy_candidates,
+    pinned_strategy,
+)
 
 
 @dataclass(frozen=True)
@@ -23,6 +28,9 @@ class Composition:
     prescriptions: tuple[str, ...]
     strategy_candidates: tuple[StrategyCandidate, ...] = ()
     pinned_strategy_id: str | None = None
+
+
+_SUIT_BONDS = frozenset({"clubs", "diamonds", "hearts", "spades"})
 
 
 def _eligible(dev: BondDevelopment) -> bool:
@@ -40,6 +48,44 @@ def _bond_priority(dev: BondDevelopment) -> float:
 
 def _pivot_resistance(dev: BondDevelopment) -> float:
     return current_bond_calibration().pivot_resistance(dev.rank)
+
+
+def _sanitize_behavior_candidates(
+    candidates: Iterable[StrategyCandidate],
+) -> tuple[StrategyCandidate, ...]:
+    """Reject generic behavior graphs that are not actionable strategies.
+
+    The behavior profiler intentionally has broad feature vocabulary.  Connected
+    components can therefore contain mutually exclusive alternatives (for example
+    every suit connected through generic Flush scaling) or pin a single payoff plus
+    ordinary ambient deck evidence.  Those are useful observations, but they are not
+    enough to own the run.
+    """
+
+    result: list[StrategyCandidate] = []
+    for candidate in candidates:
+        suit_count = len(_SUIT_BONDS.intersection(candidate.bond_ids))
+        if not candidate.motif_ids and suit_count > 1:
+            # Hearts/Spades/Clubs/Diamonds are alternative build directions unless a
+            # known motif explicitly explains why they belong to one package.
+            continue
+
+        concrete_sources = tuple(
+            source for source in candidate.sources
+            if not str(source).lower().startswith("feature:")
+        )
+        if (
+            not candidate.motif_ids
+            and len(candidate.bond_ids) == 1
+            and len(set(concrete_sources)) < 2
+            and candidate.commitment >= StrategyCommitment.PINNED
+        ):
+            # One Joker plus baseline deck/hand evidence can form a direction, but
+            # cannot pin the strategy by itself.  A second concrete engine piece,
+            # higher-level explicit role relation, or known motif may pin it later.
+            candidate = replace(candidate, commitment=StrategyCommitment.FORMING)
+        result.append(candidate)
+    return tuple(result)
 
 
 def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Composition:
@@ -85,7 +131,9 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
     )
     role_candidates = form_strategy_candidates(all_developments, motifs)
     try:
-        behavior_candidates = form_behavior_strategy_candidates(state, all_developments, motifs)
+        behavior_candidates = _sanitize_behavior_candidates(
+            form_behavior_strategy_candidates(state, all_developments, motifs)
+        )
     except (AttributeError, TypeError, ValueError):
         # Synthetic/minimal states used by deterministic tests may not carry enough
         # modeled behavior for the profiler. Explicit Bond-role semantics still work.
