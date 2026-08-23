@@ -63,7 +63,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--repo-sha", help="override clean-worktree HEAD provenance")
     parser.add_argument("--trials", type=int, default=20)
-    parser.add_argument("--attempts-per-trial", type=int, default=5)
+    parser.add_argument(
+        "--attempts-per-trial",
+        type=int,
+        default=3,
+        help="authoritative runs per exploratory trial; use larger fresh batches for promotion/holdout",
+    )
     parser.add_argument("--timeout-seconds", type=float, default=None)
     parser.add_argument("--sampler-seed", type=int, default=20260823)
     parser.add_argument("--deck", default="RED")
