@@ -32,6 +32,7 @@ from games.balatro.noncash_cash_deployment_policy import install_noncash_cash_de
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
 from games.balatro.pinned_strategy_execution_policy import install_pinned_strategy_execution_policy
 from games.balatro.pinned_strategy_retention_policy import install_pinned_strategy_retention_policy
+from games.balatro.pinned_strategy_safe_pace_policy import install_pinned_strategy_safe_pace_policy
 from games.balatro.pinned_strategy_shop_goal_policy import install_pinned_strategy_shop_goal_policy
 from games.balatro.pinned_strategy_transition_policy import install_pinned_strategy_transition_policy
 from games.balatro.planet_relevance_policy import install_planet_relevance_policy
@@ -82,5 +83,8 @@ install_pinned_strategy_transition_policy()
 install_pinned_strategy_retention_policy()
 install_pinned_strategy_execution_policy()
 install_pinned_strategy_shop_goal_policy()
+# Install after the older safe-pace patch so the final PACE_PLAY chooser can restore
+# StrategyAwareLiveHandActionPolicy tie-breaking only inside a narrow safe band.
+install_pinned_strategy_safe_pace_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
