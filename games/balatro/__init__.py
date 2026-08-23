@@ -15,6 +15,7 @@ from games.balatro.burnt_bond_execution_policy import install_burnt_bond_executi
 from games.balatro.d1_log_resilience_policy import install_d1_log_resilience_policy
 from games.balatro.deck_growth_pack_policy import install_deck_growth_pack_policy
 from games.balatro.early_capacity_policy import install_early_capacity_policy
+from games.balatro.face_card_enabler_bond_policy import install_face_card_enabler_bond_policy
 from games.balatro.five_run_followup_policy import install_five_run_followup_policy
 from games.balatro.five_run_optimization_policy import install_five_run_optimization_policy
 from games.balatro.five_run_release_candidate_policy import install_five_run_release_candidate_policy
@@ -29,6 +30,7 @@ from games.balatro.latest_zero_five_survival_policy import install_latest_zero_f
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.noncash_cash_deployment_policy import install_noncash_cash_deployment_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
+from games.balatro.planet_relevance_policy import install_planet_relevance_policy
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
 from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_correction
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
@@ -70,5 +72,7 @@ install_bond_power_engine_retention_policy()
 install_bond_prescription_policy()
 install_bond_d1_cache_policy()
 install_burnt_bond_execution_policy()
+install_face_card_enabler_bond_policy()
+install_planet_relevance_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
