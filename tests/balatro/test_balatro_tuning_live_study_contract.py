@@ -8,8 +8,9 @@ from games.balatro.tuning.study import LiveStudyConfig, make_live_phase_a_object
 
 
 class _Trial:
-    def __init__(self):
+    def __init__(self, *, defaults=None):
         self.user_attrs = {}
+        self.defaults = defaults or {}
 
     def suggest_float(self, name, low, high):
         defaults = {
@@ -22,6 +23,7 @@ class _Trial:
             "synergy_bonus": 1.5,
             "conflict_penalty": 2.0,
         }
+        defaults.update(self.defaults)
         value = defaults[name]
         assert low <= value <= high
         return value
@@ -38,7 +40,6 @@ class _Evaluator:
         )
 
     def evaluate(self, calibration):
-        assert calibration.synergy_bonus == pytest.approx(1.5)
         return SimpleNamespace(
             metrics=self.metrics,
             session_id="session-1",
@@ -70,12 +71,20 @@ def test_live_objective_records_unseeded_session_run_calibration_and_metrics(tmp
     assert trial.user_attrs["unseeded"] is True
     assert trial.user_attrs["won"] is False
     assert trial.user_attrs["stop_reason"] == "attempt limit reached"
+    assert trial.user_attrs["production_baseline"] is True
     assert trial.user_attrs["metric.episodes"] == 1
     assert trial.user_attrs["metric.average_ante"] == 5.0
     calibration = trial.user_attrs["calibration"]
     assert calibration["schema_version"] == 1
     assert calibration["synergy_bonus"] == pytest.approx(1.5)
     assert calibration["pivot_resistance_r5"] == pytest.approx(7.0)
+
+
+def test_live_objective_marks_nondefault_candidate_as_not_baseline(tmp_path: Path):
+    trial = _Trial(defaults={"synergy_bonus": 1.75})
+    make_live_phase_a_objective(_config(tmp_path), _Evaluator())(trial)
+    assert trial.user_attrs["production_baseline"] is False
+    assert trial.user_attrs["calibration"]["synergy_bonus"] == pytest.approx(1.75)
 
 
 def test_live_objective_rejects_missing_run_provenance(tmp_path: Path):
