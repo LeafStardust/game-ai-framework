@@ -53,7 +53,16 @@ def realize_enhanced_cards(dev,state):
 def realize_vampire(dev,state):
  j=_jokers(state);vi=next((i for i,x in enumerate(j) if "vampire" in _name(x)),None)
  if vi is None:return _finish(dev,False)
- hand=_cards(state,"hand","current_hand","cards_in_hand");deck=_cards(state,"owned_deck","deck");sc=_cards(state,"scoring_cards","played_cards","current_played_cards");feed_pool=sc or hand or deck;feed=sum(1 for c in feed_pool if not _debuffed(c) and str(getattr(c,"enhancement","") or "").strip());midas=_has(j,"midasmask");par=_has(j,"pareidolia");pool=sc or hand or deck;face=any(not _debuffed(c) and (par or (not _stone(c) and str(getattr(c,"rank","") or "").upper() in {"J","Q","K"})) for c in pool);renew=midas and face;a=feed>0 or renew;return _finish(dev,a,feed>=2 or (renew and int(getattr(state,"vampire_enhancements_consumed",0) or 0)>=15))
+ hand=_cards(state,"hand","current_hand","cards_in_hand");deck=_cards(state,"owned_deck","deck");has_scoring=hasattr(state,"scoring_cards");sc=_cards(state,"scoring_cards") if has_scoring else _cards(state,"played_cards","current_played_cards");mi=next((i for i,x in enumerate(j) if "midasmask" in _name(x)),None);par=_has(j,"pareidolia")
+ if has_scoring:
+  feed=sum(1 for c in sc if not _debuffed(c) and str(getattr(c,"enhancement","") or "").strip())
+  if sc:
+   renew=mi is not None and mi<vi and any(not _debuffed(c) and (par or (not _stone(c) and str(getattr(c,"rank","") or "").upper() in {"J","Q","K"})) for c in sc)
+  else:
+   renew=mi is not None and any(not _debuffed(c) and (par or (not _stone(c) and str(getattr(c,"rank","") or "").upper() in {"J","Q","K"})) for c in (hand or deck))
+ else:
+  pool=sc or hand or deck;feed=sum(1 for c in pool if not _debuffed(c) and str(getattr(c,"enhancement","") or "").strip());renew=mi is not None and any(not _debuffed(c) and (par or (not _stone(c) and str(getattr(c,"rank","") or "").upper() in {"J","Q","K"})) for c in pool)
+ a=feed>0 or renew;return _finish(dev,a,feed>=2 or (renew and int(getattr(state,"vampire_enhancements_consumed",0) or 0)>=15))
 ENGINE_REALIZERS={"burnt":realize_burnt,"cash":realize_cash,"no_discard":realize_no_discard,"tarot":realize_tarot,"planet":realize_planet,"discard":realize_discard,"blind_skip":realize_blind_skip,"sell_value":realize_sell_value,"joker_sacrifice":realize_joker_sacrifice,"card_destruction":realize_card_destruction,"hand_repetition":realize_hand_repetition,"enhanced_cards":realize_enhanced_cards,"vampire":realize_vampire}
 def realize_engine_family(dev,state):
  fn=ENGINE_REALIZERS.get(dev.bond_id);return enrich_development(dev) if fn is None else fn(dev,state)
