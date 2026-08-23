@@ -3,16 +3,17 @@ from __future__ import annotations
 """Final live authority for Joker ordering.
 
 The standalone JokerOrderPolicy predates the current autonomous runner and can be
-silently bypassed when the runner never asks it for an action.  This patch restores
-ordering as a stable-checkpoint invariant and hardens two mechanical rules that
-must not depend on approximate score projection:
+silently bypassed when the runner never asks it for an action. This patch restores
+ordering as a stable-checkpoint invariant and hardens mechanical rules that must
+not depend on approximate score projection:
 
-* Blueprint must have a useful Joker immediately to its right when one exists.
-* Brainstorm must have a useful leftmost Joker when one exists.
+* Blueprint may not occupy the final slot when another Joker exists.
+* Brainstorm may not occupy the leftmost slot when another Joker exists.
 
+Copy-to-copy chains remain legal because Blueprint/Brainstorm chains can be useful.
 Ordinary XMult Jokers are also recognized from public identity when a dynamic
 ``x_mult`` field is not exposed, preserving the established additive-Mult-before-
-XMult ordering tie-break.  BLIND_SELECT remains owned by the existing Ceremonial
+XMult ordering tie-break. BLIND_SELECT remains owned by the existing Ceremonial
 Dagger pre-blind ordering logic.
 """
 
@@ -21,7 +22,6 @@ from time import perf_counter
 from games.balatro.joker_order_policy import JokerOrderPolicy
 
 
-_COPY_NAMES = frozenset({"blueprint", "blueprintjoker", "brainstorm", "brainstormjoker"})
 _XMULT_NAMES = frozenset(
     {
         "acrobat", "acrobatjoker",
@@ -71,39 +71,24 @@ def _is_brainstorm(joker: object) -> bool:
     return _token(joker) in {"brainstorm", "brainstormjoker"}
 
 
-def _is_copy_joker(joker: object) -> bool:
-    return _token(joker) in _COPY_NAMES
-
-
 def _copy_order_violations(jokers, permutation: tuple[int, ...]) -> tuple[str, ...]:
-    """Return mechanically dead copy placements for a resolved permutation.
-
-    Copy-on-copy chains are treated as inferior whenever a concrete non-copy target
-    is available.  If the roster contains only copy Jokers there is no useful target
-    to enforce, so the ordering layer leaves the score projector in control.
-    """
+    """Return only mechanically dead copy placements for a resolved permutation."""
 
     ordered = tuple(jokers[index] for index in permutation)
-    if not any(not _is_copy_joker(joker) for joker in ordered):
+    if len(ordered) < 2:
         return ()
 
     violations: list[str] = []
     for index, joker in enumerate(ordered):
-        if _is_blueprint(joker):
-            if index + 1 >= len(ordered):
-                violations.append("Blueprint has no Joker immediately to its right")
-            elif _is_copy_joker(ordered[index + 1]):
-                violations.append("Blueprint targets another copy Joker despite a concrete target")
-        elif _is_brainstorm(joker):
-            if not ordered or ordered[0] is joker:
-                violations.append("Brainstorm is leftmost and therefore has no concrete leftmost target")
-            elif _is_copy_joker(ordered[0]):
-                violations.append("Brainstorm targets another copy Joker despite a concrete target")
+        if _is_blueprint(joker) and index == len(ordered) - 1:
+            violations.append("Blueprint has no Joker immediately to its right")
+        if _is_brainstorm(joker) and index == 0:
+            violations.append("Brainstorm is leftmost and therefore has no leftmost target")
     return tuple(violations)
 
 
 def _identity_xmult_factor(joker: object) -> float:
-    """Recognize active/main Joker XMult even when public state omits ``x_mult``."""
+    """Recognize main-effect XMult even when public state omits ``x_mult``."""
 
     public = getattr(joker, "public_state", None)
     values = [
@@ -128,8 +113,26 @@ def _identity_xmult_factor(joker: object) -> float:
             return factor
 
     # Identity is used only as an ordering tie-break when the exact live multiplier
-    # is not exposed.  A neutral >1 marker is sufficient and does not alter scoring.
+    # is not exposed. A neutral >1 marker is sufficient and never alters scoring.
     return 1.5 if _token(joker) in _XMULT_NAMES else 1.0
+
+
+class _ReplayObserver:
+    """Replay one already-read checkpoint to the canonical decision path."""
+
+    def __init__(self, delegate, snapshot) -> None:
+        self._delegate = delegate
+        self._snapshot = snapshot
+        self._used = False
+
+    def observe(self):
+        if not self._used:
+            self._used = True
+            return self._snapshot
+        return self._delegate.observe()
+
+    def __getattr__(self, name):
+        return getattr(self._delegate, name)
 
 
 def install_live_joker_order_authority() -> None:
@@ -143,7 +146,9 @@ def install_live_joker_order_authority() -> None:
         score, notes = original_score(self, state, permutation, phase=phase)
         # BLIND_SELECT is intentionally left to the existing Dagger sacrifice logic.
         if phase != "BLIND_SELECT":
-            violations = _copy_order_violations(tuple(getattr(state, "jokers", ()) or ()), tuple(permutation))
+            violations = _copy_order_violations(
+                tuple(getattr(state, "jokers", ()) or ()), tuple(permutation)
+            )
             if violations:
                 return float("-inf"), (*notes, *violations)
         return score, notes
@@ -199,9 +204,14 @@ def install_live_joker_order_authority() -> None:
                     notes=ordering.rationale,
                 )
 
-        # No ordering correction is needed.  Let the canonical decision path make a
-        # fresh observation rather than reusing a potentially aging checkpoint.
-        return original_decide(self)
+        # Reuse the checkpoint already read above for the canonical path. This keeps
+        # ordering authoritative without doubling bridge observation latency.
+        original_observer = self.observer
+        self.observer = _ReplayObserver(original_observer, snapshot)
+        try:
+            return original_decide(self)
+        finally:
+            self.observer = original_observer
 
     LiveMemoryInjectedSingleStepRunner.__init__ = init_with_joker_order
     LiveMemoryInjectedSingleStepRunner.decide = decide_with_joker_order
