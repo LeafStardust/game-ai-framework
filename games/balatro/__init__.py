@@ -45,6 +45,7 @@ from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patc
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.shop_regression_policy import install_shop_regression_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
+from games.balatro.strategy_authority_correction_policy import install_strategy_authority_correction_policy
 from games.balatro.strategy_plan_pack_policy import install_strategy_plan_pack_policy
 from games.balatro.v1_0_0_luchador_policy import install_v1_0_0_luchador_policy
 from games.balatro.v1_0_0_policy import install_v1_0_0_policy
@@ -89,6 +90,10 @@ install_pinned_strategy_retention_policy()
 install_pinned_strategy_execution_policy()
 install_pinned_strategy_shop_goal_policy()
 install_strategy_plan_pack_policy()
+# Correct strategy authority after the canonical plan/pursuit layers are installed:
+# FORMING known packages may scout missing core pieces, but missing cores and
+# one-Joker ambient behavior graphs cannot receive PINNED authority.
+install_strategy_authority_correction_policy()
 # Install after all strategic/shop wrappers so these production-regression guards
 # see the final decision and can enforce no-cost packs, Planet relevance, and
 # replacement hysteresis without bypassing earlier safety authorities.
