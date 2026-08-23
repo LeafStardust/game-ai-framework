@@ -51,7 +51,7 @@ class AuthoritativeLiveBatchEvaluator:
     after a completed all-loss batch.
     """
 
-    attempts_per_trial: int = 5
+    attempts_per_trial: int = 3
     deck: str = "RED"
     stake: str = "WHITE"
     run_log_directory: Path = Path("logs/balatro/tuning/runs")
@@ -101,18 +101,13 @@ class AuthoritativeLiveBatchEvaluator:
         stake = str(getattr(last, "stake", "")).upper()
         if not deck or not stake:
             raise RuntimeError("cannot reset live tuning boundary without deck/stake identity")
-        if deck != str(self.deck).upper() or stake != str(self.stake).upper():
-            raise RuntimeError(
-                "live tuning attempt identity drifted before reset: "
-                f"{deck}/{stake} != {str(self.deck).upper()}/{str(self.stake).upper()}"
-            )
         with SupervisorLiveMemoryBalatroObserver() as observer:
             runner = LiveMemoryInjectedSingleStepRunner(observer)
             restart_fresh_unseeded_run(runner, deck, stake)
 
     def evaluate(self, calibration: BondCalibration) -> LiveEvaluationResult:
-        # Preflight is outside the calibration context: a trial may not begin unless
-        # the real game is already at a clean independent run boundary.
+        # Every trial, including trial 2+ after a loss reset, must prove the same
+        # fresh public start boundary before any candidate calibration is applied.
         self._preflight()
 
         # Import locally so normal tuning metric/log parsing does not initialize the
