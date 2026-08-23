@@ -92,6 +92,14 @@ def apply_rank_authority_audit() -> None:
             parts.append(b3.BondContribution(f"{suit} density", density))
         return b3._finish(bond_id, parts, b3.SUIT_THRESHOLDS, target=suit.upper())
 
+    def audited_hand_bond(state, bond_id, hand, specs, thresholds):
+        jokers = list(getattr(state, "jokers", ()) or ())
+        parts = b3._joker_parts(jokers, specs)
+        score = _audited_hand_level_band(b3._level(state, hand))
+        if score:
+            parts.append(b3.BondContribution(f"{hand} permanent hand level", score))
+        return b3._finish(bond_id, parts, thresholds, target=hand)
+
     b3._suit_bond = audited_suit_bond
     b4._rank_density = _audited_rank_density
 
@@ -111,6 +119,33 @@ def apply_rank_authority_audit() -> None:
 
     b3.FULL_HOUSE_THRESHOLDS = _table(4, 8, 13, 19, 22)
     b3.FLUSH_HOUSE_THRESHOLDS = _table(4, 8, 13, 19, 23)
+
+    # The original advanced-hand evaluators delegate to _hand_bond(), which uses
+    # shared HAND_THRESHOLDS.  Rebind these two evaluators so their audited,
+    # bond-specific capstones are actually authoritative at runtime.
+    def evaluate_full_house_bond(state):
+        return audited_hand_bond(
+            state,
+            "full_house",
+            "FULL_HOUSE",
+            (("The Duo", 2.0, ("theduo",)), ("The Trio", 2.0, ("thetrio",))),
+            b3.FULL_HOUSE_THRESHOLDS,
+        )
+
+    def evaluate_flush_house_bond(state):
+        return audited_hand_bond(
+            state,
+            "flush_house",
+            "FLUSH_HOUSE",
+            (("Smeared Joker", 3.0, ("smearedjoker",)), ("The Duo", 1.0, ("theduo",)), ("The Trio", 1.0, ("thetrio",))),
+            b3.FLUSH_HOUSE_THRESHOLDS,
+        )
+
+    b3.evaluate_full_house_bond = evaluate_full_house_bond
+    b3.evaluate_flush_house_bond = evaluate_flush_house_bond
+    b3.BATCH_THREE_EVALUATORS["full_house"] = evaluate_full_house_bond
+    b3.BATCH_THREE_EVALUATORS["flush_house"] = evaluate_flush_house_bond
+
     # Five ordinary Joker slots can supply all five low-rank contributors (20)
     # and a heavily shaped 2-5 deck supplies the existing 7-point density cap.
     # R5=30 was therefore mathematically dead even at maximum commitment.
