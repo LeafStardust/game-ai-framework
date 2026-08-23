@@ -7,7 +7,7 @@ class StrategyAwareLivePlanetPolicy(LivePlanetPolicy):
     """Compatibility wrapper for the historical strategy-aware planet policy.
 
     Planet intent and fit are now owned by LivePlanetPolicy. The retired
-    Gold/Silver/Bronze strategy tracker is intentionally not consulted.
+    categorical strategy tracker is intentionally not consulted.
     """
 
     def __init__(self, *args, strategy_tracker=None, **kwargs):
