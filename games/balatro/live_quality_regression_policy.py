@@ -1,0 +1,244 @@
+from __future__ import annotations
+
+"""Final live guards for regressions observed in production validation.
+
+These are authority corrections, not tuning knobs:
+- free boosters are always worth opening because the post-open choice may still Skip;
+- off-build Planets cannot become permanently relevant from one accidental play/level;
+- weak Joker replacement churn is suppressed unless it materially improves the build;
+- pack Planet relevance uses the same applied-strategy-aware rule as shop Planets.
+"""
+
+from dataclasses import replace
+
+from games.balatro.actions import BUY_BOOSTER
+from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.build_health_runtime import projected_state_with_jokers
+from games.balatro.joker_policy import HOLD, REPLACE
+from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
+from games.balatro.planets import PLANET_CARDS
+from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
+from games.balatro.shop_booster_policy import BUY, BuildAwareShopBoosterPolicy
+import games.balatro.planet_relevance_policy as planet_relevance
+
+
+_MIN_UNPINNED_REPLACEMENT_ADVANTAGE = 1.50
+_MIN_SAME_PLAN_STRENGTH_GAIN = 1.00
+_MIN_SAME_PLAN_COMPLETION_GAIN = 0.03
+_STRONG_LOCAL_REPLACEMENT_ADVANTAGE = 2.50
+
+
+def _token(value: object) -> str:
+    return "".join(ch for ch in str(value or "").upper() if ch.isalnum())
+
+
+def _hand_key(value: object) -> str:
+    return "_".join(str(value or "").strip().upper().replace("-", " ").replace("_", " ").split())
+
+
+def _plan_hand_bond(hand_type: str) -> str:
+    return {
+        "HIGH_CARD": "high_card",
+        "PAIR": "pair",
+        "TWO_PAIR": "two_pair",
+        "THREE_OF_A_KIND": "three_kind",
+        "FOUR_OF_A_KIND": "four_kind",
+        "STRAIGHT": "straight",
+        "FLUSH": "flush",
+        "FULL_HOUSE": "full_house",
+        "STRAIGHT_FLUSH": "straight_flush",
+        "FIVE_OF_A_KIND": "five_kind",
+        "FLUSH_HOUSE": "flush_house",
+        "FLUSH_FIVE": "flush_five",
+    }.get(_hand_key(hand_type), "")
+
+
+def _strategy_plan(state):
+    try:
+        _, composition = evaluate_bond_composition(state)
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return None, None
+    return composition, getattr(composition, "strategy_plan", None)
+
+
+def _strict_planet_hand_relevant(state, candidate):
+    hand_type = _hand_key(getattr(candidate, "hand_type", ""))
+    if not hand_type:
+        return False, ("Planet target hand is unavailable",)
+
+    bond_id = _plan_hand_bond(hand_type)
+    composition, plan = _strategy_plan(state)
+    if plan is not None and bond_id:
+        planned = {goal.bond_id for goal in tuple(getattr(plan, "bond_goals", ()) or ())}
+        if bond_id in planned:
+            return True, (f"Planet target {hand_type} is an applied Strategy Plan Bond goal",)
+
+    if composition is not None and bond_id:
+        pinned_id = getattr(composition, "pinned_strategy_id", None)
+        for strategy in tuple(getattr(composition, "strategy_candidates", ()) or ()):
+            if strategy.strategy_id == pinned_id and bond_id in tuple(strategy.bond_ids or ()):
+                return True, (f"Planet target {hand_type} belongs to pinned strategy {pinned_id}",)
+
+    plays = getattr(state, "hand_play_counts", {}) or {}
+    played = int(plays.get(hand_type, 0) or 0)
+    total = sum(max(0, int(value or 0)) for value in plays.values())
+    concentration = played / total if total > 0 else 0.0
+    level = int((getattr(state, "hand_levels", {}) or {}).get(hand_type, 1) or 1)
+
+    # One lucky/forced occurrence must not permanently turn an off-build Planet on.
+    # Require repeated use plus meaningful share of actual play when no strategy owns it.
+    if played >= 3 and concentration >= 0.20:
+        return True, (
+            f"Planet target {hand_type} has sustained use: plays={played}, concentration={concentration:.3f}",
+        )
+    if level >= 3 and played >= 2 and concentration >= 0.15:
+        return True, (
+            f"Planet target {hand_type} has sustained developed use: level={level}, plays={played}, concentration={concentration:.3f}",
+        )
+
+    return False, (
+        f"Planet target {hand_type} is off-plan/weak-history: level={level}, plays={played}, concentration={concentration:.3f}",
+    )
+
+
+def _planet_candidate_from_label(label: str):
+    target = _token(label)
+    for planet in PLANET_CARDS.values():
+        if _token(planet.name) == target:
+            return planet
+    return None
+
+
+def install_live_quality_regression_policy() -> None:
+    # Free shop boosters have no resource downside. Opening remains safe because D9
+    # can still Skip every bad/illegal visible choice.
+    if not getattr(BuildAwareShopBoosterPolicy, "_free_booster_authority_installed", False):
+        original_booster_recommend = BuildAwareShopBoosterPolicy.recommend
+
+        def recommend(self, state, action):
+            result = original_booster_recommend(self, state, action)
+            if action.name != BUY_BOOSTER:
+                return result
+            try:
+                price = int(self._price(action.target))
+            except (AttributeError, TypeError, ValueError):
+                return result
+            if price != 0 or result.family is None:
+                return result
+            return replace(
+                result,
+                decision=BUY,
+                total=max(float(result.total), float(self.parent_hold_baseline) + max(0.50, float(result.option_utility))),
+                advantage_over_save=max(float(result.advantage_over_save), 0.50, float(result.option_utility)),
+                price_penalty=0.0,
+                interest_penalty=0.0,
+                reserve_penalty=0.0,
+                rationale=(
+                    *result.rationale,
+                    "FREE BOOSTER AUTHORITY: $0 pack must be opened; post-open Skip remains available",
+                ),
+            )
+
+        BuildAwareShopBoosterPolicy.recommend = recommend
+        BuildAwareShopBoosterPolicy._free_booster_authority_installed = True
+
+    # Replace the permissive "played once OR level > 1" rule with applied-plan-aware
+    # sustained relevance. The already-installed D4 wrapper resolves this global at runtime.
+    planet_relevance._planet_hand_relevant = _strict_planet_hand_relevant
+
+    if not getattr(BalatroPackPolicy, "_strict_planet_relevance_installed", False):
+        original_pack_score = BalatroPackPolicy.score_action
+
+        def score_action(self, state, action):
+            scored = original_pack_score(self, state, action)
+            choice = getattr(scored.action, "target", None)
+            if str(getattr(choice, "kind", "") or "").upper() != "PLANET":
+                return scored
+            candidate = _planet_candidate_from_label(str(getattr(choice, "label", "") or ""))
+            if candidate is None:
+                return scored
+            relevant, notes = _strict_planet_hand_relevant(state, candidate)
+            if relevant:
+                return PackActionScore(scored.action, scored.total, (*scored.notes, *notes))
+            return PackActionScore(
+                scored.action,
+                min(-1.0, float(getattr(self, "skip_bias", 0.35)) - 1.0),
+                (*scored.notes, *notes, "off-build Planet veto applies inside booster packs too"),
+            )
+
+        BalatroPackPolicy.score_action = score_action
+        BalatroPackPolicy._strict_planet_relevance_installed = True
+
+    if not getattr(PlaybookJokerAcquisitionPolicy, "_replacement_stability_installed", False):
+        original_joker_decide = PlaybookJokerAcquisitionPolicy.decide
+
+        def decide(self, state, candidate):
+            decision = original_joker_decide(self, state, candidate)
+            if decision.action != REPLACE or decision.selected is None:
+                return decision
+            selected = decision.selected
+            advantage = float(getattr(selected, "total_advantage", 0.0) or 0.0)
+            try:
+                index = int(selected.replace_index)
+            except (TypeError, ValueError):
+                return decision
+
+            current_comp, current_plan = _strategy_plan(state)
+            if current_plan is None:
+                if advantage >= _MIN_UNPINNED_REPLACEMENT_ADVANTAGE:
+                    return decision
+                return replace(
+                    decision,
+                    action=HOLD,
+                    selected=None,
+                    rationale=(
+                        *decision.rationale,
+                        f"replacement stability veto: advantage={advantage:.3f} < {_MIN_UNPINNED_REPLACEMENT_ADVANTAGE:.3f}",
+                        "avoid low-confidence Joker churn before an applied strategy exists",
+                    ),
+                )
+
+            jokers = list(getattr(state, "jokers", ()) or ())
+            if index < 0 or index >= len(jokers):
+                return decision
+            jokers[index] = candidate
+            projected_state = projected_state_with_jokers(state, tuple(jokers))
+            projected_comp, projected_plan = _strategy_plan(projected_state)
+            if projected_plan is None:
+                return decision  # earlier pinned-strategy retention owns destructive pivots
+            if projected_plan.strategy_id != current_plan.strategy_id:
+                return decision  # earlier pivot authority owns cross-strategy changes
+
+            current_completion = float(getattr(current_plan, "completion", 0.0) or 0.0)
+            projected_completion = float(getattr(projected_plan, "completion", 0.0) or 0.0)
+            completion_gain = projected_completion - current_completion
+
+            def pinned_strength(comp, strategy_id):
+                if comp is None:
+                    return 0.0
+                for item in tuple(getattr(comp, "strategy_candidates", ()) or ()):
+                    if item.strategy_id == strategy_id:
+                        return float(getattr(item, "strength", 0.0) or 0.0)
+                return 0.0
+
+            strength_gain = pinned_strength(projected_comp, current_plan.strategy_id) - pinned_strength(current_comp, current_plan.strategy_id)
+            if (
+                completion_gain >= _MIN_SAME_PLAN_COMPLETION_GAIN
+                or strength_gain >= _MIN_SAME_PLAN_STRENGTH_GAIN
+                or advantage >= _STRONG_LOCAL_REPLACEMENT_ADVANTAGE
+            ):
+                return decision
+
+            return replace(
+                decision,
+                action=HOLD,
+                selected=None,
+                rationale=(
+                    *decision.rationale,
+                    f"same-plan replacement stability veto: completion delta={completion_gain:.3f}, strength delta={strength_gain:.3f}, advantage={advantage:.3f}",
+                    "replacement must materially advance the applied Strategy Plan or be a strong local upgrade",
+                ),
+            )
+
+        PlaybookJokerAcquisitionPolicy.decide = decide
+        PlaybookJokerAcquisitionPolicy._replacement_stability_installed = True
