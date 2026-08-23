@@ -145,16 +145,21 @@ def test_bridge_status_round_trip_is_non_gameplay_command(tmp_path):
 
 
 def test_bridge_surfaces_lua_side_rejection(tmp_path):
+    # Full-suite CPU/disk contention can delay the responder thread long enough to
+    # trip a 1-second client timeout before it gets scheduled.  This test is about
+    # preserving a Lua ERROR payload, not timeout behavior (which is covered
+    # separately), so give the synthetic peer a deliberately generous local budget.
     bridge = FirstPartyBalatroBridge(
         tmp_path,
-        timeout=1.0,
+        timeout=5.0,
         poll_interval=0.001,
     )
     responder_ready = threading.Event()
+    response_written = threading.Event()
 
     def responder():
         responder_ready.set()
-        deadline = time.monotonic() + bridge.timeout + 1.0
+        deadline = time.monotonic() + bridge.timeout
         while time.monotonic() < deadline:
             if bridge.command_path.exists():
                 text = bridge.command_path.read_text(encoding="utf-8")
@@ -164,17 +169,23 @@ def test_bridge_surfaces_lua_side_rejection(tmp_path):
                     bridge,
                     f"{command_id}\tERROR\tBalatro rejected selection\n",
                 )
+                response_written.set()
                 return
             time.sleep(0.001)
 
     thread = threading.Thread(target=responder)
     thread.start()
     assert responder_ready.wait(timeout=1.0)
-    with pytest.raises(InjectedBridgeError, match="rejected selection"):
+    with pytest.raises(InjectedBridgeError) as captured:
         bridge.discard((1,))
     thread.join(timeout=bridge.timeout + 1.0)
 
+    assert response_written.is_set(), (
+        "synthetic Lua responder never wrote its rejection; this is a test-harness "
+        "timing failure, not a bridge error-propagation failure"
+    )
     assert not thread.is_alive()
+    assert str(captured.value) == "Balatro rejected selection"
 
 
 def test_fused_game_patcher_preserves_prefix_and_creates_exact_backup(tmp_path):
