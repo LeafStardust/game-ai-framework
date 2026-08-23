@@ -19,6 +19,7 @@ from games.balatro.five_run_followup_policy import install_five_run_followup_pol
 from games.balatro.five_run_optimization_policy import install_five_run_optimization_policy
 from games.balatro.five_run_release_candidate_policy import install_five_run_release_candidate_policy
 from games.balatro.five_run_validation_policy import install_five_run_validation_policy
+from games.balatro.full_roster_shop_guard import install_full_roster_shop_guard
 from games.balatro.late_shop_resource_guard import install_late_shop_resource_guard
 from games.balatro.latest_batch_no_discard_policy import install_latest_batch_no_discard_policy
 from games.balatro.latest_five_run_calibration_policy import install_latest_five_run_calibration_policy
@@ -68,3 +69,4 @@ install_bond_power_engine_retention_policy()
 install_bond_prescription_policy()
 install_bond_d1_cache_policy()
 install_burnt_bond_execution_policy()
+install_full_roster_shop_guard()
