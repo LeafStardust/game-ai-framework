@@ -48,6 +48,7 @@ from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_cor
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.shop_regression_policy import install_shop_regression_policy
+from games.balatro.single_core_strategy_tracking_policy import install_single_core_strategy_tracking_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
 from games.balatro.stateful_joker_admission_policy import install_stateful_joker_admission_policy
 from games.balatro.strategy_authority_correction_policy import install_strategy_authority_correction_policy
@@ -100,6 +101,10 @@ install_pinned_strategy_retention_policy()
 install_pinned_strategy_execution_policy()
 install_pinned_strategy_shop_goal_policy()
 install_strategy_plan_pack_policy()
+# Known strategies must become visible as soon as one defining core is owned so
+# the missing-piece tracker can recruit the rest without relying on accidental buys.
+# This runs before authority correction; a one-core package is FORMING only.
+install_single_core_strategy_tracking_policy()
 # Correct strategy authority after the canonical plan/pursuit layers are installed:
 # FORMING known packages may scout missing core pieces, but missing cores and
 # one-Joker ambient behavior graphs cannot receive PINNED authority.
