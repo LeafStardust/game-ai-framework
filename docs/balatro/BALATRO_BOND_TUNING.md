@@ -10,7 +10,7 @@ The tuning subsystem is intentionally **offline**. It must never sit inside the 
 
 The Bond catalogue is dynamic even though its evaluators, thresholds, weights, relationship values, realization rules, and policy coefficients are implemented in code. Those numbers require repeated empirical calibration until they reach stable sweet spots across many public-state runs.
 
-Manual five-run batches remain useful for finding architecture and execution defects, but they are too expensive and noisy for systematic numerical tuning. The Optuna subsystem automates bounded search over approved parameter families while the deterministic Balatro agent remains the evaluated subject.
+Manual repeated-run batches remain useful for finding architecture and execution defects, but they are too expensive and noisy for systematic numerical tuning. The Optuna subsystem automates bounded search over approved parameter families while the deterministic Balatro agent remains the evaluated subject.
 
 Optuna is an optimizer, not a strategy designer. It may tune approved numbers only. It must not invent Bonds, relationships, motifs, unlock semantics, execution rules, or hidden-information shortcuts.
 
@@ -109,7 +109,7 @@ Preferred protocol:
 
 1. Load one immutable candidate parameter set.
 2. Evaluate it on a fixed seed/batch schedule shared with competing trials when the environment supports seeded simulation.
-3. When authoritative live Balatro cannot be perfectly seeded, use larger repeated batches and preserve exact run provenance.
+3. When authoritative live Balatro cannot be perfectly seeded, preserve exact run provenance and use repeated batches appropriate to the stage of evaluation.
 4. Aggregate both competence and behavior metrics.
 5. Store the trial parameters, code revision, seed/run IDs, metrics, and outcome.
 6. Never modify production constants mid-trial.
@@ -117,6 +117,15 @@ Preferred protocol:
 A trial that crashes, violates legality, exposes hidden information, or produces invalid telemetry is failed rather than rewarded or silently skipped.
 
 Authoritative live trials additionally require a fail-closed preflight before **every** trial: settled `BLIND_SELECT`, fresh Ante 1, expected deck/stake identity, compatible bridge protocol, and a non-disabled achievement gate. Lost batches are reset to a fresh run boundary and then preflighted again before the next candidate.
+
+### Live sample-size policy
+
+Authoritative live Balatro is expensive and unseeded, so sample size depends on purpose:
+
+- **Exploratory Optuna search:** default to **3 completed runs per trial**. This is a noisy directional signal used to decide where to search next, not proof that a candidate is better.
+- **Baseline sanity/repeated defect discovery:** 3 runs are sufficient during rapid iteration, but any runtime/semantic defect invalidates the study because the repository SHA changes.
+- **Promotion/holdout:** use a fresh **5-10+ run batch** (and larger when uncertainty remains). Promotion evidence must never rely only on a 3-run exploratory result.
+- Compare confidence/variance and pathology metrics, not raw win percentage alone.
 
 ## Objective design
 
@@ -200,7 +209,7 @@ An optimized parameter set is not production-ready until all of the following pa
 
 1. deterministic Balatro suite green;
 2. candidate beats or materially improves the baseline on its tuning batch;
-3. candidate improvement persists on a holdout/fresh batch;
+3. candidate improvement persists on a fresh 5-10+ run holdout batch;
 4. no new architecture or execution defect is visible in logs;
 5. no unacceptable collapse in build diversity;
 6. no meaningful D1/runtime regression;
@@ -234,7 +243,7 @@ Numerical search belongs to the optimizer; semantic diagnosis remains an archite
 7. [x] Implement persistent studies, schema/revision compatibility, baseline queuing, and exact trial provenance.
 8. [x] Implement the first low-dimensional Phase-A composition/pivot search space.
 9. [x] Add holdout validation, baseline-aware reports, authoritative live preflight, and conservative live promotion comparison.
-10. [ ] Execute and inspect the first production-default authoritative live baseline study.
+10. [ ] Execute and inspect a clean production-default authoritative live baseline study on the current repository SHA.
 11. [ ] Begin candidate Phase-A trials only after baseline telemetry is valid and no runtime defect is exposed.
 12. [ ] Expand parameter families only after the preceding phase demonstrates stable improvement.
 
@@ -242,7 +251,9 @@ Numerical search belongs to the optimizer; semantic diagnosis remains an archite
 
 As of 2026-08-23 the **tuning foundation is implemented**. The calibration layer, Optuna study machinery, persistent provenance, seeded/live evaluators, live log metrics, fresh-boundary preflight, production-baseline tagging, reports, and conservative promotion comparison are present. Broad catalogue tuning is still locked.
 
-The next empirical gate is the first authoritative production-default live baseline. If that baseline exposes another semantic/runtime defect, fix the agent first and invalidate/restart the study at a new repository SHA. Only a clean baseline permits Phase-A candidate trials.
+Initial authoritative baseline attempts successfully exposed runtime/semantic issues before candidate tuning, including full-roster pack capacity, Pareidolia/face-payoff preservation, irrelevant Planet spending, and baseline-tag bookkeeping. Those studies are forensic evidence only and must not be resumed after their fixes change the repository SHA.
+
+The next empirical gate is a clean production-default live baseline on the current HEAD, using the 3-run exploratory protocol. If it exposes another semantic/runtime defect, fix the agent first and invalidate/restart the study at a new repository SHA. Only a clean baseline permits Phase-A candidate trials.
 
 The standing rule remains:
 
