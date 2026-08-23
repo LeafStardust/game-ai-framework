@@ -3,7 +3,7 @@ from __future__ import annotations
 """Behavior-backed strategy inference for the Bond composition machine.
 
 The build profiler already discovers Joker outputs, requirements, scaling inputs and
-amplifiers from the real Joker implementations.  This module converts that generic
+amplifiers from the real Joker implementations. This module converts that generic
 vocabulary into strategy candidates so the Bond system does not require a hand-made
 pair table for every useful Balatro interaction.
 """
@@ -13,11 +13,7 @@ from typing import Iterable
 
 from games.balatro.bonds.model import BondDevelopment
 from games.balatro.bonds.motifs import MotifEvaluation, MotifState
-from games.balatro.bonds.strategy_semantics import (
-    SemanticLink,
-    StrategyCandidate,
-    StrategyCommitment,
-)
+from games.balatro.bonds.strategy_semantics import SemanticLink, StrategyCandidate, StrategyCommitment
 from games.balatro.build.profile import BalatroBuildProfiler
 
 
@@ -48,8 +44,7 @@ def _descriptor_bonds(source: str, mapping: dict[str, set[str]]) -> tuple[str, .
 
 
 def _feature_bonds(feature: str) -> tuple[str, ...]:
-    value = str(feature)
-    lower = value.lower()
+    lower = str(feature).lower()
     rank = lower.split(":")[-1].upper()
     if "rank:" in lower:
         return {
@@ -70,18 +65,11 @@ def _feature_bonds(feature: str) -> tuple[str, ...]:
     if lower.startswith("hand:"):
         hand = lower.split(":", 1)[1].lower()
         aliases = {
-            "high_card": "high_card",
-            "pair": "pair",
-            "two_pair": "two_pair",
-            "three_of_a_kind": "three_kind",
-            "four_of_a_kind": "four_kind",
-            "straight": "straight",
-            "flush": "flush",
-            "full_house": "full_house",
-            "straight_flush": "straight_flush",
-            "five_of_a_kind": "five_kind",
-            "flush_house": "flush_house",
-            "flush_five": "flush_five",
+            "high_card": "high_card", "pair": "pair", "two_pair": "two_pair",
+            "three_of_a_kind": "three_kind", "four_of_a_kind": "four_kind",
+            "straight": "straight", "flush": "flush", "full_house": "full_house",
+            "straight_flush": "straight_flush", "five_of_a_kind": "five_kind",
+            "flush_house": "flush_house", "flush_five": "flush_five",
         }
         return (aliases[hand],) if hand in aliases else ()
     if lower == "economy":
@@ -104,7 +92,7 @@ class _Node:
     value: float
 
 
-def _nodes(state, developments: tuple[BondDevelopment, ...]) -> tuple[_Node, ...]:
+def _nodes(state, developments: tuple[BondDevelopment, ...]):
     profile = BalatroBuildProfiler().profile(state)
     mapping = _source_bonds(developments)
     nodes: list[_Node] = []
@@ -124,9 +112,6 @@ def _nodes(state, developments: tuple[BondDevelopment, ...]) -> tuple[_Node, ...
                 value=4.0 + len(outputs) + 0.5 * len(descriptor.requires) + 0.25 * len(descriptor.scales_with),
             )
         )
-
-    # Public build features are infrastructure nodes.  They let a payoff Joker form
-    # a strategy with its supporting deck shape even before another Joker appears.
     for feature, strength in profile.feature_strengths:
         if float(strength) <= 0.0:
             continue
@@ -144,17 +129,13 @@ def _nodes(state, developments: tuple[BondDevelopment, ...]) -> tuple[_Node, ...
                 value=min(6.0, 1.0 + float(strength) ** 0.5),
             )
         )
-    return tuple(nodes)
+    return profile, tuple(nodes)
 
 
 def _relation(left: _Node, right: _Node) -> str | None:
-    if left.outputs.intersection(right.requires):
+    if left.outputs.intersection(right.requires) or right.outputs.intersection(left.requires):
         return "OUTPUT_SATISFIES_REQUIREMENT"
-    if right.outputs.intersection(left.requires):
-        return "OUTPUT_SATISFIES_REQUIREMENT"
-    if left.outputs.intersection(right.scales_with):
-        return "OUTPUT_FEEDS_SCALING"
-    if right.outputs.intersection(left.scales_with):
+    if left.outputs.intersection(right.scales_with) or right.outputs.intersection(left.scales_with):
         return "OUTPUT_FEEDS_SCALING"
     if left.amplifies.intersection(right.outputs) or right.amplifies.intersection(left.outputs):
         return "AMPLIFIER_TARGETS_OUTPUT"
@@ -200,15 +181,23 @@ def _motif_completion(motif: MotifEvaluation) -> float:
     return 0.0 if total <= 0 else len(motif.present_components) / total
 
 
-def form_behavior_strategy_candidates(
-    state,
-    developments: Iterable[BondDevelopment],
-    motifs: Iterable[MotifEvaluation] = (),
-) -> tuple[StrategyCandidate, ...]:
+def _feature_goals(group: tuple[_Node, ...], available: set[str]) -> tuple[str, ...]:
+    desired: set[str] = set()
+    for node in group:
+        desired.update(node.requires - available)
+        desired.update(node.scales_with - available)
+        desired.update(node.amplifies - available)
+    return tuple(sorted(feature for feature in desired if feature))
+
+
+def form_behavior_strategy_candidates(state, developments: Iterable[BondDevelopment], motifs: Iterable[MotifEvaluation] = ()) -> tuple[StrategyCandidate, ...]:
     devs = tuple(developments)
-    nodes = _nodes(state, devs)
+    profile, nodes = _nodes(state, devs)
     adjacency, raw_links = _graph(nodes)
     all_motifs = tuple(motifs)
+    available = {feature for feature, strength in profile.feature_strengths if float(strength) > 0.0}
+    for node in nodes:
+        available.update(node.outputs)
     candidates: list[StrategyCandidate] = []
 
     for ordinal, indices in enumerate(_components(adjacency), start=1):
@@ -227,31 +216,26 @@ def form_behavior_strategy_candidates(
             if left in indices and right in indices
         )
         relevant_motifs = tuple(
-            motif
-            for motif in all_motifs
-            if motif.state != MotifState.ABSENT
-            and len(set(motif.relevant_bonds).intersection(bond_set)) >= 2
+            motif for motif in all_motifs
+            if motif.state != MotifState.ABSENT and len(set(motif.relevant_bonds).intersection(bond_set)) >= 2
         )
         motif_factor = max((_motif_completion(motif) for motif in relevant_motifs), default=0.0)
         link_density = min(1.0, len(component_links) / max(1, len(group) - 1))
-        confidence = min(
-            1.0,
-            0.20 + 0.35 * link_density + 0.20 * min(1.0, len(group) / 4.0) + 0.25 * motif_factor,
-        )
+        confidence = min(1.0, 0.20 + 0.35 * link_density + 0.20 * min(1.0, len(group) / 4.0) + 0.25 * motif_factor)
         active = any(motif.state >= MotifState.ACTIVE for motif in relevant_motifs)
         half = any(_motif_completion(motif) >= 0.5 for motif in relevant_motifs)
         commitment = (
-            StrategyCommitment.ESTABLISHED
-            if active
-            else StrategyCommitment.PINNED
-            if half or (confidence >= 0.62 and len(group) >= 2)
+            StrategyCommitment.ESTABLISHED if active
+            else StrategyCommitment.PINNED if half or (confidence >= 0.62 and len(group) >= 2)
             else StrategyCommitment.FORMING
         )
         motif_ids = tuple(motif.motif_id for motif in relevant_motifs)
         strategy_id = motif_ids[0] if motif_ids else "behavior:" + "+".join(bond_ids or (f"engine{ordinal}",))
-        prescriptions = tuple(
-            dict.fromkeys(p for motif in relevant_motifs for p in motif.prescriptions)
-        )
+        goals = _feature_goals(group, available)
+        prescriptions = tuple(dict.fromkeys(
+            [p for motif in relevant_motifs for p in motif.prescriptions]
+            + [f"seek_feature:{feature}" for feature in goals]
+        ))
         candidates.append(
             StrategyCandidate(
                 strategy_id=strategy_id,
@@ -277,10 +261,7 @@ def merge_strategy_candidates(*families: Iterable[StrategyCandidate]) -> tuple[S
         if current is None:
             by_id[candidate.strategy_id] = candidate
             continue
-        winner = max(
-            (current, candidate),
-            key=lambda value: (int(value.commitment), value.confidence, value.strength),
-        )
+        winner = max((current, candidate), key=lambda value: (int(value.commitment), value.confidence, value.strength))
         by_id[candidate.strategy_id] = StrategyCandidate(
             strategy_id=winner.strategy_id,
             bond_ids=tuple(sorted(set(current.bond_ids) | set(candidate.bond_ids))),
@@ -293,10 +274,4 @@ def merge_strategy_candidates(*families: Iterable[StrategyCandidate]) -> tuple[S
             strength=max(current.strength, candidate.strength) + 0.25 * min(current.strength, candidate.strength),
             prescriptions=tuple(dict.fromkeys((*current.prescriptions, *candidate.prescriptions))),
         )
-    return tuple(
-        sorted(
-            by_id.values(),
-            key=lambda value: (int(value.commitment), value.confidence, value.strength, value.strategy_id),
-            reverse=True,
-        )
-    )
+    return tuple(sorted(by_id.values(), key=lambda value: (int(value.commitment), value.confidence, value.strength, value.strategy_id), reverse=True))
