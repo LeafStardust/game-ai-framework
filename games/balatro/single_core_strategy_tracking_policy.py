@@ -39,7 +39,10 @@ def _token(value: object) -> str:
 
 
 def _has_defining_core(motif: MotifEvaluation) -> bool:
-    defining = _DEFINING_CORES.get(str(motif.motif_id), frozenset())
+    defining = {
+        _token(value)
+        for value in _DEFINING_CORES.get(str(motif.motif_id), frozenset())
+    }
     if not defining:
         return False
     present = {_token(value) for value in tuple(motif.present_components or ())}
@@ -111,12 +114,6 @@ def _augment_single_core_candidates(candidates, motifs) -> tuple[StrategyCandida
 
 
 def _forming_plan(candidate: StrategyCandidate, developments, motifs):
-    """Build the missing-piece plan without granting PINNED authority.
-
-    The canonical builder intentionally ignores FORMING candidates. Build through a
-    temporary PINNED view, then downgrade the returned plan and strip execution
-    prescriptions down to scouting-only seek_component/seek_feature directives.
-    """
     provisional = replace(candidate, commitment=StrategyCommitment.PINNED)
     plan = build_strategy_plan(provisional, developments, motifs)
     if plan is None:
@@ -143,10 +140,6 @@ def install_single_core_strategy_tracking_policy() -> None:
     def compose_build(state, developments):
         developments = tuple(developments)
         base = original_compose(state, developments)
-
-        # Re-evaluate from the canonical motif evaluators because original_compose
-        # has already discarded ABSENT motifs. Only defining-core singletons are
-        # promoted; ordinary ambient infrastructure never enters this path.
         raw_motifs = raw_evaluate_motifs(state, developments)
         promoted = _promote_single_core_motifs(raw_motifs)
         single_core = tuple(
@@ -165,8 +158,6 @@ def install_single_core_strategy_tracking_policy() -> None:
         motifs = tuple(motif_by_id.values())
         candidates = _augment_single_core_candidates(base.strategy_candidates, motifs)
 
-        # A stronger existing strategy remains authoritative. Otherwise expose the
-        # strongest one-core known package as a bounded FORMING scouting plan.
         plan = base.strategy_plan
         if plan is None:
             candidate = next(
