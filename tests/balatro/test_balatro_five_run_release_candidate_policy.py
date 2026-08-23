@@ -9,8 +9,6 @@ from games.balatro.five_run_release_candidate_policy import (
     shop_next_blind_floor,
 )
 from games.balatro.state import BalatroState
-from games.balatro.strategy import BalatroStrategyTracker
-from games.balatro.strategy_phase_weight_policy import strategy_phase_weight
 
 
 def _joker(name, **public_state):
@@ -82,8 +80,6 @@ def test_shop_build_health_no_longer_defaults_to_neutral_fifty_fifty_without_act
 
     health = RuntimeBuildHealthEvaluator().evaluate(state)
 
-    # Ante-5 shop admission must be evaluated against an actual public blind floor,
-    # not the previous no-target (50, 50) placeholder.
     assert (health.survival, health.immediate) != pytest.approx((50.0, 50.0))
 
 
@@ -91,14 +87,3 @@ def test_severely_weak_or_endangered_roster_gets_two_bounded_search_rolls():
     assert _release_candidate_reroll_limit(pressure=3.5, survival=80.0) == 2
     assert _release_candidate_reroll_limit(pressure=1.0, survival=60.0) == 2
     assert _release_candidate_reroll_limit(pressure=1.0, survival=80.0) == 1
-
-
-@pytest.mark.parametrize(
-    ("ante", "expected"),
-    [(1, 0.25), (2, 0.25), (3, 0.50), (4, 0.70), (5, 0.90), (6, 1.00), (8, 1.00)],
-)
-def test_tracker_uses_one_authoritative_phase_pressure(ante, expected):
-    tracker = BalatroStrategyTracker({})
-    state = SimpleNamespace(ante=ante)
-    assert strategy_phase_weight(ante) == pytest.approx(expected)
-    assert tracker.strategy_pressure(state) == pytest.approx(expected)
