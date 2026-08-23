@@ -8,6 +8,7 @@ from games.balatro.actions import REORDER_JOKERS, BalatroAction
 from games.balatro.joker_order_policy import JokerOrderDecision, JokerOrderPolicy
 from games.balatro.live.runtime.live_memory_autonomous_step_injected import LiveMemoryInjectedSingleStepRunner
 from games.balatro.live_joker_order_authority import (
+    _ReplayObserver,
     _copy_order_violations,
     _identity_xmult_factor,
 )
@@ -33,7 +34,7 @@ class AdditiveJoker:
     pass
 
 
-def test_blueprint_cannot_be_last_when_a_concrete_target_exists() -> None:
+def test_blueprint_cannot_be_last_when_another_joker_exists() -> None:
     jokers = (PlainJoker(), BlueprintJoker())
 
     assert _copy_order_violations(jokers, (0, 1)) == (
@@ -42,19 +43,19 @@ def test_blueprint_cannot_be_last_when_a_concrete_target_exists() -> None:
     assert _copy_order_violations(jokers, (1, 0)) == ()
 
 
-def test_brainstorm_cannot_be_leftmost_when_a_concrete_target_exists() -> None:
+def test_brainstorm_cannot_be_leftmost_when_another_joker_exists() -> None:
     jokers = (BrainstormJoker(), PlainJoker())
 
     assert _copy_order_violations(jokers, (0, 1)) == (
-        "Brainstorm is leftmost and therefore has no concrete leftmost target",
+        "Brainstorm is leftmost and therefore has no leftmost target",
     )
     assert _copy_order_violations(jokers, (1, 0)) == ()
 
 
-def test_copy_joker_does_not_target_copy_chain_when_real_target_exists() -> None:
+def test_useful_copy_chains_remain_legal() -> None:
     jokers = (BlueprintJoker(), BrainstormJoker(), PlainJoker())
 
-    assert _copy_order_violations(jokers, (0, 1, 2))
+    assert _copy_order_violations(jokers, (0, 1, 2)) == ()
     assert _copy_order_violations(jokers, (0, 2, 1)) == ()
 
 
@@ -64,7 +65,10 @@ def test_identity_based_xmult_detection_restores_right_alignment_without_public_
 
     assert _identity_xmult_factor(additive) == pytest.approx(1.0)
     assert _identity_xmult_factor(xmult) > 1.0
-    assert JokerOrderPolicy._xmult_right_alignment((xmult, additive), (0, 1))[1] < JokerOrderPolicy._xmult_right_alignment((xmult, additive), (1, 0))[1]
+    assert (
+        JokerOrderPolicy._xmult_right_alignment((xmult, additive), (0, 1))[1]
+        < JokerOrderPolicy._xmult_right_alignment((xmult, additive), (1, 0))[1]
+    )
 
 
 class _Observer:
@@ -140,6 +144,27 @@ def test_live_runner_can_intercept_shop_before_shop_transaction() -> None:
 
     assert decision.action == BalatroAction(REORDER_JOKERS, target=(1, 0))
     assert runner.joker_order_policy.calls == [(state, "SHOP")]
+
+
+def test_replay_observer_reuses_checkpoint_once_then_delegates() -> None:
+    first = object()
+    second = object()
+
+    class _Delegate:
+        def __init__(self):
+            self.calls = 0
+
+        def observe(self):
+            self.calls += 1
+            return second
+
+    delegate = _Delegate()
+    replay = _ReplayObserver(delegate, first)
+
+    assert replay.observe() is first
+    assert delegate.calls == 0
+    assert replay.observe() is second
+    assert delegate.calls == 1
 
 
 def test_blind_select_without_dagger_remains_nonblocking() -> None:
