@@ -6,6 +6,7 @@ This file records notable development changes to the project. Active and future 
 
 ### Added
 
+- Added the documentation-first design contract for an **offline Optuna Bond-tuning subsystem** in `docs/balatro/BALATRO_BOND_TUNING.md`. The planned tuner will search only approved bounded numerical parameters, preserve current production defaults, persist study/trial provenance, use reproducible evaluation batches, support holdout validation, and require manual/deterministic promotion gates. Optuna is explicitly excluded from the normal live-agent import/decision path and may not redefine Bond semantics or use hidden information.
 - Added the Red/White **Build Health** layer with auditable Survival, Immediate Scoring, Scaling, Coherence, and Runway dimensions so a full Joker roster is no longer assumed to be a functioning build.
 - Added realized engine lifecycle diagnostics (`OWNED_INACTIVE`, `ACTIVATED_WEAK`, `ACTIVATED_HEALTHY`, `MATURE`) for Blue/Hologram deck growth, Burnt Joker, Castle, Green Joker, Red Card, Runner, and Bull/Bootstraps cash scoring.
 - Added structural `CORE` / `ENGINE` / `SUPPORT` / `FILLER` / `CONFLICT` Joker-role diagnostics relative to the realized active build.
@@ -13,10 +14,11 @@ This file records notable development changes to the project. Active and future 
 - Added Build Health, scaling-deficit/inactive-engine warnings, and realized component roles to structured decision postmortems and the live agent monitor.
 - Added canonical Bond motif prescription preferences beneath existing pack/shop safety authorities for Baron/Mime/Steel, Photograph/Hanging Chad, Vampire/Midas, Burnt target leveling, and Hack low-rank retrigger engines.
 - Added a production SHOP survival adapter that samples only unordered public owned-deck opening hands and runs a narrow, node-bounded D1 `LiveBlindClearPlanner` from each opening to estimate next-blind clear probability.
-- Added deterministic regression contracts for Build Health evaluation, shop admission/replacement/reroll behavior, realized pivot readiness, bounded bundles, component roles, monitor output, tracker side-effect isolation, production arbiter inheritance, cache invalidation, Bond pivot authority, Bond prescription normalization, SHOP clear-probability fallback/isolation, public deck-order invariance, copy-Joker projection safety, and the Red/White live planner budget.
+- Added deterministic regression contracts for Build Health evaluation, shop admission/replacement/reroll behavior, realized pivot readiness, bounded bundles, component roles, monitor output, production arbiter inheritance, cache invalidation, Bond pivot authority, Bond prescription normalization, SHOP clear-probability fallback/isolation, public deck-order invariance, copy-Joker projection safety, and the Red/White live planner budget.
 
 ### Changed
 
+- Declared systematic Bond numerical calibration a staged offline optimization problem rather than an endless manual coefficient-edit loop. Planned tuning phases are composition/rank, realization, pivot/preservation, D1 execution, D2/shop/resources, then a small cross-system pass; broad tuning is blocked until semantic/runtime correctness is stable.
 - Continued Red Deck / White Stake post-release calibration from repeated five-run autonomous batches before advancing stake progression.
 - Replaced the old Ante 1–2 “any positive immediate scorer” exception with Build-Health-based survival admission: an off-route purchase must materially improve projected survival rather than merely add local scoring value. Production SHOP survival now reuses D1 whole-blind clear-probability semantics through a strictly bounded public-state opening-hand projection; if that bounded projection is unavailable, the generic Build Health capacity estimate remains the fail-safe.
 - Kept the new SHOP D1 projection production-only so injected/custom Build Health scorers and offline deterministic contracts retain the generic estimator rather than unexpectedly invoking live planner semantics.
@@ -25,60 +27,53 @@ This file records notable development changes to the project. Active and future 
 - Made canonical pivot authority require trustworthy Joker-slot telemetry before treating the roster as full, preventing missing/zero/invalid slot observations from triggering structural replacement promotion or veto logic.
 - Normalized Bond prescription matching across live naming/telemetry variants for consumables, Planet target hands, rank aliases, Steel enhancements, and Red/Blue Seals while retaining bounded bonuses and child-policy legality/safety authority.
 - Made Blue Joker recognize Certificate/Marble as realized future deck-growth capacity, matching the bounded deck-growth bundle planner.
-- Made Build Health hypothetical transitions and diagnostics clone run-scoped strategy trackers, preventing “what-if” shop branches or monitor telemetry from changing live commitment history.
 - Expanded Build Health cache identity from deck size alone to complete public deck structure, preventing same-size rank/suit/enhancement/seal/edition changes from reusing stale health.
-- Retired support-only catalogue leaves from active Primary/Secondary/Tertiary strategy competition when they cannot plausibly clear a run as an independent scoring engine. Abstract Joker, standalone face-economy leaves, Satellite economy, Cloud 9 economy, Mail-In Rebate economy, Banner/Delayed Gratification reserve, and standalone cash-growth/hoard leaves remain ordinary or conditional support rather than win conditions. Raised Fist remains a deliberately weak active scoring route rather than a retired support leaf.
-- Consolidated cash generation under **Bull / Bootstraps Cash Scoring**. Bull or Bootstraps activates the scoring route; Rocket, To the Moon, Cloud 9, Satellite, Reserved Parking, Business Card, Faceless Joker, Mail-In Rebate, Delayed Gratification, Golden Joker, Golden Ticket, and Rough Gem may reinforce it when their own trigger infrastructure is usable. Rocket + To the Moon together are Gold support after a cash scorer exists; cash generators alone cannot activate the route.
-- Made **Pareidolia Gold activation evidence for the Face Cards family**. Pareidolia is also Gold support for PhotoChad when Photograph is present and for the Triboulet route when Triboulet is present, without fabricating those specialized routes by itself.
-- Reduced Joker Stencil from Gold to Silver standalone evidence and Banner from Silver to Bronze support where applicable.
+- Replaced the active categorical Gold/Silver/Bronze strategy-tree architecture during v1.0.x with the canonical Currency-Wars-style Bond/composition architecture. Historical v1.0.0 release notes below remain historical evidence rather than current runtime documentation.
 - Kept Red Card as a real scaling route but made an owned Red Card prioritize booster-pack skips so its Mult actually develops.
-- Added realized-roster pressure to shop decisions so weak/full boards with surplus cash can spend on bounded rerolls rather than preserving money into a losing blind. The release-candidate calibration broadens this beyond a small hard-coded filler set, recognizes decaying public Joker state, allows a deeper one-reroll search for clearly weak full boards, and makes cash-rich Ante 5+ boards search once even when they are not classified as filler-heavy.
+- Added realized-roster pressure to shop decisions so weak/full boards with surplus cash can spend on bounded rerolls rather than preserving money into a losing blind.
 - Added weak-full-roster booster reserves so repeated speculative packs cannot drain the run to near-zero cash while the board still needs a Joker upgrade.
 - Added final-discard opportunity cost so the last discard is preserved unless its modeled survival/scoring improvement is material.
-- Added Burnt Joker first-discard training when the blind has sufficient safety margin.
-- Corrected Rocket / To the Moon semantics: individually cash support rather than standalone Gold strategy cores.
-- Made Ante phase pressure authoritative across all strategy consumers: Foundation Antes 1-2 use 25%, Formation Antes 3-5 use 50%/70%/90%, and Commitment Ante 6+ uses 100%. Removed an accidental second phase multiplication in Joker build evaluation.
 - Reconciled Bond realization semantics so ordinary public-state realization tracks currently available engines/opportunities, while explicit discard/scoring/blind-selection telemetry remains authoritative for exact trigger windows and Joker-order-sensitive effects such as Vampire/Midas.
-- Tightened Red/White live D1 from 5,000 to **2,500 maximum search nodes** while preserving horizon 5, `probe-deepest`, and the 8-second hard wall clock. This is a cartridge-level calibration response to repeated wall-clock exhaustion on an oversized Marble-grown deck; core D1 mechanics remain unchanged.
+- Tightened Red/White live D1 from 5,000 to **2,500 maximum search nodes** while preserving horizon 5, `probe-deepest`, and the 8-second hard wall clock.
 - Increased upgrade pressure against weak full rosters and stopped generator-only Marble/Certificate structures from being treated as completed deck-growth scoring routes when their actual scoring payoff is absent.
 
 ### Fixed
 
+- Fixed Burnt Bond execution so a safe first discard can level its target hand even when Banner is owned; temporary Banner discard-chip value no longer suppresses the defining Burnt mechanic.
+- Fixed canonical pivot authority so an ACTIVE/MATURE power engine cannot be casually dismantled merely because a replacement creates several fresh partial Bonds; power-engine protection remains a cost, not an absolute lock.
+- Fixed late-game marginal side-pack spending that could drain a vulnerable Ante 5+ run to near-zero cash despite existing reserve diagnostics.
+- Fixed repeated D1 Bond-composition recomputation inside candidate tie-breaks by caching Bond hand intents per settled decision.
 - Corrected Hermit payout/timing integration while preserving the established B6/D4 use contract and Buy-and-Use metadata.
 - Added threatened-boss Luchador activation through the autonomous mid-blind sale path.
 - Prevented D1 from preferring an all-debuffed scoring hand against suit-debuff bosses when an active-card alternative still satisfies required pace.
-- Added Devious Joker + Four Fingers activation logic so a viable Straight route can replace weak filler instead of being blocked by the current first-place strategy.
 - Added Perkeo consumable seeding/surplus-copy economy behavior instead of leaving its duplication ability idle.
-- Made Low-Rank Scoring require Hack as its defining engine, with Raised Fist banned from that route and Hack banned from the Raised Fist route.
-- Made Scholar Silver alone and Gold only with DNA, and reduced Sixth Sense standalone evidence while adding safe first-hand single-6 utilization when consumable capacity and pace permit it.
 - Modeled Observatory held-Planet x1.5 scoring, preservation timing, and infrastructure-aware voucher valuation.
 - Corrected realization edge cases across discard triggers, debuffed cards, Gold/Blue Seal timing, Card Sharp repetition history, Four Fingers advanced hands, held retriggers, Vampire/Midas order, Satellite unknown history, and renewable-feed fallback semantics.
 - Fixed Blueprint/Brainstorm live projection so supported scored-card and held-card targets such as Photograph can contribute to Joker-order optimization instead of leaving Blueprint as a rightmost no-op. Unsupported copy targets remain fail-closed; Bloodstone is not treated as an independently validated copy target.
-- Fixed the desktop live-monitor Build Health block so the actual launcher target displays the canonical compact health diagnostics without losing existing `Has` / `Seeking` strategy targets.
 
 ### Validation
 
-- Bond pivot/prescription boundary regression batch passed on 2026-08-22 after telemetry and naming normalization hardening.
-- SHOP clear-probability survival boundary regressions passed on 2026-08-22.
-- Bond/realization mechanical and compatibility reconciliation is complete, including strict explicit-event telemetry precedence and ordinary-state engine availability.
-- **The complete Balatro deterministic suite was green on 2026-08-23 immediately before the planner-budget-only calibration change.** The focused Red/White planner-budget + adaptive-search batch is green afterward. The next gate is a fresh unchanged-HEAD five-run Red/White live validation batch.
-
+- The complete Balatro deterministic suite was green after the categorical-to-Bond migration and subsequent stale-test cleanup on 2026-08-23 before the newest live-batch fixes; each new execution/pivot/resource change remains subject to a fresh full `python -m pytest -q tests/balatro` gate.
+- A subsequent five-run Red/White batch exposed Burnt under-utilization, weak power-engine preservation, marginal late pack spending, and a D1 Bond recomputation performance defect; those concrete defects have been corrected and require fresh unchanged-HEAD live validation.
+- Automated numerical tuning is **not yet active**. Its documentation/roadmap contract is complete; implementation begins only after current runtime semantics are validated strongly enough that an optimizer will not learn around known bugs.
 - Red Deck stake progression begins with v1.1 after the current Red/White calibration branch is accepted.
 - Fresh-profile collection progression remains active but is non-blocking for the v1.0 competence line.
 
 ## v1.0.0 — Red Deck / White Stake competence — 2026-08-20
 
+The entries below describe the historical v1.0.0 release architecture. The active v1.0.x runtime has since migrated to canonical Bonds/composition.
+
 ### Added
 
 - Universal Balatro strategy-tree semantics with leaf-only ranking, parent-foundation evidence, descendant inheritance, fallback suppression, Ante pressure, and production diagnostics.
 - Complete production catalogue migration for strategy-tree Sections 1–12. The 136-node forest owns poker hands, ranks/faces, suits/held cards, enhancements, seals, destruction/thinning, deck growth/training, consumable engines, economy, Joker-board composition, discard rotation, and hand scheduling.
-- Conditional placement of Section 14 support Jokers into compatible existing routes, including Blueprint/Brainstorm copy support, Astronomer, Chaos the Clown, Drunkard/Merry Andy, Juggler/Troubadour, Splash, Showman, and Invisible Joker. These components do not seed unsupported standalone strategies.
+- Conditional placement of Section 14 support Jokers into compatible existing routes, including Blueprint/Brainstorm copy support, Astronomer, Chaos the Clown, Drunkard/Merry Andy, Juggler/Troubadour, Splash, Showman, and Invisible Joker.
 - Portable universal Joker value separated from route-bound strategy value, including dynamic off-path pressure and exclusive dominant-strategy behavior from Ante 6.
 - Strategy-aware decisions across hand play, discards, Joker acquisition/replacement, consumables, packs, Planets, rerolls, vouchers, boosters, and blind skips.
 - Autonomous Joker-board ordering for Blueprint, Brainstorm, additive/XMult placement, and projected Ceremonial Dagger sacrifice.
 - Pre-play hand ordering for first-card retriggers such as Hanging Chad and Photograph.
 - Default-off collection unlock campaigns for Hit the Road and Stuntman, guarded by authoritative unlock state and blind-clear safety in ordinary competence runs.
-- Opt-in collection-first profile progression with hard priority for explicitly undiscovered visible Jokers, consumables, Vouchers, boosters, and pack choices. This mode is separate from the v1.0.0 competence gate and may continue evolving after release.
+- Opt-in collection-first profile progression with hard priority for explicitly undiscovered visible Jokers, consumables, Vouchers, boosters, and pack choices.
 - Live-monitor strategy diagnostics showing the dominant leaf, status, score, pressure, relevant components, and topology path.
 
 ### Changed
@@ -87,16 +82,14 @@ This file records notable development changes to the project. Active and future 
 - Kept Superposition as **Bronze** support for the standalone Straight strategy rather than promoting it to Silver.
 - Retired the seven coarse compatibility strategies and the standalone Edition strategy after the complete tree assumed catalogue ownership; Joker editions remain portable universal value.
 - Migrated production policy lookups to root-to-leaf inherited semantics so child routes retain parent hand, card, pack, tag, and cartridge behavior.
-- Protected Negative Jokers from ordinary standalone sales, shop replacement transactions, and non-Dagger sacrifice ordering. Measured whole-build harm and active-strategy intentional destruction are explicit, logged exceptions; Verdant Leaf remains a survival emergency.
-- Increased Gold relationship influence for defining strategy cores and strengthened Silver support where the relationship is materially useful.
+- Protected Negative Jokers from ordinary standalone sales, shop replacement transactions, and non-Dagger sacrifice ordering.
 - Prioritized The Soul in early Antes when a Legendary Joker is a safe, legal choice.
 - Added strategy-aware paid-reroll stop losses, late-Ante survival reserves, and stricter Gold Card/Gold Seal economy reserves.
 - Added marginal cash-scaling cost to every paid shop action while Bootstraps or Bull is owned.
 - Preserved held Steel cards and Blue Seals before ordinary strategy-fit tie-breaking.
 - Bounded late-Ante D1 search, Boss-Blind search, Joker-order analysis, and complete D1 decisions to interactive live budgets.
-- Scoped the safe-pace survival invariant to the production strategy-aware D1 policy. The live agent plays when it can meet the current remaining-score-per-hand pace, otherwise prefers a legal discard, and falls back to its strongest bounded play when no discard remains.
+- Scoped the safe-pace survival invariant to the production strategy-aware D1 policy.
 - Applied weak-build scoring-readiness vetoes only at the final strategy-aware D13 blind-skip layer while retaining base tag economics as authoritative inputs.
-- Tightened weak-board booster spending while preserving strategy-seeding opportunities where appropriate.
 
 ### Fixed
 
@@ -104,20 +97,18 @@ This file records notable development changes to the project. Active and future 
 - Wired Cerulean Bell forced-card handling and Verdant Leaf emergency Joker sales through authoritative injected actions.
 - Prevented blind-selection Joker-order searches from blocking the start of a blind.
 - Corrected late-run Small/Big Blind stalls caused by unbounded hand search.
-- Added an eight-second wall-clock budget across each complete D1 decision so an individually expensive expectimax node cannot leave early or mid-run hands appearing frozen after the existing node budget.
-- Made expired-budget D1 recovery strictly bounded: production may take one legal discard and re-observe, while minimal/test planners retain the bounded structural fallback.
+- Added an eight-second wall-clock budget across each complete D1 decision.
+- Made expired-budget D1 recovery strictly bounded.
 - Prevented the production safe-pace rule from overriding lower-level `CLEAR_PATH` planner contracts or equal-safety hand-selection contracts used by reusable policy tests.
 - Stopped paid rerolls from continuing past configured cost and reserve limits.
-- Treated an authoritative `won=true` snapshot as terminal even while Balatro still reports `ROUND_EVAL`, preventing unintended entry into Endless and allowing immediate run finalization.
+- Treated an authoritative `won=true` snapshot as terminal even while Balatro still reports `ROUND_EVAL`.
 - Allowed a freshly restarted agent to recognize and resume a manually continued post-win Endless run while retaining the default automatic stop at the initial Ante-8 win.
-- Corrected the Section 1 Straight strategy contract so its standalone topology and Superposition Bronze-support relationship agree with the intended runtime behavior.
 
 ### Validation
 
-- Passed the complete deterministic repository suite after the full strategy-tree and Negative-retention migration: **1,787 tests on 2026-08-18**.
+- Passed the complete deterministic repository suite after the full historical strategy-tree and Negative-retention migration: **1,787 tests on 2026-08-18**.
 - Completed an **unseeded, fully autonomous Red Deck / White Stake win** on 2026-08-18 against Amber Acorn with normal Steam progression preserved.
 - The winning run exposed the post-win `ROUND_EVAL` finalization gap; the resulting terminal-detection fix is covered by deterministic regressions.
-- v1.0.0 freezes the Red Deck / White Stake competence baseline. Further collection-system work is non-blocking, and stake-specific adaptation continues in v1.1+.
 
 ## v0.9 — Autonomous live integration
 
