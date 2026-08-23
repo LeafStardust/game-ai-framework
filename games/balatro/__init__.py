@@ -30,6 +30,8 @@ from games.balatro.latest_zero_five_survival_policy import install_latest_zero_f
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.noncash_cash_deployment_policy import install_noncash_cash_deployment_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
+from games.balatro.pinned_strategy_execution_policy import install_pinned_strategy_execution_policy
+from games.balatro.pinned_strategy_retention_policy import install_pinned_strategy_retention_policy
 from games.balatro.planet_relevance_policy import install_planet_relevance_policy
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
 from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_correction
@@ -74,5 +76,7 @@ install_bond_d1_cache_policy()
 install_burnt_bond_execution_policy()
 install_face_card_enabler_bond_policy()
 install_planet_relevance_policy()
+install_pinned_strategy_retention_policy()
+install_pinned_strategy_execution_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
