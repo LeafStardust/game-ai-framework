@@ -94,6 +94,6 @@ Hand Size   -> Held Cards/draw/tactical support
 Flower Pot  -> tactical/motif valuation
 ```
 
-## Next stage
+## Current stage
 
-Do not expand the catalogue speculatively. Continue the Joker-coverage sweep only to catch clear omissions, then implement realization across all accepted Bonds, followed by relationship consumption, motifs/composer, Build Health/score projection, and finally live-agent migration.
+The live agent has migrated to the canonical Bond/composition architecture. Keep the 46-Bond catalogue stable while collecting runtime evidence, auditing realization and contribution calibration, and validating composition-driven health, pivots, prescriptions, and telemetry. Do not reintroduce categorical strategy tiers as a compatibility layer.
