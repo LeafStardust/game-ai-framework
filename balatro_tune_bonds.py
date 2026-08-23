@@ -65,11 +65,15 @@ def main() -> int:
         timeout_seconds=args.timeout_seconds,
     )
     target = write_study_report(study, args.report)
+    completed = [trial for trial in study.trials if trial.state.name == "COMPLETE"]
     print(f"Study: {study.study_name}")
     print(f"Trials: {len(study.trials)}")
-    print(f"Best objective: {study.best_value:.6f}")
+    if completed:
+        print(f"Best objective: {study.best_value:.6f}")
+    else:
+        print("Best objective: unavailable (no completed trials)")
     print(f"Report: {target}")
-    return 0
+    return 0 if completed else 2
 
 
 if __name__ == "__main__":
