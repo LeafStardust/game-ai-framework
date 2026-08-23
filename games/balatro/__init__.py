@@ -10,6 +10,7 @@ from games.balatro.bond_pivot_authority import install_bond_pivot_authority
 from games.balatro.bond_prescription_policy import install_bond_prescription_policy
 from games.balatro.bond_shop_health_policy import install_bond_shop_health_policy
 from games.balatro.build_health_policy import install_build_health_policy
+from games.balatro.burnt_bond_execution_policy import install_burnt_bond_execution_policy
 from games.balatro.d1_log_resilience_policy import install_d1_log_resilience_policy
 from games.balatro.deck_growth_pack_policy import install_deck_growth_pack_policy
 from games.balatro.early_capacity_policy import install_early_capacity_policy
@@ -62,3 +63,4 @@ install_bond_shop_health_policy()
 install_bond_pivot_authority()
 install_bond_prescription_policy()
 install_bond_d1_cache_policy()
+install_burnt_bond_execution_policy()
