@@ -172,6 +172,18 @@ def install_strategy_authority_correction_policy() -> None:
             plan = build_strategy_plan(pinned, developments, base.motifs)
         else:
             plan = _forming_plan(_best_forming_known(corrected), developments, base.motifs)
+            # A lower wrapper may already have produced a valid FORMING scouting
+            # plan for a defining-core singleton (for example Burnt Joker before a
+            # corresponding BondDevelopment exists). Do not erase that plan merely
+            # because candidate reconstruction has insufficient Bond evidence yet.
+            if (
+                plan is None
+                and base.strategy_plan is not None
+                and getattr(base.strategy_plan, "commitment", StrategyCommitment.EXPLORATORY)
+                == StrategyCommitment.FORMING
+                and bool(getattr(base.strategy_plan, "strategy_id", ""))
+            ):
+                plan = base.strategy_plan
 
         prescriptions: list[str] = []
         for motif in tuple(base.motifs or ()):
