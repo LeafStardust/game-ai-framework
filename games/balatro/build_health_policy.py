@@ -3,12 +3,11 @@ from __future__ import annotations
 """Build-Health decision integration for the Red/White calibration line.
 
 This layer compares current public-state health against projected legal Joker
-transitions. It does not add raw catalogue points. Existing committed-component,
+transitions. It does not add raw catalogue points. Existing replacement,
 Negative-retention, Eternal, affordability and D2 legality guards remain upstream
 and authoritative.
 """
 
-from copy import deepcopy
 from dataclasses import is_dataclass, replace
 from types import SimpleNamespace
 
@@ -33,12 +32,6 @@ def _updated(value, **changes):
     data = dict(getattr(value, "__dict__", {}))
     data.update(changes)
     return SimpleNamespace(**data)
-
-
-def _tracker_from_policy(policy):
-    planner = getattr(policy, "transition_planner", None)
-    evaluator = getattr(planner, "evaluator", None)
-    return getattr(evaluator, "strategy_tracker", None)
 
 
 def _joker_token(joker: object) -> str:
@@ -145,37 +138,19 @@ def _state_signature(state):
     )
 
 
-def _tracker_signature(tracker):
-    if tracker is None:
-        return None
-    return (
-        str(getattr(tracker, "_last_dominant_strategy_id", "") or ""),
-        tuple(str(value) for value in getattr(tracker, "_last_relevant_strategy_ids", ()) or ()),
-    )
-
-
-def _cached_health(owner, state, tracker):
-    signature = (_state_signature(state), _tracker_signature(tracker))
+def _cached_health(owner, state):
+    signature = _state_signature(state)
     cached = getattr(owner, "_build_health_cache", None)
     if cached is not None and cached[0] == signature:
         return cached[1]
-    health = _HEALTH.evaluate(state, strategy_tracker=tracker)
+    health = _HEALTH.evaluate(state)
     owner._build_health_cache = (signature, health)
     return health
 
 
-def _projection_tracker(tracker):
-    if tracker is None:
-        return None
-    try:
-        return deepcopy(tracker)
-    except (TypeError, ValueError):
-        return None
-
-
-def _projected_health(state, jokers, tracker):
+def _projected_health(state, jokers):
     projected = projected_state_with_jokers(state, jokers)
-    return _HEALTH.evaluate(projected, strategy_tracker=_projection_tracker(tracker))
+    return _HEALTH.evaluate(projected)
 
 
 def _health_notes(prefix: str, health) -> tuple[str, ...]:
@@ -218,8 +193,7 @@ def _health_aware_joker_decision(policy, state, candidate, decision):
     options = tuple(getattr(decision, "options", ()) or ())
     if not options:
         return decision
-    tracker = _tracker_from_policy(policy)
-    current = _cached_health(policy, state, tracker)
+    current = _cached_health(policy, state)
     ante = max(1, int(getattr(state, "ante", 1) or 1))
     free_slot = len(getattr(state, "jokers", ()) or ()) < int(getattr(state, "joker_slots", 0) or 0)
 
@@ -227,7 +201,7 @@ def _health_aware_joker_decision(policy, state, candidate, decision):
         option = options[0]
         if not bool(getattr(option, "eligible", False)):
             return decision
-        projected = _projected_health(state, _free_slot_projected_jokers(state, candidate), tracker)
+        projected = _projected_health(state, _free_slot_projected_jokers(state, candidate))
         survival_gain = projected.survival - current.survival
         scaling_gain = projected.scaling - current.scaling
         early_survival_fix = (
@@ -281,7 +255,7 @@ def _health_aware_joker_decision(policy, state, candidate, decision):
         projected_jokers = _replacement_projected_jokers(state, candidate, index)
         if projected_jokers is None:
             continue
-        projected = _projected_health(state, projected_jokers, tracker)
+        projected = _projected_health(state, projected_jokers)
         scaling_gain = projected.scaling - current.scaling
         survival_loss = current.survival - projected.survival
         if scaling_gain < _MATERIAL_SCALING_DELTA and projected.scaling < 50.0:
@@ -353,9 +327,7 @@ def _health_reroll_decision(arbiter, state, result, reroll_cost):
     if cost <= 0:
         return result
 
-    policy = arbiter._joker_policy_for_state(state)
-    tracker = _tracker_from_policy(policy)
-    health = _cached_health(arbiter, state, tracker)
+    health = _cached_health(arbiter, state)
     ante = max(1, int(getattr(state, "ante", 1) or 1))
     money = max(0, int(getattr(state, "money", 0) or 0))
     remaining = money - cost
