@@ -79,7 +79,10 @@ def test_deadline_is_checked_between_expensive_candidate_projections(monkeypatch
         horizon=2,
         deadline=5.0,
     )
-    clock = iter((0.0, 0.0, 1.0, 2.0, 6.0))
+    # Candidate generation and the first projection begin before the deadline. The
+    # post-projection check observes expiry, so the second expensive projection
+    # must never start.
+    clock = iter((0.0, 0.0, 1.0, 6.0))
     monkeypatch.setattr(deadline_policy, "perf_counter", lambda: next(clock))
 
     with pytest.raises(PlannerSearchBudgetExceeded, match="play candidate ranking"):
@@ -88,7 +91,7 @@ def test_deadline_is_checked_between_expensive_candidate_projections(monkeypatch
             allow_discards=False,
         )
 
-    assert evaluator.calls == 2
+    assert evaluator.calls == 1
     assert planner.nodes_evaluated == 0
 
 
