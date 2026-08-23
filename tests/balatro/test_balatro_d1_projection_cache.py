@@ -1,6 +1,7 @@
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
+from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.state import BalatroState
 
 
@@ -120,3 +121,35 @@ def test_d1_child_beam_never_enumerates_all_discard_subsets():
 
     assert sum(action.name == "PLAY_CARDS" for action in actions) == 1
     assert sum(action.name == "DISCARD_CARDS" for action in actions) == 1
+
+
+def test_outer_d1_guaranteed_clear_scan_is_cached_per_live_state():
+    state = _state()
+    evaluator = LiveHandDecisionEvaluator()
+
+    class Distribution:
+        minimum = 0
+
+    class Outcomes:
+        def __init__(self):
+            self.calls = 0
+
+        def project(self, *args, **kwargs):
+            self.calls += 1
+            return Distribution()
+
+    outcomes = Outcomes()
+    evaluator.score_outcomes = outcomes
+
+    first = evaluator._has_guaranteed_clearing_play(state)
+    calls_after_first = outcomes.calls
+    second = evaluator._has_guaranteed_clearing_play(state)
+
+    assert first is False
+    assert second is False
+    assert calls_after_first > 0
+    assert outcomes.calls == calls_after_first
+
+    next_state = _state()
+    evaluator._has_guaranteed_clearing_play(next_state)
+    assert outcomes.calls > calls_after_first
