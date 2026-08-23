@@ -7,7 +7,6 @@ from games.balatro.build_health import BuildHealth
 from games.balatro.card import BalatroCard
 from games.balatro.playbook.red_white.shop_policy import PlaybookBuildAwareShopArbiter
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
-from games.balatro.strategy_booster_policy import StrategyAwarePlaybookShopArbiter
 
 
 def _health(*, survival, scaling, immediate=80.0, deficit=False):
@@ -161,7 +160,7 @@ def test_scaling_fix_cannot_trade_away_material_survival(monkeypatch):
     assert result.action == "HOLD"
 
 
-def test_full_roster_health_never_uses_ineligible_committed_replacement(monkeypatch):
+def test_full_roster_health_never_uses_ineligible_replacement(monkeypatch):
     core = _joker("Core")
     candidate = _joker("Scaler")
     state = _state(ante=4, jokers=(core,), slots=1)
@@ -310,11 +309,6 @@ def test_active_blind_cache_tracks_remaining_draw_pile_not_owned_deck(monkeypatc
     assert health.calls == 2
 
 
-def test_production_strategy_arbiter_reaches_patched_base_decide():
-    # The live runner constructs StrategyAwarePlaybookShopArbiter. Its explicit
-    # decide() delegates to super(), and PlaybookBuildAwareShopArbiter does not
-    # replace decide(), so the final target must remain the Build-Health-patched
-    # BuildAwareShopArbiter method.
+def test_production_build_aware_arbiter_reaches_patched_base_decide():
     assert "decide" not in PlaybookBuildAwareShopArbiter.__dict__
     assert PlaybookBuildAwareShopArbiter.decide is BuildAwareShopArbiter.decide
-    assert issubclass(StrategyAwarePlaybookShopArbiter, PlaybookBuildAwareShopArbiter)
