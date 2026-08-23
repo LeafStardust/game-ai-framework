@@ -34,6 +34,17 @@ class Composition:
 
 _SUIT_BONDS = frozenset({"clubs", "diamonds", "hearts", "spades"})
 
+# A known strategy becomes trackable from its first defining piece, but that does
+# not grant PINNED authority. This belongs in the canonical composer so callers that
+# import compose_build directly receive the same behavior as production wrappers.
+_DEFINING_MOTIF_CORES: dict[str, frozenset[str]] = {
+    "baron_mime_steel": frozenset({"BARON", "MIME"}),
+    "photograph_hanging_chad": frozenset({"PHOTOGRAPH", "HANGING_CHAD"}),
+    "vampire_midas": frozenset({"VAMPIRE", "MIDAS_MASK"}),
+    "burnt_target_level": frozenset({"BURNT_JOKER"}),
+    "low_rank_hack_retrigger": frozenset({"HACK"}),
+}
+
 
 def _eligible(dev: BondDevelopment) -> bool:
     # Rank still determines established Bond authority. Strategy formation happens
@@ -77,6 +88,104 @@ def _sanitize_behavior_candidates(
     return tuple(result)
 
 
+def _component_token(value: object) -> str:
+    return "".join(ch for ch in str(value or "").upper() if ch.isalnum())
+
+
+def _single_core_motif(motif: MotifEvaluation) -> MotifEvaluation | None:
+    if len(tuple(motif.present_components or ())) != 1:
+        return None
+    defining = _DEFINING_MOTIF_CORES.get(str(motif.motif_id), frozenset())
+    if not defining:
+        return None
+    present = {_component_token(value) for value in tuple(motif.present_components or ())}
+    if not defining.intersection(present):
+        return None
+    if motif.state == MotifState.ABSENT:
+        return replace(motif, state=MotifState.POTENTIAL)
+    return motif
+
+
+def _single_core_candidate(motif: MotifEvaluation) -> StrategyCandidate:
+    present = tuple(dict.fromkeys(str(value) for value in motif.present_components))
+    total = len(present) + len(tuple(motif.missing_components or ()))
+    completion = 0.0 if total <= 0 else len(present) / total
+    confidence = min(0.57, 0.25 + 0.45 * completion)
+    return StrategyCandidate(
+        strategy_id=str(motif.motif_id),
+        bond_ids=tuple(sorted(set(motif.relevant_bonds))),
+        sources=present,
+        roles=(),
+        links=(),
+        motif_ids=(str(motif.motif_id),),
+        commitment=StrategyCommitment.FORMING,
+        confidence=confidence,
+        strength=2.0 + 4.0 * confidence + len(present),
+        prescriptions=tuple(motif.prescriptions or ()),
+    )
+
+
+def _augment_single_core_candidates(
+    candidates: Iterable[StrategyCandidate],
+    motifs: Iterable[MotifEvaluation],
+) -> tuple[StrategyCandidate, ...]:
+    result = list(candidates)
+    covered = {
+        str(motif_id)
+        for candidate in result
+        for motif_id in tuple(candidate.motif_ids or ())
+    }
+    for motif in motifs:
+        if (
+            motif.state == MotifState.POTENTIAL
+            and len(tuple(motif.present_components or ())) == 1
+            and str(motif.motif_id) not in covered
+            and _single_core_motif(motif) is not None
+        ):
+            result.append(_single_core_candidate(motif))
+    return tuple(
+        sorted(
+            result,
+            key=lambda candidate: (
+                int(candidate.commitment),
+                candidate.confidence,
+                candidate.strength,
+                bool(candidate.motif_ids),
+                candidate.strategy_id,
+            ),
+            reverse=True,
+        )
+    )
+
+
+def _forming_strategy_plan(
+    candidate: StrategyCandidate | None,
+    developments: Iterable[BondDevelopment],
+    motifs: Iterable[MotifEvaluation],
+) -> StrategyPlan | None:
+    if (
+        candidate is None
+        or candidate.commitment != StrategyCommitment.FORMING
+        or not candidate.motif_ids
+    ):
+        return None
+    provisional = replace(candidate, commitment=StrategyCommitment.PINNED)
+    plan = build_strategy_plan(provisional, developments, motifs)
+    if plan is None:
+        return None
+    scouting = tuple(
+        dict.fromkeys(
+            [f"seek_feature:{feature}" for feature in tuple(plan.missing_features or ())]
+            + [f"seek_component:{component}" for component in tuple(plan.missing_components or ())]
+        )
+    )
+    return replace(
+        plan,
+        commitment=StrategyCommitment.FORMING,
+        prescriptions=scouting,
+    )
+
+
 def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Composition:
     calibration = current_bond_calibration()
     all_developments = tuple(developments)
@@ -112,12 +221,20 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
             if relationship_between(left.bond_id, right.bond_id) == BondRelationship.SYNERGY:
                 synergies.add(tuple(sorted((left.bond_id, right.bond_id))))
 
-    motifs = tuple(
-        motif
-        for motif in evaluate_motifs(state, all_developments)
-        if motif.state != MotifState.ABSENT
+    raw_motifs = tuple(evaluate_motifs(state, all_developments))
+    motifs_list: list[MotifEvaluation] = []
+    for motif in raw_motifs:
+        promoted = _single_core_motif(motif)
+        if motif.state != MotifState.ABSENT:
+            motifs_list.append(motif)
+        elif promoted is not None:
+            motifs_list.append(promoted)
+    motifs = tuple(motifs_list)
+
+    role_candidates = _augment_single_core_candidates(
+        form_strategy_candidates(all_developments, motifs),
+        motifs,
     )
-    role_candidates = form_strategy_candidates(all_developments, motifs)
     try:
         behavior_candidates = _sanitize_behavior_candidates(
             form_behavior_strategy_candidates(state, all_developments, motifs)
@@ -126,7 +243,19 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
         behavior_candidates = ()
     candidates = merge_strategy_candidates(role_candidates, behavior_candidates)
     pinned = pinned_strategy(candidates)
-    plan = build_strategy_plan(pinned, all_developments, motifs)
+    if pinned is not None:
+        plan = build_strategy_plan(pinned, all_developments, motifs)
+    else:
+        forming = next(
+            (
+                candidate
+                for candidate in candidates
+                if candidate.commitment == StrategyCommitment.FORMING
+                and bool(candidate.motif_ids)
+            ),
+            None,
+        )
+        plan = _forming_strategy_plan(forming, all_developments, motifs)
 
     base = sum(_bond_priority(dev) for dev in selected)
     synergy_bonus = calibration.synergy_bonus * len(synergies)
