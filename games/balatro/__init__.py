@@ -43,6 +43,7 @@ from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patc
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.shop_regression_policy import install_shop_regression_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
+from games.balatro.strategy_plan_pack_policy import install_strategy_plan_pack_policy
 from games.balatro.v1_0_0_luchador_policy import install_v1_0_0_luchador_policy
 from games.balatro.v1_0_0_policy import install_v1_0_0_policy
 
@@ -84,6 +85,7 @@ install_pinned_strategy_transition_policy()
 install_pinned_strategy_retention_policy()
 install_pinned_strategy_execution_policy()
 install_pinned_strategy_shop_goal_policy()
+install_strategy_plan_pack_policy()
 # Install after the older safe-pace patch so the final PACE_PLAY chooser can restore
 # StrategyAwareLiveHandActionPolicy tie-breaking only inside a narrow safe band.
 install_pinned_strategy_safe_pace_policy()
