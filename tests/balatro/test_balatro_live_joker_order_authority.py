@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from games.balatro.actions import REORDER_JOKERS, BalatroAction
+from games.balatro.actions import REORDER_JOKERS
 from games.balatro.joker_order_policy import JokerOrderDecision, JokerOrderPolicy
 from games.balatro.live.runtime.live_memory_autonomous_step_injected import LiveMemoryInjectedSingleStepRunner
 from games.balatro.live_joker_order_authority import (
@@ -142,7 +142,8 @@ def test_live_runner_can_intercept_shop_before_shop_transaction() -> None:
 
     decision = runner.decide()
 
-    assert decision.action == BalatroAction(REORDER_JOKERS, target=(1, 0))
+    assert decision.action.name == REORDER_JOKERS
+    assert decision.action.target == (1, 0)
     assert runner.joker_order_policy.calls == [(state, "SHOP")]
 
 
