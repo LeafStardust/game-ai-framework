@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 from games.balatro.tuning.live_evaluator import AuthoritativeLiveBatchEvaluator
+from games.balatro.tuning.live_preflight import validate_live_tuning_preflight
 from games.balatro.tuning.report import write_study_report
 from games.balatro.tuning.study import LiveStudyConfig, run_live_phase_a
 
@@ -40,9 +41,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Tune Phase-A Balatro Bond composition constants through authoritative "
-            "unseeded live runs. The game must already be open on a fresh actionable "
-            "Red/White run boundary. Lost trial batches reset automatically; a "
-            "winning trial stops the study for review/holdout validation."
+            "unseeded live runs. Every trial must begin at a fresh Ante-1 BLIND_SELECT "
+            "boundary. Lost trial batches reset automatically; a winning trial stops "
+            "the study for review/holdout validation."
         )
     )
     parser.add_argument("--study", required=True)
@@ -63,6 +64,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--sampler-seed", type=int, default=20260823)
     parser.add_argument("--deck", default="RED")
     parser.add_argument("--stake", default="WHITE")
+    parser.add_argument(
+        "--baseline-only",
+        action="store_true",
+        help=(
+            "run exactly the queued production-default baseline trial and stop; "
+            "use this before beginning a new live search campaign"
+        ),
+    )
     parser.add_argument(
         "--run-log-directory",
         type=Path,
@@ -90,7 +99,11 @@ def main() -> int:
 
     try:
         revision = _repository_sha(args.repo_sha)
-    except (OSError, subprocess.SubprocessError, RuntimeError) as error:
+        preflight = validate_live_tuning_preflight(
+            expected_deck=args.deck,
+            expected_stake=args.stake,
+        )
+    except Exception as error:
         print("Balatro live Bond tuning -> BLOCKED")
         print(f"Reason -> {error}")
         return 2
@@ -100,23 +113,32 @@ def main() -> int:
         storage_path=args.storage,
         repository_sha=revision,
         attempts_per_trial=args.attempts_per_trial,
-        deck=args.deck,
-        stake=args.stake,
+        deck=str(args.deck).upper(),
+        stake=str(args.stake).upper(),
         sampler_seed=args.sampler_seed,
     )
     evaluator = AuthoritativeLiveBatchEvaluator(
         attempts_per_trial=args.attempts_per_trial,
+        deck=config.deck,
+        stake=config.stake,
         run_log_directory=args.run_log_directory,
         session_directory=args.session_directory,
         control_directory=args.control_directory,
     )
 
+    print("Balatro live Bond tuning -> PREFLIGHT PASS")
+    print(f"Boundary -> {preflight.phase}, Ante {preflight.ante}, {preflight.deck}/{preflight.stake}")
+    print(f"Bridge -> protocol {preflight.bridge_version}, revision {preflight.bridge_revision}")
+    print(f"Achievement gate -> {preflight.achievement_gate}")
+
+    requested_trials = 1 if args.baseline_only else args.trials
     study = None
     try:
         # Optimize one trial at a time so a real win can stop before Optuna asks the
         # guarded live evaluator to operate on an intentionally non-restartable won
-        # terminal frame. Lost batches restore BLIND_SELECT themselves.
-        for _ in range(args.trials):
+        # terminal frame. Lost batches restore BLIND_SELECT themselves; the evaluator
+        # preflights that restored boundary again before every subsequent trial.
+        for _ in range(requested_trials):
             study = run_live_phase_a(
                 config,
                 evaluator,
@@ -124,6 +146,15 @@ def main() -> int:
                 timeout_seconds=args.timeout_seconds,
             )
             latest = study.trials[-1]
+            if args.baseline_only:
+                if str(latest.state.name) != "COMPLETE":
+                    raise RuntimeError("production baseline trial did not complete")
+                if not bool(latest.user_attrs.get("production_baseline")):
+                    raise RuntimeError(
+                        "--baseline-only requires a fresh study whose next queued trial "
+                        "is the production baseline"
+                    )
+                break
             if bool(latest.user_attrs.get("won")):
                 break
     except Exception as error:
@@ -143,9 +174,12 @@ def main() -> int:
     print(f"Trials recorded -> {len(study.trials)}")
     print(f"Best objective -> {study.best_value:.6f}")
     print(f"Latest session -> {latest.user_attrs.get('session_id', '?')}")
+    print(f"Latest production baseline -> {bool(latest.user_attrs.get('production_baseline'))}")
     print(f"Latest won -> {bool(latest.user_attrs.get('won'))}")
     print(f"Report -> {target}")
-    if bool(latest.user_attrs.get("won")):
+    if args.baseline_only:
+        print("Next gate -> inspect baseline report, then start Phase-A candidate trials")
+    elif bool(latest.user_attrs.get("won")):
         print("Next gate -> holdout/manual review; won runs are never auto-restarted")
     return 0
 
