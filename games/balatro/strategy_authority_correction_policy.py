@@ -29,6 +29,40 @@ _MOTIF_CORES: dict[str, frozenset[str]] = {
 _FORMING_COMPONENT_BONUS = 0.75
 _PINNED_COMPONENT_BONUS = 1.25
 
+# Missing components are semantic requirements, not always literal card names. Keep
+# this table deliberately narrow: it names only Jokers that directly provide the
+# missing capability. Broad infrastructure remains pack/deck work, not a shop excuse.
+_COMPONENT_JOKER_PROVIDERS: dict[str, frozenset[str]] = {
+    "LEVELINGSUPPORT": frozenset({"SPACEJOKER", "BLUEPRINT", "BRAINSTORM"}),
+}
+
+_HAND_PACK_GOALS = frozenset(
+    {
+        "high_card",
+        "pair",
+        "two_pair",
+        "three_kind",
+        "four_kind",
+        "straight",
+        "flush",
+        "full_house",
+        "straight_flush",
+        "five_kind",
+        "flush_house",
+        "flush_five",
+    }
+)
+
+# FORMING strategies may recruit only the pack goals that directly close an explicit
+# missing component. They still do not receive general pinned-strategy pack authority.
+_FORMING_COMPONENT_PACK_GOALS: dict[str, frozenset[str]] = {
+    "KINGINFRASTRUCTURE": frozenset({"kings"}),
+    "STEELINFRASTRUCTURE": frozenset({"steel"}),
+    "LOWRANKINFRASTRUCTURE": frozenset({"low_ranks"}),
+    "TARGETHANDLEVEL": _HAND_PACK_GOALS,
+    "ENHANCEMENTFEEDSTOCK": frozenset({"enhanced_cards"}),
+}
+
 
 def _token(value: object) -> str:
     return "".join(ch for ch in str(value or "").upper() if ch.isalnum())
@@ -120,9 +154,20 @@ def _component_match(plan: StrategyPlan | None, candidate) -> str | None:
         return None
     for component in tuple(plan.missing_components or ()):
         token = _token(component)
-        if token and name == token:
+        if not token:
+            continue
+        if name == token or name in _COMPONENT_JOKER_PROVIDERS.get(token, frozenset()):
             return str(component)
     return None
+
+
+def _forming_pack_goals(plan: StrategyPlan, goals: tuple[str, ...]) -> tuple[str, ...]:
+    allowed: set[str] = set()
+    for component in tuple(plan.missing_components or ()):
+        allowed.update(
+            _FORMING_COMPONENT_PACK_GOALS.get(_token(component), frozenset())
+        )
+    return tuple(goal for goal in goals if goal in allowed)
 
 
 def install_strategy_authority_correction_policy() -> None:
@@ -173,9 +218,15 @@ def install_strategy_authority_correction_policy() -> None:
     original_goal_ids = pack_goal_module._goal_ids
 
     def goal_ids(plan):
-        if plan is not None and getattr(plan, "commitment", StrategyCommitment.EXPLORATORY) < StrategyCommitment.PINNED:
-            return ()
-        return original_goal_ids(plan)
+        goals = original_goal_ids(plan)
+        if plan is None:
+            return goals
+        commitment = getattr(plan, "commitment", StrategyCommitment.EXPLORATORY)
+        if commitment >= StrategyCommitment.PINNED:
+            return goals
+        if commitment == StrategyCommitment.FORMING:
+            return _forming_pack_goals(plan, goals)
+        return ()
 
     pack_goal_module._goal_ids = goal_ids
 
@@ -205,9 +256,9 @@ def install_strategy_authority_correction_policy() -> None:
             gain=float(utility.gain) + bonus,
             notes=(
                 *utility.notes,
-                f"strategy missing-core recruitment bonus={bonus:.3f}",
+                f"strategy missing-component recruitment bonus={bonus:.3f}",
                 f"matched missing component={matched}",
-                "forming strategies may recruit core pieces without receiving pinned authority",
+                "forming strategies may recruit direct missing-piece providers without receiving pinned authority",
             ),
         )
 
