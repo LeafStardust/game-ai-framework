@@ -10,6 +10,7 @@ from games.balatro.bond_pivot_authority import install_bond_pivot_authority
 from games.balatro.bond_power_engine_retention_policy import install_bond_power_engine_retention_policy
 from games.balatro.bond_prescription_policy import install_bond_prescription_policy
 from games.balatro.bond_shop_health_policy import install_bond_shop_health_policy
+from games.balatro.boss_hand_constraint_policy import install_boss_hand_constraint_policy
 from games.balatro.build_health_policy import install_build_health_policy
 from games.balatro.burnt_bond_execution_policy import install_burnt_bond_execution_policy
 from games.balatro.d1_candidate_deadline_policy import install_d1_candidate_deadline_policy
@@ -56,6 +57,9 @@ from games.balatro.v1_0_0_policy import install_v1_0_0_policy
 
 
 install_mouth_first_hand_policy()
+# Psychic/Eye legality belongs outside the Mouth wrapper so every downstream D1
+# layer sees only boss-admissible play candidates.
+install_boss_hand_constraint_policy()
 install_d1_log_resilience_policy()
 install_d1_candidate_deadline_policy()
 install_d1_outer_evaluation_cache_policy()
