@@ -8,12 +8,38 @@ from games.balatro.live.shop import LiveShopItem
 from games.balatro.live_joker_order_authority import _identity_xmult_factor
 from games.balatro.live_quality_regression_policy import _strict_planet_hand_relevant
 from games.balatro.planets import PLANET_CARDS
-from games.balatro.shop_booster_policy import BUY, BuildAwareShopBoosterPolicy
+from games.balatro.shop_booster_policy import BUY, HOLD, BuildAwareShopBoosterPolicy
 from games.balatro.state import BalatroState
 
 
 def _planet(name: str):
     return next(card for card in PLANET_CARDS.values() if card.name == name)
+
+
+def _state() -> BalatroState:
+    state = BalatroState()
+    state.phase = "SHOP"
+    state.money = 0
+    state.ante = 3
+    state.joker_slots = 5
+    state.jokers = []
+    state.owned_deck = []
+    state.hand_levels = {}
+    state.hand_play_counts = {}
+    return state
+
+
+def _free_booster(label: str, center: str | None = None) -> BalatroAction:
+    return BalatroAction(
+        BUY_BOOSTER,
+        target=LiveShopItem(
+            kind="BOOSTER",
+            label=label,
+            price=0,
+            area_index=0,
+            center=center,
+        ),
+    )
 
 
 def test_polychrome_edition_is_treated_as_xmult_for_ordering() -> None:
@@ -40,20 +66,19 @@ def test_sustained_primary_hand_can_still_make_planet_relevant() -> None:
     assert relevant
 
 
-def test_zero_cost_booster_is_always_opened() -> None:
-    state = BalatroState()
-    state.phase = "SHOP"
-    state.money = 0
-    state.ante = 3
-    state.joker_slots = 5
-    state.jokers = []
-    state.owned_deck = []
-    state.hand_levels = {}
-    state.hand_play_counts = {}
-    action = BalatroAction(
-        BUY_BOOSTER,
-        target=LiveShopItem(kind="BOOSTER", label="Arcana Pack", price=0, area_index=0),
+def test_zero_cost_safe_booster_is_opened() -> None:
+    result = BuildAwareShopBoosterPolicy().recommend(
+        _state(),
+        _free_booster("Standard Pack", "p_standard_normal_1"),
     )
-    result = BuildAwareShopBoosterPolicy().recommend(state, action)
     assert result.decision == BUY
     assert any("FREE BOOSTER AUTHORITY" in note for note in result.rationale)
+
+
+def test_zero_cost_deferred_booster_still_respects_d8_d9_boundary() -> None:
+    result = BuildAwareShopBoosterPolicy().recommend(
+        _state(),
+        _free_booster("Arcana Pack", "p_arcana_normal_1"),
+    )
+    assert result.decision == HOLD
+    assert all("FREE BOOSTER AUTHORITY" not in note for note in result.rationale)
