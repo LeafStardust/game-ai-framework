@@ -24,15 +24,17 @@ The canonical flow is now:
 
 ```text
 public Balatro state
-  -> Bond contributions + mechanical roles
+  -> raw Bond contributions + mechanical roles
   -> behavior-backed effect descriptors
      (produces / requires / scales_with / amplifies / transforms)
   -> semantic links between mechanics
   -> candidate strategies
   -> EXPLORATORY / FORMING / PINNED / ESTABLISHED / DOMINANT
+  -> one bounded strategy-development feedback pass
+  -> Bond realization + composition recomputed once
   -> unmet feature goals + known motif prescriptions
   -> acquisition / preservation / execution preference
-  -> Bond development and realization continue to measure how far the engine has progressed
+  -> future public state provides new direct evidence
 ```
 
 ## Rank and strategy commitment are separate
@@ -107,7 +109,7 @@ producer output feeds consumer scaling
 amplifier targets another component's output
 ```
 
-Public deck/build features are also infrastructure nodes, so a payoff Joker can form a strategy with useful rank/suit/enhancement/hand-level state before a second Joker appears.
+Public deck/build features may provide infrastructure evidence, but ambient feature nodes alone are not allowed to create rank authority or pin a strategy without concrete cooperating sources.
 
 ## Known motifs are accelerators, not prerequisites
 
@@ -150,6 +152,42 @@ A pinned strategy gains three forms of authority:
 
 A replacement may still pivot away when the projected pinned strategy is materially stronger. Survival, legality, boss mechanics and lower-level action admissibility remain final constraints.
 
+## Strategy-development feedback
+
+Raw Bond evaluators remain local and independently inspectable. They do not receive strategy bonuses during the first evaluation pass.
+
+After raw developments are composed, the runtime may apply exactly one bounded coherence reinforcement pass if a strategy is already pinned from genuine evidence. This closes the previous disconnect where the composer understood a coherent engine but every constituent Bond remained permanently scored as an isolated object.
+
+The reinforcement rules are strict:
+
+```text
+FORMING      -> no rank reinforcement
+PINNED       -> coherence authority capped at R2
+ESTABLISHED  -> coherence authority capped at R3
+DOMINANT     -> coherence authority capped at R4
+R5           -> direct catalogue evidence only
+```
+
+Additional constraints:
+
+- one evaluation may advance a Bond by at most one rank beyond its raw rank;
+- the Bond itself must participate in a semantic link through a concrete non-ambient source;
+- `feature:...` deck/profile nodes cannot supply coherence rank authority;
+- reinforcement is recorded as an explicit `Pinned strategy coherence: <strategy>` contribution;
+- after reinforcement, realization and composition are recomputed exactly once;
+- there is no recursive reinforcement pass.
+
+This means a raw R1 Bond inside a genuinely pinned concrete engine may become R2 because it is now a supported strategic direction. A raw R1 Bond cannot jump directly to R3/R4, and no amount of composition confidence can fabricate an R5 capstone.
+
+The first pass therefore remains non-circular:
+
+```text
+raw public evidence
+  -> raw Bond ranks
+  -> strategy must pin from those facts
+  -> only then may proven coherence add bounded development authority
+```
+
 ## Unmet feature goals
 
 Behavior-backed candidates expose missing mechanical needs as:
@@ -177,6 +215,8 @@ The transition layer now also gives bounded value when a candidate:
 - materially strengthens the same pinned strategy;
 - pivots to a materially stronger pinned strategy.
 
+Because projected candidate states use the same two-pass Bond composition evaluation, an acquisition that genuinely completes a concrete pinned engine can also expose the corresponding bounded Bond-development transition to D2. This is the feedback path from understanding to construction; it does not bypass D2 admission or resource safety.
+
 This value remains capped inside the existing canonical Bond-transition budget.
 
 ## Observability
@@ -196,6 +236,8 @@ For each candidate the runtime can report:
 - prescriptions/unmet feature goals;
 - whether the candidate is currently pinned.
 
+Reinforced Bond rows also expose their explicit strategy-coherence contribution, so live logs can distinguish direct catalogue development from composition support.
+
 This separation is intentional: R0 evidence can explain why a strategy is forming without pretending the corresponding Bond has already reached R1.
 
 ## Baron / Mime / Steel / Kings acceptance example
@@ -209,18 +251,21 @@ The implementation is not acceptable unless it can demonstrate all of the follow
 5. Once pinned, the agent seeks compatible Kings/Steel/Red-Seal/copy support through normal safe policies.
 6. D2 does not sell Baron or Mime for an isolated local upgrade if that sale destroys the pinned engine.
 7. A genuinely stronger projected strategy can still justify a pivot.
-8. As infrastructure accumulates, Bond ranks and realization rise independently and describe development/function rather than gate recognition.
+8. As infrastructure accumulates, Bond ranks and realization rise and describe development/function rather than gate recognition.
+9. Pinned concrete links may provide one bounded rank of support, but cannot manufacture capstone R5 authority.
 
 ## Tuning boundary
 
-Optuna remains frozen until this semantic machine is validated.
+Optuna remains frozen until this semantic machine is validated live.
 
 Numerical optimization must not compensate for missing understanding. The correct order is:
 
 ```text
 mechanical semantics correct
   -> strategy formation/pinning correct
+  -> development feedback correct
   -> execution/preservation correct
   -> rank reachability/calibration validated
+  -> live behavior validated
   -> only then numerical optimization
 ```
