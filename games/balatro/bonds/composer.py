@@ -8,6 +8,7 @@ from games.balatro.bonds.calibration import current_bond_calibration
 from games.balatro.bonds.model import BondDevelopment, BondRank
 from games.balatro.bonds.motifs import MotifEvaluation, MotifState, REALIZATION_STRENGTH, evaluate_motifs
 from games.balatro.bonds.relationships import BondRelationship, relationship_between
+from games.balatro.bonds.strategy_plan import StrategyPlan, build_strategy_plan
 from games.balatro.bonds.strategy_semantics import (
     StrategyCandidate,
     StrategyCommitment,
@@ -28,6 +29,7 @@ class Composition:
     prescriptions: tuple[str, ...]
     strategy_candidates: tuple[StrategyCandidate, ...] = ()
     pinned_strategy_id: str | None = None
+    strategy_plan: StrategyPlan | None = None
 
 
 _SUIT_BONDS = frozenset({"clubs", "diamonds", "hearts", "spades"})
@@ -53,21 +55,11 @@ def _pivot_resistance(dev: BondDevelopment) -> float:
 def _sanitize_behavior_candidates(
     candidates: Iterable[StrategyCandidate],
 ) -> tuple[StrategyCandidate, ...]:
-    """Reject generic behavior graphs that are not actionable strategies.
-
-    The behavior profiler intentionally has broad feature vocabulary.  Connected
-    components can therefore contain mutually exclusive alternatives (for example
-    every suit connected through generic Flush scaling) or pin a single payoff plus
-    ordinary ambient deck evidence.  Those are useful observations, but they are not
-    enough to own the run.
-    """
-
+    """Reject generic behavior graphs that are not actionable strategies."""
     result: list[StrategyCandidate] = []
     for candidate in candidates:
         suit_count = len(_SUIT_BONDS.intersection(candidate.bond_ids))
         if not candidate.motif_ids and suit_count > 1:
-            # Hearts/Spades/Clubs/Diamonds are alternative build directions unless a
-            # known motif explicitly explains why they belong to one package.
             continue
 
         concrete_sources = tuple(
@@ -80,9 +72,6 @@ def _sanitize_behavior_candidates(
             and len(set(concrete_sources)) < 2
             and candidate.commitment >= StrategyCommitment.PINNED
         ):
-            # One Joker plus baseline deck/hand evidence can form a direction, but
-            # cannot pin the strategy by itself.  A second concrete engine piece,
-            # higher-level explicit role relation, or known motif may pin it later.
             candidate = replace(candidate, commitment=StrategyCommitment.FORMING)
         result.append(candidate)
     return tuple(result)
@@ -123,7 +112,6 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
             if relationship_between(left.bond_id, right.bond_id) == BondRelationship.SYNERGY:
                 synergies.add(tuple(sorted((left.bond_id, right.bond_id))))
 
-    # Observe motifs against the complete Bond state, not only R1+ selected Bonds.
     motifs = tuple(
         motif
         for motif in evaluate_motifs(state, all_developments)
@@ -135,11 +123,10 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
             form_behavior_strategy_candidates(state, all_developments, motifs)
         )
     except (AttributeError, TypeError, ValueError):
-        # Synthetic/minimal states used by deterministic tests may not carry enough
-        # modeled behavior for the profiler. Explicit Bond-role semantics still work.
         behavior_candidates = ()
     candidates = merge_strategy_candidates(role_candidates, behavior_candidates)
     pinned = pinned_strategy(candidates)
+    plan = build_strategy_plan(pinned, all_developments, motifs)
 
     base = sum(_bond_priority(dev) for dev in selected)
     synergy_bonus = calibration.synergy_bonus * len(synergies)
@@ -158,7 +145,9 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
     for motif in motifs:
         if motif.state >= MotifState.ACTIVE:
             prescriptions.extend(motif.prescriptions)
-    if pinned is not None:
+    if plan is not None:
+        prescriptions.extend(plan.prescriptions)
+    elif pinned is not None:
         prescriptions.extend(pinned.prescriptions)
     prescriptions = list(dict.fromkeys(prescriptions))
 
@@ -173,4 +162,5 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
         prescriptions=tuple(prescriptions),
         strategy_candidates=candidates,
         pinned_strategy_id=None if pinned is None else pinned.strategy_id,
+        strategy_plan=plan,
     )
