@@ -28,6 +28,7 @@ from games.balatro.latest_five_run_calibration_policy import install_latest_five
 from games.balatro.latest_five_run_resource_metrics import install_latest_five_run_resource_metrics
 from games.balatro.latest_zero_five_survival_policy import install_latest_zero_five_survival_policy
 from games.balatro.live_joker_order_authority import install_live_joker_order_authority
+from games.balatro.live_quality_regression_policy import install_live_quality_regression_policy
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.noncash_cash_deployment_policy import install_noncash_cash_deployment_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
@@ -86,12 +87,16 @@ install_pinned_strategy_retention_policy()
 install_pinned_strategy_execution_policy()
 install_pinned_strategy_shop_goal_policy()
 install_strategy_plan_pack_policy()
+# Install after all strategic/shop wrappers so these production-regression guards
+# see the final decision and can enforce no-cost packs, Planet relevance, and
+# replacement hysteresis without bypassing earlier safety authorities.
+install_live_quality_regression_policy()
 # Install after the older safe-pace patch so the final PACE_PLAY chooser can restore
 # StrategyAwareLiveHandActionPolicy tie-breaking only inside a narrow safe band.
 install_pinned_strategy_safe_pace_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
 # Joker ordering is an execution invariant rather than a strategy preference. Keep
-# it last so later policy composition cannot bypass Blueprint/Brainstorm targeting
-# or established additive-Mult-before-XMult ordering rules.
+# it last so later policy composition cannot bypass Blueprint/Brainstorm targeting,
+# Polychrome/XMult right-alignment, or additive-Mult-before-XMult ordering rules.
 install_live_joker_order_authority()
