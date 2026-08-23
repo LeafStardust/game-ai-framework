@@ -93,8 +93,18 @@ def _correct_candidate(candidate: StrategyCandidate, motifs) -> StrategyCandidat
     return replace(candidate, commitment=commitment)
 
 
-def _forming_plan(candidate: StrategyCandidate, developments, motifs) -> StrategyPlan | None:
-    if candidate.commitment != StrategyCommitment.FORMING or not candidate.motif_ids:
+def _forming_plan(
+    candidate: StrategyCandidate | None,
+    developments,
+    motifs,
+) -> StrategyPlan | None:
+    # No FORMING candidate is a normal state for many valid composer scenarios.
+    # Treat it as absence of strategy authority, not as an exceptional condition.
+    if (
+        candidate is None
+        or candidate.commitment != StrategyCommitment.FORMING
+        or not candidate.motif_ids
+    ):
         return None
 
     # Reuse the canonical plan builder for goal ranking/completion, but do not expose
