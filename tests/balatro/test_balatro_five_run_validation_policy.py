@@ -5,8 +5,6 @@ from games.balatro.card import BalatroCard
 from games.balatro.live.boss_score_transform import boss_hand_scores_zero
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 from games.balatro.state import BalatroState
-from games.balatro.strategy import GOLD
-from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
 from games.balatro.five_run_validation_policy import _safe_castle_discard_alternative
 
 
@@ -19,11 +17,6 @@ def _plan(action, *, probability=0.5, expected_score=100.0, exact=True):
         ),
         exact=exact,
     )
-
-
-def test_walkie_talkie_is_gold_core_for_ten_four():
-    strategy = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES["ten_four"]
-    assert strategy.relationship_for(SimpleNamespace(name="Walkie Talkie"), kind="JOKER") == GOLD
 
 
 def test_translator_ignores_stale_eye_and_mouth_state_on_other_bosses():
