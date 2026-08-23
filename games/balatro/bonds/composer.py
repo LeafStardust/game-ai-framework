@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable
 
+from games.balatro.bonds.behavior_strategy import form_behavior_strategy_candidates, merge_strategy_candidates
 from games.balatro.bonds.calibration import current_bond_calibration
 from games.balatro.bonds.model import BondDevelopment, BondRank
 from games.balatro.bonds.motifs import MotifEvaluation, MotifState, REALIZATION_STRENGTH, evaluate_motifs
@@ -25,24 +26,19 @@ class Composition:
 
 
 def _eligible(dev: BondDevelopment) -> bool:
-    # Rank still determines established Bond authority.  Strategy formation itself
-    # deliberately happens from all positive mechanical evidence in
-    # strategy_semantics, so R0 is not strategically invisible anymore.
+    # Rank still determines established Bond authority. Strategy formation happens
+    # independently from all positive mechanical evidence, so R0 is not invisible.
     return dev.unlocked and dev.rank >= BondRank.R1
 
 
 def _bond_priority(dev: BondDevelopment) -> float:
     calibration = current_bond_calibration()
-    rank_weight = float(max(0, int(dev.rank)))
-    realization_weight = (
-        float(REALIZATION_STRENGTH[dev.realization])
-        * calibration.realization_priority_weight
+    return float(max(0, int(dev.rank))) + (
+        float(REALIZATION_STRENGTH[dev.realization]) * calibration.realization_priority_weight
     )
-    return rank_weight + realization_weight
 
 
 def _pivot_resistance(dev: BondDevelopment) -> float:
-    # Cost of abandoning established structure; never a lock.
     return current_bond_calibration().pivot_resistance(dev.rank)
 
 
@@ -81,16 +77,20 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
             if relationship_between(left.bond_id, right.bond_id) == BondRelationship.SYNERGY:
                 synergies.add(tuple(sorted((left.bond_id, right.bond_id))))
 
-    # Motifs are observations about the public build, not rewards that should vanish
-    # just because a supporting Bond has not crossed R1 yet.  Evaluate against the
-    # full catalogue so incomplete engines can be noticed while they are still being
-    # formed.
+    # Observe motifs against the complete Bond state, not only R1+ selected Bonds.
     motifs = tuple(
         motif
         for motif in evaluate_motifs(state, all_developments)
         if motif.state != MotifState.ABSENT
     )
-    candidates = form_strategy_candidates(all_developments, motifs)
+    role_candidates = form_strategy_candidates(all_developments, motifs)
+    try:
+        behavior_candidates = form_behavior_strategy_candidates(state, all_developments, motifs)
+    except (AttributeError, TypeError, ValueError):
+        # Synthetic/minimal states used by deterministic tests may not carry enough
+        # modeled behavior for the profiler. Explicit Bond-role semantics still work.
+        behavior_candidates = ()
+    candidates = merge_strategy_candidates(role_candidates, behavior_candidates)
     pinned = pinned_strategy(candidates)
 
     base = sum(_bond_priority(dev) for dev in selected)
@@ -110,9 +110,6 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
     for motif in motifs:
         if motif.state >= MotifState.ACTIVE:
             prescriptions.extend(motif.prescriptions)
-    # A pinned candidate is already a strategic commitment.  Its prescriptions are
-    # allowed to steer safe choices before the engine is fully realized; legality,
-    # survival and family-specific admission policies remain authoritative below it.
     if pinned is not None:
         prescriptions.extend(pinned.prescriptions)
     prescriptions = list(dict.fromkeys(prescriptions))
