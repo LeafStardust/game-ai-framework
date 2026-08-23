@@ -21,11 +21,16 @@ class BossBlindPlanningRule:
 
 
 _BOSS_RULES = {
-    # Psychic/Eye/Mouth do not make Play actions illegal. Their conditions debuff
-    # the whole hand after it is played; final score projection owns that path.
+    # The Psychic debuffs any hand that does not contain exactly five played cards.
+    # Treat those zero-score plays as inadmissible throughout recursive planning so
+    # adaptive search cannot build a path through branches that Balatro will reject.
     "The Psychic": BossBlindPlanningRule(
         boss_name="The Psychic",
+        required_play_cards=5,
     ),
+    # Eye/Mouth conditions depend on mutable hand-type history and are represented
+    # by the authoritative boss score transform.  Root D1 additionally removes
+    # repeated Eye types while an unused legal type exists to reduce wasted search.
     "The Eye": BossBlindPlanningRule(
         boss_name="The Eye",
     ),
@@ -94,6 +99,7 @@ def boss_play_action_is_legal(state, action) -> bool:
         return True
     if (
         rule.required_play_cards is not None
+        and getattr(action, "name", None) == "PLAY_CARDS"
         and len(getattr(action, "cards", ())) != rule.required_play_cards
     ):
         return False
