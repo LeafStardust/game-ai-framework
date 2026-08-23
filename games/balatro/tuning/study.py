@@ -165,7 +165,10 @@ def _validate_or_initialize_attrs(study, expected: dict[str, object], name: str)
 
 def _create_study(*, name: str, storage_url: str, sampler_seed: int, attrs: dict[str, object]):
     optuna = _optuna()
-    sampler = optuna.samplers.TPESampler(seed=int(sampler_seed), multivariate=True)
+    # Keep the first production tuner on Optuna's stable TPE surface. The
+    # experimental multivariate mode is unnecessary for this small Phase-A search
+    # space and would make reproducibility depend on an experimental API contract.
+    sampler = optuna.samplers.TPESampler(seed=int(sampler_seed))
     study = optuna.create_study(
         study_name=name,
         storage=storage_url,
@@ -195,14 +198,9 @@ def create_live_phase_a_study(config: LiveStudyConfig):
     )
 
 
-def _is_production_baseline(calibration: BondCalibration) -> bool:
-    return calibration == DEFAULT_BOND_CALIBRATION
-
-
 def _record_metrics(trial, calibration: BondCalibration, metrics: BatchMetrics) -> float:
     values = metrics.to_dict()
     trial.set_user_attr("calibration", calibration.to_dict())
-    trial.set_user_attr("production_baseline", _is_production_baseline(calibration))
     for key, value in values.items():
         trial.set_user_attr(f"metric.{key}", value)
     return float(values["objective"])
