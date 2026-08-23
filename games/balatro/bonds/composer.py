@@ -47,8 +47,6 @@ _DEFINING_MOTIF_CORES: dict[str, frozenset[str]] = {
 
 
 def _eligible(dev: BondDevelopment) -> bool:
-    # Rank still determines established Bond authority. Strategy formation happens
-    # independently from all positive mechanical evidence, so R0 is not invisible.
     return dev.unlocked and dev.rank >= BondRank.R1
 
 
@@ -66,13 +64,11 @@ def _pivot_resistance(dev: BondDevelopment) -> float:
 def _sanitize_behavior_candidates(
     candidates: Iterable[StrategyCandidate],
 ) -> tuple[StrategyCandidate, ...]:
-    """Reject generic behavior graphs that are not actionable strategies."""
     result: list[StrategyCandidate] = []
     for candidate in candidates:
         suit_count = len(_SUIT_BONDS.intersection(candidate.bond_ids))
         if not candidate.motif_ids and suit_count > 1:
             continue
-
         concrete_sources = tuple(
             source for source in candidate.sources
             if not str(source).lower().startswith("feature:")
@@ -95,7 +91,10 @@ def _component_token(value: object) -> str:
 def _single_core_motif(motif: MotifEvaluation) -> MotifEvaluation | None:
     if len(tuple(motif.present_components or ())) != 1:
         return None
-    defining = _DEFINING_MOTIF_CORES.get(str(motif.motif_id), frozenset())
+    defining = {
+        _component_token(value)
+        for value in _DEFINING_MOTIF_CORES.get(str(motif.motif_id), frozenset())
+    }
     if not defining:
         return None
     present = {_component_token(value) for value in tuple(motif.present_components or ())}
