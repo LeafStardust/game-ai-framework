@@ -18,6 +18,7 @@ from dataclasses import replace
 
 import games.balatro.bonds.composer as composer_module
 from games.balatro.bonds.motifs import MotifEvaluation, MotifState, evaluate_motifs as raw_evaluate_motifs
+from games.balatro.bonds.strategy_plan import build_strategy_plan
 from games.balatro.bonds.strategy_semantics import (
     StrategyCandidate,
     StrategyCommitment,
@@ -109,6 +110,30 @@ def _augment_single_core_candidates(candidates, motifs) -> tuple[StrategyCandida
     )
 
 
+def _forming_plan(candidate: StrategyCandidate, developments, motifs):
+    """Build the missing-piece plan without granting PINNED authority.
+
+    The canonical builder intentionally ignores FORMING candidates. Build through a
+    temporary PINNED view, then downgrade the returned plan and strip execution
+    prescriptions down to scouting-only seek_component/seek_feature directives.
+    """
+    provisional = replace(candidate, commitment=StrategyCommitment.PINNED)
+    plan = build_strategy_plan(provisional, developments, motifs)
+    if plan is None:
+        return None
+    scouting = tuple(
+        dict.fromkeys(
+            [f"seek_feature:{feature}" for feature in tuple(plan.missing_features or ())]
+            + [f"seek_component:{component}" for component in tuple(plan.missing_components or ())]
+        )
+    )
+    return replace(
+        plan,
+        commitment=StrategyCommitment.FORMING,
+        prescriptions=scouting,
+    )
+
+
 def install_single_core_strategy_tracking_policy() -> None:
     if getattr(composer_module, "_single_core_strategy_tracking_installed", False):
         return
@@ -140,9 +165,27 @@ def install_single_core_strategy_tracking_policy() -> None:
         motifs = tuple(motif_by_id.values())
         candidates = _augment_single_core_candidates(base.strategy_candidates, motifs)
 
-        # Do not create a StrategyPlan here. The strategy-authority correction layer
-        # installed immediately after this policy converts the FORMING candidate into
-        # a bounded missing-piece scouting plan while preserving pinned_strategy_id=None.
+        # A stronger existing strategy remains authoritative. Otherwise expose the
+        # strongest one-core known package as a bounded FORMING scouting plan.
+        plan = base.strategy_plan
+        if plan is None:
+            candidate = next(
+                (
+                    value
+                    for value in candidates
+                    if value.commitment == StrategyCommitment.FORMING
+                    and bool(value.motif_ids)
+                    and any(str(mid) in {str(m.motif_id) for m in single_core} for mid in value.motif_ids)
+                ),
+                None,
+            )
+            if candidate is not None:
+                plan = _forming_plan(candidate, developments, motifs)
+
+        prescriptions = list(base.prescriptions)
+        if plan is not None and plan.commitment == StrategyCommitment.FORMING:
+            prescriptions.extend(plan.prescriptions)
+
         return replace(
             base,
             motifs=motifs,
@@ -151,6 +194,8 @@ def install_single_core_strategy_tracking_policy() -> None:
                 for motif in motifs
             ),
             strategy_candidates=candidates,
+            strategy_plan=plan,
+            prescriptions=tuple(dict.fromkeys(prescriptions)),
         )
 
     composer_module.compose_build = compose_build
