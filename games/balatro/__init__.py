@@ -14,6 +14,7 @@ from games.balatro.build_health_policy import install_build_health_policy
 from games.balatro.burnt_bond_execution_policy import install_burnt_bond_execution_policy
 from games.balatro.d1_candidate_deadline_policy import install_d1_candidate_deadline_policy
 from games.balatro.d1_log_resilience_policy import install_d1_log_resilience_policy
+from games.balatro.d1_outer_evaluation_cache_policy import install_d1_outer_evaluation_cache_policy
 from games.balatro.deck_growth_pack_policy import install_deck_growth_pack_policy
 from games.balatro.early_capacity_policy import install_early_capacity_policy
 from games.balatro.face_card_enabler_bond_policy import install_face_card_enabler_bond_policy
@@ -56,6 +57,7 @@ from games.balatro.v1_0_0_policy import install_v1_0_0_policy
 install_mouth_first_hand_policy()
 install_d1_log_resilience_policy()
 install_d1_candidate_deadline_policy()
+install_d1_outer_evaluation_cache_policy()
 install_shop_regression_policy()
 install_safe_pace_optimization_policy()
 install_safe_pace_timeout_patch()
