@@ -3,10 +3,11 @@ from __future__ import annotations
 """Final live guards for regressions observed in production validation.
 
 These are authority corrections, not tuning knobs:
-- free boosters are always worth opening because the post-open choice may still Skip;
-- off-build Planets cannot become permanently relevant from one accidental play/level;
+- zero-cost autonomous-safe boosters are opened when ordinary/default D8 semantics
+  would otherwise reject them only for value/probability reasons;
+- off-build exotic Planets cannot bootstrap relevance from a stray level increase;
 - weak Joker replacement churn is suppressed unless it materially improves the build;
-- pack Planet relevance uses the same applied-strategy-aware rule as shop Planets.
+- pack Planet relevance uses the same applied-strategy-aware exotic-hand rule.
 """
 
 from dataclasses import replace
@@ -18,7 +19,11 @@ from games.balatro.joker_policy import HOLD, REPLACE
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
 from games.balatro.planets import PLANET_CARDS
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
-from games.balatro.shop_booster_policy import BUY, BuildAwareShopBoosterPolicy
+from games.balatro.shop_booster_policy import (
+    BUY,
+    BoosterAcquisitionThresholds,
+    BuildAwareShopBoosterPolicy,
+)
 import games.balatro.planet_relevance_policy as planet_relevance
 
 
@@ -26,6 +31,18 @@ _MIN_UNPINNED_REPLACEMENT_ADVANTAGE = 1.50
 _MIN_SAME_PLAN_STRENGTH_GAIN = 1.00
 _MIN_SAME_PLAN_COMPLETION_GAIN = 0.03
 _STRONG_LOCAL_REPLACEMENT_ADVANTAGE = 2.50
+
+# These hands are rare enough that a Planet level by itself must not create its own
+# justification. This is the Neptune failure observed live: Straight Flush reached
+# level 2/3 while its play count remained exactly zero.
+_EXOTIC_HANDS = frozenset(
+    {
+        "STRAIGHT_FLUSH",
+        "FIVE_OF_A_KIND",
+        "FLUSH_HOUSE",
+        "FLUSH_FIVE",
+    }
+)
 
 
 def _token(value: object) -> str:
@@ -85,8 +102,12 @@ def _strict_planet_hand_relevant(state, candidate):
     concentration = played / total if total > 0 else 0.0
     level = int((getattr(state, "hand_levels", {}) or {}).get(hand_type, 1) or 1)
 
-    # One lucky/forced occurrence must not permanently turn an off-build Planet on.
-    # Require repeated use plus meaningful share of actual play when no strategy owns it.
+    # Preserve canonical B4/D9 behavior for ordinary developed hands. A levelled Pair,
+    # Straight, Flush, etc. is legitimate build-path evidence even when the synthetic
+    # test state has no play-count telemetry.
+    if hand_type not in _EXOTIC_HANDS and level > 1:
+        return True, (f"Planet target {hand_type} is already developed to level {level}",)
+
     if played >= 3 and concentration >= 0.20:
         return True, (
             f"Planet target {hand_type} has sustained use: plays={played}, concentration={concentration:.3f}",
@@ -96,6 +117,11 @@ def _strict_planet_hand_relevant(state, candidate):
             f"Planet target {hand_type} has sustained developed use: level={level}, plays={played}, concentration={concentration:.3f}",
         )
 
+    if played == 0:
+        return False, (
+            f"Planet target {hand_type} has zero play history; level={level} is insufficient off-plan evidence",
+            f"Planet target {hand_type} is off-plan/weak-history: level={level}, plays=0, concentration=0.000",
+        )
     return False, (
         f"Planet target {hand_type} is off-plan/weak-history: level={level}, plays={played}, concentration={concentration:.3f}",
     )
@@ -109,9 +135,32 @@ def _planet_candidate_from_label(label: str):
     return None
 
 
+def _default_d8_thresholds(policy: BuildAwareShopBoosterPolicy) -> bool:
+    """Return whether D8 is using the canonical default admission thresholds."""
+    return policy.thresholds == BoosterAcquisitionThresholds()
+
+
+def _free_booster_safe_to_open(state, result) -> bool:
+    """Open only families whose post-open path is already autonomous-safe.
+
+    Arcana/Spectral remain HOLD because their follow-up safety is intentionally
+    deferred to D9/D10. Buffoon still requires capacity because PACK_SELECT cannot
+    autonomously sell an incumbent first.
+    """
+    family = str(getattr(result, "family", "") or "").upper()
+    if family in {"STANDARD", "CELESTIAL"}:
+        return True
+    if family == "BUFFOON":
+        jokers = tuple(getattr(state, "jokers", ()) or ())
+        slots = max(0, int(getattr(state, "joker_slots", 0) or 0))
+        return len(jokers) < slots
+    return False
+
+
 def install_live_quality_regression_policy() -> None:
-    # Free shop boosters have no resource downside. Opening remains safe because D9
-    # can still Skip every bad/illegal visible choice.
+    # Zero-cost autonomous-safe packs have no resource downside, but this authority
+    # must not bypass custom playbook D8 thresholds or families whose post-open
+    # transaction contract is intentionally deferred.
     if not getattr(BuildAwareShopBoosterPolicy, "_free_booster_authority_installed", False):
         original_booster_recommend = BuildAwareShopBoosterPolicy.recommend
 
@@ -123,7 +172,12 @@ def install_live_quality_regression_policy() -> None:
                 price = int(self._price(action.target))
             except (AttributeError, TypeError, ValueError):
                 return result
-            if price != 0 or result.family is None:
+            if (
+                price != 0
+                or result.family is None
+                or not _default_d8_thresholds(self)
+                or not _free_booster_safe_to_open(state, result)
+            ):
                 return result
             return replace(
                 result,
@@ -135,15 +189,15 @@ def install_live_quality_regression_policy() -> None:
                 reserve_penalty=0.0,
                 rationale=(
                     *result.rationale,
-                    "FREE BOOSTER AUTHORITY: $0 pack must be opened; post-open Skip remains available",
+                    "FREE BOOSTER AUTHORITY: $0 autonomous-safe pack is opened; post-open Skip remains available",
                 ),
             )
 
         BuildAwareShopBoosterPolicy.recommend = recommend
         BuildAwareShopBoosterPolicy._free_booster_authority_installed = True
 
-    # Replace the permissive "played once OR level > 1" rule with applied-plan-aware
-    # sustained relevance. The already-installed D4 wrapper resolves this global at runtime.
+    # Replace the permissive exotic-hand rule with applied-plan-aware sustained
+    # relevance. Ordinary developed hand paths retain canonical B4 semantics.
     planet_relevance._planet_hand_relevant = _strict_planet_hand_relevant
 
     if not getattr(BalatroPackPolicy, "_strict_planet_relevance_installed", False):
@@ -163,7 +217,7 @@ def install_live_quality_regression_policy() -> None:
             return PackActionScore(
                 scored.action,
                 min(-1.0, float(getattr(self, "skip_bias", 0.35)) - 1.0),
-                (*scored.notes, *notes, "off-build Planet veto applies inside booster packs too"),
+                (*scored.notes, *notes, "off-build exotic Planet veto applies inside booster packs too"),
             )
 
         BalatroPackPolicy.score_action = score_action
@@ -205,9 +259,9 @@ def install_live_quality_regression_policy() -> None:
             projected_state = projected_state_with_jokers(state, tuple(jokers))
             projected_comp, projected_plan = _strategy_plan(projected_state)
             if projected_plan is None:
-                return decision  # earlier pinned-strategy retention owns destructive pivots
+                return decision
             if projected_plan.strategy_id != current_plan.strategy_id:
-                return decision  # earlier pivot authority owns cross-strategy changes
+                return decision
 
             current_completion = float(getattr(current_plan, "completion", 0.0) or 0.0)
             projected_completion = float(getattr(projected_plan, "completion", 0.0) or 0.0)
