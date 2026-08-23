@@ -1,18 +1,6 @@
 from __future__ import annotations
 
-"""Correct premature strategy authority while preserving forming-plan recruitment.
-
-Live validation showed two failure modes after the first StrategyPlan rollout:
-- known motifs could pin from peripheral infrastructure while a defining core Joker
-  was still missing (for example Baron + ordinary King density pinning
-  ``baron_mime_steel`` without Mime);
-- generic behavior graphs could pin from one concrete Joker plus ambient feature
-  nodes (for example Superposition creating an aces+straight+tarot strategy).
-
-This layer keeps those candidates visible as FORMING and exposes a bounded scouting
-plan for missing core components, but withholds pinned-strategy authority until the
-actual strategy core exists.
-"""
+"""Correct premature strategy authority while preserving forming-plan recruitment."""
 
 from dataclasses import replace
 
@@ -30,8 +18,6 @@ from games.balatro.bonds.strategy_semantics import (
 from games.balatro.shop_utility_scale import ShopUtilityScale
 
 
-# Defining Joker/component cores. Infrastructure remains valuable while FORMING,
-# but cannot by itself confer applied-strategy authority.
 _MOTIF_CORES: dict[str, frozenset[str]] = {
     "baron_mime_steel": frozenset({"BARON", "MIME"}),
     "photograph_hanging_chad": frozenset({"PHOTOGRAPH", "HANGING_CHAD"}),
@@ -55,9 +41,10 @@ def _motif_map(motifs) -> dict[str, object]:
 def _core_ready(candidate: StrategyCandidate, motifs) -> bool:
     by_id = _motif_map(motifs)
     primary = str(candidate.strategy_id)
-    required = _MOTIF_CORES.get(primary)
-    if not required:
+    raw_required = _MOTIF_CORES.get(primary)
+    if not raw_required:
         return True
+    required = {_token(value) for value in raw_required}
     motif = by_id.get(primary)
     if motif is None:
         return False
@@ -77,17 +64,10 @@ def _concrete_sources(candidate: StrategyCandidate) -> tuple[str, ...]:
 
 def _correct_candidate(candidate: StrategyCandidate, motifs) -> StrategyCandidate:
     commitment = candidate.commitment
-
-    # Known package: the defining core must exist before PINNED authority. Keep the
-    # candidate visible so the missing-piece tracker can recruit the core.
     if candidate.motif_ids and not _core_ready(candidate, motifs):
         commitment = min(commitment, StrategyCommitment.FORMING)
-
-    # Generic graph: one Joker plus any number of ambient deck/feature nodes is not
-    # an applied strategy. It can still be FORMING and continue accumulating proof.
     if not candidate.motif_ids and len(_concrete_sources(candidate)) < 2:
         commitment = min(commitment, StrategyCommitment.FORMING)
-
     if commitment == candidate.commitment:
         return candidate
     return replace(candidate, commitment=commitment)
@@ -98,28 +78,21 @@ def _forming_plan(
     developments,
     motifs,
 ) -> StrategyPlan | None:
-    # No FORMING candidate is a normal state for many valid composer scenarios.
-    # Treat it as absence of strategy authority, not as an exceptional condition.
     if (
         candidate is None
         or candidate.commitment != StrategyCommitment.FORMING
         or not candidate.motif_ids
     ):
         return None
-
-    # Reuse the canonical plan builder for goal ranking/completion, but do not expose
-    # execution prescriptions or Bond-rank pursuit until the strategy is truly pinned.
     provisional = replace(candidate, commitment=StrategyCommitment.PINNED)
     plan = build_strategy_plan(provisional, developments, motifs)
     if plan is None:
         return None
-
     scouting: list[str] = []
     for feature in tuple(plan.missing_features or ()):
         scouting.append(f"seek_feature:{feature}")
     for component in tuple(plan.missing_components or ()):
         scouting.append(f"seek_component:{component}")
-
     return replace(
         plan,
         commitment=StrategyCommitment.FORMING,
@@ -147,8 +120,6 @@ def _component_match(plan: StrategyPlan | None, candidate) -> str | None:
         return None
     for component in tuple(plan.missing_components or ()):
         token = _token(component)
-        # Only exact named components get this recruitment bonus. Infrastructure
-        # labels such as KING_INFRASTRUCTURE cannot accidentally match a Joker.
         if token and name == token:
             return str(component)
     return None
@@ -172,10 +143,6 @@ def install_strategy_authority_correction_policy() -> None:
             plan = build_strategy_plan(pinned, developments, base.motifs)
         else:
             plan = _forming_plan(_best_forming_known(corrected), developments, base.motifs)
-            # A lower wrapper may already have produced a valid FORMING scouting
-            # plan for a defining-core singleton (for example Burnt Joker before a
-            # corresponding BondDevelopment exists). Do not erase that plan merely
-            # because candidate reconstruction has insufficient Bond evidence yet.
             if (
                 plan is None
                 and base.strategy_plan is not None
@@ -200,13 +167,9 @@ def install_strategy_authority_correction_policy() -> None:
             prescriptions=tuple(dict.fromkeys(prescriptions)),
         )
 
-    # evaluate_bond_composition imported compose_build by value. Patch both names so
-    # the correction happens on the raw pass before coherence reinforcement.
     composer_module.compose_build = compose_build
     evaluation_module.compose_build = compose_build
 
-    # A FORMING scouting plan may identify useful missing core components, but it
-    # must not steer card/Planet pack development before the core strategy exists.
     original_goal_ids = pack_goal_module._goal_ids
 
     def goal_ids(plan):
@@ -216,8 +179,6 @@ def install_strategy_authority_correction_policy() -> None:
 
     pack_goal_module._goal_ids = goal_ids
 
-    # Add exact missing-core recruitment on top of the existing bounded strategy
-    # feature bonus. D2 admission/affordability/replacement authorities still run.
     original_joker_gain = ShopUtilityScale.joker_gain
 
     def joker_gain(self, state, executable):
