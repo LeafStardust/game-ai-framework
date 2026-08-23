@@ -86,7 +86,6 @@ def _diagnostic_runner_factory(
         try:
             diagnostics["build_health"] = build_health_diagnostics_payload(
                 decision.state,
-                strategy_tracker=runner.strategy_tracker,
             )
         except Exception as error:
             # Observability must never become an autonomous-gameplay failure mode.
