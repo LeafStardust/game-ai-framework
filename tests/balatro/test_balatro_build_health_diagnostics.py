@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 import games.balatro.build_health_diagnostics as diagnostics
+from games.balatro.bonds.model import BondRank
 from games.balatro.build_health import BuildHealth
 
 
@@ -19,32 +20,35 @@ def _health():
     )
 
 
-def test_diagnostics_clone_strategy_tracker_for_health_and_roles(monkeypatch):
-    class _Tracker:
-        def __init__(self):
-            self.calls = 0
-
+def test_diagnostics_are_tracker_free_and_serialize_bond_component_fields(monkeypatch):
     class _Health:
-        def evaluate(self, state, *, strategy_tracker=None):
+        def evaluate(self, state):
             del state
-            strategy_tracker.calls += 1
             return _health()
 
     class _Roles:
-        def classify(self, state, *, strategy_tracker=None):
+        def classify(self, state):
             del state
-            strategy_tracker.calls += 1
-            return ()
+            return (
+                SimpleNamespace(
+                    index=0,
+                    name="The Tribe",
+                    role=SimpleNamespace(value="CORE"),
+                    bond_id="flush",
+                    bond_rank=BondRank.R4,
+                    realized_engine_id=None,
+                    rationale=("fixture",),
+                ),
+            )
 
-    tracker = _Tracker()
     monkeypatch.setattr(diagnostics, "_HEALTH", _Health())
     monkeypatch.setattr(diagnostics, "_ROLES", _Roles())
 
-    payload = diagnostics.build_health_diagnostics_payload(
-        SimpleNamespace(),
-        strategy_tracker=tracker,
-    )
+    payload = diagnostics.build_health_diagnostics_payload(SimpleNamespace())
 
     assert payload["total"] == 50.0
     assert payload["scaling_deficit"] is True
-    assert tracker.calls == 0
+    assert payload["components"][0]["bond_id"] == "flush"
+    assert payload["components"][0]["bond_rank"] == "R4"
+    assert "strategy_id" not in payload["components"][0]
+    assert "tier" not in payload["components"][0]
