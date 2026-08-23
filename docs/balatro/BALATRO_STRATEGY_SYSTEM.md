@@ -285,5 +285,41 @@ Composition section should expose Power engine, relevant Bonds, motifs, synergie
 11. Derive component roles and filler logic from combined-build participation.
 12. Expose canonical telemetry through the live monitor.
 13. Calibrate weights/thresholds from unchanged-HEAD multi-run telemetry rather than arbitrary inflation.
+14. Once semantic/runtime correctness is stable, automate approved numerical calibration through the offline Optuna tuning subsystem defined in [`BALATRO_BOND_TUNING.md`](BALATRO_BOND_TUNING.md).
 
-Do not preserve obsolete conceptual behavior merely because an old test encodes it; remove or update tests when the architecture intentionally supersedes them. The pivot/prescription boundary implementation and its normalization regressions are green as of 2026-08-22. The bounded SHOP clear-probability adapter is implemented with targeted regressions pending validation; broader Bond calibration and unchanged-HEAD validation remain active work.
+Do not preserve obsolete conceptual behavior merely because an old test encodes it; remove or update tests when the architecture intentionally supersedes them. The pivot/prescription boundary implementation and its normalization regressions are green as of 2026-08-22. Broader Bond calibration and unchanged-HEAD validation remain active work.
+
+## 15. Automated numerical tuning contract
+
+The Bond catalogue is intentionally dynamic and its numerical sweet spots are empirical. Contribution weights, rank thresholds, realization cutoffs, pivot resistance, motif values, bounded prescription strengths, and shop/D1 calibration coefficients may require repeated adjustment as live evidence accumulates.
+
+This does **not** make Bond semantics optimizer-defined. The architecture defines what a Bond means; an optimizer may only tune explicitly approved numerical parameters inside validated bounds.
+
+The canonical automation plan is documented in [`BALATRO_BOND_TUNING.md`](BALATRO_BOND_TUNING.md). Its key constraints are:
+
+- Optuna runs offline, never inside the live decision loop;
+- production defaults remain authoritative unless an optimized candidate passes promotion gates;
+- tunable families are staged rather than exposing the entire catalogue simultaneously;
+- every trial is reproducible and records repository revision, parameter schema, objective version, seeds/run IDs, and metrics;
+- win rate is primary competence evidence but not the only signal; build diversity, power-engine utilization, destructive pivots, scaling trajectory, economy failures, and runtime are also observed;
+- optimizer results are validated on holdout/fresh batches before promotion;
+- no optimizer may weaken legality, boss correctness, hidden-information restrictions, or survival authority;
+- known semantic/execution bugs are fixed before numerical tuning so optimization cannot learn around broken behavior.
+
+The intended long-term loop is:
+
+```text
+architecture review
+      ↓
+approved parameter family + bounds
+      ↓
+Optuna study over reproducible Balatro batches
+      ↓
+metrics / Pareto or best candidates
+      ↓
+manual + deterministic + holdout validation
+      ↓
+accepted production calibration
+```
+
+This makes constant fine-tuning a repeatable experiment rather than an endless manual sequence of arbitrary coefficient edits.
