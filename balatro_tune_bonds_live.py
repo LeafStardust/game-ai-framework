@@ -9,7 +9,11 @@ from pathlib import Path
 from games.balatro.tuning.live_evaluator import AuthoritativeLiveBatchEvaluator
 from games.balatro.tuning.live_preflight import validate_live_tuning_preflight
 from games.balatro.tuning.report import write_study_report
-from games.balatro.tuning.study import LiveStudyConfig, run_live_phase_a
+from games.balatro.tuning.study import (
+    LiveStudyConfig,
+    create_live_phase_a_study,
+    run_live_phase_a,
+)
 
 
 def _git(*args: str) -> str:
@@ -69,7 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help=(
             "run exactly the queued production-default baseline trial and stop; "
-            "use this before beginning a new live search campaign"
+            "requires a fresh study with zero existing trials"
         ),
     )
     parser.add_argument(
@@ -117,6 +121,22 @@ def main() -> int:
         stake=str(args.stake).upper(),
         sampler_seed=args.sampler_seed,
     )
+
+    if args.baseline_only:
+        try:
+            existing = create_live_phase_a_study(config)
+        except Exception as error:
+            print("Balatro live Bond tuning -> BLOCKED")
+            print(f"Reason -> {error}")
+            return 2
+        if existing.trials:
+            print("Balatro live Bond tuning -> BLOCKED")
+            print(
+                "Reason -> --baseline-only requires a fresh study with zero existing trials; "
+                f"study {config.name!r} already has {len(existing.trials)} trial(s)"
+            )
+            return 2
+
     evaluator = AuthoritativeLiveBatchEvaluator(
         attempts_per_trial=args.attempts_per_trial,
         deck=config.deck,
@@ -150,10 +170,7 @@ def main() -> int:
                 if str(latest.state.name) != "COMPLETE":
                     raise RuntimeError("production baseline trial did not complete")
                 if not bool(latest.user_attrs.get("production_baseline")):
-                    raise RuntimeError(
-                        "--baseline-only requires a fresh study whose next queued trial "
-                        "is the production baseline"
-                    )
+                    raise RuntimeError("queued production baseline was not executed")
                 break
             if bool(latest.user_attrs.get("won")):
                 break
