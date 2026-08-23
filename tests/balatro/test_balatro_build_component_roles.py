@@ -1,15 +1,34 @@
 from types import SimpleNamespace
 
+import games.balatro.build_component_roles as roles_module
+from games.balatro.bonds.composer import Composition
+from games.balatro.bonds.model import (
+    BondContribution,
+    BondDevelopment,
+    BondRank,
+    BondRealization,
+)
 from games.balatro.build_component_roles import (
     BuildComponentRole,
     BuildComponentRoleClassifier,
 )
 from games.balatro.build_health import EngineState, RealizedEngineStrength
-from games.balatro.strategy import BANNED, GOLD, SILVER
 
 
 def _joker(name):
     return SimpleNamespace(name=name)
+
+
+def _development(bond_id, source, rank, realization):
+    return BondDevelopment(
+        bond_id=bond_id,
+        unlocked=True,
+        contribution=float(max(1, int(rank))) * 5.0,
+        rank=rank,
+        next_rank_threshold=None,
+        contributions=(BondContribution(source, 5.0),),
+        realization=realization,
+    )
 
 
 class _Engines:
@@ -24,30 +43,28 @@ class _Engines:
         )
 
 
-class _Tracker:
-    def observe(self, state):
-        del state
-        return SimpleNamespace(dominant_strategy_id="flush")
-
-    def primary_strategy_id(self, resolution):
-        del resolution
-        return "flush"
-
-    def evaluate_item(self, state, joker, *, kind):
-        del state, kind
-        name = joker.name
-        if name == "The Tribe":
-            return SimpleNamespace(active_alignment=True, strategy_id="flush", tier=GOLD)
-        if name == "Droll Joker":
-            return SimpleNamespace(active_alignment=True, strategy_id="flush", tier=SILVER)
-        if name == "Hologram":
-            return SimpleNamespace(active_alignment=True, strategy_id="blue_joker_deck", tier=SILVER)
-        if name == "Conflict":
-            return SimpleNamespace(active_alignment=True, strategy_id="flush", tier=BANNED)
-        return SimpleNamespace(active_alignment=False, strategy_id=None, tier=None)
-
-
-def test_component_roles_distinguish_core_engine_support_filler_and_conflict():
+def test_component_roles_use_selected_bonds_realized_engines_and_conflicts(monkeypatch):
+    developments = (
+        _development("flush", "The Tribe", BondRank.R4, BondRealization.ACTIVE),
+        _development("flush", "Droll Joker", BondRank.R2, BondRealization.PARTIAL),
+        _development("deck_growth", "Hologram", BondRank.R2, BondRealization.PARTIAL),
+        _development("pair", "Conflict", BondRank.R3, BondRealization.ACTIVE),
+    )
+    composition = Composition(
+        bond_ids=("flush", "deck_growth"),
+        motifs=(),
+        conflicts=(("pair", "flush"),),
+        synergies=(),
+        coherence_score=8.0,
+        pivot_resistance=2.0,
+        motif_distance=(),
+        prescriptions=(),
+    )
+    monkeypatch.setattr(
+        roles_module,
+        "evaluate_bond_composition",
+        lambda state: (developments, composition),
+    )
     state = SimpleNamespace(
         jokers=[
             _joker("The Tribe"),
@@ -59,13 +76,14 @@ def test_component_roles_distinguish_core_engine_support_filler_and_conflict():
     )
     classifier = BuildComponentRoleClassifier(engine_analyzer=_Engines())
 
-    roles = {
-        item.name: item.role
-        for item in classifier.classify(state, strategy_tracker=_Tracker())
-    }
+    assessments = {item.name: item for item in classifier.classify(state)}
 
-    assert roles["The Tribe"] == BuildComponentRole.CORE
-    assert roles["Droll Joker"] == BuildComponentRole.SUPPORT
-    assert roles["Hologram"] == BuildComponentRole.ENGINE
-    assert roles["Misprint"] == BuildComponentRole.FILLER
-    assert roles["Conflict"] == BuildComponentRole.CONFLICT
+    assert assessments["The Tribe"].role == BuildComponentRole.CORE
+    assert assessments["The Tribe"].bond_id == "flush"
+    assert assessments["The Tribe"].bond_rank == BondRank.R4
+    assert assessments["Droll Joker"].role == BuildComponentRole.SUPPORT
+    assert assessments["Hologram"].role == BuildComponentRole.ENGINE
+    assert assessments["Hologram"].realized_engine_id == "hologram"
+    assert assessments["Misprint"].role == BuildComponentRole.FILLER
+    assert assessments["Conflict"].role == BuildComponentRole.CONFLICT
+    assert assessments["Conflict"].bond_id == "pair"
