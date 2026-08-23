@@ -17,6 +17,7 @@ from games.balatro.live.runtime.balatro_agent_bounded_supervisor import (
     BoundedBalatroAgentSupervisor,
 )
 from games.balatro.tuning.live_metrics import episode_metrics_from_run_ids
+from games.balatro.tuning.live_preflight import validate_live_tuning_preflight
 from games.balatro.tuning.metrics import BatchMetrics
 
 
@@ -28,6 +29,7 @@ class SupervisorResult(Protocol):
 
 
 SupervisorFactory = Callable[..., object]
+PreflightValidator = Callable[..., object]
 
 
 @dataclass(frozen=True)
@@ -50,15 +52,26 @@ class AuthoritativeLiveBatchEvaluator:
     """
 
     attempts_per_trial: int = 5
+    deck: str = "RED"
+    stake: str = "WHITE"
     run_log_directory: Path = Path("logs/balatro/tuning/runs")
     session_directory: Path = Path("logs/balatro/tuning/sessions")
     control_directory: Path = Path("logs/balatro/tuning/control")
     supervisor_factory: SupervisorFactory = BoundedBalatroAgentSupervisor
+    preflight_validator: PreflightValidator = validate_live_tuning_preflight
     reset_after_loss: bool = True
 
     def __post_init__(self) -> None:
         if int(self.attempts_per_trial) <= 0:
             raise ValueError("attempts_per_trial must be positive")
+        if not str(self.deck).strip() or not str(self.stake).strip():
+            raise ValueError("live evaluator deck/stake identity is required")
+
+    def _preflight(self) -> object:
+        return self.preflight_validator(
+            expected_deck=str(self.deck).upper(),
+            expected_stake=str(self.stake).upper(),
+        )
 
     def _reset_terminal_loss(self, result: SupervisorResult) -> None:
         """Restore a fresh unseeded BLIND_SELECT after the final allowed loss."""
@@ -88,11 +101,20 @@ class AuthoritativeLiveBatchEvaluator:
         stake = str(getattr(last, "stake", "")).upper()
         if not deck or not stake:
             raise RuntimeError("cannot reset live tuning boundary without deck/stake identity")
+        if deck != str(self.deck).upper() or stake != str(self.stake).upper():
+            raise RuntimeError(
+                "live tuning attempt identity drifted before reset: "
+                f"{deck}/{stake} != {str(self.deck).upper()}/{str(self.stake).upper()}"
+            )
         with SupervisorLiveMemoryBalatroObserver() as observer:
             runner = LiveMemoryInjectedSingleStepRunner(observer)
             restart_fresh_unseeded_run(runner, deck, stake)
 
     def evaluate(self, calibration: BondCalibration) -> LiveEvaluationResult:
+        # Preflight is outside the calibration context: a trial may not begin unless
+        # the real game is already at a clean independent run boundary.
+        self._preflight()
+
         # Import locally so normal tuning metric/log parsing does not initialize the
         # live-control implementation unless a real evaluation is requested.
         from games.balatro.live.runtime.agent_control import BalatroAgentControl
