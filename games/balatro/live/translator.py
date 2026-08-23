@@ -51,6 +51,15 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         state.discards_remaining = int(round_info.get("discards_left", payload.get("discards_left", 0)))
         discards_used = round_info.get("discards_used", payload.get("discards_used"))
         state.discards_used = max(0, int(discards_used)) if discards_used is not None else None
+        most_played = round_info.get(
+            "most_played_poker_hand",
+            round_info.get(
+                "most_played_hand",
+                payload.get("most_played_poker_hand", payload.get("most_played_hand")),
+            ),
+        )
+        if isinstance(most_played, str) and most_played:
+            state.round_most_played_hand = self.HAND_NAMES.get(most_played, most_played)
         state.deck_name = str(payload.get("deck", payload.get("deck_name", "RED"))).upper()
         state.stake_name = str(payload.get("stake", payload.get("stake_name", "WHITE"))).upper()
         last_tarot_planet = payload.get("last_tarot_planet")
@@ -83,9 +92,6 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
 
         raw_jokers = list(joker_area.get("cards", []))
         state.jokers = self._jokers(raw_jokers)
-        # Balatro's authoritative area count can temporarily lead the normalized
-        # card list during pack/sell transitions. Capacity must match the same
-        # count/limit pair enforced by the injected bridge, not merely len(cards).
         authoritative_limit = max(0, int(joker_area.get("limit", 5) or 0))
         authoritative_count = max(
             0,
