@@ -34,7 +34,11 @@ def _attempt(run_id, *, outcome="LOSS"):
     return SimpleNamespace(run_id=run_id, outcome=outcome, deck="RED", stake="WHITE")
 
 
-def _evaluator(tmp_path: Path, supervisor_factory, *, attempts=1, reset=False):
+def _preflight(**kwargs):
+    return SimpleNamespace(deck=kwargs["expected_deck"], stake=kwargs["expected_stake"])
+
+
+def _evaluator(tmp_path: Path, supervisor_factory, *, attempts=1, reset=False, preflight=_preflight):
     run_dir = tmp_path / "runs"
     run_dir.mkdir(exist_ok=True)
     return AuthoritativeLiveBatchEvaluator(
@@ -43,8 +47,48 @@ def _evaluator(tmp_path: Path, supervisor_factory, *, attempts=1, reset=False):
         session_directory=tmp_path / "sessions",
         control_directory=tmp_path / "control",
         supervisor_factory=supervisor_factory,
+        preflight_validator=preflight,
         reset_after_loss=reset,
     )
+
+
+def test_live_evaluator_preflights_before_entering_calibration_context(tmp_path: Path):
+    order = []
+    baseline = current_bond_calibration()
+
+    def preflight(**kwargs):
+        order.append(("preflight", current_bond_calibration()))
+        assert kwargs == {"expected_deck": "RED", "expected_stake": "WHITE"}
+
+    class _Supervisor:
+        def __init__(self, **kwargs): pass
+        def run(self):
+            order.append(("run", current_bond_calibration()))
+            raise RuntimeError("stop after boundary assertion")
+
+    evaluator = _evaluator(tmp_path, _Supervisor, preflight=preflight)
+    with pytest.raises(RuntimeError, match="boundary assertion"):
+        evaluator.evaluate(BondCalibration(synergy_bonus=2.25))
+    assert order[0] == ("preflight", baseline)
+    assert order[1][0] == "run"
+    assert order[1][1].synergy_bonus == pytest.approx(2.25)
+    assert current_bond_calibration() is baseline
+
+
+def test_live_evaluator_does_not_construct_supervisor_when_preflight_fails(tmp_path: Path):
+    constructed = []
+
+    def preflight(**kwargs):
+        raise RuntimeError("not fresh")
+
+    class _Supervisor:
+        def __init__(self, **kwargs):
+            constructed.append(True)
+
+    evaluator = _evaluator(tmp_path, _Supervisor, preflight=preflight)
+    with pytest.raises(RuntimeError, match="not fresh"):
+        evaluator.evaluate(BondCalibration())
+    assert constructed == []
 
 
 def test_live_evaluator_holds_one_calibration_and_preserves_run_ids(tmp_path: Path):
@@ -68,6 +112,7 @@ def test_live_evaluator_holds_one_calibration_and_preserves_run_ids(tmp_path: Pa
         session_directory=tmp_path / "sessions",
         control_directory=tmp_path / "control",
         supervisor_factory=_Supervisor,
+        preflight_validator=_preflight,
         reset_after_loss=False,
     )
     baseline = current_bond_calibration()
@@ -121,7 +166,7 @@ def test_live_evaluator_rejects_supervisor_exceeding_attempt_cap(tmp_path: Path)
     evaluator = AuthoritativeLiveBatchEvaluator(
         attempts_per_trial=1, run_log_directory=run_dir,
         session_directory=tmp_path / "sessions", control_directory=tmp_path / "control",
-        supervisor_factory=_Supervisor, reset_after_loss=False,
+        supervisor_factory=_Supervisor, preflight_validator=_preflight, reset_after_loss=False,
     )
     with pytest.raises(RuntimeError, match="exceeded its attempt cap"):
         evaluator.evaluate(BondCalibration())
@@ -146,6 +191,13 @@ def test_loss_reset_rejects_non_loss_terminal_boundary_without_touching_live_api
         evaluator._reset_terminal_loss(result)
 
 
+def test_loss_reset_rejects_deck_stake_drift_before_live_api(tmp_path: Path):
+    evaluator = _evaluator(tmp_path, lambda **kwargs: None, reset=True)
+    bad = SimpleNamespace(run_id="bad", outcome="LOSS", deck="BLUE", stake="WHITE")
+    with pytest.raises(RuntimeError, match="identity drifted"):
+        evaluator._reset_terminal_loss(SimpleNamespace(won=False, attempts=(bad,)))
+
+
 def test_winning_result_never_enters_loss_reset_path(tmp_path: Path):
     evaluator = _evaluator(tmp_path, lambda **kwargs: None, reset=True)
     # This must return before importing/initializing any live observer or restart machinery.
@@ -155,3 +207,8 @@ def test_winning_result_never_enters_loss_reset_path(tmp_path: Path):
 def test_constructor_rejects_nonpositive_attempt_count(tmp_path: Path):
     with pytest.raises(ValueError, match="attempts_per_trial"):
         AuthoritativeLiveBatchEvaluator(attempts_per_trial=0)
+
+
+def test_constructor_rejects_blank_identity():
+    with pytest.raises(ValueError, match="deck/stake"):
+        AuthoritativeLiveBatchEvaluator(deck="", stake="WHITE")
