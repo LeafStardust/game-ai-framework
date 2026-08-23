@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-"""Realized-maturity guard for strategy pivots.
+"""Realized-maturity measurements for buildup-sensitive Bond pivots.
 
-Catalogue Gold relationships may identify a high-ceiling route, but they do not
-prove that a late run has enough current progress or runway to realize it.  This
-layer only suppresses already-proposed pivots that require material buildup; it
-never fabricates a pivot from an otherwise non-pivot candidate.
+The canonical Bond/composition layer can consume these measurements when judging
+whether a candidate engine has enough current progress and runway.  This module
+contains no installer or dependency on the retired categorical strategy tracker.
 """
 
-from dataclasses import dataclass, replace
-
-from games.balatro.strategy_tree_tracker import TreeAwareStateAwareBalatroStrategyTracker
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -89,8 +86,6 @@ def pivot_readiness(state, item: object) -> PivotReadiness:
 
     if token in {"bluejoker"}:
         cards = _deck_size(state)
-        # Blue is already an immediate scorer at a normal deck size.  Additional
-        # deck growth raises readiness rather than being required for activation.
         readiness = min(1.0, max(0.60, cards / 60.0)) if cards > 0 else 0.60
         return PivotReadiness(
             readiness=readiness,
@@ -119,44 +114,3 @@ def pivot_readiness(state, item: object) -> PivotReadiness:
         buildup_cost=0.0,
         rationale=("candidate has no registered historical-buildup pivot penalty",),
     )
-
-
-def install_realized_pivot_policy() -> None:
-    if getattr(
-        TreeAwareStateAwareBalatroStrategyTracker,
-        "_realized_pivot_policy_installed",
-        False,
-    ):
-        return
-
-    original_evaluate_item = TreeAwareStateAwareBalatroStrategyTracker.evaluate_item
-
-    def evaluate_item(self, state, item: object, *, kind: str):
-        evaluation = original_evaluate_item(self, state, item, kind=kind)
-        if str(kind).upper() != "JOKER" or not evaluation.pivot_candidate:
-            return evaluation
-
-        readiness = pivot_readiness(state, item)
-        ante = max(1, int(getattr(state, "ante", 1) or 1))
-        # Foundation/early Convergence remains deliberately exploratory.  The
-        # realized-maturity veto starts only once a late-developing route can waste
-        # a meaningful fraction of the remaining Red/White runway.
-        if ante < 4 or readiness.readiness >= 0.50:
-            return replace(
-                evaluation,
-                rationale=(*evaluation.rationale, *readiness.rationale),
-            )
-
-        return replace(
-            evaluation,
-            pivot_candidate=False,
-            value=float(evaluation.value) * max(0.25, readiness.readiness),
-            rationale=(
-                *evaluation.rationale,
-                *readiness.rationale,
-                "pivot suppressed: theoretical route requires too much unrealized buildup for the current runway",
-            ),
-        )
-
-    TreeAwareStateAwareBalatroStrategyTracker.evaluate_item = evaluate_item
-    TreeAwareStateAwareBalatroStrategyTracker._realized_pivot_policy_installed = True
