@@ -24,6 +24,12 @@ class BalatroState(GameState):
         self.boss_blind_state_observed: bool = False
         self.boss_blind_hands: set[str] = set()
         self.boss_blind_only_hand: str | None = None
+        # Balatro fixes current_round.most_played_poker_hand at round start. The
+        # Ox uses that authoritative target rather than recomputing a winner after
+        # current-round plays alter the aggregate hand counters. ``None`` means
+        # the observation source did not expose the field; callers may fall back
+        # to the legacy count reconstruction in that case.
+        self.round_most_played_hand: str | None = None
         self.deck_name: str = "BASE"
         self.stake_name: str = "WHITE"
         self.deck: list[BalatroCard] = self._create_deck()
@@ -152,6 +158,7 @@ class BalatroState(GameState):
         new_state.boss_blind_state_observed = self.boss_blind_state_observed
         new_state.boss_blind_hands = self.boss_blind_hands.copy()
         new_state.boss_blind_only_hand = self.boss_blind_only_hand
+        new_state.round_most_played_hand = self.round_most_played_hand
         new_state.deck_name = self.deck_name
         new_state.stake_name = self.stake_name
         new_state.deck = self.deck.copy()
