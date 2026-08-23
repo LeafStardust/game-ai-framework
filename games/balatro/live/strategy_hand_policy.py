@@ -13,19 +13,8 @@ from games.balatro.live.hand_playstyle import BuildAwareLiveHandActionPolicy
 
 
 _RANK_VALUE = {
-    "2": 2,
-    "3": 3,
-    "4": 4,
-    "5": 5,
-    "6": 6,
-    "7": 7,
-    "8": 8,
-    "9": 9,
-    "10": 10,
-    "J": 11,
-    "Q": 12,
-    "K": 13,
-    "A": 14,
+    "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8,
+    "9": 9, "10": 10, "J": 11, "Q": 12, "K": 13, "A": 14,
 }
 
 _REALIZATION_WEIGHT = {
@@ -34,6 +23,12 @@ _REALIZATION_WEIGHT = {
     BondRealization.ACTIVE: 0.75,
     BondRealization.MATURE: 1.25,
 }
+
+# Strategy fit is only a within-safe-choice preference. These values must never be
+# large enough to replace pace/survival legality; the parent D1 hierarchy decides
+# that before this signal is consulted.
+_PINNED_HELD_CARD_VALUE = 1.25
+_PINNED_RED_SEAL_HELD_BONUS = 0.40
 
 
 class _NeutralIntentTracker:
@@ -95,10 +90,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             decision,
             rationale=(
                 *decision.rationale,
-                *(
-                    ("Vagabond active at <=$4 with consumable space; safe equivalent lines may value additional scored hands for Tarot generation",)
-                    if vagabond_active else ()
-                ),
+                *(("Vagabond active at <=$4 with consumable space; safe equivalent lines may value additional scored hands for Tarot generation",) if vagabond_active else ()),
                 "pace-qualified PLAY is authoritative; Bond shaping cannot replace it with DISCARD",
                 f"D1 Bond/composition fit={fit:+.3f}",
                 *rationale,
@@ -153,8 +145,16 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             progress = min(0.75, max(0.0, float(development.contribution) / float(development.next_rank_threshold)))
         return rank + realization + progress
 
+    def _composition(self, state):
+        try:
+            return evaluate_bond_composition(state)
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            return (), None
+
     def _hand_bond_intents(self, state) -> list[tuple[str, float, str]]:
-        developments, composition = evaluate_bond_composition(state)
+        developments, composition = self._composition(state)
+        if composition is None:
+            return []
         selected = set(composition.bond_ids)
         intents: list[tuple[str, float, str]] = []
         for development in developments:
@@ -166,29 +166,119 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                 intents.append((target, weight, development.bond_id))
         return intents
 
+    @staticmethod
+    def _pinned_candidate(composition):
+        if composition is None:
+            return None
+        pinned_id = getattr(composition, "pinned_strategy_id", None)
+        if not pinned_id:
+            return None
+        return next(
+            (
+                candidate
+                for candidate in getattr(composition, "strategy_candidates", ()) or ()
+                if candidate.strategy_id == pinned_id and candidate.pinned
+            ),
+            None,
+        )
+
+    @classmethod
+    def _pinned_held_card_value(cls, candidate, card) -> tuple[float, tuple[str, ...]]:
+        """Return strategic held value of one card for the pinned engine.
+
+        Held-oriented candidate Bonds supply the semantic context. Rank/enhancement
+        membership is derived from the candidate itself rather than a Joker-pair
+        lookup, so any future held-King/Queen/Steel package inherits the behavior.
+        """
+        if candidate is None:
+            return 0.0, ()
+        bonds = set(candidate.bond_ids)
+        prescriptions = tuple(str(item) for item in candidate.prescriptions)
+        held_oriented = bool(bonds & {"held_cards", "held_retrigger"}) or any(
+            "held" in item for item in prescriptions
+        )
+        if not held_oriented:
+            return 0.0, ()
+
+        rank = str(getattr(card, "rank", "") or "").upper()
+        enhancement = str(getattr(card, "enhancement", "") or "").lower()
+        seal = str(getattr(card, "seal", "") or "").lower()
+        value = 0.0
+        reasons: list[str] = []
+
+        rank_bonds = {"K": "kings", "Q": "queens", "A": "aces", "J": "jacks"}
+        rank_bond = rank_bonds.get(rank)
+        if rank_bond and rank_bond in bonds:
+            value += _PINNED_HELD_CARD_VALUE
+            reasons.append(f"pinned {candidate.strategy_id} preserves held {rank}")
+        if enhancement == "steel" and "steel" in bonds:
+            value += _PINNED_HELD_CARD_VALUE
+            reasons.append(f"pinned {candidate.strategy_id} preserves held Steel")
+        if seal == "red" and value > 0.0 and "held_retrigger" in bonds:
+            value += _PINNED_RED_SEAL_HELD_BONUS
+            reasons.append("Red Seal amplifies pinned held engine")
+        return value, tuple(reasons)
+
+    def _pinned_card_preservation(self, state, action) -> tuple[float, tuple[str, ...]]:
+        _, composition = self._composition(state)
+        candidate = self._pinned_candidate(composition)
+        if candidate is None or action.name not in {PLAY_CARDS, DISCARD_CARDS}:
+            return 0.0, ()
+
+        sacrificed = tuple(action.cards)
+        total = 0.0
+        notes: list[str] = []
+        for card in sacrificed:
+            value, reasons = self._pinned_held_card_value(candidate, card)
+            total += value
+            notes.extend(reasons)
+        if total <= 0.0:
+            return 0.0, (f"pinned strategy {candidate.strategy_id} sacrifices no held-engine card",)
+        # Playing/discarding an engine card both remove it from hand. Negative fit is
+        # only a tie-break among actions already accepted by the parent survival path.
+        return -total, tuple(dict.fromkeys(notes))
+
     def _strategy_fit(self, state, action) -> tuple[float, tuple[str, ...]]:
         intents = self._hand_bond_intents(state)
+        preservation, preservation_notes = self._pinned_card_preservation(state, action)
+
         if action.name == PLAY_CARDS:
             hand_type = self._hand_evaluator.evaluate(list(action.cards)).value
             matches = [(weight, source) for target, weight, source in intents if target == str(hand_type).upper()]
             if not matches:
-                return 0.0, (f"no developed Bond targets {hand_type}",)
+                return preservation, (
+                    f"no developed Bond targets {hand_type}",
+                    f"pinned held-card preservation={preservation:+.3f}",
+                    *preservation_notes,
+                )
             weight, source = max(matches)
-            return weight, (f"D1 {source} Bond targets {hand_type} weight={weight:.3f}",)
+            return weight + preservation, (
+                f"D1 {source} Bond targets {hand_type} weight={weight:.3f}",
+                f"pinned held-card preservation={preservation:+.3f}",
+                *preservation_notes,
+            )
+
         if action.name != DISCARD_CARDS:
-            return 0.0, ("D1 action has no Bond hand-structure signal",)
+            return preservation, ("D1 action has no Bond hand-structure signal", *preservation_notes)
+
         removed = {id(card) for card in action.cards}
         kept = [card for card in getattr(state, "hand", ()) if id(card) not in removed]
         if not intents:
-            return 0.0, ("no developed hand-target Bond for discard shaping",)
+            return preservation, (
+                "no developed hand-target Bond for discard shaping",
+                f"pinned held-card preservation={preservation:+.3f}",
+                *preservation_notes,
+            )
         scored = [
             (self._structure_fit(kept, hand_type) * weight, self._structure_fit(kept, hand_type), hand_type, weight, source)
             for hand_type, weight, source in intents
         ]
         value, structure, hand_type, weight, source = max(scored, key=lambda item: (item[0], item[1], item[3], item[2]))
-        return value, (
+        return value + preservation, (
             f"D1 discard preserves {hand_type} structure={structure:.3f}",
             f"D1 Bond intent source={source} weight={weight:.3f}",
+            f"pinned held-card preservation={preservation:+.3f}",
+            *preservation_notes,
         )
 
     @classmethod
