@@ -9,6 +9,7 @@ not depend on approximate score projection:
 
 * Blueprint may not occupy the final slot when another Joker exists.
 * Brainstorm may not occupy the leftmost slot when another Joker exists.
+* Polychrome edition contributes its real x1.5 XMult to right-alignment.
 
 Copy-to-copy chains remain legal because Blueprint/Brainstorm chains can be useful.
 Ordinary XMult Jokers are also recognized from public identity when a dynamic
@@ -63,6 +64,19 @@ def _token(value: object) -> str:
     return "".join(ch for ch in str(raw).lower() if ch.isalnum())
 
 
+def _edition_token(joker: object) -> str:
+    edition = getattr(joker, "edition", None)
+    if isinstance(edition, dict):
+        edition = next((name for name, enabled in edition.items() if bool(enabled)), "")
+    if not edition:
+        public = getattr(joker, "public_state", None)
+        if isinstance(public, dict):
+            edition = public.get("edition")
+            if isinstance(edition, dict):
+                edition = next((name for name, enabled in edition.items() if bool(enabled)), "")
+    return "".join(ch for ch in str(edition or "").lower() if ch.isalnum())
+
+
 def _is_blueprint(joker: object) -> bool:
     return _token(joker) in {"blueprint", "blueprintjoker"}
 
@@ -72,12 +86,9 @@ def _is_brainstorm(joker: object) -> bool:
 
 
 def _copy_order_violations(jokers, permutation: tuple[int, ...]) -> tuple[str, ...]:
-    """Return only mechanically dead copy placements for a resolved permutation."""
-
     ordered = tuple(jokers[index] for index in permutation)
     if len(ordered) < 2:
         return ()
-
     violations: list[str] = []
     for index, joker in enumerate(ordered):
         if _is_blueprint(joker) and index == len(ordered) - 1:
@@ -88,8 +99,6 @@ def _copy_order_violations(jokers, permutation: tuple[int, ...]) -> tuple[str, .
 
 
 def _identity_xmult_factor(joker: object) -> float:
-    """Recognize main-effect XMult even when public state omits ``x_mult``."""
-
     public = getattr(joker, "public_state", None)
     values = [
         getattr(joker, "x_mult", None),
@@ -97,13 +106,7 @@ def _identity_xmult_factor(joker: object) -> float:
         getattr(joker, "x_mult_mod", None),
     ]
     if isinstance(public, dict):
-        values.extend(
-            (
-                public.get("x_mult"),
-                public.get("xmult"),
-                public.get("x_mult_mod"),
-            )
-        )
+        values.extend((public.get("x_mult"), public.get("xmult"), public.get("x_mult_mod")))
     for value in values:
         try:
             factor = float(value)
@@ -112,14 +115,14 @@ def _identity_xmult_factor(joker: object) -> float:
         if factor > 1.0:
             return factor
 
-    # Identity is used only as an ordering tie-break when the exact live multiplier
-    # is not exposed. A neutral >1 marker is sufficient and never alters scoring.
+    # Polychrome is always x1.5 Mult regardless of the Joker's native effect.
+    if _edition_token(joker) == "polychrome":
+        return 1.5
+
     return 1.5 if _token(joker) in _XMULT_NAMES else 1.0
 
 
 class _ReplayObserver:
-    """Replay one already-read checkpoint to the canonical decision path."""
-
     def __init__(self, delegate, snapshot) -> None:
         self._delegate = delegate
         self._snapshot = snapshot
@@ -144,11 +147,8 @@ def install_live_joker_order_authority() -> None:
 
     def score_with_copy_constraints(self, state, permutation, *, phase: str):
         score, notes = original_score(self, state, permutation, phase=phase)
-        # BLIND_SELECT is intentionally left to the existing Dagger sacrifice logic.
         if phase != "BLIND_SELECT":
-            violations = _copy_order_violations(
-                tuple(getattr(state, "jokers", ()) or ()), tuple(permutation)
-            )
+            violations = _copy_order_violations(tuple(getattr(state, "jokers", ()) or ()), tuple(permutation))
             if violations:
                 return float("-inf"), (*notes, *violations)
         return score, notes
@@ -157,14 +157,13 @@ def install_live_joker_order_authority() -> None:
     def xmult_factor_with_identity(joker: object) -> float:
         factor = original_xmult_factor(joker)
         if factor > 1.0:
-            return factor
+            return max(factor, 1.5) if _edition_token(joker) == "polychrome" else factor
         return _identity_xmult_factor(joker)
 
     JokerOrderPolicy._score = score_with_copy_constraints
     JokerOrderPolicy._xmult_factor = xmult_factor_with_identity
     JokerOrderPolicy._live_order_authority_installed = True
 
-    # Import lazily so package installation does not create a hard import cycle.
     from games.balatro.live.runtime.live_memory_autonomous_step_injected import (
         AutonomousStepDecision,
         LiveMemoryInjectedSingleStepRunner,
@@ -204,8 +203,6 @@ def install_live_joker_order_authority() -> None:
                     notes=ordering.rationale,
                 )
 
-        # Reuse the checkpoint already read above for the canonical path. This keeps
-        # ordering authoritative without doubling bridge observation latency.
         original_observer = self.observer
         self.observer = _ReplayObserver(original_observer, snapshot)
         try:
