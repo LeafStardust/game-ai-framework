@@ -32,16 +32,9 @@ class PlusMultJoker(Joker):
 
 
 class FixedReplacementPlanner:
-    def __init__(self, *, aligned: bool) -> None:
-        self.aligned = aligned
-
     def plan(self, state, candidate):
         return SimpleNamespace(
-            candidate_value=SimpleNamespace(
-                total_gain=0.5,
-                active_alignment=self.aligned,
-                strategy_tier="SILVER",
-            ),
+            candidate_value=SimpleNamespace(total_gain=0.5),
             alternatives=(
                 SimpleNamespace(
                     replace_index=0,
@@ -117,7 +110,10 @@ def test_d2_buys_behavior_backed_economy_joker_without_scoring_gain():
     assert build_value.contextual.intrinsic_gain > 0.0
     assert decision.action == BUY
     assert decision.selected is not None
-    assert decision.selected.build_gain == pytest.approx(build_value.total_gain)
+    # D2 now adds bounded canonical Bond-transition value on top of the raw
+    # whole-build evaluator. The selected gain must preserve, not erase, the
+    # underlying behavioral/economic value.
+    assert decision.selected.build_gain >= build_value.total_gain
     assert decision.selected.build_gain > 0.0
 
 
@@ -156,7 +152,7 @@ def test_d2_buys_conditional_generation_joker_when_build_requirements_are_presen
     assert set(build_value.contextual.matched_requirements) == {"hand:STRAIGHT", "rank:A"}
     assert decision.action == BUY
     assert decision.selected is not None
-    assert decision.selected.build_gain == pytest.approx(build_value.total_gain)
+    assert decision.selected.build_gain >= build_value.total_gain
     assert decision.selected.build_gain > 0.0
 
 
@@ -247,7 +243,7 @@ def test_d2_never_uses_sell_credit_to_justify_a_build_downgrade():
     assert decision.options[0].eligible is False
 
 
-def test_d2_uses_lower_positive_buffer_for_active_strategy_replacement():
+def test_d2_does_not_use_retired_strategy_tier_shortcut_for_replacement():
     state = _state(money=20, slots=1)
     state.jokers = [InertJoker()]
     candidate = PlusMultJoker()
@@ -257,17 +253,16 @@ def test_d2_uses_lower_positive_buffer_for_active_strategy_replacement():
         aligned_minimum_replacement_advantage=0.25,
     )
 
-    aligned = JokerAcquisitionPolicy(
+    decision = JokerAcquisitionPolicy(
         thresholds,
-        transition_planner=FixedReplacementPlanner(aligned=True),
-    ).decide(state, candidate)
-    speculative = JokerAcquisitionPolicy(
-        thresholds,
-        transition_planner=FixedReplacementPlanner(aligned=False),
+        transition_planner=FixedReplacementPlanner(),
     ).decide(state, candidate)
 
-    assert aligned.action == REPLACE
-    assert aligned.selected is not None
-    assert aligned.selected.total_advantage == pytest.approx(0.5)
-    assert any("active strategy alignment" in note for note in aligned.rationale)
-    assert speculative.action == HOLD
+    # A raw +0.5 replacement no longer receives the deleted Gold/Silver/Bronze
+    # alignment threshold. It must clear the ordinary threshold or earn enough
+    # projected canonical Bond value from the real public state.
+    assert decision.action == HOLD
+    assert decision.selected is None
+    assert decision.options
+    assert decision.options[0].total_advantage == pytest.approx(0.5)
+    assert all("strategy tier" not in note.lower() for note in decision.rationale)
