@@ -13,6 +13,8 @@ from games.balatro.bonds.held_cards import evaluate_held_cards_bond
 from games.balatro.bonds.model import BondDevelopment
 from games.balatro.bonds.no_face_cards import evaluate_no_face_cards_bond
 from games.balatro.bonds.realization import FROZEN_BOND_IDS, realize_bond
+from games.balatro.bonds.strategy_development import reinforce_developments
+from games.balatro.bonds.strategy_semantics import pinned_strategy
 from games.balatro.bonds.vampire import evaluate_vampire_bond
 
 BondEvaluator = Callable[[Any], BondDevelopment]
@@ -50,7 +52,12 @@ def extra_evaluators() -> tuple[str, ...]:
 
 
 def evaluate_all_bonds(state: Any) -> tuple[BondDevelopment, ...]:
-    """Evaluate and realize the frozen Bond catalogue from one live game state."""
+    """Evaluate and realize the frozen Bond catalogue from one live game state.
+
+    This function remains the raw local-evidence view.  Strategy-coherence
+    reinforcement is deliberately applied only by ``evaluate_bond_composition`` so
+    callers can still inspect the unreinforced catalogue state.
+    """
     missing = missing_evaluators()
     extras = extra_evaluators()
     if missing or extras:
@@ -69,5 +76,20 @@ def evaluate_all_bonds(state: Any) -> tuple[BondDevelopment, ...]:
 
 
 def evaluate_bond_composition(state: Any) -> tuple[tuple[BondDevelopment, ...], Composition]:
-    developments = evaluate_all_bonds(state)
-    return developments, compose_build(state, developments)
+    """Evaluate Bonds, form a strategy, then feed proven coherence back once.
+
+    The first composition pass uses only raw catalogue evidence, preventing a
+    circular strategy from creating the evidence that pins itself.  If that pass
+    already contains a pinned strategy, concrete cross-mechanic links may reinforce
+    their participating Bonds by at most one rank.  Realization and composition are
+    then recomputed from that reinforced state exactly once.
+    """
+    raw = evaluate_all_bonds(state)
+    initial = compose_build(state, raw)
+    pinned = pinned_strategy(initial.strategy_candidates)
+    reinforced = reinforce_developments(raw, pinned)
+    if reinforced == raw:
+        return raw, initial
+
+    realized = tuple(realize_bond(dev, state) for dev in reinforced)
+    return realized, compose_build(state, realized)
