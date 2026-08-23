@@ -45,6 +45,7 @@ from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patc
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.shop_regression_policy import install_shop_regression_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
+from games.balatro.stateful_joker_admission_policy import install_stateful_joker_admission_policy
 from games.balatro.strategy_authority_correction_policy import install_strategy_authority_correction_policy
 from games.balatro.strategy_plan_pack_policy import install_strategy_plan_pack_policy
 from games.balatro.v1_0_0_luchador_policy import install_v1_0_0_luchador_policy
@@ -98,6 +99,9 @@ install_strategy_authority_correction_policy()
 # see the final decision and can enforce no-cost packs, Planet relevance, and
 # replacement hysteresis without bypassing earlier safety authorities.
 install_live_quality_regression_policy()
+# Stateful admission is last in D2 so paid dead-on-arrival Jokers cannot bypass the
+# final replacement/strategy guards above.
+install_stateful_joker_admission_policy()
 # Install after the older safe-pace patch so the final PACE_PLAY chooser can restore
 # StrategyAwareLiveHandActionPolicy tie-breaking only inside a narrow safe band.
 install_pinned_strategy_safe_pace_policy()
