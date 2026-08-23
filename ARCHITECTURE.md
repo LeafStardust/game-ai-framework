@@ -2,11 +2,11 @@
 
 ## Overview
 
-The General Game AI Framework is designed as a reusable architecture for building autonomous agents across different games.
+The General Game AI Framework is a reusable architecture for autonomous agents across different games.
 
 The framework separates general AI capabilities from game-specific mechanics, state translation, strategy knowledge, and environment-specific policy configuration.
 
-The core principle:
+Core principle:
 
 > The agent should know how to reason, while each game defines what can be reasoned about and which game-specific strategic knowledge is available.
 
@@ -54,92 +54,33 @@ Responsibilities:
 - provide generic decision-making infrastructure;
 - provide policy/search/evaluation plumbing without embedding one game's rules.
 
----
-
 ## State Representation
 
-Represents the current condition of a game.
-
-Examples:
-
-- board position;
-- player resources;
-- available information;
-- game history.
-
-Each game provides its own state implementation.
-
----
+Represents the current condition of a game: board position, player resources, available information, and game history. Each game provides its own state implementation.
 
 ## Action Representation
 
-Represents possible decisions available to an agent.
-
-Examples:
-
-- playing a card;
-- selecting a move;
-- choosing an ability;
-- taking an action.
-
----
+Represents possible decisions available to an agent, such as playing a card, selecting a move, choosing an ability, or taking another game-specific action.
 
 ## Game Environment
 
-The environment connects the framework to the game.
-
-Responsibilities:
-
-- provide current state;
-- provide available actions;
-- execute actions;
-- determine terminal conditions;
-- provide rewards/results.
-
----
+The environment connects the framework to the game. It provides current state and available actions, executes actions, determines terminal conditions, and provides rewards/results.
 
 ## Agent
 
-The reusable agent architecture is responsible for selecting actions.
-
-The generic agent does not embed one game's rules or strategy catalogue. It receives game-specific state, available actions, evaluation/policy services, and game-specific context through the adapter/policy layer.
-
----
+The reusable agent architecture selects actions. The generic agent does not embed one game's rules or strategic catalogue. It receives game-specific state, available actions, evaluation/policy services, and game-specific context through the adapter/policy layer.
 
 ## Decision Engine
 
-The decision engine determines how an agent selects actions.
-
-Possible implementations include:
-
-- random selection;
-- heuristic evaluation;
-- search algorithms;
-- reinforcement-learning policies;
-- game-specific strategy-aware evaluation supplied below the framework boundary.
-
----
+Possible implementations include random selection, heuristic evaluation, search algorithms, reinforcement-learning policies, and game-specific strategy-aware evaluation supplied below the framework boundary.
 
 ## Evaluation System
 
-Evaluates states or actions.
-
 Reusable evaluation infrastructure belongs in the framework. Game-specific evaluation rules and strategic knowledge belong in the game's implementation.
-
----
 
 ## Experience System
 
-Stores interactions between agents and environments.
-
-A single experience contains:
-
-- previous state;
-- selected action;
-- reward;
-- resulting state.
-
-This enables future learning systems.
+Stores interactions between agents and environments: previous state, selected action, reward, and resulting state. This supports future learning systems.
 
 ---
 
@@ -149,255 +90,205 @@ Some games require persistent strategic knowledge beyond isolated action heurist
 
 A game may provide:
 
-- universal strategy definitions for that game;
-- parent/child specialization relationships when they are strategically real;
-- component-to-strategy relationships;
-- strategy conflicts;
-- strategy evidence derived from current public state;
+- persistent strategic axes or abstractions;
+- component/state contribution models;
+- sparse synergy/conflict relationships;
+- composition or motif logic;
 - environment/deck/difficulty modifiers;
-- run-scoped strategy ranking and commitment state;
-- strategy-aware candidate-value adjustments.
+- run-scoped strategic state derived from current public information;
+- strategy-aware candidate-value adjustments;
+- offline calibration/tuning infrastructure specific to that game.
 
-The generic framework may expose interfaces for these concepts later, but it must not depend on Balatro-specific strategy IDs, Jokers, poker hands, or consumables.
+The generic framework must not depend on Balatro-specific Bond IDs, Jokers, poker hands, consumables, or calibration constants.
 
 ---
 
 # Balatro Strategy Architecture
 
-The target v1.0F strategy architecture is defined in [`BALATRO_STRATEGY_TREE.md`](BALATRO_STRATEGY_TREE.md).
+The active Balatro strategic architecture is the canonical Currency-Wars-style **Bond/composition system**, documented in [`docs/balatro/BALATRO_STRATEGY_SYSTEM.md`](docs/balatro/BALATRO_STRATEGY_SYSTEM.md).
 
-The current Python implementation still contains the previous flat strategy catalogue while the redesign is being specified. The tree document is the design target; runtime migration should begin only after the tree is frozen.
+The historical v1.0.0 Gold/Silver/Bronze strategy-tree architecture is retained only in release history and old documentation where explicitly marked historical. It is not the current production strategy authority.
 
-## 1. Universal Balatro strategy forest
+## 1. Canonical Bond layer
 
-Balatro uses a **forest of strategy trees** rather than one flat peer list.
-
-A tree edge means only that the child is a more specific realization of the parent strategy. It does not encode a natural poker-hand progression and it does not make descendants globally better than ancestors.
-
-Examples:
+Balatro components and persistent public state contribute weighted value to one or more Bonds.
 
 ```text
-High Card
-├── Core High Card
-├── Stuntman / Small-Hand High Card
-└── Baron-Mime Held-Card High Card
+Balatro components/state
+      ↓ weighted contribution
+Bonds
+      ↓ independent development
+R1-R5 rank + realization
+      ↓
+compatible Bond mixture
+      ↓
+composition motifs / combined build
+      ↓
+power engine + prescriptions
+      ↓
+actual D1-D14 decisions
 ```
 
-Different poker hands such as Pair, Three of a Kind, Four of a Kind, and Five of a Kind are separate roots unless a real specialization relationship is proven. Poker-hand adjacency itself is never a reason to create a parent/child edge.
+A Joker is not normally itself a Bond. A Bond represents a developable strategic axis such as Held Cards, Burnt, Steel, or another persistent mechanic. Exact famous packages such as Baron-Mime-Steel belong above the Bond layer as motifs/compositions.
 
-Every strategy node may eventually own exact named relationships:
+### Bond rank
+
+Bond rank describes accumulated structural development:
 
 ```text
-Strategy Node
-    Gold components
-    Silver components
-    Bronze components
-    Banned/conflict components
-    conditions
-    structural evidence
-    support
+LOCKED
+R0
+R1 Emerging
+R2 Established
+R3 Strong
+R4 Power-engine capable
+R5 Capstone
 ```
 
-Individual Joker classes do **not** store duplicated strategy-tier metadata.
+`LOCKED` means a defining prerequisite is absent. `R0` means the axis exists but has not yet crossed its first meaningful contribution threshold.
 
-At initialization, Balatro should generate inverse component indices from the strategy data rather than duplicating relationships across item implementations.
+Rank is computed from weighted contributions. It is not chip output and must not be summed into a fake score estimate.
 
-Unlisted component means **Neutral** for that strategy. Neutral is distinct from Bronze and from banned/conflict.
+### Realization
 
-### Leaf-only ranking
-
-Only leaves are actionable ranked strategies.
-
-Internal nodes retain evidence/foundation scores because their foundation contributes to eligible descendants, but they never consume separate ranking slots beside those descendants.
-
-A root with no children is itself a leaf and can therefore be ranked.
-
-Split roots may define a core/fallback leaf so a valid unspecialized strategy remains rankable without placing the internal parent in the ranking.
-
-## 2. Run-scoped strategy evidence
-
-Strategy state describes the **current public build**, not historical ownership.
-
-The redesign distinguishes:
+Realization is separate from development:
 
 ```text
-direct_evidence(node)
-    evidence that belongs to this exact strategy node
-
-foundation / branch score
-    non-ranked internal evidence used for ancestry/readiness/diagnostics
-
-effective_score(leaf)
-    actionable score used to rank a leaf
+DORMANT
+PARTIAL
+ACTIVE
+MATURE
 ```
 
-Specific descendant evidence propagates upward with decay because a specific package also supports the credibility of its broader ancestors.
+Development answers how much structure has been assembled. Realization answers whether that structure is actually functioning in the current state/environment.
 
-Ancestor evidence does **not** blindly propagate downward. A specific non-fallback child must have qualifying child evidence before it may inherit appropriate ancestor direct foundation.
+A boss may temporarily suppress realization without erasing underlying Bond development.
 
-The implementation must prevent recursive double counting: a leaf cannot propagate evidence into an ancestor and then re-inherit that same evidence through the ancestor's total branch score.
+## 2. Composition
 
-Current-state evidence may include:
+The composer selects compatible R1+ Bonds, resolves explicit sparse conflicts, records synergies, evaluates motifs, calculates coherence, and produces prescriptions.
 
-- owned Jokers and other persistent components;
-- rank/suit structure;
-- enhancements;
-- seals;
-- persistent card editions where strategically relevant;
-- poker-hand levels created by actual permanent investment;
-- used Tarot/Spectral effects reflected in the current deck;
-- used Planet investment;
-- environment/deck/stake modifiers.
+The system does not choose one fixed build template. It composes whatever coherent mixture current RNG and permanent state support.
 
-Buying or selling a Joker changes the next strategy evidence immediately because the current build changed.
+Composition exposes:
 
-Unopened/held consumables do **not** raise strategy score merely because they are owned. Their potential effect may influence acquisition/use value; their actual result becomes evidence only after use.
+- relevant Bonds;
+- power engine;
+- motifs;
+- synergies;
+- conflicts;
+- coherence;
+- pivot resistance;
+- motif distance;
+- prescriptions.
 
-### Poker-hand play counts
+## 3. Pivot behavior
 
-Poker-hand play counts are **not universal strategy evidence**.
+Existing structure creates resistance to abandonment, but never an absolute lock.
 
-A hand may be played early because of draw quality rather than intent, and persistent current-build structure is a more reliable signal later. Hand history remains available to mechanics that explicitly depend on it, but strategy inference must not treat generic play frequency as commitment.
+A functioning ACTIVE/MATURE engine requires a materially better projected replacement before it may be dismantled. A fresh partial Bond cannot destroy a realized power engine merely because it creates more nominal axes.
 
-## 3. Strategy-aware candidate valuation
+Pivot decisions consider current realized strength, projected new structure, motif changes, slot/economy cost, buildup time, runway, and survival risk.
 
-Strategy score and candidate purchase score are separate quantities.
+## 4. Build Health
 
-A shop Joker still has ordinary/meta, survival, economy, affordability, slot, and context value. Strategy contributes an additional adjustment.
-
-Conceptually:
+Bond structure does not replace score/survival modeling.
 
 ```text
-candidate value
-=
-base/meta value
-+ survival/economy/context
-+ Ante pressure * strategy alignment
+Bond ranks + realization + composition
+              +
+actual scoring / whole-blind projection
+              ↓
+Build Health
 ```
 
-At a normal zero-evidence start, strategy alignment contributes approximately zero. The first useful purchases are therefore selected mostly by ordinary value and create the first strategy evidence.
+Build Health tracks Survival, Immediate Scoring, Scaling, Coherence, and Runway. It is used to detect builds that look structurally interesting but cannot actually keep pace with upcoming blinds.
 
-Once evidence exists, candidate strategic value is derived from the relationships between the candidate and the currently evidenced/ranked strategy leaves and their foundations.
+## 5. D1 execution boundary
 
-Therefore:
+Survival and legality remain authoritative. Bond/composition logic shapes choices beneath those constraints.
 
-- a strong relationship to an unestablished strategy does not force an early purchase;
-- a strong relationship to an established leaf gains increasing value as strategy pressure rises;
-- Silver/Bronze relationships reinforce more weakly than Gold;
-- Banned/conflicting relationships reduce value when they genuinely harm an established strategy;
-- Neutral Jokers remain buyable through ordinary/meta value.
+Important distinction:
 
-Negative strategy scores must not create accidental positive purchase bonuses through negative-times-negative arithmetic.
+- a Bond may identify a preferred strategic action;
+- D1 must still prove that action is legal and sufficiently safe;
+- a defining engine mechanic may receive explicit execution authority when ordinary local-value logic would otherwise suppress it.
 
-## 4. Ante-dependent strategy pressure
+Example: an ACTIVE Burnt engine may intentionally spend the first safe discard to level its target hand even when Banner is owned. Banner's temporary remaining-discard chip value is not allowed to nullify Burnt's defining permanent scaling mechanic.
 
-Ante changes how strongly strategy affects decisions; it does not manufacture strategy evidence.
+## 6. D2 / shop boundary
 
-```text
-Antes 1-2: exploration/foundation
-Antes 3-5: convergence
-Ante 6+:   specialization
-```
+Joker acquisition and replacement combine ordinary scoring/economy value with bounded canonical Bond-transition value.
 
-### Antes 1-2
+A candidate may gain value by:
 
-- Strategy pressure is weak.
-- Empty Joker slots may be populated by independently useful Jokers.
-- Multiple roots/leaves may accumulate evidence.
-- A lucky deep package may establish a specific leaf immediately; parent completion is a preference, not a hard gate.
+- crossing a useful Bond threshold;
+- advancing a relevant selected Bond;
+- creating or maturing a motif;
+- improving composition coherence;
+- filling a structural role efficiently.
 
-### Antes 3-5
-
-- Strategy pressure increases.
-- Filled Joker slots make retention/replacement decisions strategically important.
-- Specific leaf evidence separates coherent branches from incidental early purchases.
-- The agent increasingly concentrates resources on its strongest branch while retaining pivot capability when RNG supplies materially stronger evidence.
-
-### Ante 6+
-
-- One viable highest-ranked leaf normally becomes dominant.
-- Up to two compatible, materially supported leaves may remain relevant.
-- Buying, replacement, rerolling, pack selection, deck shaping, consumable use, and hand behavior should strongly reinforce this established state.
-- Survival-critical Neutral/off-strategy actions remain legal.
-
-Survival and guaranteed blind clears remain higher priority than strategy purity.
-
-## 5. Production survival-policy boundary
-
-The reusable D1 planner and the production strategy-aware D1 policy have different responsibilities.
-
-The base `LiveHandActionPolicy` and its planner retain general search semantics such as `CLEAR_PATH`, sampled-path confirmation, setup-discard consensus, and equal-safety playstyle/card-preservation tie-breaks. Production Red/White survival rules must not monkey-patch those reusable contracts globally.
-
-The live strategy-aware policy adds a final **safe-pace invariant**:
-
-```text
-pace_target = remaining_blind_score / hands_remaining
-
-if a legal play can satisfy the current pace target:
-    play the strongest qualifying safe hand
-elif a discard remains:
-    discard once, then re-observe and replan
-else:
-    take the strongest bounded legal play
-```
-
-A speculative multi-step clear path cannot force the production agent to burn an under-pace scoring hand while a legal recovery discard remains. This is deliberately a production policy overlay, not a redefinition of the lower-level planner's `CLEAR_PATH` mode.
-
-When multiple actions are equivalently safe, existing tie-break semantics remain authoritative. In particular, current playstyle/strategy direction and preservation of valuable held cards such as Steel cards and Blue Seals are still used after survival equivalence is established.
-
-The complete D1 decision remains wall-clock bounded. Once that budget expires, the engine must not enter unbounded immediate recovery. A production planner with legal discard generation may take one structural discard and re-observe; minimal or test planners without that capability fall back to the existing bounded structural play path.
-
-D13 follows the same layering principle. Base blind/tag valuation continues to compute public tag economics. The final strategy-aware blind-skip policy may apply a scoring-readiness survival veto so a high nominal tag value cannot justify skipping when the current build is too weak for the resulting progression. This veto is not part of the reusable base tag-economics contract.
-
-## 6. Negative Joker retention
-
-Negative Jokers are protected from ordinary sell/replace pressure by default because their +1 Joker slot normally makes them effectively slot-neutral.
-
-A Negative Joker should not be sold merely because it is Neutral, weakly aligned, or lower-value than another ordinary Joker.
-
-Removal is justified only when its active mechanic materially harms the current run, creates a hard functional contradiction that cannot be safely neutralized, or is intentionally consumed by an active strategy whose expected benefit justifies the sacrifice.
-
-Destructive engines such as Ceremonial Dagger or Vampire must therefore be evaluated in context: their destructive behavior is not automatically considered harmful when the run is deliberately following the corresponding strategy.
+These structural bonuses do not fabricate direct chip output. Affordability, reserve, survival, and child-policy admission remain independent constraints.
 
 ## 7. Deck/stake cartridge
 
-A Balatro deck/stake cartridge does **not** define the universal strategy forest.
-
-It only modifies how effective those universal strategies are in the current environment.
-
-Conceptually:
-
-```python
-StrategyModifier(
-    strategy_id="flush",
-    enabled=True,
-    effectiveness=1.10,
-    score_bonus=0.0,
-)
-```
-
-A cartridge may:
-
-- amplify a strategy;
-- suppress a strategy;
-- disable a genuinely infeasible/unsupported strategy;
-- adjust economy, pivot, commitment, evidence, or strategy-pressure thresholds for the environment.
-
-It must not redefine the universal Gold/Silver/Bronze/Banned relationships or parent/child topology.
-
-This preserves the intended cartridge model:
+Deck/stake cartridges do not redefine the universal Bond catalogue. They adjust environment-specific effectiveness, feasibility, economy, and thresholds only where the deck/stake changes them.
 
 ```text
 Permanent Balatro mechanics/state/execution stack
                 +
-Universal Balatro strategy forest
+Universal Bond/composition strategy layer
                 +
-Run-scoped current-state evidence/ranking
+Run-scoped public-state Bond evaluation
                 +
-Replaceable deck/stake environment cartridge
+Replaceable deck/stake cartridge
                 =
 Current production policy
 ```
+
+Higher-stake/deck work must not reintroduce categorical strategy trees.
+
+---
+
+# Offline Bond Numerical Tuning
+
+The planned numerical calibration subsystem is documented in [`docs/balatro/BALATRO_BOND_TUNING.md`](docs/balatro/BALATRO_BOND_TUNING.md).
+
+Its purpose is to automate empirical coefficient search after semantic/runtime correctness is stable.
+
+The planned architecture is:
+
+```text
+human-defined Bond semantics
+        ↓
+typed immutable calibration snapshot
+        ↓
+reproducible offline Balatro batches
+        ↓
+Optuna study
+        ↓
+trial metrics / best or Pareto candidates
+        ↓
+manual + deterministic + holdout validation
+        ↓
+reviewed production defaults
+```
+
+Optuna is an optional offline development dependency only. The normal live-agent import path must not depend on it.
+
+The optimizer may tune explicitly approved bounded numerical values such as contributor weights, R1-R5 thresholds, empirical realization cutoffs, synergy/conflict coefficients, pivot resistance, motif values, bounded prescription strengths, and resource-policy thresholds.
+
+The optimizer may **not**:
+
+- invent or remove Bonds;
+- change mechanical truth;
+- weaken legality or boss rules;
+- expose hidden RNG or ordered future draws;
+- change parameters during an episode;
+- automatically promote its own output;
+- learn around known semantic/execution bugs.
+
+Default calibration snapshots must reproduce current production behavior exactly.
 
 ---
 
@@ -419,34 +310,21 @@ Correct:
 Framework <- Balatro adapter/policy layer
 ```
 
----
-
 ## Rule 2: Interface-Based Communication
 
 Games communicate with the framework through shared interfaces.
 
-```text
-GameEnvironment
-       ^
-       |
-Specific Game Environment
-```
-
----
-
 ## Rule 3: Strategy Knowledge Stays Game-Specific
 
-Universal **within one game** does not mean universal across the framework.
-
-Balatro's universal strategy forest is shared across Balatro decks/stakes, but remains inside the Balatro game layer.
-
----
+Universal **within one game** does not mean universal across the framework. Balatro's Bond catalogue is shared across Balatro decks/stakes, but remains inside the Balatro game layer.
 
 ## Rule 4: Environment Configuration Must Not Duplicate Game Knowledge
 
-A deck/stake cartridge may alter effectiveness and thresholds but must not duplicate the universal strategy definitions or topology.
+A deck/stake cartridge may alter effectiveness and thresholds but must not duplicate or redefine the universal Bond semantics.
 
-This keeps game knowledge centralized and makes cartridges small, replaceable environment-specific policy modules.
+## Rule 5: Offline Tuning Must Not Leak Into Runtime Authority
+
+Optimization libraries and trial databases belong to development/evaluation tooling. Production decision code consumes only validated calibration values and must remain usable without the tuner installed.
 
 ---
 
@@ -469,6 +347,8 @@ docs and root design files/
     Architecture, roadmap and game-specific design contracts
 ```
 
+Future tuning implementation should remain clearly separated, for example under a Balatro-specific offline tuning/evaluation package rather than the live runtime package.
+
 ---
 
 # Design Philosophy
@@ -480,8 +360,9 @@ The framework prioritizes:
 - reusability;
 - clear separation of concerns;
 - inspectable decision logic;
-- incremental development.
+- incremental development;
+- reproducible calibration.
 
 The goal is not to put one game's intelligence into the framework core.
 
-The goal is to provide an architecture capable of supporting autonomous agents whose game-specific mechanics and strategic knowledge can be added cleanly below a reusable reasoning/execution layer.
+The goal is to provide an architecture capable of supporting autonomous agents whose game-specific mechanics and strategic knowledge can be added, evaluated, and calibrated cleanly below a reusable reasoning/execution layer.
