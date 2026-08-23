@@ -100,6 +100,7 @@ def apply_rank_authority_audit() -> None:
     b1.STEEL_THRESHOLDS = _table(4, 8, 13, 17, 20)
     b1.ACES_THRESHOLDS = _table(4, 8, 13, 17, 20)
     b1.NO_DISCARD_THRESHOLDS = _table(4, 8, 13, 18, 22)
+    b1.CASH_THRESHOLDS = _table(4, 9, 15, 22, 27)
     b1.LUCKY_THRESHOLDS = _table(4, 8, 12, 15, 17)
     b1.GLASS_THRESHOLDS = _table(4, 8, 12, 16, 19)
 
@@ -110,9 +111,17 @@ def apply_rank_authority_audit() -> None:
 
     b3.FULL_HOUSE_THRESHOLDS = _table(4, 8, 13, 19, 22)
     b3.FLUSH_HOUSE_THRESHOLDS = _table(4, 8, 13, 19, 23)
+    # Five ordinary Joker slots can supply all five low-rank contributors (20)
+    # and a heavily shaped 2-5 deck supplies the existing 7-point density cap.
+    # R5=30 was therefore mathematically dead even at maximum commitment.
+    b3.LOW_RANKS_THRESHOLDS = _table(4, 9, 15, 22, 27)
 
     b4.TAROT_THRESHOLDS = _table(4, 9, 15, 22, 28)
 
+    # These capstones must be reachable on an ordinary five-slot board plus the
+    # Bond's persistent state infrastructure; Negative/capacity RNG is not a
+    # prerequisite for rank semantics.
+    b5.DISCARD_THRESHOLDS = _table(4, 9, 15, 22, 26)
     b5.BLIND_SKIP_THRESHOLDS = _table(4, 8, 12, 15, 18)
     b5.SELL_VALUE_THRESHOLDS = _table(4, 9, 15, 20, 25)
     b5.JOKER_SACRIFICE_THRESHOLDS = _table(4, 9, 14, 18, 23)
