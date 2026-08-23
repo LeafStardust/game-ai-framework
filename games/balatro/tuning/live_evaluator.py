@@ -16,7 +16,7 @@ from games.balatro.bonds.calibration import BondCalibration, use_bond_calibratio
 from games.balatro.live.runtime.balatro_agent_bounded_supervisor import (
     BoundedBalatroAgentSupervisor,
 )
-from games.balatro.tuning.live_metrics import episode_metrics_from_run_ids
+from games.balatro.tuning.live_metrics_runtime import episode_metrics_from_run_ids
 from games.balatro.tuning.live_preflight import validate_live_tuning_preflight
 from games.balatro.tuning.metrics import BatchMetrics
 
