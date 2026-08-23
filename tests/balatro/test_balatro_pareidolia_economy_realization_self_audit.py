@@ -30,6 +30,23 @@ def test_pareidolia_makes_reserved_parking_live_on_non_face_held_cards():
     assert realize_bond(dev, state).realization == BondRealization.ACTIVE
 
 
+def test_pareidolia_does_not_make_debuffed_cards_live_for_reserved_parking():
+    card = _card("7")
+    card.debuffed = True
+    state = SimpleNamespace(
+        jokers=[_joker("Reserved Parking"), _joker("Pareidolia")],
+        hand=[card],
+        current_hand=[card],
+        cards_in_hand=[card],
+        owned_deck=[card],
+        deck=[card],
+        money=50,
+    )
+    dev = evaluate_cash_bond(state)
+    assert dev.rank.value >= 1
+    assert realize_bond(dev, state).realization == BondRealization.PARTIAL
+
+
 def test_pareidolia_makes_midas_and_parking_live_inside_gold_economy():
     card = _card("7")
     state = SimpleNamespace(
