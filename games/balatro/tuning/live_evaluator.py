@@ -87,6 +87,22 @@ class AuthoritativeLiveBatchEvaluator:
                 f"{getattr(last, 'outcome', None)!r}"
             )
 
+        deck = str(getattr(last, "deck", "")).upper()
+        stake = str(getattr(last, "stake", "")).upper()
+        if not deck or not stake:
+            raise RuntimeError("cannot reset live tuning boundary without deck/stake identity")
+
+        expected_deck = str(self.deck).upper()
+        expected_stake = str(self.stake).upper()
+        if deck != expected_deck or stake != expected_stake:
+            raise RuntimeError(
+                "live tuning terminal identity drifted before reset: "
+                f"observed {deck or '?'} / {stake or '?'}, "
+                f"expected {expected_deck} / {expected_stake}"
+            )
+
+        # Only initialize the live restart machinery after the terminal attempt has
+        # proven it belongs to the same deck/stake contract as this evaluator.
         from games.balatro.live.runtime.live_memory_autonomous_step_injected import (
             LiveMemoryInjectedSingleStepRunner,
         )
@@ -97,10 +113,6 @@ class AuthoritativeLiveBatchEvaluator:
             SupervisorLiveMemoryBalatroObserver,
         )
 
-        deck = str(getattr(last, "deck", "")).upper()
-        stake = str(getattr(last, "stake", "")).upper()
-        if not deck or not stake:
-            raise RuntimeError("cannot reset live tuning boundary without deck/stake identity")
         with SupervisorLiveMemoryBalatroObserver() as observer:
             runner = LiveMemoryInjectedSingleStepRunner(observer)
             restart_fresh_unseeded_run(runner, deck, stake)
