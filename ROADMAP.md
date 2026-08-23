@@ -2,7 +2,7 @@
 
 > The roadmap tracks active milestones, not release notes. Detailed implementation evidence belongs in tests, logs, commits, `CHANGELOG.md`, and release documentation.
 >
-> Balatro uses **one permanent agent and one permanent mechanics/state/execution stack**. Universal Balatro strategies are shared game knowledge. A replaceable **deck/stake cartridge** modifies effectiveness, feasibility, economy, and thresholds for the observed live run.
+> Balatro uses **one permanent agent and one permanent mechanics/state/execution stack**. The current universal strategic layer is the canonical **Bond/composition system**. A replaceable **deck/stake cartridge** modifies effectiveness, feasibility, economy, and thresholds for the observed live run.
 >
 > Production observation is repository-owned, read-only Windows process memory. Production execution is the repository-owned first-party in-process bridge. Hidden future information remains excluded: no RNG-state/seed exploitation and no ordered future draw pile.
 
@@ -12,7 +12,8 @@
 |---|---|---|
 | v0.1–v0.9 Foundation + autonomous integration | Complete | — |
 | **v1.0.0 Red Deck / White Stake competence** | **Complete** | Released 2026-08-20 |
-| **v1.0.x Red/White calibration** | **In progress** | Unchanged-HEAD five-run live validation before Red Stake work |
+| **v1.0.x Red/White Bond calibration** | **In progress** | Semantic/runtime correctness + unchanged-HEAD live validation |
+| **Offline Bond numerical tuning (Optuna)** | **Planned / documentation complete** | Begins only after known runtime defects are corrected and a typed calibration layer exists |
 | v1.1–v1.7 Red Deck stake progression | Next | Begins from Red Stake after Red/White calibration |
 | Fresh-profile collection progression | In progress, non-blocking | May continue alongside stake progression |
 | v2+ Additional decks | Not started | Begins after Red Deck progression |
@@ -30,7 +31,7 @@
 | v0.7 | Balatro cards, hands, scoring, Jokers, consumables and card modifiers |
 | v0.8 | Search/planning, probability/EV analysis, blind-clear paths, stakes and deck architecture |
 | v0.9 | Autonomous real-game observe → decide → execute → verify → log → restart/stop loop; authoritative live state, injected execution, stochastic projection, 150/150 Joker validation and Boss Blind coverage |
-| **v1.0.0** | **Red Deck / White Stake competence: universal strategy tree, coherent build planning, strategy-aware D1–D14 decisions, bounded live search, economy/shop competence, boss handling, ordering, diagnostics, and autonomous unseeded win validation** |
+| **v1.0.0** | **Red Deck / White Stake competence release baseline: coherent build planning, strategy-aware D1–D14 decisions, bounded live search, economy/shop competence, boss handling, ordering, diagnostics, and autonomous unseeded win validation** |
 
 ---
 
@@ -40,18 +41,16 @@ Released: **2026-08-20**
 
 Goal achieved: the permanent Balatro agent can play Red Deck / White Stake autonomously using coherent run-level strategy rather than isolated local-value decisions.
 
+The original v1.0.0 release used the historical strategy-tree/Gold-Silver-Bronze architecture. That release evidence remains historical record. During v1.0.x calibration, the active production architecture was intentionally migrated to the canonical Currency-Wars-style **Bond/composition system**; the retired categorical strategy tree is not the current runtime contract.
+
 ### Completed release scope
 
 - [x] Make blind-clear probability and feasible remaining clear paths the dominant D1 objective while preserving hand efficiency and unused-hand economy.
 - [x] Preserve strategically useful held structure, including Steel cards and Blue Seals, when survival-equivalent lines permit it.
 - [x] Maintain coherent build intent across hand play, discards, Joker acquisition/replacement, consumables, Planets, packs, rerolls, vouchers, boosters, and blind skips.
 - [x] Model anti-synergies and explicit conflicts without treating every competing strategy as mechanically banned.
-- [x] Complete the universal strategy-tree migration. Sections 1–12 are production-owned, with 136 definition-backed topology nodes and leaf-only actionable ranking.
-- [x] Separate portable universal Joker value from route-bound strategy evidence and dynamic off-path pressure.
-- [x] Enforce exclusive dominant-strategy prescription from Ante 6 while retaining secondary strategies for diagnostics.
-- [x] Complete Gold/Silver/Bronze/Banned and conditional-relationship audits across the production strategy forest.
-- [x] Integrate useful support components into compatible routes rather than creating weak standalone strategies.
-- [x] Keep Joker editions as portable value while preserving explicit strategy/mechanical conflicts.
+- [x] Complete the historical universal strategy-tree release baseline.
+- [x] Separate portable universal Joker value from route-bound strategic evidence.
 - [x] Protect Negative Jokers from ordinary sales, replacement, and unrelated sacrifice; retain explicit measured-harm, active-Dagger, and Verdant Leaf exceptions.
 - [x] Add autonomous Joker-board ordering for Blueprint/Brainstorm copy targeting, additive-before-XMult scoring, and Ceremonial Dagger sacrifice planning.
 - [x] Add authoritative pre-play hand ordering for first-card effects such as Hanging Chad and Photograph.
@@ -64,48 +63,70 @@ Goal achieved: the permanent Balatro agent can play Red Deck / White Stake auton
 
 ### Acceptance evidence
 
-- [x] Full deterministic repository suite passed after the complete strategy-tree and Negative-retention migration: **1,787 tests on 2026-08-18**.
+- [x] Full deterministic repository suite passed after the v1.0.0 release migration: **1,787 tests on 2026-08-18**.
 - [x] Completed an **unseeded, fully autonomous Red Deck / White Stake win** on 2026-08-18 against Amber Acorn with no manual gameplay input after activation and normal Steam progression preserved.
 - [x] Fixed the `won=true` / `ROUND_EVAL` terminal-detection gap exposed by that winning run and covered the fix deterministically.
-- [x] Fixed the final Section 1 Straight contract so **Superposition remains Bronze support** while Straight remains a standalone leaf.
-
-The additional live confirmation of immediate automatic OFF after a winning `ROUND_EVAL` transition remains useful regression validation, but it is no longer a blocker for the v1.0.0 competence release because the terminal fix is deterministic-test covered and the autonomous win itself is already authoritative.
 
 ---
 
-## v1.0.x — Red/White calibration — IN PROGRESS
+## v1.0.x — Red/White Bond calibration — IN PROGRESS
 
-The initial Red/White release demonstrated competence, but repeated five-run calibration exposed a higher-level decision gap: the agent can own several individually useful Jokers and accumulate strong strategy evidence while the **realized build remains inactive, incoherent, or too slow to scale**.
+The initial Red/White release demonstrated competence, but repeated five-run calibration exposed a higher-level decision gap: the agent can own several individually useful Jokers while the **realized build remains inactive, incoherent, under-utilized, or too slow to scale**.
 
-The implementation contract is documented in [`docs/balatro/BUILD_HEALTH_AND_REALIZED_STRENGTH.md`](docs/balatro/BUILD_HEALTH_AND_REALIZED_STRENGTH.md).
+The active architecture contract is [`docs/balatro/BALATRO_STRATEGY_SYSTEM.md`](docs/balatro/BALATRO_STRATEGY_SYSTEM.md). Build Health / realization details remain documented in [`docs/balatro/BUILD_HEALTH_AND_REALIZED_STRENGTH.md`](docs/balatro/BUILD_HEALTH_AND_REALIZED_STRENGTH.md).
 
-### Build Health / realized-strength work
+### Canonical Bond/composition migration and calibration
 
+- [x] Replace active Gold/Silver/Bronze strategy-tree machinery with canonical weighted Bonds, R1–R5 development, realization, sparse relationships, motifs, composition, power-engine selection, and prescriptions.
+- [x] Keep `LOCKED` / `R0` / `R1–R5` development separate from `DORMANT` / `PARTIAL` / `ACTIVE` / `MATURE` realization.
+- [x] Make live monitor diagnostics Bond-native: power engine, relevant Bonds, contribution/next rank, realization, motifs, synergies/conflicts, and prescriptions.
+- [x] Remove retired tracker/tier dependencies from active Build Health, D1, D2, Mouth, Planet compatibility, and runtime paths found by deterministic/live validation.
+- [x] Make D2 Joker acquisition/replacement include bounded canonical Bond-transition value rather than relying on categorical strategy-tier shortcuts.
+- [x] Make canonical pivot authority compare projected combined-build coherence/distance against realized disruption and protect established engines without making them immortal.
+- [x] Apply bounded motif prescriptions beneath existing pack/shop safety authorities.
 - [x] Add a pure `BuildHealth` evaluator with auditable Survival, Immediate Scoring, Scaling, Coherence, and Runway dimensions.
-- [x] Distinguish catalogue relationship from realized engine state (`NOT_OWNED`, `OWNED_INACTIVE`, `ACTIVATED_WEAK`, `ACTIVATED_HEALTHY`, `MATURE`).
-- [x] Cover an initial engine set: Blue/Hologram growth, Burnt Joker, Castle, Green Joker, Red Card, Runner, and Bull/Bootstraps.
-- [x] Replace early-game "positive scorer" admission with next-blind **survival adequacy** using the existing whole-blind clear-probability model. SHOP now samples only unordered public owned-deck opening hands and runs a strictly bounded D1 `LiveBlindClearPlanner` from each opening; missing/failed bounded projection falls back to the generic Build Health estimate rather than blocking decisions.
 - [x] Detect midgame scaling deficits when present strength can clear current blinds but is unlikely to keep pace with the next one to two Antes.
-- [x] Make shop buy/replace/reroll decisions sensitive to Build Health delta rather than Joker count or isolated item value alone.
-- [x] Keep committed Gold/Silver structure protected while still allowing immediate stronger same-route upgrades.
-- [x] Make pivot decisions compare realized current strength, transition cost, required buildup, and remaining runway; theoretical ceiling alone is insufficient.
-- [x] Harden canonical pivot authority against missing/invalid Joker-slot telemetry so structural replacement veto/promotion only runs when a full roster is actually known.
-- [x] Apply bounded motif prescriptions beneath existing pack/shop safety authorities, including Baron/Mime/Steel, Photograph/Chad, Vampire/Midas, Burnt target leveling, and Hack retrigger support.
-- [x] Normalize prescription matching across live naming/telemetry variants for consumables, Planet target hands, ranks, Steel enhancements, and Red/Blue Seals.
+- [x] Make shop buy/replace/reroll decisions sensitive to Build Health and Bond transition rather than Joker count or isolated item value alone.
 - [x] Add bounded short-horizon multi-action planning for complementary shop pairs and activation sequences.
 - [x] Expose Build Health and inactive-engine/scaling-deficit warnings in the live monitor and structured logs.
-- [x] Add deterministic regressions before each behavior change. Bond/realization, Bond pivot/prescription, SHOP clear-probability reconciliation, copy-Joker projection/order, live-monitor health rendering, and Red/White planner-budget contracts are covered; the **full Balatro deterministic suite was green on 2026-08-23 before the latest planner-budget-only calibration change**, and the focused planner/adaptive-search batch is green afterward.
-- [x] Audit the latest five-run loss batch and correct repeated architecture defects: Blueprint/Brainstorm copy projection now recognizes supported card/held-trigger targets such as Photograph while unsupported targets remain fail-closed; generator-only Marble/Certificate structures no longer masquerade as completed scoring routes; weak full rosters receive stronger upgrade pressure; and Red/White live D1 uses a 2,500-node playbook cap to reduce repeated oversized-deck wall-clock exhaustion without changing core D1 mechanics.
-- [ ] Run a fresh unchanged-HEAD five-run Red/White validation batch after the latest optimization pass.
+- [x] Correct Burnt execution so a safe first discard can level its target hand even when Banner is present; Banner's temporary discard-chip value cannot suppress the defining Burnt engine mechanic.
+- [x] Add active/mature power-engine preservation so fresh partial Bonds cannot casually destroy an already-realized engine unless the projected replacement is materially stronger.
+- [x] Add late-game cash protection against marginal side-development packs when doing so would drain a functioning but still vulnerable build.
+- [x] Cache per-decision Bond hand intents so D1 does not repeatedly recompute the full composition inside candidate tie-breaks.
+- [ ] Run a fresh unchanged-HEAD five-run Red/White validation batch after the latest execution/pivot/resource fixes.
+
+### Automated Bond numerical tuning — PLANNED
+
+Detailed contract: [`docs/balatro/BALATRO_BOND_TUNING.md`](docs/balatro/BALATRO_BOND_TUNING.md).
+
+Purpose: replace endless manual coefficient guessing with reproducible offline optimization of **approved numerical parameters**, while preserving human-defined Bond semantics and live-agent determinism.
+
+Implementation order:
+
+- [x] Document architecture, objective, anti-overfitting rules, storage/provenance, pruning constraints, and promotion gates.
+- [ ] Introduce a typed immutable Bond calibration snapshot whose defaults exactly reproduce current production behavior.
+- [ ] Route one small audited parameter family through that snapshot and add default-equivalence/validation tests.
+- [ ] Add an offline batch evaluator that emits structured trial metrics and exact run/seed provenance.
+- [ ] Add Optuna as an optional development/tuning dependency only; normal live-agent imports must not depend on it.
+- [ ] Add persistent Optuna study storage, parameter/objective schema versions, and resumable study compatibility checks.
+- [ ] Begin with a low-dimensional composition/pivot study rather than exposing the whole catalogue.
+- [ ] Add holdout/fresh-batch validation and promotion reports.
+- [ ] Expand to realization, D1 execution, D2/shop/resource, and cross-system calibration only after earlier phases are stable.
+
+The optimizer may tune bounded numerical values such as contributor weights, R1–R5 thresholds, realization cutoffs where empirical, synergy/conflict coefficients, pivot resistance, motif values, bounded prescription strengths, and resource-policy thresholds. It may **not** invent/remove Bonds, change mechanical truth, weaken boss/legal/survival authority, use hidden information, or automatically promote its own output.
+
+Do not start broad optimization while known runtime/semantic defects remain. The optimizer must tune a correct agent, not learn around bugs.
 
 ### Calibration gate before Red Stake
 
 Do not begin Red/Red `1.1.0` implementation until:
 
-- [x] the full Balatro deterministic suite is green;
+- [x] the full Balatro deterministic suite is green on the current architecture baseline;
 - [x] Build Health diagnostics are stable and auditable;
-- [ ] repeated five-run losses no longer show obvious "full board but non-functioning build" failures;
+- [ ] repeated five-run losses no longer show obvious "full board but non-functioning build" or "recognized engine but unused mechanic" failures;
 - [ ] at least one fresh unchanged-HEAD Red/White batch contains an Ante-8 clear without a repeated release-blocking decision defect.
+
+Automated Optuna tuning is not itself a prerequisite for Red Stake if Red/White reaches the competence gate first, but once implemented it becomes the preferred method for systematic coefficient refinement.
 
 ---
 
@@ -140,13 +161,13 @@ Remaining collection work:
 |---|---|---|
 | **v1.1** | **Red** | **No Small Blind reward money** |
 | v1.2 | Green | Green Stake score scaling |
-| v1.3 | Black | Eternal Joker strategy |
-| v1.4 | Blue | Reduced-discard strategy |
+| v1.3 | Black | Eternal Joker adaptation |
+| v1.4 | Blue | Reduced-discard adaptation |
 | v1.5 | Purple | Purple Stake score scaling |
-| v1.6 | Orange | Perishable Joker strategy |
-| v1.7 | Gold | Rental Joker strategy and Red Deck all-stakes validation |
+| v1.6 | Orange | Perishable Joker adaptation |
+| v1.7 | Gold | Rental Joker adaptation and Red Deck all-stakes validation |
 
-Each stake milestone modifies the effectiveness, feasibility, and economy of the universal Balatro strategies as required by that stake, retunes the Red Deck cartridge only when necessary, and requires successful unseeded live validation. Stake milestones must not duplicate or redefine the universal strategy tree.
+Each stake milestone modifies effectiveness, feasibility, economy, thresholds, and Bond realization/prescription behavior only where the stake genuinely changes them. Stake milestones must reuse the permanent canonical Bond/composition system rather than reintroduce categorical strategy trees.
 
 ### Higher-stake economy and hand-efficiency requirement
 
@@ -164,4 +185,4 @@ Planned deck order after Red Deck completion:
 3. **Green Deck — v4.x**
 4. **Black Deck — v5.x**
 
-Additional-deck cartridges reuse the same universal Balatro strategy tree and supply only deck/stake-specific strategy modifiers and thresholds.
+Additional-deck cartridges reuse the same canonical Balatro Bond/composition architecture and supply only deck/stake-specific modifiers and thresholds where necessary.
