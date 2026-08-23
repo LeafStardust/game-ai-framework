@@ -195,9 +195,14 @@ def create_live_phase_a_study(config: LiveStudyConfig):
     )
 
 
+def _is_production_baseline(calibration: BondCalibration) -> bool:
+    return calibration == DEFAULT_BOND_CALIBRATION
+
+
 def _record_metrics(trial, calibration: BondCalibration, metrics: BatchMetrics) -> float:
     values = metrics.to_dict()
     trial.set_user_attr("calibration", calibration.to_dict())
+    trial.set_user_attr("production_baseline", _is_production_baseline(calibration))
     for key, value in values.items():
         trial.set_user_attr(f"metric.{key}", value)
     return float(values["objective"])
