@@ -38,6 +38,7 @@ from games.balatro.pinned_strategy_retention_policy import install_pinned_strate
 from games.balatro.pinned_strategy_safe_pace_policy import install_pinned_strategy_safe_pace_policy
 from games.balatro.pinned_strategy_shop_goal_policy import install_pinned_strategy_shop_goal_policy
 from games.balatro.pinned_strategy_transition_policy import install_pinned_strategy_transition_policy
+from games.balatro.planet_pack_fallback_policy import install_planet_pack_fallback_policy
 from games.balatro.planet_relevance_policy import install_planet_relevance_policy
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
 from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_correction
@@ -95,6 +96,9 @@ install_strategy_plan_pack_policy()
 # FORMING known packages may scout missing core pieces, but missing cores and
 # one-Joker ambient behavior graphs cannot receive PINNED authority.
 install_strategy_authority_correction_policy()
+# Install after strategy-plan ranking so Celestial packs have an explicit safe
+# fallback when no offered Planet already belongs to the developed/applied build.
+install_planet_pack_fallback_policy()
 # Install after all strategic/shop wrappers so these production-regression guards
 # see the final decision and can enforce no-cost packs, Planet relevance, and
 # replacement hysteresis without bypassing earlier safety authorities.
