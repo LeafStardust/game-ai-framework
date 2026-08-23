@@ -7,7 +7,9 @@ from games.balatro.state import BalatroState
 
 def test_translator_preserves_authoritative_round_most_played_hand():
     snapshot = LiveBalatroSnapshot(
+        sequence=1,
         phase="SELECTING_HAND",
+        state_complete=True,
         payload={
             "round": {
                 "hands_left": 4,
