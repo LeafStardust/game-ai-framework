@@ -3,7 +3,7 @@ from __future__ import annotations
 """Persistent offline Optuna studies for Balatro Bond calibration.
 
 Seeded/offline simulation and authoritative unseeded live Balatro are intentionally
-separate study modes.  Neither mode is imported by the production agent.
+separate study modes. Neither mode is imported by the production agent.
 """
 
 from dataclasses import dataclass
@@ -68,7 +68,7 @@ class LiveStudyConfig:
     name: str
     storage_path: Path
     repository_sha: str
-    attempts_per_trial: int = 5
+    attempts_per_trial: int = 3
     deck: str = "RED"
     stake: str = "WHITE"
     sampler_seed: int = 20260823
@@ -165,9 +165,6 @@ def _validate_or_initialize_attrs(study, expected: dict[str, object], name: str)
 
 def _create_study(*, name: str, storage_url: str, sampler_seed: int, attrs: dict[str, object]):
     optuna = _optuna()
-    # Keep the first production tuner on Optuna's stable TPE surface. The
-    # experimental multivariate mode is unnecessary for this small Phase-A search
-    # space and would make reproducibility depend on an experimental API contract.
     sampler = optuna.samplers.TPESampler(seed=int(sampler_seed))
     study = optuna.create_study(
         study_name=name,
@@ -201,6 +198,7 @@ def create_live_phase_a_study(config: LiveStudyConfig):
 def _record_metrics(trial, calibration: BondCalibration, metrics: BatchMetrics) -> float:
     values = metrics.to_dict()
     trial.set_user_attr("calibration", calibration.to_dict())
+    trial.set_user_attr("production_baseline", calibration == DEFAULT_BOND_CALIBRATION)
     for key, value in values.items():
         trial.set_user_attr(f"metric.{key}", value)
     return float(values["objective"])
