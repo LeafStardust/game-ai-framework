@@ -28,8 +28,7 @@ class _HealthByRoster:
     def __init__(self, mapping):
         self.mapping = mapping
 
-    def evaluate(self, state, *, strategy_tracker=None):
-        del strategy_tracker
+    def evaluate(self, state):
         tokens = tuple(getattr(joker, "name", "") for joker in state.jokers)
         return self.mapping[tokens]
 
@@ -76,11 +75,7 @@ def _joker(name):
 
 
 def _acquisition_policy():
-    return SimpleNamespace(
-        transition_planner=SimpleNamespace(
-            evaluator=SimpleNamespace(strategy_tracker=None)
-        )
-    )
+    return SimpleNamespace()
 
 
 def test_early_hold_becomes_buy_only_when_projected_survival_materially_improves(monkeypatch):
@@ -210,25 +205,18 @@ def test_build_health_reroll_is_bounded_to_one_per_shop(monkeypatch):
     assert second.action.name == END_SHOP
 
 
-def test_projected_health_uses_isolated_strategy_tracker(monkeypatch):
-    class _Tracker:
-        def __init__(self):
-            self.calls = 0
-
-    class _MutatingHealth:
-        def evaluate(self, state, *, strategy_tracker=None):
-            del state
-            strategy_tracker.calls += 1
+def test_projected_health_uses_only_projected_public_state(monkeypatch):
+    class _Health:
+        def evaluate(self, state):
+            assert [joker.name for joker in state.jokers] == ["Candidate"]
             return _health(survival=80, scaling=60)
 
-    tracker = _Tracker()
     state = _state(ante=4, jokers=(_joker("Base"),))
-    monkeypatch.setattr(policy, "_HEALTH", _MutatingHealth())
+    monkeypatch.setattr(policy, "_HEALTH", _Health())
 
-    result = policy._projected_health(state, (_joker("Candidate"),), tracker)
+    result = policy._projected_health(state, (_joker("Candidate"),))
 
     assert result.survival == 80
-    assert tracker.calls == 0
 
 
 def test_health_cache_invalidates_when_same_size_deck_structure_changes(monkeypatch):
@@ -236,8 +224,8 @@ def test_health_cache_invalidates_when_same_size_deck_structure_changes(monkeypa
         def __init__(self):
             self.calls = 0
 
-        def evaluate(self, state, *, strategy_tracker=None):
-            del state, strategy_tracker
+        def evaluate(self, state):
+            del state
             self.calls += 1
             return _health(survival=80, scaling=60)
 
@@ -247,12 +235,12 @@ def test_health_cache_invalidates_when_same_size_deck_structure_changes(monkeypa
     state = _state(ante=4)
     state.owned_deck = [BalatroCard("A", "Spades"), BalatroCard("K", "Hearts")]
 
-    policy._cached_health(owner, state, None)
-    policy._cached_health(owner, state, None)
+    policy._cached_health(owner, state)
+    policy._cached_health(owner, state)
     assert health.calls == 1
 
     state.owned_deck = [BalatroCard("A", "Hearts"), BalatroCard("K", "Spades")]
-    policy._cached_health(owner, state, None)
+    policy._cached_health(owner, state)
 
     assert health.calls == 2
 
@@ -262,8 +250,8 @@ def test_health_cache_invalidates_when_score_or_runner_history_changes(monkeypat
         def __init__(self):
             self.calls = 0
 
-        def evaluate(self, state, *, strategy_tracker=None):
-            del state, strategy_tracker
+        def evaluate(self, state):
+            del state
             self.calls += 1
             return _health(survival=80, scaling=60)
 
@@ -275,11 +263,11 @@ def test_health_cache_invalidates_when_score_or_runner_history_changes(monkeypat
     state.score = 0
     state.hand_play_counts = {"STRAIGHT": 0}
 
-    policy._cached_health(owner, state, None)
+    policy._cached_health(owner, state)
     state.score = 250
-    policy._cached_health(owner, state, None)
+    policy._cached_health(owner, state)
     state.hand_play_counts["STRAIGHT"] = 1
-    policy._cached_health(owner, state, None)
+    policy._cached_health(owner, state)
 
     assert health.calls == 3
 
@@ -289,8 +277,8 @@ def test_active_blind_cache_tracks_remaining_draw_pile_not_owned_deck(monkeypatc
         def __init__(self):
             self.calls = 0
 
-        def evaluate(self, state, *, strategy_tracker=None):
-            del state, strategy_tracker
+        def evaluate(self, state):
+            del state
             self.calls += 1
             return _health(survival=80, scaling=60)
 
@@ -302,9 +290,9 @@ def test_active_blind_cache_tracks_remaining_draw_pile_not_owned_deck(monkeypatc
     state.owned_deck = [BalatroCard("A", "Spades"), BalatroCard("K", "Hearts")]
     state.deck = [BalatroCard("A", "Spades"), BalatroCard("K", "Hearts")]
 
-    policy._cached_health(owner, state, None)
+    policy._cached_health(owner, state)
     state.deck = [BalatroCard("K", "Hearts")]
-    policy._cached_health(owner, state, None)
+    policy._cached_health(owner, state)
 
     assert health.calls == 2
 
