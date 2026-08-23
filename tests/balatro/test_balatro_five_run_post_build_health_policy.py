@@ -6,7 +6,6 @@ from games.balatro.live.hand_action_policy import (
     LiveHandActionDecisionEngine,
     LiveHandActionPolicy,
 )
-from games.balatro.strategy_catalog_guard import RUNTIME_UNIVERSAL_BALATRO_STRATEGIES
 
 
 def _joker(name: str, *, x_mult: float = 1.0):
@@ -77,26 +76,11 @@ def test_timeout_reuses_completed_root_search_before_structural_fallback():
     ]
 
 
-def test_blackboard_is_silver_not_gold():
-    strategy = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES["blackboard"]
-
-    assert strategy.relationship_for(_joker("Blackboard"), kind="JOKER") == "SILVER"
-
-
-def test_swashbuckler_is_required_and_egg_gift_card_are_gold_support():
-    strategy = RUNTIME_UNIVERSAL_BALATRO_STRATEGIES["swashbuckler"]
-
-    assert "swashbuckler" in strategy.required_jokers
-    assert strategy.relationship_for(_joker("Swashbuckler"), kind="JOKER") == "SILVER"
-    assert strategy.relationship_for(_joker("Egg"), kind="JOKER") == "GOLD"
-    assert strategy.relationship_for(_joker("Gift Card"), kind="JOKER") == "GOLD"
-
-
 class _EqualScoreOrderPolicy(JokerOrderPolicy):
     def __init__(self):
         self.minimum_improvement = 0.0
         self.last_negative_retention_diagnostics = ()
-        self.evaluator = SimpleNamespace(strategy_tracker=None)
+        self.evaluator = SimpleNamespace()
 
     def _score(self, state, permutation, *, phase):
         del state, permutation, phase
