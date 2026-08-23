@@ -2,23 +2,22 @@ from __future__ import annotations
 
 """Keep known strategy missing-piece tracking alive from the first defining core.
 
-The canonical motif layer historically required at least two present components
-before a motif existed at all.  That is safe for avoiding infrastructure-only false
-positives, but it leaves a real strategic blind spot: owning a defining Joker such
-as Burnt Joker, Vampire, or Midas Mask can still produce no FORMING strategy when
-its supporting infrastructure is absent.  The agent then cannot explicitly seek the
-rest of a package until it happens to acquire another component by accident.
+The canonical motif layer historically requires at least two present components
+before a motif survives composer filtering. That is safe for avoiding
+infrastructure-only false positives, but it leaves a blind spot: owning a defining
+Joker such as Burnt Joker or Vampire can produce no FORMING strategy while its
+supporting infrastructure is absent.
 
 This policy promotes only motifs containing a defining core component. Ambient deck
-infrastructure by itself remains ABSENT.  A one-core motif is exposed as FORMING,
-never PINNED, so StrategyPlan can enumerate missing pieces and D2 can recruit them
-without granting retention/execution authority prematurely.
+infrastructure by itself remains ABSENT. A one-core motif is exposed as FORMING,
+never PINNED, so StrategyPlan can enumerate missing pieces without granting strategy
+execution/retention authority prematurely.
 """
 
 from dataclasses import replace
 
 import games.balatro.bonds.composer as composer_module
-from games.balatro.bonds.motifs import MotifEvaluation, MotifState
+from games.balatro.bonds.motifs import MotifEvaluation, MotifState, evaluate_motifs as raw_evaluate_motifs
 from games.balatro.bonds.strategy_semantics import (
     StrategyCandidate,
     StrategyCommitment,
@@ -39,11 +38,11 @@ def _token(value: object) -> str:
 
 
 def _has_defining_core(motif: MotifEvaluation) -> bool:
-    required = _DEFINING_CORES.get(str(motif.motif_id), frozenset())
-    if not required:
+    defining = _DEFINING_CORES.get(str(motif.motif_id), frozenset())
+    if not defining:
         return False
     present = {_token(value) for value in tuple(motif.present_components or ())}
-    return bool(required.intersection(present))
+    return bool(defining.intersection(present))
 
 
 def _promote_single_core_motifs(motifs) -> tuple[MotifEvaluation, ...]:
@@ -51,7 +50,7 @@ def _promote_single_core_motifs(motifs) -> tuple[MotifEvaluation, ...]:
     for motif in tuple(motifs or ()):
         if (
             motif.state == MotifState.ABSENT
-            and motif.present_components
+            and len(tuple(motif.present_components or ())) == 1
             and _has_defining_core(motif)
         ):
             motif = replace(motif, state=MotifState.POTENTIAL)
@@ -114,19 +113,45 @@ def install_single_core_strategy_tracking_policy() -> None:
     if getattr(composer_module, "_single_core_strategy_tracking_installed", False):
         return
 
-    original_evaluate_motifs = composer_module.evaluate_motifs
-    original_form_strategy_candidates = composer_module.form_strategy_candidates
+    original_compose = composer_module.compose_build
 
-    def evaluate_motifs(state, developments):
-        return _promote_single_core_motifs(
-            original_evaluate_motifs(state, developments)
+    def compose_build(state, developments):
+        developments = tuple(developments)
+        base = original_compose(state, developments)
+
+        # Re-evaluate from the canonical motif evaluators because original_compose
+        # has already discarded ABSENT motifs. Only defining-core singletons are
+        # promoted; ordinary ambient infrastructure never enters this path.
+        raw_motifs = raw_evaluate_motifs(state, developments)
+        promoted = _promote_single_core_motifs(raw_motifs)
+        single_core = tuple(
+            motif
+            for motif in promoted
+            if motif.state == MotifState.POTENTIAL
+            and len(tuple(motif.present_components or ())) == 1
+            and _has_defining_core(motif)
+        )
+        if not single_core:
+            return base
+
+        motif_by_id = {str(motif.motif_id): motif for motif in tuple(base.motifs or ())}
+        for motif in single_core:
+            motif_by_id.setdefault(str(motif.motif_id), motif)
+        motifs = tuple(motif_by_id.values())
+        candidates = _augment_single_core_candidates(base.strategy_candidates, motifs)
+
+        # Do not create a StrategyPlan here. The strategy-authority correction layer
+        # installed immediately after this policy converts the FORMING candidate into
+        # a bounded missing-piece scouting plan while preserving pinned_strategy_id=None.
+        return replace(
+            base,
+            motifs=motifs,
+            motif_distance=tuple(
+                (motif.motif_id, motif.missing_count)
+                for motif in motifs
+            ),
+            strategy_candidates=candidates,
         )
 
-    def form_strategy_candidates(developments, motifs=()):
-        motif_tuple = tuple(motifs or ())
-        base = original_form_strategy_candidates(developments, motif_tuple)
-        return _augment_single_core_candidates(base, motif_tuple)
-
-    composer_module.evaluate_motifs = evaluate_motifs
-    composer_module.form_strategy_candidates = form_strategy_candidates
+    composer_module.compose_build = compose_build
     composer_module._single_core_strategy_tracking_installed = True
