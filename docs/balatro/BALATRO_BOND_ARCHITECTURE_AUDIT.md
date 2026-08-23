@@ -22,6 +22,7 @@ Bond catalogue / evaluators
 5. SHOP health weighting can amplify only already-positive/admitted utility.
 6. Pivot authority may promote/veto only upstream-eligible economically positive replacements.
 7. Prescription authority is the final bounded preference layer and cannot rescue unsafe/deferred/negative choices.
+8. Offline numerical tuning may alter only approved bounded coefficients/thresholds; it may not redefine any of these authority boundaries.
 
 ## Double-count audit
 
@@ -42,6 +43,38 @@ Importing `games.balatro` must install all canonical integration hooks:
 - reroll health weighting;
 - canonical pivot authority;
 - pack prescription authority;
-- SHOP consumable prescription authority.
+- SHOP consumable prescription authority;
+- Bond-native D1 execution authorities such as safe Burnt first-discard utilization;
+- per-decision Bond-intent caching where required to keep composition evaluation bounded.
 
-`tests/balatro/test_balatro_bond_architecture_integration_audit.py` fails if any hook becomes dead/uninstalled.
+`tests/balatro/test_balatro_bond_architecture_integration_audit.py` fails if any required hook becomes dead/uninstalled.
+
+## Offline tuning boundary
+
+The planned Optuna subsystem is documented in [`BALATRO_BOND_TUNING.md`](BALATRO_BOND_TUNING.md). It is deliberately outside the production authority chain above.
+
+```text
+production defaults
+      ↓
+offline immutable calibration snapshot
+      ↓
+reproducible batch evaluation
+      ↓
+Optuna trial/study
+      ↓
+manual + deterministic + holdout promotion gate
+      ↓
+new reviewed production defaults
+```
+
+Required invariants:
+
+- importing/running the live agent must not require Optuna;
+- trials may not change semantics during an episode;
+- hidden RNG/future draw order remains forbidden;
+- illegal/failed/crashed trials fail rather than silently disappearing from the study;
+- optimizer output never auto-promotes itself;
+- known semantic/execution bugs must be fixed before tuning the affected parameter family;
+- default calibration snapshots must reproduce current production behavior exactly.
+
+This boundary prevents automated coefficient search from becoming a second strategy system or learning around broken runtime behavior.
