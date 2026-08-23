@@ -4,7 +4,8 @@ from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 
 
-def _snapshot(*, joker_count: int, joker_limit: int) -> LiveBalatroSnapshot:
+def _snapshot(*, joker_count: int, joker_limit: int, card_count: int | None = None) -> LiveBalatroSnapshot:
+    visible = joker_count if card_count is None else card_count
     return LiveBalatroSnapshot(
         sequence=1,
         phase="SHOP",
@@ -14,7 +15,7 @@ def _snapshot(*, joker_count: int, joker_limit: int) -> LiveBalatroSnapshot:
             "jokers": {
                 "cards": [
                     {"ability_name": f"Owned {index}", "live_id": index + 1}
-                    for index in range(joker_count)
+                    for index in range(visible)
                 ],
                 "count": joker_count,
                 "limit": joker_limit,
@@ -69,4 +70,16 @@ def test_fully_modeled_roster_keeps_authoritative_limit_unchanged():
 
     assert len(state.jokers) == 6
     assert state.joker_slots == 6
+    assert state.joker_slots - len(state.jokers) == 0
+
+
+def test_authoritative_count_reserves_transitioning_joker_not_yet_in_card_list():
+    state = _translator_with_modeled_count(5).translate(
+        _snapshot(joker_count=6, joker_limit=6, card_count=5)
+    )
+
+    # Balatro's area count is the same capacity authority used by the injected
+    # bridge. A temporarily lagging normalized card list must not invent a free slot.
+    assert len(state.jokers) == 5
+    assert state.joker_slots == 5
     assert state.joker_slots - len(state.jokers) == 0
