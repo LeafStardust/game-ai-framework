@@ -3,8 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.model import BondRank, BondRealization
 from games.balatro.build_health_runtime import RealizedEngineAnalyzer
-from games.balatro.strategy import BANNED, BRONZE, GOLD, SILVER
 
 
 class BuildComponentRole(str, Enum):
@@ -20,8 +21,8 @@ class BuildComponentAssessment:
     index: int
     name: str
     role: BuildComponentRole
-    strategy_id: str | None
-    tier: str | None
+    bond_id: str | None
+    bond_rank: BondRank | None
     realized_engine_id: str | None
     rationale: tuple[str, ...] = ()
 
@@ -60,108 +61,70 @@ _ENGINE_TOKEN_TO_ID = {
 }
 
 
-def _primary_id(tracker, resolution):
-    primary = getattr(resolution, "dominant_strategy_id", None)
-    getter = getattr(tracker, "primary_strategy_id", None)
-    if callable(getter):
-        primary = getter(resolution) or primary
-    return primary
+def _source_matches_joker(source: object, joker_token: str) -> bool:
+    source_token = _normalize(source)
+    if not source_token or not joker_token:
+        return False
+    source_without_joker = source_token.replace("joker", "")
+    return (
+        joker_token == source_token
+        or joker_token == source_without_joker
+        or source_token.startswith(joker_token)
+        or source_without_joker.startswith(joker_token)
+    )
 
 
-def _shortlist_ids(resolution, primary: str | None) -> tuple[str, ...]:
-    if resolution is None:
-        return ()
-    values = getattr(resolution, "shortlist_strategy_ids", None)
-    # Some production resolution wrappers expose an empty shortlist tuple even
-    # while dominant/relevant ids are populated. Treat empty as unavailable rather
-    # than authoritative, otherwise every owned Joker falls through to FILLER.
-    if not values:
-        values = (
-            primary,
-            *tuple(getattr(resolution, "relevant_strategy_ids", ()) or ()),
-        )
-    return tuple(str(value) for value in values if value)
+def _matching_developments(joker: object, developments) -> tuple:
+    token = _token(joker)
+    matches = []
+    for development in developments:
+        if any(
+            _source_matches_joker(contribution.source, token)
+            for contribution in development.contributions
+        ):
+            matches.append(development)
+    return tuple(matches)
 
 
-def _fallback_shortlist_relationship(tracker, joker, shortlist):
-    """Resolve structural membership when aggregate item scoring is ambiguous."""
-    definitions = getattr(tracker, "definitions", {}) or {}
-    for strategy_id in shortlist:
-        definition = definitions.get(strategy_id)
-        if definition is None:
-            continue
-        try:
-            tier = definition.relationship_for(joker, kind="JOKER")
-        except (AttributeError, KeyError, TypeError, ValueError):
-            continue
-        if tier in {GOLD, SILVER, BRONZE, BANNED}:
-            return strategy_id, tier
-    return None, None
-
-
-def _runtime_strategy_tracker(state):
-    """Reconstruct the public-state tracker when telemetry callers omit it.
-
-    Build Health is emitted from more than one production path.  Some of those
-    paths historically called the role classifier without forwarding the D1/D2
-    tracker, which made every non-realized-engine Joker look like FILLER even while
-    the same decision logged a valid dominant/relevant strategy shortlist.
-
-    Resolve the normal playbook from the same public state and build the same
-    state-aware runtime catalogue.  If the state is not sufficient to select a
-    playbook, preserve the old no-tracker behavior rather than guessing.
-    """
-    try:
-        from games.balatro.playbook import default_balatro_playbooks
-        from games.balatro.strategy_catalog_guard import (
-            RUNTIME_UNIVERSAL_BALATRO_STRATEGIES,
-        )
-        from games.balatro.strategy_conditional_relationships import (
-            StateAwareBalatroStrategyTracker,
-        )
-
-        playbook = default_balatro_playbooks().for_state(state)
-        return StateAwareBalatroStrategyTracker(
-            RUNTIME_UNIVERSAL_BALATRO_STRATEGIES,
-            modifier_provider=lambda _state: playbook.strategy_modifiers(),
-        )
-    except (AttributeError, KeyError, TypeError, ValueError):
-        return None
+def _development_priority(development) -> tuple[float, float, float]:
+    realization = {
+        BondRealization.DORMANT: 0.0,
+        BondRealization.PARTIAL: 1.0,
+        BondRealization.ACTIVE: 2.0,
+        BondRealization.MATURE: 3.0,
+    }.get(development.realization, 0.0)
+    return (
+        float(max(0, int(development.rank))),
+        realization,
+        float(development.contribution),
+    )
 
 
 class BuildComponentRoleClassifier:
-    """Classify each owned Joker relative to the current realized build.
+    """Classify owned Jokers from canonical Bond composition and realized engines.
 
-    Roles are structural, not a second score catalogue. The classifier consumes
-    existing strategy relationships and realized-engine state. A Joker that is a
-    positive component of the current Primary or one of its relevant Secondary
-    routes is never labelled FILLER merely because aggregate item evaluation could
-    not select one strongest relationship.
+    This classifier is structural rather than a second value catalogue. A Joker is
+    an ENGINE when it participates in a realized scaling engine, CORE when it is a
+    direct contributor to a mature/high-rank selected Bond, SUPPORT when it directly
+    contributes to another selected Bond, CONFLICT when its only structural Bond is
+    rejected by the composition conflict resolver, and FILLER otherwise.
     """
 
     def __init__(self, *, engine_analyzer: RealizedEngineAnalyzer | None = None) -> None:
         self.engine_analyzer = engine_analyzer or RealizedEngineAnalyzer()
 
     def classify(self, state, *, strategy_tracker=None) -> tuple[BuildComponentAssessment, ...]:
-        if strategy_tracker is None:
-            strategy_tracker = _runtime_strategy_tracker(state)
+        # Kept as a compatibility keyword for callers being migrated; categorical
+        # strategy state has no authority in the canonical Bond classifier.
+        del strategy_tracker
 
+        developments, composition = evaluate_bond_composition(state)
+        selected_ids = set(composition.bond_ids)
+        conflict_losers = {left for left, _right in composition.conflicts}
         engines = {
             engine.engine_id: engine
             for engine in self.engine_analyzer.analyze(state)
         }
-        resolution = None
-        primary = None
-        shortlist: tuple[str, ...] = ()
-        if strategy_tracker is not None:
-            try:
-                resolution = strategy_tracker.observe(state)
-                primary = _primary_id(strategy_tracker, resolution)
-                shortlist = _shortlist_ids(resolution, primary)
-            except (AttributeError, KeyError, TypeError, ValueError):
-                resolution = None
-                primary = None
-                shortlist = ()
 
         assessments: list[BuildComponentAssessment] = []
         for index, joker in enumerate(getattr(state, "jokers", ()) or ()):
@@ -169,70 +132,55 @@ class BuildComponentRoleClassifier:
             token = _token(joker)
             engine_id = _ENGINE_TOKEN_TO_ID.get(token)
             engine = engines.get(engine_id) if engine_id else None
-            relation = None
-            if strategy_tracker is not None:
-                try:
-                    relation = strategy_tracker.evaluate_item(state, joker, kind="JOKER")
-                except (AttributeError, KeyError, TypeError, ValueError):
-                    relation = None
-
-            tier = getattr(relation, "tier", None) if relation is not None else None
-            relation_strategy = (
-                getattr(relation, "strategy_id", None) if relation is not None else None
+            matches = _matching_developments(joker, developments)
+            selected = tuple(dev for dev in matches if dev.bond_id in selected_ids)
+            rejected = tuple(dev for dev in matches if dev.bond_id in conflict_losers)
+            structural = max(selected, key=_development_priority) if selected else None
+            rejected_structural = (
+                max(rejected, key=_development_priority) if rejected else None
             )
-            aligned = bool(getattr(relation, "active_alignment", False)) if relation is not None else False
             notes: list[str] = []
 
-            if (
-                strategy_tracker is not None
-                and shortlist
-                and (
-                    relation_strategy not in shortlist
-                    or tier not in {GOLD, SILVER, BRONZE, BANNED}
-                    or not aligned
-                )
-            ):
-                fallback_strategy, fallback_tier = _fallback_shortlist_relationship(
-                    strategy_tracker,
-                    joker,
-                    shortlist,
-                )
-                if fallback_strategy is not None:
-                    relation_strategy = fallback_strategy
-                    tier = fallback_tier
-                    aligned = True
-                    notes.append(
-                        "structural relationship recovered directly from the active strategy shortlist"
-                    )
-
-            if tier == BANNED and (aligned or relation_strategy == primary):
-                role = BuildComponentRole.CONFLICT
-                notes.append("current shortlisted relationship is mechanically Banned")
-            elif engine is not None and aligned:
+            if engine is not None:
                 role = BuildComponentRole.ENGINE
                 notes.append(
                     f"realized engine={engine.engine_id} state={engine.state.value} strength={engine.current_strength:.3f}"
                 )
-            elif aligned and relation_strategy == primary and tier == GOLD:
-                role = BuildComponentRole.CORE
-                notes.append("Gold component of the current Primary route")
-            elif aligned and relation_strategy == primary and tier in {SILVER, BRONZE}:
-                role = BuildComponentRole.SUPPORT
-                notes.append(f"{tier.title()} component reinforcing the current Primary route")
-            elif aligned and relation_strategy in shortlist and tier in {GOLD, SILVER, BRONZE}:
-                role = BuildComponentRole.ENGINE if engine is not None else BuildComponentRole.SUPPORT
-                notes.append("positive component of a current relevant Secondary route")
+            elif structural is not None:
+                mature = structural.realization in {
+                    BondRealization.ACTIVE,
+                    BondRealization.MATURE,
+                }
+                high_rank = structural.rank >= BondRank.R3
+                if mature or high_rank:
+                    role = BuildComponentRole.CORE
+                    notes.append(
+                        f"direct contributor to selected {structural.bond_id} Bond at {structural.rank.name}/{structural.realization.value}"
+                    )
+                else:
+                    role = BuildComponentRole.SUPPORT
+                    notes.append(
+                        f"direct contributor to selected {structural.bond_id} Bond at {structural.rank.name}/{structural.realization.value}"
+                    )
+            elif rejected_structural is not None:
+                role = BuildComponentRole.CONFLICT
+                notes.append(
+                    f"direct contribution belongs to rejected conflicting {rejected_structural.bond_id} Bond"
+                )
             else:
                 role = BuildComponentRole.FILLER
-                notes.append("positive/general value may remain, but Joker is not structural to the realized active build")
+                notes.append(
+                    "positive/general value may remain, but Joker is not structural to the realized Bond composition"
+                )
 
+            reference = structural or rejected_structural
             assessments.append(
                 BuildComponentAssessment(
                     index=index,
                     name=name,
                     role=role,
-                    strategy_id=relation_strategy,
-                    tier=tier,
+                    bond_id=reference.bond_id if reference is not None else None,
+                    bond_rank=reference.rank if reference is not None else None,
                     realized_engine_id=engine_id if engine is not None else None,
                     rationale=tuple(notes),
                 )
