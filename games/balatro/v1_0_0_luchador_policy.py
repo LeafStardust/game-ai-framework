@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-"""Luchador boss-disable policy derived from the five-run v1.0.0 review.
+"""Luchador boss-disable policy derived from live Red/White reviews.
 
-The review exposed a concrete failure mode: the agent carried Luchador through The
-Needle while D1 was in recovery mode, spent every discard, then lost its only hand.
-The semantic SELL_JOKER action already exists, but injected mid-blind selling was
-restricted to Verdant Leaf, so Luchador's active effect was unreachable.
+Luchador is consumable boss protection.  The original policy only spent it after D1
+had already entered PACE_RECOVERY.  That is too late for bosses whose effect poisons
+normal hand construction from the opening draw (notably suit-debuff bosses).  This
+layer therefore distinguishes proactive disable bosses from ordinary pressure bosses:
 
-This layer stays deliberately conservative.  It never sells Luchador when D1 has a
-normal pace/clear recommendation.  It only intervenes while a boss is active and D1
-has entered PACE_RECOVERY, with either a known high-pressure boss or critically low
-hand/discard runway.
+* proactive bosses: sell Luchador before the first hand while the effect is still
+  active, so D1 evaluates the restored deck rather than adapting around dead cards;
+* other high-pressure bosses: retain the older conservative PACE_RECOVERY trigger.
+
+The dispatcher remains fail-closed: only Luchador may be sold through this combat
+path, and already-disabled bosses never consume it.
 """
 
 from games.balatro.actions import SELL_JOKER, BalatroAction
@@ -38,6 +40,18 @@ _HIGH_PRESSURE_BOSSES = frozenset(
         "The Wall",
         "Violet Vessel",
         "Verdant Leaf",
+    }
+)
+
+# These effects invalidate a broad slice of otherwise healthy opening hands.  If
+# Luchador is already owned, waiting until PACE_RECOVERY wastes the protection.
+_PROACTIVE_DISABLE_BOSSES = frozenset(
+    {
+        "The Club",
+        "The Goad",
+        "The Window",
+        "The Head",
+        "The Plant",
     }
 )
 
@@ -83,7 +97,7 @@ def _decision_mode(notes: tuple[str, ...]) -> str | None:
 
 def _should_sell_luchador(state, notes: tuple[str, ...]) -> bool:
     boss_name = str(getattr(state, "boss_name", "") or "")
-    if not boss_name or _decision_mode(notes) != "PACE_RECOVERY":
+    if not boss_name:
         return False
     if boss_blind_disabled_by_owned_jokers(state):
         return False
@@ -92,6 +106,14 @@ def _should_sell_luchador(state, notes: tuple[str, ...]) -> bool:
 
     hands = max(0, int(getattr(state, "hands_remaining", 0) or 0))
     discards = max(0, int(getattr(state, "discards_remaining", 0) or 0))
+
+    if boss_name in _PROACTIVE_DISABLE_BOSSES:
+        # Spend Luchador before the opening hand whenever possible.  If observation
+        # begins later, it is still preferable to remove the broad debuff immediately.
+        return True
+
+    if _decision_mode(notes) != "PACE_RECOVERY":
+        return False
     return bool(
         boss_name in _HIGH_PRESSURE_BOSSES
         or hands <= 1
@@ -122,6 +144,7 @@ def install_v1_0_0_luchador_policy() -> None:
         if luchador is None:
             return decision
         boss_name = str(getattr(decision.state, "boss_name", "") or "unknown boss")
+        proactive = boss_name in _PROACTIVE_DISABLE_BOSSES
         return AutonomousStepDecision(
             decision.snapshot,
             decision.state,
@@ -129,7 +152,11 @@ def install_v1_0_0_luchador_policy() -> None:
             "Luchador boss-disable policy",
             (
                 f"boss={boss_name}",
-                "D1 entered PACE_RECOVERY with Luchador available",
+                (
+                    "proactive boss disable: broad card debuff would distort normal hand construction"
+                    if proactive
+                    else "D1 entered PACE_RECOVERY with Luchador available"
+                ),
                 "sell Luchador before spending further hand/discard runway; re-observe after boss disable",
                 *decision.notes,
             ),
@@ -151,9 +178,6 @@ def install_v1_0_0_luchador_policy() -> None:
         index = _target_index(action.target)
         item = _area_item(before, "jokers", index)
         if not _is_luchador(item):
-            # Preserve the existing fail-closed dispatcher contract.  Verdant Leaf
-            # remains handled by the original dispatcher; arbitrary combat sales
-            # are still forbidden.
             return original_dispatch(self, action, state=state, snapshot=before)
 
         before_count = len(_area_cards(before, "jokers"))
