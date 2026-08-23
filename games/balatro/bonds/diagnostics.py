@@ -54,11 +54,37 @@ def _bond_payload(development: BondDevelopment) -> dict[str, Any]:
     }
 
 
+def _strategy_payload(candidate) -> dict[str, Any]:
+    return {
+        "strategy_id": candidate.strategy_id,
+        "commitment": candidate.commitment.name,
+        "confidence": float(candidate.confidence),
+        "strength": float(candidate.strength),
+        "pinned": bool(candidate.pinned),
+        "bond_ids": list(candidate.bond_ids),
+        "sources": list(candidate.sources),
+        "roles": [role.value for role in candidate.roles],
+        "motif_ids": list(candidate.motif_ids),
+        "links": [
+            {
+                "left_bond": link.left_bond,
+                "left_source": link.left_source,
+                "right_bond": link.right_bond,
+                "right_source": link.right_source,
+                "relation": link.relation,
+            }
+            for link in candidate.links
+        ],
+        "prescriptions": list(candidate.prescriptions),
+    }
+
+
 def bond_strategy_diagnostics(state: Any) -> dict[str, Any]:
     """Return canonical Bond/composition telemetry from one public state.
 
-    Only R1+ Bonds selected into the compatible composition are operator-facing.
-    Locked and R0 axes remain evaluator state and do not clutter the live monitor.
+    R1+ Bonds remain the compact operator-facing Bond list, but mechanical strategy
+    candidates may legitimately use positive R0 evidence.  Candidate diagnostics are
+    therefore reported separately instead of polluting the rank display.
     """
     developments, composition = evaluate_bond_composition(state)
     by_id = {development.bond_id: development for development in developments}
@@ -81,9 +107,12 @@ def bond_strategy_diagnostics(state: Any) -> dict[str, Any]:
         }
         for motif in composition.motifs
     ]
+    strategies = [_strategy_payload(candidate) for candidate in composition.strategy_candidates]
 
     return {
         "power_engine": relevant[0].bond_id if relevant else None,
+        "pinned_strategy": composition.pinned_strategy_id,
+        "strategy_candidates": strategies,
         "relevant_bonds": [_bond_payload(development) for development in relevant],
         "composition": {
             "bond_ids": list(composition.bond_ids),
@@ -94,5 +123,7 @@ def bond_strategy_diagnostics(state: Any) -> dict[str, Any]:
             "pivot_resistance": float(composition.pivot_resistance),
             "motif_distance": [list(item) for item in composition.motif_distance],
             "prescriptions": list(composition.prescriptions),
+            "pinned_strategy_id": composition.pinned_strategy_id,
+            "strategy_candidates": strategies,
         },
     }
