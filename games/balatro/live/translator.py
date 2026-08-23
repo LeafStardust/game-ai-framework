@@ -83,13 +83,16 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
 
         raw_jokers = list(joker_area.get("cards", []))
         state.jokers = self._jokers(raw_jokers)
-        # D2 reasons over modeled Joker objects, but Balatro enforces slot capacity
-        # against every real Joker in the authoritative area. If a live Joker cannot
-        # be modeled (for example because required public constructor state is absent),
-        # reserve its occupied slot by shrinking the modeled capacity accordingly.
-        # This preserves: modeled_free_slots == authoritative_limit - authoritative_count.
-        authoritative_limit = max(0, int(joker_area.get("limit", 5)))
-        unmodeled_occupancy = max(0, len(raw_jokers) - len(state.jokers))
+        # Balatro's authoritative area count can temporarily lead the normalized
+        # card list during pack/sell transitions. Capacity must match the same
+        # count/limit pair enforced by the injected bridge, not merely len(cards).
+        authoritative_limit = max(0, int(joker_area.get("limit", 5) or 0))
+        authoritative_count = max(
+            0,
+            int(joker_area.get("count", len(raw_jokers)) or 0),
+            len(raw_jokers),
+        )
+        unmodeled_occupancy = max(0, authoritative_count - len(state.jokers))
         state.joker_slots = max(0, authoritative_limit - unmodeled_occupancy)
 
         state.consumables = self._consumables(consumable_area.get("cards", []))
