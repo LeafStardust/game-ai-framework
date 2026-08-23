@@ -68,9 +68,13 @@ def test_status_protocol_parses_bridge_and_achievement_gate():
 
 
 def test_bridge_round_trip_uses_local_file_protocol(tmp_path):
+    # This is a file-protocol correctness test, not a scheduler-latency test.
+    # Full-suite filesystem/CPU contention can starve the synthetic responder long
+    # enough to make a 1s timeout flaky, so use the same generous local budget as
+    # the ERROR-payload round-trip test below.
     bridge = FirstPartyBalatroBridge(
         tmp_path,
-        timeout=1.0,
+        timeout=5.0,
         poll_interval=0.001,
     )
     captured = {}
