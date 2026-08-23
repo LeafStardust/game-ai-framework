@@ -7,6 +7,7 @@ categorical strategy-tree patches are intentionally not imported or installed.
 from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
 from games.balatro.bond_d1_cache_policy import install_bond_d1_cache_policy
 from games.balatro.bond_pivot_authority import install_bond_pivot_authority
+from games.balatro.bond_power_engine_retention_policy import install_bond_power_engine_retention_policy
 from games.balatro.bond_prescription_policy import install_bond_prescription_policy
 from games.balatro.bond_shop_health_policy import install_bond_shop_health_policy
 from games.balatro.build_health_policy import install_build_health_policy
@@ -18,6 +19,7 @@ from games.balatro.five_run_followup_policy import install_five_run_followup_pol
 from games.balatro.five_run_optimization_policy import install_five_run_optimization_policy
 from games.balatro.five_run_release_candidate_policy import install_five_run_release_candidate_policy
 from games.balatro.five_run_validation_policy import install_five_run_validation_policy
+from games.balatro.late_shop_resource_guard import install_late_shop_resource_guard
 from games.balatro.latest_batch_no_discard_policy import install_latest_batch_no_discard_policy
 from games.balatro.latest_five_run_calibration_policy import install_latest_five_run_calibration_policy
 from games.balatro.latest_five_run_resource_metrics import install_latest_five_run_resource_metrics
@@ -50,6 +52,7 @@ install_sixth_sense_policy()
 install_early_capacity_policy()
 install_latest_five_run_resource_metrics()
 install_five_run_release_candidate_policy()
+install_late_shop_resource_guard()
 install_five_run_validation_policy()
 install_deck_growth_pack_policy()
 install_aces_dna_hand_policy()
@@ -61,6 +64,7 @@ install_noncash_cash_deployment_policy()
 install_latest_zero_five_survival_policy()
 install_bond_shop_health_policy()
 install_bond_pivot_authority()
+install_bond_power_engine_retention_policy()
 install_bond_prescription_policy()
 install_bond_d1_cache_policy()
 install_burnt_bond_execution_policy()
