@@ -53,6 +53,7 @@ from games.balatro.sixth_sense_policy import install_sixth_sense_policy
 from games.balatro.stateful_joker_admission_policy import install_stateful_joker_admission_policy
 from games.balatro.strategy_authority_correction_policy import install_strategy_authority_correction_policy
 from games.balatro.strategy_plan_pack_policy import install_strategy_plan_pack_policy
+from games.balatro.tactical_scaler_build_health import install_tactical_scaler_build_health_policy
 from games.balatro.v1_0_0_luchador_policy import install_v1_0_0_luchador_policy
 from games.balatro.v1_0_0_policy import install_v1_0_0_policy
 
@@ -81,6 +82,7 @@ install_five_run_validation_policy()
 install_deck_growth_pack_policy()
 install_aces_dna_hand_policy()
 install_latest_five_run_calibration_policy()
+install_tactical_scaler_build_health_policy()
 install_latest_batch_no_discard_policy()
 install_build_health_policy()
 install_shop_clear_probability_health_policy()
