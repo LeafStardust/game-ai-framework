@@ -3,10 +3,15 @@ from __future__ import annotations
 """Retention guard for already-realized canonical Bond engines.
 
 A replacement must not destroy an ACTIVE/MATURE Bond merely because diagnostics
-happen to rank some other Bond as the single current ``power_engine``.  Retention is
+happen to rank some other Bond as the single current ``power_engine``. Retention is
 therefore source-aware: every realized Bond materially contributed by the incumbent
-being sold is protected unless the projected build preserves that Bond or produces
-a materially stronger replacement engine.
+being sold is protected unless the projected build preserves that Bond or the
+replacement itself creates a materially stronger engine.
+
+This layer also prevents canonical Bond-transition bonuses from rescuing a Joker
+replacement that is already worse on the common whole-build baseline. Structural
+progress is useful evidence, but it is not permission to sell a proven scoring
+component for a weaker candidate.
 """
 
 from dataclasses import replace
@@ -83,12 +88,49 @@ def _incumbent_realized_bonds(current: dict, incumbent) -> tuple[dict, ...]:
     return tuple(protected)
 
 
-def _best_projected_strength(projected: dict) -> tuple[str | None, float]:
-    relevant = tuple(projected.get("relevant_bonds", ()) or ())
-    if not relevant:
-        return None, 0.0
-    best = max(relevant, key=_strength)
-    return str(best.get("bond_id")), _strength(best)
+def _raw_replacement_delta(policy, state, candidate, index: int) -> float | None:
+    """Return the common-baseline D2 delta before Bond-transition bonuses."""
+    try:
+        transition = policy.transition_planner.plan(state, candidate)
+    except (AttributeError, TypeError, ValueError):
+        return None
+    for option in tuple(getattr(transition, "alternatives", ()) or ()):
+        try:
+            if int(option.replace_index) == int(index):
+                return float(option.build_delta)
+        except (AttributeError, TypeError, ValueError):
+            continue
+    return None
+
+
+def _best_material_projected_engine(
+    current: dict,
+    projected: dict,
+) -> tuple[str | None, float, float]:
+    """Return only engine strength genuinely created/improved by the replacement.
+
+    A strong engine that already existed before the hypothetical sale is not
+    evidence that selling some other realized engine is safe. This distinction is
+    what prevents an unrelated pinned engine from laundering destructive pivots.
+    """
+    current_map = _relevant_map(current)
+    best_id: str | None = None
+    best_after = 0.0
+    best_gain = 0.0
+    for payload in tuple(projected.get("relevant_bonds", ()) or ()):
+        bond_id = str(payload.get("bond_id") or "")
+        if not bond_id:
+            continue
+        after = _strength(payload)
+        before = _strength(current_map.get(bond_id))
+        gain = after - before
+        if gain <= 1e-12:
+            continue
+        if (gain, after) > (best_gain, best_after):
+            best_id = bond_id
+            best_after = after
+            best_gain = gain
+    return best_id, best_after, best_gain
 
 
 def install_bond_power_engine_retention_policy() -> None:
@@ -108,6 +150,27 @@ def install_bond_power_engine_retention_policy() -> None:
         except (AttributeError, TypeError, ValueError, IndexError):
             return decision
 
+        # A structural/Bond bonus may improve long-horizon confidence, but it must
+        # never turn a whole-build regression into an incumbent sale. The common
+        # baseline already includes immediate score, contextual semantics and locked
+        # playstyle. If the candidate loses that comparison, keep the incumbent.
+        raw_delta = _raw_replacement_delta(self, state, candidate, index)
+        minimum_raw_delta = float(
+            getattr(getattr(decision, "thresholds", None), "minimum_replacement_build_delta", 0.0)
+            or 0.0
+        )
+        if raw_delta is not None and raw_delta <= minimum_raw_delta + 1e-12:
+            return replace(
+                decision,
+                action=HOLD,
+                selected=None,
+                rationale=(
+                    *decision.rationale,
+                    f"whole-build incumbent retention veto: raw replacement delta={raw_delta:.3f} must exceed {minimum_raw_delta:.3f} before Bond-transition bonuses",
+                    "structural/Bond progress cannot rescue a candidate that is already worse than the incumbent on the common baseline",
+                ),
+            )
+
         current = bond_strategy_diagnostics(state)
         protected = _incumbent_realized_bonds(current, incumbent)
         if not protected:
@@ -119,14 +182,12 @@ def install_bond_power_engine_retention_policy() -> None:
         projected_state = projected_state_with_jokers(state, projected_jokers)
         projected = bond_strategy_diagnostics(projected_state)
         projected_map = _relevant_map(projected)
-        projected_engine, projected_engine_strength = _best_projected_strength(projected)
 
         lost: list[tuple[dict, float, float]] = []
         for payload in protected:
             bond_id = str(payload.get("bond_id"))
             before = _strength(payload)
             after = _strength(projected_map.get(bond_id))
-            # Retain when the same realized Bond survives at equal/greater strength.
             if after + 1e-12 >= before:
                 continue
             lost.append((payload, before, after))
@@ -140,17 +201,25 @@ def install_bond_power_engine_retention_policy() -> None:
                 ),
             )
 
-        # Sticky, not immortal: a genuine materially stronger projected engine may
-        # justify abandoning the weakest protected realized engine.
+        # Sticky, not immortal: abandoning a realized incumbent engine is allowed
+        # only when this replacement itself creates/materially strengthens another
+        # engine. Pre-existing engine strength cannot justify the sale.
         strongest_lost = max(lost, key=lambda item: item[1])
-        required = strongest_lost[1] + 0.75
-        if projected_engine_strength + 1e-12 >= required:
+        required_strength = strongest_lost[1] + 0.75
+        projected_engine, projected_engine_strength, projected_engine_gain = (
+            _best_material_projected_engine(current, projected)
+        )
+        required_gain = max(0.75, strongest_lost[1] - strongest_lost[2])
+        if (
+            projected_engine_strength + 1e-12 >= required_strength
+            and projected_engine_gain + 1e-12 >= required_gain
+        ):
             return replace(
                 decision,
                 rationale=(
                     *decision.rationale,
-                    "realized incumbent Bond pivot allowed because projected power materially exceeds the lost realized engine",
-                    f"lost {strongest_lost[0].get('bond_id')} strength={strongest_lost[1]:.2f}; projected {projected_engine or 'NONE'} strength={projected_engine_strength:.2f}; required={required:.2f}",
+                    "realized incumbent Bond pivot allowed because the replacement itself creates materially stronger power",
+                    f"lost {strongest_lost[0].get('bond_id')} strength={strongest_lost[1]:.2f}->{strongest_lost[2]:.2f}; projected {projected_engine or 'NONE'} strength={projected_engine_strength:.2f} gain={projected_engine_gain:.2f}; required strength={required_strength:.2f} gain={required_gain:.2f}",
                 ),
             )
 
@@ -165,8 +234,8 @@ def install_bond_power_engine_retention_policy() -> None:
             rationale=(
                 *decision.rationale,
                 f"canonical realized-incumbent retention veto: selling {type(incumbent).__name__} would weaken {lost_text}",
-                f"best projected engine {projected_engine or 'NONE'} strength={projected_engine_strength:.2f}; required={required:.2f}",
-                "fresh structural/Bond progress does not justify dismantling an already realized incumbent-contributed engine",
+                f"replacement-created best engine {projected_engine or 'NONE'} strength={projected_engine_strength:.2f} gain={projected_engine_gain:.2f}; required strength={required_strength:.2f} gain={required_gain:.2f}",
+                "pre-existing engine strength and fresh structural progress do not justify dismantling an already realized incumbent-contributed engine",
             ),
         )
 
