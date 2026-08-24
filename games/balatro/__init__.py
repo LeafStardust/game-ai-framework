@@ -86,7 +86,6 @@ install_aces_dna_hand_policy()
 install_latest_five_run_calibration_policy()
 install_tactical_scaler_build_health_policy()
 install_bond_scaler_build_health_policy()
-install_latest_batch_no_discard_policy()
 install_build_health_policy()
 install_shop_clear_probability_health_policy()
 install_noncash_cash_deployment_policy()
@@ -111,6 +110,10 @@ install_planet_pack_fallback_policy()
 install_live_quality_regression_policy()
 install_stateful_joker_admission_policy()
 install_pinned_strategy_safe_pace_policy()
+# Final D1 semantic execution guard: it must see the fully wrapped D1 decision so
+# later safe-pace/strategy layers cannot accidentally reintroduce a discard or
+# non-repeating hand after a realized engine contract has been recognized.
+install_latest_batch_no_discard_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
 install_live_joker_order_authority()
