@@ -9,6 +9,7 @@ from games.balatro.bond_d1_cache_policy import install_bond_d1_cache_policy
 from games.balatro.bond_pivot_authority import install_bond_pivot_authority
 from games.balatro.bond_power_engine_retention_policy import install_bond_power_engine_retention_policy
 from games.balatro.bond_prescription_policy import install_bond_prescription_policy
+from games.balatro.bond_scaler_build_health_policy import install_bond_scaler_build_health_policy
 from games.balatro.bond_shop_health_policy import install_bond_shop_health_policy
 from games.balatro.boss_hand_constraint_policy import install_boss_hand_constraint_policy
 from games.balatro.build_health_policy import install_build_health_policy
@@ -83,6 +84,7 @@ install_deck_growth_pack_policy()
 install_aces_dna_hand_policy()
 install_latest_five_run_calibration_policy()
 install_tactical_scaler_build_health_policy()
+install_bond_scaler_build_health_policy()
 install_latest_batch_no_discard_policy()
 install_build_health_policy()
 install_shop_clear_probability_health_policy()
