@@ -24,6 +24,7 @@ from games.balatro.five_run_followup_policy import install_five_run_followup_pol
 from games.balatro.five_run_optimization_policy import install_five_run_optimization_policy
 from games.balatro.five_run_release_candidate_policy import install_five_run_release_candidate_policy
 from games.balatro.five_run_validation_policy import install_five_run_validation_policy
+from games.balatro.forming_strategy_retention_policy import install_forming_strategy_retention_policy
 from games.balatro.full_roster_pack_guard import install_full_roster_pack_guard
 from games.balatro.full_roster_shop_guard import install_full_roster_shop_guard
 from games.balatro.late_shop_resource_guard import install_late_shop_resource_guard
@@ -57,8 +58,6 @@ from games.balatro.v1_0_0_policy import install_v1_0_0_policy
 
 
 install_mouth_first_hand_policy()
-# Psychic/Eye legality belongs outside the Mouth wrapper so every downstream D1
-# layer sees only boss-admissible play candidates.
 install_boss_hand_constraint_policy()
 install_d1_log_resilience_policy()
 install_d1_candidate_deadline_policy()
@@ -97,28 +96,15 @@ install_face_card_enabler_bond_policy()
 install_planet_relevance_policy()
 install_pinned_strategy_transition_policy()
 install_pinned_strategy_retention_policy()
+install_forming_strategy_retention_policy()
 install_pinned_strategy_execution_policy()
 install_pinned_strategy_shop_goal_policy()
 install_strategy_plan_pack_policy()
-# Singleton defining-core tracking now lives in the canonical bonds/composer.py.
-# Keep authority correction as the only wrapper above canonical strategy formation.
 install_strategy_authority_correction_policy()
-# Install after strategy-plan ranking so Celestial packs have an explicit safe
-# fallback when no offered Planet already belongs to the developed/applied build.
 install_planet_pack_fallback_policy()
-# Install after all strategic/shop wrappers so these production-regression guards
-# see the final decision and can enforce no-cost packs, Planet relevance, and
-# replacement hysteresis without bypassing earlier safety authorities.
 install_live_quality_regression_policy()
-# Stateful admission is last in D2 so paid dead-on-arrival Jokers cannot bypass the
-# final replacement/strategy guards above.
 install_stateful_joker_admission_policy()
-# Install after the older safe-pace patch so the final PACE_PLAY chooser can restore
-# StrategyAwareLiveHandActionPolicy tie-breaking only inside a narrow safe band.
 install_pinned_strategy_safe_pace_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
-# Joker ordering is an execution invariant rather than a strategy preference. Keep
-# it last so later policy composition cannot bypass Blueprint/Brainstorm targeting,
-# Polychrome/XMult right-alignment, or additive-Mult-before-XMult ordering rules.
 install_live_joker_order_authority()
