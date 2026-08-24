@@ -136,8 +136,10 @@ def _semantic_relation(left: _Evidence, right: _Evidence) -> str | None:
             relation = _ROLE_COMPATIBILITY.get(frozenset((left_role, right_role)))
             if relation:
                 return relation
-    if set(left.targets).intersection(right.targets):
-        return "SHARED_MECHANICAL_TARGET"
+    # Targets qualify a role; sharing the same rank/suit/hand target is not itself
+    # evidence that two payoffs cooperate. Generic links require an explicit
+    # mechanically compatible role pair. Known super-additive same-target packages
+    # remain represented by motifs above this layer.
     return None
 
 
