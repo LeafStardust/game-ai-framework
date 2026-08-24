@@ -96,9 +96,10 @@ def main() -> int:
     study_dir = _study_directory(args.study)
     storage_path = args.storage or (study_dir / "study.sqlite3")
     report_path = args.report or (study_dir / "study-report.json")
-    run_log_directory = args.run_log_directory or (study_dir / "runs")
-    session_directory = args.session_directory or (study_dir / "sessions")
-    control_directory = args.control_directory or (study_dir / "control")
+    tuning_dir = Path("logs/balatro/tuning")
+    run_log_directory = args.run_log_directory or (tuning_dir / "runs")
+    session_directory = args.session_directory or (tuning_dir / "sessions")
+    control_directory = args.control_directory or (tuning_dir / "control")
 
     try:
         revision = _repository_sha(args.repo_sha)
