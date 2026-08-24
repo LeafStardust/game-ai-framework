@@ -2,11 +2,9 @@ from __future__ import annotations
 
 """D1 DNA execution with canonical strategy-aware card duplication.
 
-DNA's first-hand single-card copy is a strategic setup action.  The old policy only
-understood the hand-written Scholar/Aces case; generic Bond composition may instead
-link DNA to any engine that requires a concrete card rank.  This policy now derives
-those targets from the active semantic strategy while keeping blind survival
-strictly authoritative.
+DNA's first-hand single-card copy is a strategic setup action. The policy derives
+copy targets from the strongest semantic strategy containing DNA while keeping blind
+survival strictly authoritative.
 """
 
 from dataclasses import replace
@@ -50,7 +48,6 @@ def _first_hand(state) -> bool:
 
 
 def _aces_bond_active(policy, state) -> bool:
-    """Use canonical Bond composition instead of the retired strategy tracker."""
     intents = policy._hand_bond_intents(state)
     return any(
         str(target).upper() in {"PAIR", "THREE_OF_A_KIND", "FOUR_OF_A_KIND", "FIVE_OF_A_KIND"}
@@ -89,11 +86,7 @@ def _safe_ace_plan(plans, *, dna_single: bool):
     if not candidates:
         return None
     if dna_single:
-        safe = [
-            plan
-            for plan in candidates
-            if float(plan.value.clear_probability) >= DNA_SAFE_CLEAR_PROBABILITY
-        ]
+        safe = [plan for plan in candidates if float(plan.value.clear_probability) >= DNA_SAFE_CLEAR_PROBABILITY]
         if not safe:
             return None
         return max(
@@ -116,25 +109,33 @@ def _safe_ace_plan(plans, *, dna_single: bool):
     )
 
 
+def _candidate_priority(candidate) -> tuple[int, float, float]:
+    commitment = getattr(candidate, "commitment", 0)
+    try:
+        commitment_value = int(commitment)
+    except (TypeError, ValueError):
+        commitment_value = 0
+    return (
+        commitment_value,
+        float(getattr(candidate, "confidence", 0.0) or 0.0),
+        float(getattr(candidate, "strength", 0.0) or 0.0),
+    )
+
+
 def _strategy_dna_rank_targets(state) -> tuple[str, ...]:
-    """Return concrete rank requirements from the strategy component linked to DNA."""
+    """Return concrete rank requirements from the strongest strategy containing DNA."""
     if not _owns(state, "dnajoker"):
         return ()
     try:
         _developments, composition = evaluate_bond_composition(state)
-        candidates = tuple(getattr(composition, "strategy_candidates", ()) or ())
-        if not candidates:
-            return ()
-        candidate = next(
-            (
-                item
-                for item in candidates
-                if any(_normalize(source) == "dna" for source in getattr(item, "sources", ()) or ())
-            ),
-            None,
+        linked = tuple(
+            item
+            for item in tuple(getattr(composition, "strategy_candidates", ()) or ())
+            if any(_normalize(source) == "dna" for source in getattr(item, "sources", ()) or ())
         )
-        if candidate is None:
+        if not linked:
             return ()
+        candidate = max(linked, key=_candidate_priority)
         strategy_sources = {
             _normalize(source)
             for source in getattr(candidate, "sources", ()) or ()
@@ -195,17 +196,8 @@ def _safe_dna_rank_plan(plans, ranks: tuple[str, ...]):
 def _replace_with_plan(policy, state, decision, plan, rationale):
     projection = policy.evaluator.project_play(state, plan.action)
     pace_target = float(decision.pace_target or 0.0)
-    pace_ratio = (
-        float(projection.expected_hand_score) / pace_target
-        if pace_target > 0.0
-        else float("inf")
-    )
-    mode = (
-        CLEAR_PATH
-        if float(plan.value.clear_probability)
-        >= float(decision.thresholds.clear_path_probability_floor)
-        else PACE_PLAY
-    )
+    pace_ratio = float(projection.expected_hand_score) / pace_target if pace_target > 0.0 else float("inf")
+    mode = CLEAR_PATH if float(plan.value.clear_probability) >= float(decision.thresholds.clear_path_probability_floor) else PACE_PLAY
     return replace(
         decision,
         mode=mode,
@@ -227,10 +219,6 @@ def install_aces_dna_hand_policy() -> None:
         plans = tuple(plans)
         decision = original_decide(self, state, plans, **kwargs)
 
-        # Generic canonical strategy path: DNA may duplicate any concrete rank that
-        # a mechanically linked strategy component requires.  This covers Walkie's
-        # 4/10 engine without a DNA+Walkie pair table and generalizes to future
-        # rank-dependent components.
         if _owns(state, "dnajoker") and _first_hand(state):
             rank_targets = _strategy_dna_rank_targets(state)
             plan = _safe_dna_rank_plan(plans, rank_targets)
@@ -241,7 +229,7 @@ def install_aces_dna_hand_policy() -> None:
                     decision,
                     plan,
                     (
-                        "DNA semantic strategy contract: duplicate a rank required by a mechanically linked component when the blind remains safe",
+                        "DNA semantic strategy contract: duplicate a rank required by the strongest mechanically linked strategy when the blind remains safe",
                         f"required ranks={rank_targets}; selected rank={getattr(plan.action.cards[0], 'rank', None)}",
                         f"DNA line projected clear probability={float(plan.value.clear_probability):.3f} >= {DNA_SAFE_CLEAR_PROBABILITY:.2f}",
                         "long-term duplication remains subordinate to blind survival",
