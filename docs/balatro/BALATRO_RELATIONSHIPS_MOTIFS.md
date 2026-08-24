@@ -11,9 +11,25 @@ Composer       = select a coherent combined build from realized/developed Bonds
 Build Health   = separate later layer for actual score/survival adequacy
 ```
 
-## Sparse relationships
+## Knowledge boundary
 
-Only mechanically meaningful edges are stored. Every unlisted pair is NEUTRAL.
+The Joker ruleset is closed and known. Individual Joker mechanics should therefore be modeled explicitly and completely. This document's sparse-relationship rule applies to **Bond-level composition**, not to knowledge of the Jokers themselves.
+
+Do not confuse:
+
+```text
+explicitly model DNA's copy mechanic       = required game knowledge
+explicitly model Walkie rank requirements  = required game knowledge
+infer copy -> required rank                = preferred reusable composition
+hard-code every DNA + payoff pair          = usually unnecessary
+explicitly encode a special pair/motif     = correct when generic semantics are insufficient
+```
+
+Important known synergies should have regression tests even when they are inferred through generic semantics. If generic inference disagrees with a stable Balatro interaction, the explicit game-correct interaction wins.
+
+## Sparse Bond relationships
+
+Only mechanically meaningful **Bond-level** edges are stored. Every unlisted Bond pair is NEUTRAL.
 
 Canonical edges:
 
@@ -32,7 +48,7 @@ Held Retrigger <-> Steel
 Card Destruction <-> Deck Thinning
 ```
 
-Relationships must not become an exhaustive pair matrix. Super-additive packages belong to Motifs.
+Relationships must not become an exhaustive Bond-pair matrix. Super-additive packages belong to Motifs, while ordinary cross-Joker compatibility should normally emerge from exact component mechanics and semantic links.
 
 ## Motif states
 
@@ -65,7 +81,7 @@ Prescriptions when active include preserving held Kings/Steel, preferring King/S
 
 ## Composer
 
-The composer considers developed Bonds, removes weaker conflicting Bonds, records sparse synergies, evaluates Motifs, and returns the current coherent composition.
+The composer considers developed Bonds, exact component mechanics, semantic links, sparse Bond conflicts/synergies, and known Motifs, then returns the current coherent composition.
 
 `coherence_score` is a planning priority score only. It may use rank, realization, synergy and motif completion because those describe strategic coherence. It is explicitly **not projected chips or Build Health**.
 
