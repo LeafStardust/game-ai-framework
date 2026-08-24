@@ -2,10 +2,13 @@ from __future__ import annotations
 
 """Resource-policy coherence for the canonical Bond strategy machine.
 
-Live validation exposed two forms of resource drift:
+Live validation exposed three forms of resource drift:
 
 * D8 treated requirements from every owned effect as one giant build wishlist,
   making Standard Packs appear to satisfy nearly every rank simultaneously.
+* D8 fell back to that generic wishlist when a real forming strategy had no explicit
+  card-level prescription, causing random Standard-pack deck bloat instead of
+  developing the strategy actually being played.
 * D3 could buy a zero-compatibility Voucher through the basic cash reserve because
   the Red/White cartridge intentionally allowed ``minimum_money_after=0``.
 
@@ -36,18 +39,24 @@ def _strategy_priority(candidate) -> tuple[int, float, float]:
     )
 
 
-def _strategy_features(state) -> tuple[str, ...]:
+def _strategy_candidate(state):
     try:
         _developments, composition = evaluate_bond_composition(state)
     except (AttributeError, TypeError, ValueError, RuntimeError):
-        return ()
+        return None
     candidates = tuple(getattr(composition, "strategy_candidates", ()) or ())
     if not candidates:
+        return None
+    # Do not trust container ordering: resource policy follows the strongest actual
+    # commitment, not whichever exploratory candidate happened to be emitted first.
+    return max(candidates, key=_strategy_priority)
+
+
+def _strategy_features(state) -> tuple[str, ...]:
+    candidate = _strategy_candidate(state)
+    if candidate is None:
         return ()
 
-    # Do not trust container ordering: the resource layer must follow the strongest
-    # actual commitment, not whichever exploratory candidate happened to be first.
-    candidate = max(candidates, key=_strategy_priority)
     values: list[str] = []
     for prescription in getattr(candidate, "prescriptions", ()) or ():
         text = str(prescription)
@@ -59,9 +68,25 @@ def _strategy_features(state) -> tuple[str, ...]:
 
 
 def _strategy_card_need(policy, state, profile, family: str):
+    candidate = _strategy_candidate(state)
     features = _strategy_features(state)
+
+    # A real strategy with no card-level prescription is positive evidence that D8
+    # should *not* invent a deck-development target from every owned effect. This is
+    # especially important for hand-shape engines (Straight, Pair, etc.): random
+    # Standard-card additions enlarge the deck without increasing the density of the
+    # hand the strategy is trying to realize. Explicit strategy prescriptions still
+    # reopen Standard demand normally.
+    if family == "STANDARD" and candidate is not None and not features:
+        return 0.0, (
+            "D8 committed/forming strategy has no card-level Standard prescription",
+            f"strategy={getattr(candidate, 'strategy_id', 'unknown')}",
+            "random deck growth is not treated as strategy demand",
+        )
+
     if not features:
         return None
+
     prefixes = policy.FAMILY_CARD_FEATURE_PREFIXES.get(family, ())
     exact = policy.FAMILY_TRANSFORM_FEATURES.get(family, frozenset())
     relevant = {
