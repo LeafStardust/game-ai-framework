@@ -181,6 +181,23 @@ def _motif_completion(motif: MotifEvaluation) -> float:
     return 0.0 if total <= 0 else len(motif.present_components) / total
 
 
+def _motif_source_match(motif: MotifEvaluation, group: tuple[_Node, ...]) -> bool:
+    present = {
+        _token(component)
+        for component in tuple(motif.present_components or ())
+        if _token(component)
+    }
+    if not present:
+        return False
+    concrete = {
+        _token(node.source)
+        for node in group
+        if not str(node.source).lower().startswith("feature:") and _token(node.source)
+    }
+    required = min(2, len(present))
+    return len(present.intersection(concrete)) >= required
+
+
 def _feature_goals(group: tuple[_Node, ...], available: set[str]) -> tuple[str, ...]:
     desired: set[str] = set()
     for node in group:
@@ -190,12 +207,20 @@ def _feature_goals(group: tuple[_Node, ...], available: set[str]) -> tuple[str, 
     return tuple(sorted(feature for feature in desired if feature))
 
 
-def form_behavior_strategy_candidates(state, developments: Iterable[BondDevelopment], motifs: Iterable[MotifEvaluation] = ()) -> tuple[StrategyCandidate, ...]:
+def form_behavior_strategy_candidates(
+    state,
+    developments: Iterable[BondDevelopment],
+    motifs: Iterable[MotifEvaluation] = (),
+) -> tuple[StrategyCandidate, ...]:
     devs = tuple(developments)
     profile, nodes = _nodes(state, devs)
     adjacency, raw_links = _graph(nodes)
     all_motifs = tuple(motifs)
-    available = {feature for feature, strength in profile.feature_strengths if float(strength) > 0.0}
+    available = {
+        feature
+        for feature, strength in profile.feature_strengths
+        if float(strength) > 0.0
+    }
     for node in nodes:
         available.update(node.outputs)
     candidates: list[StrategyCandidate] = []
@@ -216,26 +241,46 @@ def form_behavior_strategy_candidates(state, developments: Iterable[BondDevelopm
             if left in indices and right in indices
         )
         relevant_motifs = tuple(
-            motif for motif in all_motifs
-            if motif.state != MotifState.ABSENT and len(set(motif.relevant_bonds).intersection(bond_set)) >= 2
+            motif
+            for motif in all_motifs
+            if motif.state != MotifState.ABSENT
+            and len(set(motif.relevant_bonds).intersection(bond_set)) >= 2
+            and _motif_source_match(motif, group)
         )
-        motif_factor = max((_motif_completion(motif) for motif in relevant_motifs), default=0.0)
+        motif_factor = max(
+            (_motif_completion(motif) for motif in relevant_motifs),
+            default=0.0,
+        )
         link_density = min(1.0, len(component_links) / max(1, len(group) - 1))
-        confidence = min(1.0, 0.20 + 0.35 * link_density + 0.20 * min(1.0, len(group) / 4.0) + 0.25 * motif_factor)
+        confidence = min(
+            1.0,
+            0.20
+            + 0.35 * link_density
+            + 0.20 * min(1.0, len(group) / 4.0)
+            + 0.25 * motif_factor,
+        )
         active = any(motif.state >= MotifState.ACTIVE for motif in relevant_motifs)
         half = any(_motif_completion(motif) >= 0.5 for motif in relevant_motifs)
         commitment = (
-            StrategyCommitment.ESTABLISHED if active
-            else StrategyCommitment.PINNED if half or (confidence >= 0.62 and len(group) >= 2)
+            StrategyCommitment.ESTABLISHED
+            if active
+            else StrategyCommitment.PINNED
+            if half or (confidence >= 0.62 and len(group) >= 2)
             else StrategyCommitment.FORMING
         )
         motif_ids = tuple(motif.motif_id for motif in relevant_motifs)
-        strategy_id = motif_ids[0] if motif_ids else "behavior:" + "+".join(bond_ids or (f"engine{ordinal}",))
+        strategy_id = (
+            motif_ids[0]
+            if motif_ids
+            else "behavior:" + "+".join(bond_ids or (f"engine{ordinal}",))
+        )
         goals = _feature_goals(group, available)
-        prescriptions = tuple(dict.fromkeys(
-            [p for motif in relevant_motifs for p in motif.prescriptions]
-            + [f"seek_feature:{feature}" for feature in goals]
-        ))
+        prescriptions = tuple(
+            dict.fromkeys(
+                [p for motif in relevant_motifs for p in motif.prescriptions]
+                + [f"seek_feature:{feature}" for feature in goals]
+            )
+        )
         candidates.append(
             StrategyCandidate(
                 strategy_id=strategy_id,
@@ -246,7 +291,9 @@ def form_behavior_strategy_candidates(state, developments: Iterable[BondDevelopm
                 motif_ids=motif_ids,
                 commitment=commitment,
                 confidence=confidence,
-                strength=sum(node.value for node in group) + 2.5 * len(component_links) + 4.0 * confidence,
+                strength=sum(node.value for node in group)
+                + 2.5 * len(component_links)
+                + 4.0 * confidence,
                 prescriptions=prescriptions,
             )
         )
@@ -261,7 +308,10 @@ def merge_strategy_candidates(*families: Iterable[StrategyCandidate]) -> tuple[S
         if current is None:
             by_id[candidate.strategy_id] = candidate
             continue
-        winner = max((current, candidate), key=lambda value: (int(value.commitment), value.confidence, value.strength))
+        winner = max(
+            (current, candidate),
+            key=lambda value: (int(value.commitment), value.confidence, value.strength),
+        )
         by_id[candidate.strategy_id] = StrategyCandidate(
             strategy_id=winner.strategy_id,
             bond_ids=tuple(sorted(set(current.bond_ids) | set(candidate.bond_ids))),
@@ -271,7 +321,21 @@ def merge_strategy_candidates(*families: Iterable[StrategyCandidate]) -> tuple[S
             motif_ids=tuple(dict.fromkeys((*current.motif_ids, *candidate.motif_ids))),
             commitment=max(current.commitment, candidate.commitment),
             confidence=max(current.confidence, candidate.confidence),
-            strength=max(current.strength, candidate.strength) + 0.25 * min(current.strength, candidate.strength),
-            prescriptions=tuple(dict.fromkeys((*current.prescriptions, *candidate.prescriptions))),
+            strength=max(current.strength, candidate.strength)
+            + 0.25 * min(current.strength, candidate.strength),
+            prescriptions=tuple(
+                dict.fromkeys((*current.prescriptions, *candidate.prescriptions))
+            ),
         )
-    return tuple(sorted(by_id.values(), key=lambda value: (int(value.commitment), value.confidence, value.strength, value.strategy_id), reverse=True))
+    return tuple(
+        sorted(
+            by_id.values(),
+            key=lambda value: (
+                int(value.commitment),
+                value.confidence,
+                value.strength,
+                value.strategy_id,
+            ),
+            reverse=True,
+        )
+    )
