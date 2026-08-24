@@ -1,3 +1,5 @@
+import pytest
+
 from games.balatro.bond_scaler_build_health_policy import _bond_scaler_engines
 from games.balatro.build_health import EngineState
 from games.balatro.jokers.constellation import ConstellationJoker
@@ -32,10 +34,10 @@ def test_xmult_bond_scalers_use_only_current_public_accumulation():
 
     engines = _by_id(_state(constellation, lucky, glass, vampire, ante=4))
 
-    assert engines["constellation"].current_strength == 0.4
-    assert engines["lucky_cat"].current_strength == 1.0
-    assert engines["glass_joker"].current_strength == 1.5
-    assert engines["vampire"].current_strength == 0.6
+    assert engines["constellation"].current_strength == pytest.approx(0.4)
+    assert engines["lucky_cat"].current_strength == pytest.approx(1.0)
+    assert engines["glass_joker"].current_strength == pytest.approx(1.5)
+    assert engines["vampire"].current_strength == pytest.approx(0.6)
     assert all(engine.state != EngineState.OWNED_INACTIVE for engine in engines.values())
 
 
