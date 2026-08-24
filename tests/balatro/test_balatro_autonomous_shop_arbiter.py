@@ -177,7 +177,9 @@ def _runner(state, *, reroll_cost: float):
 
 def test_autonomous_shop_can_buy_relevant_visible_celestial_pack_over_reroll():
     state = _state(money=20)
-    state.hand_levels["FLUSH"] = 4
+    # Relevant but still under-invested: repeated Flush play has earned additional
+    # Planet headroom, unlike an already-overleveled hand that should reroll/hold.
+    state.hand_levels["FLUSH"] = 2
     state.hand_play_counts["FLUSH"] = 8
     state.shop_boosters = [
         LiveShopItem(
