@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import replace
 
+from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.strategy_semantics import StrategyCommitment
 from games.balatro.build import JokerBuildTransitionPlanner
 from games.balatro.joker_policy import (
     BUY,
@@ -13,6 +16,12 @@ from games.balatro.joker_policy import (
 )
 from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
 from games.balatro.state import BalatroState
+
+
+_STRATEGY_COMPLETION_WEIGHT = 2.0
+_MISSING_COMPONENT_VALUE = 0.75
+_PINNED_TRANSITION_VALUE = 1.25
+_STRATEGY_COMPLETION_CAP = 3.0
 
 
 def _joker_token(joker: object) -> str:
@@ -50,6 +59,181 @@ def _discard_conflict_indices(state: BalatroState, candidate: object) -> tuple[i
     )
 
 
+def _projected_state(
+    state: BalatroState,
+    candidate: object,
+    *,
+    replace_index: int | None,
+) -> BalatroState | None:
+    projected = copy.copy(state)
+    projected.jokers = list(getattr(state, "jokers", ()) or ())
+    if replace_index is None:
+        projected.jokers.append(candidate)
+        return projected
+    if replace_index < 0 or replace_index >= len(projected.jokers):
+        return None
+    projected.jokers[replace_index] = candidate
+    return projected
+
+
+def _strategy_completion_bonus(
+    state: BalatroState,
+    candidate: object,
+    *,
+    replace_index: int | None = None,
+) -> tuple[float, tuple[str, ...]]:
+    """Reward public one-Joker progress toward the strategy already being built.
+
+    D2's canonical Bond projection rewards local Bond rank/progress changes, while
+    FORMING retention prevents destructive replacement.  Neither signal directly
+    rewards filling the explicit missing components of the current StrategyPlan.
+    This term closes that gap without granting value to unrelated pivots: the
+    projected plan must retain the same strategy id and improve its completion,
+    missing-component count, or commitment.
+    """
+    projected = _projected_state(
+        state,
+        candidate,
+        replace_index=replace_index,
+    )
+    if projected is None:
+        return 0.0, ()
+
+    try:
+        _, before_composition = evaluate_bond_composition(state)
+        _, after_composition = evaluate_bond_composition(projected)
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return 0.0, ()
+
+    before = getattr(before_composition, "strategy_plan", None)
+    after = getattr(after_composition, "strategy_plan", None)
+    if before is None or after is None:
+        return 0.0, ()
+
+    strategy_id = str(getattr(before, "strategy_id", "") or "")
+    if not strategy_id or str(getattr(after, "strategy_id", "") or "") != strategy_id:
+        return 0.0, ()
+
+    before_commitment = getattr(
+        before,
+        "commitment",
+        StrategyCommitment.EXPLORATORY,
+    )
+    after_commitment = getattr(
+        after,
+        "commitment",
+        StrategyCommitment.EXPLORATORY,
+    )
+    if before_commitment < StrategyCommitment.FORMING:
+        return 0.0, ()
+
+    before_completion = float(getattr(before, "completion", 0.0) or 0.0)
+    after_completion = float(getattr(after, "completion", 0.0) or 0.0)
+    completion_gain = max(0.0, after_completion - before_completion)
+
+    before_missing = len(tuple(getattr(before, "missing_components", ()) or ()))
+    after_missing = len(tuple(getattr(after, "missing_components", ()) or ()))
+    components_filled = max(0, before_missing - after_missing)
+
+    pinned_transition = int(
+        before_commitment < StrategyCommitment.PINNED
+        and after_commitment >= StrategyCommitment.PINNED
+    )
+    if completion_gain <= 0.0 and components_filled <= 0 and not pinned_transition:
+        return 0.0, ()
+
+    bonus = min(
+        _STRATEGY_COMPLETION_CAP,
+        _STRATEGY_COMPLETION_WEIGHT * completion_gain
+        + _MISSING_COMPONENT_VALUE * min(2, components_filled)
+        + _PINNED_TRANSITION_VALUE * pinned_transition,
+    )
+    if bonus <= 0.0:
+        return 0.0, ()
+
+    return bonus, (
+        f"same-strategy completion bonus={bonus:.3f} strategy={strategy_id}",
+        f"strategy completion={before_completion:.3f}->{after_completion:.3f}",
+        f"missing components={before_missing}->{after_missing}",
+        f"commitment={before_commitment.name}->{after_commitment.name}",
+    )
+
+
+def _apply_strategy_completion_value(
+    state: BalatroState,
+    candidate: object,
+    decision: JokerAcquisitionDecision,
+) -> JokerAcquisitionDecision:
+    if not decision.options:
+        return decision
+
+    changed = False
+    rescored = []
+    for option in decision.options:
+        bonus, notes = _strategy_completion_bonus(
+            state,
+            candidate,
+            replace_index=option.replace_index if option.mode == REPLACE else None,
+        )
+        if bonus <= 0.0:
+            rescored.append(option)
+            continue
+        changed = True
+        rescored.append(
+            replace(
+                option,
+                build_gain=float(option.build_gain) + bonus,
+                total_advantage=float(option.total_advantage) + bonus,
+                rationale=(*option.rationale, *notes),
+            )
+        )
+
+    if not changed:
+        return decision
+
+    ranked = tuple(
+        sorted(
+            rescored,
+            key=lambda option: (
+                -float(option.total_advantage),
+                option.replace_index if option.replace_index is not None else -1,
+            ),
+        )
+    )
+    mode = ranked[0].mode
+    if mode == BUY:
+        best = ranked[0]
+        action = (
+            BUY
+            if best.eligible
+            and best.total_advantage > decision.thresholds.minimum_purchase_advantage
+            else HOLD
+        )
+    else:
+        eligible = [
+            option
+            for option in ranked
+            if option.eligible
+            and option.total_advantage
+            > decision.thresholds.minimum_replacement_advantage
+        ]
+        best = eligible[0] if eligible else ranked[0]
+        action = REPLACE if eligible else HOLD
+
+    selected = best if action in {BUY, REPLACE} else None
+    return replace(
+        decision,
+        action=action,
+        selected=selected,
+        options=ranked,
+        rationale=(
+            *decision.rationale,
+            "D2 same-strategy completion value applied from canonical StrategyPlan projection",
+            f"rescored best advantage={best.total_advantage:.3f}",
+        ),
+    )
+
+
 class PlaybookJokerAcquisitionPolicy:
     """Resolve D2 thresholds per state while reusing one run-scoped B3 evaluator.
 
@@ -79,6 +263,7 @@ class PlaybookJokerAcquisitionPolicy:
             thresholds,
             transition_planner=self.transition_planner,
         ).decide(state, candidate)
+        decision = _apply_strategy_completion_value(state, candidate, decision)
 
         # Pairwise mechanical safety is stronger than any current build preference.
         # A Burnt/Green/Burglar conflict may be resolved by a REPLACE that removes
