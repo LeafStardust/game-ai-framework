@@ -34,7 +34,7 @@ def _policy_with_scores(scores):
     return policy
 
 
-def test_planet_pack_defaults_to_high_card_when_no_offered_hand_is_good(monkeypatch):
+def test_planet_pack_uses_full_pool_generic_upgrade_when_no_hand_is_good(monkeypatch):
     import games.balatro.planet_pack_fallback_policy as module
 
     monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
@@ -43,11 +43,11 @@ def test_planet_pack_defaults_to_high_card_when_no_offered_hand_is_good(monkeypa
 
     ranked = policy.rank_actions(_state(), actions)
 
-    assert ranked[0].action.target.label == "Pluto"
-    assert "Planet pack fallback authority" in ranked[0].notes
+    assert ranked[0].action.target.label == "Uranus"
+    assert "Planet pack full-pool selection authority" in ranked[0].notes
 
 
-def test_planet_pack_fallback_prefers_pair_before_three_kind_or_two_pair(monkeypatch):
+def test_planet_pack_generic_priority_covers_nonlegacy_planets(monkeypatch):
     import games.balatro.planet_pack_fallback_policy as module
 
     monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
@@ -56,10 +56,10 @@ def test_planet_pack_fallback_prefers_pair_before_three_kind_or_two_pair(monkeyp
 
     ranked = policy.rank_actions(_state(), actions)
 
-    assert ranked[0].action.target.label == "Mercury"
+    assert ranked[0].action.target.label == "Venus"
 
 
-def test_planet_pack_keeps_materially_developed_current_hand_over_fallback(monkeypatch):
+def test_planet_pack_keeps_materially_developed_current_hand_over_generic_priority(monkeypatch):
     import games.balatro.planet_pack_fallback_policy as module
 
     monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
@@ -72,3 +72,15 @@ def test_planet_pack_keeps_materially_developed_current_hand_over_fallback(monke
     )
 
     assert ranked[0].action.target.label == "Uranus"
+
+
+def test_planet_pack_strategy_hand_overrides_generic_upgrade(monkeypatch):
+    import games.balatro.planet_pack_fallback_policy as module
+
+    monkeypatch.setattr(module, "_plan_hand_goals", lambda state: {"PAIR"})
+    actions = [_planet("Neptune", 0), _planet("Mercury", 1)]
+    policy = _policy_with_scores({"Neptune": 10.0, "Mercury": 1.0})
+
+    ranked = policy.rank_actions(_state(), actions)
+
+    assert ranked[0].action.target.label == "Mercury"
