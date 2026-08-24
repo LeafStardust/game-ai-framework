@@ -21,16 +21,15 @@ class BossBlindPlanningRule:
 
 
 _BOSS_RULES = {
-    # The Psychic debuffs any hand that does not contain exactly five played cards.
-    # Treat those zero-score plays as inadmissible throughout recursive planning so
-    # adaptive search cannot build a path through branches that Balatro will reject.
+    # Psychic does NOT make shorter play actions illegal. Balatro accepts them and
+    # simply makes the hand fail to score. Keeping them in the action set matters
+    # for deliberate hand-burning/milling lines and matches the live game contract.
     "The Psychic": BossBlindPlanningRule(
         boss_name="The Psychic",
-        required_play_cards=5,
     ),
     # Eye/Mouth conditions depend on mutable hand-type history and are represented
-    # by the authoritative boss score transform.  Root D1 additionally removes
-    # repeated Eye types while an unused legal type exists to reduce wasted search.
+    # by the authoritative boss score transform. Root D1 additionally removes
+    # repeated Eye types while an unused legal one exists to reduce wasted search.
     "The Eye": BossBlindPlanningRule(
         boss_name="The Eye",
     ),
