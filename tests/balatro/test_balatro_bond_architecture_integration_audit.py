@@ -72,6 +72,11 @@ def test_production_package_installs_all_canonical_bond_integration_layers():
         "_tactical_scaler_health_installed",
         False,
     )
+    assert getattr(
+        RealizedEngineAnalyzer,
+        "_bond_scaler_health_installed",
+        False,
+    )
 
 
 def test_pivot_authority_does_not_double_count_motif_state_already_in_coherence():
