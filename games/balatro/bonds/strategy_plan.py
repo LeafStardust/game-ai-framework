@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Applied strategy plan above semantic strategy discovery.
 
-The semantic graph answers "what coherent engine is present?".  This layer answers
+The semantic graph answers "what coherent engine is present?". This layer answers
 "what are we building next?" and is the canonical Currency-Wars-style tracking
 object for a pinned strategy.
 """
@@ -68,9 +68,22 @@ def _motif_components(
     candidate: StrategyCandidate,
     motifs: Iterable[MotifEvaluation],
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
-    relevant = [m for m in motifs if m.motif_id in set(candidate.motif_ids) and m.state != MotifState.ABSENT]
-    present = tuple(dict.fromkeys(component for motif in relevant for component in motif.present_components))
-    missing = tuple(dict.fromkeys(component for motif in relevant for component in motif.missing_components))
+    relevant = [
+        motif
+        for motif in motifs
+        if motif.motif_id in set(candidate.motif_ids)
+        and motif.state != MotifState.ABSENT
+    ]
+    present = tuple(
+        dict.fromkeys(
+            component for motif in relevant for component in motif.present_components
+        )
+    )
+    missing = tuple(
+        dict.fromkeys(
+            component for motif in relevant for component in motif.missing_components
+        )
+    )
     return present, missing
 
 
@@ -82,7 +95,12 @@ def _participating_bonds(candidate: StrategyCandidate) -> set[str]:
     return linked or set(candidate.bond_ids)
 
 
-def _goal_priority(dev: BondDevelopment, *, linked: bool, commitment: StrategyCommitment) -> float:
+def _goal_priority(
+    dev: BondDevelopment,
+    *,
+    linked: bool,
+    commitment: StrategyCommitment,
+) -> float:
     if dev.rank >= BondRank.R5:
         return -1.0
     gap = dev.points_to_next_rank
@@ -90,14 +108,33 @@ def _goal_priority(dev: BondDevelopment, *, linked: bool, commitment: StrategyCo
     closeness = 0.0
     if gap is not None and threshold and threshold > 0:
         closeness = max(0.0, min(1.0, 1.0 - float(gap) / float(threshold)))
-    # Prefer completing nearby ranks, but never let an unlinked ambient Bond outrank
-    # a concrete constituent of the pinned engine.
     return (
         4.0 * (1.0 if linked else 0.0)
         + 0.75 * int(max(BondRank.R0, dev.rank))
         + 2.0 * closeness
         + 0.25 * int(commitment)
     )
+
+
+def _completion_fraction(
+    *,
+    bond_fraction: float,
+    present_components: tuple[str, ...],
+    missing_components: tuple[str, ...],
+) -> float:
+    """Measure plan construction without making named motifs mandatory.
+
+    Known motifs add useful concrete package-completion evidence, so motif-bearing
+    strategies blend Bond development with component completion. Generic semantic
+    strategies have no motif component denominator; their completion must therefore
+    be determined by their participating Bond development alone rather than being
+    permanently capped at 55%.
+    """
+    component_total = len(present_components) + len(missing_components)
+    if component_total <= 0:
+        return max(0.0, min(1.0, bond_fraction))
+    component_fraction = len(present_components) / component_total
+    return max(0.0, min(1.0, 0.55 * bond_fraction + 0.45 * component_fraction))
 
 
 def build_strategy_plan(
@@ -123,19 +160,36 @@ def build_strategy_plan(
                 contribution=float(dev.contribution),
                 next_rank_threshold=dev.next_rank_threshold,
                 points_to_next_rank=dev.points_to_next_rank,
-                priority=_goal_priority(dev, linked=bond_id in participating, commitment=candidate.commitment),
+                priority=_goal_priority(
+                    dev,
+                    linked=bond_id in participating,
+                    commitment=candidate.commitment,
+                ),
             )
         )
-    goals.sort(key=lambda goal: (goal.priority, -float(goal.points_to_next_rank or 0.0), goal.bond_id), reverse=True)
+    goals.sort(
+        key=lambda goal: (
+            goal.priority,
+            -float(goal.points_to_next_rank or 0.0),
+            goal.bond_id,
+        ),
+        reverse=True,
+    )
 
     present, missing = _motif_components(candidate, motifs)
     feature_goals = _feature_goals(candidate)
 
-    completed_bonds = sum(1 for bond_id in candidate.bond_ids if dev_map.get(bond_id) and dev_map[bond_id].rank >= BondRank.R2)
+    completed_bonds = sum(
+        1
+        for bond_id in candidate.bond_ids
+        if dev_map.get(bond_id) and dev_map[bond_id].rank >= BondRank.R2
+    )
     bond_fraction = completed_bonds / max(1, len(candidate.bond_ids))
-    component_total = len(present) + len(missing)
-    component_fraction = len(present) / component_total if component_total else 0.0
-    completion = min(1.0, 0.55 * bond_fraction + 0.45 * component_fraction)
+    completion = _completion_fraction(
+        bond_fraction=bond_fraction,
+        present_components=present,
+        missing_components=missing,
+    )
 
     plan_prescriptions: list[str] = list(candidate.prescriptions)
     for goal in goals:
