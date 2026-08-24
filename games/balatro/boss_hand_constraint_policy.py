@@ -2,10 +2,13 @@ from __future__ import annotations
 
 """Hard public boss constraints for D1 hand admission.
 
-These are not scoring preferences.  The Psychic rejects plays with fewer than five
-cards, and The Eye rejects poker-hand types already used during the current blind.
-Allowing such actions into ordinary D1 ranking makes projected score/pace misleading,
-so remove them before the strategy-aware policy evaluates the plan set.
+The Eye cannot repeat poker-hand types during the current blind. That restriction is
+safe to enforce before strategy-aware ranking when an unused legal type exists.
+
+The Psychic is deliberately not filtered here: Balatro accepts plays containing fewer
+than five cards; such a hand simply does not score. Those plays can still be useful as
+deliberate hand-burning/milling actions, so legality and score semantics must remain
+separate.
 """
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
@@ -18,23 +21,8 @@ def _hand_type(policy, plan) -> str:
 
 
 def _psychic_filter(state, plans):
-    if str(getattr(state, "boss_name", "") or "") != "The Psychic":
-        return tuple(plans)
-    if boss_blind_disabled_by_owned_jokers(state):
-        return tuple(plans)
-
-    supplied = tuple(plans)
-    legal_plays = tuple(
-        plan
-        for plan in supplied
-        if plan.action.name == PLAY_CARDS and len(tuple(plan.action.cards or ())) == 5
-    )
-    if not legal_plays:
-        # Fail closed to the original planner if observation/action generation is
-        # unexpectedly incomplete rather than manufacturing an illegal plan set.
-        return supplied
-    discards = tuple(plan for plan in supplied if plan.action.name == DISCARD_CARDS)
-    return (*legal_plays, *discards)
+    """Compatibility no-op: Psychic short plays are legal actions in Balatro."""
+    return tuple(plans)
 
 
 def _eye_filter(policy, state, plans):
@@ -49,7 +37,7 @@ def _eye_filter(policy, state, plans):
         for value in (getattr(state, "boss_blind_hands", set()) or set())
     }
     # Fall back to the public current-round counters when the blind-owned table was
-    # not observed.  Do not use lifetime run counts.
+    # not observed. Do not use lifetime run counts.
     if not used and not bool(getattr(state, "boss_blind_state_observed", False)):
         used = {
             str(hand).upper()
@@ -78,8 +66,7 @@ def install_boss_hand_constraint_policy() -> None:
     original_decide = StrategyAwareLiveHandActionPolicy.decide
 
     def decide(self, state, plans, **kwargs):
-        constrained = _psychic_filter(state, plans)
-        constrained = _eye_filter(self, state, constrained)
+        constrained = _eye_filter(self, state, plans)
         return original_decide(self, state, constrained, **kwargs)
 
     StrategyAwareLiveHandActionPolicy.decide = decide
