@@ -3,6 +3,7 @@ import games.balatro  # noqa: F401 - importing installs production policy stack
 from games.balatro.bond_pivot_authority import _transition_score
 from games.balatro.bonds.composer import Composition
 from games.balatro.bonds.motifs import MotifEvaluation, MotifState
+from games.balatro.build_health_runtime import RealizedEngineAnalyzer
 from games.balatro.live.hand_action_policy import LiveHandActionDecisionEngine
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
@@ -64,6 +65,11 @@ def test_production_package_installs_all_canonical_bond_integration_layers():
     assert getattr(
         ShopUtilityScale,
         "_bond_prescription_policy_installed",
+        False,
+    )
+    assert getattr(
+        RealizedEngineAnalyzer,
+        "_tactical_scaler_health_installed",
         False,
     )
 
