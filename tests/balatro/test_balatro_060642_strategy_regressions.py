@@ -184,7 +184,7 @@ def test_live_d13_receives_translated_state(monkeypatch):
     assert decision.notes == ("contextual",)
 
 
-def test_standard_pack_need_uses_strategy_scope_instead_of_every_owned_effect(monkeypatch):
+def _standard_policy_profile():
     policy = SimpleNamespace(
         FAMILY_CARD_FEATURE_PREFIXES={"STANDARD": ("rank:",)},
         FAMILY_TRANSFORM_FEATURES={"STANDARD": frozenset()},
@@ -197,10 +197,14 @@ def test_standard_pack_need_uses_strategy_scope_instead_of_every_owned_effect(mo
         strength=lambda _feature: 0.0,
         can_produce=lambda _feature: False,
     )
-    monkeypatch.setattr(
-        "games.balatro.strategy_resource_coherence_policy._strategy_features",
-        lambda _state: ("rank:4", "rank:10"),
-    )
+    return policy, profile
+
+
+def test_standard_pack_need_uses_strategy_scope_instead_of_every_owned_effect(monkeypatch):
+    policy, profile = _standard_policy_profile()
+    candidate = SimpleNamespace(strategy_id="behavior:low_ranks", prescriptions=("seek_feature:rank:4", "seek_feature:rank:10"))
+    monkeypatch.setattr(resource_coherence, "_strategy_candidate", lambda _state: candidate)
+    monkeypatch.setattr(resource_coherence, "_strategy_features", lambda _state: ("rank:4", "rank:10"))
     result = _strategy_card_need(policy, SimpleNamespace(), profile, "STANDARD")
     assert result is not None
     need, notes = result
@@ -208,6 +212,18 @@ def test_standard_pack_need_uses_strategy_scope_instead_of_every_owned_effect(mo
     joined = " ".join(notes)
     assert "rank:4" in joined and "rank:10" in joined
     assert "rank:A" not in joined
+
+
+def test_standard_pack_need_is_zero_when_forming_strategy_has_no_card_goal(monkeypatch):
+    policy, profile = _standard_policy_profile()
+    candidate = SimpleNamespace(strategy_id="behavior:straight+straight_flush", prescriptions=())
+    monkeypatch.setattr(resource_coherence, "_strategy_candidate", lambda _state: candidate)
+    monkeypatch.setattr(resource_coherence, "_strategy_features", lambda _state: ())
+    result = _strategy_card_need(policy, SimpleNamespace(), profile, "STANDARD")
+    assert result is not None
+    need, notes = result
+    assert need == 0.0
+    assert "random deck growth" in " ".join(notes)
 
 
 def test_resource_goals_follow_strongest_committed_strategy_not_container_order(monkeypatch):
