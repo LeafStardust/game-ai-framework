@@ -133,20 +133,23 @@ def _planet_priority(state, planet, original_total: float) -> tuple[float, ...]:
     plan_owned = 1.0 if hand in _plan_hand_goals(state) else 0.0
     observed_owned = 1.0 if hand in _observed_hand_goals(state) else 0.0
     plays = float(_hand_plays(state, hand))
+    # One or two appearances can be incidental, especially for exotic hands. Only
+    # sustained repetition outranks the generic practical fallback. This prevents a
+    # single lucky Straight Flush from making Neptune beat an ordinary usable hand.
+    sustained_plays = plays if plays >= 3.0 else 0.0
     level = float(_hand_level(state, hand))
-    supported_level = level if plays > 0.0 else 0.0
+    supported_level = level if sustained_plays > 0.0 else 0.0
     practical = float(_PRACTICAL_HAND_PRIORITY.get(hand, 0))
     upgrade = float(getattr(planet, "chips", 0) or 0) + 8.0 * float(
         getattr(planet, "mult", 0) or 0
     )
-    # Strategy and actual play evidence dominate. A zero-play exotic hand cannot
-    # jump ahead merely because an earlier off-path Planet raised its level.
     return (
         plan_owned,
         observed_owned,
-        plays,
+        sustained_plays,
         supported_level,
         practical,
+        plays,
         float(original_total),
         upgrade,
     )
@@ -173,9 +176,6 @@ def _celestial_headroom(state) -> tuple[int, tuple[str, ...]]:
         plays = max(0, _hand_plays(state, hand))
         level = max(1, _hand_level(state, hand))
         relevant_plays += plays
-        # Realized repetition earns additional Planet investment gradually. A
-        # pinned hand gets one extra level of prospective headroom even before it
-        # has accumulated the same observed repetition.
         target_level = 1 + min(3, plays // 4) + (1 if hand in plan_hands else 0)
         target_level = min(5, target_level)
         hand_headroom = max(0, target_level - level)
@@ -184,9 +184,6 @@ def _celestial_headroom(state) -> tuple[int, tuple[str, ...]]:
             f"{hand}:plays={plays},level={level},target={target_level},headroom={hand_headroom}"
         )
 
-    # Diminishing global budget prevents repeated misses from spraying Planet
-    # levels into unrelated hands. Every Planet already taken consumes this budget,
-    # including off-path upgrades, until more relevant play evidence is earned.
     global_budget = max(
         1,
         min(
@@ -233,7 +230,7 @@ def install_planet_pack_fallback_policy() -> None:
             (
                 *best_score.notes,
                 "Planet pack full-pool selection authority",
-                "priority=strategy > observed specialization > plays > supported level > practical fallback",
+                "priority=strategy > observed specialization > sustained plays > supported level > practical fallback > incidental plays",
                 f"selected Planet hand={best_hand}",
                 "opened Celestial pack cost is sunk; offered permanent upgrade beats Skip",
             ),
