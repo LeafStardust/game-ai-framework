@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import games.balatro.latest_batch_no_discard_policy as no_discard
 import games.balatro.strategy_resource_coherence_policy as resource_coherence
-from games.balatro.actions import PLAY_CARDS
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.aces_dna_hand_policy import _safe_dna_rank_plan
 from games.balatro.bond_power_engine_retention_policy import _incumbent_realized_bonds
 from games.balatro.bonds.behavior_strategy import _Node, _relation
@@ -74,6 +74,35 @@ def test_hand_repetition_selects_safe_repeat_instead_of_new_hand(monkeypatch):
         pace_target=100.0,
     )
     selected = no_discard._safe_repeat_play(policy, state, (fresh, repeat), decision)
+    assert selected is not None
+    assert selected[2] is repeat
+
+
+def test_hand_repetition_can_replace_unnecessary_discard(monkeypatch):
+    monkeypatch.setattr(no_discard, "_realized_bond", lambda _state, bond_id: bond_id == "hand_repetition")
+    repeat = SimpleNamespace(
+        action=SimpleNamespace(name=PLAY_CARDS, cards=(SimpleNamespace(rank="4"),)),
+        value=SimpleNamespace(clear_probability=0.90),
+    )
+    discard = SimpleNamespace(
+        action=SimpleNamespace(name=DISCARD_CARDS, cards=(SimpleNamespace(rank="K"),)),
+        value=SimpleNamespace(clear_probability=0.91),
+    )
+    monkeypatch.setattr(no_discard, "_hand_key", lambda _policy, _plan: "pair")
+    state = SimpleNamespace(round_hand_play_counts={"PAIR": 1})
+    policy = SimpleNamespace(
+        EPSILON=1e-9,
+        evaluator=SimpleNamespace(project_play=lambda _state, _action: SimpleNamespace(expected_hand_score=125.0)),
+        _strategy_fit=lambda _state, _action: (1.0,),
+        _within_type_key=lambda _plan: (0,),
+    )
+    decision = SimpleNamespace(
+        action=discard.action,
+        selected_plan=discard,
+        thresholds=SimpleNamespace(safe_clear_probability_tolerance=0.02),
+        pace_target=100.0,
+    )
+    selected = no_discard._safe_repeat_play(policy, state, (discard, repeat), decision)
     assert selected is not None
     assert selected[2] is repeat
 
