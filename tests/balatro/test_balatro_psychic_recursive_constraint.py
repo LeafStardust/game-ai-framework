@@ -9,7 +9,7 @@ def _cards(count: int):
     return [BalatroCard(ranks[index], "Hearts") for index in range(count)]
 
 
-def test_psychic_requires_exactly_five_cards_for_play_actions():
+def test_psychic_keeps_short_and_five_card_play_actions_legal():
     state = BalatroState()
     state.boss_name = "The Psychic"
     state.jokers = []
@@ -18,7 +18,7 @@ def test_psychic_requires_exactly_five_cards_for_play_actions():
         state,
         BalatroAction(PLAY_CARDS, cards=_cards(5)),
     )
-    assert not boss_play_action_is_legal(
+    assert boss_play_action_is_legal(
         state,
         BalatroAction(PLAY_CARDS, cards=_cards(4)),
     )
