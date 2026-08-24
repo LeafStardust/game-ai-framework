@@ -68,10 +68,6 @@ def test_status_protocol_parses_bridge_and_achievement_gate():
 
 
 def test_bridge_round_trip_uses_local_file_protocol(tmp_path):
-    # This is a file-protocol correctness test, not a scheduler-latency test.
-    # Full-suite filesystem/CPU contention can starve the synthetic responder long
-    # enough to make a 1s timeout flaky, so use the same generous local budget as
-    # the ERROR-payload round-trip test below.
     bridge = FirstPartyBalatroBridge(
         tmp_path,
         timeout=5.0,
@@ -149,10 +145,6 @@ def test_bridge_status_round_trip_is_non_gameplay_command(tmp_path):
 
 
 def test_bridge_surfaces_lua_side_rejection(tmp_path):
-    # Full-suite CPU/disk contention can delay the responder thread long enough to
-    # trip a 1-second client timeout before it gets scheduled.  This test is about
-    # preserving a Lua ERROR payload, not timeout behavior (which is covered
-    # separately), so give the synthetic peer a deliberately generous local budget.
     bridge = FirstPartyBalatroBridge(
         tmp_path,
         timeout=5.0,
@@ -163,7 +155,9 @@ def test_bridge_surfaces_lua_side_rejection(tmp_path):
 
     def responder():
         responder_ready.set()
-        deadline = time.monotonic() + bridge.timeout
+        # The responder must outlive the client's timeout window; otherwise full-suite
+        # scheduler contention can let the peer exit before the command is observed.
+        deadline = time.monotonic() + bridge.timeout + 2.0
         while time.monotonic() < deadline:
             if bridge.command_path.exists():
                 text = bridge.command_path.read_text(encoding="utf-8")
@@ -182,7 +176,7 @@ def test_bridge_surfaces_lua_side_rejection(tmp_path):
     assert responder_ready.wait(timeout=1.0)
     with pytest.raises(InjectedBridgeError) as captured:
         bridge.discard((1,))
-    thread.join(timeout=bridge.timeout + 1.0)
+    thread.join(timeout=bridge.timeout + 2.5)
 
     assert response_written.is_set(), (
         "synthetic Lua responder never wrote its rejection; this is a test-harness "
