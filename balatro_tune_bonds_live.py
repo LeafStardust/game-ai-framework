@@ -41,6 +41,13 @@ def _repository_sha(explicit: str | None) -> str:
     return sha
 
 
+def _study_directory(name: str) -> Path:
+    safe = "".join(ch if ch.isalnum() or ch in {"-", "_", "."} else "_" for ch in str(name).strip())
+    if not safe:
+        raise ValueError("study name must contain at least one usable path character")
+    return Path("logs/balatro/tuning/studies") / safe
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
@@ -51,16 +58,8 @@ def build_parser() -> argparse.ArgumentParser:
         )
     )
     parser.add_argument("--study", required=True)
-    parser.add_argument(
-        "--storage",
-        type=Path,
-        default=Path("logs/balatro/tuning/optuna.sqlite3"),
-    )
-    parser.add_argument(
-        "--report",
-        type=Path,
-        default=Path("logs/balatro/tuning/study-report.json"),
-    )
+    parser.add_argument("--storage", type=Path)
+    parser.add_argument("--report", type=Path)
     parser.add_argument("--repo-sha", help="override clean-worktree HEAD provenance")
     parser.add_argument("--trials", type=int, default=20)
     parser.add_argument(
@@ -81,21 +80,9 @@ def build_parser() -> argparse.ArgumentParser:
             "requires a fresh study with zero existing trials"
         ),
     )
-    parser.add_argument(
-        "--run-log-directory",
-        type=Path,
-        default=Path("logs/balatro/tuning/runs"),
-    )
-    parser.add_argument(
-        "--session-directory",
-        type=Path,
-        default=Path("logs/balatro/tuning/sessions"),
-    )
-    parser.add_argument(
-        "--control-directory",
-        type=Path,
-        default=Path("logs/balatro/tuning/control"),
-    )
+    parser.add_argument("--run-log-directory", type=Path)
+    parser.add_argument("--session-directory", type=Path)
+    parser.add_argument("--control-directory", type=Path)
     return parser
 
 
@@ -105,6 +92,13 @@ def main() -> int:
         raise SystemExit("--trials must be positive")
     if args.attempts_per_trial <= 0:
         raise SystemExit("--attempts-per-trial must be positive")
+
+    study_dir = _study_directory(args.study)
+    storage_path = args.storage or (study_dir / "study.sqlite3")
+    report_path = args.report or (study_dir / "study-report.json")
+    run_log_directory = args.run_log_directory or (study_dir / "runs")
+    session_directory = args.session_directory or (study_dir / "sessions")
+    control_directory = args.control_directory or (study_dir / "control")
 
     try:
         revision = _repository_sha(args.repo_sha)
@@ -119,7 +113,7 @@ def main() -> int:
 
     config = LiveStudyConfig(
         name=args.study,
-        storage_path=args.storage,
+        storage_path=storage_path,
         repository_sha=revision,
         attempts_per_trial=args.attempts_per_trial,
         deck=str(args.deck).upper(),
@@ -146,15 +140,16 @@ def main() -> int:
         attempts_per_trial=args.attempts_per_trial,
         deck=config.deck,
         stake=config.stake,
-        run_log_directory=args.run_log_directory,
-        session_directory=args.session_directory,
-        control_directory=args.control_directory,
+        run_log_directory=run_log_directory,
+        session_directory=session_directory,
+        control_directory=control_directory,
     )
 
     print("Balatro live Bond tuning -> PREFLIGHT PASS")
     print(f"Boundary -> {preflight.phase}, Ante {preflight.ante}, {preflight.deck}/{preflight.stake}")
     print(f"Bridge -> protocol {preflight.bridge_version}, revision {preflight.bridge_revision}")
     print(f"Achievement gate -> {preflight.achievement_gate}")
+    print(f"Study directory -> {study_dir}")
 
     requested_trials = 1 if args.baseline_only else args.trials
     study = None
@@ -183,12 +178,12 @@ def main() -> int:
         print("Balatro live Bond tuning -> FAIL")
         print(f"Reason -> {error}")
         if study is not None:
-            write_study_report(study, args.report)
-            print(f"Partial report -> {args.report}")
+            write_study_report(study, report_path)
+            print(f"Partial report -> {report_path}")
         return 3
 
     assert study is not None
-    target = write_study_report(study, args.report)
+    target = write_study_report(study, report_path)
     latest = study.trials[-1]
     print("Balatro live Bond tuning -> COMPLETE")
     print(f"Study -> {study.study_name}")
