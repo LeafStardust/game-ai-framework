@@ -15,6 +15,7 @@ from games.balatro.bonds.strategy_semantics import (
     StrategyCommitment,
     pinned_strategy,
 )
+from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
 from games.balatro.shop_utility_scale import ShopUtilityScale
 
 
@@ -28,10 +29,8 @@ _MOTIF_CORES: dict[str, frozenset[str]] = {
 
 _FORMING_COMPONENT_BONUS = 0.75
 _PINNED_COMPONENT_BONUS = 1.25
+_FORMING_PACK_BONUS = 0.50
 
-# Missing components are semantic requirements, not always literal card names. Keep
-# this table deliberately narrow: it names only Jokers that directly provide the
-# missing capability. Broad infrastructure remains pack/deck work, not a shop excuse.
 _COMPONENT_JOKER_PROVIDERS: dict[str, frozenset[str]] = {
     "LEVELINGSUPPORT": frozenset({"SPACEJOKER", "BLUEPRINT", "BRAINSTORM"}),
 }
@@ -53,8 +52,6 @@ _HAND_PACK_GOALS = frozenset(
     }
 )
 
-# FORMING strategies may recruit only the pack goals that directly close an explicit
-# missing component. They still do not receive general pinned-strategy pack authority.
 _FORMING_COMPONENT_PACK_GOALS: dict[str, frozenset[str]] = {
     "KINGINFRASTRUCTURE": frozenset({"kings"}),
     "STEELINFRASTRUCTURE": frozenset({"steel"}),
@@ -170,6 +167,28 @@ def _forming_pack_goals(plan: StrategyPlan, goals: tuple[str, ...]) -> tuple[str
     return tuple(goal for goal in goals if goal in allowed)
 
 
+def _forming_pack_match(plan: StrategyPlan, action) -> tuple[str, ...]:
+    goals = _forming_pack_goals(
+        plan,
+        tuple(goal.bond_id for goal in tuple(plan.bond_goals or ())),
+    )
+    if not goals:
+        return ()
+    kind, label, data = pack_goal_module._choice(action)
+    if kind == "PLAYING_CARD":
+        return tuple(
+            goal for goal in goals
+            if pack_goal_module._playing_card_matches(goal, data)
+        )
+    if kind == "PLANET":
+        hand = pack_goal_module._planet_hand(label)
+        return tuple(
+            goal for goal in goals
+            if pack_goal_module._HAND_GOALS.get(goal) == hand
+        )
+    return ()
+
+
 def install_strategy_authority_correction_policy() -> None:
     if getattr(composer_module, "_strategy_authority_correction_installed", False):
         return
@@ -218,17 +237,48 @@ def install_strategy_authority_correction_policy() -> None:
     original_goal_ids = pack_goal_module._goal_ids
 
     def goal_ids(plan):
-        goals = original_goal_ids(plan)
-        if plan is None:
-            return goals
-        commitment = getattr(plan, "commitment", StrategyCommitment.EXPLORATORY)
-        if commitment >= StrategyCommitment.PINNED:
-            return goals
-        if commitment == StrategyCommitment.FORMING:
-            return _forming_pack_goals(plan, goals)
-        return ()
+        if (
+            plan is not None
+            and getattr(plan, "commitment", StrategyCommitment.EXPLORATORY)
+            < StrategyCommitment.PINNED
+        ):
+            return ()
+        return original_goal_ids(plan)
 
     pack_goal_module._goal_ids = goal_ids
+
+    original_pack_score = BalatroPackPolicy.score_action
+
+    def score_action(self, state, action):
+        scored = original_pack_score(self, state, action)
+        if scored.total <= 0.0:
+            return scored
+        try:
+            _, composition = evaluation_module.evaluate_bond_composition(state)
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            return scored
+        plan = getattr(composition, "strategy_plan", None)
+        if (
+            plan is None
+            or getattr(plan, "commitment", StrategyCommitment.EXPLORATORY)
+            != StrategyCommitment.FORMING
+        ):
+            return scored
+        matched = _forming_pack_match(plan, scored.action)
+        if not matched:
+            return scored
+        return PackActionScore(
+            scored.action,
+            float(scored.total) + _FORMING_PACK_BONUS,
+            (
+                *scored.notes,
+                f"forming missing-piece pack bonus={_FORMING_PACK_BONUS:.3f}",
+                "matched explicit missing-component goals=" + ", ".join(matched),
+                "normal StrategyPlan pack goals remain pinned-only",
+            ),
+        )
+
+    BalatroPackPolicy.score_action = score_action
 
     original_joker_gain = ShopUtilityScale.joker_gain
 
