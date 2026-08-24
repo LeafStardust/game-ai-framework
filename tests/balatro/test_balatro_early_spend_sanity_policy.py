@@ -41,6 +41,34 @@ def test_structural_voucher_cannot_spend_early_run_from_11_to_1():
     assert any("hard early cash-floor hold" in note for note in rationale)
 
 
+def test_structural_voucher_can_keep_explicit_exception_at_14_to_4():
+    profile = _profile(ante=2, jokers=1)
+    allowed, rationale = VoucherAcquisitionPolicy._early_survival_gate(
+        SimpleNamespace(),
+        profile,
+        "Paint Brush",
+        price=10,
+        money_after=4,
+    )
+
+    assert allowed is True
+    assert any("early structural exception=Paint Brush" in note for note in rationale)
+
+
+def test_antimatter_keeps_weighted_reserve_authority_even_at_zero_cash():
+    profile = _profile(ante=1, jokers=0)
+    allowed, rationale = VoucherAcquisitionPolicy._early_survival_gate(
+        SimpleNamespace(),
+        profile,
+        "Antimatter",
+        price=10,
+        money_after=0,
+    )
+
+    assert allowed is True
+    assert any("weighted-reserve authority" in note for note in rationale)
+
+
 def test_fragile_early_build_requires_five_dollars_after_optional_spend():
     profile = _profile(ante=2, jokers=1)
 
