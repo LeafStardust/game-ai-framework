@@ -159,8 +159,25 @@ def install_planet_pack_fallback_policy() -> None:
             result = original_booster_recommend(self, state, action)
             if result.family != "CELESTIAL" or not result.should_buy:
                 return result
-            if _hand_direction(state):
+
+            hold_reason = None
+            if not _hand_direction(state):
+                hold_reason = (
+                    "Celestial purchase held: no pinned hand goal or strong realized hand specialization"
+                )
+            else:
+                price = self._price(action.target)
+                reserve_target = int(self.thresholds.reserve_target)
+                money_after = int(state.money) - int(price)
+                if money_after < reserve_target:
+                    hold_reason = (
+                        "Celestial purchase held: hand direction exists but purchase would "
+                        f"leave ${money_after} below ${reserve_target} reserve"
+                    )
+
+            if hold_reason is None:
                 return result
+
             return type(result)(
                 decision=HOLD,
                 action=result.action,
@@ -178,10 +195,7 @@ def install_planet_pack_fallback_policy() -> None:
                 price_penalty=result.price_penalty,
                 interest_penalty=result.interest_penalty,
                 reserve_penalty=result.reserve_penalty,
-                rationale=(
-                    *result.rationale,
-                    "Celestial purchase held: no pinned hand goal or strong realized hand specialization",
-                ),
+                rationale=(*result.rationale, hold_reason),
             )
 
         BuildAwareShopBoosterPolicy.recommend = booster_recommend
