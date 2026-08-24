@@ -5,10 +5,13 @@ from games.balatro.bonds.composer import Composition
 from games.balatro.bonds.motifs import MotifEvaluation, MotifState
 from games.balatro.build_health_runtime import RealizedEngineAnalyzer
 from games.balatro.live.hand_action_policy import LiveHandActionDecisionEngine
+from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
+from games.balatro.shop_booster_policy import BuildAwareShopBoosterPolicy
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.shop_utility_scale import ShopUtilityScale
+from games.balatro.shop_voucher_policy import VoucherAcquisitionPolicy
 
 
 def _motif(state: MotifState):
@@ -37,46 +40,18 @@ def _composition(coherence: float, motif_state: MotifState):
 
 
 def test_production_package_installs_all_canonical_bond_integration_layers():
-    assert getattr(
-        LiveHandActionDecisionEngine,
-        "_bond_shop_health_capture_installed",
-        False,
-    )
-    assert getattr(
-        ShopUtilityScale,
-        "_bond_shop_health_utility_installed",
-        False,
-    )
-    assert getattr(
-        BuildAwareShopRerollPolicy,
-        "_bond_shop_health_reroll_installed",
-        False,
-    )
-    assert getattr(
-        PlaybookJokerAcquisitionPolicy,
-        "_bond_pivot_authority_installed",
-        False,
-    )
-    assert getattr(
-        BalatroPackPolicy,
-        "_bond_prescription_policy_installed",
-        False,
-    )
-    assert getattr(
-        ShopUtilityScale,
-        "_bond_prescription_policy_installed",
-        False,
-    )
-    assert getattr(
-        RealizedEngineAnalyzer,
-        "_tactical_scaler_health_installed",
-        False,
-    )
-    assert getattr(
-        RealizedEngineAnalyzer,
-        "_bond_scaler_health_installed",
-        False,
-    )
+    assert getattr(LiveHandActionDecisionEngine, "_bond_shop_health_capture_installed", False)
+    assert getattr(ShopUtilityScale, "_bond_shop_health_utility_installed", False)
+    assert getattr(BuildAwareShopRerollPolicy, "_bond_shop_health_reroll_installed", False)
+    assert getattr(PlaybookJokerAcquisitionPolicy, "_bond_pivot_authority_installed", False)
+    assert getattr(PlaybookJokerAcquisitionPolicy, "_bond_power_engine_retention_installed", False)
+    assert getattr(BalatroPackPolicy, "_bond_prescription_policy_installed", False)
+    assert getattr(ShopUtilityScale, "_bond_prescription_policy_installed", False)
+    assert getattr(RealizedEngineAnalyzer, "_tactical_scaler_health_installed", False)
+    assert getattr(RealizedEngineAnalyzer, "_bond_scaler_health_installed", False)
+    assert getattr(StrategyAwareLiveHandActionPolicy, "_latest_batch_no_discard_policy_installed", False)
+    assert getattr(BuildAwareShopBoosterPolicy, "_strategy_resource_coherence_installed", False)
+    assert getattr(VoucherAcquisitionPolicy, "_strategy_resource_coherence_installed", False)
 
 
 def test_pivot_authority_does_not_double_count_motif_state_already_in_coherence():
