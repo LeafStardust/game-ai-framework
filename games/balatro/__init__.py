@@ -1,7 +1,8 @@
 """Balatro package policy registration.
 
 The active strategic layer is the canonical Bond/composition system. Historical
-categorical strategy-tree patches are intentionally not imported or installed.
+categorical strategy-tree and batch-specific empirical policy overlays are not
+installed as competing production strategy authorities.
 """
 
 from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
@@ -21,9 +22,7 @@ from games.balatro.d1_outer_evaluation_cache_policy import install_d1_outer_eval
 from games.balatro.deck_growth_pack_policy import install_deck_growth_pack_policy
 from games.balatro.early_capacity_policy import install_early_capacity_policy
 from games.balatro.face_card_enabler_bond_policy import install_face_card_enabler_bond_policy
-from games.balatro.five_run_followup_policy import install_five_run_followup_policy
 from games.balatro.five_run_optimization_policy import install_five_run_optimization_policy
-from games.balatro.five_run_release_candidate_policy import install_five_run_release_candidate_policy
 from games.balatro.five_run_validation_policy import install_five_run_validation_policy
 from games.balatro.forming_strategy_retention_policy import install_forming_strategy_retention_policy
 from games.balatro.full_roster_pack_guard import install_full_roster_pack_guard
@@ -31,11 +30,8 @@ from games.balatro.full_roster_shop_guard import install_full_roster_shop_guard
 from games.balatro.late_shop_resource_guard import install_late_shop_resource_guard
 from games.balatro.latest_075105_correction_policy import install_latest_075105_correction_policy
 from games.balatro.latest_batch_no_discard_policy import install_latest_batch_no_discard_policy
-from games.balatro.latest_five_run_calibration_policy import install_latest_five_run_calibration_policy
 from games.balatro.latest_five_run_resource_metrics import install_latest_five_run_resource_metrics
-from games.balatro.latest_zero_five_survival_policy import install_latest_zero_five_survival_policy
 from games.balatro.live_joker_order_authority import install_live_joker_order_authority
-from games.balatro.live_quality_regression_policy import install_live_quality_regression_policy
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.noncash_cash_deployment_policy import install_noncash_cash_deployment_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
@@ -75,23 +71,22 @@ install_safe_pace_timeout_patch()
 install_safe_pace_scope_correction()
 install_v1_0_0_policy()
 install_v1_0_0_luchador_policy()
+# five_run_optimization and five_run_validation remain temporarily because they
+# still contain stable mechanic corrections. Their empirical strategy portions are
+# being migrated/removed separately; batch-wide strategy authority is forbidden.
 install_five_run_optimization_policy()
-install_five_run_followup_policy()
 install_observatory_planet_policy()
 install_sixth_sense_policy()
 install_early_capacity_policy()
 install_latest_five_run_resource_metrics()
-install_five_run_release_candidate_policy()
 install_late_shop_resource_guard()
 install_five_run_validation_policy()
 install_deck_growth_pack_policy()
-install_latest_five_run_calibration_policy()
 install_tactical_scaler_build_health_policy()
 install_bond_scaler_build_health_policy()
 install_build_health_policy()
 install_shop_clear_probability_health_policy()
 install_noncash_cash_deployment_policy()
-install_latest_zero_five_survival_policy()
 install_bond_shop_health_policy()
 install_bond_pivot_authority()
 install_bond_power_engine_retention_policy()
@@ -109,19 +104,14 @@ install_strategy_plan_pack_policy()
 install_strategy_resource_coherence_policy()
 install_strategy_authority_correction_policy()
 install_planet_pack_fallback_policy()
-install_live_quality_regression_policy()
 install_stateful_joker_admission_policy()
 install_tactical_scaler_retention_policy()
 install_pinned_strategy_safe_pace_policy()
-# Final D1 semantic execution guards must see the fully wrapped D1 decision so
-# later safe-pace/strategy layers cannot undo DNA setup, no-discard preservation,
-# hand-repetition, or known target-hand engine execution.
+# Final semantic execution guards see the fully wrapped D1 decision so later
+# safe-pace/strategy layers cannot undo defining mechanics.
 install_aces_dna_hand_policy()
 install_latest_batch_no_discard_policy()
 install_target_hand_engine_policy()
-# 075105 corrections deliberately install after the earlier wrappers: they repair
-# semantic relation inference, direct no-discard activation, and candidate prefilter
-# bounds observed in the authoritative live batch.
 install_latest_075105_correction_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
