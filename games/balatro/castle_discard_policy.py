@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-"""Current five-run validation corrections that belong above generic D1 policy."""
+"""Stable Castle discard execution semantics.
+
+Castle may improve an already-required discard by preferring cards of its current
+public suit, but it never creates a discard or materially weakens survival.  This
+is a Joker-mechanics execution rule, not strategy authority.
+"""
 
 from dataclasses import replace
 
@@ -60,10 +65,6 @@ def _safe_castle_discard_alternative(result, suit: str):
         matches = _castle_match_count(plan, suit)
         if matches <= 0:
             continue
-
-        # Castle should improve an already-needed discard, never buy chips by
-        # materially weakening survival. Preserve near-identical clear probability
-        # and at least 90% of modeled downstream expected score.
         probability = float(plan.value.clear_probability)
         expected_score = float(plan.value.expected_score)
         if probability + 0.02 < selected_probability:
@@ -79,8 +80,8 @@ def _safe_castle_discard_alternative(result, suit: str):
     return max(candidates, key=lambda item: (item[0], item[1], item[2]))[3]
 
 
-def install_five_run_validation_policy() -> None:
-    if getattr(LiveHandActionPolicy, "_five_run_validation_policy_installed", False):
+def install_castle_discard_policy() -> None:
+    if getattr(LiveHandActionPolicy, "_castle_discard_policy_installed", False):
         return
 
     original_decide = LiveHandActionPolicy.decide
@@ -103,11 +104,11 @@ def install_five_run_validation_policy() -> None:
             selected_plan=alternative,
             selected_fallback_value=float(self.evaluator.evaluate(state, alternative.action)),
             rationale=(
-                f"Castle optimization: an already-required discard can include current Castle suit {suit} without material survival loss",
-                "Castle farming never creates a discard when D1 had selected a play and rejects materially weaker discard alternatives",
+                f"Castle execution: an already-required discard can include current Castle suit {suit} without material survival loss",
+                "Castle never creates a discard and rejects materially weaker alternatives",
                 *result.rationale,
             ),
         )
 
     LiveHandActionPolicy.decide = decide
-    LiveHandActionPolicy._five_run_validation_policy_installed = True
+    LiveHandActionPolicy._castle_discard_policy_installed = True

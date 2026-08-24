@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-"""Stable economy mechanics extracted from historical batch policies.
+"""Stable shop transaction mechanics extracted from historical batch policies.
 
-This module contains only invariant game-mechanic behavior. It does not rank
-strategies, name preferred Joker pairs, assign static Joker weakness, or override
-canonical Bond/Build-Health authority.
+Only invariant SHOP transaction behavior remains here. Held-consumable timing is
+owned by ``live.consumable_timing_base``/D5 and must not be monkey-patched from a
+registration layer.
 """
 
 from games.balatro.actions import (
@@ -13,12 +13,6 @@ from games.balatro.actions import (
     END_SHOP,
     SELL_CONSUMABLE,
     BalatroAction,
-)
-from games.balatro.live.consumable_timing_base import (
-    HOLD,
-    USE,
-    ConsumableTimingRecommendation,
-    LiveConsumableTimingPolicy as BaseConsumableTimingPolicy,
 )
 from games.balatro.shop_arbiter import BuildAwareShopArbiter, ShopArbiterDecision
 
@@ -78,56 +72,14 @@ def install_stable_economy_mechanics_policy() -> None:
     if getattr(BuildAwareShopArbiter, "_stable_economy_mechanics_installed", False):
         return
 
-    original_economy = BaseConsumableTimingPolicy._recommend_economy
-
-    def recommend_economy(self, state, consumable, *, name: str):
-        if name != "The Hermit":
-            return original_economy(self, state, consumable, name=name)
-        money = max(0, int(getattr(state, "money", 0) or 0))
-        gain = min(money, 20)
-        required = self._required_per_hand(state)
-        slots_full = self._consumable_slots_full(state)
-        if gain <= 0:
-            return self._hold(
-                state,
-                consumable,
-                "Hermit has no positive deterministic money gain",
-                immediate_gain=0.0,
-            )
-        if money >= 10:
-            decision = USE
-            reason = "Hermit has reached a strong deterministic payout"
-        elif slots_full:
-            decision = USE
-            reason = "full consumable slots plus positive deterministic Hermit gain"
-        else:
-            decision = HOLD
-            reason = "Hermit is below $10, so preserving it can increase deterministic payout"
-        return ConsumableTimingRecommendation(
-            decision=decision,
-            consumable=consumable,
-            target=None,
-            before_projection=None,
-            after_projection=None,
-            required_per_hand=required,
-            immediate_gain=float(gain),
-            rationale=(
-                f"{decision}: {reason}",
-                f"Hermit money ${money} -> ${money + gain}",
-                f"deterministic money gain=${gain}",
-                f"consumable slots full={slots_full}",
-            ),
-        )
-
-    BaseConsumableTimingPolicy._recommend_economy = recommend_economy
-
     original_shop_decide = BuildAwareShopArbiter.decide
 
     def shop_decide(self, state, visible_actions, *, reroll_cost: int | None):
         money = max(0, int(getattr(state, "money", 0) or 0))
 
         # Buy-and-use Hermit only when the public deterministic transaction is
-        # immediately profitable after paying its shop price.
+        # immediately profitable after paying its shop price. D5 itself remains
+        # authoritative for held Hermit USE/HOLD timing.
         for consumable in getattr(state, "shop_consumables", ()) or ():
             if _normalize(_label(consumable)) not in {"thehermit", "hermit"}:
                 continue

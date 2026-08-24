@@ -2,18 +2,11 @@ from __future__ import annotations
 
 """Resource-policy coherence for the canonical Bond strategy machine.
 
-Live validation exposed three forms of resource drift:
-
-* D8 treated requirements from every owned effect as one giant build wishlist,
-  making Standard Packs appear to satisfy nearly every rank simultaneously.
-* D8 fell back to that generic wishlist when a real forming strategy had no explicit
-  card-level prescription, causing random Standard-pack deck bloat instead of
-  developing the strategy actually being played.
-* D3 could buy a zero-compatibility Voucher through the basic cash reserve because
-  the Red/White cartridge intentionally allowed ``minimum_money_after=0``.
-
-This layer keeps child-policy authority intact while making their build evidence come
-from the strongest currently committed semantic strategy when one exists.
+Live validation exposed resource drift when D8 inferred needs from aggregate owned
+state instead of the strategy and behavior the run is actually realizing. This
+policy scopes card-development demand to the strongest semantic strategy, derives
+Celestial demand from observed hand specialization rather than level alone, and
+keeps zero-fit Voucher purchases from consuming the basic cash reserve.
 """
 
 from dataclasses import replace
@@ -47,8 +40,6 @@ def _strategy_candidate(state):
     candidates = tuple(getattr(composition, "strategy_candidates", ()) or ())
     if not candidates:
         return None
-    # Do not trust container ordering: resource policy follows the strongest actual
-    # commitment, not whichever exploratory candidate happened to be emitted first.
     return max(candidates, key=_strategy_priority)
 
 
@@ -71,12 +62,6 @@ def _strategy_card_need(policy, state, profile, family: str):
     candidate = _strategy_candidate(state)
     features = _strategy_features(state)
 
-    # A real strategy with no card-level prescription is positive evidence that D8
-    # should *not* invent a deck-development target from every owned effect. This is
-    # especially important for hand-shape engines (Straight, Pair, etc.): random
-    # Standard-card additions enlarge the deck without increasing the density of the
-    # hand the strategy is trying to realize. Explicit strategy prescriptions still
-    # reopen Standard demand normally.
     if family == "STANDARD" and candidate is not None and not features:
         return 0.0, (
             "D8 committed/forming strategy has no card-level Standard prescription",
@@ -122,6 +107,34 @@ def _strategy_card_need(policy, state, profile, family: str):
     )
 
 
+def _celestial_observed_need(state) -> tuple[float, tuple[str, ...]]:
+    counts = {
+        str(hand): max(0, int(value or 0))
+        for hand, value in (getattr(state, "hand_play_counts", {}) or {}).items()
+        if max(0, int(value or 0)) > 0
+    }
+    total = sum(counts.values())
+    if total <= 0:
+        return 0.0, (
+            "Celestial demand requires observed hand specialization; permanent hand levels alone do not create demand",
+        )
+
+    hand, plays = max(counts.items(), key=lambda item: (item[1], item[0]))
+    concentration = plays / total
+    level = max(1, int((getattr(state, "hand_levels", {}) or {}).get(hand, 1) or 1))
+    repetition = min(1.0, plays / 8.0)
+    # Repeated use of an underleveled hand is a direct public signal that Celestial
+    # development can support what the agent is actually playing. Existing levels
+    # reduce urgency; they never manufacture demand without play history.
+    underlevel = 1.0 / max(1.0, float(level))
+    need = min(1.0, (0.60 * concentration + 0.40 * repetition) * underlevel)
+    return need, (
+        f"observed Celestial target hand={hand} plays={plays}/{total}",
+        f"observed hand-play concentration={concentration:.3f}",
+        f"current observed target level={level}",
+    )
+
+
 def install_strategy_resource_coherence_policy() -> None:
     if getattr(BuildAwareShopBoosterPolicy, "_strategy_resource_coherence_installed", False):
         return
@@ -129,6 +142,8 @@ def install_strategy_resource_coherence_policy() -> None:
     original_build_need = BuildAwareShopBoosterPolicy._build_need
 
     def _build_need(self, state, profile, *, family: str):
+        if family == "CELESTIAL":
+            return _celestial_observed_need(state)
         if family in {"STANDARD", "ARCANA", "SPECTRAL"}:
             scoped = _strategy_card_need(self, state, profile, family)
             if scoped is not None:
