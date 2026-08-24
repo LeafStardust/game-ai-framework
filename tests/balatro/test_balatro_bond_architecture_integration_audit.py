@@ -15,28 +15,12 @@ from games.balatro.shop_voucher_policy import VoucherAcquisitionPolicy
 
 
 def _motif(state: MotifState):
-    return MotifEvaluation(
-        motif_id="audit",
-        state=state,
-        relevant_bonds=(),
-        present_components=(),
-        missing_components=(),
-        prescriptions=(),
-    )
+    return MotifEvaluation(motif_id="audit", state=state, relevant_bonds=(), present_components=(), missing_components=(), prescriptions=())
 
 
 def _composition(coherence: float, motif_state: MotifState):
     motif = _motif(motif_state)
-    return Composition(
-        bond_ids=(),
-        motifs=(motif,),
-        conflicts=(),
-        synergies=(),
-        coherence_score=coherence,
-        pivot_resistance=0.0,
-        motif_distance=((motif.motif_id, 0),),
-        prescriptions=(),
-    )
+    return Composition(bond_ids=(), motifs=(motif,), conflicts=(), synergies=(), coherence_score=coherence, pivot_resistance=0.0, motif_distance=((motif.motif_id, 0),), prescriptions=())
 
 
 def test_production_package_installs_all_canonical_bond_integration_layers():
@@ -45,6 +29,7 @@ def test_production_package_installs_all_canonical_bond_integration_layers():
     assert getattr(BuildAwareShopRerollPolicy, "_bond_shop_health_reroll_installed", False)
     assert getattr(PlaybookJokerAcquisitionPolicy, "_bond_pivot_authority_installed", False)
     assert getattr(PlaybookJokerAcquisitionPolicy, "_bond_power_engine_retention_installed", False)
+    assert getattr(PlaybookJokerAcquisitionPolicy, "_tactical_scaler_retention_installed", False)
     assert getattr(BalatroPackPolicy, "_bond_prescription_policy_installed", False)
     assert getattr(ShopUtilityScale, "_bond_prescription_policy_installed", False)
     assert getattr(RealizedEngineAnalyzer, "_tactical_scaler_health_installed", False)
