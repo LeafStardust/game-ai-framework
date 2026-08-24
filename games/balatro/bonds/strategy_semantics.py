@@ -60,9 +60,6 @@ _REALIZATION_STRENGTH = {
     BondRealization.MATURE: 3,
 }
 
-# Structural compatibility between mechanics. Direction/timing remain the job of
-# execution policies; this graph answers only whether two pieces belong to the same
-# strategic engine.
 _ROLE_COMPATIBILITY: dict[frozenset[MechanicalRole], str] = {
     frozenset((MechanicalRole.HELD_RETRIGGER, MechanicalRole.HELD_RANK_PAYOFF)): "RETRIGGER_AMPLIFIES_HELD_PAYOFF",
     frozenset((MechanicalRole.HELD_RETRIGGER, MechanicalRole.HELD_STATE_PAYOFF)): "RETRIGGER_AMPLIFIES_HELD_PAYOFF",
@@ -91,6 +88,25 @@ class _Evidence:
     value: float
     roles: tuple[MechanicalRole, ...]
     targets: tuple[str, ...]
+
+
+def _source_token(value: object) -> str:
+    token = "".join(character for character in str(value or "").lower() if character.isalnum())
+    return token[:-5] if token.endswith("joker") else token
+
+
+def _motif_source_match(motif: MotifEvaluation, sources: Iterable[str]) -> bool:
+    """Require concrete present motif pieces, not merely overlapping Bond labels."""
+    present = {
+        _source_token(component)
+        for component in tuple(motif.present_components or ())
+        if _source_token(component)
+    }
+    if not present:
+        return False
+    source_tokens = {_source_token(source) for source in sources if _source_token(source)}
+    required = min(2, len(present))
+    return len(present.intersection(source_tokens)) >= required
 
 
 def _evidence(developments: Iterable[BondDevelopment]) -> tuple[_Evidence, ...]:
@@ -206,8 +222,6 @@ def _commitment(
         return StrategyCommitment.DOMINANT
     if active_motif or (confidence >= 0.78 and source_count >= 4 and realized >= 2):
         return StrategyCommitment.ESTABLISHED
-    # A coherent half-complete known package or strong mechanically linked pair may
-    # become pinned before any component reaches high rank.
     if potential_half or (confidence >= 0.58 and source_count >= 2 and link_count >= 1):
         return StrategyCommitment.PINNED
     if source_count >= 2 and link_count >= 1:
@@ -224,7 +238,12 @@ def _candidate_strength(
     evidence_value = sum(min(8.0, item.value) for item in group)
     rank_strength = sum(max(0, int(dev.rank)) for dev in developments.values())
     realization_strength = sum(
-        {BondRealization.DORMANT: 0.0, BondRealization.PARTIAL: 0.25, BondRealization.ACTIVE: 0.75, BondRealization.MATURE: 1.0}[dev.realization]
+        {
+            BondRealization.DORMANT: 0.0,
+            BondRealization.PARTIAL: 0.25,
+            BondRealization.ACTIVE: 0.75,
+            BondRealization.MATURE: 1.0,
+        }[dev.realization]
         for dev in developments.values()
     )
     return evidence_value + 2.0 * len(component_links) + 4.0 * confidence + rank_strength + realization_strength
@@ -247,14 +266,19 @@ def form_strategy_candidates(
         bond_set = set(bond_ids)
         sources = tuple(dict.fromkeys(item.source for item in group))
         roles = tuple(sorted({role for item in group for role in item.roles}, key=str))
+        identities = {(item.bond_id, item.source) for item in group}
         component_links = tuple(
-            link for link in links if link.left_bond in bond_set and link.right_bond in bond_set
+            link
+            for link in links
+            if (link.left_bond, link.left_source) in identities
+            and (link.right_bond, link.right_source) in identities
         )
         relevant_motifs = tuple(
             motif
             for motif in all_motifs
             if motif.state != MotifState.ABSENT
             and len(set(motif.relevant_bonds).intersection(bond_set)) >= 2
+            and _motif_source_match(motif, sources)
         )
         evidence_value = sum(min(8.0, item.value) for item in group)
         density = min(1.0, len(component_links) / max(1.0, len(group) - 1.0))
@@ -295,8 +319,6 @@ def form_strategy_candidates(
             )
         )
 
-    # Keep known partially completed motifs visible even if their role registry is
-    # not yet rich enough to connect every component generically.
     covered = {motif_id for candidate in candidates for motif_id in candidate.motif_ids}
     for motif in all_motifs:
         if motif.state == MotifState.ABSENT or motif.motif_id in covered or len(motif.present_components) < 2:
