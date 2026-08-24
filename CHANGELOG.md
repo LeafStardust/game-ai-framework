@@ -6,7 +6,7 @@ This file records notable development changes to the project. Active and future 
 
 ### Added
 
-- Added the documentation-first design contract for an **offline Optuna Bond-tuning subsystem** in `docs/balatro/BALATRO_BOND_TUNING.md`. The planned tuner will search only approved bounded numerical parameters, preserve current production defaults, persist study/trial provenance, use reproducible evaluation batches, support holdout validation, and require manual/deterministic promotion gates. Optuna is explicitly excluded from the normal live-agent import/decision path and may not redefine Bond semantics or use hidden information.
+- Added the **offline Optuna Bond-tuning subsystem** defined in `docs/balatro/BALATRO_BOND_TUNING.md`: typed immutable `BondCalibration`, audited Phase-A parameter overrides, seeded and authoritative-live evaluators, persistent revision-bound Optuna studies, exact run provenance, production-baseline queuing/tagging, fresh-boundary live preflight, baseline-aware reports, and conservative holdout/promotion comparison. Optuna remains excluded from the normal live-agent decision path, cannot redefine Bond semantics or use hidden information, and cannot automatically promote its output.
 - Added the Red/White **Build Health** layer with auditable Survival, Immediate Scoring, Scaling, Coherence, and Runway dimensions so a full Joker roster is no longer assumed to be a functioning build.
 - Added realized engine lifecycle diagnostics (`OWNED_INACTIVE`, `ACTIVATED_WEAK`, `ACTIVATED_HEALTHY`, `MATURE`) for Blue/Hologram deck growth, Burnt Joker, Castle, Green Joker, Red Card, Runner, and Bull/Bootstraps cash scoring.
 - Added structural `CORE` / `ENGINE` / `SUPPORT` / `FILLER` / `CONFLICT` Joker-role diagnostics relative to the realized active build.
@@ -18,7 +18,7 @@ This file records notable development changes to the project. Active and future 
 
 ### Changed
 
-- Declared systematic Bond numerical calibration a staged offline optimization problem rather than an endless manual coefficient-edit loop. Planned tuning phases are composition/rank, realization, pivot/preservation, D1 execution, D2/shop/resources, then a small cross-system pass; broad tuning is blocked until semantic/runtime correctness is stable.
+- Converted systematic Bond numerical calibration from a documentation-only plan into an implemented staged offline optimization path. The first live gate is now a clean production-default 3-run baseline on one unchanged repository HEAD; only then may Phase-A candidate trials begin. Promotion requires a fresh comparison with at least **20 completed episodes per arm** plus the implemented objective, Ante, runtime, diversity, win-rate, and illegal-action checks.
 - Continued Red Deck / White Stake post-release calibration from repeated five-run autonomous batches before advancing stake progression.
 - Replaced the old Ante 1–2 “any positive immediate scorer” exception with Build-Health-based survival admission: an off-route purchase must materially improve projected survival rather than merely add local scoring value. Production SHOP survival now reuses D1 whole-blind clear-probability semantics through a strictly bounded public-state opening-hand projection; if that bounded projection is unavailable, the generic Build Health capacity estimate remains the fail-safe.
 - Kept the new SHOP D1 projection production-only so injected/custom Build Health scorers and offline deterministic contracts retain the generic estimator rather than unexpectedly invoking live planner semantics.
@@ -55,7 +55,7 @@ This file records notable development changes to the project. Active and future 
 
 - The complete Balatro deterministic suite was green after the categorical-to-Bond migration and subsequent stale-test cleanup on 2026-08-23 before the newest live-batch fixes; each new execution/pivot/resource change remains subject to a fresh full `python -m pytest -q tests/balatro` gate.
 - A subsequent five-run Red/White batch exposed Burnt under-utilization, weak power-engine preservation, marginal late pack spending, and a D1 Bond recomputation performance defect; those concrete defects have been corrected and require fresh unchanged-HEAD live validation.
-- Automated numerical tuning is **not yet active**. Its documentation/roadmap contract is complete; implementation begins only after current runtime semantics are validated strongly enough that an optimizer will not learn around known bugs.
+- The authoritative tuning foundation is implemented, but **Phase-A candidate search is not yet unlocked**. The historical `e0cb0984` baseline is forensic/reference evidence only because later semantic/runtime fixes changed the repository SHA. The next empirical gate is a clean production-default 3-run live baseline on the final unchanged HEAD; any new semantic/runtime fix invalidates that study and requires a new baseline.
 - Red Deck stake progression begins with v1.1 after the current Red/White calibration branch is accepted.
 - Fresh-profile collection progression remains active but is non-blocking for the v1.0 competence line.
 
