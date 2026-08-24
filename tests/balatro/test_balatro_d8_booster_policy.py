@@ -19,6 +19,13 @@ def _state(*, money: int = 20, ante: int = 1) -> BalatroState:
     return state
 
 
+def _specialized_state(*, money: int = 20, ante: int = 1) -> BalatroState:
+    state = _state(money=money, ante=ante)
+    state.hand_levels["FLUSH"] = 4
+    state.hand_play_counts["FLUSH"] = 8
+    return state
+
+
 def _action(label: str, *, price: int = 4, index: int = 0) -> BalatroAction:
     return BalatroAction(
         BUY_BOOSTER,
@@ -56,9 +63,7 @@ def test_d8_models_all_five_pack_families(label, family, offers, selections):
 def test_d8_celestial_value_rises_with_observed_hand_specialization():
     policy = BuildAwareShopBoosterPolicy()
     baseline = _state(money=50)
-    specialized = _state(money=50)
-    specialized.hand_levels["FLUSH"] = 5
-    specialized.hand_play_counts["FLUSH"] = 10
+    specialized = _specialized_state(money=50)
 
     baseline_rec = policy.recommend(baseline, _action("Celestial Pack"))
     specialized_rec = policy.recommend(specialized, _action("Celestial Pack"))
@@ -85,11 +90,11 @@ def test_d8_buffoon_fails_closed_without_a_free_joker_slot():
     assert recommendation.at_least_one_hit_probability == pytest.approx(0.0)
 
 
-def test_d8_buy_vs_save_changes_under_reserve_pressure():
+def test_d8_buy_vs_save_changes_under_reserve_pressure_for_relevant_celestial_pack():
     policy = BuildAwareShopBoosterPolicy()
 
-    rich = policy.recommend(_state(money=20), _action("Celestial Pack"))
-    pressured = policy.recommend(_state(money=5), _action("Celestial Pack"))
+    rich = policy.recommend(_specialized_state(money=20), _action("Celestial Pack"))
+    pressured = policy.recommend(_specialized_state(money=5), _action("Celestial Pack"))
 
     assert rich.decision == BUY
     assert rich.advantage_over_save > policy.thresholds.minimum_buy_advantage
@@ -97,9 +102,19 @@ def test_d8_buy_vs_save_changes_under_reserve_pressure():
     assert pressured.reserve_penalty > rich.reserve_penalty
 
 
+def test_d8_generic_celestial_pack_is_held_without_hand_direction():
+    recommendation = BuildAwareShopBoosterPolicy().recommend(
+        _state(money=50),
+        _action("Celestial Pack"),
+    )
+
+    assert recommendation.decision == HOLD
+    assert any("no pinned hand goal or strong realized hand specialization" in note for note in recommendation.rationale)
+
+
 def test_d8_mega_pack_has_more_option_value_than_normal_at_equal_price():
     policy = BuildAwareShopBoosterPolicy()
-    state = _state(money=50)
+    state = _specialized_state(money=50)
 
     normal = policy.recommend(state, _action("Celestial Pack"))
     mega = policy.recommend(state, _action("Mega Celestial Pack"))
