@@ -10,7 +10,7 @@ def _plan(name, cards=()):
     return SimpleNamespace(action=BalatroAction(name, cards=list(cards)))
 
 
-def test_psychic_filters_non_five_card_plays_but_keeps_discards():
+def test_psychic_keeps_short_and_five_card_plays_legal():
     cards = [BalatroCard(str(rank), "Hearts") for rank in ("2", "3", "4", "5", "6")]
     five = _plan(PLAY_CARDS, cards)
     four = _plan(PLAY_CARDS, cards[:4])
@@ -19,9 +19,7 @@ def test_psychic_filters_non_five_card_plays_but_keeps_discards():
 
     result = _psychic_filter(state, (four, five, discard))
 
-    assert five in result
-    assert discard in result
-    assert four not in result
+    assert result == (four, five, discard)
 
 
 def test_eye_filters_already_used_hand_type_when_unused_play_exists():
