@@ -150,14 +150,11 @@ def test_behavior_machine_exposes_missing_requirement_and_scaling_goals(monkeypa
     assert "seek_feature:engine:present" not in candidate.prescriptions
 
 
-def test_shared_target_can_form_strategy_without_named_pair_table() -> None:
+def test_shared_target_alone_does_not_form_strategy_without_semantic_relation() -> None:
     left = _dev("rank_payoff", "Rank payoff", MechanicalRole.RANK_PAYOFF, target="KINGS")
     right = _dev("support", "King support", MechanicalRole.SUPPORT, target="KINGS")
 
-    candidate = pinned_strategy(form_strategy_candidates((left, right)))
-
-    assert candidate is not None
-    assert any(link.relation == "SHARED_MECHANICAL_TARGET" for link in candidate.links)
+    assert pinned_strategy(form_strategy_candidates((left, right))) is None
 
 
 def test_unrelated_mechanics_do_not_form_false_strategy() -> None:
