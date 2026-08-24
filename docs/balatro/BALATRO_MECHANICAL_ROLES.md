@@ -29,6 +29,30 @@ Blackboard
 
 Baron and Blackboard may both develop Held Cards without being mechanically interchangeable. Mime develops Held Retrigger and may compose with either only when its retrigger mechanic actually applies.
 
+## Closed-world Joker knowledge policy
+
+Balatro's Joker catalogue is a finite game ruleset. The agent is therefore expected to encode each Joker's actual stable mechanic explicitly and accurately rather than pretending Joker behavior is unknown or must be rediscovered generically.
+
+The abstraction boundary is:
+
+```text
+explicit Joker mechanic knowledge
+        ↓
+roles / targets / conditions / behavior descriptors
+        ↓
+Bond development + realization
+        ↓
+strategy composition
+        ↓
+generic decision logic
+```
+
+It is acceptable and desirable for Joker definitions, behavior analyzers, realization rules, and unique execution mechanics to identify a Joker explicitly when that is the clearest representation of the real game rule. Examples include DNA's first-hand single-card copy, Green Joker's discard penalty, Card Sharp's repeated-hand requirement, and Walkie-Talkie's rank-specific payoff.
+
+What should normally **not** be hard-coded is the combinatorial strategy table. The agent should not require one bespoke rule for every useful Joker pair/triple when exact component mechanics can compose correctly through shared semantics. Important known combinations still require explicit regression tests, and an explicit interaction/motif rule is preferred when generic semantics cannot faithfully represent the real Balatro interaction.
+
+Correctness against Balatro mechanics takes priority over abstraction purity.
+
 ## Architecture
 
 ```text
@@ -59,9 +83,9 @@ Existing two-argument construction remains valid:
 BondContribution("Baron", 6.0)
 ```
 
-Role enrichment is centralized in `games/balatro/bonds/mechanical_roles.py`. Unknown/future contributors remain valid and simply carry empty role metadata until classified.
+Role enrichment is centralized in `games/balatro/bonds/mechanical_roles.py`. Unknown/unclassified contributors remain valid and carry empty role metadata until classified, but strategically relevant production Jokers should not remain unknown merely to preserve genericity.
 
-## Initial role vocabulary
+## Role vocabulary
 
 ```text
 HELD_RANK_PAYOFF
@@ -87,15 +111,26 @@ COPY_ENGINE
 SUPPORT
 ```
 
-This vocabulary may expand when Realization exposes a genuinely distinct mechanic. Do not create one role per Joker.
+This vocabulary may expand when Realization exposes a genuinely distinct mechanic. Roles should describe reusable mechanics rather than merely duplicate Joker names; however, a Joker-specific role/condition is valid when the game mechanic is genuinely unique and cannot be represented faithfully by the existing vocabulary.
 
-## High-impact mappings implemented first
+## Coverage rule
 
-The initial registry covers the contributors needed for the first Realization/motif work, including Baron, Mime, Blackboard, Shoot the Moon, Raised Fist, Steel infrastructure, Steel Joker, Erosion, Trading Card, Sixth Sense, Square Joker, Spare Trousers, Stuntman, Superposition, Ancient Joker, Cloud 9, 8 Ball, Vampire, Midas Mask, Driver's License, and Mime-copying Blueprint/Brainstorm contributions.
+Mechanical coverage should converge toward the complete strategically relevant Joker catalogue, not stop at an initial high-impact subset. Each Joker should have enough explicit knowledge for the runtime to answer, where applicable:
+
+- what it produces;
+- what it requires;
+- what it scales with;
+- what it amplifies/retriggers/copies/transforms;
+- what persistent state it accumulates;
+- what actions damage or reset it;
+- what actions are required to exploit it;
+- which Bond(s), motif(s), or tactical layer it belongs to.
+
+Coverage does not imply Bond quota. A Joker can be fully modeled while remaining tactical/support-only.
 
 ## Realization use
 
-Realization should consume enriched developments rather than infer behavior from raw Joker names whenever possible.
+Realization should consume enriched developments and exact modeled Joker mechanics rather than repeatedly reconstructing behavior from fragile display-name heuristics.
 
 Examples:
 
@@ -116,4 +151,4 @@ ENHANCEMENT_PAYOFF + PRESERVE_ENHANCEMENTS
   -> Driver's License realization depends on maintained enhanced-card density
 ```
 
-This is how the system preserves the Currency Wars-style Bond model while still understanding that different components inside the same Bond have different kits.
+This is how the system preserves the Currency Wars-style Bond model while exploiting the fact that Balatro itself is a closed, known ruleset.
