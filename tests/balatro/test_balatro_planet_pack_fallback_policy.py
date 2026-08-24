@@ -117,3 +117,39 @@ def test_planet_pack_zero_play_exotic_level_cannot_beat_practical_fallback(monke
     )
 
     assert ranked[0].action.target.label == "Mercury"
+
+
+def test_planet_pack_one_incidental_exotic_play_does_not_beat_practical_hand(monkeypatch):
+    import games.balatro.planet_pack_fallback_policy as module
+
+    monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
+    actions = [_planet("Neptune", 0), _planet("Mercury", 1)]
+    policy = _policy_with_scores({"Neptune": 10.0, "Mercury": 1.0})
+
+    ranked = policy.rank_actions(
+        _state(
+            levels={"STRAIGHT_FLUSH": 1, "PAIR": 1},
+            plays={"STRAIGHT_FLUSH": 1, "PAIR": 0},
+        ),
+        actions,
+    )
+
+    assert ranked[0].action.target.label == "Mercury"
+
+
+def test_planet_pack_sustained_exotic_play_can_beat_practical_fallback(monkeypatch):
+    import games.balatro.planet_pack_fallback_policy as module
+
+    monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
+    actions = [_planet("Neptune", 0), _planet("Mercury", 1)]
+    policy = _policy_with_scores({"Neptune": 1.0, "Mercury": 10.0})
+
+    ranked = policy.rank_actions(
+        _state(
+            levels={"STRAIGHT_FLUSH": 1, "PAIR": 1},
+            plays={"STRAIGHT_FLUSH": 3, "PAIR": 0},
+        ),
+        actions,
+    )
+
+    assert ranked[0].action.target.label == "Neptune"
