@@ -20,6 +20,7 @@ from games.balatro.state import BalatroState
 
 _STRATEGY_COMPLETION_WEIGHT = 2.0
 _MISSING_COMPONENT_VALUE = 0.75
+_MISSING_FEATURE_VALUE = 0.50
 _PINNED_TRANSITION_VALUE = 1.25
 _STRATEGY_COMPLETION_CAP = 3.0
 
@@ -85,11 +86,12 @@ def _strategy_completion_bonus(
     """Reward public one-Joker progress toward the strategy already being built.
 
     D2's canonical Bond projection rewards local Bond rank/progress changes, while
-    FORMING retention prevents destructive replacement.  Neither signal directly
-    rewards filling the explicit missing components of the current StrategyPlan.
-    This term closes that gap without granting value to unrelated pivots: the
-    projected plan must retain the same strategy id and improve its completion,
-    missing-component count, or commitment.
+    FORMING retention prevents destructive replacement. Neither signal directly
+    rewards filling the explicit missing components or missing semantic features of
+    the current StrategyPlan. This term closes that gap without granting value to
+    unrelated pivots: the projected plan must retain the same strategy id and
+    improve its completion, missing-component count, missing-feature count, or
+    commitment.
     """
     projected = _projected_state(
         state,
@@ -135,17 +137,27 @@ def _strategy_completion_bonus(
     after_missing = len(tuple(getattr(after, "missing_components", ()) or ()))
     components_filled = max(0, before_missing - after_missing)
 
+    before_features = set(tuple(getattr(before, "missing_features", ()) or ()))
+    after_features = set(tuple(getattr(after, "missing_features", ()) or ()))
+    features_filled = len(before_features - after_features)
+
     pinned_transition = int(
         before_commitment < StrategyCommitment.PINNED
         and after_commitment >= StrategyCommitment.PINNED
     )
-    if completion_gain <= 0.0 and components_filled <= 0 and not pinned_transition:
+    if (
+        completion_gain <= 0.0
+        and components_filled <= 0
+        and features_filled <= 0
+        and not pinned_transition
+    ):
         return 0.0, ()
 
     bonus = min(
         _STRATEGY_COMPLETION_CAP,
         _STRATEGY_COMPLETION_WEIGHT * completion_gain
         + _MISSING_COMPONENT_VALUE * min(2, components_filled)
+        + _MISSING_FEATURE_VALUE * min(2, features_filled)
         + _PINNED_TRANSITION_VALUE * pinned_transition,
     )
     if bonus <= 0.0:
@@ -155,6 +167,7 @@ def _strategy_completion_bonus(
         f"same-strategy completion bonus={bonus:.3f} strategy={strategy_id}",
         f"strategy completion={before_completion:.3f}->{after_completion:.3f}",
         f"missing components={before_missing}->{after_missing}",
+        f"missing features={len(before_features)}->{len(after_features)} resolved={features_filled}",
         f"commitment={before_commitment.name}->{after_commitment.name}",
     )
 
