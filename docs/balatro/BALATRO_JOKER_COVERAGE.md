@@ -1,19 +1,46 @@
 # Balatro Joker Coverage
 
-Canonical post-freeze Joker coverage audit for the Bond system.
+Canonical Joker coverage contract for the Bond/strategy system.
 
-Purpose: every strategically relevant Joker must be accounted for as one of:
+## Coverage objective
+
+Balatro's Joker catalogue is finite and its abilities are stable game rules. Production competence should therefore converge toward **complete explicit mechanical knowledge of every Joker**, even when a Joker does not receive Bond quota.
+
+Every strategically relevant Joker must be accounted for as one or more of:
 
 ```text
 Bond contributor
 conditional Bond contributor
 motif/composer component
 tactical/support component
+unique execution mechanic
 ```
 
-Coverage does **not** mean every Joker receives Bond quota.
+Coverage means the agent knows what the Joker actually does and how its public state affects decisions. Coverage does **not** mean every Joker becomes a Bond or that every Joker pair receives a bespoke strategy rule.
 
-## Final post-freeze Bond mappings
+## Modeling rule
+
+Prefer this hierarchy:
+
+```text
+1. encode the Joker's real mechanic exactly
+2. expose reusable roles/targets/conditions and behavior descriptors
+3. let Bonds/strategy composition combine those mechanics
+4. encode named motifs/special interactions where generic composition is insufficient
+5. regression-test important known synergies and anti-synergies explicitly
+```
+
+Examples:
+
+- DNA should explicitly expose first-hand single-card duplication.
+- Walkie-Talkie should explicitly expose its 4/10 scoring requirement.
+- Green Joker should explicitly expose growth on played hands and loss on discard.
+- Card Sharp should explicitly expose same-hand repetition as its activation condition.
+- A DNA + Walkie strategy should normally emerge because card copy can feed a required rank, but the combination must still have a regression test.
+
+Correct Balatro behavior takes priority over avoiding Joker-specific code.
+
+## Audited Bond mappings
 
 ```text
 Square Joker -> Two Pair +3
@@ -32,7 +59,7 @@ Notes:
 - 8 Ball is low-authority Tarot generation; it does not establish a Tarot engine alone.
 - Cloud 9 is low-authority Cash support; it is an income engine rather than direct cash-scaling payoff.
 - Superposition remains low authority in both Straight and Tarot.
-- Blackboard is Held Cards support, but mechanical-role metadata must later distinguish its all-black-held-state condition from Baron/Shoot-the-Moon/Steel mechanics.
+- Blackboard is Held Cards support, while mechanical-role metadata distinguishes its all-black-held-state condition from Baron/Shoot-the-Moon/Steel mechanics.
 
 ## Motif/composer only
 
@@ -44,6 +71,8 @@ Perkeo        consumable duplication; identity depends on held consumable
 Baseball Card uncommon-Joker composition payoff
 Joker Stencil empty-Joker-slot composition payoff
 ```
+
+These classifications mean "no Bond quota", not "generic/unknown behavior". Their mechanics still require explicit modeling wherever they affect scoring, scaling, strategy, resource use, or execution.
 
 ## Tactical/support only
 
@@ -57,16 +86,28 @@ Seltzer       temporary ten-hand played retrigger
 Seeing Double broad mixed-suit XMult condition
 ```
 
-## Generic / temporary / boss / slot-value pieces
+Again, tactical/support-only Jokers must still expose their real activation, growth, reset, consumption, and action-cost semantics to Build Health and the relevant D-policy.
 
-The remaining unwired Jokers are intentionally handled by normal Joker valuation and tactical logic rather than Bond rank. See `games/balatro/bonds/joker_coverage.py` for the explicit registry.
+## Remaining Jokers
 
-## Freeze rule
+The remaining Jokers may be handled by normal Joker valuation and tactical logic rather than Bond rank, but they are **not intentionally allowed to remain mechanically opaque**. `games/balatro/bonds/joker_coverage.py` is the classification registry; behavior/mechanic coverage may live in the appropriate scorer, analyzer, realization, execution, or strategy module.
 
-After this audit, new Bond mappings should require one of:
+A coverage audit should distinguish:
+
+```text
+classified but fully modeled
+classified but partially modeled
+mechanically unknown/unmodeled
+```
+
+The last category is a defect for a strategically relevant production Joker.
+
+## Change rule
+
+New Bond mappings should still require one of:
 
 1. a discovered mechanical omission,
 2. a Joker whose persistent engine is not representable by any existing Bond,
 3. runtime telemetry showing the current classification is materially wrong.
 
-Next architecture work is contributor mechanical roles, then Bond realization.
+However, **adding or correcting explicit Joker mechanics does not require adding a Bond**. Mechanical correctness is ordinary maintenance and should be completed whenever a gap is found.
