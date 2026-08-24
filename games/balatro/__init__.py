@@ -54,6 +54,7 @@ from games.balatro.sixth_sense_policy import install_sixth_sense_policy
 from games.balatro.stateful_joker_admission_policy import install_stateful_joker_admission_policy
 from games.balatro.strategy_authority_correction_policy import install_strategy_authority_correction_policy
 from games.balatro.strategy_plan_pack_policy import install_strategy_plan_pack_policy
+from games.balatro.strategy_resource_coherence_policy import install_strategy_resource_coherence_policy
 from games.balatro.tactical_scaler_build_health import install_tactical_scaler_build_health_policy
 from games.balatro.v1_0_0_luchador_policy import install_v1_0_0_luchador_policy
 from games.balatro.v1_0_0_policy import install_v1_0_0_policy
@@ -104,6 +105,7 @@ install_forming_strategy_retention_policy()
 install_pinned_strategy_execution_policy()
 install_pinned_strategy_shop_goal_policy()
 install_strategy_plan_pack_policy()
+install_strategy_resource_coherence_policy()
 install_strategy_authority_correction_policy()
 install_planet_pack_fallback_policy()
 install_live_quality_regression_policy()
