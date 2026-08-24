@@ -22,7 +22,6 @@ from games.balatro.d1_outer_evaluation_cache_policy import install_d1_outer_eval
 from games.balatro.deck_growth_pack_policy import install_deck_growth_pack_policy
 from games.balatro.early_capacity_policy import install_early_capacity_policy
 from games.balatro.face_card_enabler_bond_policy import install_face_card_enabler_bond_policy
-from games.balatro.five_run_optimization_policy import install_five_run_optimization_policy
 from games.balatro.five_run_validation_policy import install_five_run_validation_policy
 from games.balatro.forming_strategy_retention_policy import install_forming_strategy_retention_policy
 from games.balatro.full_roster_pack_guard import install_full_roster_pack_guard
@@ -46,8 +45,8 @@ from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimi
 from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_correction
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
-from games.balatro.shop_regression_policy import install_shop_regression_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
+from games.balatro.stable_economy_mechanics_policy import install_stable_economy_mechanics_policy
 from games.balatro.stateful_joker_admission_policy import install_stateful_joker_admission_policy
 from games.balatro.strategy_authority_correction_policy import install_strategy_authority_correction_policy
 from games.balatro.strategy_plan_pack_policy import install_strategy_plan_pack_policy
@@ -65,21 +64,19 @@ install_d1_log_resilience_policy()
 install_d1_candidate_deadline_policy()
 install_d1_outer_evaluation_cache_policy()
 install_d1_debuff_recovery_policy()
-install_shop_regression_policy()
 install_safe_pace_optimization_policy()
 install_safe_pace_timeout_patch()
 install_safe_pace_scope_correction()
 install_v1_0_0_policy()
 install_v1_0_0_luchador_policy()
-# five_run_optimization and five_run_validation remain temporarily because they
-# still contain stable mechanic corrections. Their empirical strategy portions are
-# being migrated/removed separately; batch-wide strategy authority is forbidden.
-install_five_run_optimization_policy()
+install_stable_economy_mechanics_policy()
 install_observatory_planet_policy()
 install_sixth_sense_policy()
 install_early_capacity_policy()
 install_latest_five_run_resource_metrics()
 install_late_shop_resource_guard()
+# The historically named validation module currently carries only stable Castle
+# execution semantics; migrate its name later without changing behavior.
 install_five_run_validation_policy()
 install_deck_growth_pack_policy()
 install_tactical_scaler_build_health_policy()
