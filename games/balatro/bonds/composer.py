@@ -33,6 +33,22 @@ class Composition:
 
 
 _SUIT_BONDS = frozenset({"clubs", "diamonds", "hearts", "spades"})
+_HAND_BONDS = frozenset(
+    {
+        "high_card",
+        "pair",
+        "two_pair",
+        "three_kind",
+        "four_kind",
+        "straight",
+        "flush",
+        "full_house",
+        "straight_flush",
+        "five_kind",
+        "flush_house",
+        "flush_five",
+    }
+)
 
 # A known strategy becomes trackable from its first defining piece, but that does
 # not grant PINNED authority. This belongs in the canonical composer so callers that
@@ -86,6 +102,77 @@ def _sanitize_behavior_candidates(
 
 def _component_token(value: object) -> str:
     return "".join(ch for ch in str(value or "").upper() if ch.isalnum())
+
+
+def _hand_bond_id(value: object) -> str | None:
+    raw = getattr(value, "value", value)
+    token = "_".join(
+        part
+        for part in "".join(
+            ch.lower() if ch.isalnum() else " " for ch in str(raw or "")
+        ).split()
+        if part
+    )
+    token = token.replace("_of_a_kind", "_kind")
+    return token if token in _HAND_BONDS else None
+
+
+def _observed_hand_strategy_candidates(
+    state: Any,
+    developments: Iterable[BondDevelopment],
+) -> tuple[StrategyCandidate, ...]:
+    """Create a generic fallback strategy from repeated public hand use.
+
+    This evidence is intentionally weaker than a mechanistic Bond/behavior engine.
+    The composer only consults it when no existing candidate is already pinned, so
+    Pair/Two Pair/etc. can become a real strategy without overriding a face-card,
+    retrigger, economy, or other concrete engine that merely uses that hand shape.
+    """
+    counts: dict[str, int] = {}
+    for hand, value in (getattr(state, "hand_play_counts", {}) or {}).items():
+        bond_id = _hand_bond_id(hand)
+        if bond_id is None:
+            continue
+        try:
+            plays = max(0, int(value or 0))
+        except (TypeError, ValueError):
+            continue
+        if plays > 0:
+            counts[bond_id] = counts.get(bond_id, 0) + plays
+    total = sum(counts.values())
+    if total <= 0:
+        return ()
+
+    bond_id, plays = max(counts.items(), key=lambda item: (item[1], item[0]))
+    concentration = plays / total
+    if plays < 4 or concentration < 0.45:
+        return ()
+
+    available = {dev.bond_id for dev in developments}
+    if bond_id not in available:
+        return ()
+
+    repetition = min(1.0, plays / 12.0)
+    confidence = min(0.86, 0.30 + 0.40 * concentration + 0.20 * repetition)
+    commitment = (
+        StrategyCommitment.PINNED
+        if plays >= 8 and concentration >= 0.50
+        else StrategyCommitment.FORMING
+    )
+    return (
+        StrategyCandidate(
+            strategy_id=f"observed_hand:{bond_id}",
+            bond_ids=(bond_id,),
+            sources=(f"observed_hand:{bond_id}",),
+            roles=(),
+            links=(),
+            motif_ids=(),
+            commitment=commitment,
+            confidence=confidence,
+            strength=2.0 + 0.25 * plays + 4.0 * confidence,
+            prescriptions=(f"seek_bond:{bond_id}",),
+        ),
+    )
 
 
 def _single_core_motif(motif: MotifEvaluation) -> MotifEvaluation | None:
@@ -241,6 +328,11 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
     except (AttributeError, TypeError, ValueError):
         behavior_candidates = ()
     candidates = merge_strategy_candidates(role_candidates, behavior_candidates)
+    if pinned_strategy(candidates) is None:
+        candidates = merge_strategy_candidates(
+            candidates,
+            _observed_hand_strategy_candidates(state, all_developments),
+        )
     pinned = pinned_strategy(candidates)
     if pinned is not None:
         plan = build_strategy_plan(pinned, all_developments, motifs)

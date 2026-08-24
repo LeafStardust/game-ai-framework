@@ -17,6 +17,23 @@ from games.balatro.shop_voucher_policy import BUY, HOLD, VoucherAcquisitionPolic
 
 
 _BASIC_CASH_RESERVE = 5
+_CARD_BOND_FEATURES = {
+    "face_cards": ("rank:J", "rank:Q", "rank:K"),
+    "aces": ("rank:A",),
+    "kings": ("rank:K",),
+    "queens": ("rank:Q",),
+    "jacks": ("rank:J",),
+    "low_ranks": ("rank:2", "rank:3", "rank:4", "rank:5"),
+    "hearts": ("suit:hearts",),
+    "spades": ("suit:spades",),
+    "clubs": ("suit:clubs",),
+    "diamonds": ("suit:diamonds",),
+    "steel": ("enhancement:steel",),
+    "glass": ("enhancement:glass",),
+    "stone": ("enhancement:stone",),
+    "gold_economy": ("enhancement:gold",),
+    "enhanced_cards": ("target:card",),
+}
 
 
 def _strategy_priority(candidate) -> tuple[int, float, float]:
@@ -55,6 +72,11 @@ def _strategy_features(state) -> tuple[str, ...]:
             feature = text.split(":", 1)[1].strip()
             if feature:
                 values.append(feature)
+            continue
+        if text.startswith("seek_bond:"):
+            parts = text.split(":")
+            bond_id = parts[1].strip() if len(parts) >= 2 else ""
+            values.extend(_CARD_BOND_FEATURES.get(bond_id, ()))
     return tuple(dict.fromkeys(values))
 
 
@@ -85,6 +107,7 @@ def _strategy_card_need(policy, state, profile, family: str):
         if profile.strength(feature) <= 0.0 and not profile.can_produce(feature)
     }
     gap_score = min(1.0, len(unmet) / 3.0)
+    targeted_score = min(1.0, len(relevant) / 2.0)
 
     modified_cards = sum(count for _, count in profile.enhancement_counts)
     modified_cards += sum(count for _, count in profile.seal_counts)
@@ -94,14 +117,21 @@ def _strategy_card_need(policy, state, profile, family: str):
         if profile.deck_size > 0
         else 0.0
     )
-    need = (
-        min(1.0, gap_score * 0.75 + modified_density * 0.25)
-        if family == "STANDARD"
-        else gap_score
-    )
+    if family == "STANDARD":
+        # A concrete rank/suit/enhancement goal remains useful even when the
+        # starting deck already contains some matching cards: Standard packs can
+        # increase the density of what the strategy is deliberately trying to play.
+        need = min(
+            1.0,
+            0.45 * targeted_score + 0.35 * gap_score + 0.20 * modified_density,
+        )
+    else:
+        need = min(1.0, max(gap_score, 0.35 * targeted_score))
     unmet_text = ", ".join(sorted(unmet)) if unmet else "none"
+    relevant_text = ", ".join(sorted(relevant)) if relevant else "none"
     return need, (
         "D8 strategy-scoped demand replaces aggregate owned-effect wishlist",
+        f"strategy relevant card goals={relevant_text}",
         f"strategy relevant unmet build features={unmet_text}",
         f"playing-card modifier density={modified_density:.3f}",
     )
