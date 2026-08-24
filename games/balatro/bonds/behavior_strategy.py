@@ -132,6 +132,24 @@ def _nodes(state, developments: tuple[BondDevelopment, ...]):
     return profile, tuple(nodes)
 
 
+def _rank_requirements(node: _Node) -> frozenset[str]:
+    return frozenset(
+        feature
+        for feature in set(node.requires) | set(node.scales_with) | set(node.amplifies)
+        if "rank:" in str(feature).lower()
+    )
+
+
+def _is_card_copy_engine(node: _Node) -> bool:
+    """Return true for a Joker whose modeled mechanic can duplicate a chosen card.
+
+    DNA is currently the authoritative public card-copy engine.  Keeping this check
+    at the behavior layer means every Joker that requires a concrete rank can compose
+    with DNA without a hand-written pair table (Walkie 4/10, rank payoffs, etc.).
+    """
+    return _token(node.source) == "dna"
+
+
 def _relation(left: _Node, right: _Node) -> str | None:
     if left.outputs.intersection(right.requires) or right.outputs.intersection(left.requires):
         return "OUTPUT_SATISFIES_REQUIREMENT"
@@ -139,6 +157,13 @@ def _relation(left: _Node, right: _Node) -> str | None:
         return "OUTPUT_FEEDS_SCALING"
     if left.amplifies.intersection(right.outputs) or right.amplifies.intersection(left.outputs):
         return "AMPLIFIER_TARGETS_OUTPUT"
+    # A chosen-card copier can increase the density of a concrete rank required by
+    # another component even though the copied rank is selected dynamically at D1
+    # time and therefore cannot appear as a fixed descriptor output.
+    if _is_card_copy_engine(left) and _rank_requirements(right):
+        return "CARD_COPY_FEEDS_REQUIRED_RANK"
+    if _is_card_copy_engine(right) and _rank_requirements(left):
+        return "CARD_COPY_FEEDS_REQUIRED_RANK"
     return None
 
 
