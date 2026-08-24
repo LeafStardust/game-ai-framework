@@ -175,8 +175,10 @@ def _runner(state, *, reroll_cost: float):
     )
 
 
-def test_autonomous_shop_can_buy_visible_celestial_pack_over_reroll():
+def test_autonomous_shop_can_buy_relevant_visible_celestial_pack_over_reroll():
     state = _state(money=20)
+    state.hand_levels["FLUSH"] = 4
+    state.hand_play_counts["FLUSH"] = 8
     state.shop_boosters = [
         LiveShopItem(
             kind="BOOSTER",
@@ -242,9 +244,6 @@ def test_shop_arbiter_compares_child_gain_over_each_no_action_baseline():
         reroll_cost=1,
     )
 
-    # Raw scores alone would prefer 0.50 over 0.40. Once each child is measured
-    # against its own no-action baseline, deterministic gain is only 0.15 while
-    # D2's total_advantage is already a 0.40 gain over HOLD=0.
     assert decision.action.name == BUY_JOKER
     assert decision.source == "JOKER_BUY"
     assert decision.total == pytest.approx(0.40)
