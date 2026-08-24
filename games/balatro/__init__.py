@@ -57,6 +57,7 @@ from games.balatro.strategy_plan_pack_policy import install_strategy_plan_pack_p
 from games.balatro.strategy_resource_coherence_policy import install_strategy_resource_coherence_policy
 from games.balatro.tactical_scaler_build_health import install_tactical_scaler_build_health_policy
 from games.balatro.tactical_scaler_retention_policy import install_tactical_scaler_retention_policy
+from games.balatro.target_hand_engine_policy import install_target_hand_engine_policy
 from games.balatro.v1_0_0_luchador_policy import install_v1_0_0_luchador_policy
 from games.balatro.v1_0_0_policy import install_v1_0_0_policy
 
@@ -113,9 +114,10 @@ install_tactical_scaler_retention_policy()
 install_pinned_strategy_safe_pace_policy()
 # Final D1 semantic execution guards must see the fully wrapped D1 decision so
 # later safe-pace/strategy layers cannot undo DNA setup, no-discard preservation,
-# or hand-repetition execution.
+# hand-repetition, or known target-hand engine execution.
 install_aces_dna_hand_policy()
 install_latest_batch_no_discard_policy()
+install_target_hand_engine_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
 install_live_joker_order_authority()
