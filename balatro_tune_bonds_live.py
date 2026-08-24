@@ -16,6 +16,9 @@ from games.balatro.tuning.study import (
 )
 
 
+_TUNING_DIRECTORY = Path("logs/balatro/tuning")
+
+
 def _git(*args: str) -> str:
     result = subprocess.run(
         ["git", *args],
@@ -39,13 +42,6 @@ def _repository_sha(explicit: str | None) -> str:
     if not sha:
         raise RuntimeError("could not resolve repository HEAD")
     return sha
-
-
-def _study_directory(name: str) -> Path:
-    safe = "".join(ch if ch.isalnum() or ch in {"-", "_", "."} else "_" for ch in str(name).strip())
-    if not safe:
-        raise ValueError("study name must contain at least one usable path character")
-    return Path("logs/balatro/tuning/studies") / safe
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -93,13 +89,11 @@ def main() -> int:
     if args.attempts_per_trial <= 0:
         raise SystemExit("--attempts-per-trial must be positive")
 
-    study_dir = _study_directory(args.study)
-    storage_path = args.storage or (study_dir / "study.sqlite3")
-    report_path = args.report or (study_dir / "study-report.json")
-    tuning_dir = Path("logs/balatro/tuning")
-    run_log_directory = args.run_log_directory or (tuning_dir / "runs")
-    session_directory = args.session_directory or (tuning_dir / "sessions")
-    control_directory = args.control_directory or (tuning_dir / "control")
+    storage_path = args.storage or (_TUNING_DIRECTORY / "optuna.sqlite3")
+    report_path = args.report or (_TUNING_DIRECTORY / "study-report.json")
+    run_log_directory = args.run_log_directory or (_TUNING_DIRECTORY / "runs")
+    session_directory = args.session_directory or (_TUNING_DIRECTORY / "sessions")
+    control_directory = args.control_directory or (_TUNING_DIRECTORY / "control")
 
     try:
         revision = _repository_sha(args.repo_sha)
@@ -150,7 +144,7 @@ def main() -> int:
     print(f"Boundary -> {preflight.phase}, Ante {preflight.ante}, {preflight.deck}/{preflight.stake}")
     print(f"Bridge -> protocol {preflight.bridge_version}, revision {preflight.bridge_revision}")
     print(f"Achievement gate -> {preflight.achievement_gate}")
-    print(f"Study directory -> {study_dir}")
+    print(f"Storage -> {storage_path}")
 
     requested_trials = 1 if args.baseline_only else args.trials
     study = None
