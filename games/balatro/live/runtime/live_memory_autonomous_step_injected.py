@@ -439,38 +439,14 @@ class LiveMemoryInjectedSingleStepRunner:
     ) -> tuple[BalatroAction, tuple[str, ...]]:
         del snapshot
         visible_actions = self.shop_generator.generate_actions(state)
-
-        terms_notes: tuple[str, ...]
-        try:
-            terms = self.reroll_terms_reader()
-            effective_cost = 0 if terms.free_rerolls > 0 else int(terms.cost)
-            terms_notes = (
-                f"observed_reroll_cost={int(terms.cost)}",
-                f"free_rerolls={terms.free_rerolls}",
-                f"effective_reroll_spend={effective_cost}",
-            )
-        except RuntimeError as error:
-            effective_cost = None
-            terms_notes = (f"reroll_terms_unavailable={error}",)
-
-        decision = self.shop_arbiter.decide(
-            state,
-            visible_actions,
-            reroll_cost=effective_cost,
-        )
-        shop_decision = (
-            "REROLL" if decision.source == "REROLL" else "HOLD_REROLL"
-        )
+        recommendation = self.shop_arbiter.decide(state, visible_actions)
         notes = [
-            f"shop_decision={shop_decision}",
-            *terms_notes,
-            f"arbiter_source={decision.source}",
-            f"policy_score={decision.total:.6f}",
+            f"shop_decision={recommendation.action.name}",
+            f"shop_source={recommendation.source}",
+            f"shop_total={recommendation.total:.6f}",
         ]
-        if decision.source != "REROLL" and decision.reroll is not None:
-            notes.extend(str(note) for note in decision.reroll.rationale)
-        notes.extend(str(note) for note in decision.rationale)
-        return decision.action, tuple(notes)
+        notes.extend(str(note) for note in recommendation.notes)
+        return recommendation.action, tuple(notes)
 
     def _recommend_pack(
         self,
@@ -507,6 +483,7 @@ class LiveMemoryInjectedSingleStepRunner:
             policy_started = perf_counter()
             blind_decision = decide_blind_play_or_skip(
                 snapshot,
+                state=state,
                 threshold=self.blind_skip_threshold,
                 fallback_tag_value=self.fallback_tag_value,
             )
@@ -590,274 +567,46 @@ class LiveMemoryInjectedSingleStepRunner:
             )
 
         raise UnsupportedAutonomousPhase(
-            f"no first-party autonomous action policy is validated for {phase}"
-        )
-
-    def _verify_live_checkpoint(self, decision: AutonomousStepDecision) -> None:
-        latest = self.observer.observe()
-        if not _same_snapshot(decision.snapshot, latest):
-            raise AutonomousStepGuardError(
-                "live state changed after autonomous planning; decide again from the new checkpoint"
-            )
-
-        if decision.pack_signature is not None:
-            current = _pack_choice_signature(tuple(self.pack_choice_reader()))
-            if current != decision.pack_signature:
-                raise AutonomousStepGuardError(
-                    "visible booster-pack choices changed after autonomous planning"
-                )
-
-    def _achievement_status(self) -> dict[str, str]:
-        status = self.bridge.status()
-        if status.get("bridge") != "1":
-            raise AutonomousStepGuardError(
-                "unexpected or missing first-party bridge version"
-            )
-        state, disabled = achievement_gate_state(status.get("achievement_gate"))
-        if disabled is True:
-            raise AutonomousStepGuardError(
-                "Balatro reports G.F_NO_ACHIEVEMENTS enabled; autonomous execution blocked"
-            )
-        if disabled is None:
-            raise AutonomousStepGuardError(
-                f"Balatro achievement gate is unavailable or unexpected: {state}"
-            )
-        return status
-
-    def _require_action_capability(
-        self,
-        action: BalatroAction,
-        status: dict[str, str],
-    ) -> None:
-        capability = _REQUIRED_BRIDGE_CAPABILITIES.get(str(action.name))
-        if capability is None or status.get(capability) == "1":
-            return
-
-        revision = status.get("bridge_revision", "unknown")
-        raise AutonomousBridgeCapabilityError(
-            "installed first-party bridge does not advertise "
-            f"{action.name} support ({capability}=missing, "
-            f"bridge_revision={revision}); close Balatro and reinstall/update "
-            "the repository bridge before resuming autonomous play"
+            f"{phase} has no autonomous action policy"
         )
 
     def execute(self, decision: AutonomousStepDecision):
-        self._verify_live_checkpoint(decision)
-        status = self._achievement_status()
-        self._require_action_capability(decision.action, status)
-        # STATUS itself is read-only but can take time. Recheck the exact public
-        # checkpoint afterwards so the gameplay action is never submitted from a
-        # stale recommendation.
-        self._verify_live_checkpoint(decision)
+        current = self.observer.observe()
+        if not current.state_complete or not _same_snapshot(decision.snapshot, current):
+            raise AutonomousStepGuardError(
+                "live state changed after recommendation; refusing stale execution"
+            )
+
+        capability = _REQUIRED_BRIDGE_CAPABILITIES.get(decision.action.name)
+        if capability is not None and not self.bridge.supports(capability):
+            raise AutonomousBridgeCapabilityError(
+                f"bridge does not advertise required capability {capability!r} "
+                f"for action {decision.action.name}"
+            )
+
         result = self.dispatcher.dispatch(
             decision.action,
-            state=decision.state,
-            snapshot=decision.snapshot,
+            decision.snapshot,
+            pack_signature=decision.pack_signature,
         )
-        return result, status
+        return result, self.observer.observe()
 
 
-def _action_text(decision: AutonomousStepDecision) -> str:
-    action = decision.action
-    indices = _indices(decision.state, action)
-    if indices:
-        return f"{action.name} indices={indices}"
-    index = _target_index(action.target)
-    label = _target_label(action.target)
-    cost = _target_cost(action.target)
-    details = []
-    if index is not None:
-        details.append(f"index={index}")
-    if label:
-        details.append(f"label={label!r}")
-    if cost is not None:
-        details.append(f"cost={cost:g}")
-    return action.name + (" " + " ".join(details) if details else "")
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Choose exactly one action from the current public Balatro state. "
-            "Preview is read-only. --execute sends exactly one gameplay action "
-            "through the first-party injected bridge, then stops after its settled "
-            "semantic checkpoint."
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--max-horizon", type=int, default=None)
+    parser.add_argument("--max-search-nodes", type=int, default=None)
+    args = parser.parse_args(argv)
+    with LiveMemoryBalatroObserver() as observer:
+        runner = LiveMemoryInjectedSingleStepRunner(
+            observer,
+            max_horizon=args.max_horizon,
+            max_search_nodes=args.max_search_nodes,
         )
-    )
-    parser.add_argument("--execute", action="store_true")
-    parser.add_argument(
-        "--expect-phase",
-        help="required with --execute; prevents acting if Balatro is in another phase",
-    )
-    parser.add_argument(
-        "--run-id",
-        help=(
-            "optional persistent run identifier; successful --execute transitions "
-            "append to logs/balatro/runs/<run-id>.jsonl"
-        ),
-    )
-    parser.add_argument("--max-horizon", type=int)
-    parser.add_argument("--max-search-nodes", type=int)
-    parser.add_argument("--exact-limit", type=int, default=128)
-    parser.add_argument("--child-exact-limit", type=int, default=8)
-    parser.add_argument(
-        "--blind-skip-threshold",
-        type=float,
-        default=DEFAULT_BLIND_SKIP_THRESHOLD,
-        help="minimum skip EV margin required before intentionally skipping a blind",
-    )
-    parser.add_argument(
-        "--fallback-tag-value",
-        type=float,
-        default=DEFAULT_FALLBACK_TAG_VALUE,
-        help="fallback tag EV while live process memory does not expose tag identity",
-    )
-    args = parser.parse_args()
-
-    if args.execute and args.expect_phase is None:
-        parser.error("--execute requires --expect-phase")
-    if not args.execute and args.expect_phase is not None:
-        parser.error("--expect-phase is only valid with --execute")
-    if not args.execute and args.run_id is not None:
-        parser.error("--run-id is only valid with --execute")
-    if args.run_id is not None and not args.run_id.strip():
-        parser.error("--run-id cannot be empty")
-    for name in ("max_horizon", "max_search_nodes"):
-        value = getattr(args, name)
-        if value is not None and value < 1:
-            parser.error(f"--{name.replace('_', '-')} must be positive")
-    if args.exact_limit < 1 or args.child_exact_limit < 1:
-        parser.error("exact combination limits must be positive")
-    if args.blind_skip_threshold < 0 or args.fallback_tag_value < 0:
-        parser.error("blind skip threshold and fallback tag value cannot be negative")
-
-    try:
-        with LiveMemoryBalatroObserver() as observer:
-            runner = LiveMemoryInjectedSingleStepRunner(
-                observer,
-                blind_skip_threshold=args.blind_skip_threshold,
-                fallback_tag_value=args.fallback_tag_value,
-                max_horizon=args.max_horizon,
-                max_search_nodes=args.max_search_nodes,
-                exact_limit=args.exact_limit,
-                child_exact_limit=args.child_exact_limit,
-            )
-            decision_started = perf_counter()
-            decision = runner.decide()
-            decision_elapsed = perf_counter() - decision_started
-
-            print("Live-memory autonomous injected step -> READY")
-            print("Observation source -> live Balatro process memory")
-            print("Execution backend -> game-ai-framework injected Lua bridge")
-            print("Runtime loader -> none (fused LÖVE archive)")
-            print("Lovely required -> False")
-            print("Steamodded required -> False")
-            print("BalatroBot required -> False")
-            print("Mouse fallback -> False")
-            print(f"Phase -> {decision.snapshot.phase}")
-            print(f"Decision source -> {decision.source}")
-            print(f"Decision latency -> {decision_elapsed:.3f}s")
-            print(f"Observation latency -> {runner.last_observation_seconds:.3f}s")
-            print(f"Translation latency -> {runner.last_translation_seconds:.3f}s")
-            print(f"Policy latency -> {runner.last_policy_seconds:.3f}s")
-            print(f"Recommended action -> {_action_text(decision)}")
-            for note in decision.notes:
-                print(f"  {note}")
-            print("Observation process writes -> False")
-            print("Hidden RNG/deck traversal -> False")
-            print("Follow-up action chaining -> False")
-
-            if not args.execute:
-                print("Execution guard -> PREVIEW ONLY")
-                print("Achievement status command sent -> False")
-                print("Injected gameplay command sent -> False")
-                print("Mouse input sent -> False")
-                return 0
-
-            assert args.expect_phase is not None
-            if decision.snapshot.phase != args.expect_phase:
-                print("Execution guard -> BLOCKED")
-                print(
-                    f"Reason -> expected phase {args.expect_phase}, "
-                    f"observed {decision.snapshot.phase}"
-                )
-                print("Achievement status command sent -> False")
-                print("Injected gameplay command sent -> False")
-                print("Mouse input sent -> False")
-                return 0
-
-            print(
-                "WARNING -> --execute is armed: exactly one real in-process "
-                "Balatro gameplay action may now be invoked"
-            )
-            print(f"Execution scope -> exactly one {_action_text(decision)} action")
-            print("Mouse input sent -> False")
-
-            try:
-                result, status = runner.execute(decision)
-            except AutonomousStepGuardError as error:
-                print("Execution guard -> BLOCKED")
-                print(f"Reason -> {error}")
-                print("Injected gameplay command sent -> False")
-                return 0
-            except InjectedBridgeError as error:
-                print("Injected execution -> FAILED")
-                print(f"Reason -> {error}")
-                print("Follow-up action executed -> False")
-                return 1
-            except RuntimeError as error:
-                print("Injected execution -> FAILED")
-                print(f"Reason -> {error}")
-                print("Follow-up action executed -> False")
-                return 1
-
-            run_logger = None
-            run_log_error: Exception | None = None
-            if args.run_id is not None:
-                try:
-                    run_logger = log_successful_live_transition(
-                        decision,
-                        result,
-                        run_id=args.run_id,
-                    )
-                except Exception as error:
-                    # Gameplay has already executed and reached an authoritative
-                    # postcondition. A telemetry failure must never rewrite that
-                    # truth as "gameplay command sent -> False".
-                    run_log_error = error
-
-            print("Execution guard -> PASS")
-            print("Achievement status command sent -> True")
-            print(f"Bridge version -> {status.get('bridge', 'MISSING')}")
-            gate_state, _ = achievement_gate_state(status.get("achievement_gate"))
-            print(f"G.F_NO_ACHIEVEMENTS state -> {gate_state}")
-            print("Steam achievement gate -> NOT DISABLED")
-            print("Injected gameplay command sent -> True")
-            print(f"Checkpoint sequence -> {result.after.sequence}")
-            print(f"Phase after -> {result.after.phase}")
-            if run_log_error is not None:
-                print("Run experience log -> FAILED")
-                print(f"Run logging reason -> {run_log_error}")
-            elif run_logger is None:
-                print("Run experience log -> DISABLED (--run-id not supplied)")
-            else:
-                print(f"Run experience log -> {run_logger.path}")
-                if str(result.after.phase) == "GAME_OVER":
-                    print(f"Run summary -> {run_logger.summary_path}")
-            print("Follow-up action executed -> False")
-            return 1 if run_log_error is not None else 0
-    except UnsupportedAutonomousPhase as error:
-        print("Live-memory autonomous injected step -> BLOCKED")
-        print(f"Reason -> {error}")
-        print("Injected gameplay command sent -> False")
-        print("Mouse input sent -> False")
-        return 0
-    except (InjectedBridgeError, RuntimeError, ValueError) as error:
-        print("Live-memory autonomous injected step -> FAIL")
-        print(f"Reason -> {error}")
-        print("Injected gameplay command sent -> False")
-        print("Mouse input sent -> False")
-        return 2
+        decision = runner.decide()
+        result, _status = runner.execute(decision)
+        log_successful_live_transition(decision, result)
+    return 0
 
 
 if __name__ == "__main__":
