@@ -12,8 +12,8 @@
 |---|---|---|
 | v0.1–v0.9 Foundation + autonomous integration | Complete | — |
 | **v1.0.0 Red Deck / White Stake competence** | **Complete** | Released 2026-08-20 |
-| **v1.0.x Red/White Bond calibration** | **In progress** | Semantic/runtime correctness + unchanged-HEAD live validation |
-| **Offline Bond numerical tuning (Optuna)** | **Planned / documentation complete** | Begins only after known runtime defects are corrected and a typed calibration layer exists |
+| **v1.0.x Red/White Bond calibration** | **In progress** | Current-HEAD baseline → Phase-A candidates → ≥20-episode-per-arm promotion/holdout |
+| **Offline Bond numerical tuning (Optuna)** | **Foundation implemented / validation pending** | Fresh current-HEAD production baseline must pass before candidate search |
 | v1.1–v1.7 Red Deck stake progression | Next | Begins from Red Stake after Red/White calibration |
 | Fresh-profile collection progression | In progress, non-blocking | May continue alongside stake progression |
 | v2+ Additional decks | Not started | Begins after Red Deck progression |
@@ -93,29 +93,33 @@ The active architecture contract is [`docs/balatro/BALATRO_STRATEGY_SYSTEM.md`](
 - [x] Add active/mature power-engine preservation so fresh partial Bonds cannot casually destroy an already-realized engine unless the projected replacement is materially stronger.
 - [x] Add late-game cash protection against marginal side-development packs when doing so would drain a functioning but still vulnerable build.
 - [x] Cache per-decision Bond hand intents so D1 does not repeatedly recompute the full composition inside candidate tie-breaks.
-- [ ] Run a fresh unchanged-HEAD five-run Red/White validation batch after the latest execution/pivot/resource fixes.
+- [ ] Execute and inspect a clean 3-run production-default authoritative live baseline on the final unchanged HEAD.
+- [ ] Run Phase-A candidate trials only after that baseline is clean; any semantic/runtime fix invalidates and restarts the study under the new repository SHA.
 
-### Automated Bond numerical tuning — PLANNED
+### Automated Bond numerical tuning — FOUNDATION IMPLEMENTED / LIVE VALIDATION PENDING
 
 Detailed contract: [`docs/balatro/BALATRO_BOND_TUNING.md`](docs/balatro/BALATRO_BOND_TUNING.md).
 
 Purpose: replace endless manual coefficient guessing with reproducible offline optimization of **approved numerical parameters**, while preserving human-defined Bond semantics and live-agent determinism.
 
-Implementation order:
+Implementation status:
 
 - [x] Document architecture, objective, anti-overfitting rules, storage/provenance, pruning constraints, and promotion gates.
-- [ ] Introduce a typed immutable Bond calibration snapshot whose defaults exactly reproduce current production behavior.
-- [ ] Route one small audited parameter family through that snapshot and add default-equivalence/validation tests.
-- [ ] Add an offline batch evaluator that emits structured trial metrics and exact run/seed provenance.
-- [ ] Add Optuna as an optional development/tuning dependency only; normal live-agent imports must not depend on it.
-- [ ] Add persistent Optuna study storage, parameter/objective schema versions, and resumable study compatibility checks.
-- [ ] Begin with a low-dimensional composition/pivot study rather than exposing the whole catalogue.
-- [ ] Add holdout/fresh-batch validation and promotion reports.
+- [x] Introduce a typed immutable Bond calibration snapshot whose defaults exactly reproduce current production behavior.
+- [x] Route one small audited parameter family through that snapshot and add default-equivalence/validation tests.
+- [x] Add offline seeded and authoritative-live batch evaluator boundaries with structured trial metrics and exact run/seed provenance.
+- [x] Add Optuna as an optional development/tuning dependency only; normal live-agent imports do not depend on it.
+- [x] Add persistent Optuna study storage, parameter/objective schema versions, resumable compatibility checks, and production-baseline queuing.
+- [x] Implement the first low-dimensional Phase-A composition/pivot search space.
+- [x] Add fresh-boundary live preflight, baseline-aware reports, holdout validation, and conservative live promotion comparison.
+- [ ] Execute a clean current-HEAD production-default baseline and inspect telemetry.
+- [ ] Begin Phase-A candidate search only after that baseline passes.
+- [ ] Promote only after a fresh comparison with **at least 20 completed episodes per arm** and all implemented non-regression/pathology checks pass.
 - [ ] Expand to realization, D1 execution, D2/shop/resource, and cross-system calibration only after earlier phases are stable.
 
 The optimizer may tune bounded numerical values such as contributor weights, R1–R5 thresholds, realization cutoffs where empirical, synergy/conflict coefficients, pivot resistance, motif values, bounded prescription strengths, and resource-policy thresholds. It may **not** invent/remove Bonds, change mechanical truth, weaken boss/legal/survival authority, use hidden information, or automatically promote its own output.
 
-Do not start broad optimization while known runtime/semantic defects remain. The optimizer must tune a correct agent, not learn around bugs.
+The historical `e0cb0984` live baseline is forensic/reference evidence only because later semantic/runtime fixes changed the repository SHA. Do not resume or compare a current candidate against that old study as if it were an unchanged-code control.
 
 ### Calibration gate before Red Stake
 
@@ -123,8 +127,8 @@ Do not begin Red/Red `1.1.0` implementation until:
 
 - [x] the full Balatro deterministic suite is green on the current architecture baseline;
 - [x] Build Health diagnostics are stable and auditable;
-- [ ] repeated five-run losses no longer show obvious "full board but non-functioning build" or "recognized engine but unused mechanic" failures;
-- [ ] at least one fresh unchanged-HEAD Red/White batch contains an Ante-8 clear without a repeated release-blocking decision defect.
+- [ ] repeated live losses no longer show obvious "full board but non-functioning build" or "recognized engine but unused mechanic" failures;
+- [ ] at least one fresh unchanged-HEAD Red/White validation batch contains an Ante-8 clear without a repeated release-blocking decision defect.
 
 Automated Optuna tuning is not itself a prerequisite for Red Stake if Red/White reaches the competence gate first, but once implemented it becomes the preferred method for systematic coefficient refinement.
 
