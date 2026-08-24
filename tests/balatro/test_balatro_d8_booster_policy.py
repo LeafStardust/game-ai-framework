@@ -21,7 +21,7 @@ def _state(*, money: int = 20, ante: int = 1) -> BalatroState:
 
 def _specialized_state(*, money: int = 20, ante: int = 1) -> BalatroState:
     state = _state(money=money, ante=ante)
-    state.hand_levels["FLUSH"] = 4
+    state.hand_levels["FLUSH"] = 2
     state.hand_play_counts["FLUSH"] = 8
     return state
 
@@ -109,7 +109,49 @@ def test_d8_generic_celestial_pack_is_held_without_hand_direction():
     )
 
     assert recommendation.decision == HOLD
-    assert any("no pinned hand goal or strong realized hand specialization" in note for note in recommendation.rationale)
+    assert any("no marginal hand-development headroom" in note for note in recommendation.rationale)
+
+
+def test_d8_celestial_is_held_after_relevant_hand_reaches_current_target_level():
+    state = _state(money=50)
+    state.hand_levels["FLUSH"] = 3
+    state.hand_play_counts["FLUSH"] = 8
+
+    recommendation = BuildAwareShopBoosterPolicy().recommend(
+        state,
+        _action("Celestial Pack"),
+    )
+
+    assert recommendation.decision == HOLD
+    assert any("effective Celestial headroom=0" in note for note in recommendation.rationale)
+
+
+def test_d8_off_path_planet_investment_consumes_repeated_celestial_budget():
+    state = _specialized_state(money=50)
+    state.hand_levels["FOUR_OF_A_KIND"] = 2
+
+    recommendation = BuildAwareShopBoosterPolicy().recommend(
+        state,
+        _action("Celestial Pack"),
+    )
+
+    assert recommendation.decision == HOLD
+    assert any("Planet investment=2/2; remaining=0" in note for note in recommendation.rationale)
+
+
+def test_d8_more_realized_play_reopens_celestial_headroom_after_prior_investment():
+    state = _state(money=50)
+    state.hand_levels["FLUSH"] = 2
+    state.hand_levels["FOUR_OF_A_KIND"] = 2
+    state.hand_play_counts["FLUSH"] = 14
+
+    recommendation = BuildAwareShopBoosterPolicy().recommend(
+        state,
+        _action("Celestial Pack"),
+    )
+
+    assert recommendation.decision == BUY
+    assert any("effective Celestial headroom=1" in note for note in recommendation.rationale)
 
 
 def test_d8_mega_pack_has_more_option_value_than_normal_at_equal_price():
