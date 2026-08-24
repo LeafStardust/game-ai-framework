@@ -60,6 +60,20 @@ def _strategy_candidate(state):
     return max(candidates, key=_strategy_priority)
 
 
+def _bond_goal_features(candidate) -> tuple[str, ...]:
+    if candidate is None:
+        return ()
+    values: list[str] = []
+    for prescription in getattr(candidate, "prescriptions", ()) or ():
+        text = str(prescription)
+        if not text.startswith("seek_bond:"):
+            continue
+        parts = text.split(":")
+        bond_id = parts[1].strip() if len(parts) >= 2 else ""
+        values.extend(_CARD_BOND_FEATURES.get(bond_id, ()))
+    return tuple(dict.fromkeys(values))
+
+
 def _strategy_features(state) -> tuple[str, ...]:
     candidate = _strategy_candidate(state)
     if candidate is None:
@@ -72,11 +86,7 @@ def _strategy_features(state) -> tuple[str, ...]:
             feature = text.split(":", 1)[1].strip()
             if feature:
                 values.append(feature)
-            continue
-        if text.startswith("seek_bond:"):
-            parts = text.split(":")
-            bond_id = parts[1].strip() if len(parts) >= 2 else ""
-            values.extend(_CARD_BOND_FEATURES.get(bond_id, ()))
+    values.extend(_bond_goal_features(candidate))
     return tuple(dict.fromkeys(values))
 
 
@@ -101,13 +111,18 @@ def _strategy_card_need(policy, state, profile, family: str):
         for feature in features
         if feature in exact or any(feature.startswith(prefix) for prefix in prefixes)
     }
+    bond_relevant = {
+        feature
+        for feature in _bond_goal_features(candidate)
+        if feature in exact or any(feature.startswith(prefix) for prefix in prefixes)
+    }
     unmet = {
         feature
         for feature in relevant
         if profile.strength(feature) <= 0.0 and not profile.can_produce(feature)
     }
     gap_score = min(1.0, len(unmet) / 3.0)
-    targeted_score = min(1.0, len(relevant) / 2.0)
+    bond_targeted_score = min(1.0, len(bond_relevant) / 2.0)
 
     modified_cards = sum(count for _, count in profile.enhancement_counts)
     modified_cards += sum(count for _, count in profile.seal_counts)
@@ -118,15 +133,14 @@ def _strategy_card_need(policy, state, profile, family: str):
         else 0.0
     )
     if family == "STANDARD":
-        # A concrete rank/suit/enhancement goal remains useful even when the
-        # starting deck already contains some matching cards: Standard packs can
-        # increase the density of what the strategy is deliberately trying to play.
-        need = min(
-            1.0,
-            0.45 * targeted_score + 0.35 * gap_score + 0.20 * modified_density,
-        )
+        # Preserve the established explicit seek_feature demand curve. Bond goals
+        # add a separate density signal because a rank/suit target remains useful
+        # even when the starting deck already contains matching cards.
+        gap_need = min(1.0, 0.75 * gap_score + 0.25 * modified_density)
+        bond_density_need = 0.45 * bond_targeted_score
+        need = min(1.0, max(gap_need, bond_density_need))
     else:
-        need = min(1.0, max(gap_score, 0.35 * targeted_score))
+        need = min(1.0, max(gap_score, 0.35 * bond_targeted_score))
     unmet_text = ", ".join(sorted(unmet)) if unmet else "none"
     relevant_text = ", ".join(sorted(relevant)) if relevant else "none"
     return need, (
