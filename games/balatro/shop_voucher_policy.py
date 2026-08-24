@@ -22,6 +22,20 @@ from games.balatro.state import BalatroState
 BUY = "BUY"
 HOLD = "HOLD"
 
+# Expensive early vouchers are permanent value, but that does not make them
+# automatically more important than surviving the next blind. These structural
+# upgrades can directly increase immediate action/capacity headroom and are allowed
+# to compete even while the scoring engine is still immature.
+_EARLY_STRUCTURAL_EXCEPTIONS = {
+    "Antimatter",
+    "Paint Brush",
+    "Palette",
+    "Grabber",
+    "Nacho Tong",
+}
+_EARLY_SURVIVAL_RESERVE = 10
+_EARLY_EXPENSIVE_VOUCHER_PRICE = 8
+
 
 @dataclass(frozen=True)
 class VoucherAcquisitionThresholds:
@@ -201,9 +215,17 @@ class VoucherAcquisitionPolicy:
             self.thresholds.minimum_persistent_value
         )
         reserve_safe = money_after >= int(self.thresholds.minimum_money_after)
+        early_survival_safe, survival_notes = self._early_survival_gate(
+            state,
+            profile,
+            candidate_name,
+            price=price,
+            money_after=money_after,
+        )
         should_buy = (
             persistent_enough
             and reserve_safe
+            and early_survival_safe
             and total_advantage > float(self.thresholds.minimum_purchase_advantage)
         )
         decision = BUY if should_buy else HOLD
@@ -214,6 +236,7 @@ class VoucherAcquisitionPolicy:
             *tuple(str(note) for note in base_notes),
             f"D3 build compatibility={compatibility:.3f}",
             *compatibility_notes,
+            *survival_notes,
             f"D3 future-ante horizon={remaining_antes} bonus={horizon_bonus:.3f}",
             f"D3 price penalty={price_penalty:.3f}",
             f"D3 interest penalty={interest_penalty:.3f}",
@@ -224,7 +247,7 @@ class VoucherAcquisitionPolicy:
             (
                 "D3 BUY: persistent upgrade clears dedicated value/economy thresholds"
                 if should_buy
-                else "D3 HOLD: persistent upgrade fails dedicated value/economy thresholds"
+                else "D3 HOLD: persistent upgrade fails dedicated value/economy/readiness thresholds"
             ),
         )
 
@@ -244,6 +267,45 @@ class VoucherAcquisitionPolicy:
             reserve_penalty=reserve_penalty,
             thresholds=self.thresholds,
             rationale=rationale,
+        )
+
+    @staticmethod
+    def _early_survival_gate(
+        state,
+        profile,
+        label: str,
+        *,
+        price: int,
+        money_after: int,
+    ) -> tuple[bool, tuple[str, ...]]:
+        """Keep expensive early utility purchases from crowding out scoring survival.
+
+        This gate is deliberately independent of playbook ``minimum_money_after`` so
+        a permissive tuning override cannot turn permanent utility into an automatic
+        Ante-1/2 purchase. A build with three Jokers or meaningful hand-level
+        investment is considered established enough to use the ordinary D3 economy
+        model. Immediate structural-capacity vouchers retain an explicit exception.
+        """
+        if int(profile.ante) > 2 or int(price) < _EARLY_EXPENSIVE_VOUCHER_PRICE:
+            return True, ()
+        if label in _EARLY_STRUCTURAL_EXCEPTIONS:
+            return True, (f"D3 early structural exception={label}",)
+
+        joker_count = len(tuple(getattr(profile, "joker_names", ()) or ()))
+        invested_hand = max(
+            (int(level) for _, level in tuple(getattr(profile, "hand_levels", ()) or ())),
+            default=1,
+        ) > 1
+        scoring_ready = joker_count >= 3 or invested_hand
+        if scoring_ready or int(money_after) >= _EARLY_SURVIVAL_RESERVE:
+            return True, (
+                f"D3 early readiness jokers={joker_count} invested_hand={invested_hand} "
+                f"money_after=${money_after}",
+            )
+        return False, (
+            "D3 early survival hold: expensive voucher would crowd out scoring capital",
+            f"D3 early readiness jokers={joker_count} invested_hand={invested_hand} "
+            f"money_after=${money_after} survival_reserve=${_EARLY_SURVIVAL_RESERVE}",
         )
 
     @staticmethod
@@ -269,6 +331,34 @@ class VoucherAcquisitionPolicy:
 
         if label in {"Wasteful", "Recyclomancy"}:
             return 1.25, ("D3 permanent discards-per-round capacity",)
+
+        if label == "Telescope":
+            counts = {
+                str(hand).upper().replace(" ", "_"): max(0, int(played or 0))
+                for hand, played in (getattr(state, "hand_play_counts", {}) or {}).items()
+            }
+            top_plays = max(counts.values(), default=0)
+            value = 1.00 if top_plays >= 4 else -1.50
+            return value, (
+                f"D3 Telescope realized hand repetition top_plays={top_plays}",
+            )
+
+        if label == "Observatory":
+            consumables = tuple(getattr(state, "consumables", ()) or ())
+            has_planet = any(
+                str(getattr(card, "ability_set", getattr(card, "category", "")) or "").upper()
+                == "PLANET"
+                for card in consumables
+            )
+            has_perkeo = any(
+                str(getattr(joker, "name", getattr(joker, "label", "")) or "") == "Perkeo"
+                for joker in tuple(getattr(state, "jokers", ()) or ())
+            )
+            value = 2.00 if (has_planet or has_perkeo) else -4.00
+            return value, (
+                "D3 Observatory infrastructure "
+                f"held_planet={has_planet} perkeo={has_perkeo}",
+            )
 
         if label in {"Seed Money", "Money Tree"}:
             money = int(profile.money)
