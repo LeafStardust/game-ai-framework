@@ -19,6 +19,19 @@ from games.balatro.shop_voucher_policy import VoucherAcquisitionPolicy
 
 EARLY_ANTE_LIMIT = 2
 EARLY_HARD_CASH_FLOOR = 5
+EARLY_STRUCTURAL_CASH_FLOOR = 4
+
+# Antimatter is the one Red/White voucher whose immediate Joker-slot creation is
+# explicitly calibrated to compete against the weighted reserve cost all the way to
+# $0. Other structural vouchers remain privileged, but they may not consume the last
+# few dollars of a fragile Ante-1/2 run.
+_FULL_WEIGHTED_RESERVE_EXCEPTION = {"Antimatter"}
+_STRUCTURAL_LOW_FLOOR_EXCEPTIONS = {
+    "Paint Brush",
+    "Palette",
+    "Grabber",
+    "Nacho Tong",
+}
 
 
 def _scoring_ready(profile) -> bool:
@@ -34,8 +47,8 @@ def _needs_early_cash_floor(profile) -> bool:
     return int(getattr(profile, "ante", 0) or 0) <= EARLY_ANTE_LIMIT and not _scoring_ready(profile)
 
 
-def _cash_floor_safe(profile, money_after: int) -> bool:
-    return not _needs_early_cash_floor(profile) or int(money_after) >= EARLY_HARD_CASH_FLOOR
+def _cash_floor_safe(profile, money_after: int, *, floor: int = EARLY_HARD_CASH_FLOOR) -> bool:
+    return not _needs_early_cash_floor(profile) or int(money_after) >= int(floor)
 
 
 def install_early_spend_sanity_policy() -> None:
@@ -62,12 +75,27 @@ def install_early_spend_sanity_policy() -> None:
         )
         if not allowed:
             return allowed, notes
-        if _cash_floor_safe(profile, money_after):
+
+        # Preserve the Red/White D3 contract: Antimatter's immediate extra Joker
+        # slot is allowed to compete under the ordinary weighted-reserve model rather
+        # than a second hard cash veto.
+        if label in _FULL_WEIGHTED_RESERVE_EXCEPTION:
+            return True, (
+                *notes,
+                "D3 Antimatter keeps weighted-reserve authority; no additional hard cash floor",
+            )
+
+        floor = (
+            EARLY_STRUCTURAL_CASH_FLOOR
+            if label in _STRUCTURAL_LOW_FLOOR_EXCEPTIONS
+            else EARLY_HARD_CASH_FLOOR
+        )
+        if _cash_floor_safe(profile, money_after, floor=floor):
             return True, notes
         return False, (
             *notes,
             "D3 hard early cash-floor hold: permanent utility cannot spend through immediate survival capital",
-            f"D3 money after=${int(money_after)} hard early floor=${EARLY_HARD_CASH_FLOOR}",
+            f"D3 money after=${int(money_after)} hard early floor=${floor}",
         )
 
     def booster_recommend(self, state, action):
