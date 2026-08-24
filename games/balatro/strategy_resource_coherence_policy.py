@@ -9,8 +9,8 @@ Live validation exposed two forms of resource drift:
 * D3 could buy a zero-compatibility Voucher through the basic cash reserve because
   the Red/White cartridge intentionally allowed ``minimum_money_after=0``.
 
-This layer keeps child-policy authority intact while making their *build evidence*
-come from the current semantic strategy when one exists.
+This layer keeps child-policy authority intact while making their build evidence come
+from the strongest currently committed semantic strategy when one exists.
 """
 
 from dataclasses import replace
@@ -23,6 +23,19 @@ from games.balatro.shop_voucher_policy import BUY, HOLD, VoucherAcquisitionPolic
 _BASIC_CASH_RESERVE = 5
 
 
+def _strategy_priority(candidate) -> tuple[int, float, float]:
+    commitment = getattr(candidate, "commitment", 0)
+    try:
+        commitment_value = int(commitment)
+    except (TypeError, ValueError):
+        commitment_value = 0
+    return (
+        commitment_value,
+        float(getattr(candidate, "confidence", 0.0) or 0.0),
+        float(getattr(candidate, "strength", 0.0) or 0.0),
+    )
+
+
 def _strategy_features(state) -> tuple[str, ...]:
     try:
         _developments, composition = evaluate_bond_composition(state)
@@ -31,7 +44,10 @@ def _strategy_features(state) -> tuple[str, ...]:
     candidates = tuple(getattr(composition, "strategy_candidates", ()) or ())
     if not candidates:
         return ()
-    candidate = candidates[0]
+
+    # Do not trust container ordering: the resource layer must follow the strongest
+    # actual commitment, not whichever exploratory candidate happened to be first.
+    candidate = max(candidates, key=_strategy_priority)
     values: list[str] = []
     for prescription in getattr(candidate, "prescriptions", ()) or ():
         text = str(prescription)
