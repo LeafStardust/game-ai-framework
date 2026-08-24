@@ -8,6 +8,7 @@ from games.balatro.live.hand_action_policy import LiveHandActionDecisionEngine
 
 BOOTSTRAP_MAX_SECONDS = 1.50
 BOOTSTRAP_BUDGET_FRACTION = 0.25
+BOOTSTRAP_MIN_TOTAL_BUDGET_SECONDS = 0.05
 
 
 def install_safe_pace_timeout_patch() -> None:
@@ -32,10 +33,17 @@ def install_safe_pace_timeout_patch() -> None:
         configured_budget = getattr(self, "max_search_seconds", None)
         if configured_budget is not None and float(configured_budget) > 0.0:
             configured_budget = float(configured_budget)
+
+            # Tiny/expired hard-budget configurations are themselves a contract:
+            # they must enter the original bounded timeout path immediately rather
+            # than spending a synthetic minimum amount of time on bootstrap work.
+            if configured_budget <= BOOTSTRAP_MIN_TOTAL_BUDGET_SECONDS:
+                return original_decide(self, state)
+
             started = perf_counter()
             bootstrap_budget = min(
                 BOOTSTRAP_MAX_SECONDS,
-                max(0.05, configured_budget * BOOTSTRAP_BUDGET_FRACTION),
+                configured_budget * BOOTSTRAP_BUDGET_FRACTION,
             )
             self._search_deadline = started + bootstrap_budget
             try:
@@ -46,7 +54,13 @@ def install_safe_pace_timeout_patch() -> None:
                 self._safe_pace_completed_root_plans = tuple(bootstrap_plans)
 
             elapsed = max(0.0, perf_counter() - started)
-            remaining = max(0.05, configured_budget - elapsed)
+            remaining = configured_budget - elapsed
+            if remaining <= 0.0:
+                return self._structural_timeout_fallback(
+                    state,
+                    search_attempts=(),
+                )
+
             self.max_search_seconds = remaining
             try:
                 return original_decide(self, state)
