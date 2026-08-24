@@ -3,13 +3,13 @@ from __future__ import annotations
 """Final Planet selection and acquisition discipline.
 
 Opened Celestial packs should almost always yield a Planet: once the pack cost is
-sunk, every valid Planet is a permanent scoring upgrade.  Rank the complete Planet
+sunk, every offered Planet is a permanent scoring upgrade. Rank the complete Planet
 pool by canonical strategy direction, realized hand development, and generic upgrade
 value instead of limiting fallback authority to a small hand subset.
 
-Acquisition remains a separate resource decision.  Celestial packs and loose
+Acquisition remains a separate resource decision. Celestial packs and loose
 Planets require actual hand-development evidence; loose Tarots require stronger
-transaction value unless they are immediately usable.  Arcana pack acquisition is
+transaction value unless they are immediately usable. Arcana pack acquisition is
 not changed here.
 """
 
@@ -108,8 +108,6 @@ def _planet_priority(state, planet, original_total: float) -> tuple[float, ...]:
     plan_owned = 1.0 if hand in _plan_hand_goals(state) else 0.0
     plays = float(_hand_plays(state, hand))
     level = float(_hand_level(state, hand))
-    # All Planet upgrades are permanent.  Chips/mult are only a final generic
-    # tie-breaker after strategy and realized play evidence.
     upgrade = float(getattr(planet, "chips", 0) or 0) + 8.0 * float(
         getattr(planet, "mult", 0) or 0
     )
@@ -127,7 +125,7 @@ def install_planet_pack_fallback_policy() -> None:
         planets: list[tuple[PackActionScore, object]] = []
         for scored in ranked:
             planet = _planet_for_action(scored.action)
-            if planet is not None and planet.hand_type in (getattr(state, "hand_levels", {}) or {}):
+            if planet is not None:
                 planets.append((scored, planet))
         if not planets:
             return ranked
@@ -146,7 +144,7 @@ def install_planet_pack_fallback_policy() -> None:
                 "Planet pack full-pool selection authority",
                 "priority=strategy hand > realized plays > developed level > generic upgrade",
                 f"selected Planet hand={best_hand}",
-                "opened Celestial pack cost is sunk; valid permanent upgrade beats Skip",
+                "opened Celestial pack cost is sunk; offered permanent upgrade beats Skip",
             ),
         )
         return [promoted] + [item for item in ranked if item.action != best_score.action]
