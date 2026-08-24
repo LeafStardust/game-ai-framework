@@ -1,6 +1,9 @@
+from types import SimpleNamespace
+
 from games.balatro.build_health import EngineState
 from games.balatro.jokers.campfire import CampfireJoker
 from games.balatro.jokers.flash_card import FlashCardJoker
+from games.balatro.jokers.hiker import HikerJoker
 from games.balatro.jokers.obelisk import ObeliskJoker
 from games.balatro.state import BalatroState
 from games.balatro.tactical_scaler_build_health import _tactical_scaler_engines
@@ -54,9 +57,28 @@ def test_obelisk_public_xmult_is_visible_but_keeps_brittle_runway_cost():
     assert any("resets when the most-played hand is used" in note for note in engine.rationale)
 
 
-def test_unscaled_tactical_scalers_remain_inactive_not_free_power():
-    engines = _by_id(_state(CampfireJoker(), FlashCardJoker(), ObeliskJoker(), ante=5))
+def test_hiker_counts_only_already_written_public_permanent_card_growth():
+    state = _state(HikerJoker(), ante=4)
+    state.owned_deck = [
+        SimpleNamespace(permanent_bonus=20),
+        SimpleNamespace(permanent_bonus=15),
+        SimpleNamespace(permanent_bonus=5),
+        SimpleNamespace(permanent_bonus=0),
+    ]
+
+    engine = _by_id(state)["hiker_card_growth"]
+
+    assert engine.current_strength == 40.0
+    assert engine.state == EngineState.ACTIVATED_HEALTHY
+    assert any("trained permanent cards=3/4" in note for note in engine.rationale)
+
+
+def test_unscaled_nonbond_scalers_remain_inactive_not_free_power():
+    state = _state(CampfireJoker(), FlashCardJoker(), ObeliskJoker(), HikerJoker(), ante=5)
+    state.owned_deck = [SimpleNamespace(permanent_bonus=0)]
+    engines = _by_id(state)
 
     assert engines["campfire"].state == EngineState.OWNED_INACTIVE
     assert engines["flash_card"].state == EngineState.OWNED_INACTIVE
     assert engines["obelisk"].state == EngineState.OWNED_INACTIVE
+    assert engines["hiker_card_growth"].state == EngineState.OWNED_INACTIVE
