@@ -29,6 +29,7 @@ from games.balatro.forming_strategy_retention_policy import install_forming_stra
 from games.balatro.full_roster_pack_guard import install_full_roster_pack_guard
 from games.balatro.full_roster_shop_guard import install_full_roster_shop_guard
 from games.balatro.late_shop_resource_guard import install_late_shop_resource_guard
+from games.balatro.latest_075105_correction_policy import install_latest_075105_correction_policy
 from games.balatro.latest_batch_no_discard_policy import install_latest_batch_no_discard_policy
 from games.balatro.latest_five_run_calibration_policy import install_latest_five_run_calibration_policy
 from games.balatro.latest_five_run_resource_metrics import install_latest_five_run_resource_metrics
@@ -118,6 +119,10 @@ install_pinned_strategy_safe_pace_policy()
 install_aces_dna_hand_policy()
 install_latest_batch_no_discard_policy()
 install_target_hand_engine_policy()
+# 075105 corrections deliberately install after the earlier wrappers: they repair
+# semantic relation inference, direct no-discard activation, and candidate prefilter
+# bounds observed in the authoritative live batch.
+install_latest_075105_correction_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
 install_live_joker_order_authority()
