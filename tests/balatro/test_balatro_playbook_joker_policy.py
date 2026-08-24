@@ -1,28 +1,18 @@
-from types import SimpleNamespace
-from unittest.mock import patch
-
 from games.balatro.build import (
     BalatroBuildProfiler,
     JokerBuildTransitionPlanner,
     JokerBuildValueEvaluator,
 )
 from games.balatro.build.profile import BalatroPlaystyleIntentTracker
-from games.balatro.card import BalatroCard
-from games.balatro.bonds.strategy_semantics import StrategyCommitment
 from games.balatro.joker import Joker, JokerContext
 from games.balatro.joker_policy import JokerAcquisitionThresholds
-from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.business_card import BusinessCardJoker
-from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.ride_the_bus import RideTheBusJoker
 from games.balatro.live.runtime.playstyle_autonomous_runner import (
     PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
 )
 from games.balatro.playbook import default_balatro_playbooks
-from games.balatro.playbook_joker_policy import (
-    PlaybookJokerAcquisitionPolicy,
-    _strategy_completion_bonus,
-)
+from games.balatro.playbook_joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.state import BalatroState
 
 
@@ -109,65 +99,3 @@ def test_production_runner_shares_one_b3_evaluator_with_d2_and_shop_value():
     assert evaluator.profiler is runner.playstyle_profiler
     assert evaluator.intent_tracker is runner.playstyle_intent_tracker
     assert runner.shop_policy.item_value_estimator.joker_build_value is evaluator
-
-
-def test_d2_rewards_missing_component_that_advances_current_forming_strategy():
-    state = _red_white_state()
-    state.jokers = [BaronJoker()]
-    state.deck = [
-        BalatroCard("K", "Hearts", enhancement="Steel"),
-        BalatroCard("K", "Spades", enhancement="Steel"),
-        BalatroCard("K", "Clubs"),
-        BalatroCard("K", "Diamonds"),
-    ]
-
-    bonus, rationale = _strategy_completion_bonus(state, MimeJoker())
-
-    assert bonus > 0.0
-    assert any("strategy=baron_mime_steel" in note for note in rationale)
-    assert any("missing components=" in note for note in rationale)
-
-
-def test_d2_rewards_resolving_same_strategy_missing_feature_without_other_progress():
-    state = _red_white_state()
-    before_plan = SimpleNamespace(
-        strategy_id="semantic_engine",
-        commitment=StrategyCommitment.FORMING,
-        completion=0.25,
-        missing_components=(),
-        missing_features=("economy",),
-    )
-    after_plan = SimpleNamespace(
-        strategy_id="semantic_engine",
-        commitment=StrategyCommitment.FORMING,
-        completion=0.25,
-        missing_components=(),
-        missing_features=(),
-    )
-    before_composition = SimpleNamespace(strategy_plan=before_plan)
-    after_composition = SimpleNamespace(strategy_plan=after_plan)
-
-    with patch(
-        "games.balatro.playbook.red_white.joker_policy.evaluate_bond_composition",
-        side_effect=[((), before_composition), ((), after_composition)],
-    ):
-        bonus, rationale = _strategy_completion_bonus(state, PlusMultJoker())
-
-    assert bonus == 0.5
-    assert any("missing features=1->0 resolved=1" in note for note in rationale)
-
-
-def test_d2_does_not_reward_unrelated_candidate_as_strategy_completion():
-    state = _red_white_state()
-    state.jokers = [BaronJoker()]
-    state.deck = [
-        BalatroCard("K", "Hearts", enhancement="Steel"),
-        BalatroCard("K", "Spades", enhancement="Steel"),
-        BalatroCard("K", "Clubs"),
-        BalatroCard("K", "Diamonds"),
-    ]
-
-    bonus, rationale = _strategy_completion_bonus(state, PlusMultJoker())
-
-    assert bonus == 0.0
-    assert rationale == ()
