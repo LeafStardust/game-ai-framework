@@ -34,7 +34,7 @@ def _policy_with_scores(scores):
     return policy
 
 
-def test_planet_pack_uses_full_pool_generic_upgrade_when_no_hand_is_good(monkeypatch):
+def test_planet_pack_uses_practical_full_pool_fallback_when_no_hand_is_good(monkeypatch):
     import games.balatro.planet_pack_fallback_policy as module
 
     monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
@@ -43,23 +43,23 @@ def test_planet_pack_uses_full_pool_generic_upgrade_when_no_hand_is_good(monkeyp
 
     ranked = policy.rank_actions(_state(), actions)
 
-    assert ranked[0].action.target.label == "Uranus"
+    assert ranked[0].action.target.label == "Pluto"
     assert "Planet pack full-pool selection authority" in ranked[0].notes
 
 
-def test_planet_pack_generic_priority_covers_nonlegacy_planets(monkeypatch):
+def test_planet_pack_practical_fallback_covers_nonlegacy_planets(monkeypatch):
     import games.balatro.planet_pack_fallback_policy as module
 
     monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
-    actions = [_planet("Venus", 0), _planet("Uranus", 1), _planet("Mercury", 2)]
-    policy = _policy_with_scores({"Venus": 6.0, "Uranus": 7.0, "Mercury": 1.0})
+    actions = [_planet("Jupiter", 0), _planet("Mars", 1), _planet("Neptune", 2)]
+    policy = _policy_with_scores({"Jupiter": 1.0, "Mars": 9.0, "Neptune": 10.0})
 
     ranked = policy.rank_actions(_state(), actions)
 
-    assert ranked[0].action.target.label == "Venus"
+    assert ranked[0].action.target.label == "Jupiter"
 
 
-def test_planet_pack_keeps_materially_developed_current_hand_over_generic_priority(monkeypatch):
+def test_planet_pack_keeps_materially_developed_current_hand_over_practical_fallback(monkeypatch):
     import games.balatro.planet_pack_fallback_policy as module
 
     monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
@@ -74,7 +74,7 @@ def test_planet_pack_keeps_materially_developed_current_hand_over_generic_priori
     assert ranked[0].action.target.label == "Uranus"
 
 
-def test_planet_pack_strategy_hand_overrides_generic_upgrade(monkeypatch):
+def test_planet_pack_strategy_hand_overrides_practical_fallback(monkeypatch):
     import games.balatro.planet_pack_fallback_policy as module
 
     monkeypatch.setattr(module, "_plan_hand_goals", lambda state: {"PAIR"})
@@ -82,5 +82,38 @@ def test_planet_pack_strategy_hand_overrides_generic_upgrade(monkeypatch):
     policy = _policy_with_scores({"Neptune": 10.0, "Mercury": 1.0})
 
     ranked = policy.rank_actions(_state(), actions)
+
+    assert ranked[0].action.target.label == "Mercury"
+
+
+def test_planet_pack_actual_two_pair_play_beats_zero_play_four_kind_level(monkeypatch):
+    import games.balatro.planet_pack_fallback_policy as module
+
+    monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
+    actions = [_planet("Mars", 0), _planet("Uranus", 1)]
+    policy = _policy_with_scores({"Mars": 10.0, "Uranus": 1.0})
+
+    ranked = policy.rank_actions(
+        _state(
+            levels={"FOUR_OF_A_KIND": 3, "TWO_PAIR": 1},
+            plays={"FOUR_OF_A_KIND": 0, "TWO_PAIR": 16},
+        ),
+        actions,
+    )
+
+    assert ranked[0].action.target.label == "Uranus"
+
+
+def test_planet_pack_zero_play_exotic_level_cannot_beat_practical_fallback(monkeypatch):
+    import games.balatro.planet_pack_fallback_policy as module
+
+    monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
+    actions = [_planet("Mars", 0), _planet("Mercury", 1)]
+    policy = _policy_with_scores({"Mars": 10.0, "Mercury": 1.0})
+
+    ranked = policy.rank_actions(
+        _state(levels={"FOUR_OF_A_KIND": 3}, plays={"FOUR_OF_A_KIND": 0}),
+        actions,
+    )
 
     assert ranked[0].action.target.label == "Mercury"
