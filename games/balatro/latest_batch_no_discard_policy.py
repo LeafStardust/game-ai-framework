@@ -104,15 +104,27 @@ def _played_this_round(state) -> set[str]:
 
 
 def _safe_repeat_play(policy, state, plans, decision):
-    if decision.action.name != PLAY_CARDS or not _realized_bond(state, "hand_repetition"):
+    """Return a safe pace-qualified repeat even when baseline D1 chose DISCARD.
+
+    Repetition engines such as Card Sharp are execution contracts, not merely
+    scoring labels. If a previously played hand is already available on a line that
+    is within D1's clear-probability tolerance and meets the current pace target,
+    discarding instead would unnecessarily abandon realized engine value.
+    """
+    if not _realized_bond(state, "hand_repetition"):
         return None
     repeated = _played_this_round(state)
     if not repeated:
         return None
 
     selected = getattr(decision, "selected_plan", None)
-    selected_probability = float(getattr(getattr(selected, "value", None), "clear_probability", 0.0) or 0.0)
-    tolerance = float(getattr(decision.thresholds, "safe_clear_probability_tolerance", 0.0) or 0.0)
+    selected_probability = float(
+        getattr(getattr(selected, "value", None), "clear_probability", 0.0) or 0.0
+    )
+    tolerance = float(
+        getattr(getattr(decision, "thresholds", None), "safe_clear_probability_tolerance", 0.0)
+        or 0.0
+    )
     pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
     candidates = []
     for plan in plans:
@@ -178,8 +190,8 @@ def install_latest_batch_no_discard_policy() -> None:
                 )
 
         # Card Sharp / generic repetition strategies need actual repeated hands, not
-        # merely a diagnostic hand_repetition label.  Only safe-equivalent repeated
-        # plays are substituted; survival/pace may still force a different hand.
+        # merely a diagnostic hand_repetition label.  A safe repeated play may
+        # replace either a different play or an unnecessary discard.
         repeat = _safe_repeat_play(self, state, plans, decision)
         if repeat is not None:
             probability, score, plan = repeat
@@ -188,10 +200,12 @@ def install_latest_batch_no_discard_policy() -> None:
                 pace_ratio = score / pace_target if pace_target > 0.0 else float("inf")
                 decision = replace(
                     decision,
+                    mode=PACE_PLAY,
                     action=plan.action,
                     selected_plan=plan,
                     selected_immediate_score=score,
                     selected_pace_ratio=pace_ratio,
+                    selected_fallback_value=None,
                     confidence=max(float(getattr(decision, "confidence", 0.0) or 0.0), probability),
                     rationale=(
                         "realized hand_repetition engine: prefer a previously played hand on a survival-equivalent pace-qualified line",
