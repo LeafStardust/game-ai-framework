@@ -1,6 +1,6 @@
 # Balatro Bond Tuning
 
-Status: **Implemented foundation / live baseline validation pending**
+Status: **Implemented foundation / current-HEAD live baseline validation pending**
 
 This document defines the automated numerical calibration layer for the canonical Balatro Bond/composition architecture.
 
@@ -124,7 +124,7 @@ Authoritative live Balatro is expensive and unseeded, so sample size depends on 
 
 - **Exploratory Optuna search:** default to **3 completed runs per trial**. This is a noisy directional signal used to decide where to search next, not proof that a candidate is better.
 - **Baseline sanity/repeated defect discovery:** 3 runs are sufficient during rapid iteration, but any runtime/semantic defect invalidates the study because the repository SHA changes.
-- **Promotion/holdout:** use a fresh **5-10+ run batch** (and larger when uncertainty remains). Promotion evidence must never rely only on a 3-run exploratory result.
+- **Promotion/holdout:** the implemented live comparator requires a fresh **minimum of 20 completed episodes per arm** (baseline and candidate). Use larger batches when uncertainty remains. Promotion evidence must never rely only on a 3-run exploratory result.
 - Compare confidence/variance and pathology metrics, not raw win percentage alone.
 
 ## Objective design
@@ -159,7 +159,7 @@ The current Phase-A implementation uses one conservative scalar objective for th
 - Reject configurations that improve the objective by exploiting logging gaps, pathological stalling, excessive rerolls, hidden information, or one degenerate forced build.
 - Preserve build diversity; the Bond system exists to compose around RNG rather than force one route every run.
 
-For authoritative unseeded live evidence, report deltas are descriptive only. The implemented live promotion comparator requires repeated evidence, checks Wilson win-rate intervals, sample count, objective improvement, Ante non-regression, D1 runtime, diversity, and illegal actions. It never writes candidate values into production automatically.
+For authoritative unseeded live evidence, report deltas are descriptive only. The implemented live promotion comparator requires **at least 20 completed episodes per arm**, checks Wilson win-rate intervals, sample count, objective improvement, Ante non-regression, D1 runtime, diversity, and illegal actions. It never writes candidate values into production automatically.
 
 ## Pruning policy
 
@@ -209,7 +209,7 @@ An optimized parameter set is not production-ready until all of the following pa
 
 1. deterministic Balatro suite green;
 2. candidate beats or materially improves the baseline on its tuning batch;
-3. candidate improvement persists on a fresh 5-10+ run holdout batch;
+3. candidate improvement persists on a fresh holdout with **at least 20 completed episodes per arm**;
 4. no new architecture or execution defect is visible in logs;
 5. no unacceptable collapse in build diversity;
 6. no meaningful D1/runtime regression;
@@ -249,9 +249,9 @@ Numerical search belongs to the optimizer; semantic diagnosis remains an archite
 
 ## Current status
 
-As of 2026-08-23 the **tuning foundation is implemented**. The calibration layer, Optuna study machinery, persistent provenance, seeded/live evaluators, live log metrics, fresh-boundary preflight, production-baseline tagging, reports, and conservative promotion comparison are present. Broad catalogue tuning is still locked.
+As of 2026-08-24 the **tuning foundation is implemented**. The calibration layer, Optuna study machinery, persistent provenance, seeded/live evaluators, live log metrics, fresh-boundary preflight, production-baseline tagging, reports, and conservative promotion comparison are present. Broad catalogue tuning is still locked.
 
-Initial authoritative baseline attempts successfully exposed runtime/semantic issues before candidate tuning, including full-roster pack capacity, Pareidolia/face-payoff preservation, irrelevant Planet spending, and baseline-tag bookkeeping. Those studies are forensic evidence only and must not be resumed after their fixes change the repository SHA.
+The historical `e0cb0984` authoritative baseline remains forensic/reference evidence only. Subsequent semantic/runtime fixes changed the repository SHA, so it is not an apples-to-apples baseline for the current code.
 
 The next empirical gate is a clean production-default live baseline on the current HEAD, using the 3-run exploratory protocol. If it exposes another semantic/runtime defect, fix the agent first and invalidate/restart the study at a new repository SHA. Only a clean baseline permits Phase-A candidate trials.
 
