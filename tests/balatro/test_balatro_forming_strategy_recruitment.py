@@ -5,7 +5,10 @@ import games.balatro.strategy_plan_pack_policy as pack_goal_module
 from games.balatro.bonds.model import BondRank
 from games.balatro.bonds.strategy_plan import StrategyBondGoal, StrategyPlan
 from games.balatro.bonds.strategy_semantics import StrategyCommitment
-from games.balatro.strategy_authority_correction_policy import _component_match
+from games.balatro.strategy_authority_correction_policy import (
+    _component_match,
+    _forming_pack_goals,
+)
 
 
 def _goal(bond_id: str, priority: float) -> StrategyBondGoal:
@@ -36,6 +39,10 @@ def _plan(*, missing, goals, commitment=StrategyCommitment.FORMING):
     )
 
 
+def _bond_ids(plan):
+    return tuple(goal.bond_id for goal in plan.bond_goals)
+
+
 def test_leveling_support_recognizes_direct_joker_providers():
     plan = _plan(missing=("LEVELING_SUPPORT",), goals=())
 
@@ -50,7 +57,7 @@ def test_infrastructure_does_not_alias_to_unrelated_named_joker():
     assert _component_match(plan, SimpleNamespace(name="Steel Joker")) is None
 
 
-def test_forming_burnt_plan_can_seek_only_target_hand_planet_goal():
+def test_forming_burnt_plan_keeps_normal_pack_authority_disabled_but_tracks_target_hand_recruitment():
     plan = _plan(
         missing=("TARGET_HAND_LEVEL", "LEVELING_SUPPORT"),
         goals=(
@@ -60,10 +67,11 @@ def test_forming_burnt_plan_can_seek_only_target_hand_planet_goal():
         ),
     )
 
-    assert pack_goal_module._goal_ids(plan) == ("high_card",)
+    assert pack_goal_module._goal_ids(plan) == ()
+    assert _forming_pack_goals(plan, _bond_ids(plan)) == ("high_card",)
 
 
-def test_forming_baron_plan_can_seek_king_and_steel_infrastructure_only():
+def test_forming_baron_plan_keeps_normal_pack_authority_disabled_but_tracks_infrastructure_recruitment():
     plan = _plan(
         missing=("KING_INFRASTRUCTURE", "STEEL_INFRASTRUCTURE"),
         goals=(
@@ -73,7 +81,8 @@ def test_forming_baron_plan_can_seek_king_and_steel_infrastructure_only():
         ),
     )
 
-    assert pack_goal_module._goal_ids(plan) == ("kings", "steel")
+    assert pack_goal_module._goal_ids(plan) == ()
+    assert _forming_pack_goals(plan, _bond_ids(plan)) == ("kings", "steel")
 
 
 def test_forming_exact_missing_joker_does_not_gain_unrelated_pack_authority():
@@ -83,6 +92,7 @@ def test_forming_exact_missing_joker_does_not_gain_unrelated_pack_authority():
     )
 
     assert pack_goal_module._goal_ids(plan) == ()
+    assert _forming_pack_goals(plan, _bond_ids(plan)) == ()
 
 
 def test_pinned_plan_retains_normal_pack_goals():
