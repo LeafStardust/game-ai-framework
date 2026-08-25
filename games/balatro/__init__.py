@@ -43,6 +43,7 @@ from games.balatro.pinned_strategy_transition_policy import install_pinned_strat
 from games.balatro.planet_pack_fallback_policy import install_planet_pack_fallback_policy
 from games.balatro.planet_relevance_policy import install_planet_relevance_policy
 from games.balatro.planet_scaler_authority import install_planet_scaler_authority
+from games.balatro.purple_seal_discard_policy import install_purple_seal_discard_policy
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
 from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_correction
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
@@ -114,6 +115,7 @@ install_full_roster_shop_guard()
 install_full_roster_pack_guard()
 install_live_joker_order_authority()
 install_planet_scaler_authority()
+install_purple_seal_discard_policy()
 # Live-run competence corrections intentionally install last so they see the final
 # mechanical/conflict-safe D1 and shop decisions rather than bypassing them.
 install_red_white_competence_corrections()
