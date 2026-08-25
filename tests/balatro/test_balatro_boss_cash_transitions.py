@@ -32,7 +32,9 @@ def test_tooth_charges_each_played_card_before_cash_scaler_scoring():
     assert projection.state_after_scoring.money == -1
     # Bull clamps its own chip contribution at zero once The Tooth has already
     # driven the branch below $0; it must not score from the pre-Tooth $2.
-    assert projection.hand_score == 19
+    # The selected 9 and 4 are not scoring cards in a High Card hand, so the
+    # literal score is 5 base chips + 11 Ace chips at x1 Mult.
+    assert projection.hand_score == 16
 
 
 def test_ox_resets_money_before_cash_scaler_scoring_on_target_hand():
@@ -57,7 +59,7 @@ def test_chicot_disables_tooth_cash_loss():
 
     assert projection.state_after_scoring is not None
     assert projection.state_after_scoring.money == 2
-    assert projection.hand_score > 19
+    assert projection.hand_score > 16
 
 
 def test_chicot_disables_ox_cash_reset():
