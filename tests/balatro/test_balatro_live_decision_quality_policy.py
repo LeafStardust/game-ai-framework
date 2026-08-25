@@ -8,7 +8,7 @@ from games.balatro.live.shop import LiveShopItem
 from games.balatro.live_joker_order_authority import _identity_xmult_factor
 from games.balatro.live_decision_quality_policy import _strict_planet_hand_relevant
 from games.balatro.planets import PLANET_CARDS
-from games.balatro.shop_booster_policy import BUY, HOLD, BuildAwareShopBoosterPolicy
+from games.balatro.shop_booster_policy import BUY, BuildAwareShopBoosterPolicy
 from games.balatro.state import BalatroState
 
 
@@ -75,10 +75,10 @@ def test_zero_cost_safe_booster_is_opened() -> None:
     assert any("FREE BOOSTER AUTHORITY" in note for note in result.rationale)
 
 
-def test_zero_cost_deferred_booster_still_respects_d8_d9_boundary() -> None:
+def test_zero_cost_arcana_booster_uses_supported_pack_authority() -> None:
     result = BuildAwareShopBoosterPolicy().recommend(
         _state(),
         _free_booster("Arcana Pack", "p_arcana_normal_1"),
     )
-    assert result.decision == HOLD
-    assert all("FREE BOOSTER AUTHORITY" not in note for note in result.rationale)
+    assert result.decision == BUY
+    assert any("FREE BOOSTER AUTHORITY" in note for note in result.rationale)
