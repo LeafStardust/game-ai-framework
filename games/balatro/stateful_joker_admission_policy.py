@@ -10,13 +10,17 @@ These are mechanical admission constraints rather than catalogue tuning:
   play/strategy path.
 """
 
+from copy import copy
 from dataclasses import replace
 from typing import Mapping
 
 from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.build.joker_scenarios import ScenarioJokerBehaviorAnalyzer
 from games.balatro.joker_policy import BUY, HOLD, REPLACE
-from games.balatro.joker_edition import joker_has_negative_edition
+from games.balatro.joker_edition import (
+    joker_edition_universal_value,
+    joker_has_negative_edition,
+)
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 
 
@@ -26,6 +30,23 @@ _EXOTIC_HANDS = frozenset({
     "FLUSH_HOUSE",
     "FLUSH_FIVE",
 })
+
+_HAND_SUPERSETS = {
+    "PAIR": frozenset({
+        "PAIR", "TWO_PAIR", "THREE_OF_A_KIND", "FULL_HOUSE",
+        "FOUR_OF_A_KIND", "FIVE_OF_A_KIND", "FLUSH_HOUSE", "FLUSH_FIVE",
+    }),
+    "TWO_PAIR": frozenset({"TWO_PAIR", "FULL_HOUSE", "FLUSH_HOUSE"}),
+    "THREE_OF_A_KIND": frozenset({
+        "THREE_OF_A_KIND", "FULL_HOUSE", "FOUR_OF_A_KIND",
+        "FIVE_OF_A_KIND", "FLUSH_HOUSE", "FLUSH_FIVE",
+    }),
+    "STRAIGHT": frozenset({"STRAIGHT", "STRAIGHT_FLUSH"}),
+    "FLUSH": frozenset({"FLUSH", "STRAIGHT_FLUSH", "FLUSH_HOUSE", "FLUSH_FIVE"}),
+    "FULL_HOUSE": frozenset({"FULL_HOUSE", "FLUSH_HOUSE"}),
+    "FOUR_OF_A_KIND": frozenset({"FOUR_OF_A_KIND", "FIVE_OF_A_KIND", "FLUSH_FIVE"}),
+    "FIVE_OF_A_KIND": frozenset({"FIVE_OF_A_KIND", "FLUSH_FIVE"}),
+}
 
 
 def _token(value: object) -> str:
@@ -39,6 +60,100 @@ def _joker_name(joker: object) -> str:
         or getattr(joker, "ability_name", None)
         or joker.__class__.__name__
     )
+
+
+def _hand_token(value: object) -> str:
+    return "_".join(
+        str(value or "").upper().replace("-", " ").replace("_", " ").split()
+    )
+
+
+def _candidate_hand_requirements(candidate: object) -> tuple[str, ...]:
+    try:
+        descriptor = ScenarioJokerBehaviorAnalyzer().describe(candidate)
+    except (AttributeError, TypeError, ValueError):
+        return ()
+    return tuple(
+        sorted(
+            {
+                _hand_token(str(feature).split(":", 1)[1])
+                for feature in tuple(getattr(descriptor, "requires", ()) or ())
+                if str(feature).lower().startswith("hand:")
+            }
+        )
+    )
+
+
+def _planned_hand_bonds(state) -> frozenset[str]:
+    try:
+        _, composition = evaluate_bond_composition(state)
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return frozenset()
+    values: set[str] = set()
+    plan = getattr(composition, "strategy_plan", None)
+    for goal in tuple(getattr(plan, "bond_goals", ()) or ()):
+        values.add(str(getattr(goal, "bond_id", "") or ""))
+    pinned = getattr(composition, "pinned_strategy_id", None)
+    for candidate in tuple(getattr(composition, "strategy_candidates", ()) or ()):
+        if str(getattr(candidate, "strategy_id", "") or "") == str(pinned or ""):
+            values.update(str(value) for value in tuple(candidate.bond_ids or ()))
+    return frozenset(values)
+
+
+def _hand_requirements_supported(state, candidate: object) -> bool:
+    """Require public evidence before opening a conditional hand-payoff axis."""
+    requirements = _candidate_hand_requirements(candidate)
+    if not requirements:
+        return True
+
+    bond_ids = {
+        "HIGH_CARD": "high_card", "PAIR": "pair", "TWO_PAIR": "two_pair",
+        "THREE_OF_A_KIND": "three_kind", "FOUR_OF_A_KIND": "four_kind",
+        "STRAIGHT": "straight", "FLUSH": "flush", "FULL_HOUSE": "full_house",
+        "STRAIGHT_FLUSH": "straight_flush", "FIVE_OF_A_KIND": "five_kind",
+        "FLUSH_HOUSE": "flush_house", "FLUSH_FIVE": "flush_five",
+    }
+    planned = _planned_hand_bonds(state)
+    if any(bond_ids.get(hand) in planned for hand in requirements):
+        return True
+
+    counts = {
+        _hand_token(hand): max(0, int(value or 0))
+        for hand, value in (getattr(state, "hand_play_counts", {}) or {}).items()
+    }
+    total = sum(counts.values())
+    if total <= 0:
+        return False
+    for requirement in requirements:
+        accepted = _HAND_SUPERSETS.get(requirement, frozenset({requirement}))
+        plays = sum(counts.get(hand, 0) for hand in accepted)
+        if plays >= 2 and plays / total >= 0.20:
+            return True
+    return False
+
+
+def _creates_strategy(state, candidate, decision) -> bool:
+    try:
+        _, before = evaluate_bond_composition(state)
+        projected = copy(state)
+        projected.jokers = list(getattr(state, "jokers", ()) or ())
+        if decision.action == REPLACE and getattr(decision, "selected", None) is not None:
+            index = int(decision.selected.replace_index)
+            projected.jokers[index] = candidate
+        else:
+            projected.jokers.append(candidate)
+        _, after = evaluate_bond_composition(projected)
+    except (AttributeError, IndexError, TypeError, ValueError, RuntimeError):
+        return False
+    before_best = max(
+        (int(getattr(value, "commitment", 0)) for value in tuple(before.strategy_candidates or ())),
+        default=0,
+    )
+    after_best = max(
+        (int(getattr(value, "commitment", 0)) for value in tuple(after.strategy_candidates or ())),
+        default=0,
+    )
+    return after_best > before_best and after_best >= 1
 
 
 def _has_madness(state) -> bool:
@@ -211,6 +326,26 @@ def install_stateful_joker_admission_policy() -> None:
 
         if decision.action == HOLD:
             return decision
+
+        if (
+            tuple(getattr(state, "jokers", ()) or ())
+            and getattr(candidate, "discovered", True) is not False
+            and joker_edition_universal_value(candidate) <= 0.0
+            and not _hand_requirements_supported(state, candidate)
+            and not _creates_strategy(state, candidate, decision)
+        ):
+            requirements = ",".join(_candidate_hand_requirements(candidate))
+            return replace(
+                decision,
+                action=HOLD,
+                selected=None,
+                rationale=(
+                    *decision.rationale,
+                    f"conditional hand-payoff veto: required hands={requirements} have no sustained public use or applied Strategy Plan",
+                    "an isolated off-direction payoff does not open a new Bond axis after the first Joker",
+                    "editions, collection-critical offers, and genuine strategy-forming transitions retain authority",
+                ),
+            )
 
         if (
             _has_madness(state)

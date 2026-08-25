@@ -395,6 +395,26 @@ class VoucherAcquisitionPolicy:
                 f"held_planet={has_planet} perkeo={has_perkeo}",
             )
 
+        if label in {"Magic Trick", "Illusion"}:
+            has_hologram = any(
+                "".join(
+                    character
+                    for character in str(
+                        getattr(joker, "name", None)
+                        or getattr(joker, "label", None)
+                        or type(joker).__name__
+                    ).lower()
+                    if character.isalnum()
+                ) in {"hologram", "hologramjoker"}
+                for joker in tuple(getattr(state, "jokers", ()) or ())
+            )
+            value = 1.50 if has_hologram else -4.00
+            return value, (
+                f"D3 {label} playing-card shop infrastructure "
+                f"Hologram payoff={has_hologram}",
+                "random playing-card shop dilution is not persistent value without a card-add payoff",
+            )
+
         if label in {"Seed Money", "Money Tree"}:
             money = int(profile.money)
             value = min(1.50, max(0.0, money - 10) * 0.05)

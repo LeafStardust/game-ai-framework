@@ -11,8 +11,11 @@ deliberate hand-burning/milling actions, so legality and score semantics must re
 separate.
 """
 
+from dataclasses import replace
+
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
+from games.balatro.live.hand_action_policy import PACE_RECOVERY
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
@@ -59,6 +62,105 @@ def _eye_filter(policy, state, plans):
     return (*unused_plays, *discards)
 
 
+def _mouth_locked_hand(state) -> str | None:
+    if str(getattr(state, "boss_name", "") or "") != "The Mouth":
+        return None
+    if boss_blind_disabled_by_owned_jokers(state):
+        return None
+    value = getattr(state, "boss_blind_only_hand", None)
+    return str(value).upper() if value else None
+
+
+def _mouth_filter(policy, state, plans):
+    """Remove zero-score Mouth plays while a legal recovery line exists."""
+    supplied = tuple(plans)
+    forced = _mouth_locked_hand(state)
+    if forced is None:
+        return supplied
+
+    matching = tuple(
+        plan
+        for plan in supplied
+        if plan.action.name == PLAY_CARDS and _hand_type(policy, plan) == forced
+    )
+    discards = tuple(plan for plan in supplied if plan.action.name == DISCARD_CARDS)
+    if matching or discards:
+        return (*matching, *discards)
+    # With no matching play and no discard, Balatro still requires a legal hand
+    # burn. Preserve the original plans so D1 can advance to the terminal state.
+    return supplied
+
+
+def _mouth_forced_discard(policy, state, plans, decision):
+    """Shape a Mouth redraw exclusively toward its already locked hand type.
+
+    Generic Bond fit is irrelevant once the boss accepts only one poker hand.  For
+    equal retained forced-hand structure, drawing more cards strictly exposes more
+    chances to find the missing ranks/suit, so prefer the widest such discard.
+    """
+    forced = _mouth_locked_hand(state)
+    if forced is None or decision.action.name != DISCARD_CARDS:
+        return decision
+
+    discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
+    if not discards:
+        return decision
+
+    def structure(plan) -> float:
+        removed = {id(card) for card in plan.action.cards}
+        kept = [
+            card
+            for card in tuple(getattr(state, "hand", ()) or ())
+            if id(card) not in removed
+        ]
+        return float(policy._structure_fit(kept, forced))
+
+    current_plan = getattr(decision, "selected_plan", None)
+    if current_plan is None:
+        current_plan = next(
+            (
+                plan
+                for plan in discards
+                if plan.action.cards == getattr(decision.action, "cards", None)
+            ),
+            None,
+        )
+    if current_plan is None:
+        return decision
+    selected_structure = structure(current_plan)
+    equivalent = tuple(
+        plan for plan in discards if structure(plan) + policy.EPSILON >= selected_structure
+    )
+    selected = max(
+        equivalent,
+        key=lambda plan: (
+            structure(plan),
+            len(tuple(getattr(plan.action, "cards", ()) or ())),
+            float(policy.evaluator.evaluate(state, plan.action)),
+            policy._within_type_key(plan),
+        ),
+    )
+    if selected.action.cards == decision.action.cards:
+        return decision
+    value = float(policy.evaluator.evaluate(state, selected.action))
+    return replace(
+        decision,
+        mode=PACE_RECOVERY,
+        action=selected.action,
+        selected_plan=selected,
+        selected_immediate_score=None,
+        selected_pace_ratio=None,
+        selected_fallback_value=value,
+        confidence=max(float(getattr(decision, "confidence", 0.0) or 0.0), 0.90),
+        rationale=(
+            f"The Mouth is locked to {forced}; forced-hand feasibility overrides unrelated Bond targets",
+            f"retained {forced} structure={structure(selected):.3f}; redraw width={len(selected.action.cards)}",
+            "among equal forced-hand structures, maximize public redraw width instead of preserving duplicate off-objective cards",
+            *decision.rationale,
+        ),
+    )
+
+
 def install_boss_hand_constraint_policy() -> None:
     if getattr(StrategyAwareLiveHandActionPolicy, "_boss_hand_constraints_installed", False):
         return
@@ -67,7 +169,9 @@ def install_boss_hand_constraint_policy() -> None:
 
     def decide(self, state, plans, **kwargs):
         constrained = _eye_filter(self, state, plans)
-        return original_decide(self, state, constrained, **kwargs)
+        constrained = _mouth_filter(self, state, constrained)
+        decision = original_decide(self, state, constrained, **kwargs)
+        return _mouth_forced_discard(self, state, constrained, decision)
 
     StrategyAwareLiveHandActionPolicy.decide = decide
     StrategyAwareLiveHandActionPolicy._boss_hand_constraints_installed = True

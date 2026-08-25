@@ -1,7 +1,13 @@
+from dataclasses import dataclass
 from types import SimpleNamespace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
-from games.balatro.boss_hand_constraint_policy import _eye_filter, _psychic_filter
+from games.balatro.boss_hand_constraint_policy import (
+    _eye_filter,
+    _mouth_filter,
+    _mouth_forced_discard,
+    _psychic_filter,
+)
 from games.balatro.card import BalatroCard
 from games.balatro.hand_evaluator import HandEvaluator
 
@@ -67,3 +73,71 @@ def test_eye_falls_back_to_round_history_only_when_blind_table_unobserved():
 
     assert high in result
     assert pair not in result
+
+
+def test_locked_mouth_filters_other_play_types_while_discards_exist():
+    straight = _plan(
+        PLAY_CARDS,
+        [BalatroCard(rank, "Hearts") for rank in ("10", "J", "Q", "K", "A")],
+    )
+    pair = _plan(
+        PLAY_CARDS,
+        [BalatroCard("Q", "Hearts"), BalatroCard("Q", "Spades")],
+    )
+    discard = _plan(DISCARD_CARDS, [BalatroCard("2", "Clubs")])
+    state = SimpleNamespace(
+        boss_name="The Mouth",
+        boss_blind_only_hand="STRAIGHT",
+        jokers=[],
+    )
+    policy = SimpleNamespace(_hand_evaluator=HandEvaluator())
+
+    result = _mouth_filter(policy, state, (pair, straight, discard))
+
+    assert result == (straight, discard)
+
+
+def test_locked_mouth_widens_equal_structure_discard_instead_of_preserving_duplicates():
+    hand = [
+        BalatroCard("A", "Hearts"),
+        BalatroCard("K", "Hearts"),
+        BalatroCard("K", "Diamonds"),
+        BalatroCard("Q", "Hearts"),
+        BalatroCard("J", "Hearts"),
+        BalatroCard("J", "Clubs"),
+        BalatroCard("J", "Diamonds"),
+        BalatroCard("3", "Spades"),
+    ]
+    narrow = _plan(DISCARD_CARDS, [hand[-1]])
+    wide = _plan(DISCARD_CARDS, [hand[2], hand[5], hand[6], hand[7]])
+    state = SimpleNamespace(
+        boss_name="The Mouth",
+        boss_blind_only_hand="STRAIGHT",
+        jokers=[],
+        hand=hand,
+    )
+    evaluator = SimpleNamespace(evaluate=lambda state, action: float(len(action.cards)))
+    policy = SimpleNamespace(
+        _hand_evaluator=HandEvaluator(),
+        _structure_fit=StrategyAwareLiveHandActionPolicy._structure_fit,
+        _within_type_key=lambda plan: (0.0,),
+        evaluator=evaluator,
+        EPSILON=1e-9,
+    )
+    @dataclass(frozen=True)
+    class Decision:
+        action: object
+        selected_plan: object
+        confidence: float = 0.5
+        rationale: tuple[str, ...] = ()
+        mode: str = "PACE_RECOVERY"
+        selected_immediate_score: float | None = None
+        selected_pace_ratio: float | None = None
+        selected_fallback_value: float | None = 1.0
+
+    decision = Decision(action=narrow.action, selected_plan=narrow)
+
+    result = _mouth_forced_discard(policy, state, (narrow, wide), decision)
+
+    assert result.action is wide.action
+    assert any("redraw width=4" in note for note in result.rationale)

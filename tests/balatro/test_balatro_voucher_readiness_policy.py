@@ -165,3 +165,35 @@ def test_telescope_requires_realized_hand_repetition_for_positive_compatibility(
     assert weak.build_compatibility == -1.5
     assert established.build_compatibility == 1.0
     assert established.total_advantage > weak.total_advantage
+
+
+def test_magic_trick_is_shop_dilution_without_hologram_payoff():
+    policy = _policy(
+        ante=3,
+        money=30,
+        joker_names=("Green Joker", "Wily Joker", "Vagabond"),
+        base_value=7.0,
+        total_cost=4.0,
+    )
+
+    decision = policy.decide(_state(money=30), _candidate("Magic Trick"))
+
+    assert decision.action == HOLD
+    assert decision.build_compatibility == -4.0
+    assert any("shop dilution" in note for note in decision.rationale)
+
+
+def test_magic_trick_can_support_existing_hologram_engine():
+    policy = _policy(
+        ante=3,
+        money=30,
+        joker_names=("Hologram",),
+        base_value=3.0,
+        total_cost=2.0,
+    )
+    state = _state(money=30, jokers=(SimpleNamespace(name="Hologram"),))
+
+    decision = policy.decide(state, _candidate("Magic Trick"))
+
+    assert decision.build_compatibility > 0.0
+    assert decision.action == BUY

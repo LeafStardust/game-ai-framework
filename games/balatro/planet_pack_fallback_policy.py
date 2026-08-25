@@ -17,6 +17,9 @@ development headroom: every Planet is direct permanent engine progress. Reserve
 protection remains authoritative.
 """
 
+from dataclasses import replace
+from math import comb
+
 from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.bonds.strategy_semantics import StrategyCommitment
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
@@ -209,6 +212,46 @@ def _celestial_headroom(state) -> tuple[int, tuple[str, ...]]:
     )
 
 
+def _celestial_visible_hit_probability(
+    state,
+    offer_count: int,
+) -> tuple[float, float, tuple[str, ...]]:
+    """Return the public no-replacement chance of seeing a useful Planet.
+
+    Celestial packs draw from the twelve Planet types.  A generic family prior plus
+    a build-need bonus previously treated a one-hand build as if most Planet types
+    were useful, producing 98% logged hit chances for five-card packs.  Count only
+    applied/observed hand directions; Planet-use scalers genuinely make all twelve
+    useful.
+    """
+    pool_size = len(PLANET_CARDS)
+    if pool_size <= 0 or offer_count <= 0:
+        return 0.0, 0.0, ("Celestial Planet pool unavailable; fail closed",)
+
+    if has_planet_use_scaler(state):
+        useful_hands = pool_size
+        direction = "Planet-use scaler"
+    else:
+        hands = _plan_hand_goals(state) | _observed_hand_goals(state)
+        useful_hands = min(pool_size, len(hands))
+        direction = ",".join(sorted(hands)) or "NONE"
+
+    draws = min(pool_size, max(0, int(offer_count)))
+    per_offer = useful_hands / pool_size
+    if useful_hands <= 0:
+        at_least_one = 0.0
+    elif pool_size - useful_hands < draws:
+        at_least_one = 1.0
+    else:
+        at_least_one = 1.0 - (
+            comb(pool_size - useful_hands, draws) / comb(pool_size, draws)
+        )
+    return per_offer, at_least_one, (
+        f"Celestial exact public pool useful={useful_hands}/{pool_size} direction={direction}",
+        f"P(at least one useful Planet in {draws} visible offers)={at_least_one:.3f}",
+    )
+
+
 def install_planet_pack_fallback_policy() -> None:
     if getattr(BalatroPackPolicy, "_planet_pack_fallback_installed", False):
         return
@@ -262,8 +305,62 @@ def install_planet_pack_fallback_policy() -> None:
 
         def booster_recommend(self, state, action):
             result = original_booster_recommend(self, state, action)
-            if result.family != "CELESTIAL" or not result.should_buy:
+            if result.family != "CELESTIAL" or int(result.offer_count) <= 0:
                 return result
+
+            per_offer, at_least_one, probability_notes = _celestial_visible_hit_probability(
+                state,
+                result.offer_count,
+            )
+            selection_multiplier = 1.0 + max(0, int(result.selection_count) - 1) * float(
+                self.thresholds.second_selection_value_fraction
+            )
+            hit_value = (
+                self._base_hit_value("CELESTIAL")
+                + float(result.build_need_score) * float(self.thresholds.need_value_weight)
+                + float(result.runway_factor) * float(self.thresholds.runway_value_weight)
+            )
+            option_utility = at_least_one * hit_value * selection_multiplier
+            resource_total = (
+                float(result.price_penalty)
+                + float(result.interest_penalty)
+                + float(result.reserve_penalty)
+            )
+            advantage = option_utility - resource_total
+            decision = (
+                "BUY"
+                if at_least_one >= float(self.thresholds.minimum_pack_hit_probability)
+                and advantage > float(self.thresholds.minimum_buy_advantage)
+                else HOLD
+            )
+            superseded_prefixes = (
+                "per-offer useful-choice prior=",
+                "P(at least one useful visible offer)=",
+                "option EV=",
+                "D8 advantage over SAVE=0 is ",
+            )
+            rationale = tuple(
+                note
+                for note in result.rationale
+                if not str(note).startswith(superseded_prefixes)
+            )
+            result = replace(
+                result,
+                decision=decision,
+                total=float(self.parent_hold_baseline) + advantage,
+                advantage_over_save=advantage,
+                option_utility=option_utility,
+                per_offer_hit_probability=per_offer,
+                at_least_one_hit_probability=at_least_one,
+                rationale=(
+                    *rationale,
+                    *probability_notes,
+                    f"Celestial exact option EV={option_utility:.3f}",
+                    f"Celestial exact advantage over SAVE=0 is {advantage:.3f}; "
+                    f"required>{self.thresholds.minimum_buy_advantage:.3f}",
+                    "generic family hit prior is superseded by the finite public Planet catalogue",
+                ),
+            )
 
             headroom, headroom_notes = _celestial_headroom(state)
             hold_reason = None
@@ -280,43 +377,11 @@ def install_planet_pack_fallback_policy() -> None:
                     )
 
             if hold_reason is None:
-                return type(result)(
-                    decision=result.decision,
-                    action=result.action,
-                    family=result.family,
-                    variant=result.variant,
-                    total=result.total,
-                    advantage_over_save=result.advantage_over_save,
-                    option_utility=result.option_utility,
-                    build_need_score=result.build_need_score,
-                    per_offer_hit_probability=result.per_offer_hit_probability,
-                    at_least_one_hit_probability=result.at_least_one_hit_probability,
-                    offer_count=result.offer_count,
-                    selection_count=result.selection_count,
-                    runway_factor=result.runway_factor,
-                    price_penalty=result.price_penalty,
-                    interest_penalty=result.interest_penalty,
-                    reserve_penalty=result.reserve_penalty,
-                    rationale=(*result.rationale, *headroom_notes),
-                )
+                return replace(result, rationale=(*result.rationale, *headroom_notes))
 
-            return type(result)(
+            return replace(
+                result,
                 decision=HOLD,
-                action=result.action,
-                family=result.family,
-                variant=result.variant,
-                total=result.total,
-                advantage_over_save=result.advantage_over_save,
-                option_utility=result.option_utility,
-                build_need_score=result.build_need_score,
-                per_offer_hit_probability=result.per_offer_hit_probability,
-                at_least_one_hit_probability=result.at_least_one_hit_probability,
-                offer_count=result.offer_count,
-                selection_count=result.selection_count,
-                runway_factor=result.runway_factor,
-                price_penalty=result.price_penalty,
-                interest_penalty=result.interest_penalty,
-                reserve_penalty=result.reserve_penalty,
                 rationale=(*result.rationale, *headroom_notes, hold_reason),
             )
 

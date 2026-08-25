@@ -92,14 +92,15 @@ def test_d8_buffoon_fails_closed_without_a_free_joker_slot():
     assert recommendation.at_least_one_hit_probability == pytest.approx(0.0)
 
 
-def test_d8_buy_vs_save_changes_under_reserve_pressure_for_relevant_celestial_pack():
+def test_d8_single_hand_normal_celestial_is_held_even_with_healthy_reserve():
     policy = BuildAwareShopBoosterPolicy()
 
     rich = policy.recommend(_specialized_state(money=20), _action("Celestial Pack"))
     pressured = policy.recommend(_specialized_state(money=5), _action("Celestial Pack"))
 
-    assert rich.decision == BUY
-    assert rich.advantage_over_save > policy.thresholds.minimum_buy_advantage
+    assert rich.decision == HOLD
+    assert rich.at_least_one_hit_probability == pytest.approx(0.25)
+    assert any("useful=1/12" in note for note in rich.rationale)
     assert pressured.decision == HOLD
     assert pressured.reserve_penalty > rich.reserve_penalty
 
@@ -176,7 +177,7 @@ def test_d8_off_path_planet_investment_consumes_repeated_celestial_budget():
     assert any("Planet investment=2/2; remaining=0" in note for note in recommendation.rationale)
 
 
-def test_d8_more_realized_play_reopens_celestial_headroom_after_prior_investment():
+def test_d8_more_realized_play_reopens_headroom_but_not_false_pack_odds():
     state = _state(money=50)
     state.hand_levels["FLUSH"] = 2
     state.hand_levels["FOUR_OF_A_KIND"] = 2
@@ -187,8 +188,34 @@ def test_d8_more_realized_play_reopens_celestial_headroom_after_prior_investment
         _action("Celestial Pack"),
     )
 
-    assert recommendation.decision == BUY
+    assert recommendation.decision == HOLD
+    assert recommendation.at_least_one_hit_probability == pytest.approx(0.25)
     assert any("effective Celestial headroom=1" in note for note in recommendation.rationale)
+
+
+def test_d8_two_relevant_hands_can_clear_exact_celestial_hit_threshold():
+    state = _state(money=50)
+    state.hand_play_counts["FLUSH"] = 8
+    state.hand_play_counts["PAIR"] = 8
+
+    recommendation = BuildAwareShopBoosterPolicy().recommend(
+        state,
+        _action("Celestial Pack"),
+    )
+
+    assert recommendation.decision == BUY
+    assert recommendation.at_least_one_hit_probability == pytest.approx(5 / 11)
+    assert any("useful=2/12" in note for note in recommendation.rationale)
+
+
+def test_d8_one_hand_jumbo_celestial_is_not_logged_as_near_certain():
+    recommendation = BuildAwareShopBoosterPolicy().recommend(
+        _specialized_state(money=50),
+        _action("Jumbo Celestial Pack", price=6),
+    )
+
+    assert recommendation.decision == HOLD
+    assert recommendation.at_least_one_hit_probability == pytest.approx(5 / 12)
 
 
 def test_d8_mega_pack_has_more_option_value_than_normal_at_equal_price():

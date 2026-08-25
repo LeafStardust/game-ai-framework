@@ -5,13 +5,16 @@ from types import SimpleNamespace
 import games.balatro  # install package-level authorities
 from games.balatro.state import BalatroState
 from games.balatro.stateful_joker_admission_policy import (
+    _candidate_hand_requirements,
     _has_additive_scoring_base,
     _has_madness,
     _has_retriggerable_held_target,
+    _hand_requirements_supported,
     _projected_stencil_multiplier,
     _target_hand,
     _todo_target_supported,
 )
+from games.balatro.jokers.wily_joker import WilyJoker
 
 
 def test_madness_is_detected_from_owned_roster():
@@ -116,3 +119,20 @@ def test_empty_board_has_no_additive_base_for_obelisk():
     state.jokers = []
 
     assert not _has_additive_scoring_base(state)
+
+
+def test_wily_is_not_supported_by_unrelated_pair_and_straight_history():
+    state = BalatroState()
+    state.hand_play_counts["PAIR"] = 4
+    state.hand_play_counts["STRAIGHT"] = 3
+
+    assert "THREE_OF_A_KIND" in _candidate_hand_requirements(WilyJoker())
+    assert not _hand_requirements_supported(state, WilyJoker())
+
+
+def test_wily_becomes_supported_by_sustained_three_kind_history():
+    state = BalatroState()
+    state.hand_play_counts["PAIR"] = 5
+    state.hand_play_counts["THREE_OF_A_KIND"] = 2
+
+    assert _hand_requirements_supported(state, WilyJoker())

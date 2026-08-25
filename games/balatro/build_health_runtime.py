@@ -14,6 +14,8 @@ from math import prod
 from typing import Iterable
 
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
+from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.strategy_semantics import StrategyCommitment
 from games.balatro.build_health import (
     BuildHealth,
     BuildHealthEvaluator,
@@ -340,6 +342,16 @@ class RuntimeBuildHealthEvaluator:
         EngineState.ACTIVATED_HEALTHY: 0.70,
         EngineState.MATURE: 1.0,
     }
+    # These engines can grow throughout a run, but their output is additive.  A
+    # single mature additive scaler is not by itself an Ante-8-capable scoring
+    # composition and must not report the same scaling ceiling as xMult.
+    _SOLO_ADDITIVE_ENGINE_CAP = {
+        "blue_joker": 0.45,
+        "green_joker": 0.45,
+        "castle": 0.55,
+        "runner": 0.55,
+        "red_card": 0.55,
+    }
 
     def __init__(self, *, scorer=None, engine_analyzer=None, health_evaluator=None) -> None:
         self.scorer = scorer or BalatroScorer()
@@ -389,6 +401,13 @@ class RuntimeBuildHealthEvaluator:
 
     def _survival_and_immediate(self, state) -> tuple[float, float]:
         target = _blind_target(state)
+        if str(getattr(state, "phase", "")).upper() == "GAME_OVER":
+            try:
+                score = max(0.0, float(getattr(state, "score", 0) or 0))
+            except (TypeError, ValueError):
+                score = 0.0
+            cleared = target > 0.0 and score >= target
+            return (1.0, 1.0) if cleared else (0.0, 0.0)
         if target <= 0:
             return 0.50, 0.50
         remaining = self._effective_survival_target(state, target)
@@ -413,13 +432,47 @@ class RuntimeBuildHealthEvaluator:
             reverse=True,
         )
         if len(values) == 1:
-            return values[0]
+            cap = self._SOLO_ADDITIVE_ENGINE_CAP.get(engines[0].engine_id, 1.0)
+            return min(values[0], cap) if ante >= 4 else values[0]
         return min(1.0, values[0] * 0.70 + values[1] * 0.30)
 
     @staticmethod
     def _coherence(state, tracker) -> float:
-        del state, tracker
-        return 0.50
+        del tracker
+        try:
+            _, composition = evaluate_bond_composition(state)
+        except (AttributeError, KeyError, TypeError, ValueError, RuntimeError):
+            return 0.25
+
+        candidates = tuple(getattr(composition, "strategy_candidates", ()) or ())
+        if not candidates:
+            # Several unrelated R1 Bonds are evidence of roster fragmentation, not
+            # neutral 50% coherence.  Preserve a little credit for one focused axis.
+            bond_count = len(tuple(getattr(composition, "bond_ids", ()) or ()))
+            return max(0.10, 0.35 - 0.05 * max(0, bond_count - 1))
+
+        best = max(
+            candidates,
+            key=lambda value: (
+                int(getattr(value, "commitment", StrategyCommitment.EXPLORATORY)),
+                float(getattr(value, "confidence", 0.0) or 0.0),
+                float(getattr(value, "strength", 0.0) or 0.0),
+            ),
+        )
+        commitment = getattr(best, "commitment", StrategyCommitment.EXPLORATORY)
+        base = {
+            StrategyCommitment.EXPLORATORY: 0.30,
+            StrategyCommitment.FORMING: 0.50,
+            StrategyCommitment.PINNED: 0.70,
+            StrategyCommitment.ESTABLISHED: 0.85,
+            StrategyCommitment.DOMINANT: 1.00,
+        }.get(commitment, 0.30)
+        confidence = max(0.0, min(1.0, float(getattr(best, "confidence", 0.0) or 0.0)))
+        conflict_penalty = min(
+            0.25,
+            0.05 * len(tuple(getattr(composition, "conflicts", ()) or ())),
+        )
+        return max(0.10, min(1.0, base * (0.75 + 0.25 * confidence) - conflict_penalty))
 
     @staticmethod
     def _runway(state, engines) -> float:

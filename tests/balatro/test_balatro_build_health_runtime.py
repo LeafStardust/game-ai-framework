@@ -243,6 +243,43 @@ def test_shop_survival_does_not_subtract_completed_blind_score_from_proxy_target
     assert health.immediate == 40.0
 
 
+def test_lost_terminal_state_cannot_report_perfect_survival():
+    state = _state(ante=4, blind_score=10000, hands=0)
+    state.phase = "GAME_OVER"
+    state.score = 4640
+
+    health = RuntimeBuildHealthEvaluator(scorer=_FixedScorer(50000)).evaluate(state)
+
+    assert health.survival == 0.0
+    assert health.immediate == 0.0
+    assert health.critical
+
+
+def test_solo_mature_green_joker_does_not_masquerade_as_complete_scaling():
+    green = SimpleNamespace(name="Green Joker", mult=14)
+    state = _state(ante=4, blind_score=10000, hands=4, jokers=(green,))
+
+    health = RuntimeBuildHealthEvaluator(scorer=_FixedScorer(3000)).evaluate(state)
+
+    assert health.scaling < 50.0
+    assert health.scaling_deficit
+
+
+def test_fragmented_bonds_without_strategy_candidate_have_low_coherence(monkeypatch):
+    import games.balatro.build_health_runtime as module
+
+    composition = SimpleNamespace(
+        bond_ids=("no_discard", "three_kind", "tarot", "sell_value", "low_ranks"),
+        strategy_candidates=(),
+        conflicts=(),
+    )
+    monkeypatch.setattr(module, "evaluate_bond_composition", lambda state: ((), composition))
+
+    inputs = RuntimeBuildHealthEvaluator(scorer=_FixedScorer(1000)).inputs(_state())
+
+    assert inputs.coherence_ratio < 0.25
+
+
 def test_foundation_without_scaler_is_not_prematurely_called_scaling_deficit():
     state = _state(ante=2, blind_score=800, hands=4)
     health = RuntimeBuildHealthEvaluator(scorer=_FixedScorer(300)).evaluate(state)
