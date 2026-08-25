@@ -6,7 +6,6 @@ installed as competing production strategy authorities.
 """
 
 from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
-from games.balatro.bond_conflict_admission_policy import install_bond_conflict_admission_policy
 from games.balatro.bond_d1_cache_policy import install_bond_d1_cache_policy
 from games.balatro.bond_pivot_authority import install_bond_pivot_authority
 from games.balatro.bond_power_engine_retention_policy import install_bond_power_engine_retention_policy
@@ -105,7 +104,7 @@ install_stateful_joker_admission_policy()
 install_tactical_scaler_retention_policy()
 install_pinned_strategy_safe_pace_policy()
 # Final semantic execution guards see the fully wrapped D1/shop decisions so later
-# value layers cannot undo defining mechanics or canonical incompatibilities.
+# value layers cannot undo defining mechanics.
 install_aces_dna_hand_policy()
 install_latest_batch_no_discard_policy()
 install_target_hand_engine_policy()
@@ -114,4 +113,3 @@ install_full_roster_shop_guard()
 install_full_roster_pack_guard()
 install_live_joker_order_authority()
 install_planet_scaler_authority()
-install_bond_conflict_admission_policy()
