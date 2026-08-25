@@ -186,12 +186,10 @@ Completed or validated in the current semantic/runtime pass:
 - **Purple Seal** discard value now survives planner search: a mechanically distinct Purple-Seal branch is preserved when a Tarot can actually be generated, and generated consumables are carried only as a late survival-equivalent expectimax tie-break;
 - shop Wheel remains admitted through the public-state stochastic edition model rather than being deterministically rejected;
 - **The Soul** no longer receives a fixed `8 + early-Ante bonus` pack score; pack selection now uses a uniform expectation over the five modeled Legendary Joker outcomes evaluated against the current build through B3;
-- **The Serpent** planner transition now forces exactly three public draw cards after either Play or Discard, with Chicot restoring ordinary draw counts; direct Play/Discard/Chicot regressions are present and the full Balatro suite is green through this checkpoint on 2026-08-26.
-
-Implemented since the latest green checkpoint and awaiting deterministic validation:
-
-- **The Hook** already had exact random two-card forced-discard branching and canonical discard-trigger projection in the score-outcome layer; D1 now preserves each branch-specific post-Hook hand instead of rebuilding children from a common pre-Hook retained hand and silently reintroducing discarded cards. The temporary duplicate Hook transition wrapper was removed before validation;
-- **The Tooth** and **The Ox** were confirmed to apply their cash effects before Joker scoring, so Bull/Bootstraps see the correct post-boss cash. Direct regressions now lock Tooth's per-card cash loss, Ox's target-hand cash reset, and Chicot bypass without adding a second production authority.
+- **The Serpent** planner transition now forces exactly three public draw cards after either Play or Discard, with Chicot restoring ordinary draw counts;
+- **The Hook** uses exact random two-card forced-discard branching and canonical discard-trigger projection, and D1 now preserves each branch-specific post-Hook hand rather than rebuilding children from a common retained hand;
+- **The Tooth** and **The Ox** apply their cash effects before Joker scoring so Bull/Bootstraps read the correct post-boss cash; regressions cover Tooth per-card cash loss, Ox target-hand reset, and Chicot bypass;
+- the full `tests/balatro` suite is green through the Hook/Tooth/Ox checkpoint on 2026-08-26.
 
 Still open before a new live baseline:
 
@@ -215,7 +213,7 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Audit boss-specific execution against exact mechanics.
 - [ ] Diagnose and fix the three-attempt supervisor/shutdown crash observed after all three run logs had already emitted `run_finished`.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through the Serpent exact-draw contract; Hook/Tooth/Ox audit changes are pending rerun.
+- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through Hook/Tooth/Ox.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
