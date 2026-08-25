@@ -47,6 +47,7 @@ from games.balatro.purple_seal_discard_policy import install_purple_seal_discard
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
 from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_correction
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
+from games.balatro.serpent_draw_policy import install_serpent_draw_policy
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
 from games.balatro.soul_pack_expectation_policy import install_soul_pack_expectation_policy
@@ -64,6 +65,7 @@ from games.balatro.red_white_competence_corrections import install_red_white_com
 
 install_mouth_first_hand_policy()
 install_boss_hand_constraint_policy()
+install_serpent_draw_policy()
 install_d1_log_resilience_policy()
 install_d1_candidate_deadline_policy()
 install_d1_outer_evaluation_cache_policy()
