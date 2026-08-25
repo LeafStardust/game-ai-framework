@@ -6,19 +6,18 @@ These are authority corrections, not tuning knobs:
 - zero-cost autonomous-safe boosters are opened when ordinary/default D8 semantics
   would otherwise reject them only for value/probability reasons;
 - off-build exotic Planets cannot bootstrap relevance from a stray level increase;
-- weak Joker replacement churn is suppressed unless it materially improves the build;
 - pack Planet relevance uses the same applied-strategy-aware exotic-hand rule.
+
+Joker replacement admission is intentionally not overridden here. D2 owns the
+literal build transition and transaction economics for BUY/REPLACE/HOLD.
 """
 
 from dataclasses import replace
 
 from games.balatro.actions import BUY_BOOSTER
 from games.balatro.bonds.evaluation import evaluate_bond_composition
-from games.balatro.build_health_runtime import projected_state_with_jokers
-from games.balatro.joker_policy import HOLD, REPLACE
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
 from games.balatro.planets import PLANET_CARDS
-from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.shop_booster_policy import (
     BUY,
     BoosterAcquisitionThresholds,
@@ -26,11 +25,6 @@ from games.balatro.shop_booster_policy import (
 )
 import games.balatro.planet_relevance_policy as planet_relevance
 
-
-_MIN_UNPINNED_REPLACEMENT_ADVANTAGE = 1.50
-_MIN_SAME_PLAN_STRENGTH_GAIN = 1.00
-_MIN_SAME_PLAN_COMPLETION_GAIN = 0.03
-_STRONG_LOCAL_REPLACEMENT_ADVANTAGE = 2.50
 
 # These hands are rare enough that a Planet level by itself must not create its own
 # justification. This is the Neptune failure observed live: Straight Flush reached
@@ -221,77 +215,3 @@ def install_live_decision_quality_policy() -> None:
 
         BalatroPackPolicy.score_action = score_action
         BalatroPackPolicy._strict_planet_relevance_installed = True
-
-    if not getattr(PlaybookJokerAcquisitionPolicy, "_replacement_stability_installed", False):
-        original_joker_decide = PlaybookJokerAcquisitionPolicy.decide
-
-        def decide(self, state, candidate):
-            decision = original_joker_decide(self, state, candidate)
-            if decision.action != REPLACE or decision.selected is None:
-                return decision
-            selected = decision.selected
-            advantage = float(getattr(selected, "total_advantage", 0.0) or 0.0)
-            try:
-                index = int(selected.replace_index)
-            except (TypeError, ValueError):
-                return decision
-
-            current_comp, current_plan = _strategy_plan(state)
-            if current_plan is None:
-                if advantage >= _MIN_UNPINNED_REPLACEMENT_ADVANTAGE:
-                    return decision
-                return replace(
-                    decision,
-                    action=HOLD,
-                    selected=None,
-                    rationale=(
-                        *decision.rationale,
-                        f"replacement stability veto: advantage={advantage:.3f} < {_MIN_UNPINNED_REPLACEMENT_ADVANTAGE:.3f}",
-                        "avoid low-confidence Joker churn before an applied strategy exists",
-                    ),
-                )
-
-            jokers = list(getattr(state, "jokers", ()) or ())
-            if index < 0 or index >= len(jokers):
-                return decision
-            jokers[index] = candidate
-            projected_state = projected_state_with_jokers(state, tuple(jokers))
-            projected_comp, projected_plan = _strategy_plan(projected_state)
-            if projected_plan is None:
-                return decision
-            if projected_plan.strategy_id != current_plan.strategy_id:
-                return decision
-
-            current_completion = float(getattr(current_plan, "completion", 0.0) or 0.0)
-            projected_completion = float(getattr(projected_plan, "completion", 0.0) or 0.0)
-            completion_gain = projected_completion - current_completion
-
-            def pinned_strength(comp, strategy_id):
-                if comp is None:
-                    return 0.0
-                for item in tuple(getattr(comp, "strategy_candidates", ()) or ()):
-                    if item.strategy_id == strategy_id:
-                        return float(getattr(item, "strength", 0.0) or 0.0)
-                return 0.0
-
-            strength_gain = pinned_strength(projected_comp, current_plan.strategy_id) - pinned_strength(current_comp, current_plan.strategy_id)
-            if (
-                completion_gain >= _MIN_SAME_PLAN_COMPLETION_GAIN
-                or strength_gain >= _MIN_SAME_PLAN_STRENGTH_GAIN
-                or advantage >= _STRONG_LOCAL_REPLACEMENT_ADVANTAGE
-            ):
-                return decision
-
-            return replace(
-                decision,
-                action=HOLD,
-                selected=None,
-                rationale=(
-                    *decision.rationale,
-                    f"same-plan replacement stability veto: completion delta={completion_gain:.3f}, strength delta={strength_gain:.3f}, advantage={advantage:.3f}",
-                    "replacement must materially advance the applied Strategy Plan or be a strong local upgrade",
-                ),
-            )
-
-        PlaybookJokerAcquisitionPolicy.decide = decide
-        PlaybookJokerAcquisitionPolicy._replacement_stability_installed = True
