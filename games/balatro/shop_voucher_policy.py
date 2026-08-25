@@ -171,6 +171,41 @@ class VoucherAcquisitionPolicy:
                 ),
             )
 
+        burglar_owned = any(
+            "".join(
+                character
+                for character in str(
+                    getattr(joker, "name", None)
+                    or getattr(joker, "label", None)
+                    or type(joker).__name__
+                ).lower()
+                if character.isalnum()
+            ) in {"burglar", "burglarjoker"}
+            for joker in tuple(getattr(state, "jokers", ()) or ())
+        )
+        if burglar_owned and candidate_name in {"Wasteful", "Recyclomancy"}:
+            return VoucherAcquisitionDecision(
+                action=HOLD,
+                candidate=candidate_name,
+                executable_action=None,
+                base_persistent_value=0.0,
+                build_compatibility=0.0,
+                horizon_bonus=0.0,
+                persistent_value=0.0,
+                total_advantage=float("-inf"),
+                price=price,
+                money_after=money_after,
+                price_penalty=0.0,
+                interest_penalty=0.0,
+                reserve_penalty=0.0,
+                thresholds=self.thresholds,
+                rationale=(
+                    f"D3 voucher={candidate_name}",
+                    "Burglar voucher veto: Burglar resets discards to zero after blind selection",
+                    "an additional-discard voucher has no live resource value while Burglar is owned",
+                ),
+            )
+
         base_value, base_notes = self.item_value_estimator.estimate(state, action)
         profile = self.profiler.profile(state)
         compatibility, compatibility_notes = self._build_compatibility(

@@ -1,14 +1,26 @@
+from types import SimpleNamespace
+
 from games.balatro.build import (
     JokerBuildTransitionPlanner,
     JokerBuildValueEvaluator,
 )
 from games.balatro.joker import Joker, JokerContext
-from games.balatro.joker_policy import JokerAcquisitionThresholds
+from games.balatro.joker_policy import (
+    BUY,
+    HOLD,
+    JokerAcquisitionDecision,
+    JokerAcquisitionThresholds,
+)
 from games.balatro.live.runtime.bond_autonomous_runner import (
     BondAwareLiveMemoryInjectedSingleStepRunner,
 )
 from games.balatro.playbook import default_balatro_playbooks
 from games.balatro.playbook_joker_policy import PlaybookJokerAcquisitionPolicy
+from games.balatro.playbook.red_white.joker_policy import (
+    PlaybookJokerAcquisitionPolicy as CanonicalPlaybookJokerAcquisitionPolicy,
+    _discard_conflict_indices,
+    _enforce_discard_resource_conflict,
+)
 from games.balatro.state import BalatroState
 
 
@@ -64,3 +76,76 @@ def test_production_runner_shares_one_b3_evaluator_with_d2_and_shop_value():
     evaluator = d2_policy.transition_planner.evaluator
 
     assert runner.shop_policy.item_value_estimator.joker_build_value is evaluator
+
+
+def test_production_import_uses_the_canonical_wrapped_d2_class():
+    assert PlaybookJokerAcquisitionPolicy is CanonicalPlaybookJokerAcquisitionPolicy
+
+
+def test_burglar_blocks_trading_card_future_bond_value():
+    state = _red_white_state()
+    state.jokers = [SimpleNamespace(name="Burglar")]
+    candidate = SimpleNamespace(name="Trading Card")
+    core_decision = JokerAcquisitionDecision(
+        action=BUY,
+        candidate="Trading Card",
+        selected=None,
+        options=(),
+        thresholds=JokerAcquisitionThresholds(),
+        rationale=("core D2 awarded future deck-thinning Bond value",),
+    )
+
+    decision = _enforce_discard_resource_conflict(
+        state,
+        candidate,
+        core_decision,
+    )
+
+    assert decision.action == HOLD
+    assert any("Burglar removes the activation/count window" in note for note in decision.rationale)
+    assert any("future Bond potential cannot justify" in note for note in decision.rationale)
+
+
+def test_burglar_conflicts_with_every_owned_discard_trigger():
+    discard_jokers = (
+        "Burnt Joker",
+        "Castle",
+        "Faceless Joker",
+        "Hit the Road",
+        "Mail-In Rebate",
+        "Trading Card",
+        "Yorick",
+    )
+    state = _red_white_state()
+    state.jokers = [SimpleNamespace(name=name) for name in discard_jokers]
+
+    assert _discard_conflict_indices(
+        state,
+        SimpleNamespace(name="Burglar"),
+    ) == tuple(range(len(discard_jokers)))
+
+
+def test_burglar_conflicts_with_discard_count_payoffs_and_sources():
+    state = _red_white_state()
+    state.jokers = [
+        SimpleNamespace(name="Banner"),
+        SimpleNamespace(name="Delayed Gratification"),
+        SimpleNamespace(name="Drunkard"),
+        SimpleNamespace(name="Merry Andy"),
+    ]
+
+    assert _discard_conflict_indices(
+        state,
+        SimpleNamespace(name="Burglar"),
+    ) == (0, 1, 2, 3)
+
+
+def test_discard_trigger_conflicts_with_owned_burglar():
+    state = _red_white_state()
+    state.jokers = [SimpleNamespace(name="Burglar")]
+
+    for name in ("Mail-In Rebate", "Trading Card", "Hit the Road", "Yorick"):
+        assert _discard_conflict_indices(
+            state,
+            SimpleNamespace(name=name),
+        ) == (0,)

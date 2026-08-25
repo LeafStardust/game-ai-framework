@@ -6,6 +6,8 @@ from itertools import combinations, permutations
 
 from games.balatro.actions import REORDER_JOKERS, BalatroAction
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
+from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.joker_edition import joker_has_negative_edition
 from games.balatro.live.joker_projection import LiveJokerScoreProjector
 
@@ -87,6 +89,13 @@ class JokerOrderPolicy:
                 continue
 
             target = state.jokers[index + 1]
+            if bool(getattr(target, "eternal", False)):
+                notes.append(
+                    "projected Ceremonial Dagger blocked by Eternal "
+                    f"target={type(target).__name__}; no destruction or Mult gain"
+                )
+                index += 1
+                continue
             sell_value = max(
                 0,
                 int(
@@ -119,7 +128,9 @@ class JokerOrderPolicy:
                 type(projected[index]).__name__ == "DaggerJoker"
                 and index + 1 < len(projected)
             ):
-                targets.append(projected.pop(index + 1))
+                target = projected[index + 1]
+                if not bool(getattr(target, "eternal", False)):
+                    targets.append(projected.pop(index + 1))
             index += 1
         return tuple(targets)
 
@@ -161,10 +172,26 @@ class JokerOrderPolicy:
             notes = self._project_dagger_sacrifices(projected)
 
         totals: list[float] = []
-        for hand, template_cards in self.evaluator._scoring_probes(projected):
+        exact_indices = getattr(self, "_exact_play_indices", None)
+        if exact_indices is not None:
+            try:
+                cards = [projected.hand[index] for index in exact_indices]
+            except (AttributeError, IndexError, TypeError):
+                return 0.0, ("exact-play Joker ordering could not resolve selected cards",)
+            probes = ((HandEvaluator().evaluate(
+                cards,
+                rules=hand_rules_for_state(projected),
+            ), cards),)
+        else:
+            probes = self.evaluator._scoring_probes(projected)
+
+        for hand, template_cards in probes:
             probe = copy.deepcopy(projected)
-            cards = copy.deepcopy(list(template_cards))
-            probe.hand = copy.deepcopy(cards)
+            if exact_indices is not None:
+                cards = [probe.hand[index] for index in exact_indices]
+            else:
+                cards = copy.deepcopy(list(template_cards))
+                probe.hand = copy.deepcopy(cards)
             try:
                 result = self.projector.score(
                     hand,
@@ -176,6 +203,58 @@ class JokerOrderPolicy:
                 continue
             totals.append(float(result.score.total))
         return (sum(totals) / len(totals) if totals else 0.0), notes
+
+    @staticmethod
+    def _play_indices(state, cards) -> tuple[int, ...] | None:
+        """Resolve a D1 action back to its authoritative visible-hand indices."""
+        hand = tuple(getattr(state, "hand", ()) or ())
+        selected = tuple(cards or ())
+        if not selected:
+            return None
+
+        by_identity = {id(card): index for index, card in enumerate(hand)}
+        try:
+            indices = tuple(by_identity[id(card)] for card in selected)
+        except KeyError:
+            # Live cards carry stable public ids. This fallback also supports
+            # decision layers that copied their card objects before returning.
+            by_live_id = {
+                getattr(card, "live_id", None): index
+                for index, card in enumerate(hand)
+                if getattr(card, "live_id", None) is not None
+            }
+            try:
+                indices = tuple(by_live_id[getattr(card, "live_id", None)] for card in selected)
+            except KeyError:
+                return None
+        return indices if len(set(indices)) == len(indices) else None
+
+    def recommend_for_play(self, state, cards) -> JokerOrderDecision | None:
+        """Optimize copy and multiplier order for the exact D1 play action.
+
+        Representative probes are suitable in the shop, but a Blueprint target
+        can change with the hand being played. At SELECTING_HAND the actual D1
+        action is therefore the sole scoring probe.
+        """
+        indices = self._play_indices(state, cards)
+        if indices is None:
+            return None
+        self._exact_play_indices = indices
+        try:
+            decision = self.recommend(state, phase="SELECTING_HAND")
+        finally:
+            del self._exact_play_indices
+        if decision is None:
+            return None
+        return JokerOrderDecision(
+            permutation=decision.permutation,
+            current_score=decision.current_score,
+            ordered_score=decision.ordered_score,
+            rationale=(
+                *decision.rationale,
+                f"exact selected-play Joker ordering indices={indices}",
+            ),
+        )
 
     def recommend(self, state, *, phase: str | None = None) -> JokerOrderDecision | None:
         self.last_negative_retention_diagnostics = ()

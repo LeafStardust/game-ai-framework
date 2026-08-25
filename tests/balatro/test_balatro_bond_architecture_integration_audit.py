@@ -8,6 +8,17 @@ from games.balatro.live.hand_action_policy import LiveHandActionDecisionEngine
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
+from games.balatro.live.runtime.bond_autonomous_runner import (
+    PlaybookJokerAcquisitionPolicy as RuntimeJokerAcquisitionPolicy,
+    PlaybookBalatroPackPolicy as RuntimePackPolicy,
+    PlaybookBuildAwareShopArbiter as RuntimeShopArbiter,
+)
+from games.balatro.playbook.red_white.pack_policy import (
+    PlaybookBalatroPackPolicy as CanonicalPackPolicy,
+)
+from games.balatro.playbook.red_white.shop_policy import (
+    PlaybookBuildAwareShopArbiter as CanonicalShopArbiter,
+)
 from games.balatro.shop_booster_policy import BuildAwareShopBoosterPolicy
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.shop_utility_scale import ShopUtilityScale
@@ -24,12 +35,16 @@ def _composition(coherence: float, motif_state: MotifState):
 
 
 def test_production_package_installs_all_canonical_bond_integration_layers():
+    assert RuntimeJokerAcquisitionPolicy is PlaybookJokerAcquisitionPolicy
+    assert RuntimePackPolicy is CanonicalPackPolicy
+    assert RuntimeShopArbiter is CanonicalShopArbiter
     assert getattr(LiveHandActionDecisionEngine, "_bond_shop_health_capture_installed", False)
     assert getattr(ShopUtilityScale, "_bond_shop_health_utility_installed", False)
     assert getattr(BuildAwareShopRerollPolicy, "_bond_shop_health_reroll_installed", False)
     assert getattr(PlaybookJokerAcquisitionPolicy, "_bond_pivot_authority_installed", False)
     assert getattr(PlaybookJokerAcquisitionPolicy, "_bond_power_engine_retention_installed", False)
     assert getattr(PlaybookJokerAcquisitionPolicy, "_tactical_scaler_retention_installed", False)
+    assert getattr(PlaybookJokerAcquisitionPolicy, "_stateful_admission_installed", False)
     assert getattr(BalatroPackPolicy, "_bond_prescription_policy_installed", False)
     assert getattr(ShopUtilityScale, "_bond_prescription_policy_installed", False)
     assert getattr(RealizedEngineAnalyzer, "_tactical_scaler_health_installed", False)

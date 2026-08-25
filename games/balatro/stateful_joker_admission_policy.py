@@ -15,7 +15,8 @@ from typing import Mapping
 
 from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.build.joker_scenarios import ScenarioJokerBehaviorAnalyzer
-from games.balatro.joker_policy import HOLD
+from games.balatro.joker_policy import BUY, HOLD, REPLACE
+from games.balatro.joker_edition import joker_has_negative_edition
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 
 
@@ -116,6 +117,34 @@ def _todo_target_supported(state, candidate: object) -> bool:
     return _plan_owns_hand(state, target)
 
 
+def _projected_stencil_multiplier(state, candidate, decision) -> int | None:
+    """Return Joker Stencil's exact multiplier after the proposed transaction."""
+    if _joker_name(candidate) != "jokerstencil":
+        return None
+
+    jokers = list(getattr(state, "jokers", ()) or ())
+    if decision.action == BUY:
+        jokers.append(candidate)
+    elif decision.action == REPLACE and getattr(decision, "selected", None) is not None:
+        try:
+            index = int(decision.selected.replace_index)
+        except (AttributeError, TypeError, ValueError):
+            return None
+        if index < 0 or index >= len(jokers):
+            return None
+        jokers[index] = candidate
+    else:
+        return None
+
+    slots = max(0, int(getattr(state, "joker_slots", 0) or 0))
+    ordinary = sum(
+        _joker_name(joker) != "jokerstencil"
+        and not joker_has_negative_edition(joker)
+        for joker in jokers
+    )
+    return max(slots - ordinary, 1)
+
+
 def install_stateful_joker_admission_policy() -> None:
     if getattr(PlaybookJokerAcquisitionPolicy, "_stateful_admission_installed", False):
         return
@@ -154,6 +183,19 @@ def install_stateful_joker_admission_policy() -> None:
                     *decision.rationale,
                     f"To Do List target veto: {target} has no demonstrated exotic-hand path",
                     "stateful target value must be supported by actual play history or the pinned Strategy Plan",
+                ),
+            )
+
+        stencil_multiplier = _projected_stencil_multiplier(state, candidate, decision)
+        if stencil_multiplier is not None and stencil_multiplier <= 1:
+            return replace(
+                decision,
+                action=HOLD,
+                selected=None,
+                rationale=(
+                    *decision.rationale,
+                    "Joker Stencil stateful veto: projected full roster leaves it at X1 Mult",
+                    "isolated intrinsic XMult probes cannot override the exact post-transaction slot count",
                 ),
             )
 

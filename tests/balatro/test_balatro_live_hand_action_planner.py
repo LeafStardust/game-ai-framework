@@ -1,4 +1,4 @@
-from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
@@ -174,3 +174,25 @@ def test_guaranteed_immediate_clear_suppresses_discard_branches():
     selected_ids = {id(card) for card in best.cards}
     full_house_ids = {id(card) for card in state.hand[:5]}
     assert selected_ids == full_house_ids
+
+
+def test_root_shortlist_prefers_plain_pair_card_over_equivalent_steel_card():
+    five_spades = BalatroCard("5", "Spades", live_id=1)
+    five_diamonds = BalatroCard("5", "Diamonds", live_id=2)
+    plain_two_a = BalatroCard("2", "Hearts", live_id=3)
+    steel_two = BalatroCard("2", "Clubs", enhancement="Steel", live_id=4)
+    plain_two_b = BalatroCard("2", "Diamonds", live_id=5)
+    planner = D1LiveBlindClearPlanner(play_width=6, discard_width=4, horizon=2)
+    plain = BalatroAction(
+        PLAY_CARDS,
+        cards=[five_spades, five_diamonds, plain_two_a, plain_two_b],
+    )
+    wastes_steel = BalatroAction(
+        PLAY_CARDS,
+        cards=[five_spades, five_diamonds, plain_two_a, steel_two],
+    )
+
+    assert (
+        planner._direct_child_play_priority(plain)
+        > planner._direct_child_play_priority(wastes_steel)
+    )

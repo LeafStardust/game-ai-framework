@@ -1,9 +1,11 @@
 from types import SimpleNamespace
 
+from games.balatro.card import BalatroCard
 from games.balatro.joker_order_policy import JokerOrderPolicy
 from games.balatro.jokers.blueprint import BlueprintJoker
 from games.balatro.jokers.cavendish import CavendishJoker
 from games.balatro.jokers.dagger import DaggerJoker
+from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.egg import EggJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.state import BalatroState
@@ -31,6 +33,29 @@ def test_order_policy_moves_additive_mult_before_blueprinted_xmult():
     assert decision.to_action().target == (1, 0, 2)
 
 
+def test_order_policy_targets_blueprint_for_the_exact_selected_flush():
+    cards = [
+        BalatroCard(rank, "Clubs", live_id=index)
+        for index, rank in enumerate(("2", "4", "6", "8", "10"))
+    ]
+    state = _state(
+        BlueprintJoker(),
+        FlatMultJoker(4),
+        DrollJoker(),
+        phase="SELECTING_HAND",
+    )
+    state.hand = cards
+
+    decision = JokerOrderPolicy().recommend_for_play(state, cards)
+
+    assert decision is not None
+    ordered = [state.jokers[index] for index in decision.permutation]
+    blueprint_index = ordered.index(state.jokers[0])
+    assert ordered[blueprint_index + 1] is state.jokers[2]
+    assert decision.ordered_score > decision.current_score
+    assert any("exact selected-play" in note for note in decision.rationale)
+
+
 def test_order_policy_places_disposable_joker_right_of_dagger_before_blind():
     dagger = DaggerJoker()
     valuable = FlatMultJoker(20)
@@ -44,6 +69,26 @@ def test_order_policy_places_disposable_joker_right_of_dagger_before_blind():
     assert decision is not None
     assert decision.permutation == (0, 2, 1)
     assert any("Dagger sacrifice=EggJoker" in note for note in decision.rationale)
+
+
+def test_order_policy_does_not_project_eternal_dagger_feed_as_destroyed():
+    dagger = DaggerJoker()
+    eternal = FlatMultJoker(20)
+    eternal.eternal = True
+    eternal.sell_value = 10
+    disposable = EggJoker()
+    disposable.sell_value = 1
+    state = _state(dagger, eternal, disposable, phase="BLIND_SELECT")
+
+    decision = JokerOrderPolicy().recommend(state)
+
+    assert decision is not None
+    ordered = [state.jokers[index] for index in decision.permutation]
+    dagger_index = ordered.index(dagger)
+    assert ordered[dagger_index + 1] is disposable
+    assert JokerOrderPolicy._dagger_sacrifice_targets(
+        [dagger, eternal],
+    ) == ()
 
 
 def test_order_policy_does_not_emit_noop_for_already_optimal_order():

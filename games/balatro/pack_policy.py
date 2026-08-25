@@ -753,6 +753,31 @@ class BalatroPackPolicy:
             score += amount
             notes.append(f"seal={seal_text} value={amount:.2f}")
 
+        burglar_owned = any(
+            "".join(
+                character
+                for character in str(
+                    getattr(joker, "name", None)
+                    or getattr(joker, "label", None)
+                    or type(joker).__name__
+                ).lower()
+                if character.isalnum()
+            ) in {"burglar", "burglarjoker"}
+            for joker in tuple(getattr(state, "jokers", ()) or ())
+        )
+        if burglar_owned and seal_text == "PURPLE":
+            # Purple Seal's only payoff occurs on discard. Burglar removes that
+            # action window, so neither its catalogue value nor contextual Bond
+            # value may make it beat Skip while the conflict exists.
+            return PackActionScore(
+                action,
+                -1.0,
+                (
+                    *notes,
+                    "Burglar Purple Seal veto: zero discards makes the seal unable to generate Tarot cards",
+                ),
+            )
+
         contextual = self.playing_card_build.evaluate(
             state,
             rank=rank,

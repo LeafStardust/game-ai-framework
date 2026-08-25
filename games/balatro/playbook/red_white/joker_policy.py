@@ -32,10 +32,43 @@ def _discard_conflict_indices(state: BalatroState, candidate: object) -> tuple[i
     burnt = {"burnt", "burntjoker"}
     green = {"green", "greenjoker"}
     burglar = {"burglar", "burglarjoker"}
+    discard_required = {
+        "burnt",
+        "burntjoker",
+        "castle",
+        "castlejoker",
+        "faceless",
+        "facelessjoker",
+        "hittheroad",
+        "hittheroadjoker",
+        "mailinrebate",
+        "mailinrebatejoker",
+        "tradingcard",
+        "tradingcardjoker",
+        "yorick",
+        "yorickjoker",
+    }
+    discard_capacity_payoffs = {
+        "banner",
+        "bannerjoker",
+        "delayedgratification",
+        "delayedgratificationjoker",
+    }
+    discard_capacity_sources = {
+        "drunkard",
+        "drunkardjoker",
+        "merryandy",
+        "merryandyjoker",
+    }
+    burglar_incompatible = (
+        discard_required | discard_capacity_payoffs | discard_capacity_sources
+    )
 
-    if candidate_token in burnt:
-        opposing = green | burglar
-    elif candidate_token in green | burglar:
+    if candidate_token in burglar:
+        opposing = burglar_incompatible
+    elif candidate_token in burglar_incompatible:
+        opposing = burglar | (green if candidate_token in burnt else set())
+    elif candidate_token in green:
         opposing = burnt
     else:
         return ()
@@ -44,6 +77,40 @@ def _discard_conflict_indices(state: BalatroState, candidate: object) -> tuple[i
         index
         for index, joker in enumerate(getattr(state, "jokers", ()) or ())
         if _joker_token(joker) in opposing
+    )
+
+
+def _enforce_discard_resource_conflict(
+    state: BalatroState,
+    candidate: object,
+    decision: JokerAcquisitionDecision,
+) -> JokerAcquisitionDecision:
+    """Apply the exact Burglar/discard-resource coexistence invariant."""
+    conflict_indices = _discard_conflict_indices(state, candidate)
+    if not conflict_indices:
+        return decision
+    if decision.action == REPLACE and getattr(decision, "selected", None) is not None:
+        try:
+            replace_index = int(decision.selected.replace_index)
+        except (AttributeError, TypeError, ValueError):
+            replace_index = -1
+        if replace_index in conflict_indices:
+            return replace(
+                decision,
+                rationale=(
+                    *decision.rationale,
+                    "discard-resource conflict resolved by replacing the opposing component",
+                ),
+            )
+    return replace(
+        decision,
+        action=HOLD,
+        selected=None,
+        rationale=(
+            *decision.rationale,
+            "discard-resource conflict blocks coexistence: Burglar removes the activation/count window required by the candidate or incumbent",
+            "future Bond potential cannot justify an owned Joker whose trigger, payout, or extra-discard benefit is currently impossible",
+        ),
     )
 
 
@@ -139,31 +206,9 @@ class PlaybookJokerAcquisitionPolicy:
                     ),
                 )
 
-        # Explicit discard-mechanic safety remains as a fail-closed invariant even
-        # when a relationship is not represented by the generic Bond graph.
-        conflict_indices = _discard_conflict_indices(state, candidate)
-        if conflict_indices:
-            if decision.action == REPLACE and getattr(decision, "selected", None) is not None:
-                try:
-                    replace_index = int(decision.selected.replace_index)
-                except (AttributeError, TypeError, ValueError):
-                    replace_index = -1
-                if replace_index in conflict_indices:
-                    return replace(
-                        decision,
-                        rationale=(
-                            *decision.rationale,
-                            "discard-mechanic conflict resolved by replacing the opposing Burnt/Green/Burglar component",
-                        ),
-                    )
-            return replace(
-                decision,
-                action=HOLD,
-                selected=None,
-                rationale=(
-                    *decision.rationale,
-                    "discard-mechanic conflict blocks coexistence: Burnt cannot share a build with Green Joker or Burglar",
-                ),
-            )
-
-        return decision
+        # Explicit trigger-window safety remains fail-closed when two individual
+        # sources conflict even though their broad Bonds do not. In particular,
+        # Burglar removes every discard, so a discard-triggered Joker is dormant
+        # for as long as Burglar remains owned. Future Bond potential cannot award
+        # value to an activation window the current roster has made impossible.
+        return _enforce_discard_resource_conflict(state, candidate, decision)

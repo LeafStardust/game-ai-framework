@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 
 from games.balatro.actions import BUY_VOUCHER, END_SHOP, BalatroAction
@@ -87,6 +89,21 @@ def test_blank_is_not_bought_just_because_it_is_a_persistent_voucher():
 
     assert result.action == HOLD
     assert result.executable_action is None
+
+
+@pytest.mark.parametrize("label", ("Wasteful", "Recyclomancy"))
+def test_burglar_blocks_additional_discard_vouchers(label):
+    state = _state(money=50, ante=4)
+    state.jokers = [SimpleNamespace(name="Burglar")]
+
+    result = VoucherAcquisitionPolicy().decide(
+        state,
+        _voucher(label, price=10),
+    )
+
+    assert result.action == HOLD
+    assert result.executable_action is None
+    assert any("Burglar voucher veto" in note for note in result.rationale)
 
 
 def test_voucher_aware_shop_policy_admits_d3_buy_on_parent_shop_scale():

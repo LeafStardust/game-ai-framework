@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 
 from games.balatro.actions import BUY_BOOSTER, BalatroAction
@@ -110,6 +112,41 @@ def test_d8_generic_celestial_pack_is_held_without_hand_direction():
 
     assert recommendation.decision == HOLD
     assert any("no marginal hand-development headroom" in note for note in recommendation.rationale)
+
+
+def test_d8_one_selection_standard_pack_is_held_at_zero_scoped_need():
+    recommendation = BuildAwareShopBoosterPolicy().recommend(
+        _state(money=50),
+        _action("Standard Pack"),
+    )
+
+    assert recommendation.build_need_score == pytest.approx(0.0)
+    assert recommendation.decision == HOLD
+    assert any("random deck bloat" in note for note in recommendation.rationale)
+
+
+def test_d8_mega_standard_pack_keeps_two_choice_option_value_at_zero_need():
+    recommendation = BuildAwareShopBoosterPolicy().recommend(
+        _state(money=50),
+        _action("Mega Standard Pack"),
+    )
+
+    assert recommendation.build_need_score == pytest.approx(0.0)
+    assert recommendation.selection_count == 2
+    assert not any("random deck bloat" in note for note in recommendation.rationale)
+
+
+def test_d8_deck_growth_scorer_can_override_zero_need_standard_veto():
+    state = _state(money=50)
+    state.jokers = [SimpleNamespace(name="Blue Joker")]
+
+    recommendation = BuildAwareShopBoosterPolicy().recommend(
+        state,
+        _action("Standard Pack"),
+    )
+
+    assert recommendation.decision == BUY
+    assert any("deck-growth composition" in note for note in recommendation.rationale)
 
 
 def test_d8_celestial_is_held_after_relevant_hand_reaches_current_target_level():

@@ -284,6 +284,13 @@ class BuildAwareShopBoosterPolicy:
         advantage_ok = advantage > self.thresholds.minimum_buy_advantage
         autonomy_safe = family in self.AUTONOMOUS_SAFE_FAMILIES
         decision = BUY if probability_ok and advantage_ok and autonomy_safe else HOLD
+        zero_need_standard = (
+            family == "STANDARD"
+            and variant != "MEGA"
+            and build_need_score <= 1e-12
+        )
+        if zero_need_standard:
+            decision = HOLD
         rationale = (
             f"booster family={family} variant={variant}",
             *build_notes,
@@ -304,6 +311,13 @@ class BuildAwareShopBoosterPolicy:
                 "post-open family is autonomous-safe"
                 if autonomy_safe
                 else f"{family} post-open autonomy remains deferred to D9/D10"
+            ),
+            *(
+                (
+                    "one-selection Standard pack veto: scoped build need is zero; do not pay for random deck bloat",
+                )
+                if zero_need_standard
+                else ()
             ),
             "unopened booster contents are not predicted",
         )

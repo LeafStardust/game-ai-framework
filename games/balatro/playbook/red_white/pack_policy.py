@@ -11,7 +11,7 @@ from games.balatro.live.consumable_timing_core import ConsumableTargetThresholds
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
 from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
-from games.balatro.playbook_joker_policy import PlaybookJokerAcquisitionPolicy
+from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 
 
 @dataclass(frozen=True)

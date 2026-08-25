@@ -42,6 +42,13 @@ This file records notable development changes to the project. Active and future 
 
 ### Fixed
 
+- Unified production D2/D3/D8–D10/D12–D14 imports with the canonical Red/White Joker, pack, and shop class objects. The live runner had imported duplicate top-level policy definitions while Bond conflict, pivot, retention, Build Health, and cartridge authorities targeted the canonical modules, allowing production behavior to diverge from the documented Currency Wars stack.
+- Added source-level Burglar conflicts for discard-triggered Jokers such as Trading Card, Mail-In Rebate, Castle, Faceless Joker, Hit the Road, Yorick, and Burnt Joker; discard-count payoffs Banner/Delayed Gratification; and extra-discard sources Drunkard/Merry Andy. Wasteful/Recyclomancy and Purple Seal cards are also rejected while Burglar makes their discard resource or trigger impossible. Replacing Burglar remains legal.
+- Added exact post-transaction Joker Stencil admission, including Negative-slot accounting, so a first Stencil cannot replace a productive Joker on a full ordinary roster merely because isolated probes treated it as X10; a genuinely active multi-Stencil/empty-slot state remains legal.
+- Made SELECTING_HAND Joker order follow the exact D1 play rather than fixed representative probes, allowing Blueprint to copy the hand-specific scorer (for example Droll on the selected Flush) before the play executes.
+- Added held-card opportunity cost to the bounded D1 root shortlist. A rank-equivalent ordinary card now reaches full projection ahead of Steel, Gold, Blue Seal, or Purple Seal cards, preventing the shortlist from forcing the agent to play a Steel card while an interchangeable ordinary card remains held.
+- Corrected Ceremonial Dagger projection for Eternal targets: an Eternal Joker is neither destroyed nor converted into Mult, and ordering searches no longer count it as valid feed.
+- Stopped one-selection Standard/Jumbo packs with zero scoped build demand from being bought for generic option value; Mega Standard retains its distinct two-selection option contract.
 - Moved the whole-build replacement invariant into core D2 admission: a canonical Bond-transition bonus can strengthen an already-positive replacement, but can no longer rescue a negative raw delta and sell a stronger incumbent.
 - Made post-deadline D1 recovery reuse the strongest completed Play root without re-entering full Joker-aware policy evaluation, preventing an exhausted eight-second search from stretching to roughly fourteen seconds.
 - Added an explicit vanilla-card dilution cost to Standard-pack choices so a small rank/suit context match alone cannot bloat the deck; mechanically active Blue Joker/Hologram growth payoffs retain direct card-addition value.

@@ -311,7 +311,7 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
 
         # Cheap high-chip prefixes guarantee basic coverage for every selectable
         # card count without constructing combinations.
-        high_cards = sorted(hand, key=self._card_visible_value, reverse=True)
+        high_cards = sorted(hand, key=self._card_play_candidate_value, reverse=True)
         for amount in range(1, max_cards + 1):
             add(high_cards[:amount])
 
@@ -325,13 +325,13 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             by_rank.values(),
             key=lambda cards: (
                 len(cards),
-                sum(self._card_visible_value(c) for c in cards),
+                sum(self._card_play_candidate_value(c) for c in cards),
             ),
             reverse=True,
         )
         for cards in rank_groups:
             if len(cards) >= 2:
-                add(sorted(cards, key=self._card_visible_value, reverse=True)[:4])
+                add(sorted(cards, key=self._card_play_candidate_value, reverse=True)[:4])
 
         pairs = [cards for cards in rank_groups if len(cards) >= 2]
         triples = [cards for cards in rank_groups if len(cards) >= 3]
@@ -345,7 +345,7 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         # Flushes and straights are generated directly from rank/suit maps.
         for cards in by_suit.values():
             if len(cards) >= 5:
-                add(sorted(cards, key=self._card_visible_value, reverse=True)[:5])
+                add(sorted(cards, key=self._card_play_candidate_value, reverse=True)[:5])
 
         add(self._best_straight_cards(hand))
         for cards in by_suit.values():
@@ -377,7 +377,7 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
     def _direct_child_play_priority(self, action):
         hand = self.evaluator.hand_evaluator.evaluate(action.cards)
         scoring = self.evaluator.scorer.scoring_cards(hand, action.cards)
-        visible_chips = sum(self._card_visible_value(card) for card in scoring)
+        visible_chips = sum(self._card_play_candidate_value(card) for card in scoring)
         return (
             self._HAND_STRENGTH.get(hand.value, -1),
             visible_chips,
@@ -394,7 +394,8 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             current = best_by_value.get(value)
             if (
                 current is None
-                or self._card_visible_value(card) > self._card_visible_value(current)
+                or self._card_play_candidate_value(card)
+                > self._card_play_candidate_value(current)
             ):
                 best_by_value[value] = card
 
@@ -414,6 +415,25 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             value += 25.0
         if getattr(card, "seal", None):
             value += 20.0
+        return value
+
+    def _card_play_candidate_value(self, card) -> float:
+        """Cheap root-shortlist value with held-card opportunity costs.
+
+        Full Joker-aware projection remains authoritative after shortlisting. This
+        proxy must nevertheless keep an ordinary rank-equivalent card ahead of a
+        Steel/Gold/Blue-Seal card whose effect is lost when played; otherwise the
+        correct action never reaches projection.
+        """
+        value = self._card_visible_value(card)
+        enhancement = str(getattr(card, "enhancement", "") or "")
+        seal = str(getattr(card, "seal", "") or "")
+        if enhancement in {"Steel", "Gold"}:
+            value -= 80.0
+        if seal == "Blue":
+            value -= 45.0
+        elif seal == "Purple":
+            value -= 30.0
         return value
 
     def _diverse_play_beam(self, state, plays, limit: int):

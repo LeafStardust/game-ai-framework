@@ -20,6 +20,7 @@ Dagger pre-blind ordering logic.
 
 from time import perf_counter
 
+from games.balatro.actions import PLAY_CARDS
 from games.balatro.joker_order_policy import JokerOrderPolicy
 
 
@@ -184,31 +185,71 @@ def install_live_joker_order_authority() -> None:
         snapshot = self.observer.observe()
         observation_seconds = perf_counter() - started
 
-        if snapshot.state_complete and str(snapshot.phase) in JokerOrderPolicy.STABLE_PHASES:
+        phase = str(snapshot.phase)
+        translated_state = None
+        if snapshot.state_complete and phase in JokerOrderPolicy.STABLE_PHASES:
             translated_started = perf_counter()
             state = self.translator.translate(snapshot)
+            translated_state = state
             translation_seconds = perf_counter() - translated_started
-            policy_started = perf_counter()
-            ordering = self.joker_order_policy.recommend(state, phase=str(snapshot.phase))
-            policy_seconds = perf_counter() - policy_started
-            if ordering is not None:
-                self.last_observation_seconds = observation_seconds
-                self.last_translation_seconds = translation_seconds
-                self.last_policy_seconds = policy_seconds
-                return AutonomousStepDecision(
-                    snapshot=snapshot,
-                    state=state,
-                    action=ordering.to_action(),
-                    source="Joker ordering invariant",
-                    notes=ordering.rationale,
+            # SHOP and pre-blind Dagger ordering do not depend on a selected hand.
+            # During SELECTING_HAND, only repair an immediately invalid copy
+            # position before D1; otherwise wait for D1's exact play selection.
+            current = tuple(range(len(tuple(getattr(state, "jokers", ()) or ()))))
+            invalid_copy_position = bool(
+                _copy_order_violations(
+                    tuple(getattr(state, "jokers", ()) or ()),
+                    current,
                 )
+            )
+            if phase != "SELECTING_HAND" or invalid_copy_position:
+                policy_started = perf_counter()
+                ordering = self.joker_order_policy.recommend(state, phase=phase)
+                policy_seconds = perf_counter() - policy_started
+                if ordering is not None:
+                    self.last_observation_seconds = observation_seconds
+                    self.last_translation_seconds = translation_seconds
+                    self.last_policy_seconds = policy_seconds
+                    return AutonomousStepDecision(
+                        snapshot=snapshot,
+                        state=state,
+                        action=ordering.to_action(),
+                        source="Joker ordering invariant",
+                        notes=ordering.rationale,
+                    )
 
         original_observer = self.observer
         self.observer = _ReplayObserver(original_observer, snapshot)
         try:
-            return original_decide(self)
+            decision = original_decide(self)
         finally:
             self.observer = original_observer
+
+        if (
+            phase == "SELECTING_HAND"
+            and translated_state is not None
+            and decision.action.name == PLAY_CARDS
+        ):
+            policy_started = perf_counter()
+            ordering = self.joker_order_policy.recommend_for_play(
+                decision.state,
+                decision.action.cards,
+            )
+            policy_seconds = perf_counter() - policy_started
+            if ordering is not None:
+                self.last_policy_seconds = policy_seconds
+                return AutonomousStepDecision(
+                    snapshot=decision.snapshot,
+                    state=decision.state,
+                    action=ordering.to_action(),
+                    source="Joker ordering invariant",
+                    notes=(
+                        *ordering.rationale,
+                        f"deferred D1 action={decision.action.name} until reordered checkpoint",
+                    ),
+                    pack_signature=decision.pack_signature,
+                )
+        return decision
 
     LiveMemoryInjectedSingleStepRunner.__init__ = init_with_joker_order
     LiveMemoryInjectedSingleStepRunner.decide = decide_with_joker_order

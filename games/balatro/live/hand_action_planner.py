@@ -146,7 +146,7 @@ class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
             add(
                 sorted(
                     flush_cards,
-                    key=self._card_visible_value,
+                    key=self._card_play_candidate_value,
                     reverse=True,
                 )[:max_cards]
             )
@@ -181,7 +181,7 @@ class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
             action.cards,
             rules=self._active_hand_rules,
         )
-        visible_chips = sum(self._card_visible_value(card) for card in scoring)
+        visible_chips = sum(self._card_play_candidate_value(card) for card in scoring)
         return (
             self._HAND_STRENGTH.get(hand.value, -1),
             visible_chips,
@@ -206,7 +206,8 @@ class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
             current = best_by_rank.get(rank)
             if (
                 current is None
-                or self._card_visible_value(card) > self._card_visible_value(current)
+                or self._card_play_candidate_value(card)
+                > self._card_play_candidate_value(current)
             ):
                 best_by_rank[rank] = card
 
@@ -235,7 +236,7 @@ class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
 
             combo = [best_by_rank[rank] for rank in ranks]
             key = (
-                sum(self._card_visible_value(card) for card in combo),
+                sum(self._card_play_candidate_value(card) for card in combo),
                 sum(rank_order[str(card.rank)] for card in combo),
             )
             if best_key is None or key > best_key:
@@ -342,7 +343,7 @@ class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
             cards,
             key=lambda card: (
                 id(card) in preferred_ids,
-                self._card_visible_value(card),
+                self._card_play_candidate_value(card),
             ),
             reverse=True,
         )

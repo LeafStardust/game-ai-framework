@@ -1,41 +1,15 @@
-from __future__ import annotations
+"""Canonical public import for playbook-aware Joker acquisition.
 
-from games.balatro.build import JokerBuildTransitionPlanner
-from games.balatro.joker_policy import (
-    JokerAcquisitionDecision,
-    JokerAcquisitionPolicy,
-    JokerAcquisitionThresholds,
+Production historically imported a second threshold-only class from this module
+while Bond conflict, pivot, retention, and Build Health policies wrapped the
+Red/White implementation.  The two class objects silently diverged, so the live
+runner bypassed those installed authorities.  Keep one public import path, but
+make it an alias of the sole canonical implementation.
+"""
+
+from games.balatro.playbook.red_white.joker_policy import (  # noqa: F401
+    PlaybookJokerAcquisitionPolicy,
 )
-from games.balatro.playbook import BalatroPlaybookNotFound, default_balatro_playbooks
-from games.balatro.state import BalatroState
 
 
-class PlaybookJokerAcquisitionPolicy:
-    """Resolve D2 thresholds per state while reusing the canonical build evaluator.
-
-    This adapter owns only deck/stake threshold lookup. It deliberately contains no
-    legacy Gold/Silver/Bronze strategy-tier admission or replacement authority.
-    Strategic direction belongs to the canonical Bond/composition system.
-    """
-
-    def __init__(self, transition_planner: JokerBuildTransitionPlanner) -> None:
-        self.transition_planner = transition_planner
-
-    def decide(
-        self,
-        state: BalatroState,
-        candidate: object,
-    ) -> JokerAcquisitionDecision:
-        try:
-            playbook = default_balatro_playbooks().for_state(state)
-        except BalatroPlaybookNotFound:
-            thresholds = JokerAcquisitionThresholds()
-        else:
-            thresholds = JokerAcquisitionThresholds.from_mapping(
-                playbook.thresholds_for("D2")
-            )
-
-        return JokerAcquisitionPolicy(
-            thresholds,
-            transition_planner=self.transition_planner,
-        ).decide(state, candidate)
+__all__ = ("PlaybookJokerAcquisitionPolicy",)

@@ -96,7 +96,7 @@ The active architecture contract is [`docs/balatro/BALATRO_STRATEGY_SYSTEM.md`](
 - [x] Add late-game cash protection against marginal side-development packs when doing so would drain a functioning but still vulnerable build.
 - [x] Cache per-decision Bond hand intents so D1 does not repeatedly recompute the full composition inside candidate tie-breaks.
 - [x] Audit the 2026-08-24/25 Red/White run batch and correct false hand-Bond membership, random lifecycle drift that fabricated component relationships, and held-The-Sun searches that escaped D1's hard deadline.
-- [x] Audit the fresh three-run `28342616` baseline and correct negative raw replacements rescued by Bond bonuses, post-deadline D1 re-evaluation, and vanilla Standard-pack deck bloat. This semantic/runtime correction invalidates that baseline.
+- [x] Audit every decision in the fresh three-run `28342616` baseline and correct the production/canonical Joker/pack/shop class split; Burglar coexistence with dormant discard triggers, discard-count payoffs, extra-discard sources, vouchers, and Purple Seals; negative raw replacements rescued by Bond bonuses; X1 full-roster Joker Stencil admission; hand-specific Blueprint ordering; Eternal Dagger feed projection; held Steel/Gold/Seal shortlist substitution; post-deadline D1 re-evaluation; and zero-demand Standard-pack deck bloat. This semantic/runtime correction invalidates that baseline.
 - [ ] Execute and inspect a clean 3-run production-default authoritative live baseline on the final unchanged HEAD.
 - [ ] Run Phase-A candidate trials only after that baseline is clean; any semantic/runtime fix invalidates and restarts the study under the new repository SHA.
 

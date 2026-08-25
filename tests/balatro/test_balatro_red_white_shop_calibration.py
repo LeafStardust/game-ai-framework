@@ -22,7 +22,6 @@ from games.balatro.playbook_shop_policy import (
 from games.balatro.resource_value import RunResourceValuator
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
 from games.balatro.shop_booster_policy import (
-    BUY as BOOSTER_BUY,
     HOLD as BOOSTER_HOLD,
     BoosterAcquisitionThresholds,
     BuildAwareShopBoosterPolicy,
@@ -92,7 +91,7 @@ def test_red_white_d3_uses_weighted_reserve_cost_not_hard_five_dollar_veto():
     assert decision.action == VOUCHER_BUY
 
 
-def test_red_white_d8_buys_standard_pack_with_runway_but_saves_when_cash_is_strained():
+def test_red_white_d8_holds_zero_demand_standard_pack_even_with_runway():
     playbook = default_balatro_playbooks().get("RED", "WHITE")
     thresholds = BoosterAcquisitionThresholds.from_mapping(
         playbook.thresholds_for("D8")
@@ -111,7 +110,9 @@ def test_red_white_d8_buys_standard_pack_with_runway_but_saves_when_cash_is_stra
 
     assert healthy.at_least_one_hit_probability >= thresholds.minimum_pack_hit_probability
     assert healthy.advantage_over_save > thresholds.minimum_buy_advantage
-    assert healthy.decision == BOOSTER_BUY
+    assert healthy.build_need_score == pytest.approx(0.0)
+    assert healthy.decision == BOOSTER_HOLD
+    assert any("random deck bloat" in note for note in healthy.rationale)
 
     assert strained.reserve_penalty > healthy.reserve_penalty
     assert strained.advantage_over_save <= thresholds.minimum_buy_advantage

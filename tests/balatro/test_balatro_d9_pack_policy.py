@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from games.balatro.actions import SELECT_PACK_CARD, SKIP_BOOSTER, BalatroAction
 from games.balatro.card import BalatroCard
 from games.balatro.live.pack import LivePackActionGenerator, LivePackChoice
@@ -73,6 +75,27 @@ def test_d9_standard_card_uses_b6_build_context_against_skip():
     assert ranked[0].action.name == SELECT_PACK_CARD
     assert ranked[0].total > 0.35
     assert any("B6 playing-card build gain=" in note for note in ranked[0].notes)
+
+
+def test_d9_burglar_rejects_purple_seal_with_no_discard_window():
+    state = BalatroState()
+    state.phase = "STANDARD_PACK"
+    state.jokers = [SimpleNamespace(name="Burglar")]
+    choice = _choice(
+        "PLAYING_CARD",
+        "Purple Seal Ace",
+        value={"rank": "A", "suit": "Spades"},
+        modifier={"seal": "PURPLE"},
+    )
+
+    ranked = _rank(state, choice)
+
+    assert ranked[0].action.name == SKIP_BOOSTER
+    purple = next(
+        result for result in ranked if result.action.name == SELECT_PACK_CARD
+    )
+    assert purple.total < 0.0
+    assert any("Burglar Purple Seal veto" in note for note in purple.notes)
 
 
 def test_d9_planet_uses_b4_build_path_value_against_skip():
