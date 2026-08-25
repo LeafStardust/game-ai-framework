@@ -59,9 +59,32 @@ class PsychicBlindClearPlanner(LiveBlindClearPlanner):
             return ranked_plays
 
         discards = self.action_generator.generate_discard_actions(state)
-        ranked_discards = sorted(
+        all_ranked_discards = sorted(
             discards,
             key=lambda action: self._discard_priority(state, action),
             reverse=True,
-        )[:discard_limit]
+        )
+        ranked_discards = all_ranked_discards[:discard_limit]
+
+        # The Psychic constrains PLAY actions only. Canonical D1 can legitimately
+        # rank several five-card redraws at the top of the discard beam, especially
+        # while badly under pace, but allowing that to fill the whole beam makes the
+        # planner behave as though the boss's five-card rule also applies to DISCARD.
+        # Preserve the strongest legal non-five-card discard whenever one exists so
+        # expectimax can still compare ordinary targeted redraws against full redraws.
+        if (
+            ranked_discards
+            and all(len(action.cards) == self.REQUIRED_PLAY_CARDS for action in ranked_discards)
+        ):
+            best_non_five = next(
+                (
+                    action
+                    for action in all_ranked_discards
+                    if len(action.cards) != self.REQUIRED_PLAY_CARDS
+                ),
+                None,
+            )
+            if best_non_five is not None:
+                ranked_discards[-1] = best_non_five
+
         return ranked_plays + ranked_discards
