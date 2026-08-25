@@ -46,6 +46,7 @@ This file records notable development changes to the project. Active and future 
 
 ### Fixed
 
+- Released Balatro's `G.SETTINGS.paused` flag after the native GAME_OVER restart callback so queued setup/new-run events can advance, advertised the repair as a required bridge capability, and removed redundant outer retry windows from the three-attempt launcher.
 - Removed false Mime relationships for Blackboard and Raised Fist: neither is a held-card effect retriggered by Mime.
 - Normalized live Joker center keys before ordering analysis, increased exact ordering coverage to ordinary five-Joker rosters, and prevented redundant reorder loops after the intended order is already installed.
 - Preserved score-neutral XMult right-alignment during `SELECTING_HAND` without allowing representative probes to compete with exact selected-play ordering.

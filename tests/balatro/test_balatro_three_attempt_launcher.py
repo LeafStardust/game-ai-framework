@@ -19,6 +19,7 @@ def test_three_attempt_supervisor_sets_exact_attempt_cap(monkeypatch):
 
     assert captured["max_attempts"] == 3
     assert captured["restart_run"] is entry._three_attempt_restart
+    assert captured["restart_recovery_attempts"] == 1
 
 
 def test_three_attempt_toggle_consumes_batch_selector():

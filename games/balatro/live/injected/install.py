@@ -89,8 +89,9 @@ def _bridge_with_runtime_hotfixes(bridge_lua: bytes) -> bytes:
     Production bridge revision 7 incorrectly rejects Negative Jokers when the
     ordinary Joker roster is full. For an identified revision-7 payload, normalize
     line endings in memory, require exactly one known capacity guard, patch that
-    guard, and bump the embedded revision to 8. An identified production payload
-    whose expected guard changed still fails closed.
+    guard, and bump the embedded revision to 9. Revision 9 also identifies the
+    source-level GAME_OVER pause-release restart repair. An identified production
+    payload whose expected guard changed still fails closed.
     """
     if b"bridge_revision=7" not in bridge_lua:
         return bridge_lua
@@ -124,7 +125,7 @@ def _bridge_with_runtime_hotfixes(bridge_lua: bytes) -> bytes:
         )
 
     patched = normalized.replace(old_guard, new_guard, 1)
-    return patched.replace(b"bridge_revision=7", b"bridge_revision=8", 1)
+    return patched.replace(b"bridge_revision=7", b"bridge_revision=9", 1)
 
 
 def _fused_archive(executable: Path) -> tuple[list[zipfile.ZipInfo], int, bytes]:

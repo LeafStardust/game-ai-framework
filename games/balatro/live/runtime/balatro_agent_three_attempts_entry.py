@@ -23,6 +23,10 @@ class ThreeAttemptBalatroAgentSupervisor(BoundedBalatroAgentSupervisor):
     def __init__(self, *args, **kwargs) -> None:
         kwargs.setdefault("max_attempts", 3)
         kwargs.setdefault("restart_run", _three_attempt_restart)
+        # The low-level restart already performs guarded one-second retries for
+        # its entire 15-second window. Do not multiply a failed native transition
+        # into three identical 15-second windows while the monitor says RESTARTING.
+        kwargs.setdefault("restart_recovery_attempts", 1)
         super().__init__(*args, **kwargs)
 
 

@@ -7,7 +7,7 @@ from games.balatro.live.injected.install import (
 def test_installed_bridge_allows_negative_joker_at_full_roster():
     patched = _bridge_with_runtime_hotfixes(bridge_asset_path().read_bytes())
 
-    assert b"bridge_revision=8" in patched
+    assert b"bridge_revision=9" in patched
     assert b"card.edition and card.edition.negative == true" in patched
     assert b"if count >= limit and not negative then" in patched
 

@@ -9,6 +9,7 @@ def test_bridge_status_identifies_hardened_command_pump():
         'preblind_joker_sale=1;achievement_gate="' in source
     )
     assert ';restart_unlock_drain=1' in source
+    assert ';restart_pause_release=1' in source
     assert 'command_pump=LOVE_RUN_PRE_UPDATE' in source
 
 

@@ -121,6 +121,12 @@ def restart_fresh_unseeded_run(
             "first-party bridge does not advertise restart unlock-confirmation "
             "draining; close Balatro and reinstall/update the repository bridge"
         )
+    if status.get("restart_pause_release") != "1":
+        raise LiveRunRestartError(
+            "first-party bridge does not advertise GAME_OVER pause release; "
+            "close Balatro, reinstall/update the repository bridge, and relaunch "
+            "Balatro before retrying"
+        )
 
     deadline = monotonic() + timeout_seconds
     command_accepted = False
@@ -156,11 +162,9 @@ def restart_fresh_unseeded_run(
                     f"{expected_deck}/{expected_stake}, observed "
                     f"{current_deck}/{current_stake}"
                 )
-            # The live bridge sequence is run-local. A native restart resets it
-            # from the terminal run's high value back to 1, so freshness means
-            # "changed", not monotonically greater. Requiring ``>`` made every
-            # successful restart wait for the full timeout before the supervisor's
-            # slower recovery path recognized the already-running new game.
+            # Sequence is an observer-local semantic fingerprint revision.  Only
+            # require a different checkpoint from the terminal source; test and
+            # alternate observer adapters are not required to number it upward.
             if current.sequence != before.sequence:
                 if previous is not None and _same_snapshot(previous, current):
                     stable_count += 1

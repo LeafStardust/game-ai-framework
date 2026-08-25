@@ -27,6 +27,7 @@ def test_lua_bridge_restart_is_guarded_and_uses_native_setup_path():
     source = bridge_asset_path().read_text(encoding="utf-8")
 
     assert 'restart_run_callback=" .. restart_run_callback_state()' in source
+    assert ';restart_pause_release=1' in source
     assert 'type(G.FUNCS.start_run) == "function"' in source
     assert 'action == "RESTART_RUN"' in source
     assert 'G.STATE ~= G.STATES.GAME_OVER' in source
@@ -38,5 +39,6 @@ def test_lua_bridge_restart_is_guarded_and_uses_native_setup_path():
     assert 'G.run_setup_seed = false' in source
     assert 'G.forced_stake = stake' in source
     assert 'G.FUNCS and G.FUNCS.start_setup_run' in source
+    assert 'G.SETTINGS.paused = false' in source
     assert source.count('G.forced_stake = nil') >= 1
     assert 'action == "START_RUN"' not in source

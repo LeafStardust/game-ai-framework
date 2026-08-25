@@ -23,6 +23,7 @@ class _RestartBridge:
         return {
             "restart_run_callback": "START_RUN_PRESENT",
             "restart_unlock_drain": "1",
+            "restart_pause_release": "1",
         }
 
     def restart_run(self):

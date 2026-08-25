@@ -46,9 +46,11 @@ class _Bridge:
         *,
         callback="START_RUN_PRESENT",
         restart_unlock_drain="1",
+        restart_pause_release="1",
     ):
         self.callback = callback
         self.restart_unlock_drain = restart_unlock_drain
+        self.restart_pause_release = restart_pause_release
         self.restart_calls = 0
         self.status_calls = 0
 
@@ -59,6 +61,7 @@ class _Bridge:
             "achievement_gate": "ENABLED",
             "restart_run_callback": self.callback,
             "restart_unlock_drain": self.restart_unlock_drain,
+            "restart_pause_release": self.restart_pause_release,
         }
 
     def restart_run(self):
@@ -181,6 +184,23 @@ def test_restart_fails_closed_if_unlock_drain_capability_is_missing():
     assert bridge.restart_calls == 0
 
 
+def test_restart_fails_closed_if_pause_release_capability_is_missing():
+    observer = _Observer([_snapshot(10, "GAME_OVER")])
+    bridge = _Bridge(restart_pause_release="0")
+    runner = SimpleNamespace(observer=observer, bridge=bridge)
+
+    with pytest.raises(LiveRunRestartError, match="pause release"):
+        restart_fresh_unseeded_run(
+            runner,
+            "RED",
+            "WHITE",
+            timeout_seconds=0.1,
+            poll_interval_seconds=0,
+        )
+
+    assert bridge.restart_calls == 0
+
+
 def test_restart_fails_closed_on_changed_deck_or_stake_after_command():
     observer = _Observer(
         [
@@ -229,15 +249,20 @@ def test_restart_bridge_triggers_and_drains_native_unlock_queue_before_setup():
 
     assert "bridge_revision=7" in source
     assert ";restart_unlock_drain=1" in source
+    assert ";restart_pause_release=1" in source
     assert 'config.button == "continue_unlock"' in source
     assert 'type(unlock_notify) ~= "function"' in source
     assert "pcall(unlock_notify)" in source
     assert "unlock_queue_size() > 0" in source
     assert "pump_unlock_events()" in source
     assert "pcall(callback)" in source
+    assert "G.SETTINGS.paused = false" in source
     assert "unlock confirmation drain exceeded safety limit" in source
 
     restart_body = source[source.index("local function execute_restart_run()") :]
     assert restart_body.index("drain_unlock_confirmations()") < restart_body.index(
         "G.FUNCS and G.FUNCS.start_setup_run"
+    )
+    assert restart_body.index("pcall(callback)") < restart_body.index(
+        "G.SETTINGS.paused = false"
     )

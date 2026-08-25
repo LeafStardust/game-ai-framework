@@ -166,6 +166,7 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     return "bridge=2;bridge_revision=7;blind_skip=1;hand_reorder=1;preblind_joker_sale=1;achievement_gate=" .. achievement_gate_state()
       .. ";restart_run_callback=" .. restart_run_callback_state()
       .. ";restart_unlock_drain=1"
+      .. ";restart_pause_release=1"
       .. ";command_pump=LOVE_RUN_PRE_UPDATE"
   end
 
@@ -1020,6 +1021,11 @@ if not GAME_AI_FRAMEWORK_BRIDGE_INSTALLED then
     G.forced_stake = stake
 
     local ok, error_message = pcall(callback)
+
+    -- start_setup_run schedules the native transition, but GAME_OVER leaves the
+    -- settings pause flag asserted.  Match Balatro's proven restart flow and
+    -- release that flag so the queued setup/new-run events can advance.
+    G.SETTINGS.paused = false
 
     G.forced_stake = nil
     G.challenge_tab = nil
