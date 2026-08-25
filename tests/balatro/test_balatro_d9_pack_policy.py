@@ -177,7 +177,7 @@ def test_d9_black_hole_uses_b4_immediate_spectral_value_against_skip():
     assert any("B4 build-path gain=" in note for note in ranked[0].notes)
 
 
-def test_d9_soul_is_prioritized_for_early_ante_legendary_joker_value():
+def test_d9_soul_uses_current_build_legendary_expectation_against_skip():
     state = BalatroState()
     state.phase = "SPECTRAL_PACK"
     state.ante = 1
@@ -194,13 +194,17 @@ def test_d9_soul_is_prioritized_for_early_ante_legendary_joker_value():
         ],
     )
 
-    assert ranked[0].action.target is soul
-    assert ranked[0].total == 14.0
-    assert any("Legendary Joker option value=8.000" in note for note in ranked[0].notes)
-    assert any("early-Ante scaling opportunity bonus=6.000" in note for note in ranked[0].notes)
+    soul_score = next(result for result in ranked if result.action.target is soul)
+    assert soul_score.total > BalatroPackPolicy().skip_bias
+    assert any(
+        "uniform expectation over Balatro's five modeled Legendary Jokers" in note
+        for note in soul_score.notes
+    )
+    assert any("expected Legendary build gain=" in note for note in soul_score.notes)
+    assert not any("early-Ante" in note for note in soul_score.notes)
 
 
-def test_d9_soul_early_priority_decays_but_remains_above_skip():
+def test_d9_soul_value_has_no_synthetic_ante_bonus():
     soul = _choice("Spectral", "The Soul")
     policy = BalatroPackPolicy()
 
@@ -220,9 +224,10 @@ def test_d9_soul_early_priority_decays_but_remains_above_skip():
         BalatroAction(SELECT_PACK_CARD, target=soul),
     )
 
-    assert early_score.total == 12.5
-    assert late_score.total == 8.0
-    assert early_score.total > late_score.total > policy.skip_bias
+    assert early_score.total == late_score.total
+    assert early_score.total > policy.skip_bias
+    assert any("expected Legendary build gain=" in note for note in early_score.notes)
+    assert not any("early-Ante" in note for note in early_score.notes)
 
 
 def test_d9_soul_fails_closed_without_a_free_joker_slot():
