@@ -23,7 +23,8 @@ def test_arcana_pack_can_be_admitted_when_d8_value_clears_thresholds():
     )
 
     assert result.family == "ARCANA"
-    assert result.at_least_one_hit_probability >= result.decision == BUY or result.decision == BUY
+    assert result.at_least_one_hit_probability >= 0.45
+    assert result.advantage_over_save > 0.35
     assert result.decision == BUY
     assert any("autonomous-safe" in note for note in result.rationale)
 
