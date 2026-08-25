@@ -110,7 +110,7 @@ def test_bridge_round_trip_uses_local_file_protocol(tmp_path):
 def test_bridge_status_round_trip_is_non_gameplay_command(tmp_path):
     bridge = FirstPartyBalatroBridge(
         tmp_path,
-        timeout=1.0,
+        timeout=5.0,
         poll_interval=0.001,
     )
     captured = {}
@@ -118,6 +118,11 @@ def test_bridge_status_round_trip_is_non_gameplay_command(tmp_path):
 
     def responder():
         responder_ready.set()
+        # Match the other synthetic bridge round-trip tests: under the complete
+        # Balatro suite the responder thread can be scheduler-delayed even though
+        # the file protocol itself is correct. Keep the peer alive beyond the
+        # client's timeout so a busy runner does not turn this into a false bridge
+        # failure.
         deadline = time.monotonic() + bridge.timeout + 1.0
         while time.monotonic() < deadline:
             if bridge.command_path.exists():
