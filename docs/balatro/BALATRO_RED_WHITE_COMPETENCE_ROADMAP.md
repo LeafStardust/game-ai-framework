@@ -188,10 +188,15 @@ Completed or validated in the current semantic/runtime pass:
 - **The Soul** no longer receives a fixed `8 + early-Ante bonus` pack score; pack selection now uses a uniform expectation over the five modeled Legendary Joker outcomes evaluated against the current build through B3;
 - **The Serpent** planner transition now forces exactly three public draw cards after either Play or Discard, with Chicot restoring ordinary draw counts; direct Play/Discard/Chicot regressions are present and the full Balatro suite is green through this checkpoint on 2026-08-26.
 
+Implemented since the latest green checkpoint and awaiting deterministic validation:
+
+- **The Hook** already had exact random two-card forced-discard branching and canonical discard-trigger projection in the score-outcome layer; D1 now preserves each branch-specific post-Hook hand instead of rebuilding children from a common pre-Hook retained hand and silently reintroducing discarded cards. The temporary duplicate Hook transition wrapper was removed before validation;
+- **The Tooth** and **The Ox** were confirmed to apply their cash effects before Joker scoring, so Bull/Bootstraps see the correct post-boss cash. Direct regressions now lock Tooth's per-card cash loss, Ox's target-hand cash reset, and Chicot bypass without adding a second production authority.
+
 Still open before a new live baseline:
 
 - complete the remaining pack/consumable opportunity-cost and target-selection audit beyond Wheel/Soul and the already modeled deterministic target paths;
-- complete the remaining boss-mechanics audit beyond Psychic and Serpent;
+- complete the remaining boss-mechanics audit beyond Psychic, Serpent, Hook, Tooth, and Ox;
 - finish the semantic D1 audit for held-value cards, discard-trigger engines, and boss interactions;
 - diagnose/fix the post-`run_finished` three-attempt supervisor/shutdown crash;
 - rerun the full Balatro suite after the remaining changes, then perform a fresh production-default three-run Red/White batch.
@@ -210,7 +215,7 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Audit boss-specific execution against exact mechanics.
 - [ ] Diagnose and fix the three-attempt supervisor/shutdown crash observed after all three run logs had already emitted `run_finished`.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through the Serpent exact-draw contract.
+- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through the Serpent exact-draw contract; Hook/Tooth/Ox audit changes are pending rerun.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
