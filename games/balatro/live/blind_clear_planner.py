@@ -23,6 +23,11 @@ class LiveBlindPlanValue:
     expected_score: float
     expected_hands_remaining: float
     expected_discards_remaining: float
+    # Free generated consumables (notably Purple Seal Tarot generation) are a
+    # future-run resource. Keep them as a late tie-break rather than converting
+    # them into invented chip-equivalent utility: survival/progress and remaining
+    # hand/discard resources stay authoritative first.
+    expected_consumables: float = 0.0
 
     def weighted(self, probability: float) -> "LiveBlindPlanValue":
         return LiveBlindPlanValue(
@@ -31,6 +36,7 @@ class LiveBlindPlanValue:
             expected_score=self.expected_score * probability,
             expected_hands_remaining=self.expected_hands_remaining * probability,
             expected_discards_remaining=self.expected_discards_remaining * probability,
+            expected_consumables=self.expected_consumables * probability,
         )
 
     def plus(self, other: "LiveBlindPlanValue") -> "LiveBlindPlanValue":
@@ -43,6 +49,9 @@ class LiveBlindPlanValue:
             ),
             expected_discards_remaining=(
                 self.expected_discards_remaining + other.expected_discards_remaining
+            ),
+            expected_consumables=(
+                self.expected_consumables + other.expected_consumables
             ),
         )
 
@@ -461,11 +470,12 @@ class LiveBlindClearPlanner:
             expected_discards_remaining=float(
                 getattr(state, "discards_remaining", 0)
             ),
+            expected_consumables=float(len(getattr(state, "consumables", ()) or ())),
         )
 
     @staticmethod
     def _zero_value() -> LiveBlindPlanValue:
-        return LiveBlindPlanValue(0.0, 0.0, 0.0, 0.0, 0.0)
+        return LiveBlindPlanValue(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
     @staticmethod
     def _score_outcome_state(score_outcome, fallback_state):
@@ -509,8 +519,8 @@ class LiveBlindClearPlanner:
         )
 
     @classmethod
-    def _estimate_key(cls, estimate: _ActionEstimate) -> tuple[float, int, float, float, float, float]:
-        """Rank estimated probability first, then prefer exact evidence on ties."""
+    def _estimate_key(cls, estimate: _ActionEstimate) -> tuple[float, int, float, float, float, float, float]:
+        """Rank survival first; generated consumables only break later ties."""
         value = estimate.value
         return (
             value.clear_probability,
@@ -519,16 +529,18 @@ class LiveBlindClearPlanner:
             value.expected_hands_remaining,
             value.expected_discards_remaining,
             value.expected_score,
+            value.expected_consumables,
         )
 
     @staticmethod
-    def _value_key(value: LiveBlindPlanValue) -> tuple[float, float, float, float, float]:
+    def _value_key(value: LiveBlindPlanValue) -> tuple[float, float, float, float, float, float]:
         return (
             value.clear_probability,
             value.expected_progress,
             value.expected_hands_remaining,
             value.expected_discards_remaining,
             value.expected_score,
+            value.expected_consumables,
         )
 
     @staticmethod
