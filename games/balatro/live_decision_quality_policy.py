@@ -143,12 +143,12 @@ def _default_d8_thresholds(policy: BuildAwareShopBoosterPolicy) -> bool:
 def _free_booster_safe_to_open(state, result) -> bool:
     """Open only families whose post-open path is already autonomous-safe.
 
-    Arcana/Spectral remain HOLD because their follow-up safety is intentionally
-    deferred to D9/D10. Buffoon still requires capacity because PACK_SELECT cannot
-    autonomously sell an incumbent first.
+    D9/D10 now cover visible Standard, Celestial, Arcana, and Spectral choices and
+    their deterministic targets. Buffoon still requires capacity because PACK_SELECT
+    cannot autonomously sell an incumbent first.
     """
     family = str(getattr(result, "family", "") or "").upper()
-    if family in {"STANDARD", "CELESTIAL"}:
+    if family in {"STANDARD", "CELESTIAL", "ARCANA", "SPECTRAL"}:
         return True
     if family == "BUFFOON":
         jokers = tuple(getattr(state, "jokers", ()) or ())
@@ -159,8 +159,7 @@ def _free_booster_safe_to_open(state, result) -> bool:
 
 def install_live_decision_quality_policy() -> None:
     # Zero-cost autonomous-safe packs have no resource downside, but this authority
-    # must not bypass custom playbook D8 thresholds or families whose post-open
-    # transaction contract is intentionally deferred.
+    # must not bypass custom playbook D8 thresholds.
     if not getattr(BuildAwareShopBoosterPolicy, "_free_booster_authority_installed", False):
         original_booster_recommend = BuildAwareShopBoosterPolicy.recommend
 
