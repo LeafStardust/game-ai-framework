@@ -77,6 +77,10 @@ class BalatroAgentControl:
         return self.directory / "agent.pid"
 
     @property
+    def monitor_pid_path(self) -> Path:
+        return self.directory / "monitor.pid"
+
+    @property
     def stop_path(self) -> Path:
         return self.directory / "stop.request"
 
@@ -114,6 +118,47 @@ class BalatroAgentControl:
             return pid
         self.clear_pid(expected_pid=pid)
         return None
+
+    def read_monitor_pid(self) -> int | None:
+        try:
+            raw = self.monitor_pid_path.read_text(encoding="utf-8").strip()
+        except OSError:
+            return None
+        try:
+            pid = int(raw)
+        except ValueError:
+            return None
+        return pid if pid > 0 else None
+
+    def running_monitor_pid(self) -> int | None:
+        pid = self.read_monitor_pid()
+        if pid is None:
+            return None
+        if _process_is_running(pid):
+            return pid
+        self.clear_monitor_pid(expected_pid=pid)
+        return None
+
+    def claim_monitor_process(self, pid: int | None = None) -> int:
+        self.ensure_directory()
+        actual_pid = int(os.getpid() if pid is None else pid)
+        existing = self.running_monitor_pid()
+        if existing is not None and existing != actual_pid:
+            raise RuntimeError(
+                f"Balatro live monitor is already running as PID {existing}"
+            )
+        self.monitor_pid_path.write_text(str(actual_pid), encoding="utf-8")
+        return actual_pid
+
+    def clear_monitor_pid(self, *, expected_pid: int | None = None) -> None:
+        if expected_pid is not None:
+            current = self.read_monitor_pid()
+            if current is not None and current != int(expected_pid):
+                return
+        try:
+            self.monitor_pid_path.unlink(missing_ok=True)
+        except OSError:
+            pass
 
     def claim_current_process(self, pid: int | None = None) -> int:
         self.ensure_directory()

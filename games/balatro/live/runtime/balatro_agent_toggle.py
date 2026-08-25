@@ -152,6 +152,8 @@ def _validated_hard_stop_status(
 
 
 def launch_monitor(control: BalatroAgentControl) -> None:
+    if control.running_monitor_pid() is not None:
+        return
     command = [
         sys.executable,
         "-m",

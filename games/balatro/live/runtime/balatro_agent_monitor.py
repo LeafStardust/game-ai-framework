@@ -12,7 +12,7 @@ from .agent_control import BalatroAgentControl
 
 
 DEFAULT_REFRESH_SECONDS = 0.50
-DEFAULT_FINAL_HOLD_SECONDS = 5.0
+DEFAULT_FINAL_HOLD_SECONDS: float | None = None
 
 
 def _repo_root() -> Path:
@@ -494,6 +494,7 @@ def build_dashboard(
             "",
             "This window is read-only. Close it at any time; the agent keeps running.",
             "Use BalatroAgentToggle.bat to stop the agent cooperatively.",
+            "The monitor stays open while the agent is OFF and resumes on its next start.",
         ]
     )
     return "\n".join(lines)
@@ -511,10 +512,11 @@ def monitor(
     *,
     run_log_directory: Path,
     refresh_seconds: float = DEFAULT_REFRESH_SECONDS,
-    final_hold_seconds: float = DEFAULT_FINAL_HOLD_SECONDS,
+    final_hold_seconds: float | None = DEFAULT_FINAL_HOLD_SECONDS,
 ) -> int:
     refresh_seconds = max(0.10, float(refresh_seconds))
-    final_hold_seconds = max(0.0, float(final_hold_seconds))
+    if final_hold_seconds is not None:
+        final_hold_seconds = max(0.0, float(final_hold_seconds))
     last_rendered: str | None = None
     off_since: float | None = None
     while True:
@@ -534,12 +536,16 @@ def monitor(
             os.system("cls" if os.name == "nt" else "clear")
             print(rendered, flush=True)
             last_rendered = rendered
-        if str(status.get("state") or "") == "OFF" and pid is None:
+        if (
+            final_hold_seconds is not None
+            and str(status.get("state") or "") == "OFF"
+            and pid is None
+        ):
             if off_since is None:
                 off_since = time.monotonic()
             elif time.monotonic() - off_since >= final_hold_seconds:
                 return 0
-        else:
+        elif final_hold_seconds is not None:
             off_since = None
         time.sleep(refresh_seconds)
 
@@ -556,12 +562,21 @@ def main() -> int:
     run_log_directory = Path(args.run_log_directory)
     if not run_log_directory.is_absolute():
         run_log_directory = _repo_root() / run_log_directory
-    return monitor(
-        BalatroAgentControl(args.control_dir),
-        run_log_directory=run_log_directory,
-        refresh_seconds=args.refresh_seconds,
-        final_hold_seconds=args.final_hold_seconds,
-    )
+    control = BalatroAgentControl(args.control_dir)
+    try:
+        monitor_pid = control.claim_monitor_process()
+    except RuntimeError as error:
+        print(str(error))
+        return 0
+    try:
+        return monitor(
+            control,
+            run_log_directory=run_log_directory,
+            refresh_seconds=args.refresh_seconds,
+            final_hold_seconds=args.final_hold_seconds,
+        )
+    finally:
+        control.clear_monitor_pid(expected_pid=monitor_pid)
 
 
 if __name__ == "__main__":
