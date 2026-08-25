@@ -143,7 +143,7 @@ def test_red_white_d9_skip_bias_rejects_rank_only_standard_card_dilution():
     assert ranked[0].total == pytest.approx(0.35)
     take_score = policy.score_action(state, take)
     assert take_score.total == pytest.approx(-0.65)
-    assert any("vanilla playing-card deck dilution" in note for note in take_score.rationale)
+    assert any("vanilla playing-card deck dilution" in note for note in take_score.notes)
 
 
 def test_red_white_d10_requires_nonnegative_build_context_for_pack_target():
