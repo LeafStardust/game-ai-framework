@@ -15,6 +15,9 @@ from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.superposition import SuperpositionJoker
+from games.balatro.jokers.crazy_joker import CrazyJoker
+from games.balatro.jokers.wily_joker import WilyJoker
+from games.balatro.jokers.zany_joker import ZanyJoker
 from games.balatro.card import BalatroCard
 from games.balatro.state import BalatroState
 
@@ -301,3 +304,36 @@ def test_d2_does_not_use_retired_strategy_tier_shortcut_for_replacement():
     assert decision.options
     assert decision.options[0].total_advantage == pytest.approx(0.5)
     assert all("strategy tier" not in note.lower() for note in decision.rationale)
+
+
+def test_d2_bond_transition_treats_first_axis_as_scouting_not_an_engine():
+    from games.balatro.joker_policy import _bond_transition_bonus
+
+    adjustment, rationale = _bond_transition_bonus(_state(slots=5), ZanyJoker())
+
+    assert 0.0 < adjustment <= 0.50
+    assert any("new-axis rank gain=1.0" in note for note in rationale)
+
+
+def test_d2_bond_transition_penalizes_unrelated_second_hand_axis():
+    from games.balatro.joker_policy import _bond_transition_bonus
+
+    state = _state(slots=5)
+    state.jokers = [ZanyJoker()]
+
+    adjustment, rationale = _bond_transition_bonus(state, CrazyJoker())
+
+    assert adjustment < 0.0
+    assert any("new-axis rank gain=1.0" in note for note in rationale)
+
+
+def test_d2_bond_transition_rewards_deepening_the_existing_hand_axis():
+    from games.balatro.joker_policy import _bond_transition_bonus
+
+    state = _state(slots=5)
+    state.jokers = [ZanyJoker()]
+
+    adjustment, rationale = _bond_transition_bonus(state, WilyJoker())
+
+    assert adjustment > 1.0
+    assert any("established rank gain=1.0" in note for note in rationale)

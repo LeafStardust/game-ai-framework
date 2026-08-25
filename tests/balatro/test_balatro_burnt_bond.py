@@ -15,13 +15,14 @@ def _card(*, seal=""):
     return SimpleNamespace(seal=seal)
 
 
-def _state(*, jokers=(), vouchers=(), deck=(), hand_levels=None):
+def _state(*, jokers=(), vouchers=(), deck=(), hand_levels=None, hand_play_counts=None):
     return SimpleNamespace(
         jokers=list(jokers),
         vouchers=list(vouchers),
         owned_deck=list(deck),
         deck=list(deck),
         hand_levels=dict(hand_levels or {}),
+        hand_play_counts=dict(hand_play_counts or {}),
     )
 
 
@@ -92,15 +93,34 @@ def test_alternative_sources_add_into_one_pool_for_higher_ranks():
     assert result.target == "PAIR"
 
 
-def test_target_defaults_to_high_card_until_composer_supplies_hand_bond():
+def test_target_selects_invested_pair_without_allowing_complex_hands():
     result = evaluate_burnt_bond(
         _state(
             jokers=(_joker("Burnt Joker"),),
             hand_levels={"HIGH_CARD": 7, "PAIR": 12},
         )
     )
+    assert result.target == "PAIR"
+    assert result.contribution == 15.0
+
+
+def test_target_defaults_to_high_card_on_equal_public_evidence():
+    result = evaluate_burnt_bond(_state(jokers=(_joker("Burnt Joker"),)))
+
     assert result.target == "HIGH_CARD"
-    assert result.contribution == 13.0
+
+
+def test_unsupported_requested_target_is_normalized_to_high_card_or_pair():
+    result = evaluate_burnt_bond(
+        _state(
+            jokers=(_joker("Burnt Joker"),),
+            hand_levels={"HIGH_CARD": 1, "PAIR": 2, "THREE_OF_A_KIND": 20},
+        ),
+        context=BurntBondContext(target_hand="THREE_OF_A_KIND"),
+    )
+
+    assert result.target == "PAIR"
+    assert result.contribution == 9.0
 
 
 def test_composer_selected_target_uses_that_hands_permanent_investment():

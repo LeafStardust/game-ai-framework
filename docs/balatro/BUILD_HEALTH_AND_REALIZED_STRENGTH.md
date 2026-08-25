@@ -139,7 +139,7 @@ Carried regression examples:
 - active Baron-Mime-Steel should preserve payoff held cards and exploit appropriate held/retrigger shaping;
 - Green/no-discard and Burnt must not be composed together;
 - Baron/Mime/Steel should prefer safe Steel creation, Red Seal support, and King engine targets without bypassing pack/shop safety;
-- Burnt target leveling should value the Planet matching the actual evaluated target hand rather than a hard-coded default;
+- Burnt target leveling should value the Planet matching its evaluated High Card/Pair target rather than a hard-coded default or a fragile complex hand;
 - Photograph/Hanging Chad and Hack retrigger motifs may both value Red Seal creation while targeting their own mechanically relevant card bodies.
 
 ## 8. Scaling and emergency power

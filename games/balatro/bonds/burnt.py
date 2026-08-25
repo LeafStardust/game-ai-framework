@@ -12,6 +12,7 @@ from games.balatro.bonds.model import (
 
 
 BURNT_BOND_ID = "burnt"
+BURNT_SUPPORTED_TARGETS = frozenset({"HIGH_CARD", "PAIR"})
 
 # Provisional Red/White calibration. These are weighted contribution thresholds,
 # not sequential item requirements.
@@ -58,9 +59,10 @@ BURNT_RANK_POLICIES: dict[BondRank, tuple[str, ...]] = {
 class BurntBondContext:
     """External composition context needed by the Burnt Bond.
 
-    ``target_hand`` is selected by the combined-build/poker-hand Bond layer.
-    Until that layer is implemented, Burnt defaults to HIGH_CARD exactly as the
-    design contract specifies.
+    ``target_hand`` may select High Card or Pair.  More complex hands are not
+    reliable first-discard targets and are deliberately normalized back to the
+    best supported public target instead of turning Burnt into a fragile side
+    engine.
     """
 
     target_hand: str | None = None
@@ -133,6 +135,44 @@ def _extra_discard_contribution(context: BurntBondContext) -> float:
     return float(min(3, bonus))
 
 
+def _hand_token(value: Any) -> str:
+    raw = getattr(value, "value", value)
+    return "_".join(
+        str(raw or "").strip().upper().replace("-", " ").replace("_", " ").split()
+    )
+
+
+def _hand_play_count(state: Any, target: str) -> int:
+    total = 0
+    for hand, value in (getattr(state, "hand_play_counts", {}) or {}).items():
+        if _hand_token(hand) != target:
+            continue
+        try:
+            total += max(0, int(value or 0))
+        except (TypeError, ValueError):
+            continue
+    return total
+
+
+def select_burnt_target_hand(state: Any, requested: str | None = None) -> str:
+    """Select only a repeatable first-discard hand from public run evidence."""
+    normalized = _hand_token(requested)
+    if normalized in BURNT_SUPPORTED_TARGETS:
+        return normalized
+
+    levels = getattr(state, "hand_levels", {}) or {}
+
+    def evidence(target: str) -> tuple[int, int, int]:
+        level = int(levels.get(target, 1) or 1)
+        plays = _hand_play_count(state, target)
+        # Stable default on exact ties; Pair must earn selection through actual
+        # play or permanent investment.
+        default_priority = 1 if target == "HIGH_CARD" else 0
+        return level, plays, default_priority
+
+    return max(BURNT_SUPPORTED_TARGETS, key=evidence)
+
+
 def _rank_for(total: float) -> tuple[BondRank, float | None]:
     rank = BondRank.LOCKED
     for candidate in (
@@ -169,7 +209,7 @@ def evaluate_burnt_bond(
     """
 
     context = context or BurntBondContext()
-    target_hand = (context.target_hand or "HIGH_CARD").upper()
+    target_hand = select_burnt_target_hand(state, context.target_hand)
     jokers = list(getattr(state, "jokers", ()) or ())
 
     has_burnt = _contains_named(jokers, "burntjoker")

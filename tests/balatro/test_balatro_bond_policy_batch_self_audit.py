@@ -124,18 +124,22 @@ def test_prescription_accepts_blue_seal_telemetry(monkeypatch):
     assert bonus == 0.65
 
 
-def test_burnt_planet_name_and_target_format_are_canonicalized(monkeypatch):
+def test_burnt_pair_planet_name_and_target_format_are_canonicalized(monkeypatch):
     _motifs(monkeypatch, "burnt_target_level")
-    monkeypatch.setattr(prescription, "_burnt_target_hand", lambda state: prescription._hand_type("five of a kind"))
-    bonus, _ = prescription.prescription_bonus(object(), kind="PLANET", label="planet_x")
+    monkeypatch.setattr(
+        prescription,
+        "_burnt_target_hand",
+        lambda state: prescription._hand_type("pair"),
+    )
+    bonus, _ = prescription.prescription_bonus(object(), kind="PLANET", label="Mercury")
     assert bonus == 1.50
 
 
-def test_burnt_target_helper_canonicalizes_hyphenated_hand(monkeypatch):
+def test_burnt_target_helper_rejects_unsupported_complex_hand(monkeypatch):
     composition = SimpleNamespace(motifs=())
     developments = (SimpleNamespace(bond_id="burnt", target="three-of-a-kind"),)
     monkeypatch.setattr(prescription, "evaluate_bond_composition", lambda state: (developments, composition))
-    assert prescription._burnt_target_hand(object()) == "THREE_OF_A_KIND"
+    assert prescription._burnt_target_hand(object()) is None
 
 
 def test_rank_ten_alias_is_canonical_for_policy_cards():

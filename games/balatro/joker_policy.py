@@ -242,18 +242,28 @@ def _bond_transition_bonus(
         return 0.0, ()
 
     before_by_id = {d.bond_id: d for d in before}
-    rank_gain = 0.0
+    established_rank_gain = 0.0
+    new_rank_gain = 0.0
     progress_gain = 0.0
     improved = []
     for development in after:
         previous = before_by_id.get(development.bond_id)
-        old_rank = int(getattr(previous, "rank", BondRank.LOCKED)) if previous is not None else 0
+        raw_old_rank = (
+            int(getattr(previous, "rank", BondRank.LOCKED))
+            if previous is not None
+            else int(BondRank.LOCKED)
+        )
+        old_rank = max(0, raw_old_rank)
         new_rank = int(getattr(development, "rank", BondRank.LOCKED))
         if new_rank > old_rank:
-            rank_gain += float(new_rank - old_rank)
+            gain = float(new_rank - old_rank)
+            if old_rank >= int(BondRank.R1):
+                established_rank_gain += gain
+            else:
+                new_rank_gain += gain
             improved.append(
                 f"{development.bond_id}:"
-                f"{BondRank(old_rank).name if old_rank in range(0, 6) else old_rank}"
+                f"{BondRank(raw_old_rank).name if raw_old_rank in range(-1, 6) else raw_old_rank}"
                 f"->{development.rank.name}"
             )
         old_contribution = (
@@ -266,7 +276,7 @@ def _bond_transition_bonus(
             float(getattr(development, "contribution", 0.0) or 0.0) - old_contribution,
         )
         threshold = float(getattr(development, "next_rank_threshold", 0.0) or 0.0)
-        if delta > 0.0 and threshold > 0.0:
+        if old_rank >= int(BondRank.R1) and delta > 0.0 and threshold > 0.0:
             progress_gain += min(1.0, delta / threshold)
 
     coherence_delta = max(
@@ -276,21 +286,67 @@ def _bond_transition_bonus(
     )
     strategy_value, strategy_notes = _strategy_transition_bonus(before_comp, after_comp)
 
-    # A real rank gain is worth materially more than ordinary contextual noise;
-    # progress without a rank is useful but bounded. Strategy formation shares this
-    # exact budget rather than stacking another authority layer on top of it.
-    bonus = min(
-        4.0,
-        2.75 * rank_gain
-        + 0.75 * min(1.0, progress_gain)
-        + 0.10 * min(5.0, coherence_delta)
-        + strategy_value,
+    before_synergies = set(tuple(value) for value in getattr(before_comp, "synergies", ()) or ())
+    after_synergies = set(tuple(value) for value in getattr(after_comp, "synergies", ()) or ())
+    synergy_gain = len(after_synergies.difference(before_synergies))
+
+    before_motifs = {
+        str(motif.motif_id): motif
+        for motif in tuple(getattr(before_comp, "motifs", ()) or ())
+    }
+    motif_gain = 0.0
+    for motif in tuple(getattr(after_comp, "motifs", ()) or ()):
+        previous = before_motifs.get(str(motif.motif_id))
+        old_state = int(getattr(previous, "state", 0) or 0) if previous is not None else 0
+        new_state = int(getattr(motif, "state", 0) or 0)
+        state_gain = max(0, new_state - old_state)
+        old_missing = len(tuple(getattr(previous, "missing_components", ()) or ())) if previous is not None else len(tuple(getattr(motif, "missing_components", ()) or ())) + 1
+        new_missing = len(tuple(getattr(motif, "missing_components", ()) or ()))
+        motif_gain += float(state_gain) + 0.5 * max(0, old_missing - new_missing)
+
+    has_existing_engine = any(
+        int(getattr(development, "rank", BondRank.LOCKED)) >= int(BondRank.R1)
+        for development in before
     )
-    if bonus <= 0.0:
+    aligned = bool(
+        established_rank_gain > 0.0
+        or synergy_gain > 0
+        or motif_gain > 0.0
+        or strategy_value > 0.0
+    )
+
+    if aligned:
+        # Deepen an actual engine, complete a known motif, or advance the selected
+        # strategy.  These are the structural transitions the Bond layer exists to
+        # reward; raw B3 scoring still decides whether the Joker is useful now.
+        adjustment = min(
+            4.0,
+            1.75 * (established_rank_gain + new_rank_gain)
+            + 0.50 * min(1.0, progress_gain)
+            + 0.50 * min(2, synergy_gain)
+            + 0.75 * min(2.0, motif_gain)
+            + strategy_value,
+        )
+    elif new_rank_gain > 0.0 and not has_existing_engine:
+        # The first structural foothold is legitimate exploration, but it must not
+        # receive an almost-maximal bonus merely for taking a Bond from LOCKED/R0
+        # to R1.  The run itself showed this turning random conditional Jokers into
+        # fake engines.
+        adjustment = min(0.50, 0.50 * new_rank_gain)
+    elif new_rank_gain > 0.0:
+        # Once a Bond exists, opening another unrelated axis is diversification,
+        # not composition.  Penalize the structural churn while allowing genuinely
+        # strong standalone or universal Jokers to win on their real value.
+        adjustment = -min(1.50, 0.75 * new_rank_gain)
+    else:
+        adjustment = min(0.50, 0.35 * min(1.0, progress_gain))
+
+    if abs(adjustment) <= 1e-12:
         return 0.0, ()
-    return bonus, (
-        f"canonical Bond transition bonus={bonus:.3f}",
-        f"Bond rank gain={rank_gain:.1f}; progress gain={progress_gain:.3f}; "
+    return adjustment, (
+        f"canonical Bond transition adjustment={adjustment:+.3f}",
+        f"established rank gain={established_rank_gain:.1f}; new-axis rank gain={new_rank_gain:.1f}; "
+        f"progress gain={progress_gain:.3f}; synergy gain={synergy_gain}; motif gain={motif_gain:.3f}; "
         f"coherence delta={coherence_delta:.3f}; strategy value={strategy_value:.3f}",
         *(('Bond rank transitions=' + ', '.join(improved),) if improved else ()),
         *strategy_notes,

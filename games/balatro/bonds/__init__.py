@@ -1,8 +1,10 @@
 from games.balatro.bonds.burnt import (
     BURNT_RANK_POLICIES,
     BURNT_RANK_THRESHOLDS,
+    BURNT_SUPPORTED_TARGETS,
     BurntBondContext,
     evaluate_burnt_bond,
+    select_burnt_target_hand,
 )
 from games.balatro.bonds.catalogue_batch_one import *
 from games.balatro.bonds.catalogue_batch_two import *
@@ -156,7 +158,7 @@ from games.balatro.bonds.evaluation import (
 )
 
 __all__ = [name for name in globals() if name.isupper() or name.startswith("evaluate_") or name.startswith("enrich_") or name.startswith("realize_") or name.startswith("compose_") or name.startswith("project_") or name in {
-    "BondContribution", "BondDevelopment", "BondRank", "BondRealization", "MechanicalRole", "BurntBondContext",
+    "BondContribution", "BondDevelopment", "BondRank", "BondRealization", "MechanicalRole", "BurntBondContext", "select_burnt_target_hand",
     "BondRelationship", "MotifEvaluation", "MotifState", "Composition", "ScoreProjection", "BuildHealth", "BuildHealthState",
     "relationship_between", "conflicts_with_any", "synergies_with", "extra_realizers", "missing_realizers",
     "extra_evaluators", "missing_evaluators",

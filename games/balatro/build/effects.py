@@ -119,6 +119,65 @@ class JokerBehaviorAnalyzer:
     SUITS = ("Hearts", "Diamonds", "Clubs", "Spades")
     HANDS = tuple(PokerHand)
 
+    # Concrete representatives are required here.  Passing a HIGH_CARD card set
+    # with a different ``poker_hand`` label misses Jokers that correctly inspect
+    # the cards through HandEvaluator.contains (Zany, Crazy, Crafty, etc.).
+    _HAND_RANKS: dict[PokerHand, tuple[str, ...]] = {
+        PokerHand.HIGH_CARD: ("A", "Q", "J", "9", "2"),
+        PokerHand.PAIR: ("8", "8", "K", "7", "2"),
+        PokerHand.TWO_PAIR: ("A", "A", "K", "K", "2"),
+        PokerHand.THREE_OF_A_KIND: ("Q", "Q", "Q", "7", "2"),
+        PokerHand.STRAIGHT: ("10", "J", "Q", "K", "A"),
+        PokerHand.FLUSH: ("A", "10", "8", "5", "2"),
+        PokerHand.FULL_HOUSE: ("K", "K", "K", "8", "8"),
+        PokerHand.FOUR_OF_A_KIND: ("8", "8", "8", "8", "A"),
+        PokerHand.STRAIGHT_FLUSH: ("10", "J", "Q", "K", "A"),
+        PokerHand.FIVE_OF_A_KIND: ("7", "7", "7", "7", "7"),
+        PokerHand.FLUSH_HOUSE: ("K", "K", "K", "8", "8"),
+        PokerHand.FLUSH_FIVE: ("7", "7", "7", "7", "7"),
+    }
+    _FLUSH_HANDS = frozenset(
+        {
+            PokerHand.FLUSH,
+            PokerHand.STRAIGHT_FLUSH,
+            PokerHand.FLUSH_HOUSE,
+            PokerHand.FLUSH_FIVE,
+        }
+    )
+    _HAND_SUPERSETS: dict[PokerHand, frozenset[PokerHand]] = {
+        PokerHand.HIGH_CARD: frozenset(PokerHand),
+        PokerHand.PAIR: frozenset(
+            {
+                PokerHand.TWO_PAIR,
+                PokerHand.THREE_OF_A_KIND,
+                PokerHand.FULL_HOUSE,
+                PokerHand.FOUR_OF_A_KIND,
+                PokerHand.FIVE_OF_A_KIND,
+                PokerHand.FLUSH_HOUSE,
+                PokerHand.FLUSH_FIVE,
+            }
+        ),
+        PokerHand.TWO_PAIR: frozenset({PokerHand.FULL_HOUSE, PokerHand.FLUSH_HOUSE}),
+        PokerHand.THREE_OF_A_KIND: frozenset(
+            {
+                PokerHand.FULL_HOUSE,
+                PokerHand.FOUR_OF_A_KIND,
+                PokerHand.FIVE_OF_A_KIND,
+                PokerHand.FLUSH_HOUSE,
+                PokerHand.FLUSH_FIVE,
+            }
+        ),
+        PokerHand.STRAIGHT: frozenset({PokerHand.STRAIGHT_FLUSH}),
+        PokerHand.FLUSH: frozenset(
+            {PokerHand.STRAIGHT_FLUSH, PokerHand.FLUSH_HOUSE, PokerHand.FLUSH_FIVE}
+        ),
+        PokerHand.FULL_HOUSE: frozenset({PokerHand.FLUSH_HOUSE}),
+        PokerHand.FOUR_OF_A_KIND: frozenset(
+            {PokerHand.FIVE_OF_A_KIND, PokerHand.FLUSH_FIVE}
+        ),
+        PokerHand.FIVE_OF_A_KIND: frozenset({PokerHand.FLUSH_FIVE}),
+    }
+
     def describe(self, joker: object) -> EffectDescriptor:
         source = type(joker).__name__
         if not isinstance(joker, Joker):
@@ -256,16 +315,22 @@ class JokerBehaviorAnalyzer:
                 ),
             )
 
-        active_hands: list[PokerHand] = []
+        active_hand_results: dict[PokerHand, _ProbeResult] = {}
         for poker_hand in self.HANDS:
+            hand_cards = self._hand_cards(poker_hand)
             result = self._probe(
                 joker,
-                cards=baseline_cards,
+                cards=hand_cards,
                 held_cards=baseline_cards,
                 poker_hand=poker_hand,
             )
             if compare(hand_feature(poker_hand), result):
-                active_hands.append(poker_hand)
+                active_hand_results[poker_hand] = result
+
+        active_hands = self._minimal_active_hands(active_hand_results)
+        removed_hands = set(active_hand_results).difference(active_hands)
+        requires.difference_update(hand_feature(hand) for hand in removed_hands)
+        scales_with.difference_update(hand_feature(hand) for hand in removed_hands)
 
         for poker_hand in active_hands:
             compare_variants(
@@ -274,7 +339,7 @@ class JokerBehaviorAnalyzer:
                         rank_feature(rank),
                         self._probe(
                             joker,
-                            cards=self._rank_cards(rank),
+                            cards=self._conditioned_rank_cards(poker_hand, rank),
                             held_cards=baseline_cards,
                             poker_hand=poker_hand,
                         ),
@@ -380,6 +445,23 @@ class JokerBehaviorAnalyzer:
                     for seal in sorted(SEALS)
                 ]
             )
+
+        # A probe family activating for every possible rank/suit is not evidence
+        # that the Joker requires thirteen ranks (or all four suits).  It normally
+        # means the synthetic family changed the poker-hand shape: five identical
+        # ranks form a kind and five identical suits form a flush.  Keeping those
+        # features made conditional hand Jokers look universally compatible and
+        # grossly inflated their shop value.
+        self._discard_ubiquitous_family(
+            requires,
+            scales_with,
+            (rank_feature(rank) for rank in self.RANKS),
+        )
+        self._discard_ubiquitous_family(
+            requires,
+            scales_with,
+            (suit_feature(suit) for suit in self.SUITS),
+        )
 
         produced = frozenset(
             feature
@@ -544,6 +626,81 @@ class JokerBehaviorAnalyzer:
     def _rank_cards(cls, rank: str) -> list[BalatroCard]:
         suits = cls.SUITS
         return [BalatroCard(rank, suits[index % len(suits)]) for index in range(5)]
+
+    @classmethod
+    def _hand_cards(cls, poker_hand: PokerHand) -> list[BalatroCard]:
+        ranks = cls._HAND_RANKS[poker_hand]
+        if poker_hand in cls._FLUSH_HANDS:
+            suits = ("Hearts",) * len(ranks)
+        else:
+            suits = tuple(cls.SUITS[index % len(cls.SUITS)] for index in range(len(ranks)))
+        return [BalatroCard(rank, suit) for rank, suit in zip(ranks, suits)]
+
+    @classmethod
+    def _conditioned_rank_cards(
+        cls,
+        poker_hand: PokerHand,
+        rank: str,
+    ) -> list[BalatroCard]:
+        """Hold the classified-hand probe constant while varying its rank signal.
+
+        Kind hands remain valid with repeated ranks.  Straight-aware Jokers may use
+        the analyzer's authoritative classified-hand fallback so a conjunction such
+        as ``Straight AND Ace`` can be isolated without crediting 10/J/Q/K merely
+        because they share the same concrete straight.  Other hands retain their
+        representative cards.
+        """
+        if poker_hand in {
+            PokerHand.PAIR,
+            PokerHand.THREE_OF_A_KIND,
+            PokerHand.FOUR_OF_A_KIND,
+            PokerHand.FIVE_OF_A_KIND,
+            PokerHand.FLUSH_FIVE,
+            PokerHand.STRAIGHT,
+            PokerHand.STRAIGHT_FLUSH,
+        }:
+            # The authoritative classified-hand fallback intentionally isolates a
+            # rank conjunction here.  A real straight containing Ace also contains
+            # 10/J/Q/K, so sliding real straight windows would falsely attribute
+            # Superposition's Ace requirement to all five ranks.
+            return cls._rank_cards(rank)
+
+        return cls._hand_cards(poker_hand)
+
+    @staticmethod
+    def _discard_ubiquitous_family(
+        requires: set[str],
+        scales_with: set[str],
+        features,
+    ) -> None:
+        family = set(features)
+        if family and family.issubset(scales_with):
+            scales_with.difference_update(family)
+            requires.difference_update(family)
+
+    @classmethod
+    def _minimal_active_hands(
+        cls,
+        active: dict[PokerHand, _ProbeResult],
+    ) -> list[PokerHand]:
+        """Remove hand labels explained entirely by a weaker contains-condition."""
+        retained: list[PokerHand] = []
+        for hand in active:
+            result = active[hand]
+            redundant = False
+            for base, base_result in active.items():
+                if hand not in cls._HAND_SUPERSETS.get(base, frozenset()):
+                    continue
+                outputs = result.produced | base_result.produced
+                if all(
+                    result.magnitude(output) <= base_result.magnitude(output) + 1e-12
+                    for output in outputs
+                ):
+                    redundant = True
+                    break
+            if not redundant:
+                retained.append(hand)
+        return retained
 
     @staticmethod
     def _suit_cards(suit: str) -> list[BalatroCard]:

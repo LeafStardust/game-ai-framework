@@ -222,7 +222,9 @@ The transition layer gives bounded value when a candidate:
 
 Projected candidate states use the same two-pass Bond composition evaluation. This value remains capped inside the existing canonical Bond-transition budget.
 
-A fresh low-rank Bond label must not automatically outweigh an incumbent's already-realized engine state. Replacement scoring must preserve the value of ACTIVE/MATURE Bonds and pinned strategy components unless the projected replacement is materially better.
+A first isolated Bond foothold receives only small scouting value. Once any Bond engine exists, opening another unrelated axis is structural diversification and receives a penalty; deepening the existing Bond, creating a semantic synergy, advancing a known motif, or progressing the selected strategy receives the material transition reward. This prevents the shop from collecting unrelated R1 labels instead of assembling a functioning Joker engine.
+
+A fresh low-rank Bond label must not automatically outweigh an incumbent's already-realized engine state. `LOCKED -> R1` is one rank of development, not two, and raw composition-score growth is not itself proof of coherence. Replacement scoring must preserve the value of ACTIVE/MATURE Bonds and pinned strategy components unless the projected replacement is materially better.
 
 ## Observability
 

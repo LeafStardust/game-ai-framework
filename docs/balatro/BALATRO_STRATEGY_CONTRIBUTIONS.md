@@ -21,7 +21,7 @@ Rank density for Kings/Queens/Jacks: `4/6/9/13/18/24/32/40/44+ -> +1/+3/+5/+7/+9
 
 ## Bond contribution truth
 
-**Burnt** `8/12/17/23/30` — hard unlock Burnt Joker. Burnt +8; Blueprint +5; Brainstorm +5; Telescope +4; Space Joker +2; Blue Seals +1/+3/+5/+6; target hand level +1/+3/+5/+7; extra discards +1 each, +3 cap.
+**Burnt** `8/12/17/23/30` — hard unlock Burnt Joker. Burnt +8; Blueprint +5; Brainstorm +5; Telescope +4; Space Joker +2; Blue Seals +1/+3/+5/+6; selected High Card/Pair target level +1/+3/+5/+7; extra discards +1 each, +3 cap. Complex hands are never Burnt targets.
 
 **Held Cards** `4/8/13/18/22` — Baron +6; Shoot the Moon +4; Raised Fist +2; Steel density +1/+3/+5/+7; hand size above 8 +1 each, +3 cap. Mime/Gold/Blue excluded.
 

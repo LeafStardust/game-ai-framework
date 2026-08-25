@@ -256,6 +256,8 @@ Its shop/build value should consider progress added to relevant Bonds, useful th
 
 Do not convert overlapping Bond contribution into imaginary scoring power. Bond ranks are structural information, not additive score estimates.
 
+Likewise, do not reward unrelated rank collection. The first isolated Bond may receive bounded scouting value, but later fresh axes are diversification costs unless they create a real synergy/motif/strategy transition. Material reward belongs to deepening the current engine and filling its mechanically compatible roles.
+
 A D2 candidate that forms or materially advances a pinned strategy must receive bounded transition value even when no Bond rank crosses on that exact transaction.
 
 ## 12. Pivot and transition

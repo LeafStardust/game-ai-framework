@@ -4,6 +4,7 @@ from dataclasses import replace
 from typing import Any
 
 from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.burnt import BURNT_SUPPORTED_TARGETS
 from games.balatro.bonds.motifs import MotifState
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
 from games.balatro.planets import PLANET_CARDS
@@ -59,7 +60,8 @@ def _burnt_target_hand(state: Any) -> str | None:
     for development in developments:
         if development.bond_id == "burnt":
             target = getattr(development, "target", None)
-            return _hand_type(target) if target else None
+            normalized = _hand_type(target) if target else None
+            return normalized if normalized in BURNT_SUPPORTED_TARGETS else None
     return None
 
 

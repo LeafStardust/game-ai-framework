@@ -88,7 +88,7 @@ Suit Bonds require current scoring cards of the relevant suit plus a matching su
 ## Engine / resource family
 
 ### Burnt
-ACTIVE when Burnt has a valid target hand and the first-discard opportunity remains available.
+ACTIVE when Burnt has a selected High Card or Pair target and the first-discard opportunity remains available. More complex poker hands are never selected as Burnt targets because they are not reliable first-discard material.
 
 ### Cash
 Cash payoff Jokers such as Bull/Bootstraps require meaningful bankroll outside an exact scoring frame; income engines such as Rocket/Cloud 9 can be ACTIVE while their economy engine remains available. Exact scoring/round-end telemetry may narrow realization to the current trigger window.

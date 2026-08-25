@@ -163,7 +163,7 @@ Vampire-Midas
   recognize enhanced playing cards as Vampire feedstock
 
 Burnt target-hand leveling
-  prefer the Planet matching the Bond's actual target hand
+  prefer the Planet matching the Bond's selected High Card or Pair target
   prefer Trance / Blue Seal support
   prefer Blue-Seal playing cards
 
@@ -178,5 +178,5 @@ Prescription invariants:
 2. Unsupported, deferred, unavailable, zero-value, or negative-value pack choices cannot be rescued by a prescription bonus.
 3. Shop consumables must first be admitted by D4 and retain positive normalized utility before motif preference is applied.
 4. Prescription bonuses are bounded (`2.50` in visible pack ranking and `1.25` on admitted SHOP consumable utility).
-5. Burnt uses the Bond evaluator's actual target hand. It never silently defaults prescription authority to High Card when another Bond/hand is the target.
+5. Burnt targets only High Card or Pair: whichever has stronger public permanent investment and use, with High Card as the exact-tie default. Complex hands never receive first-discard leveling authority.
 6. Prescription authority does not alter chip arithmetic, Build Health classification, legality, affordability, or immediate survival authority.
