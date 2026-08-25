@@ -44,6 +44,25 @@ def boss_hand_scores_zero(state, hand) -> bool:
     return False
 
 
+def psychic_play_scores_zero(state, cards) -> bool:
+    """Return whether The Psychic rejects this visible play for scoring.
+
+    The action itself remains legal to model deliberate hand-burning/cycling lines.
+    Balatro's boss condition is about the number of cards played, not the detected
+    poker-hand type, so this check belongs at the scorer boundary where ``cards`` is
+    available rather than in the hand-type constraint policy.
+    """
+    if state is None or boss_blind_disabled_by_owned_jokers(state):
+        return False
+    if str(getattr(state, "boss_name", "") or "") != "The Psychic":
+        return False
+    try:
+        played = len(tuple(cards or ()))
+    except TypeError:
+        return False
+    return played < 5
+
+
 class BossBaseScoreScorerMixin:
     """Apply validated boss transformations before ordinary score projection."""
 
@@ -52,10 +71,11 @@ class BossBaseScoreScorerMixin:
             return super().score(hand, state, cards, **kwargs)
 
         # The Mouth debuffs every hand type except the first accepted one for the
-        # rest of the blind; The Eye debuffs a type after it has scored once. Public
-        # live state exposes those histories. Model them as literal zero-score hands
-        # so D1 never treats a forbidden/repeated play as useful progress.
-        if boss_hand_scores_zero(state, hand):
+        # rest of the blind; The Eye debuffs a type after it has scored once. The
+        # Psychic requires five played cards regardless of detected hand type.
+        # Model those public constraints as literal zero-score plays so D1 can keep
+        # legal hand-burning actions without mistaking them for chip progress.
+        if boss_hand_scores_zero(state, hand) or psychic_play_scores_zero(state, cards):
             return HandScore(0, 0, 1.0)
 
         boss_name = str(getattr(state, "boss_name", "") or "")
