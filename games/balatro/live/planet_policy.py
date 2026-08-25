@@ -65,8 +65,6 @@ class LivePlanetPolicy:
 
     def recommend(self, state, planet: object) -> PlanetDecision:
         required = self._required_per_hand(state)
-        if getattr(state, "phase", None) != "SELECTING_HAND":
-            return self._hold(planet, required, "D7 Planet timing currently requires SELECTING_HAND")
         if str(getattr(planet, "category", "")).upper() != "PLANET":
             return self._hold(planet, required, "candidate is not a Planet")
         planet_index = self._identity_index(getattr(state, "consumables", ()), planet)
@@ -105,6 +103,9 @@ class LivePlanetPolicy:
                     "Planet-scaler authority precedes ordinary projection, duplication, and slot-timing preferences",
                 ),
             )
+
+        if getattr(state, "phase", None) != "SELECTING_HAND":
+            return self._hold(planet, required, "D7 Planet timing currently requires SELECTING_HAND")
 
         before = self._best_play_projection(state)
         if before is None:
