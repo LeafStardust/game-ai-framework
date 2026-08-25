@@ -7,6 +7,7 @@ from games.balatro.state import BalatroState
 
 from .effects import (
     HELD_EFFECT,
+    TARGET_CARD,
     ConsumableBehaviorAnalyzer,
     EffectDescriptor,
     JokerBehaviorAnalyzer,
@@ -108,6 +109,13 @@ class BalatroBuildProfiler:
         seal_counts: Counter[str] = Counter()
         edition_counts: Counter[str] = Counter()
         strengths: Counter[str] = Counter()
+
+        # Every owned playing card is already a legal target for card-targeting
+        # effects such as Death. Without this baseline, merely holding such an
+        # effect fabricated an "unmet target:card" gap and made Standard packs look
+        # like build infrastructure despite an ordinary full deck.
+        if deck:
+            strengths[TARGET_CARD] += float(len(deck))
 
         for card in deck:
             rank = getattr(card, "rank", None)

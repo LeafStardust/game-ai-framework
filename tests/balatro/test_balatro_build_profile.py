@@ -2,6 +2,7 @@ from games.balatro.build.effects import (
     HELD_EFFECT,
     HELD_RETRIGGER,
     SCORE_XMULT,
+    TARGET_CARD,
     enhancement_feature,
     hand_feature,
     rank_feature,
@@ -44,6 +45,7 @@ def test_build_profile_counts_public_deck_and_slots():
     assert profile.strength(rank_feature("K")) == 2.0
     assert profile.strength(enhancement_feature("Steel")) == 1.0
     assert profile.strength(HELD_EFFECT) == 1.0
+    assert profile.strength(TARGET_CARD) == 4.0
     assert profile.strength(hand_feature("PAIR")) == 2.0
 
 

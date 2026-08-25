@@ -11,6 +11,7 @@ from games.balatro.shop_booster_policy import (
     BuildAwareShopBoosterPolicy,
 )
 from games.balatro.state import BalatroState
+from games.balatro.tarots import Death
 
 
 def _state(*, money: int = 20, ante: int = 1) -> BalatroState:
@@ -124,6 +125,20 @@ def test_d8_one_selection_standard_pack_is_held_at_zero_scoped_need():
     assert recommendation.build_need_score == pytest.approx(0.0)
     assert recommendation.decision == HOLD
     assert any("random deck bloat" in note for note in recommendation.rationale)
+
+
+def test_d8_held_death_does_not_fabricate_standard_pack_card_target_demand():
+    state = _state(money=50)
+    state.consumables = [Death()]
+
+    recommendation = BuildAwareShopBoosterPolicy().recommend(
+        state,
+        _action("Standard Pack"),
+    )
+
+    assert recommendation.build_need_score == pytest.approx(0.0)
+    assert recommendation.decision == HOLD
+    assert any("relevant unmet build features=none" in note for note in recommendation.rationale)
 
 
 def test_d8_mega_standard_pack_keeps_two_choice_option_value_at_zero_need():
