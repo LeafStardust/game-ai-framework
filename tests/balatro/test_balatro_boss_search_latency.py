@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from games.balatro.live.runtime.playstyle_autonomous_runner import (
+from games.balatro.live.runtime.bond_autonomous_runner import (
     BOSS_D1_MAX_HORIZON,
     BOSS_D1_MAX_SEARCH_NODES,
     LATE_ANTE_D1_MAX_HORIZON,

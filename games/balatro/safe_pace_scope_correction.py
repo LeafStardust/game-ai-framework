@@ -179,7 +179,7 @@ def install_safe_pace_scope_correction() -> None:
                     confidence=self._pace_confidence(selected_ratio),
                     rationale=(
                         "safe-pace production policy: strongest current hand meeting remaining-score / hands-left pace",
-                        "equal-safety playstyle, Steel, Blue Seal, and strategy tie-breaks remain subordinate to score and survival",
+                        "equal-safety held-resource and Bond strategy tie-breaks remain subordinate to score and survival",
                         *baseline.rationale,
                     ),
                 )

@@ -6,7 +6,7 @@ This document defines which policy layers are allowed to own production Red/Whit
 
 The production strategic authority is the canonical Bond/composition system documented in `BALATRO_STRATEGY_SYSTEM.md`, together with Build Health, mechanically exact Joker/card/boss rules, legality/survival guards, bounded D1 planning, and the Red/White cartridge.
 
-The runtime must not use historical Gold/Silver/Bronze strategy-tree state, categorical strategy tiers, or batch-specific empirical policy overlays as an independent competing strategy authority.
+The runtime must not use historical Gold/Silver/Bronze strategy-tree state, the retired categorical `PlaystyleIntent`/Ante lock, categorical strategy tiers, or batch-specific empirical policy overlays as an independent competing strategy authority.
 
 ## Stable mechanics vs empirical overlays
 
@@ -16,7 +16,7 @@ A policy is *not* a stable mechanic merely because it mentions a Joker. Batch-de
 
 ## Legacy overlay retirement
 
-The following historical modules may remain in the repository as forensic/release evidence, but must not be installed as production strategic authority unless their stable mechanic portions are first migrated into canonical mechanic modules:
+The following historical modules have been removed from the production source tree. Their history remains available through version control; they must not return as production strategic authority:
 
 - `five_run_optimization_policy`
 - `five_run_followup_policy`
@@ -24,7 +24,7 @@ The following historical modules may remain in the repository as forensic/releas
 - `latest_five_run_calibration_policy`
 - `latest_zero_five_survival_policy`
 
-Other historically named modules must be reviewed case-by-case. A module may remain active only when it implements a stable mechanic/legality contract and does not independently rank strategy or override canonical Bond/Build-Health decisions.
+Installed policy modules must use stable mechanic/authority names. A module may remain active only when it implements a stable mechanic/legality contract and does not independently rank strategy or override canonical Bond/Build-Health decisions.
 
 ## Installation-order rule
 

@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from games.balatro.v1_0_0_luchador_policy import _should_sell_luchador
+from games.balatro.luchador_activation_policy import _should_sell_luchador
 
 
 class LuchadorJoker:

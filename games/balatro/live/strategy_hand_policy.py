@@ -6,10 +6,9 @@ from dataclasses import replace
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.bonds.model import BondRank, BondRealization
-from games.balatro.build.profile import PlaystyleIntent
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.live.hand_action_policy import PACE_RECOVERY
-from games.balatro.live.hand_playstyle import BuildAwareLiveHandActionPolicy
+from games.balatro.live.hand_build_policy import BuildAwareLiveHandActionPolicy
 
 
 _RANK_VALUE = {
@@ -31,19 +30,13 @@ _PINNED_HELD_CARD_VALUE = 1.25
 _PINNED_RED_SEAL_HELD_BONUS = 0.40
 
 
-class _NeutralIntentTracker:
-    @staticmethod
-    def resolve(profile) -> PlaystyleIntent:
-        return PlaystyleIntent(strengths=(), locked=False, lock_ante=None)
-
-
 class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
     """D1 survival hierarchy with canonical Bond/composition pursuit beneath it."""
 
     VAGABOND_PLAY_OPPORTUNITY_VALUE = 35.0
 
     def __init__(self, *args, strategy_tracker=None, **kwargs) -> None:
-        kwargs["intent_tracker"] = _NeutralIntentTracker()
+        del strategy_tracker
         super().__init__(*args, **kwargs)
         self._hand_evaluator = HandEvaluator()
 
@@ -107,7 +100,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             if self._vagabond_generation_active(self._ranking_state) and plan.action.name == PLAY_CARDS
             else float(plan.value.expected_hands_remaining)
         )
-        return (base[0], base[1], base[2], fit, hand_use, *base[4:])
+        return (base[0], base[1], base[2], fit, hand_use, *base[3:])
 
     def _safe_equivalent_clear_key(self, plan):
         base = super()._safe_equivalent_clear_key(plan)

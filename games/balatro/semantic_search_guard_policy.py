@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-"""Corrections derived from authoritative live batch 20260824T075105Z.
+"""Semantic relationship and bounded D1 candidate-search guards.
 
-The batch exposed three structural defects:
+Production evidence exposed three structural defects:
 - broad scenario-derived rank requirements could connect a hand-payoff Joker to most
   rank-density feature nodes, manufacturing a fake mega-strategy;
 - direct no-discard mechanics such as Green Joker were not protected until the
@@ -19,7 +19,7 @@ from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro import d1_candidate_deadline_policy as deadline_policy
-from games.balatro import latest_batch_no_discard_policy as no_discard_policy
+from games.balatro import strategy_execution_guard_policy as no_discard_policy
 
 
 _MAX_CONCRETE_RANK_REQUIREMENTS = 5
@@ -202,8 +202,8 @@ def _rank_plays_with_short_reserve(self, state, plays, *, limit: int, stage: str
     return ranked[: max(0, limit - len(additions))] + additions
 
 
-def install_latest_075105_correction_policy() -> None:
-    if getattr(LiveBlindClearPlanner, "_latest_075105_correction_installed", False):
+def install_semantic_search_guard_policy() -> None:
+    if getattr(LiveBlindClearPlanner, "_semantic_search_guard_installed", False):
         return
 
     original_relation = behavior_strategy._relation
@@ -316,4 +316,4 @@ def install_latest_075105_correction_policy() -> None:
 
     LiveBlindClearPlanner._candidate_actions = candidate_actions_bounded
     LiveBlindClearPlanner._estimate_key = classmethod(estimate_key)
-    LiveBlindClearPlanner._latest_075105_correction_installed = True
+    LiveBlindClearPlanner._semantic_search_guard_installed = True

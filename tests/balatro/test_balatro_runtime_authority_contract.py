@@ -13,14 +13,16 @@ _RETIRED_MODULES = (
     "latest_zero_five_survival_policy.py",
     "shop_regression_policy.py",
     "playbook_consumable_policy.py",
-)
-
-# These names remain only because the current runtime base class still imports their
-# historical constructor surfaces. They must remain strategically inert; they are
-# not allowed to install or retain categorical playstyle authority.
-_NEUTRAL_COMPATIBILITY_MODULES = (
     "pack_playstyle.py",
     "shop_playstyle.py",
+    "live/hand_playstyle.py",
+    "live/runtime/playstyle_autonomous_runner.py",
+    "live/build_intent_log.py",
+    "latest_075105_correction_policy.py",
+    "latest_batch_no_discard_policy.py",
+    "live_quality_regression_policy.py",
+    "v1_0_0_policy.py",
+    "v1_0_0_luchador_policy.py",
 )
 
 _RETIRED_RUNTIME_TOKENS = (
@@ -50,14 +52,6 @@ def test_retired_strategy_and_batch_modules_are_physically_absent():
     package_dir = Path(games.balatro.__file__).resolve().parent
     for filename in _RETIRED_MODULES:
         assert not (package_dir / filename).exists(), filename
-
-
-def test_compatibility_playstyle_modules_are_explicitly_neutral():
-    package_dir = Path(games.balatro.__file__).resolve().parent
-    for filename in _NEUTRAL_COMPATIBILITY_MODULES:
-        source = (package_dir / filename).read_text(encoding="utf-8")
-        assert "compatibility" in source.lower(), filename
-        assert "install_" not in source, filename
 
 
 def test_production_composition_root_has_only_current_strategy_authority():

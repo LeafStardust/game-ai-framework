@@ -81,6 +81,8 @@ The active architecture contract is [`docs/balatro/BALATRO_STRATEGY_SYSTEM.md`](
 - [x] Keep `LOCKED` / `R0` / `R1–R5` development separate from `DORMANT` / `PARTIAL` / `ACTIVE` / `MATURE` realization.
 - [x] Make live monitor diagnostics Bond-native: power engine, relevant Bonds, contribution/next rank, realization, motifs, synergies/conflicts, and prescriptions.
 - [x] Remove retired tracker/tier dependencies from active Build Health, D1, D2, Mouth, Planet compatibility, and runtime paths found by deterministic/live validation.
+- [x] Remove the remaining pre-Bond `PlaystyleIntent`/Ante-lock authority from D1, D2, D7, D9, D13, telemetry, and production runner wiring; retain only mechanical build profiling beneath canonical Bond/composition strategy.
+- [x] Retire neutral playstyle compatibility shells and replace timestamp/batch/release-named installed modules with stable mechanic/policy names.
 - [x] Make D2 Joker acquisition/replacement include bounded canonical Bond-transition value rather than relying on categorical strategy-tier shortcuts.
 - [x] Make canonical pivot authority compare projected combined-build coherence/distance against realized disruption and protect established engines without making them immortal.
 - [x] Apply bounded motif prescriptions beneath existing pack/shop safety authorities.

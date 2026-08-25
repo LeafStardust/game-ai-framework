@@ -252,11 +252,11 @@ Higher-stake/deck work must not reintroduce categorical strategy trees.
 
 # Offline Bond Numerical Tuning
 
-The planned numerical calibration subsystem is documented in [`docs/balatro/BALATRO_BOND_TUNING.md`](docs/balatro/BALATRO_BOND_TUNING.md).
+The implemented numerical calibration foundation is documented in [`docs/balatro/BALATRO_BOND_TUNING.md`](docs/balatro/BALATRO_BOND_TUNING.md).
 
 Its purpose is to automate empirical coefficient search after semantic/runtime correctness is stable.
 
-The planned architecture is:
+The implemented architecture is:
 
 ```text
 human-defined Bond semantics
@@ -347,7 +347,7 @@ docs and root design files/
     Architecture, roadmap and game-specific design contracts
 ```
 
-Future tuning implementation should remain clearly separated, for example under a Balatro-specific offline tuning/evaluation package rather than the live runtime package.
+The tuning implementation remains separated under Balatro-specific offline tuning/evaluation modules rather than the live runtime package.
 
 ---
 

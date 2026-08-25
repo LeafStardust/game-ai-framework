@@ -11,9 +11,11 @@ A general framework for building autonomous AI agents for different games.
 
 Strategy references:
 
-- [Strategy tree](docs/balatro/BALATRO_STRATEGY_TREE.md)
-- [Strategy relationships](docs/balatro/BALATRO_STRATEGY_RELATIONSHIPS.md)
-- [Strategy tree rules](docs/balatro/BALATRO_STRATEGY_TREE_RULES.md)
+- [Strategy system](docs/balatro/BALATRO_STRATEGY_SYSTEM.md)
+- [Strategy formation](docs/balatro/BALATRO_STRATEGY_FORMATION.md)
+- [Strategy catalogue](docs/balatro/BALATRO_STRATEGY_CATALOGUE.md)
+- [Relationships and motifs](docs/balatro/BALATRO_RELATIONSHIPS_MOTIFS.md)
+- [Runtime policy authority](docs/balatro/RUNTIME_POLICY_AUTHORITY.md)
 
 Install Python dependencies:
 
@@ -35,8 +37,8 @@ py -m games.balatro.live
 
 On Windows, `BalatroAgentToggle.bat` keeps the ordinary win-first behavior. Use
 `BalatroAgentCollectionToggle.bat` for the opt-in collection-first profile mode;
-an explicitly undiscovered visible item then outranks strategy, economy, Ante-6
-commitment, and current-run win probability.
+an explicitly undiscovered visible item then outranks Bond/composition strategy,
+economy, and current-run win probability.
 
 The agent still turns itself off at the first Ante-8 win. To continue into
 Endless for later-Ante collection requirements, click **Continue** in Balatro and

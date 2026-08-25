@@ -8,7 +8,7 @@ from games.balatro.blind_skip_policy import (
     BuildAwareBlindSkipPolicy,
 )
 from games.balatro.build.effects import SCORE_CHIPS, SCORE_MULT, SCORE_XMULT
-from games.balatro.build.profile import BuildProfile, PlaystyleIntent
+from games.balatro.build.profile import BuildProfile
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 
@@ -19,15 +19,6 @@ class _Profiler:
     def profile(self, state):
         del state
         return self.profile_value
-
-
-class _IntentTracker:
-    def __init__(self, intent):
-        self.intent = intent
-
-    def resolve(self, profile):
-        del profile
-        return self.intent
 
 
 def _profile(*, money=0, ante=1, ready=False, prospective_scoring=False):
@@ -72,19 +63,6 @@ def _profile(*, money=0, ante=1, ready=False, prospective_scoring=False):
         consumable_names=(),
         effects=effects,
         feature_strengths=feature_strengths,
-        playstyle_strengths=(),
-    )
-
-
-def _intent(*, ready=False):
-    return PlaystyleIntent(
-        strengths=(
-            (("PAIR", 1.0), ("ECONOMY", 1.0), ("HELD_CARDS", 1.0))
-            if ready
-            else ()
-        ),
-        locked=ready,
-        lock_ante=5 if ready else None,
     )
 
 
@@ -114,15 +92,12 @@ def _snapshot(*, blind_type="SMALL", tag="tag_rare", reward=0, money=0):
     )
 
 
-def _policy(profile, intent):
-    return BuildAwareBlindSkipPolicy(
-        profiler=_Profiler(profile),
-        intent_tracker=_IntentTracker(intent),
-    )
+def _policy(profile):
+    return BuildAwareBlindSkipPolicy(profiler=_Profiler(profile))
 
 
 def test_investment_tag_clearly_beats_early_small_blind_development_value():
-    policy = _policy(_profile(), _intent())
+    policy = _policy(_profile())
 
     decision = policy.decide(
         _snapshot(tag="tag_investment", reward=3),
@@ -135,7 +110,7 @@ def test_investment_tag_clearly_beats_early_small_blind_development_value():
 
 
 def test_rare_tag_does_not_override_weak_build_need_for_shop_access():
-    policy = _policy(_profile(), _intent())
+    policy = _policy(_profile())
 
     decision = policy.decide(
         _snapshot(tag="tag_rare", reward=3),
@@ -148,7 +123,7 @@ def test_rare_tag_does_not_override_weak_build_need_for_shop_access():
 
 
 def test_negative_tag_can_justify_small_blind_skip_for_weak_build():
-    policy = _policy(_profile(), _intent())
+    policy = _policy(_profile())
 
     decision = policy.decide(
         _snapshot(tag="tag_negative", reward=3),
@@ -160,7 +135,7 @@ def test_negative_tag_can_justify_small_blind_skip_for_weak_build():
 
 
 def test_big_blind_skip_pays_explicit_pre_boss_preparation_cost():
-    policy = _policy(_profile(), _intent())
+    policy = _policy(_profile())
 
     decision = policy.decide(
         _snapshot(blind_type="BIG", tag="tag_negative", reward=4),
@@ -173,7 +148,7 @@ def test_big_blind_skip_pays_explicit_pre_boss_preparation_cost():
 
 
 def test_economy_tag_scales_from_public_cash_and_can_justify_skip():
-    policy = _policy(_profile(money=20), _intent())
+    policy = _policy(_profile(money=20))
 
     decision = policy.decide(
         _snapshot(tag="tag_economy", reward=3, money=20),
@@ -186,13 +161,12 @@ def test_economy_tag_scales_from_public_cash_and_can_justify_skip():
 
 
 def test_strong_build_values_lost_shop_less_than_developing_build():
-    weak = _policy(_profile(), _intent()).decide(
+    weak = _policy(_profile()).decide(
         _snapshot(tag="tag_rare", reward=3),
         _state(),
     )
     strong = _policy(
         _profile(ready=True),
-        _intent(ready=True),
     ).decide(
         _snapshot(tag="tag_rare", reward=3),
         _state(),
@@ -206,7 +180,6 @@ def test_strong_build_values_lost_shop_less_than_developing_build():
 def test_prospective_scoring_descriptor_does_not_inflate_build_readiness():
     decision = _policy(
         _profile(prospective_scoring=True),
-        _intent(),
     ).decide(
         _snapshot(tag="tag_rare", reward=3),
         _state(),
@@ -216,7 +189,7 @@ def test_prospective_scoring_descriptor_does_not_inflate_build_readiness():
 
 
 def test_handy_tag_uses_public_run_hand_count_when_it_exceeds_fallback():
-    policy = _policy(_profile(), _intent())
+    policy = _policy(_profile())
 
     decision = policy.decide(
         _snapshot(tag="tag_handy", reward=3),
@@ -228,7 +201,7 @@ def test_handy_tag_uses_public_run_hand_count_when_it_exceeds_fallback():
 
 
 def test_boss_blind_is_never_skipped_even_for_extreme_tag_value():
-    policy = _policy(_profile(), _intent())
+    policy = _policy(_profile())
 
     decision = policy.decide(
         _snapshot(blind_type="BOSS", tag="tag_investment", reward=5),
@@ -239,7 +212,7 @@ def test_boss_blind_is_never_skipped_even_for_extreme_tag_value():
 
 
 def test_observed_blind_reward_is_used_in_play_ev_and_logged_source():
-    policy = _policy(_profile(), _intent())
+    policy = _policy(_profile())
 
     decision = policy.decide(
         _snapshot(tag="tag_rare", reward=7),

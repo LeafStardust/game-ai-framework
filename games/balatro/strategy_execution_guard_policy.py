@@ -150,10 +150,10 @@ def _safe_repeat_play(policy, state, plans, decision):
     )
 
 
-def install_latest_batch_no_discard_policy() -> None:
+def install_strategy_execution_guard_policy() -> None:
     if getattr(
         StrategyAwareLiveHandActionPolicy,
-        "_latest_batch_no_discard_policy_installed",
+        "_strategy_execution_guard_policy_installed",
         False,
     ):
         return
@@ -216,4 +216,4 @@ def install_latest_batch_no_discard_policy() -> None:
         return decision
 
     StrategyAwareLiveHandActionPolicy.decide = decide
-    StrategyAwareLiveHandActionPolicy._latest_batch_no_discard_policy_installed = True
+    StrategyAwareLiveHandActionPolicy._strategy_execution_guard_policy_installed = True

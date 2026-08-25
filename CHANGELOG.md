@@ -18,6 +18,9 @@ This file records notable development changes to the project. Active and future 
 
 ### Changed
 
+- Removed the remaining pre-Bond categorical `PlaystyleIntent` and irreversible Ante lock from Joker valuation, held-card decisions, Planet selection, packs, blind skipping, and production runtime wiring. Canonical Bonds/composition and Strategy Plans are now the only strategic direction source; mechanical build profiling remains a subordinate evidence layer.
+- Replaced `build_intent` telemetry with canonical `bond_build` events containing the mechanical build profile, Bond/composition diagnostics, and behavior-backed synergies.
+- Retired the neutral pack/shop/hand playstyle compatibility shells and renamed installed timestamp-, batch-, and release-labelled modules around the stable mechanics they implement.
 - Converted systematic Bond numerical calibration from a documentation-only plan into an implemented staged offline optimization path. The first live gate is now a clean production-default 3-run baseline on one unchanged repository HEAD; only then may Phase-A candidate trials begin. Promotion requires a fresh comparison with at least **20 completed episodes per arm** plus the implemented objective, Ante, runtime, diversity, win-rate, and illegal-action checks.
 - Continued Red Deck / White Stake post-release calibration from repeated five-run autonomous batches before advancing stake progression.
 - Replaced the old Ante 1–2 “any positive immediate scorer” exception with Build-Health-based survival admission: an off-route purchase must materially improve projected survival rather than merely add local scoring value. Production SHOP survival now reuses D1 whole-blind clear-probability semantics through a strictly bounded public-state opening-hand projection; if that bounded projection is unavailable, the generic Build Health capacity estimate remains the fail-safe.
@@ -39,6 +42,7 @@ This file records notable development changes to the project. Active and future 
 
 ### Fixed
 
+- Fixed stale README links to removed strategy-tree documents and aligned collection-mode wording with Bond/composition authority.
 - Fixed Burnt Bond execution so a safe first discard can level its target hand even when Banner is owned; temporary Banner discard-chip value no longer suppresses the defining Burnt mechanic.
 - Fixed canonical pivot authority so an ACTIVE/MATURE power engine cannot be casually dismantled merely because a replacement creates several fresh partial Bonds; power-engine protection remains a cost, not an absolute lock.
 - Fixed late-game marginal side-pack spending that could drain a vulnerable Ante 5+ run to near-zero cash despite existing reserve diagnostics.

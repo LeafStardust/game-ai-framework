@@ -28,10 +28,11 @@ from games.balatro.forming_strategy_retention_policy import install_forming_stra
 from games.balatro.full_roster_pack_guard import install_full_roster_pack_guard
 from games.balatro.full_roster_shop_guard import install_full_roster_shop_guard
 from games.balatro.late_shop_resource_guard import install_late_shop_resource_guard
-from games.balatro.latest_075105_correction_policy import install_latest_075105_correction_policy
-from games.balatro.latest_batch_no_discard_policy import install_latest_batch_no_discard_policy
+from games.balatro.strategy_execution_guard_policy import install_strategy_execution_guard_policy
+from games.balatro.semantic_search_guard_policy import install_semantic_search_guard_policy
 from games.balatro.live_joker_order_authority import install_live_joker_order_authority
-from games.balatro.live_quality_regression_policy import install_live_quality_regression_policy
+from games.balatro.live_decision_quality_policy import install_live_decision_quality_policy
+from games.balatro.luchador_activation_policy import install_luchador_activation_policy
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
 from games.balatro.pinned_strategy_execution_policy import install_pinned_strategy_execution_policy
@@ -55,8 +56,7 @@ from games.balatro.strategy_resource_coherence_policy import install_strategy_re
 from games.balatro.tactical_scaler_build_health import install_tactical_scaler_build_health_policy
 from games.balatro.tactical_scaler_retention_policy import install_tactical_scaler_retention_policy
 from games.balatro.target_hand_engine_policy import install_target_hand_engine_policy
-from games.balatro.v1_0_0_luchador_policy import install_v1_0_0_luchador_policy
-from games.balatro.v1_0_0_policy import install_v1_0_0_policy
+from games.balatro.shop_transaction_policy import install_shop_transaction_policy
 
 
 install_mouth_first_hand_policy()
@@ -68,8 +68,8 @@ install_d1_debuff_recovery_policy()
 install_safe_pace_optimization_policy()
 install_safe_pace_timeout_patch()
 install_safe_pace_scope_correction()
-install_v1_0_0_policy()
-install_v1_0_0_luchador_policy()
+install_shop_transaction_policy()
+install_luchador_activation_policy()
 install_stable_economy_mechanics_policy()
 install_observatory_planet_policy()
 install_sixth_sense_policy()
@@ -99,16 +99,16 @@ install_strategy_plan_pack_policy()
 install_strategy_resource_coherence_policy()
 install_strategy_authority_correction_policy()
 install_planet_pack_fallback_policy()
-install_live_quality_regression_policy()
+install_live_decision_quality_policy()
 install_stateful_joker_admission_policy()
 install_tactical_scaler_retention_policy()
 install_pinned_strategy_safe_pace_policy()
 # Final semantic execution guards see the fully wrapped D1/shop decisions so later
 # value layers cannot undo defining mechanics.
 install_aces_dna_hand_policy()
-install_latest_batch_no_discard_policy()
+install_strategy_execution_guard_policy()
 install_target_hand_engine_policy()
-install_latest_075105_correction_policy()
+install_semantic_search_guard_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
 install_live_joker_order_authority()

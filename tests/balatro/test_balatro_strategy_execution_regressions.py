@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-import games.balatro.latest_batch_no_discard_policy as no_discard
+import games.balatro.strategy_execution_guard_policy as no_discard
 import games.balatro.strategy_resource_coherence_policy as resource_coherence
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.aces_dna_hand_policy import _safe_dna_rank_plan

@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from games.balatro.latest_batch_no_discard_policy import (
+from games.balatro.strategy_execution_guard_policy import (
     realized_banner_delayed_no_discard,
 )
 

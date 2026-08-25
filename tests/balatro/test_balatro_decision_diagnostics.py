@@ -3,8 +3,8 @@ from __future__ import annotations
 from games.balatro.actions import SELECT_PACK_CARD
 from games.balatro.live.pack import LivePackChoice
 from games.balatro.live.protocol import LiveBalatroSnapshot
-from games.balatro.live.runtime.playstyle_autonomous_runner import (
-    PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
+from games.balatro.live.runtime.bond_autonomous_runner import (
+    BondAwareLiveMemoryInjectedSingleStepRunner,
 )
 from games.balatro.state import BalatroState
 
@@ -56,7 +56,7 @@ def test_d9_decision_carries_actual_ranked_candidates_and_pack_threshold():
     state.jokers = []
     choice = _choice()
 
-    runner = PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
+    runner = BondAwareLiveMemoryInjectedSingleStepRunner(
         _Observer(snapshot),
         translator=_Translator(state),
         pack_choice_reader=lambda: (choice,),

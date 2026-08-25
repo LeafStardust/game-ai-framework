@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-import games.balatro.latest_075105_correction_policy as correction
+import games.balatro.semantic_search_guard_policy as correction
 from games.balatro.actions import BalatroAction, PLAY_CARDS
 from games.balatro.bonds.behavior_strategy import _Node
 

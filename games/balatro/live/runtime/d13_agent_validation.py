@@ -19,8 +19,8 @@ from .live_memory_autonomous_loop_injected import LiveMemoryInjectedAutonomousLo
 from .live_memory_discard_history_observer import (
     DiscardHistorySupervisorLiveMemoryBalatroObserver,
 )
-from .playstyle_autonomous_runner import (
-    PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
+from .bond_autonomous_runner import (
+    BondAwareLiveMemoryInjectedSingleStepRunner,
 )
 
 
@@ -140,7 +140,7 @@ def run_d13_agent_validation(
                 f"observed Ante {start_ante}"
             )
 
-        runner = PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
+        runner = BondAwareLiveMemoryInjectedSingleStepRunner(
             observer,
             translator=FinisherAwareBalatroStateTranslator(),
             bridge=FirstPartyBalatroBridge(

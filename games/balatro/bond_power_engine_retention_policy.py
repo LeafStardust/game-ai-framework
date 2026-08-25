@@ -152,8 +152,8 @@ def install_bond_power_engine_retention_policy() -> None:
 
         # A structural/Bond bonus may improve long-horizon confidence, but it must
         # never turn a whole-build regression into an incumbent sale. The common
-        # baseline already includes immediate score, contextual semantics and locked
-        # playstyle. If the candidate loses that comparison, keep the incumbent.
+        # baseline already includes immediate score and contextual mechanical
+        # semantics. If the candidate loses that comparison, keep the incumbent.
         raw_delta = _raw_replacement_delta(self, state, candidate, index)
         minimum_raw_delta = float(
             getattr(getattr(decision, "thresholds", None), "minimum_replacement_build_delta", 0.0)

@@ -121,10 +121,10 @@ def _should_sell_luchador(state, notes: tuple[str, ...]) -> bool:
     )
 
 
-def install_v1_0_0_luchador_policy() -> None:
+def install_luchador_activation_policy() -> None:
     if getattr(
         LiveMemoryInjectedSingleStepRunner,
-        "_v1_0_0_luchador_policy_installed",
+        "_luchador_activation_policy_installed",
         False,
     ):
         return
@@ -210,4 +210,4 @@ def install_v1_0_0_luchador_policy() -> None:
         )
 
     LiveMemoryInjectedActionDispatcher.dispatch = dispatch
-    LiveMemoryInjectedSingleStepRunner._v1_0_0_luchador_policy_installed = True
+    LiveMemoryInjectedSingleStepRunner._luchador_activation_policy_installed = True

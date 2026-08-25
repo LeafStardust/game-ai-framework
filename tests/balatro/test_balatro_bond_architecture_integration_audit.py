@@ -34,7 +34,7 @@ def test_production_package_installs_all_canonical_bond_integration_layers():
     assert getattr(ShopUtilityScale, "_bond_prescription_policy_installed", False)
     assert getattr(RealizedEngineAnalyzer, "_tactical_scaler_health_installed", False)
     assert getattr(RealizedEngineAnalyzer, "_bond_scaler_health_installed", False)
-    assert getattr(StrategyAwareLiveHandActionPolicy, "_latest_batch_no_discard_policy_installed", False)
+    assert getattr(StrategyAwareLiveHandActionPolicy, "_strategy_execution_guard_policy_installed", False)
     assert getattr(BuildAwareShopBoosterPolicy, "_strategy_resource_coherence_installed", False)
     assert getattr(VoucherAcquisitionPolicy, "_strategy_resource_coherence_installed", False)
 

@@ -13,21 +13,17 @@ from games.balatro.build.joker_strategy import (
     JokerBuildTransitionPlanner,
     JokerBuildValueEvaluator,
 )
-from games.balatro.build.profile import (
-    BalatroBuildProfiler,
-    BalatroPlaystyleIntentTracker,
-)
-from games.balatro.live.build_intent_log import (
-    BuildIntentLogTracker,
-    PreparedBuildIntentLog,
+from games.balatro.build.profile import BalatroBuildProfiler
+from games.balatro.live.bond_build_log import (
+    BondBuildLogTracker,
+    PreparedBondBuildLog,
 )
 from games.balatro.live.hand_action_policy import HandActionThresholds
 from games.balatro.live.path_aware_hand_action_engine import (
     PathAwareLiveHandActionDecisionEngine as LiveHandActionDecisionEngine,
 )
-from games.balatro.live.hand_playstyle import BuildAwareLiveHandActionPolicy
+from games.balatro.live.hand_build_policy import BuildAwareLiveHandActionPolicy
 from games.balatro.live.planet_policy import LivePlanetPolicy
-from games.balatro.pack_playstyle import PackPlaystyleEvaluator
 from games.balatro.playbook import default_balatro_playbooks
 from games.balatro.playbook_joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.playbook_pack_policy import PlaybookBalatroPackPolicy
@@ -35,7 +31,7 @@ from games.balatro.playbook_shop_policy import (
     PlaybookBuildAwareShopArbiter,
     PlaybookVoucherAwareBalatroShopPolicy,
 )
-from games.balatro.shop_playstyle import BuildAwareShopItemValueEstimator
+from games.balatro.shop_policy import DefaultShopItemValueEstimator
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 
 from .live_memory_autonomous_step_injected import (
@@ -73,22 +69,20 @@ def _bounded_d1_limits(state, max_horizon: int, max_search_nodes: int):
 
 
 @dataclass(frozen=True)
-class PlaystyleAutonomousStepDecision(AutonomousStepDecision):
-    build_intent: PreparedBuildIntentLog | None = None
+class BondAutonomousStepDecision(AutonomousStepDecision):
+    bond_build: PreparedBondBuildLog | None = None
     decision_diagnostics: dict[str, Any] | None = None
 
 
-class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
+class BondAwareLiveMemoryInjectedSingleStepRunner(
     LiveMemoryInjectedSingleStepRunner
 ):
-    """Production single-step runner with one run-scoped build-intent lifecycle.
+    """Production single-step runner with canonical Bond/build telemetry.
 
     The base runner remains the mechanics/execution implementation. This adapter
-    wires one competence-layer playstyle tracker into D1 hand decisions, D2
-    Joker/shop valuation, D7 Planet choices, D9 booster choices, D13 blind-skip
-    strategy, D14 cross-category shop valuation, structured run logging, and the
-    dedicated D3 persistent-voucher shop policy. A supervisor retry creates a fresh
-    runner and therefore a fresh playstyle tracker.
+    wires mechanical build evaluation into D1, D2, D7, D9, D13, and D14 while
+    leaving strategic direction exclusively to canonical Bond/composition and
+    StrategyPlan layers. A supervisor retry creates a fresh telemetry lifecycle.
     """
 
     def __init__(self, observer, **kwargs) -> None:
@@ -99,32 +93,24 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
         )
         super().__init__(observer, **kwargs)
 
-        self.playstyle_profiler = BalatroBuildProfiler()
-        self.playstyle_intent_tracker = BalatroPlaystyleIntentTracker()
-        self.build_intent_log_tracker = BuildIntentLogTracker(
-            profiler=self.playstyle_profiler,
-            intent_tracker=self.playstyle_intent_tracker,
+        self.build_profiler = BalatroBuildProfiler()
+        self.bond_build_log_tracker = BondBuildLogTracker(
+            profiler=self.build_profiler,
         )
         self.blind_skip_policy = BuildAwareBlindSkipPolicy(
-            profiler=self.playstyle_profiler,
-            intent_tracker=self.playstyle_intent_tracker,
+            profiler=self.build_profiler,
         )
 
         if not custom_consumable_timing_policy:
             self.consumable_timing_policy.planet_policy = LivePlanetPolicy(
                 hand_evaluator=self.consumable_timing_policy.hand_evaluator,
-                profiler=self.playstyle_profiler,
-                intent_tracker=self.playstyle_intent_tracker,
             )
 
-        joker_build_value = JokerBuildValueEvaluator(
-            profiler=self.playstyle_profiler,
-            intent_tracker=self.playstyle_intent_tracker,
-        )
+        joker_build_value = JokerBuildValueEvaluator()
         joker_transition_planner = JokerBuildTransitionPlanner(
             evaluator=joker_build_value,
         )
-        shared_item_estimator = BuildAwareShopItemValueEstimator(
+        shared_item_estimator = DefaultShopItemValueEstimator(
             joker_build_value=joker_build_value,
         )
         self.shop_policy = PlaybookVoucherAwareBalatroShopPolicy(
@@ -142,21 +128,17 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
         )
         self.pack_policy = PlaybookBalatroPackPolicy(
             item_estimator=shared_item_estimator,
-            playstyle_evaluator=PackPlaystyleEvaluator(
-                profiler=self.playstyle_profiler,
-                intent_tracker=self.playstyle_intent_tracker,
-            ),
         )
         self._pending_decision_diagnostics: dict[str, Any] = {}
         self.last_hand_action_engine = None
         self.last_hand_action_decision = None
 
         if not custom_hand_recommender:
-            self.hand_recommender = self._recommend_hand_with_playstyle
+            self.hand_recommender = self._recommend_hand_with_bonds
         if not custom_pack_recommender:
             self.pack_recommender = self._recommend_pack_with_diagnostics
 
-    def decide(self) -> PlaystyleAutonomousStepDecision:
+    def decide(self) -> BondAutonomousStepDecision:
         self._pending_decision_diagnostics = {}
         decision = super().decide()
         playbook = default_balatro_playbooks().for_state(decision.state)
@@ -164,7 +146,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
         # The mechanics runner keeps the v0.9 snapshot-only D13 fallback for legacy
         # callers. Production replaces only a settled BLIND_SELECT recommendation
         # with the contextual v1.0 policy, reusing the exact translated state and
-        # run-scoped build intent already shared by the other competence layers.
+        # run-scoped mechanical build profile shared by the competence layers.
         if str(decision.snapshot.phase) == "BLIND_SELECT":
             thresholds = BlindSkipThresholds.from_mapping(
                 playbook.thresholds_for("D13")
@@ -222,14 +204,14 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
             "active_thresholds",
             playbook.strategy.get("decision_thresholds", {}),
         )
-        return PlaystyleAutonomousStepDecision(
+        return BondAutonomousStepDecision(
             snapshot=decision.snapshot,
             state=decision.state,
             action=decision.action,
             source=decision.source,
             notes=decision.notes,
             pack_signature=decision.pack_signature,
-            build_intent=self.build_intent_log_tracker.prepare(decision.state),
+            bond_build=self.bond_build_log_tracker.prepare(decision.state),
             decision_diagnostics=diagnostics,
         )
 
@@ -239,8 +221,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
     ) -> BuildAwareLiveHandActionPolicy:
         return BuildAwareLiveHandActionPolicy(
             thresholds,
-            profiler=self.playstyle_profiler,
-            intent_tracker=self.playstyle_intent_tracker,
+            profiler=self.build_profiler,
         )
 
     def _recommend_pack_with_diagnostics(self, state, snapshot):
@@ -278,7 +259,7 @@ class PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
         notes.extend(str(note) for note in selected.notes)
         return selected.action, tuple(notes), _pack_choice_signature(choices)
 
-    def _recommend_hand_with_playstyle(self, state, snapshot):
+    def _recommend_hand_with_bonds(self, state, snapshot):
         del snapshot
         playbook = default_balatro_playbooks().for_state(state)
         thresholds = HandActionThresholds.from_mapping(

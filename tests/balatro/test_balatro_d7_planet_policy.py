@@ -2,12 +2,6 @@ from types import SimpleNamespace
 
 from games.balatro.build.joker_semantics import CONSUMABLE_DUPLICATE
 from games.balatro.card import BalatroCard
-from games.balatro.joker import (
-    Joker,
-    JokerContext,
-    Playstyle,
-    PlaystyleAffinity,
-)
 from games.balatro.live.consumable_timing import LiveConsumableTimingPolicy
 from games.balatro.live.planet_policy import (
     HOLD,
@@ -105,26 +99,6 @@ class _EqualPlanetOutlook:
             future_value=0.5,
             speculative=False,
         )
-
-
-class _PairAlignedJoker(Joker):
-    playstyle_affinities = {
-        Playstyle.PAIR: PlaystyleAffinity.POSITIVE,
-        Playstyle.FLUSH: PlaystyleAffinity.NEGATIVE,
-    }
-
-    def apply(self, context: JokerContext) -> JokerContext:
-        return context
-
-
-class _FlushAlignedJoker(Joker):
-    playstyle_affinities = {
-        Playstyle.FLUSH: PlaystyleAffinity.POSITIVE,
-        Playstyle.PAIR: PlaystyleAffinity.NEGATIVE,
-    }
-
-    def apply(self, context: JokerContext) -> JokerContext:
-        return context
 
 
 class _DuplicateDescriptor:
@@ -256,30 +230,6 @@ def test_planet_inventory_selection_prefers_current_build_hand_upgrade():
     assert decisions[0].immediate_score_gain > decisions[1].immediate_score_gain
 
 
-def test_equal_safety_planets_use_b3_intent_as_material_tiebreak():
-    state = _state()
-    state.ante = 4
-    state.jokers = [_PairAlignedJoker()]
-    state.hand_play_counts["PAIR"] = 1
-    state.hand_play_counts["FLUSH"] = 1
-    mercury = create_planet("MERCURY")
-    jupiter = create_planet("JUPITER")
-    state.consumables = [jupiter, mercury]
-    policy = LivePlanetPolicy(
-        hand_evaluator=_EqualPlanetUpgradeEvaluator(),
-        planet_outlook=_EqualPlanetOutlook(),
-    )
-
-    decisions = policy.recommend_inventory(state)
-
-    assert decisions[0].planet is mercury
-    assert decisions[0].immediate_score_gain == decisions[1].immediate_score_gain
-    assert decisions[0].future_value == decisions[1].future_value
-    assert decisions[0].playstyle_fit > 0.0
-    assert decisions[1].playstyle_fit < 0.0
-    assert any("D7 playstyle fit=" in note for note in decisions[0].rationale)
-
-
 def test_d7_future_outlook_breaks_equal_immediate_value_against_neptune():
     state = _state()
     state.jokers = []
@@ -298,39 +248,6 @@ def test_d7_future_outlook_breaks_equal_immediate_value_against_neptune():
     assert decisions[0].future_value > decisions[1].future_value
     assert decisions[1].structural_feasibility < 0.01
     assert any("Planet speculative=True" in note for note in decisions[1].rationale)
-
-
-def test_d7_ante_five_lock_survives_later_conflicting_build_change():
-    state = _state()
-    state.ante = 4
-    state.jokers = [_PairAlignedJoker()]
-    state.hand_play_counts["PAIR"] = 1
-    state.hand_play_counts["FLUSH"] = 1
-    mercury = create_planet("MERCURY")
-    jupiter = create_planet("JUPITER")
-    state.consumables = [jupiter, mercury]
-    policy = LivePlanetPolicy(
-        hand_evaluator=_EqualPlanetUpgradeEvaluator(),
-        planet_outlook=_EqualPlanetOutlook(),
-    )
-
-    early = policy.recommend_inventory(state)
-    assert early[0].planet is mercury
-    assert early[0].playstyle_locked is False
-
-    state.ante = 5
-    locked = policy.recommend_inventory(state)
-    assert locked[0].planet is mercury
-    assert locked[0].playstyle_locked is True
-
-    state.ante = 6
-    state.jokers = [_FlushAlignedJoker()]
-    after_conflict = policy.recommend_inventory(state)
-
-    assert after_conflict[0].planet is mercury
-    assert after_conflict[0].playstyle_locked is True
-    assert after_conflict[0].playstyle_fit > 0.0
-    assert after_conflict[1].playstyle_fit < 0.0
 
 
 def test_production_consumable_timing_routes_planet_through_d7_policy():

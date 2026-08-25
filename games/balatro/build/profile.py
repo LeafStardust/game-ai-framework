@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 
-from games.balatro.joker import Playstyle
 from games.balatro.state import BalatroState
 
 from .effects import (
@@ -33,10 +32,9 @@ class BuildProfile:
     can reason about what they can create without pretending that transformation has
     already happened.
 
-    ``playstyle_strengths`` is a signed, composable direction vector derived from
-    owned Joker declarations. Positive values are evidence for an axis; negative
-    values are evidence against it; absent/zero axes remain neutral. Candidate
-    Jokers are intentionally not included until they are actually owned.
+    Strategic direction is intentionally absent from this data model. Canonical
+    Bonds/composition derive strategy from the same public mechanics without a
+    second categorical intent vector or an irreversible Ante lock.
     """
 
     money: int
@@ -56,14 +54,9 @@ class BuildProfile:
     consumable_names: tuple[str, ...]
     effects: tuple[EffectDescriptor, ...]
     feature_strengths: tuple[tuple[str, float], ...]
-    playstyle_strengths: tuple[tuple[str, float], ...] = ()
 
     def strength(self, feature: str) -> float:
         return dict(self.feature_strengths).get(feature, 0.0)
-
-    def playstyle_strength(self, playstyle: Playstyle | str) -> float:
-        key = playstyle.value if isinstance(playstyle, Playstyle) else str(playstyle)
-        return dict(self.playstyle_strengths).get(key, 0.0)
 
     def supports(self, feature: str) -> bool:
         return self.strength(feature) > 0.0
@@ -81,90 +74,6 @@ class BuildProfile:
             descriptor
             for descriptor in self.effects
             if descriptor.kind == kind
-        )
-
-
-@dataclass(frozen=True)
-class PlaystyleIntent:
-    """Current or committed composable build direction for one run.
-
-    Antes 1-4 remain exploratory: callers receive the current build-derived vector
-    and are free to pivot as the run changes. The first observation at Ante 5 or
-    later freezes the most recent meaningful vector for the remainder of that run.
-    An empty committed vector is valid and means the run reached the lock boundary
-    without enough playstyle evidence to prefer any declared axis.
-    """
-
-    strengths: tuple[tuple[str, float], ...]
-    locked: bool
-    lock_ante: int | None = None
-
-    def strength(self, playstyle: Playstyle | str) -> float:
-        key = playstyle.value if isinstance(playstyle, Playstyle) else str(playstyle)
-        return dict(self.strengths).get(key, 0.0)
-
-
-class BalatroPlaystyleIntentTracker:
-    """Persist dynamic playstyle evidence and lock it starting at Ante 5.
-
-    The tracker is deliberately reset explicitly at the start of each new run.
-    Ante numbers are not a safe run-identity signal because ordinary Balatro effects
-    can change Ante within a live run.
-    """
-
-    LOCK_ANTE = 5
-
-    def __init__(self) -> None:
-        self._last_meaningful: tuple[tuple[str, float], ...] = ()
-        self._committed: tuple[tuple[str, float], ...] | None = None
-
-    @property
-    def locked(self) -> bool:
-        return self._committed is not None
-
-    def reset(self) -> None:
-        self._last_meaningful = ()
-        self._committed = None
-
-    @staticmethod
-    def _meaningful(
-        strengths: tuple[tuple[str, float], ...],
-    ) -> tuple[tuple[str, float], ...]:
-        return tuple(
-            sorted(
-                (str(key), float(value))
-                for key, value in strengths
-                if float(value) != 0.0
-            )
-        )
-
-    def resolve(self, profile: BuildProfile) -> PlaystyleIntent:
-        current = self._meaningful(profile.playstyle_strengths)
-
-        if self._committed is not None:
-            return PlaystyleIntent(
-                strengths=self._committed,
-                locked=True,
-                lock_ante=self.LOCK_ANTE,
-            )
-
-        # Antes 1-4 are fully pivotable. Remember the latest non-neutral direction
-        # only so an exact cancellation at the Ante-5 boundary does not erase the
-        # direction the run had immediately before commitment.
-        if int(profile.ante) < self.LOCK_ANTE:
-            if current:
-                self._last_meaningful = current
-            return PlaystyleIntent(
-                strengths=current,
-                locked=False,
-                lock_ante=None,
-            )
-
-        self._committed = current or self._last_meaningful
-        return PlaystyleIntent(
-            strengths=self._committed,
-            locked=True,
-            lock_ante=self.LOCK_ANTE,
         )
 
 
@@ -199,7 +108,6 @@ class BalatroBuildProfiler:
         seal_counts: Counter[str] = Counter()
         edition_counts: Counter[str] = Counter()
         strengths: Counter[str] = Counter()
-        playstyle_strengths: Counter[str] = Counter()
 
         for card in deck:
             rank = getattr(card, "rank", None)
@@ -259,23 +167,6 @@ class BalatroBuildProfiler:
             for feature in descriptor.produces:
                 strengths[feature] += 1.0
 
-            # Playstyle declarations are deliberately directional rather than
-            # weighted scores. The build profile aggregates owned declarations;
-            # evaluation decides later how strongly that evidence should matter.
-            for playstyle, affinity in getattr(
-                joker,
-                "playstyle_affinities",
-                {},
-            ).items():
-                key = (
-                    playstyle.value
-                    if isinstance(playstyle, Playstyle)
-                    else str(playstyle)
-                )
-                value = int(affinity)
-                if value in {-1, 1}:
-                    playstyle_strengths[key] += float(value)
-
         consumable_names: list[str] = []
         for consumable in getattr(state, "consumables", ()):
             descriptor = describe_build_item(
@@ -317,5 +208,4 @@ class BalatroBuildProfiler:
             consumable_names=tuple(consumable_names),
             effects=tuple(effects),
             feature_strengths=tuple(sorted(strengths.items())),
-            playstyle_strengths=tuple(sorted(playstyle_strengths.items())),
         )

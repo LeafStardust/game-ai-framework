@@ -42,7 +42,7 @@ _BUILD_SIGNAL_TERMS = (
     "scales with",
     "scaling source",
     "amplif",
-    "playstyle",
+    "bond",
     "prospective deck feature",
     "target gain",
 )
@@ -107,8 +107,6 @@ def _build_signal_kind(note: str) -> str | None:
             return kind
 
     lowered = note.lower()
-    if "playstyle" in lowered:
-        return "PLAYSTYLE"
     if any(term in lowered for term in _BUILD_SIGNAL_TERMS):
         return "INTERACTION"
     return None
@@ -136,13 +134,15 @@ def build_rationale_log_payload(decision) -> dict[str, Any] | None:
         "decision_source": str(decision.source),
         "signals": signals,
     }
-    prepared_build_intent = getattr(decision, "build_intent", None)
-    if prepared_build_intent is not None:
-        prepared_payload = getattr(prepared_build_intent, "payload", None)
+    prepared_bond_build = getattr(decision, "bond_build", None)
+    if prepared_bond_build is not None:
+        prepared_payload = getattr(prepared_bond_build, "payload", None)
         if isinstance(prepared_payload, dict):
-            intent = prepared_payload.get("intent")
-            if intent is not None:
-                payload["intent_before"] = _sanitize_public_value(intent)
+            bond_strategy = prepared_payload.get("bond_strategy")
+            if bond_strategy is not None:
+                payload["bond_strategy_before"] = _sanitize_public_value(
+                    bond_strategy
+                )
     return payload
 
 
@@ -161,7 +161,7 @@ def log_successful_live_transition(
     *,
     run_id: str,
     directory: str | Path = "logs/balatro/runs",
-    build_intent: dict[str, Any] | None = None,
+    bond_build: dict[str, Any] | None = None,
 ) -> BalatroRunExperienceLogger:
     """Append one already-successful guarded live transition to a durable run log."""
     normalized_run_id = str(run_id).strip()
@@ -183,20 +183,20 @@ def log_successful_live_transition(
     after_state = _snapshot_log_state(result.after)
     action = action_log_payload(decision)
     build_rationale = build_rationale_log_payload(decision)
-    prepared_build_intent = getattr(decision, "build_intent", None)
-    commit_prepared_build_intent = False
-    if build_intent is None and prepared_build_intent is not None:
-        build_intent = getattr(prepared_build_intent, "payload", prepared_build_intent)
-        commit_prepared_build_intent = hasattr(prepared_build_intent, "commit")
+    prepared_bond_build = getattr(decision, "bond_build", None)
+    commit_prepared_bond_build = False
+    if bond_build is None and prepared_bond_build is not None:
+        bond_build = getattr(prepared_bond_build, "payload", prepared_bond_build)
+        commit_prepared_bond_build = hasattr(prepared_bond_build, "commit")
 
     if logger.sequence == 0:
         logger.run_started(state=before_state)
 
     logger.observation(before_state)
-    if build_intent is not None:
-        logger.record("build_intent", **_sanitize_public_value(build_intent))
-        if commit_prepared_build_intent:
-            prepared_build_intent.commit()
+    if bond_build is not None:
+        logger.record("bond_build", **_sanitize_public_value(bond_build))
+        if commit_prepared_bond_build:
+            prepared_bond_build.commit()
     rationale = {
         "decision_source": str(decision.source),
         "notes": [str(note) for note in decision.notes],
@@ -207,7 +207,17 @@ def log_successful_live_transition(
     decision_diagnostics = getattr(decision, "decision_diagnostics", None)
     postmortem = dict(decision_diagnostics) if isinstance(decision_diagnostics, dict) else {}
     try:
-        postmortem["bond_strategy"] = bond_strategy_diagnostics(state)
+        prepared_payload = getattr(prepared_bond_build, "payload", None)
+        prepared_strategy = (
+            prepared_payload.get("bond_strategy")
+            if isinstance(prepared_payload, dict)
+            else None
+        )
+        postmortem["bond_strategy"] = (
+            prepared_strategy
+            if isinstance(prepared_strategy, dict)
+            else bond_strategy_diagnostics(state)
+        )
     except (AttributeError, KeyError, TypeError, ValueError):
         # Strategy telemetry is observational and must never block a successful action.
         pass

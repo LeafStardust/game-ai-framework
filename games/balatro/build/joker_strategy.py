@@ -5,34 +5,22 @@ from dataclasses import dataclass
 
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
-from games.balatro.joker import Joker, Playstyle
+from games.balatro.joker import Joker
 from games.balatro.joker_edition import joker_has_negative_edition
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 
-from .profile import (
-    BalatroBuildProfiler,
-    BalatroPlaystyleIntentTracker,
-    PlaystyleIntent,
-)
 from .semantic_synergy import SemanticContextualJokerSynergyEvaluator
 from .synergy import ContextualBuildEvaluation, ContextualJokerSynergyEvaluator
 
 
 @dataclass(frozen=True)
 class JokerBuildValueWeights:
-    """Combine immediate scoring, contextual semantics and playstyle fit.
-
-    Joker files only declare ternary playstyle direction (+1/-1, neutral omitted).
-    This evaluator owns the weighting so individual Joker definitions never contain
-    arbitrary strategic score magnitudes. Shop economics remain in the shop policy.
-    """
+    """Combine immediate scoring with contextual mechanical semantics."""
 
     direct_scoring_gain: float = 6.0
     contextual_gain: float = 1.0
     direct_scoring_cap: float = 12.0
-    playstyle_gain: float = 4.0
-    locked_conflict_multiplier: float = 2.0
 
 
 @dataclass(frozen=True)
@@ -41,9 +29,6 @@ class JokerBuildValue:
     direct_scoring_gain: float
     direct_scoring_value: float
     contextual: ContextualBuildEvaluation
-    playstyle_fit: float
-    playstyle_value: float
-    playstyle_locked: bool
     total_gain: float
     rationale: tuple[str, ...]
 
@@ -84,14 +69,9 @@ class JokerBuildValueEvaluator:
     """Measure one Joker against the current complete build.
 
     The deterministic score probe measures the whole scoring stack before and after
-    adding the candidate. B3 contributes structural/long-horizon interactions. The
-    playstyle layer then compares the candidate's declarative signed affinities with
-    the run's current intent.
-
-    Antes 1-4 remain pivotable because intent is recomputed from the current build.
-    On the first Ante-5-or-later evaluation, the tracker freezes the current/recent
-    intent for the rest of that evaluator's run lifecycle. Call
-    ``reset_playstyle_intent`` when beginning a new attempt.
+    adding the candidate. B3 contributes structural/long-horizon interactions.
+    Canonical Bond-transition, pivot, conflict and StrategyPlan layers apply
+    strategic direction after this mechanically grounded base value.
     """
 
     PROBES = (
@@ -182,77 +162,11 @@ class JokerBuildValueEvaluator:
         *,
         scorer: BalatroScorer | None = None,
         contextual: ContextualJokerSynergyEvaluator | None = None,
-        profiler: BalatroBuildProfiler | None = None,
-        intent_tracker: BalatroPlaystyleIntentTracker | None = None,
         weights: JokerBuildValueWeights | None = None,
     ) -> None:
         self.scorer = scorer or BalatroScorer()
         self.contextual = contextual or SemanticContextualJokerSynergyEvaluator()
-        self.profiler = profiler or BalatroBuildProfiler()
-        self.intent_tracker = intent_tracker or BalatroPlaystyleIntentTracker()
         self.weights = weights or JokerBuildValueWeights()
-
-    def reset_playstyle_intent(self) -> None:
-        """Reset run-scoped commitment before evaluating a fresh attempt."""
-
-        self.intent_tracker.reset()
-
-    @staticmethod
-    def _exploratory_influence(ante: int) -> float:
-        # Ante 4 may exert full current-build pressure while remaining pivotable.
-        # Irreversibility begins only when the Ante-5 lock is captured.
-        if ante <= 1:
-            return 0.25
-        if ante == 2:
-            return 0.50
-        if ante == 3:
-            return 0.75
-        return 1.0
-
-    @staticmethod
-    def _playstyle_fit(joker: Joker, intent: PlaystyleIntent) -> float:
-        affinities = getattr(joker, "playstyle_affinities", {})
-        if not affinities:
-            return 0.0
-
-        contributions: list[float] = []
-        for playstyle, affinity in affinities.items():
-            key = (
-                playstyle
-                if isinstance(playstyle, Playstyle)
-                else str(playstyle)
-            )
-            strength = intent.strength(key)
-            # Multiple owned Jokers may reinforce one axis. The candidate contract
-            # is directional, so magnitude beyond one is evidence confidence rather
-            # than an excuse for unbounded score inflation.
-            strength = max(-1.0, min(1.0, float(strength)))
-            contributions.append(strength * float(int(affinity)))
-
-        return sum(contributions) / len(contributions) if contributions else 0.0
-
-    def _playstyle_value(
-        self,
-        state: BalatroState,
-        joker: Joker,
-    ) -> tuple[float, float, PlaystyleIntent]:
-        profile = self.profiler.profile(state)
-        intent = self.intent_tracker.resolve(profile)
-        fit = self._playstyle_fit(joker, intent)
-        influence = (
-            1.0
-            if intent.locked
-            else self._exploratory_influence(int(profile.ante))
-        )
-        value = fit * self.weights.playstyle_gain * influence
-
-        # After Ante 5 the direction is committed. A conflicting Joker can still
-        # win on overwhelming survival/score evidence, but ordinary local utility
-        # should not casually pull the run into the opposite play pattern.
-        if intent.locked and fit < 0.0:
-            value *= self.weights.locked_conflict_multiplier
-
-        return fit, value, intent
 
     def evaluate(self, state: BalatroState, joker: object) -> JokerBuildValue:
         if not isinstance(joker, Joker):
@@ -262,9 +176,6 @@ class JokerBuildValueEvaluator:
                 direct_scoring_gain=0.0,
                 direct_scoring_value=0.0,
                 contextual=contextual,
-                playstyle_fit=0.0,
-                playstyle_value=0.0,
-                playstyle_locked=False,
                 total_gain=0.0,
                 rationale=("candidate is not a modeled Joker",),
             )
@@ -279,31 +190,19 @@ class JokerBuildValueEvaluator:
         )
         contextual = self.contextual.evaluate(joker, state)
         contextual_value = contextual.total_gain * self.weights.contextual_gain
-        playstyle_fit, playstyle_value, intent = self._playstyle_value(state, joker)
-        total = direct_value + contextual_value + playstyle_value
-
-        phase = "LOCKED" if intent.locked else "PIVOTABLE"
+        total = direct_value + contextual_value
         rationale = [
             f"representative whole-build scoring gain={direct_gain:.6f} "
             f"value={direct_value:.3f}",
             f"B3 intrinsic={contextual.intrinsic_gain:.3f}",
             f"B3 interaction={contextual.interaction_gain:.3f}",
-            f"playstyle fit={playstyle_fit:.3f} value={playstyle_value:.3f} "
-            f"mode={phase}",
         ]
-        if intent.locked:
-            rationale.append("playstyle locked from Ante 5 onward")
-        else:
-            rationale.append(f"playstyle remains pivotable at Ante {int(state.ante)}")
         rationale.extend(contextual.rationale)
         return JokerBuildValue(
             joker=type(joker).__name__,
             direct_scoring_gain=direct_gain,
             direct_scoring_value=direct_value,
             contextual=contextual,
-            playstyle_fit=playstyle_fit,
-            playstyle_value=playstyle_value,
-            playstyle_locked=intent.locked,
             total_gain=total,
             rationale=tuple(rationale),
         )
@@ -351,10 +250,8 @@ class JokerBuildTransitionPlanner:
     avoids the common error of ranking Jokers in isolation and selling a critical
     synergy component because another Joker has a higher standalone score.
 
-    With playstyle intent, the initial full-build candidate evaluation also has an
-    important lifecycle role: at Ante 5 it captures commitment before any incumbent
-    is hypothetically removed. Subsequent replacement probes therefore cannot erase
-    the locked direction by temporarily removing its defining Joker.
+    Canonical projected Bond composition evaluates preservation and pivot cost after
+    this mechanically local transition comparison.
     """
 
     def __init__(

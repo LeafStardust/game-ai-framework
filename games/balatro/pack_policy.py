@@ -24,7 +24,6 @@ from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.live.pack import LivePackChoice
 from games.balatro.live.shop import LiveShopItemFactory
 from games.balatro.joker_edition import EDITION_UNIVERSAL_VALUES
-from games.balatro.pack_playstyle import PackPlaystyleEvaluator
 from games.balatro.shop_policy import DefaultShopItemValueEstimator
 
 
@@ -49,9 +48,8 @@ class BalatroPackPolicy:
     destructive, generation, or
     unsupported-target effects remain below Skip until their outcome models are explicit.
 
-    An optional D4 playstyle evaluator can add bounded run-intent value for choices
-    whose semantics are directly observable. Joker intent is deliberately not added
-    here because D2 already contributes it through the shared item estimator.
+    Strategic direction is supplied by the Bond-aware wrapper. This base layer
+    scores mechanics and context only, so it cannot create a competing strategy lock.
     """
 
     DETERMINISTIC_IMMEDIATE_TAROTS = frozenset(
@@ -158,7 +156,6 @@ class BalatroPackPolicy:
         sigil_evaluator=None,
         hex_evaluator=None,
         ankh_evaluator=None,
-        playstyle_evaluator: PackPlaystyleEvaluator | None = None,
     ) -> None:
         self.skip_bias = float(skip_bias)
         self.item_estimator = item_estimator or DefaultShopItemValueEstimator()
@@ -176,7 +173,6 @@ class BalatroPackPolicy:
         self.sigil_evaluator = sigil_evaluator or SigilExpectationEvaluator()
         self.hex_evaluator = hex_evaluator or HexExpectationEvaluator()
         self.ankh_evaluator = ankh_evaluator or AnkhExpectationEvaluator()
-        self.playstyle_evaluator = playstyle_evaluator
 
     @classmethod
     def classified_tarots(cls) -> frozenset[str]:
@@ -234,26 +230,6 @@ class BalatroPackPolicy:
             return self._score_consumable(state, action, choice)
         return PackActionScore(action, 0.0, (f"unsupported pack kind={kind}",))
 
-    def _playstyle(
-        self,
-        state,
-        *,
-        kind: str,
-        target=None,
-        rank=None,
-        suit=None,
-    ) -> tuple[float, tuple[str, ...]]:
-        if self.playstyle_evaluator is None:
-            return 0.0, ()
-        evaluation = self.playstyle_evaluator.evaluate(
-            state,
-            kind=kind,
-            target=target,
-            rank=rank,
-            suit=suit,
-        )
-        return float(evaluation.value), tuple(evaluation.rationale)
-
     def _score_joker(self, state, action, choice: LivePackChoice) -> PackActionScore:
         target = self.joker_factory.create(choice.data)
         if target is None:
@@ -265,23 +241,15 @@ class BalatroPackPolicy:
                 state,
                 BalatroAction(BUY_JOKER, target=target),
             )
-        # Resolve/log the shared intent lifecycle, but D4 returns zero for Jokers so
-        # D2's JokerBuildValueEvaluator remains the single source of Joker intent.
-        playstyle_value, playstyle_notes = self._playstyle(
-            state,
-            kind="JOKER",
-            target=target,
-        )
         edition = str(choice.data.get("edition") or "").upper()
         bonus = self.EDITION_BONUS.get(edition, 0.0)
         combined = (
             *tuple(notes),
-            *playstyle_notes,
             *((f"edition bonus={bonus:.2f}",) if bonus else ()),
         )
         return PackActionScore(
             action,
-            float(utility) + bonus + playstyle_value,
+            float(utility) + bonus,
             combined,
         )
 
@@ -290,39 +258,26 @@ class BalatroPackPolicy:
         if target is None:
             return PackActionScore(action, 0.0, ("unresolved consumable",))
 
-        playstyle_value, playstyle_notes = self._playstyle(
-            state,
-            kind=choice.kind,
-            target=target,
-        )
-
         if choice.kind == "TAROT" and choice.label == "The Fool":
-            scored = self._score_fool(state, action, choice)
-            return self._add_playstyle(scored, playstyle_value, playstyle_notes)
+            return self._score_fool(state, action, choice)
 
         if choice.kind == "TAROT" and choice.label == "The Wheel of Fortune":
-            scored = self._score_wheel(state, action)
-            return self._add_playstyle(scored, playstyle_value, playstyle_notes)
+            return self._score_wheel(state, action)
 
         if choice.kind == "SPECTRAL" and choice.label == "Aura":
-            scored = self._score_aura(state, action, choice, target)
-            return self._add_playstyle(scored, playstyle_value, playstyle_notes)
+            return self._score_aura(state, action, choice, target)
 
         if choice.kind == "SPECTRAL" and choice.label == "Sigil":
-            scored = self._score_sigil(state, action, target)
-            return self._add_playstyle(scored, playstyle_value, playstyle_notes)
+            return self._score_sigil(state, action, target)
 
         if choice.kind == "SPECTRAL" and choice.label == "Hex":
-            scored = self._score_hex(state, action)
-            return self._add_playstyle(scored, playstyle_value, playstyle_notes)
+            return self._score_hex(state, action)
 
         if choice.kind == "SPECTRAL" and choice.label == "Ankh":
-            scored = self._score_ankh(state, action)
-            return self._add_playstyle(scored, playstyle_value, playstyle_notes)
+            return self._score_ankh(state, action)
 
         if choice.kind == "SPECTRAL" and choice.label == "The Soul":
-            scored = self._score_soul(state, action, target)
-            return self._add_playstyle(scored, playstyle_value, playstyle_notes)
+            return self._score_soul(state, action, target)
 
         if (
             choice.kind == "TAROT"
@@ -330,11 +285,10 @@ class BalatroPackPolicy:
         ):
             return PackActionScore(
                 action,
-                -1.0 + playstyle_value,
+                -1.0,
                 (
                     f"stochastic Tarot deferred: {choice.label} outcome model "
                     "is not yet autonomous-safe",
-                    *playstyle_notes,
                 ),
             )
 
@@ -345,10 +299,9 @@ class BalatroPackPolicy:
             if not target.can_use(ConsumableContext(state=state)):
                 return PackActionScore(
                     action,
-                    -1.0 + playstyle_value,
+                    -1.0,
                     (
                         f"deterministic immediate Tarot unavailable: {choice.label}",
-                        *playstyle_notes,
                     ),
                 )
 
@@ -356,11 +309,10 @@ class BalatroPackPolicy:
             if choice.label in self.DEFERRED_SPECTRALS:
                 return PackActionScore(
                     action,
-                    -1.0 + playstyle_value,
+                    -1.0,
                     (
                         f"Spectral deferred: {choice.label} outcome/target semantics "
                         "are not yet autonomous-safe",
-                        *playstyle_notes,
                     ),
                 )
 
@@ -368,10 +320,9 @@ class BalatroPackPolicy:
                 if not target.can_use(ConsumableContext(state=state)):
                     return PackActionScore(
                         action,
-                        -1.0 + playstyle_value,
+                        -1.0,
                         (
                             f"deterministic immediate Spectral unavailable: {choice.label}",
-                            *playstyle_notes,
                         ),
                     )
                 utility, notes = self.item_estimator.estimate(
@@ -380,21 +331,19 @@ class BalatroPackPolicy:
                 )
                 return PackActionScore(
                     action,
-                    float(utility) + playstyle_value,
+                    float(utility),
                     (
                         "deterministic immediate Spectral uses shared B4 item valuation",
                         *tuple(notes),
-                        *playstyle_notes,
                     ),
                 )
 
             if choice.label not in ContextualConsumableTargetEvaluator.SUPPORTED_SPECTRALS:
                 return PackActionScore(
                     action,
-                    -1.0 + playstyle_value,
+                    -1.0,
                     (
                         f"unclassified Spectral fails closed: {choice.label}",
-                        *playstyle_notes,
                     ),
                 )
 
@@ -413,11 +362,10 @@ class BalatroPackPolicy:
             if target_evaluation is None or target_evaluation.total_gain <= 0.0:
                 return PackActionScore(
                     action,
-                    -1.0 + playstyle_value,
+                    -1.0,
                     (
                         f"{choice.kind.title()} requires unsupported follow-up selection "
                         "or has no positive B6 target",
-                        *playstyle_notes,
                     ),
                 )
 
@@ -435,11 +383,10 @@ class BalatroPackPolicy:
                 f"B6 pack target gain={target_evaluation.total_gain:.3f}",
                 f"target_indices={target_evaluation.target_indices}",
                 *target_evaluation.rationale,
-                *playstyle_notes,
             )
             return PackActionScore(
                 targeted_action,
-                float(utility) + float(target_evaluation.total_gain) + playstyle_value,
+                float(utility) + float(target_evaluation.total_gain),
                 combined,
             )
 
@@ -449,20 +396,8 @@ class BalatroPackPolicy:
         )
         return PackActionScore(
             action,
-            float(utility) + playstyle_value,
-            (*tuple(notes), *playstyle_notes),
-        )
-
-    @staticmethod
-    def _add_playstyle(
-        scored: PackActionScore,
-        value: float,
-        notes: tuple[str, ...],
-    ) -> PackActionScore:
-        return PackActionScore(
-            scored.action,
-            float(scored.total) + float(value),
-            (*scored.notes, *notes),
+            float(utility),
+            tuple(notes),
         )
 
     def _score_wheel(
@@ -826,15 +761,6 @@ class BalatroPackPolicy:
         score += context_gain
         notes.append(f"B6 playing-card build gain={context_gain:.3f}")
         notes.extend(contextual.rationale)
-
-        playstyle_value, playstyle_notes = self._playstyle(
-            state,
-            kind="PLAYING_CARD",
-            rank=rank,
-            suit=suit,
-        )
-        score += playstyle_value
-        notes.extend(playstyle_notes)
 
         if not enhancement and not edition_text and not seal_text:
             notes.append("vanilla playing card; small rank-only value before build context")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""Balatro v1.0.0 deterministic shop transaction corrections.
+"""Deterministic shop transaction ordering and completion guards.
 
 The surviving release-layer rules are independent of the retired categorical
 strategy architecture:
@@ -63,8 +63,8 @@ def _free_joker_slots(state) -> int:
     )
 
 
-def install_v1_0_0_policy() -> None:
-    if getattr(BuildAwareShopArbiter, "_v1_0_0_policy_installed", False):
+def install_shop_transaction_policy() -> None:
+    if getattr(BuildAwareShopArbiter, "_shop_transaction_policy_installed", False):
         return
 
     original_decide = BuildAwareShopArbiter.decide
@@ -72,7 +72,7 @@ def install_v1_0_0_policy() -> None:
     def decide(self, state, visible_actions, *, reroll_cost: int | None):
         hold = float(self.shop_policy.hold_bias)
 
-        pending = getattr(self, "_v1_0_0_pending_replacement", None)
+        pending = getattr(self, "_pending_committed_replacement", None)
         if pending is not None:
             target = next(
                 (
@@ -87,7 +87,7 @@ def install_v1_0_0_policy() -> None:
                 and _free_joker_slots(state) > 0
                 and int(getattr(state, "money", 0) or 0) >= _price(target)
             ):
-                self._v1_0_0_pending_replacement = None
+                self._pending_committed_replacement = None
                 gain = max(0.001, float(pending.get("normalized_gain", 0.001)))
                 return ShopArbiterDecision(
                     action=BalatroAction(BUY_JOKER, target=target),
@@ -96,12 +96,12 @@ def install_v1_0_0_policy() -> None:
                     hold_baseline=hold,
                     normalized_gain=gain,
                     rationale=(
-                        "v1.0.0 committed Joker replacement transaction",
+                        "committed Joker replacement transaction",
                         f"complete purchase of {_item_label(target)} before packs, rerolls, vouchers, or END_SHOP",
                         "the preceding sale is not allowed to become an orphan sale after a fresh shop replan",
                     ),
                 )
-            self._v1_0_0_pending_replacement = None
+            self._pending_committed_replacement = None
 
         clearance_action = next(
             (
@@ -124,7 +124,7 @@ def install_v1_0_0_policy() -> None:
                     normalized_gain=max(0.0, float(score.total) - hold),
                     deterministic=score,
                     rationale=(
-                        "v1.0.0 shop ordering: admitted Clearance Sale precedes other paid development",
+                        "shop transaction ordering: admitted Clearance Sale precedes other paid development",
                         "buying the permanent discount first reduces the cost of later shop purchases in the same and future shops",
                         *score.notes,
                     ),
@@ -147,11 +147,11 @@ def install_v1_0_0_policy() -> None:
                 None,
             )
             if candidate is not None:
-                self._v1_0_0_pending_replacement = {
+                self._pending_committed_replacement = {
                     "identity": _item_identity(candidate),
                     "normalized_gain": float(result.normalized_gain),
                 }
         return result
 
     BuildAwareShopArbiter.decide = decide
-    BuildAwareShopArbiter._v1_0_0_policy_installed = True
+    BuildAwareShopArbiter._shop_transaction_policy_installed = True

@@ -148,13 +148,11 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
                 "low discard reserve penalty was recorded without discarding the stable path consensus"
             )
 
-        strategic = getattr(self.policy, "playstyle_evaluator", None)
-        if strategic is not None:
-            preservation = strategic.evaluate_preservation(state, setup_plan.action)
-            playstyle = strategic.evaluate_playstyle(state, setup_plan.action)
+        build_evaluator = getattr(self.policy, "build_evaluator", None)
+        if build_evaluator is not None:
+            preservation = build_evaluator.evaluate_preservation(state, setup_plan.action)
             rationale.extend(preservation.rationale)
-            rationale.extend(playstyle.rationale)
-            strategic.reset_cache()
+            build_evaluator.reset_cache()
 
         return replace(
             decision,

@@ -7,10 +7,6 @@ from games.balatro.build.joker_semantics import (
     CONSUMABLE_DUPLICATE,
     SemanticJokerBehaviorAnalyzer,
 )
-from games.balatro.build.profile import (
-    BalatroBuildProfiler,
-    BalatroPlaystyleIntentTracker,
-)
 from games.balatro.consumable import ConsumableContext
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator, LivePlayProjection
 from games.balatro.planet_outlook import PlanetOutlookEvaluator
@@ -41,8 +37,6 @@ class PlanetDecision:
     level_gain: int
     observed_hand_plays: int
     rationale: tuple[str, ...] = ()
-    playstyle_fit: float = 0.0
-    playstyle_locked: bool = False
     structural_feasibility: float = 0.0
     expected_future_frequency: float = 0.0
     marginal_level_gain: float = 0.0
@@ -62,36 +56,12 @@ class LivePlanetPolicy:
         thresholds=None,
         hand_evaluator=None,
         joker_analyzer=None,
-        profiler=None,
-        intent_tracker=None,
         planet_outlook=None,
     ) -> None:
         self.thresholds = thresholds or PlanetPolicyThresholds()
         self.hand_evaluator = hand_evaluator or LiveHandDecisionEvaluator()
         self.joker_analyzer = joker_analyzer or SemanticJokerBehaviorAnalyzer()
-        self.profiler = profiler or BalatroBuildProfiler()
-        self.intent_tracker = intent_tracker or BalatroPlaystyleIntentTracker()
         self.planet_outlook = planet_outlook or PlanetOutlookEvaluator()
-
-    @staticmethod
-    def _exploratory_influence(ante: int) -> float:
-        if ante <= 1:
-            return 0.25
-        if ante == 2:
-            return 0.50
-        if ante == 3:
-            return 0.75
-        return 1.0
-
-    def _playstyle_fit(self, state, planet: object) -> tuple[float, bool]:
-        profile = self.profiler.profile(state)
-        intent = self.intent_tracker.resolve(profile)
-        hand_type = str(getattr(planet, "hand_type", ""))
-        if not hand_type:
-            return 0.0, intent.locked
-        strength = max(-1.0, min(1.0, float(intent.strength(hand_type))))
-        influence = 1.0 if intent.locked else self._exploratory_influence(int(profile.ante))
-        return strength * influence, intent.locked
 
     def recommend(self, state, planet: object) -> PlanetDecision:
         required = self._required_per_hand(state)
@@ -160,7 +130,6 @@ class LivePlanetPolicy:
         observed_plays = int((getattr(state, "hand_play_counts", {}) or {}).get(hand_type, 0) or 0)
         duplicate_hold_value = self._duplicate_hold_value(state)
         slots_full = self._consumable_slots_full(state)
-        playstyle_fit, playstyle_locked = self._playstyle_fit(state, planet)
         outlook = self.planet_outlook.evaluate(state, planet)
 
         if level_gain <= 0:
@@ -178,7 +147,6 @@ class LivePlanetPolicy:
         else:
             decision, reason = USE, "permanent Planet upgrade has no modeled positive hold advantage"
 
-        mode = "LOCKED" if playstyle_locked else "PIVOTABLE"
         return PlanetDecision(
             decision=decision,
             planet=planet,
@@ -205,10 +173,7 @@ class LivePlanetPolicy:
                 f"consumable duplicate hold value={duplicate_hold_value:.3f}",
                 f"duplicate hold threshold={self.thresholds.duplicate_hold_minimum:.3f}",
                 f"consumable slots full={slots_full}",
-                f"D7 playstyle fit={playstyle_fit:.3f} mode={mode}",
             ),
-            playstyle_fit=playstyle_fit,
-            playstyle_locked=playstyle_locked,
             structural_feasibility=outlook.structural_feasibility,
             expected_future_frequency=outlook.expected_future_frequency,
             marginal_level_gain=outlook.marginal_level_gain,
@@ -288,7 +253,6 @@ class LivePlanetPolicy:
             float(decision.clear_probability_gain),
             float(decision.immediate_score_gain),
             float(decision.future_value),
-            float(decision.playstyle_fit),
             int(decision.observed_hand_plays),
             int(decision.level_gain),
             str(getattr(decision.planet, "name", "")),

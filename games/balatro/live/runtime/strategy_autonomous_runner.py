@@ -17,11 +17,11 @@ from games.balatro.live.verdant_leaf import VerdantLeafSalePolicy
 from games.balatro.live.pack import LivePackActionGenerator
 from games.balatro.unlock_campaign import AUTO, UnlockCampaignConfig, UnlockCampaignPolicy
 
-from .playstyle_autonomous_runner import PlaystyleAwareLiveMemoryInjectedSingleStepRunner
+from .bond_autonomous_runner import BondAwareLiveMemoryInjectedSingleStepRunner
 
 
 class StrategyAwareLiveMemoryInjectedSingleStepRunner(
-    PlaystyleAwareLiveMemoryInjectedSingleStepRunner
+    BondAwareLiveMemoryInjectedSingleStepRunner
 ):
     """Production runner using canonical Bonds/composition for strategic direction.
 
@@ -37,10 +37,7 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
         custom_pack_recommender = kwargs.get("pack_recommender") is not None
         super().__init__(observer, **kwargs)
 
-        joker_build_value = JokerBuildValueEvaluator(
-            profiler=self.playstyle_profiler,
-            intent_tracker=self.playstyle_intent_tracker,
-        )
+        joker_build_value = JokerBuildValueEvaluator()
         self.verdant_leaf_sale_policy = VerdantLeafSalePolicy(evaluator=joker_build_value)
         self.riff_raff_cycle_policy = RiffRaffCyclePolicy(evaluator=joker_build_value)
         self.hand_order_policy = HandOrderPolicy()
@@ -65,14 +62,14 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
             )
 
         if not custom_hand_recommender:
-            self.hand_recommender = self._recommend_hand_with_playstyle
+            self.hand_recommender = self._recommend_hand_with_bonds
         if not custom_pack_recommender:
             self.pack_recommender = self._recommend_pack_with_diagnostics
 
     def _hand_policy(self, thresholds: HandActionThresholds) -> StrategyAwareLiveHandActionPolicy:
         return StrategyAwareLiveHandActionPolicy(
             thresholds,
-            profiler=self.playstyle_profiler,
+            profiler=self.build_profiler,
         )
 
     def decide(self):

@@ -7,9 +7,7 @@ from games.balatro.actions import SELECT_BLIND, SKIP_BLIND
 from games.balatro.build.effects import SCORE_CHIPS, SCORE_MULT, SCORE_XMULT
 from games.balatro.build.profile import (
     BalatroBuildProfiler,
-    BalatroPlaystyleIntentTracker,
     BuildProfile,
-    PlaystyleIntent,
 )
 
 
@@ -249,10 +247,7 @@ def _blind_reward_value(blind_type: str, payload: dict, state) -> tuple[float, s
     )
 
 
-def _build_readiness(
-    profile: BuildProfile,
-    intent: PlaystyleIntent,
-) -> float:
+def _build_readiness(profile: BuildProfile) -> float:
     joker_capacity = max(1, int(profile.joker_slots))
     occupied_jokers = max(0, joker_capacity - int(profile.free_joker_slots))
     joker_fill = min(1.0, occupied_jokers / joker_capacity)
@@ -264,18 +259,13 @@ def _build_readiness(
         1 for feature in _SCORING_FEATURES if profile.strength(feature) > 0.0
     )
     scoring_readiness = min(1.0, scoring_features / 3.0)
-    intent_readiness = min(
-        1.0,
-        sum(min(1.0, abs(float(value))) for _, value in intent.strengths) / 3.0,
-    )
     return max(
         0.0,
         min(
             1.0,
-            0.35 * joker_fill
-            + 0.25 * hand_investment
-            + 0.25 * scoring_readiness
-            + 0.15 * intent_readiness,
+            0.40 * joker_fill
+            + 0.30 * hand_investment
+            + 0.30 * scoring_readiness,
         ),
     )
 
@@ -283,7 +273,6 @@ def _build_readiness(
 def _tag_build_adjustment(
     tag_key: str | None,
     profile: BuildProfile,
-    intent: PlaystyleIntent,
     readiness: float,
     thresholds: BlindSkipThresholds,
 ) -> float:
@@ -300,11 +289,6 @@ def _tag_build_adjustment(
         1.0,
         sum(max(0.0, float(level) - 1.0) for _, level in profile.hand_levels) / 4.0,
     )
-    intent_focus = min(
-        1.0,
-        sum(min(1.0, abs(float(value))) for _, value in intent.strengths) / 2.0,
-    )
-
     if tag_key == "tag_negative":
         fit = 0.5 + 0.5 * need
     elif tag_key in _JOKER_DEVELOPMENT_TAGS:
@@ -312,7 +296,7 @@ def _tag_build_adjustment(
     elif tag_key in _CONSUMABLE_DEVELOPMENT_TAGS:
         fit = 0.60 * free_consumable_ratio + 0.40 * need
     elif tag_key in _HAND_DEVELOPMENT_TAGS:
-        fit = max(hand_investment, intent_focus)
+        fit = max(hand_investment, need)
     elif tag_key == "tag_voucher":
         fit = min(1.0, max(0.0, (8.0 - float(profile.ante)) / 7.0))
     elif tag_key == "tag_standard":
@@ -359,10 +343,8 @@ class BuildAwareBlindSkipPolicy:
         self,
         *,
         profiler: BalatroBuildProfiler | None = None,
-        intent_tracker: BalatroPlaystyleIntentTracker | None = None,
     ) -> None:
         self.profiler = profiler or BalatroBuildProfiler()
-        self.intent_tracker = intent_tracker or BalatroPlaystyleIntentTracker()
 
     def decide(
         self,
@@ -379,8 +361,7 @@ class BuildAwareBlindSkipPolicy:
         tag_key = _tag_key(blind.get("tag"))
 
         profile = self.profiler.profile(state)
-        intent = self.intent_tracker.resolve(profile)
-        readiness = _build_readiness(profile, intent)
+        readiness = _build_readiness(profile)
 
         reward_ev, reward_source = _blind_reward_value(blind_type, payload, state)
         interest_cost = min(
@@ -413,7 +394,6 @@ class BuildAwareBlindSkipPolicy:
         tag_adjustment = _tag_build_adjustment(
             tag_key,
             profile,
-            intent,
             readiness,
             thresholds,
         )
@@ -455,7 +435,6 @@ def decide_blind_play_or_skip(
     fallback_tag_value: float = DEFAULT_FALLBACK_TAG_VALUE,
     thresholds: BlindSkipThresholds | None = None,
     profiler: BalatroBuildProfiler | None = None,
-    intent_tracker: BalatroPlaystyleIntentTracker | None = None,
 ) -> BlindSkipDecision:
     """Compatibility entry point for D13.
 
@@ -528,5 +507,4 @@ def decide_blind_play_or_skip(
     )
     return BuildAwareBlindSkipPolicy(
         profiler=profiler,
-        intent_tracker=intent_tracker,
     ).decide(snapshot, state, thresholds=configured)

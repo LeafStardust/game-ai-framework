@@ -59,17 +59,15 @@ def _contains_key(value, key: str) -> bool:
     return False
 
 
-class _PreparedBuildIntent:
+class _PreparedBondBuild:
     def __init__(self):
         self.payload = {
             "transition": "INITIAL",
             "changed_fields": ["jokers"],
             "profile": {"jokers": ["JokerJoker"]},
-            "intent": {
-                "mode": "PIVOTABLE",
-                "locked": False,
-                "lock_ante": None,
-                "strengths": {"pair": 1.0},
+            "bond_strategy": {
+                "pinned_strategy": "pair_engine",
+                "strategy_candidates": [],
             },
             "detected_synergies": [],
         }
@@ -138,11 +136,11 @@ def test_successful_transitions_resume_sequence_and_write_terminal_summary(tmp_p
     assert summary["final_state"]["phase"] == "GAME_OVER"
 
 
-def test_prepared_build_intent_is_written_before_decision_then_committed(tmp_path):
+def test_prepared_bond_build_is_written_before_decision_then_committed(tmp_path):
     card = object()
     decision = _decision(_snapshot(1, "SELECTING_HAND"), card)
-    prepared = _PreparedBuildIntent()
-    decision.build_intent = prepared
+    prepared = _PreparedBondBuild()
+    decision.bond_build = prepared
     result = SimpleNamespace(after=_snapshot(2, "ROUND_EVAL"))
 
     logger = log_successful_live_transition(
@@ -159,7 +157,7 @@ def test_prepared_build_intent_is_written_before_decision_then_committed(tmp_pat
     assert [row["event"] for row in rows] == [
         "run_started",
         "observation",
-        "build_intent",
+        "bond_build",
         "decision",
         "action_result",
         "blind_outcome",
@@ -207,7 +205,7 @@ def test_chosen_purchase_logs_only_policy_supplied_build_causal_signals(tmp_path
         hand=[],
     )
     target = SimpleNamespace(name="Candidate Joker", price=5)
-    prepared = _PreparedBuildIntent()
+    prepared = _PreparedBondBuild()
     decision = SimpleNamespace(
         snapshot=_snapshot(10, "SHOP"),
         state=state,
@@ -217,10 +215,10 @@ def test_chosen_purchase_logs_only_policy_supplied_build_causal_signals(tmp_path
             "policy_score=8.000000",
             "B3 interaction=2.500",
             "Candidate Joker creates rank:A -> held:rank:A; enables requirement for ExistingJoker (+1.250)",
-            "playstyle fit=1.000 value=2.000 mode=PIVOTABLE",
+            "Bond strategy fit=1.000",
             "price penalty=5.000",
         ),
-        build_intent=prepared,
+        bond_build=prepared,
     )
     result = SimpleNamespace(after=_snapshot(11, "SHOP"))
 
@@ -240,12 +238,11 @@ def test_chosen_purchase_logs_only_policy_supplied_build_causal_signals(tmp_path
 
     assert rationale["action_family"] == "PURCHASE"
     assert rationale["decision_source"] == "shop policy"
-    assert rationale["intent_before"]["mode"] == "PIVOTABLE"
-    assert rationale["intent_before"]["strengths"] == {"pair": 1.0}
+    assert rationale["bond_strategy_before"]["pinned_strategy"] == "pair_engine"
     assert [signal["kind"] for signal in rationale["signals"]] == [
         "B3",
         "INTERACTION",
-        "PLAYSTYLE",
+        "INTERACTION",
     ]
     assert all(
         signal["text"] not in {"policy_score=8.000000", "price penalty=5.000"}
@@ -274,7 +271,7 @@ def test_targeted_pack_choice_logs_b6_and_d9_rationale_without_recomputing(tmp_p
         notes=(
             "policy_score=4.250000",
             "B6 pack target gain=2.000",
-            "D9 playstyle fit=0.500 value=1.125 mode=PIVOTABLE",
+            "D9 Bond fit=0.500 value=1.125",
             "target_indices=(0, 1)",
         ),
     )

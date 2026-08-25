@@ -6,7 +6,7 @@ import games.balatro  # install final package-level authorities
 from games.balatro.actions import BUY_BOOSTER, BalatroAction
 from games.balatro.live.shop import LiveShopItem
 from games.balatro.live_joker_order_authority import _identity_xmult_factor
-from games.balatro.live_quality_regression_policy import _strict_planet_hand_relevant
+from games.balatro.live_decision_quality_policy import _strict_planet_hand_relevant
 from games.balatro.planets import PLANET_CARDS
 from games.balatro.shop_booster_policy import BUY, HOLD, BuildAwareShopBoosterPolicy
 from games.balatro.state import BalatroState

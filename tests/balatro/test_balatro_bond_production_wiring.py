@@ -2,8 +2,8 @@ from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 from games.balatro.live.runtime.balatro_agent_supervisor_entry import (
     _diagnostic_runner_factory,
 )
-from games.balatro.live.runtime.playstyle_autonomous_runner import (
-    PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
+from games.balatro.live.runtime.bond_autonomous_runner import (
+    BondAwareLiveMemoryInjectedSingleStepRunner,
 )
 from games.balatro.live.runtime.strategy_autonomous_runner import (
     StrategyAwareLiveMemoryInjectedSingleStepRunner,
@@ -20,7 +20,7 @@ def test_production_supervisor_uses_canonical_bond_runner():
     )
     assert issubclass(
         StrategyAwareLiveMemoryInjectedSingleStepRunner,
-        PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
+        BondAwareLiveMemoryInjectedSingleStepRunner,
     )
 
 

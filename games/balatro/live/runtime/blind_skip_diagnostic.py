@@ -8,8 +8,8 @@ from .finisher_state_translator import FinisherAwareBalatroStateTranslator
 from .live_memory_discard_history_observer import (
     DiscardHistorySupervisorLiveMemoryBalatroObserver,
 )
-from .playstyle_autonomous_runner import (
-    PlaystyleAwareLiveMemoryInjectedSingleStepRunner,
+from .bond_autonomous_runner import (
+    BondAwareLiveMemoryInjectedSingleStepRunner,
 )
 
 
@@ -65,7 +65,7 @@ def collect_d13_preview(
     """Collect one production D13 recommendation without submitting gameplay."""
     with observer_factory() as observer:
         if runner_factory is None:
-            runner = PlaystyleAwareLiveMemoryInjectedSingleStepRunner(
+            runner = BondAwareLiveMemoryInjectedSingleStepRunner(
                 observer,
                 translator=FinisherAwareBalatroStateTranslator(),
             )

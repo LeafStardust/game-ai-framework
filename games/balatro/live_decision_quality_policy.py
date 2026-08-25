@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""Final live guards for regressions observed in production validation.
+"""Stable live decision-quality guards derived from production validation.
 
 These are authority corrections, not tuning knobs:
 - zero-cost autonomous-safe boosters are opened when ordinary/default D8 semantics
@@ -157,7 +157,7 @@ def _free_booster_safe_to_open(state, result) -> bool:
     return False
 
 
-def install_live_quality_regression_policy() -> None:
+def install_live_decision_quality_policy() -> None:
     # Zero-cost autonomous-safe packs have no resource downside, but this authority
     # must not bypass custom playbook D8 thresholds or families whose post-open
     # transaction contract is intentionally deferred.

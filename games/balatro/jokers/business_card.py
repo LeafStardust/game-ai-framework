@@ -1,21 +1,10 @@
 import random
 
 from games.balatro.hand_rules import card_is_face
-from games.balatro.joker import (
-    Joker,
-    JokerContext,
-    Playstyle,
-    PlaystyleAffinity,
-)
+from games.balatro.joker import Joker, JokerContext
 
 
 class BusinessCardJoker(Joker):
-
-    playstyle_affinities = {
-        Playstyle.FACE_CARDS: PlaystyleAffinity.POSITIVE,
-        Playstyle.NO_FACE_CARDS: PlaystyleAffinity.NEGATIVE,
-    }
-
     def apply(self, context: JokerContext) -> JokerContext:
         if context.trigger != "CARD_SCORED":
             return context

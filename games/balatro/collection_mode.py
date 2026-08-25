@@ -317,7 +317,7 @@ class CollectionFirstPolicy:
             target_label=self._label(target),
             rationale=(
                 "collection-first mode observed explicit discovered=false",
-                "COLLECTION_CRITICAL outranks strategy, economy, Ante-6 commitment and win probability",
+                "COLLECTION_CRITICAL outranks Bond/composition strategy, economy, and win probability",
                 f"kind={kind}",
                 f"price=${price}",
             ),
