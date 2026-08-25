@@ -204,7 +204,7 @@ def test_autonomous_shop_rerolls_over_single_hand_normal_celestial_pack():
     )
 
 
-def test_autonomous_shop_does_not_open_unsafe_arcana_pack():
+def test_autonomous_shop_can_open_supported_arcana_pack():
     state = _state(money=20)
     state.shop_boosters = [
         LiveShopItem(
@@ -218,10 +218,10 @@ def test_autonomous_shop_does_not_open_unsafe_arcana_pack():
 
     decision = runner.decide()
 
-    assert decision.action.name == END_SHOP
-    assert decision.action.name != BUY_BOOSTER
-    assert "shop_decision=HOLD_REROLL" in decision.notes
-    assert "arbiter_source=END_SHOP" in decision.notes
+    assert decision.action.name == BUY_BOOSTER
+    assert "shop_decision=BUY_BOOSTER" in decision.notes
+    assert "arbiter_source=BOOSTER" in decision.notes
+    assert "admitted boosters=1/1" in decision.notes
 
 
 def test_shop_arbiter_compares_child_gain_over_each_no_action_baseline():
