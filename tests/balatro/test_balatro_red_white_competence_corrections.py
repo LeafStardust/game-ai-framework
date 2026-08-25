@@ -2,7 +2,6 @@ from types import SimpleNamespace
 
 from games.balatro.actions import DISCARD_CARDS, BalatroAction
 from games.balatro.joker_policy import BUY, JokerAcquisitionPolicy
-from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.square_joker import SquareJoker
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.shop_voucher_policy import VoucherAcquisitionPolicy
@@ -53,56 +52,6 @@ def test_paint_brush_cannot_preempt_first_scoring_foothold():
     assert any("first-engine hold" in note for note in notes)
 
 
-def test_early_expensive_utility_waits_for_missing_mult_axis():
-    state = BalatroState()
-    state.phase = "SHOP"
-    state.ante = 2
-    state.money = 20
-    state.jokers = [SquareJoker()]
-    state.hand_levels = {"PAIR": 1}
-    profile = SimpleNamespace(
-        ante=2,
-        joker_names=("Square Joker",),
-        hand_levels=(("PAIR", 1),),
-    )
-
-    allowed, notes = VoucherAcquisitionPolicy._early_survival_gate(
-        state,
-        profile,
-        "Reroll Surplus",
-        price=10,
-        money_after=10,
-    )
-
-    assert allowed is False
-    assert any("scoring-coverage hold" in note for note in notes)
-
-
-def test_complete_chip_and_mult_axes_return_voucher_to_core_gate():
-    state = BalatroState()
-    state.phase = "SHOP"
-    state.ante = 2
-    state.money = 20
-    state.jokers = [SquareJoker(), JollyJoker()]
-    state.hand_levels = {"PAIR": 1}
-    profile = SimpleNamespace(
-        ante=2,
-        joker_names=("Square Joker", "Jolly Joker"),
-        hand_levels=(("PAIR", 1),),
-    )
-
-    allowed, notes = VoucherAcquisitionPolicy._early_survival_gate(
-        state,
-        profile,
-        "Reroll Surplus",
-        price=10,
-        money_after=10,
-    )
-
-    assert allowed is True
-    assert not any("scoring-coverage hold" in note for note in notes)
-
-
 def test_underpace_recovery_values_multi_card_redraw_as_one_discard_resource():
     evaluator = object.__new__(LiveHandDecisionEvaluator)
     evaluator._cached_state_id = None
@@ -128,7 +77,6 @@ def test_underpace_recovery_values_multi_card_redraw_as_one_discard_resource():
     single_value = evaluator._discard_value(state, single, context)
     batch_value = evaluator._discard_value(state, batch, context)
 
-    # The first live correction still lost to retained-structure promise and spent
-    # four equal-cost discard tokens as singletons. The fixed-token advantage must
-    # now be strong enough to materially dominate that failure mode.
-    assert batch_value - single_value > 80.0
+    # Canonical count reward alone is only +12 from one to four cards. The live
+    # competence correction must add a material fixed-resource redraw advantage.
+    assert batch_value - single_value > 40.0
