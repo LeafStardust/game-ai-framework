@@ -57,6 +57,7 @@ from games.balatro.tactical_scaler_build_health import install_tactical_scaler_b
 from games.balatro.tactical_scaler_retention_policy import install_tactical_scaler_retention_policy
 from games.balatro.target_hand_engine_policy import install_target_hand_engine_policy
 from games.balatro.shop_transaction_policy import install_shop_transaction_policy
+from games.balatro.red_white_competence_corrections import install_red_white_competence_corrections
 
 
 install_mouth_first_hand_policy()
@@ -113,3 +114,6 @@ install_full_roster_shop_guard()
 install_full_roster_pack_guard()
 install_live_joker_order_authority()
 install_planet_scaler_authority()
+# Live-run competence corrections intentionally install last so they see the final
+# mechanical/conflict-safe D1 and shop decisions rather than bypassing them.
+install_red_white_competence_corrections()
