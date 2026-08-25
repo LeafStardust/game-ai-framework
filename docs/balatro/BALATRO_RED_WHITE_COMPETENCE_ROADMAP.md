@@ -185,12 +185,13 @@ Completed or validated in the current semantic/runtime pass:
 - **The Psychic** now scores legal 1–4 card burn/cycling plays as zero while preserving normal scoring for valid five-card plays;
 - **Purple Seal** discard value now survives planner search: a mechanically distinct Purple-Seal branch is preserved when a Tarot can actually be generated, and generated consumables are carried only as a late survival-equivalent expectimax tie-break;
 - shop Wheel remains admitted through the public-state stochastic edition model rather than being deterministically rejected;
-- all changes above have passed `py -m pytest tests/balatro -q` at their latest checkpoint.
+- **The Soul** no longer receives a fixed `8 + early-Ante bonus` pack score; pack selection now uses a uniform expectation over the five modeled Legendary Joker outcomes evaluated against the current build through B3;
+- all changes through the previous checkpoint passed `py -m pytest tests/balatro -q`; rerun is required after the new Soul expectation commits.
 
 Still open before a new live baseline:
 
-- complete the pack/consumable opportunity-cost and target-selection audit;
-- complete the remaining boss-mechanics audit beyond the already repaired Psychic path;
+- complete the remaining pack/consumable opportunity-cost and target-selection audit beyond Wheel/Soul and the already modeled deterministic target paths;
+- complete the remaining boss-mechanics audit beyond the already repaired Psychic path; The Serpent transition semantics have been identified as requiring exact three-card redraw modeling;
 - finish the semantic D1 audit for held-value cards, discard-trigger engines, and boss interactions;
 - diagnose/fix the post-`run_finished` three-attempt supervisor/shutdown crash;
 - rerun the full Balatro suite after the remaining changes, then perform a fresh production-default three-run Red/White batch.
@@ -209,7 +210,7 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Audit boss-specific execution against exact mechanics.
 - [ ] Diagnose and fix the three-attempt supervisor/shutdown crash observed after all three run logs had already emitted `run_finished`.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest deterministic checkpoint: green on 2026-08-26; rerun after any further repair commit.
+- [x] Run `tests/balatro` and require green before live validation. Latest deterministic checkpoint: green on 2026-08-26 before the new Soul expectation commits; rerun required.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
