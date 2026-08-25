@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import replace
 
+from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.build import JokerBuildTransitionPlanner
 from games.balatro.joker_policy import (
     HOLD,
@@ -25,11 +27,7 @@ def _joker_token(joker: object) -> str:
 
 
 def _discard_conflict_indices(state: BalatroState, candidate: object) -> tuple[int, ...]:
-    """Return owned slots mechanically incompatible with this candidate.
-
-    Burnt needs the first discard. Green loses Mult on every discard; Burglar removes
-    all discards. Green and Burglar are intentionally compatible with each other.
-    """
+    """Return owned slots mechanically incompatible with this candidate."""
     candidate_token = _joker_token(candidate)
     burnt = {"burnt", "burntjoker"}
     green = {"green", "greenjoker"}
@@ -49,14 +47,47 @@ def _discard_conflict_indices(state: BalatroState, candidate: object) -> tuple[i
     )
 
 
-class PlaybookJokerAcquisitionPolicy:
-    """Resolve D2 thresholds per state while reusing one run-scoped B3 evaluator.
+def _conflict_set(composition) -> frozenset[frozenset[str]]:
+    result: set[frozenset[str]] = set()
+    for conflict in tuple(getattr(composition, "conflicts", ()) or ()):
+        try:
+            left, right = conflict
+        except (TypeError, ValueError):
+            continue
+        result.add(frozenset((str(left), str(right))))
+    return frozenset(result)
 
-    Canonical Bond/strategy transition value belongs to ``JokerAcquisitionPolicy``
-    and is capped there. The Red/White cartridge supplies only its environment-owned
-    D2 thresholds plus explicit mechanical conflict safety; it must not stack a
-    second strategy-authority bonus above the universal Balatro D2 budget.
-    """
+
+def _new_canonical_conflicts(
+    state: BalatroState,
+    candidate: object,
+    *,
+    replace_index: int | None,
+) -> frozenset[frozenset[str]]:
+    """Project the exact proposed roster change and return newly-created conflicts."""
+    try:
+        _, before_composition = evaluate_bond_composition(state)
+        projected = copy.copy(state)
+        projected.jokers = list(getattr(state, "jokers", ()) or ())
+        if replace_index is None:
+            projected.jokers.append(candidate)
+        else:
+            if replace_index < 0 or replace_index >= len(projected.jokers):
+                return frozenset()
+            projected.jokers[replace_index] = candidate
+        _, after_composition = evaluate_bond_composition(projected)
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return frozenset()
+    return _conflict_set(after_composition) - _conflict_set(before_composition)
+
+
+def _format_conflicts(conflicts: frozenset[frozenset[str]]) -> str:
+    pairs = ["/".join(sorted(pair)) for pair in conflicts]
+    return ", ".join(sorted(pairs))
+
+
+class PlaybookJokerAcquisitionPolicy:
+    """Resolve Red/White D2 thresholds and enforce mechanical/Bond compatibility."""
 
     def __init__(self, transition_planner: JokerBuildTransitionPlanner) -> None:
         self.transition_planner = transition_planner
@@ -80,10 +111,36 @@ class PlaybookJokerAcquisitionPolicy:
             transition_planner=self.transition_planner,
         ).decide(state, candidate)
 
-        # Pairwise mechanical safety is stronger than any current build preference.
-        # A Burnt/Green/Burglar conflict may be resolved by a REPLACE that removes
-        # the opposing Joker; it may never be admitted as a coexistence BUY or as a
-        # replacement of some unrelated slot.
+        # Canonical composition conflicts are hard admission constraints. The
+        # candidate's positive Bond progress must never numerically overpower a new
+        # incompatibility. For replacement decisions, evaluate the exact selected
+        # replacement so a transition that removes the opposing component remains legal.
+        if decision.action != HOLD:
+            replace_index = None
+            if decision.action == REPLACE and getattr(decision, "selected", None) is not None:
+                try:
+                    replace_index = int(decision.selected.replace_index)
+                except (AttributeError, TypeError, ValueError):
+                    replace_index = None
+            new_conflicts = _new_canonical_conflicts(
+                state,
+                candidate,
+                replace_index=replace_index,
+            )
+            if new_conflicts:
+                return replace(
+                    decision,
+                    action=HOLD,
+                    selected=None,
+                    rationale=(
+                        *decision.rationale,
+                        "canonical Bond conflict veto: acquisition would create a new incompatible build direction",
+                        f"new conflicts={_format_conflicts(new_conflicts)}",
+                    ),
+                )
+
+        # Explicit discard-mechanic safety remains as a fail-closed invariant even
+        # when a relationship is not represented by the generic Bond graph.
         conflict_indices = _discard_conflict_indices(state, candidate)
         if conflict_indices:
             if decision.action == REPLACE and getattr(decision, "selected", None) is not None:
