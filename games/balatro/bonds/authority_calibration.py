@@ -117,6 +117,12 @@ def apply_rank_authority_audit() -> None:
     b2.DECK_THINNING_THRESHOLDS = _table(4, 7, 10, 13, 16)
     b2.DECK_GROWTH_THRESHOLDS = _table(4, 7, 12, 18, 25)
 
+    # Four of a Kind has one direct catalogue contributor (The Family, 7)
+    # plus at most 18 from permanent hand level.  Its capstone therefore sits
+    # at the legitimate 25-point structural maximum rather than an unreachable
+    # shared hand-Bond threshold of 26.
+    b2.FOUR_KIND_THRESHOLDS = _table(4, 8, 13, 19, 25)
+
     b3.FULL_HOUSE_THRESHOLDS = _table(4, 8, 13, 19, 22)
     b3.FLUSH_HOUSE_THRESHOLDS = _table(4, 8, 13, 19, 23)
 

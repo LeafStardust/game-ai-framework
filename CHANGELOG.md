@@ -42,6 +42,8 @@ This file records notable development changes to the project. Active and future 
 
 ### Fixed
 
+- Made the Four of a Kind Bond's R5 threshold reachable at its legitimate 25-point structural maximum (`The Family` plus a fully developed permanent hand level), instead of inheriting an impossible 26-point shared threshold.
+
 - Corrected canonical hand-Bond membership so Mad/Clever advance their actual Two Pair condition instead of falsely advancing Four of a Kind. Jolly/Sly retain legitimate shared Pair and Two Pair membership because their Pair condition also triggers inside Two Pair.
 - Made lifecycle semantic checkpoints suppress independent random score rolls. Misprint and other stochastic Jokers can still provide modeled score value, but random checkpoint drift can no longer fabricate Planet, Tarot, discard, round, or arbitrary event scaling dependencies.
 - Propagated D1's hard wall-clock deadline into every held-The-Sun target preview and escape search. A consumable escape can no longer run an independent 81-second search behind an advertised eight-second D1 budget.

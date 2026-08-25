@@ -117,6 +117,17 @@ def test_cash_r5_is_reachable_with_five_ordinary_joker_slots():
     assert development.contribution == 27.0
 
 
+def test_four_kind_r5_matches_its_direct_catalogue_maximum():
+    state = SimpleNamespace(
+        jokers=("thefamily",),
+        owned_deck=(),
+        hand_levels={"FOUR_OF_A_KIND": 25},
+    )
+    development = EVALUATORS["four_kind"](state)
+    assert development.rank == BondRank.R5
+    assert development.contribution == 25.0
+
+
 def test_discard_r5_does_not_require_negative_joker_capacity():
     state = SimpleNamespace(
         jokers=("yorick", "castle", "mailinrebate", "facelessjoker", "hittheroad"),
