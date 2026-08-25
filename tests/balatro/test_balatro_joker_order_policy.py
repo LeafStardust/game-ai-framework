@@ -56,6 +56,18 @@ def test_order_policy_targets_blueprint_for_the_exact_selected_flush():
     assert any("exact selected-play" in note for note in decision.rationale)
 
 
+def test_selecting_hand_generic_order_defers_to_exact_play_authority():
+    state = _state(
+        CavendishJoker(),
+        FlatMultJoker(10),
+        phase="SELECTING_HAND",
+    )
+
+    # Representative shop probes and the exact selected hand can prefer opposite
+    # layouts.  Emitting both recommendations caused an endless live reorder loop.
+    assert JokerOrderPolicy().recommend(state, phase="SELECTING_HAND") is None
+
+
 def test_order_policy_places_disposable_joker_right_of_dagger_before_blind():
     dagger = DaggerJoker()
     valuable = FlatMultJoker(20)

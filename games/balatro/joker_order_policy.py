@@ -262,6 +262,14 @@ class JokerOrderPolicy:
         jokers = tuple(getattr(state, "jokers", ()) or ())
         if phase not in self.STABLE_PHASES or len(jokers) < 2:
             return None
+        if phase == "SELECTING_HAND" and getattr(self, "_exact_play_indices", None) is None:
+            # There must be only one SELECTING_HAND Joker-order authority.  A
+            # representative-probe recommendation can disagree with the exact
+            # D1 play recommendation and make the live runner alternate forever
+            # between two valid permutations.  The exact-play path installs
+            # ``_exact_play_indices`` immediately before calling back into this
+            # method, so defer every generic hand-phase request to that path.
+            return None
         if phase == "BLIND_SELECT" and not any(
             type(joker).__name__ == "DaggerJoker" for joker in jokers
         ):
