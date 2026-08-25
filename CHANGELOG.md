@@ -42,6 +42,9 @@ This file records notable development changes to the project. Active and future 
 
 ### Fixed
 
+- Moved the whole-build replacement invariant into core D2 admission: a canonical Bond-transition bonus can strengthen an already-positive replacement, but can no longer rescue a negative raw delta and sell a stronger incumbent.
+- Made post-deadline D1 recovery reuse the strongest completed Play root without re-entering full Joker-aware policy evaluation, preventing an exhausted eight-second search from stretching to roughly fourteen seconds.
+- Added an explicit vanilla-card dilution cost to Standard-pack choices so a small rank/suit context match alone cannot bloat the deck; mechanically active Blue Joker/Hologram growth payoffs retain direct card-addition value.
 - Made the Four of a Kind Bond's R5 threshold reachable at its legitimate 25-point structural maximum (`The Family` plus a fully developed permanent hand level), instead of inheriting an impossible 26-point shared threshold.
 
 - Corrected canonical hand-Bond membership so Mad/Clever advance their actual Two Pair condition instead of falsely advancing Four of a Kind. Jolly/Sly retain legitimate shared Pair and Two Pair membership because their Pair condition also triggers inside Two Pair.
@@ -62,6 +65,7 @@ This file records notable development changes to the project. Active and future 
 
 ### Validation
 
+- The fresh three-attempt production-default baseline on `28342616` was fully inspected. All three attempts lost by Ante 5 and exposed a negative raw Joker replacement rescued by Bond rank value, a vanilla Standard-pack deck-bloat choice, and two D1 decisions reaching roughly 13–14 seconds after the internal search budget had expired. Those semantic/runtime fixes invalidate that baseline; a new unchanged-HEAD baseline is required after the deterministic gate passes.
 - Nine uploaded Red/White attempts from 2026-08-24 through 2026-08-25 were reviewed as forensic evidence. They confirmed the hand-Bond catalogue and stochastic-lifecycle defects above; they also predate the current conflict, Planet-scaler, ordering, and engine-retention fixes, so a fresh unchanged-HEAD batch is required before numerical calibration.
 - The complete Balatro deterministic suite was green after the categorical-to-Bond migration and subsequent stale-test cleanup on 2026-08-23 before the newest live-batch fixes; each new execution/pivot/resource change remains subject to a fresh full `python -m pytest -q tests/balatro` gate.
 - A subsequent five-run Red/White batch exposed Burnt under-utilization, weak power-engine preservation, marginal late pack spending, and a D1 Bond recomputation performance defect; those concrete defects have been corrected and require fresh unchanged-HEAD live validation.

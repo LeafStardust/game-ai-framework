@@ -243,6 +243,41 @@ def test_d2_never_uses_sell_credit_to_justify_a_build_downgrade():
     assert decision.options[0].eligible is False
 
 
+def test_d2_bond_bonus_cannot_rescue_negative_raw_replacement(monkeypatch):
+    state = _state(money=20, slots=1)
+    state.jokers = [PlusMultJoker()]
+    candidate = InertJoker()
+    candidate.cost = 0
+    planner = FixedReplacementPlanner()
+    planner.plan = lambda _state, _candidate: SimpleNamespace(
+        candidate_value=SimpleNamespace(total_gain=0.5),
+        alternatives=(
+            SimpleNamespace(
+                replace_index=0,
+                build_delta=-1.0,
+                rationale=("negative common-baseline replacement",),
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        "games.balatro.joker_policy._bond_transition_bonus",
+        lambda *_args, **_kwargs: (4.0, ("canonical Bond transition bonus=4.000",)),
+    )
+
+    decision = JokerAcquisitionPolicy(
+        _no_economy_thresholds(),
+        transition_planner=planner,
+    ).decide(state, candidate)
+
+    assert decision.action == HOLD
+    assert decision.options[0].build_gain == pytest.approx(3.0)
+    assert decision.options[0].eligible is False
+    assert any(
+        "raw whole-build replacement delta=-1.000" in note
+        for note in decision.options[0].rationale
+    )
+
+
 def test_d2_does_not_use_retired_strategy_tier_shortcut_for_replacement():
     state = _state(money=20, slots=1)
     state.jokers = [InertJoker()]

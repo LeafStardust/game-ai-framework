@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.joker_order_policy import JokerOrderPolicy
+from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
 from games.balatro.live.hand_action_policy import (
     LiveHandActionDecisionEngine,
     LiveHandActionPolicy,
@@ -42,19 +43,33 @@ def test_timeout_fallback_never_fabricates_a_discard_without_completed_search():
 
 
 def test_timeout_reuses_completed_root_search_before_structural_fallback():
-    completed = (SimpleNamespace(action=SimpleNamespace(name="PLAY_CARDS")),)
-    calls = []
-    sentinel = SimpleNamespace(rationale=("completed search policy decision",))
-
-    class _Policy:
-        def decide(self, state, plans, **kwargs):
-            calls.append((state, tuple(plans), kwargs))
-            return sentinel
-
-    state = SimpleNamespace()
+    weak = LiveBlindPlan(
+        action=BalatroAction(PLAY_CARDS, cards=(object(),)),
+        value=LiveBlindPlanValue(0.1, 0.2, 100.0, 3.0, 2.0),
+        horizon=1,
+        exact=True,
+        candidate_count=2,
+    )
+    strong = LiveBlindPlan(
+        action=BalatroAction(PLAY_CARDS, cards=(object(), object())),
+        value=LiveBlindPlanValue(0.4, 0.6, 300.0, 2.0, 2.0),
+        horizon=1,
+        exact=True,
+        candidate_count=2,
+    )
+    policy = LiveHandActionPolicy()
+    policy.decide = lambda *_args, **_kwargs: (_ for _ in ()).throw(
+        AssertionError("expired timeout fallback must not re-enter full D1 policy")
+    )
+    state = SimpleNamespace(
+        blind=SimpleNamespace(requirement=600),
+        score=0,
+        hands_remaining=4,
+        discards_remaining=4,
+    )
     engine = SimpleNamespace(
-        policy=_Policy(),
-        _safe_pace_completed_root_plans=completed,
+        policy=policy,
+        _safe_pace_completed_root_plans=(weak, strong),
     )
 
     result = LiveHandActionDecisionEngine._structural_timeout_fallback(
@@ -63,17 +78,11 @@ def test_timeout_reuses_completed_root_search_before_structural_fallback():
         search_attempts=("shallow-complete", "deep-timeout"),
     )
 
-    assert result is sentinel
-    assert calls == [
-        (
-            state,
-            completed,
-            {
-                "search_attempts": ("shallow-complete", "deep-timeout"),
-                "setup_discard_consensus": False,
-            },
-        )
-    ]
+    assert result.selected_plan is strong
+    assert result.action.name == PLAY_CARDS
+    assert result.best_discard is None
+    assert result.plans == (weak, strong)
+    assert "without any post-deadline projection" in result.rationale[1]
 
 
 class _EqualScoreOrderPolicy(JokerOrderPolicy):

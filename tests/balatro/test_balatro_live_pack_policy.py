@@ -1,7 +1,19 @@
+from types import SimpleNamespace
+
+import pytest
+
 from games.balatro.actions import BalatroAction, SELECT_PACK_CARD, SKIP_BOOSTER
 from games.balatro.live.pack import LivePackActionGenerator, LivePackChoice
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.state import BalatroState
+
+
+class _FixedPlayingCardBuild:
+    def __init__(self, total_gain):
+        self.total_gain = total_gain
+
+    def evaluate(self, *_args, **_kwargs):
+        return SimpleNamespace(total_gain=self.total_gain, rationale=())
 
 
 def _state(phase="BUFFOON_PACK"):
@@ -76,6 +88,60 @@ def test_enhanced_playing_card_beats_skip():
     )
 
     assert ranked[0].action.name == SELECT_PACK_CARD
+
+
+def test_context_match_alone_does_not_justify_vanilla_deck_bloat():
+    choice = LivePackChoice(
+        area_index=0,
+        address=102,
+        data={
+            "area_index": 0,
+            "ability_set": "PLAYING_CARD",
+            "live_id": 3,
+            "value": {"rank": "9", "suit": "Hearts"},
+            "modifier": {},
+        },
+    )
+    policy = BalatroPackPolicy(
+        playing_card_build=_FixedPlayingCardBuild(1.086),
+    )
+
+    ranked = policy.rank_actions(
+        _state("STANDARD_PACK"),
+        [BalatroAction(SELECT_PACK_CARD, target=choice), BalatroAction(SKIP_BOOSTER)],
+    )
+
+    assert ranked[0].action.name == SKIP_BOOSTER
+    assert policy.score_action(
+        _state("STANDARD_PACK"), ranked[1].action
+    ).total == pytest.approx(0.336)
+
+
+def test_mechanical_deck_growth_payoff_admits_vanilla_card_addition():
+    state = _state("STANDARD_PACK")
+    state.jokers = [SimpleNamespace(name="Hologram")]
+    choice = LivePackChoice(
+        area_index=0,
+        address=103,
+        data={
+            "area_index": 0,
+            "ability_set": "PLAYING_CARD",
+            "live_id": 4,
+            "value": {"rank": "9", "suit": "Hearts"},
+            "modifier": {},
+        },
+    )
+    policy = BalatroPackPolicy(
+        playing_card_build=_FixedPlayingCardBuild(0.0),
+    )
+
+    ranked = policy.rank_actions(
+        state,
+        [BalatroAction(SELECT_PACK_CARD, target=choice), BalatroAction(SKIP_BOOSTER)],
+    )
+
+    assert ranked[0].action.name == SELECT_PACK_CARD
+    assert any("deck-growth support" in note for note in ranked[0].notes)
 
 
 def test_full_joker_slots_keep_buffoon_choice_visible_for_replacement_policy():

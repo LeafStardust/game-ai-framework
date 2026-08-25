@@ -19,6 +19,7 @@ from games.balatro.build.hex_expectation import HexExpectationEvaluator
 from games.balatro.build.sigil_expectation import SigilExpectationEvaluator
 from games.balatro.build.wheel_expectation import WheelOfFortuneExpectationEvaluator
 from games.balatro.consumable import ConsumableContext
+from games.balatro.deck_growth_pack_policy import deck_growth_pack_support_active
 from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.live.pack import LivePackChoice
@@ -128,6 +129,9 @@ class BalatroPackPolicy:
         "GOLD": 1.4,
         "PURPLE": 1.2,
     }
+
+    VANILLA_CARD_DILUTION_PENALTY = 0.75
+    DECK_GROWTH_CARD_SUPPORT_VALUE = 1.0
 
     RANK_VALUE = {
         "A": 0.30,
@@ -763,5 +767,17 @@ class BalatroPackPolicy:
         notes.extend(contextual.rationale)
 
         if not enhancement and not edition_text and not seal_text:
+            if deck_growth_pack_support_active(state):
+                score += self.DECK_GROWTH_CARD_SUPPORT_VALUE
+                notes.append(
+                    "mechanically active Blue Joker/Hologram deck-growth support "
+                    f"value=+{self.DECK_GROWTH_CARD_SUPPORT_VALUE:.3f}"
+                )
+            else:
+                score -= self.VANILLA_CARD_DILUTION_PENALTY
+                notes.append(
+                    "vanilla playing-card deck dilution "
+                    f"penalty=-{self.VANILLA_CARD_DILUTION_PENALTY:.3f}"
+                )
             notes.append("vanilla playing card; small rank-only value before build context")
         return PackActionScore(action, score, tuple(notes))

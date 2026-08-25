@@ -30,8 +30,13 @@ def _token(item: object) -> str:
     return type_token
 
 
-def _deck_growth_active(state) -> bool:
+def deck_growth_pack_support_active(state) -> bool:
+    """Whether an added card has immediate, mechanically explicit build value."""
     return any(_token(joker) in _DECK_GROWTH_SCORERS for joker in getattr(state, "jokers", ()) or ())
+
+
+# Compatibility for older direct callers.
+_deck_growth_active = deck_growth_pack_support_active
 
 
 def install_deck_growth_pack_policy() -> None:
@@ -42,7 +47,7 @@ def install_deck_growth_pack_policy() -> None:
 
     def recommend(self, state, action):
         result = original_recommend(self, state, action)
-        if result.family != "STANDARD" or not _deck_growth_active(state):
+        if result.family != "STANDARD" or not deck_growth_pack_support_active(state):
             return result
 
         advantage = float(result.advantage_over_save) + _DECK_GROWTH_SUPPORT_VALUE

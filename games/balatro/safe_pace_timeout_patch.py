@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from time import perf_counter
 
+from games.balatro.actions import PLAY_CARDS
 from games.balatro.live.blind_clear_planner import PlannerSearchBudgetExceeded
-from games.balatro.live.hand_action_policy import LiveHandActionDecisionEngine
+from games.balatro.live.hand_action_policy import PACE_RECOVERY, LiveHandActionDecisionEngine
 
 
 BOOTSTRAP_MAX_SECONDS = 1.50
@@ -87,37 +88,47 @@ def install_safe_pace_timeout_patch() -> None:
         completed = tuple(
             getattr(self, "_safe_pace_completed_root_plans", ()) or ()
         )
-        if completed:
+        completed_plays = tuple(
+            plan
+            for plan in completed
+            if getattr(getattr(plan, "action", None), "name", None) == PLAY_CARDS
+        )
+        if completed_plays:
             # A deeper search timing out is not evidence that the earlier completed
             # search became invalid. Reuse that bounded work instead of throwing it
-            # away and manufacturing an unsearched structural action. The normal D1
-            # policy still decides between the completed Play/Discard candidates.
+            # away and manufacturing an unsearched structural action. The deadline
+            # has already expired, so do not re-enter the full D1 policy: it performs
+            # fresh Joker-aware projections and recovery scoring over every root.
             try:
-                decision = self.policy.decide(
-                    state,
-                    completed,
-                    search_attempts=search_attempts,
+                selected = max(completed_plays, key=self.policy._within_type_key)
+                pace_target = self.policy._pace_target(state)
+                decision = self.policy._decision(
+                    mode=PACE_RECOVERY,
+                    selected=selected,
+                    best_play=selected,
+                    best_discard=None,
+                    pace_target=pace_target,
+                    best_play_immediate_score=0.0,
+                    best_play_pace_ratio=0.0,
+                    selected_immediate_score=None,
+                    selected_pace_ratio=None,
+                    selected_fallback_value=float(selected.value.expected_progress),
+                    clear_path_candidates=0,
+                    sampled_clear_path_confirmed=False,
                     setup_discard_consensus=False,
+                    confidence=max(0.25, min(1.0, float(selected.value.clear_probability))),
+                    rationale=(
+                        "D1 wall-clock budget exhausted after at least one bounded root pass completed",
+                        "reused the strongest completed Play root without any post-deadline projection",
+                        "take only this action, then re-observe and replan",
+                    ),
+                    plans=completed_plays,
+                    search_attempts=search_attempts,
                 )
             except (AttributeError, KeyError, RuntimeError, TypeError, ValueError):
                 decision = None
             if decision is not None:
-                rationale = tuple(getattr(decision, "rationale", ()) or ())
-                try:
-                    from dataclasses import replace
-
-                    return replace(
-                        decision,
-                        rationale=(
-                            "D1 wall-clock budget exhausted after at least one bounded root pass completed",
-                            "reused the strongest completed root search instead of discarding bounded evidence",
-                            *rationale,
-                        ),
-                    )
-                except (TypeError, ValueError):
-                    # Lightweight fixtures are allowed in the policy tests. The
-                    # decision itself is already valid even when it is not a dataclass.
-                    return decision
+                return decision
 
         # Only a timeout before *any* bounded root pass completes reaches the original
         # structural Play fallback. A timeout alone never authorizes a fabricated discard.

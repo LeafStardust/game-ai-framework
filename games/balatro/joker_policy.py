@@ -450,11 +450,16 @@ class JokerAcquisitionPolicy:
         incumbent = state.jokers[index]
         economics = self._economics(state, candidate, incumbent=incumbent, replacement=True)
         bond_bonus, bond_notes = _bond_transition_bonus(state, candidate, replace_index=index)
-        build_gain = float(replacement.build_delta) + bond_bonus
+        raw_build_delta = float(replacement.build_delta)
+        build_gain = raw_build_delta + bond_bonus
         eligible = (
             bool(getattr(replacement, "eligible", True))
             and getattr(replacement, "blocked_reason", None) is None
             and economics.money_after >= 0
+            # A structural Bond transition is supporting evidence, not permission
+            # to destroy a stronger incumbent. Keep this invariant in the core D2
+            # scorer so wrapper registration/import order cannot bypass it.
+            and raw_build_delta > self.thresholds.minimum_replacement_build_delta
             and build_gain > self.thresholds.minimum_replacement_build_delta
         )
         total = build_gain + economics.total_adjustment
@@ -468,6 +473,7 @@ class JokerAcquisitionPolicy:
             replace_joker=type(incumbent).__name__,
             rationale=(
                 *replacement.rationale,
+                f"raw whole-build replacement delta={raw_build_delta:.3f}",
                 *bond_notes,
                 f"sell credit=${economics.sell_credit}",
                 f"net spend=${economics.net_spend}",
