@@ -124,17 +124,17 @@ class JokerBehaviorAnalyzer:
     # the cards through HandEvaluator.contains (Zany, Crazy, Crafty, etc.).
     _HAND_RANKS: dict[PokerHand, tuple[str, ...]] = {
         PokerHand.HIGH_CARD: ("A", "Q", "J", "9", "2"),
-        PokerHand.PAIR: ("8", "8", "K", "7", "2"),
-        PokerHand.TWO_PAIR: ("A", "A", "K", "K", "2"),
-        PokerHand.THREE_OF_A_KIND: ("Q", "Q", "Q", "7", "2"),
+        PokerHand.PAIR: ("Q", "Q", "K", "9", "4"),
+        PokerHand.TWO_PAIR: ("Q", "Q", "K", "K", "4"),
+        PokerHand.THREE_OF_A_KIND: ("Q", "Q", "Q", "K", "4"),
         PokerHand.STRAIGHT: ("10", "J", "Q", "K", "A"),
-        PokerHand.FLUSH: ("A", "10", "8", "5", "2"),
-        PokerHand.FULL_HOUSE: ("K", "K", "K", "8", "8"),
-        PokerHand.FOUR_OF_A_KIND: ("8", "8", "8", "8", "A"),
+        PokerHand.FLUSH: ("Q", "10", "9", "7", "4"),
+        PokerHand.FULL_HOUSE: ("Q", "Q", "Q", "K", "K"),
+        PokerHand.FOUR_OF_A_KIND: ("Q", "Q", "Q", "Q", "K"),
         PokerHand.STRAIGHT_FLUSH: ("10", "J", "Q", "K", "A"),
-        PokerHand.FIVE_OF_A_KIND: ("7", "7", "7", "7", "7"),
-        PokerHand.FLUSH_HOUSE: ("K", "K", "K", "8", "8"),
-        PokerHand.FLUSH_FIVE: ("7", "7", "7", "7", "7"),
+        PokerHand.FIVE_OF_A_KIND: ("Q", "Q", "Q", "Q", "Q"),
+        PokerHand.FLUSH_HOUSE: ("Q", "Q", "Q", "K", "K"),
+        PokerHand.FLUSH_FIVE: ("Q", "Q", "Q", "Q", "Q"),
     }
     _FLUSH_HANDS = frozenset(
         {
@@ -709,15 +709,15 @@ class JokerBehaviorAnalyzer:
     @classmethod
     def _enhanced_cards(cls, enhancement: str) -> list[BalatroCard]:
         cards = cls._neutral_cards()
-        for card in cards:
-            card.enhancement = enhancement
+        # Vary one card at a time.  Making all five cards Wild manufactures a
+        # Flush and falsely teaches the analyzer that Crafty/Droll require Wild.
+        cards[0].enhancement = enhancement
         return cards
 
     @classmethod
     def _sealed_cards(cls, seal: str) -> list[BalatroCard]:
         cards = cls._neutral_cards()
-        for card in cards:
-            card.seal = seal
+        cards[0].seal = seal
         return cards
 
 
