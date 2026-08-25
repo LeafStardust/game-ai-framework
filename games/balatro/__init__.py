@@ -6,6 +6,7 @@ installed as competing production strategy authorities.
 """
 
 from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
+from games.balatro.bond_conflict_admission_policy import install_bond_conflict_admission_policy
 from games.balatro.bond_d1_cache_policy import install_bond_d1_cache_policy
 from games.balatro.bond_pivot_authority import install_bond_pivot_authority
 from games.balatro.bond_power_engine_retention_policy import install_bond_power_engine_retention_policy
@@ -104,6 +105,10 @@ install_live_decision_quality_policy()
 install_stateful_joker_admission_policy()
 install_tactical_scaler_retention_policy()
 install_pinned_strategy_safe_pace_policy()
+# Canonical composition conflicts are admission constraints, not soft diagnostics.
+# Install them after value/transition layers have formed their proposal so the
+# final D2 decision cannot introduce a newly conflicting Bond direction.
+install_bond_conflict_admission_policy()
 # Final semantic execution guards see the fully wrapped D1/shop decisions so later
 # value layers cannot undo defining mechanics.
 install_aces_dna_hand_policy()
