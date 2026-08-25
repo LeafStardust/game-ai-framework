@@ -3,7 +3,7 @@ from __future__ import annotations
 """Final Red/White competence corrections derived from live-run failures.
 
 This layer is intentionally small and semantic. It does not predict hidden shop
-contents or draw order. It corrects four public-state mistakes observed in live
+contents or draw order. It corrects public-state mistakes observed in live
 Red/White runs:
 
 * an empty early scoring engine could reject an affordable direct-scoring Joker
@@ -11,6 +11,8 @@ Red/White runs:
 * Paint Brush/Palette could bypass early survival readiness with zero Jokers;
 * pace recovery treated a one-card discard too similarly to a multi-card redraw
   even though both consume exactly one discard resource;
+* the bounded live planner ranked discard candidates with a separate mini-heuristic,
+  bypassing the canonical D1 discard evaluator before expectimax;
 * shop Wheel of Fortune was never admitted by the deterministic D4 immediate-use
   path, even with healthy money and eligible editionless Jokers.
 
@@ -25,6 +27,7 @@ from games.balatro.build.joker_scenarios import ScenarioJokerBehaviorAnalyzer
 from games.balatro.build.wheel_expectation import WheelOfFortuneExpectationEvaluator
 from games.balatro.consumable import Consumable, ConsumableContext
 from games.balatro.joker_policy import BUY, HOLD, JokerAcquisitionPolicy
+from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.shop_consumable_policy import (
     BUY_AND_USE,
@@ -43,8 +46,8 @@ REDRAW_EFFICIENCY_BASE = 8.0
 REDRAW_EFFICIENCY_SHORTFALL_WEIGHT = 8.0
 WHEEL_NAMES = frozenset({"The Wheel of Fortune", "Wheel of Fortune"})
 # The pack path already gives Wheel a public-state stochastic expectation. Shop
-# Wheel additionally has collection/edition option value requested by the Red/White
-# competence policy; D14 still subtracts the shared real money cost before buying.
+# Wheel additionally has edition option value requested by the Red/White competence
+# policy; D14 still subtracts the shared real money cost before buying.
 WHEEL_SHOP_OPTION_FLOOR = 1.25
 
 
@@ -116,13 +119,11 @@ def install_red_white_competence_corrections() -> None:
         if not _direct_scoring_candidate(candidate):
             return decision
 
-        # The whole point of this correction is to recover first-engine scalers whose
-        # *current* build gain is zero before they have had a chance to scale (Square
-        # Joker is the live-run example). Core D2 therefore marks the otherwise valid
-        # BUY option ineligible. Requiring option.eligible here would simply reproduce
-        # that failure. In this deliberately narrow zero-roster/early-ante state,
-        # semantic direct scoring plus affordability is sufficient admission; D14
-        # still compares the resulting purchase on the shared money/interest scale.
+        # Recover first-engine scalers whose current build gain is still zero before
+        # they have had a chance to scale. Core D2 can therefore mark the otherwise
+        # valid BUY option ineligible. In this deliberately narrow zero-roster/early
+        # state, semantic direct scoring plus affordability is sufficient admission;
+        # D14 still compares the purchase on the shared money/interest scale.
         affordable = [
             option
             for option in tuple(getattr(decision, "options", ()) or ())
@@ -246,7 +247,7 @@ def install_red_white_competence_corrections() -> None:
         if ante < 1 or ante > EARLY_ENGINE_ANTE_LIMIT:
             return True, notes
 
-        state_jokers = len(tuple(getattr(state, "jokers", ()) or ())
+        state_jokers = len(tuple(getattr(state, "jokers", ()) or ()))
         profile_jokers = len(tuple(getattr(profile, "joker_names", ()) or ()))
         joker_count = max(state_jokers, profile_jokers)
         invested_hand = _has_invested_hand(state) or _has_invested_hand(profile)
@@ -299,12 +300,22 @@ def install_red_white_competence_corrections() -> None:
         )
         return value + efficiency
 
+    def discard_priority(self, state, action):
+        # D1 owns discard desirability. The live expectimax beam must not maintain a
+        # second partial scoring system that can prune away the very candidates D1
+        # prefers (debuff recovery, fixed-token multi-card redraw, no-discard costs,
+        # and future mechanic-specific authorities). The card-count tuple remains a
+        # deterministic tie-break only after canonical D1 value is exactly equal.
+        return float(self.evaluator.evaluate(state, action)), len(action.cards)
+
     JokerAcquisitionPolicy.decide = joker_decide
     ConsumableAcquisitionPolicy.decide = consumable_decide
     VoucherAcquisitionPolicy._early_survival_gate = staticmethod(voucher_gate)
     LiveHandDecisionEvaluator._discard_value = discard_value
+    LiveBlindClearPlanner._discard_priority = discard_priority
 
     JokerAcquisitionPolicy._rw_competence_corrections_installed = True
     ConsumableAcquisitionPolicy._rw_competence_corrections_installed = True
     VoucherAcquisitionPolicy._rw_competence_corrections_installed = True
     LiveHandDecisionEvaluator._rw_competence_corrections_installed = True
+    LiveBlindClearPlanner._rw_competence_corrections_installed = True
