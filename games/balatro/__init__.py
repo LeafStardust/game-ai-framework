@@ -27,7 +27,6 @@ from games.balatro.face_card_enabler_bond_policy import install_face_card_enable
 from games.balatro.forming_strategy_retention_policy import install_forming_strategy_retention_policy
 from games.balatro.full_roster_pack_guard import install_full_roster_pack_guard
 from games.balatro.full_roster_shop_guard import install_full_roster_shop_guard
-from games.balatro.hook_transition_policy import install_hook_transition_policy
 from games.balatro.late_shop_resource_guard import install_late_shop_resource_guard
 from games.balatro.strategy_execution_guard_policy import install_strategy_execution_guard_policy
 from games.balatro.semantic_search_guard_policy import install_semantic_search_guard_policy
@@ -67,7 +66,6 @@ from games.balatro.red_white_competence_corrections import install_red_white_com
 install_mouth_first_hand_policy()
 install_boss_hand_constraint_policy()
 install_serpent_draw_policy()
-install_hook_transition_policy()
 install_d1_log_resilience_policy()
 install_d1_candidate_deadline_policy()
 install_d1_outer_evaluation_cache_policy()
