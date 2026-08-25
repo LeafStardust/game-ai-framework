@@ -9,6 +9,9 @@ Red/White runs:
 * an empty early scoring engine could reject an affordable direct-scoring Joker
   because reserve economics outweighed the first foothold;
 * Paint Brush/Palette could bypass early survival readiness with zero Jokers;
+* conditional scoring mechanics discoverable from public rules could be omitted
+  from representative shop score projection when their activation context was not
+  present in the neutral probe state;
 * pace recovery treated a one-card discard too similarly to a multi-card redraw
   even though both consume exactly one discard resource;
 * the bounded live planner ranked discard candidates with a separate mini-heuristic,
@@ -20,10 +23,15 @@ The module installs after the existing policy stack so all mechanical/conflict
 vetoes remain authoritative and these corrections see the final public decision.
 """
 
+from copy import deepcopy
 from dataclasses import replace
 
 from games.balatro.actions import BUY_AND_USE_CONSUMABLE, BalatroAction
-from games.balatro.build.joker_scenarios import ScenarioJokerBehaviorAnalyzer
+from games.balatro.build.joker_scenarios import (
+    ScenarioJokerBehaviorAnalyzer,
+    scenario_feature,
+)
+from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 from games.balatro.build.wheel_expectation import WheelOfFortuneExpectationEvaluator
 from games.balatro.consumable import Consumable, ConsumableContext
 from games.balatro.joker_policy import BUY, HOLD, JokerAcquisitionPolicy
@@ -45,10 +53,11 @@ EXPENSIVE_HAND_SIZE_VOUCHERS = frozenset({"Paint Brush", "Palette"})
 REDRAW_EFFICIENCY_BASE = 8.0
 REDRAW_EFFICIENCY_SHORTFALL_WEIGHT = 8.0
 WHEEL_NAMES = frozenset({"The Wheel of Fortune", "Wheel of Fortune"})
-# The pack path already gives Wheel a public-state stochastic expectation. Shop
-# Wheel additionally has edition option value requested by the Red/White competence
-# policy; D14 still subtracts the shared real money cost before buying.
 WHEEL_SHOP_OPTION_FLOOR = 1.25
+REPEATED_HAND_SCENARIO = scenario_feature("repeated_hand")
+
+
+_SCENARIO_ANALYZER = ScenarioJokerBehaviorAnalyzer()
 
 
 def _ante(state) -> int:
@@ -65,7 +74,7 @@ def _ante(state) -> int:
 def _direct_scoring_candidate(candidate: object) -> bool:
     """Use canonical behavior semantics, not Joker-name allowlists."""
     try:
-        descriptor = ScenarioJokerBehaviorAnalyzer().describe(candidate)
+        descriptor = _SCENARIO_ANALYZER.describe(candidate)
     except (AttributeError, TypeError, ValueError):
         return False
     if descriptor is None:
@@ -106,6 +115,36 @@ def install_red_white_competence_corrections() -> None:
     original_consumable_decide = ConsumableAcquisitionPolicy.decide
     original_voucher_gate = VoucherAcquisitionPolicy._early_survival_gate
     original_discard_value = LiveHandDecisionEvaluator._discard_value
+    original_direct_scoring_gain = JokerBuildValueEvaluator._direct_scoring_gain
+
+    def direct_scoring_gain(self, state, joker):
+        base_gain = float(original_direct_scoring_gain(self, state, joker))
+        try:
+            descriptor = _SCENARIO_ANALYZER.describe(joker)
+        except (AttributeError, TypeError, ValueError):
+            return base_gain
+
+        # The scenario analyzer already proves when scoring is gated by repeating a
+        # hand. B3's neutral score probes previously ignored that public mechanical
+        # condition entirely, making mechanics such as Card Sharp look inert in the
+        # shop. Evaluate the same literal scorer in both representative states:
+        # before the condition and after one same-type hand has been played. This is
+        # not a Joker-name bonus and does not fabricate chips/Mult/XMult; it exposes
+        # the real modeled effect under its reachable execution context.
+        if REPEATED_HAND_SCENARIO not in set(getattr(descriptor, "requires", ()) or ()):
+            return base_gain
+
+        repeated_state = deepcopy(state)
+        counts = dict(getattr(repeated_state, "round_hand_play_counts", {}) or {})
+        for poker_hand, _ in self._scoring_probes(repeated_state):
+            counts[poker_hand.value] = max(1, int(counts.get(poker_hand.value, 0) or 0))
+        repeated_state.round_hand_play_counts = counts
+        repeated_gain = float(original_direct_scoring_gain(self, repeated_state, joker))
+
+        # Representative B3 probes are deliberately equal-weight samples rather
+        # than draw probabilities. Preserve that contract by giving the inactive
+        # and mechanically active contexts equal representation.
+        return (base_gain + repeated_gain) / 2.0
 
     def joker_decide(self, state, candidate):
         decision = original_joker_decide(self, state, candidate)
@@ -119,11 +158,6 @@ def install_red_white_competence_corrections() -> None:
         if not _direct_scoring_candidate(candidate):
             return decision
 
-        # Recover first-engine scalers whose current build gain is still zero before
-        # they have had a chance to scale. Core D2 can therefore mark the otherwise
-        # valid BUY option ineligible. In this deliberately narrow zero-roster/early
-        # state, semantic direct scoring plus affordability is sufficient admission;
-        # D14 still compares the purchase on the shared money/interest scale.
         affordable = [
             option
             for option in tuple(getattr(decision, "options", ()) or ())
@@ -234,10 +268,6 @@ def install_red_white_competence_corrections() -> None:
         if not allowed:
             return allowed, notes
 
-        # D3's profiler is the canonical readiness snapshot. Some focused policy
-        # tests intentionally pass a skeletal state object while supplying the real
-        # Joker/hand readiness through the profile, so consult both instead of
-        # treating an absent state field as an empty live roster.
         ante = _ante(state)
         if ante <= 0:
             try:
@@ -252,9 +282,6 @@ def install_red_white_competence_corrections() -> None:
         joker_count = max(state_jokers, profile_jokers)
         invested_hand = _has_invested_hand(state) or _has_invested_hand(profile)
 
-        # This correction targets the observed $14->$4 empty-engine Paint Brush
-        # failure. A healthy bankroll should retain the canonical structural voucher
-        # exception, and any established scoring foothold should do the same.
         if (
             joker_count == 0
             and not invested_hand
@@ -280,19 +307,11 @@ def install_red_white_competence_corrections() -> None:
         shortfall = max(0.0, 1.0 - best_score / required)
         if shortfall <= 0.0:
             return value
-
-        # Debuffed-card preference is already owned by d1_debuff_recovery_policy.
-        # Do not duplicate that weight here: this layer only corrects the fixed-cost
-        # redraw inefficiency that caused repeated one-card discards.
         if redraws <= 1:
             return value
         if int(getattr(state, "discards_remaining", 0) or 0) <= 1:
             return value
 
-        # One discard token is spent whether one card or five are redrawn. Reward
-        # additional redraws only while the current hand is below required pace;
-        # retained-structure and card-effect costs from the canonical evaluator still
-        # decide whether those extra cards are actually safe to throw away.
         extra_redraws = min(4, redraws - 1)
         efficiency = extra_redraws * (
             REDRAW_EFFICIENCY_BASE
@@ -303,17 +322,17 @@ def install_red_white_competence_corrections() -> None:
     def discard_priority(self, state, action):
         # D1 owns discard desirability. The live expectimax beam must not maintain a
         # second partial scoring system that can prune away the very candidates D1
-        # prefers (debuff recovery, fixed-token multi-card redraw, no-discard costs,
-        # and future mechanic-specific authorities). The card-count tuple remains a
-        # deterministic tie-break only after canonical D1 value is exactly equal.
+        # prefers. Card count is only a deterministic tie-break after equal D1 value.
         return float(self.evaluator.evaluate(state, action)), len(action.cards)
 
+    JokerBuildValueEvaluator._direct_scoring_gain = direct_scoring_gain
     JokerAcquisitionPolicy.decide = joker_decide
     ConsumableAcquisitionPolicy.decide = consumable_decide
     VoucherAcquisitionPolicy._early_survival_gate = staticmethod(voucher_gate)
     LiveHandDecisionEvaluator._discard_value = discard_value
     LiveBlindClearPlanner._discard_priority = discard_priority
 
+    JokerBuildValueEvaluator._rw_competence_corrections_installed = True
     JokerAcquisitionPolicy._rw_competence_corrections_installed = True
     ConsumableAcquisitionPolicy._rw_competence_corrections_installed = True
     VoucherAcquisitionPolicy._rw_competence_corrections_installed = True
