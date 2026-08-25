@@ -1,7 +1,5 @@
 from types import SimpleNamespace
 
-import pytest
-
 from games.balatro.actions import PLAY_CARDS, REORDER_HAND, BalatroAction
 from games.balatro.card import BalatroCard
 from games.balatro.hand_order_policy import HandOrderPolicy
@@ -17,6 +15,7 @@ from games.balatro.live.runtime import live_memory_autonomous_step_injected as r
 from games.balatro.live.runtime.live_memory_autonomous_step_injected import (
     LiveMemoryInjectedSingleStepRunner,
 )
+from games.balatro.planet_pack_fallback_policy import _celestial_headroom
 from games.balatro.planets import create_planet
 from games.balatro.playbook.red_white import joker_policy as red_white_joker_policy
 from games.balatro.shop_consumable_policy import (
@@ -214,6 +213,17 @@ def test_d4_planet_scaler_does_not_break_reserve():
     ).decide(state, planet)
 
     assert decision.action != BUY_AND_USE
+
+
+def test_planet_scaler_bypasses_generic_celestial_hand_headroom():
+    _, state = _planet_state(phase="SHOP", money=10)
+    state.hand_play_counts = {}
+    state.hand_levels = {"PAIR": 1}
+
+    headroom, notes = _celestial_headroom(state)
+
+    assert headroom > 0
+    assert any("Planet-use scaler" in note for note in notes)
 
 
 def test_red_white_d2_vetoes_new_canonical_conflict(monkeypatch):
