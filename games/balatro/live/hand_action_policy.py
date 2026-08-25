@@ -692,6 +692,7 @@ class LiveHandActionDecisionEngine:
         """Return a legal structural action without further Joker projection."""
         planner = self.planner
         planner._require_state(state)
+        action_generator = getattr(planner, "action_generator", None)
         child_candidates = getattr(planner, "_child_play_candidates", None)
         if callable(child_candidates):
             plays = list(
@@ -701,7 +702,6 @@ class LiveHandActionDecisionEngine:
                 )
             )
         else:
-            action_generator = getattr(planner, "action_generator", None)
             generate_plays = getattr(action_generator, "generate_play_actions", None)
             if not callable(generate_plays):
                 raise RuntimeError(
@@ -746,19 +746,50 @@ class LiveHandActionDecisionEngine:
         discards_remaining = max(0, int(getattr(state, "discards_remaining", 0) or 0))
         hands_remaining = max(0, int(getattr(state, "hands_remaining", 0) or 0))
         action = best_play
+        selected_kind = "Play"
+
+        generate_discards = getattr(action_generator, "generate_discard_actions", None)
+        policy_evaluator = getattr(self.policy, "evaluator", None)
+        retained_value = getattr(policy_evaluator, "_retained_structure_value", None)
+        best_hand_rank = play_key(best_play)[0]
+        if (
+            discards_remaining > 0
+            and hands_remaining > 1
+            and best_hand_rank <= 1
+            and callable(generate_discards)
+            and callable(retained_value)
+        ):
+            discards = list(generate_discards(state))
+            if discards:
+                def discard_key(candidate):
+                    removed = {id(card) for card in tuple(candidate.cards or ())}
+                    kept = [
+                        card
+                        for card in tuple(getattr(state, "hand", ()) or ())
+                        if id(card) not in removed
+                    ]
+                    return float(retained_value(kept)), len(tuple(candidate.cards or ()))
+
+                action = max(discards, key=discard_key)
+                selected_kind = "Discard"
 
         target = float(getattr(getattr(state, "blind", None), "requirement", 0) or 0)
         score = float(getattr(state, "score", 0) or 0)
         progress = min(1.0, max(0.0, score / target)) if target > 0 else 0.0
-        value = LiveBlindPlanValue(
-            clear_probability=0.0,
-            expected_progress=progress,
-            expected_score=score,
-            expected_hands_remaining=float(
-                max(0, hands_remaining - 1)
-            ),
-            expected_discards_remaining=float(discards_remaining),
-        )
+        def structural_value(candidate):
+            return LiveBlindPlanValue(
+                clear_probability=0.0,
+                expected_progress=progress,
+                expected_score=score,
+                expected_hands_remaining=float(
+                    max(0, hands_remaining - (candidate.name == PLAY_CARDS))
+                ),
+                expected_discards_remaining=float(
+                    max(0, discards_remaining - (candidate.name == DISCARD_CARDS))
+                ),
+            )
+
+        value = structural_value(action)
         plan = LiveBlindPlan(
             action=action,
             value=value,
@@ -766,12 +797,23 @@ class LiveHandActionDecisionEngine:
             exact=False,
             candidate_count=len(plays),
         )
+        best_play_plan = (
+            plan
+            if action is best_play
+            else LiveBlindPlan(
+                action=best_play,
+                value=structural_value(best_play),
+                horizon=1,
+                exact=False,
+                candidate_count=len(plays),
+            )
+        )
         pace_target = self.policy._pace_target(state)
         return self.policy._decision(
             mode=PACE_RECOVERY,
             selected=plan,
-            best_play=plan,
-            best_discard=None,
+            best_play=best_play_plan,
+            best_discard=plan if action.name == DISCARD_CARDS else None,
             pace_target=pace_target,
             best_play_immediate_score=0.0,
             best_play_pace_ratio=0.0,
@@ -784,8 +826,8 @@ class LiveHandActionDecisionEngine:
             confidence=0.25,
             rationale=(
                 "D1 wall-clock budget exhausted before pace fallback completed",
-                "selected the strongest bounded structural Play without further Joker-aware projection",
-                "a timeout without completed search evidence never authorizes a fabricated discard",
+                f"selected a bounded structural {selected_kind} without further Joker-aware projection",
+                "a structural discard requires both an authoritative legal-action generator and retained-hand evaluator; otherwise timeout recovery plays the strongest made hand",
                 "take only this action, then re-observe and replan",
             ),
             plans=(plan,),
