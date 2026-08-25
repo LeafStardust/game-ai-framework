@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from games.balatro.build.joker_value import JokerBuildValueEvaluator
+from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 from games.balatro.jokers.canio import CanioJoker
 from games.balatro.jokers.chicot import ChicotJoker
 from games.balatro.jokers.perkeo import PerkeoJoker
