@@ -1,7 +1,9 @@
 from types import SimpleNamespace
 
 from games.balatro.actions import DISCARD_CARDS, BalatroAction
+from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 from games.balatro.joker_policy import BUY, JokerAcquisitionPolicy
+from games.balatro.jokers.card_sharp import CardSharpJoker
 from games.balatro.jokers.square_joker import SquareJoker
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
@@ -51,6 +53,23 @@ def test_paint_brush_cannot_preempt_first_scoring_foothold():
 
     assert allowed is False
     assert any("first-engine hold" in note for note in notes)
+
+
+def test_card_sharp_shop_value_projects_reachable_repeated_hand_scoring():
+    state = BalatroState()
+    state.phase = "SHOP"
+    state.jokers = []
+    state.round_hand_play_counts = {
+        hand: 0 for hand in state.round_hand_play_counts
+    }
+
+    value = JokerBuildValueEvaluator().evaluate(state, CardSharpJoker())
+
+    # Card Sharp has no first-hand output, but its public rule is a real x3 after
+    # repeating a hand. Representative shop scoring must therefore include the
+    # reachable repeated-hand context rather than report zero direct score value.
+    assert value.direct_scoring_gain > 0.0
+    assert value.direct_scoring_value > 0.0
 
 
 def test_underpace_recovery_values_multi_card_redraw_as_one_discard_resource():
