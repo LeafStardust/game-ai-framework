@@ -29,7 +29,13 @@ class HandOrderDecision:
 
 
 class HandOrderPolicy:
-    """Reorder a chosen play when card-order-sensitive scoring improves."""
+    """Reorder a chosen play when card-order-sensitive scoring improves.
+
+    First-played-card mechanics are execution constraints, not ordinary score noise.
+    If a selected card is live and another selected card is debuffed, an active
+    first-card retrigger engine must never place the debuffed card first merely
+    because the projection layer ties or incompletely models the retrigger.
+    """
 
     def recommend(
         self,
@@ -48,7 +54,7 @@ class HandOrderPolicy:
 
         evaluator = evaluator or LiveHandDecisionEvaluator()
         current_projection = evaluator.project_play(state, action)
-        current_key = self._projection_key(current_projection)
+        current_key = self._order_key(selected, current_projection)
         best_order = selected
         best_projection = current_projection
         best_key = current_key
@@ -60,7 +66,7 @@ class HandOrderPolicy:
                 state,
                 BalatroAction(PLAY_CARDS, cards=list(ordered)),
             )
-            key = self._projection_key(projection)
+            key = self._order_key(ordered, projection)
             if key > best_key:
                 best_order = ordered
                 best_projection = projection
@@ -79,6 +85,7 @@ class HandOrderPolicy:
             ordered_expected_score=float(best_projection.expected_hand_score),
             rationale=(
                 "order-sensitive played-card scoring can be improved",
+                "first-card retrigger authority prefers a live selected card over a debuffed selected card",
                 "place the best scoring trigger first before committing the play",
                 f"guaranteed score {current_projection.hand_score} -> "
                 f"{best_projection.hand_score}",
@@ -86,6 +93,16 @@ class HandOrderPolicy:
                 f"{best_projection.expected_hand_score:.3f}",
             ),
         )
+
+    @classmethod
+    def _order_key(cls, ordered, projection) -> tuple[float, ...]:
+        # When at least one selected card is live, a live first card is mandatory
+        # for first-card retrigger engines. This precedes ordinary projected score so
+        # an incomplete/tied projection cannot put a disabled trigger first.
+        any_live = any(not bool(getattr(card, "debuffed", False)) for card in ordered)
+        first_live = not bool(getattr(ordered[0], "debuffed", False))
+        live_first_authority = 1.0 if (not any_live or first_live) else 0.0
+        return (live_first_authority, *cls._projection_key(projection))
 
     @staticmethod
     def _projection_key(projection) -> tuple[float, int, float, int]:
