@@ -26,6 +26,7 @@ from games.balatro.build.joker_lifecycle import STATEFUL_SCALING
 from games.balatro.build.joker_scenarios import ScenarioJokerBehaviorAnalyzer
 from games.balatro.build.wheel_expectation import WheelOfFortuneExpectationEvaluator
 from games.balatro.consumable import Consumable, ConsumableContext
+from games.balatro.joker_edition import joker_has_negative_edition
 from games.balatro.joker_policy import BUY, HOLD, REPLACE, JokerAcquisitionPolicy
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.shop_consumable_policy import (
@@ -405,6 +406,10 @@ def install_red_white_competence_corrections() -> None:
         utility = original_joker_gain(self, state, executable)
         candidate = getattr(executable, "candidate", None)
         if candidate is None or utility.gain <= 0.0:
+            return utility
+        if joker_has_negative_edition(candidate):
+            # Negative edition value is already canonical and slot-neutral in D14.
+            # Do not layer Red/White coverage utility onto that exact contract.
             return utility
         ante = _ante(state)
         if ante < 1 or ante > SCORING_COVERAGE_ANTE_LIMIT:
