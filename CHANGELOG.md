@@ -42,6 +42,9 @@ This file records notable development changes to the project. Active and future 
 
 ### Fixed
 
+- Corrected canonical hand-Bond membership so Mad/Clever advance their actual Two Pair condition instead of falsely advancing Four of a Kind. Jolly/Sly retain legitimate shared Pair and Two Pair membership because their Pair condition also triggers inside Two Pair.
+- Made lifecycle semantic checkpoints suppress independent random score rolls. Misprint and other stochastic Jokers can still provide modeled score value, but random checkpoint drift can no longer fabricate Planet, Tarot, discard, round, or arbitrary event scaling dependencies.
+- Propagated D1's hard wall-clock deadline into every held-The-Sun target preview and escape search. A consumable escape can no longer run an independent 81-second search behind an advertised eight-second D1 budget.
 - Fixed stale README links to removed strategy-tree documents and aligned collection-mode wording with Bond/composition authority.
 - Fixed Burnt Bond execution so a safe first discard can level its target hand even when Banner is owned; temporary Banner discard-chip value no longer suppresses the defining Burnt mechanic.
 - Fixed canonical pivot authority so an ACTIVE/MATURE power engine cannot be casually dismantled merely because a replacement creates several fresh partial Bonds; power-engine protection remains a cost, not an absolute lock.
@@ -57,6 +60,7 @@ This file records notable development changes to the project. Active and future 
 
 ### Validation
 
+- Nine uploaded Red/White attempts from 2026-08-24 through 2026-08-25 were reviewed as forensic evidence. They confirmed the hand-Bond catalogue and stochastic-lifecycle defects above; they also predate the current conflict, Planet-scaler, ordering, and engine-retention fixes, so a fresh unchanged-HEAD batch is required before numerical calibration.
 - The complete Balatro deterministic suite was green after the categorical-to-Bond migration and subsequent stale-test cleanup on 2026-08-23 before the newest live-batch fixes; each new execution/pivot/resource change remains subject to a fresh full `python -m pytest -q tests/balatro` gate.
 - A subsequent five-run Red/White batch exposed Burnt under-utilization, weak power-engine preservation, marginal late pack spending, and a D1 Bond recomputation performance defect; those concrete defects have been corrected and require fresh unchanged-HEAD live validation.
 - The authoritative tuning foundation is implemented, but **Phase-A candidate search is not yet unlocked**. The historical `e0cb0984` baseline is forensic/reference evidence only because later semantic/runtime fixes changed the repository SHA. The next empirical gate is a clean production-default 3-run live baseline on the final unchanged HEAD; any new semantic/runtime fix invalidates that study and requires a new baseline.

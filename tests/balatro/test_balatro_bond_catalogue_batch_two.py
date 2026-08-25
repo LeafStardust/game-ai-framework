@@ -32,6 +32,20 @@ def test_two_pair_can_emerge_from_spare_trousers_or_levels():
     assert evaluate_two_pair_bond(_state(hand_levels={"TWO_PAIR": 7})).rank == BondRank.R1
 
 
+def test_two_pair_includes_native_and_contains_pair_payoffs():
+    actual = evaluate_two_pair_bond(
+        _state(jokers=(_joker("Mad Joker"), _joker("Clever Joker")))
+    )
+    contains_pair = evaluate_two_pair_bond(
+        _state(jokers=(_joker("Jolly Joker"), _joker("Sly Joker")))
+    )
+
+    assert actual.contribution == 8.0
+    assert actual.rank == BondRank.R2
+    assert contains_pair.contribution == 4.0
+    assert contains_pair.rank == BondRank.R1
+
+
 def test_three_kind_has_direct_joker_path():
     result = evaluate_three_kind_bond(_state(jokers=(_joker("The Trio"),)))
     assert result.rank == BondRank.R1
@@ -42,6 +56,15 @@ def test_flower_pot_does_not_contribute_to_four_kind():
     result = evaluate_four_kind_bond(_state(jokers=(_joker("The Family"), _joker("Flower Pot"))))
     assert result.contribution == 7.0
     assert result.rank == BondRank.R1
+
+
+def test_two_pair_jokers_do_not_create_four_kind_development():
+    result = evaluate_four_kind_bond(
+        _state(jokers=(_joker("Mad Joker"), _joker("Clever Joker")))
+    )
+
+    assert result.contribution == 0.0
+    assert result.rank == BondRank.R0
 
 
 def test_straight_combines_shortcut_and_hand_levels():

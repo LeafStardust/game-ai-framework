@@ -434,6 +434,12 @@ class LifecycleJokerBehaviorAnalyzer(SemanticJokerBehaviorAnalyzer):
             "deck": copy.deepcopy(state.deck),
             "deck_target_size": len(state.deck),
             "probability": 1.0,
+            # Lifecycle probes compare checkpoints to discover persistent state
+            # changes.  Independent random rolls between those checkpoints are
+            # not lifecycle state and otherwise manufacture false activation or
+            # scaling semantics (for example, Misprint appearing to scale from
+            # every Tarot, Planet, discard, and round event).
+            "resolve_random_effects": False,
         }
 
     @classmethod

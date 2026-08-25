@@ -18,6 +18,7 @@ from games.balatro.jokers.constellation import ConstellationJoker
 from games.balatro.jokers.flash_card import FlashCardJoker
 from games.balatro.jokers.fortune_teller import FortuneTellerJoker
 from games.balatro.jokers.green_joker import GreenJoker
+from games.balatro.jokers.misprint import MisprintJoker
 from games.balatro.jokers.runner import RunnerJoker
 from games.balatro.jokers.throwback import ThrowbackJoker
 from games.balatro.jokers.turtle_bean import TurtleBeanJoker
@@ -91,6 +92,16 @@ def test_turtle_bean_decay_is_explicit_negative_lifecycle_semantic():
     assert HAND_SIZE_RESOURCE in descriptor.produces
     assert STATEFUL_DECAY in descriptor.penalizes
     assert "lifecycle:ROUND_STARTED:decay" in descriptor.evidence
+
+
+def test_random_score_rolls_do_not_create_false_lifecycle_dependencies():
+    descriptor = LifecycleJokerBehaviorAnalyzer().describe(MisprintJoker())
+
+    assert STATEFUL_ACTIVATION not in descriptor.produces
+    assert STATEFUL_SCALING not in descriptor.produces
+    assert consumable_category_feature("PLANET") not in descriptor.scales_with
+    assert consumable_category_feature("TAROT") not in descriptor.scales_with
+    assert not any(evidence.startswith("lifecycle:") for evidence in descriptor.evidence)
 
 
 def test_default_build_value_includes_stateful_scaling_semantics():

@@ -95,6 +95,7 @@ The active architecture contract is [`docs/balatro/BALATRO_STRATEGY_SYSTEM.md`](
 - [x] Add active/mature power-engine preservation so fresh partial Bonds cannot casually destroy an already-realized engine unless the projected replacement is materially stronger.
 - [x] Add late-game cash protection against marginal side-development packs when doing so would drain a functioning but still vulnerable build.
 - [x] Cache per-decision Bond hand intents so D1 does not repeatedly recompute the full composition inside candidate tie-breaks.
+- [x] Audit the 2026-08-24/25 Red/White run batch and correct false hand-Bond membership, random lifecycle drift that fabricated component relationships, and held-The-Sun searches that escaped D1's hard deadline.
 - [ ] Execute and inspect a clean 3-run production-default authoritative live baseline on the final unchanged HEAD.
 - [ ] Run Phase-A candidate trials only after that baseline is clean; any semantic/runtime fix invalidates and restarts the study under the new repository SHA.
 

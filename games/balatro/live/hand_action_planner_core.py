@@ -271,6 +271,7 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
                 child_play_width=max(1, self.child_play_width),
                 child_discard_width=max(0, self.child_discard_width),
                 max_nodes=(self.max_nodes if self.max_nodes is not None else 10000),
+                deadline=self.deadline,
             ).plan(state)
         except RuntimeError:
             return None

@@ -1,4 +1,9 @@
+from time import perf_counter
+
+import pytest
+
 from games.balatro.card import BalatroCard
+from games.balatro.live.blind_clear_planner import PlannerSearchBudgetExceeded
 from games.balatro.live.consumable_escape import (
     SunConsumableEscapePlanner,
     judgement_live_block_reason,
@@ -46,6 +51,24 @@ def test_apply_sun_isolated_from_authoritative_state():
     ]
     assert [item.name for item in transformed.consumables] == ["Judgement"]
     assert [item.name for item in state.consumables] == ["The Sun", "Judgement"]
+
+
+def test_sun_escape_respects_an_expired_parent_d1_deadline():
+    state = BalatroState()
+    state.phase = "SELECTING_HAND"
+    state.hand = [
+        BalatroCard("K", "Spades"),
+        BalatroCard("Q", "Diamonds"),
+        BalatroCard("J", "Hearts"),
+    ]
+    state.consumables = [create_tarot("The Sun")]
+    planner = SunConsumableEscapePlanner(
+        horizon=2,
+        deadline=perf_counter() - 1.0,
+    )
+
+    with pytest.raises(PlannerSearchBudgetExceeded, match="parent D1 wall-clock budget"):
+        planner.plan(state)
 
 
 def test_judgement_is_explicitly_blocked_for_live_blind_planning():

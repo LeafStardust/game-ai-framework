@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
 from itertools import combinations
+from time import perf_counter
 
 from games.balatro.live.blind_clear_planner import (
     LiveBlindClearPlanner,
@@ -61,6 +62,7 @@ class SunConsumableEscapePlanner:
         child_discard_width: int = 1,
         max_nodes: int = 10000,
         target_width: int = 16,
+        deadline: float | None = None,
     ):
         if horizon < 1:
             raise ValueError("horizon must be positive")
@@ -77,8 +79,16 @@ class SunConsumableEscapePlanner:
         self.child_discard_width = int(child_discard_width)
         self.max_nodes = int(max_nodes)
         self.target_width = int(target_width)
+        self.deadline = float(deadline) if deadline is not None else None
+
+    def _check_deadline(self) -> None:
+        if self.deadline is not None and perf_counter() >= self.deadline:
+            raise PlannerSearchBudgetExceeded(
+                "The Sun escape planner exceeded the parent D1 wall-clock budget"
+            )
 
     def plan(self, state) -> SunEscapeRecommendation:
+        self._check_deadline()
         sun_index = self._sun_index(state)
         if sun_index is None:
             raise RuntimeError("The Sun is not held")
@@ -93,6 +103,7 @@ class SunConsumableEscapePlanner:
 
         ranked = []
         for indices in targets:
+            self._check_deadline()
             transformed = self._apply_sun(state, indices, sun_index)
             preview = self._planner(
                 horizon=1,
@@ -121,6 +132,7 @@ class SunConsumableEscapePlanner:
         searched = 0
 
         for indices in shortlisted:
+            self._check_deadline()
             transformed = self._apply_sun(state, indices, sun_index)
             planner = self._planner(
                 horizon=self.horizon,
@@ -190,6 +202,7 @@ class SunConsumableEscapePlanner:
             child_discard_width=child_discard_width,
             horizon=horizon,
             max_nodes=max_nodes,
+            deadline=self.deadline,
         )
 
     @staticmethod
