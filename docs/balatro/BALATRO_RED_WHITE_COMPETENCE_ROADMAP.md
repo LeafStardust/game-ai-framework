@@ -186,7 +186,7 @@ Completed or validated in the current semantic/runtime pass:
 - **Purple Seal** discard value now survives planner search: a mechanically distinct Purple-Seal branch is preserved when a Tarot can actually be generated, and generated consumables are carried only as a late survival-equivalent expectimax tie-break;
 - shop Wheel remains admitted through the public-state stochastic edition model rather than being deterministically rejected;
 - **The Soul** no longer receives a fixed `8 + early-Ante bonus` pack score; pack selection now uses a uniform expectation over the five modeled Legendary Joker outcomes evaluated against the current build through B3;
-- all changes through the previous checkpoint passed `py -m pytest tests/balatro -q`; rerun is required after the new Soul expectation commits.
+- all changes through the Soul expectation checkpoint pass `py -m pytest tests/balatro -q` on 2026-08-26.
 
 Still open before a new live baseline:
 
@@ -210,7 +210,7 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Audit boss-specific execution against exact mechanics.
 - [ ] Diagnose and fix the three-attempt supervisor/shutdown crash observed after all three run logs had already emitted `run_finished`.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest deterministic checkpoint: green on 2026-08-26 before the new Soul expectation commits; rerun required.
+- [x] Run `tests/balatro` and require green before live validation. Latest deterministic checkpoint: green on 2026-08-26 through the Soul expectation contract.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
