@@ -11,11 +11,16 @@ Acquisition remains a separate resource decision. Celestial packs require actual
 hand-development headroom and obey a diminishing global Planet-investment budget;
 loose Planets require hand relevance; loose Tarots require stronger transaction
 value unless immediately usable. Arcana pack acquisition is not changed here.
+
+An active Planet-use scaler is a stronger mechanical authority than ordinary hand-
+development headroom: every Planet is direct permanent engine progress. Reserve
+protection remains authoritative.
 """
 
 from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.bonds.strategy_semantics import StrategyCommitment
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
+from games.balatro.planet_scaler_authority import has_planet_use_scaler
 from games.balatro.planets import PLANET_CARDS
 from games.balatro.shop_booster_policy import HOLD, BuildAwareShopBoosterPolicy
 from games.balatro.shop_consumable_policy import (
@@ -133,9 +138,6 @@ def _planet_priority(state, planet, original_total: float) -> tuple[float, ...]:
     plan_owned = 1.0 if hand in _plan_hand_goals(state) else 0.0
     observed_owned = 1.0 if hand in _observed_hand_goals(state) else 0.0
     plays = float(_hand_plays(state, hand))
-    # One or two appearances can be incidental, especially for exotic hands. Only
-    # sustained repetition outranks the generic practical fallback. This prevents a
-    # single lucky Straight Flush from making Neptune beat an ordinary usable hand.
     sustained_plays = plays if plays >= 3.0 else 0.0
     level = float(_hand_level(state, hand))
     supported_level = level if sustained_plays > 0.0 else 0.0
@@ -163,6 +165,11 @@ def _total_planet_investment(state) -> int:
 
 
 def _celestial_headroom(state) -> tuple[int, tuple[str, ...]]:
+    if has_planet_use_scaler(state):
+        return 1, (
+            "active Planet-use scaler supplies direct Celestial headroom independent of poker-hand specialization",
+        )
+
     plan_hands = _plan_hand_goals(state)
     observed_hands = _observed_hand_goals(state)
     relevant_hands = plan_hands | observed_hands
@@ -258,7 +265,7 @@ def install_planet_pack_fallback_policy() -> None:
                 money_after = int(state.money) - int(price)
                 if money_after < reserve_target:
                     hold_reason = (
-                        "Celestial purchase held: hand direction exists but purchase would "
+                        "Celestial purchase held: purchase would "
                         f"leave ${money_after} below ${reserve_target} reserve"
                     )
 
@@ -317,6 +324,11 @@ def install_planet_pack_fallback_policy() -> None:
 
             category = str(getattr(candidate, "category", "") or "").upper()
             if category == "PLANET":
+                # D4 already made the reserve-safe mechanical decision. A Planet-use
+                # scaler turns every usable Planet into immediate permanent engine
+                # progress, so generic loose-Planet relevance must not undo it.
+                if has_planet_use_scaler(state) and result.action == BUY_AND_USE:
+                    return result
                 hand = _hand_token(getattr(candidate, "hand_type", ""))
                 if _hand_direction(state, hand) and float(selected.total_advantage) >= 0.75:
                     return result
