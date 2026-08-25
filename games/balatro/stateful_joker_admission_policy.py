@@ -145,6 +145,33 @@ def _projected_stencil_multiplier(state, candidate, decision) -> int | None:
     return max(slots - ordinary, 1)
 
 
+def _has_retriggerable_held_target(state) -> bool:
+    deck = getattr(state, "owned_deck", None)
+    if deck is None:
+        deck = getattr(state, "deck", ()) or ()
+    if any(
+        str(getattr(card, "enhancement", "") or "").lower() in {"steel", "gold"}
+        or str(getattr(card, "seal", "") or "").lower() in {"blue", "red"}
+        for card in deck
+    ):
+        return True
+    return any(
+        _joker_name(joker) in {
+            "baron", "baronjoker", "reservedparking", "reservedparkingjoker",
+            "shootthemoon", "shootthemoonjoker",
+        }
+        for joker in tuple(getattr(state, "jokers", ()) or ())
+    )
+
+
+def _has_additive_scoring_base(state) -> bool:
+    return any(
+        _direct_scoring_candidate(joker)
+        and _joker_name(joker) not in {"obelisk", "obeliskjoker"}
+        for joker in tuple(getattr(state, "jokers", ()) or ())
+    )
+
+
 def install_stateful_joker_admission_policy() -> None:
     if getattr(PlaybookJokerAcquisitionPolicy, "_stateful_admission_installed", False):
         return
@@ -152,10 +179,39 @@ def install_stateful_joker_admission_policy() -> None:
 
     def decide(self, state, candidate):
         decision = original(self, state, candidate)
+        name = _joker_name(candidate)
+        if decision.action != HOLD and name in {"mime", "mimejoker"} and not _has_retriggerable_held_target(state):
+            return replace(
+                decision,
+                action=HOLD,
+                selected=None,
+                rationale=(
+                    *decision.rationale,
+                    "Mime activation veto: no Steel/Gold/Blue/Red held-card effect or per-held-card Joker payoff exists",
+                    "aggregate held-state Jokers such as Blackboard and Raised Fist are not Mime targets",
+                ),
+            )
+
+        if (
+            decision.action != HOLD
+            and name in {"obelisk", "obeliskjoker"}
+            and float(getattr(candidate, "x_mult", 1.0) or 1.0) <= 1.0
+            and not _has_additive_scoring_base(state)
+        ):
+            return replace(
+                decision,
+                action=HOLD,
+                selected=None,
+                rationale=(
+                    *decision.rationale,
+                    "Obelisk activation veto: X1 scaler cannot be the board's first/only scoring Joker",
+                    "secure additive Chips/Mult before buying a brittle multiplier engine",
+                ),
+            )
+
         if decision.action == HOLD:
             return decision
 
-        name = _joker_name(candidate)
         if (
             _has_madness(state)
             and name not in {"madness", "madnessjoker"}

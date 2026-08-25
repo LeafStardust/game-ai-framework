@@ -68,4 +68,4 @@ def test_face_cards_can_emerge_from_jokers_and_density():
  deck=tuple(_card(rank=rank) for rank in ("J","Q","K") for _ in range(6));result=evaluate_face_cards_bond(_state(jokers=(_joker("Sock and Buskin"),),deck=deck));assert result.contribution==8.0;assert result.rank==BondRank.R1
 
 def test_sparse_relationships_only_encode_meaningful_edges():
- assert BOND_RELATIONSHIPS[frozenset(("burnt","no_discard"))]=="CONFLICT";assert BOND_RELATIONSHIPS[frozenset(("held_cards","held_retrigger"))]=="SYNERGY";assert BOND_RELATIONSHIPS[frozenset(("held_cards","steel"))]=="SYNERGY";assert frozenset(("pair","lucky")) not in BOND_RELATIONSHIPS
+ assert BOND_RELATIONSHIPS[frozenset(("burnt","no_discard"))]=="CONFLICT";assert frozenset(("held_cards","held_retrigger")) not in BOND_RELATIONSHIPS;assert BOND_RELATIONSHIPS[frozenset(("held_cards","steel"))]=="SYNERGY";assert frozenset(("pair","lucky")) not in BOND_RELATIONSHIPS

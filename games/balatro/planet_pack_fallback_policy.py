@@ -230,6 +230,16 @@ def install_planet_pack_fallback_policy() -> None:
             key=lambda item: _planet_priority(state, item[1], float(item[0].total)),
         )
         best_hand = _hand_token(best_planet.hand_type)
+        mechanically_relevant = (
+            has_planet_use_scaler(state)
+            or _hand_direction(state, best_hand)
+        )
+        # A sunk pack cost is not permission to select a vetoed or off-direction
+        # Planet.  The former implementation promoted even a -1.0 scored option to
+        # just above Skip, which spent a selection on an upgrade the active build
+        # had explicitly rejected.
+        if not mechanically_relevant or float(best_score.total) <= 0.0:
+            return ranked
         current_top = float(ranked[0].total) if ranked else 0.0
         promoted = PackActionScore(
             best_score.action,
@@ -239,7 +249,7 @@ def install_planet_pack_fallback_policy() -> None:
                 "Planet pack full-pool selection authority",
                 "priority=strategy > observed specialization > sustained plays > supported level > practical fallback > incidental plays",
                 f"selected Planet hand={best_hand}",
-                "opened Celestial pack cost is sunk; offered permanent upgrade beats Skip",
+                "opened Celestial pack cost is sunk and this Planet is mechanically relevant; eligible permanent upgrade beats Skip",
             ),
         )
         return [promoted] + [item for item in ranked if item.action != best_score.action]

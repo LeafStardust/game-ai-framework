@@ -53,6 +53,19 @@ def test_observed_hand_fallback_requires_real_specialization():
     ) == ()
 
 
+def test_sustained_dominant_two_pair_history_pins_below_half_of_all_hands():
+    state = SimpleNamespace(
+        hand_play_counts={"Two Pair": 16, "Pair": 8, "High Card": 6, "Flush": 4}
+    )
+
+    (candidate,) = _observed_hand_strategy_candidates(
+        state,
+        (_development("two_pair"), _development("pair")),
+    )
+
+    assert candidate.commitment == StrategyCommitment.PINNED
+
+
 def test_hand_bond_normalization_is_generic_for_kind_hands():
     assert _hand_bond_id("Three of a Kind") == "three_kind"
     assert _hand_bond_id("Four of a Kind") == "four_kind"

@@ -3,6 +3,7 @@ from games.balatro.build.effects import hand_feature, rank_feature
 from games.balatro.card import BalatroCard
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.baron import BaronJoker
+from games.balatro.jokers.blackboard import BlackboardJoker
 from games.balatro.jokers.blueprint import BlueprintJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.mime import MimeJoker
@@ -116,6 +117,20 @@ def test_mime_and_baron_match_in_either_candidate_direction():
     assert HELD_EFFECT in baron_candidate.reverse_amplified_features
     assert mime_candidate.interaction_gain > 0.0
     assert baron_candidate.interaction_gain > 0.0
+
+
+def test_mime_does_not_treat_blackboard_as_retriggerable_held_card_effect():
+    evaluator = ContextualJokerSynergyEvaluator()
+    state = BalatroState()
+    state.jokers = [BlackboardJoker()]
+
+    value = evaluator.evaluate(MimeJoker(), state)
+
+    assert HELD_EFFECT not in value.amplified_features
+    assert not any(
+        "Blackboard" in contribution.detail and contribution.feature == HELD_EFFECT
+        for contribution in value.contributions
+    )
 
 
 def test_blueprint_copy_is_discovered_from_real_pair_behavior():

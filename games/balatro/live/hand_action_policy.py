@@ -20,6 +20,8 @@ from games.balatro.live.blind_clear_planner import (
 from games.balatro.live.depth_draw_outcomes import DepthAwarePublicDrawOutcomeModel
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
+from games.balatro.hand import PokerHand
+from games.balatro.hand_evaluator import HandEvaluator
 
 
 CLEAR_PATH = "CLEAR_PATH"
@@ -687,18 +689,67 @@ class LiveHandActionDecisionEngine:
         *,
         search_attempts: tuple[HandActionSearchAttempt, ...],
     ) -> HandActionDecision:
-        """Return a legal bounded Play without any further Joker-aware projection."""
+        """Return a legal structural action without further Joker projection."""
         planner = self.planner
         planner._require_state(state)
-        child_candidates = getattr(planner, "_child_play_candidates", None)
-        if callable(child_candidates):
-            plays = list(child_candidates(state, max(1, int(planner.play_width))))
-        else:
-            plays = list(planner.action_generator.generate_play_actions(state))
+        plays = list(planner.action_generator.generate_play_actions(state))
         if not plays:
             raise RuntimeError("D1 timeout fallback found no legal Play action")
 
-        action = plays[0]
+        hand_strength = {
+            PokerHand.HIGH_CARD: 0,
+            PokerHand.PAIR: 1,
+            PokerHand.TWO_PAIR: 2,
+            PokerHand.THREE_OF_A_KIND: 3,
+            PokerHand.STRAIGHT: 4,
+            PokerHand.FLUSH: 5,
+            PokerHand.FULL_HOUSE: 6,
+            PokerHand.FOUR_OF_A_KIND: 7,
+            PokerHand.STRAIGHT_FLUSH: 8,
+            PokerHand.FIVE_OF_A_KIND: 9,
+            PokerHand.FLUSH_HOUSE: 10,
+            PokerHand.FLUSH_FIVE: 11,
+        }
+        rank_values = {
+            "A": 14, "K": 13, "Q": 12, "J": 11, "10": 10,
+            "9": 9, "8": 8, "7": 7, "6": 6, "5": 5,
+            "4": 4, "3": 3, "2": 2,
+        }
+
+        def play_key(action):
+            try:
+                hand = HandEvaluator().evaluate(list(action.cards or ()))
+            except (AttributeError, TypeError, ValueError):
+                hand = PokerHand.HIGH_CARD
+            ranks = sum(
+                rank_values.get(str(getattr(card, "rank", "") or "").upper(), 0)
+                for card in tuple(action.cards or ())
+            )
+            return hand_strength.get(hand, 0), ranks, -len(tuple(action.cards or ()))
+
+        best_play = max(plays, key=play_key)
+        action = best_play
+        selected_kind = "Play"
+
+        discards_remaining = max(0, int(getattr(state, "discards_remaining", 0) or 0))
+        hands_remaining = max(0, int(getattr(state, "hands_remaining", 0) or 0))
+        best_hand_rank = play_key(best_play)[0]
+        if discards_remaining > 0 and hands_remaining > 1 and best_hand_rank <= 1:
+            discards = list(planner.action_generator.generate_discard_actions(state))
+            retained_value = getattr(self.policy.evaluator, "_retained_structure_value", None)
+            if discards and callable(retained_value):
+                def discard_key(candidate):
+                    removed = {id(card) for card in tuple(candidate.cards or ())}
+                    kept = [
+                        card
+                        for card in tuple(getattr(state, "hand", ()) or ())
+                        if id(card) not in removed
+                    ]
+                    return float(retained_value(kept)), len(tuple(candidate.cards or ()))
+
+                action = max(discards, key=discard_key)
+                selected_kind = "Discard"
+
         target = float(getattr(getattr(state, "blind", None), "requirement", 0) or 0)
         score = float(getattr(state, "score", 0) or 0)
         progress = min(1.0, max(0.0, score / target)) if target > 0 else 0.0
@@ -706,8 +757,12 @@ class LiveHandActionDecisionEngine:
             clear_probability=0.0,
             expected_progress=progress,
             expected_score=score,
-            expected_hands_remaining=float(getattr(state, "hands_remaining", 0)),
-            expected_discards_remaining=float(getattr(state, "discards_remaining", 0)),
+            expected_hands_remaining=float(
+                max(0, hands_remaining - (1 if action.name == PLAY_CARDS else 0))
+            ),
+            expected_discards_remaining=float(
+                max(0, discards_remaining - (1 if action.name == DISCARD_CARDS else 0))
+            ),
         )
         plan = LiveBlindPlan(
             action=action,
@@ -720,8 +775,14 @@ class LiveHandActionDecisionEngine:
         return self.policy._decision(
             mode=PACE_RECOVERY,
             selected=plan,
-            best_play=plan,
-            best_discard=None,
+            best_play=plan if action.name == PLAY_CARDS else LiveBlindPlan(
+                action=best_play,
+                value=value,
+                horizon=1,
+                exact=False,
+                candidate_count=len(plays),
+            ),
+            best_discard=plan if action.name == DISCARD_CARDS else None,
             pace_target=pace_target,
             best_play_immediate_score=0.0,
             best_play_pace_ratio=0.0,
@@ -734,7 +795,8 @@ class LiveHandActionDecisionEngine:
             confidence=0.25,
             rationale=(
                 "D1 wall-clock budget exhausted before pace fallback completed",
-                "selected a bounded structural Play without further Joker-aware projection",
+                f"selected a bounded structural {selected_kind} without further Joker-aware projection",
+                "timeout fallback preserves the strongest made structure and spends a discard before burning a low High-Card/Pair hand when resources allow",
                 "take only this action, then re-observe and replan",
             ),
             plans=(plan,),

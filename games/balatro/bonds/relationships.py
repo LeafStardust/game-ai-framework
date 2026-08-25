@@ -15,7 +15,6 @@ RELATIONSHIPS: dict[frozenset[str], BondRelationship] = {
     frozenset(("face_cards", "no_face_cards")): BondRelationship.CONFLICT,
     frozenset(("vampire", "enhanced_cards")): BondRelationship.CONFLICT,
     frozenset(("burnt", "discard")): BondRelationship.SYNERGY,
-    frozenset(("held_cards", "held_retrigger")): BondRelationship.SYNERGY,
     frozenset(("held_cards", "steel")): BondRelationship.SYNERGY,
     frozenset(("held_retrigger", "steel")): BondRelationship.SYNERGY,
     frozenset(("card_destruction", "deck_thinning")): BondRelationship.SYNERGY,

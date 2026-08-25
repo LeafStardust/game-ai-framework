@@ -18,6 +18,10 @@ This file records notable development changes to the project. Active and future 
 
 ### Changed
 
+- Required ordinary strategy/Bond formation to come from demonstrated hands or mechanically active Joker/card infrastructure instead of stock-deck rank/suit composition. Sustained dominant play history may now pin a real hand route without waiting for a named Joker.
+- Expanded Build-Health shop recruitment and bounded bundle planning around actual engine pieces, including Photograph/Hanging Chad, Vampire/Midas, Baron/Mime, Pair, Two Pair, Straight, Constellation, Half Joker, Golden Joker, and Glass retrigger routes. Inactive Mime and a first standalone Obelisk are no longer accepted as functioning engines.
+- Added a committed Campfire buy-observe-sell fuel transaction for safe cheap consumables and a late-Ante paid-reroll value margin, while preserving survival and cash-scaling reserves.
+- Unified D1 action authority so a materially superior completed adaptive search root survives contradictory pace-controller advice, and made deadline recovery use a cheap structural pair-preserving discard/play policy.
 - Removed the remaining pre-Bond categorical `PlaystyleIntent` and irreversible Ante lock from Joker valuation, held-card decisions, Planet selection, packs, blind skipping, and production runtime wiring. Canonical Bonds/composition and Strategy Plans are now the only strategic direction source; mechanical build profiling remains a subordinate evidence layer.
 - Replaced `build_intent` telemetry with canonical `bond_build` events containing the mechanical build profile, Bond/composition diagnostics, and behavior-backed synergies.
 - Retired the neutral pack/shop/hand playstyle compatibility shells and renamed installed timestamp-, batch-, and release-labelled modules around the stable mechanics they implement.
@@ -42,6 +46,10 @@ This file records notable development changes to the project. Active and future 
 
 ### Fixed
 
+- Removed false Mime relationships for Blackboard and Raised Fist: neither is a held-card effect retriggered by Mime.
+- Normalized live Joker center keys before ordering analysis, increased exact ordering coverage to ordinary five-Joker rosters, and prevented redundant reorder loops after the intended order is already installed.
+- Stopped rejected/off-route Planet choices from being promoted solely because a Planet scaler is owned, while retaining valid Constellation buy-and-use behavior.
+- Stopped stale Mouth-only-hand telemetry from surviving into later bosses, and accepted legitimate run-local sequence resets when the supervisor starts a new attempt.
 - Unified production D2/D3/D8–D10/D12–D14 imports with the canonical Red/White Joker, pack, and shop class objects. The live runner had imported duplicate top-level policy definitions while Bond conflict, pivot, retention, Build Health, and cartridge authorities targeted the canonical modules, allowing production behavior to diverge from the documented Currency Wars stack.
 - Added source-level Burglar conflicts for discard-triggered Jokers such as Trading Card, Mail-In Rebate, Castle, Faceless Joker, Hit the Road, Yorick, and Burnt Joker; discard-count payoffs Banner/Delayed Gratification; and extra-discard sources Drunkard/Merry Andy. Wasteful/Recyclomancy and Purple Seal cards are also rejected while Burglar makes their discard resource or trigger impossible. Replacing Burglar remains legal.
 - Added exact post-transaction Joker Stencil admission, including Negative-slot accounting, so a first Stencil cannot replace a productive Joker on a full ordinary roster merely because isolated probes treated it as X10; a genuinely active multi-Stencil/empty-slot state remains legal.

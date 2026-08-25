@@ -637,7 +637,12 @@ def _normalize_blind(
         )
 
     only_hand_value = blind.get("only_hand")
-    if only_hand_value is not None:
+    blind_identity = "".join(
+        character
+        for character in str(key or result.get("name") or "").lower()
+        if character.isalnum()
+    )
+    if only_hand_value is not None and blind_identity in {"blmouth", "themouth"}:
         # Mouth initializes this field to false. Preserve key presence while
         # normalizing false/non-string to None so the translator knows it was read.
         result["only_hand"] = _string(only_hand_value)

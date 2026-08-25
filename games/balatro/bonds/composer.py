@@ -143,7 +143,9 @@ def _observed_hand_strategy_candidates(
     if total <= 0:
         return ()
 
-    bond_id, plays = max(counts.items(), key=lambda item: (item[1], item[0]))
+    ranked_counts = sorted(counts.items(), key=lambda item: (item[1], item[0]), reverse=True)
+    bond_id, plays = ranked_counts[0]
+    runner_up = ranked_counts[1][1] if len(ranked_counts) > 1 else 0
     concentration = plays / total
     if plays < 4 or concentration < 0.45:
         return ()
@@ -154,9 +156,14 @@ def _observed_hand_strategy_candidates(
 
     repetition = min(1.0, plays / 12.0)
     confidence = min(0.86, 0.30 + 0.40 * concentration + 0.20 * repetition)
+    sustained_dominance = (
+        plays >= 10
+        and concentration >= 0.42
+        and plays >= runner_up + 3
+    )
     commitment = (
         StrategyCommitment.PINNED
-        if plays >= 8 and concentration >= 0.50
+        if (plays >= 8 and concentration >= 0.50) or sustained_dominance
         else StrategyCommitment.FORMING
     )
     return (

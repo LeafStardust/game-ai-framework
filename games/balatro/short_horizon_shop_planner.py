@@ -139,6 +139,17 @@ def _bundle_specs(owned: set[str], visible) -> tuple[tuple[str, tuple[str, ...]]
         for generator in ("certificate", "marble"):
             if {scorer, generator} <= available:
                 specs.append((f"deck_growth:{scorer}+{generator}", (scorer, generator)))
+    coherent_pairs = (
+        ("photograph_hanging_chad", ("photograph", "hangingchad")),
+        ("vampire_midas", ("vampire", "midasmask")),
+        ("baron_mime", ("baron", "mime")),
+        ("pair:jolly+sly", ("jolly", "sly")),
+        ("two_pair:trousers+square", ("sparetrousers", "square")),
+        ("straight:runner+devious", ("runner", "devious")),
+    )
+    for bundle_id, components in coherent_pairs:
+        if set(components) <= available:
+            specs.append((bundle_id, components))
     return tuple(specs)
 
 

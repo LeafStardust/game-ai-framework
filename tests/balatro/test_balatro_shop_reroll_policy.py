@@ -329,6 +329,35 @@ def test_late_ante_paid_reroll_preserves_survival_reserve():
     assert any("ante-8 stop-loss reserve $20" in note for note in result.rationale)
 
 
+def test_late_ante_paid_reroll_requires_material_ev_margin():
+    state = _state(money=100)
+    state.ante = 6
+    shop_policy = BalatroShopPolicy(
+        price_weight=0.0,
+        interest_weight=0.0,
+        reserve_weight=0.0,
+    )
+    policy = BuildAwareShopRerollPolicy(
+        shop_policy=shop_policy,
+        build_profiler=StaticProfiler(EmptyProfile()),
+        thresholds=ShopRerollThresholds(
+            minimum_margin=0.25,
+            late_ante_minimum_margin=0.75,
+        ),
+        pool_prior=_single_offer_prior(gross_utility=0.95, expected_price=0),
+    )
+
+    result = policy.recommend(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=1,
+    )
+
+    assert result.decision == "HOLD"
+    assert result.reroll_score > result.current_best_score + 0.25
+    assert any("required reroll margin=0.750" in note for note in result.rationale)
+
+
 def test_unmet_build_requirements_are_reported_without_free_form_ev_bonus():
     state = _state(money=21)
     base = BuildAwareShopRerollPolicy(

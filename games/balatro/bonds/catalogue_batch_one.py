@@ -205,4 +205,4 @@ def evaluate_face_cards_bond(state:Any)->BondDevelopment:
  return _finish("face_cards",parts,FACE_CARDS_THRESHOLDS,target="J/Q/K")
 
 BATCH_ONE_EVALUATORS={"held_retrigger":evaluate_held_retrigger_bond,"steel":evaluate_steel_bond,"pair":evaluate_pair_bond,"high_card":evaluate_high_card_bond,"aces":evaluate_aces_bond,"no_discard":evaluate_no_discard_bond,"cash":evaluate_cash_bond,"lucky":evaluate_lucky_bond,"glass":evaluate_glass_bond,"face_cards":evaluate_face_cards_bond}
-BOND_RELATIONSHIPS={frozenset(("burnt","no_discard")):"CONFLICT",frozenset(("held_cards","held_retrigger")):"SYNERGY",frozenset(("held_cards","steel")):"SYNERGY"}
+BOND_RELATIONSHIPS={frozenset(("burnt","no_discard")):"CONFLICT",frozenset(("held_cards","steel")):"SYNERGY"}

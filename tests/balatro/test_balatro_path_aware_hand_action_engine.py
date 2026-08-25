@@ -43,6 +43,9 @@ def _plan(
     *,
     immediate_score=0.0,
     fallback_value=0.0,
+    expected_score=0.0,
+    clear_probability=0.0,
+    exact=True,
 ):
     action = BalatroAction(
         action_name,
@@ -55,14 +58,14 @@ def _plan(
     return LiveBlindPlan(
         action=action,
         value=LiveBlindPlanValue(
-            clear_probability=0.0,
+            clear_probability=clear_probability,
             expected_progress=0.0,
-            expected_score=0.0,
+            expected_score=expected_score,
             expected_hands_remaining=2.0,
             expected_discards_remaining=1.0,
         ),
         horizon=1,
-        exact=True,
+        exact=exact,
         candidate_count=3,
     )
 
@@ -177,3 +180,56 @@ def test_path_discard_consensus_never_overrides_a_play_that_meets_pace():
 
     assert decision is base_decision
     assert decision.action is pace_play.action
+
+
+def test_material_completed_search_root_overrides_opposite_pace_fallback():
+    play_card = BalatroCard("A", "Spades")
+    discard_card = BalatroCard("2", "Hearts")
+    state = _state([play_card, discard_card])
+    search_play = _plan(
+        PLAY_CARDS,
+        play_card,
+        expected_score=220.0,
+        clear_probability=0.30,
+    )
+    fallback_discard = _plan(
+        DISCARD_CARDS,
+        discard_card,
+        fallback_value=100.0,
+        expected_score=100.0,
+        clear_probability=0.05,
+    )
+    policy = LiveHandActionPolicy(evaluator=_FakeEvaluator())
+    base_decision = policy.decide(state, [fallback_discard, _plan(PLAY_CARDS, play_card)])
+    engine = _engine(policy)
+    engine._adaptive_root_history = [(_summary(state, search_play, horizon=2), search_play)]
+
+    decision = engine._apply_adaptive_authority(state, base_decision)
+
+    assert decision.action is search_play.action
+    assert decision.selected_plan is search_play
+    assert any("one controller owns" in note for note in decision.rationale)
+
+
+def test_close_search_estimate_does_not_churn_pace_decision():
+    play_card = BalatroCard("A", "Spades")
+    other_card = BalatroCard("K", "Hearts")
+    state = _state([play_card, other_card])
+    fallback_play = _plan(
+        PLAY_CARDS,
+        play_card,
+        expected_score=100.0,
+        clear_probability=0.10,
+    )
+    search_play = _plan(
+        PLAY_CARDS,
+        other_card,
+        expected_score=105.0,
+        clear_probability=0.11,
+    )
+    policy = LiveHandActionPolicy(evaluator=_FakeEvaluator())
+    base_decision = policy.decide(state, [fallback_play])
+    engine = _engine(policy)
+    engine._adaptive_root_history = [(_summary(state, search_play, horizon=2), search_play)]
+
+    assert engine._apply_adaptive_authority(state, base_decision) is base_decision

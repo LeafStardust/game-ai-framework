@@ -43,6 +43,14 @@ def test_blueprint_cannot_be_last_when_another_joker_exists() -> None:
     assert _copy_order_violations(jokers, (1, 0)) == ()
 
 
+def test_live_center_key_blueprint_cannot_be_last() -> None:
+    jokers = (SimpleNamespace(center="j_joker"), SimpleNamespace(center="j_blueprint"))
+
+    assert _copy_order_violations(jokers, (0, 1)) == (
+        "Blueprint has no Joker immediately to its right",
+    )
+
+
 def test_brainstorm_cannot_be_leftmost_when_another_joker_exists() -> None:
     jokers = (BrainstormJoker(), PlainJoker())
 

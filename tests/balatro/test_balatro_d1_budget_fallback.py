@@ -2,11 +2,14 @@ from types import SimpleNamespace
 
 import games.balatro.live.hand_action_policy as hand_action_policy
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
+from games.balatro.card import BalatroCard
+from games.balatro.card_selector import CardSelector
 from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
 from games.balatro.live.hand_action_policy import (
     LiveHandActionDecisionEngine,
     LiveHandActionPolicy,
 )
+from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.playbook import default_balatro_playbooks
 
 
@@ -167,3 +170,63 @@ def test_red_white_playbook_retains_calibrated_ceiling_even_when_live_policy_is_
     assert playbook.strategy["planner"]["max_search_nodes"] == 2500
     assert playbook.strategy["planner"]["max_search_seconds"] == 8.0
     assert playbook.strategy["planner"]["search_schedule_mode"] == "probe-deepest"
+
+
+class _StructuralPlanner:
+    def __init__(self):
+        self.evaluator = LiveHandDecisionEvaluator()
+        self.action_generator = CardSelector()
+
+    @staticmethod
+    def _require_state(state):
+        del state
+
+
+def _structural_state(*, hands=3):
+    cards = [
+        BalatroCard("Q", "Spades"),
+        BalatroCard("Q", "Hearts"),
+        BalatroCard("K", "Clubs"),
+        BalatroCard("9", "Diamonds"),
+        BalatroCard("5", "Spades"),
+        BalatroCard("3", "Hearts"),
+        BalatroCard("2", "Clubs"),
+    ]
+    return SimpleNamespace(
+        phase="SELECTING_HAND",
+        hand=cards,
+        score=0,
+        blind=SimpleNamespace(requirement=1000),
+        hands_remaining=hands,
+        discards_remaining=5,
+    )
+
+
+def test_timeout_fallback_discards_around_top_pair_instead_of_burning_hand():
+    planner = _StructuralPlanner()
+    engine = LiveHandActionDecisionEngine(
+        planner=planner,
+        policy=LiveHandActionPolicy(evaluator=planner.evaluator),
+    )
+    state = _structural_state()
+
+    decision = engine._structural_timeout_fallback(state, search_attempts=())
+
+    assert decision.action.name == DISCARD_CARDS
+    assert state.hand[0] not in decision.action.cards
+    assert state.hand[1] not in decision.action.cards
+
+
+def test_timeout_fallback_plays_made_pair_on_last_hand():
+    planner = _StructuralPlanner()
+    engine = LiveHandActionDecisionEngine(
+        planner=planner,
+        policy=LiveHandActionPolicy(evaluator=planner.evaluator),
+    )
+
+    decision = engine._structural_timeout_fallback(
+        _structural_state(hands=1),
+        search_attempts=(),
+    )
+
+    assert decision.action.name == PLAY_CARDS

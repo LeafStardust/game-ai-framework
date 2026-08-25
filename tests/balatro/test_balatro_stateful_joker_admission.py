@@ -5,7 +5,9 @@ from types import SimpleNamespace
 import games.balatro  # install package-level authorities
 from games.balatro.state import BalatroState
 from games.balatro.stateful_joker_admission_policy import (
+    _has_additive_scoring_base,
     _has_madness,
+    _has_retriggerable_held_target,
     _projected_stencil_multiplier,
     _target_hand,
     _todo_target_supported,
@@ -92,3 +94,25 @@ def test_negative_joker_does_not_consume_stencil_slot_projection():
     decision = SimpleNamespace(action="BUY", selected=None)
 
     assert _projected_stencil_multiplier(state, candidate, decision) == 2
+
+
+def test_blackboard_is_not_a_retriggerable_mime_target():
+    state = BalatroState()
+    state.jokers = [SimpleNamespace(name="Blackboard")]
+    state.owned_deck = []
+
+    assert not _has_retriggerable_held_target(state)
+
+
+def test_steel_card_is_a_retriggerable_mime_target():
+    state = BalatroState()
+    state.owned_deck = [SimpleNamespace(enhancement="Steel", seal=None)]
+
+    assert _has_retriggerable_held_target(state)
+
+
+def test_empty_board_has_no_additive_base_for_obelisk():
+    state = BalatroState()
+    state.jokers = []
+
+    assert not _has_additive_scoring_base(state)

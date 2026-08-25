@@ -101,10 +101,13 @@ class ShopRerollThresholds:
     minimum_money_after_paid_reroll: int = 10
     late_ante_start: int = 6
     late_ante_minimum_money_after_paid_reroll: int = 20
+    late_ante_minimum_margin: float = 0.75
 
     def __post_init__(self) -> None:
         if float(self.minimum_margin) < 0.0:
             raise ValueError("minimum_margin cannot be negative")
+        if float(self.late_ante_minimum_margin) < 0.0:
+            raise ValueError("late_ante_minimum_margin cannot be negative")
         if float(self.full_joker_replacement_penalty) < 0.0:
             raise ValueError("full_joker_replacement_penalty cannot be negative")
         for name in (
@@ -260,9 +263,14 @@ class BuildAwareShopRerollPolicy:
             thresholds=thresholds,
         )
         reroll_score = future_ev - reroll_resource.total
-        required = current_best + (
-            0.0 if cost == 0 else thresholds.minimum_margin
-        )
+        required_margin = 0.0 if cost == 0 else float(thresholds.minimum_margin)
+        ante = max(1, int(getattr(state, "ante", 1) or 1))
+        if cost > 0 and ante >= int(thresholds.late_ante_start):
+            required_margin = max(
+                required_margin,
+                float(thresholds.late_ante_minimum_margin),
+            )
+        required = current_best + required_margin
 
         rationale = (
             f"visible-shop best score={current_best:.3f}",
@@ -283,6 +291,7 @@ class BuildAwareShopRerollPolicy:
             f"reroll reserve penalty={reroll_resource.reserve:.3f}",
             f"reroll cash-scaling penalty={reroll_resource.cash_scaling:.3f}",
             f"reroll score={reroll_score:.3f}; required={required:.3f}",
+            f"required reroll margin={required_margin:.3f}",
             "full Joker roster replacement-option penalty="
             f"{thresholds.full_joker_replacement_penalty:.3f}",
             "future-shop expectation uses static public priors only; no RNG state or future ordering",

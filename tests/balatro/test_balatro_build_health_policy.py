@@ -130,6 +130,58 @@ def test_early_positive_piece_that_does_not_fix_survival_stays_hold(monkeypatch)
     assert result.action == "HOLD"
 
 
+def test_early_devious_joker_fills_empty_survival_board_even_before_health_delta(monkeypatch):
+    candidate = _joker("Devious Joker")
+    state = _state(ante=1, jokers=(), slots=5)
+    monkeypatch.setattr(
+        policy,
+        "_HEALTH",
+        _HealthByRoster(
+            {
+                (): _health(survival=55, scaling=65),
+                ("Devious Joker",): _health(survival=55, scaling=65),
+            }
+        ),
+    )
+
+    result = policy._health_aware_joker_decision(
+        _acquisition_policy(),
+        state,
+        candidate,
+        _decision(_option(money_after=3)),
+    )
+
+    assert result.action == "BUY"
+    assert any("unfinished survival board" in note for note in result.rationale)
+
+
+def test_demonstrated_two_pair_recruits_clever_joker(monkeypatch):
+    base = _joker("Base")
+    candidate = _joker("Clever Joker")
+    state = _state(ante=4, jokers=(base,), slots=5)
+    state.hand_play_counts = {"TWO_PAIR": 12, "PAIR": 4, "HIGH_CARD": 3}
+    monkeypatch.setattr(
+        policy,
+        "_HEALTH",
+        _HealthByRoster(
+            {
+                ("Base",): _health(survival=80, scaling=60),
+                ("Base", "Clever Joker"): _health(survival=80, scaling=60),
+            }
+        ),
+    )
+
+    result = policy._health_aware_joker_decision(
+        _acquisition_policy(),
+        state,
+        candidate,
+        _decision(_option(money_after=15)),
+    )
+
+    assert result.action == "BUY"
+    assert any("demonstrated TWO_PAIR" in note for note in result.rationale)
+
+
 def test_scaling_fix_cannot_trade_away_material_survival(monkeypatch):
     base = _joker("Base")
     candidate = _joker("Scaler")

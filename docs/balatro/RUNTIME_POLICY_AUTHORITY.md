@@ -39,6 +39,14 @@ Production package registration must follow this hierarchy:
 
 No historical batch-derived strategy wrapper may sit above steps 3-5 and silently replace their decisions.
 
+## Decision-boundary invariants
+
+- D1 owns the final hand action. A materially superior completed adaptive-search root must not be replaced by contradictory one-step pace advice; after the deadline, recovery must remain structural, bounded, and preserve made Pair-or-better shapes when possible.
+- D2 and the shop arbiter recruit components for a mechanically realizable combined build. Raw stock-deck rank/suit counts, an inactive copy/retrigger Joker, or an isolated future scaler do not by themselves constitute an engine.
+- Multi-action shop sequences execute one mutation at a time and require authoritative re-observation between steps. This includes complementary Joker bundles and Campfire's buy-then-sell fuel transaction.
+- Joker ordering is evaluated for the exact selected hand when order is material. Live center-key aliases must normalize before scoring, and an already-correct order must not generate another reorder action.
+- Child policies may expose Planet-scaler or Bond value, but they may not promote an option that the authoritative target/compatibility layer rejected.
+
 ## Validation requirement
 
 Any removal or migration of a legacy overlay invalidates the current live-study SHA. The full `tests/balatro` suite must pass before a fresh Red/White authoritative baseline. Regression tests should cover the specific old behavior being retired so the canonical replacement is proven rather than assumed.

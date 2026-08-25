@@ -34,7 +34,7 @@ def _policy_with_scores(scores):
     return policy
 
 
-def test_planet_pack_uses_practical_full_pool_fallback_when_no_hand_is_good(monkeypatch):
+def test_planet_pack_does_not_force_practical_fallback_without_direction(monkeypatch):
     import games.balatro.planet_pack_fallback_policy as module
 
     monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
@@ -43,11 +43,11 @@ def test_planet_pack_uses_practical_full_pool_fallback_when_no_hand_is_good(monk
 
     ranked = policy.rank_actions(_state(), actions)
 
-    assert ranked[0].action.target.label == "Pluto"
-    assert "Planet pack full-pool selection authority" in ranked[0].notes
+    assert ranked[0].action.target.label == "Uranus"
+    assert "Planet pack full-pool selection authority" not in ranked[0].notes
 
 
-def test_planet_pack_practical_fallback_covers_nonlegacy_planets(monkeypatch):
+def test_planet_pack_keeps_base_ranking_for_off_path_planets(monkeypatch):
     import games.balatro.planet_pack_fallback_policy as module
 
     monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
@@ -56,7 +56,7 @@ def test_planet_pack_practical_fallback_covers_nonlegacy_planets(monkeypatch):
 
     ranked = policy.rank_actions(_state(), actions)
 
-    assert ranked[0].action.target.label == "Jupiter"
+    assert ranked[0].action.target.label == "Neptune"
 
 
 def test_planet_pack_keeps_materially_developed_current_hand_over_practical_fallback(monkeypatch):
@@ -104,7 +104,7 @@ def test_planet_pack_actual_two_pair_play_beats_zero_play_four_kind_level(monkey
     assert ranked[0].action.target.label == "Uranus"
 
 
-def test_planet_pack_zero_play_exotic_level_cannot_beat_practical_fallback(monkeypatch):
+def test_planet_pack_zero_play_levels_do_not_manufacture_relevance(monkeypatch):
     import games.balatro.planet_pack_fallback_policy as module
 
     monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
@@ -116,10 +116,10 @@ def test_planet_pack_zero_play_exotic_level_cannot_beat_practical_fallback(monke
         actions,
     )
 
-    assert ranked[0].action.target.label == "Mercury"
+    assert ranked[0].action.target.label == "Mars"
 
 
-def test_planet_pack_one_incidental_exotic_play_does_not_beat_practical_hand(monkeypatch):
+def test_planet_pack_one_incidental_play_does_not_trigger_forced_promotion(monkeypatch):
     import games.balatro.planet_pack_fallback_policy as module
 
     monkeypatch.setattr(module, "_plan_hand_goals", lambda state: set())
@@ -134,7 +134,20 @@ def test_planet_pack_one_incidental_exotic_play_does_not_beat_practical_hand(mon
         actions,
     )
 
-    assert ranked[0].action.target.label == "Mercury"
+    assert ranked[0].action.target.label == "Neptune"
+
+
+def test_planet_pack_does_not_promote_vetoed_relevant_planet(monkeypatch):
+    import games.balatro.planet_pack_fallback_policy as module
+
+    monkeypatch.setattr(module, "_plan_hand_goals", lambda state: {"PAIR"})
+    actions = [_planet("Mercury", 0), _planet("Mars", 1)]
+    policy = _policy_with_scores({"Mercury": -1.0, "Mars": 0.2})
+
+    ranked = policy.rank_actions(_state(), actions)
+
+    assert ranked[0].action.target.label == "Mars"
+    assert "Planet pack full-pool selection authority" not in ranked[0].notes
 
 
 def test_planet_pack_sustained_exotic_play_can_beat_practical_fallback(monkeypatch):

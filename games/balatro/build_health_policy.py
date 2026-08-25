@@ -25,6 +25,20 @@ _MATERIAL_HEALTH_DELTA = 5.0
 _MATERIAL_SCALING_DELTA = 7.5
 _MAX_SURVIVAL_SACRIFICE_FOR_SCALING = 2.0
 
+_EARLY_SCORING_COMPONENTS = frozenset({
+    "abstractjoker", "cleverjoker", "craftyjoker", "crazyjoker",
+    "deviousjoker", "drolljoker", "evensteven", "fibonaccijoker",
+    "halfjoker", "icecream", "jollyjoker", "madjoker", "misprint",
+    "oddtoodds", "popcorn", "scholarjoker", "slyjoker", "wilyjoker",
+    "zanyjoker",
+})
+_HAND_COMPONENTS = {
+    "PAIR": frozenset({"halfjoker", "jollyjoker", "slyjoker", "theduojoker"}),
+    "TWO_PAIR": frozenset({"cleverjoker", "madjoker", "sparetrousers", "squarejoker"}),
+    "STRAIGHT": frozenset({"crazyjoker", "deviousjoker", "fourfingers", "runnerjoker", "shortcut", "theorderjoker"}),
+    "FLUSH": frozenset({"craftyjoker", "drolljoker", "thetribejoker"}),
+}
+
 
 def _updated(value, **changes):
     if is_dataclass(value):
@@ -189,6 +203,68 @@ def _reserve_target(decision) -> int:
         return 5
 
 
+def _hand_count(state, hand: str) -> int:
+    counts = getattr(state, "hand_play_counts", {}) or {}
+    return max(
+        0,
+        int(counts.get(hand, counts.get(hand.replace("_", " ").title(), 0)) or 0),
+    )
+
+
+def _demonstrated_hand_component(state, candidate_token: str) -> str | None:
+    counts = {hand: _hand_count(state, hand) for hand in _HAND_COMPONENTS}
+    total = sum(
+        max(0, int(value or 0))
+        for value in (getattr(state, "hand_play_counts", {}) or {}).values()
+    )
+    for hand, components in _HAND_COMPONENTS.items():
+        plays = counts[hand]
+        if candidate_token not in components or plays < 3:
+            continue
+        if total <= 0 or plays / total >= 0.25 or plays == max(counts.values()):
+            return hand
+    return None
+
+
+def _glass_retrigger_component(state, candidate_token: str) -> bool:
+    if candidate_token != "hangingchadjoker":
+        return False
+    deck = getattr(state, "owned_deck", None)
+    if deck is None:
+        deck = getattr(state, "deck", ()) or ()
+    return any(
+        str(getattr(card, "enhancement", "") or "").lower() == "glass"
+        for card in deck
+    )
+
+
+def _free_slot_engine_reason(state, candidate, decision, option) -> str | None:
+    """Return a mechanical reason to admit an otherwise-held free-slot Joker."""
+    token = _joker_token(candidate)
+    ante = max(1, int(getattr(state, "ante", 1) or 1))
+    money_after = _option_money_after(option)
+    reserve = _reserve_target(decision)
+    owned = tuple(getattr(state, "jokers", ()) or ())
+
+    if token in _EARLY_SCORING_COMPONENTS and ante <= 2 and money_after >= 0:
+        return "early scoring component fills an unfinished survival board"
+    if token == "halfjoker" and ante <= 4 and money_after >= max(0, reserve - 3):
+        return "Half Joker is immediate early Pair/High-Card engine power"
+    if token == "goldenjoker" and ante <= 6 and money_after >= (0 if ante <= 2 else reserve):
+        return "Golden Joker is profitable universal filler in a genuinely free slot"
+    if token == "constellationjoker" and money_after >= max(10, reserve):
+        return "Constellation supplies persistent Planet-fed scaling runway"
+
+    hand = _demonstrated_hand_component(state, token)
+    if hand is not None and money_after >= (0 if ante <= 2 else reserve):
+        return f"candidate completes the demonstrated {hand} scoring direction"
+    if _glass_retrigger_component(state, token) and money_after >= reserve:
+        return "Hanging Chad retriggers existing Glass scoring cards"
+    if not owned and token in _EARLY_SCORING_COMPONENTS and ante <= 3 and money_after >= 0:
+        return "first scoring Joker is required before speculative support purchases"
+    return None
+
+
 def _health_aware_joker_decision(policy, state, candidate, decision):
     options = tuple(getattr(decision, "options", ()) or ())
     if not options:
@@ -218,8 +294,12 @@ def _health_aware_joker_decision(policy, state, candidate, decision):
             and projected.survival >= current.survival - _MAX_SURVIVAL_SACRIFICE_FOR_SCALING
             and _option_money_after(option) >= _reserve_target(decision)
         )
-        if decision.action == HOLD and (early_survival_fix or scaling_fix):
-            reason = "early survival adequacy" if early_survival_fix else "midgame scaling adequacy"
+        engine_reason = _free_slot_engine_reason(state, candidate, decision, option)
+        if decision.action == HOLD and (early_survival_fix or scaling_fix or engine_reason):
+            reason = (
+                engine_reason
+                or ("early survival adequacy" if early_survival_fix else "midgame scaling adequacy")
+            )
             selected = _updated(
                 option,
                 rationale=(

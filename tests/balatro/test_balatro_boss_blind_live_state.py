@@ -77,6 +77,25 @@ def test_live_observer_preserves_mouth_only_hand_key_when_not_set_yet():
     assert normalized["only_hand"] is None
 
 
+def test_live_observer_drops_stale_mouth_only_hand_from_other_bosses():
+    decoder = _FakeDecoder()
+    blind = {
+        "boss": _boolean(True),
+        "name": _string("The Wall"),
+        "chips": _integer(80000),
+        "only_hand": _string("Two Pair"),
+    }
+    game = {
+        "blind_on_deck": _string("Boss"),
+        "facing_blind": _boolean(True),
+    }
+
+    normalized = _normalize_blind(decoder, blind, game)
+
+    assert normalized["name"] == "The Wall"
+    assert "only_hand" not in normalized
+
+
 def test_translator_canonicalizes_eye_blind_hand_history():
     snapshot = LiveBalatroSnapshot(
         sequence=1,

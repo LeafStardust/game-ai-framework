@@ -34,7 +34,10 @@ class JokerOrderPolicy:
     """
 
     STABLE_PHASES = frozenset({"BLIND_SELECT", "SELECTING_HAND", "SHOP"})
-    MAX_EXHAUSTIVE_JOKERS = 4
+    # Five is the ordinary slot cap and only requires 120 permutations. Searching
+    # it exhaustively lets score optimization and XMult alignment converge in one
+    # action instead of issuing two successive reorder checkpoints.
+    MAX_EXHAUSTIVE_JOKERS = 5
 
     def __init__(
         self,

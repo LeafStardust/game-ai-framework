@@ -62,7 +62,14 @@ def _token(value: object) -> str:
         or getattr(value, "label", None)
         or type(value).__name__
     )
-    return "".join(ch for ch in str(raw).lower() if ch.isalnum())
+    token = "".join(ch for ch in str(raw).lower() if ch.isalnum())
+    # Native Balatro center keys are shaped like ``j_blueprint``.  The live
+    # translator intentionally preserves that public key, while modeled Joker
+    # classes expose ``BlueprintJoker``.  Normalize the center namespace here so
+    # copy constraints and identity XMult detection work on both representations.
+    if str(raw).lower().startswith("j_") and token.startswith("j"):
+        token = token[1:]
+    return token
 
 
 def _edition_token(joker: object) -> str:

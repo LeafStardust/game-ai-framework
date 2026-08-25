@@ -618,6 +618,17 @@ class ContextualJokerSynergyEvaluator:
 
     @staticmethod
     def _is_held_effect(descriptor: EffectDescriptor) -> bool:
+        source = "".join(
+            character
+            for character in str(getattr(descriptor, "source", "") or "").lower()
+            if character.isalnum()
+        )
+        # Mime retriggers effects attached to individual held cards. Blackboard
+        # and Raised Fist inspect the aggregate held state once; neither becomes a
+        # repeated per-card effect merely because its condition mentions held
+        # ranks/suits. Treating them as ``held:effect`` created a fake Mime engine.
+        if source.removesuffix("joker") in {"blackboard", "raisedfist"}:
+            return False
         return any(
             feature.startswith("held:")
             and feature not in {HELD_EFFECT, HELD_RETRIGGER}

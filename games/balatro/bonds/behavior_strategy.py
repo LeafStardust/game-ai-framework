@@ -81,6 +81,27 @@ def _feature_bonds(feature: str) -> tuple[str, ...]:
     return ()
 
 
+def _structural_feature_strength(profile, feature: str, strength: float) -> float:
+    """Remove the ordinary 52-card baseline from rank/suit strategy evidence.
+
+    Every fresh deck contains thirteen cards of each suit and four of each rank.
+    Treating those counts as constructed infrastructure lets a single conditional
+    Joker (for example Gluttonous Joker) form a phantom suit engine.  Relative
+    density still matters after additions or thinning, so compare the observed
+    count with the even-share expectation for the current permanent deck size.
+    Enhancements, seals, hand investment, and Joker-produced features have no
+    universal deck baseline and retain their existing strength.
+    """
+    lower = str(feature).lower()
+    if lower.startswith("suit:"):
+        expected = float(getattr(profile, "deck_size", 0) or 0) / 4.0
+        return max(0.0, float(strength) - expected)
+    if lower.startswith("rank:"):
+        expected = float(getattr(profile, "deck_size", 0) or 0) / 13.0
+        return max(0.0, float(strength) - expected)
+    return max(0.0, float(strength))
+
+
 @dataclass(frozen=True)
 class _Node:
     source: str
@@ -113,7 +134,8 @@ def _nodes(state, developments: tuple[BondDevelopment, ...]):
             )
         )
     for feature, strength in profile.feature_strengths:
-        if float(strength) <= 0.0:
+        structural_strength = _structural_feature_strength(profile, feature, strength)
+        if structural_strength <= 0.0:
             continue
         bond_ids = _feature_bonds(feature)
         if not bond_ids:
@@ -126,7 +148,7 @@ def _nodes(state, developments: tuple[BondDevelopment, ...]):
                 requires=frozenset(),
                 scales_with=frozenset(),
                 amplifies=frozenset(),
-                value=min(6.0, 1.0 + float(strength) ** 0.5),
+                value=min(6.0, 1.0 + structural_strength ** 0.5),
             )
         )
     return profile, tuple(nodes)
@@ -244,7 +266,7 @@ def form_behavior_strategy_candidates(
     available = {
         feature
         for feature, strength in profile.feature_strengths
-        if float(strength) > 0.0
+        if _structural_feature_strength(profile, feature, strength) > 0.0
     }
     for node in nodes:
         available.update(node.outputs)

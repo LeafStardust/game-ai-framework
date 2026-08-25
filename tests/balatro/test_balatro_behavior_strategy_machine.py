@@ -48,6 +48,25 @@ class _Profiler:
         return _Profile()
 
 
+class _SuitProfile:
+    def __init__(self, clubs):
+        self.effects = (
+            EffectDescriptor(
+                source="GluttonousJoker",
+                kind="JOKER",
+                requires=frozenset({"suit:Clubs"}),
+                produces=frozenset({"score:mult"}),
+            ),
+        )
+        self.deck_size = 52
+        self.feature_strengths = (("suit:Clubs", float(clubs)),)
+
+    def descriptors(self, *, kind=None):
+        if kind is None:
+            return self.effects
+        return tuple(item for item in self.effects if item.kind == kind)
+
+
 def test_behavior_descriptors_form_strategy_without_pairwise_bond_relationship(monkeypatch):
     monkeypatch.setattr(behavior, "BalatroBuildProfiler", _Profiler)
     devs = (_dev("alpha", "Producer"), _dev("beta", "Consumer"))
@@ -106,3 +125,33 @@ def test_merge_keeps_role_and_behavior_evidence_for_same_strategy():
     assert set(merged.sources) == {"role-source", "behavior-source"}
     assert set(merged.prescriptions) == {"known-prescription", "seek_feature:test"}
     assert merged.links
+
+
+def test_stock_suit_density_does_not_form_phantom_behavior_strategy(monkeypatch):
+    monkeypatch.setattr(
+        behavior,
+        "BalatroBuildProfiler",
+        lambda: SimpleNamespace(profile=lambda state: _SuitProfile(13)),
+    )
+
+    candidates = behavior.form_behavior_strategy_candidates(
+        SimpleNamespace(),
+        (_dev("clubs", "Gluttonous Joker"),),
+    )
+
+    assert candidates == ()
+
+
+def test_excess_suit_density_can_form_real_behavior_strategy(monkeypatch):
+    monkeypatch.setattr(
+        behavior,
+        "BalatroBuildProfiler",
+        lambda: SimpleNamespace(profile=lambda state: _SuitProfile(18)),
+    )
+
+    candidates = behavior.form_behavior_strategy_candidates(
+        SimpleNamespace(),
+        (_dev("clubs", "Gluttonous Joker"),),
+    )
+
+    assert candidates

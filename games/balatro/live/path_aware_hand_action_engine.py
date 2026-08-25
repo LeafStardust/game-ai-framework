@@ -6,6 +6,7 @@ from games.balatro.actions import DISCARD_CARDS
 from games.balatro.live.adaptive_search import AdaptiveRecommendationSummary
 from games.balatro.live.blind_clear_planner import LiveBlindPlan
 from games.balatro.live.hand_action_policy import (
+    CLEAR_PATH,
     PACE_RECOVERY,
     HandActionDecision,
     LiveHandActionDecisionEngine as _BaseLiveHandActionDecisionEngine,
@@ -75,12 +76,106 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
             decision = super().decide(state)
         finally:
             self._record_adaptive_roots = False
+        decision = self._apply_adaptive_authority(state, decision)
         decision = self._apply_consensus_recovery(state, decision)
         self.last_strategy_health = evaluate_live_strategy_health(
             state,
             selected_plan=decision.selected_plan,
         )
         return decision
+
+    def _apply_adaptive_authority(
+        self,
+        state,
+        decision: HandActionDecision,
+    ) -> HandActionDecision:
+        """Keep a materially superior completed search root as the D1 action.
+
+        The shallow one-step pace policy is a fallback, not a second independent
+        controller. Production logs showed it selecting the opposite action from a
+        completed exact/deeper root seventeen times. Only material superiority is
+        authoritative here; close search estimates still defer to the safer pace
+        policy.
+        """
+        if decision.mode == CLEAR_PATH or not self._adaptive_root_history:
+            return decision
+
+        search_plan = self._adaptive_root_history[-1][1]
+        if self._action_signature(state, search_plan.action) == self._action_signature(
+            state,
+            decision.action,
+        ):
+            return decision
+
+        search_value = search_plan.value
+        selected_value = decision.selected_plan.value
+        search_probability = float(search_value.clear_probability)
+        selected_probability = float(selected_value.clear_probability)
+        search_score = float(search_value.expected_score)
+        selected_score = float(selected_value.expected_score)
+
+        probability_gain = search_probability - selected_probability
+        score_gain = search_score - selected_score
+        material_probability = probability_gain >= 0.05
+        material_score = (
+            probability_gain >= -0.01
+            and score_gain >= max(25.0, abs(selected_score) * 0.15)
+        )
+        exact_upgrade = (
+            bool(search_plan.exact)
+            and not bool(decision.selected_plan.exact)
+            and probability_gain >= -0.01
+            and score_gain >= 0.0
+        )
+        if not (material_probability or material_score or exact_upgrade):
+            return decision
+
+        plans = list(decision.plans)
+        if not any(
+            self._action_signature(state, plan.action)
+            == self._action_signature(state, search_plan.action)
+            for plan in plans
+        ):
+            plans.append(search_plan)
+
+        mode = (
+            CLEAR_PATH
+            if bool(search_plan.exact)
+            and search_probability + self.policy.EPSILON
+            >= self.policy.thresholds.clear_path_probability_floor
+            else PACE_RECOVERY
+        )
+        confidence = max(float(decision.confidence), search_probability)
+        if not search_plan.exact:
+            confidence = min(confidence, self.policy.SAMPLED_CONFIDENCE_CAP)
+        return replace(
+            decision,
+            mode=mode,
+            action=search_plan.action,
+            selected_plan=search_plan,
+            best_play=(
+                search_plan
+                if search_plan.action.name != DISCARD_CARDS
+                else decision.best_play
+            ),
+            best_discard=(
+                search_plan
+                if search_plan.action.name == DISCARD_CARDS
+                else decision.best_discard
+            ),
+            selected_immediate_score=None,
+            selected_pace_ratio=None,
+            selected_fallback_value=None,
+            confidence=confidence,
+            rationale=(
+                "completed adaptive root is materially superior to the one-step pace fallback",
+                f"action={decision.action.name}->{search_plan.action.name}; clear probability={selected_probability:.3f}->{search_probability:.3f}",
+                f"expected score={selected_score:.1f}->{search_score:.1f}; exact={search_plan.exact}",
+                "one controller owns the final D1 action; completed search evidence is not logged and then ignored",
+            ),
+            candidate_count=len(plans),
+            plans=tuple(plans),
+        )
 
     def _apply_consensus_recovery(
         self,
