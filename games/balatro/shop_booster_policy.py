@@ -140,7 +140,12 @@ class BuildAwareShopBoosterPolicy:
     D10 owns any follow-up effect target.
     """
 
-    AUTONOMOUS_SAFE_FAMILIES = frozenset({"CELESTIAL", "BUFFOON", "STANDARD"})
+    # D9/D10 now support visible offer selection/targeting for every modeled pack
+    # family below. D8 therefore must not veto a positive-EV Arcana or Spectral pack
+    # solely because those downstream layers were incomplete in an older scaffold.
+    AUTONOMOUS_SAFE_FAMILIES = frozenset(
+        {"CELESTIAL", "BUFFOON", "STANDARD", "ARCANA", "SPECTRAL"}
+    )
 
     PACK_LAYOUTS = {
         "STANDARD": {"NORMAL": (3, 1), "JUMBO": (5, 1), "MEGA": (5, 2)},
