@@ -1,6 +1,10 @@
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.blinds.blind import Blind, BlindType
 from games.balatro.card import BalatroCard
+from games.balatro.cerulean_bell_d1_legality_policy import (
+    _cerulean_future_forced_branches,
+)
+from games.balatro.jokers.chicot import ChicotJoker
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
 from games.balatro.state import BalatroState
 
@@ -66,3 +70,38 @@ def test_cerulean_child_discard_candidates_are_filtered_by_same_forced_card_rule
 
     assert discards
     assert all(forced in action.cards for action in discards)
+
+
+def test_cerulean_future_hand_branches_uniformly_over_each_possible_forced_card():
+    state = _cerulean_state()
+    for card in state.hand:
+        card.forced_selection = False
+
+    branches = _cerulean_future_forced_branches(state)
+
+    assert branches is not None
+    assert len(branches) == len(state.hand)
+    assert sum(probability for probability, _ in branches) == 1.0
+    assert all(probability == 1.0 / len(state.hand) for probability, _ in branches)
+
+    selected_ids = []
+    for _, branch in branches:
+        forced = [card for card in branch.hand if card.forced_selection]
+        assert len(forced) == 1
+        selected_ids.append(forced[0].live_id)
+    assert set(selected_ids) == {card.live_id for card in state.hand}
+
+
+def test_cerulean_future_brancher_does_not_reroll_observed_forced_card():
+    state = _cerulean_state()
+
+    assert _cerulean_future_forced_branches(state) is None
+
+
+def test_chicot_disables_cerulean_future_forced_branching():
+    state = _cerulean_state()
+    for card in state.hand:
+        card.forced_selection = False
+    state.jokers = [ChicotJoker()]
+
+    assert _cerulean_future_forced_branches(state) is None
