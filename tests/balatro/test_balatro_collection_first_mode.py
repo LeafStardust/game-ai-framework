@@ -63,7 +63,7 @@ def _sale_option(index, *, loss, blocked=None, edition_penalty=0.0):
     )
 
 
-def test_visible_undiscovered_joker_is_hard_priority_after_ante_six():
+def test_visible_undiscovered_joker_overrides_late_bond_strategy_commitment():
     state = _shop_state(ante=8)
     unknown = _item("Undiscovered", cost=6, kind="JOKER")
     state.shop_jokers = [unknown]
@@ -74,7 +74,7 @@ def test_visible_undiscovered_joker_is_hard_priority_after_ante_six():
     assert recommendation.priority == COLLECTION_CRITICAL
     assert recommendation.action.name == BUY_JOKER
     assert recommendation.action.target is unknown
-    assert "Ante-6 commitment" in " ".join(recommendation.rationale)
+    assert "Bond/composition strategy" in " ".join(recommendation.rationale)
 
 
 def test_full_joker_area_sells_lowest_loss_eligible_nonnegative_joker_first():
