@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-"""Deterministic shop transaction ordering and completion guards.
+"""Deterministic shop transaction completion guards.
 
 The surviving release-layer rules are independent of the retired categorical
 strategy architecture:
 
-* an admitted Clearance Sale is bought before other paid development;
 * a Joker replacement remains a two-checkpoint committed transaction: sell,
-  re-observe, then buy the exact visible Joker that justified the sale.
+  re-observe, then buy the exact visible Joker that justified the sale;
+* Campfire fuel remains a committed buy-then-sell transaction when its narrow
+  public-state guard admits it.
+
+Ordinary paid development, including Clearance Sale, remains under D14's shared
+cross-family arbitration. No transaction wrapper may pre-empt a stronger visible
+Joker, pack, consumable, or other admitted option merely because the purchase has
+useful ordering effects.
 
 No rule uses hidden RNG state, future shop/draw ordering, or legacy strategy tiers.
 """
@@ -15,7 +21,6 @@ No rule uses hidden RNG state, future shop/draw ordering, or legacy strategy tie
 from games.balatro.actions import (
     BUY_CONSUMABLE,
     BUY_JOKER,
-    BUY_VOUCHER,
     END_SHOP,
     REFRESH_SHOP,
     SELL_CONSUMABLE,
@@ -207,33 +212,10 @@ def install_shop_transaction_policy() -> None:
                 )
             self._pending_committed_replacement = None
 
-        clearance_action = next(
-            (
-                action
-                for action in visible_actions
-                if action.name == BUY_VOUCHER
-                and _normalize(_item_label(action.target)) == "clearancesale"
-            ),
-            None,
-        )
-        if clearance_action is not None:
-            ranked = self.shop_policy.rank_actions(state, [clearance_action])
-            if ranked and float(ranked[0].total) > hold:
-                score = ranked[0]
-                return ShopArbiterDecision(
-                    action=clearance_action,
-                    source="DETERMINISTIC",
-                    total=float(score.total),
-                    hold_baseline=hold,
-                    normalized_gain=max(0.0, float(score.total) - hold),
-                    deterministic=score,
-                    rationale=(
-                        "shop transaction ordering: admitted Clearance Sale precedes other paid development",
-                        "buying the permanent discount first reduces the cost of later shop purchases in the same and future shops",
-                        *score.notes,
-                    ),
-                )
-
+        # Clearance Sale is ordinary paid development. Its permanent discount is
+        # already represented by the deterministic shop scorer, and D14 owns the
+        # cross-family comparison. Do not pre-empt visible Joker/pack/consumable
+        # value here merely to buy the discount first.
         result = original_decide(
             self,
             state,
