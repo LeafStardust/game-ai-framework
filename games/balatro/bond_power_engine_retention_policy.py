@@ -3,10 +3,12 @@ from __future__ import annotations
 """Retention guard for already-realized canonical Bond engines.
 
 A replacement must not destroy an ACTIVE/MATURE Bond merely because diagnostics
-happen to rank some other Bond as the single current ``power_engine``. Retention is
-therefore source-aware: every realized Bond materially contributed by the incumbent
-being sold is protected unless the projected build preserves that Bond or the
-replacement itself creates a materially stronger engine.
+happen to rank some other Bond as the single current ``power_engine``. The selected
+power engine is also protected once it reaches R2, even while its realization is
+still PARTIAL. Retention is therefore source-aware: every realized or developed
+Bond materially contributed by the incumbent being sold is protected unless the
+projected build preserves that Bond or the replacement itself creates a materially
+stronger engine.
 
 This layer also prevents canonical Bond-transition bonuses from rescuing a Joker
 replacement that is already worse on the common whole-build baseline. Structural
@@ -72,10 +74,25 @@ def _projected_jokers(state, candidate, index: int):
 
 
 def _incumbent_realized_bonds(current: dict, incumbent) -> tuple[dict, ...]:
+    """Return incumbent Bonds that are already too developed to discard casually.
+
+    ACTIVE/MATURE Bonds remain protected regardless of which engine is currently
+    strongest.  The selected power engine also becomes protected at R2 even when
+    realization is still PARTIAL: that is a developed composition, not scouting.
+    This distinction prevents a short-lived standalone tempo Joker from deleting
+    one half of the run's strongest forming engine merely because its immediate
+    representative score is higher.
+    """
     tokens = _joker_tokens(incumbent)
+    power_engine = str(current.get("power_engine") or "")
     protected: list[dict] = []
     for payload in current.get("relevant_bonds", ()) or ():
-        if str(payload.get("realization", "")).upper() not in {"ACTIVE", "MATURE"}:
+        realization = str(payload.get("realization", "")).upper()
+        developed_power_engine = (
+            str(payload.get("bond_id") or "") == power_engine
+            and int(payload.get("rank_value", 0) or 0) >= 2
+        )
+        if realization not in {"ACTIVE", "MATURE"} and not developed_power_engine:
             continue
         contributes = False
         for contribution in payload.get("contributors", ()) or ():
@@ -197,7 +214,7 @@ def install_bond_power_engine_retention_policy() -> None:
                 decision,
                 rationale=(
                     *decision.rationale,
-                    "realized incumbent Bond retention check passed: replacement preserves all ACTIVE/MATURE incumbent-contributed Bonds",
+                    "developed incumbent Bond retention check passed: replacement preserves all ACTIVE/MATURE or R2+ selected-engine Bonds",
                 ),
             )
 
@@ -218,7 +235,7 @@ def install_bond_power_engine_retention_policy() -> None:
                 decision,
                 rationale=(
                     *decision.rationale,
-                    "realized incumbent Bond pivot allowed because the replacement itself creates materially stronger power",
+                    "developed incumbent Bond pivot allowed because the replacement itself creates materially stronger power",
                     f"lost {strongest_lost[0].get('bond_id')} strength={strongest_lost[1]:.2f}->{strongest_lost[2]:.2f}; projected {projected_engine or 'NONE'} strength={projected_engine_strength:.2f} gain={projected_engine_gain:.2f}; required strength={required_strength:.2f} gain={required_gain:.2f}",
                 ),
             )
@@ -233,9 +250,9 @@ def install_bond_power_engine_retention_policy() -> None:
             selected=None,
             rationale=(
                 *decision.rationale,
-                f"canonical realized-incumbent retention veto: selling {type(incumbent).__name__} would weaken {lost_text}",
+                f"canonical developed-incumbent retention veto: selling {type(incumbent).__name__} would weaken {lost_text}",
                 f"replacement-created best engine {projected_engine or 'NONE'} strength={projected_engine_strength:.2f} gain={projected_engine_gain:.2f}; required strength={required_strength:.2f} gain={required_gain:.2f}",
-                "pre-existing engine strength and fresh structural progress do not justify dismantling an already realized incumbent-contributed engine",
+                "pre-existing engine strength and fresh structural progress do not justify dismantling an already realized/developed incumbent-contributed engine",
             ),
         )
 

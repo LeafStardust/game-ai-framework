@@ -154,6 +154,31 @@ def test_realized_incumbent_bond_protection_is_not_limited_to_top_power_engine()
     assert [item["bond_id"] for item in protected] == ["deck_growth"]
 
 
+def test_r2_partial_power_engine_is_retention_protected():
+    incumbent = SimpleNamespace(label="Jolly Joker", name="Jolly Joker")
+    diagnostics = {
+        "power_engine": "pair",
+        "relevant_bonds": [
+            {
+                "bond_id": "pair",
+                "rank_value": 2,
+                "realization": "PARTIAL",
+                "contributors": [{"source": "Jolly Joker"}],
+            },
+            {
+                "bond_id": "held_cards",
+                "rank_value": 2,
+                "realization": "PARTIAL",
+                "contributors": [{"source": "Raised Fist"}],
+            },
+        ],
+    }
+
+    protected = _incumbent_realized_bonds(diagnostics, incumbent)
+
+    assert [item["bond_id"] for item in protected] == ["pair"]
+
+
 def test_live_d13_receives_translated_state(monkeypatch):
     snapshot = LiveBalatroSnapshot(
         sequence=7,
