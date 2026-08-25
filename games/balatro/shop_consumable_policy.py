@@ -162,7 +162,7 @@ class ConsumableAcquisitionPolicy:
                         ranked,
                         self.thresholds,
                         (
-                            "selected D4 mode=BUY_AND_USE: active Planet-use scaler guarantees permanent engine growth",
+                            "Planet-use scaler authority selected D4 mode=BUY_AND_USE: use guarantees permanent engine growth",
                             f"money after=${selected.economics.money_after}; reserve=${self.thresholds.reserve_target}",
                             *selected.rationale,
                         ),

@@ -13,6 +13,7 @@ from dataclasses import replace
 
 from games.balatro.bonds.evaluation import evaluate_all_bonds
 from games.balatro.bonds.model import BondRank
+from games.balatro.planet_scaler_authority import has_planet_use_scaler
 from games.balatro.shop_consumable_policy import HOLD, ConsumableAcquisitionPolicy
 
 
@@ -62,6 +63,11 @@ def install_planet_relevance_policy() -> None:
         if str(getattr(candidate, "category", "")).upper() != "PLANET":
             return decision
         if decision.action == HOLD:
+            return decision
+        # D4 has already applied the cash-reserve guard before admitting this
+        # BUY_AND_USE. An active Planet-use scaler makes even an off-path Planet
+        # permanent engine growth, so ordinary hand relevance must not veto it.
+        if has_planet_use_scaler(state):
             return decision
 
         relevant, rationale = _planet_hand_relevant(state, candidate)
