@@ -156,7 +156,12 @@ def restart_fresh_unseeded_run(
                     f"{expected_deck}/{expected_stake}, observed "
                     f"{current_deck}/{current_stake}"
                 )
-            if current.sequence > before.sequence:
+            # The live bridge sequence is run-local. A native restart resets it
+            # from the terminal run's high value back to 1, so freshness means
+            # "changed", not monotonically greater. Requiring ``>`` made every
+            # successful restart wait for the full timeout before the supervisor's
+            # slower recovery path recognized the already-running new game.
+            if current.sequence != before.sequence:
                 if previous is not None and _same_snapshot(previous, current):
                     stable_count += 1
                 else:

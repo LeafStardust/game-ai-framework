@@ -92,6 +92,26 @@ def test_restart_waits_for_settled_same_identity_blind_select():
     assert bridge.restart_calls == 1
 
 
+def test_restart_accepts_fresh_run_sequence_counter_reset():
+    before = _snapshot(651, "GAME_OVER")
+    fresh = _snapshot(1, "BLIND_SELECT")
+    observer = _Observer([before, fresh, fresh, fresh, fresh, fresh, fresh])
+    bridge = _Bridge()
+    runner = SimpleNamespace(observer=observer, bridge=bridge)
+
+    result = restart_fresh_unseeded_run(
+        runner,
+        "RED",
+        "WHITE",
+        timeout_seconds=0.2,
+        poll_interval_seconds=0,
+    )
+
+    assert result.before.sequence == 651
+    assert result.after.sequence == 1
+    assert bridge.restart_calls == 1
+
+
 def test_restart_rejects_non_game_over_before_command():
     observer = _Observer([_snapshot(10, "SELECTING_HAND")])
     bridge = _Bridge()
