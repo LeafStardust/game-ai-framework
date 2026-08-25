@@ -10,6 +10,7 @@ from games.balatro.boss_hand_constraint_policy import (
 )
 from games.balatro.card import BalatroCard
 from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
 def _plan(name, cards=()):
@@ -78,7 +79,13 @@ def test_eye_falls_back_to_round_history_only_when_blind_table_unobserved():
 def test_locked_mouth_filters_other_play_types_while_discards_exist():
     straight = _plan(
         PLAY_CARDS,
-        [BalatroCard(rank, "Hearts") for rank in ("10", "J", "Q", "K", "A")],
+        [
+            BalatroCard(rank, suit)
+            for rank, suit in zip(
+                ("10", "J", "Q", "K", "A"),
+                ("Hearts", "Clubs", "Diamonds", "Spades", "Hearts"),
+            )
+        ],
     )
     pair = _plan(
         PLAY_CARDS,

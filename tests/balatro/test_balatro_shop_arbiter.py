@@ -134,7 +134,7 @@ def test_expensive_booster_can_lose_to_hold_after_shop_economics():
     assert result.interest_penalty > 0
 
 
-def test_whole_shop_arbiter_can_choose_booster_over_leave():
+def test_whole_shop_arbiter_holds_unsupported_celestial_pack():
     state = _state()
     booster = BalatroAction(
         BUY_BOOSTER,
@@ -146,9 +146,9 @@ def test_whole_shop_arbiter_can_choose_booster_over_leave():
         reroll_cost=5,
     )
 
-    assert decision.action is booster
-    assert decision.source == "BOOSTER"
-    assert decision.normalized_gain > 0
+    assert decision.action.name == END_SHOP
+    assert decision.source == "END_SHOP"
+    assert decision.normalized_gain == 0
 
 
 def test_strong_deterministic_purchase_beats_booster():
@@ -176,7 +176,7 @@ def test_strong_deterministic_purchase_beats_booster():
     assert decision.source == "DETERMINISTIC"
 
 
-def test_visible_booster_quality_suppresses_reroll():
+def test_unsupported_visible_celestial_pack_does_not_suppress_reroll():
     state = _state()
     booster = BalatroAction(
         BUY_BOOSTER,
@@ -188,11 +188,10 @@ def test_visible_booster_quality_suppresses_reroll():
         reroll_cost=1,
     )
 
-    assert decision.action is booster
-    assert decision.source == "BOOSTER"
+    assert decision.action.name == REFRESH_SHOP
+    assert decision.source == "REROLL"
     assert decision.reroll is not None
-    assert decision.reroll.decision == "HOLD"
-    assert decision.reroll.current_best_score >= decision.total
+    assert decision.reroll.decision == "REROLL"
 
 
 def test_free_reroll_can_beat_weak_or_rejected_booster():
@@ -215,7 +214,7 @@ def test_free_reroll_can_beat_weak_or_rejected_booster():
     assert decision.source == "REROLL"
 
 
-def test_unknown_reroll_cost_does_not_block_booster_arbitration():
+def test_unknown_reroll_cost_and_unsupported_celestial_pack_hold_shop():
     state = _state()
     booster = BalatroAction(
         BUY_BOOSTER,
@@ -227,8 +226,8 @@ def test_unknown_reroll_cost_does_not_block_booster_arbitration():
         reroll_cost=None,
     )
 
-    assert decision.action is booster
-    assert decision.source == "BOOSTER"
+    assert decision.action.name == END_SHOP
+    assert decision.source == "END_SHOP"
     assert decision.reroll is not None
     assert decision.reroll.decision == "HOLD"
 

@@ -175,10 +175,11 @@ def _runner(state, *, reroll_cost: float):
     )
 
 
-def test_autonomous_shop_can_buy_relevant_visible_celestial_pack_over_reroll():
+def test_autonomous_shop_rerolls_over_single_hand_normal_celestial_pack():
     state = _state(money=20)
-    # Relevant but still under-invested: repeated Flush play has earned additional
-    # Planet headroom, unlike an already-overleveled hand that should reroll/hold.
+    # Repeated Flush play creates Planet headroom, but a normal Celestial pack still
+    # has only a 3/12 chance to expose that one useful Planet.  D8 rejects the pack,
+    # leaving the admitted reroll to win whole-shop arbitration.
     state.hand_levels["FLUSH"] = 2
     state.hand_play_counts["FLUSH"] = 8
     state.shop_boosters = [
@@ -193,12 +194,12 @@ def test_autonomous_shop_can_buy_relevant_visible_celestial_pack_over_reroll():
 
     decision = runner.decide()
 
-    assert decision.action.name == BUY_BOOSTER
-    assert decision.action.target is state.shop_boosters[0]
-    assert "shop_decision=HOLD_REROLL" in decision.notes
-    assert "arbiter_source=BOOSTER" in decision.notes
+    assert decision.action.name == REFRESH_SHOP
+    assert "shop_decision=REROLL" in decision.notes
+    assert "arbiter_source=REROLL" in decision.notes
+    assert "admitted boosters=0/1" in decision.notes
     assert any(
-        note == "unopened booster contents are not predicted"
+        note == "future-shop expectation uses static public priors only; no RNG state or future ordering"
         for note in decision.notes
     )
 
