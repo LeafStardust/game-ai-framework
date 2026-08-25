@@ -246,19 +246,19 @@ def test_d8_mega_pack_has_more_option_value_than_normal_at_equal_price():
     assert mega.option_utility > normal.option_utility
 
 
-def test_d8_arcana_and_spectral_are_valued_but_fail_closed_until_d9_d10():
+def test_d8_arcana_and_spectral_can_buy_when_value_clears_thresholds():
     policy = BuildAwareShopBoosterPolicy()
     state = _state(money=50)
 
     arcana = policy.recommend(state, _action("Arcana Pack"))
-    spectral = policy.recommend(state, _action("Spectral Pack"))
+    spectral = policy.recommend(state, _action("Mega Spectral Pack"))
 
     assert arcana.option_utility > 0.0
     assert spectral.option_utility > 0.0
-    assert arcana.decision == HOLD
-    assert spectral.decision == HOLD
-    assert any("D9/D10" in note for note in arcana.rationale)
-    assert any("D9/D10" in note for note in spectral.rationale)
+    assert arcana.decision == BUY
+    assert spectral.decision == BUY
+    assert any("autonomous-safe" in note for note in arcana.rationale)
+    assert any("autonomous-safe" in note for note in spectral.rationale)
 
 
 def test_d8_threshold_mapping_is_layer_owned_and_rejects_unknown_keys():
