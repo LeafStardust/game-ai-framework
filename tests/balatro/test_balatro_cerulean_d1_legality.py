@@ -105,3 +105,24 @@ def test_chicot_disables_cerulean_future_forced_branching():
     state.jokers = [ChicotJoker()]
 
     assert _cerulean_future_forced_branches(state) is None
+
+
+def test_cerulean_unselected_future_hand_is_exact_after_d1_forced_card_branching():
+    state = _cerulean_state()
+    for card in state.hand:
+        card.forced_selection = False
+    state.hands_remaining = 1
+    state.discards_remaining = 0
+
+    planner = D1LiveBlindClearPlanner(
+        play_width=3,
+        discard_width=0,
+        child_play_width=3,
+        child_discard_width=0,
+        horizon=1,
+    )
+    planner.nodes_evaluated = 1
+
+    _, exact = planner._best_value(state, 1)
+
+    assert exact is True
