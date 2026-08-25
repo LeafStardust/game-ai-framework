@@ -21,6 +21,7 @@ from .effects import (
     SCORE_MULT,
     SCORE_XMULT,
     enhancement_feature,
+    hand_feature,
 )
 from .joker_lifecycle import (
     STATEFUL_ACTIVATION,
@@ -226,7 +227,16 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
             evidence.update(result.evidence)
 
             newly_known = scenario_known - known_before
-            if newly_known or scenario_penalties:
+            confirms_known_hand_condition = (
+                scenario.name.upper() == scenario.poker_hand.value
+                and hand_feature(scenario.poker_hand) in requires
+                and bool(
+                    scenario_known.intersection(
+                        {SCORE_CHIPS, SCORE_MULT, SCORE_XMULT}
+                    )
+                )
+            )
+            if newly_known or scenario_penalties or confirms_known_hand_condition:
                 feature = scenario_feature(scenario.name)
                 scales_with.add(feature)
                 if any(item in {SCORE_CHIPS, SCORE_MULT, SCORE_XMULT} for item in newly_known):
