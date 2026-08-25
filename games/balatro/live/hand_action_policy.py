@@ -692,7 +692,22 @@ class LiveHandActionDecisionEngine:
         """Return a legal structural action without further Joker projection."""
         planner = self.planner
         planner._require_state(state)
-        plays = list(planner.action_generator.generate_play_actions(state))
+        child_candidates = getattr(planner, "_child_play_candidates", None)
+        if callable(child_candidates):
+            plays = list(
+                child_candidates(
+                    state,
+                    max(1, int(getattr(planner, "play_width", 1) or 1)),
+                )
+            )
+        else:
+            action_generator = getattr(planner, "action_generator", None)
+            generate_plays = getattr(action_generator, "generate_play_actions", None)
+            if not callable(generate_plays):
+                raise RuntimeError(
+                    "D1 timeout fallback has no bounded legal-Play generator"
+                )
+            plays = list(generate_plays(state))
         if not plays:
             raise RuntimeError("D1 timeout fallback found no legal Play action")
 
@@ -728,27 +743,9 @@ class LiveHandActionDecisionEngine:
             return hand_strength.get(hand, 0), ranks, -len(tuple(action.cards or ()))
 
         best_play = max(plays, key=play_key)
-        action = best_play
-        selected_kind = "Play"
-
         discards_remaining = max(0, int(getattr(state, "discards_remaining", 0) or 0))
         hands_remaining = max(0, int(getattr(state, "hands_remaining", 0) or 0))
-        best_hand_rank = play_key(best_play)[0]
-        if discards_remaining > 0 and hands_remaining > 1 and best_hand_rank <= 1:
-            discards = list(planner.action_generator.generate_discard_actions(state))
-            retained_value = getattr(self.policy.evaluator, "_retained_structure_value", None)
-            if discards and callable(retained_value):
-                def discard_key(candidate):
-                    removed = {id(card) for card in tuple(candidate.cards or ())}
-                    kept = [
-                        card
-                        for card in tuple(getattr(state, "hand", ()) or ())
-                        if id(card) not in removed
-                    ]
-                    return float(retained_value(kept)), len(tuple(candidate.cards or ()))
-
-                action = max(discards, key=discard_key)
-                selected_kind = "Discard"
+        action = best_play
 
         target = float(getattr(getattr(state, "blind", None), "requirement", 0) or 0)
         score = float(getattr(state, "score", 0) or 0)
@@ -758,11 +755,9 @@ class LiveHandActionDecisionEngine:
             expected_progress=progress,
             expected_score=score,
             expected_hands_remaining=float(
-                max(0, hands_remaining - (1 if action.name == PLAY_CARDS else 0))
+                max(0, hands_remaining - 1)
             ),
-            expected_discards_remaining=float(
-                max(0, discards_remaining - (1 if action.name == DISCARD_CARDS else 0))
-            ),
+            expected_discards_remaining=float(discards_remaining),
         )
         plan = LiveBlindPlan(
             action=action,
@@ -775,14 +770,8 @@ class LiveHandActionDecisionEngine:
         return self.policy._decision(
             mode=PACE_RECOVERY,
             selected=plan,
-            best_play=plan if action.name == PLAY_CARDS else LiveBlindPlan(
-                action=best_play,
-                value=value,
-                horizon=1,
-                exact=False,
-                candidate_count=len(plays),
-            ),
-            best_discard=plan if action.name == DISCARD_CARDS else None,
+            best_play=plan,
+            best_discard=None,
             pace_target=pace_target,
             best_play_immediate_score=0.0,
             best_play_pace_ratio=0.0,
@@ -795,8 +784,8 @@ class LiveHandActionDecisionEngine:
             confidence=0.25,
             rationale=(
                 "D1 wall-clock budget exhausted before pace fallback completed",
-                f"selected a bounded structural {selected_kind} without further Joker-aware projection",
-                "timeout fallback preserves the strongest made structure and spends a discard before burning a low High-Card/Pair hand when resources allow",
+                "selected the strongest bounded structural Play without further Joker-aware projection",
+                "a timeout without completed search evidence never authorizes a fabricated discard",
                 "take only this action, then re-observe and replan",
             ),
             plans=(plan,),

@@ -265,14 +265,10 @@ class JokerOrderPolicy:
         jokers = tuple(getattr(state, "jokers", ()) or ())
         if phase not in self.STABLE_PHASES or len(jokers) < 2:
             return None
-        if phase == "SELECTING_HAND" and getattr(self, "_exact_play_indices", None) is None:
-            # There must be only one SELECTING_HAND Joker-order authority.  A
-            # representative-probe recommendation can disagree with the exact
-            # D1 play recommendation and make the live runner alternate forever
-            # between two valid permutations.  The exact-play path installs
-            # ``_exact_play_indices`` immediately before calling back into this
-            # method, so defer every generic hand-phase request to that path.
-            return None
+        generic_hand_phase = (
+            phase == "SELECTING_HAND"
+            and getattr(self, "_exact_play_indices", None) is None
+        )
         if phase == "BLIND_SELECT" and not any(
             type(joker).__name__ == "DaggerJoker" for joker in jokers
         ):
@@ -350,6 +346,20 @@ class JokerOrderPolicy:
         improvement = best_score - current_score
         retention_improved = best_negative_count < current_negative_count
         alignment_improved = best_alignment > current_alignment
+        if (
+            generic_hand_phase
+            and current_score != float("-inf")
+            and (
+                not alignment_improved
+                or abs(improvement) > 1e-9
+            )
+        ):
+            # Exact selected-play ordering remains the sole scoring authority in
+            # hand phase.  The generic checkpoint may repair an invalid copy
+            # position (whose constrained current score is -inf) or perform a
+            # genuinely score-neutral XMult alignment, but it may not emit a
+            # competing representative-probe scoring order.
+            return None
         if best_permutation == current or (
             not retention_improved
             and not alignment_improved
