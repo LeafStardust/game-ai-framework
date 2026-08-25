@@ -11,6 +11,7 @@ from games.balatro.blind_skip_policy import (
     DEFAULT_FALLBACK_TAG_VALUE,
     decide_blind_play_or_skip,
 )
+from games.balatro.hand_order_policy import HandOrderPolicy
 from games.balatro.live.consumable_timing import LiveConsumableTimingPolicy
 from games.balatro.live.hand_action_policy import (
     SEARCH_SCHEDULE_FULL,
@@ -134,6 +135,7 @@ class LiveMemoryInjectedSingleStepRunner:
         self.exact_limit = int(exact_limit)
         self.child_exact_limit = int(child_exact_limit)
         self.consumable_timing_policy = consumable_timing_policy or LiveConsumableTimingPolicy()
+        self.hand_order_policy = HandOrderPolicy()
         self._blocked_consumable_live_ids: set[object] = set()
         self.shop_generator = BalatroShopActionGenerator()
         self.shop_policy = VoucherAwareBalatroShopPolicy()
@@ -209,6 +211,17 @@ class LiveMemoryInjectedSingleStepRunner:
             notes.append("search[{}]={} h={} samples={} nodes={}/{} budget_exceeded={} elapsed={:.3f}s best_action={} best_clear_probability={} best_expected_score={} best_exact={}".format(index, stage, attempt.horizon, attempt.samples, attempt.nodes_evaluated, attempt.max_nodes, attempt.budget_exceeded, elapsed, best_action, best_clear_probability, best_expected_score, best_exact))
         if len(rank_timings) > len(decision.search_attempts):
             notes.append(f"fallback_search_elapsed={sum(rank_timings[len(decision.search_attempts):]):.3f}s")
+
+        order_decision = self.hand_order_policy.recommend(state, decision.action)
+        if order_decision is not None:
+            notes.extend(
+                (
+                    "execution_override=REORDER_HAND",
+                    f"hand_order_permutation={order_decision.permutation}",
+                    *order_decision.rationale,
+                )
+            )
+            return order_decision.to_action(), tuple(notes)
         return decision.action, tuple(notes)
 
     def _recommend_shop(self, state, snapshot: LiveBalatroSnapshot) -> tuple[BalatroAction, tuple[str, ...]]:
