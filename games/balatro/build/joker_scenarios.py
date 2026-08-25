@@ -239,7 +239,10 @@ class ScenarioJokerBehaviorAnalyzer(LifecycleJokerBehaviorAnalyzer):
             if newly_known or scenario_penalties or confirms_known_hand_condition:
                 feature = scenario_feature(scenario.name)
                 scales_with.add(feature)
-                if any(item in {SCORE_CHIPS, SCORE_MULT, SCORE_XMULT} for item in newly_known):
+                if confirms_known_hand_condition or any(
+                    item in {SCORE_CHIPS, SCORE_MULT, SCORE_XMULT}
+                    for item in newly_known
+                ):
                     requires.add(feature)
                 evidence.add(f"scenario:{scenario.name}:active")
 
