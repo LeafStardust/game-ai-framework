@@ -173,6 +173,28 @@ Examples include:
 - destroying an ACTIVE/MATURE engine without a materially superior projected replacement;
 - repeated singleton discards when several dead cards can safely be cycled.
 
+## Repair progress — 2026-08-26
+
+The deterministic Balatro suite is green at the current repair checkpoint.
+
+Completed or validated in the current semantic/runtime pass:
+
+- synthetic chip/Mult/XMult coverage overrides were removed from the Red/White correction layer; literal modeled scoring remains the score authority;
+- stateful/contextual scoring paths used by shop valuation were repaired and covered by regressions, including repeated-hand activation for Card Sharp and current-state contribution/replacement behavior;
+- D1 discard ranking was moved back under the canonical D1 evaluator/planner path instead of a competing mini-heuristic, with multi-card redraw behavior covered by deterministic tests;
+- **The Psychic** now scores legal 1–4 card burn/cycling plays as zero while preserving normal scoring for valid five-card plays;
+- **Purple Seal** discard value now survives planner search: a mechanically distinct Purple-Seal branch is preserved when a Tarot can actually be generated, and generated consumables are carried only as a late survival-equivalent expectimax tie-break;
+- shop Wheel remains admitted through the public-state stochastic edition model rather than being deterministically rejected;
+- all changes above have passed `py -m pytest tests/balatro -q` at their latest checkpoint.
+
+Still open before a new live baseline:
+
+- complete the pack/consumable opportunity-cost and target-selection audit;
+- complete the remaining boss-mechanics audit beyond the already repaired Psychic path;
+- finish the semantic D1 audit for held-value cards, discard-trigger engines, and boss interactions;
+- diagnose/fix the post-`run_finished` three-attempt supervisor/shutdown crash;
+- rerun the full Balatro suite after the remaining changes, then perform a fresh production-default three-run Red/White batch.
+
 ## Current repair queue
 
 Do not start another live calibration baseline until these semantic/runtime issues are addressed:
@@ -187,7 +209,7 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Audit boss-specific execution against exact mechanics.
 - [ ] Diagnose and fix the three-attempt supervisor/shutdown crash observed after all three run logs had already emitted `run_finished`.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [ ] Run `tests/balatro` and require green before live validation.
+- [x] Run `tests/balatro` and require green before live validation. Latest deterministic checkpoint: green on 2026-08-26; rerun after any further repair commit.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
