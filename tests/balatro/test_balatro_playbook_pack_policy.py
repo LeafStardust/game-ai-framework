@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-import games.balatro.playbook_pack_policy as pack_module
+import games.balatro.playbook.red_white.pack_policy as pack_module
 
 from games.balatro.actions import SELECT_PACK_CARD, SKIP_BOOSTER, BalatroAction
 from games.balatro.live.consumable_timing_core import ConsumableTargetThresholds

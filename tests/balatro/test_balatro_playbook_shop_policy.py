@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-import games.balatro.playbook_shop_policy as playbook_shop_policy_module
+import games.balatro.playbook.red_white.shop_policy as playbook_shop_policy_module
 from games.balatro.actions import BUY_BOOSTER, BUY_VOUCHER, END_SHOP, BalatroAction
 from games.balatro.playbook import (
     BalatroPlaybook,
