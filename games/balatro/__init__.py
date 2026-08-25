@@ -49,6 +49,7 @@ from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_cor
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
+from games.balatro.soul_pack_expectation_policy import install_soul_pack_expectation_policy
 from games.balatro.stable_economy_mechanics_policy import install_stable_economy_mechanics_policy
 from games.balatro.stateful_joker_admission_policy import install_stateful_joker_admission_policy
 from games.balatro.strategy_authority_correction_policy import install_strategy_authority_correction_policy
@@ -105,6 +106,7 @@ install_live_decision_quality_policy()
 install_stateful_joker_admission_policy()
 install_tactical_scaler_retention_policy()
 install_pinned_strategy_safe_pace_policy()
+install_soul_pack_expectation_policy()
 # Final semantic execution guards see the fully wrapped D1/shop decisions so later
 # value layers cannot undo defining mechanics.
 install_aces_dna_hand_policy()
