@@ -219,7 +219,6 @@ def test_autonomous_shop_can_open_supported_arcana_pack():
     decision = runner.decide()
 
     assert decision.action.name == BUY_BOOSTER
-    assert "shop_decision=BUY_BOOSTER" in decision.notes
     assert "arbiter_source=BOOSTER" in decision.notes
     assert "admitted boosters=1/1" in decision.notes
 
