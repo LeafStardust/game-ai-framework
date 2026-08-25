@@ -40,7 +40,7 @@ def _booster(label: str, *, price: int = 0, center: str | None = None):
     )
 
 
-def test_unrecognized_and_target_unsafe_boosters_fail_closed():
+def test_unrecognized_boosters_fail_closed_while_supported_families_are_eligible():
     state = _state()
     policy = BuildAwareShopBoosterPolicy()
 
@@ -59,14 +59,15 @@ def test_unrecognized_and_target_unsafe_boosters_fail_closed():
         state,
         BalatroAction(
             BUY_BOOSTER,
-            target=_booster("Spectral Pack", center="p_spectral_normal_1"),
+            target=_booster("Mega Spectral Pack", center="p_spectral_mega_1"),
         ),
     )
 
     assert unknown.decision == "HOLD"
-    assert arcana.decision == "HOLD"
-    assert spectral.decision == "HOLD"
-    assert any("deferred to D9/D10" in note for note in arcana.rationale)
+    assert arcana.decision == "BUY"
+    assert spectral.decision == "BUY"
+    assert any("autonomous-safe" in note for note in arcana.rationale)
+    assert any("autonomous-safe" in note for note in spectral.rationale)
     assert all(
         any("contents are not predicted" in note for note in result.rationale)
         for result in (unknown, arcana, spectral)
