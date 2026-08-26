@@ -69,7 +69,7 @@ def _choice() -> LivePackChoice:
     )
 
 
-def _registry(*, skip_bias=0.35, minimum_total_gain=None):
+def _registry(*, skip_bias=0.0, minimum_total_gain=None):
     registry = BalatroPlaybookRegistry()
     registry.register(
         BalatroPlaybook(
@@ -96,7 +96,7 @@ def test_red_white_exposes_current_d9_and_d10_thresholds():
     d9 = PackChoiceThresholds.from_mapping(playbook.thresholds_for("D9"))
     d10 = ConsumableTargetThresholds.from_mapping(playbook.thresholds_for("D10"))
 
-    assert d9 == PackChoiceThresholds(skip_bias=0.35)
+    assert d9 == PackChoiceThresholds(skip_bias=0.0)
     assert d10 == ConsumableTargetThresholds(minimum_contextual_delta=0.0)
 
 
@@ -155,7 +155,7 @@ def test_d10_reuses_d6_target_contract_and_can_reject_positive_below_threshold(
     assert any("no positive B6 target" in note for note in scored.notes)
 
 
-def test_d10_neutral_threshold_preserves_existing_positive_target_behavior(
+def test_d10_neutral_threshold_preserves_literal_positive_target_behavior(
     monkeypatch,
 ):
     monkeypatch.setattr(
@@ -176,6 +176,8 @@ def test_d10_neutral_threshold_preserves_existing_positive_target_behavior(
         BalatroAction(SELECT_PACK_CARD, target=choice),
     )
 
-    assert scored.total == 1.5
+    # Opened-pack acquisition cost is sunk. D9/D10 carries the literal B6 target
+    # gain itself; it no longer adds the generic item/category estimator value.
+    assert scored.total == 0.5
     assert scored.action.cards == list(state.hand)
     assert any("B6 pack target gain=0.500" in note for note in scored.notes)
