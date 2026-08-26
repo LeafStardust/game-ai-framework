@@ -116,20 +116,25 @@ Canonical architecture references:
 - [x] Audit every decision in the fresh three-run `28342616` baseline and correct the production/canonical Joker/pack/shop class split; Burglar coexistence with dormant discard triggers, discard-count payoffs, extra-discard sources, vouchers, and Purple Seals; negative raw replacements rescued by Bond bonuses; X1 full-roster Joker Stencil admission; hand-specific Blueprint ordering; Eternal Dagger feed projection; held Steel/Gold/Seal shortlist substitution; post-deadline D1 re-evaluation; and zero-demand Standard-pack deck bloat. This semantic/runtime correction invalidates that baseline.
 - [x] Audit every decision in the subsequent three-run `817ac2b3` batch and correct phantom strategy formation from stock-deck card counts, false Mime/Blackboard/Raised-Fist relationships, under-recruitment of coherent shop engines, isolated Obelisk admission, missed Campfire fuel transactions, weak late rerolls, D1 search/controller disagreement, destructive timeout discards, five-Joker Blueprint ordering, off-route Planet promotion, stale Mouth telemetry, and new-attempt sequence resets. This semantic/runtime correction invalidates that batch as a calibration baseline.
 - [x] Remove the unvalidated synthetic Red/White “chips axis / Mult axis” correction layer after the 2026-08-25 live batch showed that category-level overrides distorted decision making.
+- [x] Complete the named contextual-Joker implementation audit for Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm, including post-transaction cash, next-round Banner resources, and prospective copy-Joker ordering.
+- [x] Repair D2 replacement implementation around literal common-baseline score, post-transaction cash, economy, Negative retention, realized-engine/strategy disruption, and exact selected shop-copy identity.
+- [x] Complete the static Boss-Blind production authority inventory; omitted dispatch-table names are accounted for by authoritative live state or explicit D1 transition/score transforms, with centralized Chicot bypass.
+- [x] Replace D11's fixed future Joker/Planet utility priors with public-pool D2/D4/D14 expectation, fail closed on unresolved Tarot future value, and replace D8 Buffoon/Celestial family priors with public-pool/literal expectation where the mechanics are complete.
+- [x] Extend the shared literal score/D2 probe catalogue to Five of a Kind, Flush House, and Flush Five so secret-hand development is not ignored by shop valuation.
 
 ### Current semantic/runtime repair queue — BLOCKS CALIBRATION
 
 - [ ] Make literal current/candidate score projection authoritative and audit any layer that substitutes synthetic categories for actual marginal scoring.
-- [ ] Audit contextual Joker valuation beginning with Joker Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm.
-- [ ] Verify R0/FORMING/PINNED strategy authority affects acquisition from Ante 1 without delaying survival or collecting unrelated Bond labels.
+- [x] Audit contextual Joker valuation beginning with Joker Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm. Implementation audit complete; current-HEAD regression validation remains pending.
+- [ ] Verify R0/FORMING/PINNED strategy authority affects acquisition from Ante 1 without delaying survival or collecting unrelated Bond labels. Implementation is installed; local verification remains pending.
 - [ ] Repair D14 cross-family shop arbitration so visible Jokers, vouchers, packs, consumables, rerolls, and economy are compared on run-winning value rather than incompatible local utility units.
-- [ ] Repair D2 replacement so incumbent and candidate are compared by actual current score, prospective scaling/economy, strategy realization, and disruption.
-- [ ] Repair D1 discard selection at the actual planner/controller authority; repeated one-card discards must be exceptional when several dead cards can safely be cycled.
+- [x] Repair D2 replacement so incumbent and candidate are compared by actual current score, prospective scaling/economy, strategy realization, and disruption. Implementation audit complete; local regressions remain part of the current-HEAD suite gate.
+- [x] Repair D1 discard selection at the actual planner/controller authority; repeated one-card discards must be exceptional when several dead cards can safely be cycled.
 - [ ] Audit pack and consumable decisions for both unjustified skipping and unjustified speculative spending.
-- [ ] Re-audit boss-specific execution against exact mechanics and legality.
-- [ ] Diagnose and fix the three-attempt supervisor/shutdown crash observed after the 2026-08-25 batch; all three run logs had already emitted `run_finished`, so the failure is post-run runtime control, not gameplay logging.
+- [x] Re-audit boss-specific execution against exact mechanics and legality. Static production inventory complete; newest Verdant/Crimson regressions remain pending the current-HEAD suite run.
+- [x] Diagnose and fix the three-attempt supervisor/shutdown crash observed after the 2026-08-25 batch; the bounded supervisor now stops after attempt 3 and the historical post-`run_finished` crash is retired unless reproduced on unchanged current HEAD.
 - [ ] Add direct regressions for every live defect before another authoritative batch.
-- [ ] Run `tests/balatro` and require green before live validation.
+- [ ] Run `tests/balatro` on the current semantic-repair HEAD and require green before live validation. The latest validated checkpoint predates the subsequent Wraith/Judgement, post-transaction valuation, D11/D8 expectation, secret-hand, and Celestial repairs.
 - [ ] Execute and inspect a clean 3-run production-default authoritative live baseline only after the semantic/runtime repair queue is clear.
 - [ ] Run Phase-A candidate trials only after that baseline is clean; any semantic/runtime fix invalidates and restarts the study under the new repository SHA.
 
