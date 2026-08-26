@@ -1,8 +1,10 @@
 from types import SimpleNamespace
 
 import games.balatro.reroll_joker_expectation_policy as reroll_joker_expectation_policy
+import games.balatro.shop_expectation_runtime_bound_policy as runtime_bounds
 from games.balatro.arcana_booster_expectation_policy import ArcanaBoosterExpectationEvaluator
-from games.balatro.pack_policy import BalatroPackPolicy
+from games.balatro.build.hand_size_opportunity import HandSizeOpportunityEvaluator
+from games.balatro.held_consumable_option_policy import HeldConsumableOptionEvaluator
 from games.balatro.shop_expectation_runtime_bound_policy import (
     install_shop_expectation_runtime_bounds,
 )
@@ -25,13 +27,14 @@ def _state():
     )
 
 
-def test_unopened_arcana_keeps_nested_generated_resource_probability_as_zero():
+def test_unopened_arcana_omits_every_base_stochastic_or_deferred_tarot():
     install_shop_expectation_runtime_bounds()
     policy = _CountingPackPolicy()
     evaluator = ArcanaBoosterExpectationEvaluator(pack_policy=policy)
     state = _state()
 
-    for name in ("The Emperor", "The High Priestess", "Judgement"):
+    assert runtime_bounds._D8_OMITTED_TAROTS
+    for name in sorted(runtime_bounds._D8_OMITTED_TAROTS):
         assert evaluator._visible_value(
             state,
             {"label": name, "ability_name": name, "ability_set": "TAROT"},
@@ -47,14 +50,14 @@ def test_unopened_arcana_keeps_nested_generated_resource_probability_as_zero():
     assert policy.calls == 1
 
 
-def test_unopened_spectral_omits_all_deferred_d9_outcomes():
+def test_unopened_spectral_omits_every_base_stochastic_or_deferred_outcome():
     install_shop_expectation_runtime_bounds()
     policy = _CountingPackPolicy()
     evaluator = SpectralBoosterExpectationEvaluator(pack_policy=policy)
     state = _state()
 
-    omitted = set(BalatroPackPolicy.DEFERRED_SPECTRALS) | {"The Soul"}
-    for name in sorted(omitted):
+    assert runtime_bounds._D8_OMITTED_SPECTRALS
+    for name in sorted(runtime_bounds._D8_OMITTED_SPECTRALS):
         assert evaluator._visible_value(
             state,
             {"label": name, "ability_name": name, "ability_set": "SPECTRAL"},
@@ -68,6 +71,20 @@ def test_unopened_spectral_omits_all_deferred_d9_outcomes():
     )
     assert ordinary == 2.0
     assert policy.calls == 1
+
+
+def test_held_shop_option_omits_second_layer_stochastic_expectation():
+    install_shop_expectation_runtime_bounds()
+    evaluator = HeldConsumableOptionEvaluator()
+    name = sorted(runtime_bounds._D8_OMITTED_SPECTRALS)[0]
+    candidate = SimpleNamespace(category="SPECTRAL", name=name)
+
+    result = evaluator.evaluate(_state(), candidate)
+
+    assert result.complete is True
+    assert result.expected_gain == 0.0
+    assert result.exact is False
+    assert any("second-layer" in note for note in result.rationale)
 
 
 def test_same_state_arcana_expectation_is_memoized_for_duplicate_shop_packs():
@@ -97,6 +114,15 @@ def test_same_state_arcana_expectation_is_memoized_for_duplicate_shop_packs():
 
     assert second is first
     assert policy.calls == calls_after_first
+
+
+def test_shop_future_hand_models_share_small_deterministic_branch_budget():
+    install_shop_expectation_runtime_bounds()
+
+    assert HeldConsumableOptionEvaluator.EXACT_COMBINATION_LIMIT == 16
+    assert HeldConsumableOptionEvaluator.SAMPLE_COUNT == 8
+    assert HandSizeOpportunityEvaluator.EXACT_COMBINATION_LIMIT == 16
+    assert HandSizeOpportunityEvaluator.SAMPLE_COUNT == 8
 
 
 def test_large_public_joker_expectation_runtime_budget_is_twelve_full_d2_calls():
