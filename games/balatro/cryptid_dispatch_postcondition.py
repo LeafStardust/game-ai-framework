@@ -4,8 +4,9 @@ from __future__ import annotations
 
 The generic targeted-consumable verifier expects the selected card itself to change.
 Cryptid instead leaves that source untouched and adds two exact copies to the owned
-playing-card collection.  Verify that semantic transition directly so injected pack
+playing-card collection. Verify that semantic transition directly so injected pack
 execution remains fail-closed rather than accepting a click with no checked result.
+The identity includes public permanent chip bonuses because Cryptid copies those too.
 """
 
 from dataclasses import dataclass
@@ -14,10 +15,30 @@ from games.balatro.live.injected import action_dispatcher
 from games.balatro.live.injected import consumable_target_postcondition as postconditions
 
 
+CryptidCardSignature = tuple[str, str, str | None, str | None, str | None, int]
+
+
+def _model_signature(card) -> CryptidCardSignature:
+    return (
+        *postconditions._model_card_signature(card),
+        int(getattr(card, "permanent_bonus", 0) or 0),
+    )
+
+
+def _snapshot_signature(record: dict) -> CryptidCardSignature | None:
+    signature = postconditions._snapshot_card_signature(record)
+    if signature is None:
+        return None
+    permanent_bonus = record.get("permanent_bonus", 0)
+    if isinstance(permanent_bonus, bool) or not isinstance(permanent_bonus, (int, float)):
+        return None
+    return (*signature, int(permanent_bonus))
+
+
 @dataclass(frozen=True)
 class CryptidCopyPostcondition:
     source_live_id: int | str
-    signature: postconditions.CardSignature
+    signature: CryptidCardSignature
     minimum_owned_count: int
 
     @property
@@ -29,7 +50,7 @@ class CryptidCopyPostcondition:
         count = sum(
             1
             for record in records
-            if postconditions._snapshot_card_signature(record) == self.signature
+            if _snapshot_signature(record) == self.signature
         )
         return count >= self.minimum_owned_count
 
@@ -54,11 +75,11 @@ def _cryptid_postcondition(state, consumable, target_indices):
             "modeled Cryptid verification requires authoritative public owned_deck"
         )
 
-    signature = postconditions._model_card_signature(source)
+    signature = _model_signature(source)
     before_count = sum(
         1
         for card in owned
-        if postconditions._model_card_signature(card) == signature
+        if _model_signature(card) == signature
     )
     return CryptidCopyPostcondition(
         source_live_id=live_id,
