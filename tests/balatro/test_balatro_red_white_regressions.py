@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 from games.balatro.actions import DISCARD_CARDS, SKIP_BOOSTER, BalatroAction
 from games.balatro.build.high_priestess_expectation import HighPriestessExpectationEvaluator
+from games.balatro.hand import PokerHand
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.planets import create_planet
 from games.balatro.playbook.red_white.pack_policy import PlaybookBalatroPackPolicy
@@ -144,7 +145,7 @@ def test_multi_card_redraw_gets_one_discard_resource_efficiency_bonus():
     context = SimpleNamespace(
         required_per_hand=100.0,
         best_play_score=0.0,
-        best_play_hand=SimpleNamespace(),
+        best_play_hand=PokerHand.HIGH_CARD,
     )
 
     singleton = BalatroAction(DISCARD_CARDS, cards=[object()])
