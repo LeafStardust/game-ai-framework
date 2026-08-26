@@ -235,12 +235,21 @@ class BuildAwareLiveHandActionPolicy(LiveHandActionPolicy):
 
     def _within_type_key(self, plan):
         base = super()._within_type_key(plan)
-        return (base[0], base[1], self._preservation(plan), *base[2:])
+        # Base authority: clear probability, exactness, progress, hands, discards,
+        # score. Held-resource preservation is a secondary choice only after all
+        # full-blind survival/progress/resource dimensions have tied.
+        return (*base[:-1], self._preservation(plan), base[-1])
 
     def _safe_equivalent_clear_key(self, plan):
         base = super()._safe_equivalent_clear_key(plan)
-        return (base[0], base[1], self._preservation(plan), *base[2:])
+        # Exactness, remaining hands/discards, clear probability and progress all
+        # remain above held-resource preservation. Preserve cards only before the
+        # final overkill/expected-score tie-break.
+        return (*base[:-1], self._preservation(plan), base[-1])
 
     def _pace_play_key(self, plan, pace_ratio: float):
         base = super()._pace_play_key(plan, pace_ratio)
-        return (base[0], base[1], self._preservation(plan), *base[2:])
+        # Pace-qualified candidates still compare full-blind survival/progress and
+        # remaining round resources first. Preservation may break only the final
+        # local pace-closeness tie.
+        return (*base[:-1], self._preservation(plan), base[-1])
