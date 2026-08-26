@@ -4,12 +4,12 @@ from __future__ import annotations
 
 D4 historically carries B4 structural/build-path units in ``selected.build_gain``.
 Those units are useful for child admission but are not directly comparable with D2
-literal build gain, D8 option EV, vouchers, or D11 rerolls at D14.  This policy keeps
+literal build gain, D8 option EV, vouchers, or D11 rerolls at D14. This policy keeps
 D4 admission authoritative, then replaces the D14 value of a held Tarot/Spectral
 BUY with the expected value of actually using that consumable on a representative
 fresh public hand.
 
-Future hands come only from the unordered authoritative permanent deck.  Small
+Future hands come only from the unordered authoritative permanent deck. Small
 spaces are exact and larger spaces use the same deterministic public-composition
 sampling contract as D1; Balatro RNG state and future draw order are never read.
 Each branch is scored by the fully installed opened-pack D9 mechanics with Skip=0,
@@ -17,11 +17,13 @@ so deterministic targets, Wheel, Aura/Sigil/Hex/Ankh, Soul, Wraith, Cryptid,
 generated-card Spectrals, Ouija and Ectoplasm inherit their existing mechanical
 expectation authorities rather than a generic Tarot/Spectral constant.
 
-Held generation cards whose effect depends on consumable-area timing are excluded
-here because direct pack selection does not reproduce their held-slot semantics.
-They fail closed to zero D14 option value until a dedicated held-use transition is
-modeled; B4 may still inform D4 child admission but cannot leak into cross-family
-arbitration.
+Generation Tarots are valid through the same reuse. D14 evaluates a BUY from the
+pre-purchase state; when that held Tarot is eventually used, the card itself is
+consumed and releases the slot it occupied before High Priestess/Emperor generation
+resolves. The pre-purchase consumable occupancy is therefore the correct post-use
+occupancy for those generated-card expectations. Judgement generates a Joker and
+has no consumable-capacity interaction. Emperor's generated-Fool last-Tarot state is
+already handled by its installed D9 evaluator.
 """
 
 from copy import deepcopy
@@ -49,17 +51,6 @@ class HeldConsumableOptionEvaluator:
     EXACT_COMBINATION_LIMIT = 128
     SAMPLE_COUNT = 24
 
-    # These cards create other consumables. Their held-use free-slot semantics are
-    # not identical to choosing the same card directly from an opened pack, so the
-    # generic D9 reuse below deliberately refuses them.
-    HELD_SLOT_SENSITIVE = frozenset(
-        {
-            "The High Priestess",
-            "The Emperor",
-            "Judgement",
-        }
-    )
-
     def __init__(
         self,
         *,
@@ -78,16 +69,6 @@ class HeldConsumableOptionEvaluator:
         name = str(getattr(candidate, "name", "") or "")
         if category not in {"TAROT", "SPECTRAL"}:
             return self._incomplete("held option evaluator only owns Tarot/Spectral BUY value")
-        if name in self.HELD_SLOT_SENSITIVE:
-            return HeldConsumableOptionExpectation(
-                complete=True,
-                expected_gain=0.0,
-                exact=True,
-                rationale=(
-                    f"{name} held-use generation depends on consumable-area timing; D14 fails closed",
-                    "B4 structural utility is not substituted for run-winning option value",
-                ),
-            )
 
         owned = getattr(state, "owned_deck", None)
         if owned is None or not list(owned):
@@ -143,6 +124,11 @@ class HeldConsumableOptionEvaluator:
             branch_gain = max(0.0, float(scored.total))
             expected += float(outcome.probability) * branch_gain
 
+        generation_note = (
+            "generation Tarot is valued from pre-purchase occupancy, which equals post-consumption occupancy when the held card releases its slot"
+            if name in {"The High Priestess", "The Emperor"}
+            else ""
+        )
         return HeldConsumableOptionExpectation(
             complete=True,
             expected_gain=float(expected),
@@ -152,6 +138,7 @@ class HeldConsumableOptionEvaluator:
                 f"future hand size={draws}",
                 f"expected positive-use value={expected:.3f}",
                 f"future draw distribution={'exact' if distribution.exact else 'deterministic sampled'}",
+                *((generation_note,) if generation_note else ()),
                 "unusable/negative D9 branches contribute the true no-use baseline 0",
                 "Balatro RNG state and future draw order are not observed",
             ),
