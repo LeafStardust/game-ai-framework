@@ -6,8 +6,8 @@ This layer is intentionally small and semantic. It does not predict hidden shop
 contents or draw order. It corrects public-state mistakes observed in live
 Red/White runs:
 
-* an empty early scoring engine could reject an affordable direct-scoring Joker
-  because reserve economics outweighed the first foothold;
+* an empty early scoring engine could reject an affordable, mechanically positive
+  Joker because reserve economics outweighed the first foothold;
 * Paint Brush/Palette could bypass early survival readiness with zero Jokers;
 * conditional scoring mechanics discoverable from public rules could be omitted
   from representative shop score projection when their activation context was not
@@ -70,24 +70,6 @@ def _ante(state) -> int:
     return 0
 
 
-def _direct_scoring_candidate(candidate: object) -> bool:
-    """Use canonical behavior semantics, not Joker-name allowlists."""
-    try:
-        descriptor = _SCENARIO_ANALYZER.describe(candidate)
-    except (AttributeError, TypeError, ValueError):
-        return False
-    if descriptor is None:
-        return False
-    outputs = {
-        str(value).lower().replace("_", "")
-        for value in set(descriptor.produces) | set(descriptor.transforms)
-    }
-    return any(
-        any(marker in output for marker in ("chips", "mult", "xmult", "score"))
-        for output in outputs
-    )
-
-
 def _has_invested_hand(source) -> bool:
     levels = getattr(source, "hand_levels", {}) or {}
     if isinstance(levels, dict):
@@ -123,13 +105,9 @@ def install_red_white_competence_corrections() -> None:
         except (AttributeError, TypeError, ValueError):
             return base_gain
 
-        # The scenario analyzer already proves when scoring is gated by repeating a
-        # hand. B3's neutral score probes previously ignored that public mechanical
-        # condition entirely, making mechanics such as Card Sharp look inert in the
-        # shop. Evaluate the same literal scorer in both representative states:
-        # before the condition and after one same-type hand has been played. This is
-        # not a Joker-name bonus and does not fabricate chips/Mult/XMult; it exposes
-        # the real modeled effect under its reachable execution context.
+        # The scenario analyzer proves when scoring is gated by repeating a hand.
+        # Evaluate the same literal scorer in inactive and reachable active states;
+        # no semantic category is converted into chips/Mult/XMult.
         if REPEATED_HAND_SCENARIO not in set(getattr(descriptor, "requires", ()) or ()):
             return base_gain
 
@@ -139,10 +117,6 @@ def install_red_white_competence_corrections() -> None:
             counts[poker_hand.value] = max(1, int(counts.get(poker_hand.value, 0) or 0))
         repeated_state.round_hand_play_counts = counts
         repeated_gain = float(original_direct_scoring_gain(self, repeated_state, joker))
-
-        # Representative B3 probes are deliberately equal-weight samples rather
-        # than draw probabilities. Preserve that contract by giving the inactive
-        # and mechanically active contexts equal representation.
         return (base_gain + repeated_gain) / 2.0
 
     def joker_decide(self, state, candidate):
@@ -154,13 +128,15 @@ def install_red_white_competence_corrections() -> None:
             return decision
         if tuple(getattr(state, "jokers", ()) or ()):
             return decision
-        if not _direct_scoring_candidate(candidate):
-            return decision
 
+        # Early survival may relax reserve preference, but only for a Joker whose
+        # existing D2 option already has positive mechanically grounded build gain.
+        # Semantic labels such as "produces chips" are not sufficient admission.
         affordable = [
             option
             for option in tuple(getattr(decision, "options", ()) or ())
             if getattr(option, "mode", None) == BUY
+            and float(getattr(option, "build_gain", 0.0) or 0.0) > 0.0
             and int(getattr(getattr(option, "economics", None), "money_after", -1))
             >= FIRST_ENGINE_MINIMUM_CASH_AFTER
         ]
@@ -186,9 +162,10 @@ def install_red_white_competence_corrections() -> None:
             options=options,
             rationale=(
                 *tuple(getattr(decision, "rationale", ()) or ()),
-                "early first-engine bootstrap: affordable direct-scoring Joker outranks reserve-only HOLD",
-                "zero-current-gain scaler admitted because an empty roster has no scoring foothold",
+                "early first-engine bootstrap: positive literal/contextual D2 build gain can outrank reserve-only HOLD",
+                f"mechanically grounded build gain={selected.build_gain:.3f}",
                 f"first-engine money after=${selected.economics.money_after}",
+                "category-only scoring labels cannot force admission",
                 "hidden future shop contents are not predicted",
             ),
         )
@@ -317,9 +294,6 @@ def install_red_white_competence_corrections() -> None:
         return value + efficiency
 
     def discard_priority(self, state, action):
-        # D1 owns discard desirability. The live expectimax beam must not maintain a
-        # second partial scoring system that can prune away the very candidates D1
-        # prefers. Card count is only a deterministic tie-break after equal D1 value.
         return float(self.evaluator.evaluate(state, action)), len(action.cards)
 
     JokerBuildValueEvaluator._direct_scoring_gain = direct_scoring_gain
