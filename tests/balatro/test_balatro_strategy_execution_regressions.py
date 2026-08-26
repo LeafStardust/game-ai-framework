@@ -43,10 +43,14 @@ def test_realized_no_discard_prefers_pace_qualified_play_over_discard(monkeypatc
         _strategy_fit=lambda _state, _action: (1.0,),
         _within_type_key=lambda _plan: (0,),
     )
-    decision = SimpleNamespace(pace_target=100.0)
+    decision = SimpleNamespace(
+        selected_plan=play,
+        thresholds=SimpleNamespace(safe_clear_probability_tolerance=0.01),
+        pace_target=100.0,
+    )
     selected = no_discard._safe_pace_play(policy, SimpleNamespace(), (play,), decision)
     assert selected is not None
-    assert selected[1] is play
+    assert selected[2] is play
 
 
 def test_hand_repetition_selects_safe_repeat_instead_of_new_hand(monkeypatch):
@@ -59,7 +63,7 @@ def test_hand_repetition_selects_safe_repeat_instead_of_new_hand(monkeypatch):
         action=SimpleNamespace(name=PLAY_CARDS, cards=(SimpleNamespace(rank="5"),)),
         value=SimpleNamespace(clear_probability=0.91),
     )
-    monkeypatch.setattr(no_discard, "_hand_key", lambda _policy, plan: "pair" if plan is repeat else "straight")
+    monkeypatch.setattr(no_discard, "_hand_key", lambda _policy, _state, plan: "pair" if plan is repeat else "straight")
     state = SimpleNamespace(round_hand_play_counts={"PAIR": 1})
     policy = SimpleNamespace(
         EPSILON=1e-9,
@@ -88,7 +92,7 @@ def test_hand_repetition_can_replace_unnecessary_discard(monkeypatch):
         action=SimpleNamespace(name=DISCARD_CARDS, cards=(SimpleNamespace(rank="K"),)),
         value=SimpleNamespace(clear_probability=0.91),
     )
-    monkeypatch.setattr(no_discard, "_hand_key", lambda _policy, _plan: "pair")
+    monkeypatch.setattr(no_discard, "_hand_key", lambda _policy, _state, _plan: "pair")
     state = SimpleNamespace(round_hand_play_counts={"PAIR": 1})
     policy = SimpleNamespace(
         EPSILON=1e-9,
@@ -138,7 +142,11 @@ def test_dna_safe_copy_prefers_required_rank():
         action=SimpleNamespace(name=PLAY_CARDS, cards=(SimpleNamespace(rank="K", edition=None, seal=None, enhancement=None, permanent_bonus=0),)),
         value=SimpleNamespace(clear_probability=0.99, expected_score=150.0, expected_hands_remaining=3.0),
     )
-    assert _safe_dna_rank_plan((irrelevant, required), ("4", "10")) is required
+    decision = SimpleNamespace(
+        selected_plan=irrelevant,
+        thresholds=SimpleNamespace(safe_clear_probability_tolerance=0.05),
+    )
+    assert _safe_dna_rank_plan((irrelevant, required), ("4", "10"), decision) is required
 
 
 def test_realized_incumbent_bond_protection_is_not_limited_to_top_power_engine():
