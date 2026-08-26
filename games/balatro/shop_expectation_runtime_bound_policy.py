@@ -34,10 +34,6 @@ from games.balatro.standard_booster_expectation_policy import StandardBoosterExp
 import games.balatro.reroll_joker_expectation_policy as reroll_joker_expectation_policy
 
 
-# Capture the base D9 semantic classification before later opened-pack installers
-# promote individually modeled effects out of the deferred buckets. D8/D14 future
-# option value still must not recursively solve those stochastic models merely
-# because actual opened D9 knows how to solve them.
 _D8_OMITTED_TAROTS = frozenset(
     str(name).strip().upper()
     for name in (
@@ -53,10 +49,6 @@ _D8_OMITTED_SPECTRALS = frozenset(
     )
 )
 
-# SHOP-side future-hand models are nested option valuation, not real D1 search.
-# Their branch work itself enumerates D9/legal plays, so keep the outer distribution
-# deliberately small and deterministic. Small spaces remain exact up to 16 hands;
-# larger spaces use eight public-composition samples.
 _SHOP_FUTURE_HAND_EXACT_LIMIT = 16
 _SHOP_FUTURE_HAND_SAMPLE_COUNT = 8
 
@@ -71,7 +63,6 @@ def _record_name(record: dict) -> str:
 
 
 def _memoize_same_state_evaluate(cls) -> None:
-    """Reuse a family expectation when D14 scores duplicate packs in one state."""
     if getattr(cls, "_rw_same_state_expectation_memo_installed", False):
         return
     original_evaluate = cls.evaluate
@@ -81,8 +72,6 @@ def _memoize_same_state_evaluate(cls) -> None:
         if cached_state is state:
             return getattr(self, "_rw_cached_expectation_result")
         result = original_evaluate(self, state)
-        # Retaining the state reference prevents Python id reuse and naturally
-        # invalidates the cache on the next translated BalatroState object.
         self._rw_cached_expectation_state = state
         self._rw_cached_expectation_result = result
         return result
@@ -91,15 +80,25 @@ def _memoize_same_state_evaluate(cls) -> None:
     cls._rw_same_state_expectation_memo_installed = True
 
 
+def _install_late_live_guards() -> None:
+    # Import only when this late production/runtime installer is executed. Keeping
+    # the competence guard out of package-level import surfaces avoids the partially
+    # initialized games.balatro collection failure repaired in the same branch.
+    from games.balatro.live_competence_guard_policy import (
+        install_live_competence_guard_policy,
+    )
+
+    install_shop_runtime_contract_policy()
+    install_live_competence_guard_policy()
+
+
 def install_shop_expectation_runtime_bounds() -> None:
     if getattr(
         ArcanaBoosterExpectationEvaluator,
         "_rw_one_step_expectation_installed",
         False,
     ):
-        # The structural Build Health/bundle boundary is independently idempotent;
-        # make sure it is present even if another caller installed D8 bounds first.
-        install_shop_runtime_contract_policy()
+        _install_late_live_guards()
         return
 
     original_arcana_visible_value = ArcanaBoosterExpectationEvaluator._visible_value
@@ -115,8 +114,6 @@ def install_shop_expectation_runtime_bounds() -> None:
             else name in _D8_OMITTED_TAROTS
         )
         if omitted:
-            # Keep this outcome's real probability mass in the outer mean but do
-            # not recursively solve a stochastic/deferred D9 expectation.
             return 0.0
         return float(original_arcana_visible_value(self, state, record))
 
@@ -150,9 +147,6 @@ def install_shop_expectation_runtime_bounds() -> None:
     SpectralBoosterExpectationEvaluator._visible_value = spectral_visible_value
     HeldConsumableOptionEvaluator.evaluate = held_evaluate
 
-    # D14 may expose two packs from the same family. Their unopened one-offer
-    # expectation depends on the shared current state, not the individual pack
-    # identity or price, so compute it once per translated state object.
     for evaluator_cls in (
         ArcanaBoosterExpectationEvaluator,
         SpectralBoosterExpectationEvaluator,
@@ -160,21 +154,15 @@ def install_shop_expectation_runtime_bounds() -> None:
     ):
         _memoize_same_state_evaluate(evaluator_cls)
 
-    # Future-hand branch work can itself enumerate every legal play. Cap only the
-    # SHOP-side hypothetical distributions; real D1 draw/search budgets are untouched.
     HeldConsumableOptionEvaluator.EXACT_COMBINATION_LIMIT = _SHOP_FUTURE_HAND_EXACT_LIMIT
     HeldConsumableOptionEvaluator.SAMPLE_COUNT = _SHOP_FUTURE_HAND_SAMPLE_COUNT
     HandSizeOpportunityEvaluator.EXACT_COMBINATION_LIMIT = _SHOP_FUTURE_HAND_EXACT_LIMIT
     HandSizeOpportunityEvaluator.SAMPLE_COUNT = _SHOP_FUTURE_HAND_SAMPLE_COUNT
 
-    # A large public Joker catalogue is fully preflighted for model completeness,
-    # but expensive fully wrapped D2 scoring remains one record per rarity and at
-    # most twelve calls. Internal Build Health projections no longer recurse into D1,
-    # so these calls are now much cheaper without weakening their D2/D14 authority.
     reroll_joker_expectation_policy._MAX_RECORDS_PER_RARITY = 1
     reroll_joker_expectation_policy._MAX_D2_EVALUATIONS = 12
 
-    install_shop_runtime_contract_policy()
+    _install_late_live_guards()
 
     ArcanaBoosterExpectationEvaluator._rw_one_step_expectation_installed = True
     SpectralBoosterExpectationEvaluator._rw_one_step_expectation_installed = True
