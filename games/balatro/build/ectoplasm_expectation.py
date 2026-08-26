@@ -18,7 +18,6 @@ from dataclasses import dataclass
 from games.balatro.build.hand_size_opportunity import HandSizeOpportunityEvaluator
 from games.balatro.joker_edition import joker_edition_name
 from games.balatro.reroll_joker_expectation_policy import RerollJokerExpectationEvaluator
-from games.balatro.shop_policy import BalatroShopPolicy
 
 
 @dataclass(frozen=True)
@@ -43,9 +42,21 @@ class EctoplasmExpectationEvaluator:
         future_joker: RerollJokerExpectationEvaluator | None = None,
     ) -> None:
         self.hand_size = hand_size or HandSizeOpportunityEvaluator()
-        self.future_joker = future_joker or RerollJokerExpectationEvaluator(
-            shop_policy=BalatroShopPolicy(),
-        )
+        # Do not construct a BalatroShopPolicy here. This evaluator is itself
+        # installed underneath pack/shop policy constructors, and eagerly creating
+        # another shop policy recursively rebuilds the entire D14/pack expectation
+        # graph. Build the default future-Joker authority only when Ectoplasm is
+        # actually evaluated, after the outer policy graph has finished wiring.
+        self.future_joker = future_joker
+
+    def _future_joker_evaluator(self) -> RerollJokerExpectationEvaluator:
+        if self.future_joker is None:
+            from games.balatro.shop_policy import BalatroShopPolicy
+
+            self.future_joker = RerollJokerExpectationEvaluator(
+                shop_policy=BalatroShopPolicy(),
+            )
+        return self.future_joker
 
     @staticmethod
     def _eligible_jokers(state) -> tuple[object, ...]:
@@ -86,15 +97,16 @@ class EctoplasmExpectationEvaluator:
                 ),
             )
 
+        future_joker = self._future_joker_evaluator()
         money = max(0, int(getattr(state, "money", 0) or 0))
-        current = self.future_joker.evaluate(
+        current = future_joker.evaluate(
             state,
             money=money,
             expected_price=self.EXPECTED_FUTURE_JOKER_PRICE,
         )
         expanded = state.copy()
         expanded.joker_slots = int(getattr(state, "joker_slots", 0) or 0) + 1
-        with_slot = self.future_joker.evaluate(
+        with_slot = future_joker.evaluate(
             expanded,
             money=money,
             expected_price=self.EXPECTED_FUTURE_JOKER_PRICE,
