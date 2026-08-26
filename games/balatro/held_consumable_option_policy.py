@@ -13,9 +13,9 @@ Future hands come only from the unordered authoritative permanent deck.  Small
 spaces are exact and larger spaces use the same deterministic public-composition
 sampling contract as D1; Balatro RNG state and future draw order are never read.
 Each branch is scored by the fully installed opened-pack D9 mechanics with Skip=0,
-so deterministic targets, Wheel, Aura/Sigil/Hex/Ankh, Soul, Judgement, Wraith,
-Cryptid, generated-card Spectrals, Ouija and Ectoplasm inherit their existing
-mechanical expectation authorities rather than a generic Tarot/Spectral constant.
+so deterministic targets, Wheel, Aura/Sigil/Hex/Ankh, Soul, Wraith, Cryptid,
+generated-card Spectrals, Ouija and Ectoplasm inherit their existing mechanical
+expectation authorities rather than a generic Tarot/Spectral constant.
 
 Held generation cards whose effect depends on consumable-area timing are excluded
 here because direct pack selection does not reproduce their held-slot semantics.
@@ -49,7 +49,7 @@ class HeldConsumableOptionEvaluator:
     EXACT_COMBINATION_LIMIT = 128
     SAMPLE_COUNT = 24
 
-    # These cards create other consumables.  Their held-use free-slot semantics are
+    # These cards create other consumables. Their held-use free-slot semantics are
     # not identical to choosing the same card directly from an opened pack, so the
     # generic D9 reuse below deliberately refuses them.
     HELD_SLOT_SENSITIVE = frozenset(
@@ -115,7 +115,7 @@ class HeldConsumableOptionEvaluator:
         for outcome in distribution.outcomes:
             projected = deepcopy(state)
             self._neutralize_transient_round(projected)
-            projected.phase = f"{category}_PACK"
+            projected.phase = "ARCANA_PACK" if category == "TAROT" else "SPECTRAL_PACK"
             projected.score = 0
             projected.hand = [
                 self.draw_outcomes.card_from_signature(signature)
@@ -138,7 +138,7 @@ class HeldConsumableOptionEvaluator:
                 return self._incomplete(
                     f"future held {name} D9 valuation failed: {type(exc).__name__}: {exc}"
                 )
-            # Opened-pack Skip is sunk-cost zero.  Negative/unsupported branches are
+            # Opened-pack Skip is sunk-cost zero. Negative/unsupported branches are
             # therefore the honest no-use option for a held consumable as well.
             branch_gain = max(0.0, float(scored.total))
             expected += float(outcome.probability) * branch_gain
