@@ -9,8 +9,8 @@ held engine cards even when another play was essentially score-equivalent.
 
 This layer does not weaken survival. It first identifies the best immediate score
 among already pace-qualified plays, then admits strategy tie-breaking only inside a
-narrow 98% score-equivalence band. A materially stronger scoring line remains
-mandatory.
+narrow 98% score-equivalence band and D1's existing clear-probability tolerance. A
+materially stronger scoring or safer full-blind line remains mandatory.
 """
 
 from dataclasses import replace
@@ -99,6 +99,25 @@ def install_pinned_strategy_safe_pace_policy() -> None:
             plays,
             projected_scores=scores,
         )
+        selected_plan = getattr(decision, "selected_plan", None)
+        if selected_plan is None:
+            return decision
+        selected_probability = float(
+            getattr(getattr(selected_plan, "value", None), "clear_probability", 0.0)
+            or 0.0
+        )
+        tolerance = float(
+            getattr(getattr(decision, "thresholds", None), "safe_clear_probability_tolerance", 0.0)
+            or 0.0
+        )
+        equivalent = tuple(
+            plan
+            for plan in equivalent
+            if float(getattr(getattr(plan, "value", None), "clear_probability", 0.0) or 0.0)
+            + tolerance
+            + self.EPSILON
+            >= selected_probability
+        )
         if len(equivalent) < 2:
             return decision
         selected = select_strategy_safe_pace_plan(self, state, equivalent, scores)
@@ -106,6 +125,10 @@ def install_pinned_strategy_safe_pace_policy() -> None:
             return decision
         selected_score = scores[id(selected)]
         selected_ratio = self._pace_ratio(selected_score, decision.pace_target)
+        selected_clear = float(
+            getattr(getattr(selected, "value", None), "clear_probability", 0.0)
+            or 0.0
+        )
         best_score = max(scores[id(plan)] for plan in plays)
         return replace(
             decision,
@@ -117,7 +140,8 @@ def install_pinned_strategy_safe_pace_policy() -> None:
             rationale=(
                 *decision.rationale,
                 f"strategy-aware safe-equivalent pace band: selected score={selected_score:.3f}, best={best_score:.3f}, floor={PACE_STRATEGY_EQUIVALENCE_RATIO:.3f}x best",
-                "pinned strategy may break only near-equivalent pace ties; materially stronger scoring remains authoritative",
+                f"strategy line clear probability={selected_clear:.3f}; baseline={selected_probability:.3f}; tolerance={tolerance:.3f}",
+                "pinned strategy may break only score- and survival-equivalent pace ties; materially stronger scoring or safer lines remain authoritative",
             ),
         )
 
