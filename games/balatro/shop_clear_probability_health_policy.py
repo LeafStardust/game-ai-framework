@@ -12,6 +12,12 @@ The adapter is deliberately production-only: custom/injected Build Health scorer
 retain the generic capacity estimator used by deterministic unit tests and offline
 callers. If the bounded planner cannot complete, the generic estimator remains the
 fail-safe rather than blocking SHOP decisions.
+
+Only the real current SHOP may launch this bounded D1 projection. Internal
+candidate/replacement states created while D2/D14 is comparing hypothetical Joker
+transitions carry ``_rw_internal_build_health_projection`` and retain the generic
+Build Health estimate. This prevents D1 expectimax from multiplying underneath
+D2/D14 while preserving one real-state survival assessment.
 """
 
 from copy import deepcopy
@@ -208,6 +214,10 @@ def install_shop_clear_probability_health_policy() -> None:
     def _survival_and_immediate(self, state):
         survival, immediate = original(self, state)
         if str(getattr(state, "phase", "")).upper() != "SHOP":
+            return survival, immediate
+        if bool(getattr(state, "_rw_internal_build_health_projection", False)):
+            # D2/D14 candidate and replacement projections are already hypothetical.
+            # Never nest bounded D1 expectimax beneath that hypothetical branch.
             return survival, immediate
         if type(getattr(self, "scorer", None)) is not BalatroScorer:
             # Explicit custom scorers are offline/test contracts, not production D1.
