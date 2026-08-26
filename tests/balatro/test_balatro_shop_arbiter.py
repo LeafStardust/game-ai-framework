@@ -194,7 +194,10 @@ def test_whole_shop_arbiter_holds_unrecognized_booster_when_reroll_is_unknown():
 
 
 def test_strong_deterministic_purchase_beats_unrecognized_booster():
-    state = _state()
+    # Antimatter's D14 parent value is the marginal value of the extra Joker slot
+    # through the public eligible Joker catalogue. Supply that public catalogue so
+    # this test exercises an actually admitted positive deterministic purchase.
+    state = _with_public_joker_pool(_state())
     voucher_target = LiveShopItem(
         kind="VOUCHER",
         label="Antimatter",
