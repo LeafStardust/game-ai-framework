@@ -80,14 +80,16 @@ Bond/composition and Build Health remain evidence. They must not become independ
 
 **Goal:** know exactly which component has final authority for each action family.
 
-- [ ] Freeze new gameplay features.
-- [ ] Inventory every production component capable of changing a D1 action.
-- [ ] Inventory every production component capable of changing D2/D14 shop decisions.
-- [ ] Classify each as legality/mechanics, projection, evaluator, strategy evidence, final arbitration, or diagnostics only.
-- [ ] Remove or merge late rescue/correction policies when their logic belongs inside the canonical evaluator/arbiter.
-- [ ] Ensure diagnostics/monitoring cannot launch independent planning that affects runtime or action selection.
+Canonical inventory: [`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md`](docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md).
 
-**Exit gate:** one documented final authority exists for each action family.
+- [x] Freeze new gameplay features.
+- [x] Inventory production components currently capable of changing a D1 action and identify `LiveBlindClearPlanner` as the intended final strategic authority.
+- [x] Inventory production components currently capable of changing D2/D14 shop decisions and identify `BuildAwareShopArbiter` as the intended cross-family final authority.
+- [ ] Complete per-wrapper M/P/E/S/A/G/D classification for every installed D1 and shop wrapper.
+- [ ] Remove or merge late rescue/correction policies when their logic belongs inside the canonical evaluator/arbiter.
+- [ ] Verify all diagnostics/monitoring paths are D-only and cannot launch independent planning that affects runtime or action selection.
+
+**Exit gate:** one documented and enforced final authority exists for each action family, with late semantic rescue layers consolidated.
 
 ---
 
@@ -96,6 +98,15 @@ Bond/composition and Build Health remain evidence. They must not become independ
 **Goal:** create a stable progress meter instead of judging progress from random runs.
 
 Build a checked-in benchmark of roughly **50–100 captured or reconstructed public checkpoints**. Each case should test a behavioral property rather than a fragile exact action unless exactness is mechanically required.
+
+Implementation:
+
+- [x] Add reusable property-based benchmark framework with overall and per-category scores.
+- [x] Add CLI runner: `python -m games.balatro.red_white_semantic_benchmark`.
+- [x] Add deterministic pytest gate for the semantic suite.
+- [x] Seed the benchmark with the first six reconstructed failure-class cases covering D1 recovery/authority, early scoring admission, conflict authority, early voucher survival, and reachable conditional scoring.
+- [ ] Expand the seed to roughly 50–100 cases using the existing live-run failure archive and important mechanical boundaries.
+- [ ] Ensure every known recent obvious stupid-play class has at least one semantic property case before its next architectural fix.
 
 ### Initial D1 cases
 
@@ -132,7 +143,7 @@ Build a checked-in benchmark of roughly **50–100 captured or reconstructed pub
 
 **Benchmark output:** overall pass count plus category scores.
 
-**Exit gate:** every known recent obvious stupid-play class has a regression/semantic case.
+**Exit gate:** every known recent obvious stupid-play class has a regression/semantic case and the benchmark is broad enough to detect cross-policy regressions before live testing.
 
 ---
 
