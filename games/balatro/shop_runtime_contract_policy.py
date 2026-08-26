@@ -14,14 +14,14 @@ authority.
 
 import games.balatro.build_health_policy as build_health_policy
 from games.balatro.build_health_runtime import projected_state_with_jokers
-from games.balatro.build_health_policy import PlaybookBuildHealthShopArbiter
+from games.balatro.shop_arbiter import BuildAwareShopArbiter
 
 
 _PROJECTION_FLAG = "_rw_internal_build_health_projection"
 
 
 def install_shop_runtime_contract_policy() -> None:
-    if getattr(PlaybookBuildHealthShopArbiter, "_rw_runtime_contract_installed", False):
+    if getattr(BuildAwareShopArbiter, "_rw_runtime_contract_installed", False):
         return
 
     def projected_health(state, jokers):
@@ -32,12 +32,12 @@ def install_shop_runtime_contract_policy() -> None:
         setattr(projected, _PROJECTION_FLAG, True)
         return build_health_policy._HEALTH.evaluate(projected)
 
-    def no_legacy_named_bundle(self, state, result):
-        del state
+    def no_legacy_named_bundle(state, result, arbiter):
+        del state, arbiter
         # The canonical Bond/composition and D14 decision is already complete.
         # Do not re-open arbitration with the retired hard-coded pair catalogue.
         return result
 
     build_health_policy._projected_health = projected_health
-    PlaybookBuildHealthShopArbiter._bundle_decision = no_legacy_named_bundle
-    PlaybookBuildHealthShopArbiter._rw_runtime_contract_installed = True
+    build_health_policy._bundle_decision = no_legacy_named_bundle
+    BuildAwareShopArbiter._rw_runtime_contract_installed = True
