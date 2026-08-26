@@ -50,6 +50,8 @@ Ordinary D2 evaluates one visible Joker against the current roster. That leaves 
 
 Only the first purchase is emitted. The agent then re-observes the settled shop and requires a fresh D2 `BUY` for the still-visible second component before completing the pair. A disappeared, unaffordable or no-longer-admitted second Joker cancels the commitment. No hidden future shop contents, RNG state or named Joker combination is used.
 
+The historical `short_horizon_shop_planner.py` remains in the repository for historical/offline compatibility, but its `BUILD_HEALTH_BUNDLE` production checkpoint is explicitly retired when the canonical Bond bundle policy installs. Build Health continues to provide its other health/reroll behavior; it can no longer inject hard-coded combinations such as Bull+Bootstraps, Baron+Mime, Photograph+Hanging Chad, or hand-type pairs into live D14. The Bond-derived planner is the sole production authority for visible multi-Joker combination assembly.
+
 ## Consumable authority — implementation repaired
 
 D4 may use B4 structural/build-path units for child admission, but those units no longer enter D14 directly.
