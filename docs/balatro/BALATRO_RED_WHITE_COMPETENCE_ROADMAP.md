@@ -181,6 +181,7 @@ Completed or validated in the current semantic/runtime pass:
 
 - synthetic chip/Mult/XMult coverage overrides were removed from the Red/White correction layer; literal modeled scoring remains the score authority;
 - stateful/contextual scoring paths used by shop valuation were repaired and covered by regressions, including repeated-hand activation for Card Sharp and current-state contribution/replacement behavior;
+- the shared literal scorer and D2 representative probe catalogue now include **Five of a Kind, Flush House, and Flush Five** with their exact base scores, so secret-hand runs no longer lose those hand types during shop current/candidate valuation;
 - the named contextual-Joker valuation audit is complete for **Joker Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm**: existing literal/live-state authorities were verified where correct, prospective Blueprint/Brainstorm now compare legal best Joker ordering instead of append-only placement, Bull/Bootstraps candidate scoring uses post-transaction cash, and Banner shop valuation uses the authoritative next-round discard allowance rather than the previous blind's leftovers;
 - Joker replacement implementation now compares a common literal incumbent/candidate baseline, post-transaction cash, economy, edition/slot effects, realized-engine retention, FORMING/PINNED strategy disruption, Negative retention, and exact selected shop-copy identity; replacement remains subject to the next local regression run before validation is claimed;
 - D14 replacement cash-scaling cost now excludes the sold incumbent, preventing Bull/Bootstraps from being charged as though they still existed after their actual replacement contribution had already been removed;
@@ -188,6 +189,7 @@ Completed or validated in the current semantic/runtime pass:
 - D11 future-shop Joker value now comes from the current public eligible Joker pools through D2/D14, including real replacement admission and public edition odds; only unseen future price remains an explicit prior;
 - D11 future-shop Planet value now averages the currently eligible Planet pool through D4/D14; future Tarot value fails closed instead of using the old synthetic `3.2` gross-utility prior until a real held-Tarot option model exists;
 - D8 Buffoon value now uses a conservative public eligible-Joker D2/D14 expectation instead of fixed hit/value priors, supports full-roster replacement through the existing sell/reobserve/select pack transaction, and scores prospective Joker outcomes at post-pack-spend cash;
+- D8 Celestial acquisition now enumerates the current eligible Planet pool, excludes held duplicates unless Showman permits them, computes best-visible one/two-selection expectation without reading hidden pack contents, and values each permanent Planet sequence through the same literal direct-scoring normalization used by D2; Constellation progression and secret hands are included, and child admission now retains Bull/Bootstraps cash-scaling spend cost instead of dropping it during the Celestial override;
 - D1 discard ranking was moved back under the canonical D1 evaluator/planner path instead of a competing mini-heuristic, with multi-card redraw behavior covered by deterministic tests;
 - **The Psychic** now scores legal 1–4 card burn/cycling plays as zero while preserving normal scoring for valid five-card plays;
 - **Purple Seal** discard value now survives planner search: a mechanically distinct Purple-Seal branch is preserved when a Tarot can actually be generated, and generated consumables are carried only as a late survival-equivalent expectimax tie-break;
@@ -230,7 +232,7 @@ Implemented in the current boss/consumable batch and awaiting deterministic suit
 Still open before a new live baseline:
 
 - finish the remaining pack/consumable opportunity-cost audit; current explicit blockers are **The Emperor**, **Ouija**, and **Ectoplasm** rather than synthetic valuation being invented for incomplete held-Tarot or hand-size models;
-- finish the remaining literal current/candidate score and D14 cross-family audit; replacement itself is implementation-complete, while D8 Celestial/Standard/Arcana/Spectral and held-Tarot units remain unresolved;
+- finish the remaining literal current/candidate score and D14 cross-family audit; replacement itself is implementation-complete, while D8 **Standard/Arcana/Spectral** and held-Tarot units remain unresolved;
 - finish any remaining D1 discard-trigger/hand-play contradiction audit after the current batch validates;
 - rerun the full Balatro suite after the remaining changes, then perform a fresh production-default three-run Red/White batch.
 
@@ -248,7 +250,7 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [x] Audit boss-specific execution against exact mechanics. Static production authority inventory is complete; newest Verdant/Crimson regressions remain pending the next local suite run.
 - [x] Bound the three-attempt supervisor so final attempt completion cannot issue a fourth restart; retire the historical post-`run_finished` crash unless reproduced on current unchanged HEAD.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through Hook/Burnt forced-discard semantics and bounded final-attempt shutdown; Verdant/Crimson, literal consumable-target value, Wraith/Judgement, post-transaction Joker valuation, Banner reset-resource valuation, D11 public-pool reroll EV, Buffoon public-pool EV, and subsequent pack corrections are pending the next suite run.
+- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through Hook/Burnt forced-discard semantics and bounded final-attempt shutdown; Verdant/Crimson, literal consumable-target value, Wraith/Judgement, post-transaction Joker valuation, Banner reset-resource valuation, D11 public-pool reroll EV, Buffoon/Celestial public-pool EV, secret-hand shop scoring, and subsequent pack corrections are pending the next suite run.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
