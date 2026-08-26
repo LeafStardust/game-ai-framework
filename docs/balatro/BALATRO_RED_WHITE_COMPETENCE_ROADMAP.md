@@ -191,7 +191,8 @@ Completed or validated in the current semantic/runtime pass:
 - **The Tooth** and **The Ox** apply their cash effects before Joker scoring so Bull/Bootstraps read the correct post-boss cash; regressions cover Tooth per-card cash loss, Ox target-hand reset, and Chicot bypass;
 - **Cerulean Bell** root and recursive Play/Discard actions obey the currently observed forced-selection constraint;
 - **Cerulean Bell** deeper D1 projections now branch uniformly over every possible next forced-selected card after hypothetical redraws, so recursive child legality is modeled rather than marked incomplete; Chicot bypasses the Bell brancher;
-- the full `tests/balatro` suite is green through the complete Cerulean Bell current-hand and future-forced-selection checkpoint on 2026-08-26.
+- **Cerulean Bell** live process-memory hydration now carries public `card.ability.forced_selection` through the normalized snapshot and translator into `BalatroCard.forced_selection`, so the validated D1 legality logic is active in production observations rather than only synthetic states;
+- the full `tests/balatro` suite is green through the complete Cerulean Bell current-hand, future-forced-selection, and live-state hydration checkpoint on 2026-08-26.
 
 Still open before a new live baseline:
 
@@ -215,7 +216,7 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Audit boss-specific execution against exact mechanics.
 - [ ] Diagnose and fix the three-attempt supervisor/shutdown crash observed after all three run logs had already emitted `run_finished`.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through complete Cerulean Bell D1 legality/future-forced-selection handling.
+- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through complete Cerulean Bell D1 legality/future-forced-selection/live-hydration handling.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
