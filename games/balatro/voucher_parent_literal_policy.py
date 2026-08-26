@@ -13,6 +13,10 @@ This adapter currently owns exact/publicly measurable effects:
 * Paint Brush / Palette: +1 permanent hand size, valued as the expected best literal
   one-hand score improvement from H to H+1 using the same public draw machinery and
   D2 direct-score scale used for Ouija/Ectoplasm hand-size cost;
+* Grabber / Nacho Tong: +1 hand per played blind, valued only across the boss rounds
+  that are unavoidably required to win through the configured Ante-8 target;
+* Wasteful / Recyclomancy: +1 discard per played blind on the same unavoidable
+  victory-round lower bound; optional Small/Big blinds are deliberately omitted;
 * Observatory: literal representative whole-build score change from adding the
   voucher to the current public state, so only actually held matching Planets create
   immediate parent value through the installed Observatory X1.5 scoring mechanic;
@@ -24,9 +28,15 @@ This adapter currently owns exact/publicly measurable effects:
   value remain fully charged. Once Antimatter is unlocked, Blank returns to zero
   current-run parent value.
 
-Other vouchers remain under D3's persistent strategic model until their mechanics
-have an equally grounded parent-scale evaluator. This module never changes D3
-admission and never reads RNG state, pseudoseeds, or future draw/shop order.
+Persistent effects whose payoff requires a future policy choice rather than an
+unavoidable event fail closed at zero in D14 until that choice has a grounded
+planning horizon. This includes future rerolls, purchases, Celestial packs, shop
+playing-card opportunities, and the Hieroglyph/Petroglyph ante-resource trade. They
+must not fall back to the old fixed cross-family voucher number merely because D3
+admits them strategically.
+
+This module never changes D3 admission and never reads RNG state, pseudoseeds, or
+future draw/shop order.
 """
 
 from dataclasses import replace
@@ -43,6 +53,7 @@ from games.balatro.discovery import DISCOVERY_TIEBREAK_CAP
 from games.balatro.reroll_joker_expectation_policy import RerollJokerExpectationEvaluator
 from games.balatro.shop_policy import BalatroShopPolicy
 from games.balatro.shop_reroll_policy import VANILLA_SHOP_REROLL_PRIOR
+from games.balatro.shop_voucher_policy import VoucherAcquisitionThresholds
 
 
 _LITERAL_PARENT_VOUCHERS = frozenset(
@@ -50,10 +61,37 @@ _LITERAL_PARENT_VOUCHERS = frozenset(
         "Antimatter",
         "Paint Brush",
         "Palette",
+        "Grabber",
+        "Nacho Tong",
+        "Wasteful",
+        "Recyclomancy",
+        "Telescope",
         "Observatory",
         "Seed Money",
         "Money Tree",
         "Blank",
+        "Clearance Sale",
+        "Liquidation",
+        "Reroll Surplus",
+        "Reroll Glut",
+        "Hieroglyph",
+        "Petroglyph",
+        "Magic Trick",
+        "Illusion",
+    }
+)
+
+_POLICY_CONTINGENT_PARENT_VOUCHERS = frozenset(
+    {
+        "Telescope",
+        "Clearance Sale",
+        "Liquidation",
+        "Reroll Surplus",
+        "Reroll Glut",
+        "Hieroglyph",
+        "Petroglyph",
+        "Magic Trick",
+        "Illusion",
     }
 )
 
@@ -83,6 +121,21 @@ def _future_joker_price_prior() -> int:
     return 5
 
 
+def _mandatory_victory_rounds(state) -> tuple[int, int]:
+    """Return the unavoidable played-blind lower bound through the run target.
+
+    Winning a normal Red/White run requires clearing one Boss Blind in every
+    remaining Ante. Small and Big Blinds may be skipped, so counting them would be a
+    policy assumption. At any live SHOP before victory, ``target_ante - ante + 1``
+    therefore counts only unavoidable future Boss rounds, including the current
+    Ante's Boss when it has not yet been cleared. Live state advances ``ante`` after
+    a cleared Boss before the next shop, so the same expression remains valid there.
+    """
+    target_ante = int(VoucherAcquisitionThresholds().target_ante)
+    ante = max(1, int(getattr(state, "ante", 1) or 1))
+    return max(0, target_ante - ante + 1), target_ante
+
+
 class VoucherParentLiteralEvaluator:
     def __init__(self, *, shop_policy) -> None:
         self.shop_policy = shop_policy
@@ -101,12 +154,18 @@ class VoucherParentLiteralEvaluator:
             return self._antimatter(state, money_after=money_after)
         if label in {"Paint Brush", "Palette"}:
             return self._hand_size_gain(state)
+        if label in {"Grabber", "Nacho Tong"}:
+            return self._round_resource_gain(state, resource="hand")
+        if label in {"Wasteful", "Recyclomancy"}:
+            return self._round_resource_gain(state, resource="discard")
         if label == "Observatory":
             return self._observatory(state, voucher)
         if label in {"Seed Money", "Money Tree"}:
             return self._interest_cap_gain(state, voucher, money_after=money_after)
         if label == "Blank":
             return self._blank(state, price=price)
+        if label in _POLICY_CONTINGENT_PARENT_VOUCHERS:
+            return self._policy_contingent_zero(label)
         return False, 0.0, ("voucher is outside literal parent authority",)
 
     def _antimatter(self, state, *, money_after: int):
@@ -176,6 +235,31 @@ class VoucherParentLiteralEvaluator:
             f"after distribution={'exact' if after_exact else 'deterministic sampled'}",
         )
 
+    def _round_resource_gain(self, state, *, resource: str):
+        rounds, target_ante = _mandatory_victory_rounds(state)
+        valuator = self.shop_policy.resource_valuator
+        if resource == "hand":
+            marginal = valuator.hand_value(state)
+        elif resource == "discard":
+            marginal = valuator.discard_value(state)
+        else:
+            raise ValueError(f"unsupported round resource: {resource}")
+
+        # The survival component is current-blind pressure and is not valid to copy
+        # across unseen future Bosses. Only the shared resource model's invariant
+        # direct component is propagated across the mechanically unavoidable rounds.
+        per_round = max(0.0, float(marginal.direct))
+        gain = per_round * float(rounds)
+        return True, gain, (
+            f"permanent +1 {resource} per played blind",
+            f"Red/White target Ante={target_ante}",
+            f"unavoidable remaining Boss rounds={rounds}",
+            "Small/Big blinds are omitted because skipping them is a future policy choice",
+            f"shared marginal {resource} direct value per guaranteed round={per_round:.3f}",
+            "current-blind survival premium is not projected onto unseen future Bosses",
+            f"guaranteed-horizon parent gain={gain:.3f}",
+        )
+
     def _observatory(self, state, voucher):
         after = state.copy()
         after.vouchers.append(voucher)
@@ -218,6 +302,25 @@ class VoucherParentLiteralEvaluator:
             f"D14 interest weight={float(self.shop_policy.interest_weight):.3f}",
             f"mechanical parent gain={gain:.3f}",
             "later-round compounding/upside is omitted rather than assigned a synthetic horizon premium",
+        )
+
+    @staticmethod
+    def _policy_contingent_zero(label: str):
+        reason = {
+            "Telescope": "requires choosing a future Celestial Pack",
+            "Clearance Sale": "requires one or more future purchases",
+            "Liquidation": "requires one or more future purchases",
+            "Reroll Surplus": "requires choosing one or more future rerolls",
+            "Reroll Glut": "requires choosing one or more future rerolls",
+            "Hieroglyph": "requires a common-unit plan for the immediate Ante decrease versus persistent hand loss",
+            "Petroglyph": "requires a common-unit plan for the immediate Ante decrease versus persistent discard loss",
+            "Magic Trick": "requires valuing future generated playing-card shop opportunities",
+            "Illusion": "requires valuing future generated enhanced/edition/seal playing-card shop opportunities",
+        }.get(label, "requires an unresolved future policy choice")
+        return True, 0.0, (
+            f"{label} D14 parent fails closed: {reason}",
+            "no arbitrary reroll/purchase/pack/shop count is assumed",
+            "D3 admission remains authoritative; only the incompatible fixed cross-family parent value is removed",
         )
 
     def _blank(self, state, *, price: int):
