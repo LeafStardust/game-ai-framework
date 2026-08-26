@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from time import monotonic, sleep
-
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 from .live_memory_observer import (
-    LiveMemoryObservationError,
     _array_table_values,
     _boolean,
     _integer,
@@ -30,7 +27,7 @@ def _semantic_value(value):
 
 
 def semantic_snapshot_key(snapshot) -> tuple:
-    """Return the same planner-relevant checkpoint identity used by stale guards."""
+    """Return planner-relevant public checkpoint identity without UI geometry."""
     return (
         str(snapshot.phase),
         bool(snapshot.state_complete),
@@ -75,71 +72,31 @@ def public_forced_selection_flags(decoder, root) -> tuple[bool, ...] | None:
 class DiscardHistorySupervisorLiveMemoryBalatroObserver(
     SupervisorLiveMemoryBalatroObserver
 ):
-    """Expose public controller fields with semantic supervisor quiescence.
+    """Expose public controller fields without a duplicate blocking quiet gate.
 
     Besides exact discard usage, Cerulean Bell's currently forced hand card is a
     public controller constraint stored on ``card.ability.forced_selection``.
 
-    The production supervisor's general quiet barrier is semantic rather than
-    presentation-geometric. Native readiness remains authoritative, and the base
-    observer's dedicated pack-to-SHOP Joker visual-settle gate still handles the
-    one transition where card geometry is itself evidence that a native callback
-    is still completing. Ordinary card/shop hover and animation geometry must not
-    block the planner for the full raw-sequence timeout.
+    Native readiness remains authoritative in the base supervisor observer. The
+    dedicated pack-to-SHOP Joker visual-settle barrier also remains authoritative
+    for the one transition where card geometry is evidence that an asynchronous
+    callback is still completing.
+
+    General semantic checkpoint settling belongs to
+    ``LiveMemoryInjectedAutonomousLoop._wait_for_stable_checkpoint``. That layer
+    already prefers two semantically equal snapshots, has a bounded two-second
+    soft window for legitimate animation/state churn, and is followed by the
+    runner's mandatory stale-state guard before execution. A second blocking quiet
+    loop inside each ``observe()`` call prevents that outer bounded policy from
+    ever taking effect and can make an actionable SHOP appear hung before D14 is
+    even entered. The production observer therefore returns immediately from the
+    inherited general quiet hook once native readiness/post-pack settlement has
+    completed.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._last_semantic_quiescent_key: tuple | None = None
-
     def _wait_for_full_state_quiet(self, snapshot):
-        """Require semantic public state to stay quiet; ignore ``ui``-only churn."""
-        key = semantic_snapshot_key(snapshot)
-        if (
-            snapshot.state_complete
-            and self._last_semantic_quiescent_key is not None
-            and key == self._last_semantic_quiescent_key
-        ):
-            return snapshot
-
-        deadline = monotonic() + self.full_state_quiet_timeout_seconds
-        last = snapshot
-        last_key = key
-        quiet_since = monotonic() if snapshot.state_complete else None
-
-        while True:
-            now = monotonic()
-            if (
-                quiet_since is not None
-                and now - quiet_since >= self.full_state_quiet_seconds
-            ):
-                self._last_semantic_quiescent_key = last_key
-                # Retain the inherited diagnostic/cache field for compatibility.
-                # A later UI-only raw sequence may differ, but semantic key reuse
-                # above remains authoritative for this production subclass.
-                self._last_quiescent_sequence = int(last.sequence)
-                return last
-
-            if now >= deadline:
-                raise LiveMemoryObservationError(
-                    "Balatro semantic public state did not remain quiescent before "
-                    "supervisor command readiness; "
-                    f"phase={last.phase}, sequence={last.sequence}, "
-                    f"complete={bool(last.state_complete)}"
-                )
-
-            if self.full_state_quiet_poll_seconds:
-                sleep(self.full_state_quiet_poll_seconds)
-            current = self._observe_public()
-            current_key = semantic_snapshot_key(current)
-
-            if current_key != last_key or not current.state_complete:
-                last_key = current_key
-                quiet_since = monotonic() if current.state_complete else None
-            elif quiet_since is None and current.state_complete:
-                quiet_since = monotonic()
-
-            last = current
+        """Delegate semantic stability to the bounded autonomous-loop authority."""
+        return snapshot
 
     def _observe_public(self):
         snapshot = super()._observe_public()
