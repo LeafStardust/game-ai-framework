@@ -8,7 +8,7 @@ from games.balatro.live.hand_action_policy import PACE_PLAY, LiveHandActionPolic
 
 _SIXTH_SENSE = "sixthsensejoker"
 _SIXTH_SENSE_RATIONALE = (
-    "Sixth Sense opportunity: first-hand single 6 still meets required pace, so harvest the Spectral without sacrificing survival pace"
+    "Sixth Sense opportunity: first-hand single 6 still meets required pace and preserves D1 clear probability, so harvest the Spectral"
 )
 
 
@@ -59,21 +59,49 @@ def _is_single_six_play(action) -> bool:
     return len(cards) == 1 and str(getattr(cards[0], "rank", "")) == "6"
 
 
+def _plan_clear_probability(plan) -> float:
+    try:
+        return float(getattr(plan.value, "clear_probability", 0.0) or 0.0)
+    except (AttributeError, TypeError, ValueError):
+        return 0.0
+
+
+def _selected_clear_probability(result) -> float:
+    return _plan_clear_probability(getattr(result, "selected_plan", None))
+
+
+def _clear_probability_tolerance(result, policy) -> float:
+    thresholds = getattr(result, "thresholds", None) or getattr(policy, "thresholds", None)
+    try:
+        return float(getattr(thresholds, "safe_clear_probability_tolerance", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _survival_equivalent(policy, result, plan) -> bool:
+    selected_probability = _selected_clear_probability(result)
+    probability = _plan_clear_probability(plan)
+    tolerance = _clear_probability_tolerance(result, policy)
+    return probability + tolerance + policy.EPSILON >= selected_probability
+
+
 def _best_non_six_pace_plan(policy, state, result):
     candidates = []
     for plan in result.plans:
         if getattr(plan.action, "name", None) != PLAY_CARDS or _is_single_six_play(plan.action):
             continue
+        if not _survival_equivalent(policy, result, plan):
+            continue
         projected = float(policy.evaluator.project_play(state, plan.action).expected_hand_score)
         ratio = policy._pace_ratio(projected, result.pace_target)
         if ratio + policy.EPSILON < policy.thresholds.pace_ratio_floor:
             continue
-        candidates.append((ratio, projected, plan))
+        candidates.append((_plan_clear_probability(plan), ratio, projected, plan))
     if not candidates:
         return None
     return max(
         candidates,
-        key=lambda item: (item[0], item[1], policy._within_type_key(item[2])),
+        key=lambda item: (item[0], item[1], item[2], policy._within_type_key(item[3])),
     )
 
 
@@ -93,21 +121,23 @@ def install_sixth_sense_policy() -> None:
         slot_available = _consumable_slot_available(state)
 
         # If D1 independently chose the single 6 while the Spectral slot is full,
-        # avoid destroying the 6 whenever another pace-satisfying play exists.
+        # avoid destroying the 6 only when another pace-satisfying play preserves
+        # the selected line's full-blind clear probability.
         if not slot_available and _is_single_six_play(result.action):
             fallback = _best_non_six_pace_plan(self, state, result)
             if fallback is None:
                 return result
-            ratio, projected, selected = fallback
+            probability, ratio, projected, selected = fallback
             return replace(
                 result,
                 action=selected.action,
                 selected_plan=selected,
                 selected_immediate_score=projected,
                 selected_pace_ratio=ratio,
-                confidence=min(float(result.confidence), self._pace_confidence(ratio)),
+                confidence=min(float(result.confidence), max(probability, self._pace_confidence(ratio))),
                 rationale=(
-                    "Sixth Sense preservation: consumable slots are full, so do not destroy a 6 when another play still meets required pace",
+                    "Sixth Sense preservation: consumable slots are full, so preserve the 6 only on a D1 survival-equivalent pace line",
+                    f"fallback clear probability={probability:.3f}; baseline={_selected_clear_probability(result):.3f}; tolerance={_clear_probability_tolerance(result, self):.3f}",
                     *result.rationale,
                 ),
             )
@@ -129,18 +159,20 @@ def install_sixth_sense_policy() -> None:
         for plan in result.plans:
             if not _is_single_six_play(plan.action):
                 continue
+            if not _survival_equivalent(self, result, plan):
+                continue
             projected = float(self.evaluator.project_play(state, plan.action).expected_hand_score)
             ratio = self._pace_ratio(projected, result.pace_target)
             if ratio + self.EPSILON < self.thresholds.pace_ratio_floor:
                 continue
-            candidates.append((ratio, projected, plan))
+            candidates.append((_plan_clear_probability(plan), ratio, projected, plan))
 
         if not candidates:
             return result
 
-        ratio, projected, selected = max(
+        probability, ratio, projected, selected = max(
             candidates,
-            key=lambda item: (item[0], item[1], self._within_type_key(item[2])),
+            key=lambda item: (item[0], item[1], item[2], self._within_type_key(item[3])),
         )
         return replace(
             result,
@@ -148,8 +180,12 @@ def install_sixth_sense_policy() -> None:
             selected_plan=selected,
             selected_immediate_score=projected,
             selected_pace_ratio=ratio,
-            confidence=min(float(result.confidence), self._pace_confidence(ratio)),
-            rationale=(_SIXTH_SENSE_RATIONALE, *result.rationale),
+            confidence=min(float(result.confidence), max(probability, self._pace_confidence(ratio))),
+            rationale=(
+                _SIXTH_SENSE_RATIONALE,
+                f"single-6 clear probability={probability:.3f}; baseline={_selected_clear_probability(result):.3f}; tolerance={_clear_probability_tolerance(result, self):.3f}",
+                *result.rationale,
+            ),
         )
 
     LiveHandActionPolicy.decide = decide
