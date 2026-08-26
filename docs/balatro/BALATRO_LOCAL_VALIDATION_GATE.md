@@ -210,12 +210,14 @@ Repair:
 
 ### Deterministic Antimatter arbiter fixture
 
-`test_strong_deterministic_purchase_beats_unrecognized_booster` constructed Antimatter with no observed public Joker generation pool. Current D14 values Antimatter through the marginal public future-Joker option created by the extra slot. Without that catalogue the parent branch correctly fails closed to zero, allowing END_SHOP to win the zero-gain tie.
+`test_strong_deterministic_purchase_beats_unrecognized_booster` originally constructed Antimatter without an observed public Joker generation pool. Current D14 values Antimatter through the marginal public future-Joker option created by the extra slot. Adding the public catalogue alone was still insufficient because the synthetic state had five empty Joker slots: the next Base Joker was already freely addable both before and after Antimatter, so the sixth slot had correctly computed marginal value `0.0`.
 
 Repair:
 
-- commit `35c8c37` supplies the authoritative public Joker catalogue in this fixture before asserting that the admitted deterministic Antimatter purchase beats an unrecognized booster;
-- production D3/D14 fail-closed behavior is unchanged.
+- commit `35c8c37` first supplied the authoritative public Joker catalogue;
+- commit `a033ca9` then corrected the capacity fixture itself by saturating the five ordinary slots with strong Jokers;
+- the public Base Joker is therefore not a worthwhile ordinary replacement before Antimatter, but becomes an additive option once the sixth slot exists;
+- production D3/D14 literal marginal-capacity semantics are unchanged.
 
 Validation status: **awaiting the next full user run on unchanged current HEAD**.
 
