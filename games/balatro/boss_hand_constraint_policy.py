@@ -15,12 +15,19 @@ from dataclasses import replace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
+from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.hand_action_policy import PACE_RECOVERY
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
-def _hand_type(policy, plan) -> str:
-    return str(policy._hand_evaluator.evaluate(list(plan.action.cards)).value).upper()
+def _hand_type(policy, state, plan) -> str:
+    rules = hand_rules_for_state(state)
+    return str(
+        policy._hand_evaluator.evaluate(
+            list(plan.action.cards),
+            rules=rules,
+        ).value
+    ).upper()
 
 
 def _psychic_filter(state, plans):
@@ -54,7 +61,7 @@ def _eye_filter(policy, state, plans):
     unused_plays = tuple(
         plan
         for plan in supplied
-        if plan.action.name == PLAY_CARDS and _hand_type(policy, plan) not in used
+        if plan.action.name == PLAY_CARDS and _hand_type(policy, state, plan) not in used
     )
     if not unused_plays:
         return supplied
@@ -81,7 +88,7 @@ def _mouth_filter(policy, state, plans):
     matching = tuple(
         plan
         for plan in supplied
-        if plan.action.name == PLAY_CARDS and _hand_type(policy, plan) == forced
+        if plan.action.name == PLAY_CARDS and _hand_type(policy, state, plan) == forced
     )
     discards = tuple(plan for plan in supplied if plan.action.name == DISCARD_CARDS)
     if matching or discards:
@@ -91,12 +98,20 @@ def _mouth_filter(policy, state, plans):
     return supplied
 
 
+def _plan_clear_probability(plan) -> float:
+    try:
+        return float(getattr(plan.value, "clear_probability", 0.0) or 0.0)
+    except (AttributeError, TypeError, ValueError):
+        return 0.0
+
+
 def _mouth_forced_discard(policy, state, plans, decision):
     """Shape a Mouth redraw exclusively toward its already locked hand type.
 
-    Generic Bond fit is irrelevant once the boss accepts only one poker hand.  For
-    equal retained forced-hand structure, drawing more cards strictly exposes more
-    chances to find the missing ranks/suit, so prefer the widest such discard.
+    Generic Bond fit is irrelevant once the boss accepts only one poker hand. For
+    survival-equivalent lines with equal retained forced-hand structure, drawing more
+    cards strictly exposes more chances to find the missing ranks/suit, so prefer the
+    widest such discard.
     """
     forced = _mouth_locked_hand(state)
     if forced is None or decision.action.name != DISCARD_CARDS:
@@ -127,13 +142,31 @@ def _mouth_forced_discard(policy, state, plans, decision):
         )
     if current_plan is None:
         return decision
+
     selected_structure = structure(current_plan)
-    equivalent = tuple(
-        plan for plan in discards if structure(plan) + policy.EPSILON >= selected_structure
+    selected_probability = _plan_clear_probability(current_plan)
+    tolerance = float(
+        getattr(
+            getattr(decision, "thresholds", None),
+            "safe_clear_probability_tolerance",
+            0.0,
+        )
+        or 0.0
     )
+    equivalent = tuple(
+        plan
+        for plan in discards
+        if structure(plan) + policy.EPSILON >= selected_structure
+        and _plan_clear_probability(plan) + tolerance + policy.EPSILON
+        >= selected_probability
+    )
+    if not equivalent:
+        return decision
+
     selected = max(
         equivalent,
         key=lambda plan: (
+            _plan_clear_probability(plan),
             structure(plan),
             len(tuple(getattr(plan.action, "cards", ()) or ())),
             float(policy.evaluator.evaluate(state, plan.action)),
@@ -151,11 +184,12 @@ def _mouth_forced_discard(policy, state, plans, decision):
         selected_immediate_score=None,
         selected_pace_ratio=None,
         selected_fallback_value=value,
-        confidence=max(float(getattr(decision, "confidence", 0.0) or 0.0), 0.90),
+        confidence=max(float(getattr(decision, "confidence", 0.0) or 0.0), _plan_clear_probability(selected)),
         rationale=(
             f"The Mouth is locked to {forced}; forced-hand feasibility overrides unrelated Bond targets",
             f"retained {forced} structure={structure(selected):.3f}; redraw width={len(selected.action.cards)}",
-            "among equal forced-hand structures, maximize public redraw width instead of preserving duplicate off-objective cards",
+            f"redraw clear probability={_plan_clear_probability(selected):.3f}; baseline={selected_probability:.3f}; tolerance={tolerance:.3f}",
+            "forced-hand redraw shaping remains subordinate to D1 survival",
             *decision.rationale,
         ),
     )
