@@ -17,6 +17,56 @@ import copy
 from games.balatro.card import BalatroCard
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 from games.balatro.build.literal_score_expectation import literal_expected_score
+from games.balatro.jokers.blue_joker import BlueJoker
+from games.balatro.jokers.hologram import HologramJoker
+
+
+def _token(joker: object) -> str:
+    for value in (
+        getattr(joker, "name", None),
+        getattr(joker, "label", None),
+        getattr(joker, "ability_name", None),
+        type(joker).__name__,
+    ):
+        token = "".join(ch for ch in str(value or "").lower() if ch.isalnum())
+        if token:
+            return token
+    return ""
+
+
+def _growth_kind(joker: object) -> str | None:
+    token = _token(joker)
+    if token in {"bluejoker", "bluejokerjoker"}:
+        return "BLUE"
+    if token in {"hologram", "hologramjoker"}:
+        return "HOLOGRAM"
+    return None
+
+
+def _materialize_growth_jokers(state) -> None:
+    """Give public/fallback Joker records their exact executable score mechanic.
+
+    Normal production states already contain concrete Joker classes.  Some public
+    projections and deterministic fixtures intentionally carry only an authoritative
+    Joker name plus public state.  Materialize only the two mechanics owned by this
+    evaluator so literal score comparison does not depend on Python class identity.
+    """
+    materialized = []
+    for joker in tuple(getattr(state, "jokers", ()) or ()):
+        kind = _growth_kind(joker)
+        if kind == "BLUE" and not isinstance(joker, BlueJoker):
+            replacement = BlueJoker()
+            replacement.debuffed = bool(getattr(joker, "debuffed", False))
+            materialized.append(replacement)
+            continue
+        if kind == "HOLOGRAM" and not isinstance(joker, HologramJoker):
+            replacement = HologramJoker()
+            replacement.x_mult = float(getattr(joker, "x_mult", 1.0) or 1.0)
+            replacement.debuffed = bool(getattr(joker, "debuffed", False))
+            materialized.append(replacement)
+            continue
+        materialized.append(joker)
+    state.jokers = materialized
 
 
 class DeckGrowthScoreValueEvaluator:
@@ -28,7 +78,7 @@ class DeckGrowthScoreValueEvaluator:
         return tuple(
             joker
             for joker in tuple(getattr(state, "jokers", ()) or ())
-            if type(joker).__name__ in {"BlueJoker", "HologramJoker"}
+            if _growth_kind(joker) is not None
             and not bool(getattr(joker, "debuffed", False))
         )
 
@@ -40,6 +90,9 @@ class DeckGrowthScoreValueEvaluator:
 
         before_state = copy.deepcopy(state)
         after_state = copy.deepcopy(state)
+        _materialize_growth_jokers(before_state)
+        _materialize_growth_jokers(after_state)
+
         dummy_cards = [BalatroCard("2", "Hearts") for _ in range(count)]
         after_state.deck = [*list(getattr(after_state, "deck", ()) or ()), *dummy_cards]
         if getattr(after_state, "owned_deck", None) is not None:
@@ -50,7 +103,7 @@ class DeckGrowthScoreValueEvaluator:
 
         hologram_growth = 0
         for joker in tuple(getattr(after_state, "jokers", ()) or ()):
-            if type(joker).__name__ != "HologramJoker" or bool(getattr(joker, "debuffed", False)):
+            if _growth_kind(joker) != "HOLOGRAM" or bool(getattr(joker, "debuffed", False)):
                 continue
             joker.x_mult = float(getattr(joker, "x_mult", 1.0) or 1.0) + 0.25 * count
             hologram_growth += 1
@@ -95,7 +148,7 @@ class DeckGrowthScoreValueEvaluator:
                 direct_gain * float(weights.direct_scoring_gain),
             ),
         )
-        blue_count = sum(type(joker).__name__ == "BlueJoker" for joker in active)
+        blue_count = sum(_growth_kind(joker) == "BLUE" for joker in active)
         return direct_value, (
             f"deck growth added cards={count}",
             f"active Blue Joker count={blue_count}; exact coefficient=+2 Chips/card",
