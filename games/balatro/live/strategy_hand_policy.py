@@ -84,7 +84,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             decision,
             rationale=(
                 *decision.rationale,
-                *(("Vagabond active at <=$4 with consumable space; safe equivalent lines may value additional scored hands for Tarot generation",) if vagabond_active else ()),
+                *(("Vagabond active at <=$4 with consumable space; safe equivalent lines may value additional scored hands for Tarot generation only after normal D1 round resources tie",) if vagabond_active else ()),
                 "pace-qualified PLAY is authoritative; Bond shaping cannot replace it with DISCARD",
                 f"D1 Bond/composition fit={fit:+.3f}",
                 *rationale,
@@ -96,28 +96,44 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         if self._ranking_state is None:
             return base
         fit, _ = self._strategy_fit(self._ranking_state, plan.action)
-        hand_use = (
+        vagabond_hand_use = (
             -float(plan.value.expected_hands_remaining)
-            if self._vagabond_generation_active(self._ranking_state) and plan.action.name == PLAY_CARDS
-            else float(plan.value.expected_hands_remaining)
+            if self._vagabond_generation_active(self._ranking_state)
+            and plan.action.name == PLAY_CARDS
+            else 0.0
         )
-        return (base[0], base[1], base[2], fit, hand_use, *base[3:])
+        # BuildAware base is:
+        # clear, exact, progress, hands, discards, held-preservation, score.
+        # Bond fit and Vagabond generation are strategy tie-breaks beneath those
+        # full-blind survival/resource dimensions and above only final score.
+        return (*base[:-1], fit, vagabond_hand_use, base[-1])
 
     def _safe_equivalent_clear_key(self, plan):
         base = super()._safe_equivalent_clear_key(plan)
         if self._ranking_state is None:
             return base
         fit, _ = self._strategy_fit(self._ranking_state, plan.action)
-        if self._vagabond_generation_active(self._ranking_state):
-            return (base[0], -base[1], base[2], fit, *base[3:])
-        return (base[0], base[1], base[2], fit, *base[3:])
+        vagabond_hand_use = (
+            -float(plan.value.expected_hands_remaining)
+            if self._vagabond_generation_active(self._ranking_state)
+            and plan.action.name == PLAY_CARDS
+            else 0.0
+        )
+        # BuildAware base is:
+        # exact, hands, discards, clear, progress, held-preservation, score.
+        # Do not invert expected-hands authority for Vagabond; without a shared
+        # Tarot/economy unit it may only break an otherwise resource-equivalent tie.
+        return (*base[:-1], fit, vagabond_hand_use, base[-1])
 
     def _pace_play_key(self, plan, pace_ratio: float):
         base = super()._pace_play_key(plan, pace_ratio)
         if self._ranking_state is None:
             return base
         fit, _ = self._strategy_fit(self._ranking_state, plan.action)
-        return (base[0], base[1], base[2], fit, *base[3:])
+        # BuildAware base keeps clear/exact/progress/discards/hands first, then
+        # held-preservation, then local pace-closeness. Bond fit belongs beside the
+        # preservation signal, never above the full-blind resource prefix.
+        return (*base[:-1], fit, base[-1])
 
     @staticmethod
     def _vagabond_generation_active(state) -> bool:
