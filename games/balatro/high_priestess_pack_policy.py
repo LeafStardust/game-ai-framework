@@ -66,4 +66,10 @@ def install_high_priestess_pack_policy() -> None:
 
     BalatroPackPolicy.__init__ = init
     BalatroPackPolicy._score_consumable = score_consumable
+    BalatroPackPolicy.STOCHASTIC_MODELED_TAROTS = frozenset(
+        set(BalatroPackPolicy.STOCHASTIC_MODELED_TAROTS) | {HIGH_PRIESTESS}
+    )
+    BalatroPackPolicy.STOCHASTIC_DEFERRED_TAROTS = frozenset(
+        set(BalatroPackPolicy.STOCHASTIC_DEFERRED_TAROTS) - {HIGH_PRIESTESS}
+    )
     BalatroPackPolicy._high_priestess_pack_policy_installed = True
