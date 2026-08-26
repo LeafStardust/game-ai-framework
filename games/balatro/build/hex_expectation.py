@@ -24,10 +24,11 @@ class HexExpectation:
 class HexExpectationEvaluator:
     """Enumerate Hex outcomes using B3 representative whole-build scoring.
 
-    Hex chooses one owned Joker uniformly, makes that Joker Polychrome, and removes
-    the others under the framework's modeled semantics. Every branch is evaluated
-    against the same current-build baseline with the B3 representative probe set.
-    No Balatro RNG sample or seed is observed.
+    Hex chooses uniformly from owned Jokers that do not already have an Edition,
+    makes the chosen Joker Polychrome, and destroys every other non-Eternal Joker.
+    Eternal Jokers survive even when they are not selected. Every eligible branch
+    is evaluated against the same current-build baseline with the B3 representative
+    probe set. No Balatro RNG sample or seed is observed.
     """
 
     def __init__(
@@ -39,20 +40,29 @@ class HexExpectationEvaluator:
         self.scorer = scorer or BalatroScorer()
         self.weights = weights or JokerBuildValueWeights()
 
+    @staticmethod
+    def _eligible_indices(jokers) -> tuple[int, ...]:
+        return tuple(
+            index
+            for index, joker in enumerate(jokers)
+            if getattr(joker, "edition", None) in (None, "")
+        )
+
     def evaluate(self, state) -> HexExpectation:
         jokers = list(getattr(state, "jokers", ()))
-        if not jokers:
+        eligible = self._eligible_indices(jokers)
+        if not eligible:
             return HexExpectation(
                 available=False,
                 complete=True,
                 branch_count=0,
                 expected_build_gain=0.0,
-                rationale=("Hex has no public Joker target",),
+                rationale=("Hex has no editionless public Joker target",),
             )
 
         branch_gains: list[float] = []
         branch_notes: list[str] = []
-        for index in range(len(jokers)):
+        for index in eligible:
             gain = self._branch_build_gain(state, index=index)
             if gain is None:
                 return HexExpectation(
@@ -61,20 +71,27 @@ class HexExpectationEvaluator:
                     branch_count=len(branch_gains),
                     expected_build_gain=0.0,
                     rationale=(
-                        "Hex expectation failed closed on an incomplete Joker branch",
+                        "Hex expectation failed closed on an incomplete eligible Joker branch",
                     ),
                 )
             branch_gains.append(gain)
-            branch_notes.append(f"Joker index {index} B3 Hex branch gain={gain:.3f}")
+            branch_notes.append(
+                f"eligible Joker index {index} B3 Hex branch gain={gain:.3f}"
+            )
 
         expected = sum(branch_gains) / len(branch_gains)
+        eternal_count = sum(
+            bool(getattr(joker, "eternal", False))
+            for joker in jokers
+        )
         return HexExpectation(
             available=True,
             complete=True,
             branch_count=len(branch_gains),
             expected_build_gain=expected,
             rationale=(
-                f"uniform public Joker branches={len(branch_gains)}",
+                f"uniform editionless Joker branches={len(branch_gains)}",
+                f"Eternal Jokers preserved={eternal_count}",
                 *branch_notes,
                 f"expected B3 Hex whole-build gain={expected:.3f}",
             ),
@@ -90,11 +107,19 @@ class HexExpectationEvaluator:
             before_state.hand = before_cards
             after_state.hand = after_cards
 
-            if not (0 <= index < len(getattr(after_state, "jokers", ()))):
+            after_jokers = list(getattr(after_state, "jokers", ()))
+            if not (0 <= index < len(after_jokers)):
                 return None
-            chosen = after_state.jokers[index]
+            chosen = after_jokers[index]
+            if getattr(chosen, "edition", None) not in (None, ""):
+                return None
+
             chosen.edition = "Polychrome"
-            after_state.jokers = [chosen]
+            after_state.jokers = [
+                joker
+                for joker_index, joker in enumerate(after_jokers)
+                if joker_index == index or bool(getattr(joker, "eternal", False))
+            ]
 
             try:
                 before = self.scorer.score(
