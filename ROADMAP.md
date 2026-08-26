@@ -1,226 +1,295 @@
 # Roadmap
 
-> The roadmap tracks active milestones, not release notes. Detailed implementation evidence belongs in tests, logs, commits, `CHANGELOG.md`, and release documentation.
+> The roadmap tracks active milestones, not release notes. Completed implementation history has been retained in [`docs/balatro/BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`](docs/balatro/BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md).
 >
-> Balatro uses **one permanent agent and one permanent mechanics/state/execution stack**. The current universal strategic layer is the canonical **Bond/composition system**. A replaceable **deck/stake cartridge** modifies effectiveness, feasibility, economy, and thresholds for the observed live run.
+> Production observation remains repository-owned read-only process memory. Production execution remains the repository-owned first-party bridge. Hidden future information remains excluded.
 >
-> Production observation is repository-owned, read-only Windows process memory. Production execution is the repository-owned first-party in-process bridge. Hidden future information remains excluded: no RNG-state/seed exploitation and no ordered future draw pile.
->
-> The active Red/White competence doctrine and semantic/runtime repair queue are defined in [`docs/balatro/BALATRO_RED_WHITE_COMPETENCE_ROADMAP.md`](docs/balatro/BALATRO_RED_WHITE_COMPETENCE_ROADMAP.md). Future contributors must read that document before changing D1/D2/D14 valuation or adding live-run corrections.
+> **Course correction — 2026-08-27:** feature growth is frozen until Red Deck / White Stake competence is measured, stable, and reproducible. Feature coverage, a green unit suite, or one isolated win are no longer sufficient evidence of competence.
 
 ## Status
 
 | Milestone | Status | Gate |
 |---|---|---|
-| v0.1–v0.9 Foundation + autonomous integration | Complete | — |
-| **v1.0.0 Red Deck / White Stake competence** | **Complete** | Released 2026-08-20 |
-| **v1.0.x Red/White semantic/runtime competence repair** | **In progress / calibration frozen** | Repair current live contradictions → clean 3-run baseline → Phase-A candidates → ≥20-episode-per-arm promotion/holdout |
-| **Offline Bond numerical tuning (Optuna)** | **Foundation implemented / frozen pending clean semantics** | No candidate search while semantic/runtime defects remain |
-| v1.1–v1.7 Red Deck stake progression | Next | Begins from Red Stake after Red/White competence gate |
-| Fresh-profile collection progression | **Retired from active roadmap** | Winning is the sole gameplay objective; collection-first may not override competence |
-| v2+ Additional decks | Not started | Begins after Red Deck progression |
-
-## Completed milestones
-
-| Version | Completed scope |
-|---|---|
-| v0.1 | Repository foundation, core abstractions and game runner |
-| v0.2 | Configuration, logging, metrics and events |
-| v0.3 | Agent architecture, decision pipeline and policy system |
-| v0.4 | Evaluation framework and Balatro play/discard/risk heuristics |
-| v0.5 | Softmax policy, configurable policy selection and reproducible seeds |
-| v0.6 | Experiment runner, multi-episode evaluation, comparisons and metrics |
-| v0.7 | Balatro cards, hands, scoring, Jokers, consumables and card modifiers |
-| v0.8 | Search/planning, probability/EV analysis, blind-clear paths, stakes and deck architecture |
-| v0.9 | Autonomous real-game observe → decide → execute → verify → log → restart/stop loop; authoritative live state, injected execution, stochastic projection, 150/150 Joker validation and Boss Blind coverage |
-| **v1.0.0** | **Red Deck / White Stake competence release baseline: coherent build planning, strategy-aware D1–D14 decisions, bounded live search, economy/shop competence, boss handling, ordering, diagnostics, and autonomous unseeded win validation** |
+| v0.1–v0.9 foundation + autonomous integration | Complete | Historical implementation retained separately |
+| **v1.0.0 Red/White release baseline** | **Complete / historical** | Released 2026-08-20 |
+| **v1.0.x Red/White competence stabilization** | **IN PROGRESS** | Semantic benchmark → D1 survival → simple shop → coherent build → live validation |
+| New gameplay features | **FROZEN** | No expansion before v1.0.x competence gate |
+| Bond numerical tuning / Optuna | **Implemented / frozen** | Resume only after semantics are trustworthy |
+| v1.1–v1.7 Red Deck stake progression | Blocked | Begins after Red/White competence gate |
+| Collection-first progression | Retired from active roadmap | Winning is the sole gameplay objective |
+| v2+ additional decks | Not started | Begins after Red Deck progression |
 
 ---
 
-## v1.0.0 — Red Deck / White Stake Competence — COMPLETE
+# Active doctrine
 
-Released: **2026-08-20**
+Until v1.0.x is complete, the project has one gameplay target:
 
-Goal achieved: the permanent Balatro agent can play Red Deck / White Stake autonomously using coherent run-level strategy rather than isolated local-value decisions.
+> **Red Deck / White Stake, normal mode, maximize the probability of winning the current run.**
 
-The original v1.0.0 release used the historical strategy-tree/Gold-Silver-Bronze architecture. That release evidence remains historical record. During v1.0.x calibration, the active production architecture was intentionally migrated to the canonical Currency-Wars-style **Bond/composition system**; the retired categorical strategy tree is not the current runtime contract.
+No new collection objective, Endless objective, deck/stake adaptation, strategic framework, or speculative mechanics work should be added unless a benchmarked Red/White competence failure proves it necessary.
 
-### Completed release scope
+Existing mechanics, Joker implementations, Bond/composition code, pack models, diagnostics, collection tooling, and previous strategy implementations remain useful repository assets. They are preserved in the implementation-history document; they simply stop expanding the active scope.
 
-- [x] Make blind-clear probability and feasible remaining clear paths the dominant D1 objective while preserving hand efficiency and unused-hand economy.
-- [x] Preserve strategically useful held structure, including Steel cards and Blue Seals, when survival-equivalent lines permit it.
-- [x] Maintain coherent build intent across hand play, discards, Joker acquisition/replacement, consumables, Planets, packs, rerolls, vouchers, boosters, and blind skips.
-- [x] Model anti-synergies and explicit conflicts without treating every competing strategy as mechanically banned.
-- [x] Complete the historical universal strategy-tree release baseline.
-- [x] Separate portable universal Joker value from route-bound strategic evidence.
-- [x] Protect Negative Jokers from ordinary sales, replacement, and unrelated sacrifice; retain explicit measured-harm, active-Dagger, and Verdant Leaf exceptions.
-- [x] Add autonomous Joker-board ordering for Blueprint/Brainstorm copy targeting, additive-before-XMult scoring, and Ceremonial Dagger sacrifice planning.
-- [x] Add authoritative pre-play hand ordering for first-card effects such as Hanging Chad and Photograph.
-- [x] Wire Cerulean Bell forced-card handling and Verdant Leaf emergency sales through authoritative injected actions.
-- [x] Bound Boss-Blind, late-Ante, Joker-order, and complete D1 search by interactive node/time budgets.
-- [x] Add paid-reroll stop losses, survival reserves, Gold Card/Gold Seal economy protection, and Bull/Bootstraps cash-spending opportunity cost.
-- [x] Keep ordinary undiscovered-item preference bounded to a one-ULP tie-break so discovery metadata cannot override competence.
-- [x] Add strategy/build diagnostics to the live monitor and structured run logs.
-- [x] Preserve normal Steam progression and hidden-information restrictions.
+## What counts as progress now
 
-### Acceptance evidence
+The project uses four validation layers:
 
-- [x] Full deterministic repository suite passed after the v1.0.0 release migration: **1,787 tests on 2026-08-18**.
-- [x] Completed an **unseeded, fully autonomous Red Deck / White Stake win** on 2026-08-18 against Amber Acorn with no manual gameplay input after activation and normal Steam progression preserved.
-- [x] Fixed the `won=true` / `ROUND_EVAL` terminal-detection gap exposed by that winning run and covered the fix deterministically.
+1. **deterministic tests** — implementation contracts do not regress;
+2. **mechanics coverage** — modeled Balatro behavior remains accurate;
+3. **semantic competence benchmark** — known important states produce sensible behavior;
+4. **live runs** — integration/runtime smoke test and source of new counterexamples.
+
+A random three-run batch is **not** the competence score. It is a way to discover states the semantic benchmark is missing.
 
 ---
 
-## v1.0.x — Red/White semantic/runtime competence repair — IN PROGRESS
+# v1.0.x — Red/White competence stabilization
 
-The initial Red/White release demonstrated competence, but repeated live calibration exposed a higher-level decision gap: the agent can own individually useful pieces while the **realized build remains inactive, incoherent, under-utilized, poorly valued, or too slow to scale**. The 2026-08-25 batch also showed that local correction layers can make this worse when they replace literal Balatro mechanics with synthetic scoring categories.
+## Why the previous approach stalled
 
-Canonical architecture references:
+The agent accumulated many individually reasonable policies, evaluators, guards, rescue rules, and diagnostics. Several can influence the same final action. This produced **policy accretion**: local components can be correct while their composition makes an obviously poor decision.
 
-- [`docs/balatro/BALATRO_RED_WHITE_COMPETENCE_ROADMAP.md`](docs/balatro/BALATRO_RED_WHITE_COMPETENCE_ROADMAP.md) — active competence doctrine, examples, and current repair queue.
-- [`docs/balatro/BALATRO_STRATEGY_FORMATION.md`](docs/balatro/BALATRO_STRATEGY_FORMATION.md) — strategy formation, R0 evidence, pinning, construction/preservation/execution authority.
-- [`docs/balatro/BALATRO_BUILD_HEALTH.md`](docs/balatro/BALATRO_BUILD_HEALTH.md) — literal score projection vs structural Build Health.
-- [`docs/balatro/BALATRO_BOND_TUNING.md`](docs/balatro/BALATRO_BOND_TUNING.md) — numerical tuning boundary and promotion protocol.
+The goal of v1.0.x is therefore not “add more intelligence.” It is:
 
-### Non-negotiable competence doctrine
+> **make the intelligence already present compose into one reliable run-winning decision process.**
 
-- **Winning the run is the sole gameplay objective.** Collection-first / unlock-chasing behavior is retired from the active roadmap and must not sacrifice win probability.
-- Ante 1–2 is a **survival phase, not a strategy-free phase**. Buy enough temporary scoring to survive while already recognizing and developing coherent Bonds/strategies from the first relevant evidence.
-- Scoring is evaluated by **literal Balatro arithmetic and exact modeled mechanics**. Bond rank, motif state, strategy commitment, composition coherence, or broad “chips/Mult coverage” categories cannot manufacture scoring power.
-- Positive R0 evidence is strategically visible from the beginning of the run. Strategy does not suddenly switch on at Ante 3.
-- Context-sensitive Joker value must come from exact mechanics and current state. Stencil empty-slot value, Card Sharp repetition, Ride the Bus resets, Bull/Bootstraps cash scaling, Banner discard count, Green Joker no-discard pressure, and copy-Joker targeting are examples.
-- Shop, replacement, pack, consumable, reroll, economy, and D1 choices must be judged by expected contribution to **winning the current run**, not incompatible local utility totals.
-- Mechanically contradictory or clearly dominated actions are **semantic/runtime defects first**, not numerical-tuning noise.
+## Target authority shape
 
-### Canonical Bond/composition migration and completed work
+```text
+Authoritative public state
+        ↓
+Literal Balatro mechanics
+        ↓
+Legal candidates
+        ↓
+Bounded projection
+        ↓
+One run-winning evaluator
+        ↓
+One final arbiter
+        ↓
+Action
+```
 
-- [x] Replace active Gold/Silver/Bronze strategy-tree machinery with canonical weighted Bonds, R1–R5 development, realization, sparse relationships, motifs, composition, power-engine selection, and prescriptions.
-- [x] Keep `LOCKED` / `R0` / `R1–R5` development separate from `DORMANT` / `PARTIAL` / `ACTIVE` / `MATURE` realization.
-- [x] Make live monitor diagnostics Bond-native: power engine, relevant Bonds, contribution/next rank, realization, motifs, synergies/conflicts, and prescriptions.
-- [x] Remove retired tracker/tier dependencies from active Build Health, D1, D2, Mouth, Planet compatibility, and runtime paths found by deterministic/live validation.
-- [x] Remove the remaining pre-Bond `PlaystyleIntent`/Ante-lock authority from D1, D2, D7, D9, D13, telemetry, and production runner wiring; retain only mechanical build profiling beneath canonical Bond/composition strategy.
-- [x] Retire neutral playstyle compatibility shells and replace timestamp/batch/release-named installed modules with stable mechanic/policy names.
-- [x] Make D2 Joker acquisition/replacement include bounded canonical Bond-transition value rather than relying on categorical strategy-tier shortcuts.
-- [x] Make canonical pivot authority compare projected combined-build coherence/distance against realized disruption and protect established engines without making them immortal.
-- [x] Apply bounded motif prescriptions beneath existing pack/shop safety authorities.
-- [x] Add a pure `BuildHealth` evaluator with auditable Survival, Immediate Scoring, Scaling, Coherence, and Runway dimensions.
-- [x] Detect midgame scaling deficits when present strength can clear current blinds but is unlikely to keep pace with the next one to two Antes.
-- [x] Make shop buy/replace/reroll decisions sensitive to Build Health and Bond transition rather than Joker count or isolated item value alone.
-- [x] Add bounded short-horizon multi-action planning for complementary shop pairs and activation sequences.
-- [x] Expose Build Health and inactive-engine/scaling-deficit warnings in the live monitor and structured logs.
-- [x] Correct Burnt execution so a safe first discard can level its target hand even when Banner is present; Banner's temporary discard-chip value cannot suppress the defining Burnt engine mechanic.
-- [x] Add active/mature power-engine preservation so fresh partial Bonds cannot casually destroy an already-realized engine unless the projected replacement is materially stronger.
-- [x] Add late-game cash protection against marginal side-development packs when doing so would drain a functioning but still vulnerable build.
-- [x] Cache per-decision Bond hand intents so D1 does not repeatedly recompute the full composition inside candidate tie-breaks.
-- [x] Audit the 2026-08-24/25 Red/White run batch and correct false hand-Bond membership, random lifecycle drift that fabricated component relationships, and held-The-Sun searches that escaped D1's hard deadline.
-- [x] Audit every decision in the fresh three-run `28342616` baseline and correct the production/canonical Joker/pack/shop class split; Burglar coexistence with dormant discard triggers, discard-count payoffs, extra-discard sources, vouchers, and Purple Seals; negative raw replacements rescued by Bond bonuses; X1 full-roster Joker Stencil admission; hand-specific Blueprint ordering; Eternal Dagger feed projection; held Steel/Gold/Seal shortlist substitution; post-deadline D1 re-evaluation; and zero-demand Standard-pack deck bloat. This semantic/runtime correction invalidates that baseline.
-- [x] Audit every decision in the subsequent three-run `817ac2b3` batch and correct phantom strategy formation from stock-deck card counts, false Mime/Blackboard/Raised-Fist relationships, under-recruitment of coherent shop engines, isolated Obelisk admission, missed Campfire fuel transactions, weak late rerolls, D1 search/controller disagreement, destructive timeout discards, five-Joker Blueprint ordering, off-route Planet promotion, stale Mouth telemetry, and new-attempt sequence resets. This semantic/runtime correction invalidates that batch as a calibration baseline.
-- [x] Remove the unvalidated synthetic Red/White “chips axis / Mult axis” correction layer after the 2026-08-25 live batch showed that category-level overrides distorted decision making.
-- [x] Complete literal current/candidate score authority: D2 includes played-card chips, secret hands, public stochastic score expectation, stateful conditional contexts, post-transaction cash/resource state, next-round Banner resources, and legal copy-Joker ordering; the final category-only early-Joker force-buy is removed.
-- [x] Complete the named contextual-Joker implementation audit for Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm, including post-transaction cash, next-round Banner resources, and prospective copy-Joker ordering.
-- [x] Repair D2 replacement implementation around literal common-baseline score, post-transaction cash, economy, Negative retention, realized-engine/strategy disruption, and exact selected shop-copy identity.
-- [x] Complete the static Boss-Blind production authority inventory; omitted dispatch-table names are accounted for by authoritative live state or explicit D1 transition/score transforms, with centralized Chicot bypass.
-- [x] Replace D11's fixed future Joker/Planet utility priors with public-pool D2/D4/D14 expectation and fail closed on unresolved Tarot future value.
-- [x] Replace all five D8 booster-family fixed hit/value priors with public-mechanics expectation: Buffoon uses the current eligible Joker pool and D2/D14; Celestial uses the eligible Planet pool and literal permanent-level projection; Standard uses the exact rank/suit/enhancement/seal/edition generator plus literal Blue-Joker/Hologram deck-growth mechanics; Arcana uses public Tarot/Spectral pools, Omen Globe's exact 80/20 branch and soulable overrides; Spectral uses the public Spectral pool plus the exact soulable Black-Hole/Soul override. Unresolved visible outcomes fail to opened-pack Skip=0 and conservative one-offer lower bounds avoid hidden-content assumptions.
-- [x] Extend the shared literal score/D2 probe catalogue to Five of a Kind, Flush House, and Flush Five so secret-hand development is not ignored by shop valuation.
-- [x] Replace Hanged Man's blanket Blue-Joker veto with a target-level tradeoff using Blue Joker's exact +2-Chips-per-card deck-size coefficient on B6's existing chip-normalized intrinsic scale.
-- [x] Complete the pack/consumable semantic audit: opened-pack Skip is sunk-cost zero; High Priestess, Judgement, Emperor, Ouija, Ectoplasm, Wheel, Soul, Cryptid, Familiar, Grim, Incantation, Immolate, Black Hole and the five D8 booster families use public-mechanics expectation/targeting with semantic execution guards where required. Shared hand-size opportunity cost now prices Ouija/Ectoplasm without fixed penalties, and Ectoplasm values Negative through marginal future-Joker capacity rather than a universal edition constant.
-
-### Current semantic/runtime repair queue — BLOCKS CALIBRATION
-
-- [x] Make literal current/candidate score projection authoritative and audit any layer that substitutes synthetic categories for actual marginal scoring. Implementation audit complete; current-HEAD regression validation remains pending.
-- [x] Audit contextual Joker valuation beginning with Joker Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm. Implementation audit complete; current-HEAD regression validation remains pending.
-- [ ] Verify R0/FORMING/PINNED strategy authority affects acquisition from Ante 1 without delaying survival or collecting unrelated Bond labels. Implementation is installed; local verification remains pending.
-- [ ] Repair D14 cross-family shop arbitration so visible Jokers, vouchers, packs, consumables, rerolls, and economy are compared on run-winning value rather than incompatible local utility units. D11 Joker/Planet and all five D8 booster families are implementation-repaired; held-Tarot/future-consumable value remains open.
-- [x] Repair D2 replacement so incumbent and candidate are compared by actual current score, prospective scaling/economy, strategy realization, and disruption. Implementation audit complete; local regressions remain part of the current-HEAD suite gate.
-- [x] Repair D1 discard selection at the actual planner/controller authority; repeated one-card discards must be exceptional when several dead cards can safely be cycled.
-- [x] Audit pack and consumable decisions for both unjustified skipping and unjustified speculative spending. Implementation audit complete across all five D8 booster families and the known D9/D10 semantic blockers; current-HEAD regression validation remains pending.
-- [x] Re-audit boss-specific execution against exact mechanics and legality. Static production inventory complete; newest Verdant/Crimson regressions remain pending the current-HEAD suite run.
-- [x] Diagnose and fix the three-attempt supervisor/shutdown crash observed after the 2026-08-25 batch; the bounded supervisor now stops after attempt 3 and the historical post-`run_finished` crash is retired unless reproduced on unchanged current HEAD.
-- [ ] Add direct regressions for every live defect before another authoritative batch.
-- [ ] Run `tests/balatro` on the current semantic-repair HEAD and require green before live validation. The latest validated checkpoint predates the current pack/consumable completion, all-family D8 expectations, D2 played-card-chip/stochastic expectation, Hanged Man/Blue Joker, and subsequent corrections.
-- [ ] Execute and inspect a clean 3-run production-default authoritative live baseline only after the semantic/runtime repair queue is clear.
-- [ ] Run Phase-A candidate trials only after that baseline is clean; any semantic/runtime fix invalidates and restarts the study under the new repository SHA.
-
-### Automated Bond numerical tuning — FOUNDATION IMPLEMENTED / FROZEN
-
-Detailed contract: [`docs/balatro/BALATRO_BOND_TUNING.md`](docs/balatro/BALATRO_BOND_TUNING.md).
-
-Purpose: replace endless manual coefficient guessing with reproducible offline optimization of **approved numerical parameters**, while preserving human-defined Bond semantics and live-agent determinism.
-
-Implementation status:
-
-- [x] Document architecture, objective, anti-overfitting rules, storage/provenance, pruning constraints, and promotion gates.
-- [x] Introduce a typed immutable Bond calibration snapshot whose defaults exactly reproduce current production behavior.
-- [x] Route one small audited parameter family through that snapshot and add default-equivalence/validation tests.
-- [x] Add offline seeded and authoritative-live batch evaluator boundaries with structured trial metrics and exact run/seed provenance.
-- [x] Add Optuna as an optional development/tuning dependency only; normal live-agent imports do not depend on it.
-- [x] Add persistent Optuna study storage, parameter/objective schema versions, resumable compatibility checks, and production-baseline queuing.
-- [x] Implement the first low-dimensional Phase-A composition/pivot search space.
-- [x] Add fresh-boundary live preflight, baseline-aware reports, holdout validation, and conservative live promotion comparison.
-- [ ] Unfreeze candidate search only after the current semantic/runtime repair queue and a clean unchanged-HEAD production baseline pass.
-- [ ] Promote only after a fresh comparison with **at least 20 completed episodes per arm** and all implemented non-regression/pathology checks pass.
-- [ ] Expand to realization, D1 execution, D2/shop/resource, and cross-system calibration only after earlier phases are stable.
-
-The optimizer may tune bounded numerical values such as contributor weights, R1–R5 thresholds, realization cutoffs where empirical, synergy/conflict coefficients, pivot resistance, motif values, bounded prescription strengths, and resource-policy thresholds. It may **not** invent/remove Bonds, change mechanical truth, weaken boss/legal/survival authority, use hidden information, or automatically promote its own output.
-
-The historical `e0cb0984` and subsequent invalidated live baselines are forensic/reference evidence only because later semantic/runtime fixes changed the repository SHA. Do not resume or compare a current candidate against those studies as if they were unchanged-code controls.
-
-### Calibration gate before Red Stake
-
-Do not begin Red/Red `1.1.0` implementation until:
-
-- [x] the Balatro deterministic suite is green on the current architecture baseline;
-- [ ] the current semantic/runtime competence repair queue is complete;
-- [ ] repeated live losses no longer show obvious mechanically contradictory, dominated, “full board but non-functioning build,” or “recognized engine but unused mechanic” failures;
-- [ ] at least one fresh unchanged-HEAD Red/White validation batch contains an Ante-8 clear without a repeated release-blocking decision defect;
-- [ ] the post-run batch supervisor/shutdown path completes without crashing.
-
-Automated Optuna tuning is not itself a prerequisite for Red Stake if Red/White reaches the competence gate first, but once semantics are correct it remains the preferred method for systematic coefficient refinement.
+Bond/composition and Build Health remain evidence. They must not become independent competing definitions of value.
 
 ---
 
-## Fresh-profile collection progression — RETIRED FROM ACTIVE ROADMAP
+## Phase 0 — Freeze and simplify authority
 
-Collection-first mode is no longer an active gameplay objective. The permanent Balatro agent is evaluated on winning the current run.
+**Goal:** know exactly which component has final authority for each action family.
 
-Rules going forward:
+- [ ] Freeze new gameplay features.
+- [ ] Inventory every production component capable of changing a D1 action.
+- [ ] Inventory every production component capable of changing D2/D14 shop decisions.
+- [ ] Classify each as legality/mechanics, projection, evaluator, strategy evidence, final arbitration, or diagnostics only.
+- [ ] Remove or merge late rescue/correction policies when their logic belongs inside the canonical evaluator/arbiter.
+- [ ] Ensure diagnostics/monitoring cannot launch independent planning that affects runtime or action selection.
 
-- Collection/unlock state may be observed for diagnostics or bounded exact-tie metadata only.
-- Collection state must not turn a losing or strategically inferior action into the selected action.
-- No collection campaign may intentionally sacrifice blind-clear probability, a functioning engine, economy required for survival, or a superior win-oriented purchase.
-- Existing legacy collection tooling may remain in the repository until separately removed, but it is not part of the Red/White competence contract and must not leak authority into normal play.
+**Exit gate:** one documented final authority exists for each action family.
 
 ---
 
-## v1.1–v1.7 — Red Deck stake progression
+## Phase 1 — Semantic competence benchmark
+
+**Goal:** create a stable progress meter instead of judging progress from random runs.
+
+Build a checked-in benchmark of roughly **50–100 captured or reconstructed public checkpoints**. Each case should test a behavioral property rather than a fragile exact action unless exactness is mechanically required.
+
+### Initial D1 cases
+
+- guaranteed clear must be taken;
+- useful discards must be used when current pace is inadequate;
+- trivial one-card plays must not burn hands while useful discards remain;
+- repeated one-card discards must be exceptional unless mechanics make precision relevant;
+- survival-equivalent lines may preserve valuable held cards;
+- forced selections and boss rules must be obeyed;
+- impossible-clear states should maximize remaining progress rather than preserve irrelevant resources.
+
+### Initial shop cases
+
+- affordable obvious immediate scoring must be bought when underpowered and strategically legal;
+- mechanical/Bond conflicts must still veto inappropriate buys;
+- obviously dead components must be replaceable by materially better legal candidates;
+- interest/economy should be preserved for marginal purchases;
+- rich underpowered builds should reroll when the visible shop is inadequate;
+- rerolls must not violate survival reserve.
+
+### Initial build cases
+
+- functioning engines must survive marginal side-development offers;
+- real scaling deficits must be detected before current-blind survival collapses;
+- dormant/theoretical synergy cannot count as realized scoring;
+- coherent pivots must remain possible when projected whole-build value is genuinely better.
+
+### Initial pack/consumable/boss cases
+
+- hidden future value is never predicted;
+- deterministic visible improvements are not skipped without adequate reason;
+- speculative pack EV cannot override immediate survival;
+- boss mechanics/legality remain exact.
+
+**Benchmark output:** overall pass count plus category scores.
+
+**Exit gate:** every known recent obvious stupid-play class has a regression/semantic case.
+
+---
+
+## Phase 2 — D1 survival competence FIRST
+
+**Goal:** with current resources fixed, play the blind sensibly.
+
+Until this phase passes, shop sophistication is secondary.
+
+### Default D1 comparison order
+
+1. probability of clearing the blind;
+2. feasibility of remaining clear paths;
+3. expected progress toward the target;
+4. expected hands remaining;
+5. expected discards remaining;
+6. expected score/economy/generated resources as later tie-breaks.
+
+Exact boss mechanics and forced actions remain authoritative.
+
+### Required work
+
+- [ ] Audit D1 candidate generation before tuning weights.
+- [ ] Ensure useful multi-card discards survive the candidate beam.
+- [ ] Prevent recovery behavior from oscillating between “discard everything” and “never discard”.
+- [ ] Ensure timeout/fallback paths use the same survival objective as normal search.
+- [ ] Remove late D1 guards after their semantics are represented canonically.
+- [ ] Benchmark boss-sensitive states including The Hook, The Club, Cerulean Bell, Verdant Leaf, and Crimson Heart.
+- [ ] Keep interactive runtime bounded without silently switching objectives.
+
+**Exit gate:** D1 benchmark is effectively clean and fresh live runs show no known dominated hand/discard behavior.
+
+---
+
+## Phase 3 — Simple shop survival
+
+**Goal:** make the shop behave like a competent conservative player before complicated long-horizon cleverness.
+
+The shop should first answer:
+
+- Am I strong enough for the next blind?
+- Does this visible purchase materially improve survival/scaling?
+- Is this replacement genuinely better than what I own?
+- Can I afford it without destroying required reserve/economy?
+- If nothing useful is visible and I am weak but rich, should I reroll?
+
+### Required work
+
+- [ ] Establish one shared final comparison scale across Jokers, vouchers, boosters, consumables, rerolls, and END_SHOP.
+- [ ] Immediate legal survival/scoring value cannot be blocked by a generic adequacy threshold.
+- [ ] Mechanical/Bond conflicts remain authoritative.
+- [ ] Replace repeated runtime rescue monkeypatches with canonical D14 terms where possible.
+- [ ] Keep future-public-pool expectations bounded and subordinate to visible current-shop survival.
+- [ ] Remove nested planning whose runtime cost is disproportionate to its authority.
+- [ ] Preserve paid-reroll stop-loss while allowing rerolls for rich, underpowered builds with inadequate visible offers.
+
+**Exit gate:** shop benchmark is clean and normal SHOP decisions are responsive.
+
+---
+
+## Phase 4 — Coherent build authority
+
+**Goal:** use Bond/composition and Build Health as evidence inside one final run-winning decision process.
+
+- [ ] Keep literal scoring separate from structural Build Health.
+- [ ] Keep Bond development separate from realization.
+- [ ] R0/partial Bonds may affect future value but cannot manufacture immediate scoring power.
+- [ ] Mature realized engines receive preservation credit based on real disruption cost.
+- [ ] Pivots remain legal when complete projected-build value materially exceeds the incumbent after transaction/economy/disruption costs.
+- [ ] Full-board replacement compares complete resulting builds rather than isolated Joker values.
+- [ ] Ante-1 strategy evidence may guide purchases but cannot outrank survival when weak.
+
+**Exit gate:** no known “full board but non-functioning build” failure remains in the benchmark/live validation.
+
+---
+
+## Phase 5 — Reintegrate complex packs, consumables, vouchers, economy
+
+The extensive implementations already present remain valuable. This phase audits their authority rather than rebuilding them.
+
+- [ ] Keep/re-enable complex future-value models only when they improve benchmark behavior at acceptable runtime cost.
+- [ ] One-layer public expectation remains the normal unopened stochastic boundary.
+- [ ] Actual opened/held choices may use full modeled mechanics when the decision becomes real.
+- [ ] Hidden future shop contents, draw order, and RNG state remain forbidden.
+- [ ] Long-horizon option value cannot override clearly necessary immediate survival without explicit projected evidence.
+
+**Exit gate:** complex resource behavior preserves every earlier competence category.
+
+---
+
+## Phase 6 — Live validation
+
+Live runs return only after the semantic benchmark is stable.
+
+Sequence:
+
+1. `tests/balatro` green;
+2. semantic benchmark passes required category gates;
+3. one three-attempt Red/White smoke batch;
+4. inspect questionable decisions, not only the loss screen;
+5. when a new semantic defect appears, add its checkpoint/property to the benchmark **before fixing it**;
+6. rerun deterministic + semantic gates;
+7. repeat live validation on the new SHA.
+
+### Red/White competence gate before Red Stake
+
+- [ ] deterministic Balatro suite green;
+- [ ] semantic benchmark stable and near-clean across D1, shop, build, and boss categories;
+- [ ] no known mechanically contradictory or clearly dominated production decision;
+- [ ] normal decision latency within the interactive runtime budget, with slow outliers instrumented and explained;
+- [ ] repeated live batches do not reproduce the same obvious failure class;
+- [ ] at least one fresh unchanged-HEAD batch clears Ante 8 without a release-blocking semantic defect;
+- [ ] supervisor/restart/shutdown path completes cleanly.
+
+---
+
+## Phase 7 — Numerical tuning only after semantics
+
+The existing Optuna/Bond calibration foundation remains useful, but tuning stays frozen until numerical search is optimizing preferences rather than compensating for wrong mechanics or conflicting authorities.
+
+Allowed examples: contributor weights, empirical thresholds, synergy/conflict coefficients, pivot resistance, motif strengths, and resource-policy thresholds.
+
+Forbidden targets: mechanical truth, legality, boss rules, hidden information, or categorical overrides created solely to hide benchmark failures.
+
+Promotion still requires fresh controlled comparison with **at least 20 completed episodes per arm** and implemented non-regression/pathology gates.
+
+---
+
+# Collection progression — RETIRED FROM ACTIVE ROADMAP
+
+Collection/unlock state may remain for diagnostics or exact-tie metadata, but it must not turn a strategically inferior action into the selected action or intentionally sacrifice run-winning probability.
+
+---
+
+# v1.1–v1.7 — Red Deck stake progression — BLOCKED
 
 | Version | Stake | New adaptation focus |
 |---|---|---|
-| **v1.1** | **Red** | **No Small Blind reward money** |
+| **v1.1** | **Red** | No Small Blind reward money |
 | v1.2 | Green | Green Stake score scaling |
 | v1.3 | Black | Eternal Joker adaptation |
 | v1.4 | Blue | Reduced-discard adaptation |
 | v1.5 | Purple | Purple Stake score scaling |
 | v1.6 | Orange | Perishable Joker adaptation |
-| v1.7 | Gold | Rental Joker adaptation and Red Deck all-stakes validation |
+| v1.7 | Gold | Rental Joker adaptation and all-stakes validation |
 
-Each stake milestone modifies effectiveness, feasibility, economy, thresholds, and Bond realization/prescription behavior only where the stake genuinely changes them. Stake milestones must reuse the permanent canonical Balatro Bond/composition system rather than reintroduce categorical strategy trees.
-
-### Higher-stake economy and hand-efficiency requirement
-
-- [ ] Explicitly prioritize clearing blinds with as few hands as safely possible to maximize unused-hand cash-out.
-- [ ] Pursue >2× blind-target finishes for extra-cash benefit when the line is strategically safe and EV-positive.
+Stake progression begins only after the v1.0.x semantic/live competence gate passes. New stakes must reuse the permanent architecture rather than introduce another strategy framework.
 
 ---
 
-## v2+ — Additional decks
+# v2+ — Additional decks
 
-Planned deck order after Red Deck completion:
+Planned order after Red Deck completion:
 
-1. **Blue Deck — v2.x**
-2. **Yellow Deck — v3.x**
-3. **Green Deck — v4.x**
-4. **Black Deck — v5.x**
+1. Blue Deck — v2.x
+2. Yellow Deck — v3.x
+3. Green Deck — v4.x
+4. Black Deck — v5.x
 
-Additional-deck cartridges reuse the same canonical Balatro Bond/composition architecture and supply only deck/stake-specific modifiers and thresholds where necessary.
+Additional-deck cartridges reuse the same permanent Balatro architecture and add only genuine deck/stake-specific modifiers where necessary.
