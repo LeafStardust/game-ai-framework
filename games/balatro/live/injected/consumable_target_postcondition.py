@@ -13,6 +13,7 @@ CardSignature = tuple[str, str, str | None, str | None, str | None]
 ExpectedTarget = tuple[int | str, CardSignature | None]
 ExpectedEditionTarget = tuple[int | str, CardSignature, tuple[str, ...]]
 ExpectedHandLevel = tuple[str, int]
+ExpectedHandLevels = tuple[ExpectedHandLevel, ...]
 JokerRecordSignature = tuple[object | None, str, str, str]
 JokerSignature = tuple[JokerRecordSignature, ...]
 
@@ -29,6 +30,7 @@ class ConsumableTargetPostcondition:
     expected_edition_targets: tuple[ExpectedEditionTarget, ...] = ()
     expected_hand_absent_live_ids: tuple[int | str, ...] = ()
     expected_hand_level: ExpectedHandLevel | None = None
+    expected_hand_levels: ExpectedHandLevels = ()
     expected_joker_signature_change_from: JokerSignature | None = None
 
     @property
@@ -93,6 +95,10 @@ class ConsumableTargetPostcondition:
             if _snapshot_hand_level(snapshot, hand_type) != expected_level:
                 return False
 
+        for hand_type, expected_level in self.expected_hand_levels:
+            if _snapshot_hand_level(snapshot, hand_type) != expected_level:
+                return False
+
         if self.expected_joker_signature_change_from is not None:
             if (
                 _snapshot_joker_signature(snapshot)
@@ -138,6 +144,11 @@ def build_consumable_target_postcondition_for_consumable(
         if target_indices:
             raise ValueError("modeled Planet verification does not accept hand targets")
         return _build_planet_hand_level_postcondition(state, consumable)
+
+    if category == "SPECTRAL" and name == "Black Hole":
+        if target_indices:
+            raise ValueError("modeled Black Hole verification does not accept hand targets")
+        return _build_black_hole_hand_levels_postcondition(state, consumable)
 
     if (
         category == "SPECTRAL"
@@ -271,6 +282,41 @@ def _build_planet_hand_level_postcondition(
 
     return ConsumableTargetPostcondition(
         expected_hand_level=(hand_type, after_level),
+    )
+
+
+def _build_black_hole_hand_levels_postcondition(
+    state,
+    consumable,
+) -> ConsumableTargetPostcondition | None:
+    hand_levels = getattr(state, "hand_levels", None)
+    if not isinstance(hand_levels, dict) or not hand_levels:
+        return None
+
+    simulated = copy.deepcopy(state)
+    simulated_consumable = copy.deepcopy(consumable)
+    context = ConsumableContext(state=simulated)
+    if not simulated_consumable.can_use(context):
+        raise ValueError(
+            "modeled Black Hole failed can_use during verification simulation"
+        )
+
+    before_levels = {
+        str(hand_type): int(level)
+        for hand_type, level in simulated.hand_levels.items()
+    }
+    simulated_consumable.use(context)
+    expected: list[ExpectedHandLevel] = []
+    for hand_type, before_level in before_levels.items():
+        after_level = int(simulated.hand_levels.get(hand_type, before_level))
+        if after_level != before_level + 1:
+            raise ValueError(
+                "modeled Black Hole verification requires every hand level to increase by exactly one"
+            )
+        expected.append((hand_type, after_level))
+
+    return ConsumableTargetPostcondition(
+        expected_hand_levels=tuple(sorted(expected)),
     )
 
 
