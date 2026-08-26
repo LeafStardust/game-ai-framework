@@ -54,6 +54,25 @@ def _state(*, money: int = 20) -> BalatroState:
     state.phase = "SHOP"
     state.money = money
     state.joker_slots = 5
+    # Production D11 replaces the historical fixed Joker gross-utility prior with
+    # an expectation over the authoritative public eligible Joker catalogue. Keep
+    # tests on that contract rather than making the policy guess a hidden future
+    # Joker when no catalogue has been observed.
+    state.joker_generation_pool_observed = True
+    state.joker_generation_pools = {
+        rarity: (
+            {
+                "center": "j_joker",
+                "label": "Joker",
+                "ability_name": "Joker",
+                "ability_set": "JOKER",
+                "rarity": rarity,
+            },
+        )
+        for rarity in ("COMMON", "UNCOMMON", "RARE")
+    }
+    state.joker_generation_edition_rate = 1.0
+    state.visible_poker_hands = tuple(state.hand_levels)
     return state
 
 
@@ -152,6 +171,7 @@ def test_weak_open_capacity_build_has_positive_reroll_ev_when_cost_is_cheap():
     assert result.future_shop_ev > 0.0
     assert result.reroll_score > result.current_best_score
     assert any("JOKER:20" in note for note in result.rationale)
+    assert any("public eligible rarity pools" in note for note in result.rationale)
 
 
 def test_expensive_reroll_is_negative_for_saturated_build():
