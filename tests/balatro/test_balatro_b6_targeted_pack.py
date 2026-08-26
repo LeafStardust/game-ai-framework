@@ -81,9 +81,10 @@ def _snapshot(sequence, phase, payload=None):
 
 
 def test_targeted_tarot_pack_choice_carries_exact_b6_hand_target():
-    card = BalatroCard("4", "Clubs")
-    state = _pack_state([card])
-    choice = _choice()
+    two = BalatroCard("2", "Hearts")
+    king = BalatroCard("K", "Clubs")
+    state = _pack_state([two, king])
+    choice = _choice("Death")
     actions = [
         BalatroAction(SELECT_PACK_CARD, target=choice),
         BalatroAction(SKIP_BOOSTER),
@@ -91,16 +92,14 @@ def test_targeted_tarot_pack_choice_carries_exact_b6_hand_target():
 
     ranked = BalatroPackPolicy(
         item_estimator=_Estimator(),
-        # Production D9 compares visible pack choices against sunk-cost Skip=0.
-        # Deterministic targets no longer receive generic shop/category utility.
         skip_bias=0.0,
     ).rank_actions(state, actions)
 
     selected = ranked[0]
     assert selected.action.name == SELECT_PACK_CARD
     assert selected.action.target is choice
-    assert selected.action.cards == [card]
-    assert any("target_indices=(0,)" in note for note in selected.notes)
+    assert selected.action.cards == [two, king]
+    assert any("target_indices=(0, 1)" in note for note in selected.notes)
     assert any("D10/B6 target gain=" in note for note in selected.notes)
 
 
