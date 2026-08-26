@@ -82,6 +82,15 @@ This turns Card Sharp/repetition recognition into actual repeated-hand execution
 
 Target-hand classification uses `hand_rules_for_state(state)`, so modified hand construction remains identical to canonical D1.
 
+## Pinned strategy safe-pace execution
+
+`pinned_strategy_safe_pace_policy.py` allows the pinned strategy to break close PACE_PLAY ties only inside two existing safety boundaries:
+
+- the candidate remains inside the narrow score-equivalence band used by the policy; and
+- its full-blind clear probability remains within D1's configured safe-clear tolerance of the baseline selected line.
+
+The score band alone is not considered a survival guarantee. A held-card or strategy-fit preference cannot replace a materially safer D1 play merely because its immediate score is within 98% of the best pace-qualified score.
+
 ## Sixth Sense
 
 `sixth_sense_policy.py` treats first-hand single-6 play as a setup/resource action, not an unconditional mechanic trigger.
