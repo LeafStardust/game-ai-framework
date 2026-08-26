@@ -202,9 +202,11 @@ def test_expensive_reroll_is_negative_for_saturated_build():
     )
 
     assert result.decision == "HOLD"
-    # Every modeled future family is non-actionable here: the public Base Joker is
-    # dominated by the saturated strong roster and consumable slots are full.
-    assert result.future_shop_ev == policy.shop_policy.hold_bias
+    # Full ordinary Joker slots do not make the future Joker branch exactly inert:
+    # a generated Negative Joker is slot-neutral and can retain a small positive
+    # public-pool option value. The expensive paid reroll must still lose after its
+    # resource cost against the current END_SHOP baseline.
+    assert result.future_shop_ev > policy.shop_policy.hold_bias
     assert result.reroll_score < result.current_best_score
     assert result.executable_action is None
 
