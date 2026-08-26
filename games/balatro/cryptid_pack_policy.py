@@ -21,6 +21,9 @@ from games.balatro.consumable import ConsumableContext
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
 
 
+CRYPTID = "Cryptid"
+
+
 @dataclass(frozen=True)
 class CryptidTargetExpectation:
     cards: tuple
@@ -114,7 +117,7 @@ def install_cryptid_pack_policy() -> None:
     original_score_consumable = BalatroPackPolicy._score_consumable
 
     def score_consumable(self, state, action, choice):
-        if not (choice.kind == "SPECTRAL" and choice.label == "Cryptid"):
+        if not (choice.kind == "SPECTRAL" and choice.label == CRYPTID):
             return original_score_consumable(self, state, action, choice)
 
         target = self.consumable_factory.create(choice.data, live_id=choice.live_id)
@@ -148,4 +151,10 @@ def install_cryptid_pack_policy() -> None:
         )
 
     BalatroPackPolicy._score_consumable = score_consumable
+    BalatroPackPolicy.STOCHASTIC_MODELED_SPECTRALS = frozenset(
+        set(BalatroPackPolicy.STOCHASTIC_MODELED_SPECTRALS) | {CRYPTID}
+    )
+    BalatroPackPolicy.DEFERRED_SPECTRALS = frozenset(
+        set(BalatroPackPolicy.DEFERRED_SPECTRALS) - {CRYPTID}
+    )
     BalatroPackPolicy._cryptid_pack_policy_installed = True
