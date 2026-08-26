@@ -19,7 +19,7 @@ def install_immolate_pack_expectation_policy() -> None:
     def init(self, *args, **kwargs):
         original_init(self, *args, **kwargs)
         self.immolate_expectation_evaluator = ImmolateExpectationEvaluator(
-            target_evaluator=self.target_evaluator
+            target_evaluator=self.consumable_target_evaluator
         )
 
     def score_consumable(self, state, action, choice):
