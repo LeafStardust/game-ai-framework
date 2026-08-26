@@ -19,8 +19,24 @@ class DaggerJoker(Joker):
                 return context
 
             target = jokers[index + 1]
+            # Eternal Jokers cannot be destroyed by Ceremonial Dagger. Balatro
+            # therefore leaves both Jokers in place and grants no permanent Mult;
+            # keep the modeled trigger consistent with the pre-blind order policy.
+            if bool(getattr(target, "eternal", False)):
+                return context
 
-            self.mult += 2 * getattr(target, "sell_value", 0)
+            sell_value = max(
+                0,
+                int(
+                    getattr(
+                        target,
+                        "sell_value",
+                        getattr(target, "sell_cost", 0),
+                    )
+                    or 0
+                ),
+            )
+            self.mult += 2 * sell_value
             context.data["destroy_joker"] = target
             return context
 
