@@ -21,6 +21,7 @@ from games.balatro.burnt_bond_execution_policy import install_burnt_bond_executi
 from games.balatro.castle_discard_policy import install_castle_discard_policy
 from games.balatro.cerulean_bell_d1_legality_policy import install_cerulean_bell_d1_legality_policy
 from games.balatro.cerulean_live_state_policy import install_cerulean_live_state_policy
+from games.balatro.consumable_d14_literal_policy import install_consumable_d14_literal_policy
 from games.balatro.consumable_target_literal_value_policy import install_consumable_target_literal_value_policy
 from games.balatro.cryptid_dispatch_postcondition import install_cryptid_dispatch_postcondition
 from games.balatro.cryptid_pack_policy import install_cryptid_pack_policy
@@ -123,6 +124,7 @@ install_safe_pace_optimization_policy()
 install_safe_pace_timeout_patch()
 install_safe_pace_scope_correction()
 install_held_consumable_option_policy()
+install_consumable_d14_literal_policy()
 install_shop_transaction_policy()
 install_luchador_activation_policy()
 install_stable_economy_mechanics_policy()
