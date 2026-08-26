@@ -2,8 +2,11 @@ from types import SimpleNamespace
 
 from games.balatro.actions import DISCARD_CARDS, SKIP_BOOSTER, BalatroAction
 from games.balatro.build.high_priestess_expectation import HighPriestessExpectationEvaluator
+from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
+from games.balatro.held_consumable_option_policy import HeldConsumableOptionEvaluator
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
+from games.balatro.pack_policy import PackActionScore
 from games.balatro.planets import create_planet
 from games.balatro.playbook.red_white.pack_policy import PlaybookBalatroPackPolicy
 from games.balatro.shop_consumable_policy import ConsumableAcquisitionPolicy
@@ -14,6 +17,11 @@ from games.balatro.voucher_parent_literal_policy import VoucherParentLiteralEval
 class _ConstantPlanetEstimator:
     def estimate(self, state, action):
         return 1.0, ("test value",)
+
+
+class _PositiveFuturePackPolicy:
+    def score_action(self, state, action):
+        return PackActionScore(action, 2.0, ("positive future use",))
 
 
 class ConstellationJoker:
@@ -158,3 +166,27 @@ def test_multi_card_redraw_gets_one_discard_resource_efficiency_bonus():
     # 16 per additional card here (shortfall=1), because both actions consume
     # exactly one discard resource. Two extra redraws therefore add 40 total.
     assert three_card_value - singleton_value == 40.0
+
+
+def test_held_generation_tarots_use_installed_future_d9_value():
+    state = _state()
+    state.owned_deck = [BalatroCard("A", "Spades")]
+    state.hand_size = 1
+
+    evaluator = HeldConsumableOptionEvaluator(
+        pack_policy=_PositiveFuturePackPolicy()
+    )
+
+    for name in ("The High Priestess", "The Emperor", "Judgement"):
+        result = evaluator.evaluate(
+            state,
+            SimpleNamespace(category="TAROT", name=name),
+        )
+        assert result.complete
+        assert result.expected_gain == 2.0
+
+    high_priestess = evaluator.evaluate(
+        state,
+        SimpleNamespace(category="TAROT", name="The High Priestess"),
+    )
+    assert any("post-consumption occupancy" in note for note in high_priestess.rationale)
