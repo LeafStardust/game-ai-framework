@@ -167,10 +167,17 @@ class Wraith(SpectralCard):
         super().__init__("Wraith")
 
     def can_use(self, context: ConsumableContext) -> bool:
-        return True
+        joker_slots = max(
+            0,
+            int(getattr(context.state, "joker_slots", 5) or 5),
+        )
+        return len(context.state.jokers) < joker_slots
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
-        joker = context.data["random_joker"]()
+        # Wraith's generated Joker is explicitly Rare. Keep that contract
+        # distinct from generic random-Joker generation so callers cannot
+        # accidentally sample Common/Uncommon outcomes.
+        joker = context.data["random_rare_joker"]()
 
         context.state.jokers.append(joker)
         context.state.money = 0
