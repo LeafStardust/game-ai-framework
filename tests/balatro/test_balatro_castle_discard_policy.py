@@ -16,6 +16,14 @@ def _plan(action, *, probability=0.5, expected_score=100.0, exact=True):
     )
 
 
+def _result(selected, *plans, tolerance=0.02):
+    return SimpleNamespace(
+        selected_plan=selected,
+        plans=(selected, *plans),
+        thresholds=SimpleNamespace(safe_clear_probability_tolerance=tolerance),
+    )
+
+
 def test_castle_redirects_only_to_near_equivalent_castle_suit_discard():
     selected = _plan(
         BalatroAction(DISCARD_CARDS, cards=[BalatroCard("Q", "Spades")]),
@@ -27,7 +35,7 @@ def test_castle_redirects_only_to_near_equivalent_castle_suit_discard():
         probability=0.49,
         expected_score=95.0,
     )
-    result = SimpleNamespace(selected_plan=selected, plans=(selected, castle))
+    result = _result(selected, castle)
     assert _safe_castle_discard_alternative(result, "Diamonds") is castle
 
 
@@ -38,7 +46,7 @@ def test_castle_never_forces_discard_or_accepts_material_survival_loss():
         probability=0.50,
         expected_score=100.0,
     )
-    result = SimpleNamespace(selected_plan=play, plans=(play, castle))
+    result = _result(play, castle)
     assert _safe_castle_discard_alternative(result, "Diamonds") is None
 
     selected = _plan(
@@ -51,5 +59,5 @@ def test_castle_never_forces_discard_or_accepts_material_survival_loss():
         probability=0.50,
         expected_score=70.0,
     )
-    result = SimpleNamespace(selected_plan=selected, plans=(selected, bad_castle))
+    result = _result(selected, bad_castle)
     assert _safe_castle_discard_alternative(result, "Diamonds") is None
