@@ -152,9 +152,6 @@ def test_celestial_option_value_uses_observed_hand_specialization_not_level_alon
     level_only = policy.recommend(level_only_state, action)
     repeated = policy.recommend(repeated_state, action)
 
-    # Permanent levels alone do not create new direction. Repeated public use does,
-    # and the current Celestial model values the finite eligible Planet pool through
-    # literal before/after scoring rather than fixed family constants.
     assert level_only.build_need_score == base.build_need_score == 0.0
     assert repeated.build_need_score > base.build_need_score
     assert repeated.option_utility > 0.0
@@ -184,10 +181,7 @@ def test_expensive_booster_can_lose_to_hold_after_shop_economics():
 
 def test_whole_shop_arbiter_holds_unrecognized_booster_when_reroll_is_unknown():
     state = _state()
-    booster = BalatroAction(
-        BUY_BOOSTER,
-        target=_booster("Mystery Pack"),
-    )
+    booster = BalatroAction(BUY_BOOSTER, target=_booster("Mystery Pack"))
     decision = BuildAwareShopArbiter().decide(
         state,
         [booster, BalatroAction(END_SHOP)],
@@ -201,35 +195,30 @@ def test_whole_shop_arbiter_holds_unrecognized_booster_when_reroll_is_unknown():
 
 def test_strong_deterministic_purchase_beats_unrecognized_booster():
     state = _state()
-    voucher = BalatroAction(
-        BUY_VOUCHER,
-        target=LiveShopItem(
-            kind="VOUCHER",
-            label="Antimatter",
-            price=0,
-            area_index=0,
-        ),
+    voucher_target = LiveShopItem(
+        kind="VOUCHER",
+        label="Antimatter",
+        price=0,
+        area_index=0,
     )
-    booster = BalatroAction(
-        BUY_BOOSTER,
-        target=_booster("Mystery Pack"),
-    )
+    voucher = BalatroAction(BUY_VOUCHER, target=voucher_target)
+    booster = BalatroAction(BUY_BOOSTER, target=_booster("Mystery Pack"))
     decision = BuildAwareShopArbiter().decide(
         state,
         [voucher, booster, BalatroAction(END_SHOP)],
         reroll_cost=None,
     )
 
-    assert decision.action is voucher
+    # Deterministic policy wrappers may reconstruct the executable BalatroAction.
+    # D14 identity is semantic: same action type and exact visible target.
+    assert decision.action.name == BUY_VOUCHER
+    assert decision.action.target is voucher_target
     assert decision.source == "DETERMINISTIC"
 
 
 def test_unrecognized_visible_booster_does_not_suppress_reroll():
     state = _with_public_joker_pool(_state(money=21))
-    booster = BalatroAction(
-        BUY_BOOSTER,
-        target=_booster("Mystery Pack"),
-    )
+    booster = BalatroAction(BUY_BOOSTER, target=_booster("Mystery Pack"))
     decision = BuildAwareShopArbiter().decide(
         state,
         [booster, BalatroAction(END_SHOP)],
@@ -246,11 +235,7 @@ def test_free_reroll_can_beat_weak_or_rejected_booster():
     state = _state()
     weak = BalatroAction(
         BUY_BOOSTER,
-        target=_booster(
-            "Standard Pack",
-            price=10,
-            center="p_standard_normal_1",
-        ),
+        target=_booster("Standard Pack", price=10, center="p_standard_normal_1"),
     )
     decision = BuildAwareShopArbiter().decide(
         state,
@@ -264,10 +249,7 @@ def test_free_reroll_can_beat_weak_or_rejected_booster():
 
 def test_unknown_reroll_cost_and_unrecognized_booster_hold_shop():
     state = _state()
-    booster = BalatroAction(
-        BUY_BOOSTER,
-        target=_booster("Mystery Pack"),
-    )
+    booster = BalatroAction(BUY_BOOSTER, target=_booster("Mystery Pack"))
     decision = BuildAwareShopArbiter().decide(
         state,
         [booster, BalatroAction(END_SHOP)],
@@ -299,21 +281,13 @@ def test_arbiter_resolves_d8_and_d11_from_active_playbook(monkeypatch):
             name="threshold-regression",
             strategy={
                 "decision_thresholds": {
-                    "booster_acquisition": {
-                        "minimum_buy_advantage": 9.0,
-                    },
-                    "reroll": {
-                        "minimum_margin": 4.0,
-                    },
+                    "booster_acquisition": {"minimum_buy_advantage": 9.0},
+                    "reroll": {"minimum_margin": 4.0},
                 }
             },
         )
     )
-    monkeypatch.setattr(
-        shop_arbiter_module,
-        "default_balatro_playbooks",
-        lambda: registry,
-    )
+    monkeypatch.setattr(shop_arbiter_module, "default_balatro_playbooks", lambda: registry)
     state = _state()
     state.deck_name = "RED"
     state.stake_name = "WHITE"
