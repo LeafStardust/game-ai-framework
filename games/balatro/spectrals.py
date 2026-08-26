@@ -35,6 +35,17 @@ def _random_enhanced_card(rng, *, ranks) -> BalatroCard:
     )
 
 
+def _add_created_playing_cards_to_hand(state, created) -> None:
+    cards = list(created or ())
+    if not cards:
+        return
+
+    state.hand.extend(cards)
+    owned_deck = getattr(state, "owned_deck", None)
+    if owned_deck is not None:
+        owned_deck.extend(cards)
+
+
 def _editionless_jokers(state) -> list:
     return [
         joker
@@ -74,7 +85,7 @@ class Familiar(SpectralCard):
             _random_enhanced_card(rng, ranks=FACE_RANKS)
             for _ in range(3)
         ]
-        context.state.deck.extend(created)
+        _add_created_playing_cards_to_hand(context.state, created)
         context.data["destroyed"] = destroyed
         context.data["created"] = created
 
@@ -101,7 +112,7 @@ class Grim(SpectralCard):
             for _ in range(2)
         ]
 
-        context.state.deck.extend(created)
+        _add_created_playing_cards_to_hand(context.state, created)
         context.data["destroyed"] = destroyed
         context.data["created"] = created
 
@@ -128,7 +139,7 @@ class Incantation(SpectralCard):
             for _ in range(4)
         ]
 
-        context.state.deck.extend(created)
+        _add_created_playing_cards_to_hand(context.state, created)
         context.data["destroyed"] = destroyed
         context.data["created"] = created
 
@@ -424,12 +435,15 @@ class Cryptid(SpectralCard):
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
         source = context.cards[0]
-        created = [
-            copy.deepcopy(source)
-            for _ in range(2)
-        ]
+        created = []
+        for _ in range(2):
+            copied = copy.deepcopy(source)
+            copied.live_id = None
+            copied.debuffed = False
+            copied.forced_selection = False
+            created.append(copied)
 
-        context.state.deck.extend(created)
+        _add_created_playing_cards_to_hand(context.state, created)
         context.data["created"] = created
 
         return context
