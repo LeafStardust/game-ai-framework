@@ -1,6 +1,6 @@
 # Balatro D14 Cross-Family Arbitration Audit
 
-Status: **Active implementation audit — narrowed to horizon-dependent persistent vouchers**
+Status: **Static arbitration semantics implemented; current-HEAD local validation and later tuning pending**
 
 Date: 2026-08-26
 
@@ -33,6 +33,22 @@ Joker parent value uses:
 - exact selected shop-copy identity for committed replacement.
 
 Sold Bull/Bootstraps do not remain in post-sale cash-scaling opportunity cost.
+
+### Generic visible two-Joker Bond planning
+
+Ordinary D2 evaluates one visible Joker against the current roster. That leaves one bounded blind spot: two simultaneously visible Jokers may become a valid composition only together even though neither clears the standalone D2 purchase threshold before the other is owned.
+
+`bond_visible_shop_bundle_policy.py` closes that gap through the canonical Bond/composition system rather than a named-pair table:
+
+- neither component may already be an actionable standalone D2 purchase;
+- the first component must already be a mechanically eligible D2 ADD option and may fail only standalone purchase advantage;
+- the exact first purchase is projected with its real cash/slot transition;
+- canonical D2 is rerun on the second visible Joker in that projected state;
+- the second must become an actual D2 `BUY`, and its modeled build gain must strictly improve after adding the first component, proving a composition interaction rather than two unrelated speculative purchases;
+- both steps are normalized sequentially through the existing D14 `ShopUtilityScale`;
+- the combined verified gain must beat the action ordinary D14 would otherwise execute.
+
+Only the first purchase is emitted. The agent then re-observes the settled shop and requires a fresh D2 `BUY` for the still-visible second component before completing the pair. A disappeared, unaffordable or no-longer-admitted second Joker cancels the commitment. No hidden future shop contents, RNG state or named Joker combination is used.
 
 ## Consumable authority — implementation repaired
 
@@ -74,34 +90,37 @@ D11 no longer relies on fixed gross value for future Joker, Planet or Tarot iden
 
 Future exact item identity is never observed. Unseen future sticker price remains the explicit D11 price prior. Reroll purchase cost is charged separately after future-shop option EV.
 
-## Voucher authority — partially repaired
+## Voucher authority — implementation repaired with grounded/fail-closed horizons
 
-D3 is authoritative for ordinary voucher BUY/HOLD admission. D14 recomputes voucher purchase resource cost on the shared parent scale.
+D3 is authoritative for ordinary voucher BUY/HOLD admission. D14 recomputes voucher purchase resource cost on the shared parent scale. D3 strategic admission does not entitle a persistent voucher to an arbitrary fixed D14 cross-family number.
 
-The following vouchers now have grounded parent behavior instead of their legacy fixed D3 number:
+The following vouchers have grounded parent behavior:
 
 - **Antimatter** — marginal public future-Joker option from `joker_slots -> joker_slots + 1`, evaluated at post-purchase cash through the same D11/D2/D14 Joker expectation used by Ectoplasm;
 - **Paint Brush / Palette** — literal expected best-play improvement from `hand_size -> hand_size + 1` using the same public draw and D2 direct-score scale used by Ouija/Ectoplasm hand-size opportunity cost;
+- **Grabber / Nacho Tong** — exact `+1 hand` value propagated only across Boss Blind rounds that are unavoidably required to win through the configured Ante-8 target. Small and Big Blinds are omitted because playing rather than skipping them is a future policy choice. Only the shared resource model's invariant direct hand component is propagated; current-blind survival pressure is not copied onto unseen bosses;
+- **Wasteful / Recyclomancy** — the same unavoidable Boss-round lower bound for `+1 discard`. Existing D3 conflict/mechanical vetoes such as Burglar remain authoritative;
 - **Observatory** — literal current-build score change from adding the voucher to the current state, using the installed exact `1.5 ** matching_held_planets` scoring effect. Future Planet acquisition and Perkeo infrastructure are deliberately omitted instead of receiving a synthetic premium;
 - **Seed Money / Money Tree** — conservative improvement to the next interest payout at actual post-purchase cash. Later-round compounding is omitted rather than assigned a synthetic horizon premium;
 - **Blank** — special collection/progression authority while Antimatter remains observably locked. Balatro's public `v_antimatter.unlocked` center flag is exposed directly. D3 may admit Blank only when ordinary affordability and survival/reserve gates pass. D14 lets that unlock progression cover Blank's direct sticker-price term plus a bounded tie-break, while lost interest, reserve pressure and Bull/Bootstraps cash-scaling opportunity cost remain fully charged. Once Antimatter is unlocked, Blank's progression parent value becomes zero.
 
 Blank's progression exception is intentionally separate from ordinary gameplay utility: the redemption is a real step toward the ten-Blank Antimatter unlock, but it must not force a purchase that damages the current Red/White run.
 
-### Remaining D14 implementation blocker
+### Policy-contingent persistent vouchers fail closed
 
-Other persistent vouchers still use D3 strategic persistent values because their effect is inherently multi-round/horizon dependent and does not yet have a common parent-scale mechanical model. Examples include:
+The remaining persistent voucher families require a future *choice*, not an unavoidable event. D14 therefore assigns them `0.0` current parent gain instead of inheriting a legacy fixed D3 value or inventing an assumed count:
 
-- Grabber / Nacho Tong — +1 hand per round;
-- Wasteful / Recyclomancy — +1 discard per round;
-- Telescope — future Celestial-pack guarantee;
-- Clearance Sale / Liquidation — future shop-price reduction;
-- Reroll Surplus / Reroll Glut — future reroll-price reduction;
-- Hieroglyph / Petroglyph — Ante/resource tradeoffs;
-- Magic Trick / Illusion — future playing-card shop pool;
-- other prerequisite/progression vouchers whose unlock objective has not been explicitly modeled.
+- **Telescope** — requires choosing a future Celestial pack;
+- **Clearance Sale / Liquidation** — require one or more future purchases;
+- **Reroll Surplus / Reroll Glut** — require choosing one or more future rerolls;
+- **Magic Trick / Illusion** — require future playing-card shop opportunities;
+- **Hieroglyph / Petroglyph** — require a common-unit treatment of the immediate Ante decrease versus their permanent hand/discard resource loss.
 
-These effects should not be replaced by another universal constant merely to make the D14 checkbox green. They require either direct public-state horizon projection or an explicitly shared strategic parent unit suitable for comparison with the other families.
+This is deliberate fail-closed arbitration, not missing Balatro mechanics. D3 may still admit these vouchers strategically. D14 simply refuses to compare an invented future-policy payoff against literal Joker/consumable/booster utility until a grounded planning horizon/common unit exists.
+
+## Tuning boundary
+
+Threshold-driven shop guards such as early cash floors, late-shop reserve thresholds and D13 tag-vs-development preferences remain calibration work. They should be tuned from local/live evidence after semantic correctness is validated rather than rewritten here as new mechanics.
 
 ## Hidden-information guarantee
 
@@ -116,4 +135,4 @@ Random future effects are integrated over public eligible catalogues or public d
 
 ## Validation status
 
-No tests were run by the assistant. Current-HEAD deterministic and live validation remain the user's local gate. D14 should remain unchecked in the Red/White roadmap until the remaining persistent-voucher parent-value problem is addressed and the resulting HEAD is locally validated.
+No tests were run by the assistant. Current-HEAD deterministic and live validation remain the user's local gate. Semantic D14 arbitration no longer has a synthetic persistent-voucher blocker; threshold calibration and any contradictions reproduced by local/live validation remain follow-up work.
