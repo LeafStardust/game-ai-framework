@@ -40,6 +40,10 @@ class BalatroState(GameState):
         self.owned_deck: list[BalatroCard] | None = None
         self.hand: list[BalatroCard] = []
         self.hand_size: int = 8
+        # Ectoplasm deterministically removes G.GAME.ecto_minus cards from hand
+        # size, defaulting to 1 before the first use and incrementing afterward.
+        # The counter is ordinary run history, not hidden RNG state.
+        self.ectoplasm_hand_size_penalty: int = 1
         self.hands_remaining: int = 4
         self.discard_pile: list[BalatroCard] = []
         self.discards_remaining: int = 3
@@ -169,6 +173,7 @@ class BalatroState(GameState):
         )
         new_state.hand = self.hand.copy()
         new_state.hand_size = self.hand_size
+        new_state.ectoplasm_hand_size_penalty = self.ectoplasm_hand_size_penalty
         new_state.hands_remaining = self.hands_remaining
         new_state.discard_pile = self.discard_pile.copy()
         new_state.discards_remaining = self.discards_remaining
