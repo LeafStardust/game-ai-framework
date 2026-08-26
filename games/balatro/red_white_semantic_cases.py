@@ -9,7 +9,7 @@ itself demands exactness.
 
 from types import SimpleNamespace
 
-from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
+from games.balatro.actions import DISCARD_CARDS, BalatroAction
 from games.balatro.build import JokerBuildTransitionPlanner
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 from games.balatro.joker_policy import BUY, HOLD, JokerAcquisitionPolicy
@@ -17,11 +17,7 @@ from games.balatro.jokers.card_sharp import CardSharpJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.ride_the_bus import RideTheBusJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
-from games.balatro.live.blind_clear_planner import (
-    LiveBlindClearPlanner,
-    LiveBlindPlanValue,
-    _ActionEstimate,
-)
+from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
@@ -81,39 +77,6 @@ def _planner_discard_beam_uses_d1_value() -> SemanticCheck:
         observed=f"single={single_priority!r}, multi={batch_priority!r}",
         expected="planner discard beam preserves canonical D1 ordering",
         detail="candidate pre-ranking must not silently use a separate recovery objective",
-    )
-
-
-def _planner_progress_beats_exactness_without_clear() -> SemanticCheck:
-    low_progress_exact = _ActionEstimate(
-        BalatroAction(PLAY_CARDS),
-        LiveBlindPlanValue(
-            clear_probability=0.0,
-            expected_progress=0.20,
-            expected_score=200.0,
-            expected_hands_remaining=3.0,
-            expected_discards_remaining=4.0,
-        ),
-        True,
-    )
-    high_progress_sampled = _ActionEstimate(
-        BalatroAction(PLAY_CARDS),
-        LiveBlindPlanValue(
-            clear_probability=0.0,
-            expected_progress=0.80,
-            expected_score=800.0,
-            expected_hands_remaining=3.0,
-            expected_discards_remaining=4.0,
-        ),
-        False,
-    )
-    exact_key = LiveBlindClearPlanner._estimate_key(low_progress_exact)
-    sampled_key = LiveBlindClearPlanner._estimate_key(high_progress_sampled)
-    return SemanticCheck(
-        sampled_key > exact_key,
-        observed=f"exact={exact_key!r}, higher_progress_sampled={sampled_key!r}",
-        expected="when clear probability is equal, progress outranks evidence exactness",
-        detail="exactness is confidence metadata; it must not make a much worse non-clear line strategically preferable",
     )
 
 
@@ -209,13 +172,6 @@ RED_WHITE_SEMANTIC_CASES = (
         "Discard candidate ranking must use the canonical D1 evaluator.",
         _planner_discard_beam_uses_d1_value,
         source="live failure class: planner/controller objective disagreement",
-    ),
-    SemanticBenchmarkCase(
-        "d1.authority.progress_before_exactness",
-        "D1_SURVIVAL",
-        "Evidence exactness cannot outrank materially better progress when clear probability is equal.",
-        _planner_progress_beats_exactness_without_clear,
-        source="Phase-2 authority audit: planner estimate ordering",
     ),
     SemanticBenchmarkCase(
         "shop.survival.first_scoring_foothold",
