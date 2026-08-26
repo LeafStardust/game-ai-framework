@@ -52,7 +52,7 @@ def _runner(state, terms_reader):
     )
 
 
-def test_autonomous_shop_can_choose_observed_paid_reroll():
+def test_autonomous_shop_paid_reroll_fails_closed_without_public_future_pool():
     runner = _runner(
         _state(money=20),
         lambda: LiveShopRerollTerms(cost=1.0, free_rerolls=0),
@@ -60,8 +60,11 @@ def test_autonomous_shop_can_choose_observed_paid_reroll():
 
     decision = runner.decide()
 
-    assert decision.action.name == REFRESH_SHOP
-    assert "shop_decision=REROLL" in decision.notes
+    # Observing the reroll price is necessary but no longer sufficient. D11's
+    # future card value must come from the public eligible catalogues; this legacy
+    # synthetic fixture does not supply them, so a paid speculative reroll is held.
+    assert decision.action.name == END_SHOP
+    assert "shop_decision=HOLD_REROLL" in decision.notes
     assert "observed_reroll_cost=1" in decision.notes
     assert "effective_reroll_spend=1" in decision.notes
 
