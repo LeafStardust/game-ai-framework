@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Use Balatro's exact Standard-pack generator for unopened D8 value.
 
-The base D8 policy historically used fixed Standard-family hit/value priors.  The
+The base D8 policy historically used fixed Standard-family hit/value priors. The
 base game generator is finite and public-mechanics-derived: each offer is Base with
 60% probability or uniformly one of the eight Enhanced centers with 40%; its front
 is uniform over the 52 base rank/suit cards; a Seal is present with 20% probability
@@ -10,15 +10,16 @@ and is uniform over the four seal types; and edition odds come from
 ``poll_edition(..., mod=2, no_negative=true)`` using the public run ``edition_rate``.
 
 This policy integrates the exact *one-offer* distribution through the same D9
-playing-card value formula used after a Standard pack is opened.  The current build
-profile is computed once and reused for all finite generator branches, avoiding a
-multi-thousand-profile shop slowdown.  The one-offer expectation is intentionally a
-conservative lower bound for the best of 3/5 visible offers; no independence/best-
-of-N multiplier or hidden pack content is used.  Pack purchase resource cost remains
-owned by D8/D14.
+playing-card value formula used after a Standard pack is opened. The current build
+profile is computed once and reused for all finite generator branches. Blue Joker /
+Hologram growth is valued separately through their literal before/after score effect;
+vanilla dilution remains an independent deck-quality cost. The one-offer expectation
+is intentionally a conservative lower bound for the best of 3/5 visible offers; no
+independence/best-of-N multiplier or hidden pack content is used. Pack purchase
+resource cost remains owned by D8/D14.
 """
 
-from games.balatro.deck_growth_pack_policy import deck_growth_pack_support_active
+from games.balatro.build.deck_growth_value import DeckGrowthScoreValueEvaluator
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.shop_booster_policy import (
     BUY,
@@ -44,7 +45,6 @@ _SEALS = ("Red", "Blue", "Gold", "Purple")
 
 
 def _edition_distribution(rate: float) -> tuple[tuple[str | None, float], ...]:
-    """Return the disjoint Standard-pack poll_edition probabilities."""
     rate = max(0.0, float(rate))
     poly_tail = min(1.0, 0.012 * rate)
     holo_tail = min(1.0, 0.040 * rate)
@@ -68,6 +68,7 @@ def _seal_distribution() -> tuple[tuple[str | None, float], ...]:
 class StandardBoosterExpectationEvaluator:
     def __init__(self, *, pack_policy: BalatroPackPolicy | None = None) -> None:
         self.pack_policy = pack_policy or BalatroPackPolicy(skip_bias=0.0)
+        self.deck_growth = DeckGrowthScoreValueEvaluator()
 
     def _d9_visible_card_value(
         self,
@@ -79,14 +80,11 @@ class StandardBoosterExpectationEvaluator:
         edition: str | None,
         seal: str | None,
         profile,
-        deck_growth_support: bool,
+        deck_growth_value: float,
     ) -> float:
-        """Mirror BalatroPackPolicy._score_playing_card with a cached B6 profile."""
         score = float(self.pack_policy.RANK_VALUE.get(str(rank), 0.0))
         if enhancement:
-            score += float(
-                self.pack_policy.PLAYING_ENHANCEMENT_VALUE.get(str(enhancement), 0.0)
-            )
+            score += float(self.pack_policy.PLAYING_ENHANCEMENT_VALUE.get(str(enhancement), 0.0))
         edition_text = str(edition or "").upper()
         if edition_text:
             score += float(self.pack_policy.EDITION_BONUS.get(edition_text, 0.0))
@@ -106,10 +104,10 @@ class StandardBoosterExpectationEvaluator:
         score += float(contextual.total_gain)
 
         if not enhancement and not edition_text and not seal_text:
-            if deck_growth_support:
-                score += float(self.pack_policy.DECK_GROWTH_CARD_SUPPORT_VALUE)
-            else:
-                score -= float(self.pack_policy.VANILLA_CARD_DILUTION_PENALTY)
+            score -= float(self.pack_policy.VANILLA_CARD_DILUTION_PENALTY)
+
+        # Every selected Standard card is permanently added, regardless of modifier.
+        score += float(deck_growth_value)
         return score
 
     def evaluate(self, state) -> tuple[float, float, tuple[str, ...]]:
@@ -118,7 +116,7 @@ class StandardBoosterExpectationEvaluator:
             float(getattr(state, "joker_generation_edition_rate", 1.0) or 1.0),
         )
         profile = self.pack_policy.playing_card_build.profiler.profile(state)
-        deck_growth_support = deck_growth_pack_support_active(state)
+        deck_growth_value, deck_growth_notes = self.deck_growth.evaluate(state, added_count=1)
         total_probability = 0.0
         expected_option_value = 0.0
         positive_probability = 0.0
@@ -145,7 +143,7 @@ class StandardBoosterExpectationEvaluator:
                                 edition=edition,
                                 seal=seal,
                                 profile=profile,
-                                deck_growth_support=deck_growth_support,
+                                deck_growth_value=deck_growth_value,
                             )
                             option_value = max(0.0, float(score))
                             total_probability += probability
@@ -160,6 +158,7 @@ class StandardBoosterExpectationEvaluator:
         return expected_option_value, positive_probability, (
             "Standard one-offer EV uses exact base-game rank/suit/enhancement/seal/edition distribution",
             "D9 visible-card formula is reused with one cached B6 build profile",
+            *deck_growth_notes,
             f"public edition_rate={edition_rate:.6f}",
             f"one-offer positive-choice probability={positive_probability:.6f}",
             f"one-offer sunk-cost option EV={expected_option_value:.6f}",
@@ -199,9 +198,7 @@ def install_standard_booster_expectation_policy() -> None:
                 rationale=(f"Standard pack costs ${price} but only ${state.money} is available",),
             )
 
-        option_utility, per_offer_positive, expectation_notes = (
-            self._standard_generator_expectation.evaluate(state)
-        )
+        option_utility, per_offer_positive, expectation_notes = self._standard_generator_expectation.evaluate(state)
         offer_count, selection_count = self.PACK_LAYOUTS[family][variant]
         resource_cost = self.resource_valuator.money_spend_cost(
             money=int(state.money),
