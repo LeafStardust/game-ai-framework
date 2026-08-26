@@ -91,6 +91,7 @@ from games.balatro.tactical_scaler_retention_policy import install_tactical_scal
 from games.balatro.target_hand_engine_policy import install_target_hand_engine_policy
 from games.balatro.targeted_pack_literal_value_policy import install_targeted_pack_literal_value_policy
 from games.balatro.shop_transaction_policy import install_shop_transaction_policy
+from games.balatro.voucher_parent_literal_policy import install_voucher_parent_literal_policy
 from games.balatro.wraith_dispatch_postcondition import install_wraith_dispatch_postcondition
 from games.balatro.wraith_pack_expectation_policy import install_wraith_pack_expectation_policy
 from games.balatro.red_white_competence_corrections import install_red_white_competence_corrections
@@ -126,6 +127,7 @@ install_safe_pace_scope_correction()
 install_held_consumable_option_policy()
 install_consumable_d14_literal_policy()
 install_shop_transaction_policy()
+install_voucher_parent_literal_policy()
 install_luchador_activation_policy()
 install_stable_economy_mechanics_policy()
 install_observatory_planet_policy()
