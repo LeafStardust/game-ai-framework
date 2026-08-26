@@ -24,17 +24,16 @@ class AuraTargetExpectation:
 class AuraExpectationEvaluator:
     """Choose an editionless hand target by analytically valuing Aura outcomes.
 
-    The framework's Aura mechanics choose Foil, Holographic, or Polychrome uniformly.
-    This evaluator enumerates those public semantic outcomes instead of sampling RNG.
-    Existing editions are excluded so autonomous play never recommends overwriting a
-    known edition before replacement semantics receive an explicit opportunity-cost
-    model.
+    Aura uses Balatro's vanilla conditional edition weights: Foil 50%,
+    Holographic 35%, and Polychrome 15%. This evaluator enumerates those public
+    semantic outcomes instead of sampling RNG. Existing editions are excluded so
+    autonomous play never recommends an impossible edition overwrite.
     """
 
     EDITION_OUTCOMES = (
-        ("Foil", 1.0 / 3.0),
-        ("Holographic", 1.0 / 3.0),
-        ("Polychrome", 1.0 / 3.0),
+        ("Foil", 0.50),
+        ("Holographic", 0.35),
+        ("Polychrome", 0.15),
     )
     EDITION_INTRINSIC_VALUE = {
         "Foil": 0.80,
@@ -141,7 +140,7 @@ class AuraExpectationEvaluator:
             expected_total_gain=total_gain,
             rationale=(
                 f"editionless Aura targets={len(eligible)}",
-                "Aura outcome probabilities=Foil/Holographic/Polychrome=1/3 each",
+                "Aura conditional edition weights=Foil 0.50/Holographic 0.35/Polychrome 0.15",
                 f"selected target index={index}",
                 f"expected intrinsic edition gain={intrinsic_gain:.3f}",
                 f"expected B6 contextual edition gain={contextual_gain:.3f}",
