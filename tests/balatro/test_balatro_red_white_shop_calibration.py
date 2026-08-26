@@ -91,7 +91,7 @@ def test_red_white_d3_uses_weighted_reserve_cost_not_hard_five_dollar_veto():
     assert decision.action == VOUCHER_BUY
 
 
-def test_red_white_d8_holds_zero_demand_standard_pack_even_with_runway():
+def test_red_white_d8_standard_pack_uses_exact_generator_and_resource_cost():
     playbook = default_balatro_playbooks().get("RED", "WHITE")
     thresholds = BoosterAcquisitionThresholds.from_mapping(
         playbook.thresholds_for("D8")
@@ -108,18 +108,23 @@ def test_red_white_d8_holds_zero_demand_standard_pack_even_with_runway():
     healthy = policy.recommend(_state(money=10, ante=1), action)
     strained = policy.recommend(_state(money=5, ante=1), action)
 
-    assert healthy.at_least_one_hit_probability >= thresholds.minimum_pack_hit_probability
-    assert healthy.advantage_over_save > thresholds.minimum_buy_advantage
     assert healthy.build_need_score == pytest.approx(0.0)
+    assert healthy.option_utility > 0.0
+    assert any("exact base-game" in note for note in healthy.rationale)
+    assert healthy.advantage_over_save == pytest.approx(
+        healthy.option_utility
+        - healthy.price_penalty
+        - healthy.interest_penalty
+        - healthy.reserve_penalty
+    )
     assert healthy.decision == BOOSTER_HOLD
-    assert any("random deck bloat" in note for note in healthy.rationale)
 
     assert strained.reserve_penalty > healthy.reserve_penalty
-    assert strained.advantage_over_save <= thresholds.minimum_buy_advantage
+    assert strained.advantage_over_save < healthy.advantage_over_save
     assert strained.decision == BOOSTER_HOLD
 
 
-def test_red_white_d9_skip_bias_rejects_rank_only_standard_card_dilution():
+def test_red_white_d9_zero_skip_still_rejects_negative_rank_only_standard_card():
     state = _state(phase="STANDARD_PACK")
     policy = PlaybookBalatroPackPolicy(
         playing_card_build=_ZeroPlayingCardBuild(),
@@ -138,9 +143,9 @@ def test_red_white_d9_skip_bias_rejects_rank_only_standard_card_dilution():
 
     ranked = policy.rank_actions(state, [take, skip])
 
-    assert policy.skip_bias_for_state(state) == pytest.approx(0.35)
+    assert policy.skip_bias_for_state(state) == pytest.approx(0.0)
     assert ranked[0].action is skip
-    assert ranked[0].total == pytest.approx(0.35)
+    assert ranked[0].total == pytest.approx(0.0)
     take_score = policy.score_action(state, take)
     assert take_score.total == pytest.approx(-0.65)
     assert any("vanilla playing-card deck dilution" in note for note in take_score.notes)
