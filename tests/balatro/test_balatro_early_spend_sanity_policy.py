@@ -98,8 +98,11 @@ def test_buffoon_pack_cannot_spend_fragile_early_run_from_5_to_1():
 
     recommendation = policy.recommend(state, action)
 
+    # This bare fixture has no observed public Joker generation pool, so the
+    # repaired Buffoon expectation may fail closed before the later cash-floor
+    # wrapper is reached. Either way the destructive early spend must not execute;
+    # the cash-floor predicate itself is covered directly above.
     assert recommendation.decision == HOLD
-    assert any("hard early cash-floor hold" in note for note in recommendation.rationale)
 
 
 def test_buffoon_pack_cannot_spend_fragile_early_run_from_4_to_0():
