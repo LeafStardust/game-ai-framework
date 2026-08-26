@@ -19,6 +19,33 @@ def _enhancement_targets(state, enhancement: str, *, maximum: int) -> list[list[
     ]
 
 
+def _editionless_jokers(state) -> list:
+    return [
+        joker
+        for joker in getattr(state, "jokers", ())
+        if getattr(joker, "edition", None) in (None, "")
+    ]
+
+
+def _wheel_success_probability(state) -> float:
+    oops_count = sum(
+        1
+        for joker in getattr(state, "jokers", ())
+        if type(joker).__name__ == "OopsAll6sJoker"
+        and not bool(getattr(joker, "debuffed", False))
+    )
+    return min(1.0, 0.25 * (2.0 ** oops_count))
+
+
+def _roll_vanilla_edition(rng) -> str:
+    roll = rng.random()
+    if roll < 0.50:
+        return "Foil"
+    if roll < 0.85:
+        return "Holographic"
+    return "Polychrome"
+
+
 class Fool(TarotCard):
 
     def __init__(self):
@@ -217,16 +244,15 @@ class WheelOfFortune(TarotCard):
         super().__init__("The Wheel of Fortune")
 
     def can_use(self, context: ConsumableContext) -> bool:
-        return bool(context.state.jokers)
+        return bool(_editionless_jokers(context.state))
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
-        result = context.data["rng"].random()
-
-        if result < 0.25:
-            edition = context.data["rng"].choice(
-                ["Foil", "Holographic", "Polychrome"]
-            )
-            context.target.edition = edition
+        rng = context.data["rng"]
+        if rng.random() < _wheel_success_probability(context.state):
+            target = rng.choice(_editionless_jokers(context.state))
+            edition = _roll_vanilla_edition(rng)
+            target.edition = edition
+            context.target = target
             context.data["edition"] = edition
         else:
             context.data["edition"] = None
@@ -253,8 +279,8 @@ class Strength(TarotCard):
         ]
 
         for card in context.cards:
-            if card.rank != "A":
-                card.rank = ranks[ranks.index(card.rank) + 1]
+            index = ranks.index(card.rank)
+            card.rank = ranks[(index + 1) % len(ranks)]
 
         return context
 
