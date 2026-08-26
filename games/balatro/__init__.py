@@ -67,6 +67,7 @@ from games.balatro.strategy_resource_coherence_policy import install_strategy_re
 from games.balatro.tactical_scaler_build_health import install_tactical_scaler_build_health_policy
 from games.balatro.tactical_scaler_retention_policy import install_tactical_scaler_retention_policy
 from games.balatro.target_hand_engine_policy import install_target_hand_engine_policy
+from games.balatro.targeted_pack_literal_value_policy import install_targeted_pack_literal_value_policy
 from games.balatro.shop_transaction_policy import install_shop_transaction_policy
 from games.balatro.red_white_competence_corrections import install_red_white_competence_corrections
 
@@ -98,6 +99,7 @@ install_deck_growth_pack_policy()
 install_pack_sunk_cost_policy()
 install_high_priestess_pack_policy()
 install_judgement_pack_expectation_guard()
+install_targeted_pack_literal_value_policy()
 install_tactical_scaler_build_health_policy()
 install_bond_scaler_build_health_policy()
 install_build_health_policy()
