@@ -34,13 +34,21 @@ def _random_enhanced_card(rng, *, ranks) -> BalatroCard:
     )
 
 
+def _editionless_jokers(state) -> list:
+    return [
+        joker
+        for joker in getattr(state, "jokers", ())
+        if getattr(joker, "edition", None) in (None, "")
+    ]
+
+
 class Familiar(SpectralCard):
 
     def __init__(self):
         super().__init__("Familiar")
 
     def can_use(self, context: ConsumableContext) -> bool:
-        return bool(context.state.hand)
+        return len(context.state.hand) > 1
 
     def use(
         self,
@@ -69,7 +77,7 @@ class Grim(SpectralCard):
         super().__init__("Grim")
 
     def can_use(self, context: ConsumableContext) -> bool:
-        return bool(context.state.hand)
+        return len(context.state.hand) > 1
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
         rng = context.data["rng"]
@@ -96,7 +104,7 @@ class Incantation(SpectralCard):
         super().__init__("Incantation")
 
     def can_use(self, context: ConsumableContext) -> bool:
-        return bool(context.state.hand)
+        return len(context.state.hand) > 1
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
         rng = context.data["rng"]
@@ -193,7 +201,7 @@ class Sigil(SpectralCard):
         super().__init__("Sigil")
 
     def can_use(self, context: ConsumableContext) -> bool:
-        return bool(context.state.hand)
+        return len(context.state.hand) > 1
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
         suit = context.data["rng"].choice(SUITS)
@@ -212,7 +220,7 @@ class Ouija(SpectralCard):
         super().__init__("Ouija")
 
     def can_use(self, context: ConsumableContext) -> bool:
-        return bool(context.state.hand)
+        return len(context.state.hand) > 1
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
         rank = context.data["rng"].choice(RANKS)
@@ -232,14 +240,18 @@ class Ectoplasm(SpectralCard):
         super().__init__("Ectoplasm")
 
     def can_use(self, context: ConsumableContext) -> bool:
-        return bool(context.state.jokers)
+        return bool(_editionless_jokers(context.state))
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
         joker = context.data["rng"].choice(
-            context.state.jokers
+            _editionless_jokers(context.state)
         )
 
         joker.edition = "Negative"
+        # The live game increases this penalty for repeated Ectoplasm uses. The
+        # framework currently lacks authoritative run-level Ectoplasm-use history,
+        # so the first-use mechanical transition remains modeled while policy stays
+        # deferred until that public history is observed.
         context.state.hand_size -= 1
 
         context.data["joker"] = joker
@@ -330,15 +342,20 @@ class Hex(SpectralCard):
         super().__init__("Hex")
 
     def can_use(self, context: ConsumableContext) -> bool:
-        return bool(context.state.jokers)
+        return bool(_editionless_jokers(context.state))
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
+        jokers = list(context.state.jokers)
         joker = context.data["rng"].choice(
-            context.state.jokers
+            _editionless_jokers(context.state)
         )
 
         joker.edition = "Polychrome"
-        context.state.jokers = [joker]
+        context.state.jokers = [
+            owned
+            for owned in jokers
+            if owned is joker or bool(getattr(owned, "eternal", False))
+        ]
 
         context.data["joker"] = joker
 
