@@ -76,13 +76,17 @@ Future exact item identity is never observed. Unseen future sticker price remain
 
 ## Voucher authority — partially repaired
 
-D3 is authoritative for voucher BUY/HOLD admission. D14 recomputes voucher purchase resource cost on the shared parent scale.
+D3 is authoritative for ordinary voucher BUY/HOLD admission. D14 recomputes voucher purchase resource cost on the shared parent scale.
 
-The following vouchers now have mechanically grounded parent value instead of their legacy fixed D3 number:
+The following vouchers now have grounded parent behavior instead of their legacy fixed D3 number:
 
 - **Antimatter** — marginal public future-Joker option from `joker_slots -> joker_slots + 1`, evaluated at post-purchase cash through the same D11/D2/D14 Joker expectation used by Ectoplasm;
 - **Paint Brush / Palette** — literal expected best-play improvement from `hand_size -> hand_size + 1` using the same public draw and D2 direct-score scale used by Ouija/Ectoplasm hand-size opportunity cost;
-- **Observatory** — literal current-build score change from adding the voucher to the current state, using the installed exact `1.5 ** matching_held_planets` scoring effect. Future Planet acquisition and Perkeo infrastructure are deliberately omitted instead of receiving a synthetic premium.
+- **Observatory** — literal current-build score change from adding the voucher to the current state, using the installed exact `1.5 ** matching_held_planets` scoring effect. Future Planet acquisition and Perkeo infrastructure are deliberately omitted instead of receiving a synthetic premium;
+- **Seed Money / Money Tree** — conservative improvement to the next interest payout at actual post-purchase cash. Later-round compounding is omitted rather than assigned a synthetic horizon premium;
+- **Blank** — special collection/progression authority while Antimatter remains observably locked. Balatro's public `v_antimatter.unlocked` center flag is exposed directly. D3 may admit Blank only when ordinary affordability and survival/reserve gates pass. D14 lets that unlock progression cover Blank's direct sticker-price term plus a bounded tie-break, while lost interest, reserve pressure and Bull/Bootstraps cash-scaling opportunity cost remain fully charged. Once Antimatter is unlocked, Blank's progression parent value becomes zero.
+
+Blank's progression exception is intentionally separate from ordinary gameplay utility: the redemption is a real step toward the ten-Blank Antimatter unlock, but it must not force a purchase that damages the current Red/White run.
 
 ### Remaining D14 implementation blocker
 
@@ -91,12 +95,11 @@ Other persistent vouchers still use D3 strategic persistent values because their
 - Grabber / Nacho Tong — +1 hand per round;
 - Wasteful / Recyclomancy — +1 discard per round;
 - Telescope — future Celestial-pack guarantee;
-- Seed Money / Money Tree — future interest ceiling;
 - Clearance Sale / Liquidation — future shop-price reduction;
 - Reroll Surplus / Reroll Glut — future reroll-price reduction;
 - Hieroglyph / Petroglyph — Ante/resource tradeoffs;
 - Magic Trick / Illusion — future playing-card shop pool;
-- Blank and other prerequisite/progression vouchers.
+- other prerequisite/progression vouchers whose unlock objective has not been explicitly modeled.
 
 These effects should not be replaced by another universal constant merely to make the D14 checkbox green. They require either direct public-state horizon projection or an explicitly shared strategic parent unit suitable for comparison with the other families.
 
@@ -109,7 +112,7 @@ None of the repaired D14 paths read:
 - hidden booster contents;
 - ordered future draw pile.
 
-Random future effects are integrated over public eligible catalogues or public deck composition, with deterministic bounded sampling only where exact combinatorial enumeration is too large.
+Random future effects are integrated over public eligible catalogues or public deck composition, with deterministic bounded sampling only where exact combinatorial enumeration is too large. Antimatter progression uses only the loaded public center unlock flag.
 
 ## Validation status
 
