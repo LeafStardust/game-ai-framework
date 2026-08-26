@@ -247,6 +247,16 @@ def test_verdant_leaf_sells_lowest_value_non_eternal_joker_to_lift_debuff():
     strong = FlatMultJoker(20)
     strong.label = "Strong Joker"
     state = _state("Verdant Leaf", [ace], [eternal_weak, weak, strong])
+    # This regression is specifically about the survival-authorized sale path.
+    # Give the bounded blind planner a real future draw horizon: with every card
+    # debuffed the Joker-only line cannot clear 1,000, while lifting Verdant makes
+    # repeated Aces sufficient. The old one-card/no-deck fixture had no possible
+    # future draw and therefore correctly produced no clear-probability gain.
+    state.deck = [
+        BalatroCard("A", suit, debuffed=True)
+        for suit in ("Hearts", "Diamonds", "Clubs", "Spades")
+    ]
+    state.owned_deck = [ace, *state.deck]
 
     decision = VerdantLeafSalePolicy().recommend(state)
 
