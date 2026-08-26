@@ -6,6 +6,76 @@
 >
 > **Course correction — 2026-08-27:** feature growth is frozen until Red Deck / White Stake competence is measured, stable, and reproducible. Feature coverage, a green unit suite, or one isolated win are no longer sufficient evidence of competence.
 
+# New-chat handoff: read this first
+
+A fresh development chat should be able to continue from this section without relying on prior conversation history.
+
+## Repository / branch / working rules
+
+- Repository: `LeafStardust/game-ai-framework`
+- Active branch: `feat/v1.0-red-white-competence`
+- Work only on that branch unless the user explicitly changes scope.
+- Do **not** run tests on the assistant side. The user pulls and runs tests locally.
+- User validation command:
+  ```powershell
+  python -m pytest tests/balatro -q
+  ```
+- Semantic competence command:
+  ```powershell
+  python -m games.balatro.red_white_semantic_benchmark
+  ```
+- Preserve exact Balatro mechanics, public-state legality, boss rules, and hidden-information boundaries.
+- Do not hard-code arbitrary Joker tier lists or named shop-combination strategy tables.
+- Do not start Optuna/numerical tuning until deterministic tests and the semantic competence gate are stable.
+- Do not resume Red Stake or new-deck feature work until the Red/White competence gate below passes.
+- A live three-run batch is **not** a progress metric. Live runs are integration smoke tests and sources of new benchmark counterexamples.
+- Before fixing a newly observed semantic defect, add a benchmark/property case for the defect whenever practical.
+- Prefer moving semantics into canonical evaluators/arbiters over adding another late monkeypatch/rescue layer.
+
+## Current active objective
+
+> **Red Deck / White Stake, normal mode, maximize probability of winning the current run.**
+
+No collection-first, Endless-first, new deck/stake, or feature-expansion work is active.
+
+## Current architecture findings
+
+- D1 search/projection: `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`.
+- D1 action arbitration: `LiveHandActionPolicy` and production `StrategyAwareLiveHandActionPolicy` wrappers.
+- D1 orchestration/final return: `LiveHandActionDecisionEngine`.
+- D14 intended cross-family shop authority: `BuildAwareShopArbiter`.
+- Bond/composition and Build Health are intended to be **evidence**, not separate final authorities.
+- Current production still contains many ordered monkeypatch-style wrappers. See [`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md`](docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md).
+- Historical implementation detail is retained in [`docs/balatro/BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`](docs/balatro/BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md).
+
+## Current checkpoint
+
+Completed so far:
+
+- feature-growth freeze established;
+- authority-map document created;
+- semantic benchmark framework created;
+- CLI semantic benchmark runner created;
+- pytest semantic gate created;
+- benchmark currently seeded with **6** reconstructed Red/White semantic cases;
+- the attempted change that moved D1 `exact` evidence below progress was reverted after it regressed proven exact-clear behavior (`retained_pair` and Psychic full-house clear). The benchmark case encoding that invalid premise was removed.
+
+Current known architectural defect to tackle next **after the suite/semantic benchmark are green**:
+
+> **D1 timeout/fallback objective divergence.** `LiveHandActionDecisionEngine._structural_timeout_fallback()` can abandon already-established canonical D1 survival reasoning and switch to a structural heuristic based on poker-hand category/ranks and a separate discard rule. Timeout must not invent a second strategy.
+
+Next implementation sequence:
+
+1. Confirm `python -m pytest tests/balatro -q` is green on the current HEAD.
+2. Confirm `python -m games.balatro.red_white_semantic_benchmark` is green.
+3. Add a semantic property/regression covering timeout consistency.
+4. Refactor timeout handling so that, when any bounded D1 search evidence completed before the deadline, timeout reuses that canonical evidence instead of switching to the structural poker-hand/rank heuristic.
+5. Keep a minimal emergency legal-action fallback only for the pathological case where **no canonical search evidence completed at all**.
+6. Re-run the two user-side gates before proceeding further.
+7. Continue per-wrapper D1 authority classification and consolidation; do not jump to live runs yet.
+
+If new deterministic failures appear, treat them as a batch and identify the shared architectural cause before proceeding. Do not weaken proven mechanics tests merely to satisfy the new roadmap.
+
 ## Status
 
 | Milestone | Status | Gate |
@@ -104,7 +174,7 @@ Implementation:
 - [x] Add reusable property-based benchmark framework with overall and per-category scores.
 - [x] Add CLI runner: `python -m games.balatro.red_white_semantic_benchmark`.
 - [x] Add deterministic pytest gate for the semantic suite.
-- [x] Seed the benchmark with the first seven reconstructed/audited cases covering D1 recovery/authority/plan ordering, early scoring admission, conflict authority, early voucher survival, and reachable conditional scoring.
+- [x] Seed the benchmark with the first six reconstructed cases covering D1 recovery/authority, early scoring admission, conflict authority, early voucher survival, and reachable conditional scoring.
 - [ ] Expand the seed to roughly 50–100 cases using the existing live-run failure archive and important mechanical boundaries.
 - [ ] Ensure every known recent obvious stupid-play class has at least one semantic property case before its next architectural fix.
 
@@ -156,13 +226,13 @@ Until this phase passes, shop sophistication is secondary.
 ### Default D1 comparison order
 
 1. probability of clearing the blind;
-2. feasibility of remaining clear paths;
+2. feasibility/confidence of remaining clear paths, including whether a line is proven exact or sampled where that distinction affects trustworthiness;
 3. expected progress toward the target;
 4. expected hands remaining;
 5. expected discards remaining;
 6. expected score/economy/generated resources as later tie-breaks.
 
-Exact boss mechanics and forced actions remain authoritative. Evidence exactness is confidence/safety metadata; outside credible-clear confirmation it must not outrank materially better survival progress.
+Exact boss mechanics and forced actions remain authoritative. `exact` must not be treated as arbitrary bonus utility, but it **is** valid confidence/safety evidence when distinguishing a proven line from a sampled/uncertain one.
 
 ### Required work
 
