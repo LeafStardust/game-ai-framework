@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import replace
 
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner, _ActionEstimate
@@ -47,7 +48,13 @@ def _blue_reward_count(state, held_cards) -> int:
     return min(room, blue)
 
 
-def _clears_after_outcome(planner, state, score_after: int, hands_after: int, outcome_state) -> bool:
+def _clears_after_outcome(
+    planner,
+    state,
+    score_after: int,
+    hands_after: int,
+    outcome_state,
+) -> bool:
     target = planner._target(state)
     if target > 0 and score_after >= target:
         return True
@@ -73,7 +80,11 @@ def install_held_round_end_resource_policy() -> None:
     It never outranks clear probability, score, hands, discards, or any expectimax
     value component.
     """
-    if getattr(LiveBlindClearPlanner, "_held_round_end_resource_policy_installed", False):
+    if getattr(
+        LiveBlindClearPlanner,
+        "_held_round_end_resource_policy_installed",
+        False,
+    ):
         return
 
     original_estimate_play = LiveBlindClearPlanner._estimate_play
@@ -92,7 +103,7 @@ def install_held_round_end_resource_policy() -> None:
         for outcome in projection.outcomes:
             outcome_state = self._score_outcome_state(outcome, fallback_state)
             score_after = int(getattr(state, "score", 0)) + int(outcome.score)
-            branch_state = __import__("copy").deepcopy(outcome_state)
+            branch_state = deepcopy(outcome_state)
             if not _clears_after_outcome(
                 self,
                 state,
