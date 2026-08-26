@@ -22,13 +22,19 @@ def _health():
 
 def test_diagnostics_are_tracker_free_and_serialize_bond_component_fields(monkeypatch):
     class _Health:
+        def __init__(self):
+            self.seen = None
+
         def evaluate(self, state):
-            del state
+            self.seen = state
             return _health()
 
     class _Roles:
+        def __init__(self):
+            self.seen = None
+
         def classify(self, state):
-            del state
+            self.seen = state
             return (
                 SimpleNamespace(
                     index=0,
@@ -41,10 +47,13 @@ def test_diagnostics_are_tracker_free_and_serialize_bond_component_fields(monkey
                 ),
             )
 
-    monkeypatch.setattr(diagnostics, "_HEALTH", _Health())
-    monkeypatch.setattr(diagnostics, "_ROLES", _Roles())
+    health = _Health()
+    roles = _Roles()
+    monkeypatch.setattr(diagnostics, "_HEALTH", health)
+    monkeypatch.setattr(diagnostics, "_ROLES", roles)
+    state = SimpleNamespace(phase="SHOP", money=20)
 
-    payload = diagnostics.build_health_diagnostics_payload(SimpleNamespace())
+    payload = diagnostics.build_health_diagnostics_payload(state)
 
     assert payload["total"] == 50.0
     assert payload["scaling_deficit"] is True
@@ -52,3 +61,7 @@ def test_diagnostics_are_tracker_free_and_serialize_bond_component_fields(monkey
     assert payload["components"][0]["bond_rank"] == "R4"
     assert "strategy_id" not in payload["components"][0]
     assert "tier" not in payload["components"][0]
+    assert health.seen is not state
+    assert health.seen._rw_internal_build_health_projection is True
+    assert roles.seen is state
+    assert not hasattr(state, "_rw_internal_build_health_projection")
