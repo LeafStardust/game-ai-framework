@@ -3,6 +3,7 @@ from __future__ import annotations
 """Admit Ouija from opened Spectral packs only when its exact net value is positive."""
 
 from games.balatro.build.ouija_expectation import OuijaExpectationEvaluator
+from games.balatro.ouija_dispatch_postcondition import install_ouija_dispatch_postcondition
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
 
 
@@ -10,6 +11,7 @@ OUIJA = "Ouija"
 
 
 def install_ouija_pack_expectation_policy() -> None:
+    install_ouija_dispatch_postcondition()
     if getattr(BalatroPackPolicy, "_ouija_pack_expectation_installed", False):
         return
 
