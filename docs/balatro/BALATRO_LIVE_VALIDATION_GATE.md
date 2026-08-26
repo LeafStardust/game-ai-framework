@@ -164,7 +164,55 @@ Commit `6bae6d8` adds a regression asserting the real unopened Standard evaluato
 
 This is currently a **live blocker candidate**, not yet claimed as the proven sole cause of the third stall; the next user deterministic run and live attempt will determine whether Arcana or another remaining path also needs a runtime bound.
 
-Validation status: **pending user local deterministic rerun on current HEAD, then a fresh three-attempt Red/White live baseline**.
+## Systemic SHOP runtime pass
+
+A later repo-wide pass imposed common runtime boundaries instead of continuing to repair one visible offer at a time:
+
+- hypothetical D2/D14 Build Health candidate states cannot launch bounded D1 expectimax;
+- the retired named two-Joker bundle planner no longer reopens canonical Bond/D14 arbitration;
+- unopened Arcana/Spectral and hypothetical held-consumable value obey a one-layer expectation rule;
+- SHOP-side future-hand models use a 16-exact / 8-sample deterministic budget;
+- duplicate same-family Standard/Arcana/Spectral expectations are memoized per translated state;
+- large public-Joker future expectation uses one record per rarity and at most twelve full D2 calls;
+- omitted public probability mass remains literal zero and is never renormalized.
+
+The package-initialization regressions introduced during this pass were repaired by moving installation out of `games.balatro.__init__` and into the production supervisor entry path, then correcting the runtime contract to patch the actual `BuildAwareShopArbiter` / module-level Build Health bundle hook. The user subsequently reported the full deterministic suite green.
+
+## Live baseline after systemic pass — completed, but latency still too high
+
+Fresh three-attempt production baseline:
+
+- session prefix: `balatro-20260826T204038Z-06ec1d92`
+- all three attempts terminated normally with `game_over`; no permanent SHOP stall occurred;
+- attempt 1 reached Ante 4 boss The Club;
+- attempt 2 reached Ante 4 Small Blind;
+- attempt 3 ended in Ante 1 Big Blind.
+
+The absence of a permanent stall is progress, but checkpoint timing from the JSONL still shows unacceptable SHOP latency:
+
+- ordinary SHOP checkpoints in attempts 1–2 frequently require roughly 10–15 seconds;
+- attempt 1 includes approximately 28.2 seconds after buying Flower Pot;
+- approximately 29.9 seconds entering a SHOP with two Standard Packs;
+- approximately 27.6 seconds after a BUY_AND_USE consumable transition.
+
+These slow states span unrelated visible offers (Arcana, Standard, Spectral, Celestial, vouchers, full and non-full Joker rosters), so the common cause is not another individual pack family.
+
+### Root cause
+
+`balatro_agent_supervisor_entry._diagnostic_runner_factory()` attaches Build Health diagnostics after every completed `runner.decide()`. `build_health_diagnostics_payload()` called a fresh production `RuntimeBuildHealthEvaluator.evaluate(state)`. On a real SHOP state the installed `shop_clear_probability_health_policy` therefore launched `bounded_shop_clear_probability(...)` again.
+
+That second D1 search occurs **after the gameplay decision is already complete** and has no authority to alter the action. It is pure observability overhead, but because transition logging occurs after the wrapper returns it makes the whole checkpoint appear to take another full planner pass.
+
+### Repair
+
+- commit `cb57f48` makes Build Health diagnostics planner-free;
+- diagnostics evaluate a shallow copy marked as an internal Build Health projection, so the installed SHOP survival adapter keeps the generic estimator and cannot launch bounded D1;
+- component-role classification still uses the real public state;
+- the real state is never mutated;
+- actual SHOP policy retains its one authoritative bounded survival assessment;
+- commit `a185ad7` adds regression coverage proving diagnostics receive the marked copy while role classification receives the real state.
+
+Validation status: **pending user local deterministic rerun, then one fresh three-attempt live baseline to measure whether the remaining real-state SHOP planner itself is within the interactive latency budget**.
 
 ## Current commands
 
@@ -182,4 +230,4 @@ Three-attempt Red/White production baseline:
 
 ## Gate rule
 
-Do not begin numerical calibration/Optuna until the deterministic suite remains green on the live-response repairs and the fresh three-attempt baseline completes SHOP decisions without semantic/runtime stalls.
+Do not begin numerical calibration/Optuna until the deterministic suite remains green on the live-response repairs and the fresh three-attempt baseline completes SHOP decisions without semantic/runtime stalls or excessive interactive latency.
