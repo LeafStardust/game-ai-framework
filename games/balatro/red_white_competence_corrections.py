@@ -27,6 +27,9 @@ from copy import deepcopy
 from dataclasses import replace
 
 from games.balatro.actions import BUY_AND_USE_CONSUMABLE, BalatroAction
+from games.balatro.bond_visible_shop_bundle_policy import (
+    install_bond_visible_shop_bundle_policy,
+)
 from games.balatro.build.joker_scenarios import (
     ScenarioJokerBehaviorAnalyzer,
     scenario_feature,
@@ -89,6 +92,7 @@ def _has_invested_hand(source) -> bool:
 
 
 def install_red_white_competence_corrections() -> None:
+    install_bond_visible_shop_bundle_policy()
     if getattr(JokerAcquisitionPolicy, "_rw_competence_corrections_installed", False):
         return
 
