@@ -7,6 +7,7 @@ from games.balatro.actions import (
     REFRESH_SHOP,
     BalatroAction,
 )
+from games.balatro.joker import Joker, JokerContext
 from games.balatro.live.shop import LiveShopItem
 from games.balatro.playbook import (
     BalatroPlaybook,
@@ -22,11 +23,58 @@ from games.balatro.shop_reroll_policy import ShopRerollThresholds
 from games.balatro.state import BalatroState
 
 
+class InertJoker(Joker):
+    def apply(self, context: JokerContext) -> JokerContext:
+        return context
+
+
 def _state(*, money: int = 20) -> BalatroState:
     state = BalatroState()
     state.phase = "SHOP"
     state.money = money
     state.joker_slots = 5
+    return state
+
+
+def _with_public_consumable_pools(state: BalatroState) -> BalatroState:
+    state.consumable_generation_pool_observed = True
+    state.consumable_generation_pools = {
+        "TAROT": (
+            {
+                "center": "c_hermit",
+                "label": "The Hermit",
+                "ability_name": "The Hermit",
+                "ability_set": "TAROT",
+            },
+        ),
+        "SPECTRAL": (
+            {
+                "center": "c_black_hole",
+                "label": "Black Hole",
+                "ability_name": "Black Hole",
+                "ability_set": "SPECTRAL",
+            },
+        ),
+    }
+    return state
+
+
+def _with_public_joker_pool(state: BalatroState) -> BalatroState:
+    state.joker_generation_pool_observed = True
+    state.joker_generation_pools = {
+        rarity: (
+            {
+                "center": "j_joker",
+                "label": "Joker",
+                "ability_name": "Joker",
+                "ability_set": "JOKER",
+                "rarity": rarity,
+            },
+        )
+        for rarity in ("COMMON", "UNCOMMON", "RARE")
+    }
+    state.joker_generation_edition_rate = 1.0
+    state.visible_poker_hands = tuple(state.hand_levels)
     return state
 
 
@@ -40,8 +88,8 @@ def _booster(label: str, *, price: int = 0, center: str | None = None):
     )
 
 
-def test_unrecognized_boosters_fail_closed_while_supported_families_are_eligible():
-    state = _state()
+def test_unrecognized_boosters_fail_closed_while_publicly_modeled_families_can_buy():
+    state = _with_public_consumable_pools(_state())
     policy = BuildAwareShopBoosterPolicy()
 
     unknown = policy.recommend(
@@ -66,17 +114,14 @@ def test_unrecognized_boosters_fail_closed_while_supported_families_are_eligible
     assert unknown.decision == "HOLD"
     assert arcana.decision == "BUY"
     assert spectral.decision == "BUY"
-    assert any("autonomous-safe" in note for note in arcana.rationale)
-    assert any("autonomous-safe" in note for note in spectral.rationale)
-    assert all(
-        any("contents are not predicted" in note for note in result.rationale)
-        for result in (unknown, arcana, spectral)
-    )
+    assert any("current public eligible Tarot pool" in note for note in arcana.rationale)
+    assert any("current public eligible get_current_pool catalogue" in note for note in spectral.rationale)
+    assert any("unrecognized booster family" in note for note in unknown.rationale)
 
 
-def test_buffoon_requires_currently_usable_joker_capacity():
-    state = _state()
-    state.jokers = [object()] * state.joker_slots
+def test_buffoon_full_roster_can_be_valued_through_d2_replacement():
+    state = _with_public_joker_pool(_state())
+    state.jokers = [InertJoker() for _ in range(state.joker_slots)]
     result = BuildAwareShopBoosterPolicy().recommend(
         state,
         BalatroAction(
@@ -85,9 +130,10 @@ def test_buffoon_requires_currently_usable_joker_capacity():
         ),
     )
 
-    assert result.decision == "HOLD"
-    assert any("free Joker slot" in note for note in result.rationale)
-    assert any("replacement" in note for note in result.rationale)
+    assert result.decision == "BUY"
+    assert result.option_utility > 0.0
+    assert any("full Joker roster remains valid" in note for note in result.rationale)
+    assert any("sell -> reobserve -> select replacement" in note for note in result.rationale)
 
 
 def test_celestial_option_value_uses_observed_hand_specialization_not_level_alone():
@@ -106,13 +152,14 @@ def test_celestial_option_value_uses_observed_hand_specialization_not_level_alon
     level_only = policy.recommend(level_only_state, action)
     repeated = policy.recommend(repeated_state, action)
 
-    # Current telemetry contract: permanent hand levels by themselves do not create
-    # new Celestial demand. Repeated public use of an underleveled hand does.
+    # Permanent levels alone do not create new direction. Repeated public use does,
+    # and the current Celestial model values the finite eligible Planet pool through
+    # literal before/after scoring rather than fixed family constants.
     assert level_only.build_need_score == base.build_need_score == 0.0
-    assert level_only.option_utility == base.option_utility
-    assert repeated.build_need_score > 0.90
-    assert repeated.option_utility > base.option_utility
-    assert any("contents are not predicted" in note for note in repeated.rationale)
+    assert repeated.build_need_score > base.build_need_score
+    assert repeated.option_utility > 0.0
+    assert any("expected best visible Planet literal value" in note for note in repeated.rationale)
+    assert any("finite public Planet expectation" in note for note in repeated.rationale)
 
 
 def test_expensive_booster_can_lose_to_hold_after_shop_economics():
@@ -135,16 +182,16 @@ def test_expensive_booster_can_lose_to_hold_after_shop_economics():
     assert result.interest_penalty > 0
 
 
-def test_whole_shop_arbiter_holds_unsupported_celestial_pack():
+def test_whole_shop_arbiter_holds_unrecognized_booster_when_reroll_is_unknown():
     state = _state()
     booster = BalatroAction(
         BUY_BOOSTER,
-        target=_booster("Celestial Pack", center="p_celestial_normal_4"),
+        target=_booster("Mystery Pack"),
     )
     decision = BuildAwareShopArbiter().decide(
         state,
         [booster, BalatroAction(END_SHOP)],
-        reroll_cost=5,
+        reroll_cost=None,
     )
 
     assert decision.action.name == END_SHOP
@@ -152,7 +199,7 @@ def test_whole_shop_arbiter_holds_unsupported_celestial_pack():
     assert decision.normalized_gain == 0
 
 
-def test_strong_deterministic_purchase_beats_booster():
+def test_strong_deterministic_purchase_beats_unrecognized_booster():
     state = _state()
     voucher = BalatroAction(
         BUY_VOUCHER,
@@ -165,23 +212,23 @@ def test_strong_deterministic_purchase_beats_booster():
     )
     booster = BalatroAction(
         BUY_BOOSTER,
-        target=_booster("Celestial Pack", center="p_celestial_normal_4"),
+        target=_booster("Mystery Pack"),
     )
     decision = BuildAwareShopArbiter().decide(
         state,
         [voucher, booster, BalatroAction(END_SHOP)],
-        reroll_cost=5,
+        reroll_cost=None,
     )
 
     assert decision.action is voucher
     assert decision.source == "DETERMINISTIC"
 
 
-def test_unsupported_visible_celestial_pack_does_not_suppress_reroll():
-    state = _state()
+def test_unrecognized_visible_booster_does_not_suppress_reroll():
+    state = _with_public_joker_pool(_state(money=21))
     booster = BalatroAction(
         BUY_BOOSTER,
-        target=_booster("Celestial Pack", center="p_celestial_normal_4"),
+        target=_booster("Mystery Pack"),
     )
     decision = BuildAwareShopArbiter().decide(
         state,
@@ -215,11 +262,11 @@ def test_free_reroll_can_beat_weak_or_rejected_booster():
     assert decision.source == "REROLL"
 
 
-def test_unknown_reroll_cost_and_unsupported_celestial_pack_hold_shop():
+def test_unknown_reroll_cost_and_unrecognized_booster_hold_shop():
     state = _state()
     booster = BalatroAction(
         BUY_BOOSTER,
-        target=_booster("Celestial Pack", center="p_celestial_normal_4"),
+        target=_booster("Mystery Pack"),
     )
     decision = BuildAwareShopArbiter().decide(
         state,
