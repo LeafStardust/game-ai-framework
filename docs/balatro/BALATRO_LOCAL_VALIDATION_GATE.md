@@ -128,9 +128,35 @@ Repair:
 
 Validation status: **pending user rerun**.
 
+## Regression-fixture update — D8/D9/D11 contracts
+
+The same runtime batch exposed several assertions that encoded retired pre-repair behavior rather than production defects.
+
+### Opened-pack targeted cards
+
+Death and generic targeted-Tarot tests explicitly supplied `skip_bias=0.35` while also expecting any positive literal target to be selected. That contradicts the repaired D9 contract: opened-pack acquisition cost is sunk, production Skip is `0.0`, and deterministic targeted cards receive only their literal D10/B6 target value rather than a generic Tarot/shop utility floor.
+
+Repairs:
+
+- commit `fd73379` updates the Death directional-target regression to use the sunk-cost zero baseline;
+- commit `ee7aae1` updates the generic targeted-pack regression likewise and checks the current `D10/B6 target gain` rationale.
+
+### Unobserved future pools
+
+Legacy autonomous shop tests created bare synthetic `BalatroState` objects with no observed Joker/Planet/Tarot/Spectral generation catalogues, then expected paid rerolls or stochastic boosters to proceed from fixed family priors. Repaired D8/D11 intentionally fail closed when those public catalogues are unavailable.
+
+Repairs:
+
+- commit `db2fe3d` updates bare-state Celestial/Arcana shop regressions to assert fail-closed `END_SHOP` instead of restoring fixed family priors;
+- commit `f10fea5` updates the bare-state paid-reroll regression to assert `HOLD_REROLL`/`END_SHOP` when the future public pool is absent;
+- dedicated public-pool expectation tests remain responsible for proving positive D8/D11 behavior when authoritative catalogue state is supplied.
+
+Validation status: **pending user rerun**.
+
 ## Rules for this gate
 
 - Do not interpret cascaded import/collection failures as independent gameplay defects until the earliest package-import blocker is repaired.
 - During runtime recursion/fan-out failures, identify the first repeated constructor cycle before treating downstream tests as separate defects.
+- Do not restore retired synthetic priors merely to satisfy legacy fixtures; update fixtures when the implemented authority contract changed deliberately.
 - Do not run live Red/White baselines while collection/runtime errors remain.
 - Do not start Python/Optuna numerical tuning until the unchanged semantic HEAD passes the deterministic suite and a subsequent live baseline contains no obvious semantic contradiction.
