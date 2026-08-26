@@ -75,6 +75,8 @@ from games.balatro.tactical_scaler_retention_policy import install_tactical_scal
 from games.balatro.target_hand_engine_policy import install_target_hand_engine_policy
 from games.balatro.targeted_pack_literal_value_policy import install_targeted_pack_literal_value_policy
 from games.balatro.shop_transaction_policy import install_shop_transaction_policy
+from games.balatro.wraith_dispatch_postcondition import install_wraith_dispatch_postcondition
+from games.balatro.wraith_pack_expectation_policy import install_wraith_pack_expectation_policy
 from games.balatro.red_white_competence_corrections import install_red_white_competence_corrections
 
 
@@ -88,6 +90,7 @@ install_ectoplasm_live_state_policy()
 install_joker_generation_pool_live_state_policy()
 install_cryptid_dispatch_postcondition()
 install_generated_enhanced_spectral_dispatch_postcondition()
+install_wraith_dispatch_postcondition()
 install_consumable_target_literal_value_policy()
 install_d1_log_resilience_policy()
 install_d1_candidate_deadline_policy()
@@ -110,6 +113,7 @@ install_pack_sunk_cost_policy()
 install_high_priestess_pack_policy()
 install_immolate_pack_expectation_policy()
 install_generated_enhanced_spectral_pack_policy()
+install_wraith_pack_expectation_policy()
 install_targeted_pack_literal_value_policy()
 install_cryptid_pack_policy()
 install_tactical_scaler_build_health_policy()
