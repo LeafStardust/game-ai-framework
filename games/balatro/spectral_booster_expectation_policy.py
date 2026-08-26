@@ -18,6 +18,7 @@ from games.balatro.actions import BUY_BOOSTER, SELECT_PACK_CARD, BalatroAction
 from games.balatro.consumable_generation_pool_live_state_policy import (
     install_consumable_generation_pool_live_state_policy,
 )
+from games.balatro.ectoplasm_pack_expectation_policy import install_ectoplasm_pack_expectation_policy
 from games.balatro.live.pack import LivePackChoice
 from games.balatro.ouija_pack_expectation_policy import install_ouija_pack_expectation_policy
 from games.balatro.pack_policy import BalatroPackPolicy
@@ -117,6 +118,7 @@ class SpectralBoosterExpectationEvaluator:
 def install_spectral_booster_expectation_policy() -> None:
     install_consumable_generation_pool_live_state_policy()
     install_ouija_pack_expectation_policy()
+    install_ectoplasm_pack_expectation_policy()
     if getattr(BuildAwareShopBoosterPolicy, "_spectral_generator_expectation_installed", False):
         return
 
