@@ -8,9 +8,10 @@ card's representation improves the public permanent deck.
 
 Use the same B6 contextual/intrinsic card model already used for Hanged Man, but in
 reverse.  A source is valuable only to the extent that it is better than the current
-owned-deck average; two copies contribute twice that relative improvement.  This
-keeps the opened-pack decision on the existing B6 scale and avoids a generic shop
-category bonus or a fabricated fixed Cryptid value.
+owned-deck average; two copies contribute twice that relative improvement.  Public
+permanent chip bonuses are included on the same 0.01-per-chip scale already used by
+B6 rank-chip intrinsic values.  This avoids a generic shop category bonus or a
+fabricated fixed Cryptid value.
 """
 
 import copy
@@ -31,6 +32,13 @@ class CryptidTargetExpectation:
     rationale: tuple[str, ...]
 
 
+def _intrinsic_with_permanent_chips(evaluator, card) -> float:
+    return (
+        evaluator._card_intrinsic_value(card)
+        + 0.01 * float(getattr(card, "permanent_bonus", 0) or 0)
+    )
+
+
 def _best_cryptid_target(self, state, target) -> CryptidTargetExpectation | None:
     if not list(getattr(state, "hand", ())):
         return None
@@ -49,7 +57,7 @@ def _best_cryptid_target(self, state, target) -> CryptidTargetExpectation | None
         for card in owned_cards
     ]
     intrinsic_values = [
-        self.consumable_target_evaluator._card_intrinsic_value(card)
+        _intrinsic_with_permanent_chips(self.consumable_target_evaluator, card)
         for card in owned_cards
     ]
     average_contextual = sum(contextual_values) / len(contextual_values)
@@ -65,7 +73,7 @@ def _best_cryptid_target(self, state, target) -> CryptidTargetExpectation | None
             - average_contextual
         )
         intrinsic_per_copy = (
-            self.consumable_target_evaluator._card_intrinsic_value(card)
+            _intrinsic_with_permanent_chips(self.consumable_target_evaluator, card)
             - average_intrinsic
         )
         contextual_delta = 2.0 * contextual_per_copy
@@ -85,7 +93,7 @@ def _best_cryptid_target(self, state, target) -> CryptidTargetExpectation | None
                     f"owned deck size={len(owned_cards)}",
                     "Cryptid creates two exact public copies of the selected card",
                     f"two-copy contextual deck delta={contextual_delta:.3f}",
-                    f"two-copy intrinsic deck delta={intrinsic_delta:.3f}",
+                    f"two-copy intrinsic/permanent-chip deck delta={intrinsic_delta:.3f}",
                 ),
             )
         )
