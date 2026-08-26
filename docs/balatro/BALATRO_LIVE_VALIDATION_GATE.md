@@ -59,7 +59,25 @@ Nevertheless the old order first enumerated the public eligible Planet pool and 
 - states that can still buy delegate unchanged to the full finite public-Planet expectation;
 - no threshold, utility, hidden-state assumption, RNG access, or acquisition semantics were changed.
 
-Validation status: **pending user local deterministic rerun and fresh three-attempt live baseline**.
+### Deterministic regression from the first fast path
+
+The first fast-path implementation returned a synthetic zero-valued `ShopBoosterRecommendation` when the headroom/reserve veto fired. That preserved the final `HOLD` action but incorrectly bypassed observable D8 accounting:
+
+- `price_penalty`, `interest_penalty`, and `reserve_penalty` became zero;
+- the parent shared `RunResourceValuator` was not invoked;
+- voucher interest-cap mechanics such as Seed Money therefore disappeared from the recommendation;
+- pressured Celestial fixtures lost the expected higher reserve penalty.
+
+User validation exposed three failures covering exactly those contracts.
+
+Repair:
+
+- commit `6315038` keeps the shortcut but reproduces the ordinary cheap parent D8 Celestial calculation before returning the forced HOLD;
+- public layout metadata, build need, generic option utility, and the exact shared money/interest/reserve valuation are preserved;
+- only the later finite Planet expectation is skipped when it cannot alter the final HOLD;
+- states with adequate headroom and reserve still delegate unchanged to the complete exact Celestial policy.
+
+Validation status: **pending the next user deterministic rerun**.
 
 ## Current commands
 
