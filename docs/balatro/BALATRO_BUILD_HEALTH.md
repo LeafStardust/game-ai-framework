@@ -141,6 +141,20 @@ Pivot invariants:
 4. Existing replacements may be vetoed when realized Bond/motif disruption exceeds the health-adjusted structural gain.
 5. A prior `HOLD` may become `REPLACE` only when an upstream-eligible positive option exceeds the canonical structural threshold.
 
+### Critical-survival escape from strategy retention
+
+FORMING and PINNED strategy-retention wrappers install after Build Health/pivot logic, so they previously had enough authority to turn an already-admitted `REPLACE` back into `HOLD` solely to preserve the current plan. That is correct for ordinary churn prevention but wrong when the run is already survival-critical.
+
+Both retention layers now share a narrow existing-health escape:
+
+- the upstream D2 decision must already be a legal `REPLACE`;
+- current `RuntimeBuildHealthEvaluator` must report `critical=True` using its existing critical-survival threshold;
+- the exact projected replacement roster must strictly improve modeled survival.
+
+When those conditions hold, FORMING/PINNED retention cannot veto the replacement merely because it breaks the current strategy. No new survival threshold or strategy score is introduced. If current Build Health is not critical, or the replacement does not improve survival, normal retention/pivot structure remains authoritative.
+
+This makes the intended hierarchy explicit: an unfinished or pinned Currency-Wars strategy is worth preserving while the run is viable; once the modeled run is already in the critical survival state, a legal survival rescue outranks structural loyalty.
+
 ## Motif prescription authority
 
 Active and mature motifs emit concrete prescriptions. `bond_prescription_policy.py` converts only prescriptions with directly observable public semantics into bounded preference value for safe pack choices and already-admitted shop consumables.
