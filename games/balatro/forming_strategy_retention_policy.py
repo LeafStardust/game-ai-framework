@@ -10,20 +10,24 @@ the very core the planner is trying to complete.
 This guard is intentionally narrower than pinned retention. It only protects an
 existing FORMING StrategyPlan with a concrete strategy id, and only when the
 replacement would destroy that plan outright. Replacements that preserve the same
-forming strategy, mature it to PINNED, or establish a materially stronger PINNED
-strategy remain allowed.
+forming strategy, mature it to PINNED, establish a materially stronger PINNED
+strategy, or rescue an already-critical survival state remain allowed.
 """
 
 from dataclasses import replace
 
 from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.bonds.strategy_semantics import StrategyCommitment
-from games.balatro.build_health_runtime import projected_state_with_jokers
+from games.balatro.build_health_runtime import (
+    RuntimeBuildHealthEvaluator,
+    projected_state_with_jokers,
+)
 from games.balatro.joker_policy import HOLD, REPLACE
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 
 
 _MIN_PINNED_ESCAPE_GAIN = 2.0
+_HEALTH = RuntimeBuildHealthEvaluator()
 
 
 def _candidate(composition, strategy_id: str | None):
@@ -45,6 +49,23 @@ def _projected_jokers(state, candidate, index: int):
         return None
     jokers[index] = candidate
     return tuple(jokers)
+
+
+def _critical_survival_escape(state, projected_state) -> tuple[bool, tuple[str, ...]]:
+    try:
+        current = _HEALTH.evaluate(state)
+        projected = _HEALTH.evaluate(projected_state)
+    except (AttributeError, KeyError, TypeError, ValueError, RuntimeError):
+        return False, ()
+    if not bool(getattr(current, "critical", False)):
+        return False, ()
+    if float(projected.survival) <= float(current.survival) + 1e-12:
+        return False, ()
+    return True, (
+        "forming retention released because current Build Health is survival-critical",
+        f"modeled survival improves {float(current.survival):.3f}->{float(projected.survival):.3f}",
+        "survival rescue outranks preservation of an unfinished strategy plan",
+    )
 
 
 def apply_forming_strategy_retention(state, candidate, decision):
@@ -83,6 +104,13 @@ def apply_forming_strategy_retention(state, candidate, decision):
     if projected_plan is not None and str(getattr(projected_plan, "strategy_id", "")) == current_id:
         # Keeping the same plan is fine whether it remains FORMING or matures.
         return decision
+
+    survival_escape, survival_notes = _critical_survival_escape(state, projected_state)
+    if survival_escape:
+        return replace(
+            decision,
+            rationale=(*getattr(decision, "rationale", ()), *survival_notes),
+        )
 
     projected_id = getattr(projected_composition, "pinned_strategy_id", None)
     projected_best = _candidate(projected_composition, projected_id)
