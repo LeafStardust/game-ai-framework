@@ -195,13 +195,14 @@ Completed or validated in the current semantic/runtime pass:
 - **Cerulean Bell** root and recursive Play/Discard actions obey the currently observed forced-selection constraint;
 - **Cerulean Bell** deeper D1 projections now branch uniformly over every possible next forced-selected card after hypothetical redraws, so recursive child legality is modeled rather than marked incomplete; Chicot bypasses the Bell brancher;
 - **Cerulean Bell** live process-memory hydration now carries public `card.ability.forced_selection` through the normalized snapshot and translator into `BalatroCard.forced_selection`, so the validated D1 legality logic is active in production observations rather than only synthetic states;
-- the full `tests/balatro` suite is green through the Wheel literal-expectation and Black Hole all-hand-level verification checkpoint on 2026-08-26.
+- held-resource D1 semantics are now validated: **Steel** remains inside literal hand scoring, **Blue Seal** round-end Planet generation is carried only when the card is actually held on a clearing branch with consumable capacity, and **Gold** preservation is used only as a final mechanical tie-break rather than converted into synthetic chips or Mult;
+- the full `tests/balatro` suite is green through the held-resource D1 checkpoint on 2026-08-26.
 
 Still open before a new live baseline:
 
 - complete the remaining pack/consumable opportunity-cost and target-selection audit beyond Wheel/Soul/Black Hole and the already modeled deterministic target paths;
 - complete the remaining boss-mechanics audit beyond Psychic, Serpent, Hook, Tooth, Ox, and Cerulean Bell;
-- finish the semantic D1 audit for held-value cards, discard-trigger engines, and order-sensitive interactions;
+- finish the semantic D1 audit for discard-trigger engines, order-sensitive interactions, and dominated non-scoring overplay;
 - diagnose/fix the post-`run_finished` three-attempt supervisor/shutdown crash;
 - rerun the full Balatro suite after the remaining changes, then perform a fresh production-default three-run Red/White batch.
 
@@ -219,7 +220,7 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Audit boss-specific execution against exact mechanics.
 - [ ] Diagnose and fix the three-attempt supervisor/shutdown crash observed after all three run logs had already emitted `run_finished`.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through Wheel literal expectation and Black Hole all-hand-level postcondition verification.
+- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through held-resource D1 preservation semantics.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
