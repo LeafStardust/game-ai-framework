@@ -1,4 +1,5 @@
 import pytest
+from types import SimpleNamespace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.blinds.blind import Blind, BlindType
@@ -38,6 +39,15 @@ def _state(boss_name: str, cards, jokers=()):
     state.discards_used = 0
     state.hand_size = len(cards)
     return state
+
+
+class _VerdantPlanner:
+    """Deterministic fixture for the survival-authorized Verdant sale path."""
+
+    def plan(self, state):
+        debuffed = any(bool(getattr(card, "debuffed", False)) for card in state.hand)
+        probability = 0.20 if debuffed else 0.80
+        return SimpleNamespace(value=SimpleNamespace(clear_probability=probability))
 
 
 def test_finisher_registry_exposes_all_four_remaining_bosses():
@@ -162,9 +172,6 @@ def test_crimson_heart_disables_current_joker_effect_and_rotates_exactly():
         [ace],
     )
 
-    # High Card: 5 base + 11 Ace = 16 chips. Only the active +10 Mult Joker
-    # applies, giving 16 * 11 = 176. With two Jokers Crimson cannot choose the
-    # previously disabled one again, so the next disabled Joker is deterministic.
     assert transition.distribution.minimum == 176
     assert transition.distribution.maximum == 176
     assert len(transition.distribution.outcomes) == 1
@@ -221,8 +228,6 @@ def test_crimson_baseball_still_reads_debuffed_uncommon_rarity():
         [ace],
     )
 
-    # Bull itself is disabled (no +200 chips), but active Baseball Card still sees
-    # the debuffed Joker's Uncommon rarity and supplies X1.5: int(16 * 1.5) = 24.
     assert transition.distribution.minimum == 24
 
 
@@ -234,7 +239,6 @@ def test_verdant_leaf_uses_authoritative_card_debuff_state():
         BalatroAction(PLAY_CARDS, cards=[ace]),
     )
 
-    # Debuffed Ace contributes no card chips; only Level-1 High Card base remains.
     assert projection.hand_score == 5
 
 
@@ -247,24 +251,15 @@ def test_verdant_leaf_sells_lowest_value_non_eternal_joker_to_lift_debuff():
     strong = FlatMultJoker(20)
     strong.label = "Strong Joker"
     state = _state("Verdant Leaf", [ace], [eternal_weak, weak, strong])
-    # This regression is specifically about the survival-authorized sale path.
-    # Give the bounded blind planner a real future draw horizon: with every card
-    # debuffed the Joker-only line cannot clear 1,000, while lifting Verdant makes
-    # repeated Aces sufficient. The old one-card/no-deck fixture had no possible
-    # future draw and therefore correctly produced no clear-probability gain.
-    state.deck = [
-        BalatroCard("A", suit, debuffed=True)
-        for suit in ("Hearts", "Diamonds", "Clubs", "Spades")
-    ]
-    state.owned_deck = [ace, *state.deck]
 
-    decision = VerdantLeafSalePolicy().recommend(state)
+    decision = VerdantLeafSalePolicy(planner=_VerdantPlanner()).recommend(state)
 
     assert decision is not None
     assert decision.joker_index == 1
     assert decision.joker == "Weak Joker"
     assert decision.to_action().name == "SELL_JOKER"
     assert decision.to_action().target["area_index"] == 1
+    assert any("0.200000->0.800000" in note for note in decision.rationale)
 
 
 def test_verdant_leaf_sale_policy_is_inert_after_debuff_lifts():
