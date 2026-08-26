@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-"""Replace D11's fixed future-Joker utility with public-pool D2 expectation.
+"""Value unseen future Jokers from the authoritative public eligible catalogue.
 
-A reroll does not reveal the future Joker, its edition, or its exact price. The live
-observer does, however, expose the current eligible Joker catalogue by rarity plus
-Balatro's public edition-rate multiplier. D11 can therefore integrate the *value*
-of a future Joker over that catalogue without sampling RNG or reading pool order.
+Small public pools are integrated exactly through the ordinary Red/White D2/D14
+path.  A vanilla live pool is much larger: evaluating every eligible Joker, every
+public initial-state branch, and every edition through the fully wrapped acquisition
+policy can block an interactive SHOP checkpoint for minutes.
 
-The unseen price remains the existing explicit D11 expected-price prior. Each
-catalogue branch is assigned that price, passed through the ordinary Red/White D2
-acquisition/replacement policy, then normalized through D14's shared Joker utility
-scale. If any eligible outcome cannot be modeled, the Joker future-offer branch
-fails closed to END_SHOP rather than renormalizing over only understood cards.
+For large pools this module therefore computes a deterministic conservative lower
+bound.  Every public record is still preflighted for model completeness.  A
+rarity-stratified subset is then passed through full D2/D14; unevaluated records and
+edition branches keep their real probability mass but contribute zero instead of
+being dropped or renormalized.  The estimate can only understate future option
+value.  It never reads RNG state, pseudoseeds, pool order, future identities, or
+hidden prices.
 """
 
 import copy
@@ -27,12 +29,40 @@ from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.shop_utility_scale import ShopUtilityScale
 
 
+# Deterministic fixtures and genuinely small public pools retain the exact model.
+_MAX_EXACT_PUBLIC_RECORDS = 24
+# Large live pools sample evenly across each rarity, never by Joker name/tier.
+_MAX_RECORDS_PER_RARITY = 3
+# Hard cap on expensive fully wrapped D2 calls.  Unspent probability mass is zero.
+_MAX_D2_EVALUATIONS = 48
+
+
 @dataclass(frozen=True)
 class RerollJokerExpectation:
     complete: bool
     expected_gain: float
     outcome_count: int
     rationale: tuple[str, ...] = ()
+
+
+def _fallback_record() -> dict[str, object]:
+    return {
+        "center": "j_joker",
+        "label": "Joker",
+        "ability_name": "Joker",
+        "ability_set": "JOKER",
+        "rarity": "COMMON",
+    }
+
+
+def _stratified_indices(size: int, limit: int) -> tuple[int, ...]:
+    if size <= 0:
+        return ()
+    if size <= limit:
+        return tuple(range(size))
+    # Equal-width deterministic strata over the observer-provided public catalogue.
+    # Ordering is used only to obtain coverage; no semantic value is inferred from it.
+    return tuple(min(size - 1, (index * size) // limit) for index in range(limit))
 
 
 class RerollJokerExpectationEvaluator:
@@ -57,26 +87,26 @@ class RerollJokerExpectationEvaluator:
         projected.money = max(0, int(money))
         visible_hands = tuple(getattr(projected, "visible_poker_hands", ()) or ())
         pools = dict(getattr(projected, "joker_generation_pools", {}) or {})
-        editions = _edition_probabilities(
-            float(getattr(projected, "joker_generation_edition_rate", 1.0) or 1.0)
+        editions = tuple(
+            (edition, float(probability))
+            for edition, probability in _edition_probabilities(
+                float(getattr(projected, "joker_generation_edition_rate", 1.0) or 1.0)
+            )
+            if float(probability) > 0.0
         )
 
-        rarity_means: dict[str, float] = {}
-        outcome_count = 0
-        for rarity in RARITY_WEIGHTS:
-            records = list(pools.get(rarity, ()) or ())
-            if not records:
-                records = [
-                    {
-                        "center": "j_joker",
-                        "label": "Joker",
-                        "ability_name": "Joker",
-                        "ability_set": "JOKER",
-                        "rarity": "COMMON",
-                    }
-                ]
+        records_by_rarity: dict[str, list[dict[str, object]]] = {}
+        expanded_by_rarity: dict[str, list[tuple[dict[str, object], ...]]] = {}
+        total_records = 0
 
-            values: list[float] = []
+        # Preflight the entire public pool cheaply.  A bounded valuation must never
+        # hide an unresolved/unmodeled eligible outcome merely because it was not
+        # selected for expensive D2 scoring.
+        for rarity in RARITY_WEIGHTS:
+            records = list(pools.get(rarity, ()) or ()) or [_fallback_record()]
+            records_by_rarity[rarity] = records
+            total_records += len(records)
+            expanded_records: list[tuple[dict[str, object], ...]] = []
             for record in records:
                 expanded = JudgementExpectationEvaluator._initial_state_records(
                     record,
@@ -85,25 +115,61 @@ class RerollJokerExpectationEvaluator:
                 if expanded is None:
                     return self._incomplete(
                         f"future Joker initial state is unresolved for {record.get('label') or record.get('center')}",
-                        outcome_count,
+                        total_records,
                     )
-
-                initial_state_values: list[float] = []
-                for branch_record in expanded:
-                    base = self.joker_factory.create(dict(branch_record))
-                    if base is None:
+                branches = tuple(dict(branch_record) for branch_record in expanded)
+                if not branches:
+                    return self._incomplete(
+                        f"future Joker initial-state expansion is empty for {record.get('label') or record.get('center')}",
+                        total_records,
+                    )
+                for branch_record in branches:
+                    if self.joker_factory.create(dict(branch_record)) is None:
                         return self._incomplete(
                             f"eligible {rarity} future Joker is not modeled: {record.get('label') or record.get('center')}",
-                            outcome_count,
+                            total_records,
                         )
+                expanded_records.append(branches)
+            expanded_by_rarity[rarity] = expanded_records
 
-                    edition_value = 0.0
+        exact = total_records <= _MAX_EXACT_PUBLIC_RECORDS
+        rarity_means: dict[str, float] = {}
+        evaluated_records = 0
+        d2_evaluations = 0
+        budget_exhausted = False
+
+        for rarity in RARITY_WEIGHTS:
+            records = records_by_rarity[rarity]
+            expanded_records = expanded_by_rarity[rarity]
+            selected_indices = (
+                tuple(range(len(records)))
+                if exact
+                else _stratified_indices(len(records), _MAX_RECORDS_PER_RARITY)
+            )
+            selected_set = set(selected_indices)
+            rarity_total = 0.0
+
+            # The denominator remains the full public rarity pool.  Unselected
+            # records contribute literal zero; they are never renormalized away.
+            for record_index, (record, branches) in enumerate(zip(records, expanded_records)):
+                if record_index not in selected_set:
+                    continue
+
+                record_total = 0.0
+                for branch_record in branches:
+                    branch_value = 0.0
+                    base = self.joker_factory.create(dict(branch_record))
+                    if base is None:  # defensive: preflight above already proved this
+                        return self._incomplete(
+                            f"eligible {rarity} future Joker became unmodeled: {record.get('label') or record.get('center')}",
+                            total_records,
+                        )
                     for edition, probability in editions:
+                        if d2_evaluations >= _MAX_D2_EVALUATIONS and not exact:
+                            budget_exhausted = True
+                            break
                         candidate = copy.deepcopy(base)
                         candidate.edition = edition
-                        # Exact future shop price is unknown before the reroll. Keep
-                        # D11's explicit expected-price prior, but let D2/D14 own all
-                        # build, replacement, edition, slot, and economy semantics.
                         candidate.price = int(expected_price)
                         candidate.cost = int(expected_price)
                         try:
@@ -111,8 +177,9 @@ class RerollJokerExpectationEvaluator:
                         except (AttributeError, KeyError, RuntimeError, TypeError, ValueError, ZeroDivisionError) as exc:
                             return self._incomplete(
                                 f"future Joker D2 valuation failed for {record.get('label') or record.get('center')}: {type(exc).__name__}: {exc}",
-                                outcome_count,
+                                total_records,
                             )
+                        d2_evaluations += 1
 
                         selected = getattr(decision, "selected", None)
                         if selected is None:
@@ -132,27 +199,43 @@ class RerollJokerExpectationEvaluator:
                                 0.0,
                                 float(self.utility_scale.joker_gain(projected, executable).gain),
                             )
-                        edition_value += float(probability) * gain
+                        branch_value += float(probability) * gain
+                    record_total += branch_value
+                    if budget_exhausted:
+                        break
 
-                    initial_state_values.append(edition_value)
+                rarity_total += record_total / float(len(branches))
+                evaluated_records += 1
+                if budget_exhausted:
+                    break
 
-                values.append(sum(initial_state_values) / len(initial_state_values))
-                outcome_count += 1
-
-            rarity_means[rarity] = sum(values) / len(values)
+            rarity_means[rarity] = rarity_total / float(len(records))
+            if budget_exhausted:
+                # Every remaining rarity/record has zero contribution by definition
+                # of the conservative bounded lower bound.
+                for remaining in RARITY_WEIGHTS:
+                    rarity_means.setdefault(remaining, 0.0)
+                break
 
         expected = sum(
-            float(RARITY_WEIGHTS[rarity]) * rarity_means[rarity]
+            float(RARITY_WEIGHTS[rarity]) * rarity_means.get(rarity, 0.0)
             for rarity in RARITY_WEIGHTS
         )
+        bounded = not exact or budget_exhausted
         return RerollJokerExpectation(
             complete=True,
             expected_gain=expected,
-            outcome_count=outcome_count,
+            outcome_count=total_records,
             rationale=(
-                "future Joker uses public eligible rarity pools and D2/D14 normalized acquisition value",
+                "future Joker uses the authoritative public eligible rarity pools and full D2/D14 for every evaluated branch",
                 "rarity mixture Common=0.70 Uncommon=0.25 Rare=0.05",
-                f"eligible modeled outcomes={outcome_count}",
+                f"eligible public outcomes={total_records}",
+                f"D2-evaluated records={evaluated_records}; D2 calls={d2_evaluations}",
+                (
+                    "large-pool bounded lower bound active: unevaluated public probability mass contributes zero and is not renormalized"
+                    if bounded
+                    else "small public pool integrated exactly"
+                ),
                 f"unseen Joker expected-price prior=${int(expected_price)}",
                 f"expected actionable Joker normalized gain={expected:.3f}",
                 "future exact Joker, edition, price, RNG state, pseudoseed, and pool order are not observed",
@@ -167,7 +250,7 @@ class RerollJokerExpectationEvaluator:
             outcome_count=outcome_count,
             rationale=(
                 reason,
-                "future-Joker reroll expectation fails closed; eligible outcomes are never dropped",
+                "future-Joker expectation fails closed; eligible outcomes are never silently dropped",
             ),
         )
 
