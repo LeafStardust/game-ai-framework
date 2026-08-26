@@ -19,6 +19,14 @@ D1 remains survival-first:
 
 No execution guard below may turn a losing line into a preferred line merely to preserve a strategy mechanic.
 
+### Core comparison tuple ordering
+
+The hierarchy is now enforced in the core comparison tuples, not only in late wrappers. `BuildAwareLiveHandActionPolicy` keeps held-card preservation below clear probability, exactness, expected progress and the normal hand/discard resource dimensions; preservation can only break ties before the final score/local-pace term.
+
+`StrategyAwareLiveHandActionPolicy` places Bond/composition fit below that same full-blind prefix. Vagabond's desire to generate more Tarots by spending additional hands is also only a late strategy tie-break: it no longer inverts expected-hands authority. Without a shared Tarot/economy unit, the agent may exploit Vagabond on an otherwise resource-equivalent line but cannot spend a normally superior hand/discard outcome merely because another line generates an extra activation opportunity.
+
+This matters because the numeric held-card/Bond values are tuning signals. Their magnitude must never allow them to jump ahead of structural survival/resource dimensions in lexicographic D1 ranking.
+
 ## Safe-pace wrapper authority
 
 The original `safe_pace_optimization_policy.py` establishes the Red/White action-class doctrine, but `safe_pace_scope_correction.py` restores the public/base `LiveHandActionPolicy` contract and reapplies that doctrine specifically to the production `StrategyAwareLiveHandActionPolicy`. The scoped wrapper is therefore the authoritative live path.
