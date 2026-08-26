@@ -191,6 +191,7 @@ Completed or validated in the current semantic/runtime pass:
 - **Black Hole** pack execution now requires every modeled poker-hand level to increase by exactly one before the injected action is accepted as complete;
 - **The Serpent** planner transition now forces exactly three public draw cards after either Play or Discard, with Chicot restoring ordinary draw counts;
 - **The Hook** uses exact random two-card forced-discard branching and canonical discard-trigger projection, and D1 now preserves each branch-specific post-Hook hand rather than rebuilding children from a common retained hand;
+- **The Hook** forced-discard projector does not activate **Burnt Joker**, including Blueprint/Brainstorm copies of Burnt, while still applying real forced-discard effects such as **Green Joker** without consuming a player discard use;
 - **The Tooth** and **The Ox** apply their cash effects before Joker scoring so Bull/Bootstraps read the correct post-boss cash; regressions cover Tooth per-card cash loss, Ox target-hand reset, and Chicot bypass;
 - **Cerulean Bell** root and recursive Play/Discard actions obey the currently observed forced-selection constraint;
 - **Cerulean Bell** deeper D1 projections now branch uniformly over every possible next forced-selected card after hypothetical redraws, so recursive child legality is modeled rather than marked incomplete; Chicot bypasses the Bell brancher;
@@ -200,21 +201,22 @@ Completed or validated in the current semantic/runtime pass:
 - **Blueprint** and **Brainstorm** exact-play ordering is regression-locked through the actual selected play and literal projected score;
 - first-card-sensitive hand ordering is regression-locked through the real **Photograph + Hanging Chad** interaction rather than the incorrect assumption that Photograph alone cares which non-face card precedes the first scoring face;
 - dominated non-scoring overplay is regression-locked for **Gold**, **Blue Seal**, and **Steel**, while legitimate dead-card cycling remains available when it improves future hands;
-- the synthetic first-party injected bridge responder now tolerates transient Windows access races instead of dying and producing a false timeout;
-- the full `tests/balatro` suite is green through the order-sensitive execution/held-resource/bridge-race checkpoint on 2026-08-26.
+- the synthetic first-party injected bridge responder tolerates transient Windows access races instead of dying and producing a false timeout;
+- the bounded three-attempt supervisor is regression-locked to stop after attempt 3 without invoking another restart; the historical post-`run_finished` crash is retired unless it reproduces again on current unchanged HEAD;
+- the full `tests/balatro` suite is green through the Hook/Burnt and bounded-supervisor checkpoint on 2026-08-26.
 
-Implemented in the next discard/runtime batch and awaiting deterministic suite validation:
+Implemented in the current boss/consumable batch and awaiting deterministic suite validation:
 
-- **The Hook** forced-discard projector no longer activates **Burnt Joker**, including Blueprint/Brainstorm copies of Burnt; Hook still triggers real discard penalties/effects such as **Green Joker** without consuming a player discard use;
-- direct regressions require ordinary player discards to activate Burnt exactly once per round while Hook-forced discards leave Burnt hand levels unchanged;
-- the bounded three-attempt supervisor now has an explicit regression proving that once attempt 3 is already recorded, the restart callable is never invoked and the control layer requests stop before a fourth run can begin.
+- **Verdant Leaf** emergency sale semantics are regression-locked to choose legal non-Eternal fodder while cards remain boss-debuffed and to perform no emergency sale when **Chicot** disables the boss;
+- **Crimson Heart** transition semantics are regression-locked to clear the previously disabled Joker, branch uniformly over eligible next disabled Jokers, and bypass that randomness under **Chicot**;
+- deterministic Tarot/Spectral target valuation no longer receives the default synthetic `+0.10` reward merely because a card property changed; `effective_changes` remains a no-op legality guard, while default production target value comes only from contextual/intrinsic mechanics and explicit opportunity costs;
+- regressions distinguish a neutral transformation (zero value), a genuinely beneficial contextual transformation (positive value), and an identical transformation (rejected no-op); explicit non-default `effective_change_value` remains available only for callers that deliberately request it.
 
 Still open before a new live baseline:
 
-- complete the remaining pack/consumable opportunity-cost and target-selection audit beyond Wheel/Soul/Black Hole and the already modeled deterministic target paths;
-- complete the remaining boss-mechanics audit beyond Psychic, Serpent, Hook, Tooth, Ox, and Cerulean Bell;
-- finish the semantic D1 audit for any remaining discard-trigger engines and hand-play contradictions after the Hook/Burnt batch validates;
-- validate the bounded-supervisor final-attempt guard above, then retire the historical post-`run_finished` crash item unless a fresh unchanged-HEAD reproduction exists;
+- finish the remaining pack/consumable opportunity-cost and target-selection audit after the literal target-value batch validates;
+- finish the remaining boss-mechanics inventory after Verdant Leaf / Crimson Heart regressions validate; do not manufacture duplicate handlers for effects already embodied in authoritative live state;
+- finish any remaining D1 discard-trigger/hand-play contradiction audit after the current batch validates;
 - rerun the full Balatro suite after the remaining changes, then perform a fresh production-default three-run Red/White batch.
 
 ## Current repair queue
@@ -229,9 +231,9 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Repair D1 discard selection at the authoritative planner/controller layer so multi-card redraws are considered correctly and strategy-specific discard mechanics execute.
 - [ ] Audit pack/consumable skipping for positive-EV opportunities and harmful opportunity-cost mistakes.
 - [ ] Audit boss-specific execution against exact mechanics.
-- [ ] Validate the bounded final-attempt shutdown guard; if green with no fresh reproduction, retire the historical post-`run_finished` crash as fixed/guarded.
+- [x] Bound the three-attempt supervisor so final attempt completion cannot issue a fourth restart; retire the historical post-`run_finished` crash unless reproduced on current unchanged HEAD.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through the order-sensitive execution, held-resource, and first-party bridge-race batch; Hook/Burnt and bounded-final-attempt regressions are pending the next suite run.
+- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through Hook/Burnt forced-discard semantics and bounded final-attempt shutdown; Verdant/Crimson and literal consumable-target value are pending the next suite run.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
