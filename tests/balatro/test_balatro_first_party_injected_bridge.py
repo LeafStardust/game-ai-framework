@@ -45,6 +45,21 @@ def _write_bridge_response(bridge, text):
     temporary.replace(bridge.response_path)
 
 
+def _read_bridge_command(bridge, deadline):
+    """Read a synthetic bridge command despite transient Windows file locks."""
+    while time.monotonic() < deadline:
+        try:
+            return bridge.command_path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            pass
+        except PermissionError:
+            pass
+        except OSError:
+            pass
+        time.sleep(0.001)
+    return None
+
+
 def test_command_protocol_uses_zero_based_hand_indices():
     command = encode_command("abc123", "play", (0, 2, 4))
     assert command == "abc123\tPLAY\t0,2,4\n"
@@ -79,22 +94,20 @@ def test_bridge_round_trip_uses_local_file_protocol(tmp_path):
     def responder():
         responder_ready.set()
         deadline = time.monotonic() + bridge.timeout + 1.0
-        while time.monotonic() < deadline:
-            if bridge.command_path.exists():
-                text = bridge.command_path.read_text(encoding="utf-8")
-                command_id, action, payload = text.rstrip("\n").split("\t", 2)
-                captured.update(
-                    command_id=command_id,
-                    action=action,
-                    payload=payload,
-                )
-                bridge.command_path.unlink()
-                _write_bridge_response(
-                    bridge,
-                    f"{command_id}\tOK\taccepted\n",
-                )
-                return
-            time.sleep(0.001)
+        text = _read_bridge_command(bridge, deadline)
+        if text is None:
+            return
+        command_id, action, payload = text.rstrip("\n").split("\t", 2)
+        captured.update(
+            command_id=command_id,
+            action=action,
+            payload=payload,
+        )
+        bridge.command_path.unlink(missing_ok=True)
+        _write_bridge_response(
+            bridge,
+            f"{command_id}\tOK\taccepted\n",
+        )
 
     thread = threading.Thread(target=responder)
     thread.start()
@@ -124,18 +137,16 @@ def test_bridge_status_round_trip_is_non_gameplay_command(tmp_path):
         # client's timeout so a busy runner does not turn this into a false bridge
         # failure.
         deadline = time.monotonic() + bridge.timeout + 1.0
-        while time.monotonic() < deadline:
-            if bridge.command_path.exists():
-                text = bridge.command_path.read_text(encoding="utf-8")
-                command_id, action, payload = text.rstrip("\n").split("\t", 2)
-                captured.update(action=action, payload=payload)
-                bridge.command_path.unlink()
-                _write_bridge_response(
-                    bridge,
-                    f"{command_id}\tOK\tbridge=1;achievement_gate=UNSET\n",
-                )
-                return
-            time.sleep(0.001)
+        text = _read_bridge_command(bridge, deadline)
+        if text is None:
+            return
+        command_id, action, payload = text.rstrip("\n").split("\t", 2)
+        captured.update(action=action, payload=payload)
+        bridge.command_path.unlink(missing_ok=True)
+        _write_bridge_response(
+            bridge,
+            f"{command_id}\tOK\tbridge=1;achievement_gate=UNSET\n",
+        )
 
     thread = threading.Thread(target=responder)
     thread.start()
@@ -163,18 +174,16 @@ def test_bridge_surfaces_lua_side_rejection(tmp_path):
         # The responder must outlive the client's timeout window; otherwise full-suite
         # scheduler contention can let the peer exit before the command is observed.
         deadline = time.monotonic() + bridge.timeout + 2.0
-        while time.monotonic() < deadline:
-            if bridge.command_path.exists():
-                text = bridge.command_path.read_text(encoding="utf-8")
-                command_id = text.split("\t", 1)[0]
-                bridge.command_path.unlink()
-                _write_bridge_response(
-                    bridge,
-                    f"{command_id}\tERROR\tBalatro rejected selection\n",
-                )
-                response_written.set()
-                return
-            time.sleep(0.001)
+        text = _read_bridge_command(bridge, deadline)
+        if text is None:
+            return
+        command_id = text.split("\t", 1)[0]
+        bridge.command_path.unlink(missing_ok=True)
+        _write_bridge_response(
+            bridge,
+            f"{command_id}\tERROR\tBalatro rejected selection\n",
+        )
+        response_written.set()
 
     thread = threading.Thread(target=responder)
     thread.start()
