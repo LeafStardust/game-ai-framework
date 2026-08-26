@@ -15,7 +15,11 @@ This adapter currently owns exact/publicly measurable effects:
   D2 direct-score scale used for Ouija/Ectoplasm hand-size cost;
 * Observatory: literal representative whole-build score change from adding the
   voucher to the current public state, so only actually held matching Planets create
-  immediate parent value through the installed Observatory X1.5 scoring mechanic.
+  immediate parent value through the installed Observatory X1.5 scoring mechanic;
+* Seed Money / Money Tree: conservative next-interest-payout improvement at the
+  actual post-purchase cash level, expressed with D14's own interest weight;
+* Blank: zero current-run parent value. Cross-run unlock progression is not a
+  competence objective and cannot compete with run-winning SHOP actions.
 
 Other vouchers remain under D3's persistent strategic model until their mechanics
 have an equally grounded parent-scale evaluator. This module never changes D3
@@ -32,7 +36,15 @@ from games.balatro.shop_reroll_policy import VANILLA_SHOP_REROLL_PRIOR
 
 
 _LITERAL_PARENT_VOUCHERS = frozenset(
-    {"Antimatter", "Paint Brush", "Palette", "Observatory"}
+    {
+        "Antimatter",
+        "Paint Brush",
+        "Palette",
+        "Observatory",
+        "Seed Money",
+        "Money Tree",
+        "Blank",
+    }
 )
 
 
@@ -81,6 +93,13 @@ class VoucherParentLiteralEvaluator:
             return self._hand_size_gain(state)
         if label == "Observatory":
             return self._observatory(state, voucher)
+        if label in {"Seed Money", "Money Tree"}:
+            return self._interest_cap_gain(state, voucher, money_after=money_after)
+        if label == "Blank":
+            return True, 0.0, (
+                "Blank has no current-run mechanical effect",
+                "cross-run unlock progression is excluded from the competence objective",
+            )
         return False, 0.0, ("voucher is outside literal parent authority",)
 
     def _antimatter(self, state, *, money_after: int):
@@ -169,6 +188,29 @@ class VoucherParentLiteralEvaluator:
             f"currently held Planet cards={matching_planets}",
             f"literal current-build gain={gain:.3f}",
             "future Planet acquisition/Perkeo infrastructure is omitted rather than assigned a synthetic premium",
+        )
+
+    def _interest_cap_gain(self, state, voucher, *, money_after: int):
+        valuator = self.shop_policy.resource_valuator
+        before_vouchers = tuple(getattr(state, "vouchers", ()) or ())
+        after_vouchers = (*before_vouchers, voucher)
+        before_interest = valuator.interest_value(
+            int(money_after),
+            vouchers=before_vouchers,
+        )
+        after_interest = valuator.interest_value(
+            int(money_after),
+            vouchers=after_vouchers,
+        )
+        extra_dollars = max(0, int(after_interest) - int(before_interest))
+        gain = float(self.shop_policy.interest_weight) * float(extra_dollars)
+        return True, gain, (
+            f"interest-cap voucher evaluated at post-purchase cash=${int(money_after)}",
+            f"next interest payout before=${int(before_interest)} after=${int(after_interest)}",
+            f"conservative next-payout improvement=${extra_dollars}",
+            f"D14 interest weight={float(self.shop_policy.interest_weight):.3f}",
+            f"mechanical parent gain={gain:.3f}",
+            "later-round compounding/upside is omitted rather than assigned a synthetic horizon premium",
         )
 
 
