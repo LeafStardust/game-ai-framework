@@ -11,6 +11,7 @@ from dataclasses import replace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.bonds.diagnostics import bond_strategy_diagnostics
+from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.hand_action_policy import PACE_PLAY
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
@@ -65,33 +66,67 @@ def _realized_no_discard_engine(state) -> bool:
     )
 
 
+def _selected_clear_probability(decision) -> float:
+    selected = getattr(decision, "selected_plan", None)
+    try:
+        return float(getattr(selected.value, "clear_probability", 0.0) or 0.0)
+    except (AttributeError, TypeError, ValueError):
+        return 0.0
+
+
+def _clear_probability_tolerance(decision) -> float:
+    try:
+        return float(
+            getattr(
+                getattr(decision, "thresholds", None),
+                "safe_clear_probability_tolerance",
+                0.0,
+            )
+            or 0.0
+        )
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _safe_pace_play(policy, state, plans, decision):
-    """Return the best play already meeting D1's own pace target, if one exists."""
+    """Return a pace-qualified play that remains survival-equivalent to D1."""
     pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
     if pace_target <= 0.0:
         return None
 
+    selected_probability = _selected_clear_probability(decision)
+    tolerance = _clear_probability_tolerance(decision)
     candidates = []
     for plan in plans:
         if plan.action.name != PLAY_CARDS:
             continue
+        probability = float(getattr(plan.value, "clear_probability", 0.0) or 0.0)
+        if probability + tolerance + policy.EPSILON < selected_probability:
+            continue
         score = float(policy.evaluator.project_play(state, plan.action).expected_hand_score)
         if score + policy.EPSILON >= pace_target:
-            candidates.append((score, plan))
+            candidates.append((probability, score, plan))
     if not candidates:
         return None
     return max(
         candidates,
         key=lambda item: (
-            policy._strategy_fit(state, item[1].action)[0],
             item[0],
-            policy._within_type_key(item[1]),
+            policy._strategy_fit(state, item[2].action)[0],
+            item[1],
+            policy._within_type_key(item[2]),
         ),
     )
 
 
-def _hand_key(policy, plan) -> str:
-    return _normalize(policy._hand_evaluator.evaluate(list(plan.action.cards)).value)
+def _hand_key(policy, state, plan) -> str:
+    rules = hand_rules_for_state(state)
+    return _normalize(
+        policy._hand_evaluator.evaluate(
+            list(plan.action.cards),
+            rules=rules,
+        ).value
+    )
 
 
 def _played_this_round(state) -> set[str]:
@@ -117,18 +152,12 @@ def _safe_repeat_play(policy, state, plans, decision):
     if not repeated:
         return None
 
-    selected = getattr(decision, "selected_plan", None)
-    selected_probability = float(
-        getattr(getattr(selected, "value", None), "clear_probability", 0.0) or 0.0
-    )
-    tolerance = float(
-        getattr(getattr(decision, "thresholds", None), "safe_clear_probability_tolerance", 0.0)
-        or 0.0
-    )
+    selected_probability = _selected_clear_probability(decision)
+    tolerance = _clear_probability_tolerance(decision)
     pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
     candidates = []
     for plan in plans:
-        if plan.action.name != PLAY_CARDS or _hand_key(policy, plan) not in repeated:
+        if plan.action.name != PLAY_CARDS or _hand_key(policy, state, plan) not in repeated:
             continue
         probability = float(getattr(plan.value, "clear_probability", 0.0) or 0.0)
         if probability + tolerance + policy.EPSILON < selected_probability:
@@ -165,11 +194,12 @@ def install_strategy_execution_guard_policy() -> None:
         decision = original_decide(self, state, plans, **kwargs)
 
         # Realized no-discard engines should not be destroyed for convenience.  A
-        # discard remains legal when no currently playable hand satisfies D1 pace.
+        # discard remains legal when no currently playable hand is both pace-safe
+        # and survival-equivalent to D1's selected line.
         if decision.action.name == DISCARD_CARDS and _realized_no_discard_engine(state):
             safe = _safe_pace_play(self, state, plans, decision)
             if safe is not None:
-                score, plan = safe
+                probability, score, plan = safe
                 pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
                 pace_ratio = score / pace_target if pace_target > 0.0 else float("inf")
                 decision = replace(
@@ -180,11 +210,12 @@ def install_strategy_execution_guard_policy() -> None:
                     selected_immediate_score=score,
                     selected_pace_ratio=pace_ratio,
                     selected_fallback_value=None,
-                    confidence=max(float(getattr(decision, "confidence", 0.0) or 0.0), 0.90),
+                    confidence=max(float(getattr(decision, "confidence", 0.0) or 0.0), probability),
                     rationale=(
-                        "realized no_discard engine: preserve discard-sensitive value when a play already meets D1 pace",
+                        "realized no_discard engine: preserve discard-sensitive value only on a D1 survival-equivalent pace line",
                         f"selected play projects {score:.3f} against pace target {pace_target:.3f}",
-                        "survival remains authoritative when no current play meets pace",
+                        f"play clear probability={probability:.3f}; baseline={_selected_clear_probability(decision):.3f}; tolerance={_clear_probability_tolerance(decision):.3f}",
+                        "survival remains authoritative when no current play meets both gates",
                         *decision.rationale,
                     ),
                 )
