@@ -36,6 +36,9 @@ from games.balatro.build.joker_scenarios import (
 )
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 from games.balatro.build.wheel_expectation import WheelOfFortuneExpectationEvaluator
+from games.balatro.celestial_shop_headroom_fast_path import (
+    install_celestial_shop_headroom_fast_path,
+)
 from games.balatro.consumable import Consumable, ConsumableContext
 from games.balatro.joker_policy import BUY, HOLD, JokerAcquisitionPolicy
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
@@ -93,6 +96,7 @@ def _has_invested_hand(source) -> bool:
 
 def install_red_white_competence_corrections() -> None:
     install_bond_visible_shop_bundle_policy()
+    install_celestial_shop_headroom_fast_path()
     if getattr(JokerAcquisitionPolicy, "_rw_competence_corrections_installed", False):
         return
 
