@@ -28,6 +28,13 @@ class InertJoker(Joker):
         return context
 
 
+class StrongJoker(Joker):
+    def apply(self, context: JokerContext) -> JokerContext:
+        if context.score is not None:
+            context.score.mult += 100
+        return context
+
+
 def _state(*, money: int = 20) -> BalatroState:
     state = BalatroState()
     state.phase = "SHOP"
@@ -194,10 +201,13 @@ def test_whole_shop_arbiter_holds_unrecognized_booster_when_reroll_is_unknown():
 
 
 def test_strong_deterministic_purchase_beats_unrecognized_booster():
-    # Antimatter's D14 parent value is the marginal value of the extra Joker slot
-    # through the public eligible Joker catalogue. Supply that public catalogue so
-    # this test exercises an actually admitted positive deterministic purchase.
+    # Antimatter is valuable only when the sixth slot changes the actionable future
+    # Joker set. With five empty slots the next Base Joker was already freely addable,
+    # so +1 capacity had zero marginal D14 value. A saturated strong roster makes the
+    # ordinary Base Joker a bad replacement before Antimatter and an additive option
+    # after it, which is the exact capacity mechanic this boundary test intends.
     state = _with_public_joker_pool(_state())
+    state.jokers = [StrongJoker() for _ in range(state.joker_slots)]
     voucher_target = LiveShopItem(
         kind="VOUCHER",
         label="Antimatter",
@@ -212,8 +222,6 @@ def test_strong_deterministic_purchase_beats_unrecognized_booster():
         reroll_cost=None,
     )
 
-    # Deterministic policy wrappers may reconstruct the executable BalatroAction.
-    # D14 identity is semantic: same action type and exact visible target.
     assert decision.action.name == BUY_VOUCHER
     assert decision.action.target is voucher_target
     assert decision.source == "DETERMINISTIC"
