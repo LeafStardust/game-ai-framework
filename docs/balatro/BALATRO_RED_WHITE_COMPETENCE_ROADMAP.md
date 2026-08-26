@@ -185,20 +185,23 @@ Completed or validated in the current semantic/runtime pass:
 - **The Psychic** now scores legal 1–4 card burn/cycling plays as zero while preserving normal scoring for valid five-card plays;
 - **Purple Seal** discard value now survives planner search: a mechanically distinct Purple-Seal branch is preserved when a Tarot can actually be generated, and generated consumables are carried only as a late survival-equivalent expectimax tie-break;
 - shop Wheel remains admitted through the public-state stochastic edition model rather than being deterministically rejected;
+- **Wheel of Fortune** no longer receives the shop-only synthetic `1.25` option-value floor; shop and pack Wheel now use the same literal analytic public-state expected build gain contract;
 - **The Soul** no longer receives a fixed `8 + early-Ante bonus` pack score; pack selection now uses a uniform expectation over the five modeled Legendary Joker outcomes evaluated against the current build through B3;
+- deterministic targeted Tarot/Spectral pack execution preserves ordered live-card identity, rejects already-identical transformations, and verifies the resulting live card mutation before accepting the action;
+- **Black Hole** pack execution now requires every modeled poker-hand level to increase by exactly one before the injected action is accepted as complete;
 - **The Serpent** planner transition now forces exactly three public draw cards after either Play or Discard, with Chicot restoring ordinary draw counts;
 - **The Hook** uses exact random two-card forced-discard branching and canonical discard-trigger projection, and D1 now preserves each branch-specific post-Hook hand rather than rebuilding children from a common retained hand;
 - **The Tooth** and **The Ox** apply their cash effects before Joker scoring so Bull/Bootstraps read the correct post-boss cash; regressions cover Tooth per-card cash loss, Ox target-hand reset, and Chicot bypass;
 - **Cerulean Bell** root and recursive Play/Discard actions obey the currently observed forced-selection constraint;
 - **Cerulean Bell** deeper D1 projections now branch uniformly over every possible next forced-selected card after hypothetical redraws, so recursive child legality is modeled rather than marked incomplete; Chicot bypasses the Bell brancher;
 - **Cerulean Bell** live process-memory hydration now carries public `card.ability.forced_selection` through the normalized snapshot and translator into `BalatroCard.forced_selection`, so the validated D1 legality logic is active in production observations rather than only synthetic states;
-- the full `tests/balatro` suite is green through the complete Cerulean Bell current-hand, future-forced-selection, and live-state hydration checkpoint on 2026-08-26.
+- the full `tests/balatro` suite is green through the Wheel literal-expectation and Black Hole all-hand-level verification checkpoint on 2026-08-26.
 
 Still open before a new live baseline:
 
-- complete the remaining pack/consumable opportunity-cost and target-selection audit beyond Wheel/Soul and the already modeled deterministic target paths;
+- complete the remaining pack/consumable opportunity-cost and target-selection audit beyond Wheel/Soul/Black Hole and the already modeled deterministic target paths;
 - complete the remaining boss-mechanics audit beyond Psychic, Serpent, Hook, Tooth, Ox, and Cerulean Bell;
-- finish the semantic D1 audit for held-value cards, discard-trigger engines, and boss interactions;
+- finish the semantic D1 audit for held-value cards, discard-trigger engines, and order-sensitive interactions;
 - diagnose/fix the post-`run_finished` three-attempt supervisor/shutdown crash;
 - rerun the full Balatro suite after the remaining changes, then perform a fresh production-default three-run Red/White batch.
 
@@ -216,7 +219,7 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Audit boss-specific execution against exact mechanics.
 - [ ] Diagnose and fix the three-attempt supervisor/shutdown crash observed after all three run logs had already emitted `run_finished`.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through complete Cerulean Bell D1 legality/future-forced-selection/live-hydration handling.
+- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through Wheel literal expectation and Black Hole all-hand-level postcondition verification.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
