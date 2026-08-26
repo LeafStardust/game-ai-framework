@@ -1,33 +1,39 @@
 from __future__ import annotations
 
-"""Replace fixed D3 parent values for mechanically measurable capacity vouchers.
+"""Replace fixed D3 parent values for mechanically measurable vouchers.
 
-D3 remains authoritative for voucher BUY/HOLD admission.  D14 must not, however,
+D3 remains authoritative for voucher BUY/HOLD admission. D14 must not, however,
 compare legacy fixed voucher numbers directly with literal Joker/consumable/booster
 utility when the voucher's persistent mechanic can be measured from public state.
 
-This adapter currently owns only exact capacity effects:
+This adapter currently owns exact/publicly measurable effects:
 
 * Antimatter: +1 Joker slot, valued as the marginal public future-Joker option at
   post-purchase cash using the same D11/D2/D14 expectation as Ectoplasm;
 * Paint Brush / Palette: +1 permanent hand size, valued as the expected best literal
   one-hand score improvement from H to H+1 using the same public draw machinery and
-  D2 direct-score scale used for Ouija/Ectoplasm hand-size cost.
+  D2 direct-score scale used for Ouija/Ectoplasm hand-size cost;
+* Observatory: literal representative whole-build score change from adding the
+  voucher to the current public state, so only actually held matching Planets create
+  immediate parent value through the installed Observatory X1.5 scoring mechanic.
 
 Other vouchers remain under D3's persistent strategic model until their mechanics
-have an equally grounded parent-scale evaluator.  This module never changes D3
+have an equally grounded parent-scale evaluator. This module never changes D3
 admission and never reads RNG state, pseudoseeds, or future draw/shop order.
 """
 
 from dataclasses import replace
 
 from games.balatro.build.hand_size_opportunity import HandSizeOpportunityEvaluator
+from games.balatro.consumable_d14_literal_policy import PlanetD14OptionEvaluator
 from games.balatro.reroll_joker_expectation_policy import RerollJokerExpectationEvaluator
 from games.balatro.shop_policy import BalatroShopPolicy
 from games.balatro.shop_reroll_policy import VANILLA_SHOP_REROLL_PRIOR
 
 
-_CAPACITY_VOUCHERS = frozenset({"Antimatter", "Paint Brush", "Palette"})
+_LITERAL_PARENT_VOUCHERS = frozenset(
+    {"Antimatter", "Paint Brush", "Palette", "Observatory"}
+)
 
 
 def _label(item) -> str:
@@ -60,6 +66,7 @@ class VoucherParentLiteralEvaluator:
         self.shop_policy = shop_policy
         self.hand_size = HandSizeOpportunityEvaluator()
         self.joker_option = RerollJokerExpectationEvaluator(shop_policy=shop_policy)
+        self.direct_score = PlanetD14OptionEvaluator()
 
     def evaluate(self, state, voucher) -> tuple[bool, float, tuple[str, ...]]:
         label = _label(voucher)
@@ -72,7 +79,9 @@ class VoucherParentLiteralEvaluator:
             return self._antimatter(state, money_after=money_after)
         if label in {"Paint Brush", "Palette"}:
             return self._hand_size_gain(state)
-        return False, 0.0, ("voucher is outside literal capacity parent authority",)
+        if label == "Observatory":
+            return self._observatory(state, voucher)
+        return False, 0.0, ("voucher is outside literal parent authority",)
 
     def _antimatter(self, state, *, money_after: int):
         expected_price = _future_joker_price_prior()
@@ -111,11 +120,9 @@ class VoucherParentLiteralEvaluator:
                 "hand-size voucher parent value unavailable: authoritative owned_deck was not observed",
             )
         before_size = max(1, int(getattr(state, "hand_size", 0) or 0))
-        composition = self.hand_size.draw_outcomes.composition_from_cards(owned) if hasattr(self.hand_size.draw_outcomes, "composition_from_cards") else None
-        if composition is None:
-            from games.balatro.live.draw_model import PublicDeckComposition
-            composition = PublicDeckComposition.from_cards(owned)
+        from games.balatro.live.draw_model import PublicDeckComposition
 
+        composition = PublicDeckComposition.from_cards(owned)
         before = self.hand_size._expected_best_score(state, composition, before_size)
         after = self.hand_size._expected_best_score(state, composition, before_size + 1)
         if before is None or after is None:
@@ -143,6 +150,27 @@ class VoucherParentLiteralEvaluator:
             f"after distribution={'exact' if after_exact else 'deterministic sampled'}",
         )
 
+    def _observatory(self, state, voucher):
+        after = state.copy()
+        after.vouchers.append(voucher)
+        value = self.direct_score._relative_direct_value(state, after)
+        if value is None:
+            return False, 0.0, (
+                "Observatory parent value failed closed on incomplete literal scoring",
+            )
+        gain = max(0.0, float(value))
+        matching_planets = sum(
+            1
+            for item in tuple(getattr(state, "consumables", ()) or ())
+            if str(getattr(item, "category", "") or "").upper() == "PLANET"
+        )
+        return True, gain, (
+            "Observatory parent value uses literal before/after scorer with voucher added",
+            f"currently held Planet cards={matching_planets}",
+            f"literal current-build gain={gain:.3f}",
+            "future Planet acquisition/Perkeo infrastructure is omitted rather than assigned a synthetic premium",
+        )
+
 
 def install_voucher_parent_literal_policy() -> None:
     if getattr(BalatroShopPolicy, "_literal_capacity_voucher_parent_installed", False):
@@ -168,7 +196,7 @@ def install_voucher_parent_literal_policy() -> None:
                 continue
             voucher = getattr(action, "target", None)
             label = _label(voucher)
-            if label not in _CAPACITY_VOUCHERS:
+            if label not in _LITERAL_PARENT_VOUCHERS:
                 rewritten.append(score)
                 continue
 
@@ -199,7 +227,7 @@ def install_voucher_parent_literal_policy() -> None:
                     reserve_penalty=float(resource.reserve),
                     cash_scaling_penalty=float(resource.cash_scaling),
                     notes=(
-                        "D14 literal capacity-voucher parent authority",
+                        "D14 literal voucher parent authority",
                         f"voucher={label}",
                         f"mechanical parent value={float(parent_value):.3f}",
                         f"shared resource cost={float(resource.total):.3f}",
