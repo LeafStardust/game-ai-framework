@@ -60,7 +60,13 @@ D4 may use B4 structural/build-path units for child admission, but those units n
 
 `held_consumable_option_policy.py` values the candidate by expected actual future use on representative fresh hands from the unordered public permanent deck. The fully installed D9 mechanics score each branch against opened-pack Skip=0. Unsupported/incomplete branches remain zero in the expectation rather than being renormalized away.
 
-Generation Tarots whose held-slot timing differs from direct pack selection fail closed at D14 rather than inheriting B4 structural value.
+Generation Tarots now use the same future-use path instead of failing closed merely because they create another card:
+
+- **The High Priestess** — the current pre-purchase consumable occupancy is the correct post-use occupancy because the held High Priestess itself is consumed before its generated Planets occupy the released capacity. The installed public eligible-Planet/Showman expectation therefore applies directly;
+- **The Emperor** — the same slot-release reasoning applies to its generated Tarots, and the installed Emperor evaluator already sets Emperor as the last-used Tarot for generated Fool branches;
+- **Judgement** — generates a Joker rather than a consumable, so there is no consumable-capacity mismatch between held use and direct D9 valuation.
+
+This closes the former held-generation gap without inventing future outcomes: exact generated identities remain integrated over the same public pools already used by D9.
 
 ### Planet BUY / BUY_AND_USE
 
@@ -88,7 +94,7 @@ D11 no longer relies on fixed gross value for future Joker, Planet or Tarot iden
 
 - Joker — current public eligible Joker rarity pools through D2/D14, with public edition odds;
 - Planet — current eligible Planet pool through D4/D14;
-- Tarot — current public eligible Tarot pool, each outcome valued as a future held-use option on public fresh-hand draws.
+- Tarot — current public eligible Tarot pool, each outcome valued as a future held-use option on public fresh-hand draws, including High Priestess, Emperor and Judgement generation semantics.
 
 Future exact item identity is never observed. Unseen future sticker price remains the explicit D11 price prior. Reroll purchase cost is charged separately after future-shop option EV.
 
@@ -99,7 +105,7 @@ D3 is authoritative for ordinary voucher BUY/HOLD admission. D14 recomputes vouc
 The following vouchers have grounded parent behavior:
 
 - **Antimatter** — marginal public future-Joker option from `joker_slots -> joker_slots + 1`, evaluated at post-purchase cash through the same D11/D2/D14 Joker expectation used by Ectoplasm;
-- **Paint Brush / Palette** — literal expected best-play improvement from `hand_size -> hand_size + 1` using the same public draw and D2 direct-score scale used by Ouija/Ectoplasm hand-size opportunity cost;
+- **Paint Brush / Palette** — literal expected best-play improvement from `hand_size -> hand_size + 1` using the same public draw and D2 direct-score scale used for Ouija/Ectoplasm hand-size opportunity cost;
 - **Grabber / Nacho Tong** — exact `+1 hand` value propagated only across Boss Blind rounds that are unavoidably required to win through the configured Ante-8 target. Small and Big Blinds are omitted because playing rather than skipping them is a future policy choice. Only the shared resource model's invariant direct hand component is propagated; current-blind survival pressure is not copied onto unseen bosses;
 - **Wasteful / Recyclomancy** — the same unavoidable Boss-round lower bound for `+1 discard`. Existing D3 conflict/mechanical vetoes such as Burglar remain authoritative;
 - **Observatory** — literal current-build score change from adding the voucher to the current state, using the installed exact `1.5 ** matching_held_planets` scoring effect. Future Planet acquisition and Perkeo infrastructure are deliberately omitted instead of receiving a synthetic premium;
@@ -137,4 +143,4 @@ Random future effects are integrated over public eligible catalogues or public d
 
 ## Validation status
 
-No tests were run by the assistant. Current-HEAD deterministic and live validation remain the user's local gate. Semantic D14 arbitration no longer has a synthetic persistent-voucher blocker; threshold calibration and any contradictions reproduced by local/live validation remain follow-up work.
+No tests were run by the assistant. Current-HEAD deterministic and live validation remain the user's local gate. Semantic D14 arbitration has no remaining known incompatible-unit or held-generation blocker; threshold calibration and any contradictions reproduced by local/live validation remain follow-up work.
