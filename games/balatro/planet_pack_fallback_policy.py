@@ -17,14 +17,18 @@ development headroom: every Planet is direct permanent engine progress. Reserve
 protection remains authoritative.
 """
 
+from collections import Counter
+from copy import deepcopy
 from dataclasses import replace
-from math import comb
+from itertools import combinations, combinations_with_replacement
+from math import comb, factorial
 
 from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.bonds.strategy_semantics import StrategyCommitment
+from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
 from games.balatro.planet_scaler_authority import has_planet_use_scaler
-from games.balatro.planets import PLANET_CARDS
+from games.balatro.planets import PLANET_CARDS, create_planet, eligible_planet_names
 from games.balatro.shop_booster_policy import HOLD, BuildAwareShopBoosterPolicy
 from games.balatro.shop_consumable_policy import (
     BUY,
@@ -212,43 +216,256 @@ def _celestial_headroom(state) -> tuple[int, tuple[str, ...]]:
     )
 
 
+def _showman_owned(state) -> bool:
+    return any(
+        _token(
+            getattr(joker, "name", None)
+            or getattr(joker, "label", None)
+            or type(joker).__name__
+        )
+        in {"SHOWMAN", "SHOWMANJOKER"}
+        for joker in tuple(getattr(state, "jokers", ()) or ())
+    )
+
+
+def _held_planet_names(state) -> frozenset[str]:
+    return frozenset(
+        str(getattr(consumable, "name", "") or "")
+        for consumable in tuple(getattr(state, "consumables", ()) or ())
+        if str(getattr(consumable, "category", "") or "").upper() == "PLANET"
+    )
+
+
+def _celestial_planet_pool(state) -> tuple[tuple[str, ...], bool, tuple[str, ...]]:
+    """Return the current public generatable Planet pool.
+
+    Secret Planets enter only after their public unlock hand has been played. Without
+    Showman, held Planet duplicates are excluded and pack offers are drawn without
+    replacement. Showman permits duplicate Planet generation.
+    """
+    showman = _showman_owned(state)
+    held = _held_planet_names(state)
+    pool: list[str] = []
+    excluded: list[str] = []
+    for name in eligible_planet_names(state):
+        planet = create_planet(name)
+        if not showman and planet.name in held:
+            excluded.append(planet.name)
+            continue
+        pool.append(name)
+    return tuple(pool), showman, tuple(sorted(excluded))
+
+
+def _apply_planet_sequence(state, names: tuple[str, ...]):
+    projected = deepcopy(state)
+    for name in names:
+        planet = create_planet(name)
+        hand = str(planet.hand_type)
+        levels = getattr(projected, "hand_levels", None)
+        if not isinstance(levels, dict) or hand not in levels:
+            return None
+        levels[hand] = int(levels.get(hand, 1) or 1) + 1
+
+        # Constellation is the only current vanilla Planet-use score scaler in the
+        # framework. Its public persistent state advances once for each used Planet.
+        for joker in tuple(getattr(projected, "jokers", ()) or ()):
+            if (
+                type(joker).__name__ == "ConstellationJoker"
+                and not bool(getattr(joker, "debuffed", False))
+            ):
+                joker.x_mult = float(getattr(joker, "x_mult", 1.0) or 1.0) + 0.1
+    return projected
+
+
+def _literal_transition_value(state, projected, evaluator: JokerBuildValueEvaluator) -> float | None:
+    """Express one permanent Planet transition on D2's literal scoring scale."""
+    observed = evaluator._probe_weights(state)
+    weighted_gain = 0.0
+    total_weight = 0.0
+
+    for hand, template_cards in evaluator._scoring_probes(state):
+        cards = deepcopy(list(template_cards))
+        before_state = deepcopy(state)
+        after_state = deepcopy(projected)
+        before_state.hand = deepcopy(cards)
+        after_state.hand = deepcopy(cards)
+        try:
+            before = evaluator.scorer.score(
+                hand,
+                state=before_state,
+                cards=deepcopy(cards),
+                resolve_random_effects=False,
+            ).total
+            after = evaluator.scorer.score(
+                hand,
+                state=after_state,
+                cards=deepcopy(cards),
+                resolve_random_effects=False,
+            ).total
+        except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
+            continue
+
+        gain = (float(after) - float(before)) / max(abs(float(before)), 1.0)
+        if observed is None:
+            weight = 1.0
+        else:
+            weight = evaluator._OBSERVED_HAND_PRIOR_WEIGHT + observed.get(
+                evaluator._hand_key(hand.value),
+                0.0,
+            )
+        weighted_gain += gain * weight
+        total_weight += weight
+
+    if total_weight <= 0.0:
+        return None
+    normalized_gain = weighted_gain / total_weight
+    value = normalized_gain * float(evaluator.weights.direct_scoring_gain)
+    value = max(
+        -float(evaluator.weights.direct_scoring_cap),
+        min(float(evaluator.weights.direct_scoring_cap), value),
+    )
+    return max(0.0, value)
+
+
+def _planet_sequence_value(
+    state,
+    names: tuple[str, ...],
+    evaluator: JokerBuildValueEvaluator,
+) -> float | None:
+    projected = _apply_planet_sequence(state, names)
+    if projected is None:
+        return None
+    return _literal_transition_value(state, projected, evaluator)
+
+
+def _selection_key(names: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(sorted(names))
+
+
+def _celestial_expected_selection_utility(
+    state,
+    *,
+    offer_count: int,
+    selection_count: int,
+) -> tuple[float | None, tuple[str, ...]]:
+    """Expected best visible Planet selection from the finite public pool.
+
+    Values are literal before/after score transitions on the same direct-scoring
+    normalization used by D2. For Mega packs, two selected Planets are simulated as
+    one sequential permanent transition so repeated hand levels and Constellation
+    growth are not treated as independent bonuses.
+    """
+    pool, showman, excluded = _celestial_planet_pool(state)
+    if not pool or offer_count <= 0 or selection_count <= 0:
+        return None, (
+            "Celestial public Planet pool unavailable after eligibility/duplicate exclusions",
+        )
+
+    draws = max(1, int(offer_count)) if showman else min(len(pool), max(1, int(offer_count)))
+    picks = min(max(1, int(selection_count)), draws)
+    evaluator = JokerBuildValueEvaluator()
+
+    selection_values: dict[tuple[str, ...], float] = {}
+    for size in range(1, picks + 1):
+        source = (
+            combinations_with_replacement(pool, size)
+            if showman
+            else combinations(pool, size)
+        )
+        for names in source:
+            key = _selection_key(tuple(names))
+            value = _planet_sequence_value(state, key, evaluator)
+            if value is None:
+                return None, (
+                    f"Celestial literal score projection incomplete for selection={key}",
+                )
+            selection_values[key] = float(value)
+
+    def best_offer_value(offer: tuple[str, ...]) -> float:
+        best = 0.0
+        for size in range(1, picks + 1):
+            for indices in combinations(range(len(offer)), size):
+                names = _selection_key(tuple(offer[index] for index in indices))
+                best = max(best, selection_values.get(names, 0.0))
+        return best
+
+    expected = 0.0
+    outcome_count = 0
+    if showman:
+        denominator = float(len(pool) ** draws)
+        for offer in combinations_with_replacement(pool, draws):
+            counts = Counter(offer)
+            ways = factorial(draws)
+            for count in counts.values():
+                ways //= factorial(count)
+            probability = float(ways) / denominator
+            expected += probability * best_offer_value(tuple(offer))
+            outcome_count += 1
+    else:
+        offers = tuple(combinations(pool, draws))
+        if not offers:
+            return None, ("Celestial offer enumeration produced no outcomes",)
+        probability = 1.0 / float(len(offers))
+        for offer in offers:
+            expected += probability * best_offer_value(tuple(offer))
+            outcome_count += 1
+
+    return expected, (
+        f"eligible Planet pool={len(pool)}; Showman={'yes' if showman else 'no'}",
+        *(
+            ("held Planet duplicate exclusions=" + ", ".join(excluded),)
+            if excluded
+            else ()
+        ),
+        f"Celestial offers={draws}; selections={picks}; public offer outcomes={outcome_count}",
+        f"expected best visible Planet literal value={expected:.3f}",
+        "Planet option value uses D2 literal score normalization; no fixed family hit value, RNG seed, or hidden pack identity is used",
+    )
+
+
 def _celestial_visible_hit_probability(
     state,
     offer_count: int,
 ) -> tuple[float, float, tuple[str, ...]]:
-    """Return the public no-replacement chance of seeing a useful Planet.
-
-    Celestial packs draw from the twelve Planet types.  A generic family prior plus
-    a build-need bonus previously treated a one-hand build as if most Planet types
-    were useful, producing 98% logged hit chances for five-card packs.  Count only
-    applied/observed hand directions; Planet-use scalers genuinely make all twelve
-    useful.
-    """
-    pool_size = len(PLANET_CARDS)
+    """Return the public chance of seeing a directionally useful Planet."""
+    pool, showman, excluded = _celestial_planet_pool(state)
+    pool_size = len(pool)
     if pool_size <= 0 or offer_count <= 0:
         return 0.0, 0.0, ("Celestial Planet pool unavailable; fail closed",)
 
     if has_planet_use_scaler(state):
-        useful_hands = pool_size
+        useful_names = set(pool)
         direction = "Planet-use scaler"
     else:
         hands = _plan_hand_goals(state) | _observed_hand_goals(state)
-        useful_hands = min(pool_size, len(hands))
+        useful_names = {
+            name
+            for name in pool
+            if _hand_token(create_planet(name).hand_type) in hands
+        }
         direction = ",".join(sorted(hands)) or "NONE"
 
-    draws = min(pool_size, max(0, int(offer_count)))
-    per_offer = useful_hands / pool_size
-    if useful_hands <= 0:
+    useful = len(useful_names)
+    draws = max(1, int(offer_count)) if showman else min(pool_size, max(0, int(offer_count)))
+    per_offer = useful / pool_size
+    if useful <= 0:
         at_least_one = 0.0
-    elif pool_size - useful_hands < draws:
+    elif showman:
+        at_least_one = 1.0 - (1.0 - per_offer) ** draws
+    elif pool_size - useful < draws:
         at_least_one = 1.0
     else:
         at_least_one = 1.0 - (
-            comb(pool_size - useful_hands, draws) / comb(pool_size, draws)
+            comb(pool_size - useful, draws) / comb(pool_size, draws)
         )
     return per_offer, at_least_one, (
-        f"Celestial exact public pool useful={useful_hands}/{pool_size} direction={direction}",
-        f"P(at least one useful Planet in {draws} visible offers)={at_least_one:.3f}",
+        f"Celestial public pool useful={useful}/{pool_size} direction={direction}",
+        f"P(at least one directionally useful Planet in {draws} offers)={at_least_one:.3f}",
+        *(
+            ("held Planet duplicate exclusions=" + ", ".join(excluded),)
+            if excluded
+            else ()
+        ),
     )
 
 
@@ -277,10 +494,6 @@ def install_planet_pack_fallback_policy() -> None:
             has_planet_use_scaler(state)
             or _hand_direction(state, best_hand)
         )
-        # A sunk pack cost is not permission to select a vetoed or off-direction
-        # Planet.  The former implementation promoted even a -1.0 scored option to
-        # just above Skip, which spent a selection on an upgrade the active build
-        # had explicitly rejected.
         if not mechanically_relevant or float(best_score.total) <= 0.0:
             return ranked
         current_top = float(ranked[0].total) if ranked else 0.0
@@ -312,24 +525,38 @@ def install_planet_pack_fallback_policy() -> None:
                 state,
                 result.offer_count,
             )
-            selection_multiplier = 1.0 + max(0, int(result.selection_count) - 1) * float(
-                self.thresholds.second_selection_value_fraction
+            option_utility, expectation_notes = _celestial_expected_selection_utility(
+                state,
+                offer_count=int(result.offer_count),
+                selection_count=int(result.selection_count),
             )
-            hit_value = (
-                self._base_hit_value("CELESTIAL")
-                + float(result.build_need_score) * float(self.thresholds.need_value_weight)
-                + float(result.runway_factor) * float(self.thresholds.runway_value_weight)
+            if option_utility is None:
+                return replace(
+                    result,
+                    decision=HOLD,
+                    rationale=(
+                        *result.rationale,
+                        *probability_notes,
+                        *expectation_notes,
+                        "Celestial literal expectation incomplete; HOLD fails closed",
+                    ),
+                )
+
+            price = self._price(action.target)
+            resource_cost = self.resource_valuator.money_spend_cost(
+                money=int(state.money),
+                spend=price,
+                price_weight=self.thresholds.price_weight,
+                interest_weight=self.thresholds.interest_weight,
+                reserve_target=self.thresholds.reserve_target,
+                reserve_weight=self.thresholds.reserve_weight,
+                vouchers=getattr(state, "vouchers", ()),
+                jokers=getattr(state, "jokers", ()),
             )
-            option_utility = at_least_one * hit_value * selection_multiplier
-            resource_total = (
-                float(result.price_penalty)
-                + float(result.interest_penalty)
-                + float(result.reserve_penalty)
-            )
-            advantage = option_utility - resource_total
+            advantage = float(option_utility) - float(resource_cost.total)
             decision = (
                 "BUY"
-                if at_least_one >= float(self.thresholds.minimum_pack_hit_probability)
+                if float(option_utility) > 0.0
                 and advantage > float(self.thresholds.minimum_buy_advantage)
                 else HOLD
             )
@@ -338,6 +565,10 @@ def install_planet_pack_fallback_policy() -> None:
                 "P(at least one useful visible offer)=",
                 "option EV=",
                 "D8 advantage over SAVE=0 is ",
+                "price penalty=",
+                "interest penalty=",
+                "reserve penalty=",
+                "hit-probability threshold=",
             )
             rationale = tuple(
                 note
@@ -349,16 +580,20 @@ def install_planet_pack_fallback_policy() -> None:
                 decision=decision,
                 total=float(self.parent_hold_baseline) + advantage,
                 advantage_over_save=advantage,
-                option_utility=option_utility,
+                option_utility=float(option_utility),
                 per_offer_hit_probability=per_offer,
                 at_least_one_hit_probability=at_least_one,
+                price_penalty=float(resource_cost.direct),
+                interest_penalty=float(resource_cost.interest),
+                reserve_penalty=float(resource_cost.reserve),
                 rationale=(
                     *rationale,
                     *probability_notes,
-                    f"Celestial exact option EV={option_utility:.3f}",
-                    f"Celestial exact advantage over SAVE=0 is {advantage:.3f}; "
-                    f"required>{self.thresholds.minimum_buy_advantage:.3f}",
-                    "generic family hit prior is superseded by the finite public Planet catalogue",
+                    *expectation_notes,
+                    f"Celestial shared resource cost={resource_cost.total:.3f}",
+                    *resource_cost.notes,
+                    f"Celestial literal advantage over SAVE=0 is {advantage:.3f}; required>{self.thresholds.minimum_buy_advantage:.3f}",
+                    "finite public Planet expectation supersedes the generic family hit-value and hit-probability admission heuristic",
                 ),
             )
 
@@ -367,7 +602,6 @@ def install_planet_pack_fallback_policy() -> None:
             if headroom <= 0:
                 hold_reason = "Celestial purchase held: no marginal hand-development headroom"
             else:
-                price = self._price(action.target)
                 reserve_target = int(self.thresholds.reserve_target)
                 money_after = int(state.money) - int(price)
                 if money_after < reserve_target:
@@ -399,9 +633,6 @@ def install_planet_pack_fallback_policy() -> None:
 
             category = str(getattr(candidate, "category", "") or "").upper()
             if category == "PLANET":
-                # D4 already made the reserve-safe mechanical decision. A Planet-use
-                # scaler turns every usable Planet into immediate permanent engine
-                # progress, so generic loose-Planet relevance must not undo it.
                 if has_planet_use_scaler(state) and result.action == BUY_AND_USE:
                     return result
                 hand = _hand_token(getattr(candidate, "hand_type", ""))
