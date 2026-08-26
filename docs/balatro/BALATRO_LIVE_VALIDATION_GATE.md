@@ -10,6 +10,8 @@ This gate starts after deterministic Red/White validation completed locally with
 
 The sole skip came from an empty parametrization over `BalatroPackPolicy.STOCHASTIC_DEFERRED_TAROTS`. That set is currently empty and the same test module already proves exhaustive/disjoint Tarot classification, so the zero-case parametrized test provided no current coverage. Commit `2881bfe` removes it rather than carrying a permanent meaningless skip.
 
+The user subsequently reported the full deterministic suite green after the Celestial regression fixes and the updated Celestial probability contract.
+
 No tests or live games were run by the assistant.
 
 ## Live blocker 1 — first SHOP decision does not complete
@@ -75,9 +77,58 @@ Repair:
 - commit `6315038` keeps the shortcut but reproduces the ordinary cheap parent D8 Celestial calculation before returning the forced HOLD;
 - public layout metadata, build need, generic option utility, and the exact shared money/interest/reserve valuation are preserved;
 - only the later finite Planet expectation is skipped when it cannot alter the final HOLD;
-- states with adequate headroom and reserve still delegate unchanged to the complete exact Celestial policy.
+- states with adequate headroom and reserve still delegate unchanged to the complete exact Celestial policy;
+- commit `b0dc146` updates one stale test that compared the generic parent family prior against the exact specialized Planet-pool probability, which are different semantic quantities.
 
-Validation status: **pending the next user deterministic rerun**.
+The user then reported the deterministic suite green.
+
+## Live blocker 2 — Buffoon public-Joker expectation blocks SHOP
+
+Observed production attempt:
+
+- session/run prefix: `balatro-20260826T173550Z-1fb6296a`
+- attempt: `balatro-20260826T173550Z-1fb6296a-attempt-001`
+- Red Deck / White Stake
+- Ante 1 first SHOP
+- money: $9
+- owned Jokers: 0 / 5
+- visible boosters include Buffoon Pack and Mega Celestial Pack
+
+The new uploaded JSONL again reaches a successful transition into a settled SHOP and then emits no SHOP `decision` event. Mega Celestial is already cheap to reject through the repaired reserve/headroom fast path, so the remaining expensive branch is Buffoon.
+
+The authoritative live Joker generation catalogue in this checkpoint contains:
+
+- Common: 57 eligible records
+- Uncommon: 49 eligible records
+- Rare: 10 eligible records
+- total: 116 eligible public Joker records
+- public edition rate: 1.0
+
+### Root cause
+
+`buffoon_booster_expectation_policy.py` delegates unopened Buffoon value to `RerollJokerExpectationEvaluator`. The old evaluator walked every eligible public Joker, every public initial-state expansion, and every edition branch, and sent each branch through the fully wrapped Red/White `PlaybookJokerAcquisitionPolicy` plus D14 normalization.
+
+For a 116-record live catalogue this creates hundreds of full D2/whole-build evaluations for one unopened $4 pack before D14 can emit any SHOP action. The model is public-information-correct but not runtime-bounded, so it can stall the interactive supervisor.
+
+The same evaluator is also shared by D11 future-Joker reroll value, making this a common public-Joker expectation runtime defect rather than a Buffoon-only bridge issue.
+
+### Repair
+
+Commit `3c9c70d` bounds `RerollJokerExpectationEvaluator` without introducing hidden-information assumptions or a synthetic optimistic family prior:
+
+- pools with at most 24 public records retain the previous exact full D2/D14 integration, preserving deterministic fixture behavior;
+- larger pools are preflighted in full so unresolved or unmodeled eligible records still fail closed;
+- expensive D2 scoring uses a deterministic rarity-stratified subset, never a named Joker tier list;
+- at most three public records per rarity are selected for expensive valuation in the large-pool path;
+- a hard cap of 48 fully wrapped D2 calls prevents initial-state/edition expansion from becoming unbounded;
+- every unevaluated record or edition branch retains its real probability mass but contributes zero;
+- omitted mass is never renormalized over the evaluated subset, so the result is a conservative lower bound rather than fabricated future value;
+- D2/D14 remains authoritative for every branch that contributes positive value;
+- exact future identity, edition, RNG state, pseudoseed, pool order, and hidden price remain unobserved.
+
+This lower-bound treatment can understate Buffoon/reroll value, but it cannot overstate unseen future value and it guarantees a finite public-Joker evaluation budget at the SHOP boundary.
+
+Validation status: **pending user local deterministic rerun on current HEAD, then a fresh three-attempt Red/White live baseline**.
 
 ## Current commands
 
@@ -95,4 +146,4 @@ Three-attempt Red/White production baseline:
 
 ## Gate rule
 
-Do not begin numerical calibration/Optuna until the deterministic suite remains green on this live-response repair and the fresh three-attempt baseline completes SHOP decisions without semantic/runtime stalls.
+Do not begin numerical calibration/Optuna until the deterministic suite remains green on the live-response repairs and the fresh three-attempt baseline completes SHOP decisions without semantic/runtime stalls.
