@@ -9,6 +9,7 @@ from games.balatro.hand_order_policy import HandOrderPolicy
 from games.balatro.joker_order_policy import JokerOrderPolicy
 from games.balatro.jokers.blueprint import BlueprintJoker
 from games.balatro.jokers.brainstorm import BrainstormJoker
+from games.balatro.jokers.dagger import DaggerJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.state import BalatroState
@@ -81,7 +82,29 @@ def test_photograph_reorders_selected_straight_to_put_face_card_first() -> None:
 
     assert decision is not None
     reordered_hand = [state.hand[index] for index in decision.permutation]
-    selected_positions = range(len(cards))
-    first_selected = reordered_hand[next(iter(selected_positions))]
+    first_selected = reordered_hand[0]
     assert first_selected.rank in {"J", "Q", "K"}
     assert decision.ordered_guaranteed_score > decision.current_guaranteed_score
+
+
+def test_dagger_preblind_order_avoids_eternal_target_and_uses_legal_fodder() -> None:
+    state = _state()
+    state.phase = "BLIND_SELECT"
+
+    dagger = DaggerJoker()
+    eternal = FlatMultJoker(20)
+    eternal.eternal = True
+    eternal.sell_value = 10
+    fodder = FlatMultJoker(0)
+    fodder.sell_value = 1
+    state.jokers = [dagger, eternal, fodder]
+
+    decision = JokerOrderPolicy().recommend(state, phase="BLIND_SELECT")
+
+    assert decision is not None
+    ordered = [state.jokers[index] for index in decision.permutation]
+    dagger_index = ordered.index(dagger)
+    assert dagger_index + 1 < len(ordered)
+    assert ordered[dagger_index + 1] is fodder
+    assert eternal in ordered
+    assert decision.ordered_score > decision.current_score
