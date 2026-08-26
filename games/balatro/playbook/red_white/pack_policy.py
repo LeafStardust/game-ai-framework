@@ -79,10 +79,11 @@ class PlaybookBalatroPackPolicy(BalatroPackPolicy):
     the observed deck/stake selects D9 skip bias and D10 target admission on every
     decision, so a future cartridge can retune pack behavior without replacing the
     shared pack implementation.
-    """
 
-    JUDGEMENT_EMPTY_SLOT_BASE_VALUE = 5.0
-    JUDGEMENT_EMPTY_SLOT_BONUS = 0.5
+    Stochastic consumables whose public outcome pools are not yet modeled remain
+    delegated to the shared fail-closed pack policy; the cartridge does not assign
+    synthetic option values to unresolved random outcomes.
+    """
 
     def __init__(
         self,
@@ -196,29 +197,5 @@ class PlaybookBalatroPackPolicy(BalatroPackPolicy):
         replacement = self._buffoon_replacement_score(state, action, choice)
         if replacement is not None:
             return replacement
-
-        if (
-            getattr(choice, "kind", None) == "TAROT"
-            and getattr(choice, "label", None) == "Judgement"
-        ):
-            joker_slots = max(0, int(getattr(state, "joker_slots", 5) or 5))
-            free_slots = max(
-                0,
-                joker_slots - len(getattr(state, "jokers", ()) or ()),
-            )
-            if free_slots > 0:
-                value = (
-                    self.JUDGEMENT_EMPTY_SLOT_BASE_VALUE
-                    + min(3, free_slots) * self.JUDGEMENT_EMPTY_SLOT_BONUS
-                )
-                return PackActionScore(
-                    action,
-                    value,
-                    (
-                        f"Judgement has {free_slots} empty Joker slot(s)",
-                        "random Joker identity is unresolved, but generating a Joker into an empty slot has positive default option value",
-                        f"Judgement empty-slot option value={value:.3f}",
-                    ),
-                )
 
         return super().score_action(state, action)
