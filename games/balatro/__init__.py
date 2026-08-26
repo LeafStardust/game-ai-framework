@@ -6,6 +6,7 @@ installed as competing production strategy authorities.
 """
 
 from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
+from games.balatro.arcana_booster_expectation_policy import install_arcana_booster_expectation_policy
 from games.balatro.banner_candidate_value_policy import install_banner_candidate_value_policy
 from games.balatro.blueprint_candidate_value_policy import install_blueprint_candidate_value_policy
 from games.balatro.bond_d1_cache_policy import install_bond_d1_cache_policy
@@ -138,6 +139,7 @@ install_judgement_pack_expectation_policy()
 install_targeted_pack_literal_value_policy()
 install_cryptid_pack_policy()
 install_standard_booster_expectation_policy()
+install_arcana_booster_expectation_policy()
 install_tactical_scaler_build_health_policy()
 install_bond_scaler_build_health_policy()
 install_build_health_policy()
