@@ -1,7 +1,10 @@
 from types import SimpleNamespace
 
+from games.balatro.actions import DISCARD_CARDS, SKIP_BOOSTER, BalatroAction
 from games.balatro.build.high_priestess_expectation import HighPriestessExpectationEvaluator
+from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.planets import create_planet
+from games.balatro.playbook.red_white.pack_policy import PlaybookBalatroPackPolicy
 from games.balatro.shop_consumable_policy import ConsumableAcquisitionPolicy
 from games.balatro.state import BalatroState
 from games.balatro.voucher_parent_literal_policy import VoucherParentLiteralEvaluator
@@ -115,3 +118,42 @@ def test_blank_parent_progression_only_covers_direct_price_while_locked():
     assert value < 10 * _BlankParentShopPolicy.price_weight + 1.0
     assert any("lost interest" in note for note in rationale)
     assert any("once Antimatter unlocks" in note for note in rationale)
+
+
+def test_red_white_opened_pack_skip_is_zero_sunk_cost():
+    state = _state()
+    state.deck_name = "RED"
+    state.stake_name = "WHITE"
+
+    result = PlaybookBalatroPackPolicy().score_action(
+        state,
+        BalatroAction(SKIP_BOOSTER),
+    )
+
+    assert result.total == 0.0
+    assert any("skip_bias=0.000" in note for note in result.rationale)
+
+
+def test_multi_card_redraw_gets_one_discard_resource_efficiency_bonus():
+    state = _state()
+    state.phase = "BLIND"
+    state.hand = []
+    state.discards_remaining = 3
+    evaluator = LiveHandDecisionEvaluator()
+    evaluator._has_guaranteed_clearing_play = lambda current_state: False
+    context = SimpleNamespace(
+        required_per_hand=100.0,
+        best_play_score=0.0,
+        best_play_hand=SimpleNamespace(),
+    )
+
+    singleton = BalatroAction(DISCARD_CARDS, cards=[object()])
+    three_card = BalatroAction(DISCARD_CARDS, cards=[object(), object(), object()])
+
+    singleton_value = evaluator._discard_value(state, singleton, context)
+    three_card_value = evaluator._discard_value(state, three_card, context)
+
+    # Base D1 gives +4 per additional redraw. The Red/White correction adds
+    # 16 per additional card here (shortfall=1), because both actions consume
+    # exactly one discard resource. Two extra redraws therefore add 40 total.
+    assert three_card_value - singleton_value == 40.0
