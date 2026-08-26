@@ -56,6 +56,20 @@ def _immediate_scoring_candidate(candidate: object) -> bool:
     )
 
 
+def _has_authoritative_hold_veto(decision) -> bool:
+    """Keep semantic/strategy vetoes above the late competence rescue layer."""
+    notes = tuple(str(note).lower() for note in (getattr(decision, "rationale", ()) or ()))
+    veto_markers = (
+        "canonical bond conflict veto",
+        "strategy conflict",
+        "conflict veto",
+        "mechanical conflict",
+        "banned",
+        "incompatible",
+    )
+    return any(marker in note for note in notes for marker in veto_markers)
+
+
 def install_live_competence_guard_policy() -> None:
     if getattr(LiveBlindClearPlanner, "_rw_live_competence_guard_installed", False):
         return
@@ -118,6 +132,11 @@ def install_live_competence_guard_policy() -> None:
     def joker_decide(self, state, candidate):
         decision = original_joker_decide(self, state, candidate)
         if decision.action != HOLD:
+            return decision
+        # This layer may rescue only an ordinary threshold/adequacy HOLD. Existing
+        # semantic direction, Bond-conflict, banned/incompatible, legality and other
+        # authoritative vetoes must remain final.
+        if _has_authoritative_hold_veto(decision):
             return decision
         ante = max(1, int(getattr(state, "ante", 1) or 1))
         if ante > 4 or not _immediate_scoring_candidate(candidate):
