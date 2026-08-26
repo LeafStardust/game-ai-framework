@@ -68,6 +68,7 @@ from games.balatro.round_resource_live_state_policy import install_round_resourc
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
 from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_correction
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
+from games.balatro.secret_hand_score_authority import install_secret_hand_score_authority
 from games.balatro.serpent_draw_policy import install_serpent_draw_policy
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
@@ -96,6 +97,7 @@ install_cerulean_live_state_policy()
 install_ectoplasm_live_state_policy()
 install_joker_generation_pool_live_state_policy()
 install_round_resource_live_state_policy()
+install_secret_hand_score_authority()
 install_blueprint_candidate_value_policy()
 install_banner_candidate_value_policy()
 install_r0_strategy_transition_policy()
