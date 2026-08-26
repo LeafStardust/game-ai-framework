@@ -57,14 +57,18 @@ def test_material_projected_engine_requires_actual_replacement_created_gain():
 
 
 def test_raw_replacement_delta_excludes_bond_transition_bonus():
-    incumbent = object()
-    candidate = object()
-    state = SimpleNamespace(jokers=[object(), incumbent], money=20)
+    incumbent = SimpleNamespace(fixture_role="incumbent")
+    candidate = SimpleNamespace(fixture_role="candidate")
+    state = SimpleNamespace(jokers=[SimpleNamespace(fixture_role="other"), incumbent], money=20)
 
     class _Evaluator:
         def evaluate(self, baseline, joker):
             del baseline
-            return SimpleNamespace(total_gain=2.00 if joker is incumbent else 0.78)
+            return SimpleNamespace(
+                total_gain=2.00
+                if getattr(joker, "fixture_role", None) == "incumbent"
+                else 0.78
+            )
 
     policy = SimpleNamespace(
         transition_planner=SimpleNamespace(evaluator=_Evaluator()),
