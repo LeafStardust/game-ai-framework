@@ -91,7 +91,9 @@ def test_targeted_tarot_pack_choice_carries_exact_b6_hand_target():
 
     ranked = BalatroPackPolicy(
         item_estimator=_Estimator(),
-        skip_bias=0.35,
+        # Production D9 compares visible pack choices against sunk-cost Skip=0.
+        # Deterministic targets no longer receive generic shop/category utility.
+        skip_bias=0.0,
     ).rank_actions(state, actions)
 
     selected = ranked[0]
@@ -99,7 +101,7 @@ def test_targeted_tarot_pack_choice_carries_exact_b6_hand_target():
     assert selected.action.target is choice
     assert selected.action.cards == [card]
     assert any("target_indices=(0,)" in note for note in selected.notes)
-    assert any("B6 pack target gain=" in note for note in selected.notes)
+    assert any("D10/B6 target gain=" in note for note in selected.notes)
 
 
 def test_targeted_tarot_without_a_legal_hand_target_still_fails_closed():
