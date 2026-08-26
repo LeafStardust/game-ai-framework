@@ -63,7 +63,7 @@ def test_d8_models_all_five_pack_families(label, family, offers, selections):
     assert recommendation.decision in {BUY, HOLD}
 
 
-def test_d8_celestial_direction_probability_rises_with_observed_hand_specialization():
+def test_d8_celestial_specialization_uses_exact_public_planet_probability():
     policy = BuildAwareShopBoosterPolicy()
     baseline = _state(money=50)
     specialized = _specialized_state(money=50)
@@ -72,13 +72,13 @@ def test_d8_celestial_direction_probability_rises_with_observed_hand_specializat
     specialized_rec = policy.recommend(specialized, _action("Celestial Pack"))
 
     assert specialized_rec.build_need_score > baseline_rec.build_need_score
-    assert (
-        specialized_rec.at_least_one_hit_probability
-        > baseline_rec.at_least_one_hit_probability
-    )
-    # Literal Planet EV is allowed to reweight downward when specialization makes
-    # off-path Planet outcomes less useful. Directional hit probability, not the
-    # old family-level synthetic EV, is the monotonic specialization signal.
+    # The no-direction baseline is stopped by the authoritative headroom veto after
+    # cheap parent-D8 accounting, so its inherited generic family probability is not
+    # comparable to the specialized path's exact finite Planet-pool probability.
+    # With one relevant hand among nine ordinary eligible Planets and three offers,
+    # drawing without replacement gives exactly 3/9 = 1/3.
+    assert specialized_rec.at_least_one_hit_probability == pytest.approx(1 / 3)
+    assert any("useful=1/9" in note for note in specialized_rec.rationale)
     assert specialized_rec.option_utility >= 0.0
 
 
