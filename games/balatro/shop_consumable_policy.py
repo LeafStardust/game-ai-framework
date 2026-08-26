@@ -230,7 +230,10 @@ class ConsumableAcquisitionPolicy:
         economics = self._economics(state, candidate, occupy_slot=False)
         immediate_value = immediate_gain * self.thresholds.immediate_money_weight
         total = build_gain + immediate_value + economics.total_adjustment
-        eligible = economics.money_after >= 0 and immediate_gain > 0.0
+        scaler_planet = self._scaler_planet(state, candidate)
+        eligible = economics.money_after >= 0 and (
+            immediate_gain > 0.0 or scaler_planet
+        )
         return ConsumableAcquisitionOption(
             BUY_AND_USE,
             build_gain,
@@ -241,7 +244,13 @@ class ConsumableAcquisitionPolicy:
             BalatroAction(BUY_AND_USE_CONSUMABLE, target=candidate) if eligible else None,
             (
                 f"B4 whole-build gain={build_gain:.3f}",
-                f"D5 admitted deterministic immediate gain={immediate_gain:g}",
+                *(
+                    ("D5 admitted deterministic immediate gain=" f"{immediate_gain:g}",)
+                    if immediate_gain > 0.0
+                    else (
+                        "no synthetic immediate utility; Planet-scaler admission is handled by explicit mechanical authority",
+                    )
+                ),
                 f"weighted immediate value={immediate_value:.3f}",
                 f"price=${economics.price}",
                 f"money after purchase=${economics.money_after}",
@@ -272,7 +281,7 @@ class ConsumableAcquisitionPolicy:
             context = ConsumableContext(state=simulated)
             if not simulated_candidate.can_use(context):
                 return None
-            return 0.1, (
+            return 0.0, (
                 "D4 recognizes deterministic Planet use under an active Planet-use scaler",
                 "Planet consumption guarantees permanent scaler progress and a permanent hand-level upgrade",
             )
