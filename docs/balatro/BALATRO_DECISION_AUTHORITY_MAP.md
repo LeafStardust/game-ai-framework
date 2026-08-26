@@ -43,20 +43,41 @@ The existence of this ordering dependency is itself the main Phase-0 risk.
 
 ## Canonical core
 
+The live runner calls `LiveHandActionDecisionEngine.decide(state)`. The engine owns
+adaptive-search scheduling and timeout handling. `LiveBlindClearPlanner` produces
+bounded plan evidence; `LiveHandActionPolicy` arbitrates among those plans.
+
 | Component | Class | Current role | Desired role |
 |---|---|---|---|
 | `CardSelector` | M | Generates legal play/discard candidates | Keep |
-| boss/forced-selection policies | M | Restrict legal candidates according to exact mechanics | Keep authoritative |
-| `LiveHandDecisionEvaluator` | E/P | Scores visible play/discard candidates and projects literal scoring | Keep as local semantic evaluator beneath planner |
-| `LiveBlindClearPlanner` | A/P | Bounded public-state expectimax; chooses play/discard root action | **Canonical D1 final authority** |
+| boss/forced-selection mechanics | M | Restrict legality or exact score semantics | Keep authoritative |
+| `LiveHandDecisionEvaluator` | P/E | Literal current-action projection and local recovery evidence | Keep beneath D1 arbitration |
+| `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner` | P/E | Bounded public-state expectimax and plan values | **Canonical D1 projection/search authority** |
+| `LiveHandActionPolicy` | A | Applies clear-path / pace / recovery hierarchy to completed plans | **Canonical D1 action arbiter** |
+| `LiveHandActionDecisionEngine` | A | Owns search schedule, confirmation, timeout/fallback and calls the policy | **Canonical D1 orchestration/final-return authority** |
 | public draw/outcome models | P | Model distributions without hidden draw order/RNG | Keep |
 
-## Installed D1-affecting wrappers currently surrounding the core
+The intended final D1 ownership is therefore **DecisionEngine + HandActionPolicy**, not
+`LiveBlindClearPlanner.plan()` by itself.
+
+## Initial inspected wrapper classification
+
+| Wrapper | Class | Finding | Consolidation direction |
+|---|---|---|---|
+| `boss_hand_constraint_policy` | **M + G** | Eye/Mouth constraints encode real public boss mechanics, but `_mouth_forced_discard` can rewrite the selected discard after arbitration | Keep exact boss filtering; move forced-discard preference into canonical D1 evidence instead of post-decision rewrite |
+| `safe_pace_optimization_policy` | **A + G** | Replaces `LiveHandActionPolicy.decide` and the adaptive search schedule; it is currently a second implementation of D1 arbitration | High-priority consolidation target: benchmark its valid survival semantics, move them into canonical policy/engine, then remove installer override |
+| `semantic_search_guard_policy` | **P + G** | Adds bounded candidate prefilters/deadline-aware ranking and also monkeypatches `_estimate_key`; mostly search/runtime protection but still rewrites canonical planner methods | Preserve bounded candidate semantics; migrate into planner directly after benchmark coverage |
+| `live_decision_quality_policy` | **G** for D8/B4/D9, not D1 | Does not own play/discard selection; contains free-pack and Planet relevance corrections | Exclude from D1 consolidation; audit later under pack/shop phase |
+| final `red_white_competence_corrections` | **G** | Late Red/White rescues currently patch D1 discard value/beam plus shop admissions | Every retained behavior must gain benchmark coverage and move into canonical owner before this layer shrinks |
+
+This table is intentionally evidence-based and incomplete. Remaining wrappers are
+classified only after inspection; filenames are not treated as proof of authority.
+
+## Installed D1-affecting wrappers still to classify
 
 The package installer includes, among others:
 
 - `mouth_hand_policy`
-- `boss_hand_constraint_policy`
 - `serpent_draw_policy`
 - `hook_planner_integration_policy`
 - `cerulean_bell_d1_legality_policy`
@@ -65,7 +86,6 @@ The package installer includes, among others:
 - `d1_candidate_deadline_policy`
 - `d1_outer_evaluation_cache_policy`
 - `d1_debuff_recovery_policy`
-- `safe_pace_optimization_policy`
 - `safe_pace_timeout_patch`
 - `safe_pace_scope_correction`
 - `castle_discard_policy`
@@ -73,40 +93,45 @@ The package installer includes, among others:
 - `burnt_bond_execution_policy`
 - `pinned_strategy_execution_policy`
 - `strategy_authority_correction_policy`
-- `live_decision_quality_policy`
 - `pinned_strategy_safe_pace_policy`
 - `aces_dna_hand_policy`
 - `strategy_execution_guard_policy`
 - `target_hand_engine_policy`
-- `semantic_search_guard_policy`
 - `purple_seal_discard_policy`
 - `held_round_end_resource_policy`
 - `ride_the_bus_execution_policy`
-- final `red_white_competence_corrections`
 
-Not all of these are wrong. The Phase-0 question is whether each is M/P/E/S or an
-independent G that can alter the final action after the canonical planner has already
-applied a different objective.
+Not all are wrong. The Phase-0 question is whether each supplies mechanics/projection/
+evidence to the canonical D1 owner or independently changes the final action.
 
-## Known authority defects already observed
+## Known D1 authority defects already observed
 
 1. **Planner/controller disagreement:** discard candidate pre-ranking used a different
-   objective than canonical D1 evaluation. The current late correction redirects
-   `_discard_priority` back through the evaluator.
+   objective than canonical D1 evaluation. A late correction currently redirects
+   `_discard_priority` through the evaluator; this behavior is benchmarked and must
+   eventually live in the planner directly.
 2. **Recovery oscillation:** separate rescue rules have produced both repeated
    one-card discards and later runs that preserved all discards while dying.
-3. **Timeout divergence:** timeout/fallback behavior has previously selected actions
-   under a different objective from normal search.
+3. **Timeout divergence:** when wall-clock search expires, the engine's structural
+   fallback changes from modeled survival/progress to poker-hand-category/rank
+   heuristics. This is a canonical-engine defect and a Phase-2 priority.
+4. **Evidence-order defect:** planner `_estimate_key` previously placed exactness ahead
+   of expected progress at equal clear probability. This was corrected canonically;
+   exactness is confidence metadata after survival/progress/resources for ordinary
+   plan ranking.
 
 ## Phase-0 consolidation target for D1
 
 - Exact mechanics/legality stay outside and above value arbitration.
-- One planner owns play-vs-discard selection.
+- `LiveBlindClearPlanner` owns bounded plan projection/search, not final policy meaning.
+- `LiveHandActionPolicy` owns one play-vs-discard value hierarchy.
+- `LiveHandActionDecisionEngine` owns scheduling/confirmation/timeout and must never
+  switch to a contradictory objective merely because the time budget expires.
 - Candidate pruning may remove only mechanically dominated/unusable candidates; it
   must not introduce a second strategic objective.
 - Pace, held-card value, generated resources, strategy execution, and discard
-  mechanics become terms/evidence visible to the same planner value ordering.
-- Late D1 guards should be deleted or reduced to mechanical legality once equivalent
+  mechanics become evidence visible to the same D1 arbitration path.
+- Late D1 guards should be deleted or reduced to mechanics once equivalent
   benchmark-covered semantics exist in the canonical path.
 
 ---
@@ -157,7 +182,7 @@ Important examples include:
 - final `red_white_competence_corrections`
 - late runtime-only SHOP expectation/competence contracts installed by the supervisor entry point
 
-## Known authority defects already observed
+## Known shop authority defects already observed
 
 1. **Generic HOLD vs obvious first scoring foothold:** an otherwise positive early
    scorer could be rejected by reserve/adequacy logic.
@@ -232,17 +257,18 @@ behavior it protects.
 2. [ ] Tag every shop-affecting installed wrapper M/P/E/S/A/G/D.
 3. [ ] Identify wrappers whose only purpose is a previously observed live defect.
 4. [ ] Add benchmark coverage for that defect if absent.
-5. [ ] Move the semantics into the canonical D1 planner/evaluator or D14 comparison.
+5. [ ] Move the semantics into the canonical D1 planner/evaluator/policy/engine or D14 comparison.
 6. [ ] Remove the redundant late wrapper.
 7. [ ] Require semantic benchmark non-regression after each consolidation group.
 
-## Current final authorities
+## Current intended final authorities
 
 Until consolidation is complete:
 
-- **D1:** `LiveBlindClearPlanner.plan()` is the intended final strategic authority,
-  subject only to exact mechanics/legality and currently still surrounded by late
-  semantic guards that must be consolidated.
+- **D1 projection/search:** `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`.
+- **D1 action arbitration:** `LiveHandActionPolicy`.
+- **D1 orchestration/final return:** `LiveHandActionDecisionEngine.decide()`. Installed
+  late wrappers still alter these classes and are explicit consolidation targets.
 - **D2 family:** Joker acquisition/replacement policies produce family-local evidence.
 - **D14:** `BuildAwareShopArbiter` is the intended final cross-family shop authority,
   currently still surrounded by Build Health/Bond/late runtime corrections that must
