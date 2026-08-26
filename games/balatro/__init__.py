@@ -33,7 +33,6 @@ from games.balatro.full_roster_shop_guard import install_full_roster_shop_guard
 from games.balatro.held_round_end_resource_policy import install_held_round_end_resource_policy
 from games.balatro.high_priestess_pack_policy import install_high_priestess_pack_policy
 from games.balatro.hook_planner_integration_policy import install_hook_planner_integration_policy
-from games.balatro.judgement_pack_expectation_guard import install_judgement_pack_expectation_guard
 from games.balatro.late_shop_resource_guard import install_late_shop_resource_guard
 from games.balatro.strategy_execution_guard_policy import install_strategy_execution_guard_policy
 from games.balatro.semantic_search_guard_policy import install_semantic_search_guard_policy
@@ -98,7 +97,6 @@ install_castle_discard_policy()
 install_deck_growth_pack_policy()
 install_pack_sunk_cost_policy()
 install_high_priestess_pack_policy()
-install_judgement_pack_expectation_guard()
 install_targeted_pack_literal_value_policy()
 install_tactical_scaler_build_health_policy()
 install_bond_scaler_build_health_policy()
