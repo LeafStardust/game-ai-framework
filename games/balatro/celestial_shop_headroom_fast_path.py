@@ -13,6 +13,13 @@ place: build-need metadata, public layout probability, option utility, and the
 shared RunResourceValuator money/interest/reserve accounting remain observable and
 identical to the parent D8 contract. Only the later finite Planet expectation is
 omitted when its result cannot alter the decision.
+
+The broader SHOP runtime contract is intentionally *not* imported or installed from
+this module. ``games.balatro.__init__`` installs this Celestial adapter while the
+package is still initializing; recursively loading the wider D2/D8/D14 policy graph
+from here can poison Python/pytest package collection. Production installs the
+broader runtime contract from the supervisor entry point after package initialization
+has completed.
 """
 
 from games.balatro.planet_pack_fallback_policy import _celestial_headroom
@@ -99,15 +106,6 @@ def _forced_celestial_hold(self, state, action, *, headroom_notes, hold_reason):
 
 
 def install_celestial_shop_headroom_fast_path() -> None:
-    # Import the broader runtime contract only when the final Red/White installer
-    # executes.  Keeping it out of this module's import surface avoids recursively
-    # importing the package-wide SHOP graph while games.balatro.__init__ is still
-    # collecting its policy installers.
-    from games.balatro.shop_expectation_runtime_bound_policy import (
-        install_shop_expectation_runtime_bounds,
-    )
-
-    install_shop_expectation_runtime_bounds()
     if getattr(
         BuildAwareShopBoosterPolicy,
         "_celestial_headroom_fast_path_installed",
