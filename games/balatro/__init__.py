@@ -40,6 +40,7 @@ from games.balatro.live_decision_quality_policy import install_live_decision_qua
 from games.balatro.luchador_activation_policy import install_luchador_activation_policy
 from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
+from games.balatro.pack_sunk_cost_policy import install_pack_sunk_cost_policy
 from games.balatro.pinned_strategy_execution_policy import install_pinned_strategy_execution_policy
 from games.balatro.pinned_strategy_retention_policy import install_pinned_strategy_retention_policy
 from games.balatro.pinned_strategy_safe_pace_policy import install_pinned_strategy_safe_pace_policy
@@ -92,6 +93,7 @@ install_early_spend_sanity_policy()
 install_late_shop_resource_guard()
 install_castle_discard_policy()
 install_deck_growth_pack_policy()
+install_pack_sunk_cost_policy()
 install_tactical_scaler_build_health_policy()
 install_bond_scaler_build_health_policy()
 install_build_health_policy()
