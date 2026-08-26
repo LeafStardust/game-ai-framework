@@ -53,6 +53,7 @@ def install_buffoon_booster_expectation_policy() -> None:
             raise ValueError("D8 booster acquisition requires SHOP phase")
 
         variant = self._variant(action.target)
+        offer_count, selection_count = self.PACK_LAYOUTS[family][variant]
         price = self._price(action.target)
         money_before = int(state.money)
         if price > money_before:
@@ -62,8 +63,11 @@ def install_buffoon_booster_expectation_policy() -> None:
                 family=family,
                 variant=variant,
                 total=self.parent_hold_baseline,
+                offer_count=offer_count,
+                selection_count=selection_count,
                 rationale=(
                     f"Buffoon pack costs ${price} but only ${money_before} is available",
+                    f"visible layout offers={offer_count} selections={selection_count}",
                 ),
             )
 
@@ -80,8 +84,11 @@ def install_buffoon_booster_expectation_policy() -> None:
                 family=family,
                 variant=variant,
                 total=self.parent_hold_baseline,
+                offer_count=offer_count,
+                selection_count=selection_count,
                 rationale=(
                     "Buffoon pack public Joker expectation incomplete; HOLD fails closed",
+                    f"visible layout offers={offer_count} selections={selection_count}",
                     *expectation.rationale,
                 ),
             )
@@ -104,7 +111,6 @@ def install_buffoon_booster_expectation_policy() -> None:
             and advantage > float(self.thresholds.minimum_buy_advantage)
             else HOLD
         )
-        offer_count, selection_count = self.PACK_LAYOUTS[family][variant]
         total = self.parent_hold_baseline + advantage
         return ShopBoosterRecommendation(
             decision=decision,
