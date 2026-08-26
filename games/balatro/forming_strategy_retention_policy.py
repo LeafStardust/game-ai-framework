@@ -51,6 +51,13 @@ def _projected_jokers(state, candidate, index: int):
     return tuple(jokers)
 
 
+def _post_transaction_money(decision, fallback: int) -> int:
+    try:
+        return int(decision.selected.economics.money_after)
+    except (AttributeError, TypeError, ValueError):
+        return int(fallback)
+
+
 def _critical_survival_escape(state, projected_state) -> tuple[bool, tuple[str, ...]]:
     try:
         current = _HEALTH.evaluate(state)
@@ -95,6 +102,10 @@ def apply_forming_strategy_retention(state, candidate, decision):
     if projected_jokers is None:
         return decision
     projected_state = projected_state_with_jokers(state, projected_jokers)
+    projected_state.money = _post_transaction_money(
+        decision,
+        int(getattr(state, "money", 0) or 0),
+    )
     try:
         _, projected_composition = evaluate_bond_composition(projected_state)
     except (AttributeError, TypeError, ValueError, RuntimeError):
