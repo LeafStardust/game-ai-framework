@@ -143,8 +143,20 @@ class JokerBuildValueEvaluator:
             after_state.jokers.append(copy.deepcopy(joker))
 
             try:
-                before = self.scorer.score(hand, state=before_state, cards=copy.deepcopy(cards), resolve_random_effects=False).total
-                after = self.scorer.score(hand, state=after_state, cards=copy.deepcopy(cards), resolve_random_effects=False).total
+                before = self.scorer.score(
+                    hand,
+                    state=before_state,
+                    cards=copy.deepcopy(cards),
+                    include_card_chips=True,
+                    resolve_random_effects=False,
+                ).total
+                after = self.scorer.score(
+                    hand,
+                    state=after_state,
+                    cards=copy.deepcopy(cards),
+                    include_card_chips=True,
+                    resolve_random_effects=False,
+                ).total
             except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
                 continue
 
