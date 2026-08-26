@@ -195,24 +195,26 @@ Completed or validated in the current semantic/runtime pass:
 - **Cerulean Bell** root and recursive Play/Discard actions obey the currently observed forced-selection constraint;
 - **Cerulean Bell** deeper D1 projections now branch uniformly over every possible next forced-selected card after hypothetical redraws, so recursive child legality is modeled rather than marked incomplete; Chicot bypasses the Bell brancher;
 - **Cerulean Bell** live process-memory hydration now carries public `card.ability.forced_selection` through the normalized snapshot and translator into `BalatroCard.forced_selection`, so the validated D1 legality logic is active in production observations rather than only synthetic states;
-- held-resource D1 semantics are now validated: **Steel** remains inside literal hand scoring, **Blue Seal** round-end Planet generation is carried only when the card is actually held on a clearing branch with consumable capacity, and **Gold** preservation is used only as a final mechanical tie-break rather than converted into synthetic chips or Mult;
-- the full `tests/balatro` suite is green through the held-resource D1 checkpoint on 2026-08-26.
+- held-resource D1 semantics are validated: **Steel** remains inside literal hand scoring, **Blue Seal** round-end Planet generation is carried only when the card is actually held on a clearing branch with consumable capacity, and **Gold** preservation is used only as a final mechanical tie-break rather than converted into synthetic chips or Mult;
+- **Ceremonial Dagger** treats Eternal Jokers consistently: an Eternal Joker to Dagger's right cannot be destroyed and grants no impossible Mult; pre-blind ordering is regression-locked to preserve Eternal targets and use legal fodder when beneficial;
+- **Blueprint** and **Brainstorm** exact-play ordering is regression-locked through the actual selected play and literal projected score;
+- first-card-sensitive hand ordering is regression-locked through the real **Photograph + Hanging Chad** interaction rather than the incorrect assumption that Photograph alone cares which non-face card precedes the first scoring face;
+- dominated non-scoring overplay is regression-locked for **Gold**, **Blue Seal**, and **Steel**, while legitimate dead-card cycling remains available when it improves future hands;
+- the synthetic first-party injected bridge responder now tolerates transient Windows access races instead of dying and producing a false timeout;
+- the full `tests/balatro` suite is green through the order-sensitive execution/held-resource/bridge-race checkpoint on 2026-08-26.
 
-Implemented in the current batched order-sensitive pass and awaiting the next deterministic suite validation:
+Implemented in the next discard/runtime batch and awaiting deterministic suite validation:
 
-- **Ceremonial Dagger** now treats an Eternal Joker immediately to its right consistently across direct Joker semantics and pre-blind order projection: no destruction and no Mult gain are projected from an illegal Eternal sacrifice;
-- pre-blind Dagger ordering is regression-locked to preserve an Eternal target and move legal fodder to Dagger's right when that improves the literal projected build;
-- **Blueprint** and **Brainstorm** exact-play ordering is regression-locked through `JokerOrderPolicy.recommend_for_play`, requiring the copier to target the stronger literal scoring Joker for the actual D1-selected cards rather than a representative static probe;
-- first-scored-card execution is regression-locked through **Photograph** and `HandOrderPolicy`, requiring a selected Straight to reorder a face card first when that materially improves literal projected score;
-- dominated non-scoring overplay is regression-locked for **Gold**, **Blue Seal**, and **Steel** kickers: a clearing/scoring core must not throw away held value merely to select an extra non-scoring card;
-- intentional cycling remains available rather than globally banned: a low-value non-scoring kicker with no held payoff remains represented as a distinct D1 cycling variant when the blind is not yet cleared.
+- **The Hook** forced-discard projector no longer activates **Burnt Joker**, including Blueprint/Brainstorm copies of Burnt; Hook still triggers real discard penalties/effects such as **Green Joker** without consuming a player discard use;
+- direct regressions require ordinary player discards to activate Burnt exactly once per round while Hook-forced discards leave Burnt hand levels unchanged;
+- the bounded three-attempt supervisor now has an explicit regression proving that once attempt 3 is already recorded, the restart callable is never invoked and the control layer requests stop before a fourth run can begin.
 
 Still open before a new live baseline:
 
 - complete the remaining pack/consumable opportunity-cost and target-selection audit beyond Wheel/Soul/Black Hole and the already modeled deterministic target paths;
 - complete the remaining boss-mechanics audit beyond Psychic, Serpent, Hook, Tooth, Ox, and Cerulean Bell;
-- finish the semantic D1 audit for discard-trigger engines and any remaining hand-play contradictions after the order-sensitive batch validates;
-- diagnose/fix the post-`run_finished` three-attempt supervisor/shutdown crash;
+- finish the semantic D1 audit for any remaining discard-trigger engines and hand-play contradictions after the Hook/Burnt batch validates;
+- validate the bounded-supervisor final-attempt guard above, then retire the historical post-`run_finished` crash item unless a fresh unchanged-HEAD reproduction exists;
 - rerun the full Balatro suite after the remaining changes, then perform a fresh production-default three-run Red/White batch.
 
 ## Current repair queue
@@ -227,9 +229,9 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Repair D1 discard selection at the authoritative planner/controller layer so multi-card redraws are considered correctly and strategy-specific discard mechanics execute.
 - [ ] Audit pack/consumable skipping for positive-EV opportunities and harmful opportunity-cost mistakes.
 - [ ] Audit boss-specific execution against exact mechanics.
-- [ ] Diagnose and fix the three-attempt supervisor/shutdown crash observed after all three run logs had already emitted `run_finished`.
+- [ ] Validate the bounded final-attempt shutdown guard; if green with no fresh reproduction, retire the historical post-`run_finished` crash as fixed/guarded.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through held-resource D1 preservation semantics; the order-sensitive batch above is pending the next suite run.
+- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through the order-sensitive execution, held-resource, and first-party bridge-race batch; Hook/Burnt and bounded-final-attempt regressions are pending the next suite run.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
