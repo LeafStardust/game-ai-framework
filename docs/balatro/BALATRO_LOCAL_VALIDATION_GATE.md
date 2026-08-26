@@ -6,7 +6,7 @@ This document records defects discovered only when the user runs the local Balat
 
 ## Current gate
 
-The semantic/runtime implementation pass is complete enough for local validation, but current HEAD must remain frozen for tuning/live baselines until `python -m pytest tests/balatro` completes without collection/runtime failures.
+The semantic/runtime implementation pass is complete enough for local validation, but current HEAD must remain frozen for tuning/live baselines until `python -m pytest tests/balatro -q` completes without collection/runtime failures.
 
 ## Collection blocker 1 — stale discovery tie-break import
 
@@ -126,7 +126,7 @@ Repair:
 - the simulator no longer attempts a second owned-deck removal;
 - live state remains untouched because all work occurs on the deep copied state.
 
-Validation status: **pending user rerun**.
+Validation status: **resolved by later user runs; remaining failures narrowed to regression-contract drift**.
 
 ## Regression-fixture update — D8/D9/D11 contracts
 
@@ -150,8 +150,6 @@ Repairs:
 - commit `db2fe3d` updates bare-state Celestial/Arcana shop regressions to assert fail-closed `END_SHOP` instead of restoring fixed family priors;
 - commit `f10fea5` updates the bare-state paid-reroll regression to assert `HOLD_REROLL`/`END_SHOP` when the future public pool is absent;
 - dedicated public-pool expectation tests remain responsible for proving positive D8/D11 behavior when authoritative catalogue state is supplied.
-
-Validation status: **pending user rerun**.
 
 ## Regression-fixture update — exact D6/D8 mechanics
 
@@ -197,7 +195,29 @@ Repairs:
 - commit `b86f240` preserves known Buffoon `offer_count/selection_count` metadata even when public Joker valuation fails closed;
 - commit `5c7b611` rewrites the old D8 scaffold assertions around the installed exact expectation contracts rather than restoring synthetic family priors.
 
-Validation status: **pending user rerun**.
+## Final two-fixture cleanup after full-suite narrowing
+
+The user's full local suite eventually narrowed to only two failures.
+
+### D9/D10 injected target boundary
+
+`test_d10_target_recommendation_is_verified_after_injected_pack_use` is an execution-boundary test: it verifies that a D10-targeted pack recommendation carries the exact selected hand card into the injected dispatcher and that semantic postconditions wait for the corresponding live-card mutation. Its Chariot branch still depended on Chariot independently receiving positive literal B6 value in a context where the generic transformation bonus is intentionally zero.
+
+Repair:
+
+- commit `cb79c8c` injects an explicitly positive target evaluator only in this boundary fixture;
+- the test now isolates D9 -> D10 -> dispatcher target propagation without reintroducing generic Tarot transformation utility into production.
+
+### Deterministic Antimatter arbiter fixture
+
+`test_strong_deterministic_purchase_beats_unrecognized_booster` constructed Antimatter with no observed public Joker generation pool. Current D14 values Antimatter through the marginal public future-Joker option created by the extra slot. Without that catalogue the parent branch correctly fails closed to zero, allowing END_SHOP to win the zero-gain tie.
+
+Repair:
+
+- commit `35c8c37` supplies the authoritative public Joker catalogue in this fixture before asserting that the admitted deterministic Antimatter purchase beats an unrecognized booster;
+- production D3/D14 fail-closed behavior is unchanged.
+
+Validation status: **awaiting the next full user run on unchanged current HEAD**.
 
 ## Rules for this gate
 
