@@ -66,6 +66,24 @@ class _PositiveEstimator:
 
 
 @dataclass(frozen=True)
+class _PositiveTarget:
+    target_indices: tuple[int, ...]
+    cards: tuple[BalatroCard, ...]
+    total_gain: float = 1.0
+    rationale: tuple[str, ...] = ("fixture positive D10/B6 target",)
+
+
+class _PositiveTargetEvaluator:
+    """Isolate the D9 -> D10 -> dispatcher boundary from target-value semantics."""
+
+    def recommend(self, state, consumable):
+        del consumable
+        if not state.hand:
+            return None
+        return _PositiveTarget((0,), (state.hand[0],))
+
+
+@dataclass(frozen=True)
 class _FamilyCase:
     phase: str
     choice: LivePackChoice
@@ -306,8 +324,9 @@ def test_d10_target_recommendation_is_verified_after_injected_pack_use(
         choice=choice,
         pack_policy=BalatroPackPolicy(
             item_estimator=_PositiveEstimator(),
-            # Pack cost is already sunk. D9/D10 compare literal target value against
-            # the opened-pack Skip=0 baseline, not the historical 0.35 shop hold.
+            consumable_target_evaluator=_PositiveTargetEvaluator(),
+            # Pack cost is already sunk. D9/D10 compare the admitted target against
+            # the opened-pack Skip=0 baseline.
             skip_bias=0.0,
         ),
     )
