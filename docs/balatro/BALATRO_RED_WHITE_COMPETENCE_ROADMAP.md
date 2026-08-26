@@ -203,7 +203,9 @@ Completed or validated in the current semantic/runtime pass:
 - dominated non-scoring overplay is regression-locked for **Gold**, **Blue Seal**, and **Steel**, while legitimate dead-card cycling remains available when it improves future hands;
 - the synthetic first-party injected bridge responder tolerates transient Windows access races instead of dying and producing a false timeout;
 - the bounded three-attempt supervisor is regression-locked to stop after attempt 3 without invoking another restart; the historical post-`run_finished` crash is retired unless it reproduces again on current unchanged HEAD;
-- the full `tests/balatro` suite is green through the Hook/Burnt and bounded-supervisor checkpoint on 2026-08-26.
+- the full `tests/balatro` suite is green through the Hook/Burnt and bounded-supervisor checkpoint on 2026-08-26;
+- opened-pack Skip now uses the true sunk-cost baseline in the Red/White production cartridge instead of the historical `+0.35` preference;
+- **The High Priestess** has a public-state expectation model over the eligible Planet pool and that model is installed into the production pack policy stack; no RNG sample, seed, or hidden pack content is consulted.
 
 Implemented in the current boss/consumable batch and awaiting deterministic suite validation:
 
@@ -214,7 +216,7 @@ Implemented in the current boss/consumable batch and awaiting deterministic suit
 
 Still open before a new live baseline:
 
-- finish the remaining pack/consumable opportunity-cost and target-selection audit after the literal target-value batch validates;
+- finish the remaining pack/consumable opportunity-cost, stochastic-outcome, and target-selection audit; the opened-pack Skip baseline and High Priestess production wiring are corrected, but other deferred/synthetic pack cases remain to audit;
 - finish the remaining boss-mechanics inventory after Verdant Leaf / Crimson Heart regressions validate; do not manufacture duplicate handlers for effects already embodied in authoritative live state;
 - finish any remaining D1 discard-trigger/hand-play contradiction audit after the current batch validates;
 - rerun the full Balatro suite after the remaining changes, then perform a fresh production-default three-run Red/White batch.
@@ -228,12 +230,12 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Verify strategy formation and R0 evidence influence acquisition from Ante 1 without overpowering survival.
 - [ ] Repair shop cross-family arbitration so visible Joker strength, vouchers, packs, consumables, rerolls, and economy compare on a run-winning basis rather than incompatible local units.
 - [ ] Repair Joker replacement using actual incumbent/candidate score, scaling, economy, realization, and strategy disruption.
-- [ ] Repair D1 discard selection at the authoritative planner/controller layer so multi-card redraws are considered correctly and strategy-specific discard mechanics execute.
+- [x] Repair D1 discard selection at the authoritative planner/controller layer so multi-card redraws are considered correctly and strategy-specific discard mechanics execute.
 - [ ] Audit pack/consumable skipping for positive-EV opportunities and harmful opportunity-cost mistakes.
 - [ ] Audit boss-specific execution against exact mechanics.
 - [x] Bound the three-attempt supervisor so final attempt completion cannot issue a fourth restart; retire the historical post-`run_finished` crash unless reproduced on current unchanged HEAD.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through Hook/Burnt forced-discard semantics and bounded final-attempt shutdown; Verdant/Crimson and literal consumable-target value are pending the next suite run.
+- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through Hook/Burnt forced-discard semantics and bounded final-attempt shutdown; Verdant/Crimson, literal consumable-target value, and subsequent pack corrections are pending the next suite run.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
