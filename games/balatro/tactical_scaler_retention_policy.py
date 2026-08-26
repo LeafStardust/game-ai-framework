@@ -6,6 +6,10 @@ Tactical/support classification means "no Bond quota", not "disposable". A Joker
 with already-realized persistent scaling must not be replaced merely because a fresh
 candidate creates a new low-rank Bond label. This guard covers the finite tactical
 scalers whose accumulated public state is already modeled by Build Health.
+
+Retention remains subordinate to a genuine survival emergency: when current Build
+Health is already critical, an upstream-legal replacement that strictly improves
+post-transaction modeled survival may dismantle the invested tactical scaler.
 """
 
 from dataclasses import replace
@@ -47,6 +51,13 @@ def _invested(engine) -> bool:
     return _STATE_VALUE.get(engine.state, 0) >= _STATE_VALUE[EngineState.ACTIVATED_HEALTHY]
 
 
+def _post_transaction_money(decision, fallback: int) -> int:
+    try:
+        return int(decision.selected.economics.money_after)
+    except (AttributeError, TypeError, ValueError):
+        return int(fallback)
+
+
 def install_tactical_scaler_retention_policy() -> None:
     if getattr(PlaybookJokerAcquisitionPolicy, "_tactical_scaler_retention_installed", False):
         return
@@ -71,6 +82,10 @@ def install_tactical_scaler_retention_policy() -> None:
 
         jokers[index] = candidate
         projected_state = projected_state_with_jokers(state, tuple(jokers))
+        projected_state.money = _post_transaction_money(
+            decision,
+            int(getattr(state, "money", 0) or 0),
+        )
         projected_engines = _engine_map(projected_state)
         damaged = []
         for engine_id, before in invested.items():
@@ -82,6 +97,20 @@ def install_tactical_scaler_retention_policy() -> None:
 
         current_health = _HEALTH.evaluate(state)
         projected_health = _HEALTH.evaluate(projected_state)
+        if (
+            bool(getattr(current_health, "critical", False))
+            and float(projected_health.survival) > float(current_health.survival) + 1e-12
+        ):
+            return replace(
+                decision,
+                rationale=(
+                    *decision.rationale,
+                    "invested tactical-scaler retention released because current Build Health is survival-critical",
+                    f"modeled post-transaction survival improves {float(current_health.survival):.3f}->{float(projected_health.survival):.3f}",
+                    "survival rescue outranks retention of accumulated tactical scaling",
+                ),
+            )
+
         scaling_gain = float(projected_health.scaling) - float(current_health.scaling)
         if scaling_gain >= _MATERIAL_SCALING_GAIN:
             return replace(
