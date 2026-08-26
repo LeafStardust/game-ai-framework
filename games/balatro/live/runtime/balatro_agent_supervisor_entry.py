@@ -133,6 +133,17 @@ def _diagnostic_runner_factory(
 
 
 def main() -> int:
+    # Install the broad SHOP runtime contract only after ``games.balatro`` package
+    # initialization has completed and this production entry point is executing.
+    # Importing that graph from a package-level installer caused pytest/importlib to
+    # observe a partially initialized ``games.balatro`` package and cascade collection
+    # failures across otherwise unrelated Balatro tests.
+    from games.balatro.shop_expectation_runtime_bound_policy import (
+        install_shop_expectation_runtime_bounds,
+    )
+
+    install_shop_expectation_runtime_bounds()
+
     parser = argparse.ArgumentParser(
         description=(
             "Run the toggleable Balatro autonomous supervisor with automatic "
