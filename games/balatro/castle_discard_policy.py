@@ -58,6 +58,10 @@ def _safe_castle_discard_alternative(result, suit: str):
 
     selected_probability = float(selected.value.clear_probability)
     selected_score = float(selected.value.expected_score)
+    tolerance = float(
+        getattr(getattr(result, "thresholds", None), "safe_clear_probability_tolerance", 0.0)
+        or 0.0
+    )
     candidates = []
     for plan in result.plans:
         if plan.action.name != DISCARD_CARDS:
@@ -67,7 +71,7 @@ def _safe_castle_discard_alternative(result, suit: str):
             continue
         probability = float(plan.value.clear_probability)
         expected_score = float(plan.value.expected_score)
-        if probability + 0.02 < selected_probability:
+        if probability + tolerance + 1e-9 < selected_probability:
             continue
         if selected_score > 0.0 and expected_score + 1e-9 < 0.90 * selected_score:
             continue
@@ -98,6 +102,10 @@ def install_castle_discard_policy() -> None:
         if alternative is None:
             return result
 
+        tolerance = float(
+            getattr(getattr(result, "thresholds", None), "safe_clear_probability_tolerance", 0.0)
+            or 0.0
+        )
         return replace(
             result,
             action=alternative.action,
@@ -105,6 +113,7 @@ def install_castle_discard_policy() -> None:
             selected_fallback_value=float(self.evaluator.evaluate(state, alternative.action)),
             rationale=(
                 f"Castle execution: an already-required discard can include current Castle suit {suit} without material survival loss",
+                f"Castle alternative must remain within canonical D1 clear-probability tolerance={tolerance:.3f}",
                 "Castle never creates a discard and rejects materially weaker alternatives",
                 *result.rationale,
             ),
