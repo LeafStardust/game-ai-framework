@@ -11,13 +11,15 @@ For Blueprint/Brainstorm, compare the best literal whole-build score reachable b
 ordering the incumbent roster against the best literal score after adding the copy
 candidate. Ordinary five-slot rosters are searched exhaustively, matching the live
 Joker-order authority. Larger Negative-expanded rosters use bounded copy-target
-orders. No synthetic copy bonus is added.
+orders. Public scoring randomness is evaluated analytically through the same literal
+expectation helper used by ordinary D2 probes. No synthetic copy bonus is added.
 """
 
 import copy
 from itertools import permutations
 
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
+from games.balatro.build.literal_score_expectation import literal_expected_score
 
 
 _COPY_JOKERS = frozenset({"BlueprintJoker", "BrainstormJoker"})
@@ -63,13 +65,12 @@ def _best_score(self, probe_state, cards, hand, *, candidate_name: str | None = 
         ordered = copy.deepcopy(probe_state)
         ordered.jokers = [ordered.jokers[index] for index in order]
         try:
-            score = self.scorer.score(
+            score = literal_expected_score(
+                ordered,
                 hand,
-                state=ordered,
-                cards=copy.deepcopy(cards),
-                include_card_chips=True,
-                resolve_random_effects=False,
-            ).total
+                cards,
+                scorer=self.scorer,
+            )
         except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
             continue
         if best is None or float(score) > float(best):
