@@ -153,6 +153,52 @@ Repairs:
 
 Validation status: **pending user rerun**.
 
+## Regression-fixture update — exact D6/D8 mechanics
+
+A later ten-failure batch exposed another set of old scaffold assumptions.
+
+### Castle tolerance ownership
+
+`_safe_castle_discard_alternative()` no longer owns a private survival-loss constant. It consumes D1's `safe_clear_probability_tolerance`. The direct unit fixture omitted `result.thresholds`, which correctly produced a zero tolerance and rejected its 0.50 -> 0.49 redirect.
+
+Repair:
+
+- commit `157d9b9` supplies the canonical D1 tolerance in the direct Castle fixture; production code is unchanged.
+
+### Blue Joker / Hanged Man
+
+The old pack-action test expected Blue Joker to remove Hanged Man from the action set entirely. That hard veto was intentionally retired: B6 now subtracts the exact `2 Chips × cards removed × active Blue Jokers` opportunity cost and may still admit profitable thinning.
+
+Repair:
+
+- commit `36da4d1` updates the regression to keep Hanged Man as a candidate and leave value admission to D6.
+
+### Targeted Tarot/Spectral literal value
+
+After generic per-transformation utility was removed, a plain Chariot target is not automatically positive merely because it changes a card. Opened-pack targeting must demonstrate actual modeled value. The Tarot coverage now uses Death's positive directional copy, while Spectral coverage uses Deja Vu's explicit Red-Seal intrinsic value, both against sunk-cost Skip=0.
+
+Repairs:
+
+- commit `eb31f96` updates targeted Tarot coverage to a positive literal Death target;
+- commit `5ac3153` aligns targeted Spectral coverage with the same literal/sunk-cost contract.
+
+### Exact D8 pack expectations
+
+The original `test_balatro_d8_booster_policy.py` assertions predated the exact production expectation layers:
+
+- Celestial now enumerates the finite currently eligible Planet pool and draws without replacement when Showman is absent. Early ordinary pool size is nine, so one relevant Planet in a normal three-offer pack has exact hit probability `1/3`, not the retired `1/4` from a synthetic 12-card denominator.
+- Celestial literal option EV need not monotonically increase with specialization because specialization also makes off-path Planet upgrades less valuable; directional useful-offer probability is the appropriate monotonic signal.
+- Standard now integrates the complete public rank/suit/enhancement/seal/edition generator through D9 literal value. Zero scoped build need is not an automatic veto, and held Death does not fabricate demand.
+- Blue Joker/Hologram deck-growth value is already integrated per generated Standard card; the old separate +1 pack override is no longer authoritative.
+- Arcana/Spectral exact unopened expectations require observed public generation pools and fail closed on bare synthetic states.
+
+Repairs:
+
+- commit `b86f240` preserves known Buffoon `offer_count/selection_count` metadata even when public Joker valuation fails closed;
+- commit `5c7b611` rewrites the old D8 scaffold assertions around the installed exact expectation contracts rather than restoring synthetic family priors.
+
+Validation status: **pending user rerun**.
+
 ## Rules for this gate
 
 - Do not interpret cascaded import/collection failures as independent gameplay defects until the earliest package-import blocker is repaired.
