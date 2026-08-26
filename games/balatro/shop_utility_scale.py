@@ -66,11 +66,21 @@ class ShopUtilityScale:
 
         candidate = getattr(executable, "candidate", None)
         economics = selected.economics
+        replacement = executable.source == "JOKER_REPLACE_SELL"
+        cash_scaling_jokers = tuple(getattr(state, "jokers", ()) or ())
+        if replacement:
+            replace_index = getattr(selected, "replace_index", None)
+            if isinstance(replace_index, int) and 0 <= replace_index < len(cash_scaling_jokers):
+                cash_scaling_jokers = tuple(
+                    joker
+                    for index, joker in enumerate(cash_scaling_jokers)
+                    if index != replace_index
+                )
         money_cost = self._money_transaction_cost(
             state,
             int(economics.net_spend),
+            jokers=cash_scaling_jokers,
         )
-        replacement = executable.source == "JOKER_REPLACE_SELL"
         slot_cost = 0.0
         if not replacement and not joker_has_negative_edition(candidate):
             slot_cost = self.resource_valuator.slot_opportunity_cost(
@@ -103,6 +113,11 @@ class ShopUtilityScale:
                 f"D2 build gain={build_gain:.3f}",
                 f"D2 edition delta={edition_delta:.3f}",
                 f"shared resource cost={resource_cost:.3f}",
+                *(
+                    ("replacement cash-scaling cost excludes sold incumbent",)
+                    if replacement
+                    else ()
+                ),
                 f"bounded discovery tie-break={'applied' if discovery_applied else 'inactive'}",
             ),
         )
@@ -178,7 +193,7 @@ class ShopUtilityScale:
             jokers=getattr(state, "jokers", ()),
         )
 
-    def _money_transaction_cost(self, state, net_spend: int):
+    def _money_transaction_cost(self, state, net_spend: int, *, jokers=None):
         return self.resource_valuator.money_transaction_cost(
             money=int(state.money),
             net_spend=net_spend,
@@ -187,7 +202,11 @@ class ShopUtilityScale:
             reserve_target=self.reserve_target,
             reserve_weight=self.reserve_weight,
             vouchers=getattr(state, "vouchers", ()),
-            jokers=getattr(state, "jokers", ()),
+            jokers=(
+                getattr(state, "jokers", ())
+                if jokers is None
+                else jokers
+            ),
         )
 
     @staticmethod
