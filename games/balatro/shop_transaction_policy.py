@@ -160,10 +160,19 @@ def install_shop_transaction_policy() -> None:
     if getattr(BuildAwareShopArbiter, "_shop_transaction_policy_installed", False):
         return
 
+    original_best_joker = BuildAwareShopArbiter._best_joker_decision
     original_decide = BuildAwareShopArbiter.decide
+
+    def best_joker_decision(self, state):
+        recommendation = original_best_joker(self, state)
+        self._last_exact_joker_candidate = (
+            None if recommendation is None else recommendation.candidate
+        )
+        return recommendation
 
     def decide(self, state, visible_actions, *, reroll_cost: int | None):
         hold = float(self.shop_policy.hold_bias)
+        self._last_exact_joker_candidate = None
 
         pending_fuel = getattr(self, "_pending_campfire_fuel", None)
         if pending_fuel is not None:
@@ -215,9 +224,8 @@ def install_shop_transaction_policy() -> None:
             self._pending_committed_replacement = None
 
         # Clearance Sale is ordinary paid development. Its permanent discount is
-        # already represented by the deterministic shop scorer, and D14 owns the
-        # cross-family comparison. Do not pre-empt visible Joker/pack/consumable
-        # value here merely to buy the discount first.
+        # represented by D3 and D14 owns the cross-family comparison. Do not
+        # pre-empt visible Joker/pack/consumable value merely to buy a discount.
         result = original_decide(
             self,
             state,
@@ -251,15 +259,7 @@ def install_shop_transaction_policy() -> None:
                     ),
                 )
         if result.source == "JOKER_REPLACE_SELL" and result.joker is not None:
-            candidate_name = str(result.joker.candidate)
-            candidate = next(
-                (
-                    joker
-                    for joker in getattr(state, "shop_jokers", ()) or ()
-                    if type(joker).__name__ == candidate_name
-                ),
-                None,
-            )
+            candidate = getattr(self, "_last_exact_joker_candidate", None)
             if candidate is not None:
                 self._pending_committed_replacement = {
                     "identity": _item_identity(candidate),
@@ -267,5 +267,6 @@ def install_shop_transaction_policy() -> None:
                 }
         return result
 
+    BuildAwareShopArbiter._best_joker_decision = best_joker_decision
     BuildAwareShopArbiter.decide = decide
     BuildAwareShopArbiter._shop_transaction_policy_installed = True
