@@ -21,16 +21,18 @@ No execution guard below may turn a losing line into a preferred line merely to 
 
 ## Safe-pace wrapper authority
 
-`safe_pace_optimization_policy.py` still owns the Red/White action-class doctrine: a current hand that meets required pace is preferred over speculative multi-step engineering, and when no play reaches pace while a discard remains the agent recovers by discarding instead of burning an under-pace hand.
+The original `safe_pace_optimization_policy.py` establishes the Red/White action-class doctrine, but `safe_pace_scope_correction.py` restores the public/base `LiveHandActionPolicy` contract and reapplies that doctrine specifically to the production `StrategyAwareLiveHandActionPolicy`. The scoped wrapper is therefore the authoritative live path.
 
-That wrapper may choose the action class, but it may not replace D1's survival ordering *inside* the class. Current behavior is therefore:
+Safe pace still means: a current hand that meets required pace is preferred over speculative multi-step engineering, and when no play reaches pace while a discard remains the agent recovers by discarding instead of burning an under-pace hand.
+
+That wrapper may choose the action class, but it may not replace D1's survival ordering *inside* the class. Current production behavior is therefore:
 
 - deterministic current-hand clears use canonical D1 safe-clear/resource ordering rather than highest overkill score;
 - pace-qualified plays are ranked with D1 `_pace_play_key`, whose first authority is full-blind clear probability;
 - recovery discards are ranked by the full D1 plan tuple before the local discard heuristic;
 - when no discard remains, the forced under-pace play is chosen by full D1 plan quality rather than immediate score alone.
 
-This prevents the safety wrapper from undoing the full-blind survival estimates already computed by D1 merely because another candidate has a larger current-hand number.
+This prevents the production safety wrapper from undoing the full-blind survival estimates already computed by D1 merely because another candidate has a larger current-hand number. The base-layer safe-pace implementation follows the same ordering, but production authority resides in the scoped strategy-aware wrapper.
 
 ## Stateful Joker transitions propagate through expectimax
 
