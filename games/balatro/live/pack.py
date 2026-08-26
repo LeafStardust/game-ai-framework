@@ -48,6 +48,9 @@ class LivePackActionGenerator:
     Full-roster Buffoon Jokers remain visible to policy by default. They are not
     directly selectable while capacity is full; the playbook pack policy may turn
     a worthwhile visible replacement into a separate SELL_JOKER checkpoint first.
+    Deterministic destructive Tarots such as Hanged Man remain visible too; B6 owns
+    their target/opportunity-cost decision instead of the generator hard-vetoing a
+    potentially profitable mechanical tradeoff.
     """
 
     def __init__(self, *, include_capacity_blocked_jokers: bool = True) -> None:
@@ -70,7 +73,6 @@ class LivePackActionGenerator:
             playing = _normalize_card(decoder, address)
             value = playing.get("value") or {}
             if value.get("rank") is not None and value.get("suit") is not None:
-                # Keep card modifiers/rank/suit while retaining any useful item metadata.
                 data = dict(item)
                 data.update(playing)
                 data["area_index"] = index
@@ -78,9 +80,6 @@ class LivePackActionGenerator:
             else:
                 data = item
 
-            # The Fool's copy target is ordinary public run history stored by
-            # Balatro as G.GAME.last_tarot_planet. Whitelist only the center key;
-            # no RNG state or hidden draw order is exposed.
             if last_tarot_planet is not None:
                 data["last_tarot_planet"] = last_tarot_planet
 
@@ -97,27 +96,8 @@ class LivePackActionGenerator:
         joker_count = len(getattr(state, "jokers", []))
         has_free_joker_slot = joker_count < joker_slots
         has_selectable_joker = False
-        owns_blue_joker = any(
-            type(joker).__name__ == "BlueJoker"
-            for joker in (getattr(state, "jokers", ()) or ())
-        )
 
         for choice in choices:
-            # Hanged Man permanently removes cards. Blue Joker's live scoring is
-            # explicitly proportional to cards remaining in the deck, so do not
-            # even offer this destructive pack action while Blue Joker is owned.
-            if (
-                owns_blue_joker
-                and choice.kind == "TAROT"
-                and choice.label == "The Hanged Man"
-            ):
-                continue
-
-            # Full-roster Buffoon choices are policy candidates, not immediately
-            # executable selections. Playbook D9 may convert one into SELL_JOKER
-            # after a concrete visible replacement clears D2. Legacy callers may
-            # explicitly disable these candidates if they cannot perform pack-state
-            # Joker sales.
             if (
                 choice.kind == "JOKER"
                 and joker_count >= joker_slots
@@ -128,20 +108,11 @@ class LivePackActionGenerator:
                 has_selectable_joker = True
             actions.append(BalatroAction(SELECT_PACK_CARD, target=choice))
 
-        # A Buffoon pack with a genuinely free Joker slot should resolve by taking
-        # one of its visible Jokers. In particular, Joker Stencil's temporary value
-        # from an empty slot may influence which Joker is preferred, but must never
-        # make the agent throw away the whole pack while capacity is available.
-        # Full-roster Buffoon packs keep Skip available so policy can reject all
-        # visible replacements without sacrificing an incumbent.
         force_joker_pick = (
             phase == "BUFFOON_PACK"
             and has_free_joker_slot
             and has_selectable_joker
         )
         if not force_joker_pick:
-            # Every normal booster-pack screen exposes Skip. The executor still
-            # requires the exact live skip_booster/can_skip_booster identity before
-            # it can click.
             actions.append(BalatroAction(SKIP_BOOSTER))
         return actions
