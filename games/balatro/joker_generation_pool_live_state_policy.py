@@ -5,10 +5,14 @@ from __future__ import annotations
 Judgement and Wraith do not choose from the repository's modeled Joker filenames;
 Balatro chooses from its live rarity pools after applying ordinary public eligibility
 rules (unlock state, current duplicate exclusion unless Showman is owned, challenge
-bans, pool flags, and enhancement gates).  Reading those eligible center records is
+bans, pool flags, and enhancement gates). Reading those eligible center records is
 not a prediction: no pseudoseed, pool order, or selected outcome is exposed.
 
-This module mirrors the narrow live-state adapter pattern used by Ectoplasm.  The
+The ordinary ``G.GAME.edition_rate`` multiplier is exposed alongside the catalogue
+because generated Jokers pass through Balatro's normal edition roll. It is a public
+run modifier changed by Hone/Glow Up, not RNG state.
+
+This module mirrors the narrow live-state adapter pattern used by Ectoplasm. The
 snapshot carries canonical records grouped by rarity, the translator hydrates them
 onto ``BalatroState``, and state copies preserve the catalogue for bounded policy
 projections.
@@ -170,6 +174,7 @@ def install_joker_generation_pool_live_state_policy() -> None:
         original_state_init(self)
         self.joker_generation_pool_observed = False
         self.joker_generation_pools = {}
+        self.joker_generation_edition_rate = 1.0
 
     def state_copy(self):
         copied = original_state_copy(self)
@@ -183,13 +188,22 @@ def install_joker_generation_pool_live_state_policy() -> None:
             ).items()
             if isinstance(records, (list, tuple))
         }
+        copied.joker_generation_edition_rate = float(
+            getattr(self, "joker_generation_edition_rate", 1.0) or 1.0
+        )
         return copied
 
     def snapshot_payload_from_live_memory(decoder, root):
         payload, phase, state_complete = original_snapshot_payload(decoder, root)
         pools, complete = _normalize_joker_generation_pools(decoder, root, payload)
+        game = live_memory_observer._table_fields(decoder, root.get("GAME"))
+        edition_rate = live_memory_observer._number(game.get("edition_rate"))
         payload["joker_generation_pool_observed"] = bool(complete)
         payload["joker_generation_pools"] = pools
+        payload["joker_generation_edition_rate"] = max(
+            0.0,
+            float(edition_rate if edition_rate is not None else 1.0),
+        )
         return payload, phase, state_complete
 
     def translate(self, snapshot):
@@ -211,6 +225,11 @@ def install_joker_generation_pool_live_state_policy() -> None:
             }
         else:
             state.joker_generation_pools = {}
+        try:
+            edition_rate = float(payload.get("joker_generation_edition_rate", 1.0))
+        except (TypeError, ValueError):
+            edition_rate = 1.0
+        state.joker_generation_edition_rate = max(0.0, edition_rate)
         return state
 
     BalatroState.__init__ = state_init
