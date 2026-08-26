@@ -58,6 +58,9 @@ def install_ouija_pack_expectation_policy() -> None:
 
     BalatroPackPolicy.__init__ = init
     BalatroPackPolicy._score_consumable = score_consumable
+    BalatroPackPolicy.STOCHASTIC_MODELED_SPECTRALS = frozenset(
+        set(BalatroPackPolicy.STOCHASTIC_MODELED_SPECTRALS) | {OUIJA}
+    )
     BalatroPackPolicy.DEFERRED_SPECTRALS = frozenset(
         set(BalatroPackPolicy.DEFERRED_SPECTRALS) - {OUIJA}
     )
