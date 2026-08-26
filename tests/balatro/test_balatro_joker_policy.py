@@ -34,12 +34,23 @@ class PlusMultJoker(Joker):
         return context
 
 
+class _FixedReplacementEvaluator:
+    """Minimal literal evaluator used by replacement-policy contract tests."""
+
+    def evaluate(self, state, joker):
+        del state
+        return SimpleNamespace(
+            total_gain=0.5 if isinstance(joker, PlusMultJoker) else 0.0,
+        )
+
+
 class FixedReplacementPlanner:
     def __init__(self):
-        # The installed D2 raw-delta authority delegates to the transition
-        # planner's canonical evaluator. Test doubles must expose the same public
-        # contract rather than relying on the retired build_delta shortcut alone.
-        self.evaluator = JokerBuildValueEvaluator()
+        # The installed post-transaction D2 authority recomputes incumbent and
+        # candidate marginals through the planner's evaluator. Keep the test double
+        # deterministic on that actual contract rather than relying on a stale
+        # alternative.build_delta value that production intentionally supersedes.
+        self.evaluator = _FixedReplacementEvaluator()
         self.strategy_evaluator = self.evaluator
 
     def plan(self, state, candidate):
@@ -286,10 +297,14 @@ def test_d2_bond_bonus_cannot_rescue_negative_raw_replacement(monkeypatch):
     ).decide(state, candidate)
 
     assert decision.action == HOLD
-    assert decision.options[0].build_gain == pytest.approx(3.0)
+    # Post-transaction D2 recomputes the literal marginal through the planner's
+    # evaluator: incumbent +0.5, candidate 0.0 => raw replacement -0.5. The large
+    # mocked Bond bonus makes the combined gain positive but cannot make a negative
+    # raw replacement eligible.
+    assert decision.options[0].build_gain == pytest.approx(3.5)
     assert decision.options[0].eligible is False
     assert any(
-        "raw whole-build replacement delta=-1.000" in note
+        "post-transaction raw replacement delta=-0.500" in note
         for note in decision.options[0].rationale
     )
 
@@ -309,9 +324,9 @@ def test_d2_does_not_use_retired_strategy_tier_shortcut_for_replacement():
         transition_planner=FixedReplacementPlanner(),
     ).decide(state, candidate)
 
-    # A raw +0.5 replacement no longer receives the deleted Gold/Silver/Bronze
-    # alignment threshold. It must clear the ordinary threshold or earn enough
-    # projected canonical Bond value from the real public state.
+    # A literal +0.5 replacement no longer receives the deleted
+    # Gold/Silver/Bronze alignment threshold. It must clear the ordinary threshold
+    # or earn enough canonical Bond value from the real public state.
     assert decision.action == HOLD
     assert decision.selected is None
     assert decision.options
