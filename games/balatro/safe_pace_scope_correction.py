@@ -6,6 +6,9 @@ The first safe-pace patch intentionally changed live behavior, but it monkey-pat
 base policy classes that are also public/testing contracts. This correction restores
 those base methods from the patch closures, then applies the survival invariant only
 to StrategyAwareLiveHandActionPolicy, which is the Red/White production policy.
+
+The scoped production wrapper may choose the safe-pace action class, but canonical
+D1 full-blind plan quality remains authoritative when selecting within that class.
 """
 
 from dataclasses import replace
@@ -88,8 +91,9 @@ def install_safe_pace_scope_correction() -> None:
         remaining = max(0.0, pace_target * hands_left)
         projected = {id(plan): _projected_score(self, state, plan) for plan in plays}
         scores = {key: value[0] for key, value in projected.items()}
-        best_play = max(plays, key=lambda plan: (scores[id(plan)], self._within_type_key(plan)))
-        best_score = scores[id(best_play)]
+        best_play = max(plays, key=self._within_type_key)
+        best_immediate = max(plays, key=lambda plan: scores[id(plan)])
+        best_score = scores[id(best_immediate)]
         best_ratio = self._pace_ratio(best_score, pace_target)
 
         old_ranking_state = getattr(self, "_ranking_state", None)
@@ -109,13 +113,7 @@ def install_safe_pace_scope_correction() -> None:
                 )
             ]
             if immediate_clears:
-                selected = max(
-                    immediate_clears,
-                    key=lambda plan: (
-                        scores[id(plan)],
-                        self._safe_equivalent_clear_key(plan),
-                    ),
-                )
+                selected = max(immediate_clears, key=self._safe_equivalent_clear_key)
                 selected_score = scores[id(selected)]
                 return replace(
                     baseline,
@@ -136,6 +134,7 @@ def install_safe_pace_scope_correction() -> None:
                     confidence=1.0,
                     rationale=(
                         "safe-pace production policy: current hand deterministically clears the blind",
+                        "among deterministic clears, canonical D1 survival/resource ordering remains authoritative",
                         "multi-step engineered clear probability cannot override current-hand survival pacing",
                         *baseline.rationale,
                     ),
@@ -150,12 +149,9 @@ def install_safe_pace_scope_correction() -> None:
             if pace_plays:
                 selected = max(
                     pace_plays,
-                    key=lambda plan: (
-                        scores[id(plan)],
-                        self._pace_play_key(
-                            plan,
-                            self._pace_ratio(scores[id(plan)], pace_target),
-                        ),
+                    key=lambda plan: self._pace_play_key(
+                        plan,
+                        self._pace_ratio(scores[id(plan)], pace_target),
                     ),
                 )
                 selected_score = scores[id(selected)]
@@ -178,8 +174,9 @@ def install_safe_pace_scope_correction() -> None:
                     setup_discard_consensus=False,
                     confidence=self._pace_confidence(selected_ratio),
                     rationale=(
-                        "safe-pace production policy: strongest current hand meeting remaining-score / hands-left pace",
-                        "equal-safety held-resource and Bond strategy tie-breaks remain subordinate to score and survival",
+                        "safe-pace production policy: choose among current hands meeting remaining-score / hands-left pace",
+                        "canonical D1 full-blind clear probability and plan quality rank pace-qualified plays",
+                        "equal-safety held-resource and Bond strategy tie-breaks remain subordinate to survival",
                         *baseline.rationale,
                     ),
                 )
@@ -188,8 +185,8 @@ def install_safe_pace_scope_correction() -> None:
                 selected = max(
                     discards,
                     key=lambda plan: (
+                        *self._within_type_key(plan),
                         float(self.evaluator.evaluate(state, plan.action)),
-                        self._within_type_key(plan),
                     ),
                 )
                 selected_value = float(self.evaluator.evaluate(state, selected.action))
@@ -197,6 +194,7 @@ def install_safe_pace_scope_correction() -> None:
                 rationale = [
                     "safe-pace production policy: no current play meets remaining-score / hands-left pace",
                     "a legal discard remains, so do not burn a scoring hand below pace",
+                    "canonical D1 full-blind plan quality ranks discard candidates before local discard heuristic",
                 ]
                 if consensus:
                     rationale.append("deep adaptive searches also agree on the setup discard")
@@ -220,7 +218,7 @@ def install_safe_pace_scope_correction() -> None:
                     rationale=tuple(rationale) + baseline.rationale,
                 )
 
-            # No discard remains; force the highest immediate score.
+            # No discard remains; preserve canonical D1 full-blind recovery quality.
             selected = best_play
             selected_score = scores[id(selected)]
             selected_ratio = self._pace_ratio(selected_score, pace_target)
@@ -243,7 +241,7 @@ def install_safe_pace_scope_correction() -> None:
                 confidence=0.40,
                 rationale=(
                     "safe-pace production policy: no current play meets pace and no discard remains",
-                    "forced recovery uses the highest projected immediate score",
+                    "forced recovery uses the strongest full-blind D1 plan; immediate score is secondary",
                     *baseline.rationale,
                 ),
             )
