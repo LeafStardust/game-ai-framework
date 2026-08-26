@@ -19,6 +19,7 @@ from games.balatro.castle_discard_policy import install_castle_discard_policy
 from games.balatro.cerulean_bell_d1_legality_policy import install_cerulean_bell_d1_legality_policy
 from games.balatro.cerulean_live_state_policy import install_cerulean_live_state_policy
 from games.balatro.consumable_target_literal_value_policy import install_consumable_target_literal_value_policy
+from games.balatro.cryptid_pack_policy import install_cryptid_pack_policy
 from games.balatro.d1_candidate_deadline_policy import install_d1_candidate_deadline_policy
 from games.balatro.d1_debuff_recovery_policy import install_d1_debuff_recovery_policy
 from games.balatro.d1_log_resilience_policy import install_d1_log_resilience_policy
@@ -102,6 +103,7 @@ install_pack_sunk_cost_policy()
 install_high_priestess_pack_policy()
 install_immolate_pack_expectation_policy()
 install_targeted_pack_literal_value_policy()
+install_cryptid_pack_policy()
 install_tactical_scaler_build_health_policy()
 install_bond_scaler_build_health_policy()
 install_build_health_policy()
