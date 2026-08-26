@@ -35,6 +35,13 @@ class PlusMultJoker(Joker):
 
 
 class FixedReplacementPlanner:
+    def __init__(self):
+        # The installed D2 raw-delta authority delegates to the transition
+        # planner's canonical evaluator. Test doubles must expose the same public
+        # contract rather than relying on the retired build_delta shortcut alone.
+        self.evaluator = JokerBuildValueEvaluator()
+        self.strategy_evaluator = self.evaluator
+
     def plan(self, state, candidate):
         return SimpleNamespace(
             candidate_value=SimpleNamespace(total_gain=0.5),
