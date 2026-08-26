@@ -9,7 +9,7 @@ itself demands exactness.
 
 from types import SimpleNamespace
 
-from games.balatro.actions import DISCARD_CARDS, BalatroAction
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.build import JokerBuildTransitionPlanner
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 from games.balatro.joker_policy import BUY, HOLD, JokerAcquisitionPolicy
@@ -17,8 +17,16 @@ from games.balatro.jokers.card_sharp import CardSharpJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.ride_the_bus import RideTheBusJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
-from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
+from games.balatro.live.blind_clear_planner import (
+    LiveBlindClearPlanner,
+    LiveBlindPlan,
+    LiveBlindPlanValue,
+)
+from games.balatro.live.hand_action_policy import LiveHandActionPolicy
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
+from games.balatro.live.path_aware_hand_action_engine import (
+    PathAwareLiveHandActionDecisionEngine,
+)
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
 from games.balatro.shop_voucher_policy import VoucherAcquisitionPolicy
@@ -77,6 +85,59 @@ def _planner_discard_beam_uses_d1_value() -> SemanticCheck:
         observed=f"single={single_priority!r}, multi={batch_priority!r}",
         expected="planner discard beam preserves canonical D1 ordering",
         detail="candidate pre-ranking must not silently use a separate recovery objective",
+    )
+
+
+def _timeout_reuses_completed_d1_evidence() -> SemanticCheck:
+    cards = [object() for _ in range(4)]
+    canonical_discard = LiveBlindPlan(
+        action=BalatroAction(DISCARD_CARDS, cards=cards[:3]),
+        value=LiveBlindPlanValue(
+            clear_probability=0.40,
+            expected_progress=0.65,
+            expected_score=65.0,
+            expected_hands_remaining=4.0,
+            expected_discards_remaining=3.0,
+        ),
+        horizon=3,
+        exact=True,
+        candidate_count=2,
+    )
+    weaker_play = LiveBlindPlan(
+        action=BalatroAction(PLAY_CARDS, cards=cards[:1]),
+        value=LiveBlindPlanValue(
+            clear_probability=0.05,
+            expected_progress=0.15,
+            expected_score=15.0,
+            expected_hands_remaining=3.0,
+            expected_discards_remaining=4.0,
+        ),
+        horizon=3,
+        exact=True,
+        candidate_count=2,
+    )
+    engine = object.__new__(PathAwareLiveHandActionDecisionEngine)
+    engine.policy = LiveHandActionPolicy()
+    engine._adaptive_plan_history = [(canonical_discard, weaker_play)]
+    engine._adaptive_root_history = []
+    state = SimpleNamespace(
+        blind=SimpleNamespace(requirement=100),
+        score=0,
+        hands_remaining=4,
+        discards_remaining=4,
+    )
+
+    decision = engine._structural_timeout_fallback(state, search_attempts=())
+    retained = decision.action is canonical_discard.action
+    structural = any("structural" in note.lower() for note in decision.rationale)
+    return SemanticCheck(
+        retained and not structural,
+        observed=(
+            f"selected={decision.action.name}, retained={retained}, "
+            f"rationale={decision.rationale!r}"
+        ),
+        expected="timeout returns the best completed canonical D1 root",
+        detail="wall-clock exhaustion may stop more search but must not replace completed survival evidence with the poker-hand/rank structural heuristic",
     )
 
 
@@ -172,6 +233,13 @@ RED_WHITE_SEMANTIC_CASES = (
         "Discard candidate ranking must use the canonical D1 evaluator.",
         _planner_discard_beam_uses_d1_value,
         source="live failure class: planner/controller objective disagreement",
+    ),
+    SemanticBenchmarkCase(
+        "d1.authority.timeout_consistency",
+        "D1_SURVIVAL",
+        "A timeout after completed adaptive search must retain canonical D1 evidence.",
+        _timeout_reuses_completed_d1_evidence,
+        source="Phase-2 authority audit: timeout/fallback objective divergence",
     ),
     SemanticBenchmarkCase(
         "shop.survival.first_scoring_foothold",
