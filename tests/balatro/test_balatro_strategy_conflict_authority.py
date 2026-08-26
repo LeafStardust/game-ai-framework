@@ -67,4 +67,4 @@ def test_hanging_chad_never_leaves_debuffed_selected_card_first_on_projection_ti
     assert decision is not None
     # Original positions 0 and 1 must be swapped so the live King is first.
     assert decision.permutation[:2] == (1, 0)
-    assert any("live selected card" in note for note in decision.rationale)
+    assert any("live first card" in note for note in decision.rationale)
