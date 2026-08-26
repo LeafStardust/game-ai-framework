@@ -141,19 +141,27 @@ Pivot invariants:
 4. Existing replacements may be vetoed when realized Bond/motif disruption exceeds the health-adjusted structural gain.
 5. A prior `HOLD` may become `REPLACE` only when an upstream-eligible positive option exceeds the canonical structural threshold.
 
-### Critical-survival escape from strategy retention
+### Critical-survival escape from retention
 
-FORMING and PINNED strategy-retention wrappers install after Build Health/pivot logic, so they previously had enough authority to turn an already-admitted `REPLACE` back into `HOLD` solely to preserve the current plan. That is correct for ordinary churn prevention but wrong when the run is already survival-critical.
+Retention layers exist to stop local-value churn from dismantling useful long-horizon structure. They are not allowed to preserve that structure while the modeled run is already in a critical survival state.
 
-Both retention layers now share a narrow existing-health escape:
+The critical-survival exception now applies consistently to the retention layers that can otherwise veto an upstream D2 replacement:
 
-- the upstream D2 decision must already be a legal `REPLACE`;
-- current `RuntimeBuildHealthEvaluator` must report `critical=True` using its existing critical-survival threshold;
-- the exact projected replacement roster must strictly improve modeled survival.
+- FORMING Strategy Plan retention;
+- mechanically PINNED strategy retention;
+- ACTIVE/MATURE or developed selected-power-Bond retention;
+- invested non-Bond tactical-scaler retention (Campfire, Flash Card, Obelisk, Red Card, Hiker card-growth state).
 
-When those conditions hold, FORMING/PINNED retention cannot veto the replacement merely because it breaks the current strategy. No new survival threshold or strategy score is introduced. If current Build Health is not critical, or the replacement does not improve survival, normal retention/pivot structure remains authoritative.
+The exception is deliberately narrow:
 
-This makes the intended hierarchy explicit: an unfinished or pinned Currency-Wars strategy is worth preserving while the run is viable; once the modeled run is already in the critical survival state, a legal survival rescue outranks structural loyalty.
+- upstream D2 must already have produced a legal `REPLACE`; these layers do not manufacture a candidate that D2 rejected;
+- current `RuntimeBuildHealthEvaluator` must already report `critical=True` using the existing critical-survival threshold;
+- the exact projected replacement roster must strictly improve modeled survival;
+- replacement health is evaluated at the **actual post-transaction cash** from D2 economics, so Bull/Bootstraps and other money-sensitive scoring cannot be assessed using stale pre-sale/pre-purchase cash.
+
+When those conditions hold, retention cannot turn the replacement back into `HOLD` solely to protect strategy/scaler history. If the run is not critical, or survival does not strictly improve after the real cash transition, normal retention and pivot requirements remain authoritative.
+
+This does not bypass stateful/mechanical admission vetoes such as Eternal legality, Madness coexistence, unsupported conditional-hand payoffs, To Do List target support, or Stencil's exact slot-state requirement. Those layers remain separate D2 admission authority.
 
 ## Motif prescription authority
 
