@@ -151,9 +151,6 @@ def _runner(
     choice: LivePackChoice,
     pack_policy: BalatroPackPolicy | None = None,
 ):
-    # decide() consumes the first checkpoint; execute() independently verifies the
-    # same public checkpoint before and after STATUS, then the real dispatcher owns
-    # all subsequent observations until its semantic postcondition is satisfied.
     observer = _Observer(before, before, before, *after_snapshots)
     bridge = _Bridge()
     terms = LivePackSelectionTerms(
@@ -181,54 +178,27 @@ def _runner(
 
 def _family_cases() -> tuple[_FamilyCase, ...]:
     buffoon_state = _state("BUFFOON_PACK")
-    buffoon = _choice(
-        "BUFFOON_PACK",
-        "Joker",
-        "Golden Joker",
-        address=0x1001,
-        live_id=501,
-    )
+    buffoon = _choice("BUFFOON_PACK", "Joker", "Golden Joker", address=0x1001, live_id=501)
 
     standard_state = _state("STANDARD_PACK")
     standard_state.deck = [BalatroCard("Q", "Hearts") for _ in range(8)]
     standard = _choice(
-        "STANDARD_PACK",
-        "PLAYING_CARD",
-        "Steel King",
-        address=0x1002,
-        live_id=502,
+        "STANDARD_PACK", "PLAYING_CARD", "Steel King",
+        address=0x1002, live_id=502,
         value={"rank": "K", "suit": "Hearts"},
         modifier={"enhancement": "m_steel"},
     )
 
     planet_state = _state("PLANET_PACK")
     planet_state.hand_levels["PAIR"] = 3
-    planet = _choice(
-        "PLANET_PACK",
-        "Planet",
-        "Mercury",
-        address=0x1003,
-        live_id=503,
-    )
+    planet = _choice("PLANET_PACK", "Planet", "Mercury", address=0x1003, live_id=503)
 
     tarot_state = _state("TAROT_PACK")
     tarot_state.money = 10
-    tarot = _choice(
-        "TAROT_PACK",
-        "Tarot",
-        "The Hermit",
-        address=0x1004,
-        live_id=504,
-    )
+    tarot = _choice("TAROT_PACK", "Tarot", "The Hermit", address=0x1004, live_id=504)
 
     spectral_state = _state("SPECTRAL_PACK")
-    spectral = _choice(
-        "SPECTRAL_PACK",
-        "Spectral",
-        "Black Hole",
-        address=0x1005,
-        live_id=505,
-    )
+    spectral = _choice("SPECTRAL_PACK", "Spectral", "Black Hole", address=0x1005, live_id=505)
 
     return (
         _FamilyCase("BUFFOON_PACK", buffoon, buffoon_state, {}),
@@ -236,13 +206,7 @@ def _family_cases() -> tuple[_FamilyCase, ...]:
             "STANDARD_PACK",
             standard,
             standard_state,
-            {
-                "owned_cards": {
-                    "cards": [
-                        _raw_card(9001, "K", "Hearts", enhancement="m_steel")
-                    ]
-                }
-            },
+            {"owned_cards": {"cards": [_raw_card(9001, "K", "Hearts", enhancement="m_steel")]}}
         ),
         _FamilyCase("PLANET_PACK", planet, planet_state, {}),
         _FamilyCase("TAROT_PACK", tarot, tarot_state, {}),
@@ -251,9 +215,7 @@ def _family_cases() -> tuple[_FamilyCase, ...]:
 
 
 @pytest.mark.parametrize("case", _family_cases(), ids=lambda case: case.phase)
-def test_d9_recommendation_reaches_injected_selection_and_authoritative_checkpoint(
-    case: _FamilyCase,
-):
+def test_d9_recommendation_reaches_injected_selection_and_authoritative_checkpoint(case: _FamilyCase):
     before_payload = {"owned_cards": {"cards": []}} if case.phase == "STANDARD_PACK" else {}
     before = _snapshot(10, case.phase, payload=before_payload)
     after = _snapshot(11, "SHOP", payload=case.after_payload)
@@ -282,13 +244,9 @@ def test_d9_recommendation_reaches_injected_selection_and_authoritative_checkpoi
 def test_d9_skip_recommendation_reaches_injected_skip_and_terminal_checkpoint():
     state = _state("STANDARD_PACK")
     choice = _choice(
-        "STANDARD_PACK",
-        "PLAYING_CARD",
-        "Vanilla Two",
-        address=0x2001,
-        live_id=601,
-        value={"rank": "2", "suit": "Hearts"},
-        modifier={},
+        "STANDARD_PACK", "PLAYING_CARD", "Vanilla Two",
+        address=0x2001, live_id=601,
+        value={"rank": "2", "suit": "Hearts"}, modifier={},
     )
     before = _snapshot(20, "STANDARD_PACK")
     after = _snapshot(21, "SHOP")
@@ -310,20 +268,8 @@ def test_d9_skip_recommendation_reaches_injected_skip_and_terminal_checkpoint():
 @pytest.mark.parametrize(
     ("phase", "kind", "label", "after_card", "expected_detail"),
     (
-        (
-            "TAROT_PACK",
-            "Tarot",
-            "The Chariot",
-            _raw_card(101, "4", "Clubs", enhancement="m_steel"),
-            (101,),
-        ),
-        (
-            "SPECTRAL_PACK",
-            "Spectral",
-            "Deja Vu",
-            _raw_card(101, "4", "Clubs", seal="RED"),
-            (101,),
-        ),
+        ("TAROT_PACK", "Tarot", "The Chariot", _raw_card(101, "4", "Clubs", enhancement="m_steel"), (101,)),
+        ("SPECTRAL_PACK", "Spectral", "Deja Vu", _raw_card(101, "4", "Clubs", seal="RED"), (101,)),
     ),
 )
 def test_d10_target_recommendation_is_verified_after_injected_pack_use(
@@ -337,13 +283,7 @@ def test_d10_target_recommendation_is_verified_after_injected_pack_use(
     state = _state(phase)
     state.hand = [card]
     state.deck = [BalatroCard("4", "Clubs")]
-    choice = _choice(
-        phase,
-        kind,
-        label,
-        address=0x3001,
-        live_id=701,
-    )
+    choice = _choice(phase, kind, label, address=0x3001, live_id=701)
     before = _snapshot(
         30,
         phase,
@@ -366,7 +306,9 @@ def test_d10_target_recommendation_is_verified_after_injected_pack_use(
         choice=choice,
         pack_policy=BalatroPackPolicy(
             item_estimator=_PositiveEstimator(),
-            skip_bias=0.35,
+            # Pack cost is already sunk. D9/D10 compare literal target value against
+            # the opened-pack Skip=0 baseline, not the historical 0.35 shop hold.
+            skip_bias=0.0,
         ),
     )
 
