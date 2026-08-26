@@ -1,9 +1,7 @@
 import copy
-from itertools import combinations
 
 from games.balatro.card import BalatroCard, ENHANCEMENTS
 from games.balatro.consumable import ConsumableContext, SpectralCard
-from games.balatro.planets import random_planet
 
 
 RANKS = [
@@ -12,12 +10,28 @@ RANKS = [
     "J", "Q", "K", "A"
 ]
 
+NUMBERED_RANKS = tuple(RANKS[:9])
+FACE_RANKS = ("J", "Q", "K")
+
 SUITS = [
     "Hearts",
     "Diamonds",
     "Clubs",
     "Spades"
 ]
+
+# Familiar/Grim/Incantation create Enhanced cards that retain a real rank. Stone
+# removes rank identity and is excluded by Balatro's generated Enhanced-card pool.
+# Keep this pool ordered so seeded/offline callers do not depend on Python set order.
+GENERATED_ENHANCEMENTS = tuple(sorted(ENHANCEMENTS - {"Stone"}))
+
+
+def _random_enhanced_card(rng, *, ranks) -> BalatroCard:
+    return BalatroCard(
+        rng.choice(ranks),
+        rng.choice(SUITS),
+        enhancement=rng.choice(GENERATED_ENHANCEMENTS),
+    )
 
 
 class Familiar(SpectralCard):
@@ -32,20 +46,19 @@ class Familiar(SpectralCard):
         self,
         context: ConsumableContext
     ) -> ConsumableContext:
+        rng = context.data["rng"]
+        destroyed = rng.choice(context.state.hand)
 
-        card = context.data["rng"].choice(
-            context.state.hand
-        )
+        context.state.hand.remove(destroyed)
+        context.state.discard_pile.append(destroyed)
 
-        context.state.hand.remove(card)
-        context.state.discard_pile.append(card)
-
-        context.data["destroyed"] = card
-        context.data["created"] = [
-            BalatroCard("J", "Hearts"),
-            BalatroCard("Q", "Hearts"),
-            BalatroCard("K", "Hearts"),
+        created = [
+            _random_enhanced_card(rng, ranks=FACE_RANKS)
+            for _ in range(3)
         ]
+        context.state.deck.extend(created)
+        context.data["destroyed"] = destroyed
+        context.data["created"] = created
 
         return context
 
@@ -66,13 +79,7 @@ class Grim(SpectralCard):
         context.state.discard_pile.append(destroyed)
 
         created = [
-            BalatroCard(
-                "A",
-                rng.choice(SUITS),
-                enhancement=rng.choice(
-                    list(ENHANCEMENTS)
-                )
-            )
+            _random_enhanced_card(rng, ranks=("A",))
             for _ in range(2)
         ]
 
@@ -99,13 +106,7 @@ class Incantation(SpectralCard):
         context.state.discard_pile.append(destroyed)
 
         created = [
-            BalatroCard(
-                rng.choice(RANKS[:9]),
-                rng.choice(SUITS),
-                enhancement=rng.choice(
-                    list(ENHANCEMENTS)
-                )
-            )
+            _random_enhanced_card(rng, ranks=NUMBERED_RANKS)
             for _ in range(4)
         ]
 
