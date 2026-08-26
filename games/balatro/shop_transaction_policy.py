@@ -29,6 +29,7 @@ from games.balatro.actions import (
 from games.balatro.discovery import is_undiscovered
 from games.balatro.planet_scaler_authority import has_planet_use_scaler
 from games.balatro.shop_arbiter import BuildAwareShopArbiter, ShopArbiterDecision
+from games.balatro.voucher_arbiter_authority import install_voucher_arbiter_authority
 
 
 def _normalize(value: object) -> str:
@@ -155,6 +156,7 @@ def _fuel_inventory_index(state, pending) -> int | None:
 
 
 def install_shop_transaction_policy() -> None:
+    install_voucher_arbiter_authority()
     if getattr(BuildAwareShopArbiter, "_shop_transaction_policy_installed", False):
         return
 
