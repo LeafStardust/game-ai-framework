@@ -4,6 +4,7 @@ from copy import deepcopy
 from dataclasses import replace
 
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner, _ActionEstimate
+from games.balatro.live.hand_action_planner_core import D1LiveBlindClearPlanner
 
 
 def _same_card(left, right) -> bool:
@@ -66,6 +67,18 @@ def _clears_after_outcome(
     return bool(planner._mr_bones_rescues(branch_state))
 
 
+def _gold_aware_priority(original_priority):
+    def play_priority(self, state, action):
+        base = original_priority(self, state, action)
+        selected_gold = sum(1 for card in action.cards if _active_gold(card))
+        # Existing mechanical score/clear ordering stays first. This final field
+        # only determines stable ordering when those values are identical; max()
+        # over equal expectimax values therefore keeps the Gold-preserving action.
+        return (*tuple(base), -selected_gold)
+
+    return play_priority
+
+
 def install_held_round_end_resource_policy() -> None:
     """Preserve literal held-card round-end rewards on survival-equivalent D1 lines.
 
@@ -88,7 +101,8 @@ def install_held_round_end_resource_policy() -> None:
         return
 
     original_estimate_play = LiveBlindClearPlanner._estimate_play
-    original_play_priority = LiveBlindClearPlanner._play_priority
+    original_live_priority = LiveBlindClearPlanner._play_priority
+    original_d1_priority = D1LiveBlindClearPlanner._play_priority
 
     def estimate_play(self, state, action, depth):
         estimate = original_estimate_play(self, state, action, depth)
@@ -133,14 +147,7 @@ def install_held_round_end_resource_policy() -> None:
         )
         return _ActionEstimate(estimate.action, value, estimate.exact)
 
-    def play_priority(self, state, action):
-        base = original_play_priority(self, state, action)
-        selected_gold = sum(1 for card in action.cards if _active_gold(card))
-        # Existing mechanical score/clear ordering stays first. This final field
-        # only determines stable ordering when those values are identical; max()
-        # over equal expectimax values therefore keeps the Gold-preserving action.
-        return (*tuple(base), -selected_gold)
-
     LiveBlindClearPlanner._estimate_play = estimate_play
-    LiveBlindClearPlanner._play_priority = play_priority
+    LiveBlindClearPlanner._play_priority = _gold_aware_priority(original_live_priority)
+    D1LiveBlindClearPlanner._play_priority = _gold_aware_priority(original_d1_priority)
     LiveBlindClearPlanner._held_round_end_resource_policy_installed = True
