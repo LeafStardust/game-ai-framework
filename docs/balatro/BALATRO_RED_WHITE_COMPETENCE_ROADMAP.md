@@ -198,11 +198,20 @@ Completed or validated in the current semantic/runtime pass:
 - held-resource D1 semantics are now validated: **Steel** remains inside literal hand scoring, **Blue Seal** round-end Planet generation is carried only when the card is actually held on a clearing branch with consumable capacity, and **Gold** preservation is used only as a final mechanical tie-break rather than converted into synthetic chips or Mult;
 - the full `tests/balatro` suite is green through the held-resource D1 checkpoint on 2026-08-26.
 
+Implemented in the current batched order-sensitive pass and awaiting the next deterministic suite validation:
+
+- **Ceremonial Dagger** now treats an Eternal Joker immediately to its right consistently across direct Joker semantics and pre-blind order projection: no destruction and no Mult gain are projected from an illegal Eternal sacrifice;
+- pre-blind Dagger ordering is regression-locked to preserve an Eternal target and move legal fodder to Dagger's right when that improves the literal projected build;
+- **Blueprint** and **Brainstorm** exact-play ordering is regression-locked through `JokerOrderPolicy.recommend_for_play`, requiring the copier to target the stronger literal scoring Joker for the actual D1-selected cards rather than a representative static probe;
+- first-scored-card execution is regression-locked through **Photograph** and `HandOrderPolicy`, requiring a selected Straight to reorder a face card first when that materially improves literal projected score;
+- dominated non-scoring overplay is regression-locked for **Gold**, **Blue Seal**, and **Steel** kickers: a clearing/scoring core must not throw away held value merely to select an extra non-scoring card;
+- intentional cycling remains available rather than globally banned: a low-value non-scoring kicker with no held payoff remains represented as a distinct D1 cycling variant when the blind is not yet cleared.
+
 Still open before a new live baseline:
 
 - complete the remaining pack/consumable opportunity-cost and target-selection audit beyond Wheel/Soul/Black Hole and the already modeled deterministic target paths;
 - complete the remaining boss-mechanics audit beyond Psychic, Serpent, Hook, Tooth, Ox, and Cerulean Bell;
-- finish the semantic D1 audit for discard-trigger engines, order-sensitive interactions, and dominated non-scoring overplay;
+- finish the semantic D1 audit for discard-trigger engines and any remaining hand-play contradictions after the order-sensitive batch validates;
 - diagnose/fix the post-`run_finished` three-attempt supervisor/shutdown crash;
 - rerun the full Balatro suite after the remaining changes, then perform a fresh production-default three-run Red/White batch.
 
@@ -220,7 +229,7 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Audit boss-specific execution against exact mechanics.
 - [ ] Diagnose and fix the three-attempt supervisor/shutdown crash observed after all three run logs had already emitted `run_finished`.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through held-resource D1 preservation semantics.
+- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through held-resource D1 preservation semantics; the order-sensitive batch above is pending the next suite run.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
