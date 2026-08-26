@@ -25,9 +25,7 @@ def test_preexisting_strong_engine_does_not_justify_destroying_another_engine():
     }
     projected = {
         "relevant_bonds": (
-            # This engine was already strong before the hypothetical replacement.
             _bond("held_cards", rank_value=2, realization="ACTIVE"),
-            # The replacement only creates a small unrelated Pair foothold.
             _bond("pair", rank_value=1, realization="PARTIAL"),
         )
     }
@@ -37,8 +35,6 @@ def test_preexisting_strong_engine_does_not_justify_destroying_another_engine():
     assert engine == "pair"
     assert strength == 1.5
     assert gain == 1.5
-    # held_cards must not be returned merely because it remains the strongest
-    # absolute engine after the sale. That was the Attempt-3 Bull failure mode.
 
 
 def test_material_projected_engine_requires_actual_replacement_created_gain():
@@ -61,14 +57,22 @@ def test_material_projected_engine_requires_actual_replacement_created_gain():
 
 
 def test_raw_replacement_delta_excludes_bond_transition_bonus():
-    option = SimpleNamespace(replace_index=1, build_delta=-1.22)
-    transition = SimpleNamespace(alternatives=(option,))
+    incumbent = object()
+    candidate = object()
+    state = SimpleNamespace(jokers=[object(), incumbent], money=20)
+
+    class _Evaluator:
+        def evaluate(self, baseline, joker):
+            del baseline
+            return SimpleNamespace(total_gain=2.00 if joker is incumbent else 0.78)
+
     policy = SimpleNamespace(
-        transition_planner=SimpleNamespace(plan=lambda state, candidate: transition)
+        transition_planner=SimpleNamespace(evaluator=_Evaluator()),
+        _economics=lambda _state, _candidate, **_kwargs: SimpleNamespace(money_after=17),
     )
 
-    delta = _raw_replacement_delta(policy, object(), object(), 1)
+    delta = _raw_replacement_delta(policy, state, candidate, 1)
 
     assert delta == -1.22
-    # A later Bond-transition bonus must not mutate this common-baseline result.
-    # This is the exact Cavendish -> Even Steven failure mechanism from Attempt 3.
+    # The helper recomputes the mechanical candidate/incumbent values on the same
+    # post-transaction baseline; a later Bond-transition bonus is not part of it.
