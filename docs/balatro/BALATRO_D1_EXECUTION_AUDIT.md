@@ -25,13 +25,31 @@ No execution guard below may turn a losing line into a preferred line merely to 
 
 This includes stateful mechanics such as Ride the Bus and Green Joker. A face-card Ride-the-Bus reset or a non-face stack increment therefore changes the child state used by the next hypothetical hand rather than only the current hand score.
 
+## Live hand-rule authority
+
+All late D1 semantic guards that classify a poker hand must use the same state-aware hand rules as canonical D1. Default poker-hand classification is not authoritative when owned mechanics modify hand construction.
+
+Current Red/White corrections apply this consistently to:
+
+- target-hand engines such as Runner and To Do List;
+- Card Sharp / hand-repetition execution;
+- The Eye and The Mouth Boss-Blind constraints;
+- bounded D1 cheap play prefiltering and compact-hand reserve selection.
+
+This prevents Four Fingers, Shortcut or other live rule modifiers from creating disagreements where a late guard calls a hand one type while the exact scorer calls it another, or where a valid modified hand is pruned before expectimax sees it.
+
 ## No-discard engines
 
-`strategy_execution_guard_policy.py` recognizes the canonical `no_discard` Bond when ACTIVE/MATURE and at least one defining discard-sensitive Joker is present, including Green Joker, Delayed Gratification or Banner.
+`strategy_execution_guard_policy.py` recognizes direct discard-sensitive mechanics such as Green Joker and Delayed Gratification immediately, while Banner becomes an execution constraint when the canonical `no_discard` Bond is realized.
 
-If baseline D1 chooses DISCARD but a currently visible PLAY already satisfies the D1 pace target, the safe play replaces the convenience discard. If no current play meets pace, survival recovery remains authoritative and the discard is allowed.
+If baseline D1 chooses DISCARD, a currently visible PLAY may replace it only when both conditions hold:
 
-The guard therefore prevents a recognized no-discard engine from being ignored without banning strategically necessary discards.
+- the play satisfies the current D1 pace target; and
+- its modeled full-blind clear probability remains within D1's configured safe-clear tolerance of the selected line.
+
+If no such play exists, survival recovery remains authoritative and the discard is allowed.
+
+The guard therefore prevents a recognized no-discard engine from being ignored without preserving Joker value at the cost of materially worse blind survival.
 
 ## Burnt Joker first-discard execution
 
@@ -54,9 +72,43 @@ A previously played hand may replace another play or an unnecessary discard only
 
 - its modeled clear probability remains within the D1 safe-clear tolerance;
 - it meets the current pace target;
-- it is already a hand type played this round.
+- it is already a hand type played this round under the current state-aware hand rules.
 
 This turns Card Sharp/repetition recognition into actual repeated-hand execution without sacrificing survival.
+
+## Target-hand engines
+
+`target_hand_engine_policy.py` makes mechanically explicit hand targets affect actual D1 execution. Runner and stateful To Do List targets can win survival-equivalent, pace-qualified tie-breaks rather than existing only in build diagnostics.
+
+Target-hand classification uses `hand_rules_for_state(state)`, so modified hand construction remains identical to canonical D1.
+
+## Sixth Sense
+
+`sixth_sense_policy.py` treats first-hand single-6 play as a setup/resource action, not an unconditional mechanic trigger.
+
+When a consumable slot is available, a Sixth Sense harvest may replace the baseline play only when the candidate:
+
+- satisfies the existing pace requirement; and
+- remains within D1's configured clear-probability tolerance of the selected line.
+
+When consumable slots are full, preserving the 6 by switching to another play is subject to the same survival-equivalence gate. A 6 is not preserved merely by choosing a weaker line that still meets immediate pace.
+
+## DNA
+
+`aces_dna_hand_policy.py` derives duplication targets from the strongest mechanically linked Bond/composition rather than a static combo table. The existing absolute DNA safety floor remains, but it is not sufficient on its own.
+
+A first-hand DNA setup may replace baseline D1 only when it also remains within D1's configured clear-probability tolerance of the selected line. This applies to both:
+
+- generic Bond-derived rank targets; and
+- the Scholar/Ace development path.
+
+Therefore a nominally "safe" 90% DNA setup cannot replace a materially safer baseline clear simply because it crossed the fixed setup floor.
+
+## Boss hand constraints
+
+`boss_hand_constraint_policy.py` keeps The Eye and The Mouth constraints aligned with live hand rules.
+
+For The Mouth, forced-hand redraw shaping may prefer a broader redraw only among candidates that preserve the selected D1 line's clear probability within the configured tolerance. Retained forced-hand structure and redraw width are tie/shape signals beneath survival, not independent authority to replace a safer discard.
 
 ## Ride the Bus
 
@@ -88,6 +140,19 @@ Final expectimax still decides whether that branch is worth taking. Survival, pr
 - **Gold** has no common dollar-to-score conversion inside D1, so Gold-card retention is only a final deterministic tie-break between otherwise equal play candidates.
 
 Pinned held-card strategy preservation remains a separate within-safe-choice signal for held-oriented engines.
+
+## Late hand-order authority
+
+`hand_order_policy.py` may reorder a selected play for first-card-sensitive mechanics such as Hanging Chad or Photograph, but the live/debuffed-first signal is subordinate to the exact D1 projection tuple. A reorder cannot prefer a lower-clear-probability line merely because the first selected card is non-debuffed.
+
+## Luchador and Verdant Leaf
+
+Boss-disable Joker sales are also subordinate to modeled survival:
+
+- proactive Luchador use against card-debuff bosses requires an observed debuff and a strict improvement in canonical D1 clear probability;
+- Verdant Leaf does not force a Joker sacrifice when the debuffed-card line already clears just as reliably; a sale is chosen only when disabling the blind strictly improves clear probability, with lower Joker loss used to choose among equal survival outcomes.
+
+This preserves one-use or permanent Joker value when the current blind can already be beaten through the active boss effect.
 
 ## Final installation order
 
