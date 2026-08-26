@@ -175,11 +175,8 @@ def _runner(state, *, reroll_cost: float):
     )
 
 
-def test_autonomous_shop_rerolls_over_single_hand_normal_celestial_pack():
+def test_autonomous_shop_fails_closed_without_public_pool_for_celestial_or_reroll():
     state = _state(money=20)
-    # Repeated Flush play creates Planet headroom, but a normal Celestial pack still
-    # has only a 3/12 chance to expose that one useful Planet.  D8 rejects the pack,
-    # leaving the admitted reroll to win whole-shop arbitration.
     state.hand_levels["FLUSH"] = 2
     state.hand_play_counts["FLUSH"] = 8
     state.shop_boosters = [
@@ -194,17 +191,13 @@ def test_autonomous_shop_rerolls_over_single_hand_normal_celestial_pack():
 
     decision = runner.decide()
 
-    assert decision.action.name == REFRESH_SHOP
-    assert "shop_decision=REROLL" in decision.notes
-    assert "arbiter_source=REROLL" in decision.notes
+    # Repaired D8/D11 require their public eligible generation catalogues. This
+    # synthetic state supplies neither, so both speculative actions fail closed.
+    assert decision.action.name == END_SHOP
     assert "admitted boosters=0/1" in decision.notes
-    assert any(
-        note == "future-shop expectation uses static public priors only; no RNG state or future ordering"
-        for note in decision.notes
-    )
 
 
-def test_autonomous_shop_can_open_supported_arcana_pack():
+def test_autonomous_shop_fails_closed_on_arcana_without_public_generation_pool():
     state = _state(money=20)
     state.shop_boosters = [
         LiveShopItem(
@@ -218,9 +211,10 @@ def test_autonomous_shop_can_open_supported_arcana_pack():
 
     decision = runner.decide()
 
-    assert decision.action.name == BUY_BOOSTER
-    assert "arbiter_source=BOOSTER" in decision.notes
-    assert "admitted boosters=1/1" in decision.notes
+    # Arcana D8 now integrates the observed public Tarot/Spectral pools instead of
+    # using a fixed family prior. Missing public catalogue evidence must fail closed.
+    assert decision.action.name == END_SHOP
+    assert "admitted boosters=0/1" in decision.notes
 
 
 def test_shop_arbiter_compares_child_gain_over_each_no_action_baseline():
