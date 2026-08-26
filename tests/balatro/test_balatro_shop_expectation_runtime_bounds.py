@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import games.balatro.reroll_joker_expectation_policy as reroll_joker_expectation_policy
 from games.balatro.arcana_booster_expectation_policy import ArcanaBoosterExpectationEvaluator
+from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.shop_expectation_runtime_bound_policy import (
     install_shop_expectation_runtime_bounds,
 )
@@ -46,13 +47,14 @@ def test_unopened_arcana_keeps_nested_generated_resource_probability_as_zero():
     assert policy.calls == 1
 
 
-def test_unopened_spectral_keeps_generated_resource_probability_as_zero():
+def test_unopened_spectral_omits_all_deferred_d9_outcomes():
     install_shop_expectation_runtime_bounds()
     policy = _CountingPackPolicy()
     evaluator = SpectralBoosterExpectationEvaluator(pack_policy=policy)
     state = _state()
 
-    for name in ("Familiar", "Grim", "Incantation", "Wraith", "The Soul"):
+    omitted = set(BalatroPackPolicy.DEFERRED_SPECTRALS) | {"The Soul"}
+    for name in sorted(omitted):
         assert evaluator._visible_value(
             state,
             {"label": name, "ability_name": name, "ability_set": "SPECTRAL"},
@@ -66,6 +68,35 @@ def test_unopened_spectral_keeps_generated_resource_probability_as_zero():
     )
     assert ordinary == 2.0
     assert policy.calls == 1
+
+
+def test_same_state_arcana_expectation_is_memoized_for_duplicate_shop_packs():
+    install_shop_expectation_runtime_bounds()
+    policy = _CountingPackPolicy()
+    evaluator = ArcanaBoosterExpectationEvaluator(pack_policy=policy)
+    state = SimpleNamespace(
+        phase="SHOP",
+        last_tarot_planet=None,
+        consumable_generation_pool_observed=True,
+        consumable_generation_pools={
+            "TAROT": (
+                {
+                    "label": "The Hermit",
+                    "ability_name": "The Hermit",
+                    "ability_set": "TAROT",
+                },
+            )
+        },
+        soul_generation_available=False,
+        omen_globe_active=False,
+    )
+
+    first = evaluator.evaluate(state)
+    calls_after_first = policy.calls
+    second = evaluator.evaluate(state)
+
+    assert second is first
+    assert policy.calls == calls_after_first
 
 
 def test_large_public_joker_expectation_runtime_budget_is_twelve_full_d2_calls():
