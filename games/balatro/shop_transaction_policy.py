@@ -26,6 +26,7 @@ from games.balatro.actions import (
     SELL_CONSUMABLE,
     BalatroAction,
 )
+from games.balatro.buffoon_booster_expectation_policy import install_buffoon_booster_expectation_policy
 from games.balatro.discovery import is_undiscovered
 from games.balatro.planet_scaler_authority import has_planet_use_scaler
 from games.balatro.reroll_joker_expectation_policy import install_reroll_joker_expectation_policy
@@ -163,6 +164,7 @@ def install_shop_transaction_policy() -> None:
     install_reroll_joker_expectation_policy()
     install_reroll_planet_expectation_policy()
     install_reroll_tarot_guard_policy()
+    install_buffoon_booster_expectation_policy()
     if getattr(BuildAwareShopArbiter, "_shop_transaction_policy_installed", False):
         return
 
