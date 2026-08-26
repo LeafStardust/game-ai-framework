@@ -189,8 +189,12 @@ Completed or implementation-audited in the current semantic/runtime pass:
 - D11 future-shop Planet value averages the currently eligible Planet pool through D4/D14; future Tarot value fails closed instead of using the old synthetic `3.2` gross-utility prior until a real held-Tarot option model exists;
 - D8 Buffoon value uses a conservative public eligible-Joker D2/D14 expectation instead of fixed hit/value priors, supports full-roster replacement, and scores prospective Joker outcomes at post-pack-spend cash;
 - D8 Celestial acquisition enumerates the current eligible Planet pool, respects held duplicates/Showman, computes best-visible one/two-selection expectation without reading hidden contents, values permanent Planet sequences through literal direct scoring, includes Constellation progression and secret hands, and retains Bull/Bootstraps cash-scaling spend cost;
-- D8 Standard acquisition now uses Balatro's exact public generator distribution: 60% Base / 40% Enhanced, uniform 52-card fronts, uniform eight-card Enhanced pool conditional on enhancement, 20% uniformly distributed Seals, and the exact public `edition_rate` Foil/Holographic/Polychrome distribution. The current build profile is cached once and the same D9 visible-card value formula is used for a conservative one-offer lower bound rather than fixed family priors;
-- Hanged Man is no longer hard-vetoed merely because Blue Joker is owned. B6 now subtracts Blue Joker's exact `2 Chips/card` deck-size coefficient on the existing chip-normalized intrinsic scale, so weak-card thinning may still be selected only when the net target remains positive;
+- D8 Standard acquisition uses Balatro's exact public generator distribution: 60% Base / 40% Enhanced, uniform 52-card fronts, uniform eight-card Enhanced pool conditional on enhancement, 20% uniformly distributed Seals, and the exact public `edition_rate` Foil/Holographic/Polychrome distribution. The current build profile is cached once and D9 visible-card mechanics provide a conservative one-offer lower bound rather than fixed family priors;
+- Standard selected-card deck growth no longer receives a fixed `+1.0` Blue Joker/Hologram bonus. Vanilla-card dilution remains a separate deck-quality cost, while Blue Joker's exact `+2 Chips/card` and Hologram's exact `+0.25 XMult/card` progression are valued by literal before/after build projection in both D8 and D9;
+- D8 Arcana acquisition uses the current public eligible Tarot/Spectral generation pools instead of fixed family priors. It mirrors `get_current_pool` culling, held-duplicate/Showman rules, challenge bans, pool flags, empty-pool fallbacks, the exact Omen Globe 80% Tarot / 20% Spectral branch, and the exact 0.3% soulable special override. Unresolved outcomes contribute the true opened-pack Skip=0 baseline and best-of-3/5/Mega upside is omitted conservatively;
+- D8 Spectral acquisition likewise uses the current public eligible Spectral pool plus the exact 0.3% soulable special override, with Black Hole final precedence when eligible and Soul otherwise. Unresolved outcomes contribute Skip=0 and best-of-2/4/Mega upside is omitted conservatively;
+- all five unopened booster families—**Buffoon, Celestial, Standard, Arcana, and Spectral**—therefore have public-mechanics D8 expectation authority rather than the original fixed family hit/value priors;
+- Hanged Man is no longer hard-vetoed merely because Blue Joker is owned. B6 subtracts Blue Joker's exact `2 Chips/card` deck-size coefficient on the existing chip-normalized intrinsic scale, so weak-card thinning may still be selected only when the net target remains positive;
 - D1 discard ranking is under the canonical D1 evaluator/planner path instead of a competing mini-heuristic;
 - opened-pack Skip uses the true sunk-cost baseline in the Red/White production cartridge;
 - **The High Priestess** uses a public-state eligible-Planet expectation with duplicate/Showman rules;
@@ -213,12 +217,12 @@ Implemented after the latest validated deterministic checkpoint and awaiting the
 - Verdant Leaf and Crimson Heart newest regression cases;
 - literal consumable-target value corrections;
 - Wraith/Judgement and generated-Spectral expectation/execution work;
-- post-transaction Joker valuation, Banner reset-resource valuation, R0/FORMING transition influence, D11 public-pool reroll EV, Buffoon/Celestial/Standard D8 expectation, secret-hand shop scoring, D2 played-card-chip/stochastic expectation, Hanged Man/Blue Joker opportunity cost, and subsequent pack corrections.
+- post-transaction Joker valuation, Banner reset-resource valuation, R0/FORMING transition influence, D11 public-pool reroll EV, all five D8 public-mechanics booster expectations, secret-hand shop scoring, D2 played-card-chip/stochastic expectation, Hanged Man/Blue Joker opportunity cost, literal Standard deck-growth value, consumable-generation public-pool observation, and subsequent pack corrections.
 
 Still open before a new live baseline:
 
 - finish the remaining pack/consumable opportunity-cost audit; current explicit blockers are **The Emperor**, **Ouija**, and **Ectoplasm** rather than synthetic valuation being invented for incomplete held-Tarot or hand-size models;
-- finish D14 cross-family arbitration; replacement, vouchers, D11 Joker/Planet, and D8 Buffoon/Celestial/Standard are repaired, while D8 **Arcana/Spectral** and held-Tarot units remain unresolved;
+- finish D14 cross-family arbitration; replacement, vouchers, D11 Joker/Planet, and all five D8 booster families are implementation-repaired, while held-Tarot/future-consumable units remain unresolved;
 - verify the installed early FORMING/R0 authority under the user's local regression/live validation rather than claiming verification from static inspection;
 - finish any remaining D1 discard-trigger/hand-play contradiction audit after the current batch validates;
 - rerun the full Balatro suite after the remaining changes, then perform a fresh production-default three-run Red/White batch.
@@ -233,7 +237,7 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Repair shop cross-family arbitration so visible Joker strength, vouchers, packs, consumables, rerolls, and economy compare on a run-winning basis rather than incompatible local units.
 - [x] Repair Joker replacement using actual incumbent/candidate score, scaling, economy, realization, and strategy disruption. Implementation audit complete; local regression validation remains part of the suite gate below.
 - [x] Repair D1 discard selection at the authoritative planner/controller layer so multi-card redraws are considered correctly and strategy-specific discard mechanics execute.
-- [ ] Audit pack/consumable skipping for positive-EV opportunities and harmful opportunity-cost mistakes.
+- [ ] Audit pack/consumable skipping for positive-EV opportunities and harmful opportunity-cost mistakes. All five unopened D8 booster families are implementation-audited; Emperor/Ouija/Ectoplasm and shared future-option/hand-size costs remain open.
 - [x] Audit boss-specific execution against exact mechanics. Static production authority inventory is complete; newest regressions remain pending the next local suite run.
 - [x] Bound the three-attempt supervisor so final attempt completion cannot issue a fourth restart; retire the historical post-`run_finished` crash unless reproduced on current unchanged HEAD.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
