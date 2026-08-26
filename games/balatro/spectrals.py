@@ -270,13 +270,15 @@ class Ectoplasm(SpectralCard):
         )
 
         joker.edition = "Negative"
-        # The live game increases this penalty for repeated Ectoplasm uses. The
-        # framework currently lacks authoritative run-level Ectoplasm-use history,
-        # so the first-use mechanical transition remains modeled while policy stays
-        # deferred until that public history is observed.
-        context.state.hand_size -= 1
+        penalty = max(
+            1,
+            int(getattr(context.state, "ectoplasm_hand_size_penalty", 1) or 1),
+        )
+        context.state.hand_size -= penalty
+        context.state.ectoplasm_hand_size_penalty = penalty + 1
 
         context.data["joker"] = joker
+        context.data["hand_size_penalty"] = penalty
 
         return context
 
