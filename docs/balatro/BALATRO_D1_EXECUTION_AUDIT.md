@@ -19,6 +19,19 @@ D1 remains survival-first:
 
 No execution guard below may turn a losing line into a preferred line merely to preserve a strategy mechanic.
 
+## Safe-pace wrapper authority
+
+`safe_pace_optimization_policy.py` still owns the Red/White action-class doctrine: a current hand that meets required pace is preferred over speculative multi-step engineering, and when no play reaches pace while a discard remains the agent recovers by discarding instead of burning an under-pace hand.
+
+That wrapper may choose the action class, but it may not replace D1's survival ordering *inside* the class. Current behavior is therefore:
+
+- deterministic current-hand clears use canonical D1 safe-clear/resource ordering rather than highest overkill score;
+- pace-qualified plays are ranked with D1 `_pace_play_key`, whose first authority is full-blind clear probability;
+- recovery discards are ranked by the full D1 plan tuple before the local discard heuristic;
+- when no discard remains, the forced under-pace play is chosen by full D1 plan quality rather than immediate score alone.
+
+This prevents the safety wrapper from undoing the full-blind survival estimates already computed by D1 merely because another candidate has a larger current-hand number.
+
 ## Stateful Joker transitions propagate through expectimax
 
 `LiveHandDecisionEvaluator.project_play()` returns the scorer's `state_after_scoring`. `LiveBlindClearPlanner` uses that projected state for child search, so persistent Joker mutations are not discarded between hypothetical hands.
