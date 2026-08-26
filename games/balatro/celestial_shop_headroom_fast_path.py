@@ -21,9 +21,6 @@ from games.balatro.shop_booster_policy import (
     BuildAwareShopBoosterPolicy,
     ShopBoosterRecommendation,
 )
-from games.balatro.shop_expectation_runtime_bound_policy import (
-    install_shop_expectation_runtime_bounds,
-)
 
 
 def _forced_celestial_hold(self, state, action, *, headroom_notes, hold_reason):
@@ -102,8 +99,14 @@ def _forced_celestial_hold(self, state, action, *, headroom_notes, hold_reason):
 
 
 def install_celestial_shop_headroom_fast_path() -> None:
-    # The final Red/White correction layer always calls this installer, making it a
-    # stable late boundary for all SHOP expectation runtime guards as well.
+    # Import the broader runtime contract only when the final Red/White installer
+    # executes.  Keeping it out of this module's import surface avoids recursively
+    # importing the package-wide SHOP graph while games.balatro.__init__ is still
+    # collecting its policy installers.
+    from games.balatro.shop_expectation_runtime_bound_policy import (
+        install_shop_expectation_runtime_bounds,
+    )
+
     install_shop_expectation_runtime_bounds()
     if getattr(
         BuildAwareShopBoosterPolicy,
