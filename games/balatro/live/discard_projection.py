@@ -22,8 +22,11 @@ class LiveDiscardJokerProjector:
     """Project exact deterministic effects caused by one visible discard event.
 
     ``consume_discard_use`` distinguishes a player-requested discard from forced
-    game mechanics such as The Hook. Both paths trigger normal discard effects,
-    while only the player's discard advances ``current_round.discards_used``.
+    game mechanics such as The Hook. Forced Hook discards trigger ordinary discard
+    effects such as Green Joker, Ramen, Purple Seal, Castle, and Yorick without
+    consuming one of the player's discard uses. Burnt Joker is a documented
+    exception: The Hook's forced discard does not activate its first-discard hand
+    level-up effect.
     """
 
     ACTIVE_CLASS_NAMES = frozenset(
@@ -63,7 +66,10 @@ class LiveDiscardJokerProjector:
         branch_state = state.copy()
         branch_state.jokers = deepcopy(list(getattr(state, "jokers", [])))
         discarded = list(cards or [])
-        active = self._active_jokers(branch_state)
+        active = self._active_jokers(
+            branch_state,
+            consume_discard_use=consume_discard_use,
+        )
         discards_used = getattr(branch_state, "discards_used", None)
         if discards_used is None and any(
             type(joker).__name__ in self.FIRST_DISCARD_CLASS_NAMES
@@ -107,11 +113,13 @@ class LiveDiscardJokerProjector:
             branch_state.discards_used = max(0, int(discards_used)) + 1
         return branch_state
 
-    def _active_jokers(self, state) -> list:
+    def _active_jokers(self, state, *, consume_discard_use: bool = True) -> list:
         active = []
         for joker in getattr(state, "jokers", []) or []:
             class_name = type(joker).__name__
             if class_name in self.ACTIVE_CLASS_NAMES:
+                if class_name == "BurntJoker" and not consume_discard_use:
+                    continue
                 active.append(joker)
                 continue
             if class_name not in COPY_JOKER_CLASS_NAMES:
@@ -122,6 +130,11 @@ class LiveDiscardJokerProjector:
                 and target is not None
                 and type(target).__name__ in self.COPYABLE_DISCARD_CLASS_NAMES
             ):
+                if (
+                    type(target).__name__ == "BurntJoker"
+                    and not consume_discard_use
+                ):
+                    continue
                 active.append(target)
         return active
 
