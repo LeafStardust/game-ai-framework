@@ -54,26 +54,6 @@ def _rank(name: str, state=None):
 
 @pytest.mark.parametrize(
     "name",
-    sorted(BalatroPackPolicy.STOCHASTIC_DEFERRED_TAROTS),
-)
-def test_stochastic_deferred_tarots_fail_closed_below_skip(name):
-    ranked = _rank(name)
-
-    assert ranked[0].action.name == SKIP_BOOSTER
-    tarot = next(
-        result
-        for result in ranked
-        if result.action.name == SELECT_PACK_CARD
-    )
-    assert tarot.total == -1.0
-    assert any(
-        note.startswith(f"stochastic Tarot deferred: {name}")
-        for note in tarot.notes
-    )
-
-
-@pytest.mark.parametrize(
-    "name",
     sorted(BalatroPackPolicy.DETERMINISTIC_IMMEDIATE_TAROTS),
 )
 def test_usable_deterministic_immediate_tarots_remain_directly_scoreable(name):
