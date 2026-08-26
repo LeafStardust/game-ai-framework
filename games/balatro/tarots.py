@@ -1,6 +1,7 @@
 from itertools import combinations
 
 from games.balatro.card import BalatroCard
+from games.balatro.card_destruction import project_destroyed_playing_cards
 from games.balatro.consumable import ConsumableContext, TarotCard
 from games.balatro.planets import create_planet, random_planet
 
@@ -305,12 +306,14 @@ class HangedMan(TarotCard):
         )
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
+        destroyed = []
         for card in context.cards:
             if card in context.state.hand:
                 context.state.hand.remove(card)
-                context.state.discard_pile.append(card)
+                destroyed.append(card)
 
-        context.data["destroyed"] = list(context.cards)
+        project_destroyed_playing_cards(context.state, destroyed)
+        context.data["destroyed"] = destroyed
 
         return context
 
