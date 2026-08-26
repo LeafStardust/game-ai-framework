@@ -72,7 +72,39 @@ def _card_future_key(card) -> tuple[float, ...]:
     )
 
 
-def _safe_ace_plan(plans, *, dna_single: bool):
+def _selected_clear_probability(decision) -> float:
+    selected = getattr(decision, "selected_plan", None)
+    try:
+        return float(getattr(selected.value, "clear_probability", 0.0) or 0.0)
+    except (AttributeError, TypeError, ValueError):
+        return 0.0
+
+
+def _clear_probability_tolerance(decision) -> float:
+    try:
+        return float(
+            getattr(
+                getattr(decision, "thresholds", None),
+                "safe_clear_probability_tolerance",
+                0.0,
+            )
+            or 0.0
+        )
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _dna_survival_safe(plan, decision) -> bool:
+    probability = float(getattr(plan.value, "clear_probability", 0.0) or 0.0)
+    if probability < DNA_SAFE_CLEAR_PROBABILITY:
+        return False
+    return (
+        probability + _clear_probability_tolerance(decision)
+        >= _selected_clear_probability(decision)
+    )
+
+
+def _safe_ace_plan(plans, *, dna_single: bool, decision=None):
     candidates = []
     for plan in plans:
         if plan.action.name != PLAY_CARDS:
@@ -82,18 +114,17 @@ def _safe_ace_plan(plans, *, dna_single: bool):
             continue
         if dna_single and (len(plan.action.cards) != 1 or len(aces) != 1):
             continue
+        if dna_single and decision is not None and not _dna_survival_safe(plan, decision):
+            continue
         candidates.append(plan)
     if not candidates:
         return None
     if dna_single:
-        safe = [plan for plan in candidates if float(plan.value.clear_probability) >= DNA_SAFE_CLEAR_PROBABILITY]
-        if not safe:
-            return None
         return max(
-            safe,
+            candidates,
             key=lambda plan: (
-                _card_future_key(_ace_cards(plan)[0]),
                 float(plan.value.clear_probability),
+                _card_future_key(_ace_cards(plan)[0]),
                 float(plan.value.expected_score),
                 float(plan.value.expected_hands_remaining),
             ),
@@ -162,7 +193,7 @@ def _strategy_dna_rank_targets(state) -> tuple[str, ...]:
     return tuple(dict.fromkeys(ranks))
 
 
-def _safe_dna_rank_plan(plans, ranks: tuple[str, ...]):
+def _safe_dna_rank_plan(plans, ranks: tuple[str, ...], decision):
     targets = {str(rank).upper() for rank in ranks}
     if not targets:
         return None
@@ -174,10 +205,7 @@ def _safe_dna_rank_plan(plans, ranks: tuple[str, ...]):
         rank = str(getattr(card, "rank", "")).upper()
         if rank == "ACE":
             rank = "A"
-        if rank not in targets:
-            continue
-        probability = float(plan.value.clear_probability)
-        if probability < DNA_SAFE_CLEAR_PROBABILITY:
+        if rank not in targets or not _dna_survival_safe(plan, decision):
             continue
         candidates.append(plan)
     if not candidates:
@@ -185,8 +213,8 @@ def _safe_dna_rank_plan(plans, ranks: tuple[str, ...]):
     return max(
         candidates,
         key=lambda plan: (
-            _card_future_key(plan.action.cards[0]),
             float(plan.value.clear_probability),
+            _card_future_key(plan.action.cards[0]),
             float(plan.value.expected_score),
             float(plan.value.expected_hands_remaining),
         ),
@@ -221,18 +249,19 @@ def install_aces_dna_hand_policy() -> None:
 
         if _owns(state, "dnajoker") and _first_hand(state):
             rank_targets = _strategy_dna_rank_targets(state)
-            plan = _safe_dna_rank_plan(plans, rank_targets)
+            plan = _safe_dna_rank_plan(plans, rank_targets, decision)
             if plan is not None and plan.action.cards != decision.action.cards:
+                probability = float(plan.value.clear_probability)
                 return _replace_with_plan(
                     self,
                     state,
                     decision,
                     plan,
                     (
-                        "DNA semantic strategy contract: duplicate a rank required by the strongest mechanically linked strategy when the blind remains safe",
+                        "DNA semantic strategy contract: duplicate a rank required by the strongest mechanically linked strategy only on a D1 survival-equivalent line",
                         f"required ranks={rank_targets}; selected rank={getattr(plan.action.cards[0], 'rank', None)}",
-                        f"DNA line projected clear probability={float(plan.value.clear_probability):.3f} >= {DNA_SAFE_CLEAR_PROBABILITY:.2f}",
-                        "long-term duplication remains subordinate to blind survival",
+                        f"DNA clear probability={probability:.3f}; baseline={_selected_clear_probability(decision):.3f}; tolerance={_clear_probability_tolerance(decision):.3f}",
+                        f"absolute DNA safety floor={DNA_SAFE_CLEAR_PROBABILITY:.2f}",
                     ),
                 )
 
@@ -241,17 +270,18 @@ def install_aces_dna_hand_policy() -> None:
 
         dna_setup = _owns(state, "dnajoker") and _owns(state, "scholarjoker") and _first_hand(state)
         if dna_setup:
-            plan = _safe_ace_plan(plans, dna_single=True)
+            plan = _safe_ace_plan(plans, dna_single=True, decision=decision)
             if plan is not None and plan.action.cards != decision.action.cards:
+                probability = float(plan.value.clear_probability)
                 return _replace_with_plan(
                     self,
                     state,
                     decision,
                     plan,
                     (
-                        "Aces Bond + Scholar + DNA first-hand contract: duplicate a strategically valuable Ace when the full blind remains safe",
-                        f"DNA Ace line projected clear probability={float(plan.value.clear_probability):.3f} >= {DNA_SAFE_CLEAR_PROBABILITY:.2f}",
-                        "long-term duplication is subordinate to blind survival",
+                        "Aces Bond + Scholar + DNA first-hand contract: duplicate a strategically valuable Ace only on a D1 survival-equivalent line",
+                        f"DNA Ace clear probability={probability:.3f}; baseline={_selected_clear_probability(decision):.3f}; tolerance={_clear_probability_tolerance(decision):.3f}",
+                        f"absolute DNA safety floor={DNA_SAFE_CLEAR_PROBABILITY:.2f}",
                     ),
                 )
             if plan is None:
@@ -259,7 +289,7 @@ def install_aces_dna_hand_policy() -> None:
                     decision,
                     rationale=(
                         *decision.rationale,
-                        f"Aces Bond + DNA setup was not forced because no single-Ace line retained {DNA_SAFE_CLEAR_PROBABILITY:.0%} projected clear probability",
+                        "Aces Bond + DNA setup was not forced because no single-Ace line satisfied both the absolute DNA safety floor and D1 survival equivalence",
                     ),
                 )
 
