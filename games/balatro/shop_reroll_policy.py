@@ -24,7 +24,9 @@ class FutureShopOfferPrior:
     ``weight`` is a relative public pool weight, not an RNG observation.
     ``gross_utility`` and ``expected_price`` are deterministic model priors for the
     archetype. They deliberately avoid pretending that the exact unseen card,
-    rarity, edition, or price is known.
+    rarity, edition, or price is known. Production policy may replace an archetype's
+    fixed gross utility with a stronger public-state expectation when an exact
+    eligible outcome catalogue is available.
     """
 
     family: str
@@ -59,10 +61,10 @@ class ShopRerollPoolPrior:
 
 
 # Public vanilla baseline: two random shop-card slots, with relative family
-# weights Joker 20 / Tarot 4 / Planet 4. The utility/price values are explicit
-# policy priors on the same scale already used by BalatroShopPolicy; they are not
-# claims about the exact unseen card or its rarity. Deck/voucher-specific rate
-# modifiers must replace this prior once those public modifiers are represented.
+# weights Joker 20 / Tarot 4 / Planet 4. The price values remain explicit priors;
+# production replaces the Joker gross-utility prior with the current public eligible
+# Joker-pool expectation when available. Tarot/Planet gross utilities remain the
+# documented fallback until those families receive equivalent public-pool models.
 VANILLA_SHOP_REROLL_PRIOR = ShopRerollPoolPrior(
     card_slots=2,
     offers=(
@@ -136,15 +138,12 @@ class ShopRerollRecommendation:
 class BuildAwareShopRerollPolicy:
     """Compare visible shop value with public-information future-shop EV.
 
-    A reroll creates a choice among future card slots. This policy computes the
-    exact expectation of the best immediately actionable offer under an explicit
-    static pool prior, then subtracts reroll money/interest/reserve opportunity
-    cost using the same :class:`RunResourceValuator` configuration as
-    :class:`BalatroShopPolicy`.
-
-    The model never reads RNG state, seed data, future pool ordering, or hidden
-    card identities. If an applicable public prior is unavailable, rerolling fails
-    closed instead of falling back to a free-form exploration bonus.
+    A reroll creates a choice among future card slots. Family frequencies and unseen
+    prices use explicit public/static priors. Production may replace a family's gross
+    value with an analytic expectation over a public eligible catalogue; currently
+    the Joker family does so. The model never reads RNG state, seed data, future pool
+    ordering, or hidden card identities. If a required public model is unavailable,
+    that branch fails closed instead of falling back to free-form exploration value.
     """
 
     def __init__(
@@ -275,7 +274,7 @@ class BuildAwareShopRerollPolicy:
         rationale = (
             f"visible-shop best score={current_best:.3f}",
             f"future shop EV={future_ev:.3f} across {prior.card_slots} card slots",
-            "public pool weights="
+            "public family-frequency weights="
             + ", ".join(
                 f"{offer.family}:{offer.weight:g}"
                 for offer in prior.offers
@@ -293,8 +292,9 @@ class BuildAwareShopRerollPolicy:
             f"reroll score={reroll_score:.3f}; required={required:.3f}",
             f"required reroll margin={required_margin:.3f}",
             "full Joker roster replacement-option penalty="
-            f"{thresholds.full_joker_replacement_penalty:.3f}",
-            "future-shop expectation uses static public priors only; no RNG state or future ordering",
+            f"{thresholds.full_joker_replacement_penalty:.3f} (legacy fallback; public-pool Joker EV uses D2 replacement where installed)",
+            "future-shop family frequencies/unseen prices use public priors; modeled Joker value uses the live eligible public pool",
+            "no RNG state, pseudoseed, future pool order, or hidden identity is read",
         )
 
         hold = (
@@ -412,11 +412,9 @@ class BuildAwareShopRerollPolicy:
 
         if offer.resource == "JOKER":
             if len(state.jokers) >= state.joker_slots:
-                # A full roster does not make future Jokers worthless: rerolling
-                # creates a real option to replace a weak, off-path or obsolete
-                # incumbent. Keep that option conservative with an explicit
-                # family-level penalty; the concrete D2 comparison remains
-                # authoritative after the candidate is actually observed.
+                # Legacy fallback for environments without the production public-pool
+                # Joker expectation. Production D11 replaces this branch with exact
+                # D2 replacement evaluation over the eligible current pool.
                 slot_cost = max(
                     0.0,
                     float(thresholds.full_joker_replacement_penalty),
