@@ -83,4 +83,13 @@ def install_generated_enhanced_spectral_pack_policy() -> None:
 
     BalatroPackPolicy.__init__ = init
     BalatroPackPolicy._score_consumable = score_consumable
+    # Keep classification/introspection aligned with the installed production
+    # authority. These cards were historically left in DEFERRED_SPECTRALS even
+    # after their complete analytic expectation path became authoritative.
+    BalatroPackPolicy.STOCHASTIC_MODELED_SPECTRALS = frozenset(
+        set(BalatroPackPolicy.STOCHASTIC_MODELED_SPECTRALS) | set(_MODELED)
+    )
+    BalatroPackPolicy.DEFERRED_SPECTRALS = frozenset(
+        set(BalatroPackPolicy.DEFERRED_SPECTRALS) - set(_MODELED)
+    )
     BalatroPackPolicy._generated_enhanced_spectral_pack_policy_installed = True
