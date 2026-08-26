@@ -42,17 +42,21 @@ This includes stateful mechanics such as Ride the Bus and Green Joker. A face-ca
 
 ## Live hand-rule authority
 
-All late D1 semantic guards that classify a poker hand must use the same state-aware hand rules as canonical D1. Default poker-hand classification is not authoritative when owned mechanics modify hand construction.
+All D1 semantic layers that classify or preserve a poker-hand structure must use the same state-aware hand rules as canonical D1. Default poker-hand classification is not authoritative when owned mechanics modify hand construction.
 
 Current Red/White corrections apply this consistently to:
 
+- the core `StrategyAwareLiveHandActionPolicy` Bond/composition fit for played hands;
+- Bond-aware discard structure shaping, including live straight/flush size, Shortcut gaps, Smeared suits and Stone exclusion;
 - target-hand engines such as Runner and To Do List;
 - Card Sharp / hand-repetition execution;
 - Burnt Joker discard-hand targeting;
 - The Eye and The Mouth Boss-Blind constraints;
 - bounded D1 cheap play prefiltering and compact-hand reserve selection.
 
-This prevents Four Fingers, Shortcut or other live rule modifiers from creating disagreements where a late guard calls a hand one type while the exact scorer calls it another, or where a valid modified hand is pruned before expectimax sees it.
+This prevents Four Fingers, Shortcut, Smeared Joker or other live rule modifiers from creating disagreements where the Currency-Wars/Bond execution layer calls a hand or retained structure something different from the exact scorer, or where a valid modified hand is pruned before expectimax sees it.
+
+The strategy-aware final-hand emergency path also ranks available discards by full D1 plan quality before the local discard evaluator. The emergency rule may force DISCARD instead of an immediately losing under-pace final play, but it may not choose a weaker full-blind discard merely because its local recovery heuristic is larger.
 
 ## No-discard engines
 
