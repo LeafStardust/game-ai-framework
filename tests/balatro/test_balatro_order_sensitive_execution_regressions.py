@@ -11,6 +11,7 @@ from games.balatro.jokers.blueprint import BlueprintJoker
 from games.balatro.jokers.brainstorm import BrainstormJoker
 from games.balatro.jokers.dagger import DaggerJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
+from games.balatro.jokers.hanging_chad import HangingChadJoker
 from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.state import BalatroState
 
@@ -65,7 +66,7 @@ def test_brainstorm_order_uses_exact_selected_play_to_copy_stronger_leftmost_jok
     assert decision.ordered_score > decision.current_score
 
 
-def test_photograph_reorders_selected_straight_to_put_face_card_first() -> None:
+def test_photograph_chad_reorders_straight_to_put_face_card_first() -> None:
     state = _state()
     cards = [
         BalatroCard("9", "Clubs", live_id="9"),
@@ -75,7 +76,7 @@ def test_photograph_reorders_selected_straight_to_put_face_card_first() -> None:
         BalatroCard("K", "Clubs", live_id="K"),
     ]
     state.hand = list(cards)
-    state.jokers = [PhotographJoker()]
+    state.jokers = [PhotographJoker(), HangingChadJoker()]
     action = BalatroAction(PLAY_CARDS, cards=list(cards))
 
     decision = HandOrderPolicy().recommend(state, action)
