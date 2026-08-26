@@ -9,8 +9,10 @@ bans, pool flags, and enhancement gates). Reading those eligible center records 
 not a prediction: no pseudoseed, pool order, or selected outcome is exposed.
 
 The ordinary ``G.GAME.edition_rate`` multiplier is exposed alongside the catalogue
-because generated Jokers pass through Balatro's normal edition roll. It is a public
-run modifier changed by Hone/Glow Up, not RNG state.
+because generated Jokers pass through Balatro's normal edition roll. The set of
+currently visible poker hands is also exposed because a newly created To Do List
+chooses its target uniformly from exactly that public set. Neither field contains a
+selected future outcome.
 
 This module mirrors the narrow live-state adapter pattern used by Ectoplasm. The
 snapshot carries canonical records grouped by rarity, the translator hydrates them
@@ -23,11 +25,7 @@ from games.balatro.live.translator import DefaultBalatroStateTranslator
 from games.balatro.state import BalatroState
 
 
-_RARITY_NAMES = {
-    1: "COMMON",
-    2: "UNCOMMON",
-    3: "RARE",
-}
+_RARITY_NAMES = {1: "COMMON", 2: "UNCOMMON", 3: "RARE"}
 
 
 def _table_items(decoder, table_value):
@@ -54,8 +52,7 @@ def _showman_owned(payload: dict) -> bool:
     if not isinstance(cards, list):
         return False
     return any(
-        isinstance(card, dict)
-        and str(card.get("center") or "") == "j_showman"
+        isinstance(card, dict) and str(card.get("center") or "") == "j_showman"
         for card in cards
     )
 
@@ -74,6 +71,16 @@ def _owned_enhancement_centers(payload: dict) -> set[str] | None:
     }
 
 
+def _visible_poker_hands(decoder, game: dict) -> tuple[str, ...]:
+    hands = live_memory_observer._table_fields(decoder, game.get("hands"))
+    visible: list[str] = []
+    for name, value in hands.items():
+        hand = live_memory_observer._table_fields(decoder, value)
+        if _bool_field(hand, "visible", False):
+            visible.append(str(name))
+    return tuple(sorted(visible))
+
+
 def _normalize_joker_generation_pools(decoder, root, payload):
     pools_value = root.get("P_JOKER_RARITY_POOLS")
     outer = [
@@ -89,10 +96,7 @@ def _normalize_joker_generation_pools(decoder, root, payload):
     banned = live_memory_observer._table_fields(decoder, game.get("banned_keys"))
     pool_flags = live_memory_observer._table_fields(decoder, game.get("pool_flags"))
     current_round = live_memory_observer._table_fields(decoder, game.get("current_round"))
-    round_state = live_memory_observer._normalize_round_joker_public_state(
-        decoder,
-        current_round,
-    )
+    round_state = live_memory_observer._normalize_round_joker_public_state(decoder, current_round)
     showman = _showman_owned(payload)
     enhancement_centers = _owned_enhancement_centers(payload)
     complete = True
@@ -175,6 +179,7 @@ def install_joker_generation_pool_live_state_policy() -> None:
         self.joker_generation_pool_observed = False
         self.joker_generation_pools = {}
         self.joker_generation_edition_rate = 1.0
+        self.visible_poker_hands = ()
 
     def state_copy(self):
         copied = original_state_copy(self)
@@ -183,14 +188,13 @@ def install_joker_generation_pool_live_state_policy() -> None:
         )
         copied.joker_generation_pools = {
             str(rarity): [dict(record) for record in records]
-            for rarity, records in dict(
-                getattr(self, "joker_generation_pools", {}) or {}
-            ).items()
+            for rarity, records in dict(getattr(self, "joker_generation_pools", {}) or {}).items()
             if isinstance(records, (list, tuple))
         }
         copied.joker_generation_edition_rate = float(
             getattr(self, "joker_generation_edition_rate", 1.0) or 1.0
         )
+        copied.visible_poker_hands = tuple(getattr(self, "visible_poker_hands", ()) or ())
         return copied
 
     def snapshot_payload_from_live_memory(decoder, root):
@@ -204,22 +208,17 @@ def install_joker_generation_pool_live_state_policy() -> None:
             0.0,
             float(edition_rate if edition_rate is not None else 1.0),
         )
+        payload["visible_poker_hands"] = list(_visible_poker_hands(decoder, game))
         return payload, phase, state_complete
 
     def translate(self, snapshot):
         state = original_translate(self, snapshot)
         payload = snapshot.payload
         pools = payload.get("joker_generation_pools")
-        state.joker_generation_pool_observed = bool(
-            payload.get("joker_generation_pool_observed", False)
-        )
+        state.joker_generation_pool_observed = bool(payload.get("joker_generation_pool_observed", False))
         if isinstance(pools, dict):
             state.joker_generation_pools = {
-                str(rarity).upper(): [
-                    dict(record)
-                    for record in records
-                    if isinstance(record, dict)
-                ]
+                str(rarity).upper(): [dict(record) for record in records if isinstance(record, dict)]
                 for rarity, records in pools.items()
                 if isinstance(records, list)
             }
@@ -230,6 +229,8 @@ def install_joker_generation_pool_live_state_policy() -> None:
         except (TypeError, ValueError):
             edition_rate = 1.0
         state.joker_generation_edition_rate = max(0.0, edition_rate)
+        hands = payload.get("visible_poker_hands")
+        state.visible_poker_hands = tuple(str(name) for name in hands) if isinstance(hands, list) else ()
         return state
 
     BalatroState.__init__ = state_init
