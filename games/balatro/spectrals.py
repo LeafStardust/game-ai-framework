@@ -42,6 +42,15 @@ def _editionless_jokers(state) -> list:
     ]
 
 
+def _roll_vanilla_edition(rng) -> str:
+    roll = rng.random()
+    if roll < 0.50:
+        return "Foil"
+    if roll < 0.85:
+        return "Holographic"
+    return "Polychrome"
+
+
 class Familiar(SpectralCard):
 
     def __init__(self):
@@ -153,20 +162,21 @@ class Aura(SpectralCard):
         return (
             len(context.cards) == 1
             and context.has_valid_cards()
+            and getattr(context.cards[0], "edition", None) in (None, "")
         )
 
     def use(self, context: ConsumableContext) -> ConsumableContext:
-        edition = context.data["rng"].choice(
-            ["Foil", "Holographic", "Polychrome"]
-        )
-
+        edition = _roll_vanilla_edition(context.data["rng"])
         context.cards[0].edition = edition
         context.data["edition"] = edition
-
         return context
 
     def get_target_cards(self, state) -> list[list[BalatroCard]]:
-        return [[card] for card in state.hand]
+        return [
+            [card]
+            for card in state.hand
+            if getattr(card, "edition", None) in (None, "")
+        ]
 
 
 class Wraith(SpectralCard):
