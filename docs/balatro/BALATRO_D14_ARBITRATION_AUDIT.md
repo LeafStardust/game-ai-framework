@@ -88,6 +88,10 @@ All five D8 families now use public-mechanics option expectations rather than th
 
 D14 subtracts shared pack purchase resource cost once.
 
+A full Joker roster does not itself invalidate Buffoon. The opened-pack D9 transaction may sell the selected incumbent, re-observe the settled state, and only then select the replacement Joker. The unopened D8 lower bound therefore uses the same public eligible-Joker D2/D14 expectation instead of the retired free-slot-only veto.
+
+Celestial is likewise a modeled D8 family, not an unsupported placeholder. Its current option value comes from the finite public eligible Planet pool and literal before/after scoring transitions; tests that require a truly unsupported booster use an unrecognized family instead of suppressing the Celestial model.
+
 ## Reroll authority — implementation repaired for all three vanilla shop-card families
 
 D11 no longer relies on fixed gross value for future Joker, Planet or Tarot identity:
@@ -97,6 +101,8 @@ D11 no longer relies on fixed gross value for future Joker, Planet or Tarot iden
 - Tarot — current public eligible Tarot pool, each outcome valued as a future held-use option on public fresh-hand draws, including High Priestess, Emperor and Judgement generation semantics.
 
 Future exact item identity is never observed. Unseen future sticker price remains the explicit D11 price prior. Reroll purchase cost is charged separately after future-shop option EV.
+
+The Joker branch requires `joker_generation_pool_observed=True` and the corresponding public eligible rarity catalogue. When that public catalogue is unavailable the branch fails closed; tests must not resurrect the historical fixed Joker gross-utility prior as a hidden-future substitute. `joker_generation_pool_live_state_policy.py` preserves the observed catalogue, edition rate and visible-hand metadata across bounded `BalatroState.copy()` projections.
 
 ## Voucher authority — implementation repaired with grounded/fail-closed horizons
 
@@ -125,6 +131,27 @@ The remaining persistent voucher families require a future *choice*, not an unav
 - **Hieroglyph / Petroglyph** — require a common-unit treatment of the immediate Ante decrease versus their permanent hand/discard resource loss.
 
 This is deliberate fail-closed arbitration, not missing Balatro mechanics. D3 may still admit these vouchers strategically. D14 simply refuses to compare an invented future-policy payoff against literal Joker/consumable/booster utility until a grounded planning horizon/common unit exists.
+
+## Local regression handoff — 2026-08-27
+
+The first uncapped local `tests/balatro` run after this semantic pass exposed a broad set of failures. Static triage separated actual contracts from tests that still encoded retired behavior. The follow-up changes preserve production mechanics rather than weakening the new authorities to satisfy stale fixtures.
+
+Key fixture/contract corrections now on current HEAD include:
+
+- D2 replacement-planner test doubles expose the canonical whole-build evaluator required by the installed raw-replacement-delta authority;
+- Arcana/Spectral positive D8 fixtures provide the public consumable-generation pools required by their current public expectation models;
+- D11 reroll fixtures provide the observed public eligible Joker catalogue rather than expecting production to guess unseen future Jokers;
+- Buffoon full-roster coverage follows the D2 replacement transaction instead of the retired free-slot-only veto;
+- Celestial coverage treats finite public Planet expectation as supported production behavior rather than labeling the family unsupported;
+- truly unsupported booster/arbiter fixtures use an unrecognized booster family and verify fail-closed behavior there;
+- opened-pack Skip remains the sunk-cost zero baseline, so obsolete `+0.35` D9 Skip assumptions are not restored;
+- Strength regression coverage uses the literal Balatro rank cycle `K -> A -> 2`;
+- Hanged Man, Familiar and Immolate permanent destruction does not send destroyed cards to the discard pile;
+- Wheel of Fortune and Aura fixtures follow their actual RNG/target contracts rather than returning an edition string where a Joker/card target is required;
+- Wraith fixtures provide the Rare-Joker generator required by its literal creation mechanic;
+- strategy-execution and target-hand fixtures use the current state-aware D1 helper signatures rather than forcing production compatibility shims for retired call shapes.
+
+No assistant-side test execution was used to obtain or validate these changes. The next authoritative evidence is the user's full uncapped local Balatro suite on unchanged HEAD.
 
 ## Tuning boundary
 
