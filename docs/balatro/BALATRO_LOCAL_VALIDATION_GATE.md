@@ -96,6 +96,36 @@ Repair:
 - the default future-Joker evaluator is now constructed lazily only when Ectoplasm is actually evaluated, after the outer policy graph has completed wiring;
 - no gameplay utility, thresholds, or Ectoplasm semantics were changed.
 
+Validation status: **resolved enough for the next run to execute tests; later failures are behavioral rather than constructor recursion**.
+
+## Runtime blocker 2 — Hanged Man simulated permanent destruction applied twice
+
+Observed failures included:
+
+```text
+test_held_hanged_man_uses_two_independently_positive_thinning_targets
+test_held_hanged_man_preserves_single_good_thinning_target_with_free_slot
+test_full_slots_can_use_single_positive_hanged_man_target
+test_hanged_man_timing_fails_closed_on_ambiguous_owned_live_id
+test_hanged_man_simulation_removes_exact_owned_ids_without_mutating_live_state
+```
+
+Root cause:
+
+- permanent playing-card destruction was centralized in `project_destroyed_playing_cards`;
+- `HangedMan.use()` now already removes destroyed cards from the authoritative copied `owned_deck` and applies destruction-triggered Joker state;
+- `LiveConsumableTimingPolicy._simulate_use()` still contained its older second `_remove_from_owned_deck()` pass;
+- valid Hanged Man simulations therefore destroyed the owned cards once, failed to find them during the second removal, and returned `None`;
+- the same ordering meant duplicate/ambiguous live IDs were not validated before the shared destruction transition selected one match.
+
+Repair:
+
+- commit `38411ed` validates each selected Hanged Man live ID against `owned_deck` before applying the copied use;
+- missing or non-unique authoritative identities fail closed before mutation;
+- `HangedMan.use()` remains the sole permanent-destruction transition during simulation;
+- the simulator no longer attempts a second owned-deck removal;
+- live state remains untouched because all work occurs on the deep copied state.
+
 Validation status: **pending user rerun**.
 
 ## Rules for this gate
