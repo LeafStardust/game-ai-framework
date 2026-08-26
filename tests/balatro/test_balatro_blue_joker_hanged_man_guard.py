@@ -8,7 +8,7 @@ class BlueJoker:
     pass
 
 
-def test_arcana_pack_does_not_offer_hanged_man_while_blue_joker_is_owned() -> None:
+def test_arcana_pack_keeps_hanged_man_candidate_with_blue_joker_owned() -> None:
     state = SimpleNamespace(
         phase="TAROT_PACK",
         joker_slots=5,
@@ -26,5 +26,6 @@ def test_arcana_pack_does_not_offer_hanged_man_while_blue_joker_is_owned() -> No
 
     actions = LivePackActionGenerator().generate_actions(state, [choice])
 
-    assert [action.name for action in actions] == [SKIP_BOOSTER]
-    assert all(action.name != SELECT_PACK_CARD for action in actions)
+    # Blue Joker no longer hard-vetoes Hanged Man. D6 evaluates the exact
+    # +2-Chips-per-remaining-card opportunity cost against the thinning target.
+    assert [action.name for action in actions] == [SELECT_PACK_CARD, SKIP_BOOSTER]
