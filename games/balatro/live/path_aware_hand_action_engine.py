@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from games.balatro.actions import DISCARD_CARDS
-from games.balatro.live.adaptive_search import AdaptiveRecommendationSummary
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
+from games.balatro.live.adaptive_search import (
+    AdaptiveRecommendationSummary,
+    stable_discard_consensus,
+)
 from games.balatro.live.blind_clear_planner import LiveBlindPlan
 from games.balatro.live.hand_action_policy import (
     CLEAR_PATH,
@@ -28,6 +31,12 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
     switching to a different one-step recovery action. ``CLEAR_PATH`` and
     ``PACE_PLAY`` behavior is unchanged.
 
+    Completed root plan sets are also retained until the decision returns. If the
+    wall-clock budget expires after at least one canonical root search completed,
+    timeout returns the best already-computed D1 plan instead of switching to the
+    base structural poker-hand/rank heuristic. The structural fallback remains only
+    as the emergency legal-action path when no canonical root evidence completed.
+
     After the final D1 action is fixed, the engine evaluates the frozen 46-Bond
     composition and Build Health from that selected plan. The result is exposed as
     ``last_strategy_health`` for strategy/shop/telemetry consumers. It is deliberately
@@ -40,6 +49,7 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         self._adaptive_root_history: list[
             tuple[AdaptiveRecommendationSummary, LiveBlindPlan]
         ] = []
+        self._adaptive_plan_history: list[tuple[LiveBlindPlan, ...]] = []
         self.last_strategy_health: LiveStrategyHealth | None = None
 
     def rank_plans(self, state, *, planner=None):
@@ -51,6 +61,7 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
             and plans
         ):
             best = plans[0]
+            self._adaptive_plan_history.append(tuple(plans))
             self._adaptive_root_history.append(
                 (
                     AdaptiveRecommendationSummary(
@@ -70,6 +81,7 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
 
     def decide(self, state) -> HandActionDecision:
         self._adaptive_root_history = []
+        self._adaptive_plan_history = []
         self._record_adaptive_roots = True
         self.last_strategy_health = None
         try:
@@ -83,6 +95,96 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
             selected_plan=decision.selected_plan,
         )
         return decision
+
+    def _structural_timeout_fallback(
+        self,
+        state,
+        *,
+        search_attempts,
+    ) -> HandActionDecision:
+        """Reuse completed canonical D1 evidence before any structural emergency.
+
+        A wall-clock deadline bounds how much more evidence D1 may compute; it does
+        not authorize a different strategy. Normal adaptive root searches are already
+        ranked by the canonical full-blind planner objective, so the latest completed
+        root remains the best available evidence when a later pass times out.
+        """
+        if not self._adaptive_plan_history:
+            return super()._structural_timeout_fallback(
+                state,
+                search_attempts=search_attempts,
+            )
+
+        plans = self._adaptive_plan_history[-1]
+        selected = plans[0]
+        plays = tuple(plan for plan in plans if plan.action.name == PLAY_CARDS)
+        discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
+        if not plays:
+            # Canonical D1 normally always has a Play root. If that invariant is
+            # ever broken, the base emergency path is safer than fabricating fields.
+            return super()._structural_timeout_fallback(
+                state,
+                search_attempts=search_attempts,
+            )
+
+        best_play = plays[0]
+        best_discard = discards[0] if discards else None
+        probability = float(selected.value.clear_probability)
+        exact_clear = bool(selected.exact) and self.policy._meets_clear_floor(selected)
+        mode = CLEAR_PATH if exact_clear else PACE_RECOVERY
+
+        confidence = probability
+        if not bool(selected.exact):
+            confidence = min(confidence, self.policy.SAMPLED_CONFIDENCE_CAP)
+        if not exact_clear and confidence <= 0.0:
+            confidence = 0.25
+
+        summaries = tuple(summary for summary, _ in self._adaptive_root_history)
+        consensus = stable_discard_consensus(
+            summaries,
+            minimum_agreement=self.policy.thresholds.setup_discard_consensus_agreement,
+        )
+        setup_consensus = bool(consensus and selected.action.name == DISCARD_CARDS)
+
+        rationale = [
+            "D1 wall-clock budget exhausted after a canonical adaptive root completed",
+            "reuse the latest completed full-blind D1 ranking; timeout cannot invent a second strategy",
+        ]
+        if exact_clear:
+            rationale.append(
+                "the retained root is an exact credible clear and remains authoritative"
+            )
+        elif probability >= self.policy.thresholds.clear_path_probability_floor:
+            rationale.append(
+                "the retained sampled clear evidence was not fully confirmed before timeout, so it is kept as best available evidence without being promoted to a confirmed clear"
+            )
+        else:
+            rationale.append(
+                "the retained root is the strongest completed recovery/progress line under the canonical planner objective"
+            )
+        if setup_consensus:
+            rationale.append("completed adaptive roots also agree on the selected setup discard")
+        rationale.append("take only this action, then re-observe and replan")
+
+        return self.policy._decision(
+            mode=mode,
+            selected=selected,
+            best_play=best_play,
+            best_discard=best_discard,
+            pace_target=self.policy._pace_target(state),
+            best_play_immediate_score=0.0,
+            best_play_pace_ratio=0.0,
+            selected_immediate_score=None,
+            selected_pace_ratio=None,
+            selected_fallback_value=None,
+            clear_path_candidates=1 if exact_clear else 0,
+            sampled_clear_path_confirmed=False,
+            setup_discard_consensus=setup_consensus,
+            confidence=confidence,
+            rationale=tuple(rationale),
+            plans=plans,
+            search_attempts=tuple(search_attempts),
+        )
 
     def _apply_adaptive_authority(
         self,
