@@ -26,6 +26,7 @@ from games.balatro.d1_outer_evaluation_cache_policy import install_d1_outer_eval
 from games.balatro.deck_growth_pack_policy import install_deck_growth_pack_policy
 from games.balatro.early_capacity_policy import install_early_capacity_policy
 from games.balatro.early_spend_sanity_policy import install_early_spend_sanity_policy
+from games.balatro.ectoplasm_live_state_policy import install_ectoplasm_live_state_policy
 from games.balatro.face_card_enabler_bond_policy import install_face_card_enabler_bond_policy
 from games.balatro.forming_strategy_retention_policy import install_forming_strategy_retention_policy
 from games.balatro.full_roster_pack_guard import install_full_roster_pack_guard
@@ -78,6 +79,7 @@ install_serpent_draw_policy()
 install_hook_planner_integration_policy()
 install_cerulean_bell_d1_legality_policy()
 install_cerulean_live_state_policy()
+install_ectoplasm_live_state_policy()
 install_consumable_target_literal_value_policy()
 install_d1_log_resilience_policy()
 install_d1_candidate_deadline_policy()
