@@ -25,7 +25,6 @@ _TARGETED_SPECTRALS = ContextualConsumableTargetEvaluator.SUPPORTED_SPECTRALS
 def install_targeted_pack_literal_value_policy() -> None:
     if getattr(BalatroPackPolicy, "_targeted_pack_literal_value_installed", False):
         return
-
     original_score_consumable = BalatroPackPolicy._score_consumable
 
     def score_consumable(self, state, action, choice):
@@ -48,6 +47,7 @@ def install_targeted_pack_literal_value_policy() -> None:
                 -1.0,
                 (
                     f"{choice.kind.title()} has no positive admitted D10/B6 target",
+                    f"{choice.kind.title()} requires unsupported follow-up selection or has no positive B6 target",
                     "opened-pack choice receives no generic shop/category utility",
                 ),
             )
@@ -64,6 +64,7 @@ def install_targeted_pack_literal_value_policy() -> None:
                 "opened-pack deterministic target uses literal D10/B6 value only",
                 "booster purchase cost is already sunk; no generic shop/category value is added",
                 f"D10/B6 target gain={target_evaluation.total_gain:.3f}",
+                f"B6 pack target gain={target_evaluation.total_gain:.3f}",
                 f"target_indices={target_evaluation.target_indices}",
                 *target_evaluation.rationale,
             ),
