@@ -10,13 +10,15 @@ and is uniform over the four seal types; and edition odds come from
 ``poll_edition(..., mod=2, no_negative=true)`` using the public run ``edition_rate``.
 
 This policy integrates the exact *one-offer* distribution through the same D9
-playing-card value formula used after a Standard pack is opened. The current build
-profile is computed once and reused for all finite generator branches. Blue Joker /
-Hologram growth is valued separately through their literal before/after score effect;
-vanilla dilution remains an independent deck-quality cost. The one-offer expectation
-is intentionally a conservative lower bound for the best of 3/5 visible offers; no
-independence/best-of-N multiplier or hidden pack content is used. Pack purchase
-resource cost remains owned by D8/D14.
+playing-card value formula used after a Standard pack is opened. The B6 contextual
+formula is factorized exactly across rank, suit, enhancement, edition, and seal, with
+an explicit enhancement/seal overlap correction for shared derived features. The
+full finite generator and per-branch positive-value clipping remain unchanged. Blue
+Joker / Hologram growth is valued separately through their literal before/after score
+effect; vanilla dilution remains an independent deck-quality cost. The one-offer
+expectation is intentionally a conservative lower bound for the best of 3/5 visible
+offers; no independence/best-of-N multiplier or hidden pack content is used. Pack
+purchase resource cost remains owned by D8/D14.
 """
 
 from games.balatro.build.deck_growth_value import DeckGrowthScoreValueEvaluator
@@ -70,16 +72,66 @@ class StandardBoosterExpectationEvaluator:
         self.pack_policy = pack_policy or BalatroPackPolicy(skip_bias=0.0)
         self.deck_growth = DeckGrowthScoreValueEvaluator()
 
+    def _contextual_gain_tables(self, state, *, profile, editions):
+        evaluator = self.pack_policy.playing_card_build
+
+        def gain(**kwargs) -> float:
+            return float(
+                evaluator.evaluate(
+                    state,
+                    profile=profile,
+                    **kwargs,
+                ).total_gain
+            )
+
+        rank_gain = {rank: gain(rank=rank) for rank in _RANKS}
+        suit_gain = {suit: gain(suit=suit) for suit in _SUITS}
+        enhancement_gain = {None: 0.0}
+        enhancement_gain.update(
+            {enhancement: gain(enhancement=enhancement) for enhancement in _ENHANCEMENTS}
+        )
+        edition_gain = {None: 0.0}
+        edition_gain.update(
+            {
+                edition: gain(edition=edition)
+                for edition in editions
+                if edition is not None
+            }
+        )
+        seal_gain = {None: 0.0}
+        seal_gain.update({seal: gain(seal=seal) for seal in _SEALS})
+
+        # BuildFeatureClosure has one current cross-axis overlap here: Steel/Gold
+        # enhancements and Blue Seal can both derive the same generic held:effect
+        # feature. Compute the exact enhancement+seal pair once and retain only the
+        # non-additive correction so the branch loop preserves B6 dedup semantics.
+        enhancement_seal_correction: dict[tuple[str, str], float] = {}
+        for enhancement in _ENHANCEMENTS:
+            for seal in _SEALS:
+                combined = gain(enhancement=enhancement, seal=seal)
+                enhancement_seal_correction[(enhancement, seal)] = (
+                    combined
+                    - enhancement_gain[enhancement]
+                    - seal_gain[seal]
+                )
+
+        return (
+            rank_gain,
+            suit_gain,
+            enhancement_gain,
+            edition_gain,
+            seal_gain,
+            enhancement_seal_correction,
+        )
+
     def _d9_visible_card_value(
         self,
-        state,
         *,
         rank: str,
-        suit: str,
         enhancement: str | None,
         edition: str | None,
         seal: str | None,
-        profile,
+        contextual_gain: float,
         deck_growth_value: float,
     ) -> float:
         score = float(self.pack_policy.RANK_VALUE.get(str(rank), 0.0))
@@ -92,16 +144,7 @@ class StandardBoosterExpectationEvaluator:
         if seal_text:
             score += float(self.pack_policy.PLAYING_SEAL_VALUE.get(seal_text, 0.0))
 
-        contextual = self.pack_policy.playing_card_build.evaluate(
-            state,
-            rank=rank,
-            suit=suit,
-            enhancement=enhancement,
-            seal=seal,
-            edition=edition,
-            profile=profile,
-        )
-        score += float(contextual.total_gain)
+        score += float(contextual_gain)
 
         if not enhancement and not edition_text and not seal_text:
             score -= float(self.pack_policy.VANILLA_CARD_DILUTION_PENALTY)
@@ -115,7 +158,20 @@ class StandardBoosterExpectationEvaluator:
             0.0,
             float(getattr(state, "joker_generation_edition_rate", 1.0) or 1.0),
         )
+        edition_distribution = _edition_distribution(edition_rate)
         profile = self.pack_policy.playing_card_build.profiler.profile(state)
+        (
+            rank_gain,
+            suit_gain,
+            enhancement_gain,
+            edition_gain,
+            seal_gain,
+            enhancement_seal_correction,
+        ) = self._contextual_gain_tables(
+            state,
+            profile=profile,
+            editions=tuple(edition for edition, _ in edition_distribution),
+        )
         deck_growth_value, deck_growth_notes = self.deck_growth.evaluate(state, added_count=1)
         total_probability = 0.0
         expected_option_value = 0.0
@@ -125,7 +181,7 @@ class StandardBoosterExpectationEvaluator:
         for rank in _RANKS:
             for suit in _SUITS:
                 for enhancement, enhancement_probability in _enhancement_distribution():
-                    for edition, edition_probability in _edition_distribution(edition_rate):
+                    for edition, edition_probability in edition_distribution:
                         for seal, seal_probability in _seal_distribution():
                             probability = (
                                 front_probability
@@ -135,14 +191,23 @@ class StandardBoosterExpectationEvaluator:
                             )
                             if probability <= 0.0:
                                 continue
+                            contextual_gain = (
+                                rank_gain[rank]
+                                + suit_gain[suit]
+                                + enhancement_gain[enhancement]
+                                + edition_gain[edition]
+                                + seal_gain[seal]
+                                + enhancement_seal_correction.get(
+                                    (enhancement, seal),
+                                    0.0,
+                                )
+                            )
                             score = self._d9_visible_card_value(
-                                state,
                                 rank=rank,
-                                suit=suit,
                                 enhancement=enhancement,
                                 edition=edition,
                                 seal=seal,
-                                profile=profile,
+                                contextual_gain=contextual_gain,
                                 deck_growth_value=deck_growth_value,
                             )
                             option_value = max(0.0, float(score))
@@ -157,7 +222,7 @@ class StandardBoosterExpectationEvaluator:
             )
         return expected_option_value, positive_probability, (
             "Standard one-offer EV uses exact base-game rank/suit/enhancement/seal/edition distribution",
-            "D9 visible-card formula is reused with one cached B6 build profile",
+            "D9 B6 contextual graph is factorized exactly across generator axes with enhancement/seal overlap correction",
             *deck_growth_notes,
             f"public edition_rate={edition_rate:.6f}",
             f"one-offer positive-choice probability={positive_probability:.6f}",
