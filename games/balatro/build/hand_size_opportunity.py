@@ -14,6 +14,12 @@ draw order is observed.  Each draw is valued by the best legal one-hand play thr
 the final live literal/stochastic score projector, including the correctly remaining
 deck after the draw (important for Blue Joker).
 
+The projection deliberately clears transient current-blind/current-round state.  A
+permanent hand-size change persists into later blinds; pricing it under The Mouth,
+The Eye, a stale shop-phase Blind object, current-round Card Sharp history, or other
+one-round constraints would turn an ordinary future opportunity cost into a function
+of state that disappears before the next blind.
+
 The relative expected-score loss is converted with the existing D2 direct-scoring
 weight/cap so callers can compare hand-size cost against whole-build Joker gains
 without introducing a new utility unit.
@@ -125,8 +131,9 @@ class HandSizeOpportunityEvaluator:
             )
 
         composition = PublicDeckComposition.from_cards(owned)
-        before = self._expected_best_score(state, composition, before_size)
-        after = self._expected_best_score(state, composition, after_size)
+        future_state = self._future_blind_state(state)
+        before = self._expected_best_score(future_state, composition, before_size)
+        after = self._expected_best_score(future_state, composition, after_size)
         if before is None or after is None:
             return HandSizeOpportunity(
                 available=True,
@@ -173,10 +180,38 @@ class HandSizeOpportunityEvaluator:
                 f"relative scoring-capacity loss={relative_loss:.6f}",
                 f"D2-scale hand-size opportunity cost={value_loss:.3f}",
                 "future draws use unordered public permanent-deck composition only",
+                "transient current-blind and current-round constraints are excluded",
                 f"before distribution={'exact' if before_exact else 'deterministic sampled'}",
                 f"after distribution={'exact' if after_exact else 'deterministic sampled'}",
             ),
         )
+
+    @staticmethod
+    def _future_blind_state(state):
+        projected = deepcopy(state)
+        projected.phase = "PLAYING"
+        projected.score = 0
+        projected.blind_score = 0
+        projected.blind = None
+        projected.boss_name = None
+        projected.boss_blind_state_observed = False
+        projected.boss_blind_hands = set()
+        projected.boss_blind_only_hand = None
+        projected.round_most_played_hand = None
+        projected.round_hand_play_counts = {
+            hand: 0
+            for hand in dict(getattr(projected, "hand_levels", {}) or {})
+        }
+        projected.last_played_hand = None
+        projected.hands_remaining = max(1, int(getattr(projected, "hands_remaining", 1) or 1))
+        projected.discards_used = 0
+        projected.discard_pile = []
+        projected.shop_active = False
+        projected.shop_jokers = []
+        projected.shop_consumables = []
+        projected.shop_boosters = []
+        projected.shop_vouchers = []
+        return projected
 
     def _expected_best_score(
         self,
