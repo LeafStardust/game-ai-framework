@@ -47,13 +47,15 @@ class SigilExpectationEvaluator:
 
     def evaluate(self, state) -> SigilExpectation:
         hand = list(getattr(state, "hand", ()))
-        if not hand:
+        if len(hand) <= 1:
             return SigilExpectation(
                 available=False,
                 complete=True,
                 expected_contextual_gain=0.0,
                 expected_total_gain=0.0,
-                rationale=("Sigil has no public hand cards to rewrite",),
+                rationale=(
+                    "Sigil requires more than one public hand card",
+                ),
             )
 
         profile = self.profiler.profile(state)
