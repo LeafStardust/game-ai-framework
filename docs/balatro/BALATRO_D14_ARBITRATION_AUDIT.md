@@ -1,6 +1,6 @@
 # Balatro D14 Cross-Family Arbitration Audit
 
-Status: **Active implementation audit — narrowed to non-capacity persistent vouchers**
+Status: **Active implementation audit — narrowed to horizon-dependent persistent vouchers**
 
 Date: 2026-08-26
 
@@ -78,10 +78,11 @@ Future exact item identity is never observed. Unseen future sticker price remain
 
 D3 is authoritative for voucher BUY/HOLD admission. D14 recomputes voucher purchase resource cost on the shared parent scale.
 
-The following capacity vouchers now also have mechanically grounded parent value instead of their legacy fixed D3 number:
+The following vouchers now have mechanically grounded parent value instead of their legacy fixed D3 number:
 
 - **Antimatter** — marginal public future-Joker option from `joker_slots -> joker_slots + 1`, evaluated at post-purchase cash through the same D11/D2/D14 Joker expectation used by Ectoplasm;
-- **Paint Brush / Palette** — literal expected best-play improvement from `hand_size -> hand_size + 1` using the same public draw and D2 direct-score scale used by Ouija/Ectoplasm hand-size opportunity cost.
+- **Paint Brush / Palette** — literal expected best-play improvement from `hand_size -> hand_size + 1` using the same public draw and D2 direct-score scale used by Ouija/Ectoplasm hand-size opportunity cost;
+- **Observatory** — literal current-build score change from adding the voucher to the current state, using the installed exact `1.5 ** matching_held_planets` scoring effect. Future Planet acquisition and Perkeo infrastructure are deliberately omitted instead of receiving a synthetic premium.
 
 ### Remaining D14 implementation blocker
 
@@ -89,7 +90,7 @@ Other persistent vouchers still use D3 strategic persistent values because their
 
 - Grabber / Nacho Tong — +1 hand per round;
 - Wasteful / Recyclomancy — +1 discard per round;
-- Telescope / Observatory — future Planet/held-Planet infrastructure;
+- Telescope — future Celestial-pack guarantee;
 - Seed Money / Money Tree — future interest ceiling;
 - Clearance Sale / Liquidation — future shop-price reduction;
 - Reroll Surplus / Reroll Glut — future reroll-price reduction;
