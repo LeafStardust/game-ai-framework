@@ -10,6 +10,7 @@ from games.balatro.joker_edition import joker_has_negative_edition
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 
+from .literal_score_expectation import literal_expected_score
 from .semantic_synergy import SemanticContextualJokerSynergyEvaluator
 from .synergy import ContextualBuildEvaluation, ContextualJokerSynergyEvaluator
 
@@ -68,12 +69,12 @@ class JokerBuildTransition:
 class JokerBuildValueEvaluator:
     """Measure one Joker against the current complete build.
 
-    The deterministic score probe measures the whole scoring stack before and after
-    adding the candidate. When public hand-play history exists, probes are weighted
-    toward the hands the run actually plays instead of pretending every poker hand
-    is equally likely. B3 contributes structural/long-horizon interactions.
-    Canonical Bond-transition, pivot, conflict and StrategyPlan layers apply
-    strategic direction after this mechanically grounded base value.
+    Representative probes compare the whole literal scoring stack before and after
+    adding the candidate. Played-card chips are included, and public stochastic
+    scoring mechanics use analytic outcome expectation rather than sampled RNG or
+    deterministic failure. When public hand-play history exists, probes are weighted
+    toward the hands the run actually plays. B3 remains a separate structural/long-
+    horizon contribution and never becomes chips/Mult/XMult.
     """
 
     PROBES = (
@@ -143,20 +144,18 @@ class JokerBuildValueEvaluator:
             after_state.jokers.append(copy.deepcopy(joker))
 
             try:
-                before = self.scorer.score(
+                before = literal_expected_score(
+                    before_state,
                     hand,
-                    state=before_state,
-                    cards=copy.deepcopy(cards),
-                    include_card_chips=True,
-                    resolve_random_effects=False,
-                ).total
-                after = self.scorer.score(
+                    cards,
+                    scorer=self.scorer,
+                )
+                after = literal_expected_score(
+                    after_state,
                     hand,
-                    state=after_state,
-                    cards=copy.deepcopy(cards),
-                    include_card_chips=True,
-                    resolve_random_effects=False,
-                ).total
+                    cards,
+                    scorer=self.scorer,
+                )
             except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
                 continue
 
