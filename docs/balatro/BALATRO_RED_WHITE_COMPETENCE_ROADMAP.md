@@ -200,8 +200,11 @@ Completed or implementation-audited in the current semantic/runtime pass:
 - **The High Priestess** uses a public-state eligible-Planet expectation with duplicate/Showman rules;
 - **Wraith** uses the current public eligible Rare-Joker pool, public edition odds, whole-build Joker valuation, and the full cash-to-zero resource cost; injected completion requires one new Rare Joker and `$0` money;
 - **Judgement** uses current public Common/Uncommon/Rare Joker pools with the real 70/25/5 rarity mixture and public edition odds; newly generated To Do List branches are averaged over visible poker-hand targets and injected completion requires one new Joker;
+- **The Emperor** uses the current public eligible Tarot pool, exact free-slot generation count and without-replacement generation unless Showman; generated outcomes are valued through the ordinary D9 Tarot authority with a conservative better-generated-card lower bound;
+- **Ouija** uses exact uniform expectation over all 13 rank rewrites minus a shared literal permanent hand-size opportunity cost; injected completion verifies the common-rank rewrite and exact `hand.limit - 1` transition;
+- **Ectoplasm** uses the public escalating `ecto_minus`, a shared permanent hand-size opportunity model, and the marginal D11 public future-Joker value of one additional Joker slot instead of a fixed Negative-edition bonus; injected completion verifies exactly one editionless Joker becomes Negative, hand limit falls by the pre-use penalty, and `ecto_minus` increments;
+- the shared permanent hand-size opportunity model compares expected best literal future-hand score at `H` versus `H-N` from unordered public permanent-deck composition, uses D1's deterministic public draw model, and explicitly removes transient current-blind/current-round/shop state from that future valuation;
 - **Cryptid**, **Familiar**, **Grim**, **Incantation**, and **Immolate** have explicit production outcome/target models and semantic execution verification rather than generic deferred handling;
-- **Ectoplasm** live state carries the escalating next-use hand-size penalty and its mechanical transition applies/increments that exact penalty; strategic EV remains deferred until permanent hand-size opportunity cost has a shared authority;
 - **Wheel of Fortune** shop and pack paths share analytic public-state expectation rather than synthetic option floors;
 - **The Soul** uses expectation over the five modeled Legendary outcomes instead of a fixed early-Ante bonus;
 - deterministic targeted Tarot/Spectral execution preserves live-card identity, rejects no-op transformations, and verifies resulting mutations;
@@ -217,11 +220,12 @@ Implemented after the latest validated deterministic checkpoint and awaiting the
 - Verdant Leaf and Crimson Heart newest regression cases;
 - literal consumable-target value corrections;
 - Wraith/Judgement and generated-Spectral expectation/execution work;
+- Emperor, Ouija, Ectoplasm, shared future hand-size opportunity valuation, and their semantic execution guards;
 - post-transaction Joker valuation, Banner reset-resource valuation, R0/FORMING transition influence, D11 public-pool reroll EV, all five D8 public-mechanics booster expectations, secret-hand shop scoring, D2 played-card-chip/stochastic expectation, Hanged Man/Blue Joker opportunity cost, literal Standard deck-growth value, consumable-generation public-pool observation, and subsequent pack corrections.
 
 Still open before a new live baseline:
 
-- finish the remaining pack/consumable opportunity-cost audit; current explicit blockers are **The Emperor**, **Ouija**, and **Ectoplasm** rather than synthetic valuation being invented for incomplete held-Tarot or hand-size models;
+- validate the completed pack/consumable semantic audit on the user's local deterministic suite; there are no remaining known explicit Emperor/Ouija/Ectoplasm implementation blockers in this audit;
 - finish D14 cross-family arbitration; replacement, vouchers, D11 Joker/Planet, and all five D8 booster families are implementation-repaired, while held-Tarot/future-consumable units remain unresolved;
 - verify the installed early FORMING/R0 authority under the user's local regression/live validation rather than claiming verification from static inspection;
 - finish any remaining D1 discard-trigger/hand-play contradiction audit after the current batch validates;
@@ -237,7 +241,7 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Repair shop cross-family arbitration so visible Joker strength, vouchers, packs, consumables, rerolls, and economy compare on a run-winning basis rather than incompatible local units.
 - [x] Repair Joker replacement using actual incumbent/candidate score, scaling, economy, realization, and strategy disruption. Implementation audit complete; local regression validation remains part of the suite gate below.
 - [x] Repair D1 discard selection at the authoritative planner/controller layer so multi-card redraws are considered correctly and strategy-specific discard mechanics execute.
-- [ ] Audit pack/consumable skipping for positive-EV opportunities and harmful opportunity-cost mistakes. All five unopened D8 booster families are implementation-audited; Emperor/Ouija/Ectoplasm and shared future-option/hand-size costs remain open.
+- [x] Audit pack/consumable skipping for positive-EV opportunities and harmful opportunity-cost mistakes. Implementation audit complete across all five D8 booster families and the known D9/D10 consumable blockers; current-HEAD local regression validation remains pending.
 - [x] Audit boss-specific execution against exact mechanics. Static production authority inventory is complete; newest regressions remain pending the next local suite run.
 - [x] Bound the three-attempt supervisor so final attempt completion cannot issue a fourth restart; retire the historical post-`run_finished` crash unless reproduced on current unchanged HEAD.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
