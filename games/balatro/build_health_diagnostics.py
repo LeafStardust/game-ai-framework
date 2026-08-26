@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import copy
+
 from games.balatro.build_component_roles import BuildComponentRoleClassifier
 from games.balatro.build_health_runtime import RuntimeBuildHealthEvaluator
 
@@ -9,8 +11,17 @@ _ROLES = BuildComponentRoleClassifier()
 
 
 def build_health_diagnostics_payload(state) -> dict:
-    """Return JSON-safe, read-only Build Health diagnostics for one checkpoint."""
-    health = _HEALTH.evaluate(state)
+    """Return JSON-safe, read-only Build Health diagnostics for one checkpoint.
+
+    Production SHOP survival may run one bounded D1 projection while making the real
+    decision. Diagnostics are observability only and must never launch a second D1
+    search after that decision has already completed. Evaluate health on a shallow
+    diagnostic copy marked as an internal projection so the installed SHOP survival
+    adapter keeps its generic estimator; classify roles against the real public state.
+    """
+    diagnostic_state = copy(state)
+    setattr(diagnostic_state, "_rw_internal_build_health_projection", True)
+    health = _HEALTH.evaluate(diagnostic_state)
     roles = _ROLES.classify(state)
     return {
         "total": float(health.total),
