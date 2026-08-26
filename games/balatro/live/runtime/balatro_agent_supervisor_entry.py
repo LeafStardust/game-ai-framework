@@ -3,7 +3,9 @@ from __future__ import annotations
 import argparse
 import traceback
 from dataclasses import replace
+from time import sleep
 
+from games.balatro.actions import END_ROUND
 from games.balatro.build_health_diagnostics import build_health_diagnostics_payload
 from games.balatro.live.injected.bridge import FirstPartyBalatroBridge
 from games.balatro.live.run_diagnostics import BalatroDiagnosticLogger
@@ -27,6 +29,9 @@ from .live_memory_discard_history_observer import (
 from .strategy_autonomous_runner import (
     StrategyAwareLiveMemoryInjectedSingleStepRunner,
 )
+
+
+CASH_OUT_DWELL_SECONDS = 1.50
 
 
 def _is_recovered_stale_replan(error: BaseException) -> bool:
@@ -106,6 +111,12 @@ def _diagnostic_runner_factory(
 
     def execute_with_diagnostics(decision):
         try:
+            if str(getattr(decision.action, "name", "")) == END_ROUND:
+                # END_ROUND is the cash-out click on the payout screen. Leave the
+                # reward breakdown visible briefly before advancing so live users
+                # can actually inspect the result. This is UI pacing only and does
+                # not alter policy scoring, state interpretation or action choice.
+                sleep(CASH_OUT_DWELL_SECONDS)
             return original_execute(decision)
         except Exception as error:
             if _is_recovered_stale_replan(error):
