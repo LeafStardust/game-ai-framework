@@ -4,7 +4,7 @@ from games.balatro.actions import DISCARD_CARDS, BalatroAction
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 from games.balatro.joker_policy import BUY, JokerAcquisitionPolicy
 from games.balatro.jokers.card_sharp import CardSharpJoker
-from games.balatro.jokers.square_joker import SquareJoker
+from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.shop_voucher_policy import VoucherAcquisitionPolicy
@@ -19,7 +19,10 @@ def test_first_affordable_direct_scoring_joker_beats_empty_engine_hold():
     state.joker_slots = 5
     state.jokers = []
 
-    candidate = SquareJoker()
+    # Bootstrap authority is specifically for an immediately useful first scoring
+    # engine. Square Joker starts at zero and must first be grown by four-card hands,
+    # so use a literal +Mult scorer for this contract.
+    candidate = FlatMultJoker(4)
     candidate.cost = 4
     candidate.discovered = True
 
@@ -65,9 +68,6 @@ def test_card_sharp_shop_value_projects_reachable_repeated_hand_scoring():
 
     value = JokerBuildValueEvaluator().evaluate(state, CardSharpJoker())
 
-    # Card Sharp has no first-hand output, but its public rule is a real x3 after
-    # repeating a hand. Representative shop scoring must therefore include the
-    # reachable repeated-hand context rather than report zero direct score value.
     assert value.direct_scoring_gain > 0.0
     assert value.direct_scoring_value > 0.0
 
@@ -97,8 +97,6 @@ def test_underpace_recovery_values_multi_card_redraw_as_one_discard_resource():
     single_value = evaluator._discard_value(state, single, context)
     batch_value = evaluator._discard_value(state, batch, context)
 
-    # Canonical count reward alone is only +12 from one to four cards. The live
-    # competence correction must add a material fixed-resource redraw advantage.
     assert batch_value - single_value > 40.0
 
 
