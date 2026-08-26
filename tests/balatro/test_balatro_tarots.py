@@ -65,7 +65,7 @@ def test_strength_increases_rank():
     assert card.rank == "3"
 
 
-def test_strength_does_not_change_ace():
+def test_strength_wraps_ace_to_two():
 
     card = BalatroCard(
         "A",
@@ -81,7 +81,7 @@ def test_strength_does_not_change_ace():
 
     tarot.use(context)
 
-    assert card.rank == "A"
+    assert card.rank == "2"
 
 
 def test_create_tarot_returns_independent_instance():
@@ -177,7 +177,7 @@ def test_strength_increases_king_to_ace():
     assert card.rank == "A"
 
 
-def test_strength_does_not_increase_ace():
+def test_strength_rank_cycle_continues_after_ace():
 
     card = BalatroCard(
         "A",
@@ -193,7 +193,7 @@ def test_strength_does_not_increase_ace():
 
     tarot.use(context)
 
-    assert card.rank == "A"
+    assert card.rank == "2"
 
 
 def test_create_tarot_returns_strength():
@@ -697,7 +697,7 @@ def test_wheel_of_fortune_applies_edition_on_success():
             return 0.1
 
         def choice(self, values):
-            return "Foil"
+            return values[0]
 
     class TestJoker:
 
@@ -721,6 +721,7 @@ def test_wheel_of_fortune_applies_edition_on_success():
 
     assert joker.edition == "Foil"
     assert context.data["edition"] == "Foil"
+    assert context.target is joker
 
 
 def test_hanged_man_destroys_selected_cards():
@@ -744,10 +745,9 @@ def test_hanged_man_destroys_selected_cards():
     tarot.use(context)
 
     assert state.hand == []
-    assert state.discard_pile == [
-        first,
-        second
-    ]
+    # Hanged Man destroys cards permanently. Destroyed cards are not ordinary
+    # discards and must not be made drawable again through discard-pile state.
+    assert state.discard_pile == []
     assert context.data["destroyed"] == [
         first,
         second
