@@ -12,6 +12,7 @@ stateful To Do List target while D1 never actually uses the mechanic.
 from dataclasses import replace
 
 from games.balatro.actions import PLAY_CARDS
+from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.hand_action_policy import PACE_PLAY
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
@@ -49,8 +50,14 @@ def _target_hands(state) -> tuple[str, ...]:
     return tuple(dict.fromkeys(targets))
 
 
-def _plan_hand(policy, plan) -> str:
-    return _normalize(policy._hand_evaluator.evaluate(list(plan.action.cards)).value)
+def _plan_hand(policy, state, plan) -> str:
+    rules = hand_rules_for_state(state)
+    return _normalize(
+        policy._hand_evaluator.evaluate(
+            list(plan.action.cards),
+            rules=rules,
+        ).value
+    )
 
 
 def _safe_target_play(policy, state, plans, decision):
@@ -70,7 +77,7 @@ def _safe_target_play(policy, state, plans, decision):
 
     candidates = []
     for plan in plans:
-        if plan.action.name != PLAY_CARDS or _plan_hand(policy, plan) not in targets:
+        if plan.action.name != PLAY_CARDS or _plan_hand(policy, state, plan) not in targets:
             continue
         probability = float(getattr(plan.value, "clear_probability", 0.0) or 0.0)
         if probability + tolerance + policy.EPSILON < selected_probability:
