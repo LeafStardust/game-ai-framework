@@ -29,6 +29,7 @@ from games.balatro.face_card_enabler_bond_policy import install_face_card_enable
 from games.balatro.forming_strategy_retention_policy import install_forming_strategy_retention_policy
 from games.balatro.full_roster_pack_guard import install_full_roster_pack_guard
 from games.balatro.full_roster_shop_guard import install_full_roster_shop_guard
+from games.balatro.held_round_end_resource_policy import install_held_round_end_resource_policy
 from games.balatro.hook_planner_integration_policy import install_hook_planner_integration_policy
 from games.balatro.late_shop_resource_guard import install_late_shop_resource_guard
 from games.balatro.strategy_execution_guard_policy import install_strategy_execution_guard_policy
@@ -126,6 +127,7 @@ install_full_roster_pack_guard()
 install_live_joker_order_authority()
 install_planet_scaler_authority()
 install_purple_seal_discard_policy()
+install_held_round_end_resource_policy()
 # Live-run competence corrections intentionally install last so they see the final
 # mechanical/conflict-safe D1 and shop decisions rather than bypassing them.
 install_red_white_competence_corrections()
