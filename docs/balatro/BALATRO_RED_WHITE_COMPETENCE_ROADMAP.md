@@ -175,64 +175,51 @@ Examples include:
 
 ## Repair progress — 2026-08-26
 
-The deterministic Balatro suite is green at the latest validated checkpoint.
+The deterministic Balatro suite is green at the latest validated checkpoint. Changes after that checkpoint remain pending the user's next local suite run; do not interpret the list below as a claim that current HEAD has been tested.
 
-Completed or validated in the current semantic/runtime pass:
+Completed or implementation-audited in the current semantic/runtime pass:
 
-- synthetic chip/Mult/XMult coverage overrides were removed from the Red/White correction layer; literal modeled scoring remains the score authority;
-- stateful/contextual scoring paths used by shop valuation were repaired and covered by regressions, including repeated-hand activation for Card Sharp and current-state contribution/replacement behavior;
-- the shared literal scorer and D2 representative probe catalogue now include **Five of a Kind, Flush House, and Flush Five** with their exact base scores, so secret-hand runs no longer lose those hand types during shop current/candidate valuation;
-- the named contextual-Joker valuation audit is complete for **Joker Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm**: existing literal/live-state authorities were verified where correct, prospective Blueprint/Brainstorm now compare legal best Joker ordering instead of append-only placement, Bull/Bootstraps candidate scoring uses post-transaction cash, and Banner shop valuation uses the authoritative next-round discard allowance rather than the previous blind's leftovers;
-- Joker replacement implementation now compares a common literal incumbent/candidate baseline, post-transaction cash, economy, edition/slot effects, realized-engine retention, FORMING/PINNED strategy disruption, Negative retention, and exact selected shop-copy identity; replacement remains subject to the next local regression run before validation is claimed;
-- D14 replacement cash-scaling cost now excludes the sold incumbent, preventing Bull/Bootstraps from being charged as though they still existed after their actual replacement contribution had already been removed;
-- D3 voucher admission is now authoritative inside D14 instead of being bypassed by the generic shop layer, with parent money/interest/reserve costs normalized on the shared resource scale;
-- D11 future-shop Joker value now comes from the current public eligible Joker pools through D2/D14, including real replacement admission and public edition odds; only unseen future price remains an explicit prior;
-- D11 future-shop Planet value now averages the currently eligible Planet pool through D4/D14; future Tarot value fails closed instead of using the old synthetic `3.2` gross-utility prior until a real held-Tarot option model exists;
-- D8 Buffoon value now uses a conservative public eligible-Joker D2/D14 expectation instead of fixed hit/value priors, supports full-roster replacement through the existing sell/reobserve/select pack transaction, and scores prospective Joker outcomes at post-pack-spend cash;
-- D8 Celestial acquisition now enumerates the current eligible Planet pool, excludes held duplicates unless Showman permits them, computes best-visible one/two-selection expectation without reading hidden pack contents, and values each permanent Planet sequence through the same literal direct-scoring normalization used by D2; Constellation progression and secret hands are included, and child admission now retains Bull/Bootstraps cash-scaling spend cost instead of dropping it during the Celestial override;
-- D1 discard ranking was moved back under the canonical D1 evaluator/planner path instead of a competing mini-heuristic, with multi-card redraw behavior covered by deterministic tests;
-- **The Psychic** now scores legal 1–4 card burn/cycling plays as zero while preserving normal scoring for valid five-card plays;
-- **Purple Seal** discard value now survives planner search: a mechanically distinct Purple-Seal branch is preserved when a Tarot can actually be generated, and generated consumables are carried only as a late survival-equivalent expectimax tie-break;
-- shop Wheel remains admitted through the public-state stochastic edition model rather than being deterministically rejected;
-- **Wheel of Fortune** no longer receives the shop-only synthetic `1.25` option-value floor; shop and pack Wheel now use the same literal analytic public-state expected build gain contract;
-- **The Soul** no longer receives a fixed `8 + early-Ante bonus` pack score; pack selection now uses a uniform expectation over the five modeled Legendary Joker outcomes evaluated against the current build through B3;
-- deterministic targeted Tarot/Spectral pack execution preserves ordered live-card identity, rejects already-identical transformations, and verifies the resulting live card mutation before accepting the action;
-- **Black Hole** pack execution now requires every modeled poker-hand level to increase by exactly one before the injected action is accepted as complete;
-- **The Serpent** planner transition now forces exactly three public draw cards after either Play or Discard, with Chicot restoring ordinary draw counts;
-- **The Hook** uses exact random two-card forced-discard branching and canonical discard-trigger projection, and D1 now preserves each branch-specific post-Hook hand rather than rebuilding children from a common retained hand;
-- **The Hook** forced-discard projector does not activate **Burnt Joker**, including Blueprint/Brainstorm copies of Burnt, while still applying real forced-discard effects such as **Green Joker** without consuming a player discard use;
-- **The Tooth** and **The Ox** apply their cash effects before Joker scoring so Bull/Bootstraps read the correct post-boss cash; regressions cover Tooth per-card cash loss, Ox target-hand reset, and Chicot bypass;
-- **Cerulean Bell** root and recursive Play/Discard actions obey the currently observed forced-selection constraint;
-- **Cerulean Bell** deeper D1 projections now branch uniformly over every possible next forced-selected card after hypothetical redraws, so recursive child legality is modeled rather than marked incomplete; Chicot bypasses the Bell brancher;
-- **Cerulean Bell** live process-memory hydration now carries public `card.ability.forced_selection` through the normalized snapshot and translator into `BalatroCard.forced_selection`, so the validated D1 legality logic is active in production observations rather than only synthetic states;
-- held-resource D1 semantics are validated: **Steel** remains inside literal hand scoring, **Blue Seal** round-end Planet generation is carried only when the card is actually held on a clearing branch with consumable capacity, and **Gold** preservation is used only as a final mechanical tie-break rather than converted into synthetic chips or Mult;
-- **Ceremonial Dagger** treats Eternal Jokers consistently: an Eternal Joker to Dagger's right cannot be destroyed and grants no impossible Mult; pre-blind ordering is regression-locked to preserve Eternal targets and use legal fodder when beneficial;
-- **Blueprint** and **Brainstorm** exact-play ordering is regression-locked through the actual selected play and literal projected score;
-- first-card-sensitive hand ordering is regression-locked through the real **Photograph + Hanging Chad** interaction rather than the incorrect assumption that Photograph alone cares which non-face card precedes the first scoring face;
-- dominated non-scoring overplay is regression-locked for **Gold**, **Blue Seal**, and **Steel**, while legitimate dead-card cycling remains available when it improves future hands;
-- the synthetic first-party injected bridge responder tolerates transient Windows access races instead of dying and producing a false timeout;
-- the bounded three-attempt supervisor is regression-locked to stop after attempt 3 without invoking another restart; the historical post-`run_finished` crash is retired unless it reproduces again on current unchanged HEAD;
-- the full `tests/balatro` suite is green through the Hook/Burnt and bounded-supervisor checkpoint on 2026-08-26;
-- opened-pack Skip now uses the true sunk-cost baseline in the Red/White production cartridge instead of the historical `+0.35` preference;
-- **The High Priestess** has a public-state expectation model over the eligible Planet pool and that model is installed into the production pack policy stack; no RNG sample, seed, or hidden pack content is consulted;
-- **Wraith** now uses the current public eligible Rare-Joker pool, public edition odds, whole-build Joker valuation, and the full cash-to-zero resource cost; injected completion requires one new Rare Joker and `$0` money;
-- **Judgement** now uses the current public Common/Uncommon/Rare Joker pools with the real 70/25/5 rarity mixture and public edition odds; newly generated To Do List branches are averaged over the exact currently visible poker-hand targets, and injected completion requires one new Joker;
-- **Cryptid**, **Familiar**, **Grim**, and **Incantation** now have production pack expectation/targeting and semantic execution verification rather than remaining generic deferred Spectrals;
-- **Ectoplasm** live state now carries the escalating next-use hand-size penalty and its mechanical `use()` transition applies/increments that exact penalty; strategic EV remains deferred until permanent hand-size opportunity cost has a shared authority;
-- the full Red/White boss implementation inventory is statically audited in `BALATRO_BOSS_MECHANICS_AUDIT.md`: omitted names in the dispatch table are accounted for by authoritative live state or explicit D1 transitions/score transforms, including Hook, Ox, Wall, Arm, Water, Serpent, Needle, Tooth, Flint, Violet Vessel, and centralized Chicot bypass.
+- literal current/candidate score authority is implementation-complete: D2 representative probes include played-card chips, exact hand levels and the three secret hands, legal Blueprint/Brainstorm ordering, stateful conditional contexts such as Card Sharp, post-transaction cash for Bull/Bootstraps, next-round discard allowance for Banner, and analytic public-mechanics expectation for stochastic score sources such as Bloodstone/Misprint; the final category-only early-Joker force-buy was removed so semantic labels cannot manufacture score or admission;
+- the shared literal scorer and D2 representative probe catalogue include **Five of a Kind, Flush House, and Flush Five** with their exact base scores, so secret-hand runs no longer lose those hand types during shop current/candidate valuation;
+- the named contextual-Joker valuation audit is complete for **Joker Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm**;
+- Joker replacement implementation compares a common literal incumbent/candidate baseline, post-transaction cash, economy, edition/slot effects, realized-engine retention, FORMING/PINNED strategy disruption, Negative retention, and exact selected shop-copy identity;
+- D14 replacement cash-scaling cost excludes the sold incumbent, preventing Bull/Bootstraps from being charged as though they still existed after replacement;
+- D3 voucher admission is authoritative inside D14 instead of being bypassed by the generic shop layer, with parent money/interest/reserve costs normalized on the shared resource scale;
+- D11 future-shop Joker value comes from the current public eligible Joker pools through D2/D14, including replacement admission and public edition odds; only unseen future price remains an explicit prior;
+- D11 future-shop Planet value averages the currently eligible Planet pool through D4/D14; future Tarot value fails closed instead of using the old synthetic `3.2` gross-utility prior until a real held-Tarot option model exists;
+- D8 Buffoon value uses a conservative public eligible-Joker D2/D14 expectation instead of fixed hit/value priors, supports full-roster replacement, and scores prospective Joker outcomes at post-pack-spend cash;
+- D8 Celestial acquisition enumerates the current eligible Planet pool, respects held duplicates/Showman, computes best-visible one/two-selection expectation without reading hidden contents, values permanent Planet sequences through literal direct scoring, includes Constellation progression and secret hands, and retains Bull/Bootstraps cash-scaling spend cost;
+- D8 Standard acquisition now uses Balatro's exact public generator distribution: 60% Base / 40% Enhanced, uniform 52-card fronts, uniform eight-card Enhanced pool conditional on enhancement, 20% uniformly distributed Seals, and the exact public `edition_rate` Foil/Holographic/Polychrome distribution. The current build profile is cached once and the same D9 visible-card value formula is used for a conservative one-offer lower bound rather than fixed family priors;
+- Hanged Man is no longer hard-vetoed merely because Blue Joker is owned. B6 now subtracts Blue Joker's exact `2 Chips/card` deck-size coefficient on the existing chip-normalized intrinsic scale, so weak-card thinning may still be selected only when the net target remains positive;
+- D1 discard ranking is under the canonical D1 evaluator/planner path instead of a competing mini-heuristic;
+- opened-pack Skip uses the true sunk-cost baseline in the Red/White production cartridge;
+- **The High Priestess** uses a public-state eligible-Planet expectation with duplicate/Showman rules;
+- **Wraith** uses the current public eligible Rare-Joker pool, public edition odds, whole-build Joker valuation, and the full cash-to-zero resource cost; injected completion requires one new Rare Joker and `$0` money;
+- **Judgement** uses current public Common/Uncommon/Rare Joker pools with the real 70/25/5 rarity mixture and public edition odds; newly generated To Do List branches are averaged over visible poker-hand targets and injected completion requires one new Joker;
+- **Cryptid**, **Familiar**, **Grim**, **Incantation**, and **Immolate** have explicit production outcome/target models and semantic execution verification rather than generic deferred handling;
+- **Ectoplasm** live state carries the escalating next-use hand-size penalty and its mechanical transition applies/increments that exact penalty; strategic EV remains deferred until permanent hand-size opportunity cost has a shared authority;
+- **Wheel of Fortune** shop and pack paths share analytic public-state expectation rather than synthetic option floors;
+- **The Soul** uses expectation over the five modeled Legendary outcomes instead of a fixed early-Ante bonus;
+- deterministic targeted Tarot/Spectral execution preserves live-card identity, rejects no-op transformations, and verifies resulting mutations;
+- **Black Hole** completion requires every modeled poker-hand level to increase by exactly one;
+- **The Serpent**, **The Hook**, **The Tooth**, **The Ox**, **The Psychic**, **Cerulean Bell**, and the other Red/White bosses are accounted for by exact D1/live-state mechanics; the full static production inventory is documented in `BALATRO_BOSS_MECHANICS_AUDIT.md`;
+- held-resource D1 semantics keep Steel inside literal scoring and use Blue Seal/Gold preservation only when mechanically appropriate;
+- Ceremonial Dagger, Blueprint/Brainstorm exact-play ordering, first-card-sensitive ordering, and dominated Gold/Blue-Seal/Steel overplay are represented in the production path;
+- the first-party injected bridge tolerates transient Windows access races;
+- the bounded three-attempt supervisor stops after attempt 3 without invoking a fourth restart.
 
-Implemented in the current boss/consumable batch and awaiting deterministic suite validation:
+Implemented after the latest validated deterministic checkpoint and awaiting the user's next local suite run include, among others:
 
-- **Verdant Leaf** emergency sale semantics are regression-locked to choose legal non-Eternal fodder while cards remain boss-debuffed and to perform no emergency sale when **Chicot** disables the boss;
-- **Crimson Heart** transition semantics are regression-locked to clear the previously disabled Joker, branch uniformly over eligible next disabled Jokers, and bypass that randomness under **Chicot**;
-- deterministic Tarot/Spectral target valuation no longer receives the default synthetic `+0.10` reward merely because a card property changed; `effective_changes` remains a no-op legality guard, while default production target value comes only from contextual/intrinsic mechanics and explicit opportunity costs;
-- regressions distinguish a neutral transformation (zero value), a genuinely beneficial contextual transformation (positive value), and an identical transformation (rejected no-op); explicit non-default `effective_change_value` remains available only for callers that deliberately request it;
-- early FORMING/R0 strategy evidence is now completion-proportional and bounded below the stronger PINNED formation authority; the repair is installed across ordinary and post-transaction D2 paths but remains unchecked below until the user runs the local verification/regression pass.
+- Verdant Leaf and Crimson Heart newest regression cases;
+- literal consumable-target value corrections;
+- Wraith/Judgement and generated-Spectral expectation/execution work;
+- post-transaction Joker valuation, Banner reset-resource valuation, R0/FORMING transition influence, D11 public-pool reroll EV, Buffoon/Celestial/Standard D8 expectation, secret-hand shop scoring, D2 played-card-chip/stochastic expectation, Hanged Man/Blue Joker opportunity cost, and subsequent pack corrections.
 
 Still open before a new live baseline:
 
 - finish the remaining pack/consumable opportunity-cost audit; current explicit blockers are **The Emperor**, **Ouija**, and **Ectoplasm** rather than synthetic valuation being invented for incomplete held-Tarot or hand-size models;
-- finish the remaining literal current/candidate score and D14 cross-family audit; replacement itself is implementation-complete, while D8 **Standard/Arcana/Spectral** and held-Tarot units remain unresolved;
+- finish D14 cross-family arbitration; replacement, vouchers, D11 Joker/Planet, and D8 Buffoon/Celestial/Standard are repaired, while D8 **Arcana/Spectral** and held-Tarot units remain unresolved;
+- verify the installed early FORMING/R0 authority under the user's local regression/live validation rather than claiming verification from static inspection;
 - finish any remaining D1 discard-trigger/hand-play contradiction audit after the current batch validates;
 - rerun the full Balatro suite after the remaining changes, then perform a fresh production-default three-run Red/White batch.
 
@@ -240,17 +227,17 @@ Still open before a new live baseline:
 
 Do not start another live calibration baseline until these semantic/runtime issues are addressed:
 
-- [ ] Ensure literal score projection is authoritative for current and candidate builds; remove synthetic category substitutes.
+- [x] Ensure literal score projection is authoritative for current and candidate builds; remove synthetic category substitutes. Implementation audit complete; current-HEAD local regression validation remains pending.
 - [x] Audit contextual Joker valuation, beginning with Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm.
 - [ ] Verify strategy formation and R0 evidence influence acquisition from Ante 1 without overpowering survival. Implementation is installed; local validation remains pending.
 - [ ] Repair shop cross-family arbitration so visible Joker strength, vouchers, packs, consumables, rerolls, and economy compare on a run-winning basis rather than incompatible local units.
 - [x] Repair Joker replacement using actual incumbent/candidate score, scaling, economy, realization, and strategy disruption. Implementation audit complete; local regression validation remains part of the suite gate below.
 - [x] Repair D1 discard selection at the authoritative planner/controller layer so multi-card redraws are considered correctly and strategy-specific discard mechanics execute.
 - [ ] Audit pack/consumable skipping for positive-EV opportunities and harmful opportunity-cost mistakes.
-- [x] Audit boss-specific execution against exact mechanics. Static production authority inventory is complete; newest Verdant/Crimson regressions remain pending the next local suite run.
+- [x] Audit boss-specific execution against exact mechanics. Static production authority inventory is complete; newest regressions remain pending the next local suite run.
 - [x] Bound the three-attempt supervisor so final attempt completion cannot issue a fourth restart; retire the historical post-`run_finished` crash unless reproduced on current unchanged HEAD.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through Hook/Burnt forced-discard semantics and bounded final-attempt shutdown; Verdant/Crimson, literal consumable-target value, Wraith/Judgement, post-transaction Joker valuation, Banner reset-resource valuation, D11 public-pool reroll EV, Buffoon/Celestial public-pool EV, secret-hand shop scoring, and subsequent pack corrections are pending the next suite run.
+- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint is historical on 2026-08-26; all changes listed as awaiting validation above require the next local suite run before current HEAD can be called green.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
