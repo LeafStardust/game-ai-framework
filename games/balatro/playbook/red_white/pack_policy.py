@@ -18,7 +18,7 @@ from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisiti
 class PackChoiceThresholds:
     """Thresholds owned only by D9 visible booster-pack choice."""
 
-    skip_bias: float = 0.35
+    skip_bias: float = 0.0
 
     @classmethod
     def from_mapping(
@@ -100,7 +100,7 @@ class PlaybookBalatroPackPolicy(BalatroPackPolicy):
             thresholds=target_thresholds,
         )
         super().__init__(
-            skip_bias=0.35 if skip_bias is None else float(skip_bias),
+            skip_bias=0.0 if skip_bias is None else float(skip_bias),
             consumable_target_evaluator=wrapped_target_evaluator,
             **kwargs,
         )
