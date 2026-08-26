@@ -33,6 +33,7 @@ Current Red/White corrections apply this consistently to:
 
 - target-hand engines such as Runner and To Do List;
 - Card Sharp / hand-repetition execution;
+- Burnt Joker discard-hand targeting;
 - The Eye and The Mouth Boss-Blind constraints;
 - bounded D1 cheap play prefiltering and compact-hand reserve selection.
 
@@ -66,9 +67,13 @@ A Burnt setup discard is allowed to override the generic pace-qualified PLAY pre
 - the Burnt development is at least R1 and selected in composition;
 - the first discard is still available;
 - more than one discard and more than one hand remain;
-- the candidate discard preserves at least the configured safe modeled clear probability.
+- the candidate discard remains within canonical D1 `safe_clear_probability_tolerance` of the baseline selected line.
 
-Banner's current-discard chip value may not suppress a safe first Burnt activation: one Banner discard payment is explicitly accepted when it creates permanent Burnt hand-level growth and survival remains safe.
+The former Burnt-specific `0.70` absolute floor / `0.08` clear-probability sacrifice is no longer a competing survival policy. D1 owns the survival-equivalence boundary.
+
+Burnt target-hand classification also uses `hand_rules_for_state(state)`, so Four Fingers/other live hand modifiers cannot make the Burnt execution layer disagree with canonical hand classification.
+
+Banner's current-discard chip value may not suppress a survival-equivalent first Burnt activation: one Banner discard payment is accepted when it creates permanent Burnt hand-level growth and the D1 survival boundary is preserved.
 
 ## Hand repetition / Card Sharp
 
