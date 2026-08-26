@@ -18,8 +18,11 @@ This adapter currently owns exact/publicly measurable effects:
   immediate parent value through the installed Observatory X1.5 scoring mechanic;
 * Seed Money / Money Tree: conservative next-interest-payout improvement at the
   actual post-purchase cash level, expressed with D14's own interest weight;
-* Blank: zero current-run parent value. Cross-run unlock progression is not a
-  competence objective and cannot compete with run-winning SHOP actions.
+* Blank: while Antimatter is observably locked, one real step toward its ten-Blank
+  unlock is allowed to cover only Blank's direct sticker-price term plus a tiny
+  bounded progression tie-break. Lost interest, reserve pressure and cash-scaling
+  value remain fully charged. Once Antimatter is unlocked, Blank returns to zero
+  current-run parent value.
 
 Other vouchers remain under D3's persistent strategic model until their mechanics
 have an equally grounded parent-scale evaluator. This module never changes D3
@@ -28,8 +31,15 @@ admission and never reads RNG state, pseudoseeds, or future draw/shop order.
 
 from dataclasses import replace
 
+from games.balatro.antimatter_unlock_live_state_policy import (
+    install_antimatter_unlock_live_state_policy,
+)
+from games.balatro.blank_antimatter_progression_policy import (
+    install_blank_antimatter_progression_policy,
+)
 from games.balatro.build.hand_size_opportunity import HandSizeOpportunityEvaluator
 from games.balatro.consumable_d14_literal_policy import PlanetD14OptionEvaluator
+from games.balatro.discovery import DISCOVERY_TIEBREAK_CAP
 from games.balatro.reroll_joker_expectation_policy import RerollJokerExpectationEvaluator
 from games.balatro.shop_policy import BalatroShopPolicy
 from games.balatro.shop_reroll_policy import VANILLA_SHOP_REROLL_PRIOR
@@ -96,10 +106,7 @@ class VoucherParentLiteralEvaluator:
         if label in {"Seed Money", "Money Tree"}:
             return self._interest_cap_gain(state, voucher, money_after=money_after)
         if label == "Blank":
-            return True, 0.0, (
-                "Blank has no current-run mechanical effect",
-                "cross-run unlock progression is excluded from the competence objective",
-            )
+            return self._blank(state, price=price)
         return False, 0.0, ("voucher is outside literal parent authority",)
 
     def _antimatter(self, state, *, money_after: int):
@@ -213,8 +220,42 @@ class VoucherParentLiteralEvaluator:
             "later-round compounding/upside is omitted rather than assigned a synthetic horizon premium",
         )
 
+    def _blank(self, state, *, price: int):
+        if not bool(getattr(state, "antimatter_unlock_observed", False)):
+            return False, 0.0, (
+                "Blank progression value unavailable: Antimatter unlock state was not observed",
+            )
+        if bool(getattr(state, "antimatter_unlocked", False)):
+            return True, 0.0, (
+                "Antimatter is already unlocked; Blank has no remaining unlock-progression parent value",
+            )
+
+        # Collection progression is a real secondary objective in this agent, but it
+        # remains subordinate to winning the run. Cover only the direct sticker-price
+        # term so Blank can be purchased in a comfortable shop; D14 still charges all
+        # lost interest, reserve pressure and cash-scaling value. The tiny bounded
+        # tie-break prevents an economically free progression step from tying
+        # END_SHOP exactly.
+        direct_budget = float(price) * float(self.shop_policy.price_weight)
+        progression_tiebreak = float(DISCOVERY_TIEBREAK_CAP)
+        gain = direct_budget + progression_tiebreak
+        return True, gain, (
+            "Blank advances the still-locked Antimatter unlock by one of ten required redemptions",
+            f"progression covers direct purchase term={direct_budget:.3f}",
+            f"bounded progression tie-break={progression_tiebreak:.3f}",
+            "lost interest, reserve pressure and Bull/Bootstraps cash-scaling opportunity cost remain fully charged by D14",
+            "once Antimatter unlocks, this progression value becomes zero",
+        )
+
 
 def install_voucher_parent_literal_policy() -> None:
+    # These two authorities are part of Blank's parent contract. Installing them
+    # here avoids a separate package-order dependency: this installer already runs
+    # before any live SHOP observation, and later D3 wrappers continue to wrap the
+    # progression admission normally.
+    install_antimatter_unlock_live_state_policy()
+    install_blank_antimatter_progression_policy()
+
     if getattr(BalatroShopPolicy, "_literal_capacity_voucher_parent_installed", False):
         return
 
@@ -271,7 +312,7 @@ def install_voucher_parent_literal_policy() -> None:
                     notes=(
                         "D14 literal voucher parent authority",
                         f"voucher={label}",
-                        f"mechanical parent value={float(parent_value):.3f}",
+                        f"mechanical/progression parent value={float(parent_value):.3f}",
                         f"shared resource cost={float(resource.total):.3f}",
                         f"normalized voucher gain={normalized:.3f}",
                         *notes,
