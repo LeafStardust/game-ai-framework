@@ -33,7 +33,7 @@ def test_safe_target_play_can_replace_discard_with_runner_straight(monkeypatch):
             project_play=lambda _state, _action: SimpleNamespace(expected_hand_score=120.0)
         ),
         _hand_evaluator=SimpleNamespace(
-            evaluate=lambda cards: SimpleNamespace(value="STRAIGHT" if cards[0].rank == "4" else "PAIR")
+            evaluate=lambda cards, **_kwargs: SimpleNamespace(value="STRAIGHT" if cards[0].rank == "4" else "PAIR")
         ),
         _strategy_fit=lambda _state, _action: (1.0,),
         _within_type_key=lambda _plan: (0,),
