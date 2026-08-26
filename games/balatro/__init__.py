@@ -6,6 +6,7 @@ installed as competing production strategy authorities.
 """
 
 from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
+from games.balatro.blueprint_candidate_value_policy import install_blueprint_candidate_value_policy
 from games.balatro.bond_d1_cache_policy import install_bond_d1_cache_policy
 from games.balatro.bond_pivot_authority import install_bond_pivot_authority
 from games.balatro.bond_power_engine_retention_policy import install_bond_power_engine_retention_policy
@@ -90,6 +91,7 @@ install_cerulean_bell_d1_legality_policy()
 install_cerulean_live_state_policy()
 install_ectoplasm_live_state_policy()
 install_joker_generation_pool_live_state_policy()
+install_blueprint_candidate_value_policy()
 install_cryptid_dispatch_postcondition()
 install_generated_enhanced_spectral_dispatch_postcondition()
 install_wraith_dispatch_postcondition()
