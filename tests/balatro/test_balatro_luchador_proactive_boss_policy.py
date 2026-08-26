@@ -16,30 +16,34 @@ def _state(boss_name: str, *, hands: int = 4, discards: int = 3):
     )
 
 
+def _should_sell(state, notes):
+    return _should_sell_luchador(state, notes)[0]
+
+
 def test_luchador_proactively_disables_suit_debuff_boss_before_recovery():
-    assert _should_sell_luchador(
+    assert _should_sell(
         _state("The Head"),
         ("mode=PACE_PLAY",),
     )
-    assert _should_sell_luchador(
+    assert _should_sell(
         _state("The Window"),
         ("mode=PACE_PLAY",),
     )
 
 
 def test_luchador_proactively_disables_face_card_debuff_boss():
-    assert _should_sell_luchador(
+    assert _should_sell(
         _state("The Plant"),
         ("mode=PACE_PLAY",),
     )
 
 
 def test_luchador_keeps_conservative_trigger_for_nonproactive_boss():
-    assert not _should_sell_luchador(
+    assert not _should_sell(
         _state("The Wall"),
         ("mode=PACE_PLAY",),
     )
-    assert _should_sell_luchador(
+    assert _should_sell(
         _state("The Wall"),
         ("mode=PACE_RECOVERY",),
     )
