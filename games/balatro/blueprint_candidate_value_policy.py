@@ -37,8 +37,6 @@ def _bounded_orders(jokers, *, candidate_name: str | None = None):
         for target_position in range(len(incumbents)):
             target_index = incumbents[target_position]
             remaining = [index for index in incumbents if index != target_index]
-            # Keep incumbent relative order stable and insert Blueprint immediately
-            # before each possible target.
             target_slot = remaining.index(target_index) if target_index in remaining else target_position
             order = list(incumbents)
             order.remove(target_index)
@@ -69,6 +67,7 @@ def _best_score(self, probe_state, cards, hand, *, candidate_name: str | None = 
                 hand,
                 state=ordered,
                 cards=copy.deepcopy(cards),
+                include_card_chips=True,
                 resolve_random_effects=False,
             ).total
         except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
