@@ -37,7 +37,7 @@ def test_targeted_spectral_pack_choice_carries_exact_b6_hand_target():
     card = BalatroCard("4", "Clubs")
     state = _pack_state([card])
     choice = _choice("Deja Vu")
-    ranked = BalatroPackPolicy(item_estimator=_Estimator(), skip_bias=0.35).rank_actions(
+    ranked = BalatroPackPolicy(item_estimator=_Estimator(), skip_bias=0.0).rank_actions(
         state,
         [BalatroAction(SELECT_PACK_CARD, target=choice), BalatroAction(SKIP_BOOSTER)],
     )
@@ -46,7 +46,7 @@ def test_targeted_spectral_pack_choice_carries_exact_b6_hand_target():
     assert selected.action.target is choice
     assert selected.action.cards == [card]
     assert any("target_indices=(0,)" in note for note in selected.notes)
-    assert any("B6 pack target gain=" in note for note in selected.notes)
+    assert any("D10/B6 target gain=" in note for note in selected.notes)
 
 
 def test_deferred_spectral_pack_choice_remains_fail_closed():
