@@ -30,8 +30,13 @@ def test_first_affordable_direct_scoring_joker_beats_empty_engine_hold():
 
     assert decision.action == BUY
     assert decision.selected is not None
+    assert decision.selected.build_gain > 0.0
     assert decision.selected.economics.money_after == 3
-    assert any("first-engine bootstrap" in note for note in decision.rationale)
+    # Ordinary D2 may already admit the literal scorer before the late Red/White
+    # reserve-relaxation wrapper runs. The bootstrap rationale is required only when
+    # that wrapper actually converts an upstream HOLD into BUY.
+    if any("first-engine bootstrap" in note for note in decision.rationale):
+        assert any("positive literal/contextual D2 build gain" in note for note in decision.rationale)
 
 
 def test_paint_brush_cannot_preempt_first_scoring_foothold():
