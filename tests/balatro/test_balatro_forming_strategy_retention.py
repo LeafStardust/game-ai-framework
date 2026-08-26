@@ -53,6 +53,12 @@ def _candidate(strategy_id, commitment, strength):
     )
 
 
+def _projected_state():
+    # Retention projections now carry post-transaction cash into Build Health.
+    # Keep this mutable so the unit fixture matches the production state contract.
+    return SimpleNamespace(money=0)
+
+
 def test_forming_known_strategy_is_not_protected_by_pinned_retention():
     state = SimpleNamespace(jokers=[BurntJoker()], joker_slots=1)
     decision = _Decision()
@@ -76,7 +82,7 @@ def test_forming_retention_vetoes_replacement_that_erases_known_plan():
         side_effect=[((), current), ((), projected)],
     ), patch(
         "games.balatro.forming_strategy_retention_policy.projected_state_with_jokers",
-        return_value=object(),
+        return_value=_projected_state(),
     ):
         result = apply_forming_strategy_retention(state, RandomJoker(), _Decision())
 
@@ -94,7 +100,7 @@ def test_forming_retention_allows_replacement_that_preserves_same_plan():
         side_effect=[((), current), ((), projected)],
     ), patch(
         "games.balatro.forming_strategy_retention_policy.projected_state_with_jokers",
-        return_value=object(),
+        return_value=_projected_state(),
     ):
         result = apply_forming_strategy_retention(state, RandomJoker(), _Decision())
 
@@ -118,7 +124,7 @@ def test_forming_retention_allows_materially_stronger_pinned_escape():
         side_effect=[((), current), ((), projected)],
     ), patch(
         "games.balatro.forming_strategy_retention_policy.projected_state_with_jokers",
-        return_value=object(),
+        return_value=_projected_state(),
     ):
         result = apply_forming_strategy_retention(state, RandomJoker(), _Decision())
 
