@@ -16,6 +16,7 @@ are not converted into chips or Mult here.
 
 import copy
 
+from games.balatro import joker_policy as joker_policy_module
 from games.balatro.joker import Joker
 from games.balatro.joker_edition import joker_edition_universal_value
 from games.balatro.joker_policy import (
@@ -23,7 +24,6 @@ from games.balatro.joker_policy import (
     REPLACE,
     JokerAcquisitionOption,
     JokerAcquisitionPolicy,
-    _bond_transition_bonus,
 )
 
 
@@ -66,7 +66,10 @@ def install_post_transaction_joker_value_policy() -> None:
             candidate,
             economics.money_after,
         )
-        bond_bonus, bond_notes = _bond_transition_bonus(state, candidate)
+        bond_bonus, bond_notes = joker_policy_module._bond_transition_bonus(
+            state,
+            candidate,
+        )
         resulting_build_gain = raw_post_transaction_gain + bond_bonus
         eligible = (
             not strategic_conflict
@@ -121,7 +124,7 @@ def install_post_transaction_joker_value_policy() -> None:
             self.transition_planner.evaluator.evaluate(candidate_state, candidate).total_gain
         )
         raw_build_delta = candidate_gain - incumbent_gain
-        bond_bonus, bond_notes = _bond_transition_bonus(
+        bond_bonus, bond_notes = joker_policy_module._bond_transition_bonus(
             state,
             candidate,
             replace_index=index,
