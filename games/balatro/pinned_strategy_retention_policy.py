@@ -5,19 +5,24 @@ from __future__ import annotations
 An engine can be strategically committed before its Bonds are highly ranked or
 fully realized. Replacements therefore compare the current pinned mechanical
 strategy with the projected post-replacement strategy instead of protecting only an
-ACTIVE/MATURE power engine.
+ACTIVE/MATURE power engine. Strategy retention remains subordinate to an already-
+critical survival rescue.
 """
 
 from dataclasses import replace
 
 from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.bonds.strategy_semantics import StrategyCommitment
-from games.balatro.build_health_runtime import projected_state_with_jokers
+from games.balatro.build_health_runtime import (
+    RuntimeBuildHealthEvaluator,
+    projected_state_with_jokers,
+)
 from games.balatro.joker_policy import HOLD, REPLACE
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 
 
 _MIN_STRATEGY_REPLACEMENT_GAIN = 2.0
+_HEALTH = RuntimeBuildHealthEvaluator()
 
 
 def _candidate(composition, strategy_id: str | None):
@@ -39,6 +44,23 @@ def _projected_jokers(state, candidate, index: int):
         return None
     jokers[index] = candidate
     return tuple(jokers)
+
+
+def _critical_survival_escape(state, projected_state) -> tuple[bool, tuple[str, ...]]:
+    try:
+        current = _HEALTH.evaluate(state)
+        projected = _HEALTH.evaluate(projected_state)
+    except (AttributeError, KeyError, TypeError, ValueError, RuntimeError):
+        return False, ()
+    if not bool(getattr(current, "critical", False)):
+        return False, ()
+    if float(projected.survival) <= float(current.survival) + 1e-12:
+        return False, ()
+    return True, (
+        "pinned retention released because current Build Health is survival-critical",
+        f"modeled survival improves {float(current.survival):.3f}->{float(projected.survival):.3f}",
+        "survival rescue outranks preservation of a pinned strategy",
+    )
 
 
 def apply_pinned_strategy_retention(state, candidate, decision):
@@ -71,6 +93,13 @@ def apply_pinned_strategy_retention(state, candidate, decision):
     projected_same = _candidate(projected_composition, current.strategy_id)
     if projected_same is not None and projected_same.commitment >= StrategyCommitment.PINNED:
         return decision
+
+    survival_escape, survival_notes = _critical_survival_escape(state, projected_state)
+    if survival_escape:
+        return replace(
+            decision,
+            rationale=(*decision.rationale, *survival_notes),
+        )
 
     projected_id = getattr(projected_composition, "pinned_strategy_id", None)
     projected_best = _candidate(projected_composition, projected_id)
