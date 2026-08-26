@@ -17,6 +17,7 @@ from games.balatro.actions import PLAY_CARDS
 from games.balatro.bonds import behavior_strategy
 from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro import d1_candidate_deadline_policy as deadline_policy
 from games.balatro import strategy_execution_guard_policy as no_discard_policy
@@ -61,10 +62,10 @@ def _rank_requirement_count(node) -> int:
     return sum(1 for feature in features if "rank:" in str(feature).lower())
 
 
-def _cheap_play_key(action) -> tuple[int, int, int, int]:
+def _cheap_play_key(state, action) -> tuple[int, int, int, int]:
     cards = list(getattr(action, "cards", ()) or ())
     try:
-        hand = HandEvaluator().evaluate(cards)
+        hand = HandEvaluator().evaluate(cards, rules=hand_rules_for_state(state))
     except (AttributeError, TypeError, ValueError):
         hand = PokerHand.HIGH_CARD
     rank_sum = 0
@@ -89,9 +90,12 @@ def _cheap_play_key(action) -> tuple[int, int, int, int]:
     )
 
 
-def _cheap_hand(action) -> PokerHand:
+def _cheap_hand(state, action) -> PokerHand:
     try:
-        return HandEvaluator().evaluate(list(getattr(action, "cards", ()) or ()))
+        return HandEvaluator().evaluate(
+            list(getattr(action, "cards", ()) or ()),
+            rules=hand_rules_for_state(state),
+        )
     except (AttributeError, TypeError, ValueError):
         return PokerHand.HIGH_CARD
 
@@ -114,7 +118,7 @@ def _prefilter(actions, *, limit: int, key):
     return sorted(values, key=key, reverse=True)[:limit]
 
 
-def _prefilter_plays(actions, *, limit: int):
+def _prefilter_plays(state, actions, *, limit: int):
     """Bound cheap root/child play candidates without erasing compact made hands.
 
     Large hands can contain many 4/5-card supersets that classify as Pair/Two Pair
@@ -123,12 +127,16 @@ def _prefilter_plays(actions, *, limit: int):
     another already-made hand and prove an exact multi-hand clear without consulting
     redraws. Preserve one minimal-card representative per made hand class, then fill
     the remaining bounded budget with the ordinary cheap ordering.
+
+    Classification must use the same public hand-rule modifiers as canonical D1;
+    otherwise Four Fingers/Shortcut-style legal hands can be pruned before the exact
+    scorer ever receives them.
     """
     values = list(actions)
     if len(values) <= limit:
         return values
 
-    ranked = sorted(values, key=_cheap_play_key, reverse=True)
+    ranked = sorted(values, key=lambda action: _cheap_play_key(state, action), reverse=True)
     selected = ranked[:limit]
     selected_ids = {id(action) for action in selected}
 
@@ -136,15 +144,15 @@ def _prefilter_plays(actions, *, limit: int):
     for hand in _HAND_STRENGTH:
         if hand == PokerHand.HIGH_CARD:
             continue
-        candidates = [action for action in values if _cheap_hand(action) == hand]
+        candidates = [action for action in values if _cheap_hand(state, action) == hand]
         if not candidates:
             continue
         representative = min(
             candidates,
             key=lambda action: (
                 len(getattr(action, "cards", ()) or ()),
-                -_cheap_play_key(action)[2],
-                -_cheap_play_key(action)[1],
+                -_cheap_play_key(state, action)[2],
+                -_cheap_play_key(state, action)[1],
             ),
         )
         if id(representative) not in selected_ids:
@@ -185,13 +193,17 @@ def _rank_plays_with_short_reserve(self, state, plays, *, limit: int, stage: str
         action
         for action in plays
         if len(getattr(action, "cards", ()) or ()) <= 2
-        and _cheap_play_key(action)[0] > _HAND_STRENGTH[PokerHand.HIGH_CARD]
+        and _cheap_play_key(state, action)[0] > _HAND_STRENGTH[PokerHand.HIGH_CARD]
     ]
     if not short or reserve <= 0:
         return ranked
 
     deadline_policy._check_deadline(self, f"{stage} short-play reserve")
-    short_ranked = sorted(short, key=_cheap_play_key, reverse=True)[:reserve]
+    short_ranked = sorted(
+        short,
+        key=lambda action: _cheap_play_key(state, action),
+        reverse=True,
+    )[:reserve]
     deadline_policy._check_deadline(self, f"{stage} short-play reserve")
 
     selected_ids = {id(action) for action in ranked}
@@ -252,6 +264,7 @@ def install_semantic_search_guard_policy() -> None:
         plays = self.action_generator.generate_play_actions(state)
         deadline_policy._check_deadline(self, "play candidate generation")
         plays = _prefilter_plays(
+            state,
             plays,
             limit=_ROOT_PLAY_PREFILTER if root else _CHILD_PLAY_PREFILTER,
         )
