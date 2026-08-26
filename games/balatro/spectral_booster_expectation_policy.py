@@ -69,7 +69,7 @@ class SpectralBoosterExpectationEvaluator:
     def evaluate(self, state) -> tuple[float, float, tuple[str, ...]]:
         if not bool(getattr(state, "consumable_generation_pool_observed", False)):
             return 0.0, 0.0, (
-                "Spectral expectation unavailable: public generation pool was not observed",
+                "Spectral expectation unavailable: public generation pools were not observed",
             )
 
         records = self._pool(state)
