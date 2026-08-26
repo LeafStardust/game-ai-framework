@@ -1,6 +1,7 @@
 import copy
 
 from games.balatro.card import BalatroCard, ENHANCEMENTS
+from games.balatro.card_destruction import project_destroyed_playing_cards
 from games.balatro.consumable import ConsumableContext, SpectralCard
 
 
@@ -67,7 +68,7 @@ class Familiar(SpectralCard):
         destroyed = rng.choice(context.state.hand)
 
         context.state.hand.remove(destroyed)
-        context.state.discard_pile.append(destroyed)
+        project_destroyed_playing_cards(context.state, [destroyed])
 
         created = [
             _random_enhanced_card(rng, ranks=FACE_RANKS)
@@ -93,7 +94,7 @@ class Grim(SpectralCard):
         destroyed = rng.choice(context.state.hand)
 
         context.state.hand.remove(destroyed)
-        context.state.discard_pile.append(destroyed)
+        project_destroyed_playing_cards(context.state, [destroyed])
 
         created = [
             _random_enhanced_card(rng, ranks=("A",))
@@ -120,7 +121,7 @@ class Incantation(SpectralCard):
         destroyed = rng.choice(context.state.hand)
 
         context.state.hand.remove(destroyed)
-        context.state.discard_pile.append(destroyed)
+        project_destroyed_playing_cards(context.state, [destroyed])
 
         created = [
             _random_enhanced_card(rng, ranks=NUMBERED_RANKS)
@@ -289,7 +290,7 @@ class Immolate(SpectralCard):
 
         for card in destroyed:
             context.state.hand.remove(card)
-            context.state.discard_pile.append(card)
+        project_destroyed_playing_cards(context.state, destroyed)
 
         context.state.money += 20
         context.data["destroyed"] = destroyed
