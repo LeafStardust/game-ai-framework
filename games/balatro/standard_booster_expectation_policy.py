@@ -10,14 +10,15 @@ and is uniform over the four seal types; and edition odds come from
 ``poll_edition(..., mod=2, no_negative=true)`` using the public run ``edition_rate``.
 
 This policy integrates the exact *one-offer* distribution through the same D9
-playing-card scorer used after a Standard pack is opened.  The one-offer expectation
-is intentionally a conservative lower bound for the best of 3/5 visible offers; no
-independence/best-of-N multiplier or hidden pack content is used.  Pack purchase
-resource cost remains owned by D8/D14.
+playing-card value formula used after a Standard pack is opened.  The current build
+profile is computed once and reused for all finite generator branches, avoiding a
+multi-thousand-profile shop slowdown.  The one-offer expectation is intentionally a
+conservative lower bound for the best of 3/5 visible offers; no independence/best-
+of-N multiplier or hidden pack content is used.  Pack purchase resource cost remains
+owned by D8/D14.
 """
 
-from games.balatro.actions import SELECT_PACK_CARD, BalatroAction
-from games.balatro.live.pack import LivePackChoice
+from games.balatro.deck_growth_pack_policy import deck_growth_pack_support_active
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.shop_booster_policy import (
     BUY,
@@ -43,12 +44,7 @@ _SEALS = ("Red", "Blue", "Gold", "Purple")
 
 
 def _edition_distribution(rate: float) -> tuple[tuple[str | None, float], ...]:
-    """Return the disjoint Standard-pack poll_edition probabilities.
-
-    Balatro uses cumulative tail thresholds, so derive disjoint masses from those
-    thresholds rather than treating Foil/Holo/Polychrome as independent rolls.
-    Negative is excluded by ``_no_neg=true`` for Standard packs.
-    """
+    """Return the disjoint Standard-pack poll_edition probabilities."""
     rate = max(0.0, float(rate))
     poly_tail = min(1.0, 0.012 * rate)
     holo_tail = min(1.0, 0.040 * rate)
@@ -62,14 +58,10 @@ def _edition_distribution(rate: float) -> tuple[tuple[str | None, float], ...]:
 
 
 def _enhancement_distribution() -> tuple[tuple[str | None, float], ...]:
-    # Base with probability 0.60; conditional Enhanced pool is uniform over all
-    # eight vanilla enhancement centers, yielding 0.05 unconditional probability
-    # per enhancement.
     return ((None, 0.60),) + tuple((name, 0.05) for name in _ENHANCEMENTS)
 
 
 def _seal_distribution() -> tuple[tuple[str | None, float], ...]:
-    # stdseal succeeds with 0.20 probability; stdsealtype splits four equal bins.
     return ((None, 0.80),) + tuple((name, 0.05) for name in _SEALS)
 
 
@@ -77,11 +69,56 @@ class StandardBoosterExpectationEvaluator:
     def __init__(self, *, pack_policy: BalatroPackPolicy | None = None) -> None:
         self.pack_policy = pack_policy or BalatroPackPolicy(skip_bias=0.0)
 
+    def _d9_visible_card_value(
+        self,
+        state,
+        *,
+        rank: str,
+        suit: str,
+        enhancement: str | None,
+        edition: str | None,
+        seal: str | None,
+        profile,
+        deck_growth_support: bool,
+    ) -> float:
+        """Mirror BalatroPackPolicy._score_playing_card with a cached B6 profile."""
+        score = float(self.pack_policy.RANK_VALUE.get(str(rank), 0.0))
+        if enhancement:
+            score += float(
+                self.pack_policy.PLAYING_ENHANCEMENT_VALUE.get(str(enhancement), 0.0)
+            )
+        edition_text = str(edition or "").upper()
+        if edition_text:
+            score += float(self.pack_policy.EDITION_BONUS.get(edition_text, 0.0))
+        seal_text = str(seal or "").upper()
+        if seal_text:
+            score += float(self.pack_policy.PLAYING_SEAL_VALUE.get(seal_text, 0.0))
+
+        contextual = self.pack_policy.playing_card_build.evaluate(
+            state,
+            rank=rank,
+            suit=suit,
+            enhancement=enhancement,
+            seal=seal,
+            edition=edition,
+            profile=profile,
+        )
+        score += float(contextual.total_gain)
+
+        if not enhancement and not edition_text and not seal_text:
+            if deck_growth_support:
+                score += float(self.pack_policy.DECK_GROWTH_CARD_SUPPORT_VALUE)
+            else:
+                score -= float(self.pack_policy.VANILLA_CARD_DILUTION_PENALTY)
+        return score
+
     def evaluate(self, state) -> tuple[float, float, tuple[str, ...]]:
         edition_rate = max(
             0.0,
             float(getattr(state, "joker_generation_edition_rate", 1.0) or 1.0),
         )
+        profile = self.pack_policy.playing_card_build.profiler.profile(state)
+        deck_growth_support = deck_growth_pack_support_active(state)
         total_probability = 0.0
         expected_option_value = 0.0
         positive_probability = 0.0
@@ -100,39 +137,29 @@ class StandardBoosterExpectationEvaluator:
                             )
                             if probability <= 0.0:
                                 continue
-                            modifier = {}
-                            if enhancement is not None:
-                                modifier["enhancement"] = enhancement
-                            if edition is not None:
-                                modifier["edition"] = edition
-                            if seal is not None:
-                                modifier["seal"] = seal
-                            choice = LivePackChoice(
-                                area_index=0,
-                                address=0,
-                                data={
-                                    "ability_set": "PLAYING_CARD",
-                                    "value": {"rank": rank, "suit": suit},
-                                    "modifier": modifier,
-                                },
+                            score = self._d9_visible_card_value(
+                                state,
+                                rank=rank,
+                                suit=suit,
+                                enhancement=enhancement,
+                                edition=edition,
+                                seal=seal,
+                                profile=profile,
+                                deck_growth_support=deck_growth_support,
                             )
-                            action = BalatroAction(SELECT_PACK_CARD, target=choice)
-                            scored = self.pack_policy._score_playing_card(state, action, choice)
-                            # Opened-pack Skip is the sunk-cost zero baseline. A
-                            # negative visible card can always be rejected.
-                            option_value = max(0.0, float(scored.total))
+                            option_value = max(0.0, float(score))
                             total_probability += probability
                             expected_option_value += probability * option_value
                             if option_value > 0.0:
                                 positive_probability += probability
 
-        complete = abs(total_probability - 1.0) <= 1e-9
-        if not complete:
+        if abs(total_probability - 1.0) > 1e-9:
             return 0.0, 0.0, (
                 f"Standard generator probability mass incomplete={total_probability:.12f}",
             )
         return expected_option_value, positive_probability, (
             "Standard one-offer EV uses exact base-game rank/suit/enhancement/seal/edition distribution",
+            "D9 visible-card formula is reused with one cached B6 build profile",
             f"public edition_rate={edition_rate:.6f}",
             f"one-offer positive-choice probability={positive_probability:.6f}",
             f"one-offer sunk-cost option EV={expected_option_value:.6f}",
