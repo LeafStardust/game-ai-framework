@@ -4,15 +4,17 @@ from __future__ import annotations
 
 Arcana and generated-consumable expectations need the same catalogue Balatro's
 ``get_current_pool`` would use, but never its pseudoseed, pool order, or selected
-future result.  This adapter therefore exports only currently eligible center
+future result. This adapter therefore exports only currently eligible center
 records after ordinary public culling: unlock state, duplicate exclusion unless
-Showman is owned, challenge bans, and pool flags.  The normal-pool exclusions for
+Showman is owned, challenge bans, and pool flags. The normal-pool exclusions for
 The Soul and Black Hole are mirrored exactly, as are Balatro's Strength/Incantation
 empty-pool fallbacks.
 
 Omen Globe's redeemed bit is exported alongside the pools because it changes each
-Arcana offer from Tarot-only to an explicit 80% Tarot / 20% Spectral mixture.  It is
-ordinary public run state, not hidden RNG information.
+Arcana offer from Tarot-only to an explicit 80% Tarot / 20% Spectral mixture. Soul
+and Black Hole eligibility are also exported because ``create_card(..., soulable)``
+has an exact 0.3% special override before ordinary pool selection. These are
+ordinary public run-state predicates, not RNG state or future-result information.
 """
 
 from games.balatro.live.runtime import live_memory_observer
@@ -21,8 +23,8 @@ from games.balatro.state import BalatroState
 
 
 _POOL_SPECS = {
-    "TAROT": ("Tarot", "c_strength", "The Strength"),
-    "SPECTRAL": ("Spectral", "c_incantation", "Incantation"),
+    "TAROT": ("Tarot", "c_strength"),
+    "SPECTRAL": ("Spectral", "c_incantation"),
 }
 
 
@@ -55,6 +57,20 @@ def _showman_owned(payload: dict) -> bool:
     )
 
 
+def _special_available(
+    *,
+    key: str,
+    used: dict,
+    banned: dict,
+    showman: bool,
+) -> bool:
+    if _bool_field(banned, key, False):
+        return False
+    if not showman and _bool_field(used, key, False):
+        return False
+    return True
+
+
 def _normalize_consumable_generation_pools(decoder, root, payload):
     outer = live_memory_observer._table_fields(decoder, root.get("P_CENTER_POOLS"))
     game = live_memory_observer._table_fields(decoder, root.get("GAME"))
@@ -66,7 +82,7 @@ def _normalize_consumable_generation_pools(decoder, root, payload):
     complete = True
     result: dict[str, list[dict]] = {}
 
-    for public_name, (pool_name, fallback_key, _fallback_label) in _POOL_SPECS.items():
+    for public_name, (pool_name, fallback_key) in _POOL_SPECS.items():
         pool_value = outer.get(pool_name)
         if pool_value is None or getattr(pool_value, "kind", None) != "table":
             result[public_name] = []
@@ -118,7 +134,7 @@ def _normalize_consumable_generation_pools(decoder, root, payload):
                 continue
 
             # get_current_pool removes these from the ordinary Spectral pool; they
-            # are injected by their own soulable mechanics instead.
+            # are injected only by create_card's separate soulable branch.
             if public_name == "SPECTRAL" and label in {"Black Hole", "The Soul"}:
                 continue
 
@@ -136,7 +152,26 @@ def _normalize_consumable_generation_pools(decoder, root, payload):
 
     used_vouchers = live_memory_observer._table_fields(decoder, game.get("used_vouchers"))
     omen_globe = _bool_field(used_vouchers, "v_omen_globe", False)
-    return result, complete, omen_globe, showman
+    soul_available = _special_available(
+        key="c_soul",
+        used=used,
+        banned=banned,
+        showman=showman,
+    )
+    black_hole_available = _special_available(
+        key="c_black_hole",
+        used=used,
+        banned=banned,
+        showman=showman,
+    )
+    return (
+        result,
+        complete,
+        omen_globe,
+        showman,
+        soul_available,
+        black_hole_available,
+    )
 
 
 def install_consumable_generation_pool_live_state_policy() -> None:
@@ -154,6 +189,8 @@ def install_consumable_generation_pool_live_state_policy() -> None:
         self.consumable_generation_pools = {}
         self.omen_globe_active = False
         self.consumable_generation_showman = False
+        self.soul_generation_available = False
+        self.black_hole_generation_available = False
 
     def state_copy(self):
         copied = original_state_copy(self)
@@ -169,17 +206,30 @@ def install_consumable_generation_pool_live_state_policy() -> None:
         copied.consumable_generation_showman = bool(
             getattr(self, "consumable_generation_showman", False)
         )
+        copied.soul_generation_available = bool(
+            getattr(self, "soul_generation_available", False)
+        )
+        copied.black_hole_generation_available = bool(
+            getattr(self, "black_hole_generation_available", False)
+        )
         return copied
 
     def snapshot_payload_from_live_memory(decoder, root):
         payload, phase, state_complete = original_snapshot_payload(decoder, root)
-        pools, complete, omen_globe, showman = _normalize_consumable_generation_pools(
-            decoder, root, payload
-        )
+        (
+            pools,
+            complete,
+            omen_globe,
+            showman,
+            soul_available,
+            black_hole_available,
+        ) = _normalize_consumable_generation_pools(decoder, root, payload)
         payload["consumable_generation_pool_observed"] = bool(complete)
         payload["consumable_generation_pools"] = pools
         payload["omen_globe_active"] = bool(omen_globe)
         payload["consumable_generation_showman"] = bool(showman)
+        payload["soul_generation_available"] = bool(soul_available)
+        payload["black_hole_generation_available"] = bool(black_hole_available)
         return payload, phase, state_complete
 
     def translate(self, snapshot):
@@ -201,6 +251,12 @@ def install_consumable_generation_pool_live_state_policy() -> None:
         state.omen_globe_active = bool(payload.get("omen_globe_active", False))
         state.consumable_generation_showman = bool(
             payload.get("consumable_generation_showman", False)
+        )
+        state.soul_generation_available = bool(
+            payload.get("soul_generation_available", False)
+        )
+        state.black_hole_generation_available = bool(
+            payload.get("black_hole_generation_available", False)
         )
         return state
 
