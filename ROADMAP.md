@@ -83,7 +83,7 @@ Bond/composition and Build Health remain evidence. They must not become independ
 Canonical inventory: [`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md`](docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md).
 
 - [x] Freeze new gameplay features.
-- [x] Inventory production components currently capable of changing a D1 action and identify `LiveBlindClearPlanner` as the intended final strategic authority.
+- [x] Inventory production components currently capable of changing a D1 action and identify `LiveBlindClearPlanner`/`D1LiveBlindClearPlanner` as the projection/search authority, `LiveHandActionPolicy` as the action arbiter, and `LiveHandActionDecisionEngine` as the D1 orchestration/final-return authority.
 - [x] Inventory production components currently capable of changing D2/D14 shop decisions and identify `BuildAwareShopArbiter` as the intended cross-family final authority.
 - [ ] Complete per-wrapper M/P/E/S/A/G/D classification for every installed D1 and shop wrapper.
 - [ ] Remove or merge late rescue/correction policies when their logic belongs inside the canonical evaluator/arbiter.
@@ -104,7 +104,7 @@ Implementation:
 - [x] Add reusable property-based benchmark framework with overall and per-category scores.
 - [x] Add CLI runner: `python -m games.balatro.red_white_semantic_benchmark`.
 - [x] Add deterministic pytest gate for the semantic suite.
-- [x] Seed the benchmark with the first six reconstructed failure-class cases covering D1 recovery/authority, early scoring admission, conflict authority, early voucher survival, and reachable conditional scoring.
+- [x] Seed the benchmark with the first seven reconstructed/audited cases covering D1 recovery/authority/plan ordering, early scoring admission, conflict authority, early voucher survival, and reachable conditional scoring.
 - [ ] Expand the seed to roughly 50–100 cases using the existing live-run failure archive and important mechanical boundaries.
 - [ ] Ensure every known recent obvious stupid-play class has at least one semantic property case before its next architectural fix.
 
@@ -162,7 +162,7 @@ Until this phase passes, shop sophistication is secondary.
 5. expected discards remaining;
 6. expected score/economy/generated resources as later tie-breaks.
 
-Exact boss mechanics and forced actions remain authoritative.
+Exact boss mechanics and forced actions remain authoritative. Evidence exactness is confidence/safety metadata; outside credible-clear confirmation it must not outrank materially better survival progress.
 
 ### Required work
 
