@@ -140,7 +140,7 @@ def test_red_white_opened_pack_skip_is_zero_sunk_cost():
     )
 
     assert result.total == 0.0
-    assert any("skip_bias=0.000" in note for note in result.rationale)
+    assert any("skip_bias=0.000" in note for note in result.notes)
 
 
 def test_multi_card_redraw_gets_one_discard_resource_efficiency_bonus():
@@ -162,9 +162,6 @@ def test_multi_card_redraw_gets_one_discard_resource_efficiency_bonus():
     singleton_value = evaluator._discard_value(state, singleton, context)
     three_card_value = evaluator._discard_value(state, three_card, context)
 
-    # Base D1 gives +4 per additional redraw. The Red/White correction adds
-    # 16 per additional card here (shortfall=1), because both actions consume
-    # exactly one discard resource. Two extra redraws therefore add 40 total.
     assert three_card_value - singleton_value == 40.0
 
 
