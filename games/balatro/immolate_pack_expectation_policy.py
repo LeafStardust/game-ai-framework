@@ -66,4 +66,10 @@ def install_immolate_pack_expectation_policy() -> None:
 
     BalatroPackPolicy.__init__ = init
     BalatroPackPolicy._score_consumable = score_consumable
+    BalatroPackPolicy.STOCHASTIC_MODELED_SPECTRALS = frozenset(
+        set(BalatroPackPolicy.STOCHASTIC_MODELED_SPECTRALS) | {IMMOLATE}
+    )
+    BalatroPackPolicy.DEFERRED_SPECTRALS = frozenset(
+        set(BalatroPackPolicy.DEFERRED_SPECTRALS) - {IMMOLATE}
+    )
     BalatroPackPolicy._immolate_pack_expectation_policy_installed = True
