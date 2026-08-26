@@ -83,7 +83,8 @@ class HandOrderPolicy:
             ordered_expected_score=float(best_projection.expected_hand_score),
             rationale=(
                 "first-card-sensitive played-card scoring can be improved",
-                "first-card retrigger authority prefers a live selected card over a debuffed selected card",
+                "D1 clear probability and literal score remain authoritative over card liveness",
+                "a live first card is only a final tie-break after the complete score projection",
                 "place the best scoring trigger first before committing the play",
                 f"guaranteed score {current_projection.hand_score} -> "
                 f"{best_projection.hand_score}",
@@ -106,8 +107,12 @@ class HandOrderPolicy:
     def _order_key(cls, ordered, projection) -> tuple[float, ...]:
         any_live = any(not bool(getattr(card, "debuffed", False)) for card in ordered)
         first_live = not bool(getattr(ordered[0], "debuffed", False))
-        live_first_authority = 1.0 if (not any_live or first_live) else 0.0
-        return (live_first_authority, *cls._projection_key(projection))
+        live_first_tiebreak = 1.0 if (not any_live or first_live) else 0.0
+        # This policy runs after D1 has already selected the play. It may improve
+        # first-card-sensitive ordering, but it must never invert D1's survival and
+        # literal-score authority. Card liveness matters only when the exact scoring
+        # projection is otherwise identical.
+        return (*cls._projection_key(projection), live_first_tiebreak)
 
     @staticmethod
     def _projection_key(projection) -> tuple[float, int, float, int]:
