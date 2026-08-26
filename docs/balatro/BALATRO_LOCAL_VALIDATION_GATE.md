@@ -28,6 +28,43 @@ Repair:
 - this is a machine-precision exact-tie increment, not a gameplay/tuning utility coefficient;
 - ordinary discovery decisions continue to use `bounded_discovery_tiebreak()`.
 
+Validation status: **resolved in the user's next collection run; suite then collected 2644 tests with one remaining collection error**.
+
+## Collection blocker 2 — eager `games.balatro.live` package imports
+
+Observed failure:
+
+```text
+ImportError: cannot import name 'Composition' from partially initialized module
+'games.balatro.bonds.composer' (most likely due to a circular import)
+```
+
+Root cause:
+
+- `bonds.composer` imports build strategy/scoring support;
+- `build.literal_score_expectation` imports the specific scoring submodule `live.final_joker_outcomes`;
+- Python initializes `games.balatro.live.__init__` before loading that submodule;
+- the old live package initializer eagerly imported `live.bond_health`;
+- `live.bond_health` imports `bonds.build_health`, which imports `bonds.composer` again before its `Composition` definition exists.
+
+The resulting cycle was:
+
+```text
+bonds.composer
+-> build.literal_score_expectation
+-> live.final_joker_outcomes
+-> live.__init__
+-> live.bond_health
+-> bonds.build_health
+-> bonds.composer
+```
+
+Repair:
+
+- commit `48ab397` converts the convenience exports in `games.balatro.live.__init__` to PEP-562-style lazy `__getattr__` resolution;
+- direct submodule imports no longer initialize unrelated Bond-health/strategy/shop subsystems;
+- the existing public package exports remain available when accessed explicitly.
+
 Validation status: **pending user rerun**.
 
 ## Rules for this gate
