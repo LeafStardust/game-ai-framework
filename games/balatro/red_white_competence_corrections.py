@@ -53,7 +53,6 @@ EXPENSIVE_HAND_SIZE_VOUCHERS = frozenset({"Paint Brush", "Palette"})
 REDRAW_EFFICIENCY_BASE = 8.0
 REDRAW_EFFICIENCY_SHORTFALL_WEIGHT = 8.0
 WHEEL_NAMES = frozenset({"The Wheel of Fortune", "Wheel of Fortune"})
-WHEEL_SHOP_OPTION_FLOOR = 1.25
 REPEATED_HAND_SCENARIO = scenario_feature("repeated_hand")
 
 
@@ -217,10 +216,9 @@ def install_red_white_competence_corrections() -> None:
         expectation = WheelOfFortuneExpectationEvaluator().evaluate(state)
         if not expectation.available or not expectation.complete:
             return decision
-        expected_gain = max(
-            WHEEL_SHOP_OPTION_FLOOR,
-            float(expectation.expected_build_gain),
-        )
+        expected_gain = float(expectation.expected_build_gain)
+        if expected_gain <= 0.0:
+            return decision
         total = expected_gain + economics.total_adjustment
         option = ConsumableAcquisitionOption(
             mode=BUY_AND_USE,
@@ -232,8 +230,7 @@ def install_red_white_competence_corrections() -> None:
             executable_action=BalatroAction(BUY_AND_USE_CONSUMABLE, target=candidate),
             rationale=(
                 "shop Wheel admitted through the same public-state stochastic edition model used by packs",
-                f"analytic expected edition gain={float(expectation.expected_build_gain):.3f}",
-                f"Red/White Wheel option floor={WHEEL_SHOP_OPTION_FLOOR:.3f}",
+                f"analytic expected edition gain={expected_gain:.3f}",
                 f"money after purchase=${economics.money_after}",
                 "D14 shared money/interest scale remains authoritative against END_SHOP",
                 *tuple(expectation.rationale),
