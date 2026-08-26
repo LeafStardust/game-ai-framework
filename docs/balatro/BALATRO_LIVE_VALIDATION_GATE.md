@@ -128,6 +128,42 @@ Commit `3c9c70d` bounds `RerollJokerExpectationEvaluator` without introducing hi
 
 This lower-bound treatment can understate Buffoon/reroll value, but it cannot overstate unseen future value and it guarantees a finite public-Joker evaluation budget at the SHOP boundary.
 
+## Live blocker 3 candidate — exact Standard-pack contextual fan-out
+
+Observed production attempt:
+
+- session: `balatro-20260826T175657Z-ed49c8ab`
+- attempt: `balatro-20260826T175657Z-ed49c8ab-attempt-001`
+- Red Deck / White Stake
+- Juggler was bought successfully in the preceding SHOP;
+- the agent then ended that shop, cleared the next blind, cashed out, and reached the following settled SHOP;
+- money: $11
+- owned Jokers: Juggler
+- visible offers: Hack $6, Baron $8, Arcana Pack $4, Standard Pack $4, Clearance Sale $10.
+
+The user described this as stopping after buying a Joker, but the JSONL shows the Juggler transaction and subsequent round completed. The actual stall begins only after the next SHOP is settled and before its first SHOP decision event.
+
+D11 is not the dominant path in this state: the normal $5 reroll would leave $6 and is rejected by the $10 post-reroll reserve before future-offer EV. Clearance Sale is also cheap because its parent value is policy-contingent and therefore fails closed at zero rather than projecting hypothetical purchases.
+
+The dominant remaining identified hot path is unopened Standard-pack D8 value. `StandardBoosterExpectationEvaluator` integrates the exact public generator over 13 ranks × 4 suits × 9 enhancement states × 4 edition states × 5 seal states = 9,360 branches. Before the repair, each branch called the contextual B6 playing-card build evaluator even though the same build profile was already cached.
+
+### Repair
+
+Commit `ace91f6` preserves the exact Standard generator, branch probabilities, direct D9 values, vanilla dilution, deck-growth value, and per-branch `max(0, score)` clipping, but factorizes the contextual B6 term:
+
+- rank context is evaluated once for each of 13 ranks;
+- suit context once for each of 4 suits;
+- enhancement context once for each of 8 non-null enhancements;
+- edition context once for each of 3 non-null editions;
+- seal context once for each of 4 non-null seals;
+- all 8 × 4 enhancement/seal pairs are evaluated once to preserve the only current cross-axis overlap (`held:effect`, shared by Steel/Gold and Blue Seal) through an explicit non-additive correction;
+- the 9,360 exact probability branches are still integrated unchanged;
+- contextual graph calls are therefore reduced from 9,360 to exactly 64 without changing Standard-pack EV semantics.
+
+Commit `6bae6d8` adds a regression asserting the real unopened Standard evaluator remains bounded at exactly 64 contextual B6 calls.
+
+This is currently a **live blocker candidate**, not yet claimed as the proven sole cause of the third stall; the next user deterministic run and live attempt will determine whether Arcana or another remaining path also needs a runtime bound.
+
 Validation status: **pending user local deterministic rerun on current HEAD, then a fresh three-attempt Red/White live baseline**.
 
 ## Current commands
