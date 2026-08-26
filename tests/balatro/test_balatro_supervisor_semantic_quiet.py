@@ -1,35 +1,16 @@
 from games.balatro.live.protocol import LiveBalatroSnapshot
-from games.balatro.live.runtime import live_memory_discard_history_observer as observer_module
 from games.balatro.live.runtime.live_memory_discard_history_observer import (
     DiscardHistorySupervisorLiveMemoryBalatroObserver,
     semantic_snapshot_key,
 )
 
 
-class _Clock:
+class _NonPollingObserver(DiscardHistorySupervisorLiveMemoryBalatroObserver):
     def __init__(self):
-        self.now = 0.0
-
-    def monotonic(self):
-        return self.now
-
-    def sleep(self, seconds):
-        self.now += float(seconds)
-
-
-class _QuietObserver(DiscardHistorySupervisorLiveMemoryBalatroObserver):
-    def __init__(self, snapshots):
-        self.snapshots = list(snapshots)
-        self.full_state_quiet_seconds = 1.0
-        self.full_state_quiet_timeout_seconds = 5.0
-        self.full_state_quiet_poll_seconds = 0.25
-        self._last_semantic_quiescent_key = None
-        self._last_quiescent_sequence = None
+        pass
 
     def _observe_public(self):
-        if self.snapshots:
-            return self.snapshots.pop(0)
-        raise AssertionError("semantic quiet gate polled beyond supplied snapshots")
+        raise AssertionError("production general quiet hook must not poll")
 
 
 def _snapshot(sequence, *, money=10, x=0.0):
@@ -64,45 +45,20 @@ def test_semantic_snapshot_key_ignores_ui_geometry_but_not_game_state():
     assert semantic_snapshot_key(before) != semantic_snapshot_key(changed)
 
 
-def test_supervisor_quiet_gate_does_not_reset_on_ui_only_sequence_churn(monkeypatch):
-    clock = _Clock()
-    monkeypatch.setattr(observer_module, "monotonic", clock.monotonic)
-    monkeypatch.setattr(observer_module, "sleep", clock.sleep)
+def test_production_supervisor_general_quiet_hook_returns_without_polling():
+    observer = _NonPollingObserver()
+    snapshot = _snapshot(41, money=17, x=12.0)
 
-    initial = _snapshot(1, x=0.0)
-    observer = _QuietObserver(
-        [
-            _snapshot(2, x=1.0),
-            _snapshot(3, x=2.0),
-            _snapshot(4, x=3.0),
-            _snapshot(5, x=4.0),
-        ]
-    )
+    result = observer._wait_for_full_state_quiet(snapshot)
 
-    result = observer._wait_for_full_state_quiet(initial)
-
-    assert result.sequence == 5
-    assert clock.now == 1.0
-    assert observer._last_semantic_quiescent_key == semantic_snapshot_key(result)
+    assert result is snapshot
 
 
-def test_supervisor_quiet_gate_resets_on_semantic_public_change(monkeypatch):
-    clock = _Clock()
-    monkeypatch.setattr(observer_module, "monotonic", clock.monotonic)
-    monkeypatch.setattr(observer_module, "sleep", clock.sleep)
+def test_general_quiet_hook_does_not_require_semantic_state_to_stop_changing():
+    observer = _NonPollingObserver()
+    initial = _snapshot(42, money=17)
+    changed = _snapshot(43, money=18)
 
-    initial = _snapshot(1, money=10)
-    observer = _QuietObserver(
-        [
-            _snapshot(2, money=11),
-            _snapshot(3, money=11, x=1.0),
-            _snapshot(4, money=11, x=2.0),
-            _snapshot(5, money=11, x=3.0),
-            _snapshot(6, money=11, x=4.0),
-        ]
-    )
-
-    result = observer._wait_for_full_state_quiet(initial)
-
-    assert result.sequence == 6
-    assert clock.now == 1.25
+    assert semantic_snapshot_key(initial) != semantic_snapshot_key(changed)
+    assert observer._wait_for_full_state_quiet(initial) is initial
+    assert observer._wait_for_full_state_quiet(changed) is changed
