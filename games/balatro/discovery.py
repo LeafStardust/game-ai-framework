@@ -4,6 +4,14 @@ from math import inf, nextafter
 from typing import Mapping
 
 
+# Compatibility-only tiny positive cap for legacy callers that still need an
+# additive tie-break rather than the preferred value-aware helper below.  The
+# magnitude is derived from floating-point spacing (one ULP at 4.0), not from a
+# gameplay utility constant.  New decision code should prefer
+# ``bounded_discovery_tiebreak`` so the increment is relative to the compared value.
+DISCOVERY_TIEBREAK_CAP = nextafter(4.0, inf) - 4.0
+
+
 def discovery_status(item) -> bool | None:
     """Return explicit public collection-discovery state when it is available."""
     if item is None:
