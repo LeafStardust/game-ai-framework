@@ -14,12 +14,9 @@ from games.balatro.actions import DISCARD_CARDS
 from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.bonds.model import BondRank
 from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.hand_action_policy import PACE_RECOVERY
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
-
-
-MIN_SAFE_BURNT_CLEAR_PROBABILITY = 0.70
-MAX_CLEAR_PROBABILITY_SACRIFICE = 0.08
 
 
 def _burnt_development(state):
@@ -76,31 +73,34 @@ def _target_hand(development) -> str:
     return str(getattr(development, "target", None) or "HIGH_CARD").upper()
 
 
-def _discard_hand_type(evaluator: HandEvaluator, plan) -> str:
+def _discard_hand_type(evaluator: HandEvaluator, state, plan) -> str:
     try:
         cards = list(plan.action.cards)
         if not cards:
             return ""
-        return str(evaluator.evaluate(cards).value).upper()
+        return str(
+            evaluator.evaluate(cards, rules=hand_rules_for_state(state)).value
+        ).upper()
     except (AttributeError, TypeError, ValueError):
         return ""
 
 
-def _safe_burnt_discard(decision, discards):
+def _safe_burnt_discards(decision, discards, *, epsilon: float = 1e-9):
     if not discards:
-        return None
-    selected_probability = _clear_probability(decision.selected_plan)
-    floor = max(
-        MIN_SAFE_BURNT_CLEAR_PROBABILITY,
-        selected_probability - MAX_CLEAR_PROBABILITY_SACRIFICE,
+        return ()
+    selected = getattr(decision, "selected_plan", None)
+    if selected is None:
+        return ()
+    selected_probability = _clear_probability(selected)
+    tolerance = float(
+        getattr(getattr(decision, "thresholds", None), "safe_clear_probability_tolerance", 0.0)
+        or 0.0
     )
-    safe = [plan for plan in discards if _clear_probability(plan) >= floor]
-    if safe:
-        return safe
-
-    # If the baseline itself has low modeled clear probability, do not pretend the
-    # Burnt setup is safe. Survival remains above permanent scaling.
-    return None
+    return tuple(
+        plan
+        for plan in discards
+        if _clear_probability(plan) + tolerance + epsilon >= selected_probability
+    )
 
 
 def install_burnt_bond_execution_policy() -> None:
@@ -124,13 +124,13 @@ def install_burnt_bond_execution_policy() -> None:
             return decision
 
         discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
-        safe = _safe_burnt_discard(decision, discards)
+        safe = _safe_burnt_discards(decision, discards, epsilon=self.EPSILON)
         if not safe:
             return replace(
                 decision,
                 rationale=(
                     *decision.rationale,
-                    "Burnt Bond first-discard setup withheld because no discard line preserved the required modeled clear probability",
+                    "Burnt Bond first-discard setup withheld because no discard line remained within canonical D1 clear-probability tolerance",
                     "survival remains authoritative over permanent Burnt scaling",
                 ),
             )
@@ -138,9 +138,9 @@ def install_burnt_bond_execution_policy() -> None:
         target = _target_hand(development)
         target_safe = [
             plan for plan in safe
-            if _discard_hand_type(hand_evaluator, plan) == target
+            if _discard_hand_type(hand_evaluator, state, plan) == target
         ]
-        candidates = target_safe or safe
+        candidates = target_safe or list(safe)
         selected = max(
             candidates,
             key=lambda plan: (
@@ -151,8 +151,12 @@ def install_burnt_bond_execution_policy() -> None:
             ),
         )
         selected_probability = _clear_probability(selected)
-        selected_type = _discard_hand_type(hand_evaluator, selected)
+        selected_type = _discard_hand_type(hand_evaluator, state, selected)
         value = float(self.evaluator.evaluate(state, selected.action))
+        tolerance = float(
+            getattr(getattr(decision, "thresholds", None), "safe_clear_probability_tolerance", 0.0)
+            or 0.0
+        )
 
         banner_owned = any(
             str(getattr(joker, "name", getattr(joker, "label", type(joker).__name__))).lower().replace(" ", "")
@@ -160,7 +164,7 @@ def install_burnt_bond_execution_policy() -> None:
             for joker in getattr(state, "jokers", ()) or ()
         )
         banner_note = (
-            "Banner is owned: one remaining-discard chip payment is accepted because this safe first discard creates permanent Burnt hand-level growth"
+            "Banner is owned: one remaining-discard chip payment is accepted because this survival-equivalent first discard creates permanent Burnt hand-level growth"
             if banner_owned
             else "Burnt first-discard setup creates permanent hand-level growth"
         )
@@ -175,10 +179,11 @@ def install_burnt_bond_execution_policy() -> None:
             selected_fallback_value=value,
             confidence=max(float(decision.confidence), selected_probability),
             rationale=(
-                f"Burnt Bond execution: activate the first-discard level before playing when survival remains safe",
+                "Burnt Bond execution: activate the first-discard level before playing only on a D1 survival-equivalent line",
                 f"Burnt target={target}; selected discard hand={selected_type}; modeled clear probability={selected_probability:.3f}",
+                f"canonical D1 clear-probability tolerance={tolerance:.3f}",
                 banner_note,
-                "canonical Burnt authority overrides the generic pace-qualified PLAY preference only for this first safe discard",
+                "canonical Burnt authority overrides the generic pace-qualified PLAY preference only for this first survival-equivalent discard",
                 *decision.rationale,
             ),
         )
