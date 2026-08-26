@@ -32,12 +32,9 @@ def _descriptor_tokens(joker: object) -> tuple[str, ...]:
 
 
 def _has_discard_precision_semantics(state) -> bool:
-    # Purple Seal makes the identity of a discarded card materially relevant.
     for card in tuple(getattr(state, "hand", ()) or ()):
         if "purple" in str(getattr(card, "seal", "") or "").lower():
             return True
-    # Keep this generic: any modeled Joker whose canonical scenario semantics refer
-    # to discarding may make a precise one-card discard intentional.
     return any(
         any("discard" in token for token in _descriptor_tokens(joker))
         for joker in tuple(getattr(state, "jokers", ()) or ())
@@ -74,9 +71,6 @@ def install_live_competence_guard_policy() -> None:
             return priority
         if _has_discard_precision_semantics(state):
             return priority
-        # One discard resource buys up to five redraws. With no mechanic that cares
-        # which exact card is discarded, a one-card recovery discard is dominated
-        # whenever the generator also supplies ordinary multi-card redraws.
         return (-1_000_000_000.0, 1)
 
     def candidate_actions(
@@ -140,13 +134,19 @@ def install_live_competence_guard_policy() -> None:
         ]
         if not legal:
             return decision
-        selected = max(legal, key=lambda option: float(getattr(option, "build_gain", 0.0) or 0.0))
-        selected = replace(selected, eligible=True)
+        raw_selected = max(
+            legal,
+            key=lambda option: float(getattr(option, "build_gain", 0.0) or 0.0),
+        )
+        selected = replace(raw_selected, eligible=True)
         return replace(
             decision,
             action=BUY,
             selected=selected,
-            options=tuple(selected if option is legal[0] else option for option in options),
+            options=tuple(
+                selected if option is raw_selected else option
+                for option in options
+            ),
             rationale=(
                 *tuple(getattr(decision, "rationale", ()) or ()),
                 "live competence guard: affordable positive immediate scoring in a free early slot cannot be threshold-rejected",
