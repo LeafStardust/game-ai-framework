@@ -2,7 +2,6 @@ from types import SimpleNamespace
 
 import games.balatro.build_health_policy as build_health_policy
 import games.balatro.shop_clear_probability_health_policy as clear_health
-from games.balatro.build_health_policy import PlaybookBuildHealthShopArbiter
 from games.balatro.build_health_runtime import RuntimeBuildHealthEvaluator
 from games.balatro.shop_runtime_contract_policy import install_shop_runtime_contract_policy
 
@@ -70,10 +69,10 @@ def test_legacy_named_bundle_planner_cannot_reopen_canonical_shop_arbitration():
     install_shop_runtime_contract_policy()
     sentinel = object()
 
-    result = PlaybookBuildHealthShopArbiter._bundle_decision(
-        object(),
+    result = build_health_policy._bundle_decision(
         SimpleNamespace(phase="SHOP"),
         sentinel,
+        object(),
     )
 
     assert result is sentinel
