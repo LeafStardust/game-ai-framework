@@ -197,7 +197,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                         "second_selection_value_fraction": 0.55,
                     },
                     "pack_choice": {
-                        "skip_bias": 0.35,
+                        "skip_bias": 0.0,
                     },
                     "pack_target": {
                         "minimum_total_gain": None,
