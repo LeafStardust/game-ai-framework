@@ -1,14 +1,41 @@
 from __future__ import annotations
 
+from time import monotonic, sleep
+
 from games.balatro.live.protocol import LiveBalatroSnapshot
 
 from .live_memory_observer import (
+    LiveMemoryObservationError,
     _array_table_values,
     _boolean,
     _integer,
     _table_fields,
 )
 from .live_memory_supervisor_observer import SupervisorLiveMemoryBalatroObserver
+
+
+def _semantic_value(value):
+    """Freeze public planner state while excluding presentation-only ``ui`` data."""
+    if isinstance(value, dict):
+        return tuple(
+            (str(key), _semantic_value(item))
+            for key, item in sorted(value.items(), key=lambda pair: str(pair[0]))
+            if str(key) != "ui"
+        )
+    if isinstance(value, list):
+        return tuple(_semantic_value(item) for item in value)
+    if isinstance(value, tuple):
+        return tuple(_semantic_value(item) for item in value)
+    return value
+
+
+def semantic_snapshot_key(snapshot) -> tuple:
+    """Return the same planner-relevant checkpoint identity used by stale guards."""
+    return (
+        str(snapshot.phase),
+        bool(snapshot.state_complete),
+        _semantic_value(snapshot.payload),
+    )
 
 
 def public_discard_history(decoder, root) -> tuple[int, int] | None:
@@ -48,13 +75,71 @@ def public_forced_selection_flags(decoder, root) -> tuple[bool, ...] | None:
 class DiscardHistorySupervisorLiveMemoryBalatroObserver(
     SupervisorLiveMemoryBalatroObserver
 ):
-    """Add narrow public round/controller fields to supervisor snapshots.
+    """Expose public controller fields with semantic supervisor quiescence.
 
     Besides exact discard usage, Cerulean Bell's currently forced hand card is a
     public controller constraint stored on ``card.ability.forced_selection``.
-    Exposing that bit does not reveal future RNG: it only describes the card the
-    game has already selected at the current checkpoint.
+
+    The production supervisor's general quiet barrier is semantic rather than
+    presentation-geometric. Native readiness remains authoritative, and the base
+    observer's dedicated pack-to-SHOP Joker visual-settle gate still handles the
+    one transition where card geometry is itself evidence that a native callback
+    is still completing. Ordinary card/shop hover and animation geometry must not
+    block the planner for the full raw-sequence timeout.
     """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._last_semantic_quiescent_key: tuple | None = None
+
+    def _wait_for_full_state_quiet(self, snapshot):
+        """Require semantic public state to stay quiet; ignore ``ui``-only churn."""
+        key = semantic_snapshot_key(snapshot)
+        if (
+            snapshot.state_complete
+            and self._last_semantic_quiescent_key is not None
+            and key == self._last_semantic_quiescent_key
+        ):
+            return snapshot
+
+        deadline = monotonic() + self.full_state_quiet_timeout_seconds
+        last = snapshot
+        last_key = key
+        quiet_since = monotonic() if snapshot.state_complete else None
+
+        while True:
+            now = monotonic()
+            if (
+                quiet_since is not None
+                and now - quiet_since >= self.full_state_quiet_seconds
+            ):
+                self._last_semantic_quiescent_key = last_key
+                # Retain the inherited diagnostic/cache field for compatibility.
+                # A later UI-only raw sequence may differ, but semantic key reuse
+                # above remains authoritative for this production subclass.
+                self._last_quiescent_sequence = int(last.sequence)
+                return last
+
+            if now >= deadline:
+                raise LiveMemoryObservationError(
+                    "Balatro semantic public state did not remain quiescent before "
+                    "supervisor command readiness; "
+                    f"phase={last.phase}, sequence={last.sequence}, "
+                    f"complete={bool(last.state_complete)}"
+                )
+
+            if self.full_state_quiet_poll_seconds:
+                sleep(self.full_state_quiet_poll_seconds)
+            current = self._observe_public()
+            current_key = semantic_snapshot_key(current)
+
+            if current_key != last_key or not current.state_complete:
+                last_key = current_key
+                quiet_since = monotonic() if current.state_complete else None
+            elif quiet_since is None and current.state_complete:
+                quiet_since = monotonic()
+
+            last = current
 
     def _observe_public(self):
         snapshot = super()._observe_public()
