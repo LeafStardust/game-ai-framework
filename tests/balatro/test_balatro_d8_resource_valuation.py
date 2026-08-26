@@ -66,18 +66,22 @@ def test_d8_uses_parent_shared_resource_valuator_with_d8_owned_coefficients():
 
     result = policy.recommend(state, action)
 
-    assert valuator.calls == [
-        {
-            "money": 20,
-            "spend": 5,
-            "price_weight": 0.7,
-            "interest_weight": 1.9,
-            "reserve_target": 9,
-            "reserve_weight": 0.8,
-            "vouchers": [],
-            "jokers": [],
-        }
-    ]
+    expected_call = {
+        "money": 20,
+        "spend": 5,
+        "price_weight": 0.7,
+        "interest_weight": 1.9,
+        "reserve_target": 9,
+        "reserve_weight": 0.8,
+        "vouchers": [],
+        "jokers": [],
+    }
+    # Layered Celestial expectation may re-evaluate the same shared transaction
+    # cost after replacing the generic family EV. Every pass must use the same
+    # parent valuator and the D8-owned coefficients; no child-specific economics
+    # are permitted.
+    assert valuator.calls
+    assert all(call == expected_call for call in valuator.calls)
     assert result.price_penalty == 1.0
     assert result.interest_penalty == 2.0
     assert result.reserve_penalty == 3.0
