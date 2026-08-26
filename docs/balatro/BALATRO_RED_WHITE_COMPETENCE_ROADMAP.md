@@ -181,6 +181,8 @@ Completed or validated in the current semantic/runtime pass:
 
 - synthetic chip/Mult/XMult coverage overrides were removed from the Red/White correction layer; literal modeled scoring remains the score authority;
 - stateful/contextual scoring paths used by shop valuation were repaired and covered by regressions, including repeated-hand activation for Card Sharp and current-state contribution/replacement behavior;
+- the named contextual-Joker valuation audit is complete for **Joker Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm**: existing literal/live-state authorities were verified where correct, prospective Blueprint/Brainstorm now compare legal best Joker ordering instead of append-only placement, Bull/Bootstraps candidate scoring uses post-transaction cash, and Banner shop valuation uses the authoritative next-round discard allowance rather than the previous blind's leftovers;
+- D14 replacement cash-scaling cost now excludes the sold incumbent, preventing Bull/Bootstraps from being charged as though they still existed after their actual replacement contribution had already been removed;
 - D1 discard ranking was moved back under the canonical D1 evaluator/planner path instead of a competing mini-heuristic, with multi-card redraw behavior covered by deterministic tests;
 - **The Psychic** now scores legal 1–4 card burn/cycling plays as zero while preserving normal scoring for valid five-card plays;
 - **Purple Seal** discard value now survives planner search: a mechanically distinct Purple-Seal branch is preserved when a Tarot can actually be generated, and generated consumables are carried only as a late survival-equivalent expectimax tie-break;
@@ -205,7 +207,9 @@ Completed or validated in the current semantic/runtime pass:
 - the bounded three-attempt supervisor is regression-locked to stop after attempt 3 without invoking another restart; the historical post-`run_finished` crash is retired unless it reproduces again on current unchanged HEAD;
 - the full `tests/balatro` suite is green through the Hook/Burnt and bounded-supervisor checkpoint on 2026-08-26;
 - opened-pack Skip now uses the true sunk-cost baseline in the Red/White production cartridge instead of the historical `+0.35` preference;
-- **The High Priestess** has a public-state expectation model over the eligible Planet pool and that model is installed into the production pack policy stack; no RNG sample, seed, or hidden pack content is consulted.
+- **The High Priestess** has a public-state expectation model over the eligible Planet pool and that model is installed into the production pack policy stack; no RNG sample, seed, or hidden pack content is consulted;
+- **Wraith** now uses the current public eligible Rare-Joker pool, public edition odds, whole-build Joker valuation, and the full cash-to-zero resource cost; injected completion requires one new Rare Joker and `$0` money;
+- **Judgement** now uses the current public Common/Uncommon/Rare Joker pools with the real 70/25/5 rarity mixture and public edition odds; newly generated To Do List branches are averaged over the exact currently visible poker-hand targets, and injected completion requires one new Joker.
 
 Implemented in the current boss/consumable batch and awaiting deterministic suite validation:
 
@@ -216,7 +220,8 @@ Implemented in the current boss/consumable batch and awaiting deterministic suit
 
 Still open before a new live baseline:
 
-- finish the remaining pack/consumable opportunity-cost, stochastic-outcome, and target-selection audit; the opened-pack Skip baseline and High Priestess production wiring are corrected, but other deferred/synthetic pack cases remain to audit;
+- finish the remaining pack/consumable opportunity-cost, stochastic-outcome, and target-selection audit; current explicit blockers are **The Emperor**, **Ouija**, and **Ectoplasm** rather than synthetic valuation being invented for incomplete outcome/opportunity-cost models;
+- finish the remaining literal current/candidate score and replacement/D14 audit beyond the completed named contextual-Joker pass;
 - finish the remaining boss-mechanics inventory after Verdant Leaf / Crimson Heart regressions validate; do not manufacture duplicate handlers for effects already embodied in authoritative live state;
 - finish any remaining D1 discard-trigger/hand-play contradiction audit after the current batch validates;
 - rerun the full Balatro suite after the remaining changes, then perform a fresh production-default three-run Red/White batch.
@@ -226,7 +231,7 @@ Still open before a new live baseline:
 Do not start another live calibration baseline until these semantic/runtime issues are addressed:
 
 - [ ] Ensure literal score projection is authoritative for current and candidate builds; remove synthetic category substitutes.
-- [ ] Audit contextual Joker valuation, beginning with Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm.
+- [x] Audit contextual Joker valuation, beginning with Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm.
 - [ ] Verify strategy formation and R0 evidence influence acquisition from Ante 1 without overpowering survival.
 - [ ] Repair shop cross-family arbitration so visible Joker strength, vouchers, packs, consumables, rerolls, and economy compare on a run-winning basis rather than incompatible local units.
 - [ ] Repair Joker replacement using actual incumbent/candidate score, scaling, economy, realization, and strategy disruption.
@@ -235,7 +240,7 @@ Do not start another live calibration baseline until these semantic/runtime issu
 - [ ] Audit boss-specific execution against exact mechanics.
 - [x] Bound the three-attempt supervisor so final attempt completion cannot issue a fourth restart; retire the historical post-`run_finished` crash unless reproduced on current unchanged HEAD.
 - [ ] Add direct regressions for every live defect above before a new authoritative batch.
-- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through Hook/Burnt forced-discard semantics and bounded final-attempt shutdown; Verdant/Crimson, literal consumable-target value, and subsequent pack corrections are pending the next suite run.
+- [x] Run `tests/balatro` and require green before live validation. Latest validated deterministic checkpoint: green on 2026-08-26 through Hook/Burnt forced-discard semantics and bounded final-attempt shutdown; Verdant/Crimson, literal consumable-target value, Wraith/Judgement, post-transaction Joker valuation, Banner reset-resource valuation, and subsequent pack corrections are pending the next suite run.
 - [ ] Only after semantic/runtime defects are clean, run a fresh three-run Red/White production-default baseline.
 - [ ] Keep Optuna numerical tuning frozen until the clean baseline contains no obvious semantic/runtime contradiction.
 
