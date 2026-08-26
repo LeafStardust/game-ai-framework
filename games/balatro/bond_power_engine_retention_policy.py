@@ -7,8 +7,9 @@ happen to rank some other Bond as the single current ``power_engine``. The selec
 power engine is also protected once it reaches R2, even while its realization is
 still PARTIAL. Retention is therefore source-aware: every realized or developed
 Bond materially contributed by the incumbent being sold is protected unless the
-projected build preserves that Bond or the replacement itself creates a materially
-stronger engine.
+projected build preserves that Bond, the replacement itself creates a materially
+stronger engine, or the current run is already survival-critical and the exact
+post-transaction replacement strictly improves modeled survival.
 
 This layer also prevents canonical Bond-transition bonuses from rescuing a Joker
 replacement that is already worse on the common whole-build baseline. Structural
@@ -20,7 +21,10 @@ import copy
 from dataclasses import replace
 
 from games.balatro.bonds.diagnostics import bond_strategy_diagnostics
-from games.balatro.build_health_runtime import projected_state_with_jokers
+from games.balatro.build_health_runtime import (
+    RuntimeBuildHealthEvaluator,
+    projected_state_with_jokers,
+)
 from games.balatro.joker_policy import HOLD, REPLACE
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 
@@ -31,6 +35,7 @@ _REALIZATION_VALUE = {
     "ACTIVE": 1.0,
     "MATURE": 1.5,
 }
+_HEALTH = RuntimeBuildHealthEvaluator()
 
 
 def _normalize(value: object) -> str:
@@ -74,11 +79,35 @@ def _projected_jokers(state, candidate, index: int):
     return tuple(jokers)
 
 
+def _post_transaction_money(decision, fallback: int) -> int:
+    try:
+        return int(decision.selected.economics.money_after)
+    except (AttributeError, TypeError, ValueError):
+        return int(fallback)
+
+
+def _critical_survival_escape(state, projected_state) -> tuple[bool, tuple[str, ...]]:
+    try:
+        current = _HEALTH.evaluate(state)
+        projected = _HEALTH.evaluate(projected_state)
+    except (AttributeError, KeyError, TypeError, ValueError, RuntimeError):
+        return False, ()
+    if not bool(getattr(current, "critical", False)):
+        return False, ()
+    if float(projected.survival) <= float(current.survival) + 1e-12:
+        return False, ()
+    return True, (
+        "developed Bond retention released because current Build Health is survival-critical",
+        f"modeled post-transaction survival improves {float(current.survival):.3f}->{float(projected.survival):.3f}",
+        "survival rescue outranks retention of an ACTIVE/MATURE or developed power engine",
+    )
+
+
 def _incumbent_realized_bonds(current: dict, incumbent) -> tuple[dict, ...]:
     """Return incumbent Bonds that are already too developed to discard casually.
 
     ACTIVE/MATURE Bonds remain protected regardless of which engine is currently
-    strongest.  The selected power engine also becomes protected at R2 even when
+    strongest. The selected power engine also becomes protected at R2 even when
     realization is still PARTIAL: that is a developed composition, not scouting.
     This distinction prevents a short-lived standalone tempo Joker from deleting
     one half of the run's strongest forming engine merely because its immediate
@@ -216,6 +245,10 @@ def install_bond_power_engine_retention_policy() -> None:
         if projected_jokers is None:
             return decision
         projected_state = projected_state_with_jokers(state, projected_jokers)
+        projected_state.money = _post_transaction_money(
+            decision,
+            int(getattr(state, "money", 0) or 0),
+        )
         projected = bond_strategy_diagnostics(projected_state)
         projected_map = _relevant_map(projected)
 
@@ -235,6 +268,16 @@ def install_bond_power_engine_retention_policy() -> None:
                     *decision.rationale,
                     "developed incumbent Bond retention check passed: replacement preserves all ACTIVE/MATURE or R2+ selected-engine Bonds",
                 ),
+            )
+
+        survival_escape, survival_notes = _critical_survival_escape(
+            state,
+            projected_state,
+        )
+        if survival_escape:
+            return replace(
+                decision,
+                rationale=(*decision.rationale, *survival_notes),
             )
 
         # Sticky, not immortal: abandoning a realized incumbent engine is allowed
