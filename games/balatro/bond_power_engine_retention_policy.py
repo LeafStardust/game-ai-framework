@@ -16,6 +16,7 @@ progress is useful evidence, but it is not permission to sell a proven scoring
 component for a weaker candidate.
 """
 
+import copy
 from dataclasses import replace
 
 from games.balatro.bonds.diagnostics import bond_strategy_diagnostics
@@ -106,18 +107,37 @@ def _incumbent_realized_bonds(current: dict, incumbent) -> tuple[dict, ...]:
 
 
 def _raw_replacement_delta(policy, state, candidate, index: int) -> float | None:
-    """Return the common-baseline D2 delta before Bond-transition bonuses."""
+    """Return the post-transaction common-baseline D2 delta before Bond bonuses.
+
+    D2 scores a candidate on the cash state that exists after selling the incumbent
+    and buying the replacement. The retention guard must use that same mechanical
+    baseline; re-running ``transition_planner.plan`` here would incorrectly restore
+    the historical pre-transaction-cash valuation for Bull/Bootstraps builds.
+    """
     try:
-        transition = policy.transition_planner.plan(state, candidate)
-    except (AttributeError, TypeError, ValueError):
+        incumbent = tuple(getattr(state, "jokers", ()) or ())[index]
+        economics = policy._economics(
+            state,
+            candidate,
+            incumbent=incumbent,
+            replacement=True,
+        )
+        if int(economics.money_after) < 0:
+            return None
+
+        baseline = copy.deepcopy(state)
+        removed = baseline.jokers.pop(index)
+        incumbent_gain = float(
+            policy.transition_planner.evaluator.evaluate(baseline, removed).total_gain
+        )
+        candidate_baseline = copy.deepcopy(baseline)
+        candidate_baseline.money = int(economics.money_after)
+        candidate_gain = float(
+            policy.transition_planner.evaluator.evaluate(candidate_baseline, candidate).total_gain
+        )
+    except (AttributeError, IndexError, TypeError, ValueError):
         return None
-    for option in tuple(getattr(transition, "alternatives", ()) or ()):
-        try:
-            if int(option.replace_index) == int(index):
-                return float(option.build_delta)
-        except (AttributeError, TypeError, ValueError):
-            continue
-    return None
+    return candidate_gain - incumbent_gain
 
 
 def _best_material_projected_engine(
@@ -169,8 +189,7 @@ def install_bond_power_engine_retention_policy() -> None:
 
         # A structural/Bond bonus may improve long-horizon confidence, but it must
         # never turn a whole-build regression into an incumbent sale. The common
-        # baseline already includes immediate score and contextual mechanical
-        # semantics. If the candidate loses that comparison, keep the incumbent.
+        # baseline includes the candidate's actual post-transaction cash state.
         raw_delta = _raw_replacement_delta(self, state, candidate, index)
         minimum_raw_delta = float(
             getattr(getattr(decision, "thresholds", None), "minimum_replacement_build_delta", 0.0)
@@ -183,8 +202,8 @@ def install_bond_power_engine_retention_policy() -> None:
                 selected=None,
                 rationale=(
                     *decision.rationale,
-                    f"whole-build incumbent retention veto: raw replacement delta={raw_delta:.3f} must exceed {minimum_raw_delta:.3f} before Bond-transition bonuses",
-                    "structural/Bond progress cannot rescue a candidate that is already worse than the incumbent on the common baseline",
+                    f"whole-build incumbent retention veto: post-transaction raw replacement delta={raw_delta:.3f} must exceed {minimum_raw_delta:.3f} before Bond-transition bonuses",
+                    "structural/Bond progress cannot rescue a candidate that is already worse than the incumbent on the same post-transaction mechanical baseline used by D2",
                 ),
             )
 
