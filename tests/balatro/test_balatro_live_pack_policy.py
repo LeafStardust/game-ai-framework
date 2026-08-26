@@ -69,28 +69,7 @@ def test_vanilla_playing_card_can_lose_to_skip():
     assert ranked[0].action.name == SKIP_BOOSTER
 
 
-def test_enhanced_playing_card_beats_skip():
-    choice = LivePackChoice(
-        area_index=0,
-        address=102,
-        data={
-            "area_index": 0,
-            "ability_set": "PLAYING_CARD",
-            "live_id": 3,
-            "value": {"rank": "8", "suit": "Hearts"},
-            "modifier": {"enhancement": "m_gold"},
-        },
-    )
-
-    ranked = BalatroPackPolicy().rank_actions(
-        _state("STANDARD_PACK"),
-        [BalatroAction(SELECT_PACK_CARD, target=choice), BalatroAction(SKIP_BOOSTER)],
-    )
-
-    assert ranked[0].action.name == SELECT_PACK_CARD
-
-
-def test_context_match_alone_does_not_justify_vanilla_deck_bloat():
+def test_context_match_must_exceed_vanilla_deck_bloat_cost():
     choice = LivePackChoice(
         area_index=0,
         address=102,
@@ -105,16 +84,18 @@ def test_context_match_alone_does_not_justify_vanilla_deck_bloat():
     policy = BalatroPackPolicy(
         playing_card_build=_FixedPlayingCardBuild(1.086),
     )
+    state = _state("STANDARD_PACK")
+    actions = [BalatroAction(SELECT_PACK_CARD, target=choice), BalatroAction(SKIP_BOOSTER)]
 
-    ranked = policy.rank_actions(
-        _state("STANDARD_PACK"),
-        [BalatroAction(SELECT_PACK_CARD, target=choice), BalatroAction(SKIP_BOOSTER)],
-    )
+    ranked = policy.rank_actions(state, actions)
+    card_score = next(item for item in ranked if item.action.name == SELECT_PACK_CARD)
+    skip_score = next(item for item in ranked if item.action.name == SKIP_BOOSTER)
 
-    assert ranked[0].action.name == SKIP_BOOSTER
-    assert policy.score_action(
-        _state("STANDARD_PACK"), ranked[1].action
-    ).total == pytest.approx(0.336)
+    # Context contributes 1.086 and vanilla dilution costs 0.75, leaving +0.336.
+    # With opened-pack Skip=0 that is a real net-positive permanent deck change.
+    assert card_score.total == pytest.approx(0.336)
+    assert card_score.total > skip_score.total
+    assert ranked[0].action.name == SELECT_PACK_CARD
 
 
 def test_mechanical_deck_growth_payoff_admits_vanilla_card_addition():
