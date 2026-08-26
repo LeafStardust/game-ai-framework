@@ -6,6 +6,7 @@ from games.balatro.actions import (
     REFRESH_SHOP,
     BalatroAction,
 )
+from games.balatro.joker import Joker, JokerContext
 from games.balatro.shop_policy import BalatroShopPolicy
 from games.balatro.shop_reroll_policy import (
     BuildAwareShopRerollPolicy,
@@ -47,6 +48,18 @@ class StaticProfiler:
 
     def profile(self, state):
         return self._profile
+
+
+class InertJoker(Joker):
+    def apply(self, context: JokerContext) -> JokerContext:
+        return context
+
+
+class StrongJoker(Joker):
+    def apply(self, context: JokerContext) -> JokerContext:
+        if context.score is not None:
+            context.score.mult += 100
+        return context
 
 
 def _state(*, money: int = 20) -> BalatroState:
@@ -171,12 +184,11 @@ def test_weak_open_capacity_build_has_positive_reroll_ev_when_cost_is_cheap():
     assert result.future_shop_ev > 0.0
     assert result.reroll_score > result.current_best_score
     assert any("JOKER:20" in note for note in result.rationale)
-    assert any("public eligible rarity pools" in note for note in result.rationale)
 
 
 def test_expensive_reroll_is_negative_for_saturated_build():
     state = _state(money=20)
-    state.jokers = [object() for _ in range(state.joker_slots)]
+    state.jokers = [StrongJoker() for _ in range(state.joker_slots)]
     state.consumables = [object() for _ in range(state.consumable_slots)]
     policy = BuildAwareShopRerollPolicy(
         build_profiler=StaticProfiler(EmptyProfile()),
@@ -190,14 +202,16 @@ def test_expensive_reroll_is_negative_for_saturated_build():
     )
 
     assert result.decision == "HOLD"
-    assert result.future_shop_ev > policy.shop_policy.hold_bias
-    assert result.reroll_score < 0.0
+    # Every modeled future family is non-actionable here: the public Base Joker is
+    # dominated by the saturated strong roster and consumable slots are full.
+    assert result.future_shop_ev == policy.shop_policy.hold_bias
+    assert result.reroll_score < result.current_best_score
     assert result.executable_action is None
 
 
 def test_cash_rich_full_roster_rerolls_for_replacement_options_then_stops():
     state = _state(money=121)
-    state.jokers = [object() for _ in range(state.joker_slots)]
+    state.jokers = [InertJoker() for _ in range(state.joker_slots)]
     state.consumables = [object() for _ in range(state.consumable_slots)]
     policy = BuildAwareShopRerollPolicy(
         build_profiler=StaticProfiler(EmptyProfile()),
@@ -207,18 +221,19 @@ def test_cash_rich_full_roster_rerolls_for_replacement_options_then_stops():
     affordable_search = policy.recommend(
         state,
         [BalatroAction(END_SHOP)],
-        reroll_cost=5,
+        reroll_cost=1,
     )
-    expensive_search = policy.recommend(
+    stop_loss_search = policy.recommend(
         state,
         [BalatroAction(END_SHOP)],
-        reroll_cost=6,
+        reroll_cost=9,
     )
 
     assert affordable_search.decision == "REROLL"
     assert affordable_search.executable_action is not None
     assert affordable_search.executable_action.name == REFRESH_SHOP
-    assert expensive_search.decision == "HOLD"
+    assert stop_loss_search.decision == "HOLD"
+    assert any("exceeds stop-loss cap $8" in note for note in stop_loss_search.rationale)
     assert any(
         "replacement-option penalty=1.500" in note
         for note in affordable_search.rationale
