@@ -219,10 +219,7 @@ class LiveBlindClearPlanner:
         if depth <= 1:
             for score_outcome in projection.outcomes:
                 score_after = int(getattr(state, "score", 0)) + score_outcome.score
-                outcome_state = self._score_outcome_state(
-                    score_outcome,
-                    projected_state,
-                )
+                outcome_state = self._score_outcome_state(score_outcome, projected_state)
                 branch_state = deepcopy(outcome_state)
                 branch_state.score = score_after
                 branch_state.hands_remaining = hands_after
@@ -230,9 +227,7 @@ class LiveBlindClearPlanner:
                     branch_state,
                     clear=(target > 0 and score_after >= target),
                 )
-                total_value = total_value.plus(
-                    value.weighted(score_outcome.probability)
-                )
+                total_value = total_value.plus(value.weighted(score_outcome.probability))
             return _ActionEstimate(action, total_value, exact)
 
         retained_cards = [
@@ -242,27 +237,21 @@ class LiveBlindClearPlanner:
         ]
         joker_drawn_cards = max(
             0,
-            len(getattr(projected_state, "hand", []))
-            - len(getattr(state, "hand", [])),
+            len(getattr(projected_state, "hand", [])) - len(getattr(state, "hand", [])),
         )
         replacement_draw_count = max(0, len(action.cards) - joker_drawn_cards)
         composition = None
         draw_distribution = None
 
         for score_outcome in projection.outcomes:
-            outcome_state = self._score_outcome_state(
-                score_outcome,
-                projected_state,
-            )
+            outcome_state = self._score_outcome_state(score_outcome, projected_state)
             score_after = int(getattr(state, "score", 0)) + score_outcome.score
             if target > 0 and score_after >= target:
                 branch_state = deepcopy(outcome_state)
                 branch_state.score = score_after
                 branch_state.hands_remaining = hands_after
                 total_value = total_value.plus(
-                    self._terminal_value(branch_state, clear=True).weighted(
-                        score_outcome.probability
-                    )
+                    self._terminal_value(branch_state, clear=True).weighted(score_outcome.probability)
                 )
                 continue
 
@@ -271,9 +260,7 @@ class LiveBlindClearPlanner:
                 branch_state.score = score_after
                 branch_state.hands_remaining = 0
                 total_value = total_value.plus(
-                    self._terminal_value(branch_state, clear=False).weighted(
-                        score_outcome.probability
-                    )
+                    self._terminal_value(branch_state, clear=False).weighted(score_outcome.probability)
                 )
                 continue
 
@@ -283,17 +270,13 @@ class LiveBlindClearPlanner:
             retained_state.hand = list(retained_cards)
             guaranteed_value = self._guaranteed_next_play_value(retained_state)
             if guaranteed_value is not None:
-                total_value = total_value.plus(
-                    guaranteed_value.weighted(score_outcome.probability)
-                )
+                total_value = total_value.plus(guaranteed_value.weighted(score_outcome.probability))
                 continue
 
             if replacement_draw_count <= 0:
                 value, child_exact = self._best_value(retained_state, depth - 1)
                 exact = exact and child_exact
-                total_value = total_value.plus(
-                    value.weighted(score_outcome.probability)
-                )
+                total_value = total_value.plus(value.weighted(score_outcome.probability))
                 continue
 
             if draw_distribution is None:
@@ -314,10 +297,7 @@ class LiveBlindClearPlanner:
                     self.draw_outcomes.card_from_signature(signature)
                     for signature in draw_outcome.cards
                 ]
-                next_state.deck = self.draw_outcomes.remaining_cards(
-                    composition,
-                    draw_outcome,
-                )
+                next_state.deck = self.draw_outcomes.remaining_cards(composition, draw_outcome)
                 value, child_exact = self._best_value(next_state, depth - 1)
                 exact = exact and child_exact
                 probability = score_outcome.probability * draw_outcome.probability
@@ -340,20 +320,14 @@ class LiveBlindClearPlanner:
         guaranteed = [
             estimate
             for estimate in estimates
-            if estimate.exact
-            and estimate.value.clear_probability >= 1.0 - 1e-12
+            if estimate.exact and estimate.value.clear_probability >= 1.0 - 1e-12
         ]
         if not guaranteed:
             return None
         best = max(guaranteed, key=lambda estimate: self._value_key(estimate.value))
         return best.value
 
-    def _estimate_discard(
-        self,
-        state,
-        action: BalatroAction,
-        depth: int,
-    ) -> _ActionEstimate:
+    def _estimate_discard(self, state, action: BalatroAction, depth: int) -> _ActionEstimate:
         if int(getattr(state, "discards_remaining", 0)) <= 0:
             return _ActionEstimate(
                 action,
@@ -366,17 +340,10 @@ class LiveBlindClearPlanner:
         if depth <= 1:
             next_state = deepcopy(discard_state)
             next_state.discards_remaining = discards_after
-            return _ActionEstimate(
-                action,
-                self._terminal_value(next_state, clear=False),
-                True,
-            )
+            return _ActionEstimate(action, self._terminal_value(next_state, clear=False), True)
 
         composition = PublicDeckComposition.from_state(state)
-        draw_distribution = self.draw_outcomes.distribution(
-            composition,
-            len(action.cards),
-        )
+        draw_distribution = self.draw_outcomes.distribution(composition, len(action.cards))
         removed_indices = self._card_indices(state.hand, action.cards)
         total_value = self._zero_value()
         exact = draw_distribution.exact
@@ -393,15 +360,10 @@ class LiveBlindClearPlanner:
                 self.draw_outcomes.card_from_signature(signature)
                 for signature in draw_outcome.cards
             ]
-            next_state.deck = self.draw_outcomes.remaining_cards(
-                composition,
-                draw_outcome,
-            )
+            next_state.deck = self.draw_outcomes.remaining_cards(composition, draw_outcome)
             value, child_exact = self._best_value(next_state, depth - 1)
             exact = exact and child_exact
-            total_value = total_value.plus(
-                value.weighted(draw_outcome.probability)
-            )
+            total_value = total_value.plus(value.weighted(draw_outcome.probability))
 
         return _ActionEstimate(action, total_value, exact)
 
@@ -414,9 +376,7 @@ class LiveBlindClearPlanner:
         discard_width: int | None = None,
     ) -> list[BalatroAction]:
         play_limit = self.play_width if play_width is None else int(play_width)
-        discard_limit = (
-            self.discard_width if discard_width is None else int(discard_width)
-        )
+        discard_limit = self.discard_width if discard_width is None else int(discard_width)
 
         plays = self.action_generator.generate_play_actions(state)
         ranked_plays = sorted(
@@ -467,9 +427,7 @@ class LiveBlindClearPlanner:
             expected_progress=1.0 if effective_clear else progress,
             expected_score=score,
             expected_hands_remaining=float(getattr(state, "hands_remaining", 0)),
-            expected_discards_remaining=float(
-                getattr(state, "discards_remaining", 0)
-            ),
+            expected_discards_remaining=float(getattr(state, "discards_remaining", 0)),
             expected_consumables=float(len(getattr(state, "consumables", ()) or ())),
         )
 
@@ -519,16 +477,16 @@ class LiveBlindClearPlanner:
         )
 
     @classmethod
-    def _estimate_key(cls, estimate: _ActionEstimate) -> tuple[float, float, float, float, float, int, float]:
-        """Rank survival/progress first; exactness is confidence, not utility."""
+    def _estimate_key(cls, estimate: _ActionEstimate) -> tuple[float, int, float, float, float, float, float]:
+        """Rank survival first; exactness protects proven lines from sampled estimates."""
         value = estimate.value
         return (
             value.clear_probability,
+            1 if estimate.exact else 0,
             value.expected_progress,
             value.expected_hands_remaining,
             value.expected_discards_remaining,
             value.expected_score,
-            1 if estimate.exact else 0,
             value.expected_consumables,
         )
 
