@@ -519,16 +519,16 @@ class LiveBlindClearPlanner:
         )
 
     @classmethod
-    def _estimate_key(cls, estimate: _ActionEstimate) -> tuple[float, int, float, float, float, float, float]:
-        """Rank survival first; generated consumables only break later ties."""
+    def _estimate_key(cls, estimate: _ActionEstimate) -> tuple[float, float, float, float, float, int, float]:
+        """Rank survival/progress first; exactness is confidence, not utility."""
         value = estimate.value
         return (
             value.clear_probability,
-            1 if estimate.exact else 0,
             value.expected_progress,
             value.expected_hands_remaining,
             value.expected_discards_remaining,
             value.expected_score,
+            1 if estimate.exact else 0,
             value.expected_consumables,
         )
 
