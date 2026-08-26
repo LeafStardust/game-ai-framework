@@ -96,7 +96,9 @@ def test_death_pack_choice_uses_exact_positive_directional_target():
 
     ranked = BalatroPackPolicy(
         item_estimator=_Estimator(),
-        skip_bias=0.35,
+        # D9 opened-pack Skip is a sunk-cost zero baseline. Targeted deterministic
+        # cards no longer receive generic shop/category utility.
+        skip_bias=0.0,
     ).rank_actions(
         state,
         [
@@ -118,10 +120,7 @@ def test_death_pack_choice_fails_closed_when_only_direction_is_negative():
     state = _state([king, two], phase="TAROT_PACK")
     choice = _death_choice()
 
-    ranked = BalatroPackPolicy(
-        item_estimator=_Estimator(),
-        skip_bias=0.35,
-    ).rank_actions(
+    ranked = BalatroPackPolicy(item_estimator=_Estimator()).rank_actions(
         state,
         [
             BalatroAction(SELECT_PACK_CARD, target=choice),
