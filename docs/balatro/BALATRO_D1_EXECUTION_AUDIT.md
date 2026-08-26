@@ -51,6 +51,12 @@ If no such play exists, survival recovery remains authoritative and the discard 
 
 The guard therefore prevents a recognized no-discard engine from being ignored without preserving Joker value at the cost of materially worse blind survival.
 
+## Castle discard execution
+
+`castle_discard_policy.py` may improve an already-required discard by including cards of Castle's current public suit, but it does not create a discard on its own.
+
+Castle previously carried a separate hard-coded clear-probability allowance. That duplicated survival policy has been removed: an alternative Castle discard must now remain within canonical D1 `safe_clear_probability_tolerance` of the selected line. Its existing retained-score/exactness checks remain secondary shaping rules.
+
 ## Burnt Joker first-discard execution
 
 `burnt_bond_execution_policy.py` owns the first-discard activation contract for a developed Burnt Bond.
