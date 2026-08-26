@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from games.balatro.card import BalatroCard
 from games.balatro.jokers.chicot import ChicotJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
@@ -21,6 +23,13 @@ def _verdant_state() -> BalatroState:
     return state
 
 
+class _VerdantPlanner:
+    def plan(self, state):
+        debuffed = any(bool(getattr(card, "debuffed", False)) for card in state.hand)
+        probability = 0.20 if debuffed else 0.80
+        return SimpleNamespace(value=SimpleNamespace(clear_probability=probability))
+
+
 def test_verdant_leaf_sells_only_legal_joker_to_lift_card_debuff() -> None:
     state = _verdant_state()
 
@@ -35,11 +44,12 @@ def test_verdant_leaf_sells_only_legal_joker_to_lift_card_debuff() -> None:
 
     state.jokers = [eternal, fodder]
 
-    decision = VerdantLeafSalePolicy().recommend(state)
+    decision = VerdantLeafSalePolicy(planner=_VerdantPlanner()).recommend(state)
 
     assert decision is not None
     assert decision.joker_index == 1
     assert decision.joker == "Fodder"
+    assert any("0.200000->0.800000" in note for note in decision.rationale)
 
 
 def test_verdant_leaf_does_not_sell_when_chicot_disables_boss() -> None:
@@ -48,7 +58,7 @@ def test_verdant_leaf_does_not_sell_when_chicot_disables_boss() -> None:
     chicot.area_index = 0
     state.jokers = [chicot]
 
-    assert VerdantLeafSalePolicy().recommend(state) is None
+    assert VerdantLeafSalePolicy(planner=_VerdantPlanner()).recommend(state) is None
 
 
 def test_crimson_heart_next_debuff_excludes_previous_disabled_joker() -> None:
