@@ -94,6 +94,9 @@ class JokerBuildValueEvaluator:
         (PokerHand.FLUSH, (BalatroCard("A", "Hearts"), BalatroCard("10", "Hearts"), BalatroCard("8", "Hearts"), BalatroCard("5", "Hearts"), BalatroCard("2", "Hearts"))),
         (PokerHand.FULL_HOUSE, (BalatroCard("K", "Hearts"), BalatroCard("K", "Spades"), BalatroCard("K", "Clubs"), BalatroCard("8", "Diamonds"), BalatroCard("8", "Hearts"))),
         (PokerHand.FOUR_OF_A_KIND, (BalatroCard("8", "Hearts"), BalatroCard("8", "Spades"), BalatroCard("8", "Clubs"), BalatroCard("8", "Diamonds"), BalatroCard("A", "Hearts"))),
+        (PokerHand.FIVE_OF_A_KIND, (BalatroCard("A", "Hearts"), BalatroCard("A", "Spades"), BalatroCard("A", "Clubs"), BalatroCard("A", "Diamonds"), BalatroCard("A", "Hearts"))),
+        (PokerHand.FLUSH_HOUSE, (BalatroCard("K", "Hearts"), BalatroCard("K", "Hearts"), BalatroCard("K", "Hearts"), BalatroCard("8", "Hearts"), BalatroCard("8", "Hearts"))),
+        (PokerHand.FLUSH_FIVE, (BalatroCard("A", "Hearts"), BalatroCard("A", "Hearts"), BalatroCard("A", "Hearts"), BalatroCard("A", "Hearts"), BalatroCard("A", "Hearts"))),
     )
     _OBSERVED_HAND_PRIOR_WEIGHT = 0.25
 
