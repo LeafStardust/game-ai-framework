@@ -2,7 +2,6 @@ from types import SimpleNamespace
 
 import games.balatro  # noqa: F401 - install production stack
 import games.balatro.build_health_policy as policy
-from games.balatro.actions import END_SHOP, REFRESH_SHOP, BalatroAction
 from games.balatro.build_health import BuildHealth
 from games.balatro.card import BalatroCard
 from games.balatro.playbook.red_white.shop_policy import PlaybookBuildAwareShopArbiter
@@ -232,29 +231,9 @@ def test_full_roster_health_never_uses_ineligible_replacement(monkeypatch):
     assert result.action == "HOLD"
 
 
-def test_build_health_reroll_is_bounded_to_one_per_shop(monkeypatch):
-    state = _state(ante=4, money=30)
-    arbiter = SimpleNamespace(
-        _joker_policy_for_state=lambda _state: _acquisition_policy(),
-    )
-    monkeypatch.setattr(
-        policy,
-        "_HEALTH",
-        _HealthByRoster({(): _health(survival=90, scaling=25, deficit=True)}),
-    )
-    original = SimpleNamespace(
-        action=BalatroAction(END_SHOP),
-        source="END_SHOP",
-        normalized_gain=0.0,
-        rationale=(),
-    )
-
-    first = policy._health_reroll_decision(arbiter, state, original, 5)
-    second = policy._health_reroll_decision(arbiter, state, original, 5)
-
-    assert first.action.name == REFRESH_SHOP
-    assert first.source == "BUILD_HEALTH_REROLL"
-    assert second.action.name == END_SHOP
+def test_build_health_does_not_expose_global_shop_reroll_rescue():
+    assert not hasattr(policy, "_health_reroll_decision")
+    assert not hasattr(policy, "_shop_signature")
 
 
 def test_projected_health_uses_only_projected_public_state(monkeypatch):
