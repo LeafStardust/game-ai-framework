@@ -27,6 +27,14 @@ from games.balatro.state import BalatroState
 
 _RARITY_NAMES = {1: "COMMON", 2: "UNCOMMON", 3: "RARE"}
 
+# Center names/keys/gates are catalogue metadata. Re-decoding every Lua center on
+# every public observation is extremely expensive and SHOP readiness observes more
+# than once per checkpoint. Eligibility tables and round-specific public state are
+# deliberately *not* cached below. The metadata cache is cleared after GAME_OVER so
+# unlock changes are re-read before the next attempt.
+_CENTER_FIELDS_CACHE: dict[int, dict] = {}
+_CENTER_CACHE_POOL_POINTER: int | None = None
+
 
 def _table_items(decoder, table_value):
     if table_value is None or getattr(table_value, "kind", None) != "table":
@@ -81,8 +89,33 @@ def _visible_poker_hands(decoder, game: dict) -> tuple[str, ...]:
     return tuple(sorted(visible))
 
 
+def _prepare_center_cache(pools_value) -> None:
+    global _CENTER_CACHE_POOL_POINTER
+    try:
+        pool_pointer = (
+            int(pools_value.value)
+            if pools_value is not None and getattr(pools_value, "kind", None) == "table"
+            else None
+        )
+    except (TypeError, ValueError):
+        pool_pointer = None
+    if pool_pointer != _CENTER_CACHE_POOL_POINTER:
+        _CENTER_FIELDS_CACHE.clear()
+        _CENTER_CACHE_POOL_POINTER = pool_pointer
+
+
+def _center_fields(decoder, center_pointer: int) -> dict:
+    cached = _CENTER_FIELDS_CACHE.get(int(center_pointer))
+    if cached is not None:
+        return cached
+    fields = decoder.string_fields(int(center_pointer))
+    _CENTER_FIELDS_CACHE[int(center_pointer)] = fields
+    return fields
+
+
 def _normalize_joker_generation_pools(decoder, root, payload):
     pools_value = root.get("P_JOKER_RARITY_POOLS")
+    _prepare_center_cache(pools_value)
     outer = [
         value
         for _, value in _table_items(decoder, pools_value)
@@ -109,7 +142,7 @@ def _normalize_joker_generation_pools(decoder, root, payload):
             if getattr(center_value, "kind", None) != "table":
                 continue
             try:
-                center = decoder.string_fields(int(center_value.value))
+                center = _center_fields(decoder, int(center_value.value))
             except (
                 live_memory_observer.BalatroProcessMemoryError,
                 live_memory_observer.LuaJITMemoryError,
@@ -209,6 +242,8 @@ def install_joker_generation_pool_live_state_policy() -> None:
             float(edition_rate if edition_rate is not None else 1.0),
         )
         payload["visible_poker_hands"] = list(_visible_poker_hands(decoder, game))
+        if str(phase) == "GAME_OVER":
+            _CENTER_FIELDS_CACHE.clear()
         return payload, phase, state_complete
 
     def translate(self, snapshot):
