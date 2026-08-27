@@ -100,6 +100,14 @@ class LiveHandDecisionEvaluator(Evaluator):
     DISCARDED_DEBUFFED_CARD_BONUS = 12.0
     RETAINED_DEBUFFED_CARD_PENALTY = 4.0
 
+    # A discard always spends exactly one discard resource whether it redraws one
+    # card or five. When the current best play is materially below pace and there is
+    # another discard available, a wider redraw therefore has literal recovery
+    # value. This used to live in the final Red/White correction layer; it belongs in
+    # the canonical D1 evaluator so candidate generation and arbitration share it.
+    REDRAW_EFFICIENCY_BASE = 8.0
+    REDRAW_EFFICIENCY_SHORTFALL_WEIGHT = 8.0
+
     def __init__(self):
         self.hand_evaluator = HandEvaluator()
         self.scorer = BalatroScorer()
@@ -256,8 +264,17 @@ class LiveHandDecisionEvaluator(Evaluator):
         elif pace_ratio >= 1.0:
             value -= 80.0
 
-        if int(getattr(state, "discards_remaining", 0)) <= 1:
+        discards_remaining = int(getattr(state, "discards_remaining", 0))
+        if discards_remaining <= 1:
             value -= 10.0
+
+        redraws = len(tuple(getattr(action, "cards", ()) or ()))
+        if shortfall > 0.0 and redraws > 1 and discards_remaining > 1:
+            extra_redraws = min(4, redraws - 1)
+            value += extra_redraws * (
+                self.REDRAW_EFFICIENCY_BASE
+                + self.REDRAW_EFFICIENCY_SHORTFALL_WEIGHT * shortfall
+            )
 
         hand = tuple(getattr(state, "hand", ()) or ())
         if hand and any(self.scorer.is_card_debuffed(card) for card in hand):
