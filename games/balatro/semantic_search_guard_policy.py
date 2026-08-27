@@ -10,8 +10,8 @@ Production evidence exposed structural defects retained by this layer:
 - retained-structure-only discard prefiltering could fill the narrow projected beam
   with singleton discards, hiding materially better multi-card redraws from the
   full-blind planner;
-- non-clearing sampled redraws could lose to singleton redraws solely because the
-  singleton outcome space was cheap enough to enumerate exactly.
+- non-clearing sampled discard recovery could lose to singleton redraws solely
+  because the singleton outcome space was cheap enough to enumerate exactly.
 
 No-discard execution semantics now live as ordinary canonical D1 evidence and are
 intentionally not patched from this search/runtime module.
@@ -28,18 +28,11 @@ from games.balatro import d1_candidate_deadline_policy as deadline_policy
 
 
 _MAX_CONCRETE_RANK_REQUIREMENTS = 5
-# Keep root projection bounded, but retain enough visible plays that exact-clear
-# low-card-count lines such as a retained Pair are not erased by a cheap
-# hand-category prefilter before the real scorer can evaluate them.
 _ROOT_PLAY_PREFILTER = 64
 _CHILD_PLAY_PREFILTER = 24
 _ROOT_DISCARD_PREFILTER = 14
 _CHILD_DISCARD_PREFILTER = 8
 _SHORT_PLAY_RESERVE = 2
-# A discard consumes one discard token whether it redraws one card or five. Keep a
-# tiny bounded reserve of wider redraws so retained-structure heuristics cannot make
-# the projected beam singleton-only. Full-blind projection remains authoritative and
-# may still reject every reserved wide discard.
 _WIDE_DISCARD_RESERVE = 2
 
 _HAND_STRENGTH = {
@@ -86,17 +79,9 @@ def _cheap_play_key(state, action) -> tuple[int, int, int, int]:
     }
     for card in cards:
         rank_sum += rank_values.get(str(getattr(card, "rank", "")).upper(), 0)
-        if any(
-            getattr(card, field, None)
-            for field in ("enhancement", "edition", "seal")
-        ):
+        if any(getattr(card, field, None) for field in ("enhancement", "edition", "seal")):
             enhanced += 1
-    return (
-        _HAND_STRENGTH.get(hand, 0),
-        enhanced,
-        rank_sum,
-        -len(cards),
-    )
+    return (_HAND_STRENGTH.get(hand, 0), enhanced, rank_sum, -len(cards))
 
 
 def _cheap_hand(state, action) -> PokerHand:
@@ -128,21 +113,11 @@ def _prefilter(actions, *, limit: int, key):
 
 
 def _prefilter_discards(state, actions, *, limit: int):
-    """Bound discard projection while preserving a few efficient redraw widths.
-
-    Retained-hand structure remains the cheap primary heuristic. The reserve only
-    guarantees that the expensive full-blind scorer gets to compare a small number
-    of wider redraws before the narrow discard beam is finalized.
-    """
     values = list(actions)
     if len(values) <= limit:
         return values
 
-    ranked = sorted(
-        values,
-        key=lambda action: _cheap_discard_key(state, action),
-        reverse=True,
-    )
+    ranked = sorted(values, key=lambda action: _cheap_discard_key(state, action), reverse=True)
     reserve = min(_WIDE_DISCARD_RESERVE, max(0, int(limit)))
     if reserve <= 0:
         return []
@@ -161,7 +136,6 @@ def _prefilter_discards(state, actions, *, limit: int):
 
 
 def _prefilter_plays(state, actions, *, limit: int):
-    """Bound cheap root/child play candidates without erasing compact made hands."""
     values = list(actions)
     if len(values) <= limit:
         return values
@@ -190,13 +164,11 @@ def _prefilter_plays(state, actions, *, limit: int):
 
     if not representatives:
         return selected
-
     keep = max(0, limit - len(representatives))
     return selected[:keep] + representatives[:limit]
 
 
 def _rank_plays_with_short_reserve(self, state, plays, *, limit: int, stage: str):
-    """Keep strong short made hands available in large combinatorial beams."""
     if limit <= 0:
         return []
     ranked = deadline_policy._rank_with_deadline(
@@ -221,29 +193,18 @@ def _rank_plays_with_short_reserve(self, state, plays, *, limit: int, stage: str
         return ranked
 
     deadline_policy._check_deadline(self, f"{stage} short-play reserve")
-    short_ranked = sorted(
-        short,
-        key=lambda action: _cheap_play_key(state, action),
-        reverse=True,
-    )[:reserve]
+    short_ranked = sorted(short, key=lambda action: _cheap_play_key(state, action), reverse=True)[:reserve]
     deadline_policy._check_deadline(self, f"{stage} short-play reserve")
 
     selected_ids = {id(action) for action in ranked}
     additions = [action for action in short_ranked if id(action) not in selected_ids]
     if not additions:
         return ranked
-
     return ranked[: max(0, limit - len(additions))] + additions
 
 
-def _nonclearing_plan_quality_key(plan) -> tuple[float, float, float, float, float, int]:
-    """Rank modeled utility before whether the branch happened to be enumerable.
-
-    Exactness is confidence metadata, not a reward. In particular, a singleton
-    discard often has a tiny exact outcome space while a stronger 4-5 card redraw
-    must be sampled. Once modeled clear probability ties below certainty, expected
-    progress and retained round resources therefore precede exactness.
-    """
+def _nonclearing_discard_quality_key(plan) -> tuple[float, float, float, float, float, int]:
+    """Rank discard recovery quality before exact-enumeration status."""
     value = plan.value
     return (
         float(value.clear_probability),
@@ -285,11 +246,7 @@ def install_semantic_search_guard_policy() -> None:
         deadline_policy._check_deadline(self, "play candidate generation")
         plays = self.action_generator.generate_play_actions(state)
         deadline_policy._check_deadline(self, "play candidate generation")
-        plays = _prefilter_plays(
-            state,
-            plays,
-            limit=_ROOT_PLAY_PREFILTER if root else _CHILD_PLAY_PREFILTER,
-        )
+        plays = _prefilter_plays(state, plays, limit=_ROOT_PLAY_PREFILTER if root else _CHILD_PLAY_PREFILTER)
         ranked_plays = _rank_plays_with_short_reserve(
             self,
             state,
@@ -298,21 +255,13 @@ def install_semantic_search_guard_policy() -> None:
             stage="play candidate ranking",
         )
 
-        if (
-            not allow_discards
-            or discard_limit <= 0
-            or int(getattr(state, "discards_remaining", 0)) <= 0
-        ):
+        if not allow_discards or discard_limit <= 0 or int(getattr(state, "discards_remaining", 0)) <= 0:
             return ranked_plays
 
         deadline_policy._check_deadline(self, "discard candidate generation")
         discards = self.action_generator.generate_discard_actions(state)
         deadline_policy._check_deadline(self, "discard candidate generation")
-        discards = _prefilter_discards(
-            state,
-            discards,
-            limit=_ROOT_DISCARD_PREFILTER if root else _CHILD_DISCARD_PREFILTER,
-        )
+        discards = _prefilter_discards(state, discards, limit=_ROOT_DISCARD_PREFILTER if root else _CHILD_DISCARD_PREFILTER)
         ranked_discards = deadline_policy._rank_with_deadline(
             self,
             state,
@@ -342,18 +291,8 @@ def install_semantic_search_guard_policy() -> None:
                 -len(getattr(estimate.action, "cards", ()) or ()),
                 value.expected_score,
             )
-        # Outside a guaranteed clear, utility outranks exact-enumeration status.
-        # Keep one common key across PLAY/DISCARD so cross-action planner ranking
-        # remains lexicographically meaningful.
-        return (
-            float(value.clear_probability),
-            float(value.expected_progress),
-            float(value.expected_hands_remaining),
-            float(value.expected_discards_remaining),
-            float(value.expected_score),
-            1 if bool(estimate.exact) else 0,
-            0,
-        )
+        canonical = original_estimate_key(estimate)
+        return (*canonical[:-1], 0, canonical[-1])
 
     original_strategy_key = StrategyAwareLiveHandActionPolicy._within_type_key
 
@@ -362,9 +301,10 @@ def install_semantic_search_guard_policy() -> None:
             getattr(plan.action, "name", None) == DISCARD_CARDS
             and float(plan.value.clear_probability) < 1.0 - 1e-12
         ):
-            # Recovery discard quality must not reward a narrower redraw merely
-            # because its outcome distribution was small enough to enumerate.
-            return (*_nonclearing_plan_quality_key(plan), original_strategy_key(self, plan))
+            return (
+                *_nonclearing_discard_quality_key(plan),
+                original_strategy_key(self, plan),
+            )
         return original_strategy_key(self, plan)
 
     LiveBlindClearPlanner._candidate_actions = candidate_actions_bounded
