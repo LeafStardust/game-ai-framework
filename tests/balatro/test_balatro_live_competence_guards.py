@@ -23,7 +23,6 @@ def test_scaling_rescue_uses_existing_build_health_public_predicate(monkeypatch)
     state = SimpleNamespace(ante=4, round=10, round_num=10, money=44)
 
     monkeypatch.setattr(guards.build_health_policy, "_cached_health", lambda owner, source: health)
-    monkeypatch.setattr(guards.build_health_policy, "_shop_signature", lambda source: (4, 10))
 
     assert state.money - 5 >= 15
     assert health.scaling_deficit is True
