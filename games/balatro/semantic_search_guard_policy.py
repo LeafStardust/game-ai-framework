@@ -9,18 +9,21 @@ Production evidence exposed structural defects retained by this layer:
   allowing one pathological projection to dominate wall-clock latency;
 - retained-structure-only discard prefiltering could fill the narrow projected beam
   with singleton discards, hiding materially better multi-card redraws from the
-  full-blind planner.
+  full-blind planner;
+- non-clearing sampled redraws could lose to singleton redraws solely because the
+  singleton outcome space was cheap enough to enumerate exactly.
 
 No-discard execution semantics now live as ordinary canonical D1 evidence and are
 intentionally not patched from this search/runtime module.
 """
 
-from games.balatro.actions import PLAY_CARDS
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.bonds import behavior_strategy
 from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
+from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 from games.balatro import d1_candidate_deadline_policy as deadline_policy
 
 
@@ -233,6 +236,25 @@ def _rank_plays_with_short_reserve(self, state, plays, *, limit: int, stage: str
     return ranked[: max(0, limit - len(additions))] + additions
 
 
+def _nonclearing_plan_quality_key(plan) -> tuple[float, float, float, float, float, int]:
+    """Rank modeled utility before whether the branch happened to be enumerable.
+
+    Exactness is confidence metadata, not a reward. In particular, a singleton
+    discard often has a tiny exact outcome space while a stronger 4-5 card redraw
+    must be sampled. Once modeled clear probability ties below certainty, expected
+    progress and retained round resources therefore precede exactness.
+    """
+    value = plan.value
+    return (
+        float(value.clear_probability),
+        float(value.expected_progress),
+        float(value.expected_hands_remaining),
+        float(value.expected_discards_remaining),
+        float(value.expected_score),
+        1 if bool(plan.exact) else 0,
+    )
+
+
 def install_semantic_search_guard_policy() -> None:
     if getattr(LiveBlindClearPlanner, "_semantic_search_guard_installed", False):
         return
@@ -320,9 +342,32 @@ def install_semantic_search_guard_policy() -> None:
                 -len(getattr(estimate.action, "cards", ()) or ()),
                 value.expected_score,
             )
-        canonical = original_estimate_key(estimate)
-        return (*canonical[:-1], 0, canonical[-1])
+        # Outside a guaranteed clear, utility outranks exact-enumeration status.
+        # Keep one common key across PLAY/DISCARD so cross-action planner ranking
+        # remains lexicographically meaningful.
+        return (
+            float(value.clear_probability),
+            float(value.expected_progress),
+            float(value.expected_hands_remaining),
+            float(value.expected_discards_remaining),
+            float(value.expected_score),
+            1 if bool(estimate.exact) else 0,
+            0,
+        )
+
+    original_strategy_key = StrategyAwareLiveHandActionPolicy._within_type_key
+
+    def strategy_within_type_key(self, plan):
+        if (
+            getattr(plan.action, "name", None) == DISCARD_CARDS
+            and float(plan.value.clear_probability) < 1.0 - 1e-12
+        ):
+            # Recovery discard quality must not reward a narrower redraw merely
+            # because its outcome distribution was small enough to enumerate.
+            return (*_nonclearing_plan_quality_key(plan), original_strategy_key(self, plan))
+        return original_strategy_key(self, plan)
 
     LiveBlindClearPlanner._candidate_actions = candidate_actions_bounded
     LiveBlindClearPlanner._estimate_key = classmethod(estimate_key)
+    StrategyAwareLiveHandActionPolicy._within_type_key = strategy_within_type_key
     LiveBlindClearPlanner._semantic_search_guard_installed = True
