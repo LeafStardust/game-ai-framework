@@ -5,7 +5,9 @@ from types import SimpleNamespace
 from games.balatro.aces_dna_hand_policy import _dna_aces_fit
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.boss_hand_constraint_policy import _mouth_discard_fit
+from games.balatro.held_round_end_resource_policy import _blue_reward_count
 from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
+from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
 from games.balatro.live.hand_build_policy import BuildAwareLiveHandActionPolicy
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
 
@@ -95,6 +97,37 @@ def _terminal_resource_hierarchy() -> SemanticCheck:
     )
 
 
+def _blue_seal_projection_owns_production_planner() -> SemanticCheck:
+    blue = SimpleNamespace(seal="Blue", debuffed=False)
+    ordinary = SimpleNamespace(seal=None, debuffed=False)
+    state = SimpleNamespace(consumable_slots=2, consumables=())
+    reward_count = _blue_reward_count(state, (blue, ordinary))
+    installed = bool(
+        getattr(
+            D1LiveBlindClearPlanner,
+            "_held_round_end_resource_policy_installed",
+            False,
+        )
+    )
+    production_target = (
+        getattr(D1LiveBlindClearPlanner._estimate_play, "__module__", "")
+        == "games.balatro.held_round_end_resource_policy"
+    )
+    passed = reward_count == 1 and installed and production_target
+    return SemanticCheck(
+        passed,
+        observed=(
+            f"reward_count={reward_count}, installed={installed}, "
+            f"estimate_module={getattr(D1LiveBlindClearPlanner._estimate_play, '__module__', '')}"
+        ),
+        expected="one Blue reward and production D1 estimate_play augmented by held-resource policy",
+        detail=(
+            "Blue-Seal round-end generation must augment the production integrated planner; "
+            "patching only the overridden base planner silently drops the resource evidence"
+        ),
+    )
+
+
 def _dna_aces_is_candidate_evidence() -> SemanticCheck:
     ace = SimpleNamespace(rank="A")
     nine = SimpleNamespace(rank="9")
@@ -168,6 +201,13 @@ RED_WHITE_D1_RESOURCE_CASES = (
         "Equivalent terminal clears preserve round-end resources before Ride the Bus stack.",
         _terminal_resource_hierarchy,
         source="Phase-0 consolidation: retired ride_the_bus_execution_policy selector",
+    ),
+    SemanticBenchmarkCase(
+        "d1.resources.blue_seal_production_owner",
+        "D1_SURVIVAL",
+        "Blue-Seal round-end generation must augment the production integrated D1 planner.",
+        _blue_seal_projection_owns_production_planner,
+        source="Phase-0 audit: corrected held-resource installation target",
     ),
     SemanticBenchmarkCase(
         "d1.strategy.dna_aces_evidence",
