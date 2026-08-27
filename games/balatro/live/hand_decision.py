@@ -115,23 +115,60 @@ class LiveHandDecisionEvaluator(Evaluator):
         self.action_generator = CardSelector()
         self._cached_state_id: int | None = None
         self._cached_context: _DecisionContext | None = None
+        self._outer_d1_cache_state_id: int | None = None
+        self._outer_d1_projection_cache: dict[tuple[str, tuple[int, ...]], LivePlayProjection] = {}
+        self._outer_d1_evaluation_cache: dict[tuple[str, tuple[int, ...]], float] = {}
+        self._outer_d1_guaranteed_clear_cached = False
+        self._outer_d1_guaranteed_clear_value = False
+
+    @staticmethod
+    def _action_key(action) -> tuple[str, tuple[int, ...]]:
+        cards = tuple(getattr(action, "cards", ()) or ())
+        return (
+            str(getattr(action, "name", "")),
+            tuple(id(card) for card in cards),
+        )
+
+    def _ensure_outer_d1_cache(self, state) -> None:
+        state_id = id(state)
+        if self._outer_d1_cache_state_id == state_id:
+            return
+        self._outer_d1_cache_state_id = state_id
+        self._outer_d1_projection_cache = {}
+        self._outer_d1_evaluation_cache = {}
+        self._outer_d1_guaranteed_clear_cached = False
+        self._outer_d1_guaranteed_clear_value = False
 
     def evaluate(self, state, action: Action) -> float:
+        self._ensure_outer_d1_cache(state)
+        key = self._action_key(action)
+        cached = self._outer_d1_evaluation_cache.get(key)
+        if cached is not None:
+            return cached
+
         context = self._context(state)
 
         if action.name == PLAY_CARDS:
-            return self._play_value(state, action, context)
+            value = self._play_value(state, action, context)
+        elif action.name == DISCARD_CARDS:
+            value = self._discard_value(state, action, context)
+        else:
+            value = -1_000_000.0
 
-        if action.name == DISCARD_CARDS:
-            return self._discard_value(state, action, context)
-
-        return -1_000_000.0
+        self._outer_d1_evaluation_cache[key] = value
+        return value
 
     def project_play(self, state, action: Action) -> LivePlayProjection:
         if action.name != PLAY_CARDS:
             raise ValueError("live play projection requires PLAY_CARDS")
         if not action.cards:
             raise ValueError("live play projection requires at least one played card")
+
+        self._ensure_outer_d1_cache(state)
+        key = self._action_key(action)
+        cached = self._outer_d1_projection_cache.get(key)
+        if cached is not None:
+            return cached
 
         hand = self._hand_for_cards(state, action.cards)
         transition = self.score_outcomes.project_transition(
@@ -154,7 +191,7 @@ class LiveHandDecisionEvaluator(Evaluator):
         else:
             clear_probability = distribution.probability_at_least(remaining_before)
 
-        return LivePlayProjection(
+        projection = LivePlayProjection(
             hand=hand,
             hand_score=distribution.minimum,
             expected_hand_score=distribution.expected,
@@ -178,6 +215,8 @@ class LiveHandDecisionEvaluator(Evaluator):
             unsupported_jokers=transition.unsupported_jokers,
             random_sources=distribution.random_sources,
         )
+        self._outer_d1_projection_cache[key] = projection
+        return projection
 
     def _context(self, state) -> _DecisionContext:
         state_id = id(state)
@@ -303,24 +342,34 @@ class LiveHandDecisionEvaluator(Evaluator):
         ).expected
 
     def _has_guaranteed_clearing_play(self, state) -> bool:
+        self._ensure_outer_d1_cache(state)
+        if self._outer_d1_guaranteed_clear_cached:
+            return self._outer_d1_guaranteed_clear_value
+
         remaining = max(
             0,
             int(getattr(getattr(state, "blind", None), "requirement", 0))
             - int(getattr(state, "score", 0)),
         )
         if remaining <= 0:
-            return True
-        for play in self.action_generator.generate_play_actions(state):
-            hand = self._hand_for_cards(state, play.cards)
-            distribution = self.score_outcomes.project(
-                hand,
-                state,
-                play.cards,
-                include_card_chips=True,
-            )
-            if distribution.minimum >= remaining:
-                return True
-        return False
+            result = True
+        else:
+            result = False
+            for play in self.action_generator.generate_play_actions(state):
+                hand = self._hand_for_cards(state, play.cards)
+                distribution = self.score_outcomes.project(
+                    hand,
+                    state,
+                    play.cards,
+                    include_card_chips=True,
+                )
+                if distribution.minimum >= remaining:
+                    result = True
+                    break
+
+        self._outer_d1_guaranteed_clear_value = bool(result)
+        self._outer_d1_guaranteed_clear_cached = True
+        return self._outer_d1_guaranteed_clear_value
 
     def _hand_for_cards(self, state, cards) -> PokerHand:
         return self.hand_evaluator.evaluate(
