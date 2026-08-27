@@ -1,85 +1,17 @@
 from __future__ import annotations
 
-"""D1 safeguards derived from live Red/White calibration runs."""
+"""D1 runtime and confidence safeguards derived from live Red/White runs."""
 
 from dataclasses import replace
 
-from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
-from games.balatro.live.hand_action_policy import (
-    CLEAR_PATH,
-    PACE_RECOVERY,
-    LiveHandActionDecisionEngine,
-)
+from games.balatro.live.hand_action_policy import CLEAR_PATH, LiveHandActionDecisionEngine
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
-
-
-BOSS_PROJECTION_SAFETY_MARGIN = 1.05
-PROACTIVE_DISCARD_SCORE_MARGIN = 1.05
 
 
 def _boss_active(state) -> bool:
     boss_name = str(getattr(state, "boss_name", "") or "")
     blind_type = str(getattr(state, "blind_type", "") or "").upper()
     return bool(boss_name) or blind_type == "BOSS"
-
-
-def _projected_score(policy, state, plan) -> float:
-    if plan.action.name != PLAY_CARDS:
-        return 0.0
-    return float(policy.evaluator.project_play(state, plan.action).expected_hand_score)
-
-
-def _best_completed_scoring_attempt(search_attempts):
-    """Keep the strongest completed adaptive recommendation, including DISCARD."""
-    completed = [
-        attempt
-        for attempt in search_attempts
-        if not bool(getattr(attempt, "budget_exceeded", False))
-        and getattr(attempt, "best_action", None) is not None
-        and getattr(attempt, "best_expected_score", None) is not None
-    ]
-    if not completed:
-        return None
-    return max(
-        completed,
-        key=lambda attempt: (
-            int(getattr(attempt, "horizon", 0) or 0),
-            float(getattr(attempt, "best_expected_score", 0.0) or 0.0),
-            float(getattr(attempt, "best_clear_probability", 0.0) or 0.0),
-        ),
-    )
-
-
-def _best_discard_plan(policy, state, supplied):
-    discards = [plan for plan in supplied if plan.action.name == DISCARD_CARDS]
-    if not discards:
-        return None
-    return max(
-        discards,
-        key=lambda plan: (
-            float(policy.evaluator.evaluate(state, plan.action)),
-            policy._strategy_fit(state, plan.action),
-            policy._within_type_key(plan),
-        ),
-    )
-
-
-def _discard_decision(policy, state, decision, selected, *, rationale):
-    fallback = float(policy.evaluator.evaluate(state, selected.action))
-    return replace(
-        decision,
-        mode=PACE_RECOVERY,
-        action=selected.action,
-        selected_plan=selected,
-        selected_immediate_score=None,
-        selected_pace_ratio=None,
-        selected_fallback_value=fallback,
-        confidence=max(0.55, min(float(decision.confidence), 0.92)),
-        rationale=(
-            *rationale,
-            *decision.rationale,
-        ),
-    )
 
 
 def install_d1_log_resilience_policy() -> None:
@@ -99,57 +31,10 @@ def install_d1_log_resilience_policy() -> None:
             )
 
         decision = original_policy_decide(self, state, supplied, **kwargs)
-        attempts = tuple(kwargs.get("search_attempts", ()) or ())
-        best_completed_scoring = _best_completed_scoring_attempt(attempts)
 
-        # Never trade away a credible immediate clear merely to chase a prettier hand.
-        if decision.mode != CLEAR_PATH:
-            discard_plan = _best_discard_plan(self, state, supplied)
-            search_prefers_discard = bool(
-                best_completed_scoring is not None
-                and str(best_completed_scoring.best_action) == DISCARD_CARDS
-            )
-            expected_after_discard = (
-                float(best_completed_scoring.best_expected_score or 0.0)
-                if search_prefers_discard
-                else 0.0
-            )
-            current_score = float(getattr(decision, "selected_immediate_score", 0.0) or 0.0)
-            materially_better = bool(
-                search_prefers_discard
-                and (
-                    current_score <= 0.0
-                    or expected_after_discard
-                    >= current_score * PROACTIVE_DISCARD_SCORE_MARGIN
-                )
-            )
-            setup_consensus = bool(kwargs.get("setup_discard_consensus", False))
-
-            # Pace is a survival signal, not a command to burn a hand. When completed
-            # search says a discard produces a materially stronger scoring route, or
-            # setup search independently agrees on discard, use the discard now.
-            if (
-                discard_plan is not None
-                and int(getattr(state, "discards_remaining", 0) or 0) > 0
-                and (materially_better or setup_consensus)
-            ):
-                reason = (
-                    "completed adaptive search prefers DISCARD to pursue a materially higher-scoring hand"
-                    if materially_better
-                    else "independent setup search agrees that DISCARD improves the next scoring hand"
-                )
-                decision = _discard_decision(
-                    self,
-                    state,
-                    decision,
-                    discard_plan,
-                    rationale=(
-                        reason,
-                        f"projected next-hand score={expected_after_discard:.3f}; current immediate score={current_score:.3f}",
-                        "pace-qualified PLAY is no longer authoritative when a legal discard has stronger scoring evidence",
-                    ),
-                )
-
+        # Boss projections can be model-dependent even when the underlying search
+        # marks a line exact. Preserve the confidence downgrade, but do not perform
+        # a second Play-vs-Discard arbitration after the canonical policy returns.
         if boss_unconfirmed and decision.mode == CLEAR_PATH:
             decision = replace(
                 decision,
@@ -159,28 +44,6 @@ def install_d1_log_resilience_policy() -> None:
                     *decision.rationale,
                 ),
             )
-
-        ratio = getattr(decision, "selected_pace_ratio", None)
-        if (
-            _boss_active(state)
-            and decision.mode != CLEAR_PATH
-            and decision.action.name == PLAY_CARDS
-            and ratio is not None
-            and 1.0 <= float(ratio) < BOSS_PROJECTION_SAFETY_MARGIN
-            and int(getattr(state, "discards_remaining", 0) or 0) > 0
-        ):
-            selected = _best_discard_plan(self, state, supplied)
-            if selected is not None:
-                decision = _discard_decision(
-                    self,
-                    state,
-                    decision,
-                    selected,
-                    rationale=(
-                        f"boss projected pace ratio={float(ratio):.3f} is below the {BOSS_PROJECTION_SAFETY_MARGIN:.2f} model-uncertainty margin",
-                        "a legal discard remains; seek a safer hand instead of trusting a marginal score projection",
-                    ),
-                )
         return decision
 
     StrategyAwareLiveHandActionPolicy.decide = policy_decide
