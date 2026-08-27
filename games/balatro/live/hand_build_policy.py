@@ -239,13 +239,25 @@ class BuildAwareLiveHandActionPolicy(LiveHandActionPolicy):
             plan.action,
         ).value
 
+    @staticmethod
+    def _gold_terminal_preservation(plan) -> int:
+        if plan.action.name != PLAY_CARDS:
+            return 0
+        sacrificed = sum(
+            1
+            for card in tuple(getattr(plan.action, "cards", ()) or ())
+            if str(getattr(card, "enhancement", "") or "") == "Gold"
+            and not bool(getattr(card, "debuffed", False))
+        )
+        return -sacrificed
+
     def _ride_bus_terminal_preservation(self, plan) -> int:
         """Prefer not resetting an accumulated Bus stack on equivalent clears.
 
         This key is consulted only by ``_safe_equivalent_clear_key`` after exactness,
-        remaining hands/discards, clear probability, and progress have already tied.
-        Non-terminal D1 choices therefore continue to rely on the planner's literal
-        state projection rather than a local Ride the Bus bonus.
+        remaining hands/discards, clear probability, progress, generated consumables,
+        and Gold retention have already tied. Non-terminal D1 choices therefore
+        continue to rely on literal planner projection rather than a local Bus bonus.
         """
         state = self._ranking_state
         if state is None or plan.action.name != PLAY_CARDS:
@@ -284,11 +296,13 @@ class BuildAwareLiveHandActionPolicy(LiveHandActionPolicy):
 
     def _safe_equivalent_clear_key(self, plan):
         base = super()._safe_equivalent_clear_key(plan)
-        # Exactness, remaining hands/discards, clear probability and progress all
-        # remain above Ride the Bus / held-resource preservation. Preserve an active
-        # Bus stack only before the final overkill/expected-score tie-break.
+        # Exactness, remaining hands/discards, clear probability and progress stay
+        # authoritative. Generated Blue-Seal rewards and Gold retention then outrank
+        # Bus-stack/held-card preservation; overkill score remains the final tie-break.
         return (
             *base[:-1],
+            float(getattr(plan.value, "expected_consumables", 0.0) or 0.0),
+            self._gold_terminal_preservation(plan),
             self._ride_bus_terminal_preservation(plan),
             self._preservation(plan),
             base[-1],
