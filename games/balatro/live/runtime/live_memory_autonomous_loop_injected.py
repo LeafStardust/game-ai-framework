@@ -97,13 +97,20 @@ def _terminal_stop_reason(
     resume_won_run: bool = False,
 ) -> str | None:
     phase = str(snapshot.phase)
+
+    # Balatro's public ``won`` bit persists after the run has been won and, on a
+    # later failed Endless/final-blind GAME_OVER frame, may still be true. A
+    # GAME_OVER checkpoint is therefore authoritative loss evidence and must not be
+    # reclassified by that sticky profile/run flag. Ordinary wins are observed on
+    # the pre-GAME_OVER won checkpoint (for example ROUND_EVAL), where the bit is
+    # safe to use and the supervisor auto-stops before a later game-over frame.
+    if phase == "GAME_OVER":
+        return "game over (lost)"
+
     if bool(snapshot.payload.get("won")) and not resume_won_run:
         return "game over (won)"
     if phase not in TERMINAL_PHASES:
         return None
-    if phase == "GAME_OVER":
-        outcome = "won" if bool(snapshot.payload.get("won")) else "lost"
-        return f"game over ({outcome})"
     return f"terminal phase reached: {phase}"
 
 
