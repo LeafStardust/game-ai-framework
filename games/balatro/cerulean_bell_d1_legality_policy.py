@@ -1,23 +1,21 @@
 from __future__ import annotations
 
-"""Final D1 legality and future-selection authority for Cerulean Bell.
+"""Cerulean Bell future forced-selection projection.
 
-Cerulean Bell's public ``forced_selection`` card must belong to every Play or
-Discard action. The core D1 planner already applies the shared boss legality
-predicate to Play candidates, but root/recursive Discard candidate construction
-can bypass that filter. Install a final candidate-list guard so both action types
-obey the same authoritative boss mechanic without inventing any score utility.
+Current-checkpoint Play/Discard legality now lives directly in the canonical
+``D1LiveBlindClearPlanner._candidate_actions`` path through the shared boss legality
+predicate. This module retains only the future Bell mechanic that cannot be inferred
+from the newly drawn hypothetical hand itself.
 
 After a real Play/Discard the selected card has necessarily left the hand. Balatro
 then forces one random card in the newly visible hand. Recursive D1 therefore
-branches uniformly over every possible next forced card before evaluating the
-child state instead of treating the future Bell state as unconstrained/incomplete.
+branches uniformly over every possible next forced card before evaluating the child
+state instead of treating the future Bell state as unconstrained/incomplete.
 """
 
 from copy import deepcopy
 
 from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
-from games.balatro.live.boss_blind_integration import boss_play_action_is_legal
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
 
 
@@ -51,32 +49,10 @@ def _cerulean_future_forced_branches(state):
 
 
 def install_cerulean_bell_d1_legality_policy() -> None:
-    if getattr(D1LiveBlindClearPlanner, "_cerulean_legality_installed", False):
+    if getattr(D1LiveBlindClearPlanner, "_cerulean_future_projection_installed", False):
         return
 
-    original_candidate_actions = D1LiveBlindClearPlanner._candidate_actions
     original_best_value = D1LiveBlindClearPlanner._best_value
-
-    def candidate_actions(
-        self,
-        state,
-        *,
-        allow_discards: bool,
-        play_width: int | None = None,
-        discard_width: int | None = None,
-    ):
-        actions = original_candidate_actions(
-            self,
-            state,
-            allow_discards=allow_discards,
-            play_width=play_width,
-            discard_width=discard_width,
-        )
-        return [
-            action
-            for action in actions
-            if boss_play_action_is_legal(state, action)
-        ]
 
     def best_value(self, state, depth: int):
         branches = _cerulean_future_forced_branches(state)
@@ -91,6 +67,5 @@ def install_cerulean_bell_d1_legality_policy() -> None:
             exact = exact and branch_exact
         return total, exact
 
-    D1LiveBlindClearPlanner._candidate_actions = candidate_actions
     D1LiveBlindClearPlanner._best_value = best_value
-    D1LiveBlindClearPlanner._cerulean_legality_installed = True
+    D1LiveBlindClearPlanner._cerulean_future_projection_installed = True
