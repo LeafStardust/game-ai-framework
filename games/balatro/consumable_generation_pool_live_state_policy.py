@@ -27,13 +27,15 @@ _POOL_SPECS = {
     "SPECTRAL": ("Spectral", "c_incantation"),
 }
 
-# Tarot/Spectral center names, keys, and pool-gate fields are catalogue metadata.
-# SHOP readiness can observe the same checkpoint several times, so decoding the
-# whole catalogue for every snapshot is pure repeated work. Dynamic used/banned/
-# pool-flag/Showman predicates remain live. Clear at GAME_OVER so unlock changes
-# are re-read before the next attempt.
+# Tarot/Spectral pool membership and center metadata are catalogue-static for one
+# attempt. SHOP readiness/settling observes the same checkpoint several times, and
+# repeatedly walking the Lua pool arrays dominated live SHOP latency even after
+# center ``string_fields`` decoding itself was memoized. Cache both the membership
+# walk and decoded center fields. Dynamic used/banned/pool-flag/Showman predicates
+# remain live. Clear at GAME_OVER so profile unlock changes are re-read next attempt.
 _CENTER_FIELDS_CACHE: dict[int, dict] = {}
 _CENTER_CACHE_POOL_POINTER: int | None = None
+_POOL_CATALOGUE_CACHE: dict[str, tuple[dict, ...]] = {}
 
 
 def _table_items(decoder, table_value):
@@ -91,7 +93,15 @@ def _prepare_center_cache(pools_value) -> None:
         pool_pointer = None
     if pool_pointer != _CENTER_CACHE_POOL_POINTER:
         _CENTER_FIELDS_CACHE.clear()
+        _POOL_CATALOGUE_CACHE.clear()
         _CENTER_CACHE_POOL_POINTER = pool_pointer
+
+
+def _reset_catalogue_cache() -> None:
+    global _CENTER_CACHE_POOL_POINTER
+    _CENTER_FIELDS_CACHE.clear()
+    _POOL_CATALOGUE_CACHE.clear()
+    _CENTER_CACHE_POOL_POINTER = None
 
 
 def _center_fields(decoder, center_pointer: int) -> dict:
@@ -103,33 +113,28 @@ def _center_fields(decoder, center_pointer: int) -> dict:
     return fields
 
 
-def _normalize_consumable_generation_pools(decoder, root, payload):
-    pools_value = root.get("P_CENTER_POOLS")
+def _pool_catalogue(decoder, pools_value) -> tuple[dict[str, tuple[dict, ...]], bool]:
     _prepare_center_cache(pools_value)
+    if _POOL_CATALOGUE_CACHE:
+        return _POOL_CATALOGUE_CACHE, True
+
     outer = live_memory_observer._table_fields(decoder, pools_value)
-    game = live_memory_observer._table_fields(decoder, root.get("GAME"))
-    used = live_memory_observer._table_fields(decoder, game.get("used_jokers"))
-    banned = live_memory_observer._table_fields(decoder, game.get("banned_keys"))
-    pool_flags = live_memory_observer._table_fields(decoder, game.get("pool_flags"))
-    showman = _showman_owned(payload)
-
     complete = True
-    result: dict[str, list[dict]] = {}
+    catalogue: dict[str, tuple[dict, ...]] = {}
 
-    for public_name, (pool_name, fallback_key) in _POOL_SPECS.items():
+    for public_name, (pool_name, _fallback_key) in _POOL_SPECS.items():
         pool_value = outer.get(pool_name)
         if pool_value is None or getattr(pool_value, "kind", None) != "table":
-            result[public_name] = []
+            catalogue[public_name] = ()
             complete = False
             continue
 
-        records: list[dict] = []
-        all_records: dict[str, dict] = {}
+        centers: list[dict] = []
         for _, center_value in _table_items(decoder, pool_value):
             if getattr(center_value, "kind", None) != "table":
                 continue
             try:
-                center = _center_fields(decoder, int(center_value.value))
+                centers.append(_center_fields(decoder, int(center_value.value)))
             except (
                 live_memory_observer.BalatroProcessMemoryError,
                 live_memory_observer.LuaJITMemoryError,
@@ -137,8 +142,30 @@ def _normalize_consumable_generation_pools(decoder, root, payload):
                 ValueError,
             ):
                 complete = False
-                continue
 
+        catalogue[public_name] = tuple(centers)
+
+    # Do not freeze a partial catalogue after a transient memory read failure.
+    if complete:
+        _POOL_CATALOGUE_CACHE.update(catalogue)
+    return catalogue, complete
+
+
+def _normalize_consumable_generation_pools(decoder, root, payload):
+    pools_value = root.get("P_CENTER_POOLS")
+    catalogue, complete = _pool_catalogue(decoder, pools_value)
+    game = live_memory_observer._table_fields(decoder, root.get("GAME"))
+    used = live_memory_observer._table_fields(decoder, game.get("used_jokers"))
+    banned = live_memory_observer._table_fields(decoder, game.get("banned_keys"))
+    pool_flags = live_memory_observer._table_fields(decoder, game.get("pool_flags"))
+    showman = _showman_owned(payload)
+
+    result: dict[str, list[dict]] = {}
+
+    for public_name, (_pool_name, fallback_key) in _POOL_SPECS.items():
+        records: list[dict] = []
+        all_records: dict[str, dict] = {}
+        for center in catalogue.get(public_name, ()):
             key = live_memory_observer._string(center.get("key"))
             label = live_memory_observer._string(center.get("name"))
             if not key or not label:
@@ -265,7 +292,7 @@ def install_consumable_generation_pool_live_state_policy() -> None:
         payload["soul_generation_available"] = bool(soul_available)
         payload["black_hole_generation_available"] = bool(black_hole_available)
         if str(phase) == "GAME_OVER":
-            _CENTER_FIELDS_CACHE.clear()
+            _reset_catalogue_cache()
         return payload, phase, state_complete
 
     def translate(self, snapshot):
