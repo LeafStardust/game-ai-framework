@@ -4,12 +4,19 @@ from games.balatro.red_white_semantic_cases import RED_WHITE_SEMANTIC_CASES
 from games.balatro.red_white_semantic_d1_resource_cases import (
     RED_WHITE_D1_RESOURCE_CASES,
 )
+from games.balatro.red_white_semantic_shop_authority_cases import (
+    RED_WHITE_SHOP_AUTHORITY_CASES,
+)
 from games.balatro.semantic_benchmark import run_semantic_benchmark
 
 
 def run():
     return run_semantic_benchmark(
-        (*RED_WHITE_SEMANTIC_CASES, *RED_WHITE_D1_RESOURCE_CASES)
+        (
+            *RED_WHITE_SEMANTIC_CASES,
+            *RED_WHITE_D1_RESOURCE_CASES,
+            *RED_WHITE_SHOP_AUTHORITY_CASES,
+        )
     )
 
 
