@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-"""Stable Castle discard execution semantics.
+"""Canonical D1 evidence for Castle discard progression.
 
-Castle may improve an already-required discard by preferring cards of its current
-public suit, but it never creates a discard or materially weakens survival.  This
-is a Joker-mechanics execution rule, not strategy authority.
+Castle rewards discarding cards of its current public suit. The mechanic is useful
+only as a preference among discard candidates already admitted by canonical D1;
+this installer therefore augments strategy-fit evidence instead of wrapping
+``decide`` or replacing the selected action afterwards.
 """
 
-from dataclasses import replace
-
 from games.balatro.actions import DISCARD_CARDS
-from games.balatro.live.hand_action_policy import LiveHandActionPolicy
+from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
+
+
+CASTLE_MATCH_FIT = 0.75
 
 
 def _normalize(value: object) -> str:
@@ -41,83 +43,42 @@ def _castle_suit(state) -> str | None:
     return None
 
 
-def _castle_match_count(plan, suit: str) -> int:
+def _castle_match_count(action, suit: str) -> int:
+    if action.name != DISCARD_CARDS:
+        return 0
     return sum(
         1
-        for card in (getattr(plan.action, "cards", ()) or ())
+        for card in (getattr(action, "cards", ()) or ())
         if str(getattr(card, "suit", "")) == suit
     )
 
 
-def _safe_castle_discard_alternative(result, suit: str):
-    selected = result.selected_plan
-    if selected.action.name != DISCARD_CARDS:
-        return None
-    if _castle_match_count(selected, suit) > 0:
-        return None
-
-    selected_probability = float(selected.value.clear_probability)
-    selected_score = float(selected.value.expected_score)
-    tolerance = float(
-        getattr(getattr(result, "thresholds", None), "safe_clear_probability_tolerance", 0.0)
-        or 0.0
-    )
-    candidates = []
-    for plan in result.plans:
-        if plan.action.name != DISCARD_CARDS:
-            continue
-        matches = _castle_match_count(plan, suit)
-        if matches <= 0:
-            continue
-        probability = float(plan.value.clear_probability)
-        expected_score = float(plan.value.expected_score)
-        if probability + tolerance + 1e-9 < selected_probability:
-            continue
-        if selected_score > 0.0 and expected_score + 1e-9 < 0.90 * selected_score:
-            continue
-        if bool(getattr(selected, "exact", False)) and not bool(getattr(plan, "exact", False)):
-            continue
-        candidates.append((matches, probability, expected_score, plan))
-
-    if not candidates:
-        return None
-    return max(candidates, key=lambda item: (item[0], item[1], item[2]))[3]
-
-
 def install_castle_discard_policy() -> None:
-    if getattr(LiveHandActionPolicy, "_castle_discard_policy_installed", False):
+    if getattr(
+        StrategyAwareLiveHandActionPolicy,
+        "_castle_discard_policy_installed",
+        False,
+    ):
         return
 
-    original_decide = LiveHandActionPolicy.decide
+    original_strategy_fit = StrategyAwareLiveHandActionPolicy._strategy_fit
 
-    def decide(self, state, plans, **kwargs):
-        result = original_decide(self, state, plans, **kwargs)
-        if result.action.name != DISCARD_CARDS:
-            return result
-
+    def strategy_fit(self, state, action):
+        value, rationale = original_strategy_fit(self, state, action)
         suit = _castle_suit(state)
         if not suit:
-            return result
-        alternative = _safe_castle_discard_alternative(result, suit)
-        if alternative is None:
-            return result
-
-        tolerance = float(
-            getattr(getattr(result, "thresholds", None), "safe_clear_probability_tolerance", 0.0)
-            or 0.0
-        )
-        return replace(
-            result,
-            action=alternative.action,
-            selected_plan=alternative,
-            selected_fallback_value=float(self.evaluator.evaluate(state, alternative.action)),
-            rationale=(
-                f"Castle execution: an already-required discard can include current Castle suit {suit} without material survival loss",
-                f"Castle alternative must remain within canonical D1 clear-probability tolerance={tolerance:.3f}",
-                "Castle never creates a discard and rejects materially weaker alternatives",
-                *result.rationale,
+            return value, rationale
+        matches = _castle_match_count(action, suit)
+        if matches <= 0:
+            return value, rationale
+        return (
+            value + CASTLE_MATCH_FIT * matches,
+            (
+                *rationale,
+                f"Castle discard evidence: {matches} discarded card(s) match current suit {suit}",
+                "Castle fit is subordinate to canonical D1 full-blind survival/resource ordering",
             ),
         )
 
-    LiveHandActionPolicy.decide = decide
-    LiveHandActionPolicy._castle_discard_policy_installed = True
+    StrategyAwareLiveHandActionPolicy._strategy_fit = strategy_fit
+    StrategyAwareLiveHandActionPolicy._castle_discard_policy_installed = True
