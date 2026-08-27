@@ -10,6 +10,7 @@ from games.balatro.live.adaptive_search import (
 from games.balatro.live.blind_clear_planner import LiveBlindPlan
 from games.balatro.live.hand_action_policy import (
     CLEAR_PATH,
+    PACE_PLAY,
     PACE_RECOVERY,
     HandActionDecision,
     LiveHandActionDecisionEngine as _BaseLiveHandActionDecisionEngine,
@@ -18,24 +19,23 @@ from games.balatro.live.strategy_health import LiveStrategyHealth, evaluate_live
 
 
 class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
-    """D1 engine that preserves stable adaptive setup-discard intent in recovery.
+    """D1 engine that preserves adaptive evidence without creating a second controller.
 
     The core engine already performs the expensive public-state clear-path search.
     When several deepest adaptive passes agree on the same setup discard but cannot
-    cross the credible-clear threshold, the base fallback currently throws that
-    action identity away and reselects recovery from one-step heuristic values.
-
-    This extension records only normal adaptive root recommendations. Confirmation
-    passes are excluded. If the core decision reaches ``PACE_RECOVERY`` with stable
-    discard consensus, D1 keeps the agreed setup discard instead of silently
-    switching to a different one-step recovery action. ``CLEAR_PATH`` and
-    ``PACE_PLAY`` behavior is unchanged.
+    cross the credible-clear threshold, this extension preserves that setup identity
+    during recovery instead of silently switching to a different one-step discard.
 
     Completed root plan sets are also retained until the decision returns. If the
     wall-clock budget expires after at least one canonical root search completed,
     timeout returns the best already-computed D1 plan instead of switching to the
     base structural poker-hand/rank heuristic. The structural fallback remains only
     as the emergency legal-action path when no canonical root evidence completed.
+
+    Normal post-policy adaptive evidence is subordinate to the action class selected
+    by the canonical production policy. A pace-qualified Play cannot be replaced
+    after arbitration, and recovery evidence may refine only within the already
+    selected Play/Discard class. This keeps one controller responsible for D1.
 
     After the final D1 action is fixed, the engine evaluates the frozen 46-Bond
     composition and Build Health from that selected plan. The result is exposed as
@@ -191,18 +191,20 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         state,
         decision: HandActionDecision,
     ) -> HandActionDecision:
-        """Keep a materially superior completed search root as the D1 action.
+        """Use deeper completed evidence only within the finalized recovery class.
 
-        The shallow one-step pace policy is a fallback, not a second independent
-        controller. Production logs showed it selecting the opposite action from a
-        completed exact/deeper root seventeen times. Only material superiority is
-        authoritative here; close search estimates still defer to the safer pace
-        policy.
+        Production policy owns Play-vs-Discard survival arbitration. In particular,
+        a pace-qualified Play is final: a post-policy wrapper must not replace it
+        with an engineered deeper line. When the policy is already in recovery,
+        however, a materially superior completed root may refine the particular
+        candidate so long as it stays in the same Play/Discard class.
         """
-        if decision.mode == CLEAR_PATH or not self._adaptive_root_history:
+        if decision.mode in {CLEAR_PATH, PACE_PLAY} or not self._adaptive_root_history:
             return decision
 
         search_plan = self._adaptive_root_history[-1][1]
+        if search_plan.action.name != decision.action.name:
+            return decision
         if self._action_signature(state, search_plan.action) == self._action_signature(
             state,
             decision.action,
@@ -270,10 +272,10 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
             selected_fallback_value=None,
             confidence=confidence,
             rationale=(
-                "completed adaptive root is materially superior to the one-step pace fallback",
-                f"action={decision.action.name}->{search_plan.action.name}; clear probability={selected_probability:.3f}->{search_probability:.3f}",
+                "completed adaptive root materially improves the finalized recovery class",
+                f"action class={search_plan.action.name}; clear probability={selected_probability:.3f}->{search_probability:.3f}",
                 f"expected score={selected_score:.1f}->{search_score:.1f}; exact={search_plan.exact}",
-                "one controller owns the final D1 action; completed search evidence is not logged and then ignored",
+                "production policy remains the sole Play-vs-Discard survival arbiter",
             ),
             candidate_count=len(plans),
             plans=tuple(plans),
