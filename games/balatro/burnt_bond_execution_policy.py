@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-"""Canonical Burnt-Bond D1 execution authority.
+"""Burnt-Bond D1 within-discard refinement.
 
-Burnt Joker's value is permanent first-discard hand leveling.  Generic D1 survival
-must remain authoritative, but a selected Burnt Bond must not be silently suppressed
-by Banner's immediate remaining-discard chips or by the generic rule that a
-pace-qualified play outranks strategic shaping.
+Burnt Joker's permanent first-discard hand leveling is useful strategic evidence,
+but canonical D1 survival owns the Play/Discard action class. This policy may choose
+a better Burnt-compatible discard only after canonical arbitration already selected
+DISCARD; it must never replace a pace-qualified PLAY with DISCARD.
 """
 
 from dataclasses import replace
@@ -15,7 +15,6 @@ from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.bonds.model import BondRank
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
-from games.balatro.live.hand_action_policy import PACE_RECOVERY
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
@@ -123,6 +122,15 @@ def install_burnt_bond_execution_policy() -> None:
         if int(getattr(state, "hands_remaining", 0) or 0) <= 1:
             return decision
 
+        if decision.action.name != DISCARD_CARDS:
+            return replace(
+                decision,
+                rationale=(
+                    *decision.rationale,
+                    "Burnt first-discard value observed but canonical D1 selected PLAY; Burnt evidence cannot change the finalized action class",
+                ),
+            )
+
         discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
         safe = _safe_burnt_discards(decision, discards, epsilon=self.EPSILON)
         if not safe:
@@ -130,8 +138,7 @@ def install_burnt_bond_execution_policy() -> None:
                 decision,
                 rationale=(
                     *decision.rationale,
-                    "Burnt Bond first-discard setup withheld because no discard line remained within canonical D1 clear-probability tolerance",
-                    "survival remains authoritative over permanent Burnt scaling",
+                    "Burnt first-discard refinement withheld because no alternate discard remained within canonical D1 clear-probability tolerance",
                 ),
             )
 
@@ -153,10 +160,6 @@ def install_burnt_bond_execution_policy() -> None:
         selected_probability = _clear_probability(selected)
         selected_type = _discard_hand_type(hand_evaluator, state, selected)
         value = float(self.evaluator.evaluate(state, selected.action))
-        tolerance = float(
-            getattr(getattr(decision, "thresholds", None), "safe_clear_probability_tolerance", 0.0)
-            or 0.0
-        )
 
         banner_owned = any(
             str(getattr(joker, "name", getattr(joker, "label", type(joker).__name__))).lower().replace(" ", "")
@@ -164,14 +167,13 @@ def install_burnt_bond_execution_policy() -> None:
             for joker in getattr(state, "jokers", ()) or ()
         )
         banner_note = (
-            "Banner is owned: one remaining-discard chip payment is accepted because this survival-equivalent first discard creates permanent Burnt hand-level growth"
+            "Banner is owned: among already-authorized discard lines, prefer the survival-equivalent Burnt development line despite one remaining-discard chip payment"
             if banner_owned
-            else "Burnt first-discard setup creates permanent hand-level growth"
+            else "among already-authorized discard lines, prefer permanent Burnt hand-level growth"
         )
 
         return replace(
             decision,
-            mode=PACE_RECOVERY,
             action=selected.action,
             selected_plan=selected,
             selected_immediate_score=None,
@@ -179,12 +181,11 @@ def install_burnt_bond_execution_policy() -> None:
             selected_fallback_value=value,
             confidence=max(float(decision.confidence), selected_probability),
             rationale=(
-                "Burnt Bond execution: activate the first-discard level before playing only on a D1 survival-equivalent line",
-                f"Burnt target={target}; selected discard hand={selected_type}; modeled clear probability={selected_probability:.3f}",
-                f"canonical D1 clear-probability tolerance={tolerance:.3f}",
-                banner_note,
-                "canonical Burnt authority overrides the generic pace-qualified PLAY preference only for this first survival-equivalent discard",
                 *decision.rationale,
+                "Burnt Bond within-DISCARD refinement: canonical D1 already selected the discard action class",
+                f"Burnt target={target}; selected discard hand={selected_type}; modeled clear probability={selected_probability:.3f}",
+                banner_note,
+                "Burnt evidence may rank discard candidates but cannot replace PLAY with DISCARD",
             ),
         )
 
