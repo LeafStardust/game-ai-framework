@@ -43,8 +43,8 @@ The live runner calls `PathAwareLiveHandActionDecisionEngine.decide(state)` thro
 | `CardSelector` | M | Generates legal play/discard candidates | Keep |
 | boss/forced-selection mechanics | M | Restrict legality or exact score semantics | Keep authoritative |
 | `LiveHandDecisionEvaluator` | P/E | Literal current-action projection and local recovery evidence | Keep beneath D1 arbitration |
-| `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner` | P/E | Bounded public-state expectimax and plan values | **Canonical D1 projection/search authority** |
-| `LiveHandActionPolicy` / production strategy-aware policy | A | Applies clear-path / pace / recovery hierarchy to completed plans | **Canonical D1 Play-vs-Discard arbiter** |
+| `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner` | P/E | Bounded public-state expectimax and plan values; discard beam pre-ranking now uses canonical evaluator evidence directly | **Canonical D1 projection/search authority** |
+| `StrategyAwareLiveHandActionPolicy` | A | Owns canonical safe-pace clear / pace-play / recovery arbitration and score/survival-equivalent strategy refinement | **Canonical D1 Play-vs-Discard arbiter** |
 | `PathAwareLiveHandActionDecisionEngine` | A | Owns search schedule, confirmation, timeout/fallback and final return | **Canonical D1 orchestration/final-return authority** |
 | public draw/outcome models | P | Model distributions without hidden draw order/RNG | Keep |
 
@@ -64,7 +64,7 @@ Post-policy wrappers may refine evidence or a candidate **within a finalized act
 | `d1_log_resilience_policy` | **E + runtime** | Boss-unconfirmed exactness is downgraded and search reserve is bounded. Its former hard-coded late Play→Discard rewrites were removed | Keep confidence/runtime safeguards only; no independent action arbitration |
 | retired `d1_debuff_recovery_policy` | **E** | Bounded preference for discarding currently debuffed cards was valid recovery evidence, but the monkeypatch wrapper was unnecessary | **Consolidated:** evidence now lives directly in `LiveHandDecisionEvaluator._discard_value`; installer/file removed |
 | `safe_pace_timeout_patch` | **P/runtime** | Seeds a bounded horizon-1 root before adaptive search. Its former duplicate completed-root timeout selector was removed; completed bootstrap evidence is now fed to the path-aware engine's canonical timeout history | Keep bounded bootstrap only; eventually move bootstrap scheduling into the engine directly |
-| `safe_pace_scope_correction` | **A** | Current production survival arbiter that owns pace-qualified Play vs recovery Discard scope | Keep temporarily as the intentional A layer; migrate semantics into canonical policy before removing wrapper |
+| retired `safe_pace_scope_correction` | **A** | Previously owned production safe-pace Play-vs-Discard scope as a late wrapper | **Consolidated:** safe-pace arbitration now lives directly in `StrategyAwareLiveHandActionPolicy`; installer/file removed |
 | `safe_pace_optimization_policy` | **P/runtime** | Installs only the bounded adaptive-search schedule; it no longer patches action arbitration | Keep bounded schedule semantics; eventually make schedule native rather than monkeypatched |
 | retired `pinned_strategy_safe_pace_policy` | **S + A/G** | Previously re-selected a PACE_PLAY after the canonical policy using a 98% score-equivalence and survival-tolerance band | **Consolidated:** the equivalence band now lives directly in `StrategyAwareLiveHandActionPolicy`; installer/file removed |
 | `semantic_search_guard_policy` | **P + G runtime** | Bounds root/child candidate generation and preserves compact made-hand representatives; also patches unrelated Bond/no-discard helper behavior in the same installer | Preserve bounded candidate semantics, split unrelated concerns, then migrate search behavior into planner directly |
@@ -72,31 +72,31 @@ Post-policy wrappers may refine evidence or a candidate **within a finalized act
 | `castle_discard_policy` | **M/E + G** | Castle may replace one already-selected Discard with a current-suit discard only inside modeled safety tolerance; it never creates a discard | Preserve Castle mechanic/value as within-discard evidence; migrate tie-break into canonical D1 evaluator/policy and remove late wrapper |
 | `bond_d1_cache_policy` | **S/runtime** | Caches immutable Bond hand-intent evidence for one D1 decision; no independent action objective | Keep performance semantics; make cache native to strategy-aware policy when practical |
 | `burnt_bond_execution_policy` | **S/E + A/G** | Current code refines only an already-authorized DISCARD. Burnt first-discard value is observed but cannot replace a canonical PLAY | Keep the action-class boundary; move the within-DISCARD permanent-leveling tie-break into canonical strategy-aware ranking and remove the wrapper |
-| `aces_dna_hand_policy` | **S + A/G** | DNA/Aces strategy logic can replace the canonical result with a PLAY candidate; survival floors bound the rewrite, but the wrapper can still reverse a canonical DISCARD into PLAY | Benchmark DNA setup semantics, expose duplication/setup value inside canonical D1 evidence, then remove cross-class wrapper authority |
+| `aces_dna_hand_policy` | **S + A/G** | DNA/Aces setup may refine only an already-authorized PLAY; it no longer turns canonical DISCARD into PLAY | Move duplication/setup value into canonical within-PLAY strategy evidence, then remove the wrapper |
 | `strategy_execution_guard_policy` | **S/E + A/G** | Realized no-discard and hand-repetition engines refine only an already-selected PLAY; DISCARD is observed but not reversed | Keep action-class boundary; migrate these within-PLAY preferences into canonical strategy-aware ranking and remove late wrapper |
-| `target_hand_engine_policy` | **M/S + A/G** | Exact Runner/To Do List target-hand mechanics are used to pick a survival-equivalent pace PLAY, but the wrapper can reverse a canonical DISCARD into PLAY | Preserve target mechanics as evidence; move target-hand value into canonical D1 arbitration before removing wrapper |
+| `target_hand_engine_policy` | **M/S + A/G** | Runner/To Do List target-hand mechanics may refine only an already-authorized PLAY; the wrapper no longer reverses canonical DISCARD | Preserve target mechanics as evidence; move target-hand value into canonical within-PLAY ranking and remove wrapper |
 | `purple_seal_discard_policy` | **M + P** | Preserves mechanically distinct Purple-Seal Tarot-generation discard branches through bounded child/root beams; it does not assign final utility or choose the D1 action | Keep beam-coverage semantics; migrate candidate generation directly into `D1LiveBlindClearPlanner` |
 | `held_round_end_resource_policy` | **M + P/E** | Projects exact Blue-Seal round-end generation and uses Gold-card retention only as a final equal-value ordering term; it does not post-rewrite the chosen action | Keep literal resource semantics; move projection/priority behavior into canonical planner implementation |
 | `ride_the_bus_execution_policy` | **M/E + A/G** | On an already-selected terminal guaranteed PLAY, it may switch to a non-face guaranteed PLAY that preserves the Bus stack without worsening modeled round resources | Preserve the dominance rule, but move Bus stack preservation into canonical terminal-plan evaluation/tie-breaking |
 | `pinned_strategy_execution_policy` | **S/E** for packs, not D1 | Augments already-positive pack options with pinned missing-feature evidence and motif prescriptions | Exclude from D1 queue; audit under D8/D14 |
 | `strategy_authority_correction_policy` | **S/E** for composition/shop/pack, not D1 | Corrects premature strategy commitment and adds bounded missing-piece recruitment evidence | Exclude from D1 queue; audit under composition/D8/D14 |
 | `live_decision_quality_policy` | **G** for D8/B4/D9, not D1 | Does not own play/discard selection | Exclude from D1 consolidation; audit later under pack/shop phase |
-| final `red_white_competence_corrections` | **G** | Multi-card redraw value has been migrated into canonical D1 evaluation. The remaining D1 patch replaces discard beam pre-ranking with canonical evaluator output; the module also still owns shop admissions | Move planner pre-ranking directly into `LiveBlindClearPlanner`; audit/migrate shop behavior during D14 consolidation |
+| final `red_white_competence_corrections` | **G**, shop only | D1 multi-card redraw and planner discard pre-ranking have both been migrated out. The module now remains for still-unconsolidated shop admissions/value corrections | Audit/migrate remaining behavior during D14 consolidation; it no longer owns D1 authority |
 
 Classification is evidence-based. The currently installed D1-affecting wrapper inventory has now been classified; Phase 0 should proceed by migrating the remaining A/G semantics rather than adding new wrappers.
 
 ## D1 authority defects and disposition
 
-1. **Planner/controller disagreement:** discard candidate pre-ranking used a different objective than canonical D1 evaluation. This is benchmarked; candidate ranking must use canonical D1 evidence. The late correction currently enforces this, but the behavior still needs to move into `LiveBlindClearPlanner` itself.
-2. **Recovery oscillation:** separate rescue rules have produced both repeated one-card discards and later runs that preserved all discards while dying. Continue consolidating into one survival comparison.
+1. **Planner/controller disagreement:** resolved. `LiveBlindClearPlanner._discard_priority` now uses canonical `LiveHandDecisionEvaluator.evaluate(...)` directly; the late Red/White planner monkeypatch is retired. Semantic case `d1.authority.candidate_beam` protects this boundary.
+2. **Recovery oscillation:** multi-card redraw efficiency now lives in canonical `LiveHandDecisionEvaluator`, while planner discard beam admission uses the same evaluator. Continue watching live behavior for any remaining survival/recovery oscillation rather than adding a second objective.
 3. **Timeout divergence:** structural fallback could abandon completed modeled survival evidence. The path-aware production engine now retains completed canonical D1 evidence; semantic case `d1.authority.timeout_consistency` protects this. The older duplicate completed-root selector in `safe_pace_timeout_patch` has been removed.
-4. **Post-policy cross-class reversal:** deeper adaptive evidence could replace a production pace decision with the opposite action class. This behavior is retired; semantic case `d1.authority.action_class` protects final Play-vs-Discard ownership.
+4. **Post-policy cross-class reversal:** deeper adaptive or strategy evidence may no longer replace the finalized Play/Discard action class. Semantic cases `d1.authority.action_class` and `d1.authority.canonical_safe_pace` protect final ownership.
 5. **Debuffed-card recovery wrapper:** valid recovery evidence lived in a monkeypatch. It is now canonical in `LiveHandDecisionEvaluator`; wrapper/installer removed.
 6. **Log-resilience second arbiter:** hard-coded projected-score margins could rewrite Play→Discard after policy arbitration. Those rewrites are removed; only confidence/runtime safeguards remain.
 7. **Safe-pace strategy second pass:** pinned strategy previously re-arbitrated PACE_PLAY after the canonical policy. Its score/survival equivalence semantics now live in `StrategyAwareLiveHandActionPolicy`; the wrapper is removed.
-8. **Burnt cross-class override:** already retired in current code. Burnt now observes canonical PLAY and refines only an already-selected DISCARD; the remaining wrapper should still be folded into canonical within-DISCARD ranking.
-9. **DNA/target-hand cross-class rewrites:** setup/engine value is legitimate, but the current wrappers can turn canonical DISCARD into PLAY. These are the next high-risk strategy migration targets.
-10. **Multi-card redraw late correction:** moved into `LiveHandDecisionEvaluator._discard_value`; the final Red/White layer no longer owns or double-applies it.
+8. **Burnt cross-class override:** retired. Burnt now observes canonical PLAY and refines only an already-selected DISCARD; its remaining within-DISCARD wrapper is still a consolidation target.
+9. **DNA/target-hand cross-class rewrites:** retired. Both wrappers are now constrained to already-authorized PLAY and remain only as within-PLAY refinement layers awaiting canonical migration.
+10. **Multi-card redraw late correction:** resolved. Multi-card redraw efficiency lives in `LiveHandDecisionEvaluator._discard_value`; the final Red/White layer no longer owns or double-applies it.
 
 ## Phase-0 consolidation target for D1
 
@@ -211,7 +211,7 @@ The removal of post-decision bounded D1 Build Health projection is the model for
 
 # Phase-0 consolidation queue
 
-Before deleting a wrapper that protects behavior, first ensure the valid behavior has semantic/property coverage whenever practical. A wrapper that is purely redundant implementation plumbing may be removed once its semantics have moved canonically.
+Before deleting a wrapper that protects behavior, first ensure the valid behavior has semantic/property coverage whenever practical. A wrapper that is purely redundant implementation plumbing may be removed once its semantics have moved canonically. Related low-risk items that share one authority boundary should be batched in the same pass; do not require a separate validation round for every trivial wrapper cleanup.
 
 1. [x] Tag every D1-affecting installed wrapper M/P/E/S/A/G/D.
 2. [ ] Tag every shop-affecting installed wrapper M/P/E/S/A/G/D.
@@ -219,7 +219,7 @@ Before deleting a wrapper that protects behavior, first ensure the valid behavio
 4. [ ] Add benchmark coverage for that defect if absent.
 5. [ ] Move semantics into the canonical D1 planner/evaluator/policy/engine or D14 comparison.
 6. [ ] Remove redundant late wrappers.
-7. [ ] Use targeted deterministic tests during a consolidation batch.
+7. [ ] Group related low-risk migrations into one consolidation batch and let the user run the targeted semantic/regression gate after the batch.
 8. [ ] Require one full deterministic-suite + semantic-benchmark integration gate when the batch is complete.
 
 ## Current intended final authorities
@@ -227,7 +227,7 @@ Before deleting a wrapper that protects behavior, first ensure the valid behavio
 Until consolidation is complete:
 
 - **D1 projection/search:** `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`.
-- **D1 action arbitration:** one production `LiveHandActionPolicy` hierarchy.
+- **D1 action arbitration:** `StrategyAwareLiveHandActionPolicy` is the production Play-vs-Discard authority.
 - **D1 orchestration/final return:** `PathAwareLiveHandActionDecisionEngine.decide()`.
 - **D2 family:** Joker acquisition/replacement policies produce family-local evidence.
 - **D14:** `BuildAwareShopArbiter` is the intended final cross-family shop authority, currently still surrounded by Build Health/Bond/late runtime corrections that must be consolidated.
