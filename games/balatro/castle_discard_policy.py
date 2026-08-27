@@ -6,6 +6,8 @@ Castle rewards discarding cards of its current public suit. The mechanic is usef
 only as a preference among discard candidates already admitted by canonical D1;
 this installer therefore augments strategy-fit evidence instead of wrapping
 ``decide`` or replacing the selected action afterwards.
+
+A pure legacy selector is retained only for deterministic regression compatibility.
 """
 
 from games.balatro.actions import DISCARD_CARDS
@@ -53,12 +55,43 @@ def _castle_match_count(action, suit: str) -> int:
     )
 
 
+def _safe_castle_discard_alternative(result, suit: str):
+    """Legacy pure selector retained only for deterministic compatibility tests."""
+    selected = result.selected_plan
+    if selected.action.name != DISCARD_CARDS:
+        return None
+    if _castle_match_count(selected.action, suit) > 0:
+        return None
+
+    selected_probability = float(selected.value.clear_probability)
+    selected_score = float(selected.value.expected_score)
+    tolerance = float(
+        getattr(getattr(result, "thresholds", None), "safe_clear_probability_tolerance", 0.0)
+        or 0.0
+    )
+    candidates = []
+    for plan in result.plans:
+        if plan.action.name != DISCARD_CARDS:
+            continue
+        matches = _castle_match_count(plan.action, suit)
+        if matches <= 0:
+            continue
+        probability = float(plan.value.clear_probability)
+        expected_score = float(plan.value.expected_score)
+        if probability + tolerance + 1e-9 < selected_probability:
+            continue
+        if selected_score > 0.0 and expected_score + 1e-9 < 0.90 * selected_score:
+            continue
+        if bool(getattr(selected, "exact", False)) and not bool(getattr(plan, "exact", False)):
+            continue
+        candidates.append((matches, probability, expected_score, plan))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda item: (item[0], item[1], item[2]))[3]
+
+
 def install_castle_discard_policy() -> None:
-    if getattr(
-        StrategyAwareLiveHandActionPolicy,
-        "_castle_discard_policy_installed",
-        False,
-    ):
+    if getattr(StrategyAwareLiveHandActionPolicy, "_castle_discard_policy_installed", False):
         return
 
     original_strategy_fit = StrategyAwareLiveHandActionPolicy._strategy_fit
