@@ -10,6 +10,7 @@ from games.balatro.actions import (
     BalatroAction,
 )
 from games.balatro.build import ContextualConsumableSynergyEvaluator
+from games.balatro.build.wheel_expectation import WheelOfFortuneExpectationEvaluator
 from games.balatro.consumable import Consumable, ConsumableContext
 from games.balatro.live.consumable_timing import LiveConsumableTimingPolicy
 from games.balatro.planet_scaler_authority import has_planet_use_scaler
@@ -19,6 +20,8 @@ from games.balatro.state import BalatroState
 BUY = "BUY"
 BUY_AND_USE = "BUY_AND_USE"
 HOLD = "HOLD"
+
+_WHEEL_NAMES = frozenset({"The Wheel of Fortune", "Wheel of Fortune"})
 
 
 @dataclass(frozen=True)
@@ -144,7 +147,25 @@ class ConsumableAcquisitionPolicy:
                 )
             )
 
+        wheel_option = self._wheel_buy_and_use_option(state, candidate)
+        if wheel_option is not None:
+            options.append(wheel_option)
+
         ranked = tuple(sorted(options, key=lambda option: (-option.total_advantage, 0 if option.mode == BUY else 1)))
+
+        if wheel_option is not None:
+            return ConsumableAcquisitionDecision(
+                BUY_AND_USE,
+                candidate_name,
+                wheel_option,
+                ranked,
+                self.thresholds,
+                (
+                    "Wheel of Fortune gets a native D4 BUY_AND_USE candidate from public analytic edition expectation",
+                    "D14 remains authoritative for cross-family comparison against END_SHOP",
+                    *wheel_option.rationale,
+                ),
+            )
 
         # Planet-use scaling is a defining mechanical engine, not a speculative
         # transaction preference. Once the reserve survives the purchase, the direct
@@ -204,6 +225,51 @@ class ConsumableAcquisitionPolicy:
     @staticmethod
     def _scaler_planet(state: BalatroState, candidate: Consumable) -> bool:
         return str(getattr(candidate, "category", "")).upper() == "PLANET" and has_planet_use_scaler(state)
+
+    def _wheel_buy_and_use_option(
+        self,
+        state: BalatroState,
+        candidate: Consumable,
+    ) -> ConsumableAcquisitionOption | None:
+        name = str(getattr(candidate, "name", type(candidate).__name__))
+        if name not in _WHEEL_NAMES:
+            return None
+        if not tuple(getattr(state, "jokers", ()) or ()):
+            return None
+
+        economics = self._economics(state, candidate, occupy_slot=False)
+        if economics.money_after < int(self.thresholds.reserve_target):
+            return None
+        try:
+            can_use = candidate.can_use(ConsumableContext(state=state))
+        except (AttributeError, TypeError, ValueError):
+            can_use = False
+        if not can_use:
+            return None
+
+        expectation = WheelOfFortuneExpectationEvaluator().evaluate(state)
+        if not expectation.available or not expectation.complete:
+            return None
+        expected_gain = float(expectation.expected_build_gain)
+        if expected_gain <= 0.0:
+            return None
+
+        total = expected_gain + economics.total_adjustment
+        return ConsumableAcquisitionOption(
+            mode=BUY_AND_USE,
+            build_gain=expected_gain,
+            immediate_gain=0.0,
+            total_advantage=total,
+            economics=economics,
+            eligible=True,
+            executable_action=BalatroAction(BUY_AND_USE_CONSUMABLE, target=candidate),
+            rationale=(
+                "shop Wheel admitted through the same public-state stochastic edition model used by packs",
+                f"analytic expected edition gain={expected_gain:.3f}",
+                f"money after purchase=${economics.money_after}",
+                *tuple(expectation.rationale),
+            ),
+        )
 
     def _score_buy(self, state: BalatroState, candidate: Consumable, *, build_gain: float, rationale: tuple[str, ...]) -> ConsumableAcquisitionOption:
         economics = self._economics(state, candidate, occupy_slot=True)
