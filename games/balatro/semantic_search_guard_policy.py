@@ -11,7 +11,9 @@ Production evidence exposed structural defects retained by this layer:
   with singleton discards, hiding materially better multi-card redraws from the
   full-blind planner;
 - non-clearing sampled discard recovery could lose to singleton redraws solely
-  because the singleton outcome space was cheap enough to enumerate exactly.
+  because the singleton outcome space was cheap enough to enumerate exactly;
+- when bounded search has zero modeled progress for every discard, retained/local
+  value alone can repeatedly peel one card instead of taking a meaningful redraw.
 
 No-discard execution semantics now live as ordinary canonical D1 evidence and are
 intentionally not patched from this search/runtime module.
@@ -34,6 +36,7 @@ _ROOT_DISCARD_PREFILTER = 14
 _CHILD_DISCARD_PREFILTER = 8
 _SHORT_PLAY_RESERVE = 2
 _WIDE_DISCARD_RESERVE = 2
+_EPSILON = 1e-12
 
 _HAND_STRENGTH = {
     PokerHand.HIGH_CARD: 0,
@@ -216,6 +219,26 @@ def _nonclearing_discard_quality_key(plan) -> tuple[float, float, float, float, 
     )
 
 
+def _zero_signal_discard(plan) -> bool:
+    """True when bounded D1 search has no modeled outcome signal for a discard."""
+    if getattr(plan.action, "name", None) != DISCARD_CARDS:
+        return False
+    value = plan.value
+    return (
+        float(value.clear_probability) <= _EPSILON
+        and float(value.expected_progress) <= _EPSILON
+        and float(value.expected_score) <= _EPSILON
+    )
+
+
+def _zero_signal_discard_tiebreak(plan, *, strategy_fit: float = 0.0) -> tuple[float, int]:
+    """Preserve real strategy intent, then prefer a meaningful redraw over peeling."""
+    return (
+        float(strategy_fit),
+        len(getattr(plan.action, "cards", ()) or ()),
+    )
+
+
 def install_semantic_search_guard_policy() -> None:
     if getattr(LiveBlindClearPlanner, "_semantic_search_guard_installed", False):
         return
@@ -279,8 +302,8 @@ def install_semantic_search_guard_policy() -> None:
         action_name = getattr(estimate.action, "name", None)
         if (
             estimate.exact
-            and float(value.clear_probability) >= 1.0 - 1e-12
-            and float(value.expected_progress) >= 1.0 - 1e-12
+            and float(value.clear_probability) >= 1.0 - _EPSILON
+            and float(value.expected_progress) >= 1.0 - _EPSILON
             and action_name == PLAY_CARDS
         ):
             return (
@@ -294,7 +317,7 @@ def install_semantic_search_guard_policy() -> None:
             )
         if (
             action_name == DISCARD_CARDS
-            and float(value.clear_probability) < 1.0 - 1e-12
+            and float(value.clear_probability) < 1.0 - _EPSILON
         ):
             return (
                 value.clear_probability,
@@ -314,12 +337,24 @@ def install_semantic_search_guard_policy() -> None:
     def strategy_within_type_key(self, plan):
         if (
             getattr(plan.action, "name", None) == DISCARD_CARDS
-            and float(plan.value.clear_probability) < 1.0 - 1e-12
+            and float(plan.value.clear_probability) < 1.0 - _EPSILON
         ):
-            return (
-                *_nonclearing_discard_quality_key(plan),
-                original_strategy_key(self, plan),
-            )
+            quality = _nonclearing_discard_quality_key(plan)
+            original = original_strategy_key(self, plan)
+            if _zero_signal_discard(plan):
+                strategy_fit = 0.0
+                state = getattr(self, "_ranking_state", None)
+                if state is not None:
+                    try:
+                        strategy_fit = float(self._strategy_fit(state, plan.action)[0])
+                    except (AttributeError, TypeError, ValueError, RuntimeError):
+                        strategy_fit = 0.0
+                return (
+                    *quality,
+                    *_zero_signal_discard_tiebreak(plan, strategy_fit=strategy_fit),
+                    original,
+                )
+            return (*quality, original)
         return original_strategy_key(self, plan)
 
     LiveBlindClearPlanner._candidate_actions = candidate_actions_bounded
