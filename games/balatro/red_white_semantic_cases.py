@@ -27,6 +27,7 @@ from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.live.path_aware_hand_action_engine import (
     PathAwareLiveHandActionDecisionEngine,
 )
+from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
 from games.balatro.shop_voucher_policy import VoucherAcquisitionPolicy
@@ -204,6 +205,110 @@ def _finalized_d1_action_class_is_authoritative() -> SemanticCheck:
     )
 
 
+def _canonical_safe_pace_owns_action_class() -> SemanticCheck:
+    """The production strategy policy itself, not an installer, owns safe pace."""
+    cards = [object() for _ in range(4)]
+    pace_play = LiveBlindPlan(
+        action=BalatroAction(PLAY_CARDS, cards=cards[:2]),
+        value=LiveBlindPlanValue(
+            clear_probability=0.20,
+            expected_progress=0.40,
+            expected_score=40.0,
+            expected_hands_remaining=3.0,
+            expected_discards_remaining=4.0,
+        ),
+        horizon=1,
+        exact=True,
+        candidate_count=2,
+    )
+    deeper_discard = LiveBlindPlan(
+        action=BalatroAction(DISCARD_CARDS, cards=cards[2:]),
+        value=LiveBlindPlanValue(
+            clear_probability=0.80,
+            expected_progress=0.90,
+            expected_score=90.0,
+            expected_hands_remaining=4.0,
+            expected_discards_remaining=3.0,
+        ),
+        horizon=3,
+        exact=True,
+        candidate_count=2,
+    )
+    baseline_policy = LiveHandActionPolicy()
+    baseline = baseline_policy._decision(
+        mode="CLEAR_PATH",
+        selected=deeper_discard,
+        best_play=pace_play,
+        best_discard=deeper_discard,
+        pace_target=25.0,
+        best_play_immediate_score=30.0,
+        best_play_pace_ratio=1.2,
+        selected_immediate_score=None,
+        selected_pace_ratio=None,
+        selected_fallback_value=None,
+        clear_path_candidates=1,
+        sampled_clear_path_confirmed=False,
+        setup_discard_consensus=False,
+        confidence=0.80,
+        rationale=("deeper search preferred discard",),
+        plans=(pace_play, deeper_discard),
+        search_attempts=(),
+    )
+
+    class Evaluator:
+        def project_play(self, state, action):
+            return SimpleNamespace(
+                expected_hand_score=30.0,
+                clear_probability=0.20,
+                outcomes=(),
+            )
+
+        def evaluate(self, state, action):
+            return 100.0 if action.name == DISCARD_CARDS else 30.0
+
+    policy = SimpleNamespace(
+        evaluator=Evaluator(),
+        thresholds=SimpleNamespace(pace_ratio_floor=1.0),
+        EPSILON=1e-12,
+        build_evaluator=SimpleNamespace(prepare=lambda state: None, reset_cache=lambda: None),
+        _ranking_state=None,
+        _pace_target=lambda state: 25.0,
+        _pace_ratio=lambda score, target: score / target,
+        _within_type_key=lambda plan: (
+            plan.value.clear_probability,
+            plan.value.expected_progress,
+            plan.value.expected_hands_remaining,
+            plan.value.expected_discards_remaining,
+            plan.value.expected_score,
+        ),
+        _safe_equivalent_clear_key=lambda plan: (
+            plan.value.expected_hands_remaining,
+            plan.value.expected_discards_remaining,
+            plan.value.clear_probability,
+        ),
+        _pace_play_key=lambda plan, ratio: (
+            plan.value.clear_probability,
+            plan.value.expected_progress,
+            ratio,
+        ),
+        _pace_confidence=lambda ratio: min(1.0, ratio),
+    )
+    state = SimpleNamespace(hands_remaining=4, discards_remaining=4)
+    decision = StrategyAwareLiveHandActionPolicy._enforce_safe_pace_scope(
+        policy,
+        state,
+        (pace_play, deeper_discard),
+        baseline,
+        setup_discard_consensus=False,
+    )
+    return SemanticCheck(
+        decision.mode == PACE_PLAY and decision.action is pace_play.action,
+        observed=f"mode={decision.mode}, action={decision.action.name}",
+        expected="canonical StrategyAware D1 chooses pace-qualified PLAY without a scope wrapper",
+        detail="multi-step clear evidence may rank within the action class but may not replace an available Red/White pace play",
+    )
+
+
 def _first_scoring_foothold() -> SemanticCheck:
     state = BalatroState()
     state.phase = "SHOP"
@@ -310,6 +415,13 @@ RED_WHITE_SEMANTIC_CASES = (
         "Post-policy adaptive evidence cannot reverse the finalized Play/Discard class.",
         _finalized_d1_action_class_is_authoritative,
         source="Phase-0 authority audit: PathAware post-policy arbitration",
+    ),
+    SemanticBenchmarkCase(
+        "d1.authority.canonical_safe_pace",
+        "D1_SURVIVAL",
+        "The production strategy-aware D1 policy itself must own safe-pace action arbitration.",
+        _canonical_safe_pace_owns_action_class,
+        source="Phase-0 consolidation: retired safe_pace_scope_correction wrapper",
     ),
     SemanticBenchmarkCase(
         "shop.survival.first_scoring_foothold",
