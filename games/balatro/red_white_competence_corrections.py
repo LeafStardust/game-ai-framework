@@ -12,15 +12,14 @@ Red/White runs:
 * conditional scoring mechanics discoverable from public rules could be omitted
   from representative shop score projection when their activation context was not
   present in the neutral probe state;
-* pace recovery treated a one-card discard too similarly to a multi-card redraw
-  even though both consume exactly one discard resource;
 * the bounded live planner ranked discard candidates with a separate mini-heuristic,
   bypassing the canonical D1 discard evaluator before expectimax;
 * shop Wheel of Fortune was never admitted by the deterministic D4 immediate-use
   path, even with healthy money and eligible editionless Jokers.
 
-The module installs after the existing policy stack so all mechanical/conflict
-vetoes remain authoritative and these corrections see the final public decision.
+D1 multi-card redraw efficiency is now part of ``LiveHandDecisionEvaluator`` itself
+rather than this late correction layer. The module remains installed after the
+existing policy stack for the still-unconsolidated shop/runtime corrections.
 """
 
 from copy import deepcopy
@@ -42,7 +41,6 @@ from games.balatro.celestial_shop_headroom_fast_path import (
 from games.balatro.consumable import Consumable, ConsumableContext
 from games.balatro.joker_policy import BUY, HOLD, JokerAcquisitionPolicy
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
-from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.shop_consumable_policy import (
     BUY_AND_USE,
     HOLD as CONSUMABLE_HOLD,
@@ -56,8 +54,6 @@ EARLY_ENGINE_ANTE_LIMIT = 2
 FIRST_ENGINE_MINIMUM_CASH_AFTER = 1
 FIRST_ENGINE_VOUCHER_RESERVE = 10
 EXPENSIVE_HAND_SIZE_VOUCHERS = frozenset({"Paint Brush", "Palette"})
-REDRAW_EFFICIENCY_BASE = 8.0
-REDRAW_EFFICIENCY_SHORTFALL_WEIGHT = 8.0
 WHEEL_NAMES = frozenset({"The Wheel of Fortune", "Wheel of Fortune"})
 REPEATED_HAND_SCENARIO = scenario_feature("repeated_hand")
 
@@ -103,7 +99,6 @@ def install_red_white_competence_corrections() -> None:
     original_joker_decide = JokerAcquisitionPolicy.decide
     original_consumable_decide = ConsumableAcquisitionPolicy.decide
     original_voucher_gate = VoucherAcquisitionPolicy._early_survival_gate
-    original_discard_value = LiveHandDecisionEvaluator._discard_value
     original_direct_scoring_gain = JokerBuildValueEvaluator._direct_scoring_gain
 
     def direct_scoring_gain(self, state, joker):
@@ -277,30 +272,6 @@ def install_red_white_competence_corrections() -> None:
             )
         return True, notes
 
-    def discard_value(self, state, action, context):
-        value = float(original_discard_value(self, state, action, context))
-        if value <= -1_000_000.0:
-            return value
-
-        selected = tuple(getattr(action, "cards", ()) or ())
-        redraws = len(selected)
-        required = max(1.0, float(getattr(context, "required_per_hand", 1.0) or 1.0))
-        best_score = max(0.0, float(getattr(context, "best_play_score", 0.0) or 0.0))
-        shortfall = max(0.0, 1.0 - best_score / required)
-        if shortfall <= 0.0:
-            return value
-        if redraws <= 1:
-            return value
-        if int(getattr(state, "discards_remaining", 0) or 0) <= 1:
-            return value
-
-        extra_redraws = min(4, redraws - 1)
-        efficiency = extra_redraws * (
-            REDRAW_EFFICIENCY_BASE
-            + REDRAW_EFFICIENCY_SHORTFALL_WEIGHT * shortfall
-        )
-        return value + efficiency
-
     def discard_priority(self, state, action):
         return float(self.evaluator.evaluate(state, action)), len(action.cards)
 
@@ -308,12 +279,10 @@ def install_red_white_competence_corrections() -> None:
     JokerAcquisitionPolicy.decide = joker_decide
     ConsumableAcquisitionPolicy.decide = consumable_decide
     VoucherAcquisitionPolicy._early_survival_gate = staticmethod(voucher_gate)
-    LiveHandDecisionEvaluator._discard_value = discard_value
     LiveBlindClearPlanner._discard_priority = discard_priority
 
     JokerBuildValueEvaluator._rw_competence_corrections_installed = True
     JokerAcquisitionPolicy._rw_competence_corrections_installed = True
     ConsumableAcquisitionPolicy._rw_competence_corrections_installed = True
     VoucherAcquisitionPolicy._rw_competence_corrections_installed = True
-    LiveHandDecisionEvaluator._rw_competence_corrections_installed = True
     LiveBlindClearPlanner._rw_competence_corrections_installed = True
