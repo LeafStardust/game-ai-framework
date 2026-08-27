@@ -18,7 +18,7 @@ Strategy/Bond state and Build Health are evidence supplied to the evaluator. The
 
 ## Current production installation shape
 
-`games/balatro/__init__.py` still installs an ordered stack of monkeypatch-style policy/runtime helpers. D1 is now materially narrower than the historical stack: the surviving strategy/Joker layers contribute evidence, exact mechanics, projection, caching, or bounded-search behavior rather than owning independent post-policy Play/Discard selectors. D14 is likewise being narrowed: global post-arbitration rescues are being retired while valid family-local evidence and transaction integrity remain. Removing the remaining implementation-order dependency is still a Phase-0 objective.
+`games/balatro/__init__.py` still installs an ordered stack of monkeypatch-style policy/runtime helpers. D1 is materially narrower than the historical stack: the surviving strategy/Joker layers contribute evidence, exact mechanics, projection, caching, or bounded-search behavior rather than owning independent post-policy Play/Discard selectors. D14 has likewise been narrowed: known strategic post-arbitration rescues are retired, verified visible-pair planning is native to D14, and the former final Red/White correction layer has been deleted after moving its D2/D3/D4/B3 behavior into canonical owners. Removing the remaining implementation-order dependency is still a Phase-0 objective.
 
 ### Authority classes
 
@@ -81,7 +81,7 @@ Strategy/Joker hooks may contribute candidate evidence only where explicitly jus
 | `pinned_strategy_execution_policy` | **S/E** for packs, not D1 | Augments already-positive pack options with pinned missing-feature evidence and motif prescriptions | Exclude from D1 queue; audit under D8/D14 |
 | `strategy_authority_correction_policy` | **S/E** for composition/shop/pack, not D1 | Corrects premature strategy commitment and adds bounded missing-piece recruitment evidence | Exclude from D1 queue; audit under composition/D8/D14 |
 | `live_decision_quality_policy` | **G** for D8/B4/D9, not D1 | Does not own play/discard selection | Exclude from D1 consolidation; audit later under pack/shop phase |
-| final `red_white_competence_corrections` | **G**, shop only | D1 multi-card redraw and planner discard pre-ranking have both been migrated out | Audit/migrate remaining behavior during D14 consolidation; it no longer owns D1 authority |
+| retired `red_white_competence_corrections` | **historical G/E** | Its D1, D2, D3, D4, D14 and B3 corrections have all moved to canonical owners | **Deleted:** no production correction layer remains |
 
 Classification is evidence-based. At this checkpoint no installed strategy/Joker D1 layer intentionally owns a second post-policy Play/Discard or same-class selector. Remaining D1 consolidation is primarily exact-mechanics integration and runtime/projection plumbing.
 
@@ -120,9 +120,11 @@ Classification is evidence-based. At this checkpoint no installed strategy/Joker
 | Component | Class | Current role | Desired role |
 |---|---|---|---|
 | shop action generator | M | Exposes currently legal visible transactions | Keep |
-| `JokerBuildValueEvaluator` and literal candidate models | P/E | Candidate Joker consequences | Keep as evidence |
-| `PlaybookJokerAcquisitionPolicy` / D2 | E/A | Joker buy/replace/HOLD recommendation | Keep as Joker-family evaluator, not global final arbiter |
-| voucher/booster/consumable policies | E | Family-local admission and option evaluation | Keep as evidence providers |
+| `JokerBuildValueEvaluator` and literal candidate models | P/E | Candidate Joker consequences, including reachable repeated-hand scoring context | Keep as canonical B3 evidence |
+| `JokerAcquisitionPolicy` / `PlaybookJokerAcquisitionPolicy` / D2 | E/A | Joker buy/replace/HOLD recommendation, including native first-engine reserve relaxation | Keep as Joker-family evaluator, not global final arbiter |
+| `VoucherAcquisitionPolicy` / D3 | E/A | Persistent voucher admission, including native first-engine readiness for expensive hand-size capacity | Keep family-local beneath D14 |
+| `ConsumableAcquisitionPolicy` / D4 | E/A | Consumable HOLD/BUY/BUY_AND_USE admission, including native Wheel analytic edition option | Keep family-local beneath D14 |
+| booster policies / D8 | E | Family-local pack admission and option evaluation | Keep as evidence providers |
 | `BuildAwareShopArbiter` / D14 | A | Compares Joker, verified visible Bond-pair plan, consumable, voucher, booster, reroll and END_SHOP on one normalized scale | **Canonical shop final authority** |
 | Bond/composition | S | Coherence, realization, disruption, future direction; visible pair interaction can generate a D14 candidate but does not post-rewrite the result | Evidence only beneath D14 |
 | Build Health | S | D2 Joker-family survival/immediate/scaling/coherence/runway evidence only; no global shop wrapper remains in its source | Evidence only |
@@ -132,6 +134,10 @@ Classification is evidence-based. At this checkpoint no installed strategy/Joker
 | Layer | Class | Finding | Consolidation direction |
 |---|---|---|---|
 | native visible two-Joker Bond planning in `BuildAwareShopArbiter` | **P/E + A candidate** | Verifies a two-step visible interaction, normalizes both steps through the D14 scale, and submits the first step to the same parent candidate set | **Canonicalized.** Semantic cases `d14.authority.visible_bond_pair` and `d14.authority.pair_requires_interaction` protect this boundary |
+| native D2 first-engine bootstrap | **E/A family rule** | Empty Ante-1/2 boards may relax reserve-driven HOLD for an eligible positive grounded Joker while strategic conflicts remain ineligible | **Canonicalized.** Semantic cases `d1.shop.first_scoring_foothold` and `d2.authority.first_engine_conflict` protect the boundary |
+| native D3 first-engine hand-size readiness | **E/A family rule** | Paint Brush/Palette keep structural priority only after a scoring foothold exists or the early survival reserve remains intact | **Canonicalized.** Semantic case `d3.authority.first_engine_capacity` protects the boundary |
+| native D4 Wheel admission | **P/E + A family option** | Positive public analytic edition expectation exposes Wheel as BUY_AND_USE to D14 while D14 still decides the global purchase | **Canonicalized.** Semantic case `d4.authority.wheel_shop_admission` protects the boundary |
+| native B3 repeated-hand projection | **P/E** | Repeated-hand conditional scorers are evaluated over inactive and reachable-active public contexts with the same literal scorer | **Canonicalized.** Semantic case `b3.authority.repeated_hand_projection` protects the boundary |
 | `voucher_arbiter_authority` | **E adapter** | Makes D3 own voucher admission/persistent value while D14 recomputes shared money/interest/reserve opportunity cost | Keep family-local; eventually make the D3 adapter native to shop policy/arbiter |
 | `early_spend_sanity_policy` | **E/G family guard** | Adds hard early reserve gates inside D3/D8 admission; it cannot replace a completed D14 decision | Keep pending family-policy consolidation |
 | `late_shop_resource_guard` | **E/G family guard** | Can downgrade an admitted late side-development booster to HOLD before parent comparison | Keep pending D8 consolidation; not a global arbiter |
@@ -146,20 +152,23 @@ Classification is evidence-based. At this checkpoint no installed strategy/Joker
 | retired `early_capacity_policy` | **historical A/G** | Replaced D14-selected Celestial booster with Paint Brush after arbitration using a synthetic parent gain | **Retired and deleted**; voucher and booster now compete normally in D14 |
 | retired Campfire fuel rescue in `shop_transaction_policy` | **historical A/G** | Replaced END_SHOP/reroll after D14 with a synthetic consumable fuel transaction | **Retired**; fuel must enter through ordinary D4/D14 value if modeled |
 | retired `bond_visible_shop_bundle_policy` | **historical A/G** | Wrapped completed D14 output to choose a visible two-Joker plan | **Migrated into canonical D14 and file deleted** |
-| final `red_white_competence_corrections` | **E/G family-local only** | Remaining changes affect D2 Joker admission/value, D4 Wheel admission, and D3 early voucher readiness; it no longer installs Bond-pair/global D14 arbitration | Migrate each remaining family correction into its canonical owner |
+| retired `red_white_competence_corrections` | **historical E/G** | Late family corrections for D2, D3, D4 and B3 were migrated to canonical owners | **Deleted**; no final Red/White correction layer remains |
 
 At this checkpoint the known strategic post-arbitration shop rescues have been removed. The only deliberate pre-parent bypass is committed transaction completion for a replacement that D14 already selected at the previous authoritative checkpoint; execution legality may still reject stale/illegal actions.
 
 ## Shop authority defects and disposition
 
-1. **Generic HOLD vs obvious first scoring foothold:** still protected by family-local D2 correction and semantic coverage; migrate into canonical D2 before deleting the final correction layer.
-2. **Rescue overriding semantic veto:** addressed by constraining/migrating rescues; no known global early-scoring post-arbiter remains.
+1. **Generic HOLD vs obvious first scoring foothold:** resolved natively in D2. The reserve relaxation is limited to eligible positive grounded value on an empty Ante-1/2 board and cannot override strategic conflict; semantic cases protect both sides.
+2. **Rescue overriding semantic veto:** resolved by removing broad rescues and preserving conflict ineligibility in native D2.
 3. **Cash paralysis:** D11 reroll remains child-owned and D14 compares its admitted normalized gain; the historical Build-Health fallback reroll rescue is removed.
 4. **Nested planning/runtime:** hypothetical D2/D14 projections are guarded from recursively launching bounded D1 survival work; continue runtime audit separately.
 5. **Legacy named bundle logic:** retired. Generic visible pair planning is native D14 and requires a mechanically proven interaction.
-6. **Early capacity post-arbiter:** retired and deleted; Paint Brush/Palette must win through D3 admission plus D14 normalized comparison.
+6. **Early capacity post-arbiter:** retired and deleted; Paint Brush/Palette compete through native D3 readiness plus D14 normalized comparison.
 7. **Campfire fuel post-arbiter:** retired; no synthetic `+0.25` parent gain may override END_SHOP/reroll.
 8. **Build-Health shop wrapper:** removed from source. Build Health remains D2 evidence only.
+9. **Wheel shop admission:** resolved natively in D4; public analytic edition expectation produces a BUY_AND_USE candidate for D14 rather than a late correction.
+10. **Repeated-hand conditional scoring omission:** resolved natively in B3 through inactive/reachable-active literal scoring projection.
+11. **Final Red/White correction layer:** deleted after all remaining semantics moved to D2/D3/D4/B3 or existing D8 registration.
 
 ## Phase-0 consolidation target for shop
 
@@ -227,7 +236,10 @@ Until consolidation is complete:
 - **D1 projection/search:** `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`.
 - **D1 action arbitration:** `StrategyAwareLiveHandActionPolicy` is the production Play-vs-Discard authority.
 - **D1 orchestration/final return:** `PathAwareLiveHandActionDecisionEngine.decide()`.
-- **D2 family:** Joker acquisition/replacement policies produce family-local evidence.
-- **D14:** `BuildAwareShopArbiter` is the final cross-family shop authority; verified visible two-Joker interaction planning is now a native D14 candidate rather than a wrapper.
+- **B3:** `JokerBuildValueEvaluator` owns representative whole-build Joker scoring projection, including reachable conditional scoring contexts.
+- **D2:** Joker acquisition/replacement policies own family-local Joker admission and first-engine foothold semantics.
+- **D3:** `VoucherAcquisitionPolicy` owns persistent voucher admission/readiness.
+- **D4:** `ConsumableAcquisitionPolicy` owns consumable acquisition mode and exposed Wheel option semantics.
+- **D14:** `BuildAwareShopArbiter` is the final cross-family shop authority; verified visible two-Joker interaction planning is a native D14 candidate rather than a wrapper.
 - **Execution/transaction:** injected bridge and transaction guards may reject stale/illegal actions or complete an already-selected multi-checkpoint transaction; they must not invent a second strategy.
 - **Diagnostics:** no gameplay authority.
