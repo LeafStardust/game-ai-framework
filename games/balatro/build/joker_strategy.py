@@ -10,9 +10,14 @@ from games.balatro.joker_edition import joker_has_negative_edition
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
 
+from .joker_scenarios import ScenarioJokerBehaviorAnalyzer, scenario_feature
 from .literal_score_expectation import literal_expected_score
 from .semantic_synergy import SemanticContextualJokerSynergyEvaluator
 from .synergy import ContextualBuildEvaluation, ContextualJokerSynergyEvaluator
+
+
+_REPEATED_HAND_SCENARIO = scenario_feature("repeated_hand")
+_SCENARIO_ANALYZER = ScenarioJokerBehaviorAnalyzer()
 
 
 @dataclass(frozen=True)
@@ -73,8 +78,11 @@ class JokerBuildValueEvaluator:
     adding the candidate. Played-card chips are included, and public stochastic
     scoring mechanics use analytic outcome expectation rather than sampled RNG or
     deterministic failure. When public hand-play history exists, probes are weighted
-    toward the hands the run actually plays. B3 remains a separate structural/long-
-    horizon contribution and never becomes chips/Mult/XMult.
+    toward the hands the run actually plays. Conditional repeated-hand scorers are
+    evaluated across both their inactive state and a reachable public repeated-hand
+    state so the neutral probe does not erase their mechanically available value.
+    B3 remains a separate structural/long-horizon contribution and never becomes
+    chips/Mult/XMult.
     """
 
     PROBES = (
@@ -132,6 +140,23 @@ class JokerBuildValueEvaluator:
         return counts or None
 
     def _direct_scoring_gain(self, state: BalatroState, joker: Joker) -> float:
+        base_gain = self._direct_scoring_gain_for_state(state, joker)
+        try:
+            descriptor = _SCENARIO_ANALYZER.describe(joker)
+        except (AttributeError, TypeError, ValueError):
+            return base_gain
+        if _REPEATED_HAND_SCENARIO not in set(getattr(descriptor, "requires", ()) or ()):
+            return base_gain
+
+        repeated_state = copy.deepcopy(state)
+        counts = dict(getattr(repeated_state, "round_hand_play_counts", {}) or {})
+        for hand, _ in self._scoring_probes(repeated_state):
+            counts[hand.value] = max(1, int(counts.get(hand.value, 0) or 0))
+        repeated_state.round_hand_play_counts = counts
+        repeated_gain = self._direct_scoring_gain_for_state(repeated_state, joker)
+        return (base_gain + repeated_gain) / 2.0
+
+    def _direct_scoring_gain_for_state(self, state: BalatroState, joker: Joker) -> float:
         weighted_gain = 0.0
         total_weight = 0.0
         observed = self._probe_weights(state)
