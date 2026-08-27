@@ -51,6 +51,10 @@ def _cash_floor_safe(profile, money_after: int, *, floor: int = EARLY_HARD_CASH_
     return not _needs_early_cash_floor(profile) or int(money_after) >= int(floor)
 
 
+def _empty_joker_roster(profile) -> bool:
+    return not tuple(getattr(profile, "joker_names", ()) or ())
+
+
 def install_early_spend_sanity_policy() -> None:
     if getattr(VoucherAcquisitionPolicy, "_early_spend_sanity_installed", False):
         return
@@ -112,6 +116,25 @@ def install_early_spend_sanity_policy() -> None:
 
         if _cash_floor_safe(profile, money_after):
             return recommendation
+
+        # A Buffoon BUY reaching this layer has already passed D8's public eligible-
+        # Joker expectation *after* the ordinary price/interest/reserve cost was
+        # charged. On an empty early roster that is immediate scoring-engine access,
+        # not optional side development. Do not let a second blanket cash floor erase
+        # that mechanically positive D8 admission; D14 must be allowed to compare it
+        # against the other admitted shop families normally.
+        if (
+            str(getattr(recommendation, "family", "") or "").upper() == "BUFFOON"
+            and _empty_joker_roster(profile)
+        ):
+            return replace(
+                recommendation,
+                rationale=(
+                    *tuple(getattr(recommendation, "rationale", ()) or ()),
+                    "D8 early empty-roster Buffoon exception: underlying public-Joker EV already beat weighted reserve economics",
+                    "hard cash floor does not suppress first-engine access; canonical D14 remains final shop authority",
+                ),
+            )
 
         return replace(
             recommendation,
