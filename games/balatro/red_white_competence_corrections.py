@@ -8,7 +8,6 @@ Red/White runs:
 
 * an empty early scoring engine could reject an affordable, mechanically positive
   Joker because reserve economics outweighed the first foothold;
-* Paint Brush/Palette could bypass early survival readiness with zero Jokers;
 * conditional scoring mechanics discoverable from public rules could be omitted
   from representative shop score projection when their activation context was not
   present in the neutral probe state;
@@ -17,8 +16,9 @@ Red/White runs:
 
 D1 multi-card redraw efficiency and discard-beam ranking now live in the canonical
 D1 evaluator/planner path. Visible two-Joker Bond planning now lives directly in
-D14. This module remains installed only for the still-unconsolidated family-local
-shop/build corrections below.
+D14. Paint Brush/Palette first-engine readiness now lives directly in D3. This
+module remains installed only for the still-unconsolidated family-local shop/build
+corrections below.
 """
 
 from copy import deepcopy
@@ -42,13 +42,10 @@ from games.balatro.shop_consumable_policy import (
     ConsumableAcquisitionOption,
     ConsumableAcquisitionPolicy,
 )
-from games.balatro.shop_voucher_policy import VoucherAcquisitionPolicy
 
 
 EARLY_ENGINE_ANTE_LIMIT = 2
 FIRST_ENGINE_MINIMUM_CASH_AFTER = 1
-FIRST_ENGINE_VOUCHER_RESERVE = 10
-EXPENSIVE_HAND_SIZE_VOUCHERS = frozenset({"Paint Brush", "Palette"})
 WHEEL_NAMES = frozenset({"The Wheel of Fortune", "Wheel of Fortune"})
 REPEATED_HAND_SCENARIO = scenario_feature("repeated_hand")
 
@@ -67,24 +64,6 @@ def _ante(state) -> int:
     return 0
 
 
-def _has_invested_hand(source) -> bool:
-    levels = getattr(source, "hand_levels", {}) or {}
-    if isinstance(levels, dict):
-        values = levels.values()
-    else:
-        try:
-            values = (value for _, value in levels)
-        except (TypeError, ValueError):
-            return False
-    for value in values:
-        try:
-            if int(value or 0) > 1:
-                return True
-        except (TypeError, ValueError):
-            continue
-    return False
-
-
 def install_red_white_competence_corrections() -> None:
     install_celestial_shop_headroom_fast_path()
     if getattr(JokerAcquisitionPolicy, "_rw_competence_corrections_installed", False):
@@ -92,7 +71,6 @@ def install_red_white_competence_corrections() -> None:
 
     original_joker_decide = JokerAcquisitionPolicy.decide
     original_consumable_decide = ConsumableAcquisitionPolicy.decide
-    original_voucher_gate = VoucherAcquisitionPolicy._early_survival_gate
     original_direct_scoring_gain = JokerBuildValueEvaluator._direct_scoring_gain
 
     def direct_scoring_gain(self, state, joker):
@@ -215,57 +193,10 @@ def install_red_white_competence_corrections() -> None:
             ),
         )
 
-    def voucher_gate(
-        state,
-        profile,
-        label: str,
-        *,
-        price: int,
-        money_after: int,
-    ):
-        allowed, notes = original_voucher_gate(
-            state,
-            profile,
-            label,
-            price=price,
-            money_after=money_after,
-        )
-        if not allowed:
-            return allowed, notes
-
-        ante = _ante(state)
-        if ante <= 0:
-            try:
-                ante = int(getattr(profile, "ante", 0) or 0)
-            except (TypeError, ValueError):
-                ante = 0
-        if ante < 1 or ante > EARLY_ENGINE_ANTE_LIMIT:
-            return True, notes
-
-        state_jokers = len(tuple(getattr(state, "jokers", ()) or ()))
-        profile_jokers = len(tuple(getattr(profile, "joker_names", ()) or ()))
-        joker_count = max(state_jokers, profile_jokers)
-        invested_hand = _has_invested_hand(state) or _has_invested_hand(profile)
-
-        if (
-            joker_count == 0
-            and not invested_hand
-            and int(money_after) < FIRST_ENGINE_VOUCHER_RESERVE
-            and str(label) in EXPENSIVE_HAND_SIZE_VOUCHERS
-        ):
-            return False, (
-                *tuple(notes or ()),
-                "D3 first-engine hold: expensive hand-size utility cannot pre-empt the first scoring foothold",
-                f"D3 voucher={label} jokers=0 invested_hand=False money_after=${int(money_after)}",
-            )
-        return True, notes
-
     JokerBuildValueEvaluator._direct_scoring_gain = direct_scoring_gain
     JokerAcquisitionPolicy.decide = joker_decide
     ConsumableAcquisitionPolicy.decide = consumable_decide
-    VoucherAcquisitionPolicy._early_survival_gate = staticmethod(voucher_gate)
 
     JokerBuildValueEvaluator._rw_competence_corrections_installed = True
     JokerAcquisitionPolicy._rw_competence_corrections_installed = True
     ConsumableAcquisitionPolicy._rw_competence_corrections_installed = True
-    VoucherAcquisitionPolicy._rw_competence_corrections_installed = True
