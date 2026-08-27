@@ -3,8 +3,13 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import replace
 
+from games.balatro.hook_planner_integration_policy import install_hook_planner_integration_policy
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner, _ActionEstimate
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
+from games.balatro.live.hand_action_planner_core import (
+    D1LiveBlindClearPlanner as CoreD1LiveBlindClearPlanner,
+)
+from games.balatro.serpent_draw_policy import install_serpent_draw_policy
 
 
 def _same_card(left, right) -> bool:
@@ -71,44 +76,14 @@ def _gold_aware_priority(original_priority):
     def play_priority(self, state, action):
         base = original_priority(self, state, action)
         selected_gold = sum(1 for card in action.cards if _active_gold(card))
-        # Existing mechanical score/clear ordering stays first. This final field
-        # only determines stable ordering when those values are identical; max()
-        # over equal expectimax values therefore keeps the Gold-preserving action.
         return (*tuple(base), -selected_gold)
 
     return play_priority
 
 
-def install_held_round_end_resource_policy() -> None:
-    """Preserve literal held-card round-end rewards on survival-equivalent D1 lines.
-
-    Steel already belongs to literal hand scoring and therefore needs no extra
-    authority here. Blue Seal is different: its Planet is created only when the
-    round ends with the card held and consumable capacity exists. Carry that exact
-    generated-consumable count into the existing late D1 resource tie-break.
-
-    Gold cards pay cash only at round end. D1 has no common unit that can compare
-    dollars against Planets without inventing utility, so Gold is used only as the
-    final deterministic ordering tie-break between otherwise equal play candidates.
-    It never outranks clear probability, score, hands, discards, or any expectimax
-    value component.
-    """
-    if getattr(
-        D1LiveBlindClearPlanner,
-        "_held_round_end_resource_policy_installed",
-        False,
-    ):
-        return
-
-    # Production uses the integrated D1 subclass, which overrides `_estimate_play`.
-    # Patching only LiveBlindClearPlanner silently bypassed Blue-Seal round-end
-    # generation in production. Augment the actual production method directly.
-    original_d1_estimate_play = D1LiveBlindClearPlanner._estimate_play
-    original_live_priority = LiveBlindClearPlanner._play_priority
-    original_d1_priority = D1LiveBlindClearPlanner._play_priority
-
+def _blue_aware_estimate(original_estimate_play):
     def estimate_play(self, state, action, depth):
-        estimate = original_d1_estimate_play(self, state, action, depth)
+        estimate = original_estimate_play(self, state, action, depth)
 
         projection = self.evaluator.project_play(state, action)
         hands_after = max(0, int(getattr(state, "hands_remaining", 0)) - 1)
@@ -150,7 +125,41 @@ def install_held_round_end_resource_policy() -> None:
         )
         return _ActionEstimate(estimate.action, value, estimate.exact)
 
-    D1LiveBlindClearPlanner._estimate_play = estimate_play
+    return estimate_play
+
+
+def install_held_round_end_resource_policy() -> None:
+    """Preserve literal held-card rewards on every reusable D1 planner surface."""
+    if getattr(
+        D1LiveBlindClearPlanner,
+        "_held_round_end_resource_policy_installed",
+        False,
+    ):
+        return
+
+    # Base planner utilities remain part of the deterministic mechanics contract.
+    # Install exact Hook/Serpent transition semantics before wrapping estimates so
+    # held-resource projection composes with those boss mechanics rather than
+    # bypassing them.
+    install_serpent_draw_policy()
+    install_hook_planner_integration_policy()
+
+    original_live_estimate = LiveBlindClearPlanner._estimate_play
+    original_core_estimate = CoreD1LiveBlindClearPlanner._estimate_play
+    original_integrated_estimate = D1LiveBlindClearPlanner._estimate_play
+
+    original_live_priority = LiveBlindClearPlanner._play_priority
+    original_core_priority = CoreD1LiveBlindClearPlanner._play_priority
+    original_integrated_priority = D1LiveBlindClearPlanner._play_priority
+
+    LiveBlindClearPlanner._estimate_play = _blue_aware_estimate(original_live_estimate)
+    CoreD1LiveBlindClearPlanner._estimate_play = _blue_aware_estimate(original_core_estimate)
+    D1LiveBlindClearPlanner._estimate_play = _blue_aware_estimate(original_integrated_estimate)
+
     LiveBlindClearPlanner._play_priority = _gold_aware_priority(original_live_priority)
-    D1LiveBlindClearPlanner._play_priority = _gold_aware_priority(original_d1_priority)
+    CoreD1LiveBlindClearPlanner._play_priority = _gold_aware_priority(original_core_priority)
+    D1LiveBlindClearPlanner._play_priority = _gold_aware_priority(original_integrated_priority)
+
+    LiveBlindClearPlanner._held_round_end_resource_policy_installed = True
+    CoreD1LiveBlindClearPlanner._held_round_end_resource_policy_installed = True
     D1LiveBlindClearPlanner._held_round_end_resource_policy_installed = True
