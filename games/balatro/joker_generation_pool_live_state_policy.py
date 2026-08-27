@@ -27,13 +27,16 @@ from games.balatro.state import BalatroState
 
 _RARITY_NAMES = {1: "COMMON", 2: "UNCOMMON", 3: "RARE"}
 
-# Center names/keys/gates are catalogue metadata. Re-decoding every Lua center on
-# every public observation is extremely expensive and SHOP readiness observes more
-# than once per checkpoint. Eligibility tables and round-specific public state are
-# deliberately *not* cached below. The metadata cache is cleared after GAME_OVER so
-# unlock changes are re-read before the next attempt.
+# Joker rarity-pool membership and center metadata are catalogue-static for one
+# attempt. SHOP readiness/settling observes the same checkpoint several times, and
+# repeatedly walking every Lua rarity array dominated live SHOP latency even after
+# center ``string_fields`` decoding itself was memoized. Cache both the membership
+# walk and decoded center fields. Run-dependent eligibility (used/banned keys,
+# Showman, pool flags, enhancement gates, round state, edition rate) remains live.
+# Clear the cache at GAME_OVER so profile unlock changes are re-read next attempt.
 _CENTER_FIELDS_CACHE: dict[int, dict] = {}
 _CENTER_CACHE_POOL_POINTER: int | None = None
+_RARITY_CATALOGUE_CACHE: dict[str, tuple[dict, ...]] = {}
 
 
 def _table_items(decoder, table_value):
@@ -101,7 +104,15 @@ def _prepare_center_cache(pools_value) -> None:
         pool_pointer = None
     if pool_pointer != _CENTER_CACHE_POOL_POINTER:
         _CENTER_FIELDS_CACHE.clear()
+        _RARITY_CATALOGUE_CACHE.clear()
         _CENTER_CACHE_POOL_POINTER = pool_pointer
+
+
+def _reset_catalogue_cache() -> None:
+    global _CENTER_CACHE_POOL_POINTER
+    _CENTER_FIELDS_CACHE.clear()
+    _RARITY_CATALOGUE_CACHE.clear()
+    _CENTER_CACHE_POOL_POINTER = None
 
 
 def _center_fields(decoder, center_pointer: int) -> dict:
@@ -113,15 +124,49 @@ def _center_fields(decoder, center_pointer: int) -> dict:
     return fields
 
 
-def _normalize_joker_generation_pools(decoder, root, payload):
-    pools_value = root.get("P_JOKER_RARITY_POOLS")
+def _rarity_catalogue(decoder, pools_value) -> tuple[dict[str, tuple[dict, ...]], bool]:
     _prepare_center_cache(pools_value)
+    if _RARITY_CATALOGUE_CACHE:
+        return _RARITY_CATALOGUE_CACHE, True
+
     outer = [
         value
         for _, value in _table_items(decoder, pools_value)
         if getattr(value, "kind", None) == "table"
     ]
     if len(outer) < 3:
+        return {}, False
+
+    complete = True
+    catalogue: dict[str, tuple[dict, ...]] = {}
+    for rarity_number, rarity_table in enumerate(outer[:3], start=1):
+        rarity_name = _RARITY_NAMES[rarity_number]
+        centers: list[dict] = []
+        for _, center_value in _table_items(decoder, rarity_table):
+            if getattr(center_value, "kind", None) != "table":
+                continue
+            try:
+                centers.append(_center_fields(decoder, int(center_value.value)))
+            except (
+                live_memory_observer.BalatroProcessMemoryError,
+                live_memory_observer.LuaJITMemoryError,
+                TypeError,
+                ValueError,
+            ):
+                complete = False
+
+        catalogue[rarity_name] = tuple(centers)
+
+    # Do not freeze a partial catalogue after a transient memory read failure.
+    if complete:
+        _RARITY_CATALOGUE_CACHE.update(catalogue)
+    return catalogue, complete
+
+
+def _normalize_joker_generation_pools(decoder, root, payload):
+    pools_value = root.get("P_JOKER_RARITY_POOLS")
+    catalogue, complete = _rarity_catalogue(decoder, pools_value)
+    if not catalogue:
         return {}, False
 
     game = live_memory_observer._table_fields(decoder, root.get("GAME"))
@@ -132,26 +177,12 @@ def _normalize_joker_generation_pools(decoder, root, payload):
     round_state = live_memory_observer._normalize_round_joker_public_state(decoder, current_round)
     showman = _showman_owned(payload)
     enhancement_centers = _owned_enhancement_centers(payload)
-    complete = True
     result: dict[str, list[dict]] = {}
 
-    for rarity_number, rarity_table in enumerate(outer[:3], start=1):
+    for rarity_number in range(1, 4):
         rarity_name = _RARITY_NAMES[rarity_number]
         records: list[dict] = []
-        for _, center_value in _table_items(decoder, rarity_table):
-            if getattr(center_value, "kind", None) != "table":
-                continue
-            try:
-                center = _center_fields(decoder, int(center_value.value))
-            except (
-                live_memory_observer.BalatroProcessMemoryError,
-                live_memory_observer.LuaJITMemoryError,
-                TypeError,
-                ValueError,
-            ):
-                complete = False
-                continue
-
+        for center in catalogue.get(rarity_name, ()):
             key = live_memory_observer._string(center.get("key"))
             label = live_memory_observer._string(center.get("name"))
             if not key or not label:
@@ -243,7 +274,7 @@ def install_joker_generation_pool_live_state_policy() -> None:
         )
         payload["visible_poker_hands"] = list(_visible_poker_hands(decoder, game))
         if str(phase) == "GAME_OVER":
-            _CENTER_FIELDS_CACHE.clear()
+            _reset_catalogue_cache()
         return payload, phase, state_complete
 
     def translate(self, snapshot):
