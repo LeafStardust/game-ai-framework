@@ -16,18 +16,15 @@ Red/White runs:
   path, even with healthy money and eligible editionless Jokers.
 
 D1 multi-card redraw efficiency and discard-beam ranking now live in the canonical
-D1 evaluator/planner path rather than this late correction layer. The module remains
-installed after the existing policy stack for the still-unconsolidated shop/runtime
-corrections.
+D1 evaluator/planner path. Visible two-Joker Bond planning now lives directly in
+D14. This module remains installed only for the still-unconsolidated family-local
+shop/build corrections below.
 """
 
 from copy import deepcopy
 from dataclasses import replace
 
 from games.balatro.actions import BUY_AND_USE_CONSUMABLE, BalatroAction
-from games.balatro.bond_visible_shop_bundle_policy import (
-    install_bond_visible_shop_bundle_policy,
-)
 from games.balatro.build.joker_scenarios import (
     ScenarioJokerBehaviorAnalyzer,
     scenario_feature,
@@ -89,7 +86,6 @@ def _has_invested_hand(source) -> bool:
 
 
 def install_red_white_competence_corrections() -> None:
-    install_bond_visible_shop_bundle_policy()
     install_celestial_shop_headroom_fast_path()
     if getattr(JokerAcquisitionPolicy, "_rw_competence_corrections_installed", False):
         return
@@ -106,9 +102,6 @@ def install_red_white_competence_corrections() -> None:
         except (AttributeError, TypeError, ValueError):
             return base_gain
 
-        # The scenario analyzer proves when scoring is gated by repeating a hand.
-        # Evaluate the same literal scorer in inactive and reachable active states;
-        # no semantic category is converted into chips/Mult/XMult.
         if REPEATED_HAND_SCENARIO not in set(getattr(descriptor, "requires", ()) or ()):
             return base_gain
 
@@ -130,9 +123,6 @@ def install_red_white_competence_corrections() -> None:
         if tuple(getattr(state, "jokers", ()) or ()):
             return decision
 
-        # Early survival may relax reserve preference, but only for a Joker whose
-        # existing D2 option already has positive mechanically grounded build gain.
-        # Semantic labels such as "produces chips" are not sufficient admission.
         affordable = [
             option
             for option in tuple(getattr(decision, "options", ()) or ())
