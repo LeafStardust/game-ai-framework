@@ -69,7 +69,6 @@ from games.balatro.round_resource_live_state_policy import install_round_resourc
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
 from games.balatro.secret_hand_score_authority import install_secret_hand_score_authority
-from games.balatro.serpent_draw_policy import install_serpent_draw_policy
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
 from games.balatro.soul_pack_expectation_policy import install_soul_pack_expectation_policy
@@ -91,7 +90,6 @@ from games.balatro.wraith_pack_expectation_policy import install_wraith_pack_exp
 
 
 install_boss_hand_constraint_policy()
-install_serpent_draw_policy()
 install_hook_planner_integration_policy()
 install_cerulean_live_state_policy()
 install_ectoplasm_live_state_policy()
