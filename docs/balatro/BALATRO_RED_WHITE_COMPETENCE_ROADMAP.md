@@ -4,6 +4,19 @@ Status: **Semantic/runtime implementation gate complete; current HEAD awaiting l
 
 This document is the handoff contract for Red Deck / White Stake competence work. It exists so future contributors do not have to reconstruct the intended Balatro play philosophy from live-run postmortems.
 
+## Git commit convention
+
+All commits made while working this roadmap must follow the repository's existing Conventional Commit-style subject format.
+
+Use lowercase type and optional lowercase scope followed by a colon and concise imperative subject, for example:
+
+- `fix(balatro): keep downgraded joker tiers exclusive`
+- `test(balatro): expect Bronze Superposition support`
+- `docs: finalize v1.0.0 changelog`
+- `feat: install Balatro v1.0.0 policy`
+
+For Balatro-specific implementation or regression work, prefer an explicit `(balatro)` scope when it matches the surrounding history. Do not use unscoped sentence-style subjects such as `Benchmark canonical safe pace D1 authority`.
+
 ## Primary objective
 
 The permanent Balatro agent has one gameplay objective:
