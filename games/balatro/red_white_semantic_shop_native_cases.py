@@ -3,6 +3,9 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from games.balatro.consumable import Consumable, ConsumableContext
+from games.balatro.early_spend_sanity_policy import (
+    _allow_empty_roster_buffoon_floor_exception,
+)
 from games.balatro.joker_policy import (
     HOLD,
     JokerAcquisitionOption,
@@ -11,6 +14,8 @@ from games.balatro.joker_policy import (
 )
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
+from games.balatro.shop_booster_policy import BUY as BOOSTER_BUY
+from games.balatro.shop_booster_policy import HOLD as BOOSTER_HOLD
 from games.balatro.shop_consumable_policy import BUY_AND_USE, ConsumableAcquisitionPolicy
 from games.balatro.shop_voucher_policy import VoucherAcquisitionPolicy
 from games.balatro.state import BalatroState
@@ -152,6 +157,32 @@ def _d4_wheel_exposes_buy_and_use() -> SemanticCheck:
     )
 
 
+def _d8_empty_roster_buffoon_keeps_positive_admission() -> SemanticCheck:
+    empty = SimpleNamespace(joker_names=())
+    established = SimpleNamespace(joker_names=("FlatMultJoker",))
+    buffoon_buy = SimpleNamespace(decision=BOOSTER_BUY, family="BUFFOON")
+    buffoon_hold = SimpleNamespace(decision=BOOSTER_HOLD, family="BUFFOON")
+    celestial_buy = SimpleNamespace(decision=BOOSTER_BUY, family="CELESTIAL")
+
+    empty_buy = _allow_empty_roster_buffoon_floor_exception(empty, buffoon_buy)
+    established_buy = _allow_empty_roster_buffoon_floor_exception(established, buffoon_buy)
+    empty_hold = _allow_empty_roster_buffoon_floor_exception(empty, buffoon_hold)
+    wrong_family = _allow_empty_roster_buffoon_floor_exception(empty, celestial_buy)
+    passed = empty_buy and not established_buy and not empty_hold and not wrong_family
+    return SemanticCheck(
+        passed,
+        observed=(
+            f"empty_buy={empty_buy}, established_buy={established_buy}, "
+            f"empty_hold={empty_hold}, celestial_buy={wrong_family}"
+        ),
+        expected="exception only for an already-admitted Buffoon BUY on an empty Joker roster",
+        detail=(
+            "the early cash-floor guard may stop suppressing positive first-engine Buffoon EV, "
+            "but it must not create admission for HOLDs, other booster families, or established builds"
+        ),
+    )
+
+
 RED_WHITE_NATIVE_SHOP_CASES = (
     SemanticBenchmarkCase(
         case_id="d2.authority.first_engine_conflict",
@@ -170,5 +201,12 @@ RED_WHITE_NATIVE_SHOP_CASES = (
         category="SHOP_SURVIVAL",
         description="native D4 exposes positive Wheel edition expectation to D14",
         evaluate=_d4_wheel_exposes_buy_and_use,
+    ),
+    SemanticBenchmarkCase(
+        case_id="d8.authority.empty_roster_buffoon",
+        category="SHOP_SURVIVAL",
+        description="D8 preserves positive empty-roster Buffoon admission through the early cash floor",
+        evaluate=_d8_empty_roster_buffoon_keeps_positive_admission,
+        source="Live three-run gate: Ante-1 zero-engine shop passivity",
     ),
 )
