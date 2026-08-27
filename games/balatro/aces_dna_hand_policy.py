@@ -1,22 +1,23 @@
 from __future__ import annotations
 
-"""Within-PLAY DNA/Aces execution with canonical strategy-aware duplication.
+"""DNA/Aces candidate evidence beneath canonical D1 arbitration.
 
-DNA's first-hand single-card copy is useful setup evidence, but canonical D1 owns
-the Play/Discard action class. This policy may refine an already-authorized PLAY to
-a survival-equivalent setup line; it must never rescue PLAY over canonical DISCARD.
+DNA's first-hand single-card copy and Ace development are useful setup evidence,
+but they do not own a second PLAY selector. This installer augments only the
+strategy-fit evidence consumed by ``StrategyAwareLiveHandActionPolicy``. Canonical
+clear probability, exactness, pace, round resources, and score-equivalence remain
+above this signal.
 """
-
-from dataclasses import replace
 
 from games.balatro.actions import PLAY_CARDS
 from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.build.profile import BalatroBuildProfiler
-from games.balatro.live.hand_action_policy import CLEAR_PATH, PACE_PLAY
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
-DNA_SAFE_CLEAR_PROBABILITY = 0.90
+DNA_LINKED_RANK_FIT = 2.50
+DNA_ACE_FIT = 2.00
+ACE_DEVELOPMENT_FIT = 1.00
 
 
 def _normalize(value: object) -> str:
@@ -56,87 +57,11 @@ def _aces_bond_active(policy, state) -> bool:
     )
 
 
-def _ace_cards(plan):
-    return tuple(card for card in plan.action.cards if str(getattr(card, "rank", "")) in {"A", "Ace"})
-
-
-def _card_future_key(card) -> tuple[float, ...]:
-    edition = str(getattr(card, "edition", "") or "")
-    seal = str(getattr(card, "seal", "") or "")
-    enhancement = str(getattr(card, "enhancement", "") or "")
-    return (
-        1.0 if edition else 0.0,
-        1.0 if seal else 0.0,
-        1.0 if enhancement else 0.0,
-        float(getattr(card, "permanent_bonus", 0) or 0),
-    )
-
-
-def _selected_clear_probability(decision) -> float:
-    selected = getattr(decision, "selected_plan", None)
-    try:
-        return float(getattr(selected.value, "clear_probability", 0.0) or 0.0)
-    except (AttributeError, TypeError, ValueError):
-        return 0.0
-
-
-def _clear_probability_tolerance(decision) -> float:
-    try:
-        return float(
-            getattr(
-                getattr(decision, "thresholds", None),
-                "safe_clear_probability_tolerance",
-                0.0,
-            )
-            or 0.0
-        )
-    except (TypeError, ValueError):
-        return 0.0
-
-
-def _dna_survival_safe(plan, decision) -> bool:
-    probability = float(getattr(plan.value, "clear_probability", 0.0) or 0.0)
-    if probability < DNA_SAFE_CLEAR_PROBABILITY:
-        return False
-    return (
-        probability + _clear_probability_tolerance(decision)
-        >= _selected_clear_probability(decision)
-    )
-
-
-def _safe_ace_plan(plans, *, dna_single: bool, decision=None):
-    candidates = []
-    for plan in plans:
-        if plan.action.name != PLAY_CARDS:
-            continue
-        aces = _ace_cards(plan)
-        if not aces:
-            continue
-        if dna_single and (len(plan.action.cards) != 1 or len(aces) != 1):
-            continue
-        if dna_single and decision is not None and not _dna_survival_safe(plan, decision):
-            continue
-        candidates.append(plan)
-    if not candidates:
-        return None
-    if dna_single:
-        return max(
-            candidates,
-            key=lambda plan: (
-                float(plan.value.clear_probability),
-                _card_future_key(_ace_cards(plan)[0]),
-                float(plan.value.expected_score),
-                float(plan.value.expected_hands_remaining),
-            ),
-        )
-    return max(
-        candidates,
-        key=lambda plan: (
-            float(plan.value.clear_probability),
-            len(_ace_cards(plan)),
-            float(plan.value.expected_score),
-            float(plan.value.expected_hands_remaining),
-        ),
+def _ace_cards(action):
+    return tuple(
+        card
+        for card in getattr(action, "cards", ()) or ()
+        if str(getattr(card, "rank", "")).upper() in {"A", "ACE"}
     )
 
 
@@ -193,137 +118,67 @@ def _strategy_dna_rank_targets(state) -> tuple[str, ...]:
     return tuple(dict.fromkeys(ranks))
 
 
-def _safe_dna_rank_plan(plans, ranks: tuple[str, ...], decision):
-    targets = {str(rank).upper() for rank in ranks}
-    if not targets:
-        return None
-    candidates = []
-    for plan in plans:
-        if plan.action.name != PLAY_CARDS or len(plan.action.cards) != 1:
-            continue
-        card = plan.action.cards[0]
-        rank = str(getattr(card, "rank", "")).upper()
+def _dna_aces_fit(policy, state, action) -> tuple[float, tuple[str, ...]]:
+    if action.name != PLAY_CARDS:
+        return 0.0, ()
+
+    cards = tuple(getattr(action, "cards", ()) or ())
+    aces = _ace_cards(action)
+    value = 0.0
+    notes: list[str] = []
+
+    first_hand_dna = _owns(state, "dnajoker") and _first_hand(state)
+    if first_hand_dna and len(cards) == 1:
+        rank = str(getattr(cards[0], "rank", "") or "").upper()
         if rank == "ACE":
             rank = "A"
-        if rank not in targets or not _dna_survival_safe(plan, decision):
-            continue
-        candidates.append(plan)
-    if not candidates:
-        return None
-    return max(
-        candidates,
-        key=lambda plan: (
-            float(plan.value.clear_probability),
-            _card_future_key(plan.action.cards[0]),
-            float(plan.value.expected_score),
-            float(plan.value.expected_hands_remaining),
-        ),
-    )
+        targets = _strategy_dna_rank_targets(state)
+        if rank and rank in set(targets):
+            value += DNA_LINKED_RANK_FIT
+            notes.append(
+                f"DNA first-hand duplication supports linked strategy rank {rank}"
+            )
 
+        if (
+            aces
+            and _owns(state, "scholarjoker")
+            and _aces_bond_active(policy, state)
+        ):
+            value += DNA_ACE_FIT
+            notes.append("DNA + Scholar first-hand duplication supports developed Aces engine")
 
-def _replace_with_plan(policy, state, decision, plan, rationale):
-    projection = policy.evaluator.project_play(state, plan.action)
-    pace_target = float(decision.pace_target or 0.0)
-    pace_ratio = float(projection.expected_hand_score) / pace_target if pace_target > 0.0 else float("inf")
-    mode = CLEAR_PATH if float(plan.value.clear_probability) >= float(decision.thresholds.clear_path_probability_floor) else PACE_PLAY
-    return replace(
-        decision,
-        mode=mode,
-        action=plan.action,
-        selected_plan=plan,
-        selected_immediate_score=float(projection.expected_hand_score),
-        selected_pace_ratio=pace_ratio,
-        confidence=max(float(decision.confidence), float(plan.value.clear_probability)),
-        rationale=(*rationale, *decision.rationale),
-    )
+    if aces and _aces_bond_active(policy, state):
+        value += ACE_DEVELOPMENT_FIT
+        notes.append(f"Aces engine prefers Ace-bearing PLAY ({len(aces)} Ace card(s))")
+
+    if value <= 0.0:
+        return 0.0, ()
+    return value, tuple(notes)
 
 
 def install_aces_dna_hand_policy() -> None:
-    if getattr(StrategyAwareLiveHandActionPolicy, "_aces_dna_hand_policy_installed", False):
+    if getattr(
+        StrategyAwareLiveHandActionPolicy,
+        "_aces_dna_hand_policy_installed",
+        False,
+    ):
         return
-    original_decide = StrategyAwareLiveHandActionPolicy.decide
 
-    def decide(self, state, plans, **kwargs):
-        plans = tuple(plans)
-        decision = original_decide(self, state, plans, **kwargs)
+    original_strategy_fit = StrategyAwareLiveHandActionPolicy._strategy_fit
 
-        if decision.action.name != PLAY_CARDS:
-            if _owns(state, "dnajoker") and _first_hand(state):
-                return replace(
-                    decision,
-                    rationale=(
-                        *decision.rationale,
-                        "DNA setup opportunity observed, but canonical D1 selected DISCARD; duplication evidence cannot change the finalized action class",
-                    ),
-                )
-            return decision
+    def strategy_fit(self, state, action):
+        base, rationale = original_strategy_fit(self, state, action)
+        dna_value, dna_notes = _dna_aces_fit(self, state, action)
+        if dna_value <= 0.0:
+            return base, rationale
+        return (
+            base + dna_value,
+            (
+                *rationale,
+                *dna_notes,
+                f"DNA/Aces candidate evidence={dna_value:+.3f}; canonical D1 survival ordering remains authoritative",
+            ),
+        )
 
-        if _owns(state, "dnajoker") and _first_hand(state):
-            rank_targets = _strategy_dna_rank_targets(state)
-            plan = _safe_dna_rank_plan(plans, rank_targets, decision)
-            if plan is not None and plan.action.cards != decision.action.cards:
-                probability = float(plan.value.clear_probability)
-                return _replace_with_plan(
-                    self,
-                    state,
-                    decision,
-                    plan,
-                    (
-                        "DNA semantic strategy contract: within-PLAY refinement duplicates a rank required by the strongest mechanically linked strategy only on a D1 survival-equivalent line",
-                        f"required ranks={rank_targets}; selected rank={getattr(plan.action.cards[0], 'rank', None)}",
-                        f"DNA clear probability={probability:.3f}; baseline={_selected_clear_probability(decision):.3f}; tolerance={_clear_probability_tolerance(decision):.3f}",
-                        f"absolute DNA safety floor={DNA_SAFE_CLEAR_PROBABILITY:.2f}",
-                    ),
-                )
-
-        if not _aces_bond_active(self, state):
-            return decision
-
-        dna_setup = _owns(state, "dnajoker") and _owns(state, "scholarjoker") and _first_hand(state)
-        if dna_setup:
-            plan = _safe_ace_plan(plans, dna_single=True, decision=decision)
-            if plan is not None and plan.action.cards != decision.action.cards:
-                probability = float(plan.value.clear_probability)
-                return _replace_with_plan(
-                    self,
-                    state,
-                    decision,
-                    plan,
-                    (
-                        "Aces Bond + Scholar + DNA first-hand contract: within-PLAY refinement duplicates a strategically valuable Ace only on a D1 survival-equivalent line",
-                        f"DNA Ace clear probability={probability:.3f}; baseline={_selected_clear_probability(decision):.3f}; tolerance={_clear_probability_tolerance(decision):.3f}",
-                        f"absolute DNA safety floor={DNA_SAFE_CLEAR_PROBABILITY:.2f}",
-                    ),
-                )
-            if plan is None:
-                return replace(
-                    decision,
-                    rationale=(
-                        *decision.rationale,
-                        "Aces Bond + DNA setup was not forced because no single-Ace line satisfied both the absolute DNA safety floor and D1 survival equivalence",
-                    ),
-                )
-
-        best_ace = _safe_ace_plan(plans, dna_single=False)
-        if best_ace is None:
-            return decision
-        selected_probability = float(decision.selected_plan.value.clear_probability)
-        ace_probability = float(best_ace.value.clear_probability)
-        tolerance = float(decision.thresholds.safe_clear_probability_tolerance)
-        if ace_probability + tolerance < selected_probability:
-            return decision
-        if not _ace_cards(decision.selected_plan):
-            return _replace_with_plan(
-                self,
-                state,
-                decision,
-                best_ace,
-                (
-                    "Aces Bond within-PLAY safe-equivalent tie-break: prefer an Ace-bearing play for Scholar/deck development",
-                    f"Ace line clear probability={ace_probability:.3f}; selected baseline={selected_probability:.3f}; tolerance={tolerance:.3f}",
-                ),
-            )
-        return decision
-
-    StrategyAwareLiveHandActionPolicy.decide = decide
+    StrategyAwareLiveHandActionPolicy._strategy_fit = strategy_fit
     StrategyAwareLiveHandActionPolicy._aces_dna_hand_policy_installed = True
