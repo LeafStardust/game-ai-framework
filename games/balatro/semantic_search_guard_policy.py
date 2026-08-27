@@ -2,15 +2,14 @@ from __future__ import annotations
 
 """Semantic relationship and bounded D1 candidate-search guards.
 
-Production evidence exposed three structural defects:
+Production evidence exposed two structural defects retained by this layer:
 - broad scenario-derived rank requirements could connect a hand-payoff Joker to most
   rank-density feature nodes, manufacturing a fake mega-strategy;
-- direct no-discard mechanics such as Green Joker were not protected until the
-  canonical no_discard Bond had already matured;
 - D1 root ranking projected every playable subset before the first search node,
   allowing one pathological projection to dominate wall-clock latency.
 
-This layer corrects those defects without changing the Phase-A calibration values.
+No-discard execution semantics now live as ordinary canonical D1 evidence and are
+intentionally not patched from this search/runtime module.
 """
 
 from games.balatro.actions import PLAY_CARDS
@@ -20,7 +19,6 @@ from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro import d1_candidate_deadline_policy as deadline_policy
-from games.balatro import strategy_execution_guard_policy as no_discard_policy
 
 
 _MAX_CONCRETE_RANK_REQUIREMENTS = 5
@@ -119,19 +117,7 @@ def _prefilter(actions, *, limit: int, key):
 
 
 def _prefilter_plays(state, actions, *, limit: int):
-    """Bound cheap root/child play candidates without erasing compact made hands.
-
-    Large hands can contain many 4/5-card supersets that classify as Pair/Two Pair
-    and therefore outrank the literal 2-card Pair on the cheap rank-sum key. Those
-    supersets must not consume every prefilter slot: a compact made hand can retain
-    another already-made hand and prove an exact multi-hand clear without consulting
-    redraws. Preserve one minimal-card representative per made hand class, then fill
-    the remaining bounded budget with the ordinary cheap ordering.
-
-    Classification must use the same public hand-rule modifiers as canonical D1;
-    otherwise Four Fingers/Shortcut-style legal hands can be pruned before the exact
-    scorer ever receives them.
-    """
+    """Bound cheap root/child play candidates without erasing compact made hands."""
     values = list(actions)
     if len(values) <= limit:
         return values
@@ -161,20 +147,12 @@ def _prefilter_plays(state, actions, *, limit: int):
     if not representatives:
         return selected
 
-    # Replace only the cheap tail. The prefilter size remains strictly bounded.
     keep = max(0, limit - len(representatives))
     return selected[:keep] + representatives[:limit]
 
 
 def _rank_plays_with_short_reserve(self, state, plays, *, limit: int, stage: str):
-    """Keep strong short made hands available in large combinatorial beams.
-
-    Small candidate sets preserve canonical projection ordering exactly. For large
-    hands, the main beam is still ranked by full projection, but a tiny reserve is
-    selected with the cheap deterministic hand classifier rather than projected
-    immediate score. This preserves made Pair/Trips/etc. lines that can prove an
-    exact retained-hand clear without adding another round of expensive projection.
-    """
+    """Keep strong short made hands available in large combinatorial beams."""
     if limit <= 0:
         return []
     ranked = deadline_policy._rank_with_deadline(
@@ -221,10 +199,6 @@ def install_semantic_search_guard_policy() -> None:
     original_relation = behavior_strategy._relation
 
     def relation(left, right):
-        # Scenario probing may discover that a Joker can score under many ordinary
-        # card shapes. That must not be interpreted as the Joker *requiring* every
-        # rank in the deck. A genuine rank-specific mechanic has a small concrete
-        # requirement set (Walkie, Scholar, Fibonacci, Hack, etc.).
         if _is_feature_rank_node(left) and _rank_requirement_count(right) > _MAX_CONCRETE_RANK_REQUIREMENTS:
             return None
         if _is_feature_rank_node(right) and _rank_requirement_count(left) > _MAX_CONCRETE_RANK_REQUIREMENTS:
@@ -232,21 +206,6 @@ def install_semantic_search_guard_policy() -> None:
         return original_relation(left, right)
 
     behavior_strategy._relation = relation
-
-    def direct_no_discard_engine(state) -> bool:
-        owned = {
-            no_discard_policy._joker_token(joker)
-            for joker in tuple(getattr(state, "jokers", ()) or ())
-        }
-        # These mechanics lose value immediately on the first discard; waiting for
-        # Bond maturity makes the execution contract arrive too late.
-        if owned & {"greenjoker", "delayedgratificationjoker"}:
-            return True
-        # Banner is a softer round-level incentive: only elevate it to an execution
-        # constraint once the canonical no_discard Bond agrees the build is using it.
-        return "bannerjoker" in owned and no_discard_policy._realized_bond(state, "no_discard")
-
-    no_discard_policy._realized_no_discard_engine = direct_no_discard_engine
 
     def candidate_actions_bounded(
         self,
@@ -305,10 +264,6 @@ def install_semantic_search_guard_policy() -> None:
 
     def estimate_key(cls, estimate):
         value = estimate.value
-        # Once an exact guaranteed clear is proven, surplus score above the blind
-        # requirement has no survival value. Prefer consuming fewer played cards so
-        # retained cards/resources remain available. For non-clearing/uncertain
-        # lines, preserve the canonical estimate ordering exactly.
         if (
             estimate.exact
             and float(value.clear_probability) >= 1.0 - 1e-12
