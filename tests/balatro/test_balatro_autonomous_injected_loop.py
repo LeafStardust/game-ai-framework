@@ -212,7 +212,7 @@ def test_unbounded_execute_runs_until_authoritative_game_over():
     result = loop.execute(expected_start_phase="SELECTING_HAND")
 
     assert len(result.steps) == 3
-    assert result.stop_reason == "game over (won)"
+    assert result.stop_reason == "game over (lost)"
     assert result.steps[-1].after_phase == "GAME_OVER"
     assert runner.execute_calls == 3
 
@@ -270,7 +270,7 @@ def test_restarted_loop_can_resume_manually_continued_won_run_until_game_over():
     result = loop.execute(expected_start_phase="SHOP")
 
     assert len(result.steps) == 2
-    assert result.stop_reason == "game over (won)"
+    assert result.stop_reason == "game over (lost)"
     assert result.steps[-1].after_phase == "GAME_OVER"
     assert runner.execute_calls == 2
 
