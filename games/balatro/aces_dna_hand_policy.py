@@ -7,6 +7,9 @@ but they do not own a second PLAY selector. This installer augments only the
 strategy-fit evidence consumed by ``StrategyAwareLiveHandActionPolicy``. Canonical
 clear probability, exactness, pace, round resources, and score-equivalence remain
 above this signal.
+
+Pure legacy selection helpers remain callable for deterministic regression tests,
+but are not installed into production arbitration.
 """
 
 from games.balatro.actions import PLAY_CARDS
@@ -18,6 +21,7 @@ from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionP
 DNA_LINKED_RANK_FIT = 2.50
 DNA_ACE_FIT = 2.00
 ACE_DEVELOPMENT_FIT = 1.00
+DNA_SAFE_CLEAR_PROBABILITY = 0.90
 
 
 def _normalize(value: object) -> str:
@@ -62,6 +66,76 @@ def _ace_cards(action):
         card
         for card in getattr(action, "cards", ()) or ()
         if str(getattr(card, "rank", "")).upper() in {"A", "ACE"}
+    )
+
+
+def _card_future_key(card) -> tuple[float, ...]:
+    edition = str(getattr(card, "edition", "") or "")
+    seal = str(getattr(card, "seal", "") or "")
+    enhancement = str(getattr(card, "enhancement", "") or "")
+    return (
+        1.0 if edition else 0.0,
+        1.0 if seal else 0.0,
+        1.0 if enhancement else 0.0,
+        float(getattr(card, "permanent_bonus", 0) or 0),
+    )
+
+
+def _selected_clear_probability(decision) -> float:
+    selected = getattr(decision, "selected_plan", None)
+    try:
+        return float(getattr(selected.value, "clear_probability", 0.0) or 0.0)
+    except (AttributeError, TypeError, ValueError):
+        return 0.0
+
+
+def _clear_probability_tolerance(decision) -> float:
+    try:
+        return float(
+            getattr(
+                getattr(decision, "thresholds", None),
+                "safe_clear_probability_tolerance",
+                0.0,
+            )
+            or 0.0
+        )
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _dna_survival_safe(plan, decision) -> bool:
+    probability = float(getattr(plan.value, "clear_probability", 0.0) or 0.0)
+    if probability < DNA_SAFE_CLEAR_PROBABILITY:
+        return False
+    return probability + _clear_probability_tolerance(decision) >= _selected_clear_probability(decision)
+
+
+def _safe_dna_rank_plan(plans, ranks: tuple[str, ...], decision):
+    """Legacy pure selector retained for deterministic compatibility tests."""
+    targets = {str(rank).upper() for rank in ranks}
+    if not targets:
+        return None
+    candidates = []
+    for plan in plans:
+        if plan.action.name != PLAY_CARDS or len(plan.action.cards) != 1:
+            continue
+        card = plan.action.cards[0]
+        rank = str(getattr(card, "rank", "")).upper()
+        if rank == "ACE":
+            rank = "A"
+        if rank not in targets or not _dna_survival_safe(plan, decision):
+            continue
+        candidates.append(plan)
+    if not candidates:
+        return None
+    return max(
+        candidates,
+        key=lambda plan: (
+            float(plan.value.clear_probability),
+            _card_future_key(plan.action.cards[0]),
+            float(plan.value.expected_score),
+            float(plan.value.expected_hands_remaining),
+        ),
     )
 
 
@@ -135,15 +209,9 @@ def _dna_aces_fit(policy, state, action) -> tuple[float, tuple[str, ...]]:
         targets = _strategy_dna_rank_targets(state)
         if rank and rank in set(targets):
             value += DNA_LINKED_RANK_FIT
-            notes.append(
-                f"DNA first-hand duplication supports linked strategy rank {rank}"
-            )
+            notes.append(f"DNA first-hand duplication supports linked strategy rank {rank}")
 
-        if (
-            aces
-            and _owns(state, "scholarjoker")
-            and _aces_bond_active(policy, state)
-        ):
+        if aces and _owns(state, "scholarjoker") and _aces_bond_active(policy, state):
             value += DNA_ACE_FIT
             notes.append("DNA + Scholar first-hand duplication supports developed Aces engine")
 
@@ -157,11 +225,7 @@ def _dna_aces_fit(policy, state, action) -> tuple[float, tuple[str, ...]]:
 
 
 def install_aces_dna_hand_policy() -> None:
-    if getattr(
-        StrategyAwareLiveHandActionPolicy,
-        "_aces_dna_hand_policy_installed",
-        False,
-    ):
+    if getattr(StrategyAwareLiveHandActionPolicy, "_aces_dna_hand_policy_installed", False):
         return
 
     original_strategy_fit = StrategyAwareLiveHandActionPolicy._strategy_fit
