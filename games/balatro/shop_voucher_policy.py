@@ -35,6 +35,7 @@ _EARLY_STRUCTURAL_EXCEPTIONS = {
 }
 _EARLY_SURVIVAL_RESERVE = 10
 _EARLY_EXPENSIVE_VOUCHER_PRICE = 8
+_FIRST_ENGINE_HAND_SIZE_VOUCHERS = frozenset({"Paint Brush", "Palette"})
 
 
 @dataclass(frozen=True)
@@ -319,18 +320,39 @@ class VoucherAcquisitionPolicy:
         a permissive tuning override cannot turn permanent utility into an automatic
         Ante-1/2 purchase. A build with three Jokers or meaningful hand-level
         investment is considered established enough to use the ordinary D3 economy
-        model. Immediate structural-capacity vouchers retain an explicit exception.
+        model. Structural-capacity vouchers remain exceptions, except that an empty
+        scoring board must establish its first engine before spending below the
+        early survival reserve on Paint Brush/Palette.
         """
         if int(profile.ante) > 2 or int(price) < _EARLY_EXPENSIVE_VOUCHER_PRICE:
             return True, ()
+
+        state_jokers = len(tuple(getattr(state, "jokers", ()) or ()))
+        profile_jokers = len(tuple(getattr(profile, "joker_names", ()) or ()))
+        joker_count = max(state_jokers, profile_jokers)
+
+        def has_invested_hand(source) -> bool:
+            levels = getattr(source, "hand_levels", {}) or {}
+            values = levels.values() if isinstance(levels, dict) else (
+                value for _, value in tuple(levels or ())
+            )
+            return any(int(value or 0) > 1 for value in values)
+
+        invested_hand = has_invested_hand(state) or has_invested_hand(profile)
+        if (
+            label in _FIRST_ENGINE_HAND_SIZE_VOUCHERS
+            and joker_count == 0
+            and not invested_hand
+            and int(money_after) < _EARLY_SURVIVAL_RESERVE
+        ):
+            return False, (
+                "D3 first-engine hold: expensive hand-size utility cannot pre-empt the first scoring foothold",
+                f"D3 voucher={label} jokers=0 invested_hand=False money_after=${int(money_after)}",
+            )
+
         if label in _EARLY_STRUCTURAL_EXCEPTIONS:
             return True, (f"D3 early structural exception={label}",)
 
-        joker_count = len(tuple(getattr(profile, "joker_names", ()) or ()))
-        invested_hand = max(
-            (int(level) for _, level in tuple(getattr(profile, "hand_levels", ()) or ())),
-            default=1,
-        ) > 1
         scoring_ready = joker_count >= 3 or invested_hand
         if scoring_ready or int(money_after) >= _EARLY_SURVIVAL_RESERVE:
             return True, (
