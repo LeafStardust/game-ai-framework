@@ -142,7 +142,7 @@ def test_unbounded_production_loop_has_no_hidden_gameplay_step_cap():
 
     assert len(result.steps) == 128
     assert runner.index == 128
-    assert result.stop_reason == "game over (won)"
+    assert result.stop_reason == "game over (lost)"
     assert result.steps[-1].after_phase == "GAME_OVER"
 
 
@@ -172,7 +172,7 @@ class _AttemptObserver:
             )
         return LiveBalatroSnapshot(
             sequence=2,
-            phase="GAME_OVER",
+            phase="ROUND_EVAL" if self.won else "GAME_OVER",
             state_complete=True,
             payload={
                 "deck": "RED",
