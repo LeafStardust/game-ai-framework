@@ -266,36 +266,37 @@ def _canonical_safe_pace_owns_action_class() -> SemanticCheck:
         def evaluate(self, state, action):
             return 100.0 if action.name == DISCARD_CARDS else 30.0
 
-    policy = SimpleNamespace(
-        evaluator=Evaluator(),
-        thresholds=SimpleNamespace(pace_ratio_floor=1.0),
-        EPSILON=1e-12,
-        build_evaluator=SimpleNamespace(prepare=lambda state: None, reset_cache=lambda: None),
-        _ranking_state=None,
-        _pace_target=lambda state: 25.0,
-        _pace_ratio=lambda score, target: score / target,
-        _within_type_key=lambda plan: (
-            plan.value.clear_probability,
-            plan.value.expected_progress,
-            plan.value.expected_hands_remaining,
-            plan.value.expected_discards_remaining,
-            plan.value.expected_score,
-        ),
-        _safe_equivalent_clear_key=lambda plan: (
-            plan.value.expected_hands_remaining,
-            plan.value.expected_discards_remaining,
-            plan.value.clear_probability,
-        ),
-        _pace_play_key=lambda plan, ratio: (
-            plan.value.clear_probability,
-            plan.value.expected_progress,
-            ratio,
-        ),
-        _pace_confidence=lambda ratio: min(1.0, ratio),
+    policy = object.__new__(StrategyAwareLiveHandActionPolicy)
+    policy.evaluator = Evaluator()
+    policy.thresholds = SimpleNamespace(pace_ratio_floor=1.0)
+    policy.build_evaluator = SimpleNamespace(
+        prepare=lambda state: None,
+        reset_cache=lambda: None,
     )
+    policy._ranking_state = None
+    policy._pace_target = lambda state: 25.0
+    policy._pace_ratio = lambda score, target: score / target
+    policy._within_type_key = lambda plan: (
+        plan.value.clear_probability,
+        plan.value.expected_progress,
+        plan.value.expected_hands_remaining,
+        plan.value.expected_discards_remaining,
+        plan.value.expected_score,
+    )
+    policy._safe_equivalent_clear_key = lambda plan: (
+        plan.value.expected_hands_remaining,
+        plan.value.expected_discards_remaining,
+        plan.value.clear_probability,
+    )
+    policy._pace_play_key = lambda plan, ratio: (
+        plan.value.clear_probability,
+        plan.value.expected_progress,
+        ratio,
+    )
+    policy._pace_confidence = lambda ratio: min(1.0, ratio)
+
     state = SimpleNamespace(hands_remaining=4, discards_remaining=4)
-    decision = StrategyAwareLiveHandActionPolicy._enforce_safe_pace_scope(
-        policy,
+    decision = policy._enforce_safe_pace_scope(
         state,
         (pace_play, deeper_discard),
         baseline,
