@@ -68,6 +68,7 @@ from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimi
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
 from games.balatro.secret_hand_score_authority import install_secret_hand_score_authority
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
+from games.balatro.shop_semantic_quiet_policy import install_shop_semantic_quiet_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
 from games.balatro.soul_pack_expectation_policy import install_soul_pack_expectation_policy
 from games.balatro.spectral_booster_expectation_policy import install_spectral_booster_expectation_policy
@@ -168,6 +169,7 @@ install_live_joker_order_authority()
 install_planet_scaler_authority()
 install_purple_seal_discard_policy()
 install_held_round_end_resource_policy()
+install_shop_semantic_quiet_policy()
 # The Celestial fast path remains last so it sees the fully wrapped D8 policy while
 # only skipping finite Planet expectation when a public hard HOLD is already known.
 install_celestial_shop_headroom_fast_path()
