@@ -21,6 +21,35 @@ from games.balatro.live.hand_action_planner_core import (
 )
 
 
+def _cerulean_future_forced_branches(state):
+    """Return exact equiprobable next forced-card states, or ``None`` if inactive."""
+    if state is None:
+        return None
+    if str(getattr(state, "boss_name", "") or "") != "Cerulean Bell":
+        return None
+    if boss_blind_disabled_by_owned_jokers(state):
+        return None
+
+    hand = list(getattr(state, "hand", ()) or ())
+    if not hand:
+        return None
+
+    # Authoritative checkpoints already contain the Bell's observed forced card.
+    # Branch only newly drawn hypothetical hands that have not received their next
+    # random forced selection yet.
+    if any(bool(getattr(card, "forced_selection", False)) for card in hand):
+        return None
+
+    probability = 1.0 / len(hand)
+    branches = []
+    for selected_index in range(len(hand)):
+        branch = deepcopy(state)
+        for index, card in enumerate(branch.hand):
+            card.forced_selection = index == selected_index
+        branches.append((probability, branch))
+    return tuple(branches)
+
+
 class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
     """D1 planner with deterministic consumables and passive Joker hand rules.
 
@@ -28,6 +57,10 @@ class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
     keeps passive public hand rules (for example Four Fingers, Shortcut and Splash)
     consistent across root ranking and bounded recursive child generation, then may
     add one deterministic held-consumable clear candidate at the authoritative root.
+
+    Exact boss legality is applied to every generated Play/Discard candidate before
+    value arbitration. Cerulean Bell's future random forced-card selection is also
+    projected here as an equiprobable public-mechanics branch.
 
     Real execution still performs only the selected first semantic action and then
     re-observes/replans. Boss-blind consumable integration remains deliberately
@@ -54,6 +87,19 @@ class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
     def reset_search_stats(self) -> None:
         super().reset_search_stats()
         self._integrated_consumable_estimates.clear()
+
+    def _best_value(self, state, depth: int):
+        branches = _cerulean_future_forced_branches(state)
+        if not branches:
+            return super()._best_value(state, depth)
+
+        total = self._zero_value()
+        exact = True
+        for probability, branch_state in branches:
+            value, branch_exact = super()._best_value(branch_state, depth)
+            total = total.plus(value.weighted(probability))
+            exact = exact and branch_exact
+        return total, exact
 
     def _candidate_actions(
         self,
