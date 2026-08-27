@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-"""Scope five-run safe-pace behavior to the production strategy-aware D1 layer.
+"""Scope Red/White safe-pace action authority to the production D1 policy.
 
-The first safe-pace patch intentionally changed live behavior, but it monkey-patched
-base policy classes that are also public/testing contracts. This correction restores
-those base methods from the patch closures, then applies the survival invariant only
-to StrategyAwareLiveHandActionPolicy, which is the Red/White production policy.
+The bounded search schedule is installed separately by
+``safe_pace_optimization_policy``. This module owns only the production
+``StrategyAwareLiveHandActionPolicy`` survival invariant; it no longer patches or
+restores base policy classes as an install-order side effect.
 
 The scoped production wrapper may choose the safe-pace action class, but canonical
 D1 full-blind plan quality remains authoritative when selecting within that class.
@@ -14,22 +14,12 @@ D1 full-blind plan quality remains authoritative when selecting within that clas
 from dataclasses import replace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
-from games.balatro.blind_skip_policy import BuildAwareBlindSkipPolicy
 from games.balatro.live.hand_action_policy import (
     CLEAR_PATH,
     PACE_PLAY,
     PACE_RECOVERY,
-    LiveHandActionPolicy,
 )
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
-
-
-def _closure_value(function, name: str):
-    names = tuple(getattr(function.__code__, "co_freevars", ()))
-    closure = tuple(function.__closure__ or ())
-    if name not in names:
-        return None
-    return closure[names.index(name)].cell_contents
 
 
 def _projected_score(policy, state, plan) -> tuple[float, object]:
@@ -59,19 +49,6 @@ def _deterministic_immediate_clear(plan, projection, score: float, remaining: fl
 def install_safe_pace_scope_correction() -> None:
     if getattr(StrategyAwareLiveHandActionPolicy, "_safe_pace_scope_corrected", False):
         return
-
-    # Restore the base D1 contract that the first safe-pace patch wrapped.
-    current_base_decide = LiveHandActionPolicy.decide
-    original_base_decide = _closure_value(current_base_decide, "original_decide")
-    if callable(original_base_decide):
-        LiveHandActionPolicy.decide = original_base_decide
-
-    # Restore base blind-tag economics. The final StrategyAware D13 survival veto
-    # remains installed separately and will call this restored base through super().
-    current_skip_decide = BuildAwareBlindSkipPolicy.decide
-    original_skip_decide = _closure_value(current_skip_decide, "original_skip_decide")
-    if callable(original_skip_decide):
-        BuildAwareBlindSkipPolicy.decide = original_skip_decide
 
     original_strategy_decide = StrategyAwareLiveHandActionPolicy.decide
 
