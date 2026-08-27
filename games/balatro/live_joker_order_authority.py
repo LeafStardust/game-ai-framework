@@ -63,10 +63,6 @@ def _token(value: object) -> str:
         or type(value).__name__
     )
     token = "".join(ch for ch in str(raw).lower() if ch.isalnum())
-    # Native Balatro center keys are shaped like ``j_blueprint``.  The live
-    # translator intentionally preserves that public key, while modeled Joker
-    # classes expose ``BlueprintJoker``.  Normalize the center namespace here so
-    # copy constraints and identity XMult detection work on both representations.
     if str(raw).lower().startswith("j_") and token.startswith("j"):
         token = token[1:]
     return token
@@ -123,7 +119,6 @@ def _identity_xmult_factor(joker: object) -> float:
         if factor > 1.0:
             return factor
 
-    # Polychrome is always x1.5 Mult regardless of the Joker's native effect.
     if _edition_token(joker) == "polychrome":
         return 1.5
 
@@ -149,6 +144,18 @@ class _ReplayObserver:
 def install_live_joker_order_authority() -> None:
     if getattr(JokerOrderPolicy, "_live_order_authority_installed", False):
         return
+
+    # Whole-build scoring is substantially more expensive than counting the raw
+    # permutations suggests. A normal five-slot board previously evaluated 120
+    # full representative-probe orders at every stable SHOP checkpoint, which can
+    # stall immediately after acquiring Blueprint. Four-or-fewer boards remain
+    # exhaustively searched; the normal five-slot board uses the core policy's
+    # bounded one-swap neighborhood (current + C(5, 2) candidates) and can converge
+    # across fresh settled checkpoints without blocking the autonomous loop.
+    JokerOrderPolicy.MAX_EXHAUSTIVE_JOKERS = min(
+        int(JokerOrderPolicy.MAX_EXHAUSTIVE_JOKERS),
+        4,
+    )
 
     original_score = JokerOrderPolicy._score
     original_xmult_factor = JokerOrderPolicy._xmult_factor
@@ -199,9 +206,6 @@ def install_live_joker_order_authority() -> None:
             state = self.translator.translate(snapshot)
             translated_state = state
             translation_seconds = perf_counter() - translated_started
-            # SHOP and pre-blind Dagger ordering do not depend on a selected hand.
-            # During SELECTING_HAND, only repair an immediately invalid copy
-            # position before D1; otherwise wait for D1's exact play selection.
             current = tuple(range(len(tuple(getattr(state, "jokers", ()) or ()))))
             invalid_copy_position = bool(
                 _copy_order_violations(
