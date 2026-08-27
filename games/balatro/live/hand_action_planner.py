@@ -73,6 +73,15 @@ class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
                 play_width=play_width,
                 discard_width=discard_width,
             )
+            # Boss legality is a candidate-generation invariant, not a late
+            # correction. This applies the shared exact predicate uniformly to
+            # both PLAY and DISCARD roots/children (notably Cerulean Bell forced
+            # selection) before any D1 value or strategy arbitration occurs.
+            actions = [
+                action
+                for action in actions
+                if boss_play_action_is_legal(state, action)
+            ]
             if not root_beam:
                 return actions
 
