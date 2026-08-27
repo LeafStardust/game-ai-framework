@@ -21,6 +21,9 @@ BUY = "BUY"
 REPLACE = "REPLACE"
 HOLD = "HOLD"
 
+_EARLY_ENGINE_ANTE_LIMIT = 2
+_FIRST_ENGINE_MINIMUM_CASH_AFTER = 1
+
 
 @dataclass(frozen=True)
 class JokerAcquisitionThresholds:
@@ -188,9 +191,6 @@ def _strategy_transition_bonus(before_comp, after_comp) -> tuple[float, tuple[st
                     f"{after_candidate.strategy_id}:{after_strength:.3f}"
                 )
 
-    # A FORMING plan may exist before there is a pinned candidate. Its explicit
-    # completion/gap changes are still legitimate strategy-construction evidence,
-    # provided the projected state keeps the same strategy identity.
     before_plan_id = str(getattr(before_plan, "strategy_id", "") or "")
     after_plan_id = str(getattr(after_plan, "strategy_id", "") or "")
     if before_plan_id and before_plan_id == after_plan_id:
@@ -316,9 +316,6 @@ def _bond_transition_bonus(
     )
 
     if aligned:
-        # Deepen an actual engine, complete a known motif, or advance the selected
-        # strategy.  These are the structural transitions the Bond layer exists to
-        # reward; raw B3 scoring still decides whether the Joker is useful now.
         adjustment = min(
             4.0,
             1.75 * (established_rank_gain + new_rank_gain)
@@ -328,15 +325,8 @@ def _bond_transition_bonus(
             + strategy_value,
         )
     elif new_rank_gain > 0.0 and not has_existing_engine:
-        # The first structural foothold is legitimate exploration, but it must not
-        # receive an almost-maximal bonus merely for taking a Bond from LOCKED/R0
-        # to R1.  The run itself showed this turning random conditional Jokers into
-        # fake engines.
         adjustment = min(0.50, 0.50 * new_rank_gain)
     elif new_rank_gain > 0.0:
-        # Once a Bond exists, opening another unrelated axis is diversification,
-        # not composition.  Penalize the structural churn while allowing genuinely
-        # strong standalone or universal Jokers to win on their real value.
         adjustment = -min(1.50, 0.75 * new_rank_gain)
     else:
         adjustment = min(0.50, 0.35 * min(1.0, progress_gain))
@@ -348,7 +338,7 @@ def _bond_transition_bonus(
         f"established rank gain={established_rank_gain:.1f}; new-axis rank gain={new_rank_gain:.1f}; "
         f"progress gain={progress_gain:.3f}; synergy gain={synergy_gain}; motif gain={motif_gain:.3f}; "
         f"coherence delta={coherence_delta:.3f}; strategy value={strategy_value:.3f}",
-        *(('Bond rank transitions=' + ', '.join(improved),) if improved else ()),
+        *(("Bond rank transitions=" + ", ".join(improved),) if improved else ()),
         *strategy_notes,
     )
 
@@ -398,16 +388,42 @@ class JokerAcquisitionPolicy:
                 and option.total_advantage > self.thresholds.minimum_purchase_advantage
                 else HOLD
             )
+            try:
+                ante = int(getattr(state, "ante", getattr(state, "ante_num", 0)) or 0)
+            except (TypeError, ValueError):
+                ante = 0
+            first_engine_bootstrap = (
+                action == HOLD
+                and option.eligible
+                and 1 <= ante <= _EARLY_ENGINE_ANTE_LIMIT
+                and not tuple(getattr(state, "jokers", ()) or ())
+                and float(option.build_gain) > 0.0
+                and int(option.economics.money_after) >= _FIRST_ENGINE_MINIMUM_CASH_AFTER
+            )
+            if first_engine_bootstrap:
+                action = BUY
+
             rationale_parts = []
             if slot_neutral:
                 rationale_parts.append(
                     "Negative edition is slot-neutral; no incumbent replacement is required"
                 )
-            rationale_parts.append(
-                f"buy advantage={option.total_advantage:.3f} "
-                f"{'exceeds' if action == BUY else 'does not exceed'} "
-                f"threshold={self.thresholds.minimum_purchase_advantage:.3f}"
-            )
+            if first_engine_bootstrap:
+                rationale_parts.extend(
+                    (
+                        "early first-engine bootstrap: positive grounded D2 build gain can outrank reserve-only HOLD",
+                        f"mechanically grounded build gain={option.build_gain:.3f}",
+                        f"first-engine money after=${option.economics.money_after}",
+                        "strategic conflicts remain ineligible",
+                        "hidden future shop contents are not predicted",
+                    )
+                )
+            else:
+                rationale_parts.append(
+                    f"buy advantage={option.total_advantage:.3f} "
+                    f"{'exceeds' if action == BUY else 'does not exceed'} "
+                    f"threshold={self.thresholds.minimum_purchase_advantage:.3f}"
+                )
             return JokerAcquisitionDecision(
                 action,
                 candidate_name,
@@ -512,9 +528,6 @@ class JokerAcquisitionPolicy:
             bool(getattr(replacement, "eligible", True))
             and getattr(replacement, "blocked_reason", None) is None
             and economics.money_after >= 0
-            # A structural Bond transition is supporting evidence, not permission
-            # to destroy a stronger incumbent. Keep this invariant in the core D2
-            # scorer so wrapper registration/import order cannot bypass it.
             and raw_build_delta > self.thresholds.minimum_replacement_build_delta
             and build_gain > self.thresholds.minimum_replacement_build_delta
         )
