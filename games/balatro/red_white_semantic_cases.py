@@ -22,7 +22,7 @@ from games.balatro.live.blind_clear_planner import (
     LiveBlindPlan,
     LiveBlindPlanValue,
 )
-from games.balatro.live.hand_action_policy import LiveHandActionPolicy
+from games.balatro.live.hand_action_policy import PACE_PLAY, LiveHandActionPolicy
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.live.path_aware_hand_action_engine import (
     PathAwareLiveHandActionDecisionEngine,
@@ -141,6 +141,69 @@ def _timeout_reuses_completed_d1_evidence() -> SemanticCheck:
     )
 
 
+def _finalized_d1_action_class_is_authoritative() -> SemanticCheck:
+    cards = [object() for _ in range(4)]
+    pace_play = LiveBlindPlan(
+        action=BalatroAction(PLAY_CARDS, cards=cards[:2]),
+        value=LiveBlindPlanValue(
+            clear_probability=0.20,
+            expected_progress=0.40,
+            expected_score=40.0,
+            expected_hands_remaining=3.0,
+            expected_discards_remaining=4.0,
+        ),
+        horizon=1,
+        exact=True,
+        candidate_count=2,
+    )
+    deeper_discard = LiveBlindPlan(
+        action=BalatroAction(DISCARD_CARDS, cards=cards[2:]),
+        value=LiveBlindPlanValue(
+            clear_probability=0.60,
+            expected_progress=0.80,
+            expected_score=80.0,
+            expected_hands_remaining=4.0,
+            expected_discards_remaining=3.0,
+        ),
+        horizon=3,
+        exact=True,
+        candidate_count=2,
+    )
+    state = SimpleNamespace(hand=cards)
+    policy = LiveHandActionPolicy()
+    decision = policy._decision(
+        mode=PACE_PLAY,
+        selected=pace_play,
+        best_play=pace_play,
+        best_discard=deeper_discard,
+        pace_target=25.0,
+        best_play_immediate_score=40.0,
+        best_play_pace_ratio=1.6,
+        selected_immediate_score=40.0,
+        selected_pace_ratio=1.6,
+        selected_fallback_value=None,
+        clear_path_candidates=0,
+        sampled_clear_path_confirmed=False,
+        setup_discard_consensus=False,
+        confidence=0.80,
+        rationale=("production policy selected a pace-qualified Play",),
+        plans=(pace_play, deeper_discard),
+        search_attempts=(),
+    )
+    engine = object.__new__(PathAwareLiveHandActionDecisionEngine)
+    engine.policy = policy
+    engine._adaptive_root_history = [(None, deeper_discard)]
+
+    resolved = engine._apply_adaptive_authority(state, decision)
+    retained_class = resolved.action.name == PLAY_CARDS
+    return SemanticCheck(
+        retained_class and resolved.action is pace_play.action,
+        observed=f"selected={resolved.action.name}, expected={PLAY_CARDS}",
+        expected="post-policy adaptive evidence cannot flip the finalized Play/Discard class",
+        detail="deeper search may refine a candidate within the survival action class, but a post-return wrapper is not a second Play-vs-Discard controller",
+    )
+
+
 def _first_scoring_foothold() -> SemanticCheck:
     state = BalatroState()
     state.phase = "SHOP"
@@ -240,6 +303,13 @@ RED_WHITE_SEMANTIC_CASES = (
         "A timeout after completed adaptive search must retain canonical D1 evidence.",
         _timeout_reuses_completed_d1_evidence,
         source="Phase-2 authority audit: timeout/fallback objective divergence",
+    ),
+    SemanticBenchmarkCase(
+        "d1.authority.action_class",
+        "D1_SURVIVAL",
+        "Post-policy adaptive evidence cannot reverse the finalized Play/Discard class.",
+        _finalized_d1_action_class_is_authoritative,
+        source="Phase-0 authority audit: PathAware post-policy arbitration",
     ),
     SemanticBenchmarkCase(
         "shop.survival.first_scoring_foothold",
