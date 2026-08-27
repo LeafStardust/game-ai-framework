@@ -125,6 +125,23 @@ def _identity_xmult_factor(joker: object) -> float:
     return 1.5 if _token(joker) in _XMULT_NAMES else 1.0
 
 
+def _shop_order_relevant(jokers) -> bool:
+    """Return whether a SHOP checkpoint can benefit from Joker-order scoring.
+
+    Additive/non-copy Jokers are order-independent at SHOP. Running representative
+    whole-build probes for those rosters is pure latency, and a normal five-slot
+    board can still take minutes even after bounding the permutation count. Copy
+    Jokers and active XMult remain order-sensitive and keep the full authority.
+    """
+
+    return any(
+        _is_blueprint(joker)
+        or _is_brainstorm(joker)
+        or _identity_xmult_factor(joker) > 1.0
+        for joker in jokers
+    )
+
+
 class _ReplayObserver:
     def __init__(self, delegate, snapshot) -> None:
         self._delegate = delegate
@@ -206,14 +223,19 @@ def install_live_joker_order_authority() -> None:
             state = self.translator.translate(snapshot)
             translated_state = state
             translation_seconds = perf_counter() - translated_started
-            current = tuple(range(len(tuple(getattr(state, "jokers", ()) or ()))))
+            jokers = tuple(getattr(state, "jokers", ()) or ())
+            current = tuple(range(len(jokers)))
             invalid_copy_position = bool(
                 _copy_order_violations(
-                    tuple(getattr(state, "jokers", ()) or ()),
+                    jokers,
                     current,
                 )
             )
-            if phase != "SELECTING_HAND" or invalid_copy_position:
+            shop_order_relevant = phase != "SHOP" or _shop_order_relevant(jokers)
+            if (
+                shop_order_relevant
+                and (phase != "SELECTING_HAND" or invalid_copy_position)
+            ):
                 policy_started = perf_counter()
                 ordering = self.joker_order_policy.recommend(state, phase=phase)
                 policy_seconds = perf_counter() - policy_started
