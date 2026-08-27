@@ -63,8 +63,6 @@ def test_selecting_hand_generic_order_defers_to_exact_play_authority():
         phase="SELECTING_HAND",
     )
 
-    # Representative shop probes and the exact selected hand can prefer opposite
-    # layouts.  Emitting both recommendations caused an endless live reorder loop.
     assert JokerOrderPolicy().recommend(state, phase="SELECTING_HAND") is None
 
 
@@ -98,9 +96,7 @@ def test_order_policy_does_not_project_eternal_dagger_feed_as_destroyed():
     ordered = [state.jokers[index] for index in decision.permutation]
     dagger_index = ordered.index(dagger)
     assert ordered[dagger_index + 1] is disposable
-    assert JokerOrderPolicy._dagger_sacrifice_targets(
-        [dagger, eternal],
-    ) == ()
+    assert JokerOrderPolicy._dagger_sacrifice_targets([dagger, eternal]) == ()
 
 
 def test_order_policy_does_not_emit_noop_for_already_optimal_order():
@@ -128,6 +124,26 @@ def test_blind_select_bypasses_scoring_order_without_dagger():
     assert _NoScoringPolicy().recommend(state) is None
 
 
+def test_five_joker_board_uses_bounded_neighbour_search():
+    class _CountingPolicy(JokerOrderPolicy):
+        def __init__(self):
+            super().__init__()
+            self.scored = 0
+
+        def _score(self, state, permutation, *, phase):
+            self.scored += 1
+            return float(sum(index * value for index, value in enumerate(permutation))), ()
+
+    policy = _CountingPolicy()
+    state = _state(*(FlatMultJoker(index) for index in range(1, 6)))
+
+    policy.recommend(state)
+
+    # Production live authority caps exhaustive search at four Jokers. A normal
+    # five-slot board scores current + C(5, 2) one-swap neighbors, never 5! orders.
+    assert policy.scored == 11
+
+
 def test_six_joker_board_uses_bounded_neighbour_search():
     class _CountingPolicy(JokerOrderPolicy):
         def __init__(self):
@@ -143,7 +159,6 @@ def test_six_joker_board_uses_bounded_neighbour_search():
 
     policy.recommend(state)
 
-    # Current order plus C(6, 2) one-swap neighbours, not 6! permutations.
     assert policy.scored == 16
 
 
