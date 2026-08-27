@@ -4,7 +4,7 @@ from copy import deepcopy
 from dataclasses import replace
 
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner, _ActionEstimate
-from games.balatro.live.hand_action_planner_core import D1LiveBlindClearPlanner
+from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
 
 
 def _same_card(left, right) -> bool:
@@ -94,18 +94,21 @@ def install_held_round_end_resource_policy() -> None:
     value component.
     """
     if getattr(
-        LiveBlindClearPlanner,
+        D1LiveBlindClearPlanner,
         "_held_round_end_resource_policy_installed",
         False,
     ):
         return
 
-    original_estimate_play = LiveBlindClearPlanner._estimate_play
+    # Production uses the integrated D1 subclass, which overrides `_estimate_play`.
+    # Patching only LiveBlindClearPlanner silently bypassed Blue-Seal round-end
+    # generation in production. Augment the actual production method directly.
+    original_d1_estimate_play = D1LiveBlindClearPlanner._estimate_play
     original_live_priority = LiveBlindClearPlanner._play_priority
     original_d1_priority = D1LiveBlindClearPlanner._play_priority
 
     def estimate_play(self, state, action, depth):
-        estimate = original_estimate_play(self, state, action, depth)
+        estimate = original_d1_estimate_play(self, state, action, depth)
 
         projection = self.evaluator.project_play(state, action)
         hands_after = max(0, int(getattr(state, "hands_remaining", 0)) - 1)
@@ -147,7 +150,7 @@ def install_held_round_end_resource_policy() -> None:
         )
         return _ActionEstimate(estimate.action, value, estimate.exact)
 
-    LiveBlindClearPlanner._estimate_play = estimate_play
+    D1LiveBlindClearPlanner._estimate_play = estimate_play
     LiveBlindClearPlanner._play_priority = _gold_aware_priority(original_live_priority)
     D1LiveBlindClearPlanner._play_priority = _gold_aware_priority(original_d1_priority)
-    LiveBlindClearPlanner._held_round_end_resource_policy_installed = True
+    D1LiveBlindClearPlanner._held_round_end_resource_policy_installed = True
