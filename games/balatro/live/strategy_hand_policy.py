@@ -8,7 +8,7 @@ from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.bonds.model import BondRank, BondRealization
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import card_matches_suit, hand_rules_for_state
-from games.balatro.live.hand_action_policy import PACE_PLAY, PACE_RECOVERY
+from games.balatro.live.hand_action_policy import CLEAR_PATH, PACE_PLAY, PACE_RECOVERY
 from games.balatro.live.hand_build_policy import BuildAwareLiveHandActionPolicy
 
 
@@ -32,7 +32,13 @@ _PINNED_RED_SEAL_HELD_BONUS = 0.40
 
 
 class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
-    """D1 survival hierarchy with canonical Bond/composition pursuit beneath it."""
+    """Production D1 survival authority with Bond/composition pursuit beneath it.
+
+    Red/White safe-pace semantics live here directly. The policy may use deeper
+    full-blind search to rank candidates, but that search cannot override a
+    deterministic current-hand clear, a pace-qualified current PLAY, or the need to
+    recover with a legal DISCARD when every current PLAY is below pace.
+    """
 
     VAGABOND_PLAY_OPPORTUNITY_VALUE = 35.0
     PACE_STRATEGY_EQUIVALENCE_RATIO = 0.98
@@ -45,6 +51,12 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
     def decide(self, state, plans, **kwargs):
         plans = tuple(plans)
         decision = super().decide(state, plans, **kwargs)
+        decision = self._enforce_safe_pace_scope(
+            state,
+            plans,
+            decision,
+            setup_discard_consensus=bool(kwargs.get("setup_discard_consensus", False)),
+        )
         decision = self._refine_strategy_safe_pace(state, plans, decision)
         vagabond_active = self._vagabond_generation_active(state)
         if (
@@ -59,13 +71,19 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         ):
             discards = [plan for plan in plans if plan.action.name == DISCARD_CARDS]
             if discards:
-                selected = max(
-                    discards,
-                    key=lambda plan: (
-                        *self._within_type_key(plan),
-                        float(self.evaluator.evaluate(state, plan.action)),
-                    ),
-                )
+                self._ranking_state = state
+                self.build_evaluator.prepare(state)
+                try:
+                    selected = max(
+                        discards,
+                        key=lambda plan: (
+                            *self._within_type_key(plan),
+                            float(self.evaluator.evaluate(state, plan.action)),
+                        ),
+                    )
+                finally:
+                    self._ranking_state = None
+                    self.build_evaluator.reset_cache()
                 decision = replace(
                     decision,
                     mode=PACE_RECOVERY,
@@ -80,6 +98,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                         "legal discards remain, so playing an under-pace final hand would lose immediately",
                         "survival overrides all Bond/composition preferences",
                         "use the strongest full-blind D1 discard line and re-observe for a stronger final hand",
+                        *decision.rationale,
                     ),
                 )
         fit, rationale = self._strategy_fit(state, decision.action)
@@ -88,11 +107,217 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             rationale=(
                 *decision.rationale,
                 *(("Vagabond active at <=$4 with consumable space; safe equivalent lines may value additional scored hands for Tarot generation only after normal D1 round resources tie",) if vagabond_active else ()),
-                "pace-qualified PLAY is authoritative; Bond shaping cannot replace it with DISCARD",
+                "canonical D1 action class is authoritative; Bond shaping cannot reverse Play/Discard survival arbitration",
                 f"D1 Bond/composition fit={fit:+.3f}",
                 *rationale,
             ),
         )
+
+    @staticmethod
+    def _deterministic_immediate_clear(plan, projection, score: float, remaining: float, epsilon: float) -> bool:
+        if score + epsilon < remaining:
+            return False
+        probability = getattr(projection, "clear_probability", None)
+        if probability is not None:
+            return float(probability) >= 1.0 - epsilon
+        outcomes = getattr(projection, "outcomes", None)
+        if outcomes:
+            try:
+                return min(float(outcome.score) for outcome in outcomes) + epsilon >= remaining
+            except (AttributeError, TypeError, ValueError):
+                pass
+        return bool(
+            int(getattr(plan, "horizon", 0) or 0) <= 1
+            and bool(getattr(plan, "exact", False))
+            and float(plan.value.clear_probability) >= 1.0 - epsilon
+        )
+
+    def _enforce_safe_pace_scope(
+        self,
+        state,
+        plans,
+        baseline,
+        *,
+        setup_discard_consensus: bool,
+    ):
+        """Own Red/White Play-vs-Discard survival arbitration inside D1 itself.
+
+        Deeper full-blind search remains useful evidence for ranking candidates, but
+        it cannot switch the production objective away from immediate deterministic
+        survival pacing. This logic previously lived in
+        ``safe_pace_scope_correction`` as a late monkeypatch.
+        """
+        plays = tuple(plan for plan in plans if plan.action.name == PLAY_CARDS)
+        discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
+        if not plays:
+            return baseline
+
+        pace_target = self._pace_target(state)
+        hands_left = max(1, int(getattr(state, "hands_remaining", 1) or 1))
+        remaining = max(0.0, pace_target * hands_left)
+        projected = {
+            id(plan): self.evaluator.project_play(state, plan.action)
+            for plan in plays
+        }
+        scores = {
+            id(plan): float(projected[id(plan)].expected_hand_score)
+            for plan in plays
+        }
+        best_immediate = max(plays, key=lambda plan: scores[id(plan)])
+        best_score = scores[id(best_immediate)]
+        best_ratio = self._pace_ratio(best_score, pace_target)
+
+        self._ranking_state = state
+        self.build_evaluator.prepare(state)
+        try:
+            best_play = max(plays, key=self._within_type_key)
+            best_discard = max(discards, key=self._within_type_key) if discards else None
+
+            immediate_clears = tuple(
+                plan
+                for plan in plays
+                if self._deterministic_immediate_clear(
+                    plan,
+                    projected[id(plan)],
+                    scores[id(plan)],
+                    remaining,
+                    self.EPSILON,
+                )
+            )
+            if immediate_clears:
+                selected = max(immediate_clears, key=self._safe_equivalent_clear_key)
+                selected_score = scores[id(selected)]
+                return replace(
+                    baseline,
+                    mode=CLEAR_PATH,
+                    action=selected.action,
+                    selected_plan=selected,
+                    best_play=best_play,
+                    best_discard=best_discard,
+                    pace_target=pace_target,
+                    best_play_immediate_score=best_score,
+                    best_play_pace_ratio=best_ratio,
+                    selected_immediate_score=selected_score,
+                    selected_pace_ratio=self._pace_ratio(selected_score, pace_target),
+                    selected_fallback_value=None,
+                    clear_path_candidates=len(immediate_clears),
+                    sampled_clear_path_confirmed=False,
+                    setup_discard_consensus=False,
+                    confidence=1.0,
+                    rationale=(
+                        "canonical safe-pace D1: current hand deterministically clears the blind",
+                        "among deterministic clears, full-blind survival/resource ordering remains authoritative",
+                        "multi-step engineered clear probability cannot override current-hand survival pacing",
+                        *baseline.rationale,
+                    ),
+                )
+
+            pace_plays = tuple(
+                plan
+                for plan in plays
+                if self._pace_ratio(scores[id(plan)], pace_target) + self.EPSILON
+                >= self.thresholds.pace_ratio_floor
+            )
+            if pace_plays:
+                selected = max(
+                    pace_plays,
+                    key=lambda plan: self._pace_play_key(
+                        plan,
+                        self._pace_ratio(scores[id(plan)], pace_target),
+                    ),
+                )
+                selected_score = scores[id(selected)]
+                selected_ratio = self._pace_ratio(selected_score, pace_target)
+                return replace(
+                    baseline,
+                    mode=PACE_PLAY,
+                    action=selected.action,
+                    selected_plan=selected,
+                    best_play=best_play,
+                    best_discard=best_discard,
+                    pace_target=pace_target,
+                    best_play_immediate_score=best_score,
+                    best_play_pace_ratio=best_ratio,
+                    selected_immediate_score=selected_score,
+                    selected_pace_ratio=selected_ratio,
+                    selected_fallback_value=None,
+                    clear_path_candidates=0,
+                    sampled_clear_path_confirmed=False,
+                    setup_discard_consensus=False,
+                    confidence=self._pace_confidence(selected_ratio),
+                    rationale=(
+                        "canonical safe-pace D1: choose among current hands meeting remaining-score / hands-left pace",
+                        "full-blind clear probability and plan quality rank pace-qualified plays",
+                        "equal-safety held-resource and Bond strategy tie-breaks remain subordinate to survival",
+                        *baseline.rationale,
+                    ),
+                )
+
+            if discards and int(getattr(state, "discards_remaining", 0) or 0) > 0:
+                selected = max(
+                    discards,
+                    key=lambda plan: (
+                        *self._within_type_key(plan),
+                        float(self.evaluator.evaluate(state, plan.action)),
+                    ),
+                )
+                selected_value = float(self.evaluator.evaluate(state, selected.action))
+                rationale = [
+                    "canonical safe-pace D1: no current play meets remaining-score / hands-left pace",
+                    "a legal discard remains, so do not burn a scoring hand below pace",
+                    "full-blind plan quality ranks discard candidates before local discard value",
+                ]
+                if setup_discard_consensus:
+                    rationale.append("deep adaptive searches also agree on the setup discard")
+                return replace(
+                    baseline,
+                    mode=PACE_RECOVERY,
+                    action=selected.action,
+                    selected_plan=selected,
+                    best_play=best_play,
+                    best_discard=best_discard,
+                    pace_target=pace_target,
+                    best_play_immediate_score=best_score,
+                    best_play_pace_ratio=best_ratio,
+                    selected_immediate_score=None,
+                    selected_pace_ratio=None,
+                    selected_fallback_value=selected_value,
+                    clear_path_candidates=0,
+                    sampled_clear_path_confirmed=False,
+                    setup_discard_consensus=setup_discard_consensus,
+                    confidence=0.75 if setup_discard_consensus else 0.60,
+                    rationale=tuple(rationale) + baseline.rationale,
+                )
+
+            selected = best_play
+            selected_score = scores[id(selected)]
+            selected_ratio = self._pace_ratio(selected_score, pace_target)
+            return replace(
+                baseline,
+                mode=PACE_RECOVERY,
+                action=selected.action,
+                selected_plan=selected,
+                best_play=best_play,
+                best_discard=None,
+                pace_target=pace_target,
+                best_play_immediate_score=best_score,
+                best_play_pace_ratio=best_ratio,
+                selected_immediate_score=selected_score,
+                selected_pace_ratio=selected_ratio,
+                selected_fallback_value=float(self.evaluator.evaluate(state, selected.action)),
+                clear_path_candidates=0,
+                sampled_clear_path_confirmed=False,
+                setup_discard_consensus=False,
+                confidence=0.40,
+                rationale=(
+                    "canonical safe-pace D1: no current play meets pace and no discard remains",
+                    "forced recovery uses the strongest full-blind D1 plan; immediate score is secondary",
+                    *baseline.rationale,
+                ),
+            )
+        finally:
+            self._ranking_state = None
+            self.build_evaluator.reset_cache()
 
     def _refine_strategy_safe_pace(self, state, plans, decision):
         """Keep strategy tie-breaking inside a score/survival-equivalent PACE_PLAY band.
@@ -148,9 +373,6 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         if len(equivalent) < 2:
             return decision
 
-        # BuildAware clears its transient ranking context before returning to this
-        # subclass. Re-establish it only for this canonical within-PACE_PLAY
-        # refinement so held-resource and Bond tie-breaks retain their normal order.
         self._ranking_state = state
         self.build_evaluator.prepare(state)
         try:
@@ -199,10 +421,6 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             and plan.action.name == PLAY_CARDS
             else 0.0
         )
-        # BuildAware base is:
-        # clear, exact, progress, hands, discards, held-preservation, score.
-        # Bond fit and Vagabond generation are strategy tie-breaks beneath those
-        # full-blind survival/resource dimensions and above only final score.
         return (*base[:-1], fit, vagabond_hand_use, base[-1])
 
     def _safe_equivalent_clear_key(self, plan):
@@ -216,10 +434,6 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             and plan.action.name == PLAY_CARDS
             else 0.0
         )
-        # BuildAware base is:
-        # exact, hands, discards, clear, progress, held-preservation, score.
-        # Do not invert expected-hands authority for Vagabond; without a shared
-        # Tarot/economy unit it may only break an otherwise resource-equivalent tie.
         return (*base[:-1], fit, vagabond_hand_use, base[-1])
 
     def _pace_play_key(self, plan, pace_ratio: float):
@@ -227,9 +441,6 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         if self._ranking_state is None:
             return base
         fit, _ = self._strategy_fit(self._ranking_state, plan.action)
-        # BuildAware base keeps clear/exact/progress/discards/hands first, then
-        # held-preservation, then local pace-closeness. Bond fit belongs beside the
-        # preservation signal, never above the full-blind resource prefix.
         return (*base[:-1], fit, base[-1])
 
     @staticmethod
@@ -341,8 +552,6 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             notes.extend(reasons)
         if total <= 0.0:
             return 0.0, (f"pinned strategy {candidate.strategy_id} sacrifices no held-engine card",)
-        # Playing/discarding an engine card both remove it from hand. Negative fit is
-        # only a tie-break among actions already accepted by the parent survival path.
         return -total, tuple(dict.fromkeys(notes))
 
     def _strategy_fit(self, state, action) -> tuple[float, tuple[str, ...]]:
