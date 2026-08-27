@@ -60,7 +60,6 @@ from games.balatro.observatory_planet_policy import install_observatory_planet_p
 from games.balatro.pack_sunk_cost_policy import install_pack_sunk_cost_policy
 from games.balatro.pinned_strategy_execution_policy import install_pinned_strategy_execution_policy
 from games.balatro.pinned_strategy_retention_policy import install_pinned_strategy_retention_policy
-from games.balatro.pinned_strategy_safe_pace_policy import install_pinned_strategy_safe_pace_policy
 from games.balatro.pinned_strategy_shop_goal_policy import install_pinned_strategy_shop_goal_policy
 from games.balatro.pinned_strategy_transition_policy import install_pinned_strategy_transition_policy
 from games.balatro.planet_pack_fallback_policy import install_planet_pack_fallback_policy
@@ -173,7 +172,6 @@ install_planet_pack_fallback_policy()
 install_live_decision_quality_policy()
 install_stateful_joker_admission_policy()
 install_tactical_scaler_retention_policy()
-install_pinned_strategy_safe_pace_policy()
 install_soul_pack_expectation_policy()
 # Final semantic execution guards see the fully wrapped D1/shop decisions so later
 # value layers cannot undo defining mechanics.
