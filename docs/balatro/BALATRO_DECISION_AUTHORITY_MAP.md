@@ -61,12 +61,18 @@ Post-policy wrappers may refine evidence or a candidate **within a finalized act
 | `cerulean_bell_d1_legality_policy` | **M + G** | Enforces forced-card legality for Cerulean Bell | Keep exact legality; eventually prefer direct candidate-generation integration over late guard shape |
 | `d1_candidate_deadline_policy` | **P/G runtime** | Bounds candidate work against the D1 deadline; does not introduce a strategic objective | Keep bounded-search behavior; canonicalize into planner when practical |
 | `d1_outer_evaluation_cache_policy` | **P runtime** | Memoizes repeated public-state/action evaluation during one outer search | Keep performance semantics; eventually make cache native rather than monkeypatched |
-| `d1_log_resilience_policy` | **E + runtime** | Boss-unconfirmed exactness is downgraded and search reserve is bounded. Its former hard-coded late Play→Discard rewrites were removed in the current batch | Keep confidence/runtime safeguards only; no independent action arbitration |
+| `d1_log_resilience_policy` | **E + runtime** | Boss-unconfirmed exactness is downgraded and search reserve is bounded. Its former hard-coded late Play→Discard rewrites were removed | Keep confidence/runtime safeguards only; no independent action arbitration |
 | retired `d1_debuff_recovery_policy` | **E** | Bounded preference for discarding currently debuffed cards was valid recovery evidence, but the monkeypatch wrapper was unnecessary | **Consolidated:** evidence now lives directly in `LiveHandDecisionEvaluator._discard_value`; installer/file removed |
-| `safe_pace_timeout_patch` | **P/G runtime + legacy fallback** | Seeds a bounded horizon-1 root and retains completed roots; its fallback still contains an older Play-only timeout selection path | Preserve bounded bootstrap/runtime behavior for now; remove overlapping legacy fallback once production timeout ownership is fully canonicalized |
+| `safe_pace_timeout_patch` | **P/runtime** | Seeds a bounded horizon-1 root before adaptive search. Its former duplicate completed-root timeout selector was removed; completed bootstrap evidence is now fed to the path-aware engine's canonical timeout history | Keep bounded bootstrap only; eventually move bootstrap scheduling into the engine directly |
 | `safe_pace_scope_correction` | **A** | Current production survival arbiter that owns pace-qualified Play vs recovery Discard scope | Keep temporarily as the intentional A layer; migrate semantics into canonical policy before removing wrapper |
-| `safe_pace_optimization_policy` | **A + G** | Replaces policy/search behavior and historically acted as another D1 arbitration implementation | High-priority consolidation target after its valid survival semantics are benchmarked |
-| `semantic_search_guard_policy` | **P + G** | Adds bounded candidate prefilters/deadline-aware ranking and monkeypatches planner ranking behavior | Preserve bounded candidate semantics; migrate into planner directly |
+| `safe_pace_optimization_policy` | **P/runtime** | Installs only the bounded adaptive-search schedule; it no longer patches action arbitration | Keep bounded schedule semantics; eventually make schedule native rather than monkeypatched |
+| `semantic_search_guard_policy` | **P + G runtime** | Bounds root/child candidate generation and preserves compact made-hand representatives; also patches unrelated Bond/no-discard helper behavior in the same installer | Preserve bounded candidate semantics, split unrelated concerns, then migrate search behavior into planner directly |
+| `secret_hand_score_authority` | **M + P/E** | Adds exact vanilla base scores for secret hands and representative D2 probes; it does not choose D1 actions | Keep mechanics; eventually move secret-hand score table into canonical scorer definition rather than install-time mutation |
+| `castle_discard_policy` | **M/E + G** | Castle may replace one already-selected Discard with a current-suit discard only inside modeled safety tolerance; it never creates a discard | Preserve Castle mechanic/value as within-discard evidence; migrate tie-break into canonical D1 evaluator/policy and remove late wrapper |
+| `bond_d1_cache_policy` | **S/runtime** | Caches immutable Bond hand-intent evidence for one D1 decision; no independent action objective | Keep performance semantics; make cache native to strategy-aware policy when practical |
+| `burnt_bond_execution_policy` | **S + A/G** | Explicitly allows a survival-equivalent first Burnt discard to replace a pace-qualified Play. The permanent first-discard leveling value is legitimate, but this is a second Play↔Discard controller | **High-priority migration target:** benchmark Burnt first-discard semantics, expose its permanent value to canonical arbitration, then remove cross-class wrapper authority |
+| `pinned_strategy_execution_policy` | **S/E** for packs, not D1 | Augments already-positive pack options with pinned missing-feature evidence and motif prescriptions | Exclude from D1 queue; audit under D8/D14 |
+| `strategy_authority_correction_policy` | **S/E** for composition/shop/pack, not D1 | Corrects premature strategy commitment and adds bounded missing-piece recruitment evidence | Exclude from D1 queue; audit under composition/D8/D14 |
 | `live_decision_quality_policy` | **G** for D8/B4/D9, not D1 | Does not own play/discard selection | Exclude from D1 consolidation; audit later under pack/shop phase |
 | final `red_white_competence_corrections` | **G** | Late Red/White rescues still patch D1 discard value/beam plus shop admissions | Every retained behavior must gain benchmark coverage and move into its canonical owner |
 
@@ -76,12 +82,6 @@ Classification is evidence-based and intentionally incomplete. Filenames are not
 
 The remaining queue includes, among others:
 
-- `secret_hand_score_authority`
-- `castle_discard_policy`
-- `bond_d1_cache_policy`
-- `burnt_bond_execution_policy`
-- `pinned_strategy_execution_policy`
-- `strategy_authority_correction_policy`
 - `pinned_strategy_safe_pace_policy`
 - `aces_dna_hand_policy`
 - `strategy_execution_guard_policy`
@@ -96,10 +96,11 @@ Not all are wrong. The Phase-0 question is whether each supplies mechanics/proje
 
 1. **Planner/controller disagreement:** discard candidate pre-ranking used a different objective than canonical D1 evaluation. This is benchmarked; candidate ranking must use canonical D1 evidence.
 2. **Recovery oscillation:** separate rescue rules have produced both repeated one-card discards and later runs that preserved all discards while dying. Continue consolidating into one survival comparison.
-3. **Timeout divergence:** structural fallback could abandon completed modeled survival evidence. The path-aware production engine now retains completed canonical D1 evidence; semantic case `d1.authority.timeout_consistency` protects this.
+3. **Timeout divergence:** structural fallback could abandon completed modeled survival evidence. The path-aware production engine now retains completed canonical D1 evidence; semantic case `d1.authority.timeout_consistency` protects this. The older duplicate completed-root selector in `safe_pace_timeout_patch` has been removed.
 4. **Post-policy cross-class reversal:** deeper adaptive evidence could replace a production pace decision with the opposite action class. This behavior is retired; semantic case `d1.authority.action_class` protects final Play-vs-Discard ownership.
 5. **Debuffed-card recovery wrapper:** valid recovery evidence lived in a monkeypatch. It is now canonical in `LiveHandDecisionEvaluator`; wrapper/installer removed.
 6. **Log-resilience second arbiter:** hard-coded projected-score margins could rewrite Play→Discard after policy arbitration. Those rewrites are removed; only confidence/runtime safeguards remain.
+7. **Burnt first-discard second arbiter:** permanent Burnt scaling is legitimate strategy evidence, but the current wrapper can override a pace-qualified Play. Move that value into canonical arbitration before deleting the wrapper.
 
 ## Phase-0 consolidation target for D1
 
