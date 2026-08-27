@@ -37,6 +37,9 @@ class BalatroScorer:
         PokerHand.FULL_HOUSE: HandScore(40, 4),
         PokerHand.FOUR_OF_A_KIND: HandScore(60, 7),
         PokerHand.STRAIGHT_FLUSH: HandScore(100, 8),
+        PokerHand.FIVE_OF_A_KIND: HandScore(120, 12),
+        PokerHand.FLUSH_HOUSE: HandScore(140, 14),
+        PokerHand.FLUSH_FIVE: HandScore(160, 16),
     }
 
     RANK_CHIPS = {
