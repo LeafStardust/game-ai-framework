@@ -4,7 +4,10 @@ from types import SimpleNamespace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.live.boss_blind_integration import boss_play_action_is_legal
-from games.balatro.live.hand_action_planner import _cerulean_future_forced_branches
+from games.balatro.live.hand_action_planner import (
+    D1LiveBlindClearPlanner,
+    _cerulean_future_forced_branches,
+)
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
 
 
@@ -60,11 +63,37 @@ def _native_cerulean_mechanics() -> SemanticCheck:
     )
 
 
+def _native_serpent_draw_count() -> SemanticCheck:
+    planner = object.__new__(D1LiveBlindClearPlanner)
+    active = SimpleNamespace(boss_name="The Serpent", jokers=(), hand_size=8)
+    ordinary = SimpleNamespace(boss_name="The Ox", jokers=(), hand_size=8)
+    retained = [object() for _ in range(2)]
+
+    serpent = planner._post_action_draw_count(active, retained)
+    normal = planner._post_action_draw_count(ordinary, retained)
+    passed = serpent == 3 and normal == 6
+    return SemanticCheck(
+        passed,
+        observed=f"serpent={serpent}, ordinary={normal}",
+        expected="active Serpent draws exactly 3; ordinary replacement draws to hand size",
+        detail=(
+            "The Serpent draw rule lives directly in canonical D1 successor projection; "
+            "no base-planner distribution monkeypatch is required"
+        ),
+    )
+
+
 RED_WHITE_BOSS_NATIVE_CASES = (
     SemanticBenchmarkCase(
         case_id="d1.boss.cerulean_native",
         category="D1_SURVIVAL",
         description="Cerulean Bell legality and future forced-card projection are native D1 mechanics",
         evaluate=_native_cerulean_mechanics,
+    ),
+    SemanticBenchmarkCase(
+        case_id="d1.boss.serpent_native",
+        category="D1_SURVIVAL",
+        description="The Serpent exact three-card redraw is native D1 projection",
+        evaluate=_native_serpent_draw_count,
     ),
 )
