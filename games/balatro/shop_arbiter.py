@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from games.balatro.actions import (
     BUY_BOOSTER,
@@ -11,8 +11,10 @@ from games.balatro.actions import (
     SELL_JOKER,
     BalatroAction,
 )
+from games.balatro.joker_edition import joker_has_negative_edition
 from games.balatro.joker_policy import (
     BUY,
+    HOLD,
     REPLACE,
     JokerAcquisitionDecision,
     JokerAcquisitionPolicy,
@@ -40,8 +42,11 @@ from games.balatro.shop_reroll_policy import (
     ShopRerollRecommendation,
     ShopRerollThresholds,
 )
-from games.balatro.shop_utility_scale import ShopUtilityScale
+from games.balatro.shop_utility_scale import ShopNormalizedUtility, ShopUtilityScale
 from games.balatro.state import BalatroState
+
+
+_BOND_PAIR_EPSILON = 1e-12
 
 
 @dataclass(frozen=True)
@@ -82,6 +87,17 @@ class _ExecutableConsumableDecision:
 
 
 @dataclass(frozen=True)
+class _ExecutableBondPairDecision:
+    first: _ExecutableJokerDecision
+    second_identity: tuple[object | None, str, str, int | None]
+    second_label: str
+    interaction_gain: float
+    combined_gain: float
+    first_utility: ShopNormalizedUtility
+    second_utility: ShopNormalizedUtility
+
+
+@dataclass(frozen=True)
 class _ArbiterCandidate:
     action: BalatroAction
     source: str
@@ -89,6 +105,37 @@ class _ArbiterCandidate:
     normalized_gain: float
     priority: int
     child: object | None = None
+
+
+def _joker_identity(item: object) -> tuple[object | None, str, str, int | None]:
+    live_id = getattr(item, "live_id", None)
+    center = str(getattr(item, "center", "") or "")
+    label = str(
+        getattr(item, "label", None)
+        or getattr(item, "name", None)
+        or type(item).__name__
+    )
+    area_index = getattr(item, "area_index", None)
+    try:
+        area_index = int(area_index) if area_index is not None else None
+    except (TypeError, ValueError):
+        area_index = None
+    return live_id, center, label, area_index
+
+
+def _matches_joker_identity(
+    item: object,
+    identity: tuple[object | None, str, str, int | None],
+) -> bool:
+    live_id, center, label, area_index = identity
+    item_live_id, item_center, item_label, item_area_index = _joker_identity(item)
+    if live_id is not None and item_live_id == live_id:
+        return True
+    if center and item_center == center:
+        return True
+    if area_index is not None and item_area_index == area_index and item_label == label:
+        return True
+    return bool(label and item_label == label)
 
 
 class BuildAwareShopArbiter:
@@ -105,6 +152,13 @@ class BuildAwareShopArbiter:
     ``SELL_JOKER`` for the incumbent, but the arbiter never chains the follow-up
     purchase. The autonomous loop must observe the settled post-sale SHOP state and
     run D2 again; only that fresh decision may emit ``BUY_JOKER``.
+
+    D14 also owns one bounded visible two-Joker exception for the one-at-a-time D2
+    blind spot. Both components must already be visible, the first must be a legal
+    standalone ADD that misses only the ordinary purchase threshold, and projecting
+    it must make the second a real D2 BUY with strictly improved mechanical build
+    value. The combined two-step utility competes in the same normalized D14
+    candidate set; no post-arbiter strategy layer may replace the chosen action.
     """
 
     DETERMINISTIC_ACTIONS = frozenset({BUY_VOUCHER, END_SHOP})
@@ -134,6 +188,10 @@ class BuildAwareShopArbiter:
     ) -> ShopArbiterDecision:
         if state.phase != "SHOP":
             raise ValueError("shop arbiter requires SHOP phase")
+
+        pending_pair = self._pending_bond_pair_completion(state)
+        if pending_pair is not None:
+            return pending_pair
 
         hold = float(self.shop_policy.hold_bias)
         deterministic_actions = [
@@ -194,6 +252,7 @@ class BuildAwareShopArbiter:
             if booster_best is not None
             else None
         )
+        bond_pair = self._best_visible_bond_pair(state)
 
         visible_normalized_best = max(
             [
@@ -208,6 +267,7 @@ class BuildAwareShopArbiter:
                     )
                     if utility is not None
                 ),
+                *(tuple([bond_pair.combined_gain]) if bond_pair is not None else ()),
             ]
         )
 
@@ -238,7 +298,7 @@ class BuildAwareShopArbiter:
         # exact zero-gain ties except against an admitted zero-cost reroll: a free
         # reroll weakly dominates ending because END_SHOP remains available after
         # observing the refreshed shop. Positive child ties retain explicit parent
-        # priority: D2 > D4 > deterministic voucher > booster > reroll.
+        # priority: D2/Bond pair > D4 > deterministic voucher > booster > reroll.
         candidates: list[_ArbiterCandidate] = [
             _ArbiterCandidate(
                 action=BalatroAction(END_SHOP),
@@ -268,6 +328,17 @@ class BuildAwareShopArbiter:
                     normalized_gain=joker_utility.gain,
                     priority=4,
                     child=joker_best,
+                )
+            )
+        if bond_pair is not None:
+            candidates.append(
+                _ArbiterCandidate(
+                    action=bond_pair.first.action,
+                    source="JOKER_BOND_PAIR_START",
+                    total=hold + float(bond_pair.combined_gain),
+                    normalized_gain=float(bond_pair.combined_gain),
+                    priority=4,
+                    child=bond_pair,
                 )
             )
         if consumable_best is not None and consumable_utility is not None:
@@ -394,6 +465,38 @@ class BuildAwareShopArbiter:
                 rationale=tuple(rationale),
             )
 
+        if source == "JOKER_BOND_PAIR_START":
+            assert isinstance(child, _ExecutableBondPairDecision)
+            self._pending_bond_visible_pair = {
+                "first_label": _joker_identity(child.first.candidate)[2],
+                "second_identity": child.second_identity,
+            }
+            rationale.extend(
+                (
+                    "canonical visible two-Joker plan admitted inside D14 candidate arbitration",
+                    f"first component={_joker_identity(child.first.candidate)[2]}",
+                    f"second component={child.second_label}",
+                    f"second D2 build gain improves by {child.interaction_gain:.3f} only after the first component",
+                    f"first-step D14 normalized gain={child.first_utility.gain:.3f}",
+                    f"second-step D14 normalized gain={child.second_utility.gain:.3f}",
+                    f"combined verified plan gain={child.combined_gain:.3f}",
+                    "no named Joker pair or hidden future shop information is used",
+                    "execute one purchase, re-observe, then require fresh D2 admission before the committed second purchase",
+                    *tuple(child.first_utility.notes),
+                    *tuple(child.second_utility.notes),
+                )
+            )
+            return ShopArbiterDecision(
+                action=action,
+                source=source,
+                total=total,
+                hold_baseline=hold,
+                normalized_gain=normalized_gain,
+                joker=child.first.decision,
+                reroll=reroll,
+                rationale=tuple(rationale),
+            )
+
         if source in {"CONSUMABLE_BUY", "CONSUMABLE_BUY_AND_USE"}:
             assert isinstance(child, _ExecutableConsumableDecision)
             selected_option = child.decision.selected
@@ -437,6 +540,200 @@ class BuildAwareShopArbiter:
             reroll=child,
             rationale=tuple(rationale),
         )
+
+    def _pending_bond_pair_completion(
+        self,
+        state: BalatroState,
+    ) -> ShopArbiterDecision | None:
+        pending = getattr(self, "_pending_bond_visible_pair", None)
+        if pending is None:
+            return None
+        self._pending_bond_visible_pair = None
+
+        candidate = next(
+            (
+                item
+                for item in tuple(getattr(state, "shop_jokers", ()) or ())
+                if _matches_joker_identity(item, pending["second_identity"])
+            ),
+            None,
+        )
+        if candidate is None:
+            return None
+
+        policy = self._joker_policy_for_state(state)
+        decision = policy.decide(state, candidate)
+        if decision.action != BUY or decision.selected is None:
+            return None
+
+        candidate_index = next(
+            (
+                index
+                for index, item in enumerate(tuple(getattr(state, "shop_jokers", ()) or ()))
+                if item is candidate
+            ),
+            0,
+        )
+        executable = _ExecutableJokerDecision(
+            action=BalatroAction(BUY_JOKER, target=candidate),
+            source="JOKER_BUY",
+            total=float(decision.selected.total_advantage),
+            candidate=candidate,
+            decision=decision,
+            candidate_index=int(candidate_index),
+        )
+        utility = self.utility_scale.joker_gain(state, executable)
+        hold = float(self.shop_policy.hold_bias)
+        return ShopArbiterDecision(
+            action=executable.action,
+            source="JOKER_BOND_PAIR_COMPLETE",
+            total=hold + float(utility.gain),
+            hold_baseline=hold,
+            normalized_gain=float(utility.gain),
+            joker=decision,
+            rationale=(
+                "complete canonical visible-Joker pair after authoritative re-observation",
+                f"pair first component={pending['first_label']}",
+                f"pair second component={_joker_identity(candidate)[2]}",
+                "fresh D2 still admits the second component; committed pair is therefore not orphaned",
+                f"fresh D14 second-step normalized gain={float(utility.gain):.3f}",
+                *tuple(decision.rationale),
+                *tuple(utility.notes),
+            ),
+        )
+
+    def _best_visible_bond_pair(
+        self,
+        state: BalatroState,
+    ) -> _ExecutableBondPairDecision | None:
+        shop = tuple(getattr(state, "shop_jokers", ()) or ())
+        if len(shop) < 2:
+            return None
+
+        policy = self._joker_policy_for_state(state)
+        standalone = tuple(policy.decide(state, candidate) for candidate in shop)
+        nonactionable = tuple(
+            index
+            for index, decision in enumerate(standalone)
+            if decision.action == HOLD
+        )
+        if len(nonactionable) < 2:
+            return None
+
+        best = None
+        for first_index in nonactionable:
+            first = shop[first_index]
+            first_decision = standalone[first_index]
+            first_option = self._standalone_add_option(first_decision)
+            if first_option is None:
+                continue
+
+            first_selected = replace(
+                first_decision,
+                action=BUY,
+                selected=first_option,
+                rationale=(
+                    *tuple(first_decision.rationale),
+                    "temporarily admitted only as the first step of a verified visible two-Joker Bond plan",
+                ),
+            )
+            first_executable = _ExecutableJokerDecision(
+                action=BalatroAction(BUY_JOKER, target=first),
+                source="JOKER_BUY",
+                total=float(first_selected.selected.total_advantage),
+                candidate=first,
+                decision=first_selected,
+                candidate_index=int(first_index),
+            )
+            first_utility = self.utility_scale.joker_gain(state, first_executable)
+            projected = self._project_joker_add(
+                state,
+                first,
+                int(first_option.economics.money_after),
+            )
+
+            for second_index in nonactionable:
+                if second_index == first_index:
+                    continue
+                second = shop[second_index]
+                second_before = standalone[second_index]
+                before_option = self._standalone_add_option(second_before)
+                before_build_gain = (
+                    float(before_option.build_gain)
+                    if before_option is not None
+                    else max(
+                        (
+                            float(option.build_gain)
+                            for option in tuple(second_before.options or ())
+                            if option.mode == BUY
+                        ),
+                        default=float("-inf"),
+                    )
+                )
+
+                second_after = policy.decide(projected, second)
+                if second_after.action != BUY or second_after.selected is None:
+                    continue
+                if (
+                    float(second_after.selected.build_gain)
+                    <= before_build_gain + _BOND_PAIR_EPSILON
+                ):
+                    continue
+
+                second_executable = _ExecutableJokerDecision(
+                    action=BalatroAction(BUY_JOKER, target=second),
+                    source="JOKER_BUY",
+                    total=float(second_after.selected.total_advantage),
+                    candidate=second,
+                    decision=second_after,
+                    candidate_index=int(second_index),
+                )
+                second_utility = self.utility_scale.joker_gain(
+                    projected,
+                    second_executable,
+                )
+                combined_gain = float(first_utility.gain) + float(second_utility.gain)
+                interaction_gain = (
+                    float(second_after.selected.build_gain) - before_build_gain
+                )
+                candidate = (
+                    combined_gain,
+                    interaction_gain,
+                    -first_index,
+                    -second_index,
+                    _ExecutableBondPairDecision(
+                        first=first_executable,
+                        second_identity=_joker_identity(second),
+                        second_label=_joker_identity(second)[2],
+                        interaction_gain=interaction_gain,
+                        combined_gain=combined_gain,
+                        first_utility=first_utility,
+                        second_utility=second_utility,
+                    ),
+                )
+                if best is None or candidate[:4] > best[:4]:
+                    best = candidate
+
+        return None if best is None else best[4]
+
+    @staticmethod
+    def _standalone_add_option(decision):
+        if decision.action != HOLD or len(tuple(decision.options or ())) != 1:
+            return None
+        option = decision.options[0]
+        if option.mode != BUY or not option.eligible:
+            return None
+        return option
+
+    @staticmethod
+    def _project_joker_add(state: BalatroState, candidate, money_after: int) -> BalatroState:
+        projected = state.copy()
+        projected.money = int(money_after)
+        projected.jokers = list(getattr(projected, "jokers", ()) or ())
+        if joker_has_negative_edition(candidate):
+            projected.joker_slots = int(getattr(projected, "joker_slots", 0) or 0) + 1
+        projected.jokers.append(candidate)
+        return projected
 
     def _best_joker_decision(
         self,
