@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-import games.balatro.red_white_competence_corrections as corrections
+import games.balatro.shop_consumable_policy as shop_consumable_policy
 from games.balatro.shop_consumable_policy import BUY_AND_USE, ConsumableAcquisitionPolicy
 from games.balatro.state import BalatroState
 from games.balatro.tarots import WheelOfFortune
@@ -25,7 +25,7 @@ class _LiteralWheelExpectation:
 
 def test_shop_wheel_uses_literal_analytic_expectation_without_floor(monkeypatch):
     monkeypatch.setattr(
-        corrections,
+        shop_consumable_policy,
         "WheelOfFortuneExpectationEvaluator",
         lambda: _LiteralWheelExpectation(),
     )
