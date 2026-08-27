@@ -7,6 +7,9 @@ from games.balatro.live.hand_action_policy import (
     LiveHandActionDecisionEngine,
     LiveHandActionPolicy,
 )
+from games.balatro.live.path_aware_hand_action_engine import (
+    PathAwareLiveHandActionDecisionEngine,
+)
 
 
 def _joker(name: str, *, x_mult: float = 1.0):
@@ -23,7 +26,6 @@ def test_timeout_fallback_never_fabricates_a_discard_without_completed_search():
     engine = SimpleNamespace(
         planner=planner,
         policy=LiveHandActionPolicy(),
-        _safe_pace_completed_root_plans=(),
     )
     state = SimpleNamespace(
         blind=SimpleNamespace(requirement=600),
@@ -69,10 +71,11 @@ def test_timeout_reuses_completed_root_search_before_structural_fallback():
     )
     engine = SimpleNamespace(
         policy=policy,
-        _safe_pace_completed_root_plans=(weak, strong),
+        _adaptive_plan_history=[(strong, weak)],
+        _adaptive_root_history=[],
     )
 
-    result = LiveHandActionDecisionEngine._structural_timeout_fallback(
+    result = PathAwareLiveHandActionDecisionEngine._structural_timeout_fallback(
         engine,
         state,
         search_attempts=("shallow-complete", "deep-timeout"),
@@ -81,8 +84,8 @@ def test_timeout_reuses_completed_root_search_before_structural_fallback():
     assert result.selected_plan is strong
     assert result.action.name == PLAY_CARDS
     assert result.best_discard is None
-    assert result.plans == (weak, strong)
-    assert "without any post-deadline projection" in result.rationale[1]
+    assert result.plans == (strong, weak)
+    assert any("timeout cannot invent a second strategy" in note for note in result.rationale)
 
 
 class _EqualScoreOrderPolicy(JokerOrderPolicy):
