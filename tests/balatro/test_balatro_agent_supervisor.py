@@ -12,6 +12,9 @@ from games.balatro.live.runtime.balatro_agent_supervisor import (
     wait_for_stable_startup_snapshot,
 )
 from games.balatro.live.runtime.balatro_agent_toggle import toggle_agent
+from games.balatro.live.runtime.live_memory_autonomous_loop_injected import (
+    _terminal_stop_reason,
+)
 from games.balatro.live.runtime.live_memory_autonomous_step_injected import (
     AutonomousStepDecision,
 )
@@ -47,7 +50,7 @@ class _FakeAttemptObserver:
             )
         return LiveBalatroSnapshot(
             sequence=2,
-            phase="GAME_OVER",
+            phase=("ROUND_EVAL" if self.won else "GAME_OVER"),
             state_complete=True,
             payload={
                 "deck": "RED",
@@ -158,6 +161,32 @@ def test_only_actionable_post_continue_win_snapshot_is_resumable():
     assert _is_resumable_won_run(snapshot("ARCANA_PACK")) is True
     assert _is_resumable_won_run(snapshot("ROUND_EVAL")) is False
     assert _is_resumable_won_run(snapshot("GAME_OVER")) is False
+
+
+def test_game_over_sticky_won_flag_is_still_a_loss():
+    snapshot = LiveBalatroSnapshot(
+        sequence=2,
+        phase="GAME_OVER",
+        state_complete=True,
+        payload={
+            "won": True,
+            "score": 207_966,
+            "blind": {"score": 300_000, "name": "Violet Vessel"},
+        },
+    )
+
+    assert _terminal_stop_reason(snapshot) == "game over (lost)"
+
+
+def test_pre_game_over_won_checkpoint_remains_a_win():
+    snapshot = LiveBalatroSnapshot(
+        sequence=2,
+        phase="ROUND_EVAL",
+        state_complete=True,
+        payload={"won": True},
+    )
+
+    assert _terminal_stop_reason(snapshot) == "game over (won)"
 
 
 def test_supervisor_retries_fresh_attempts_until_win_and_auto_off(tmp_path):
