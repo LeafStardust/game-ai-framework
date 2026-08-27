@@ -29,27 +29,6 @@ def _projected_score(policy, state, plan) -> float:
     return float(policy.evaluator.project_play(state, plan.action).expected_hand_score)
 
 
-def _best_completed_clear_attempt(search_attempts, floor: float):
-    completed = [
-        attempt
-        for attempt in search_attempts
-        if not bool(getattr(attempt, "budget_exceeded", False))
-        and getattr(attempt, "best_action", None) is not None
-        and getattr(attempt, "best_clear_probability", None) is not None
-        and float(attempt.best_clear_probability) >= floor
-    ]
-    if not completed:
-        return None
-    return max(
-        completed,
-        key=lambda attempt: (
-            float(attempt.best_clear_probability or 0.0),
-            int(getattr(attempt, "horizon", 0) or 0),
-            float(getattr(attempt, "best_expected_score", 0.0) or 0.0),
-        ),
-    )
-
-
 def _best_completed_scoring_attempt(search_attempts):
     """Keep the strongest completed adaptive recommendation, including DISCARD."""
     completed = [
@@ -121,15 +100,7 @@ def install_d1_log_resilience_policy() -> None:
 
         decision = original_policy_decide(self, state, supplied, **kwargs)
         attempts = tuple(kwargs.get("search_attempts", ()) or ())
-        best_completed_clear = _best_completed_clear_attempt(
-            attempts,
-            float(self.thresholds.clear_path_probability_floor),
-        )
         best_completed_scoring = _best_completed_scoring_attempt(attempts)
-        timed_out_later = any(
-            bool(getattr(attempt, "budget_exceeded", False))
-            for attempt in attempts
-        )
 
         # Never trade away a credible immediate clear merely to chase a prettier hand.
         if decision.mode != CLEAR_PATH:
@@ -176,72 +147,6 @@ def install_d1_log_resilience_policy() -> None:
                         reason,
                         f"projected next-hand score={expected_after_discard:.3f}; current immediate score={current_score:.3f}",
                         "pace-qualified PLAY is no longer authoritative when a legal discard has stronger scoring evidence",
-                    ),
-                )
-
-            # A timeout may not erase a completed DISCARD recommendation. This is the
-            # exact regression observed in the uploaded run: adaptive search selected
-            # DISCARD, the next stage hit the wall clock, and fallback played High Card.
-            elif (
-                discard_plan is not None
-                and search_prefers_discard
-                and timed_out_later
-                and int(getattr(state, "discards_remaining", 0) or 0) > 0
-            ):
-                decision = _discard_decision(
-                    self,
-                    state,
-                    decision,
-                    discard_plan,
-                    rationale=(
-                        "preserved completed adaptive DISCARD recommendation after a later search timeout",
-                        f"preserved horizon={best_completed_scoring.horizon} projected next-hand score={expected_after_discard:.3f}",
-                    ),
-                )
-
-        # A later confirmation timeout must never erase a completed adaptive clear.
-        if (
-            decision.mode == PACE_RECOVERY
-            and timed_out_later
-            and best_completed_clear is not None
-            and str(best_completed_clear.best_action) != DISCARD_CARDS
-        ):
-            expected = float(getattr(best_completed_clear, "best_expected_score", 0.0) or 0.0)
-            candidates = [
-                plan for plan in supplied if plan.action.name == best_completed_clear.best_action
-            ]
-            if candidates:
-                selected = min(
-                    candidates,
-                    key=lambda plan: abs(_projected_score(self, state, plan) - expected),
-                )
-                upgraded_value = replace(
-                    selected.value,
-                    clear_probability=max(
-                        float(selected.value.clear_probability),
-                        float(best_completed_clear.best_clear_probability),
-                    ),
-                )
-                selected = replace(selected, value=upgraded_value, exact=False)
-                replacement_plans = tuple(
-                    selected if plan.action == selected.action else plan
-                    for plan in supplied
-                )
-                rescued = original_policy_decide(
-                    self,
-                    state,
-                    replacement_plans,
-                    search_attempts=attempts,
-                    confirmed_clear_path=selected,
-                    setup_discard_consensus=bool(kwargs.get("setup_discard_consensus", False)),
-                )
-                decision = replace(
-                    rescued,
-                    confidence=min(float(rescued.confidence), 0.95),
-                    rationale=(
-                        "completed adaptive clear result preserved after a later search/confirmation timeout",
-                        f"preserved horizon={best_completed_clear.horizon} clear_probability={float(best_completed_clear.best_clear_probability):.3f}",
-                        *rescued.rationale,
                     ),
                 )
 
