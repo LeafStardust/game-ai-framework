@@ -1,23 +1,24 @@
 from __future__ import annotations
 
-"""Hard public boss constraints for D1 hand admission.
+"""Hard public boss constraints and subordinate Mouth redraw evidence for D1.
 
-The Eye cannot repeat poker-hand types during the current blind. That restriction is
-safe to enforce before strategy-aware ranking when an unused legal type exists.
+The Eye cannot repeat poker-hand types during the current blind. The Mouth accepts
+only its locked poker-hand type after the first scored hand. Those are exact public
+mechanics and remain pre-arbitration candidate constraints.
 
-The Psychic is deliberately not filtered here: Balatro accepts plays containing fewer
-than five cards; such a hand simply does not score. Those plays can still be useful as
-deliberate hand-burning/milling actions, so legality and score semantics must remain
-separate.
+When The Mouth is already locked and D1 chooses DISCARD, retained forced-hand
+structure and redraw width are candidate evidence only; they no longer replace the
+post-policy decision through a second arbiter.
 """
-
-from dataclasses import replace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
 from games.balatro.hand_rules import hand_rules_for_state
-from games.balatro.live.hand_action_policy import PACE_RECOVERY
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
+
+
+MOUTH_FORCED_STRUCTURE_FIT = 2.0
+MOUTH_REDRAW_WIDTH_FIT = 0.10
 
 
 def _hand_type(policy, state, plan) -> str:
@@ -98,114 +99,54 @@ def _mouth_filter(policy, state, plans):
     return supplied
 
 
-def _plan_clear_probability(plan) -> float:
-    try:
-        return float(getattr(plan.value, "clear_probability", 0.0) or 0.0)
-    except (AttributeError, TypeError, ValueError):
-        return 0.0
-
-
-def _mouth_forced_discard(policy, state, plans, decision):
-    """Shape a Mouth redraw exclusively toward its already locked hand type.
-
-    Generic Bond fit is irrelevant once the boss accepts only one poker hand. For
-    survival-equivalent lines with equal retained forced-hand structure, drawing more
-    cards strictly exposes more chances to find the missing ranks/suit, so prefer the
-    widest such discard.
-    """
+def _mouth_discard_fit(policy, state, action) -> tuple[float, tuple[str, ...]]:
     forced = _mouth_locked_hand(state)
-    if forced is None or decision.action.name != DISCARD_CARDS:
-        return decision
+    if forced is None or action.name != DISCARD_CARDS:
+        return 0.0, ()
 
-    discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
-    if not discards:
-        return decision
-
-    def structure(plan) -> float:
-        removed = {id(card) for card in plan.action.cards}
-        kept = [
-            card
-            for card in tuple(getattr(state, "hand", ()) or ())
-            if id(card) not in removed
-        ]
-        return float(policy._structure_fit(kept, forced))
-
-    current_plan = getattr(decision, "selected_plan", None)
-    if current_plan is None:
-        current_plan = next(
-            (
-                plan
-                for plan in discards
-                if plan.action.cards == getattr(decision.action, "cards", None)
-            ),
-            None,
-        )
-    if current_plan is None:
-        return decision
-
-    selected_structure = structure(current_plan)
-    selected_probability = _plan_clear_probability(current_plan)
-    tolerance = float(
-        getattr(
-            getattr(decision, "thresholds", None),
-            "safe_clear_probability_tolerance",
-            0.0,
-        )
-        or 0.0
+    removed = {id(card) for card in getattr(action, "cards", ()) or ()}
+    kept = [
+        card
+        for card in tuple(getattr(state, "hand", ()) or ())
+        if id(card) not in removed
+    ]
+    rules = hand_rules_for_state(state)
+    structure = float(policy._structure_fit(kept, forced, rules=rules))
+    redraw_width = len(tuple(getattr(action, "cards", ()) or ()))
+    value = (
+        structure * MOUTH_FORCED_STRUCTURE_FIT
+        + redraw_width * MOUTH_REDRAW_WIDTH_FIT
     )
-    equivalent = tuple(
-        plan
-        for plan in discards
-        if structure(plan) + policy.EPSILON >= selected_structure
-        and _plan_clear_probability(plan) + tolerance + policy.EPSILON
-        >= selected_probability
-    )
-    if not equivalent:
-        return decision
-
-    selected = max(
-        equivalent,
-        key=lambda plan: (
-            _plan_clear_probability(plan),
-            structure(plan),
-            len(tuple(getattr(plan.action, "cards", ()) or ())),
-            float(policy.evaluator.evaluate(state, plan.action)),
-            policy._within_type_key(plan),
-        ),
-    )
-    if selected.action.cards == decision.action.cards:
-        return decision
-    value = float(policy.evaluator.evaluate(state, selected.action))
-    return replace(
-        decision,
-        mode=PACE_RECOVERY,
-        action=selected.action,
-        selected_plan=selected,
-        selected_immediate_score=None,
-        selected_pace_ratio=None,
-        selected_fallback_value=value,
-        confidence=max(float(getattr(decision, "confidence", 0.0) or 0.0), _plan_clear_probability(selected)),
-        rationale=(
-            f"The Mouth is locked to {forced}; forced-hand feasibility overrides unrelated Bond targets",
-            f"retained {forced} structure={structure(selected):.3f}; redraw width={len(selected.action.cards)}",
-            f"redraw clear probability={_plan_clear_probability(selected):.3f}; baseline={selected_probability:.3f}; tolerance={tolerance:.3f}",
-            "forced-hand redraw shaping remains subordinate to D1 survival",
-            *decision.rationale,
-        ),
+    return value, (
+        f"The Mouth locked to {forced}: retained forced-hand structure={structure:.3f}",
+        f"The Mouth redraw width={redraw_width}; forced-hand evidence={value:+.3f}",
+        "Mouth redraw shaping is candidate evidence beneath canonical D1 survival ordering",
     )
 
 
 def install_boss_hand_constraint_policy() -> None:
-    if getattr(StrategyAwareLiveHandActionPolicy, "_boss_hand_constraints_installed", False):
+    if getattr(
+        StrategyAwareLiveHandActionPolicy,
+        "_boss_hand_constraints_installed",
+        False,
+    ):
         return
 
     original_decide = StrategyAwareLiveHandActionPolicy.decide
+    original_strategy_fit = StrategyAwareLiveHandActionPolicy._strategy_fit
+
+    def strategy_fit(self, state, action):
+        base, rationale = original_strategy_fit(self, state, action)
+        mouth_value, mouth_notes = _mouth_discard_fit(self, state, action)
+        if mouth_value <= 0.0:
+            return base, rationale
+        return base + mouth_value, (*rationale, *mouth_notes)
 
     def decide(self, state, plans, **kwargs):
         constrained = _eye_filter(self, state, plans)
         constrained = _mouth_filter(self, state, constrained)
-        decision = original_decide(self, state, constrained, **kwargs)
-        return _mouth_forced_discard(self, state, constrained, decision)
+        return original_decide(self, state, constrained, **kwargs)
 
+    StrategyAwareLiveHandActionPolicy._strategy_fit = strategy_fit
     StrategyAwareLiveHandActionPolicy.decide = decide
     StrategyAwareLiveHandActionPolicy._boss_hand_constraints_installed = True
