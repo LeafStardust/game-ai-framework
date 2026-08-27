@@ -8,7 +8,7 @@ from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.bonds.model import BondRank, BondRealization
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import card_matches_suit, hand_rules_for_state
-from games.balatro.live.hand_action_policy import PACE_RECOVERY
+from games.balatro.live.hand_action_policy import PACE_PLAY, PACE_RECOVERY
 from games.balatro.live.hand_build_policy import BuildAwareLiveHandActionPolicy
 
 
@@ -35,6 +35,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
     """D1 survival hierarchy with canonical Bond/composition pursuit beneath it."""
 
     VAGABOND_PLAY_OPPORTUNITY_VALUE = 35.0
+    PACE_STRATEGY_EQUIVALENCE_RATIO = 0.98
 
     def __init__(self, *args, strategy_tracker=None, **kwargs) -> None:
         del strategy_tracker
@@ -42,7 +43,9 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         self._hand_evaluator = HandEvaluator()
 
     def decide(self, state, plans, **kwargs):
+        plans = tuple(plans)
         decision = super().decide(state, plans, **kwargs)
+        decision = self._refine_strategy_safe_pace(state, plans, decision)
         vagabond_active = self._vagabond_generation_active(state)
         if (
             decision.action.name == PLAY_CARDS
@@ -88,6 +91,91 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                 "pace-qualified PLAY is authoritative; Bond shaping cannot replace it with DISCARD",
                 f"D1 Bond/composition fit={fit:+.3f}",
                 *rationale,
+            ),
+        )
+
+    def _refine_strategy_safe_pace(self, state, plans, decision):
+        """Keep strategy tie-breaking inside a score/survival-equivalent PACE_PLAY band.
+
+        This is canonical D1 policy behavior, not a post-policy correction layer.
+        Strategy/Bond evidence may choose among pace-qualified plays only when the
+        candidate remains within 98% of the strongest immediate score and within
+        the configured clear-probability tolerance of the selected survival line.
+        """
+        if decision.mode != PACE_PLAY or decision.action.name != PLAY_CARDS:
+            return decision
+
+        plays = tuple(plan for plan in plans if plan.action.name == PLAY_CARDS)
+        if len(plays) < 2:
+            return decision
+
+        pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
+        scores = {
+            id(plan): float(self.evaluator.project_play(state, plan.action).expected_hand_score)
+            for plan in plays
+        }
+        pace_qualified = tuple(
+            plan
+            for plan in plays
+            if self._pace_ratio(scores[id(plan)], pace_target) + self.EPSILON
+            >= self.thresholds.pace_ratio_floor
+        )
+        if len(pace_qualified) < 2:
+            return decision
+
+        best_score = max(scores[id(plan)] for plan in pace_qualified)
+        minimum_score = max(
+            pace_target * float(self.thresholds.pace_ratio_floor),
+            best_score * self.PACE_STRATEGY_EQUIVALENCE_RATIO,
+        )
+        selected_probability = float(
+            getattr(getattr(decision.selected_plan, "value", None), "clear_probability", 0.0)
+            or 0.0
+        )
+        tolerance = float(
+            getattr(decision.thresholds, "safe_clear_probability_tolerance", 0.0)
+            or 0.0
+        )
+        equivalent = tuple(
+            plan
+            for plan in pace_qualified
+            if scores[id(plan)] + self.EPSILON >= minimum_score
+            and float(getattr(getattr(plan, "value", None), "clear_probability", 0.0) or 0.0)
+            + tolerance
+            + self.EPSILON
+            >= selected_probability
+        )
+        if len(equivalent) < 2:
+            return decision
+
+        selected = max(
+            equivalent,
+            key=lambda plan: self._pace_play_key(
+                plan,
+                self._pace_ratio(scores[id(plan)], pace_target),
+            ),
+        )
+        if selected is decision.selected_plan:
+            return decision
+
+        selected_score = scores[id(selected)]
+        selected_ratio = self._pace_ratio(selected_score, pace_target)
+        selected_clear = float(
+            getattr(getattr(selected, "value", None), "clear_probability", 0.0)
+            or 0.0
+        )
+        return replace(
+            decision,
+            action=selected.action,
+            selected_plan=selected,
+            selected_immediate_score=selected_score,
+            selected_pace_ratio=selected_ratio,
+            confidence=self._pace_confidence(selected_ratio),
+            rationale=(
+                *decision.rationale,
+                f"canonical strategy-safe pace band: selected score={selected_score:.3f}, best={best_score:.3f}, floor={self.PACE_STRATEGY_EQUIVALENCE_RATIO:.3f}x best",
+                f"strategy line clear probability={selected_clear:.3f}; baseline={selected_probability:.3f}; tolerance={tolerance:.3f}",
+                "Bond/composition may break only score- and survival-equivalent PACE_PLAY ties",
             ),
         )
 
