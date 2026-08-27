@@ -7,8 +7,13 @@ from games.balatro.build.playing_card_synergy import (
     ContextualPlayingCardSynergyEvaluator,
 )
 from games.balatro.build.profile import BalatroBuildProfiler, BuildProfile
+from games.balatro.hand_evaluator import HandEvaluator
+from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.hand_action_policy import LiveHandActionPolicy
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
+
+
+_FACE_RANKS = frozenset({"J", "Q", "K"})
 
 
 @dataclass(frozen=True)
@@ -206,6 +211,7 @@ class BuildAwareLiveHandActionPolicy(LiveHandActionPolicy):
             preservation_weights=preservation_weights,
         )
         self._ranking_state = None
+        self._hand_evaluator = HandEvaluator()
         super().__init__(thresholds, evaluator=self.build_evaluator)
 
     def decide(self, state, plans, **kwargs):
@@ -233,6 +239,42 @@ class BuildAwareLiveHandActionPolicy(LiveHandActionPolicy):
             plan.action,
         ).value
 
+    def _ride_bus_terminal_preservation(self, plan) -> int:
+        """Prefer not resetting an accumulated Bus stack on equivalent clears.
+
+        This key is consulted only by ``_safe_equivalent_clear_key`` after exactness,
+        remaining hands/discards, clear probability, and progress have already tied.
+        Non-terminal D1 choices therefore continue to rely on the planner's literal
+        state projection rather than a local Ride the Bus bonus.
+        """
+        state = self._ranking_state
+        if state is None or plan.action.name != PLAY_CARDS:
+            return 0
+
+        stack = max(
+            (
+                max(0, int(getattr(joker, "mult", 0) or 0))
+                for joker in tuple(getattr(state, "jokers", ()) or ())
+                if type(joker).__name__ == "RideTheBusJoker"
+                and not bool(getattr(joker, "debuffed", False))
+            ),
+            default=0,
+        )
+        if stack <= 0:
+            return 0
+
+        cards = list(getattr(plan.action, "cards", ()) or ())
+        if not cards:
+            return 1
+        rules = hand_rules_for_state(state)
+        hand = self._hand_evaluator.evaluate(cards, rules=rules)
+        scoring = self._hand_evaluator.scoring_cards(hand, cards, rules=rules)
+        resets = any(
+            str(getattr(card, "rank", "") or "") in _FACE_RANKS
+            for card in scoring
+        )
+        return 0 if resets else 1
+
     def _within_type_key(self, plan):
         base = super()._within_type_key(plan)
         # Base authority: clear probability, exactness, progress, hands, discards,
@@ -243,9 +285,14 @@ class BuildAwareLiveHandActionPolicy(LiveHandActionPolicy):
     def _safe_equivalent_clear_key(self, plan):
         base = super()._safe_equivalent_clear_key(plan)
         # Exactness, remaining hands/discards, clear probability and progress all
-        # remain above held-resource preservation. Preserve cards only before the
-        # final overkill/expected-score tie-break.
-        return (*base[:-1], self._preservation(plan), base[-1])
+        # remain above Ride the Bus / held-resource preservation. Preserve an active
+        # Bus stack only before the final overkill/expected-score tie-break.
+        return (
+            *base[:-1],
+            self._ride_bus_terminal_preservation(plan),
+            self._preservation(plan),
+            base[-1],
+        )
 
     def _pace_play_key(self, plan, pace_ratio: float):
         base = super()._pace_play_key(plan, pace_ratio)
