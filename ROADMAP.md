@@ -24,6 +24,7 @@ A fresh development chat should be able to continue from this section without re
 - Before fixing a newly observed semantic defect, add a benchmark/property case for the defect whenever practical.
 - Prefer moving semantics into canonical evaluators/arbiters over adding another late monkeypatch/rescue layer.
 - Obsolete/redundant tests may be removed when they protect retired behavior or duplicate stronger semantic coverage. Preserve mechanics, legality, production authority boundaries, and distinct failure modes.
+- **Repository-operation rule:** when the repository, branch, and exact target file paths are already known, use direct branch-scoped file fetch/update/delete operations immediately. Do **not** spend time on repository-wide search, commit-history probing, connector/tool rediscovery, or schema rediscovery merely to relocate known files. Broad search/discovery is justified only when the exact path or relevant implementation is genuinely unknown. Once a needed GitHub action schema has been loaded in the current session, reuse it instead of repeatedly rediscovering the same tool.
 
 ## Validation workflow
 
