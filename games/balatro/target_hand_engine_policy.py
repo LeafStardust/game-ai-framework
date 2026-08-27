@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-"""Within-PLAY refinement for Jokers whose mechanic targets a poker hand.
+"""Canonical D1 evidence for Runner and To Do List target-hand mechanics.
 
-Canonical D1 owns the Play/Discard action class. Runner and To Do List mechanics
-may rank an already-authorized PLAY when the target-hand alternative remains
-survival-equivalent and pace-qualified; they must never rescue PLAY over a canonical
-DISCARD.
+Canonical D1 owns the Play/Discard action class and all final candidate arbitration.
+This installer augments only the strategy-fit evidence consumed by that policy; it
+does not wrap ``decide`` or reselect an action after arbitration.
 """
-
-from dataclasses import replace
 
 from games.balatro.actions import PLAY_CARDS
 from games.balatro.hand_rules import hand_rules_for_state
-from games.balatro.live.hand_action_policy import PACE_PLAY
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
+
+
+TARGET_HAND_FIT = 2.5
 
 
 def _normalize(value: object) -> str:
@@ -49,104 +48,40 @@ def _target_hands(state) -> tuple[str, ...]:
     return tuple(dict.fromkeys(targets))
 
 
-def _plan_hand(policy, state, plan) -> str:
+def _play_targets_engine(policy, state, action) -> tuple[bool, tuple[str, ...], str]:
+    targets = _target_hands(state)
+    if action.name != PLAY_CARDS or not targets:
+        return False, targets, ""
     rules = hand_rules_for_state(state)
-    return _normalize(
-        policy._hand_evaluator.evaluate(
-            list(plan.action.cards),
-            rules=rules,
-        ).value
+    hand = _normalize(
+        policy._hand_evaluator.evaluate(list(action.cards), rules=rules).value
     )
-
-
-def _safe_target_play(policy, state, plans, decision):
-    targets = set(_target_hands(state))
-    if not targets:
-        return None
-
-    selected = getattr(decision, "selected_plan", None)
-    selected_probability = float(
-        getattr(getattr(selected, "value", None), "clear_probability", 0.0) or 0.0
-    )
-    thresholds = getattr(decision, "thresholds", None)
-    tolerance = float(
-        getattr(thresholds, "safe_clear_probability_tolerance", 0.0) or 0.0
-    )
-    pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
-
-    candidates = []
-    for plan in plans:
-        if plan.action.name != PLAY_CARDS or _plan_hand(policy, state, plan) not in targets:
-            continue
-        probability = float(getattr(plan.value, "clear_probability", 0.0) or 0.0)
-        if probability + tolerance + policy.EPSILON < selected_probability:
-            continue
-        score = float(policy.evaluator.project_play(state, plan.action).expected_hand_score)
-        if pace_target > 0.0 and score + policy.EPSILON < pace_target:
-            continue
-        candidates.append((probability, score, plan))
-
-    if not candidates:
-        return None
-    return max(
-        candidates,
-        key=lambda item: (
-            item[0],
-            policy._strategy_fit(state, item[2].action)[0],
-            item[1],
-            policy._within_type_key(item[2]),
-        ),
-    )
+    return hand in set(targets), targets, hand
 
 
 def install_target_hand_engine_policy() -> None:
-    if getattr(StrategyAwareLiveHandActionPolicy, "_target_hand_engine_policy_installed", False):
+    if getattr(
+        StrategyAwareLiveHandActionPolicy,
+        "_target_hand_engine_policy_installed",
+        False,
+    ):
         return
-    original_decide = StrategyAwareLiveHandActionPolicy.decide
 
-    def decide(self, state, plans, **kwargs):
-        plans = tuple(plans)
-        decision = original_decide(self, state, plans, **kwargs)
+    original_strategy_fit = StrategyAwareLiveHandActionPolicy._strategy_fit
 
-        if decision.action.name != PLAY_CARDS:
-            targets = _target_hands(state)
-            if targets:
-                return replace(
-                    decision,
-                    rationale=(
-                        *decision.rationale,
-                        f"target-hand engine observed ({','.join(targets)}), but canonical D1 selected {decision.action.name}; target-hand evidence cannot change the finalized action class",
-                    ),
-                )
-            return decision
-
-        target = _safe_target_play(self, state, plans, decision)
-        if target is None:
-            return decision
-
-        probability, score, plan = target
-        if getattr(decision.action, "cards", None) == getattr(plan.action, "cards", None):
-            return decision
-
-        pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
-        pace_ratio = score / pace_target if pace_target > 0.0 else float("inf")
-        return replace(
-            decision,
-            mode=PACE_PLAY,
-            action=plan.action,
-            selected_plan=plan,
-            selected_immediate_score=score,
-            selected_pace_ratio=pace_ratio,
-            selected_fallback_value=None,
-            confidence=max(float(getattr(decision, "confidence", 0.0) or 0.0), probability),
-            rationale=(
-                *decision.rationale,
-                "target-hand engine: within-PLAY refinement prefers its poker hand on a survival-equivalent pace-qualified line",
-                f"target hands={','.join(_target_hands(state))}",
-                f"target-line clear probability={probability:.3f}",
-                "target-hand evidence may rank PLAY candidates but cannot replace canonical DISCARD",
+    def strategy_fit(self, state, action):
+        value, rationale = original_strategy_fit(self, state, action)
+        matches, targets, hand = _play_targets_engine(self, state, action)
+        if not matches:
+            return value, rationale
+        return (
+            value + TARGET_HAND_FIT,
+            (
+                *rationale,
+                f"target-hand engine evidence: {hand} matches {','.join(targets)}",
+                "Runner/To Do List fit is consulted only inside canonical D1 safe/equivalent candidate ranking",
             ),
         )
 
-    StrategyAwareLiveHandActionPolicy.decide = decide
+    StrategyAwareLiveHandActionPolicy._strategy_fit = strategy_fit
     StrategyAwareLiveHandActionPolicy._target_hand_engine_policy_installed = True
