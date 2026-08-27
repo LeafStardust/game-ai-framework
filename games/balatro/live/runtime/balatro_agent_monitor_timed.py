@@ -2,9 +2,9 @@ from __future__ import annotations
 
 """Read-only live monitor wrapper with a visible decision-thinking timer.
 
-The supervisor already publishes a timestamped ``THINKING`` telemetry record before
-calling the decision stack.  Derive elapsed wall time from that timestamp inside the
-monitor process so timing observability cannot add work to gameplay policy.
+The supervisor publishes a timestamped ``THINKING`` telemetry record immediately
+before calling the decision stack. Derive elapsed wall time from that timestamp in
+the monitor process so timing observability cannot add work to gameplay policy.
 """
 
 from datetime import datetime, timezone
@@ -24,7 +24,7 @@ def _thinking_elapsed_seconds(
     telemetry = telemetry or {}
     if str(telemetry.get("activity") or "").upper() != "THINKING":
         return None
-    raw = telemetry.get("updated_at")
+    raw = telemetry.get("decision_started_at") or telemetry.get("updated_at")
     if not isinstance(raw, str) or not raw.strip():
         return None
     try:
@@ -39,11 +39,19 @@ def _thinking_elapsed_seconds(
     return max(0.0, (current - started).total_seconds())
 
 
+def _format_elapsed(elapsed: float) -> str:
+    minutes, seconds = divmod(max(0.0, float(elapsed)), 60.0)
+    if minutes >= 1.0:
+        return f"{int(minutes):02d}:{seconds:04.1f}"
+    return f"{seconds:.1f}s"
+
+
 def _decision_timer_line(telemetry: dict[str, Any] | None) -> str:
     elapsed = _thinking_elapsed_seconds(telemetry)
     if elapsed is None:
-        return "Decision timer   : -"
-    return f"Decision timer   : {elapsed:.1f}s (THINKING)"
+        return "Current decision : -"
+    warning = "  [SLOW]" if elapsed >= 30.0 else ""
+    return f"Current decision : {_format_elapsed(elapsed)}  (THINKING){warning}"
 
 
 def build_dashboard_with_timer(*args, **kwargs) -> str:
@@ -54,6 +62,12 @@ def build_dashboard_with_timer(*args, **kwargs) -> str:
     marker = f"Agent activity   : {activity}"
     if marker in rendered:
         return rendered.replace(marker, marker + "\n" + timer_line, 1)
+
+    # Keep the timer visible even if the base monitor formatting changes. This
+    # wrapper is intentionally display-only and never affects supervisor policy.
+    title = "BALATRO AGENT LIVE MONITOR"
+    if title in rendered:
+        return rendered.replace(title, title + "\n" + timer_line, 1)
     return timer_line + "\n" + rendered
 
 
