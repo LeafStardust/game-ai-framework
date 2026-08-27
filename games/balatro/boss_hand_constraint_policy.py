@@ -16,7 +16,7 @@ from dataclasses import replace
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
 from games.balatro.hand_rules import hand_rules_for_state
-from games.balatro.live.hand_action_policy import PACE_RECOVERY
+from games.balatro.live.hand_action_policy import HandActionDecision, PACE_RECOVERY
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
@@ -124,6 +124,65 @@ def _plan_clear_probability(plan) -> float:
         return 0.0
 
 
+def _mouth_discard_only_decision(policy, state, plans, *, search_attempts=(), setup_discard_consensus=False):
+    """Return the best legal recovery when Mouth mechanics eliminate every Play.
+
+    This is not a Play-vs-Discard policy override: once The Mouth is locked and no
+    matching poker hand exists, mechanics leave only DISCARD_CARDS as a legal D1
+    action class. Keep illegal Plays out of the policy entirely and choose among the
+    remaining legal discards using the normal production within-type ordering.
+    """
+    forced = _mouth_locked_hand(state)
+    discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
+    if forced is None or not discards:
+        return None
+
+    policy._ranking_state = state
+    policy.build_evaluator.prepare(state)
+    try:
+        selected = max(
+            discards,
+            key=lambda plan: (
+                *policy._within_type_key(plan),
+                float(policy.evaluator.evaluate(state, plan.action)),
+            ),
+        )
+        selected_value = float(policy.evaluator.evaluate(state, selected.action))
+    finally:
+        policy._ranking_state = None
+        policy.build_evaluator.reset_cache()
+
+    pace_target = float(policy._pace_target(state))
+    return HandActionDecision(
+        mode=PACE_RECOVERY,
+        action=selected.action,
+        selected_plan=selected,
+        # No legal Play exists. Keep the non-optional legacy field populated with
+        # the selected legal root plan; consumers must use action/selected_plan.
+        best_play=selected,
+        best_discard=selected,
+        thresholds=policy.thresholds,
+        pace_target=pace_target,
+        best_play_immediate_score=0.0,
+        best_play_pace_ratio=0.0,
+        selected_immediate_score=None,
+        selected_pace_ratio=None,
+        selected_fallback_value=selected_value,
+        clear_path_candidates=0,
+        sampled_clear_path_confirmed=False,
+        setup_discard_consensus=bool(setup_discard_consensus),
+        confidence=max(0.60, _plan_clear_probability(selected)),
+        rationale=(
+            f"The Mouth is locked to {forced} and no matching PLAY_CARDS candidate is currently legal",
+            "mechanics leave only DISCARD_CARDS, so D1 performs forced legal recovery instead of evaluating illegal Plays",
+            "normal full-blind discard quality and Mouth retained-structure evidence rank the legal recovery candidates",
+        ),
+        candidate_count=len(tuple(plans)),
+        plans=tuple(plans),
+        search_attempts=tuple(search_attempts),
+    )
+
+
 def _mouth_forced_discard(policy, state, plans, decision):
     """Legacy pure selector retained only for deterministic compatibility tests."""
     forced = _mouth_locked_hand(state)
@@ -216,6 +275,20 @@ def install_boss_hand_constraint_policy() -> None:
     def decide(self, state, plans, **kwargs):
         constrained = _eye_filter(self, state, plans)
         constrained = _mouth_filter(self, state, constrained)
+        if (
+            constrained
+            and not any(plan.action.name == PLAY_CARDS for plan in constrained)
+            and any(plan.action.name == DISCARD_CARDS for plan in constrained)
+        ):
+            forced = _mouth_discard_only_decision(
+                self,
+                state,
+                constrained,
+                search_attempts=kwargs.get("search_attempts", ()),
+                setup_discard_consensus=kwargs.get("setup_discard_consensus", False),
+            )
+            if forced is not None:
+                return forced
         return original_decide(self, state, constrained, **kwargs)
 
     StrategyAwareLiveHandActionPolicy._strategy_fit = strategy_fit
