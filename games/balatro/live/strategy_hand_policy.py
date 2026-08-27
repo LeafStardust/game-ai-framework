@@ -148,13 +148,22 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         if len(equivalent) < 2:
             return decision
 
-        selected = max(
-            equivalent,
-            key=lambda plan: self._pace_play_key(
-                plan,
-                self._pace_ratio(scores[id(plan)], pace_target),
-            ),
-        )
+        # BuildAware clears its transient ranking context before returning to this
+        # subclass. Re-establish it only for this canonical within-PACE_PLAY
+        # refinement so held-resource and Bond tie-breaks retain their normal order.
+        self._ranking_state = state
+        self.build_evaluator.prepare(state)
+        try:
+            selected = max(
+                equivalent,
+                key=lambda plan: self._pace_play_key(
+                    plan,
+                    self._pace_ratio(scores[id(plan)], pace_target),
+                ),
+            )
+        finally:
+            self._ranking_state = None
+            self.build_evaluator.reset_cache()
         if selected is decision.selected_plan:
             return decision
 
