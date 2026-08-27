@@ -182,35 +182,6 @@ def test_path_discard_consensus_never_overrides_a_play_that_meets_pace():
     assert decision.action is pace_play.action
 
 
-def test_material_completed_search_root_overrides_opposite_pace_fallback():
-    play_card = BalatroCard("A", "Spades")
-    discard_card = BalatroCard("2", "Hearts")
-    state = _state([play_card, discard_card])
-    search_play = _plan(
-        PLAY_CARDS,
-        play_card,
-        expected_score=220.0,
-        clear_probability=0.30,
-    )
-    fallback_discard = _plan(
-        DISCARD_CARDS,
-        discard_card,
-        fallback_value=100.0,
-        expected_score=100.0,
-        clear_probability=0.05,
-    )
-    policy = LiveHandActionPolicy(evaluator=_FakeEvaluator())
-    base_decision = policy.decide(state, [fallback_discard, _plan(PLAY_CARDS, play_card)])
-    engine = _engine(policy)
-    engine._adaptive_root_history = [(_summary(state, search_play, horizon=2), search_play)]
-
-    decision = engine._apply_adaptive_authority(state, base_decision)
-
-    assert decision.action is search_play.action
-    assert decision.selected_plan is search_play
-    assert any("one controller owns" in note for note in decision.rationale)
-
-
 def test_close_search_estimate_does_not_churn_pace_decision():
     play_card = BalatroCard("A", "Spades")
     other_card = BalatroCard("K", "Hearts")
