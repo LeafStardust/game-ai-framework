@@ -10,6 +10,7 @@ from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanV
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
 from games.balatro.live.hand_build_policy import BuildAwareLiveHandActionPolicy
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
+from games.balatro.semantic_search_guard_policy import _prefilter_discards
 
 
 class RideTheBusJoker:
@@ -194,6 +195,42 @@ def _mouth_redraw_is_candidate_evidence() -> SemanticCheck:
     )
 
 
+def _discard_prefilter_keeps_wide_redraws() -> SemanticCheck:
+    hand = [
+        SimpleNamespace(rank=rank, suit=suit, enhancement=None, edition=None, seal=None)
+        for rank, suit in (
+            ("A", "Hearts"), ("K", "Spades"), ("Q", "Clubs"), ("J", "Diamonds"),
+            ("10", "Hearts"), ("8", "Spades"), ("6", "Clubs"), ("3", "Diamonds"),
+        )
+    ]
+    state = SimpleNamespace(hand=hand)
+    actions = [BalatroAction(DISCARD_CARDS, cards=[card]) for card in hand]
+    actions.extend(
+        BalatroAction(DISCARD_CARDS, cards=[hand[index], hand[(index + 1) % len(hand)]])
+        for index in range(len(hand))
+    )
+    actions.extend(
+        (
+            BalatroAction(DISCARD_CARDS, cards=hand[:4]),
+            BalatroAction(DISCARD_CARDS, cards=hand[4:]),
+            BalatroAction(DISCARD_CARDS, cards=hand[:5]),
+        )
+    )
+
+    filtered = _prefilter_discards(state, actions, limit=4)
+    widths = tuple(len(tuple(action.cards or ())) for action in filtered)
+    passed = len(filtered) == 4 and max(widths, default=0) >= 4
+    return SemanticCheck(
+        passed,
+        observed=f"discard_widths={widths}",
+        expected="bounded four-candidate beam contains at least one 4+ card redraw",
+        detail=(
+            "cheap retained-structure prefiltering must not make D1's projected discard beam "
+            "singleton-only; full-blind projection still chooses among the preserved candidates"
+        ),
+    )
+
+
 RED_WHITE_D1_RESOURCE_CASES = (
     SemanticBenchmarkCase(
         "d1.resources.bus_terminal_hierarchy",
@@ -222,5 +259,12 @@ RED_WHITE_D1_RESOURCE_CASES = (
         "Locked-Mouth redraw shaping must remain candidate evidence beneath boss legality.",
         _mouth_redraw_is_candidate_evidence,
         source="Phase-0 consolidation: boss_hand_constraint_policy post-selector removal",
+    ),
+    SemanticBenchmarkCase(
+        "d1.search.discard_width_reserve",
+        "D1_SURVIVAL",
+        "Bounded D1 search must preserve efficient multi-card redraw candidates.",
+        _discard_prefilter_keeps_wide_redraws,
+        source="Live three-run gate: repeated singleton discard exhaustion",
     ),
 )
