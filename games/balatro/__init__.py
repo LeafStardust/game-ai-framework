@@ -71,7 +71,6 @@ from games.balatro.r0_strategy_transition_policy import install_r0_strategy_tran
 from games.balatro.ride_the_bus_execution_policy import install_ride_the_bus_execution_policy
 from games.balatro.round_resource_live_state_policy import install_round_resource_live_state_policy
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
-from games.balatro.safe_pace_scope_correction import install_safe_pace_scope_correction
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
 from games.balatro.secret_hand_score_authority import install_secret_hand_score_authority
 from games.balatro.serpent_draw_policy import install_serpent_draw_policy
@@ -121,7 +120,6 @@ install_d1_candidate_deadline_policy()
 install_d1_outer_evaluation_cache_policy()
 install_safe_pace_optimization_policy()
 install_safe_pace_timeout_patch()
-install_safe_pace_scope_correction()
 install_held_consumable_option_policy()
 install_consumable_d14_literal_policy()
 install_shop_transaction_policy()
