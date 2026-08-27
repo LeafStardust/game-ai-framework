@@ -18,7 +18,7 @@ Strategy/Bond state and Build Health are evidence supplied to the evaluator. The
 
 ## Current production installation shape
 
-`games/balatro/__init__.py` still installs an ordered stack of monkeypatch-style policy/runtime helpers. D1 is now materially narrower than the historical stack: the surviving strategy/Joker layers contribute evidence, exact mechanics, projection, caching, or bounded-search behavior rather than owning independent post-policy Play/Discard selectors. Removing the remaining implementation-order dependency is still a Phase-0 objective.
+`games/balatro/__init__.py` still installs an ordered stack of monkeypatch-style policy/runtime helpers. D1 is now materially narrower than the historical stack: the surviving strategy/Joker layers contribute evidence, exact mechanics, projection, caching, or bounded-search behavior rather than owning independent post-policy Play/Discard selectors. D14 is likewise being narrowed: global post-arbitration rescues are being retired while valid family-local evidence and transaction integrity remain. Removing the remaining implementation-order dependency is still a Phase-0 objective.
 
 ### Authority classes
 
@@ -122,50 +122,44 @@ Classification is evidence-based. At this checkpoint no installed strategy/Joker
 | shop action generator | M | Exposes currently legal visible transactions | Keep |
 | `JokerBuildValueEvaluator` and literal candidate models | P/E | Candidate Joker consequences | Keep as evidence |
 | `PlaybookJokerAcquisitionPolicy` / D2 | E/A | Joker buy/replace/HOLD recommendation | Keep as Joker-family evaluator, not global final arbiter |
-| voucher/booster/consumable policies | E | Family-local option evaluation | Keep as evidence providers |
-| `BuildAwareShopArbiter` / D14 | A | Compares visible shop actions, reroll, END_SHOP | **Canonical shop final authority** |
-| Bond/composition | S | Coherence, realization, disruption, future direction | Evidence only |
-| Build Health | S | Survival/immediate/scaling/coherence/runway evidence | Evidence only |
+| voucher/booster/consumable policies | E | Family-local admission and option evaluation | Keep as evidence providers |
+| `BuildAwareShopArbiter` / D14 | A | Compares Joker, verified visible Bond-pair plan, consumable, voucher, booster, reroll and END_SHOP on one normalized scale | **Canonical shop final authority** |
+| Bond/composition | S | Coherence, realization, disruption, future direction; visible pair interaction can generate a D14 candidate but does not post-rewrite the result | Evidence only beneath D14 |
+| Build Health | S | D2 Joker-family survival/immediate/scaling/coherence/runway evidence only; no global shop wrapper remains in its source | Evidence only |
 
-## Installed shop-affecting wrappers currently surrounding the core
+## Inspected shop-affecting layer classification
 
-Important examples include:
+| Layer | Class | Finding | Consolidation direction |
+|---|---|---|---|
+| native visible two-Joker Bond planning in `BuildAwareShopArbiter` | **P/E + A candidate** | Verifies a two-step visible interaction, normalizes both steps through the D14 scale, and submits the first step to the same parent candidate set | **Canonicalized.** Semantic cases `d14.authority.visible_bond_pair` and `d14.authority.pair_requires_interaction` protect this boundary |
+| `voucher_arbiter_authority` | **E adapter** | Makes D3 own voucher admission/persistent value while D14 recomputes shared money/interest/reserve opportunity cost | Keep family-local; eventually make the D3 adapter native to shop policy/arbiter |
+| `early_spend_sanity_policy` | **E/G family guard** | Adds hard early reserve gates inside D3/D8 admission; it cannot replace a completed D14 decision | Keep pending family-policy consolidation |
+| `late_shop_resource_guard` | **E/G family guard** | Can downgrade an admitted late side-development booster to HOLD before parent comparison | Keep pending D8 consolidation; not a global arbiter |
+| `celestial_shop_headroom_fast_path` | **P/runtime + E family guard** | Skips expensive Celestial expectation only when existing D8 headroom/reserve predicates already force HOLD | Keep runtime optimization; not D14 authority |
+| `bond_shop_health_policy` | **S/E** | Amplifies only already-positive admitted Joker/consumable utility and already-admitted reroll margin | Keep as evidence; cannot admit a rejected child action |
+| `pinned_strategy_shop_goal_policy` | **S/E** | Adds bounded strategy-goal value to already-admitted Joker utility on the D14 scale | Keep as evidence; no post-arbitration rewrite |
+| `strategy_resource_coherence_policy` | **S/E + family guard** | Shapes D8 demand and D3 reserve admission from canonical strategy evidence | Keep family-local; audit thresholds separately |
+| `planet_scaler_authority` | **M/S + E family guard** | Supplies exact Planet-use scaler evidence to Celestial D8 and may undo only the ordinary headroom HOLD when reserve remains safe | Keep family-local; eventually move into canonical D8 mechanics |
+| `full_roster_shop_guard` | **M/G execution legality** | Rejects stale/illegal non-Negative BUY_JOKER at authoritative full capacity and re-arbitrates without illegal Joker buys | Keep execution legality; it must not invent strategy |
+| `shop_transaction_policy` | **M/G transaction integrity** | Completes an exact Joker replacement already selected as a two-checkpoint D14 transaction after authoritative re-observation | Keep transaction integrity; eventually move state machine into canonical arbiter/runtime transaction handling |
+| `build_health_policy` | **S/E D2 only** | Its historical named-bundle and fallback-reroll post-arbiters have been removed; installer now touches only `PlaybookJokerAcquisitionPolicy` | **Consolidated away from D14** |
+| retired `early_capacity_policy` | **historical A/G** | Replaced D14-selected Celestial booster with Paint Brush after arbitration using a synthetic parent gain | **Retired and deleted**; voucher and booster now compete normally in D14 |
+| retired Campfire fuel rescue in `shop_transaction_policy` | **historical A/G** | Replaced END_SHOP/reroll after D14 with a synthetic consumable fuel transaction | **Retired**; fuel must enter through ordinary D4/D14 value if modeled |
+| retired `bond_visible_shop_bundle_policy` | **historical A/G** | Wrapped completed D14 output to choose a visible two-Joker plan | **Migrated into canonical D14 and file deleted** |
+| final `red_white_competence_corrections` | **E/G family-local only** | Remaining changes affect D2 Joker admission/value, D4 Wheel admission, and D3 early voucher readiness; it no longer installs Bond-pair/global D14 arbitration | Migrate each remaining family correction into its canonical owner |
 
-- `post_transaction_joker_value_policy`
-- `held_consumable_option_policy`
-- `consumable_d14_literal_policy`
-- `shop_transaction_policy`
-- `voucher_parent_literal_policy`
-- `early_capacity_policy`
-- `early_spend_sanity_policy`
-- `late_shop_resource_guard`
-- `deck_growth_pack_policy`
-- `pack_sunk_cost_policy`
-- family-specific pack expectation policies
-- `build_health_policy`
-- `shop_clear_probability_health_policy`
-- `bond_shop_health_policy`
-- `bond_pivot_authority`
-- `bond_power_engine_retention_policy`
-- `bond_prescription_policy`
-- `pinned_strategy_transition/retention/shop_goal` policies
-- `strategy_plan_pack_policy`
-- `strategy_resource_coherence_policy`
-- `stateful_joker_admission_policy`
-- `tactical_scaler_retention_policy`
-- `full_roster_shop_guard`
-- `full_roster_pack_guard`
-- `planet_scaler_authority`
-- final `red_white_competence_corrections`
-- late runtime-only SHOP expectation/competence contracts installed by the supervisor entry point
+At this checkpoint the known strategic post-arbitration shop rescues have been removed. The only deliberate pre-parent bypass is committed transaction completion for a replacement that D14 already selected at the previous authoritative checkpoint; execution legality may still reject stale/illegal actions.
 
-## Known shop authority defects already observed
+## Shop authority defects and disposition
 
-1. **Generic HOLD vs obvious first scoring foothold:** an otherwise positive early scorer could be rejected by reserve/adequacy logic.
-2. **Rescue overriding semantic veto:** the early scoring rescue initially overrode the Scary Face / Ride the Bus canonical conflict, proving rescue authority was too broad.
-3. **Cash paralysis:** a rich underpowered build could repeatedly END_SHOP because one upstream recommendation object prevented later survival evidence from reopening reroll.
-4. **Nested planning/runtime:** hypothetical D2/D14 states and diagnostics launched expensive D1/future expectation work even when that work had no final authority.
-5. **Legacy bundle logic:** named historical shop-combination logic could compete with canonical Bond/composition arbitration until explicitly disabled in production.
+1. **Generic HOLD vs obvious first scoring foothold:** still protected by family-local D2 correction and semantic coverage; migrate into canonical D2 before deleting the final correction layer.
+2. **Rescue overriding semantic veto:** addressed by constraining/migrating rescues; no known global early-scoring post-arbiter remains.
+3. **Cash paralysis:** D11 reroll remains child-owned and D14 compares its admitted normalized gain; the historical Build-Health fallback reroll rescue is removed.
+4. **Nested planning/runtime:** hypothetical D2/D14 projections are guarded from recursively launching bounded D1 survival work; continue runtime audit separately.
+5. **Legacy named bundle logic:** retired. Generic visible pair planning is native D14 and requires a mechanically proven interaction.
+6. **Early capacity post-arbiter:** retired and deleted; Paint Brush/Palette must win through D3 admission plus D14 normalized comparison.
+7. **Campfire fuel post-arbiter:** retired; no synthetic `+0.25` parent gain may override END_SHOP/reroll.
+8. **Build-Health shop wrapper:** removed from source. Build Health remains D2 evidence only.
 
 ## Phase-0 consolidation target for shop
 
@@ -175,6 +169,7 @@ Important examples include:
 - Build Health and Bond changes are terms in the final comparison, not separate rescue paths.
 - Visible immediate survival outranks speculative future option value when the build is underpowered.
 - Paid-reroll reserve remains a hard safety constraint; within that constraint, underpowered rich states can choose reroll.
+- Committed multi-checkpoint transactions may bypass a fresh strategic comparison only to complete the exact transaction previously selected by canonical D14, and must fail closed if the authoritative state invalidates that transaction.
 
 ---
 
@@ -217,7 +212,7 @@ The removal of post-decision bounded D1 Build Health projection is the model for
 Before deleting a wrapper that protects behavior, first ensure the valid behavior has semantic/property coverage whenever practical. A wrapper that is purely redundant implementation plumbing may be removed once its semantics have moved canonically. Related low-risk items that share one authority boundary should be batched in the same pass; do not require a separate validation round for every trivial wrapper cleanup.
 
 1. [x] Tag every D1-affecting installed wrapper M/P/E/S/A/G/D.
-2. [ ] Tag every shop-affecting installed wrapper M/P/E/S/A/G/D.
+2. [x] Tag the currently known shop-affecting production layers M/P/E/S/A/G/D; continue updating this table when new runtime-only layers are found.
 3. [ ] Identify wrappers whose only purpose is a previously observed live defect.
 4. [ ] Add benchmark coverage for that defect if absent.
 5. [ ] Move semantics into the canonical D1 planner/evaluator/policy/engine or D14 comparison.
@@ -233,6 +228,6 @@ Until consolidation is complete:
 - **D1 action arbitration:** `StrategyAwareLiveHandActionPolicy` is the production Play-vs-Discard authority.
 - **D1 orchestration/final return:** `PathAwareLiveHandActionDecisionEngine.decide()`.
 - **D2 family:** Joker acquisition/replacement policies produce family-local evidence.
-- **D14:** `BuildAwareShopArbiter` is the intended final cross-family shop authority, currently still surrounded by Build Health/Bond/late runtime corrections that must be consolidated.
-- **Execution:** injected bridge executes only the selected legal action; execution guards may reject stale/illegal actions but must not invent a second strategy.
+- **D14:** `BuildAwareShopArbiter` is the final cross-family shop authority; verified visible two-Joker interaction planning is now a native D14 candidate rather than a wrapper.
+- **Execution/transaction:** injected bridge and transaction guards may reject stale/illegal actions or complete an already-selected multi-checkpoint transaction; they must not invent a second strategy.
 - **Diagnostics:** no gameplay authority.
