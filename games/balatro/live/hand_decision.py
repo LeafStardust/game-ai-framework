@@ -93,6 +93,13 @@ class LiveHandDecisionEvaluator(Evaluator):
         "2": 2,
     }
 
+    # Suit-debuff bosses preserve rank/suit identity for poker construction, but the
+    # debuffed cards contribute no card chips, enhancement/edition effects, or held
+    # effects. Keep that fact as bounded recovery evidence inside the canonical D1
+    # evaluator rather than installing a late monkeypatch around `_discard_value`.
+    DISCARDED_DEBUFFED_CARD_BONUS = 12.0
+    RETAINED_DEBUFFED_CARD_PENALTY = 4.0
+
     def __init__(self):
         self.hand_evaluator = HandEvaluator()
         self.scorer = BalatroScorer()
@@ -251,6 +258,21 @@ class LiveHandDecisionEvaluator(Evaluator):
 
         if int(getattr(state, "discards_remaining", 0)) <= 1:
             value -= 10.0
+
+        hand = tuple(getattr(state, "hand", ()) or ())
+        if hand and any(self.scorer.is_card_debuffed(card) for card in hand):
+            discarded = tuple(getattr(action, "cards", ()) or ())
+            discarded_ids = {id(card) for card in discarded}
+            discarded_debuffed = sum(
+                1 for card in discarded if self.scorer.is_card_debuffed(card)
+            )
+            retained_debuffed = sum(
+                1
+                for card in hand
+                if id(card) not in discarded_ids and self.scorer.is_card_debuffed(card)
+            )
+            value += discarded_debuffed * self.DISCARDED_DEBUFFED_CARD_BONUS
+            value -= retained_debuffed * self.RETAINED_DEBUFFED_CARD_PENALTY
 
         return value
 
