@@ -29,7 +29,6 @@ from games.balatro.d1_log_resilience_policy import install_d1_log_resilience_pol
 from games.balatro.d1_outer_evaluation_cache_policy import install_d1_outer_evaluation_cache_policy
 from games.balatro.deck_growth_pack_policy import install_deck_growth_pack_policy
 from games.balatro.deck_growth_playing_card_value_policy import install_deck_growth_playing_card_value_policy
-from games.balatro.early_capacity_policy import install_early_capacity_policy
 from games.balatro.early_spend_sanity_policy import install_early_spend_sanity_policy
 from games.balatro.ectoplasm_live_state_policy import install_ectoplasm_live_state_policy
 from games.balatro.emperor_pack_expectation_policy import install_emperor_pack_expectation_policy
@@ -123,7 +122,6 @@ install_luchador_activation_policy()
 install_stable_economy_mechanics_policy()
 install_observatory_planet_policy()
 install_sixth_sense_policy()
-install_early_capacity_policy()
 install_early_spend_sanity_policy()
 install_late_shop_resource_guard()
 install_castle_discard_policy()
