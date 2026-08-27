@@ -17,6 +17,12 @@ Use lowercase type and optional lowercase scope followed by a colon and concise 
 
 For Balatro-specific implementation or regression work, prefer an explicit `(balatro)` scope when it matches the surrounding history. Do not use unscoped sentence-style subjects such as `Benchmark canonical safe pace D1 authority`.
 
+## Consolidation batching rule
+
+Phase-0 and competence cleanup work may and should batch multiple related low-risk migrations in one implementation pass when they share the same authority boundary. Do not artificially stop after each wrapper or one-file cleanup. A batch is appropriate when each included change is independently understood, preserves the same canonical objective, and can be covered by the same local semantic/regression gate.
+
+Keep unrelated or high-risk authority changes separate when combining them would make failures ambiguous. The user performs local validation; repository-side work should therefore make meaningful grouped progress between validation checkpoints instead of requesting a rerun after every trivial migration.
+
 ## Primary objective
 
 The permanent Balatro agent has one gameplay objective:
