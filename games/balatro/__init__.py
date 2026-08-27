@@ -55,7 +55,6 @@ from games.balatro.semantic_search_guard_policy import install_semantic_search_g
 from games.balatro.live_joker_order_authority import install_live_joker_order_authority
 from games.balatro.live_decision_quality_policy import install_live_decision_quality_policy
 from games.balatro.luchador_activation_policy import install_luchador_activation_policy
-from games.balatro.mouth_hand_policy import install_mouth_first_hand_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
 from games.balatro.pack_sunk_cost_policy import install_pack_sunk_cost_policy
 from games.balatro.pinned_strategy_execution_policy import install_pinned_strategy_execution_policy
@@ -94,7 +93,6 @@ from games.balatro.wraith_pack_expectation_policy import install_wraith_pack_exp
 from games.balatro.red_white_competence_corrections import install_red_white_competence_corrections
 
 
-install_mouth_first_hand_policy()
 install_boss_hand_constraint_policy()
 install_serpent_draw_policy()
 install_hook_planner_integration_policy()
@@ -170,8 +168,8 @@ install_live_decision_quality_policy()
 install_stateful_joker_admission_policy()
 install_tactical_scaler_retention_policy()
 install_soul_pack_expectation_policy()
-# Final semantic execution guards see the fully wrapped D1/shop decisions so later
-# value layers cannot undo defining mechanics.
+# Late D1 semantic evidence hooks see the fully wrapped mechanics/value path but do
+# not own a second Play/Discard or same-class action selector.
 install_aces_dna_hand_policy()
 install_strategy_execution_guard_policy()
 install_target_hand_engine_policy()
