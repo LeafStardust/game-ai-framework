@@ -19,6 +19,7 @@ from games.balatro.boss_hand_constraint_policy import install_boss_hand_constrai
 from games.balatro.build_health_policy import install_build_health_policy
 from games.balatro.burnt_bond_execution_policy import install_burnt_bond_execution_policy
 from games.balatro.castle_discard_policy import install_castle_discard_policy
+from games.balatro.celestial_shop_headroom_fast_path import install_celestial_shop_headroom_fast_path
 from games.balatro.cerulean_bell_d1_legality_policy import install_cerulean_bell_d1_legality_policy
 from games.balatro.cerulean_live_state_policy import install_cerulean_live_state_policy
 from games.balatro.consumable_d14_literal_policy import install_consumable_d14_literal_policy
@@ -88,7 +89,6 @@ from games.balatro.shop_transaction_policy import install_shop_transaction_polic
 from games.balatro.voucher_parent_literal_policy import install_voucher_parent_literal_policy
 from games.balatro.wraith_dispatch_postcondition import install_wraith_dispatch_postcondition
 from games.balatro.wraith_pack_expectation_policy import install_wraith_pack_expectation_policy
-from games.balatro.red_white_competence_corrections import install_red_white_competence_corrections
 
 
 install_boss_hand_constraint_policy()
@@ -176,6 +176,6 @@ install_live_joker_order_authority()
 install_planet_scaler_authority()
 install_purple_seal_discard_policy()
 install_held_round_end_resource_policy()
-# Live-run competence corrections intentionally install last so they see the final
-# mechanical/conflict-safe D1 and shop decisions rather than bypassing them.
-install_red_white_competence_corrections()
+# The Celestial fast path remains last so it sees the fully wrapped D8 policy while
+# only skipping finite Planet expectation when a public hard HOLD is already known.
+install_celestial_shop_headroom_fast_path()
