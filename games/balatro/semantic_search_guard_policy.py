@@ -276,11 +276,12 @@ def install_semantic_search_guard_policy() -> None:
 
     def estimate_key(cls, estimate):
         value = estimate.value
+        action_name = getattr(estimate.action, "name", None)
         if (
             estimate.exact
             and float(value.clear_probability) >= 1.0 - 1e-12
             and float(value.expected_progress) >= 1.0 - 1e-12
-            and getattr(estimate.action, "name", None) == PLAY_CARDS
+            and action_name == PLAY_CARDS
         ):
             return (
                 value.clear_probability,
@@ -290,6 +291,20 @@ def install_semantic_search_guard_policy() -> None:
                 value.expected_discards_remaining,
                 -len(getattr(estimate.action, "cards", ()) or ()),
                 value.expected_score,
+            )
+        if (
+            action_name == DISCARD_CARDS
+            and float(value.clear_probability) < 1.0 - 1e-12
+        ):
+            return (
+                value.clear_probability,
+                0,
+                value.expected_progress,
+                value.expected_hands_remaining,
+                value.expected_discards_remaining,
+                value.expected_score,
+                1 if bool(estimate.exact) else 0,
+                value.expected_consumables,
             )
         canonical = original_estimate_key(estimate)
         return (*canonical[:-1], 0, canonical[-1])
