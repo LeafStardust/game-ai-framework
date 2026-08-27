@@ -22,12 +22,13 @@ from games.balatro.live.blind_clear_planner import (
     LiveBlindPlan,
     LiveBlindPlanValue,
 )
-from games.balatro.live.hand_action_policy import PACE_PLAY, LiveHandActionPolicy
+from games.balatro.live.hand_action_policy import PACE_PLAY, PACE_RECOVERY, LiveHandActionPolicy
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 from games.balatro.live.path_aware_hand_action_engine import (
     PathAwareLiveHandActionDecisionEngine,
 )
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
+from games.balatro.mouth_hand_policy import apply_mouth_first_hand_policy
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
 from games.balatro.shop_voucher_policy import VoucherAcquisitionPolicy
@@ -310,6 +311,68 @@ def _canonical_safe_pace_owns_action_class() -> SemanticCheck:
     )
 
 
+def _mouth_refinement_preserves_action_class() -> SemanticCheck:
+    cards = [object() for _ in range(4)]
+    play = LiveBlindPlan(
+        action=BalatroAction(PLAY_CARDS, cards=cards[:2]),
+        value=LiveBlindPlanValue(0.95, 0.8, 80.0, 3.0, 3.0),
+        horizon=1,
+        exact=True,
+        candidate_count=2,
+    )
+    discard = LiveBlindPlan(
+        action=BalatroAction(DISCARD_CARDS, cards=cards[2:]),
+        value=LiveBlindPlanValue(0.40, 0.5, 50.0, 4.0, 2.0),
+        horizon=2,
+        exact=True,
+        candidate_count=2,
+    )
+    base_policy = LiveHandActionPolicy()
+    decision = base_policy._decision(
+        mode=PACE_RECOVERY,
+        selected=discard,
+        best_play=play,
+        best_discard=discard,
+        pace_target=25.0,
+        best_play_immediate_score=80.0,
+        best_play_pace_ratio=3.2,
+        selected_immediate_score=None,
+        selected_pace_ratio=None,
+        selected_fallback_value=25.0,
+        clear_path_candidates=0,
+        sampled_clear_path_confirmed=False,
+        setup_discard_consensus=False,
+        confidence=0.5,
+        rationale=("canonical D1 selected DISCARD",),
+        plans=(play, discard),
+        search_attempts=(),
+    )
+    policy = SimpleNamespace(
+        EPSILON=1e-9,
+        _hand_bond_intents=lambda state: (),
+        _strategy_fit=lambda state, action: (0.0, ()),
+        _within_type_key=lambda plan: (plan.value.clear_probability,),
+        evaluator=SimpleNamespace(
+            evaluate=lambda state, action: 10.0,
+            project_play=lambda state, action: SimpleNamespace(expected_hand_score=999.0),
+        ),
+    )
+    state = SimpleNamespace(
+        boss_name="The Mouth",
+        boss_blind_only_hand=None,
+        round_hand_play_counts={},
+        jokers=(),
+        discards_remaining=2,
+    )
+    resolved = apply_mouth_first_hand_policy(policy, state, (play, discard), decision)
+    return SemanticCheck(
+        resolved.action.name == DISCARD_CARDS,
+        observed=f"canonical={decision.action.name}, resolved={resolved.action.name}",
+        expected="Mouth first-hand refinement preserves canonical DISCARD action class",
+        detail="boss strategy shaping may refine the selected class but cannot become a second Play-vs-Discard arbiter",
+    )
+
+
 def _first_scoring_foothold() -> SemanticCheck:
     state = BalatroState()
     state.phase = "SHOP"
@@ -423,6 +486,13 @@ RED_WHITE_SEMANTIC_CASES = (
         "The production strategy-aware D1 policy itself must own safe-pace action arbitration.",
         _canonical_safe_pace_owns_action_class,
         source="Phase-0 consolidation: retired safe_pace_scope_correction wrapper",
+    ),
+    SemanticBenchmarkCase(
+        "d1.authority.mouth_action_class",
+        "D1_SURVIVAL",
+        "The Mouth first-hand strategy refinement cannot reverse canonical Play/Discard authority.",
+        _mouth_refinement_preserves_action_class,
+        source="Phase-0 consolidation: Mouth first-hand wrapper action-class boundary",
     ),
     SemanticBenchmarkCase(
         "shop.survival.first_scoring_foothold",
