@@ -8,8 +8,8 @@ only after the first visible component is acquired. The historical short-horizon
 planner encoded named Joker pairs, which duplicates strategy knowledge outside the
 canonical Currency-Wars-style Bond/composition system.
 
-This adapter retires that historical named-bundle production hook and adds one
-generic two-checkpoint exception without a combo table:
+This adapter retires the historical Build-Health post-arbiter bundle/reroll hooks
+and adds one generic two-checkpoint exception without a combo table:
 
 * neither visible Joker may already be an actionable D2 purchase;
 * the first component must already be a mechanically eligible D2 ADD option and may
@@ -101,9 +101,9 @@ def _executable(candidate, decision, candidate_index: int):
     )
 
 
-def _retire_legacy_named_bundle(state, result, arbiter):
-    """Keep historical Build-Health bundle code out of production arbitration."""
-    del state, arbiter
+def _retire_legacy_post_arbiter(state, result, *args):
+    """Keep historical Build-Health post-arbiter rescues out of production."""
+    del state, args
     return result
 
 
@@ -111,13 +111,15 @@ def install_bond_visible_shop_bundle_policy() -> None:
     if getattr(BuildAwareShopArbiter, "_bond_visible_shop_bundle_installed", False):
         return
 
-    # Build Health installed earlier and its wrapper resolves this module-global
-    # function at runtime. Retire only that named-bundle checkpoint; all other Build
-    # Health shop/reroll behavior remains installed. The generic Bond planner below
-    # is then the sole production authority for visible multi-Joker combinations.
+    # Build Health installed earlier and its wrapper resolves these module-global
+    # functions at runtime. Its historical bundle and fallback-reroll rescues are
+    # both retired so Build Health remains D2 evidence rather than a second D14
+    # action authority. The generic Bond planner below is the sole remaining
+    # production exception for verified visible two-Joker combinations.
     import games.balatro.build_health_policy as build_health_policy
 
-    build_health_policy._bundle_decision = _retire_legacy_named_bundle
+    build_health_policy._bundle_decision = _retire_legacy_post_arbiter
+    build_health_policy._health_reroll_decision = _retire_legacy_post_arbiter
 
     original_decide = BuildAwareShopArbiter.decide
 
