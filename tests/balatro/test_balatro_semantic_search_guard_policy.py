@@ -2,8 +2,9 @@ from types import SimpleNamespace
 
 import games.balatro.semantic_search_guard_policy as correction
 import games.balatro.strategy_execution_guard_policy as no_discard_policy
-from games.balatro.actions import BalatroAction, PLAY_CARDS
+from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
 from games.balatro.bonds.behavior_strategy import _Node
+from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 
 
 def test_broad_rank_requirement_does_not_form_fake_rank_density_link(monkeypatch):
@@ -74,3 +75,32 @@ def test_small_candidate_set_is_not_pruned():
         BalatroAction(PLAY_CARDS, cards=(SimpleNamespace(rank="K", suit="Spades"),)),
     ]
     assert correction._prefilter(actions, limit=18, key=correction._cheap_play_key) == actions
+
+
+def _estimate(action_name: str, *, exact: bool, score: float):
+    return SimpleNamespace(
+        action=BalatroAction(action_name, cards=(SimpleNamespace(rank="2", suit="Clubs"),)),
+        exact=exact,
+        value=SimpleNamespace(
+            clear_probability=0.0,
+            expected_progress=0.25,
+            expected_hands_remaining=3.0,
+            expected_discards_remaining=2.0,
+            expected_score=score,
+            expected_consumables=0.0,
+        ),
+    )
+
+
+def test_planner_discard_recovery_quality_beats_exactness():
+    exact_singleton = _estimate(DISCARD_CARDS, exact=True, score=100.0)
+    sampled_wider = _estimate(DISCARD_CARDS, exact=False, score=200.0)
+
+    assert LiveBlindClearPlanner._estimate_key(sampled_wider) > LiveBlindClearPlanner._estimate_key(exact_singleton)
+
+
+def test_planner_play_order_keeps_exactness_priority():
+    exact_play = _estimate(PLAY_CARDS, exact=True, score=100.0)
+    sampled_play = _estimate(PLAY_CARDS, exact=False, score=200.0)
+
+    assert LiveBlindClearPlanner._estimate_key(exact_play) > LiveBlindClearPlanner._estimate_key(sampled_play)
