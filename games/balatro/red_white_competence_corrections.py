@@ -12,14 +12,13 @@ Red/White runs:
 * conditional scoring mechanics discoverable from public rules could be omitted
   from representative shop score projection when their activation context was not
   present in the neutral probe state;
-* the bounded live planner ranked discard candidates with a separate mini-heuristic,
-  bypassing the canonical D1 discard evaluator before expectimax;
 * shop Wheel of Fortune was never admitted by the deterministic D4 immediate-use
   path, even with healthy money and eligible editionless Jokers.
 
-D1 multi-card redraw efficiency is now part of ``LiveHandDecisionEvaluator`` itself
-rather than this late correction layer. The module remains installed after the
-existing policy stack for the still-unconsolidated shop/runtime corrections.
+D1 multi-card redraw efficiency and discard-beam ranking now live in the canonical
+D1 evaluator/planner path rather than this late correction layer. The module remains
+installed after the existing policy stack for the still-unconsolidated shop/runtime
+corrections.
 """
 
 from copy import deepcopy
@@ -40,7 +39,6 @@ from games.balatro.celestial_shop_headroom_fast_path import (
 )
 from games.balatro.consumable import Consumable, ConsumableContext
 from games.balatro.joker_policy import BUY, HOLD, JokerAcquisitionPolicy
-from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.shop_consumable_policy import (
     BUY_AND_USE,
     HOLD as CONSUMABLE_HOLD,
@@ -272,17 +270,12 @@ def install_red_white_competence_corrections() -> None:
             )
         return True, notes
 
-    def discard_priority(self, state, action):
-        return float(self.evaluator.evaluate(state, action)), len(action.cards)
-
     JokerBuildValueEvaluator._direct_scoring_gain = direct_scoring_gain
     JokerAcquisitionPolicy.decide = joker_decide
     ConsumableAcquisitionPolicy.decide = consumable_decide
     VoucherAcquisitionPolicy._early_survival_gate = staticmethod(voucher_gate)
-    LiveBlindClearPlanner._discard_priority = discard_priority
 
     JokerBuildValueEvaluator._rw_competence_corrections_installed = True
     JokerAcquisitionPolicy._rw_competence_corrections_installed = True
     ConsumableAcquisitionPolicy._rw_competence_corrections_installed = True
     VoucherAcquisitionPolicy._rw_competence_corrections_installed = True
-    LiveBlindClearPlanner._rw_competence_corrections_installed = True
