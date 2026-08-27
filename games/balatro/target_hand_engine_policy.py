@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-"""Final D1 execution for Jokers whose known mechanic targets a poker hand.
+"""Within-PLAY refinement for Jokers whose mechanic targets a poker hand.
 
-Balatro's Joker catalogue is finite and stable, so Joker mechanics are modeled
-explicitly while the execution rule stays generic: if an owned engine rewards a
-specific poker hand, prefer that hand whenever it is already survival-equivalent
-and pace-qualified.  This prevents the strategy layer from owning Runner or a
-stateful To Do List target while D1 never actually uses the mechanic.
+Canonical D1 owns the Play/Discard action class. Runner and To Do List mechanics
+may rank an already-authorized PLAY when the target-hand alternative remains
+survival-equivalent and pace-qualified; they must never rescue PLAY over a canonical
+DISCARD.
 """
 
 from dataclasses import replace
@@ -108,15 +107,25 @@ def install_target_hand_engine_policy() -> None:
     def decide(self, state, plans, **kwargs):
         plans = tuple(plans)
         decision = original_decide(self, state, plans, **kwargs)
+
+        if decision.action.name != PLAY_CARDS:
+            targets = _target_hands(state)
+            if targets:
+                return replace(
+                    decision,
+                    rationale=(
+                        *decision.rationale,
+                        f"target-hand engine observed ({','.join(targets)}), but canonical D1 selected {decision.action.name}; target-hand evidence cannot change the finalized action class",
+                    ),
+                )
+            return decision
+
         target = _safe_target_play(self, state, plans, decision)
         if target is None:
             return decision
 
         probability, score, plan = target
-        if (
-            decision.action.name == PLAY_CARDS
-            and getattr(decision.action, "cards", None) == getattr(plan.action, "cards", None)
-        ):
+        if getattr(decision.action, "cards", None) == getattr(plan.action, "cards", None):
             return decision
 
         pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
@@ -131,10 +140,11 @@ def install_target_hand_engine_policy() -> None:
             selected_fallback_value=None,
             confidence=max(float(getattr(decision, "confidence", 0.0) or 0.0), probability),
             rationale=(
-                "owned target-hand engine: prefer its poker hand on a survival-equivalent pace-qualified line",
+                *decision.rationale,
+                "target-hand engine: within-PLAY refinement prefers its poker hand on a survival-equivalent pace-qualified line",
                 f"target hands={','.join(_target_hands(state))}",
                 f"target-line clear probability={probability:.3f}",
-                *decision.rationale,
+                "target-hand evidence may rank PLAY candidates but cannot replace canonical DISCARD",
             ),
         )
 
