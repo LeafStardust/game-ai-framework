@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-"""D1 execution guards for realized no-discard and hand-repetition engines.
+"""Within-Play execution refinement for realized strategy engines.
 
-These are strategy-execution constraints beneath survival authority.  A realized
-engine must influence actual hand choice; it is not sufficient for Bonds/diagnostics
-to recognize the engine while D1 repeatedly destroys or ignores it.
+Canonical D1 survival owns the Play/Discard action class. Realized no-discard and
+hand-repetition engines remain useful evidence, but this policy may refine only an
+already-selected PLAY candidate; it must never replace canonical DISCARD with PLAY.
 """
 
 from dataclasses import replace
@@ -12,7 +12,6 @@ from dataclasses import replace
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.bonds.diagnostics import bond_strategy_diagnostics
 from games.balatro.hand_rules import hand_rules_for_state
-from games.balatro.live.hand_action_policy import PACE_PLAY
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
@@ -53,9 +52,6 @@ def _realized_no_discard_engine(state) -> bool:
     if not _realized_bond(state, "no_discard"):
         return False
     owned = {_joker_token(joker) for joker in getattr(state, "jokers", ()) or ()}
-    # These Jokers directly lose value when D1 discards. Banner is intentionally
-    # included only when the canonical no_discard Bond is realized; ownership alone
-    # does not ban survival-driven discards.
     return bool(
         owned
         & {
@@ -89,7 +85,7 @@ def _clear_probability_tolerance(decision) -> float:
 
 
 def _safe_pace_play(policy, state, plans, decision):
-    """Return a pace-qualified play that remains survival-equivalent to D1."""
+    """Return a survival-equivalent pace play from an already-selected PLAY class."""
     pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
     if pace_target <= 0.0:
         return None
@@ -139,13 +135,7 @@ def _played_this_round(state) -> set[str]:
 
 
 def _safe_repeat_play(policy, state, plans, decision):
-    """Return a safe pace-qualified repeat even when baseline D1 chose DISCARD.
-
-    Repetition engines such as Card Sharp are execution contracts, not merely
-    scoring labels. If a previously played hand is already available on a line that
-    is within D1's clear-probability tolerance and meets the current pace target,
-    discarding instead would unnecessarily abandon realized engine value.
-    """
+    """Return a safe repeated PLAY without changing the canonical action class."""
     if not _realized_bond(state, "hand_repetition"):
         return None
     repeated = _played_this_round(state)
@@ -193,36 +183,46 @@ def install_strategy_execution_guard_policy() -> None:
         plans = tuple(plans)
         decision = original_decide(self, state, plans, **kwargs)
 
-        # Realized no-discard engines should not be destroyed for convenience.  A
-        # discard remains legal when no currently playable hand is both pace-safe
-        # and survival-equivalent to D1's selected line.
-        if decision.action.name == DISCARD_CARDS and _realized_no_discard_engine(state):
+        if decision.action.name == DISCARD_CARDS:
+            notes = []
+            if _realized_no_discard_engine(state):
+                notes.append(
+                    "realized no_discard engine observed, but canonical D1 selected DISCARD; strategy evidence cannot change the finalized action class"
+                )
+            if _realized_bond(state, "hand_repetition"):
+                notes.append(
+                    "realized hand_repetition engine observed, but canonical D1 selected DISCARD; repetition evidence cannot change the finalized action class"
+                )
+            if notes:
+                return replace(decision, rationale=(*decision.rationale, *notes))
+            return decision
+
+        if decision.action.name != PLAY_CARDS:
+            return decision
+
+        # No-discard value can refine an already-authorized PLAY, but cannot rescue
+        # a canonical DISCARD. This keeps engine evidence under the single D1 arbiter.
+        if _realized_no_discard_engine(state):
             safe = _safe_pace_play(self, state, plans, decision)
             if safe is not None:
                 probability, score, plan = safe
-                pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
-                pace_ratio = score / pace_target if pace_target > 0.0 else float("inf")
-                decision = replace(
-                    decision,
-                    mode=PACE_PLAY,
-                    action=plan.action,
-                    selected_plan=plan,
-                    selected_immediate_score=score,
-                    selected_pace_ratio=pace_ratio,
-                    selected_fallback_value=None,
-                    confidence=max(float(getattr(decision, "confidence", 0.0) or 0.0), probability),
-                    rationale=(
-                        "realized no_discard engine: preserve discard-sensitive value only on a D1 survival-equivalent pace line",
-                        f"selected play projects {score:.3f} against pace target {pace_target:.3f}",
-                        f"play clear probability={probability:.3f}; baseline={_selected_clear_probability(decision):.3f}; tolerance={_clear_probability_tolerance(decision):.3f}",
-                        "survival remains authoritative when no current play meets both gates",
-                        *decision.rationale,
-                    ),
-                )
+                if getattr(decision.action, "cards", None) != getattr(plan.action, "cards", None):
+                    pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
+                    pace_ratio = score / pace_target if pace_target > 0.0 else float("inf")
+                    decision = replace(
+                        decision,
+                        action=plan.action,
+                        selected_plan=plan,
+                        selected_immediate_score=score,
+                        selected_pace_ratio=pace_ratio,
+                        selected_fallback_value=None,
+                        confidence=max(float(getattr(decision, "confidence", 0.0) or 0.0), probability),
+                        rationale=(
+                            *decision.rationale,
+                            "realized no_discard engine: within-PLAY refinement preserves discard-sensitive value on a survival-equivalent pace line",
+                        ),
+                    )
 
-        # Card Sharp / generic repetition strategies need actual repeated hands, not
-        # merely a diagnostic hand_repetition label.  A safe repeated play may
-        # replace either a different play or an unnecessary discard.
         repeat = _safe_repeat_play(self, state, plans, decision)
         if repeat is not None:
             probability, score, plan = repeat
@@ -231,7 +231,6 @@ def install_strategy_execution_guard_policy() -> None:
                 pace_ratio = score / pace_target if pace_target > 0.0 else float("inf")
                 decision = replace(
                     decision,
-                    mode=PACE_PLAY,
                     action=plan.action,
                     selected_plan=plan,
                     selected_immediate_score=score,
@@ -239,9 +238,8 @@ def install_strategy_execution_guard_policy() -> None:
                     selected_fallback_value=None,
                     confidence=max(float(getattr(decision, "confidence", 0.0) or 0.0), probability),
                     rationale=(
-                        "realized hand_repetition engine: prefer a previously played hand on a survival-equivalent pace-qualified line",
-                        f"repeat-line clear probability={probability:.3f}",
                         *decision.rationale,
+                        "realized hand_repetition engine: within-PLAY refinement prefers a previously played hand on a survival-equivalent pace-qualified line",
                     ),
                 )
         return decision
