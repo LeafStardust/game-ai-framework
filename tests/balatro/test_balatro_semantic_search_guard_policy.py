@@ -1,13 +1,13 @@
 from types import SimpleNamespace
 
 import games.balatro.semantic_search_guard_policy as correction
+import games.balatro.strategy_execution_guard_policy as no_discard_policy
 from games.balatro.actions import BalatroAction, PLAY_CARDS
 from games.balatro.bonds.behavior_strategy import _Node
 
 
 def test_broad_rank_requirement_does_not_form_fake_rank_density_link(monkeypatch):
     original = correction.behavior_strategy._relation
-    # The installed relation is already active through games.balatro import side effects.
     joker = _Node(
         source="Synthetic hand payoff",
         bond_ids=("three_kind",),
@@ -32,14 +32,24 @@ def test_broad_rank_requirement_does_not_form_fake_rank_density_link(monkeypatch
     assert original(joker, rank) is None
 
 
-def test_green_joker_activates_no_discard_execution_immediately():
+def test_green_joker_activates_no_discard_execution_immediately(monkeypatch):
+    monkeypatch.setattr(
+        no_discard_policy,
+        "_realized_bond",
+        lambda _state, bond_id: bond_id == "no_discard",
+    )
     state = SimpleNamespace(jokers=[SimpleNamespace(label="Green Joker")])
-    assert correction.no_discard_policy._realized_no_discard_engine(state) is True
+    assert no_discard_policy._realized_no_discard_engine(state) is True
 
 
-def test_delayed_gratification_activates_no_discard_execution_immediately():
+def test_delayed_gratification_activates_no_discard_execution_immediately(monkeypatch):
+    monkeypatch.setattr(
+        no_discard_policy,
+        "_realized_bond",
+        lambda _state, bond_id: bond_id == "no_discard",
+    )
     state = SimpleNamespace(jokers=[SimpleNamespace(label="Delayed Gratification")])
-    assert correction.no_discard_policy._realized_no_discard_engine(state) is True
+    assert no_discard_policy._realized_no_discard_engine(state) is True
 
 
 def test_prefilter_bounds_large_root_play_set_without_projecting_every_subset():
