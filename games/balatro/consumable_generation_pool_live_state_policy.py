@@ -27,6 +27,14 @@ _POOL_SPECS = {
     "SPECTRAL": ("Spectral", "c_incantation"),
 }
 
+# Tarot/Spectral center names, keys, and pool-gate fields are catalogue metadata.
+# SHOP readiness can observe the same checkpoint several times, so decoding the
+# whole catalogue for every snapshot is pure repeated work. Dynamic used/banned/
+# pool-flag/Showman predicates remain live. Clear at GAME_OVER so unlock changes
+# are re-read before the next attempt.
+_CENTER_FIELDS_CACHE: dict[int, dict] = {}
+_CENTER_CACHE_POOL_POINTER: int | None = None
+
 
 def _table_items(decoder, table_value):
     if table_value is None or getattr(table_value, "kind", None) != "table":
@@ -71,8 +79,34 @@ def _special_available(
     return True
 
 
+def _prepare_center_cache(pools_value) -> None:
+    global _CENTER_CACHE_POOL_POINTER
+    try:
+        pool_pointer = (
+            int(pools_value.value)
+            if pools_value is not None and getattr(pools_value, "kind", None) == "table"
+            else None
+        )
+    except (TypeError, ValueError):
+        pool_pointer = None
+    if pool_pointer != _CENTER_CACHE_POOL_POINTER:
+        _CENTER_FIELDS_CACHE.clear()
+        _CENTER_CACHE_POOL_POINTER = pool_pointer
+
+
+def _center_fields(decoder, center_pointer: int) -> dict:
+    cached = _CENTER_FIELDS_CACHE.get(int(center_pointer))
+    if cached is not None:
+        return cached
+    fields = decoder.string_fields(int(center_pointer))
+    _CENTER_FIELDS_CACHE[int(center_pointer)] = fields
+    return fields
+
+
 def _normalize_consumable_generation_pools(decoder, root, payload):
-    outer = live_memory_observer._table_fields(decoder, root.get("P_CENTER_POOLS"))
+    pools_value = root.get("P_CENTER_POOLS")
+    _prepare_center_cache(pools_value)
+    outer = live_memory_observer._table_fields(decoder, pools_value)
     game = live_memory_observer._table_fields(decoder, root.get("GAME"))
     used = live_memory_observer._table_fields(decoder, game.get("used_jokers"))
     banned = live_memory_observer._table_fields(decoder, game.get("banned_keys"))
@@ -95,7 +129,7 @@ def _normalize_consumable_generation_pools(decoder, root, payload):
             if getattr(center_value, "kind", None) != "table":
                 continue
             try:
-                center = decoder.string_fields(int(center_value.value))
+                center = _center_fields(decoder, int(center_value.value))
             except (
                 live_memory_observer.BalatroProcessMemoryError,
                 live_memory_observer.LuaJITMemoryError,
@@ -230,6 +264,8 @@ def install_consumable_generation_pool_live_state_policy() -> None:
         payload["consumable_generation_showman"] = bool(showman)
         payload["soul_generation_available"] = bool(soul_available)
         payload["black_hole_generation_available"] = bool(black_hole_available)
+        if str(phase) == "GAME_OVER":
+            _CENTER_FIELDS_CACHE.clear()
         return payload, phase, state_complete
 
     def translate(self, snapshot):
