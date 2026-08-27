@@ -26,7 +26,6 @@ from games.balatro.consumable_target_literal_value_policy import install_consuma
 from games.balatro.cryptid_dispatch_postcondition import install_cryptid_dispatch_postcondition
 from games.balatro.cryptid_pack_policy import install_cryptid_pack_policy
 from games.balatro.d1_log_resilience_policy import install_d1_log_resilience_policy
-from games.balatro.d1_outer_evaluation_cache_policy import install_d1_outer_evaluation_cache_policy
 from games.balatro.deck_growth_pack_policy import install_deck_growth_pack_policy
 from games.balatro.deck_growth_playing_card_value_policy import install_deck_growth_playing_card_value_policy
 from games.balatro.early_spend_sanity_policy import install_early_spend_sanity_policy
@@ -105,7 +104,6 @@ install_judgement_dispatch_postcondition()
 install_consumable_target_literal_value_policy()
 install_hanged_man_blue_joker_policy()
 install_d1_log_resilience_policy()
-install_d1_outer_evaluation_cache_policy()
 install_safe_pace_optimization_policy()
 install_safe_pace_timeout_patch()
 install_held_consumable_option_policy()
