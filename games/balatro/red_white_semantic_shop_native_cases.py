@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from games.balatro.consumable import Consumable, ConsumableContext
 from games.balatro.joker_policy import (
     HOLD,
     JokerAcquisitionOption,
@@ -10,7 +11,21 @@ from games.balatro.joker_policy import (
 )
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
+from games.balatro.shop_consumable_policy import BUY_AND_USE, ConsumableAcquisitionPolicy
 from games.balatro.shop_voucher_policy import VoucherAcquisitionPolicy
+from games.balatro.state import BalatroState
+
+
+class _WheelConsumable(Consumable):
+    name = "The Wheel of Fortune"
+    category = "TAROT"
+    price = 4
+
+    def can_use(self, context: ConsumableContext) -> bool:
+        return bool(tuple(getattr(context.state, "jokers", ()) or ()))
+
+    def use(self, context: ConsumableContext) -> ConsumableContext:
+        return context
 
 
 def _d2_first_engine_keeps_conflict_veto() -> SemanticCheck:
@@ -106,6 +121,37 @@ def _d3_hand_size_waits_for_first_engine() -> SemanticCheck:
     )
 
 
+def _d4_wheel_exposes_buy_and_use() -> SemanticCheck:
+    state = BalatroState()
+    state.phase = "SHOP"
+    state.money = 20
+    state.consumables = []
+    state.consumable_slots = 2
+    state.jokers = [FlatMultJoker(4)]
+    state.joker_slots = 5
+
+    decision = ConsumableAcquisitionPolicy().decide(state, _WheelConsumable())
+    selected = decision.selected
+    passed = (
+        decision.action == BUY_AND_USE
+        and selected is not None
+        and selected.executable_action is not None
+        and float(selected.build_gain) > 0.0
+    )
+    return SemanticCheck(
+        passed,
+        observed=(
+            f"action={decision.action}, build_gain="
+            f"{None if selected is None else selected.build_gain}"
+        ),
+        expected="BUY_AND_USE candidate with positive analytic edition expectation",
+        detail=(
+            "D4 must expose Wheel to D14 when public edition expectation is positive; "
+            "D14, not a late correction wrapper, decides whether the purchase wins globally"
+        ),
+    )
+
+
 RED_WHITE_NATIVE_SHOP_CASES = (
     SemanticBenchmarkCase(
         case_id="d2.authority.first_engine_conflict",
@@ -118,5 +164,11 @@ RED_WHITE_NATIVE_SHOP_CASES = (
         category="SHOP_SURVIVAL",
         description="native D3 hand-size readiness waits for the first scoring foothold",
         evaluate=_d3_hand_size_waits_for_first_engine,
+    ),
+    SemanticBenchmarkCase(
+        case_id="d4.authority.wheel_shop_admission",
+        category="SHOP_SURVIVAL",
+        description="native D4 exposes positive Wheel edition expectation to D14",
+        evaluate=_d4_wheel_exposes_buy_and_use,
     ),
 )
