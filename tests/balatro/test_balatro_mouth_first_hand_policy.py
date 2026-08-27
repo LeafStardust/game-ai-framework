@@ -22,10 +22,11 @@ class _Evaluator:
     def project_play(self, state, action): return SimpleNamespace(expected_hand_score=action.score)
     def evaluate(self, state, action): return 1.0 if action.name == DISCARD_CARDS else action.score
 class _HandEvaluator:
-    def evaluate(self, cards): return SimpleNamespace(value=cards[0].hand_type)
+    def evaluate(self, cards, **_kwargs): return SimpleNamespace(value=cards[0].hand_type)
 
 
 class _Policy:
+    EPSILON = 1e-9
     def __init__(self, preferred=()):
         self.preferred=tuple(preferred); self.evaluator=_Evaluator(); self._hand_evaluator=_HandEvaluator()
     def _hand_bond_intents(self, state):
@@ -57,11 +58,13 @@ def test_mouth_first_hand_locks_to_primary_strategy_hand_when_available():
     assert any("developed Bonds target PAIR" in note for note in result.rationale)
 
 
-def test_mouth_discards_instead_of_locking_wrong_hand_when_primary_type_missing():
+def test_mouth_missing_primary_type_preserves_canonical_play_class():
     policy=_Policy(("PAIR",)); high=_Plan(_Action(PLAY_CARDS,"HIGH_CARD",180)); discard=_Plan(_Action(DISCARD_CARDS))
-    result=apply_mouth_first_hand_policy(policy,_state(discards=2,blind_score=1000),(high,discard),_Decision("PACE_PLAY",high.action,high))
-    assert result.action is discard.action; assert result.mode == "PACE_RECOVERY"
-    assert any("use a discard instead of locking" in note for note in result.rationale)
+    decision=_Decision("PACE_PLAY",high.action,high)
+    result=apply_mouth_first_hand_policy(policy,_state(discards=2,blind_score=1000),(high,discard),decision)
+    assert result.action is high.action
+    assert result.mode == "PACE_PLAY"
+    assert any("canonical PLAY remains authoritative" in note for note in result.rationale)
 
 
 def test_mouth_immediate_one_hand_clear_overrides_strategy_lock_preference():
