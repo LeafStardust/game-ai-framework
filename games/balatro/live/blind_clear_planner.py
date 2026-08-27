@@ -410,9 +410,7 @@ class LiveBlindClearPlanner:
         )
 
     def _discard_priority(self, state, action: BalatroAction) -> tuple[float, int]:
-        kept = self._kept_cards(state.hand, action.cards)
-        promise = self.evaluator._retained_structure_value(kept)
-        return promise + min(5, len(action.cards)) * 4.0, len(action.cards)
+        return float(self.evaluator.evaluate(state, action)), len(action.cards)
 
     def _terminal_value(self, state, *, clear: bool) -> LiveBlindPlanValue:
         target = self._target(state)
