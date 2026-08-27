@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-"""Burnt-Bond D1 within-discard refinement.
+"""Canonical D1 evidence for Burnt Joker first-discard development.
 
-Burnt Joker's permanent first-discard hand leveling is useful strategic evidence,
-but canonical D1 survival owns the Play/Discard action class. This policy may choose
-a better Burnt-compatible discard only after canonical arbitration already selected
-DISCARD; it must never replace a pace-qualified PLAY with DISCARD.
+Burnt Joker's first discard permanently levels the discarded poker hand. This is
+candidate-specific strategy evidence, not authority to choose the Play/Discard
+class. The installer therefore augments strategy-fit evidence only; canonical D1
+continues to own survival ordering and final arbitration.
 """
-
-from dataclasses import replace
 
 from games.balatro.actions import DISCARD_CARDS
 from games.balatro.bonds.evaluation import evaluate_bond_composition
@@ -16,6 +14,10 @@ from games.balatro.bonds.model import BondRank
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
+
+
+BURNT_TARGET_FIT = 2.0
+BURNT_GENERIC_FIRST_DISCARD_FIT = 0.5
 
 
 def _burnt_development(state):
@@ -54,27 +56,13 @@ def _first_discard_available(state) -> bool:
         return False
 
 
-def _clear_probability(plan) -> float:
-    try:
-        return float(plan.value.clear_probability)
-    except (AttributeError, TypeError, ValueError):
-        return 0.0
-
-
-def _expected_score(plan) -> float:
-    try:
-        return float(plan.value.expected_score)
-    except (AttributeError, TypeError, ValueError):
-        return 0.0
-
-
 def _target_hand(development) -> str:
     return str(getattr(development, "target", None) or "HIGH_CARD").upper()
 
 
-def _discard_hand_type(evaluator: HandEvaluator, state, plan) -> str:
+def _discard_hand_type(evaluator: HandEvaluator, state, action) -> str:
     try:
-        cards = list(plan.action.cards)
+        cards = list(action.cards)
         if not cards:
             return ""
         return str(
@@ -84,110 +72,44 @@ def _discard_hand_type(evaluator: HandEvaluator, state, plan) -> str:
         return ""
 
 
-def _safe_burnt_discards(decision, discards, *, epsilon: float = 1e-9):
-    if not discards:
-        return ()
-    selected = getattr(decision, "selected_plan", None)
-    if selected is None:
-        return ()
-    selected_probability = _clear_probability(selected)
-    tolerance = float(
-        getattr(getattr(decision, "thresholds", None), "safe_clear_probability_tolerance", 0.0)
-        or 0.0
-    )
-    return tuple(
-        plan
-        for plan in discards
-        if _clear_probability(plan) + tolerance + epsilon >= selected_probability
-    )
-
-
 def install_burnt_bond_execution_policy() -> None:
-    if getattr(StrategyAwareLiveHandActionPolicy, "_burnt_bond_execution_installed", False):
+    if getattr(
+        StrategyAwareLiveHandActionPolicy,
+        "_burnt_bond_execution_installed",
+        False,
+    ):
         return
 
-    original_decide = StrategyAwareLiveHandActionPolicy.decide
+    original_strategy_fit = StrategyAwareLiveHandActionPolicy._strategy_fit
     hand_evaluator = HandEvaluator()
 
-    def decide(self, state, plans, **kwargs):
-        plans = tuple(plans)
-        decision = original_decide(self, state, plans, **kwargs)
+    def strategy_fit(self, state, action):
+        value, rationale = original_strategy_fit(self, state, action)
+        if action.name != DISCARD_CARDS:
+            return value, rationale
         development = _burnt_development(state)
-        if development is None:
-            return decision
-        if not _first_discard_available(state):
-            return decision
+        if development is None or not _first_discard_available(state):
+            return value, rationale
         if int(getattr(state, "discards_remaining", 0) or 0) <= 1:
-            return decision
+            return value, rationale
         if int(getattr(state, "hands_remaining", 0) or 0) <= 1:
-            return decision
-
-        if decision.action.name != DISCARD_CARDS:
-            return replace(
-                decision,
-                rationale=(
-                    *decision.rationale,
-                    "Burnt first-discard value observed but canonical D1 selected PLAY; Burnt evidence cannot change the finalized action class",
-                ),
-            )
-
-        discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
-        safe = _safe_burnt_discards(decision, discards, epsilon=self.EPSILON)
-        if not safe:
-            return replace(
-                decision,
-                rationale=(
-                    *decision.rationale,
-                    "Burnt first-discard refinement withheld because no alternate discard remained within canonical D1 clear-probability tolerance",
-                ),
-            )
+            return value, rationale
 
         target = _target_hand(development)
-        target_safe = [
-            plan for plan in safe
-            if _discard_hand_type(hand_evaluator, state, plan) == target
+        hand_type = _discard_hand_type(hand_evaluator, state, action)
+        fit = BURNT_GENERIC_FIRST_DISCARD_FIT
+        notes = [
+            "Burnt first-discard evidence: this already-admitted DISCARD can create permanent hand-level growth",
         ]
-        candidates = target_safe or list(safe)
-        selected = max(
-            candidates,
-            key=lambda plan: (
-                _clear_probability(plan),
-                _expected_score(plan),
-                -len(tuple(getattr(plan.action, "cards", ()) or ())),
-                self._within_type_key(plan),
-            ),
+        if hand_type == target:
+            fit += BURNT_TARGET_FIT
+            notes.append(f"Burnt target={target}; discarded poker hand matches target")
+        else:
+            notes.append(f"Burnt target={target}; discarded poker hand={hand_type or 'UNKNOWN'}")
+        notes.append(
+            "Burnt fit is subordinate to canonical D1 full-blind survival/resource ordering"
         )
-        selected_probability = _clear_probability(selected)
-        selected_type = _discard_hand_type(hand_evaluator, state, selected)
-        value = float(self.evaluator.evaluate(state, selected.action))
+        return value + fit, (*rationale, *notes)
 
-        banner_owned = any(
-            str(getattr(joker, "name", getattr(joker, "label", type(joker).__name__))).lower().replace(" ", "")
-            in {"banner", "bannerjoker"}
-            for joker in getattr(state, "jokers", ()) or ()
-        )
-        banner_note = (
-            "Banner is owned: among already-authorized discard lines, prefer the survival-equivalent Burnt development line despite one remaining-discard chip payment"
-            if banner_owned
-            else "among already-authorized discard lines, prefer permanent Burnt hand-level growth"
-        )
-
-        return replace(
-            decision,
-            action=selected.action,
-            selected_plan=selected,
-            selected_immediate_score=None,
-            selected_pace_ratio=None,
-            selected_fallback_value=value,
-            confidence=max(float(decision.confidence), selected_probability),
-            rationale=(
-                *decision.rationale,
-                "Burnt Bond within-DISCARD refinement: canonical D1 already selected the discard action class",
-                f"Burnt target={target}; selected discard hand={selected_type}; modeled clear probability={selected_probability:.3f}",
-                banner_note,
-                "Burnt evidence may rank discard candidates but cannot replace PLAY with DISCARD",
-            ),
-        )
-
-    StrategyAwareLiveHandActionPolicy.decide = decide
+    StrategyAwareLiveHandActionPolicy._strategy_fit = strategy_fit
     StrategyAwareLiveHandActionPolicy._burnt_bond_execution_installed = True
