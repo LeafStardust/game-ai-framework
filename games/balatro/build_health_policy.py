@@ -6,17 +6,17 @@ This layer compares current public-state health against projected legal Joker
 transitions. It does not add raw catalogue points. Existing replacement,
 Negative-retention, Eternal, affordability and D2 legality guards remain upstream
 and authoritative.
+
+Build Health is D2 evidence only. It does not wrap the global D14 shop arbiter or
+manufacture post-arbitration bundle/reroll actions.
 """
 
 from dataclasses import is_dataclass, replace
 from types import SimpleNamespace
 
-from games.balatro.actions import END_SHOP, REFRESH_SHOP, BalatroAction
 from games.balatro.build_health_runtime import RuntimeBuildHealthEvaluator, projected_state_with_jokers
 from games.balatro.joker_policy import BUY, HOLD, REPLACE
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
-from games.balatro.short_horizon_shop_planner import recommend_bounded_shop_bundle
-from games.balatro.shop_arbiter import BuildAwareShopArbiter
 
 
 _HEALTH = RuntimeBuildHealthEvaluator()
@@ -367,102 +367,15 @@ def _health_aware_joker_decision(policy, state, candidate, decision):
     )
 
 
-def _shop_signature(state):
-    return (
-        max(1, int(getattr(state, "ante", 1) or 1)),
-        int(getattr(state, "round", getattr(state, "round_num", 0)) or 0),
-    )
-
-
-def _bundle_decision(state, result, arbiter):
-    if str(getattr(result.action, "name", "")) not in {END_SHOP, REFRESH_SHOP}:
-        return result
-    recommendation = recommend_bounded_shop_bundle(arbiter, state)
-    if recommendation is None:
-        return result
-    return _updated(
-        result,
-        action=recommendation.action,
-        source="BUILD_HEALTH_BUNDLE",
-        normalized_gain=max(0.001, float(getattr(result, "normalized_gain", 0.0))),
-        rationale=(*recommendation.rationale, *getattr(result, "rationale", ())),
-    )
-
-
-def _health_reroll_decision(arbiter, state, result, reroll_cost):
-    if str(getattr(result.action, "name", "")) != END_SHOP or reroll_cost is None:
-        return result
-
-    # D11 remains authoritative for reroll admission. Real production
-    # ShopArbiterDecision objects carry the D11 recommendation even when END_SHOP
-    # wins the parent comparison. Build Health must not manufacture a reroll after
-    # D11 has already evaluated and rejected (or priced) that same action.
-    if getattr(result, "reroll", None) is not None:
-        return result
-
-    try:
-        cost = int(reroll_cost)
-    except (TypeError, ValueError):
-        return result
-    if cost <= 0:
-        return result
-
-    health = _cached_health(arbiter, state)
-    ante = max(1, int(getattr(state, "ante", 1) or 1))
-    money = max(0, int(getattr(state, "money", 0) or 0))
-    remaining = money - cost
-    early_survival_search = (
-        ante <= 2
-        and health.survival < _EARLY_SURVIVAL_ADEQUACY
-        and cost <= 5
-        and remaining >= 2
-    )
-    scaling_search = (
-        ante >= 3
-        and health.scaling_deficit
-        and cost <= 8
-        and remaining >= 15
-    )
-    if not (early_survival_search or scaling_search):
-        return result
-
-    signature = _shop_signature(state)
-    if getattr(arbiter, "_build_health_reroll_signature", None) == signature:
-        return result
-    arbiter._build_health_reroll_signature = signature
-    reason = "survival inadequacy" if early_survival_search else "scaling deficit"
-    return _updated(
-        result,
-        action=BalatroAction(REFRESH_SHOP),
-        source="BUILD_HEALTH_REROLL",
-        normalized_gain=max(0.001, float(getattr(result, "normalized_gain", 0.0))),
-        rationale=(
-            f"Build Health bounded search: {reason} remains unresolved after visible shop choices",
-            f"reroll=${cost}; cash after=${remaining}; one Build-Health reroll allowed for this shop checkpoint",
-            *_health_notes("current", health),
-            *getattr(result, "rationale", ()),
-        ),
-    )
-
-
 def install_build_health_policy() -> None:
-    if not getattr(PlaybookJokerAcquisitionPolicy, "_build_health_policy_installed", False):
-        original_decide = PlaybookJokerAcquisitionPolicy.decide
+    if getattr(PlaybookJokerAcquisitionPolicy, "_build_health_policy_installed", False):
+        return
 
-        def decide(self, state, candidate):
-            decision = original_decide(self, state, candidate)
-            return _health_aware_joker_decision(self, state, candidate, decision)
+    original_decide = PlaybookJokerAcquisitionPolicy.decide
 
-        PlaybookJokerAcquisitionPolicy.decide = decide
-        PlaybookJokerAcquisitionPolicy._build_health_policy_installed = True
+    def decide(self, state, candidate):
+        decision = original_decide(self, state, candidate)
+        return _health_aware_joker_decision(self, state, candidate, decision)
 
-    if not getattr(BuildAwareShopArbiter, "_build_health_policy_installed", False):
-        original_shop_decide = BuildAwareShopArbiter.decide
-
-        def shop_decide(self, state, visible_actions, *, reroll_cost: int | None):
-            result = original_shop_decide(self, state, visible_actions, reroll_cost=reroll_cost)
-            result = _bundle_decision(state, result, self)
-            return _health_reroll_decision(self, state, result, reroll_cost)
-
-        BuildAwareShopArbiter.decide = shop_decide
-        BuildAwareShopArbiter._build_health_policy_installed = True
+    PlaybookJokerAcquisitionPolicy.decide = decide
+    PlaybookJokerAcquisitionPolicy._build_health_policy_installed = True
