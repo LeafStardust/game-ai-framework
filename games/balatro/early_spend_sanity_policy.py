@@ -55,6 +55,15 @@ def _empty_joker_roster(profile) -> bool:
     return not tuple(getattr(profile, "joker_names", ()) or ())
 
 
+def _allow_empty_roster_buffoon_floor_exception(profile, recommendation) -> bool:
+    """Return whether the hard floor may defer to an already-positive D8 Buffoon BUY."""
+    return bool(
+        getattr(recommendation, "decision", None) == BOOSTER_BUY
+        and str(getattr(recommendation, "family", "") or "").upper() == "BUFFOON"
+        and _empty_joker_roster(profile)
+    )
+
+
 def install_early_spend_sanity_policy() -> None:
     if getattr(VoucherAcquisitionPolicy, "_early_spend_sanity_installed", False):
         return
@@ -123,10 +132,7 @@ def install_early_spend_sanity_policy() -> None:
         # not optional side development. Do not let a second blanket cash floor erase
         # that mechanically positive D8 admission; D14 must be allowed to compare it
         # against the other admitted shop families normally.
-        if (
-            str(getattr(recommendation, "family", "") or "").upper() == "BUFFOON"
-            and _empty_joker_roster(profile)
-        ):
+        if _allow_empty_roster_buffoon_floor_exception(profile, recommendation):
             return replace(
                 recommendation,
                 rationale=(
