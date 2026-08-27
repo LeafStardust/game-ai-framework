@@ -2,9 +2,11 @@ from __future__ import annotations
 
 """Within-Play execution refinement for realized strategy engines.
 
-Canonical D1 survival owns the Play/Discard action class. Realized no-discard and
-hand-repetition engines remain useful evidence, but this policy may refine only an
-already-selected PLAY candidate; it must never replace canonical DISCARD with PLAY.
+Canonical D1 survival owns the Play/Discard action class. Realized hand-repetition
+remains candidate-specific evidence and may refine only an already-selected PLAY.
+No-discard realization is action-class evidence only: once canonical D1 selected a
+PLAY, every PLAY already preserves that mechanic, so it must not run a second PLAY
+selector.
 """
 
 from dataclasses import replace
@@ -82,37 +84,6 @@ def _clear_probability_tolerance(decision) -> float:
         )
     except (TypeError, ValueError):
         return 0.0
-
-
-def _safe_pace_play(policy, state, plans, decision):
-    """Return a survival-equivalent pace play from an already-selected PLAY class."""
-    pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
-    if pace_target <= 0.0:
-        return None
-
-    selected_probability = _selected_clear_probability(decision)
-    tolerance = _clear_probability_tolerance(decision)
-    candidates = []
-    for plan in plans:
-        if plan.action.name != PLAY_CARDS:
-            continue
-        probability = float(getattr(plan.value, "clear_probability", 0.0) or 0.0)
-        if probability + tolerance + policy.EPSILON < selected_probability:
-            continue
-        score = float(policy.evaluator.project_play(state, plan.action).expected_hand_score)
-        if score + policy.EPSILON >= pace_target:
-            candidates.append((probability, score, plan))
-    if not candidates:
-        return None
-    return max(
-        candidates,
-        key=lambda item: (
-            item[0],
-            policy._strategy_fit(state, item[2].action)[0],
-            item[1],
-            policy._within_type_key(item[2]),
-        ),
-    )
 
 
 def _hand_key(policy, state, plan) -> str:
@@ -200,29 +171,9 @@ def install_strategy_execution_guard_policy() -> None:
         if decision.action.name != PLAY_CARDS:
             return decision
 
-        # No-discard value can refine an already-authorized PLAY, but cannot rescue
-        # a canonical DISCARD. This keeps engine evidence under the single D1 arbiter.
-        if _realized_no_discard_engine(state):
-            safe = _safe_pace_play(self, state, plans, decision)
-            if safe is not None:
-                probability, score, plan = safe
-                if getattr(decision.action, "cards", None) != getattr(plan.action, "cards", None):
-                    pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
-                    pace_ratio = score / pace_target if pace_target > 0.0 else float("inf")
-                    decision = replace(
-                        decision,
-                        action=plan.action,
-                        selected_plan=plan,
-                        selected_immediate_score=score,
-                        selected_pace_ratio=pace_ratio,
-                        selected_fallback_value=None,
-                        confidence=max(float(getattr(decision, "confidence", 0.0) or 0.0), probability),
-                        rationale=(
-                            *decision.rationale,
-                            "realized no_discard engine: within-PLAY refinement preserves discard-sensitive value on a survival-equivalent pace line",
-                        ),
-                    )
-
+        # No-discard realization does not select among PLAY candidates: every PLAY
+        # already preserves the mechanic. Canonical D1 strategy-safe pace ranking
+        # therefore remains authoritative without another no-discard reselector.
         repeat = _safe_repeat_play(self, state, plans, decision)
         if repeat is not None:
             probability, score, plan = repeat
