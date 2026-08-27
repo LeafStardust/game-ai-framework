@@ -2,11 +2,14 @@ from __future__ import annotations
 
 """Semantic relationship and bounded D1 candidate-search guards.
 
-Production evidence exposed two structural defects retained by this layer:
+Production evidence exposed structural defects retained by this layer:
 - broad scenario-derived rank requirements could connect a hand-payoff Joker to most
   rank-density feature nodes, manufacturing a fake mega-strategy;
 - D1 root ranking projected every playable subset before the first search node,
-  allowing one pathological projection to dominate wall-clock latency.
+  allowing one pathological projection to dominate wall-clock latency;
+- retained-structure-only discard prefiltering could fill the narrow projected beam
+  with singleton discards, hiding materially better multi-card redraws from the
+  full-blind planner.
 
 No-discard execution semantics now live as ordinary canonical D1 evidence and are
 intentionally not patched from this search/runtime module.
@@ -30,6 +33,11 @@ _CHILD_PLAY_PREFILTER = 24
 _ROOT_DISCARD_PREFILTER = 14
 _CHILD_DISCARD_PREFILTER = 8
 _SHORT_PLAY_RESERVE = 2
+# A discard consumes one discard token whether it redraws one card or five. Keep a
+# tiny bounded reserve of wider redraws so retained-structure heuristics cannot make
+# the projected beam singleton-only. Full-blind projection remains authoritative and
+# may still reject every reserved wide discard.
+_WIDE_DISCARD_RESERVE = 2
 
 _HAND_STRENGTH = {
     PokerHand.HIGH_CARD: 0,
@@ -114,6 +122,39 @@ def _prefilter(actions, *, limit: int, key):
     if len(values) <= limit:
         return values
     return sorted(values, key=key, reverse=True)[:limit]
+
+
+def _prefilter_discards(state, actions, *, limit: int):
+    """Bound discard projection while preserving a few efficient redraw widths.
+
+    Retained-hand structure remains the cheap primary heuristic. The reserve only
+    guarantees that the expensive full-blind scorer gets to compare a small number
+    of wider redraws before the narrow discard beam is finalized.
+    """
+    values = list(actions)
+    if len(values) <= limit:
+        return values
+
+    ranked = sorted(
+        values,
+        key=lambda action: _cheap_discard_key(state, action),
+        reverse=True,
+    )
+    reserve = min(_WIDE_DISCARD_RESERVE, max(0, int(limit)))
+    if reserve <= 0:
+        return []
+
+    widest = sorted(
+        values,
+        key=lambda action: (
+            len(getattr(action, "cards", ()) or ()),
+            _cheap_discard_key(state, action)[0],
+        ),
+        reverse=True,
+    )[:reserve]
+    widest_ids = {id(action) for action in widest}
+    primary = [action for action in ranked if id(action) not in widest_ids]
+    return primary[: max(0, limit - len(widest))] + widest
 
 
 def _prefilter_plays(state, actions, *, limit: int):
@@ -245,10 +286,10 @@ def install_semantic_search_guard_policy() -> None:
         deadline_policy._check_deadline(self, "discard candidate generation")
         discards = self.action_generator.generate_discard_actions(state)
         deadline_policy._check_deadline(self, "discard candidate generation")
-        discards = _prefilter(
+        discards = _prefilter_discards(
+            state,
             discards,
             limit=_ROOT_DISCARD_PREFILTER if root else _CHILD_DISCARD_PREFILTER,
-            key=lambda action: _cheap_discard_key(state, action),
         )
         ranked_discards = deadline_policy._rank_with_deadline(
             self,
