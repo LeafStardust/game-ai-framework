@@ -92,6 +92,24 @@ def _estimate(action_name: str, *, exact: bool, score: float):
     )
 
 
+def _zero_signal_plan(card_count: int):
+    return SimpleNamespace(
+        action=BalatroAction(
+            DISCARD_CARDS,
+            cards=tuple(SimpleNamespace(rank=str(index + 2), suit="Clubs") for index in range(card_count)),
+        ),
+        exact=False,
+        value=SimpleNamespace(
+            clear_probability=0.0,
+            expected_progress=0.0,
+            expected_hands_remaining=4.0,
+            expected_discards_remaining=3.0,
+            expected_score=0.0,
+            expected_consumables=0.0,
+        ),
+    )
+
+
 def test_planner_discard_recovery_quality_beats_exactness():
     exact_singleton = _estimate(DISCARD_CARDS, exact=True, score=100.0)
     sampled_wider = _estimate(DISCARD_CARDS, exact=False, score=200.0)
@@ -104,3 +122,21 @@ def test_planner_play_order_keeps_exactness_priority():
     sampled_play = _estimate(PLAY_CARDS, exact=False, score=200.0)
 
     assert LiveBlindClearPlanner._estimate_key(exact_play) > LiveBlindClearPlanner._estimate_key(sampled_play)
+
+
+def test_zero_signal_discard_prefers_broader_redraw_when_strategy_fit_ties():
+    singleton = _zero_signal_plan(1)
+    wider = _zero_signal_plan(4)
+
+    assert correction._zero_signal_discard(singleton) is True
+    assert correction._zero_signal_discard_tiebreak(wider) > correction._zero_signal_discard_tiebreak(singleton)
+
+
+def test_zero_signal_discard_preserves_strategy_fit_before_redraw_width():
+    singleton = _zero_signal_plan(1)
+    wider = _zero_signal_plan(4)
+
+    strategic_singleton = correction._zero_signal_discard_tiebreak(singleton, strategy_fit=2.0)
+    neutral_wider = correction._zero_signal_discard_tiebreak(wider, strategy_fit=0.0)
+
+    assert strategic_singleton > neutral_wider
