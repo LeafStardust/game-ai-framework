@@ -68,7 +68,6 @@ from games.balatro.planet_scaler_authority import install_planet_scaler_authorit
 from games.balatro.post_transaction_joker_value_policy import install_post_transaction_joker_value_policy
 from games.balatro.purple_seal_discard_policy import install_purple_seal_discard_policy
 from games.balatro.r0_strategy_transition_policy import install_r0_strategy_transition_policy
-from games.balatro.ride_the_bus_execution_policy import install_ride_the_bus_execution_policy
 from games.balatro.round_resource_live_state_policy import install_round_resource_live_state_policy
 from games.balatro.safe_pace_optimization_policy import install_safe_pace_optimization_policy
 from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
@@ -183,7 +182,6 @@ install_live_joker_order_authority()
 install_planet_scaler_authority()
 install_purple_seal_discard_policy()
 install_held_round_end_resource_policy()
-install_ride_the_bus_execution_policy()
 # Live-run competence corrections intentionally install last so they see the final
 # mechanical/conflict-safe D1 and shop decisions rather than bypassing them.
 install_red_white_competence_corrections()
