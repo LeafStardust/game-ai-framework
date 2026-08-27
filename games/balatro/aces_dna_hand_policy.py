@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-"""D1 DNA execution with canonical strategy-aware card duplication.
+"""Within-PLAY DNA/Aces execution with canonical strategy-aware duplication.
 
-DNA's first-hand single-card copy is a strategic setup action. The policy derives
-copy targets from the strongest semantic strategy containing DNA while keeping blind
-survival strictly authoritative.
+DNA's first-hand single-card copy is useful setup evidence, but canonical D1 owns
+the Play/Discard action class. This policy may refine an already-authorized PLAY to
+a survival-equivalent setup line; it must never rescue PLAY over canonical DISCARD.
 """
 
 from dataclasses import replace
@@ -247,6 +247,17 @@ def install_aces_dna_hand_policy() -> None:
         plans = tuple(plans)
         decision = original_decide(self, state, plans, **kwargs)
 
+        if decision.action.name != PLAY_CARDS:
+            if _owns(state, "dnajoker") and _first_hand(state):
+                return replace(
+                    decision,
+                    rationale=(
+                        *decision.rationale,
+                        "DNA setup opportunity observed, but canonical D1 selected DISCARD; duplication evidence cannot change the finalized action class",
+                    ),
+                )
+            return decision
+
         if _owns(state, "dnajoker") and _first_hand(state):
             rank_targets = _strategy_dna_rank_targets(state)
             plan = _safe_dna_rank_plan(plans, rank_targets, decision)
@@ -258,7 +269,7 @@ def install_aces_dna_hand_policy() -> None:
                     decision,
                     plan,
                     (
-                        "DNA semantic strategy contract: duplicate a rank required by the strongest mechanically linked strategy only on a D1 survival-equivalent line",
+                        "DNA semantic strategy contract: within-PLAY refinement duplicates a rank required by the strongest mechanically linked strategy only on a D1 survival-equivalent line",
                         f"required ranks={rank_targets}; selected rank={getattr(plan.action.cards[0], 'rank', None)}",
                         f"DNA clear probability={probability:.3f}; baseline={_selected_clear_probability(decision):.3f}; tolerance={_clear_probability_tolerance(decision):.3f}",
                         f"absolute DNA safety floor={DNA_SAFE_CLEAR_PROBABILITY:.2f}",
@@ -279,7 +290,7 @@ def install_aces_dna_hand_policy() -> None:
                     decision,
                     plan,
                     (
-                        "Aces Bond + Scholar + DNA first-hand contract: duplicate a strategically valuable Ace only on a D1 survival-equivalent line",
+                        "Aces Bond + Scholar + DNA first-hand contract: within-PLAY refinement duplicates a strategically valuable Ace only on a D1 survival-equivalent line",
                         f"DNA Ace clear probability={probability:.3f}; baseline={_selected_clear_probability(decision):.3f}; tolerance={_clear_probability_tolerance(decision):.3f}",
                         f"absolute DNA safety floor={DNA_SAFE_CLEAR_PROBABILITY:.2f}",
                     ),
@@ -308,7 +319,7 @@ def install_aces_dna_hand_policy() -> None:
                 decision,
                 best_ace,
                 (
-                    "Aces Bond safe-equivalent tie-break: prefer an Ace-bearing play for Scholar/deck development",
+                    "Aces Bond within-PLAY safe-equivalent tie-break: prefer an Ace-bearing play for Scholar/deck development",
                     f"Ace line clear probability={ace_probability:.3f}; selected baseline={selected_probability:.3f}; tolerance={tolerance:.3f}",
                 ),
             )
