@@ -6,8 +6,6 @@ This layer is intentionally small and semantic. It does not predict hidden shop
 contents or draw order. It corrects public-state mistakes observed in live
 Red/White runs:
 
-* an empty early scoring engine could reject an affordable, mechanically positive
-  Joker because reserve economics outweighed the first foothold;
 * conditional scoring mechanics discoverable from public rules could be omitted
   from representative shop score projection when their activation context was not
   present in the neutral probe state;
@@ -16,9 +14,9 @@ Red/White runs:
 
 D1 multi-card redraw efficiency and discard-beam ranking now live in the canonical
 D1 evaluator/planner path. Visible two-Joker Bond planning now lives directly in
-D14. Paint Brush/Palette first-engine readiness now lives directly in D3. This
-module remains installed only for the still-unconsolidated family-local shop/build
-corrections below.
+D14. Paint Brush/Palette first-engine readiness now lives directly in D3, and the
+early scoring foothold now lives directly in D2. This module remains installed only
+for the two still-unconsolidated family-local corrections below.
 """
 
 from copy import deepcopy
@@ -35,7 +33,6 @@ from games.balatro.celestial_shop_headroom_fast_path import (
     install_celestial_shop_headroom_fast_path,
 )
 from games.balatro.consumable import Consumable, ConsumableContext
-from games.balatro.joker_policy import BUY, HOLD, JokerAcquisitionPolicy
 from games.balatro.shop_consumable_policy import (
     BUY_AND_USE,
     HOLD as CONSUMABLE_HOLD,
@@ -44,8 +41,6 @@ from games.balatro.shop_consumable_policy import (
 )
 
 
-EARLY_ENGINE_ANTE_LIMIT = 2
-FIRST_ENGINE_MINIMUM_CASH_AFTER = 1
 WHEEL_NAMES = frozenset({"The Wheel of Fortune", "Wheel of Fortune"})
 REPEATED_HAND_SCENARIO = scenario_feature("repeated_hand")
 
@@ -53,23 +48,11 @@ REPEATED_HAND_SCENARIO = scenario_feature("repeated_hand")
 _SCENARIO_ANALYZER = ScenarioJokerBehaviorAnalyzer()
 
 
-def _ante(state) -> int:
-    for name in ("ante", "ante_num"):
-        try:
-            value = int(getattr(state, name, 0) or 0)
-        except (TypeError, ValueError):
-            continue
-        if value > 0:
-            return value
-    return 0
-
-
 def install_red_white_competence_corrections() -> None:
     install_celestial_shop_headroom_fast_path()
-    if getattr(JokerAcquisitionPolicy, "_rw_competence_corrections_installed", False):
+    if getattr(JokerBuildValueEvaluator, "_rw_competence_corrections_installed", False):
         return
 
-    original_joker_decide = JokerAcquisitionPolicy.decide
     original_consumable_decide = ConsumableAcquisitionPolicy.decide
     original_direct_scoring_gain = JokerBuildValueEvaluator._direct_scoring_gain
 
@@ -90,54 +73,6 @@ def install_red_white_competence_corrections() -> None:
         repeated_state.round_hand_play_counts = counts
         repeated_gain = float(original_direct_scoring_gain(self, repeated_state, joker))
         return (base_gain + repeated_gain) / 2.0
-
-    def joker_decide(self, state, candidate):
-        decision = original_joker_decide(self, state, candidate)
-        if decision.action != HOLD:
-            return decision
-        ante = _ante(state)
-        if ante < 1 or ante > EARLY_ENGINE_ANTE_LIMIT:
-            return decision
-        if tuple(getattr(state, "jokers", ()) or ()):
-            return decision
-
-        affordable = [
-            option
-            for option in tuple(getattr(decision, "options", ()) or ())
-            if getattr(option, "mode", None) == BUY
-            and float(getattr(option, "build_gain", 0.0) or 0.0) > 0.0
-            and int(getattr(getattr(option, "economics", None), "money_after", -1))
-            >= FIRST_ENGINE_MINIMUM_CASH_AFTER
-        ]
-        if not affordable:
-            return decision
-
-        raw_selected = max(
-            affordable,
-            key=lambda option: (
-                float(getattr(option, "build_gain", 0.0) or 0.0),
-                float(getattr(option, "total_advantage", float("-inf")) or 0.0),
-            ),
-        )
-        selected = replace(raw_selected, eligible=True)
-        options = tuple(
-            selected if option is raw_selected else option
-            for option in tuple(getattr(decision, "options", ()) or ())
-        )
-        return replace(
-            decision,
-            action=BUY,
-            selected=selected,
-            options=options,
-            rationale=(
-                *tuple(getattr(decision, "rationale", ()) or ()),
-                "early first-engine bootstrap: positive literal/contextual D2 build gain can outrank reserve-only HOLD",
-                f"mechanically grounded build gain={selected.build_gain:.3f}",
-                f"first-engine money after=${selected.economics.money_after}",
-                "category-only scoring labels cannot force admission",
-                "hidden future shop contents are not predicted",
-            ),
-        )
 
     def consumable_decide(self, state, candidate):
         decision = original_consumable_decide(self, state, candidate)
@@ -194,9 +129,7 @@ def install_red_white_competence_corrections() -> None:
         )
 
     JokerBuildValueEvaluator._direct_scoring_gain = direct_scoring_gain
-    JokerAcquisitionPolicy.decide = joker_decide
     ConsumableAcquisitionPolicy.decide = consumable_decide
 
     JokerBuildValueEvaluator._rw_competence_corrections_installed = True
-    JokerAcquisitionPolicy._rw_competence_corrections_installed = True
     ConsumableAcquisitionPolicy._rw_competence_corrections_installed = True
