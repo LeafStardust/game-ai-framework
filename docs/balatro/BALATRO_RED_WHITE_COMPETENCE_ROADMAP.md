@@ -1,8 +1,116 @@
 # Balatro Red/White Competence Roadmap
 
-Status: **Semantic/runtime implementation gate complete; current HEAD awaiting local validation**
+Status: **Current deterministic Balatro suite green; D14 / D11 SHOP decision-latency gate active; next validation is one focused live run**
 
 This document is the handoff contract for Red Deck / White Stake competence work. It exists so future contributors do not have to reconstruct the intended Balatro play philosophy from live-run postmortems.
+
+## Future-chat operating contract
+
+This section is authoritative for future chats working on this roadmap. Do not guess commands, branch names, validation state, entrypoints, artifact locations, or runtime workflow when the repository or this roadmap can answer them.
+
+### Repository and branch
+
+- Repository: `LeafStardust/game-ai-framework`.
+- Active competence branch: `feat/v1.0-red-white-competence`.
+- Stay on that branch unless the user explicitly changes the target.
+- After the assistant pushes any commit that the user needs locally, the first command given to the user must be exactly:
+
+```powershell
+git pull
+```
+
+Do not replace this with a longer remote/branch form unless the user's local Git setup actually requires it.
+
+### Canonical Windows commands
+
+Use the repository-provided batch entrypoints instead of inventing Python entrypoints.
+
+Normal single Balatro live attempt:
+
+```powershell
+git pull
+.\BalatroAgentToggle.bat
+```
+
+Three-attempt batch, only when a three-run batch is explicitly required by the current gate:
+
+```powershell
+git pull
+.\BalatroAgentToggle.bat --three
+```
+
+Five-attempt batch, only when a five-run batch is explicitly required:
+
+```powershell
+git pull
+.\BalatroAgentToggle.bat --five
+```
+
+Full deterministic Balatro test suite:
+
+```powershell
+git pull
+python -m pytest -q tests/balatro
+```
+
+Diagnostics report:
+
+```powershell
+.\BalatroAgentDiagnosticsReport.bat
+```
+
+Crash report:
+
+```powershell
+.\BalatroAgentCrashReport.bat
+```
+
+Runtime monitor:
+
+```powershell
+.\BalatroAgentMonitor.bat
+```
+
+Collection-first compatibility mode exists as `BalatroAgentCollectionToggle.bat`, but collection-first behavior is retired from the ordinary Red/White competence path and must not be used for normal competence validation.
+
+Never tell the user to run `python main.py` for the Balatro live agent. Never invent a `python -m ...` live command when a repository batch entrypoint already provides the supported command. If a command is uncertain or appears to have changed, inspect the relevant `.bat` file or runtime module in the repository before answering.
+
+### Validation ownership and cadence
+
+- The assistant must **not run tests or live Balatro attempts**. The user runs local validation and reports the result / uploads the generated artifacts.
+- Reading tests, writing tests, and adding regression coverage is allowed; executing them is not.
+- Do not ask the user to rerun the full suite when they have already reported it green for the current code HEAD and no subsequent code/test commit has invalidated that result.
+- A documentation-only commit does not by itself invalidate a green gameplay/test checkpoint.
+- After a code/test commit, provide `git pull` followed by every exact command the user needs to run. Do not give only part of the command sequence and do not make the user infer the live entrypoint.
+- When a focused single live run is sufficient for a profiler/performance gate, request `\.\BalatroAgentToggle.bat`, not a three- or five-run batch.
+- For live evidence, ask for the generated run summary and JSONL trace. If their exact output path or filename convention is uncertain, inspect the runtime implementation first rather than guessing.
+
+### No-guess handoff rule
+
+Future chats must treat missing operational knowledge as a repository-reading task, not an invitation to improvise. Before giving a command or claiming a current checkpoint, verify it against this roadmap, the relevant helper script/module, recent commits, or the supplied live evidence.
+
+Any durable detail discovered during work that would materially help the next chat must be written back into repository documentation before the work session is considered handed off. At minimum, record newly discovered or changed:
+
+- canonical commands and helper entrypoints;
+- active branch / release gate constraints;
+- who owns local validation and which tests are already green;
+- generated artifact names/locations needed for analysis;
+- current decision-authority boundaries;
+- profiler field meanings and instrumentation caveats;
+- current measured blocker and next validation step;
+- install/wrapper ordering requirements that affect production behavior;
+- important failure signatures that have been fixed and should not be re-diagnosed blindly;
+- any other fact that caused avoidable reconstruction, contradictory instructions, or guessing across chats.
+
+Put stable cross-chat instructions in this roadmap. Put detailed dated implementation evidence in `BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md` or the relevant audit document, and link/summarize the current consequence here when future work depends on it. Do not rely on chat memory alone for information the next contributor will need.
+
+## Current checkpoint — 2026-08-28
+
+The user has reported the full `tests/balatro` suite green after the current D11 Joker latency-bound change. The active blocker is now performance, not a known semantic/runtime authority inversion.
+
+Current D14/D11 profiler evidence localized reroll-active SHOP latency to `_future_shop_ev()`. The latest isolated measurements showed future Joker expectation as the largest individual family and Tarot as the next large family, while Planet and residual work were small. Large-pool Joker edition evaluation has therefore been conservatively bounded without changing D14/D11 authority, public-information rules, stop-loss semantics, or small-pool exactness.
+
+The next validation step is **one normal focused live attempt** using `\.\BalatroAgentToggle.bat`, then compare the new `shop_d14_latency` / `reroll_future_*` fields against the pre-change baseline. Do not request another deterministic test run before that focused attempt unless new code is committed first.
 
 ## Git commit convention
 
@@ -258,21 +366,22 @@ This is the point at which static semantic work stops and local execution eviden
 
 ## Current repair queue
 
-Do not start another live calibration baseline until the local validation gate below is satisfied:
+The historical semantic repair queue below is retained as implementation history. The current operational checkpoint is the 2026-08-28 D14 / D11 latency gate above; do not regress to an older validation request merely because an unchecked historical item remains in this section.
 
-- [x] Ensure literal score projection is authoritative for current and candidate builds; remove synthetic category substitutes. Implementation audit complete; current-HEAD local regression validation pending.
+- [x] Ensure literal score projection is authoritative for current and candidate builds; remove synthetic category substitutes. Implementation audit complete.
 - [x] Audit contextual Joker valuation, beginning with Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm.
-- [x] Wire strategy formation and R0 evidence into acquisition from Ante 1 without making strategy outrank survival. Static implementation/authority audit complete; local behavior validation pending.
-- [x] Repair shop cross-family arbitration so visible Joker strength, vouchers, packs, consumables, rerolls, and economy compare on a common parent scale. Grounded persistent effects are literal and unresolved optional-event horizons fail closed rather than using synthetic values; local validation pending.
-- [x] Repair Joker replacement using actual incumbent/candidate score, scaling, economy, realization, and strategy disruption. Implementation audit complete; local validation pending.
+- [x] Wire strategy formation and R0 evidence into acquisition from Ante 1 without making strategy outrank survival.
+- [x] Repair shop cross-family arbitration so visible Joker strength, vouchers, packs, consumables, rerolls, and economy compare on a common parent scale.
+- [x] Repair Joker replacement using actual incumbent/candidate score, scaling, economy, realization, and strategy disruption.
 - [x] Repair D1 discard selection at the authoritative planner/controller layer so multi-card redraws are considered correctly and strategy-specific discard mechanics execute.
-- [x] Audit pack/consumable skipping for positive-EV opportunities and harmful opportunity-cost mistakes. Implementation audit complete across all five D8 booster families and known D9/D10 consumable blockers; local validation pending.
-- [x] Audit boss-specific execution against exact mechanics. Static production authority inventory and late override audit complete; local validation pending.
+- [x] Audit pack/consumable skipping for positive-EV opportunities and harmful opportunity-cost mistakes.
+- [x] Audit boss-specific execution against exact mechanics.
 - [x] Bound the three-attempt supervisor so final attempt completion cannot issue a fourth restart; retire the historical post-`run_finished` crash unless reproduced on current unchanged HEAD.
-- [x] Add direct Red/White regression coverage for the concrete semantic defects introduced/closed in this pass where a compact deterministic regression is available; current additions include High Priestess duplicate/Showman behavior, zero-synthetic Planet-scaler immediate gain, Blank/Antimatter parent progression, opened-pack sunk-cost Skip, multi-card redraw resource efficiency, and held generation-Tarot future-use valuation. Broader existing subsystem regressions remain part of `tests/balatro`.
-- [ ] **User local gate:** run the full `tests/balatro` suite on unchanged current HEAD and report every failure before any live baseline or tuning.
-- [ ] After the deterministic suite is green, run a fresh production-default three-run Red/White batch and inspect for any remaining obviously dominated/mechanically contradictory action.
-- [ ] Keep Python/Optuna numerical tuning frozen until that unchanged-HEAD live batch is semantically clean.
+- [x] Add direct Red/White regression coverage for the concrete semantic defects introduced/closed in this pass where a compact deterministic regression is available; broader existing subsystem regressions remain part of `tests/balatro`.
+- [x] **User local deterministic gate:** full `tests/balatro` suite reported green on the current code checkpoint after the D11 Joker latency-bound change.
+- [ ] **Current live gate:** run one focused normal Red/White attempt and inspect the nested D11 future-family timings after the Joker latency change.
+- [ ] If Joker latency falls as intended, optimize the next measured dominant future-family component (currently Tarot in the latest pre-change evidence) without changing D14/D11 semantics.
+- [ ] Keep new gameplay features, decks, stake progression, and broader v1.1+ work frozen until the Red/White competence/performance gate closes.
 
 ## Calibration and promotion gate
 
