@@ -55,7 +55,7 @@ class _ImmediatePlanner:
         return (estimate.value.expected_score,)
 
 
-def test_hard_budget_allows_bootstrap_but_rejects_second_projected_immediate_pass():
+def test_hard_budget_rejects_projected_immediate_pass_before_candidate_work():
     planner = _ImmediatePlanner()
     engine = LiveHandActionDecisionEngine(
         planner=planner,
@@ -64,18 +64,23 @@ def test_hard_budget_allows_bootstrap_but_rejects_second_projected_immediate_pas
     state = SimpleNamespace()
 
     engine._search_deadline = perf_counter() + 10.0
-    engine._safe_pace_bootstrap_active = True
+    with pytest.raises(PlannerSearchBudgetExceeded, match="immediate fallback under hard D1 budget"):
+        engine._rank_immediate_plans(state)
+
+    assert planner.candidate_calls == 0
+    assert planner.estimate_calls == 0
+
+
+def test_no_hard_deadline_preserves_projected_immediate_ranking():
+    planner = _ImmediatePlanner()
+    engine = LiveHandActionDecisionEngine(
+        planner=planner,
+        max_search_seconds=None,
+    )
+    state = SimpleNamespace()
+
     plans = engine._rank_immediate_plans(state)
 
     assert len(plans) == 1
-    assert planner.candidate_calls == 1
-    assert planner.estimate_calls == 1
-
-    engine._safe_pace_bootstrap_active = False
-    with pytest.raises(PlannerSearchBudgetExceeded, match="post-adaptive immediate fallback"):
-        engine._rank_immediate_plans(state)
-
-    # The rejected post-adaptive pass must fail before another candidate or
-    # uninterruptible horizon-1 estimate begins.
     assert planner.candidate_calls == 1
     assert planner.estimate_calls == 1
