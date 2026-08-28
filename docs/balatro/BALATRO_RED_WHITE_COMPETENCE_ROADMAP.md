@@ -4,6 +4,35 @@ Status: **Red/White ordinary competence baseline clean; live Phase-A baseline re
 
 This document is the active handoff contract for Red Deck / White Stake work. Detailed dated evidence belongs in `BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`; authority boundaries belong in `BALATRO_DECISION_AUTHORITY_MAP.md`.
 
+## NEXT CHAT — START HERE
+
+The Red/White gameplay/runtime competence gate itself is no longer the active problem. Ordinary production play has a clean unchanged-HEAD three-run competence baseline. The **only active blocker before Phase-A tuning can continue is a reproducible multi-minute SHOP stall that has appeared only inside the live tuning baseline workflow**.
+
+Do **not** reopen old D1, D11, Mouth, Green Joker, discard-authority, Hook, or Arcana work without fresh evidence. Do **not** optimize SHOP speculatively. The immediate job is to validate or falsify the newest isolation hypothesis.
+
+Current exact state:
+
+- Two separate baseline-only tuning studies reached a settled `END_ROUND -> SHOP` transition and then emitted no SHOP decision for multiple minutes until manually terminated.
+- The first stall exposed a genuinely unbounded large-pool Arcana expectation. That was bounded conservatively and its targeted/full deterministic validation was reported green, but a second fresh tuning baseline stalled again with only one Arcana Pack visible. Therefore Arcana was **not** the full root cause.
+- Architecture audit confirmed tuning uses the same production supervisor/runner/D14/D11 gameplay stack as normal batches.
+- Queued baseline Phase-A values are numerically identical to `DEFAULT_BOND_CALIBRATION`.
+- The remaining leading hypothesis is contextual rather than numeric: the tuner previously installed `use_bond_calibration(DEFAULT_BOND_CALIBRATION)` even for the production baseline, while ordinary production play simply reads the `ContextVar` default.
+- Commit `1fc31919` changes exact-default baseline evaluation to **skip the calibration override context entirely**. Non-default candidate trials still use `use_bond_calibration(...)`.
+- Commit `411bda21` adds regression coverage proving default baseline bypass vs non-default candidate override behavior.
+- **These newest context-isolation commits have not yet been reported deterministic-green by the user.** No new live baseline should be interpreted until that validation is complete.
+
+Exact next sequence:
+
+1. User runs the targeted calibration-context regression(s) for commits `1fc31919` / `411bda21`.
+2. User runs `python -m pytest -q tests/balatro` on that exact gameplay/test HEAD.
+3. If green, manually restore Balatro to fresh Red Deck / White Stake / Ante 1 `BLIND_SELECT`.
+4. Start a **freshly named** `--baseline-only` tuning study; do not reuse an interrupted Optuna study.
+5. Require three completed production-default attempts with no multi-minute SHOP stall.
+6. If the stall persists, the equal-valued calibration `ContextVar` hypothesis is falsified. **Do not keep rerunning.** Instrument and compare the remaining tuner-only lifecycle/control/log/preflight/final-reset differences around the same production runner, with timing boundaries before and inside D14 SHOP authority.
+7. If all three baseline attempts complete cleanly, reopen Phase-A candidate tuning under `BALATRO_BOND_TUNING.md`.
+
+Do not require wins for this gate. The criterion is that baseline trials complete normally without a reproducible semantic/runtime stall. Interrupted Optuna trials are not baseline evidence.
+
 ## Future-chat operating contract
 
 ### Repository and branch
