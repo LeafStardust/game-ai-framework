@@ -331,6 +331,27 @@ def install_safe_pace_timeout_patch() -> None:
         return
 
     original_decide = LiveHandActionDecisionEngine.decide
+    original_rank_immediate_plans = LiveHandActionDecisionEngine._rank_immediate_plans
+
+    def rank_immediate_plans(self, state):
+        # The configured hard-budget path already receives one bounded horizon-1
+        # bootstrap before adaptive search. Starting a second projected horizon-1
+        # pass after adaptive search can overrun the remaining reserve inside one
+        # uninterruptible Joker-aware estimate. Refuse that duplicate pass before
+        # any projection starts. The base decision engine catches this exception and
+        # dispatches to ``self._structural_timeout_fallback``; PathAware production
+        # therefore reuses completed canonical root evidence when available and only
+        # falls back to structural recovery when no such evidence completed.
+        if getattr(self, "_safe_pace_bootstrap_active", False):
+            return original_rank_immediate_plans(self, state)
+        if (
+            getattr(self, "max_search_seconds", None) is not None
+            and getattr(self, "_search_deadline", None) is not None
+        ):
+            raise PlannerSearchBudgetExceeded(
+                "skip projected post-adaptive immediate fallback under hard D1 budget"
+            )
+        return original_rank_immediate_plans(self, state)
 
     def decide(self, state):
         configured_budget = getattr(self, "max_search_seconds", None)
@@ -346,10 +367,13 @@ def install_safe_pace_timeout_patch() -> None:
                 configured_budget * BOOTSTRAP_BUDGET_FRACTION,
             )
             self._search_deadline = started + bootstrap_budget
+            self._safe_pace_bootstrap_active = True
             try:
                 bootstrap_plans = self._rank_immediate_plans(state)
             except (PlannerSearchBudgetExceeded, AttributeError, RuntimeError, TypeError, ValueError):
                 bootstrap_plans = []
+            finally:
+                self._safe_pace_bootstrap_active = False
 
             if bootstrap_plans and hasattr(self, "_adaptive_plan_history"):
                 self._adaptive_plan_history.append(tuple(bootstrap_plans))
@@ -371,5 +395,6 @@ def install_safe_pace_timeout_patch() -> None:
         return original_decide(self, state)
 
     LiveHandActionDecisionEngine.decide = decide
+    LiveHandActionDecisionEngine._rank_immediate_plans = rank_immediate_plans
     LiveHandActionDecisionEngine._structural_timeout_fallback = _bounded_structural_timeout_fallback
     LiveHandActionDecisionEngine._safe_pace_timeout_installed = True
