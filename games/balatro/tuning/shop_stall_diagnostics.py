@@ -19,7 +19,14 @@ class LiveTuningShopTrace:
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
 
-    def emit(self, stage: str, status: str, *, elapsed_seconds: float | None = None) -> None:
+    def emit(
+        self,
+        stage: str,
+        status: str,
+        *,
+        elapsed_seconds: float | None = None,
+        **details,
+    ) -> None:
         payload = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "pid": os.getpid(),
@@ -28,20 +35,38 @@ class LiveTuningShopTrace:
         }
         if elapsed_seconds is not None:
             payload["elapsed_seconds"] = round(float(elapsed_seconds), 6)
+        payload.update(
+            {
+                str(key): value
+                for key, value in details.items()
+                if value is not None
+            }
+        )
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, sort_keys=True) + "\n")
             handle.flush()
 
-    def timed(self, stage: str, call: Callable, *args, **kwargs):
+    def timed(self, stage: str, call: Callable, *args, trace_details=None, **kwargs):
+        details = dict(trace_details or {})
         started = perf_counter()
-        self.emit(stage, "BEGIN")
+        self.emit(stage, "BEGIN", **details)
         try:
             result = call(*args, **kwargs)
         except BaseException:
-            self.emit(stage, "ERROR", elapsed_seconds=perf_counter() - started)
+            self.emit(
+                stage,
+                "ERROR",
+                elapsed_seconds=perf_counter() - started,
+                **details,
+            )
             raise
-        self.emit(stage, "END", elapsed_seconds=perf_counter() - started)
+        self.emit(
+            stage,
+            "END",
+            elapsed_seconds=perf_counter() - started,
+            **details,
+        )
         return result
 
 
@@ -60,6 +85,70 @@ def _wrap_method(trace: LiveTuningShopTrace, target, name: str, stage: str) -> N
     setattr(target, marker, True)
 
 
+def _booster_details(policy, action) -> dict[str, object]:
+    target = getattr(action, "target", None)
+    family = None
+    variant = None
+    try:
+        family = policy._family(target)
+    except (AttributeError, TypeError, ValueError):
+        pass
+    try:
+        variant = policy._variant(target)
+    except (AttributeError, TypeError, ValueError):
+        pass
+    label = None
+    if isinstance(target, dict):
+        label = target.get("label") or target.get("name") or target.get("center")
+    elif target is not None:
+        label = (
+            getattr(target, "label", None)
+            or getattr(target, "name", None)
+            or getattr(target, "center", None)
+        )
+    return {
+        "booster_family": str(family) if family is not None else None,
+        "booster_variant": str(variant) if variant is not None else None,
+        "booster_label": str(label) if label is not None else None,
+    }
+
+
+def _wrap_booster_recommend(trace: LiveTuningShopTrace, policy) -> None:
+    original = getattr(policy, "recommend", None)
+    if not callable(original):
+        return
+    marker = "_balatro_live_tuning_trace_recommend"
+    if getattr(policy, marker, False):
+        return
+
+    build_profiler = getattr(policy, "build_profiler", None)
+    if build_profiler is not None:
+        _wrap_method(trace, build_profiler, "profile", "D8_BUILD_PROFILE")
+
+    for attribute, stage in (
+        ("_standard_generator_expectation", "D8_STANDARD_EXPECTATION"),
+        ("_arcana_generator_expectation", "D8_ARCANA_EXPECTATION"),
+        ("_spectral_generator_expectation", "D8_SPECTRAL_EXPECTATION"),
+    ):
+        evaluator = getattr(policy, attribute, None)
+        if evaluator is not None:
+            _wrap_method(trace, evaluator, "evaluate", stage)
+
+    def wrapped(state, action, *args, **kwargs):
+        return trace.timed(
+            "D14_BOOSTER_RECOMMEND",
+            original,
+            state,
+            action,
+            *args,
+            trace_details=_booster_details(policy, action),
+            **kwargs,
+        )
+
+    setattr(policy, "recommend", wrapped)
+    setattr(policy, marker, True)
+
+
 def _wrap_policy_factory(
     trace: LiveTuningShopTrace,
     arbiter,
@@ -76,7 +165,10 @@ def _wrap_policy_factory(
 
     def wrapped(*args, **kwargs):
         policy = trace.timed(factory_stage, original, *args, **kwargs)
-        _wrap_method(trace, policy, "recommend", recommend_stage)
+        if recommend_stage == "D14_BOOSTER_RECOMMEND":
+            _wrap_booster_recommend(trace, policy)
+        else:
+            _wrap_method(trace, policy, "recommend", recommend_stage)
         return policy
 
     setattr(arbiter, factory_name, wrapped)
