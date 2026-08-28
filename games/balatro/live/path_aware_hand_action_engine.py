@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, is_dataclass, replace
 from time import perf_counter
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
@@ -214,24 +214,25 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
             strategy_health=strategy_health,
         )
         self.last_latency_breakdown = breakdown
-        decision = replace(
-            decision,
-            rationale=(
-                *decision.rationale,
-                (
-                    "D1 latency "
-                    f"total={breakdown.total:.6f}s "
-                    f"base_policy={breakdown.base_policy:.6f}s "
-                    f"adaptive_search={breakdown.adaptive_search:.6f}s "
-                    f"confirmation_search={breakdown.confirmation_search:.6f}s "
-                    f"immediate_fallback_search={breakdown.immediate_fallback_search:.6f}s "
-                    f"adaptive_authority={breakdown.adaptive_authority:.6f}s "
-                    f"consensus_recovery={breakdown.consensus_recovery:.6f}s "
-                    f"strategy_health={breakdown.strategy_health:.6f}s "
-                    f"residual={breakdown.residual:.6f}s"
+        if is_dataclass(decision) and hasattr(decision, "rationale"):
+            decision = replace(
+                decision,
+                rationale=(
+                    *decision.rationale,
+                    (
+                        "D1 latency "
+                        f"total={breakdown.total:.6f}s "
+                        f"base_policy={breakdown.base_policy:.6f}s "
+                        f"adaptive_search={breakdown.adaptive_search:.6f}s "
+                        f"confirmation_search={breakdown.confirmation_search:.6f}s "
+                        f"immediate_fallback_search={breakdown.immediate_fallback_search:.6f}s "
+                        f"adaptive_authority={breakdown.adaptive_authority:.6f}s "
+                        f"consensus_recovery={breakdown.consensus_recovery:.6f}s "
+                        f"strategy_health={breakdown.strategy_health:.6f}s "
+                        f"residual={breakdown.residual:.6f}s"
+                    ),
                 ),
-            ),
-        )
+            )
         return decision
 
     def _structural_timeout_fallback(
@@ -258,8 +259,6 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         plays = tuple(plan for plan in plans if plan.action.name == PLAY_CARDS)
         discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
         if not plays:
-            # Canonical D1 normally always has a Play root. If that invariant is
-            # ever broken, the base emergency path is safer than fabricating fields.
             return super()._structural_timeout_fallback(
                 state,
                 search_attempts=search_attempts,
@@ -329,14 +328,6 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         state,
         decision: HandActionDecision,
     ) -> HandActionDecision:
-        """Use deeper completed evidence only within the finalized recovery class.
-
-        Production policy owns Play-vs-Discard survival arbitration. In particular,
-        a pace-qualified Play is final: a post-policy wrapper must not replace it
-        with an engineered deeper line. When the policy is already in recovery,
-        however, a materially superior completed root may refine the particular
-        candidate so long as it stays in the same Play/Discard class.
-        """
         if decision.mode in {CLEAR_PATH, PACE_PLAY} or not self._adaptive_root_history:
             return decision
 
