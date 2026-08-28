@@ -29,8 +29,10 @@ _LAST_PROFILE: ContextVar[dict[str, float | int] | None] = ContextVar(
     default=None,
 )
 
+# These buckets are disjoint direct children of D14. ``deterministic`` is excluded
+# because BalatroShopPolicy.rank_actions can also execute inside reroll evaluation;
+# it remains visible as an overlapping informational metric.
 _TOP_LEVEL_STAGES = (
-    "deterministic",
     "joker",
     "consumable",
     "booster",
