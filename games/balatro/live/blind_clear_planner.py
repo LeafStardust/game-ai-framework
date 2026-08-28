@@ -13,7 +13,7 @@ from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
 
 
 class PlannerSearchBudgetExceeded(RuntimeError):
-    """Raised when a bounded live planner search exhausts its node budget."""
+    """Raised when a bounded live planner search exhausts its search budget."""
 
 
 @dataclass(frozen=True)
@@ -161,11 +161,14 @@ class LiveBlindClearPlanner:
             candidate_count=len(candidates),
         )
 
-    def _consume_node(self) -> None:
+    def _check_deadline(self) -> None:
         if self.deadline is not None and perf_counter() >= self.deadline:
             raise PlannerSearchBudgetExceeded(
                 "live blind planner search exceeded wall-clock budget"
             )
+
+    def _consume_node(self) -> None:
+        self._check_deadline()
         if self.max_nodes is not None and self.nodes_evaluated >= self.max_nodes:
             raise PlannerSearchBudgetExceeded(
                 "live blind planner search exceeded node budget "
@@ -367,6 +370,23 @@ class LiveBlindClearPlanner:
 
         return _ActionEstimate(action, total_value, exact)
 
+    def _rank_actions_with_deadline(
+        self,
+        state,
+        actions,
+        *,
+        priority,
+        limit: int,
+    ) -> list[BalatroAction]:
+        scored = []
+        for action in actions:
+            self._check_deadline()
+            score = priority(state, action)
+            self._check_deadline()
+            scored.append((score, action))
+        scored.sort(key=lambda item: item[0], reverse=True)
+        return [action for _, action in scored[:limit]]
+
     def _candidate_actions(
         self,
         state,
@@ -378,12 +398,15 @@ class LiveBlindClearPlanner:
         play_limit = self.play_width if play_width is None else int(play_width)
         discard_limit = self.discard_width if discard_width is None else int(discard_width)
 
+        self._check_deadline()
         plays = self.action_generator.generate_play_actions(state)
-        ranked_plays = sorted(
+        self._check_deadline()
+        ranked_plays = self._rank_actions_with_deadline(
+            state,
             plays,
-            key=lambda action: self._play_priority(state, action),
-            reverse=True,
-        )[:play_limit]
+            priority=self._play_priority,
+            limit=play_limit,
+        )
 
         if (
             not allow_discards
@@ -392,12 +415,15 @@ class LiveBlindClearPlanner:
         ):
             return ranked_plays
 
+        self._check_deadline()
         discards = self.action_generator.generate_discard_actions(state)
-        ranked_discards = sorted(
+        self._check_deadline()
+        ranked_discards = self._rank_actions_with_deadline(
+            state,
             discards,
-            key=lambda action: self._discard_priority(state, action),
-            reverse=True,
-        )[:discard_limit]
+            priority=self._discard_priority,
+            limit=discard_limit,
+        )
         return ranked_plays + ranked_discards
 
     def _play_priority(self, state, action: BalatroAction) -> tuple[float, float, int, int]:
