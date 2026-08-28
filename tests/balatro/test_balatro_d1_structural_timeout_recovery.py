@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections import Counter
 from types import SimpleNamespace
 
-from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
-from games.balatro.safe_pace_timeout_patch import _select_structural_timeout_action
+from games.balatro.actions import PLAY_CARDS
+from games.balatro.safe_pace_timeout_patch import _select_structural_timeout_play
 
 
 class _Policy:
@@ -26,6 +26,7 @@ class _Policy:
 
 class _Engine:
     policy = _Policy()
+    planner = SimpleNamespace(play_width=6)
 
 
 def _card(rank: str):
@@ -53,18 +54,13 @@ def _state(ranks, *, boss_name="", only_hand=None, discards=4, hands=4):
 def test_structural_timeout_uses_direct_subsets_for_nine_card_hand():
     state = _state(["A", "K", "Q", "J", "10", "9", "8", "7", "6"])
 
-    action, best_play, selected_kind, play_count = _select_structural_timeout_action(
-        _Engine(),
-        state,
-    )
+    action, play_count = _select_structural_timeout_play(_Engine(), state)
 
     assert play_count == 381
-    assert action.name in {PLAY_CARDS, DISCARD_CARDS}
-    assert best_play.name == PLAY_CARDS
-    assert selected_kind in {"Play", "Discard"}
+    assert action.name == PLAY_CARDS
 
 
-def test_mouth_timeout_uses_real_discard_when_locked_hand_is_unavailable():
+def test_mouth_timeout_does_not_fabricate_discard_without_completed_search():
     state = _state(
         ["A", "K", "Q", "J", "10", "9", "8", "7", "6"],
         boss_name="The Mouth",
@@ -73,15 +69,9 @@ def test_mouth_timeout_uses_real_discard_when_locked_hand_is_unavailable():
         hands=3,
     )
 
-    action, best_play, selected_kind, _ = _select_structural_timeout_action(
-        _Engine(),
-        state,
-    )
+    action, _ = _select_structural_timeout_play(_Engine(), state)
 
-    assert action.name == DISCARD_CARDS
-    assert best_play.name == PLAY_CARDS
-    assert selected_kind == "Discard"
-    assert len(action.cards) == 5
+    assert action.name == PLAY_CARDS
 
 
 def test_mouth_timeout_keeps_matching_locked_hand_when_available():
@@ -93,14 +83,9 @@ def test_mouth_timeout_keeps_matching_locked_hand_when_available():
         hands=3,
     )
 
-    action, best_play, selected_kind, _ = _select_structural_timeout_action(
-        _Engine(),
-        state,
-    )
+    action, _ = _select_structural_timeout_play(_Engine(), state)
 
     assert action.name == PLAY_CARDS
-    assert best_play is action
-    assert selected_kind == "Play"
     assert Counter(card.rank for card in action.cards)["6"] == 2
 
 
@@ -113,11 +98,7 @@ def test_mouth_timeout_without_discards_uses_widest_zero_score_redraw():
         hands=2,
     )
 
-    action, _, selected_kind, _ = _select_structural_timeout_action(
-        _Engine(),
-        state,
-    )
+    action, _ = _select_structural_timeout_play(_Engine(), state)
 
     assert action.name == PLAY_CARDS
-    assert selected_kind == "Play"
     assert len(action.cards) == 5
