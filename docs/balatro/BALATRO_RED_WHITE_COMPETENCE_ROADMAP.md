@@ -1,6 +1,6 @@
 # Balatro Red/White Competence Roadmap
 
-Status: **Red/White ordinary competence baseline clean; D14 Arcana SHOP stall repaired and deterministic validation green; calibration temporarily refrozen pending one fresh three-run baseline-only live study**
+Status: **Red/White ordinary competence baseline clean; live Phase-A baseline remains blocked by a tuner-only-context SHOP stall; Arcana bound is deterministic-green but not proven root cause; production-default tuning context isolation implemented, validation pending**
 
 This document is the active handoff contract for Red Deck / White Stake work. Detailed dated evidence belongs in `BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`; authority boundaries belong in `BALATRO_DECISION_AUTHORITY_MAP.md`.
 
@@ -101,7 +101,7 @@ The 2026-08-28 competence loop identified and repaired multiple distinct D1 fail
 
 Current runtime/authority protections include projection-free initial root ranking, bounded semantic Play/Discard prefiltering, bounded structural timeout recovery, no projected pre-adaptive bootstrap, no projected post-budget immediate fallback, projection-free legal discard reserve on ordinary initial roots, active Hook exclusion from that reserve, and a temporary active-Hook **3.0 s** search cap with restoration of the configured engine budget afterward.
 
-The targeted Hook/root/fallback regressions and the full `tests/balatro` suite were reported **green by the user** before the later Arcana SHOP change.
+The targeted Hook/root/fallback regressions and the full `tests/balatro` suite were reported **green by the user** before the later tuning-context isolation change.
 
 ### Clean ordinary competence baseline — PASS
 
@@ -119,34 +119,71 @@ Replacement batch `balatro-20260828T202157Z-b3fc8c0a` remains the clean pre-cali
 
 Weak Play-vs-Discard choices in that batch remain decision-quality/tuning targets rather than evidence of missing discard authority because the same HEAD selected real discards in ordinary live play.
 
-## Narrow D14 Arcana SHOP blocker — deterministic repair GREEN
+## Live tuning SHOP blocker — CURRENT
 
-The first attempted authoritative Phase-A production baseline produced interrupted run `balatro-20260828T204238Z-f12b2e9b-attempt-001`. It cleared Ante 1 Small and Big Blind, reached SHOP with **$13** and Abstract Joker, then emitted no SHOP decision for roughly five minutes until the user stopped the tuner.
+Two fresh production-default baseline-only tuning attempts have now reproduced a hard stall after entering SHOP. Both stopped emitting decisions for multiple minutes until the user manually terminated the tuner.
 
-The concrete unbounded branch was D8 Arcana unopened-pack expectation: `ArcanaBoosterExpectationEvaluator._ordinary_pool_mean()` evaluated the entire public Tarot/Spectral pool through installed D9 scoring.
+### First interrupted tuning baseline
 
-Commit `2a5b708e` (`perf(balatro): bound large-pool Arcana expectation`) now keeps pools of 12 or fewer exact and, for larger pools, evaluates at most 8 deterministically spread public outcomes while dividing by the full eligible-pool denominator. Omitted mass contributes zero and is not renormalized. Existing same-state memoization still prevents duplicate Arcana packs from recomputing the same expectation in one SHOP state.
+Run `balatro-20260828T204238Z-f12b2e9b-attempt-001` cleared Ante 1 Small and Big Blind, reached SHOP with **$13** and Abstract Joker, and exposed Red Card, Venus, Wasteful, Jumbo Arcana Pack, and Arcana Pack. The durable log ended after the settled `END_ROUND -> SHOP` transition; no SHOP decision followed.
 
-Regression commit `e2b6424b` covers the large-pool evaluation count/denominator and exact small-pool behavior.
+D8 Arcana unopened-pack expectation had a real unbounded full-public-pool traversal. Commit `2a5b708e` (`perf(balatro): bound large-pool Arcana expectation`) keeps pools of 12 or fewer exact and, for larger pools, evaluates at most 8 deterministically spread public outcomes while dividing by the full eligible-pool denominator. Omitted mass is zero and is not renormalized. Regression commit `e2b6424b` covers the large-pool evaluation count/denominator and exact small-pool behavior.
 
-The user reported the corrected targeted Arcana/SHOP test set **green**, followed by the full `tests/balatro` suite **green** on this gameplay/test HEAD.
+The user reported the corrected targeted Arcana/SHOP set **green**, followed by the full `tests/balatro` suite **green** on that Arcana-bound gameplay/test HEAD.
+
+### Second interrupted tuning baseline proves Arcana was not the full root cause
+
+Fresh session `balatro-20260828T211444Z-555b26b7` began after the Arcana-bound deterministic checkpoint:
+
+- attempt 1 completed normally, losing Ante 1 Small Blind at **268 / 300**;
+- attempt 2 reached SHOP with **$9** and visible Odd Todd, Venus, Buffoon Pack, Arcana Pack, and Reroll Surplus;
+- there was only **one Arcana Pack** in this shop;
+- again the durable log ended after successful `END_ROUND -> SHOP` settlement and no SHOP decision was emitted afterward.
+
+Therefore the Arcana bound remains a valid conservative runtime improvement but must **not** be described as the proven root cause of the multi-minute stall.
+
+### Tuner-vs-production architecture audit
+
+The tuning entrypoint does not use a separate gameplay agent implementation. `AuthoritativeLiveBatchEvaluator` constructs `BoundedBalatroAgentSupervisor`, which is the same bounded production supervisor family used by normal `--three` mode. Both ultimately use the same production observer, `LiveMemoryInjectedSingleStepRunner`, bridge, autonomous loop, D14 SHOP authority, D11 reroll authority, and action execution path.
+
+The material tuning differences are:
+
+- the tuner previously wrapped the entire production supervisor in `use_bond_calibration(calibration)`;
+- tuning uses separate control/log/session directories;
+- Optuna/preflight/final-reset lifecycle exists around the production supervisor.
+
+The queued `--baseline-only` calibration values are numerically identical to `DEFAULT_BOND_CALIBRATION`, so the current isolator is not different numeric parameters. It is whether merely installing an equal-valued calibration `ContextVar` override changes initialization/cache/runtime behavior somewhere below SHOP authority.
+
+### Production-default calibration-context isolation
+
+Commit `1fc31919` (`fix(balatro): match production context for tuning baseline`) changes the authoritative live evaluator so the exact production default baseline does **not** call `use_bond_calibration` at all. It reads the normal `ContextVar` default exactly like ordinary gameplay. Non-default candidate calibrations still enter the explicit override context.
+
+Regression commit `411bda21` (`test(balatro): isolate production tuning calibration context`) covers both sides:
+
+- exact `DEFAULT_BOND_CALIBRATION` -> no override context call;
+- non-default candidate -> override context remains active.
+
+This is an isolation change, not yet a claim that the ContextVar caused the SHOP stall. If a fresh baseline still stalls after this change, the calibration override itself is ruled out and investigation must move to the remaining tuner lifecycle/control/log initialization differences or a generic SHOP path that normal competence batches simply did not encounter.
 
 ## Immediate gate
 
-Calibration remains temporarily **refrozen only for live confirmation**, because the previous production baseline was interrupted before this gameplay/runtime SHA.
+Calibration remains **refrozen**.
 
 Required sequence now:
 
-1. manually restore Balatro to fresh Red Deck / White Stake / Ante 1 `BLIND_SELECT`;
-2. start a **freshly named** baseline-only live study rather than reusing the interrupted study name;
-3. require three completed production-default attempts with no multi-minute SHOP stall;
-4. if clean, reopen Phase-A candidate calibration immediately.
+1. targeted deterministic validation of the production-default calibration-context isolation;
+2. full `tests/balatro` on that gameplay/test HEAD;
+3. manually restore Balatro to fresh Red Deck / White Stake / Ante 1 `BLIND_SELECT`;
+4. start a **freshly named** baseline-only study;
+5. require three completed production-default attempts with no multi-minute SHOP stall;
+6. if the baseline still stalls, do not keep rerunning: treat the ContextVar hypothesis as falsified and instrument/compare the remaining tuner-specific lifecycle around the same production runner;
+7. if clean, reopen Phase-A candidate calibration.
 
-The interrupted Optuna trial must not be treated as baseline evidence. A fresh study name avoids inheriting a stale/RUNNING trial from the interrupted process.
+Interrupted Optuna trials must not be treated as baseline evidence. Fresh study names avoid inheriting stale/RUNNING trials from manually interrupted processes.
 
 ## Calibration phase after this gate
 
-Once the fresh production-default live baseline completes cleanly, calibration reopens under `docs/balatro/BALATRO_BOND_TUNING.md`.
+Once a fresh production-default live baseline completes cleanly, calibration reopens under `docs/balatro/BALATRO_BOND_TUNING.md`.
 
 Phase A remains low-dimensional and tunes only:
 
@@ -208,13 +245,18 @@ Boss rules are mechanics, not soft preferences. Ordinary strategy is subordinate
 - [x] Green Joker and Mouth semantic repairs.
 - [x] Projection-free ordinary root discard evidence.
 - [x] Clean ordinary unchanged-HEAD three-run competence baseline.
-- [x] Begin production-default Phase-A baseline attempt.
-- [x] Diagnose interrupted baseline as D14 Arcana full-pool expectation stall.
-- [x] Add conservative large-pool Arcana bound.
-- [x] Add deterministic large-/small-pool Arcana regression coverage.
-- [x] Targeted Arcana/SHOP deterministic validation.
-- [x] Full `tests/balatro` on the Arcana-bound HEAD.
-- [ ] **Current gate:** fresh three-run production-default baseline-only live study.
-- [ ] Reopen Phase-A candidate calibration immediately after a clean baseline.
+- [x] First production-default Phase-A baseline attempt exposed a multi-minute SHOP stall.
+- [x] Add conservative large-pool Arcana bound and deterministic coverage.
+- [x] Targeted Arcana/SHOP validation and full suite reported green.
+- [x] Second fresh tuning baseline reproduced SHOP stall after Arcana bound.
+- [x] Audit tuner vs normal `--three` architecture: same production gameplay supervisor/runner stack.
+- [x] Verify queued baseline values equal production defaults.
+- [x] Isolate exact production baseline from calibration ContextVar override.
+- [x] Add regression coverage preserving candidate calibration overrides.
+- [ ] **Current gate:** targeted calibration-context test(s).
+- [ ] Full `tests/balatro` on the context-isolation HEAD.
+- [ ] Fresh three-run production-default baseline-only live study.
+- [ ] Reopen Phase-A candidate calibration only after a clean baseline.
+- [ ] If stall persists, instrument remaining tuner-specific lifecycle/control/log differences instead of further speculative SHOP optimization.
 - [ ] Use calibration and trace review to improve weak Play-vs-Discard valuation, build formation, pivoting, shop decisions, and overall win probability.
 - [ ] Keep new decks, stake progression, gameplay features, and broader v1.1+ work frozen until the Red/White play-quality/calibration checkpoint is satisfactory.
