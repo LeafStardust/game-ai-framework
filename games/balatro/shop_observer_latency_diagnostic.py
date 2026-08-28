@@ -1,19 +1,22 @@
 from __future__ import annotations
 
-"""Diagnostic-only timing for the live SHOP observation pipeline.
+"""Diagnostic-only timing for the live SHOP pipeline.
 
 This module does not change readiness, settlement, state, or decision semantics.
 It records wall-clock time spent in the supervisor observer's public snapshot,
-native-readiness, post-pack-settle, and quiet-gate stages. Every SHOP observer
-profile accumulated since the previous autonomous decision is appended to that
-next decision's notes so normal JSONL traces identify the expensive stage without
-a separate profiler.
+native-readiness, post-pack-settle, and quiet-gate stages. It also records the
+single-step runner's total SHOP decision time and its existing observation,
+translation, and policy components.
+
+The JSONL run logger writes observation/decision rows only after a successful live
+transition has completed. Therefore adjacent event timestamps cannot be used to
+infer policy latency. These explicit notes keep observer time and D14 policy time
+separate in the durable trace.
 """
 
 from time import perf_counter
 
 from games.balatro.live.runtime.live_memory_autonomous_step_injected import (
-    AutonomousStepDecision,
     LiveMemoryInjectedSingleStepRunner,
 )
 from games.balatro.live.runtime.live_memory_supervisor_observer import (
@@ -32,6 +35,16 @@ def _timed_stage(self, name: str, call, *args, **kwargs):
                 profile.get(f"{name}_seconds", 0.0)
             ) + (perf_counter() - started)
             profile[f"{name}_calls"] = int(profile.get(f"{name}_calls", 0)) + 1
+
+
+def shop_decision_latency_note(runner, total_seconds: float) -> str:
+    return (
+        "shop_decision_latency="
+        f"total={float(total_seconds):.3f}s "
+        f"observation={float(getattr(runner, 'last_observation_seconds', 0.0)):.3f}s "
+        f"translation={float(getattr(runner, 'last_translation_seconds', 0.0)):.3f}s "
+        f"policy={float(getattr(runner, 'last_policy_seconds', 0.0)):.3f}s"
+    )
 
 
 def install_shop_observer_latency_diagnostic() -> None:
@@ -113,42 +126,49 @@ def install_shop_observer_latency_diagnostic() -> None:
         return snapshot
 
     def decide(self):
+        started = perf_counter()
         decision = original_decide(self)
-        observer = getattr(self, "observer", None)
-        profiles = getattr(observer, "_shop_latency_profiles", None)
-        if not isinstance(profiles, list) or not profiles:
+        decision_total = perf_counter() - started
+        if str(getattr(decision.snapshot, "phase", "")) != "SHOP":
             return decision
 
-        captured = tuple(profiles)
-        profiles.clear()
-        total = sum(float(item.get("total_seconds", 0.0)) for item in captured)
-        public = sum(float(item.get("public_seconds", 0.0)) for item in captured)
-        native = sum(
-            float(item.get("native_readiness_seconds", 0.0)) for item in captured
-        )
-        settle = sum(
-            float(item.get("post_pack_settle_seconds", 0.0)) for item in captured
-        )
-        quiet = sum(float(item.get("quiet_seconds", 0.0)) for item in captured)
-        public_calls = sum(int(item.get("public_calls", 0)) for item in captured)
+        diagnostics: list[str] = []
+        observer = getattr(self, "observer", None)
+        profiles = getattr(observer, "_shop_latency_profiles", None)
+        if isinstance(profiles, list) and profiles:
+            captured = tuple(profiles)
+            profiles.clear()
+            total = sum(float(item.get("total_seconds", 0.0)) for item in captured)
+            public = sum(float(item.get("public_seconds", 0.0)) for item in captured)
+            native = sum(
+                float(item.get("native_readiness_seconds", 0.0)) for item in captured
+            )
+            settle = sum(
+                float(item.get("post_pack_settle_seconds", 0.0)) for item in captured
+            )
+            quiet = sum(float(item.get("quiet_seconds", 0.0)) for item in captured)
+            public_calls = sum(int(item.get("public_calls", 0)) for item in captured)
+            diagnostics.append(
+                "shop_observer_latency="
+                f"observations={len(captured)} "
+                f"total={total:.3f}s "
+                f"public={public:.3f}s/{public_calls}calls "
+                f"native_readiness={native:.3f}s "
+                f"post_pack_settle={settle:.3f}s "
+                f"quiet={quiet:.3f}s"
+            )
 
-        diagnostic = (
-            "shop_observer_latency="
-            f"observations={len(captured)} "
-            f"total={total:.3f}s "
-            f"public={public:.3f}s/{public_calls}calls "
-            f"native_readiness={native:.3f}s "
-            f"post_pack_settle={settle:.3f}s "
-            f"quiet={quiet:.3f}s"
+        diagnostics.append(shop_decision_latency_note(self, decision_total))
+
+        # Preserve any non-dataclass diagnostic attributes attached by later
+        # decision policies. Reconstructing the frozen dataclass here would silently
+        # discard those attributes, so mutate only its diagnostic notes field.
+        object.__setattr__(
+            decision,
+            "notes",
+            (*tuple(getattr(decision, "notes", ())), *diagnostics),
         )
-        return AutonomousStepDecision(
-            snapshot=decision.snapshot,
-            state=decision.state,
-            action=decision.action,
-            source=decision.source,
-            notes=(*decision.notes, diagnostic),
-            pack_signature=decision.pack_signature,
-        )
+        return decision
 
     SupervisorLiveMemoryBalatroObserver._observe_public = observe_public
     SupervisorLiveMemoryBalatroObserver._wait_for_native_readiness = (
@@ -165,4 +185,7 @@ def install_shop_observer_latency_diagnostic() -> None:
     SupervisorLiveMemoryBalatroObserver._shop_observer_latency_diagnostic_installed = True
 
 
-__all__ = ["install_shop_observer_latency_diagnostic"]
+__all__ = [
+    "install_shop_observer_latency_diagnostic",
+    "shop_decision_latency_note",
+]
