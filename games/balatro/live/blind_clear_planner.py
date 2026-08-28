@@ -87,6 +87,7 @@ class LiveBlindClearPlanner:
 
     DEFAULT_EXACT_DRAW_COMBINATION_LIMIT = 128
     DEFAULT_DRAW_SAMPLE_COUNT = 64
+    ROOT_CANDIDATE_BOOTSTRAP_SECONDS = 0.75
 
     def __init__(
         self,
@@ -377,13 +378,18 @@ class LiveBlindClearPlanner:
         *,
         priority,
         limit: int,
+        soft_deadline: float | None = None,
     ) -> list[BalatroAction]:
         scored = []
         for action in actions:
             self._check_deadline()
+            if soft_deadline is not None and scored and perf_counter() >= soft_deadline:
+                break
             score = priority(state, action)
             self._check_deadline()
             scored.append((score, action))
+            if soft_deadline is not None and perf_counter() >= soft_deadline:
+                break
         scored.sort(key=lambda item: item[0], reverse=True)
         return [action for _, action in scored[:limit]]
 
@@ -398,6 +404,13 @@ class LiveBlindClearPlanner:
         play_limit = self.play_width if play_width is None else int(play_width)
         discard_limit = self.discard_width if discard_width is None else int(discard_width)
 
+        initial_root = int(getattr(self, "nodes_evaluated", 0)) == 0
+        soft_deadline = None
+        if initial_root:
+            soft_deadline = perf_counter() + self.ROOT_CANDIDATE_BOOTSTRAP_SECONDS
+            if self.deadline is not None:
+                soft_deadline = min(self.deadline, soft_deadline)
+
         self._check_deadline()
         plays = self.action_generator.generate_play_actions(state)
         self._check_deadline()
@@ -406,7 +419,11 @@ class LiveBlindClearPlanner:
             plays,
             priority=self._play_priority,
             limit=play_limit,
+            soft_deadline=soft_deadline,
         )
+
+        if initial_root and soft_deadline is not None and perf_counter() >= soft_deadline:
+            return ranked_plays
 
         if (
             not allow_discards
@@ -423,6 +440,7 @@ class LiveBlindClearPlanner:
             discards,
             priority=self._discard_priority,
             limit=discard_limit,
+            soft_deadline=soft_deadline if initial_root else None,
         )
         return ranked_plays + ranked_discards
 
