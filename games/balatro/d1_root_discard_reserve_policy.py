@@ -13,13 +13,18 @@ The Hook is excluded while its boss effect is active. Live evidence showed that 
 reserved player-discard candidate on The Hook could spend the entire D1 wall-clock
 budget inside one discard projection before adaptive node 1. The boss already forces
 card removal after each played hand, while bounded structural timeout recovery still
-retains legal player-discard authority when it is actually needed.
+retains legal player-discard authority when it is actually needed. The same install
+entry point also installs the Hook-specific search-budget cap so the active Hook
+cannot consume the full ordinary D1 adaptive window on every hand.
 """
 
 from time import perf_counter
 
 from games.balatro.actions import DISCARD_CARDS
-from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
+from games.balatro.d1_hook_search_budget_policy import (
+    _active_hook,
+    install_d1_hook_search_budget_policy,
+)
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.semantic_search_guard_policy import _cheap_discard_key
 
@@ -62,13 +67,6 @@ def _projection_free_discard_reserve(planner, state, actions, *, limit: int):
     if widest not in selected:
         selected = selected[: max(0, limit - 1)] + [widest]
     return selected[:limit]
-
-
-def _active_hook(state) -> bool:
-    return (
-        str(getattr(state, "boss_name", "") or "") == "The Hook"
-        and not boss_blind_disabled_by_owned_jokers(state)
-    )
 
 
 def _candidate_actions_with_root_discard_reserve(
@@ -133,6 +131,7 @@ def _candidate_actions_with_root_discard_reserve(
 
 def install_d1_root_discard_reserve_policy() -> None:
     if getattr(LiveBlindClearPlanner, "_root_discard_reserve_installed", False):
+        install_d1_hook_search_budget_policy()
         return
 
     original_candidate_actions = LiveBlindClearPlanner._candidate_actions
@@ -156,3 +155,4 @@ def install_d1_root_discard_reserve_policy() -> None:
 
     LiveBlindClearPlanner._candidate_actions = candidate_actions_with_root_discard_reserve
     LiveBlindClearPlanner._root_discard_reserve_installed = True
+    install_d1_hook_search_budget_policy()
