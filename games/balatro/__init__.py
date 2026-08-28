@@ -26,6 +26,7 @@ from games.balatro.consumable_target_literal_value_policy import install_consuma
 from games.balatro.cryptid_dispatch_postcondition import install_cryptid_dispatch_postcondition
 from games.balatro.cryptid_pack_policy import install_cryptid_pack_policy
 from games.balatro.d1_log_resilience_policy import install_d1_log_resilience_policy
+from games.balatro.d1_root_discard_reserve_policy import install_d1_root_discard_reserve_policy
 from games.balatro.deck_growth_pack_policy import install_deck_growth_pack_policy
 from games.balatro.deck_growth_playing_card_value_policy import install_deck_growth_playing_card_value_policy
 from games.balatro.early_spend_sanity_policy import install_early_spend_sanity_policy
@@ -161,6 +162,7 @@ install_aces_dna_hand_policy()
 install_strategy_execution_guard_policy()
 install_target_hand_engine_policy()
 install_semantic_search_guard_policy()
+install_d1_root_discard_reserve_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
 install_live_joker_order_authority()
