@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections import Counter
 from types import SimpleNamespace
 
-from games.balatro.actions import PLAY_CARDS
-from games.balatro.safe_pace_timeout_patch import _select_structural_timeout_play
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
+from games.balatro.safe_pace_timeout_patch import _select_structural_timeout_action
 
 
 class _Policy:
@@ -24,9 +24,26 @@ class _Policy:
         return 0.0
 
 
-class _Engine:
+class _NoDiscardGeneratorEngine:
     policy = _Policy()
     planner = SimpleNamespace(play_width=6)
+
+
+class _DiscardGenerator:
+    @staticmethod
+    def generate_discard_actions(state):
+        return [
+            BalatroAction(DISCARD_CARDS, cards=[card])
+            for card in state.hand
+        ]
+
+
+class _BoundedDiscardEngine:
+    policy = _Policy()
+    planner = SimpleNamespace(
+        play_width=6,
+        action_generator=_DiscardGenerator(),
+    )
 
 
 def _card(rank: str):
@@ -54,13 +71,18 @@ def _state(ranks, *, boss_name="", only_hand=None, discards=4, hands=4):
 def test_structural_timeout_uses_direct_subsets_for_nine_card_hand():
     state = _state(["A", "K", "Q", "J", "10", "9", "8", "7", "6"])
 
-    action, play_count = _select_structural_timeout_play(_Engine(), state)
+    action, best_play, selected_kind, play_count = _select_structural_timeout_action(
+        _NoDiscardGeneratorEngine(),
+        state,
+    )
 
     assert play_count == 381
     assert action.name == PLAY_CARDS
+    assert best_play.name == PLAY_CARDS
+    assert selected_kind == "Play"
 
 
-def test_mouth_timeout_does_not_fabricate_discard_without_completed_search():
+def test_mouth_timeout_does_not_fabricate_discard_without_generator_authority():
     state = _state(
         ["A", "K", "Q", "J", "10", "9", "8", "7", "6"],
         boss_name="The Mouth",
@@ -69,9 +91,32 @@ def test_mouth_timeout_does_not_fabricate_discard_without_completed_search():
         hands=3,
     )
 
-    action, _ = _select_structural_timeout_play(_Engine(), state)
+    action, _, selected_kind, _ = _select_structural_timeout_action(
+        _NoDiscardGeneratorEngine(),
+        state,
+    )
 
     assert action.name == PLAY_CARDS
+    assert selected_kind == "Play"
+
+
+def test_mouth_timeout_uses_bounded_generated_discard_when_locked_hand_unavailable():
+    state = _state(
+        ["A", "K", "Q", "J", "10", "9", "8", "7", "6"],
+        boss_name="The Mouth",
+        only_hand="Pair",
+        discards=4,
+        hands=3,
+    )
+
+    action, best_play, selected_kind, _ = _select_structural_timeout_action(
+        _BoundedDiscardEngine(),
+        state,
+    )
+
+    assert action.name == DISCARD_CARDS
+    assert best_play.name == PLAY_CARDS
+    assert selected_kind == "Discard"
 
 
 def test_mouth_timeout_keeps_matching_locked_hand_when_available():
@@ -83,9 +128,13 @@ def test_mouth_timeout_keeps_matching_locked_hand_when_available():
         hands=3,
     )
 
-    action, _ = _select_structural_timeout_play(_Engine(), state)
+    action, _, selected_kind, _ = _select_structural_timeout_action(
+        _BoundedDiscardEngine(),
+        state,
+    )
 
     assert action.name == PLAY_CARDS
+    assert selected_kind == "Play"
     assert Counter(card.rank for card in action.cards)["6"] == 2
 
 
@@ -98,7 +147,11 @@ def test_mouth_timeout_without_discards_uses_widest_zero_score_redraw():
         hands=2,
     )
 
-    action, _ = _select_structural_timeout_play(_Engine(), state)
+    action, _, selected_kind, _ = _select_structural_timeout_action(
+        _BoundedDiscardEngine(),
+        state,
+    )
 
     assert action.name == PLAY_CARDS
+    assert selected_kind == "Play"
     assert len(action.cards) == 5
