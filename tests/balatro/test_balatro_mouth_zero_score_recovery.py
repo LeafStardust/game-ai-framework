@@ -14,7 +14,7 @@ class _Policy:
         counts = sorted(Counter(card.rank for card in cards).values(), reverse=True)
         first = counts[0] if counts else 0
         second = counts[1] if len(counts) > 1 else 0
-        return min(1.0, (first + second) / 5.0)
+        return 0.6 * min(1.0, first / 3.0) + 0.4 * min(1.0, second / 2.0)
 
 
 def _card(rank: str):
@@ -42,9 +42,10 @@ def test_mouth_without_discards_uses_widest_play_that_preserves_best_structure(m
     state = SimpleNamespace(hand=(pair_a, pair_b, *dead), discards_remaining=0)
 
     singleton = _play(dead[0])
-    wide_preserving = _play(*dead)
-    breaks_pair = _play(pair_a, *dead[:4])
-    supplied = (singleton, wide_preserving, breaks_pair)
+    wide_preserving = _play(*dead[:4])
+    overwide_loses_structure = _play(*dead)
+    breaks_pair = _play(pair_a, *dead[:3])
+    supplied = (singleton, wide_preserving, overwide_loses_structure, breaks_pair)
 
     monkeypatch.setattr(module, "_mouth_locked_hand", lambda state: "FULL HOUSE")
     monkeypatch.setattr(module, "_hand_type", lambda policy, state, plan: plan.hand_type)
@@ -54,7 +55,8 @@ def test_mouth_without_discards_uses_widest_play_that_preserves_best_structure(m
     assert constrained == (wide_preserving,)
     assert pair_a not in wide_preserving.action.cards
     assert pair_b not in wide_preserving.action.cards
-    assert len(wide_preserving.action.cards) == 5
+    assert dead[4] not in wide_preserving.action.cards
+    assert len(wide_preserving.action.cards) == 4
 
 
 def test_mouth_matching_scoring_play_remains_authoritative(monkeypatch):
