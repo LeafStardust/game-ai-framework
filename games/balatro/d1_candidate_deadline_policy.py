@@ -4,12 +4,13 @@ from __future__ import annotations
 
 Candidate-generation hard deadline checks and the bounded initial-root bootstrap now
 live directly in ``LiveBlindClearPlanner``. This module must not install a second
-``_candidate_actions`` authority, but it retains the former helper names so older
-imports/tests do not fail while the repository converges on the canonical planner.
+``_candidate_actions`` authority, but it retains the former helper names and clock
+surface so older imports/tests continue to exercise the canonical planner.
 """
 
 from time import perf_counter
 
+import games.balatro.live.blind_clear_planner as _planner_module
 from games.balatro.live.blind_clear_planner import (
     LiveBlindClearPlanner,
     PlannerSearchBudgetExceeded,
@@ -17,6 +18,23 @@ from games.balatro.live.blind_clear_planner import (
 
 
 ROOT_BOOTSTRAP_SECONDS = LiveBlindClearPlanner.ROOT_CANDIDATE_BOOTSTRAP_SECONDS
+
+
+def _compat_perf_counter() -> float:
+    """Route the canonical planner clock through this legacy module when imported.
+
+    Historical tests monkeypatch ``d1_candidate_deadline_policy.perf_counter``.
+    Keeping this tiny indirection lets those tests control the same clock used by
+    the canonical planner without restoring the retired ``_candidate_actions``
+    monkeypatch.
+    """
+    return perf_counter()
+
+
+# Clock compatibility only: the planner remains the sole candidate/deadline
+# implementation authority. Canonical tests may still monkeypatch the planner
+# module's ``perf_counter`` directly, which simply replaces this proxy.
+_planner_module.perf_counter = _compat_perf_counter
 
 
 def _check_deadline(planner: LiveBlindClearPlanner, stage: str = "candidate ranking") -> None:
