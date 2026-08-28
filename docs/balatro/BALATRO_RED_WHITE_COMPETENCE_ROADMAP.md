@@ -1,6 +1,6 @@
 # Balatro Red/White Competence Roadmap
 
-Status: **D14 / D11 SHOP latency gate closed; D1 authority-latency gate REOPENED; calibration frozen pending focused D1 validation**
+Status: **D14 / D11 SHOP latency gate closed; D1 authority-latency gate closed; calibration frozen on The Mouth recovery semantic blocker**
 
 This document is the handoff contract for Red Deck / White Stake competence work. It exists so future contributors do not have to reconstruct the intended Balatro play philosophy or operational workflow from live-run postmortems.
 
@@ -23,11 +23,18 @@ Do not replace this with a longer remote/branch form unless the user's local Git
 
 ### Canonical Windows commands
 
-Normal single Balatro live attempt:
+Normal persistent Balatro live mode:
 
 ```powershell
 git pull
 .\BalatroAgentToggle.bat
+```
+
+Explicit bounded one-attempt validation:
+
+```powershell
+git pull
+.\BalatroAgentToggle.bat --one
 ```
 
 Three-attempt batch, only when a three-run batch is explicitly required by the current gate:
@@ -70,7 +77,7 @@ Never tell the user to run `python main.py` for the Balatro live agent. Never in
 - Do not request the full suite again when it is already green for the exact current code HEAD and no later code/test commit invalidated that result.
 - Documentation-only commits do not invalidate a green gameplay/test checkpoint.
 - After a code/test commit, give `git pull` followed by every exact command needed.
-- When a focused single live run is sufficient for a profiler/performance gate, request `.\BalatroAgentToggle.bat`, not `--three` or `--five`.
+- When a focused single live run is sufficient for a profiler/performance gate, request `.\BalatroAgentToggle.bat --one`, not `--three` or `--five`.
 - For live evidence, use the generated JSONL trace and run summary. If their path convention is uncertain, inspect the runtime instead of guessing.
 
 ### No-guess handoff rule
@@ -85,34 +92,38 @@ Durable details that materially affect future work must be persisted in reposito
 
 The D14/D11 SHOP latency blocker remains **closed**. Reroll-active D11 future evaluation fell from approximately **20.8 s** before the Joker/Tarot bounds to approximately **3.17 s**, with no meaningful hidden residual. Do not resume SHOP micro-optimization unless new profiling evidence reopens it.
 
-### D1 latency is reopened
+### D1 latency is closed again
 
-The earlier focused D1 validation run `balatro-20260828T123054Z-88fe4bcc-attempt-001` had appeared to close D1 latency: 73 D1 decisions, approximately **1.78 s mean / 1.97 s median / 4.37 s max**, no `budget_exceeded=True` records, and no `D1 wall-clock budget exhausted` rationale messages.
+The earlier 20–30 second recurrence came from the installed `semantic_search_guard_policy` candidate prefilter doing large amounts of pre-node work outside the planner deadline. Commit `76dc7b90451bf82c3d0535913b1cbd380311c896` bounded that semantic prefilter and commit `2ceb8a6b20c6c1b519417370177c33022cb4a081` added regression coverage.
 
-That closure did not survive broader unchanged-HEAD evidence. After the Green Joker no-discard correction, replacement three-run batch `balatro-20260828T133038Z-8d493563` finished 0/3 and **reopened the D1 latency gate**:
+Focused run `balatro-20260828T143847Z-9f14b7a1-attempt-001` validated the repair with approximately **1.23 s mean / 2.42 s max** D1 latency, `immediate_fallback_search` approximately **0.55 s mean / 1.07 s max**, and zero wall-clock budget-exhaustion messages.
 
-- attempt 1: 67 D1 decisions, approximately **3.62 s mean / 3.04 s median / 6.08 s max**, 28 explicit wall-clock exhaustion messages;
-- attempt 2: 34 D1 decisions, approximately **16.62 s mean / 23.51 s median / 30.64 s max**; `immediate_fallback_search` approximately **15.15 s mean / 30.07 s max**; 22 decisions above 20 s and 22 explicit wall-clock exhaustion messages;
-- attempt 3: 15 D1 decisions, approximately **3.39 s mean / 3.10 s median / 6.78 s max**, 6 wall-clock exhaustion messages.
+Replacement competence batch `balatro-20260828T144652Z-379b8315` then kept the same property across all three attempts. Parsed D1 timing lines measured approximately:
 
-Attempt 2's final Needle decision was approximately **30.24 s total / 29.25 s immediate fallback**. Do not infer that latency itself caused the 720/800 loss; the latency defect is independently sufficient to block calibration.
+- attempt 1: **1.70 s mean / 3.24 s max**, fallback **0.80 s mean / 1.34 s max**;
+- attempt 2: **1.67 s mean / 3.68 s max**, fallback **0.69 s mean / 1.57 s max**;
+- attempt 3: **1.36 s mean / 2.53 s max**, fallback **0.57 s mean / 1.16 s max**;
+- zero `D1 wall-clock budget exhausted` messages in all three.
 
-### Root cause and current fix
+The old pathological fallback class is therefore closed again. Do not reopen D1 latency without new measured evidence.
 
-Canonical `LiveBlindClearPlanner` already had hard deadline checks and the 0.75 s initial-root candidate bootstrap. The remaining leak was in the installed `semantic_search_guard_policy` `_candidate_actions` wrapper: its Play prefilter could classify hundreds of legal subsets, then rescan those same subsets for each poker-hand family without checking either deadline inside the expensive loops. Larger hands, especially Juggler's +hand-size state, made pre-node semantic work explode into 20–30 second fallback calls.
+### Current semantic blocker: The Mouth zero-score recovery
 
-Commit `76dc7b90451bf82c3d0535913b1cbd380311c896` (`fix(balatro): bound semantic D1 candidate prefilter`) bounds the installed semantic wrapper itself:
+The same three-run batch finished **0/3**, all at Ante 2 bosses. Win rate alone is not the blocker. Attempt 2 exposed a mechanically dominated recovery sequence against **The Mouth** after the boss locked scoring to **Full House**.
 
-- each processed Play is classified once and cached;
-- Play and Discard prefilters observe the hard planner deadline between candidates;
-- initial-root semantic work observes the existing 0.75 s bootstrap between candidates;
-- short-play reserve scanning uses the same bounds;
-- if initial Play work consumes the bootstrap, usable ranked Plays are returned without another root Discard pass;
-- D1 gameplay thresholds, search widths, hidden-information rules, and survival/value semantics are unchanged.
+At score 1136/1600 with no discards remaining, no Full House available, and two hands left, D1 played a single off-type card for zero score. On the final hand it again played a single off-type card for zero score. Once The Mouth is locked, every off-type Play scores zero; with no real discards remaining those Plays are effectively paid redraws. Peeling one card is dominated by cycling the widest set of dead cards that preserves the strongest available structure toward the forced hand.
 
-The semantic wrapper still owns the installed `_candidate_actions` override. Do **not** describe this fix as removing that wrapper or returning full candidate-generation authority to the canonical method.
+The existing authority for this mechanic is `games/balatro/boss_hand_constraint_policy.py`. Commit `bc535051f83c295c7f1150f670598f17de092477` (`fix(balatro): recover from Mouth lock with wide plays`) adds the missing branch inside that authority:
 
-Regression commit `2ceb8a6b20c6c1b519417370177c33022cb4a081` (`test(balatro): cover bounded semantic D1 prefilter`) covers one-pass classification and root-soft-deadline stopping. The assistant has not run these tests.
+- a valid forced-hand scoring Play remains authoritative;
+- a real `DISCARD_CARDS` candidate remains authoritative when available;
+- only when neither exists and no discards remain, off-type zero-score Plays are treated as recovery redraw candidates;
+- retained structure toward the forced hand is maximized first;
+- among structure-equivalent candidates, the widest legal Play is kept so more dead cards are cycled;
+- this is a candidate filter, not synthetic score or Bond authority;
+- unrelated bosses and ordinary D1 decisions are unchanged.
+
+Regression commit `b93b2e0b92d274a39e76c02fc274c9d2eb48ab4a` (`test(balatro): cover Mouth zero-score redraw recovery`) covers the exact no-discard wide-redraw case, preserves matching Full House authority, and confirms a real discard still takes precedence.
 
 ### Immediate next gate
 
@@ -120,17 +131,17 @@ Run, in order:
 
 ```powershell
 git pull
-python -m pytest -q tests/balatro/test_balatro_semantic_search_guard_deadline.py
+python -m pytest -q tests/balatro/test_balatro_mouth_zero_score_recovery.py
 python -m pytest -q tests/balatro
 ```
 
-If both are green, run exactly one focused normal live attempt:
+If both are green, the gameplay code change invalidates the uploaded three-run baseline. Run a replacement competence batch:
 
 ```powershell
-.\BalatroAgentToggle.bat
+.\BalatroAgentToggle.bat --three
 ```
 
-Inspect its JSONL/summary for D1 timing and `D1 wall-clock budget exhausted`. **Do not run another `--three` competence batch until this focused run removes the 20–30 second immediate-fallback / budget-exhaustion class again.** Calibration remains frozen until D1 latency is reclosed.
+Do **not** run another focused `--one` latency attempt first; D1 latency is already reclosed by the focused run plus the subsequent three-run batch. Calibration remains frozen until the replacement competence batch is free of another reproducible semantic/runtime defect.
 
 ## Git commit convention
 
@@ -138,7 +149,7 @@ All roadmap work uses the repository's Conventional Commit-style subjects. Prefe
 
 - `fix(balatro): keep downgraded joker tiers exclusive`
 - `test(balatro): expect Bronze Superposition support`
-- `docs(balatro): reopen D1 latency checkpoint`
+- `docs(balatro): move competence gate to Mouth recovery`
 
 ## Primary objective
 
@@ -208,13 +219,14 @@ Any such reproducible defect on current HEAD reopens the semantic/runtime gate b
 - [x] D11 future public-pool expectation and D8 booster-family public-mechanics expectation.
 - [x] Major Tarot/Spectral/boss semantics and exact score/ordering audits.
 - [x] D14/D11 SHOP latency stabilization: ~20.8 s → ~3.17 s reroll-future path; gate closed.
-- [x] D1 stage timing and initial candidate-deadline repair.
+- [x] D1 stage timing and candidate-deadline repair.
 - [x] Green Joker safe no-discard execution guard: commits `8f94d60a` / `b27e73d8`.
-- [x] Identify recurrence of D1 candidate-prefilter latency in replacement three-run batch.
-- [x] Implement bounded semantic prefilter repair `76dc7b90` and regression `2ceb8a6b`.
-- [ ] **Current deterministic gate:** user runs targeted semantic-prefilter regression, then full `tests/balatro`.
-- [ ] **Current live gate:** one focused normal live run must show the 20–30 s fallback/budget-exhaustion class is gone before D1 latency recloses.
-- [ ] **Competence baseline gate:** only after D1 recloses, establish a clean unchanged-HEAD Red/White multi-run baseline suitable for calibration.
+- [x] Bounded semantic D1 prefilter repair `76dc7b90` / `2ceb8a6b`; D1 latency reclosed by focused + three-run evidence.
+- [x] Identify The Mouth zero-score singleton recovery defect in `balatro-20260828T144652Z-379b8315`.
+- [x] Implement Mouth wide recovery filter `bc535051` and regression `b93b2e0b`.
+- [ ] **Current deterministic gate:** targeted Mouth regression, then full `tests/balatro`.
+- [ ] **Competence baseline gate:** replacement unchanged-HEAD `--three` batch after tests are green.
+- [ ] Keep calibration frozen until that replacement batch has no reproducible semantic/runtime defect.
 - [ ] Keep new gameplay features, decks, stake progression, and broader v1.1+ work frozen until the Red/White competence/performance gate closes.
 
 ## Calibration and promotion gate
