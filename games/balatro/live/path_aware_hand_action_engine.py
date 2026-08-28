@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
+from time import perf_counter
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.live.adaptive_search import (
@@ -16,6 +17,69 @@ from games.balatro.live.hand_action_policy import (
     LiveHandActionDecisionEngine as _BaseLiveHandActionDecisionEngine,
 )
 from games.balatro.live.strategy_health import LiveStrategyHealth, evaluate_live_strategy_health
+
+
+@dataclass(frozen=True)
+class D1LatencyBreakdown:
+    """Non-overlapping wall-clock accounting for one authoritative D1 decision."""
+
+    total: float
+    base_policy: float
+    adaptive_search: float
+    confirmation_search: float
+    immediate_fallback_search: float
+    adaptive_authority: float
+    consensus_recovery: float
+    strategy_health: float
+    residual: float
+
+
+def _build_d1_latency_breakdown(
+    *,
+    total: float,
+    base_elapsed: float,
+    adaptive_search: float,
+    confirmation_search: float,
+    immediate_fallback_search: float,
+    adaptive_authority: float,
+    consensus_recovery: float,
+    strategy_health: float,
+) -> D1LatencyBreakdown:
+    """Convert nested measurements into conservative non-overlapping buckets."""
+    adaptive_search = max(0.0, float(adaptive_search))
+    confirmation_search = max(0.0, float(confirmation_search))
+    immediate_fallback_search = max(0.0, float(immediate_fallback_search))
+    adaptive_authority = max(0.0, float(adaptive_authority))
+    consensus_recovery = max(0.0, float(consensus_recovery))
+    strategy_health = max(0.0, float(strategy_health))
+    total = max(0.0, float(total))
+    base_policy = max(
+        0.0,
+        float(base_elapsed)
+        - adaptive_search
+        - confirmation_search
+        - immediate_fallback_search,
+    )
+    known = (
+        base_policy
+        + adaptive_search
+        + confirmation_search
+        + immediate_fallback_search
+        + adaptive_authority
+        + consensus_recovery
+        + strategy_health
+    )
+    return D1LatencyBreakdown(
+        total=total,
+        base_policy=base_policy,
+        adaptive_search=adaptive_search,
+        confirmation_search=confirmation_search,
+        immediate_fallback_search=immediate_fallback_search,
+        adaptive_authority=adaptive_authority,
+        consensus_recovery=consensus_recovery,
+        strategy_health=strategy_health,
+        residual=max(0.0, total - known),
+    )
 
 
 class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
@@ -46,14 +110,32 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._record_adaptive_roots = False
+        self._record_d1_latency = False
         self._adaptive_root_history: list[
             tuple[AdaptiveRecommendationSummary, LiveBlindPlan]
         ] = []
         self._adaptive_plan_history: list[tuple[LiveBlindPlan, ...]] = []
+        self._d1_adaptive_search_seconds = 0.0
+        self._d1_confirmation_search_seconds = 0.0
+        self._d1_immediate_fallback_seconds = 0.0
         self.last_strategy_health: LiveStrategyHealth | None = None
+        self.last_latency_breakdown: D1LatencyBreakdown | None = None
 
     def rank_plans(self, state, *, planner=None):
-        plans = super().rank_plans(state, planner=planner)
+        started = perf_counter()
+        confirmation = planner is not None and hasattr(
+            planner,
+            "_confirmation_root_action",
+        )
+        try:
+            plans = super().rank_plans(state, planner=planner)
+        finally:
+            if self._record_d1_latency:
+                elapsed = perf_counter() - started
+                if confirmation:
+                    self._d1_confirmation_search_seconds += elapsed
+                else:
+                    self._d1_adaptive_search_seconds += elapsed
         if (
             self._record_adaptive_roots
             and planner is not None
@@ -79,20 +161,76 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
             )
         return plans
 
+    def _rank_immediate_plans(self, state):
+        started = perf_counter()
+        try:
+            return super()._rank_immediate_plans(state)
+        finally:
+            if self._record_d1_latency:
+                self._d1_immediate_fallback_seconds += perf_counter() - started
+
     def decide(self, state) -> HandActionDecision:
+        total_started = perf_counter()
         self._adaptive_root_history = []
         self._adaptive_plan_history = []
+        self._d1_adaptive_search_seconds = 0.0
+        self._d1_confirmation_search_seconds = 0.0
+        self._d1_immediate_fallback_seconds = 0.0
         self._record_adaptive_roots = True
+        self._record_d1_latency = True
         self.last_strategy_health = None
+        self.last_latency_breakdown = None
+        base_started = perf_counter()
         try:
             decision = super().decide(state)
         finally:
+            base_elapsed = perf_counter() - base_started
             self._record_adaptive_roots = False
+            self._record_d1_latency = False
+
+        stage_started = perf_counter()
         decision = self._apply_adaptive_authority(state, decision)
+        adaptive_authority = perf_counter() - stage_started
+
+        stage_started = perf_counter()
         decision = self._apply_consensus_recovery(state, decision)
+        consensus_recovery = perf_counter() - stage_started
+
+        stage_started = perf_counter()
         self.last_strategy_health = evaluate_live_strategy_health(
             state,
             selected_plan=decision.selected_plan,
+        )
+        strategy_health = perf_counter() - stage_started
+
+        breakdown = _build_d1_latency_breakdown(
+            total=perf_counter() - total_started,
+            base_elapsed=base_elapsed,
+            adaptive_search=self._d1_adaptive_search_seconds,
+            confirmation_search=self._d1_confirmation_search_seconds,
+            immediate_fallback_search=self._d1_immediate_fallback_seconds,
+            adaptive_authority=adaptive_authority,
+            consensus_recovery=consensus_recovery,
+            strategy_health=strategy_health,
+        )
+        self.last_latency_breakdown = breakdown
+        decision = replace(
+            decision,
+            rationale=(
+                *decision.rationale,
+                (
+                    "D1 latency "
+                    f"total={breakdown.total:.6f}s "
+                    f"base_policy={breakdown.base_policy:.6f}s "
+                    f"adaptive_search={breakdown.adaptive_search:.6f}s "
+                    f"confirmation_search={breakdown.confirmation_search:.6f}s "
+                    f"immediate_fallback_search={breakdown.immediate_fallback_search:.6f}s "
+                    f"adaptive_authority={breakdown.adaptive_authority:.6f}s "
+                    f"consensus_recovery={breakdown.consensus_recovery:.6f}s "
+                    f"strategy_health={breakdown.strategy_health:.6f}s "
+                    f"residual={breakdown.residual:.6f}s"
+                ),
+            ),
         )
         return decision
 
