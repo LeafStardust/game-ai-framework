@@ -52,8 +52,14 @@ def test_shop_d14_latency_note_separates_child_components():
             "reroll_unmet_calls": 1,
             "reroll_future_seconds": 3.2,
             "reroll_future_calls": 1,
+            "reroll_future_joker_seconds": 2.5,
+            "reroll_future_joker_calls": 1,
+            "reroll_future_tarot_seconds": 0.2,
+            "reroll_future_tarot_calls": 1,
+            "reroll_future_planet_seconds": 0.1,
+            "reroll_future_planet_calls": 1,
             "reroll_joker_seconds": 3.0,
-            "reroll_joker_calls": 1,
+            "reroll_joker_calls": 2,
         }
     )
 
@@ -64,7 +70,11 @@ def test_shop_d14_latency_note_separates_child_components():
         "deterministic=0.100s joker=1.000s consumable=0.400s "
         "booster=0.500s/2calls bond_pair=0.800s reroll=8.500s "
         "reroll_visible=0.200s/1calls reroll_unmet=5.000s/1calls "
-        "reroll_future=3.200s/1calls reroll_joker=3.000s/1calls "
-        "residual=0.800s"
+        "reroll_future=3.200s/1calls "
+        "reroll_future_joker=2.500s/1calls "
+        "reroll_future_tarot=0.200s/1calls "
+        "reroll_future_planet=0.100s/1calls "
+        "reroll_future_residual=0.400s "
+        "reroll_joker=3.000s/2calls residual=0.800s"
     )
     assert consume_shop_policy_latency_note() is None
