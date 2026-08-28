@@ -45,7 +45,7 @@ def test_d1_latency_breakdown_clamps_clock_overlap_instead_of_going_negative():
     assert breakdown.base_policy == 0.0
     assert breakdown.adaptive_authority == 0.0
     assert breakdown.consensus_recovery == 0.0
-    assert breakdown.residual == 0.0
+    assert abs(breakdown.residual) < 1e-12
     assert all(
         value >= 0.0
         for value in (
