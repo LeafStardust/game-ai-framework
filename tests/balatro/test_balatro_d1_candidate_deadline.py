@@ -83,7 +83,10 @@ def test_deadline_is_checked_between_expensive_candidate_projections(monkeypatch
         horizon=2,
         deadline=5.0,
     )
-    planner.ROOT_CANDIDATE_BOOTSTRAP_SECONDS = 999.0
+    # Initial-root ranking is deliberately projection-free. Mark this as a later
+    # candidate pass so the regression continues to cover deadline checks around
+    # the Joker-aware priority projections retained for child/later search.
+    planner.nodes_evaluated = 1
 
     checks = 0
 
@@ -107,7 +110,7 @@ def test_deadline_is_checked_between_expensive_candidate_projections(monkeypatch
 
     assert evaluator.calls == 2
     assert checks >= 3
-    assert planner.nodes_evaluated == 0
+    assert planner.nodes_evaluated == 1
 
 
 def test_initial_root_bootstrap_stops_candidate_expansion(monkeypatch):
@@ -138,8 +141,10 @@ def test_initial_root_bootstrap_stops_candidate_expansion(monkeypatch):
         allow_discards=False,
     )
 
-    assert 1 <= evaluator.calls < len(_actions())
-    assert len(ranked) == evaluator.calls
+    # Root bootstrap shaping must remain cheap: it may truncate the candidate beam
+    # as time advances, but it must not invoke Joker-aware project_play at all.
+    assert evaluator.calls == 0
+    assert 1 <= len(ranked) <= len(_actions())
     assert planner.nodes_evaluated == 0
 
 
@@ -154,7 +159,8 @@ def test_no_deadline_preserves_candidate_priority_order(monkeypatch):
         horizon=2,
         deadline=None,
     )
-    planner.ROOT_CANDIDATE_BOOTSTRAP_SECONDS = 999.0
+    # Child/later candidate passes still use the canonical Joker-aware priority.
+    planner.nodes_evaluated = 1
     monkeypatch.setattr(module, "perf_counter", lambda: 0.0)
     monkeypatch.setattr(semantic_guard, "perf_counter", lambda: 0.0)
 
