@@ -132,8 +132,14 @@ def install_shop_observer_latency_diagnostic() -> None:
         if str(getattr(decision.snapshot, "phase", "")) != "SHOP":
             return decision
 
-        diagnostics: list[str] = []
         observer = getattr(self, "observer", None)
+        if not isinstance(observer, SupervisorLiveMemoryBalatroObserver):
+            # The diagnostic is production-live telemetry, not decision semantics.
+            # Unit/fake observers must see the exact notes emitted by the policy
+            # under test instead of inheriting a globally installed timing note.
+            return decision
+
+        diagnostics: list[str] = []
         profiles = getattr(observer, "_shop_latency_profiles", None)
         if isinstance(profiles, list) and profiles:
             captured = tuple(profiles)
