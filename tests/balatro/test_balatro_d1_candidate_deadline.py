@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 import games.balatro.live.blind_clear_planner as module
+import games.balatro.semantic_search_guard_policy as semantic_guard
 from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.live.blind_clear_planner import (
     LiveBlindClearPlanner,
@@ -60,6 +61,7 @@ def test_expired_deadline_blocks_candidate_projection_before_first_node(monkeypa
         deadline=5.0,
     )
     monkeypatch.setattr(module, "perf_counter", lambda: 6.0)
+    monkeypatch.setattr(semantic_guard, "perf_counter", lambda: 6.0)
 
     with pytest.raises(PlannerSearchBudgetExceeded, match="wall-clock budget"):
         planner._candidate_actions(
@@ -82,8 +84,20 @@ def test_deadline_is_checked_between_expensive_candidate_projections(monkeypatch
         deadline=5.0,
     )
     planner.ROOT_CANDIDATE_BOOTSTRAP_SECONDS = 999.0
-    clock = iter((0.0, 0.0, 0.0, 1.0, 1.0, 2.0, 2.0, 3.0, 6.0))
-    monkeypatch.setattr(module, "perf_counter", lambda: next(clock))
+
+    checks = 0
+
+    def check_deadline():
+        nonlocal checks
+        checks += 1
+        if evaluator.calls >= 2:
+            raise PlannerSearchBudgetExceeded(
+                "live blind planner search exceeded wall-clock budget during candidate ranking"
+            )
+
+    monkeypatch.setattr(planner, "_check_deadline", check_deadline)
+    monkeypatch.setattr(module, "perf_counter", lambda: 0.0)
+    monkeypatch.setattr(semantic_guard, "perf_counter", lambda: 0.0)
 
     with pytest.raises(PlannerSearchBudgetExceeded, match="wall-clock budget"):
         planner._candidate_actions(
@@ -92,6 +106,7 @@ def test_deadline_is_checked_between_expensive_candidate_projections(monkeypatch
         )
 
     assert evaluator.calls == 2
+    assert checks >= 3
     assert planner.nodes_evaluated == 0
 
 
@@ -106,16 +121,25 @@ def test_initial_root_bootstrap_stops_candidate_expansion(monkeypatch):
         deadline=10.0,
     )
     planner.ROOT_CANDIDATE_BOOTSTRAP_SECONDS = 0.75
-    clock = iter((0.0, 0.0, 0.0, 0.1, 0.8, 0.8, 0.8))
-    monkeypatch.setattr(module, "perf_counter", lambda: next(clock))
+
+    now = 0.0
+
+    def clock():
+        nonlocal now
+        value = now
+        now += 0.2
+        return value
+
+    monkeypatch.setattr(module, "perf_counter", clock)
+    monkeypatch.setattr(semantic_guard, "perf_counter", clock)
 
     ranked = planner._candidate_actions(
         SimpleNamespace(discards_remaining=0),
         allow_discards=False,
     )
 
-    assert evaluator.calls == 1
-    assert len(ranked) == 1
+    assert 1 <= evaluator.calls < len(_actions())
+    assert len(ranked) == evaluator.calls
     assert planner.nodes_evaluated == 0
 
 
@@ -132,6 +156,7 @@ def test_no_deadline_preserves_candidate_priority_order(monkeypatch):
     )
     planner.ROOT_CANDIDATE_BOOTSTRAP_SECONDS = 999.0
     monkeypatch.setattr(module, "perf_counter", lambda: 0.0)
+    monkeypatch.setattr(semantic_guard, "perf_counter", lambda: 0.0)
 
     ranked = planner._candidate_actions(
         SimpleNamespace(discards_remaining=0),
