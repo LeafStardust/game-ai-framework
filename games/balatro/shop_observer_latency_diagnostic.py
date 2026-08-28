@@ -6,7 +6,7 @@ This module does not change readiness, settlement, state, or decision semantics.
 It records wall-clock time spent in the supervisor observer's public snapshot,
 native-readiness, post-pack-settle, and quiet-gate stages. It also records the
 single-step runner's total SHOP decision time and its existing observation,
-translation, and policy components.
+translation, policy, and D14 child components.
 
 The JSONL run logger writes observation/decision rows only after a successful live
 transition has completed. Therefore adjacent event timestamps cannot be used to
@@ -21,6 +21,11 @@ from games.balatro.live.runtime.live_memory_autonomous_step_injected import (
 )
 from games.balatro.live.runtime.live_memory_supervisor_observer import (
     SupervisorLiveMemoryBalatroObserver,
+)
+from games.balatro.shop_policy_latency_diagnostic import (
+    clear_shop_policy_latency_profile,
+    consume_shop_policy_latency_note,
+    install_shop_policy_latency_diagnostic,
 )
 
 
@@ -48,6 +53,7 @@ def shop_decision_latency_note(runner, total_seconds: float) -> str:
 
 
 def install_shop_observer_latency_diagnostic() -> None:
+    install_shop_policy_latency_diagnostic()
     if getattr(
         SupervisorLiveMemoryBalatroObserver,
         "_shop_observer_latency_diagnostic_installed",
@@ -126,9 +132,11 @@ def install_shop_observer_latency_diagnostic() -> None:
         return snapshot
 
     def decide(self):
+        clear_shop_policy_latency_profile()
         started = perf_counter()
         decision = original_decide(self)
         decision_total = perf_counter() - started
+        d14_note = consume_shop_policy_latency_note()
         if str(getattr(decision.snapshot, "phase", "")) != "SHOP":
             return decision
 
@@ -136,7 +144,7 @@ def install_shop_observer_latency_diagnostic() -> None:
         if not isinstance(observer, SupervisorLiveMemoryBalatroObserver):
             # The diagnostic is production-live telemetry, not decision semantics.
             # Unit/fake observers must see the exact notes emitted by the policy
-            # under test instead of inheriting a globally installed timing note.
+            # under test instead of inheriting globally installed timing notes.
             return decision
 
         diagnostics: list[str] = []
@@ -165,6 +173,8 @@ def install_shop_observer_latency_diagnostic() -> None:
             )
 
         diagnostics.append(shop_decision_latency_note(self, decision_total))
+        if d14_note is not None:
+            diagnostics.append(d14_note)
 
         # Preserve any non-dataclass diagnostic attributes attached by later
         # decision policies. Reconstructing the frozen dataclass here would silently
