@@ -8,11 +8,18 @@ before discard generation began, leaving canonical adaptive search with a Play-o
 root even while four or five real discards remained. This late wrapper does not own
 Play/Discard selection. It only guarantees that an initial legal root cannot lose
 all discard evidence solely because Play shaping used the soft candidate window.
+
+The Hook is excluded while its boss effect is active. Live evidence showed that a
+reserved player-discard candidate on The Hook could spend the entire D1 wall-clock
+budget inside one discard projection before adaptive node 1. The boss already forces
+card removal after each played hand, while bounded structural timeout recovery still
+retains legal player-discard authority when it is actually needed.
 """
 
 from time import perf_counter
 
 from games.balatro.actions import DISCARD_CARDS
+from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.semantic_search_guard_policy import _cheap_discard_key
 
@@ -57,6 +64,13 @@ def _projection_free_discard_reserve(planner, state, actions, *, limit: int):
     return selected[:limit]
 
 
+def _active_hook(state) -> bool:
+    return (
+        str(getattr(state, "boss_name", "") or "") == "The Hook"
+        and not boss_blind_disabled_by_owned_jokers(state)
+    )
+
+
 def _candidate_actions_with_root_discard_reserve(
     original_candidate_actions,
     self,
@@ -87,6 +101,7 @@ def _candidate_actions_with_root_discard_reserve(
         or not allow_discards
         or configured_discard_width <= 0
         or int(getattr(state, "discards_remaining", 0) or 0) <= 0
+        or _active_hook(state)
         or any(getattr(action, "name", None) == DISCARD_CARDS for action in candidates)
     ):
         return candidates
