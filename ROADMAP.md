@@ -77,44 +77,51 @@ No collection-first, Endless-first, new deck/stake, or feature-expansion work is
 - Current production still contains ordered monkeypatch-style wrappers. See [`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md`](docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md).
 - Historical implementation detail is retained in [`docs/balatro/BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`](docs/balatro/BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md).
 
-## Current checkpoint — 2026-08-27 late live gate
+## Current checkpoint — 2026-08-28 SHOP latency profiling gate
 
-The semantic/runtime correctness gate is substantially cleaner than the earlier 2026-08-25/26 state. The **current release blocker is SHOP observation latency**, not ordinary D14 decision computation.
+The semantic/runtime correctness gate is substantially cleaner than the earlier 2026-08-25/26 state. The **current release blocker is remaining interactive SHOP observation latency**, not ordinary D14 decision computation.
 
-Validated before the newest latency-cache batch:
+Validated before the newest profiling batch:
 
-- full deterministic `tests/balatro` suite reported green by the user;
+- full deterministic `tests/balatro` suite reported green by the user after the widened generation-pool cache changes;
 - Mouth discard-only legality now recovers through a legal discard instead of crashing D1;
 - sticky post-win `won` state no longer creates false victories after an actual loss;
 - five-slot Joker ordering is bounded, and SHOP ordering is skipped entirely when the roster has no order-sensitive Joker;
 - D1 repeated-singleton recovery was corrected at multiple authority layers: wider discard candidates survive the prefilter, non-clearing discard recovery quality outranks exactness in the scoped final/planner paths, and zero-signal recovery prefers broader redraws after genuine strategy evidence;
 - secret-hand base scores and representative B3 probes are native to canonical owners; the installer was retired;
 - outer D1 evaluation caching is native; its retired installer/shim is gone;
-- recent three-run live batches terminate naturally without the prior Mouth crash, false terminal state, or SHOP Joker-order stall.
+- recent live runs terminate naturally without the prior Mouth crash, false terminal state, or SHOP Joker-order stall.
 
-Latest production evidence:
+Latest focused production evidence:
 
-- Session `balatro-20260827T193453Z-4dfd2a3e` completed all three attempts naturally.
-- Attempt 1 reached Ante 4 and lost `3932 / 5000`; attempts 2 and 3 reached Ante 3 and Ante 2 respectively. Losses themselves are tuning/strength evidence, not correctness failures.
-- Attempts 2 and 3 were responsive, but attempt 1 repeatedly showed roughly **31–57 second gaps** between SHOP-causing actions/transitions and the next emitted SHOP observation.
-- Once those SHOP observations existed, D14 decisions followed essentially immediately. Therefore do **not** diagnose the current blocker as cross-family shop arbitration without new evidence.
-- The first metadata cache (`2a6ae76`, `a248a12`, `cb41f8e`) memoized center `string_fields` decoding and improved some runs, but attempt 1 proved that was insufficient.
-- Static inspection then found that every public observation still re-enumerated the entire Joker rarity arrays and Tarot/Spectral pool arrays. SHOP readiness/quiet settlement performs multiple public observations per checkpoint, multiplying that cost.
+- Run `balatro-20260828T062225Z-7073105c-attempt-001` reached Ante 4 and terminated naturally at GAME_OVER.
+- It produced **22 SHOP observations**, enough to assess the latency cache without another generic three-run batch.
+- The previous pathological 40–60+ second SHOP pattern was materially improved: median SHOP transition was roughly **16.2s**, mean roughly **14.6s**.
+- However the blocker is not fully closed: worst SHOP transition was roughly **30.4s**, with additional outliers around **28.1s, 25.6s, 21.5s, and 20.1s**.
+- Therefore classify the major SHOP latency defect as improved/fixed in magnitude, but routine SHOP responsiveness remains too slow for the v1.0 competence gate.
+- Do **not** collect more random runs to diagnose this. The next evidence must come from observer-stage profiling.
 
-Newest unvalidated latency batch on current HEAD:
+Latency-cache history:
 
-- `dbed73b3` — `fix(balatro): cache live Joker pool enumeration`
-- `1fca5439` — `fix(balatro): cache live consumable pool enumeration`
-- `2ea3d5e7` — `test(balatro): cover generation pool enumeration cache`
+- `2a6ae76`, `a248a12`, `cb41f8e` cached center `string_fields` metadata and improved some runs but left repeated pool enumeration.
+- `dbed73b3`, `1fca5439`, `2ea3d5e7` widened the cache to attempt-static Joker and consumable pool membership + center metadata while keeping run-dependent eligibility live.
+- The widened cache removed the old extreme repeated SHOP delays but did not reduce routine latency enough.
 
-The widened cache stores only attempt-static pool membership and center metadata. These remain live on every observation: used/owned duplicate eligibility, Showman, challenge bans, pool flags, enhancement gates, round-specific Joker public state, edition rate, voucher state, and other run-dependent predicates. Partial catalogue reads are not frozen. Caches reset at `GAME_OVER` so profile unlock changes are reread next attempt.
+Current profiling implementation on HEAD, awaiting local validation:
+
+- `e4613d5b` — `feat(balatro): instrument shop observer latency`
+- `e67e9b18` — `feat(balatro): install shop observer latency diagnostic`
+- Diagnostic only: no readiness threshold, quiet duration, policy score, or action authority is changed.
+- Every SHOP supervisor observation is timed across public snapshot construction, native readiness, post-pack settle, and semantic quiet.
+- Profiles accumulate across the multiple observer calls performed between autonomous decisions, including stability checks and post-action observations; the aggregate is attached to the next decision notes in the normal JSONL trace as `shop_observer_latency=...`.
+- The diagnostic exists specifically to separate expensive public-state reconstruction from native readiness waiting, pack settlement, and quiet-gate multiplication.
 
 ### Immediate next sequence
 
-1. User validates current HEAD locally; the most relevant targeted test is `python -m pytest -q tests/balatro/test_balatro_generation_pool_metadata_cache.py`, followed by `python -m pytest -q tests/balatro` when appropriate.
-2. If green, perform a **focused live SHOP latency check first**, not another blind generic three-run batch solely for latency. Observe several SHOP transitions/purchases and confirm the old 30–60+ second observation gaps are gone.
-3. If SHOP observation latency remains high, instrument/profile the observer path before changing D14 semantics or lowering a global timeout. Candidate remaining costs include other large live-memory table walks, public-payload reconstruction/fingerprinting, and semantic quiet observation multiplication.
-4. If SHOP latency is clean, resume/close the live correctness gate. Occasional difficult D1 decisions may be slower, but recurring >60-second decisions remain a v1.0 competence defect and require a dedicated latency-budget pass.
+1. User validates current HEAD locally with `python -m pytest -q tests/balatro`.
+2. If green, run one focused live attempt and stop after several SHOP decisions once `shop_observer_latency=...` notes have been captured; there is no need to finish a full three-run batch.
+3. Inspect those timing notes. Patch only the dominant measured observer stage. Do **not** change D14 semantics or lower global timeouts without evidence.
+4. Once normal SHOP transitions are responsive, close the SHOP latency blocker and resume the broader v1.0 latency-budget pass for recurring slow D1/other decisions.
 5. After correctness + interactive latency are clean, move to numerical calibration/tuning. Do not keep changing architecture merely because a run loses.
 
 ## Status
@@ -123,7 +130,7 @@ The widened cache stores only attempt-static pool membership and center metadata
 |---|---|---|
 | v0.1–v0.9 foundation + autonomous integration | Complete | Historical implementation retained separately |
 | **v1.0.0 Red/White release baseline** | **Complete / historical** | Released 2026-08-20 |
-| **v1.0.x Red/White competence stabilization** | **IN PROGRESS** | Current blocker: interactive SHOP observation latency, then live gate → numerical calibration |
+| **v1.0.x Red/White competence stabilization** | **IN PROGRESS** | Current blocker: profiled interactive SHOP observation latency, then broader latency pass → live gate → numerical calibration |
 | New gameplay features | **FROZEN** | No expansion before v1.0.x competence gate |
 | Bond numerical tuning / Optuna | **Implemented / frozen** | Resume only after semantics + latency are trustworthy |
 | v1.1–v1.7 Red Deck stake progression | Blocked | Begins after Red/White competence gate |
@@ -311,7 +318,7 @@ The shop should first answer:
 - [ ] Replace repeated runtime rescue monkeypatches with canonical D14 terms where possible.
 - [ ] Keep future-public-pool expectations bounded and subordinate to visible current-shop survival.
 - [x] Bound five-slot Joker ordering and bypass order evaluation for rosters with no order-sensitive Joker.
-- [ ] **Current blocker:** make normal SHOP observation/settlement responsive; do not confuse observer latency with D14 compute latency.
+- [ ] **Current blocker:** make normal SHOP observation/settlement responsive; use `shop_observer_latency` trace evidence to identify the dominant measured stage.
 - [ ] Preserve paid-reroll stop-loss while allowing rerolls for rich, underpowered builds with inadequate visible offers.
 
 **Exit gate:** shop benchmark is clean and normal SHOP decisions are responsive.
@@ -354,9 +361,9 @@ Live runs return only after the deterministic/semantic gate is stable enough for
 
 Sequence from the current checkpoint:
 
-1. validate the current SHOP-observer cache batch locally;
-2. use a focused live SHOP check to verify observation latency before spending another full three-run batch;
-3. if latency remains bad, profile/instrument observation and settlement rather than changing D14 semantics blindly;
+1. validate the current SHOP-observer profiling batch locally;
+2. use a focused live SHOP check to capture `shop_observer_latency=...` decision notes;
+3. patch only the dominant measured observer stage rather than changing D14 semantics blindly;
 4. once SHOP responsiveness is clean, resume one unchanged-HEAD three-attempt Red/White smoke batch;
 5. inspect questionable decisions, not only the loss screen;
 6. when a new semantic defect appears, add its checkpoint/property before fixing it where practical;
@@ -365,7 +372,7 @@ Sequence from the current checkpoint:
 ### Red/White competence gate before Red Stake
 
 - [x] deterministic Balatro suite green at the latest user-validated checkpoint;
-- [ ] current HEAD deterministic suite green after the latest latency-cache batch;
+- [ ] current HEAD deterministic suite green after the latest profiling instrumentation;
 - [ ] semantic benchmark stable and near-clean across D1, shop, build, and boss categories;
 - [ ] no known mechanically contradictory or clearly dominated production decision;
 - [ ] normal decision latency within the interactive runtime budget, with slow outliers instrumented and explained;
