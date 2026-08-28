@@ -4,15 +4,21 @@ from __future__ import annotations
 
 The shop reroll does not reveal the next Tarot identity, but Balatro's current
 eligible Tarot pool is public deterministic metadata already exposed by the live
-consumable-generation observer.  Future Tarot value can therefore be averaged over
+consumable-generation observer. Future Tarot value can therefore be averaged over
 that pool without reading RNG state, pseudoseeds, pool order, or future identities.
 
-Each eligible Tarot is valued through ``HeldConsumableOptionEvaluator`` on public
-fresh-hand outcomes.  That evaluator delegates actual use to the installed D9
+Each evaluated Tarot is valued through ``HeldConsumableOptionEvaluator`` on public
+fresh-hand outcomes. That evaluator delegates actual use to the installed D9
 mechanical authorities and fails closed on incomplete or held-slot-sensitive
-branches.  The exact future sticker price remains D11's explicit expected-price
-prior; purchase money/interest/reserve and consumable-slot opportunity are charged
-on the same parent resource scale as other future families.
+branches. Large public pools use a deterministic conservative lower bound: every
+eligible record is still preflighted for model completeness, but only a bounded,
+evenly distributed subset runs the expensive held-use evaluator. Unevaluated
+probability mass remains literal zero in the full-pool denominator and is never
+renormalized. Small pools remain exact.
+
+The exact future sticker price remains D11's explicit expected-price prior;
+purchase money/interest/reserve and consumable-slot opportunity are charged on the
+same parent resource scale as other future families.
 """
 
 from dataclasses import dataclass
@@ -22,12 +28,40 @@ from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 
 
+_MAX_EXACT_PUBLIC_RECORDS = 12
+_MAX_EVALUATED_RECORDS_LARGE_POOL = 8
+
+
 @dataclass(frozen=True)
 class RerollTarotExpectation:
     complete: bool
     expected_option_gain: float
     outcome_count: int
     rationale: tuple[str, ...] = ()
+
+
+def _bounded_record_indices(record_count: int, *, exact: bool) -> tuple[int, ...]:
+    """Return stable public-pool indices for expensive held-use evaluation.
+
+    Exact/small pools keep every record. Large pools retain a deterministic sample
+    spread across the observed catalogue so the bound does not depend only on a
+    prefix. Omitted records keep their original uniform probability mass at value
+    zero because callers divide by the full eligible-pool size.
+    """
+
+    count = max(0, int(record_count))
+    if count == 0:
+        return ()
+    if exact or count <= _MAX_EVALUATED_RECORDS_LARGE_POOL:
+        return tuple(range(count))
+
+    budget = min(_MAX_EVALUATED_RECORDS_LARGE_POOL, count)
+    if budget == 1:
+        return (0,)
+    return tuple(
+        round(index * (count - 1) / (budget - 1))
+        for index in range(budget)
+    )
 
 
 class RerollTarotExpectationEvaluator:
@@ -49,35 +83,44 @@ class RerollTarotExpectationEvaluator:
         if not records:
             return self._incomplete("future Tarot expectation unavailable: eligible Tarot pool is empty")
 
-        projected = state.copy()
-        projected.money = max(0, int(money))
-        values: list[float] = []
+        # Preflight the entire public pool before taking the runtime bound. A large
+        # pool must not become "complete" merely because an unsupported record was
+        # outside the evaluated subset.
+        candidates = []
         for record in records:
             candidate = self.factory.create(dict(record))
             if candidate is None:
                 return self._incomplete(
                     "eligible future Tarot is not modeled: "
                     + str(record.get("label") or record.get("center") or "unknown"),
-                    len(values),
+                    len(candidates),
                 )
             candidate.price = int(expected_price)
-            expectation = self.held_option.evaluate(projected, candidate)
-            # Incomplete branches fail closed to zero and stay in the denominator;
-            # never renormalize over only the cards the agent understands.
-            values.append(
-                max(0.0, float(expectation.expected_gain))
-                if expectation.complete
-                else 0.0
-            )
+            candidates.append(candidate)
 
-        expected = sum(values) / float(len(values))
+        projected = state.copy()
+        projected.money = max(0, int(money))
+        exact = len(candidates) <= _MAX_EXACT_PUBLIC_RECORDS
+        evaluated_indices = _bounded_record_indices(len(candidates), exact=exact)
+
+        evaluated_sum = 0.0
+        for index in evaluated_indices:
+            expectation = self.held_option.evaluate(projected, candidates[index])
+            # Incomplete branches fail closed to zero. Unevaluated records also
+            # remain zero in the full eligible-pool denominator below.
+            if expectation.complete:
+                evaluated_sum += max(0.0, float(expectation.expected_gain))
+
+        expected = evaluated_sum / float(len(candidates))
         return RerollTarotExpectation(
             complete=True,
             expected_option_gain=expected,
-            outcome_count=len(values),
+            outcome_count=len(candidates),
             rationale=(
                 "future Tarot uses current public eligible get_current_pool catalogue",
-                f"eligible Tarot outcomes={len(values)}",
+                f"eligible Tarot outcomes={len(candidates)}",
+                f"held-use outcomes evaluated={len(evaluated_indices)}/{len(candidates)}",
+                "unevaluated large-pool probability mass remains zero without renormalization",
                 f"expected held-use option value={expected:.3f}",
                 f"unseen Tarot expected-price prior=${int(expected_price)}",
                 "unresolved/held-slot-sensitive outcomes remain zero in the full pool average",
