@@ -2,9 +2,15 @@
 setlocal
 cd /d "%~dp0"
 
+if /I "%~1"=="--one" goto one
 if /I "%~1"=="--three" goto three
 if /I "%~1"=="--five" goto five
 
+py -m games.balatro.live.runtime.balatro_agent_toggle %*
+goto end
+
+:one
+shift
 py -m games.balatro.live.runtime.balatro_agent_toggle %*
 goto end
 
