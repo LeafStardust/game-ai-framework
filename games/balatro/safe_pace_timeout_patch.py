@@ -3,7 +3,7 @@ from __future__ import annotations
 from itertools import combinations
 from time import perf_counter
 
-from games.balatro.actions import BalatroAction, PLAY_CARDS
+from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
 from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
 from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
@@ -124,8 +124,50 @@ def _retained_forced_structure(engine, state, action: BalatroAction, forced: str
         return 0.0
 
 
-def _select_structural_timeout_play(engine, state):
-    """Choose a projection-free emergency Play without inventing new discard evidence."""
+def _bounded_discard_candidates(engine, state) -> tuple[list[BalatroAction], object | None]:
+    """Return legal structural discards only through existing bounded authorities."""
+    if int(getattr(state, "discards_remaining", 0) or 0) <= 0:
+        return [], None
+    planner = getattr(engine, "planner", None)
+    action_generator = getattr(planner, "action_generator", None)
+    generate_discards = getattr(action_generator, "generate_discard_actions", None)
+    retained_value = getattr(
+        getattr(getattr(engine, "policy", None), "evaluator", None),
+        "_retained_structure_value",
+        None,
+    )
+    if not callable(generate_discards) or not callable(retained_value):
+        return [], None
+    try:
+        return list(generate_discards(state)), retained_value
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return [], None
+
+
+def _ordinary_discard_key(state, action: BalatroAction, retained_value) -> tuple[float, int]:
+    removed = {id(card) for card in tuple(getattr(action, "cards", ()) or ())}
+    kept = [
+        card
+        for card in tuple(getattr(state, "hand", ()) or ())
+        if id(card) not in removed
+    ]
+    try:
+        value = float(retained_value(kept))
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        value = 0.0
+    return value, len(tuple(getattr(action, "cards", ()) or ()))
+
+
+def _select_structural_timeout_action(engine, state):
+    """Choose bounded structural recovery without Joker-aware projection work.
+
+    Plays are enumerated directly from the visible hand. A discard may be selected
+    only when the production planner exposes its legal discard generator and the
+    production policy exposes the retained-structure evaluator. This preserves the
+    historical timeout contract: timeout can use bounded structural discard evidence
+    but cannot fabricate a discard in compatibility/minimal states where those
+    authorities are unavailable.
+    """
     plays = _direct_play_actions(state)
     if not plays:
         planner = getattr(engine, "planner", None)
@@ -141,6 +183,9 @@ def _select_structural_timeout_play(engine, state):
         raise RuntimeError("D1 timeout fallback found no legal Play action")
 
     forced = _mouth_locked_hand(state)
+    discards, retained_value = _bounded_discard_candidates(engine, state)
+    hands_remaining = max(0, int(getattr(state, "hands_remaining", 0) or 0))
+
     if forced is not None:
         matching = [
             action
@@ -149,7 +194,18 @@ def _select_structural_timeout_play(engine, state):
         ]
         if matching:
             best_play = max(matching, key=lambda action: _play_key(state, action))
-            return best_play, len(plays)
+            return best_play, best_play, "Play", len(plays)
+
+        if discards:
+            action = max(
+                discards,
+                key=lambda candidate: (
+                    _retained_forced_structure(engine, state, candidate, forced),
+                    _ordinary_discard_key(state, candidate, retained_value),
+                ),
+            )
+            best_play = max(plays, key=lambda action: _play_key(state, action))
+            return action, best_play, "Discard", len(plays)
 
         if int(getattr(state, "discards_remaining", 0) or 0) <= 0:
             records = [
@@ -167,12 +223,27 @@ def _select_structural_timeout_play(engine, state):
                 if record[1] + 1e-12 >= best_structure
             ]
             best_width = max(width for _, _, width in structural)
-            return max(
+            action = max(
                 (candidate for candidate, _, width in structural if width == best_width),
                 key=lambda candidate: _play_key(state, candidate),
-            ), len(plays)
+            )
+            return action, action, "Play", len(plays)
 
-    return max(plays, key=lambda action: _play_key(state, action)), len(plays)
+        best_play = max(plays, key=lambda action: _play_key(state, action))
+        return best_play, best_play, "Play", len(plays)
+
+    best_play = max(plays, key=lambda action: _play_key(state, action))
+    action = best_play
+    selected_kind = "Play"
+    best_hand_rank = _play_key(state, best_play)[0]
+    if hands_remaining > 1 and best_hand_rank <= _HAND_STRENGTH[PokerHand.PAIR] and discards:
+        action = max(
+            discards,
+            key=lambda candidate: _ordinary_discard_key(state, candidate, retained_value),
+        )
+        selected_kind = "Discard"
+
+    return action, best_play, selected_kind, len(plays)
 
 
 def _bounded_structural_timeout_fallback(
@@ -181,9 +252,9 @@ def _bounded_structural_timeout_fallback(
     *,
     search_attempts,
 ):
-    """Return a cheap Play-only emergency action after the D1 wall-clock budget expires."""
+    """Return cheap structural recovery after the D1 wall-clock budget expires."""
     self.planner._require_state(state)
-    action, play_count = _select_structural_timeout_play(self, state)
+    action, best_play, selected_kind, play_count = _select_structural_timeout_action(self, state)
 
     discards_remaining = max(0, int(getattr(state, "discards_remaining", 0) or 0))
     hands_remaining = max(0, int(getattr(state, "hands_remaining", 0) or 0))
@@ -191,37 +262,54 @@ def _bounded_structural_timeout_fallback(
     score = float(getattr(state, "score", 0) or 0)
     progress = min(1.0, max(0.0, score / target)) if target > 0 else 0.0
 
-    value = LiveBlindPlanValue(
-        clear_probability=0.0,
-        expected_progress=progress,
-        expected_score=score,
-        expected_hands_remaining=float(max(0, hands_remaining - 1)),
-        expected_discards_remaining=float(discards_remaining),
-    )
+    def structural_value(candidate):
+        return LiveBlindPlanValue(
+            clear_probability=0.0,
+            expected_progress=progress,
+            expected_score=score,
+            expected_hands_remaining=float(
+                max(0, hands_remaining - (candidate.name == PLAY_CARDS))
+            ),
+            expected_discards_remaining=float(
+                max(0, discards_remaining - (candidate.name == DISCARD_CARDS))
+            ),
+        )
+
     plan = LiveBlindPlan(
         action=action,
-        value=value,
+        value=structural_value(action),
         horizon=1,
         exact=False,
         candidate_count=play_count,
     )
+    best_play_plan = (
+        plan
+        if action is best_play
+        else LiveBlindPlan(
+            action=best_play,
+            value=structural_value(best_play),
+            horizon=1,
+            exact=False,
+            candidate_count=play_count,
+        )
+    )
     forced = _mouth_locked_hand(state)
     rationale = [
         "D1 wall-clock budget exhausted before pace fallback completed",
-        "selected a projection-free structural Play without fabricating discard evidence",
-        "timeout recovery does not call Joker-aware projection machinery",
+        f"selected a projection-free structural {selected_kind} without further Joker-aware projection",
+        "structural discard is permitted only through the existing legal discard generator and retained-structure evaluator",
     ]
     if forced is not None:
         rationale.append(
-            f"The Mouth is locked to {forced}; emergency fallback uses a matching Play when one is directly available"
+            f"The Mouth is locked to {forced}; timeout recovery applies the forced-hand constraint before ordinary structural ranking"
         )
     rationale.append("take only this action, then re-observe and replan")
 
     return self.policy._decision(
         mode=PACE_RECOVERY,
         selected=plan,
-        best_play=plan,
-        best_discard=None,
+        best_play=best_play_plan,
+        best_discard=plan if action.name == DISCARD_CARDS else None,
         pace_target=self.policy._pace_target(state),
         best_play_immediate_score=0.0,
         best_play_pace_ratio=0.0,
