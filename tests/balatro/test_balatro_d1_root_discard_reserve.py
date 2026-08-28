@@ -96,8 +96,8 @@ def test_active_hook_does_not_append_projected_root_discard_reserve(monkeypatch)
         discards_remaining=4,
     )
     monkeypatch.setattr(
-        "games.balatro.d1_root_discard_reserve_policy.boss_blind_disabled_by_owned_jokers",
-        lambda state: False,
+        "games.balatro.d1_root_discard_reserve_policy._active_hook",
+        lambda state: True,
     )
 
     def underlying(self, state, *, allow_discards, play_width=None, discard_width=None):
