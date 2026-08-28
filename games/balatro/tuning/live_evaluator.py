@@ -8,11 +8,16 @@ snapshot, derives metrics from the normal public logs, then restores a fresh
 BLIND_SELECT boundary after a final loss so the next trial can start cleanly.
 """
 
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Protocol
 
-from games.balatro.bonds.calibration import BondCalibration, use_bond_calibration
+from games.balatro.bonds.calibration import (
+    DEFAULT_BOND_CALIBRATION,
+    BondCalibration,
+    use_bond_calibration,
+)
 from games.balatro.live.runtime.balatro_agent_bounded_supervisor import (
     BoundedBalatroAgentSupervisor,
 )
@@ -30,6 +35,19 @@ class SupervisorResult(Protocol):
 
 SupervisorFactory = Callable[..., object]
 PreflightValidator = Callable[..., object]
+
+
+def _calibration_context(calibration: BondCalibration):
+    """Match ordinary production context for the exact production baseline.
+
+    Normal gameplay never enters ``use_bond_calibration`` and therefore reads the
+    ContextVar's production default directly.  A production-default tuning baseline
+    should exercise that same context rather than installing an equal-valued override.
+    Candidate calibrations still use the explicit context-local override.
+    """
+    if calibration == DEFAULT_BOND_CALIBRATION:
+        return nullcontext(calibration)
+    return use_bond_calibration(calibration)
 
 
 @dataclass(frozen=True)
@@ -135,7 +153,7 @@ class AuthoritativeLiveBatchEvaluator:
             retry_losses=True,
             collection_first=False,
         )
-        with use_bond_calibration(calibration):
+        with _calibration_context(calibration):
             result: SupervisorResult = supervisor.run()
 
         run_ids = tuple(str(attempt.run_id) for attempt in result.attempts)
