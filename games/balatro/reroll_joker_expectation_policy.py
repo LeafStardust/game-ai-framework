@@ -33,6 +33,9 @@ from games.balatro.shop_utility_scale import ShopUtilityScale
 _MAX_EXACT_PUBLIC_RECORDS = 24
 # Large live pools sample evenly across each rarity, never by Joker name/tier.
 _MAX_RECORDS_PER_RARITY = 3
+# Large live pools retain only the most probable expensive edition branch for each
+# sampled record. Remaining edition probability mass contributes literal zero.
+_MAX_EDITIONS_PER_RECORD_LARGE_POOL = 1
 # Hard cap on expensive fully wrapped D2 calls.  Unspent probability mass is zero.
 _MAX_D2_EVALUATIONS = 48
 
@@ -63,6 +66,32 @@ def _stratified_indices(size: int, limit: int) -> tuple[int, ...]:
     # Equal-width deterministic strata over the observer-provided public catalogue.
     # Ordering is used only to obtain coverage; no semantic value is inferred from it.
     return tuple(min(size - 1, (index * size) // limit) for index in range(limit))
+
+
+def _bounded_editions(
+    editions: tuple[tuple[object, float], ...],
+    *,
+    exact: bool,
+) -> tuple[tuple[object, float], ...]:
+    """Keep all exact-pool editions, otherwise retain the most probable branches.
+
+    Returned probabilities are the original public probabilities.  They are never
+    renormalized, so omitted edition branches retain their probability mass as a
+    literal zero contribution to the conservative large-pool lower bound.
+    """
+    if exact or len(editions) <= _MAX_EDITIONS_PER_RECORD_LARGE_POOL:
+        return editions
+
+    ranked = sorted(
+        enumerate(editions),
+        key=lambda item: (-float(item[1][1]), item[0]),
+    )[:_MAX_EDITIONS_PER_RECORD_LARGE_POOL]
+    selected = {index for index, _ in ranked}
+    return tuple(
+        branch
+        for index, branch in enumerate(editions)
+        if index in selected
+    )
 
 
 class RerollJokerExpectationEvaluator:
@@ -133,6 +162,7 @@ class RerollJokerExpectationEvaluator:
             expanded_by_rarity[rarity] = expanded_records
 
         exact = total_records <= _MAX_EXACT_PUBLIC_RECORDS
+        evaluated_editions = _bounded_editions(editions, exact=exact)
         rarity_means: dict[str, float] = {}
         evaluated_records = 0
         d2_evaluations = 0
@@ -164,7 +194,7 @@ class RerollJokerExpectationEvaluator:
                             f"eligible {rarity} future Joker became unmodeled: {record.get('label') or record.get('center')}",
                             total_records,
                         )
-                    for edition, probability in editions:
+                    for edition, probability in evaluated_editions:
                         if d2_evaluations >= _MAX_D2_EVALUATIONS and not exact:
                             budget_exhausted = True
                             break
@@ -231,6 +261,7 @@ class RerollJokerExpectationEvaluator:
                 "rarity mixture Common=0.70 Uncommon=0.25 Rare=0.05",
                 f"eligible public outcomes={total_records}",
                 f"D2-evaluated records={evaluated_records}; D2 calls={d2_evaluations}",
+                f"edition branches evaluated per sampled record={len(evaluated_editions)}/{len(editions)}",
                 (
                     "large-pool bounded lower bound active: unevaluated public probability mass contributes zero and is not renormalized"
                     if bounded
