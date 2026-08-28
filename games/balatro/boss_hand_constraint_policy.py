@@ -7,7 +7,10 @@ only its locked poker-hand type after the first scored hand. Those are exact pub
 mechanics and remain pre-arbitration candidate constraints.
 
 When The Mouth is already locked, retained forced-hand structure and redraw width
-are candidate evidence only. A legacy pure selector is retained for deterministic
+are candidate evidence only. If no matching hand and no real discard remain, an
+off-type Play scores zero by rule and therefore acts as the only available redraw;
+in that narrow state production keeps only the widest Plays that preserve the best
+forced-hand structure. A legacy pure selector is retained for deterministic
 regression compatibility, but production installation does not call it.
 """
 
@@ -22,6 +25,7 @@ from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionP
 
 MOUTH_FORCED_STRUCTURE_FIT = 2.0
 MOUTH_REDRAW_WIDTH_FIT = 0.10
+MOUTH_STRUCTURE_EPSILON = 1e-12
 
 
 def _hand_type(policy, state, plan) -> str:
@@ -78,6 +82,55 @@ def _mouth_locked_hand(state) -> str | None:
     return str(value).upper() if value else None
 
 
+def _mouth_retained_structure(policy, state, action, forced: str) -> float:
+    removed = {id(card) for card in tuple(getattr(action, "cards", ()) or ())}
+    kept = [
+        card
+        for card in tuple(getattr(state, "hand", ()) or ())
+        if id(card) not in removed
+    ]
+    rules = hand_rules_for_state(state)
+    try:
+        return float(policy._structure_fit(kept, forced, rules=rules))
+    except TypeError:
+        return float(policy._structure_fit(kept, forced))
+
+
+def _mouth_zero_score_play_recovery(policy, state, plans, forced: str):
+    """Keep the best pseudo-discard Plays after a Mouth lock exhausts discards.
+
+    Once The Mouth is locked, an off-type Play cannot score. If no matching Play
+    and no DISCARD_CARDS candidate exist, the only possible recovery is to spend a
+    hand as a redraw. Preserve the strongest structure toward the forced hand first,
+    then cycle the largest legal number of dead cards among structure-equivalent
+    Plays. This is deliberately a candidate filter, not a synthetic score bonus.
+    """
+    supplied = tuple(plan for plan in plans if plan.action.name == PLAY_CARDS)
+    if not supplied:
+        return ()
+
+    records = tuple(
+        (
+            plan,
+            _mouth_retained_structure(policy, state, plan.action, forced),
+            len(tuple(getattr(plan.action, "cards", ()) or ())),
+        )
+        for plan in supplied
+    )
+    best_structure = max(structure for _, structure, _ in records)
+    structure_equivalent = tuple(
+        record
+        for record in records
+        if record[1] + MOUTH_STRUCTURE_EPSILON >= best_structure
+    )
+    best_width = max(width for _, _, width in structure_equivalent)
+    return tuple(
+        plan
+        for plan, _, width in structure_equivalent
+        if width == best_width
+    )
+
+
 def _mouth_filter(policy, state, plans):
     supplied = tuple(plans)
     forced = _mouth_locked_hand(state)
@@ -92,6 +145,15 @@ def _mouth_filter(policy, state, plans):
     discards = tuple(plan for plan in supplied if plan.action.name == DISCARD_CARDS)
     if matching or discards:
         return (*matching, *discards)
+
+    # At this point every supplied Play is off-type and therefore scores zero under
+    # The Mouth. With no real discard candidate left, use the hand as the widest
+    # structure-preserving redraw instead of letting ordinary Play ranking peel one
+    # zero-score card at a time.
+    if int(getattr(state, "discards_remaining", 0) or 0) <= 0:
+        recovery = _mouth_zero_score_play_recovery(policy, state, supplied, forced)
+        if recovery:
+            return recovery
     return supplied
 
 
@@ -100,14 +162,7 @@ def _mouth_discard_fit(policy, state, action) -> tuple[float, tuple[str, ...]]:
     if forced is None or action.name != DISCARD_CARDS:
         return 0.0, ()
 
-    removed = {id(card) for card in getattr(action, "cards", ()) or ()}
-    kept = [
-        card
-        for card in tuple(getattr(state, "hand", ()) or ())
-        if id(card) not in removed
-    ]
-    rules = hand_rules_for_state(state)
-    structure = float(policy._structure_fit(kept, forced, rules=rules))
+    structure = _mouth_retained_structure(policy, state, action, forced)
     redraw_width = len(tuple(getattr(action, "cards", ()) or ()))
     value = structure * MOUTH_FORCED_STRUCTURE_FIT + redraw_width * MOUTH_REDRAW_WIDTH_FIT
     return value, (
@@ -194,16 +249,7 @@ def _mouth_forced_discard(policy, state, plans, decision):
         return decision
 
     def structure(plan) -> float:
-        removed = {id(card) for card in plan.action.cards}
-        kept = [
-            card
-            for card in tuple(getattr(state, "hand", ()) or ())
-            if id(card) not in removed
-        ]
-        try:
-            return float(policy._structure_fit(kept, forced, rules=hand_rules_for_state(state)))
-        except TypeError:
-            return float(policy._structure_fit(kept, forced))
+        return _mouth_retained_structure(policy, state, plan.action, forced)
 
     current_plan = getattr(decision, "selected_plan", None)
     if current_plan is None:
