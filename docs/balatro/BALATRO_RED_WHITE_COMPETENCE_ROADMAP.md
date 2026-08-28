@@ -1,6 +1,6 @@
 # Balatro Red/White Competence Roadmap
 
-Status: **Red Deck / White Stake competence-repair gate closed; D14/D11 SHOP and D1 runtime gates closed; offline Bond calibration / decision-quality improvement is OPEN**
+Status: **Red/White ordinary competence baseline clean; calibration temporarily refrozen by a reproducible D14 Arcana SHOP decision stall; large-pool Arcana bound implemented, deterministic/live validation pending**
 
 This document is the active handoff contract for Red Deck / White Stake work. Detailed dated evidence belongs in `BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`; authority boundaries belong in `BALATRO_DECISION_AUTHORITY_MAP.md`.
 
@@ -82,9 +82,9 @@ Other supported helpers:
 
 ## Current checkpoint — 2026-08-29
 
-### SHOP / D11 latency — CLOSED
+### D11 reroll latency — CLOSED
 
-Reroll-active D11 future evaluation was reduced from about **20.8 s** to about **3.17 s** while preserving public-information semantics and conservative omitted-mass treatment. The authoritative nested future-family timings are Joker/Tarot/Planet/residual. Do not resume SHOP micro-optimization without new measured evidence.
+Reroll-active D11 future evaluation was reduced from about **20.8 s** to about **3.17 s** while preserving public-information semantics and conservative omitted-mass treatment. The authoritative nested future-family timings are Joker/Tarot/Planet/residual. Do not resume D11 micro-optimization without new measured evidence.
 
 ### D1 runtime / authority repair — CLOSED
 
@@ -99,51 +99,85 @@ The 2026-08-28 competence loop identified and repaired multiple distinct D1 fail
 - active-Hook reserved discard projection causing zero-node 8–9 s spikes;
 - active-Hook adaptive search consuming the full ~7 s allowance every hand.
 
-Current runtime/authority protections include:
+Current runtime/authority protections include projection-free initial root ranking, bounded semantic Play/Discard prefiltering, bounded structural timeout recovery, no projected pre-adaptive bootstrap, no projected post-budget immediate fallback, projection-free legal discard reserve on ordinary initial roots, active Hook exclusion from that reserve, and a temporary active-Hook **3.0 s** search cap with restoration of the configured engine budget afterward.
 
-- projection-free initial root ranking;
-- bounded semantic Play/Discard prefiltering;
-- bounded structural timeout recovery;
-- no projected pre-adaptive bootstrap;
-- no projected post-budget immediate fallback;
-- projection-free legal discard reserve on ordinary initial roots;
-- active The Hook excluded from that reserved discard candidate;
-- active The Hook temporarily capped at **3.0 s** search budget, with the configured engine budget restored after the decision.
+The targeted Hook/root/fallback regressions and the full `tests/balatro` suite were reported **green by the user** before the later Arcana SHOP change.
 
-The targeted Hook/root/fallback regressions and the full `tests/balatro` suite were reported **green by the user** on the current gameplay/test HEAD.
+### Clean ordinary competence baseline — PASS
 
-### Clean unchanged-HEAD competence baseline — PASS
+Focused run `balatro-20260828T201428Z-24fd819b-attempt-001` reached Ante 3 The Wall and showed ordinary D1 remained bounded: **21 D1 decisions, ~1.06 s mean, ~1.26 s median, ~4.04 s max, one >3 s, zero >5 s**, with projected immediate fallback effectively zero.
 
-Focused run `balatro-20260828T201428Z-24fd819b-attempt-001` reached Ante 3 The Wall and showed ordinary D1 remained bounded: **21 D1 decisions, ~1.06 s mean, ~1.26 s median, ~4.04 s max, one >3 s, zero >5 s**, with projected immediate fallback effectively zero. The run used all four discards on the terminal Wall attempt and exposed no new runtime/legality blocker.
+Replacement batch `balatro-20260828T202157Z-b3fc8c0a` remains the clean pre-calibration competence evidence:
 
-Replacement batch `balatro-20260828T202157Z-b3fc8c0a` is the current clean competence baseline:
+- attempt 1: Ante 4 Big Blind loss **6624 / 7500**, D1 ~**1.067 s mean / 2.153 s max**;
+- attempt 2: Ante 2 The Manacle loss **918 / 1600**, D1 ~**0.959 s mean / 1.782 s max**;
+- attempt 3: Ante 2 Small Blind loss **480 / 800**, D1 ~**0.988 s mean / 1.393 s max**;
+- zero D1 decisions above 3 s in the three-run batch;
+- zero true D1 `budget_exceeded` events;
+- projected immediate fallback effectively zero;
+- no illegal/action-result/runtime failures.
 
-- attempt 1: lost Ante 4 Big Blind at **6624 / 7500** with Card Sharp/Banner/Scholar/Delayed Gratification/Joker; **29 D1 decisions, ~1.067 s mean, ~1.226 s median, 2.153 s max, zero >3 s, zero true `budget_exceeded`**;
-- attempt 2: lost Ante 2 The Manacle at **918 / 1600** with Photograph/Joker; **25 D1 decisions, ~0.959 s mean, ~1.152 s median, 1.782 s max, zero >3 s, zero true `budget_exceeded`**;
-- attempt 3: lost Ante 2 Small Blind at **480 / 800** with no Jokers; **13 D1 decisions, ~0.988 s mean, ~1.174 s median, 1.393 s max, zero >3 s, zero true `budget_exceeded`**;
-- projected `immediate_fallback_search` was effectively zero in all three;
-- no action-result / illegal-action / runtime failures were observed;
-- adaptive search remained active and produced completed evidence rather than collapsing to zero-node fallback.
+Weak Play-vs-Discard choices in that batch remain decision-quality/tuning targets rather than evidence of missing discard authority because the same HEAD selected real discards in ordinary live play.
 
-The batch did **not** encounter The Hook. Do not fish indefinitely for a particular boss: deterministic Hook coverage is green, the old Hook signatures are no longer present in current ordinary-path evidence, and no current live artifact reproduces the prior Hook defect.
+## Newly reopened narrow blocker — D14 Arcana SHOP expectation
 
-### Remaining weak play is now a tuning problem, not a competence-repair blocker
+The first attempted current-HEAD authoritative Phase-A production baseline produced interrupted run:
 
-The clean batch still contains poor-looking decisions, especially terminal rounds where the agent sometimes spends all hands while legal discards remain. This is no longer evidence that discard authority is missing:
+`balatro-20260828T204238Z-f12b2e9b-attempt-001`
 
-- attempt 1 used real `DISCARD_CARDS` actions during Ante 4 Small/Big Blind;
-- attempt 2 opened an Ante 2 Big Blind with a real discard;
-- attempt 3 used two real discards against The Window.
+The run correctly cleared Ante 1 Small Blind and Big Blind, cashed out, and reached SHOP with **$13** and Abstract Joker. The public shop contained Red Card, Venus, Wasteful, Jumbo Arcana Pack, and Arcana Pack. The final durable event is the settled `END_ROUND -> SHOP` transition; **no SHOP decision was emitted afterward**. The user observed no new decision for roughly five minutes and manually stopped the tuner.
 
-Therefore the ordinary root contains usable discard evidence and canonical adaptive authority can select it. Cases such as The Manacle and the Ante 2 Small Blind where the agent chose to play through all hands with discards remaining are now classified as **decision-quality / valuation weaknesses** to improve through calibration and targeted policy analysis, unless a future trace proves a concrete authority/mechanics contradiction.
+This is a real runtime defect, not a completed or slow calibration trial:
 
-Natural losses and low win rate alone do not reopen the competence gate.
+- no `run_finished` event exists;
+- no win/loss was recorded;
+- no second or third baseline attempt began;
+- the stall occurred inside SHOP `runner.decide()` before decision logging/execution;
+- the existing `study-report.json` remained historical August-25 evidence and is not a report for this interrupted trial.
 
-## Current phase — OFFLINE BOND CALIBRATION / PLAY QUALITY IMPROVEMENT
+Translator audit confirmed the raw native shop-area mixing was **not** the cause: `translator.py` correctly routes Venus to `state.shop_consumables` and Red Card to `state.shop_jokers`.
 
-Calibration is now **unfrozen** under `docs/balatro/BALATRO_BOND_TUNING.md`.
+The remaining concrete unbounded branch was D8 Arcana unopened-pack expectation. `ArcanaBoosterExpectationEvaluator._ordinary_pool_mean()` walked the entire public Tarot/Spectral generation pool and invoked installed D9 scoring for every record. The same-state SHOP runtime layer already memoizes duplicate same-family pack expectations, so the two visible Arcana packs did not double that expectation; the hole was the full public-pool traversal itself.
 
-Phase A remains low-dimensional and should tune only the documented global composition/pivot parameters first:
+### Current Arcana repair
+
+Commit `2a5b708e` (`perf(balatro): bound large-pool Arcana expectation`) adds a conservative large-pool bound:
+
+- pools of **12 or fewer** eligible records remain exact;
+- larger pools evaluate at most **8** deterministically spread records;
+- the denominator remains the **full eligible pool size**;
+- omitted probability mass therefore contributes literal zero and is **not renormalized**;
+- Soul/Black Hole special override probabilities remain modeled separately and exactly when eligible;
+- rationale records evaluated/total public outcomes.
+
+Regression commit `e2b6424b` (`test(balatro): bound large-pool Arcana expectation`) covers:
+
+- 22-record Tarot pool -> at most 8 expensive visible-value evaluations;
+- deterministic spread includes both ends of the public pool;
+- EV and positive probability divide by all 22 records;
+- 12-record pools remain exact.
+
+The assistant has **not executed** these tests.
+
+## Immediate gate
+
+Calibration is temporarily **refrozen** because the gameplay/runtime SHA changed and the first live tuning baseline did not complete.
+
+Required sequence:
+
+1. targeted Arcana/SHOP deterministic validation;
+2. full `tests/balatro` on the resulting gameplay/test HEAD;
+3. manually restore Balatro to fresh Red Deck / White Stake / Ante 1 `BLIND_SELECT`;
+4. start a **freshly named** baseline-only live study rather than reusing the interrupted study name;
+5. require three completed production-default attempts with no multi-minute SHOP stall before candidate Phase-A trials resume.
+
+The interrupted Optuna trial must not be treated as baseline evidence. A fresh study name avoids inheriting a stale/RUNNING trial from the interrupted process.
+
+## Calibration phase after this gate
+
+Once the fresh production-default live baseline completes cleanly, calibration reopens under `docs/balatro/BALATRO_BOND_TUNING.md`.
+
+Phase A remains low-dimensional and tunes only:
 
 - realization priority weight;
 - generic synergy bonus;
@@ -152,15 +186,13 @@ Phase A remains low-dimensional and should tune only the documented global compo
 
 Per-Bond thresholds and motif-specific values remain locked until Phase A is validated.
 
-### Evaluation contract
+Evaluation contract:
 
-- exploratory Optuna work: **3 completed runs per trial** is acceptable for directional search;
-- quick baseline sanity / repeated-defect discovery: **3 runs** is enough;
+- exploratory Optuna work: **3 completed runs per trial**;
+- quick baseline sanity / repeated-defect discovery: **3 runs**;
 - promotion / holdout comparison: **>=20 completed episodes per arm**;
 - compare confidence, variance, and pathological behavior, not raw win rate alone;
-- any new semantic/runtime gameplay fix changes the SHA and invalidates the current baseline.
-
-The immediate objective is no longer to keep adding generic repair wrappers. It is to improve win probability and decision quality using the existing calibration/evaluation infrastructure, while reopening competence repair only for reproducible mechanics/authority/runtime defects.
+- any semantic/runtime gameplay fix changes the SHA and invalidates the previous calibration baseline.
 
 ## Core gameplay doctrine
 
@@ -200,21 +232,18 @@ Boss rules are mechanics, not soft preferences. Ordinary strategy is subordinate
 
 ## Current queue
 
-- [x] D14/D11 SHOP latency stabilization.
-- [x] D1 stage profiler and deadline instrumentation.
-- [x] Green Joker safe no-discard execution guard.
-- [x] Mouth zero-score wide-recovery repair.
-- [x] Projection-free root ranking.
-- [x] Bounded structural timeout recovery and bounded legal timeout discards.
-- [x] Remove projected pre-adaptive bootstrap.
-- [x] Reject projected post-adaptive immediate fallback under hard D1 budget.
-- [x] Preserve legal root discard evidence on ordinary initial roots.
-- [x] Exclude active Hook from the reserved root discard candidate.
-- [x] Add active-Hook 3 s D1 search cap and deterministic coverage.
-- [x] Focused unchanged-HEAD validation after Hook cap.
-- [x] Clean unchanged-HEAD three-run competence baseline.
-- [x] **Close Red/White competence-repair gate and unfreeze offline calibration.**
-- [ ] Run Phase-A calibration / baseline comparison under `BALATRO_BOND_TUNING.md`.
+- [x] D11 reroll latency stabilization.
+- [x] D1 authority/runtime stabilization and Hook cap.
+- [x] Green Joker and Mouth semantic repairs.
+- [x] Projection-free ordinary root discard evidence.
+- [x] Clean ordinary unchanged-HEAD three-run competence baseline.
+- [x] Begin production-default Phase-A baseline attempt.
+- [x] Diagnose interrupted baseline as D14 Arcana full-pool expectation stall.
+- [x] Add conservative large-pool Arcana bound.
+- [x] Add deterministic large-/small-pool Arcana regression coverage.
+- [ ] **Current gate:** targeted tests for Arcana/SHOP runtime bound.
+- [ ] Full `tests/balatro` on the Arcana-bound HEAD.
+- [ ] Fresh three-run production-default baseline-only live study.
+- [ ] Reopen Phase-A candidate calibration only after that baseline completes cleanly.
 - [ ] Use calibration and trace review to improve weak Play-vs-Discard valuation, build formation, pivoting, shop decisions, and overall win probability.
-- [ ] Reopen repair mode only if a reproducible semantic/runtime/mechanics defect appears.
 - [ ] Keep new decks, stake progression, gameplay features, and broader v1.1+ work frozen until the Red/White play-quality/calibration checkpoint is satisfactory.
