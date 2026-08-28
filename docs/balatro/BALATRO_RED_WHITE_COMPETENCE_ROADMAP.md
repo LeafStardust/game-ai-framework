@@ -1,6 +1,6 @@
 # Balatro Red/White Competence Roadmap
 
-Status: **D14 / D11 SHOP latency gate closed; D1 immediate-fallback latency gate active; current D1 deadline batch awaits local deterministic validation, then one focused live run**
+Status: **D14 / D11 SHOP latency gate closed; D1 authority-latency gate closed; next gate is unchanged-HEAD Red/White competence baseline / calibration**
 
 This document is the handoff contract for Red Deck / White Stake competence work. It exists so future contributors do not have to reconstruct the intended Balatro play philosophy from live-run postmortems.
 
@@ -108,36 +108,25 @@ Put stable cross-chat instructions in this roadmap. Put detailed dated implement
 
 The D14/D11 SHOP latency blocker is **closed**. The measured reroll-active D11 future path fell from approximately **20.8 s** before the Joker/Tarot bounds to approximately **3.17 s**, with no meaningful hidden residual. Do not continue optimizing SHOP families unless new profiling evidence reopens that gate.
 
-The active performance gate is now **D1 immediate-fallback latency**. A focused 41-decision live profile measured approximately **1.56 s mean / 1.59 s median D1 total**, but one pathological decision took approximately **8.70 s**, of which approximately **8.69 s** was `immediate_fallback_search`. `base_policy`, adaptive search, confirmation, Strategy Health, and residual did not explain that spike. Excluding the pathological event, D1 mean was approximately **1.38 s** and max approximately **3.60 s**.
+The D1 authority-latency blocker is also **closed** on current evidence. Before the deadline repair, focused run `balatro-20260828T114850Z-0fbca9a7-attempt-001` contained 41 D1 decisions with approximately **1.56 s mean / 1.59 s median / 8.70 s max** total latency. One pathological decision spent approximately **8.69 s** entirely in `immediate_fallback_search` and reported that the D1 wall-clock budget was exhausted before pace fallback completed.
 
-Root cause: `LiveBlindClearPlanner._candidate_actions()` could perform expensive Play/Discard candidate generation and priority projection before the first `_estimate_action()` node, while the wall-clock deadline was historically enforced only through `_consume_node()`. This allowed a nominal hard D1 budget to be consumed while `nodes_evaluated == 0`.
+Root cause was candidate generation / candidate-priority projection occurring before the first planner node while deadline enforcement historically lived only around node consumption. The repair moved hard deadline checks and the 0.75 s initial-root candidate bootstrap into canonical `LiveBlindClearPlanner`; `semantic_search_guard_policy` now preserves only its semantic prefilters/reserves and delegates deadline/bootstrap to the planner. `games/balatro/d1_candidate_deadline_policy.py` remains compatibility-only and must not be reinstalled as a competing `_candidate_actions` authority.
 
-The repair is now canonical inside `LiveBlindClearPlanner`:
+The user reported the focused D1 tests and full `tests/balatro` suite **green** after the final deadline-authority consolidation. Focused live validation run `balatro-20260828T123054Z-88fe4bcc-attempt-001` then produced **73 D1 decisions** with approximately:
 
-- hard deadline checks wrap candidate generation and each expensive candidate-priority projection;
-- the initial root has a **0.75 s candidate-bootstrap envelope**, capped by the hard deadline;
-- after at least one Play candidate has been scored, initial-root breadth may stop once that bootstrap expires so the planner can proceed with usable bounded evidence;
-- if the Play bootstrap has already consumed the initial-root envelope, it does not spend another root pass ranking Discards before producing a usable plan;
-- child/later candidate ranking keeps the ordinary configured hard deadline;
-- D1 survival objective, hidden-information restrictions, planner authority, and Strategy Health semantics are unchanged.
+- total D1 mean: **1.78 s**;
+- total D1 median: **1.97 s**;
+- total D1 max: **4.37 s**;
+- `base_policy` mean / max: **0.52 s / 1.82 s**;
+- `adaptive_search` mean / max: **0.48 s / 1.11 s**;
+- `confirmation_search` mean / max: **0.03 s / 0.39 s**;
+- `immediate_fallback_search` mean / max: **0.75 s / 1.77 s**;
+- Strategy Health mean / max: approximately **0.003 s / 0.005 s**;
+- residual: effectively zero.
 
-Important historical trap: `games/balatro/d1_candidate_deadline_policy.py` previously contained a monkeypatch for this problem, but it was **not installed by current production**, which is why it did not protect the focused live run. It is now a compatibility-only no-op shim. **Do not reinstall or revive it. `LiveBlindClearPlanner` is the sole D1 candidate-deadline authority.** Detailed evidence is in `BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`.
+There were **no** `budget_exceeded=True` search records and **no** `D1 wall-clock budget exhausted` rationale messages. The former 8.69 s fallback class therefore disappeared. The new worst decision (4.37 s) was distributed across `base_policy` (~1.82 s), adaptive search (~1.11 s), and fallback (~1.43 s), so no single replacement pathological bucket emerged. Discard decisions were still materially slower than Play decisions (about **2.69 s mean** vs **1.02 s mean**), but that cost is distributed across ordinary base/adaptive/fallback work rather than a deadline defect. Further reduction would now be broad quality-vs-speed tuning and must not proceed without a new measured reason.
 
-The user had reported the full `tests/balatro` suite green immediately before this D1 candidate-deadline code/test batch. Because code and tests have now changed, the current HEAD is **not yet locally validated**. The next commands are exactly:
-
-```powershell
-git pull
-python -m pytest -q tests/balatro/test_balatro_d1_candidate_deadline.py tests/balatro/test_balatro_d1_latency_breakdown.py
-python -m pytest -q tests/balatro
-```
-
-If green, the next gate is exactly one normal live attempt:
-
-```powershell
-.\BalatroAgentToggle.bat
-```
-
-Then inspect the `D1 latency` breakdown. The immediate question is whether the ~8.69 s `immediate_fallback_search` spike disappears or materially collapses without a new dominant D1 bucket. Do not blindly lower adaptive-search budgets or alter D1 scoring/authority before that evidence.
+The focused live run reached **Ante 5 Big Blind** and lost naturally at **15,668 / 16,500** with `$113`, four Jokers, no crash, and no latency-budget exhaustion. One loss is not evidence of a semantic regression. The next gate is therefore an **unchanged-HEAD Red/White competence baseline / calibration pass**, not another latency micro-optimization.
 
 ## Git commit convention
 
@@ -329,7 +318,7 @@ Examples include:
 
 ## Repair progress — 2026-08-26
 
-The deterministic Balatro suite is green at the latest validated historical checkpoint. Current HEAD contains additional semantic/runtime changes and **must not be called green until the user runs the local suite**.
+The deterministic Balatro suite is green at the latest validated current checkpoint after the final D1 deadline-authority consolidation.
 
 Completed or implementation-audited in the current semantic/runtime pass:
 
@@ -379,8 +368,6 @@ Completed or implementation-audited in the current semantic/runtime pass:
 - the first-party injected bridge tolerates transient Windows access races;
 - the bounded three-attempt supervisor stops after attempt 3 without invoking a fourth restart.
 
-Implemented after the latest validated deterministic checkpoint and awaiting the user's next local suite run include all semantic/runtime repairs above, including the newest D1 authority corrections, generic Bond pair shop planning, D14 held-generation valuation, and cross-retention critical-survival escapes.
-
 ## Static audit result before local validation
 
 No remaining known **semantic/runtime authority inversion** was found in the installed Red/White production path during this pass. The remaining intentionally conservative behavior is not represented as fake utility:
@@ -393,7 +380,7 @@ This is the point at which static semantic work stops and local execution eviden
 
 ## Current repair queue
 
-The historical semantic repair queue below is retained as implementation history. The current operational checkpoint is the 2026-08-28 D1 immediate-fallback latency gate above; do not regress to an older validation request merely because an unchecked historical item remains in this section.
+The historical semantic repair queue below is retained as implementation history. Current operational work has passed the SHOP and D1 latency gates; do not regress to those workstreams without new measurements.
 
 - [x] Ensure literal score projection is authoritative for current and candidate builds; remove synthetic category substitutes. Implementation audit complete.
 - [x] Audit contextual Joker valuation, beginning with Stencil, Card Sharp, Ride the Bus, Bull, Bootstraps, Banner, Green Joker, Blueprint, and Brainstorm.
@@ -405,10 +392,10 @@ The historical semantic repair queue below is retained as implementation history
 - [x] Audit boss-specific execution against exact mechanics.
 - [x] Bound the three-attempt supervisor so final attempt completion cannot issue a fourth restart; retire the historical post-`run_finished` crash unless reproduced on current unchanged HEAD.
 - [x] Add direct Red/White regression coverage for the concrete semantic defects introduced/closed in this pass where a compact deterministic regression is available; broader existing subsystem regressions remain part of `tests/balatro`.
-- [x] **Last validated deterministic gate:** full `tests/balatro` suite was reported green immediately before the current D1 candidate-deadline code/test batch.
+- [x] **Current deterministic gate:** focused D1 deadline/latency tests and full `tests/balatro` reported green after final deadline-authority consolidation.
 - [x] **SHOP live latency gate:** D14/D11 future-family profiling and Joker/Tarot bounds reduced the measured D11 future path from ~20.8 s to ~3.17 s; SHOP latency blocker closed.
-- [ ] **Current local gate:** run the focused D1 candidate-deadline/latency tests and then full `tests/balatro` on current HEAD.
-- [ ] **Current live gate after green tests:** run one normal Red/White attempt and verify the ~8.69 s `immediate_fallback_search` spike is removed/materially collapsed without a new dominant D1 bucket.
+- [x] **D1 live latency gate:** 73-decision focused run removed the former ~8.69 s immediate-fallback spike; no budget exhaustion and no new dominant pathological bucket observed.
+- [ ] **Current baseline gate:** establish a clean unchanged-HEAD Red/White live competence baseline suitable for post-semantic calibration / promotion work.
 - [ ] Keep new gameplay features, decks, stake progression, and broader v1.1+ work frozen until the Red/White competence/performance gate closes.
 
 ## Calibration and promotion gate
