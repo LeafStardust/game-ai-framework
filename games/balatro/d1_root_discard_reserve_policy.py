@@ -57,6 +57,65 @@ def _projection_free_discard_reserve(planner, state, actions, *, limit: int):
     return selected[:limit]
 
 
+def _candidate_actions_with_root_discard_reserve(
+    original_candidate_actions,
+    self,
+    state,
+    *,
+    allow_discards: bool,
+    play_width: int | None = None,
+    discard_width: int | None = None,
+):
+    candidates = list(
+        original_candidate_actions(
+            self,
+            state,
+            allow_discards=allow_discards,
+            play_width=play_width,
+            discard_width=discard_width,
+        )
+    )
+
+    initial_root = int(getattr(self, "nodes_evaluated", 0) or 0) == 0
+    configured_discard_width = (
+        int(getattr(self, "discard_width", 0) or 0)
+        if discard_width is None
+        else int(discard_width)
+    )
+    if (
+        not initial_root
+        or not allow_discards
+        or configured_discard_width <= 0
+        or int(getattr(state, "discards_remaining", 0) or 0) <= 0
+        or any(getattr(action, "name", None) == DISCARD_CARDS for action in candidates)
+    ):
+        return candidates
+
+    deadline = getattr(self, "deadline", None)
+    if deadline is not None and perf_counter() >= deadline:
+        return candidates
+
+    action_generator = getattr(self, "action_generator", None)
+    generate_discards = getattr(action_generator, "generate_discard_actions", None)
+    if not callable(generate_discards):
+        return candidates
+
+    try:
+        legal_discards = list(generate_discards(state))
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return candidates
+    if not legal_discards:
+        return candidates
+
+    reserve = _projection_free_discard_reserve(
+        self,
+        state,
+        legal_discards,
+        limit=min(_ROOT_DISCARD_RESERVE, configured_discard_width),
+    )
+    return candidates + reserve
+
+
 def install_d1_root_discard_reserve_policy() -> None:
     if getattr(LiveBlindClearPlanner, "_root_discard_reserve_installed", False):
         return
@@ -71,54 +130,14 @@ def install_d1_root_discard_reserve_policy() -> None:
         play_width: int | None = None,
         discard_width: int | None = None,
     ):
-        candidates = list(
-            original_candidate_actions(
-                self,
-                state,
-                allow_discards=allow_discards,
-                play_width=play_width,
-                discard_width=discard_width,
-            )
-        )
-
-        initial_root = int(getattr(self, "nodes_evaluated", 0) or 0) == 0
-        configured_discard_width = (
-            int(getattr(self, "discard_width", 0) or 0)
-            if discard_width is None
-            else int(discard_width)
-        )
-        if (
-            not initial_root
-            or not allow_discards
-            or configured_discard_width <= 0
-            or int(getattr(state, "discards_remaining", 0) or 0) <= 0
-            or any(getattr(action, "name", None) == DISCARD_CARDS for action in candidates)
-        ):
-            return candidates
-
-        deadline = getattr(self, "deadline", None)
-        if deadline is not None and perf_counter() >= deadline:
-            return candidates
-
-        action_generator = getattr(self, "action_generator", None)
-        generate_discards = getattr(action_generator, "generate_discard_actions", None)
-        if not callable(generate_discards):
-            return candidates
-
-        try:
-            legal_discards = list(generate_discards(state))
-        except (AttributeError, TypeError, ValueError, RuntimeError):
-            return candidates
-        if not legal_discards:
-            return candidates
-
-        reserve = _projection_free_discard_reserve(
+        return _candidate_actions_with_root_discard_reserve(
+            original_candidate_actions,
             self,
             state,
-            legal_discards,
-            limit=min(_ROOT_DISCARD_RESERVE, configured_discard_width),
+            allow_discards=allow_discards,
+            play_width=play_width,
+            discard_width=discard_width,
         )
-        return candidates + reserve
 
     LiveBlindClearPlanner._candidate_actions = candidate_actions_with_root_discard_reserve
     LiveBlindClearPlanner._root_discard_reserve_installed = True
