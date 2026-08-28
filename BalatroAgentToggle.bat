@@ -10,7 +10,7 @@ py -m games.balatro.live.runtime.balatro_agent_toggle %*
 goto end
 
 :one
-py -m games.balatro.live.runtime.balatro_agent_toggle
+py -m games.balatro.live.runtime.balatro_agent_one_attempt_toggle
 goto end
 
 :three
