@@ -1,16 +1,20 @@
 from __future__ import annotations
 
-"""Canonical D1 evidence for realized hand-repetition engines.
+"""Canonical D1 evidence for realized hand-repetition and no-discard engines.
 
-Canonical D1 owns the Play/Discard action class and candidate arbitration. This
-installer augments only the existing strategy-fit evidence used by that policy;
-it does not wrap ``decide`` or reselect an action after arbitration.
+Canonical D1 owns the Play/Discard hierarchy. This installer augments the existing
+strategy-fit evidence and applies one narrow mechanical preservation rule for Green
+Joker: when canonical safe-pace D1 selects a DISCARD but a PLAY has survival-
+equivalent modeled blind-clear probability, preserve Green's no-discard scaling by
+playing instead. A materially safer discard and the final-hand survival rule remain
+authoritative.
 
-A few pure compatibility helpers remain for deterministic regression tests. They
-are not installed into production arbitration and must not be treated as authority.
+A few pure compatibility helpers remain for deterministic regression tests.
 """
 
-from games.balatro.actions import PLAY_CARDS
+from dataclasses import replace
+
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.bonds.diagnostics import bond_strategy_diagnostics
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
@@ -47,7 +51,7 @@ def _realized_bond(state, bond_id: str) -> bool:
 
 
 def realized_banner_delayed_no_discard(state) -> bool:
-    """Compatibility predicate; production D1 does not use it as an arbiter."""
+    """Compatibility predicate retained for deterministic regressions."""
     owned = {_joker_token(joker) for joker in getattr(state, "jokers", ()) or ()}
     return {"bannerjoker", "delayedgratificationjoker"}.issubset(owned)
 
@@ -58,6 +62,62 @@ def _realized_no_discard_engine(state) -> bool:
         return False
     owned = {_joker_token(joker) for joker in getattr(state, "jokers", ()) or ()}
     return bool(owned & {"greenjoker", "delayedgratificationjoker", "bannerjoker"})
+
+
+def _green_joker_active(state) -> bool:
+    return any(
+        _joker_token(joker) == "greenjoker"
+        for joker in getattr(state, "jokers", ()) or ()
+    )
+
+
+def _plan_clear_probability(plan) -> float:
+    try:
+        return float(getattr(plan.value, "clear_probability", 0.0) or 0.0)
+    except (AttributeError, TypeError, ValueError):
+        return 0.0
+
+
+def _green_preserving_play(policy, state, plans, decision):
+    """Return the best survival-equivalent PLAY when Green would otherwise discard."""
+    if getattr(getattr(decision, "action", None), "name", None) != DISCARD_CARDS:
+        return None
+    if not _green_joker_active(state):
+        return None
+
+    selected_probability = _plan_clear_probability(getattr(decision, "selected_plan", None))
+    try:
+        tolerance = float(
+            getattr(
+                getattr(decision, "thresholds", None),
+                "safe_clear_probability_tolerance",
+                0.0,
+            )
+            or 0.0
+        )
+    except (TypeError, ValueError):
+        tolerance = 0.0
+
+    candidates = [
+        plan
+        for plan in plans
+        if getattr(getattr(plan, "action", None), "name", None) == PLAY_CARDS
+        and _plan_clear_probability(plan) + tolerance + policy.EPSILON
+        >= selected_probability
+    ]
+    if not candidates:
+        return None
+    return max(
+        candidates,
+        key=lambda plan: (
+            _plan_clear_probability(plan),
+            1 if bool(getattr(plan, "exact", False)) else 0,
+            float(getattr(plan.value, "expected_progress", 0.0) or 0.0),
+            float(getattr(plan.value, "expected_hands_remaining", 0.0) or 0.0),
+            float(getattr(plan.value, "expected_discards_remaining", 0.0) or 0.0),
+            float(getattr(plan.value, "expected_score", 0.0) or 0.0),
+        ),
+    )
 
 
 def _played_this_round(state) -> set[str]:
@@ -185,6 +245,7 @@ def install_strategy_execution_guard_policy() -> None:
         return
 
     original_strategy_fit = StrategyAwareLiveHandActionPolicy._strategy_fit
+    original_safe_pace_scope = StrategyAwareLiveHandActionPolicy._enforce_safe_pace_scope
 
     def strategy_fit(self, state, action):
         value, rationale = original_strategy_fit(self, state, action)
@@ -199,5 +260,41 @@ def install_strategy_execution_guard_policy() -> None:
             ),
         )
 
+    def safe_pace_scope(self, state, plans, baseline, *, setup_discard_consensus: bool):
+        decision = original_safe_pace_scope(
+            self,
+            state,
+            plans,
+            baseline,
+            setup_discard_consensus=setup_discard_consensus,
+        )
+        selected = _green_preserving_play(self, state, plans, decision)
+        if selected is None:
+            return decision
+
+        score = float(self.evaluator.project_play(state, selected.action).expected_hand_score)
+        pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
+        pace_ratio = self._pace_ratio(score, pace_target)
+        selected_probability = _plan_clear_probability(selected)
+        discarded_probability = _plan_clear_probability(getattr(decision, "selected_plan", None))
+        return replace(
+            decision,
+            action=selected.action,
+            selected_plan=selected,
+            selected_immediate_score=score,
+            selected_pace_ratio=pace_ratio,
+            selected_fallback_value=float(self.evaluator.evaluate(state, selected.action)),
+            setup_discard_consensus=False,
+            confidence=max(0.40, min(float(getattr(decision, "confidence", 0.40) or 0.40), 0.75)),
+            rationale=(
+                "Green Joker preservation: a PLAY is survival-equivalent to the selected discard",
+                f"play clear probability={selected_probability:.3f}; discard={discarded_probability:.3f}; tolerance={_clear_probability_tolerance(decision):.3f}",
+                "preserve Green's +Mult-on-play / -Mult-on-discard state when survival does not materially prefer the discard",
+                "a materially safer discard still overrides Green Joker preservation",
+                *decision.rationale,
+            ),
+        )
+
     StrategyAwareLiveHandActionPolicy._strategy_fit = strategy_fit
+    StrategyAwareLiveHandActionPolicy._enforce_safe_pace_scope = safe_pace_scope
     StrategyAwareLiveHandActionPolicy._strategy_execution_guard_policy_installed = True
