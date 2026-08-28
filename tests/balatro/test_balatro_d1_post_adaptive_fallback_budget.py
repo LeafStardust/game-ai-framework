@@ -1,0 +1,81 @@
+from time import perf_counter
+from types import SimpleNamespace
+
+import pytest
+
+from games.balatro.actions import PLAY_CARDS, BalatroAction
+from games.balatro.live.blind_clear_planner import (
+    LiveBlindPlanValue,
+    PlannerSearchBudgetExceeded,
+)
+from games.balatro.live.hand_action_policy import LiveHandActionDecisionEngine
+
+
+class _ImmediatePlanner:
+    def __init__(self):
+        self.evaluator = object()
+        self.deadline = None
+        self.nodes_evaluated = 0
+        self.candidate_calls = 0
+        self.estimate_calls = 0
+        self.action = BalatroAction(PLAY_CARDS, cards=[object()])
+
+    @staticmethod
+    def _require_state(state):
+        del state
+
+    def reset_search_stats(self):
+        self.nodes_evaluated = 0
+
+    def _candidate_actions(self, state, *, allow_discards):
+        del state
+        assert allow_discards is True
+        self.candidate_calls += 1
+        return [self.action]
+
+    def _estimate_action(self, state, action, depth):
+        del state
+        assert action is self.action
+        assert depth == 1
+        self.estimate_calls += 1
+        return SimpleNamespace(
+            action=action,
+            value=LiveBlindPlanValue(
+                clear_probability=0.0,
+                expected_progress=0.0,
+                expected_score=0.0,
+                expected_hands_remaining=3.0,
+                expected_discards_remaining=4.0,
+            ),
+            exact=True,
+        )
+
+    @staticmethod
+    def _estimate_key(estimate):
+        return (estimate.value.expected_score,)
+
+
+def test_hard_budget_allows_bootstrap_but_rejects_second_projected_immediate_pass():
+    planner = _ImmediatePlanner()
+    engine = LiveHandActionDecisionEngine(
+        planner=planner,
+        max_search_seconds=2.1,
+    )
+    state = SimpleNamespace()
+
+    engine._search_deadline = perf_counter() + 10.0
+    engine._safe_pace_bootstrap_active = True
+    plans = engine._rank_immediate_plans(state)
+
+    assert len(plans) == 1
+    assert planner.candidate_calls == 1
+    assert planner.estimate_calls == 1
+
+    engine._safe_pace_bootstrap_active = False
+    with pytest.raises(PlannerSearchBudgetExceeded, match="post-adaptive immediate fallback"):
+        engine._rank_immediate_plans(state)
+
+    # The rejected post-adaptive pass must fail before another candidate or
+    # uninterruptible horizon-1 estimate begins.
+    assert planner.candidate_calls == 1
+    assert planner.estimate_calls == 1
