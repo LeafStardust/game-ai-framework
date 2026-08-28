@@ -14,11 +14,18 @@ immediately afterwards. Disabled Hook and every other blind keep the configured
 budget unchanged.
 """
 
-from games.balatro.d1_root_discard_reserve_policy import _active_hook
+from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
 from games.balatro.live.hand_action_policy import LiveHandActionDecisionEngine
 
 
 _HOOK_MAX_SEARCH_SECONDS = 3.0
+
+
+def _active_hook(state) -> bool:
+    return (
+        str(getattr(state, "boss_name", "") or "") == "The Hook"
+        and not boss_blind_disabled_by_owned_jokers(state)
+    )
 
 
 def _decide_with_hook_search_cap(original_decide, self, state):
