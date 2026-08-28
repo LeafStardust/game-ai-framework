@@ -104,11 +104,11 @@ The subsequent large-pool Tarot bound preserved full-pool preflight and divided 
 
 This is approximately an **85% reduction** from the original ~20.8 s D11 future bottleneck. No remaining multi-second hidden residual was observed. The D14/D11 SHOP latency blocker is therefore closed unless new evidence reopens it; do not continue shaving Planet/residual or weaken Joker/Tarot semantics without a new measured reason.
 
-## D1 authority-latency stabilization — 2026-08-28 — ACTIVE
+## D1 authority-latency stabilization — 2026-08-28 — CLOSED
 
-After SHOP latency closed, the broader v1.0 authority-latency pass moved to D1. `PathAwareLiveHandActionDecisionEngine` now records a non-overlapping `D1LatencyBreakdown` across `base_policy`, `adaptive_search`, `confirmation_search`, `immediate_fallback_search`, `adaptive_authority`, `consensus_recovery`, `strategy_health`, and residual. This diagnostic does not change D1 action authority or search thresholds.
+After SHOP latency closed, the broader v1.0 authority-latency pass moved to D1. `PathAwareLiveHandActionDecisionEngine` records a non-overlapping `D1LatencyBreakdown` across `base_policy`, `adaptive_search`, `confirmation_search`, `immediate_fallback_search`, `adaptive_authority`, `consensus_recovery`, `strategy_health`, and residual. This diagnostic does not change D1 action authority or search thresholds.
 
-### Focused D1 evidence
+### Pre-fix evidence
 
 Focused run `balatro-20260828T114850Z-0fbca9a7-attempt-001` produced **41 D1 decisions** and reached Ante 6 / The Head before a natural `GAME_OVER`. The profile measured approximately:
 
@@ -123,45 +123,48 @@ Focused run `balatro-20260828T114850Z-0fbca9a7-attempt-001` produced **41 D1 dec
 - Strategy Health mean: about **0.003 s**;
 - residual: effectively zero.
 
-The pathological decision was approximately **8.701761 s total**, of which **8.693686 s** was `immediate_fallback_search`, with adaptive/confirmation search at zero. Its rationale reported `D1 wall-clock budget exhausted before pace fallback completed`. Excluding that one event, D1 mean was about **1.38 s**, max about **3.60 s**, fallback mean about **0.54 s**, and fallback max about **1.72 s**. Therefore the general D1 architecture is not the measured blocker; the immediate-fallback candidate-ranking boundary is.
+The pathological decision was approximately **8.701761 s total**, of which **8.693686 s** was `immediate_fallback_search`, with adaptive/confirmation search at zero. Its rationale reported `D1 wall-clock budget exhausted before pace fallback completed`.
 
 ### Root cause and canonical repair
 
 `LiveBlindClearPlanner._candidate_actions()` historically generated every legal Play/Discard and ranked them using `_play_priority` / `_discard_priority`. `_play_priority` calls the expensive live evaluator. The planner's wall-clock deadline was previously checked only by `_consume_node()` when `_estimate_action()` began, so candidate ranking could consume most or all of the nominal search budget while `nodes_evaluated == 0`.
 
-An older module, `games/balatro/d1_candidate_deadline_policy.py`, had already attempted to patch this hole and later added a 0.75 s initial-root bootstrap. **That wrapper was not installed by the current `games/balatro/__init__.py`**, so it did not protect the focused live run. Future work must not “fix” this by reinstalling the old wrapper and creating two `_candidate_actions` authorities.
+An older module, `games/balatro/d1_candidate_deadline_policy.py`, had attempted to patch this hole and later added a 0.75 s initial-root bootstrap. That wrapper was not the effective production authority. During final consolidation, `semantic_search_guard_policy.py` was also found to be overriding `_candidate_actions` and routing generation/ranking through the legacy deadline helper. That was the source of the final dual-clock test failures.
 
-The deadline invariant now lives directly in canonical `LiveBlindClearPlanner`:
+The final architecture is:
 
-- hard deadline checks occur before/after candidate generation and before/after each expensive candidate-priority evaluation;
-- `_consume_node()` uses the same canonical hard-deadline check;
+- hard deadline checks live in canonical `LiveBlindClearPlanner` before/after candidate generation and around each expensive candidate-priority evaluation;
+- `_consume_node()` uses the same canonical deadline;
 - the initial root has a **0.75 s candidate-bootstrap envelope**, capped by the hard search deadline;
-- after at least one Play candidate has been scored, the initial root may stop expanding candidate breadth once that soft envelope expires and proceed with the bounded evidence already available;
-- if that initial Play bootstrap has consumed the soft envelope, it does not spend another root pass ranking Discards before any usable plan exists;
-- child/later ranking retains the ordinary configured hard deadline; the 0.75 s soft bootstrap is initial-root-only;
-- D1 survival objective, planner authority, hidden-information restrictions, and downstream strategy-health semantics are unchanged.
+- after at least one Play candidate has been scored, root breadth may stop when that soft envelope expires;
+- if Play ranking consumes the root envelope, the planner does not spend another root pass ranking Discards before producing usable evidence;
+- `semantic_search_guard_policy` keeps semantic Play/Discard prefilters, short-play reserve, wide-discard reserve, and ranking semantics, but delegates deadline/bootstrap to `LiveBlindClearPlanner`;
+- `games/balatro/d1_candidate_deadline_policy.py` is compatibility-only and must not be reinstalled as a competing `_candidate_actions` authority;
+- D1 survival objective, hidden-information restrictions, downstream Strategy Health, and planner authority are unchanged.
 
-`games/balatro/d1_candidate_deadline_policy.py` is now a compatibility-only no-op shim. `LiveBlindClearPlanner` is the **sole D1 candidate-deadline authority**. Do not restore the monkeypatch unless a future architecture explicitly replaces the canonical implementation.
+The user reported the focused deadline/latency tests and full `tests/balatro` suite **green** after the final consolidation.
 
-Focused deterministic coverage lives in `tests/balatro/test_balatro_d1_candidate_deadline.py` and covers: expired hard deadline before first projection, hard expiry between expensive candidate projections, bounded initial-root bootstrap, and unchanged priority ordering when the bootstrap is effectively disabled. The assistant wrote/updated this coverage but did **not** execute it.
+### Post-fix live validation
 
-### Next validation gate
+Focused run `balatro-20260828T123054Z-88fe4bcc-attempt-001` produced **73 D1 decisions**. It reached Ante 5 Big Blind and ended naturally at **15,668 / 16,500** with `$113`, four Jokers, no crash, and no timing-budget exhaustion.
 
-Because code and tests changed after the previously green suite, local validation must now run:
+Measured D1 latency was approximately:
 
-```powershell
-git pull
-python -m pytest -q tests/balatro/test_balatro_d1_candidate_deadline.py tests/balatro/test_balatro_d1_latency_breakdown.py
-python -m pytest -q tests/balatro
-```
+- total mean: **1.78 s**;
+- total median: **1.97 s**;
+- total max: **4.37 s**;
+- `base_policy` mean / max: **0.52 s / 1.82 s**;
+- `adaptive_search` mean / max: **0.48 s / 1.11 s**;
+- `confirmation_search` mean / max: **0.03 s / 0.39 s**;
+- `immediate_fallback_search` mean / max: **0.75 s / 1.77 s**;
+- Strategy Health mean / max: about **0.003 s / 0.005 s**;
+- residual: effectively zero.
 
-If green, run exactly one normal focused live attempt:
+There were **no** `budget_exceeded=True` search records and **no** `D1 wall-clock budget exhausted` messages. The former 8.69 s fallback class disappeared. The new worst D1 decision (4.37 s) was distributed across base policy (~1.82 s), adaptive search (~1.11 s), and fallback (~1.43 s) rather than being a new single-stage pathological spike.
 
-```powershell
-.\BalatroAgentToggle.bat
-```
+Discard actions remained slower than Play actions in this run: approximately **2.69 s mean** for 33 discard decisions versus **1.02 s mean** for 40 play decisions. That remaining cost is broad ordinary D1 work, not a deadline leak. Further reductions would trade search breadth/semantic quality for speed and should not proceed without new profiling evidence or an explicit responsiveness budget.
 
-Then compare `D1 latency` breakdowns against the 41-decision baseline above. The specific success condition is that the ~8.69 s `immediate_fallback_search` class of spike disappears or materially collapses without creating a new dominant D1 bucket. Do not tune adaptive-search budgets, Strategy Health, or unrelated D1 scoring unless the new profile measures them as the next blocker.
+The D1 authority-latency gate is therefore **closed on current evidence**. One natural loss does not reopen semantics. The next workstream is an unchanged-HEAD Red/White competence baseline / calibration pass.
 
 ## Bond numerical tuning foundation — IMPLEMENTED / FROZEN
 
