@@ -8,7 +8,41 @@ from games.balatro.tuning.shop_stall_diagnostics import (
 )
 
 
+class _Target:
+    label = "Arcana Pack"
+
+
+class _Action:
+    target = _Target()
+
+
+class _Profiler:
+    def profile(self, *args, **kwargs):
+        del args, kwargs
+        return "profile"
+
+
+class _Expectation:
+    def evaluate(self, *args, **kwargs):
+        del args, kwargs
+        return "expectation"
+
+
 class _Policy:
+    def __init__(self):
+        self.build_profiler = _Profiler()
+        self._arcana_generator_expectation = _Expectation()
+
+    @staticmethod
+    def _family(target):
+        del target
+        return "ARCANA"
+
+    @staticmethod
+    def _variant(target):
+        del target
+        return "NORMAL"
+
     def recommend(self, *args, **kwargs):
         del args, kwargs
         return "recommendation"
@@ -104,13 +138,14 @@ def test_trace_records_begin_end_without_changing_return_value(tmp_path):
     path = tmp_path / "trace.jsonl"
     trace = LiveTuningShopTrace(path)
 
-    assert trace.timed("EXAMPLE", lambda: 42) == 42
+    assert trace.timed("EXAMPLE", lambda: 42, trace_details={"family": "ARCANA"}) == 42
 
     events = _events(path)
     assert [(event["stage"], event["status"]) for event in events] == [
         ("EXAMPLE", "BEGIN"),
         ("EXAMPLE", "END"),
     ]
+    assert events[0]["family"] == "ARCANA"
     assert events[-1]["elapsed_seconds"] >= 0.0
 
 
@@ -127,7 +162,10 @@ def test_supervisor_factory_installs_durable_shop_stage_wrappers(tmp_path):
     assert runner.shop_arbiter._best_joker_decision(object()) is None
     assert runner.shop_arbiter._best_consumable_decision(object()) is None
     assert runner.shop_arbiter._best_visible_bond_pair(object()) is None
-    assert runner.shop_arbiter._booster_policy_for_state(object()).recommend(object()) == "recommendation"
+    booster = runner.shop_arbiter._booster_policy_for_state(object())
+    assert booster.build_profiler.profile(object()) == "profile"
+    assert booster._arcana_generator_expectation.evaluate(object()) == "expectation"
+    assert booster.recommend(object(), _Action()) == "recommendation"
     assert runner.shop_arbiter._reroll_policy_for_state(object()).recommend(object()) == "recommendation"
     assert runner.shop_arbiter.decide(object()) == "decision"
 
@@ -140,6 +178,16 @@ def test_supervisor_factory_installs_durable_shop_stage_wrappers(tmp_path):
     assert "D14_JOKER" in stages
     assert "D14_CONSUMABLE" in stages
     assert "D14_VISIBLE_BOND_PAIR" in stages
+    assert "D8_BUILD_PROFILE" in stages
+    assert "D8_ARCANA_EXPECTATION" in stages
     assert "D14_BOOSTER_RECOMMEND" in stages
     assert "D14_REROLL_RECOMMEND" in stages
     assert "D14_TOTAL" in stages
+
+    booster_events = [
+        event for event in events if event["stage"] == "D14_BOOSTER_RECOMMEND"
+    ]
+    assert booster_events
+    assert booster_events[0]["booster_family"] == "ARCANA"
+    assert booster_events[0]["booster_variant"] == "NORMAL"
+    assert booster_events[0]["booster_label"] == "Arcana Pack"
