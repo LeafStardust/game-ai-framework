@@ -77,6 +77,42 @@ The original v1.0.0 release used the historical strategy-tree/Gold-Silver-Bronze
 - [x] Added SHOP runtime bounds for nested expectations and hypothetical planning.
 - [x] Expanded live supervisor, monitor, diagnostics, logging, restart, and validation infrastructure.
 
+## D14 / D11 SHOP latency stabilization — 2026-08-28
+
+This is the active Red/White competence-performance workstream after the semantic/runtime authority audit. D14 remains final SHOP authority and D11 remains reroll authority; latency fixes must preserve public-information boundaries, stop-loss/resource semantics, settlement behavior, and conservative omitted-mass treatment.
+
+### Focused profiler evidence
+
+Pre-Joker-bound focused evidence localized reroll-active D11 `_future_shop_ev()` to approximately **20.8 s mean**, split into approximately **11.3 s future Joker**, **9.3 s future Tarot**, **0.15 s future Planet**, and effectively zero expected-max residual.
+
+After commit `1cdb6390` bounded large-pool Joker edition branches conservatively, focused run `balatro-20260828T103057Z-67e9b911-attempt-001` measured:
+
+- reroll-active `_future_shop_ev()` mean: **~11.55 s**;
+- nested future Joker mean: **~3.63 s** (down from ~11.3 s, about a 68% reduction);
+- nested future Tarot mean: **~7.89 s**;
+- nested future Planet mean: **~0.03 s**;
+- future residual: **0 s**.
+
+Therefore the Joker bound materially worked and **Tarot became the measured dominant D11 future-family bottleneck**. The run reached Ante 4 / The Manacle and ended naturally in `GAME_OVER`; the loss itself is not evidence of an authority regression.
+
+### Tarot runtime bound now awaiting local validation
+
+`RerollTarotExpectationEvaluator` previously preflighted and then ran expensive `HeldConsumableOptionEvaluator` evaluation over every eligible Tarot. The focused run exposed the normal 22-card eligible Tarot pool, making that full outer average the dominant measured cost even after the existing one-layer stochastic/deferred runtime guard.
+
+Commit `0a120a0a` changes only this measured large-pool D11 Tarot path:
+
+- every public eligible Tarot record is still preflighted through `LiveConsumableFactory`, so an unsupported record anywhere in the pool still fails closed;
+- pools of 12 or fewer records remain exact;
+- large pools evaluate a deterministic, evenly spread maximum of 8 records through the expensive held-use evaluator;
+- evaluated positive gain is divided by the **full eligible-pool count**;
+- omitted probability mass therefore contributes literal zero and is never renormalized;
+- hidden RNG, pseudoseed, pool order, and future Tarot identity remain unused;
+- D14/D11 parent resource costs, consumable-slot costs, stop-loss, and final authority are unchanged.
+
+Commit `c5449d13` adds focused deterministic coverage in `tests/balatro/test_balatro_reroll_tarot_expectation_latency_bound.py`, including exact small-pool behavior, stable spread selection, full-pool preflight of unevaluated records, and an explicit 8/22 assertion proving omitted mass is not renormalized. These tests were written by the assistant but **not executed by the assistant**; local validation belongs to the user.
+
+Next gate after local tests are green: one normal focused live attempt via `.\BalatroAgentToggle.bat`, then compare nested `reroll_future_tarot` and total `reroll_future` against the ~7.89 s / ~11.55 s baselines above. Do not optimize Planet or expected-max residual unless new measurements contradict the current evidence.
+
 ## Bond numerical tuning foundation — IMPLEMENTED / FROZEN
 
 - [x] Architecture, objective, anti-overfitting, storage/provenance, pruning, and promotion contract documented.
