@@ -252,10 +252,15 @@ def _rank_plays_with_short_reserve(
 ):
     if limit <= 0:
         return []
+    # Initial-root candidate shaping must stay projection-free. The selected beam is
+    # still evaluated by the canonical Joker-aware planner immediately afterwards;
+    # calling project_play here merely duplicates that work and one stochastic Joker
+    # projection can exceed the entire D1 wall-clock budget before node 1 exists.
+    priority = self._play_priority if soft_deadline is None else _cheap_play_key
     ranked = self._rank_actions_with_deadline(
         state,
         plays,
-        priority=self._play_priority,
+        priority=priority,
         limit=limit,
         soft_deadline=soft_deadline,
     )
