@@ -28,6 +28,10 @@ _LAST_PROFILE: ContextVar[dict[str, float | int] | None] = ContextVar(
     "balatro_shop_d14_last_profile",
     default=None,
 )
+_IN_REROLL_FUTURE: ContextVar[bool] = ContextVar(
+    "balatro_shop_d11_in_reroll_future",
+    default=False,
+)
 
 # These buckets are disjoint direct children of D14. ``deterministic`` is excluded
 # because BalatroShopPolicy.rank_actions can also execute inside reroll evaluation;
@@ -74,6 +78,12 @@ def consume_shop_policy_latency_note() -> str | None:
         for name in _TOP_LEVEL_STAGES
     )
     residual = max(0.0, total - top_level)
+    reroll_future = float(profile.get("reroll_future_seconds", 0.0))
+    future_children = sum(
+        float(profile.get(f"reroll_future_{family}_seconds", 0.0))
+        for family in ("joker", "tarot", "planet")
+    )
+    future_residual = max(0.0, reroll_future - future_children)
     return (
         "shop_d14_latency="
         f"total={total:.3f}s "
@@ -88,8 +98,15 @@ def consume_shop_policy_latency_note() -> str | None:
         f"{int(profile.get('reroll_visible_calls', 0))}calls "
         f"reroll_unmet={float(profile.get('reroll_unmet_seconds', 0.0)):.3f}s/"
         f"{int(profile.get('reroll_unmet_calls', 0))}calls "
-        f"reroll_future={float(profile.get('reroll_future_seconds', 0.0)):.3f}s/"
+        f"reroll_future={reroll_future:.3f}s/"
         f"{int(profile.get('reroll_future_calls', 0))}calls "
+        f"reroll_future_joker={float(profile.get('reroll_future_joker_seconds', 0.0)):.3f}s/"
+        f"{int(profile.get('reroll_future_joker_calls', 0))}calls "
+        f"reroll_future_tarot={float(profile.get('reroll_future_tarot_seconds', 0.0)):.3f}s/"
+        f"{int(profile.get('reroll_future_tarot_calls', 0))}calls "
+        f"reroll_future_planet={float(profile.get('reroll_future_planet_seconds', 0.0)):.3f}s/"
+        f"{int(profile.get('reroll_future_planet_calls', 0))}calls "
+        f"reroll_future_residual={future_residual:.3f}s "
         f"reroll_joker={float(profile.get('reroll_joker_seconds', 0.0)):.3f}s/"
         f"{int(profile.get('reroll_joker_calls', 0))}calls "
         f"residual={residual:.3f}s"
@@ -110,6 +127,7 @@ def install_shop_policy_latency_diagnostic() -> None:
     original_reroll_visible = BuildAwareShopRerollPolicy._visible_scores
     original_reroll_unmet = BuildAwareShopRerollPolicy._unmet_requirements
     original_reroll_future = BuildAwareShopRerollPolicy._future_shop_ev
+    original_reroll_offer_score = BuildAwareShopRerollPolicy._future_offer_score
     original_reroll_joker_evaluate = RerollJokerExpectationEvaluator.evaluate
 
     def decide(self, state, visible_actions, *, reroll_cost):
@@ -191,13 +209,42 @@ def install_shop_policy_latency_diagnostic() -> None:
         )
 
     def reroll_future(self, state, prior, *, money_after_reroll, thresholds):
+        token = _IN_REROLL_FUTURE.set(True)
+        try:
+            return _record_stage(
+                "reroll_future",
+                original_reroll_future,
+                self,
+                state,
+                prior,
+                money_after_reroll=money_after_reroll,
+                thresholds=thresholds,
+            )
+        finally:
+            _IN_REROLL_FUTURE.reset(token)
+
+    def reroll_offer_score(self, state, offer, *, money, thresholds):
+        if not _IN_REROLL_FUTURE.get():
+            return original_reroll_offer_score(
+                self,
+                state,
+                offer,
+                money=money,
+                thresholds=thresholds,
+            )
+        family = str(getattr(offer, "family", "") or "").strip().lower()
+        stage = (
+            f"reroll_future_{family}"
+            if family in {"joker", "tarot", "planet"}
+            else "reroll_future_other"
+        )
         return _record_stage(
-            "reroll_future",
-            original_reroll_future,
+            stage,
+            original_reroll_offer_score,
             self,
             state,
-            prior,
-            money_after_reroll=money_after_reroll,
+            offer,
+            money=money,
             thresholds=thresholds,
         )
 
@@ -221,6 +268,7 @@ def install_shop_policy_latency_diagnostic() -> None:
     BuildAwareShopRerollPolicy._visible_scores = reroll_visible
     BuildAwareShopRerollPolicy._unmet_requirements = reroll_unmet
     BuildAwareShopRerollPolicy._future_shop_ev = reroll_future
+    BuildAwareShopRerollPolicy._future_offer_score = reroll_offer_score
     RerollJokerExpectationEvaluator.evaluate = reroll_joker_evaluate
     BuildAwareShopArbiter._shop_policy_latency_diagnostic_installed = True
 
