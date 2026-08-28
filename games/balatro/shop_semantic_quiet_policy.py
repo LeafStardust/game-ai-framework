@@ -21,6 +21,9 @@ from games.balatro.live.runtime.live_memory_observer import LiveMemoryObservatio
 from games.balatro.live.runtime.live_memory_supervisor_observer import (
     SupervisorLiveMemoryBalatroObserver,
 )
+from games.balatro.shop_observer_latency_diagnostic import (
+    install_shop_observer_latency_diagnostic,
+)
 
 
 def _semantic_payload(value):
@@ -51,6 +54,7 @@ def install_shop_semantic_quiet_policy() -> None:
         "_shop_semantic_quiet_policy_installed",
         False,
     ):
+        install_shop_observer_latency_diagnostic()
         return
 
     original_wait = SupervisorLiveMemoryBalatroObserver._wait_for_full_state_quiet
@@ -117,6 +121,7 @@ def install_shop_semantic_quiet_policy() -> None:
         wait_for_full_state_quiet
     )
     SupervisorLiveMemoryBalatroObserver._shop_semantic_quiet_policy_installed = True
+    install_shop_observer_latency_diagnostic()
 
 
 __all__ = [
