@@ -24,6 +24,9 @@ from games.balatro.live.runtime.balatro_agent_bounded_supervisor import (
 from games.balatro.tuning.live_metrics_runtime import episode_metrics_from_run_ids
 from games.balatro.tuning.live_preflight import validate_live_tuning_preflight
 from games.balatro.tuning.metrics import BatchMetrics
+from games.balatro.tuning.shop_stall_diagnostics import (
+    install_live_tuning_shop_diagnostics,
+)
 
 
 class SupervisorResult(Protocol):
@@ -152,6 +155,11 @@ class AuthoritativeLiveBatchEvaluator:
             max_attempts=int(self.attempts_per_trial),
             retry_losses=True,
             collection_first=False,
+        )
+        session_id = str(getattr(supervisor, "session_id", "live-tuning"))
+        install_live_tuning_shop_diagnostics(
+            supervisor,
+            trace_path=self.control_directory / f"{session_id}.shop-trace.jsonl",
         )
         with _calibration_context(calibration):
             result: SupervisorResult = supervisor.run()
