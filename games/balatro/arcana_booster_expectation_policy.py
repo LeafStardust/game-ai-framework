@@ -8,11 +8,14 @@ Tarot has a 0.3% Soul override when Soul is eligible; Spectral has the same 0.3%
 special roll, with Black Hole taking final precedence when eligible and Soul taking
 it otherwise. Ordinary pool identity remains hidden and is never inspected.
 
-D8 uses a conservative one-offer expectation. Each possible visible outcome is
+D8 uses a conservative one-offer expectation. Each evaluated visible outcome is
 scored through the installed D9 ``BalatroPackPolicy`` against the opened-pack Skip=0
-baseline. Outcomes D9 cannot yet value safely (for example Emperor or unresolved
-permanent-hand-size effects) contribute zero rather than a synthetic family value.
-Best-of-3/5 and Mega second-selection improvements are deliberately omitted.
+baseline. Small public pools are evaluated exactly. Large pools use a stable,
+deterministically spread subset while retaining the full eligible-pool denominator;
+omitted probability mass therefore remains literal zero instead of being
+renormalized. Outcomes D9 cannot yet value safely (for example Emperor or unresolved
+permanent-hand-size effects) likewise contribute zero. Best-of-3/5 and Mega
+second-selection improvements are deliberately omitted.
 """
 
 from copy import deepcopy
@@ -33,6 +36,8 @@ from games.balatro.shop_booster_policy import (
 
 _SOUL_PROBABILITY = 0.003
 _OMEN_GLOBE_SPECTRAL_PROBABILITY = 0.20
+_MAX_EXACT_PUBLIC_RECORDS = 12
+_MAX_EVALUATED_RECORDS_LARGE_POOL = 8
 _SOUL_RECORD = {
     "center": "c_soul",
     "label": "The Soul",
@@ -45,6 +50,32 @@ _BLACK_HOLE_RECORD = {
     "ability_name": "Black Hole",
     "ability_set": "SPECTRAL",
 }
+
+
+def _bounded_record_indices(record_count: int, *, exact: bool) -> tuple[int, ...]:
+    if record_count <= 0:
+        return ()
+    if exact or record_count <= _MAX_EVALUATED_RECORDS_LARGE_POOL:
+        return tuple(range(record_count))
+
+    target = min(record_count, _MAX_EVALUATED_RECORDS_LARGE_POOL)
+    if target <= 1:
+        return (0,)
+
+    # Stable spread across the complete public pool instead of taking only an
+    # alphabetic/pool-prefix slice. Duplicate rounded indices are filled from the
+    # remaining records deterministically.
+    selected = {
+        round(position * (record_count - 1) / float(target - 1))
+        for position in range(target)
+    }
+    if len(selected) < target:
+        selected.update(
+            index
+            for index in range(record_count)
+            if index not in selected
+        )
+    return tuple(sorted(selected)[:target])
 
 
 class ArcanaBoosterExpectationEvaluator:
@@ -80,43 +111,64 @@ class ArcanaBoosterExpectationEvaluator:
         # outcomes therefore contribute zero to unopened option value.
         return max(0.0, float(scored.total))
 
-    def _ordinary_pool_mean(self, state, kind: str) -> tuple[float, float]:
+    def _ordinary_pool_mean(
+        self,
+        state,
+        kind: str,
+    ) -> tuple[float, float, int, int]:
         records = self._pool(state, kind)
+        record_count = len(records)
         if not records:
-            return 0.0, 0.0
-        values = tuple(self._visible_value(state, record) for record in records)
+            return 0.0, 0.0, 0, 0
+
+        exact = record_count <= _MAX_EXACT_PUBLIC_RECORDS
+        indices = _bounded_record_indices(record_count, exact=exact)
+        values = tuple(self._visible_value(state, records[index]) for index in indices)
+        denominator = float(record_count)
         return (
-            sum(values) / float(len(values)),
-            sum(1 for value in values if value > 0.0) / float(len(values)),
+            sum(values) / denominator,
+            sum(1 for value in values if value > 0.0) / denominator,
+            len(indices),
+            record_count,
         )
 
-    def _tarot_offer(self, state) -> tuple[float, float]:
-        ordinary_ev, ordinary_positive = self._ordinary_pool_mean(state, "TAROT")
+    def _tarot_offer(self, state) -> tuple[float, float, int, int]:
+        ordinary_ev, ordinary_positive, evaluated, total = self._ordinary_pool_mean(
+            state,
+            "TAROT",
+        )
         if not bool(getattr(state, "soul_generation_available", False)):
-            return ordinary_ev, ordinary_positive
+            return ordinary_ev, ordinary_positive, evaluated, total
         soul_value = self._visible_value(state, _SOUL_RECORD)
         return (
             (1.0 - _SOUL_PROBABILITY) * ordinary_ev
             + _SOUL_PROBABILITY * soul_value,
             (1.0 - _SOUL_PROBABILITY) * ordinary_positive
             + _SOUL_PROBABILITY * (1.0 if soul_value > 0.0 else 0.0),
+            evaluated,
+            total,
         )
 
-    def _spectral_offer(self, state) -> tuple[float, float]:
-        ordinary_ev, ordinary_positive = self._ordinary_pool_mean(state, "SPECTRAL")
+    def _spectral_offer(self, state) -> tuple[float, float, int, int]:
+        ordinary_ev, ordinary_positive, evaluated, total = self._ordinary_pool_mean(
+            state,
+            "SPECTRAL",
+        )
         special = None
         if bool(getattr(state, "black_hole_generation_available", False)):
             special = _BLACK_HOLE_RECORD
         elif bool(getattr(state, "soul_generation_available", False)):
             special = _SOUL_RECORD
         if special is None:
-            return ordinary_ev, ordinary_positive
+            return ordinary_ev, ordinary_positive, evaluated, total
         special_value = self._visible_value(state, special)
         return (
             (1.0 - _SOUL_PROBABILITY) * ordinary_ev
             + _SOUL_PROBABILITY * special_value,
             (1.0 - _SOUL_PROBABILITY) * ordinary_positive
             + _SOUL_PROBABILITY * (1.0 if special_value > 0.0 else 0.0),
+            evaluated,
+            total,
         )
 
     def evaluate(self, state) -> tuple[float, float, tuple[str, ...]]:
@@ -125,18 +177,25 @@ class ArcanaBoosterExpectationEvaluator:
                 "Arcana expectation unavailable: public Tarot/Spectral generation pools were not observed",
             )
 
-        tarot_ev, tarot_positive = self._tarot_offer(state)
+        tarot_ev, tarot_positive, tarot_evaluated, tarot_total = self._tarot_offer(state)
         omen = bool(getattr(state, "omen_globe_active", False))
+        tarot_bound_note = (
+            f"Tarot visible outcomes evaluated={tarot_evaluated}/{tarot_total}; "
+            "omitted large-pool probability mass remains zero"
+        )
         if not omen:
             return tarot_ev, tarot_positive, (
                 "Arcana one-offer EV uses current public eligible Tarot pool",
+                tarot_bound_note,
                 "soulable Tarot override modeled at exact 0.3% when eligible",
                 f"one-offer positive-choice probability={tarot_positive:.6f}",
                 f"one-offer sunk-cost option EV={tarot_ev:.6f}",
                 "best-of-3/5 and Mega second-selection improvement omitted conservatively",
             )
 
-        spectral_ev, spectral_positive = self._spectral_offer(state)
+        spectral_ev, spectral_positive, spectral_evaluated, spectral_total = (
+            self._spectral_offer(state)
+        )
         option_ev = (
             (1.0 - _OMEN_GLOBE_SPECTRAL_PROBABILITY) * tarot_ev
             + _OMEN_GLOBE_SPECTRAL_PROBABILITY * spectral_ev
@@ -148,6 +207,11 @@ class ArcanaBoosterExpectationEvaluator:
         return option_ev, positive, (
             "Omen Globe Arcana generator modeled as exact 80% Tarot / 20% Spectral per offer",
             "Tarot/Spectral pools use current public get_current_pool eligibility",
+            tarot_bound_note,
+            (
+                f"Spectral visible outcomes evaluated={spectral_evaluated}/{spectral_total}; "
+                "omitted large-pool probability mass remains zero"
+            ),
             "soulable 0.3% special override and Black Hole precedence are modeled",
             f"one-offer positive-choice probability={positive:.6f}",
             f"one-offer sunk-cost option EV={option_ev:.6f}",
