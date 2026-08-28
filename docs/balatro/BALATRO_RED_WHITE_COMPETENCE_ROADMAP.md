@@ -1,8 +1,8 @@
 # Balatro Red/White Competence Roadmap
 
-Status: **D14 / D11 SHOP latency gate closed; ordinary D1 latency stabilized; active-Hook D1 latency fix deterministic-green; calibration frozen pending focused Hook-cap live validation**
+Status: **Red Deck / White Stake competence-repair gate closed; D14/D11 SHOP and D1 runtime gates closed; offline Bond calibration / decision-quality improvement is OPEN**
 
-This document is the active handoff contract for Red Deck / White Stake competence work. Detailed dated evidence belongs in `BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`; authority boundaries belong in `BALATRO_DECISION_AUTHORITY_MAP.md`.
+This document is the active handoff contract for Red Deck / White Stake work. Detailed dated evidence belongs in `BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`; authority boundaries belong in `BALATRO_DECISION_AUTHORITY_MAP.md`.
 
 ## Future-chat operating contract
 
@@ -35,7 +35,7 @@ git pull
 .\BalatroAgentToggle.bat --one
 ```
 
-Three-attempt batch, only when the active gate requires it:
+Three-attempt batch:
 
 ```powershell
 .\BalatroAgentToggle.bat --three
@@ -84,103 +84,83 @@ Other supported helpers:
 
 ### SHOP / D11 latency — CLOSED
 
-Reroll-active D11 future evaluation was reduced from about **20.8 s** to about **3.17 s** while preserving public-information semantics and conservative omitted-mass treatment. The authoritative nested future-family timings are Joker/Tarot/Planet/residual. Do not resume SHOP micro-optimization without new evidence.
+Reroll-active D11 future evaluation was reduced from about **20.8 s** to about **3.17 s** while preserving public-information semantics and conservative omitted-mass treatment. The authoritative nested future-family timings are Joker/Tarot/Planet/residual. Do not resume SHOP micro-optimization without new measured evidence.
 
-### D1 historical latency classes already repaired
+### D1 runtime / authority repair — CLOSED
 
-The following distinct classes were identified and repaired during the 2026-08-28 competence loop:
+The 2026-08-28 competence loop identified and repaired multiple distinct D1 failure classes:
 
 - semantic root prefilter doing unbounded pre-node work;
-- initial root Joker-aware priority projection before node 1;
+- initial-root Joker-aware priority projection before node 1;
 - structural timeout fallback re-entering expensive planner candidate machinery;
 - projected post-adaptive immediate fallback starting after most of the D1 budget was already spent;
 - projected pre-adaptive bootstrap whose individual estimate could not be interrupted;
 - Play-only initial adaptive roots when semantic Play shaping consumed the soft candidate window;
-- active-Hook reserved discard projection causing zero-node 8–9 s spikes.
+- active-Hook reserved discard projection causing zero-node 8–9 s spikes;
+- active-Hook adaptive search consuming the full ~7 s allowance every hand.
 
-The current ordinary-blind D1 path has repeatedly returned to the intended interactive envelope, generally around **~1–3 s** with projected immediate fallback effectively zero.
+Current runtime/authority protections include:
 
-### Root discard evidence — CURRENT SEMANTIC CONTRACT
+- projection-free initial root ranking;
+- bounded semantic Play/Discard prefiltering;
+- bounded structural timeout recovery;
+- no projected pre-adaptive bootstrap;
+- no projected post-budget immediate fallback;
+- projection-free legal discard reserve on ordinary initial roots;
+- active The Hook excluded from that reserved discard candidate;
+- active The Hook temporarily capped at **3.0 s** search budget, with the configured engine budget restored after the decision.
 
-Live evidence showed initial adaptive roots could become Play-only while real discards remained. `d1_root_discard_reserve_policy.py` now appends a tiny **projection-free** legal discard reserve to an initial Play-only root when ordinary discard authority exists.
+The targeted Hook/root/fallback regressions and the full `tests/balatro` suite were reported **green by the user** on the current gameplay/test HEAD.
 
-The reserve:
+### Clean unchanged-HEAD competence baseline — PASS
 
-- does not choose Play vs Discard itself;
-- appends at most two legal discard candidates;
-- uses cheap structural ranking only;
-- preserves a wide redraw candidate;
-- does not duplicate existing discard evidence;
-- is skipped on active The Hook because projecting that reserved discard caused a separate zero-node latency defect.
+Focused run `balatro-20260828T201428Z-24fd819b-attempt-001` reached Ante 3 The Wall and showed ordinary D1 remained bounded: **21 D1 decisions, ~1.06 s mean, ~1.26 s median, ~4.04 s max, one >3 s, zero >5 s**, with projected immediate fallback effectively zero. The run used all four discards on the terminal Wall attempt and exposed no new runtime/legality blocker.
 
-Focused and batch live evidence after this repair showed ordinary blinds actually selecting `DISCARD_CARDS`; the prior systematic pattern of spending all hands while all legal discards remained untouched is no longer the current blocker.
+Replacement batch `balatro-20260828T202157Z-b3fc8c0a` is the current clean competence baseline:
 
-### Current blocker: active The Hook adaptive-search budget
+- attempt 1: lost Ante 4 Big Blind at **6624 / 7500** with Card Sharp/Banner/Scholar/Delayed Gratification/Joker; **29 D1 decisions, ~1.067 s mean, ~1.226 s median, 2.153 s max, zero >3 s, zero true `budget_exceeded`**;
+- attempt 2: lost Ante 2 The Manacle at **918 / 1600** with Photograph/Joker; **25 D1 decisions, ~0.959 s mean, ~1.152 s median, 1.782 s max, zero >3 s, zero true `budget_exceeded`**;
+- attempt 3: lost Ante 2 Small Blind at **480 / 800** with no Jokers; **13 D1 decisions, ~0.988 s mean, ~1.174 s median, 1.393 s max, zero >3 s, zero true `budget_exceeded`**;
+- projected `immediate_fallback_search` was effectively zero in all three;
+- no action-result / illegal-action / runtime failures were observed;
+- adaptive search remained active and produced completed evidence rather than collapsing to zero-node fallback.
 
-Replacement unchanged-HEAD batch `balatro-20260828T195440Z-9ad96de1` contained:
+The batch did **not** encounter The Hook. Do not fish indefinitely for a particular boss: deterministic Hook coverage is green, the old Hook signatures are no longer present in current ordinary-path evidence, and no current live artifact reproduces the prior Hook defect.
 
-- attempt 1: Ante 1 Big Blind loss, **332 / 450**, all 4 discards used, D1 approximately **0.81 s mean / 1.28 s max**;
-- attempt 2: Ante 3 Big Blind loss, **2246 / 3000**, all 4 discards used, D1 approximately **0.96 s mean / 2.21 s max**;
-- attempt 3: Ante 1 **The Hook** loss, **512 / 600**.
+### Remaining weak play is now a tuning problem, not a competence-repair blocker
 
-Attempts 1–2 are ordinary-path evidence that discard authority and D1 latency are functioning. Attempt 3 directly hit The Hook and showed the prior 8–9 s zero-node reserve projection was gone, but canonical Hook adaptive search still consumed essentially the entire ~7 s allowance on every decision:
+The clean batch still contains poor-looking decisions, especially terminal rounds where the agent sometimes spends all hands while legal discards remain. This is no longer evidence that discard authority is missing:
 
-- about **7.016 s / 26 nodes**;
-- about **7.005 s / 33 nodes**;
-- about **7.009 s / 34 nodes**;
-- about **7.022 s / 32 nodes**;
-- all four attempts `budget_exceeded=True`;
-- projected immediate fallback effectively zero.
+- attempt 1 used real `DISCARD_CARDS` actions during Ante 4 Small/Big Blind;
+- attempt 2 opened an Ante 2 Big Blind with a real discard;
+- attempt 3 used two real discards against The Window.
 
-This is a bounded but still unacceptable interactive latency class. It is the only currently reproduced D1 runtime blocker.
+Therefore the ordinary root contains usable discard evidence and canonical adaptive authority can select it. Cases such as The Manacle and the Ante 2 Small Blind where the agent chose to play through all hands with discards remaining are now classified as **decision-quality / valuation weaknesses** to improve through calibration and targeted policy analysis, unless a future trace proves a concrete authority/mechanics contradiction.
 
-### Current Hook repair
+Natural losses and low win rate alone do not reopen the competence gate.
 
-Active Hook now gets a temporary D1 search cap implemented in `d1_hook_search_budget_policy.py`:
+## Current phase — OFFLINE BOND CALIBRATION / PLAY QUALITY IMPROVEMENT
 
-```python
-_HOOK_MAX_SEARCH_SECONDS = 3.0
-```
+Calibration is now **unfrozen** under `docs/balatro/BALATRO_BOND_TUNING.md`.
 
-Contract:
+Phase A remains low-dimensional and should tune only the documented global composition/pivot parameters first:
 
-- only active The Hook is capped;
-- disabled Hook is not capped;
-- ordinary blinds and other bosses keep their configured D1 budget;
-- an already tighter configured budget is not widened;
-- the original engine budget is restored immediately after the decision;
-- if canonical adaptive search cannot finish within the Hook cap, the existing bounded structural timeout recovery remains the fallback authority.
+- realization priority weight;
+- generic synergy bonus;
+- generic conflict penalty;
+- monotonic R1–R5 pivot resistance.
 
-Relevant commits:
+Per-Bond thresholds and motif-specific values remain locked until Phase A is validated.
 
-- `414de6b9` — `fix(balatro): bound active Hook D1 search`
-- `ffeacc7d` — `refactor(balatro): isolate active Hook detection`
-- `43677557` — `fix(balatro): install active Hook D1 search cap`
-- `8b4a626a` — `test(balatro): bound active Hook D1 search window`
-- `c2ad3b62` — `test(balatro): patch Hook activity helper directly`
+### Evaluation contract
 
-The targeted Hook/root/fallback regressions and full `tests/balatro` suite were reported **green by the user** on this gameplay/test HEAD.
+- exploratory Optuna work: **3 completed runs per trial** is acceptable for directional search;
+- quick baseline sanity / repeated-defect discovery: **3 runs** is enough;
+- promotion / holdout comparison: **>=20 completed episodes per arm**;
+- compare confidence, variance, and pathological behavior, not raw win rate alone;
+- any new semantic/runtime gameplay fix changes the SHA and invalidates the current baseline.
 
-## Immediate next gate
-
-The deterministic gate is closed. The next required evidence is a focused live run on the unchanged gameplay HEAD:
-
-```powershell
-git pull
-.\BalatroAgentToggle.bat --one
-```
-
-Inspect that run for:
-
-- active Hook, if encountered: no return of 8–9 s zero-node discard-projection spikes and no ~7 s full-budget adaptive-search pattern;
-- ordinary blinds: D1 remains in the existing ~1–3 s envelope;
-- projected immediate fallback remains effectively zero;
-- real discard authority remains available off Hook;
-- no new boss-specific semantic/runtime defect.
-
-Do **not** require fishing indefinitely for The Hook. If the focused run is clean but does not encounter Hook, deterministic Hook coverage remains valid and a replacement `--three` batch may be used to seek broader unchanged-HEAD evidence.
-
-Calibration remains **frozen** until a clean unchanged-HEAD competence baseline exists with no reproducible semantic/runtime blocker.
+The immediate objective is no longer to keep adding generic repair wrappers. It is to improve win probability and decision quality using the existing calibration/evaluation infrastructure, while reopening competence repair only for reproducible mechanics/authority/runtime defects.
 
 ## Core gameplay doctrine
 
@@ -218,25 +198,23 @@ One discard token costs the same whether one or several cards are cycled. Repeat
 
 Boss rules are mechanics, not soft preferences. Ordinary strategy is subordinate whenever a boss changes legality or score realization.
 
-## Current repair queue
+## Current queue
 
 - [x] D14/D11 SHOP latency stabilization.
 - [x] D1 stage profiler and deadline instrumentation.
 - [x] Green Joker safe no-discard execution guard.
-- [x] Semantic prefilter deadline repair.
 - [x] Mouth zero-score wide-recovery repair.
 - [x] Projection-free root ranking.
 - [x] Bounded structural timeout recovery and bounded legal timeout discards.
 - [x] Remove projected pre-adaptive bootstrap.
-- [x] Reject projected post-adaptive immediate fallback under a hard D1 budget.
+- [x] Reject projected post-adaptive immediate fallback under hard D1 budget.
 - [x] Preserve legal root discard evidence on ordinary initial roots.
 - [x] Exclude active Hook from the reserved root discard candidate.
 - [x] Add active-Hook 3 s D1 search cap and deterministic coverage.
-- [ ] **Current live gate:** focused unchanged-HEAD validation after Hook cap.
-- [ ] **Competence baseline gate:** clean unchanged-HEAD `--three` batch after focused validation if no new defect appears.
-- [ ] Reopen offline Bond calibration only after that baseline is clean.
-- [ ] Keep new decks, stake progression, gameplay features, and broader v1.1+ work frozen until Red/White competence closes.
-
-## Calibration contract
-
-Three live runs are sufficient for rapid defect discovery, not promotion. Numerical tuning is offline only. Any semantic/runtime gameplay change invalidates the calibration baseline. Promotion requires the documented holdout/comparator process in `BALATRO_BOND_TUNING.md`, including confidence/variance/pathology review rather than raw win rate alone.
+- [x] Focused unchanged-HEAD validation after Hook cap.
+- [x] Clean unchanged-HEAD three-run competence baseline.
+- [x] **Close Red/White competence-repair gate and unfreeze offline calibration.**
+- [ ] Run Phase-A calibration / baseline comparison under `BALATRO_BOND_TUNING.md`.
+- [ ] Use calibration and trace review to improve weak Play-vs-Discard valuation, build formation, pivoting, shop decisions, and overall win probability.
+- [ ] Reopen repair mode only if a reproducible semantic/runtime/mechanics defect appears.
+- [ ] Keep new decks, stake progression, gameplay features, and broader v1.1+ work frozen until the Red/White play-quality/calibration checkpoint is satisfactory.
