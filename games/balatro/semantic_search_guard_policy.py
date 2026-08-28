@@ -26,7 +26,6 @@ from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
-from games.balatro import d1_candidate_deadline_policy as deadline_policy
 
 
 _MAX_CONCRETE_RANK_REQUIREMENTS = 5
@@ -171,16 +170,22 @@ def _prefilter_plays(state, actions, *, limit: int):
     return selected[:keep] + representatives[:limit]
 
 
-def _rank_plays_with_short_reserve(self, state, plays, *, limit: int, stage: str):
+def _rank_plays_with_short_reserve(
+    self,
+    state,
+    plays,
+    *,
+    limit: int,
+    soft_deadline: float | None = None,
+):
     if limit <= 0:
         return []
-    ranked = deadline_policy._rank_with_deadline(
-        self,
+    ranked = self._rank_actions_with_deadline(
         state,
         plays,
-        key=self._play_priority,
+        priority=self._play_priority,
         limit=limit,
-        stage=stage,
+        soft_deadline=soft_deadline,
     )
     if len(plays) <= max(limit * 2, 12):
         return ranked
@@ -195,9 +200,9 @@ def _rank_plays_with_short_reserve(self, state, plays, *, limit: int, stage: str
     if not short or reserve <= 0:
         return ranked
 
-    deadline_policy._check_deadline(self, f"{stage} short-play reserve")
+    self._check_deadline()
     short_ranked = sorted(short, key=lambda action: _cheap_play_key(state, action), reverse=True)[:reserve]
-    deadline_policy._check_deadline(self, f"{stage} short-play reserve")
+    self._check_deadline()
 
     selected_ids = {id(action) for action in ranked}
     additions = [action for action in short_ranked if id(action) not in selected_ids]
@@ -266,32 +271,59 @@ def install_semantic_search_guard_policy() -> None:
         discard_limit = self.discard_width if discard_width is None else int(discard_width)
         root = play_width is None and discard_width is None
 
-        deadline_policy._check_deadline(self, "play candidate generation")
+        initial_root = int(getattr(self, "nodes_evaluated", 0)) == 0
+        soft_deadline = None
+        if initial_root:
+            from games.balatro.live import blind_clear_planner as planner_module
+            soft_deadline = (
+                planner_module.perf_counter()
+                + self.ROOT_CANDIDATE_BOOTSTRAP_SECONDS
+            )
+            if self.deadline is not None:
+                soft_deadline = min(self.deadline, soft_deadline)
+
+        self._check_deadline()
         plays = self.action_generator.generate_play_actions(state)
-        deadline_policy._check_deadline(self, "play candidate generation")
-        plays = _prefilter_plays(state, plays, limit=_ROOT_PLAY_PREFILTER if root else _CHILD_PLAY_PREFILTER)
+        self._check_deadline()
+        plays = _prefilter_plays(
+            state,
+            plays,
+            limit=_ROOT_PLAY_PREFILTER if root else _CHILD_PLAY_PREFILTER,
+        )
         ranked_plays = _rank_plays_with_short_reserve(
             self,
             state,
             plays,
             limit=play_limit,
-            stage="play candidate ranking",
+            soft_deadline=soft_deadline,
         )
 
-        if not allow_discards or discard_limit <= 0 or int(getattr(state, "discards_remaining", 0)) <= 0:
+        if initial_root and soft_deadline is not None:
+            from games.balatro.live import blind_clear_planner as planner_module
+            if planner_module.perf_counter() >= soft_deadline:
+                return ranked_plays
+
+        if (
+            not allow_discards
+            or discard_limit <= 0
+            or int(getattr(state, "discards_remaining", 0)) <= 0
+        ):
             return ranked_plays
 
-        deadline_policy._check_deadline(self, "discard candidate generation")
+        self._check_deadline()
         discards = self.action_generator.generate_discard_actions(state)
-        deadline_policy._check_deadline(self, "discard candidate generation")
-        discards = _prefilter_discards(state, discards, limit=_ROOT_DISCARD_PREFILTER if root else _CHILD_DISCARD_PREFILTER)
-        ranked_discards = deadline_policy._rank_with_deadline(
-            self,
+        self._check_deadline()
+        discards = _prefilter_discards(
             state,
             discards,
-            key=self._discard_priority,
+            limit=_ROOT_DISCARD_PREFILTER if root else _CHILD_DISCARD_PREFILTER,
+        )
+        ranked_discards = self._rank_actions_with_deadline(
+            state,
+            discards,
+            priority=self._discard_priority,
             limit=discard_limit,
-            stage="discard candidate ranking",
+            soft_deadline=soft_deadline if initial_root else None,
         )
         return ranked_plays + ranked_discards
 
