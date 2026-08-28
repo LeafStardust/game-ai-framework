@@ -31,7 +31,8 @@ _LAST_PROFILE: ContextVar[dict[str, float | int] | None] = ContextVar(
 
 # These buckets are disjoint direct children of D14. ``deterministic`` is excluded
 # because BalatroShopPolicy.rank_actions can also execute inside reroll evaluation;
-# it remains visible as an overlapping informational metric.
+# it remains visible as an overlapping informational metric. D11 substage buckets
+# are likewise nested within ``reroll`` and are never subtracted from D14 residual.
 _TOP_LEVEL_STAGES = (
     "joker",
     "consumable",
@@ -83,6 +84,12 @@ def consume_shop_policy_latency_note() -> str | None:
         f"{int(profile.get('booster_calls', 0))}calls "
         f"bond_pair={float(profile.get('bond_pair_seconds', 0.0)):.3f}s "
         f"reroll={float(profile.get('reroll_seconds', 0.0)):.3f}s "
+        f"reroll_visible={float(profile.get('reroll_visible_seconds', 0.0)):.3f}s/"
+        f"{int(profile.get('reroll_visible_calls', 0))}calls "
+        f"reroll_unmet={float(profile.get('reroll_unmet_seconds', 0.0)):.3f}s/"
+        f"{int(profile.get('reroll_unmet_calls', 0))}calls "
+        f"reroll_future={float(profile.get('reroll_future_seconds', 0.0)):.3f}s/"
+        f"{int(profile.get('reroll_future_calls', 0))}calls "
         f"reroll_joker={float(profile.get('reroll_joker_seconds', 0.0)):.3f}s/"
         f"{int(profile.get('reroll_joker_calls', 0))}calls "
         f"residual={residual:.3f}s"
@@ -100,6 +107,9 @@ def install_shop_policy_latency_diagnostic() -> None:
     original_best_bond_pair = BuildAwareShopArbiter._best_visible_bond_pair
     original_booster_recommend = BuildAwareShopBoosterPolicy.recommend
     original_reroll_recommend = BuildAwareShopRerollPolicy.recommend
+    original_reroll_visible = BuildAwareShopRerollPolicy._visible_scores
+    original_reroll_unmet = BuildAwareShopRerollPolicy._unmet_requirements
+    original_reroll_future = BuildAwareShopRerollPolicy._future_shop_ev
     original_reroll_joker_evaluate = RerollJokerExpectationEvaluator.evaluate
 
     def decide(self, state, visible_actions, *, reroll_cost):
@@ -163,6 +173,34 @@ def install_shop_policy_latency_diagnostic() -> None:
             visible_score_floor=visible_score_floor,
         )
 
+    def reroll_visible(self, state, visible_actions):
+        return _record_stage(
+            "reroll_visible",
+            original_reroll_visible,
+            self,
+            state,
+            visible_actions,
+        )
+
+    def reroll_unmet(self, state):
+        return _record_stage(
+            "reroll_unmet",
+            original_reroll_unmet,
+            self,
+            state,
+        )
+
+    def reroll_future(self, state, prior, *, money_after_reroll, thresholds):
+        return _record_stage(
+            "reroll_future",
+            original_reroll_future,
+            self,
+            state,
+            prior,
+            money_after_reroll=money_after_reroll,
+            thresholds=thresholds,
+        )
+
     def reroll_joker_evaluate(self, state, *, money, expected_price):
         return _record_stage(
             "reroll_joker",
@@ -180,6 +218,9 @@ def install_shop_policy_latency_diagnostic() -> None:
     BuildAwareShopArbiter._best_visible_bond_pair = best_bond_pair
     BuildAwareShopBoosterPolicy.recommend = booster_recommend
     BuildAwareShopRerollPolicy.recommend = reroll_recommend
+    BuildAwareShopRerollPolicy._visible_scores = reroll_visible
+    BuildAwareShopRerollPolicy._unmet_requirements = reroll_unmet
+    BuildAwareShopRerollPolicy._future_shop_ev = reroll_future
     RerollJokerExpectationEvaluator.evaluate = reroll_joker_evaluate
     BuildAwareShopArbiter._shop_policy_latency_diagnostic_installed = True
 
