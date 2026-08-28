@@ -81,7 +81,8 @@ def test_deadline_is_checked_between_expensive_candidate_projections(monkeypatch
         horizon=2,
         deadline=5.0,
     )
-    clock = iter((0.0, 0.0, 0.0, 1.0, 1.0, 6.0))
+    planner.ROOT_CANDIDATE_BOOTSTRAP_SECONDS = 999.0
+    clock = iter((0.0, 0.0, 0.0, 1.0, 1.0, 2.0, 2.0, 6.0))
     monkeypatch.setattr(module, "perf_counter", lambda: next(clock))
 
     with pytest.raises(PlannerSearchBudgetExceeded, match="wall-clock budget"):
@@ -94,7 +95,7 @@ def test_deadline_is_checked_between_expensive_candidate_projections(monkeypatch
     assert planner.nodes_evaluated == 0
 
 
-def test_initial_root_bootstrap_stops_candidate_expansion_without_renormalizing_search(monkeypatch):
+def test_initial_root_bootstrap_stops_candidate_expansion(monkeypatch):
     evaluator = _Evaluator()
     planner = LiveBlindClearPlanner(
         evaluator=evaluator,
