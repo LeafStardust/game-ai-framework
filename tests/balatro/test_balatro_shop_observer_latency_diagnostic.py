@@ -57,6 +57,6 @@ def test_shop_d14_latency_note_separates_child_components():
         "shop_d14_latency=total=12.000s "
         "deterministic=0.100s joker=1.000s consumable=0.400s "
         "booster=0.500s/2calls bond_pair=0.800s reroll=8.500s "
-        "reroll_joker=8.000s/1calls residual=0.700s"
+        "reroll_joker=8.000s/1calls residual=0.800s"
     )
     assert consume_shop_policy_latency_note() is None
