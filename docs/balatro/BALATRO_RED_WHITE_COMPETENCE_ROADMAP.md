@@ -1,6 +1,6 @@
 # Balatro Red/White Competence Roadmap
 
-Status: **Red/White ordinary competence baseline clean; calibration temporarily refrozen by a reproducible D14 Arcana SHOP decision stall; large-pool Arcana bound implemented, deterministic/live validation pending**
+Status: **Red/White ordinary competence baseline clean; D14 Arcana SHOP stall repaired and deterministic validation green; calibration temporarily refrozen pending one fresh three-run baseline-only live study**
 
 This document is the active handoff contract for Red Deck / White Stake work. Detailed dated evidence belongs in `BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`; authority boundaries belong in `BALATRO_DECISION_AUTHORITY_MAP.md`.
 
@@ -119,57 +119,28 @@ Replacement batch `balatro-20260828T202157Z-b3fc8c0a` remains the clean pre-cali
 
 Weak Play-vs-Discard choices in that batch remain decision-quality/tuning targets rather than evidence of missing discard authority because the same HEAD selected real discards in ordinary live play.
 
-## Newly reopened narrow blocker — D14 Arcana SHOP expectation
+## Narrow D14 Arcana SHOP blocker — deterministic repair GREEN
 
-The first attempted current-HEAD authoritative Phase-A production baseline produced interrupted run:
+The first attempted authoritative Phase-A production baseline produced interrupted run `balatro-20260828T204238Z-f12b2e9b-attempt-001`. It cleared Ante 1 Small and Big Blind, reached SHOP with **$13** and Abstract Joker, then emitted no SHOP decision for roughly five minutes until the user stopped the tuner.
 
-`balatro-20260828T204238Z-f12b2e9b-attempt-001`
+The concrete unbounded branch was D8 Arcana unopened-pack expectation: `ArcanaBoosterExpectationEvaluator._ordinary_pool_mean()` evaluated the entire public Tarot/Spectral pool through installed D9 scoring.
 
-The run correctly cleared Ante 1 Small Blind and Big Blind, cashed out, and reached SHOP with **$13** and Abstract Joker. The public shop contained Red Card, Venus, Wasteful, Jumbo Arcana Pack, and Arcana Pack. The final durable event is the settled `END_ROUND -> SHOP` transition; **no SHOP decision was emitted afterward**. The user observed no new decision for roughly five minutes and manually stopped the tuner.
+Commit `2a5b708e` (`perf(balatro): bound large-pool Arcana expectation`) now keeps pools of 12 or fewer exact and, for larger pools, evaluates at most 8 deterministically spread public outcomes while dividing by the full eligible-pool denominator. Omitted mass contributes zero and is not renormalized. Existing same-state memoization still prevents duplicate Arcana packs from recomputing the same expectation in one SHOP state.
 
-This is a real runtime defect, not a completed or slow calibration trial:
+Regression commit `e2b6424b` covers the large-pool evaluation count/denominator and exact small-pool behavior.
 
-- no `run_finished` event exists;
-- no win/loss was recorded;
-- no second or third baseline attempt began;
-- the stall occurred inside SHOP `runner.decide()` before decision logging/execution;
-- the existing `study-report.json` remained historical August-25 evidence and is not a report for this interrupted trial.
-
-Translator audit confirmed the raw native shop-area mixing was **not** the cause: `translator.py` correctly routes Venus to `state.shop_consumables` and Red Card to `state.shop_jokers`.
-
-The remaining concrete unbounded branch was D8 Arcana unopened-pack expectation. `ArcanaBoosterExpectationEvaluator._ordinary_pool_mean()` walked the entire public Tarot/Spectral generation pool and invoked installed D9 scoring for every record. The same-state SHOP runtime layer already memoizes duplicate same-family pack expectations, so the two visible Arcana packs did not double that expectation; the hole was the full public-pool traversal itself.
-
-### Current Arcana repair
-
-Commit `2a5b708e` (`perf(balatro): bound large-pool Arcana expectation`) adds a conservative large-pool bound:
-
-- pools of **12 or fewer** eligible records remain exact;
-- larger pools evaluate at most **8** deterministically spread records;
-- the denominator remains the **full eligible pool size**;
-- omitted probability mass therefore contributes literal zero and is **not renormalized**;
-- Soul/Black Hole special override probabilities remain modeled separately and exactly when eligible;
-- rationale records evaluated/total public outcomes.
-
-Regression commit `e2b6424b` (`test(balatro): bound large-pool Arcana expectation`) covers:
-
-- 22-record Tarot pool -> at most 8 expensive visible-value evaluations;
-- deterministic spread includes both ends of the public pool;
-- EV and positive probability divide by all 22 records;
-- 12-record pools remain exact.
-
-The assistant has **not executed** these tests.
+The user reported the corrected targeted Arcana/SHOP test set **green**, followed by the full `tests/balatro` suite **green** on this gameplay/test HEAD.
 
 ## Immediate gate
 
-Calibration is temporarily **refrozen** because the gameplay/runtime SHA changed and the first live tuning baseline did not complete.
+Calibration remains temporarily **refrozen only for live confirmation**, because the previous production baseline was interrupted before this gameplay/runtime SHA.
 
-Required sequence:
+Required sequence now:
 
-1. targeted Arcana/SHOP deterministic validation;
-2. full `tests/balatro` on the resulting gameplay/test HEAD;
-3. manually restore Balatro to fresh Red Deck / White Stake / Ante 1 `BLIND_SELECT`;
-4. start a **freshly named** baseline-only live study rather than reusing the interrupted study name;
-5. require three completed production-default attempts with no multi-minute SHOP stall before candidate Phase-A trials resume.
+1. manually restore Balatro to fresh Red Deck / White Stake / Ante 1 `BLIND_SELECT`;
+2. start a **freshly named** baseline-only live study rather than reusing the interrupted study name;
+3. require three completed production-default attempts with no multi-minute SHOP stall;
+4. if clean, reopen Phase-A candidate calibration immediately.
 
 The interrupted Optuna trial must not be treated as baseline evidence. A fresh study name avoids inheriting a stale/RUNNING trial from the interrupted process.
 
@@ -241,9 +212,9 @@ Boss rules are mechanics, not soft preferences. Ordinary strategy is subordinate
 - [x] Diagnose interrupted baseline as D14 Arcana full-pool expectation stall.
 - [x] Add conservative large-pool Arcana bound.
 - [x] Add deterministic large-/small-pool Arcana regression coverage.
-- [ ] **Current gate:** targeted tests for Arcana/SHOP runtime bound.
-- [ ] Full `tests/balatro` on the Arcana-bound HEAD.
-- [ ] Fresh three-run production-default baseline-only live study.
-- [ ] Reopen Phase-A candidate calibration only after that baseline completes cleanly.
+- [x] Targeted Arcana/SHOP deterministic validation.
+- [x] Full `tests/balatro` on the Arcana-bound HEAD.
+- [ ] **Current gate:** fresh three-run production-default baseline-only live study.
+- [ ] Reopen Phase-A candidate calibration immediately after a clean baseline.
 - [ ] Use calibration and trace review to improve weak Play-vs-Discard valuation, build formation, pivoting, shop decisions, and overall win probability.
 - [ ] Keep new decks, stake progression, gameplay features, and broader v1.1+ work frozen until the Red/White play-quality/calibration checkpoint is satisfactory.
