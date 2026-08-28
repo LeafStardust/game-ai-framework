@@ -259,6 +259,8 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         plays = tuple(plan for plan in plans if plan.action.name == PLAY_CARDS)
         discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
         if not plays:
+            # Canonical D1 normally always has a Play root. If that invariant is
+            # ever broken, the base emergency path is safer than fabricating fields.
             return super()._structural_timeout_fallback(
                 state,
                 search_attempts=search_attempts,
@@ -328,6 +330,14 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         state,
         decision: HandActionDecision,
     ) -> HandActionDecision:
+        """Use deeper completed evidence only within the finalized recovery class.
+
+        Production policy owns Play-vs-Discard survival arbitration. In particular,
+        a pace-qualified Play is final: a post-policy wrapper must not replace it
+        with an engineered deeper line. When the policy is already in recovery,
+        however, a materially superior completed root may refine the particular
+        candidate so long as it stays in the same Play/Discard class.
+        """
         if decision.mode in {CLEAR_PATH, PACE_PLAY} or not self._adaptive_root_history:
             return decision
 
