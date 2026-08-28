@@ -82,7 +82,7 @@ def test_deadline_is_checked_between_expensive_candidate_projections(monkeypatch
         deadline=5.0,
     )
     planner.ROOT_CANDIDATE_BOOTSTRAP_SECONDS = 999.0
-    clock = iter((0.0, 0.0, 0.0, 1.0, 1.0, 2.0, 2.0, 6.0))
+    clock = iter((0.0, 0.0, 0.0, 1.0, 1.0, 2.0, 2.0, 3.0, 6.0))
     monkeypatch.setattr(module, "perf_counter", lambda: next(clock))
 
     with pytest.raises(PlannerSearchBudgetExceeded, match="wall-clock budget"):
