@@ -2,14 +2,15 @@ from __future__ import annotations
 
 """Bound D11 future-Tarot value from the public eligible Tarot pool.
 
-A reroll does not reveal the future Tarot identity. D11 therefore averages a bounded
-acyclic leaf value over the current public generation pool. It never routes a
-hypothetical unseen Tarot through held-option/D9 mechanics. Unsupported, stochastic,
-or generative outcomes and omitted large-pool mass remain literal zero.
+Every public record is preflighted for model availability, then only a deterministic
+bounded subset receives leaf valuation. No hypothetical future Tarot enters held-use
+D9 mechanics; omitted probability mass remains literal zero.
 """
 
 from dataclasses import dataclass
+from types import SimpleNamespace
 
+from games.balatro.live.consumable_factory import LiveConsumableFactory
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.unopened_consumable_outcome_value import (
     UnopenedConsumableOutcomeValueEvaluator,
@@ -40,9 +41,32 @@ def _bounded_record_indices(record_count: int, *, exact: bool) -> tuple[int, ...
     return tuple(round(index * (count - 1) / (budget - 1)) for index in range(budget))
 
 
+class _LeafHeldOptionAdapter:
+    """Compatibility surface for bounded tests/callers; never enters D9."""
+
+    def __init__(self, outcome_evaluator) -> None:
+        self.outcome_evaluator = outcome_evaluator
+
+    def evaluate(self, state, candidate):
+        name = str(getattr(candidate, "name", getattr(candidate, "label", "")) or "")
+        category = str(getattr(candidate, "category", "TAROT") or "TAROT").upper()
+        result = self.outcome_evaluator.evaluate(
+            state,
+            {
+                "label": name,
+                "ability_name": name,
+                "ability_set": category,
+            },
+            kind=category,
+        )
+        return SimpleNamespace(complete=True, expected_gain=max(0.0, float(result.value)))
+
+
 class RerollTarotExpectationEvaluator:
-    def __init__(self, *, outcome_evaluator=None) -> None:
+    def __init__(self, *, outcome_evaluator=None, factory=None) -> None:
         self.outcome_evaluator = outcome_evaluator or UnopenedConsumableOutcomeValueEvaluator()
+        self.factory = factory or LiveConsumableFactory()
+        self.held_option = _LeafHeldOptionAdapter(self.outcome_evaluator)
 
     def evaluate(self, state, *, money: int, expected_price: int) -> RerollTarotExpectation:
         if not bool(getattr(state, "consumable_generation_pool_observed", False)):
@@ -58,26 +82,43 @@ class RerollTarotExpectationEvaluator:
         if not records:
             return self._incomplete("future Tarot expectation unavailable: eligible Tarot pool is empty")
 
-        exact = len(records) <= _MAX_EXACT_PUBLIC_RECORDS
-        evaluated_indices = _bounded_record_indices(len(records), exact=exact)
+        # Preflight every public record before sampling so an unsupported record cannot
+        # hide outside the evaluated subset and make the expectation falsely complete.
+        candidates = []
+        for record in records:
+            candidate = self.factory.create(dict(record))
+            if candidate is None:
+                return self._incomplete(
+                    "eligible future Tarot is not modeled: "
+                    + str(record.get("label") or record.get("center") or "unknown"),
+                    len(candidates),
+                )
+            candidate.price = int(expected_price)
+            candidates.append(candidate)
+
+        projected = state.copy()
+        projected.money = max(0, int(money))
+        exact = len(candidates) <= _MAX_EXACT_PUBLIC_RECORDS
+        evaluated_indices = _bounded_record_indices(len(candidates), exact=exact)
         evaluated_sum = 0.0
         for index in evaluated_indices:
             try:
-                result = self.outcome_evaluator.evaluate(state, records[index], kind="TAROT")
+                expectation = self.held_option.evaluate(projected, candidates[index])
             except (AttributeError, KeyError, RuntimeError, TypeError, ValueError, ZeroDivisionError):
                 continue
-            evaluated_sum += max(0.0, float(result.value))
+            if bool(getattr(expectation, "complete", False)):
+                evaluated_sum += max(0.0, float(getattr(expectation, "expected_gain", 0.0)))
 
-        expected = evaluated_sum / float(len(records))
+        expected = evaluated_sum / float(len(candidates))
         return RerollTarotExpectation(
             complete=True,
             expected_option_gain=expected,
-            outcome_count=len(records),
+            outcome_count=len(candidates),
             rationale=(
                 "future Tarot uses current public eligible get_current_pool catalogue",
-                f"eligible Tarot outcomes={len(records)}",
-                f"bounded leaf outcomes evaluated={len(evaluated_indices)}/{len(records)}",
-                "D11 future Tarot never invokes held-option or D9 policy authority",
+                f"eligible Tarot outcomes={len(candidates)}",
+                f"bounded leaf outcomes evaluated={len(evaluated_indices)}/{len(candidates)}",
+                "D11 future Tarot never invokes D9 policy authority",
                 "unevaluated/deferred probability mass remains zero without renormalization",
                 f"expected bounded option value={expected:.3f}",
                 f"unseen Tarot expected-price prior=${int(expected_price)}",
