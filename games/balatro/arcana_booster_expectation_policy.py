@@ -90,7 +90,18 @@ class ArcanaBoosterExpectationEvaluator:
 
     def _visible_value(self, state, record: dict) -> float:
         data = dict(record)
-        if str(data.get("label") or "") == "The Fool":
+        label = str(data.get("label") or "")
+        center = str(data.get("center") or "").lower()
+
+        # Emperor's D9 scorer evaluates the public Tarot pool it can generate. If
+        # unopened Arcana expectation sends Emperor through that scorer, the same
+        # Arcana-visible Tarot pool can re-enter Emperor expectation through generated
+        # option valuation. D8's documented conservative contract already treats
+        # unsafe recursive outcomes as literal zero; enforce that boundary here.
+        if label == "The Emperor" or center == "c_emperor":
+            return 0.0
+
+        if label == "The Fool":
             last = getattr(state, "last_tarot_planet", None)
             if last:
                 data["last_tarot_planet"] = str(last)
