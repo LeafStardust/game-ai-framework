@@ -33,6 +33,19 @@ def test_unopened_d8_expectations_do_not_enter_d9_pack_authority() -> None:
         assert "score_action" not in _call_attributes(source)
 
 
+def test_standard_unopened_expectation_does_not_profile_or_project_whole_build() -> None:
+    source = _source("standard_booster_expectation_policy.py")
+    calls = _call_attributes(source)
+
+    # Static D9 card constants are a legal leaf dependency. Instantiating D9,
+    # profiling B6, or measuring whole-build deck-growth score is not.
+    assert "BalatroPackPolicy(" not in source
+    assert "DeckGrowthScoreValueEvaluator" not in source
+    assert "profiler" not in source
+    assert "score_action" not in calls
+    assert "profile" not in calls
+
+
 def test_emperor_generated_outcomes_do_not_reenter_d9() -> None:
     source = _source("emperor_pack_expectation_policy.py")
     calls = _call_attributes(source)
