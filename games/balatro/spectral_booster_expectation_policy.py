@@ -59,14 +59,23 @@ def _bounded_record_indices(record_count: int) -> tuple[int, ...]:
 
 
 class SpectralBoosterExpectationEvaluator:
-    def __init__(self, *, outcome_evaluator=None) -> None:
+    def __init__(self, *, outcome_evaluator=None, pack_policy=None) -> None:
+        # Compatibility-only parameter. D8 must never call the supplied D9 policy.
+        del pack_policy
         self.outcome_evaluator = outcome_evaluator or UnopenedConsumableOutcomeValueEvaluator()
 
     @staticmethod
     def _pool(state) -> tuple[dict, ...]:
         pools = getattr(state, "consumable_generation_pools", {}) or {}
         values = pools.get("SPECTRAL", ()) if isinstance(pools, dict) else ()
-        return tuple(dict(record) for record in values if isinstance(record, dict))
+        normalized = []
+        for record in values:
+            if not isinstance(record, dict):
+                continue
+            data = dict(record)
+            data.setdefault("ability_set", "SPECTRAL")
+            normalized.append(data)
+        return tuple(normalized)
 
     def _visible_value(self, state, record: dict) -> float:
         try:
@@ -111,12 +120,15 @@ class SpectralBoosterExpectationEvaluator:
             special_note = "soulable 0.3% special override modeled with Black Hole precedence"
 
         return option_ev, positive, (
-            "Spectral one-offer EV uses bounded acyclic unopened-consumable valuation",
+            "Spectral one-offer EV uses current public eligible get_current_pool catalogue",
             f"Spectral outcomes evaluated={len(indices)}/{len(records)}; omitted/deferred mass remains zero",
-            "D8 does not invoke D9 pack choice for hypothetical outcomes",
+            "unopened Spectral SHOP expectation performs zero D9 calls",
+            "Black Hole uses the established B4 Spectral base value=4.000",
+            "all other hypothetical Spectral outcomes contribute zero until visible",
             special_note,
             f"one-offer positive-choice probability={positive:.6f}",
             f"one-offer sunk-cost option EV={option_ev:.6f}",
+            "actual opened-pack D9 remains authoritative after an identity is visible",
             "best-of-2/4 and Mega second-selection improvement omitted conservatively",
         )
 
