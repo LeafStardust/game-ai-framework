@@ -175,14 +175,20 @@ class BuildAwareShopRerollPolicy:
             raise ValueError("reroll policy requires SHOP phase")
         thresholds = self.thresholds_for_state(state)
 
-        current_scores = self._visible_scores(state, visible_actions)
-        current_best = (
-            current_scores[0].total
-            if current_scores
-            else float(self.shop_policy.hold_bias)
-        )
+        # D14 already evaluates every admitted visible child and supplies the
+        # authoritative comparison floor. Re-scoring those same actions here can
+        # re-enter the fully wrapped SHOP stack (D2/D4/D8/etc.) and turn one reroll
+        # comparison into minutes of duplicated work. When the parent provides a
+        # floor, trust it directly and do not touch visible action scoring at all.
         if visible_score_floor is not None:
-            current_best = max(current_best, float(visible_score_floor))
+            current_best = float(visible_score_floor)
+        else:
+            current_scores = self._visible_scores(state, visible_actions)
+            current_best = (
+                current_scores[0].total
+                if current_scores
+                else float(self.shop_policy.hold_bias)
+            )
 
         unmet = self._unmet_requirements(state)
 
@@ -378,10 +384,6 @@ class BuildAwareShopRerollPolicy:
             for offer, score in zip(prior.offers, scores)
         )
 
-        # If every family is currently unaffordable or capacity-blocked, the
-        # rerolled option set is exactly equivalent to leaving the shop. Preserve
-        # that baseline exactly instead of introducing probability-sum roundoff;
-        # zero-cost rerolls may then safely win the intentional tie-break.
         if all(score == hold for score in scores):
             return hold, offer_scores
 
@@ -412,9 +414,6 @@ class BuildAwareShopRerollPolicy:
 
         if offer.resource == "JOKER":
             if len(state.jokers) >= state.joker_slots:
-                # Legacy fallback for environments without the production public-pool
-                # Joker expectation. Production D11 replaces this branch with exact
-                # D2 replacement evaluation over the eligible current pool.
                 slot_cost = max(
                     0.0,
                     float(thresholds.full_joker_replacement_penalty),
@@ -460,7 +459,6 @@ class BuildAwareShopRerollPolicy:
         state: BalatroState,
         visible_actions: list[BalatroAction],
     ) -> list[ShopActionScore]:
-        """Score only deterministic child-layer actions already supported by D12."""
         supported_names = {
             BUY_JOKER,
             BUY_CONSUMABLE,
@@ -473,9 +471,6 @@ class BuildAwareShopRerollPolicy:
             if action.name in supported_names
         ]
 
-        # Random-state actions (e.g. booster opening) are intentionally absent:
-        # the parent arbiter can supply their admitted child score as a floor without
-        # making this reroll layer predict the pack's hidden contents itself.
         if not any(action.name == END_SHOP for action in supported):
             supported.append(BalatroAction(END_SHOP))
 
