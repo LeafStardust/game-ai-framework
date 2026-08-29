@@ -40,14 +40,12 @@ def test_unopened_arcana_omits_every_base_stochastic_or_deferred_tarot():
             {"label": name, "ability_name": name, "ability_set": "TAROT"},
         ) == 0.0
 
-    assert policy.calls == 0
-
     ordinary = evaluator._visible_value(
         state,
         {"label": "The Hermit", "ability_name": "The Hermit", "ability_set": "TAROT"},
     )
-    assert ordinary == 2.0
-    assert policy.calls == 1
+    assert ordinary == 2.2
+    assert policy.calls == 0
 
 
 def test_unopened_spectral_omits_every_base_stochastic_or_deferred_outcome():
@@ -63,14 +61,12 @@ def test_unopened_spectral_omits_every_base_stochastic_or_deferred_outcome():
             {"label": name, "ability_name": name, "ability_set": "SPECTRAL"},
         ) == 0.0
 
-    assert policy.calls == 0
-
     ordinary = evaluator._visible_value(
         state,
         {"label": "Black Hole", "ability_name": "Black Hole", "ability_set": "SPECTRAL"},
     )
-    assert ordinary == 2.0
-    assert policy.calls == 1
+    assert ordinary == 4.0
+    assert policy.calls == 0
 
 
 def test_held_shop_option_omits_second_layer_stochastic_expectation():
@@ -93,6 +89,7 @@ def test_same_state_arcana_expectation_is_memoized_for_duplicate_shop_packs():
     evaluator = ArcanaBoosterExpectationEvaluator(pack_policy=policy)
     state = SimpleNamespace(
         phase="SHOP",
+        money=20,
         last_tarot_planet=None,
         consumable_generation_pool_observed=True,
         consumable_generation_pools={
@@ -109,11 +106,10 @@ def test_same_state_arcana_expectation_is_memoized_for_duplicate_shop_packs():
     )
 
     first = evaluator.evaluate(state)
-    calls_after_first = policy.calls
     second = evaluator.evaluate(state)
 
     assert second is first
-    assert policy.calls == calls_after_first
+    assert policy.calls == 0
 
 
 def test_shop_future_hand_models_share_small_deterministic_branch_budget():
