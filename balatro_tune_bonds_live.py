@@ -83,6 +83,39 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def run_live_phase_a(
+    config: LiveStudyConfig,
+    evaluator,
+    *,
+    trials: int,
+    timeout_seconds: float | None = None,
+):
+    """Run live trials on one persistent Study/sampler for this invocation."""
+    if trials <= 0:
+        raise ValueError("trials must be positive")
+
+    study = create_live_phase_a_study(config)
+    enqueue_production_baseline(study)
+    objective = make_live_phase_a_objective(config, evaluator)
+
+    # Optimize one trial at a time on the SAME Study/sampler so a real win can
+    # stop before the guarded evaluator is asked to operate on a won terminal
+    # frame. Recreating the Study here per trial would reset the seeded sampler
+    # and repeat the same candidate proposal.
+    for _ in range(trials):
+        study.optimize(
+            objective,
+            n_trials=1,
+            timeout=timeout_seconds,
+            gc_after_trial=True,
+            catch=(RuntimeError,),
+        )
+        latest = study.trials[-1]
+        if bool(latest.user_attrs.get("won")):
+            break
+    return study
+
+
 def main() -> int:
     args = build_parser().parse_args()
     if args.trials <= 0:
@@ -117,23 +150,24 @@ def main() -> int:
         sampler_seed=args.sampler_seed,
     )
 
-    try:
-        # Create/load the Optuna Study exactly once for this process. The sampler is
-        # stateful: recreating TPESampler with the same seed before every one-trial
-        # optimize call repeats the same proposal and defeats exploration.
-        study = create_live_phase_a_study(config)
-        if args.baseline_only and study.trials:
+    # Baseline-only has an extra safety contract: reject a reused study before
+    # the live evaluator is constructed. Normal exploratory tuning must not do a
+    # separate pre-create because that would recreate/reset the seeded sampler.
+    if args.baseline_only:
+        try:
+            precheck_study = create_live_phase_a_study(config)
+            if precheck_study.trials:
+                print("Balatro live Bond tuning -> BLOCKED")
+                print(
+                    "Reason -> --baseline-only requires a fresh study with zero existing trials; "
+                    f"study {config.name!r} already has {len(precheck_study.trials)} trial(s)"
+                )
+                return 2
+            enqueue_production_baseline(precheck_study)
+        except Exception as error:
             print("Balatro live Bond tuning -> BLOCKED")
-            print(
-                "Reason -> --baseline-only requires a fresh study with zero existing trials; "
-                f"study {config.name!r} already has {len(study.trials)} trial(s)"
-            )
+            print(f"Reason -> {error}")
             return 2
-        enqueue_production_baseline(study)
-    except Exception as error:
-        print("Balatro live Bond tuning -> BLOCKED")
-        print(f"Reason -> {error}")
-        return 2
 
     evaluator = AuthoritativeLiveBatchEvaluator(
         attempts_per_trial=args.attempts_per_trial,
@@ -143,7 +177,6 @@ def main() -> int:
         session_directory=session_directory,
         control_directory=control_directory,
     )
-    objective = make_live_phase_a_objective(config, evaluator)
 
     print("Balatro live Bond tuning -> PREFLIGHT PASS")
     print(f"Boundary -> {preflight.phase}, Ante {preflight.ante}, {preflight.deck}/{preflight.stake}")
@@ -152,33 +185,26 @@ def main() -> int:
     print(f"Storage -> {storage_path}")
 
     requested_trials = 1 if args.baseline_only else args.trials
+    study = precheck_study if args.baseline_only else None
     try:
-        # Optimize one trial at a time on the SAME Study/sampler so a real win can
-        # stop before the guarded live evaluator is asked to operate on an
-        # intentionally non-restartable won terminal frame. Lost batches restore
-        # BLIND_SELECT themselves; the evaluator preflights that boundary again.
-        for _ in range(requested_trials):
-            study.optimize(
-                objective,
-                n_trials=1,
-                timeout=args.timeout_seconds,
-                gc_after_trial=True,
-                catch=(RuntimeError,),
-            )
-            latest = study.trials[-1]
-            if args.baseline_only:
-                if str(latest.state.name) != "COMPLETE":
-                    raise RuntimeError("production baseline trial did not complete")
-                if not bool(latest.user_attrs.get("production_baseline")):
-                    raise RuntimeError("queued production baseline was not executed")
-                break
-            if bool(latest.user_attrs.get("won")):
-                break
+        study = run_live_phase_a(
+            config,
+            evaluator,
+            trials=requested_trials,
+            timeout_seconds=args.timeout_seconds,
+        )
+        latest = study.trials[-1]
+        if args.baseline_only:
+            if str(latest.state.name) != "COMPLETE":
+                raise RuntimeError("production baseline trial did not complete")
+            if not bool(latest.user_attrs.get("production_baseline")):
+                raise RuntimeError("queued production baseline was not executed")
     except Exception as error:
         print("Balatro live Bond tuning -> FAIL")
         print(f"Reason -> {error}")
-        write_study_report(study, report_path)
-        print(f"Partial report -> {report_path}")
+        if study is not None:
+            write_study_report(study, report_path)
+            print(f"Partial report -> {report_path}")
         return 3
 
     target = write_study_report(study, report_path)
