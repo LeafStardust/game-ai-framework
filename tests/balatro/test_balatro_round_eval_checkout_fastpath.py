@@ -44,11 +44,15 @@ class _CountingObserver:
         self.calls = 0
         if native_ready_capable:
             setattr(self, _READY_CAPABILITY_ATTR, True)
+            self._last_exposed_phase = str(self.snapshots[0].phase)
 
     def observe(self):
         self.calls += 1
         index = min(self.calls - 1, len(self.snapshots) - 1)
-        return self.snapshots[index]
+        snapshot = self.snapshots[index]
+        if bool(getattr(self, _READY_CAPABILITY_ATTR, False)):
+            self._last_exposed_phase = str(snapshot.phase)
+        return snapshot
 
 
 class _Runner:
