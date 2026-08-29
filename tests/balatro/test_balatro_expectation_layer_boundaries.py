@@ -33,26 +33,23 @@ def test_unopened_d8_expectations_do_not_enter_d9_pack_authority() -> None:
         assert "score_action" not in _call_attributes(source)
 
 
-def test_standard_unopened_expectation_does_not_profile_or_project_whole_build() -> None:
+def test_standard_unopened_expectation_uses_bounded_context_without_policy_recursion() -> None:
     source = _source("standard_booster_expectation_policy.py")
     calls = _call_attributes(source)
 
-    # Static D9 card constants are a legal leaf dependency. Instantiating D9,
-    # profiling B6, or measuring whole-build deck-growth score is not.
-    assert "BalatroPackPolicy(" not in source
-    assert "DeckGrowthScoreValueEvaluator" not in source
-    assert "profiler" not in source
+    # Standard's finite generator may reuse the bounded B6 feature graph and literal
+    # deck-growth evaluator. The forbidden edge is policy recursion, not all context.
     assert "score_action" not in calls
-    assert "profile" not in calls
+    assert "rank_actions" not in calls
+    assert "decide" not in calls
+    assert "BuildAwareShopArbiter" not in source
+    assert "BuildAwareShopRerollPolicy" not in source
 
 
 def test_emperor_generated_outcomes_do_not_reenter_d9() -> None:
     source = _source("emperor_pack_expectation_policy.py")
     calls = _call_attributes(source)
 
-    # Emperor itself is a real visible D9 decision, so this module legitimately
-    # installs onto BalatroPackPolicy. Its hypothetical generated Tarot outcomes,
-    # however, must stay below that authority.
     assert "score_action" not in calls
     assert "LivePackChoice" not in source
     assert "SELECT_PACK_CARD" not in source
@@ -83,7 +80,5 @@ def test_unopened_leaf_has_no_shop_or_pack_decision_edge() -> None:
 def test_shop_runtime_bound_does_not_reintroduce_d8_visible_value_wrappers() -> None:
     source = _source("shop_expectation_runtime_bound_policy.py")
 
-    # D8 base implementations now own the acyclic boundary. Runtime installation
-    # may memoize them, but must not replace their per-outcome valuation path.
     assert "ArcanaBoosterExpectationEvaluator._visible_value =" not in source
     assert "SpectralBoosterExpectationEvaluator._visible_value =" not in source
