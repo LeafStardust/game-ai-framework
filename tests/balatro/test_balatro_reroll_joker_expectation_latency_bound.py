@@ -1,35 +1,84 @@
-from games.balatro.reroll_joker_expectation_policy import _bounded_editions
+from types import SimpleNamespace
+
+from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
+from games.balatro.reroll_joker_expectation_policy import RerollJokerExpectationEvaluator
 
 
-def test_small_public_pool_keeps_all_edition_branches_exact():
-    editions = (
-        (None, 0.92),
-        ("FOIL", 0.04),
-        ("HOLOGRAPHIC", 0.03),
-        ("POLYCHROME", 0.01),
+def _joker_record(index: int, rarity: str) -> dict[str, object]:
+    return {
+        "center": "j_joker",
+        "label": f"Joker {index}",
+        "ability_name": "Joker",
+        "ability_set": "JOKER",
+        "rarity": rarity,
+    }
+
+
+def test_large_public_pool_has_hard_no_d2_runtime_boundary(monkeypatch):
+    def forbidden_d2(*args, **kwargs):
+        del args, kwargs
+        raise AssertionError("reroll expectation must not invoke D2 for unseen Jokers")
+
+    monkeypatch.setattr(PlaybookJokerAcquisitionPolicy, "decide", forbidden_d2)
+
+    shop_policy = SimpleNamespace(
+        hold_bias=0.0,
+        price_weight=0.35,
+        interest_weight=1.25,
+        reserve_target=5,
+        reserve_weight=0.45,
+    )
+    evaluator = RerollJokerExpectationEvaluator(shop_policy=shop_policy)
+
+    pools = {
+        rarity: tuple(_joker_record(index, rarity) for index in range(40))
+        for rarity in ("COMMON", "UNCOMMON", "RARE")
+    }
+    state = SimpleNamespace(
+        stake_name="WHITE",
+        joker_generation_pool_observed=True,
+        joker_generation_pools=pools,
+        visible_poker_hands=("HIGH_CARD", "PAIR"),
     )
 
-    assert _bounded_editions(editions, exact=True) == editions
+    result = evaluator.evaluate(state, money=10, expected_price=5)
+
+    assert result.complete is True
+    assert result.expected_gain == 0.0
+    assert result.outcome_count == 120
+    assert any("never invokes D2" in note for note in result.rationale)
 
 
-def test_large_public_pool_keeps_only_most_probable_edition_without_renormalizing():
-    editions = (
-        (None, 0.92),
-        ("FOIL", 0.04),
-        ("HOLOGRAPHIC", 0.03),
-        ("POLYCHROME", 0.01),
+def test_large_public_pool_still_fails_closed_on_unmodeled_joker():
+    shop_policy = SimpleNamespace(
+        hold_bias=0.0,
+        price_weight=0.35,
+        interest_weight=1.25,
+        reserve_target=5,
+        reserve_weight=0.45,
+    )
+    evaluator = RerollJokerExpectationEvaluator(shop_policy=shop_policy)
+
+    unmodeled = {
+        "center": "j_not_a_real_joker",
+        "label": "Unmodeled Joker",
+        "ability_name": "Unmodeled Joker",
+        "ability_set": "JOKER",
+        "rarity": "COMMON",
+    }
+    state = SimpleNamespace(
+        stake_name="WHITE",
+        joker_generation_pool_observed=True,
+        joker_generation_pools={
+            "COMMON": (unmodeled,),
+            "UNCOMMON": (_joker_record(0, "UNCOMMON"),),
+            "RARE": (_joker_record(0, "RARE"),),
+        },
+        visible_poker_hands=("HIGH_CARD", "PAIR"),
     )
 
-    bounded = _bounded_editions(editions, exact=False)
+    result = evaluator.evaluate(state, money=10, expected_price=5)
 
-    assert bounded == ((None, 0.92),)
-    assert sum(probability for _, probability in bounded) == 0.92
-
-
-def test_large_public_pool_edition_tie_break_is_stable():
-    editions = (
-        ("FIRST", 0.5),
-        ("SECOND", 0.5),
-    )
-
-    assert _bounded_editions(editions, exact=False) == (("FIRST", 0.5),)
+    assert result.complete is False
+    assert result.expected_gain == 0.0
+    assert any("not modeled" in note for note in result.rationale)
