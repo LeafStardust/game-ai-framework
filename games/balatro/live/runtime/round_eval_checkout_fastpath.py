@@ -8,8 +8,9 @@ Balatro's actual ``G.round_eval`` UI exists and ``G.FUNCS.cash_out`` is callable
 the checkout action is already native-ready. Waiting for generic quiet/stability
 windows after that point only delays the button press.
 
-This installer narrows both exceptions to ROUND_EVAL. Other phases keep their
-existing native-readiness and settling contracts unchanged.
+This installer narrows both exceptions to ROUND_EVAL on the production supervisor
+observer. Other phases and non-supervisor/test observers keep their existing
+native-readiness and settling contracts unchanged.
 """
 
 from . import live_memory_autonomous_loop_injected as autonomous_loop_module
@@ -91,44 +92,30 @@ def install_round_eval_checkout_fastpath() -> None:
     if getattr(loop_class, _LOOP_INSTALLED_ATTR, False):
         return
 
+    original_wait_for_stable_checkpoint = loop_class._wait_for_stable_checkpoint
+
     def wait_for_stable_checkpoint(self):
-        """Keep normal stability semantics except for native-ready ROUND_EVAL."""
+        """Skip the second stability timer only after supervisor ROUND_EVAL readiness."""
         observer = getattr(self.runner, "observer", None)
-        if observer is None or not hasattr(observer, "observe"):
-            return None
 
-        deadline = autonomous_loop_module.perf_counter() + self.stability_timeout_seconds
+        # Only SupervisorLiveMemoryBalatroObserver can prove that the actual
+        # G.round_eval UI object and G.FUNCS.cash_out callback are both live. Generic
+        # observers and test harnesses must retain the original semantic-stability
+        # contract even when their phase string happens to be ROUND_EVAL.
+        if not isinstance(observer, SupervisorLiveMemoryBalatroObserver):
+            return original_wait_for_stable_checkpoint(self)
+        if not hasattr(observer, "observe"):
+            return original_wait_for_stable_checkpoint(self)
+
         previous = observer.observe()
-
-        # Supervisor observation has already required the real round-eval UI and
-        # cash_out callback. Do not impose another two-snapshot/100 ms timer before
-        # checkout; the runner's mandatory stale-state guard still executes before
-        # the injected command.
         if previous.state_complete and str(previous.phase) == "ROUND_EVAL":
             return previous
 
-        latest_complete = previous if previous.state_complete else None
-        while True:
-            if autonomous_loop_module.perf_counter() >= deadline:
-                if latest_complete is not None:
-                    return latest_complete
-                raise autonomous_loop_module.AutonomousLoopGuardError(
-                    "live public state remained incomplete before planning"
-                )
-
-            if self.stability_interval_seconds:
-                autonomous_loop_module.sleep(self.stability_interval_seconds)
-            current = observer.observe()
-            if current.state_complete:
-                latest_complete = current
-
-            if (
-                previous.state_complete
-                and current.state_complete
-                and autonomous_loop_module._same_snapshot(previous, current)
-            ):
-                return current
-            previous = current
+        # If observation moved away from ROUND_EVAL, preserve the ordinary loop
+        # settling semantics rather than treating this fast path as a global timing
+        # relaxation. The extra observation is harmless and stale-state execution
+        # checks remain authoritative.
+        return original_wait_for_stable_checkpoint(self)
 
     loop_class._wait_for_stable_checkpoint = wait_for_stable_checkpoint
     setattr(loop_class, _LOOP_INSTALLED_ATTR, True)
