@@ -2,29 +2,23 @@ from __future__ import annotations
 
 """Opened-pack Emperor expectation from Balatro's public Tarot generation pool.
 
-The Emperor creates up to two Tarot cards in free consumable slots using ordinary
-``create_card('Tarot', ..., soulable=nil, key_append='emp')`` semantics. The current
-live generation-pool snapshot already reflects held/visible duplicate exclusion,
-challenge bans, pool flags, and Showman. No hidden seed, pool order, or generated
-identity is read.
-
-When two cards can be generated, this evaluator deliberately values only the better
-of the two generated Tarot options. That is a conservative lower bound: it avoids
-pretending two future Tarot uses are independent/additive while still recognizing
-that Emperor creates real option value. Without Showman the two ordinary draws are
-without replacement; with Showman they are with replacement. Balatro's Strength
-empty-pool fallback is preserved for the degenerate one-record/two-draw case.
+Emperor itself is a visible D9 choice, but the hypothetical Tarots it can generate
+must not be sent back through D9. Generated outcomes therefore use the same bounded,
+acyclic leaf valuation used by unopened D8 boosters. Unsupported/generative outcomes
+contribute zero. The model remains a conservative lower bound.
 """
 
-from copy import deepcopy
 from itertools import combinations
 
-from games.balatro.actions import SELECT_PACK_CARD, BalatroAction
-from games.balatro.live.pack import LivePackChoice
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
+from games.balatro.unopened_consumable_outcome_value import (
+    UnopenedConsumableOutcomeValueEvaluator,
+)
 
 
 EMPEROR = "The Emperor"
+_MAX_EXACT_PUBLIC_RECORDS = 12
+_MAX_EVALUATED_RECORDS_LARGE_POOL = 8
 _STRENGTH_RECORD = {
     "center": "c_strength",
     "label": "Strength",
@@ -33,9 +27,26 @@ _STRENGTH_RECORD = {
 }
 
 
+def _bounded_indices(record_count: int) -> tuple[int, ...]:
+    if record_count <= 0:
+        return ()
+    if record_count <= _MAX_EXACT_PUBLIC_RECORDS:
+        return tuple(range(record_count))
+    target = min(record_count, _MAX_EVALUATED_RECORDS_LARGE_POOL)
+    if target <= 1:
+        return (0,)
+    selected = {
+        round(position * (record_count - 1) / float(target - 1))
+        for position in range(target)
+    }
+    if len(selected) < target:
+        selected.update(index for index in range(record_count) if index not in selected)
+    return tuple(sorted(selected)[:target])
+
+
 class EmperorExpectationEvaluator:
-    def __init__(self, *, pack_policy: BalatroPackPolicy) -> None:
-        self.pack_policy = pack_policy
+    def __init__(self, *, outcome_evaluator=None) -> None:
+        self.outcome_evaluator = outcome_evaluator or UnopenedConsumableOutcomeValueEvaluator()
 
     @staticmethod
     def _tarot_pool(state) -> tuple[dict, ...]:
@@ -44,55 +55,43 @@ class EmperorExpectationEvaluator:
         return tuple(dict(record) for record in values if isinstance(record, dict))
 
     def _tarot_value(self, state, record: dict) -> float:
-        # Under Showman, Emperor can generate another Emperor. Treat that recursive
-        # branch as zero rather than recursively inventing an infinite option chain.
-        if str(record.get("label") or "") == EMPEROR:
-            return 0.0
-
         data = dict(record)
         if str(data.get("label") or "") == "The Fool":
-            # Using Emperor makes Emperor the public last Tarot before generated
-            # cards are used, so a generated Fool can copy Emperor.
             data["last_tarot_planet"] = "c_emperor"
-
-        choice = LivePackChoice(area_index=0, address=0, data=data)
-        action = BalatroAction(SELECT_PACK_CARD, target=choice)
-        projected = deepcopy(state)
-        projected.phase = "TAROT_PACK"
-        projected.last_tarot_planet = "c_emperor"
         try:
-            scored = self.pack_policy.score_action(projected, action)
+            result = self.outcome_evaluator.evaluate(state, data, kind="TAROT")
         except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
             return 0.0
-        return max(0.0, float(scored.total))
+        return max(0.0, float(result.value))
 
     def evaluate(self, state) -> tuple[float, tuple[str, ...]]:
         if not bool(getattr(state, "consumable_generation_pool_observed", False)):
-            return 0.0, (
-                "Emperor deferred: public Tarot generation pool was not observed",
-            )
+            return 0.0, ("Emperor deferred: public Tarot generation pool was not observed",)
 
         capacity = max(0, int(getattr(state, "consumable_slots", 0) or 0))
         held = len(getattr(state, "consumables", ()) or ())
         generated_count = min(2, max(0, capacity - held))
         if generated_count <= 0:
-            return 0.0, (
-                f"Emperor unavailable: no free consumable slot ({held}/{capacity})",
-            )
+            return 0.0, (f"Emperor unavailable: no free consumable slot ({held}/{capacity})",)
 
         pool = self._tarot_pool(state)
         if not pool:
             return 0.0, ("Emperor deferred: public Tarot generation pool is empty",)
 
-        values = tuple(self._tarot_value(state, record) for record in pool)
+        indices = _bounded_indices(len(pool))
+        sampled_values = tuple(self._tarot_value(state, pool[index]) for index in indices)
+        full_count = len(pool)
         if generated_count == 1:
-            expected = sum(values) / float(len(values))
+            expected = sum(sampled_values) / float(full_count)
             return expected, (
                 "Emperor creates one Tarot because only one consumable slot is free",
-                "generated Tarot value uses current public D9 Tarot authority",
+                "generated Tarot outcomes use bounded acyclic leaf valuation, not D9",
+                f"Tarot outcomes evaluated={len(indices)}/{full_count}; omitted/deferred mass remains zero",
                 f"expected generated option value={expected:.6f}",
             )
 
+        # For a bounded subset, omitted public-pool outcomes are explicit zero values.
+        values = list(sampled_values) + [0.0] * max(0, full_count - len(sampled_values))
         showman = bool(getattr(state, "consumable_generation_showman", False))
         if showman:
             maxima = [max(left, right) for left in values for right in values]
@@ -103,8 +102,6 @@ class EmperorExpectationEvaluator:
             expected = sum(maxima) / float(len(maxima))
             generation_note = "two generated Tarots use ordinary without-replacement duplicate exclusion"
         else:
-            # After the only eligible Tarot is generated, get_current_pool becomes
-            # empty and Balatro falls back to Strength for the second creation.
             strength_value = self._tarot_value(state, _STRENGTH_RECORD)
             expected = max(values[0], strength_value)
             generation_note = "second Tarot uses Balatro's Strength empty-pool fallback"
@@ -112,6 +109,8 @@ class EmperorExpectationEvaluator:
         return expected, (
             "Emperor creates two Tarots into two free consumable slots",
             generation_note,
+            "generated Tarot outcomes use bounded acyclic leaf valuation, not D9",
+            f"Tarot outcomes evaluated={len(indices)}/{full_count}; omitted/deferred mass remains zero",
             "only the better generated Tarot is valued; second-card additive value is omitted conservatively",
             f"expected generated option value={expected:.6f}",
         )
@@ -126,7 +125,7 @@ def install_emperor_pack_expectation_policy() -> None:
 
     def init(self, *args, **kwargs):
         original_init(self, *args, **kwargs)
-        self.emperor_expectation_evaluator = EmperorExpectationEvaluator(pack_policy=self)
+        self.emperor_expectation_evaluator = EmperorExpectationEvaluator()
 
     def score_consumable(self, state, action, choice):
         if choice.kind != "TAROT" or choice.label != EMPEROR:
@@ -134,18 +133,11 @@ def install_emperor_pack_expectation_policy() -> None:
 
         expected, notes = self.emperor_expectation_evaluator.evaluate(state)
         if expected <= 0.0:
-            return PackActionScore(
-                action,
-                -1.0,
-                ("Emperor does not beat opened-pack Skip=0", *notes),
-            )
+            return PackActionScore(action, -1.0, ("Emperor does not beat opened-pack Skip=0", *notes))
         return PackActionScore(
             action,
             float(expected),
-            (
-                "Emperor uses analytic public Tarot-generation expectation",
-                *notes,
-            ),
+            ("Emperor uses bounded public Tarot-generation expectation", *notes),
         )
 
     BalatroPackPolicy.__init__ = init
