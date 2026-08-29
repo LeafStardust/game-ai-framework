@@ -97,17 +97,28 @@ def install_round_eval_checkout_fastpath() -> None:
     original_wait_for_stable_checkpoint = loop_class._wait_for_stable_checkpoint
 
     def wait_for_stable_checkpoint(self):
-        """Skip the second stability timer only after native ROUND_EVAL readiness."""
+        """Skip the second stability timer only for a known-ready ROUND_EVAL."""
         observer = getattr(self.runner, "observer", None)
         if observer is None or not hasattr(observer, "observe"):
             return original_wait_for_stable_checkpoint(self)
         if not bool(getattr(observer, _READY_CAPABILITY_ATTR, False)):
             return original_wait_for_stable_checkpoint(self)
 
-        previous = observer.observe()
-        if previous.state_complete and str(previous.phase) == "ROUND_EVAL":
-            return previous
+        # Do not probe the observer just to discover whether this is ROUND_EVAL:
+        # that would add a third observation to every ordinary phase. The
+        # supervisor already tracks the last checkpoint it exposed. Only when that
+        # authoritative cached phase is ROUND_EVAL do we take one contemporaneous
+        # observation and bypass the generic two-snapshot timer.
+        if str(getattr(observer, "_last_exposed_phase", "") or "") != "ROUND_EVAL":
+            return original_wait_for_stable_checkpoint(self)
 
+        current = observer.observe()
+        if current.state_complete and str(current.phase) == "ROUND_EVAL":
+            return current
+
+        # The cached phase changed before the action boundary; fall back to normal
+        # settling. This race is rare and safety-favoring. The mandatory stale-state
+        # guard remains authoritative before execution.
         return original_wait_for_stable_checkpoint(self)
 
     loop_class._wait_for_stable_checkpoint = wait_for_stable_checkpoint
