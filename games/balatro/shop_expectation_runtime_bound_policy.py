@@ -4,8 +4,11 @@ from __future__ import annotations
 
 The runtime contract is deliberately structural rather than Joker/card-specific:
 
-* unopened D8 Arcana/Spectral value may inspect a tightly bounded hypothetical
-  visible outcome set, while omitted public probability mass retains value 0;
+* unopened D8 Arcana may inspect a tightly bounded hypothetical visible outcome set,
+  while omitted public probability mass retains value 0;
+* unopened D8 Spectral never enters D9: only explicit non-recursive public values
+  for Black Hole and The Soul are admitted, while every other hypothetical outcome
+  retains value 0 until it is actually visible;
 * stochastic/deferred D9 outcomes keep their real probability mass at value 0
   instead of recursively opening another expectation problem;
 * SHOP acquisition value for a held Tarot/Spectral follows the same one-layer rule;
@@ -26,7 +29,6 @@ all shortcuts are conservative lower bounds and never synthetic optimism.
 
 from games.balatro.arcana_booster_expectation_policy import ArcanaBoosterExpectationEvaluator
 from games.balatro.build.hand_size_opportunity import HandSizeOpportunityEvaluator
-from games.balatro.build.judgement_expectation import _bounded_indices
 from games.balatro.held_consumable_option_policy import (
     HeldConsumableOptionEvaluator,
     HeldConsumableOptionExpectation,
@@ -60,7 +62,9 @@ _D8_OMITTED_SPECTRALS = frozenset(
 
 _SHOP_FUTURE_HAND_EXACT_LIMIT = 16
 _SHOP_FUTURE_HAND_SAMPLE_COUNT = 8
-_SHOP_SPECTRAL_RECORD_BUDGET = 1
+# Existing explicit B4 Spectral base value. Using the established constant rather
+# than D9 keeps unopened SHOP expectation non-recursive.
+_SHOP_BLACK_HOLE_VALUE = 4.0
 
 
 def _record_name(record: dict) -> str:
@@ -99,6 +103,30 @@ def _install_late_live_guards() -> None:
     install_live_competence_guard_policy()
 
 
+def _spectral_unopened_public_value(state, record: dict) -> float:
+    """Return a non-recursive public lower-bound value for unopened Spectral D8.
+
+    Only effects with an already-explicit constant public value are admitted here.
+    Everything else remains zero until the real opened-pack D9 decision exposes the
+    identity and can evaluate its actual state/target semantics.
+    """
+    name = _record_name(record)
+    if name == "BLACK HOLE":
+        return _SHOP_BLACK_HOLE_VALUE
+    if name == "THE SOUL":
+        joker_slots = max(0, int(getattr(state, "joker_slots", 5) or 5))
+        owned_jokers = len(getattr(state, "jokers", ()) or ())
+        if owned_jokers >= joker_slots:
+            return 0.0
+        ante = max(1, int(getattr(state, "ante", 1) or 1))
+        early_bonus = max(
+            0,
+            BalatroPackPolicy.SOUL_EARLY_ANTE_CUTOFF - ante,
+        ) * BalatroPackPolicy.SOUL_EARLY_ANTE_BONUS
+        return float(BalatroPackPolicy.SOUL_BASE_VALUE) + float(early_bonus)
+    return 0.0
+
+
 def install_shop_expectation_runtime_bounds() -> None:
     if getattr(
         ArcanaBoosterExpectationEvaluator,
@@ -130,13 +158,7 @@ def install_shop_expectation_runtime_bounds() -> None:
         return float(original_spectral_visible_value(self, state, record))
 
     def spectral_evaluate(self, state):
-        """Bound unopened SHOP Spectral value to at most two D9 calls.
-
-        One deterministic ordinary public record is evaluated and the full ordinary
-        pool remains the denominator. If Balatro's public state says the 0.3% Soul /
-        Black Hole override is currently available, that single special branch is
-        evaluated as one additional bounded call. Omitted ordinary mass stays zero.
-        """
+        """Evaluate unopened SHOP Spectral value without entering D9 at all."""
         if not bool(getattr(state, "consumable_generation_pool_observed", False)):
             return 0.0, 0.0, (
                 "Spectral expectation unavailable: public generation pools were not observed",
@@ -146,18 +168,17 @@ def install_shop_expectation_runtime_bounds() -> None:
         if not records:
             return 0.0, 0.0, ("Spectral public generation pool is empty",)
 
-        selected = _bounded_indices(len(records), _SHOP_SPECTRAL_RECORD_BUDGET)
-        value_sum = 0.0
-        positive_count = 0
-        for index in selected:
-            value = float(self._visible_value(state, records[index]))
-            value_sum += value
-            if value > 0.0:
-                positive_count += 1
-
-        denominator = float(len(records))
-        ordinary_ev = value_sum / denominator
-        ordinary_positive = float(positive_count) / denominator
+        # This loop is intentionally over the full public pool because the operation
+        # is now constant-time per record: no factory, target search, D9, D2, or D1.
+        ordinary_values = tuple(
+            _spectral_unopened_public_value(state, record)
+            for record in records
+        )
+        ordinary_ev = sum(ordinary_values) / float(len(ordinary_values))
+        ordinary_positive = (
+            sum(1 for value in ordinary_values if value > 0.0)
+            / float(len(ordinary_values))
+        )
 
         special = None
         if bool(getattr(state, "black_hole_generation_available", False)):
@@ -169,9 +190,8 @@ def install_shop_expectation_runtime_bounds() -> None:
             option_ev = ordinary_ev
             positive = ordinary_positive
             special_note = "soulable special override unavailable in current public state"
-            special_calls = 0
         else:
-            special_value = float(self._visible_value(state, special))
+            special_value = _spectral_unopened_public_value(state, special)
             option_ev = (
                 (1.0 - _SOUL_PROBABILITY) * ordinary_ev
                 + _SOUL_PROBABILITY * special_value
@@ -180,14 +200,16 @@ def install_shop_expectation_runtime_bounds() -> None:
                 (1.0 - _SOUL_PROBABILITY) * ordinary_positive
                 + _SOUL_PROBABILITY * (1.0 if special_value > 0.0 else 0.0)
             )
-            special_note = "soulable 0.3% special override evaluated as one bounded D9 branch"
-            special_calls = 1
+            special_note = (
+                "soulable 0.3% special override uses the same non-recursive public value"
+            )
 
         return option_ev, positive, (
             "Spectral one-offer EV uses current public eligible get_current_pool catalogue",
-            f"bounded ordinary D9 records evaluated={len(selected)}/{len(records)}",
-            f"bounded special D9 records evaluated={special_calls}/1",
-            "unevaluated public ordinary probability mass contributes zero",
+            "unopened Spectral SHOP expectation performs zero D9 calls",
+            "Black Hole uses the established B4 Spectral base value=4.000",
+            "The Soul uses its existing bounded Legendary-Joker option value",
+            "all other hypothetical Spectral outcomes contribute zero until visible",
             special_note,
             f"one-offer positive-choice probability={positive:.6f}",
             f"one-offer sunk-cost option EV={option_ev:.6f}",
