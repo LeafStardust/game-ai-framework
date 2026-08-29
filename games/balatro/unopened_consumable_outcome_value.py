@@ -35,6 +35,26 @@ _DEFERRED_UNOPENED = frozenset({
     ("SPECTRAL", "Immolate"),
     ("SPECTRAL", "Cryptid"),
 })
+_DEFERRED_CENTERS = frozenset({
+    "c_fool",
+    "c_wheel_of_fortune",
+    "c_high_priestess",
+    "c_emperor",
+    "c_judgement",
+    "c_aura",
+    "c_sigil",
+    "c_hex",
+    "c_ankh",
+    "c_soul",
+    "c_familiar",
+    "c_grim",
+    "c_incantation",
+    "c_wraith",
+    "c_ouija",
+    "c_ectoplasm",
+    "c_immolate",
+    "c_cryptid",
+})
 
 
 @dataclass(frozen=True)
@@ -73,9 +93,10 @@ class UnopenedConsumableOutcomeValueEvaluator:
         kind = str(kind or "").upper()
         data = dict(record)
         label = str(data.get("label") or data.get("ability_name") or "")
+        center = str(data.get("center") or "").lower()
         key = (kind, label)
 
-        if key in _DEFERRED_UNOPENED:
+        if key in _DEFERRED_UNOPENED or center in _DEFERRED_CENTERS:
             return UnopenedConsumableOutcomeValue(
                 0.0,
                 (f"unopened {kind} outcome {label!r} deferred at expectation boundary",),
