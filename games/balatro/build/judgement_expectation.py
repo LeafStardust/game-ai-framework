@@ -232,7 +232,10 @@ class JudgementExpectationEvaluator:
                     f"{rarity} bounded lower-bound mean={rarity_means[rarity]:.3f}"
                     for rarity in RARITY_WEIGHTS
                 ),
-                f"expected Judgement Joker gain lower bound={total:.3f}",
+                # Preserve the established pack-policy rationale contract while
+                # explicitly identifying the bounded semantics in a separate note.
+                f"expected Judgement Joker gain={total:.3f}",
+                "Judgement expectation is a deterministic bounded lower bound",
                 "To Do List initial target uses a bounded deterministic spread over public visible poker hands",
                 "all omitted catalogue/initial-state probability mass contributes literal zero",
                 "no RNG sample, pseudoseed, pool order, or selected outcome read",
