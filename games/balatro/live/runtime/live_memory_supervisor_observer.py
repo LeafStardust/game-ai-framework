@@ -193,10 +193,10 @@ class SupervisorLiveMemoryBalatroObserver(LiveMemoryBalatroObserver):
     changing for a continuous quiet window.
 
     The full-sequence quiet gate is deliberately stricter than the planner's
-    semantic stale-state comparison. Presentation/UI changes are ignored when
-    deciding whether a several-second recommendation is still logically valid,
-    but they are evidence that Balatro is still processing the previous native
-    transition and therefore block the next bridge command.
+    semantic stale-state comparison for phases whose actions can interrupt an
+    in-flight native transition. BLIND_SELECT is the exception: once its native
+    pane exists, its remaining presentation animation is not part of action
+    readiness and must not indefinitely postpone D13.
     """
 
     def __init__(
@@ -478,7 +478,14 @@ class SupervisorLiveMemoryBalatroObserver(LiveMemoryBalatroObserver):
             snapshot = self._wait_for_post_pack_visual_settle(snapshot)
             final_phase = str(snapshot.phase)
 
-        snapshot = self._wait_for_full_state_quiet(snapshot)
-        final_phase = str(snapshot.phase)
+        # BLIND_SELECT has its own stronger native actionability check above. Its
+        # UI can continue presentation animation after the pane is actionable,
+        # which advances the generic observer sequence forever without changing the
+        # strategic checkpoint. Requiring raw-sequence quiescence here can therefore
+        # deadlock the supervisor before D13 ever receives a snapshot.
+        if not (snapshot.state_complete and final_phase == "BLIND_SELECT"):
+            snapshot = self._wait_for_full_state_quiet(snapshot)
+            final_phase = str(snapshot.phase)
+
         self._last_exposed_phase = final_phase
         return snapshot
