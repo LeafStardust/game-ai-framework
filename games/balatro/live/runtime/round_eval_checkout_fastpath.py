@@ -8,8 +8,8 @@ Balatro's actual ``G.round_eval`` UI exists and ``G.FUNCS.cash_out`` is callable
 the checkout action is already native-ready. Waiting for generic quiet/stability
 windows after that point only delays the button press.
 
-This installer narrows both exceptions to ROUND_EVAL on the production supervisor
-observer. Other phases and non-supervisor/test observers keep their existing
+This installer narrows both exceptions to observers that explicitly certify native
+ROUND_EVAL readiness. Other phases and ordinary observers keep their existing
 native-readiness and settling contracts unchanged.
 """
 
@@ -19,6 +19,7 @@ from .live_memory_supervisor_observer import SupervisorLiveMemoryBalatroObserver
 
 _INSTALLED_ATTR = "_round_eval_checkout_fastpath_installed"
 _LOOP_INSTALLED_ATTR = "_round_eval_checkout_stability_fastpath_installed"
+_READY_CAPABILITY_ATTR = "_round_eval_checkout_native_ready_capable"
 
 
 def _round_eval_ui_ready(root) -> bool:
@@ -86,6 +87,7 @@ def install_round_eval_checkout_fastpath() -> None:
         SupervisorLiveMemoryBalatroObserver._wait_for_full_state_quiet = (
             wait_for_full_state_quiet
         )
+        setattr(SupervisorLiveMemoryBalatroObserver, _READY_CAPABILITY_ATTR, True)
         setattr(SupervisorLiveMemoryBalatroObserver, _INSTALLED_ATTR, True)
 
     loop_class = autonomous_loop_module.LiveMemoryInjectedAutonomousLoop
@@ -95,26 +97,17 @@ def install_round_eval_checkout_fastpath() -> None:
     original_wait_for_stable_checkpoint = loop_class._wait_for_stable_checkpoint
 
     def wait_for_stable_checkpoint(self):
-        """Skip the second stability timer only after supervisor ROUND_EVAL readiness."""
+        """Skip the second stability timer only after native ROUND_EVAL readiness."""
         observer = getattr(self.runner, "observer", None)
-
-        # Only SupervisorLiveMemoryBalatroObserver can prove that the actual
-        # G.round_eval UI object and G.FUNCS.cash_out callback are both live. Generic
-        # observers and test harnesses must retain the original semantic-stability
-        # contract even when their phase string happens to be ROUND_EVAL.
-        if not isinstance(observer, SupervisorLiveMemoryBalatroObserver):
+        if observer is None or not hasattr(observer, "observe"):
             return original_wait_for_stable_checkpoint(self)
-        if not hasattr(observer, "observe"):
+        if not bool(getattr(observer, _READY_CAPABILITY_ATTR, False)):
             return original_wait_for_stable_checkpoint(self)
 
         previous = observer.observe()
         if previous.state_complete and str(previous.phase) == "ROUND_EVAL":
             return previous
 
-        # If observation moved away from ROUND_EVAL, preserve the ordinary loop
-        # settling semantics rather than treating this fast path as a global timing
-        # relaxation. The extra observation is harmless and stale-state execution
-        # checks remain authoritative.
         return original_wait_for_stable_checkpoint(self)
 
     loop_class._wait_for_stable_checkpoint = wait_for_stable_checkpoint
