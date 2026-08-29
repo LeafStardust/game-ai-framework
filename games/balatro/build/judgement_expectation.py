@@ -8,10 +8,18 @@ eligible pool for that rarity. The live pool adapter supplies that canonical pub
 catalogue after duplicate/unlock/ban/pool-gate filtering; no RNG seed or pool order
 is exposed.
 
+The eligible catalogue can be large and JokerBuildValueEvaluator is intentionally
+expensive. Evaluating every eligible Joker across every edition branch made a single
+Judgement option capable of blocking the live SHOP authority for tens of seconds.
+This evaluator therefore uses a deterministic spread through each public rarity
+pool. Evaluated outcomes retain the *full* eligible-pool denominator, so omitted
+probability mass contributes literal zero instead of being renormalized. The result
+is a conservative bounded lower bound rather than a sampled estimate.
+
 Newly created To Do List is the one modeled eligible Joker whose initial tactical
-state is freshly randomized at creation. Balatro chooses uniformly from the public
-set of visible poker hands, so this evaluator expands that finite sub-distribution
-instead of constructing the model with ``target_hand=None``.
+state is freshly randomized at creation. Its public visible-hand sub-distribution is
+bounded in the same way: evaluated branches retain the full hand-count denominator,
+so omitted branches again contribute zero.
 """
 
 import copy
@@ -28,6 +36,29 @@ RARITY_WEIGHTS = {
     "UNCOMMON": 0.25,
     "RARE": 0.05,
 }
+
+# SHOP/D8 must stay responsive even when the public eligible Joker catalogue is
+# large. Six evenly spread records per rarity keeps the expensive whole-build
+# evaluator bounded while preserving a conservative full-pool denominator.
+_MAX_EVALUATED_RECORDS_PER_RARITY = 6
+_MAX_EVALUATED_INITIAL_BRANCHES = 4
+
+
+def _bounded_indices(count: int, limit: int) -> tuple[int, ...]:
+    if count <= 0 or limit <= 0:
+        return ()
+    if count <= limit:
+        return tuple(range(count))
+    if limit == 1:
+        return (0,)
+
+    selected = {
+        round(position * (count - 1) / float(limit - 1))
+        for position in range(limit)
+    }
+    if len(selected) < limit:
+        selected.update(index for index in range(count) if index not in selected)
+    return tuple(sorted(selected)[:limit])
 
 
 @dataclass(frozen=True)
@@ -97,8 +128,9 @@ class JudgementExpectationEvaluator:
 
         all_outcomes: list[JudgementJokerOutcome] = []
         rarity_means: dict[str, float] = {}
+        bounded_notes: list[str] = []
 
-        for rarity, rarity_weight in RARITY_WEIGHTS.items():
+        for rarity in RARITY_WEIGHTS:
             records = list(pools.get(rarity, ()) or ())
             if not records:
                 # Balatro's pool helper falls back to the base Joker if an eligible
@@ -113,8 +145,15 @@ class JudgementExpectationEvaluator:
                     }
                 ]
 
-            rarity_values: list[float] = []
-            for record in records:
+            total_record_count = len(records)
+            record_indices = _bounded_indices(
+                total_record_count,
+                _MAX_EVALUATED_RECORDS_PER_RARITY,
+            )
+            rarity_value_sum = 0.0
+
+            for record_index in record_indices:
+                record = records[record_index]
                 expanded = self._initial_state_records(record, visible_hands)
                 if expanded is None:
                     return self._incomplete(
@@ -122,8 +161,15 @@ class JudgementExpectationEvaluator:
                         f"generated initial state is unresolved for {record.get('label') or record.get('center')}",
                     )
 
-                initial_values: list[float] = []
-                for branch_record in expanded:
+                total_branch_count = len(expanded)
+                branch_indices = _bounded_indices(
+                    total_branch_count,
+                    _MAX_EVALUATED_INITIAL_BRANCHES,
+                )
+                branch_value_sum = 0.0
+
+                for branch_index in branch_indices:
+                    branch_record = expanded[branch_index]
                     base = self.joker_factory.create(branch_record)
                     if base is None:
                         return self._incomplete(
@@ -145,10 +191,12 @@ class JudgementExpectationEvaluator:
                             f"Joker valuation failed for {record.get('label') or record.get('center')}: "
                             f"{type(exc).__name__}: {exc}",
                         )
-                    initial_values.append(edition_value)
+                    branch_value_sum += edition_value
 
-                record_value = sum(initial_values) / len(initial_values)
-                rarity_values.append(record_value)
+                # Full branch denominator is deliberate: unevaluated branches are
+                # assigned zero so this remains a lower bound.
+                record_value = branch_value_sum / float(total_branch_count)
+                rarity_value_sum += record_value
                 all_outcomes.append(
                     JudgementJokerOutcome(
                         rarity=rarity,
@@ -158,7 +206,13 @@ class JudgementExpectationEvaluator:
                     )
                 )
 
-            rarity_means[rarity] = sum(rarity_values) / len(rarity_values)
+            # Full rarity-pool denominator is deliberate: unevaluated eligible
+            # Jokers contribute zero rather than inflating the sampled subset.
+            rarity_means[rarity] = rarity_value_sum / float(total_record_count)
+            bounded_notes.append(
+                f"{rarity} visible outcomes evaluated={len(record_indices)}/{total_record_count}; "
+                "omitted probability mass remains zero"
+            )
 
         total = sum(
             RARITY_WEIGHTS[rarity] * rarity_means[rarity]
@@ -173,13 +227,14 @@ class JudgementExpectationEvaluator:
             rationale=(
                 "Balatro rarity weights: Common=0.70 Uncommon=0.25 Rare=0.05",
                 f"public edition_rate={edition_rate:.3f}",
+                *bounded_notes,
                 *(
-                    f"{rarity} eligible outcomes={sum(o.rarity == rarity for o in all_outcomes)} "
-                    f"mean={rarity_means[rarity]:.3f}"
+                    f"{rarity} bounded lower-bound mean={rarity_means[rarity]:.3f}"
                     for rarity in RARITY_WEIGHTS
                 ),
-                f"expected Judgement Joker gain={total:.3f}",
-                "To Do List initial target is averaged over public visible poker hands",
+                f"expected Judgement Joker gain lower bound={total:.3f}",
+                "To Do List initial target uses a bounded deterministic spread over public visible poker hands",
+                "all omitted catalogue/initial-state probability mass contributes literal zero",
                 "no RNG sample, pseudoseed, pool order, or selected outcome read",
             ),
         )
@@ -210,6 +265,6 @@ class JudgementExpectationEvaluator:
             outcomes=tuple(outcomes),
             rationale=(
                 reason,
-                "Judgement expectation fails closed; eligible outcomes are never dropped",
+                "Judgement expectation fails closed; eligible outcomes are never silently discarded",
             ),
         )
