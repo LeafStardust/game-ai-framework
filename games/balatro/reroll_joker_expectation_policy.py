@@ -98,6 +98,7 @@ class RerollJokerExpectationEvaluator:
                 "future Joker uses the authoritative public eligible rarity pools for completeness only",
                 f"eligible public outcomes={total_records}",
                 "hypothetical unseen Joker acquisition value remains under the explicit D11 static shop prior",
+                "hypothetical unseen Joker acquisition gain is deferred until the item is visible",
                 "reroll expectation never invokes D2 for hypothetical future Jokers",
                 "unseen Joker identity, edition, price, RNG state, pseudoseed, and pool order are not observed",
             ),
