@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-"""Bounded public generator expectation for unopened Standard boosters.
+"""Use Balatro's exact Standard-pack generator for unopened D8 value.
 
-D8 integrates the finite public Standard-card generator using only literal static D9
-card modifiers. It deliberately omits contextual B6 profiling and whole-build deck-
-growth projection: those belong to the real visible D9 decision, not an unopened
-SHOP expectation loop. The omitted contextual mass is therefore a conservative zero.
+The generator is finite and public-mechanics-derived. D8 factorizes the bounded B6
+playing-card context graph instead of enumerating hypothetical D9 decisions. This
+preserves contextual Standard value without creating an upward D8 -> D9 policy edge.
 """
 
+from games.balatro.build.deck_growth_value import DeckGrowthScoreValueEvaluator
 from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.shop_booster_policy import (
     BUY,
@@ -54,25 +54,83 @@ def _seal_distribution() -> tuple[tuple[str | None, float], ...]:
 
 
 class StandardBoosterExpectationEvaluator:
-    @staticmethod
-    def _static_visible_card_value(
+    def __init__(self, *, pack_policy: BalatroPackPolicy | None = None) -> None:
+        self.pack_policy = pack_policy or BalatroPackPolicy(skip_bias=0.0)
+        self.deck_growth = DeckGrowthScoreValueEvaluator()
+
+    def _contextual_gain_tables(self, state, *, profile, editions):
+        evaluator = self.pack_policy.playing_card_build
+
+        def gain(**kwargs) -> float:
+            return float(
+                evaluator.evaluate(
+                    state,
+                    profile=profile,
+                    **kwargs,
+                ).total_gain
+            )
+
+        rank_gain = {rank: gain(rank=rank) for rank in _RANKS}
+        suit_gain = {suit: gain(suit=suit) for suit in _SUITS}
+        enhancement_gain = {None: 0.0}
+        enhancement_gain.update(
+            {enhancement: gain(enhancement=enhancement) for enhancement in _ENHANCEMENTS}
+        )
+        edition_gain = {None: 0.0}
+        edition_gain.update(
+            {
+                edition: gain(edition=edition)
+                for edition in editions
+                if edition is not None
+            }
+        )
+        seal_gain = {None: 0.0}
+        seal_gain.update({seal: gain(seal=seal) for seal in _SEALS})
+
+        enhancement_seal_correction: dict[tuple[str, str], float] = {}
+        for enhancement in _ENHANCEMENTS:
+            for seal in _SEALS:
+                combined = gain(enhancement=enhancement, seal=seal)
+                enhancement_seal_correction[(enhancement, seal)] = (
+                    combined
+                    - enhancement_gain[enhancement]
+                    - seal_gain[seal]
+                )
+
+        return (
+            rank_gain,
+            suit_gain,
+            enhancement_gain,
+            edition_gain,
+            seal_gain,
+            enhancement_seal_correction,
+        )
+
+    def _d9_visible_card_value(
+        self,
         *,
         rank: str,
         enhancement: str | None,
         edition: str | None,
         seal: str | None,
+        contextual_gain: float,
+        deck_growth_value: float,
     ) -> float:
-        score = float(BalatroPackPolicy.RANK_VALUE.get(str(rank), 0.0))
+        # This is arithmetic over D9's public constants, not a D9 policy call.
+        score = float(self.pack_policy.RANK_VALUE.get(str(rank), 0.0))
         if enhancement:
-            score += float(BalatroPackPolicy.PLAYING_ENHANCEMENT_VALUE.get(str(enhancement), 0.0))
+            score += float(self.pack_policy.PLAYING_ENHANCEMENT_VALUE.get(str(enhancement), 0.0))
         edition_text = str(edition or "").upper()
         if edition_text:
-            score += float(BalatroPackPolicy.EDITION_BONUS.get(edition_text, 0.0))
+            score += float(self.pack_policy.EDITION_BONUS.get(edition_text, 0.0))
         seal_text = str(seal or "").upper()
         if seal_text:
-            score += float(BalatroPackPolicy.PLAYING_SEAL_VALUE.get(seal_text, 0.0))
+            score += float(self.pack_policy.PLAYING_SEAL_VALUE.get(seal_text, 0.0))
+
+        score += float(contextual_gain)
         if not enhancement and not edition_text and not seal_text:
-            score -= float(BalatroPackPolicy.VANILLA_CARD_DILUTION_PENALTY)
+            score -= float(self.pack_policy.VANILLA_CARD_DILUTION_PENALTY)
+        score += float(deck_growth_value)
         return score
 
     def evaluate(self, state) -> tuple[float, float, tuple[str, ...]]:
@@ -81,13 +139,27 @@ class StandardBoosterExpectationEvaluator:
             float(getattr(state, "joker_generation_edition_rate", 1.0) or 1.0),
         )
         edition_distribution = _edition_distribution(edition_rate)
+        profile = self.pack_policy.playing_card_build.profiler.profile(state)
+        (
+            rank_gain,
+            suit_gain,
+            enhancement_gain,
+            edition_gain,
+            seal_gain,
+            enhancement_seal_correction,
+        ) = self._contextual_gain_tables(
+            state,
+            profile=profile,
+            editions=tuple(edition for edition, _ in edition_distribution),
+        )
+        deck_growth_value, deck_growth_notes = self.deck_growth.evaluate(state, added_count=1)
         total_probability = 0.0
         expected_option_value = 0.0
         positive_probability = 0.0
         front_probability = 1.0 / float(len(_RANKS) * len(_SUITS))
 
         for rank in _RANKS:
-            for _suit in _SUITS:
+            for suit in _SUITS:
                 for enhancement, enhancement_probability in _enhancement_distribution():
                     for edition, edition_probability in edition_distribution:
                         for seal, seal_probability in _seal_distribution():
@@ -99,11 +171,24 @@ class StandardBoosterExpectationEvaluator:
                             )
                             if probability <= 0.0:
                                 continue
-                            score = self._static_visible_card_value(
+                            contextual_gain = (
+                                rank_gain[rank]
+                                + suit_gain[suit]
+                                + enhancement_gain[enhancement]
+                                + edition_gain[edition]
+                                + seal_gain[seal]
+                                + enhancement_seal_correction.get(
+                                    (enhancement, seal),
+                                    0.0,
+                                )
+                            )
+                            score = self._d9_visible_card_value(
                                 rank=rank,
                                 enhancement=enhancement,
                                 edition=edition,
                                 seal=seal,
+                                contextual_gain=contextual_gain,
+                                deck_growth_value=deck_growth_value,
                             )
                             option_value = max(0.0, float(score))
                             total_probability += probability
@@ -116,12 +201,13 @@ class StandardBoosterExpectationEvaluator:
                 f"Standard generator probability mass incomplete={total_probability:.12f}",
             )
         return expected_option_value, positive_probability, (
-            "Standard one-offer EV uses exact public rank/suit/enhancement/seal/edition distribution",
-            "unopened D8 uses static visible-card mechanics only; B6 profile and whole-build deck-growth projection are deferred to real D9",
+            "Standard one-offer EV uses exact base-game rank/suit/enhancement/seal/edition distribution",
+            "D9 B6 contextual graph is factorized exactly across generator axes with enhancement/seal overlap correction",
+            *deck_growth_notes,
             f"public edition_rate={edition_rate:.6f}",
             f"one-offer positive-choice probability={positive_probability:.6f}",
             f"one-offer sunk-cost option EV={expected_option_value:.6f}",
-            "best-of-3/5 improvement and contextual build upside are omitted conservatively",
+            "best-of-3/5 improvement is deliberately omitted; this is a conservative lower bound",
         )
 
 
@@ -134,7 +220,9 @@ def install_standard_booster_expectation_policy() -> None:
 
     def init(self, *args, **kwargs):
         original_init(self, *args, **kwargs)
-        self._standard_generator_expectation = StandardBoosterExpectationEvaluator()
+        self._standard_generator_expectation = StandardBoosterExpectationEvaluator(
+            pack_policy=BalatroPackPolicy(skip_bias=0.0),
+        )
 
     def recommend(self, state, action):
         family = self._family(action.target)
@@ -168,7 +256,12 @@ def install_standard_booster_expectation_policy() -> None:
             jokers=getattr(state, "jokers", ()),
         )
         advantage = float(option_utility) - float(resource_cost.total)
-        decision = BUY if option_utility > 0.0 and advantage > float(self.thresholds.minimum_buy_advantage) else HOLD
+        decision = (
+            BUY
+            if option_utility > 0.0
+            and advantage > float(self.thresholds.minimum_buy_advantage)
+            else HOLD
+        )
         return ShopBoosterRecommendation(
             decision=decision,
             action=action,
