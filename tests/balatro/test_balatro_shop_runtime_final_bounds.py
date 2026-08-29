@@ -1,6 +1,5 @@
 from types import SimpleNamespace
 
-import games.balatro.shop_expectation_runtime_bound_policy as runtime_bounds
 from games.balatro.actions import END_SHOP, BalatroAction
 from games.balatro.shop_expectation_runtime_bound_policy import install_shop_expectation_runtime_bounds
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
@@ -14,7 +13,7 @@ class _CountingPackPolicy:
 
     def score_action(self, state, action):
         self.calls += 1
-        return SimpleNamespace(total=2.0)
+        return SimpleNamespace(total=99.0)
 
 
 class _FailIfCalledProfiler:
@@ -42,20 +41,31 @@ def _reroll_state() -> BalatroState:
     return state
 
 
-def test_runtime_spectral_expectation_uses_one_record_without_renormalizing():
+def test_runtime_spectral_expectation_never_enters_d9():
     install_shop_expectation_runtime_bounds()
     pack_policy = _CountingPackPolicy()
     evaluator = SpectralBoosterExpectationEvaluator(pack_policy=pack_policy)
-    records = tuple(
+    records = (
         {
-            "label": f"Public Spectral {index}",
-            "ability_name": f"Public Spectral {index}",
+            "center": "c_black_hole",
+            "label": "Black Hole",
+            "ability_name": "Black Hole",
             "ability_set": "SPECTRAL",
-        }
-        for index in range(5)
+        },
+        *tuple(
+            {
+                "label": f"Public Spectral {index}",
+                "ability_name": f"Public Spectral {index}",
+                "ability_set": "SPECTRAL",
+            }
+            for index in range(4)
+        ),
     )
     state = SimpleNamespace(
         phase="SHOP",
+        ante=1,
+        joker_slots=5,
+        jokers=(),
         last_tarot_planet=None,
         consumable_generation_pool_observed=True,
         consumable_generation_pools={"SPECTRAL": records},
@@ -65,11 +75,11 @@ def test_runtime_spectral_expectation_uses_one_record_without_renormalizing():
 
     option_ev, positive, rationale = evaluator.evaluate(state)
 
-    assert pack_policy.calls == runtime_bounds._SHOP_SPECTRAL_RECORD_BUDGET == 1
-    assert option_ev == 2.0 / 5.0
+    assert pack_policy.calls == 0
+    assert option_ev == 4.0 / 5.0
     assert positive == 1.0 / 5.0
-    assert any("1/5" in note for note in rationale)
-    assert any("probability mass contributes zero" in note for note in rationale)
+    assert any("zero D9 calls" in note for note in rationale)
+    assert any("all other hypothetical Spectral outcomes contribute zero" in note for note in rationale)
 
 
 def test_parent_driven_runtime_reroll_skips_diagnostic_build_profiler_pass():
