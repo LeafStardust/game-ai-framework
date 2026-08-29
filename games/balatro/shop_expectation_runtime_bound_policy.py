@@ -4,15 +4,18 @@ from __future__ import annotations
 
 The runtime contract is deliberately structural rather than Joker/card-specific:
 
-* unopened D8 Arcana/Spectral value may inspect one hypothetical visible outcome,
-  but stochastic/deferred D9 outcomes keep their real probability mass at value 0
+* unopened D8 Arcana/Spectral value may inspect a tightly bounded hypothetical
+  visible outcome set, while omitted public probability mass retains value 0;
+* stochastic/deferred D9 outcomes keep their real probability mass at value 0
   instead of recursively opening another expectation problem;
 * SHOP acquisition value for a held Tarot/Spectral follows the same one-layer rule;
 * future-hand option models use a small deterministic draw budget rather than up to
   128 exact hands or 24 sampled hands followed by full legal-play enumeration;
 * duplicate same-family unopened-pack expectations are memoized per translated
   SHOP state;
-* large future-Joker expectations retain a bounded fully wrapped D2 budget;
+* large future-Joker expectations retain a bounded build-transition budget;
+* parent-driven D11 reroll comparison does not recompute diagnostic BuildProfiler
+  state after D14 has already supplied the authoritative visible-score floor;
 * the final SHOP runtime contract disables nested D1 Build Health projections and
   the retired named two-Joker bundle override.
 
@@ -23,11 +26,13 @@ all shortcuts are conservative lower bounds and never synthetic optimism.
 
 from games.balatro.arcana_booster_expectation_policy import ArcanaBoosterExpectationEvaluator
 from games.balatro.build.hand_size_opportunity import HandSizeOpportunityEvaluator
+from games.balatro.build.judgement_expectation import _bounded_indices
 from games.balatro.held_consumable_option_policy import (
     HeldConsumableOptionEvaluator,
     HeldConsumableOptionExpectation,
 )
 from games.balatro.pack_policy import BalatroPackPolicy
+from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.shop_runtime_contract_policy import install_shop_runtime_contract_policy
 from games.balatro.spectral_booster_expectation_policy import SpectralBoosterExpectationEvaluator
 from games.balatro.standard_booster_expectation_policy import StandardBoosterExpectationEvaluator
@@ -51,6 +56,8 @@ _D8_OMITTED_SPECTRALS = frozenset(
 
 _SHOP_FUTURE_HAND_EXACT_LIMIT = 16
 _SHOP_FUTURE_HAND_SAMPLE_COUNT = 8
+_SHOP_SPECTRAL_RECORD_BUDGET = 1
+_SHOP_SPECTRAL_SPECIAL_PROBABILITY = 0.003
 
 
 def _record_name(record: dict) -> str:
@@ -104,6 +111,7 @@ def install_shop_expectation_runtime_bounds() -> None:
     original_arcana_visible_value = ArcanaBoosterExpectationEvaluator._visible_value
     original_spectral_visible_value = SpectralBoosterExpectationEvaluator._visible_value
     original_held_evaluate = HeldConsumableOptionEvaluator.evaluate
+    original_reroll_unmet_requirements = BuildAwareShopRerollPolicy._unmet_requirements
 
     def arcana_visible_value(self, state, record: dict) -> float:
         name = _record_name(record)
@@ -121,6 +129,74 @@ def install_shop_expectation_runtime_bounds() -> None:
         if _record_name(record) in _D8_OMITTED_SPECTRALS:
             return 0.0
         return float(original_spectral_visible_value(self, state, record))
+
+    def spectral_evaluate(self, state):
+        """One-record conservative lower bound for unopened SHOP Spectral value.
+
+        The full public eligible catalogue remains the probability denominator, but
+        only one deterministic spread record is sent through D9. Every omitted
+        ordinary outcome contributes literal zero. If a 0.3% soulable special is
+        currently available, that special branch is also conservatively valued at
+        zero in unopened SHOP expectation; the actual opened-pack D9 decision remains
+        exact when the identity becomes visible.
+        """
+        if not bool(getattr(state, "consumable_generation_pool_observed", False)):
+            return 0.0, 0.0, (
+                "Spectral expectation unavailable: public generation pools were not observed",
+            )
+
+        records = self._pool(state)
+        if not records:
+            return 0.0, 0.0, ("Spectral public generation pool is empty",)
+
+        selected = _bounded_indices(len(records), _SHOP_SPECTRAL_RECORD_BUDGET)
+        value_sum = 0.0
+        positive_count = 0
+        for index in selected:
+            value = float(self._visible_value(state, records[index]))
+            value_sum += value
+            if value > 0.0:
+                positive_count += 1
+
+        denominator = float(len(records))
+        ordinary_ev = value_sum / denominator
+        ordinary_positive = float(positive_count) / denominator
+
+        special_available = bool(
+            getattr(state, "black_hole_generation_available", False)
+            or getattr(state, "soul_generation_available", False)
+        )
+        if special_available:
+            ordinary_mass = 1.0 - _SHOP_SPECTRAL_SPECIAL_PROBABILITY
+            option_ev = ordinary_mass * ordinary_ev
+            positive = ordinary_mass * ordinary_positive
+            special_note = (
+                "soulable 0.3% special branch omitted conservatively at value zero in SHOP"
+            )
+        else:
+            option_ev = ordinary_ev
+            positive = ordinary_positive
+            special_note = "soulable special override unavailable in current public state"
+
+        return option_ev, positive, (
+            "Spectral SHOP expectation uses the authoritative public eligible catalogue",
+            f"bounded D9 records evaluated={len(selected)}/{len(records)}",
+            "unevaluated public ordinary probability mass contributes zero",
+            special_note,
+            f"one-offer positive-choice probability={positive:.6f}",
+            f"one-offer sunk-cost option EV={option_ev:.6f}",
+            "actual opened-pack D9 remains authoritative after an identity is visible",
+            "best-of-2/4 and Mega second-selection improvement omitted conservatively",
+        )
+
+    def reroll_unmet_requirements(self, state):
+        # In the live D14 path these requirements are diagnostic metadata only; they
+        # do not participate in reroll EV, legality, stop-loss, or parent comparison.
+        # Re-running the fully wrapped BuildProfiler here produced a 181-second
+        # outlier after D14 had already computed the authoritative visible floor.
+        # Runtime D11 therefore omits this redundant diagnostic pass entirely.
+        del self, state
+        return ()
 
     def held_evaluate(self, state, candidate):
         category = str(getattr(candidate, "category", "") or "").upper()
@@ -145,6 +221,8 @@ def install_shop_expectation_runtime_bounds() -> None:
 
     ArcanaBoosterExpectationEvaluator._visible_value = arcana_visible_value
     SpectralBoosterExpectationEvaluator._visible_value = spectral_visible_value
+    SpectralBoosterExpectationEvaluator.evaluate = spectral_evaluate
+    BuildAwareShopRerollPolicy._unmet_requirements = reroll_unmet_requirements
     HeldConsumableOptionEvaluator.evaluate = held_evaluate
 
     for evaluator_cls in (
@@ -168,3 +246,4 @@ def install_shop_expectation_runtime_bounds() -> None:
     SpectralBoosterExpectationEvaluator._rw_one_step_expectation_installed = True
     StandardBoosterExpectationEvaluator._rw_one_step_expectation_installed = True
     HeldConsumableOptionEvaluator._rw_one_step_expectation_installed = True
+    BuildAwareShopRerollPolicy._rw_runtime_unmet_requirements_omitted = True
