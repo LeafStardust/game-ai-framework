@@ -272,8 +272,16 @@ def install_reroll_joker_expectation_policy() -> None:
         )
 
     def future_offer_score(self, state, offer, *, money: int, thresholds):
-        # Unseen reroll outcomes are not D2 acquisition decisions. Delegate every
-        # family, including JOKER, to D11's bounded explicit public/static prior.
+        # Paid speculative rerolls retain the established public-observability gate.
+        # Without the authoritative Joker catalogue, every unseen offer family is
+        # valued exactly at HOLD. A paid reroll therefore loses after resource cost,
+        # while a genuinely free reroll can still take the intentional zero-cost tie.
+        if not bool(getattr(state, "joker_generation_pool_observed", False)):
+            return float(self.shop_policy.hold_bias)
+
+        # Unseen reroll outcomes are not D2 acquisition decisions. Once the public
+        # catalogue is observed, delegate every family to D11's bounded explicit
+        # public/static prior rather than recursively evaluating hypothetical D2 buys.
         return original_future_offer_score(
             self,
             state,
