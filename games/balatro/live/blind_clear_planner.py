@@ -418,7 +418,7 @@ class LiveBlindClearPlanner:
         ranked_plays = self._rank_actions_with_deadline(
             state,
             plays,
-            priority=self._play_priority,
+            priority=self._root_play_priority if initial_root else self._play_priority,
             limit=play_limit,
             soft_deadline=soft_deadline,
         )
@@ -445,19 +445,13 @@ class LiveBlindClearPlanner:
         )
         return ranked_plays + ranked_discards
 
-    def _play_priority(self, state, action: BalatroAction) -> tuple[float, float, int, int]:
-        """Rank beam candidates without entering full stochastic/Joker projection.
+    def _root_play_priority(self, state, action: BalatroAction) -> tuple[float, float, int, int]:
+        """Rank root beam candidates without full stochastic/Joker projection.
 
-        Full ``project_play`` is the authoritative node evaluator below. Calling it
-        here used to mean the search could spend tens of seconds evaluating a play
-        merely to decide whether that play belonged in the bounded beam; the
-        planner deadline could not fire until that synchronous projection returned.
-
-        Beam admission only needs a deterministic public-state ordering. Prefer a
-        cached authoritative projection when the outer D1 evaluator already paid
-        for one. Otherwise use literal hand/card scoring with no Joker activation or
-        stochastic resolution. The selected beam still receives the full projection
-        before it can influence the actual plan.
+        Full ``project_play`` remains authoritative once a candidate enters the
+        actual planner. Root admission only needs a deterministic public-state
+        ordering, which prevents an uninterruptible projection from consuming the
+        entire search budget before node zero is admitted.
         """
         ensure_cache = getattr(self.evaluator, "_ensure_outer_d1_cache", None)
         action_key = getattr(self.evaluator, "_action_key", None)
@@ -474,8 +468,14 @@ class LiveBlindClearPlanner:
                         -len(action.cards),
                     )
 
-        hand = self.evaluator._hand_for_cards(state, action.cards)
-        scorer = self.evaluator.scorer
+        hand_for_cards = getattr(self.evaluator, "_hand_for_cards", None)
+        scorer = getattr(self.evaluator, "scorer", None)
+        if not callable(hand_for_cards) or scorer is None:
+            # Minimal test/adapter evaluators need not expose Balatro scoring
+            # internals. Keep root admission projection-free and deterministic.
+            return (0.0, float(len(action.cards)), len(action.cards), -len(action.cards))
+
+        hand = hand_for_cards(state, action.cards)
         base = scorer.SCORES[hand]
         scoring_cards = scorer.scoring_cards(
             hand,
@@ -497,6 +497,15 @@ class LiveBlindClearPlanner:
             literal_clear,
             literal_score,
             int(base.chips * base.mult),
+            -len(action.cards),
+        )
+
+    def _play_priority(self, state, action: BalatroAction) -> tuple[float, float, int, int]:
+        projection = self.evaluator.project_play(state, action)
+        return (
+            projection.clear_probability,
+            projection.expected_hand_score,
+            projection.hand_score,
             -len(action.cards),
         )
 
