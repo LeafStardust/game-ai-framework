@@ -80,6 +80,7 @@ from .joker_strategy import (
     JokerBuildValueWeights,
     JokerReplacementOption,
 )
+from .joker_runtime_probe_bound import install_visible_joker_scoring_probe_bound
 from .playing_card_synergy import (
     ContextualPlayingCardEvaluation,
     ContextualPlayingCardSynergyEvaluator,
@@ -204,6 +205,10 @@ def _semantic_phase_probe(
 # Reuse the phase-aware semantic probe through the semantic/lifecycle/scenario
 # hierarchy without downgrading semantic context outputs to raw signal features.
 SemanticJokerBehaviorAnalyzer._probe = _semantic_phase_probe
+
+# Keep real visible D2 Joker valuation bounded even when every replacement slot
+# must be compared against a full whole-build scorer.
+install_visible_joker_scoring_probe_bound()
 
 __all__ = [
     "BOSS_CONTROL",
