@@ -1,9 +1,11 @@
 from types import SimpleNamespace
 
 import games.balatro.shop_expectation_runtime_bound_policy as runtime_bounds
+from games.balatro.actions import END_SHOP, BalatroAction
 from games.balatro.shop_expectation_runtime_bound_policy import install_shop_expectation_runtime_bounds
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.spectral_booster_expectation_policy import SpectralBoosterExpectationEvaluator
+from games.balatro.state import BalatroState
 
 
 class _CountingPackPolicy:
@@ -17,7 +19,27 @@ class _CountingPackPolicy:
 
 class _FailIfCalledProfiler:
     def profile(self, state):
-        raise AssertionError("runtime reroll must not re-run BuildProfiler")
+        raise AssertionError("parent-driven runtime reroll must not re-run BuildProfiler")
+
+
+class _CountingProfiler:
+    def __init__(self):
+        self.calls = 0
+
+    def profile(self, state):
+        self.calls += 1
+        return SimpleNamespace(effects=(), supports=lambda requirement: False)
+
+
+def _reroll_state() -> BalatroState:
+    state = BalatroState()
+    state.phase = "SHOP"
+    state.money = 25
+    state.ante = 1
+    state.joker_slots = 5
+    state.consumable_slots = 2
+    state.joker_generation_pool_observed = True
+    return state
 
 
 def test_runtime_spectral_expectation_uses_one_record_without_renormalizing():
@@ -50,9 +72,32 @@ def test_runtime_spectral_expectation_uses_one_record_without_renormalizing():
     assert any("probability mass contributes zero" in note for note in rationale)
 
 
-def test_runtime_reroll_skips_diagnostic_build_profiler_pass():
+def test_parent_driven_runtime_reroll_skips_diagnostic_build_profiler_pass():
     install_shop_expectation_runtime_bounds()
     policy = BuildAwareShopRerollPolicy(build_profiler=_FailIfCalledProfiler())
-    state = SimpleNamespace(phase="SHOP")
+    state = _reroll_state()
 
-    assert policy._unmet_requirements(state) == ()
+    result = policy.recommend(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=5,
+        visible_score_floor=policy.shop_policy.hold_bias + 2.0,
+    )
+
+    assert result.unmet_requirements == ()
+    assert result.current_best_score == policy.shop_policy.hold_bias + 2.0
+
+
+def test_standalone_runtime_reroll_preserves_build_profiler_diagnostics():
+    install_shop_expectation_runtime_bounds()
+    profiler = _CountingProfiler()
+    policy = BuildAwareShopRerollPolicy(build_profiler=profiler)
+    state = _reroll_state()
+
+    policy.recommend(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=5,
+    )
+
+    assert profiler.calls == 1
