@@ -12,7 +12,8 @@ from games.balatro.tuning.report import write_study_report
 from games.balatro.tuning.study import (
     LiveStudyConfig,
     create_live_phase_a_study,
-    run_live_phase_a,
+    enqueue_production_baseline,
+    make_live_phase_a_objective,
 )
 
 
@@ -116,20 +117,23 @@ def main() -> int:
         sampler_seed=args.sampler_seed,
     )
 
-    if args.baseline_only:
-        try:
-            existing = create_live_phase_a_study(config)
-        except Exception as error:
-            print("Balatro live Bond tuning -> BLOCKED")
-            print(f"Reason -> {error}")
-            return 2
-        if existing.trials:
+    try:
+        # Create/load the Optuna Study exactly once for this process. The sampler is
+        # stateful: recreating TPESampler with the same seed before every one-trial
+        # optimize call repeats the same proposal and defeats exploration.
+        study = create_live_phase_a_study(config)
+        if args.baseline_only and study.trials:
             print("Balatro live Bond tuning -> BLOCKED")
             print(
                 "Reason -> --baseline-only requires a fresh study with zero existing trials; "
-                f"study {config.name!r} already has {len(existing.trials)} trial(s)"
+                f"study {config.name!r} already has {len(study.trials)} trial(s)"
             )
             return 2
+        enqueue_production_baseline(study)
+    except Exception as error:
+        print("Balatro live Bond tuning -> BLOCKED")
+        print(f"Reason -> {error}")
+        return 2
 
     evaluator = AuthoritativeLiveBatchEvaluator(
         attempts_per_trial=args.attempts_per_trial,
@@ -139,6 +143,7 @@ def main() -> int:
         session_directory=session_directory,
         control_directory=control_directory,
     )
+    objective = make_live_phase_a_objective(config, evaluator)
 
     print("Balatro live Bond tuning -> PREFLIGHT PASS")
     print(f"Boundary -> {preflight.phase}, Ante {preflight.ante}, {preflight.deck}/{preflight.stake}")
@@ -147,18 +152,18 @@ def main() -> int:
     print(f"Storage -> {storage_path}")
 
     requested_trials = 1 if args.baseline_only else args.trials
-    study = None
     try:
-        # Optimize one trial at a time so a real win can stop before Optuna asks the
-        # guarded live evaluator to operate on an intentionally non-restartable won
-        # terminal frame. Lost batches restore BLIND_SELECT themselves; the evaluator
-        # preflights that restored boundary again before every subsequent trial.
+        # Optimize one trial at a time on the SAME Study/sampler so a real win can
+        # stop before the guarded live evaluator is asked to operate on an
+        # intentionally non-restartable won terminal frame. Lost batches restore
+        # BLIND_SELECT themselves; the evaluator preflights that boundary again.
         for _ in range(requested_trials):
-            study = run_live_phase_a(
-                config,
-                evaluator,
-                trials=1,
-                timeout_seconds=args.timeout_seconds,
+            study.optimize(
+                objective,
+                n_trials=1,
+                timeout=args.timeout_seconds,
+                gc_after_trial=True,
+                catch=(RuntimeError,),
             )
             latest = study.trials[-1]
             if args.baseline_only:
@@ -172,12 +177,10 @@ def main() -> int:
     except Exception as error:
         print("Balatro live Bond tuning -> FAIL")
         print(f"Reason -> {error}")
-        if study is not None:
-            write_study_report(study, report_path)
-            print(f"Partial report -> {report_path}")
+        write_study_report(study, report_path)
+        print(f"Partial report -> {report_path}")
         return 3
 
-    assert study is not None
     target = write_study_report(study, report_path)
     latest = study.trials[-1]
     print("Balatro live Bond tuning -> COMPLETE")
