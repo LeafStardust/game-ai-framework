@@ -60,11 +60,6 @@ class ShopRerollPoolPrior:
         return isfinite(total_weight) and total_weight > 0.0
 
 
-# Public vanilla baseline: two random shop-card slots, with relative family
-# weights Joker 20 / Tarot 4 / Planet 4. The price values remain explicit priors;
-# production replaces the Joker gross-utility prior with the current public eligible
-# Joker-pool expectation when available. Tarot/Planet gross utilities remain the
-# documented fallback until those families receive equivalent public-pool models.
 VANILLA_SHOP_REROLL_PRIOR = ShopRerollPoolPrior(
     card_slots=2,
     offers=(
@@ -136,15 +131,7 @@ class ShopRerollRecommendation:
 
 
 class BuildAwareShopRerollPolicy:
-    """Compare visible shop value with public-information future-shop EV.
-
-    A reroll creates a choice among future card slots. Family frequencies and unseen
-    prices use explicit public/static priors. Production may replace a family's gross
-    value with an analytic expectation over a public eligible catalogue; currently
-    the Joker family does so. The model never reads RNG state, seed data, future pool
-    ordering, or hidden card identities. If a required public model is unavailable,
-    that branch fails closed instead of falling back to free-form exploration value.
-    """
+    """Compare visible shop value with public-information future-shop EV."""
 
     def __init__(
         self,
@@ -175,13 +162,14 @@ class BuildAwareShopRerollPolicy:
             raise ValueError("reroll policy requires SHOP phase")
         thresholds = self.thresholds_for_state(state)
 
-        # D14 already evaluates every admitted visible child and supplies the
-        # authoritative comparison floor. Re-scoring those same actions here can
-        # re-enter the fully wrapped SHOP stack (D2/D4/D8/etc.) and turn one reroll
-        # comparison into minutes of duplicated work. When the parent provides a
-        # floor, trust it directly and do not touch visible action scoring at all.
-        if visible_score_floor is not None:
+        # D14 has already evaluated every admitted visible child when it supplies
+        # ``visible_score_floor``. In that parent-driven path, both visible-action
+        # rescoring and BuildProfiler diagnostics are redundant and can re-enter the
+        # fully wrapped SHOP stack. Standalone D11 calls retain both legacy behaviors.
+        parent_driven = visible_score_floor is not None
+        if parent_driven:
             current_best = float(visible_score_floor)
+            unmet: tuple[str, ...] = ()
         else:
             current_scores = self._visible_scores(state, visible_actions)
             current_best = (
@@ -189,8 +177,7 @@ class BuildAwareShopRerollPolicy:
                 if current_scores
                 else float(self.shop_policy.hold_bias)
             )
-
-        unmet = self._unmet_requirements(state)
+            unmet = self._unmet_requirements(state)
 
         if reroll_cost is None:
             return self._fail_closed(
@@ -281,15 +268,9 @@ class BuildAwareShopRerollPolicy:
             f"visible-shop best score={current_best:.3f}",
             f"future shop EV={future_ev:.3f} across {prior.card_slots} card slots",
             "public family-frequency weights="
-            + ", ".join(
-                f"{offer.family}:{offer.weight:g}"
-                for offer in prior.offers
-            ),
+            + ", ".join(f"{offer.family}:{offer.weight:g}" for offer in prior.offers),
             "actionable offer scores="
-            + ", ".join(
-                f"{family}:{score:.3f}"
-                for family, score in offer_scores
-            ),
+            + ", ".join(f"{family}:{score:.3f}" for family, score in offer_scores),
             f"reroll cost=${cost} resource cost={reroll_resource.total:.3f}",
             f"reroll price penalty={reroll_resource.direct:.3f}",
             f"reroll interest penalty={reroll_resource.interest:.3f}",
@@ -303,11 +284,7 @@ class BuildAwareShopRerollPolicy:
             "no RNG state, pseudoseed, future pool order, or hidden identity is read",
         )
 
-        hold = (
-            reroll_score < required
-            if cost == 0
-            else reroll_score <= required
-        )
+        hold = reroll_score < required if cost == 0 else reroll_score <= required
         if hold:
             return ShopRerollRecommendation(
                 decision="HOLD",
@@ -350,10 +327,7 @@ class BuildAwareShopRerollPolicy:
             reroll_resource_cost=float("inf"),
             reroll_score=float("-inf"),
             unmet_requirements=unmet,
-            rationale=(
-                reason,
-                "no heuristic exploration fallback is used",
-            ),
+            rationale=(reason, "no heuristic exploration fallback is used"),
         )
 
     def _future_shop_ev(
@@ -365,10 +339,7 @@ class BuildAwareShopRerollPolicy:
         thresholds: ShopRerollThresholds,
     ) -> tuple[float, tuple[tuple[str, float], ...]]:
         total_weight = sum(float(offer.weight) for offer in prior.offers)
-        probabilities = tuple(
-            float(offer.weight) / total_weight
-            for offer in prior.offers
-        )
+        probabilities = tuple(float(offer.weight) / total_weight for offer in prior.offers)
         scores = tuple(
             self._future_offer_score(
                 state,
@@ -379,11 +350,7 @@ class BuildAwareShopRerollPolicy:
             for offer in prior.offers
         )
         hold = float(self.shop_policy.hold_bias)
-        offer_scores = tuple(
-            (offer.family, score)
-            for offer, score in zip(prior.offers, scores)
-        )
-
+        offer_scores = tuple((offer.family, score) for offer, score in zip(prior.offers, scores))
         if all(score == hold for score in scores):
             return hold, offer_scores
 
@@ -396,7 +363,6 @@ class BuildAwareShopRerollPolicy:
                 probability *= probabilities[index]
                 best = max(best, scores[index])
             expected_terms.append(probability * best)
-
         return fsum(expected_terms), offer_scores
 
     def _future_offer_score(
@@ -414,10 +380,7 @@ class BuildAwareShopRerollPolicy:
 
         if offer.resource == "JOKER":
             if len(state.jokers) >= state.joker_slots:
-                slot_cost = max(
-                    0.0,
-                    float(thresholds.full_joker_replacement_penalty),
-                )
+                slot_cost = max(0.0, float(thresholds.full_joker_replacement_penalty))
             else:
                 slot_cost = self.shop_policy.resource_valuator.slot_opportunity_cost(
                     occupied=len(state.jokers),
@@ -449,31 +412,17 @@ class BuildAwareShopRerollPolicy:
             vouchers=getattr(state, "vouchers", ()),
             jokers=getattr(state, "jokers", ()),
         )
-        return max(
-            hold,
-            float(offer.gross_utility) - purchase_resource.total - slot_cost,
-        )
+        return max(hold, float(offer.gross_utility) - purchase_resource.total - slot_cost)
 
     def _visible_scores(
         self,
         state: BalatroState,
         visible_actions: list[BalatroAction],
     ) -> list[ShopActionScore]:
-        supported_names = {
-            BUY_JOKER,
-            BUY_CONSUMABLE,
-            BUY_VOUCHER,
-            END_SHOP,
-        }
-        supported = [
-            action
-            for action in visible_actions
-            if action.name in supported_names
-        ]
-
+        supported_names = {BUY_JOKER, BUY_CONSUMABLE, BUY_VOUCHER, END_SHOP}
+        supported = [action for action in visible_actions if action.name in supported_names]
         if not any(action.name == END_SHOP for action in supported):
             supported.append(BalatroAction(END_SHOP))
-
         return self.shop_policy.rank_actions(state, supported)
 
     def _unmet_requirements(self, state: BalatroState) -> tuple[str, ...]:
