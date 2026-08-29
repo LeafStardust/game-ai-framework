@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-"""Value unseen future Jokers from the authoritative public eligible catalogue.
+"""Bound unseen future-Joker reroll valuation without entering D2.
 
-A reroll reveals future shop items but does not make those hypothetical Jokers
-visible acquisition decisions.  D2 is therefore deliberately *not* invoked while
-valuing unseen reroll outcomes: doing so recursively ran the full wrapped acquisition
-planner for hypothetical catalogue entries and could block an interactive SHOP
-checkpoint for minutes.
+A reroll reveals future shop items but does not create a visible acquisition decision.
+Running the fully wrapped D2 acquisition planner over hypothetical catalogue entries
+caused interactive SHOP decisions to take minutes. Production reroll valuation now
+keeps that authority boundary strict: unseen Joker offers use D11's existing explicit
+public/static shop prior, including its affordability, resource, slot and replacement
+penalties. Actual visible Jokers continue to use normal D2/D14 authority.
 
-The public eligible Joker catalogue is still preflighted for completeness.  Once the
-catalogue is known to be representable, unseen Joker acquisition gain contributes a
-conservative zero until an actual Joker becomes visible and normal D2/D14 authority
-can evaluate its real identity, edition, price, and replacement context.  This is a
-hard runtime boundary rather than a sampling/count heuristic.
+The catalogue evaluator remains available as a cheap fail-closed completeness check
+for callers/tests that need to verify that the observed public generation pool is
+representable. It never invokes D2 and does not supply synthetic unseen-Joker value.
 """
 
 from dataclasses import dataclass
@@ -21,6 +20,13 @@ from games.balatro.build.judgement_expectation import RARITY_WEIGHTS, JudgementE
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.shop_utility_scale import ShopUtilityScale
+
+
+# Retained compatibility/runtime-contract constants. The legacy runtime-bound
+# installer assigns the first two values; none authorize hypothetical D2 calls.
+_MAX_EXACT_PUBLIC_RECORDS = 24
+_MAX_RECORDS_PER_RARITY = 1
+_MAX_D2_EVALUATIONS = 12
 
 
 @dataclass(frozen=True)
@@ -58,10 +64,6 @@ class RerollJokerExpectationEvaluator:
         pools = dict(getattr(state, "joker_generation_pools", {}) or {})
         total_records = 0
 
-        # Preflight the complete public catalogue without entering D2.  This retains
-        # the existing fail-closed model-completeness contract while establishing a
-        # hard authority boundary: hypothetical reroll outcomes cannot recursively
-        # invoke visible-item acquisition planning.
         for rarity in RARITY_WEIGHTS:
             records = list(pools.get(rarity, ()) or ()) or [_fallback_record()]
             total_records += len(records)
@@ -93,9 +95,9 @@ class RerollJokerExpectationEvaluator:
             expected_gain=0.0,
             outcome_count=total_records,
             rationale=(
-                "future Joker uses the authoritative public eligible rarity pools",
+                "future Joker uses the authoritative public eligible rarity pools for completeness only",
                 f"eligible public outcomes={total_records}",
-                "hypothetical unseen Joker acquisition gain is deferred until the item is visible",
+                "hypothetical unseen Joker acquisition value remains under the explicit D11 static shop prior",
                 "reroll expectation never invokes D2 for hypothetical future Jokers",
                 "unseen Joker identity, edition, price, RNG state, pseudoseed, and pool order are not observed",
             ),
@@ -128,28 +130,15 @@ def install_reroll_joker_expectation_policy() -> None:
         )
 
     def future_offer_score(self, state, offer, *, money: int, thresholds):
-        if str(getattr(offer, "family", "")).upper() != "JOKER":
-            return original_future_offer_score(
-                self,
-                state,
-                offer,
-                money=money,
-                thresholds=thresholds,
-            )
-
-        hold = float(self.shop_policy.hold_bias)
-        price = int(getattr(offer, "expected_price", 0) or 0)
-        if price > int(money):
-            return hold
-
-        expectation = self.reroll_joker_expectation.evaluate(
+        # Unseen reroll outcomes are not D2 acquisition decisions. Delegate every
+        # family, including JOKER, to D11's bounded explicit public/static prior.
+        return original_future_offer_score(
+            self,
             state,
-            money=int(money),
-            expected_price=price,
+            offer,
+            money=money,
+            thresholds=thresholds,
         )
-        if not expectation.complete:
-            return hold
-        return hold + max(0.0, float(expectation.expected_gain))
 
     BuildAwareShopRerollPolicy.__init__ = init
     BuildAwareShopRerollPolicy._future_offer_score = future_offer_score
