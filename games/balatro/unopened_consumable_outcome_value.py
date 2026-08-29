@@ -2,41 +2,19 @@ from __future__ import annotations
 
 """Bounded leaf valuation for hypothetical unopened Tarot/Spectral outcomes.
 
-D8 booster expectation must not call the opened-pack D9 policy.  D9 owns visible
-pack choice and can itself install generation/expectation policies; sending a
-hypothetical unopened outcome back through that authority creates an upward policy
-edge and can recursively re-enter D8/D9 expectation work.
-
-This evaluator deliberately recognizes only outcome classes that can be valued from
-bounded public state without another policy decision:
-
-* deterministic immediate consumables (Hermit, Temperance, Black Hole), and
-* deterministic targeted transformations supported by B6's target evaluator.
-
-Generation effects, stochastic effects, Joker creation, copy chains, and any
-unsupported target remain literal zero.  That makes unopened booster EV a
-conservative lower bound while keeping the expectation layer acyclic.
+This layer is intentionally acyclic: hypothetical unopened outcomes never enter D9,
+D11, D14, Build Health, or whole-policy decision code. Only deterministic public
+mechanics and bounded B6 target value are admitted; stochastic/generative outcomes
+remain literal zero until visible.
 """
 
 from copy import deepcopy
 from dataclasses import dataclass
 
-from games.balatro.actions import BUY_CONSUMABLE, BalatroAction
 from games.balatro.build import ContextualConsumableTargetEvaluator
-from games.balatro.consumable import ConsumableContext
 from games.balatro.live.consumable_factory import LiveConsumableFactory
-from games.balatro.shop_policy import DefaultShopItemValueEstimator
 
 
-_DETERMINISTIC_IMMEDIATE = frozenset({
-    ("TAROT", "The Hermit"),
-    ("TAROT", "Temperance"),
-    ("SPECTRAL", "Black Hole"),
-})
-
-# These effects are intentionally not traversed from unopened expectation.  Several
-# of them have perfectly valid *visible* D9 models; that does not make those models
-# safe children of D8 expectation.
 _DEFERRED_UNOPENED = frozenset({
     ("TAROT", "The Fool"),
     ("TAROT", "The Wheel of Fortune"),
@@ -66,20 +44,30 @@ class UnopenedConsumableOutcomeValue:
 
 
 class UnopenedConsumableOutcomeValueEvaluator:
-    """Value one hypothetical public-pool outcome without entering D9 or SHOP policy."""
+    """Value one hypothetical public-pool outcome without entering policy authority."""
 
-    def __init__(
-        self,
-        *,
-        consumable_factory=None,
-        item_estimator=None,
-        target_evaluator=None,
-    ) -> None:
+    def __init__(self, *, consumable_factory=None, target_evaluator=None) -> None:
         self.consumable_factory = consumable_factory or LiveConsumableFactory()
-        self.item_estimator = item_estimator or DefaultShopItemValueEstimator()
-        self.target_evaluator = (
-            target_evaluator or ContextualConsumableTargetEvaluator()
-        )
+        self.target_evaluator = target_evaluator or ContextualConsumableTargetEvaluator()
+
+    @staticmethod
+    def _deterministic_immediate_value(state, kind: str, label: str):
+        if kind == "TAROT" and label == "The Hermit":
+            gain = min(max(0, int(getattr(state, "money", 0) or 0)), 20)
+            return 2.2 + min(5.0, gain * 0.35), (f"Hermit deterministic money gain={gain}",)
+        if kind == "TAROT" and label == "Temperance":
+            joker_sell_value = sum(
+                max(0, int(getattr(joker, "sell_value", 0) or 0))
+                for joker in tuple(getattr(state, "jokers", ()) or ())
+            )
+            gain = min(joker_sell_value, 50)
+            return 2.2 + min(5.0, gain * 0.35), (
+                f"Temperance deterministic money gain={gain}",
+                f"public Joker sell value={joker_sell_value}",
+            )
+        if kind == "SPECTRAL" and label == "Black Hole":
+            return 4.0, ("Black Hole bounded public Spectral base value=4.000",)
+        return None
 
     def evaluate(self, state, record: dict, *, kind: str) -> UnopenedConsumableOutcomeValue:
         kind = str(kind or "").upper()
@@ -90,7 +78,15 @@ class UnopenedConsumableOutcomeValueEvaluator:
         if key in _DEFERRED_UNOPENED:
             return UnopenedConsumableOutcomeValue(
                 0.0,
-                (f"unopened {kind} outcome {label!r} deferred at D8 boundary",),
+                (f"unopened {kind} outcome {label!r} deferred at expectation boundary",),
+            )
+
+        immediate = self._deterministic_immediate_value(state, kind, label)
+        if immediate is not None:
+            value, notes = immediate
+            return UnopenedConsumableOutcomeValue(
+                max(0.0, float(value)),
+                ("bounded deterministic unopened consumable value", *notes),
             )
 
         target = self.consumable_factory.create(data)
@@ -102,25 +98,6 @@ class UnopenedConsumableOutcomeValueEvaluator:
 
         projected = deepcopy(state)
         projected.phase = "TAROT_PACK" if kind == "TAROT" else "SPECTRAL_PACK"
-
-        if key in _DETERMINISTIC_IMMEDIATE:
-            try:
-                if not target.can_use(ConsumableContext(state=projected)):
-                    return UnopenedConsumableOutcomeValue(
-                        0.0,
-                        (f"unopened deterministic {label!r} is unusable",),
-                    )
-                utility, notes = self.item_estimator.estimate(
-                    projected,
-                    BalatroAction(BUY_CONSUMABLE, target=target),
-                )
-            except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
-                return UnopenedConsumableOutcomeValue(0.0, (f"unopened {label!r} valuation failed closed",))
-            return UnopenedConsumableOutcomeValue(
-                max(0.0, float(utility)),
-                ("bounded deterministic unopened consumable value", *tuple(notes)),
-            )
-
         try:
             target_evaluation = self.target_evaluator.recommend(projected, target)
         except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
@@ -131,21 +108,12 @@ class UnopenedConsumableOutcomeValueEvaluator:
                 (f"unopened {kind} outcome {label!r} has no positive bounded B6 target",),
             )
 
-        try:
-            utility, notes = self.item_estimator.estimate(
-                projected,
-                BalatroAction(BUY_CONSUMABLE, target=target),
-            )
-        except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
-            return UnopenedConsumableOutcomeValue(0.0, (f"unopened {label!r} valuation failed closed",))
-
-        value = max(0.0, float(utility) + float(target_evaluation.total_gain))
+        value = max(0.0, 3.2 + float(target_evaluation.total_gain))
         return UnopenedConsumableOutcomeValue(
             value,
             (
                 "bounded deterministic B6 target value",
                 f"target gain={float(target_evaluation.total_gain):.3f}",
-                *tuple(notes),
                 *tuple(target_evaluation.rationale),
             ),
         )
