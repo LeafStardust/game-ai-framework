@@ -6,6 +6,7 @@ from time import perf_counter
 
 from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
 from games.balatro.card_selector import CardSelector
+from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.discard_projection import LiveDiscardJokerProjector
 from games.balatro.live.draw_model import PublicDeckComposition
 from games.balatro.live.draw_outcomes import PublicDrawOutcomeModel
@@ -445,11 +446,57 @@ class LiveBlindClearPlanner:
         return ranked_plays + ranked_discards
 
     def _play_priority(self, state, action: BalatroAction) -> tuple[float, float, int, int]:
-        projection = self.evaluator.project_play(state, action)
+        """Rank beam candidates without entering full stochastic/Joker projection.
+
+        Full ``project_play`` is the authoritative node evaluator below. Calling it
+        here used to mean the search could spend tens of seconds evaluating a play
+        merely to decide whether that play belonged in the bounded beam; the
+        planner deadline could not fire until that synchronous projection returned.
+
+        Beam admission only needs a deterministic public-state ordering. Prefer a
+        cached authoritative projection when the outer D1 evaluator already paid
+        for one. Otherwise use literal hand/card scoring with no Joker activation or
+        stochastic resolution. The selected beam still receives the full projection
+        before it can influence the actual plan.
+        """
+        ensure_cache = getattr(self.evaluator, "_ensure_outer_d1_cache", None)
+        action_key = getattr(self.evaluator, "_action_key", None)
+        projection_cache = getattr(self.evaluator, "_outer_d1_projection_cache", None)
+        if callable(ensure_cache) and callable(action_key):
+            ensure_cache(state)
+            if isinstance(projection_cache, dict):
+                cached = projection_cache.get(action_key(action))
+                if cached is not None:
+                    return (
+                        float(cached.clear_probability),
+                        float(cached.expected_hand_score),
+                        int(cached.hand_score),
+                        -len(action.cards),
+                    )
+
+        hand = self.evaluator._hand_for_cards(state, action.cards)
+        scorer = self.evaluator.scorer
+        base = scorer.SCORES[hand]
+        scoring_cards = scorer.scoring_cards(
+            hand,
+            list(action.cards or []),
+            rules=hand_rules_for_state(state),
+        )
+        card_chips = sum(
+            scorer.card_chip_value(card)
+            for card in scoring_cards
+            if not scorer.is_card_debuffed(card)
+        )
+        literal_score = float((base.chips + card_chips) * base.mult * base.x_mult)
+        remaining = max(
+            0,
+            self._target(state) - int(getattr(state, "score", 0) or 0),
+        )
+        literal_clear = 1.0 if remaining > 0 and literal_score >= remaining else 0.0
         return (
-            projection.clear_probability,
-            projection.expected_hand_score,
-            projection.hand_score,
+            literal_clear,
+            literal_score,
+            int(base.chips * base.mult),
             -len(action.cards),
         )
 
