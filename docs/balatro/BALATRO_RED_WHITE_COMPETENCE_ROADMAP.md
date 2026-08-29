@@ -1,291 +1,184 @@
 # Balatro Red/White Competence Roadmap
 
-Status: **Red/White ordinary competence baseline clean; live Phase-A baseline remains blocked by a tuner-only-context SHOP stall; Arcana bound is deterministic-green but not proven root cause; production-default tuning context isolation implemented, validation pending**
+Status: **ordinary Red Deck / White Stake competence baseline is clean; the historical tuning SHOP and BLIND_SELECT stalls have root fixes; Phase-A remains frozen until the expectation-layer boundedness audit is deterministic-green and a fresh production-default tuning baseline completes normally.**
 
-This document is the active handoff contract for Red Deck / White Stake work. Detailed dated evidence belongs in `BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`; authority boundaries belong in `BALATRO_DECISION_AUTHORITY_MAP.md`.
+This is the active handoff contract for branch `feat/v1.0-red-white-competence`. Detailed historical evidence belongs in `BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`; decision ownership belongs in `BALATRO_DECISION_AUTHORITY_MAP.md`; tuning semantics belong in `BALATRO_BOND_TUNING.md`.
 
 ## NEXT CHAT — START HERE
 
-The Red/White gameplay/runtime competence gate itself is no longer the active problem. Ordinary production play has a clean unchanged-HEAD three-run competence baseline. The **only active blocker before Phase-A tuning can continue is a reproducible multi-minute SHOP stall that has appeared only inside the live tuning baseline workflow**.
+Do **not** reopen ordinary D1 competence, Mouth, Green Joker, discard authority, Hook, or old ContextVar hypotheses without fresh evidence. The current task is narrower: prove that SHOP expectation models cannot recursively call higher policy authorities, validate the resulting HEAD, then run one fresh baseline-only tuner study.
 
-Do **not** reopen old D1, D11, Mouth, Green Joker, discard-authority, Hook, or Arcana work without fresh evidence. Do **not** optimize SHOP speculatively. The immediate job is to validate or falsify the newest isolation hypothesis.
+### Current exact state — 2026-08-29
 
-Current exact state:
+Completed root fixes:
 
-- Two separate baseline-only tuning studies reached a settled `END_ROUND -> SHOP` transition and then emitted no SHOP decision for multiple minutes until manually terminated.
-- The first stall exposed a genuinely unbounded large-pool Arcana expectation. That was bounded conservatively and its targeted/full deterministic validation was reported green, but a second fresh tuning baseline stalled again with only one Arcana Pack visible. Therefore Arcana was **not** the full root cause.
-- Architecture audit confirmed tuning uses the same production supervisor/runner/D14/D11 gameplay stack as normal batches.
-- Queued baseline Phase-A values are numerically identical to `DEFAULT_BOND_CALIBRATION`.
-- The remaining leading hypothesis is contextual rather than numeric: the tuner previously installed `use_bond_calibration(DEFAULT_BOND_CALIBRATION)` even for the production baseline, while ordinary production play simply reads the `ContextVar` default.
-- Commit `1fc31919` changes exact-default baseline evaluation to **skip the calibration override context entirely**. Non-default candidate trials still use `use_bond_calibration(...)`.
-- Commit `411bda21` adds regression coverage proving default baseline bypass vs non-default candidate override behavior.
-- **These newest context-isolation commits have not yet been reported deterministic-green by the user.** No new live baseline should be interpreted until that validation is complete.
+- Ordinary production Red/White gameplay already has a clean unchanged-HEAD three-run competence baseline.
+- The production-default tuning `ContextVar` hypothesis was tested and falsified; equal default calibration context was not the SHOP root cause.
+- Durable SHOP stage diagnostics localized the original stalls to nested expectation work.
+- Arcana/Judgement recursion was bounded; Judgement catalogue/edition/build valuation is now a deterministic conservative lower bound.
+- D11 future-Joker/reroll recursion into full D2 was removed. Paid rerolls fail closed without the required public future Joker pool; free rerolls retain their zero-cost tie behavior.
+- The shared Joker expectation used by Buffoon/Antimatter was restored as a bounded build-transition evaluator rather than D2 recursion.
+- The post-SHOP BLIND_SELECT freeze was traced to generic raw-sequence quiescence after native BLIND_SELECT was already actionable. Native-ready complete BLIND_SELECT now skips that redundant quiescence gate; other phases retain it.
 
-Exact next sequence:
+Latest expectation-layer audit work:
 
-1. User runs the targeted calibration-context regression(s) for commits `1fc31919` / `411bda21`.
-2. User runs `python -m pytest -q tests/balatro` on that exact gameplay/test HEAD.
-3. If green, manually restore Balatro to fresh Red Deck / White Stake / Ante 1 `BLIND_SELECT`.
-4. Start a **freshly named** `--baseline-only` tuning study; do not reuse an interrupted Optuna study.
-5. Require three completed production-default attempts with no multi-minute SHOP stall.
-6. If the stall persists, the equal-valued calibration `ContextVar` hypothesis is falsified. **Do not keep rerunning.** Instrument and compare the remaining tuner-only lifecycle/control/log/preflight/final-reset differences around the same production runner, with timing boundaries before and inside D14 SHOP authority.
-7. If all three baseline attempts complete cleanly, reopen Phase-A candidate tuning under `BALATRO_BOND_TUNING.md`.
+- Added `games/balatro/unopened_consumable_outcome_value.py`, a bounded leaf evaluator for hypothetical unopened Tarot/Spectral outcomes.
+- D8 Arcana no longer instantiates or calls `BalatroPackPolicy`; hypothetical outcomes cannot re-enter D9.
+- D8 Spectral no longer instantiates or calls `BalatroPackPolicy`; hypothetical outcomes cannot re-enter D9.
+- Opened visible Emperor remains a D9 decision, but its hypothetical generated Tarots now use the bounded leaf evaluator instead of recursively calling D9.
+- D11 future-Tarot reroll EV no longer routes through `HeldConsumableOptionEvaluator` and sampled future-hand D9 scoring. It uses the same bounded public-pool leaf model.
+- The old `shop_expectation_runtime_bound_policy.py` D8 `_visible_value` monkeypatches were retired because the base D8 implementations now own the acyclic boundary directly.
+- Added `tests/balatro/test_balatro_expectation_layer_boundaries.py` to prevent D8/future-Tarot/Emperor hypothetical expectation paths from regaining D9/D14-style authority edges.
 
-Do not require wins for this gate. The criterion is that baseline trials complete normally without a reproducible semantic/runtime stall. Interrupted Optuna trials are not baseline evidence.
+Current code HEAD before this roadmap-only commit: `3f7c9ea46d6be00a6852f72b5d85781a51d9b3ae`.
 
-## Future-chat operating contract
+## Immediate gate
 
-### Repository and branch
+Calibration remains **frozen**. Do not start Phase-A candidates yet.
 
-- Repository: `LeafStardust/game-ai-framework`.
-- Active branch: `feat/v1.0-red-white-competence`.
-- Stay on that branch unless the user explicitly changes the target.
-- Canonical update command:
+Required sequence:
 
-```powershell
-git pull
-```
+1. Pull the expectation-audit HEAD.
+2. Run the targeted expectation-boundary regression.
+3. If green, run the full Balatro deterministic suite.
+4. If anything fails, repair deterministic semantics/tests before any live run.
+5. If the full suite is green, manually restore Balatro to fresh Red Deck / White Stake / Ante 1 `BLIND_SELECT`.
+6. Start a **freshly named** `--baseline-only` tuning study. Never reuse an interrupted Optuna study name.
+7. Require all three production-default attempts to terminate normally. Wins are not required for this gate.
+8. If a live stall occurs, stop after the first reproduced stall, inspect the newest durable trace, and localize the remaining stage. Do not repeatedly rerun the same failure.
+9. If all three attempts complete normally, reopen Phase-A candidate tuning under `BALATRO_BOND_TUNING.md`.
 
-Never replace it with a longer remote/branch form unless the user's local setup actually requires one.
-
-### Canonical Windows commands
-
-Normal persistent mode:
+### Deterministic validation commands
 
 ```powershell
 git pull
-.\BalatroAgentToggle.bat
+python -m pytest -q tests/balatro/test_balatro_expectation_layer_boundaries.py
 ```
 
-One-attempt validation:
+If green:
 
 ```powershell
-git pull
-.\BalatroAgentToggle.bat --one
-```
-
-Three-attempt batch:
-
-```powershell
-.\BalatroAgentToggle.bat --three
-```
-
-Five-attempt batch, only when explicitly required:
-
-```powershell
-.\BalatroAgentToggle.bat --five
-```
-
-Full deterministic Balatro suite:
-
-```powershell
-git pull
 python -m pytest -q tests/balatro
 ```
 
-Other supported helpers:
+The assistant does **not** execute these tests or live Balatro attempts; the user owns local validation.
 
-```powershell
-.\BalatroAgentDiagnosticsReport.bat
-.\BalatroAgentCrashReport.bat
-.\BalatroAgentMonitor.bat
-```
+## Expectation-layer authority contract
 
-`BalatroAgentCollectionToggle.bat` is compatibility-only. Collection-first play is retired from the competence path. Never invent `python main.py` or another unsupported live entrypoint.
+Expectation code must be bounded by construction, not merely by timeout.
 
-### Validation ownership
-
-- The assistant must **not run tests or live Balatro attempts**. The user runs them locally and reports results/uploads artifacts.
-- Reading/writing tests and implementation is allowed; executing them is not.
-- Do not request the full suite again when it is already green for the exact current gameplay/test HEAD and no later code/test commit invalidated it.
-- Documentation-only commits do not invalidate a green gameplay/test checkpoint.
-- A gameplay/semantic/runtime change invalidates the live calibration baseline because repository SHA changed.
+1. Hypothetical/unseen SHOP outcomes may use public deterministic metadata and bounded leaf mechanics.
+2. D8 unopened booster expectation must not call D9 opened-pack choice authority.
+3. D11 future-offer expectation must not call D2/D14 or recursively invoke the parent reroll authority.
+4. A visible D9 effect may own its real action semantics, but any hypothetical outcomes it generates must not recursively re-enter D9.
+5. Full BuildProfiler, whole-blind D1 projection, full shop arbitration, or catalogue-wide nested policy decisions are not legal children of unopened/future expectation loops.
+6. Unsupported, stochastic, generative, omitted, or otherwise unsafe probability mass contributes literal zero. Probability mass is not renormalized away.
+7. Small public spaces may be exact; large public spaces use deterministic bounded subsets while retaining the full public denominator.
+8. Hidden RNG state, seeds, pool order, or future identities are never inspected.
+9. Actual visible decisions retain their normal D1-D14 authorities; these bounds apply to hypothetical expectation work, not real action legality.
 
 ## Decision authority
 
 1. D1 final hand authority: `LiveHandActionDecisionEngine` / `PathAwareLiveHandActionDecisionEngine`; effective production policy is `StrategyAwareLiveHandActionPolicy`.
 2. D14 SHOP authority: `BuildAwareShopArbiter`.
 3. D11 reroll authority: `BuildAwareShopRerollPolicy`.
-4. Bond/composition and Build Health are evidence, not final gameplay action authority.
-5. Production uses ordered wrappers/monkeypatches; install order is part of behavior and must be preserved deliberately.
+4. D9 opened-pack authority: `BalatroPackPolicy`.
+5. Bond/composition and Build Health are evidence, not final gameplay action authority.
+6. Production uses ordered wrappers/monkeypatches; install order is behavior and must be preserved deliberately.
 
-## Current checkpoint — 2026-08-29
+## Closed runtime blockers
 
-### D11 reroll latency — CLOSED
+### D1 runtime / authority
 
-Reroll-active D11 future evaluation was reduced from about **20.8 s** to about **3.17 s** while preserving public-information semantics and conservative omitted-mass treatment. The authoritative nested future-family timings are Joker/Tarot/Planet/residual. Do not resume D11 micro-optimization without new measured evidence.
+Closed. The branch contains bounded root ranking, semantic Play/Discard prefiltering, bounded timeout recovery, projection-free ordinary initial discard reserve, Hook-specific protection, and related regressions. Do not micro-optimize D1 without fresh measured evidence.
 
-### D1 runtime / authority repair — CLOSED
+### D11 Joker/reroll recursion
 
-The 2026-08-28 competence loop identified and repaired multiple distinct D1 failure classes:
+Closed as a known root cause. Hypothetical unseen Joker reroll outcomes do not call full D2. Shared Buffoon/Antimatter Joker expectation uses bounded build transitions. Public-pool observability gates paid rerolls.
 
-- semantic root prefilter doing unbounded pre-node work;
-- initial-root Joker-aware priority projection before node 1;
-- structural timeout fallback re-entering expensive planner candidate machinery;
-- projected post-adaptive immediate fallback starting after most of the D1 budget was already spent;
-- projected pre-adaptive bootstrap whose individual estimate could not be interrupted;
-- Play-only initial adaptive roots when semantic Play shaping consumed the soft candidate window;
-- active-Hook reserved discard projection causing zero-node 8–9 s spikes;
-- active-Hook adaptive search consuming the full ~7 s allowance every hand.
+### SHOP Arcana/Judgement recursion
 
-Current runtime/authority protections include projection-free initial root ranking, bounded semantic Play/Discard prefiltering, bounded structural timeout recovery, no projected pre-adaptive bootstrap, no projected post-budget immediate fallback, projection-free legal discard reserve on ordinary initial roots, active Hook exclusion from that reserve, and a temporary active-Hook **3.0 s** search cap with restoration of the configured engine budget afterward.
+Closed as a known root cause. Judgement expectation is bounded. The broader audit now removes the higher-level D8-to-D9 edge rather than relying on item-specific recursion guards alone.
 
-The targeted Hook/root/fallback regressions and the full `tests/balatro` suite were reported **green by the user** before the later tuning-context isolation change.
+### BLIND_SELECT quiescence deadlock
 
-### Clean ordinary competence baseline — PASS
+Closed as a known root cause. Native-ready complete BLIND_SELECT is already an actionable strategic checkpoint and therefore does not wait for presentation/UI geometry to become raw-sequence quiet.
 
-Focused run `balatro-20260828T201428Z-24fd819b-attempt-001` reached Ante 3 The Wall and showed ordinary D1 remained bounded: **21 D1 decisions, ~1.06 s mean, ~1.26 s median, ~4.04 s max, one >3 s, zero >5 s**, with projected immediate fallback effectively zero.
+## Ordinary competence baseline
 
-Replacement batch `balatro-20260828T202157Z-b3fc8c0a` remains the clean pre-calibration competence evidence:
+The pre-tuning ordinary baseline remains evidence that the production gameplay agent itself can complete normal live play with bounded D1 behavior.
 
-- attempt 1: Ante 4 Big Blind loss **6624 / 7500**, D1 ~**1.067 s mean / 2.153 s max**;
-- attempt 2: Ante 2 The Manacle loss **918 / 1600**, D1 ~**0.959 s mean / 1.782 s max**;
-- attempt 3: Ante 2 Small Blind loss **480 / 800**, D1 ~**0.988 s mean / 1.393 s max**;
-- zero D1 decisions above 3 s in the three-run batch;
+Focused run `balatro-20260828T201428Z-24fd819b-attempt-001` reached Ante 3 The Wall with approximately 1.06 s mean D1 latency, 1.26 s median, 4.04 s maximum, one decision above 3 s and none above 5 s.
+
+Replacement batch `balatro-20260828T202157Z-b3fc8c0a`:
+
+- attempt 1: Ante 4 Big Blind loss, 6624 / 7500, D1 ~1.067 s mean / 2.153 s max;
+- attempt 2: Ante 2 The Manacle loss, 918 / 1600, D1 ~0.959 s mean / 1.782 s max;
+- attempt 3: Ante 2 Small Blind loss, 480 / 800, D1 ~0.988 s mean / 1.393 s max;
+- zero D1 decisions above 3 s in the batch;
 - zero true D1 `budget_exceeded` events;
-- projected immediate fallback effectively zero;
 - no illegal/action-result/runtime failures.
 
-Weak Play-vs-Discard choices in that batch remain decision-quality/tuning targets rather than evidence of missing discard authority because the same HEAD selected real discards in ordinary live play.
+This baseline does **not** validate the latest tuning-runtime SHA; it only keeps ordinary competence from being reopened without new evidence.
 
-## Live tuning SHOP blocker — CURRENT
+## Phase-A tuning after the gate
 
-Two fresh production-default baseline-only tuning attempts have now reproduced a hard stall after entering SHOP. Both stopped emitting decisions for multiple minutes until the user manually terminated the tuner.
+Only after a fresh production-default baseline completes all three attempts normally:
 
-### First interrupted tuning baseline
-
-Run `balatro-20260828T204238Z-f12b2e9b-attempt-001` cleared Ante 1 Small and Big Blind, reached SHOP with **$13** and Abstract Joker, and exposed Red Card, Venus, Wasteful, Jumbo Arcana Pack, and Arcana Pack. The durable log ended after the settled `END_ROUND -> SHOP` transition; no SHOP decision followed.
-
-D8 Arcana unopened-pack expectation had a real unbounded full-public-pool traversal. Commit `2a5b708e` (`perf(balatro): bound large-pool Arcana expectation`) keeps pools of 12 or fewer exact and, for larger pools, evaluates at most 8 deterministically spread public outcomes while dividing by the full eligible-pool denominator. Omitted mass is zero and is not renormalized. Regression commit `e2b6424b` covers the large-pool evaluation count/denominator and exact small-pool behavior.
-
-The user reported the corrected targeted Arcana/SHOP set **green**, followed by the full `tests/balatro` suite **green** on that Arcana-bound gameplay/test HEAD.
-
-### Second interrupted tuning baseline proves Arcana was not the full root cause
-
-Fresh session `balatro-20260828T211444Z-555b26b7` began after the Arcana-bound deterministic checkpoint:
-
-- attempt 1 completed normally, losing Ante 1 Small Blind at **268 / 300**;
-- attempt 2 reached SHOP with **$9** and visible Odd Todd, Venus, Buffoon Pack, Arcana Pack, and Reroll Surplus;
-- there was only **one Arcana Pack** in this shop;
-- again the durable log ended after successful `END_ROUND -> SHOP` settlement and no SHOP decision was emitted afterward.
-
-Therefore the Arcana bound remains a valid conservative runtime improvement but must **not** be described as the proven root cause of the multi-minute stall.
-
-### Tuner-vs-production architecture audit
-
-The tuning entrypoint does not use a separate gameplay agent implementation. `AuthoritativeLiveBatchEvaluator` constructs `BoundedBalatroAgentSupervisor`, which is the same bounded production supervisor family used by normal `--three` mode. Both ultimately use the same production observer, `LiveMemoryInjectedSingleStepRunner`, bridge, autonomous loop, D14 SHOP authority, D11 reroll authority, and action execution path.
-
-The material tuning differences are:
-
-- the tuner previously wrapped the entire production supervisor in `use_bond_calibration(calibration)`;
-- tuning uses separate control/log/session directories;
-- Optuna/preflight/final-reset lifecycle exists around the production supervisor.
-
-The queued `--baseline-only` calibration values are numerically identical to `DEFAULT_BOND_CALIBRATION`, so the current isolator is not different numeric parameters. It is whether merely installing an equal-valued calibration `ContextVar` override changes initialization/cache/runtime behavior somewhere below SHOP authority.
-
-### Production-default calibration-context isolation
-
-Commit `1fc31919` (`fix(balatro): match production context for tuning baseline`) changes the authoritative live evaluator so the exact production default baseline does **not** call `use_bond_calibration` at all. It reads the normal `ContextVar` default exactly like ordinary gameplay. Non-default candidate calibrations still enter the explicit override context.
-
-Regression commit `411bda21` (`test(balatro): isolate production tuning calibration context`) covers both sides:
-
-- exact `DEFAULT_BOND_CALIBRATION` -> no override context call;
-- non-default candidate -> override context remains active.
-
-This is an isolation change, not yet a claim that the ContextVar caused the SHOP stall. If a fresh baseline still stalls after this change, the calibration override itself is ruled out and investigation must move to the remaining tuner lifecycle/control/log initialization differences or a generic SHOP path that normal competence batches simply did not encounter.
-
-## Immediate gate
-
-Calibration remains **refrozen**.
-
-Required sequence now:
-
-1. targeted deterministic validation of the production-default calibration-context isolation;
-2. full `tests/balatro` on that gameplay/test HEAD;
-3. manually restore Balatro to fresh Red Deck / White Stake / Ante 1 `BLIND_SELECT`;
-4. start a **freshly named** baseline-only study;
-5. require three completed production-default attempts with no multi-minute SHOP stall;
-6. if the baseline still stalls, do not keep rerunning: treat the ContextVar hypothesis as falsified and instrument/compare the remaining tuner-specific lifecycle around the same production runner;
-7. if clean, reopen Phase-A candidate calibration.
-
-Interrupted Optuna trials must not be treated as baseline evidence. Fresh study names avoid inheriting stale/RUNNING trials from manually interrupted processes.
-
-## Calibration phase after this gate
-
-Once a fresh production-default live baseline completes cleanly, calibration reopens under `docs/balatro/BALATRO_BOND_TUNING.md`.
-
-Phase A remains low-dimensional and tunes only:
+Tune only:
 
 - realization priority weight;
 - generic synergy bonus;
 - generic conflict penalty;
-- monotonic R1–R5 pivot resistance.
+- monotonic R1-R5 pivot resistance.
 
-Per-Bond thresholds and motif-specific values remain locked until Phase A is validated.
+Keep per-Bond thresholds and motif-specific values locked.
 
 Evaluation contract:
 
-- exploratory Optuna work: **3 completed runs per trial**;
-- quick baseline sanity / repeated-defect discovery: **3 runs**;
-- promotion / holdout comparison: **>=20 completed episodes per arm**;
-- compare confidence, variance, and pathological behavior, not raw win rate alone;
-- any semantic/runtime gameplay fix changes the SHA and invalidates the previous calibration baseline.
+- baseline/exploratory trial: 3 completed attempts;
+- promotion/holdout comparison: at least 20 completed episodes per arm;
+- persistent SQLite Optuna study with repo SHA, playbook, deck/stake, schema/objective, run IDs, calibration and metrics;
+- stop a normal study on a real win for review;
+- compare behavior/pathologies and variance, not raw win rate alone;
+- any semantic/runtime gameplay change changes the SHA and invalidates the previous live calibration baseline.
 
 ## Core gameplay doctrine
 
-### Primary objective
+Primary objective: **maximize probability of winning the run**.
 
-> **Maximize the probability of winning the run.**
-
-Collection/discovery is never allowed to justify a strategically worse action.
-
-### Literal score authority
-
-Scoring must follow actual Balatro mechanics: hand base Chips/Mult, played cards, enhancements, editions, seals, Joker ordering, additive Mult, XMult, retriggers, held effects, hand levels, boss modifiers, and stateful conditions. Bond rank, motif strength, or composition coherence must never be converted into fake score.
-
-### Strategy and Bond authority
-
-Bond/composition is the canonical strategic representation from Ante 1 onward. It informs but does not replace final gameplay authority. Recognition without execution is a defect: Card Sharp should repeat when viable, Green/no-discard engines should not discard casually, and held-card engines should preserve required cards when survival-equivalent.
-
-### Shop and replacement doctrine
-
-Every visible shop action competes on expected contribution to winning: immediate survival, literal score, scaling runway, strategy formation/completion, economy, slot opportunity cost, replacement quality, boss vulnerability, pack value, reroll opportunity, and conditional mechanics. Strong realized/scaling engines require materially superior projected outcome before destruction.
-
-### Economy doctrine
-
-Money is both a purchase resource and, for some builds, a scoring resource. Reserve/interest/rerolls/vouchers/spending are state-dependent and subordinate to survival when weak.
-
-### D1 hand-play doctrine
-
-D1 maximizes blind-clear probability under exact score and boss mechanics, then uses survival-equivalent alternatives to preserve economy and strategic resources. Boss legality is authoritative.
-
-### Discard doctrine
-
-One discard token costs the same whether one or several cards are cycled. Repeated singleton discards are exceptional. Evaluate retained structure, dead-card count, redraw quality, remaining resources, held-card value, Joker mechanics, boss effects, and scoring pace at the authoritative planner/controller layer.
-
-### Boss doctrine
-
-Boss rules are mechanics, not soft preferences. Ordinary strategy is subordinate whenever a boss changes legality or score realization.
+Literal Balatro scoring and native legality remain authoritative. Bond rank, motif strength, Build Health, collection/discovery, or tuning convenience must never become fake score or justify a strategically worse action. D1 survival authority outranks preferences. D2/D14 shop decisions compare real scoring/build contribution, economy, slots, runway and bounded transition value. Boss mechanics override ordinary strategy when they alter legality or realization.
 
 ## Current queue
 
-- [x] D11 reroll latency stabilization.
-- [x] D1 authority/runtime stabilization and Hook cap.
-- [x] Green Joker and Mouth semantic repairs.
-- [x] Projection-free ordinary root discard evidence.
-- [x] Clean ordinary unchanged-HEAD three-run competence baseline.
-- [x] First production-default Phase-A baseline attempt exposed a multi-minute SHOP stall.
-- [x] Add conservative large-pool Arcana bound and deterministic coverage.
-- [x] Targeted Arcana/SHOP validation and full suite reported green.
-- [x] Second fresh tuning baseline reproduced SHOP stall after Arcana bound.
-- [x] Audit tuner vs normal `--three` architecture: same production gameplay supervisor/runner stack.
-- [x] Verify queued baseline values equal production defaults.
-- [x] Isolate exact production baseline from calibration ContextVar override.
-- [x] Add regression coverage preserving candidate calibration overrides.
-- [ ] **Current gate:** targeted calibration-context test(s).
-- [ ] Full `tests/balatro` on the context-isolation HEAD.
-- [ ] Fresh three-run production-default baseline-only live study.
-- [ ] Reopen Phase-A candidate calibration only after a clean baseline.
-- [ ] If stall persists, instrument remaining tuner-specific lifecycle/control/log differences instead of further speculative SHOP optimization.
-- [ ] Use calibration and trace review to improve weak Play-vs-Discard valuation, build formation, pivoting, shop decisions, and overall win probability.
-- [ ] Keep new decks, stake progression, gameplay features, and broader v1.1+ work frozen until the Red/White play-quality/calibration checkpoint is satisfactory.
+- [x] D1 Red/White ordinary competence/runtime stabilization.
+- [x] Clean ordinary three-run competence baseline.
+- [x] Durable SHOP stage instrumentation.
+- [x] Bound Judgement catalogue/edition expectation.
+- [x] Remove future-Joker reroll recursion into D2.
+- [x] Restore bounded shared Joker expectation for Buffoon/Antimatter.
+- [x] Enforce paid-reroll public-pool gate.
+- [x] Falsify production-default calibration-context hypothesis.
+- [x] Fix native-ready BLIND_SELECT quiescence deadlock and add narrow regression.
+- [x] Add acyclic unopened Tarot/Spectral leaf valuation.
+- [x] Remove D8 Arcana -> D9 hypothetical edge.
+- [x] Remove D8 Spectral -> D9 hypothetical edge.
+- [x] Remove Emperor generated-Tarot -> D9 recursion edge.
+- [x] Remove D11 future-Tarot -> held-option/D9 expectation edge.
+- [x] Retire obsolete D8 runtime `_visible_value` monkeypatches.
+- [x] Add architectural expectation-layer boundary regression.
+- [ ] **Current gate:** targeted expectation-boundary regression green on current gameplay/test HEAD.
+- [ ] Full `tests/balatro` green on that same HEAD.
+- [ ] Fresh three-attempt production-default `--baseline-only` tuner study completes normally.
+- [ ] If clean, begin Phase-A candidate tuning under `BALATRO_BOND_TUNING.md`.
+
+## Operating contract
+
+- Repository: `LeafStardust/game-ai-framework`.
+- Branch: `feat/v1.0-red-white-competence`.
+- Canonical update command: `git pull`.
+- Do not reuse interrupted Optuna study names.
+- Do not treat interrupted trials as baseline evidence.
+- Do not require a win for the runtime baseline gate.
+- Do not rerun a reproduced stall repeatedly; inspect its newest durable trace.
+- Documentation-only commits do not invalidate a deterministic gameplay/test checkpoint, but gameplay/runtime changes do.
