@@ -7,6 +7,7 @@ from games.balatro.build.judgement_expectation import (
     _bounded_indices,
     JudgementExpectationEvaluator,
 )
+from games.balatro.build.wraith_expectation import _edition_probabilities
 
 
 class _Factory:
@@ -72,6 +73,9 @@ def test_judgement_large_catalogue_uses_bounded_full_pool_lower_bound():
     assert result.complete is True
     assert result.outcome_count == 3 * _MAX_EVALUATED_RECORDS_PER_RARITY
     assert 0.0 < result.expected_total_gain < 1.0
-    assert value.calls <= 3 * _MAX_EVALUATED_RECORDS_PER_RARITY * 4
+    edition_branches = len(_edition_probabilities(state.joker_generation_edition_rate))
+    assert value.calls <= (
+        3 * _MAX_EVALUATED_RECORDS_PER_RARITY * edition_branches
+    )
     assert any("evaluated=6/30" in note for note in result.rationale)
     assert any("omitted probability mass remains zero" in note for note in result.rationale)
