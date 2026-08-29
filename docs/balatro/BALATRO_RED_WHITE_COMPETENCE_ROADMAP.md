@@ -1,6 +1,6 @@
 # Balatro Red/White Competence Roadmap
 
-Status: **ordinary Red/White competence is clean; known SHOP/BLIND_SELECT stalls are root-fixed; the expectation-layer recursion audit plus compatibility repair are deterministically green; a fresh three-attempt production-default live baseline completed normally, so Phase-A candidate tuning is reopened.**
+Status: **ordinary Red/White competence and the expectation-layer runtime fixes are clean. The previous Phase-A baseline was valid on gameplay SHA `9457bc7b...`, but a new ROUND_EVAL checkout fast path is now a gameplay/runtime change and therefore invalidates that study for further tuning. Deterministic revalidation and a fresh baseline are the current gate.**
 
 This is the active handoff contract for branch `feat/v1.0-red-white-competence`. Historical detail belongs in `BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`; decision ownership belongs in `BALATRO_DECISION_AUTHORITY_MAP.md`; Phase-A tuning rules belong in `BALATRO_BOND_TUNING.md`.
 
@@ -8,44 +8,13 @@ This is the active handoff contract for branch `feat/v1.0-red-white-competence`.
 
 Do **not** reopen ordinary D1 competence, Mouth, Green Joker, discard authority, Hook, the falsified default-calibration ContextVar hypothesis, or closed SHOP recursion roots without fresh evidence.
 
-The current gate is **Phase-A exploratory candidate tuning** on study:
+The current gate is validation of the **ROUND_EVAL checkout fast path**.
 
-`phase-a-expectation-boundary-final-20260829`
-
-Validated gameplay/runtime SHA:
-
-`9457bc7b4dd8053f224ae7525e2a174bde88b58d`
-
-Documentation-only commits after that SHA do not change evaluated gameplay. Because the persistent Optuna study records the exact gameplay SHA, resume it with `--repo-sha 9457bc7b4dd8053f224ae7525e2a174bde88b58d` after pulling later documentation commits.
-
-## Closed/root-fixed
-
-- Ordinary Red/White competence/runtime stabilization is closed.
-- Production-default tuning ContextVar hypothesis was falsified.
-- Durable SHOP diagnostics localized historical stalls to nested expectation work.
-- Judgement expectation is bounded and conservative.
-- D11 future-Joker evaluation no longer recursively enters full D2.
-- Buffoon/Antimatter shared Joker expectation is bounded.
-- Paid rerolls fail closed without public future-Joker pool; free-reroll tie behavior remains intentional.
-- Native-ready complete `BLIND_SELECT` no longer waits for generic raw-sequence quiescence.
-- D8 Arcana/Spectral hypothetical outcomes do not enter D9.
-- Visible Emperor remains a real D9 action; hypothetical generated Tarots use bounded leaf valuation.
-- D11 future-Tarot expectation does not enter held-option/D9 authority.
-- Standard unopened expectation keeps the finite exact generator, bounded 64-call B6 factorization and literal deck-growth valuation; this is bounded contextual work rather than upward policy recursion.
-- Obsolete Arcana/Spectral runtime `_visible_value` wrappers are retired.
-- Architectural regression coverage locks the expectation-layer boundary.
-
-## Deterministic validation — PASSED
-
-The repaired focused failure cluster was reported green.
-
-The full `tests/balatro` suite was then reported green on the same gameplay HEAD.
-
-Do not request those same tests again unless gameplay/runtime code changes.
-
-## Production-default live baseline — PASSED
+## Previous clean baseline — retained as historical evidence only
 
 Study: `phase-a-expectation-boundary-final-20260829`
+
+Validated gameplay/runtime SHA: `9457bc7b4dd8053f224ae7525e2a174bde88b58d`
 
 Session: `balatro-20260829T080258Z-b183b79c`
 
@@ -55,48 +24,69 @@ Runs:
 - attempt 002: reached Ante 5 Big Blind, loss 9511 / 16500;
 - attempt 003: Ante 1 boss `The Club`, loss 262 / 600.
 
-Batch metrics:
+Batch metrics included average Ante 2.6667, boss clear rate 0.5, build diversity 0.6667, power-engine utilization 0.42135, zero illegal actions, zero cash-reserve failures and objective 13.5926966292. No SHOP stall or BLIND_SELECT deadlock reproduced.
 
-- episodes: 3;
-- win rate: 0.0;
-- average Ante: 2.6667;
-- median Ante: 2.0;
-- boss clear rate: 0.5;
-- build diversity: 0.6667;
-- power-engine utilization: 0.42135;
-- destructive pivots: 0;
-- unused active engines: 0;
-- cash reserve failures: 0;
-- illegal actions: 0;
-- reported D1 mean seconds: 0.87684;
-- reported `d1_max_seconds`: 3.004;
-- objective: 13.5926966292.
+That study remains valid evidence for SHA `9457bc7b...`, but **must not receive more candidate trials** after the checkout runtime change.
 
-`BatchMetrics.to_dict()` reports `d1_max_seconds` as the mean of each episode's maximum, not the single worst raw decision. Attempt 002 contains two bounded D1 timeout-recovery decisions around 6.15 s. They completed through the existing fallback and did not stall the run. They are runtime evidence to watch during holdout, not a blocker for exploratory Phase-A tuning.
+## ROUND_EVAL checkout fast path — implemented, validation pending
 
-No SHOP stall or BLIND_SELECT deadlock reproduced. Runtime baseline gate passed.
+The user-visible goal is simple: click Check Out as soon as the actual result/check-out screen is present, rather than waiting on generic presentation-settling delays.
 
-## Current Phase-A command
+Implementation:
 
-Calibration semantics remain frozen. Tune only realization priority weight, generic synergy bonus, generic conflict penalty and monotonic R1-R5 pivot resistance. Per-Bond thresholds, contributor weights, motif values and later-phase policy parameters remain locked.
+- `games/balatro/live/runtime/round_eval_checkout_fastpath.py` installs a ROUND_EVAL-only runtime fast path.
+- Native ROUND_EVAL readiness now requires both the real `G.round_eval` UI object and the native `G.FUNCS.cash_out` callback.
+- Once that condition is met, ROUND_EVAL bypasses the supervisor's generic 1-second full-state quiet window.
+- ROUND_EVAL also bypasses the autonomous loop's generic two-snapshot / 100 ms stability confirmation.
+- The runner's mandatory pre-execution stale-state guard and the injected dispatcher's `ROUND_EVAL` phase guard remain authoritative immediately before cash-out.
+- SHOP, pack, hand and all other phases keep their existing readiness/quiescence behavior unchanged.
+- Regression coverage: `tests/balatro/test_balatro_round_eval_checkout_fastpath.py`.
 
-After pulling documentation updates, resume the same study with the validated gameplay SHA explicitly:
+Gameplay/runtime HEAD immediately before this roadmap-only update: `a84631af9d365598608030be0c1509bf1dc5ec23`.
+
+## Immediate gate
+
+Because this is gameplay/runtime code, the previous active Phase-A study is frozen and cannot be resumed.
+
+Run:
 
 ```powershell
 git pull
-python balatro_tune_bonds_live.py --study phase-a-expectation-boundary-final-20260829 --repo-sha 9457bc7b4dd8053f224ae7525e2a174bde88b58d --trials 20
+python -m pytest -q tests/balatro/test_balatro_round_eval_checkout_fastpath.py
 ```
 
-If the local checkout is still exactly gameplay HEAD `9457bc7b4dd8053f224ae7525e2a174bde88b58d`, the explicit `--repo-sha` is optional, but keeping it is harmless and preserves the study contract.
+If green:
 
-Rules:
+```powershell
+python -m pytest -q tests/balatro
+```
 
-1. Exploratory candidate trial = 3 completed authoritative live attempts.
-2. Preflight requires fresh Ante-1 Red/White `BLIND_SELECT` before every trial.
-3. A real win stops the study for review; do not auto-restart a won terminal frame.
-4. If a runtime/semantic defect appears, stop at the first reproduced defect, inspect the durable trace, fix the agent, and invalidate the study because gameplay SHA changes.
-5. Do not promote a 3-run exploratory winner directly.
-6. Promotion/holdout requires a fresh minimum of 20 completed episodes per arm plus manual review.
+Do not rerun already-green earlier focused suites unless these tests expose a related regression.
+
+If the full suite is green, restore a fresh Red Deck / White Stake / Ante-1 `BLIND_SELECT` and create a **new** baseline-only study. Do not reuse the old study name:
+
+```powershell
+python balatro_tune_bonds_live.py --study phase-a-checkout-ready-fastpath-20260829-a --baseline-only
+```
+
+If that three-attempt baseline completes normally, resume that same new study for Phase-A candidates. If any runtime/semantic defect appears, stop at the first reproduction and inspect the durable trace.
+
+## Closed/root-fixed
+
+- Ordinary Red/White competence/runtime stabilization.
+- Production-default tuning ContextVar hypothesis falsified.
+- Durable SHOP diagnostics localized historical stalls to nested expectation work.
+- Judgement expectation bounded and conservative.
+- D11 future-Joker evaluation no longer recursively enters full D2.
+- Buffoon/Antimatter shared Joker expectation bounded.
+- Paid rerolls fail closed without public future-Joker pool.
+- Native-ready `BLIND_SELECT` bypasses inappropriate raw-sequence quiescence.
+- D8 Arcana/Spectral hypothetical outcomes do not enter D9.
+- Visible Emperor remains D9 authority; generated hypothetical Tarots use bounded leaf valuation.
+- D11 future-Tarot expectation does not enter held-option/D9 authority.
+- Standard unopened expectation retains finite exact generator, bounded 64-call B6 factorization and literal deck-growth valuation.
+- Architectural regression coverage locks the expectation-layer boundary.
+- Focused compatibility repair and full `tests/balatro` were reported green before the checkout change.
 
 ## Expectation-layer authority contract
 
@@ -121,12 +111,13 @@ Rules:
 
 ## Phase-A evaluation contract
 
+Once the new runtime baseline is clean, tune only realization priority weight, generic synergy bonus, generic conflict penalty and monotonic R1-R5 pivot resistance.
+
 - exploratory trial: 3 completed attempts;
 - promotion/holdout: at least 20 completed episodes per arm;
 - persistent SQLite provenance includes repo SHA, playbook, deck/stake, schema/objective, run IDs, calibration and metrics;
 - normal studies stop on a real win for review;
 - unseeded live deltas are descriptive, not automatic promotion evidence;
-- compare variance/pathologies as well as objective/win rate;
 - any semantic/runtime gameplay change changes the SHA and invalidates the active live study.
 
 ## Core doctrine
@@ -138,35 +129,24 @@ Literal Balatro scoring and native legality are authoritative. Bond rank, motif 
 ## Current queue
 
 - [x] D1 Red/White ordinary competence/runtime stabilization.
-- [x] Clean ordinary competence baseline.
-- [x] Durable SHOP diagnostics.
-- [x] Bound Judgement expectation.
-- [x] Remove future-Joker reroll recursion into D2.
-- [x] Restore bounded shared Joker expectation for Buffoon/Antimatter.
-- [x] Enforce paid-reroll public-pool gate.
-- [x] Falsify calibration-context hypothesis.
-- [x] Fix BLIND_SELECT quiescence deadlock.
-- [x] Remove D8 Arcana/Spectral -> D9 hypothetical edges.
-- [x] Remove Emperor generated-Tarot -> D9 edge.
-- [x] Remove D11 future-Tarot -> D9 edge.
-- [x] Preserve bounded Standard generator/B6/deck-growth semantics.
-- [x] Add architectural expectation-layer regression coverage.
-- [x] Repair audit compatibility/semantic regressions.
-- [x] Focused tests green.
-- [x] Full `tests/balatro` green on gameplay HEAD.
-- [x] Fresh three-attempt production-default baseline completed normally.
-- [ ] **Current gate:** run Phase-A exploratory candidate trials on the existing baseline study.
-- [ ] Inspect candidates/pathologies; stop on real win or runtime/semantic defect.
-- [ ] Select candidate(s) for fresh >=20-episode-per-arm holdout.
-- [ ] Promote only after deterministic, holdout, runtime, diversity and manual-review gates pass.
+- [x] SHOP expectation recursion/root-cause fixes.
+- [x] BLIND_SELECT quiescence deadlock fix.
+- [x] Expectation-layer architectural audit and compatibility repair.
+- [x] Full `tests/balatro` green before checkout change.
+- [x] Clean three-attempt baseline on gameplay SHA `9457bc7b...`.
+- [x] Implement actual-UI-gated ROUND_EVAL checkout fast path.
+- [x] Add focused checkout fast-path regression coverage.
+- [ ] **Current gate:** focused checkout regression green.
+- [ ] Full `tests/balatro` green on the new gameplay HEAD.
+- [ ] Fresh three-attempt baseline-only study on the new SHA.
+- [ ] Resume Phase-A exploratory candidates only after that baseline is clean.
 
 ## Operating contract
 
 - Repository: `LeafStardust/game-ai-framework`.
 - Branch: `feat/v1.0-red-white-competence`.
 - Canonical update command: `git pull`.
-- Never reuse interrupted Optuna study names.
-- Resume this valid active study while its gameplay SHA/contract remain compatible.
+- Never reuse interrupted or SHA-invalidated Optuna study names.
 - Interrupted trials are not baseline or promotion evidence.
 - Do not repeatedly rerun a reproduced stall; inspect the newest durable trace.
-- Documentation-only commits do not invalidate green deterministic/gameplay evidence; gameplay/runtime changes do.
+- Documentation-only commits do not invalidate green gameplay evidence; gameplay/runtime changes do.
