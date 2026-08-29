@@ -60,18 +60,30 @@ def _bounded_record_indices(record_count: int, *, exact: bool) -> tuple[int, ...
 
 
 class ArcanaBoosterExpectationEvaluator:
-    def __init__(self, *, outcome_evaluator=None) -> None:
+    def __init__(self, *, outcome_evaluator=None, pack_policy=None) -> None:
+        # ``pack_policy`` is retained only as a compatibility argument for older
+        # fixtures/callers. It is deliberately never stored or invoked: unopened D8
+        # expectation must not re-enter D9.
+        del pack_policy
         self.outcome_evaluator = outcome_evaluator or UnopenedConsumableOutcomeValueEvaluator()
 
     @staticmethod
     def _pool(state, kind: str) -> tuple[dict, ...]:
         pools = getattr(state, "consumable_generation_pools", {}) or {}
         values = pools.get(kind.upper(), ()) if isinstance(pools, dict) else ()
-        return tuple(dict(record) for record in values if isinstance(record, dict))
+        normalized = []
+        for record in values:
+            if not isinstance(record, dict):
+                continue
+            data = dict(record)
+            data.setdefault("ability_set", kind.upper())
+            normalized.append(data)
+        return tuple(normalized)
 
-    def _visible_value(self, state, record: dict, *, kind: str) -> float:
+    def _visible_value(self, state, record: dict, *, kind: str | None = None) -> float:
+        resolved_kind = str(kind or record.get("ability_set") or "TAROT").upper()
         try:
-            result = self.outcome_evaluator.evaluate(state, record, kind=kind)
+            result = self.outcome_evaluator.evaluate(state, record, kind=resolved_kind)
         except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
             return 0.0
         return max(0.0, float(result.value))
@@ -83,10 +95,9 @@ class ArcanaBoosterExpectationEvaluator:
             return 0.0, 0.0, 0, 0
         exact = record_count <= _MAX_EXACT_PUBLIC_RECORDS
         indices = _bounded_record_indices(record_count, exact=exact)
-        values = tuple(
-            self._visible_value(state, records[index], kind=kind)
-            for index in indices
-        )
+        # Keep this call signature positional for existing runtime-bound fixtures;
+        # _pool already stamps ability_set so _visible_value can infer the family.
+        values = tuple(self._visible_value(state, records[index]) for index in indices)
         denominator = float(record_count)
         return (
             sum(values) / denominator,
@@ -99,7 +110,7 @@ class ArcanaBoosterExpectationEvaluator:
         ordinary_ev, ordinary_positive, evaluated, total = self._ordinary_pool_mean(state, "TAROT")
         if not bool(getattr(state, "soul_generation_available", False)):
             return ordinary_ev, ordinary_positive, evaluated, total
-        soul_value = self._visible_value(state, _SOUL_RECORD, kind="SPECTRAL")
+        soul_value = self._visible_value(state, _SOUL_RECORD)
         return (
             (1.0 - _SOUL_PROBABILITY) * ordinary_ev + _SOUL_PROBABILITY * soul_value,
             (1.0 - _SOUL_PROBABILITY) * ordinary_positive
@@ -117,7 +128,7 @@ class ArcanaBoosterExpectationEvaluator:
             special = _SOUL_RECORD
         if special is None:
             return ordinary_ev, ordinary_positive, evaluated, total
-        special_value = self._visible_value(state, special, kind="SPECTRAL")
+        special_value = self._visible_value(state, special)
         return (
             (1.0 - _SOUL_PROBABILITY) * ordinary_ev + _SOUL_PROBABILITY * special_value,
             (1.0 - _SOUL_PROBABILITY) * ordinary_positive
@@ -138,9 +149,9 @@ class ArcanaBoosterExpectationEvaluator:
         )
         if not bool(getattr(state, "omen_globe_active", False)):
             return tarot_ev, tarot_positive, (
-                "Arcana one-offer EV uses bounded acyclic unopened-consumable valuation",
+                "Arcana one-offer EV uses current public eligible Tarot pool",
+                "bounded acyclic unopened-consumable valuation performs zero D9 calls",
                 tarot_bound_note,
-                "D8 does not invoke D9 pack choice for hypothetical outcomes",
                 f"one-offer positive-choice probability={tarot_positive:.6f}",
                 f"one-offer sunk-cost option EV={tarot_ev:.6f}",
                 "best-of-3/5 and Mega second-selection improvement omitted conservatively",
@@ -159,7 +170,7 @@ class ArcanaBoosterExpectationEvaluator:
             "Omen Globe Arcana generator modeled as exact 80% Tarot / 20% Spectral per offer",
             tarot_bound_note,
             f"Spectral outcomes evaluated={spectral_evaluated}/{spectral_total}; omitted/deferred mass remains zero",
-            "D8 does not invoke D9 pack choice for hypothetical outcomes",
+            "bounded acyclic unopened-consumable valuation performs zero D9 calls",
             f"one-offer positive-choice probability={positive:.6f}",
             f"one-offer sunk-cost option EV={option_ev:.6f}",
             "best-of-3/5 and Mega second-selection improvement omitted conservatively",
