@@ -151,8 +151,8 @@ def main() -> int:
     )
 
     # Baseline-only has an extra safety contract: reject a reused study before
-    # the live evaluator is constructed. Normal exploratory tuning must not do a
-    # separate pre-create because that would recreate/reset the seeded sampler.
+    # the live evaluator is constructed. The precheck must remain side-effect free;
+    # run_live_phase_a owns baseline enqueue/execution on its persistent Study.
     if args.baseline_only:
         try:
             precheck_study = create_live_phase_a_study(config)
@@ -163,7 +163,6 @@ def main() -> int:
                     f"study {config.name!r} already has {len(precheck_study.trials)} trial(s)"
                 )
                 return 2
-            enqueue_production_baseline(precheck_study)
         except Exception as error:
             print("Balatro live Bond tuning -> BLOCKED")
             print(f"Reason -> {error}")
@@ -185,7 +184,7 @@ def main() -> int:
     print(f"Storage -> {storage_path}")
 
     requested_trials = 1 if args.baseline_only else args.trials
-    study = precheck_study if args.baseline_only else None
+    study = None
     try:
         study = run_live_phase_a(
             config,
