@@ -113,6 +113,39 @@ def _booster_details(policy, action) -> dict[str, object]:
     }
 
 
+def _arcana_record_details(record) -> dict[str, object]:
+    if not isinstance(record, dict):
+        return {"arcana_record_type": type(record).__name__}
+    return {
+        "arcana_label": str(record.get("label") or record.get("ability_name") or ""),
+        "arcana_center": str(record.get("center") or record.get("key") or ""),
+        "arcana_set": str(record.get("ability_set") or record.get("set") or ""),
+    }
+
+
+def _wrap_arcana_visible_value(trace: LiveTuningShopTrace, evaluator) -> None:
+    original = getattr(evaluator, "_visible_value", None)
+    if not callable(original):
+        return
+    marker = "_balatro_live_tuning_trace_visible_value"
+    if getattr(evaluator, marker, False):
+        return
+
+    def wrapped(state, record, *args, **kwargs):
+        return trace.timed(
+            "D8_ARCANA_VISIBLE_VALUE",
+            original,
+            state,
+            record,
+            *args,
+            trace_details=_arcana_record_details(record),
+            **kwargs,
+        )
+
+    setattr(evaluator, "_visible_value", wrapped)
+    setattr(evaluator, marker, True)
+
+
 def _wrap_booster_recommend(trace: LiveTuningShopTrace, policy) -> None:
     original = getattr(policy, "recommend", None)
     if not callable(original):
@@ -132,6 +165,8 @@ def _wrap_booster_recommend(trace: LiveTuningShopTrace, policy) -> None:
     ):
         evaluator = getattr(policy, attribute, None)
         if evaluator is not None:
+            if attribute == "_arcana_generator_expectation":
+                _wrap_arcana_visible_value(trace, evaluator)
             _wrap_method(trace, evaluator, "evaluate", stage)
 
     def wrapped(state, action, *args, **kwargs):
