@@ -1,36 +1,32 @@
 from __future__ import annotations
 
-"""Replace fixed D8 Spectral priors with public generator expectation.
+"""Bounded public-generator expectation for unopened Spectral boosters.
 
-Each Spectral-pack offer is generated from Balatro's current eligible Spectral pool
-through ``create_card(..., soulable=true)``. The soulable special roll is exactly
-0.3%; Black Hole is the final special result when eligible, otherwise The Soul can
-occupy that override. Ordinary pool identity and the special roll remain hidden.
-
-D8 values a conservative single hypothetical visible offer through the installed
-D9 pack policy and treats unresolved/deferred outcomes as Skip=0. It deliberately
-does not invent best-of-2/4 or Mega second-selection multipliers.
+D8 values hypothetical outcomes through an acyclic leaf evaluator rather than the
+visible-pack D9 authority. Unsupported, stochastic, or generative outcomes are zero.
+Large public pools retain their full denominator so omitted mass is also zero.
 """
 
-from copy import deepcopy
-
-from games.balatro.actions import BUY_BOOSTER, SELECT_PACK_CARD, BalatroAction
+from games.balatro.actions import BUY_BOOSTER
 from games.balatro.consumable_generation_pool_live_state_policy import (
     install_consumable_generation_pool_live_state_policy,
 )
 from games.balatro.ectoplasm_pack_expectation_policy import install_ectoplasm_pack_expectation_policy
-from games.balatro.live.pack import LivePackChoice
 from games.balatro.ouija_pack_expectation_policy import install_ouija_pack_expectation_policy
-from games.balatro.pack_policy import BalatroPackPolicy
 from games.balatro.shop_booster_policy import (
     BUY,
     HOLD,
     BuildAwareShopBoosterPolicy,
     ShopBoosterRecommendation,
 )
+from games.balatro.unopened_consumable_outcome_value import (
+    UnopenedConsumableOutcomeValueEvaluator,
+)
 
 
 _SOUL_PROBABILITY = 0.003
+_MAX_EXACT_PUBLIC_RECORDS = 12
+_MAX_EVALUATED_RECORDS_LARGE_POOL = 8
 _SOUL_RECORD = {
     "center": "c_soul",
     "label": "The Soul",
@@ -45,9 +41,26 @@ _BLACK_HOLE_RECORD = {
 }
 
 
+def _bounded_record_indices(record_count: int) -> tuple[int, ...]:
+    if record_count <= 0:
+        return ()
+    if record_count <= _MAX_EXACT_PUBLIC_RECORDS:
+        return tuple(range(record_count))
+    target = min(record_count, _MAX_EVALUATED_RECORDS_LARGE_POOL)
+    if target <= 1:
+        return (0,)
+    selected = {
+        round(position * (record_count - 1) / float(target - 1))
+        for position in range(target)
+    }
+    if len(selected) < target:
+        selected.update(index for index in range(record_count) if index not in selected)
+    return tuple(sorted(selected)[:target])
+
+
 class SpectralBoosterExpectationEvaluator:
-    def __init__(self, *, pack_policy: BalatroPackPolicy | None = None) -> None:
-        self.pack_policy = pack_policy or BalatroPackPolicy(skip_bias=0.0)
+    def __init__(self, *, outcome_evaluator=None) -> None:
+        self.outcome_evaluator = outcome_evaluator or UnopenedConsumableOutcomeValueEvaluator()
 
     @staticmethod
     def _pool(state) -> tuple[dict, ...]:
@@ -56,15 +69,11 @@ class SpectralBoosterExpectationEvaluator:
         return tuple(dict(record) for record in values if isinstance(record, dict))
 
     def _visible_value(self, state, record: dict) -> float:
-        choice = LivePackChoice(area_index=0, address=0, data=dict(record))
-        action = BalatroAction(SELECT_PACK_CARD, target=choice)
-        opened_state = deepcopy(state)
-        opened_state.phase = "SPECTRAL_PACK"
         try:
-            scored = self.pack_policy.score_action(opened_state, action)
+            result = self.outcome_evaluator.evaluate(state, record, kind="SPECTRAL")
         except (AttributeError, KeyError, TypeError, ValueError, ZeroDivisionError):
             return 0.0
-        return max(0.0, float(scored.total))
+        return max(0.0, float(result.value))
 
     def evaluate(self, state) -> tuple[float, float, tuple[str, ...]]:
         if not bool(getattr(state, "consumable_generation_pool_observed", False)):
@@ -76,11 +85,11 @@ class SpectralBoosterExpectationEvaluator:
         if not records:
             return 0.0, 0.0, ("Spectral public generation pool is empty",)
 
-        ordinary_values = tuple(self._visible_value(state, record) for record in records)
-        ordinary_ev = sum(ordinary_values) / float(len(ordinary_values))
-        ordinary_positive = (
-            sum(1 for value in ordinary_values if value > 0.0) / float(len(ordinary_values))
-        )
+        indices = _bounded_record_indices(len(records))
+        ordinary_values = tuple(self._visible_value(state, records[index]) for index in indices)
+        denominator = float(len(records))
+        ordinary_ev = sum(ordinary_values) / denominator
+        ordinary_positive = sum(1 for value in ordinary_values if value > 0.0) / denominator
 
         special = None
         if bool(getattr(state, "black_hole_generation_available", False)):
@@ -94,20 +103,17 @@ class SpectralBoosterExpectationEvaluator:
             special_note = "soulable special override unavailable in current public state"
         else:
             special_value = self._visible_value(state, special)
-            option_ev = (
-                (1.0 - _SOUL_PROBABILITY) * ordinary_ev
-                + _SOUL_PROBABILITY * special_value
-            )
+            option_ev = (1.0 - _SOUL_PROBABILITY) * ordinary_ev + _SOUL_PROBABILITY * special_value
             positive = (
                 (1.0 - _SOUL_PROBABILITY) * ordinary_positive
                 + _SOUL_PROBABILITY * (1.0 if special_value > 0.0 else 0.0)
             )
-            special_note = (
-                "soulable 0.3% special override modeled with Black Hole precedence"
-            )
+            special_note = "soulable 0.3% special override modeled with Black Hole precedence"
 
         return option_ev, positive, (
-            "Spectral one-offer EV uses current public eligible get_current_pool catalogue",
+            "Spectral one-offer EV uses bounded acyclic unopened-consumable valuation",
+            f"Spectral outcomes evaluated={len(indices)}/{len(records)}; omitted/deferred mass remains zero",
+            "D8 does not invoke D9 pack choice for hypothetical outcomes",
             special_note,
             f"one-offer positive-choice probability={positive:.6f}",
             f"one-offer sunk-cost option EV={option_ev:.6f}",
@@ -127,9 +133,7 @@ def install_spectral_booster_expectation_policy() -> None:
 
     def init(self, *args, **kwargs):
         original_init(self, *args, **kwargs)
-        self._spectral_generator_expectation = SpectralBoosterExpectationEvaluator(
-            pack_policy=BalatroPackPolicy(skip_bias=0.0),
-        )
+        self._spectral_generator_expectation = SpectralBoosterExpectationEvaluator()
 
     def recommend(self, state, action):
         family = self._family(action.target)
@@ -152,9 +156,7 @@ def install_spectral_booster_expectation_policy() -> None:
                 rationale=(f"Spectral pack costs ${price} but only ${state.money} is available",),
             )
 
-        option_utility, per_offer_positive, expectation_notes = (
-            self._spectral_generator_expectation.evaluate(state)
-        )
+        option_utility, per_offer_positive, expectation_notes = self._spectral_generator_expectation.evaluate(state)
         offer_count, selection_count = self.PACK_LAYOUTS[family][variant]
         resource_cost = self.resource_valuator.money_spend_cost(
             money=int(state.money),
@@ -167,12 +169,7 @@ def install_spectral_booster_expectation_policy() -> None:
             jokers=getattr(state, "jokers", ()),
         )
         advantage = float(option_utility) - float(resource_cost.total)
-        decision = (
-            BUY
-            if option_utility > 0.0
-            and advantage > float(self.thresholds.minimum_buy_advantage)
-            else HOLD
-        )
+        decision = BUY if option_utility > 0.0 and advantage > float(self.thresholds.minimum_buy_advantage) else HOLD
         return ShopBoosterRecommendation(
             decision=decision,
             action=action,
