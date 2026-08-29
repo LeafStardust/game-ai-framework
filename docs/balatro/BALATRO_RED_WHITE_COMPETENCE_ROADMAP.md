@@ -1,6 +1,6 @@
 # Balatro Red/White Competence Roadmap
 
-Status: **ordinary Red Deck / White Stake competence is clean; known tuner SHOP and BLIND_SELECT stalls have root fixes; the expectation-layer boundedness audit is implemented and now awaits deterministic validation before another live baseline.**
+Status: **ordinary Red Deck / White Stake competence is clean; known tuner SHOP and BLIND_SELECT stalls have root fixes; the expectation-layer recursion audit is implemented; the first full-suite pass exposed compatibility/semantic regressions from that refactor, which are now repaired and awaiting deterministic validation before another live baseline.**
 
 This is the active handoff contract for branch `feat/v1.0-red-white-competence`. Historical detail belongs in `BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`; decision ownership belongs in `BALATRO_DECISION_AUTHORITY_MAP.md`; Phase-A tuning rules belong in `BALATRO_BOND_TUNING.md`.
 
@@ -8,7 +8,7 @@ This is the active handoff contract for branch `feat/v1.0-red-white-competence`.
 
 Do **not** reopen ordinary D1 competence, Mouth, Green Joker, discard authority, Hook, or the falsified default-calibration ContextVar hypothesis without fresh evidence.
 
-The current gate is deterministic validation of the completed SHOP expectation-boundary audit. Do not run another tuner baseline until that validation is green.
+The current gate is deterministic validation of the expectation-boundary audit plus its compatibility repair. Do not run another tuner baseline until that validation is green.
 
 ### Current exact state — 2026-08-29
 
@@ -29,23 +29,43 @@ Completed expectation-layer audit:
 - D8 Arcana no longer instantiates/calls D9 `BalatroPackPolicy` for hypothetical outcomes.
 - D8 Spectral no longer instantiates/calls D9 `BalatroPackPolicy` for hypothetical outcomes.
 - Visible Emperor remains a real D9 action, but its hypothetical generated Tarots use the bounded leaf evaluator and cannot re-enter D9.
-- D11 future-Tarot reroll EV no longer routes through `HeldConsumableOptionEvaluator` plus sampled future-hand D9 scoring.
-- D8 Standard no longer invokes B6 profiling or whole-build deck-growth projection while valuing unopened cards; it integrates only finite public static card mechanics. Contextual build upside is deferred until the card is actually visible.
+- D11 future-Tarot reroll EV no longer routes through sampled future-hand D9 scoring.
+- D8 Standard retains its finite exact generator plus bounded B6 factorization and literal deck-growth valuation. This is allowed because it does not call D9/D11/D14 policy authority and was already measured as a bounded fast path; the audit boundary is recursion/policy re-entry, not a ban on all bounded contextual work.
 - Obsolete Arcana/Spectral `_visible_value` runtime monkeypatches were removed from `shop_expectation_runtime_bound_policy.py`; the safe boundary now lives in the base evaluators themselves.
 - Buffoon rationale/docs now reflect its bounded build-transition Joker expectation rather than the retired D2/D14 recursion route.
-- Added `tests/balatro/test_balatro_expectation_layer_boundaries.py` to make these authority boundaries deterministic regression failures.
+- Added `tests/balatro/test_balatro_expectation_layer_boundaries.py` to make upward policy edges deterministic regression failures.
 
-Code HEAD immediately before this roadmap-only update: `2ae0b2dae370272ef431717ad6d196ea4de7e6c5`.
+First deterministic validation result after the audit:
+
+- The targeted boundary regression was reported green.
+- The first full `tests/balatro` run then exposed 17 failures. These were not 17 new runtime roots; they clustered into interface compatibility and over-conservative semantic regressions introduced by the refactor.
+- Arcana/Spectral evaluator constructors had dropped the historical `pack_policy=` compatibility argument, and Arcana `_visible_value` had changed its monkeypatch-visible signature.
+- D11 future-Tarot had removed public-pool preflight/test surfaces together with the forbidden held-D9 path.
+- Standard had been over-pruned: bounded B6 factorization and deck-growth value were removed even though they were finite/non-recursive and part of established D8 semantics.
+- Direct Hermit/Temperance/Black Hole unopened value was too dependent on the generic consumable factory path, causing legitimate zero-cost Arcana/Spectral admission tests to fail.
+- Older runtime-bound tests still expected one injected D9 call for ordinary Arcana/Spectral outcomes, contradicting the new acyclic contract.
+
+Compatibility/semantic repair now applied:
+
+- Arcana/Spectral accept `pack_policy=` as an ignored compatibility-only argument; it is never stored or invoked.
+- Arcana `_visible_value` again supports the prior two-positional-argument test/monkeypatch surface while inferring the consumable family from public record metadata.
+- Hermit, Temperance and Black Hole receive direct constant-time public leaf values; they do not need D9 to preserve valid pack admission.
+- D11 future-Tarot preflights every public record and keeps deterministic bounded sampling/full-denominator semantics, but its compatibility `held_option` surface is now a leaf adapter and never enters D9.
+- Standard exact generator, bounded 64-call B6 factorization and literal deck-growth value are restored; no `score_action`, `rank_actions`, D11 or D14 recursion is introduced.
+- Runtime-bound tests were aligned with the new zero-D9 Arcana/Spectral contract.
+- Architectural boundary coverage now distinguishes bounded contextual computation from forbidden upward policy recursion.
+
+Code HEAD immediately before this roadmap-only update: `14c357fd44cb1f20d6c65d2fed44733d3432b5e0`.
 
 ## Immediate gate
 
 Calibration remains **frozen**.
 
-Run only:
+Run the repaired failure cluster first:
 
 ```powershell
 git pull
-python -m pytest -q tests/balatro/test_balatro_expectation_layer_boundaries.py
+python -m pytest -q tests/balatro/test_balatro_arcana_booster_recursion_guard.py tests/balatro/test_balatro_arcana_booster_runtime_bound.py tests/balatro/test_balatro_standard_booster_runtime_bound.py tests/balatro/test_balatro_reroll_tarot_expectation_latency_bound.py tests/balatro/test_balatro_shop_expectation_runtime_bounds.py tests/balatro/test_balatro_shop_runtime_final_bounds.py tests/balatro/test_balatro_supported_pack_admission.py tests/balatro/test_balatro_d8_booster_policy.py tests/balatro/test_balatro_red_white_shop_calibration.py tests/balatro/test_balatro_shop_arbiter.py tests/balatro/test_balatro_expectation_layer_boundaries.py
 ```
 
 If green:
@@ -70,11 +90,11 @@ If the full suite is green:
 
 Expectation work must be bounded by construction, not by a timeout added around an unbounded call graph.
 
-1. Hypothetical/unseen SHOP outcomes may use public deterministic metadata and bounded leaf mechanics.
-2. D8 unopened booster expectation must not call D9 opened-pack choice authority.
+1. Hypothetical/unseen SHOP outcomes may use public deterministic metadata and explicitly bounded leaf/context mechanics.
+2. D8 unopened Arcana/Spectral expectation must not call D9 opened-pack choice authority.
 3. D11 future-offer expectation must not call full D2/D14 or recursively invoke parent reroll authority.
 4. A real visible D9 effect may own its actual action semantics, but hypothetical outcomes it creates must not recursively re-enter D9.
-5. Full BuildProfiler/B6 profile traversal, whole-blind D1 projection, whole-build scoring projection, full shop arbitration, or catalogue-wide nested decision policy is not a legal child of an unopened/future expectation loop unless a separately bounded leaf contract is explicitly established.
+5. Bounded finite contextual work is allowed when it has no upward policy edge and a fixed work budget. Whole-blind D1 projection, full shop arbitration, catalogue-wide nested policy, or unbounded whole-build recursion is not a legal child of unopened/future expectation.
 6. Unsupported, stochastic, generative, omitted, or unsafe probability mass contributes literal zero; it is never renormalized away.
 7. Small public spaces may be exact. Large public spaces use deterministic bounded subsets while preserving the full public denominator.
 8. Hidden RNG state, seeds, pool order, or future identities are never inspected.
@@ -163,12 +183,18 @@ Literal Balatro scoring and native legality are authoritative. Bond rank, motif 
 - [x] Remove D8 Arcana -> D9 hypothetical edge.
 - [x] Remove D8 Spectral -> D9 hypothetical edge.
 - [x] Remove Emperor generated-Tarot -> D9 edge.
-- [x] Remove D11 future-Tarot -> held-option/D9 edge.
-- [x] Remove unopened Standard -> B6 profile/whole-build projection edge.
+- [x] Remove D11 future-Tarot -> D9 edge.
 - [x] Retire obsolete D8 runtime `_visible_value` monkeypatches.
 - [x] Align Buffoon documentation with bounded implementation.
 - [x] Add architectural expectation-layer regression coverage.
-- [ ] **Current gate:** targeted expectation-boundary regression green.
+- [x] Targeted expectation-boundary regression reported green on the first audit HEAD.
+- [x] First full-suite audit validation exposed 17 compatibility/semantic regressions.
+- [x] Repair Arcana/Spectral compatibility surfaces without restoring D9.
+- [x] Restore direct deterministic Hermit/Temperance/Black Hole leaf value.
+- [x] Restore D11 Tarot full-pool preflight with leaf-only bounded evaluation.
+- [x] Restore bounded Standard B6/deck-growth semantics without policy recursion.
+- [x] Align stale runtime-bound tests with zero-D9 contract.
+- [ ] **Current gate:** repaired failure-cluster deterministic tests green.
 - [ ] Full `tests/balatro` green on the same HEAD.
 - [ ] Fresh three-attempt production-default `--baseline-only` study completes normally.
 - [ ] If clean, begin Phase-A candidate tuning.
