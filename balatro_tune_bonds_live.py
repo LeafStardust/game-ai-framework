@@ -102,6 +102,12 @@ def run_live_phase_a(
     # stop before the guarded evaluator is asked to operate on a won terminal
     # frame. Recreating the Study here per trial would reset the seeded sampler
     # and repeat the same candidate proposal.
+    #
+    # A failed authoritative-live trial can leave Balatro inside an active run
+    # (for example SELECTING_HAND after a native-readiness timeout). That state is
+    # deliberately not force-restartable: the guarded restart API accepts only a
+    # proven lost GAME_OVER source. Stop immediately on any non-COMPLETE trial so
+    # later Optuna trials are never launched against a poisoned start boundary.
     for _ in range(trials):
         study.optimize(
             objective,
@@ -111,6 +117,8 @@ def run_live_phase_a(
             catch=(RuntimeError,),
         )
         latest = study.trials[-1]
+        if str(latest.state.name) != "COMPLETE":
+            break
         if bool(latest.user_attrs.get("won")):
             break
     return study
@@ -193,9 +201,13 @@ def main() -> int:
             timeout_seconds=args.timeout_seconds,
         )
         latest = study.trials[-1]
+        if str(latest.state.name) != "COMPLETE":
+            raise RuntimeError(
+                "authoritative live trial "
+                f"{latest.number} ended in {latest.state.name}; study halted before "
+                "another trial could start from an unverified live boundary"
+            )
         if args.baseline_only:
-            if str(latest.state.name) != "COMPLETE":
-                raise RuntimeError("production baseline trial did not complete")
             if not bool(latest.user_attrs.get("production_baseline")):
                 raise RuntimeError("queued production baseline was not executed")
     except Exception as error:
