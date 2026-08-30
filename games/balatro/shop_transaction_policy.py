@@ -157,8 +157,12 @@ def install_shop_transaction_policy() -> None:
     original_best_joker = BuildAwareShopArbiter._best_joker_decision
     original_decide = BuildAwareShopArbiter.decide
 
-    def best_joker_decision(self, state):
-        recommendation = original_best_joker(self, state)
+    def best_joker_decision(self, state, *, standalone=None):
+        recommendation = original_best_joker(
+            self,
+            state,
+            standalone=standalone,
+        )
         self._last_exact_joker_candidate = None if recommendation is None else recommendation.candidate
         return recommendation
 
