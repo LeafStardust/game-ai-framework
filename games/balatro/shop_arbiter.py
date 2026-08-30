@@ -17,8 +17,10 @@ from games.balatro.joker_policy import (
     HOLD,
     REPLACE,
     JokerAcquisitionDecision,
+    JokerAcquisitionOption,
     JokerAcquisitionPolicy,
     JokerAcquisitionThresholds,
+    _bond_transition_bonus,
 )
 from games.balatro.playbook import (
     BalatroPlaybookNotFound,
@@ -208,7 +210,15 @@ class BuildAwareShopArbiter:
             deterministic_ranked[0] if deterministic_ranked else None
         )
 
-        joker_best = self._best_joker_decision(state)
+        joker_policy = self._joker_policy_for_state(state)
+        standalone_joker_decisions = tuple(
+            joker_policy.decide(state, candidate)
+            for candidate in tuple(getattr(state, "shop_jokers", ()) or ())
+        )
+        joker_best = self._best_joker_decision(
+            state,
+            standalone=standalone_joker_decisions,
+        )
         consumable_best = self._best_consumable_decision(state)
         booster_policy = self._booster_policy_for_state(state)
         reroll_policy = self._reroll_policy_for_state(state)
@@ -252,7 +262,11 @@ class BuildAwareShopArbiter:
             if booster_best is not None
             else None
         )
-        bond_pair = self._best_visible_bond_pair(state)
+        bond_pair = self._best_visible_bond_pair(
+            state,
+            policy=joker_policy,
+            standalone=standalone_joker_decisions,
+        )
 
         visible_normalized_best = max(
             [
@@ -271,11 +285,6 @@ class BuildAwareShopArbiter:
             ]
         )
 
-        # D2 and D4 are authoritative for their item families. Do not let the
-        # older generic scorer independently admit those same actions while reroll
-        # reasoning compares visible opportunity. Reroll operates on the generic
-        # shop-score representation, so map the D14 shared normalized visible floor
-        # back onto that representation using the parent's hold baseline.
         reroll_visible_actions = [
             action
             for action in visible_actions
@@ -294,11 +303,6 @@ class BuildAwareShopArbiter:
             else None
         )
 
-        # END_SHOP is a real candidate, not an after-the-fact fallback. It wins
-        # exact zero-gain ties except against an admitted zero-cost reroll: a free
-        # reroll weakly dominates ending because END_SHOP remains available after
-        # observing the refreshed shop. Positive child ties retain explicit parent
-        # priority: D2/Bond pair > D4 > deterministic voucher > booster > reroll.
         candidates: list[_ArbiterCandidate] = [
             _ArbiterCandidate(
                 action=BalatroAction(END_SHOP),
@@ -480,6 +484,8 @@ class BuildAwareShopArbiter:
                     f"first-step D14 normalized gain={child.first_utility.gain:.3f}",
                     f"second-step D14 normalized gain={child.second_utility.gain:.3f}",
                     f"combined verified plan gain={child.combined_gain:.3f}",
+                    "visible-pair projection reuses standalone D2 whole-build value and recomputes only bounded canonical Bond/economy delta",
+                    "no nested projected Joker transition-planner call is permitted inside D14 pair search",
                     "no named Joker pair or hidden future shop information is used",
                     "execute one purchase, re-observe, then require fresh D2 admission before the committed second purchase",
                     *tuple(child.first_utility.notes),
@@ -605,13 +611,17 @@ class BuildAwareShopArbiter:
     def _best_visible_bond_pair(
         self,
         state: BalatroState,
+        *,
+        policy: JokerAcquisitionPolicy | None = None,
+        standalone: tuple[JokerAcquisitionDecision, ...] | None = None,
     ) -> _ExecutableBondPairDecision | None:
         shop = tuple(getattr(state, "shop_jokers", ()) or ())
         if len(shop) < 2:
             return None
 
-        policy = self._joker_policy_for_state(state)
-        standalone = tuple(policy.decide(state, candidate) for candidate in shop)
+        policy = policy or self._joker_policy_for_state(state)
+        if standalone is None:
+            standalone = tuple(policy.decide(state, candidate) for candidate in shop)
         nonactionable = tuple(
             index
             for index, decision in enumerate(standalone)
@@ -658,28 +668,64 @@ class BuildAwareShopArbiter:
                 second = shop[second_index]
                 second_before = standalone[second_index]
                 before_option = self._standalone_add_option(second_before)
-                before_build_gain = (
-                    float(before_option.build_gain)
-                    if before_option is not None
-                    else max(
-                        (
-                            float(option.build_gain)
-                            for option in tuple(second_before.options or ())
-                            if option.mode == BUY
-                        ),
-                        default=float("-inf"),
-                    )
-                )
-
-                second_after = policy.decide(projected, second)
-                if second_after.action != BUY or second_after.selected is None:
+                if before_option is None:
                     continue
                 if (
-                    float(second_after.selected.build_gain)
-                    <= before_build_gain + _BOND_PAIR_EPSILON
+                    len(tuple(getattr(projected, "jokers", ()) or ()))
+                    >= int(getattr(projected, "joker_slots", 0) or 0)
+                    and not joker_has_negative_edition(second)
                 ):
                     continue
 
+                before_bond_bonus, _ = _bond_transition_bonus(state, second)
+                after_bond_bonus, after_bond_notes = _bond_transition_bonus(projected, second)
+                interaction_gain = float(after_bond_bonus) - float(before_bond_bonus)
+                if interaction_gain <= _BOND_PAIR_EPSILON:
+                    continue
+
+                projected_build_gain = float(before_option.build_gain) + interaction_gain
+                economics = policy._economics(
+                    projected,
+                    second,
+                    incumbent=None,
+                    replacement=False,
+                )
+                eligible = (
+                    economics.money_after >= 0
+                    and projected_build_gain > policy.thresholds.minimum_purchase_build_gain
+                )
+                projected_advantage = projected_build_gain + economics.total_adjustment
+                if (
+                    not eligible
+                    or projected_advantage <= policy.thresholds.minimum_purchase_advantage
+                ):
+                    continue
+
+                second_option = JokerAcquisitionOption(
+                    mode=BUY,
+                    build_gain=projected_build_gain,
+                    total_advantage=projected_advantage,
+                    economics=economics,
+                    eligible=True,
+                    rationale=(
+                        f"bounded visible-pair build gain={projected_build_gain:.3f}",
+                        f"canonical Bond interaction delta={interaction_gain:+.3f}",
+                        *tuple(after_bond_notes),
+                        f"net spend=${economics.net_spend}",
+                        f"money after=${economics.money_after}",
+                        f"economic adjustment={economics.total_adjustment:.3f}",
+                    ),
+                )
+                second_after = replace(
+                    second_before,
+                    action=BUY,
+                    selected=second_option,
+                    options=(second_option,),
+                    rationale=(
+                        *tuple(second_before.rationale),
+                        "bounded visible-pair projection admitted without nested whole-build D2 replanning",
+                    ),
+                )
                 second_executable = _ExecutableJokerDecision(
                     action=BalatroAction(BUY_JOKER, target=second),
                     source="JOKER_BUY",
@@ -693,9 +739,6 @@ class BuildAwareShopArbiter:
                     second_executable,
                 )
                 combined_gain = float(first_utility.gain) + float(second_utility.gain)
-                interaction_gain = (
-                    float(second_after.selected.build_gain) - before_build_gain
-                )
                 candidate = (
                     combined_gain,
                     interaction_gain,
@@ -738,12 +781,16 @@ class BuildAwareShopArbiter:
     def _best_joker_decision(
         self,
         state: BalatroState,
+        *,
+        standalone: tuple[JokerAcquisitionDecision, ...] | None = None,
     ) -> _ExecutableJokerDecision | None:
         policy = self._joker_policy_for_state(state)
+        shop = tuple(getattr(state, "shop_jokers", ()) or ())
+        if standalone is None:
+            standalone = tuple(policy.decide(state, candidate) for candidate in shop)
         actionable: list[_ExecutableJokerDecision] = []
 
-        for candidate_index, candidate in enumerate(state.shop_jokers):
-            decision = policy.decide(state, candidate)
+        for candidate_index, (candidate, decision) in enumerate(zip(shop, standalone)):
             selected = decision.selected
             if selected is None:
                 continue
@@ -873,9 +920,6 @@ class BuildAwareShopArbiter:
         try:
             playbook = default_balatro_playbooks().for_state(state)
         except BalatroPlaybookNotFound:
-            # Unit/synthetic states frequently omit deck/stake identity. The
-            # default D2 thresholds are the conservative shared fallback and match
-            # the currently supported Red/White cartridge unless overridden there.
             return JokerAcquisitionPolicy()
 
         thresholds = JokerAcquisitionThresholds.from_mapping(
