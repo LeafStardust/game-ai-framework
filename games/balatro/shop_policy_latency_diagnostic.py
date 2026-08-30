@@ -155,14 +155,26 @@ def install_shop_policy_latency_diagnostic() -> None:
             actions,
         )
 
-    def best_joker(self, state):
-        return _record_stage("joker", original_best_joker, self, state)
+    def best_joker(self, state, *, standalone=None):
+        return _record_stage(
+            "joker",
+            original_best_joker,
+            self,
+            state,
+            standalone=standalone,
+        )
 
     def best_consumable(self, state):
         return _record_stage("consumable", original_best_consumable, self, state)
 
-    def best_bond_pair(self, state):
-        return _record_stage("bond_pair", original_best_bond_pair, self, state)
+    def best_bond_pair(self, state, *, standalone=None):
+        return _record_stage(
+            "bond_pair",
+            original_best_bond_pair,
+            self,
+            state,
+            standalone=standalone,
+        )
 
     def booster_recommend(self, state, action):
         return _record_stage(
