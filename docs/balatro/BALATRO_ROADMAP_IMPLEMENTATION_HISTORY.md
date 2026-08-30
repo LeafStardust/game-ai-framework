@@ -81,93 +81,69 @@ The original v1.0.0 release used the historical strategy-tree/Gold-Silver-Bronze
 
 D14 remains final SHOP authority and D11 remains reroll authority. The performance work preserved public-information boundaries, stop-loss/resource semantics, settlement behavior, and conservative omitted-mass treatment.
 
-### Focused profiler evidence
+Pre-Joker-bound focused evidence localized reroll-active D11 `_future_shop_ev()` to approximately **20.8 s mean**. Subsequent bounded Joker and Tarot expectation work reduced reroll-active D11 future work to approximately **3.17 s mean** and total reroll-active D14 to approximately **3.59 s mean**, roughly an **85% reduction**. No remaining multi-second hidden residual was observed. The D14/D11 SHOP latency blocker is closed unless new evidence reopens it.
 
-Pre-Joker-bound focused evidence localized reroll-active D11 `_future_shop_ev()` to approximately **20.8 s mean**, split into approximately **11.3 s future Joker**, **9.3 s future Tarot**, **0.15 s future Planet**, and effectively zero expected-max residual.
+## D1 authority-latency stabilization — 2026-08-28/30 — CLOSED
 
-After commit `1cdb6390` bounded large-pool Joker edition branches conservatively, focused run `balatro-20260828T103057Z-67e9b911-attempt-001` measured:
+Earlier focused runs exposed repeated 20–30 s D1 fallback spikes. Root causes included semantic prefilter rescans and later a passive-rule-aware root structural pre-beam that could spend tens of seconds before consuming node 1.
 
-- reroll-active `_future_shop_ev()` mean: **~11.55 s**;
-- nested future Joker mean: **~3.63 s**;
-- nested future Tarot mean: **~7.89 s**;
-- nested future Planet mean: **~0.03 s**;
-- future residual: **0 s**.
+Repairs included:
 
-The subsequent large-pool Tarot bound preserved full-pool preflight and divided evaluated positive gain by the full eligible-pool count so omitted mass remained literal zero rather than being renormalized. The next focused run measured:
+- deadline-aware semantic D1 prefilter (`76dc7b9...`) with focused regression (`2ceb8a6...`);
+- root structural ranking wall-clock checks (`9653f1a...`) with regression coverage (`222f27a...`).
 
-- reroll-active `_future_shop_ev()` mean: **~3.17 s**;
-- future Tarot mean: **~2.02 s**;
-- future Joker mean: **~1.10 s**;
-- future Planet mean: **~0.054 s**;
-- future residual: **0 s**;
-- total reroll-active D14 mean: **~3.59 s**.
+The current validated production baseline after these fixes reported D1 mean approximately **1.53 s** and max approximately **2.70 s** across its three-run baseline, with zero illegal actions. The pre-node budget pathology is closed unless fresh evidence reproduces it.
 
-This is approximately an **85% reduction** from the original ~20.8 s D11 future bottleneck. No remaining multi-second hidden residual was observed. The D14/D11 SHOP latency blocker is therefore closed unless new evidence reopens it; do not continue shaving Planet/residual or weaken Joker/Tarot semantics without a new measured reason.
+## Live tuning failure containment — 2026-08-30 — CLOSED
 
-## D1 authority-latency stabilization — 2026-08-28 — REOPENED
+Study `phase-a-native-ready-restart-20260830-b` exposed a runtime-control defect in the tuner itself. One candidate trial failed when `SELECTING_HAND` became public-state stable but native hand controls did not become ready before timeout. Because `study.optimize(... catch=(RuntimeError,))` returned normally, the outer loop started subsequent trials from the still-active `SELECTING_HAND` run, creating guaranteed preflight failures.
 
-After SHOP latency closed, the broader v1.0 authority-latency pass moved to D1. `PathAwareLiveHandActionDecisionEngine` records a non-overlapping `D1LatencyBreakdown` across `base_policy`, `adaptive_search`, `confirmation_search`, `immediate_fallback_search`, `adaptive_authority`, `consensus_recovery`, `strategy_health`, and residual. This diagnostic does not change D1 action authority or search thresholds.
+Repair:
 
-### Earlier pre-fix evidence
+- tuner halts the invocation immediately after any non-`COMPLETE` live trial (`a745473e...`);
+- regression coverage locks the fail-fast behavior (`87c10f69...`).
 
-Focused run `balatro-20260828T114850Z-0fbca9a7-attempt-001` produced **41 D1 decisions** and reached Ante 6 / The Head before a natural `GAME_OVER`. The profile measured approximately:
+The restart helper remains deliberately loss-only and does not force-reset an active run after an observation/runtime failure.
 
-- total D1 mean: **1.56 s**;
-- total D1 median: **1.59 s**;
-- total D1 maximum: **8.70 s**;
-- `base_policy` mean: **0.34 s**;
-- `adaptive_search` mean: **0.40 s**;
-- `confirmation_search` mean: **0.07 s**;
-- `immediate_fallback_search` mean: **0.74 s**;
-- `immediate_fallback_search` maximum: **8.69 s**;
-- Strategy Health mean: about **0.003 s**;
-- residual: effectively zero.
+## Phase-A Bond composition tuning — 2026-08-30 — COMPLETE / NO PROMOTION
 
-The pathological decision was approximately **8.701761 s total**, of which **8.693686 s** was `immediate_fallback_search`, with adaptive/confirmation search at zero. Its rationale reported `D1 wall-clock budget exhausted before pace fallback completed`.
+The first completed exploratory calibration cycle tuned only:
 
-### Earlier repair and temporary closure
+- realization priority weight;
+- generic synergy bonus;
+- generic conflict penalty;
+- monotonic R1-R5 pivot resistance.
 
-Hard deadline checks were moved into `LiveBlindClearPlanner` before/after candidate generation and around expensive candidate-priority evaluation, with a 0.75 s initial-root bootstrap. Focused run `balatro-20260828T123054Z-88fe4bcc-attempt-001` then produced **73 D1 decisions** with approximately **1.78 s mean / 1.97 s median / 4.37 s max**, no `budget_exceeded=True` records, and no `D1 wall-clock budget exhausted` messages. That evidence temporarily closed the gate.
+### Historical invalidated studies
 
-### Replacement competence batch reopened the gate
+`phase-a-native-ready-restart-20260830-a` produced an apparently strong Trial 8 with objective **25.4396657042** and average Ante **5.33**, but detailed logs exposed the D1 pre-node runtime defect described above. The gameplay/runtime SHA changed, so the study is forensic evidence only.
 
-After the Green Joker no-discard semantic fix, replacement three-run batch `balatro-20260828T133038Z-8d493563` was used as a new competence baseline. It finished **0/3**: attempt 1 lost at Ante 4 boss The Plant, attempt 2 at Ante 2 boss The Needle, and attempt 3 at Ante 1 Big Blind. The win rate itself is not the blocker; D1 latency is.
+`phase-a-native-ready-restart-20260830-b` was invalidated after the live-tuning failure-containment defect described above changed the tuner/runtime contract.
 
-Attempt 1 contained 67 D1 decisions at approximately **3.62 s mean / 3.04 s median / 6.08 s max**, 28 explicit wall-clock-budget exhaustion messages, and 15 decisions above 5 s.
+### Current completed study
 
-Attempt 2 exposed the severe recurrence:
+Study: `phase-a-native-ready-restart-20260830-c`
 
-- **34 D1 decisions**;
-- total mean: **~16.62 s**;
-- total median: **~23.51 s**;
-- total max: **~30.64 s**;
-- `immediate_fallback_search` mean: **~15.15 s**;
-- `immediate_fallback_search` max: **~30.07 s**;
-- **22** explicit `D1 wall-clock budget exhausted before pace fallback completed` decisions;
-- **22** decisions above 20 s.
+Repository SHA: `87c10f69ba43fb6fb4069b8c93fa8c48962fad54`
 
-Representative fallback spikes were approximately 26.76 s, 26.82 s, 22.94 s, 23.44 s, 23.27 s, 30.07 s, 27.51 s, and 29.25 s. The final Needle decision was approximately **30.24 s total / 29.25 s fallback**. It is not valid to claim this latency caused the 720/800 loss, but the competence/calibration gate is blocked regardless.
+Protocol:
 
-Attempt 3 contained 15 D1 decisions at approximately **3.39 s mean / 3.10 s median / 6.78 s max**, with 6 budget-exhaustion messages.
+- Red Deck / White Stake;
+- authoritative live unseeded;
+- 3 completed attempts per exploratory trial;
+- 10 completed trials total.
 
-### Root cause of recurrence and current repair
+Results:
 
-The canonical planner deadline was present, but `semantic_search_guard_policy.py` still overrides `LiveBlindClearPlanner._candidate_actions`. Its Play prefilter could classify hundreds of legal play subsets, then rescan the same subsets separately for every poker-hand family, with no hard or 0.75 s bootstrap checkpoint inside those loops. Larger live hands, especially Juggler's hand-size increase, made this pre-node semantic work explode into the observed 20–30 s fallback calls.
+- production-default Trial 0 objective: **19.4166666667**;
+- strongest candidate Trial 6 objective: **18.2347883598**;
+- no candidate exceeded baseline;
+- no candidate won;
+- no 20-vs-20 promotion holdout was justified.
 
-Commit `76dc7b90451bf82c3d0535913b1cbd380311c896` (`fix(balatro): bound semantic D1 candidate prefilter`) keeps the existing semantic `_candidate_actions` wrapper but makes that wrapper deadline-aware:
+Outcome: **production Bond calibration retained unchanged; Phase-A exploratory gate closed with no promotion.** Broader tuning families remain locked until explicitly selected by the active roadmap.
 
-- each processed Play is classified once and cached instead of being rescanned per hand family;
-- Play and Discard prefilters check the hard planner deadline between candidates;
-- initial-root semantic work also observes the existing 0.75 s bootstrap between candidates;
-- short-play reserve scanning stops at the same bounds;
-- if initial Play work consumes the root bootstrap, the wrapper returns usable ranked Plays rather than spending another root pass on Discards;
-- gameplay thresholds, search widths, hidden-information rules, and D1 survival/value semantics are unchanged.
-
-Regression commit `2ceb8a6b20c6c1b519417370177c33022cb4a081` (`test(balatro): cover bounded semantic D1 prefilter`) verifies that a large Play prefilter classifies each candidate at most once and stops after the first processed candidate when the root soft deadline is considered expired.
-
-The assistant did **not** execute these tests. Validation is pending. The next gate is: targeted semantic-prefilter regression → full `tests/balatro` → **one focused normal live run**. Do not run another three-attempt competence batch until that focused run shows the pathological 20–30 s fallback/budget-exhaustion class is gone again.
-
-## Bond numerical tuning foundation — IMPLEMENTED / FROZEN
+## Bond numerical tuning foundation — IMPLEMENTED
 
 - [x] Architecture, objective, anti-overfitting, storage/provenance, pruning, and promotion contract documented.
 - [x] Typed immutable Bond calibration snapshot implemented.
@@ -177,6 +153,7 @@ The assistant did **not** execute these tests. Validation is pending. The next g
 - [x] Persistent studies, parameter/objective schema versions, resumable compatibility checks, and production-baseline queuing implemented.
 - [x] Initial low-dimensional Phase-A composition/pivot search space implemented.
 - [x] Fresh-boundary live preflight, baseline reports, holdout validation, and conservative promotion comparison implemented.
+- [x] First authoritative-live Phase-A exploratory cycle completed with no production promotion.
 
 ## Retained design principles
 
