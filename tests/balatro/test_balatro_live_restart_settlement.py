@@ -5,10 +5,26 @@ from games.balatro.live.runtime.live_memory_restart_run_injected import (
     LiveRunRestartError,
     restart_fresh_unseeded_run,
 )
+from games.balatro.live.runtime.live_memory_supervisor_observer import (
+    SupervisorLiveMemoryBalatroObserver,
+)
 from games.balatro.live.runtime.luajit_memory import LuaJITMemoryError
 
 
 class _SequenceObserver:
+    def __init__(self, snapshots):
+        self._snapshots = iter(snapshots)
+
+    def observe(self):
+        item = next(self._snapshots)
+        if isinstance(item, BaseException):
+            raise item
+        return item
+
+
+class _SupervisorSequenceObserver(SupervisorLiveMemoryBalatroObserver):
+    """Test double preserving the supervisor observer's stronger type contract."""
+
     def __init__(self, snapshots):
         self._snapshots = iter(snapshots)
 
@@ -37,6 +53,12 @@ class _RestartBridge:
 class _Runner:
     def __init__(self, snapshots):
         self.observer = _SequenceObserver(snapshots)
+        self.bridge = _RestartBridge()
+
+
+class _SupervisorRunner:
+    def __init__(self, snapshots):
+        self.observer = _SupervisorSequenceObserver(snapshots)
         self.bridge = _RestartBridge()
 
 
@@ -150,6 +172,25 @@ def test_restart_accepts_consecutive_complete_boundary_while_payload_settles():
 
     assert result.after is fresh_c
     assert result.after.payload["marker"] == "ui-c"
+    assert runner.bridge.restart_calls == 1
+
+
+def test_restart_trusts_one_native_ready_supervisor_blind_select_checkpoint():
+    before = _snapshot(70, "GAME_OVER")
+    native_ready = _snapshot(71, "BLIND_SELECT", marker="native-ready")
+    runner = _SupervisorRunner([before, native_ready])
+
+    result = restart_fresh_unseeded_run(
+        runner,
+        "RED",
+        "WHITE",
+        timeout_seconds=1.0,
+        poll_interval_seconds=0.0,
+        stable_confirmations=6,
+    )
+
+    assert result.after is native_ready
+    assert result.after.payload["marker"] == "native-ready"
     assert runner.bridge.restart_calls == 1
 
 
