@@ -5,6 +5,7 @@ from games.balatro.live.runtime.live_memory_restart_run_injected import (
     LiveRunRestartError,
     restart_fresh_unseeded_run,
 )
+from games.balatro.live.runtime.luajit_memory import LuaJITMemoryError
 
 
 class _SequenceObserver:
@@ -12,7 +13,10 @@ class _SequenceObserver:
         self._snapshots = iter(snapshots)
 
     def observe(self):
-        return next(self._snapshots)
+        item = next(self._snapshots)
+        if isinstance(item, BaseException):
+            raise item
+        return item
 
 
 class _RestartBridge:
@@ -109,6 +113,53 @@ def test_restart_stability_counter_resets_on_incomplete_unlock_frame():
             fresh,
             fresh,
             incomplete,
+            settled,
+            settled,
+            settled,
+        ]
+    )
+
+    result = restart_fresh_unseeded_run(
+        runner,
+        "RED",
+        "WHITE",
+        timeout_seconds=1.0,
+        poll_interval_seconds=0.0,
+        stable_confirmations=3,
+    )
+
+    assert result.after is settled
+    assert runner.bridge.restart_calls == 1
+
+
+def test_restart_accepts_consecutive_complete_boundary_while_payload_settles():
+    before = _snapshot(50, "GAME_OVER")
+    fresh_a = _snapshot(51, "BLIND_SELECT", marker="ui-a")
+    fresh_b = _snapshot(52, "BLIND_SELECT", marker="ui-b")
+    fresh_c = _snapshot(53, "BLIND_SELECT", marker="ui-c")
+    runner = _Runner([before, fresh_a, fresh_b, fresh_c])
+
+    result = restart_fresh_unseeded_run(
+        runner,
+        "RED",
+        "WHITE",
+        timeout_seconds=1.0,
+        poll_interval_seconds=0.0,
+        stable_confirmations=3,
+    )
+
+    assert result.after is fresh_c
+    assert result.after.payload["marker"] == "ui-c"
+    assert runner.bridge.restart_calls == 1
+
+
+def test_restart_retries_transient_luajit_snapshot_read():
+    before = _snapshot(60, "GAME_OVER")
+    settled = _snapshot(61, "BLIND_SELECT", marker="settled")
+    runner = _Runner(
+        [
+            before,
+            LuaJITMemoryError("object is not a LuaJIT table"),
             settled,
             settled,
             settled,
