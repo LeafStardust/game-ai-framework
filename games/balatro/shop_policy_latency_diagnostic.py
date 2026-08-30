@@ -167,12 +167,13 @@ def install_shop_policy_latency_diagnostic() -> None:
     def best_consumable(self, state):
         return _record_stage("consumable", original_best_consumable, self, state)
 
-    def best_bond_pair(self, state, *, standalone=None):
+    def best_bond_pair(self, state, *, policy=None, standalone=None):
         return _record_stage(
             "bond_pair",
             original_best_bond_pair,
             self,
             state,
+            policy=policy,
             standalone=standalone,
         )
 
