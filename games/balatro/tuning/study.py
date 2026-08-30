@@ -163,26 +163,9 @@ def _validate_or_initialize_attrs(study, expected: dict[str, object], name: str)
         study.set_user_attr(key, value)
 
 
-def _persisted_trial_count(optuna, *, name: str, storage_url: str) -> int:
-    """Return persisted trials so a resumed process does not restart sampler RNG."""
-    study_api = getattr(optuna, "study", None)
-    get_summaries = getattr(study_api, "get_all_study_summaries", None)
-    if not callable(get_summaries):
-        return 0
-    for summary in get_summaries(storage=storage_url):
-        if str(getattr(summary, "study_name", "")) == name:
-            return max(0, int(getattr(summary, "n_trials", 0) or 0))
-    return 0
-
-
 def _create_study(*, name: str, storage_url: str, sampler_seed: int, attrs: dict[str, object]):
     optuna = _optuna()
-    persisted_trials = _persisted_trial_count(
-        optuna,
-        name=name,
-        storage_url=storage_url,
-    )
-    sampler = optuna.samplers.TPESampler(seed=int(sampler_seed) + persisted_trials)
+    sampler = optuna.samplers.TPESampler(seed=int(sampler_seed))
     study = optuna.create_study(
         study_name=name,
         storage=storage_url,
