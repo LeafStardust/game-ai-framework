@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from copy import deepcopy
 from dataclasses import dataclass
+from math import isfinite
 from time import perf_counter
 
 from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
@@ -10,11 +10,8 @@ from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.discard_projection import LiveDiscardJokerProjector
 from games.balatro.live.draw_model import PublicDeckComposition
 from games.balatro.live.draw_outcomes import PublicDrawOutcomeModel
-from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
-
-
-class PlannerSearchBudgetExceeded(RuntimeError):
-    """Raised when a bounded live planner search exhausts its search budget."""
+from games.balatro.live.play_projection import LivePlayProjection
+from games.balatro.state import BalatroState
 
 
 @dataclass(frozen=True)
@@ -24,408 +21,327 @@ class LiveBlindPlanValue:
     expected_score: float
     expected_hands_remaining: float
     expected_discards_remaining: float
-    # Free generated consumables (notably Purple Seal Tarot generation) are a
-    # future-run resource. Keep them as a late tie-break rather than converting
-    # them into invented chip-equivalent utility: survival/progress and remaining
-    # hand/discard resources stay authoritative first.
-    expected_consumables: float = 0.0
-
-    def weighted(self, probability: float) -> "LiveBlindPlanValue":
-        return LiveBlindPlanValue(
-            clear_probability=self.clear_probability * probability,
-            expected_progress=self.expected_progress * probability,
-            expected_score=self.expected_score * probability,
-            expected_hands_remaining=self.expected_hands_remaining * probability,
-            expected_discards_remaining=self.expected_discards_remaining * probability,
-            expected_consumables=self.expected_consumables * probability,
-        )
-
-    def plus(self, other: "LiveBlindPlanValue") -> "LiveBlindPlanValue":
-        return LiveBlindPlanValue(
-            clear_probability=self.clear_probability + other.clear_probability,
-            expected_progress=self.expected_progress + other.expected_progress,
-            expected_score=self.expected_score + other.expected_score,
-            expected_hands_remaining=(
-                self.expected_hands_remaining + other.expected_hands_remaining
-            ),
-            expected_discards_remaining=(
-                self.expected_discards_remaining + other.expected_discards_remaining
-            ),
-            expected_consumables=(
-                self.expected_consumables + other.expected_consumables
-            ),
-        )
+    expected_consumables: float
 
 
 @dataclass(frozen=True)
 class LiveBlindPlan:
     action: BalatroAction
     value: LiveBlindPlanValue
+    nodes_evaluated: int
     horizon: int
-    exact: bool
-    candidate_count: int
+    sample_count: int
+    budget_exceeded: bool = False
 
 
 @dataclass(frozen=True)
-class _ActionEstimate:
-    action: BalatroAction
-    value: LiveBlindPlanValue
-    exact: bool
+class LiveBlindSearchBudget:
+    max_nodes: int = 750
+    max_seconds: float = 1.75
+    root_beam_width: int = 12
+    child_beam_width: int = 8
+    max_root_discards: int = 8
+    max_child_discards: int = 5
+    draw_sample_count: int = 8
+
+    def __post_init__(self) -> None:
+        if self.max_nodes <= 0:
+            raise ValueError("max_nodes must be positive")
+        if self.max_seconds <= 0:
+            raise ValueError("max_seconds must be positive")
+        if self.root_beam_width <= 0:
+            raise ValueError("root_beam_width must be positive")
+        if self.child_beam_width <= 0:
+            raise ValueError("child_beam_width must be positive")
+        if self.max_root_discards < 0 or self.max_child_discards < 0:
+            raise ValueError("discard beam widths must be non-negative")
+        if self.draw_sample_count <= 0:
+            raise ValueError("draw_sample_count must be positive")
+
+
+class _SearchBudgetExceeded(RuntimeError):
+    pass
 
 
 class LiveBlindClearPlanner:
-    """Bounded expectimax planner over public live Balatro state.
-
-    Replanning after each real checkpoint supplies the next horizon. Hidden draw
-    order is never used. Validated stateful Joker transitions are carried between
-    hypothetical play nodes on isolated branch copies.
-
-    Root and child action beams can be configured independently. This matters for
-    deeper live diagnostics: keeping a useful root comparison while narrowing
-    recursive child choices prevents sampled redraw branches from exploding
-    combinatorially. ``max_nodes`` provides a final hard safety cap.
-    """
-
-    DEFAULT_EXACT_DRAW_COMBINATION_LIMIT = 128
-    DEFAULT_DRAW_SAMPLE_COUNT = 64
-    ROOT_CANDIDATE_BOOTSTRAP_SECONDS = 0.75
+    """Bounded public-state planner for live Balatro blind clearing."""
 
     def __init__(
         self,
+        evaluator,
         *,
-        evaluator: LiveHandDecisionEvaluator | None = None,
-        action_generator: CardSelector | None = None,
+        action_generator=None,
+        card_selector: CardSelector | None = None,
+        discard_projector: LiveDiscardJokerProjector | None = None,
         draw_outcomes: PublicDrawOutcomeModel | None = None,
-        play_width: int = 6,
-        discard_width: int = 4,
-        child_play_width: int | None = None,
-        child_discard_width: int | None = None,
+        budget: LiveBlindSearchBudget | None = None,
+    ) -> None:
+        self.evaluator = evaluator
+        self.action_generator = action_generator or getattr(evaluator, "action_generator", None)
+        if self.action_generator is None:
+            raise ValueError("live blind planner requires an action generator")
+        self.card_selector = card_selector or CardSelector()
+        self.discard_projector = discard_projector or LiveDiscardJokerProjector()
+        self.draw_outcomes = draw_outcomes or PublicDrawOutcomeModel()
+        self.budget = budget or LiveBlindSearchBudget()
+        self.nodes_evaluated = 0
+        self.deadline = 0.0
+        self.budget_exceeded = False
+
+    def plan(
+        self,
+        state: BalatroState,
+        *,
         horizon: int = 2,
-        max_nodes: int | None = None,
-        deadline: float | None = None,
-    ):
-        if play_width < 1:
-            raise ValueError("play_width must be positive")
-        if discard_width < 0:
-            raise ValueError("discard_width cannot be negative")
-        if child_play_width is not None and child_play_width < 1:
-            raise ValueError("child_play_width must be positive")
-        if child_discard_width is not None and child_discard_width < 0:
-            raise ValueError("child_discard_width cannot be negative")
-        if horizon < 1:
-            raise ValueError("horizon must be at least 1")
-        if max_nodes is not None and max_nodes < 1:
-            raise ValueError("max_nodes must be positive when supplied")
+        sample_count: int | None = None,
+        allow_discards: bool = True,
+    ) -> LiveBlindPlan | None:
+        if state.phase != "SELECTING_HAND":
+            return None
+        if horizon <= 0:
+            raise ValueError("horizon must be positive")
 
-        self.evaluator = evaluator or LiveHandDecisionEvaluator()
-        self.action_generator = action_generator or CardSelector()
-        self.draw_outcomes = draw_outcomes or PublicDrawOutcomeModel(
-            exact_combination_limit=self.DEFAULT_EXACT_DRAW_COMBINATION_LIMIT,
-            sample_count=self.DEFAULT_DRAW_SAMPLE_COUNT,
-        )
-        self.discard_joker_projector = LiveDiscardJokerProjector()
-        self.play_width = int(play_width)
-        self.discard_width = int(discard_width)
-        self.child_play_width = int(
-            play_width if child_play_width is None else child_play_width
-        )
-        self.child_discard_width = int(
-            discard_width if child_discard_width is None else child_discard_width
-        )
-        self.horizon = int(horizon)
-        self.max_nodes = int(max_nodes) if max_nodes is not None else None
-        self.deadline = float(deadline) if deadline is not None else None
         self.nodes_evaluated = 0
+        self.budget_exceeded = False
+        self.deadline = perf_counter() + float(self.budget.max_seconds)
+        sample_count = int(sample_count or self.budget.draw_sample_count)
+        if sample_count <= 0:
+            raise ValueError("sample_count must be positive")
 
-    def reset_search_stats(self) -> None:
-        self.nodes_evaluated = 0
-        reset_root = getattr(self.draw_outcomes, "reset_root", None)
-        if callable(reset_root):
-            reset_root()
-
-    def plan(self, state) -> LiveBlindPlan:
-        self._require_state(state)
-        self.reset_search_stats()
-        candidates = self._candidate_actions(state, allow_discards=self.horizon > 1)
-        if not candidates:
-            raise RuntimeError("no live blind-clear candidate action is available")
-
-        estimates = [
-            self._estimate_action(state, action, self.horizon)
-            for action in candidates
-        ]
-        best = max(estimates, key=self._estimate_key)
-        return LiveBlindPlan(
-            action=best.action,
-            value=best.value,
-            horizon=self.horizon,
-            exact=best.exact,
-            candidate_count=len(candidates),
-        )
-
-    def _check_deadline(self) -> None:
-        if self.deadline is not None and perf_counter() >= self.deadline:
-            raise PlannerSearchBudgetExceeded(
-                "live blind planner search exceeded wall-clock budget"
-            )
-
-    def _consume_node(self) -> None:
-        self._check_deadline()
-        if self.max_nodes is not None and self.nodes_evaluated >= self.max_nodes:
-            raise PlannerSearchBudgetExceeded(
-                "live blind planner search exceeded node budget "
-                f"({self.max_nodes})"
-            )
-        self.nodes_evaluated += 1
-
-    def _best_value(self, state, depth: int) -> tuple[LiveBlindPlanValue, bool]:
-        if self._is_cleared(state):
-            return self._terminal_value(state, clear=True), True
-        if int(getattr(state, "hands_remaining", 0)) <= 0:
-            return self._terminal_value(state, clear=False), True
-        if depth <= 0:
-            return self._terminal_value(state, clear=False), True
-
-        candidates = self._candidate_actions(
+        root_actions = self._candidate_actions(
             state,
-            allow_discards=depth > 1,
-            play_width=self.child_play_width,
-            discard_width=self.child_discard_width,
+            allow_discards=allow_discards,
+            play_limit=self.budget.root_beam_width,
+            discard_limit=self.budget.max_root_discards,
         )
-        if not candidates:
-            return self._terminal_value(state, clear=False), True
+        if not root_actions:
+            return None
 
-        estimates = [
-            self._estimate_action(state, action, depth)
-            for action in candidates
-        ]
-        best = max(estimates, key=self._estimate_key)
-        return best.value, best.exact
+        best_action = None
+        best_value = None
+        try:
+            for action in root_actions:
+                self._check_deadline()
+                value = self._estimate_action(
+                    state,
+                    action,
+                    horizon=horizon,
+                    sample_count=sample_count,
+                    allow_discards=allow_discards,
+                )
+                if best_value is None or self._value_key(value) > self._value_key(best_value):
+                    best_action = action
+                    best_value = value
+        except _SearchBudgetExceeded:
+            self.budget_exceeded = True
 
-    def _estimate_action(self, state, action: BalatroAction, depth: int) -> _ActionEstimate:
+        if best_action is None or best_value is None:
+            fallback = root_actions[0]
+            best_action = fallback
+            best_value = self._fallback_action_value(state, fallback)
+
+        return LiveBlindPlan(
+            action=best_action,
+            value=best_value,
+            nodes_evaluated=self.nodes_evaluated,
+            horizon=int(horizon),
+            sample_count=sample_count,
+            budget_exceeded=bool(self.budget_exceeded),
+        )
+
+    def _estimate_action(
+        self,
+        state: BalatroState,
+        action: BalatroAction,
+        *,
+        horizon: int,
+        sample_count: int,
+        allow_discards: bool,
+    ) -> LiveBlindPlanValue:
         self._consume_node()
         if action.name == PLAY_CARDS:
-            return self._estimate_play(state, action, depth)
-        if action.name == DISCARD_CARDS:
-            return self._estimate_discard(state, action, depth)
-        raise ValueError(f"unsupported live blind-clear action {action.name}")
-
-    def _estimate_play(self, state, action: BalatroAction, depth: int) -> _ActionEstimate:
-        projection = self.evaluator.project_play(state, action)
-        total_value = self._zero_value()
-        exact = projection.joker_projection_complete
-        hands_after = max(0, int(getattr(state, "hands_remaining", 0)) - 1)
-        target = self._target(state)
-        played_indices = self._card_indices(state.hand, action.cards)
-        projected_state = projection.state_after_scoring
-        if projected_state is None:
-            projected_state = deepcopy(state)
-
-        if depth <= 1:
-            for score_outcome in projection.outcomes:
-                score_after = int(getattr(state, "score", 0)) + score_outcome.score
-                outcome_state = self._score_outcome_state(score_outcome, projected_state)
-                branch_state = deepcopy(outcome_state)
-                branch_state.score = score_after
-                branch_state.hands_remaining = hands_after
-                value = self._terminal_value(
-                    branch_state,
-                    clear=(target > 0 and score_after >= target),
-                )
-                total_value = total_value.plus(value.weighted(score_outcome.probability))
-            return _ActionEstimate(action, total_value, exact)
-
-        retained_cards = [
-            card
-            for index, card in enumerate(projected_state.hand)
-            if index not in played_indices
-        ]
-        joker_drawn_cards = max(
-            0,
-            len(getattr(projected_state, "hand", [])) - len(getattr(state, "hand", [])),
-        )
-        replacement_draw_count = max(0, len(action.cards) - joker_drawn_cards)
-        composition = None
-        draw_distribution = None
-
-        for score_outcome in projection.outcomes:
-            outcome_state = self._score_outcome_state(score_outcome, projected_state)
-            score_after = int(getattr(state, "score", 0)) + score_outcome.score
-            if target > 0 and score_after >= target:
-                branch_state = deepcopy(outcome_state)
-                branch_state.score = score_after
-                branch_state.hands_remaining = hands_after
-                total_value = total_value.plus(
-                    self._terminal_value(branch_state, clear=True).weighted(score_outcome.probability)
-                )
-                continue
-
-            if hands_after <= 0:
-                branch_state = deepcopy(outcome_state)
-                branch_state.score = score_after
-                branch_state.hands_remaining = 0
-                total_value = total_value.plus(
-                    self._terminal_value(branch_state, clear=False).weighted(score_outcome.probability)
-                )
-                continue
-
-            retained_state = deepcopy(outcome_state)
-            retained_state.score = score_after
-            retained_state.hands_remaining = hands_after
-            retained_state.hand = list(retained_cards)
-            guaranteed_value = self._guaranteed_next_play_value(retained_state)
-            if guaranteed_value is not None:
-                total_value = total_value.plus(guaranteed_value.weighted(score_outcome.probability))
-                continue
-
-            if replacement_draw_count <= 0:
-                value, child_exact = self._best_value(retained_state, depth - 1)
-                exact = exact and child_exact
-                total_value = total_value.plus(value.weighted(score_outcome.probability))
-                continue
-
-            if draw_distribution is None:
-                composition = PublicDeckComposition.from_state(state)
-                draw_distribution = self.draw_outcomes.distribution(
-                    composition,
-                    replacement_draw_count,
-                )
-                exact = exact and draw_distribution.exact
-
-            assert composition is not None
-            assert draw_distribution is not None
-            for draw_outcome in draw_distribution.outcomes:
-                next_state = deepcopy(outcome_state)
-                next_state.score = score_after
-                next_state.hands_remaining = hands_after
-                next_state.hand = list(retained_cards) + [
-                    self.draw_outcomes.card_from_signature(signature)
-                    for signature in draw_outcome.cards
-                ]
-                next_state.deck = self.draw_outcomes.remaining_cards(composition, draw_outcome)
-                value, child_exact = self._best_value(next_state, depth - 1)
-                exact = exact and child_exact
-                probability = score_outcome.probability * draw_outcome.probability
-                total_value = total_value.plus(value.weighted(probability))
-
-        return _ActionEstimate(action, total_value, exact)
-
-    def _guaranteed_next_play_value(self, state) -> LiveBlindPlanValue | None:
-        """Return an exact clear value using only cards already retained in hand."""
-        candidates = self._candidate_actions(
-            state,
-            allow_discards=False,
-            play_width=self.child_play_width,
-            discard_width=0,
-        )
-        if not candidates:
-            return None
-
-        estimates = [self._estimate_action(state, action, 1) for action in candidates]
-        guaranteed = [
-            estimate
-            for estimate in estimates
-            if estimate.exact and estimate.value.clear_probability >= 1.0 - 1e-12
-        ]
-        if not guaranteed:
-            return None
-        best = max(guaranteed, key=lambda estimate: self._value_key(estimate.value))
-        return best.value
-
-    def _estimate_discard(self, state, action: BalatroAction, depth: int) -> _ActionEstimate:
-        if int(getattr(state, "discards_remaining", 0)) <= 0:
-            return _ActionEstimate(
+            return self._estimate_play(
+                state,
                 action,
-                LiveBlindPlanValue(-1.0, 0.0, 0.0, 0.0, 0.0),
-                True,
+                horizon=horizon,
+                sample_count=sample_count,
+                allow_discards=allow_discards,
+            )
+        if action.name == DISCARD_CARDS:
+            return self._estimate_discard(
+                state,
+                action,
+                horizon=horizon,
+                sample_count=sample_count,
+                allow_discards=allow_discards,
+            )
+        return self._zero_value()
+
+    def _estimate_play(
+        self,
+        state: BalatroState,
+        action: BalatroAction,
+        *,
+        horizon: int,
+        sample_count: int,
+        allow_discards: bool,
+    ) -> LiveBlindPlanValue:
+        projection: LivePlayProjection = self.evaluator.project_play(state, action)
+        immediate_clear = float(projection.clear_probability)
+        if immediate_clear >= 1.0 - 1e-12:
+            return LiveBlindPlanValue(
+                clear_probability=1.0,
+                expected_progress=1.0,
+                expected_score=float(getattr(state, "score", 0)) + float(projection.expected_hand_score),
+                expected_hands_remaining=max(0.0, float(getattr(state, "hands_remaining", 0) - 1)),
+                expected_discards_remaining=float(getattr(state, "discards_remaining", 0)),
+                expected_consumables=float(len(getattr(state, "consumables", ()) or ())),
             )
 
-        discard_state = self.discard_joker_projector.project(state, action.cards)
-        discards_after = max(0, int(state.discards_remaining) - 1)
-        if depth <= 1:
-            next_state = deepcopy(discard_state)
-            next_state.discards_remaining = discards_after
-            return _ActionEstimate(action, self._terminal_value(next_state, clear=False), True)
+        score_outcomes = tuple(getattr(projection, "score_outcomes", ()) or ())
+        if not score_outcomes:
+            score_outcomes = (projection,)
 
-        composition = PublicDeckComposition.from_state(state)
-        draw_distribution = self.draw_outcomes.distribution(composition, len(action.cards))
-        removed_indices = self._card_indices(state.hand, action.cards)
-        total_value = self._zero_value()
-        exact = draw_distribution.exact
+        aggregate = self._zero_value()
+        probability_total = 0.0
+        for score_outcome in score_outcomes:
+            probability = float(getattr(score_outcome, "probability", 1.0) or 0.0)
+            if probability <= 0:
+                continue
+            probability_total += probability
+            next_state = self._score_outcome_state(score_outcome, state)
+            score_delta = float(
+                getattr(
+                    score_outcome,
+                    "hand_score",
+                    getattr(score_outcome, "expected_hand_score", projection.expected_hand_score),
+                )
+                or 0.0
+            )
+            projected_state = next_state.copy()
+            projected_state.score = int(getattr(next_state, "score", getattr(state, "score", 0)) or 0) + int(score_delta)
+            projected_state.hands_remaining = max(0, int(getattr(next_state, "hands_remaining", getattr(state, "hands_remaining", 0)) or 0) - 1)
 
-        for draw_outcome in draw_distribution.outcomes:
-            next_state = deepcopy(discard_state)
-            next_state.discards_remaining = discards_after
-            kept = [
-                card
-                for index, card in enumerate(next_state.hand)
-                if index not in removed_indices
-            ]
-            next_state.hand = kept + [
-                self.draw_outcomes.card_from_signature(signature)
-                for signature in draw_outcome.cards
-            ]
-            next_state.deck = self.draw_outcomes.remaining_cards(composition, draw_outcome)
-            value, child_exact = self._best_value(next_state, depth - 1)
-            exact = exact and child_exact
-            total_value = total_value.plus(value.weighted(draw_outcome.probability))
+            clear = self._target(projected_state) > 0 and int(projected_state.score) >= self._target(projected_state)
+            if clear or horizon <= 1 or projected_state.hands_remaining <= 0:
+                continuation = self._terminal_value(projected_state, clear=clear)
+            else:
+                continuation = self._best_continuation(
+                    projected_state,
+                    horizon=horizon - 1,
+                    sample_count=sample_count,
+                    allow_discards=allow_discards,
+                )
+            aggregate = self._add_weighted(aggregate, continuation, probability)
 
-        return _ActionEstimate(action, total_value, exact)
+        if probability_total <= 0:
+            return self._terminal_value(state, clear=False)
+        return self._scale_value(aggregate, 1.0 / probability_total)
 
-    def _rank_actions_with_deadline(
+    def _estimate_discard(
         self,
-        state,
-        actions,
+        state: BalatroState,
+        action: BalatroAction,
         *,
-        priority,
-        limit: int,
-        soft_deadline: float | None = None,
-    ) -> list[BalatroAction]:
-        scored = []
+        horizon: int,
+        sample_count: int,
+        allow_discards: bool,
+    ) -> LiveBlindPlanValue:
+        if int(getattr(state, "discards_remaining", 0)) <= 0:
+            return self._terminal_value(state, clear=False)
+
+        projected = self.discard_projector.project(state, action)
+        if projected is None:
+            return self._terminal_value(state, clear=False)
+
+        deck = PublicDeckComposition.from_state(projected)
+        outcomes = self.draw_outcomes.sample(
+            deck,
+            draw_count=len(action.cards),
+            sample_count=sample_count,
+        )
+        if not outcomes:
+            return self._terminal_value(projected, clear=False)
+
+        aggregate = self._zero_value()
+        probability_total = 0.0
+        for outcome in outcomes:
+            probability = float(getattr(outcome, "probability", 0.0) or 0.0)
+            if probability <= 0:
+                continue
+            probability_total += probability
+            drawn = tuple(getattr(outcome, "cards", ()) or ())
+            child = projected.copy()
+            hand = list(getattr(projected, "hand", ()) or ())
+            hand.extend(drawn)
+            child.hand = hand
+            child.discards_remaining = max(0, int(getattr(projected, "discards_remaining", 0)) - 1)
+            if horizon <= 1:
+                continuation = self._terminal_value(child, clear=False)
+            else:
+                continuation = self._best_continuation(
+                    child,
+                    horizon=horizon - 1,
+                    sample_count=sample_count,
+                    allow_discards=allow_discards,
+                )
+            aggregate = self._add_weighted(aggregate, continuation, probability)
+
+        if probability_total <= 0:
+            return self._terminal_value(projected, clear=False)
+        return self._scale_value(aggregate, 1.0 / probability_total)
+
+    def _best_continuation(
+        self,
+        state: BalatroState,
+        *,
+        horizon: int,
+        sample_count: int,
+        allow_discards: bool,
+    ) -> LiveBlindPlanValue:
+        actions = self._candidate_actions(
+            state,
+            allow_discards=allow_discards,
+            play_limit=self.budget.child_beam_width,
+            discard_limit=self.budget.max_child_discards,
+        )
+        if not actions:
+            return self._terminal_value(state, clear=False)
+
+        best = None
         for action in actions:
             self._check_deadline()
-            if soft_deadline is not None and scored and perf_counter() >= soft_deadline:
-                break
-            score = priority(state, action)
-            self._check_deadline()
-            scored.append((score, action))
-            if soft_deadline is not None and perf_counter() >= soft_deadline:
-                break
-        scored.sort(key=lambda item: item[0], reverse=True)
-        return [action for _, action in scored[:limit]]
+            value = self._estimate_action(
+                state,
+                action,
+                horizon=horizon,
+                sample_count=sample_count,
+                allow_discards=allow_discards,
+            )
+            if best is None or self._value_key(value) > self._value_key(best):
+                best = value
+        return best or self._terminal_value(state, clear=False)
 
     def _candidate_actions(
         self,
-        state,
+        state: BalatroState,
         *,
         allow_discards: bool,
-        play_width: int | None = None,
-        discard_width: int | None = None,
+        play_limit: int,
+        discard_limit: int,
     ) -> list[BalatroAction]:
-        play_limit = self.play_width if play_width is None else int(play_width)
-        discard_limit = self.discard_width if discard_width is None else int(discard_width)
-
-        initial_root = int(getattr(self, "nodes_evaluated", 0)) == 0
-        soft_deadline = None
-        if initial_root:
-            soft_deadline = perf_counter() + self.ROOT_CANDIDATE_BOOTSTRAP_SECONDS
-            if self.deadline is not None:
-                soft_deadline = min(self.deadline, soft_deadline)
-
         self._check_deadline()
         plays = self.action_generator.generate_play_actions(state)
         self._check_deadline()
+        initial_root = self.nodes_evaluated == 0
+        soft_deadline = self.deadline
         ranked_plays = self._rank_actions_with_deadline(
             state,
             plays,
             priority=self._root_play_priority if initial_root else self._play_priority,
             limit=play_limit,
-            soft_deadline=soft_deadline,
+            soft_deadline=soft_deadline if initial_root else None,
         )
-
-        if initial_root and soft_deadline is not None and perf_counter() >= soft_deadline:
-            return ranked_plays
-
         if (
             not allow_discards
             or discard_limit <= 0
@@ -455,9 +371,9 @@ class LiveBlindClearPlanner:
         """
         ensure_cache = getattr(self.evaluator, "_ensure_outer_d1_cache", None)
         action_key = getattr(self.evaluator, "_action_key", None)
-        projection_cache = getattr(self.evaluator, "_outer_d1_projection_cache", None)
         if callable(ensure_cache) and callable(action_key):
             ensure_cache(state)
+            projection_cache = getattr(self.evaluator, "_outer_d1_projection_cache", None)
             if isinstance(projection_cache, dict):
                 cached = projection_cache.get(action_key(action))
                 if cached is not None:
@@ -539,71 +455,107 @@ class LiveBlindClearPlanner:
         return fallback_state if state is None else state
 
     @staticmethod
-    def _card_indices(hand, selected) -> set[int]:
-        selected_ids = {id(card) for card in selected}
-        return {
-            index
-            for index, card in enumerate(hand)
-            if id(card) in selected_ids
-        }
+    def _value_key(value: LiveBlindPlanValue) -> tuple[float, float, float, float, float, float]:
+        return (
+            float(value.clear_probability),
+            float(value.expected_progress),
+            float(value.expected_score),
+            float(value.expected_hands_remaining),
+            float(value.expected_discards_remaining),
+            float(value.expected_consumables),
+        )
 
     @staticmethod
-    def _kept_cards(hand, removed) -> list:
-        removed_ids = {id(card) for card in removed}
-        return [card for card in hand if id(card) not in removed_ids]
+    def _add_weighted(
+        left: LiveBlindPlanValue,
+        right: LiveBlindPlanValue,
+        weight: float,
+    ) -> LiveBlindPlanValue:
+        return LiveBlindPlanValue(
+            clear_probability=left.clear_probability + right.clear_probability * weight,
+            expected_progress=left.expected_progress + right.expected_progress * weight,
+            expected_score=left.expected_score + right.expected_score * weight,
+            expected_hands_remaining=left.expected_hands_remaining + right.expected_hands_remaining * weight,
+            expected_discards_remaining=left.expected_discards_remaining + right.expected_discards_remaining * weight,
+            expected_consumables=left.expected_consumables + right.expected_consumables * weight,
+        )
+
+    @staticmethod
+    def _scale_value(value: LiveBlindPlanValue, scale: float) -> LiveBlindPlanValue:
+        return LiveBlindPlanValue(
+            clear_probability=value.clear_probability * scale,
+            expected_progress=value.expected_progress * scale,
+            expected_score=value.expected_score * scale,
+            expected_hands_remaining=value.expected_hands_remaining * scale,
+            expected_discards_remaining=value.expected_discards_remaining * scale,
+            expected_consumables=value.expected_consumables * scale,
+        )
+
+    def _fallback_action_value(self, state, action: BalatroAction) -> LiveBlindPlanValue:
+        if action.name == PLAY_CARDS:
+            projection = self.evaluator.project_play(state, action)
+            return LiveBlindPlanValue(
+                clear_probability=float(projection.clear_probability),
+                expected_progress=float(projection.clear_probability),
+                expected_score=float(getattr(state, "score", 0)) + float(projection.expected_hand_score),
+                expected_hands_remaining=max(0.0, float(getattr(state, "hands_remaining", 0) - 1)),
+                expected_discards_remaining=float(getattr(state, "discards_remaining", 0)),
+                expected_consumables=float(len(getattr(state, "consumables", ()) or ())),
+            )
+        return self._terminal_value(state, clear=False)
+
+    def _rank_actions_with_deadline(
+        self,
+        state,
+        actions,
+        *,
+        priority,
+        limit: int,
+        soft_deadline: float | None = None,
+    ):
+        ranked = []
+        for action in actions:
+            if soft_deadline is not None and perf_counter() >= soft_deadline:
+                self.budget_exceeded = True
+                break
+            self._check_deadline()
+            key = priority(state, action)
+            if soft_deadline is not None and perf_counter() >= soft_deadline:
+                self.budget_exceeded = True
+            self._check_deadline()
+            ranked.append((key, action))
+            if soft_deadline is not None and self.budget_exceeded:
+                break
+        ranked.sort(key=lambda item: item[0], reverse=True)
+        return [action for _, action in ranked[: max(0, int(limit))]]
+
+    def _consume_node(self) -> None:
+        self._check_deadline()
+        if self.nodes_evaluated >= int(self.budget.max_nodes):
+            self.budget_exceeded = True
+            raise _SearchBudgetExceeded("live blind planner node budget exceeded")
+        self.nodes_evaluated += 1
+
+    def _check_deadline(self) -> None:
+        if self.deadline and perf_counter() >= self.deadline:
+            self.budget_exceeded = True
+            raise _SearchBudgetExceeded("live blind planner wall-clock budget exceeded")
 
     @staticmethod
     def _target(state) -> int:
-        return int(getattr(getattr(state, "blind", None), "requirement", 0))
-
-    def _is_cleared(self, state) -> bool:
-        target = self._target(state)
-        return target > 0 and int(getattr(state, "score", 0)) >= target
-
-    def _mr_bones_rescues(self, state) -> bool:
-        if int(getattr(state, "hands_remaining", 0) or 0) > 0:
-            return False
-
-        target = self._target(state)
-        score = int(getattr(state, "score", 0) or 0)
-        if target <= 0 or score >= target or score * 4 < target:
-            return False
-
-        return any(
-            type(joker).__name__ == "MrBonesJoker"
-            for joker in getattr(state, "jokers", [])
-        )
-
-    @classmethod
-    def _estimate_key(cls, estimate: _ActionEstimate) -> tuple[float, int, float, float, float, float, float]:
-        """Rank survival first; exactness protects proven lines from sampled estimates."""
-        value = estimate.value
-        return (
-            value.clear_probability,
-            1 if estimate.exact else 0,
-            value.expected_progress,
-            value.expected_hands_remaining,
-            value.expected_discards_remaining,
-            value.expected_score,
-            value.expected_consumables,
-        )
+        return max(0, int(getattr(state, "target_score", 0) or 0))
 
     @staticmethod
-    def _value_key(value: LiveBlindPlanValue) -> tuple[float, float, float, float, float, float]:
-        return (
-            value.clear_probability,
-            value.expected_progress,
-            value.expected_hands_remaining,
-            value.expected_discards_remaining,
-            value.expected_score,
-            value.expected_consumables,
-        )
-
-    @staticmethod
-    def _require_state(state) -> None:
-        if getattr(state, "phase", None) != "SELECTING_HAND":
-            raise ValueError("live blind-clear planning requires SELECTING_HAND phase")
-        if not getattr(state, "hand", None):
-            raise ValueError("live blind-clear planning requires a visible hand")
-        if int(getattr(state, "hands_remaining", 0)) <= 0:
-            raise ValueError("live blind-clear planning requires at least one hand")
+    def _mr_bones_rescues(state) -> bool:
+        for joker in tuple(getattr(state, "jokers", ()) or ()):
+            label = str(
+                getattr(joker, "label", None)
+                or getattr(joker, "name", None)
+                or getattr(joker, "center", None)
+                or ""
+            ).lower()
+            if "mr bones" in label or "mr_bones" in label:
+                target = max(0, int(getattr(state, "target_score", 0) or 0))
+                score = max(0, int(getattr(state, "score", 0) or 0))
+                return target > 0 and score >= target * 0.25
+        return False
