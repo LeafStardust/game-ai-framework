@@ -230,12 +230,18 @@ class D1LiveBlindClearPlanner(_CoreD1LiveBlindClearPlanner):
         )[:projection_limit]
 
     def _direct_child_play_priority(self, action):
+        # Root shortlist construction happens before the first search node is
+        # consumed. Its passive-rule-aware hand evaluation is not free, especially
+        # with enlarged hands, so it must obey the same wall-clock budget as the
+        # later Joker-aware projections and recursive nodes.
+        self._check_wall_clock_budget()
         hand = self._search_hand(action.cards)
         scoring = self.evaluator.scorer.scoring_cards(
             hand,
             action.cards,
             rules=self._active_hand_rules,
         )
+        self._check_wall_clock_budget()
         visible_chips = sum(self._card_play_candidate_value(card) for card in scoring)
         return (
             self._HAND_STRENGTH.get(hand.value, -1),
