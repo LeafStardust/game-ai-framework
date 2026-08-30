@@ -8,6 +8,7 @@ from games.balatro.live.injected.bridge import InjectedBridgeError
 
 from .live_memory_autonomous_step_injected import LiveMemoryInjectedSingleStepRunner
 from .live_memory_observer import LiveMemoryBalatroObserver, LiveMemoryObservationError
+from .live_memory_supervisor_observer import SupervisorLiveMemoryBalatroObserver
 from .luajit_memory import LuaJITMemoryError
 from .process_memory import BalatroProcessMemoryError
 
@@ -121,10 +122,11 @@ def restart_fresh_unseeded_run(
     of treating a transient bridge/UI rejection as an agent-fatal condition.
 
     Once Balatro leaves GAME_OVER, never issue another destructive restart command.
-    Only observe until a sustained same-deck/stake BLIND_SELECT checkpoint appears.
-    The public payload may legitimately continue changing while native UI/presentation
-    state settles, so restart confirmation is based on consecutive complete boundary
-    identity observations rather than whole-payload equality. Python never writes
+    Generic observers require consecutive complete same-deck/stake BLIND_SELECT
+    confirmations. The supervisor observer is stronger: its BLIND_SELECT observation
+    is returned only after the native selection pane is actionable, and deliberately
+    does not require raw presentation-sequence quiescence. One such native-ready
+    checkpoint therefore satisfies the restart postcondition. Python never writes
     process memory.
     """
     if timeout_seconds <= 0:
@@ -178,6 +180,11 @@ def restart_fresh_unseeded_run(
         last_command_error = error
     next_restart_attempt = monotonic() + retry_interval_seconds
 
+    required_confirmations = (
+        1
+        if isinstance(runner.observer, SupervisorLiveMemoryBalatroObserver)
+        else int(stable_confirmations)
+    )
     stable_count = 0
     last_observed = before
     left_game_over = False
@@ -198,12 +205,12 @@ def restart_fresh_unseeded_run(
                     f"{current_deck}/{current_stake}"
                 )
             # Sequence is an observer-local fingerprint revision. Require a fresh
-            # checkpoint relative to GAME_OVER, then count consecutive complete
-            # same-identity BLIND_SELECT observations. Presentation/UI fields may
-            # continue changing and must not keep a valid restart open for 60s.
+            # checkpoint relative to GAME_OVER. Generic observers then need the
+            # configured number of consecutive confirmations; the supervisor's
+            # native-ready BLIND_SELECT checkpoint is already actionability-gated.
             if current.sequence != before.sequence:
                 stable_count += 1
-                if stable_count >= stable_confirmations:
+                if stable_count >= required_confirmations:
                     return LiveRunRestartResult(
                         before=before,
                         after=current,
