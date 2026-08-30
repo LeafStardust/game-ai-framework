@@ -6,17 +6,18 @@ from time import monotonic, sleep
 
 from games.balatro.live.injected.bridge import InjectedBridgeError
 
-from .live_memory_autonomous_step_injected import (
-    LiveMemoryInjectedSingleStepRunner,
-    _same_snapshot,
-)
-from .live_memory_observer import LiveMemoryBalatroObserver
+from .live_memory_autonomous_step_injected import LiveMemoryInjectedSingleStepRunner
+from .live_memory_observer import LiveMemoryBalatroObserver, LiveMemoryObservationError
+from .luajit_memory import LuaJITMemoryError
+from .process_memory import BalatroProcessMemoryError
 
 
 DEFAULT_RESTART_TIMEOUT_SECONDS = 60.0
 DEFAULT_RESTART_POLL_INTERVAL_SECONDS = 0.05
 DEFAULT_RESTART_STABLE_CONFIRMATIONS = 6
 DEFAULT_RESTART_RETRY_INTERVAL_SECONDS = 1.0
+DEFAULT_RESTART_OBSERVE_ATTEMPTS = 3
+DEFAULT_RESTART_OBSERVE_RETRY_SECONDS = 0.01
 
 
 class LiveRunRestartError(RuntimeError):
@@ -68,6 +69,39 @@ def _snapshot_diagnostic(snapshot) -> str:
     )
 
 
+def _observe_restart_snapshot(
+    observer,
+    *,
+    attempts: int = DEFAULT_RESTART_OBSERVE_ATTEMPTS,
+):
+    """Retry a torn process-memory read without weakening restart semantics."""
+    if attempts <= 0:
+        raise ValueError("restart observation attempts must be positive")
+
+    last_error: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            return observer.observe()
+        except (
+            LiveMemoryObservationError,
+            LuaJITMemoryError,
+            BalatroProcessMemoryError,
+        ) as error:
+            last_error = error
+            # A torn read may also mean the cached G table was invalidated during
+            # the native restart transition. Force rediscovery on the next attempt.
+            if hasattr(observer, "_g_table"):
+                observer._g_table = None
+            if attempt + 1 < attempts and DEFAULT_RESTART_OBSERVE_RETRY_SECONDS:
+                sleep(DEFAULT_RESTART_OBSERVE_RETRY_SECONDS)
+
+    assert last_error is not None
+    raise LiveRunRestartError(
+        "restart observation remained unreadable after "
+        f"{attempts} bounded attempts: {last_error}"
+    ) from last_error
+
+
 def restart_fresh_unseeded_run(
     runner,
     deck: str,
@@ -88,8 +122,10 @@ def restart_fresh_unseeded_run(
 
     Once Balatro leaves GAME_OVER, never issue another destructive restart command.
     Only observe until a sustained same-deck/stake BLIND_SELECT checkpoint appears.
-    This prevents a command whose result was merely delayed from restarting the new
-    run a second time. Python never writes process memory.
+    The public payload may legitimately continue changing while native UI/presentation
+    state settles, so restart confirmation is based on consecutive complete boundary
+    identity observations rather than whole-payload equality. Python never writes
+    process memory.
     """
     if timeout_seconds <= 0:
         raise ValueError("timeout_seconds must be positive")
@@ -102,7 +138,7 @@ def restart_fresh_unseeded_run(
 
     expected_deck = str(deck).upper()
     expected_stake = str(stake).upper()
-    before = runner.observer.observe()
+    before = _observe_restart_snapshot(runner.observer)
     observed_deck, observed_stake = _validate_restart_source(before)
     if (observed_deck, observed_stake) != (expected_deck, expected_stake):
         raise LiveRunRestartError(
@@ -142,13 +178,12 @@ def restart_fresh_unseeded_run(
         last_command_error = error
     next_restart_attempt = monotonic() + retry_interval_seconds
 
-    previous = None
     stable_count = 0
     last_observed = before
     left_game_over = False
 
     while monotonic() < deadline:
-        current = runner.observer.observe()
+        current = _observe_restart_snapshot(runner.observer)
         last_observed = current
         phase = str(current.phase)
         if phase != "GAME_OVER":
@@ -162,15 +197,12 @@ def restart_fresh_unseeded_run(
                     f"{expected_deck}/{expected_stake}, observed "
                     f"{current_deck}/{current_stake}"
                 )
-            # Sequence is an observer-local semantic fingerprint revision.  Only
-            # require a different checkpoint from the terminal source; test and
-            # alternate observer adapters are not required to number it upward.
+            # Sequence is an observer-local fingerprint revision. Require a fresh
+            # checkpoint relative to GAME_OVER, then count consecutive complete
+            # same-identity BLIND_SELECT observations. Presentation/UI fields may
+            # continue changing and must not keep a valid restart open for 60s.
             if current.sequence != before.sequence:
-                if previous is not None and _same_snapshot(previous, current):
-                    stable_count += 1
-                else:
-                    stable_count = 1
-                previous = current
+                stable_count += 1
                 if stable_count >= stable_confirmations:
                     return LiveRunRestartResult(
                         before=before,
@@ -178,10 +210,8 @@ def restart_fresh_unseeded_run(
                         bridge_status=dict(status),
                     )
             else:
-                previous = None
                 stable_count = 0
         else:
-            previous = None
             stable_count = 0
 
         # Retry only while the authoritative state still says this is the same
