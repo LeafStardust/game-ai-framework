@@ -1,6 +1,6 @@
 # Balatro Bond Tuning
 
-Status: **Implemented foundation / current-HEAD live baseline validation pending**
+Status: **Phase-A exploratory calibration completed on current validated gameplay/runtime SHA; production defaults remain best and no candidate advances to holdout. Broader parameter families remain locked pending a separate roadmap decision.**
 
 This document defines the automated numerical calibration layer for the canonical Balatro Bond/composition architecture.
 
@@ -50,20 +50,24 @@ Tuning must be staged. Do **not** expose the entire catalogue at once.
 
 ### Phase A — Composition calibration
 
-The implemented first search space is deliberately smaller than the eventual family. It currently tunes:
+The implemented first search space tunes:
 
 - realization priority weight;
 - generic synergy bonus;
 - generic conflict penalty;
 - monotonic R1-R5 pivot-resistance values.
 
-Per-Bond thresholds/contributor weights and motif values remain locked until the first Phase-A study is validated.
+Per-Bond thresholds/contributor weights and motif values remain locked.
+
+**Current result:** the 10-trial authoritative-live exploratory checkpoint on SHA `87c10f69ba43fb6fb4069b8c93fa8c48962fad54` did not produce a candidate that beat the production-default baseline. Phase A therefore closes with **no promotion**. This is a valid outcome; do not widen the family merely to force a winner.
 
 ### Phase B — Realization calibration
 
 Candidate parameters include bounded thresholds used to classify `DORMANT`, `PARTIAL`, `ACTIVE`, and `MATURE` when those thresholds are empirical rather than mechanically exact.
 
 Mechanically exact trigger requirements are **not tunable**.
+
+Phase B remains locked until the active roadmap explicitly selects it. Phase-A non-promotion is not, by itself, evidence that Phase B should begin.
 
 ### Phase C — Pivot / preservation calibration
 
@@ -118,6 +122,8 @@ A trial that crashes, violates legality, exposes hidden information, or produces
 
 Authoritative live trials additionally require a fail-closed preflight before **every** trial: settled `BLIND_SELECT`, fresh Ante 1, expected deck/stake identity, compatible bridge protocol, and a non-disabled achievement gate. Lost batches are reset to a fresh run boundary and then preflighted again before the next candidate.
 
+After runtime failure evidence from the 2026-08-30 `-b` study, the live tuning runner now halts the entire invocation on the first non-`COMPLETE` Optuna trial. It must not continue proposing candidates from an active/dirty live-run boundary and create cascade preflight failures.
+
 ### Live sample-size policy
 
 Authoritative live Balatro is expensive and unseeded, so sample size depends on purpose:
@@ -126,6 +132,7 @@ Authoritative live Balatro is expensive and unseeded, so sample size depends on 
 - **Baseline sanity/repeated defect discovery:** 3 runs are sufficient during rapid iteration, but any runtime/semantic defect invalidates the study because the repository SHA changes.
 - **Promotion/holdout:** the implemented live comparator requires a fresh **minimum of 20 completed episodes per arm** (baseline and candidate). Use larger batches when uncertainty remains. Promotion evidence must never rely only on a 3-run exploratory result.
 - Compare confidence/variance and pathology metrics, not raw win percentage alone.
+- If no exploratory candidate materially beats baseline, **do not run a promotion holdout merely to complete the procedure**.
 
 ## Objective design
 
@@ -216,7 +223,27 @@ An optimized parameter set is not production-ready until all of the following pa
 7. relevant Bond diagnostics remain interpretable;
 8. manual review confirms that the optimizer improved numerical balance rather than changing intended semantics.
 
+If gate 2 is not met, stop. A holdout is not required for a losing exploratory candidate.
+
 After promotion, accepted values become the reviewed production baseline for subsequent studies. Promotion remains an explicit code/documentation change; the tuner cannot edit production constants itself.
+
+## Phase-A empirical record — 2026-08-30
+
+### Invalidated study `phase-a-native-ready-restart-20260830-a`
+
+An exploratory Trial 8 reached objective `25.4396657042` and average Ante `5.33`, but detailed D1 logs exposed pre-node wall-clock overruns: root structural ranking could consume tens of seconds while `nodes=0` despite an 8-second D1 budget. The runtime implementation was changed, so the study is not promotion evidence.
+
+### Invalidated study `phase-a-native-ready-restart-20260830-b`
+
+After the D1 fix, one live trial failed because `SELECTING_HAND` became public-state stable while native hand controls did not become ready before timeout. The tuning loop then incorrectly continued from the active `SELECTING_HAND` boundary, causing guaranteed preflight failures in later trials. The tuner was changed to halt on the first failed/non-COMPLETE trial. This SHA change invalidated the study.
+
+### Current completed study `phase-a-native-ready-restart-20260830-c`
+
+Repository SHA: `87c10f69ba43fb6fb4069b8c93fa8c48962fad54`.
+
+The production baseline was Trial 0 with objective **19.4166666667**. Nine additional exploratory candidates completed normally. None won and none exceeded the production baseline. The strongest candidate was Trial 6 at **18.2347883598**.
+
+Result: **no candidate promoted; no 20-vs-20 holdout run; production calibration unchanged.**
 
 ## LLM / higher-level analysis
 
@@ -243,17 +270,18 @@ Numerical search belongs to the optimizer; semantic diagnosis remains an archite
 7. [x] Implement persistent studies, schema/revision compatibility, baseline queuing, and exact trial provenance.
 8. [x] Implement the first low-dimensional Phase-A composition/pivot search space.
 9. [x] Add holdout validation, baseline-aware reports, authoritative live preflight, and conservative live promotion comparison.
-10. [ ] Execute and inspect a clean production-default authoritative live baseline study on the current repository SHA.
-11. [ ] Begin candidate Phase-A trials only after baseline telemetry is valid and no runtime defect is exposed.
-12. [ ] Expand parameter families only after the preceding phase demonstrates stable improvement.
+10. [x] Execute and inspect a clean production-default authoritative live baseline study on the current validated repository SHA.
+11. [x] Complete the 10-trial Phase-A exploratory checkpoint and review candidate telemetry.
+12. [x] Close Phase A with production defaults retained because no candidate beat baseline.
+13. [ ] Select the next tuning family only through an explicit roadmap decision; do not automatically expand because Phase A produced no promotion.
 
 ## Current status
 
-As of 2026-08-24 the **tuning foundation is implemented**. The calibration layer, Optuna study machinery, persistent provenance, seeded/live evaluators, live log metrics, fresh-boundary preflight, production-baseline tagging, reports, and conservative promotion comparison are present. Broad catalogue tuning is still locked.
+As of 2026-08-30 the **tuning foundation and first Phase-A exploratory calibration cycle are complete**.
 
-The historical `e0cb0984` authoritative baseline remains forensic/reference evidence only. Subsequent semantic/runtime fixes changed the repository SHA, so it is not an apples-to-apples baseline for the current code.
+The current authoritative numerical evidence is study `phase-a-native-ready-restart-20260830-c` on SHA `87c10f69...`. Its production-default Trial 0 remained the best of 10 completed exploratory trials. No candidate qualifies for promotion/holdout, and production constants remain unchanged.
 
-The next empirical gate is a clean production-default live baseline on the current HEAD, using the 3-run exploratory protocol. If it exposes another semantic/runtime defect, fix the agent first and invalidate/restart the study at a new repository SHA. Only a clean baseline permits Phase-A candidate trials.
+Broader catalogue tuning is still locked. The next task is not “run more Optuna”; it is to select the next roadmap item based on architecture/competence priorities.
 
 The standing rule remains:
 
