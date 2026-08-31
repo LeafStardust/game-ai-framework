@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from games.balatro.actions import BUY_AND_USE_CONSUMABLE, BUY_CONSUMABLE
+from games.balatro.actions import BUY_AND_USE_CONSUMABLE
 from games.balatro.consumable import Consumable, ConsumableContext
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
 from games.balatro.shop_consumable_policy import (
+    BUY,
     BUY_AND_USE,
     HOLD,
     ConsumableAcquisitionPolicy,
@@ -60,7 +61,7 @@ def _full_inventory_blocks_hold_buy_but_allows_explicit_immediate_use() -> Seman
     decision = policy.decide(state, candidate)
     modes = tuple(option.mode for option in decision.options)
     passed = (
-        BUY_CONSUMABLE not in modes
+        BUY not in modes
         and decision.action == BUY_AND_USE
         and decision.selected is not None
         and decision.selected.mode == BUY_AND_USE
