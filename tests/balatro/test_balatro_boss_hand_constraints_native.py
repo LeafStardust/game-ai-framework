@@ -137,7 +137,10 @@ def test_native_mouth_discard_only_recovery_returns_legal_discard_from_policy_de
 
     assert decision.mode == PACE_RECOVERY
     assert decision.action.name == DISCARD_CARDS
-    assert decision.selected_plan is discard
+    # Boss plans are deliberately downgraded from exact=True to exact=False when
+    # no independently confirmed boss clear path exists, so object identity is
+    # not part of the policy contract. The selected action itself must survive.
+    assert decision.selected_plan.action is discard.action
 
 
 def test_production_stack_does_not_install_boss_hand_constraint_overlay():
