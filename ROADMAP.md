@@ -97,11 +97,14 @@ The following behavior is now owned natively rather than by late D1 installation
 - redraw-size diversity, short-play reserve, and root discard reserve;
 - planner non-clearing discard quality ordering;
 - strategy zero-signal discard redraw-size ordering;
-- The Serpent exact post-action draw count on both reusable base D1 and integrated production D1.
+- The Serpent exact post-action draw count on both reusable base D1 and integrated production D1;
+- The Hook branch-specific post-forced-discard refill/search transition on reusable base D1, consuming the existing scoring transition RNG branches rather than duplicating them.
 
 `semantic_search_guard_policy` is compatibility-only, production startup no longer installs it, and its native regression gate is green locally.
 
 `serpent_draw_policy` is compatibility-only, production startup no longer installs it, and its native regression gate is green locally.
+
+`hook_planner_integration_policy` is compatibility-only and production startup no longer installs it. Native Hook regression is pending local validation.
 
 This remains an **ownership refactor, not a tuning family**.
 
@@ -130,8 +133,12 @@ Exact mechanics:
 
 - `89fb1a23f6be232abe327745a4317259f75f673a` — base `LiveBlindClearPlanner` owns exact Serpent redraw count natively for Play and Discard transitions.
 - `4811943d22405005a34912f48200c2189e7e9845` — Serpent installer retired to compatibility no-op.
-- `b8840745f770425153f593d7e86ff81e02634dc7` — production no longer installs Serpent overlay; Hook remains explicitly installed.
+- `b8840745f770425153f593d7e86ff81e02634dc7` — production no longer installs Serpent overlay.
 - `d17f6aee546b7b376c8c41ae775e2f99c11a3c5c` — focused native Serpent regression coverage; user reported green.
+- `65ae958dc7f9fd28277aa66c79ec44491a4caf68` — base planner natively continues each Hook score branch from its exact post-forced-discard hand and refills to the original hand size.
+- `bd6228a127e8f5d374e02c7f569b932beef0f07d` — Hook planner installer retired to compatibility no-op.
+- `8364398f39b05c07cf233747fab2522e4122ff12` — production no longer installs Hook planner overlay.
+- `84ca995c5a1878752fe79fa82c7ee5a28ba66b8f` — focused native Hook branch-refill regression coverage.
 
 A previous noisy attempted planner rewrite was fully undone before the clean native ordering commit; do not resurrect or reason from that transient state.
 
@@ -154,23 +161,35 @@ This validates exact draw-3 behavior under active The Serpent, ordinary draw beh
 
 # EXACT NEXT ACTION
 
-Proceed immediately with:
+## First: local focused validation of native Hook ownership
 
-> **`hook_planner_integration_policy` exact forced-discard branch migration.**
+The user should run:
 
-The Hook wrapper still replaces base `_estimate_play` to account for the post-play forced discard and the resulting hand refill. Inspect how score-outcome state already represents Hook effects before moving logic, then make the base canonical planner own only the missing exact transition semantics.
+```powershell
+git pull
+python -m pytest -q tests/balatro/test_balatro_hook_native.py
+```
 
-Requirements:
+Do not run it from ChatGPT.
 
-- preserve The Hook literal forced-discard behavior;
-- preserve boss-disable semantics;
-- do not invent hidden discard identities or hidden RNG information;
-- keep guaranteed-clear handling exact;
-- preserve branch-specific refill size after the forced discard;
-- add a focused native regression before retiring `install_hook_planner_integration_policy()`;
+### If it fails
+
+- inspect the exact failure;
+- do not restore `install_hook_planner_integration_policy()` merely to satisfy a sentinel/import-order test;
+- preserve The Hook forced-discard RNG in `LiveFinalJokerScoreOutcomeModel` as the single random-transition owner;
+- base D1 must consume each `ScoreOutcome.state_after_scoring` branch, remove the played cards from that branch, and refill to the original hand size;
+- preserve boss-disable semantics and guaranteed-clear handling;
 - do not alter tuning.
 
-After Hook is green, inspect Cerulean and remaining boss/live-state wrappers.
+### If it is green
+
+Continue immediately with:
+
+> **Cerulean / remaining boss-live-state wrapper audit and ownership consolidation.**
+
+Start with `cerulean_live_state_policy` because integrated D1 already owns future Cerulean forced-selection branching. Determine whether the package installer is only canonical live-state parsing, whether any planner mutation remains, and whether it can be retired or should remain as a true observation adapter.
+
+Do not begin higher stakes or broad tuning.
 
 ---
 
@@ -195,11 +214,16 @@ After Hook is green, inspect Cerulean and remaining boss/live-state wrappers.
 - package startup does not install it;
 - focused native test is green.
 
-### 5b. Hook — ACTIVE
+### 5b. Hook — IMPLEMENTED, LOCAL TEST PENDING
 
-`hook_planner_integration_policy` still mutates base `_estimate_play` for exact forced-discard score branches. Preserve this literal mechanic while moving it into canonical planner ownership.
+- Hook forced-discard RNG remains in the score-transition model;
+- reusable base D1 natively consumes branch-specific post-forced-discard states;
+- refill size is computed from the actual branch hand back to original hand size;
+- integrated production D1 already follows the same branch-state pattern;
+- `hook_planner_integration_policy` is compatibility-only;
+- package startup does not install it.
 
-### 5c. Cerulean / remaining boss-live-state wrappers — AFTER HOOK
+### 5c. Cerulean / remaining boss-live-state wrappers — NEXT AFTER HOOK GREEN
 
 Inspect whether each remaining wrapper is canonical state parsing, exact mechanics adaptation, or removable late mutation before changing ownership.
 
