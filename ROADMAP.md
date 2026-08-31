@@ -37,7 +37,7 @@ Rules:
 
 Active phase:
 
-> **Phase 3 — coherent build evidence/authority quality. Batch 1 validated 44/44; Batch 2 implemented, validation pending.**
+> **Phase 3 — coherent build evidence/authority quality. Batch 2 exposed a genuine lifecycle-scaling defect; canonical B3 fix implemented, validation pending.**
 
 Phase 0 authority consolidation: **COMPLETE / VALIDATED**.
 
@@ -185,13 +185,14 @@ Validated:
 
 User result: **44/44 GREEN**, `BUILD_COHERENCE` 4/4.
 
-## Batch 2 — IMPLEMENTED / VALIDATION PENDING
+## Batch 2 — PRODUCTION DEFECT FIXED / VALIDATION PENDING
 
-Commit:
+Commits:
 
 - `ab6cdee0` — adds scaling-potential versus realized-power semantics using `RideTheBusJoker`.
+- `f2f5f4c8` — fixes canonical lifecycle score checkpoints so event-driven scoring Jokers receive the same synthetic `HAND_SCORED` event during read-only checkpoint evaluation.
 
-New cases:
+Cases:
 
 1. `build.scaling.fresh_potential_is_contextual`
    - a fresh stateful scaler exposes `STATEFUL_SCALING` as contextual build evidence;
@@ -200,15 +201,29 @@ New cases:
    - the same scaler with accumulated public `mult` must have greater literal direct-scoring gain/value than a fresh copy;
    - lifecycle role may remain the same while realized public investment materially changes current power.
 
-Batch 2 changes semantic coverage only. No production code or tuning values changed.
+Initial user result after `ab6cdee0`: **44/46**, both failures showed `scaling=False`. Literal direct scoring was already correct (`fresh_direct=0.5/3.0`, `invested_direct=4.5/12.0`). This isolated the defect to lifecycle evidence, not score projection.
 
-Expected benchmark if both pass: **46/46**, with `BUILD_COHERENCE` increasing from 4/4 to 6/6.
+Root cause:
+
+- `LifecycleJokerBehaviorAnalyzer._score_sequence()` mutated event-driven Jokers with a synthetic `HAND_SCORED` event;
+- `_checkpoint()` then evaluated the copied Joker using only `trigger="HAND_SCORED"` and `event=None`;
+- `RideTheBusJoker` keys off `context.event`, so checkpoints observed zero scoring output and could never detect activation/scaling even though the public `mult` state grew.
+
+Fix:
+
+- score-sequence checkpoints now opt into a synthetic `BalatroEventType.HAND_SCORED` event matching the scoring stimulus;
+- checkpoint Jokers remain deep copies, so this does not mutate live state or the lifecycle sequence itself;
+- trigger-only and non-score event lifecycle checkpoints are unchanged.
+
+No numerical tuning or D2/D14 rescue was added.
+
+Expected benchmark after the canonical fix: **46/46**, with `BUILD_COHERENCE` 6/6.
 
 ---
 
 # EXACT NEXT ACTION
 
-Validate Phase-3 Batch 2 locally:
+Validate the Phase-3 Batch-2 canonical lifecycle fix locally:
 
 ```powershell
 git pull
@@ -221,9 +236,9 @@ Do not run it from ChatGPT.
 
 Continue Phase 3 with contextual interaction value versus standalone intrinsic value. Prefer mechanically observable pair interaction evidence and ensure it does not duplicate the candidate's standalone score contribution.
 
-### If either Batch-2 case fails
+### If either Batch-2 case still fails
 
-Classify whether lifecycle scaling evidence is missing or whether `JokerBuildValueEvaluator` fails to reflect public accumulated scaler state in literal score projection. Fix the smallest canonical B3 owner; do not add D2/D14 rescue wrappers.
+Inspect the resulting lifecycle descriptor/evidence for `RideTheBusJoker`. The direct-score side is already proven correct; keep the fix within canonical B3 lifecycle/scenario evidence and do not weaken the semantic or add D2/D14 wrappers.
 
 ---
 
