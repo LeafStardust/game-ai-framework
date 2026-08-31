@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-"""D1 runtime and confidence safeguards derived from live Red/White runs."""
+"""D1 confidence safeguards derived from live Red/White runs."""
 
 from dataclasses import replace
 
-from games.balatro.live.hand_action_policy import CLEAR_PATH, LiveHandActionDecisionEngine
+from games.balatro.live.hand_action_policy import CLEAR_PATH
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
@@ -47,26 +47,4 @@ def install_d1_log_resilience_policy() -> None:
         return decision
 
     StrategyAwareLiveHandActionPolicy.decide = policy_decide
-
-    original_engine_decide = LiveHandActionDecisionEngine.decide
-
-    def engine_decide(self, state):
-        configured = self.max_search_seconds
-        if configured is None or float(configured) <= 1.25:
-            return original_engine_decide(self, state)
-        reserve = min(1.0, max(0.50, float(configured) * 0.125))
-        try:
-            self.max_search_seconds = max(0.25, float(configured) - reserve)
-            decision = original_engine_decide(self, state)
-        finally:
-            self.max_search_seconds = configured
-        return replace(
-            decision,
-            rationale=(
-                *decision.rationale,
-                f"D1 deterministic fallback reserve={reserve:.3f}s from configured {float(configured):.3f}s budget",
-            ),
-        )
-
-    LiveHandActionDecisionEngine.decide = engine_decide
     StrategyAwareLiveHandActionPolicy._d1_log_resilience_installed = True
