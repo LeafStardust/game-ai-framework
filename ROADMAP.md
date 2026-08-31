@@ -12,7 +12,7 @@ This is the only authoritative roadmap/handoff for the Balatro Red/White compete
 - Preserve exact Balatro mechanics, public-state legality, boss rules, and hidden-information boundaries.
 - Never use hidden RNG state, seeds, future pool order/identities, or inaccessible information.
 - Prefer canonical ownership over late wrappers/rescues.
-- Do not numerically tune during Phase 5; numerical weighting remains Phase 6 work.
+- Numerical tuning is Phase 6 work and must not mutate the validated semantic ownership model.
 
 ## Objective
 
@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 4 COMPLETE. Phase 5 live validation is ACTIVE at 74/74 semantic green.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE.**
 
 Validated checkpoints:
 
@@ -113,7 +113,7 @@ Important Batch-6 commits:
 
 Phase 4 is closed. Do not add Batch 7 absent fresh Phase-5 live semantic evidence.
 
-# Phase 5 — LIVE VALIDATION — ACTIVE
+# Phase 5 — LIVE VALIDATION — COMPLETE
 
 Primary gate source: `docs/balatro/BALATRO_LIVE_VALIDATION_GATE.md`.
 
@@ -226,25 +226,64 @@ Correction:
 
 Validated locally **74/74**, `D1_SURVIVAL` **25/25**. This remains a bounded mechanical search-scope correction, not numerical tuning.
 
+## Baseline E — 74/74 exit evidence
+
+Two fresh unchanged 74/74 three-attempt sessions were reviewed after the final D1 correction. Neither exposed a reproducible new mechanics, legality, ownership, hidden-information, or runtime defect.
+
+Session `balatro-20260831T104543Z-4b891757` — **0/3**:
+
+1. Ante 2 Small Blind — `780 / 800`, 2/4 discards used; Odd Todd + Blackboard
+2. Ante 2 boss The Wall — `2778 / 3200`, 0/4 discards used; Odd Todd + Green Joker
+3. Ante 1 Big Blind — `376 / 450`, 4/4 discards used; no Jokers
+
+Source audit confirmed Green Joker's discard mutation is already projected literally and Blackboard evaluates the actual held cards after play selection. The Wall's unused discards therefore do not establish a semantic defect by themselves; Green Joker makes discarding an actual scoring tradeoff.
+
+Session `balatro-20260831T105634Z-5453d63e` — **0/3**:
+
+1. Ante 6 boss **The Mouth** — `11260 / 40000`, 4/4 discards used; five-Joker board: Fibonacci, Photograph, Splash, Scary Face, Flower Pot
+2. Ante 2 Small Blind — `736 / 800`, 4/4 discards used; only Joker Card Sharp
+3. Ante 5 boss **The Hook** — `10776 / 22000`, 0/4 discards used; five-Joker board: Foil Abstract Joker, Ride the Bus, Burnt Joker, Fibonacci, Blackboard
+
+Interpretation:
+
+- the corrected stack demonstrably survives deep enough to reach Ante 6 and Ante 5 under normal production play;
+- ordinary discard recovery remains active in attempts 1 and 2;
+- the Hook attempt's unused discards are not enough to reopen global discard-hoarding without trace evidence of a mechanics/authority violation, especially with a build whose scoring value is materially state-dependent;
+- no crashes, stale-plan supervisor failures, or new hidden-information boundary violations were observed;
+- after six consecutive unchanged 74/74 attempts across the two exit sessions, remaining failures are best classified as **action-quality / build-strength / numerical preference** problems rather than unvalidated semantic authority defects.
+
+Phase 5 is therefore closed at **74/74 semantic green**. Reopen it only for fresh reproducible evidence of a mechanics, legality, ownership, projection, hidden-information, or runtime defect.
+
+# Phase 6 — NUMERICAL / ACTION-QUALITY TUNING — ACTIVE
+
+Goal: improve actual Red/White win rate without changing the validated semantic ownership model.
+
+Allowed work now includes measured tuning of existing policy thresholds/weights and action-quality preferences, provided every change remains inside the canonical owner for that decision family and preserves literal mechanics/projection contracts.
+
+Initial live evidence to target:
+
+- weak early scoring footholds still produce Ante-1/2 near misses;
+- some deep runs reach full five-Joker boards yet lack enough scalable score for Ante-5/6 boss requirements;
+- late runs can retain substantial cash while dying underpowered, suggesting value may be over-preserved relative to immediate scoring conversion in some states;
+- repeated boss failures should be measured by score deficit, resource usage, build composition, and cash at death before adjusting any threshold.
+
+Do not introduce rescue wrappers, duplicate scorers, hidden-state inference, or ownership bypasses during tuning.
+
 # EXACT NEXT ACTION
 
-Run another fresh three-attempt Phase-5 production baseline on the 74/74 stack:
+Start Phase 6 with a measured baseline rather than another semantic patch. Run a larger unchanged production sample so numerical tuning has enough evidence to separate early-game, shop/build, and D1 preference effects.
 
-```powershell
-git pull
-.\BalatroAgentToggle.bat --three
+Recommended first sample: **10 Red/White attempts on the unchanged 74/74 stack**, then compare:
 
-```
+- win rate and furthest ante;
+- death score ratio (`score / blind requirement`);
+- cash at death;
+- Joker count/composition and realized direct scoring power;
+- discards/hands consumed at death;
+- boss vs non-boss failure frequency;
+- whether failures cluster around early scoring acquisition, spending/economy conservatism, or D1 play/discard preference.
 
-Compare specifically:
-
-- whether last-hand states with spare discards now spend them when useful;
-- whether ordinary multi-hand discard behavior remains intact;
-- boss survival depth and build/shop quality;
-- runtime latency, especially whether the narrow one-hand horizon expansion stays bounded;
-- if all semantics/runtime remain trustworthy and failures become preference-only rather than mechanical/authority defects, Phase 6 numerical tuning may become the next stage.
-
-Do not numerically tune yet.
+No threshold should be changed until that 10-run baseline is summarized.
 
 # Phase order
 
@@ -253,8 +292,8 @@ Do not numerically tune yet.
 3. Phase 2 — simple shop survival — COMPLETE
 4. Phase 3 — coherent build evidence/authority quality — COMPLETE
 5. Phase 4 — complex packs/consumables/vouchers/economy audit — COMPLETE
-6. Phase 5 — live validation — ACTIVE
-7. Phase 6 — numerical tuning only after semantics/runtime are trustworthy
+6. Phase 5 — live validation — COMPLETE
+7. Phase 6 — numerical/action-quality tuning — ACTIVE
 
 Future stake/deck progression remains blocked until Red/White competence passes.
 
@@ -265,6 +304,7 @@ Future stake/deck progression remains blocked until Red/White competence passes.
 - Phase-2 expansion beyond validated batches absent fresh Phase-5 evidence
 - Phase-3 build-evidence expansion absent fresh Phase-5 evidence
 - Phase-4 expansion beyond six validated batches absent fresh Phase-5 evidence
+- Phase-5 semantic expansion absent fresh reproducible mechanics/authority/runtime evidence
 - global D1 discard-hoarding defect after Baseline C, unless fresh multi-run evidence reopens it
 - Mouth discard-only legality defect
 - Green Joker survival-equivalent authority
