@@ -285,7 +285,12 @@ class LiveMemoryInjectedAutonomousLoop:
                         f"bridge capability blocked: {error}",
                     )
                 except AutonomousStepGuardError as error:
-                    if "live state changed after autonomous planning" not in str(error):
+                    message = str(error)
+                    stale_before_submit = (
+                        "live state changed after autonomous planning" in message
+                        or "visible booster-pack choices changed after autonomous planning" in message
+                    )
+                    if not stale_before_submit:
                         raise
 
                     stale_replans += 1
