@@ -20,6 +20,7 @@ from games.balatro.strategy_execution_guard_policy import (
     _plan_clear_probability,
     _play_repeats_hand,
 )
+from games.balatro.target_hand_engine_policy import _target_hand_strategy_fit
 
 
 _RANK_VALUE = {
@@ -664,14 +665,16 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             if repetition_value > 0.0
             else ()
         )
+        target_value, target_rationale = _target_hand_strategy_fit(self, state, action)
         return (
-            value + castle_value + burnt_value + dna_value + repetition_value,
+            value + castle_value + burnt_value + dna_value + repetition_value + target_value,
             (
                 *rationale,
                 *castle_rationale,
                 *burnt_rationale,
                 *dna_rationale,
                 *repetition_rationale,
+                *target_rationale,
             ),
         )
 
