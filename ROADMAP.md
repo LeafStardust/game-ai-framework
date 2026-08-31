@@ -79,45 +79,50 @@ One final arbiter
 Action
 ```
 
-## D1 ownership migrations implemented so far
+## Native ownership status
 
-The following behavior is now owned natively rather than by late D1 installation-order wrappers:
+Validated locally:
 
-- safe-pace adaptive-search scheduling and timeout/fallback authority;
-- Hook/log-resilience search reserve;
-- boss-unconfirmed projection confidence;
-- per-decision Bond intent cache;
-- Castle, Burnt Joker, DNA/Aces, hand-repetition, and Green-Joker evidence;
-- Runner / To Do List target-hand evidence;
-- Purple-Seal discard candidate/beam preservation;
-- Blue-Seal round-end generated-consumable accounting;
-- Gold-card final play-priority preservation;
-- semantic Bond rank-relation guard;
-- root/child play and discard prefilter bounds;
-- redraw-size diversity, short-play reserve, and root discard reserve;
-- planner non-clearing discard quality ordering;
-- strategy zero-signal discard redraw-size ordering;
-- The Serpent exact post-action draw count on both reusable base D1 and integrated production D1;
-- The Hook branch-specific post-forced-discard refill/search transition on reusable base D1;
-- Cerulean Bell public `forced_selection` observation and translation from live memory into `BalatroCard`.
+- semantic-search guard behavior;
+- The Serpent exact post-action draw count;
+- The Hook branch-specific forced-discard refill/search transition;
+- Cerulean Bell public `forced_selection` observation and translation.
 
-`semantic_search_guard_policy`, `serpent_draw_policy`, `hook_planner_integration_policy`, and `cerulean_live_state_policy` are compatibility-only; production startup no longer installs them. Semantic, Serpent, and Hook focused native regression gates are green locally. Cerulean native regression is pending local validation.
+Implemented, local validation pending:
+
+- Ectoplasm `G.GAME.ecto_minus` observation → native state translation;
+- round-reset discard allowance observation → native `BalatroState` fields and copy semantics.
+
+The corresponding Ectoplasm and round-resource installers are compatibility-only and production startup no longer installs them.
+
+Two substantive migrations remain after this checkpoint:
+
+1. `joker_generation_pool_live_state_policy` observation/state plumbing;
+2. `boss_hand_constraint_policy` final D1 strategy-authority migration.
 
 This remains an **ownership refactor, not a tuning family**.
 
-## Latest consolidation commits
+## Latest final-bucket commits
 
-Exact mechanics / live-state:
+Cerulean:
 
-- `89fb1a23f6be232abe327745a4317259f75f673a` — native Serpent draw count.
-- `d17f6aee546b7b376c8c41ae775e2f99c11a3c5c` — focused Serpent regression; green locally.
-- `65ae958dc7f9fd28277aa66c79ec44491a4caf68` — native Hook branch refill/search.
-- `84ca995c5a1878752fe79fa82c7ee5a28ba66b8f` — focused Hook regression; green locally.
-- `41f4a0daf6823b05d0a043638c09cc6c335c3e84` — canonical translator hydrates Cerulean forced selection.
-- `47717ffdbc13ccc9a2e09987eb48df29e3097a79` — canonical memory observer exposes Cerulean forced selection.
-- `17f7c54a9f507238d829fe3dbb52b48f2a8831fb` — Cerulean installer retired to compatibility no-op.
-- `4a060ab9388d3b9fc887c4b0fff70e787abcb4ef` — package startup no longer installs Cerulean overlay.
-- `34787bce95a2482ea30362dc62a109fdfcf8b58a` — focused native Cerulean observation/translation regression.
+- `41f4a0daf6823b05d0a043638c09cc6c335c3e84` — canonical translator hydrates forced selection.
+- `47717ffdbc13ccc9a2e09987eb48df29e3097a79` — canonical observer exposes forced selection.
+- `17f7c54a9f507238d829fe3dbb52b48f2a8831fb` — installer retired.
+- `4a060ab9388d3b9fc887c4b0fff70e787abcb4ef` — package startup no longer installs it.
+- `34787bce95a2482ea30362dc62a109fdfcf8b58a` — focused regression; user reported green.
+
+Ectoplasm / round resources:
+
+- `52245a3fc80121309f6f985cc5b9d4e67f021a50` — round-reset discard fields/copy made native to `BalatroState`.
+- `5fa1d29074fc6e98c2210c36d25e0c6311232055` — translator hydrates Ectoplasm + round-reset resources natively.
+- `a729a7a2161784c8d4d92f8a2b7607d7e87db57c` — observer exposes both resource fields with a surgical diff.
+- `a59aef56872fcaa5e86c80b8ce6687b94620a32b` — Ectoplasm installer retired.
+- `66892ec5fd3a650db45b2af4efe5aec15eb433e5` — round-resource installer retired.
+- `9a7d50bd4813efa0ffa921e20cbbf6218712b8f0` — package startup no longer installs either adapter.
+- `29d0445d1f3bcdd1f4556a917994df8050dc8430` — focused native live-resource regression coverage.
+
+An intermediate observer rewrite (`a8ddaf1a`) introduced formatting/comment noise only; `a729a7a2` restored the original observer structure and retained only the intended native fields. Do not reason from the noisy transient diff.
 
 **ChatGPT has not run tests.**
 
@@ -125,42 +130,43 @@ Exact mechanics / live-state:
 
 # LAST USER-PROVIDED LOCAL TEST RESULT
 
-The user reported **green** for native Hook ownership:
-
-```powershell
-git pull
-python -m pytest -q tests/balatro/test_balatro_hook_native.py
-```
-
----
-
-# EXACT NEXT ACTION
-
-## First: local focused validation of native Cerulean live-state ownership
-
-The user should run:
+The user reported **green** for native Cerulean ownership:
 
 ```powershell
 git pull
 python -m pytest -q tests/balatro/test_balatro_cerulean_live_state_native.py
 ```
 
+---
+
+# EXACT NEXT ACTION
+
+## First: validate native Ectoplasm + round-resource ownership
+
+Run locally:
+
+```powershell
+git pull
+python -m pytest -q tests/balatro/test_balatro_live_resource_state_native.py
+```
+
 Do not run it from ChatGPT.
 
 ### If green
 
-Continue immediately with the remaining live-state/boss installer classification. Prioritize still-installed modules that alter observation or D1 semantics, especially:
+Proceed immediately with:
 
-- `ectoplasm_live_state_policy`;
-- `joker_generation_pool_live_state_policy`;
-- `round_resource_live_state_policy`;
-- `boss_hand_constraint_policy`.
+> **`joker_generation_pool_live_state_policy` native observation/state migration.**
 
-Classify each as:
+That module currently mutates all three of:
 
-1. canonical observation/state parsing — migrate into observer/translator if it is still installed as a monkeypatch;
-2. exact mechanics adaptation — move into the canonical mechanics/planner owner;
-3. semantic rescue/duplicate policy — retire after native ownership exists.
+- `live_memory_observer.snapshot_payload_from_live_memory`;
+- `DefaultBalatroStateTranslator.translate`;
+- `BalatroState.__init__` / `BalatroState.copy`.
+
+Preserve its public-information boundary and catalogue caching, but move persistent state fields/copy semantics into `BalatroState`, translation into the canonical translator, and live snapshot emission into the observation boundary. Only retire installation after focused regression coverage.
+
+Then migrate `boss_hand_constraint_policy` into `StrategyAwareLiveHandActionPolicy` / canonical D1 authority.
 
 Do not begin higher stakes or broad tuning.
 
@@ -182,11 +188,15 @@ Do not begin higher stakes or broad tuning.
 
 ### 5b. Hook — IMPLEMENTED AND LOCALLY VALIDATED
 
-### 5c. Cerulean — IMPLEMENTED, LOCAL TEST PENDING
+### 5c. Cerulean — IMPLEMENTED AND LOCALLY VALIDATED
 
-### 5d. Remaining installed boss/live-state wrappers — NEXT AFTER CERULEAN GREEN
+### 5d. Ectoplasm + round-reset resources — IMPLEMENTED, LOCAL TEST PENDING
 
-This is the final consolidation sub-bucket before the Phase-0 exit gate.
+### 5e. Joker-generation-pool live state — NEXT
+
+### 5f. Boss-hand constraints — FINAL SUBSTANTIVE MIGRATION
+
+After 5f, perform the Phase-0 exit gate rather than inventing another cleanup queue.
 
 ---
 
@@ -201,26 +211,14 @@ Phase 0 is complete only when:
 - production behavior no longer depends on fragile module import/installer order for migrated D1 semantics;
 - deterministic focused tests protect behavior rather than retired monkeypatch mechanisms.
 
-Supporting architecture inventory: `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md`.
-
----
-
-# VALIDATION WORKFLOW
-
-For each consolidation item:
-
-1. implement native ownership;
-2. add/update the smallest focused regression;
-3. have the user run the targeted command, always beginning with `git pull`;
-4. if green, continue immediately;
-5. after the final consolidation bucket, run:
+After the final migration run:
 
 ```powershell
 git pull
 python -m pytest -q tests/balatro
 ```
 
-6. if decision semantics changed materially, also run locally:
+If decision semantics changed materially, also run:
 
 ```powershell
 python -m games.balatro.red_white_semantic_benchmark
@@ -242,6 +240,7 @@ The full deterministic suite is mandatory before Phase 0 is declared complete.
 - semantic-search-guard installer architecture;
 - Serpent installer architecture;
 - Hook planner installer architecture;
+- Cerulean installer architecture;
 - production-default tuning ContextVar hypothesis — falsified;
 - historical SHOP recursive expectation roots;
 - BLIND_SELECT quiescence deadlock;
