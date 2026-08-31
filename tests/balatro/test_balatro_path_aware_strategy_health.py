@@ -26,6 +26,7 @@ def test_path_aware_engine_evaluates_health_after_final_selected_plan(monkeypatc
     monkeypatch.setattr(module, "evaluate_live_strategy_health", fake_health)
 
     engine = PathAwareLiveHandActionDecisionEngine.__new__(PathAwareLiveHandActionDecisionEngine)
+    engine.max_search_seconds = None
     engine._adaptive_root_history = []
     engine._record_adaptive_roots = False
     engine.last_strategy_health = None
