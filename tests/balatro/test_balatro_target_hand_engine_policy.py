@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-import games.balatro  # noqa: F401 - installs production stack
+import games.balatro  # noqa: F401 - initializes production stack
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 from games.balatro.target_hand_engine_policy import _safe_target_play, _target_hands
@@ -50,9 +50,8 @@ def test_safe_target_play_can_replace_discard_with_runner_straight(monkeypatch):
     assert selected[2] is straight
 
 
-def test_production_stack_installs_target_hand_guard():
-    assert getattr(
+def test_production_stack_does_not_install_target_hand_guard():
+    assert not hasattr(
         StrategyAwareLiveHandActionPolicy,
         "_target_hand_engine_policy_installed",
-        False,
     )
