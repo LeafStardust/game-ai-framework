@@ -112,33 +112,53 @@ Compatibility modules for retired installers may remain importable but are not p
 
 Do not reopen Phase 0 without fresh deterministic or live evidence.
 
+## Phase-1 first semantic batch — IMPLEMENTED / VALIDATION PENDING
+
+Commits:
+
+- `7c03bb73` — adds `red_white_semantic_phase1_d1_cases.py`.
+- `6ba86d1e` — includes the new cases in the Red/White semantic benchmark.
+
+New cases:
+
+1. `d1.survival.guaranteed_clear_preserves_discard`
+   - protects the invariant that a currently visible guaranteed clear suppresses discard generation entirely;
+   - canonical owner if it fails: `D1LiveBlindClearPlanner._candidate_actions()`.
+2. `d1.boss.recursive_cerulean_legality`
+   - protects the invariant that recursive Cerulean Play candidates obey the same forced-card legality as root candidates;
+   - canonical owner if it fails: D1 child candidate generation / exact boss legality.
+
+These cases do not add tuning and do not rely on hidden draw order or RNG identity.
+
+Expected semantic total if both pass: **26/26**, with `D1_SURVIVAL` increasing from 13/13 to 15/15.
+
 ---
 
 # EXACT NEXT ACTION
 
-Proceed with **Phase 1 semantic benchmark expansion for D1 survival competence**.
-
-The existing 13 D1 semantic cases protect authority and several known mechanics. Expand coverage only where it can expose a real survival-decision defect.
-
-Start by auditing current D1 semantic cases against these failure classes:
-
-1. **resource-spend survival tradeoffs** — avoid spending a discard/hand/consumable when an equivalent or safer clear exists;
-2. **redraw quality vs immediate score** — preserve high-value redraw branches when current score gain is insufficient;
-3. **terminal-clear hierarchy** — guaranteed clear dominates development except literal round-end resources/equal-clear tie-breaks already encoded;
-4. **boss-legality continuity** — root and recursive candidates obey identical boss legality/mechanics;
-5. **timeout consistency** — bounded search must not change the underlying decision objective;
-6. **public-state uncertainty** — no semantic case may rely on hidden draw order or RNG identity.
-
-Do not add cases merely to increase the count. Every new case must correspond to a plausible live competence failure and identify the canonical owner that would be fixed if it fails.
-
-After identifying a coherent first batch, implement the semantic cases and ask the user to run:
+Validate the first Phase-1 semantic batch locally:
 
 ```powershell
 git pull
 python -m games.balatro.red_white_semantic_benchmark
 ```
 
-If a new case fails, fix the smallest canonical owner. Do not add wrapper rescues.
+Do not run it from ChatGPT.
+
+### If 26/26 green
+
+Continue the Phase-1 audit for the next coherent D1 survival gap, prioritizing:
+
+1. redraw quality vs insufficient immediate score;
+2. resource-spend hierarchy across hands/discards/held consumables;
+3. timeout consistency under partially completed search;
+4. public-state uncertainty invariants.
+
+Do not add cases merely to increase benchmark count.
+
+### If a new case fails
+
+Fix the smallest canonical owner. Do not add wrapper rescues.
 
 ---
 
