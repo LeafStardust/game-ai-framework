@@ -21,6 +21,32 @@ from games.balatro.live.boss_blind_integration import (
 from games.balatro.live.consumable_escape import SunConsumableEscapePlanner
 
 
+def _open_consumable_slots(state) -> int:
+    return max(
+        0,
+        int(getattr(state, "consumable_slots", 0) or 0)
+        - len(getattr(state, "consumables", ()) or ()),
+    )
+
+
+def _eligible_purple_cards(state, cards) -> tuple:
+    if _open_consumable_slots(state) <= 0:
+        return ()
+    return tuple(
+        card
+        for card in tuple(cards or ())
+        if not bool(getattr(card, "debuffed", False))
+        and str(getattr(card, "seal", "") or "").upper() == "PURPLE"
+    )
+
+
+def _purple_generation_count(state, action) -> int:
+    room = _open_consumable_slots(state)
+    if room <= 0:
+        return 0
+    return min(room, len(_eligible_purple_cards(state, getattr(action, "cards", ()))))
+
+
 class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
     """D1-specific expectimax beam that preserves redraw-size diversity.
 
@@ -363,16 +389,33 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         return ranked[:projection_limit]
 
     def _child_discard_candidates(self, state):
-        """Construct one deterministic low-value discard for each redraw size."""
+        """Construct bounded redraw-size candidates and preserve Purple-Seal triggers."""
         hand = list(getattr(state, "hand", ()))
         if not hand:
             return []
         max_cards = min(self.action_generator.MAX_SELECTED_CARDS, len(hand))
         low_cards = sorted(hand, key=self._card_visible_value)
-        return [
+        candidates = [
             BalatroAction(DISCARD_CARDS, cards=low_cards[:amount])
             for amount in range(1, max_cards + 1)
         ]
+
+        purple_cards = _eligible_purple_cards(state, hand)
+        if not purple_cards:
+            return candidates
+
+        seen = {self._action_identity(action) for action in candidates}
+        # Purple Seal is a mechanically distinct discard transition: a valid
+        # discard can generate a Tarot. Expose a singleton branch for each eligible
+        # card without replacing the ordinary redraw-size representatives.
+        for card in purple_cards:
+            action = BalatroAction(DISCARD_CARDS, cards=[card])
+            key = self._action_identity(action)
+            if key in seen:
+                continue
+            candidates.append(action)
+            seen.add(key)
+        return candidates
 
     def _direct_child_play_priority(self, action):
         hand = self.evaluator.hand_evaluator.evaluate(action.cards)
@@ -528,7 +571,39 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             chosen.append(best)
             chosen_keys.add(key)
             if len(chosen) >= limit:
-                return chosen
+                break
+
+        if (
+            limit >= 2
+            and _open_consumable_slots(state) > 0
+            and not any(_purple_generation_count(state, action) > 0 for action in chosen)
+        ):
+            purple = [
+                action
+                for action in discards
+                if _purple_generation_count(state, action) > 0
+            ]
+            if purple:
+                candidate = max(
+                    purple,
+                    key=lambda action: (
+                        _purple_generation_count(state, action),
+                        self._discard_priority(state, action),
+                        -len(getattr(action, "cards", ()) or ()),
+                    ),
+                )
+                key = self._action_identity(candidate)
+                if key not in chosen_keys:
+                    if len(chosen) < limit:
+                        chosen.append(candidate)
+                    elif chosen:
+                        removed = chosen[-1]
+                        chosen_keys.discard(self._action_identity(removed))
+                        chosen[-1] = candidate
+                    chosen_keys.add(key)
+
+        if len(chosen) >= limit:
+            return chosen[:limit]
 
         for action in ranked:
             key = self._action_identity(action)
