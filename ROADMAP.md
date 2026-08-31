@@ -79,7 +79,7 @@ python -m pytest -q tests/balatro
 
 Result: **GREEN**.
 
-User-provided Red/White semantic benchmark:
+User-provided Red/White semantic benchmark at Phase-0 exit:
 
 ```powershell
 git pull
@@ -92,7 +92,7 @@ Result: **24/24 GREEN**:
 - `D1_SURVIVAL`: 13/13
 - `SHOP_SURVIVAL`: 9/9
 
-`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc` and now documents current native owners rather than retired Phase-0 installers.
+`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc` and documents current native owners rather than retired Phase-0 installers.
 
 ## Phase-0 closed migrations
 
@@ -112,31 +112,50 @@ Compatibility modules for retired installers may remain importable but are not p
 
 Do not reopen Phase 0 without fresh deterministic or live evidence.
 
-## Phase-1 first semantic batch — IMPLEMENTED / VALIDATION PENDING
+## Phase-1 semantic expansion
+
+### Batch 1 — VALIDATED GREEN
 
 Commits:
 
 - `7c03bb73` — adds `red_white_semantic_phase1_d1_cases.py`.
 - `6ba86d1e` — includes the new cases in the Red/White semantic benchmark.
 
-New cases:
+Validated cases:
 
 1. `d1.survival.guaranteed_clear_preserves_discard`
-   - protects the invariant that a currently visible guaranteed clear suppresses discard generation entirely;
-   - canonical owner if it fails: `D1LiveBlindClearPlanner._candidate_actions()`.
+   - a currently visible guaranteed clear suppresses discard generation entirely;
+   - owner: `D1LiveBlindClearPlanner._candidate_actions()`.
 2. `d1.boss.recursive_cerulean_legality`
-   - protects the invariant that recursive Cerulean Play candidates obey the same forced-card legality as root candidates;
-   - canonical owner if it fails: D1 child candidate generation / exact boss legality.
+   - recursive Cerulean Play candidates obey the same forced-card legality as root candidates;
+   - owner: D1 child candidate generation / exact boss legality.
 
-These cases do not add tuning and do not rely on hidden draw order or RNG identity.
+User reported the expanded benchmark **26/26 GREEN**, with `D1_SURVIVAL` at 15/15.
 
-Expected semantic total if both pass: **26/26**, with `D1_SURVIVAL` increasing from 13/13 to 15/15.
+### Batch 2 — IMPLEMENTED / VALIDATION PENDING
+
+Commit:
+
+- `74ebd420` — expands `red_white_semantic_phase1_d1_cases.py` with two recovery/resource cases.
+
+New cases:
+
+1. `d1.survival.underpace_prefers_material_redraw`
+   - when no current Play reaches required pace and the canonical recovery evaluator materially prefers a discard, D1 must choose the redraw;
+   - owner if it fails: `LiveHandActionPolicy` PACE_RECOVERY arbitration.
+2. `d1.resources.last_discard_marginal_recovery`
+   - a small recovery edge must not consume the final discard once the canonical low-discard reserve penalty is applied;
+   - owner if it fails: `LiveHandActionPolicy` PACE_RECOVERY resource hierarchy.
+
+No production code or tuning values changed in this batch.
+
+Expected benchmark total if both pass: **28/28**, with `D1_SURVIVAL` at 17/17.
 
 ---
 
 # EXACT NEXT ACTION
 
-Validate the first Phase-1 semantic batch locally:
+Validate the second Phase-1 semantic batch locally:
 
 ```powershell
 git pull
@@ -145,12 +164,12 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 26/26 green
+### If 28/28 green
 
 Continue the Phase-1 audit for the next coherent D1 survival gap, prioritizing:
 
-1. redraw quality vs insufficient immediate score;
-2. resource-spend hierarchy across hands/discards/held consumables;
+1. hand-resource hierarchy when hands are nearly exhausted;
+2. held-consumable spend vs re-observation/replan boundaries;
 3. timeout consistency under partially completed search;
 4. public-state uncertainty invariants.
 
