@@ -82,27 +82,23 @@ Canonical owners:
 - Joker-generation state, translator, explicit observer, production observer composition, and installer retirement
 - The Eye / The Mouth boss-hand constraints, Mouth discard evidence, and forced legal recovery
 
-Latest user-provided green command:
+Latest focused green:
 
 ```powershell
 git pull
 python -m pytest -q tests/balatro/test_balatro_boss_hand_constraints_native.py
 ```
 
-The first focused boss regression failure was test-only: boss-unconfirmed plans are deliberately copied with `exact=False`, so `LiveBlindPlan` object identity was not part of the production contract. Commit `a7303a4c` corrected the regression to assert preserved selected action identity instead; the user then reported green.
-
 ## Phase-0 substantive migration status
 
 **Complete. No further ownership-migration bucket is queued.**
 
-The final native boss-hand ownership consists of:
+The full-suite exit gate exposed one stale architecture regression:
 
-- `games/balatro/live/boss_hand_constraints.py` — pure exact Eye/Mouth candidate constraints and subordinate Mouth evidence; no class mutation.
-- `StrategyAwareLiveHandActionPolicy.decide()` explicitly applies Eye/Mouth plan constraints before final D1 arbitration.
-- Mouth discard-only recovery is handled explicitly before parent arbitration when exact Mouth legality leaves no PLAY candidates.
-- `StrategyAwareLiveHandActionPolicy._strategy_fit()` explicitly includes Mouth retained-structure/redraw-width evidence for legal discards.
-- `boss_hand_constraint_policy` is compatibility-only and its installer is a no-op.
-- package startup no longer installs boss-hand constraints.
+- `tests/balatro/test_balatro_d1_root_discard_reserve.py` still imported `_ensure_root_discard_reserve` and monkeypatched `_cheap_discard_key` / `_active_hook` from retired `semantic_search_guard_policy`.
+- Production root-discard reserve behavior already lives natively on `LiveBlindClearPlanner`.
+- `fa0d92d2` retargeted the old regression to native planner methods while preserving its three behavioral checks: root discard reserve insertion, no duplicate discard evidence, and Hook suppression.
+- No production behavior changed for this repair.
 
 No tuning values were changed as part of ownership consolidation.
 
@@ -110,7 +106,7 @@ No tuning values were changed as part of ownership consolidation.
 
 # EXACT NEXT ACTION
 
-Perform the **Phase-0 full deterministic exit gate** locally:
+Re-run the **Phase-0 full deterministic exit gate** locally:
 
 ```powershell
 git pull
@@ -121,14 +117,14 @@ Do not run it from ChatGPT.
 
 ### If the full deterministic suite is green
 
-Run the Red/White semantic benchmark because the completed migrations include decision-semantic changes:
+Run the Red/White semantic benchmark:
 
 ```powershell
 git pull
 python -m games.balatro.red_white_semantic_benchmark
 ```
 
-Then refresh `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` if it still describes retired D1 installers. Only after the full suite, benchmark review, and authority-map refresh should Phase 0 be declared complete and the roadmap advance to the later competence phases.
+Then refresh `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` if it still describes retired D1 installers. Only after the full suite, benchmark review, and authority-map refresh should Phase 0 be declared complete and the roadmap advance.
 
 ### If the full suite fails
 
@@ -154,7 +150,7 @@ Fix the smallest correct layer. Do not reopen closed migration buckets without e
 8. Ectoplasm + round-reset resources — IMPLEMENTED / VALIDATED
 9. Joker-generation live state — IMPLEMENTED / VALIDATED
 10. Boss-hand constraints — IMPLEMENTED / VALIDATED
-11. Phase-0 exit gate — **ACTIVE**
+11. Phase-0 exit gate — **ACTIVE; full suite rerun pending after stale root-reserve test repair**
 
 ---
 
