@@ -495,16 +495,45 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
 
     def _within_type_key(self, plan):
         base = super()._within_type_key(plan)
+        strategy_fit = 0.0
         if self._ranking_state is None:
-            return base
-        fit, _ = self._strategy_fit(self._ranking_state, plan.action)
-        vagabond_hand_use = (
-            -float(plan.value.expected_hands_remaining)
-            if self._vagabond_generation_active(self._ranking_state)
-            and plan.action.name == PLAY_CARDS
-            else 0.0
-        )
-        return (*base[:-1], fit, vagabond_hand_use, base[-1])
+            original = base
+        else:
+            strategy_fit, _ = self._strategy_fit(self._ranking_state, plan.action)
+            vagabond_hand_use = (
+                -float(plan.value.expected_hands_remaining)
+                if self._vagabond_generation_active(self._ranking_state)
+                and plan.action.name == PLAY_CARDS
+                else 0.0
+            )
+            original = (*base[:-1], strategy_fit, vagabond_hand_use, base[-1])
+
+        if (
+            plan.action.name == DISCARD_CARDS
+            and float(plan.value.clear_probability) < 1.0 - self.EPSILON
+        ):
+            quality = (
+                float(plan.value.clear_probability),
+                float(plan.value.expected_progress),
+                float(plan.value.expected_hands_remaining),
+                float(plan.value.expected_discards_remaining),
+                float(plan.value.expected_score),
+                1 if bool(plan.exact) else 0,
+            )
+            zero_signal = (
+                float(plan.value.clear_probability) <= self.EPSILON
+                and float(plan.value.expected_progress) <= self.EPSILON
+                and float(plan.value.expected_score) <= self.EPSILON
+            )
+            if zero_signal:
+                return (
+                    *quality,
+                    strategy_fit,
+                    len(getattr(plan.action, "cards", ()) or ()),
+                    original,
+                )
+            return (*quality, original)
+        return original
 
     def _safe_equivalent_clear_key(self, plan):
         base = super()._safe_equivalent_clear_key(plan)
