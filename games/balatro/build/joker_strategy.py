@@ -260,4 +260,4 @@ class JokerBuildTransitionPlanner:
 
         best_delta = best.build_delta if best is not None else float("-inf")
         protected = sum(not option.eligible for option in ranked)
-        return JokerBuildTransition(action="HOLD", candidate=candidate_name, candidate=candidate_name, candidate_value=candidate_value, alternatives=ranked, rationale=(f"best replacement delta={best_delta:.3f}; threshold={self.minimum_replacement_delta:.3f}", f"Negative retention protected replacement options={protected}"))
+        return JokerBuildTransition(action="HOLD", candidate=candidate_name, candidate_value=candidate_value, alternatives=ranked, rationale=(f"best replacement delta={best_delta:.3f}; threshold={self.minimum_replacement_delta:.3f}", f"Negative retention protected replacement options={protected}"))
