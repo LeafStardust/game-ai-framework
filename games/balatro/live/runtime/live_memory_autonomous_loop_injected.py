@@ -100,6 +100,12 @@ def _terminal_stop_reason(
 ) -> str | None:
     phase = str(snapshot.phase)
 
+    # Balatro's public ``won`` bit persists after the run has been won and, on a
+    # later failed Endless/final-blind GAME_OVER frame, may still be true. A
+    # GAME_OVER checkpoint is therefore authoritative loss evidence and must not be
+    # reclassified by that sticky profile/run flag. Ordinary wins are observed on
+    # the pre-GAME_OVER won checkpoint (for example ROUND_EVAL), where the bit is
+    # safe to use and the supervisor auto-stops before a later game-over frame.
     if phase == "GAME_OVER":
         return "game over (lost)"
 
@@ -298,6 +304,12 @@ class LiveMemoryInjectedAutonomousLoop:
                         f"{stale_replans} attempts; {error}{suffix}"
                     ) from error
                 except InjectedHandActionPostconditionError as error:
+                    # A held consumable may be accepted by Balatro's native callback
+                    # while the engine is still in a transient UI/action lock, then
+                    # never actually consume or mutate its intended target. The
+                    # dispatcher correctly refuses to claim success. Quarantine that
+                    # exact live consumable and replan from fresh public state instead
+                    # of crashing or retrying the same no-op forever.
                     if "timed out verifying injected consumable use" not in str(error):
                         raise
                     quarantine = getattr(
