@@ -8,6 +8,7 @@ from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.card import BalatroCard
 from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
 from games.balatro.live.boss_blind_integration import boss_play_action_is_legal
+from games.balatro.live.draw_model import PublicDeckComposition
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
 from games.balatro.live.hand_action_planner_core import (
     D1LiveBlindClearPlanner as CoreD1LiveBlindClearPlanner,
@@ -35,8 +36,6 @@ class _GuaranteedClearPlanner(CoreD1LiveBlindClearPlanner):
     """Minimal harness around the canonical D1 candidate-spend decision."""
 
     def __init__(self, actions: _DiscardRecordingActions) -> None:
-        # Avoid constructing scorer/projector dependencies irrelevant to this
-        # semantic. The inherited _candidate_actions logic is the behavior under test.
         self.action_generator = actions
         self.play_width = 4
         self.discard_width = 4
@@ -281,6 +280,67 @@ def _timeout_does_not_promote_unconfirmed_sampled_clear() -> SemanticCheck:
     )
 
 
+def _last_hand_prefers_useful_discard_over_underpace_play() -> SemanticCheck:
+    cards = [object() for _ in range(4)]
+    play = _plan(BalatroAction(PLAY_CARDS, cards=cards[:2]))
+    discard = _plan(BalatroAction(DISCARD_CARDS, cards=cards[2:]))
+
+    class Evaluator:
+        def project_play(self, state, action):
+            del state, action
+            return SimpleNamespace(expected_hand_score=10.0)
+
+        def evaluate(self, state, action):
+            del state
+            return 8.0 if action.name == DISCARD_CARDS else 10.0
+
+    policy = LiveHandActionPolicy(evaluator=Evaluator())
+    state = SimpleNamespace(
+        blind=SimpleNamespace(requirement=100),
+        score=0,
+        hands_remaining=1,
+        discards_remaining=3,
+    )
+    decision = policy.decide(state, (play, discard))
+    return SemanticCheck(
+        decision.mode == PACE_RECOVERY and decision.action is discard.action,
+        observed=f"mode={decision.mode}, action={decision.action.name}",
+        expected="with the final hand at risk, a useful discard preserves the scoring opportunity",
+        detail=(
+            "an under-pace Play consumes the last scoring hand while a discard does not; the canonical "
+            "low-hand recovery bonus must preserve that survival distinction"
+        ),
+    )
+
+
+def _public_draw_composition_ignores_hidden_order() -> SemanticCheck:
+    cards = [
+        BalatroCard("A", "Spades", live_id="a"),
+        BalatroCard("K", "Hearts", live_id="k"),
+        BalatroCard("Q", "Spades", live_id="q"),
+        BalatroCard("7", "Clubs", live_id="7"),
+    ]
+    forward = PublicDeckComposition.from_cards(cards)
+    reversed_order = PublicDeckComposition.from_cards(reversed(cards))
+    same_items = forward.items() == reversed_order.items()
+    same_spade_probability = abs(
+        forward.probability_suit("Spades", draws=2)
+        - reversed_order.probability_suit("Spades", draws=2)
+    ) <= 1e-12
+    return SemanticCheck(
+        same_items and same_spade_probability,
+        observed=(
+            f"same_items={same_items}, same_spade_probability={same_spade_probability}, "
+            f"p={forward.probability_suit('Spades', draws=2):.6f}"
+        ),
+        expected="public redraw probabilities are invariant to hidden deck-list ordering",
+        detail=(
+            "the live save may serialize the draw pile in an inaccessible order; D1 may use only the "
+            "unordered public card composition, never hidden future draw identity or list position"
+        ),
+    )
+
+
 RED_WHITE_PHASE1_D1_CASES = (
     SemanticBenchmarkCase(
         case_id="d1.survival.guaranteed_clear_preserves_discard",
@@ -323,5 +383,19 @@ RED_WHITE_PHASE1_D1_CASES = (
         description="timeout cannot promote an unconfirmed sampled clear",
         evaluate=_timeout_does_not_promote_unconfirmed_sampled_clear,
         source="Phase 1 survival audit: timeout confirmation boundary",
+    ),
+    SemanticBenchmarkCase(
+        case_id="d1.resources.last_hand_prefers_recovery_discard",
+        category="D1_SURVIVAL",
+        description="last-hand recovery preserves the final scoring opportunity",
+        evaluate=_last_hand_prefers_useful_discard_over_underpace_play,
+        source="Phase 1 survival audit: hand-resource hierarchy",
+    ),
+    SemanticBenchmarkCase(
+        case_id="d1.uncertainty.hidden_draw_order_invariant",
+        category="D1_SURVIVAL",
+        description="public draw projection is invariant to hidden deck ordering",
+        evaluate=_public_draw_composition_ignores_hidden_order,
+        source="Phase 1 survival audit: public-state uncertainty boundary",
     ),
 )
