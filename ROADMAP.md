@@ -98,43 +98,26 @@ The following behavior is now owned natively rather than by late D1 installation
 - planner non-clearing discard quality ordering;
 - strategy zero-signal discard redraw-size ordering;
 - The Serpent exact post-action draw count on both reusable base D1 and integrated production D1;
-- The Hook branch-specific post-forced-discard refill/search transition on reusable base D1, consuming the existing scoring transition RNG branches rather than duplicating them.
+- The Hook branch-specific post-forced-discard refill/search transition on reusable base D1;
+- Cerulean Bell public `forced_selection` observation and translation from live memory into `BalatroCard`.
 
-`semantic_search_guard_policy`, `serpent_draw_policy`, and `hook_planner_integration_policy` are compatibility-only; production startup no longer installs them, and their focused native regression gates are green locally.
+`semantic_search_guard_policy`, `serpent_draw_policy`, `hook_planner_integration_policy`, and `cerulean_live_state_policy` are compatibility-only; production startup no longer installs them. Semantic, Serpent, and Hook focused native regression gates are green locally. Cerulean native regression is pending local validation.
 
 This remains an **ownership refactor, not a tuning family**.
 
 ## Latest consolidation commits
 
-Target hand / Purple / held resources:
+Exact mechanics / live-state:
 
-- `0defc8a7bb91d5b11b7d3e4905c996e0f50f0474` — native target-hand evidence.
-- `84252776fe335ede82eba4a16fda33e56ea4b5fb` — native Purple-Seal D1 beam coverage.
-- `73b8e8c6291a59c628f3d1ad41b8b754325871b9` — native Blue-Seal terminal accounting and Gold-card tie-break.
-- `f0e646a211f9f5e1ccc42419be3e30d636edabce` — held-resource installer compatibility no-op.
-- `9da37efe4ab426fcfd0086b5efad8b6a7b467622` — explicit Serpent-then-Hook registration after held-resource installer retirement.
-
-Semantic-search consolidation:
-
-- `10201187` — bounded semantic candidate generation moved into `LiveBlindClearPlanner`.
-- `f54aec34` — old semantic guard narrowed to the final two ordering hooks.
-- `eda3d146f8ba3af1b58ff1b96991c9784c8b981f` — native search-bound/Bond regression checkpoint.
-- `237335e18fddebffdce23d1514ab078c919257a9` — planner estimate ordering made native.
-- `44d0856497b44a512d06955c7abb4a504ee7a09f` — strategy discard ordering made native.
-- `613a25b58c6c60048dd51e3726d8ededd9587788` — semantic guard installer retired to compatibility no-op.
-- `e5f4b6448c6fb9036e78a38702a7fb642dea2af6` — production no longer installs semantic search guard.
-- `87746cc00cc7e857dbd25332380b35fff0091c3a` — native semantic ordering regression coverage.
-
-Exact mechanics:
-
-- `89fb1a23f6be232abe327745a4317259f75f673a` — base `LiveBlindClearPlanner` owns exact Serpent redraw count natively for Play and Discard transitions.
-- `4811943d22405005a34912f48200c2189e7e9845` — Serpent installer retired to compatibility no-op.
-- `b8840745f770425153f593d7e86ff81e02634dc7` — production no longer installs Serpent overlay.
-- `d17f6aee546b7b376c8c41ae775e2f99c11a3c5c` — focused native Serpent regression coverage; user reported green.
-- `65ae958dc7f9fd28277aa66c79ec44491a4caf68` — base planner natively continues each Hook score branch from its exact post-forced-discard hand and refills to the original hand size.
-- `bd6228a127e8f5d374e02c7f569b932beef0f07d` — Hook planner installer retired to compatibility no-op.
-- `8364398f39b05c07cf233747fab2522e4122ff12` — production no longer installs Hook planner overlay.
-- `84ca995c5a1878752fe79fa82c7ee5a28ba66b8f` — focused native Hook branch-refill regression coverage; user reported green.
+- `89fb1a23f6be232abe327745a4317259f75f673a` — native Serpent draw count.
+- `d17f6aee546b7b376c8c41ae775e2f99c11a3c5c` — focused Serpent regression; green locally.
+- `65ae958dc7f9fd28277aa66c79ec44491a4caf68` — native Hook branch refill/search.
+- `84ca995c5a1878752fe79fa82c7ee5a28ba66b8f` — focused Hook regression; green locally.
+- `41f4a0daf6823b05d0a043638c09cc6c335c3e84` — canonical translator hydrates Cerulean forced selection.
+- `47717ffdbc13ccc9a2e09987eb48df29e3097a79` — canonical memory observer exposes Cerulean forced selection.
+- `17f7c54a9f507238d829fe3dbb52b48f2a8831fb` — Cerulean installer retired to compatibility no-op.
+- `4a060ab9388d3b9fc887c4b0fff70e787abcb4ef` — package startup no longer installs Cerulean overlay.
+- `34787bce95a2482ea30362dc62a109fdfcf8b58a` — focused native Cerulean observation/translation regression.
 
 **ChatGPT has not run tests.**
 
@@ -149,22 +132,34 @@ git pull
 python -m pytest -q tests/balatro/test_balatro_hook_native.py
 ```
 
-This validates branch-specific Hook post-forced-discard refill/search behavior and absence of production Hook planner mutation.
-
 ---
 
 # EXACT NEXT ACTION
 
-Proceed immediately with:
+## First: local focused validation of native Cerulean live-state ownership
 
-> **Cerulean / remaining boss-live-state wrapper audit and ownership consolidation.**
+The user should run:
 
-Start with `cerulean_live_state_policy` because integrated D1 already owns future Cerulean forced-selection branching. Determine whether the package installer is only canonical live-state parsing, whether any planner mutation remains, and whether it can be retired or should remain as a true observation adapter.
+```powershell
+git pull
+python -m pytest -q tests/balatro/test_balatro_cerulean_live_state_native.py
+```
 
-Then inspect the remaining boss/live-state installers that can affect D1 semantics. Classify each as:
+Do not run it from ChatGPT.
 
-1. canonical observation/state parsing — keep if truly required at the live adapter boundary;
-2. exact mechanics adaptation — move to the canonical mechanics/planner owner if still late-mutated;
+### If green
+
+Continue immediately with the remaining live-state/boss installer classification. Prioritize still-installed modules that alter observation or D1 semantics, especially:
+
+- `ectoplasm_live_state_policy`;
+- `joker_generation_pool_live_state_policy`;
+- `round_resource_live_state_policy`;
+- `boss_hand_constraint_policy`.
+
+Classify each as:
+
+1. canonical observation/state parsing — migrate into observer/translator if it is still installed as a monkeypatch;
+2. exact mechanics adaptation — move into the canonical mechanics/planner owner;
 3. semantic rescue/duplicate policy — retire after native ownership exists.
 
 Do not begin higher stakes or broad tuning.
@@ -181,24 +176,17 @@ Do not begin higher stakes or broad tuning.
 
 ## 4. `semantic_search_guard_policy` — IMPLEMENTED AND LOCALLY VALIDATED
 
-## 5. Remaining exact-mechanics / boss / Cerulean wrappers — ACTIVE
+## 5. Remaining exact-mechanics / boss / live-state wrappers — ACTIVE
 
 ### 5a. Serpent — IMPLEMENTED AND LOCALLY VALIDATED
 
 ### 5b. Hook — IMPLEMENTED AND LOCALLY VALIDATED
 
-### 5c. Cerulean / remaining boss-live-state wrappers — ACTIVE, FINAL CONSOLIDATION BUCKET
+### 5c. Cerulean — IMPLEMENTED, LOCAL TEST PENDING
 
-Inspect whether each remaining wrapper is canonical state parsing, exact mechanics adaptation, or removable late mutation before changing ownership.
+### 5d. Remaining installed boss/live-state wrappers — NEXT AFTER CERULEAN GREEN
 
-Migration contract:
-
-1. exact Balatro mechanics remain authoritative;
-2. do not merge distinct boss mechanics into generic heuristics;
-3. move behavior only when a canonical owner is clear;
-4. add focused behavior regressions before retiring each installer;
-5. preserve public-state-only information boundaries;
-6. do not change tuning merely because ownership changes.
+This is the final consolidation sub-bucket before the Phase-0 exit gate.
 
 ---
 
@@ -208,27 +196,24 @@ Phase 0 is complete only when:
 
 - one documented/enforced final authority exists for each action family;
 - remaining late semantic rescue layers are removed or reduced to true compatibility/diagnostic code;
+- true observation adapters are native at the observer/translator boundary rather than installed via class/function mutation;
 - diagnostics cannot independently plan or change actions;
 - production behavior no longer depends on fragile module import/installer order for migrated D1 semantics;
 - deterministic focused tests protect behavior rather than retired monkeypatch mechanisms.
 
 Supporting architecture inventory: `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md`.
 
-Do not trust that map if it conflicts with current code; refresh stale rows as wrappers are retired.
-
 ---
 
 # VALIDATION WORKFLOW
-
-Do not demand the full Balatro suite after every small migration.
 
 For each consolidation item:
 
 1. implement native ownership;
 2. add/update the smallest focused regression;
 3. have the user run the targeted command, always beginning with `git pull`;
-4. if green, continue immediately to the next closely related item;
-5. after a coherent batch, have the user run:
+4. if green, continue immediately;
+5. after the final consolidation bucket, run:
 
 ```powershell
 git pull
@@ -241,7 +226,7 @@ python -m pytest -q tests/balatro
 python -m games.balatro.red_white_semantic_benchmark
 ```
 
-The full deterministic suite is mandatory before live validation, release promotion, or a major phase transition.
+The full deterministic suite is mandatory before Phase 0 is declared complete.
 
 ---
 
@@ -265,8 +250,6 @@ The full deterministic suite is mandatory before live validation, release promot
 - live tuner cascading after failed/non-COMPLETE trial;
 - Phase-A Bond exploratory tuning — completed with no promotion;
 - D14/D11 SHOP latency blocker unless fresh timing evidence reproduces it.
-
-Reopen only from fresh user-provided test/trace evidence.
 
 ---
 
@@ -338,13 +321,3 @@ After Red/White competence passes:
 | v1.7 | Gold | Rental Joker adaptation and all-stakes validation |
 
 Then additional decks: Blue, Yellow, Green, Black. Reuse the permanent architecture rather than parallel strategy frameworks.
-
----
-
-# HISTORY / SUPPORTING DOCS
-
-- `docs/balatro/BALATRO_IMPLEMENTATION_HISTORY.md` — completed implementation/tuning history only.
-- `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` — architecture inventory/supporting evidence; refresh when stale.
-- other `docs/balatro/*.md` — mechanics, audits, validation records, strategy/Bond design, runtime evidence.
-
-Again: **none of them define the current queue. This file does.**
