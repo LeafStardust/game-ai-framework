@@ -12,6 +12,8 @@ Production evidence exposed structural defects retained by this layer:
 - retained-structure-only discard prefiltering could fill the narrow projected beam
   with singleton discards, hiding materially better multi-card redraws from the
   full-blind planner;
+- initial Play shaping could consume the root soft window before any legal discard
+  evidence survived into adaptive search;
 - non-clearing sampled discard recovery could lose to singleton redraws solely
   because the singleton outcome space was cheap enough to enumerate exactly;
 - when bounded search has zero modeled progress for every discard, retained/local
@@ -25,6 +27,7 @@ from time import perf_counter
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.bonds import behavior_strategy
+from games.balatro.d1_hook_search_budget_policy import _active_hook
 from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
@@ -39,6 +42,7 @@ _ROOT_DISCARD_PREFILTER = 14
 _CHILD_DISCARD_PREFILTER = 8
 _SHORT_PLAY_RESERVE = 2
 _WIDE_DISCARD_RESERVE = 2
+_ROOT_DISCARD_RESERVE = 2
 _EPSILON = 1e-12
 
 _HAND_STRENGTH = {
@@ -301,6 +305,87 @@ def _rank_plays_with_short_reserve(
     return ranked[: max(0, limit - len(additions))] + additions
 
 
+def _projection_free_discard_reserve(planner, state, actions, *, limit: int):
+    """Choose a tiny deterministic root discard reserve without projections."""
+    values = list(actions)
+    if limit <= 0 or not values:
+        return []
+
+    records = []
+    deadline = getattr(planner, "deadline", None)
+    for action in values:
+        if records and deadline is not None and perf_counter() >= deadline:
+            break
+        try:
+            key = _cheap_discard_key(state, action)
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            key = (0.0, len(getattr(action, "cards", ()) or ()))
+        records.append((action, key))
+        if deadline is not None and perf_counter() >= deadline:
+            break
+
+    if not records:
+        return values[:limit]
+
+    ranked = sorted(records, key=lambda item: item[1], reverse=True)
+    widest = max(
+        records,
+        key=lambda item: (
+            len(getattr(item[0], "cards", ()) or ()),
+            item[1],
+        ),
+    )[0]
+    selected = [action for action, _ in ranked[:limit]]
+    if widest not in selected:
+        selected = selected[: max(0, limit - 1)] + [widest]
+    return selected[:limit]
+
+
+def _ensure_root_discard_reserve(
+    planner,
+    state,
+    candidates,
+    *,
+    allow_discards: bool,
+    discard_limit: int,
+):
+    """Keep initial adaptive roots from losing all legal discard evidence."""
+    values = list(candidates)
+    if (
+        int(getattr(planner, "nodes_evaluated", 0) or 0) != 0
+        or not allow_discards
+        or discard_limit <= 0
+        or int(getattr(state, "discards_remaining", 0) or 0) <= 0
+        or _active_hook(state)
+        or any(getattr(action, "name", None) == DISCARD_CARDS for action in values)
+    ):
+        return values
+
+    deadline = getattr(planner, "deadline", None)
+    if deadline is not None and perf_counter() >= deadline:
+        return values
+
+    action_generator = getattr(planner, "action_generator", None)
+    generate_discards = getattr(action_generator, "generate_discard_actions", None)
+    if not callable(generate_discards):
+        return values
+
+    try:
+        legal_discards = list(generate_discards(state))
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        return values
+    if not legal_discards:
+        return values
+
+    reserve = _projection_free_discard_reserve(
+        planner,
+        state,
+        legal_discards,
+        limit=min(_ROOT_DISCARD_RESERVE, discard_limit),
+    )
+    return values + reserve
+
+
 def _nonclearing_discard_quality_key(plan) -> tuple[float, float, float, float, float, int]:
     """Rank discard recovery quality before exact-enumeration status."""
     value = plan.value
@@ -387,7 +472,13 @@ def install_semantic_search_guard_policy() -> None:
         )
 
         if initial_root and soft_deadline is not None and perf_counter() >= soft_deadline:
-            return ranked_plays
+            return _ensure_root_discard_reserve(
+                self,
+                state,
+                ranked_plays,
+                allow_discards=allow_discards,
+                discard_limit=discard_limit,
+            )
 
         if (
             not allow_discards
@@ -413,7 +504,13 @@ def install_semantic_search_guard_policy() -> None:
             limit=discard_limit,
             soft_deadline=soft_deadline if initial_root else None,
         )
-        return ranked_plays + ranked_discards
+        return _ensure_root_discard_reserve(
+            self,
+            state,
+            ranked_plays + ranked_discards,
+            allow_discards=allow_discards,
+            discard_limit=discard_limit,
+        )
 
     original_estimate_key = LiveBlindClearPlanner._estimate_key
 
