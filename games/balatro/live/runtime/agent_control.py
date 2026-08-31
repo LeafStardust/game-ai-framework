@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 import os
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from time import sleep
 from typing import Any
 
 from games.balatro.live.injected.bridge import default_bridge_dir
@@ -12,6 +14,8 @@ from games.balatro.live.injected.bridge import default_bridge_dir
 
 AGENT_STATUS_SCHEMA = "balatro-agent-status-v1"
 AGENT_TELEMETRY_SCHEMA = "balatro-agent-telemetry-v1"
+TELEMETRY_REPLACE_ATTEMPTS = 4
+TELEMETRY_REPLACE_BACKOFF_SECONDS = 0.05
 
 
 def default_agent_control_dir() -> Path:
@@ -216,6 +220,12 @@ class BalatroAgentControl:
             pass
 
     def _write_json(self, path: Path, payload: dict[str, Any]) -> None:
+        """Atomically write correctness-relevant control state.
+
+        Status callers deliberately retain fail-fast semantics. Monitor-only
+        telemetry uses its own best-effort writer below so a telemetry file lock
+        cannot weaken the durability contract of status or session state.
+        """
         self.ensure_directory()
         temporary = path.with_suffix(path.suffix + ".tmp")
         temporary.write_text(
@@ -223,6 +233,35 @@ class BalatroAgentControl:
             encoding="utf-8",
         )
         os.replace(temporary, path)
+
+    def _write_telemetry_json(self, payload: dict[str, Any]) -> bool:
+        """Best-effort atomic telemetry write resilient to transient Windows locks."""
+        self.ensure_directory()
+        path = self.telemetry_path
+        temporary = path.with_name(f"{path.name}.{uuid.uuid4().hex}.tmp")
+        try:
+            temporary.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+            for attempt in range(TELEMETRY_REPLACE_ATTEMPTS):
+                try:
+                    os.replace(temporary, path)
+                    return True
+                except PermissionError:
+                    if attempt + 1 >= TELEMETRY_REPLACE_ATTEMPTS:
+                        return False
+                    sleep(TELEMETRY_REPLACE_BACKOFF_SECONDS * (attempt + 1))
+                except OSError:
+                    return False
+            return False
+        except (OSError, TypeError, ValueError):
+            return False
+        finally:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     def write_status(self, state: str, **data: Any) -> None:
         self._write_json(
@@ -245,14 +284,13 @@ class BalatroAgentControl:
         return payload
 
     def write_telemetry(self, activity: str, **data: Any) -> None:
-        self._write_json(
-            self.telemetry_path,
+        self._write_telemetry_json(
             {
                 "schema": AGENT_TELEMETRY_SCHEMA,
                 "activity": str(activity),
                 "updated_at": _utc_now(),
                 **data,
-            },
+            }
         )
 
     def read_telemetry(self) -> dict[str, Any]:
@@ -271,6 +309,8 @@ class BalatroAgentControl:
             pass
 
     def mark_off(self, *, reason: str, **data: Any) -> None:
+        # Telemetry is monitor-only and intentionally nonfatal. Status remains the
+        # authoritative control record and keeps its normal fail-fast write path.
         self.write_telemetry("OFF", reason=str(reason), **data)
         self.write_status("OFF", reason=str(reason), **data)
         self.clear_stop_request()
