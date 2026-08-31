@@ -22,6 +22,9 @@ from games.balatro.red_white_semantic_phase2_shop_cases import (
 from games.balatro.red_white_semantic_phase3_build_cases import (
     RED_WHITE_PHASE3_BUILD_CASES,
 )
+from games.balatro.red_white_semantic_phase4_resource_cases import (
+    RED_WHITE_PHASE4_RESOURCE_CASES,
+)
 from games.balatro.red_white_semantic_shop_authority_cases import (
     RED_WHITE_SHOP_AUTHORITY_CASES,
 )
@@ -44,6 +47,7 @@ def run():
             *RED_WHITE_PHASE2_SHOP_CASES,
             *RED_WHITE_PHASE2_CROSS_FAMILY_CASES,
             *RED_WHITE_PHASE3_BUILD_CASES,
+            *RED_WHITE_PHASE4_RESOURCE_CASES,
         )
     )
 
