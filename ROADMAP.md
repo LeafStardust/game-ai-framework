@@ -48,7 +48,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 3 — coherent build evidence/authority quality. Batch 3 validated 48/48; Batch 4 Bond/composition authority semantics implemented, validation pending.**
+> **Phase 3 — coherent build evidence/authority quality. Batch 4 validated 50/50; Batch 5 pivot/economics authority semantics implemented, validation pending.**
 
 Validated checkpoints:
 
@@ -59,6 +59,7 @@ Validated checkpoints:
 - Phase 3 Batch 1: **44/44 green**, `BUILD_COHERENCE` 4/4
 - Phase 3 Batch 2: **46/46 green**, `BUILD_COHERENCE` 6/6
 - Phase 3 Batch 3: **48/48 green**, `BUILD_COHERENCE` 8/8
+- Phase 3 Batch 4: **50/50 green**, `BUILD_COHERENCE` 10/10
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
@@ -81,9 +82,9 @@ Audit order:
 1. scoring engine versus support/economy — complete;
 2. scaling potential versus realized scoring — complete;
 3. contextual pair interaction versus standalone intrinsic — complete;
-4. Bond/composition evidence versus literal score arithmetic — **active Batch 4**;
-5. replacement/pivot evidence must remain downstream of legal D2 economics;
-6. only then consider numerical weights.
+4. Bond/composition evidence versus literal score arithmetic — complete;
+5. replacement/pivot evidence downstream of legal D2 economics — **active Batch 5**;
+6. numerical weighting remains deferred to Phase 6 after complex-resource and live validation.
 
 ## Batch 1 — VALIDATED GREEN
 
@@ -115,9 +116,13 @@ Validated:
 
 Blueprint target-specific copy value is pair-only evidence; independent scoring output is not duplicated as pair synergy. Result: **48/48**, BUILD 8/8.
 
-## Batch 4 — IMPLEMENTED / VALIDATION PENDING
+## Batch 4 — VALIDATED GREEN
 
 Commit: `131dd37c`.
+
+Validated:
+- `build.bond.coherence_not_scoring_bonus`
+- `build.bond.adjustment_added_once`
 
 Audit findings:
 
@@ -126,22 +131,35 @@ Audit findings:
 - raw composer `coherence_delta` is diagnostic only; coherence alone is intentionally not awarded as a purchase bonus.
 - the installed post-transaction D2 layer adds the bounded Bond adjustment to the post-cash mechanical B3 marginal once.
 
+Result: **50/50**, BUILD 10/10. No production code or numerical tuning changed.
+
+## Batch 5 — IMPLEMENTED / VALIDATION PENDING
+
+Commit: `d1058919`.
+
+Audit findings:
+
+- `bond_pivot_authority._canonical_pivot_decision()` is downstream of D2.
+- only replacement options with `eligible=True` are considered for structural pivot projection.
+- even eligible options require `total_advantage > 0` before Bond/composition structure may promote a D2 HOLD to REPLACE.
+- this keeps structural pivot evidence from bypassing transaction legality, retention protection, or economically non-positive D2 results.
+
 New semantics:
 
-1. `build.bond.coherence_not_scoring_bonus`
-   - a synthetic composition transition that changes only `coherence_score` from 1 to 9 must produce zero Bond bonus;
-   - composer coherence cannot manufacture chips or independent purchase value.
-2. `build.bond.adjustment_added_once`
-   - with mechanical whole-build gain fixed at 3 and Bond adjustment fixed at 2, D2 resulting build gain must be exactly 5;
-   - protects against folding structural Bond evidence into B3 and then crediting it again.
+1. `build.pivot.ineligible_d2_not_promoted`
+   - an option with arbitrarily large nominal advantage but `eligible=False` must remain HOLD;
+   - projected candidate composition must not even be evaluated for promotion.
+2. `build.pivot.nonpositive_d2_not_promoted`
+   - an eligible option with `total_advantage == 0` must remain HOLD;
+   - structural pivot evidence cannot convert a non-positive D2 transaction into a replacement.
 
-No production code or numerical tuning changed in Batch 4.
+Batch 5 changes semantic coverage only. No production code or numerical tuning changed.
 
-Expected benchmark: **50/50**, `BUILD_COHERENCE` 10/10.
+Expected benchmark: **52/52**, `BUILD_COHERENCE` 12/12.
 
 # EXACT NEXT ACTION
 
-Validate Phase-3 Batch 4 locally:
+Validate Phase-3 Batch 5 locally:
 
 ```powershell
 git pull
@@ -150,13 +168,13 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 50/50 green
+### If 52/52 green
 
-Record Batch 4 green and continue Phase 3 with **replacement/pivot authority downstream of legal D2 economics**. Audit actual pivot/retention layers before adding cases. Add only concrete authority-boundary semantics; do not tune weights.
+Record Batch 5 green and close Phase 3. Advance to **Phase 4 — complex packs/consumables/vouchers/economy audit**. Read the actual D9/D14 resource authority before choosing the first semantic batch; do not start numerical tuning.
 
-### If either Batch-4 case fails
+### If either Batch-5 case fails
 
-Treat it as a credible Bond/D2 authority defect unless output shows a concrete fixture mismatch. Fix the smallest canonical owner. Do not add a D14 rescue or weaken the semantic.
+Treat it as a credible pivot/D2 authority defect unless output shows a concrete fixture mismatch. Fix the smallest canonical owner. Structural Bond evidence must never make an ineligible or economically non-positive D2 transaction executable.
 
 # Phase order
 
