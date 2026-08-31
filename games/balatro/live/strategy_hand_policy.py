@@ -37,6 +37,21 @@ def _boss_projection_unconfirmed(state, confirmed_clear_path) -> bool:
     return (bool(boss_name) or blind_type == "BOSS") and confirmed_clear_path is None
 
 
+def _with_bond_intent_cache(method):
+    """Cache immutable Bond hand intents for exactly one D1 policy decision."""
+    def cached_decide(self, state, plans, **kwargs):
+        intents = tuple(self._hand_bond_intents(state))
+        self._bond_d1_cached_state_id = id(state)
+        self._bond_d1_cached_intents = intents
+        try:
+            return method(self, state, plans, **kwargs)
+        finally:
+            self._bond_d1_cached_state_id = None
+            self._bond_d1_cached_intents = None
+
+    return cached_decide
+
+
 class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
     """Production D1 survival authority with Bond/composition pursuit beneath it.
 
@@ -54,6 +69,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         super().__init__(*args, **kwargs)
         self._hand_evaluator = HandEvaluator()
 
+    @_with_bond_intent_cache
     def decide(self, state, plans, **kwargs):
         plans = tuple(plans)
         boss_unconfirmed = _boss_projection_unconfirmed(
@@ -496,6 +512,11 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             return (), None
 
     def _hand_bond_intents(self, state) -> list[tuple[str, float, str]]:
+        if getattr(self, "_bond_d1_cached_state_id", None) == id(state):
+            cached = getattr(self, "_bond_d1_cached_intents", None)
+            if cached is not None:
+                return list(cached)
+
         developments, composition = self._composition(state)
         if composition is None:
             return []
