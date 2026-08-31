@@ -13,6 +13,9 @@ from games.balatro.live.hand_action_planner_core import (
     D1LiveBlindClearPlanner as CoreD1LiveBlindClearPlanner,
 )
 from games.balatro.live.hand_action_policy import PACE_RECOVERY, LiveHandActionPolicy
+from games.balatro.live.path_aware_hand_action_engine import (
+    PathAwareLiveHandActionDecisionEngine,
+)
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
 
 
@@ -54,7 +57,12 @@ class _GuaranteedClearPlanner(CoreD1LiveBlindClearPlanner):
         return (1.0, 100.0, 100.0, -1, 0)
 
 
-def _plan(action: BalatroAction, *, clear_probability: float = 0.10) -> LiveBlindPlan:
+def _plan(
+    action: BalatroAction,
+    *,
+    clear_probability: float = 0.10,
+    exact: bool = True,
+) -> LiveBlindPlan:
     return LiveBlindPlan(
         action=action,
         value=LiveBlindPlanValue(
@@ -65,7 +73,7 @@ def _plan(action: BalatroAction, *, clear_probability: float = 0.10) -> LiveBlin
             expected_discards_remaining=2.0,
         ),
         horizon=2,
-        exact=True,
+        exact=exact,
         candidate_count=2,
     )
 
@@ -199,6 +207,80 @@ def _last_discard_is_not_spent_for_marginal_recovery() -> SemanticCheck:
     )
 
 
+def _timeout_reuses_latest_completed_root() -> SemanticCheck:
+    cards = [object() for _ in range(4)]
+    earlier_discard = _plan(BalatroAction(DISCARD_CARDS, cards=cards[:2]))
+    latest_play = _plan(BalatroAction(PLAY_CARDS, cards=cards[2:]), clear_probability=0.30)
+    latest_discard = _plan(BalatroAction(DISCARD_CARDS, cards=cards[:3]), clear_probability=0.20)
+
+    engine = object.__new__(PathAwareLiveHandActionDecisionEngine)
+    engine.policy = LiveHandActionPolicy()
+    engine._adaptive_plan_history = [
+        (earlier_discard, latest_play),
+        (latest_play, latest_discard),
+    ]
+    engine._adaptive_root_history = []
+    state = SimpleNamespace(
+        blind=SimpleNamespace(requirement=100),
+        score=0,
+        hands_remaining=4,
+        discards_remaining=3,
+    )
+
+    decision = engine._structural_timeout_fallback(state, search_attempts=())
+    used_latest = decision.action is latest_play.action
+    avoided_structural = not any("structural" in note.lower() for note in decision.rationale)
+    return SemanticCheck(
+        used_latest and avoided_structural,
+        observed=(
+            f"selected={decision.action.name}, used_latest={used_latest}, "
+            f"avoided_structural={avoided_structural}"
+        ),
+        expected="timeout reuses the latest fully completed canonical root ranking",
+        detail=(
+            "a later adaptive pass that times out may stop more search, but it may not rewind to "
+            "older evidence or replace completed D1 evidence with the emergency structural heuristic"
+        ),
+    )
+
+
+def _timeout_does_not_promote_unconfirmed_sampled_clear() -> SemanticCheck:
+    cards = [object() for _ in range(4)]
+    sampled_play = _plan(
+        BalatroAction(PLAY_CARDS, cards=cards[:2]),
+        clear_probability=0.90,
+        exact=False,
+    )
+    discard = _plan(BalatroAction(DISCARD_CARDS, cards=cards[2:]), clear_probability=0.25)
+
+    engine = object.__new__(PathAwareLiveHandActionDecisionEngine)
+    engine.policy = LiveHandActionPolicy()
+    engine._adaptive_plan_history = [(sampled_play, discard)]
+    engine._adaptive_root_history = []
+    state = SimpleNamespace(
+        blind=SimpleNamespace(requirement=100),
+        score=0,
+        hands_remaining=4,
+        discards_remaining=3,
+    )
+
+    decision = engine._structural_timeout_fallback(state, search_attempts=())
+    return SemanticCheck(
+        decision.mode == PACE_RECOVERY
+        and decision.action is sampled_play.action
+        and decision.sampled_clear_path_confirmed is False,
+        observed=(
+            f"mode={decision.mode}, action={decision.action.name}, "
+            f"sampled_confirmed={decision.sampled_clear_path_confirmed}"
+        ),
+        expected="timeout retains sampled evidence without promoting it to a confirmed clear path",
+        detail=(
+            "wall-clock exhaustion cannot manufacture confirmation: an inexact sampled line above "
+            "the clear floor remains recovery evidence until an independent confirmation pass completes"
+        ),
+    )
+
+
 RED_WHITE_PHASE1_D1_CASES = (
     SemanticBenchmarkCase(
         case_id="d1.survival.guaranteed_clear_preserves_discard",
@@ -227,5 +309,19 @@ RED_WHITE_PHASE1_D1_CASES = (
         description="the final discard is not spent for a marginal recovery edge",
         evaluate=_last_discard_is_not_spent_for_marginal_recovery,
         source="Phase 1 survival audit: discard-resource hierarchy",
+    ),
+    SemanticBenchmarkCase(
+        case_id="d1.timeout.latest_completed_root",
+        category="D1_SURVIVAL",
+        description="timeout reuses the latest fully completed canonical root",
+        evaluate=_timeout_reuses_latest_completed_root,
+        source="Phase 1 survival audit: partially completed adaptive search",
+    ),
+    SemanticBenchmarkCase(
+        case_id="d1.timeout.sampled_clear_requires_confirmation",
+        category="D1_SURVIVAL",
+        description="timeout cannot promote an unconfirmed sampled clear",
+        evaluate=_timeout_does_not_promote_unconfirmed_sampled_clear,
+        source="Phase 1 survival audit: timeout confirmation boundary",
     ),
 )
