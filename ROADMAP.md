@@ -39,7 +39,7 @@ Feature growth remains frozen until this competence gate is stable and reproduci
 
 Active phase:
 
-> **Phase 0 — D1 authority consolidation: remove installation-order-dependent wrappers by moving valid behavior into canonical owners without changing intended production semantics.**
+> **Phase 0 exit gate — substantive D1 authority consolidation is complete and locally validated.**
 
 Canonical authority shape:
 
@@ -80,19 +80,22 @@ Canonical owners:
 - Ectoplasm `ecto_minus` live-state path
 - round-reset discard resource live-state path
 - Joker-generation state, translator, explicit observer, production observer composition, and installer retirement
+- The Eye / The Mouth boss-hand constraints, Mouth discard evidence, and forced legal recovery
 
 Latest user-provided green command:
 
 ```powershell
 git pull
-python -m pytest -q tests/balatro/test_balatro_joker_generation_state_native.py tests/balatro/test_balatro_joker_generation_observer_native.py
+python -m pytest -q tests/balatro/test_balatro_boss_hand_constraints_native.py
 ```
 
-## Boss-hand constraint migration — IMPLEMENTED, FOCUSED TEST PENDING
+The first focused boss regression failure was test-only: boss-unconfirmed plans are deliberately copied with `exact=False`, so `LiveBlindPlan` object identity was not part of the production contract. Commit `a7303a4c` corrected the regression to assert preserved selected action identity instead; the user then reported green.
 
-This is the final substantive Phase-0 ownership migration.
+## Phase-0 substantive migration status
 
-Native ownership now consists of:
+**Complete. No further ownership-migration bucket is queued.**
+
+The final native boss-hand ownership consists of:
 
 - `games/balatro/live/boss_hand_constraints.py` — pure exact Eye/Mouth candidate constraints and subordinate Mouth evidence; no class mutation.
 - `StrategyAwareLiveHandActionPolicy.decide()` explicitly applies Eye/Mouth plan constraints before final D1 arbitration.
@@ -100,16 +103,6 @@ Native ownership now consists of:
 - `StrategyAwareLiveHandActionPolicy._strategy_fit()` explicitly includes Mouth retained-structure/redraw-width evidence for legal discards.
 - `boss_hand_constraint_policy` is compatibility-only and its installer is a no-op.
 - package startup no longer installs boss-hand constraints.
-- `tests/balatro/test_balatro_boss_hand_constraints_native.py` protects native Eye/Mouth behavior and absence of production monkeypatch authority.
-
-Mechanics preserved:
-
-- The Eye excludes already-used Play hand types when an unused legal Play exists, while retaining legal discard candidates.
-- The Mouth, once locked, allows matching Play hand types plus legal discards.
-- If no matching Mouth Play exists and a discard remains, D1 performs forced legal discard recovery rather than evaluating illegal Plays.
-- If no discard remains, Mouth zero-score recovery prefers the widest Play among retained-structure-equivalent redraws.
-- Mouth retained forced-hand structure and redraw width remain subordinate candidate evidence beneath canonical D1 survival ordering.
-- Boss-disabled states bypass these constraints.
 
 No tuning values were changed as part of ownership consolidation.
 
@@ -117,34 +110,35 @@ No tuning values were changed as part of ownership consolidation.
 
 # EXACT NEXT ACTION
 
-Run the focused native boss-hand constraint gate locally:
-
-```powershell
-git pull
-python -m pytest -q tests/balatro/test_balatro_boss_hand_constraints_native.py
-```
-
-Do not run it from ChatGPT.
-
-### If green
-
-Phase-0 substantive migrations are complete. Immediately perform the Phase-0 exit gate:
+Perform the **Phase-0 full deterministic exit gate** locally:
 
 ```powershell
 git pull
 python -m pytest -q tests/balatro
 ```
 
-After the full deterministic suite is green, run the Red/White semantic benchmark because boss-hand constraints affect decision semantics:
+Do not run it from ChatGPT.
+
+### If the full deterministic suite is green
+
+Run the Red/White semantic benchmark because the completed migrations include decision-semantic changes:
 
 ```powershell
 git pull
 python -m games.balatro.red_white_semantic_benchmark
 ```
 
-Refresh `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` if it still describes retired D1 installers before declaring Phase 0 complete.
+Then refresh `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` if it still describes retired D1 installers. Only after the full suite, benchmark review, and authority-map refresh should Phase 0 be declared complete and the roadmap advance to the later competence phases.
 
-Do not invent another wrapper-cleanup queue.
+### If the full suite fails
+
+Treat each failure as fresh evidence. Distinguish:
+
+1. genuine production semantic/mechanics regression;
+2. stale regression protecting retired monkeypatch/installer architecture;
+3. test-construction/identity assumption inconsistent with the canonical contract.
+
+Fix the smallest correct layer. Do not reopen closed migration buckets without evidence.
 
 ---
 
@@ -159,8 +153,8 @@ Do not invent another wrapper-cleanup queue.
 7. Cerulean — IMPLEMENTED / VALIDATED
 8. Ectoplasm + round-reset resources — IMPLEMENTED / VALIDATED
 9. Joker-generation live state — IMPLEMENTED / VALIDATED
-10. Boss-hand constraints — **IMPLEMENTED; FOCUSED TEST PENDING**
-11. Phase-0 exit gate — **NEXT AFTER BOSS GREEN**
+10. Boss-hand constraints — IMPLEMENTED / VALIDATED
+11. Phase-0 exit gate — **ACTIVE**
 
 ---
 
@@ -173,9 +167,12 @@ Phase 0 is complete only when:
 - true observation adapters are explicit/native at the observer/translator boundary rather than installed via mutation;
 - diagnostics cannot independently plan or change actions;
 - production behavior no longer depends on fragile module import/installer order for migrated D1 semantics;
-- deterministic focused tests protect behavior rather than retired monkeypatch mechanisms.
+- deterministic focused tests protect behavior rather than retired monkeypatch mechanisms;
+- the full Balatro deterministic suite is green;
+- the Red/White semantic benchmark has been reviewed after the decision-semantic migrations;
+- `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` reflects current native ownership rather than retired installers.
 
-Mandatory deterministic suite after the boss-focused test passes:
+Mandatory deterministic suite:
 
 ```powershell
 git pull
@@ -188,8 +185,6 @@ Then semantic benchmark:
 git pull
 python -m games.balatro.red_white_semantic_benchmark
 ```
-
-The full deterministic suite is mandatory before Phase 0 is declared complete.
 
 ---
 
@@ -209,6 +204,7 @@ The full deterministic suite is mandatory before Phase 0 is declared complete.
 - Ectoplasm installer architecture
 - round-resource installer architecture
 - Joker-generation live-state installer architecture
+- boss-hand-constraint installer architecture
 - production-default tuning ContextVar hypothesis — falsified
 - historical SHOP recursive expectation roots
 - BLIND_SELECT quiescence deadlock
@@ -220,7 +216,7 @@ The full deterministic suite is mandatory before Phase 0 is declared complete.
 
 ---
 
-# LATER PHASES — BLOCKED UNTIL PHASE 0 IS CLEAN
+# LATER PHASES — BLOCKED UNTIL PHASE 0 EXIT GATE PASSES
 
 1. Semantic benchmark expansion
 2. D1 survival competence refinement
