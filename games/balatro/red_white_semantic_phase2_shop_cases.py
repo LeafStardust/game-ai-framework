@@ -12,12 +12,15 @@ from games.balatro.actions import (
     BalatroAction,
 )
 from games.balatro.joker_policy import (
+    HOLD,
     REPLACE,
     JokerAcquisitionDecision,
     JokerAcquisitionOption,
+    JokerAcquisitionPolicy,
     JokerAcquisitionThresholds,
     JokerTransactionEconomics,
 )
+from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
 from games.balatro.shop_policy import ShopActionScore
@@ -285,6 +288,83 @@ def _paid_reroll_preserves_minimum_cash_reserve() -> SemanticCheck:
     )
 
 
+def _synthetic_transition(build_gain: float):
+    return SimpleNamespace(
+        plan=lambda state, candidate: SimpleNamespace(
+            candidate_value=SimpleNamespace(
+                applicability="APPLICABLE",
+                total_gain=float(build_gain),
+            ),
+            alternatives=(),
+        )
+    )
+
+
+def _first_engine_bootstrap_does_not_rescue_zero_cash() -> SemanticCheck:
+    state = _base_state()
+    state.ante = 1
+    state.money = 6
+    candidate = FlatMultJoker(4)
+    candidate.cost = 6
+    policy = JokerAcquisitionPolicy(
+        transition_planner=_synthetic_transition(0.50),
+    )
+    decision = policy.decide(state, candidate)
+    option = decision.options[0]
+    return SemanticCheck(
+        decision.action == HOLD
+        and option.economics.money_after == 0
+        and float(option.build_gain) > 0.0,
+        observed=(
+            f"action={decision.action}, build_gain={option.build_gain:.3f}, "
+            f"money_after={option.economics.money_after}"
+        ),
+        expected="the early first-engine bootstrap does not rescue a marginal buy that leaves zero cash",
+        detail=(
+            "Ante-1/2 first-engine relaxation is deliberately bounded: positive scoring value may relax "
+            "reserve preference only when at least one dollar remains after the purchase"
+        ),
+    )
+
+
+def _ordinary_joker_buy_prices_reserve_crossing() -> SemanticCheck:
+    state = _base_state()
+    state.ante = 3
+    state.money = 6
+    state.jokers = [FlatMultJoker(4)]
+    candidate = FlatMultJoker(4)
+    candidate.cost = 4
+    thresholds = JokerAcquisitionThresholds(
+        minimum_purchase_advantage=0.35,
+        price_weight=0.0,
+        interest_weight=0.0,
+        reserve_target=5,
+        reserve_weight=1.0,
+        last_joker_slot_penalty=0.0,
+        penultimate_joker_slot_penalty=0.0,
+    )
+    policy = JokerAcquisitionPolicy(
+        thresholds=thresholds,
+        transition_planner=_synthetic_transition(1.50),
+    )
+    decision = policy.decide(state, candidate)
+    option = decision.options[0]
+    return SemanticCheck(
+        decision.action == HOLD
+        and abs(option.economics.reserve_penalty - 3.0) <= 1e-9
+        and option.total_advantage < thresholds.minimum_purchase_advantage,
+        observed=(
+            f"action={decision.action}, reserve_penalty={option.economics.reserve_penalty:.3f}, "
+            f"advantage={option.total_advantage:.3f}"
+        ),
+        expected="ordinary D2 purchase value prices the incremental cash-reserve shortfall",
+        detail=(
+            "once the first-engine exception no longer applies, a marginal Joker must not be treated as "
+            "free of survival cost when its purchase crosses the configured cash reserve"
+        ),
+    )
+
+
 RED_WHITE_PHASE2_SHOP_CASES = (
     SemanticBenchmarkCase(
         case_id="shop.simple.end_shop_zero_baseline",
@@ -320,5 +400,19 @@ RED_WHITE_PHASE2_SHOP_CASES = (
         description="paid reroll preserves minimum post-refresh cash reserve",
         evaluate=_paid_reroll_preserves_minimum_cash_reserve,
         source="Phase 2 simple-shop audit: cash reserve boundary",
+    ),
+    SemanticBenchmarkCase(
+        case_id="shop.simple.first_engine_zero_cash_guard",
+        category="SHOP_SURVIVAL",
+        description="first-engine bootstrap does not rescue a zero-cash marginal buy",
+        evaluate=_first_engine_bootstrap_does_not_rescue_zero_cash,
+        source="Phase 2 simple-shop audit: bounded first-engine reserve relaxation",
+    ),
+    SemanticBenchmarkCase(
+        case_id="shop.simple.joker_reserve_crossing_cost",
+        category="SHOP_SURVIVAL",
+        description="ordinary Joker purchases price reserve-crossing survival cost",
+        evaluate=_ordinary_joker_buy_prices_reserve_crossing,
+        source="Phase 2 simple-shop audit: ordinary purchase reserve economics",
     ),
 )
