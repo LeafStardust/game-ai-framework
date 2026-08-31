@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from games.balatro.build.joker_lifecycle import STATEFUL_SCALING
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
+from games.balatro.jokers.blueprint import BlueprintJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.ride_the_bus import RideTheBusJoker
@@ -103,6 +104,61 @@ def _invested_scaler_has_more_realized_direct_power() -> SemanticCheck:
     )
 
 
+def _blueprint_pair_adds_contextual_copy_value() -> SemanticCheck:
+    evaluator = JokerBuildValueEvaluator()
+    standalone = evaluator.evaluate(_base_state(), BlueprintJoker())
+    paired_state = _base_state()
+    paired_state.jokers = [FlatMultJoker(4)]
+    paired = evaluator.evaluate(paired_state, BlueprintJoker())
+    copy_pair = any(
+        interaction.kind == "COPY"
+        and interaction.actor_role == "candidate"
+        and interaction.target_role == "existing"
+        for interaction in paired.contextual.pair_interactions
+    )
+    return SemanticCheck(
+        copy_pair
+        and float(paired.contextual.interaction_gain) > float(standalone.contextual.interaction_gain),
+        observed=(
+            f"copy_pair={copy_pair}, standalone_intrinsic={standalone.contextual.intrinsic_gain:.3f}, "
+            f"standalone_interaction={standalone.contextual.interaction_gain:.3f}, "
+            f"paired_intrinsic={paired.contextual.intrinsic_gain:.3f}, "
+            f"paired_interaction={paired.contextual.interaction_gain:.3f}"
+        ),
+        expected="Blueprint gains additional contextual interaction value only when a concrete visible copy target exists",
+        detail=(
+            "copy capability may have standalone structural value, but the specific target synergy belongs in "
+            "pair interaction evidence rather than being folded into the candidate's intrinsic score"
+        ),
+    )
+
+
+def _independent_scorers_do_not_manufacture_pair_synergy() -> SemanticCheck:
+    evaluator = JokerBuildValueEvaluator()
+    standalone = evaluator.evaluate(_base_state(), FlatMultJoker(4))
+    paired_state = _base_state()
+    paired_state.jokers = [FlatMultJoker(4)]
+    paired = evaluator.evaluate(paired_state, FlatMultJoker(4))
+    return SemanticCheck(
+        not paired.contextual.pair_interactions
+        and abs(
+            float(paired.contextual.interaction_gain)
+            - float(standalone.contextual.interaction_gain)
+        ) <= 1e-12,
+        observed=(
+            f"pair_interactions={len(paired.contextual.pair_interactions)}, "
+            f"standalone_interaction={standalone.contextual.interaction_gain:.3f}, "
+            f"paired_interaction={paired.contextual.interaction_gain:.3f}, "
+            f"paired_direct={paired.direct_scoring_gain:.6f}"
+        ),
+        expected="independent scoring Jokers do not receive pair-only synergy from their standalone scoring output",
+        detail=(
+            "literal score contribution is already owned by direct scoring projection; B3 pair evidence must "
+            "only credit mechanics that change because the two Jokers coexist"
+        ),
+    )
+
+
 RED_WHITE_PHASE3_BUILD_CASES = (
     SemanticBenchmarkCase(
         case_id="build.roles.scoring_engine_direct_gain",
@@ -131,5 +187,19 @@ RED_WHITE_PHASE3_BUILD_CASES = (
         description="public scaler investment increases literal realized scoring power",
         evaluate=_invested_scaler_has_more_realized_direct_power,
         source="Phase 3 build-evidence audit: realized scaler state",
+    ),
+    SemanticBenchmarkCase(
+        case_id="build.interaction.blueprint_pair_only_value",
+        category="BUILD_COHERENCE",
+        description="Blueprint receives target-specific value through pair interaction evidence",
+        evaluate=_blueprint_pair_adds_contextual_copy_value,
+        source="Phase 3 build-evidence audit: pair-only contextual value",
+    ),
+    SemanticBenchmarkCase(
+        case_id="build.interaction.independent_scoring_not_pair_synergy",
+        category="BUILD_COHERENCE",
+        description="standalone scoring is not duplicated as pair interaction value",
+        evaluate=_independent_scorers_do_not_manufacture_pair_synergy,
+        source="Phase 3 build-evidence audit: pair double-count prevention",
     ),
 )
