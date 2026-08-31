@@ -49,7 +49,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 4 COMPLETE at 70/70 semantic green. Phase 5 live validation is ACTIVE.**
+> **Phase 4 COMPLETE at 70/70 semantic green. Phase 5 live validation is ACTIVE. First live D1 defect is implemented for validation at expected 71/71.**
 
 Validated checkpoints:
 
@@ -64,6 +64,8 @@ Validated checkpoints:
 - Phase 4 Batch 4 voucher reserve/downside authority: **GREEN / 64/64**, `RESOURCE_COHERENCE` 12/12
 - Phase 4 Batch 5 bounded outcome-model authority: **GREEN / 67/67**, `RESOURCE_COHERENCE` 15/15
 - Phase 4 Batch 6 cross-family D14 parent normalization: **GREEN / 70/70**, `RESOURCE_COHERENCE` 18/18
+- Phase 5 baseline runtime: **3/3 attempts completed without supervisor crash after pack stale-replan repairs**
+- Phase 5 live D1 discard-recovery semantic: **IMPLEMENTED / VALIDATION PENDING**, expected **71/71**, `D1_SURVIVAL` **23/23**
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
@@ -173,31 +175,59 @@ Primary gate source: `docs/balatro/BALATRO_LIVE_VALIDATION_GATE.md`.
 
 The installed production stack has previously completed three-attempt Red/White sessions after the systemic SHOP runtime pass, but ordinary SHOP checkpoints still showed roughly 10–15 second latency and some ~28–30 second states. The identified post-decision diagnostics double-planner overhead was repaired in `cb57f48` / `a185ad7`.
 
-## Phase-5 first objective
+## Fresh production baseline — completed
 
-Run a fresh three-attempt Red Deck / White Stake production baseline on the current Phase-4-green stack and inspect:
+Session: `balatro-20260831T083950Z-38168e59`.
 
-1. whether every settled SHOP reaches a decision without a permanent stall;
-2. SHOP checkpoint decision latency, especially repeated >10 s and any ~20–30 s outliers;
-3. whether the action path is semantically sensible at each large spend, replacement, booster open, consumable immediate-use, voucher purchase, and reroll;
-4. whether any failure is an authority/mechanics defect, a runtime-bound defect, or only a numerical preference issue;
-5. no numerical tuning until semantic/runtime defects are separated from preference calibration.
+The three-attempt baseline completed normally after the Phase-5 pack-race repairs (`ec289256` and `bac63e23`): the stale pack-choice guard no longer crashes the supervisor and stale pack plans are discarded/replanned rather than executed.
 
-If the baseline exposes a new semantic defect, add the smallest evidence-driven semantic case and fix the canonical owner. If it exposes only bad tradeoffs with correct mechanics/authority, record the evidence for Phase 6 rather than tuning ad hoc during Phase 5.
+Results:
+
+1. attempt 1 — loss, Ante 6 boss **The Arm**, `23355 / 40000`, `hands_left=0`, `discards_left=4`, `discards_used=0`;
+2. attempt 2 — loss, Ante 4 **Big Blind**, `1575 / 7500`, `hands_left=0`, `discards_left=4`, `discards_used=0`;
+3. attempt 3 — loss, Ante 5 boss **The Mark**, `14466 / 22000`, `hands_left=0`, `discards_left=4`, `discards_used=0`.
+
+This is fresh semantic evidence, not merely preference calibration: all three independent losing blinds exhausted every scoring hand while leaving the entire four-discard recovery resource untouched.
+
+## Live D1 finding — under-pace made-hand discard suppression
+
+Canonical owner: `LiveHandDecisionEvaluator._discard_value`.
+
+Observed defect:
+
+- D1's recovery evaluator gave every current Straight/Flush/Full House/Four of a Kind/Straight Flush a categorical `-250` discard penalty;
+- that penalty applied even when the made hand's projected score was materially below the chips-per-hand pace required for survival;
+- the actual projected pace shortfall was already modeled separately, so hand class became a second categorical authority that could suppress discard recovery despite the run being behind;
+- the three live losses ending at `4/4` unused discards are consistent with this failure mode.
+
+Implemented correction:
+
+- `cb2058cc` adds `d1.live.underpace_made_hand_keeps_discard_recovery`;
+- `820e096d` fixes the canonical evaluator: made-hand preservation penalty is applied only when the visible made hand already meets current survival pace;
+- while under pace, discard value is determined by actual score shortfall, retained structure, redraw efficiency, hand/discard reserves, and boss/debuff mechanics rather than poker-hand label alone;
+- `4ecf9bc5` wires the new Phase-5 semantic into the benchmark.
+
+This is an authority correction, not numerical tuning: no threshold or weight was changed.
+
+Expected benchmark after the new case: **71/71**, `D1_SURVIVAL` **23/23**.
+
+Do not start Phase 6 tuning until this semantic is green and a subsequent live baseline shows whether discard utilization and survival behavior materially improve.
 
 # EXACT NEXT ACTION
 
-Run one fresh three-attempt production baseline locally:
+Validate the new Phase-5 D1 semantic on the full Red/White semantic benchmark:
 
 ```powershell
 git pull
-.\BalatroAgentToggle.bat --three
+python -m games.balatro.red_white_semantic_benchmark
 
 ```
 
-Then provide the resulting session/run identifier(s) and any visible stall/crash symptom. If the run completes normally, provide the session prefix or diagnostics output so the JSONL timing/action trace can be audited.
+Expected: **71/71**, `D1_SURVIVAL` **23/23**, with all previous categories unchanged.
 
-Do not run live games from ChatGPT.
+If green, run a fresh three-attempt production baseline and compare losing-blind discard utilization against the `4/4 unused` baseline before considering any numerical tuning.
+
+Do not run tests or live games from ChatGPT.
 
 # Phase order
 
