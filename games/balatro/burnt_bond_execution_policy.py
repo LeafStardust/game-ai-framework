@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-"""Canonical D1 evidence for Burnt Joker first-discard development.
+"""Pure D1 evidence for Burnt Joker first-discard development.
 
 Burnt Joker's first discard permanently levels the discarded poker hand. This is
 candidate-specific strategy evidence, not authority to choose the Play/Discard
-class. The installer therefore augments strategy-fit evidence only; canonical D1
-continues to own survival ordering and final arbitration.
+class. The canonical D1 strategy policy applies this helper directly while
+retaining survival ordering and final arbitration.
 """
 
 from games.balatro.actions import DISCARD_CARDS
@@ -13,7 +13,6 @@ from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.bonds.model import BondRank
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
-from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
 BURNT_TARGET_FIT = 2.0
@@ -72,44 +71,34 @@ def _discard_hand_type(evaluator: HandEvaluator, state, action) -> str:
         return ""
 
 
-def install_burnt_bond_execution_policy() -> None:
-    if getattr(
-        StrategyAwareLiveHandActionPolicy,
-        "_burnt_bond_execution_installed",
-        False,
-    ):
-        return
+def _burnt_strategy_fit(
+    state,
+    action,
+    *,
+    hand_evaluator: HandEvaluator | None = None,
+) -> tuple[float, tuple[str, ...]]:
+    if action.name != DISCARD_CARDS:
+        return 0.0, ()
+    development = _burnt_development(state)
+    if development is None or not _first_discard_available(state):
+        return 0.0, ()
+    if int(getattr(state, "discards_remaining", 0) or 0) <= 1:
+        return 0.0, ()
+    if int(getattr(state, "hands_remaining", 0) or 0) <= 1:
+        return 0.0, ()
 
-    original_strategy_fit = StrategyAwareLiveHandActionPolicy._strategy_fit
-    hand_evaluator = HandEvaluator()
-
-    def strategy_fit(self, state, action):
-        value, rationale = original_strategy_fit(self, state, action)
-        if action.name != DISCARD_CARDS:
-            return value, rationale
-        development = _burnt_development(state)
-        if development is None or not _first_discard_available(state):
-            return value, rationale
-        if int(getattr(state, "discards_remaining", 0) or 0) <= 1:
-            return value, rationale
-        if int(getattr(state, "hands_remaining", 0) or 0) <= 1:
-            return value, rationale
-
-        target = _target_hand(development)
-        hand_type = _discard_hand_type(hand_evaluator, state, action)
-        fit = BURNT_GENERIC_FIRST_DISCARD_FIT
-        notes = [
-            "Burnt first-discard evidence: this already-admitted DISCARD can create permanent hand-level growth",
-        ]
-        if hand_type == target:
-            fit += BURNT_TARGET_FIT
-            notes.append(f"Burnt target={target}; discarded poker hand matches target")
-        else:
-            notes.append(f"Burnt target={target}; discarded poker hand={hand_type or 'UNKNOWN'}")
-        notes.append(
-            "Burnt fit is subordinate to canonical D1 full-blind survival/resource ordering"
-        )
-        return value + fit, (*rationale, *notes)
-
-    StrategyAwareLiveHandActionPolicy._strategy_fit = strategy_fit
-    StrategyAwareLiveHandActionPolicy._burnt_bond_execution_installed = True
+    target = _target_hand(development)
+    hand_type = _discard_hand_type(hand_evaluator or HandEvaluator(), state, action)
+    fit = BURNT_GENERIC_FIRST_DISCARD_FIT
+    notes = [
+        "Burnt first-discard evidence: this already-admitted DISCARD can create permanent hand-level growth",
+    ]
+    if hand_type == target:
+        fit += BURNT_TARGET_FIT
+        notes.append(f"Burnt target={target}; discarded poker hand matches target")
+    else:
+        notes.append(f"Burnt target={target}; discarded poker hand={hand_type or 'UNKNOWN'}")
+    notes.append(
+        "Burnt fit is subordinate to canonical D1 full-blind survival/resource ordering"
+    )
+    return fit, tuple(notes)
