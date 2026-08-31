@@ -7,15 +7,8 @@ from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
 from games.balatro.hand import PokerHand
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
-from games.balatro.live.blind_clear_planner import (
-    LiveBlindPlan,
-    LiveBlindPlanValue,
-    PlannerSearchBudgetExceeded,
-)
-from games.balatro.live.hand_action_policy import (
-    PACE_RECOVERY,
-    LiveHandActionDecisionEngine,
-)
+from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
+from games.balatro.live.hand_action_policy import PACE_RECOVERY
 
 
 _MAX_SELECTED_CARDS = 5
@@ -320,43 +313,3 @@ def _bounded_structural_timeout_fallback(
         plans=(plan,),
         search_attempts=tuple(search_attempts),
     )
-
-
-def install_safe_pace_timeout_patch() -> None:
-    if getattr(LiveHandActionDecisionEngine, "_safe_pace_timeout_installed", False):
-        return
-
-    original_decide = LiveHandActionDecisionEngine.decide
-    original_rank_immediate_plans = LiveHandActionDecisionEngine._rank_immediate_plans
-
-    def rank_immediate_plans(self, state):
-        # Under a configured hard D1 deadline, projected horizon-1 recovery is not
-        # allowed to begin after adaptive search. One Joker-aware estimate can run
-        # for many seconds without an interrupt point. The base decision engine
-        # catches this budget signal and dispatches to the bounded structural
-        # fallback; PathAware production may reuse completed canonical search
-        # evidence before that fallback becomes authoritative.
-        if (
-            getattr(self, "max_search_seconds", None) is not None
-            and getattr(self, "_search_deadline", None) is not None
-        ):
-            raise PlannerSearchBudgetExceeded(
-                "skip projected immediate fallback under hard D1 budget"
-            )
-        return original_rank_immediate_plans(self, state)
-
-    def decide(self, state):
-        # Do not pre-run projected horizon-1 ranking. The previous bootstrap tried
-        # to reserve only a fraction of the D1 budget, but a single Joker-aware
-        # projection is non-interruptible and live Hook states demonstrated 14–15 s
-        # overruns before adaptive search even began. Let the canonical adaptive
-        # engine own the configured budget from the start. If it later reaches the
-        # immediate fallback, ``rank_immediate_plans`` above rejects the projected
-        # pass before any estimate begins and the existing bounded structural
-        # recovery contract applies.
-        return original_decide(self, state)
-
-    LiveHandActionDecisionEngine.decide = decide
-    LiveHandActionDecisionEngine._rank_immediate_plans = rank_immediate_plans
-    LiveHandActionDecisionEngine._structural_timeout_fallback = _bounded_structural_timeout_fallback
-    LiveHandActionDecisionEngine._safe_pace_timeout_installed = True
