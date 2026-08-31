@@ -1,9 +1,7 @@
 from types import SimpleNamespace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
-from games.balatro.d1_root_discard_reserve_policy import (
-    _candidate_actions_with_root_discard_reserve,
-)
+from games.balatro.semantic_search_guard_policy import _ensure_root_discard_reserve
 
 
 def _action(name, width):
@@ -29,19 +27,16 @@ def test_initial_root_appends_legal_discard_when_underlying_beam_is_play_only(mo
     state = SimpleNamespace(discards_remaining=4, hand=())
 
     monkeypatch.setattr(
-        "games.balatro.d1_root_discard_reserve_policy._cheap_discard_key",
+        "games.balatro.semantic_search_guard_policy._cheap_discard_key",
         lambda state, action: (0.0, len(action.cards)),
     )
 
-    def underlying(self, state, *, allow_discards, play_width=None, discard_width=None):
-        del self, state, allow_discards, play_width, discard_width
-        return [play]
-
-    candidates = _candidate_actions_with_root_discard_reserve(
-        underlying,
+    candidates = _ensure_root_discard_reserve(
         planner,
         state,
+        [play],
         allow_discards=True,
+        discard_limit=planner.discard_width,
     )
 
     assert candidates[0] is play
@@ -64,15 +59,12 @@ def test_existing_discard_evidence_is_not_duplicated():
     )
     state = SimpleNamespace(discards_remaining=4)
 
-    def underlying(self, state, *, allow_discards, play_width=None, discard_width=None):
-        del self, state, allow_discards, play_width, discard_width
-        return [play, discard]
-
-    candidates = _candidate_actions_with_root_discard_reserve(
-        underlying,
+    candidates = _ensure_root_discard_reserve(
         planner,
         state,
+        [play, discard],
         allow_discards=True,
+        discard_limit=planner.discard_width,
     )
 
     assert candidates == [play, discard]
@@ -96,19 +88,16 @@ def test_active_hook_does_not_append_projected_root_discard_reserve(monkeypatch)
         discards_remaining=4,
     )
     monkeypatch.setattr(
-        "games.balatro.d1_root_discard_reserve_policy._active_hook",
+        "games.balatro.semantic_search_guard_policy._active_hook",
         lambda state: True,
     )
 
-    def underlying(self, state, *, allow_discards, play_width=None, discard_width=None):
-        del self, state, allow_discards, play_width, discard_width
-        return [play]
-
-    candidates = _candidate_actions_with_root_discard_reserve(
-        underlying,
+    candidates = _ensure_root_discard_reserve(
         planner,
         state,
+        [play],
         allow_discards=True,
+        discard_limit=planner.discard_width,
     )
 
     assert candidates == [play]
