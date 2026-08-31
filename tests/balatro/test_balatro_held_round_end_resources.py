@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import games.balatro  # install package-level live authorities
+import games.balatro  # initialize package-level live authorities
 
 from games.balatro.actions import BalatroAction, PLAY_CARDS
 from games.balatro.blinds.blind import create_small_blind
@@ -29,7 +29,7 @@ def test_blue_seal_held_on_clear_adds_capacity_valid_round_end_resource() -> Non
     state.hand = [scorer, blue]
 
     action = BalatroAction(PLAY_CARDS, cards=[scorer])
-    estimate = D1LiveBlindClearPlanner(horizon=1)._estimate_play(state, action, 1)
+    estimate = D1LiveBlindClearPlanner(horizon=1)._estimate_action(state, action, 1)
 
     assert estimate.value.clear_probability == 1.0
     assert estimate.value.expected_consumables == 1.0
@@ -42,7 +42,7 @@ def test_blue_seal_played_on_clear_does_not_create_round_end_resource() -> None:
     state.hand = [scorer, blue]
 
     action = BalatroAction(PLAY_CARDS, cards=[scorer, blue])
-    estimate = D1LiveBlindClearPlanner(horizon=1)._estimate_play(state, action, 1)
+    estimate = D1LiveBlindClearPlanner(horizon=1)._estimate_action(state, action, 1)
 
     assert estimate.value.clear_probability == 1.0
     assert estimate.value.expected_consumables == 0.0
@@ -56,7 +56,7 @@ def test_blue_seal_does_not_overfill_consumable_capacity() -> None:
     state.hand = [scorer, blue]
 
     action = BalatroAction(PLAY_CARDS, cards=[scorer])
-    estimate = D1LiveBlindClearPlanner(horizon=1)._estimate_play(state, action, 1)
+    estimate = D1LiveBlindClearPlanner(horizon=1)._estimate_action(state, action, 1)
 
     # The existing held consumable remains in terminal value, but no impossible
     # second consumable is credited for the Blue Seal when capacity is full.
@@ -76,7 +76,7 @@ def test_debuffed_blue_seal_has_no_round_end_resource_value() -> None:
     state.hand = [scorer, blue]
 
     action = BalatroAction(PLAY_CARDS, cards=[scorer])
-    estimate = D1LiveBlindClearPlanner(horizon=1)._estimate_play(state, action, 1)
+    estimate = D1LiveBlindClearPlanner(horizon=1)._estimate_action(state, action, 1)
 
     assert estimate.value.expected_consumables == 0.0
 
