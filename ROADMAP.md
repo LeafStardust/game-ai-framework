@@ -48,7 +48,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 3 — coherent build evidence/authority quality. Batch 4 validated 50/50; Batch 5 pivot/economics authority semantics implemented, validation pending.**
+> **Phase 4 — complex packs/consumables/vouchers/economy audit. Phase 3 closed at 52/52; Phase 4 Batch 1 booster resource-boundary semantics implemented, validation pending.**
 
 Validated checkpoints:
 
@@ -56,133 +56,104 @@ Validated checkpoints:
 - Full deterministic Balatro suite: **GREEN**
 - Phase 1 D1 survival expansion: **COMPLETE / 33/33 green**
 - Phase 2 simple shop survival: **COMPLETE / 42/42 green**
-- Phase 3 Batch 1: **44/44 green**, `BUILD_COHERENCE` 4/4
-- Phase 3 Batch 2: **46/46 green**, `BUILD_COHERENCE` 6/6
-- Phase 3 Batch 3: **48/48 green**, `BUILD_COHERENCE` 8/8
-- Phase 3 Batch 4: **50/50 green**, `BUILD_COHERENCE` 10/10
+- Phase 3 coherent build evidence: **COMPLETE / 52/52 green**, `BUILD_COHERENCE` 12/12
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
 # Phase 1 — CLOSED
 
-Intentionally capped at five batches. Validated D1 semantics include guaranteed-clear resource preservation, recursive boss legality, under-pace redraw quality, final-discard conservation, timeout authority, final-hand preservation, hidden draw-order invariance, and held-consumable re-observation. Do not add Batch 6 absent fresh evidence.
+Intentionally capped at five batches. Do not add Batch 6 absent fresh evidence.
 
 # Phase 2 — CLOSED
 
-Intentionally capped at four batches. Validated simple-shop semantics include explicit `END_SHOP`, free/paid reroll boundaries, replacement re-observation, cash stop-loss, bounded first-engine reserve relaxation, reserve-crossing economics, and shared-scale cross-family ordering. Do not add Batch 5 absent fresh evidence.
+Intentionally capped at four batches. Do not add Batch 5 absent fresh evidence.
 
-Important runtime fact: installed post-transaction D2 Joker valuation recomputes candidate mechanical value through `transition_planner.evaluator.evaluate()` at actual post-purchase cash. Synthetic D2 fixtures must represent that path.
+# Phase 3 — CLOSED
 
-# Phase 3 — COHERENT BUILD EVIDENCE / AUTHORITY QUALITY
+Phase 3 validated five coherent build-evidence batches:
 
-Goal: distinguish real scoring, support, scaling, economy, interaction, and composition without duplicate scoring authority or structural evidence becoming fake immediate power.
+1. scoring engine vs support/economy role separation;
+2. scaling potential vs realized scoring power;
+3. contextual pair interaction vs standalone intrinsic value;
+4. Bond/composition evidence vs literal score arithmetic;
+5. replacement/pivot authority downstream of legal and economically positive D2 options.
 
-Audit order:
+Batch 2 exposed and fixed one genuine canonical lifecycle defect: score-sequence checkpoints now carry the matching synthetic `HAND_SCORED` event so event-driven scalers such as Ride the Bus expose scaling evidence without mutating live state.
 
-1. scoring engine versus support/economy — complete;
-2. scaling potential versus realized scoring — complete;
-3. contextual pair interaction versus standalone intrinsic — complete;
-4. Bond/composition evidence versus literal score arithmetic — complete;
-5. replacement/pivot evidence downstream of legal D2 economics — **active Batch 5**;
-6. numerical weighting remains deferred to Phase 6 after complex-resource and live validation.
+Final Phase-3 result: **52/52 GREEN**, `BUILD_COHERENCE` 12/12.
 
-## Batch 1 — VALIDATED GREEN
+Numerical weighting remains deferred to Phase 6. No fresh semantic evidence justifies tuning before complex-resource and live validation.
 
-Commits: `0f5b0f3a`, `a89e8e6e`.
+# Phase 4 — COMPLEX PACKS / CONSUMABLES / VOUCHERS / ECONOMY AUDIT
 
-Validated:
-- `build.roles.scoring_engine_direct_gain`
-- `build.roles.economy_not_direct_scoring`
+Goal: make resource-heavy decisions respect transaction checkpoints, sunk-cost boundaries, target legality, deterministic vs stochastic outcome ownership, and current-run survival value without predicting hidden contents.
 
-Result: **44/44**, BUILD 4/4.
+Initial audit order:
 
-## Batch 2 — VALIDATED GREEN AFTER CANONICAL FIX
+1. D8 unopened-booster transaction cost vs D9 opened-pack sunk-cost boundary — **active Batch 1**;
+2. opened-pack target legality and unsupported stochastic effects failing closed;
+3. consumable inventory/slot pressure and BUY vs BUY_AND_USE authority;
+4. voucher purchase value vs permanent downside and current-run resource reserve;
+5. destructive/generative Spectral/Tarot choices only through explicit bounded outcome models;
+6. cross-family D14 arbitration only after child resource semantics are trustworthy.
 
-Commits: `ab6cdee0`, `f2f5f4c8`.
+## Batch 1 — IMPLEMENTED / VALIDATION PENDING
 
-Validated:
-- `build.scaling.fresh_potential_is_contextual`
-- `build.scaling.investment_increases_direct_power`
+Commits:
 
-Initial 44/46 exposed a genuine lifecycle defect: score-sequence mutation carried a `HAND_SCORED` event but read-only checkpoints did not, so event-driven scalers such as Ride the Bus could grow public state without being classified as scaling. `f2f5f4c8` makes score checkpoints use the matching synthetic event on deep copies. Result after fix: **46/46**, BUILD 6/6.
-
-## Batch 3 — VALIDATED GREEN
-
-Commit: `e489d9dd`.
-
-Validated:
-- `build.interaction.blueprint_pair_only_value`
-- `build.interaction.independent_scoring_not_pair_synergy`
-
-Blueprint target-specific copy value is pair-only evidence; independent scoring output is not duplicated as pair synergy. Result: **48/48**, BUILD 8/8.
-
-## Batch 4 — VALIDATED GREEN
-
-Commit: `131dd37c`.
-
-Validated:
-- `build.bond.coherence_not_scoring_bonus`
-- `build.bond.adjustment_added_once`
+- `7b2fb576` — adds `red_white_semantic_phase4_resource_cases.py`.
+- `961a889d` — wires Phase-4 cases into the semantic benchmark.
 
 Audit findings:
 
-- `JokerBuildValueEvaluator` owns literal score projection separately from contextual B3 value.
-- D2 `_bond_transition_bonus()` projects public Bond/composition transitions after B3 mechanical value.
-- raw composer `coherence_delta` is diagnostic only; coherence alone is intentionally not awarded as a purchase bonus.
-- the installed post-transaction D2 layer adds the bounded Bond adjustment to the post-cash mechanical B3 marginal once.
-
-Result: **50/50**, BUILD 10/10. No production code or numerical tuning changed.
-
-## Batch 5 — IMPLEMENTED / VALIDATION PENDING
-
-Commit: `d1058919`.
-
-Audit findings:
-
-- `bond_pivot_authority._canonical_pivot_decision()` is downstream of D2.
-- only replacement options with `eligible=True` are considered for structural pivot projection.
-- even eligible options require `total_advantage > 0` before Bond/composition structure may promote a D2 HOLD to REPLACE.
-- this keeps structural pivot evidence from bypassing transaction legality, retention protection, or economically non-positive D2 results.
+- D8 `BuildAwareShopBoosterPolicy` owns unopened-pack acquisition and prices public money, interest, reserve, pack family, layout, and build need without reading hidden pack contents.
+- D9 `BalatroPackPolicy` owns visible choices after opening.
+- production installs `pack_sunk_cost_policy`, making the default opened-pack Skip baseline exactly zero.
+- pack acquisition money/interest/reserve cost is therefore paid once in D8 and must not be charged again after entering `*_PACK`.
 
 New semantics:
 
-1. `build.pivot.ineligible_d2_not_promoted`
-   - an option with arbitrarily large nominal advantage but `eligible=False` must remain HOLD;
-   - projected candidate composition must not even be evaluated for promotion.
-2. `build.pivot.nonpositive_d2_not_promoted`
-   - an eligible option with `total_advantage == 0` must remain HOLD;
-   - structural pivot evidence cannot convert a non-positive D2 transaction into a replacement.
+1. `resource.booster.unopened_unaffordable_hold`
+   - D8 must HOLD an unopened pack whose public price exceeds current money before family-level option value can authorize it.
+2. `resource.pack.opened_positive_uses_sunk_cost_baseline`
+   - after opening, default D9 Skip is zero;
+   - a positive visible marginal must beat Skip even when post-purchase cash is zero;
+   - historical pack cost must not be re-priced.
+3. `resource.pack.opened_negative_can_skip`
+   - a negative current visible marginal must lose to zero Skip;
+   - sunk cost must not force selection of a bad opened-pack outcome.
 
-Batch 5 changes semantic coverage only. No production code or numerical tuning changed.
+Batch 1 changes semantic coverage only. No production code or tuning values changed.
 
-Expected benchmark: **52/52**, `BUILD_COHERENCE` 12/12.
+Expected benchmark: **55/55**, with `RESOURCE_COHERENCE` 3/3.
 
 # EXACT NEXT ACTION
 
-Validate Phase-3 Batch 5 locally:
+Validate Phase-4 Batch 1 locally:
 
 ```powershell
 git pull
 python -m games.balatro.red_white_semantic_benchmark
+
 ```
 
 Do not run it from ChatGPT.
 
-### If 52/52 green
+### If 55/55 green
 
-Record Batch 5 green and close Phase 3. Advance to **Phase 4 — complex packs/consumables/vouchers/economy audit**. Read the actual D9/D14 resource authority before choosing the first semantic batch; do not start numerical tuning.
+Record Batch 1 green and continue Phase 4 with **opened-pack target legality and unsupported stochastic effects failing closed**. Inspect the installed D9 wrappers first; add semantics against the real runtime stack, not the unwrapped base policy.
 
-### If either Batch-5 case fails
+### If any Batch-1 case fails
 
-Treat it as a credible pivot/D2 authority defect unless output shows a concrete fixture mismatch. Fix the smallest canonical owner. Structural Bond evidence must never make an ineligible or economically non-positive D2 transaction executable.
+Classify fixture mismatch vs real D8/D9 resource-boundary defect. Fix the smallest canonical owner. Do not reintroduce historical pack cost into D9 and do not allow D8 to reason from hidden future identities.
 
 # Phase order
 
 1. Phase 0 — authority consolidation — COMPLETE
 2. Phase 1 — D1 survival semantic expansion — COMPLETE
 3. Phase 2 — simple shop survival — COMPLETE
-4. Phase 3 — coherent build evidence/authority quality — ACTIVE
-5. Phase 4 — complex packs/consumables/vouchers/economy audit
+4. Phase 3 — coherent build evidence/authority quality — COMPLETE
+5. Phase 4 — complex packs/consumables/vouchers/economy audit — ACTIVE
 6. Phase 5 — live validation
 7. Phase 6 — numerical tuning only after semantics are trustworthy
 
@@ -193,6 +164,7 @@ Future stake/deck progression remains blocked until Red/White competence passes.
 - Phase-0 ownership migrations and installer retirements
 - Phase-1 expansion beyond five validated batches
 - Phase-2 expansion beyond four validated batches
+- Phase-3 build-evidence expansion beyond validated authority semantics absent fresh evidence
 - Mouth discard-only legality defect
 - Green Joker survival-equivalent authority
 - Hook/log-resilience search reserve
