@@ -134,11 +134,13 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
 
     def _play_priority(self, state, action):
         projection = self._play_projection(state, action)
+        selected_gold = sum(1 for card in action.cards if self._active_gold(card))
         return (
             projection.clear_probability,
             projection.expected_hand_score,
             projection.hand_score,
             -len(action.cards),
+            -selected_gold,
         )
 
     def _estimate_action(self, state, action: BalatroAction, depth: int):
