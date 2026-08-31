@@ -39,7 +39,7 @@ Feature growth remains frozen until this competence gate is stable and reproduci
 
 Active phase:
 
-> **Phase 0 exit gate — substantive D1 authority consolidation is complete and locally validated.**
+> **Phase 0 exit gate — substantive D1 authority consolidation and the full deterministic Balatro suite are locally validated.**
 
 Canonical authority shape:
 
@@ -82,18 +82,18 @@ Canonical owners:
 - Joker-generation state, translator, explicit observer, production observer composition, and installer retirement
 - The Eye / The Mouth boss-hand constraints, Mouth discard evidence, and forced legal recovery
 
-Latest focused green:
+Latest user-provided full-suite green:
 
 ```powershell
 git pull
-python -m pytest -q tests/balatro/test_balatro_boss_hand_constraints_native.py
+python -m pytest -q tests/balatro
 ```
 
 ## Phase-0 substantive migration status
 
 **Complete. No further ownership-migration bucket is queued.**
 
-The full-suite exit gate has so far exposed two kinds of cleanup:
+The full-suite exit gate exposed two kinds of cleanup before passing:
 
 ### Stale tests protecting retired architecture
 
@@ -109,41 +109,32 @@ The full-suite exit gate has so far exposed two kinds of cleanup:
 
 `D1LiveBlindClearPlanner` in `hand_action_planner_core.py` overrode `_play_priority()` with a four-field tuple and accidentally shadowed the native base planner's Gold-card final tie-break. Commit `621856c6` restores `-selected_gold` as the final mechanical tie-break in D1 core priority. The verified commit diff contains only that missing tie-break.
 
+The user reran the complete deterministic Balatro suite after these repairs and reported **green**.
+
 No broad tuning values were changed.
 
 ---
 
 # EXACT NEXT ACTION
 
-Re-run the **Phase-0 full deterministic exit gate** locally:
-
-```powershell
-git pull
-python -m pytest -q tests/balatro
-```
-
-Do not run it from ChatGPT.
-
-### If the full deterministic suite is green
-
-Run the Red/White semantic benchmark:
+Run the **Red/White semantic benchmark** locally:
 
 ```powershell
 git pull
 python -m games.balatro.red_white_semantic_benchmark
 ```
 
-Then refresh `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` if it still describes retired D1 installers. Only after the full suite, benchmark review, and authority-map refresh should Phase 0 be declared complete and the roadmap advance.
+Do not run it from ChatGPT.
 
-### If the full suite fails
+### After the benchmark result
 
-Treat each failure as fresh evidence. Distinguish:
+1. review semantic benchmark output for regressions/pathologies;
+2. refresh `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` so retired D1 installers are described as compatibility/history rather than active authority;
+3. if the benchmark is acceptable and the authority map is current, declare Phase 0 complete and advance the roadmap to the next competence phase.
 
-1. genuine production semantic/mechanics regression;
-2. stale regression protecting retired monkeypatch/installer architecture;
-3. test-construction/identity assumption inconsistent with the canonical contract.
+### If the benchmark reveals a semantic failure
 
-Fix the smallest correct layer. Do not reopen closed migration buckets without evidence.
+Treat it as fresh evidence. Fix the smallest canonical owner and rerun the focused regression plus the semantic benchmark. Do not reopen retired wrapper architecture merely to satisfy historical expectations.
 
 ---
 
@@ -159,7 +150,9 @@ Fix the smallest correct layer. Do not reopen closed migration buckets without e
 8. Ectoplasm + round-reset resources — IMPLEMENTED / VALIDATED
 9. Joker-generation live state — IMPLEMENTED / VALIDATED
 10. Boss-hand constraints — IMPLEMENTED / VALIDATED
-11. Phase-0 exit gate — **ACTIVE; full-suite rerun pending after stale-test repairs and D1 Gold-priority fix**
+11. Phase-0 deterministic suite — **GREEN**
+12. Red/White semantic benchmark — **NEXT**
+13. Authority-map refresh + Phase-0 closure — **AFTER BENCHMARK**
 
 ---
 
@@ -173,18 +166,11 @@ Phase 0 is complete only when:
 - diagnostics cannot independently plan or change actions;
 - production behavior no longer depends on fragile module import/installer order for migrated D1 semantics;
 - deterministic focused tests protect behavior rather than retired monkeypatch mechanisms;
-- the full Balatro deterministic suite is green;
-- the Red/White semantic benchmark has been reviewed after the decision-semantic migrations;
-- `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` reflects current native ownership rather than retired installers.
+- the full Balatro deterministic suite is green — **SATISFIED**;
+- the Red/White semantic benchmark has been reviewed after the decision-semantic migrations — **PENDING**;
+- `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` reflects current native ownership rather than retired installers — **PENDING**.
 
-Mandatory deterministic suite:
-
-```powershell
-git pull
-python -m pytest -q tests/balatro
-```
-
-Then semantic benchmark:
+Semantic benchmark:
 
 ```powershell
 git pull
