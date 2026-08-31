@@ -31,6 +31,12 @@ _PINNED_HELD_CARD_VALUE = 1.25
 _PINNED_RED_SEAL_HELD_BONUS = 0.40
 
 
+def _boss_projection_unconfirmed(state, confirmed_clear_path) -> bool:
+    boss_name = str(getattr(state, "boss_name", "") or "")
+    blind_type = str(getattr(state, "blind_type", "") or "").upper()
+    return (bool(boss_name) or blind_type == "BOSS") and confirmed_clear_path is None
+
+
 class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
     """Production D1 survival authority with Bond/composition pursuit beneath it.
 
@@ -50,6 +56,16 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
 
     def decide(self, state, plans, **kwargs):
         plans = tuple(plans)
+        boss_unconfirmed = _boss_projection_unconfirmed(
+            state,
+            kwargs.get("confirmed_clear_path"),
+        )
+        if boss_unconfirmed:
+            plans = tuple(
+                replace(plan, exact=False) if bool(getattr(plan, "exact", False)) else plan
+                for plan in plans
+            )
+
         decision = super().decide(state, plans, **kwargs)
         decision = self._enforce_safe_pace_scope(
             state,
@@ -102,7 +118,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                     ),
                 )
         fit, rationale = self._strategy_fit(state, decision.action)
-        return replace(
+        decision = replace(
             decision,
             rationale=(
                 *decision.rationale,
@@ -112,6 +128,16 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                 *rationale,
             ),
         )
+        if boss_unconfirmed and decision.mode == CLEAR_PATH:
+            decision = replace(
+                decision,
+                confidence=min(float(decision.confidence), 0.95),
+                rationale=(
+                    "boss projection exactness is treated as model-dependent until independently confirmed",
+                    *decision.rationale,
+                ),
+            )
+        return decision
 
     @staticmethod
     def _deterministic_immediate_clear(plan, projection, score: float, remaining: float, epsilon: float) -> bool:
