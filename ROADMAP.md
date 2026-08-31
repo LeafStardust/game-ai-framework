@@ -99,9 +99,9 @@ The following behavior is now owned natively rather than by late D1 installation
 - strategy zero-signal discard redraw-size ordering;
 - The Serpent exact post-action draw count on both reusable base D1 and integrated production D1.
 
-`semantic_search_guard_policy` is compatibility-only, production startup no longer installs it, and the completed native search-bound + ordering regression gate is green locally.
+`semantic_search_guard_policy` is compatibility-only, production startup no longer installs it, and its native regression gate is green locally.
 
-`serpent_draw_policy` is now compatibility-only and production startup no longer installs it. Native Serpent regression is pending local validation.
+`serpent_draw_policy` is compatibility-only, production startup no longer installs it, and its native regression gate is green locally.
 
 This remains an **ownership refactor, not a tuning family**.
 
@@ -128,10 +128,10 @@ Semantic-search consolidation:
 
 Exact mechanics:
 
-- `89fb1a23f6be232abe327745a4317259f75f673a` — base `LiveBlindClearPlanner` now owns exact Serpent redraw count natively for Play and Discard transitions.
+- `89fb1a23f6be232abe327745a4317259f75f673a` — base `LiveBlindClearPlanner` owns exact Serpent redraw count natively for Play and Discard transitions.
 - `4811943d22405005a34912f48200c2189e7e9845` — Serpent installer retired to compatibility no-op.
 - `b8840745f770425153f593d7e86ff81e02634dc7` — production no longer installs Serpent overlay; Hook remains explicitly installed.
-- `d17f6aee546b7b376c8c41ae775e2f99c11a3c5c` — focused native Serpent regression coverage.
+- `d17f6aee546b7b376c8c41ae775e2f99c11a3c5c` — focused native Serpent regression coverage; user reported green.
 
 A previous noisy attempted planner rewrite was fully undone before the clean native ordering commit; do not resurrect or reason from that transient state.
 
@@ -141,48 +141,36 @@ A previous noisy attempted planner rewrite was fully undone before the clean nat
 
 # LAST USER-PROVIDED LOCAL TEST RESULT
 
-The user reported **green** for the completed semantic-search consolidation gate:
-
-```powershell
-git pull
-python -m pytest -q tests/balatro/test_balatro_semantic_search_native_bounds.py tests/balatro/test_balatro_semantic_search_native_ordering.py
-```
-
-This validates native Bond/search bounds, planner estimate ordering, strategy zero-signal discard ordering, and retirement of the production semantic-search installer.
-
----
-
-# EXACT NEXT ACTION
-
-## First: local focused validation of native Serpent ownership
-
-The user should run:
+The user reported **green** for native Serpent ownership:
 
 ```powershell
 git pull
 python -m pytest -q tests/balatro/test_balatro_serpent_native.py
 ```
 
-Do not run it from ChatGPT.
+This validates exact draw-3 behavior under active The Serpent, ordinary draw behavior when disabled, and absence of production Serpent installer mutation.
 
-### If it fails
+---
 
-- inspect the exact failure;
-- do not restore `install_serpent_draw_policy()` merely to satisfy a sentinel/import-order test;
-- preserve The Serpent literal rule: after each Play or Discard, draw exactly 3 cards while the boss is active;
-- if the boss is disabled by owned Joker mechanics, ordinary draw behavior must apply.
+# EXACT NEXT ACTION
 
-### If it is green
-
-Continue immediately with:
+Proceed immediately with:
 
 > **`hook_planner_integration_policy` exact forced-discard branch migration.**
 
-The Hook wrapper is heavier than Serpent because it currently replaces base `_estimate_play` to account for forced-discard score branches and branch-specific hand refill. Move that exact mechanic into the canonical planner carefully, add focused behavior regression coverage, and only then retire the installer.
+The Hook wrapper still replaces base `_estimate_play` to account for the post-play forced discard and the resulting hand refill. Inspect how score-outcome state already represents Hook effects before moving logic, then make the base canonical planner own only the missing exact transition semantics.
 
-After Hook, inspect Cerulean and the remaining boss/live-state wrappers to distinguish canonical state parsing from late mutation.
+Requirements:
 
-Do not begin higher stakes or broad tuning.
+- preserve The Hook literal forced-discard behavior;
+- preserve boss-disable semantics;
+- do not invent hidden discard identities or hidden RNG information;
+- keep guaranteed-clear handling exact;
+- preserve branch-specific refill size after the forced discard;
+- add a focused native regression before retiring `install_hook_planner_integration_policy()`;
+- do not alter tuning.
+
+After Hook is green, inspect Cerulean and remaining boss/live-state wrappers.
 
 ---
 
@@ -190,37 +178,24 @@ Do not begin higher stakes or broad tuning.
 
 ## 1. Target-hand evidence — IMPLEMENTED
 
-- Runner / To Do List evidence is consumed natively by canonical D1.
-- Target-hand installer architecture is intentionally retired.
-
 ## 2. Purple Seal discard beam coverage — IMPLEMENTED
-
-- Purple-Seal opportunities survive child-candidate/beam truncation natively.
-- Ordinary discard ranking remains authoritative outside the reserved distinct branch.
-- `purple_seal_discard_policy` is compatibility-only.
 
 ## 3. Held round-end resources — IMPLEMENTED
 
-- Blue-Seal reward accounting is native terminal valuation on actual round end.
-- Consumable capacity is respected.
-- Gold preservation is only a final play-priority tie-break.
-- `held_round_end_resource_policy` is compatibility-only.
-
 ## 4. `semantic_search_guard_policy` — IMPLEMENTED AND LOCALLY VALIDATED
-
-Native ownership covers Bond rank filtering, bounded candidate generation, redraw diversity, root reserves, planner recovery ordering, and strategy zero-signal discard ordering.
 
 ## 5. Remaining exact-mechanics / boss / Cerulean wrappers — ACTIVE
 
-### 5a. Serpent — IMPLEMENTED, LOCAL TEST PENDING
+### 5a. Serpent — IMPLEMENTED AND LOCALLY VALIDATED
 
 - reusable `LiveBlindClearPlanner` natively forces post-action draw count to 3 under active The Serpent;
-- integrated production D1 already owns the same rule natively;
+- integrated production D1 owns the same rule natively;
 - boss-disable semantics preserve ordinary draw count;
 - `serpent_draw_policy` is compatibility-only;
-- package startup no longer installs it.
+- package startup does not install it;
+- focused native test is green.
 
-### 5b. Hook — NEXT AFTER SERPENT GREEN
+### 5b. Hook — ACTIVE
 
 `hook_planner_integration_policy` still mutates base `_estimate_play` for exact forced-discard score branches. Preserve this literal mechanic while moving it into canonical planner ownership.
 
@@ -292,6 +267,7 @@ The full deterministic suite is mandatory before live validation, release promot
 - Purple-Seal installer architecture;
 - held-round-end-resource installer architecture;
 - semantic-search-guard installer architecture;
+- Serpent installer architecture;
 - production-default tuning ContextVar hypothesis — falsified;
 - historical SHOP recursive expectation roots;
 - BLIND_SELECT quiescence deadlock;
