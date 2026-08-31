@@ -143,7 +143,21 @@ class ShopUtilityScale:
             executable.decision.thresholds.immediate_money_weight
         )
         immediate_value = float(selected.immediate_gain) * immediate_weight
-        build_gain = float(selected.build_gain)
+
+        # D4 may use B4 structural/build-path gain to decide whether a consumable is
+        # worth admitting at all. Those units are not literal parent utility for an
+        # immediate transaction. BUY_AND_USE therefore carries only its explicit
+        # immediate effect here; specialized installed D14 evaluators may replace
+        # this with a stronger literal mechanical model (for example Planet use).
+        if selected.mode == "BUY_AND_USE":
+            build_gain = 0.0
+            build_gain_note = (
+                "D4 structural build gain suppressed for BUY_AND_USE parent arbitration",
+            )
+        else:
+            build_gain = float(selected.build_gain)
+            build_gain_note = (f"D4 build gain={build_gain:.3f}",)
+
         resource_cost = float(money_cost.total) + float(slot_cost)
         base_gain = build_gain + immediate_value - resource_cost
         discovery_applied = base_gain > 0.0 and is_undiscovered(candidate)
@@ -153,7 +167,7 @@ class ShopUtilityScale:
             resource_cost=resource_cost,
             notes=(
                 "D14 shared SHOP resource scale",
-                f"D4 build gain={build_gain:.3f}",
+                *build_gain_note,
                 f"D4 immediate value={immediate_value:.3f}",
                 f"shared resource cost={resource_cost:.3f}",
                 f"bounded discovery tie-break={'applied' if discovery_applied else 'inactive'}",
