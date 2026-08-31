@@ -37,7 +37,7 @@ Rules:
 
 Active phase:
 
-> **Phase 3 — coherent build evidence/authority quality. Batch 1 implemented, validation pending.**
+> **Phase 3 — coherent build evidence/authority quality. Batch 1 validated 44/44; Batch 2 implemented, validation pending.**
 
 Phase 0 authority consolidation: **COMPLETE / VALIDATED**.
 
@@ -96,6 +96,12 @@ Phase-1 final semantic benchmark: **33/33 GREEN**:
 Phase-2 final semantic benchmark: **42/42 GREEN**:
 
 - `BUILD_COHERENCE`: 2/2
+- `D1_SURVIVAL`: 22/22
+- `SHOP_SURVIVAL`: 18/18
+
+Phase-3 Batch-1 semantic benchmark: **44/44 GREEN**:
+
+- `BUILD_COHERENCE`: 4/4
 - `D1_SURVIVAL`: 22/22
 - `SHOP_SURVIVAL`: 18/18
 
@@ -163,31 +169,46 @@ Audit order:
 
 Build Health, Bond rank, motifs, and composition remain evidence/planning layers. They do not replace D1 survival authority or D14's final SHOP arbitration.
 
-## Batch 1 — IMPLEMENTED / VALIDATION PENDING
+## Batch 1 — VALIDATED GREEN
 
 Commits:
 
 - `0f5b0f3a` — adds `red_white_semantic_phase3_build_cases.py`.
 - `a89e8e6e` — wires Phase-3 build cases into the semantic benchmark.
 
-New cases:
+Validated:
 
 1. `build.roles.scoring_engine_direct_gain`
-   - a literal +Mult Joker must expose positive `direct_scoring_gain` / `direct_scoring_value` through B3 whole-build score projection;
-   - structural/Bond labels are not sufficient evidence for a scoring foothold.
+   - literal +Mult scoring exposes positive direct-scoring evidence.
 2. `build.roles.economy_not_direct_scoring`
-   - an economy-only Joker must expose zero direct scoring gain while retaining positive contextual build value;
-   - economy/support evidence may matter strategically but cannot manufacture chips or Mult.
+   - economy-only value remains contextual and does not manufacture direct score.
 
-Batch 1 changes semantic coverage only. No production code or tuning values changed.
+User result: **44/44 GREEN**, `BUILD_COHERENCE` 4/4.
 
-Expected benchmark if both pass: **44/44**, with `BUILD_COHERENCE` increasing from 2/2 to 4/4.
+## Batch 2 — IMPLEMENTED / VALIDATION PENDING
+
+Commit:
+
+- `ab6cdee0` — adds scaling-potential versus realized-power semantics using `RideTheBusJoker`.
+
+New cases:
+
+1. `build.scaling.fresh_potential_is_contextual`
+   - a fresh stateful scaler exposes `STATEFUL_SCALING` as contextual build evidence;
+   - future growth is legitimate evidence but is distinct from present literal score.
+2. `build.scaling.investment_increases_direct_power`
+   - the same scaler with accumulated public `mult` must have greater literal direct-scoring gain/value than a fresh copy;
+   - lifecycle role may remain the same while realized public investment materially changes current power.
+
+Batch 2 changes semantic coverage only. No production code or tuning values changed.
+
+Expected benchmark if both pass: **46/46**, with `BUILD_COHERENCE` increasing from 4/4 to 6/6.
 
 ---
 
 # EXACT NEXT ACTION
 
-Validate Phase-3 Batch 1 locally:
+Validate Phase-3 Batch 2 locally:
 
 ```powershell
 git pull
@@ -196,13 +217,13 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 44/44 green
+### If 46/46 green
 
-Continue Phase 3 with scaling evidence versus already-realized scoring power. Add cases only for concrete evidence/authority failure classes; do not tune numerical weights.
+Continue Phase 3 with contextual interaction value versus standalone intrinsic value. Prefer mechanically observable pair interaction evidence and ensure it does not duplicate the candidate's standalone score contribution.
 
-### If either Batch-1 case fails
+### If either Batch-2 case fails
 
-Classify whether the B3 evaluator is conflating direct scoring with contextual support/economy evidence or whether the fixture exposes a modeling gap. Fix the smallest canonical B3 owner. Do not add D2/D14 rescue wrappers.
+Classify whether lifecycle scaling evidence is missing or whether `JokerBuildValueEvaluator` fails to reflect public accumulated scaler state in literal score projection. Fix the smallest canonical B3 owner; do not add D2/D14 rescue wrappers.
 
 ---
 
