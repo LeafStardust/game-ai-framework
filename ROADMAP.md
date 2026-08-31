@@ -37,11 +37,13 @@ Rules:
 
 Active phase:
 
-> **Phase 2 — simple shop survival. Batch 3 validated 40/40; final Batch 4 implemented, validation pending.**
+> **Phase 3 — coherent build evidence/authority quality. Batch 1 implemented, validation pending.**
 
 Phase 0 authority consolidation: **COMPLETE / VALIDATED**.
 
 Phase 1 D1 survival semantic expansion: **COMPLETE / VALIDATED**.
+
+Phase 2 simple shop survival: **COMPLETE / VALIDATED**.
 
 Canonical owners:
 
@@ -91,11 +93,11 @@ Phase-1 final semantic benchmark: **33/33 GREEN**:
 - `D1_SURVIVAL`: 22/22
 - `SHOP_SURVIVAL`: 9/9
 
-Phase-2 validated checkpoints:
+Phase-2 final semantic benchmark: **42/42 GREEN**:
 
-- Batch 1: **36/36 GREEN**, `SHOP_SURVIVAL` 12/12.
-- Batch 2: **38/38 GREEN**, `SHOP_SURVIVAL` 14/14.
-- Batch 3: **40/40 GREEN**, `SHOP_SURVIVAL` 16/16.
+- `BUILD_COHERENCE`: 2/2
+- `D1_SURVIVAL`: 22/22
+- `SHOP_SURVIVAL`: 18/18
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc` and reflects current native authority.
 
@@ -121,94 +123,71 @@ Do not expand Phase 1 merely to increase semantic case count.
 
 ---
 
-# PHASE 2 — SIMPLE SHOP SURVIVAL
+# PHASE 2 — CLOSED
 
-Goal: protect basic Red/White shop decisions before deeper composition/build optimization.
+Phase 2 was capped at four batches and is complete at **42/42**.
+
+Validated simple-shop survival coverage:
+
+1. explicit zero-gain `END_SHOP` baseline;
+2. free-reroll tie behavior;
+3. replacement sell/re-observation transaction boundary;
+4. paid-reroll absolute cost stop-loss;
+5. paid-reroll cash-reserve stop-loss;
+6. bounded first-engine reserve relaxation;
+7. ordinary Joker reserve-crossing economics;
+8. shared-scale first-engine versus support/economy ordering in both directions.
+
+Important Batch-3 fixture history:
+
+- the runtime D2 stack includes installed post-transaction Joker revaluation through `transition_planner.evaluator.evaluate()`;
+- semantic fixtures must model that path when controlling synthetic Joker build gain;
+- no production behavior was changed by the Batch-3 fixture repairs.
+
+Do not add a Phase-2 Batch 5 merely to increase semantic coverage count.
+
+---
+
+# PHASE 3 — COHERENT BUILD EVIDENCE / AUTHORITY QUALITY
+
+Goal: ensure D2/D14 build evidence distinguishes real scoring, support, scaling, economy, and composition without creating duplicate scoring authority or converting structural evidence into fake immediate power.
 
 Audit order:
 
-1. explicit END_SHOP/no-action survival baseline;
-2. free versus paid reroll behavior;
-3. transaction checkpoint safety for replacement/sell/buy flows;
-4. early scoring foothold versus support/economy spending;
-5. cash/reserve stop-loss on ordinary purchases and paid rerolls;
-6. simple cross-family purchase comparison.
+1. scoring-engine versus support/economy role separation;
+2. scaling evidence versus already-realized scoring power;
+3. contextual interaction value versus standalone intrinsic value;
+4. Bond/composition evidence must not duplicate literal score arithmetic;
+5. replacement/pivot evidence must remain downstream of legal D2 economics;
+6. only after these semantics are clean, consider any numerical weighting questions.
 
-Existing SHOP semantics also protect first scoring foothold, strategic conflict vetoes, first-engine-before-hand-size, Wheel admission, empty-roster Buffoon admission, visible Bond-pair authority, and pair interaction requirements.
+Build Health, Bond rank, motifs, and composition remain evidence/planning layers. They do not replace D1 survival authority or D14's final SHOP arbitration.
 
-## Batch 1 — VALIDATED GREEN
-
-Commits:
-
-- `f2de18be` — adds `red_white_semantic_phase2_shop_cases.py`.
-- `7a1a8188` — wires Phase-2 cases into the benchmark.
-
-Validated:
-
-- `shop.simple.end_shop_zero_baseline`
-- `shop.simple.free_reroll_zero_tie`
-- `shop.simple.replacement_reobserve_boundary`
-
-User result: **36/36 GREEN**, `SHOP_SURVIVAL` 12/12.
-
-## Batch 2 — VALIDATED GREEN
-
-Commit:
-
-- `2a09039c` — D11 paid-reroll stop-loss semantics.
-
-Validated:
-
-- `shop.simple.paid_reroll_cost_cap`
-- `shop.simple.paid_reroll_cash_reserve`
-
-User result: **38/38 GREEN**, `SHOP_SURVIVAL` 14/14.
-
-## Batch 3 — VALIDATED GREEN
+## Batch 1 — IMPLEMENTED / VALIDATION PENDING
 
 Commits:
 
-- `00fe6214` — D2 ordinary-purchase cash semantics.
-- `27484d51` — fixes synthetic planner interface.
-- `c4c6c020` — isolates fixtures from Bond transition value.
-- `8edc2ad9` — aligns synthetic evaluator with installed post-transaction D2 valuation.
-
-Validated:
-
-- `shop.simple.first_engine_zero_cash_guard`
-- `shop.simple.joker_reserve_crossing_cost`
-
-Validation history exposed three fixture mismatches before the real runtime contract was represented correctly: missing planner evaluator, Bond-value contamination, and installed post-transaction D2 revaluation through `transition_planner.evaluator.evaluate()`. No production behavior was changed by those fixture repairs.
-
-User result after final repair: **40/40 GREEN**, `SHOP_SURVIVAL` 16/16.
-
-## Batch 4 — FINAL PLANNED PHASE-2 BATCH / VALIDATION PENDING
-
-Commits:
-
-- `d57c4364` — adds `red_white_semantic_phase2_cross_family_cases.py`.
-- `ce58863b` — wires the final cross-family cases into the semantic benchmark.
+- `0f5b0f3a` — adds `red_white_semantic_phase3_build_cases.py`.
+- `a89e8e6e` — wires Phase-3 build cases into the semantic benchmark.
 
 New cases:
 
-1. `shop.simple.cross_family_first_engine_wins`
-   - an admitted first scoring Joker with materially higher shared D14 normalized gain must beat a weaker deterministic support/economy purchase;
-   - owner if it fails: `BuildAwareShopArbiter` / `ShopUtilityScale` cross-family comparison.
-2. `shop.simple.cross_family_support_can_win`
-   - first-engine status is evidence, not a hardcoded family override; a materially higher-value deterministic support/economy option must still beat the weaker Joker on the same parent scale;
-   - owner if it fails: `BuildAwareShopArbiter` value ordering / family priority.
+1. `build.roles.scoring_engine_direct_gain`
+   - a literal +Mult Joker must expose positive `direct_scoring_gain` / `direct_scoring_value` through B3 whole-build score projection;
+   - structural/Bond labels are not sufficient evidence for a scoring foothold.
+2. `build.roles.economy_not_direct_scoring`
+   - an economy-only Joker must expose zero direct scoring gain while retaining positive contextual build value;
+   - economy/support evidence may matter strategically but cannot manufacture chips or Mult.
 
-Batch 4 changes semantic coverage only. No production code or tuning values changed.
+Batch 1 changes semantic coverage only. No production code or tuning values changed.
 
-Expected benchmark if both pass: **42/42**, with `SHOP_SURVIVAL` 18/18.
-
-**Phase 2 is capped at four planned batches.** If Batch 4 passes, close Phase 2 and advance to Phase 3. Do not add a Batch 5 merely to increase coverage count.
+Expected benchmark if both pass: **44/44**, with `BUILD_COHERENCE` increasing from 2/2 to 4/4.
 
 ---
 
 # EXACT NEXT ACTION
 
-Validate final Phase-2 Batch 4 locally:
+Validate Phase-3 Batch 1 locally:
 
 ```powershell
 git pull
@@ -217,13 +196,13 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 42/42 green
+### If 44/44 green
 
-Close Phase 2 and begin **Phase 3 — coherent build evidence/authority quality**. Start by auditing whether D2/D14 build evidence distinguishes real scoring engines, support, scaling, and economy without duplicate or contradictory authority. Do not tune numerical weights yet.
+Continue Phase 3 with scaling evidence versus already-realized scoring power. Add cases only for concrete evidence/authority failure classes; do not tune numerical weights.
 
-### If either Batch-4 case fails
+### If either Batch-1 case fails
 
-Classify fixture versus genuine D14 shared-scale defect. Fix the smallest canonical owner. Do not add post-arbiter family rescues.
+Classify whether the B3 evaluator is conflating direct scoring with contextual support/economy evidence or whether the fixture exposes a modeling gap. Fix the smallest canonical B3 owner. Do not add D2/D14 rescue wrappers.
 
 ---
 
@@ -231,8 +210,8 @@ Classify fixture versus genuine D14 shared-scale defect. Fix the smallest canoni
 
 1. **Phase 0 — authority consolidation** — COMPLETE
 2. **Phase 1 — D1 survival semantic expansion** — COMPLETE
-3. **Phase 2 — simple shop survival** — ACTIVE
-4. **Phase 3 — coherent build evidence/authority quality**
+3. **Phase 2 — simple shop survival** — COMPLETE
+4. **Phase 3 — coherent build evidence/authority quality** — ACTIVE
 5. **Phase 4 — complex packs/consumables/vouchers/economy audit**
 6. **Phase 5 — live validation**
 7. **Phase 6 — numerical tuning only after semantics are trustworthy**
@@ -245,6 +224,7 @@ Future stake/deck progression remains blocked until Red/White competence passes.
 
 - Phase-0 D1 ownership migration queue
 - Phase-1 semantic expansion beyond five validated batches
+- Phase-2 simple-shop expansion beyond four validated batches
 - Mouth discard-only legality defect itself
 - Green Joker survival-equivalent authority
 - Hook/log-resilience search reserve
