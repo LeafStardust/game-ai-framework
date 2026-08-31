@@ -16,7 +16,6 @@ from games.balatro.bond_scaler_build_health_policy import install_bond_scaler_bu
 from games.balatro.bond_shop_health_policy import install_bond_shop_health_policy
 from games.balatro.boss_hand_constraint_policy import install_boss_hand_constraint_policy
 from games.balatro.build_health_policy import install_build_health_policy
-from games.balatro.burnt_bond_execution_policy import install_burnt_bond_execution_policy
 from games.balatro.celestial_shop_headroom_fast_path import install_celestial_shop_headroom_fast_path
 from games.balatro.cerulean_live_state_policy import install_cerulean_live_state_policy
 from games.balatro.consumable_d14_literal_policy import install_consumable_d14_literal_policy
@@ -129,7 +128,6 @@ install_bond_shop_health_policy()
 install_bond_pivot_authority()
 install_bond_power_engine_retention_policy()
 install_bond_prescription_policy()
-install_burnt_bond_execution_policy()
 install_face_card_enabler_bond_policy()
 install_planet_relevance_policy()
 install_pinned_strategy_transition_policy()
