@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-09-01
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result remains 0 wins across the original baseline and Tunes A/B/C/D. Tune A remains retained provisionally. Tunes B, C, and D are REJECTED and reverted. Tune D's revert is now locally revalidated 74/74 GREEN. The next step is evidence review for a distinct Tune E; do not reopen the rejected D11, D2 replacement, or D8 margin experiments without new controlled evidence.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result remains 0 wins across the original baseline and Tunes A/B/C/D. Tune A remains retained provisionally. Tunes B, C, and D are REJECTED and reverted. Tune E is now staged as one canonical scoring-development rebalance: D2 whole-build contextual/B3 value weight 1.0 → 0.75, with direct literal scoring weight/cap and all D14 economics unchanged. Semantic validation is PENDING; do not launch a Tune-E live batch until the 74-case benchmark is green.**
 
 Validated checkpoints:
 
@@ -66,6 +66,7 @@ Validated checkpoints:
 - Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune D booster acquisition margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
+- Phase 6 Tune E contextual/B3 Joker build weight: **STAGED / SEMANTIC VALIDATION PENDING**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 - Phase 6 sticky-win GAME_OVER restart semantics: **LOCAL REGRESSION GREEN** (`28cec27b` + `6e1a2696`)
 
@@ -200,6 +201,35 @@ Interpretation:
 - user locally revalidated the reverted configuration **74/74 GREEN**;
 - do not stack Tune E on top of the rejected D8 experiment.
 
+## Tune E — rebalance realized scoring vs contextual Joker value — SEMANTIC VALIDATION PENDING
+
+Canonical owner: `JokerBuildValueEvaluator` / `JokerBuildValueWeights`, upstream of D2 admission and D14 shared-resource normalization.
+
+Production commits: `e17518fc` + constructor-repair `ba93321f`.
+
+Single effective numerical change:
+
+- `JokerBuildValueWeights.contextual_gain`: **1.0 → 0.75**.
+
+Unchanged:
+
+- literal whole-build `direct_scoring_gain` weight remains **6.0**;
+- literal direct-scoring cap remains **12.0**;
+- D2 purchase/replacement thresholds remain unchanged;
+- Tune A's Ante-1/2 first-Joker `$2` runway remains unchanged;
+- D14 money, interest, reserve, slot, and cross-family normalization remain unchanged;
+- Bond/composition remains evidence only and does not gain action authority;
+- no boss/Joker-specific rule and no hidden-state inference is introduced.
+
+Evidence/rationale:
+
+- D2 literal score value is proportional to fractional whole-build score improvement: a **50%** literal scoring increase contributes `0.50 × 6 = 3.0` before economics;
+- contextual B3 value can stack multiple structural/economy/support features before the separate Bond-transition adjustment is added;
+- therefore the previous `1.0` contextual multiplier could let future structural value match or exceed substantial realized scoring development on already-developed boards;
+- reducing only the contextual multiplier to `0.75` preserves all structural semantics while increasing the relative importance of current chip/Mult/XMult development without globally loosening spending.
+
+Do not launch a Tune-E live batch until the semantic benchmark is green. If semantic validation fails, repair/revert Tune E before any live comparison rather than stacking another tune.
+
 ## Runtime — sticky public `won` GAME_OVER restart — VALIDATED
 
 Balatro's public `won` bit can remain sticky after a later Ante-8 GAME_OVER loss.
@@ -210,11 +240,15 @@ Balatro's public `won` bit can remain sticky after a later Ante-8 GAME_OVER loss
 
 # EXACT NEXT ACTION
 
-Do **not** launch another live batch yet.
+Validate Tune E semantically before any live sampling:
 
-Select Tune E only from a **distinct evidence-backed problem**. Do not reopen Tune B's `$8` D11 runway, Tune C's `0.50` replacement margin, or Tune D's `0.20` booster margin without new controlled evidence. Prefer a target that can explain persistent underpowered medium/late runs while changing only one canonical numerical preference at a time.
+```powershell
+git pull
+python -m games.balatro.red_white_semantic_benchmark
 
-The next source-audit priority is **scoring-development value itself**, not generic spending permissiveness: inspect whether D2/D14/Bond scoring-gain magnitudes are systematically undervaluing realized chip/mult scaling compared with economy/support value on medium/late boards. Any Tune E must remain within the existing canonical evaluator/threshold owner and preserve literal Balatro score arithmetic.
+```
+
+If and only if the unchanged semantic benchmark remains **74/74 GREEN**, record Tune E as semantic green and then run a fresh 10-attempt live comparison with no additional numerical changes stacked on top.
 
 # Phase order
 
