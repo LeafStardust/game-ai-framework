@@ -52,6 +52,11 @@ class BalatroState(GameState):
         # discard from a later discard; first-discard mechanics must then fail
         # closed instead of guessing.
         self.discards_used: int | None = None
+        # Public starting discard allowance for the next round. SHOP needs this
+        # instead of the just-finished blind's remaining discards when valuing
+        # prospective Banner and related resource-sensitive effects.
+        self.round_reset_discards_observed: bool = False
+        self.round_reset_discards: int = 0
         self.jokers: list = []
         self.joker_slots: int = 5
         self.consumables: list = []
@@ -178,6 +183,8 @@ class BalatroState(GameState):
         new_state.discard_pile = self.discard_pile.copy()
         new_state.discards_remaining = self.discards_remaining
         new_state.discards_used = self.discards_used
+        new_state.round_reset_discards_observed = self.round_reset_discards_observed
+        new_state.round_reset_discards = self.round_reset_discards
         new_state.jokers = self.jokers.copy()
         new_state.joker_slots = self.joker_slots
         new_state.consumables = self.consumables.copy()
