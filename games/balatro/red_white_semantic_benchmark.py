@@ -13,6 +13,9 @@ from games.balatro.red_white_semantic_d1_resource_cases import (
 from games.balatro.red_white_semantic_phase1_d1_cases import (
     RED_WHITE_PHASE1_D1_CASES,
 )
+from games.balatro.red_white_semantic_phase2_cross_family_cases import (
+    RED_WHITE_PHASE2_CROSS_FAMILY_CASES,
+)
 from games.balatro.red_white_semantic_phase2_shop_cases import (
     RED_WHITE_PHASE2_SHOP_CASES,
 )
@@ -36,6 +39,7 @@ def run():
             *RED_WHITE_BOSS_NATIVE_CASES,
             *RED_WHITE_PHASE1_D1_CASES,
             *RED_WHITE_PHASE2_SHOP_CASES,
+            *RED_WHITE_PHASE2_CROSS_FAMILY_CASES,
         )
     )
 
