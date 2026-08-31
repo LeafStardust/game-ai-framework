@@ -213,7 +213,13 @@ class LifecycleJokerBehaviorAnalyzer(SemanticJokerBehaviorAnalyzer):
         working = copy.deepcopy(joker)
         state = self._lifecycle_state()
         cards = self._cards_for_hand(poker_hand)
-        baseline = self._checkpoint(working, state, poker_hand=poker_hand, cards=cards)
+        baseline = self._checkpoint(
+            working,
+            state,
+            poker_hand=poker_hand,
+            cards=cards,
+            scoring_event=True,
+        )
         random_state = random.getstate()
         try:
             random.seed(0)
@@ -227,6 +233,7 @@ class LifecycleJokerBehaviorAnalyzer(SemanticJokerBehaviorAnalyzer):
                         state,
                         poker_hand=poker_hand,
                         cards=cards,
+                        scoring_event=True,
                     )
                 if iteration == 3:
                     third = self._checkpoint(
@@ -234,6 +241,7 @@ class LifecycleJokerBehaviorAnalyzer(SemanticJokerBehaviorAnalyzer):
                         state,
                         poker_hand=poker_hand,
                         cards=cards,
+                        scoring_event=True,
                     )
         finally:
             random.setstate(random_state)
@@ -327,6 +335,7 @@ class LifecycleJokerBehaviorAnalyzer(SemanticJokerBehaviorAnalyzer):
         *,
         poker_hand: PokerHand = PokerHand.HIGH_CARD,
         cards: list[BalatroCard] | None = None,
+        scoring_event: bool = False,
     ) -> _LifecycleCheckpoint:
         probe = copy.deepcopy(joker)
         probe_cards = copy.deepcopy(cards or self._neutral_cards())
@@ -340,6 +349,14 @@ class LifecycleJokerBehaviorAnalyzer(SemanticJokerBehaviorAnalyzer):
             cards=copy.deepcopy(probe_cards),
             held_cards=copy.deepcopy(probe_cards),
             trigger="HAND_SCORED",
+            event=(
+                BalatroEvent(
+                    BalatroEventType.HAND_SCORED,
+                    cards=copy.deepcopy(probe_cards),
+                )
+                if scoring_event
+                else None
+            ),
             data=initial_data,
         )
         try:
