@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-09-01
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result is still 0 wins across the original baseline and Tunes A/B/C. Tune A remains retained provisionally. Tune B and Tune C are REJECTED and reverted. The Tune-C revert is locally revalidated 74/74 GREEN. Tune D is ACTIVE: Red/White D8 `minimum_buy_advantage` is lowered from 0.35 to 0.20 in `65cdaa23`, with all hit-probability, resource-cost, hidden-information, D2, D11, D14, and Tune-A semantics unchanged. Validate Tune D semantically before live sampling.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result is still 0 wins across the original baseline and Tunes A/B/C. Tune A remains retained provisionally. Tune B and Tune C are REJECTED and reverted. Tune D is ACTIVE and SEMANTIC GREEN at 74/74: Red/White D8 `minimum_buy_advantage` is 0.20, with all hit-probability, resource-cost, hidden-information, D2, D11, D14, and Tune-A semantics unchanged. The exact next gate is a fresh 10-attempt Tune-D live sample with no additional changes.**
 
 Validated checkpoints:
 
@@ -65,7 +65,7 @@ Validated checkpoints:
 - Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74; RETAINED / 0 OF 10 WINS after corrected terminal bookkeeping**
 - Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Tune D booster acquisition margin: **IMPLEMENTED / SEMANTIC VALIDATION PENDING**
+- Phase 6 Tune D booster acquisition margin: **SEMANTIC GREEN / 74/74; LIVE COMPARISON PENDING**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 - Phase 6 sticky-win GAME_OVER restart semantics: **LOCAL REGRESSION GREEN** (`28cec27b` + `6e1a2696`)
 
@@ -172,7 +172,7 @@ Balatro's public `won` bit can remain sticky after a later Ante-8 GAME_OVER loss
 - `6e1a2696` — focused regression.
 - local validation: **GREEN**.
 
-## Tune D — D8 booster acquisition margin — ACTIVE / SEMANTIC VALIDATION PENDING
+## Tune D — D8 booster acquisition margin — ACTIVE / SEMANTIC GREEN
 
 Canonical owner: D8 `BuildAwareShopBoosterPolicy`, configured by the Red/White playbook.
 
@@ -206,19 +206,32 @@ Why this target:
 
 This is a single numerical A/B hypothesis. No boss/Joker identity is hard-coded and no hidden future information is introduced.
 
+Validation:
+
+- user locally validated the full Red/White semantic benchmark **74/74 GREEN** after Tune D;
+- all semantic/category ownership contracts remain unchanged.
+
 # EXACT NEXT ACTION
 
-Validate Tune D semantically before any live batch:
+Run a fresh **10-attempt Tune-D live sample** with Tune A retained and no additional changes:
 
 ```powershell
 git pull
-python -m games.balatro.red_white_semantic_benchmark
+.\BalatroAgentToggle.bat --attempts 10
 
 ```
 
-Expected result: **74/74 GREEN**.
+Compare Tune D against the original baseline and Tunes A/B/C on:
 
-If green, run a fresh **10-attempt Tune-D live sample** with no additional changes.
+- authoritative win rate and furthest ante;
+- death score ratio;
+- cash at death;
+- booster purchases and opened-pack outcomes where trace evidence is retrievable;
+- Joker count/composition and realized scoring power;
+- discard/hands consumed at death;
+- whether large-cash underpowered deaths decrease.
+
+Do not stack Tune E until the 10-run Tune-D sample is reviewed.
 
 # Phase order
 
