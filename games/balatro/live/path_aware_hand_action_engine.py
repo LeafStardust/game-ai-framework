@@ -98,9 +98,10 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
 
     Completed root plan sets are also retained until the decision returns. If the
     wall-clock budget expires after at least one canonical root search completed,
-    timeout returns the best already-computed D1 plan instead of switching to the
-    base structural poker-hand/rank heuristic. The structural fallback remains only
-    as the emergency legal-action path when no canonical root evidence completed.
+    timeout reuses that completed evidence through the canonical D1 policy rather
+    than switching to either a second structural controller or raw planner ordering.
+    The structural fallback remains only as the emergency legal-action path when no
+    canonical root evidence completed or the public hand itself is unavailable.
 
     Normal post-policy adaptive evidence is subordinate to the action class selected
     by the canonical production policy. A pace-qualified Play cannot be replaced
@@ -266,12 +267,14 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         *,
         search_attempts,
     ) -> HandActionDecision:
-        """Reuse completed canonical D1 evidence before any structural emergency.
+        """Reuse completed D1 evidence without bypassing the final D1 arbiter.
 
-        A wall-clock deadline bounds how much more evidence D1 may compute; it does
-        not authorize a different strategy. Normal adaptive root searches are already
-        ranked by the canonical full-blind planner objective, so the latest completed
-        root remains the best available evidence when a later pass times out.
+        A wall-clock deadline may stop additional search. It does not promote the
+        planner's root ordering into final Play-vs-Discard authority. When complete
+        public hand state is available, the latest completed plan set is therefore
+        passed back through ``LiveHandActionPolicy``. Only synthetic/incomplete states
+        without a visible hand retain the old raw-ranking behavior because the policy
+        cannot recompute literal immediate pace/recovery evidence from missing state.
         """
         if not self._adaptive_plan_history:
             return _bounded_structural_timeout_fallback(
@@ -281,18 +284,39 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
             )
 
         plans = self._adaptive_plan_history[-1]
-        selected = plans[0]
         plays = tuple(plan for plan in plans if plan.action.name == PLAY_CARDS)
-        discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
         if not plays:
-            # Canonical D1 normally always has a Play root. If that invariant is
-            # ever broken, bounded structural recovery is safer than fabricating fields.
             return _bounded_structural_timeout_fallback(
                 self,
                 state,
                 search_attempts=search_attempts,
             )
 
+        summaries = tuple(summary for summary, _ in self._adaptive_root_history)
+        consensus = stable_discard_consensus(
+            summaries,
+            minimum_agreement=self.policy.thresholds.setup_discard_consensus_agreement,
+        )
+
+        if hasattr(state, "hand"):
+            decision = self.policy.decide(
+                state,
+                plans,
+                search_attempts=tuple(search_attempts),
+                setup_discard_consensus=bool(consensus),
+            )
+            return replace(
+                decision,
+                rationale=(
+                    "D1 wall-clock budget exhausted after a canonical adaptive root completed",
+                    "reuse the latest completed plan set through the canonical Play-vs-Discard arbiter",
+                    *decision.rationale,
+                    "take only this action, then re-observe and replan",
+                ),
+            )
+
+        selected = plans[0]
+        discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
         best_play = plays[0]
         best_discard = discards[0] if discards else None
         probability = float(selected.value.clear_probability)
@@ -305,16 +329,10 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         if not exact_clear and confidence <= 0.0:
             confidence = 0.25
 
-        summaries = tuple(summary for summary, _ in self._adaptive_root_history)
-        consensus = stable_discard_consensus(
-            summaries,
-            minimum_agreement=self.policy.thresholds.setup_discard_consensus_agreement,
-        )
         setup_consensus = bool(consensus and selected.action.name == DISCARD_CARDS)
-
         rationale = [
             "D1 wall-clock budget exhausted after a canonical adaptive root completed",
-            "reuse the latest completed full-blind D1 ranking; timeout cannot invent a second strategy",
+            "public hand is unavailable; reuse the latest completed root rather than fabricate immediate policy evidence",
         ]
         if exact_clear:
             rationale.append(
