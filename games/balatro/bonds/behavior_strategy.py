@@ -17,6 +17,9 @@ from games.balatro.bonds.strategy_semantics import SemanticLink, StrategyCandida
 from games.balatro.build.profile import BalatroBuildProfiler
 
 
+_MAX_CONCRETE_RANK_REQUIREMENTS = 5
+
+
 def _token(value: object) -> str:
     raw = str(value or "").lower()
     token = "".join(ch for ch in raw if ch.isalnum())
@@ -162,6 +165,14 @@ def _rank_requirements(node: _Node) -> frozenset[str]:
     )
 
 
+def _is_feature_rank_node(node: _Node) -> bool:
+    return str(getattr(node, "source", "")).lower().startswith("feature:rank:")
+
+
+def _rank_requirement_count(node: _Node) -> int:
+    return len(_rank_requirements(node))
+
+
 def _is_card_copy_engine(node: _Node) -> bool:
     """Return true for a Joker whose modeled mechanic can duplicate a chosen card.
 
@@ -173,6 +184,21 @@ def _is_card_copy_engine(node: _Node) -> bool:
 
 
 def _relation(left: _Node, right: _Node) -> str | None:
+    # Broad rank-requirement descriptors are scenario vocabulary, not evidence that
+    # every concrete rank-density feature belongs to one coherent engine. Keep this
+    # guard native to Bond composition so semantic graph construction cannot create
+    # a fake mega-strategy before D1 search even begins.
+    if (
+        _is_feature_rank_node(left)
+        and _rank_requirement_count(right) > _MAX_CONCRETE_RANK_REQUIREMENTS
+    ):
+        return None
+    if (
+        _is_feature_rank_node(right)
+        and _rank_requirement_count(left) > _MAX_CONCRETE_RANK_REQUIREMENTS
+    ):
+        return None
+
     if left.outputs.intersection(right.requires) or right.outputs.intersection(left.requires):
         return "OUTPUT_SATISFIES_REQUIREMENT"
     if left.outputs.intersection(right.scales_with) or right.outputs.intersection(left.scales_with):
