@@ -75,7 +75,7 @@ def _targeted_consumable_without_legal_positive_target_skips() -> SemanticCheck:
     )
 
 
-def _deferred_stochastic_effect_fails_closed() -> SemanticCheck:
+def _nonadmitted_stochastic_effect_fails_closed() -> SemanticCheck:
     state = BalatroState()
     state.phase = "SPECTRAL_PACK"
     policy = BalatroPackPolicy(consumable_factory=_SyntheticConsumableFactory())
@@ -85,22 +85,21 @@ def _deferred_stochastic_effect_fails_closed() -> SemanticCheck:
         _pack_choice(label="Ectoplasm", kind="SPECTRAL"),
     )
     passed = (
-        "Ectoplasm" in BalatroPackPolicy.DEFERRED_SPECTRALS
-        and abs(float(skip_score.total)) <= 1e-12
+        abs(float(skip_score.total)) <= 1e-12
         and float(select_score.total) < 0.0
         and ranked[0].action.name == SKIP_BOOSTER
     )
     return SemanticCheck(
         passed,
         observed=(
-            f"deferred={('Ectoplasm' in BalatroPackPolicy.DEFERRED_SPECTRALS)}, "
             f"Ectoplasm={select_score.total:.3f}, skip={skip_score.total:.3f}, "
             f"selected={ranked[0].action.name}"
         ),
-        expected="a production-deferred stochastic Spectral remains below opened-pack Skip=0",
+        expected="a stochastic/destructive Spectral not admitted in the current public state remains below opened-pack Skip=0",
         detail=(
-            "stochastic/destructive effects may become selectable only through an explicit complete public-state "
-            "outcome model; historical generic Spectral value must not leak through the installed wrapper stack"
+            "classification metadata may change when an explicit outcome model is installed; the semantic invariant "
+            "is action-level admission: without positive complete public-state value, generic Spectral utility must "
+            "not lift the visible choice above Skip"
         ),
     )
 
@@ -147,9 +146,9 @@ RED_WHITE_PHASE4_PACK_CASES = (
     SemanticBenchmarkCase(
         case_id="resource.pack.deferred_stochastic_fails_closed",
         category="RESOURCE_COHERENCE",
-        description="deferred stochastic opened-pack effect remains below Skip",
-        evaluate=_deferred_stochastic_effect_fails_closed,
-        source="Phase 4 pack audit: explicit stochastic-model ownership",
+        description="non-admitted stochastic opened-pack effect remains below Skip",
+        evaluate=_nonadmitted_stochastic_effect_fails_closed,
+        source="Phase 4 pack audit: explicit stochastic-model admission boundary",
     ),
     SemanticBenchmarkCase(
         case_id="resource.pack.unclassified_effect_fails_closed",
