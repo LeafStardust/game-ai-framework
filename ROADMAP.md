@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-09-01
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result remains 0 wins across the original baseline and Tunes A/B/C/D. Tune A remains retained provisionally. Tunes B, C, and D are REJECTED and reverted. Tune D's D8 `minimum_buy_advantage` experiment (0.35 → 0.20) produced 0/10 wins in session `balatro-20260831T162752Z-a61dfb38`; `6bd95bcc` restores the prior 0.35 value. The exact next action is semantic revalidation of that revert before selecting a distinct Tune E.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result remains 0 wins across the original baseline and Tunes A/B/C/D. Tune A remains retained provisionally. Tunes B, C, and D are REJECTED and reverted. Tune D's revert is now locally revalidated 74/74 GREEN. The next step is evidence review for a distinct Tune E; do not reopen the rejected D11, D2 replacement, or D8 margin experiments without new controlled evidence.**
 
 Validated checkpoints:
 
@@ -65,7 +65,7 @@ Validated checkpoints:
 - Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74; RETAINED / 0 OF 10 WINS after corrected terminal bookkeeping**
 - Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Tune D booster acquisition margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT PENDING LOCAL SEMANTIC VALIDATION**
+- Phase 6 Tune D booster acquisition margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 - Phase 6 sticky-win GAME_OVER restart semantics: **LOCAL REGRESSION GREEN** (`28cec27b` + `6e1a2696`)
 
@@ -197,6 +197,7 @@ Interpretation:
 - Tune D did not improve the primary metric versus baseline or Tunes A/B/C: all remain **0/10**;
 - without retrievable trace evidence showing a compensating improvement, the more permissive D8 margin does not justify retention;
 - `6bd95bcc` restores `minimum_buy_advantage=0.35` while leaving Tune A intact;
+- user locally revalidated the reverted configuration **74/74 GREEN**;
 - do not stack Tune E on top of the rejected D8 experiment.
 
 ## Runtime — sticky public `won` GAME_OVER restart — VALIDATED
@@ -209,17 +210,11 @@ Balatro's public `won` bit can remain sticky after a later Ante-8 GAME_OVER loss
 
 # EXACT NEXT ACTION
 
-Validate the Tune-D revert back to the retained Tune-A configuration:
+Do **not** launch another live batch yet.
 
-```powershell
-git pull
-python -m games.balatro.red_white_semantic_benchmark
+Select Tune E only from a **distinct evidence-backed problem**. Do not reopen Tune B's `$8` D11 runway, Tune C's `0.50` replacement margin, or Tune D's `0.20` booster margin without new controlled evidence. Prefer a target that can explain persistent underpowered medium/late runs while changing only one canonical numerical preference at a time.
 
-```
-
-Expected result: **74/74 GREEN**.
-
-If green, select Tune E only from a **distinct evidence-backed problem**. Do not reopen Tune B's `$8` D11 runway, Tune C's `0.50` replacement margin, or Tune D's `0.20` booster margin without new controlled evidence. Prioritize a target that can explain persistent underpowered medium/late runs while changing only one canonical numerical preference at a time.
+The next source-audit priority is **scoring-development value itself**, not generic spending permissiveness: inspect whether D2/D14/Bond scoring-gain magnitudes are systematically undervaluing realized chip/mult scaling compared with economy/support value on medium/late boards. Any Tune E must remain within the existing canonical evaluator/threshold owner and preserve literal Balatro score arithmetic.
 
 # Phase order
 
