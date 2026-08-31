@@ -79,75 +79,72 @@ Canonical owners:
 - Cerulean Bell `forced_selection` live-state path
 - Ectoplasm `ecto_minus` live-state path
 - round-reset discard resource live-state path
-- Joker-generation `BalatroState` fields/copy and translator hydration
+- Joker-generation state, translator, explicit observer, production observer composition, and installer retirement
 
 Latest user-provided green command:
-
-```powershell
-git pull
-python -m pytest -q tests/balatro/test_balatro_joker_generation_state_native.py
-```
-
-## Joker-generation live-state migration — IMPLEMENTED, FINAL OBSERVER TEST PENDING
-
-Native ownership now consists of:
-
-- `c053e7c0` — `BalatroState` owns generation-pool observation fields and copy semantics.
-- `320cad9d` — `DefaultBalatroStateTranslator` hydrates them natively.
-- `a6815ec3` — read-only public catalogue/eligibility/cache reader extracted.
-- `a8e85d49` — `JokerGenerationPoolLiveMemoryObserver` explicitly enriches public snapshots and includes the catalogue in sequence fingerprinting.
-- `15cff881` — `SupervisorLiveMemoryBalatroObserver` composes on top of the enriched observer, preserving native-readiness/quiescence gates.
-- `39e06fff` + `5c9acadd` — autonomous loop uses the explicit enriched observer; transient comment-only diff noise was restored.
-- `8700b23d` — direct single-step runtime entrypoint uses the explicit enriched observer.
-- `5fed9fed` — old Joker-generation live-state installer is compatibility-only no-op.
-- `6d3aac35` — package startup no longer installs the Joker-generation overlay.
-- `646a1ac2` — focused native observer/sequence/no-mutation regression coverage.
-
-The public-information contract remains unchanged:
-
-- no PRNG state;
-- no future pool order;
-- no selected future Joker identity;
-- eligibility uses only public unlock/duplicate/Showman/challenge/pool-flag/enhancement-gate state;
-- edition rate and visible poker-hand set remain public inputs;
-- catalogue cache resets at `GAME_OVER`.
-
-No package-time Joker-generation observer mutation remains.
-
-## Final substantive migration after Joker-generation green
-
-`boss_hand_constraint_policy` still mutates `StrategyAwareLiveHandActionPolicy` for:
-
-- The Eye candidate constraints;
-- The Mouth locked-hand candidate constraints;
-- Mouth discard evidence;
-- Mouth discard-only forced legal recovery;
-- zero-score Play redraw shaping when locked and no discards remain.
-
-This is the **only remaining substantive Phase-0 migration** before the exit gate.
-
----
-
-# EXACT NEXT ACTION
-
-Run the final native Joker-generation observer gate locally:
 
 ```powershell
 git pull
 python -m pytest -q tests/balatro/test_balatro_joker_generation_state_native.py tests/balatro/test_balatro_joker_generation_observer_native.py
 ```
 
+## Boss-hand constraint migration — IMPLEMENTED, FOCUSED TEST PENDING
+
+This is the final substantive Phase-0 ownership migration.
+
+Native ownership now consists of:
+
+- `games/balatro/live/boss_hand_constraints.py` — pure exact Eye/Mouth candidate constraints and subordinate Mouth evidence; no class mutation.
+- `StrategyAwareLiveHandActionPolicy.decide()` explicitly applies Eye/Mouth plan constraints before final D1 arbitration.
+- Mouth discard-only recovery is handled explicitly before parent arbitration when exact Mouth legality leaves no PLAY candidates.
+- `StrategyAwareLiveHandActionPolicy._strategy_fit()` explicitly includes Mouth retained-structure/redraw-width evidence for legal discards.
+- `boss_hand_constraint_policy` is compatibility-only and its installer is a no-op.
+- package startup no longer installs boss-hand constraints.
+- `tests/balatro/test_balatro_boss_hand_constraints_native.py` protects native Eye/Mouth behavior and absence of production monkeypatch authority.
+
+Mechanics preserved:
+
+- The Eye excludes already-used Play hand types when an unused legal Play exists, while retaining legal discard candidates.
+- The Mouth, once locked, allows matching Play hand types plus legal discards.
+- If no matching Mouth Play exists and a discard remains, D1 performs forced legal discard recovery rather than evaluating illegal Plays.
+- If no discard remains, Mouth zero-score recovery prefers the widest Play among retained-structure-equivalent redraws.
+- Mouth retained forced-hand structure and redraw width remain subordinate candidate evidence beneath canonical D1 survival ordering.
+- Boss-disabled states bypass these constraints.
+
+No tuning values were changed as part of ownership consolidation.
+
+---
+
+# EXACT NEXT ACTION
+
+Run the focused native boss-hand constraint gate locally:
+
+```powershell
+git pull
+python -m pytest -q tests/balatro/test_balatro_boss_hand_constraints_native.py
+```
+
 Do not run it from ChatGPT.
 
 ### If green
 
-Proceed immediately with:
+Phase-0 substantive migrations are complete. Immediately perform the Phase-0 exit gate:
 
-> **`boss_hand_constraint_policy` native D1 authority migration.**
+```powershell
+git pull
+python -m pytest -q tests/balatro
+```
 
-Move Eye/Mouth exact candidate constraints and subordinate Mouth evidence into `StrategyAwareLiveHandActionPolicy` / the canonical pre-arbitration D1 owner without changing mechanics or tuning. Retire the installer and package registration only after focused native regressions exist.
+After the full deterministic suite is green, run the Red/White semantic benchmark because boss-hand constraints affect decision semantics:
 
-After that green, perform the Phase-0 exit gate. Do not invent another wrapper-cleanup queue.
+```powershell
+git pull
+python -m games.balatro.red_white_semantic_benchmark
+```
+
+Refresh `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` if it still describes retired D1 installers before declaring Phase 0 complete.
+
+Do not invent another wrapper-cleanup queue.
 
 ---
 
@@ -161,9 +158,9 @@ After that green, perform the Phase-0 exit gate. Do not invent another wrapper-c
 6. Hook — IMPLEMENTED / VALIDATED
 7. Cerulean — IMPLEMENTED / VALIDATED
 8. Ectoplasm + round-reset resources — IMPLEMENTED / VALIDATED
-9. Joker-generation live state — **IMPLEMENTED; FINAL OBSERVER TEST PENDING**
-10. Boss-hand constraints — **FINAL SUBSTANTIVE MIGRATION**
-11. Phase-0 exit gate
+9. Joker-generation live state — IMPLEMENTED / VALIDATED
+10. Boss-hand constraints — **IMPLEMENTED; FOCUSED TEST PENDING**
+11. Phase-0 exit gate — **NEXT AFTER BOSS GREEN**
 
 ---
 
@@ -178,16 +175,17 @@ Phase 0 is complete only when:
 - production behavior no longer depends on fragile module import/installer order for migrated D1 semantics;
 - deterministic focused tests protect behavior rather than retired monkeypatch mechanisms.
 
-After the final migration run:
+Mandatory deterministic suite after the boss-focused test passes:
 
 ```powershell
 git pull
 python -m pytest -q tests/balatro
 ```
 
-Because boss-hand constraints materially affect decisions, also run:
+Then semantic benchmark:
 
 ```powershell
+git pull
 python -m games.balatro.red_white_semantic_benchmark
 ```
 
@@ -198,7 +196,7 @@ The full deterministic suite is mandatory before Phase 0 is declared complete.
 # CLOSED / DO NOT REOPEN WITHOUT FRESH EVIDENCE
 
 - ordinary D1 competence failures already repaired
-- Mouth discard-only legality defect itself (architecture still being migrated)
+- Mouth discard-only legality defect itself
 - Green Joker survival-equivalent authority
 - Hook/log-resilience search reserve
 - target-hand installer architecture
@@ -210,6 +208,7 @@ The full deterministic suite is mandatory before Phase 0 is declared complete.
 - Cerulean installer architecture
 - Ectoplasm installer architecture
 - round-resource installer architecture
+- Joker-generation live-state installer architecture
 - production-default tuning ContextVar hypothesis — falsified
 - historical SHOP recursive expectation roots
 - BLIND_SELECT quiescence deadlock
