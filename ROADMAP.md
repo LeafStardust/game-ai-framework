@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A is semantic GREEN at 74/74 and has 7/10 valid live comparison attempts retained; telemetry resilience is locally GREEN. The next gate is three additional Tune-A attempts.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A completed at 1/10 wins versus the 0/10 baseline. Tune B lowers only the pre-Ante-6 paid-reroll reserve from $10 to $8 and is awaiting semantic validation.**
 
 Validated checkpoints:
 
@@ -282,7 +282,7 @@ Important evidence:
 
 The first tuning target is therefore **early first-Joker cash runway**, not Joker identity and not semantic ownership.
 
-## Phase-6 tune A — first-Joker cash runway — SEMANTIC GREEN / LIVE COMPARISON 7/10 RETAINED
+## Phase-6 Tune A — first-Joker cash runway — COMPLETE / 1 OF 10 WINS
 
 Canonical owner: `JokerAcquisitionPolicy`.
 
@@ -297,56 +297,66 @@ Change:
 - the scoring-foothold semantic requirement remains unchanged;
 - no Joker names, boss names, hidden state, duplicate scorers, or rescue wrappers were introduced.
 
-Why $2:
-
-- it is the smallest measured intervention that excludes the two observed catastrophic $0/$1 first-Joker commitments;
-- it intentionally does not jump directly to the existing $5 reserve target, which would be a much larger behavioral change without evidence;
-- this is an A/B numerical experiment, not a new semantic rule.
-
 Validation:
 
 - user locally validated the full Red/White semantic benchmark **74/74 GREEN** after Tune A;
-- all category scores remain unchanged;
-- semantic ownership therefore remains intact.
+- all category scores remain unchanged.
 
-### Interrupted Tune-A live sample — retain 7 completed attempts
+### Tune-A live comparison result
 
-The first Tune-A 10-attempt session was interrupted after attempt 7 by a supervisor telemetry write failure, not by gameplay logic. The completed first seven attempts remain valid comparison evidence and must not be discarded.
+The first Tune-A session `balatro-20260831T123756Z-62a20e03` was interrupted after attempt 7 by the monitor-only telemetry Windows file-lock race. Those seven gameplay attempts remain valid. The key bookkeeping correction is that **attempt 7 was a real win**: it cleared Ante 8 / Crimson Heart with `won=true`; the supervisor then failed while publishing telemetry. The telemetry resilience repair (`d22f1b0a` + `cac8fd95`) was subsequently validated locally GREEN.
 
-- attempt 7 reached **Ante 8 / Crimson Heart**, the deepest Tune-A run observed before the supervisor failure;
-- the crash was a Windows `PermissionError` while atomically replacing monitor-only `telemetry.json`;
-- gameplay telemetry was already intended to be non-mission-critical, but the shared control writer used one fixed `.tmp` name and the shutdown/restart boundary could still let the replace failure escape;
-- `d22f1b0a` gives telemetry a unique temporary file, bounded `PermissionError` retry/backoff, cleanup, and nonfatal exhaustion while leaving authoritative status/session-summary durability unchanged;
-- `cac8fd95` adds regressions for transient recovery and permanently locked telemetry while ensuring authoritative status writes still succeed;
-- user locally validated those telemetry-resilience regressions **GREEN**.
+The final three Tune-A attempts came from session `balatro-20260831T132736Z-d53e9777` and all lost:
 
-The Tune-A comparison therefore resumes at **7/10**. Do not rerun or replace the first seven completed attempts.
+1. Ante 4 boss **The Pillar** — `7446 / 10000`, five Jokers (Raised Fist, Misprint, Photograph, Hiker, Flower Pot), $71, 0/4 manual discards used;
+2. Ante 1 boss **The Hook** — `396 / 600`, no Jokers, $8, 0/4 manual discards used; The Hook itself forcibly discards after played hands, so the manual-discard counter alone is not evidence to reopen the old global D1 defect;
+3. Ante 2 Big Blind — `980 / 1200`, no Jokers, $11, 4/4 discards used; the run summary records two purchases, but the exact purchase identities are not available from the retrievable trace evidence and must not be guessed.
 
-Do not stack another numerical tune on top of Tune A before its 10-run comparison sample is reviewed.
+Combined Tune-A result versus baseline:
+
+- win rate: **0/10 → 1/10**;
+- furthest result: baseline Ante 7 loss → Tune A **Ante 8 win**;
+- Ante-1 deaths: **3/10 → 3/10**, so Tune A did not reduce the raw early-death count;
+- the early-failure shape changed: one Tune-A Ante-1 death occurred before the first shop, while other early losses can still reach a shop/boss with no scoring Joker established;
+- Tune A is therefore retained rather than reverted: it produced the first observed Red/White win and removed the specific $0/$1 first-Joker commitment behavior without a semantic regression.
+
+The next target is not a lower ordinary D2 buy threshold. A cash-safe Ante-1/2 first Joker with positive literal `direct_scoring_gain` already uses the validated first-engine bootstrap even when it misses the ordinary `0.35` purchase-advantage threshold. The remaining no-Joker deaths instead justify testing whether early D11 paid-reroll runway is too conservative when visible shop offers fail to establish scoring.
+
+## Phase-6 Tune B — early paid-reroll runway — SEMANTIC VALIDATION PENDING
+
+Canonical owner: D11 `BuildAwareShopRerollPolicy`, configured by the Red/White playbook.
+
+Commit: `32457e2e`.
+
+Change:
+
+- Red/White `minimum_money_after_paid_reroll`: **$10 → $8** before Ante 6;
+- `minimum_margin=0.25` is unchanged, so a reroll must still beat the already-normalized best visible-shop option by the existing EV margin;
+- `maximum_paid_reroll_cost=$8` is unchanged;
+- Ante 6+ reserve remains **$20**;
+- Tune A's first-Joker post-purchase floor remains **$2**;
+- no hidden future identities or RNG are used: D11 still values rerolls only through its public/static future-shop offer prior and canonical public pool model.
+
+Why $8:
+
+- it is the smallest two-dollar relaxation from the existing $10 stop-loss floor;
+- a normal $5 reroll still requires at least $13 cash and leaves $8, preserving meaningful runway for a subsequent scoring purchase;
+- it can expose additional shop search opportunities for underbuilt early runs without making paid rerolls unconditional or weakening late-run reserves;
+- the Tune-A summaries provide evidence of early no-Joker failures, but do **not** expose exact reroll decisions at those shop checkpoints; Tune B is therefore explicitly an A/B numerical hypothesis, not a claimed reconstruction of those decisions.
+
+Do not stack another numerical tune until Tune B is semantically green and its live sample is reviewed.
 
 # EXACT NEXT ACTION
 
-Complete the Phase-6 Tune-A A/B comparison sample with exactly three additional attempts and no additional code changes:
+Validate Tune B against the unchanged 74 semantic contracts before running another live sample:
 
 ```powershell
 git pull
-.\BalatroAgentToggle.bat --attempts 3
+python -m games.balatro.red_white_semantic_benchmark
 
 ```
 
-Combine those three completed attempts with the retained first seven Tune-A attempts, then compare the resulting 10-run Tune-A sample directly against session `balatro-20260831T112338Z-d58df919` on:
-
-- win rate;
-- Ante-1 death count;
-- furthest ante;
-- death score ratio;
-- first-Joker identity, purchase cost, and money after purchase;
-- cash at death;
-- Joker count/composition and realized direct scoring power;
-- discard/hands consumed at death;
-- late-run underpowered cash retention.
-
-No second threshold should be changed until that completed tuned 10-run sample is reviewed.
+Expected semantic result: **74/74 GREEN**, with all category counts unchanged. If green, run a fresh 10-attempt Tune-B comparison with Tune A retained and no other changes.
 
 # Phase order
 
