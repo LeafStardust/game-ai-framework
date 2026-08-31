@@ -25,6 +25,20 @@ _EARLY_ENGINE_ANTE_LIMIT = 2
 _FIRST_ENGINE_MINIMUM_CASH_AFTER = 1
 
 
+def _has_current_scoring_foothold(candidate_value: object) -> bool:
+    """Return whether D2's literal whole-build probe found current scoring power.
+
+    The early first-Joker relaxation exists to establish a scoring foothold, not
+    merely any positive structural/economy axis. ``direct_scoring_gain`` is already
+    computed by the canonical Joker build evaluator from public literal score
+    projections, so reusing it adds no second scorer or hidden-state inference.
+    """
+    try:
+        return float(getattr(candidate_value, "direct_scoring_gain", 0.0) or 0.0) > 0.0
+    except (TypeError, ValueError):
+        return False
+
+
 @dataclass(frozen=True)
 class JokerAcquisitionThresholds:
     """Thresholds owned only by D2 Joker acquisition/replacement decisions."""
@@ -123,7 +137,7 @@ def _plan_missing_count(plan) -> int:
     if plan is None:
         return 0
     return len(tuple(getattr(plan, "missing_components", ()) or ())) + len(
-        tuple(getattr(plan, "missing_features", ()) or ())
+        tuple(getattr(plan, "missing_features", ()) or ()))
     )
 
 
@@ -398,6 +412,7 @@ class JokerAcquisitionPolicy:
                 and 1 <= ante <= _EARLY_ENGINE_ANTE_LIMIT
                 and not tuple(getattr(state, "jokers", ()) or ())
                 and float(option.build_gain) > 0.0
+                and _has_current_scoring_foothold(transition.candidate_value)
                 and int(option.economics.money_after) >= _FIRST_ENGINE_MINIMUM_CASH_AFTER
             )
             if first_engine_bootstrap:
@@ -411,8 +426,9 @@ class JokerAcquisitionPolicy:
             if first_engine_bootstrap:
                 rationale_parts.extend(
                     (
-                        "early first-engine bootstrap: positive grounded D2 build gain can outrank reserve-only HOLD",
+                        "early first-engine bootstrap: positive current scoring gain can outrank reserve-only HOLD",
                         f"mechanically grounded build gain={option.build_gain:.3f}",
+                        f"literal direct scoring gain={float(getattr(transition.candidate_value, 'direct_scoring_gain', 0.0) or 0.0):.6f}",
                         f"first-engine money after=${option.economics.money_after}",
                         "strategic conflicts remain ineligible",
                         "hidden future shop contents are not predicted",
