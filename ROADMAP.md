@@ -41,6 +41,15 @@ Active phase:
 
 Phase 0 authority consolidation is **CLOSED / VALIDATED**.
 
+Canonical owners:
+
+- D1 search/projection: `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`
+- D1 arbitration: `StrategyAwareLiveHandActionPolicy`
+- D1 orchestration/final return: `LiveHandActionDecisionEngine` / `PathAwareLiveHandActionDecisionEngine`
+- D14 SHOP: `BuildAwareShopArbiter`
+- D11 reroll: `BuildAwareShopRerollPolicy`
+- D9 opened pack: `BalatroPackPolicy`
+
 Canonical authority shape:
 
 ```text
@@ -59,15 +68,6 @@ One final arbiter
 Action
 ```
 
-Canonical owners:
-
-- D1 search/projection: `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`
-- D1 arbitration: `StrategyAwareLiveHandActionPolicy`
-- D1 orchestration/final return: `LiveHandActionDecisionEngine` / path-aware production engine
-- D14 SHOP: `BuildAwareShopArbiter`
-- D11 reroll: `BuildAwareShopRerollPolicy`
-- D9 opened pack: `BalatroPackPolicy`
-
 ## Phase-0 exit evidence
 
 User-provided deterministic suite:
@@ -79,14 +79,7 @@ python -m pytest -q tests/balatro
 
 Result: **GREEN**.
 
-User-provided Red/White semantic benchmark at Phase-0 exit:
-
-```powershell
-git pull
-python -m games.balatro.red_white_semantic_benchmark
-```
-
-Result: **24/24 GREEN**:
+Phase-0 Red/White semantic benchmark: **24/24 GREEN**:
 
 - `BUILD_COHERENCE`: 2/2
 - `D1_SURVIVAL`: 13/13
@@ -94,81 +87,80 @@ Result: **24/24 GREEN**:
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc` and documents current native owners rather than retired Phase-0 installers.
 
-## Phase-0 closed migrations
-
-- target-hand evidence
-- Purple-Seal discard branch coverage
-- held Blue-Seal / Gold-card resources
-- semantic-search guard ownership
-- The Serpent exact redraw rule
-- The Hook forced-discard refill continuation
-- Cerulean Bell `forced_selection` live-state path
-- Ectoplasm `ecto_minus` live-state path
-- round-reset discard-resource live state
-- Joker-generation public pool live state
-- The Eye / The Mouth boss-hand constraints and forced recovery
-
-Compatibility modules for retired installers may remain importable but are not production authorities.
+Closed Phase-0 migrations include target-hand evidence, Purple Seal branch coverage, held Blue/Gold resources, semantic-search ownership, Serpent, Hook, Cerulean, Ectoplasm, round-reset resources, Joker-generation public state, and Eye/Mouth boss constraints. Compatibility modules may remain importable but are not production authorities.
 
 Do not reopen Phase 0 without fresh deterministic or live evidence.
 
-## Phase-1 semantic expansion
+---
 
-### Batch 1 — VALIDATED GREEN
+# PHASE-1 SEMANTIC EXPANSION
+
+## Batch 1 — VALIDATED GREEN
 
 Commits:
 
-- `7c03bb73` — adds `red_white_semantic_phase1_d1_cases.py`.
-- `6ba86d1e` — includes the new cases in the Red/White semantic benchmark.
+- `7c03bb73` — initial Phase-1 D1 semantic cases.
+- `6ba86d1e` — benchmark wiring.
 
-Validated cases:
+Validated:
 
-1. `d1.survival.guaranteed_clear_preserves_discard`
-2. `d1.boss.recursive_cerulean_legality`
+- `d1.survival.guaranteed_clear_preserves_discard`
+- `d1.boss.recursive_cerulean_legality`
 
-User reported **26/26 GREEN**, with `D1_SURVIVAL` at 15/15.
+User result: **26/26 GREEN**, `D1_SURVIVAL` 15/15.
 
-### Batch 2 — VALIDATED GREEN
-
-Commit:
-
-- `74ebd420` — adds two recovery/resource hierarchy cases.
-
-Validated cases:
-
-1. `d1.survival.underpace_prefers_material_redraw`
-   - no pace-qualified Play + materially better canonical redraw => choose discard.
-2. `d1.resources.last_discard_marginal_recovery`
-   - a marginal recovery edge does not consume the final discard after the canonical reserve penalty.
-
-User reported **28/28 GREEN**, with `D1_SURVIVAL` at 17/17.
-
-### Batch 3 — IMPLEMENTED / VALIDATION PENDING
+## Batch 2 — VALIDATED GREEN
 
 Commit:
 
-- `2e0db64a` — adds two timeout-consistency cases.
+- `74ebd420` — recovery/resource hierarchy semantics.
+
+Validated:
+
+- `d1.survival.underpace_prefers_material_redraw`
+- `d1.resources.last_discard_marginal_recovery`
+
+User result: **28/28 GREEN**, `D1_SURVIVAL` 17/17.
+
+## Batch 3 — VALIDATED GREEN
+
+Commit:
+
+- `2e0db64a` — timeout consistency semantics.
+
+Validated:
+
+- `d1.timeout.latest_completed_root`
+- `d1.timeout.sampled_clear_requires_confirmation`
+
+User result: **30/30 GREEN**, `D1_SURVIVAL` 19/19.
+
+This protects both completed-root reuse under partial search timeout and the rule that timeout cannot manufacture confirmation for an inexact sampled clear.
+
+## Batch 4 — IMPLEMENTED / VALIDATION PENDING
+
+Commit:
+
+- `6f4715ac` — hand-resource and public-uncertainty semantics.
 
 New cases:
 
-1. `d1.timeout.latest_completed_root`
-   - if a later adaptive pass times out, reuse the latest fully completed canonical D1 root;
-   - do not rewind to older evidence or switch to structural emergency selection.
-2. `d1.timeout.sampled_clear_requires_confirmation`
-   - an inexact sampled line above the clear-probability floor remains recovery evidence unless an independent confirmation pass completed;
-   - timeout cannot manufacture `CLEAR_PATH` confirmation.
+1. `d1.resources.last_hand_prefers_recovery_discard`
+   - with one scoring hand left, a useful discard may outrank a slightly stronger under-pace Play because the Play consumes the final scoring opportunity;
+   - owner if it fails: `LiveHandActionPolicy` PACE_RECOVERY hand-resource hierarchy.
+2. `d1.uncertainty.hidden_draw_order_invariant`
+   - `PublicDeckComposition` and redraw probability are invariant to the serialized order of unseen deck cards;
+   - owner if it fails: `games/balatro/live/draw_model.py` public-state boundary.
 
-Canonical owner if either fails: `PathAwareLiveHandActionDecisionEngine._structural_timeout_fallback()` and its completed-root history contract.
+No production code or tuning values changed in Batch 4.
 
-No production code or tuning values changed in this batch.
-
-Expected benchmark total if both pass: **30/30**, with `D1_SURVIVAL` at 19/19.
+Expected benchmark if both pass: **32/32**, with `D1_SURVIVAL` 21/21.
 
 ---
 
 # EXACT NEXT ACTION
 
-Validate the third Phase-1 semantic batch locally:
+Validate Batch 4 locally:
 
 ```powershell
 git pull
@@ -177,16 +169,20 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 30/30 green
+### If 32/32 green
 
-Continue the Phase-1 audit for the next coherent D1 survival gap, prioritizing:
+Phase-1 semantic coverage has now explicitly protected:
 
-1. hand-resource hierarchy when hands are nearly exhausted;
-2. held-consumable spend vs re-observation/replan boundaries;
-3. public-state uncertainty invariants;
-4. remaining terminal-clear/resource hierarchy gaps not already protected.
+- guaranteed-clear resource conservation;
+- recursive boss legality;
+- under-pace redraw quality;
+- last-discard reserve;
+- partial-search timeout consistency;
+- sampled-clear confirmation boundaries;
+- last-hand survival hierarchy;
+- hidden draw-order invariance.
 
-Do not add cases merely to increase benchmark count.
+Then audit whether any **held-consumable spend vs re-observation/replan boundary** remains a plausible unprotected D1 competence failure. Add a case only if there is a concrete production path that can actually violate that boundary. Otherwise close Phase 1 and advance to **Phase 2 — simple shop survival**.
 
 ### If a new case fails
 
@@ -211,7 +207,6 @@ Future stake/deck progression remains blocked until Red/White competence passes.
 # CLOSED / DO NOT REOPEN WITHOUT FRESH EVIDENCE
 
 - Phase-0 D1 ownership migration queue
-- ordinary D1 competence failures already repaired
 - Mouth discard-only legality defect itself
 - Green Joker survival-equivalent authority
 - Hook/log-resilience search reserve
