@@ -18,6 +18,7 @@ from games.balatro.live.hand_action_policy import (
     LiveHandActionDecisionEngine as _BaseLiveHandActionDecisionEngine,
 )
 from games.balatro.live.strategy_health import LiveStrategyHealth, evaluate_live_strategy_health
+from games.balatro.safe_pace_optimization_policy import _safe_search_schedule
 
 
 @dataclass(frozen=True)
@@ -121,6 +122,15 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         self._d1_immediate_fallback_seconds = 0.0
         self.last_strategy_health: LiveStrategyHealth | None = None
         self.last_latency_breakdown: D1LatencyBreakdown | None = None
+
+    def _search_schedule(self, state):
+        """Apply the production safe-pace search budget without mutating base D1."""
+        return _safe_search_schedule(
+            hands_remaining=int(state.hands_remaining),
+            discards_remaining=int(state.discards_remaining),
+            max_horizon=self.max_horizon,
+            max_nodes=self.max_search_nodes,
+        )
 
     def rank_plans(self, state, *, planner=None):
         started = perf_counter()

@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 
-from games.balatro.live.hand_action_policy import LiveHandActionDecisionEngine
+from games.balatro.live.path_aware_hand_action_engine import (
+    PathAwareLiveHandActionDecisionEngine,
+)
 from games.balatro.safe_pace_optimization_policy import _safe_search_schedule
 
 
@@ -30,7 +32,7 @@ def test_safe_search_never_expands_to_engineered_five_action_clear():
 
 def test_production_d1_engine_applies_safe_pace_schedule():
     state = SimpleNamespace(hands_remaining=4, discards_remaining=4)
-    engine = LiveHandActionDecisionEngine(
+    engine = PathAwareLiveHandActionDecisionEngine(
         max_horizon=8,
         max_search_nodes=5000,
     )
