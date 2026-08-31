@@ -95,10 +95,25 @@ def _target_cost(target) -> float | None:
 
 
 def _pack_choice_signature(choices) -> tuple[tuple, ...]:
+    """Return only the stable public identity of visible pack choices.
+
+    ``LivePackChoice.address`` is a transient Lua/process-memory table address. It is
+    useful to the low-level postcondition reader, but it is not part of a visible
+    choice's semantic identity and may legitimately change between two reads of an
+    otherwise unchanged settled pack. The stale-plan guard therefore compares only
+    the stable public fields used to identify the same visible option.
+    """
     result = []
     for choice in choices:
         data = getattr(choice, "data", {}) or {}
-        result.append((int(getattr(choice, "area_index", -1)), int(getattr(choice, "address", 0)), str(getattr(choice, "kind", "")), str(getattr(choice, "label", "") or ""), str(data.get("center") or data.get("key") or "")))
+        result.append(
+            (
+                int(getattr(choice, "area_index", -1)),
+                str(getattr(choice, "kind", "")),
+                str(getattr(choice, "label", "") or ""),
+                str(data.get("center") or data.get("key") or ""),
+            )
+        )
     return tuple(result)
 
 
