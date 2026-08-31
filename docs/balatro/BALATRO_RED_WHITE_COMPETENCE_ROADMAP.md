@@ -1,6 +1,6 @@
 # Balatro Red/White Competence Roadmap
 
-Status: **ordinary Red/White competence/runtime stabilization is clean. Phase-A Bond composition calibration has completed its current exploratory gate on gameplay/runtime SHA `87c10f69ba43fb6fb4069b8c93fa8c48962fad54`; the production-default calibration remained best after 10 completed exploratory trials, so no candidate advances to holdout and Phase-A tuning stops here.**
+Status: **ordinary Red/White competence/runtime stabilization is clean. Phase-A Bond composition calibration has completed its current exploratory gate on gameplay/runtime SHA `87c10f69ba43fb6fb4069b8c93fa8c48962fad54`; the production-default calibration remained best after 10 completed exploratory trials, so no candidate advances to holdout and Phase-A tuning stops here. Phase-0 D1 authority consolidation is now the active implementation queue.**
 
 This is the active handoff contract for branch `feat/v1.0-red-white-competence`. Historical detail belongs in `BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`; decision ownership belongs in `BALATRO_DECISION_AUTHORITY_MAP.md`; tuning rules belong in `BALATRO_BOND_TUNING.md`.
 
@@ -8,7 +8,7 @@ This is the active handoff contract for branch `feat/v1.0-red-white-competence`.
 
 Do **not** reopen ordinary D1 competence, Mouth, Green Joker, discard authority, Hook, the falsified default-calibration ContextVar hypothesis, closed SHOP recursion roots, BLIND_SELECT quiescence, ROUND_EVAL checkout fast-path semantics, or the now-fixed D1 root pre-beam budget defect without fresh evidence.
 
-The current Phase-A numerical calibration gate is **closed with no promotion**.
+The current Phase-A numerical calibration gate is **closed with no promotion**. The active engineering task is Phase-0 D1 authority consolidation: remove remaining installation-order-dependent D1 wrappers by moving exact mechanics, projection, caching and evidence into their canonical owners without changing production behavior.
 
 ### Current authoritative exploratory study
 
@@ -72,6 +72,24 @@ The `-c` study is the first current-SHA exploratory study after both fixes and i
 - Live tuning halts immediately on a failed/non-COMPLETE live trial instead of cascading invalid trials.
 - Full `tests/balatro` was reported green after the current runtime/tuner fixes.
 
+## Phase-0 D1 authority consolidation checkpoint
+
+The following formerly installation-order-dependent D1 behavior has been moved into canonical production ownership and reported green locally:
+
+- safe-pace adaptive-search schedule -> native `PathAwareLiveHandActionDecisionEngine` scheduling;
+- safe-pace timeout/fallback authority -> native path-aware D1 orchestration;
+- Hook/log-resilience search reserve -> native production D1 budget path;
+- boss-unconfirmed projection confidence -> native `StrategyAwareLiveHandActionPolicy`;
+- per-decision Bond intent cache -> native `StrategyAwareLiveHandActionPolicy`;
+- Castle discard evidence -> native strategy-fit evidence path;
+- Burnt Joker discard evidence -> native strategy-fit evidence path;
+- DNA/Aces evidence -> native strategy-fit evidence path;
+- hand-repetition evidence and Green Joker survival-equivalent preservation -> native strategy policy/arbitration path.
+
+These changes are ownership refactors, not a new tuning family. Their purpose is to eliminate late mutation and make one canonical D1 path responsible for scheduling, projection evidence and Play/Discard arbitration.
+
+Remaining D1 wrappers should be handled one at a time with the same contract: preserve exact behavior, move ownership to the canonical component, remove the installer, add focused regression coverage, then require a local green result before proceeding.
+
 ## Expectation-layer authority contract
 
 1. Hypothetical/unseen SHOP outcomes may use public deterministic metadata and explicitly bounded leaf/context mechanics.
@@ -91,7 +109,7 @@ The `-c` study is the first current-SHA exploratory study after both fixes and i
 3. D11 reroll authority: `BuildAwareShopRerollPolicy`.
 4. D9 opened-pack authority: `BalatroPackPolicy`.
 5. Bond/composition and Build Health are evidence, not final gameplay action authority.
-6. Production uses ordered wrappers/monkeypatches; install order is behavior and must be preserved deliberately.
+6. Production still contains ordered wrappers/monkeypatches outside the already-consolidated D1 paths; install order must remain deliberate until each remaining owner is made native.
 
 ## Phase-A evaluation contract
 
@@ -125,7 +143,10 @@ Literal Balatro scoring and native legality are authoritative. Bond rank, motif 
 - [x] Complete 10-trial Phase-A exploratory checkpoint on the same SHA.
 - [x] Review candidate results: production baseline remains best.
 - [x] **Phase-A promotion gate closed with no candidate promoted.**
-- [ ] Select the next roadmap item outside Phase-A numerical calibration before exposing any broader tuning family.
+- [x] Select the next roadmap item outside Phase-A numerical calibration.
+- [x] Begin Phase-0 D1 authority consolidation and retire safe-pace/runtime/log-resilience/cache/Castle/Burnt/DNA/strategy-execution installers already reported green.
+- [ ] Continue remaining D1 exact-mechanics/projection/evidence wrapper consolidation, prioritizing narrow ownership moves before mixed/large wrappers.
+- [ ] Refresh `BALATRO_DECISION_AUTHORITY_MAP.md` after the next stable consolidation checkpoint so wrapper classifications match current code.
 
 ## Operating contract
 
