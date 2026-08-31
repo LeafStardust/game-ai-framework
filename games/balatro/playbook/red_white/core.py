@@ -175,7 +175,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                         "minimum_contextual_delta": None,
                     },
                     "booster_acquisition": {
-                        "minimum_buy_advantage": 0.20,
+                        "minimum_buy_advantage": 0.35,
                         "minimum_pack_hit_probability": 0.45,
                         "price_weight": 0.35,
                         "interest_weight": 1.25,
