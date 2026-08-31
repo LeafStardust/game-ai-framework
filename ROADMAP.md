@@ -1,60 +1,23 @@
 # ROADMAP — SINGLE SOURCE OF TRUTH
 
-This file is written for an LLM continuing development of this repository.
+This is the only authoritative roadmap/handoff for the Balatro Red/White competence branch.
 
-**This is the only authoritative roadmap, handoff, queue, or current-status document in the repository.**
-
-Rules:
-
-1. Read this file first.
-2. Treat `CURRENT STATE` and `EXACT NEXT ACTION` as authoritative.
-3. Other `docs/` files are supporting evidence/history only.
-4. If local test evidence proves this stale, update it in the same batch.
-5. Do not create another roadmap/handoff file.
-
----
-
-# REPOSITORY CONTRACT
+## Repository contract
 
 - Repository: `LeafStardust/game-ai-framework`
-- Active branch: `feat/v1.0-red-white-competence`
+- Branch: `feat/v1.0-red-white-competence`
 - User runs tests locally. **Do not run tests from ChatGPT.**
-- Every local validation command must begin with `git pull`.
-- Preserve exact Balatro mechanics, public-state legality, boss rules, and hidden-information boundaries.
-- Never use hidden RNG state, seeds, future pool order, future identities, or inaccessible information.
-- Prefer canonical ownership over late monkeypatch/rescue wrappers.
-- Do not use broad tuning to compensate for semantic defects.
+- Every validation command shown to the user must begin with `git pull`.
+- Preserve exact mechanics, public-state legality, boss rules, and hidden-information boundaries.
+- Never use hidden RNG state, seeds, future pool order/identities, or inaccessible information.
+- Prefer canonical ownership over late wrappers/rescues.
+- Do not tune broadly to hide semantic defects.
 
----
-
-# ACTIVE GAMEPLAY OBJECTIVE
+## Objective
 
 **Red Deck / White Stake, normal mode: maximize probability of winning the current run.**
 
----
-
-# CURRENT STATE — 2026-08-31
-
-Active phase:
-
-> **Phase 3 — coherent build evidence/authority quality. Batch 2 validated 46/46; Batch 3 contextual-pair semantics implemented, validation pending.**
-
-Phase 0 authority consolidation: **COMPLETE / VALIDATED**.
-
-Phase 1 D1 survival semantic expansion: **COMPLETE / VALIDATED**.
-
-Phase 2 simple shop survival: **COMPLETE / VALIDATED**.
-
-Canonical owners:
-
-- D1 search/projection: `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`
-- D1 arbitration: `StrategyAwareLiveHandActionPolicy`
-- D1 orchestration/final return: `LiveHandActionDecisionEngine` / `PathAwareLiveHandActionDecisionEngine`
-- D14 SHOP: `BuildAwareShopArbiter`
-- D11 reroll: `BuildAwareShopRerollPolicy`
-- D9 opened pack: `BalatroPackPolicy`
-
-Canonical authority shape:
+Canonical authority:
 
 ```text
 Authoritative public state
@@ -72,124 +35,113 @@ One final arbiter
 Action
 ```
 
----
+Canonical owners:
 
-# VALIDATED BASELINE
+- D1 search/projection: `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`
+- D1 arbitration: `StrategyAwareLiveHandActionPolicy`
+- D1 orchestration/final return: `LiveHandActionDecisionEngine` / `PathAwareLiveHandActionDecisionEngine`
+- D14 SHOP: `BuildAwareShopArbiter`
+- D11 reroll: `BuildAwareShopRerollPolicy`
+- D9 opened pack: `BalatroPackPolicy`
 
-Full deterministic Balatro suite:
+Bond/composition and Build Health are evidence/planning layers, never immediate score/action authorities.
 
-```powershell
-git pull
-python -m pytest -q tests/balatro
-```
+# Current state — 2026-08-31
 
-Result: **GREEN**.
+> **Phase 3 — coherent build evidence/authority quality. Batch 3 validated 48/48; Batch 4 Bond/composition authority semantics implemented, validation pending.**
 
-Semantic checkpoints:
+Validated checkpoints:
 
-- Phase 0 exit: **24/24 GREEN**.
-- Phase 1 exit: **33/33 GREEN**.
-- Phase 2 exit: **42/42 GREEN** (`BUILD_COHERENCE` 2/2, `D1_SURVIVAL` 22/22, `SHOP_SURVIVAL` 18/18).
-- Phase 3 Batch 1: **44/44 GREEN**, `BUILD_COHERENCE` 4/4.
-- Phase 3 Batch 2: **46/46 GREEN**, `BUILD_COHERENCE` 6/6.
+- Phase 0 authority consolidation: **COMPLETE / 24/24 semantic green**
+- Full deterministic Balatro suite: **GREEN**
+- Phase 1 D1 survival expansion: **COMPLETE / 33/33 green**
+- Phase 2 simple shop survival: **COMPLETE / 42/42 green**
+- Phase 3 Batch 1: **44/44 green**, `BUILD_COHERENCE` 4/4
+- Phase 3 Batch 2: **46/46 green**, `BUILD_COHERENCE` 6/6
+- Phase 3 Batch 3: **48/48 green**, `BUILD_COHERENCE` 8/8
 
-`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc` and reflects current native authority.
+`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
----
+# Phase 1 — CLOSED
 
-# PHASE 1 — CLOSED
+Intentionally capped at five batches. Validated D1 semantics include guaranteed-clear resource preservation, recursive boss legality, under-pace redraw quality, final-discard conservation, timeout authority, final-hand preservation, hidden draw-order invariance, and held-consumable re-observation. Do not add Batch 6 absent fresh evidence.
 
-Phase 1 was capped at five batches and is complete. No Batch 6 is queued absent fresh evidence.
+# Phase 2 — CLOSED
 
-Validated D1 additions include guaranteed-clear resource preservation, recursive boss legality, under-pace redraw quality, final-discard conservation, timeout authority, last-hand preservation, public hidden-order invariance, and held-consumable re-observation boundaries.
+Intentionally capped at four batches. Validated simple-shop semantics include explicit `END_SHOP`, free/paid reroll boundaries, replacement re-observation, cash stop-loss, bounded first-engine reserve relaxation, reserve-crossing economics, and shared-scale cross-family ordering. Do not add Batch 5 absent fresh evidence.
 
----
+Important runtime fact: installed post-transaction D2 Joker valuation recomputes candidate mechanical value through `transition_planner.evaluator.evaluate()` at actual post-purchase cash. Synthetic D2 fixtures must represent that path.
 
-# PHASE 2 — CLOSED
+# Phase 3 — COHERENT BUILD EVIDENCE / AUTHORITY QUALITY
 
-Phase 2 was capped at four batches and is complete at **42/42**.
-
-Validated simple-shop survival includes explicit `END_SHOP`, free/paid reroll boundaries, replacement re-observation, cash stop-loss, bounded first-engine reserve relaxation, reserve-crossing purchase economics, and shared-scale cross-family ordering.
-
-Important Batch-3 fixture history:
-
-- production D2 includes installed post-transaction Joker revaluation through `transition_planner.evaluator.evaluate()`;
-- synthetic D2 fixtures must model that path when controlling build gain;
-- no production behavior was changed by those fixture repairs.
-
-Do not add a Phase-2 Batch 5 merely to increase coverage count.
-
----
-
-# PHASE 3 — COHERENT BUILD EVIDENCE / AUTHORITY QUALITY
-
-Goal: ensure D2/D14 build evidence distinguishes real scoring, support, scaling, economy, and composition without creating duplicate scoring authority or converting structural evidence into fake immediate power.
+Goal: distinguish real scoring, support, scaling, economy, interaction, and composition without duplicate scoring authority or structural evidence becoming fake immediate power.
 
 Audit order:
 
-1. scoring-engine versus support/economy role separation;
-2. scaling evidence versus already-realized scoring power;
-3. contextual interaction value versus standalone intrinsic value;
-4. Bond/composition evidence must not duplicate literal score arithmetic;
+1. scoring engine versus support/economy — complete;
+2. scaling potential versus realized scoring — complete;
+3. contextual pair interaction versus standalone intrinsic — complete;
+4. Bond/composition evidence versus literal score arithmetic — **active Batch 4**;
 5. replacement/pivot evidence must remain downstream of legal D2 economics;
-6. only after these semantics are clean, consider numerical weighting questions.
-
-Build Health, Bond rank, motifs, and composition remain evidence/planning layers. They do not replace D1 survival authority or D14 final SHOP arbitration.
+6. only then consider numerical weights.
 
 ## Batch 1 — VALIDATED GREEN
 
-Commits:
-
-- `0f5b0f3a` — adds `red_white_semantic_phase3_build_cases.py`.
-- `a89e8e6e` — benchmark wiring.
+Commits: `0f5b0f3a`, `a89e8e6e`.
 
 Validated:
-
 - `build.roles.scoring_engine_direct_gain`
 - `build.roles.economy_not_direct_scoring`
 
-User result: **44/44 GREEN**, `BUILD_COHERENCE` 4/4.
+Result: **44/44**, BUILD 4/4.
 
-## Batch 2 — VALIDATED GREEN AFTER CANONICAL DEFECT FIX
+## Batch 2 — VALIDATED GREEN AFTER CANONICAL FIX
 
-Commits:
-
-- `ab6cdee0` — scaling-potential versus realized-power semantics using `RideTheBusJoker`.
-- `f2f5f4c8` — canonical lifecycle checkpoint fix.
+Commits: `ab6cdee0`, `f2f5f4c8`.
 
 Validated:
-
 - `build.scaling.fresh_potential_is_contextual`
 - `build.scaling.investment_increases_direct_power`
 
-Initial result was **44/46** because `LifecycleJokerBehaviorAnalyzer._score_sequence()` mutated event-driven Jokers with a synthetic `HAND_SCORED` event but `_checkpoint()` observed them with `event=None`. Ride the Bus therefore grew public `mult` but never exposed lifecycle scaling evidence. `f2f5f4c8` makes only score-sequence checkpoints carry the matching synthetic `HAND_SCORED` event on deep copies. Direct scoring was already correct.
+Initial 44/46 exposed a genuine lifecycle defect: score-sequence mutation carried a `HAND_SCORED` event but read-only checkpoints did not, so event-driven scalers such as Ride the Bus could grow public state without being classified as scaling. `f2f5f4c8` makes score checkpoints use the matching synthetic event on deep copies. Result after fix: **46/46**, BUILD 6/6.
 
-User result after fix: **46/46 GREEN**, `BUILD_COHERENCE` 6/6.
+## Batch 3 — VALIDATED GREEN
 
-## Batch 3 — IMPLEMENTED / VALIDATION PENDING
+Commit: `e489d9dd`.
 
-Commit:
+Validated:
+- `build.interaction.blueprint_pair_only_value`
+- `build.interaction.independent_scoring_not_pair_synergy`
 
-- `e489d9dd` — adds contextual pair-value / double-count semantics.
+Blueprint target-specific copy value is pair-only evidence; independent scoring output is not duplicated as pair synergy. Result: **48/48**, BUILD 8/8.
 
-Cases:
+## Batch 4 — IMPLEMENTED / VALIDATION PENDING
 
-1. `build.interaction.blueprint_pair_only_value`
-   - Blueprint may have standalone copy capability evidence;
-   - a concrete visible adjacent scoring target must add additional pair-only interaction value through the mechanical `COPY` probe.
-2. `build.interaction.independent_scoring_not_pair_synergy`
-   - two ordinary independent scoring Jokers must not receive pair-interaction credit merely because each scores independently;
-   - their literal scoring remains owned by direct score projection, not duplicated in B3 pair synergy.
+Commit: `131dd37c`.
 
-Batch 3 changes semantic coverage only. No production code or tuning values changed.
+Audit findings:
 
-Expected if both pass: **48/48**, with `BUILD_COHERENCE` 8/8.
+- `JokerBuildValueEvaluator` owns literal score projection separately from contextual B3 value.
+- D2 `_bond_transition_bonus()` projects public Bond/composition transitions after B3 mechanical value.
+- raw composer `coherence_delta` is diagnostic only; coherence alone is intentionally not awarded as a purchase bonus.
+- the installed post-transaction D2 layer adds the bounded Bond adjustment to the post-cash mechanical B3 marginal once.
 
----
+New semantics:
+
+1. `build.bond.coherence_not_scoring_bonus`
+   - a synthetic composition transition that changes only `coherence_score` from 1 to 9 must produce zero Bond bonus;
+   - composer coherence cannot manufacture chips or independent purchase value.
+2. `build.bond.adjustment_added_once`
+   - with mechanical whole-build gain fixed at 3 and Bond adjustment fixed at 2, D2 resulting build gain must be exactly 5;
+   - protects against folding structural Bond evidence into B3 and then crediting it again.
+
+No production code or numerical tuning changed in Batch 4.
+
+Expected benchmark: **50/50**, `BUILD_COHERENCE` 10/10.
 
 # EXACT NEXT ACTION
 
-Validate Phase-3 Batch 3 locally:
+Validate Phase-3 Batch 4 locally:
 
 ```powershell
 git pull
@@ -198,54 +150,38 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 48/48 green
+### If 50/50 green
 
-Continue Phase 3 with **Bond/composition evidence versus literal score arithmetic**. Audit for concrete double-counting paths first; add semantics only where a real B3/Bond owner can violate the boundary.
+Record Batch 4 green and continue Phase 3 with **replacement/pivot authority downstream of legal D2 economics**. Audit actual pivot/retention layers before adding cases. Add only concrete authority-boundary semantics; do not tune weights.
 
-### If either Batch-3 case fails
+### If either Batch-4 case fails
 
-Classify whether the pair probe fails to detect the real Blueprint adjacency mechanic or whether independent scoring is being duplicated as contextual interaction. Fix the smallest canonical B3 pair/synergy owner. Do not add D2/D14 rescue wrappers and do not weaken the semantics merely to make the count pass.
+Treat it as a credible Bond/D2 authority defect unless output shows a concrete fixture mismatch. Fix the smallest canonical owner. Do not add a D14 rescue or weaken the semantic.
 
----
+# Phase order
 
-# PHASE ORDER
-
-1. **Phase 0 — authority consolidation** — COMPLETE
-2. **Phase 1 — D1 survival semantic expansion** — COMPLETE
-3. **Phase 2 — simple shop survival** — COMPLETE
-4. **Phase 3 — coherent build evidence/authority quality** — ACTIVE
-5. **Phase 4 — complex packs/consumables/vouchers/economy audit**
-6. **Phase 5 — live validation**
-7. **Phase 6 — numerical tuning only after semantics are trustworthy**
+1. Phase 0 — authority consolidation — COMPLETE
+2. Phase 1 — D1 survival semantic expansion — COMPLETE
+3. Phase 2 — simple shop survival — COMPLETE
+4. Phase 3 — coherent build evidence/authority quality — ACTIVE
+5. Phase 4 — complex packs/consumables/vouchers/economy audit
+6. Phase 5 — live validation
+7. Phase 6 — numerical tuning only after semantics are trustworthy
 
 Future stake/deck progression remains blocked until Red/White competence passes.
 
----
+# Closed / do not reopen without fresh evidence
 
-# CLOSED / DO NOT REOPEN WITHOUT FRESH EVIDENCE
-
-- Phase-0 D1 ownership migration queue
-- Phase-1 semantic expansion beyond five validated batches
-- Phase-2 simple-shop expansion beyond four validated batches
-- Mouth discard-only legality defect itself
+- Phase-0 ownership migrations and installer retirements
+- Phase-1 expansion beyond five validated batches
+- Phase-2 expansion beyond four validated batches
+- Mouth discard-only legality defect
 - Green Joker survival-equivalent authority
 - Hook/log-resilience search reserve
-- target-hand installer architecture
-- Purple-Seal installer architecture
-- held-round-end-resource installer architecture
-- semantic-search-guard installer architecture
-- Serpent installer architecture
-- Hook planner installer architecture
-- Cerulean installer architecture
-- Ectoplasm installer architecture
-- round-resource installer architecture
-- Joker-generation live-state installer architecture
-- boss-hand-constraint installer architecture
-- production-default tuning ContextVar hypothesis — falsified
 - historical SHOP recursive expectation roots
 - BLIND_SELECT quiescence deadlock
-- ROUND_EVAL checkout fast-path semantics
-- D1 root pre-beam wall-clock budget defect
-- live tuner cascading after failed/non-COMPLETE trial
-- Phase-A Bond exploratory tuning — completed with no promotion
-- D14/D11 SHOP latency blocker unless fresh timing evidence reproduces it
+- ROUND_EVAL checkout fast path
+- D1 root pre-beam wall-clock defect
+- failed-trial tuner cascading
+- Phase-A Bond exploratory tuning (no promotion)
+- D14/D11 latency blocker absent fresh timing evidence
