@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A is RETAINED at 1/10 wins versus the 0/10 baseline. Tune B was REJECTED at 0/10 and its revert to the Tune-A `$10` D11 runway is locally validated 74/74 GREEN. Tune C is now ACTIVE: ordinary D2 Joker replacement advantage is lowered from 0.75 to 0.50 while aligned replacements remain 0.25. Semantic validation is the next gate.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A is RETAINED at 1/10 wins versus the 0/10 baseline. Tune B was REJECTED at 0/10 and its revert to the Tune-A `$10` D11 runway is locally validated 74/74 GREEN. Tune C is ACTIVE and SEMANTIC GREEN at 74/74: ordinary D2 Joker replacement advantage is 0.50 while aligned replacements remain 0.25. The next gate is a fresh 10-attempt Tune-C live comparison with no further changes.**
 
 Validated checkpoints:
 
@@ -72,7 +72,7 @@ Validated checkpoints:
 - Phase 5 D1 final-hand discard-chain search semantic: **GREEN / 74/74**, `D1_SURVIVAL` 25/25
 - Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74; RETAINED / 1 OF 10 WINS**
 - Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC VALIDATION PENDING**
+- Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; LIVE COMPARISON PENDING**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
@@ -177,7 +177,7 @@ Interpretation:
 - user locally revalidated the reverted Tune-A state **74/74 GREEN**;
 - do not reopen the `$8` D11 experiment absent new controlled evidence.
 
-## Phase-6 Tune C — ordinary Joker replacement margin — ACTIVE / SEMANTIC VALIDATION PENDING
+## Phase-6 Tune C — ordinary Joker replacement margin — ACTIVE / SEMANTIC GREEN
 
 Canonical owner: D2 `JokerAcquisitionPolicy`, configured by the Red/White playbook.
 
@@ -199,21 +199,35 @@ Why this target:
 - lowering only the ordinary replacement margin permits mechanically positive upgrades to replace weak incumbents more readily without making aligned replacements, first-Joker acquisition, boosters, consumables, or rerolls more permissive;
 - 0.50 is a single conservative step between the prior ordinary 0.75 threshold and the existing aligned 0.25 threshold.
 
+Validation:
+
+- user locally validated the full Red/White semantic benchmark **74/74 GREEN** after Tune C;
+- all semantic/category ownership contracts remain unchanged.
+
 This remains an A/B numerical hypothesis. No Joker identity is hard-coded, and no hidden future information is used.
 
 # EXACT NEXT ACTION
 
-Validate Tune C against the unchanged semantic benchmark before any new live sample:
+Run a fresh **10-attempt Tune-C live sample** with Tune A retained and no additional changes:
 
 ```powershell
 git pull
-python -m games.balatro.red_white_semantic_benchmark
+.\BalatroAgentToggle.bat --attempts 10
 
 ```
 
-Expected: **74/74 GREEN**, with all category counts unchanged.
+Compare Tune C against both the original 0/10 baseline and retained Tune A 1/10 on:
 
-If green, run a fresh **10-attempt Tune-C live sample** with Tune A retained and no other changes. Compare primarily on win rate, furthest ante, full-board replacement frequency where trace evidence is retrievable, cash at death, Joker composition, and death score ratio.
+- win rate and furthest ante;
+- death score ratio;
+- cash at death;
+- Joker count/composition;
+- full/near-full-board replacement frequency and replacement outcomes where trace evidence is retrievable;
+- realized direct scoring power;
+- discard/hands consumed at death;
+- whether large-cash underpowered deaths decrease.
+
+Do not stack Tune D until this 10-run Tune-C sample is reviewed.
 
 # Phase order
 
