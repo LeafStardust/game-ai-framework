@@ -68,6 +68,36 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             )
         except (TypeError, ValueError):
             state.round_reset_discards = 0
+        pools = payload.get("joker_generation_pools")
+        state.joker_generation_pool_observed = bool(
+            payload.get("joker_generation_pool_observed", False)
+        )
+        state.joker_generation_pools = (
+            {
+                str(rarity).upper(): [
+                    dict(record)
+                    for record in records
+                    if isinstance(record, dict)
+                ]
+                for rarity, records in pools.items()
+                if isinstance(records, list)
+            }
+            if isinstance(pools, dict)
+            else {}
+        )
+        try:
+            state.joker_generation_edition_rate = max(
+                0.0,
+                float(payload.get("joker_generation_edition_rate", 1.0)),
+            )
+        except (TypeError, ValueError):
+            state.joker_generation_edition_rate = 1.0
+        visible_hands = payload.get("visible_poker_hands")
+        state.visible_poker_hands = (
+            tuple(str(name) for name in visible_hands)
+            if isinstance(visible_hands, list)
+            else ()
+        )
         most_played = round_info.get(
             "most_played_poker_hand",
             round_info.get(
