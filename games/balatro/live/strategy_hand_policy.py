@@ -143,6 +143,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                         *decision.rationale,
                     ),
                 )
+        decision = self._green_preserved_decision(state, plans, decision)
         fit, rationale = self._strategy_fit(state, decision.action)
         decision = replace(
             decision,
@@ -350,7 +351,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                 ]
                 if setup_discard_consensus:
                     rationale.append("deep adaptive searches also agree on the setup discard")
-                decision = replace(
+                return replace(
                     baseline,
                     mode=PACE_RECOVERY,
                     action=selected.action,
@@ -369,7 +370,6 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                     confidence=0.75 if setup_discard_consensus else 0.60,
                     rationale=tuple(rationale) + baseline.rationale,
                 )
-                return self._green_preserved_decision(state, plans, decision)
 
             selected = best_play
             selected_score = scores[id(selected)]
