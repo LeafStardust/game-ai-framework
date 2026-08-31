@@ -292,6 +292,9 @@ def _paid_reroll_preserves_minimum_cash_reserve() -> SemanticCheck:
 
 def _synthetic_transition(build_gain: float) -> JokerBuildTransitionPlanner:
     planner = JokerBuildTransitionPlanner()
+    planner.evaluator = SimpleNamespace(
+        evaluate=lambda state, candidate: SimpleNamespace(total_gain=float(build_gain))
+    )
     planner.plan = lambda state, candidate: SimpleNamespace(
         candidate_value=SimpleNamespace(
             applicability="APPLICABLE",
