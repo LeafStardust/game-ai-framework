@@ -49,7 +49,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 4 COMPLETE. Phase 5 live validation is ACTIVE at 72/72 semantic green.**
+> **Phase 4 COMPLETE. Phase 5 live validation is ACTIVE. 72/72 is validated; the new D2 scoring-foothold semantic is implemented for validation at expected 73/73.**
 
 Validated checkpoints:
 
@@ -67,6 +67,7 @@ Validated checkpoints:
 - Phase 5 baseline runtime: **3/3 attempts completed without supervisor crash after pack stale-replan repairs**
 - Phase 5 live D1 made-hand discard-recovery semantic: **GREEN / 71/71**, `D1_SURVIVAL` **23/23**
 - Phase 5 D1 timeout final-arbiter semantic: **GREEN / 72/72**, `D1_SURVIVAL` **24/24**
+- Phase 5 live D2 first-Joker scoring-foothold semantic: **IMPLEMENTED / VALIDATION PENDING**, expected **73/73**, `SHOP_SURVIVAL` +1
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
@@ -234,22 +235,50 @@ Correction:
 
 Validated locally at **72/72**, `D1_SURVIVAL` **24/24**. This remains an authority correction, not numerical tuning.
 
+## Post-timeout-correction live baseline — completed
+
+Session: `balatro-20260831T093436Z-9a84e993`.
+
+Results:
+
+1. attempt 1 — loss, Ante 2 **Small Blind**, `544 / 800`, `hands_left=0`, `discards_left=0`, `discards_used=4`; only owned Joker at death was **Midas Mask**;
+2. attempt 2 — loss, Ante 7 **Big Blind**, `47112 / 52500`, `hands_left=0`, `discards_left=0`, `discards_used=5`;
+3. attempt 3 — loss, Ante 3 boss **The Needle**, `300 / 2000`, `hands_left=0`, `discards_left=0`, `discards_used=4`.
+
+The previous discard-hoarding failure is resolved in this live pass: all three losing blinds spent every available discard. Phase-5 attention therefore moves away from D1 discard authority unless fresh evidence reopens it.
+
+## Live D2 finding — first-Joker bootstrap conflates structural value with scoring foothold — validation pending
+
+Canonical owner: `JokerAcquisitionPolicy`.
+
+Fresh evidence:
+
+- attempt 1 spent its full four-discard recovery resource and still died at `544 / 800` on Ante 2;
+- its only Joker at death was Midas Mask, which provides deck-development/economy utility but is not a current literal scoring foothold;
+- D2's special Ante-1/2 first-Joker relaxation was documented as a scoring-engine bootstrap but required only positive whole-build gain, so structural/economy value could inherit the scoring emergency exception.
+
+Correction:
+
+- `0f1fd70f` makes the early first-Joker bootstrap require positive `direct_scoring_gain` from the already-computed canonical `JokerBuildValue`;
+- this field is derived from public literal whole-build score projection and therefore adds no second scorer, hidden information, or extra shop probe;
+- support/economy Jokers remain eligible for ordinary D2 purchase when their normal build value and economics justify them; they simply cannot use the special first-scoring-foothold reserve relaxation without current scoring power;
+- `9470907a` adds `d2.live.first_joker_bootstrap_requires_scoring_foothold`, holding positive structural build gain constant while verifying that only the candidate with current direct scoring gain receives the bootstrap.
+
+This is an authority/semantic correction, not numerical tuning. Expected checkpoint: **73/73**, with `SHOP_SURVIVAL` increasing by one and all prior categories unchanged.
+
 # EXACT NEXT ACTION
 
-Run another fresh three-attempt production baseline on the 72/72 stack:
+Validate the new D2 live semantic on the full Red/White benchmark:
 
 ```powershell
 git pull
-.\BalatroAgentToggle.bat --three
+python -m games.balatro.red_white_semantic_benchmark
 
 ```
 
-Provide the resulting session/run files or session prefix. Audit priorities:
+Expected: **73/73**, `D1_SURVIVAL` **24/24**, `SHOP_SURVIVAL` +1, all prior categories unchanged.
 
-1. whether D1 now spends discards while materially behind;
-2. whether losing blinds still exhaust hands with most/all discards unused;
-3. whether the next failure class is semantic/mechanical, runtime-bound, or only numerical preference;
-4. SHOP latency and action quality remain observed but should not be tuned ad hoc during Phase 5.
+If green, continue Phase-5 live validation from the 73/73 stack. The discard-hoarding failure is considered resolved by the latest live pass; next live analysis should focus on build/shop quality, boss-specific survival, and runtime evidence before any Phase-6 numerical tuning.
 
 Do not run tests or live games from ChatGPT.
 
