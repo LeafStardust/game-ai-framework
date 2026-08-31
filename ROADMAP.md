@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-09-01
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result is still 0 wins across the original baseline and Tunes A/B/C. Tune A remains retained provisionally. Tune B and Tune C are REJECTED and reverted. Tune D is ACTIVE and SEMANTIC GREEN at 74/74: Red/White D8 `minimum_buy_advantage` is 0.20, with all hit-probability, resource-cost, hidden-information, D2, D11, D14, and Tune-A semantics unchanged. The exact next gate is a fresh 10-attempt Tune-D live sample with no additional changes.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result remains 0 wins across the original baseline and Tunes A/B/C/D. Tune A remains retained provisionally. Tunes B, C, and D are REJECTED and reverted. Tune D's D8 `minimum_buy_advantage` experiment (0.35 → 0.20) produced 0/10 wins in session `balatro-20260831T162752Z-a61dfb38`; `6bd95bcc` restores the prior 0.35 value. The exact next action is semantic revalidation of that revert before selecting a distinct Tune E.**
 
 Validated checkpoints:
 
@@ -65,7 +65,7 @@ Validated checkpoints:
 - Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74; RETAINED / 0 OF 10 WINS after corrected terminal bookkeeping**
 - Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Tune D booster acquisition margin: **SEMANTIC GREEN / 74/74; LIVE COMPARISON PENDING**
+- Phase 6 Tune D booster acquisition margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT PENDING LOCAL SEMANTIC VALIDATION**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 - Phase 6 sticky-win GAME_OVER restart semantics: **LOCAL REGRESSION GREEN** (`28cec27b` + `6e1a2696`)
 
@@ -158,11 +158,46 @@ Do not reopen the `$8` D11 experiment absent new controlled evidence.
 
 Experiment: `47a212d0` changed ordinary D2 replacement advantage **0.75 → 0.50** while aligned replacements stayed `0.25`.
 Semantic result: **74/74 GREEN**.
-Live result: **0/10** across nine attempts from `balatro-20260831T145541Z-6d7821ed` plus the final attempt from `balatro-20260831T155937Z-39d11c7e`.
-Revert: `6261165b` restored **0.75**.
-Revert validation: user locally ran the full Red/White semantic benchmark and reported **74/74 GREEN**.
+Live result: **0/10**.
+Revert: `6261165b` restored **0.75**; revert locally validated **74/74 GREEN**.
 
 Do not reopen the `0.50` replacement experiment absent new controlled evidence.
+
+## Tune D — D8 booster acquisition margin — REJECTED / REVERTED
+
+Canonical owner: D8 `BuildAwareShopBoosterPolicy`, configured by the Red/White playbook.
+
+Experiment commit: `65cdaa23`.
+Revert commit: `6bd95bcc`.
+
+Experiment:
+
+- `booster_acquisition.minimum_buy_advantage`: **0.35 → 0.20**;
+- `minimum_pack_hit_probability` remained **0.45**;
+- family-specific public useful-offer priors remained unchanged;
+- money, interest, and reserve costs remained unchanged;
+- D9 opened-pack visible choice semantics remained unchanged;
+- no unopened pack identities were predicted;
+- D2, D11, D14, and Tune A remained unchanged.
+
+Semantic result before live sampling: **74/74 GREEN**.
+
+### Tune-D live comparison
+
+Session: `balatro-20260831T162752Z-a61dfb38`.
+
+Result: **0/10 wins**. All ten attempts ended with authoritative `LOSS` / `game over (lost)`, and the supervisor exited normally at the requested ten-attempt limit.
+
+Action counts by attempt were: **86, 95, 21, 113, 68, 116, 98, 148, 97, 70**. The sample therefore included both short and deep runs rather than failing at one uniform stage.
+
+The uploaded JSONL attempt files were explicitly supplied, but the active Python/container sandbox did not expose the provided mounted paths when read directly, and file search indexed only the session summary rather than the JSONL trace content. Therefore no exact booster-purchase count, pack-choice sequence, or per-attempt cash/Joker claim is made from this batch.
+
+Interpretation:
+
+- Tune D did not improve the primary metric versus baseline or Tunes A/B/C: all remain **0/10**;
+- without retrievable trace evidence showing a compensating improvement, the more permissive D8 margin does not justify retention;
+- `6bd95bcc` restores `minimum_buy_advantage=0.35` while leaving Tune A intact;
+- do not stack Tune E on top of the rejected D8 experiment.
 
 ## Runtime — sticky public `won` GAME_OVER restart — VALIDATED
 
@@ -172,66 +207,19 @@ Balatro's public `won` bit can remain sticky after a later Ante-8 GAME_OVER loss
 - `6e1a2696` — focused regression.
 - local validation: **GREEN**.
 
-## Tune D — D8 booster acquisition margin — ACTIVE / SEMANTIC GREEN
-
-Canonical owner: D8 `BuildAwareShopBoosterPolicy`, configured by the Red/White playbook.
-
-Commit: `65cdaa23`.
-
-Change:
-
-- `booster_acquisition.minimum_buy_advantage`: **0.35 → 0.20**.
-
-Everything else remains unchanged:
-
-- `minimum_pack_hit_probability=0.45`;
-- family-specific public useful-offer priors unchanged;
-- pack family/size EV logic unchanged;
-- money, interest, and reserve costs unchanged;
-- D9 opened-pack visible choice semantics unchanged;
-- no unopened pack identities are predicted;
-- D2 ordinary new-Joker threshold and replacement thresholds unchanged;
-- D11 remains at the restored `$10` pre-Ante-6 runway;
-- D14 shared parent normalization unchanged;
-- Tune A `$2` first-Joker runway unchanged.
-
-Why this target:
-
-- the persistent Phase-6 failure pattern is not just early survival; the stack repeatedly reaches Antes 4–8 with large retained cash but insufficient scoring power;
-- Tune B showed that simply paying for more rerolls did not improve outcomes;
-- Tune C showed that merely making ordinary Joker replacements more permissive did not improve outcomes;
-- D8 already computes a public, family-specific expected build opportunity and subtracts literal shared resource costs before applying `minimum_buy_advantage`;
-- reducing only the final D8 admission margin tests whether the agent is too conservative about spending excess cash on positive-EV build-development packs;
-- `0.20` is a conservative one-step reduction rather than removing the positive-EV requirement entirely.
-
-This is a single numerical A/B hypothesis. No boss/Joker identity is hard-coded and no hidden future information is introduced.
-
-Validation:
-
-- user locally validated the full Red/White semantic benchmark **74/74 GREEN** after Tune D;
-- all semantic/category ownership contracts remain unchanged.
-
 # EXACT NEXT ACTION
 
-Run a fresh **10-attempt Tune-D live sample** with Tune A retained and no additional changes:
+Validate the Tune-D revert back to the retained Tune-A configuration:
 
 ```powershell
 git pull
-.\BalatroAgentToggle.bat --attempts 10
+python -m games.balatro.red_white_semantic_benchmark
 
 ```
 
-Compare Tune D against the original baseline and Tunes A/B/C on:
+Expected result: **74/74 GREEN**.
 
-- authoritative win rate and furthest ante;
-- death score ratio;
-- cash at death;
-- booster purchases and opened-pack outcomes where trace evidence is retrievable;
-- Joker count/composition and realized scoring power;
-- discard/hands consumed at death;
-- whether large-cash underpowered deaths decrease.
-
-Do not stack Tune E until the 10-run Tune-D sample is reviewed.
+If green, select Tune E only from a **distinct evidence-backed problem**. Do not reopen Tune B's `$8` D11 runway, Tune C's `0.50` replacement margin, or Tune D's `0.20` booster margin without new controlled evidence. Prioritize a target that can explain persistent underpowered medium/late runs while changing only one canonical numerical preference at a time.
 
 # Phase order
 
@@ -256,6 +244,7 @@ Future stake/deck progression remains blocked until Red/White competence passes.
 - global D1 discard-hoarding defect after Baseline C, unless fresh multi-run evidence reopens it
 - Tune-B `$8` pre-Ante-6 paid-reroll runway absent new controlled evidence
 - Tune-C `0.50` ordinary Joker replacement margin absent new controlled evidence
+- Tune-D `0.20` D8 booster acquisition margin absent new controlled evidence
 - Mouth discard-only legality defect
 - Green Joker survival-equivalent authority
 - Hook/log-resilience search reserve
