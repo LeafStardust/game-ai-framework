@@ -10,6 +10,7 @@ from games.balatro.live.hand_action_policy import (
     LiveHandActionPolicy,
 )
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
+from games.balatro.live.path_aware_hand_action_engine import PathAwareLiveHandActionDecisionEngine
 from games.balatro.playbook import default_balatro_playbooks
 
 
@@ -150,8 +151,8 @@ def test_final_fallback_goes_directly_to_immediate_beam(monkeypatch):
 
 def test_live_schedule_uses_single_shallow_advisory_pass_under_safe_pace_policy():
     state = _state()
-    full = LiveHandActionDecisionEngine(max_horizon=5)
-    sparse = LiveHandActionDecisionEngine(
+    full = PathAwareLiveHandActionDecisionEngine(max_horizon=5)
+    sparse = PathAwareLiveHandActionDecisionEngine(
         max_horizon=5,
         search_schedule_mode="probe-deepest",
     )
@@ -204,7 +205,7 @@ def _structural_state(*, hands=3):
 
 def test_timeout_fallback_discards_around_top_pair_instead_of_burning_hand():
     planner = _StructuralPlanner()
-    engine = LiveHandActionDecisionEngine(
+    engine = PathAwareLiveHandActionDecisionEngine(
         planner=planner,
         policy=LiveHandActionPolicy(evaluator=planner.evaluator),
     )
@@ -219,7 +220,7 @@ def test_timeout_fallback_discards_around_top_pair_instead_of_burning_hand():
 
 def test_timeout_fallback_plays_made_pair_on_last_hand():
     planner = _StructuralPlanner()
-    engine = LiveHandActionDecisionEngine(
+    engine = PathAwareLiveHandActionDecisionEngine(
         planner=planner,
         policy=LiveHandActionPolicy(evaluator=planner.evaluator),
     )
