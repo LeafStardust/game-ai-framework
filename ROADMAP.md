@@ -37,9 +37,11 @@ Rules:
 
 Active phase:
 
-> **Phase 1 — semantic benchmark expansion and D1 survival competence refinement. Final batch pending validation.**
+> **Phase 2 — simple shop survival. Batch 1 implemented, validation pending.**
 
-Phase 0 authority consolidation is **CLOSED / VALIDATED**.
+Phase 0 authority consolidation: **COMPLETE / VALIDATED**.
+
+Phase 1 D1 survival semantic expansion: **COMPLETE / VALIDATED**.
 
 Canonical owners:
 
@@ -68,9 +70,11 @@ One final arbiter
 Action
 ```
 
-## Phase-0 exit evidence
+---
 
-User-provided deterministic suite:
+# VALIDATED BASELINE
+
+Full deterministic Balatro suite:
 
 ```powershell
 git pull
@@ -79,105 +83,81 @@ python -m pytest -q tests/balatro
 
 Result: **GREEN**.
 
-Phase-0 Red/White semantic benchmark: **24/24 GREEN**:
+Phase-0 semantic exit benchmark: **24/24 GREEN**.
+
+Phase-1 final semantic benchmark: **33/33 GREEN**:
 
 - `BUILD_COHERENCE`: 2/2
-- `D1_SURVIVAL`: 13/13
+- `D1_SURVIVAL`: 22/22
 - `SHOP_SURVIVAL`: 9/9
 
-`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc` and documents current native owners rather than retired Phase-0 installers.
-
-Closed Phase-0 migrations include target-hand evidence, Purple Seal branch coverage, held Blue/Gold resources, semantic-search ownership, Serpent, Hook, Cerulean, Ectoplasm, round-reset resources, Joker-generation public state, and Eye/Mouth boss constraints. Compatibility modules may remain importable but are not production authorities.
-
-Do not reopen Phase 0 without fresh deterministic or live evidence.
+`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc` and reflects current native authority.
 
 ---
 
-# PHASE-1 SEMANTIC EXPANSION
+# PHASE 1 — CLOSED
 
-Phase 1 is intentionally capped at **five batches** unless the final batch exposes a real production defect. Further benchmark growth without a concrete failure class is out of scope.
+Phase 1 was intentionally capped at five batches and is now complete. No Batch 6 is queued absent fresh evidence.
 
-## Batch 1 — VALIDATED GREEN
+Validated additions:
+
+1. guaranteed clear preserves discard resource;
+2. recursive Cerulean candidates preserve boss legality;
+3. under-pace play yields to materially stronger redraw;
+4. final discard is conserved for only marginal recovery;
+5. timeout reuses latest completed canonical root;
+6. timeout does not promote unconfirmed sampled clears;
+7. last-hand recovery preserves the final scoring opportunity;
+8. public redraw value is invariant to hidden serialized deck order;
+9. deterministic held-consumable clear projection executes only `USE_CONSUMABLE`, then re-observes/replans.
+
+Do not expand Phase 1 merely to increase semantic case count.
+
+---
+
+# PHASE 2 — SIMPLE SHOP SURVIVAL
+
+Goal: protect basic Red/White shop decisions before deeper composition/build optimization.
+
+Audit order:
+
+1. explicit END_SHOP/no-action survival baseline;
+2. free versus paid reroll behavior;
+3. transaction checkpoint safety for replacement/sell/buy flows;
+4. early scoring foothold versus support/economy spending;
+5. cash/reserve stop-loss on ordinary purchases and paid rerolls;
+6. only then compare cross-family simple purchases.
+
+Existing SHOP semantics already protect first scoring foothold, strategic conflict vetoes, first-engine-before-hand-size, Wheel admission, empty-roster Buffoon admission, visible Bond-pair authority, and pair interaction requirements.
+
+## Batch 1 — IMPLEMENTED / VALIDATION PENDING
 
 Commits:
 
-- `7c03bb73` — initial Phase-1 D1 semantic cases.
-- `6ba86d1e` — benchmark wiring.
+- `f2de18be` — adds `red_white_semantic_phase2_shop_cases.py`.
+- `7a1a8188` — wires Phase-2 cases into `red_white_semantic_benchmark`.
 
-Validated:
+New cases:
 
-- `d1.survival.guaranteed_clear_preserves_discard`
-- `d1.boss.recursive_cerulean_legality`
+1. `shop.simple.end_shop_zero_baseline`
+   - an admitted family-local child with negative normalized parent value must lose to explicit `END_SHOP`;
+   - owner if it fails: `BuildAwareShopArbiter` parent candidate arbitration.
+2. `shop.simple.free_reroll_zero_tie`
+   - a genuinely free reroll beats `END_SHOP` on an otherwise exact zero-gain tie;
+   - owner if it fails: D14 reroll tie priority / D11-D14 handoff.
+3. `shop.simple.replacement_reobserve_boundary`
+   - a profitable Joker replacement executes only `SELL_JOKER`, then requires fresh authoritative SHOP observation before any follow-up `BUY_JOKER`;
+   - owner if it fails: `BuildAwareShopArbiter` replacement transaction boundary.
 
-User result: **26/26 GREEN**, `D1_SURVIVAL` 15/15.
+No production code or tuning values changed in Batch 1.
 
-## Batch 2 — VALIDATED GREEN
-
-Commit:
-
-- `74ebd420` — recovery/resource hierarchy semantics.
-
-Validated:
-
-- `d1.survival.underpace_prefers_material_redraw`
-- `d1.resources.last_discard_marginal_recovery`
-
-User result: **28/28 GREEN**, `D1_SURVIVAL` 17/17.
-
-## Batch 3 — VALIDATED GREEN
-
-Commit:
-
-- `2e0db64a` — timeout consistency semantics.
-
-Validated:
-
-- `d1.timeout.latest_completed_root`
-- `d1.timeout.sampled_clear_requires_confirmation`
-
-User result: **30/30 GREEN**, `D1_SURVIVAL` 19/19.
-
-This protects both completed-root reuse under partial search timeout and the rule that timeout cannot manufacture confirmation for an inexact sampled clear.
-
-## Batch 4 — VALIDATED GREEN
-
-Commit:
-
-- `6f4715ac` — hand-resource and public-uncertainty semantics.
-
-Validated:
-
-- `d1.resources.last_hand_prefers_recovery_discard`
-- `d1.uncertainty.hidden_draw_order_invariant`
-
-User result: **32/32 GREEN**, `D1_SURVIVAL` 21/21.
-
-This protects the final scoring-hand recovery hierarchy and ensures public redraw probabilities are invariant to inaccessible serialized deck order.
-
-## Batch 5 — FINAL / IMPLEMENTED / VALIDATION PENDING
-
-Commit:
-
-- `c5031bf9` — final held-consumable/re-observation semantic.
-
-New case:
-
-- `d1.consumable.first_action_reobserve_boundary`
-  - D1 may project a deterministic held consumable together with the guaranteed follow-up clear for survival value;
-  - the executable selected action remains `USE_CONSUMABLE`, not a chained Play;
-  - expected hand/discard resources reflect the projected follow-up while execution still stops at the consumable and requires authoritative re-observation/replanning.
-
-Canonical owner if it fails: `D1LiveBlindClearPlanner._estimate_from_recommendation()` and the D1 first-action execution boundary.
-
-No production code or tuning values changed in Batch 5.
-
-Expected benchmark if it passes: **33/33**, with `D1_SURVIVAL` 22/22.
+Expected benchmark if all three pass: **36/36**, with `SHOP_SURVIVAL` increasing from 9/9 to 12/12.
 
 ---
 
 # EXACT NEXT ACTION
 
-Validate the **final Phase-1 batch** locally:
+Validate Phase-2 Batch 1 locally:
 
 ```powershell
 git pull
@@ -186,24 +166,21 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 33/33 green
+### If 36/36 green
 
-1. mark Phase 1 **COMPLETE**;
-2. do not add Batch 6 merely for more semantic cases;
-3. advance immediately to **Phase 2 — simple shop survival**;
-4. inspect canonical D14/D2/D3/D4/D11 simple-shop survival decisions before adding new behavior or tuning.
+Continue Phase 2 with the next coherent simple-shop survival batch, prioritizing paid-reroll stop-loss and ordinary cash/reserve spending boundaries. Do not tune values unless a semantic case exposes a real defect.
 
-### If the final case fails
+### If a new case fails
 
-Fix the smallest canonical owner. Do not add a wrapper rescue. Re-run the semantic benchmark, then close Phase 1 only after green.
+Determine fixture defect versus production semantic defect. Fix the smallest canonical owner. Do not add wrapper rescues.
 
 ---
 
 # PHASE ORDER
 
 1. **Phase 0 — authority consolidation** — COMPLETE
-2. **Phase 1 — semantic benchmark expansion + D1 survival competence refinement** — FINAL BATCH PENDING
-3. **Phase 2 — simple shop survival**
+2. **Phase 1 — D1 survival semantic expansion** — COMPLETE
+3. **Phase 2 — simple shop survival** — ACTIVE
 4. **Phase 3 — coherent build evidence/authority quality**
 5. **Phase 4 — complex packs/consumables/vouchers/economy audit**
 6. **Phase 5 — live validation**
@@ -216,6 +193,7 @@ Future stake/deck progression remains blocked until Red/White competence passes.
 # CLOSED / DO NOT REOPEN WITHOUT FRESH EVIDENCE
 
 - Phase-0 D1 ownership migration queue
+- Phase-1 semantic expansion beyond five validated batches
 - Mouth discard-only legality defect itself
 - Green Joker survival-equivalent authority
 - Hook/log-resilience search reserve
