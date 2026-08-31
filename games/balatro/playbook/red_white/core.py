@@ -131,7 +131,7 @@ def default_balatro_playbooks() -> BalatroPlaybookRegistry:
                         "minimum_purchase_build_gain": 0.0,
                         "minimum_purchase_advantage": 0.35,
                         "minimum_replacement_build_delta": 0.0,
-                        "minimum_replacement_advantage": 0.75,
+                        "minimum_replacement_advantage": 0.50,
                         "aligned_minimum_replacement_advantage": 0.25,
                         "price_weight": 0.35,
                         "interest_weight": 1.25,
