@@ -56,7 +56,6 @@ from games.balatro.planet_scaler_authority import install_planet_scaler_authorit
 from games.balatro.post_transaction_joker_value_policy import install_post_transaction_joker_value_policy
 from games.balatro.r0_strategy_transition_policy import install_r0_strategy_transition_policy
 from games.balatro.round_resource_live_state_policy import install_round_resource_live_state_policy
-from games.balatro.serpent_draw_policy import install_serpent_draw_policy
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.shop_semantic_quiet_policy import install_shop_semantic_quiet_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
@@ -139,9 +138,7 @@ install_live_decision_quality_policy()
 install_stateful_joker_admission_policy()
 install_tactical_scaler_retention_policy()
 install_soul_pack_expectation_policy()
-# Exact boss transitions remain explicit until their later ownership migrations.
-# Preserve the established Serpent-then-Hook composition order.
-install_serpent_draw_policy()
+# Hook remains explicit until its exact forced-discard branch migration is complete.
 install_hook_planner_integration_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
