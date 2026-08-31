@@ -8,7 +8,9 @@ from games.balatro.live.blind_clear_planner import (
     LiveBlindPlanValue,
     PlannerSearchBudgetExceeded,
 )
-from games.balatro.live.hand_action_policy import LiveHandActionDecisionEngine
+from games.balatro.live.path_aware_hand_action_engine import (
+    PathAwareLiveHandActionDecisionEngine,
+)
 
 
 class _ImmediatePlanner:
@@ -57,7 +59,7 @@ class _ImmediatePlanner:
 
 def test_hard_budget_rejects_projected_immediate_pass_before_candidate_work():
     planner = _ImmediatePlanner()
-    engine = LiveHandActionDecisionEngine(
+    engine = PathAwareLiveHandActionDecisionEngine(
         planner=planner,
         max_search_seconds=2.1,
     )
@@ -73,7 +75,7 @@ def test_hard_budget_rejects_projected_immediate_pass_before_candidate_work():
 
 def test_no_hard_deadline_preserves_projected_immediate_ranking():
     planner = _ImmediatePlanner()
-    engine = LiveHandActionDecisionEngine(
+    engine = PathAwareLiveHandActionDecisionEngine(
         planner=planner,
         max_search_seconds=None,
     )
