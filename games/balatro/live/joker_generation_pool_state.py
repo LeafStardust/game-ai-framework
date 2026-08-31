@@ -2,6 +2,10 @@ from __future__ import annotations
 
 """Read the public live Joker-generation catalogue without exposing RNG state."""
 
+import hashlib
+import json
+
+from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.runtime import live_memory_observer
 
 
@@ -214,3 +218,53 @@ def observe_joker_generation_state(decoder, root, payload: dict, phase: str) -> 
         reset_catalogue_cache()
 
     return result
+
+
+class JokerGenerationPoolLiveMemoryObserver(
+    live_memory_observer.LiveMemoryBalatroObserver
+):
+    """Canonical production observer enriched with public Joker-generation state.
+
+    This is explicit composition at the observation boundary rather than package-
+    time mutation. The enriched catalogue participates in the observer fingerprint
+    so sequence changes remain authoritative when public generation eligibility
+    changes.
+    """
+
+    def observe(self) -> LiveBalatroSnapshot:
+        decoder, _, root = self._root()
+        payload, phase, state_complete = (
+            live_memory_observer.snapshot_payload_from_live_memory(decoder, root)
+        )
+        payload.update(
+            observe_joker_generation_state(
+                decoder,
+                root,
+                payload,
+                phase,
+            )
+        )
+
+        fingerprint_source = {
+            "phase": phase,
+            "state_complete": state_complete,
+            "payload": payload,
+        }
+        fingerprint = hashlib.sha256(
+            json.dumps(
+                fingerprint_source,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ).encode("utf-8")
+        ).hexdigest()
+        if fingerprint != self._last_fingerprint:
+            self._sequence += 1
+            self._last_fingerprint = fingerprint
+
+        return LiveBalatroSnapshot(
+            sequence=self._sequence,
+            phase=phase,
+            state_complete=state_complete,
+            payload=payload,
+        )
