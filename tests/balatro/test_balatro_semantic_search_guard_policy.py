@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import games.balatro.bonds.behavior_strategy as behavior_strategy
+import games.balatro.live.blind_clear_planner as planner_module
 import games.balatro.semantic_search_guard_policy as correction
 import games.balatro.strategy_execution_guard_policy as no_discard_policy
 from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
@@ -8,7 +10,7 @@ from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 
 
 def test_broad_rank_requirement_does_not_form_fake_rank_density_link(monkeypatch):
-    original = correction.behavior_strategy._relation
+    original = behavior_strategy._relation
     joker = _Node(
         source="Synthetic hand payoff",
         bond_ids=("three_kind",),
@@ -61,12 +63,14 @@ def test_prefilter_bounds_large_root_play_set_without_projecting_every_subset():
         )
         for index in range(64)
     ]
-    result = correction._prefilter(
+    planner = LiveBlindClearPlanner()
+    result = planner._prefilter_plays(
+        SimpleNamespace(),
         actions,
-        limit=correction._ROOT_PLAY_PREFILTER,
-        key=correction._cheap_play_key,
+        limit=planner_module._ROOT_PLAY_PREFILTER,
+        soft_deadline=None,
     )
-    assert len(result) == correction._ROOT_PLAY_PREFILTER
+    assert len(result) == planner_module._ROOT_PLAY_PREFILTER
 
 
 def test_small_candidate_set_is_not_pruned():
@@ -74,7 +78,13 @@ def test_small_candidate_set_is_not_pruned():
         BalatroAction(PLAY_CARDS, cards=(SimpleNamespace(rank="A", suit="Spades"),)),
         BalatroAction(PLAY_CARDS, cards=(SimpleNamespace(rank="K", suit="Spades"),)),
     ]
-    assert correction._prefilter(actions, limit=18, key=correction._cheap_play_key) == actions
+    planner = LiveBlindClearPlanner()
+    assert planner._prefilter_plays(
+        SimpleNamespace(),
+        actions,
+        limit=18,
+        soft_deadline=None,
+    ) == actions
 
 
 def _estimate(action_name: str, *, exact: bool, score: float):
