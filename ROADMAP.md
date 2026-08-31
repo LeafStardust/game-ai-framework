@@ -124,38 +124,51 @@ Commits:
 Validated cases:
 
 1. `d1.survival.guaranteed_clear_preserves_discard`
-   - a currently visible guaranteed clear suppresses discard generation entirely;
-   - owner: `D1LiveBlindClearPlanner._candidate_actions()`.
 2. `d1.boss.recursive_cerulean_legality`
-   - recursive Cerulean Play candidates obey the same forced-card legality as root candidates;
-   - owner: D1 child candidate generation / exact boss legality.
 
-User reported the expanded benchmark **26/26 GREEN**, with `D1_SURVIVAL` at 15/15.
+User reported **26/26 GREEN**, with `D1_SURVIVAL` at 15/15.
 
-### Batch 2 — IMPLEMENTED / VALIDATION PENDING
+### Batch 2 — VALIDATED GREEN
 
 Commit:
 
-- `74ebd420` — expands `red_white_semantic_phase1_d1_cases.py` with two recovery/resource cases.
+- `74ebd420` — adds two recovery/resource hierarchy cases.
+
+Validated cases:
+
+1. `d1.survival.underpace_prefers_material_redraw`
+   - no pace-qualified Play + materially better canonical redraw => choose discard.
+2. `d1.resources.last_discard_marginal_recovery`
+   - a marginal recovery edge does not consume the final discard after the canonical reserve penalty.
+
+User reported **28/28 GREEN**, with `D1_SURVIVAL` at 17/17.
+
+### Batch 3 — IMPLEMENTED / VALIDATION PENDING
+
+Commit:
+
+- `2e0db64a` — adds two timeout-consistency cases.
 
 New cases:
 
-1. `d1.survival.underpace_prefers_material_redraw`
-   - when no current Play reaches required pace and the canonical recovery evaluator materially prefers a discard, D1 must choose the redraw;
-   - owner if it fails: `LiveHandActionPolicy` PACE_RECOVERY arbitration.
-2. `d1.resources.last_discard_marginal_recovery`
-   - a small recovery edge must not consume the final discard once the canonical low-discard reserve penalty is applied;
-   - owner if it fails: `LiveHandActionPolicy` PACE_RECOVERY resource hierarchy.
+1. `d1.timeout.latest_completed_root`
+   - if a later adaptive pass times out, reuse the latest fully completed canonical D1 root;
+   - do not rewind to older evidence or switch to structural emergency selection.
+2. `d1.timeout.sampled_clear_requires_confirmation`
+   - an inexact sampled line above the clear-probability floor remains recovery evidence unless an independent confirmation pass completed;
+   - timeout cannot manufacture `CLEAR_PATH` confirmation.
+
+Canonical owner if either fails: `PathAwareLiveHandActionDecisionEngine._structural_timeout_fallback()` and its completed-root history contract.
 
 No production code or tuning values changed in this batch.
 
-Expected benchmark total if both pass: **28/28**, with `D1_SURVIVAL` at 17/17.
+Expected benchmark total if both pass: **30/30**, with `D1_SURVIVAL` at 19/19.
 
 ---
 
 # EXACT NEXT ACTION
 
-Validate the second Phase-1 semantic batch locally:
+Validate the third Phase-1 semantic batch locally:
 
 ```powershell
 git pull
@@ -164,14 +177,14 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 28/28 green
+### If 30/30 green
 
 Continue the Phase-1 audit for the next coherent D1 survival gap, prioritizing:
 
 1. hand-resource hierarchy when hands are nearly exhausted;
 2. held-consumable spend vs re-observation/replan boundaries;
-3. timeout consistency under partially completed search;
-4. public-state uncertainty invariants.
+3. public-state uncertainty invariants;
+4. remaining terminal-clear/resource hierarchy gaps not already protected.
 
 Do not add cases merely to increase benchmark count.
 
