@@ -943,9 +943,44 @@ class LiveBlindClearPlanner:
         )
 
     @classmethod
-    def _estimate_key(cls, estimate: _ActionEstimate) -> tuple[float, int, float, float, float, float, float]:
-        """Rank survival first; exactness protects proven lines from sampled estimates."""
+    def _estimate_key(cls, estimate: _ActionEstimate):
+        """Rank survival first without letting cheap exactness distort recovery.
+
+        Proven immediate PLAY clears remain protected. For a non-clearing DISCARD,
+        modeled recovery quality outranks whether the draw tree happened to be cheap
+        enough to enumerate exactly; exactness is only a late tie-break there.
+        """
         value = estimate.value
+        action_name = getattr(estimate.action, "name", None)
+        if (
+            estimate.exact
+            and float(value.clear_probability) >= 1.0 - 1e-12
+            and float(value.expected_progress) >= 1.0 - 1e-12
+            and action_name == PLAY_CARDS
+        ):
+            return (
+                value.clear_probability,
+                1,
+                value.expected_progress,
+                value.expected_hands_remaining,
+                value.expected_discards_remaining,
+                -len(getattr(estimate.action, "cards", ()) or ()),
+                value.expected_score,
+            )
+        if (
+            action_name == DISCARD_CARDS
+            and float(value.clear_probability) < 1.0 - 1e-12
+        ):
+            return (
+                value.clear_probability,
+                0,
+                value.expected_progress,
+                value.expected_hands_remaining,
+                value.expected_discards_remaining,
+                value.expected_score,
+                1 if bool(estimate.exact) else 0,
+                value.expected_consumables,
+            )
         return (
             value.clear_probability,
             1 if estimate.exact else 0,
@@ -953,6 +988,7 @@ class LiveBlindClearPlanner:
             value.expected_hands_remaining,
             value.expected_discards_remaining,
             value.expected_score,
+            0,
             value.expected_consumables,
         )
 
