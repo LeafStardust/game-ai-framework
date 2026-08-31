@@ -49,7 +49,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 4 COMPLETE. Phase 5 live validation is ACTIVE. 71/71 is the last validated semantic checkpoint; timeout-arbitration correction is implemented for validation at expected 72/72.**
+> **Phase 4 COMPLETE. Phase 5 live validation is ACTIVE at 72/72 semantic green.**
 
 Validated checkpoints:
 
@@ -66,7 +66,7 @@ Validated checkpoints:
 - Phase 4 Batch 6 cross-family D14 parent normalization: **GREEN / 70/70**, `RESOURCE_COHERENCE` 18/18
 - Phase 5 baseline runtime: **3/3 attempts completed without supervisor crash after pack stale-replan repairs**
 - Phase 5 live D1 made-hand discard-recovery semantic: **GREEN / 71/71**, `D1_SURVIVAL` **23/23**
-- Phase 5 D1 timeout final-arbiter semantic: **IMPLEMENTED / VALIDATION PENDING**, expected **72/72**, `D1_SURVIVAL` **24/24**
+- Phase 5 D1 timeout final-arbiter semantic: **GREEN / 72/72**, `D1_SURVIVAL` **24/24**
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
@@ -214,7 +214,7 @@ Results:
 
 The first correction changed behavior in one run, but the systemic failure persisted: two independent losses still exhausted every scoring hand without spending any discard, including an extremely weak Ante-1 loss at only 74/450.
 
-## Live D1 finding 2 — timeout planner ranking bypasses final arbiter — validation pending
+## Live D1 finding 2 — timeout planner ranking bypasses final arbiter — GREEN
 
 Canonical owner: `PathAwareLiveHandActionDecisionEngine._structural_timeout_fallback`.
 
@@ -232,21 +232,24 @@ Correction:
 - no new search is performed and no hidden information is used;
 - incomplete synthetic states without a visible hand retain raw-root fallback because literal immediate pace/recovery cannot be recomputed from missing public state.
 
-This is an authority correction, not numerical tuning. Expected semantic checkpoint: **72/72**, `D1_SURVIVAL` **24/24**.
+Validated locally at **72/72**, `D1_SURVIVAL` **24/24**. This remains an authority correction, not numerical tuning.
 
 # EXACT NEXT ACTION
 
-Validate the new timeout-arbitration semantic on the full Red/White benchmark:
+Run another fresh three-attempt production baseline on the 72/72 stack:
 
 ```powershell
 git pull
-python -m games.balatro.red_white_semantic_benchmark
+.\BalatroAgentToggle.bat --three
 
 ```
 
-Expected: **72/72**, `D1_SURVIVAL` **24/24**, all previous categories unchanged.
+Provide the resulting session/run files or session prefix. Audit priorities:
 
-If green, run another three-attempt production baseline and compare losing-blind discard utilization against both prior sessions before considering Phase 6 numerical tuning.
+1. whether D1 now spends discards while materially behind;
+2. whether losing blinds still exhaust hands with most/all discards unused;
+3. whether the next failure class is semantic/mechanical, runtime-bound, or only numerical preference;
+4. SHOP latency and action quality remain observed but should not be tuned ad hoc during Phase 5.
 
 Do not run tests or live games from ChatGPT.
 
