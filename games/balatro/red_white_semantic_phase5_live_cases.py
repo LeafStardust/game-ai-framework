@@ -161,6 +161,9 @@ class _SupportOnlyJoker(Joker):
 class _FirstEngineTransitionPlanner:
     def __init__(self, *, direct_scoring_gain: float) -> None:
         self.direct_scoring_gain = float(direct_scoring_gain)
+        self.evaluator = SimpleNamespace(
+            evaluate=lambda state, candidate: SimpleNamespace(total_gain=0.50)
+        )
 
     def plan(self, state, candidate):
         del state, candidate
