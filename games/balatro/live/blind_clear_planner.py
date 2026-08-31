@@ -6,11 +6,58 @@ from time import perf_counter
 
 from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
 from games.balatro.card_selector import CardSelector
+from games.balatro.d1_hook_search_budget_policy import _active_hook
+from games.balatro.hand import PokerHand
+from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
 from games.balatro.live.discard_projection import LiveDiscardJokerProjector
 from games.balatro.live.draw_model import PublicDeckComposition
 from games.balatro.live.draw_outcomes import PublicDrawOutcomeModel
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
+
+
+_ROOT_PLAY_PREFILTER = 64
+_CHILD_PLAY_PREFILTER = 24
+_ROOT_DISCARD_PREFILTER = 14
+_CHILD_DISCARD_PREFILTER = 8
+_SHORT_PLAY_RESERVE = 2
+_WIDE_DISCARD_RESERVE = 2
+_ROOT_DISCARD_RESERVE = 2
+
+_HAND_STRENGTH = {
+    PokerHand.HIGH_CARD: 0,
+    PokerHand.PAIR: 1,
+    PokerHand.TWO_PAIR: 2,
+    PokerHand.THREE_OF_A_KIND: 3,
+    PokerHand.STRAIGHT: 4,
+    PokerHand.FLUSH: 5,
+    PokerHand.FULL_HOUSE: 6,
+    PokerHand.FOUR_OF_A_KIND: 7,
+    PokerHand.STRAIGHT_FLUSH: 8,
+    PokerHand.FIVE_OF_A_KIND: 9,
+    PokerHand.FLUSH_HOUSE: 10,
+    PokerHand.FLUSH_FIVE: 11,
+}
+
+_RANK_VALUES = {
+    "A": 14,
+    "ACE": 14,
+    "K": 13,
+    "KING": 13,
+    "Q": 12,
+    "QUEEN": 12,
+    "J": 11,
+    "JACK": 11,
+    "10": 10,
+    "9": 9,
+    "8": 8,
+    "7": 7,
+    "6": 6,
+    "5": 5,
+    "4": 4,
+    "3": 3,
+    "2": 2,
+}
 
 
 class PlannerSearchBudgetExceeded(RuntimeError):
@@ -412,6 +459,7 @@ class LiveBlindClearPlanner:
     ) -> list[BalatroAction]:
         play_limit = self.play_width if play_width is None else int(play_width)
         discard_limit = self.discard_width if discard_width is None else int(discard_width)
+        root = play_width is None and discard_width is None
 
         initial_root = int(getattr(self, "nodes_evaluated", 0)) == 0
         soft_deadline = None
@@ -423,16 +471,26 @@ class LiveBlindClearPlanner:
         self._check_deadline()
         plays = self.action_generator.generate_play_actions(state)
         self._check_deadline()
-        ranked_plays = self._rank_actions_with_deadline(
+        plays = self._prefilter_plays(
             state,
             plays,
-            priority=self._root_play_priority if initial_root else self._play_priority,
+            limit=_ROOT_PLAY_PREFILTER if root else _CHILD_PLAY_PREFILTER,
+            soft_deadline=soft_deadline if initial_root else None,
+        )
+        ranked_plays = self._rank_plays_with_short_reserve(
+            state,
+            plays,
             limit=play_limit,
             soft_deadline=soft_deadline,
         )
 
         if initial_root and soft_deadline is not None and perf_counter() >= soft_deadline:
-            return ranked_plays
+            return self._ensure_root_discard_reserve(
+                state,
+                ranked_plays,
+                allow_discards=allow_discards,
+                discard_limit=discard_limit,
+            )
 
         if (
             not allow_discards
@@ -444,6 +502,12 @@ class LiveBlindClearPlanner:
         self._check_deadline()
         discards = self.action_generator.generate_discard_actions(state)
         self._check_deadline()
+        discards = self._prefilter_discards(
+            state,
+            discards,
+            limit=_ROOT_DISCARD_PREFILTER if root else _CHILD_DISCARD_PREFILTER,
+            soft_deadline=soft_deadline if initial_root else None,
+        )
         ranked_discards = self._rank_actions_with_deadline(
             state,
             discards,
@@ -451,7 +515,250 @@ class LiveBlindClearPlanner:
             limit=discard_limit,
             soft_deadline=soft_deadline if initial_root else None,
         )
-        return ranked_plays + ranked_discards
+        return self._ensure_root_discard_reserve(
+            state,
+            ranked_plays + ranked_discards,
+            allow_discards=allow_discards,
+            discard_limit=discard_limit,
+        )
+
+    def _prefilter_plays(self, state, actions, *, limit: int, soft_deadline: float | None = None):
+        values = list(actions)
+        if len(values) <= limit:
+            return values
+
+        records = []
+        for action in values:
+            self._check_deadline()
+            if self._soft_deadline_reached(soft_deadline, work_started=bool(records)):
+                break
+            hand = self._cheap_hand(state, action)
+            key = self._cheap_play_key_from_hand(action, hand)
+            self._check_deadline()
+            records.append((action, hand, key))
+            if self._soft_deadline_reached(soft_deadline, work_started=True):
+                break
+
+        if not records:
+            return values[:limit]
+
+        ranked_records = sorted(records, key=lambda item: item[2], reverse=True)
+        selected = [action for action, _, _ in ranked_records[:limit]]
+        selected_ids = {id(action) for action in selected}
+        representatives = []
+        for hand in _HAND_STRENGTH:
+            if hand == PokerHand.HIGH_CARD:
+                continue
+            candidates = [record for record in records if record[1] == hand]
+            if not candidates:
+                continue
+            representative, _, _ = min(
+                candidates,
+                key=lambda item: (
+                    len(getattr(item[0], "cards", ()) or ()),
+                    -item[2][2],
+                    -item[2][1],
+                ),
+            )
+            if id(representative) not in selected_ids:
+                representatives.append(representative)
+        if not representatives:
+            return selected
+        keep = max(0, limit - len(representatives))
+        return selected[:keep] + representatives[:limit]
+
+    def _prefilter_discards(self, state, actions, *, limit: int, soft_deadline: float | None = None):
+        values = list(actions)
+        if len(values) <= limit:
+            return values
+        records = []
+        for action in values:
+            self._check_deadline()
+            if self._soft_deadline_reached(soft_deadline, work_started=bool(records)):
+                break
+            key = self._cheap_discard_key(state, action)
+            self._check_deadline()
+            records.append((action, key))
+            if self._soft_deadline_reached(soft_deadline, work_started=True):
+                break
+        if not records:
+            return values[:limit]
+        ranked_records = sorted(records, key=lambda item: item[1], reverse=True)
+        reserve = min(_WIDE_DISCARD_RESERVE, max(0, int(limit)))
+        if reserve <= 0:
+            return []
+        widest_records = sorted(
+            records,
+            key=lambda item: (
+                len(getattr(item[0], "cards", ()) or ()),
+                item[1][0],
+            ),
+            reverse=True,
+        )[:reserve]
+        widest_ids = {id(action) for action, _ in widest_records}
+        primary = [action for action, _ in ranked_records if id(action) not in widest_ids]
+        widest = [action for action, _ in widest_records]
+        return primary[: max(0, limit - len(widest))] + widest
+
+    def _rank_plays_with_short_reserve(
+        self,
+        state,
+        plays,
+        *,
+        limit: int,
+        soft_deadline: float | None = None,
+    ):
+        if limit <= 0:
+            return []
+        priority = self._play_priority if soft_deadline is None else self._cheap_play_key
+        ranked = self._rank_actions_with_deadline(
+            state,
+            plays,
+            priority=priority,
+            limit=limit,
+            soft_deadline=soft_deadline,
+        )
+        if len(plays) <= max(limit * 2, 12):
+            return ranked
+        if self._soft_deadline_reached(soft_deadline, work_started=bool(ranked)):
+            return ranked
+        reserve = min(_SHORT_PLAY_RESERVE, limit)
+        if reserve <= 0:
+            return ranked
+        short_records = []
+        for action in plays:
+            self._check_deadline()
+            if self._soft_deadline_reached(soft_deadline, work_started=bool(short_records)):
+                break
+            if len(getattr(action, "cards", ()) or ()) > 2:
+                continue
+            key = self._cheap_play_key(state, action)
+            self._check_deadline()
+            if key[0] > _HAND_STRENGTH[PokerHand.HIGH_CARD]:
+                short_records.append((action, key))
+            if self._soft_deadline_reached(soft_deadline, work_started=True):
+                break
+        if not short_records:
+            return ranked
+        short_ranked = [
+            action
+            for action, _ in sorted(short_records, key=lambda item: item[1], reverse=True)[:reserve]
+        ]
+        selected_ids = {id(action) for action in ranked}
+        additions = [action for action in short_ranked if id(action) not in selected_ids]
+        if not additions:
+            return ranked
+        return ranked[: max(0, limit - len(additions))] + additions
+
+    def _projection_free_discard_reserve(self, state, actions, *, limit: int):
+        values = list(actions)
+        if limit <= 0 or not values:
+            return []
+        records = []
+        for action in values:
+            if records and self.deadline is not None and perf_counter() >= self.deadline:
+                break
+            try:
+                key = self._cheap_discard_key(state, action)
+            except (AttributeError, TypeError, ValueError, RuntimeError):
+                key = (0.0, len(getattr(action, "cards", ()) or ()))
+            records.append((action, key))
+            if self.deadline is not None and perf_counter() >= self.deadline:
+                break
+        if not records:
+            return values[:limit]
+        ranked = sorted(records, key=lambda item: item[1], reverse=True)
+        widest = max(
+            records,
+            key=lambda item: (
+                len(getattr(item[0], "cards", ()) or ()),
+                item[1],
+            ),
+        )[0]
+        selected = [action for action, _ in ranked[:limit]]
+        if widest not in selected:
+            selected = selected[: max(0, limit - 1)] + [widest]
+        return selected[:limit]
+
+    def _ensure_root_discard_reserve(
+        self,
+        state,
+        candidates,
+        *,
+        allow_discards: bool,
+        discard_limit: int,
+    ):
+        values = list(candidates)
+        if (
+            int(getattr(self, "nodes_evaluated", 0) or 0) != 0
+            or not allow_discards
+            or discard_limit <= 0
+            or int(getattr(state, "discards_remaining", 0) or 0) <= 0
+            or _active_hook(state)
+            or any(getattr(action, "name", None) == DISCARD_CARDS for action in values)
+        ):
+            return values
+        if self.deadline is not None and perf_counter() >= self.deadline:
+            return values
+        generate_discards = getattr(self.action_generator, "generate_discard_actions", None)
+        if not callable(generate_discards):
+            return values
+        try:
+            legal_discards = list(generate_discards(state))
+        except (AttributeError, TypeError, ValueError, RuntimeError):
+            return values
+        if not legal_discards:
+            return values
+        reserve = self._projection_free_discard_reserve(
+            state,
+            legal_discards,
+            limit=min(_ROOT_DISCARD_RESERVE, discard_limit),
+        )
+        return values + reserve
+
+    @staticmethod
+    def _soft_deadline_reached(soft_deadline: float | None, *, work_started: bool) -> bool:
+        return bool(
+            work_started
+            and soft_deadline is not None
+            and perf_counter() >= soft_deadline
+        )
+
+    @staticmethod
+    def _cheap_hand(state, action) -> PokerHand:
+        try:
+            return HandEvaluator().evaluate(
+                list(getattr(action, "cards", ()) or ()),
+                rules=hand_rules_for_state(state),
+            )
+        except (AttributeError, TypeError, ValueError):
+            return PokerHand.HIGH_CARD
+
+    @staticmethod
+    def _cheap_play_key_from_hand(action, hand: PokerHand) -> tuple[int, int, int, int]:
+        cards = list(getattr(action, "cards", ()) or ())
+        rank_sum = 0
+        enhanced = 0
+        for card in cards:
+            rank_sum += _RANK_VALUES.get(str(getattr(card, "rank", "")).upper(), 0)
+            if any(getattr(card, field, None) for field in ("enhancement", "edition", "seal")):
+                enhanced += 1
+        return (_HAND_STRENGTH.get(hand, 0), enhanced, rank_sum, -len(cards))
+
+    @classmethod
+    def _cheap_play_key(cls, state, action) -> tuple[int, int, int, int]:
+        return cls._cheap_play_key_from_hand(action, cls._cheap_hand(state, action))
+
+    @staticmethod
+    def _cheap_discard_key(state, action) -> tuple[float, int]:
+        cards = list(getattr(action, "cards", ()) or ())
+        removed = {id(card) for card in cards}
+        kept = [card for card in getattr(state, "hand", ()) if id(card) not in removed]
+        try:
+            promise = LiveBlindClearPlanner().evaluator._retained_structure_value(kept)
+        except (AttributeError, TypeError, ValueError):
+            promise = 0.0
+        return float(promise), len(cards)
 
     def _root_play_priority(self, state, action: BalatroAction) -> tuple[float, float, int, int]:
         """Rank root beam candidates without full stochastic/Joker projection.
