@@ -132,3 +132,30 @@ def test_d1_splash_scoring_core_includes_pair_kicker():
     assert id(ace) not in pair_core
     assert id(ace) in extended_core
     assert pair_core != extended_core
+
+
+def test_d1_two_pair_fifth_selected_card_scores_only_with_splash():
+    made_cards = [
+        BalatroCard("10", "Diamonds"),
+        BalatroCard("10", "Spades"),
+        BalatroCard("7", "Hearts"),
+        BalatroCard("7", "Clubs"),
+    ]
+    kicker = BalatroCard("A", "Clubs")
+    cards = [*made_cards, kicker]
+    state = _state(cards, [])
+    planner = D1LiveBlindClearPlanner(horizon=1, discard_width=0)
+    planner._active_hand_rules = hand_rules_for_state(state)
+
+    hand = planner._search_hand(cards)
+    without_splash = planner._scoring_core(hand, cards)
+
+    assert set(without_splash) == {id(card) for card in made_cards}
+    assert id(kicker) not in without_splash
+
+    state.jokers = [SplashJoker()]
+    planner._active_hand_rules = hand_rules_for_state(state)
+    with_splash = planner._scoring_core(hand, cards)
+
+    assert set(with_splash) == {id(card) for card in cards}
+    assert id(kicker) in with_splash
