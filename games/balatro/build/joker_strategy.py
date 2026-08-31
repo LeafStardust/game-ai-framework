@@ -25,7 +25,7 @@ class JokerBuildValueWeights:
     """Combine immediate scoring with contextual mechanical semantics."""
 
     direct_scoring_gain: float = 6.0
-    contextual_gain: float = 0.75
+    contextual_gain: float = 1.0
     direct_scoring_cap: float = 12.0
 
 
