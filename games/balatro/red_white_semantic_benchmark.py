@@ -40,6 +40,9 @@ from games.balatro.red_white_semantic_phase4_resource_cases import (
 from games.balatro.red_white_semantic_phase4_voucher_cases import (
     RED_WHITE_PHASE4_VOUCHER_CASES,
 )
+from games.balatro.red_white_semantic_phase5_final_hand_cases import (
+    RED_WHITE_PHASE5_FINAL_HAND_CASES,
+)
 from games.balatro.red_white_semantic_phase5_live_cases import (
     RED_WHITE_PHASE5_LIVE_CASES,
 )
@@ -72,6 +75,7 @@ def run():
             *RED_WHITE_PHASE4_OUTCOME_MODEL_CASES,
             *RED_WHITE_PHASE4_CROSS_FAMILY_CASES,
             *RED_WHITE_PHASE5_LIVE_CASES,
+            *RED_WHITE_PHASE5_FINAL_HAND_CASES,
         )
     )
 
