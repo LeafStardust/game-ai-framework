@@ -8,7 +8,7 @@ This is the only authoritative roadmap/handoff for the Balatro Red/White compete
 - Branch: `feat/v1.0-red-white-competence`
 - User runs tests locally. **Do not run tests from ChatGPT.**
 - Every validation command shown to the user must begin with `git pull`.
-- Every command block shown to the user must end with a trailing blank line after the final command.
+- Every command block shown must end with a trailing blank line after the final command.
 - Preserve exact mechanics, public-state legality, boss rules, and hidden-information boundaries.
 - Never use hidden RNG state, seeds, future pool order/identities, or inaccessible information.
 - Prefer canonical ownership over late wrappers/rescues.
@@ -49,7 +49,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 4 — complex packs/consumables/vouchers/economy audit. Batch 2 validated at 58/58; Batch 3 consumable slot/mode semantics implemented, validation pending.**
+> **Phase 4 — complex packs/consumables/vouchers/economy audit. Batches 1-4 green through 64/64; Batch 5 bounded destructive/generative outcome-model semantics implemented, validation pending.**
 
 Validated checkpoints:
 
@@ -60,6 +60,8 @@ Validated checkpoints:
 - Phase 3 coherent build evidence: **COMPLETE / 52/52 green**, `BUILD_COHERENCE` 12/12
 - Phase 4 Batch 1 resource boundary: **GREEN / 55/55**, `RESOURCE_COHERENCE` 3/3
 - Phase 4 Batch 2 opened-pack legality/fail-closed: **GREEN / 58/58**, `RESOURCE_COHERENCE` 6/6
+- Phase 4 Batch 3 consumable slot/mode authority: **GREEN / 61/61**, `RESOURCE_COHERENCE` 9/9
+- Phase 4 Batch 4 voucher reserve/downside authority: **GREEN / 64/64**, `RESOURCE_COHERENCE` 12/12
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
@@ -85,7 +87,7 @@ Batch 2 exposed and fixed one genuine canonical lifecycle defect: score-sequence
 
 Final Phase-3 result: **52/52 GREEN**, `BUILD_COHERENCE` 12/12.
 
-Numerical weighting remains deferred to Phase 6. No fresh semantic evidence justifies tuning before complex-resource and live validation.
+Numerical weighting remains deferred to Phase 6.
 
 # Phase 4 — COMPLEX PACKS / CONSUMABLES / VOUCHERS / ECONOMY AUDIT
 
@@ -95,105 +97,80 @@ Initial audit order:
 
 1. D8 unopened-booster transaction cost vs D9 opened-pack sunk-cost boundary — **Batch 1 GREEN**;
 2. opened-pack target legality and unsupported stochastic effects failing closed — **Batch 2 GREEN**;
-3. consumable inventory/slot pressure and BUY vs BUY_AND_USE authority — **active Batch 3**;
-4. voucher purchase value vs permanent downside and current-run resource reserve;
-5. destructive/generative Spectral/Tarot choices only through explicit bounded outcome models;
+3. consumable inventory/slot pressure and BUY vs BUY_AND_USE authority — **Batch 3 GREEN**;
+4. voucher purchase value vs permanent downside and current-run resource reserve — **Batch 4 GREEN**;
+5. destructive/generative Spectral/Tarot choices only through explicit bounded outcome models — **active Batch 5**;
 6. cross-family D14 arbitration only after child resource semantics are trustworthy.
 
 ## Batch 1 — GREEN
 
-Commits:
+Validated locally at **55/55**, `RESOURCE_COHERENCE` **3/3**.
 
-- `7b2fb576` — adds `red_white_semantic_phase4_resource_cases.py`.
-- `961a889d` — wires Phase-4 cases into the semantic benchmark.
-
-Validated locally at **55/55**, with `RESOURCE_COHERENCE` **3/3**.
-
-Audit findings:
-
-- D8 `BuildAwareShopBoosterPolicy` owns unopened-pack acquisition and prices public money, interest, reserve, pack family, layout, and build need without reading hidden pack contents.
-- D9 `BalatroPackPolicy` owns visible choices after opening.
-- production installs `pack_sunk_cost_policy`, making the default opened-pack Skip baseline exactly zero.
-- pack acquisition money/interest/reserve cost is therefore paid once in D8 and must not be charged again after entering `*_PACK`.
-
-Validated semantics:
-
-1. `resource.booster.unopened_unaffordable_hold`
-   - D8 HOLDs an unopened pack whose public price exceeds current money before family-level option value can authorize it.
-2. `resource.pack.opened_positive_uses_sunk_cost_baseline`
-   - after opening, default D9 Skip is zero;
-   - a positive visible marginal beats Skip even when post-purchase cash is zero;
-   - historical pack cost is not re-priced.
-3. `resource.pack.opened_negative_can_skip`
-   - a negative current visible marginal loses to zero Skip;
-   - sunk cost does not force selection of a bad opened-pack outcome.
-
-No production code or tuning values changed.
+- D8 pays unopened-pack money/interest/reserve cost once.
+- D9 opened-pack Skip baseline is zero after cost is sunk.
+- Negative visible marginal can still Skip.
+- D8 never reasons from hidden future pack identities.
 
 ## Batch 2 — GREEN
 
-Commits:
+Validated locally at **58/58**, `RESOURCE_COHERENCE` **6/6**.
 
-- `fcf9aceb` — adds `red_white_semantic_phase4_pack_cases.py`.
-- `42ac455d` — wires Batch-2 opened-pack cases into the semantic benchmark.
-- `dab4209e` — removes an obsolete classification assertion while preserving the fail-closed behavioral invariant.
+- targeted Tarot/Spectral choices require a positive admitted D10/B6 target;
+- non-admitted stochastic/destructive effects remain below Skip=0;
+- unclassified visible effects fail closed rather than inheriting generic category/strategy utility.
 
-Validated locally at **58/58**, with `RESOURCE_COHERENCE` **6/6**.
+## Batch 3 — GREEN
 
-Installed-stack audit findings:
+Validated locally at **61/61**, `RESOURCE_COHERENCE` **9/9**.
 
-- D9 production contains explicit public-state stochastic models for several effects that were historically deferred, including High Priestess, Emperor, Familiar/Grim/Incantation, Immolate, and Wraith.
-- stochastic effects therefore must not be rejected merely for being stochastic; explicit complete public-state outcome ownership is the deciding boundary.
-- deterministic targeted Tarot/Spectral effects delegate legal target admission and literal target value to D10/B6.
-- `targeted_pack_literal_value_policy` keeps targeted effects below Skip when D10/B6 has no positive admitted target and does not add generic shop/category utility.
-- `strategy_plan_pack_policy` only adds bounded preference to already-positive choices, so it remains subordinate to D9 admission.
-- genuinely non-admitted or unclassified visible effects remain below opened-pack Skip=0 until an explicit mechanics/outcome model owns them.
+- full inventory blocks persistent `BUY`;
+- explicit `BUY_AND_USE` remains legal because it does not occupy a persistent slot;
+- unsupported candidates cannot synthesize immediate-use authority;
+- D14 does not re-price consumable-slot opportunity cost for immediate-use transactions.
 
-Validated semantics:
+## Batch 4 — GREEN
 
-1. `resource.pack.target_requires_positive_legal_target`
-   - a targeted visible Tarot with no positive admitted D10/B6 target loses to Skip=0.
-2. `resource.pack.deferred_stochastic_fails_closed`
-   - a non-admitted stochastic/destructive Spectral remains below Skip and cannot inherit generic Spectral utility, independent of historical classification metadata.
-3. `resource.pack.unclassified_effect_fails_closed`
-   - an unclassified visible Spectral fails closed rather than receiving generic category or strategy value.
+Validated locally at **64/64**, `RESOURCE_COHERENCE` **12/12**.
 
-No production code or tuning values changed.
+- D3 cannot buy through its hard post-purchase money floor;
+- expensive early non-structural vouchers cannot crowd out the first scoring foothold;
+- policy-contingent voucher effects such as Hieroglyph/Petroglyph contribute zero D14 parent value until benefit and permanent downside share a grounded common-unit model;
+- D3 strategic admission remains child-owned while D14 cross-family normalization stays literal/resource-aware.
 
-## Batch 3 — IMPLEMENTED / VALIDATION PENDING
+No production code or tuning values changed in Batches 1-4.
+
+## Batch 5 — IMPLEMENTED / VALIDATION PENDING
 
 Commits:
 
-- `0846a28f` — adds `red_white_semantic_phase4_consumable_cases.py`.
-- `9ba9ef70` — tightens the persistent-BUY mode assertion.
-- `306ea821` — wires Batch-3 consumable cases into the semantic benchmark.
+- `18006528` — adds `red_white_semantic_phase4_outcome_model_cases.py`.
+- `9d22be05` — wires Batch-5 outcome-model cases into the semantic benchmark.
 
 Audit findings:
 
-- D4 `ConsumableAcquisitionPolicy` owns HOLD/BUY/BUY_AND_USE admission.
-- persistent `BUY` is generated only while `len(consumables) < consumable_slots` and pays consumable-slot opportunity cost.
-- `BUY_AND_USE` uses `occupy_slot=False`, so the transaction pays money/interest/reserve cost but no persistent slot cost.
-- D4 exposes BUY_AND_USE only through explicit modeled immediate-use authority (currently deterministic Hermit/Temperance, Wheel analytic expectation, and Planet-use scaler authority).
-- D14 `ShopUtilityScale` preserves this mode distinction: slot cost is recomputed only for selected mode `BUY`.
-- `consumable_d14_literal_policy` keeps non-Planet BUY_AND_USE on explicit immediate-effect value rather than structural B4 units.
+- generative/stochastic effects may be admitted only when an explicit public-state expectation owns the outcome space;
+- `JudgementExpectationEvaluator` requires the authoritative public eligible-Joker catalogue and fails closed if it is absent or any modeled eligible outcome cannot be represented;
+- large public Judgement pools are bounded deterministically: evaluated outcomes keep the full pool denominator, so omitted probability mass contributes literal zero rather than being renormalized upward;
+- the Judgement model explicitly avoids RNG samples, pseudoseeds, future pool order, or a selected future outcome;
+- destructive `Immolate` remains below Skip when the current public hand cannot support its explicit destruction expectation.
 
 New semantics:
 
-1. `resource.consumable.full_inventory_immediate_use_allowed`
-   - full inventory forbids persistent BUY but still permits an explicitly modeled immediate BUY_AND_USE;
-   - the immediate transaction carries no consumable-slot penalty.
-2. `resource.consumable.full_inventory_unmodeled_holds`
-   - a full inventory cannot synthesize BUY_AND_USE for a candidate without explicit immediate-use authority.
-3. `resource.consumable.buy_and_use_no_slot_reprice`
-   - D14 recomputes shared money cost but does not reintroduce persistent slot cost for BUY_AND_USE.
+1. `resource.outcome.generative_requires_public_pool`
+   - opened-pack Judgement loses to Skip=0 until the authoritative public generation pool is observed.
+2. `resource.outcome.judgement_bounded_public_model`
+   - a large observed public pool is evaluated as a deterministic bounded lower bound;
+   - omitted mass remains zero and repeated evaluation is deterministic.
+3. `resource.outcome.destructive_requires_complete_state`
+   - Immolate loses to Skip=0 when its public-state destruction model is unavailable.
 
-Batch 3 changes semantic coverage only. No production code or tuning values changed.
+Batch 5 changes semantic coverage only. No production code or tuning values changed.
 
-Expected benchmark: **61/61**, with `RESOURCE_COHERENCE` **9/9**.
+Expected benchmark: **67/67**, with `RESOURCE_COHERENCE` **15/15**.
 
 # EXACT NEXT ACTION
 
-Validate Phase-4 Batch 3 locally:
+Validate Phase-4 Batch 5 locally:
 
 ```powershell
 git pull
@@ -203,13 +180,13 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 61/61 green
+### If 67/67 green
 
-Record Batch 3 green and continue Phase 4 with **voucher purchase value vs permanent downside and current-run resource reserve**. Audit D3 child admission and D14 parent normalization before adding semantics.
+Record Batch 5 green and continue Phase 4 with **cross-family D14 arbitration after child resource semantics are trustworthy**. Audit whether admitted Joker, consumable, voucher, booster and reroll options are compared exactly once on the shared parent resource scale, with no child-specific unit leakage or duplicate resource charging.
 
-### If any Batch-3 case fails
+### If any Batch-5 case fails
 
-Classify fixture mismatch vs a real D4/D14 resource-boundary defect. Fix the smallest canonical owner. Do not let full inventory block a legitimate immediate-use transaction, do not synthesize BUY_AND_USE for unsupported candidates, and do not charge persistent consumable-slot cost to a transaction that consumes immediately.
+Classify fixture mismatch vs a real outcome-model ownership defect. Fix the smallest canonical owner. Do not replace explicit expectations with generic Tarot/Spectral utility, do not renormalize omitted bounded probability mass, and do not read hidden RNG or future pool identities.
 
 # Phase order
 
@@ -227,7 +204,7 @@ Future stake/deck progression remains blocked until Red/White competence passes.
 
 - Phase-0 ownership migrations and installer retirements
 - Phase-1 expansion beyond five validated batches
-- Phase-2 expansion beyond four validated batches
+- Phase-2 expansion beyond four
 - Phase-3 build-evidence expansion beyond validated authority semantics absent fresh evidence
 - Mouth discard-only legality defect
 - Green Joker survival-equivalent authority
