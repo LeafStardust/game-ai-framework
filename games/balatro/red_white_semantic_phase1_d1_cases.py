@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, USE_CONSUMABLE, BalatroAction
 from games.balatro.card import BalatroCard
 from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
 from games.balatro.live.boss_blind_integration import boss_play_action_is_legal
@@ -341,6 +341,57 @@ def _public_draw_composition_ignores_hidden_order() -> SemanticCheck:
     )
 
 
+def _consumable_clear_projection_keeps_use_as_first_action() -> SemanticCheck:
+    consumable = object()
+    action = BalatroAction(USE_CONSUMABLE, target=consumable)
+    state = SimpleNamespace(hands_remaining=3, discards_remaining=2)
+    recommendation = SimpleNamespace(
+        before_projection=SimpleNamespace(
+            joker_projection_complete=True,
+            clears_blind=False,
+        ),
+        after_projection=SimpleNamespace(
+            joker_projection_complete=True,
+            clears_blind=True,
+            expected_projected_total=120.0,
+        ),
+    )
+
+    estimate = D1LiveBlindClearPlanner._estimate_from_recommendation(
+        state,
+        action,
+        recommendation,
+    )
+    passed = bool(
+        estimate is not None
+        and estimate.action is action
+        and estimate.action.name == USE_CONSUMABLE
+        and estimate.exact
+        and abs(estimate.value.clear_probability - 1.0) <= 1e-12
+        and abs(estimate.value.expected_hands_remaining - 2.0) <= 1e-12
+        and abs(estimate.value.expected_discards_remaining - 2.0) <= 1e-12
+    )
+    return SemanticCheck(
+        passed,
+        observed=(
+            "none"
+            if estimate is None
+            else (
+                f"action={estimate.action.name}, exact={estimate.exact}, "
+                f"clear={estimate.value.clear_probability:.3f}, "
+                f"hands={estimate.value.expected_hands_remaining:.1f}, "
+                f"discards={estimate.value.expected_discards_remaining:.1f}"
+            )
+        ),
+        expected="D1 may value the guaranteed follow-up clear while executing only USE_CONSUMABLE first",
+        detail=(
+            "the held consumable and its deterministic follow-up Play may be projected together for "
+            "survival value, but execution must stop after the consumable, re-observe the authoritative "
+            "checkpoint, and replan rather than chaining the hypothetical Play"
+        ),
+    )
+
+
 RED_WHITE_PHASE1_D1_CASES = (
     SemanticBenchmarkCase(
         case_id="d1.survival.guaranteed_clear_preserves_discard",
@@ -397,5 +448,12 @@ RED_WHITE_PHASE1_D1_CASES = (
         description="public draw projection is invariant to hidden deck ordering",
         evaluate=_public_draw_composition_ignores_hidden_order,
         source="Phase 1 survival audit: public-state uncertainty boundary",
+    ),
+    SemanticBenchmarkCase(
+        case_id="d1.consumable.first_action_reobserve_boundary",
+        category="D1_SURVIVAL",
+        description="deterministic consumable clear projection preserves the re-observe boundary",
+        evaluate=_consumable_clear_projection_keeps_use_as_first_action,
+        source="Phase 1 survival audit: held-consumable use/replan boundary",
     ),
 )
