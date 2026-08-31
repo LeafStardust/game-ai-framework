@@ -4,6 +4,7 @@ from dataclasses import dataclass, is_dataclass, replace
 from time import perf_counter
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
+from games.balatro.d1_hook_search_budget_policy import effective_d1_search_seconds
 from games.balatro.live.adaptive_search import (
     AdaptiveRecommendationSummary,
     stable_discard_consensus,
@@ -180,11 +181,17 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         self._record_d1_latency = True
         self.last_strategy_health = None
         self.last_latency_breakdown = None
+        configured_search_seconds = self.max_search_seconds
+        self.max_search_seconds = effective_d1_search_seconds(
+            state,
+            configured_search_seconds,
+        )
         base_started = perf_counter()
         try:
             decision = super().decide(state)
         finally:
             base_elapsed = perf_counter() - base_started
+            self.max_search_seconds = configured_search_seconds
             self._record_adaptive_roots = False
             self._record_d1_latency = False
 
