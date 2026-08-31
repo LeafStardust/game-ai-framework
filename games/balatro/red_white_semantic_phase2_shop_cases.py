@@ -1,0 +1,244 @@
+from __future__ import annotations
+
+"""Phase-2 semantic cases for simple Red/White SHOP survival."""
+
+from types import SimpleNamespace
+
+from games.balatro.actions import (
+    BUY_VOUCHER,
+    END_SHOP,
+    REFRESH_SHOP,
+    SELL_JOKER,
+    BalatroAction,
+)
+from games.balatro.joker_policy import (
+    REPLACE,
+    JokerAcquisitionDecision,
+    JokerAcquisitionOption,
+    JokerAcquisitionThresholds,
+    JokerTransactionEconomics,
+)
+from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
+from games.balatro.shop_arbiter import BuildAwareShopArbiter
+from games.balatro.shop_policy import ShopActionScore
+from games.balatro.shop_reroll_policy import ShopRerollRecommendation
+from games.balatro.state import BalatroState
+
+
+class _ShopPolicy:
+    hold_bias = 0.0
+
+    def __init__(self, deterministic_total: float | None = None) -> None:
+        self.deterministic_total = deterministic_total
+
+    def rank_actions(self, state, actions):
+        del state
+        if self.deterministic_total is None:
+            return []
+        return [
+            ShopActionScore(
+                action=action,
+                total=float(self.deterministic_total),
+                notes=("synthetic deterministic shop option",),
+            )
+            for action in actions
+        ]
+
+
+class _RerollPolicy:
+    def __init__(self, recommendation: ShopRerollRecommendation) -> None:
+        self.recommendation = recommendation
+
+    def recommend(self, state, visible_actions, *, reroll_cost, visible_score_floor=None):
+        del state, visible_actions, reroll_cost, visible_score_floor
+        return self.recommendation
+
+
+class _JokerPolicy:
+    def __init__(self, decision: JokerAcquisitionDecision | None = None) -> None:
+        self.decision = decision
+
+    def decide(self, state, candidate):
+        del state, candidate
+        if self.decision is None:
+            raise AssertionError("unexpected Joker decision request")
+        return self.decision
+
+
+class _UnusedPolicy:
+    def recommend(self, *args, **kwargs):
+        raise AssertionError("unexpected booster recommendation request")
+
+    def decide(self, *args, **kwargs):
+        raise AssertionError("unexpected consumable decision request")
+
+
+def _hold_reroll() -> ShopRerollRecommendation:
+    return ShopRerollRecommendation(
+        decision="HOLD",
+        reroll_cost=5,
+        executable_action=None,
+        current_best_score=0.0,
+        future_shop_ev=0.0,
+        reroll_resource_cost=0.0,
+        reroll_score=-1.0,
+        rationale=("synthetic HOLD reroll",),
+    )
+
+
+def _arbiter(*, shop_policy=None, reroll=None, joker=None) -> BuildAwareShopArbiter:
+    return BuildAwareShopArbiter(
+        shop_policy=shop_policy or _ShopPolicy(),
+        reroll_policy=_RerollPolicy(reroll or _hold_reroll()),
+        joker_policy=joker or _JokerPolicy(),
+        consumable_policy=_UnusedPolicy(),
+        booster_policy=_UnusedPolicy(),
+    )
+
+
+def _base_state() -> BalatroState:
+    state = BalatroState()
+    state.phase = "SHOP"
+    state.money = 20
+    state.ante = 2
+    state.joker_slots = 5
+    state.jokers = []
+    state.shop_jokers = []
+    state.shop_consumables = []
+    return state
+
+
+def _end_shop_beats_negative_admitted_child() -> SemanticCheck:
+    state = _base_state()
+    voucher = SimpleNamespace(name="Synthetic Voucher")
+    action = BalatroAction(BUY_VOUCHER, target=voucher)
+    decision = _arbiter(shop_policy=_ShopPolicy(deterministic_total=-1.0)).decide(
+        state,
+        [action, BalatroAction(END_SHOP)],
+        reroll_cost=5,
+    )
+    return SemanticCheck(
+        decision.action.name == END_SHOP and decision.normalized_gain == 0.0,
+        observed=(
+            f"action={decision.action.name}, source={decision.source}, "
+            f"normalized_gain={decision.normalized_gain:.3f}"
+        ),
+        expected="END_SHOP beats an admitted child with negative normalized parent value",
+        detail=(
+            "family-local admission is not permission to spend money: D14's explicit zero-gain "
+            "baseline must reject purchases that reduce run-winning shop value"
+        ),
+    )
+
+
+def _free_reroll_wins_zero_gain_tie() -> SemanticCheck:
+    state = _base_state()
+    reroll = ShopRerollRecommendation(
+        decision="REROLL",
+        reroll_cost=0,
+        executable_action=BalatroAction(REFRESH_SHOP),
+        current_best_score=0.0,
+        future_shop_ev=0.0,
+        reroll_resource_cost=0.0,
+        reroll_score=0.0,
+        rationale=("synthetic free reroll tie",),
+    )
+    decision = _arbiter(reroll=reroll).decide(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=0,
+    )
+    return SemanticCheck(
+        decision.action.name == REFRESH_SHOP and decision.source == "REROLL",
+        observed=f"action={decision.action.name}, source={decision.source}",
+        expected="a genuinely free reroll beats END_SHOP on an otherwise exact zero-gain tie",
+        detail=(
+            "a zero-cost refresh preserves money and exposes another public shop; D14's tie priority "
+            "may prefer it without inventing hidden future item identities"
+        ),
+    )
+
+
+def _replacement_stops_after_sell_checkpoint() -> SemanticCheck:
+    state = _base_state()
+    incumbent = SimpleNamespace(name="Incumbent", edition=None)
+    candidate = SimpleNamespace(name="Candidate", edition=None, live_id="candidate")
+    state.jokers = [incumbent]
+    state.shop_jokers = [candidate]
+
+    economics = JokerTransactionEconomics(
+        price=5,
+        sell_credit=5,
+        net_spend=0,
+        money_after=20,
+        edition_delta=0.0,
+        price_penalty=0.0,
+        interest_penalty=0.0,
+        reserve_penalty=0.0,
+        slot_penalty=0.0,
+    )
+    option = JokerAcquisitionOption(
+        mode=REPLACE,
+        build_gain=5.0,
+        total_advantage=5.0,
+        economics=economics,
+        eligible=True,
+        replace_index=0,
+    )
+    joker_decision = JokerAcquisitionDecision(
+        action=REPLACE,
+        candidate="Candidate",
+        selected=option,
+        options=(option,),
+        thresholds=JokerAcquisitionThresholds(),
+        rationale=("synthetic profitable replacement",),
+    )
+
+    decision = _arbiter(joker=_JokerPolicy(joker_decision)).decide(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=5,
+    )
+    fresh_checkpoint = any(
+        "fresh authoritative observation" in note for note in decision.rationale
+    )
+    return SemanticCheck(
+        decision.action.name == SELL_JOKER
+        and decision.action.target == 0
+        and decision.source == "JOKER_REPLACE_SELL"
+        and fresh_checkpoint,
+        observed=(
+            f"action={decision.action.name}, target={decision.action.target}, "
+            f"source={decision.source}, fresh_checkpoint={fresh_checkpoint}"
+        ),
+        expected="replacement executes only SELL_JOKER, then requires fresh observation before BUY",
+        detail=(
+            "shop replacement is a two-checkpoint transaction; D14 must not chain a projected purchase "
+            "against stale money, slots, or visible-shop state"
+        ),
+    )
+
+
+RED_WHITE_PHASE2_SHOP_CASES = (
+    SemanticBenchmarkCase(
+        case_id="shop.simple.end_shop_zero_baseline",
+        category="SHOP_SURVIVAL",
+        description="END_SHOP rejects negative normalized child value",
+        evaluate=_end_shop_beats_negative_admitted_child,
+        source="Phase 2 simple-shop audit: no-action survival baseline",
+    ),
+    SemanticBenchmarkCase(
+        case_id="shop.simple.free_reroll_zero_tie",
+        category="SHOP_SURVIVAL",
+        description="free reroll wins an exact zero-gain END_SHOP tie",
+        evaluate=_free_reroll_wins_zero_gain_tie,
+        source="Phase 2 simple-shop audit: free information option",
+    ),
+    SemanticBenchmarkCase(
+        case_id="shop.simple.replacement_reobserve_boundary",
+        category="SHOP_SURVIVAL",
+        description="Joker replacement stops after the sell checkpoint",
+        evaluate=_replacement_stops_after_sell_checkpoint,
+        source="Phase 2 simple-shop audit: transactional re-observation",
+    ),
+)
