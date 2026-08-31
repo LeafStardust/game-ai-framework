@@ -79,45 +79,42 @@ Canonical owners:
 - Cerulean Bell `forced_selection` live-state path
 - Ectoplasm `ecto_minus` live-state path
 - round-reset discard resource live-state path
+- Joker-generation `BalatroState` fields/copy and translator hydration
 
 Latest user-provided green command:
 
 ```powershell
 git pull
-python -m pytest -q tests/balatro/test_balatro_live_resource_state_native.py
+python -m pytest -q tests/balatro/test_balatro_joker_generation_state_native.py
 ```
 
-## Joker-generation live-state migration — IN PROGRESS
+## Joker-generation live-state migration — IMPLEMENTED, FINAL OBSERVER TEST PENDING
 
-Current implementation:
+Native ownership now consists of:
 
-- `c053e7c0` — `BalatroState` natively owns:
-  - `joker_generation_pool_observed`
-  - `joker_generation_pools`
-  - `joker_generation_edition_rate`
-  - `visible_poker_hands`
-  and preserves them through `copy()`.
-- `320cad9d` — `DefaultBalatroStateTranslator.translate()` hydrates those fields natively.
-- `a6815ec3` — extracted read-only `live/joker_generation_pool_state.py` catalogue reader preserving existing eligibility/cache semantics.
-- `1672a920` — old installer narrowed to **snapshot emission only**; it no longer mutates `BalatroState` or the translator.
-- `f9f4e948` — focused native state/translator regression coverage.
+- `c053e7c0` — `BalatroState` owns generation-pool observation fields and copy semantics.
+- `320cad9d` — `DefaultBalatroStateTranslator` hydrates them natively.
+- `a6815ec3` — read-only public catalogue/eligibility/cache reader extracted.
+- `a8e85d49` — `JokerGenerationPoolLiveMemoryObserver` explicitly enriches public snapshots and includes the catalogue in sequence fingerprinting.
+- `15cff881` — `SupervisorLiveMemoryBalatroObserver` composes on top of the enriched observer, preserving native-readiness/quiescence gates.
+- `39e06fff` + `5c9acadd` — autonomous loop uses the explicit enriched observer; transient comment-only diff noise was restored.
+- `8700b23d` — direct single-step runtime entrypoint uses the explicit enriched observer.
+- `5fed9fed` — old Joker-generation live-state installer is compatibility-only no-op.
+- `6d3aac35` — package startup no longer installs the Joker-generation overlay.
+- `646a1ac2` — focused native observer/sequence/no-mutation regression coverage.
 
-The existing public-information contract remains unchanged:
+The public-information contract remains unchanged:
 
 - no PRNG state;
 - no future pool order;
 - no selected future Joker identity;
-- eligibility only uses public unlock/duplicate/Showman/challenge/pool-flag/enhancement-gate state;
+- eligibility uses only public unlock/duplicate/Showman/challenge/pool-flag/enhancement-gate state;
 - edition rate and visible poker-hand set remain public inputs;
 - catalogue cache resets at `GAME_OVER`.
 
-One temporary mutation remains:
+No package-time Joker-generation observer mutation remains.
 
-- `joker_generation_pool_live_state_policy` still wraps `live_memory_observer.snapshot_payload_from_live_memory` to append the catalogue payload.
-
-That observer hook must be made native before this migration is complete.
-
-## Final substantive migration after Joker-generation state
+## Final substantive migration after Joker-generation green
 
 `boss_hand_constraint_policy` still mutates `StrategyAwareLiveHandActionPolicy` for:
 
@@ -127,29 +124,30 @@ That observer hook must be made native before this migration is complete.
 - Mouth discard-only forced legal recovery;
 - zero-score Play redraw shaping when locked and no discards remain.
 
-This is the final D1 strategy-authority migration before the Phase-0 exit gate.
+This is the **only remaining substantive Phase-0 migration** before the exit gate.
 
 ---
 
 # EXACT NEXT ACTION
 
-1. Run the native Joker-generation state/translator checkpoint locally:
+Run the final native Joker-generation observer gate locally:
 
 ```powershell
 git pull
-python -m pytest -q tests/balatro/test_balatro_joker_generation_state_native.py
+python -m pytest -q tests/balatro/test_balatro_joker_generation_state_native.py tests/balatro/test_balatro_joker_generation_observer_native.py
 ```
 
-2. If green, migrate the remaining Joker-generation **snapshot emission** into canonical live observation:
-   - canonical observer must call the read-only catalogue reader directly;
-   - retire `install_joker_generation_pool_live_state_policy()` to compatibility no-op;
-   - remove its package startup registration;
-   - add focused observer-level regression coverage;
-   - preserve catalogue caching and public-information boundaries.
+Do not run it from ChatGPT.
 
-3. Then migrate `boss_hand_constraint_policy` into `StrategyAwareLiveHandActionPolicy` / canonical D1 authority.
+### If green
 
-4. After boss-hand constraints are green, perform the Phase-0 exit gate. Do not invent another cleanup queue.
+Proceed immediately with:
+
+> **`boss_hand_constraint_policy` native D1 authority migration.**
+
+Move Eye/Mouth exact candidate constraints and subordinate Mouth evidence into `StrategyAwareLiveHandActionPolicy` / the canonical pre-arbitration D1 owner without changing mechanics or tuning. Retire the installer and package registration only after focused native regressions exist.
+
+After that green, perform the Phase-0 exit gate. Do not invent another wrapper-cleanup queue.
 
 ---
 
@@ -163,7 +161,7 @@ python -m pytest -q tests/balatro/test_balatro_joker_generation_state_native.py
 6. Hook — IMPLEMENTED / VALIDATED
 7. Cerulean — IMPLEMENTED / VALIDATED
 8. Ectoplasm + round-reset resources — IMPLEMENTED / VALIDATED
-9. Joker-generation live state — **IN PROGRESS**
+9. Joker-generation live state — **IMPLEMENTED; FINAL OBSERVER TEST PENDING**
 10. Boss-hand constraints — **FINAL SUBSTANTIVE MIGRATION**
 11. Phase-0 exit gate
 
@@ -175,7 +173,7 @@ Phase 0 is complete only when:
 
 - one documented/enforced final authority exists for each action family;
 - late semantic rescue layers are removed or reduced to true compatibility/diagnostic code;
-- true observation adapters are native at the observer/translator boundary rather than installed via mutation;
+- true observation adapters are explicit/native at the observer/translator boundary rather than installed via mutation;
 - diagnostics cannot independently plan or change actions;
 - production behavior no longer depends on fragile module import/installer order for migrated D1 semantics;
 - deterministic focused tests protect behavior rather than retired monkeypatch mechanisms.
@@ -187,7 +185,7 @@ git pull
 python -m pytest -q tests/balatro
 ```
 
-If decision semantics changed materially, also run:
+Because boss-hand constraints materially affect decisions, also run:
 
 ```powershell
 python -m games.balatro.red_white_semantic_benchmark
