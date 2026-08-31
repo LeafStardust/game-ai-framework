@@ -17,7 +17,6 @@ from games.balatro.bond_shop_health_policy import install_bond_shop_health_polic
 from games.balatro.boss_hand_constraint_policy import install_boss_hand_constraint_policy
 from games.balatro.build_health_policy import install_build_health_policy
 from games.balatro.burnt_bond_execution_policy import install_burnt_bond_execution_policy
-from games.balatro.castle_discard_policy import install_castle_discard_policy
 from games.balatro.celestial_shop_headroom_fast_path import install_celestial_shop_headroom_fast_path
 from games.balatro.cerulean_live_state_policy import install_cerulean_live_state_policy
 from games.balatro.consumable_d14_literal_policy import install_consumable_d14_literal_policy
@@ -108,7 +107,6 @@ install_observatory_planet_policy()
 install_sixth_sense_policy()
 install_early_spend_sanity_policy()
 install_late_shop_resource_guard()
-install_castle_discard_policy()
 install_deck_growth_pack_policy()
 install_deck_growth_playing_card_value_policy()
 install_pack_sunk_cost_policy()
