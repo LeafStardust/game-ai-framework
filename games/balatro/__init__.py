@@ -34,8 +34,8 @@ from games.balatro.generated_enhanced_spectral_dispatch_postcondition import ins
 from games.balatro.generated_enhanced_spectral_pack_policy import install_generated_enhanced_spectral_pack_policy
 from games.balatro.hanged_man_blue_joker_policy import install_hanged_man_blue_joker_policy
 from games.balatro.held_consumable_option_policy import install_held_consumable_option_policy
-from games.balatro.held_round_end_resource_policy import install_held_round_end_resource_policy
 from games.balatro.high_priestess_pack_policy import install_high_priestess_pack_policy
+from games.balatro.hook_planner_integration_policy import install_hook_planner_integration_policy
 from games.balatro.immolate_pack_expectation_policy import install_immolate_pack_expectation_policy
 from games.balatro.joker_generation_pool_live_state_policy import install_joker_generation_pool_live_state_policy
 from games.balatro.judgement_dispatch_postcondition import install_judgement_dispatch_postcondition
@@ -57,6 +57,7 @@ from games.balatro.planet_scaler_authority import install_planet_scaler_authorit
 from games.balatro.post_transaction_joker_value_policy import install_post_transaction_joker_value_policy
 from games.balatro.r0_strategy_transition_policy import install_r0_strategy_transition_policy
 from games.balatro.round_resource_live_state_policy import install_round_resource_live_state_policy
+from games.balatro.serpent_draw_policy import install_serpent_draw_policy
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.shop_semantic_quiet_policy import install_shop_semantic_quiet_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
@@ -139,6 +140,10 @@ install_live_decision_quality_policy()
 install_stateful_joker_admission_policy()
 install_tactical_scaler_retention_policy()
 install_soul_pack_expectation_policy()
+# Exact boss transitions remain explicit until their later ownership migrations.
+# Preserve the established Serpent-then-Hook composition order.
+install_serpent_draw_policy()
+install_hook_planner_integration_policy()
 # Late D1 semantic evidence hooks see the fully wrapped mechanics/value path but do
 # not own a second Play/Discard or same-class action selector.
 install_semantic_search_guard_policy()
@@ -146,7 +151,6 @@ install_full_roster_shop_guard()
 install_full_roster_pack_guard()
 install_live_joker_order_authority()
 install_planet_scaler_authority()
-install_held_round_end_resource_policy()
 install_shop_semantic_quiet_policy()
 # The Celestial fast path remains last so it sees the fully wrapped D8 policy while
 # only skipping finite Planet expectation when a public hard HOLD is already known.
