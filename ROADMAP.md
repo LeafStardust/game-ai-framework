@@ -7,11 +7,11 @@ This file is written for an LLM continuing development of this repository.
 Rules for future chats:
 
 1. Read this file first.
-2. Treat its `CURRENT STATE` and `EXACT NEXT ACTION` sections as authoritative.
-3. Other files under `docs/` are supporting architecture, audits, mechanics, validation evidence, or history only. They may explain implementation details but **must never override the current status or queue in this file**.
+2. Treat `CURRENT STATE` and `EXACT NEXT ACTION` as authoritative.
+3. Other files under `docs/` are supporting architecture/history only and must not override this file.
 4. `docs/balatro/BALATRO_IMPLEMENTATION_HISTORY.md` is historical evidence only.
-5. If code or a user-provided local test result proves this file stale, update this file in the same development batch after fixing/reconciling the code.
-6. Do not create another file with `ROADMAP` in its name. Do not create a second handoff document.
+5. If code or a user-provided local test result proves this file stale, update it in the same development batch.
+6. Do not create another roadmap/handoff file.
 
 ---
 
@@ -21,13 +21,12 @@ Rules for future chats:
 - Active branch: `feat/v1.0-red-white-competence`
 - Work only on that branch unless the user explicitly changes scope.
 - The user runs tests locally. **Do not run tests from ChatGPT.**
-- When the user reports a failure, inspect whether it is a real production regression or a stale test protecting retired architecture before changing behavior.
-- When exact repo/branch/path is known, use direct branch-scoped fetch/update/delete operations. Do not waste time rediscovering known paths or probing unrelated history.
-- Preserve exact Balatro mechanics, public-state legality, boss rules and hidden-information boundaries.
-- Never use hidden RNG state, seeds, future pool order, future identities or other inaccessible information.
+- When giving local validation commands, include `git pull` first.
+- When a test fails, distinguish a production regression from a stale test protecting retired architecture before changing behavior.
+- Preserve exact Balatro mechanics, public-state legality, boss rules, and hidden-information boundaries.
+- Never use hidden RNG state, seeds, future pool order, future identities, or inaccessible information.
 - Do not hard-code arbitrary Joker tier lists or named shop-combination strategy tables.
 - Prefer canonical ownership over late monkeypatch/rescue wrappers.
-- If a wrapper merely injects evidence, mechanics, caching or ordering into an existing final authority, migrate that behavior into the canonical owner and retire the installer.
 - Bond/composition and Build Health are evidence, not independent final action authorities.
 - Winning the current run is the gameplay objective.
 
@@ -39,7 +38,7 @@ Rules for future chats:
 
 Feature growth is frozen until this competence gate is stable and reproducible.
 
-Do not start Red Stake or higher-stake progression, another deck, collection-first behavior, Endless-first behavior, a new strategic framework, or broad numerical tuning intended to compensate for semantic/authority defects.
+Do not start higher-stake progression, another deck, collection-first behavior, Endless-first behavior, a new strategy framework, or broad numerical tuning intended to compensate for semantic/authority defects.
 
 Literal Balatro scoring and legality remain authoritative over strategy labels.
 
@@ -56,11 +55,11 @@ The active engineering phase is:
 ## Canonical authority shape
 
 - D1 search/projection: `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`.
-- D1 action arbitration: `LiveHandActionPolicy`; effective production strategy-aware policy: `StrategyAwareLiveHandActionPolicy`.
+- D1 arbitration: `LiveHandActionPolicy`; production strategy-aware authority: `StrategyAwareLiveHandActionPolicy`.
 - D1 orchestration/final return: `LiveHandActionDecisionEngine` / path-aware production engine.
-- D14 SHOP final authority: `BuildAwareShopArbiter`.
-- D11 reroll authority: `BuildAwareShopRerollPolicy`.
-- D9 opened-pack authority: `BalatroPackPolicy`.
+- D14 SHOP: `BuildAwareShopArbiter`.
+- D11 reroll: `BuildAwareShopRerollPolicy`.
+- D9 opened pack: `BalatroPackPolicy`.
 
 Target architecture:
 
@@ -82,159 +81,161 @@ Action
 
 ## D1 ownership migrations implemented so far
 
-The following behavior has been moved away from installation-order-dependent D1 wrappers into canonical production ownership:
+The following behavior is now owned natively rather than by late D1 installation-order wrappers:
 
-- safe-pace adaptive-search scheduling;
-- safe-pace timeout/fallback authority;
+- safe-pace adaptive-search scheduling and timeout/fallback authority;
 - Hook/log-resilience search reserve;
 - boss-unconfirmed projection confidence;
 - per-decision Bond intent cache;
-- Castle discard evidence;
-- Burnt Joker discard evidence;
-- DNA/Aces evidence;
-- hand-repetition evidence;
-- Green Joker survival-equivalent Play/Discard preservation;
+- Castle, Burnt Joker, DNA/Aces, hand-repetition, and Green-Joker evidence;
 - Runner / To Do List target-hand evidence;
 - Purple-Seal discard candidate/beam preservation;
 - Blue-Seal round-end generated-consumable accounting;
-- Gold-card preservation as a final play-priority tie-break.
+- Gold-card final play-priority preservation;
+- semantic Bond rank-relation guard;
+- root/child play and discard prefilter bounds;
+- redraw-size diversity, short-play reserve, and root discard reserve;
+- planner non-clearing discard quality ordering;
+- strategy zero-signal discard redraw-size ordering.
 
-The current sequence is an **ownership refactor**, not a new tuning family. Preserve intended behavior while eliminating late mutation.
+`semantic_search_guard_policy` is now compatibility-only and production startup no longer installs it.
+
+This remains an **ownership refactor, not a tuning family**.
 
 ## Latest consolidation commits
 
-Target-hand:
+Target hand / Purple / held resources:
 
 - `0defc8a7bb91d5b11b7d3e4905c996e0f50f0474` — native target-hand evidence.
-- `65f352cbedae67a246f0c27774549d8e8a36a99a` — native target-hand regression.
-- `60f7245939fb29e7e63cadee1cd508efea61cdf6` — remove stale installer-sentinel assertion.
+- `84252776fe335ede82eba4a16fda33e56ea4b5fb` — native Purple-Seal D1 beam coverage.
+- `73b8e8c6291a59c628f3d1ad41b8b754325871b9` — native Blue-Seal terminal accounting and Gold-card tie-break.
+- `f0e646a211f9f5e1ccc42419be3e30d636edabce` — held-resource installer compatibility no-op.
+- `9da37efe4ab426fcfd0086b5efad8b6a7b467622` — explicit Serpent-then-Hook registration after held-resource installer retirement.
 
-Purple Seal:
+Semantic-search consolidation:
 
-- `84252776fe335ede82eba4a16fda33e56ea4b5fb` — native D1 Purple-Seal beam coverage.
-- `5ee46673deb9958d33b3b8b2bb90624e6e4ccbce` — retire Purple-Seal installer implementation.
-- `9bdef2dbb9c713c2b08febc2bf3ea7ef14eb2034` — stop installing Purple-Seal overlay.
-- `2571dedb212e8767d4b0360e99e45e2d9597ccac` — focused native Purple-Seal regression.
+- `10201187` — bounded semantic candidate generation moved into `LiveBlindClearPlanner`.
+- `f54aec34` — old semantic guard narrowed to the final two ordering hooks.
+- `eda3d146f8ba3af1b58ff1b96991c9784c8b981f` — native search-bound/Bond regression checkpoint.
+- `237335e18fddebffdce23d1514ab078c919257a9` — planner estimate ordering made native.
+- `44d0856497b44a512d06955c7abb4a504ee7a09f` — strategy discard ordering made native.
+- `613a25b58c6c60048dd51e3726d8ededd9587788` — semantic guard installer retired to compatibility no-op.
+- `e5f4b6448c6fb9036e78a38702a7fb642dea2af6` — production no longer installs semantic search guard.
+- `87746cc00cc7e857dbd25332380b35fff0091c3a` — native semantic ordering regression coverage.
 
-Held round-end resources:
+A previous noisy attempted planner rewrite was fully undone before the clean native ordering commit; do not resurrect or reason from that transient state.
 
-- `73b8e8c6291a59c628f3d1ad41b8b754325871b9` — native Blue-Seal terminal accounting and Gold-card play-priority tie-break in `LiveBlindClearPlanner`.
-- `f0e646a211f9f5e1ccc42419be3e30d636edabce` — retire held-resource installer implementation to compatibility no-op.
-- `9da37efe4ab426fcfd0086b5efad8b6a7b467622` — stop installing held-resource overlay; register Serpent then Hook mechanics explicitly instead of relying on held-resource side effects.
-- `a47077b07a2f57257d03e81f15f4c951a1a171c3` — focused native Blue/Gold regression coverage.
-
-**ChatGPT has not run these tests. Local validation is pending from the user.**
+**ChatGPT has not run tests.**
 
 ---
 
 # LAST USER-PROVIDED LOCAL TEST RESULT
 
-The last reported command was:
+The user reported **green** for:
 
 ```powershell
-python -m pytest -q tests/balatro -k "target_hand or runner or todo or strategy_hand"
+python -m pytest -q tests/balatro/test_balatro_semantic_search_native_bounds.py
 ```
 
-It previously produced one stale-architecture failure:
+That validates the native Bond/search-bound extraction checkpoint before the final ordering hooks were removed.
 
-```text
-FAILED tests/balatro/test_balatro_target_hand_engine_policy.py::test_production_stack_installs_target_hand_guard
-1 failed, 38 passed, 2743 deselected
-```
-
-That failure did **not** indicate missing target-hand behavior. The old installer had deliberately been retired, while one regression still required its sentinel. Commit `60f72459...` corrected that stale assertion instead of reintroducing the wrapper.
-
-No newer local result has been provided yet.
+The newly native planner/strategy ordering and retired semantic installer still require local focused validation.
 
 ---
 
 # EXACT NEXT ACTION
 
-## First: local focused validation of the completed consolidation batch
+## Local focused validation of completed semantic-search consolidation
 
-The user should pull the branch and run:
+The user should run:
 
 ```powershell
-python -m pytest -q tests/balatro/test_balatro_target_hand_engine_policy.py tests/balatro/test_balatro_purple_seal_d1_native.py tests/balatro/test_balatro_held_round_end_resource_native.py
+git pull
+python -m pytest -q tests/balatro/test_balatro_semantic_search_native_bounds.py tests/balatro/test_balatro_semantic_search_native_ordering.py
 ```
 
 Do not run it from ChatGPT.
 
-### If the focused command fails
+### If it fails
 
-- inspect the exact failure directly;
-- distinguish a production semantic regression from a stale architecture assertion;
-- do not restore retired target-hand, Purple-Seal, or held-resource installers merely to satisfy sentinel-based tests;
-- preserve native canonical ownership unless evidence shows the native behavior itself is wrong.
+- inspect the exact failure;
+- do not restore `install_semantic_search_guard_policy()` merely to satisfy a sentinel/import-order test;
+- preserve native candidate/search ownership unless behavior itself is proven wrong;
+- preserve guaranteed PLAY clears;
+- for non-clearing DISCARD lines, modeled recovery quality must outrank exact-enumeration status;
+- when modeled discard signal is genuinely zero, real strategy fit remains first and meaningful redraw width is only the later tie-break.
 
-### If the focused command is green
+### If it is green
 
-Continue immediately to:
+Continue immediately to queue item 5:
 
-> **`semantic_search_guard_policy` classification and staged ownership migration.**
+> **Remaining exact-mechanics / boss / Cerulean wrapper consolidation.**
 
-Do not perform a giant blind rewrite. First classify every behavior currently owned by the module and move concerns one owner at a time.
+Start by inventorying the still-installed D1-affecting exact mechanics wrappers, especially the explicitly preserved `serpent_draw_policy` and `hook_planner_integration_policy`, before choosing ownership changes. Exact mechanics must not be weakened merely to eliminate an installer.
+
+Do not begin higher stakes or broad tuning.
 
 ---
 
 # ORDERED D1 CONSOLIDATION QUEUE
 
-## 1. Target-hand evidence — IMPLEMENTED, LOCAL RETEST PENDING
+## 1. Target-hand evidence — IMPLEMENTED
 
-Expected architecture:
+- Runner / To Do List evidence is consumed natively by canonical D1.
+- Target-hand installer architecture is intentionally retired.
 
-- Runner / To Do List target-hand evidence is consumed natively by canonical D1;
-- no production startup target-hand installer;
-- no `_target_hand_engine_policy_installed` sentinel requirement.
+## 2. Purple Seal discard beam coverage — IMPLEMENTED
 
-## 2. Purple Seal discard beam coverage — IMPLEMENTED, LOCAL TEST PENDING
+- Purple-Seal opportunities survive child-candidate/beam truncation natively.
+- Ordinary discard ranking remains authoritative outside the reserved distinct branch.
+- `purple_seal_discard_policy` is compatibility-only.
 
-Expected architecture:
+## 3. Held round-end resources — IMPLEMENTED
 
-- Purple-Seal Tarot-generation opportunities survive D1 child-candidate and discard-beam truncation natively;
-- ordinary discard ranking remains authoritative outside the reserved mechanically distinct branch;
-- `purple_seal_discard_policy` is compatibility-only and does not mutate planner classes;
-- no `_purple_seal_discard_policy_installed` sentinel requirement.
+- Blue-Seal reward accounting is native terminal valuation on actual round end.
+- Consumable capacity is respected.
+- Gold preservation is only a final play-priority tie-break.
+- `held_round_end_resource_policy` is compatibility-only.
+- Serpent and Hook remain explicitly installed pending their own exact-mechanics ownership review.
 
-## 3. Held round-end resources — IMPLEMENTED, LOCAL TEST PENDING
+## 4. `semantic_search_guard_policy` — IMPLEMENTED, LOCAL FINAL TEST PENDING
 
-Expected architecture:
+Native ownership now covers:
 
-- Blue-Seal reward accounting happens through canonical terminal D1 valuation only when the round actually clears and the Blue-Seal card remains held;
-- consumable capacity caps generated Blue-Seal value;
-- Gold-card preservation is only a final play-priority tie-break and cannot outrank better clear/score evidence;
-- `held_round_end_resource_policy` is compatibility-only and does not mutate planner classes;
-- Serpent and Hook exact mechanics remain explicitly installed in their existing order until their later ownership migrations;
-- no `_held_round_end_resource_policy_installed` sentinel requirement.
-
-## 4. `semantic_search_guard_policy` — NEXT AFTER GREEN FOCUSED VALIDATION
-
-This is a larger mixed runtime/search wrapper. Before changing it, classify every behavior it owns.
-
-Known concerns currently mixed into the module include:
-
-- Bond relation filtering for over-broad rank-feature relationships;
+- Bond rank-relation filtering;
 - root/child play prefilter bounds;
-- root/child discard prefilter bounds and redraw-size diversity;
-- root short-play reserve;
+- root/child discard prefilter bounds and redraw diversity;
+- short-play reserve;
 - root discard reserve under soft-deadline pressure;
 - non-clearing discard quality ordering;
-- zero-signal discard redraw-size tie-breaks;
-- any patched planner/policy methods that remain in the lower half of the module.
+- zero-signal discard redraw-size ordering.
+
+Expected architecture after validation:
+
+- no `_semantic_search_guard_installed` sentinel;
+- package startup does not install the compatibility module;
+- planner behavior is defined by `LiveBlindClearPlanner`;
+- strategy discard ordering is defined by `StrategyAwareLiveHandActionPolicy`.
+
+## 5. Remaining exact-mechanics / boss / Cerulean wrappers — NEXT AFTER GREEN
+
+Inventory before changing ownership. Prioritize wrappers that still mutate D1 planner classes or live state semantics.
+
+Known explicit D1 exact-mechanics registrations:
+
+- `serpent_draw_policy`;
+- `hook_planner_integration_policy`.
+
+Also inspect remaining boss/Cerulean live-state wrappers before deciding whether they are true mechanics adapters, canonical-state parsing, or removable late mutation.
 
 Migration contract:
 
-1. separate Bond-graph semantics from D1 search/runtime behavior;
-2. separate candidate generation/prefiltering from value arbitration;
-3. move bounded search behavior into the canonical planner owner;
-4. move final action comparison behavior into the canonical arbiter/evaluator owner;
-5. preserve existing deadlines, root/child beam bounds and exact legality;
-6. retire each monkey patch only after its native behavior is covered;
-7. do not change tuning merely because ownership changes.
-
-## 5. Remaining exact-mechanics / boss / Cerulean wrappers
-
-Only after narrower evidence/search wrappers are consolidated. Exact mechanics must remain authoritative even if their ownership changes.
+1. exact Balatro mechanics remain authoritative;
+2. do not merge distinct boss mechanics into generic heuristics;
+3. move behavior only when a canonical owner is clear;
+4. add focused behavior regressions before retiring each installer;
+5. preserve public-state-only information boundaries;
+6. do not change tuning merely because ownership changes.
 
 ---
 
@@ -250,23 +251,24 @@ Phase 0 is complete only when:
 
 Supporting architecture inventory: `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md`.
 
-**Do not trust that map blindly if it disagrees with current code. It is supporting documentation, not the roadmap. Refresh stale rows as wrappers are retired.**
+Do not trust that map if it conflicts with current code; refresh stale rows as wrappers are retired.
 
 ---
 
 # VALIDATION WORKFLOW
 
-Do not demand the full Balatro suite after every small ownership migration.
+Do not demand the full Balatro suite after every small migration.
 
 For each consolidation item:
 
-1. implement the native ownership change;
-2. update/add the smallest focused regression tests;
-3. have the user run the smallest targeted pytest command;
-4. if green, continue to the next closely related consolidation item;
-5. after a coherent consolidation batch, have the user run:
+1. implement native ownership;
+2. add/update the smallest focused regression;
+3. have the user run the targeted command, always beginning with `git pull`;
+4. if green, continue immediately to the next closely related item;
+5. after a coherent batch, have the user run:
 
 ```powershell
+git pull
 python -m pytest -q tests/balatro
 ```
 
@@ -276,23 +278,20 @@ python -m pytest -q tests/balatro
 python -m games.balatro.red_white_semantic_benchmark
 ```
 
-The full deterministic suite is mandatory before live validation, release promotion, or moving to a major new phase.
-
-Live runs are integration evidence, not the primary progress metric.
+The full deterministic suite is mandatory before live validation, release promotion, or a major phase transition.
 
 ---
 
 # CLOSED / DO NOT REOPEN WITHOUT FRESH EVIDENCE
 
-Do not spend time reopening the following merely because old docs or history mention them:
-
 - ordinary D1 competence failures already repaired;
 - Mouth discard-only legality;
-- Green Joker survival-equivalent authority already migrated;
-- Hook/log-resilience reserve already migrated;
-- target-hand installer architecture — intentionally retired;
-- Purple-Seal installer architecture — intentionally retired;
-- held-round-end-resource installer architecture — intentionally retired;
+- Green Joker survival-equivalent authority;
+- Hook/log-resilience search reserve;
+- target-hand installer architecture;
+- Purple-Seal installer architecture;
+- held-round-end-resource installer architecture;
+- semantic-search-guard installer architecture after final focused validation;
 - production-default tuning ContextVar hypothesis — falsified;
 - historical SHOP recursive expectation roots;
 - BLIND_SELECT quiescence deadlock;
@@ -300,9 +299,9 @@ Do not spend time reopening the following merely because old docs or history men
 - D1 root pre-beam wall-clock budget defect;
 - live tuner cascading after failed/non-COMPLETE trial;
 - Phase-A Bond exploratory tuning — completed with no promotion;
-- D14/D11 SHOP latency blocker — closed unless fresh timing evidence reproduces it.
+- D14/D11 SHOP latency blocker unless fresh timing evidence reproduces it.
 
-If a new user-provided trace/test reproduces one of these failure classes, reopen it based on that evidence only.
+Reopen only from fresh user-provided test/trace evidence.
 
 ---
 
@@ -312,11 +311,11 @@ If a new user-provided trace/test reproduces one of these failure classes, reope
 
 - guaranteed clear must be taken;
 - useful discards must be used when current pace is inadequate;
-- trivial tiny plays must not burn hands while a useful discard exists;
+- trivial tiny plays must not burn hands while useful discard recovery exists;
 - repeated one-card discards must be exceptional unless exact mechanics justify them;
 - survival-equivalent lines may preserve valuable held resources;
 - forced selections and boss rules are obeyed;
-- impossible-clear states maximize remaining progress rather than preserve irrelevant resources;
+- impossible-clear states maximize remaining progress rather than irrelevant resources;
 - timeout retains completed canonical evidence;
 - late evidence cannot reverse a finalized survival class without valid canonical authority.
 
@@ -347,40 +346,13 @@ If a new user-provided trace/test reproduces one of these failure classes, reope
 
 # LATER PHASES — BLOCKED UNTIL PHASE 0 IS CLEAN
 
-## Phase 1 — semantic benchmark expansion
-
-Expand captured/reconstructed public checkpoints when new failure classes appear. Prefer behavioral properties over fragile exact actions unless exactness is mechanically required.
-
-## Phase 2 — D1 survival competence
-
-Default comparison order:
-
-1. probability of clearing the blind;
-2. feasibility/confidence of remaining clear paths;
-3. expected progress toward target;
-4. expected hands remaining;
-5. expected discards remaining;
-6. score/economy/generated resources as later tie-breaks.
-
-## Phase 3 — simple shop survival
-
-One shared final comparison scale across Jokers, vouchers, boosters, consumables, rerolls and END_SHOP. Immediate survival/scoring value outranks speculative long-horizon cleverness.
-
-## Phase 4 — coherent build authority
-
-Bond/composition and Build Health remain evidence inside one run-winning decision process. No fake score from structural labels.
-
-## Phase 5 — complex packs/consumables/vouchers/economy
-
-Audit existing implementations rather than rebuilding them. One-layer public expectation remains the normal unopened stochastic boundary.
-
-## Phase 6 — live validation
-
-After deterministic/semantic gates are clean, use focused authoritative live attempts to detect integration/runtime defects. Convert obvious failure classes into deterministic/semantic regressions when practical.
-
-## Phase 7 — numerical tuning
-
-Resume only after semantics and authority are trustworthy. Tune preferences/coefficients, never mechanics, legality, boss rules or hidden-information behavior.
+1. Semantic benchmark expansion.
+2. D1 survival competence refinement.
+3. Simple shop survival.
+4. Coherent build authority.
+5. Complex packs/consumables/vouchers/economy audit.
+6. Live validation.
+7. Numerical tuning only after semantics/authority are trustworthy.
 
 Promotion requires a fresh controlled comparison with at least 20 completed episodes per arm and non-regression/pathology gates.
 
@@ -400,14 +372,7 @@ After Red/White competence passes:
 | v1.6 | Orange | Perishable Joker adaptation |
 | v1.7 | Gold | Rental Joker adaptation and all-stakes validation |
 
-Then additional decks, currently planned:
-
-1. Blue Deck — v2.x
-2. Yellow Deck — v3.x
-3. Green Deck — v4.x
-4. Black Deck — v5.x
-
-These future versions must reuse the permanent architecture rather than introduce parallel strategy frameworks.
+Then additional decks: Blue, Yellow, Green, Black. Reuse the permanent architecture rather than parallel strategy frameworks.
 
 ---
 
@@ -415,6 +380,6 @@ These future versions must reuse the permanent architecture rather than introduc
 
 - `docs/balatro/BALATRO_IMPLEMENTATION_HISTORY.md` — completed implementation/tuning history only.
 - `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` — architecture inventory/supporting evidence; refresh when stale.
-- other `docs/balatro/*.md` files — mechanics, audits, validation records, strategy/Bond design, runtime evidence.
+- other `docs/balatro/*.md` — mechanics, audits, validation records, strategy/Bond design, runtime evidence.
 
 Again: **none of them define the current queue. This file does.**
