@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
-from games.balatro.semantic_search_guard_policy import _ensure_root_discard_reserve
+from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 
 
 def _action(name, width):
@@ -18,21 +18,18 @@ def test_initial_root_appends_legal_discard_when_underlying_beam_is_play_only(mo
             del state
             return [discard_one, discard_wide]
 
-    planner = SimpleNamespace(
-        nodes_evaluated=0,
-        discard_width=2,
-        deadline=None,
-        action_generator=Generator(),
-    )
+    planner = LiveBlindClearPlanner(action_generator=Generator(), discard_width=2)
+    planner.nodes_evaluated = 0
+    planner.deadline = None
     state = SimpleNamespace(discards_remaining=4, hand=())
 
     monkeypatch.setattr(
-        "games.balatro.semantic_search_guard_policy._cheap_discard_key",
-        lambda state, action: (0.0, len(action.cards)),
+        LiveBlindClearPlanner,
+        "_cheap_discard_key",
+        staticmethod(lambda state, action: (0.0, len(action.cards))),
     )
 
-    candidates = _ensure_root_discard_reserve(
-        planner,
+    candidates = planner._ensure_root_discard_reserve(
         state,
         [play],
         allow_discards=True,
@@ -47,20 +44,18 @@ def test_initial_root_appends_legal_discard_when_underlying_beam_is_play_only(mo
 def test_existing_discard_evidence_is_not_duplicated():
     play = _action(PLAY_CARDS, 2)
     discard = _action(DISCARD_CARDS, 3)
-    planner = SimpleNamespace(
-        nodes_evaluated=0,
-        discard_width=2,
-        deadline=None,
-        action_generator=SimpleNamespace(
-            generate_discard_actions=lambda state: (_ for _ in ()).throw(
-                AssertionError("existing discard evidence must be preserved as-is")
-            )
-        ),
-    )
+
+    class Generator:
+        def generate_discard_actions(self, state):
+            del state
+            raise AssertionError("existing discard evidence must be preserved as-is")
+
+    planner = LiveBlindClearPlanner(action_generator=Generator(), discard_width=2)
+    planner.nodes_evaluated = 0
+    planner.deadline = None
     state = SimpleNamespace(discards_remaining=4)
 
-    candidates = _ensure_root_discard_reserve(
-        planner,
+    candidates = planner._ensure_root_discard_reserve(
         state,
         [play, discard],
         allow_discards=True,
@@ -73,27 +68,24 @@ def test_existing_discard_evidence_is_not_duplicated():
 def test_active_hook_does_not_append_projected_root_discard_reserve(monkeypatch):
     play = _action(PLAY_CARDS, 2)
 
-    planner = SimpleNamespace(
-        nodes_evaluated=0,
-        discard_width=2,
-        deadline=None,
-        action_generator=SimpleNamespace(
-            generate_discard_actions=lambda state: (_ for _ in ()).throw(
-                AssertionError("active Hook must not generate reserved root discards")
-            )
-        ),
-    )
+    class Generator:
+        def generate_discard_actions(self, state):
+            del state
+            raise AssertionError("active Hook must not generate reserved root discards")
+
+    planner = LiveBlindClearPlanner(action_generator=Generator(), discard_width=2)
+    planner.nodes_evaluated = 0
+    planner.deadline = None
     state = SimpleNamespace(
         boss_name="The Hook",
         discards_remaining=4,
     )
     monkeypatch.setattr(
-        "games.balatro.semantic_search_guard_policy._active_hook",
+        "games.balatro.live.blind_clear_planner._active_hook",
         lambda state: True,
     )
 
-    candidates = _ensure_root_discard_reserve(
-        planner,
+    candidates = planner._ensure_root_discard_reserve(
         state,
         [play],
         allow_discards=True,
