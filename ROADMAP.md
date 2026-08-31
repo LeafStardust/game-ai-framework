@@ -96,9 +96,12 @@ The following behavior is now owned natively rather than by late D1 installation
 - root/child play and discard prefilter bounds;
 - redraw-size diversity, short-play reserve, and root discard reserve;
 - planner non-clearing discard quality ordering;
-- strategy zero-signal discard redraw-size ordering.
+- strategy zero-signal discard redraw-size ordering;
+- The Serpent exact post-action draw count on both reusable base D1 and integrated production D1.
 
 `semantic_search_guard_policy` is compatibility-only, production startup no longer installs it, and the completed native search-bound + ordering regression gate is green locally.
+
+`serpent_draw_policy` is now compatibility-only and production startup no longer installs it. Native Serpent regression is pending local validation.
 
 This remains an **ownership refactor, not a tuning family**.
 
@@ -123,6 +126,13 @@ Semantic-search consolidation:
 - `e5f4b6448c6fb9036e78a38702a7fb642dea2af6` — production no longer installs semantic search guard.
 - `87746cc00cc7e857dbd25332380b35fff0091c3a` — native semantic ordering regression coverage.
 
+Exact mechanics:
+
+- `89fb1a23f6be232abe327745a4317259f75f673a` — base `LiveBlindClearPlanner` now owns exact Serpent redraw count natively for Play and Discard transitions.
+- `4811943d22405005a34912f48200c2189e7e9845` — Serpent installer retired to compatibility no-op.
+- `b8840745f770425153f593d7e86ff81e02634dc7` — production no longer installs Serpent overlay; Hook remains explicitly installed.
+- `d17f6aee546b7b376c8c41ae775e2f99c11a3c5c` — focused native Serpent regression coverage.
+
 A previous noisy attempted planner rewrite was fully undone before the clean native ordering commit; do not resurrect or reason from that transient state.
 
 **ChatGPT has not run tests.**
@@ -144,18 +154,33 @@ This validates native Bond/search bounds, planner estimate ordering, strategy ze
 
 # EXACT NEXT ACTION
 
-Proceed immediately to queue item 5:
+## First: local focused validation of native Serpent ownership
 
-> **Remaining exact-mechanics / boss / Cerulean wrapper consolidation.**
+The user should run:
 
-Start with the explicitly preserved D1-affecting exact mechanics wrappers:
+```powershell
+git pull
+python -m pytest -q tests/balatro/test_balatro_serpent_native.py
+```
 
-1. `serpent_draw_policy`;
-2. `hook_planner_integration_policy`.
+Do not run it from ChatGPT.
 
-For each, inspect the current wrapper against native `LiveBlindClearPlanner` / integrated D1 behavior, move only exact mechanics into the canonical planner owner, add focused behavior regressions, and retire installation only after native behavior is covered.
+### If it fails
 
-Then inspect Cerulean and the remaining boss/live-state wrappers to distinguish canonical state parsing from late mutation.
+- inspect the exact failure;
+- do not restore `install_serpent_draw_policy()` merely to satisfy a sentinel/import-order test;
+- preserve The Serpent literal rule: after each Play or Discard, draw exactly 3 cards while the boss is active;
+- if the boss is disabled by owned Joker mechanics, ordinary draw behavior must apply.
+
+### If it is green
+
+Continue immediately with:
+
+> **`hook_planner_integration_policy` exact forced-discard branch migration.**
+
+The Hook wrapper is heavier than Serpent because it currently replaces base `_estimate_play` to account for forced-discard score branches and branch-specific hand refill. Move that exact mechanic into the canonical planner carefully, add focused behavior regression coverage, and only then retire the installer.
+
+After Hook, inspect Cerulean and the remaining boss/live-state wrappers to distinguish canonical state parsing from late mutation.
 
 Do not begin higher stakes or broad tuning.
 
@@ -180,37 +205,28 @@ Do not begin higher stakes or broad tuning.
 - Consumable capacity is respected.
 - Gold preservation is only a final play-priority tie-break.
 - `held_round_end_resource_policy` is compatibility-only.
-- Serpent and Hook remain explicitly installed pending their own exact-mechanics ownership review.
 
 ## 4. `semantic_search_guard_policy` — IMPLEMENTED AND LOCALLY VALIDATED
 
-Native ownership covers:
-
-- Bond rank-relation filtering;
-- root/child play prefilter bounds;
-- root/child discard prefilter bounds and redraw diversity;
-- short-play reserve;
-- root discard reserve under soft-deadline pressure;
-- non-clearing discard quality ordering;
-- zero-signal discard redraw-size ordering.
-
-Validated architecture:
-
-- no production `_semantic_search_guard_installed` dependency;
-- package startup does not install the compatibility module;
-- planner behavior is defined by `LiveBlindClearPlanner`;
-- strategy discard ordering is defined by `StrategyAwareLiveHandActionPolicy`.
+Native ownership covers Bond rank filtering, bounded candidate generation, redraw diversity, root reserves, planner recovery ordering, and strategy zero-signal discard ordering.
 
 ## 5. Remaining exact-mechanics / boss / Cerulean wrappers — ACTIVE
 
-Prioritize wrappers that still mutate D1 planner classes or live state semantics.
+### 5a. Serpent — IMPLEMENTED, LOCAL TEST PENDING
 
-Known explicit D1 exact-mechanics registrations:
+- reusable `LiveBlindClearPlanner` natively forces post-action draw count to 3 under active The Serpent;
+- integrated production D1 already owns the same rule natively;
+- boss-disable semantics preserve ordinary draw count;
+- `serpent_draw_policy` is compatibility-only;
+- package startup no longer installs it.
 
-- `serpent_draw_policy`;
-- `hook_planner_integration_policy`.
+### 5b. Hook — NEXT AFTER SERPENT GREEN
 
-Also inspect remaining boss/Cerulean live-state wrappers before deciding whether they are true mechanics adapters, canonical-state parsing, or removable late mutation.
+`hook_planner_integration_policy` still mutates base `_estimate_play` for exact forced-discard score branches. Preserve this literal mechanic while moving it into canonical planner ownership.
+
+### 5c. Cerulean / remaining boss-live-state wrappers — AFTER HOOK
+
+Inspect whether each remaining wrapper is canonical state parsing, exact mechanics adaptation, or removable late mutation before changing ownership.
 
 Migration contract:
 
