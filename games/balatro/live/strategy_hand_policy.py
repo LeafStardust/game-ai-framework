@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import replace
 
+from games.balatro.aces_dna_hand_policy import _dna_aces_fit
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.bonds.model import BondRank, BondRealization
@@ -611,9 +612,15 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             action,
             hand_evaluator=self._hand_evaluator,
         )
+        dna_value, dna_rationale = _dna_aces_fit(self, state, action)
+        if dna_value > 0.0:
+            dna_rationale = (
+                *dna_rationale,
+                f"DNA/Aces candidate evidence={dna_value:+.3f}; canonical D1 survival ordering remains authoritative",
+            )
         return (
-            value + castle_value + burnt_value,
-            (*rationale, *castle_rationale, *burnt_rationale),
+            value + castle_value + burnt_value + dna_value,
+            (*rationale, *castle_rationale, *burnt_rationale, *dna_rationale),
         )
 
     def _strategy_fit_without_castle(self, state, action) -> tuple[float, tuple[str, ...]]:
