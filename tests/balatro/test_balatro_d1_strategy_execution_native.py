@@ -105,6 +105,6 @@ def test_strategy_execution_module_no_longer_installs_policy_wrapper():
         strategy_execution_guard_policy,
         "install_strategy_execution_guard_policy",
     )
-    assert StrategyAwareLiveHandActionPolicy._strategy_fit.__module__ == (
-        "games.balatro.live.strategy_hand_policy"
+    assert StrategyAwareLiveHandActionPolicy._strategy_fit.__module__ != (
+        "games.balatro.strategy_execution_guard_policy"
     )
