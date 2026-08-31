@@ -3,8 +3,8 @@ from __future__ import annotations
 """Canonical D1 evidence for Runner and To Do List target-hand mechanics.
 
 Canonical D1 owns the Play/Discard action class and all final candidate arbitration.
-This installer augments only the strategy-fit evidence consumed by that policy; it
-does not wrap ``decide`` or reselect an action after arbitration.
+This module exposes pure target-hand evidence consumed by that policy; it does not
+install or mutate production decision classes.
 
 Pure legacy selection helpers remain callable for deterministic regression tests,
 but are not installed into production arbitration.
@@ -12,7 +12,6 @@ but are not installed into production arbitration.
 
 from games.balatro.actions import PLAY_CARDS
 from games.balatro.hand_rules import hand_rules_for_state
-from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
 TARGET_HAND_FIT = 2.5
@@ -113,29 +112,15 @@ def _play_targets_engine(policy, state, action) -> tuple[bool, tuple[str, ...], 
     return hand in set(targets), targets, hand
 
 
-def install_target_hand_engine_policy() -> None:
-    if getattr(
-        StrategyAwareLiveHandActionPolicy,
-        "_target_hand_engine_policy_installed",
-        False,
-    ):
-        return
-
-    original_strategy_fit = StrategyAwareLiveHandActionPolicy._strategy_fit
-
-    def strategy_fit(self, state, action):
-        value, rationale = original_strategy_fit(self, state, action)
-        matches, targets, hand = _play_targets_engine(self, state, action)
-        if not matches:
-            return value, rationale
-        return (
-            value + TARGET_HAND_FIT,
-            (
-                *rationale,
-                f"target-hand engine evidence: {hand} matches {','.join(targets)}",
-                "Runner/To Do List fit is consulted only inside canonical D1 safe/equivalent candidate ranking",
-            ),
-        )
-
-    StrategyAwareLiveHandActionPolicy._strategy_fit = strategy_fit
-    StrategyAwareLiveHandActionPolicy._target_hand_engine_policy_installed = True
+def _target_hand_strategy_fit(policy, state, action) -> tuple[float, tuple[str, ...]]:
+    """Return Runner/To Do List candidate evidence for canonical D1 ranking."""
+    matches, targets, hand = _play_targets_engine(policy, state, action)
+    if not matches:
+        return 0.0, ()
+    return (
+        TARGET_HAND_FIT,
+        (
+            f"target-hand engine evidence: {hand} matches {','.join(targets)}",
+            "Runner/To Do List fit is consulted only inside canonical D1 safe/equivalent candidate ranking",
+        ),
+    )
