@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A completed at 1/10 wins versus the 0/10 baseline. Tune B lowers only the pre-Ante-6 paid-reroll reserve from $10 to $8 and is SEMANTIC GREEN at 74/74. The next gate is a fresh 10-attempt Tune-B live comparison with Tune A retained.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A is RETAINED at 1/10 wins versus the 0/10 baseline. Tune B was semantic GREEN but produced 0/10 wins and is REJECTED; its $8 pre-Ante-6 reroll reserve was reverted to the previously validated $10 Tune-A state in `1ed61d29`. The next step is evidence review for a distinct Tune C; do not stack another D11 relaxation.**
 
 Validated checkpoints:
 
@@ -70,8 +70,8 @@ Validated checkpoints:
 - Phase 5 D1 timeout final-arbiter semantic: **GREEN / 72/72**, `D1_SURVIVAL` 24/24
 - Phase 5 D2 first-Joker scoring-foothold semantic: **GREEN / 73/73**, `SHOP_SURVIVAL` 19/19
 - Phase 5 D1 final-hand discard-chain search semantic: **GREEN / 74/74**, `D1_SURVIVAL` 25/25
-- Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74**, all category scores unchanged
-- Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74**, all category scores unchanged
+- Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74; RETAINED / 1 OF 10 WINS**
+- Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
@@ -138,7 +138,7 @@ Session: `balatro-20260831T083950Z-38168e59`.
 2. Ante 4 Big Blind — `1575 / 7500`, 0/4 discards used
 3. Ante 5 boss The Mark — `14466 / 22000`, 0/4 discards used
 
-Fresh evidence: all three losses exhausted every scoring hand while leaving all four discard resources untouched.
+Fresh evidence: all three losses exhausted all scoring hands while leaving all four discard resources untouched.
 
 ### D1 finding 1 — under-pace made-hand discard suppression — GREEN
 
@@ -283,7 +283,7 @@ Important evidence:
 
 The first tuning target is therefore **early first-Joker cash runway**, not Joker identity and not semantic ownership.
 
-## Phase-6 Tune A — first-Joker cash runway — COMPLETE / 1 OF 10 WINS
+## Phase-6 Tune A — first-Joker cash runway — COMPLETE / RETAINED / 1 OF 10 WINS
 
 Canonical owner: `JokerAcquisitionPolicy`.
 
@@ -321,59 +321,67 @@ Combined Tune-A result versus baseline:
 - the early-failure shape changed: one Tune-A Ante-1 death occurred before the first shop, while other early losses can still reach a shop/boss with no scoring Joker established;
 - Tune A is therefore retained rather than reverted: it produced the first observed Red/White win and removed the specific $0/$1 first-Joker commitment behavior without a semantic regression.
 
-The next target is not a lower ordinary D2 buy threshold. A cash-safe Ante-1/2 first Joker with positive literal `direct_scoring_gain` already uses the validated first-engine bootstrap even when it misses the ordinary `0.35` purchase-advantage threshold. The remaining no-Joker deaths instead justify testing whether early D11 paid-reroll runway is too conservative when visible shop offers fail to establish scoring.
+The next target is not a lower ordinary D2 buy threshold. A cash-safe Ante-1/2 first Joker with positive literal `direct_scoring_gain` already uses the validated first-engine bootstrap even when it misses the ordinary `0.35` purchase-advantage threshold.
 
-## Phase-6 Tune B — early paid-reroll runway — SEMANTIC GREEN / LIVE COMPARISON PENDING
+## Phase-6 Tune B — early paid-reroll runway — REJECTED / REVERTED
 
 Canonical owner: D11 `BuildAwareShopRerollPolicy`, configured by the Red/White playbook.
 
-Commit: `32457e2e`.
+Experiment commit: `32457e2e`.
+Revert commit: `1ed61d29`.
 
-Change:
+Experiment:
 
 - Red/White `minimum_money_after_paid_reroll`: **$10 → $8** before Ante 6;
-- `minimum_margin=0.25` is unchanged, so a reroll must still beat the already-normalized best visible-shop option by the existing EV margin;
-- `maximum_paid_reroll_cost=$8` is unchanged;
-- Ante 6+ reserve remains **$20**;
-- Tune A's first-Joker post-purchase floor remains **$2**;
-- no hidden future identities or RNG are used: D11 still values rerolls only through its public/static future-shop offer prior and canonical public pool model.
+- all other D11 thresholds remained unchanged;
+- Tune A's first-Joker post-purchase floor remained **$2**.
 
-Why $8:
-
-- it is the smallest two-dollar relaxation from the existing $10 stop-loss floor;
-- a normal $5 reroll still requires at least $13 cash and leaves $8, preserving meaningful runway for a subsequent scoring purchase;
-- it can expose additional shop search opportunities for underbuilt early runs without making paid rerolls unconditional or weakening late-run reserves;
-- the Tune-A summaries provide evidence of early no-Joker failures, but do **not** expose exact reroll decisions at those shop checkpoints; Tune B is therefore explicitly an A/B numerical hypothesis, not a claimed reconstruction of those decisions.
-
-Validation:
+Semantic validation:
 
 - user locally validated the unchanged Red/White semantic benchmark **74/74 GREEN** after Tune B;
-- all semantic/category ownership contracts remain unchanged.
+- the experiment therefore changed numerical preference only, not semantic ownership.
 
-Do not stack another numerical tune until the fresh Tune-B 10-run sample is reviewed.
+### Tune-B live comparison result
+
+Session: `balatro-20260831T135424Z-655cd5c9`.
+
+Result: **0/10 wins**. All ten attempts ended normally with `game over (lost)` and the supervisor reached its requested ten-attempt limit without a runtime crash.
+
+The uploaded JSONL attempt files were not retrievable from the active sandbox/file-search path despite being supplied, so no exact D11 reroll-count or decision-sequence claim is made from this batch. The rejection is based on the controlled live outcome comparison plus the retrievable per-attempt summaries, not on reconstructed reroll behavior.
+
+Retrievable summary evidence includes:
+
+- attempt 1: `6520 / 10000`, hands exhausted, 4/4 discards used;
+- attempt 2: `7576 / 10000`, hands exhausted, 4/4 discards used;
+- attempt 3: `812 / 1200`, hands exhausted, 4/4 discards used;
+- attempt 5: `14272 / 22000`, hands exhausted, 5/5 discards used;
+- attempt 6: `488 / 600`, hands exhausted, 4/4 discards used;
+- attempt 9: `5732 / 10000`, hands exhausted, 4/4 discards used.
+
+Interpretation:
+
+- Tune B did not improve the primary metric: **Tune A 1/10 → Tune B 0/10**;
+- early failures remained present, while several runs still reached materially larger blind requirements and died underpowered;
+- the available final-state summaries continue to show healthy discard expenditure rather than a reopened global D1 resource-hoarding defect;
+- because the Tune-B live result was worse and no trace-grounded compensating advantage was established, the $8 D11 runway is rejected rather than stacked with another parameter.
+
+The branch is restored to the previously validated Tune-A D11 value: pre-Ante-6 `minimum_money_after_paid_reroll=$10`. Tune A itself remains retained.
 
 # EXACT NEXT ACTION
 
-Run a fresh 10-attempt Tune-B comparison with Tune A retained and no other code changes:
+Do **not** launch another live batch yet and do not stack another D11 relaxation.
+
+Select Tune C only from a distinct, evidence-backed action-quality problem. Prioritize inspection of resource allocation / scoring-power acquisition in D14/D8/D2 using retrievable evidence from the Phase-6 baseline, Tune-A sample, and Tune-B summaries. Any Tune C must change one canonical numerical preference at a time and must preserve the retained Tune-A `$2` first-Joker floor.
+
+If the Tune-B revert itself is locally revalidated, use:
 
 ```powershell
 git pull
-.\BalatroAgentToggle.bat --attempts 10
+python -m games.balatro.red_white_semantic_benchmark
 
 ```
 
-Compare the Tune-B sample against both the original 0/10 Phase-6 baseline and the 1/10 Tune-A sample on:
-
-- win rate and Ante-1 death count;
-- furthest ante and death score ratio;
-- paid reroll count/cost and money after reroll where trace evidence is available;
-- first-Joker timing, identity, purchase cost, and money after purchase where trace evidence is available;
-- cash at death and Joker count/composition;
-- realized direct scoring power;
-- discard/hands consumed at death;
-- late-run underpowered cash retention.
-
-No Tune C should be selected until those ten Tune-B attempts are reviewed.
+Expected semantic result remains **74/74 GREEN**, because the branch is restored to the already validated Tune-A configuration.
 
 # Phase order
 
@@ -396,6 +404,7 @@ Future stake/deck progression remains blocked until Red/White competence passes.
 - Phase-4 expansion beyond six validated batches absent fresh Phase-5 evidence
 - Phase-5 semantic expansion absent fresh reproducible mechanics/authority/runtime evidence
 - global D1 discard-hoarding defect after Baseline C, unless fresh multi-run evidence reopens it
+- Tune-B `$8` pre-Ante-6 paid-reroll runway absent new controlled evidence
 - Mouth discard-only legality defect
 - Green Joker survival-equivalent authority
 - Hook/log-resilience search reserve
