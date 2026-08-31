@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 import games.balatro.consumable_generation_pool_live_state_policy as consumable_pool
-import games.balatro.joker_generation_pool_live_state_policy as joker_pool
+import games.balatro.live.joker_generation_pool_state as joker_pool
 
 
 class _Decoder:
@@ -24,7 +24,11 @@ def _table(pointer):
 
 
 def _exercise_center_cache(module):
-    module._reset_catalogue_cache()
+    reset = getattr(module, "reset_catalogue_cache", None) or getattr(
+        module,
+        "_reset_catalogue_cache",
+    )
+    reset()
     decoder = _Decoder()
 
     module._prepare_center_cache(_table(100))
@@ -50,7 +54,7 @@ def test_consumable_generation_catalogue_reuses_static_center_decode():
 
 
 def test_joker_generation_catalogue_reuses_rarity_pool_enumeration():
-    joker_pool._reset_catalogue_cache()
+    joker_pool.reset_catalogue_cache()
     decoder = _Decoder(
         {
             100: ((1, _table(101)), (2, _table(102)), (3, _table(103))),
