@@ -93,14 +93,23 @@ python -m pytest -q tests/balatro/test_balatro_boss_hand_constraints_native.py
 
 **Complete. No further ownership-migration bucket is queued.**
 
-The full-suite exit gate exposed one stale architecture regression:
+The full-suite exit gate has so far exposed two kinds of cleanup:
 
-- `tests/balatro/test_balatro_d1_root_discard_reserve.py` still imported `_ensure_root_discard_reserve` and monkeypatched `_cheap_discard_key` / `_active_hook` from retired `semantic_search_guard_policy`.
-- Production root-discard reserve behavior already lives natively on `LiveBlindClearPlanner`.
-- `fa0d92d2` retargeted the old regression to native planner methods while preserving its three behavioral checks: root discard reserve insertion, no duplicate discard evidence, and Hook suppression.
-- No production behavior changed for this repair.
+### Stale tests protecting retired architecture
 
-No tuning values were changed as part of ownership consolidation.
+- `test_balatro_d1_root_discard_reserve.py` was retargeted to native `LiveBlindClearPlanner` ownership in `fa0d92d2`.
+- Candidate-deadline regressions no longer monkeypatch `semantic_search_guard_policy`; they target native planner timing in `0f0bcd43`.
+- Semantic prefilter/deadline regressions now target native planner helpers in `890d7fdd` and `acd1e98c`.
+- Joker generation metadata-cache regressions now target `live.joker_generation_pool_state` in `4df31a96`.
+- Mouth zero-score recovery regressions now target `live.boss_hand_constraints` directly in `7da289b0`.
+- The Bond integration audit no longer requires the retired D1 strategy-execution installer sentinel; it verifies native strategy-policy ownership in `483301cb`.
+- Blue-Seal round-end tests now enter through `_estimate_action()`, which is the canonical context that records the played action for held-card terminal accounting, in `d16e60af`.
+
+### Genuine production defect found by exit gate
+
+`D1LiveBlindClearPlanner` in `hand_action_planner_core.py` overrode `_play_priority()` with a four-field tuple and accidentally shadowed the native base planner's Gold-card final tie-break. Commit `621856c6` restores `-selected_gold` as the final mechanical tie-break in D1 core priority. The verified commit diff contains only that missing tie-break.
+
+No broad tuning values were changed.
 
 ---
 
@@ -150,7 +159,7 @@ Fix the smallest correct layer. Do not reopen closed migration buckets without e
 8. Ectoplasm + round-reset resources — IMPLEMENTED / VALIDATED
 9. Joker-generation live state — IMPLEMENTED / VALIDATED
 10. Boss-hand constraints — IMPLEMENTED / VALIDATED
-11. Phase-0 exit gate — **ACTIVE; full suite rerun pending after stale root-reserve test repair**
+11. Phase-0 exit gate — **ACTIVE; full-suite rerun pending after stale-test repairs and D1 Gold-priority fix**
 
 ---
 
