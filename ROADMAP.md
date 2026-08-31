@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-09-01
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result remains 0 wins across the original baseline and Tunes A/B/C/D. Tune A remains retained provisionally. Tunes B, C, and D are REJECTED and reverted. Tune E reduces D2 whole-build contextual/B3 value weight 1.0 → 0.75 while leaving literal scoring and D14 economics unchanged; it is now SEMANTIC GREEN at 74/74. The next gate is a fresh 10-attempt Tune-E live comparison with no additional numerical changes stacked on top.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result remains 0 wins across the original baseline and Tunes A/B/C/D/E. Tune A remains retained provisionally. Tunes B, C, D, and E are REJECTED and reverted. Tune E's reverted configuration must now be locally revalidated before any Tune F live work.**
 
 Validated checkpoints:
 
@@ -66,7 +66,7 @@ Validated checkpoints:
 - Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune D booster acquisition margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Tune E contextual/B3 Joker build weight: **SEMANTIC GREEN / 74/74; LIVE COMPARISON PENDING**
+- Phase 6 Tune E contextual/B3 Joker build weight: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT VALIDATION PENDING**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 - Phase 6 sticky-win GAME_OVER restart semantics: **LOCAL REGRESSION GREEN** (`28cec27b` + `6e1a2696`)
 
@@ -201,36 +201,52 @@ Interpretation:
 - user locally revalidated the reverted configuration **74/74 GREEN**;
 - do not stack Tune E on top of the rejected D8 experiment.
 
-## Tune E — rebalance realized scoring vs contextual Joker value — SEMANTIC GREEN / LIVE COMPARISON PENDING
+## Tune E — rebalance realized scoring vs contextual Joker value — REJECTED / REVERTED
 
 Canonical owner: `JokerBuildValueEvaluator` / `JokerBuildValueWeights`, upstream of D2 admission and D14 shared-resource normalization.
 
-Production commits: `e17518fc` + constructor-repair `ba93321f`.
+Experiment commits: `e17518fc` + constructor-repair `ba93321f`.
+Revert commit: `d5c3f8ce` restores the pre-Tune-E `contextual_gain=1.0` file state while preserving later branch history.
 
-Single effective numerical change:
+Experiment:
 
-- `JokerBuildValueWeights.contextual_gain`: **1.0 → 0.75**.
+- `JokerBuildValueWeights.contextual_gain`: **1.0 → 0.75**;
+- literal whole-build `direct_scoring_gain` weight remained **6.0**;
+- literal direct-scoring cap remained **12.0**;
+- D2 purchase/replacement thresholds remained unchanged;
+- Tune A's Ante-1/2 first-Joker `$2` runway remained unchanged;
+- D14 money, interest, reserve, slot, and cross-family normalization remained unchanged;
+- no boss/Joker-specific rule and no hidden-state inference was introduced.
 
-Unchanged:
+Semantic result before live sampling: **74/74 GREEN**.
 
-- literal whole-build `direct_scoring_gain` weight remains **6.0**;
-- literal direct-scoring cap remains **12.0**;
-- D2 purchase/replacement thresholds remain unchanged;
-- Tune A's Ante-1/2 first-Joker `$2` runway remains unchanged;
-- D14 money, interest, reserve, slot, and cross-family normalization remain unchanged;
-- Bond/composition remains evidence only and does not gain action authority;
-- no boss/Joker-specific rule and no hidden-state inference is introduced.
+### Tune-E live comparison
 
-Evidence/rationale:
+Session: `balatro-20260831T183301Z-3d72a54d`.
 
-- D2 literal score value is proportional to fractional whole-build score improvement: a **50%** literal scoring increase contributes `0.50 × 6 = 3.0` before economics;
-- contextual B3 value can stack multiple structural/economy/support features before the separate Bond-transition adjustment is added;
-- therefore the previous `1.0` contextual multiplier could let future structural value match or exceed substantial realized scoring development on already-developed boards;
-- reducing only the contextual multiplier to `0.75` preserves all structural semantics while increasing the relative importance of current chip/Mult/XMult development without globally loosening spending.
+Result: **0/10 wins**. Death antes: **1, 4, 4, 3, 4, 5, 2, 2, 4, 3**. Furthest run reached only **Ante 5**; mean death ante was **3.2**.
 
-Semantic validation: **74/74 GREEN** on the unchanged Red/White semantic benchmark. All validated category/authority contracts remain unchanged.
+Death score ratios were approximately **82.3%, 36.9%, 54.4%, 69.6%, 92.0%, 69.8%, 48.6%, 84.3%, 96.3%, 92.8%**.
 
-Do not stack Tune F until a fresh 10-attempt Tune-E live comparison is reviewed.
+Five attempts died with full five-Joker boards while retaining substantial cash:
+
+- attempt 2: **$34**, `Misprint / Devious Joker / Crazy Joker / Abstract Joker / Square Joker`, `7376 / 20000` at Ante 4 Wall;
+- attempt 3: **$37**, `Juggler / Abstract Joker / Swashbuckler / Lusty Joker / Card Sharp`, `5437 / 10000` at Ante 4 Hook;
+- attempt 5: **$36**, `Crafty Joker / Mad Joker / Wrathful Joker / Blue Joker / Smiley Face`, `9202 / 10000` at Ante 4 Water;
+- attempt 6: **$66**, `Jolly Joker / Sly Joker / Scholar / Blue Joker / Blackboard`, `11520 / 16500` at Ante 5 Big Blind;
+- attempt 9: **$43**, `Odd Todd / Gluttonous Joker / Ice Cream / Baron / Driver's License`, `9632 / 10000` at Ante 4 Club.
+
+The uploaded JSONL traces were directly readable in this Tune-E batch. Purchase evidence confirms active Joker acquisition rather than a generic refusal-to-spend failure: examples include full-board sequences in attempts 2, 5, 6, and 9, plus replacement/sale activity in attempts 2 and 9. Attempt 3's supplied summary independently records 14 purchases, 2 sales, five Jokers, and `$37` at death.
+
+Interpretation:
+
+- Tune E did not improve win rate: **0/10**, same as baseline and Tunes A/B/C/D;
+- it also did not improve depth: furthest **Ante 5**, worse than the original baseline's Ante 7;
+- the intended tradeoff did not solve the known large-cash/underpowered-board failure mode;
+- several full boards were composed of individually scoring but weakly unified conditional effects, consistent with contextual/B3 downweighting reducing build coherence without enough compensating realized score;
+- Tune E is therefore rejected and reverted rather than stacked into Tune F.
+
+Do not reopen `contextual_gain=0.75` absent new controlled evidence.
 
 ## Runtime — sticky public `won` GAME_OVER restart — VALIDATED
 
@@ -242,15 +258,15 @@ Balatro's public `won` bit can remain sticky after a later Ante-8 GAME_OVER loss
 
 # EXACT NEXT ACTION
 
-Run a fresh 10-attempt Tune-E live comparison with Tune A retained and no additional numerical changes:
+Validate the Tune-E revert semantically before any Tune-F work:
 
 ```powershell
 git pull
-.\BalatroAgentToggle.bat --attempts 10
+python -m games.balatro.red_white_semantic_benchmark
 
 ```
 
-Compare the Tune-E sample against the original baseline and Tunes A/B/C/D on win rate, early-death count, furthest ante, score ratio at death, cash/Joker composition, realized scoring power, and resource usage where trace evidence is actually retrievable. Do not claim exact purchase/reroll/pack sequences unless the live trace exposes them.
+Expected: **74/74 GREEN**. If green, record the restored post-Tune-E baseline and select Tune F only from a distinct evidence-backed mechanism. Do not reopen the rejected D11, D2 replacement-margin, D8 booster-margin, or contextual-weight experiments without new controlled evidence.
 
 # Phase order
 
@@ -276,6 +292,7 @@ Future stake/deck progression remains blocked until Red/White competence passes.
 - Tune-B `$8` pre-Ante-6 paid-reroll runway absent new controlled evidence
 - Tune-C `0.50` ordinary Joker replacement margin absent new controlled evidence
 - Tune-D `0.20` D8 booster acquisition margin absent new controlled evidence
+- Tune-E `0.75` contextual/B3 Joker build weight absent new controlled evidence
 - Mouth discard-only legality defect
 - Green Joker survival-equivalent authority
 - Hook/log-resilience search reserve
