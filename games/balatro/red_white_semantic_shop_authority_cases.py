@@ -2,8 +2,7 @@ from __future__ import annotations
 
 """Semantic authority checks for canonical D14 visible-shop planning."""
 
-from dataclasses import replace
-
+import games.balatro.shop_arbiter as shop_arbiter_module
 from games.balatro.actions import BUY_JOKER
 from games.balatro.joker_policy import (
     BUY,
@@ -84,37 +83,17 @@ def _hold_decision(candidate, *, build_gain: float = 1.0) -> JokerAcquisitionDec
     )
 
 
-def _buy_after_projection(
-    decision: JokerAcquisitionDecision,
-    *,
-    build_gain: float,
-) -> JokerAcquisitionDecision:
-    option = replace(
-        decision.options[0],
-        build_gain=build_gain,
-        total_advantage=1.50,
-    )
-    return replace(
-        decision,
-        action=BUY,
-        selected=option,
-        options=(option,),
-        rationale=("projected companion makes candidate a real D2 BUY",),
-    )
-
-
 class _PairPolicy:
-    def __init__(self, *, projected_build_gain: float):
-        self.projected_build_gain = projected_build_gain
+    def __init__(self) -> None:
+        self.thresholds = JokerAcquisitionThresholds()
 
     def decide(self, state, candidate):
-        base = _hold_decision(candidate)
-        if tuple(state.jokers):
-            return _buy_after_projection(
-                base,
-                build_gain=self.projected_build_gain,
-            )
-        return base
+        del state
+        return _hold_decision(candidate)
+
+    def _economics(self, state, candidate, incumbent=None, replacement=False):
+        del state, candidate, incumbent, replacement
+        return _economics()
 
 
 def _arbiter_for(policy) -> BuildAwareShopArbiter:
@@ -123,13 +102,26 @@ def _arbiter_for(policy) -> BuildAwareShopArbiter:
     return arbiter
 
 
+def _with_synthetic_bond_delta(state, candidate):
+    del candidate
+    if tuple(getattr(state, "jokers", ()) or ()):
+        return 2.0, ("synthetic visible Bond interaction=+2.000",)
+    return 0.0, ()
+
+
 def _native_pair_is_d14_candidate() -> SemanticCheck:
     first = _Candidate("First")
     second = _Candidate("Second")
     state = _State(shop_jokers=(first, second))
-    arbiter = _arbiter_for(_PairPolicy(projected_build_gain=3.0))
+    arbiter = _arbiter_for(_PairPolicy())
 
-    pair = arbiter._best_visible_bond_pair(state)
+    original = shop_arbiter_module._bond_transition_bonus
+    shop_arbiter_module._bond_transition_bonus = _with_synthetic_bond_delta
+    try:
+        pair = arbiter._best_visible_bond_pair(state)
+    finally:
+        shop_arbiter_module._bond_transition_bonus = original
+
     passed = (
         pair is not None
         and pair.first.action.name == BUY_JOKER
@@ -152,7 +144,7 @@ def _pair_requires_real_interaction_gain() -> SemanticCheck:
     first = _Candidate("First")
     second = _Candidate("Second")
     state = _State(shop_jokers=(first, second))
-    arbiter = _arbiter_for(_PairPolicy(projected_build_gain=1.0))
+    arbiter = _arbiter_for(_PairPolicy())
 
     pair = arbiter._best_visible_bond_pair(state)
     return SemanticCheck(
