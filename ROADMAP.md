@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. First measured D2 tune is implemented and awaiting semantic validation.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A is semantic GREEN at 74/74; the next gate is its 10-run A/B live comparison.**
 
 Validated checkpoints:
 
@@ -70,6 +70,7 @@ Validated checkpoints:
 - Phase 5 D1 timeout final-arbiter semantic: **GREEN / 72/72**, `D1_SURVIVAL` 24/24
 - Phase 5 D2 first-Joker scoring-foothold semantic: **GREEN / 73/73**, `SHOP_SURVIVAL` 19/19
 - Phase 5 D1 final-hand discard-chain search semantic: **GREEN / 74/74**, `D1_SURVIVAL` 25/25
+- Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74**, all category scores unchanged
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
@@ -280,7 +281,7 @@ Important evidence:
 
 The first tuning target is therefore **early first-Joker cash runway**, not Joker identity and not semantic ownership.
 
-## Phase-6 tune A — first-Joker cash runway — IMPLEMENTED / VALIDATION PENDING
+## Phase-6 tune A — first-Joker cash runway — SEMANTIC GREEN / LIVE COMPARISON PENDING
 
 Canonical owner: `JokerAcquisitionPolicy`.
 
@@ -301,23 +302,17 @@ Why $2:
 - it intentionally does not jump directly to the existing $5 reserve target, which would be a much larger behavioral change without evidence;
 - this is an A/B numerical experiment, not a new semantic rule.
 
-If semantic validation stays 74/74, compare this tune against the 0/10 baseline with another 10 live attempts before changing any second parameter.
+Validation:
 
-Do not stack another numerical tune on top of Tune A before that comparison sample is reviewed.
+- user locally validated the full Red/White semantic benchmark **74/74 GREEN** after Tune A;
+- all category scores remain unchanged;
+- semantic ownership therefore remains intact.
+
+Do not stack another numerical tune on top of Tune A before its 10-run comparison sample is reviewed.
 
 # EXACT NEXT ACTION
 
-Validate that Tune A preserves the full semantic contract:
-
-```powershell
-git pull
-python -m games.balatro.red_white_semantic_benchmark
-
-```
-
-Expected: **74/74**, with all category scores unchanged.
-
-If green, run the Phase-6 A/B comparison sample:
+Run the Phase-6 Tune-A A/B comparison sample with no additional code changes:
 
 ```powershell
 git pull
