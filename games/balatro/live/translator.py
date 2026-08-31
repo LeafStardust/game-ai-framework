@@ -174,6 +174,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             edition=self.EDITIONS.get(edition, edition), seal=self.SEALS.get(seal, seal),
             live_id=live_id, debuffed=bool(card.get("debuff", False)),
             permanent_bonus=int(card.get("permanent_bonus", 0) or 0),
+            forced_selection=bool(card.get("forced_selection", False)),
         )
 
     def _translate_hand_levels(self, state: BalatroState, hands: dict) -> None:
