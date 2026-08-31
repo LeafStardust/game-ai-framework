@@ -6,11 +6,14 @@ from games.balatro.aces_dna_hand_policy import _dna_aces_fit
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.boss_hand_constraint_policy import _mouth_discard_fit
 from games.balatro.held_round_end_resource_policy import _blue_reward_count
-from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
+from games.balatro.live.blind_clear_planner import (
+    LiveBlindClearPlanner,
+    LiveBlindPlan,
+    LiveBlindPlanValue,
+)
 from games.balatro.live.hand_action_planner import D1LiveBlindClearPlanner
 from games.balatro.live.hand_build_policy import BuildAwareLiveHandActionPolicy
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
-from games.balatro.semantic_search_guard_policy import _prefilter_discards
 
 
 class RideTheBusJoker:
@@ -103,28 +106,33 @@ def _blue_seal_projection_owns_production_planner() -> SemanticCheck:
     ordinary = SimpleNamespace(seal=None, debuffed=False)
     state = SimpleNamespace(consumable_slots=2, consumables=())
     reward_count = _blue_reward_count(state, (blue, ordinary))
-    installed = bool(
-        getattr(
-            D1LiveBlindClearPlanner,
-            "_held_round_end_resource_policy_installed",
-            False,
-        )
+    base_native = (
+        getattr(LiveBlindClearPlanner._terminal_value, "__module__", "")
+        == "games.balatro.live.blind_clear_planner"
+        and hasattr(LiveBlindClearPlanner, "_held_round_end_consumables")
     )
-    production_target = (
-        getattr(D1LiveBlindClearPlanner._estimate_play, "__module__", "")
-        == "games.balatro.held_round_end_resource_policy"
+    production_inherits_native = issubclass(D1LiveBlindClearPlanner, LiveBlindClearPlanner)
+    retired_sentinel_absent = not hasattr(
+        D1LiveBlindClearPlanner,
+        "_held_round_end_resource_policy_installed",
     )
-    passed = reward_count == 1 and installed and production_target
+    passed = (
+        reward_count == 1
+        and base_native
+        and production_inherits_native
+        and retired_sentinel_absent
+    )
     return SemanticCheck(
         passed,
         observed=(
-            f"reward_count={reward_count}, installed={installed}, "
-            f"estimate_module={getattr(D1LiveBlindClearPlanner._estimate_play, '__module__', '')}"
+            f"reward_count={reward_count}, base_native={base_native}, "
+            f"production_inherits_native={production_inherits_native}, "
+            f"retired_sentinel_absent={retired_sentinel_absent}"
         ),
-        expected="one Blue reward and production D1 estimate_play augmented by held-resource policy",
+        expected="one Blue reward with native planner ownership and no held-resource installer sentinel",
         detail=(
-            "Blue-Seal round-end generation must augment the production integrated planner; "
-            "patching only the overridden base planner silently drops the resource evidence"
+            "Blue-Seal round-end generation belongs to the canonical live planner and must "
+            "remain available to the integrated production D1 planner without package-time mutation"
         ),
     )
 
@@ -217,7 +225,8 @@ def _discard_prefilter_keeps_wide_redraws() -> SemanticCheck:
         )
     )
 
-    filtered = _prefilter_discards(state, actions, limit=4)
+    planner = LiveBlindClearPlanner()
+    filtered = planner._prefilter_discards(state, actions, limit=4)
     widths = tuple(len(tuple(action.cards or ())) for action in filtered)
     passed = len(filtered) == 4 and max(widths, default=0) >= 4
     return SemanticCheck(
@@ -242,9 +251,9 @@ RED_WHITE_D1_RESOURCE_CASES = (
     SemanticBenchmarkCase(
         "d1.resources.blue_seal_production_owner",
         "D1_SURVIVAL",
-        "Blue-Seal round-end generation must augment the production integrated D1 planner.",
+        "Blue-Seal round-end generation must remain native to the production D1 planner.",
         _blue_seal_projection_owns_production_planner,
-        source="Phase-0 audit: corrected held-resource installation target",
+        source="Phase-0 consolidation: held-resource installer retirement",
     ),
     SemanticBenchmarkCase(
         "d1.strategy.dna_aces_evidence",
