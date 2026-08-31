@@ -51,6 +51,23 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         state.discards_remaining = int(round_info.get("discards_left", payload.get("discards_left", 0)))
         discards_used = round_info.get("discards_used", payload.get("discards_used"))
         state.discards_used = max(0, int(discards_used)) if discards_used is not None else None
+        try:
+            state.ectoplasm_hand_size_penalty = max(
+                1,
+                int(payload.get("ectoplasm_hand_size_penalty", 1) or 1),
+            )
+        except (TypeError, ValueError):
+            state.ectoplasm_hand_size_penalty = 1
+        state.round_reset_discards_observed = bool(
+            payload.get("round_reset_discards_observed", False)
+        )
+        try:
+            state.round_reset_discards = max(
+                0,
+                int(payload.get("round_reset_discards", 0) or 0),
+            )
+        except (TypeError, ValueError):
+            state.round_reset_discards = 0
         most_played = round_info.get(
             "most_played_poker_hand",
             round_info.get(
