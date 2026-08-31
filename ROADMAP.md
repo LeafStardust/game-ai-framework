@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A completed at 1/10 wins versus the 0/10 baseline. Tune B lowers only the pre-Ante-6 paid-reroll reserve from $10 to $8 and is awaiting semantic validation.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A completed at 1/10 wins versus the 0/10 baseline. Tune B lowers only the pre-Ante-6 paid-reroll reserve from $10 to $8 and is SEMANTIC GREEN at 74/74. The next gate is a fresh 10-attempt Tune-B live comparison with Tune A retained.**
 
 Validated checkpoints:
 
@@ -71,6 +71,7 @@ Validated checkpoints:
 - Phase 5 D2 first-Joker scoring-foothold semantic: **GREEN / 73/73**, `SHOP_SURVIVAL` 19/19
 - Phase 5 D1 final-hand discard-chain search semantic: **GREEN / 74/74**, `D1_SURVIVAL` 25/25
 - Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74**, all category scores unchanged
+- Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74**, all category scores unchanged
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
@@ -322,7 +323,7 @@ Combined Tune-A result versus baseline:
 
 The next target is not a lower ordinary D2 buy threshold. A cash-safe Ante-1/2 first Joker with positive literal `direct_scoring_gain` already uses the validated first-engine bootstrap even when it misses the ordinary `0.35` purchase-advantage threshold. The remaining no-Joker deaths instead justify testing whether early D11 paid-reroll runway is too conservative when visible shop offers fail to establish scoring.
 
-## Phase-6 Tune B — early paid-reroll runway — SEMANTIC VALIDATION PENDING
+## Phase-6 Tune B — early paid-reroll runway — SEMANTIC GREEN / LIVE COMPARISON PENDING
 
 Canonical owner: D11 `BuildAwareShopRerollPolicy`, configured by the Red/White playbook.
 
@@ -344,19 +345,35 @@ Why $8:
 - it can expose additional shop search opportunities for underbuilt early runs without making paid rerolls unconditional or weakening late-run reserves;
 - the Tune-A summaries provide evidence of early no-Joker failures, but do **not** expose exact reroll decisions at those shop checkpoints; Tune B is therefore explicitly an A/B numerical hypothesis, not a claimed reconstruction of those decisions.
 
-Do not stack another numerical tune until Tune B is semantically green and its live sample is reviewed.
+Validation:
+
+- user locally validated the unchanged Red/White semantic benchmark **74/74 GREEN** after Tune B;
+- all semantic/category ownership contracts remain unchanged.
+
+Do not stack another numerical tune until the fresh Tune-B 10-run sample is reviewed.
 
 # EXACT NEXT ACTION
 
-Validate Tune B against the unchanged 74 semantic contracts before running another live sample:
+Run a fresh 10-attempt Tune-B comparison with Tune A retained and no other code changes:
 
 ```powershell
 git pull
-python -m games.balatro.red_white_semantic_benchmark
+.\BalatroAgentToggle.bat --attempts 10
 
 ```
 
-Expected semantic result: **74/74 GREEN**, with all category counts unchanged. If green, run a fresh 10-attempt Tune-B comparison with Tune A retained and no other changes.
+Compare the Tune-B sample against both the original 0/10 Phase-6 baseline and the 1/10 Tune-A sample on:
+
+- win rate and Ante-1 death count;
+- furthest ante and death score ratio;
+- paid reroll count/cost and money after reroll where trace evidence is available;
+- first-Joker timing, identity, purchase cost, and money after purchase where trace evidence is available;
+- cash at death and Joker count/composition;
+- realized direct scoring power;
+- discard/hands consumed at death;
+- late-run underpowered cash retention.
+
+No Tune C should be selected until those ten Tune-B attempts are reviewed.
 
 # Phase order
 
