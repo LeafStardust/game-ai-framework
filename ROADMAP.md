@@ -37,7 +37,7 @@ Rules:
 
 Active phase:
 
-> **Phase 2 — simple shop survival. Batch 3 fixture isolated from Bond value; semantic rerun pending.**
+> **Phase 2 — simple shop survival. Batch 3 fixture aligned with installed post-transaction D2 valuation; semantic rerun pending.**
 
 Phase 0 authority consolidation: **COMPLETE / VALIDATED**.
 
@@ -166,13 +166,14 @@ Validated:
 
 User result: **38/38 GREEN**, `SHOP_SURVIVAL` 14/14.
 
-## Batch 3 — IMPLEMENTED / FIXTURE REPAIRED TWICE / VALIDATION PENDING
+## Batch 3 — IMPLEMENTED / FIXTURE REPAIRED THREE TIMES / VALIDATION PENDING
 
 Commits:
 
 - `00fe6214` — adds two D2 ordinary-purchase cash survival semantics.
-- `27484d51` — repairs the synthetic D2 transition fixture to preserve the canonical `JokerBuildTransitionPlanner.evaluator` interface while overriding only `plan()` output.
-- `c4c6c020` — isolates the two cash-survival fixtures from unrelated canonical Bond/composition transition value and pins the intended synthetic build gains.
+- `27484d51` — preserves the canonical `JokerBuildTransitionPlanner.evaluator` interface while overriding synthetic `plan()` output.
+- `c4c6c020` — suppresses unrelated Bond/composition transition value inside the two cash fixtures.
+- `8edc2ad9` — aligns the synthetic planner's `evaluator.evaluate()` with the installed post-transaction D2 value layer so both pre- and post-purchase build gain remain controlled.
 
 New cases:
 
@@ -185,19 +186,20 @@ New cases:
 
 Validation history:
 
-- First user result after `00fe6214`: **38/40**; both new cases raised `AttributeError: 'types.SimpleNamespace' object has no attribute 'evaluator'`. Fixture defect; fixed by `27484d51`.
-- Second user result after `27484d51`: **38/40**; both cases executed, but real Bond/composition value inflated intended synthetic gains (`0.50 -> 13.50`, `1.50 -> 5.767`), so they no longer tested marginal cash economics. Fixture contamination; fixed by `c4c6c020`.
-- `c4c6c020` zeroes Bond transition contribution only inside these two benchmark fixtures and additionally asserts the intended build gains, while leaving production D2 behavior unchanged.
+- First result: **38/40** because the synthetic transition lacked `.evaluator`.
+- Second result: **38/40** because real Bond/composition value contaminated intended marginal gains.
+- Third result: **38/40** with the same real gains despite Bond suppression. Root cause: package startup installs `post_transaction_joker_value_policy`, which replaces `JokerAcquisitionPolicy._score_add` and recomputes candidate value through `transition_planner.evaluator.evaluate()` at post-purchase cash. The fixture controlled `plan()` but not that evaluator.
+- `8edc2ad9` now controls both `plan()` and `evaluator.evaluate()` at the same synthetic gain while still using the real planner surface and suppressing only unrelated Bond value.
 
 No production code or tuning values changed in Batch 3.
 
-Expected benchmark after the second fixture repair: **40/40**, with `SHOP_SURVIVAL` 16/16.
+Expected benchmark after the post-transaction fixture repair: **40/40**, with `SHOP_SURVIVAL` 16/16.
 
 ---
 
 # EXACT NEXT ACTION
 
-Re-run Phase-2 Batch 3 semantic benchmark after Bond-isolated fixture repair:
+Re-run Phase-2 Batch 3 semantic benchmark:
 
 ```powershell
 git pull
@@ -212,7 +214,7 @@ Continue Phase 2 with simple cross-family purchase precedence: visible first sco
 
 ### If either Batch-3 case still fails
 
-The fixture now preserves the real D2 planner/evaluator contract and pins the intended synthetic build gain while suppressing only unrelated Bond value. Treat a remaining semantic failure as credible D2 behavior evidence unless the output demonstrates another concrete fixture mismatch. Fix the smallest canonical owner; do not add wrapper rescues.
+The fixture now matches the installed D2 post-transaction valuation path, pins both pre- and post-purchase synthetic build gain, and suppresses only unrelated Bond value. Treat a remaining semantic failure as genuine D2 behavior evidence unless the output identifies a new concrete fixture mismatch. Fix the smallest canonical owner; do not add wrapper rescues.
 
 ---
 
