@@ -13,7 +13,6 @@ from games.balatro.bond_power_engine_retention_policy import install_bond_power_
 from games.balatro.bond_prescription_policy import install_bond_prescription_policy
 from games.balatro.bond_scaler_build_health_policy import install_bond_scaler_build_health_policy
 from games.balatro.bond_shop_health_policy import install_bond_shop_health_policy
-from games.balatro.boss_hand_constraint_policy import install_boss_hand_constraint_policy
 from games.balatro.build_health_policy import install_build_health_policy
 from games.balatro.celestial_shop_headroom_fast_path import install_celestial_shop_headroom_fast_path
 from games.balatro.consumable_d14_literal_policy import install_consumable_d14_literal_policy
@@ -71,7 +70,6 @@ from games.balatro.wraith_dispatch_postcondition import install_wraith_dispatch_
 from games.balatro.wraith_pack_expectation_policy import install_wraith_pack_expectation_policy
 
 
-install_boss_hand_constraint_policy()
 install_blueprint_candidate_value_policy()
 install_banner_candidate_value_policy()
 install_r0_strategy_transition_policy()
