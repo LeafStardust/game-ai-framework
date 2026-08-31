@@ -49,8 +49,10 @@ def _validate_restart_source(snapshot) -> tuple[str, str]:
         )
     if not snapshot.state_complete:
         raise LiveRunRestartError("GAME_OVER snapshot is not complete")
-    if bool(snapshot.payload.get("won")):
-        raise LiveRunRestartError("won runs must not be restarted")
+    # GAME_OVER is the authoritative lost-run restart source. Balatro's public
+    # ``won`` bit can remain sticky after an Ante-8 run has previously entered
+    # win-state presentation, including a subsequent loss to the final boss.
+    # Do not let that stale presentation bit override the terminal phase.
     return _identity(snapshot)
 
 
@@ -224,12 +226,13 @@ def restart_fresh_unseeded_run(
         # Retry only while the authoritative state still says this is the same
         # lost GAME_OVER run and no transition away from it has ever been observed.
         # A later unlock-tail GAME_OVER frame must never trigger a second restart.
+        # ``won`` is intentionally ignored here for the same reason as source
+        # validation: GAME_OVER is authoritative and the public bit can be sticky.
         now = monotonic()
         if (
             not left_game_over
             and current.state_complete
             and phase == "GAME_OVER"
-            and not bool(current.payload.get("won"))
             and now >= next_restart_attempt
         ):
             current_deck, current_stake = _identity(current)
