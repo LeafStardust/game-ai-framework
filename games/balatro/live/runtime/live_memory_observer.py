@@ -407,6 +407,7 @@ def _normalize_card(
         "center": center_key,
         "debuff": _boolean(card.get("debuff"), False),
         "permanent_bonus": _integer(ability.get("perma_bonus"), 0),
+        "forced_selection": _boolean(ability.get("forced_selection"), False),
         "label": _first_string(card.get("label"), center.get("name")),
     }
 
