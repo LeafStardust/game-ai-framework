@@ -5,7 +5,6 @@ from types import SimpleNamespace
 import pytest
 
 import games.balatro.live.blind_clear_planner as module
-import games.balatro.semantic_search_guard_policy as semantic_guard
 from games.balatro.actions import PLAY_CARDS, BalatroAction
 from games.balatro.live.blind_clear_planner import (
     LiveBlindClearPlanner,
@@ -61,7 +60,6 @@ def test_expired_deadline_blocks_candidate_projection_before_first_node(monkeypa
         deadline=5.0,
     )
     monkeypatch.setattr(module, "perf_counter", lambda: 6.0)
-    monkeypatch.setattr(semantic_guard, "perf_counter", lambda: 6.0)
 
     with pytest.raises(PlannerSearchBudgetExceeded, match="wall-clock budget"):
         planner._candidate_actions(
@@ -100,7 +98,6 @@ def test_deadline_is_checked_between_expensive_candidate_projections(monkeypatch
 
     monkeypatch.setattr(planner, "_check_deadline", check_deadline)
     monkeypatch.setattr(module, "perf_counter", lambda: 0.0)
-    monkeypatch.setattr(semantic_guard, "perf_counter", lambda: 0.0)
 
     with pytest.raises(PlannerSearchBudgetExceeded, match="wall-clock budget"):
         planner._candidate_actions(
@@ -134,7 +131,6 @@ def test_initial_root_bootstrap_stops_candidate_expansion(monkeypatch):
         return value
 
     monkeypatch.setattr(module, "perf_counter", clock)
-    monkeypatch.setattr(semantic_guard, "perf_counter", clock)
 
     ranked = planner._candidate_actions(
         SimpleNamespace(discards_remaining=0),
@@ -162,7 +158,6 @@ def test_no_deadline_preserves_candidate_priority_order(monkeypatch):
     # Child/later candidate passes still use the canonical Joker-aware priority.
     planner.nodes_evaluated = 1
     monkeypatch.setattr(module, "perf_counter", lambda: 0.0)
-    monkeypatch.setattr(semantic_guard, "perf_counter", lambda: 0.0)
 
     ranked = planner._candidate_actions(
         SimpleNamespace(discards_remaining=0),
