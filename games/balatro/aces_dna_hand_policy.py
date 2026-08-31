@@ -3,10 +3,8 @@ from __future__ import annotations
 """DNA/Aces candidate evidence beneath canonical D1 arbitration.
 
 DNA's first-hand single-card copy and Ace development are useful setup evidence,
-but they do not own a second PLAY selector. This installer augments only the
-strategy-fit evidence consumed by ``StrategyAwareLiveHandActionPolicy``. Canonical
-clear probability, exactness, pace, round resources, and score-equivalence remain
-above this signal.
+but they do not own a second PLAY selector. This module exposes the pure strategy-fit
+evidence consumed natively by ``StrategyAwareLiveHandActionPolicy``.
 
 Pure legacy selection helpers remain callable for deterministic regression tests,
 but are not installed into production arbitration.
@@ -15,7 +13,6 @@ but are not installed into production arbitration.
 from games.balatro.actions import PLAY_CARDS
 from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.build.profile import BalatroBuildProfiler
-from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
 DNA_LINKED_RANK_FIT = 2.50
@@ -222,27 +219,3 @@ def _dna_aces_fit(policy, state, action) -> tuple[float, tuple[str, ...]]:
     if value <= 0.0:
         return 0.0, ()
     return value, tuple(notes)
-
-
-def install_aces_dna_hand_policy() -> None:
-    if getattr(StrategyAwareLiveHandActionPolicy, "_aces_dna_hand_policy_installed", False):
-        return
-
-    original_strategy_fit = StrategyAwareLiveHandActionPolicy._strategy_fit
-
-    def strategy_fit(self, state, action):
-        base, rationale = original_strategy_fit(self, state, action)
-        dna_value, dna_notes = _dna_aces_fit(self, state, action)
-        if dna_value <= 0.0:
-            return base, rationale
-        return (
-            base + dna_value,
-            (
-                *rationale,
-                *dna_notes,
-                f"DNA/Aces candidate evidence={dna_value:+.3f}; canonical D1 survival ordering remains authoritative",
-            ),
-        )
-
-    StrategyAwareLiveHandActionPolicy._strategy_fit = strategy_fit
-    StrategyAwareLiveHandActionPolicy._aces_dna_hand_policy_installed = True
