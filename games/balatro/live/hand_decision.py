@@ -298,10 +298,18 @@ class LiveHandDecisionEvaluator(Evaluator):
         value += promise
         value += min(5, len(action.cards)) * 4.0
 
-        if context.best_play_hand in self.STRONG_MADE_HANDS:
-            value -= 250.0
-        elif pace_ratio >= 1.0:
-            value -= 80.0
+        # A made-hand label is only an opportunity-cost veto when that visible play
+        # is already good enough to satisfy the current survival pace.  Phase-5 live
+        # validation exposed the previous categorical penalty as a survival defect:
+        # all three baseline losses exhausted hands while leaving 4/4 discards
+        # unused.  When the made hand is itself under pace, its actual projected
+        # score/shortfall is already represented above and discard recovery must stay
+        # eligible on the same terms as any other under-pace play.
+        if pace_ratio >= 1.0:
+            if context.best_play_hand in self.STRONG_MADE_HANDS:
+                value -= 250.0
+            else:
+                value -= 80.0
 
         discards_remaining = int(getattr(state, "discards_remaining", 0))
         if discards_remaining <= 1:
