@@ -49,7 +49,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 4 — complex packs/consumables/vouchers/economy audit. Batches 1-4 green through 64/64; Batch 5 bounded destructive/generative outcome-model semantics implemented, validation pending.**
+> **Phase 4 — complex packs/consumables/vouchers/economy audit. Batches 1-5 green through 67/67; Batch 6 cross-family D14 parent-normalization semantics implemented, validation pending.**
 
 Validated checkpoints:
 
@@ -62,6 +62,7 @@ Validated checkpoints:
 - Phase 4 Batch 2 opened-pack legality/fail-closed: **GREEN / 58/58**, `RESOURCE_COHERENCE` 6/6
 - Phase 4 Batch 3 consumable slot/mode authority: **GREEN / 61/61**, `RESOURCE_COHERENCE` 9/9
 - Phase 4 Batch 4 voucher reserve/downside authority: **GREEN / 64/64**, `RESOURCE_COHERENCE` 12/12
+- Phase 4 Batch 5 bounded outcome-model authority: **GREEN / 67/67**, `RESOURCE_COHERENCE` 15/15
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
@@ -99,8 +100,8 @@ Initial audit order:
 2. opened-pack target legality and unsupported stochastic effects failing closed — **Batch 2 GREEN**;
 3. consumable inventory/slot pressure and BUY vs BUY_AND_USE authority — **Batch 3 GREEN**;
 4. voucher purchase value vs permanent downside and current-run resource reserve — **Batch 4 GREEN**;
-5. destructive/generative Spectral/Tarot choices only through explicit bounded outcome models — **active Batch 5**;
-6. cross-family D14 arbitration only after child resource semantics are trustworthy.
+5. destructive/generative Spectral/Tarot choices only through explicit bounded outcome models — **Batch 5 GREEN**;
+6. cross-family D14 arbitration only after child resource semantics are trustworthy — **active Batch 6**.
 
 ## Batch 1 — GREEN
 
@@ -137,40 +138,54 @@ Validated locally at **64/64**, `RESOURCE_COHERENCE` **12/12**.
 - policy-contingent voucher effects such as Hieroglyph/Petroglyph contribute zero D14 parent value until benefit and permanent downside share a grounded common-unit model;
 - D3 strategic admission remains child-owned while D14 cross-family normalization stays literal/resource-aware.
 
-No production code or tuning values changed in Batches 1-4.
-
-## Batch 5 — IMPLEMENTED / VALIDATION PENDING
+## Batch 5 — GREEN
 
 Commits:
 
 - `18006528` — adds `red_white_semantic_phase4_outcome_model_cases.py`.
 - `9d22be05` — wires Batch-5 outcome-model cases into the semantic benchmark.
 
-Audit findings:
+Validated locally at **67/67**, with `RESOURCE_COHERENCE` **15/15**.
 
 - generative/stochastic effects may be admitted only when an explicit public-state expectation owns the outcome space;
-- `JudgementExpectationEvaluator` requires the authoritative public eligible-Joker catalogue and fails closed if it is absent or any modeled eligible outcome cannot be represented;
-- large public Judgement pools are bounded deterministically: evaluated outcomes keep the full pool denominator, so omitted probability mass contributes literal zero rather than being renormalized upward;
-- the Judgement model explicitly avoids RNG samples, pseudoseeds, future pool order, or a selected future outcome;
-- destructive `Immolate` remains below Skip when the current public hand cannot support its explicit destruction expectation.
+- Judgement requires the authoritative observed eligible-Joker catalogue;
+- large public Judgement pools use a deterministic bounded lower bound with omitted mass fixed at zero;
+- no RNG seed, pseudoseed, selected future outcome, or future pool order is read;
+- destructive Immolate remains below Skip when its current public-state expectation is unavailable.
+
+No production code or tuning values changed in Batches 1-5.
+
+## Batch 6 — IMPLEMENTED / VALIDATION PENDING
+
+Commits:
+
+- `84bd534c` — adds `red_white_semantic_phase4_cross_family_cases.py`.
+- `eeb7dc52` — wires Batch-6 cross-family cases into the semantic benchmark.
+
+Audit findings:
+
+- D14 owns the final SHOP comparison only after D2/D3/D4/D8/D11 child admission;
+- `END_SHOP` is the explicit zero normalized parent baseline, so a child may be locally admitted yet still lose after shared parent normalization;
+- `ShopUtilityScale` recomputes shared money/interest/reserve/slot cost at the parent rather than comparing child-local totals directly;
+- `consumable_d14_literal_policy` strips B4 structural units from non-Planet `BUY_AND_USE` parent comparison and retains only explicitly modeled immediate value plus shared resource cost;
+- family identity must not become a second arbiter: a stronger normalized consumable may beat a booster, and the reverse must also hold.
 
 New semantics:
 
-1. `resource.outcome.generative_requires_public_pool`
-   - opened-pack Judgement loses to Skip=0 until the authoritative public generation pool is observed.
-2. `resource.outcome.judgement_bounded_public_model`
-   - a large observed public pool is evaluated as a deterministic bounded lower bound;
-   - omitted mass remains zero and repeated evaluation is deterministic.
-3. `resource.outcome.destructive_requires_complete_state`
-   - Immolate loses to Skip=0 when its public-state destruction model is unavailable.
+1. `resource.shop.cross_family_negative_child_holds`
+   - a locally admitted child with negative normalized parent utility loses to `END_SHOP=0`.
+2. `resource.shop.cross_family_structural_units_do_not_leak`
+   - a huge D4 child structural/build-path number cannot overpower a stronger D8 option when literal immediate consumable value is weak.
+3. `resource.shop.cross_family_literal_consumable_can_win`
+   - a materially stronger literal immediate consumable beats a weaker booster after common-scale normalization.
 
-Batch 5 changes semantic coverage only. No production code or tuning values changed.
+Batch 6 changes semantic coverage only. No production code or tuning values changed.
 
-Expected benchmark: **67/67**, with `RESOURCE_COHERENCE` **15/15**.
+Expected benchmark: **70/70**, with `RESOURCE_COHERENCE` **18/18**.
 
 # EXACT NEXT ACTION
 
-Validate Phase-4 Batch 5 locally:
+Validate Phase-4 Batch 6 locally:
 
 ```powershell
 git pull
@@ -180,13 +195,13 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 67/67 green
+### If 70/70 green
 
-Record Batch 5 green and continue Phase 4 with **cross-family D14 arbitration after child resource semantics are trustworthy**. Audit whether admitted Joker, consumable, voucher, booster and reroll options are compared exactly once on the shared parent resource scale, with no child-specific unit leakage or duplicate resource charging.
+Record Batch 6 green and close the planned Phase-4 audit. Then begin **Phase 5 live validation** from the installed production stack. Do not add a Phase-4 Batch 7 absent fresh semantic evidence from live runs.
 
-### If any Batch-5 case fails
+### If any Batch-6 case fails
 
-Classify fixture mismatch vs a real outcome-model ownership defect. Fix the smallest canonical owner. Do not replace explicit expectations with generic Tarot/Spectral utility, do not renormalize omitted bounded probability mass, and do not read hidden RNG or future pool identities.
+Classify fixture mismatch vs a real D14 parent-normalization defect. Fix the smallest canonical owner. Do not compare child-local totals cross-family, do not duplicate resource charges, do not let structural evidence leak into literal parent utility, and do not introduce family-priority overrides.
 
 # Phase order
 
