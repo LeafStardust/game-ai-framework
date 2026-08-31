@@ -39,14 +39,7 @@ Rules for future chats:
 
 Feature growth is frozen until this competence gate is stable and reproducible.
 
-Do not start:
-
-- Red Stake or higher-stake progression;
-- another deck;
-- collection-first behavior;
-- Endless-first behavior;
-- a new strategic framework;
-- broad numerical tuning intended to compensate for semantic/authority defects.
+Do not start Red Stake or higher-stake progression, another deck, collection-first behavior, Endless-first behavior, a new strategic framework, or broad numerical tuning intended to compensate for semantic/authority defects.
 
 Literal Balatro scoring and legality remain authoritative over strategy labels.
 
@@ -54,17 +47,13 @@ Literal Balatro scoring and legality remain authoritative over strategy labels.
 
 # CURRENT STATE — 2026-08-31
 
-## High-level state
-
 Ordinary Red/White mechanics/runtime stabilization is substantially complete. Previous D14/D11 SHOP latency and D1 root-budget blockers are closed unless fresh evidence reproduces them. Phase-A Bond calibration completed its exploratory gate with **no promotion**; production calibration remains unchanged.
 
 The active engineering phase is:
 
 > **Phase 0 — D1 authority consolidation: remove installation-order-dependent wrappers by moving valid behavior into canonical owners without changing intended production semantics.**
 
-Do not reopen closed runtime/tuning work without fresh evidence.
-
-## Canonical D1 authority shape
+## Canonical authority shape
 
 - D1 search/projection: `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`.
 - D1 action arbitration: `LiveHandActionPolicy`; effective production strategy-aware policy: `StrategyAwareLiveHandActionPolicy`.
@@ -73,7 +62,7 @@ Do not reopen closed runtime/tuning work without fresh evidence.
 - D11 reroll authority: `BuildAwareShopRerollPolicy`.
 - D9 opened-pack authority: `BalatroPackPolicy`.
 
-Target architectural shape:
+Target architecture:
 
 ```text
 Authoritative public state
@@ -91,9 +80,9 @@ One final arbiter
 Action
 ```
 
-## D1 consolidation already completed
+## D1 ownership migrations implemented so far
 
-The following behavior has already been moved away from installation-order-dependent D1 wrappers into canonical production ownership:
+The following behavior has been moved away from installation-order-dependent D1 wrappers into canonical production ownership:
 
 - safe-pace adaptive-search scheduling;
 - safe-pace timeout/fallback authority;
@@ -105,144 +94,147 @@ The following behavior has already been moved away from installation-order-depen
 - DNA/Aces evidence;
 - hand-repetition evidence;
 - Green Joker survival-equivalent Play/Discard preservation;
-- Runner / To Do List target-hand evidence.
+- Runner / To Do List target-hand evidence;
+- Purple-Seal discard candidate/beam preservation;
+- Blue-Seal round-end generated-consumable accounting;
+- Gold-card preservation as a final play-priority tie-break.
 
 The current sequence is an **ownership refactor**, not a new tuning family. Preserve intended behavior while eliminating late mutation.
 
+## Latest consolidation commits
+
+Target-hand:
+
+- `0defc8a7bb91d5b11b7d3e4905c996e0f50f0474` — native target-hand evidence.
+- `65f352cbedae67a246f0c27774549d8e8a36a99a` — native target-hand regression.
+- `60f7245939fb29e7e63cadee1cd508efea61cdf6` — remove stale installer-sentinel assertion.
+
+Purple Seal:
+
+- `84252776fe335ede82eba4a16fda33e56ea4b5fb` — native D1 Purple-Seal beam coverage.
+- `5ee46673deb9958d33b3b8b2bb90624e6e4ccbce` — retire Purple-Seal installer implementation.
+- `9bdef2dbb9c713c2b08febc2bf3ea7ef14eb2034` — stop installing Purple-Seal overlay.
+- `2571dedb212e8767d4b0360e99e45e2d9597ccac` — focused native Purple-Seal regression.
+
+Held round-end resources:
+
+- `73b8e8c6291a59c628f3d1ad41b8b754325871b9` — native Blue-Seal terminal accounting and Gold-card play-priority tie-break in `LiveBlindClearPlanner`.
+- `f0e646a211f9f5e1ccc42419be3e30d636edabce` — retire held-resource installer implementation to compatibility no-op.
+- `9da37efe4ab426fcfd0086b5efad8b6a7b467622` — stop installing held-resource overlay; register Serpent then Hook mechanics explicitly instead of relying on held-resource side effects.
+- `a47077b07a2f57257d03e81f15f4c951a1a171c3` — focused native Blue/Gold regression coverage.
+
+**ChatGPT has not run these tests. Local validation is pending from the user.**
+
 ---
 
-# LAST LOCAL TEST RESULT AND WHY IT FAILED
+# LAST USER-PROVIDED LOCAL TEST RESULT
 
-The user last ran:
+The last reported command was:
 
 ```powershell
 python -m pytest -q tests/balatro -k "target_hand or runner or todo or strategy_hand"
 ```
 
-Result reported by the user before the latest test correction:
+It previously produced one stale-architecture failure:
 
 ```text
-....................................F..
-1 failed, 38 passed, 2743 deselected
-
 FAILED tests/balatro/test_balatro_target_hand_engine_policy.py::test_production_stack_installs_target_hand_guard
-AssertionError: assert False
-getattr(StrategyAwareLiveHandActionPolicy, "_target_hand_engine_policy_installed", False) == False
+1 failed, 38 passed, 2743 deselected
 ```
 
-This failure did **not** indicate missing target-hand behavior.
+That failure did **not** indicate missing target-hand behavior. The old installer had deliberately been retired, while one regression still required its sentinel. Commit `60f72459...` corrected that stale assertion instead of reintroducing the wrapper.
 
-What happened:
-
-1. `target_hand_engine_policy` production mutation had already been deliberately retired.
-2. Runner/To Do List target-hand evidence had already been moved natively into D1 / `StrategyAwareLiveHandActionPolicy` ownership.
-3. Production therefore correctly no longer exposed `_target_hand_engine_policy_installed`.
-4. One old regression still asserted that the retired installer sentinel must exist.
-5. The stale test was therefore checking the old architecture while the implementation and newer native-evidence test checked the new architecture.
-
-Relevant commits:
-
-- `0defc8a7bb91d5b11b7d3e4905c996e0f50f0474` — `refactor(balatro): make target hand evidence native to D1`
-- `65f352cbedae67a246f0c27774549d8e8a36a99a` — `test(balatro): lock native target hand evidence`
-- `e32231503bc9aef72d76cd2c4f1818335afd77e0` — `docs(balatro): hand off D1 authority consolidation`
-- `60f7245939fb29e7e63cadee1cd508efea61cdf6` — `test(balatro): remove stale target hand installer assertion`
-
-`60f72459...` changed the obsolete production-stack assertion so tests now validate the intended architecture: native behavior exists and the old installer sentinel is absent.
-
-**Important:** ChatGPT has not run the corrected test. Local validation is pending from the user.
+No newer local result has been provided yet.
 
 ---
 
 # EXACT NEXT ACTION
 
-## First: validate the already-committed target-hand test correction locally
+## First: local focused validation of the completed consolidation batch
 
-Ask the user to pull and rerun the same focused command:
+The user should pull the branch and run:
 
 ```powershell
-python -m pytest -q tests/balatro -k "target_hand or runner or todo or strategy_hand"
+python -m pytest -q tests/balatro/test_balatro_target_hand_engine_policy.py tests/balatro/test_balatro_purple_seal_d1_native.py tests/balatro/test_balatro_held_round_end_resource_native.py
 ```
 
 Do not run it from ChatGPT.
 
-### If that command fails
+### If the focused command fails
 
-- inspect the new failure directly;
-- determine whether it is a real target-hand semantic regression or another stale architecture assertion;
-- do not reintroduce `install_target_hand_engine_policy()` merely to satisfy a sentinel test;
-- preserve native Runner/To Do List target-hand evidence in canonical D1 ownership.
+- inspect the exact failure directly;
+- distinguish a production semantic regression from a stale architecture assertion;
+- do not restore retired target-hand, Purple-Seal, or held-resource installers merely to satisfy sentinel-based tests;
+- preserve native canonical ownership unless evidence shows the native behavior itself is wrong.
 
-### If that command is green
+### If the focused command is green
 
-Continue immediately to the next D1 consolidation target:
+Continue immediately to:
 
-> **`purple_seal_discard_policy`**
+> **`semantic_search_guard_policy` classification and staged ownership migration.**
 
-Do not spend a turn replanning after a green result.
+Do not perform a giant blind rewrite. First classify every behavior currently owned by the module and move concerns one owner at a time.
 
 ---
 
 # ORDERED D1 CONSOLIDATION QUEUE
 
-Handle one ownership migration at a time. Preserve semantics, move valid behavior native, retire installer, add/update focused regression coverage, then have the user validate locally.
-
 ## 1. Target-hand evidence — IMPLEMENTED, LOCAL RETEST PENDING
 
 Expected architecture:
 
-- Runner / To Do List target-hand evidence is consumed natively by `StrategyAwareLiveHandActionPolicy` / canonical D1 path;
-- no production startup installer for target-hand evidence;
-- no `_target_hand_engine_policy_installed` sentinel requirement;
-- pure compatibility helpers may remain if harmless and tested.
+- Runner / To Do List target-hand evidence is consumed natively by canonical D1;
+- no production startup target-hand installer;
+- no `_target_hand_engine_policy_installed` sentinel requirement.
 
-Current code/test correction ends at commit `60f72459...`.
+## 2. Purple Seal discard beam coverage — IMPLEMENTED, LOCAL TEST PENDING
 
-## 2. Purple Seal discard beam coverage — NEXT AFTER GREEN TARGET-HAND RETEST
+Expected architecture:
 
-Current known architecture problem:
+- Purple-Seal Tarot-generation opportunities survive D1 child-candidate and discard-beam truncation natively;
+- ordinary discard ranking remains authoritative outside the reserved mechanically distinct branch;
+- `purple_seal_discard_policy` is compatibility-only and does not mutate planner classes;
+- no `_purple_seal_discard_policy_installed` sentinel requirement.
 
-- `purple_seal_discard_policy` still mutates D1 candidate/beam behavior late;
-- it wraps discard-subset construction/diversification so Purple-Seal Tarot-generation opportunities survive candidate truncation;
-- the behavior is legitimate but ownership is wrong.
+## 3. Held round-end resources — IMPLEMENTED, LOCAL TEST PENDING
+
+Expected architecture:
+
+- Blue-Seal reward accounting happens through canonical terminal D1 valuation only when the round actually clears and the Blue-Seal card remains held;
+- consumable capacity caps generated Blue-Seal value;
+- Gold-card preservation is only a final play-priority tie-break and cannot outrank better clear/score evidence;
+- `held_round_end_resource_policy` is compatibility-only and does not mutate planner classes;
+- Serpent and Hook exact mechanics remain explicitly installed in their existing order until their later ownership migrations;
+- no `_held_round_end_resource_policy_installed` sentinel requirement.
+
+## 4. `semantic_search_guard_policy` — NEXT AFTER GREEN FOCUSED VALIDATION
+
+This is a larger mixed runtime/search wrapper. Before changing it, classify every behavior it owns.
+
+Known concerns currently mixed into the module include:
+
+- Bond relation filtering for over-broad rank-feature relationships;
+- root/child play prefilter bounds;
+- root/child discard prefilter bounds and redraw-size diversity;
+- root short-play reserve;
+- root discard reserve under soft-deadline pressure;
+- non-clearing discard quality ordering;
+- zero-signal discard redraw-size tie-breaks;
+- any patched planner/policy methods that remain in the lower half of the module.
 
 Migration contract:
 
-- inspect `games/balatro/purple_seal_discard_policy.py` and canonical planner methods before editing;
-- move Purple-Seal discard opportunity preservation directly into the canonical D1 planner (`D1LiveBlindClearPlanner` / its owning hand planner methods as actually defined on the branch);
-- preserve exact mechanic: a useful Purple-Seal discard branch must not disappear merely because generic beam truncation removes it;
-- preserve legality and ordinary discard ranking semantics;
-- remove its production installer from `games/balatro/__init__.py` once behavior is native;
-- make the old module inert/compatibility-only or delete it if nothing valid depends on it;
-- update regression coverage so it proves native behavior and absence of installation-order mutation rather than presence of an installer sentinel.
-
-## 3. Held round-end resources
-
-Likely target: `held_round_end_resource_policy`.
-
-Migration contract:
-
-- move Blue-Seal/Gold-card projection and survival-equivalent final ordering into canonical planner/evaluator ownership;
-- do not let resource preservation override a materially better clear probability;
-- resource value is a later tie-break among survival-equivalent or otherwise appropriately comparable lines;
-- retire startup mutation once native behavior is covered.
-
-## 4. `semantic_search_guard_policy`
-
-This is a larger mixed runtime/search wrapper. Do not treat it like a narrow evidence hook.
-
-Before changing it:
-
-- classify every behavior it owns;
-- separate legality/mechanics, projection, evaluation, search bounds, arbitration, guard and diagnostics;
-- migrate each concern to its canonical owner;
-- preserve bounded runtime and root/child candidate behavior;
-- do not perform a giant blind rewrite.
+1. separate Bond-graph semantics from D1 search/runtime behavior;
+2. separate candidate generation/prefiltering from value arbitration;
+3. move bounded search behavior into the canonical planner owner;
+4. move final action comparison behavior into the canonical arbiter/evaluator owner;
+5. preserve existing deadlines, root/child beam bounds and exact legality;
+6. retire each monkey patch only after its native behavior is covered;
+7. do not change tuning merely because ownership changes.
 
 ## 5. Remaining exact-mechanics / boss / Cerulean wrappers
 
-Only after narrower evidence/projection wrappers are consolidated.
-
-Exact mechanics must remain authoritative even if their ownership changes.
+Only after narrower evidence/search wrappers are consolidated. Exact mechanics must remain authoritative even if their ownership changes.
 
 ---
 
@@ -270,15 +262,15 @@ For each consolidation item:
 
 1. implement the native ownership change;
 2. update/add the smallest focused regression tests;
-3. ask the user for the smallest targeted pytest command covering that item;
+3. have the user run the smallest targeted pytest command;
 4. if green, continue to the next closely related consolidation item;
-5. after a coherent consolidation batch, ask for:
+5. after a coherent consolidation batch, have the user run:
 
 ```powershell
 python -m pytest -q tests/balatro
 ```
 
-6. if decision semantics changed materially, also ask for:
+6. if decision semantics changed materially, also run locally:
 
 ```powershell
 python -m games.balatro.red_white_semantic_benchmark
@@ -299,6 +291,8 @@ Do not spend time reopening the following merely because old docs or history men
 - Green Joker survival-equivalent authority already migrated;
 - Hook/log-resilience reserve already migrated;
 - target-hand installer architecture — intentionally retired;
+- Purple-Seal installer architecture — intentionally retired;
+- held-round-end-resource installer architecture — intentionally retired;
 - production-default tuning ContextVar hypothesis — falsified;
 - historical SHOP recursive expectation roots;
 - BLIND_SELECT quiescence deadlock;
@@ -313,10 +307,6 @@ If a new user-provided trace/test reproduces one of these failure classes, reope
 ---
 
 # SEMANTIC COMPETENCE CONTRACT
-
-The checked-in Red/White semantic benchmark exists to detect bad composition between individually reasonable components.
-
-Priority properties include:
 
 ## D1
 
