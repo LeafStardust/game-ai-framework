@@ -5,7 +5,6 @@ categorical strategy-tree and batch-specific empirical policy overlays are not
 installed as competing production strategy authorities.
 """
 
-from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
 from games.balatro.arcana_booster_expectation_policy import install_arcana_booster_expectation_policy
 from games.balatro.banner_candidate_value_policy import install_banner_candidate_value_policy
 from games.balatro.blueprint_candidate_value_policy import install_blueprint_candidate_value_policy
@@ -145,7 +144,6 @@ install_tactical_scaler_retention_policy()
 install_soul_pack_expectation_policy()
 # Late D1 semantic evidence hooks see the fully wrapped mechanics/value path but do
 # not own a second Play/Discard or same-class action selector.
-install_aces_dna_hand_policy()
 install_strategy_execution_guard_policy()
 install_target_hand_engine_policy()
 install_semantic_search_guard_policy()
