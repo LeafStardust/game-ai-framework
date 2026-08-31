@@ -13,6 +13,13 @@ from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import card_matches_suit, hand_rules_for_state
 from games.balatro.live.hand_action_policy import CLEAR_PATH, PACE_PLAY, PACE_RECOVERY
 from games.balatro.live.hand_build_policy import BuildAwareLiveHandActionPolicy
+from games.balatro.strategy_execution_guard_policy import (
+    HAND_REPETITION_FIT,
+    _clear_probability_tolerance,
+    _green_preserving_play,
+    _plan_clear_probability,
+    _play_repeats_hand,
+)
 
 
 _RANK_VALUE = {
@@ -177,6 +184,35 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             and float(plan.value.clear_probability) >= 1.0 - epsilon
         )
 
+    def _green_preserved_decision(self, state, plans, decision):
+        """Preserve Green inside canonical D1 when PLAY is survival-equivalent."""
+        selected = _green_preserving_play(self, state, plans, decision)
+        if selected is None:
+            return decision
+
+        score = float(self.evaluator.project_play(state, selected.action).expected_hand_score)
+        pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
+        pace_ratio = self._pace_ratio(score, pace_target)
+        selected_probability = _plan_clear_probability(selected)
+        discarded_probability = _plan_clear_probability(getattr(decision, "selected_plan", None))
+        return replace(
+            decision,
+            action=selected.action,
+            selected_plan=selected,
+            selected_immediate_score=score,
+            selected_pace_ratio=pace_ratio,
+            selected_fallback_value=float(self.evaluator.evaluate(state, selected.action)),
+            setup_discard_consensus=False,
+            confidence=max(0.40, min(float(getattr(decision, "confidence", 0.40) or 0.40), 0.75)),
+            rationale=(
+                "Green Joker preservation: a PLAY is survival-equivalent to the selected discard",
+                f"play clear probability={selected_probability:.3f}; discard={discarded_probability:.3f}; tolerance={_clear_probability_tolerance(decision):.3f}",
+                "preserve Green's +Mult-on-play / -Mult-on-discard state when survival does not materially prefer the discard",
+                "a materially safer discard still overrides Green Joker preservation",
+                *decision.rationale,
+            ),
+        )
+
     def _enforce_safe_pace_scope(
         self,
         state,
@@ -314,7 +350,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                 ]
                 if setup_discard_consensus:
                     rationale.append("deep adaptive searches also agree on the setup discard")
-                return replace(
+                decision = replace(
                     baseline,
                     mode=PACE_RECOVERY,
                     action=selected.action,
@@ -333,6 +369,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                     confidence=0.75 if setup_discard_consensus else 0.60,
                     rationale=tuple(rationale) + baseline.rationale,
                 )
+                return self._green_preserved_decision(state, plans, decision)
 
             selected = best_play
             selected_score = scores[id(selected)]
@@ -618,9 +655,24 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                 *dna_rationale,
                 f"DNA/Aces candidate evidence={dna_value:+.3f}; canonical D1 survival ordering remains authoritative",
             )
+        repetition_value = HAND_REPETITION_FIT if _play_repeats_hand(self, state, action) else 0.0
+        repetition_rationale = (
+            (
+                "realized hand_repetition evidence: this PLAY repeats a hand already used this round",
+                "repetition fit is consulted only inside canonical D1 safe/equivalent candidate ranking",
+            )
+            if repetition_value > 0.0
+            else ()
+        )
         return (
-            value + castle_value + burnt_value + dna_value,
-            (*rationale, *castle_rationale, *burnt_rationale, *dna_rationale),
+            value + castle_value + burnt_value + dna_value + repetition_value,
+            (
+                *rationale,
+                *castle_rationale,
+                *burnt_rationale,
+                *dna_rationale,
+                *repetition_rationale,
+            ),
         )
 
     def _strategy_fit_without_castle(self, state, action) -> tuple[float, tuple[str, ...]]:
