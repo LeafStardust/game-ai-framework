@@ -1,189 +1,79 @@
-# Roadmap
+# ROADMAP — SINGLE SOURCE OF TRUTH
 
-> The roadmap tracks active milestones, not release notes. Completed implementation history is retained in [`docs/balatro/BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`](docs/balatro/BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md).
->
-> Production observation remains repository-owned read-only process memory. Production execution remains the repository-owned first-party bridge. Hidden future information remains excluded.
->
-> **Course correction — 2026-08-27:** feature growth is frozen until Red Deck / White Stake competence is measured, stable, and reproducible. Feature coverage, a green unit suite, or one isolated win are not sufficient evidence of competence.
+This file is written for an LLM continuing development of this repository.
 
-# New-chat handoff: read this first
+**This is the only authoritative roadmap, handoff, queue, or current-status document in the repository.**
 
-A fresh development chat should be able to continue from this section without relying on prior conversation history.
+Rules for future chats:
 
-## Repository / branch / working rules
+1. Read this file first.
+2. Treat its `CURRENT STATE` and `EXACT NEXT ACTION` sections as authoritative.
+3. Other files under `docs/` are supporting architecture, audits, mechanics, validation evidence, or history only. They may explain implementation details but **must never override the current status or queue in this file**.
+4. `docs/balatro/BALATRO_IMPLEMENTATION_HISTORY.md` is historical evidence only.
+5. If code or a user-provided local test result proves this file stale, update this file in the same development batch after fixing/reconciling the code.
+6. Do not create another file with `ROADMAP` in its name. Do not create a second handoff document.
+
+---
+
+# REPOSITORY CONTRACT
 
 - Repository: `LeafStardust/game-ai-framework`
 - Active branch: `feat/v1.0-red-white-competence`
 - Work only on that branch unless the user explicitly changes scope.
-- Do **not** run tests on the assistant side. The user pulls and runs tests locally.
-- Preserve exact Balatro mechanics, public-state legality, boss rules, and hidden-information boundaries.
+- The user runs tests locally. **Do not run tests from ChatGPT.**
+- When the user reports a failure, inspect whether it is a real production regression or a stale test protecting retired architecture before changing behavior.
+- When exact repo/branch/path is known, use direct branch-scoped fetch/update/delete operations. Do not waste time rediscovering known paths or probing unrelated history.
+- Preserve exact Balatro mechanics, public-state legality, boss rules and hidden-information boundaries.
+- Never use hidden RNG state, seeds, future pool order, future identities or other inaccessible information.
 - Do not hard-code arbitrary Joker tier lists or named shop-combination strategy tables.
-- Do not start Optuna/numerical tuning until deterministic tests and the semantic competence gate are stable.
-- Do not resume Red Stake or new-deck feature work until the Red/White competence gate passes.
-- A live three-run batch is **not** a progress metric. Live runs are integration smoke tests and sources of new benchmark counterexamples.
-- Before fixing a newly observed semantic defect, add a benchmark/property case for the defect whenever practical.
-- Prefer moving semantics into canonical evaluators/arbiters over adding another late monkeypatch/rescue layer.
-- Obsolete/redundant tests may be removed when they protect retired behavior or duplicate stronger semantic coverage. Preserve mechanics, legality, production authority boundaries, and distinct failure modes.
-- **Repository-operation rule:** when the repository, branch, and exact target file paths are already known, use direct branch-scoped file fetch/update/delete operations immediately. Do **not** spend time on repository-wide search, commit-history probing, connector/tool rediscovery, or schema rediscovery merely to relocate known files. Broad search/discovery is justified only when the exact path or relevant implementation is genuinely unknown. Once a needed GitHub action schema has been loaded in the current session, reuse it instead of repeatedly rediscovering the same tool.
+- Prefer canonical ownership over late monkeypatch/rescue wrappers.
+- If a wrapper merely injects evidence, mechanics, caching or ordering into an existing final authority, migrate that behavior into the canonical owner and retire the installer.
+- Bond/composition and Build Health are evidence, not independent final action authorities.
+- Winning the current run is the gameplay objective.
 
-## Validation workflow
+---
 
-Do **not** require the user to run the entire Balatro suite after every small implementation change.
+# ACTIVE GAMEPLAY OBJECTIVE
 
-During an active consolidation or runtime-performance batch:
+**Red Deck / White Stake, normal mode: maximize probability of winning the current run.**
 
-1. The assistant should complete several logically related items before requesting validation.
-2. After a batch, request only the smallest useful targeted tests for the files/behavior changed, plus the semantic benchmark when the batch changes decision semantics.
-3. If a targeted test fails because it protects behavior that has now been deliberately retired, inspect it and remove/update it only when the newer semantic contract is stronger and correct.
-4. Continue batching and targeted validation until the current consolidation group is complete.
-5. Only then ask the user for the full deterministic Balatro suite.
-6. Fix all remaining full-suite regressions as the final integration pass for that batch.
-7. A full deterministic suite is mandatory before live validation, release promotion, or moving to another major roadmap phase.
+Feature growth is frozen until this competence gate is stable and reproducible.
 
-Typical targeted commands should name the affected files explicitly, for example:
+Do not start:
 
-```powershell
-python -m pytest -q tests/balatro/test_balatro_generation_pool_metadata_cache.py
-```
+- Red Stake or higher-stake progression;
+- another deck;
+- collection-first behavior;
+- Endless-first behavior;
+- a new strategic framework;
+- broad numerical tuning intended to compensate for semantic/authority defects.
 
-Final deterministic integration gate:
+Literal Balatro scoring and legality remain authoritative over strategy labels.
 
-```powershell
-python -m pytest -q tests/balatro
-```
+---
 
-The semantic benchmark remains available when decision semantics change:
+# CURRENT STATE — 2026-08-31
 
-```powershell
-python -m games.balatro.red_white_semantic_benchmark
-```
+## High-level state
 
-This workflow is intended to avoid repeatedly spending full-suite runtime while architecture is still changing, without weakening the final deterministic gate.
+Ordinary Red/White mechanics/runtime stabilization is substantially complete. Previous D14/D11 SHOP latency and D1 root-budget blockers are closed unless fresh evidence reproduces them. Phase-A Bond calibration completed its exploratory gate with **no promotion**; production calibration remains unchanged.
 
-## Current active objective
+The active engineering phase is:
 
-> **Red Deck / White Stake, normal mode, maximize probability of winning the current run.**
+> **Phase 0 — D1 authority consolidation: remove installation-order-dependent wrappers by moving valid behavior into canonical owners without changing intended production semantics.**
 
-No collection-first, Endless-first, new deck/stake, or feature-expansion work is active.
+Do not reopen closed runtime/tuning work without fresh evidence.
 
-## Current architecture findings
+## Canonical D1 authority shape
 
 - D1 search/projection: `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`.
-- D1 action arbitration: `LiveHandActionPolicy` and production `StrategyAwareLiveHandActionPolicy` wrappers.
-- D1 orchestration/final return: `LiveHandActionDecisionEngine` / path-aware live hand engine.
-- D14 intended cross-family shop authority: `BuildAwareShopArbiter`.
-- Bond/composition and Build Health are **evidence**, not separate final authorities.
-- The earlier pre-D14 SHOP observation bottleneck has been materially reduced and instrumented. In the latest profiled live run, the dominant residual SHOP latency is now **inside D14 decision computation**, specifically its D11 reroll child.
-- D11 reroll currently spends meaningful time both in future-Joker expectation and in other reroll subwork. Do not assume the Joker expectation is the whole problem; profile the remaining D11 path before changing budgets or semantics.
-- Current production still contains ordered monkeypatch-style wrappers. See [`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md`](docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md).
-- Historical implementation detail is retained in [`docs/balatro/BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md`](docs/balatro/BALATRO_ROADMAP_IMPLEMENTATION_HISTORY.md).
+- D1 action arbitration: `LiveHandActionPolicy`; effective production strategy-aware policy: `StrategyAwareLiveHandActionPolicy`.
+- D1 orchestration/final return: `LiveHandActionDecisionEngine` / path-aware production engine.
+- D14 SHOP final authority: `BuildAwareShopArbiter`.
+- D11 reroll authority: `BuildAwareShopRerollPolicy`.
+- D9 opened-pack authority: `BalatroPackPolicy`.
 
-## Current checkpoint — 2026-08-28 D14 / D11 SHOP decision-latency gate
-
-The semantic/runtime correctness gate is substantially cleaner than the earlier 2026-08-25/26 state. The **current release blocker is residual interactive SHOP decision latency inside D14, dominated by D11 reroll evaluation**.
-
-Validated before the newest profiling batch:
-
-- full deterministic `tests/balatro` suite reported green by the user after the widened generation-pool cache and SHOP-observer diagnostic changes;
-- Mouth discard-only legality now recovers through a legal discard instead of crashing D1;
-- sticky post-win `won` state no longer creates false victories after an actual loss;
-- five-slot Joker ordering is bounded, and SHOP ordering is skipped entirely when the roster has no order-sensitive Joker;
-- D1 repeated-singleton recovery was corrected at multiple authority layers: wider discard candidates survive the prefilter, non-clearing discard recovery quality outranks exactness in the scoped final/planner paths, and zero-signal recovery prefers broader redraws after genuine strategy evidence;
-- secret-hand base scores and representative B3 probes are native to canonical owners; the installer was retired;
-- outer D1 evaluation caching is native; its retired installer/shim is gone;
-- recent live runs terminate naturally without the prior Mouth crash, false terminal state, or SHOP Joker-order stall.
-
-Earlier focused production evidence:
-
-- Run `balatro-20260828T062225Z-7073105c-attempt-001` reached Ante 4 and terminated naturally at GAME_OVER.
-- It produced **22 SHOP observations**, enough to assess the widened observation cache without another generic three-run batch.
-- The previous pathological 40–60+ second SHOP pattern was materially improved: median SHOP transition was roughly **16.2s**, mean roughly **14.6s**.
-- Worst SHOP transition was roughly **30.4s**, with additional outliers around **28.1s, 25.6s, 21.5s, and 20.1s**.
-- That evidence justified observer-stage instrumentation rather than further random live runs.
-
-Observer-latency instrumentation and diagnosis:
-
-- `e4613d5b` — `feat(balatro): instrument shop observer latency`
-- `e67e9b18` — `feat(balatro): install shop observer latency diagnostic`
-- The diagnostic times public snapshot construction, native readiness, post-pack settle, and semantic quiet and attaches accumulated `shop_observer_latency=...` evidence to normal decision traces.
-- This instrumentation changed the working diagnosis: the remaining user-visible SHOP delay is **not primarily explained by observer settlement anymore**. The latest profiled run reaches D14 and then spends most of the measured decision budget in D11 reroll evaluation.
-
-Latest D14/D11 production timing evidence:
-
-- The focused run produced **20 profiled SHOP decisions**, enough to stop collecting random SHOP samples and move back to code-level profiling.
-- D14 total decision time averaged roughly **10.3s per SHOP decision**.
-- The D11 reroll child averaged roughly **8.3s**, making it the dominant top-level D14 cost.
-- The already-separated future-Joker expectation (`reroll_joker`) averaged roughly **2.9s**.
-- Therefore roughly **5s per SHOP decision remains inside D11 outside the measured future-Joker expectation**.
-- This rules out a blind “just optimize Joker expectation” fix. The next patch must identify which D11 submethod(s) account for the remaining time.
-- `ShopRerollPolicy.recommend()` currently performs visible-shop scoring, unmet-requirement build profiling, resource valuation, future-shop EV construction, and reroll comparison. The unmeasured ~5s may include one or more of those paths; measurement comes before semantic changes.
-
-Latency-cache history:
-
-- `2a6ae76`, `a248a12`, `cb41f8e` cached center `string_fields` metadata and improved some runs but left repeated pool enumeration.
-- `dbed73b3`, `1fca5439`, `2ea3d5e7` widened the cache to attempt-static Joker and consumable pool membership + center metadata while keeping run-dependent eligibility live.
-- The widened cache removed the old extreme repeated SHOP observation delays but did not by itself make the complete SHOP interaction responsive.
-
-### Immediate next sequence
-
-1. **Do not ask for another live run yet.** The current trace already contains enough D14/D11 timing evidence.
-2. Instrument/profile the internal D11 reroll path, separating at minimum visible-shop scoring, unmet-requirement/build profiling, reroll resource valuation, future-shop family EV, and any production wrapper/public-pool expectation work not already represented by `reroll_joker`.
-3. Patch only the dominant measured D11 subcomponent. Preserve D14 final authority, D11 semantics, paid-reroll stop-loss, public-information boundaries, and existing settlement behavior.
-4. Add focused deterministic regression coverage for any new cache/bounded-computation behavior where practical. Do **not** run tests assistant-side.
-5. Ask the user for targeted `python -m pytest -q ...` validation, then the full `python -m pytest -q tests/balatro` once the D11 performance batch is structurally complete.
-6. After green, run **one focused normal live attempt** to verify D14/D11 latency under the new instrumentation/optimization. Do not default to another three-run batch.
-7. Once normal SHOP decisions are responsive, close the SHOP latency blocker and resume the broader v1.0 latency-budget pass for recurring slow D1/other decisions.
-8. After correctness + interactive latency are clean, move to numerical calibration/tuning. Do not keep changing architecture merely because a run loses.
-
-## Status
-
-| Milestone | Status | Gate |
-|---|---|---|
-| v0.1–v0.9 foundation + autonomous integration | Complete | Historical implementation retained separately |
-| **v1.0.0 Red/White release baseline** | **Complete / historical** | Released 2026-08-20 |
-| **v1.0.x Red/White competence stabilization** | **IN PROGRESS** | Current blocker: D14/D11 SHOP decision latency, then broader latency pass → live gate → numerical calibration |
-| New gameplay features | **FROZEN** | No expansion before v1.0.x competence gate |
-| Bond numerical tuning / Optuna | **Implemented / frozen** | Resume only after semantics + latency are trustworthy |
-| v1.1–v1.7 Red Deck stake progression | Blocked | Begins after Red/White competence gate |
-| Collection-first progression | Retired from active roadmap | Winning is the sole gameplay objective |
-| v2+ additional decks | Not started | Begins after Red Deck progression |
-
----
-
-# Active doctrine
-
-Until v1.0.x is complete, the project has one gameplay target:
-
-> **Red Deck / White Stake, normal mode, maximize the probability of winning the current run.**
-
-No new collection objective, Endless objective, deck/stake adaptation, strategic framework, or speculative mechanics work should be added unless a benchmarked Red/White competence failure proves it necessary.
-
-Existing mechanics, Joker implementations, Bond/composition code, pack models, diagnostics, collection tooling, and previous strategy implementations remain useful repository assets. They stop expanding the active scope.
-
-## What counts as progress now
-
-The project uses four validation layers:
-
-1. **deterministic tests** — implementation contracts and mechanics do not regress;
-2. **mechanics coverage** — modeled Balatro behavior remains accurate;
-3. **semantic competence benchmark** — known important states produce sensible behavior;
-4. **live runs** — integration/runtime smoke tests and sources of new counterexamples.
-
-During active architectural batching, deterministic validation is intentionally split into targeted tests first and one full-suite integration gate at the end of the batch.
-
----
-
-# v1.0.x — Red/White competence stabilization
-
-## Why the previous approach stalled
-
-The agent accumulated many individually reasonable policies, evaluators, guards, rescue rules, and diagnostics. Several can influence the same final action. This produced **policy accretion**: local components can be correct while their composition makes an obviously poor decision.
-
-The goal of v1.0.x is therefore not “add more intelligence.” It is:
-
-> **make the intelligence already present compose into one reliable run-winning decision process.**
-
-## Target authority shape
+Target architectural shape:
 
 ```text
 Authoritative public state
@@ -201,222 +91,318 @@ One final arbiter
 Action
 ```
 
-Bond/composition and Build Health remain evidence. They must not become independent competing definitions of value.
+## D1 consolidation already completed
+
+The following behavior has already been moved away from installation-order-dependent D1 wrappers into canonical production ownership:
+
+- safe-pace adaptive-search scheduling;
+- safe-pace timeout/fallback authority;
+- Hook/log-resilience search reserve;
+- boss-unconfirmed projection confidence;
+- per-decision Bond intent cache;
+- Castle discard evidence;
+- Burnt Joker discard evidence;
+- DNA/Aces evidence;
+- hand-repetition evidence;
+- Green Joker survival-equivalent Play/Discard preservation;
+- Runner / To Do List target-hand evidence.
+
+The current sequence is an **ownership refactor**, not a new tuning family. Preserve intended behavior while eliminating late mutation.
 
 ---
 
-## Phase 0 — Freeze and simplify authority
+# LAST LOCAL TEST RESULT AND WHY IT FAILED
 
-**Goal:** know exactly which component has final authority for each action family.
+The user last ran:
 
-Canonical inventory: [`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md`](docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md).
+```powershell
+python -m pytest -q tests/balatro -k "target_hand or runner or todo or strategy_hand"
+```
 
-- [x] Freeze new gameplay features.
-- [x] Inventory production components currently capable of changing a D1 action and identify `LiveBlindClearPlanner`/`D1LiveBlindClearPlanner` as projection/search authority, `LiveHandActionPolicy` as action arbiter, and `LiveHandActionDecisionEngine` as D1 orchestration/final-return authority.
-- [x] Inventory production components currently capable of changing D2/D14 shop decisions and identify `BuildAwareShopArbiter` as intended cross-family final authority.
-- [ ] Complete per-wrapper M/P/E/S/A/G/D classification for every installed D1 and shop wrapper.
-- [ ] Remove or merge late rescue/correction policies when their logic belongs inside the canonical evaluator/arbiter.
-- [ ] Verify all diagnostics/monitoring paths are D-only and cannot launch independent planning that affects runtime or action selection.
+Result reported by the user before the latest test correction:
 
-**Exit gate:** one documented and enforced final authority exists for each action family, with late semantic rescue layers consolidated.
+```text
+....................................F..
+1 failed, 38 passed, 2743 deselected
+
+FAILED tests/balatro/test_balatro_target_hand_engine_policy.py::test_production_stack_installs_target_hand_guard
+AssertionError: assert False
+getattr(StrategyAwareLiveHandActionPolicy, "_target_hand_engine_policy_installed", False) == False
+```
+
+This failure did **not** indicate missing target-hand behavior.
+
+What happened:
+
+1. `target_hand_engine_policy` production mutation had already been deliberately retired.
+2. Runner/To Do List target-hand evidence had already been moved natively into D1 / `StrategyAwareLiveHandActionPolicy` ownership.
+3. Production therefore correctly no longer exposed `_target_hand_engine_policy_installed`.
+4. One old regression still asserted that the retired installer sentinel must exist.
+5. The stale test was therefore checking the old architecture while the implementation and newer native-evidence test checked the new architecture.
+
+Relevant commits:
+
+- `0defc8a7bb91d5b11b7d3e4905c996e0f50f0474` — `refactor(balatro): make target hand evidence native to D1`
+- `65f352cbedae67a246f0c27774549d8e8a36a99a` — `test(balatro): lock native target hand evidence`
+- `e32231503bc9aef72d76cd2c4f1818335afd77e0` — `docs(balatro): hand off D1 authority consolidation`
+- `60f7245939fb29e7e63cadee1cd508efea61cdf6` — `test(balatro): remove stale target hand installer assertion`
+
+`60f72459...` changed the obsolete production-stack assertion so tests now validate the intended architecture: native behavior exists and the old installer sentinel is absent.
+
+**Important:** ChatGPT has not run the corrected test. Local validation is pending from the user.
 
 ---
 
-## Phase 1 — Semantic competence benchmark
+# EXACT NEXT ACTION
 
-**Goal:** create a stable progress meter instead of judging progress from random runs.
+## First: validate the already-committed target-hand test correction locally
 
-Build a checked-in benchmark of roughly **50–100 captured or reconstructed public checkpoints**. Each case should test a behavioral property rather than a fragile exact action unless exactness is mechanically required.
+Ask the user to pull and rerun the same focused command:
 
-Implementation:
+```powershell
+python -m pytest -q tests/balatro -k "target_hand or runner or todo or strategy_hand"
+```
 
-- [x] Add reusable property-based benchmark framework with overall and per-category scores.
-- [x] Add CLI runner: `python -m games.balatro.red_white_semantic_benchmark`.
-- [x] Add deterministic pytest gate for the semantic suite.
-- [x] Seed benchmark with reconstructed Red/White semantic cases across D1 recovery/authority, shop authority, build, resource, and boss behavior.
-- [ ] Expand the suite using the existing live-run failure archive and important mechanical boundaries as needed by new defects.
-- [ ] Ensure every known recent obvious stupid-play class has at least one semantic/property regression before its next architectural fix when practical.
+Do not run it from ChatGPT.
 
-### Initial D1 cases
+### If that command fails
+
+- inspect the new failure directly;
+- determine whether it is a real target-hand semantic regression or another stale architecture assertion;
+- do not reintroduce `install_target_hand_engine_policy()` merely to satisfy a sentinel test;
+- preserve native Runner/To Do List target-hand evidence in canonical D1 ownership.
+
+### If that command is green
+
+Continue immediately to the next D1 consolidation target:
+
+> **`purple_seal_discard_policy`**
+
+Do not spend a turn replanning after a green result.
+
+---
+
+# ORDERED D1 CONSOLIDATION QUEUE
+
+Handle one ownership migration at a time. Preserve semantics, move valid behavior native, retire installer, add/update focused regression coverage, then have the user validate locally.
+
+## 1. Target-hand evidence — IMPLEMENTED, LOCAL RETEST PENDING
+
+Expected architecture:
+
+- Runner / To Do List target-hand evidence is consumed natively by `StrategyAwareLiveHandActionPolicy` / canonical D1 path;
+- no production startup installer for target-hand evidence;
+- no `_target_hand_engine_policy_installed` sentinel requirement;
+- pure compatibility helpers may remain if harmless and tested.
+
+Current code/test correction ends at commit `60f72459...`.
+
+## 2. Purple Seal discard beam coverage — NEXT AFTER GREEN TARGET-HAND RETEST
+
+Current known architecture problem:
+
+- `purple_seal_discard_policy` still mutates D1 candidate/beam behavior late;
+- it wraps discard-subset construction/diversification so Purple-Seal Tarot-generation opportunities survive candidate truncation;
+- the behavior is legitimate but ownership is wrong.
+
+Migration contract:
+
+- inspect `games/balatro/purple_seal_discard_policy.py` and canonical planner methods before editing;
+- move Purple-Seal discard opportunity preservation directly into the canonical D1 planner (`D1LiveBlindClearPlanner` / its owning hand planner methods as actually defined on the branch);
+- preserve exact mechanic: a useful Purple-Seal discard branch must not disappear merely because generic beam truncation removes it;
+- preserve legality and ordinary discard ranking semantics;
+- remove its production installer from `games/balatro/__init__.py` once behavior is native;
+- make the old module inert/compatibility-only or delete it if nothing valid depends on it;
+- update regression coverage so it proves native behavior and absence of installation-order mutation rather than presence of an installer sentinel.
+
+## 3. Held round-end resources
+
+Likely target: `held_round_end_resource_policy`.
+
+Migration contract:
+
+- move Blue-Seal/Gold-card projection and survival-equivalent final ordering into canonical planner/evaluator ownership;
+- do not let resource preservation override a materially better clear probability;
+- resource value is a later tie-break among survival-equivalent or otherwise appropriately comparable lines;
+- retire startup mutation once native behavior is covered.
+
+## 4. `semantic_search_guard_policy`
+
+This is a larger mixed runtime/search wrapper. Do not treat it like a narrow evidence hook.
+
+Before changing it:
+
+- classify every behavior it owns;
+- separate legality/mechanics, projection, evaluation, search bounds, arbitration, guard and diagnostics;
+- migrate each concern to its canonical owner;
+- preserve bounded runtime and root/child candidate behavior;
+- do not perform a giant blind rewrite.
+
+## 5. Remaining exact-mechanics / boss / Cerulean wrappers
+
+Only after narrower evidence/projection wrappers are consolidated.
+
+Exact mechanics must remain authoritative even if their ownership changes.
+
+---
+
+# PHASE-0 EXIT GATE
+
+Phase 0 is complete only when:
+
+- one documented/enforced final authority exists for each action family;
+- remaining late semantic rescue layers are removed or reduced to true compatibility/diagnostic code;
+- diagnostics cannot independently plan or change actions;
+- production behavior no longer depends on fragile module import/installer order for migrated D1 semantics;
+- deterministic focused tests protect behavior rather than retired monkeypatch mechanisms.
+
+Supporting architecture inventory: `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md`.
+
+**Do not trust that map blindly if it disagrees with current code. It is supporting documentation, not the roadmap. Refresh stale rows as wrappers are retired.**
+
+---
+
+# VALIDATION WORKFLOW
+
+Do not demand the full Balatro suite after every small ownership migration.
+
+For each consolidation item:
+
+1. implement the native ownership change;
+2. update/add the smallest focused regression tests;
+3. ask the user for the smallest targeted pytest command covering that item;
+4. if green, continue to the next closely related consolidation item;
+5. after a coherent consolidation batch, ask for:
+
+```powershell
+python -m pytest -q tests/balatro
+```
+
+6. if decision semantics changed materially, also ask for:
+
+```powershell
+python -m games.balatro.red_white_semantic_benchmark
+```
+
+The full deterministic suite is mandatory before live validation, release promotion, or moving to a major new phase.
+
+Live runs are integration evidence, not the primary progress metric.
+
+---
+
+# CLOSED / DO NOT REOPEN WITHOUT FRESH EVIDENCE
+
+Do not spend time reopening the following merely because old docs or history mention them:
+
+- ordinary D1 competence failures already repaired;
+- Mouth discard-only legality;
+- Green Joker survival-equivalent authority already migrated;
+- Hook/log-resilience reserve already migrated;
+- target-hand installer architecture — intentionally retired;
+- production-default tuning ContextVar hypothesis — falsified;
+- historical SHOP recursive expectation roots;
+- BLIND_SELECT quiescence deadlock;
+- ROUND_EVAL checkout fast-path semantics;
+- D1 root pre-beam wall-clock budget defect;
+- live tuner cascading after failed/non-COMPLETE trial;
+- Phase-A Bond exploratory tuning — completed with no promotion;
+- D14/D11 SHOP latency blocker — closed unless fresh timing evidence reproduces it.
+
+If a new user-provided trace/test reproduces one of these failure classes, reopen it based on that evidence only.
+
+---
+
+# SEMANTIC COMPETENCE CONTRACT
+
+The checked-in Red/White semantic benchmark exists to detect bad composition between individually reasonable components.
+
+Priority properties include:
+
+## D1
 
 - guaranteed clear must be taken;
 - useful discards must be used when current pace is inadequate;
-- trivial one-card plays must not burn hands while useful discards remain;
-- repeated one-card discards must be exceptional unless mechanics make precision relevant;
-- survival-equivalent lines may preserve valuable held cards;
-- forced selections and boss rules must be obeyed;
-- impossible-clear states should maximize remaining progress rather than preserve irrelevant resources;
-- timeout must retain completed canonical D1 evidence;
-- late adaptive evidence cannot reverse the finalized Play/Discard survival class.
+- trivial tiny plays must not burn hands while a useful discard exists;
+- repeated one-card discards must be exceptional unless exact mechanics justify them;
+- survival-equivalent lines may preserve valuable held resources;
+- forced selections and boss rules are obeyed;
+- impossible-clear states maximize remaining progress rather than preserve irrelevant resources;
+- timeout retains completed canonical evidence;
+- late evidence cannot reverse a finalized survival class without valid canonical authority.
 
-### Initial shop cases
+## SHOP
 
-- affordable obvious immediate scoring must be bought when underpowered and strategically legal;
-- mechanical/Bond conflicts must still veto inappropriate buys;
-- obviously dead components must be replaceable by materially better legal candidates;
-- interest/economy should be preserved for marginal purchases;
-- rich underpowered builds should reroll when the visible shop is inadequate;
-- rerolls must not violate survival reserve.
+- affordable obvious immediate scoring is bought when underpowered and legal;
+- mechanical conflicts remain authoritative;
+- dead components may be replaced by materially better legal candidates;
+- interest/economy is preserved for marginal purchases;
+- rich underpowered builds may reroll when visible offers are inadequate;
+- rerolls respect survival reserve.
 
-### Initial build cases
+## Build
 
-- functioning engines must survive marginal side-development offers;
-- real scaling deficits must be detected before current-blind survival collapses;
-- dormant/theoretical synergy cannot count as realized scoring;
-- coherent pivots must remain possible when projected whole-build value is genuinely better.
+- functioning engines survive marginal side-development offers;
+- real scaling deficits are detected;
+- dormant/theoretical synergy does not count as realized scoring;
+- coherent pivots remain possible when whole-build value is genuinely better.
 
-### Initial pack/consumable/boss cases
+## Packs/resources/bosses
 
 - hidden future value is never predicted;
-- deterministic visible improvements are not skipped without adequate reason;
-- speculative pack EV cannot override immediate survival;
-- boss mechanics/legality remain exact.
-
-**Exit gate:** every known recent obvious stupid-play class has a regression/semantic case and the benchmark is broad enough to detect cross-policy regressions before live testing.
+- deterministic visible improvements are not skipped without reason;
+- speculative option value does not override immediate survival without explicit projected evidence;
+- boss mechanics and legality remain exact.
 
 ---
 
-## Phase 2 — D1 survival competence FIRST
+# LATER PHASES — BLOCKED UNTIL PHASE 0 IS CLEAN
 
-**Goal:** with current resources fixed, play the blind sensibly.
+## Phase 1 — semantic benchmark expansion
 
-Until this phase passes, shop sophistication is secondary.
+Expand captured/reconstructed public checkpoints when new failure classes appear. Prefer behavioral properties over fragile exact actions unless exactness is mechanically required.
 
-### Default D1 comparison order
+## Phase 2 — D1 survival competence
+
+Default comparison order:
 
 1. probability of clearing the blind;
-2. feasibility/confidence of remaining clear paths, including proven exact vs sampled where trust matters;
-3. expected progress toward the target;
+2. feasibility/confidence of remaining clear paths;
+3. expected progress toward target;
 4. expected hands remaining;
 5. expected discards remaining;
-6. expected score/economy/generated resources as later tie-breaks.
+6. score/economy/generated resources as later tie-breaks.
 
-Exact boss mechanics and forced actions remain authoritative. `exact` is confidence/safety evidence where it distinguishes a proven line from a sampled/uncertain one; it is not arbitrary bonus utility.
+## Phase 3 — simple shop survival
 
-### Required work
+One shared final comparison scale across Jokers, vouchers, boosters, consumables, rerolls and END_SHOP. Immediate survival/scoring value outranks speculative long-horizon cleverness.
 
-- [ ] Continue auditing D1 candidate generation only when live evidence identifies a remaining defect.
-- [x] Ensure timeout/fallback reuses completed canonical D1 survival evidence.
-- [x] Prevent the path-aware post-policy layer from reversing the finalized Play/Discard class.
-- [x] Ensure useful multi-card discards survive the candidate beam.
-- [x] Scope recovery ranking so non-clearing discard quality outranks exactness without changing exact PLAY behavior.
-- [x] Prefer broader redraws in degenerate zero-signal recovery states after genuine strategy evidence.
-- [ ] Remove late D1 guards after their semantics are represented canonically where doing so is low-risk and justified.
-- [ ] Continue boss-sensitive coverage when a new production failure is observed.
-- [ ] Keep interactive runtime bounded without silently switching objectives.
+## Phase 4 — coherent build authority
 
-**Exit gate:** D1 benchmark is effectively clean and fresh live runs show no known dominated hand/discard behavior.
+Bond/composition and Build Health remain evidence inside one run-winning decision process. No fake score from structural labels.
 
----
+## Phase 5 — complex packs/consumables/vouchers/economy
 
-## Phase 3 — Simple shop survival
+Audit existing implementations rather than rebuilding them. One-layer public expectation remains the normal unopened stochastic boundary.
 
-**Goal:** make the shop behave like a competent conservative player before complicated long-horizon cleverness.
+## Phase 6 — live validation
 
-The shop should first answer:
+After deterministic/semantic gates are clean, use focused authoritative live attempts to detect integration/runtime defects. Convert obvious failure classes into deterministic/semantic regressions when practical.
 
-- Am I strong enough for the next blind?
-- Does this visible purchase materially improve survival/scaling?
-- Is this replacement genuinely better than what I own?
-- Can I afford it without destroying required reserve/economy?
-- If nothing useful is visible and I am weak but rich, should I reroll?
+## Phase 7 — numerical tuning
 
-### Required work
+Resume only after semantics and authority are trustworthy. Tune preferences/coefficients, never mechanics, legality, boss rules or hidden-information behavior.
 
-- [ ] Establish/verify one shared final comparison scale across Jokers, vouchers, boosters, consumables, rerolls, and END_SHOP.
-- [ ] Immediate legal survival/scoring value cannot be blocked by a generic adequacy threshold.
-- [ ] Mechanical/Bond conflicts remain authoritative.
-- [ ] Replace repeated runtime rescue monkeypatches with canonical D14 terms where possible.
-- [ ] Keep future-public-pool expectations bounded and subordinate to visible current-shop survival.
-- [x] Bound five-slot Joker ordering and bypass order evaluation for rosters with no order-sensitive Joker.
-- [x] Instrument SHOP observation/settlement latency and use the resulting trace evidence to separate observer cost from D14 decision cost.
-- [ ] **Current blocker:** profile and reduce D14/D11 reroll latency. Latest live evidence: D14 ~10.3s mean, D11 reroll ~8.3s, measured future-Joker expectation ~2.9s, leaving ~5s of D11 cost still unattributed.
-- [ ] Preserve paid-reroll stop-loss while allowing rerolls for rich, underpowered builds with inadequate visible offers.
-
-**Exit gate:** shop benchmark is clean and normal SHOP decisions are responsive.
+Promotion requires a fresh controlled comparison with at least 20 completed episodes per arm and non-regression/pathology gates.
 
 ---
 
-## Phase 4 — Coherent build authority
+# FUTURE VERSION PROGRESSION — BLOCKED
 
-**Goal:** use Bond/composition and Build Health as evidence inside one final run-winning decision process.
+After Red/White competence passes:
 
-- [ ] Keep literal scoring separate from structural Build Health.
-- [ ] Keep Bond development separate from realization.
-- [ ] R0/partial Bonds may affect future value but cannot manufacture immediate scoring power.
-- [ ] Mature realized engines receive preservation credit based on real disruption cost.
-- [ ] Pivots remain legal when complete projected-build value materially exceeds the incumbent after transaction/economy/disruption costs.
-- [ ] Full-board replacement compares complete resulting builds rather than isolated Joker values.
-- [ ] Ante-1 strategy evidence may guide purchases but cannot outrank survival when weak.
-
-**Exit gate:** no known “full board but non-functioning build” failure remains in benchmark/live validation.
-
----
-
-## Phase 5 — Reintegrate complex packs, consumables, vouchers, economy
-
-The extensive implementations already present remain valuable. This phase audits their authority rather than rebuilding them.
-
-- [ ] Keep/re-enable complex future-value models only when they improve benchmark behavior at acceptable runtime cost.
-- [ ] One-layer public expectation remains the normal unopened stochastic boundary.
-- [ ] Actual opened/held choices may use full modeled mechanics when the decision becomes real.
-- [ ] Hidden future shop contents, draw order, and RNG state remain forbidden.
-- [ ] Long-horizon option value cannot override clearly necessary immediate survival without explicit projected evidence.
-
-**Exit gate:** complex resource behavior preserves every earlier competence category.
-
----
-
-## Phase 6 — Live validation
-
-Live runs return only after the deterministic/semantic gate is stable enough for integration evidence.
-
-Sequence from the current checkpoint:
-
-1. instrument/profile D11 reroll internals using the already-captured live timing evidence; do not collect another generic live run first;
-2. patch only the dominant measured D11 subcomponent while preserving D14 authority and reroll semantics;
-3. validate the D11 performance batch with targeted deterministic tests, then the full Balatro suite;
-4. use one focused live SHOP attempt to verify the resulting D14/D11 timing;
-5. once SHOP responsiveness is clean, resume one unchanged-HEAD three-attempt Red/White smoke batch;
-6. inspect questionable decisions, not only the loss screen;
-7. when a new semantic defect appears, add its checkpoint/property before fixing it where practical;
-8. after a semantically clean live gate, perform the dedicated broader latency-budget pass before numerical tuning if recurring slow decisions remain.
-
-### Red/White competence gate before Red Stake
-
-- [x] deterministic Balatro suite green at the latest user-validated checkpoint;
-- [ ] semantic benchmark stable and near-clean across D1, shop, build, and boss categories;
-- [ ] no known mechanically contradictory or clearly dominated production decision;
-- [ ] normal decision latency within the interactive runtime budget, with slow outliers instrumented and explained;
-- [ ] repeated live batches do not reproduce the same obvious failure class;
-- [ ] at least one fresh unchanged-HEAD batch clears Ante 8 without a release-blocking semantic defect;
-- [x] recent supervisor/restart/shutdown attempts complete naturally without the former fourth-restart/false-terminal failures.
-
----
-
-## Phase 7 — Numerical tuning only after semantics
-
-The existing Optuna/Bond calibration foundation remains useful, but tuning stays frozen until numerical search is optimizing preferences rather than compensating for wrong mechanics or conflicting authorities.
-
-Allowed examples: contributor weights, empirical thresholds, synergy/conflict coefficients, pivot resistance, motif strengths, and resource-policy thresholds.
-
-Forbidden targets: mechanical truth, legality, boss rules, hidden information, or categorical overrides created solely to hide benchmark failures.
-
-Promotion still requires fresh controlled comparison with **at least 20 completed episodes per arm** and implemented non-regression/pathology gates.
-
----
-
-# Collection progression — RETIRED FROM ACTIVE ROADMAP
-
-Collection/unlock state may remain for diagnostics or exact-tie metadata, but it must not turn a strategically inferior action into the selected action or intentionally sacrifice run-winning probability.
-
----
-
-# v1.1–v1.7 — Red Deck stake progression — BLOCKED
-
-| Version | Stake | New adaptation focus |
+| Version | Stake | Main new adaptation |
 |---|---|---|
-| **v1.1** | **Red** | No Small Blind reward money |
+| v1.1 | Red | No Small Blind reward money |
 | v1.2 | Green | Green Stake score scaling |
 | v1.3 | Black | Eternal Joker adaptation |
 | v1.4 | Blue | Reduced-discard adaptation |
@@ -424,17 +410,21 @@ Collection/unlock state may remain for diagnostics or exact-tie metadata, but it
 | v1.6 | Orange | Perishable Joker adaptation |
 | v1.7 | Gold | Rental Joker adaptation and all-stakes validation |
 
-Stake progression begins only after the v1.0.x semantic/live competence gate passes. New stakes must reuse the permanent architecture rather than introduce another strategy framework.
-
----
-
-# v2+ — Additional decks
-
-Planned order after Red Deck completion:
+Then additional decks, currently planned:
 
 1. Blue Deck — v2.x
 2. Yellow Deck — v3.x
 3. Green Deck — v4.x
 4. Black Deck — v5.x
 
-Additional-deck cartridges reuse the same permanent Balatro architecture and add only genuine deck/stake-specific modifiers where necessary.
+These future versions must reuse the permanent architecture rather than introduce parallel strategy frameworks.
+
+---
+
+# HISTORY / SUPPORTING DOCS
+
+- `docs/balatro/BALATRO_IMPLEMENTATION_HISTORY.md` — completed implementation/tuning history only.
+- `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` — architecture inventory/supporting evidence; refresh when stale.
+- other `docs/balatro/*.md` files — mechanics, audits, validation records, strategy/Bond design, runtime evidence.
+
+Again: **none of them define the current queue. This file does.**
