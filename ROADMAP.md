@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-09-01
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result remains 0 wins across the original baseline and Tunes A/B/C/D/E. Tune A remains retained provisionally. Tunes B, C, D, and E are REJECTED and reverted. Tune E's reverted configuration must now be locally revalidated before any Tune F live work.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result remains 0 wins across the original baseline and Tunes A/B/C/D/E. Tune A remains retained provisionally. Tunes B, C, D, and E are REJECTED and reverted. Tune E's restored state is locally revalidated 74/74 GREEN. Tune F is now STAGED: observed-hand prior in canonical Joker whole-build scoring is reduced 0.25 → 0.10 so medium/late D2 valuation follows demonstrated hand usage more strongly. Semantic validation is PENDING; do not launch a Tune-F live batch until the 74-case benchmark is green.**
 
 Validated checkpoints:
 
@@ -66,7 +66,8 @@ Validated checkpoints:
 - Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune D booster acquisition margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Tune E contextual/B3 Joker build weight: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT VALIDATION PENDING**
+- Phase 6 Tune E contextual/B3 Joker build weight: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
+- Phase 6 Tune F observed-hand scoring prior: **STAGED / SEMANTIC VALIDATION PENDING**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 - Phase 6 sticky-win GAME_OVER restart semantics: **LOCAL REGRESSION GREEN** (`28cec27b` + `6e1a2696`)
 
@@ -206,7 +207,7 @@ Interpretation:
 Canonical owner: `JokerBuildValueEvaluator` / `JokerBuildValueWeights`, upstream of D2 admission and D14 shared-resource normalization.
 
 Experiment commits: `e17518fc` + constructor-repair `ba93321f`.
-Revert commit: `d5c3f8ce` restores the pre-Tune-E `contextual_gain=1.0` file state while preserving later branch history.
+Effective branch-attached revert commit: `eecd0b40`, restoring pre-Tune-E `contextual_gain=1.0`. The earlier `d5c3f8ce` was an intermediate unattached revert object and is not the branch checkpoint.
 
 Experiment:
 
@@ -246,7 +247,37 @@ Interpretation:
 - several full boards were composed of individually scoring but weakly unified conditional effects, consistent with contextual/B3 downweighting reducing build coherence without enough compensating realized score;
 - Tune E is therefore rejected and reverted rather than stacked into Tune F.
 
+Reverted configuration locally revalidated: **74/74 GREEN**.
+
 Do not reopen `contextual_gain=0.75` absent new controlled evidence.
+
+## Tune F — observed-hand scoring prior — STAGED / SEMANTIC VALIDATION PENDING
+
+Canonical owner: `JokerBuildValueEvaluator`, specifically the public hand-history weighting inside whole-build literal Joker scoring.
+
+Production commit: `ab118a33`.
+
+Single numerical change:
+
+- `_OBSERVED_HAND_PRIOR_WEIGHT`: **0.25 → 0.10**.
+
+Unchanged:
+
+- before any public hand-play history exists, all representative probes still retain equal weight `1.0`;
+- direct literal scoring weight remains **6.0** and cap remains **12.0**;
+- contextual/B3 weight is restored at **1.0**;
+- Bond/composition, D2 purchase/replacement thresholds, D14 economics, D11, D8, and Tune A remain unchanged;
+- no hand identity is predicted from hidden state and no future hand is assumed.
+
+Evidence/rationale:
+
+- canonical D2 literal scoring currently probes 11 hand classes, including advanced hands such as Five of a Kind, Flush House, and Flush Five;
+- once public hand history exists, an unplayed probe still receives the prior while a played probe receives `prior + observed_count`;
+- at the previous `0.25`, ten off-plan probes collectively retain **2.5** units of weight even when the run has already demonstrated a preferred hand; at `0.10` that collective off-plan floor falls to **1.0**;
+- Tune-E traces repeatedly ended with full boards containing several narrow hand-conditioned scorers while the run still lacked enough coherent realized power;
+- Tune F tests whether medium/late D2 should follow demonstrated public hand usage more strongly, without weakening contextual coherence or changing spending permissiveness.
+
+Do not launch a Tune-F live batch until the semantic benchmark is green. If semantic validation fails, repair/revert Tune F before any live comparison.
 
 ## Runtime — sticky public `won` GAME_OVER restart — VALIDATED
 
@@ -258,7 +289,7 @@ Balatro's public `won` bit can remain sticky after a later Ante-8 GAME_OVER loss
 
 # EXACT NEXT ACTION
 
-Validate the Tune-E revert semantically before any Tune-F work:
+Validate Tune F semantically before any live sampling:
 
 ```powershell
 git pull
@@ -266,7 +297,7 @@ python -m games.balatro.red_white_semantic_benchmark
 
 ```
 
-Expected: **74/74 GREEN**. If green, record the restored post-Tune-E baseline and select Tune F only from a distinct evidence-backed mechanism. Do not reopen the rejected D11, D2 replacement-margin, D8 booster-margin, or contextual-weight experiments without new controlled evidence.
+Expected: **74/74 GREEN**. If green, record Tune F as semantic green and run a fresh 10-attempt Tune-F live comparison with no additional numerical changes stacked on top.
 
 # Phase order
 
