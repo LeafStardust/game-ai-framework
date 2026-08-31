@@ -98,7 +98,7 @@ The following behavior is now owned natively rather than by late D1 installation
 - planner non-clearing discard quality ordering;
 - strategy zero-signal discard redraw-size ordering.
 
-`semantic_search_guard_policy` is now compatibility-only and production startup no longer installs it.
+`semantic_search_guard_policy` is compatibility-only, production startup no longer installs it, and the completed native search-bound + ordering regression gate is green locally.
 
 This remains an **ownership refactor, not a tuning family**.
 
@@ -131,47 +131,31 @@ A previous noisy attempted planner rewrite was fully undone before the clean nat
 
 # LAST USER-PROVIDED LOCAL TEST RESULT
 
-The user reported **green** for:
-
-```powershell
-python -m pytest -q tests/balatro/test_balatro_semantic_search_native_bounds.py
-```
-
-That validates the native Bond/search-bound extraction checkpoint before the final ordering hooks were removed.
-
-The newly native planner/strategy ordering and retired semantic installer still require local focused validation.
-
----
-
-# EXACT NEXT ACTION
-
-## Local focused validation of completed semantic-search consolidation
-
-The user should run:
+The user reported **green** for the completed semantic-search consolidation gate:
 
 ```powershell
 git pull
 python -m pytest -q tests/balatro/test_balatro_semantic_search_native_bounds.py tests/balatro/test_balatro_semantic_search_native_ordering.py
 ```
 
-Do not run it from ChatGPT.
+This validates native Bond/search bounds, planner estimate ordering, strategy zero-signal discard ordering, and retirement of the production semantic-search installer.
 
-### If it fails
+---
 
-- inspect the exact failure;
-- do not restore `install_semantic_search_guard_policy()` merely to satisfy a sentinel/import-order test;
-- preserve native candidate/search ownership unless behavior itself is proven wrong;
-- preserve guaranteed PLAY clears;
-- for non-clearing DISCARD lines, modeled recovery quality must outrank exact-enumeration status;
-- when modeled discard signal is genuinely zero, real strategy fit remains first and meaningful redraw width is only the later tie-break.
+# EXACT NEXT ACTION
 
-### If it is green
-
-Continue immediately to queue item 5:
+Proceed immediately to queue item 5:
 
 > **Remaining exact-mechanics / boss / Cerulean wrapper consolidation.**
 
-Start by inventorying the still-installed D1-affecting exact mechanics wrappers, especially the explicitly preserved `serpent_draw_policy` and `hook_planner_integration_policy`, before choosing ownership changes. Exact mechanics must not be weakened merely to eliminate an installer.
+Start with the explicitly preserved D1-affecting exact mechanics wrappers:
+
+1. `serpent_draw_policy`;
+2. `hook_planner_integration_policy`.
+
+For each, inspect the current wrapper against native `LiveBlindClearPlanner` / integrated D1 behavior, move only exact mechanics into the canonical planner owner, add focused behavior regressions, and retire installation only after native behavior is covered.
+
+Then inspect Cerulean and the remaining boss/live-state wrappers to distinguish canonical state parsing from late mutation.
 
 Do not begin higher stakes or broad tuning.
 
@@ -198,9 +182,9 @@ Do not begin higher stakes or broad tuning.
 - `held_round_end_resource_policy` is compatibility-only.
 - Serpent and Hook remain explicitly installed pending their own exact-mechanics ownership review.
 
-## 4. `semantic_search_guard_policy` — IMPLEMENTED, LOCAL FINAL TEST PENDING
+## 4. `semantic_search_guard_policy` — IMPLEMENTED AND LOCALLY VALIDATED
 
-Native ownership now covers:
+Native ownership covers:
 
 - Bond rank-relation filtering;
 - root/child play prefilter bounds;
@@ -210,16 +194,16 @@ Native ownership now covers:
 - non-clearing discard quality ordering;
 - zero-signal discard redraw-size ordering.
 
-Expected architecture after validation:
+Validated architecture:
 
-- no `_semantic_search_guard_installed` sentinel;
+- no production `_semantic_search_guard_installed` dependency;
 - package startup does not install the compatibility module;
 - planner behavior is defined by `LiveBlindClearPlanner`;
 - strategy discard ordering is defined by `StrategyAwareLiveHandActionPolicy`.
 
-## 5. Remaining exact-mechanics / boss / Cerulean wrappers — NEXT AFTER GREEN
+## 5. Remaining exact-mechanics / boss / Cerulean wrappers — ACTIVE
 
-Inventory before changing ownership. Prioritize wrappers that still mutate D1 planner classes or live state semantics.
+Prioritize wrappers that still mutate D1 planner classes or live state semantics.
 
 Known explicit D1 exact-mechanics registrations:
 
@@ -291,7 +275,7 @@ The full deterministic suite is mandatory before live validation, release promot
 - target-hand installer architecture;
 - Purple-Seal installer architecture;
 - held-round-end-resource installer architecture;
-- semantic-search-guard installer architecture after final focused validation;
+- semantic-search-guard installer architecture;
 - production-default tuning ContextVar hypothesis — falsified;
 - historical SHOP recursive expectation roots;
 - BLIND_SELECT quiescence deadlock;
