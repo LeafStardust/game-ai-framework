@@ -41,7 +41,6 @@ from games.balatro.joker_generation_pool_live_state_policy import install_joker_
 from games.balatro.judgement_dispatch_postcondition import install_judgement_dispatch_postcondition
 from games.balatro.judgement_pack_expectation_policy import install_judgement_pack_expectation_policy
 from games.balatro.late_shop_resource_guard import install_late_shop_resource_guard
-from games.balatro.semantic_search_guard_policy import install_semantic_search_guard_policy
 from games.balatro.live_joker_order_authority import install_live_joker_order_authority
 from games.balatro.live_decision_quality_policy import install_live_decision_quality_policy
 from games.balatro.luchador_activation_policy import install_luchador_activation_policy
@@ -144,9 +143,6 @@ install_soul_pack_expectation_policy()
 # Preserve the established Serpent-then-Hook composition order.
 install_serpent_draw_policy()
 install_hook_planner_integration_policy()
-# Late D1 semantic evidence hooks see the fully wrapped mechanics/value path but do
-# not own a second Play/Discard or same-class action selector.
-install_semantic_search_guard_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
 install_live_joker_order_authority()
