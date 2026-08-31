@@ -268,6 +268,9 @@ class LiveBlindClearPlanner:
         raise ValueError(f"unsupported live blind-clear action {action.name}")
 
     def _estimate_play(self, state, action: BalatroAction, depth: int) -> _ActionEstimate:
+        if _active_hook(state) and depth > 1:
+            return self._estimate_hook_play(state, action, depth)
+
         projection = self.evaluator.project_play(state, action)
         total_value = self._zero_value()
         exact = projection.joker_projection_complete
@@ -363,6 +366,97 @@ class LiveBlindClearPlanner:
                     for signature in draw_outcome.cards
                 ]
                 next_state.deck = self.draw_outcomes.remaining_cards(composition, draw_outcome)
+                value, child_exact = self._best_value(next_state, depth - 1)
+                exact = exact and child_exact
+                probability = score_outcome.probability * draw_outcome.probability
+                total_value = total_value.plus(value.weighted(probability))
+
+        return _ActionEstimate(action, total_value, exact)
+
+    def _estimate_hook_play(self, state, action: BalatroAction, depth: int) -> _ActionEstimate:
+        """Continue each Hook score branch from its exact post-forced-discard hand."""
+        projection = self.evaluator.project_play(state, action)
+        total_value = self._zero_value()
+        exact = projection.joker_projection_complete
+        hands_after = max(0, int(getattr(state, "hands_remaining", 0)) - 1)
+        target = self._target(state)
+        fallback_state = projection.state_after_scoring
+        if fallback_state is None:
+            fallback_state = state
+        composition = PublicDeckComposition.from_state(state)
+        original_hand_size = len(list(getattr(state, "hand", ()) or ()))
+
+        for score_outcome in projection.outcomes:
+            outcome_state = self._score_outcome_state(score_outcome, fallback_state)
+            score_after = int(getattr(state, "score", 0)) + score_outcome.score
+
+            if target > 0 and score_after >= target:
+                branch_state = deepcopy(outcome_state)
+                branch_state.score = score_after
+                branch_state.hands_remaining = hands_after
+                total_value = total_value.plus(
+                    self._terminal_value(branch_state, clear=True).weighted(
+                        score_outcome.probability
+                    )
+                )
+                continue
+
+            if hands_after <= 0:
+                branch_state = deepcopy(outcome_state)
+                branch_state.score = score_after
+                branch_state.hands_remaining = 0
+                total_value = total_value.plus(
+                    self._terminal_value(branch_state, clear=False).weighted(
+                        score_outcome.probability
+                    )
+                )
+                continue
+
+            retained_cards = self._remaining_after_play(
+                getattr(outcome_state, "hand", ()),
+                action.cards,
+            )
+            retained_state = deepcopy(outcome_state)
+            retained_state.score = score_after
+            retained_state.hands_remaining = hands_after
+            retained_state.hand = list(retained_cards)
+
+            guaranteed_value = self._guaranteed_next_play_value(retained_state)
+            if guaranteed_value is not None:
+                total_value = total_value.plus(
+                    guaranteed_value.weighted(score_outcome.probability)
+                )
+                continue
+
+            replacement_draw_count = max(
+                0,
+                original_hand_size - len(retained_cards),
+            )
+            if replacement_draw_count <= 0:
+                value, child_exact = self._best_value(retained_state, depth - 1)
+                exact = exact and child_exact
+                total_value = total_value.plus(
+                    value.weighted(score_outcome.probability)
+                )
+                continue
+
+            draw_distribution = self.draw_outcomes.distribution(
+                composition,
+                replacement_draw_count,
+            )
+            exact = exact and draw_distribution.exact
+            for draw_outcome in draw_distribution.outcomes:
+                next_state = deepcopy(outcome_state)
+                next_state.score = score_after
+                next_state.hands_remaining = hands_after
+                next_state.hand = list(retained_cards) + [
+                    self.draw_outcomes.card_from_signature(signature)
+                    for signature in draw_outcome.cards
+                ]
+                next_state.deck = self.draw_outcomes.remaining_cards(
+                    composition,
+                    draw_outcome,
+                )
                 value, child_exact = self._best_value(next_state, depth - 1)
                 exact = exact and child_exact
                 probability = score_outcome.probability * draw_outcome.probability
