@@ -21,6 +21,9 @@ from games.balatro.live.hand_action_policy import (
 )
 from games.balatro.live.injected.action_dispatcher import LiveMemoryInjectedActionDispatcher
 from games.balatro.live.injected.bridge import FirstPartyBalatroBridge, InjectedBridgeError
+from games.balatro.live.joker_generation_pool_state import (
+    JokerGenerationPoolLiveMemoryObserver,
+)
 from games.balatro.live.pack import LivePackActionGenerator
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.run_experience_transition import log_successful_live_transition
@@ -33,7 +36,6 @@ from games.balatro.shop_reroll_policy import BuildAwareShopRerollPolicy
 from games.balatro.shop_voucher_policy import VoucherAwareBalatroShopPolicy
 
 from .live_memory_achievement_guard import achievement_gate_state
-from .live_memory_observer import LiveMemoryBalatroObserver
 from .live_memory_shop_terms import LiveShopRerollTerms, read_live_shop_reroll_terms
 
 
@@ -380,7 +382,7 @@ def main() -> int:
     if args.blind_skip_threshold < 0 or args.fallback_tag_value < 0:
         parser.error("blind skip threshold and fallback tag value cannot be negative")
     try:
-        with LiveMemoryBalatroObserver() as observer:
+        with JokerGenerationPoolLiveMemoryObserver() as observer:
             runner = LiveMemoryInjectedSingleStepRunner(observer, blind_skip_threshold=args.blind_skip_threshold, fallback_tag_value=args.fallback_tag_value, max_horizon=args.max_horizon, max_search_nodes=args.max_search_nodes, exact_limit=args.exact_limit, child_exact_limit=args.child_exact_limit)
             decision_started = perf_counter()
             decision = runner.decide()
