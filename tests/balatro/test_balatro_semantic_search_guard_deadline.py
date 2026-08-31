@@ -1,12 +1,7 @@
 from types import SimpleNamespace
 
 from games.balatro.hand import PokerHand
-import games.balatro.semantic_search_guard_policy as guard
-
-
-class _Planner:
-    def _check_deadline(self):
-        return None
+from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 
 
 def _action(rank):
@@ -22,15 +17,15 @@ def _action(rank):
 def test_play_prefilter_classifies_each_candidate_once(monkeypatch):
     actions = [_action(str(rank)) for rank in range(2, 10)]
     calls = []
+    planner = LiveBlindClearPlanner()
 
     def fake_hand(state, action):
         calls.append(action)
         return PokerHand.PAIR
 
-    monkeypatch.setattr(guard, "_cheap_hand", fake_hand)
+    monkeypatch.setattr(planner, "_cheap_hand", fake_hand)
 
-    selected = guard._prefilter_plays(
-        _Planner(),
+    selected = planner._prefilter_plays(
         SimpleNamespace(),
         actions,
         limit=4,
@@ -45,20 +40,20 @@ def test_play_prefilter_classifies_each_candidate_once(monkeypatch):
 def test_play_prefilter_stops_when_root_soft_deadline_expires(monkeypatch):
     actions = [_action(str(rank)) for rank in range(2, 10)]
     calls = []
+    planner = LiveBlindClearPlanner()
 
     def fake_hand(state, action):
         calls.append(action)
         return PokerHand.PAIR
 
-    monkeypatch.setattr(guard, "_cheap_hand", fake_hand)
+    monkeypatch.setattr(planner, "_cheap_hand", fake_hand)
     monkeypatch.setattr(
-        guard,
+        planner,
         "_soft_deadline_reached",
         lambda soft_deadline, *, work_started: bool(work_started),
     )
 
-    selected = guard._prefilter_plays(
-        _Planner(),
+    selected = planner._prefilter_plays(
         SimpleNamespace(),
         actions,
         limit=4,
@@ -73,7 +68,7 @@ def test_initial_root_play_ranking_does_not_call_expensive_projection_priority(m
     actions = [_action(str(rank)) for rank in range(2, 10)]
     state = SimpleNamespace()
 
-    class Planner(_Planner):
+    class Planner(LiveBlindClearPlanner):
         def _play_priority(self, state, action):
             raise AssertionError("initial-root ranking must stay projection-free")
 
@@ -89,14 +84,14 @@ def test_initial_root_play_ranking_does_not_call_expensive_projection_priority(m
             del soft_deadline
             return sorted(actions, key=lambda action: priority(state, action), reverse=True)[:limit]
 
+    planner = Planner()
     monkeypatch.setattr(
-        guard,
+        planner,
         "_cheap_play_key",
         lambda state, action: (int(action.cards[0].rank), 0, 0, 0),
     )
 
-    selected = guard._rank_plays_with_short_reserve(
-        Planner(),
+    selected = planner._rank_plays_with_short_reserve(
         state,
         actions,
         limit=3,
