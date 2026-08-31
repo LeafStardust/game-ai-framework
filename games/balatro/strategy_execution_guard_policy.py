@@ -1,23 +1,17 @@
 from __future__ import annotations
 
-"""Canonical D1 evidence for realized hand-repetition and no-discard engines.
+"""Pure D1 evidence helpers for realized repetition and Green preservation.
 
-Canonical D1 owns the Play/Discard hierarchy. This installer augments the existing
-strategy-fit evidence and applies one narrow mechanical preservation rule for Green
-Joker: when canonical safe-pace D1 selects a DISCARD but a PLAY has survival-
-equivalent modeled blind-clear probability, preserve Green's no-discard scaling by
-playing instead. A materially safer discard and the final-hand survival rule remain
-authoritative.
+Canonical D1 owns the Play/Discard hierarchy. Repetition fit and the narrow Green
+Joker preservation rule are consumed natively by ``StrategyAwareLiveHandActionPolicy``;
+this module no longer mutates that policy at import time.
 
-A few pure compatibility helpers remain for deterministic regression tests.
+Pure compatibility helpers remain for deterministic regression tests.
 """
-
-from dataclasses import replace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.bonds.diagnostics import bond_strategy_diagnostics
 from games.balatro.hand_rules import hand_rules_for_state
-from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
 HAND_REPETITION_FIT = 2.0
@@ -234,67 +228,3 @@ def _play_repeats_hand(policy, state, action) -> bool:
     rules = hand_rules_for_state(state)
     hand = policy._hand_evaluator.evaluate(list(action.cards), rules=rules)
     return _normalize(hand.value) in repeated
-
-
-def install_strategy_execution_guard_policy() -> None:
-    if getattr(
-        StrategyAwareLiveHandActionPolicy,
-        "_strategy_execution_guard_policy_installed",
-        False,
-    ):
-        return
-
-    original_strategy_fit = StrategyAwareLiveHandActionPolicy._strategy_fit
-    original_safe_pace_scope = StrategyAwareLiveHandActionPolicy._enforce_safe_pace_scope
-
-    def strategy_fit(self, state, action):
-        value, rationale = original_strategy_fit(self, state, action)
-        if not _play_repeats_hand(self, state, action):
-            return value, rationale
-        return (
-            value + HAND_REPETITION_FIT,
-            (
-                *rationale,
-                "realized hand_repetition evidence: this PLAY repeats a hand already used this round",
-                "repetition fit is consulted only inside canonical D1 safe/equivalent candidate ranking",
-            ),
-        )
-
-    def safe_pace_scope(self, state, plans, baseline, *, setup_discard_consensus: bool):
-        decision = original_safe_pace_scope(
-            self,
-            state,
-            plans,
-            baseline,
-            setup_discard_consensus=setup_discard_consensus,
-        )
-        selected = _green_preserving_play(self, state, plans, decision)
-        if selected is None:
-            return decision
-
-        score = float(self.evaluator.project_play(state, selected.action).expected_hand_score)
-        pace_target = float(getattr(decision, "pace_target", 0.0) or 0.0)
-        pace_ratio = self._pace_ratio(score, pace_target)
-        selected_probability = _plan_clear_probability(selected)
-        discarded_probability = _plan_clear_probability(getattr(decision, "selected_plan", None))
-        return replace(
-            decision,
-            action=selected.action,
-            selected_plan=selected,
-            selected_immediate_score=score,
-            selected_pace_ratio=pace_ratio,
-            selected_fallback_value=float(self.evaluator.evaluate(state, selected.action)),
-            setup_discard_consensus=False,
-            confidence=max(0.40, min(float(getattr(decision, "confidence", 0.40) or 0.40), 0.75)),
-            rationale=(
-                "Green Joker preservation: a PLAY is survival-equivalent to the selected discard",
-                f"play clear probability={selected_probability:.3f}; discard={discarded_probability:.3f}; tolerance={_clear_probability_tolerance(decision):.3f}",
-                "preserve Green's +Mult-on-play / -Mult-on-discard state when survival does not materially prefer the discard",
-                "a materially safer discard still overrides Green Joker preservation",
-                *decision.rationale,
-            ),
-        )
-
-    StrategyAwareLiveHandActionPolicy._strategy_fit = strategy_fit
-    StrategyAwareLiveHandActionPolicy._enforce_safe_pace_scope = safe_pace_scope
-    StrategyAwareLiveHandActionPolicy._strategy_execution_guard_policy_installed = True
