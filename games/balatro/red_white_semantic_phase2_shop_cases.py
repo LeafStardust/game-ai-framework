@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import games.balatro.joker_policy as joker_policy_module
 from games.balatro.actions import (
     BUY_VOUCHER,
     END_SHOP,
@@ -301,6 +302,19 @@ def _synthetic_transition(build_gain: float) -> JokerBuildTransitionPlanner:
     return planner
 
 
+def _decide_without_bond(
+    policy: JokerAcquisitionPolicy,
+    state: BalatroState,
+    candidate: FlatMultJoker,
+) -> JokerAcquisitionDecision:
+    original = joker_policy_module._bond_transition_bonus
+    joker_policy_module._bond_transition_bonus = lambda state, candidate, **kwargs: (0.0, ())
+    try:
+        return policy.decide(state, candidate)
+    finally:
+        joker_policy_module._bond_transition_bonus = original
+
+
 def _first_engine_bootstrap_does_not_rescue_zero_cash() -> SemanticCheck:
     state = _base_state()
     state.ante = 1
@@ -310,12 +324,12 @@ def _first_engine_bootstrap_does_not_rescue_zero_cash() -> SemanticCheck:
     policy = JokerAcquisitionPolicy(
         transition_planner=_synthetic_transition(0.50),
     )
-    decision = policy.decide(state, candidate)
+    decision = _decide_without_bond(policy, state, candidate)
     option = decision.options[0]
     return SemanticCheck(
         decision.action == HOLD
         and option.economics.money_after == 0
-        and float(option.build_gain) > 0.0,
+        and abs(float(option.build_gain) - 0.50) <= 1e-9,
         observed=(
             f"action={decision.action}, build_gain={option.build_gain:.3f}, "
             f"money_after={option.economics.money_after}"
@@ -348,14 +362,16 @@ def _ordinary_joker_buy_prices_reserve_crossing() -> SemanticCheck:
         thresholds=thresholds,
         transition_planner=_synthetic_transition(1.50),
     )
-    decision = policy.decide(state, candidate)
+    decision = _decide_without_bond(policy, state, candidate)
     option = decision.options[0]
     return SemanticCheck(
         decision.action == HOLD
         and abs(option.economics.reserve_penalty - 3.0) <= 1e-9
+        and abs(float(option.build_gain) - 1.50) <= 1e-9
         and option.total_advantage < thresholds.minimum_purchase_advantage,
         observed=(
-            f"action={decision.action}, reserve_penalty={option.economics.reserve_penalty:.3f}, "
+            f"action={decision.action}, build_gain={option.build_gain:.3f}, "
+            f"reserve_penalty={option.economics.reserve_penalty:.3f}, "
             f"advantage={option.total_advantage:.3f}"
         ),
         expected="ordinary D2 purchase value prices the incremental cash-reserve shortfall",
