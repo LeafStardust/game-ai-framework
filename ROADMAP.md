@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A is semantic GREEN at 74/74; the next gate is its 10-run A/B live comparison.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A is semantic GREEN at 74/74 and has 7/10 valid live comparison attempts retained; telemetry resilience is locally GREEN. The next gate is three additional Tune-A attempts.**
 
 Validated checkpoints:
 
@@ -71,6 +71,7 @@ Validated checkpoints:
 - Phase 5 D2 first-Joker scoring-foothold semantic: **GREEN / 73/73**, `SHOP_SURVIVAL` 19/19
 - Phase 5 D1 final-hand discard-chain search semantic: **GREEN / 74/74**, `D1_SURVIVAL` 25/25
 - Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74**, all category scores unchanged
+- Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
@@ -281,7 +282,7 @@ Important evidence:
 
 The first tuning target is therefore **early first-Joker cash runway**, not Joker identity and not semantic ownership.
 
-## Phase-6 tune A — first-Joker cash runway — SEMANTIC GREEN / LIVE COMPARISON PENDING
+## Phase-6 tune A — first-Joker cash runway — SEMANTIC GREEN / LIVE COMPARISON 7/10 RETAINED
 
 Canonical owner: `JokerAcquisitionPolicy`.
 
@@ -308,19 +309,32 @@ Validation:
 - all category scores remain unchanged;
 - semantic ownership therefore remains intact.
 
+### Interrupted Tune-A live sample — retain 7 completed attempts
+
+The first Tune-A 10-attempt session was interrupted after attempt 7 by a supervisor telemetry write failure, not by gameplay logic. The completed first seven attempts remain valid comparison evidence and must not be discarded.
+
+- attempt 7 reached **Ante 8 / Crimson Heart**, the deepest Tune-A run observed before the supervisor failure;
+- the crash was a Windows `PermissionError` while atomically replacing monitor-only `telemetry.json`;
+- gameplay telemetry was already intended to be non-mission-critical, but the shared control writer used one fixed `.tmp` name and the shutdown/restart boundary could still let the replace failure escape;
+- `d22f1b0a` gives telemetry a unique temporary file, bounded `PermissionError` retry/backoff, cleanup, and nonfatal exhaustion while leaving authoritative status/session-summary durability unchanged;
+- `cac8fd95` adds regressions for transient recovery and permanently locked telemetry while ensuring authoritative status writes still succeed;
+- user locally validated those telemetry-resilience regressions **GREEN**.
+
+The Tune-A comparison therefore resumes at **7/10**. Do not rerun or replace the first seven completed attempts.
+
 Do not stack another numerical tune on top of Tune A before its 10-run comparison sample is reviewed.
 
 # EXACT NEXT ACTION
 
-Run the Phase-6 Tune-A A/B comparison sample with no additional code changes:
+Complete the Phase-6 Tune-A A/B comparison sample with exactly three additional attempts and no additional code changes:
 
 ```powershell
 git pull
-.\BalatroAgentToggle.bat --attempts 10
+.\BalatroAgentToggle.bat --attempts 3
 
 ```
 
-Compare directly against session `balatro-20260831T112338Z-d58df919` on:
+Combine those three completed attempts with the retained first seven Tune-A attempts, then compare the resulting 10-run Tune-A sample directly against session `balatro-20260831T112338Z-d58df919` on:
 
 - win rate;
 - Ante-1 death count;
@@ -332,7 +346,7 @@ Compare directly against session `balatro-20260831T112338Z-d58df919` on:
 - discard/hands consumed at death;
 - late-run underpowered cash retention.
 
-No second threshold should be changed until that tuned 10-run sample is reviewed.
+No second threshold should be changed until that completed tuned 10-run sample is reviewed.
 
 # Phase order
 
