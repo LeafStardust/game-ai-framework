@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-09-01
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result remains 0 wins across the original baseline and Tunes A/B/C/D. Tune A remains retained provisionally. Tunes B, C, and D are REJECTED and reverted. Tune E is now staged as one canonical scoring-development rebalance: D2 whole-build contextual/B3 value weight 1.0 → 0.75, with direct literal scoring weight/cap and all D14 economics unchanged. Semantic validation is PENDING; do not launch a Tune-E live batch until the 74-case benchmark is green.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result remains 0 wins across the original baseline and Tunes A/B/C/D. Tune A remains retained provisionally. Tunes B, C, and D are REJECTED and reverted. Tune E reduces D2 whole-build contextual/B3 value weight 1.0 → 0.75 while leaving literal scoring and D14 economics unchanged; it is now SEMANTIC GREEN at 74/74. The next gate is a fresh 10-attempt Tune-E live comparison with no additional numerical changes stacked on top.**
 
 Validated checkpoints:
 
@@ -66,7 +66,7 @@ Validated checkpoints:
 - Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune D booster acquisition margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Tune E contextual/B3 Joker build weight: **STAGED / SEMANTIC VALIDATION PENDING**
+- Phase 6 Tune E contextual/B3 Joker build weight: **SEMANTIC GREEN / 74/74; LIVE COMPARISON PENDING**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 - Phase 6 sticky-win GAME_OVER restart semantics: **LOCAL REGRESSION GREEN** (`28cec27b` + `6e1a2696`)
 
@@ -201,7 +201,7 @@ Interpretation:
 - user locally revalidated the reverted configuration **74/74 GREEN**;
 - do not stack Tune E on top of the rejected D8 experiment.
 
-## Tune E — rebalance realized scoring vs contextual Joker value — SEMANTIC VALIDATION PENDING
+## Tune E — rebalance realized scoring vs contextual Joker value — SEMANTIC GREEN / LIVE COMPARISON PENDING
 
 Canonical owner: `JokerBuildValueEvaluator` / `JokerBuildValueWeights`, upstream of D2 admission and D14 shared-resource normalization.
 
@@ -228,7 +228,9 @@ Evidence/rationale:
 - therefore the previous `1.0` contextual multiplier could let future structural value match or exceed substantial realized scoring development on already-developed boards;
 - reducing only the contextual multiplier to `0.75` preserves all structural semantics while increasing the relative importance of current chip/Mult/XMult development without globally loosening spending.
 
-Do not launch a Tune-E live batch until the semantic benchmark is green. If semantic validation fails, repair/revert Tune E before any live comparison rather than stacking another tune.
+Semantic validation: **74/74 GREEN** on the unchanged Red/White semantic benchmark. All validated category/authority contracts remain unchanged.
+
+Do not stack Tune F until a fresh 10-attempt Tune-E live comparison is reviewed.
 
 ## Runtime — sticky public `won` GAME_OVER restart — VALIDATED
 
@@ -240,15 +242,15 @@ Balatro's public `won` bit can remain sticky after a later Ante-8 GAME_OVER loss
 
 # EXACT NEXT ACTION
 
-Validate Tune E semantically before any live sampling:
+Run a fresh 10-attempt Tune-E live comparison with Tune A retained and no additional numerical changes:
 
 ```powershell
 git pull
-python -m games.balatro.red_white_semantic_benchmark
+.\BalatroAgentToggle.bat --attempts 10
 
 ```
 
-If and only if the unchanged semantic benchmark remains **74/74 GREEN**, record Tune E as semantic green and then run a fresh 10-attempt live comparison with no additional numerical changes stacked on top.
+Compare the Tune-E sample against the original baseline and Tunes A/B/C/D on win rate, early-death count, furthest ante, score ratio at death, cash/Joker composition, realized scoring power, and resource usage where trace evidence is actually retrievable. Do not claim exact purchase/reroll/pack sequences unless the live trace exposes them.
 
 # Phase order
 
