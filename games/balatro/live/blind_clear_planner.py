@@ -205,7 +205,15 @@ class LiveBlindClearPlanner:
     def _estimate_action(self, state, action: BalatroAction, depth: int) -> _ActionEstimate:
         self._consume_node()
         if action.name == PLAY_CARDS:
-            return self._estimate_play(state, action, depth)
+            previous = getattr(self, "_round_end_play_action", None)
+            self._round_end_play_action = action
+            try:
+                return self._estimate_play(state, action, depth)
+            finally:
+                if previous is None:
+                    self.__dict__.pop("_round_end_play_action", None)
+                else:
+                    self._round_end_play_action = previous
         if action.name == DISCARD_CARDS:
             return self._estimate_discard(state, action, depth)
         raise ValueError(f"unsupported live blind-clear action {action.name}")
@@ -500,13 +508,15 @@ class LiveBlindClearPlanner:
             -len(action.cards),
         )
 
-    def _play_priority(self, state, action: BalatroAction) -> tuple[float, float, int, int]:
+    def _play_priority(self, state, action: BalatroAction) -> tuple[float, float, int, int, int]:
         projection = self.evaluator.project_play(state, action)
+        selected_gold = sum(1 for card in action.cards if self._active_gold(card))
         return (
             projection.clear_probability,
             projection.expected_hand_score,
             projection.hand_score,
             -len(action.cards),
+            -selected_gold,
         )
 
     def _discard_priority(self, state, action: BalatroAction) -> tuple[float, int]:
@@ -520,13 +530,64 @@ class LiveBlindClearPlanner:
             progress = min(1.0, max(0.0, score / target))
         else:
             progress = 0.0
+        generated = self._held_round_end_consumables(state) if effective_clear else 0
         return LiveBlindPlanValue(
             clear_probability=1.0 if effective_clear else 0.0,
             expected_progress=1.0 if effective_clear else progress,
             expected_score=score,
             expected_hands_remaining=float(getattr(state, "hands_remaining", 0)),
             expected_discards_remaining=float(getattr(state, "discards_remaining", 0)),
-            expected_consumables=float(len(getattr(state, "consumables", ()) or ())),
+            expected_consumables=(
+                float(len(getattr(state, "consumables", ()) or ())) + float(generated)
+            ),
+        )
+
+    def _held_round_end_consumables(self, state) -> int:
+        action = getattr(self, "_round_end_play_action", None)
+        if action is None:
+            return 0
+        slots = max(0, int(getattr(state, "consumable_slots", 0) or 0))
+        held_consumables = len(tuple(getattr(state, "consumables", ()) or ()))
+        room = max(0, slots - held_consumables)
+        if room <= 0:
+            return 0
+        held_cards = self._remaining_after_play(
+            getattr(state, "hand", ()),
+            getattr(action, "cards", ()),
+        )
+        blue = sum(1 for card in held_cards if self._active_blue(card))
+        return min(room, blue)
+
+    @staticmethod
+    def _same_card(left, right) -> bool:
+        left_id = getattr(left, "live_id", None)
+        right_id = getattr(right, "live_id", None)
+        if left_id is not None or right_id is not None:
+            return left_id is not None and left_id == right_id
+        return left == right
+
+    @classmethod
+    def _remaining_after_play(cls, hand, selected) -> list:
+        remaining = list(hand or ())
+        for selected_card in tuple(selected or ()):
+            for index, candidate in enumerate(remaining):
+                if cls._same_card(candidate, selected_card):
+                    del remaining[index]
+                    break
+        return remaining
+
+    @staticmethod
+    def _active_gold(card) -> bool:
+        return (
+            str(getattr(card, "enhancement", "") or "") == "Gold"
+            and not bool(getattr(card, "debuffed", False))
+        )
+
+    @staticmethod
+    def _active_blue(card) -> bool:
+        return (
+            str(getattr(card, "seal", "") or "") == "Blue"
+            and not bool(getattr(card, "debuffed", False))
         )
 
     @staticmethod
