@@ -11,6 +11,11 @@ from games.balatro.burnt_bond_execution_policy import _burnt_strategy_fit
 from games.balatro.castle_discard_policy import _castle_strategy_fit
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import card_matches_suit, hand_rules_for_state
+from games.balatro.live.boss_hand_constraints import (
+    constrain_boss_hand_plans,
+    mouth_discard_fit,
+    mouth_discard_only_decision,
+)
 from games.balatro.live.hand_action_policy import CLEAR_PATH, PACE_PLAY, PACE_RECOVERY
 from games.balatro.live.hand_build_policy import BuildAwareLiveHandActionPolicy
 from games.balatro.strategy_execution_guard_policy import (
@@ -92,6 +97,22 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                 replace(plan, exact=False) if bool(getattr(plan, "exact", False)) else plan
                 for plan in plans
             )
+
+        plans = constrain_boss_hand_plans(self, state, plans)
+        if (
+            plans
+            and not any(plan.action.name == PLAY_CARDS for plan in plans)
+            and any(plan.action.name == DISCARD_CARDS for plan in plans)
+        ):
+            forced = mouth_discard_only_decision(
+                self,
+                state,
+                plans,
+                search_attempts=kwargs.get("search_attempts", ()),
+                setup_discard_consensus=kwargs.get("setup_discard_consensus", False),
+            )
+            if forced is not None:
+                return forced
 
         decision = super().decide(state, plans, **kwargs)
         decision = self._enforce_safe_pace_scope(
@@ -695,8 +716,15 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             else ()
         )
         target_value, target_rationale = _target_hand_strategy_fit(self, state, action)
+        mouth_value, mouth_rationale = mouth_discard_fit(self, state, action)
         return (
-            value + castle_value + burnt_value + dna_value + repetition_value + target_value,
+            value
+            + castle_value
+            + burnt_value
+            + dna_value
+            + repetition_value
+            + target_value
+            + mouth_value,
             (
                 *rationale,
                 *castle_rationale,
@@ -704,6 +732,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
                 *dna_rationale,
                 *repetition_rationale,
                 *target_rationale,
+                *mouth_rationale,
             ),
         )
 
