@@ -71,7 +71,6 @@ class LiveMemoryBalatroObserver:
 
         required = ("GAME", "STATE", "STATES", "hand", "jokers", "deck")
         if not all(name in root for name in required):
-            # A VM restart can invalidate the cached table address. Rediscover once.
             self._g_table = discover_balatro_g_table(self.decoder)
             root = self.decoder.string_fields(self._g_table)
             if not all(name in root for name in required):
@@ -151,6 +150,8 @@ def snapshot_payload_from_live_memory(
     blind_tags = _normalize_blind_tags(decoder, round_resets.get("blind_tags"))
     normalized_blind = _normalize_blind(decoder, blind, game)
     joker_unlocks = _normalize_joker_unlocks(decoder, root.get("P_CENTERS"))
+    ectoplasm_penalty = max(1, _integer(game.get("ecto_minus"), 1))
+    round_reset_discards = _number(round_resets.get("discards"))
     current_tag = blind_tags.get(str(normalized_blind.get("type") or "").lower())
     if current_tag:
         normalized_blind["tag"] = current_tag
@@ -167,15 +168,8 @@ def snapshot_payload_from_live_memory(
         root.get("consumeables"),
         preserve_index=True,
     )
-
-    # The live deck table is physically ordered by future draw order. We may
-    # inspect its members to recover public remaining-deck composition, but the
-    # agent-facing snapshot is canonical-sorted before exposure.
     deck = _normalize_area(decoder, root.get("deck"), preserve_order=False)
 
-    # G.playing_cards is the public permanent playing-card collection. Its internal
-    # array order is not strategically meaningful, so expose only a canonicalized
-    # composition. Keep absence distinct from an authoritative empty collection.
     playing_cards = root.get("playing_cards")
     owned_deck = (
         _normalize_card_array(decoder, playing_cards)
@@ -208,6 +202,13 @@ def snapshot_payload_from_live_memory(
         "stake": STAKE_NAMES.get(stake_id, str(stake_id)),
         "last_tarot_planet": _string(game.get("last_tarot_planet")),
         "joker_unlocks": joker_unlocks,
+        "ectoplasm_hand_size_penalty": ectoplasm_penalty,
+        "round_reset_discards_observed": round_reset_discards is not None,
+        **(
+            {"round_reset_discards": max(0, int(round_reset_discards))}
+            if round_reset_discards is not None
+            else {}
+        ),
         "round": {
             "chips": _integer(blind.get("chips"), 0),
             "hands_left": _integer(current_round.get("hands_left"), 0),
@@ -241,10 +242,7 @@ def snapshot_payload_from_live_memory(
     return payload, phase, state_complete
 
 
-def _table_fields(
-    decoder: LuaJITNonGC64Decoder,
-    value: LuaValue | None,
-) -> dict[str, LuaValue]:
+def _table_fields(decoder: LuaJITNonGC64Decoder, value: LuaValue | None) -> dict[str, LuaValue]:
     if value is None or value.kind != "table":
         return {}
     try:
@@ -253,10 +251,7 @@ def _table_fields(
         return {}
 
 
-def _array_table_values(
-    decoder: LuaJITNonGC64Decoder,
-    value: LuaValue | None,
-) -> list[tuple[int, int]]:
+def _array_table_values(decoder: LuaJITNonGC64Decoder, value: LuaValue | None) -> list[tuple[int, int]]:
     if value is None or value.kind != "table":
         return []
     try:
@@ -270,10 +265,7 @@ def _array_table_values(
     ]
 
 
-def _phase_name(
-    decoder: LuaJITNonGC64Decoder,
-    root: dict[str, LuaValue],
-) -> str:
+def _phase_name(decoder: LuaJITNonGC64Decoder, root: dict[str, LuaValue]) -> str:
     state = root.get("STATE")
     states = root.get("STATES")
     if state is None or states is None or states.kind != "table":
@@ -288,12 +280,7 @@ def _phase_name(
     return f"STATE_{target}"
 
 
-def _normalize_area(
-    decoder: LuaJITNonGC64Decoder,
-    area_value: LuaValue | None,
-    *,
-    preserve_order: bool,
-) -> dict[str, Any]:
+def _normalize_area(decoder: LuaJITNonGC64Decoder, area_value: LuaValue | None, *, preserve_order: bool) -> dict[str, Any]:
     area = _table_fields(decoder, area_value)
     config = _table_fields(decoder, area.get("config"))
     cards_value = area.get("cards")
@@ -310,10 +297,7 @@ def _normalize_area(
     }
 
 
-def _normalize_card_array(
-    decoder: LuaJITNonGC64Decoder,
-    cards_value: LuaValue | None,
-) -> dict[str, Any]:
+def _normalize_card_array(decoder: LuaJITNonGC64Decoder, cards_value: LuaValue | None) -> dict[str, Any]:
     cards = [
         _normalize_card(decoder, address)
         for _, address in _array_table_values(decoder, cards_value)
@@ -356,7 +340,6 @@ def _normalize_joker_unlocks(
     decoder: LuaJITNonGC64Decoder,
     centers_value: LuaValue | None,
 ) -> dict[str, dict[str, bool]]:
-    """Expose only explicitly supported public collection unlock bits."""
     centers = _table_fields(decoder, centers_value)
     result: dict[str, dict[str, bool]] = {}
     for center_key in _UNLOCK_CAMPAIGN_JOKER_CENTERS:
@@ -370,10 +353,7 @@ def _normalize_joker_unlocks(
     return result
 
 
-def _normalize_card(
-    decoder: LuaJITNonGC64Decoder,
-    address: int,
-) -> dict[str, Any]:
+def _normalize_card(decoder: LuaJITNonGC64Decoder, address: int) -> dict[str, Any]:
     card = decoder.string_fields(address)
     base = _table_fields(decoder, card.get("base"))
     ability = _table_fields(decoder, card.get("ability"))
@@ -492,7 +472,6 @@ def _normalize_public_item_state(
     ability: dict[str, LuaValue],
     card: dict[str, LuaValue],
 ) -> dict[str, Any]:
-    """Read only explicitly declared primitive state for one modeled Joker."""
     specs = declared_joker_state_specs(
         center=center_key,
         label=label,
@@ -533,7 +512,6 @@ def _normalize_round_joker_public_state(
     decoder: LuaJITNonGC64Decoder,
     current_round: dict[str, LuaValue],
 ) -> dict[str, dict[str, Any]]:
-    """Read only visible per-round targets used by dynamic Jokers."""
     result: dict[str, dict[str, Any]] = {}
 
     ancient_card = _table_fields(decoder, current_round.get("ancient_card"))
@@ -563,10 +541,7 @@ def _normalize_round_joker_public_state(
     return result
 
 
-def _normalize_hand_levels(
-    decoder: LuaJITNonGC64Decoder,
-    value: LuaValue | None,
-) -> dict[str, dict[str, int]]:
+def _normalize_hand_levels(decoder: LuaJITNonGC64Decoder, value: LuaValue | None) -> dict[str, dict[str, int]]:
     if value is None or value.kind != "table":
         return {}
     result: dict[str, dict[str, int]] = {}
@@ -582,11 +557,7 @@ def _normalize_hand_levels(
     return result
 
 
-def _normalize_blind_tags(
-    decoder: LuaJITNonGC64Decoder,
-    value: LuaValue | None,
-) -> dict[str, str]:
-    """Expose only the public Small/Big skip-tag keys for the current ante."""
+def _normalize_blind_tags(decoder: LuaJITNonGC64Decoder, value: LuaValue | None) -> dict[str, str]:
     tags = _table_fields(decoder, value)
     result: dict[str, str] = {}
     for live_key in ("Small", "Big"):
@@ -596,11 +567,7 @@ def _normalize_blind_tags(
     return result
 
 
-def _normalize_blind(
-    decoder: LuaJITNonGC64Decoder,
-    blind: dict[str, LuaValue],
-    game: dict[str, LuaValue],
-) -> dict[str, Any]:
+def _normalize_blind(decoder: LuaJITNonGC64Decoder, blind: dict[str, LuaValue], game: dict[str, LuaValue]) -> dict[str, Any]:
     blind_on_deck = (_string(game.get("blind_on_deck")) or "Small").upper()
     boss = _boolean(blind.get("boss"), False) or blind_on_deck == "BOSS"
     if boss:
@@ -626,8 +593,6 @@ def _normalize_blind(
         "key": key,
     }
 
-    # The Eye and The Mouth keep ordinary public round state on the active Blind
-    # object. Expose only those whitelisted fields; never serialize Blind recursively.
     hands_value = blind.get("hands")
     if hands_value is not None and hands_value.kind == "table":
         hands = _table_fields(decoder, hands_value)
@@ -644,17 +609,12 @@ def _normalize_blind(
         if character.isalnum()
     )
     if only_hand_value is not None and blind_identity in {"blmouth", "themouth"}:
-        # Mouth initializes this field to false. Preserve key presence while
-        # normalizing false/non-string to None so the translator knows it was read.
         result["only_hand"] = _string(only_hand_value)
 
     return result
 
 
-def _deck_name(
-    decoder: LuaJITNonGC64Decoder,
-    game: dict[str, LuaValue],
-) -> str:
+def _deck_name(decoder: LuaJITNonGC64Decoder, game: dict[str, LuaValue]) -> str:
     for value in (game.get("selected_back_key"), game.get("selected_back")):
         if value is None:
             continue
@@ -700,10 +660,7 @@ def _rarity_name(value: LuaValue | None) -> str | None:
     return None
 
 
-def _edition_name(
-    decoder: LuaJITNonGC64Decoder,
-    value: LuaValue | None,
-) -> str | None:
+def _edition_name(decoder: LuaJITNonGC64Decoder, value: LuaValue | None) -> str | None:
     if value is None:
         return None
     if value.kind == "string":
@@ -717,10 +674,7 @@ def _edition_name(
     return None
 
 
-def _geometry(
-    decoder: LuaJITNonGC64Decoder,
-    value: LuaValue | None,
-) -> dict[str, float]:
+def _geometry(decoder: LuaJITNonGC64Decoder, value: LuaValue | None) -> dict[str, float]:
     table = _table_fields(decoder, value)
     result: dict[str, float] = {}
     for field in ("x", "y", "w", "h", "r", "scale"):
