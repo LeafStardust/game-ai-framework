@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from types import SimpleNamespace
 
-import games.balatro.boss_hand_constraint_policy as module
+import games.balatro.live.boss_hand_constraints as module
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 
 
@@ -47,10 +47,10 @@ def test_mouth_without_discards_uses_widest_play_that_preserves_best_structure(m
     breaks_pair = _play(pair_a, *dead[:3])
     supplied = (singleton, wide_preserving, overwide_loses_structure, breaks_pair)
 
-    monkeypatch.setattr(module, "_mouth_locked_hand", lambda state: "FULL HOUSE")
+    monkeypatch.setattr(module, "mouth_locked_hand", lambda state: "FULL HOUSE")
     monkeypatch.setattr(module, "_hand_type", lambda policy, state, plan: plan.hand_type)
 
-    constrained = module._mouth_filter(_Policy(), state, supplied)
+    constrained = module.mouth_filter(_Policy(), state, supplied)
 
     assert constrained == (wide_preserving,)
     assert pair_a not in wide_preserving.action.cards
@@ -65,10 +65,10 @@ def test_mouth_matching_scoring_play_remains_authoritative(monkeypatch):
     matching = _play(*cards[:5], hand_type="FULL HOUSE")
     off_type_wide = _play(*cards[1:6], hand_type="HIGH CARD")
 
-    monkeypatch.setattr(module, "_mouth_locked_hand", lambda state: "FULL HOUSE")
+    monkeypatch.setattr(module, "mouth_locked_hand", lambda state: "FULL HOUSE")
     monkeypatch.setattr(module, "_hand_type", lambda policy, state, plan: plan.hand_type)
 
-    constrained = module._mouth_filter(_Policy(), state, (off_type_wide, matching))
+    constrained = module.mouth_filter(_Policy(), state, (off_type_wide, matching))
 
     assert constrained == (matching,)
 
@@ -79,9 +79,9 @@ def test_mouth_real_discard_still_precedes_zero_score_play_recovery(monkeypatch)
     off_type = _play(*cards[2:7], hand_type="HIGH CARD")
     discard = _discard(*cards[2:7])
 
-    monkeypatch.setattr(module, "_mouth_locked_hand", lambda state: "FULL HOUSE")
+    monkeypatch.setattr(module, "mouth_locked_hand", lambda state: "FULL HOUSE")
     monkeypatch.setattr(module, "_hand_type", lambda policy, state, plan: plan.hand_type)
 
-    constrained = module._mouth_filter(_Policy(), state, (off_type, discard))
+    constrained = module.mouth_filter(_Policy(), state, (off_type, discard))
 
     assert constrained == (discard,)
