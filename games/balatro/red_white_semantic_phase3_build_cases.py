@@ -2,8 +2,12 @@ from __future__ import annotations
 
 """Phase-3 semantic cases for coherent Red/White build evidence."""
 
+from types import SimpleNamespace
+
+import games.balatro.joker_policy as joker_policy_module
 from games.balatro.build.joker_lifecycle import STATEFUL_SCALING
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
+from games.balatro.joker_policy import JokerAcquisitionPolicy
 from games.balatro.jokers.blueprint import BlueprintJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.golden_joker import GoldenJoker
@@ -159,6 +163,71 @@ def _independent_scorers_do_not_manufacture_pair_synergy() -> SemanticCheck:
     )
 
 
+def _coherence_only_transition_has_no_bond_bonus() -> SemanticCheck:
+    state = _base_state()
+    candidate = FlatMultJoker(4)
+    before_comp = SimpleNamespace(
+        coherence_score=1.0,
+        strategy_candidates=(),
+        pinned_strategy_id=None,
+        strategy_plan=None,
+        synergies=(),
+        motifs=(),
+    )
+    after_comp = SimpleNamespace(
+        coherence_score=9.0,
+        strategy_candidates=(),
+        pinned_strategy_id=None,
+        strategy_plan=None,
+        synergies=(),
+        motifs=(),
+    )
+    responses = iter((((), before_comp), ((), after_comp)))
+    original = joker_policy_module.evaluate_bond_composition
+    joker_policy_module.evaluate_bond_composition = lambda projected: next(responses)
+    try:
+        bonus, notes = joker_policy_module._bond_transition_bonus(state, candidate)
+    finally:
+        joker_policy_module.evaluate_bond_composition = original
+    return SemanticCheck(
+        abs(float(bonus)) <= 1e-12,
+        observed=f"coherence=1.000->9.000, bond_bonus={float(bonus):.3f}, notes={notes!r}",
+        expected="coherence improvement alone does not create a Bond transition bonus",
+        detail=(
+            "composer coherence is planning evidence, not chip arithmetic or an independent purchase reward; "
+            "D2 may reward only concrete Bond rank/progress/synergy/motif/strategy transitions"
+        ),
+    )
+
+
+def _bond_adjustment_is_added_once_to_mechanical_gain() -> SemanticCheck:
+    state = _base_state()
+    state.money = 20
+    candidate = FlatMultJoker(4)
+    candidate.cost = 0
+    planner = SimpleNamespace(
+        evaluator=SimpleNamespace(
+            evaluate=lambda projected, joker: SimpleNamespace(total_gain=3.0)
+        )
+    )
+    policy = JokerAcquisitionPolicy(transition_planner=planner)
+    original = joker_policy_module._bond_transition_bonus
+    joker_policy_module._bond_transition_bonus = lambda *args, **kwargs: (2.0, ("synthetic Bond +2",))
+    try:
+        option = policy._score_add(state, candidate, 3.0)
+    finally:
+        joker_policy_module._bond_transition_bonus = original
+    return SemanticCheck(
+        abs(float(option.build_gain) - 5.0) <= 1e-12,
+        observed=f"mechanical=3.000, bond=2.000, resulting_build_gain={option.build_gain:.3f}",
+        expected="D2 adds the bounded Bond adjustment exactly once to mechanical whole-build gain",
+        detail=(
+            "Bond/composition evidence is a separate bounded structural term; it must not be folded into B3 "
+            "literal scoring and then credited again by D2"
+        ),
+    )
+
+
 RED_WHITE_PHASE3_BUILD_CASES = (
     SemanticBenchmarkCase(
         case_id="build.roles.scoring_engine_direct_gain",
@@ -201,5 +270,19 @@ RED_WHITE_PHASE3_BUILD_CASES = (
         description="standalone scoring is not duplicated as pair interaction value",
         evaluate=_independent_scorers_do_not_manufacture_pair_synergy,
         source="Phase 3 build-evidence audit: pair double-count prevention",
+    ),
+    SemanticBenchmarkCase(
+        case_id="build.bond.coherence_not_scoring_bonus",
+        category="BUILD_COHERENCE",
+        description="composer coherence alone does not manufacture Bond purchase value",
+        evaluate=_coherence_only_transition_has_no_bond_bonus,
+        source="Phase 3 build-evidence audit: composition versus score authority",
+    ),
+    SemanticBenchmarkCase(
+        case_id="build.bond.adjustment_added_once",
+        category="BUILD_COHERENCE",
+        description="bounded Bond transition value is added exactly once after B3 mechanical value",
+        evaluate=_bond_adjustment_is_added_once_to_mechanical_gain,
+        source="Phase 3 build-evidence audit: Bond double-count prevention",
     ),
 )
