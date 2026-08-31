@@ -22,7 +22,7 @@ REPLACE = "REPLACE"
 HOLD = "HOLD"
 
 _EARLY_ENGINE_ANTE_LIMIT = 2
-_FIRST_ENGINE_MINIMUM_CASH_AFTER = 1
+_FIRST_ENGINE_MINIMUM_CASH_AFTER = 2
 
 
 def _has_current_scoring_foothold(candidate_value: object) -> bool:
@@ -406,14 +406,23 @@ class JokerAcquisitionPolicy:
                 ante = int(getattr(state, "ante", getattr(state, "ante_num", 0)) or 0)
             except (TypeError, ValueError):
                 ante = 0
+            first_joker_early = (
+                1 <= ante <= _EARLY_ENGINE_ANTE_LIMIT
+                and not tuple(getattr(state, "jokers", ()) or ())
+            )
+            first_joker_cash_safe = (
+                not first_joker_early
+                or int(option.economics.money_after) >= _FIRST_ENGINE_MINIMUM_CASH_AFTER
+            )
+            if action == BUY and not first_joker_cash_safe:
+                action = HOLD
             first_engine_bootstrap = (
                 action == HOLD
                 and option.eligible
-                and 1 <= ante <= _EARLY_ENGINE_ANTE_LIMIT
-                and not tuple(getattr(state, "jokers", ()) or ())
+                and first_joker_early
                 and float(option.build_gain) > 0.0
                 and _has_current_scoring_foothold(transition.candidate_value)
-                and int(option.economics.money_after) >= _FIRST_ENGINE_MINIMUM_CASH_AFTER
+                and first_joker_cash_safe
             )
             if first_engine_bootstrap:
                 action = BUY
@@ -423,7 +432,12 @@ class JokerAcquisitionPolicy:
                 rationale_parts.append(
                     "Negative edition is slot-neutral; no incumbent replacement is required"
                 )
-            if first_engine_bootstrap:
+            if first_joker_early and not first_joker_cash_safe:
+                rationale_parts.append(
+                    f"early first-Joker purchase would leave ${option.economics.money_after}; "
+                    f"minimum runway is ${_FIRST_ENGINE_MINIMUM_CASH_AFTER}"
+                )
+            elif first_engine_bootstrap:
                 rationale_parts.extend(
                     (
                         "early first-engine bootstrap: positive current scoring gain can outrank reserve-only HOLD",
