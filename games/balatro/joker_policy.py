@@ -137,7 +137,7 @@ def _plan_missing_count(plan) -> int:
     if plan is None:
         return 0
     return len(tuple(getattr(plan, "missing_components", ()) or ())) + len(
-        tuple(getattr(plan, "missing_features", ()) or ()))
+        tuple(getattr(plan, "missing_features", ()) or ())
     )
 
 
