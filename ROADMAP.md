@@ -37,7 +37,7 @@ Rules:
 
 Active phase:
 
-> **Phase 2 — simple shop survival. Batch 3 fixture aligned with installed post-transaction D2 valuation; semantic rerun pending.**
+> **Phase 2 — simple shop survival. Batch 3 validated 40/40; final Batch 4 implemented, validation pending.**
 
 Phase 0 authority consolidation: **COMPLETE / VALIDATED**.
 
@@ -91,13 +91,11 @@ Phase-1 final semantic benchmark: **33/33 GREEN**:
 - `D1_SURVIVAL`: 22/22
 - `SHOP_SURVIVAL`: 9/9
 
-Phase-2 Batch-1 benchmark: **36/36 GREEN**.
+Phase-2 validated checkpoints:
 
-Phase-2 Batch-2 benchmark: **38/38 GREEN**:
-
-- `BUILD_COHERENCE`: 2/2
-- `D1_SURVIVAL`: 22/22
-- `SHOP_SURVIVAL`: 14/14
+- Batch 1: **36/36 GREEN**, `SHOP_SURVIVAL` 12/12.
+- Batch 2: **38/38 GREEN**, `SHOP_SURVIVAL` 14/14.
+- Batch 3: **40/40 GREEN**, `SHOP_SURVIVAL` 16/16.
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc` and reflects current native authority.
 
@@ -105,7 +103,7 @@ Phase-2 Batch-2 benchmark: **38/38 GREEN**:
 
 # PHASE 1 — CLOSED
 
-Phase 1 was intentionally capped at five batches and is now complete. No Batch 6 is queued absent fresh evidence.
+Phase 1 was intentionally capped at five batches and is complete. No Batch 6 is queued absent fresh evidence.
 
 Validated additions:
 
@@ -134,16 +132,16 @@ Audit order:
 3. transaction checkpoint safety for replacement/sell/buy flows;
 4. early scoring foothold versus support/economy spending;
 5. cash/reserve stop-loss on ordinary purchases and paid rerolls;
-6. only then compare cross-family simple purchases.
+6. simple cross-family purchase comparison.
 
-Existing SHOP semantics already protect first scoring foothold, strategic conflict vetoes, first-engine-before-hand-size, Wheel admission, empty-roster Buffoon admission, visible Bond-pair authority, and pair interaction requirements.
+Existing SHOP semantics also protect first scoring foothold, strategic conflict vetoes, first-engine-before-hand-size, Wheel admission, empty-roster Buffoon admission, visible Bond-pair authority, and pair interaction requirements.
 
 ## Batch 1 — VALIDATED GREEN
 
 Commits:
 
 - `f2de18be` — adds `red_white_semantic_phase2_shop_cases.py`.
-- `7a1a8188` — wires Phase-2 cases into `red_white_semantic_benchmark`.
+- `7a1a8188` — wires Phase-2 cases into the benchmark.
 
 Validated:
 
@@ -166,40 +164,51 @@ Validated:
 
 User result: **38/38 GREEN**, `SHOP_SURVIVAL` 14/14.
 
-## Batch 3 — IMPLEMENTED / FIXTURE REPAIRED THREE TIMES / VALIDATION PENDING
+## Batch 3 — VALIDATED GREEN
 
 Commits:
 
-- `00fe6214` — adds two D2 ordinary-purchase cash survival semantics.
-- `27484d51` — preserves the canonical `JokerBuildTransitionPlanner.evaluator` interface while overriding synthetic `plan()` output.
-- `c4c6c020` — suppresses unrelated Bond/composition transition value inside the two cash fixtures.
-- `8edc2ad9` — aligns the synthetic planner's `evaluator.evaluate()` with the installed post-transaction D2 value layer so both pre- and post-purchase build gain remain controlled.
+- `00fe6214` — D2 ordinary-purchase cash semantics.
+- `27484d51` — fixes synthetic planner interface.
+- `c4c6c020` — isolates fixtures from Bond transition value.
+- `8edc2ad9` — aligns synthetic evaluator with installed post-transaction D2 valuation.
+
+Validated:
+
+- `shop.simple.first_engine_zero_cash_guard`
+- `shop.simple.joker_reserve_crossing_cost`
+
+Validation history exposed three fixture mismatches before the real runtime contract was represented correctly: missing planner evaluator, Bond-value contamination, and installed post-transaction D2 revaluation through `transition_planner.evaluator.evaluate()`. No production behavior was changed by those fixture repairs.
+
+User result after final repair: **40/40 GREEN**, `SHOP_SURVIVAL` 16/16.
+
+## Batch 4 — FINAL PLANNED PHASE-2 BATCH / VALIDATION PENDING
+
+Commits:
+
+- `d57c4364` — adds `red_white_semantic_phase2_cross_family_cases.py`.
+- `ce58863b` — wires the final cross-family cases into the semantic benchmark.
 
 New cases:
 
-1. `shop.simple.first_engine_zero_cash_guard`
-   - the Ante-1/2 first-engine bootstrap does not rescue a marginal positive-scoring buy that leaves zero cash;
-   - owner if it genuinely fails: `JokerAcquisitionPolicy.decide()` first-engine bootstrap boundary.
-2. `shop.simple.joker_reserve_crossing_cost`
-   - outside the first-engine exception, incremental reserve shortfall is explicitly priced into D2 purchase economics and can turn a marginal Joker buy into HOLD;
-   - owner if it genuinely fails: `JokerAcquisitionPolicy._economics()` / `_incremental_reserve_shortfall()`.
+1. `shop.simple.cross_family_first_engine_wins`
+   - an admitted first scoring Joker with materially higher shared D14 normalized gain must beat a weaker deterministic support/economy purchase;
+   - owner if it fails: `BuildAwareShopArbiter` / `ShopUtilityScale` cross-family comparison.
+2. `shop.simple.cross_family_support_can_win`
+   - first-engine status is evidence, not a hardcoded family override; a materially higher-value deterministic support/economy option must still beat the weaker Joker on the same parent scale;
+   - owner if it fails: `BuildAwareShopArbiter` value ordering / family priority.
 
-Validation history:
+Batch 4 changes semantic coverage only. No production code or tuning values changed.
 
-- First result: **38/40** because the synthetic transition lacked `.evaluator`.
-- Second result: **38/40** because real Bond/composition value contaminated intended marginal gains.
-- Third result: **38/40** with the same real gains despite Bond suppression. Root cause: package startup installs `post_transaction_joker_value_policy`, which replaces `JokerAcquisitionPolicy._score_add` and recomputes candidate value through `transition_planner.evaluator.evaluate()` at post-purchase cash. The fixture controlled `plan()` but not that evaluator.
-- `8edc2ad9` now controls both `plan()` and `evaluator.evaluate()` at the same synthetic gain while still using the real planner surface and suppressing only unrelated Bond value.
+Expected benchmark if both pass: **42/42**, with `SHOP_SURVIVAL` 18/18.
 
-No production code or tuning values changed in Batch 3.
-
-Expected benchmark after the post-transaction fixture repair: **40/40**, with `SHOP_SURVIVAL` 16/16.
+**Phase 2 is capped at four planned batches.** If Batch 4 passes, close Phase 2 and advance to Phase 3. Do not add a Batch 5 merely to increase coverage count.
 
 ---
 
 # EXACT NEXT ACTION
 
-Re-run Phase-2 Batch 3 semantic benchmark:
+Validate final Phase-2 Batch 4 locally:
 
 ```powershell
 git pull
@@ -208,13 +217,13 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 40/40 green
+### If 42/42 green
 
-Continue Phase 2 with simple cross-family purchase precedence: visible first scoring engine versus support/economy options on the shared D14 scale. Add only concrete survival cases and do not tune values unless a case exposes a real defect.
+Close Phase 2 and begin **Phase 3 — coherent build evidence/authority quality**. Start by auditing whether D2/D14 build evidence distinguishes real scoring engines, support, scaling, and economy without duplicate or contradictory authority. Do not tune numerical weights yet.
 
-### If either Batch-3 case still fails
+### If either Batch-4 case fails
 
-The fixture now matches the installed D2 post-transaction valuation path, pins both pre- and post-purchase synthetic build gain, and suppresses only unrelated Bond value. Treat a remaining semantic failure as genuine D2 behavior evidence unless the output identifies a new concrete fixture mismatch. Fix the smallest canonical owner; do not add wrapper rescues.
+Classify fixture versus genuine D14 shared-scale defect. Fix the smallest canonical owner. Do not add post-arbiter family rescues.
 
 ---
 
