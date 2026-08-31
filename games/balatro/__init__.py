@@ -71,7 +71,6 @@ from games.balatro.strategy_plan_pack_policy import install_strategy_plan_pack_p
 from games.balatro.strategy_resource_coherence_policy import install_strategy_resource_coherence_policy
 from games.balatro.tactical_scaler_build_health import install_tactical_scaler_build_health_policy
 from games.balatro.tactical_scaler_retention_policy import install_tactical_scaler_retention_policy
-from games.balatro.target_hand_engine_policy import install_target_hand_engine_policy
 from games.balatro.targeted_pack_literal_value_policy import install_targeted_pack_literal_value_policy
 from games.balatro.shop_transaction_policy import install_shop_transaction_policy
 from games.balatro.voucher_parent_literal_policy import install_voucher_parent_literal_policy
@@ -143,7 +142,6 @@ install_tactical_scaler_retention_policy()
 install_soul_pack_expectation_policy()
 # Late D1 semantic evidence hooks see the fully wrapped mechanics/value path but do
 # not own a second Play/Discard or same-class action selector.
-install_target_hand_engine_policy()
 install_semantic_search_guard_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
