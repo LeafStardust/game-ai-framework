@@ -8,6 +8,7 @@ This is the only authoritative roadmap/handoff for the Balatro Red/White compete
 - Branch: `feat/v1.0-red-white-competence`
 - User runs tests locally. **Do not run tests from ChatGPT.**
 - Every validation command shown to the user must begin with `git pull`.
+- Every command block shown to the user must end with a trailing blank line after the final command.
 - Preserve exact mechanics, public-state legality, boss rules, and hidden-information boundaries.
 - Never use hidden RNG state, seeds, future pool order/identities, or inaccessible information.
 - Prefer canonical ownership over late wrappers/rescues.
