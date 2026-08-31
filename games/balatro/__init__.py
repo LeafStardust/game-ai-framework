@@ -9,7 +9,6 @@ from games.balatro.aces_dna_hand_policy import install_aces_dna_hand_policy
 from games.balatro.arcana_booster_expectation_policy import install_arcana_booster_expectation_policy
 from games.balatro.banner_candidate_value_policy import install_banner_candidate_value_policy
 from games.balatro.blueprint_candidate_value_policy import install_blueprint_candidate_value_policy
-from games.balatro.bond_d1_cache_policy import install_bond_d1_cache_policy
 from games.balatro.bond_pivot_authority import install_bond_pivot_authority
 from games.balatro.bond_power_engine_retention_policy import install_bond_power_engine_retention_policy
 from games.balatro.bond_prescription_policy import install_bond_prescription_policy
@@ -132,7 +131,6 @@ install_bond_shop_health_policy()
 install_bond_pivot_authority()
 install_bond_power_engine_retention_policy()
 install_bond_prescription_policy()
-install_bond_d1_cache_policy()
 install_burnt_bond_execution_policy()
 install_face_card_enabler_bond_policy()
 install_planet_relevance_policy()
