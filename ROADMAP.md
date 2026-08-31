@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 4 COMPLETE. Phase 5 live validation is ACTIVE. 73/73 is the last locally validated semantic checkpoint. A new final-hand discard-chain search-scope correction is implemented for validation at expected 74/74.**
+> **Phase 4 COMPLETE. Phase 5 live validation is ACTIVE at 74/74 semantic green.**
 
 Validated checkpoints:
 
@@ -69,7 +69,7 @@ Validated checkpoints:
 - Phase 5 live D1 made-hand discard-recovery semantic: **GREEN / 71/71**, `D1_SURVIVAL` 23/23
 - Phase 5 D1 timeout final-arbiter semantic: **GREEN / 72/72**, `D1_SURVIVAL` 24/24
 - Phase 5 D2 first-Joker scoring-foothold semantic: **GREEN / 73/73**, `SHOP_SURVIVAL` 19/19
-- Phase 5 D1 final-hand discard-chain search semantic: **IMPLEMENTED / VALIDATION PENDING**, expected **74/74**, `D1_SURVIVAL` +1
+- Phase 5 D1 final-hand discard-chain search semantic: **GREEN / 74/74**, `D1_SURVIVAL` 25/25
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
@@ -189,7 +189,7 @@ The Ante-1/2 special first-Joker relaxation was intended to establish immediate 
 
 Validated locally **73/73**, `SHOP_SURVIVAL` 19/19. Support/economy Jokers remain legal through normal D2 economics; they simply cannot use the scoring-foothold exception without current literal scoring power.
 
-## Baseline D — current 73/73 stack
+## Baseline D — 73/73 stack
 
 Session: `balatro-20260831T102028Z-6cf4214a`.
 
@@ -205,49 +205,44 @@ Interpretation:
 - attempt 1 is a distinct final-hand resource-geometry failure: The Needle provides one scoring hand, yet D1 spent that sole Play and died while all four discards remained available;
 - this is not evidence to reopen the old made-hand/timeout fixes globally.
 
-### D1 finding 3 — final-hand safe schedule cannot represent multiple discards before sole Play — VALIDATION PENDING
+### D1 finding 3 — final-hand safe schedule cannot represent multiple discards before sole Play — GREEN
 
 Canonical owner: `_safe_search_schedule` used by `PathAwareLiveHandActionDecisionEngine._search_schedule`.
 
 Source inspection after Baseline D:
 
-- production Red/White D1 currently uses `safe_pace_optimization_policy._safe_search_schedule`;
-- before this correction, whenever more than one action remained, that helper returned exactly one **horizon-2** advisory pass;
-- with `hands_remaining=1` and `discards_remaining=4`, a horizon-2 planner can model at most `Discard -> Play`;
-- it cannot compare the legal lines `Discard -> Discard -> ... -> Play`, even though discards do not consume the sole remaining scoring hand;
+- production Red/White D1 uses `safe_pace_optimization_policy._safe_search_schedule`;
+- before correction, whenever more than one action remained, that helper returned exactly one **horizon-2** advisory pass;
+- with `hands_remaining=1` and `discards_remaining=4`, horizon 2 could model at most `Discard -> Play`;
+- it could not compare legal lines `Discard -> Discard -> ... -> Play`, even though discards do not consume the sole scoring hand;
 - the generic adaptive planner already owns a global bounded maximum horizon of five, exactly enough for four discards plus one Play.
 
 Correction:
 
-- `cf17eac1` — ordinary multi-hand D1 stays horizon 2, but when exactly one scoring hand remains with spare discards, the safe schedule expands only enough to represent the remaining discard chain plus final Play, capped by the existing `LIVE_ADAPTIVE_MAX_HORIZON=5`, caller `max_horizon`, and existing 750-node safe-pass cap;
+- `cf17eac1` — ordinary multi-hand D1 stays horizon 2, but when exactly one scoring hand remains with spare discards, the safe schedule expands only enough to represent the remaining discard chain plus final Play, capped by existing `LIVE_ADAPTIVE_MAX_HORIZON=5`, caller `max_horizon`, and the existing 750-node safe-pass cap;
 - no score weights, probability floors, pace thresholds, or hidden-state assumptions changed;
-- `9d5fda58` — adds semantic `d1.live.final_hand_search_spends_remaining_discards`;
-- `446f426c` — wires that semantic into the Red/White benchmark.
+- `9d5fda58` — semantic `d1.live.final_hand_search_spends_remaining_discards`;
+- `446f426c` — benchmark wiring.
 
-Expected checkpoint after local validation:
-
-- **74/74** overall
-- `D1_SURVIVAL` **25/25**
-- `SHOP_SURVIVAL` **19/19**
-- `BUILD_COHERENCE` **12/12**
-- `RESOURCE_COHERENCE` **18/18**
+Validated locally **74/74**, `D1_SURVIVAL` **25/25**. This remains a bounded mechanical search-scope correction, not numerical tuning.
 
 # EXACT NEXT ACTION
 
-Validate the new final-hand D1 search-scope semantic:
+Run another fresh three-attempt Phase-5 production baseline on the 74/74 stack:
 
 ```powershell
 git pull
-python -m games.balatro.red_white_semantic_benchmark
+.\BalatroAgentToggle.bat --three
 
 ```
 
-If green, update this roadmap to 74/74 and run another fresh three-attempt Phase-5 baseline. Compare specifically:
+Compare specifically:
 
 - whether last-hand states with spare discards now spend them when useful;
-- whether attempts 2/3-style normal discard behavior stays intact;
+- whether ordinary multi-hand discard behavior remains intact;
 - boss survival depth and build/shop quality;
-- runtime latency, especially whether the narrow one-hand horizon expansion stays bounded.
+- runtime latency, especially whether the narrow one-hand horizon expansion stays bounded;
+- if all semantics/runtime remain trustworthy and failures become preference-only rather than mechanical/authority defects, Phase 6 numerical tuning may become the next stage.
 
 Do not numerically tune yet.
 
