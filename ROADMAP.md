@@ -49,7 +49,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 4 — complex packs/consumables/vouchers/economy audit. Phase 3 closed at 52/52; Phase 4 Batch 1 booster resource-boundary semantics implemented, validation pending.**
+> **Phase 4 — complex packs/consumables/vouchers/economy audit. Batch 1 validated at 55/55; Batch 2 opened-pack legality/fail-closed semantics implemented, validation pending.**
 
 Validated checkpoints:
 
@@ -58,6 +58,7 @@ Validated checkpoints:
 - Phase 1 D1 survival expansion: **COMPLETE / 33/33 green**
 - Phase 2 simple shop survival: **COMPLETE / 42/42 green**
 - Phase 3 coherent build evidence: **COMPLETE / 52/52 green**, `BUILD_COHERENCE` 12/12
+- Phase 4 Batch 1 resource boundary: **GREEN / 55/55**, `RESOURCE_COHERENCE` 3/3
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
@@ -91,19 +92,21 @@ Goal: make resource-heavy decisions respect transaction checkpoints, sunk-cost b
 
 Initial audit order:
 
-1. D8 unopened-booster transaction cost vs D9 opened-pack sunk-cost boundary — **active Batch 1**;
-2. opened-pack target legality and unsupported stochastic effects failing closed;
+1. D8 unopened-booster transaction cost vs D9 opened-pack sunk-cost boundary — **Batch 1 GREEN**;
+2. opened-pack target legality and unsupported stochastic effects failing closed — **active Batch 2**;
 3. consumable inventory/slot pressure and BUY vs BUY_AND_USE authority;
 4. voucher purchase value vs permanent downside and current-run resource reserve;
 5. destructive/generative Spectral/Tarot choices only through explicit bounded outcome models;
 6. cross-family D14 arbitration only after child resource semantics are trustworthy.
 
-## Batch 1 — IMPLEMENTED / VALIDATION PENDING
+## Batch 1 — GREEN
 
 Commits:
 
 - `7b2fb576` — adds `red_white_semantic_phase4_resource_cases.py`.
 - `961a889d` — wires Phase-4 cases into the semantic benchmark.
+
+Validated locally at **55/55**, with `RESOURCE_COHERENCE` **3/3**.
 
 Audit findings:
 
@@ -112,25 +115,52 @@ Audit findings:
 - production installs `pack_sunk_cost_policy`, making the default opened-pack Skip baseline exactly zero.
 - pack acquisition money/interest/reserve cost is therefore paid once in D8 and must not be charged again after entering `*_PACK`.
 
-New semantics:
+Validated semantics:
 
 1. `resource.booster.unopened_unaffordable_hold`
-   - D8 must HOLD an unopened pack whose public price exceeds current money before family-level option value can authorize it.
+   - D8 HOLDs an unopened pack whose public price exceeds current money before family-level option value can authorize it.
 2. `resource.pack.opened_positive_uses_sunk_cost_baseline`
    - after opening, default D9 Skip is zero;
-   - a positive visible marginal must beat Skip even when post-purchase cash is zero;
-   - historical pack cost must not be re-priced.
+   - a positive visible marginal beats Skip even when post-purchase cash is zero;
+   - historical pack cost is not re-priced.
 3. `resource.pack.opened_negative_can_skip`
-   - a negative current visible marginal must lose to zero Skip;
-   - sunk cost must not force selection of a bad opened-pack outcome.
+   - a negative current visible marginal loses to zero Skip;
+   - sunk cost does not force selection of a bad opened-pack outcome.
 
-Batch 1 changes semantic coverage only. No production code or tuning values changed.
+No production code or tuning values changed.
 
-Expected benchmark: **55/55**, with `RESOURCE_COHERENCE` 3/3.
+## Batch 2 — IMPLEMENTED / VALIDATION PENDING
+
+Commits:
+
+- `fcf9aceb` — adds `red_white_semantic_phase4_pack_cases.py`.
+- `42ac455d` — wires Batch-2 opened-pack cases into the semantic benchmark.
+
+Installed-stack audit findings:
+
+- D9 production contains explicit public-state stochastic models for several effects that were historically deferred, including High Priestess, Emperor, Familiar/Grim/Incantation, Immolate, and Wraith.
+- stochastic effects therefore must not be rejected merely for being stochastic; explicit complete public-state outcome ownership is the deciding boundary.
+- deterministic targeted Tarot/Spectral effects delegate legal target admission and literal target value to D10/B6.
+- `targeted_pack_literal_value_policy` keeps targeted effects below Skip when D10/B6 has no positive admitted target and does not add generic shop/category utility.
+- `strategy_plan_pack_policy` only adds bounded preference to already-positive choices, so it remains subordinate to D9 admission.
+- genuinely deferred or unclassified visible effects must remain below opened-pack Skip=0 until an explicit mechanics/outcome model owns them.
+
+New semantics:
+
+1. `resource.pack.target_requires_positive_legal_target`
+   - a targeted visible Tarot with no positive admitted D10/B6 target must lose to Skip=0.
+2. `resource.pack.deferred_stochastic_fails_closed`
+   - a production-deferred stochastic Spectral remains below Skip and cannot inherit generic Spectral utility.
+3. `resource.pack.unclassified_effect_fails_closed`
+   - an unclassified visible Spectral fails closed rather than receiving generic category or strategy value.
+
+Batch 2 changes semantic coverage only. No production code or tuning values changed.
+
+Expected benchmark: **58/58**, with `RESOURCE_COHERENCE` **6/6**.
 
 # EXACT NEXT ACTION
 
-Validate Phase-4 Batch 1 locally:
+Validate Phase-4 Batch 2 locally:
 
 ```powershell
 git pull
@@ -140,13 +170,13 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 55/55 green
+### If 58/58 green
 
-Record Batch 1 green and continue Phase 4 with **opened-pack target legality and unsupported stochastic effects failing closed**. Inspect the installed D9 wrappers first; add semantics against the real runtime stack, not the unwrapped base policy.
+Record Batch 2 green and continue Phase 4 with **consumable inventory/slot pressure and BUY vs BUY_AND_USE authority**. Audit D4 admission, immediate-use execution, inventory capacity, and D14 normalization before adding semantics.
 
-### If any Batch-1 case fails
+### If any Batch-2 case fails
 
-Classify fixture mismatch vs real D8/D9 resource-boundary defect. Fix the smallest canonical owner. Do not reintroduce historical pack cost into D9 and do not allow D8 to reason from hidden future identities.
+Classify fixture mismatch vs a real installed-D9 admission defect. Fix the smallest canonical owner. Do not blanket-reject modeled stochastic effects, do not bypass D10/B6 target legality, and do not let strategy/category bonuses lift a non-positive D9 base choice.
 
 # Phase order
 
