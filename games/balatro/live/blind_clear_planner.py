@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from time import perf_counter
 
 from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
+from games.balatro.boss_trigger import boss_blind_disabled_by_owned_jokers
 from games.balatro.card_selector import CardSelector
 from games.balatro.d1_hook_search_budget_policy import _active_hook
 from games.balatro.hand import PokerHand
@@ -23,6 +24,7 @@ _CHILD_DISCARD_PREFILTER = 8
 _SHORT_PLAY_RESERVE = 2
 _WIDE_DISCARD_RESERVE = 2
 _ROOT_DISCARD_RESERVE = 2
+_SERPENT_DRAW_COUNT = 3
 
 _HAND_STRENGTH = {
     PokerHand.HIGH_CARD: 0,
@@ -299,7 +301,10 @@ class LiveBlindClearPlanner:
             0,
             len(getattr(projected_state, "hand", [])) - len(getattr(state, "hand", [])),
         )
-        replacement_draw_count = max(0, len(action.cards) - joker_drawn_cards)
+        replacement_draw_count = self._post_action_draw_count(
+            state,
+            max(0, len(action.cards) - joker_drawn_cards),
+        )
         composition = None
         draw_distribution = None
 
@@ -403,7 +408,8 @@ class LiveBlindClearPlanner:
             return _ActionEstimate(action, self._terminal_value(next_state, clear=False), True)
 
         composition = PublicDeckComposition.from_state(state)
-        draw_distribution = self.draw_outcomes.distribution(composition, len(action.cards))
+        draw_count = self._post_action_draw_count(state, len(action.cards))
+        draw_distribution = self.draw_outcomes.distribution(composition, draw_count)
         removed_indices = self._card_indices(state.hand, action.cards)
         total_value = self._zero_value()
         exact = draw_distribution.exact
@@ -426,6 +432,18 @@ class LiveBlindClearPlanner:
             total_value = total_value.plus(value.weighted(draw_outcome.probability))
 
         return _ActionEstimate(action, total_value, exact)
+
+    @staticmethod
+    def _post_action_draw_count(state, ordinary_draw_count: int) -> int:
+        """Return the exact public redraw count after a Play/Discard transition."""
+        ordinary = max(0, int(ordinary_draw_count))
+        if (
+            state is not None
+            and str(getattr(state, "boss_name", "") or "") == "The Serpent"
+            and not boss_blind_disabled_by_owned_jokers(state)
+        ):
+            return _SERPENT_DRAW_COUNT
+        return ordinary
 
     def _rank_actions_with_deadline(
         self,
