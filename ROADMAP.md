@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. First measured D2 tune is implemented and awaiting semantic validation.**
 
 Validated checkpoints:
 
@@ -260,30 +260,84 @@ Goal: improve actual Red/White win rate without changing the validated semantic 
 
 Allowed work now includes measured tuning of existing policy thresholds/weights and action-quality preferences, provided every change remains inside the canonical owner for that decision family and preserves literal mechanics/projection contracts.
 
-Initial live evidence to target:
+## Phase-6 baseline — 10 unchanged attempts
 
-- weak early scoring footholds still produce Ante-1/2 near misses;
-- some deep runs reach full five-Joker boards yet lack enough scalable score for Ante-5/6 boss requirements;
-- late runs can retain substantial cash while dying underpowered, suggesting value may be over-preserved relative to immediate scoring conversion in some states;
-- repeated boss failures should be measured by score deficit, resource usage, build composition, and cash at death before adjusting any threshold.
+Session: `balatro-20260831T112338Z-d58df919`.
 
-Do not introduce rescue wrappers, duplicate scorers, hidden-state inference, or ownership bypasses during tuning.
+Result: **0/10 wins**.
+
+Death antes: **4, 3, 5, 3, 4, 1, 1, 1, 6, 7**.
+
+Important evidence:
+
+- three attempts died in Ante 1;
+- two attempts reached Ante 6 or later, proving the validated stack can still produce deep runs;
+- attempt 9 reached Ante 6 and died at roughly 95% of the 40,000-chip boss requirement;
+- attempt 10 reached Ante 7;
+- discard recovery was broadly active; most losing blinds consumed all available discards;
+- two of the three Ante-1 deaths ended with Baron as the only Joker and essentially no remaining cash ($0 and $1 respectively), while the third Ante-1 death had no Joker;
+- this does not justify a Baron-specific rule: Baron is contextual and the observed issue is the amount of early bankroll committed to the first scoring foothold.
+
+The first tuning target is therefore **early first-Joker cash runway**, not Joker identity and not semantic ownership.
+
+## Phase-6 tune A — first-Joker cash runway — IMPLEMENTED / VALIDATION PENDING
+
+Canonical owner: `JokerAcquisitionPolicy`.
+
+Commit: `1621b9ce`.
+
+Change:
+
+- in Ante 1–2, when the build has no Joker yet, any first-Joker purchase must leave at least **$2**;
+- this applies whether the candidate would otherwise BUY through ordinary D2 advantage or through the special first-scoring-foothold bootstrap;
+- once a Joker is owned, ordinary D2 economics are unchanged;
+- Ante 3+ purchasing is unchanged;
+- the scoring-foothold semantic requirement remains unchanged;
+- no Joker names, boss names, hidden state, duplicate scorers, or rescue wrappers were introduced.
+
+Why $2:
+
+- it is the smallest measured intervention that excludes the two observed catastrophic $0/$1 first-Joker commitments;
+- it intentionally does not jump directly to the existing $5 reserve target, which would be a much larger behavioral change without evidence;
+- this is an A/B numerical experiment, not a new semantic rule.
+
+If semantic validation stays 74/74, compare this tune against the 0/10 baseline with another 10 live attempts before changing any second parameter.
+
+Do not stack another numerical tune on top of Tune A before that comparison sample is reviewed.
 
 # EXACT NEXT ACTION
 
-Start Phase 6 with a measured baseline rather than another semantic patch. Run a larger unchanged production sample so numerical tuning has enough evidence to separate early-game, shop/build, and D1 preference effects.
+Validate that Tune A preserves the full semantic contract:
 
-Recommended first sample: **10 Red/White attempts on the unchanged 74/74 stack**, then compare:
+```powershell
+git pull
+python -m games.balatro.red_white_semantic_benchmark
 
-- win rate and furthest ante;
-- death score ratio (`score / blind requirement`);
+```
+
+Expected: **74/74**, with all category scores unchanged.
+
+If green, run the Phase-6 A/B comparison sample:
+
+```powershell
+git pull
+.\BalatroAgentToggle.bat --attempts 10
+
+```
+
+Compare directly against session `balatro-20260831T112338Z-d58df919` on:
+
+- win rate;
+- Ante-1 death count;
+- furthest ante;
+- death score ratio;
+- first-Joker identity, purchase cost, and money after purchase;
 - cash at death;
 - Joker count/composition and realized direct scoring power;
-- discards/hands consumed at death;
-- boss vs non-boss failure frequency;
-- whether failures cluster around early scoring acquisition, spending/economy conservatism, or D1 play/discard preference.
+- discard/hands consumed at death;
+- late-run underpowered cash retention.
 
-No threshold should be changed until that 10-run baseline is summarized.
+No second threshold should be changed until that tuned 10-run sample is reviewed.
 
 # Phase order
 
