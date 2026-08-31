@@ -37,7 +37,10 @@ def test_native_child_discard_candidates_preserve_purple_seal_branch():
 
     candidates = planner._child_discard_candidates(state)
 
-    assert any(action.cards == (purple,) for action in candidates)
+    assert any(
+        len(action.cards) == 1 and action.cards[0] is purple
+        for action in candidates
+    )
 
 
 def test_native_discard_beam_keeps_purple_seal_when_generic_slots_fill_first():
