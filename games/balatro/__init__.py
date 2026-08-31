@@ -55,7 +55,6 @@ from games.balatro.planet_pack_fallback_policy import install_planet_pack_fallba
 from games.balatro.planet_relevance_policy import install_planet_relevance_policy
 from games.balatro.planet_scaler_authority import install_planet_scaler_authority
 from games.balatro.post_transaction_joker_value_policy import install_post_transaction_joker_value_policy
-from games.balatro.purple_seal_discard_policy import install_purple_seal_discard_policy
 from games.balatro.r0_strategy_transition_policy import install_r0_strategy_transition_policy
 from games.balatro.round_resource_live_state_policy import install_round_resource_live_state_policy
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
@@ -147,7 +146,6 @@ install_full_roster_shop_guard()
 install_full_roster_pack_guard()
 install_live_joker_order_authority()
 install_planet_scaler_authority()
-install_purple_seal_discard_policy()
 install_held_round_end_resource_policy()
 install_shop_semantic_quiet_policy()
 # The Celestial fast path remains last so it sees the fully wrapped D8 policy while
