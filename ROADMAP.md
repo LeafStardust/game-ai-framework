@@ -23,7 +23,7 @@ Rules:
 - Preserve exact Balatro mechanics, public-state legality, boss rules, and hidden-information boundaries.
 - Never use hidden RNG state, seeds, future pool order, future identities, or inaccessible information.
 - Prefer canonical ownership over late monkeypatch/rescue wrappers.
-- Do not use broad tuning to compensate for authority/semantic defects.
+- Do not use broad tuning to compensate for semantic defects.
 
 ---
 
@@ -31,15 +31,15 @@ Rules:
 
 **Red Deck / White Stake, normal mode: maximize probability of winning the current run.**
 
-Feature growth remains frozen until this competence gate is stable and reproducible.
-
 ---
 
 # CURRENT STATE — 2026-08-31
 
 Active phase:
 
-> **Phase 0 exit gate — substantive D1 authority consolidation and the full deterministic Balatro suite are locally validated.**
+> **Phase 1 — semantic benchmark expansion and D1 survival competence refinement.**
+
+Phase 0 authority consolidation is **CLOSED / VALIDATED**.
 
 Canonical authority shape:
 
@@ -62,137 +62,103 @@ Action
 Canonical owners:
 
 - D1 search/projection: `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`
-- D1 arbitration: `LiveHandActionPolicy`; production strategy-aware authority: `StrategyAwareLiveHandActionPolicy`
+- D1 arbitration: `StrategyAwareLiveHandActionPolicy`
 - D1 orchestration/final return: `LiveHandActionDecisionEngine` / path-aware production engine
 - D14 SHOP: `BuildAwareShopArbiter`
 - D11 reroll: `BuildAwareShopRerollPolicy`
 - D9 opened pack: `BalatroPackPolicy`
 
-## Locally validated ownership migrations
+## Phase-0 exit evidence
 
-- target-hand evidence
-- Purple-Seal discard beam coverage
-- held Blue-Seal / Gold-card resource behavior
-- semantic-search guard ownership
-- The Serpent exact redraw rule
-- The Hook forced-discard branch refill/search rule
-- Cerulean Bell `forced_selection` live-state path
-- Ectoplasm `ecto_minus` live-state path
-- round-reset discard resource live-state path
-- Joker-generation state, translator, explicit observer, production observer composition, and installer retirement
-- The Eye / The Mouth boss-hand constraints, Mouth discard evidence, and forced legal recovery
-
-Latest user-provided full-suite green:
+User-provided deterministic suite:
 
 ```powershell
 git pull
 python -m pytest -q tests/balatro
 ```
 
-## Phase-0 substantive migration status
+Result: **GREEN**.
 
-**Complete. No further ownership-migration bucket is queued.**
+User-provided Red/White semantic benchmark:
 
-The full-suite exit gate exposed two kinds of cleanup before passing:
+```powershell
+git pull
+python -m games.balatro.red_white_semantic_benchmark
+```
 
-### Stale tests protecting retired architecture
-
-- `test_balatro_d1_root_discard_reserve.py` was retargeted to native `LiveBlindClearPlanner` ownership in `fa0d92d2`.
-- Candidate-deadline regressions no longer monkeypatch `semantic_search_guard_policy`; they target native planner timing in `0f0bcd43`.
-- Semantic prefilter/deadline regressions now target native planner helpers in `890d7fdd` and `acd1e98c`.
-- Joker generation metadata-cache regressions now target `live.joker_generation_pool_state` in `4df31a96`.
-- Mouth zero-score recovery regressions now target `live.boss_hand_constraints` directly in `7da289b0`.
-- The Bond integration audit no longer requires the retired D1 strategy-execution installer sentinel; it verifies native strategy-policy ownership in `483301cb`.
-- Blue-Seal round-end tests now enter through `_estimate_action()`, which is the canonical context that records the played action for held-card terminal accounting, in `d16e60af`.
-
-### Genuine production defect found by exit gate
-
-`D1LiveBlindClearPlanner` in `hand_action_planner_core.py` overrode `_play_priority()` with a four-field tuple and accidentally shadowed the native base planner's Gold-card final tie-break. Commit `621856c6` restores `-selected_gold` as the final mechanical tie-break in D1 core priority. The verified commit diff contains only that missing tie-break.
-
-The user reran the complete deterministic Balatro suite after these repairs and reported **green**.
-
-## Semantic benchmark checkpoint
-
-The first runnable post-consolidation semantic benchmark reported **23/24**:
+Result: **24/24 GREEN**:
 
 - `BUILD_COHERENCE`: 2/2
 - `D1_SURVIVAL`: 13/13
-- `SHOP_SURVIVAL`: 8/9
+- `SHOP_SURVIVAL`: 9/9
 
-The sole failure was `d14.authority.visible_bond_pair`. Audit showed the production D14 pair planner was consistent with its current canonical contract; the synthetic benchmark fixture was stale. Current `_best_visible_bond_pair()` requires a positive canonical `_bond_transition_bonus` delta and recomputes projected D2 build gain/economics itself. The old fixture expected a synthetic policy to return a stronger projected decision and used two candidates with no Bond interaction metadata, so `None` was correct.
+`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc` and now documents current native owners rather than retired Phase-0 installers.
 
-Commit `e1b5b249` updates the semantic fixture to provide an explicit synthetic positive Bond delta plus the minimal D2 thresholds/economics interface consumed by the canonical pair planner. No production shop behavior changed. Semantic benchmark rerun is pending.
+## Phase-0 closed migrations
 
-No broad tuning values were changed.
+- target-hand evidence
+- Purple-Seal discard branch coverage
+- held Blue-Seal / Gold-card resources
+- semantic-search guard ownership
+- The Serpent exact redraw rule
+- The Hook forced-discard refill continuation
+- Cerulean Bell `forced_selection` live-state path
+- Ectoplasm `ecto_minus` live-state path
+- round-reset discard-resource live state
+- Joker-generation public pool live state
+- The Eye / The Mouth boss-hand constraints and forced recovery
+
+Compatibility modules for retired installers may remain importable but are not production authorities.
+
+Do not reopen Phase 0 without fresh deterministic or live evidence.
 
 ---
 
 # EXACT NEXT ACTION
 
-Re-run the **Red/White semantic benchmark** locally after the D14 fixture repair:
+Proceed with **Phase 1 semantic benchmark expansion for D1 survival competence**.
+
+The existing 13 D1 semantic cases protect authority and several known mechanics. Expand coverage only where it can expose a real survival-decision defect.
+
+Start by auditing current D1 semantic cases against these failure classes:
+
+1. **resource-spend survival tradeoffs** — avoid spending a discard/hand/consumable when an equivalent or safer clear exists;
+2. **redraw quality vs immediate score** — preserve high-value redraw branches when current score gain is insufficient;
+3. **terminal-clear hierarchy** — guaranteed clear dominates development except literal round-end resources/equal-clear tie-breaks already encoded;
+4. **boss-legality continuity** — root and recursive candidates obey identical boss legality/mechanics;
+5. **timeout consistency** — bounded search must not change the underlying decision objective;
+6. **public-state uncertainty** — no semantic case may rely on hidden draw order or RNG identity.
+
+Do not add cases merely to increase the count. Every new case must correspond to a plausible live competence failure and identify the canonical owner that would be fixed if it fails.
+
+After identifying a coherent first batch, implement the semantic cases and ask the user to run:
 
 ```powershell
 git pull
 python -m games.balatro.red_white_semantic_benchmark
 ```
 
-Do not run it from ChatGPT.
-
-### If the benchmark is green
-
-1. refresh `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` so retired D1 installers are described as compatibility/history rather than active authority;
-2. declare Phase 0 complete;
-3. advance the roadmap to the next competence phase.
-
-### If the benchmark still reveals a semantic failure
-
-Treat it as fresh evidence. Fix the smallest canonical owner or stale benchmark fixture as appropriate. Do not reopen retired wrapper architecture merely to satisfy historical expectations.
+If a new case fails, fix the smallest canonical owner. Do not add wrapper rescues.
 
 ---
 
-# ORDERED PHASE-0 QUEUE
+# PHASE ORDER
 
-1. Target-hand evidence — IMPLEMENTED / VALIDATED
-2. Purple Seal discard beam coverage — IMPLEMENTED / VALIDATED
-3. Held round-end resources — IMPLEMENTED / VALIDATED
-4. Semantic-search guard — IMPLEMENTED / VALIDATED
-5. Serpent — IMPLEMENTED / VALIDATED
-6. Hook — IMPLEMENTED / VALIDATED
-7. Cerulean — IMPLEMENTED / VALIDATED
-8. Ectoplasm + round-reset resources — IMPLEMENTED / VALIDATED
-9. Joker-generation live state — IMPLEMENTED / VALIDATED
-10. Boss-hand constraints — IMPLEMENTED / VALIDATED
-11. Phase-0 deterministic suite — **GREEN**
-12. Red/White semantic benchmark — **23/24; D14 fixture repaired, rerun pending**
-13. Authority-map refresh + Phase-0 closure — **AFTER BENCHMARK GREEN**
+1. **Phase 0 — authority consolidation** — COMPLETE
+2. **Phase 1 — semantic benchmark expansion + D1 survival competence refinement** — ACTIVE
+3. **Phase 2 — simple shop survival**
+4. **Phase 3 — coherent build evidence/authority quality**
+5. **Phase 4 — complex packs/consumables/vouchers/economy audit**
+6. **Phase 5 — live validation**
+7. **Phase 6 — numerical tuning only after semantics are trustworthy**
 
----
-
-# PHASE-0 EXIT GATE
-
-Phase 0 is complete only when:
-
-- one documented/enforced final authority exists for each action family;
-- late semantic rescue layers are removed or reduced to true compatibility/diagnostic code;
-- true observation adapters are explicit/native at the observer/translator boundary rather than installed via mutation;
-- diagnostics cannot independently plan or change actions;
-- production behavior no longer depends on fragile module import/installer order for migrated D1 semantics;
-- deterministic focused tests protect behavior rather than retired monkeypatch mechanisms;
-- the full Balatro deterministic suite is green — **SATISFIED**;
-- the Red/White semantic benchmark has been reviewed after the decision-semantic migrations — **23/24 fixture issue repaired; rerun pending**;
-- `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` reflects current native ownership rather than retired installers — **PENDING**.
-
-Semantic benchmark:
-
-```powershell
-git pull
-python -m games.balatro.red_white_semantic_benchmark
-```
+Future stake/deck progression remains blocked until Red/White competence passes.
 
 ---
 
 # CLOSED / DO NOT REOPEN WITHOUT FRESH EVIDENCE
 
+- Phase-0 D1 ownership migration queue
 - ordinary D1 competence failures already repaired
 - Mouth discard-only legality defect itself
 - Green Joker survival-equivalent authority
@@ -216,17 +182,3 @@ python -m games.balatro.red_white_semantic_benchmark
 - live tuner cascading after failed/non-COMPLETE trial
 - Phase-A Bond exploratory tuning — completed with no promotion
 - D14/D11 SHOP latency blocker unless fresh timing evidence reproduces it
-
----
-
-# LATER PHASES — BLOCKED UNTIL PHASE 0 EXIT GATE PASSES
-
-1. Semantic benchmark expansion
-2. D1 survival competence refinement
-3. Simple shop survival
-4. Coherent build authority
-5. Complex packs/consumables/vouchers/economy audit
-6. Live validation
-7. Numerical tuning only after semantics/authority are trustworthy
-
-Future stake/deck progression remains blocked until Red/White competence passes.
