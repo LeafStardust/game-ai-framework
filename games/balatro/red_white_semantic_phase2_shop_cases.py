@@ -11,6 +11,7 @@ from games.balatro.actions import (
     SELL_JOKER,
     BalatroAction,
 )
+from games.balatro.build import JokerBuildTransitionPlanner
 from games.balatro.joker_policy import (
     HOLD,
     REPLACE,
@@ -288,16 +289,16 @@ def _paid_reroll_preserves_minimum_cash_reserve() -> SemanticCheck:
     )
 
 
-def _synthetic_transition(build_gain: float):
-    return SimpleNamespace(
-        plan=lambda state, candidate: SimpleNamespace(
-            candidate_value=SimpleNamespace(
-                applicability="APPLICABLE",
-                total_gain=float(build_gain),
-            ),
-            alternatives=(),
-        )
+def _synthetic_transition(build_gain: float) -> JokerBuildTransitionPlanner:
+    planner = JokerBuildTransitionPlanner()
+    planner.plan = lambda state, candidate: SimpleNamespace(
+        candidate_value=SimpleNamespace(
+            applicability="APPLICABLE",
+            total_gain=float(build_gain),
+        ),
+        alternatives=(),
     )
+    return planner
 
 
 def _first_engine_bootstrap_does_not_rescue_zero_cash() -> SemanticCheck:
