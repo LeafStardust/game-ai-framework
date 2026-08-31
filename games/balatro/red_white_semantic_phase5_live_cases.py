@@ -4,10 +4,15 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from games.balatro.actions import DISCARD_CARDS, BalatroAction
+from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
+from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
+from games.balatro.live.hand_action_policy import PACE_RECOVERY, LiveHandActionPolicy
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
+from games.balatro.live.path_aware_hand_action_engine import (
+    PathAwareLiveHandActionDecisionEngine,
+)
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
 
 
@@ -72,6 +77,75 @@ def _underpace_made_hand_does_not_suppress_discard_recovery() -> SemanticCheck:
     )
 
 
+def _timeout_retained_roots_still_use_final_d1_arbiter() -> SemanticCheck:
+    """Stopping search does not promote planner ordering into final action authority."""
+
+    cards = [object() for _ in range(4)]
+    play = LiveBlindPlan(
+        action=BalatroAction(PLAY_CARDS, cards=cards[:2]),
+        value=LiveBlindPlanValue(
+            clear_probability=0.30,
+            expected_progress=0.30,
+            expected_score=30.0,
+            expected_hands_remaining=3.0,
+            expected_discards_remaining=3.0,
+        ),
+        horizon=2,
+        exact=True,
+        candidate_count=2,
+    )
+    discard = LiveBlindPlan(
+        action=BalatroAction(DISCARD_CARDS, cards=cards[2:]),
+        value=LiveBlindPlanValue(
+            clear_probability=0.20,
+            expected_progress=0.20,
+            expected_score=20.0,
+            expected_hands_remaining=4.0,
+            expected_discards_remaining=2.0,
+        ),
+        horizon=2,
+        exact=True,
+        candidate_count=2,
+    )
+
+    class Evaluator:
+        def project_play(self, state, action):
+            del state, action
+            return SimpleNamespace(expected_hand_score=10.0)
+
+        def evaluate(self, state, action):
+            del state
+            return 80.0 if action.name == DISCARD_CARDS else 10.0
+
+    engine = object.__new__(PathAwareLiveHandActionDecisionEngine)
+    engine.policy = LiveHandActionPolicy(evaluator=Evaluator())
+    engine._adaptive_plan_history = [(play, discard)]
+    engine._adaptive_root_history = []
+    state = SimpleNamespace(
+        hand=cards,
+        blind=SimpleNamespace(requirement=100),
+        score=0,
+        hands_remaining=4,
+        discards_remaining=3,
+    )
+
+    decision = engine._structural_timeout_fallback(state, search_attempts=())
+    passed = decision.mode == PACE_RECOVERY and decision.action is discard.action
+    return SemanticCheck(
+        passed,
+        observed=f"mode={decision.mode}, action={decision.action.name}",
+        expected=(
+            "timeout reuses the latest completed plan set through the canonical D1 "
+            "Play-vs-Discard arbiter"
+        ),
+        detail=(
+            "a wall-clock deadline may stop additional search, but planner root ordering "
+            "cannot become a second final controller; complete public hand state must still "
+            "flow through LiveHandActionPolicy before execution"
+        ),
+    )
+
+
 RED_WHITE_PHASE5_LIVE_CASES = (
     SemanticBenchmarkCase(
         case_id="d1.live.underpace_made_hand_keeps_discard_recovery",
@@ -79,5 +153,15 @@ RED_WHITE_PHASE5_LIVE_CASES = (
         description="under-pace made hands do not categorically suppress discard recovery",
         evaluate=_underpace_made_hand_does_not_suppress_discard_recovery,
         source="Phase 5 three-run live baseline: all losses ended with 4/4 discards unused",
+    ),
+    SemanticBenchmarkCase(
+        case_id="d1.live.timeout_preserves_final_arbiter",
+        category="D1_SURVIVAL",
+        description="D1 timeout keeps final Play-vs-Discard arbitration authoritative",
+        evaluate=_timeout_retained_roots_still_use_final_d1_arbiter,
+        source=(
+            "Phase 5 post-fix live baseline: two losses still ended with every discard unused, "
+            "including an Ante-1 Big Blind at 74/450"
+        ),
     ),
 )
