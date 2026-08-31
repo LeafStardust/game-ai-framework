@@ -8,7 +8,10 @@ owns only the bounded advisory search schedule. The production path-aware D1 eng
 applies it directly; importing this module does not patch base D1 behavior.
 """
 
-from games.balatro.live.adaptive_search import AdaptiveBlindSearchConfig
+from games.balatro.live.adaptive_search import (
+    LIVE_ADAPTIVE_MAX_HORIZON,
+    AdaptiveBlindSearchConfig,
+)
 
 
 def _safe_search_schedule(
@@ -18,7 +21,14 @@ def _safe_search_schedule(
     max_horizon: int = 8,
     max_nodes: int = 5000,
 ) -> tuple[AdaptiveBlindSearchConfig, ...]:
-    """One shallow advisory pass; never engineer a five-action clear line live."""
+    """Keep ordinary D1 shallow while preserving literal final-hand recovery.
+
+    Multi-hand states retain the single horizon-two advisory pass.  When exactly
+    one scoring hand remains, however, every remaining discard is mechanically
+    usable before that final hand without consuming it.  The advisory horizon must
+    therefore be able to represent that bounded discard chain; otherwise D1 can
+    commit its sole Play while legal recovery resources are still unused.
+    """
     if hands_remaining < 0 or discards_remaining < 0:
         raise ValueError("remaining hands/discards cannot be negative")
     if hands_remaining + discards_remaining <= 0:
@@ -26,7 +36,16 @@ def _safe_search_schedule(
     if max_horizon < 1 or max_nodes < 1:
         raise ValueError("search horizon/nodes must be positive")
 
-    horizon = 1 if hands_remaining + discards_remaining == 1 else 2
+    action_budget = hands_remaining + discards_remaining
+    if hands_remaining == 1 and discards_remaining > 0:
+        horizon = min(
+            action_budget,
+            int(max_horizon),
+            LIVE_ADAPTIVE_MAX_HORIZON,
+        )
+    else:
+        horizon = 1 if action_budget == 1 else 2
+
     return (
         AdaptiveBlindSearchConfig(
             horizon=horizon,
