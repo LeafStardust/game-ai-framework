@@ -21,7 +21,11 @@ from games.balatro.joker_policy import (
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
 from games.balatro.shop_policy import ShopActionScore
-from games.balatro.shop_reroll_policy import ShopRerollRecommendation
+from games.balatro.shop_reroll_policy import (
+    BuildAwareShopRerollPolicy,
+    ShopRerollRecommendation,
+    ShopRerollThresholds,
+)
 from games.balatro.state import BalatroState
 
 
@@ -219,6 +223,68 @@ def _replacement_stops_after_sell_checkpoint() -> SemanticCheck:
     )
 
 
+def _paid_reroll_respects_absolute_cost_cap() -> SemanticCheck:
+    state = _base_state()
+    state.money = 50
+    thresholds = ShopRerollThresholds(
+        maximum_paid_reroll_cost=8,
+        minimum_money_after_paid_reroll=0,
+    )
+    policy = BuildAwareShopRerollPolicy(thresholds=thresholds)
+    recommendation = policy.recommend(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=9,
+        visible_score_floor=0.0,
+    )
+    capped = any("stop-loss cap" in note for note in recommendation.rationale)
+    return SemanticCheck(
+        recommendation.decision == "HOLD"
+        and recommendation.executable_action is None
+        and capped,
+        observed=(
+            f"decision={recommendation.decision}, executable={recommendation.executable_action}, "
+            f"cap_reason={capped}"
+        ),
+        expected="paid reroll above the configured absolute cost cap fails closed",
+        detail=(
+            "future-shop option value cannot justify an arbitrarily expensive refresh; D11 must enforce "
+            "its explicit paid-reroll stop-loss before estimating hidden-offer EV"
+        ),
+    )
+
+
+def _paid_reroll_preserves_minimum_cash_reserve() -> SemanticCheck:
+    state = _base_state()
+    state.money = 12
+    thresholds = ShopRerollThresholds(
+        maximum_paid_reroll_cost=8,
+        minimum_money_after_paid_reroll=10,
+    )
+    policy = BuildAwareShopRerollPolicy(thresholds=thresholds)
+    recommendation = policy.recommend(
+        state,
+        [BalatroAction(END_SHOP)],
+        reroll_cost=3,
+        visible_score_floor=0.0,
+    )
+    reserve_block = any("stop-loss reserve" in note for note in recommendation.rationale)
+    return SemanticCheck(
+        recommendation.decision == "HOLD"
+        and recommendation.executable_action is None
+        and reserve_block,
+        observed=(
+            f"decision={recommendation.decision}, money={state.money}, reroll_cost=3, "
+            f"reserve_reason={reserve_block}"
+        ),
+        expected="paid reroll is rejected when it would cross the minimum cash-after-reroll reserve",
+        detail=(
+            "simple Red/White survival requires cash to remain available for visible scoring purchases; "
+            "D11 must reject a paid refresh before future-shop EV when the post-reroll reserve is unsafe"
+        ),
+    )
+
+
 RED_WHITE_PHASE2_SHOP_CASES = (
     SemanticBenchmarkCase(
         case_id="shop.simple.end_shop_zero_baseline",
@@ -240,5 +306,19 @@ RED_WHITE_PHASE2_SHOP_CASES = (
         description="Joker replacement stops after the sell checkpoint",
         evaluate=_replacement_stops_after_sell_checkpoint,
         source="Phase 2 simple-shop audit: transactional re-observation",
+    ),
+    SemanticBenchmarkCase(
+        case_id="shop.simple.paid_reroll_cost_cap",
+        category="SHOP_SURVIVAL",
+        description="paid reroll respects the absolute stop-loss cost cap",
+        evaluate=_paid_reroll_respects_absolute_cost_cap,
+        source="Phase 2 simple-shop audit: paid reroll stop-loss",
+    ),
+    SemanticBenchmarkCase(
+        case_id="shop.simple.paid_reroll_cash_reserve",
+        category="SHOP_SURVIVAL",
+        description="paid reroll preserves minimum post-refresh cash reserve",
+        evaluate=_paid_reroll_preserves_minimum_cash_reserve,
+        source="Phase 2 simple-shop audit: cash reserve boundary",
     ),
 )
