@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A is RETAINED at 1/10 wins versus the 0/10 baseline. Tune B was REJECTED at 0/10 and its revert to the Tune-A `$10` D11 runway is locally validated 74/74 GREEN. Tune C is ACTIVE and SEMANTIC GREEN at 74/74: ordinary D2 Joker replacement advantage is 0.50 while aligned replacements remain 0.25. The next gate is a fresh 10-attempt Tune-C live comparison with no further changes.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A remains retained for its targeted first-Joker runway behavior but its live result is corrected to 0/10, not 1/10: the previously reported Crimson Heart win was an Ante-8 GAME_OVER loss whose public `won` bit remained sticky. Tune B remains REJECTED at 0/10. Tune C is SEMANTIC GREEN at 74/74 and has 9/10 valid live attempts completed, all losses; attempt 9 died to Violet Vessel and then exposed the same sticky-`won` restart bug. Runtime fix `28cec27b` plus regression `6e1a2696` is pending local validation before the final Tune-C attempt.**
 
 Validated checkpoints:
 
@@ -70,10 +70,11 @@ Validated checkpoints:
 - Phase 5 D1 timeout final-arbiter semantic: **GREEN / 72/72**, `D1_SURVIVAL` 24/24
 - Phase 5 D2 first-Joker scoring-foothold semantic: **GREEN / 73/73**, `SHOP_SURVIVAL` 19/19
 - Phase 5 D1 final-hand discard-chain search semantic: **GREEN / 74/74**, `D1_SURVIVAL` 25/25
-- Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74; RETAINED / 1 OF 10 WINS**
+- Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74; RETAINED / 0 OF 10 WINS after corrected terminal bookkeeping**
 - Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; LIVE COMPARISON PENDING**
+- Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; LIVE COMPARISON 9/10 COMPLETE, 0 WINS SO FAR**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
+- Phase 6 sticky-win GAME_OVER restart semantics: **FIX IMPLEMENTED / LOCAL REGRESSION PENDING** (`28cec27b` + `6e1a2696`)
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
@@ -148,7 +149,7 @@ Important evidence:
 - repeated later losses retained large cash balances while still failing scoring requirements;
 - representative late/medium-run evidence includes a four-Joker Ante-4 loss with **$56**, plus prior five-Joker losses with roughly **$70–$82**.
 
-## Phase-6 Tune A — first-Joker cash runway — COMPLETE / RETAINED / 1 OF 10 WINS
+## Phase-6 Tune A — first-Joker cash runway — COMPLETE / RETAINED / CORRECTED 0 OF 10 WINS
 
 Canonical owner: `JokerAcquisitionPolicy`.
 
@@ -158,7 +159,11 @@ Change: in Ante 1–2, a first-Joker purchase must leave at least **$2**. This a
 
 Validation: **74/74 GREEN**.
 
-Live result: **1/10 wins**, including an Ante-8 Crimson Heart win. Tune A remains retained.
+### Corrected Tune-A live result
+
+The previously reported 1/10 result was incorrect. Session `balatro-20260831T123756Z-62a20e03` attempt 7 reached Ante 8 boss **Crimson Heart** but ended at `68218 / 100000`, `hands_left=0`, phase `GAME_OVER`. The session supervisor correctly recorded attempt 7 as **LOSS**. Its process-memory payload and per-run summary nevertheless exposed `won=true`, demonstrating that Balatro's public `won` bit can remain sticky at a later GAME_OVER loss.
+
+Therefore Tune A's corrected primary result is **0/10 wins**, not 1/10. It remains retained provisionally because it removed the specific observed `$0/$1` first-Joker bankroll commitment while remaining semantically clean, but it has **not** demonstrated a win-rate improvement over the original 0/10 baseline. Future tuning comparisons must use the corrected 0/10 figure.
 
 ## Phase-6 Tune B — early paid-reroll runway — REJECTED / REVERTED
 
@@ -172,12 +177,12 @@ Live result: session `balatro-20260831T135424Z-655cd5c9` finished **0/10 wins**.
 
 Interpretation:
 
-- Tune B did not improve the primary metric versus retained Tune A (**1/10 → 0/10**);
-- the `$8` D11 runway was therefore rejected and restored to `$10`;
+- Tune B did not improve the primary metric versus the corrected Tune-A result: both are **0/10**;
+- because the experiment also failed to establish a trace-grounded compensating benefit, the `$8` D11 runway was rejected and restored to `$10`;
 - user locally revalidated the reverted Tune-A state **74/74 GREEN**;
 - do not reopen the `$8` D11 experiment absent new controlled evidence.
 
-## Phase-6 Tune C — ordinary Joker replacement margin — ACTIVE / SEMANTIC GREEN
+## Phase-6 Tune C — ordinary Joker replacement margin — ACTIVE / SEMANTIC GREEN / 9 OF 10 LIVE ATTEMPTS COMPLETE
 
 Canonical owner: D2 `JokerAcquisitionPolicy`, configured by the Red/White playbook.
 
@@ -192,42 +197,57 @@ Change:
 - ordinary new-slot purchase threshold remains **0.35**;
 - D11 and D14 resource coefficients remain unchanged.
 
-Why this target:
-
-- across the Phase-6 baseline and preceding live validation, multiple medium/late losses reached full or near-full Joker boards while retaining large cash balances and still failed scoring requirements;
-- this points more directly at **upgrade/replacement selectivity** than at reroll starvation;
-- lowering only the ordinary replacement margin permits mechanically positive upgrades to replace weak incumbents more readily without making aligned replacements, first-Joker acquisition, boosters, consumables, or rerolls more permissive;
-- 0.50 is a single conservative step between the prior ordinary 0.75 threshold and the existing aligned 0.25 threshold.
-
 Validation:
 
 - user locally validated the full Red/White semantic benchmark **74/74 GREEN** after Tune C;
 - all semantic/category ownership contracts remain unchanged.
 
-This remains an A/B numerical hypothesis. No Joker identity is hard-coded, and no hidden future information is used.
+### Interrupted Tune-C live comparison
+
+Session: `balatro-20260831T145541Z-6d7821ed`.
+
+Nine gameplay attempts completed and are valid. All nine are authoritative **LOSS** outcomes. The supervisor then stopped with `RESTART_FAILED: won runs must not be restarted` while trying to transition after attempt 9.
+
+Attempt 9 evidence:
+
+- Ante 8 boss **Violet Vessel**;
+- requirement `300000`;
+- final score approximately `88815 / 300000`;
+- phase `GAME_OVER` with exhausted scoring hands;
+- session outcome **LOSS**;
+- process-memory payload nevertheless exposed stale `won=true`.
+
+This is the same terminal-state mismatch seen retrospectively in Tune-A attempt 7. The gameplay attempt itself remains valid and must not be discarded. Tune C therefore stands at **0/9 wins so far**, with one additional attempt required after the runtime fix validates.
+
+## Runtime finding — sticky public `won` must not veto authoritative GAME_OVER loss restart
+
+Canonical runtime source: `games/balatro/live/runtime/live_memory_restart_run_injected.py`.
+
+Production autonomous-loop semantics already define the contract correctly: `GAME_OVER` is authoritative loss evidence because Balatro's public `won` bit can remain sticky after a late-run/Ante-8 state transition. Ordinary wins are detected before GAME_OVER on the won checkpoint.
+
+The restart validator contradicted that contract by requiring GAME_OVER **and** rejecting the restart whenever `payload.won` was true. Its bounded retry loop repeated the same stale-bit veto.
+
+Fix:
+
+- `28cec27b` — complete `GAME_OVER` remains mandatory, but the stale public `won` bit no longer overrides that authoritative terminal phase either at source validation or during guarded retry;
+- non-GAME_OVER and incomplete GAME_OVER snapshots still fail closed;
+- deck/stake identity and post-restart BLIND_SELECT verification remain unchanged;
+- true wins are still stopped upstream before the loss-restart path is invoked;
+- `6e1a2696` — focused regression covers `GAME_OVER + won=true` acceptance plus continued rejection of non-GAME_OVER and incomplete sources.
+
+This is a runtime semantic consistency repair, not Phase-6 numerical tuning.
 
 # EXACT NEXT ACTION
 
-Run a fresh **10-attempt Tune-C live sample** with Tune A retained and no additional changes:
+Validate the sticky-win restart regression only; do not rerun the nine completed Tune-C attempts:
 
 ```powershell
 git pull
-.\BalatroAgentToggle.bat --attempts 10
+python -m pytest -q tests/balatro/test_balatro_live_memory_restart_source.py
 
 ```
 
-Compare Tune C against both the original 0/10 baseline and retained Tune A 1/10 on:
-
-- win rate and furthest ante;
-- death score ratio;
-- cash at death;
-- Joker count/composition;
-- full/near-full-board replacement frequency and replacement outcomes where trace evidence is retrievable;
-- realized direct scoring power;
-- discard/hands consumed at death;
-- whether large-cash underpowered deaths decrease.
-
-Do not stack Tune D until this 10-run Tune-C sample is reviewed.
+If green, retain the existing nine Tune-C losses and run **one additional Tune-C attempt** to complete the intended 10-run sample. Do not stack Tune D before that comparison is complete.
 
 # Phase order
 
