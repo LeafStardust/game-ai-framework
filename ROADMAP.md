@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A remains retained for its targeted first-Joker runway behavior but its live result is corrected to 0/10, not 1/10: the previously reported Crimson Heart win was an Ante-8 GAME_OVER loss whose public `won` bit remained sticky. Tune B remains REJECTED at 0/10. Tune C is SEMANTIC GREEN at 74/74 and has 9/10 valid live attempts completed, all losses; attempt 9 died to Violet Vessel and then exposed the same sticky-`won` restart bug. Runtime fix `28cec27b` plus regression `6e1a2696` is pending local validation before the final Tune-C attempt.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A remains retained for its targeted first-Joker runway behavior but its corrected live result is 0/10. Tune B remains REJECTED at 0/10. Tune C is SEMANTIC GREEN at 74/74 and has 9/10 valid live attempts completed, all losses. The sticky-`won` GAME_OVER restart repair (`28cec27b` + `6e1a2696`) is now locally validated GREEN. The exact next action is one additional Tune-C attempt; do not rerun the first nine.**
 
 Validated checkpoints:
 
@@ -74,7 +74,7 @@ Validated checkpoints:
 - Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; LIVE COMPARISON 9/10 COMPLETE, 0 WINS SO FAR**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
-- Phase 6 sticky-win GAME_OVER restart semantics: **FIX IMPLEMENTED / LOCAL REGRESSION PENDING** (`28cec27b` + `6e1a2696`)
+- Phase 6 sticky-win GAME_OVER restart semantics: **LOCAL REGRESSION GREEN** (`28cec27b` + `6e1a2696`)
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
 
@@ -219,11 +219,11 @@ Attempt 9 evidence:
 
 This is the same terminal-state mismatch seen retrospectively in Tune-A attempt 7. The gameplay attempt itself remains valid and must not be discarded. Tune C therefore stands at **0/9 wins so far**, with one additional attempt required after the runtime fix validates.
 
-## Runtime finding — sticky public `won` must not veto authoritative GAME_OVER loss restart
+## Runtime finding — sticky public `won` must not veto authoritative GAME_OVER loss restart — VALIDATED
 
 Canonical runtime source: `games/balatro/live/runtime/live_memory_restart_run_injected.py`.
 
-Production autonomous-loop semantics already define the contract correctly: `GAME_OVER` is authoritative loss evidence because Balatro's public `won` bit can remain sticky after a late-run/Ante-8 state transition. Ordinary wins are detected before GAME_OVER on the won checkpoint.
+Production autonomous-loop semantics define the contract correctly: `GAME_OVER` is authoritative loss evidence because Balatro's public `won` bit can remain sticky after a late-run/Ante-8 state transition. Ordinary wins are detected before GAME_OVER on the won checkpoint.
 
 The restart validator contradicted that contract by requiring GAME_OVER **and** rejecting the restart whenever `payload.won` was true. Its bounded retry loop repeated the same stale-bit veto.
 
@@ -235,19 +235,22 @@ Fix:
 - true wins are still stopped upstream before the loss-restart path is invoked;
 - `6e1a2696` — focused regression covers `GAME_OVER + won=true` acceptance plus continued rejection of non-GAME_OVER and incomplete sources.
 
+Validation:
+
+- user locally ran `tests/balatro/test_balatro_live_memory_restart_source.py` after pulling the fix;
+- result: **GREEN**.
+
 This is a runtime semantic consistency repair, not Phase-6 numerical tuning.
 
 # EXACT NEXT ACTION
 
-Validate the sticky-win restart regression only; do not rerun the nine completed Tune-C attempts:
+Retain the existing nine Tune-C losses and run **one additional Tune-C attempt** to complete the intended 10-run sample. Do not stack Tune D before that comparison is complete.
 
 ```powershell
 git pull
-python -m pytest -q tests/balatro/test_balatro_live_memory_restart_source.py
+.\BalatroAgentToggle.bat --attempts 1
 
 ```
-
-If green, retain the existing nine Tune-C losses and run **one additional Tune-C attempt** to complete the intended 10-run sample. Do not stack Tune D before that comparison is complete.
 
 # Phase order
 
