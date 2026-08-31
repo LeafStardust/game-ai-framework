@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-08-31
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A is RETAINED at 1/10 wins versus the 0/10 baseline. Tune B was semantic GREEN but produced 0/10 wins and is REJECTED; its $8 pre-Ante-6 reroll reserve was reverted to the previously validated $10 Tune-A state in `1ed61d29`. The next step is evidence review for a distinct Tune C; do not stack another D11 relaxation.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Tune A is RETAINED at 1/10 wins versus the 0/10 baseline. Tune B was REJECTED at 0/10 and its revert to the Tune-A `$10` D11 runway is locally validated 74/74 GREEN. Tune C is now ACTIVE: ordinary D2 Joker replacement advantage is lowered from 0.75 to 0.50 while aligned replacements remain 0.25. Semantic validation is the next gate.**
 
 Validated checkpoints:
 
@@ -71,7 +71,8 @@ Validated checkpoints:
 - Phase 5 D2 first-Joker scoring-foothold semantic: **GREEN / 73/73**, `SHOP_SURVIVAL` 19/19
 - Phase 5 D1 final-hand discard-chain search semantic: **GREEN / 74/74**, `D1_SURVIVAL` 25/25
 - Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74; RETAINED / 1 OF 10 WINS**
-- Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS**
+- Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
+- Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC VALIDATION PENDING**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
@@ -120,168 +121,32 @@ Phase 4 is closed. Do not add Batch 7 absent fresh Phase-5 live semantic evidenc
 
 Primary gate source: `docs/balatro/BALATRO_LIVE_VALIDATION_GATE.md`.
 
-## Runtime stabilization already completed
+Historical Phase-5 runtime blockers and D1/D2 semantic findings remain closed at **74/74 semantic green**. Reopen Phase 5 only for fresh reproducible mechanics, legality, ownership, projection, hidden-information, or runtime evidence.
 
-Historical Phase-5 runtime blockers included stale pack-choice pointers, stale pack plans becoming fatal instead of replanning, and post-decision diagnostics rerunning expensive SHOP planning. Relevant repairs include:
+Key validated Phase-5 corrections:
 
-- `ec289256` — ignore volatile pack pointers in stale-plan signature
-- `bac63e23` — bounded replan when visible pack choices change before submit
-- `cb57f48` / `a185ad7` — remove post-decision diagnostics double-planner overhead
-
-Fresh production sessions complete normally after these repairs.
-
-## Baseline A — systemic discard hoarding
-
-Session: `balatro-20260831T083950Z-38168e59`.
-
-1. Ante 6 boss The Arm — `23355 / 40000`, 0/4 discards used
-2. Ante 4 Big Blind — `1575 / 7500`, 0/4 discards used
-3. Ante 5 boss The Mark — `14466 / 22000`, 0/4 discards used
-
-Fresh evidence: all three losses exhausted all scoring hands while leaving all four discard resources untouched.
-
-### D1 finding 1 — under-pace made-hand discard suppression — GREEN
-
-Canonical owner: `LiveHandDecisionEvaluator._discard_value`.
-
-- `cb2058cc` — semantic `d1.live.underpace_made_hand_keeps_discard_recovery`
-- `820e096d` — made-hand preservation applies only when the play actually meets current survival pace
-- `4ecf9bc5` — benchmark wiring
-
-Validated locally **71/71**, `D1_SURVIVAL` 23/23. No numeric tuning.
-
-## Baseline B — timeout still bypassed final arbiter
-
-Session: `balatro-20260831T091211Z-8eae7b51`.
-
-1. Ante 4 boss The Mark — `7353 / 10000`, 0/4 discards used
-2. Ante 1 Big Blind — `74 / 450`, 0/5 discards used (Drunkard)
-3. Ante 2 Big Blind — `939 / 1200`, 1/4 discard used
-
-### D1 finding 2 — timeout planner ranking bypasses final arbiter — GREEN
-
-Canonical owner: `PathAwareLiveHandActionDecisionEngine._structural_timeout_fallback`.
-
-The timeout path reused `plans[0]` directly, turning planner ordering into a second final controller. Stopping search is legal; bypassing the canonical Play-vs-Discard arbiter is not.
-
-- `dcdbefe4` — semantic `d1.live.timeout_preserves_final_arbiter`
-- `d7ec97f3` — retained completed plan sets with authoritative public hand state flow back through `LiveHandActionPolicy`
-
-Validated locally **72/72**, `D1_SURVIVAL` 24/24.
-
-## Baseline C — discard-hoarding resolved; early scoring foothold defect exposed
-
-Session: `balatro-20260831T093436Z-9a84e993`.
-
-1. Ante 2 Small Blind — `544 / 800`, 4/4 discards used; only Joker at death Midas Mask
-2. Ante 7 Big Blind — `47112 / 52500`, 5/5 discards used
-3. Ante 3 boss The Needle — `300 / 2000`, 4/4 discards used
-
-The global discard-hoarding failure was resolved in this pass: every loss spent all available discards.
-
-### D2 finding — first-Joker bootstrap conflated structural value with scoring foothold — GREEN
-
-Canonical owner: `JokerAcquisitionPolicy`.
-
-The Ante-1/2 special first-Joker relaxation was intended to establish immediate scoring power but admitted any positive whole-build gain, allowing support/economy value to inherit scoring-emergency authority.
-
-- `0f1fd70f` — bootstrap requires positive canonical `direct_scoring_gain`
-- `b9a015e1` — repairs one accidental syntax typo introduced in that edit
-- `9470907a` — semantic `d2.live.first_joker_bootstrap_requires_scoring_foothold`
-- `6e9c563a` — completes the synthetic transition-planner fixture contract used by installed post-transaction D2 policy
-
-Validated locally **73/73**, `SHOP_SURVIVAL` 19/19. Support/economy Jokers remain legal through normal D2 economics; they simply cannot use the scoring-foothold exception without current literal scoring power.
-
-## Baseline D — 73/73 stack
-
-Session: `balatro-20260831T102028Z-6cf4214a`.
-
-All three attempts completed normally; result **0/3 wins**.
-
-1. attempt 1 — loss, Ante 2 boss **The Needle**, `550 / 800`, `hands_left=0`, `discards_left=4`, `discards_used=0`; owned Jokers at death: Even Steven, Misprint, Card Sharp
-2. attempt 2 — loss, Ante 5 boss **The Psychic**, `17750 / 22000`, `hands_left=0`, `discards_left=0`, `discards_used=4`; five-Joker board, $70
-3. attempt 3 — loss, Ante 4 boss **The Wheel**, `8270 / 10000`, `hands_left=0`, `discards_left=0`, `discards_used=4`; five-Joker board, $82
-
-Interpretation:
-
-- the previous **global** discard-hoarding defect remains resolved in attempts 2 and 3;
-- attempt 1 is a distinct final-hand resource-geometry failure: The Needle provides one scoring hand, yet D1 spent that sole Play and died while all four discards remained available;
-- this is not evidence to reopen the old made-hand/timeout fixes globally.
-
-### D1 finding 3 — final-hand safe schedule cannot represent multiple discards before sole Play — GREEN
-
-Canonical owner: `_safe_search_schedule` used by `PathAwareLiveHandActionDecisionEngine._search_schedule`.
-
-Source inspection after Baseline D:
-
-- production Red/White D1 uses `safe_pace_optimization_policy._safe_search_schedule`;
-- before correction, whenever more than one action remained, that helper returned exactly one **horizon-2** advisory pass;
-- with `hands_remaining=1` and `discards_remaining=4`, horizon 2 could model at most `Discard -> Play`;
-- it could not compare legal lines `Discard -> Discard -> ... -> Play`, even though discards do not consume the sole scoring hand;
-- the generic adaptive planner already owns a global bounded maximum horizon of five, exactly enough for four discards plus one Play.
-
-Correction:
-
-- `cf17eac1` — ordinary multi-hand D1 stays horizon 2, but when exactly one scoring hand remains with spare discards, the safe schedule expands only enough to represent the remaining discard chain plus final Play, capped by existing `LIVE_ADAPTIVE_MAX_HORIZON=5`, caller `max_horizon`, and the existing 750-node safe-pass cap;
-- no score weights, probability floors, pace thresholds, or hidden-state assumptions changed;
-- `9d5fda58` — semantic `d1.live.final_hand_search_spends_remaining_discards`;
-- `446f426c` — benchmark wiring.
-
-Validated locally **74/74**, `D1_SURVIVAL` **25/25**. This remains a bounded mechanical search-scope correction, not numerical tuning.
-
-## Baseline E — 74/74 exit evidence
-
-Two fresh unchanged 74/74 three-attempt sessions were reviewed after the final D1 correction. Neither exposed a reproducible new mechanics, legality, ownership, hidden-information, or runtime defect.
-
-Session `balatro-20260831T104543Z-4b891757` — **0/3**:
-
-1. Ante 2 Small Blind — `780 / 800`, 2/4 discards used; Odd Todd + Blackboard
-2. Ante 2 boss The Wall — `2778 / 3200`, 0/4 discards used; Odd Todd + Green Joker
-3. Ante 1 Big Blind — `376 / 450`, 4/4 discards used; no Jokers
-
-Source audit confirmed Green Joker's discard mutation is already projected literally and Blackboard evaluates the actual held cards after play selection. The Wall's unused discards therefore do not establish a semantic defect by themselves; Green Joker makes discarding an actual scoring tradeoff.
-
-Session `balatro-20260831T105634Z-5453d63e` — **0/3**:
-
-1. Ante 6 boss **The Mouth** — `11260 / 40000`, 4/4 discards used; five-Joker board: Fibonacci, Photograph, Splash, Scary Face, Flower Pot
-2. Ante 2 Small Blind — `736 / 800`, 4/4 discards used; only Joker Card Sharp
-3. Ante 5 boss **The Hook** — `10776 / 22000`, 0/4 discards used; five-Joker board: Foil Abstract Joker, Ride the Bus, Burnt Joker, Fibonacci, Blackboard
-
-Interpretation:
-
-- the corrected stack demonstrably survives deep enough to reach Ante 6 and Ante 5 under normal production play;
-- ordinary discard recovery remains active in attempts 1 and 2;
-- the Hook attempt's unused discards are not enough to reopen global discard-hoarding without trace evidence of a mechanics/authority violation, especially with a build whose scoring value is materially state-dependent;
-- no crashes, stale-plan supervisor failures, or new hidden-information boundary violations were observed;
-- after six consecutive unchanged 74/74 attempts across the two exit sessions, remaining failures are best classified as **action-quality / build-strength / numerical preference** problems rather than unvalidated semantic authority defects.
-
-Phase 5 is therefore closed at **74/74 semantic green**. Reopen it only for fresh reproducible evidence of a mechanics, legality, ownership, projection, hidden-information, or runtime defect.
+- `820e096d` — under-pace made-hand discard recovery
+- `d7ec97f3` — timeout retains canonical final arbiter
+- `0f1fd70f` — early first-Joker bootstrap requires literal scoring foothold
+- `cf17eac1` — final-hand D1 can search the remaining discard chain before the sole Play
 
 # Phase 6 — NUMERICAL / ACTION-QUALITY TUNING — ACTIVE
 
 Goal: improve actual Red/White win rate without changing the validated semantic ownership model.
 
-Allowed work now includes measured tuning of existing policy thresholds/weights and action-quality preferences, provided every change remains inside the canonical owner for that decision family and preserves literal mechanics/projection contracts.
-
 ## Phase-6 baseline — 10 unchanged attempts
 
 Session: `balatro-20260831T112338Z-d58df919`.
 
-Result: **0/10 wins**.
-
-Death antes: **4, 3, 5, 3, 4, 1, 1, 1, 6, 7**.
+Result: **0/10 wins**. Death antes: **4, 3, 5, 3, 4, 1, 1, 1, 6, 7**.
 
 Important evidence:
 
 - three attempts died in Ante 1;
-- two attempts reached Ante 6 or later, proving the validated stack can still produce deep runs;
-- attempt 9 reached Ante 6 and died at roughly 95% of the 40,000-chip boss requirement;
-- attempt 10 reached Ante 7;
-- discard recovery was broadly active; most losing blinds consumed all available discards;
-- two of the three Ante-1 deaths ended with Baron as the only Joker and essentially no remaining cash ($0 and $1 respectively), while the third Ante-1 death had no Joker;
-- this does not justify a Baron-specific rule: Baron is contextual and the observed issue is the amount of early bankroll committed to the first scoring foothold.
-
-The first tuning target is therefore **early first-Joker cash runway**, not Joker identity and not semantic ownership.
+- two attempts reached Ante 6 or later;
+- attempt 9 reached `38005 / 40000` at Ante 6;
+- repeated later losses retained large cash balances while still failing scoring requirements;
+- representative late/medium-run evidence includes a four-Joker Ante-4 loss with **$56**, plus prior five-Joker losses with roughly **$70–$82**.
 
 ## Phase-6 Tune A — first-Joker cash runway — COMPLETE / RETAINED / 1 OF 10 WINS
 
@@ -289,91 +154,56 @@ Canonical owner: `JokerAcquisitionPolicy`.
 
 Commit: `1621b9ce`.
 
-Change:
+Change: in Ante 1–2, a first-Joker purchase must leave at least **$2**. This applies to ordinary D2 BUY and the first-scoring-foothold bootstrap. Once a Joker is owned and at Ante 3+, ordinary D2 economics are unchanged.
 
-- in Ante 1–2, when the build has no Joker yet, any first-Joker purchase must leave at least **$2**;
-- this applies whether the candidate would otherwise BUY through ordinary D2 advantage or through the special first-scoring-foothold bootstrap;
-- once a Joker is owned, ordinary D2 economics are unchanged;
-- Ante 3+ purchasing is unchanged;
-- the scoring-foothold semantic requirement remains unchanged;
-- no Joker names, boss names, hidden state, duplicate scorers, or rescue wrappers were introduced.
+Validation: **74/74 GREEN**.
 
-Validation:
-
-- user locally validated the full Red/White semantic benchmark **74/74 GREEN** after Tune A;
-- all category scores remain unchanged.
-
-### Tune-A live comparison result
-
-The first Tune-A session `balatro-20260831T123756Z-62a20e03` was interrupted after attempt 7 by the monitor-only telemetry Windows file-lock race. Those seven gameplay attempts remain valid. The key bookkeeping correction is that **attempt 7 was a real win**: it cleared Ante 8 / Crimson Heart with `won=true`; the supervisor then failed while publishing telemetry. The telemetry resilience repair (`d22f1b0a` + `cac8fd95`) was subsequently validated locally GREEN.
-
-The final three Tune-A attempts came from session `balatro-20260831T132736Z-d53e9777` and all lost:
-
-1. Ante 4 boss **The Pillar** — `7446 / 10000`, five Jokers (Raised Fist, Misprint, Photograph, Hiker, Flower Pot), $71, 0/4 manual discards used;
-2. Ante 1 boss **The Hook** — `396 / 600`, no Jokers, $8, 0/4 manual discards used; The Hook itself forcibly discards after played hands, so the manual-discard counter alone is not evidence to reopen the old global D1 defect;
-3. Ante 2 Big Blind — `980 / 1200`, no Jokers, $11, 4/4 discards used; the run summary records two purchases, but the exact purchase identities are not available from the retrievable trace evidence and must not be guessed.
-
-Combined Tune-A result versus baseline:
-
-- win rate: **0/10 → 1/10**;
-- furthest result: baseline Ante 7 loss → Tune A **Ante 8 win**;
-- Ante-1 deaths: **3/10 → 3/10**, so Tune A did not reduce the raw early-death count;
-- the early-failure shape changed: one Tune-A Ante-1 death occurred before the first shop, while other early losses can still reach a shop/boss with no scoring Joker established;
-- Tune A is therefore retained rather than reverted: it produced the first observed Red/White win and removed the specific $0/$1 first-Joker commitment behavior without a semantic regression.
-
-The next target is not a lower ordinary D2 buy threshold. A cash-safe Ante-1/2 first Joker with positive literal `direct_scoring_gain` already uses the validated first-engine bootstrap even when it misses the ordinary `0.35` purchase-advantage threshold.
+Live result: **1/10 wins**, including an Ante-8 Crimson Heart win. Tune A remains retained.
 
 ## Phase-6 Tune B — early paid-reroll runway — REJECTED / REVERTED
-
-Canonical owner: D11 `BuildAwareShopRerollPolicy`, configured by the Red/White playbook.
 
 Experiment commit: `32457e2e`.
 Revert commit: `1ed61d29`.
 
-Experiment:
+Experiment: Red/White pre-Ante-6 `minimum_money_after_paid_reroll` **$10 → $8**.
 
-- Red/White `minimum_money_after_paid_reroll`: **$10 → $8** before Ante 6;
-- all other D11 thresholds remained unchanged;
-- Tune A's first-Joker post-purchase floor remained **$2**.
-
-Semantic validation:
-
-- user locally validated the unchanged Red/White semantic benchmark **74/74 GREEN** after Tune B;
-- the experiment therefore changed numerical preference only, not semantic ownership.
-
-### Tune-B live comparison result
-
-Session: `balatro-20260831T135424Z-655cd5c9`.
-
-Result: **0/10 wins**. All ten attempts ended normally with `game over (lost)` and the supervisor reached its requested ten-attempt limit without a runtime crash.
-
-The uploaded JSONL attempt files were not retrievable from the active sandbox/file-search path despite being supplied, so no exact D11 reroll-count or decision-sequence claim is made from this batch. The rejection is based on the controlled live outcome comparison plus the retrievable per-attempt summaries, not on reconstructed reroll behavior.
-
-Retrievable summary evidence includes:
-
-- attempt 1: `6520 / 10000`, hands exhausted, 4/4 discards used;
-- attempt 2: `7576 / 10000`, hands exhausted, 4/4 discards used;
-- attempt 3: `812 / 1200`, hands exhausted, 4/4 discards used;
-- attempt 5: `14272 / 22000`, hands exhausted, 5/5 discards used;
-- attempt 6: `488 / 600`, hands exhausted, 4/4 discards used;
-- attempt 9: `5732 / 10000`, hands exhausted, 4/4 discards used.
+Semantic result: **74/74 GREEN**.
+Live result: session `balatro-20260831T135424Z-655cd5c9` finished **0/10 wins**.
 
 Interpretation:
 
-- Tune B did not improve the primary metric: **Tune A 1/10 → Tune B 0/10**;
-- early failures remained present, while several runs still reached materially larger blind requirements and died underpowered;
-- the available final-state summaries continue to show healthy discard expenditure rather than a reopened global D1 resource-hoarding defect;
-- because the Tune-B live result was worse and no trace-grounded compensating advantage was established, the $8 D11 runway is rejected rather than stacked with another parameter.
+- Tune B did not improve the primary metric versus retained Tune A (**1/10 → 0/10**);
+- the `$8` D11 runway was therefore rejected and restored to `$10`;
+- user locally revalidated the reverted Tune-A state **74/74 GREEN**;
+- do not reopen the `$8` D11 experiment absent new controlled evidence.
 
-The branch is restored to the previously validated Tune-A D11 value: pre-Ante-6 `minimum_money_after_paid_reroll=$10`. Tune A itself remains retained.
+## Phase-6 Tune C — ordinary Joker replacement margin — ACTIVE / SEMANTIC VALIDATION PENDING
+
+Canonical owner: D2 `JokerAcquisitionPolicy`, configured by the Red/White playbook.
+
+Commit: `47a212d0`.
+
+Change:
+
+- `minimum_replacement_advantage`: **0.75 → 0.50**;
+- `aligned_minimum_replacement_advantage` remains **0.25**;
+- `minimum_replacement_build_delta` remains **0.0**;
+- first-Joker Tune A `$2` runway remains unchanged;
+- ordinary new-slot purchase threshold remains **0.35**;
+- D11 and D14 resource coefficients remain unchanged.
+
+Why this target:
+
+- across the Phase-6 baseline and preceding live validation, multiple medium/late losses reached full or near-full Joker boards while retaining large cash balances and still failed scoring requirements;
+- this points more directly at **upgrade/replacement selectivity** than at reroll starvation;
+- lowering only the ordinary replacement margin permits mechanically positive upgrades to replace weak incumbents more readily without making aligned replacements, first-Joker acquisition, boosters, consumables, or rerolls more permissive;
+- 0.50 is a single conservative step between the prior ordinary 0.75 threshold and the existing aligned 0.25 threshold.
+
+This remains an A/B numerical hypothesis. No Joker identity is hard-coded, and no hidden future information is used.
 
 # EXACT NEXT ACTION
 
-Do **not** launch another live batch yet and do not stack another D11 relaxation.
-
-Select Tune C only from a distinct, evidence-backed action-quality problem. Prioritize inspection of resource allocation / scoring-power acquisition in D14/D8/D2 using retrievable evidence from the Phase-6 baseline, Tune-A sample, and Tune-B summaries. Any Tune C must change one canonical numerical preference at a time and must preserve the retained Tune-A `$2` first-Joker floor.
-
-If the Tune-B revert itself is locally revalidated, use:
+Validate Tune C against the unchanged semantic benchmark before any new live sample:
 
 ```powershell
 git pull
@@ -381,7 +211,9 @@ python -m games.balatro.red_white_semantic_benchmark
 
 ```
 
-Expected semantic result remains **74/74 GREEN**, because the branch is restored to the already validated Tune-A configuration.
+Expected: **74/74 GREEN**, with all category counts unchanged.
+
+If green, run a fresh **10-attempt Tune-C live sample** with Tune A retained and no other changes. Compare primarily on win rate, furthest ante, full-board replacement frequency where trace evidence is retrievable, cash at death, Joker composition, and death score ratio.
 
 # Phase order
 
