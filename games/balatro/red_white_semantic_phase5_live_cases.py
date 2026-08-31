@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import games.balatro.joker_policy as joker_policy_module
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
+from games.balatro.joker import Joker
+from games.balatro.joker_policy import BUY, HOLD, JokerAcquisitionPolicy
+from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
 from games.balatro.live.hand_action_policy import PACE_RECOVERY, LiveHandActionPolicy
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator
@@ -14,6 +18,7 @@ from games.balatro.live.path_aware_hand_action_engine import (
     PathAwareLiveHandActionDecisionEngine,
 )
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
+from games.balatro.state import BalatroState
 
 
 def _underpace_made_hand_does_not_suppress_discard_recovery() -> SemanticCheck:
@@ -146,6 +151,77 @@ def _timeout_retained_roots_still_use_final_d1_arbiter() -> SemanticCheck:
     )
 
 
+class _SupportOnlyJoker(Joker):
+    """Synthetic positive-build Joker with no direct scoring effect."""
+
+    def apply(self, context):
+        return context
+
+
+class _FirstEngineTransitionPlanner:
+    def __init__(self, *, direct_scoring_gain: float) -> None:
+        self.direct_scoring_gain = float(direct_scoring_gain)
+
+    def plan(self, state, candidate):
+        del state, candidate
+        return SimpleNamespace(
+            candidate_value=SimpleNamespace(
+                applicability="APPLICABLE",
+                total_gain=0.50,
+                direct_scoring_gain=self.direct_scoring_gain,
+            ),
+            alternatives=(),
+        )
+
+
+def _first_joker_bootstrap_requires_current_scoring_power() -> SemanticCheck:
+    """Structural/economy value alone is not the early scoring-foothold exception."""
+
+    def state() -> BalatroState:
+        current = BalatroState()
+        current.phase = "SHOP"
+        current.ante = 1
+        current.money = 6
+        current.joker_slots = 5
+        current.jokers = []
+        return current
+
+    support = _SupportOnlyJoker()
+    support.cost = 4
+    scoring = FlatMultJoker(4)
+    scoring.cost = 4
+
+    original = joker_policy_module._bond_transition_bonus
+    joker_policy_module._bond_transition_bonus = lambda state, candidate, **kwargs: (0.0, ())
+    try:
+        support_decision = JokerAcquisitionPolicy(
+            transition_planner=_FirstEngineTransitionPlanner(direct_scoring_gain=0.0)
+        ).decide(state(), support)
+        scoring_decision = JokerAcquisitionPolicy(
+            transition_planner=_FirstEngineTransitionPlanner(direct_scoring_gain=0.25)
+        ).decide(state(), scoring)
+    finally:
+        joker_policy_module._bond_transition_bonus = original
+
+    passed = support_decision.action == HOLD and scoring_decision.action == BUY
+    return SemanticCheck(
+        passed,
+        observed=(
+            f"support={support_decision.action}, scoring={scoring_decision.action}"
+        ),
+        expected=(
+            "the Ante-1/2 first-Joker reserve relaxation stays HOLD for positive structural "
+            "value without current scoring power, while a true scoring foothold may use it"
+        ),
+        detail=(
+            "Phase-5 live attempt 1 exhausted all four discards and still died 544/800 with "
+            "Midas Mask as its only Joker. D2 may value support/deck-development normally, but "
+            "that value cannot inherit the special first-scoring-engine authority unless the "
+            "canonical literal whole-build projection finds positive direct scoring gain"
+        ),
+    )
+
+
 RED_WHITE_PHASE5_LIVE_CASES = (
     SemanticBenchmarkCase(
         case_id="d1.live.underpace_made_hand_keeps_discard_recovery",
@@ -162,6 +238,16 @@ RED_WHITE_PHASE5_LIVE_CASES = (
         source=(
             "Phase 5 post-fix live baseline: two losses still ended with every discard unused, "
             "including an Ante-1 Big Blind at 74/450"
+        ),
+    ),
+    SemanticBenchmarkCase(
+        case_id="d2.live.first_joker_bootstrap_requires_scoring_foothold",
+        category="SHOP_SURVIVAL",
+        description="early first-Joker bootstrap requires current literal scoring power",
+        evaluate=_first_joker_bootstrap_requires_current_scoring_power,
+        source=(
+            "Phase 5 72/72 live baseline: attempt 1 spent all four discards but died Ante 2 "
+            "at 544/800 with Midas Mask as its only Joker"
         ),
     ),
 )
