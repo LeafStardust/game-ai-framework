@@ -1,3 +1,6 @@
+from types import SimpleNamespace
+
+from games.balatro.live.hand_action_policy import LiveHandActionDecisionEngine
 from games.balatro.safe_pace_optimization_policy import _safe_search_schedule
 
 
@@ -22,4 +25,25 @@ def test_safe_search_never_expands_to_engineered_five_action_clear():
         max_nodes=20000,
     )
     assert [item.horizon for item in schedule] == [2]
+    assert schedule[0].max_nodes == 750
+
+
+def test_production_d1_engine_applies_safe_pace_schedule():
+    state = SimpleNamespace(hands_remaining=4, discards_remaining=4)
+    engine = LiveHandActionDecisionEngine(
+        max_horizon=8,
+        max_search_nodes=5000,
+    )
+
+    schedule = engine._search_schedule(state)
+    expected = _safe_search_schedule(
+        hands_remaining=4,
+        discards_remaining=4,
+        max_horizon=8,
+        max_nodes=5000,
+    )
+
+    assert schedule == expected
+    assert len(schedule) == 1
+    assert schedule[0].horizon == 2
     assert schedule[0].max_nodes == 750
