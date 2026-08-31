@@ -9,7 +9,10 @@ from games.balatro.live.adaptive_search import (
     AdaptiveRecommendationSummary,
     stable_discard_consensus,
 )
-from games.balatro.live.blind_clear_planner import LiveBlindPlan
+from games.balatro.live.blind_clear_planner import (
+    LiveBlindPlan,
+    PlannerSearchBudgetExceeded,
+)
 from games.balatro.live.hand_action_policy import (
     CLEAR_PATH,
     PACE_PLAY,
@@ -19,6 +22,7 @@ from games.balatro.live.hand_action_policy import (
 )
 from games.balatro.live.strategy_health import LiveStrategyHealth, evaluate_live_strategy_health
 from games.balatro.safe_pace_optimization_policy import _safe_search_schedule
+from games.balatro.safe_pace_timeout_patch import _bounded_structural_timeout_fallback
 
 
 @dataclass(frozen=True)
@@ -175,6 +179,10 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
     def _rank_immediate_plans(self, state):
         started = perf_counter()
         try:
+            if self.max_search_seconds is not None and self._search_deadline is not None:
+                raise PlannerSearchBudgetExceeded(
+                    "skip projected immediate fallback under hard D1 budget"
+                )
             return super()._rank_immediate_plans(state)
         finally:
             if self._record_d1_latency:
@@ -266,7 +274,8 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         root remains the best available evidence when a later pass times out.
         """
         if not self._adaptive_plan_history:
-            return super()._structural_timeout_fallback(
+            return _bounded_structural_timeout_fallback(
+                self,
                 state,
                 search_attempts=search_attempts,
             )
@@ -277,8 +286,9 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         discards = tuple(plan for plan in plans if plan.action.name == DISCARD_CARDS)
         if not plays:
             # Canonical D1 normally always has a Play root. If that invariant is
-            # ever broken, the base emergency path is safer than fabricating fields.
-            return super()._structural_timeout_fallback(
+            # ever broken, bounded structural recovery is safer than fabricating fields.
+            return _bounded_structural_timeout_fallback(
+                self,
                 state,
                 search_attempts=search_attempts,
             )
