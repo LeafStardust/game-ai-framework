@@ -6,6 +6,7 @@ from dataclasses import replace
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.bonds.model import BondRank, BondRealization
+from games.balatro.castle_discard_policy import _castle_strategy_fit
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import card_matches_suit, hand_rules_for_state
 from games.balatro.live.hand_action_policy import CLEAR_PATH, PACE_PLAY, PACE_RECOVERY
@@ -602,6 +603,11 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         return -total, tuple(dict.fromkeys(notes))
 
     def _strategy_fit(self, state, action) -> tuple[float, tuple[str, ...]]:
+        value, rationale = self._strategy_fit_without_castle(state, action)
+        castle_value, castle_rationale = _castle_strategy_fit(state, action)
+        return value + castle_value, (*rationale, *castle_rationale)
+
+    def _strategy_fit_without_castle(self, state, action) -> tuple[float, tuple[str, ...]]:
         intents = self._hand_bond_intents(state)
         preservation, preservation_notes = self._pinned_card_preservation(state, action)
         rules = hand_rules_for_state(state)
