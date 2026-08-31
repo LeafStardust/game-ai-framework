@@ -37,7 +37,7 @@ Rules:
 
 Active phase:
 
-> **Phase 1 — semantic benchmark expansion and D1 survival competence refinement.**
+> **Phase 1 — semantic benchmark expansion and D1 survival competence refinement. Final batch pending validation.**
 
 Phase 0 authority consolidation is **CLOSED / VALIDATED**.
 
@@ -95,6 +95,8 @@ Do not reopen Phase 0 without fresh deterministic or live evidence.
 
 # PHASE-1 SEMANTIC EXPANSION
 
+Phase 1 is intentionally capped at **five batches** unless the final batch exposes a real production defect. Further benchmark growth without a concrete failure class is out of scope.
+
 ## Batch 1 — VALIDATED GREEN
 
 Commits:
@@ -137,30 +139,45 @@ User result: **30/30 GREEN**, `D1_SURVIVAL` 19/19.
 
 This protects both completed-root reuse under partial search timeout and the rule that timeout cannot manufacture confirmation for an inexact sampled clear.
 
-## Batch 4 — IMPLEMENTED / VALIDATION PENDING
+## Batch 4 — VALIDATED GREEN
 
 Commit:
 
 - `6f4715ac` — hand-resource and public-uncertainty semantics.
 
-New cases:
+Validated:
 
-1. `d1.resources.last_hand_prefers_recovery_discard`
-   - with one scoring hand left, a useful discard may outrank a slightly stronger under-pace Play because the Play consumes the final scoring opportunity;
-   - owner if it fails: `LiveHandActionPolicy` PACE_RECOVERY hand-resource hierarchy.
-2. `d1.uncertainty.hidden_draw_order_invariant`
-   - `PublicDeckComposition` and redraw probability are invariant to the serialized order of unseen deck cards;
-   - owner if it fails: `games/balatro/live/draw_model.py` public-state boundary.
+- `d1.resources.last_hand_prefers_recovery_discard`
+- `d1.uncertainty.hidden_draw_order_invariant`
 
-No production code or tuning values changed in Batch 4.
+User result: **32/32 GREEN**, `D1_SURVIVAL` 21/21.
 
-Expected benchmark if both pass: **32/32**, with `D1_SURVIVAL` 21/21.
+This protects the final scoring-hand recovery hierarchy and ensures public redraw probabilities are invariant to inaccessible serialized deck order.
+
+## Batch 5 — FINAL / IMPLEMENTED / VALIDATION PENDING
+
+Commit:
+
+- `c5031bf9` — final held-consumable/re-observation semantic.
+
+New case:
+
+- `d1.consumable.first_action_reobserve_boundary`
+  - D1 may project a deterministic held consumable together with the guaranteed follow-up clear for survival value;
+  - the executable selected action remains `USE_CONSUMABLE`, not a chained Play;
+  - expected hand/discard resources reflect the projected follow-up while execution still stops at the consumable and requires authoritative re-observation/replanning.
+
+Canonical owner if it fails: `D1LiveBlindClearPlanner._estimate_from_recommendation()` and the D1 first-action execution boundary.
+
+No production code or tuning values changed in Batch 5.
+
+Expected benchmark if it passes: **33/33**, with `D1_SURVIVAL` 22/22.
 
 ---
 
 # EXACT NEXT ACTION
 
-Validate Batch 4 locally:
+Validate the **final Phase-1 batch** locally:
 
 ```powershell
 git pull
@@ -169,31 +186,23 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 32/32 green
+### If 33/33 green
 
-Phase-1 semantic coverage has now explicitly protected:
+1. mark Phase 1 **COMPLETE**;
+2. do not add Batch 6 merely for more semantic cases;
+3. advance immediately to **Phase 2 — simple shop survival**;
+4. inspect canonical D14/D2/D3/D4/D11 simple-shop survival decisions before adding new behavior or tuning.
 
-- guaranteed-clear resource conservation;
-- recursive boss legality;
-- under-pace redraw quality;
-- last-discard reserve;
-- partial-search timeout consistency;
-- sampled-clear confirmation boundaries;
-- last-hand survival hierarchy;
-- hidden draw-order invariance.
+### If the final case fails
 
-Then audit whether any **held-consumable spend vs re-observation/replan boundary** remains a plausible unprotected D1 competence failure. Add a case only if there is a concrete production path that can actually violate that boundary. Otherwise close Phase 1 and advance to **Phase 2 — simple shop survival**.
-
-### If a new case fails
-
-Fix the smallest canonical owner. Do not add wrapper rescues.
+Fix the smallest canonical owner. Do not add a wrapper rescue. Re-run the semantic benchmark, then close Phase 1 only after green.
 
 ---
 
 # PHASE ORDER
 
 1. **Phase 0 — authority consolidation** — COMPLETE
-2. **Phase 1 — semantic benchmark expansion + D1 survival competence refinement** — ACTIVE
+2. **Phase 1 — semantic benchmark expansion + D1 survival competence refinement** — FINAL BATCH PENDING
 3. **Phase 2 — simple shop survival**
 4. **Phase 3 — coherent build evidence/authority quality**
 5. **Phase 4 — complex packs/consumables/vouchers/economy audit**
