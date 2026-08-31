@@ -16,7 +16,6 @@ from games.balatro.bond_shop_health_policy import install_bond_shop_health_polic
 from games.balatro.boss_hand_constraint_policy import install_boss_hand_constraint_policy
 from games.balatro.build_health_policy import install_build_health_policy
 from games.balatro.celestial_shop_headroom_fast_path import install_celestial_shop_headroom_fast_path
-from games.balatro.cerulean_live_state_policy import install_cerulean_live_state_policy
 from games.balatro.consumable_d14_literal_policy import install_consumable_d14_literal_policy
 from games.balatro.consumable_target_literal_value_policy import install_consumable_target_literal_value_policy
 from games.balatro.cryptid_dispatch_postcondition import install_cryptid_dispatch_postcondition
@@ -76,7 +75,6 @@ from games.balatro.wraith_pack_expectation_policy import install_wraith_pack_exp
 
 
 install_boss_hand_constraint_policy()
-install_cerulean_live_state_policy()
 install_ectoplasm_live_state_policy()
 install_joker_generation_pool_live_state_policy()
 install_round_resource_live_state_policy()
