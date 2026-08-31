@@ -1,4 +1,4 @@
-import games.balatro  # noqa: F401 - importing installs production policy stack
+import games.balatro  # noqa: F401 - initialize production policy stack
 
 from games.balatro.bond_pivot_authority import _transition_score
 from games.balatro.bonds.composer import Composition
@@ -49,7 +49,10 @@ def test_production_package_installs_all_canonical_bond_integration_layers():
     assert getattr(ShopUtilityScale, "_bond_prescription_policy_installed", False)
     assert getattr(RealizedEngineAnalyzer, "_tactical_scaler_health_installed", False)
     assert getattr(RealizedEngineAnalyzer, "_bond_scaler_health_installed", False)
-    assert getattr(StrategyAwareLiveHandActionPolicy, "_strategy_execution_guard_policy_installed", False)
+    # D1 strategy execution is now owned directly by the canonical strategy policy;
+    # the retired strategy-execution installer flag must not be required.
+    assert StrategyAwareLiveHandActionPolicy.__module__ == "games.balatro.live.strategy_hand_policy"
+    assert not getattr(StrategyAwareLiveHandActionPolicy, "_strategy_execution_guard_policy_installed", False)
     assert getattr(BuildAwareShopBoosterPolicy, "_strategy_resource_coherence_installed", False)
     assert getattr(VoucherAcquisitionPolicy, "_strategy_resource_coherence_installed", False)
 
