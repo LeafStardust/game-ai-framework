@@ -37,7 +37,7 @@ Rules:
 
 Active phase:
 
-> **Phase 2 — simple shop survival. Batch 3 fixture repaired; semantic rerun pending.**
+> **Phase 2 — simple shop survival. Batch 3 fixture isolated from Bond value; semantic rerun pending.**
 
 Phase 0 authority consolidation: **COMPLETE / VALIDATED**.
 
@@ -166,12 +166,13 @@ Validated:
 
 User result: **38/38 GREEN**, `SHOP_SURVIVAL` 14/14.
 
-## Batch 3 — IMPLEMENTED / FIXTURE REPAIRED / VALIDATION PENDING
+## Batch 3 — IMPLEMENTED / FIXTURE REPAIRED TWICE / VALIDATION PENDING
 
 Commits:
 
 - `00fe6214` — adds two D2 ordinary-purchase cash survival semantics.
 - `27484d51` — repairs the synthetic D2 transition fixture to preserve the canonical `JokerBuildTransitionPlanner.evaluator` interface while overriding only `plan()` output.
+- `c4c6c020` — isolates the two cash-survival fixtures from unrelated canonical Bond/composition transition value and pins the intended synthetic build gains.
 
 New cases:
 
@@ -182,17 +183,21 @@ New cases:
    - outside the first-engine exception, incremental reserve shortfall is explicitly priced into D2 purchase economics and can turn a marginal Joker buy into HOLD;
    - owner if it genuinely fails: `JokerAcquisitionPolicy._economics()` / `_incremental_reserve_shortfall()`.
 
-Initial user result after `00fe6214`: **38/40**, both new cases raised `AttributeError: 'types.SimpleNamespace' object has no attribute 'evaluator'` before semantic evaluation. This was classified as a fixture defect, not production behavior. `27484d51` fixes only that interface mismatch.
+Validation history:
+
+- First user result after `00fe6214`: **38/40**; both new cases raised `AttributeError: 'types.SimpleNamespace' object has no attribute 'evaluator'`. Fixture defect; fixed by `27484d51`.
+- Second user result after `27484d51`: **38/40**; both cases executed, but real Bond/composition value inflated intended synthetic gains (`0.50 -> 13.50`, `1.50 -> 5.767`), so they no longer tested marginal cash economics. Fixture contamination; fixed by `c4c6c020`.
+- `c4c6c020` zeroes Bond transition contribution only inside these two benchmark fixtures and additionally asserts the intended build gains, while leaving production D2 behavior unchanged.
 
 No production code or tuning values changed in Batch 3.
 
-Expected benchmark after fixture repair: **40/40**, with `SHOP_SURVIVAL` 16/16.
+Expected benchmark after the second fixture repair: **40/40**, with `SHOP_SURVIVAL` 16/16.
 
 ---
 
 # EXACT NEXT ACTION
 
-Re-run Phase-2 Batch 3 semantic benchmark after fixture repair:
+Re-run Phase-2 Batch 3 semantic benchmark after Bond-isolated fixture repair:
 
 ```powershell
 git pull
@@ -205,9 +210,9 @@ Do not run it from ChatGPT.
 
 Continue Phase 2 with simple cross-family purchase precedence: visible first scoring engine versus support/economy options on the shared D14 scale. Add only concrete survival cases and do not tune values unless a case exposes a real defect.
 
-### If either Batch-3 case now produces a semantic failure
+### If either Batch-3 case still fails
 
-Treat it as a genuine D2 behavior signal unless the new output demonstrates another concrete fixture mismatch. Fix the smallest canonical owner; do not add wrapper rescues.
+The fixture now preserves the real D2 planner/evaluator contract and pins the intended synthetic build gain while suppressing only unrelated Bond value. Treat a remaining semantic failure as credible D2 behavior evidence unless the output demonstrates another concrete fixture mismatch. Fix the smallest canonical owner; do not add wrapper rescues.
 
 ---
 
