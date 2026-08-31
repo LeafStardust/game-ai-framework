@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-"""Canonical D1 evidence for Castle discard progression.
+"""Pure Castle discard evidence for canonical D1 strategy evaluation.
 
 Castle rewards discarding cards of its current public suit. The mechanic is useful
-only as a preference among discard candidates already admitted by canonical D1;
-this installer therefore augments strategy-fit evidence instead of wrapping
-``decide`` or replacing the selected action afterwards.
-
-A pure legacy selector is retained only for deterministic regression compatibility.
+only as a preference among discard candidates already admitted by canonical D1.
+Production applies this evidence directly from ``StrategyAwareLiveHandActionPolicy``;
+this module contains only public-state helpers plus the legacy deterministic selector
+used by compatibility regressions.
 """
 
 from games.balatro.actions import DISCARD_CARDS
-from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 
 
 CASTLE_MATCH_FIT = 0.75
@@ -55,6 +53,23 @@ def _castle_match_count(action, suit: str) -> int:
     )
 
 
+def _castle_strategy_fit(state, action) -> tuple[float, tuple[str, ...]]:
+    """Return subordinate Castle evidence for one already-legal D1 action."""
+    suit = _castle_suit(state)
+    if not suit:
+        return 0.0, ()
+    matches = _castle_match_count(action, suit)
+    if matches <= 0:
+        return 0.0, ()
+    return (
+        CASTLE_MATCH_FIT * matches,
+        (
+            f"Castle discard evidence: {matches} discarded card(s) match current suit {suit}",
+            "Castle fit is subordinate to canonical D1 full-blind survival/resource ordering",
+        ),
+    )
+
+
 def _safe_castle_discard_alternative(result, suit: str):
     """Legacy pure selector retained only for deterministic compatibility tests."""
     selected = result.selected_plan
@@ -88,30 +103,3 @@ def _safe_castle_discard_alternative(result, suit: str):
     if not candidates:
         return None
     return max(candidates, key=lambda item: (item[0], item[1], item[2]))[3]
-
-
-def install_castle_discard_policy() -> None:
-    if getattr(StrategyAwareLiveHandActionPolicy, "_castle_discard_policy_installed", False):
-        return
-
-    original_strategy_fit = StrategyAwareLiveHandActionPolicy._strategy_fit
-
-    def strategy_fit(self, state, action):
-        value, rationale = original_strategy_fit(self, state, action)
-        suit = _castle_suit(state)
-        if not suit:
-            return value, rationale
-        matches = _castle_match_count(action, suit)
-        if matches <= 0:
-            return value, rationale
-        return (
-            value + CASTLE_MATCH_FIT * matches,
-            (
-                *rationale,
-                f"Castle discard evidence: {matches} discarded card(s) match current suit {suit}",
-                "Castle fit is subordinate to canonical D1 full-blind survival/resource ordering",
-            ),
-        )
-
-    StrategyAwareLiveHandActionPolicy._strategy_fit = strategy_fit
-    StrategyAwareLiveHandActionPolicy._castle_discard_policy_installed = True
