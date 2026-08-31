@@ -10,6 +10,36 @@ Do **not** reopen ordinary D1 competence, Mouth, Green Joker, discard authority,
 
 The current Phase-A numerical calibration gate is **closed with no promotion**. The active engineering task is Phase-0 D1 authority consolidation: remove remaining installation-order-dependent D1 wrappers by moving exact mechanics, projection, caching and evidence into their canonical owners without changing production behavior.
 
+### Exact continuation point
+
+The latest locally reported green implementation checkpoint is the retirement of `strategy_execution_guard_policy` as a production wrapper. Hand-repetition evidence and Green Joker survival-equivalent preservation are now owned natively by `StrategyAwareLiveHandActionPolicy`; the focused ownership regression was corrected in commit `e51e33150b41e75fe81afed8a7380a98378d3f25` and reported green by the user.
+
+The next implementation target is **`target_hand_engine_policy`**.
+
+Current inspected behavior of `games/balatro/target_hand_engine_policy.py`:
+
+- it still installs a wrapper around `StrategyAwareLiveHandActionPolicy._strategy_fit`;
+- it does **not** own Play/Discard arbitration;
+- it adds exactly `TARGET_HAND_FIT = 2.5` when a PLAY realizes a Runner or To Do List target hand;
+- Runner targets `STRAIGHT` and `STRAIGHT_FLUSH`;
+- To Do List reads its public `target_hand` state;
+- `_safe_target_play(...)` is a legacy pure selector retained for compatibility tests and is not the intended production authority;
+- the production migration should convert the installed `_strategy_fit` mutation into a pure evidence helper and have native `StrategyAwareLiveHandActionPolicy._strategy_fit()` consume that helper directly;
+- preserve the existing `+2.5` weight, target normalization, Runner/To Do List mechanics, and rationale text semantics;
+- remove `install_target_hand_engine_policy()` from `games/balatro/__init__.py` once native ownership is in place;
+- retain pure compatibility helpers unless existing tests prove they can be deleted safely;
+- add focused regression coverage proving target-hand evidence is native and the target-hand module no longer installs a strategy wrapper;
+- **do not run tests in ChatGPT**; the user pulls and tests locally. If green, continue to the next D1 wrapper immediately.
+
+After `target_hand_engine_policy`, the next likely D1 consolidation candidates are:
+
+1. `purple_seal_discard_policy` -> move Purple-Seal Tarot-generation beam coverage directly into `D1LiveBlindClearPlanner`;
+2. `held_round_end_resource_policy` -> move Blue-Seal/Gold-card projection and final equal-value ordering into the canonical planner/evaluator path;
+3. `semantic_search_guard_policy` -> larger mixed runtime/search migration; inspect carefully before changing because it owns root/child bounded candidate behavior and should not be treated as a narrow evidence hook;
+4. exact-mechanics wrappers such as boss/Cerulean integration only after the narrower evidence/projection wrappers are finished.
+
+Do **not** target `d1_outer_evaluation_cache_policy` based only on the old authority map: the file was not present when inspected on this branch, so that row is stale until a renamed/current equivalent is found.
+
 ### Current authoritative exploratory study
 
 Study: `phase-a-native-ready-restart-20260830-c`
@@ -84,7 +114,23 @@ The following formerly installation-order-dependent D1 behavior has been moved i
 - Castle discard evidence -> native strategy-fit evidence path;
 - Burnt Joker discard evidence -> native strategy-fit evidence path;
 - DNA/Aces evidence -> native strategy-fit evidence path;
-- hand-repetition evidence and Green Joker survival-equivalent preservation -> native strategy policy/arbitration path.
+- hand-repetition evidence -> native strategy-fit evidence path;
+- Green Joker survival-equivalent Play/Discard preservation -> native canonical strategy-policy path after final survival correction.
+
+Important implementation checkpoints from this consolidation sequence:
+
+- `d06496963c8e403489134cd1d91400ae0d4844ec` — safe-pace schedule made native to D1;
+- `c5320281b4a0bced47bb60627c6bed2e7e0f28ff` — timeout authority made native to production D1;
+- `5e6f271af73f728f44de3ce011be5751fa1c0051` — search-reserve arithmetic moved into the native production budget path;
+- `7730246c4265e640407152a5314d9c5156411bfb` — boss confidence made native and `d1_log_resilience_policy` retired;
+- `d5827d28d77585a33194dc1c6c6a12a2517e1ed3` — Bond intent cache made native;
+- `b8dd79aa44b05c6a00a3949da7ac4aab2d58fbe1` — Castle evidence made native;
+- `354f92b8548f84d1c05c118230ac75b9450ac8eb` — Burnt evidence made native;
+- `d7472a4eaf85338e01da485a7bd09b403797a24c` — DNA/Aces evidence made native;
+- `f8ae7c11d74a44d0fb3c13e467eec942686ef315` — strategy-execution wrapper retired and Green/repetition behavior moved native;
+- `e51e33150b41e75fe81afed8a7380a98378d3f25` — ownership regression corrected; user reported green.
+
+Several local failures during this sequence were stale regression contracts that still expected generic/base engines or exact final `__module__` ownership after intentional wrapper retirement. When a test fails, distinguish a real production regression from a test that still encodes the old monkeypatch architecture before changing behavior.
 
 These changes are ownership refactors, not a new tuning family. Their purpose is to eliminate late mutation and make one canonical D1 path responsible for scheduling, projection evidence and Play/Discard arbitration.
 
@@ -144,15 +190,19 @@ Literal Balatro scoring and native legality are authoritative. Bond rank, motif 
 - [x] Review candidate results: production baseline remains best.
 - [x] **Phase-A promotion gate closed with no candidate promoted.**
 - [x] Select the next roadmap item outside Phase-A numerical calibration.
-- [x] Begin Phase-0 D1 authority consolidation and retire safe-pace/runtime/log-resilience/cache/Castle/Burnt/DNA/strategy-execution installers already reported green.
-- [ ] Continue remaining D1 exact-mechanics/projection/evidence wrapper consolidation, prioritizing narrow ownership moves before mixed/large wrappers.
-- [ ] Refresh `BALATRO_DECISION_AUTHORITY_MAP.md` after the next stable consolidation checkpoint so wrapper classifications match current code.
+- [x] Begin Phase-0 D1 authority consolidation.
+- [x] Retire safe-pace schedule/timeout, log-resilience, Bond-cache, Castle, Burnt, DNA/Aces and strategy-execution D1 wrappers with local green regression results.
+- [ ] **Next: make `target_hand_engine_policy` evidence native to `StrategyAwareLiveHandActionPolicy` and remove its startup installer.**
+- [ ] Then continue remaining D1 projection/evidence wrapper consolidation, likely Purple Seal and held round-end resources before the mixed `semantic_search_guard_policy` migration.
+- [ ] Refresh `BALATRO_DECISION_AUTHORITY_MAP.md` as wrappers are retired; several rows still describe pre-consolidation installation state and must not be treated as current code without verification.
 
 ## Operating contract
 
 - Repository: `LeafStardust/game-ai-framework`.
 - Branch: `feat/v1.0-red-white-competence`.
 - Canonical update command: `git pull`.
+- The user runs tests locally; **do not run tests from ChatGPT**.
+- When the user reports `green`, immediately continue the next roadmap implementation item rather than spending a turn on planning.
 - Never reuse interrupted or SHA-invalidated Optuna study names.
 - Interrupted/failed trials are not baseline or promotion evidence.
 - Stop the live tuning invocation at the first failed/non-COMPLETE trial.
