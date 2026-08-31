@@ -25,6 +25,9 @@ from games.balatro.red_white_semantic_phase3_build_cases import (
 from games.balatro.red_white_semantic_phase4_consumable_cases import (
     RED_WHITE_PHASE4_CONSUMABLE_CASES,
 )
+from games.balatro.red_white_semantic_phase4_cross_family_cases import (
+    RED_WHITE_PHASE4_CROSS_FAMILY_CASES,
+)
 from games.balatro.red_white_semantic_phase4_outcome_model_cases import (
     RED_WHITE_PHASE4_OUTCOME_MODEL_CASES,
 )
@@ -64,6 +67,7 @@ def run():
             *RED_WHITE_PHASE4_CONSUMABLE_CASES,
             *RED_WHITE_PHASE4_VOUCHER_CASES,
             *RED_WHITE_PHASE4_OUTCOME_MODEL_CASES,
+            *RED_WHITE_PHASE4_CROSS_FAMILY_CASES,
         )
     )
 
