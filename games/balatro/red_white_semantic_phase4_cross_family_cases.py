@@ -22,7 +22,7 @@ from games.balatro.state import BalatroState
 class _SyntheticConsumable(Consumable):
     category = "TAROT"
 
-    def __init__(self, name: str = "The Hermit", *, price: int = 0) -> None:
+    def __init__(self, name: str = "Synthetic Immediate Tarot", *, price: int = 0) -> None:
         self.name = name
         self.price = int(price)
 
@@ -173,8 +173,9 @@ def _structural_d4_units_do_not_overpower_stronger_booster() -> SemanticCheck:
         ),
         expected="a stronger D8 parent option beats a D4 BUY_AND_USE whose huge child structural gain has only weak literal immediate value",
         detail=(
-            "D4 may use B4 structural units for admission, but consumable_d14_literal_policy must strip those units "
-            "before D14 compares the consumable with boosters, Jokers, vouchers, rerolls, or END_SHOP"
+            "the neutral synthetic Tarot deliberately avoids named production transaction shortcuts; "
+            "D4 may use B4 structural units for admission, but D14 must strip those units before comparing the "
+            "consumable with boosters, Jokers, vouchers, rerolls, or END_SHOP"
         ),
     )
 
