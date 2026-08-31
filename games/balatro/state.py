@@ -16,21 +16,45 @@ class BalatroState(GameState):
         self.blind_score: int = 0
         self.blind = None
         self.boss_name: str | None = None
+        # Public mutable state owned by the active Blind object. The Eye records
+        # accepted hand types in ``Blind.hands`` while The Mouth stores its first
+        # accepted type in ``Blind.only_hand``. Keep an observation bit so an
+        # empty/false live value is distinguishable from a source that never
+        # exposed the fields at all.
         self.boss_blind_state_observed: bool = False
         self.boss_blind_hands: set[str] = set()
         self.boss_blind_only_hand: str | None = None
+        # Balatro fixes current_round.most_played_poker_hand at round start. The
+        # Ox uses that authoritative target rather than recomputing a winner after
+        # current-round plays alter the aggregate hand counters. ``None`` means
+        # the observation source did not expose the field; callers may fall back
+        # to the legacy count reconstruction in that case.
         self.round_most_played_hand: str | None = None
         self.deck_name: str = "BASE"
         self.stake_name: str = "WHITE"
         self.deck: list[BalatroCard] = self._create_deck()
+        # ``deck`` may represent only the currently drawable composition in live
+        # play. ``owned_deck`` is the optional authoritative permanent playing-card
+        # composition; ``None`` means that source was not observed and callers may
+        # deliberately fall back to legacy ``deck`` semantics.
         self.owned_deck: list[BalatroCard] | None = None
         self.hand: list[BalatroCard] = []
         self.hand_size: int = 8
+        # Ectoplasm deterministically removes G.GAME.ecto_minus cards from hand
+        # size, defaulting to 1 before the first use and incrementing afterward.
+        # The counter is ordinary run history, not hidden RNG state.
         self.ectoplasm_hand_size_penalty: int = 1
         self.hands_remaining: int = 4
         self.discard_pile: list[BalatroCard] = []
         self.discards_remaining: int = 3
+        # Public current-round discard history. ``None`` means the observation
+        # source did not expose enough information to distinguish the first
+        # discard from a later discard; first-discard mechanics must then fail
+        # closed instead of guessing.
         self.discards_used: int | None = None
+        # Public starting discard allowance for the next round. SHOP needs this
+        # instead of the just-finished blind's remaining discards when valuing
+        # prospective Banner and related resource-sensitive effects.
         self.round_reset_discards_observed: bool = False
         self.round_reset_discards: int = 0
         self.jokers: list = []
@@ -56,14 +80,33 @@ class BalatroState(GameState):
             "FLUSH_HOUSE": 1,
             "FLUSH_FIVE": 1,
         }
-        self.hand_play_counts = {hand: 0 for hand in self.hand_levels}
-        self.round_hand_play_counts = {hand: 0 for hand in self.hand_levels}
+        # Public run-history count for each poker hand. Live observation derives
+        # this from the ordinary G.GAME.hands[*].played counters; no hidden draw or
+        # RNG state is involved.
+        self.hand_play_counts = {
+            hand: 0
+            for hand in self.hand_levels
+        }
+        # Public current-round history for Card Sharp and D1 child projections.
+        # Live observation derives this from G.GAME.hands[*].played_this_round.
+        self.round_hand_play_counts = {
+            hand: 0
+            for hand in self.hand_levels
+        }
         self.vouchers: list = []
         self.phase: str = "ROUND_START"
         self.glass_cards_destroyed: int = 0
         self.last_played_hand: str | None = None
+        # Public run history used by The Fool. Balatro stores this as the center
+        # key of the last Tarot/Planet used; ``None`` means no usable history was
+        # observed. This is ordinary visible run state, not RNG state.
         self.last_tarot_planet: str | None = None
+        # Narrow public collection state used only by explicitly enabled unlock
+        # campaigns. Missing keys/status remain unknown and fail closed.
         self.joker_unlocks: dict[str, dict[str, bool]] = {}
+        # Public current Joker-generation catalogue used by effects such as
+        # Judgement/Wraith. This is eligibility/catalogue state only: no pool order,
+        # selected future result, pseudoseed, or other hidden RNG state is stored.
         self.joker_generation_pool_observed: bool = False
         self.joker_generation_pools: dict[str, list[dict]] = {}
         self.joker_generation_edition_rate: float = 1.0
@@ -71,25 +114,49 @@ class BalatroState(GameState):
 
     @property
     def deck_size(self) -> int:
+
         return len(self.deck)
 
     @property
     def blind_requirement(self):
+
         if self.blind is None:
             return 0
+
         return self.blind.requirement
 
     @blind_requirement.setter
-    def blind_requirement(self, value):
+    def blind_requirement(
+        self,
+        value
+    ):
+
         if self.blind is not None:
             self.blind.requirement = value
 
     def _create_deck(self):
-        ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
-        suits = ["Hearts", "Diamonds", "Clubs", "Spades"]
-        return [BalatroCard(rank, suit) for rank in ranks for suit in suits]
+
+        ranks = [
+            "2", "3", "4", "5", "6",
+            "7", "8", "9", "10",
+            "J", "Q", "K", "A"
+        ]
+
+        suits = [
+            "Hearts",
+            "Diamonds",
+            "Clubs",
+            "Spades"
+        ]
+
+        return [
+            BalatroCard(rank, suit)
+            for rank in ranks
+            for suit in suits
+        ]
 
     def copy(self):
+
         new_state = BalatroState()
         new_state.money = self.money
         new_state.ante = self.ante
@@ -98,7 +165,11 @@ class BalatroState(GameState):
         new_state.blind_score = self.blind_score
         if self.blind is not None:
             copy_method = getattr(self.blind, "copy", None)
-            new_state.blind = copy_method() if callable(copy_method) else deepcopy(self.blind)
+            new_state.blind = (
+                copy_method()
+                if callable(copy_method)
+                else deepcopy(self.blind)
+            )
         new_state.boss_name = self.boss_name
         new_state.boss_blind_state_observed = self.boss_blind_state_observed
         new_state.boss_blind_hands = self.boss_blind_hands.copy()
@@ -107,7 +178,11 @@ class BalatroState(GameState):
         new_state.deck_name = self.deck_name
         new_state.stake_name = self.stake_name
         new_state.deck = self.deck.copy()
-        new_state.owned_deck = self.owned_deck.copy() if self.owned_deck is not None else None
+        new_state.owned_deck = (
+            self.owned_deck.copy()
+            if self.owned_deck is not None
+            else None
+        )
         new_state.hand = self.hand.copy()
         new_state.hand_size = self.hand_size
         new_state.ectoplasm_hand_size_penalty = self.ectoplasm_hand_size_penalty
@@ -134,7 +209,10 @@ class BalatroState(GameState):
         new_state.glass_cards_destroyed = self.glass_cards_destroyed
         new_state.last_played_hand = self.last_played_hand
         new_state.last_tarot_planet = self.last_tarot_planet
-        new_state.joker_unlocks = {key: dict(value) for key, value in self.joker_unlocks.items()}
+        new_state.joker_unlocks = {
+            key: dict(value)
+            for key, value in self.joker_unlocks.items()
+        }
         new_state.joker_generation_pool_observed = self.joker_generation_pool_observed
         new_state.joker_generation_pools = {
             str(rarity): [dict(record) for record in records]
@@ -142,16 +220,27 @@ class BalatroState(GameState):
         }
         new_state.joker_generation_edition_rate = self.joker_generation_edition_rate
         new_state.visible_poker_hands = tuple(self.visible_poker_hands)
+
         return new_state
 
     def add_consumable(self, consumable) -> bool:
+
         if len(self.consumables) >= self.consumable_slots:
             return False
-        self.consumables.append(consumable)
+
+        self.consumables.append(
+            consumable
+        )
+
         return True
 
     def remove_consumable(self, consumable) -> bool:
+
         if consumable not in self.consumables:
             return False
-        self.consumables.remove(consumable)
+
+        self.consumables.remove(
+            consumable
+        )
+
         return True
