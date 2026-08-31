@@ -64,7 +64,6 @@ from games.balatro.post_transaction_joker_value_policy import install_post_trans
 from games.balatro.purple_seal_discard_policy import install_purple_seal_discard_policy
 from games.balatro.r0_strategy_transition_policy import install_r0_strategy_transition_policy
 from games.balatro.round_resource_live_state_policy import install_round_resource_live_state_policy
-from games.balatro.safe_pace_timeout_patch import install_safe_pace_timeout_patch
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.shop_semantic_quiet_policy import install_shop_semantic_quiet_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
@@ -102,7 +101,6 @@ install_judgement_dispatch_postcondition()
 install_consumable_target_literal_value_policy()
 install_hanged_man_blue_joker_policy()
 install_d1_log_resilience_policy()
-install_safe_pace_timeout_patch()
 install_held_consumable_option_policy()
 install_consumable_d14_literal_policy()
 install_shop_transaction_policy()
