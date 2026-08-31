@@ -111,13 +111,25 @@ The full-suite exit gate exposed two kinds of cleanup before passing:
 
 The user reran the complete deterministic Balatro suite after these repairs and reported **green**.
 
+## Semantic benchmark checkpoint
+
+The first runnable post-consolidation semantic benchmark reported **23/24**:
+
+- `BUILD_COHERENCE`: 2/2
+- `D1_SURVIVAL`: 13/13
+- `SHOP_SURVIVAL`: 8/9
+
+The sole failure was `d14.authority.visible_bond_pair`. Audit showed the production D14 pair planner was consistent with its current canonical contract; the synthetic benchmark fixture was stale. Current `_best_visible_bond_pair()` requires a positive canonical `_bond_transition_bonus` delta and recomputes projected D2 build gain/economics itself. The old fixture expected a synthetic policy to return a stronger projected decision and used two candidates with no Bond interaction metadata, so `None` was correct.
+
+Commit `e1b5b249` updates the semantic fixture to provide an explicit synthetic positive Bond delta plus the minimal D2 thresholds/economics interface consumed by the canonical pair planner. No production shop behavior changed. Semantic benchmark rerun is pending.
+
 No broad tuning values were changed.
 
 ---
 
 # EXACT NEXT ACTION
 
-Run the **Red/White semantic benchmark** locally:
+Re-run the **Red/White semantic benchmark** locally after the D14 fixture repair:
 
 ```powershell
 git pull
@@ -126,15 +138,15 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### After the benchmark result
+### If the benchmark is green
 
-1. review semantic benchmark output for regressions/pathologies;
-2. refresh `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` so retired D1 installers are described as compatibility/history rather than active authority;
-3. if the benchmark is acceptable and the authority map is current, declare Phase 0 complete and advance the roadmap to the next competence phase.
+1. refresh `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` so retired D1 installers are described as compatibility/history rather than active authority;
+2. declare Phase 0 complete;
+3. advance the roadmap to the next competence phase.
 
-### If the benchmark reveals a semantic failure
+### If the benchmark still reveals a semantic failure
 
-Treat it as fresh evidence. Fix the smallest canonical owner and rerun the focused regression plus the semantic benchmark. Do not reopen retired wrapper architecture merely to satisfy historical expectations.
+Treat it as fresh evidence. Fix the smallest canonical owner or stale benchmark fixture as appropriate. Do not reopen retired wrapper architecture merely to satisfy historical expectations.
 
 ---
 
@@ -151,8 +163,8 @@ Treat it as fresh evidence. Fix the smallest canonical owner and rerun the focus
 9. Joker-generation live state — IMPLEMENTED / VALIDATED
 10. Boss-hand constraints — IMPLEMENTED / VALIDATED
 11. Phase-0 deterministic suite — **GREEN**
-12. Red/White semantic benchmark — **NEXT**
-13. Authority-map refresh + Phase-0 closure — **AFTER BENCHMARK**
+12. Red/White semantic benchmark — **23/24; D14 fixture repaired, rerun pending**
+13. Authority-map refresh + Phase-0 closure — **AFTER BENCHMARK GREEN**
 
 ---
 
@@ -167,7 +179,7 @@ Phase 0 is complete only when:
 - production behavior no longer depends on fragile module import/installer order for migrated D1 semantics;
 - deterministic focused tests protect behavior rather than retired monkeypatch mechanisms;
 - the full Balatro deterministic suite is green — **SATISFIED**;
-- the Red/White semantic benchmark has been reviewed after the decision-semantic migrations — **PENDING**;
+- the Red/White semantic benchmark has been reviewed after the decision-semantic migrations — **23/24 fixture issue repaired; rerun pending**;
 - `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` reflects current native ownership rather than retired installers — **PENDING**.
 
 Semantic benchmark:
