@@ -37,7 +37,7 @@ Rules:
 
 Active phase:
 
-> **Phase 2 — simple shop survival. Batch 3 implemented, validation pending.**
+> **Phase 2 — simple shop survival. Batch 3 fixture repaired; semantic rerun pending.**
 
 Phase 0 authority consolidation: **COMPLETE / VALIDATED**.
 
@@ -166,30 +166,33 @@ Validated:
 
 User result: **38/38 GREEN**, `SHOP_SURVIVAL` 14/14.
 
-## Batch 3 — IMPLEMENTED / VALIDATION PENDING
+## Batch 3 — IMPLEMENTED / FIXTURE REPAIRED / VALIDATION PENDING
 
-Commit:
+Commits:
 
 - `00fe6214` — adds two D2 ordinary-purchase cash survival semantics.
+- `27484d51` — repairs the synthetic D2 transition fixture to preserve the canonical `JokerBuildTransitionPlanner.evaluator` interface while overriding only `plan()` output.
 
 New cases:
 
 1. `shop.simple.first_engine_zero_cash_guard`
    - the Ante-1/2 first-engine bootstrap does not rescue a marginal positive-scoring buy that leaves zero cash;
-   - owner if it fails: `JokerAcquisitionPolicy.decide()` first-engine bootstrap boundary.
+   - owner if it genuinely fails: `JokerAcquisitionPolicy.decide()` first-engine bootstrap boundary.
 2. `shop.simple.joker_reserve_crossing_cost`
    - outside the first-engine exception, incremental reserve shortfall is explicitly priced into D2 purchase economics and can turn a marginal Joker buy into HOLD;
-   - owner if it fails: `JokerAcquisitionPolicy._economics()` / `_incremental_reserve_shortfall()`.
+   - owner if it genuinely fails: `JokerAcquisitionPolicy._economics()` / `_incremental_reserve_shortfall()`.
+
+Initial user result after `00fe6214`: **38/40**, both new cases raised `AttributeError: 'types.SimpleNamespace' object has no attribute 'evaluator'` before semantic evaluation. This was classified as a fixture defect, not production behavior. `27484d51` fixes only that interface mismatch.
 
 No production code or tuning values changed in Batch 3.
 
-Expected benchmark if both pass: **40/40**, with `SHOP_SURVIVAL` increasing from 14/14 to 16/16.
+Expected benchmark after fixture repair: **40/40**, with `SHOP_SURVIVAL` 16/16.
 
 ---
 
 # EXACT NEXT ACTION
 
-Validate Phase-2 Batch 3 locally:
+Re-run Phase-2 Batch 3 semantic benchmark after fixture repair:
 
 ```powershell
 git pull
@@ -202,9 +205,9 @@ Do not run it from ChatGPT.
 
 Continue Phase 2 with simple cross-family purchase precedence: visible first scoring engine versus support/economy options on the shared D14 scale. Add only concrete survival cases and do not tune values unless a case exposes a real defect.
 
-### If a new case fails
+### If either Batch-3 case now produces a semantic failure
 
-Determine fixture defect versus production semantic defect. Fix the smallest canonical owner. Do not add wrapper rescues.
+Treat it as a genuine D2 behavior signal unless the new output demonstrates another concrete fixture mismatch. Fix the smallest canonical owner; do not add wrapper rescues.
 
 ---
 
