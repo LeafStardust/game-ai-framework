@@ -35,7 +35,6 @@ from games.balatro.generated_enhanced_spectral_pack_policy import install_genera
 from games.balatro.hanged_man_blue_joker_policy import install_hanged_man_blue_joker_policy
 from games.balatro.held_consumable_option_policy import install_held_consumable_option_policy
 from games.balatro.high_priestess_pack_policy import install_high_priestess_pack_policy
-from games.balatro.hook_planner_integration_policy import install_hook_planner_integration_policy
 from games.balatro.immolate_pack_expectation_policy import install_immolate_pack_expectation_policy
 from games.balatro.joker_generation_pool_live_state_policy import install_joker_generation_pool_live_state_policy
 from games.balatro.judgement_dispatch_postcondition import install_judgement_dispatch_postcondition
@@ -138,8 +137,6 @@ install_live_decision_quality_policy()
 install_stateful_joker_admission_policy()
 install_tactical_scaler_retention_policy()
 install_soul_pack_expectation_policy()
-# Hook remains explicit until its exact forced-discard branch migration is complete.
-install_hook_planner_integration_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
 install_live_joker_order_authority()
