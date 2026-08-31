@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from time import monotonic, sleep
 
+from games.balatro.live.joker_generation_pool_state import (
+    JokerGenerationPoolLiveMemoryObserver,
+)
+
 from .live_memory_observer import (
-    LiveMemoryBalatroObserver,
     LiveMemoryObservationError,
     _integer,
     _string,
@@ -183,7 +186,7 @@ def _is_pack_phase(phase: str) -> bool:
     return str(phase).endswith("_PACK")
 
 
-class SupervisorLiveMemoryBalatroObserver(LiveMemoryBalatroObserver):
+class SupervisorLiveMemoryBalatroObserver(JokerGenerationPoolLiveMemoryObserver):
     """Live observer that exposes only native-ready, quiescent checkpoints.
 
     This is intentionally supervisor-specific. Generic diagnostics still expose
