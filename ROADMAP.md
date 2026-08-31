@@ -37,7 +37,7 @@ Rules:
 
 Active phase:
 
-> **Phase 2 — simple shop survival. Batch 1 implemented, validation pending.**
+> **Phase 2 — simple shop survival. Batch 2 implemented, validation pending.**
 
 Phase 0 authority consolidation: **COMPLETE / VALIDATED**.
 
@@ -91,6 +91,12 @@ Phase-1 final semantic benchmark: **33/33 GREEN**:
 - `D1_SURVIVAL`: 22/22
 - `SHOP_SURVIVAL`: 9/9
 
+Phase-2 Batch-1 benchmark: **36/36 GREEN**:
+
+- `BUILD_COHERENCE`: 2/2
+- `D1_SURVIVAL`: 22/22
+- `SHOP_SURVIVAL`: 12/12
+
 `docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc` and reflects current native authority.
 
 ---
@@ -130,34 +136,45 @@ Audit order:
 
 Existing SHOP semantics already protect first scoring foothold, strategic conflict vetoes, first-engine-before-hand-size, Wheel admission, empty-roster Buffoon admission, visible Bond-pair authority, and pair interaction requirements.
 
-## Batch 1 — IMPLEMENTED / VALIDATION PENDING
+## Batch 1 — VALIDATED GREEN
 
 Commits:
 
 - `f2de18be` — adds `red_white_semantic_phase2_shop_cases.py`.
 - `7a1a8188` — wires Phase-2 cases into `red_white_semantic_benchmark`.
 
-New cases:
+Validated cases:
 
 1. `shop.simple.end_shop_zero_baseline`
-   - an admitted family-local child with negative normalized parent value must lose to explicit `END_SHOP`;
-   - owner if it fails: `BuildAwareShopArbiter` parent candidate arbitration.
 2. `shop.simple.free_reroll_zero_tie`
-   - a genuinely free reroll beats `END_SHOP` on an otherwise exact zero-gain tie;
-   - owner if it fails: D14 reroll tie priority / D11-D14 handoff.
 3. `shop.simple.replacement_reobserve_boundary`
-   - a profitable Joker replacement executes only `SELL_JOKER`, then requires fresh authoritative SHOP observation before any follow-up `BUY_JOKER`;
-   - owner if it fails: `BuildAwareShopArbiter` replacement transaction boundary.
 
-No production code or tuning values changed in Batch 1.
+User result: **36/36 GREEN**, `SHOP_SURVIVAL` 12/12.
 
-Expected benchmark if all three pass: **36/36**, with `SHOP_SURVIVAL` increasing from 9/9 to 12/12.
+## Batch 2 — IMPLEMENTED / VALIDATION PENDING
+
+Commit:
+
+- `2a09039c` — adds two D11 paid-reroll stop-loss semantics.
+
+New cases:
+
+1. `shop.simple.paid_reroll_cost_cap`
+   - a paid reroll above the explicit absolute cost cap fails closed before future-shop EV is considered;
+   - owner if it fails: `BuildAwareShopRerollPolicy.recommend()` paid-reroll stop-loss.
+2. `shop.simple.paid_reroll_cash_reserve`
+   - a paid reroll is rejected when it would leave less than the minimum post-reroll cash reserve;
+   - owner if it fails: `BuildAwareShopRerollPolicy.recommend()` cash-reserve stop-loss.
+
+No production code or tuning values changed in Batch 2.
+
+Expected benchmark if both pass: **38/38**, with `SHOP_SURVIVAL` increasing from 12/12 to 14/14.
 
 ---
 
 # EXACT NEXT ACTION
 
-Validate Phase-2 Batch 1 locally:
+Validate Phase-2 Batch 2 locally:
 
 ```powershell
 git pull
@@ -166,9 +183,9 @@ python -m games.balatro.red_white_semantic_benchmark
 
 Do not run it from ChatGPT.
 
-### If 36/36 green
+### If 38/38 green
 
-Continue Phase 2 with the next coherent simple-shop survival batch, prioritizing paid-reroll stop-loss and ordinary cash/reserve spending boundaries. Do not tune values unless a semantic case exposes a real defect.
+Continue Phase 2 with ordinary purchase cash/reserve boundaries and then simple cross-family purchase precedence. Add cases only for concrete survival failure classes; do not tune values unless a semantic case exposes a real defect.
 
 ### If a new case fails
 
