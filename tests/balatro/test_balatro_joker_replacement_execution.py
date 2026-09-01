@@ -34,6 +34,14 @@ class PlusMultJoker(Joker):
 class _TransactionTransitionPlanner:
     """Deterministic build evidence for transaction-checkpoint tests only."""
 
+    def __init__(self) -> None:
+        # D2/D14 callers treat the transition planner's evaluator as part of the
+        # planner interface, so the transaction fixture exposes the same minimal
+        # ``evaluate(state, candidate)`` contract as JokerBuildValueEvaluator.
+        self.evaluator = SimpleNamespace(
+            evaluate=lambda _state, candidate: self._value(candidate)
+        )
+
     @staticmethod
     def _value(candidate):
         gain = 2.0 if isinstance(candidate, PlusMultJoker) else 0.0
