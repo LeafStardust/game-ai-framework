@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any, Callable
 
 from games.balatro.bonds.burnt import evaluate_hand_leveling_bond
@@ -19,6 +20,15 @@ from games.balatro.bonds.vampire import evaluate_enhancement_consumption_bond
 
 BondEvaluator = Callable[[Any], BondDevelopment]
 
+
+def _canonical_id_adapter(evaluator: BondEvaluator, bond_id: str) -> BondEvaluator:
+    """Temporary migration bridge for a legacy evaluator implementation."""
+    def adapted(state: Any) -> BondDevelopment:
+        development = evaluator(state)
+        return development if development.bond_id == bond_id else replace(development, bond_id=bond_id)
+    return adapted
+
+
 EVALUATORS: dict[str, BondEvaluator] = {}
 for family in (
     BATCH_ONE_EVALUATORS,
@@ -31,6 +41,12 @@ for family in (
     if overlap:
         raise RuntimeError(f"Duplicate Bond evaluator registration: {sorted(overlap)}")
     EVALUATORS.update(family)
+
+# `gold_economy` still lives in a legacy catalogue batch. Keep the compatibility
+# bridge local and explicit so it can be deleted when that batch is migrated.
+_legacy_gold = EVALUATORS.pop("gold_economy", None)
+if _legacy_gold is not None:
+    EVALUATORS["gold_cards"] = _canonical_id_adapter(_legacy_gold, "gold_cards")
 
 for bond_id, evaluator in {
     "hand_leveling": evaluate_hand_leveling_bond,
@@ -52,12 +68,7 @@ def extra_evaluators() -> tuple[str, ...]:
 
 
 def evaluate_all_bonds(state: Any) -> tuple[BondDevelopment, ...]:
-    """Evaluate and realize the frozen Bond catalogue from one live game state.
-
-    This function remains the raw local-evidence view. Strategy-coherence
-    reinforcement is deliberately applied only by ``evaluate_bond_composition`` so
-    callers can still inspect the unreinforced catalogue state during migration.
-    """
+    """Evaluate and realize the frozen Bond catalogue from one live game state."""
     missing = missing_evaluators()
     extras = extra_evaluators()
     if missing or extras:
@@ -76,13 +87,7 @@ def evaluate_all_bonds(state: Any) -> tuple[BondDevelopment, ...]:
 
 
 def evaluate_bond_composition(state: Any) -> tuple[tuple[BondDevelopment, ...], Composition]:
-    """Legacy composition entry point retained only while consumers migrate.
-
-    The final Bond architecture uses BuildValue/StrategyDelta rather than pinned
-    strategy authority. Existing production consumers still depending on this
-    function are migrated in later roadmap phases before the legacy composer is
-    deleted at the cleanup gate.
-    """
+    """Legacy composition entry point retained only while consumers migrate."""
     raw = evaluate_all_bonds(state)
     initial = compose_build(state, raw)
     pinned = pinned_strategy(initial.strategy_candidates)
