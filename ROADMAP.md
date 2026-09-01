@@ -243,7 +243,7 @@ The uploaded JSONL traces were directly readable in this Tune-E batch. Purchase 
 
 Interpretation:
 
-- Tune E did not improve win rate: **0/10**, same as baseline and Tunes A/B/C/D;
+- Tune E did not improve win rate: **0/10**, same as baseline and Tunes A–E;
 - it also did not improve depth: furthest **Ante 5**, worse than the original baseline's Ante 7;
 - the intended tradeoff did not solve the known large-cash/underpowered-board failure mode;
 - several full boards were composed of individually scoring but weakly unified conditional effects, consistent with contextual/B3 downweighting reducing build coherence without enough compensating realized score;
@@ -400,6 +400,33 @@ Reason: these three are mechanically related enough to make cross-checking the r
 
 **Batch-1 separation rule:** `held_retrigger` and `kings` remain separate Bonds. `held_retrigger` represents held-effect retrigger infrastructure centered on Mime and valid retriggerable held-card infrastructure; `kings` represents King-specific infrastructure/payoff centered on Baron and King density/quality. The full Baron/Mime held-King engine emerges only when these separate Bonds combine at the motif/engine-composition layer. Do not add Baron to `held_retrigger` merely because Baron pairs with Mime, and do not fold Mime into `kings` merely because both mechanics can use held Kings. Where copier semantics are later represented for this engine, Blueprint/Brainstorm should prefer a mechanically valid `Mime > Baron` copy target/order rather than receiving ownership-only credit.
 
+### Current `held_retrigger` audit checkpoint — CONTINUE HERE
+
+The structural walkthrough is **not finished**. The next chat should continue from this exact point rather than restarting the audit or moving on to `held_cards`/`kings`.
+
+Confirmed design decisions so far:
+
+- `held_retrigger` and `kings` stay separate Bonds.
+- Baron belongs to `kings`; Mime belongs to `held_retrigger`.
+- The Baron/Mime held-King build is an emergent motif/engine formed from both Bonds, not one merged Bond.
+- Generic Red-Seal density is wrong for `held_retrigger`; the relevant deck-development evidence should be **Red-Seal Kings**, not arbitrary Red-Seal cards.
+- Blueprint/Brainstorm must not receive ownership-only Held-Retrigger credit. Their contribution is valid only when Joker ordering/copy semantics actually resolve them onto a useful target, with preferred copy target/order **`Mime > Baron`** for this engine.
+- Mechanical annotations may be hardcoded. For this Bond they must express the actual dependency chain rather than merely saying the pieces are related.
+- Realization conditions may also be hardcoded. They should prove the developed engine is currently executable, including useful held King(s), valid Joker copy/order state where applicable, and the ability to preserve the relevant held card(s) during the scoring play.
+- `held_retrigger` requires a first-class **hand/play requirement**. It does not target one fixed poker-hand category; its requirement is effectively: **play a legal scoring hand while preserving the required engine King(s) in hand**. This belongs in reusable Bond semantics so D1 can consume it later without a one-off `if held_retrigger` heuristic.
+- Current R5 unreachability is **not automatically a defect**. Bonds may legitimately have different practical rank ceilings. Do not change Held-Retrigger rank thresholds merely to make R5 reachable; revisit contribution values/thresholds only after all legitimate components are settled. If a Bond intentionally tops out below R5, later planner semantics must not falsely treat the unreachable rank as an expected destination.
+
+Still unresolved before `held_retrigger` can pass the structural gate:
+
+1. **Steel-King component** — user explicitly identified this as a major missing requirement. Do not finalize the Bond until the role of Steel Kings and Red-Seal+Steel Kings is settled.
+2. **Exact contribution membership and values** — after Steel-King semantics are defined, decide the proper values for Mime, Red-Seal King density, Steel-King density/quality, Red-Seal+Steel overlap, Blueprint, and Brainstorm.
+3. **Exact copier semantics** — inspect/reuse the canonical Joker-order/copy-target resolver if one exists; do not implement a second interpretation of Blueprint/Brainstorm ordering. Credit only real `Mime > Baron` copy behavior, not mere ownership.
+4. **Reusable hand/play-condition schema** — determine the Bond-level field/structure that can express “score while preserving required held card(s)” generically enough for other Bonds too.
+5. **Exact realization thresholds** — once the above is defined, specify what counts as `PARTIAL`, `ACTIVE`, and `MATURE` for Held Retrigger.
+6. **Rank/contribution review last** — only after membership and conditions are correct should the existing `4/8/13/19/26` ladder and contribution magnitudes be judged.
+
+Do **not** audit D1/D2/D4/D9/D14 wiring yet. Do **not** move to `held_cards` or `kings` until these unresolved Held-Retrigger structural points are settled.
+
 ### Later catalogue batches
 
 Determine subsequent trios from the actual catalogue after Batch 1 so they remain semantically coherent. Likely families include:
@@ -441,18 +468,18 @@ Balatro's public `won` bit can remain sticky after a later Ante-8 GAME_OVER loss
 
 # EXACT NEXT ACTION
 
-Start with the **Bond structural gate** on `held_retrigger` before any wiring audit:
+Continue the unfinished **`held_retrigger` structural audit** at the Steel-King component. Do not restart from generic Bond structure and do not move to consumer wiring.
 
-1. write out its Bond identity/semantic axis and current `target`;
-2. enumerate every contribution, category, point value, evidence field, mechanical role, contribution target, and condition;
-3. map the exact R0–R5 thresholds and local rank-policy descriptions, including which concrete contribution combinations can reach each rank;
-4. inspect its development-rank versus realization-state semantics and the mechanic recognized by the realizer;
-5. preserve the separation between `held_retrigger` and `kings`: Mime/retrigger evidence belongs to the former, Baron/King infrastructure belongs to the latter, and the full held-King engine is a later motif/composition concern;
-6. identify internal structural defects or ambiguities and correct them at the Bond/catalogue/realization layer only if justified;
-7. only after `held_retrigger` itself is structurally confirmed, continue Batch 1 with `held_cards` and `kings` using the same gate;
-8. after the raw catalogue is completed and semantically validated, resume relationships/motifs/strategy/composer and finally D2/D4/D9/D14/D1 wiring.
+1. settle exactly how **Steel Kings** and **Red-Seal+Steel Kings** belong in `held_retrigger` development and realization;
+2. then finalize the complete Held-Retrigger contributor set: Mime, Red-Seal Kings, Steel Kings/combined King quality, and only mechanically valid Blueprint/Brainstorm copy contributions;
+3. encode/confirm actual copier dependency using canonical Joker order, with useful copy priority **`Mime > Baron`**, never ownership-only credit;
+4. define a reusable Bond-level hand/play condition capable of expressing **score while preserving required engine King(s) in hand**;
+5. hardcode the Bond's mechanical dependency metadata and current realization criteria from those settled mechanics;
+6. only then review contribution magnitudes and the R0–R5 ladder; do not force R5 reachability merely for uniformity;
+7. once `held_retrigger` passes this structural gate, continue Batch 1 with `held_cards`, then `kings`;
+8. defer relationships, motifs, StrategyPlan/composer, Build Health, and D1/D2/D4/D9/D14 wiring until the raw catalogue audit is complete.
 
-Do **not** use relationships, motifs, strategy formation, StrategyPlan, composer, Build Health, D2/D4/D9/D14, or D1 strategy behavior as proof that the `held_retrigger` structure is correct. Do **not** run another live batch or stage Tune G.
+Do **not** run another live batch or stage Tune G.
 
 # Phase order
 
