@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from games.balatro.bonds.ids import BOND_IDS
+from games.balatro.bonds.ids import BOND_IDS, LEGACY_BOND_ID_ALIASES
 from games.balatro.bonds.model import BondDevelopment
 from games.balatro.bonds.realization_held import HELD_REALIZERS
 from games.balatro.bonds.realization_common import COMMON_REALIZERS
@@ -13,6 +13,7 @@ from games.balatro.bonds.realization_engine_order_audit import ENGINE_AUDIT_REAL
 from games.balatro.bonds.realization_engine_triggered import TRIGGERED_ENGINE_OVERRIDES
 from games.balatro.bonds.realization_engine_liveness_audit import ENGINE_LIVENESS_AUDIT_REALIZERS
 from games.balatro.bonds.realization_contract_compat import CONTRACT_COMPAT_REALIZERS
+from games.balatro.bonds.realization_canonical import CANONICAL_REALIZERS
 
 Realizer = Callable[[BondDevelopment, Any], BondDevelopment]
 
@@ -28,15 +29,13 @@ REALIZERS.update(TRIGGERED_ENGINE_OVERRIDES)
 REALIZERS.update(ENGINE_LIVENESS_AUDIT_REALIZERS)
 REALIZERS.update(CONTRACT_COMPAT_REALIZERS)
 
-# Temporary migration bridges. Delete when the family modules emit canonical IDs.
-for legacy_id, canonical_id in (
-    ("burnt", "hand_leveling"),
-    ("gold_economy", "gold_cards"),
-    ("vampire", "enhancement_consumption"),
-):
-    legacy = REALIZERS.pop(legacy_id, None)
-    if legacy is not None:
-        REALIZERS[canonical_id] = legacy
+# Remove legacy strategic IDs from the production registry. The old realizer
+# implementations remain temporarily as mechanic/reference code until cleanup.
+for legacy_id in LEGACY_BOND_ID_ALIASES:
+    REALIZERS.pop(legacy_id, None)
+
+# Canonical axis-level realization is authoritative for renamed Bonds.
+REALIZERS.update(CANONICAL_REALIZERS)
 
 # Compatibility export used by existing tests/callers. The source of truth is ids.py.
 FROZEN_BOND_IDS = BOND_IDS
