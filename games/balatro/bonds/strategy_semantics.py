@@ -80,6 +80,13 @@ _ROLE_COMPATIBILITY: dict[frozenset[MechanicalRole], str] = {
     frozenset((MechanicalRole.COPY_ENGINE, MechanicalRole.ENHANCEMENT_PAYOFF)): "COPY_AMPLIFIES_ENHANCEMENT_PAYOFF",
 }
 
+_SINGLETON_INFRASTRUCTURE_ONLY = frozenset(
+    {
+        MechanicalRole.SUPPORT,
+        MechanicalRole.DENSITY_INFRASTRUCTURE,
+    }
+)
+
 
 @dataclass(frozen=True)
 class _Evidence:
@@ -251,6 +258,41 @@ def _candidate_strength(
     return evidence_value + 2.0 * len(component_links) + 4.0 * confidence + rank_strength + realization_strength
 
 
+def _singleton_candidate(
+    bond_id: str,
+    group: tuple[_Evidence, ...],
+    development: BondDevelopment,
+) -> StrategyCandidate | None:
+    roles = tuple(sorted({role for item in group for role in item.roles}, key=str))
+    if not roles or all(role in _SINGLETON_INFRASTRUCTURE_ONLY for role in roles):
+        return None
+
+    sources = tuple(dict.fromkeys(item.source for item in group))
+    evidence_value = sum(min(8.0, item.value) for item in group)
+    confidence = min(
+        0.55,
+        0.20
+        + 0.10 * min(3, len(sources))
+        + 0.15 * min(1.0, evidence_value / 8.0)
+        + 0.10 * min(1.0, max(0, int(development.rank)) / 3.0),
+    )
+    developed = development.rank >= BondRank.R1
+    realized = _REALIZATION_STRENGTH[development.realization] >= _REALIZATION_STRENGTH[BondRealization.PARTIAL]
+    commitment = StrategyCommitment.FORMING if (developed or realized) else StrategyCommitment.EXPLORATORY
+    return StrategyCandidate(
+        strategy_id=f"semantic:{bond_id}",
+        bond_ids=(bond_id,),
+        sources=sources,
+        roles=roles,
+        links=(),
+        motif_ids=(),
+        commitment=commitment,
+        confidence=confidence,
+        strength=_candidate_strength(group, (), confidence, {bond_id: development}),
+        prescriptions=(),
+    )
+
+
 def form_strategy_candidates(
     developments: Iterable[BondDevelopment],
     motifs: Iterable[MotifEvaluation] = (),
@@ -261,8 +303,9 @@ def form_strategy_candidates(
     links = _links(evidence)
     all_motifs = tuple(motifs)
     candidates: list[StrategyCandidate] = []
+    components = _components(evidence, links)
 
-    for ordinal, indices in enumerate(_components(evidence, links), start=1):
+    for ordinal, indices in enumerate(components, start=1):
         group = tuple(evidence[index] for index in indices)
         bond_ids = tuple(sorted({item.bond_id for item in group}))
         bond_set = set(bond_ids)
@@ -320,6 +363,25 @@ def form_strategy_candidates(
                 prescriptions=prescriptions,
             )
         )
+
+    # A legitimate strategic axis does not need a second Bond merely to become
+    # visible to downstream planning. Evidence not already participating in a
+    # semantic engine is aggregated by Bond. R1/realized axes may FORM, while R0
+    # evidence remains EXPLORATORY. Pure support/density infrastructure cannot form
+    # a strategy by itself and therefore cannot gain acquisition authority.
+    connected_indices = {index for component in components for index in component}
+    singleton_groups: dict[str, list[_Evidence]] = {}
+    for index, item in enumerate(evidence):
+        if index in connected_indices:
+            continue
+        singleton_groups.setdefault(item.bond_id, []).append(item)
+    for bond_id, items in singleton_groups.items():
+        development = dev_map.get(bond_id)
+        if development is None or not development.unlocked:
+            continue
+        candidate = _singleton_candidate(bond_id, tuple(items), development)
+        if candidate is not None:
+            candidates.append(candidate)
 
     covered = {motif_id for candidate in candidates for motif_id in candidate.motif_ids}
     for motif in all_motifs:
