@@ -3,8 +3,9 @@ from __future__ import annotations
 """Applied strategy plan above semantic strategy discovery.
 
 The semantic graph answers "what coherent engine is present?". This layer answers
-"what are we building next?" and is the canonical Currency-Wars-style tracking
-object for a pinned strategy.
+"what are we building next?". FORMING strategies receive bounded construction
+and acquisition authority; PINNED and stronger strategies additionally receive
+preservation/execution prescriptions.
 """
 
 from dataclasses import dataclass
@@ -142,7 +143,7 @@ def build_strategy_plan(
     developments: Iterable[BondDevelopment],
     motifs: Iterable[MotifEvaluation] = (),
 ) -> StrategyPlan | None:
-    if candidate is None or candidate.commitment < StrategyCommitment.PINNED:
+    if candidate is None or candidate.commitment < StrategyCommitment.FORMING:
         return None
 
     dev_map = {dev.bond_id: dev for dev in developments}
@@ -191,7 +192,15 @@ def build_strategy_plan(
         missing_components=missing,
     )
 
-    plan_prescriptions: list[str] = list(candidate.prescriptions)
+    # FORMING is deliberately construction-only. It may tell acquisition layers
+    # what missing feature/component/Bond to seek, but it may not yet protect
+    # pieces, resist replacements, or dictate hand execution. Those stronger
+    # prescriptions become authoritative only once the strategy is PINNED.
+    plan_prescriptions: list[str] = []
+    if candidate.commitment >= StrategyCommitment.PINNED:
+        plan_prescriptions.extend(candidate.prescriptions)
+    else:
+        plan_prescriptions.extend(f"seek_feature:{feature}" for feature in feature_goals)
     for goal in goals:
         if goal.next_rank is not None:
             plan_prescriptions.append(f"seek_bond:{goal.bond_id}:{goal.next_rank.name}")
