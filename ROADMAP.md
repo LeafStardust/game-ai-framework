@@ -8,19 +8,19 @@ This is the authoritative roadmap/handoff for the Balatro Red/White competence b
 - Branch: `feat/v1.0-red-white-competence`
 - User runs tests/live games locally. **Do not run tests or live games from ChatGPT.**
 - Every validation command shown to the user must begin with `git pull`.
-- Every command block shown must end with a trailing blank line after the final command.
+- Every command block shown must end with a trailing blank after the final command.
 - Preserve exact Balatro mechanics, public-state legality, boss rules, and hidden-information boundaries.
 - Never use hidden RNG state, seeds, future pool order/identities, or inaccessible information.
 - Prefer canonical ownership over late wrappers/rescues.
 - Bond/composition and Build Health are evidence/planning layers, never immediate score/action authorities.
 - Numerical tuning must not compensate for missing or malformed strategy semantics.
-- **Before auditing, redesigning, or implementing any Bond/strategy relationship, first read `docs/balatro/BALATRO_STRATEGY_SYSTEM.md` and `docs/balatro/BALATRO_RELATIONSHIPS_MOTIFS.md`. Treat them as mandatory historical/design context for the intended strategy architecture. Then inspect the current code before deciding whether that design should be kept, corrected, or replaced.**
+- **Before Bond/strategy work, read `docs/balatro/BALATRO_STRATEGY_SYSTEM.md` and `docs/balatro/BALATRO_RELATIONSHIPS_MOTIFS.md`, then inspect the current implementation.** These documents preserve the Currency-Wars-derived intent of Bonds and motifs; they are historical/design context, not immutable implementation requirements.
 
 ## Objective
 
 **Red Deck / White Stake, normal mode: maximize probability of winning the current run.**
 
-Canonical authority remains:
+Canonical authority:
 
 ```text
 Authoritative public state
@@ -38,8 +38,7 @@ One final arbiter
 Action
 ```
 
-Canonical owners:
-
+Canonical owners remain:
 - D1 search/projection: `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`
 - D1 arbitration: `StrategyAwareLiveHandActionPolicy`
 - D1 orchestration/final return: `LiveHandActionDecisionEngine` / `PathAwareLiveHandActionDecisionEngine`
@@ -51,275 +50,158 @@ Canonical owners:
 
 # Current state — 2026-09-01
 
-Phase 5 live semantic validation is complete at **74/74 green**. Phase 6 live/tuning attempts have repeatedly produced **0/10 wins**, including the original baseline and Tunes A–F. Tune A remains provisionally retained; Tunes B–F were rejected/reverted. The D9 Buffoon ownership defect was corrected in `c1f8422` and retained because it is semantically correct, but its controlled live comparison also produced 0/10 wins.
+Phase 5 live semantic validation is complete at **74/74 green**. The original baseline and Tunes A–F repeatedly produced **0/10 wins**. Tune A is provisionally retained; B–F were rejected/reverted. The D9 Buffoon ownership correction `c1f8422` is retained as semantically correct but did not improve the controlled live result.
 
-The current investigation therefore moves upstream into the **Bond strategy representation itself**.
+The D1–D14 decision-authority audit is not the current primary target. The observed competence failure is that the agent can have an apparent run direction yet still fail to buy useful pieces, buy unrelated/contradictory pieces, or fail to preserve the machinery of that direction.
 
-The previous `held_retrigger` checkpoint is superseded. It made several Bond-specific structural commitments before the project had established whether the existing Bond abstractions were the right abstractions at all. Do not preserve the current catalogue, current Bond count, current pairwise boundaries, or current rank semantics merely for compatibility.
+This means the next task is **not** a Bond-by-Bond numerical audit and **not** another broad decision-layer audit. We must first locate where strategic understanding is lost in the full causal path.
 
-## Validated checkpoints that remain closed
+Validated checkpoints that remain closed absent fresh reproducible evidence:
+- Phase 0 authority consolidation: complete
+- Phase 1 D1 survival expansion: complete
+- Phase 2 simple shop survival: complete
+- Phase 3 coherent build evidence: complete
+- Phase 4 resource semantics: complete
+- Phase 5 live D1/D2 semantics: complete
+- full deterministic Balatro suite green at the latest checkpoint
+- sticky GAME_OVER restart semantics validated
+- supervisor telemetry resilience validated
 
-- Phase 0 authority consolidation: **COMPLETE / 24/24 semantic green**
-- Phase 1 D1 survival expansion: **COMPLETE / 33/33 green**
-- Phase 2 simple shop survival: **COMPLETE / 42/42 green**
-- Phase 3 coherent build evidence: **COMPLETE / 52/52 green**, `BUILD_COHERENCE` 12/12
-- Phase 4 resource semantics: **COMPLETE / 70/70**, `RESOURCE_COHERENCE` 18/18
-- Phase 5 live D1/D2 semantics: **COMPLETE / 74/74**, `D1_SURVIVAL` 25/25, `SHOP_SURVIVAL` 19/19
-- Full deterministic Balatro suite: **GREEN** after the D9 structural correction and stale-contract cleanup
-- Phase 6 Tune A first-Joker cash runway: **RETAINED PROVISIONALLY / 0 OF 10 WINS**
-- Phase 6 Tunes B–F: **REJECTED / REVERTED**
-- Phase 6 D9 Bond-utilization correction: **RETAINED AS CORRECT OWNERSHIP FIX / LIVE 0 OF 10 WINS**
-- Sticky public `won` GAME_OVER restart semantics: **VALIDATED** (`28cec27b`, `6e1a2696`)
-- Supervisor telemetry resilience: **LOCAL REGRESSION GREEN** (`d22f1b0a`, `cac8fd95`)
+Do not stage Tune G or another live batch while this architecture diagnosis is active.
 
-Do not stage Tune G or another live batch while Bond redesign is active.
+# Phase 6 — STRATEGY/BOND CAUSAL DIAGNOSIS — ACTIVE
 
-# Phase 6 — BOND ARCHITECTURE REDESIGN — ACTIVE
+## Historical architecture that must be understood first
 
-## Problem statement
-
-The working hypothesis is that the existing Bond system may not represent Balatro strategy well enough for the agent to construct, preserve, and execute consistently winning engines. This is a hypothesis, not a conclusion that every live failure originates in Bond.
-
-The catalogue is believed to contain approximately **46 Bonds** at this checkpoint. **The number 46 is not a design requirement.** After review, Bonds may be deleted, merged, split, or replaced, and new Bonds may be added if actual Balatro mechanics require them.
-
-The redesign objective is not to maximize abstraction or minimize Joker-specific code. It is to create a strategy representation that is mechanically correct, compositional, decision-relevant, and usable by downstream planning without becoming a second score/action authority.
-
-## Core design rule
-
-A Bond is not merely “two things synergize.”
-
-A candidate Bond must represent a **strategically meaningful causal interaction or engine state that changes how the agent should build, preserve, acquire, pivot, or execute a run**.
-
-If an interaction changes only exact score arithmetic and has no independent strategic consequence, it belongs in the canonical score/effect model rather than receiving a separate Bond merely to duplicate scoring.
-
-## Required semantic layers
-
-The redesign must distinguish at least three concepts.
-
-### 1. Literal mechanical primitives
-
-Exact Balatro rules such as:
-
-- trigger phase;
-- activation/reset/consumption conditions;
-- played-card and held-card effects;
-- retrigger semantics;
-- enhancement/seal/edition effects;
-- Joker copying and Joker-order semantics;
-- persistent scaler state;
-- deck/hand requirements;
-- resource production/consumption.
-
-These are factual game mechanics, not fuzzy Bond strengths.
-
-### 2. Bonds
-
-Bonds represent strategically useful relationships/engine structure derived from mechanics. They must be causal and decision-relevant rather than a bag of pairwise bonuses.
-
-Useful relationship roles may include, where mechanically justified:
-
-- `PRODUCER`
-- `REQUIREMENT`
-- `PAYOFF`
-- `AMPLIFIER`
-- `RETRIGGER`
-- `COPY`
-- `SCALER`
-- `ENABLER`
-- `CONSUMER`
-- `CONVERTER`
-- `PROTECTOR`
-- `CONFLICT`
-
-The final ontology is not locked by this list. Add/remove roles if the catalogue audit shows a better representation.
-
-### 3. Realized strategy state
-
-The model must separately represent what is structurally being built and how functional that engine is in the current public state.
-
-Examples of realization evidence may include:
-
-- required Joker(s) present;
-- required deck density/quality present;
-- valid Joker ordering/copy target;
-- required hand/play constraint executable;
-- enough payoff pieces to matter;
-- conflicts currently blocking the engine.
-
-Do not collapse structural development, current realization, and exact projected score into one scalar.
-
-## Directionality and N-way composition
-
-Do not assume Bonds are symmetric pairwise edges.
-
-Many Balatro interactions are directional:
+The intended Bond system mirrors Honkai: Star Rail Currency Wars:
 
 ```text
-producer → requirement
-amplifier → payoff
-retrigger → trigger source
-copy → resolved target
-consumer → resource
-conflict → requirement
+Balatro component/state
+  → weighted Bond development
+  → mechanical roles / behavior descriptors
+  → semantic links
+  → candidate strategy / pinned composition
+  → acquisition + preservation + execution preferences
 ```
 
-Many important engines are also N-way. The value of `A+B+C` may not equal the sum of all pairwise relationships. Retriggers, held-card effects, copying, Joker ordering, enhancements, seals, and multiplicative effects are primary examples.
+Separate axes:
 
-Therefore:
+```text
+Development = Bond R0–R5
+Realization = DORMANT / PARTIAL / ACTIVE / MATURE
+Commitment  = EXPLORATORY / FORMING / PINNED / ESTABLISHED / DOMINANT
+```
 
-- do not encode a complex engine as a pile of static pairwise synergy points if the actual result depends on trigger structure;
-- do not create exhaustive Joker-pair/triple tables when exact component mechanics compose correctly;
-- explicit exceptional interactions are allowed when generic composition cannot faithfully represent the known game rule.
+A Bond is intended to be a persistent developable strategic axis, not an individual Joker and not necessarily a complete build. Named super-additive packages belong to motifs/compositions. Example: Baron is not a Bond; `Held Cards` is a Bond, while Baron + Mime + Steel Kings is a composition using several Bonds and exact component semantics.
 
-## Negative interactions are first-class
+This intent is useful context, but the current implementation may still fail to realize it correctly.
 
-Distinguish **unrelated** from **actively conflicting**.
+## Primary diagnostic question
 
-The Bond/strategy representation must be able to express conflicts such as:
+For a real strategic state, **where is the first point at which the agent stops knowing what a competent Balatro player should know?**
 
-- competing discard requirements;
-- played-versus-held card requirements;
-- incompatible hand-shape goals;
-- deck destruction of required cards;
-- conflicting deck-size incentives;
-- resource competition;
-- incompatible Joker ordering/copy requirements;
-- mutually harmful scaling conditions.
+Trace vertically:
 
-A Frankenstein board of individually positive pieces must not appear coherent merely because negative dependencies are absent from the model.
+```text
+public state
+→ exact Joker/card mechanics
+→ Bond contributions
+→ roles / produces / requires / scales_with / amplifies / transforms
+→ semantic links
+→ candidate strategies
+→ commitment / pinned strategy
+→ unmet feature goals / prescriptions
+→ projected acquisition or replacement state
+→ shop/pack/preservation valuation
+→ final bounded decision
+```
 
-# Bond specification contract
+At each stage ask:
+1. Is the relevant fact present?
+2. Is it mechanically correct?
+3. Is its directionality/condition preserved?
+4. Does it create the right positive, negative, or neutral strategic consequence?
+5. Is that consequence still present downstream?
 
-Before implementation changes are accepted, every retained/replacement Bond should have an explicit specification covering:
+The **first incorrect or missing stage owns the defect**. Do not patch a later consumer to compensate for missing upstream semantics.
 
-1. **Name / identity** — what strategic concept does it represent?
-2. **Literal mechanic** — plain Balatro description.
-3. **Purpose** — why does the agent need this Bond rather than only exact scoring?
-4. **Requirements** — what must exist for it to function?
-5. **Producers** — what creates those requirements?
-6. **Payoffs** — what benefits from them?
-7. **Amplifiers/retriggers/copies** — how the engine compounds.
-8. **Trigger phase** — played, scored, held, discard, blind start, round end, shop, etc.
-9. **Directionality** — which component acts on which.
-10. **Multiplicity** — how repeated triggers/effects compose.
-11. **Copy semantics** — Blueprint/Brainstorm or equivalent behavior where relevant.
-12. **Negative interactions/conflicts**.
-13. **Development semantics** — what structural progress means.
-14. **Realization semantics** — what makes the engine currently functional.
-15. **Decision consequences** — what the agent should do differently because this Bond exists.
-16. **Exact-score ownership** — which canonical evaluator owns numerical scoring effects so Bond does not double count them.
-17. **Regression cases** — representative Balatro states that must behave correctly.
-18. **Verdict** — `KEEP`, `SPLIT`, `MERGE`, `REPLACE`, or `DELETE`.
+## Representative trace suite — NEXT
 
-If the **decision consequences** cannot be stated meaningfully, question whether the candidate belongs in Bond at all.
+Trace these before redesigning individual Bonds:
 
-# Redesign procedure
+1. **Baron + Mime**
+   - should recognize held-King payoff + held-effect retrigger interaction before Steel is present;
+   - should seek useful King/Steel/Red-Seal/copy infrastructure through admitted choices;
+   - should preserve Baron/Mime absent a materially stronger pivot;
+   - should not reward unrelated axes merely because they produce fresh Bond ranks.
 
-## Stage A — inventory the existing catalogue — NEXT
+2. **Green Joker / No-Discard**
+   - should recognize discard as engine damage;
+   - should value compatible no-discard support;
+   - should reject contradictory discard engines unless pivot benefit is materially stronger.
 
-First locate the authoritative catalogue and enumerate every current Bond.
+3. **Card Sharp / Hand Repetition**
+   - should understand repeated-hand requirement;
+   - shop/deck choices should support repeatability rather than merely add generic hand-type strength;
+   - D1 should honor repetition when sufficiently safe.
 
-For each existing Bond, record only enough information to classify it before redesign:
+4. **Vampire + enhancement feed**
+   - should value renewable enhancement production as feed;
+   - should distinguish feeding Vampire from preserving an incompatible Driver's License enhanced-card population;
+   - conflict must survive composition and acquisition valuation.
 
-- Bond name;
-- evaluator/source file;
-- current target;
-- current contributors/state-derived evidence;
-- current rank ladder;
-- current realization hook;
-- obvious downstream references if needed only to understand its intended purpose.
+5. **DNA + rank-dependent payoff**
+   - duplication should satisfy the concrete required rank(s), not become generic deck-growth value only;
+   - generated unmet goals must stay specific rather than broaden into arbitrary rank/card acquisition.
 
-Do not assume the current name or boundary is correct.
+6. **Contradictory Frankenstein board**
+   - construct a state containing individually positive but strategically incompatible axes;
+   - verify the system penalizes/removes incoherent composition instead of rewarding aggregate Bond collection.
 
-Deliverable: a complete numbered catalogue and count. Verify whether the assumed count is actually 46 on the active branch.
+## Diagnostic verdict categories
 
-## Stage B — classify before redesigning
+For each trace, classify the first break as one of:
 
-Assign each current Bond a preliminary type such as:
+- `MECHANIC_MODEL` — exact component behavior is absent/wrong.
+- `BOND_REPRESENTATION` — Bond identity/contribution loses essential strategic information.
+- `ROLE_DESCRIPTOR` — roles/targets/conditions or behavior descriptors are absent/too weak.
+- `SEMANTIC_LINKING` — compatible or conflicting mechanics fail to connect correctly.
+- `STRATEGY_FORMATION` — correct links exist but candidate/commitment formation is wrong.
+- `GOAL_PRESCRIPTION` — strategy exists but unmet needs/prescriptions are wrong or too generic.
+- `PROJECTED_TRANSITION` — candidate post-buy/post-replacement state is evaluated incorrectly.
+- `CONSUMER_VALUATION` — correct strategy evidence reaches D2/D4/D9/D14 but valuation ignores/misweights it.
+- `FINAL_ARBITRATION` — correct upstream valuation is overridden incorrectly at the final authority.
 
-- literal mechanic mistakenly promoted to Bond;
-- infrastructure/requirement Bond;
-- payoff Bond;
-- amplifier/retrigger/copy Bond;
-- deck-shaping Bond;
-- economy/resource Bond;
-- hand-shape/hand-level Bond;
-- composite engine Bond;
-- generic scoring Bond;
-- unclear/mixed abstraction.
+This classification determines whether the next phase is Bond redesign, semantic-graph redesign, or a narrow consumer fix.
 
-Also flag obvious overlap, duplication, over-breadth, or missing concepts.
+## Important non-conclusions
 
-This classification is provisional and exists to determine redesign order, not to protect the current structure.
+- `held_retrigger` is **not declared correct**.
+- `held_retrigger` is **not declared invalid** merely because retriggering is mechanically an amplifier.
+- The current 46-Bond catalogue, rank thresholds, relationships, motifs, and data model are not protected.
+- Conversely, do not replace the Currency-Wars-derived architecture merely because live play is poor until the causal trace shows where it fails.
 
-## Stage C — derive dependency order
+## Implementation freeze during diagnosis
 
-Do not audit alphabetically.
+Until the representative traces establish the first systematic break:
+- do not tune Bond thresholds;
+- do not redesign Bonds one-by-one;
+- do not add late shop/preservation rescues;
+- do not run another live tuning batch;
+- do not stage Tune G;
+- do not alter D1–D14 ownership without fresh trace evidence.
 
-Redesign foundational semantics before dependent composite engines. Expected broad order:
-
-1. scoring/play/held trigger primitives represented in Bond;
-2. retrigger semantics;
-3. copy/order semantics;
-4. hand-type/hand-shape requirements;
-5. deck composition and deck shaping;
-6. discard mechanics;
-7. economy/resource engines;
-8. scalers/amplifiers;
-9. consumable/deck-development support;
-10. composite engines and remaining strategy concepts.
-
-Adjust this ordering after inventory if the real catalogue suggests a cleaner dependency graph.
-
-## Stage D — redesign one Bond at a time
-
-For each Bond in dependency order:
-
-1. state the actual Balatro mechanic independently of current code;
-2. determine whether a Bond is needed at all;
-3. choose `KEEP / SPLIT / MERGE / REPLACE / DELETE`;
-4. write the full Bond specification contract above;
-5. compare the specification against current implementation;
-6. identify required data-model changes before local patches;
-7. implement only after the abstraction is accepted;
-8. add structural/mechanical regression coverage;
-9. checkpoint the roadmap before advancing.
-
-Do not preserve an abstraction merely because other code already consumes it. Consumers will be migrated after the model is correct.
-
-## Stage E — system-level audit after catalogue redesign
-
-Only after all Bonds have been reviewed:
-
-1. global relationship/dependency graph;
-2. role ontology;
-3. motif/composite-engine formation;
-4. realization and strategy formation;
-5. StrategyPlan / composer;
-6. Build Health boundary;
-7. preservation/pivot behavior;
-8. D1/D2/D4/D9/D14 consumption;
-9. controlled live validation;
-10. numerical tuning only after semantic defects are closed.
-
-# Held-retrigger status
-
-`held_retrigger` is no longer automatically the next implementation task.
-
-It remains a useful **stress-test example** because Steel, Red Seal, held effects, Mime, Baron, Blueprint/Brainstorm, Joker ordering, retriggers, and multiplicative scoring expose weaknesses in pairwise/static Bond models. However, do not finalize its current boundary or contributors until inventory/classification determines where held-card primitives, retriggers, King-specific payoff, copy semantics, and composite engine formation belong.
-
-Previous provisional conclusions such as “Baron must belong only to `kings`,” “Mime must belong only to `held_retrigger`,” or “Red-Seal Kings are the correct generic Held-Retrigger evidence” are explicitly reopened. They may still turn out to be correct, but they must now be justified from the redesigned model rather than inherited from the old checkpoint.
+Small instrumentation or regression-only changes are allowed if required to expose the causal path, but prefer static code tracing first.
 
 # EXACT NEXT ACTION
 
-1. Read `docs/balatro/BALATRO_STRATEGY_SYSTEM.md` and `docs/balatro/BALATRO_RELATIONSHIPS_MOTIFS.md` to recover the intended strategy architecture and relationship/motif semantics before judging the current Bond abstractions.
-2. Locate the authoritative Bond catalogue on `feat/v1.0-red-white-competence`.
-3. Enumerate every current Bond and verify the exact count.
-4. For every Bond, capture its evaluator/file, target, major contributor classes, rank ladder, and realization ownership.
-5. Produce a preliminary classification and flag obvious duplicates/mixed abstractions.
-6. Derive the redesign dependency order from the real catalogue.
-7. Only then select the first Bond for full KEEP/SPLIT/MERGE/REPLACE/DELETE redesign.
-8. Do **not** modify Bond implementation, consumer wiring, run another live batch, or stage Tune G before this inventory/classification checkpoint is complete.
+1. Read the strategy-system and relationships/motifs documents.
+2. Trace **Baron + Mime** end-to-end through the current code.
+3. Record the exact information present at every stage from component mechanics through D14/D9/D4/D2 consumption.
+4. Identify the **first** stage that loses or distorts the strategically relevant causal information.
+5. Repeat for No-Discard, Hand-Repetition, Vampire, DNA/rank payoff, and one contradictory-board case.
+6. Compare failures. If they cluster at the same architectural layer, redesign that layer before individual Bond auditing.
+7. Only after the architecture diagnosis is complete decide whether to KEEP/SPLIT/MERGE/REPLACE/DELETE individual Bonds such as `held_retrigger`.
 
 # Phase order
 
@@ -329,31 +211,8 @@ Previous provisional conclusions such as “Baron must belong only to `kings`,�
 4. Phase 3 — coherent build evidence/authority quality — COMPLETE
 5. Phase 4 — complex packs/consumables/vouchers/economy audit — COMPLETE
 6. Phase 5 — live validation — COMPLETE
-7. Phase 6 — Bond architecture redesign, then action-quality validation/tuning — ACTIVE
+7. Phase 6A — vertical strategy/Bond causal diagnosis — ACTIVE
+8. Phase 6B — architecture correction based on diagnosis — BLOCKED
+9. Phase 6C — action-quality validation/tuning — BLOCKED
 
 Future stake/deck progression remains blocked until Red/White competence passes.
-
-# Closed / do not reopen without fresh evidence
-
-- Phase-0 ownership migrations and installer retirements
-- Phase-1 expansion beyond validated batches absent fresh Phase-5 evidence
-- Phase-2 expansion beyond validated batches absent fresh Phase-5 evidence
-- Phase-3 authority ownership absent fresh reproducible evidence
-- Phase-4 resource semantics absent fresh reproducible evidence
-- Phase-5 legality/authority/runtime findings absent fresh reproducible evidence
-- Tune-B `$8` pre-Ante-6 paid-reroll runway
-- Tune-C `0.50` ordinary Joker replacement margin
-- Tune-D `0.20` D8 booster acquisition margin
-- Tune-E `0.75` contextual/B3 Joker build weight
-- Tune-F `_OBSERVED_HAND_PRIOR_WEIGHT=0.10`
-- obsolete `_target_hand_engine_policy_installed` production guard
-- Mouth discard-only legality defect
-- Green Joker survival-equivalent authority
-- Hook/log-resilience search reserve
-- historical SHOP recursive expectation roots
-- BLIND_SELECT quiescence deadlock
-- ROUND_EVAL checkout fast path
-- D1 root pre-beam wall-clock defect
-- failed-trial tuner cascading
-- Phase-A Bond exploratory tuning
-- D14/D11 latency blocker absent fresh timing evidence
