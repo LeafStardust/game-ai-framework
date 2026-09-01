@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-09-01
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 numerical/action-quality tuning is ACTIVE. Corrected live result remains 0 wins across the original baseline and Tunes A/B/C/D/E. Tune A remains retained provisionally. Tunes B, C, D, and E are REJECTED and reverted. Tune E's restored state is locally revalidated 74/74 GREEN. Tune F is now STAGED: observed-hand prior in canonical Joker whole-build scoring is reduced 0.25 → 0.10 so medium/late D2 valuation follows demonstrated hand usage more strongly. Semantic validation is PENDING; do not launch a Tune-F live batch until the 74-case benchmark is green.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 action-quality work is ACTIVE. The original Phase-6 baseline and Tunes A–F have produced no wins in their 10-attempt comparisons. Tune A remains retained provisionally because it fixes a specific early-bankroll defect; Tunes B–F are REJECTED and reverted. Tune F's restored `_OBSERVED_HAND_PRIOR_WEIGHT=0.25` configuration is locally revalidated 74/74 GREEN. Repeated live evidence now points away from another blind scalar Tune G and toward a build-planning/utilization gap: the agent frequently reaches shops with substantial cash and often full Joker slots yet fails to convert those resources into a sufficiently coherent/scaling scoring engine. The next workstream is a Bond-utilization audit across D2 Joker acquisition/replacement, D4 consumables, D9 opened-pack choice, and D14 shop arbitration. Bond must remain evidence/planning only and must not become a second action authority.**
 
 Validated checkpoints:
 
@@ -67,7 +67,8 @@ Validated checkpoints:
 - Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune D booster acquisition margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune E contextual/B3 Joker build weight: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Tune F observed-hand scoring prior: **STAGED / SEMANTIC VALIDATION PENDING**
+- Phase 6 Tune F observed-hand scoring prior: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
+- Phase 6 Bond-utilization/build-planning audit: **ACTIVE / STRUCTURAL AUDIT BEFORE ANY TUNE G**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 - Phase 6 sticky-win GAME_OVER restart semantics: **LOCAL REGRESSION GREEN** (`28cec27b` + `6e1a2696`)
 
@@ -251,33 +252,83 @@ Reverted configuration locally revalidated: **74/74 GREEN**.
 
 Do not reopen `contextual_gain=0.75` absent new controlled evidence.
 
-## Tune F — observed-hand scoring prior — STAGED / SEMANTIC VALIDATION PENDING
+## Tune F — observed-hand scoring prior — REJECTED / REVERTED
 
 Canonical owner: `JokerBuildValueEvaluator`, specifically the public hand-history weighting inside whole-build literal Joker scoring.
 
-Production commit: `ab118a33`.
+Experiment commit: `ab118a33`.
+Revert commit: `bd45379d`.
 
-Single numerical change:
+Experiment:
 
 - `_OBSERVED_HAND_PRIOR_WEIGHT`: **0.25 → 0.10**.
 
-Unchanged:
+Semantic result before live sampling: **74/74 GREEN**.
 
-- before any public hand-play history exists, all representative probes still retain equal weight `1.0`;
-- direct literal scoring weight remains **6.0** and cap remains **12.0**;
-- contextual/B3 weight is restored at **1.0**;
-- Bond/composition, D2 purchase/replacement thresholds, D14 economics, D11, D8, and Tune A remain unchanged;
-- no hand identity is predicted from hidden state and no future hand is assumed.
+### Tune-F live comparison
 
-Evidence/rationale:
+Session: `balatro-20260901T055941Z-f2447e67`.
 
-- canonical D2 literal scoring currently probes 11 hand classes, including advanced hands such as Five of a Kind, Flush House, and Flush Five;
-- once public hand history exists, an unplayed probe still receives the prior while a played probe receives `prior + observed_count`;
-- at the previous `0.25`, ten off-plan probes collectively retain **2.5** units of weight even when the run has already demonstrated a preferred hand; at `0.10` that collective off-plan floor falls to **1.0**;
-- Tune-E traces repeatedly ended with full boards containing several narrow hand-conditioned scorers while the run still lacked enough coherent realized power;
-- Tune F tests whether medium/late D2 should follow demonstrated public hand usage more strongly, without weakening contextual coherence or changing spending permissiveness.
+Result: **0/10 wins**. All ten attempts ended with authoritative `LOSS`, and the supervisor stopped normally at the ten-attempt limit.
 
-Do not launch a Tune-F live batch until the semantic benchmark is green. If semantic validation fails, repair/revert Tune F before any live comparison.
+Representative deep-run evidence:
+
+- attempt 6 reached **Ante 7 The Needle** at `18880 / 35000`;
+- it had a full five-Joker board: `Blue Joker / Raised Fist / Swashbuckler / Green Joker (+34 Mult) / Ramen (x2)`;
+- it retained **$103** at death;
+- public hand history was already concentrated toward Two Pair/Pair (`Two Pair=15`, `Pair=12`) while advanced hand classes remained largely unplayed, so Tune F's lower off-plan prior was materially active.
+
+Interpretation:
+
+- Tune F did not improve the primary metric: **0/10**, like baseline and Tunes A–E;
+- furthest depth was **Ante 7**, only matching the original baseline rather than exceeding it;
+- stronger hand-history concentration alone did not solve the cash-rich/underpowered-build pattern;
+- `bd45379d` restores `_OBSERVED_HAND_PRIOR_WEIGHT=0.25`;
+- user locally revalidated the restored configuration **74/74 GREEN**.
+
+Do not reopen `_OBSERVED_HAND_PRIOR_WEIGHT=0.10` absent new controlled evidence.
+
+## Phase-6 direction change — Bond utilization / build-planning audit — ACTIVE
+
+The accumulated live evidence no longer justifies another blind scalar experiment as the default next step.
+
+Observed pattern across baseline and Tunes A–F:
+
+- repeated **0/10** live comparisons despite semantically clean changes;
+- many medium/late losses retain substantial bankrolls;
+- many losses occur with four or five Jokers already owned;
+- full boards can consist of individually reasonable scorers/support pieces without enough shared direction or scaling to clear later blinds;
+- loosening rerolls, replacement margin, booster admission, contextual weighting, and observed-hand weighting independently did not produce a win-rate improvement.
+
+Working hypothesis:
+
+> The agent may be locally evaluating purchases correctly enough while still failing to form, recognize, and pursue a sufficiently strong run-level build plan.
+
+This is a **hypothesis to audit, not an assumption to encode**. If the existing Bond/composition system already exerts strong, coherent influence over all relevant canonical owners, do not force a Bond rewrite; record that result and move to the next evidence-backed mechanism.
+
+### Bond authority constraint
+
+Bond/composition remains an evidence/planning layer. It must **not** become a second final arbiter or a rule such as “Bond says FLUSH, therefore buy every flush item.” Canonical legality, literal mechanics, resource valuation, and final action ownership stay unchanged.
+
+Desired use of Bond evidence is to help canonical evaluators answer questions such as:
+
+- what scoring engine is actually carrying this run now;
+- whether the build is emerging, committed, incoherent, stalled/underpowered, or facing a justified pivot;
+- which Joker candidate reinforces versus fragments the current engine;
+- which incumbent is expendable once a stronger coherent engine exists;
+- whether a Tarot/Planet/Spectral option improves the cards/hand plan the current build can realistically exploit;
+- whether a high-bankroll but underpowered run should favor power conversion over generic future economy, through the existing canonical resource/action owners rather than through Bond authority.
+
+### Audit scope before any Tune G
+
+1. **D2 Joker acquisition/replacement** — trace exactly where projected Bond/composition enters candidate valuation, replacement ranking, aligned thresholds, and final BUY/REPLACE eligibility. Determine whether Bond meaningfully changes decisions or merely appears in rationale/telemetry.
+2. **D14 SHOP arbitration** — trace whether shop-family comparison consumes build-plan/underpowered evidence strongly enough to distinguish an engine-advancing purchase from generic normalized utility while preserving one final arbiter.
+3. **D4 consumable acquisition** — determine whether Tarot/Planet/Spectral acquisition/use value is conditioned on the active build plan or is mostly generic per-item utility.
+4. **D9 opened-pack choice** — determine whether visible pack choices exploit the same active build plan, without predicting hidden unopened contents.
+5. **Build trajectory representation** — inspect whether existing Bond/Build Health evidence can distinguish emerging, committed, incoherent, stalled, and pivot states; do not invent a new state machine if equivalent evidence already exists.
+6. **Cross-owner consistency** — verify Joker, consumable, pack, and shop choices consume one compatible build thesis rather than each optimizing an unrelated local notion of value.
+
+Only after this audit should a structural change be selected. Prefer the smallest change that makes canonical owners consume already-authoritative public build evidence more effectively. Any such change must receive semantic coverage before live testing.
 
 ## Runtime — sticky public `won` GAME_OVER restart — VALIDATED
 
@@ -289,15 +340,15 @@ Balatro's public `won` bit can remain sticky after a later Ante-8 GAME_OVER loss
 
 # EXACT NEXT ACTION
 
-Validate Tune F semantically before any live sampling:
+Audit current Bond/composition consumption before making another numerical Tune G:
 
-```powershell
-git pull
-python -m games.balatro.red_white_semantic_benchmark
+1. inspect the canonical Bond/composition and Build Health producers;
+2. trace their use through D2, D4, D9, and D14;
+3. identify whether the live cash-rich/underpowered failures can be explained by missing/weak/inconsistent build-plan consumption;
+4. if a concrete underuse is found, implement **one smallest structural quality change** in the canonical owner(s), add/extend semantic coverage, then hand validation to the user;
+5. if no underuse is found, record the negative audit result and select a different evidence-backed Phase-6 mechanism rather than forcing Bond to become action authority.
 
-```
-
-Expected: **74/74 GREEN**. If green, record Tune F as semantic green and run a fresh 10-attempt Tune-F live comparison with no additional numerical changes stacked on top.
+Do **not** launch another 10-attempt live batch until a new semantically validated structural/numerical hypothesis is actually staged.
 
 # Phase order
 
@@ -307,7 +358,7 @@ Expected: **74/74 GREEN**. If green, record Tune F as semantic green and run a f
 4. Phase 3 — coherent build evidence/authority quality — COMPLETE
 5. Phase 4 — complex packs/consumables/vouchers/economy audit — COMPLETE
 6. Phase 5 — live validation — COMPLETE
-7. Phase 6 — numerical/action-quality tuning — ACTIVE
+7. Phase 6 — numerical/action-quality tuning and build-planning utilization — ACTIVE
 
 Future stake/deck progression remains blocked until Red/White competence passes.
 
@@ -324,6 +375,7 @@ Future stake/deck progression remains blocked until Red/White competence passes.
 - Tune-C `0.50` ordinary Joker replacement margin absent new controlled evidence
 - Tune-D `0.20` D8 booster acquisition margin absent new controlled evidence
 - Tune-E `0.75` contextual/B3 Joker build weight absent new controlled evidence
+- Tune-F `_OBSERVED_HAND_PRIOR_WEIGHT=0.10` absent new controlled evidence
 - Mouth discard-only legality defect
 - Green Joker survival-equivalent authority
 - Hook/log-resilience search reserve
