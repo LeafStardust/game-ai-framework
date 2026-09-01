@@ -56,7 +56,10 @@ _HAND_BONDS = frozenset(
 _DEFINING_MOTIF_CORES: dict[str, frozenset[str]] = {
     "baron_mime_steel": frozenset({"BARON", "MIME"}),
     "photograph_hanging_chad": frozenset({"PHOTOGRAPH", "HANGING_CHAD"}),
-    "vampire_midas": frozenset({"VAMPIRE", "MIDAS_MASK"}),
+    # Midas Mask has a complete independent Gold-economy use and therefore does
+    # not, by itself, imply that the run should seek Vampire. Vampire is the
+    # defining payoff that turns Midas into renewable enhancement feed.
+    "vampire_midas": frozenset({"VAMPIRE"}),
     "burnt_target_level": frozenset({"BURNT_JOKER"}),
     "low_rank_hack_retrigger": frozenset({"HACK"}),
 }
