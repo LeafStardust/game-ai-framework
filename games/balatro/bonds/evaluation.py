@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from games.balatro.bonds.burnt import evaluate_burnt_bond
+from games.balatro.bonds.burnt import evaluate_hand_leveling_bond
 from games.balatro.bonds.catalogue_batch_one import BATCH_ONE_EVALUATORS
 from games.balatro.bonds.catalogue_batch_two import BATCH_TWO_EVALUATORS
 from games.balatro.bonds.catalogue_batch_three import BATCH_THREE_EVALUATORS
@@ -15,7 +15,7 @@ from games.balatro.bonds.no_face_cards import evaluate_no_face_cards_bond
 from games.balatro.bonds.realization import FROZEN_BOND_IDS, realize_bond
 from games.balatro.bonds.strategy_development import reinforce_developments
 from games.balatro.bonds.strategy_semantics import pinned_strategy
-from games.balatro.bonds.vampire import evaluate_vampire_bond
+from games.balatro.bonds.vampire import evaluate_enhancement_consumption_bond
 
 BondEvaluator = Callable[[Any], BondDevelopment]
 
@@ -33,10 +33,10 @@ for family in (
     EVALUATORS.update(family)
 
 for bond_id, evaluator in {
-    "burnt": evaluate_burnt_bond,
+    "hand_leveling": evaluate_hand_leveling_bond,
     "held_cards": evaluate_held_cards_bond,
     "no_face_cards": evaluate_no_face_cards_bond,
-    "vampire": evaluate_vampire_bond,
+    "enhancement_consumption": evaluate_enhancement_consumption_bond,
 }.items():
     if bond_id in EVALUATORS:
         raise RuntimeError(f"Duplicate Bond evaluator registration: {bond_id}")
@@ -54,9 +54,9 @@ def extra_evaluators() -> tuple[str, ...]:
 def evaluate_all_bonds(state: Any) -> tuple[BondDevelopment, ...]:
     """Evaluate and realize the frozen Bond catalogue from one live game state.
 
-    This function remains the raw local-evidence view.  Strategy-coherence
+    This function remains the raw local-evidence view. Strategy-coherence
     reinforcement is deliberately applied only by ``evaluate_bond_composition`` so
-    callers can still inspect the unreinforced catalogue state.
+    callers can still inspect the unreinforced catalogue state during migration.
     """
     missing = missing_evaluators()
     extras = extra_evaluators()
@@ -76,13 +76,12 @@ def evaluate_all_bonds(state: Any) -> tuple[BondDevelopment, ...]:
 
 
 def evaluate_bond_composition(state: Any) -> tuple[tuple[BondDevelopment, ...], Composition]:
-    """Evaluate Bonds, form a strategy, then feed proven coherence back once.
+    """Legacy composition entry point retained only while consumers migrate.
 
-    The first composition pass uses only raw catalogue evidence, preventing a
-    circular strategy from creating the evidence that pins itself.  If that pass
-    already contains a pinned strategy, concrete cross-mechanic links may reinforce
-    their participating Bonds by at most one rank.  Realization and composition are
-    then recomputed from that reinforced state exactly once.
+    The final Bond architecture uses BuildValue/StrategyDelta rather than pinned
+    strategy authority. Existing production consumers still depending on this
+    function are migrated in later roadmap phases before the legacy composer is
+    deleted at the cleanup gate.
     """
     raw = evaluate_all_bonds(state)
     initial = compose_build(state, raw)
