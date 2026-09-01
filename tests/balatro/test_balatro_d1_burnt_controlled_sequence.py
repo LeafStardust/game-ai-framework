@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.bonds.burnt import evaluate_burnt_bond
+from games.balatro.burnt_bond_execution_policy import _burnt_strategy_fit
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
 from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
@@ -110,13 +111,23 @@ def test_burnt_controlled_sequence_develops_exploits_and_yields_to_survival(monk
     generic_pair_discard = _plan(DISCARD_CARDS, [two_hearts, two_clubs])
     target_high_card_discard = _plan(DISCARD_CARDS, [ace])
 
+    target_fit, target_notes = _burnt_strategy_fit(
+        development_state,
+        target_high_card_discard.action,
+    )
+    generic_fit, _ = _burnt_strategy_fit(
+        development_state,
+        generic_pair_discard.action,
+    )
+    assert target_fit > generic_fit
+    assert any("Burnt target=HIGH_CARD" in note for note in target_notes)
+
     first_decision = policy.decide(
         development_state,
         [weak_play, generic_pair_discard, target_high_card_discard],
         setup_discard_consensus=True,
     )
     assert first_decision.action is target_high_card_discard.action
-    assert any("Burnt target=HIGH_CARD" in note for note in first_decision.rationale)
 
     # The next observed state contains the public result of Burnt's trigger. The
     # scorer must consume that persistent hand level, and the investment must flip
@@ -179,10 +190,13 @@ def test_burnt_controlled_sequence_develops_exploits_and_yields_to_survival(monk
         expected_score=developed_high + 50.0,
     )
 
+    assert _burnt_strategy_fit(
+        pressure_state,
+        tempting_development_discard.action,
+    ) == (0.0, ())
     pressure_decision = policy.decide(
         pressure_state,
         [tempting_development_discard, survival_play],
         setup_discard_consensus=True,
     )
-    assert policy._strategy_fit(pressure_state, tempting_development_discard.action)[0] == 0.0
     assert pressure_decision.action is survival_play.action
