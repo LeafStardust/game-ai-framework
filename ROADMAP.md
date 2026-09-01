@@ -1,395 +1,490 @@
 # ROADMAP — SINGLE SOURCE OF TRUTH
 
-This is the authoritative roadmap/handoff for the Balatro Red/White competence branch.
+This is the authoritative roadmap/handoff for the Balatro Red Deck / White Stake competence branch.
 
 ## Repository contract
 
 - Repository: `LeafStardust/game-ai-framework`
 - Branch: `feat/v1.0-red-white-competence`
-- User runs tests/live games locally. **Do not run tests or live games from ChatGPT.**
+- User runs tests and live games locally. **Do not run tests or live games from ChatGPT.**
 - Every validation command shown to the user must begin with `git pull`.
 - Every focused pytest command must use `-q`.
 - Preserve exact Balatro mechanics, public-state legality, boss rules, affordability, and hidden-information boundaries.
 - Prefer canonical ownership over late wrappers/rescue layers.
-- Bond/composition and Build Health are evidence/planning layers, not direct score/action authorities.
-- Numerical tuning must not compensate for missing strategy semantics.
-- Before Bond/strategy work, read `docs/balatro/BALATRO_STRATEGY_SYSTEM.md` and `docs/balatro/BALATRO_RELATIONSHIPS_MOTIFS.md`.
+- Numerical tuning must not compensate for missing mechanics or semantics.
 - Use scoped Conventional Commit messages.
 
 # Objective
 
 **Red Deck / White Stake, normal mode: maximize probability of winning the current run.**
 
-The immediate project goal is not merely to detect Bonds. It is to make the production agent **use them Currency-Wars-style as a persistent run-level strategy system**.
+The current development target is the Bond system: give the agent a useful run-level strategic guideline so that it can recognize an emerging Balatro engine, deliberately strengthen it when worthwhile, preserve valuable synergy naturally, and pivot when a better resulting build exists.
 
-# Source architecture — Currency Wars is the controlling mental model
+# Bond-system vision
 
-The Bond system is explicitly derived from **Honkai: Star Rail Currency Wars**.
+The source concept is **Honkai: Star Rail Currency Wars Bonds**.
 
-Canonical mapping:
-
-```text
-Currency Wars character        = Balatro Joker/card/persistent state
-Currency Wars Bond             = Balatro strategic axis
-Bond quota/rank                = weighted contribution + R0-R5 development
-Currency Wars player strategy  = Balatro candidate/pinned composition
-```
-
-The intended behavior is:
+The Balatro system does not need to copy Currency Wars literally. It must preserve the core feedback loop:
 
 ```text
 RNG supplies components
-→ components contribute to one or more Bonds
-→ Bonds develop independently
-→ compatible Bonds/mechanics compose into a coherent strategy
-→ the strategy becomes more committed as evidence strengthens
-→ the agent deliberately develops, preserves, and exploits that strategy
-→ the agent pivots only when survival/economy or a materially better strategy justifies it
+→ components contribute to overlapping Bonds
+→ Bonds become increasingly developed/valuable
+→ compatible future components become more valuable
+→ a coherent build direction emerges
+→ the agent preferentially deepens that direction when justified
+→ a materially better resulting build can still cause a pivot
 ```
 
-**A Bond system that only detects a strategy and adds local tie-break bonuses is incomplete.**
+The Bond system is a **guideline**, not a command system.
 
-Currency-Wars-style implementation requires a coherent strategy to shape the run across all relevant decision owners while remaining subordinate to legality, survival, affordability, boss correctness, and justified pivots.
+It should express:
 
-# Canonical causal chain
+> Given the current run, which strategic structures are becoming valuable, and how much does this candidate improve or damage them?
+
+It must not blindly force a named build when survival, economy, boss requirements, immediate scoring, or a stronger alternative says otherwise.
+
+# Final Bond architecture
+
+This architecture is the current design to implement. Do not introduce another strategy-controller layer unless a concrete tested failure proves it necessary.
 
 ```text
-public game state
-→ literal Balatro mechanics
-→ Bond evidence + semantic mechanics
-→ Bond development / realization
-→ coherent candidate strategy / commitment
-→ persistent current strategy plan
-→ construction goals + preservation + execution preferences
-→ canonical D1/D2/D3/D4/D9/D11/D14 owners consume the SAME strategy intent
-→ final legal/survival-aware actions
-→ persistent build development
-→ scoring payoff / run outcome
+PUBLIC GAME STATE
+    ↓
+MECHANICAL DESCRIPTORS
+    ↓
+BOND CONTRIBUTIONS
+    ↓
+BOND DEVELOPMENT + REALIZATION
+    ↓
+SPARSE BOND RELATIONSHIPS
+    +
+EXCEPTIONAL MOTIFS
+    ↓
+WHOLE-BUILD STRATEGIC VALUE
+    ↓
+PROJECTED STATE AFTER CANDIDATE
+    ↓
+STRATEGY DELTA
+    ↓
+EXISTING CANONICAL DECISION OWNER
 ```
 
-The current implementation is strongest through **candidate strategy / commitment**. The major unresolved gap is the next section: **persistent strategy execution across the agent**.
+## 1. Mechanical descriptors
 
-# Strategy authority contract
+Relevant Jokers, cards, enhancements, consumables, deck properties, hand-level effects, and other persistent public mechanics expose what they actually do.
 
-Development, realization, and commitment remain separate:
+Examples:
 
 ```text
-Development = Bond R0-R5
-Realization = DORMANT / PARTIAL / ACTIVE / MATURE
-Commitment  = EXPLORATORY / FORMING / PINNED / ESTABLISHED / DOMINANT
+Mime        → retrigger_held_cards
+Steel card  → held_scoring, enhanced_card
+Burnt Joker → discard_hand_leveling
+Hanged Man  → card_destruction
 ```
 
-## FORMING = construction authority
+Execution logic should reason from mechanics, not from Bond names.
 
-FORMING may:
-- expose a bounded strategy plan;
-- emit `seek_feature:*`, `seek_component:*`, `seek_bond:*`, or equivalent construction goals;
-- influence admitted acquisition/development choices;
-- establish a run-level direction that relevant construction consumers should understand.
+## 2. Mechanics → weighted Bond contributions
 
-FORMING may not merely by existing:
-- protect components from replacement;
-- dictate hand execution;
-- impose held-card preservation;
-- create unjustified pivot resistance;
-- be internally promoted to PINNED.
+A mechanic may contribute to one or more Bonds.
 
-## PINNED+ = preservation/execution authority
+Example shape:
 
-PINNED / ESTABLISHED / DOMINANT may additionally influence preservation/execution and stronger pivot resistance, while remaining subordinate to:
+```text
+retrigger_held_cards:
+    Held Retrigger +3.0
+    Held Cards     +1.0
+
+held_scoring:
+    Steel          +2.0
+    Held Cards     +1.5
+
+card_destruction:
+    Card Destruction +2.0
+    Deck Thinning    +1.5
+```
+
+Overlapping contribution is intentional. It is what lets a coherent build emerge from several mutually reinforcing pieces.
+
+## 3. Bond development/value
+
+Raw points are not the final strategic value.
+
+Use a nonlinear development curve so that compatible follow-up pieces can become increasingly valuable as a Bond develops, while allowing later tuning from evidence.
+
+Initial reference form:
+
+```python
+def bond_strength(points: float) -> float:
+    return points ** 1.35
+```
+
+The exact exponent is tuning data, not architecture.
+
+Bond ranks may remain as diagnostics/UI if useful, but ranks themselves must not directly issue actions.
+
+## 4. Realization
+
+Each Bond has a realization factor in `[0.0, 1.0]` representing how much its theoretical support is actually usable in the current run.
+
+Reference form:
+
+```text
+BondValue
+= bond_strength(points)
+× realization
+× optional calibration weight
+```
+
+Development and realization are descriptive strategic evidence. They are not action-authority states.
+
+## 5. Sparse Bond relationships
+
+Only meaningful Bond pairs receive explicit synergy/conflict coefficients.
+
+Examples:
+
+```text
+Held Cards + Steel            positive
+Held Cards + Held Retrigger   positive
+Steel + Held Retrigger        positive
+Burnt + Discard               positive
+Card Destruction + Deck Thin  positive
+Discard + No Discard          negative
+Face Cards + No Face Cards    negative
+```
+
+Reference form:
+
+```text
+RelationshipValue
+= coefficient × min(BondValueA, BondValueB)
+```
+
+Do not build a dense all-pairs relationship matrix merely for completeness.
+
+## 6. Motifs
+
+Motifs exist only for combinations whose payoff is genuinely super-additive and cannot be represented adequately by ordinary Bond contributions plus sparse relationships.
+
+Example: Baron + Mime + suitable held Steel Kings.
+
+Do not turn every known Balatro archetype into a motif.
+
+## 7. Whole-build strategic value
+
+The central strategic evaluator is:
+
+```text
+BuildValue(state)
+= Σ BondValue
++ Σ RelationshipValue
++ Σ MotifValue
+```
+
+The current strategy is therefore an emergent property of the current build, not a separately authoritative strategy identity.
+
+## 8. Projected-state strategy delta
+
+Every meaningful candidate should be evaluated against the resulting public state when practical:
+
+```text
+StrategyDelta(candidate)
+= BuildValue(projected_state_after_candidate)
+- BuildValue(current_state)
+- transition_cost
+```
+
+This applies to relevant actions such as:
+- buying/replacing/selling Jokers;
+- pack selections;
+- Tarot/Spectral choices and uses;
+- deck destruction/transformation/enhancement;
+- other persistent build-changing decisions.
+
+A small transition cost may be used to prevent near-equal strategic thrashing:
+
+```text
+transition_cost
+≈ small fraction of removed realized structure
+```
+
+This is inertia, not a persistent strategy state machine.
+
+## 9. Decision integration
+
+The Bond system does not replace Balatro decision logic.
+
+Canonical decision owners combine strategic delta with their existing domain value:
+
+```text
+FinalCandidateValue
+= immediate/mechanical value
++ economy value
++ survival value
++ future value
++ calibrated StrategyDelta
+```
+
+Hard constraints remain authoritative:
 - legality;
-- deterministic or materially safer survival;
-- affordability/economy;
+- affordability;
+- deterministic/material survival requirements;
 - boss correctness;
-- materially stronger projected alternatives.
+- hidden-information boundaries.
 
-# Current implementation state — IMPORTANT
+The exact weighting is tuning work after the architecture is wired correctly.
 
-## Baseline gameplay
+## 10. Tactical execution remains mechanical
 
-Baseline gameplay has already undergone substantial competence work. Do **not** restart a generic baseline-tuning phase.
+Bonds answer:
 
-The agent can play legal Balatro, project scoring/Jokers, handle boss constraints, search D1 survival lines, make shop decisions, and manage basic resources. Live validation exposed and retained two genuine D1 fixes:
+> What kind of build is valuable to develop?
 
-- `7cbc13439c7ec0f047772dc01eb4b4626feeb47d` — preserve the deepest successfully completed Joker-aware D1 search when a later search times out.
-- `7ddf49542e652d9b2583568b693b0761a5e28097` — `discard_width=1` now means best discard candidate overall rather than structurally forcing a one-card discard.
+Canonical gameplay policies answer:
 
-These fixes remain valid. They do **not** change the active project target back to baseline competence.
+> How do I execute these mechanics correctly right now?
 
-Only fix another baseline defect if it is discovered concretely while completing strategy execution. Do not launch another broad baseline audit.
+Examples:
+- Burnt/Discard strategic value does not itself choose the exact discard; D1 must understand Burnt's actual first-discard mechanic.
+- Held/Steel/Retrigger strategic value does not itself choose exact played/held cards; D1 must evaluate the actual held-scoring/retrigger mechanics.
 
-## Bond representation / composition
+Do not create Bond-name-specific tactical command trees when generic mechanical semantics can express the behavior.
 
-The redesigned Bond layer can already:
-- derive weighted Bond contributions from public mechanics;
-- calculate R0-R5 development;
-- represent realization separately;
-- infer semantic links;
-- form candidate strategies;
-- assign commitment states;
-- expose motifs, goals, missing features/components, prescriptions, and diagnostics.
+# Explicitly obsolete architecture
 
-This is meaningful infrastructure, but it is **not sufficient** by itself.
+The following are **not** current development requirements and should not be rebuilt merely because older roadmap/code/docs mention them:
 
-## Strategy execution — CURRENT PRIMARY GAP
+- a giant persistent run-level strategy controller;
+- strategy identity as the primary decision authority;
+- FORMING/PINNED/ESTABLISHED/DOMINANT as required action-authority states;
+- mandatory persistent `StrategyPlan` command propagation across every decision owner;
+- `seek_feature:*`, `seek_bond:*`, `preserve_feature:*`, etc. as the foundational strategic mechanism;
+- manual wiring of every Bond into every decision owner;
+- one execution policy tree per Bond;
+- a large generic pivot state machine;
+- arbitrary pivot resistance merely because a strategy was previously selected;
+- motifs for ordinary synergies;
+- another broad baseline competence audit before Bond work;
+- another blind random live batch before the Bond architecture is implemented and deterministically checked.
 
-The production agent currently has several **local strategy-aware policies**, but no fully proven Currency-Wars-style run-level execution path.
+Existing code implementing any of these concepts should be treated as reusable only where it still helps the new architecture. Do not preserve obsolete structure for its own sake.
 
-Examples of what currently exists:
-- D1 recomputes Bond composition and uses strategy/Bond fit inside canonical survival arbitration.
-- Burnt has explicit first-discard development evidence.
-- Held-card/Steel has PINNED+ held-card preservation behavior.
-- D2 Joker acquisition can reward Bond/strategy transitions and filling strategy-plan gaps.
+# CURRENT DEVELOPMENT PATH
 
-But this has not proven that:
+Follow these steps in order unless a concrete blocking defect requires an incidental fix.
 
-```text
-"I am building strategy X"
-→ all relevant later shop/pack/deck/card/hand decisions understand X
-→ they deliberately reinforce X when appropriate
-→ X persists as the current run direction across rounds
-→ X is exploited for actual payoff
-→ X is abandoned only through a justified pivot
-```
+## Phase A — Audit and freeze the Bond vocabulary — ACTIVE
 
-A particularly important warning from current D1 code: `StrategyAwareLiveHandActionPolicy` accepts `strategy_tracker` but discards it (`del strategy_tracker`) and recomputes composition from current state. Recalculation from public state is valid evidence, but the architecture must still provide coherent run-level strategy intent to every relevant consumer. Do not mistake recomputation plus local bonuses for a complete strategy controller.
+Audit **all currently listed Bonds** before building the new scoring system on top of them.
 
-# Three pilot strategies — NOT FULLY VALIDATED YET
+Do not discard the current list blindly and do not trust it blindly.
 
-The three pilots are the controlled subset for proving the Currency-Wars-style execution architecture. They are **not finished merely because controlled local tests are green**.
-
-## Pilot A — Burnt / persistent hand-level development
-
-Already proven locally:
-- real `BurntJoker` hard-unlocks Burnt;
-- `burnt_target_level` can form naturally;
-- D1 can prefer the target first discard among safe alternatives;
-- the persistent hand-level mechanic is real;
-- survival overrides development greed.
-
-Still must prove/implement as one coherent strategy:
+For every Bond classify it as exactly one of:
 
 ```text
-Burnt acquired
-→ Burnt strategic axis develops
-→ target hand is selected coherently
-→ strategy persists across rounds
-→ first-discard leveling repeatedly develops that target when safe
-→ relevant shop/pack/Planet/support decisions reinforce the target-hand plan
-→ later D1 deliberately exploits the developed hand
-→ strategy may pivot only for a justified stronger/survival line
+KEEP
+MERGE
+RENAME
+DEMOTE TO MECHANIC
+REMOVE
 ```
 
-Do not call Burnt complete until every relevant arrow has a canonical consumer and an end-to-end production proof.
+A valid Bond should satisfy the following tests:
 
-## Pilot B — Deck shaping / deck thinning
+1. **Real strategic axis** — it represents something the run can meaningfully build around.
+2. **Multi-component development** — multiple relevant components/state features can strengthen it; otherwise it may be only a mechanic.
+3. **Future-choice effect** — developing it should make compatible future components/actions more strategically valuable.
+4. **Distinctness** — it is not merely a duplicate measurement of another Bond.
 
-Already proven locally:
-- Erosion can form a deck-thinning direction;
-- Trading Card can deepen it;
-- D2 can value reinforcement for the correct strategy reason;
-- same-purchase self-synergy inflation was fixed.
+Deliverables:
+- cleaned/frozen Bond list;
+- rationale for every merge/demotion/removal/rename;
+- mapping from retained Bonds to the mechanics that can contribute to them.
 
-Still must prove/implement:
+Do not proceed with numerical tuning before this vocabulary is stable.
+
+## Phase B — Complete semantic mechanical descriptors
+
+Audit the public mechanics required to evaluate retained Bonds.
+
+For relevant components, ensure descriptors can express the actual mechanics needed for strategic evaluation rather than display-name heuristics.
+
+Prioritize:
+- Jokers;
+- enhancements/seals/editions where strategically relevant;
+- Tarot/Spectral/Planet effects;
+- deck composition properties;
+- hand-level/persistent scaling state;
+- other persistent mechanics that affect retained Bonds.
+
+Do not require every possible Balatro mechanic before proceeding. Complete the semantics needed by the cleaned Bond set and candidate evaluation paths.
+
+## Phase C — Implement mechanics → Bond contribution evaluation
+
+Implement one canonical contribution path that:
+- derives weighted Bond evidence from public state/mechanics;
+- supports one mechanic contributing to multiple Bonds;
+- avoids double-counting the same underlying source;
+- exposes per-source diagnostics so incorrect scores can be explained.
+
+The output must be usable for both current-state and projected-state evaluation.
+
+## Phase D — Implement Bond value and realization
+
+Implement:
+- contribution totals;
+- nonlinear development strength;
+- realization;
+- optional diagnostic ranks if retained;
+- explainable per-Bond strategic value.
+
+Tests should establish monotonic and intended marginal behavior rather than overfitting exact arbitrary constants.
+
+## Phase E — Implement sparse relationships and exceptional motifs
+
+Implement only justified relationships/conflicts and true motifs.
+
+Requirements:
+- relationship evaluation must operate on retained Bond semantics;
+- unlisted Bond pairs remain neutral;
+- motifs must be mechanically grounded and explainable;
+- no generic rank collection or display-name matching.
+
+## Phase F — Implement canonical `BuildValue(state)`
+
+Create one authoritative whole-build strategic evaluator:
 
 ```text
-thinning/destruction evidence appears
-→ coherent strategy direction forms
-→ acquisition consumers seek compatible thinning/destruction support
-→ actual deck-removal/transform consumers receive the same strategy intent
-→ removal targets are strategy-correct
-→ persistent deck composition improves toward the plan
-→ later decisions exploit the improved deck
-→ pivots remain justified rather than accidental
+BuildValue
+= Bond values
++ relationship values
++ motif values
 ```
 
-## Pilot C — Held-card / Steel
+It must expose diagnostics showing which structures account for the result.
 
-Already proven locally:
-- Baron alone can form the intended direction;
-- Baron + Mime can naturally reach PINNED+;
-- D1 can preserve a relevant held King among safe-equivalent actions;
-- survival can force the engine card to be spent.
+Do not make this function directly choose actions.
 
-Still must prove/implement:
+## Phase G — Implement projected-state `StrategyDelta(candidate)`
+
+For each supported persistent build-changing candidate:
 
 ```text
-held-card payoff infrastructure appears
-→ FORMING construction plan emerges
-→ shop/pack/deck consumers seek Kings/Steel/retrigger/hand-size support as appropriate
-→ strategy naturally reaches PINNED+
-→ relevant cards/components gain preservation authority
-→ D1 exploits held scoring/retrigger mechanics
-→ engine development continues coherently across rounds
-→ materially stronger/survival pivots still work
+current = BuildValue(state)
+projected = BuildValue(state_after_candidate)
+delta = projected - current - transition_cost
 ```
 
-# What the 30 live attempts actually proved
+Requirements:
+- candidate self-synergy must only appear if it exists in the resulting state;
+- replacing/removing a component must correctly lose all dependent Bond/relationship/motif value;
+- pivots should emerge from resulting whole-build value rather than named-strategy switching rules;
+- transition cost must remain small and evidence-based.
 
-Three 10-attempt Red/White batches produced 0/30 wins.
+## Phase H — Wire StrategyDelta into canonical strategic decision owners
 
-Do **not** interpret that as a valid test of all three pilot Bonds:
-- Burnt and Deck-Thinning opportunities were sparse in the random samples;
-- the batches did expose two real D1 defects, now fixed;
-- they did not establish that the three pilot strategies are fully built and followed end-to-end;
-- therefore they do not settle Bond-system usefulness.
+Integrate the same strategic delta into the real owners that make persistent build decisions.
 
-Do not request another random 10-run batch at this stage.
+Audit and wire only relevant domains, including as applicable:
+- Joker shop acquisition/replacement/sale;
+- booster-pack choices;
+- Tarot/Spectral selection/use;
+- deck destruction/transformation/enhancement;
+- Planet/hand-development choices;
+- other persistent-state construction decisions.
 
-# ACTIVE PHASE — CURRENCY-WARS-STYLE STRATEGY EXECUTION
+Do not wire Bonds directly by name. Consumers should receive candidate strategic value derived from projected state.
 
-This is the only active architectural task unless a concrete incidental bug blocks it.
+## Phase I — Verify tactical mechanics can exploit the developed build
 
-## Goal
+Once the strategic layer can construct coherent engines, verify that canonical tactical owners can actually use the mechanics they construct.
 
-Turn the existing Bond/composer output into a coherent **run-level strategy contract** consumed by every relevant canonical owner.
+This is not a second Bond architecture.
 
-This does **not** mean adding a giant central policy that directly chooses every action. Preserve canonical ownership.
+Examples:
+- Burnt: first-discard hand-level development and later exploitation;
+- thinning/destruction: correct removal targets and improved draw quality;
+- Held/Steel/Retrigger: correct hold/play behavior and scoring exploitation.
 
-Instead:
+Fix missing tactical mechanics in canonical owners when concrete failures are found.
+
+## Phase J — Deterministic end-to-end proofs
+
+Before broad live validation, prove several complete strategic paths using real production state/policies.
+
+Minimum representative paths:
+
+1. **Burnt / Discard / Hand Development**
+2. **Card Destruction / Deck Thinning**
+3. **Held Cards / Steel / Held Retrigger**
+
+For each path prove:
 
 ```text
-Bond/composer
-→ produces one authoritative current strategy state/plan
-→ canonical decision owners query/receive that plan
-→ each owner translates relevant goals/prescriptions into bounded domain-specific preferences
-→ survival/economy/legality remain authoritative locally
-→ strategy state updates after public state changes
-→ pivot logic decides when the current strategy should be replaced
+RNG/state supplies compatible pieces
+→ Bonds develop
+→ compatible candidate receives higher projected strategic value
+→ agent deepens the engine when justified
+→ destructive replacement loses appropriate strategic value
+→ materially stronger alternative can still win
+→ tactical owner can exploit the resulting mechanics
 ```
 
-## Required implementation properties
+These are representative proofs of the generic architecture, not special pilot-specific controllers.
 
-### 1. Authoritative strategy state
+## Phase K — Targeted live validation and tuning
 
-There must be one coherent representation of the current strategy direction containing at least:
-- strategy ID / identity;
-- commitment;
-- contributing Bonds/components;
-- target hand/features where applicable;
-- current goals / missing features / missing components;
-- prescriptions;
-- completion/strength/confidence;
-- reasons for retaining or pivoting.
+Only after the architecture is wired and deterministic proofs are green:
+- run targeted Red Deck / White Stake validation locally;
+- inspect whether coherent builds actually emerge;
+- inspect whether the agent rejects synergy bait when immediate/survival/economic value is insufficient;
+- inspect whether established engines are preserved naturally;
+- inspect whether justified pivots occur;
+- tune contribution weights, nonlinear curve parameters, realization, relationship coefficients, motif payoff, transition cost, and strategic integration weight from observed failures.
 
-It may be recomputed from public state rather than stored as hidden mutable memory, but **all consumers must resolve the same strategy**, and continuity/pivot semantics must be explicit rather than accidental.
+Do not redesign the architecture merely because initial constants are poorly calibrated.
 
-### 2. Consumer coverage
+## Phase L — Broader competence work
 
-For each pilot, enumerate every decision owner needed to build and use it. For each owner classify:
+After Bond-guided Red/White play is demonstrated:
+- continue targeted gameplay fixes exposed by live runs;
+- improve meta coverage/semantic completeness as needed;
+- measure win consistency;
+- only then consider broader stake/deck progression.
+
+# Exact next action
+
+**Start Phase A.**
+
+1. Read the current Bond registry/definitions and all code that creates Bond evidence.
+2. Enumerate the full current Bond list.
+3. Audit every Bond against the four validity tests.
+4. Produce the proposed cleaned Bond vocabulary with `KEEP / MERGE / RENAME / DEMOTE TO MECHANIC / REMOVE` decisions.
+5. Inspect dependencies before deleting or renaming anything.
+6. Update Bond definitions/tests/docs to the cleaned vocabulary.
+7. Then proceed to Phase B semantic-descriptor coverage.
+
+Do **not** return to the old three-pilot persistent-plan wiring task unless a concrete piece of that code is reusable under the architecture above.
+
+# Progress criterion
+
+A development cycle should move one of these concrete artifacts forward:
 
 ```text
-REQUIRED + WIRED + PROVEN
-REQUIRED + WIRED + UNPROVEN
-REQUIRED + NOT WIRED
-NOT RELEVANT
+clean Bond vocabulary
+mechanical semantic coverage
+correct Bond contribution evaluation
+correct Bond/relationship/motif value
+correct BuildValue
+correct projected StrategyDelta
+canonical consumer integration
+mechanically correct tactical exploitation
+end-to-end strategic proof
+live win-rate evidence / calibrated constants
 ```
 
-At minimum audit the existing D1/D2/D3/D4/D9/D11/D14 owners and any pack/consumable/deck-shaping owners actually required by the pilot.
+The controlling question is now:
 
-Do not add strategy hooks to irrelevant consumers just for completeness.
-
-### 3. Construction semantics
-
-FORMING strategies must actively guide construction through admitted choices:
-- seek missing compatible components/features;
-- deepen existing relevant Bonds;
-- prefer multi-Bond/slot-efficient pieces where mechanically justified;
-- avoid unrelated Bond collection;
-- remain subordinate to immediate survival/economy.
-
-### 4. Preservation/execution semantics
-
-Only PINNED+ obtains stronger preservation/execution authority.
-
-That authority must be strategy-specific and mechanically grounded, not a generic numeric bonus.
-
-### 5. Pivot semantics
-
-The run must not accidentally forget a coherent strategy because a single state recomputation slightly changes rankings.
-
-Likewise it must not cling to a bad strategy forever.
-
-Pivot evaluation must compare:
-- current realized engine;
-- current strategy commitment/development;
-- candidate alternative coherence/strength;
-- missing-piece distance;
-- money/slots/runway;
-- abandonment cost;
-- survival risk;
-- materially stronger projected alternatives.
-
-### 6. End-to-end deterministic proofs before live validation
-
-Before asking the user for another live run, each pilot must have a multi-decision production-path proof showing strategy continuity across the decisions it actually needs.
-
-The proof must use real public modeled state and real production policies. Do not inject a fake strategy candidate into the consumer merely to make the test pass.
-
-# EXACT NEXT ACTION
-
-1. **Do not perform another baseline competence audit.**
-2. **Do not run another random 10-attempt live batch.**
-3. **Do not begin the remaining ~43-Bond refurbishment yet.**
-4. Treat the three pilot Bonds as locally functional but **not end-to-end complete**.
-5. Audit the strategy-to-consumer wiring for Burnt first, because it is the cleanest persistent-development vertical.
-6. Produce a Burnt consumer map covering every decision needed for:
-   - target-hand selection;
-   - repeated first-discard development;
-   - compatible acquisition/Planet/support construction;
-   - later target-hand exploitation;
-   - survival override;
-   - justified pivot.
-7. For every missing Burnt consumer path, implement the behavior in the existing canonical owner rather than through a late wrapper.
-8. Add a multi-round/multi-decision production regression proving the full Burnt chain with no injected strategy candidate.
-9. Repeat the same consumer-map → wire → production-proof process for Deck Thinning and Held-card/Steel.
-10. Only when all three pilots have coherent end-to-end strategy execution should they become the template for systematically refurbishing the remaining ~43 Bonds.
-11. Only after that should live validation resume, preferably targeted to observe completed pilot strategies rather than another blind arbitrary batch.
-
-# Definition of progress
-
-Every work cycle in this phase must end in one of two concrete states:
-
-```text
-A required strategy-consumer link is proven correct
-OR
-A missing/incorrect strategy-consumer link is identified and repaired
-```
-
-Do not use open-ended live runs as the primary discovery mechanism.
-
-# Phase order
-
-1. Phase 0 — authority consolidation — COMPLETE
-2. Phase 1 — D1 survival expansion — COMPLETE
-3. Phase 2 — simple shop survival — COMPLETE
-4. Phase 3 — coherent build evidence — COMPLETE
-5. Phase 4 — resource semantics — COMPLETE
-6. Phase 5 — initial live validation — COMPLETE
-7. Phase 6A — strategy authority contract — COMPLETE / GREEN
-8. Phase 6B — three-pilot local deterministic proofs — COMPLETE / GREEN
-9. Phase 6C — limited local production integration — COMPLETE / GREEN BUT INSUFFICIENT
-10. Phase 6D — random controlled live pilot attempts — COMPLETE; 0/30, exposed D1 defects but did not fully validate pilots
-11. **Phase 6E — Currency-Wars-style run-level strategy execution for the three pilots — ACTIVE**
-12. Phase 6F — three-pilot end-to-end production proofs — BLOCKED ON 6E
-13. Phase 6G — targeted live pilot validation — BLOCKED ON 6F
-14. Phase 6H — systematic refurbishment of remaining ~43 Bonds using proven architecture — BLOCKED ON 6G
-15. Phase 6I — broader tuning / future stake+deck progression — BLOCKED
-
-# Guardrail against repeating the previous loop
-
-Do not repeat this cycle:
-
-```text
-Bond incomplete
-→ generic baseline detour
-→ random live batch
-→ another generic audit
-→ return to Bond incomplete
-```
-
-The active question is now explicit:
-
-> **Can the production agent take a coherent Bond-derived strategy and deliberately build, preserve, execute, and pivot that strategy Currency-Wars-style across the whole run?**
-
-Until the answer is proven YES for the three pilots, stay on this problem.
+> **Does this candidate leave the run with a stronger coherent Balatro engine, and can the rest of the agent actually exploit that engine to win?**
