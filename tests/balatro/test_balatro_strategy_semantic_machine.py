@@ -54,7 +54,7 @@ def test_r0_mechanical_evidence_can_form_and_pin_a_strategy_before_rank_authorit
     assert any(link.relation == "RETRIGGER_AMPLIFIES_HELD_PAYOFF" for link in candidate.links)
 
 
-def test_unrelated_r0_evidence_does_not_get_pinned_merely_for_having_points():
+def test_unrelated_r0_evidence_remains_exploratory_and_does_not_get_strategy_authority():
     left = _dev(
         "cash",
         BondContribution("cash thing", 8.0, roles=(MechanicalRole.ECONOMY_ENGINE,), targets=("CASH",)),
@@ -64,7 +64,12 @@ def test_unrelated_r0_evidence_does_not_get_pinned_merely_for_having_points():
         BondContribution("steel thing", 8.0, roles=(MechanicalRole.HELD_CARD_XMULT,), targets=("STEEL_CARDS",)),
     )
 
-    assert form_strategy_candidates((left, right)) == ()
+    candidates = form_strategy_candidates((left, right))
+
+    assert candidates
+    assert all(candidate.commitment == StrategyCommitment.EXPLORATORY for candidate in candidates)
+    assert all(not candidate.pinned for candidate in candidates)
+    assert all(not candidate.links for candidate in candidates)
 
 
 def test_baron_mime_is_pinned_as_known_engine_before_steel_is_present():
