@@ -233,10 +233,12 @@ The production integration gate is complete. The next task is to test whether th
 
 ## Live batch protocol
 
+A dedicated fixed-production runner now exists at `balatro_validate_pilot_live.py`. It deliberately bypasses Optuna/study creation and always evaluates `DEFAULT_BOND_CALIBRATION` through the same authoritative live evaluator, guarded supervisor, run/session logs, shop diagnostics, and reset-after-loss machinery used by the production validation stack.
+
 1. Use the current production agent exactly as committed after P1–P4.
 2. **Do not introduce Tune G first.**
-3. Run a small controlled Red Deck / White Stake batch.
-4. Retain the normal live telemetry/logging path.
+3. Run one bounded **10-attempt Red Deck / White Stake** batch with `balatro_validate_pilot_live.py`.
+4. Retain the normal live telemetry/logging path under `logs/balatro/pilot-live/`.
 5. For each run, record:
    - win/loss and ante reached;
    - whether Burnt, Deck Thinning, or Held-card/Steel opportunities appeared;
@@ -265,12 +267,13 @@ If the batch remains 0/10, use the traces to identify the dominant causal failur
 
 1. Treat Phase 6C three-pilot production integration as **COMPLETE / GREEN**.
 2. Do not perform more catalogue or generic consumer audits before live evidence.
-3. Start the first controlled Red Deck / White Stake pilot batch using the current production stack.
-4. Do not apply Tune G before this baseline pilot batch.
-5. Collect the existing Bond/build diagnostics plus action rationales.
+3. Pull the branch and run exactly:
+   `python balatro_validate_pilot_live.py --attempts 10 --deck RED --stake WHITE`
+4. Do not apply Tune G or any alternate calibration before this batch.
+5. Preserve `logs/balatro/pilot-live/latest-report.json`, the referenced run IDs, session log, and control/shop traces.
 6. After the batch, inspect the first causal failure in each bad run.
 7. Group repeated failures by ownership category and fix the earliest incorrect layer.
-8. Re-run the same batch after those fixes.
+8. Re-run the same fixed-production batch after those fixes.
 9. Only after live pilot usefulness is demonstrated should the architecture be generalized to the remaining Bond catalogue.
 
 # Phase order
