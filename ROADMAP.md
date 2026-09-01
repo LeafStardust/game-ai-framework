@@ -51,7 +51,7 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-09-01
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 action-quality work is ACTIVE. The original Phase-6 baseline and Tunes A–F all produced 0/10 wins. Tune A remains retained provisionally; Tunes B–F are rejected/reverted. The Bond-utilization audit found and fixed one genuine cross-owner defect in D9 Buffoon handling (`c1f8422`), and the full deterministic Balatro suite was user-confirmed GREEN after the related stale-test cleanup. A controlled 10-attempt live comparison of that structural correction (`balatro-20260901T094854Z-cc1ed501`) still produced 0/10 wins. The correction remains semantically valid, but it did not change the primary live metric. Before diagnosing higher-level Bond strategy design, Phase 6 now performs a MANUAL HARDCODED BOND CATALOGUE AUDIT: inspect every Bond's literal handwritten construction against actual Balatro mechanics, three semantically related Bonds per batch. For each Bond, enumerate all explicit contributors, state-derived contributors, conditions, contribution values, rank thresholds, targets, and policies; independently derive what game objects/mechanics should contribute; identify missing, incorrect, over-broad, or conditionally mis-modeled contributors; and only then judge numeric contribution/threshold plausibility. Relationships, motifs, strategy formation, StrategyPlan, composer, Build Health boundary, and canonical-consumer behavior are explicitly deferred until the raw catalogue is trustworthy. No Tune G or new live batch during this audit. Bond remains evidence/planning only and must not become a second action authority.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 action-quality work is ACTIVE. The original Phase-6 baseline and Tunes A–F all produced 0/10 wins. Tune A remains retained provisionally; Tunes B–F are rejected/reverted. The Bond-utilization audit found and fixed one genuine cross-owner defect in D9 Buffoon handling (`c1f8422`), and the full deterministic Balatro suite was user-confirmed GREEN after the related stale-test cleanup. A controlled 10-attempt live comparison of that structural correction (`balatro-20260901T094854Z-cc1ed501`) still produced 0/10 wins. The correction remains semantically valid, but it did not change the primary live metric. Before diagnosing higher-level Bond strategy design or tracing consumer wiring, Phase 6 now performs a MANUAL HARDCODED BOND CATALOGUE AUDIT with an explicit BOND-STRUCTURE GATE: first establish what a Bond structurally contains and what each field means; then review each Bond's literal handwritten development, mechanical annotations, rank ladder, realization semantics, target, and local policy metadata against actual Balatro mechanics. `held_retrigger` is the first concrete structural walkthrough. Only after a Bond's own structure is confirmed may its relationships, motifs, strategy consumption, or D2/D4/D9/D14 wiring be audited. No Tune G or new live batch during this audit. Bond remains evidence/planning only and must not become a second action authority.**
 
 Validated checkpoints:
 
@@ -69,7 +69,7 @@ Validated checkpoints:
 - Phase 6 Tune E contextual/B3 Joker build weight: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune F observed-hand scoring prior: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 D9 Bond-utilization structural correction: **SEMANTIC GREEN / LIVE 0 OF 10 WINS / RETAINED AS CORRECT OWNERSHIP FIX**
-- Phase 6 manual hardcoded Bond catalogue audit: **ACTIVE / CATALOGUE CONSTRUCTION ONLY / THREE SEMANTICALLY RELATED BONDS PER BATCH**
+- Phase 6 manual hardcoded Bond catalogue audit: **ACTIVE / BOND STRUCTURE FIRST / CATALOGUE CONSTRUCTION SECOND / WIRING DEFERRED**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 - Phase 6 sticky-win GAME_OVER restart semantics: **LOCAL REGRESSION GREEN** (`28cec27b` + `6e1a2696`)
 
@@ -325,7 +325,22 @@ The immediate question for every Bond is therefore:
 
 > **Does the hardcoded evaluator faithfully represent the actual Balatro mechanic it claims to measure?**
 
-Do not diagnose `PINNED`, motifs, composer, StrategyPlan, or downstream consumers from a Bond until the catalogue construction itself has been manually checked.
+Do not diagnose `PINNED`, motifs, composer, StrategyPlan, or downstream consumers from a Bond until the Bond's own structure and catalogue construction have both been manually checked.
+
+## Structural gate — confirm the Bond before tracing wiring
+
+Before auditing how a Bond is consumed, first establish exactly what a Bond is supposed to contain and what each layer means. The review must distinguish:
+
+1. **Identity / semantic axis** — Bond name, intended Balatro mechanic, and `BondDevelopment.target`.
+2. **Development evidence** — explicit and state-derived `BondContribution` sources, categories, points, and evidence.
+3. **Mechanical annotations** — contribution `roles`, `targets`, and `conditions`; identify evidence that affects rank but is semantically untyped.
+4. **Rank ladder** — R0–R5 thresholds, reachability, meaningful combinations that cross each threshold, and the local `rank_policy` description for each achieved rank.
+5. **Realization** — distinguish persistent development rank from current `DORMANT / PARTIAL / ACTIVE / MATURE` mechanical realization; verify the realizer recognizes the mechanic actually represented by the Bond.
+6. **Exposed Bond payload** — verify the resulting `BondDevelopment` is internally coherent before asking relationships, motifs, strategy formation, or decision owners to consume it.
+
+This structural review is a **Bond-definition/catalogue task**, not a wiring task. Do not use D2/D4/D9/D14 behavior to justify a malformed Bond definition, and do not patch consumer wiring until the Bond under review passes this gate.
+
+`held_retrigger` is the first concrete structural walkthrough because its development evidence, copy infrastructure, rank ladder, held-card target semantics, and realization state exercise all major parts of the Bond model.
 
 ## Audit method — three semantically related Bonds per batch
 
@@ -333,14 +348,15 @@ Do **not** audit alphabetically and do **not** mix unrelated Bonds merely to fil
 
 For every Bond in a batch, perform a literal catalogue audit in this order:
 
-1. **State the intended mechanic in plain Balatro terms.** Define exactly what the Bond is supposed to measure before reading its contributor list as authoritative.
-2. **Enumerate every explicit hardcoded contributor.** List every named Joker, voucher, consumable, card property, or special condition explicitly checked by the evaluator, together with its exact contribution value and condition.
-3. **Enumerate every state-derived contributor.** List all counts/bands/levels/current-state signals the evaluator turns into Bond contribution, including their exact breakpoints and values.
-4. **Independently derive the expected contributor set from Balatro mechanics.** Ask what Jokers, vouchers, enhancements, seals, editions, consumable-created effects, deck properties, hand properties, or other public mechanics should logically feed this Bond even if they are absent from the code.
-5. **Diff expected vs hardcoded.** Record missing contributors, unrelated contributors, conditions that are too broad/narrow, double-counting, and cases where an object only matters conditionally but receives unconditional Bond value.
-6. **Check indirect construction paths.** A consumable does not need to be named in the evaluator if its effect is correctly represented through the resulting public state. Distinguish explicit contributors from mechanics that should be captured indirectly after state mutation.
-7. **Only after membership/conditions are correct, judge contribution magnitudes and R0–R5 thresholds.** Check whether relative values make sense, whether combinations inflate rank unrealistically, whether thresholds are reachable, and whether rank progression corresponds to meaningful development of that mechanic.
-8. **Audit the Bond's local policies/target fields only insofar as they describe this raw mechanic.** Do not yet trace relationships, motifs, strategy candidates, composer behavior, D2 bonuses, or other downstream strategy semantics.
+1. **Pass the structural gate above.** Write out the Bond's complete internal structure before tracing any external consumer.
+2. **State the intended mechanic in plain Balatro terms.** Define exactly what the Bond is supposed to measure before reading its contributor list as authoritative.
+3. **Enumerate every explicit hardcoded contributor.** List every named Joker, voucher, consumable, card property, or special condition explicitly checked by the evaluator, together with its exact contribution value and condition.
+4. **Enumerate every state-derived contributor.** List all counts/bands/levels/current-state signals the evaluator turns into Bond contribution, including their exact breakpoints and values.
+5. **Independently derive the expected contributor set from Balatro mechanics.** Ask what Jokers, vouchers, enhancements, seals, editions, consumable-created effects, deck properties, hand properties, or other public mechanics should logically feed this Bond even if they are absent from the code.
+6. **Diff expected vs hardcoded.** Record missing contributors, unrelated contributors, conditions that are too broad/narrow, double-counting, and cases where an object only matters conditionally but receives unconditional Bond value.
+7. **Check indirect construction paths.** A consumable does not need to be named in the evaluator if its effect is correctly represented through the resulting public state. Distinguish explicit contributors from mechanics that should be captured indirectly after state mutation.
+8. **Only after membership/conditions are correct, judge contribution magnitudes and R0–R5 thresholds.** Check whether relative values make sense, whether combinations inflate rank unrealistically, whether thresholds are reachable, and whether rank progression corresponds to meaningful development of that mechanic.
+9. **Audit the Bond's local policies/target fields only insofar as they describe this raw mechanic.** Do not yet trace relationships, motifs, strategy candidates, composer behavior, D2 bonuses, or other downstream strategy semantics.
 
 For every audited Bond, produce a concrete defect table with at least:
 
@@ -360,7 +376,8 @@ Classify the raw Bond construction as one of:
 
 ### Audit discipline
 
-- **Catalogue first, higher layers later.** Relationships, mechanical-role ontology, motifs, strategy formation, StrategyPlan, composer, Build Health, and canonical consumers are deferred until the raw Bond catalogue is completed.
+- **Bond structure first, catalogue correctness second, higher layers/wiring last.** A Bond must be understandable and internally coherent before its consumers can be meaningfully judged.
+- Relationships, mechanical-role ontology, motifs, strategy formation, StrategyPlan, composer, Build Health, and canonical consumers remain deferred until the raw Bond catalogue is completed unless inspection is strictly necessary to understand a field already present on the Bond.
 - Default to **audit first, redesign second**.
 - Do not tune numbers before contributor membership and conditions are established.
 - Do not assume an omitted consumable/Joker is a defect until checking whether its effect is represented indirectly by authoritative state.
@@ -375,11 +392,11 @@ Batches are chosen by semantic cohesion. Reorder only if repo inspection proves 
 
 ### Batch 1 — held-card engine core — NEXT
 
-1. `held_cards`
-2. `held_retrigger`
+1. `held_retrigger` — **first structural walkthrough**
+2. `held_cards`
 3. `kings`
 
-Reason: these three are mechanically related enough to make cross-checking the raw contributor sets useful, while still being distinct mechanics. Audit each evaluator independently first; do not use the Baron/Mime motif or current strategy machinery as proof that any contributor belongs.
+Reason: these three are mechanically related enough to make cross-checking the raw contributor sets useful, while still being distinct mechanics. `held_retrigger` goes first so the Bond structural contract itself is reviewed concretely before the wider Batch-1 catalogue comparison. Audit each evaluator independently first; do not use the Baron/Mime motif or current strategy machinery as proof that any contributor belongs.
 
 ### Later catalogue batches
 
@@ -422,23 +439,17 @@ Balatro's public `won` bit can remain sticky after a later Ante-8 GAME_OVER loss
 
 # EXACT NEXT ACTION
 
-Start **Manual Hardcoded Bond Catalogue Audit — Batch 1** with:
+Start with the **Bond structural gate** on `held_retrigger` before any wiring audit:
 
-1. `held_cards`
-2. `held_retrigger`
-3. `kings`
+1. write out its Bond identity/semantic axis and current `target`;
+2. enumerate every contribution, category, point value, evidence field, mechanical role, contribution target, and condition;
+3. map the exact R0–R5 thresholds and local rank-policy descriptions, including which concrete contribution combinations can reach each rank;
+4. inspect its development-rank versus realization-state semantics and the mechanic recognized by the realizer;
+5. identify internal structural defects or ambiguities and correct them at the Bond/catalogue/realization layer only if justified;
+6. only after `held_retrigger` itself is structurally confirmed, continue Batch 1 with `held_cards` and `kings` using the same gate;
+7. after the raw catalogue is completed and semantically validated, resume relationships/motifs/strategy/composer and finally D2/D4/D9/D14/D1 wiring.
 
-For each of the three Bonds:
-
-1. locate the canonical evaluator, thresholds, policies, target, and any helper/calibration used to construct its raw `BondDevelopment`;
-2. write out every explicit hardcoded contributor and every state-derived contributor with exact values/conditions;
-3. independently reconstruct from actual Balatro mechanics what should contribute to that Bond;
-4. compare the expected set with the hardcoded set, including indirect state-mediated effects from consumables and other mechanics;
-5. identify missing/incorrect/over-broad/conditional/double-counted contributors;
-6. only then assess contribution magnitudes and R0–R5 thresholds;
-7. classify the raw Bond construction as **GOOD / NEEDS MINOR FIX / DESIGN PROBLEM / MISSING COVERAGE** and record the defect map.
-
-Do **not** trace relationships, motifs, strategy formation, StrategyPlan, composer, Build Health, D2/D4/D9/D14, or D1 strategy behavior during this first catalogue pass except where necessary to determine the literal source of a raw Bond contribution. Do **not** run another live batch or stage Tune G.
+Do **not** use relationships, motifs, strategy formation, StrategyPlan, composer, Build Health, D2/D4/D9/D14, or D1 strategy behavior as proof that the `held_retrigger` structure is correct. Do **not** run another live batch or stage Tune G.
 
 # Phase order
 
