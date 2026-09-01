@@ -465,12 +465,42 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
             plans=tuple(plans),
         )
 
+    def _canonical_within_class_plan(self, state, *plans: LiveBlindPlan) -> LiveBlindPlan:
+        """Reuse canonical policy ordering for post-policy same-class refinement.
+
+        Adaptive consensus is allowed to break a true tie, but it must not erase a
+        build/Bond preference already expressed by the production policy. Build-aware
+        policies require their normal ranking state/cache while computing the key;
+        keep that lifecycle local to this post-policy comparison.
+        """
+        candidates = tuple(plans)
+        if not candidates:
+            raise ValueError("canonical within-class comparison requires a plan")
+
+        policy = self.policy
+        ranking_state_supported = hasattr(policy, "_ranking_state")
+        previous_ranking_state = getattr(policy, "_ranking_state", None)
+        build_evaluator = getattr(policy, "build_evaluator", None)
+        if ranking_state_supported:
+            policy._ranking_state = state
+        if build_evaluator is not None:
+            build_evaluator.prepare(state)
+        try:
+            return max(candidates, key=policy._within_type_key)
+        finally:
+            if ranking_state_supported:
+                policy._ranking_state = previous_ranking_state
+            if build_evaluator is not None:
+                build_evaluator.reset_cache()
+
     def _apply_consensus_recovery(
         self,
         state,
         decision: HandActionDecision,
     ) -> HandActionDecision:
         if decision.mode != PACE_RECOVERY or not decision.setup_discard_consensus:
+            return decision
+        if decision.action.name != DISCARD_CARDS:
             return decision
         if not self._adaptive_root_history:
             return decision
@@ -494,6 +524,20 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
         target_signature = self._action_signature(state, setup_plan.action)
         if self._action_signature(state, decision.action) == target_signature:
             return decision
+
+        preferred = self._canonical_within_class_plan(
+            state,
+            setup_plan,
+            decision.selected_plan,
+        )
+        if preferred is not setup_plan:
+            return replace(
+                decision,
+                rationale=(
+                    *decision.rationale,
+                    "deep discard consensus was survival-equivalent but canonical build/Bond ordering retained the selected discard",
+                ),
+            )
 
         selected_value = self._fallback_value(state, setup_plan)
         other_values = [
@@ -519,8 +563,8 @@ class PathAwareLiveHandActionDecisionEngine(_BaseLiveHandActionDecisionEngine):
             "no current play reaches the required next-hand pace",
             "deep adaptive searches agree on one setup discard",
             (
-                "preserve the modeled recovery path instead of reselecting a "
-                "different discard from one-step recovery value"
+                "canonical within-class ordering permits the consensus refinement; "
+                "preserve the modeled recovery path"
             ),
         ]
         if (
