@@ -2,9 +2,10 @@ from types import SimpleNamespace
 
 import games.balatro.playbook.red_white.pack_policy as pack_module
 
-from games.balatro.actions import SELECT_PACK_CARD, SKIP_BOOSTER, BalatroAction
+from games.balatro.actions import SELL_JOKER, SELECT_PACK_CARD, SKIP_BOOSTER, BalatroAction
+from games.balatro.joker_policy import BUY, HOLD, REPLACE
 from games.balatro.live.consumable_timing_core import ConsumableTargetThresholds
-from games.balatro.live.pack import LivePackChoice
+from games.balatro.live.pack import LivePackActionGenerator, LivePackChoice
 from games.balatro.playbook import (
     BalatroPlaybook,
     BalatroPlaybookRegistry,
@@ -21,6 +22,10 @@ class _Estimator:
     def estimate(self, state, action):
         del state, action
         return 1.0, ("fixture item value",)
+
+
+class _JokerEstimator(_Estimator):
+    joker_build_value = object()
 
 
 class _ConsumableFactory:
@@ -69,6 +74,35 @@ def _choice() -> LivePackChoice:
     )
 
 
+def _buffoon_state(*, full_roster: bool = False) -> BalatroState:
+    state = BalatroState()
+    state.phase = "BUFFOON_PACK"
+    state.deck_name = "RED"
+    state.stake_name = "WHITE"
+    state.joker_slots = 5
+    state.jokers = (
+        [SimpleNamespace(name=f"fixture-{index}") for index in range(5)]
+        if full_roster
+        else []
+    )
+    return state
+
+
+def _buffoon_choice(*, cost: int = 5) -> LivePackChoice:
+    return LivePackChoice(
+        area_index=0,
+        address=0x5678,
+        data={
+            "ability_set": "Joker",
+            "ability_name": "Joker",
+            "label": "Joker",
+            "center": "j_joker",
+            "cost": cost,
+            "live_id": 88,
+        },
+    )
+
+
 def _registry(*, skip_bias=0.0, minimum_total_gain=None):
     registry = BalatroPlaybookRegistry()
     registry.register(
@@ -88,6 +122,34 @@ def _registry(*, skip_bias=0.0, minimum_total_gain=None):
         )
     )
     return registry
+
+
+def _install_fake_d2(monkeypatch, *, action, total_advantage=3.25, replace_index=None):
+    observed = {}
+
+    class _FakePolicy:
+        def __init__(self, transition_planner):
+            observed["transition_planner"] = transition_planner
+
+        def decide(self, state, candidate):
+            del state
+            observed["candidate"] = candidate
+            selected = None
+            if action != HOLD:
+                selected = SimpleNamespace(
+                    total_advantage=total_advantage,
+                    replace_index=replace_index,
+                    rationale=("fixture D2 option",),
+                )
+            return SimpleNamespace(
+                action=action,
+                selected=selected,
+                candidate=type(candidate).__name__,
+                rationale=("fixture D2 decision",),
+            )
+
+    monkeypatch.setattr(pack_module, "PlaybookJokerAcquisitionPolicy", _FakePolicy)
+    return observed
 
 
 def test_red_white_exposes_current_d9_and_d10_thresholds():
@@ -181,3 +243,80 @@ def test_d10_neutral_threshold_preserves_literal_positive_target_behavior(
     assert scored.total == 0.5
     assert scored.action.cards == list(state.hand)
     assert any("B6 pack target gain=0.500" in note for note in scored.notes)
+
+
+def test_d9_open_slot_buffoon_joker_delegates_to_d2_at_zero_cost(monkeypatch):
+    observed = _install_fake_d2(monkeypatch, action=BUY, total_advantage=3.25)
+    state = _buffoon_state()
+    choice = _buffoon_choice(cost=5)
+    policy = PlaybookBalatroPackPolicy(item_estimator=_JokerEstimator())
+
+    scored = policy.score_action(
+        state,
+        BalatroAction(SELECT_PACK_CARD, target=choice),
+    )
+
+    assert scored.action.name == SELECT_PACK_CARD
+    assert scored.action.target is choice
+    assert scored.total == 3.25
+    assert getattr(observed["candidate"], "cost", None) == 0
+    assert choice.data["cost"] == 5
+    assert any("canonical D2 acquisition" in note for note in scored.notes)
+    assert any("normalized to $0" in note for note in scored.notes)
+
+
+def test_d9_full_roster_buffoon_replacement_delegates_to_zero_cost_d2(monkeypatch):
+    observed = _install_fake_d2(
+        monkeypatch,
+        action=REPLACE,
+        total_advantage=4.5,
+        replace_index=2,
+    )
+    state = _buffoon_state(full_roster=True)
+    choice = _buffoon_choice(cost=6)
+    policy = PlaybookBalatroPackPolicy(item_estimator=_JokerEstimator())
+
+    scored = policy.score_action(
+        state,
+        BalatroAction(SELECT_PACK_CARD, target=choice),
+    )
+
+    assert scored.action.name == SELL_JOKER
+    assert scored.action.target == 2
+    assert scored.total == 4.5
+    assert getattr(observed["candidate"], "cost", None) == 0
+    assert choice.data["cost"] == 6
+
+
+def test_d9_buffoon_d2_hold_can_rank_skip_above_visible_joker(monkeypatch):
+    _install_fake_d2(monkeypatch, action=HOLD)
+    state = _buffoon_state()
+    choice = _buffoon_choice()
+    policy = PlaybookBalatroPackPolicy(
+        item_estimator=_JokerEstimator(),
+        skip_bias=0.0,
+    )
+    actions = [
+        BalatroAction(SELECT_PACK_CARD, target=choice),
+        BalatroAction(SKIP_BOOSTER),
+    ]
+
+    ranked = policy.rank_actions(state, actions)
+
+    assert ranked[0].action.name == SKIP_BOOSTER
+    assert ranked[0].total == 0.0
+    assert ranked[1].total == -1.0
+    assert any(
+        "does not clear canonical D2 acquisition" in note
+        for note in ranked[1].notes
+    )
+
+
+def test_live_buffoon_generator_keeps_skip_with_open_joker_slot():
+    state = _buffoon_state()
+    choice = _buffoon_choice()
+
+    actions = LivePackActionGenerator().generate_actions(state, [choice])
+
+    assert any(action.name == SELECT_PACK_CARD for action in actions)
+    assert any(action.name == SKIP_BOOSTER for action in actions)

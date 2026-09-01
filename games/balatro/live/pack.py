@@ -48,6 +48,8 @@ class LivePackActionGenerator:
     Full-roster Buffoon Jokers remain visible to policy by default. They are not
     directly selectable while capacity is full; the playbook pack policy may turn
     a worthwhile visible replacement into a separate SELL_JOKER checkpoint first.
+    Skip remains a legal candidate even with an open Joker slot so canonical D2 can
+    reject visible Buffoon Jokers without the action generator overriding that HOLD.
     Deterministic destructive Tarots such as Hanged Man remain visible too; B6 owns
     their target/opportunity-cost decision instead of the generator hard-vetoing a
     potentially profitable mechanical tradeoff.
@@ -94,8 +96,6 @@ class LivePackActionGenerator:
         actions: list[BalatroAction] = []
         joker_slots = int(getattr(state, "joker_slots", 0))
         joker_count = len(getattr(state, "jokers", []))
-        has_free_joker_slot = joker_count < joker_slots
-        has_selectable_joker = False
 
         for choice in choices:
             if (
@@ -104,15 +104,9 @@ class LivePackActionGenerator:
                 and not self.include_capacity_blocked_jokers
             ):
                 continue
-            if choice.kind == "JOKER" and has_free_joker_slot:
-                has_selectable_joker = True
             actions.append(BalatroAction(SELECT_PACK_CARD, target=choice))
 
-        force_joker_pick = (
-            phase == "BUFFOON_PACK"
-            and has_free_joker_slot
-            and has_selectable_joker
-        )
-        if not force_joker_pick:
-            actions.append(BalatroAction(SKIP_BOOSTER))
+        # Skip is a real pack action, not a capacity fallback. Keeping it available
+        # lets D9 honor D2 HOLD/conflict decisions instead of forcing a visible Joker.
+        actions.append(BalatroAction(SKIP_BOOSTER))
         return actions

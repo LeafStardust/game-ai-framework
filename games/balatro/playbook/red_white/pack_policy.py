@@ -6,7 +6,7 @@ from typing import Mapping
 from games.balatro.actions import SELL_JOKER, SKIP_BOOSTER, BalatroAction
 from games.balatro.build import ContextualConsumableTargetEvaluator, JokerBuildTransitionPlanner
 from games.balatro.discovery import is_undiscovered
-from games.balatro.joker_policy import REPLACE
+from games.balatro.joker_policy import BUY, REPLACE
 from games.balatro.live.consumable_timing_core import ConsumableTargetThresholds
 from games.balatro.live.joker_factory import LiveJokerFactory
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
@@ -128,13 +128,16 @@ class PlaybookBalatroPackPolicy(BalatroPackPolicy):
             reverse=True,
         )
 
-    def _buffoon_replacement_score(self, state, action, choice):
+    def _buffoon_joker_score(self, state, action, choice):
+        """Delegate visible Buffoon Jokers to canonical D2 acquisition authority.
+
+        Booster cost is already sunk when D9 runs, so the projected Joker must be
+        evaluated at zero acquisition price. Joker-slot and replacement opportunity
+        costs remain part of D2 exactly as they are for every other acquisition path.
+        """
         if str(getattr(state, "phase", "")) != "BUFFOON_PACK":
             return None
         if getattr(choice, "kind", None) != "JOKER":
-            return None
-        joker_slots = max(0, int(getattr(state, "joker_slots", 0) or 0))
-        if len(getattr(state, "jokers", ()) or ()) < joker_slots:
             return None
 
         data = getattr(choice, "data", None)
@@ -142,15 +145,21 @@ class PlaybookBalatroPackPolicy(BalatroPackPolicy):
             return PackActionScore(
                 action,
                 -1.0,
-                ("full-roster Buffoon Joker cannot be modeled for replacement",),
+                ("visible Buffoon Joker cannot be modeled by canonical D2",),
             )
-        candidate = self._pack_joker_factory.create(data)
+
+        # Never mutate the live pack observation. A Buffoon selection is free because
+        # the booster has already been paid for, even if Balatro exposes the Joker's
+        # ordinary shop cost in the visible card metadata.
+        pack_data = dict(data)
+        pack_data["cost"] = 0
+        candidate = self._pack_joker_factory.create(pack_data)
         evaluator = getattr(self.item_estimator, "joker_build_value", None)
         if candidate is None or evaluator is None:
             return PackActionScore(
                 action,
                 -1.0,
-                ("full-roster Buffoon Joker replacement evaluator unavailable",),
+                ("visible Buffoon Joker canonical D2 evaluator unavailable",),
             )
 
         policy = PlaybookJokerAcquisitionPolicy(
@@ -158,29 +167,47 @@ class PlaybookBalatroPackPolicy(BalatroPackPolicy):
         )
         decision = policy.decide(state, candidate)
         selected = decision.selected
-        if decision.action != REPLACE or selected is None or selected.replace_index is None:
+
+        if decision.action == BUY and selected is not None:
             return PackActionScore(
                 action,
-                -1.0,
+                float(selected.total_advantage),
                 (
-                    "visible Buffoon Joker does not justify replacing an incumbent",
+                    f"visible Buffoon Joker cleared canonical D2 acquisition: {decision.candidate}",
+                    "opened-pack Joker acquisition cost normalized to $0",
                     *decision.rationale,
+                    *selected.rationale,
                 ),
             )
 
-        # Pack replacement is deliberately two checkpoints. Sell only after the
-        # pack is open and a concrete visible Joker has cleared D2. The next pack
-        # observation then sees the free slot and may select the Joker normally.
-        sell = BalatroAction(SELL_JOKER, target=int(selected.replace_index))
+        if (
+            decision.action == REPLACE
+            and selected is not None
+            and selected.replace_index is not None
+        ):
+            # Pack replacement is deliberately two checkpoints. Sell only after the
+            # pack is open and a concrete visible Joker has cleared D2. The next pack
+            # observation then sees the free slot and may select the Joker normally.
+            sell = BalatroAction(SELL_JOKER, target=int(selected.replace_index))
+            return PackActionScore(
+                sell,
+                float(selected.total_advantage),
+                (
+                    f"visible Buffoon Joker selected for replacement: {decision.candidate}",
+                    "opened-pack Joker acquisition cost normalized to $0",
+                    f"sell incumbent slot {selected.replace_index} only after pack reveal",
+                    "re-observe the same Buffoon pack after the sale, then take the selected Joker",
+                    *decision.rationale,
+                    *selected.rationale,
+                ),
+            )
+
         return PackActionScore(
-            sell,
-            float(selected.total_advantage),
+            action,
+            -1.0,
             (
-                f"visible Buffoon Joker selected for replacement: {decision.candidate}",
-                f"sell incumbent slot {selected.replace_index} only after pack reveal",
-                "re-observe the same Buffoon pack after the sale, then take the selected Joker",
+                "visible Buffoon Joker does not clear canonical D2 acquisition",
                 *decision.rationale,
-                *selected.rationale,
             ),
         )
 
@@ -194,8 +221,8 @@ class PlaybookBalatroPackPolicy(BalatroPackPolicy):
             )
 
         choice = getattr(action, "target", None)
-        replacement = self._buffoon_replacement_score(state, action, choice)
-        if replacement is not None:
-            return replacement
+        buffoon_joker = self._buffoon_joker_score(state, action, choice)
+        if buffoon_joker is not None:
+            return buffoon_joker
 
         return super().score_action(state, action)
