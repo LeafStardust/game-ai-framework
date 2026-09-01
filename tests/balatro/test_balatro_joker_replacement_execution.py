@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from games.balatro.actions import (
     BUY_JOKER,
     END_SHOP,
@@ -29,6 +31,68 @@ class PlusMultJoker(Joker):
         return context
 
 
+class _TransactionTransitionPlanner:
+    """Deterministic build evidence for transaction-checkpoint tests only."""
+
+    @staticmethod
+    def _value(candidate):
+        gain = 2.0 if isinstance(candidate, PlusMultJoker) else 0.0
+        return SimpleNamespace(
+            total_gain=gain,
+            direct_scoring_gain=gain,
+            applicability=None,
+        )
+
+    def plan(self, state, candidate):
+        candidate_value = self._value(candidate)
+        if len(state.jokers) < int(state.joker_slots):
+            return SimpleNamespace(
+                action="ADD" if candidate_value.total_gain > 0.0 else "HOLD",
+                candidate=type(candidate).__name__,
+                candidate_value=candidate_value,
+                replacement=None,
+                alternatives=(),
+                rationale=("deterministic transaction-test build evidence",),
+            )
+
+        alternatives = []
+        for index, incumbent in enumerate(state.jokers):
+            incumbent_value = self._value(incumbent)
+            delta = candidate_value.total_gain - incumbent_value.total_gain
+            alternatives.append(
+                SimpleNamespace(
+                    replace_index=index,
+                    replace_joker=type(incumbent).__name__,
+                    incumbent_value=incumbent_value,
+                    candidate_value=candidate_value,
+                    build_delta=delta,
+                    rationale=("deterministic transaction-test replacement evidence",),
+                    eligible=True,
+                    blocked_reason=None,
+                )
+            )
+
+        ranked = tuple(
+            sorted(
+                alternatives,
+                key=lambda option: (-option.build_delta, option.replace_index),
+            )
+        )
+        best = ranked[0] if ranked else None
+        return SimpleNamespace(
+            action=(
+                "REPLACE"
+                if best is not None and best.build_delta > 0.0
+                else "HOLD"
+            ),
+            candidate=type(candidate).__name__,
+            candidate_value=candidate_value,
+            replacement=best,
+            alternatives=ranked,
+            rationale=("deterministic transaction-test build evidence",),
+        )
+
+
 def _state(*, money: int, slots: int = 2) -> BalatroState:
     state = BalatroState()
     state.phase = "SHOP"
@@ -44,7 +108,7 @@ def _state(*, money: int, slots: int = 2) -> BalatroState:
     return state
 
 
-def _replacement_policy() -> JokerAcquisitionPolicy:
+def _replacement_policy(*, transition_planner=None) -> JokerAcquisitionPolicy:
     return JokerAcquisitionPolicy(
         JokerAcquisitionThresholds(
             minimum_purchase_advantage=0.0,
@@ -54,11 +118,12 @@ def _replacement_policy() -> JokerAcquisitionPolicy:
             reserve_weight=0.0,
             last_joker_slot_penalty=0.0,
             penultimate_joker_slot_penalty=0.0,
-        )
+        ),
+        transition_planner=transition_planner,
     )
 
 
-def _arbiter() -> BuildAwareShopArbiter:
+def _arbiter(*, transaction_fixture: bool = False) -> BuildAwareShopArbiter:
     # These tests isolate the irreversible SELL -> fresh-observation -> BUY
     # transaction contract. Neutralize D14's real resource opportunity costs so
     # they cannot turn the intended second checkpoint into an economics test.
@@ -72,9 +137,14 @@ def _arbiter() -> BuildAwareShopArbiter:
         last_consumable_slot_penalty=0.0,
         hold_bias=0.0,
     )
+    transition_planner = (
+        _TransactionTransitionPlanner() if transaction_fixture else None
+    )
     return BuildAwareShopArbiter(
         shop_policy=shop_policy,
-        joker_policy=_replacement_policy(),
+        joker_policy=_replacement_policy(
+            transition_planner=transition_planner,
+        ),
     )
 
 
@@ -121,7 +191,8 @@ def test_post_sale_fresh_replan_emits_buy_from_new_checkpoint():
     before.jokers = [incumbent]
     before.shop_jokers = [candidate]
 
-    sell = _arbiter().decide(
+    arbiter = _arbiter(transaction_fixture=True)
+    sell = arbiter.decide(
         before,
         [BalatroAction(END_SHOP)],
         reroll_cost=None,
@@ -135,7 +206,7 @@ def test_post_sale_fresh_replan_emits_buy_from_new_checkpoint():
     after.shop_jokers = [candidate]
     buy_action = BalatroAction(BUY_JOKER, target=candidate)
 
-    buy = _arbiter().decide(
+    buy = arbiter.decide(
         after,
         [buy_action, BalatroAction(END_SHOP)],
         reroll_cost=None,
@@ -159,7 +230,8 @@ def test_post_sale_replan_can_abandon_original_purchase_when_shop_state_changes(
     candidate.cost = 6
     before.shop_jokers = [candidate]
 
-    sell = _arbiter().decide(
+    arbiter = _arbiter(transaction_fixture=True)
+    sell = arbiter.decide(
         before,
         [BalatroAction(END_SHOP)],
         reroll_cost=None,
@@ -173,7 +245,7 @@ def test_post_sale_replan_can_abandon_original_purchase_when_shop_state_changes(
     after.jokers = []
     after.shop_jokers = [InertJoker()]
 
-    replanned = _arbiter().decide(
+    replanned = arbiter.decide(
         after,
         [BalatroAction(END_SHOP)],
         reroll_cost=None,
