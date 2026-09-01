@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from games.balatro.bonds.ids import BOND_IDS
 from games.balatro.bonds.model import BondDevelopment
 from games.balatro.bonds.realization_held import HELD_REALIZERS
 from games.balatro.bonds.realization_common import COMMON_REALIZERS
@@ -22,18 +23,12 @@ for family in (HELD_REALIZERS, COMMON_REALIZERS, RANK_STATE_REALIZERS, ENGINE_RE
         raise RuntimeError(f"Duplicate Bond realizer registration: {sorted(overlap)}")
     REALIZERS.update(family)
 
-# Mechanical audit layers refine specific families. Contract compatibility runs
-# last so explicit action-window telemetry remains strict while ordinary public
-# state may still realize a mechanically available engine/opportunity.
 REALIZERS.update(ENGINE_AUDIT_REALIZERS)
 REALIZERS.update(TRIGGERED_ENGINE_OVERRIDES)
 REALIZERS.update(ENGINE_LIVENESS_AUDIT_REALIZERS)
 REALIZERS.update(CONTRACT_COMPAT_REALIZERS)
 
-# Temporary migration bridges. These remap legacy realizer implementation keys to
-# the frozen strategic vocabulary without changing legitimate Burnt/Vampire Joker
-# mechanic checks inside those realizers. Delete these bridges once the family
-# modules themselves use only canonical Bond IDs.
+# Temporary migration bridges. Delete when the family modules emit canonical IDs.
 for legacy_id, canonical_id in (
     ("burnt", "hand_leveling"),
     ("gold_economy", "gold_cards"),
@@ -43,16 +38,8 @@ for legacy_id, canonical_id in (
     if legacy is not None:
         REALIZERS[canonical_id] = legacy
 
-FROZEN_BOND_IDS = (
-    "hand_leveling", "held_cards", "held_retrigger", "steel", "pair", "high_card", "aces",
-    "no_discard", "cash", "lucky", "glass", "face_cards", "two_pair", "three_kind",
-    "four_kind", "straight", "flush", "played_retrigger", "stone", "gold_cards",
-    "deck_thinning", "deck_growth", "full_house", "straight_flush", "five_kind",
-    "flush_house", "flush_five", "hearts", "spades", "clubs", "diamonds", "low_ranks",
-    "kings", "queens", "jacks", "tarot", "planet", "discard", "blind_skip", "sell_value",
-    "joker_sacrifice", "card_destruction", "hand_repetition", "enhanced_cards", "no_face_cards",
-    "enhancement_consumption",
-)
+# Compatibility export used by existing tests/callers. The source of truth is ids.py.
+FROZEN_BOND_IDS = BOND_IDS
 
 
 def missing_realizers() -> tuple[str, ...]:
