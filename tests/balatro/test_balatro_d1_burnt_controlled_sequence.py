@@ -32,14 +32,21 @@ class _SequenceEvaluator:
         return float(action.target.get("fallback_value", 0.0))
 
 
-def _state(cards, *, hands_remaining=3, discards_remaining=2, discards_used=0):
+def _state(
+    cards,
+    *,
+    hands_remaining=3,
+    discards_remaining=2,
+    discards_used=0,
+    blind_requirement=300,
+):
     state = BalatroState()
     state.hand = list(cards)
     state.deck = []
     state.owned_deck = []
     state.jokers = [BurntJoker()]
     state.score = 0
-    state.blind = SimpleNamespace(requirement=300)
+    state.blind = SimpleNamespace(requirement=blind_requirement)
     state.hands_remaining = hands_remaining
     state.discards_remaining = discards_remaining
     state.discards_used = discards_used
@@ -150,13 +157,15 @@ def test_burnt_controlled_sequence_develops_exploits_and_yields_to_survival(monk
         target_high_card_discard.action
     )
 
-    # The next observed state contains the public result of Burnt's trigger. The
-    # scorer must consume that persistent hand level, and the investment must flip
-    # the preferred play from the otherwise stronger Pair to the developed High Card.
+    # Decision 2: the next observed state contains the public result of Burnt's
+    # trigger. At level 1 neither available play meets pace; after Burnt raises
+    # High Card to level 2, that exact hand clears the pace threshold and becomes
+    # the canonical play while the otherwise stronger level-1 Pair remains below it.
     exploitation_state = _state(
         [ace, two_hearts, two_clubs],
         discards_remaining=1,
         discards_used=1,
+        blind_requirement=150,
     )
     level_one_high = scorer.score(
         PokerHand.HIGH_CARD,
@@ -192,18 +201,20 @@ def test_burnt_controlled_sequence_develops_exploits_and_yields_to_survival(monk
     )
 
     # Decision 3: permanent development does not authorize another setup action
-    # when the round has reached its final hand. Survival remains the D1 authority.
+    # when the current play deterministically clears the blind. Survival remains
+    # the D1 authority even though a first discard is still otherwise available.
     pressure_state = _state(
         [ace, two_hearts, two_clubs],
         hands_remaining=1,
         discards_remaining=2,
         discards_used=0,
+        blind_requirement=developed_high,
     )
     pressure_state.hand_levels["HIGH_CARD"] = 2
     survival_play = _plan(
         PLAY_CARDS,
         [ace],
-        clear_probability=0.80,
+        clear_probability=1.0,
         expected_score=developed_high,
     )
     tempting_development_discard = _plan(
