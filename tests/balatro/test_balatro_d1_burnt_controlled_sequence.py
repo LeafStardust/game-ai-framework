@@ -2,20 +2,16 @@ from types import SimpleNamespace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.bonds.burnt import evaluate_burnt_bond
+from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.strategy_semantics import StrategyCommitment
 from games.balatro.burnt_bond_execution_policy import _burnt_strategy_fit
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
+from games.balatro.jokers.burnt_joker import BurntJoker
 from games.balatro.live.blind_clear_planner import LiveBlindPlan, LiveBlindPlanValue
 from games.balatro.live.strategy_hand_policy import StrategyAwareLiveHandActionPolicy
 from games.balatro.scoring import BalatroScorer
 from games.balatro.state import BalatroState
-
-
-class BurntJoker:
-    """Minimal Burnt identity fixture that is neutral to ordinary scoring."""
-
-    def apply(self, context):
-        return context
 
 
 class _SequenceEvaluator:
@@ -126,12 +122,23 @@ def test_burnt_controlled_sequence_develops_exploits_and_yields_to_survival(monk
     two_hearts = BalatroCard("2", "Hearts")
     two_clubs = BalatroCard("2", "Clubs")
 
-    # Decision 1: with ordinary resources and first-discard access, the native
-    # Burnt Bond targets High Card and breaks an otherwise equivalent discard tie.
+    # Decision 1: the real modeled Burnt Joker must naturally create the production
+    # FORMING strategy before D1 uses its bounded first-discard development signal.
     development_state = _state([ace, two_hearts, two_clubs])
     development = evaluate_burnt_bond(development_state)
     assert development.unlocked
     assert development.target == "HIGH_CARD"
+
+    _, composition = evaluate_bond_composition(development_state)
+    burnt_candidate = next(
+        candidate
+        for candidate in composition.strategy_candidates
+        if candidate.strategy_id == "burnt_target_level"
+    )
+    assert burnt_candidate.commitment == StrategyCommitment.FORMING
+    assert composition.pinned_strategy_id is None
+    assert composition.strategy_plan is not None
+    assert composition.strategy_plan.strategy_id == burnt_candidate.strategy_id
 
     weak_play = _plan(PLAY_CARDS, [two_hearts, two_clubs], expected_score=10.0)
     generic_pair_discard = _plan(DISCARD_CARDS, [two_hearts, two_clubs])
