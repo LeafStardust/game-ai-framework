@@ -85,7 +85,8 @@ def test_timeout_reuses_completed_root_search_before_structural_fallback():
     assert result.action.name == PLAY_CARDS
     assert result.best_discard is None
     assert result.plans == (strong, weak)
-    assert any("timeout cannot invent a second strategy" in note for note in result.rationale)
+    assert any("public hand is unavailable" in note for note in result.rationale)
+    assert any("reuse the latest completed root" in note for note in result.rationale)
 
 
 class _EqualScoreOrderPolicy(JokerOrderPolicy):

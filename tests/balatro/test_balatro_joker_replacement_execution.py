@@ -13,6 +13,7 @@ from games.balatro.joker_policy import (
 from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.mime import MimeJoker
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
+from games.balatro.shop_policy import BalatroShopPolicy
 from games.balatro.state import BalatroState
 
 
@@ -58,7 +59,23 @@ def _replacement_policy() -> JokerAcquisitionPolicy:
 
 
 def _arbiter() -> BuildAwareShopArbiter:
-    return BuildAwareShopArbiter(joker_policy=_replacement_policy())
+    # These tests isolate the irreversible SELL -> fresh-observation -> BUY
+    # transaction contract. Neutralize D14's real resource opportunity costs so
+    # they cannot turn the intended second checkpoint into an economics test.
+    shop_policy = BalatroShopPolicy(
+        price_weight=0.0,
+        interest_weight=0.0,
+        reserve_target=0,
+        reserve_weight=0.0,
+        last_joker_slot_penalty=0.0,
+        penultimate_joker_slot_penalty=0.0,
+        last_consumable_slot_penalty=0.0,
+        hold_bias=0.0,
+    )
+    return BuildAwareShopArbiter(
+        shop_policy=shop_policy,
+        joker_policy=_replacement_policy(),
+    )
 
 
 def test_full_joker_bar_replacement_emits_only_sell_step():

@@ -16,7 +16,7 @@ def _joker_choice(index: int, label: str) -> LivePackChoice:
     )
 
 
-def test_buffoon_pack_with_free_joker_slot_cannot_skip() -> None:
+def test_buffoon_pack_with_free_joker_slot_keeps_skip_for_d2_hold() -> None:
     state = SimpleNamespace(
         phase="BUFFOON_PACK",
         joker_slots=5,
@@ -32,8 +32,8 @@ def test_buffoon_pack_with_free_joker_slot_cannot_skip() -> None:
     assert [action.name for action in actions] == [
         SELECT_PACK_CARD,
         SELECT_PACK_CARD,
+        SKIP_BOOSTER,
     ]
-    assert all(action.name != SKIP_BOOSTER for action in actions)
 
 
 def test_buffoon_pack_exposes_full_roster_replacement_candidate_and_skip() -> None:

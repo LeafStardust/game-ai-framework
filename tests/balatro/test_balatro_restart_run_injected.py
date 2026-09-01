@@ -133,21 +133,25 @@ def test_restart_rejects_non_game_over_before_command():
     assert bridge.restart_calls == 0
 
 
-def test_restart_rejects_won_terminal_before_command():
-    observer = _Observer([_snapshot(10, "GAME_OVER", won=True)])
+def test_restart_accepts_sticky_won_bit_on_authoritative_game_over():
+    before = _snapshot(10, "GAME_OVER", won=True)
+    fresh = _snapshot(11, "BLIND_SELECT")
+    observer = _Observer([before, fresh, fresh, fresh, fresh, fresh, fresh])
     bridge = _Bridge()
     runner = SimpleNamespace(observer=observer, bridge=bridge)
 
-    with pytest.raises(LiveRunRestartError, match="won runs"):
-        restart_fresh_unseeded_run(
-            runner,
-            "RED",
-            "WHITE",
-            timeout_seconds=0.1,
-            poll_interval_seconds=0,
-        )
+    result = restart_fresh_unseeded_run(
+        runner,
+        "RED",
+        "WHITE",
+        timeout_seconds=0.2,
+        poll_interval_seconds=0,
+    )
 
-    assert bridge.restart_calls == 0
+    assert result.before is before
+    assert result.after is fresh
+    assert bridge.status_calls == 1
+    assert bridge.restart_calls == 1
 
 
 def test_restart_fails_closed_if_bridge_callback_is_not_reported():

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from games.balatro.actions import SELECT_PACK_CARD
+from games.balatro.actions import SELECT_PACK_CARD, SKIP_BOOSTER
 from games.balatro.live.pack import LivePackChoice
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.runtime.bond_autonomous_runner import (
@@ -79,10 +79,13 @@ def test_d9_decision_carries_actual_ranked_candidates_and_pack_threshold():
         },
     }
 
-    # Buffoon packs with free Joker capacity intentionally suppress Skip: opening
-    # the pack already spent the money, so one visible Joker must be taken rather
-    # than throwing the pack away because an empty slot itself has temporary value.
+    # Skip remains a real D9 candidate even with free Joker capacity so canonical
+    # D2 can HOLD a visible Buffoon Joker. This fixture's Golden Joker still clears
+    # D2, so SELECT_PACK_CARD ranks first while diagnostics retain the Skip option.
     candidates = diagnostics["candidate_scores"]
-    assert [candidate["action"] for candidate in candidates] == [SELECT_PACK_CARD]
+    assert [candidate["action"] for candidate in candidates] == [
+        SELECT_PACK_CARD,
+        SKIP_BOOSTER,
+    ]
     assert candidates[0]["area_index"] == 0
     assert candidates[0]["label"] == "Golden Joker"
