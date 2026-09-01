@@ -48,11 +48,11 @@ Canonical owners remain:
 - D4 consumable acquisition: `ConsumableAcquisitionPolicy`
 - D3 voucher acquisition: `VoucherAcquisitionPolicy`
 
-# Current state — 2026-09-01
+# Current state — 2026-09-02
 
 Phase 5 live semantic validation is complete at **74/74 green**. The original baseline and Tunes A–F repeatedly produced **0/10 wins**. Tune A is provisionally retained; B–F were rejected/reverted. The D9 Buffoon ownership correction `c1f8422` is retained as semantically correct but did not improve the controlled live result.
 
-The D1–D14 decision-authority audit is not the current primary target. The observed competence failure is that the agent can have an apparent run direction yet still fail to buy useful pieces, buy unrelated/contradictory pieces, or fail to preserve the machinery of that direction.
+The D1–D14 decision-authority audit is not the current primary target. The observed competence failure is that the agent can have an apparent run direction yet still fail to buy useful pieces, buy unrelated/contradictory pieces, or fail to preserve/use the machinery of that direction.
 
 The broad 46-Bond architecture is therefore **not allowed to expand or receive numerical tuning yet**. Development has moved to a deliberately small vertical proof: first prove that one or a few strategic axes are recognized, alter valuation, and causally alter the final decision for the correct reason. Only then scale the catalogue.
 
@@ -107,7 +107,7 @@ But every layer must justify itself by observable downstream behavior.
 
 ## Authority contract — CURRENT
 
-Commitment is now explicitly split into two authority tiers:
+Commitment is explicitly split into two authority tiers:
 
 ### `FORMING` — construction authority only
 
@@ -215,7 +215,7 @@ Only after Gates 1–4 are demonstrated may the proof set expand materially.
 
 Start with the smallest set that exercises structurally different strategic behavior.
 
-### Proof 1 — Burnt / persistent hand-level development — NEXT
+### Proof 1 — Burnt / persistent hand-level development — ACTIVE
 
 Why first:
 - Burnt is explicitly allowed by the strategy design as a defining mechanical axis;
@@ -229,10 +229,13 @@ Required trace:
 Burnt public mechanic
 → Burnt/target-hand Bond evidence
 → FORMING/PINNED strategy state as appropriate
-→ bounded development goal
+→ bounded development goal / execution authority as appropriate
 → D1 discard valuation
-→ final discard/play decision
+→ StrategyAwareLiveHandActionPolicy arbitration
+→ LiveHandActionDecisionEngine final return
 ```
+
+**Current handoff:** the strategy metadata/formation-authority slice has been validated green. The work has moved downstream to the decisive question: **does Burnt actually change D1's selected discard/play action?** Do not re-open formation architecture unless the D1 trace produces evidence that the required fact is already missing upstream.
 
 ### Proof 2 — simple deck shaping
 
@@ -258,16 +261,57 @@ Do **not** add a fifth/sixth proof axis until these cases demonstrate the full c
 
 ## Current implementation checkpoint
 
-The first core architecture correction is in progress/completed in this phase:
+Phase 6A's first core architecture correction is complete and its focused strategy-authority regressions are green:
 
 1. `build_strategy_plan()` accepts `FORMING` rather than blanket-rejecting everything below `PINNED`.
 2. `FORMING` plans are construction-only: generated `seek_*` goals are allowed, preservation/execution prescriptions are not.
 3. `compose_build()` no longer temporarily promotes motif-backed `FORMING` candidates to `PINNED`.
 4. The composer may plan the highest-ranked real `FORMING` candidate when no strategy is pinned.
 5. A developed singleton mechanical axis may become low-authority `FORMING`; support/density-only evidence cannot.
-6. Focused deterministic regressions must validate these boundaries before downstream authority work proceeds.
+6. Focused deterministic regressions validate these authority boundaries.
 
-These changes prove only that strategy evidence can now survive **formation → plan construction**. They do **not** yet prove that D1/D2/D4/D9/D14 values or the final arbiter actually use it correctly.
+This proves only that strategy evidence can survive **formation → plan construction**. It does **not** yet prove that D1 candidate valuation or the final D1 arbiter uses Burnt correctly.
+
+### Current diagnostic target
+
+Do not add another abstraction layer yet. Trace the existing D1 production path and find the first point where Burnt's mechanically correct strategic consequence is absent, malformed, or discarded:
+
+```text
+Burnt/public state
+→ Bond evaluation / realization
+→ strategy composition + commitment
+→ strategy plan / prescriptions
+→ LiveBlindClearPlanner / D1LiveBlindClearPlanner candidate projections
+→ StrategyAwareLiveHandActionPolicy candidate values/arbitration
+→ LiveHandActionDecisionEngine / PathAwareLiveHandActionDecisionEngine final action
+```
+
+At each stage record:
+1. What exact Burnt/target-hand fact exists?
+2. Is it mechanically correct?
+3. Does it distinguish the intended first discard from ordinary tactical discards?
+4. Is survival still allowed to override it?
+5. Does the consequence survive to the next stage?
+
+The **first** stage where the required consequence disappears owns the defect. Fix that shared owner rather than adding a Burnt-specific late rescue unless Burnt's mechanic itself genuinely requires explicit literal modeling there.
+
+### Counterfactual required before Proof 1 can close
+
+Construct a deterministic pair with:
+
+```text
+State A:
+Burnt strategic mechanic/evidence absent
+same hand, score requirement, hands/discards, legal actions, and all unrelated evidence
+→ final action X
+
+State B:
+only the relevant Burnt strategic mechanic/evidence present
+same remaining public/legal state
+→ final action Y
+```
+
+`Y` must be the strategically correct change, and removing the Burnt fact must remove that preference again. Also include a survival-pressure variant proving Burnt does **not** force the development discard when that materially jeopardizes clearing the blind.
 
 ## Catalogue policy during the proof
 
@@ -311,13 +355,21 @@ Small semantic corrections, instrumentation, and deterministic causal regression
 
 # EXACT NEXT ACTION
 
-1. User runs the focused strategy-authority regressions plus the nearby deterministic Bond/strategy tests.
-2. Fix only semantic regressions exposed by that validation; do not numerical-tune around them.
-3. Build the **Burnt final-decision counterfactual** with identical public/legal state and only the relevant strategy fact changed.
-4. Trace Burnt through recognition → strategy plan → D1 value → final action and identify the first lost consequence, if any.
-5. Correct that owning layer and rerun the deterministic proof.
-6. Demonstrate a short controlled Burnt scenario that develops the target hand when safe but yields to survival when necessary.
-7. Only then add the deck-shaping proof axis.
+**Next chat should start here; do not repeat the Phase 6A formation work.**
+
+1. Read this roadmap plus the two required strategy docs.
+2. Inspect the current Burnt implementation and existing Burnt/strategy tests only as needed to establish the exact upstream fact already available.
+3. Locate the production D1 files/classes for:
+   - `LiveBlindClearPlanner` / `D1LiveBlindClearPlanner`;
+   - `StrategyAwareLiveHandActionPolicy`;
+   - `LiveHandActionDecisionEngine` / `PathAwareLiveHandActionDecisionEngine`.
+4. Trace Burnt end-to-end through those D1 owners. Do not assume metadata reaching the strategy plan means it reaches action valuation.
+5. Build the **Burnt final-decision counterfactual regression**: identical public/legal state, toggle only the relevant Burnt strategy fact, require the correct final action to change.
+6. Build the paired **survival override regression**: Burnt may improve a development discard, but must lose when that discard materially threatens blind clear.
+7. If the counterfactual fails, classify the first break as `PROJECTED_TRANSITION`, `CONSUMER_VALUATION`, `FINAL_ARBITRATION`, or an earlier category if the trace proves the fact was already missing.
+8. Fix only that owning layer. Avoid a Burnt-only policy exception if a generic strategy-value channel is the missing architecture.
+9. User runs focused tests locally. Any validation command supplied must start with `git pull` and obey the repository command-format contract.
+10. Once Burnt Gates 1–3 are green, construct the short controlled Gate-4 scenario. Only after Burnt passes Gate 4 proceed to deck shaping.
 
 # Phase order
 
@@ -327,8 +379,8 @@ Small semantic corrections, instrumentation, and deterministic causal regression
 4. Phase 3 — coherent build evidence/authority quality — COMPLETE
 5. Phase 4 — complex packs/consumables/vouchers/economy audit — COMPLETE
 6. Phase 5 — live validation — COMPLETE
-7. Phase 6A — minimal strategy formation/authority contract — ACTIVE
-8. Phase 6B — Burnt recognition/valuation/final-decision proof — BLOCKED ON 6A VALIDATION
+7. Phase 6A — minimal strategy formation/authority contract — **COMPLETE / GREEN**
+8. Phase 6B — Burnt recognition/valuation/final-decision proof — **ACTIVE: D1 FINAL-ACTION TRACE**
 9. Phase 6C — 2–4 structurally different proof axes — BLOCKED
 10. Phase 6D — catalogue architecture decision and expansion — BLOCKED
 11. Phase 6E — action-quality tuning/live validation — BLOCKED
