@@ -80,6 +80,22 @@ def _plan(
     )
 
 
+def _action_signature(action):
+    return (
+        action.name,
+        tuple(
+            (
+                str(getattr(card, "rank", "")),
+                str(getattr(card, "suit", "")),
+                str(getattr(card, "enhancement", "") or ""),
+                str(getattr(card, "edition", "") or ""),
+                str(getattr(card, "seal", "") or ""),
+            )
+            for card in action.cards
+        ),
+    )
+
+
 def _policy(monkeypatch):
     policy = StrategyAwareLiveHandActionPolicy(evaluator=_SequenceEvaluator())
     monkeypatch.setattr(policy, "_hand_bond_intents", lambda state: ())
@@ -130,7 +146,9 @@ def test_burnt_controlled_sequence_develops_exploits_and_yields_to_survival(monk
         [weak_play, generic_pair_discard, target_high_card_discard],
         setup_discard_consensus=True,
     )
-    assert first_decision.action is target_high_card_discard.action
+    assert _action_signature(first_decision.action) == _action_signature(
+        target_high_card_discard.action
+    )
 
     # The next observed state contains the public result of Burnt's trigger. The
     # scorer must consume that persistent hand level, and the investment must flip
@@ -169,7 +187,9 @@ def test_burnt_controlled_sequence_develops_exploits_and_yields_to_survival(monk
         exploitation_state,
         [pair_play, developed_high_play],
     )
-    assert exploit_decision.action is developed_high_play.action
+    assert _action_signature(exploit_decision.action) == _action_signature(
+        developed_high_play.action
+    )
 
     # Decision 3: permanent development does not authorize another setup action
     # when the round has reached its final hand. Survival remains the D1 authority.
@@ -202,4 +222,6 @@ def test_burnt_controlled_sequence_develops_exploits_and_yields_to_survival(monk
         [tempting_development_discard, survival_play],
         setup_discard_consensus=True,
     )
-    assert pressure_decision.action is survival_play.action
+    assert _action_signature(pressure_decision.action) == _action_signature(
+        survival_play.action
+    )
