@@ -121,8 +121,17 @@ def evaluate_discard_bond(state: Any) -> BondDevelopment:
 
 
 # Blind Skip: Throwback is the defining persistent payoff. Diet Cola/history
-# deepen a Throwback plan but do not independently create one.
-BLIND_SKIP_THRESHOLDS = DEFAULT_THRESHOLDS
+# deepen a Throwback plan but do not independently create one. The capped
+# contributor economy tops out at 18 (Throwback 7 + Diet Cola 4 + history 7), so
+# the upper ranks sit on the final real history milestones rather than unreachable
+# generic thresholds.
+BLIND_SKIP_THRESHOLDS = {
+    BondRank.R1: 4.0,
+    BondRank.R2: 9.0,
+    BondRank.R3: 15.0,
+    BondRank.R4: 16.0,
+    BondRank.R5: 18.0,
+}
 BLIND_SKIP_POLICIES = {
     BondRank.R1: ("recognize_skip_payoff",),
     BondRank.R2: ("prefer_high_value_tags_when_runway_allows",),
@@ -147,8 +156,15 @@ def evaluate_blind_skip_bond(state: Any) -> BondDevelopment:
 
 
 # Sell Value: Swashbuckler is the defining payoff. Egg/Gift Card are economy
-# components unless Swashbuckler converts their sell value into scoring.
-SELL_VALUE_THRESHOLDS = DEFAULT_THRESHOLDS
+# components unless Swashbuckler converts their sell value into scoring. Maximum
+# modeled contribution is 25, so R5 is the literal full-payoff capstone.
+SELL_VALUE_THRESHOLDS = {
+    BondRank.R1: 4.0,
+    BondRank.R2: 9.0,
+    BondRank.R3: 15.0,
+    BondRank.R4: 22.0,
+    BondRank.R5: 25.0,
+}
 SELL_VALUE_POLICIES = {
     BondRank.R1: ("recognize_sell_value_as_scoring_resource",),
     BondRank.R2: ("prefer_sell_value_growth_when_payoff_exists",),
@@ -174,8 +190,15 @@ def evaluate_sell_value_bond(state: Any) -> BondDevelopment:
 
 
 # Joker Sacrifice: Dagger or Madness must currently exist. Historical sacrifice
-# without a surviving payoff is not a current Bond.
-JOKER_SACRIFICE_THRESHOLDS = DEFAULT_THRESHOLDS
+# without a surviving payoff is not a current Bond. Maximum modeled contribution
+# is 23, so the existing reachable R4 is retained and R5 moves to that capstone.
+JOKER_SACRIFICE_THRESHOLDS = {
+    BondRank.R1: 4.0,
+    BondRank.R2: 9.0,
+    BondRank.R3: 15.0,
+    BondRank.R4: 22.0,
+    BondRank.R5: 23.0,
+}
 JOKER_SACRIFICE_POLICIES = {
     BondRank.R1: ("recognize_joker_sacrifice_value",),
     BondRank.R2: ("prefer_safe_fodder_when_scaler_requires_it",),
@@ -201,8 +224,16 @@ def evaluate_joker_sacrifice_bond(state: Any) -> BondDevelopment:
 
 
 # Card Destruction: current destruction engine/payoff required. Permanent deck
-# reduction after the engine disappears belongs to Deck Thinning instead.
-CARD_DESTRUCTION_THRESHOLDS = DEFAULT_THRESHOLDS
+# reduction after the engine disappears belongs to Deck Thinning instead. Maximum
+# modeled contribution is 26, so the existing reachable R4 is retained and R5 is
+# the full engine/history capstone.
+CARD_DESTRUCTION_THRESHOLDS = {
+    BondRank.R1: 4.0,
+    BondRank.R2: 9.0,
+    BondRank.R3: 15.0,
+    BondRank.R4: 22.0,
+    BondRank.R5: 26.0,
+}
 CARD_DESTRUCTION_POLICIES = {
     BondRank.R1: ("recognize_card_destruction_payoff",),
     BondRank.R2: ("prefer_targeted_destruction_of_low_value_cards",),
@@ -229,8 +260,15 @@ def evaluate_card_destruction_bond(state: Any) -> BondDevelopment:
 
 
 # Hand Repetition: repeated play history is evidence only after Card Sharp or
-# Supernova gives repetition independent strategic meaning.
-HAND_REPETITION_THRESHOLDS = DEFAULT_THRESHOLDS
+# Supernova gives repetition independent strategic meaning. The modeled economy
+# tops out at 20, with the last two history milestones producing 18 and 20.
+HAND_REPETITION_THRESHOLDS = {
+    BondRank.R1: 4.0,
+    BondRank.R2: 9.0,
+    BondRank.R3: 15.0,
+    BondRank.R4: 18.0,
+    BondRank.R5: 20.0,
+}
 HAND_REPETITION_POLICIES = {
     BondRank.R1: ("recognize_repeated_hand_payoff",),
     BondRank.R2: ("prefer_consistent_repetition_of_selected_hand",),
@@ -257,8 +295,15 @@ def evaluate_hand_repetition_bond(state: Any) -> BondDevelopment:
 
 # Enhanced Cards survives audit only as a Driver's License defining-payoff Bond.
 # Generic enhancement density without Driver's License belongs to the specific
-# enhancement/deck-shaping Bonds and ordinary card valuation.
-ENHANCED_CARDS_THRESHOLDS = DEFAULT_THRESHOLDS
+# enhancement/deck-shaping Bonds and ordinary card valuation. Driver's License,
+# both modeled feed engines and the final density milestones top out at 20.
+ENHANCED_CARDS_THRESHOLDS = {
+    BondRank.R1: 4.0,
+    BondRank.R2: 9.0,
+    BondRank.R3: 15.0,
+    BondRank.R4: 18.0,
+    BondRank.R5: 20.0,
+}
 ENHANCED_CARDS_POLICIES = {
     BondRank.R1: ("recognize_drivers_license_payoff",),
     BondRank.R2: ("prefer_high_quality_enhancement_creation",),
