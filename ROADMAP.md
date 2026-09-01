@@ -14,6 +14,7 @@ This is the authoritative roadmap/handoff for the Balatro Red/White competence b
 - Prefer canonical ownership over late wrappers/rescues.
 - Bond/composition and Build Health are evidence/planning layers, never immediate score/action authorities.
 - Numerical tuning must not compensate for missing or malformed strategy semantics.
+- **Before auditing, redesigning, or implementing any Bond/strategy relationship, first read `docs/balatro/BALATRO_STRATEGY_SYSTEM.md` and `docs/balatro/BALATRO_RELATIONSHIPS_MOTIFS.md`. Treat them as mandatory historical/design context for the intended strategy architecture. Then inspect the current code before deciding whether that design should be kept, corrected, or replaced.**
 
 ## Objective
 
@@ -311,13 +312,14 @@ Previous provisional conclusions such as â€œBaron must belong only to `kings`,â€
 
 # EXACT NEXT ACTION
 
-1. Locate the authoritative Bond catalogue on `feat/v1.0-red-white-competence`.
-2. Enumerate every current Bond and verify the exact count.
-3. For every Bond, capture its evaluator/file, target, major contributor classes, rank ladder, and realization ownership.
-4. Produce a preliminary classification and flag obvious duplicates/mixed abstractions.
-5. Derive the redesign dependency order from the real catalogue.
-6. Only then select the first Bond for full KEEP/SPLIT/MERGE/REPLACE/DELETE redesign.
-7. Do **not** modify Bond implementation, consumer wiring, run another live batch, or stage Tune G before this inventory/classification checkpoint is complete.
+1. Read `docs/balatro/BALATRO_STRATEGY_SYSTEM.md` and `docs/balatro/BALATRO_RELATIONSHIPS_MOTIFS.md` to recover the intended strategy architecture and relationship/motif semantics before judging the current Bond abstractions.
+2. Locate the authoritative Bond catalogue on `feat/v1.0-red-white-competence`.
+3. Enumerate every current Bond and verify the exact count.
+4. For every Bond, capture its evaluator/file, target, major contributor classes, rank ladder, and realization ownership.
+5. Produce a preliminary classification and flag obvious duplicates/mixed abstractions.
+6. Derive the redesign dependency order from the real catalogue.
+7. Only then select the first Bond for full KEEP/SPLIT/MERGE/REPLACE/DELETE redesign.
+8. Do **not** modify Bond implementation, consumer wiring, run another live batch, or stage Tune G before this inventory/classification checkpoint is complete.
 
 # Phase order
 
