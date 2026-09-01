@@ -10,11 +10,11 @@ class BondRelationship(StrEnum):
 
 
 RELATIONSHIPS: dict[frozenset[str], BondRelationship] = {
-    frozenset(("burnt", "no_discard")): BondRelationship.CONFLICT,
+    frozenset(("hand_leveling", "no_discard")): BondRelationship.CONFLICT,
     frozenset(("discard", "no_discard")): BondRelationship.CONFLICT,
     frozenset(("face_cards", "no_face_cards")): BondRelationship.CONFLICT,
-    frozenset(("vampire", "enhanced_cards")): BondRelationship.CONFLICT,
-    frozenset(("burnt", "discard")): BondRelationship.SYNERGY,
+    frozenset(("enhancement_consumption", "enhanced_cards")): BondRelationship.CONFLICT,
+    frozenset(("hand_leveling", "discard")): BondRelationship.SYNERGY,
     frozenset(("held_cards", "steel")): BondRelationship.SYNERGY,
     frozenset(("held_retrigger", "steel")): BondRelationship.SYNERGY,
     frozenset(("card_destruction", "deck_thinning")): BondRelationship.SYNERGY,
@@ -32,4 +32,10 @@ def conflicts_with_any(bond_id: str, others: set[str]) -> bool:
 
 
 def synergies_with(bond_id: str, others: set[str]) -> tuple[str, ...]:
-    return tuple(sorted(other for other in others if relationship_between(bond_id, other) == BondRelationship.SYNERGY))
+    return tuple(
+        sorted(
+            other
+            for other in others
+            if relationship_between(bond_id, other) == BondRelationship.SYNERGY
+        )
+    )
