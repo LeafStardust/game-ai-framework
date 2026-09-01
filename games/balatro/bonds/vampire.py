@@ -4,7 +4,9 @@ from typing import Any, Iterable
 
 from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank, BondRealization
 
-VAMPIRE_BOND_ID = "vampire"
+ENHANCEMENT_CONSUMPTION_BOND_ID = "enhancement_consumption"
+# Temporary compatibility alias while callers/tests migrate.
+VAMPIRE_BOND_ID = ENHANCEMENT_CONSUMPTION_BOND_ID
 VAMPIRE_THRESHOLDS = {
     BondRank.R1: 4.0,
     BondRank.R2: 8.0,
@@ -12,6 +14,7 @@ VAMPIRE_THRESHOLDS = {
     BondRank.R4: 17.0,
     BondRank.R5: 21.0,
 }
+# Legacy diagnostic metadata only. It is not action authority in the new Bond model.
 VAMPIRE_POLICIES = {
     BondRank.R1: ("recognize_vampire_enhancement_consumption",),
     BondRank.R2: ("prefer_safe_enhancement_feed_lines",),
@@ -20,7 +23,7 @@ VAMPIRE_POLICIES = {
     BondRank.R5: ("capstone_vampire_feed_engine",),
 }
 VAMPIRE_RELATIONSHIPS = {
-    frozenset(("vampire", "enhanced_cards")): "CONFLICT",
+    frozenset((ENHANCEMENT_CONSUMPTION_BOND_ID, "enhanced_cards")): "CONFLICT",
 }
 
 
@@ -67,29 +70,24 @@ def _rank(total: float) -> tuple[BondRank, float | None]:
     return BondRank.R5, None
 
 
-def _locked() -> BondDevelopment:
-    return BondDevelopment(
-        bond_id=VAMPIRE_BOND_ID,
-        unlocked=False,
-        contribution=0.0,
-        rank=BondRank.LOCKED,
-        next_rank_threshold=VAMPIRE_THRESHOLDS[BondRank.R1],
-        contributions=(),
-        realization=BondRealization.DORMANT,
-    )
+def evaluate_enhancement_consumption_bond(state: Any) -> BondDevelopment:
+    """Evaluate enhancement-feed/consumption infrastructure.
 
-
-def evaluate_vampire_bond(state: Any) -> BondDevelopment:
+    Vampire is the primary payoff/consumer, not the Bond identity. Existing
+    enhanced-card feedstock and renewable Midas infrastructure therefore provide
+    pre-payoff evidence so a later Vampire can receive the correct projected
+    strategic value.
+    """
     jokers = list(getattr(state, "jokers", ()) or ())
-    if not _contains(jokers, "vampire"):
-        return _locked()
+    parts: list[BondContribution] = []
 
-    parts = [BondContribution("Vampire", 7.0)]
-
+    has_vampire = _contains(jokers, "vampire")
+    if has_vampire:
+        parts.append(BondContribution("Vampire enhancement consumer", 7.0))
     if _contains(jokers, "midasmask"):
-        parts.append(BondContribution("Midas Mask renewable feed bridge", 5.0))
+        parts.append(BondContribution("Midas Mask renewable feed bridge", 5.0 if has_vampire else 2.0))
     if _contains(jokers, "cartomancer"):
-        parts.append(BondContribution("Cartomancer enhancement-feed access", 2.0))
+        parts.append(BondContribution("Cartomancer enhancement-feed access", 2.0 if has_vampire else 1.0))
 
     enhanced = sum(
         1 for card in _deck(state)
@@ -97,21 +95,28 @@ def evaluate_vampire_bond(state: Any) -> BondDevelopment:
     )
     density = _band(enhanced, ((1, 1.0), (3, 3.0), (6, 5.0), (10, 7.0)))
     if density:
+        # Feedstock alone is real strategic evidence, but without a consumer its
+        # realization remains low and BuildValue will not treat it as a finished engine.
         parts.append(BondContribution("Current enhancement feedstock", density))
 
     consumed = int(getattr(state, "vampire_enhancements_consumed", 0) or 0)
     history = _band(consumed, ((3, 1.0), (8, 2.0), (15, 4.0), (25, 6.0)))
     if history:
-        parts.append(BondContribution("Vampire accumulated consumption", history))
+        parts.append(BondContribution("Accumulated enhancement consumption", history))
 
     total = sum(part.value for part in parts)
     rank, nxt = _rank(total)
     return BondDevelopment(
-        bond_id=VAMPIRE_BOND_ID,
-        unlocked=True,
+        bond_id=ENHANCEMENT_CONSUMPTION_BOND_ID,
+        unlocked=total > 0.0,
         contribution=total,
         rank=rank,
         next_rank_threshold=nxt,
         contributions=tuple(parts),
-        realization=BondRealization.PARTIAL,
+        realization=BondRealization.DORMANT if rank == BondRank.R0 else BondRealization.PARTIAL,
     )
+
+
+# Temporary callable alias for production/tests that still import the legacy name.
+def evaluate_vampire_bond(state: Any) -> BondDevelopment:
+    return evaluate_enhancement_consumption_bond(state)
