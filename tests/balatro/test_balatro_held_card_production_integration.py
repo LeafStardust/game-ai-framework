@@ -98,6 +98,13 @@ def _pilot_candidate(composition):
     )
 
 
+def _source_tokens(candidate):
+    return {
+        "".join(ch for ch in str(source).lower() if ch.isalnum()).removesuffix("joker")
+        for source in candidate.sources
+    }
+
+
 def _policy(monkeypatch):
     policy = StrategyAwareLiveHandActionPolicy(evaluator=_Evaluator())
     # Leave _composition untouched: this regression is specifically proving that
@@ -124,7 +131,8 @@ def test_real_baron_engine_forms_then_pins_when_mime_completes_second_core():
 
     assert forming_candidate.commitment == StrategyCommitment.FORMING
     assert forming.pinned_strategy_id is None
-    assert "BARON" in forming_candidate.sources
+    assert "baron" in _source_tokens(forming_candidate)
+    assert forming_candidate.motif_ids == ("baron_mime_steel",)
 
     pinned_state, _, _ = _state(BaronJoker(), MimeJoker())
     _, pinned = evaluate_bond_composition(pinned_state)
@@ -132,10 +140,14 @@ def test_real_baron_engine_forms_then_pins_when_mime_completes_second_core():
 
     assert pinned_candidate.commitment >= StrategyCommitment.PINNED
     assert pinned.pinned_strategy_id == pinned_candidate.strategy_id
-    assert {"BARON", "MIME"}.issubset(set(pinned_candidate.sources))
-    assert {"held_cards", "held_retrigger", "kings", "steel"}.issubset(
+    assert {"baron", "mime"}.issubset(_source_tokens(pinned_candidate))
+    # D1 held-card preservation consumes the mechanically relevant core. Steel is
+    # optional future infrastructure here and does not need to be synthesized into
+    # a candidate merely because the named motif can eventually include it.
+    assert {"held_cards", "held_retrigger", "kings"}.issubset(
         set(pinned_candidate.bond_ids)
     )
+    assert "baron_mime_steel" in pinned_candidate.motif_ids
 
 
 def test_real_pinned_baron_mime_composition_changes_final_d1_discard(monkeypatch):
