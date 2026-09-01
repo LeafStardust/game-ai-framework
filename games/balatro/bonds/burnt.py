@@ -11,11 +11,14 @@ from games.balatro.bonds.model import (
 )
 
 
-BURNT_BOND_ID = "burnt"
+HAND_LEVELING_BOND_ID = "hand_leveling"
+# Temporary compatibility name while callers/tests migrate. This is a Bond-ID
+# alias only; Burnt Joker remains a legitimate mechanical component name.
+BURNT_BOND_ID = HAND_LEVELING_BOND_ID
 BURNT_SUPPORTED_TARGETS = frozenset({"HIGH_CARD", "PAIR"})
 
-# Provisional Red/White calibration. These are weighted contribution thresholds,
-# not sequential item requirements.
+# Provisional weighted thresholds retained from the previous evaluator until the
+# canonical BuildValue calibration phase. They are evidence bands, not authority.
 BURNT_RANK_THRESHOLDS: dict[BondRank, float] = {
     BondRank.R1: 8.0,
     BondRank.R2: 12.0,
@@ -24,9 +27,8 @@ BURNT_RANK_THRESHOLDS: dict[BondRank, float] = {
     BondRank.R5: 30.0,
 }
 
-# Policy authority unlocked by rank. These strings are the canonical first-Bond
-# contract for later D1/shop/pack integrations; they are deliberately descriptive
-# rather than direct score bonuses.
+# Legacy diagnostic policy metadata. Do not use this as action authority in the
+# new architecture; it remains temporarily for compatibility during migration.
 BURNT_RANK_POLICIES: dict[BondRank, tuple[str, ...]] = {
     BondRank.R1: (
         "recognize_first_discard_level_value",
@@ -57,13 +59,7 @@ BURNT_RANK_POLICIES: dict[BondRank, tuple[str, ...]] = {
 
 @dataclass(frozen=True)
 class BurntBondContext:
-    """External composition context needed by the Burnt Bond.
-
-    ``target_hand`` may select High Card or Pair.  More complex hands are not
-    reliable first-discard targets and are deliberately normalized back to the
-    best supported public target instead of turning Burnt into a fragile side
-    engine.
-    """
+    """Compatibility context for selecting the hand-leveling target."""
 
     target_hand: str | None = None
     discards_per_round: int | None = None
@@ -81,10 +77,7 @@ def _name(value: Any) -> str:
 
 def _contains_named(values: Iterable[Any], *tokens: str) -> bool:
     normalized = {_name(value) for value in values}
-    return any(
-        any(token in candidate for candidate in normalized)
-        for token in tokens
-    )
+    return any(any(token in candidate for candidate in normalized) for token in tokens)
 
 
 def _owned_deck(state: Any) -> list[Any]:
@@ -126,9 +119,6 @@ def _target_level_contribution(state: Any, target_hand: str) -> float:
 
 
 def _extra_discard_contribution(context: BurntBondContext) -> float:
-    # Three discards is Balatro's ordinary baseline. Extra discard capacity is
-    # useful Burnt infrastructure, but it is deliberately capped because it
-    # improves reliability/cost rather than the engine's direct leveling rate.
     if context.discards_per_round is None:
         return 0.0
     bonus = max(0, int(context.discards_per_round) - 3)
@@ -155,7 +145,7 @@ def _hand_play_count(state: Any, target: str) -> int:
 
 
 def select_burnt_target_hand(state: Any, requested: str | None = None) -> str:
-    """Select only a repeatable first-discard hand from public run evidence."""
+    """Select a repeatable target for hand-level development from public evidence."""
     normalized = _hand_token(requested)
     if normalized in BURNT_SUPPORTED_TARGETS:
         return normalized
@@ -165,8 +155,6 @@ def select_burnt_target_hand(state: Any, requested: str | None = None) -> str:
     def evidence(target: str) -> tuple[int, int, int]:
         level = int(levels.get(target, 1) or 1)
         plays = _hand_play_count(state, target)
-        # Stable default on exact ties; Pair must earn selection through actual
-        # play or permanent investment.
         default_priority = 1 if target == "HIGH_CARD" else 0
         return level, plays, default_priority
 
@@ -174,7 +162,7 @@ def select_burnt_target_hand(state: Any, requested: str | None = None) -> str:
 
 
 def _rank_for(total: float) -> tuple[BondRank, float | None]:
-    rank = BondRank.LOCKED
+    rank = BondRank.R0
     for candidate in (
         BondRank.R1,
         BondRank.R2,
@@ -189,50 +177,33 @@ def _rank_for(total: float) -> tuple[BondRank, float | None]:
     return BondRank.R5, None
 
 
-def evaluate_burnt_bond(
+def evaluate_hand_leveling_bond(
     state: Any,
     *,
     context: BurntBondContext | None = None,
 ) -> BondDevelopment:
-    """Evaluate structural Burnt Bond development from public persistent state.
+    """Evaluate persistent hand-level development from public run state.
 
-    Burnt Joker is the only hard unlock prerequisite. After unlock, every valid
-    source feeds one shared weighted contribution pool. Telescope, Blueprint,
-    Brainstorm, Blue Seals, target-hand investment, Space Joker and additional
-    discard capacity are alternative/additive progression paths; none is a
-    sequential rank gate.
-
-    This evaluator intentionally does not infer actual execution quality. Until
-    the realization layer consumes round telemetry, an unlocked Burnt Bond is
-    reported PARTIAL rather than pretending that its first-discard prescription
-    has been followed correctly.
+    Unlike the legacy Burnt Bond, this axis is not hard-locked by Burnt Joker.
+    Burnt is one strong contributor alongside Space Joker, Telescope, Blue Seals,
+    and already accumulated permanent hand-level investment. This lets the Bond
+    exist before a payoff component appears and lets projected-state evaluation
+    value future components against existing hand-development infrastructure.
     """
 
     context = context or BurntBondContext()
     target_hand = select_burnt_target_hand(state, context.target_hand)
     jokers = list(getattr(state, "jokers", ()) or ())
+    parts: list[BondContribution] = []
 
-    has_burnt = _contains_named(jokers, "burntjoker")
-    if not has_burnt:
-        return BondDevelopment(
-            bond_id=BURNT_BOND_ID,
-            unlocked=False,
-            contribution=0.0,
-            rank=BondRank.LOCKED,
-            next_rank_threshold=BURNT_RANK_THRESHOLDS[BondRank.R1],
-            contributions=(),
-            target=target_hand,
-            realization=BondRealization.DORMANT,
-        )
-
-    parts: list[BondContribution] = [BondContribution("Burnt Joker", 8.0)]
-
-    if _contains_named(jokers, "blueprintjoker", "blueprint"):
-        parts.append(BondContribution("Blueprint", 5.0))
-    if _contains_named(jokers, "brainstormjoker", "brainstorm"):
-        parts.append(BondContribution("Brainstorm", 5.0))
+    if _contains_named(jokers, "burntjoker"):
+        parts.append(BondContribution("Burnt Joker", 8.0))
+    if _contains_named(jokers, "blueprintjoker", "blueprint") and _contains_named(jokers, "burntjoker", "spacejoker"):
+        parts.append(BondContribution("Copyable hand-level engine", 5.0))
+    if _contains_named(jokers, "brainstormjoker", "brainstorm") and _contains_named(jokers, "burntjoker", "spacejoker"):
+        parts.append(BondContribution("Copyable hand-level engine", 5.0))
     if _contains_named(jokers, "spacejoker"):
-        parts.append(BondContribution("Space Joker", 2.0))
+        parts.append(BondContribution("Space Joker", 4.0))
 
     vouchers = list(getattr(state, "vouchers", ()) or ())
     if _contains_named(vouchers, "telescope"):
@@ -244,27 +215,33 @@ def evaluate_burnt_bond(
 
     target_level = _target_level_contribution(state, target_hand)
     if target_level > 0.0:
-        parts.append(
-            BondContribution(
-                f"{target_hand} permanent specialization",
-                target_level,
-            )
-        )
+        parts.append(BondContribution(f"{target_hand} permanent specialization", target_level))
 
-    extra_discards = _extra_discard_contribution(context)
-    if extra_discards > 0.0:
-        parts.append(BondContribution("Extra discard capacity", extra_discards))
+    # Extra discards specifically support Burnt's hand-level mechanic; they are
+    # irrelevant to hand leveling in a run without Burnt.
+    if _contains_named(jokers, "burntjoker"):
+        extra_discards = _extra_discard_contribution(context)
+        if extra_discards > 0.0:
+            parts.append(BondContribution("Extra discard capacity", extra_discards))
 
     total = sum(part.value for part in parts)
     rank, next_threshold = _rank_for(total)
-
     return BondDevelopment(
-        bond_id=BURNT_BOND_ID,
-        unlocked=True,
+        bond_id=HAND_LEVELING_BOND_ID,
+        unlocked=total > 0.0,
         contribution=total,
         rank=rank,
         next_rank_threshold=next_threshold,
         contributions=tuple(parts),
         target=target_hand,
-        realization=BondRealization.PARTIAL,
+        realization=BondRealization.DORMANT if rank == BondRank.R0 else BondRealization.PARTIAL,
     )
+
+
+# Temporary callable alias for production/tests that still import the legacy name.
+def evaluate_burnt_bond(
+    state: Any,
+    *,
+    context: BurntBondContext | None = None,
+) -> BondDevelopment:
+    return evaluate_hand_leveling_bond(state, context=context)
