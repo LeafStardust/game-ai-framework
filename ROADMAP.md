@@ -63,7 +63,7 @@ Validated checkpoints:
 - Phase 4 resource semantics: **COMPLETE / 70/70**, `RESOURCE_COHERENCE` 18/18
 - Phase 5 live D1/D2 semantics: **COMPLETE / 74/74**, `D1_SURVIVAL` 25/25, `SHOP_SURVIVAL` 19/19
 - Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74; RETAINED / 0 OF 10 WINS after corrected terminal bookkeeping**
-- Phase 6 Tune B early paid-reroll runway: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
+- Phase 6 Tune B early paid-reroll cash floor: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune D booster acquisition margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune E contextual/B3 Joker build weight: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
@@ -398,6 +398,8 @@ Batches are chosen by semantic cohesion. Reorder only if repo inspection proves 
 
 Reason: these three are mechanically related enough to make cross-checking the raw contributor sets useful, while still being distinct mechanics. `held_retrigger` goes first so the Bond structural contract itself is reviewed concretely before the wider Batch-1 catalogue comparison. Audit each evaluator independently first; do not use the Baron/Mime motif or current strategy machinery as proof that any contributor belongs.
 
+**Batch-1 separation rule:** `held_retrigger` and `kings` remain separate Bonds. `held_retrigger` represents held-effect retrigger infrastructure centered on Mime and valid retriggerable held-card infrastructure; `kings` represents King-specific infrastructure/payoff centered on Baron and King density/quality. The full Baron/Mime held-King engine emerges only when these separate Bonds combine at the motif/engine-composition layer. Do not add Baron to `held_retrigger` merely because Baron pairs with Mime, and do not fold Mime into `kings` merely because both mechanics can use held Kings. Where copier semantics are later represented for this engine, Blueprint/Brainstorm should prefer a mechanically valid `Mime > Baron` copy target/order rather than receiving ownership-only credit.
+
 ### Later catalogue batches
 
 Determine subsequent trios from the actual catalogue after Batch 1 so they remain semantically coherent. Likely families include:
@@ -445,9 +447,10 @@ Start with the **Bond structural gate** on `held_retrigger` before any wiring au
 2. enumerate every contribution, category, point value, evidence field, mechanical role, contribution target, and condition;
 3. map the exact R0–R5 thresholds and local rank-policy descriptions, including which concrete contribution combinations can reach each rank;
 4. inspect its development-rank versus realization-state semantics and the mechanic recognized by the realizer;
-5. identify internal structural defects or ambiguities and correct them at the Bond/catalogue/realization layer only if justified;
-6. only after `held_retrigger` itself is structurally confirmed, continue Batch 1 with `held_cards` and `kings` using the same gate;
-7. after the raw catalogue is completed and semantically validated, resume relationships/motifs/strategy/composer and finally D2/D4/D9/D14/D1 wiring.
+5. preserve the separation between `held_retrigger` and `kings`: Mime/retrigger evidence belongs to the former, Baron/King infrastructure belongs to the latter, and the full held-King engine is a later motif/composition concern;
+6. identify internal structural defects or ambiguities and correct them at the Bond/catalogue/realization layer only if justified;
+7. only after `held_retrigger` itself is structurally confirmed, continue Batch 1 with `held_cards` and `kings` using the same gate;
+8. after the raw catalogue is completed and semantically validated, resume relationships/motifs/strategy/composer and finally D2/D4/D9/D14/D1 wiring.
 
 Do **not** use relationships, motifs, strategy formation, StrategyPlan, composer, Build Health, D2/D4/D9/D14, or D1 strategy behavior as proof that the `held_retrigger` structure is correct. Do **not** run another live batch or stage Tune G.
 
