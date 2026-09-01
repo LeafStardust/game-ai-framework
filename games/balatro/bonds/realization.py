@@ -30,23 +30,49 @@ REALIZERS.update(TRIGGERED_ENGINE_OVERRIDES)
 REALIZERS.update(ENGINE_LIVENESS_AUDIT_REALIZERS)
 REALIZERS.update(CONTRACT_COMPAT_REALIZERS)
 
+# Temporary migration bridges. These remap legacy realizer implementation keys to
+# the frozen strategic vocabulary without changing legitimate Burnt/Vampire Joker
+# mechanic checks inside those realizers. Delete these bridges once the family
+# modules themselves use only canonical Bond IDs.
+for legacy_id, canonical_id in (
+    ("burnt", "hand_leveling"),
+    ("gold_economy", "gold_cards"),
+    ("vampire", "enhancement_consumption"),
+):
+    legacy = REALIZERS.pop(legacy_id, None)
+    if legacy is not None:
+        REALIZERS[canonical_id] = legacy
+
 FROZEN_BOND_IDS = (
-    "burnt", "held_cards", "held_retrigger", "steel", "pair", "high_card", "aces",
+    "hand_leveling", "held_cards", "held_retrigger", "steel", "pair", "high_card", "aces",
     "no_discard", "cash", "lucky", "glass", "face_cards", "two_pair", "three_kind",
-    "four_kind", "straight", "flush", "played_retrigger", "stone", "gold_economy",
+    "four_kind", "straight", "flush", "played_retrigger", "stone", "gold_cards",
     "deck_thinning", "deck_growth", "full_house", "straight_flush", "five_kind",
     "flush_house", "flush_five", "hearts", "spades", "clubs", "diamonds", "low_ranks",
     "kings", "queens", "jacks", "tarot", "planet", "discard", "blind_skip", "sell_value",
     "joker_sacrifice", "card_destruction", "hand_repetition", "enhanced_cards", "no_face_cards",
-    "vampire",
+    "enhancement_consumption",
 )
 
-def missing_realizers() -> tuple[str, ...]:return tuple(sorted(set(FROZEN_BOND_IDS)-set(REALIZERS)))
-def extra_realizers() -> tuple[str, ...]:return tuple(sorted(set(REALIZERS)-set(FROZEN_BOND_IDS)))
-def realize_bond(dev: BondDevelopment,state: Any)->BondDevelopment:
-    try:fn=REALIZERS[dev.bond_id]
-    except KeyError as exc:raise KeyError(f"No Realizer registered for Bond {dev.bond_id!r}") from exc
-    result=fn(dev,state)
-    if result.rank!=dev.rank:raise AssertionError(f"Realizer mutated rank for {dev.bond_id}: {dev.rank} -> {result.rank}")
-    if result.contribution!=dev.contribution:raise AssertionError(f"Realizer mutated contribution for {dev.bond_id}: {dev.contribution} -> {result.contribution}")
+
+def missing_realizers() -> tuple[str, ...]:
+    return tuple(sorted(set(FROZEN_BOND_IDS) - set(REALIZERS)))
+
+
+def extra_realizers() -> tuple[str, ...]:
+    return tuple(sorted(set(REALIZERS) - set(FROZEN_BOND_IDS)))
+
+
+def realize_bond(dev: BondDevelopment, state: Any) -> BondDevelopment:
+    try:
+        fn = REALIZERS[dev.bond_id]
+    except KeyError as exc:
+        raise KeyError(f"No Realizer registered for Bond {dev.bond_id!r}") from exc
+    result = fn(dev, state)
+    if result.rank != dev.rank:
+        raise AssertionError(f"Realizer mutated rank for {dev.bond_id}: {dev.rank} -> {result.rank}")
+    if result.contribution != dev.contribution:
+        raise AssertionError(
+            f"Realizer mutated contribution for {dev.bond_id}: {dev.contribution} -> {result.contribution}"
+        )
     return result
