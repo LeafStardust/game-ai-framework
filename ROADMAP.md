@@ -8,92 +8,81 @@ This is the authoritative roadmap/handoff for the Balatro Red/White competence b
 - Branch: `feat/v1.0-red-white-competence`
 - User runs tests/live games locally. **Do not run tests or live games from ChatGPT.**
 - Every validation command shown to the user must begin with `git pull`.
-- Every focused pytest validation command must use `-q`.
-- Every command block shown must end with a trailing blank after the final command.
-- Preserve exact Balatro mechanics, public-state legality, boss rules, and hidden-information boundaries.
-- Never use hidden RNG state, seeds, future pool order/identities, or inaccessible information.
-- Prefer canonical ownership over late wrappers/rescues.
-- Bond/composition and Build Health are evidence/planning layers, never direct score/action authorities.
-- Numerical tuning must not compensate for missing or malformed strategy semantics.
-- Before Bond/strategy work, read `docs/balatro/BALATRO_STRATEGY_SYSTEM.md` and `docs/balatro/BALATRO_RELATIONSHIPS_MOTIFS.md`, then inspect the current implementation.
+- Every focused pytest command must use `-q`.
+- Preserve exact Balatro mechanics, public-state legality, boss rules, affordability, and hidden-information boundaries.
+- Prefer canonical ownership over late wrappers/rescue layers.
+- Bond/composition and Build Health are evidence/planning layers, not direct score/action authorities.
+- Numerical tuning must not compensate for missing strategy semantics.
+- Before Bond/strategy work, read `docs/balatro/BALATRO_STRATEGY_SYSTEM.md` and `docs/balatro/BALATRO_RELATIONSHIPS_MOTIFS.md`.
 - Use scoped Conventional Commit messages.
 
 # Objective
 
 **Red Deck / White Stake, normal mode: maximize probability of winning the current run.**
 
-The Bond system exists only if it helps the production agent make better run-winning decisions.
+The Bond system matters only if the production agent can use it to make better run-winning decisions.
 
-Canonical flow:
+Canonical causal chain:
 
 ```text
 public game state
-    ↓
-literal Balatro mechanics
-    ↓
-Bond contributions + semantic mechanics
-    ↓
-coherent candidate/pinned strategy
-    ↓
-bounded construction / preservation / execution preferences
-    ↓
-canonical D1/D2/D3/D4/D9/D11/D14 consumer
-    ↓
-final legal/survival-aware action
-    ↓
-better run outcome
+→ literal Balatro mechanics
+→ Bond evidence + semantic mechanics
+→ coherent strategy candidate / commitment
+→ bounded goals, construction, preservation, execution preferences
+→ existing canonical D1/D2/D3/D4/D9/D11/D14 owner
+→ final legal/survival-aware action
+→ better run outcome
 ```
 
-A Bond regression passing in isolation is not sufficient. The production agent must be able to observe the strategy, pursue it, preserve it, execute it, and abandon it when survival or a materially stronger alternative requires that.
+Passing isolated Bond regressions is not enough. A pilot must naturally form in production state, reach the consumer that owns the decision, change the final action for the correct reason, remain subordinate to survival/economy, and be diagnosable in live traces.
 
-# Current state — 2026-09-02
+# Why the current reengineering exists
 
-Phase 5 live semantic validation completed at **74/74 green**, but the original baseline and Tunes A–F repeatedly produced **0/10 wins**. This demonstrated that local semantic correctness alone was not enough to make the agent competent.
+Phase 5 semantic validation reached 74/74 green, but baseline and Tunes A–F repeatedly produced **0/10 wins**. Local semantic correctness therefore did not equal game competence.
 
-The response was to stop broad numerical tuning and reengineer the Bond/strategy system around a deliberately small pilot before touching the full 46-Bond catalogue.
+The response is **not** catalogue-wide polishing. The response is to reengineer and validate a deliberately small three-strategy pilot, prove that the agent can actually build and use those strategies, then test whether this improves real games.
 
-## THREE-BOND PILOT — AUTHORITATIVE SCOPE
+# THREE-BOND PILOT — AUTHORITATIVE SCOPE
 
-Only three strategic verticals are the current implementation target:
+Only these three strategic verticals drive current work.
 
-### Pilot A — Burnt / persistent hand-level development
+## Pilot A — Burnt / persistent hand-level development
 
-Purpose:
-- recognize Burnt as a persistent development engine;
-- choose safe first discards that develop the intended hand;
-- value supporting target-hand development;
-- exploit the resulting persistent hand level later;
-- stop development greed when current-blind survival requires scoring immediately.
+Must prove that the agent can:
+- recognize Burnt as persistent development;
+- use a safe first discard to develop the intended hand;
+- value compatible target-hand support;
+- exploit the persistent hand level later;
+- stop development greed when survival requires scoring now.
 
-### Pilot B — Deck shaping / deck thinning
+## Pilot B — Deck shaping / deck thinning
 
-Purpose:
-- recognize deck thinning/destruction as a coherent construction direction;
-- value Trading Card/Erosion-style development for actual strategy reasons;
-- prefer compatible deck-shaping acquisitions over unrelated Bond collection;
-- carry the strategy into relevant shop/pack/consumable decisions when those consumers already own the choice;
-- never destroy immediate survival/economy for speculative thinning.
+Must prove that the agent can:
+- recognize Erosion/Trading Card-style thinning as a coherent construction direction;
+- value compatible thinning/destruction acquisitions for strategy reasons;
+- prefer compatible construction over unrelated Bond collection when the canonical owner is otherwise near-indifferent;
+- carry thinning goals into existing deck-removal/transform consumers where supported;
+- never sacrifice immediate survival/economy for speculative thinning.
 
-### Pilot C — Held-card / Steel-style persistent-card preservation
+## Pilot C — Held-card / Steel-style persistent-card preservation
 
-Purpose:
-- recognize held-card payoff/retrigger/persistent-card mechanics before a full Baron-Mime-Steel package exists;
-- remain construction-only while FORMING;
-- graduate to PINNED+ when the public engine is coherent enough;
-- preserve relevant Kings/Steel/held-engine cards among otherwise safe/near-equivalent D1 choices;
+Must prove that the agent can:
+- recognize held-card payoff/retrigger mechanics before a complete Baron/Mime/Steel package exists;
+- stay construction-only while FORMING;
+- graduate naturally to PINNED+ when the public engine is coherent enough;
+- preserve relevant Kings/Steel/held-engine cards among safe-equivalent D1 choices;
 - value compatible construction pieces through canonical acquisition consumers;
 - spend engine cards when survival or a materially stronger line requires it.
 
-These three pilots are intentionally different:
-- Burnt proves persistent development + D1 execution.
-- Deck thinning proves construction/acquisition authority.
-- Held-card/Steel proves strategy graduation + preservation authority.
+The pilots intentionally test different authority paths:
+- Burnt: persistent development + D1 execution.
+- Deck thinning: construction/acquisition authority.
+- Held-card/Steel: commitment graduation + preservation authority.
 
-Together they are the testbed for whether the Bond architecture can actually help win games.
+# Strategy authority contract
 
-# Validated architecture contracts
-
-## Development / realization / commitment remain separate
+Development, realization, and commitment remain separate:
 
 ```text
 Development = Bond R0–R5
@@ -101,212 +90,149 @@ Realization = DORMANT / PARTIAL / ACTIVE / MATURE
 Commitment  = EXPLORATORY / FORMING / PINNED / ESTABLISHED / DOMINANT
 ```
 
-- Rank measures persistent investment in one Bond.
-- Realization measures whether that mechanic functions now.
-- Commitment measures whether connected mechanics form a coherent plan worth pursuing/preserving.
-- Build Health separately answers whether the run is actually strong enough.
-
 ## FORMING = construction authority only
 
 FORMING may:
-- expose bounded strategy plans;
-- emit `seek_feature:*` and `seek_component:*` goals;
+- expose a bounded strategy plan;
+- emit `seek_feature:*`, `seek_component:*`, or equivalent construction goals;
 - influence admitted acquisition/development choices.
 
 FORMING may not merely by existing:
 - protect components from replacement;
-- dictate D1 execution;
+- dictate hand execution;
 - impose held-card preservation;
 - create fake pivot resistance;
 - be internally promoted to PINNED.
 
 ## PINNED+ = preservation/execution authority
 
-PINNED / ESTABLISHED / DOMINANT may add bounded preservation/execution preferences, still below:
+PINNED / ESTABLISHED / DOMINANT may additionally influence preservation/execution, but remain subordinate to:
 - legality;
-- exact survival;
+- deterministic or materially safer survival;
 - affordability/economy;
 - boss correctness;
 - materially stronger projected alternatives.
 
-# Pilot proof status
+# Deterministic architecture proofs
 
-The following deterministic regressions are useful architecture evidence and remain closed unless contradicted by new evidence.
+## Pilot A Burnt — GREEN
 
-## Burnt proof — GREEN
-
-Validated locally:
+Validated:
 - Burnt recognition and target-hand evidence;
-- D1 first-discard valuation;
+- first-discard valuation;
 - final D1 arbitration counterfactual;
-- persistent `hand_levels` gain;
-- later exploitation of developed High Card;
+- persistent hand-level gain;
+- later exploitation;
 - survival override.
 
-Relevant tests include:
+Relevant tests:
 - `test_balatro_d1_burnt_native_evidence.py`
 - `test_balatro_d1_burnt_final_arbitration.py`
 - `test_balatro_d1_burnt_controlled_sequence.py`
 
-## Deck-thinning proof — GREEN
+## Pilot B deck thinning — GREEN AT TRANSITION HELPER
 
-Validated locally:
-- Erosion can form a low-authority deck-thinning direction;
+Validated:
+- Erosion naturally forms a low-authority deck-thinning direction;
 - Trading Card deepens it;
 - Card Destruction ↔ Deck Thinning synergy is recognized;
-- unrelated positive Bond development does not receive equivalent D2 transition value.
+- unrelated positive Bond development receives less/no equivalent D2 transition value.
 
 Relevant test:
 - `test_balatro_deck_thinning_strategy_transition.py`
 
-## Held-card preservation proof — GREEN AT CONSUMER BOUNDARY
+Limitation: this proves `_bond_transition_bonus`, not yet final production `JokerAcquisitionPolicy.decide()` BUY/HOLD authority.
+
+## Pilot C held-card / Steel — GREEN THROUGH REAL PRODUCTION D1
 
 Validated locally:
-- FORMING does not receive categorical preservation;
-- PINNED held-card evidence changes an otherwise safe/equivalent D1 discard;
-- deterministic survival overrides preservation.
+- manually injected consumer-boundary proof: FORMING does not preserve, PINNED does, survival overrides;
+- real production composition now proves natural formation and commitment using actual Jokers/state;
+- Baron-only yields the intended FORMING candidate;
+- Baron + Mime naturally yields PINNED+ held-card authority;
+- real `StrategyAwareLiveHandActionPolicy` preserves the King in a safe-equivalent discard choice;
+- deterministic survival still spends the King when required.
 
 Relevant tests:
 - `test_balatro_d1_pinned_held_card_preservation.py`
 - `test_balatro_d1_pinned_held_card_final_action.py`
+- `test_balatro_held_card_production_integration.py`
 
-Important limitation: these consumer-boundary tests do **not by themselves prove that an ordinary production state naturally forms the intended held-card candidate and reaches PINNED+ at the right time.** Production semantic formation must be checked before declaring Pilot C game-ready.
+Pilot C P1 and the core D1 portion of P2/P3 are therefore GREEN. D2/D4/D9/D14 reachability still needs audit before live testing.
 
-## Contradiction proof — GREEN
+## Supporting contradiction proof — GREEN
 
-Burnt × No-Discard proves conflicting axes cannot both collect positive structural reward indiscriminately. The D2 conflict-valuation defect was fixed in `9027577`.
+Burnt × No-Discard proves incompatible axes cannot both collect positive structural reward indiscriminately. This is supporting architecture evidence, not a fourth pilot.
 
-This is a supporting architecture test, not a fourth pilot Bond.
+# Catalogue detour — RETAIN BUT DEFER
 
-# Accidental catalogue detour — RETAIN BUT DEFER
+Earlier work accidentally expanded into the 46-Bond catalogue. Legitimate fixes already committed should remain unless they regress behavior, including hard-unlock, authority-boundary, overlap, and Batch-5 reachability fixes.
 
-After the pilot proofs, work drifted into catalogue-wide validation. The following commits uncovered legitimate structural defects and should remain unless they cause regressions:
-- catalogue audit documentation;
-- hard-unlock regressions;
-- suit-density and rare-hand authority regressions;
-- resource-Bond direct-scoring boundary;
-- broad-payoff overlap / Vampire-Midas defining-core correction;
-- Batch-5 rank-reachability corrections.
-
-However, **none of this work is a prerequisite for the three-Bond pilot live test.**
-
-From this point:
-- no further 46-Bond catalogue audit;
-- no catalogue-wide threshold reachability sweep;
-- no broad relationship/motif expansion;
+But from this point:
+- no further catalogue-wide audit;
+- no catalogue-wide threshold sweep;
+- no broad motif/relationship expansion;
 - no new Bond families;
-- no tuning the remaining catalogue for completeness.
+- no catalogue-completeness tuning.
 
-The existing 46-Bond catalogue may remain registered, but only the three pilot verticals are allowed to drive the current strategy reengineering effort.
+Full catalogue refurbishment remains blocked until the three-pilot system demonstrates production usefulness and live improvement.
 
-# ACTIVE PHASE — PILOT PRODUCTION INTEGRATION
+# ACTIVE PHASE — THREE-PILOT PRODUCTION INTEGRATION
 
-The current task is to determine whether the three pilot strategies actually travel through the **real production agent**, not merely isolated helper tests.
+Each pilot must clear four gates.
 
-For each pilot, trace:
+## P1 — natural production formation
 
-```text
-real public state
-→ evaluate_bond_composition()
-→ real StrategyCandidate / commitment
-→ strategy plan / goals / prescriptions
-→ canonical consumer(s)
-→ final production decision
-```
-
-## Gate P1 — production strategy formation
-
-For each pilot, construct a realistic public state using real Jokers/cards/state fields and verify:
-- correct Bond evidence exists;
-- intended StrategyCandidate exists naturally;
+Use real Jokers/cards/state fields and prove:
+- intended Bond evidence exists;
+- intended StrategyCandidate forms naturally;
 - commitment is appropriate;
-- no fake test-only `SimpleNamespace` candidate is required;
-- removing the relevant public mechanic removes or weakens the candidate.
+- removing the public mechanic removes/weakens the strategy;
+- no fake injected candidate is required.
 
-Pilot C is the highest-priority uncertainty because existing D1 preservation tests inject the candidate manually.
+Status:
+- Pilot C: GREEN.
+- Pilot B: formation GREEN from existing Erosion proof; final D2 reachability active.
+- Pilot A: deterministic D1 proof exists; full production-stack audit still required.
 
-## Gate P2 — production consumer reachability
+## P2 — canonical consumer reachability
 
-Audit whether each pilot's real strategy reaches every consumer needed for useful play.
-
-### Burnt
-Required production consumers:
+### Pilot A Burnt
+Required consumers:
 - D1 discard/execution;
 - D2 relevant Joker construction/replacement where applicable;
-- D3/D4/D9 target-hand development choices only if those owners already support semantic strategy goals.
+- D3/D4/D9 target-hand development only where those canonical owners already support semantic goals.
 
-### Deck thinning
-Required production consumers:
+### Pilot B deck thinning
+Required consumers:
 - D2 Joker acquisition/replacement;
-- D4/D9 deck-removal/deck-transform consumables/packs where already admitted;
-- D14 shop arbitration must not erase the child-policy strategy preference.
+- existing D4/D9 deck-removal/deck-transform owners where admitted;
+- D14 must not erase child-policy preference.
 
-### Held-card / Steel
-Required production consumers:
-- D1 preservation/execution;
+### Pilot C held-card / Steel
+Required consumers:
+- D1 preservation/execution — GREEN;
 - D2 compatible Joker construction/replacement;
-- D4/D9 relevant Steel/Seal/card-shaping choices where already admitted;
+- existing D4/D9 Steel/Seal/card-shaping owners where admitted;
 - D14 must preserve child-policy authority.
 
-Do not add a second final arbiter. Feed missing strategy evidence into the existing canonical owner.
+Do not create another final arbiter. Missing strategy information must feed the existing owner.
 
-## Gate P3 — controlled production counterfactuals
+## P3 — controlled production counterfactual
 
-For each pilot, use the production stack and real game objects:
+For each pilot:
 
 ```text
-same public state
-same legal candidates
-remove only relevant strategy mechanic
-→ ordinary decision
-
-restore relevant strategy mechanic
-→ strategically correct decision
+same legal candidates + same economics/survival context
+remove relevant strategy mechanic → ordinary final decision
+restore relevant strategy mechanic → strategically correct final decision
 ```
 
-The change must disappear when the strategy fact disappears.
+The action difference must disappear when the strategy fact disappears.
 
-## Gate P4 — telemetry / diagnosability
+## P4 — telemetry / diagnosability
 
-Before live testing, confirm telemetry can show:
-- relevant pilot Bonds;
-- candidate/pinned strategy and commitment;
-- missing goals;
-- strategy transition/preservation rationale in the consumer that acted.
-
-If a live loss occurs, we must be able to tell whether the failure was:
-`MECHANIC_MODEL`, `BOND_REPRESENTATION`, `ROLE_DESCRIPTOR`, `SEMANTIC_LINKING`, `STRATEGY_FORMATION`, `GOAL_PRESCRIPTION`, `PROJECTED_TRANSITION`, `CONSUMER_VALUATION`, or `FINAL_ARBITRATION`.
-
-# NEXT PHASE — CONTROLLED LIVE PILOT VALIDATION
-
-Only after P1–P4 are green:
-
-1. run a small controlled Red Deck / White Stake batch using the current production agent;
-2. do **not** introduce Tune G first;
-3. collect run traces for pilot-strategy opportunities and failures;
-4. measure wins, but also measure whether the agent correctly pursued/preserved/executed available pilot strategies;
-5. classify the first causal failure in each bad run;
-6. fix semantic/authority defects before changing numbers;
-7. repeat the same controlled batch.
-
-The immediate success criterion is not that every run contains one of the three pilots. It is:
-- when a pilot opportunity exists, the agent recognizes and uses it coherently;
-- strategy behavior does not cause avoidable deaths;
-- the system begins converting some runs into wins rather than remaining 0/10 because it cannot build or maintain an engine.
-
-# Catalogue expansion gate
-
-Only after the three-Bond pilot demonstrates real production usefulness and live improvement do we generalize the architecture to the remaining Bond catalogue.
-
-Then, and only then:
-- classify/merge/remove malformed Bonds;
-- calibrate rank reachability catalogue-wide;
-- expand semantic links/motifs where mechanics justify it;
-- perform broader action-quality tuning.
-
-# Failure ownership
-
-Always fix the first incorrect stage:
+Before live games, traces must expose enough to classify failures at the first wrong stage:
 - `MECHANIC_MODEL`
 - `BOND_REPRESENTATION`
 - `ROLE_DESCRIPTOR`
@@ -317,20 +243,36 @@ Always fix the first incorrect stage:
 - `CONSUMER_VALUATION`
 - `FINAL_ARBITRATION`
 
-Never patch a later consumer to compensate for a missing upstream fact.
+Telemetry should show relevant pilot Bonds, candidate/commitment, goals, and the transition/preservation rationale used by the acting consumer.
+
+# CONTROLLED LIVE PILOT VALIDATION — BLOCKED UNTIL P1–P4 GREEN
+
+Once production integration is green:
+1. run a small controlled Red Deck / White Stake batch using the current production agent;
+2. do not introduce Tune G first;
+3. collect traces for actual pilot opportunities;
+4. measure wins and strategy recognition/pursuit/preservation/execution;
+5. classify the first causal failure in each bad run;
+6. fix semantics/authority before numbers;
+7. repeat the same controlled batch.
+
+Success is not "every run contains a pilot." Success is:
+- when a pilot opportunity appears, the agent uses it coherently;
+- pilot behavior does not cause avoidable deaths;
+- the system begins converting some runs into wins instead of remaining 0/10 because it cannot construct or maintain an engine.
 
 # EXACT NEXT ACTION
 
-1. Treat the catalogue-wide Phase 6F work as deferred.
-2. Treat the three pilot proof regressions as architecture evidence, not final live proof.
-3. Start with **Pilot C held-card/Steel**, because its existing final-D1 test uses a manually injected candidate and therefore leaves the largest production-integration uncertainty.
-4. Build the shortest realistic state with actual held-card/Steel/Baron/Mime-style mechanics that naturally yields FORMING first and PINNED+ once coherent enough.
-5. Feed that real composition into `StrategyAwareLiveHandActionPolicy` and prove the final safe-equivalent D1 choice changes only at PINNED+.
-6. If natural formation fails, fix the first upstream semantic/formation layer; do not modify D1 preservation unless its existing consumer behavior is actually wrong.
-7. Then perform the equivalent production-stack audit for Deck Thinning and Burnt.
-8. Verify telemetry for all three.
-9. User runs focused regressions locally.
-10. Once P1–P4 are green, begin the controlled live pilot batch before any further catalogue or numerical tuning.
+1. Pilot C real held-card production D1 integration is GREEN; do not reopen it without new evidence.
+2. Continue **Pilot B Deck Thinning** at the first unproved production boundary.
+3. Prove real Erosion strategy evidence reaches final `JokerAcquisitionPolicy.decide()` authority for Trading Card, not merely `_bond_transition_bonus`.
+4. Use a controlled BUY/HOLD counterfactual with identical candidate/economics and only the existing Erosion strategy fact changed.
+5. If D2 does not change for the intended reason, fix the first owning layer; do not tune arbitrary thresholds to hide a missing semantic transition.
+6. Then audit Pilot B D4/D9 and D14 reachability only where those existing owners can act on thinning.
+7. Perform the equivalent production-stack audit for Burnt.
+8. Finish remaining Pilot C acquisition/shaping/D14 reachability.
+9. Verify telemetry for all three.
+10. Only then begin controlled live pilot games.
 
 # Phase order
 
@@ -339,10 +281,10 @@ Never patch a later consumer to compensate for a missing upstream fact.
 3. Phase 2 — simple shop survival — COMPLETE
 4. Phase 3 — coherent build evidence — COMPLETE
 5. Phase 4 — resource semantics — COMPLETE
-6. Phase 5 — initial live validation — COMPLETE; outcome exposed 0/10 competence failure
+6. Phase 5 — initial live validation — COMPLETE; exposed 0/10 competence failure
 7. Phase 6A — strategy authority contract — COMPLETE / GREEN
 8. Phase 6B — three-pilot deterministic architecture proofs — COMPLETE / GREEN
-9. Phase 6C — three-pilot **production integration** — **ACTIVE**
+9. Phase 6C — three-pilot production integration — **ACTIVE**
 10. Phase 6D — controlled live pilot validation — BLOCKED ON 6C
 11. Phase 6E — pilot-driven semantic fixes / repeated live validation — BLOCKED
 12. Phase 6F — full catalogue refurbishment/expansion — BLOCKED ON LIVE PILOT SUCCESS
