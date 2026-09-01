@@ -318,18 +318,58 @@ def _bond_transition_bonus(
         new_missing = len(tuple(getattr(motif, "missing_components", ()) or ()))
         motif_gain += float(state_gain) + 0.5 * max(0, old_missing - new_missing)
 
+    before_conflicts = {
+        frozenset(str(bond_id) for bond_id in pair)
+        for pair in tuple(getattr(before_comp, "conflicts", ()) or ())
+    }
+    after_conflicts = {
+        frozenset(str(bond_id) for bond_id in pair)
+        for pair in tuple(getattr(after_comp, "conflicts", ()) or ())
+    }
+    selected_before = set(str(bond_id) for bond_id in tuple(getattr(before_comp, "bond_ids", ()) or ()))
+    new_conflicts = after_conflicts.difference(before_conflicts)
+    conflicts_with_selected = tuple(
+        sorted(tuple(sorted(pair)))
+        for pair in new_conflicts
+        if selected_before.intersection(pair)
+    )
+
+    before_pinned = _strategy_candidate(before_comp, getattr(before_comp, "pinned_strategy_id", None))
+    after_pinned = _strategy_candidate(after_comp, getattr(after_comp, "pinned_strategy_id", None))
+    materially_stronger_pinned_pivot = False
+    if before_pinned is not None and after_pinned is not None:
+        before_strength = float(getattr(before_pinned, "strength", 0.0) or 0.0)
+        after_strength = float(getattr(after_pinned, "strength", 0.0) or 0.0)
+        materially_stronger_pinned_pivot = bool(
+            str(getattr(before_pinned, "strategy_id", ""))
+            != str(getattr(after_pinned, "strategy_id", ""))
+            and getattr(after_pinned, "commitment", StrategyCommitment.EXPLORATORY)
+            >= StrategyCommitment.PINNED
+            and after_strength - before_strength >= 2.0
+        )
+    conflicting_transition = bool(conflicts_with_selected) and not materially_stronger_pinned_pivot
+
     has_existing_engine = any(
         int(getattr(development, "rank", BondRank.LOCKED)) >= int(BondRank.R1)
         for development in before
     )
     aligned = bool(
-        established_rank_gain > 0.0
-        or synergy_gain > 0
-        or motif_gain > 0.0
-        or strategy_value > 0.0
+        not conflicting_transition
+        and (
+            established_rank_gain > 0.0
+            or synergy_gain > 0
+            or motif_gain > 0.0
+            or strategy_value > 0.0
+        )
     )
 
-    if aligned:
+    if conflicting_transition:
+        conflict_weight = max(
+            1.0,
+            established_rank_gain + new_rank_gain + min(1.0, progress_gain),
+        )
+        adjustment = -min(1.50, 0.75 * conflict_weight)
+    elif aligned:
         adjustment = min(
             4.0,
             1.75 * (established_rank_gain + new_rank_gain)
@@ -353,6 +393,7 @@ def _bond_transition_bonus(
         f"progress gain={progress_gain:.3f}; synergy gain={synergy_gain}; motif gain={motif_gain:.3f}; "
         f"coherence delta={coherence_delta:.3f}; strategy value={strategy_value:.3f}",
         *(("Bond rank transitions=" + ", ".join(improved),) if improved else ()),
+        *(("new conflicts with selected composition=" + ", ".join("/".join(pair) for pair in conflicts_with_selected),) if conflicts_with_selected else ()),
         *strategy_notes,
     )
 
