@@ -136,12 +136,25 @@ def test_pinned_held_card_preservation_changes_final_d1_discard(monkeypatch):
     )
 
     pinned_policy = _policy(monkeypatch, pinned=True)
+    king_fit, king_notes = pinned_policy._pinned_card_preservation(
+        state,
+        discard_king.action,
+    )
+    seven_fit, seven_notes = pinned_policy._pinned_card_preservation(
+        state,
+        discard_seven.action,
+    )
+    assert king_fit < seven_fit
+    assert any("preserves held K" in note for note in king_notes)
+    assert seven_fit == 0.0
+    assert any("sacrifices no held-engine card" in note for note in seven_notes)
+
     pinned_decision = pinned_policy.decide(state, plans)
     assert _action_signature(pinned_decision.action) == _action_signature(
         discard_seven.action
     )
     assert any(
-        "preserves held K" in note
+        "sacrifices no held-engine card" in note
         for note in pinned_decision.rationale
     )
 
