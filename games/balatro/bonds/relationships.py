@@ -10,11 +10,9 @@ class BondRelationship(StrEnum):
 
 
 RELATIONSHIPS: dict[frozenset[str], BondRelationship] = {
-    frozenset(("hand_leveling", "no_discard")): BondRelationship.CONFLICT,
     frozenset(("discard", "no_discard")): BondRelationship.CONFLICT,
     frozenset(("face_cards", "no_face_cards")): BondRelationship.CONFLICT,
     frozenset(("enhancement_consumption", "enhanced_cards")): BondRelationship.CONFLICT,
-    frozenset(("hand_leveling", "discard")): BondRelationship.SYNERGY,
     frozenset(("held_cards", "steel")): BondRelationship.SYNERGY,
     frozenset(("held_retrigger", "steel")): BondRelationship.SYNERGY,
     frozenset(("card_destruction", "deck_thinning")): BondRelationship.SYNERGY,
