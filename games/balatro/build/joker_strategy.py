@@ -98,7 +98,7 @@ class JokerBuildValueEvaluator:
         (PokerHand.FLUSH_HOUSE, (BalatroCard("K", "Hearts"), BalatroCard("K", "Hearts"), BalatroCard("K", "Hearts"), BalatroCard("8", "Hearts"), BalatroCard("8", "Hearts"))),
         (PokerHand.FLUSH_FIVE, (BalatroCard("A", "Hearts"), BalatroCard("A", "Hearts"), BalatroCard("A", "Hearts"), BalatroCard("A", "Hearts"), BalatroCard("A", "Hearts"))),
     )
-    _OBSERVED_HAND_PRIOR_WEIGHT = 0.10
+    _OBSERVED_HAND_PRIOR_WEIGHT = 0.25
 
     def __init__(self, *, scorer: BalatroScorer | None = None, contextual: ContextualJokerSynergyEvaluator | None = None, weights: JokerBuildValueWeights | None = None) -> None:
         self.scorer = scorer or BalatroScorer()
