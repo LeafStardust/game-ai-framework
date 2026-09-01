@@ -251,34 +251,6 @@ def _augment_single_core_candidates(
     )
 
 
-def _forming_strategy_plan(
-    candidate: StrategyCandidate | None,
-    developments: Iterable[BondDevelopment],
-    motifs: Iterable[MotifEvaluation],
-) -> StrategyPlan | None:
-    if (
-        candidate is None
-        or candidate.commitment != StrategyCommitment.FORMING
-        or not candidate.motif_ids
-    ):
-        return None
-    provisional = replace(candidate, commitment=StrategyCommitment.PINNED)
-    plan = build_strategy_plan(provisional, developments, motifs)
-    if plan is None:
-        return None
-    scouting = tuple(
-        dict.fromkeys(
-            [f"seek_feature:{feature}" for feature in tuple(plan.missing_features or ())]
-            + [f"seek_component:{component}" for component in tuple(plan.missing_components or ())]
-        )
-    )
-    return replace(
-        plan,
-        commitment=StrategyCommitment.FORMING,
-        prescriptions=scouting,
-    )
-
-
 def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Composition:
     calibration = current_bond_calibration()
     all_developments = tuple(developments)
@@ -341,19 +313,17 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
             _observed_hand_strategy_candidates(state, all_developments),
         )
     pinned = pinned_strategy(candidates)
-    if pinned is not None:
-        plan = build_strategy_plan(pinned, all_developments, motifs)
-    else:
-        forming = next(
+    planned = pinned
+    if planned is None:
+        planned = next(
             (
                 candidate
                 for candidate in candidates
                 if candidate.commitment == StrategyCommitment.FORMING
-                and bool(candidate.motif_ids)
             ),
             None,
         )
-        plan = _forming_strategy_plan(forming, all_developments, motifs)
+    plan = build_strategy_plan(planned, all_developments, motifs)
 
     base = sum(_bond_priority(dev) for dev in selected)
     synergy_bonus = calibration.synergy_bonus * len(synergies)
