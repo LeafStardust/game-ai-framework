@@ -863,6 +863,7 @@ class LiveHandActionDecisionEngine:
         schedule = self._search_schedule(state)
         attempts: list[HandActionSearchAttempt] = []
         summaries: list[AdaptiveRecommendationSummary] = []
+        last_completed_plans: list[LiveBlindPlan] | None = None
 
         for config in schedule:
             planner = self._adaptive_planner(config)
@@ -874,6 +875,7 @@ class LiveHandActionDecisionEngine:
                     break
                 continue
 
+            last_completed_plans = plans
             best = plans[0]
             attempts.append(
                 self._attempt(
@@ -977,6 +979,13 @@ class LiveHandActionDecisionEngine:
         attempts_tuple = tuple(attempts)
 
         if self._budget_exhausted():
+            if last_completed_plans is not None:
+                return self.policy.decide(
+                    state,
+                    last_completed_plans,
+                    search_attempts=attempts_tuple,
+                    setup_discard_consensus=consensus,
+                )
             return self._structural_timeout_fallback(
                 state,
                 search_attempts=attempts_tuple,
@@ -985,12 +994,13 @@ class LiveHandActionDecisionEngine:
         try:
             fallback_plans = self._rank_immediate_plans(state)
         except PlannerSearchBudgetExceeded:
-            return self._structural_timeout_fallback(
-                state,
-                search_attempts=attempts_tuple,
-            )
-
-        if self._budget_exhausted():
+            if last_completed_plans is not None:
+                return self.policy.decide(
+                    state,
+                    last_completed_plans,
+                    search_attempts=attempts_tuple,
+                    setup_discard_consensus=consensus,
+                )
             return self._structural_timeout_fallback(
                 state,
                 search_attempts=attempts_tuple,
