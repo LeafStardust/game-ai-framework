@@ -256,6 +256,11 @@ def _bond_transition_bonus(
         return 0.0, ()
 
     before_by_id = {d.bond_id: d for d in before}
+    established_before = {
+        development.bond_id
+        for development in before
+        if int(getattr(development, "rank", BondRank.LOCKED)) >= int(BondRank.R1)
+    }
     established_rank_gain = 0.0
     new_rank_gain = 0.0
     progress_gain = 0.0
@@ -302,7 +307,17 @@ def _bond_transition_bonus(
 
     before_synergies = set(tuple(value) for value in getattr(before_comp, "synergies", ()) or ())
     after_synergies = set(tuple(value) for value in getattr(after_comp, "synergies", ()) or ())
-    synergy_gain = len(after_synergies.difference(before_synergies))
+    new_synergies = after_synergies.difference(before_synergies)
+    # A single newly acquired component may contribute to multiple Bond labels.
+    # Do not reward those labels for being "synergistic" with each other unless the
+    # purchase actually connects to an axis that existed before the transaction.
+    # This keeps structural reward for genuine reinforcement (Erosion -> Trading
+    # Card) while preventing Trading Card alone from manufacturing its own synergy.
+    reinforcing_synergies = {
+        pair for pair in new_synergies if established_before.intersection(pair)
+    }
+    synergy_gain = len(reinforcing_synergies)
+    suppressed_self_synergies = len(new_synergies) - synergy_gain
 
     before_motifs = {
         str(motif.motif_id): motif
@@ -349,10 +364,7 @@ def _bond_transition_bonus(
         )
     conflicting_transition = bool(conflicts_with_selected) and not materially_stronger_pinned_pivot
 
-    has_existing_engine = any(
-        int(getattr(development, "rank", BondRank.LOCKED)) >= int(BondRank.R1)
-        for development in before
-    )
+    has_existing_engine = bool(established_before)
     aligned = bool(
         not conflicting_transition
         and (
@@ -392,6 +404,7 @@ def _bond_transition_bonus(
         f"established rank gain={established_rank_gain:.1f}; new-axis rank gain={new_rank_gain:.1f}; "
         f"progress gain={progress_gain:.3f}; synergy gain={synergy_gain}; motif gain={motif_gain:.3f}; "
         f"coherence delta={coherence_delta:.3f}; strategy value={strategy_value:.3f}",
+        *((f"suppressed same-purchase synergy count={suppressed_self_synergies}",) if suppressed_self_synergies else ()),
         *(("Bond rank transitions=" + ", ".join(improved),) if improved else ()),
         *(("new conflicts with selected composition=" + ", ".join("/".join(pair) for pair in conflicts_with_selected),) if conflicts_with_selected else ()),
         *strategy_notes,
