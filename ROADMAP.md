@@ -1,6 +1,6 @@
 # ROADMAP — SINGLE SOURCE OF TRUTH
 
-This is the only authoritative roadmap/handoff for the Balatro Red/White competence branch.
+This is the authoritative roadmap/handoff for the Balatro Red/White competence branch.
 
 ## Repository contract
 
@@ -12,13 +12,14 @@ This is the only authoritative roadmap/handoff for the Balatro Red/White compete
 - Preserve exact Balatro mechanics, public-state legality, boss rules, and hidden-information boundaries.
 - Never use hidden RNG state, seeds, future pool order/identities, or inaccessible information.
 - Prefer canonical ownership over late wrappers/rescues.
-- Numerical tuning is Phase 6 work and must not mutate the validated semantic ownership model.
+- Bond/composition and Build Health are evidence/planning layers, never immediate score/action authorities.
+- Numerical tuning must not compensate for missing or malformed strategy semantics.
 
 ## Objective
 
 **Red Deck / White Stake, normal mode: maximize probability of winning the current run.**
 
-Canonical authority:
+Canonical authority remains:
 
 ```text
 Authoritative public state
@@ -47,439 +48,276 @@ Canonical owners:
 - D4 consumable acquisition: `ConsumableAcquisitionPolicy`
 - D3 voucher acquisition: `VoucherAcquisitionPolicy`
 
-Bond/composition and Build Health are evidence/planning layers, never immediate score/action authorities.
-
 # Current state — 2026-09-01
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 action-quality work is ACTIVE. The original Phase-6 baseline and Tunes A–F all produced 0/10 wins. Tune A remains retained provisionally; Tunes B–F are rejected/reverted. The Bond-utilization audit found and fixed one genuine cross-owner defect in D9 Buffoon handling (`c1f8422`), and the full deterministic Balatro suite was user-confirmed GREEN after the related stale-test cleanup. A controlled 10-attempt live comparison of that structural correction (`balatro-20260901T094854Z-cc1ed501`) still produced 0/10 wins. The correction remains semantically valid, but it did not change the primary live metric. Before diagnosing higher-level Bond strategy design or tracing consumer wiring, Phase 6 now performs a MANUAL HARDCODED BOND CATALOGUE AUDIT with an explicit BOND-STRUCTURE GATE: first establish what a Bond structurally contains and what each field means; then review each Bond's literal handwritten development, mechanical annotations, rank ladder, realization semantics, target, and local policy metadata against actual Balatro mechanics. `held_retrigger` is the first concrete structural walkthrough. Only after a Bond's own structure is confirmed may its relationships, motifs, strategy consumption, or D2/D4/D9/D14 wiring be audited. No Tune G or new live batch during this audit. Bond remains evidence/planning only and must not become a second action authority.**
+Phase 5 live semantic validation is complete at **74/74 green**. Phase 6 live/tuning attempts have repeatedly produced **0/10 wins**, including the original baseline and Tunes A–F. Tune A remains provisionally retained; Tunes B–F were rejected/reverted. The D9 Buffoon ownership defect was corrected in `c1f8422` and retained because it is semantically correct, but its controlled live comparison also produced 0/10 wins.
 
-Validated checkpoints:
+The current investigation therefore moves upstream into the **Bond strategy representation itself**.
+
+The previous `held_retrigger` checkpoint is superseded. It made several Bond-specific structural commitments before the project had established whether the existing Bond abstractions were the right abstractions at all. Do not preserve the current catalogue, current Bond count, current pairwise boundaries, or current rank semantics merely for compatibility.
+
+## Validated checkpoints that remain closed
 
 - Phase 0 authority consolidation: **COMPLETE / 24/24 semantic green**
-- Full deterministic Balatro suite: **GREEN after D9 structural correction and stale-contract cleanup**
 - Phase 1 D1 survival expansion: **COMPLETE / 33/33 green**
 - Phase 2 simple shop survival: **COMPLETE / 42/42 green**
 - Phase 3 coherent build evidence: **COMPLETE / 52/52 green**, `BUILD_COHERENCE` 12/12
 - Phase 4 resource semantics: **COMPLETE / 70/70**, `RESOURCE_COHERENCE` 18/18
 - Phase 5 live D1/D2 semantics: **COMPLETE / 74/74**, `D1_SURVIVAL` 25/25, `SHOP_SURVIVAL` 19/19
-- Phase 6 Tune A first-Joker cash runway: **SEMANTIC GREEN / 74/74; RETAINED / 0 OF 10 WINS after corrected terminal bookkeeping**
-- Phase 6 Tune B early paid-reroll cash floor: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Tune C ordinary Joker replacement margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Tune D booster acquisition margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Tune E contextual/B3 Joker build weight: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Tune F observed-hand scoring prior: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 D9 Bond-utilization structural correction: **SEMANTIC GREEN / LIVE 0 OF 10 WINS / RETAINED AS CORRECT OWNERSHIP FIX**
-- Phase 6 manual hardcoded Bond catalogue audit: **ACTIVE / BOND STRUCTURE FIRST / CATALOGUE CONSTRUCTION SECOND / WIRING DEFERRED**
-- Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
-- Phase 6 sticky-win GAME_OVER restart semantics: **LOCAL REGRESSION GREEN** (`28cec27b` + `6e1a2696`)
+- Full deterministic Balatro suite: **GREEN** after the D9 structural correction and stale-contract cleanup
+- Phase 6 Tune A first-Joker cash runway: **RETAINED PROVISIONALLY / 0 OF 10 WINS**
+- Phase 6 Tunes B–F: **REJECTED / REVERTED**
+- Phase 6 D9 Bond-utilization correction: **RETAINED AS CORRECT OWNERSHIP FIX / LIVE 0 OF 10 WINS**
+- Sticky public `won` GAME_OVER restart semantics: **VALIDATED** (`28cec27b`, `6e1a2696`)
+- Supervisor telemetry resilience: **LOCAL REGRESSION GREEN** (`d22f1b0a`, `cac8fd95`)
 
-`docs/balatro/BALATRO_DECISION_AUTHORITY_MAP.md` was refreshed in `d18332cc`.
+Do not stage Tune G or another live batch while Bond redesign is active.
 
-# Phase 1 — CLOSED
+# Phase 6 — BOND ARCHITECTURE REDESIGN — ACTIVE
 
-Intentionally capped at five batches. Do not add another Phase-1 batch absent fresh Phase-5 evidence.
+## Problem statement
 
-# Phase 2 — CLOSED
+The working hypothesis is that the existing Bond system may not represent Balatro strategy well enough for the agent to construct, preserve, and execute consistently winning engines. This is a hypothesis, not a conclusion that every live failure originates in Bond.
 
-Intentionally capped at four batches. Do not add another Phase-2 batch absent fresh Phase-5 evidence.
+The catalogue is believed to contain approximately **46 Bonds** at this checkpoint. **The number 46 is not a design requirement.** After review, Bonds may be deleted, merged, split, or replaced, and new Bonds may be added if actual Balatro mechanics require them.
 
-# Phase 3 — CLOSED
+The redesign objective is not to maximize abstraction or minimize Joker-specific code. It is to create a strategy representation that is mechanically correct, compositional, decision-relevant, and usable by downstream planning without becoming a second score/action authority.
 
-Validated coherent build-evidence semantics:
+## Core design rule
 
-1. scoring engine vs support/economy role separation;
-2. scaling potential vs realized scoring power;
-3. contextual pair interaction vs standalone intrinsic value;
-4. Bond/composition evidence vs literal score arithmetic;
-5. replacement/pivot authority downstream of legal and economically positive D2 options.
+A Bond is not merely “two things synergize.”
 
-Final result: **52/52 GREEN**, `BUILD_COHERENCE` 12/12.
+A candidate Bond must represent a **strategically meaningful causal interaction or engine state that changes how the agent should build, preserve, acquire, pivot, or execute a run**.
 
-# Phase 4 — COMPLETE
+If an interaction changes only exact score arithmetic and has no independent strategic consequence, it belongs in the canonical score/effect model rather than receiving a separate Bond merely to duplicate scoring.
 
-Validated six resource-heavy semantic batches covering D8/D9 boundaries, pack legality, consumable slot/mode authority, voucher downside/reserve, bounded destructive/generative outcomes, and D14 cross-family normalization.
+## Required semantic layers
 
-Final result: **70/70**, `RESOURCE_COHERENCE` 18/18.
+The redesign must distinguish at least three concepts.
 
-Important commits:
+### 1. Literal mechanical primitives
 
-- `84bd534c` — cross-family D14 resource semantics
-- `eeb7dc52` — benchmark wiring
-- `e79c941c` — synthetic Tarot fixture correction
-- `c1b0888d` — prevent BUY_AND_USE structural build gain leaking into parent utility
+Exact Balatro rules such as:
 
-# Phase 5 — LIVE VALIDATION — COMPLETE
+- trigger phase;
+- activation/reset/consumption conditions;
+- played-card and held-card effects;
+- retrigger semantics;
+- enhancement/seal/edition effects;
+- Joker copying and Joker-order semantics;
+- persistent scaler state;
+- deck/hand requirements;
+- resource production/consumption.
 
-Primary gate source: `docs/balatro/BALATRO_LIVE_VALIDATION_GATE.md`.
+These are factual game mechanics, not fuzzy Bond strengths.
 
-Historical runtime blockers and D1/D2 semantic findings remain closed at **74/74 semantic green**. Reopen Phase 5 only for fresh reproducible mechanics, legality, ownership, projection, hidden-information, or runtime evidence.
+### 2. Bonds
 
-Key corrections:
+Bonds represent strategically useful relationships/engine structure derived from mechanics. They must be causal and decision-relevant rather than a bag of pairwise bonuses.
 
-- `820e096d` — under-pace made-hand discard recovery
-- `d7ec97f3` — timeout retains canonical final arbiter
-- `0f1fd70f` — early first-Joker bootstrap requires literal scoring foothold
-- `cf17eac1` — final-hand D1 can search the remaining discard chain before the sole Play
+Useful relationship roles may include, where mechanically justified:
 
-# Phase 6 — NUMERICAL / ACTION-QUALITY TUNING — ACTIVE
+- `PRODUCER`
+- `REQUIREMENT`
+- `PAYOFF`
+- `AMPLIFIER`
+- `RETRIGGER`
+- `COPY`
+- `SCALER`
+- `ENABLER`
+- `CONSUMER`
+- `CONVERTER`
+- `PROTECTOR`
+- `CONFLICT`
 
-Goal: improve actual Red/White win rate without changing the validated semantic ownership model.
+The final ontology is not locked by this list. Add/remove roles if the catalogue audit shows a better representation.
 
-## Phase-6 baseline — 10 unchanged attempts
+### 3. Realized strategy state
 
-Session: `balatro-20260831T112338Z-d58df919`.
+The model must separately represent what is structurally being built and how functional that engine is in the current public state.
 
-Result: **0/10 wins**. Death antes: **4, 3, 5, 3, 4, 1, 1, 1, 6, 7**.
+Examples of realization evidence may include:
 
-Important evidence:
+- required Joker(s) present;
+- required deck density/quality present;
+- valid Joker ordering/copy target;
+- required hand/play constraint executable;
+- enough payoff pieces to matter;
+- conflicts currently blocking the engine.
 
-- three attempts died in Ante 1;
-- two attempts reached Ante 6 or later;
-- attempt 9 reached `38005 / 40000` at Ante 6;
-- repeated medium/late losses retained large cash balances while still failing scoring requirements;
-- representative evidence includes a four-Joker Ante-4 loss with about **$56**, plus prior five-Joker losses with roughly **$70–$82**.
+Do not collapse structural development, current realization, and exact projected score into one scalar.
 
-## Tune A — first-Joker cash runway — RETAINED PROVISIONALLY
+## Directionality and N-way composition
 
-Commit: `1621b9ce`.
+Do not assume Bonds are symmetric pairwise edges.
 
-Change: in Ante 1–2, a first-Joker purchase must leave at least **$2**, for both ordinary D2 BUY and the first-scoring-foothold bootstrap.
+Many Balatro interactions are directional:
 
-Semantic result: **74/74 GREEN**.
-Corrected live result: **0/10 wins**. The previously reported Crimson Heart win was actually a GAME_OVER loss at `68218 / 100000` with a sticky public `won=true` bit.
+```text
+producer → requirement
+amplifier → payoff
+retrigger → trigger source
+copy → resolved target
+consumer → resource
+conflict → requirement
+```
 
-Tune A remains provisionally retained because it removed the specifically observed `$0/$1` first-Joker bankroll commitment while staying semantically clean. It has not demonstrated a win-rate improvement.
+Many important engines are also N-way. The value of `A+B+C` may not equal the sum of all pairwise relationships. Retriggers, held-card effects, copying, Joker ordering, enhancements, seals, and multiplicative effects are primary examples.
 
-## Tune B — early paid-reroll runway — REJECTED / REVERTED
+Therefore:
 
-Experiment: `32457e2e` changed pre-Ante-6 D11 cash-after-reroll floor **$10 → $8**.
-Live result: **0/10**.
-Revert: `1ed61d29` restored `$10`; revert locally validated **74/74 GREEN**.
+- do not encode a complex engine as a pile of static pairwise synergy points if the actual result depends on trigger structure;
+- do not create exhaustive Joker-pair/triple tables when exact component mechanics compose correctly;
+- explicit exceptional interactions are allowed when generic composition cannot faithfully represent the known game rule.
 
-Do not reopen the `$8` D11 experiment absent new controlled evidence.
+## Negative interactions are first-class
 
-## Tune C — ordinary Joker replacement margin — REJECTED / REVERTED
+Distinguish **unrelated** from **actively conflicting**.
 
-Experiment: `47a212d0` changed ordinary D2 replacement advantage **0.75 → 0.50** while aligned replacements stayed `0.25`.
-Semantic result: **74/74 GREEN**.
-Live result: **0/10**.
-Revert: `6261165b` restored **0.75**; revert locally validated **74/74 GREEN**.
+The Bond/strategy representation must be able to express conflicts such as:
 
-Do not reopen the `0.50` replacement experiment absent new controlled evidence.
+- competing discard requirements;
+- played-versus-held card requirements;
+- incompatible hand-shape goals;
+- deck destruction of required cards;
+- conflicting deck-size incentives;
+- resource competition;
+- incompatible Joker ordering/copy requirements;
+- mutually harmful scaling conditions.
 
-## Tune D — D8 booster acquisition margin — REJECTED / REVERTED
+A Frankenstein board of individually positive pieces must not appear coherent merely because negative dependencies are absent from the model.
 
-Canonical owner: D8 `BuildAwareShopBoosterPolicy`, configured by the Red/White playbook.
+# Bond specification contract
 
-Experiment commit: `65cdaa23`.
-Revert commit: `6bd95bcc`.
+Before implementation changes are accepted, every retained/replacement Bond should have an explicit specification covering:
 
-Experiment:
+1. **Name / identity** — what strategic concept does it represent?
+2. **Literal mechanic** — plain Balatro description.
+3. **Purpose** — why does the agent need this Bond rather than only exact scoring?
+4. **Requirements** — what must exist for it to function?
+5. **Producers** — what creates those requirements?
+6. **Payoffs** — what benefits from them?
+7. **Amplifiers/retriggers/copies** — how the engine compounds.
+8. **Trigger phase** — played, scored, held, discard, blind start, round end, shop, etc.
+9. **Directionality** — which component acts on which.
+10. **Multiplicity** — how repeated triggers/effects compose.
+11. **Copy semantics** — Blueprint/Brainstorm or equivalent behavior where relevant.
+12. **Negative interactions/conflicts**.
+13. **Development semantics** — what structural progress means.
+14. **Realization semantics** — what makes the engine currently functional.
+15. **Decision consequences** — what the agent should do differently because this Bond exists.
+16. **Exact-score ownership** — which canonical evaluator owns numerical scoring effects so Bond does not double count them.
+17. **Regression cases** — representative Balatro states that must behave correctly.
+18. **Verdict** — `KEEP`, `SPLIT`, `MERGE`, `REPLACE`, or `DELETE`.
 
-- `booster_acquisition.minimum_buy_advantage`: **0.35 → 0.20**;
-- `minimum_pack_hit_probability` remained **0.45**;
-- family-specific public useful-offer priors remained unchanged;
-- money, interest, and reserve costs remained unchanged;
-- D9 opened-pack visible choice semantics remained unchanged;
-- no unopened pack identities were predicted;
-- D2, D11, D14, and Tune A remained unchanged.
+If the **decision consequences** cannot be stated meaningfully, question whether the candidate belongs in Bond at all.
 
-Semantic result before live sampling: **74/74 GREEN**.
+# Redesign procedure
 
-### Tune-D live comparison
+## Stage A — inventory the existing catalogue — NEXT
 
-Session: `balatro-20260831T162752Z-a61dfb38`.
+First locate the authoritative catalogue and enumerate every current Bond.
 
-Result: **0/10 wins**. All ten attempts ended with authoritative `LOSS` / `game over (lost)`, and the supervisor exited normally at the requested ten-attempt limit.
+For each existing Bond, record only enough information to classify it before redesign:
 
-Action counts by attempt were: **86, 95, 21, 113, 68, 116, 98, 148, 97, 70**. The sample therefore included both short and deep runs rather than failing at one uniform stage.
+- Bond name;
+- evaluator/source file;
+- current target;
+- current contributors/state-derived evidence;
+- current rank ladder;
+- current realization hook;
+- obvious downstream references if needed only to understand its intended purpose.
 
-The uploaded JSONL attempt files were explicitly supplied, but the active Python/container sandbox did not expose the provided mounted paths when read directly, and file search indexed only the session summary rather than the JSONL trace content. Therefore no exact booster-purchase count, pack-choice sequence, or per-attempt cash/Joker claim is made from this batch.
+Do not assume the current name or boundary is correct.
 
-Interpretation:
+Deliverable: a complete numbered catalogue and count. Verify whether the assumed count is actually 46 on the active branch.
 
-- Tune D did not improve the primary metric versus baseline or Tunes A/B/C: all remain **0/10**;
-- without retrievable trace evidence showing a compensating improvement, the more permissive D8 margin does not justify retention;
-- `6bd95bcc` restores `minimum_buy_advantage=0.35` while leaving Tune A intact;
-- user locally revalidated the reverted configuration **74/74 GREEN**;
-- do not stack Tune E on top of the rejected D8 experiment.
+## Stage B — classify before redesigning
 
-## Tune E — rebalance realized scoring vs contextual Joker value — REJECTED / REVERTED
+Assign each current Bond a preliminary type such as:
 
-Canonical owner: `JokerBuildValueEvaluator` / `JokerBuildValueWeights`, upstream of D2 admission and D14 shared-resource normalization.
+- literal mechanic mistakenly promoted to Bond;
+- infrastructure/requirement Bond;
+- payoff Bond;
+- amplifier/retrigger/copy Bond;
+- deck-shaping Bond;
+- economy/resource Bond;
+- hand-shape/hand-level Bond;
+- composite engine Bond;
+- generic scoring Bond;
+- unclear/mixed abstraction.
 
-Experiment commits: `e17518fc` + constructor-repair `ba93321f`.
-Effective branch-attached revert commit: `eecd0b40`, restoring pre-Tune-E `contextual_gain=1.0`. The earlier `d5c3f8ce` was an intermediate unattached revert object and is not the branch checkpoint.
+Also flag obvious overlap, duplication, over-breadth, or missing concepts.
 
-Experiment:
+This classification is provisional and exists to determine redesign order, not to protect the current structure.
 
-- `JokerBuildValueWeights.contextual_gain`: **1.0 → 0.75**;
-- literal whole-build `direct_scoring_gain` weight remained **6.0**;
-- literal direct-scoring cap remained **12.0**;
-- D2 purchase/replacement thresholds remained unchanged;
-- Tune A's Ante-1/2 first-Joker `$2` runway remained unchanged;
-- D14 money, interest, reserve, slot, and cross-family normalization remained unchanged;
-- no boss/Joker-specific rule and no hidden-state inference was introduced.
+## Stage C — derive dependency order
 
-Semantic result before live sampling: **74/74 GREEN**.
+Do not audit alphabetically.
 
-### Tune-E live comparison
+Redesign foundational semantics before dependent composite engines. Expected broad order:
 
-Session: `balatro-20260831T183301Z-3d72a54d`.
+1. scoring/play/held trigger primitives represented in Bond;
+2. retrigger semantics;
+3. copy/order semantics;
+4. hand-type/hand-shape requirements;
+5. deck composition and deck shaping;
+6. discard mechanics;
+7. economy/resource engines;
+8. scalers/amplifiers;
+9. consumable/deck-development support;
+10. composite engines and remaining strategy concepts.
 
-Result: **0/10 wins**. Death antes: **1, 4, 4, 3, 4, 5, 2, 2, 4, 3**. Furthest run reached only **Ante 5**; mean death ante was **3.2**.
+Adjust this ordering after inventory if the real catalogue suggests a cleaner dependency graph.
 
-Death score ratios were approximately **82.3%, 36.9%, 54.4%, 69.6%, 92.0%, 69.8%, 48.6%, 84.3%, 96.3%, 92.8%**.
+## Stage D — redesign one Bond at a time
 
-Five attempts died with full five-Joker boards while retaining substantial cash:
+For each Bond in dependency order:
 
-- attempt 2: **$34**, `Misprint / Devious Joker / Crazy Joker / Abstract Joker / Square Joker`, `7376 / 20000` at Ante 4 Wall;
-- attempt 3: **$37**, `Juggler / Abstract Joker / Swashbuckler / Lusty Joker / Card Sharp`, `5437 / 10000` at Ante 4 Hook;
-- attempt 5: **$36**, `Crafty Joker / Mad Joker / Wrathful Joker / Blue Joker / Smiley Face`, `9202 / 10000` at Ante 4 Water;
-- attempt 6: **$66**, `Jolly Joker / Sly Joker / Scholar / Blue Joker / Blackboard`, `11520 / 16500` at Ante 5 Big Blind;
-- attempt 9: **$43**, `Odd Todd / Gluttonous Joker / Ice Cream / Baron / Driver's License`, `9632 / 10000` at Ante 4 Club.
+1. state the actual Balatro mechanic independently of current code;
+2. determine whether a Bond is needed at all;
+3. choose `KEEP / SPLIT / MERGE / REPLACE / DELETE`;
+4. write the full Bond specification contract above;
+5. compare the specification against current implementation;
+6. identify required data-model changes before local patches;
+7. implement only after the abstraction is accepted;
+8. add structural/mechanical regression coverage;
+9. checkpoint the roadmap before advancing.
 
-The uploaded JSONL traces were directly readable in this Tune-E batch. Purchase evidence confirms active Joker acquisition rather than a generic refusal-to-spend failure: examples include full-board sequences in attempts 2, 5, 6, and 9, plus replacement/sale activity in attempts 2 and 9. Attempt 3's supplied summary independently records 14 purchases, 2 sales, five Jokers, and `$37` at death.
+Do not preserve an abstraction merely because other code already consumes it. Consumers will be migrated after the model is correct.
 
-Interpretation:
+## Stage E — system-level audit after catalogue redesign
 
-- Tune E did not improve win rate: **0/10**, same as baseline and Tunes A–E;
-- it also did not improve depth: furthest **Ante 5**, worse than the original baseline's Ante 7;
-- the intended tradeoff did not solve the known large-cash/underpowered-board failure mode;
-- several full boards were composed of individually scoring but weakly unified conditional effects, consistent with contextual/B3 downweighting reducing build coherence without enough compensating realized score;
-- Tune E is therefore rejected and reverted rather than stacked into Tune F.
+Only after all Bonds have been reviewed:
 
-Reverted configuration locally revalidated: **74/74 GREEN**.
+1. global relationship/dependency graph;
+2. role ontology;
+3. motif/composite-engine formation;
+4. realization and strategy formation;
+5. StrategyPlan / composer;
+6. Build Health boundary;
+7. preservation/pivot behavior;
+8. D1/D2/D4/D9/D14 consumption;
+9. controlled live validation;
+10. numerical tuning only after semantic defects are closed.
 
-Do not reopen `contextual_gain=0.75` absent new controlled evidence.
+# Held-retrigger status
 
-## Tune F — observed-hand scoring prior — REJECTED / REVERTED
+`held_retrigger` is no longer automatically the next implementation task.
 
-Canonical owner: `JokerBuildValueEvaluator`, specifically the public hand-history weighting inside whole-build literal Joker scoring.
+It remains a useful **stress-test example** because Steel, Red Seal, held effects, Mime, Baron, Blueprint/Brainstorm, Joker ordering, retriggers, and multiplicative scoring expose weaknesses in pairwise/static Bond models. However, do not finalize its current boundary or contributors until inventory/classification determines where held-card primitives, retriggers, King-specific payoff, copy semantics, and composite engine formation belong.
 
-Experiment commit: `ab118a33`.
-Revert commit: `bd45379d`.
-
-Experiment:
-
-- `_OBSERVED_HAND_PRIOR_WEIGHT`: **0.25 → 0.10**.
-
-Semantic result before live sampling: **74/74 GREEN**.
-
-### Tune-F live comparison
-
-Session: `balatro-20260901T055941Z-f2447e67`.
-
-Result: **0/10 wins**. All ten attempts ended with authoritative `LOSS`, and the supervisor stopped normally at the ten-attempt limit.
-
-Representative deep-run evidence:
-
-- attempt 6 reached **Ante 7 The Needle** at `18880 / 35000`;
-- it had a full five-Joker board: `Blue Joker / Raised Fist / Swashbuckler / Green Joker (+34 Mult) / Ramen (x2)`;
-- it retained **$103** at death;
-- public hand history was already concentrated toward Two Pair/Pair (`Two Pair=15`, `Pair=12`) while advanced hand classes remained largely unplayed, so Tune F's lower off-plan prior was materially active.
-
-Interpretation:
-
-- Tune F did not improve the primary metric: **0/10**, like baseline and Tunes A–E;
-- furthest depth was **Ante 7**, only matching the original baseline rather than exceeding it;
-- stronger hand-history concentration alone did not solve the cash-rich/underpowered-build pattern;
-- `bd45379d` restores `_OBSERVED_HAND_PRIOR_WEIGHT=0.25`;
-- user locally revalidated the restored configuration **74/74 GREEN**.
-
-Do not reopen `_OBSERVED_HAND_PRIOR_WEIGHT=0.10` absent new controlled evidence.
-
-## Phase-6 D9 Bond-utilization correction — SEMANTICALLY VALID / LIVE 0 OF 10
-
-The earlier Bond-utilization audit found one concrete cross-owner defect:
-
-- opened Buffoon Jokers did not all pass through canonical D2;
-- the live Buffoon generator suppressed `SKIP_BOOSTER` when a Joker slot was free;
-- therefore a visible Joker could be forced even when D2 would HOLD because of weak value or conflict.
-
-Commit `c1f8422` repaired this by routing every visible Buffoon Joker through canonical `PlaybookJokerAcquisitionPolicy` at already-paid opened-pack cost `$0`, preserving replacement as SELL → reobserve → SELECT and retaining Skip as a real D9 candidate.
-
-Semantic validation:
-
-- focused D9 regression: **GREEN**;
-- full deterministic Balatro suite: **GREEN** after stale-contract/test-isolation cleanup in `aaa01d8f`, `97049e62`, `f099b0ba`, and `b8ef51b9`.
-
-Controlled live comparison:
-
-- session: `balatro-20260901T094854Z-cc1ed501`;
-- result: **0/10 wins**;
-- all ten attempts ended with authoritative losses;
-- the structural correction remains correct ownership/legality behavior, but the primary metric did not improve.
-
-This does not justify reverting `c1f8422`. It does justify moving the investigation one layer deeper: the remaining failure may be in how Bond defines and ranks strategy quality rather than only in whether canonical owners consume Bond evidence.
-
-# Phase 6 — MANUAL HARDCODED BOND CATALOGUE AUDIT — ACTIVE
-
-## Why this audit now
-
-Before deciding that strategy commitment/completion/coherence is itself wrong, first verify the raw material those higher layers consume.
-
-The Bond catalogue is largely handwritten. Individual evaluators explicitly assign values to named Jokers and to derived public-state features such as card ranks, enhancements, seals, hand levels, bankroll, deck density, and other infrastructure. A higher-level strategy audit is premature if those literal mappings are incomplete, factually wrong, over-broad, conditionally wrong, or numerically nonsensical.
-
-The immediate question for every Bond is therefore:
-
-> **Does the hardcoded evaluator faithfully represent the actual Balatro mechanic it claims to measure?**
-
-Do not diagnose `PINNED`, motifs, composer, StrategyPlan, or downstream consumers from a Bond until the Bond's own structure and catalogue construction have both been manually checked.
-
-## Structural gate — confirm the Bond before tracing wiring
-
-Before auditing how a Bond is consumed, first establish exactly what a Bond is supposed to contain and what each layer means. The review must distinguish:
-
-1. **Identity / semantic axis** — Bond name, intended Balatro mechanic, and `BondDevelopment.target`.
-2. **Development evidence** — explicit and state-derived `BondContribution` sources, categories, points, and evidence.
-3. **Mechanical annotations** — contribution `roles`, `targets`, and `conditions`; identify evidence that affects rank but is semantically untyped.
-4. **Rank ladder** — R0–R5 thresholds, reachability, meaningful combinations that cross each threshold, and the local `rank_policy` description for each achieved rank.
-5. **Realization** — distinguish persistent development rank from current `DORMANT / PARTIAL / ACTIVE / MATURE` mechanical realization; verify the realizer recognizes the mechanic actually represented by the Bond.
-6. **Exposed Bond payload** — verify the resulting `BondDevelopment` is internally coherent before asking relationships, motifs, strategy formation, or decision owners to consume it.
-
-This structural review is a **Bond-definition/catalogue task**, not a wiring task. Do not use D2/D4/D9/D14 behavior to justify a malformed Bond definition, and do not patch consumer wiring until the Bond under review passes this gate.
-
-`held_retrigger` is the first concrete structural walkthrough because its development evidence, copy infrastructure, rank ladder, held-card target semantics, and realization state exercise all major parts of the Bond model.
-
-## Audit method — three semantically related Bonds per batch
-
-Do **not** audit alphabetically and do **not** mix unrelated Bonds merely to fill a batch. Use groups of three that share a meaningful mechanical engine or infrastructure concept.
-
-For every Bond in a batch, perform a literal catalogue audit in this order:
-
-1. **Pass the structural gate above.** Write out the Bond's complete internal structure before tracing any external consumer.
-2. **State the intended mechanic in plain Balatro terms.** Define exactly what the Bond is supposed to measure before reading its contributor list as authoritative.
-3. **Enumerate every explicit hardcoded contributor.** List every named Joker, voucher, consumable, card property, or special condition explicitly checked by the evaluator, together with its exact contribution value and condition.
-4. **Enumerate every state-derived contributor.** List all counts/bands/levels/current-state signals the evaluator turns into Bond contribution, including their exact breakpoints and values.
-5. **Independently derive the expected contributor set from Balatro mechanics.** Ask what Jokers, vouchers, enhancements, seals, editions, consumable-created effects, deck properties, hand properties, or other public mechanics should logically feed this Bond even if they are absent from the code.
-6. **Diff expected vs hardcoded.** Record missing contributors, unrelated contributors, conditions that are too broad/narrow, double-counting, and cases where an object only matters conditionally but receives unconditional Bond value.
-7. **Check indirect construction paths.** A consumable does not need to be named in the evaluator if its effect is correctly represented through the resulting public state. Distinguish explicit contributors from mechanics that should be captured indirectly after state mutation.
-8. **Only after membership/conditions are correct, judge contribution magnitudes and R0–R5 thresholds.** Check whether relative values make sense, whether combinations inflate rank unrealistically, whether thresholds are reachable, and whether rank progression corresponds to meaningful development of that mechanic.
-9. **Audit the Bond's local policies/target fields only insofar as they describe this raw mechanic.** Do not yet trace relationships, motifs, strategy candidates, composer behavior, D2 bonuses, or other downstream strategy semantics.
-
-For every audited Bond, produce a concrete defect table with at least:
-
-- hardcoded source/state signal;
-- current contribution/condition;
-- actual Balatro relevance;
-- expected handling;
-- defect type (`correct`, `missing`, `incorrect inclusion`, `wrong condition`, `double count`, `value/threshold concern`);
-- recommended catalogue correction, if any.
-
-Classify the raw Bond construction as one of:
-
-- **GOOD** — contributor membership, conditions, values, thresholds, and local mechanic description are credible;
-- **NEEDS MINOR FIX** — isolated factual/membership/condition/value issue;
-- **DESIGN PROBLEM** — the Bond's underlying mechanic abstraction is itself unsuitable or combines things that should not be one Bond;
-- **MISSING COVERAGE** — raw construction looks plausible but cannot be adequately established from current code/mechanics evidence.
-
-### Audit discipline
-
-- **Bond structure first, catalogue correctness second, higher layers/wiring last.** A Bond must be understandable and internally coherent before its consumers can be meaningfully judged.
-- Relationships, mechanical-role ontology, motifs, strategy formation, StrategyPlan, composer, Build Health, and canonical consumers remain deferred until the raw Bond catalogue is completed unless inspection is strictly necessary to understand a field already present on the Bond.
-- Default to **audit first, redesign second**.
-- Do not tune numbers before contributor membership and conditions are established.
-- Do not assume an omitted consumable/Joker is a defect until checking whether its effect is represented indirectly by authoritative state.
-- Do not award generic Bond value merely because an item is useful in a known build; it must actually develop the mechanic represented by that Bond.
-- A narrowly isolated factual catalogue correction may be staged early only when it is unambiguous and cannot hide a broader catalogue issue; otherwise record it and continue the batch.
-- Do not run another live batch during the catalogue audit.
-- Preserve literal Balatro mechanics and public-information boundaries.
-
-## Catalogue audit order
-
-Batches are chosen by semantic cohesion. Reorder only if repo inspection proves a different grouping is materially cleaner.
-
-### Batch 1 — held-card engine core — NEXT
-
-1. `held_retrigger` — **first structural walkthrough**
-2. `held_cards`
-3. `kings`
-
-Reason: these three are mechanically related enough to make cross-checking the raw contributor sets useful, while still being distinct mechanics. `held_retrigger` goes first so the Bond structural contract itself is reviewed concretely before the wider Batch-1 catalogue comparison. Audit each evaluator independently first; do not use the Baron/Mime motif or current strategy machinery as proof that any contributor belongs.
-
-**Batch-1 separation rule:** `held_retrigger` and `kings` remain separate Bonds. `held_retrigger` represents held-effect retrigger infrastructure centered on Mime and valid retriggerable held-card infrastructure; `kings` represents King-specific infrastructure/payoff centered on Baron and King density/quality. The full Baron/Mime held-King engine emerges only when these separate Bonds combine at the motif/engine-composition layer. Do not add Baron to `held_retrigger` merely because Baron pairs with Mime, and do not fold Mime into `kings` merely because both mechanics can use held Kings. Where copier semantics are later represented for this engine, Blueprint/Brainstorm should prefer a mechanically valid `Mime > Baron` copy target/order rather than receiving ownership-only credit.
-
-### Current `held_retrigger` audit checkpoint — CONTINUE HERE
-
-The structural walkthrough is **not finished**. The next chat should continue from this exact point rather than restarting the audit or moving on to `held_cards`/`kings`.
-
-Confirmed design decisions so far:
-
-- `held_retrigger` and `kings` stay separate Bonds.
-- Baron belongs to `kings`; Mime belongs to `held_retrigger`.
-- The Baron/Mime held-King build is an emergent motif/engine formed from both Bonds, not one merged Bond.
-- Generic Red-Seal density is wrong for `held_retrigger`; the relevant deck-development evidence should be **Red-Seal Kings**, not arbitrary Red-Seal cards.
-- Blueprint/Brainstorm must not receive ownership-only Held-Retrigger credit. Their contribution is valid only when Joker ordering/copy semantics actually resolve them onto a useful target, with preferred copy target/order **`Mime > Baron`** for this engine.
-- Mechanical annotations may be hardcoded. For this Bond they must express the actual dependency chain rather than merely saying the pieces are related.
-- Realization conditions may also be hardcoded. They should prove the developed engine is currently executable, including useful held King(s), valid Joker copy/order state where applicable, and the ability to preserve the relevant held card(s) during the scoring play.
-- `held_retrigger` requires a first-class **hand/play requirement**. It does not target one fixed poker-hand category; its requirement is effectively: **play a legal scoring hand while preserving the required engine King(s) in hand**. This belongs in reusable Bond semantics so D1 can consume it later without a one-off `if held_retrigger` heuristic.
-- Current R5 unreachability is **not automatically a defect**. Bonds may legitimately have different practical rank ceilings. Do not change Held-Retrigger rank thresholds merely to make R5 reachable; revisit contribution values/thresholds only after all legitimate components are settled. If a Bond intentionally tops out below R5, later planner semantics must not falsely treat the unreachable rank as an expected destination.
-
-Still unresolved before `held_retrigger` can pass the structural gate:
-
-1. **Steel-King component** — user explicitly identified this as a major missing requirement. Do not finalize the Bond until the role of Steel Kings and Red-Seal+Steel Kings is settled.
-2. **Exact contribution membership and values** — after Steel-King semantics are defined, decide the proper values for Mime, Red-Seal King density, Steel-King density/quality, Red-Seal+Steel overlap, Blueprint, and Brainstorm.
-3. **Exact copier semantics** — inspect/reuse the canonical Joker-order/copy-target resolver if one exists; do not implement a second interpretation of Blueprint/Brainstorm ordering. Credit only real `Mime > Baron` copy behavior, not mere ownership.
-4. **Reusable hand/play-condition schema** — determine the Bond-level field/structure that can express “score while preserving required held card(s)” generically enough for other Bonds too.
-5. **Exact realization thresholds** — once the above is defined, specify what counts as `PARTIAL`, `ACTIVE`, and `MATURE` for Held Retrigger.
-6. **Rank/contribution review last** — only after membership and conditions are correct should the existing `4/8/13/19/26` ladder and contribution magnitudes be judged.
-
-Do **not** audit D1/D2/D4/D9/D14 wiring yet. Do **not** move to `held_cards` or `kings` until these unresolved Held-Retrigger structural points are settled.
-
-### Later catalogue batches
-
-Determine subsequent trios from the actual catalogue after Batch 1 so they remain semantically coherent. Likely families include:
-
-- face-card / played-retrigger packages;
-- low-rank / played-retrigger packages;
-- enhancement feed/payoff packages;
-- hand-level / hand-payoff packages;
-- suit infrastructure/payoff packages;
-- economy engine/payoff packages;
-- deck-thinning / deck-growth infrastructure and payoff packages;
-- copy/scaler packages;
-- remaining hand-shape and generic scoring Bonds.
-
-Do not lock exact later trio membership until the catalogue files have been inspected.
-
-## Higher-layer audit after the Bond catalogue
-
-Only after all raw Bond constructions are manually audited and classified, audit these layers in order:
-
-1. **global relationship graph** — systemic false-positive/false-negative synergy/conflict patterns;
-2. **mechanical-role ontology** — whether the available roles can express Balatro engines without collapsing support, flat power, scaling, and multiplicative power;
-3. **motifs** — completeness, activation, maturity, prescriptions, and whether named motifs duplicate or repair generic semantics;
-4. **strategy formation** — `FORMING / PINNED / ESTABLISHED / DOMINANT`, candidate ranking, confidence/strength, and pivot semantics;
-5. **StrategyPlan** — package completion versus engine power/scaling trajectory and missing-goal representation;
-6. **composer** — coherence, conflicts, pivot resistance, temporal persistence, observed-hand fallback, and whether a pinned strategy is actually a durable run-level thesis;
-7. **Build Health boundary** — determine whether engine sufficiency/stalled-underpowered state belongs there rather than duplicating score authority inside Bond;
-8. **canonical consumers** — D2, D4, D9, D14, and D1 strategy evidence consume the corrected model consistently without creating a second arbiter.
-
-The previously identified higher-level concerns remain recorded hypotheses only until this catalogue pass is complete.
-
-## Runtime — sticky public `won` GAME_OVER restart — VALIDATED
-
-Balatro's public `won` bit can remain sticky after a later Ante-8 GAME_OVER loss.
-
-- `28cec27b` — complete `GAME_OVER` is authoritative loss evidence for restart; stale `won=true` no longer vetoes it.
-- `6e1a2696` — focused regression.
-- local validation: **GREEN**.
+Previous provisional conclusions such as “Baron must belong only to `kings`,” “Mime must belong only to `held_retrigger`,” or “Red-Seal Kings are the correct generic Held-Retrigger evidence” are explicitly reopened. They may still turn out to be correct, but they must now be justified from the redesigned model rather than inherited from the old checkpoint.
 
 # EXACT NEXT ACTION
 
-Continue the unfinished **`held_retrigger` structural audit** at the Steel-King component. Do not restart from generic Bond structure and do not move to consumer wiring.
-
-1. settle exactly how **Steel Kings** and **Red-Seal+Steel Kings** belong in `held_retrigger` development and realization;
-2. then finalize the complete Held-Retrigger contributor set: Mime, Red-Seal Kings, Steel Kings/combined King quality, and only mechanically valid Blueprint/Brainstorm copy contributions;
-3. encode/confirm actual copier dependency using canonical Joker order, with useful copy priority **`Mime > Baron`**, never ownership-only credit;
-4. define a reusable Bond-level hand/play condition capable of expressing **score while preserving required engine King(s) in hand**;
-5. hardcode the Bond's mechanical dependency metadata and current realization criteria from those settled mechanics;
-6. only then review contribution magnitudes and the R0–R5 ladder; do not force R5 reachability merely for uniformity;
-7. once `held_retrigger` passes this structural gate, continue Batch 1 with `held_cards`, then `kings`;
-8. defer relationships, motifs, StrategyPlan/composer, Build Health, and D1/D2/D4/D9/D14 wiring until the raw catalogue audit is complete.
-
-Do **not** run another live batch or stage Tune G.
+1. Locate the authoritative Bond catalogue on `feat/v1.0-red-white-competence`.
+2. Enumerate every current Bond and verify the exact count.
+3. For every Bond, capture its evaluator/file, target, major contributor classes, rank ladder, and realization ownership.
+4. Produce a preliminary classification and flag obvious duplicates/mixed abstractions.
+5. Derive the redesign dependency order from the real catalogue.
+6. Only then select the first Bond for full KEEP/SPLIT/MERGE/REPLACE/DELETE redesign.
+7. Do **not** modify Bond implementation, consumer wiring, run another live batch, or stage Tune G before this inventory/classification checkpoint is complete.
 
 # Phase order
 
@@ -489,7 +327,7 @@ Do **not** run another live batch or stage Tune G.
 4. Phase 3 — coherent build evidence/authority quality — COMPLETE
 5. Phase 4 — complex packs/consumables/vouchers/economy audit — COMPLETE
 6. Phase 5 — live validation — COMPLETE
-7. Phase 6 — numerical/action-quality tuning and manual hardcoded Bond catalogue audit — ACTIVE
+7. Phase 6 — Bond architecture redesign, then action-quality validation/tuning — ACTIVE
 
 Future stake/deck progression remains blocked until Red/White competence passes.
 
@@ -498,15 +336,15 @@ Future stake/deck progression remains blocked until Red/White competence passes.
 - Phase-0 ownership migrations and installer retirements
 - Phase-1 expansion beyond validated batches absent fresh Phase-5 evidence
 - Phase-2 expansion beyond validated batches absent fresh Phase-5 evidence
-- Phase-3 build-evidence expansion absent fresh Phase-5 evidence
-- Phase-4 expansion beyond six validated batches absent fresh Phase-5 evidence
-- Phase-5 semantic expansion absent fresh reproducible mechanics/authority/runtime evidence
-- global D1 discard-hoarding defect after Baseline C, unless fresh multi-run evidence reopens it
-- Tune-B `$8` pre-Ante-6 paid-reroll runway absent new controlled evidence
-- Tune-C `0.50` ordinary Joker replacement margin absent new controlled evidence
-- Tune-D `0.20` D8 booster acquisition margin absent new controlled evidence
-- Tune-E `0.75` contextual/B3 Joker build weight absent new controlled evidence
-- Tune-F `_OBSERVED_HAND_PRIOR_WEIGHT=0.10` absent new controlled evidence
+- Phase-3 authority ownership absent fresh reproducible evidence
+- Phase-4 resource semantics absent fresh reproducible evidence
+- Phase-5 legality/authority/runtime findings absent fresh reproducible evidence
+- Tune-B `$8` pre-Ante-6 paid-reroll runway
+- Tune-C `0.50` ordinary Joker replacement margin
+- Tune-D `0.20` D8 booster acquisition margin
+- Tune-E `0.75` contextual/B3 Joker build weight
+- Tune-F `_OBSERVED_HAND_PRIOR_WEIGHT=0.10`
+- obsolete `_target_hand_engine_policy_installed` production guard
 - Mouth discard-only legality defect
 - Green Joker survival-equivalent authority
 - Hook/log-resilience search reserve
