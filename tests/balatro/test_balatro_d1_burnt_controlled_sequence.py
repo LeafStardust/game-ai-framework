@@ -12,7 +12,10 @@ from games.balatro.state import BalatroState
 
 
 class BurntJoker:
-    pass
+    """Minimal Burnt identity fixture that is neutral to ordinary scoring."""
+
+    def apply(self, context):
+        return context
 
 
 class _SequenceEvaluator:
