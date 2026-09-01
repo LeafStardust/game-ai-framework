@@ -54,7 +54,7 @@ Phase 5 live semantic validation is complete at **74/74 green**. The original ba
 
 The D1–D14 decision-authority audit is not the current primary target. The observed competence failure is that the agent can have an apparent run direction yet still fail to buy useful pieces, buy unrelated/contradictory pieces, or fail to preserve the machinery of that direction.
 
-This means the next task is **not** a Bond-by-Bond numerical audit and **not** another broad decision-layer audit. We must first locate where strategic understanding is lost in the full causal path.
+The broad 46-Bond architecture is therefore **not allowed to expand or receive numerical tuning yet**. Development has moved to a deliberately small vertical proof: first prove that one or a few strategic axes are recognized, alter valuation, and causally alter the final decision for the correct reason. Only then scale the catalogue.
 
 Validated checkpoints that remain closed absent fresh reproducible evidence:
 - Phase 0 authority consolidation: complete
@@ -67,24 +67,35 @@ Validated checkpoints that remain closed absent fresh reproducible evidence:
 - sticky GAME_OVER restart semantics validated
 - supervisor telemetry resilience validated
 
-Do not stage Tune G or another live batch while this architecture diagnosis is active.
+Do not stage Tune G or another live batch while the minimal strategy proof is active.
 
-# Phase 6 — STRATEGY/BOND CAUSAL DIAGNOSIS — ACTIVE
+# Phase 6 — MINIMAL STRATEGY/BOND VERTICAL PROOF — ACTIVE
 
-## Historical architecture that must be understood first
+## Why the plan changed
 
-The intended Bond system mirrors Honkai: Star Rail Currency Wars:
+The previous Phase 6 plan traced six representative builds across the full 46-Bond system. That is useful for later breadth testing, but it does not answer the more basic question quickly enough:
+
+> **Can the agent actually use a strategy representation to make a different and better decision?**
+
+The architecture has been in development long enough that recognition/rank logs are no longer sufficient evidence. A working system must demonstrate a causal chain from public mechanics to the final bounded action.
+
+The current catalogue remains in source for compatibility and rollback. It is **not** treated as validated merely because its Bonds exist or its unit tests pass.
+
+## Minimal canonical flow
 
 ```text
-Balatro component/state
-  → weighted Bond development
-  → mechanical roles / behavior descriptors
-  → semantic links
-  → candidate strategy / pinned composition
-  → acquisition + preservation + execution preferences
+public game state
+    ↓
+literal mechanics
+    ↓
+strategy/Bond state
+    ↓
+candidate action values
+    ↓
+final bounded decision
 ```
 
-Separate axes:
+The richer intended architecture still provides the vocabulary:
 
 ```text
 Development = Bond R0–R5
@@ -92,116 +103,221 @@ Realization = DORMANT / PARTIAL / ACTIVE / MATURE
 Commitment  = EXPLORATORY / FORMING / PINNED / ESTABLISHED / DOMINANT
 ```
 
-A Bond is intended to be a persistent developable strategic axis, not an individual Joker and not necessarily a complete build. Named super-additive packages belong to motifs/compositions. Example: Baron is not a Bond; `Held Cards` is a Bond, while Baron + Mime + Steel Kings is a composition using several Bonds and exact component semantics.
+But every layer must justify itself by observable downstream behavior.
 
-This intent is useful context, but the current implementation may still fail to realize it correctly.
+## Authority contract — CURRENT
 
-## Primary diagnostic question
+Commitment is now explicitly split into two authority tiers:
 
-For a real strategic state, **where is the first point at which the agent stops knowing what a competent Balatro player should know?**
+### `FORMING` — construction authority only
 
-Trace vertically:
+A `FORMING` strategy may:
+- expose a bounded strategy plan;
+- identify the next Bond-development target;
+- emit specific `seek_feature:*` goals;
+- emit specific `seek_component:*` goals for missing motif pieces;
+- influence admitted acquisition/development choices through those bounded goals.
+
+A `FORMING` strategy may **not** merely by existing:
+- protect components from replacement;
+- create pivot resistance;
+- dictate hand execution;
+- impose preservation prescriptions;
+- receive fake `PINNED` authority internally.
+
+### `PINNED+` — preservation/execution authority
+
+A `PINNED`, `ESTABLISHED`, or `DOMINANT` strategy may additionally expose its stronger strategy/motif prescriptions to downstream preservation, replacement, and execution consumers, subject to legality, survival, affordability, boss correctness, and materially stronger alternatives.
+
+The composer must pass the candidate's **real commitment** to the plan builder. No temporary `FORMING → PINNED` promotion is permitted.
+
+## Minimal formation rule — CURRENT
+
+A strategy does not need two different Bonds merely to become visible.
+
+- Positive mechanically enriched evidence may exist at R0.
+- A singleton mechanical axis remains `EXPLORATORY` while weak/unestablished.
+- An unlocked singleton axis that reaches R1 or at least PARTIAL realization may become `FORMING` at deliberately low confidence.
+- Pure `SUPPORT` and/or `DENSITY_INFRASTRUCTURE` evidence cannot form a singleton strategy by itself.
+- Singleton evidence does not become `PINNED` merely because it is alone and developed.
+- Multi-mechanic semantic links and motifs remain the route to stronger commitment.
+
+This rule exists to prevent the circular failure:
 
 ```text
-public state
-→ exact Joker/card mechanics
-→ Bond contributions
-→ roles / produces / requires / scales_with / amplifies / transforms
-→ semantic links
-→ candidate strategies
-→ commitment / pinned strategy
-→ unmet feature goals / prescriptions
-→ projected acquisition or replacement state
-→ shop/pack/preservation valuation
-→ final bounded decision
+strategy needs multiple linked pieces before it can form
+→ no strategy plan exists
+→ agent never seeks the missing complementary piece
+→ linked strategy never forms
 ```
 
-At each stage ask:
-1. Is the relevant fact present?
-2. Is it mechanically correct?
-3. Is its directionality/condition preserved?
-4. Does it create the right positive, negative, or neutral strategic consequence?
-5. Is that consequence still present downstream?
+## Definition of “the Bond system is working”
 
-The **first incorrect or missing stage owns the defect**. Do not patch a later consumer to compensate for missing upstream semantics.
+The architecture is **not validated** until a small proof set passes all four gates.
 
-## Representative trace suite — NEXT
+### Gate 1 — Recognition
 
-Trace these before redesigning individual Bonds:
+Given a controlled public state, the intended strategic axis is represented correctly.
 
-1. **Baron + Mime**
-   - should recognize held-King payoff + held-effect retrigger interaction before Steel is present;
-   - should seek useful King/Steel/Red-Seal/copy infrastructure through admitted choices;
-   - should preserve Baron/Mime absent a materially stronger pivot;
-   - should not reward unrelated axes merely because they produce fresh Bond ranks.
+Example:
 
-2. **Green Joker / No-Discard**
-   - should recognize discard as engine damage;
-   - should value compatible no-discard support;
-   - should reject contradictory discard engines unless pivot benefit is materially stronger.
+```text
+Burnt Joker owned
++ target hand has persistent development/evidence
+→ Burnt/target-hand direction is represented
+```
 
-3. **Card Sharp / Hand Repetition**
-   - should understand repeated-hand requirement;
-   - shop/deck choices should support repeatability rather than merely add generic hand-type strength;
-   - D1 should honor repetition when sufficiently safe.
+A nonzero Bond rank alone does not pass this gate.
 
-4. **Vampire + enhancement feed**
-   - should value renewable enhancement production as feed;
-   - should distinguish feeding Vampire from preserving an incompatible Driver's License enhanced-card population;
-   - conflict must survive composition and acquisition valuation.
+### Gate 2 — Valuation
 
-5. **DNA + rank-dependent payoff**
-   - duplication should satisfy the concrete required rank(s), not become generic deck-growth value only;
-   - generated unmet goals must stay specific rather than broaden into arbitrary rank/card acquisition.
+The strategy representation must materially change the value of a relevant legal candidate.
 
-6. **Contradictory Frankenstein board**
-   - construct a state containing individually positive but strategically incompatible axes;
-   - verify the system penalizes/removes incoherent composition instead of rewarding aggregate Bond collection.
+Example:
 
-## Diagnostic verdict categories
+```text
+without Burnt strategy evidence:
+first discard = ordinary tactical value
 
-For each trace, classify the first break as one of:
+with Burnt strategy evidence:
+first discard of target hand = bounded future hand-level value
+```
 
-- `MECHANIC_MODEL` — exact component behavior is absent/wrong.
-- `BOND_REPRESENTATION` — Bond identity/contribution loses essential strategic information.
-- `ROLE_DESCRIPTOR` — roles/targets/conditions or behavior descriptors are absent/too weak.
-- `SEMANTIC_LINKING` — compatible or conflicting mechanics fail to connect correctly.
-- `STRATEGY_FORMATION` — correct links exist but candidate/commitment formation is wrong.
-- `GOAL_PRESCRIPTION` — strategy exists but unmet needs/prescriptions are wrong or too generic.
-- `PROJECTED_TRANSITION` — candidate post-buy/post-replacement state is evaluated incorrectly.
-- `CONSUMER_VALUATION` — correct strategy evidence reaches D2/D4/D9/D14 but valuation ignores/misweights it.
-- `FINAL_ARBITRATION` — correct upstream valuation is overridden incorrectly at the final authority.
+The exact numerical magnitude is not tuned yet; the required proof is correct direction and causal ownership.
 
-This classification determines whether the next phase is Bond redesign, semantic-graph redesign, or a narrow consumer fix.
+### Gate 3 — Final decision counterfactual
 
-## Important non-conclusions
+This is the decisive architecture test:
 
-- `held_retrigger` is **not declared correct**.
-- `held_retrigger` is **not declared invalid** merely because retriggering is mechanically an amplifier.
-- The current 46-Bond catalogue, rank thresholds, relationships, motifs, and data model are not protected.
-- Conversely, do not replace the Currency-Wars-derived architecture merely because live play is poor until the causal trace shows where it fails.
+```text
+same public state
+same legal actions
+same non-strategy evidence
+change only the relevant strategy fact
+→ final selected action changes when it should
+```
 
-## Implementation freeze during diagnosis
+The trace must show why the action changed. A strategy object appearing in telemetry while the final action remains unaffected does not pass.
 
-Until the representative traces establish the first systematic break:
-- do not tune Bond thresholds;
-- do not redesign Bonds one-by-one;
-- do not add late shop/preservation rescues;
-- do not run another live tuning batch;
-- do not stage Tune G;
-- do not alter D1–D14 ownership without fresh trace evidence.
+### Gate 4 — Controlled run-level usefulness
 
-Small instrumentation or regression-only changes are allowed if required to expose the causal path, but prefer static code tracing first.
+Once the deterministic counterfactual passes, a controlled scenario must show the agent using the mechanic coherently over multiple decisions rather than firing a one-step bonus blindly.
+
+For Burnt, for example:
+- use the first discard to develop the intended hand when safe;
+- preserve enough discards/hands to clear the blind;
+- exploit accumulated hand levels;
+- stop forcing the development action when survival requires otherwise.
+
+Only after Gates 1–4 are demonstrated may the proof set expand materially.
+
+## Proof-set order
+
+Start with the smallest set that exercises structurally different strategic behavior.
+
+### Proof 1 — Burnt / persistent hand-level development — NEXT
+
+Why first:
+- Burnt is explicitly allowed by the strategy design as a defining mechanical axis;
+- it has a clean causal action consequence in D1;
+- it tests long-term development against immediate survival;
+- it can produce a strong final-decision counterfactual.
+
+Required trace:
+
+```text
+Burnt public mechanic
+→ Burnt/target-hand Bond evidence
+→ FORMING/PINNED strategy state as appropriate
+→ bounded development goal
+→ D1 discard valuation
+→ final discard/play decision
+```
+
+### Proof 2 — simple deck shaping
+
+Use a deck-thinning/destruction axis to prove strategy can influence acquisition/deck construction rather than only D1 execution.
+
+Required outcome:
+- removal/thinning support gets positive transition value when it deepens the current strategy;
+- unrelated positive Bond development does not receive equivalent value automatically.
+
+### Proof 3 — held-card or persistent-card-state axis
+
+Use a small held-card/Steel-style case to prove persistent card-state strategy and preservation can graduate from FORMING to PINNED without requiring the full Baron-Mime-Steel package.
+
+### Proof 4 — one contradiction
+
+Use a compact incompatible pair such as Burnt/Discard vs No-Discard or Vampire vs preserve-enhancements behavior.
+
+Required outcome:
+- the system does not reward both merely because both are individually developed;
+- the selected strategy owns the relevant acquisition/preservation consequence.
+
+Do **not** add a fifth/sixth proof axis until these cases demonstrate the full causal contract.
+
+## Current implementation checkpoint
+
+The first core architecture correction is in progress/completed in this phase:
+
+1. `build_strategy_plan()` accepts `FORMING` rather than blanket-rejecting everything below `PINNED`.
+2. `FORMING` plans are construction-only: generated `seek_*` goals are allowed, preservation/execution prescriptions are not.
+3. `compose_build()` no longer temporarily promotes motif-backed `FORMING` candidates to `PINNED`.
+4. The composer may plan the highest-ranked real `FORMING` candidate when no strategy is pinned.
+5. A developed singleton mechanical axis may become low-authority `FORMING`; support/density-only evidence cannot.
+6. Focused deterministic regressions must validate these boundaries before downstream authority work proceeds.
+
+These changes prove only that strategy evidence can now survive **formation → plan construction**. They do **not** yet prove that D1/D2/D4/D9/D14 values or the final arbiter actually use it correctly.
+
+## Catalogue policy during the proof
+
+- Do not delete the existing 46 Bonds yet.
+- Do not assume any existing Bond is correct merely because it remains registered.
+- Do not tune Bond rank thresholds.
+- Do not add exhaustive relationships.
+- Do not add obscure hand/rank/suit Bonds for coverage.
+- Do not expand motif inventory to compensate for generic semantic failures.
+- A proof-axis Bond may be KEEP/SPLIT/MERGE/REPLACE/DELETE only when its causal trace provides evidence.
+- Catalogue expansion is blocked until the minimal proof demonstrates final-decision influence.
+
+## Failure ownership
+
+For each proof, the first incorrect stage owns the defect:
+
+- `MECHANIC_MODEL` — literal mechanic absent/wrong.
+- `BOND_REPRESENTATION` — strategic axis loses essential persistent information.
+- `ROLE_DESCRIPTOR` — mechanical role/target/condition absent or malformed.
+- `SEMANTIC_LINKING` — mechanics are incorrectly connected/disconnected.
+- `STRATEGY_FORMATION` — evidence exists but candidate/commitment is wrong.
+- `GOAL_PRESCRIPTION` — strategy exists but construction need is missing/wrong.
+- `PROJECTED_TRANSITION` — candidate post-action/post-buy state is evaluated incorrectly.
+- `CONSUMER_VALUATION` — correct strategy evidence reaches the consumer but does not alter value correctly.
+- `FINAL_ARBITRATION` — correct strategic value is lost/overridden at the final authority.
+
+Do not patch a later consumer to compensate for a missing upstream fact.
+
+## Implementation freeze during the proof
+
+Until the four proof gates pass:
+- no Bond threshold tuning;
+- no Bond-by-Bond catalogue redesign;
+- no broad relationship/motif expansion;
+- no late shop/preservation rescue layers;
+- no Tune G;
+- no live tuning batch;
+- no D1–D14 ownership changes absent a causal counterexample.
+
+Small semantic corrections, instrumentation, and deterministic causal regressions are allowed because they directly serve the proof.
 
 # EXACT NEXT ACTION
 
-1. Read the strategy-system and relationships/motifs documents.
-2. Trace **Baron + Mime** end-to-end through the current code.
-3. Record the exact information present at every stage from component mechanics through D14/D9/D4/D2 consumption.
-4. Identify the **first** stage that loses or distorts the strategically relevant causal information.
-5. Repeat for No-Discard, Hand-Repetition, Vampire, DNA/rank payoff, and one contradictory-board case.
-6. Compare failures. If they cluster at the same architectural layer, redesign that layer before individual Bond auditing.
-7. Only after the architecture diagnosis is complete decide whether to KEEP/SPLIT/MERGE/REPLACE/DELETE individual Bonds such as `held_retrigger`.
+1. User runs the focused strategy-authority regressions plus the nearby deterministic Bond/strategy tests.
+2. Fix only semantic regressions exposed by that validation; do not numerical-tune around them.
+3. Build the **Burnt final-decision counterfactual** with identical public/legal state and only the relevant strategy fact changed.
+4. Trace Burnt through recognition → strategy plan → D1 value → final action and identify the first lost consequence, if any.
+5. Correct that owning layer and rerun the deterministic proof.
+6. Demonstrate a short controlled Burnt scenario that develops the target hand when safe but yields to survival when necessary.
+7. Only then add the deck-shaping proof axis.
 
 # Phase order
 
@@ -211,8 +327,10 @@ Small instrumentation or regression-only changes are allowed if required to expo
 4. Phase 3 — coherent build evidence/authority quality — COMPLETE
 5. Phase 4 — complex packs/consumables/vouchers/economy audit — COMPLETE
 6. Phase 5 — live validation — COMPLETE
-7. Phase 6A — vertical strategy/Bond causal diagnosis — ACTIVE
-8. Phase 6B — architecture correction based on diagnosis — BLOCKED
-9. Phase 6C — action-quality validation/tuning — BLOCKED
+7. Phase 6A — minimal strategy formation/authority contract — ACTIVE
+8. Phase 6B — Burnt recognition/valuation/final-decision proof — BLOCKED ON 6A VALIDATION
+9. Phase 6C — 2–4 structurally different proof axes — BLOCKED
+10. Phase 6D — catalogue architecture decision and expansion — BLOCKED
+11. Phase 6E — action-quality tuning/live validation — BLOCKED
 
 Future stake/deck progression remains blocked until Red/White competence passes.
