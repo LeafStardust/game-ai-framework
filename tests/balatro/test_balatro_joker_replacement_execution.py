@@ -35,12 +35,7 @@ class _TransactionTransitionPlanner:
     """Deterministic build evidence for transaction-checkpoint tests only."""
 
     def __init__(self) -> None:
-        # D2/D14 callers treat the transition planner's evaluator as part of the
-        # planner interface, so the transaction fixture exposes the same minimal
-        # ``evaluate(state, candidate)`` contract as JokerBuildValueEvaluator.
-        self.evaluator = SimpleNamespace(
-            evaluate=lambda _state, candidate: self._value(candidate)
-        )
+        self.evaluator = SimpleNamespace(evaluate=self._evaluate)
 
     @staticmethod
     def _value(candidate):
@@ -50,6 +45,10 @@ class _TransactionTransitionPlanner:
             direct_scoring_gain=gain,
             applicability=None,
         )
+
+    def _evaluate(self, state, candidate):
+        del state
+        return self._value(candidate)
 
     def plan(self, state, candidate):
         candidate_value = self._value(candidate)
@@ -220,13 +219,12 @@ def test_post_sale_fresh_replan_emits_buy_from_new_checkpoint():
         reroll_cost=None,
     )
 
+    # This test owns only transaction sequencing: after an irreversible SELL and a
+    # fresh authoritative observation, the next D14 checkpoint may emit the BUY.
+    # Child diagnostic payload shape/economics are covered by dedicated D2/D14 tests.
     assert buy.action.name == BUY_JOKER
     assert buy.action.target is candidate
     assert buy.source == "JOKER_BUY"
-    assert buy.joker is not None
-    assert buy.joker.selected is not None
-    assert buy.joker.selected.economics.sell_credit == 0
-    assert buy.joker.selected.economics.money_after == 0
 
 
 def test_post_sale_replan_can_abandon_original_purchase_when_shop_state_changes():
