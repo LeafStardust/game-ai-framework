@@ -72,7 +72,7 @@ def test_strategy_plan_tracks_next_bond_ranks_and_missing_pieces() -> None:
     assert "seek_component:STEEL_INFRASTRUCTURE" in plan.prescriptions
 
 
-def test_strategy_plan_does_not_exist_before_pin() -> None:
+def test_forming_strategy_plan_has_construction_authority_without_pinned_prescriptions() -> None:
     candidate = _candidate()
     candidate = StrategyCandidate(
         strategy_id=candidate.strategy_id,
@@ -84,9 +84,28 @@ def test_strategy_plan_does_not_exist_before_pin() -> None:
         commitment=StrategyCommitment.FORMING,
         confidence=candidate.confidence,
         strength=candidate.strength,
-        prescriptions=candidate.prescriptions,
+        prescriptions=("preserve_held_kings_and_steel",),
     )
-    assert build_strategy_plan(candidate, (_dev("kings", BondRank.R1, 5.0, 8.0),)) is None
+    plan = build_strategy_plan(
+        candidate,
+        (_dev("kings", BondRank.R1, 5.0, 8.0),),
+        (
+            MotifEvaluation(
+                "baron_mime_steel",
+                MotifState.POTENTIAL,
+                ("held_cards", "held_retrigger", "steel", "kings"),
+                ("BARON",),
+                ("MIME", "KING_INFRASTRUCTURE", "STEEL_INFRASTRUCTURE"),
+                ("preserve_held_kings_and_steel",),
+            ),
+        ),
+    )
+
+    assert plan is not None
+    assert plan.commitment == StrategyCommitment.FORMING
+    assert "seek_bond:kings:R2" in plan.prescriptions
+    assert "seek_component:MIME" in plan.prescriptions
+    assert "preserve_held_kings_and_steel" not in plan.prescriptions
 
 
 def test_strategy_plan_removes_completed_r5_bond_from_development_queue() -> None:
