@@ -550,30 +550,33 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             key=lambda action: self._discard_priority(state, action),
             reverse=True,
         )
-        chosen = []
-        chosen_keys = set()
         max_cards = min(
             self.action_generator.MAX_SELECTED_CARDS,
             len(getattr(state, "hand", [])),
         )
 
-        # Redrawing 1 card and redrawing 4 cards are strategically different even
-        # when a retained-structure heuristic ranks several 1-card choices higher.
+        # Beam width is a candidate-count budget, not a redraw-size preference.
+        # Select the strongest representative from every redraw size, then rank
+        # those representatives globally. This keeps size diversity without the
+        # old 1->5 iteration bias that made width=1 synonymous with discarding one
+        # card regardless of the actual discard priority.
+        per_size = []
         for amount in range(1, max_cards + 1):
             same_size = [action for action in discards if len(action.cards) == amount]
             if not same_size:
                 continue
-            best = max(
-                same_size,
-                key=lambda action: self._discard_priority(state, action),
+            per_size.append(
+                max(
+                    same_size,
+                    key=lambda action: self._discard_priority(state, action),
+                )
             )
-            key = self._action_identity(best)
-            if key in chosen_keys:
-                continue
-            chosen.append(best)
-            chosen_keys.add(key)
-            if len(chosen) >= limit:
-                break
+        per_size.sort(
+            key=lambda action: self._discard_priority(state, action),
+            reverse=True,
+        )
+        chosen = per_size[:limit]
+        chosen_keys = {self._action_identity(action) for action in chosen}
 
         if (
             limit >= 2
