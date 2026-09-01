@@ -271,6 +271,56 @@ The following are **not** current development requirements and should not be reb
 
 Existing code implementing any of these concepts should be treated as reusable only where it still helps the new architecture. Do not preserve obsolete structure for its own sake.
 
+# Migration and cleanup contract
+
+The new Bond architecture is a **replacement**, not a second system that permanently coexists with the old one.
+
+During migration, old code may remain temporarily only when it is still needed as a reference, compatibility bridge, or dependency of an unmigrated consumer. Every such temporary dependency must be removed once the replacement path is proven.
+
+For each migrated Bond-system capability:
+
+```text
+new path implemented
+→ production consumer migrated
+→ deterministic tests prove replacement behavior
+→ old dependency search confirms no required users remain
+→ obsolete code/tests/docs are deleted in the same development phase
+```
+
+Cleanup is part of completion, not optional follow-up work.
+
+Required cleanup includes, where obsolete under the final architecture:
+- old strategy-controller/state-machine modules;
+- commitment-authority plumbing;
+- `StrategyPlan`/prescription command paths that no longer serve a valid diagnostic role;
+- Bond-specific wrappers superseded by generic mechanics/`StrategyDelta` evaluation;
+- duplicate composition/evaluation paths;
+- stale compatibility shims after their last consumer migrates;
+- tests that assert rejected architecture rather than intended behavior;
+- stale docs/comments/imports/dead fields naming obsolete concepts.
+
+Do **not** delete a legacy module merely because its name belongs to the old architecture; first determine whether it contains valid mechanics, semantic descriptors, relationships, motifs, diagnostics, or integration code worth migrating.
+
+The required end state is:
+
+```text
+ONE canonical mechanics → Bonds → BuildValue → StrategyDelta path
+ONE set of production integrations
+NO parallel legacy Bond planner/controller path
+NO dead strategy-prescription plumbing
+NO obsolete Bond tests/docs kept for historical convenience
+```
+
+Before declaring the Bond migration complete, perform a repository-wide legacy cleanup audit and classify every remaining old-system reference as either:
+
+```text
+RETAIN — still valid under the final architecture
+MIGRATE — useful logic still trapped in obsolete structure
+DELETE — obsolete/dead
+```
+
+No `MIGRATE` or `DELETE` items may remain at Bond-system completion.
+
 # CURRENT DEVELOPMENT PATH
 
 Follow these steps in order unless a concrete blocking defect requires an incidental fix.
@@ -397,6 +447,8 @@ Audit and wire only relevant domains, including as applicable:
 
 Do not wire Bonds directly by name. Consumers should receive candidate strategic value derived from projected state.
 
+As each consumer is migrated and proven, remove the obsolete path it replaces according to the **Migration and cleanup contract**. Do not accumulate parallel production paths until the end.
+
 ## Phase I — Verify tactical mechanics can exploit the developed build
 
 Once the strategic layer can construct coherent engines, verify that canonical tactical owners can actually use the mechanics they construct.
@@ -434,9 +486,23 @@ RNG/state supplies compatible pieces
 
 These are representative proofs of the generic architecture, not special pilot-specific controllers.
 
-## Phase K — Targeted live validation and tuning
+## Phase K — Bond migration cleanup gate
 
-Only after the architecture is wired and deterministic proofs are green:
+Before live validation, perform a repository-wide audit for old Bond architecture and remove all obsolete leftovers.
+
+Required checks:
+- no production consumer still depends on rejected commitment/prescription control paths;
+- no duplicate Bond/build evaluators remain active;
+- no obsolete compatibility wrapper remains after its final consumer was migrated;
+- no stale tests enforce removed architecture;
+- no stale docs/comments describe the rejected planner/controller model as current;
+- all useful mechanics/semantic logic formerly embedded in legacy modules has been moved or intentionally retained in the canonical path.
+
+The gate passes only when every remaining legacy-looking reference is explicitly justified as valid under the final architecture.
+
+## Phase L — Targeted live validation and tuning
+
+Only after the architecture is wired, deterministic proofs are green, and the cleanup gate passes:
 - run targeted Red Deck / White Stake validation locally;
 - inspect whether coherent builds actually emerge;
 - inspect whether the agent rejects synergy bait when immediate/survival/economic value is insufficient;
@@ -446,7 +512,7 @@ Only after the architecture is wired and deterministic proofs are green:
 
 Do not redesign the architecture merely because initial constants are poorly calibrated.
 
-## Phase L — Broader competence work
+## Phase M — Broader competence work
 
 After Bond-guided Red/White play is demonstrated:
 - continue targeted gameplay fixes exposed by live runs;
@@ -480,8 +546,10 @@ correct Bond/relationship/motif value
 correct BuildValue
 correct projected StrategyDelta
 canonical consumer integration
+legacy-path removal for migrated capability
 mechanically correct tactical exploitation
 end-to-end strategic proof
+repository-wide Bond cleanup gate
 live win-rate evidence / calibrated constants
 ```
 
