@@ -51,12 +51,12 @@ Bond/composition and Build Health are evidence/planning layers, never immediate 
 
 # Current state — 2026-09-01
 
-> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 action-quality work is ACTIVE. The original Phase-6 baseline and Tunes A–F have produced no wins in their 10-attempt comparisons. Tune A remains retained provisionally because it fixes a specific early-bankroll defect; Tunes B–F are REJECTED and reverted. The Phase-6 Bond-utilization audit has now identified one concrete cross-owner defect: D9 Buffoon choices could bypass canonical D2 and, with a free Joker slot, the live generator suppressed Skip entirely. Commit `c1f8422` routes every visible Buffoon Joker through canonical D2 at opened-pack cost `$0` while retaining Skip so D2 HOLD/conflict remains executable. The focused D9 regression and the full deterministic Balatro suite are user-confirmed GREEN at branch head `b8ef51b9`. D2 is confirmed to actively consume canonical Bond/strategy transitions; D4 exposes a real future-plan gap but current canonical strategy producers do not emit a usable generic `seek_feature:*` target stream; D14 already inherits substantial Bond influence through D2; and no safe new Build-Health-to-SHOP pressure path is justified until authoritative shop-time score projections are proven present. Therefore no speculative D4/D14/Build Health patch is staged. The next step is a controlled 10-attempt Red/White live comparison of the semantically validated D9 structural correction before selecting any Tune G. Bond remains evidence/planning only and must not become a second action authority.**
+> **Phase 5 live validation is COMPLETE at 74/74 semantic green. Phase 6 action-quality work is ACTIVE. The original Phase-6 baseline and Tunes A–F all produced 0/10 wins. Tune A remains retained provisionally; Tunes B–F are rejected/reverted. The Bond-utilization audit found and fixed one genuine cross-owner defect in D9 Buffoon handling (`c1f8422`), and the full deterministic Balatro suite was user-confirmed GREEN after the related stale-test cleanup. A controlled 10-attempt live comparison of that structural correction (`balatro-20260901T094854Z-cc1ed501`) still produced 0/10 wins. The correction remains semantically valid, but it did not change the primary live metric. The new evidence, together with repeated cash-rich/full-board but underpowered losses, raises a more fundamental possibility: the Bond model itself may correctly recognize local mechanical relationships while still defining strategy commitment/completion/coherence in a way that does not reliably represent a sufficiently strong run-winning engine. Phase 6 therefore pivots to a FULL BOND MODEL AUDIT before any further Tune G, D4/D14 integration, Build Health pressure wiring, or live comparison. Audit the Bond catalogue in semantically related batches of three, then audit relationships, motifs, strategy formation, StrategyPlan, composer, Build Health boundary, and canonical consumers. Bond remains evidence/planning only and must not become a second action authority.**
 
 Validated checkpoints:
 
 - Phase 0 authority consolidation: **COMPLETE / 24/24 semantic green**
-- Full deterministic Balatro suite: **GREEN at `b8ef51b9` after D9 structural correction and stale-contract cleanup**
+- Full deterministic Balatro suite: **GREEN after D9 structural correction and stale-contract cleanup**
 - Phase 1 D1 survival expansion: **COMPLETE / 33/33 green**
 - Phase 2 simple shop survival: **COMPLETE / 42/42 green**
 - Phase 3 coherent build evidence: **COMPLETE / 52/52 green**, `BUILD_COHERENCE` 12/12
@@ -68,7 +68,8 @@ Validated checkpoints:
 - Phase 6 Tune D booster acquisition margin: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune E contextual/B3 Joker build weight: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
 - Phase 6 Tune F observed-hand scoring prior: **SEMANTIC GREEN / 74/74; REJECTED / 0 OF 10 WINS; REVERT GREEN / 74/74**
-- Phase 6 Bond-utilization/build-planning audit: **STRUCTURAL AUDIT COMPLETE / D9 UNDERUSE FOUND / `c1f8422` SEMANTIC GREEN / LIVE COMPARISON NEXT**
+- Phase 6 D9 Bond-utilization structural correction: **SEMANTIC GREEN / LIVE 0 OF 10 WINS / RETAINED AS CORRECT OWNERSHIP FIX**
+- Phase 6 full Bond model audit: **ACTIVE / CATALOGUE FIRST / THREE SEMANTICALLY RELATED BONDS PER BATCH**
 - Phase 6 supervisor telemetry resilience: **LOCAL REGRESSION GREEN** after `d22f1b0a` + `cac8fd95`
 - Phase 6 sticky-win GAME_OVER restart semantics: **LOCAL REGRESSION GREEN** (`28cec27b` + `6e1a2696`)
 
@@ -288,67 +289,127 @@ Interpretation:
 
 Do not reopen `_OBSERVED_HAND_PRIOR_WEIGHT=0.10` absent new controlled evidence.
 
-## Phase-6 direction change — Bond utilization / build-planning audit — STRUCTURAL HYPOTHESIS STAGED
+## Phase-6 D9 Bond-utilization correction — SEMANTICALLY VALID / LIVE 0 OF 10
 
-The accumulated live evidence no longer justifies another blind scalar experiment as the default next step.
+The earlier Bond-utilization audit found one concrete cross-owner defect:
 
-Observed pattern across baseline and Tunes A–F:
+- opened Buffoon Jokers did not all pass through canonical D2;
+- the live Buffoon generator suppressed `SKIP_BOOSTER` when a Joker slot was free;
+- therefore a visible Joker could be forced even when D2 would HOLD because of weak value or conflict.
 
-- repeated **0/10** live comparisons despite semantically clean changes;
-- many medium/late losses retain substantial bankrolls;
-- many losses occur with four or five Jokers already owned;
-- full boards can consist of individually reasonable scorers/support pieces without enough shared direction or scaling to clear later blinds;
-- loosening rerolls, replacement margin, booster admission, contextual weighting, and observed-hand weighting independently did not produce a win-rate improvement.
+Commit `c1f8422` repaired this by routing every visible Buffoon Joker through canonical `PlaybookJokerAcquisitionPolicy` at already-paid opened-pack cost `$0`, preserving replacement as SELL → reobserve → SELECT and retaining Skip as a real D9 candidate.
 
-Working hypothesis:
+Semantic validation:
 
-> The agent may be locally evaluating purchases correctly enough while still failing to form, recognize, and pursue a sufficiently strong run-level build plan.
+- focused D9 regression: **GREEN**;
+- full deterministic Balatro suite: **GREEN** after stale-contract/test-isolation cleanup in `aaa01d8f`, `97049e62`, `f099b0ba`, and `b8ef51b9`.
 
-This is a **hypothesis to audit, not an assumption to encode**. If the existing Bond/composition system already exerts strong, coherent influence over all relevant canonical owners, do not force a Bond rewrite; record that result and move to the next evidence-backed mechanism.
+Controlled live comparison:
 
-### Bond authority constraint
+- session: `balatro-20260901T094854Z-cc1ed501`;
+- result: **0/10 wins**;
+- all ten attempts ended with authoritative losses;
+- the structural correction remains correct ownership/legality behavior, but the primary metric did not improve.
 
-Bond/composition remains an evidence/planning layer. It must **not** become a second final arbiter or a rule such as “Bond says FLUSH, therefore buy every flush item.” Canonical legality, literal mechanics, resource valuation, and final action ownership stay unchanged.
+This does not justify reverting `c1f8422`. It does justify moving the investigation one layer deeper: the remaining failure may be in how Bond defines and ranks strategy quality rather than only in whether canonical owners consume Bond evidence.
 
-Desired use of Bond evidence is to help canonical evaluators answer questions such as:
+# Phase 6 — FULL BOND MODEL AUDIT — ACTIVE
 
-- what scoring engine is actually carrying this run now;
-- whether the build is emerging, committed, incoherent, stalled/underpowered, or facing a justified pivot;
-- which Joker candidate reinforces versus fragments the current engine;
-- which incumbent is expendable once a stronger coherent engine exists;
-- whether a Tarot/Planet/Spectral option improves the cards/hand plan the current build can realistically exploit;
-- whether a high-bankroll but underpowered run should favor power conversion over generic future economy, through the existing canonical resource/action owners rather than through Bond authority.
+## Why this audit now
 
-### Audit scope before any Tune G
+Current evidence supports a design-level question:
 
-1. **D2 Joker acquisition/replacement** — trace exactly where projected Bond/composition enters candidate valuation, replacement ranking, aligned thresholds, and final BUY/REPLACE eligibility. Determine whether Bond meaningfully changes decisions or merely appears in rationale/telemetry.
-2. **D14 SHOP arbitration** — trace whether shop-family comparison consumes build-plan/underpowered evidence strongly enough to distinguish an engine-advancing purchase from generic normalized utility while preserving one final arbiter.
-3. **D4 consumable acquisition** — determine whether Tarot/Planet/Spectral acquisition/use value is conditioned on the active build plan or is mostly generic per-item utility.
-4. **D9 opened-pack choice** — determine whether visible pack choices exploit the same active build plan, without predicting hidden unopened contents.
-5. **Build trajectory representation** — inspect whether existing Bond/Build Health evidence can distinguish emerging, committed, incoherent, stalled, and pivot states; do not invent a new state machine if equivalent evidence already exists.
-6. **Cross-owner consistency** — verify Joker, consumable, pack, and shop choices consume one compatible build thesis rather than each optimizing an unrelated local notion of value.
+> The Bond system may be good at recognizing that pieces are mechanically related while still being too weak at distinguishing a coherent but underpowered package from a genuinely run-winning engine.
 
-Only after this audit should a structural change be selected. Prefer the smallest change that makes canonical owners consume already-authoritative public build evidence more effectively. Any such change must receive semantic coverage before live testing.
+Known design risks already visible in the current implementation and live evidence include:
 
-### Audit result / staged structural hypothesis — SEMANTIC GREEN
+- `PINNED` is reconstructed from the current state rather than persisted as a temporal commitment;
+- strategy candidate ordering gives commitment precedence over strength;
+- `StrategyPlan.completion` measures Bond/component construction, not engine sufficiency against run-stage scoring demands;
+- `Composition.coherence_score` measures structural development/synergy/motif/conflict evidence, not whether the engine projects enough realized/scaling power;
+- explicit motif coverage is narrow, so much of the catalogue relies on generic local mechanical-role links;
+- D2 correctly rewards Bond/strategy progress, so a bad strategy-quality definition can reinforce itself even when D2 wiring is technically correct.
 
-The audit found one concrete cross-owner underuse and several areas where a new patch is not yet justified:
+These are hypotheses to audit systematically, not assumptions to patch immediately.
 
-- **D2 is genuinely Bond-aware.** Canonical Joker acquisition/replacement projects Bond rank transitions, established/new-axis progression, contribution progress, synergies, motif progress, strategy commitment/strength, plan completion, and missing-goal reductions before final BUY/REPLACE admission. Bond remains bounded evidence inside D2 and does not bypass economics, conflicts, or thresholds.
-- **D9 had a real canonical-ownership bypass.** Before `c1f8422`, opened Buffoon Jokers did not all pass through D2, and the live generator suppressed `SKIP_BOOSTER` whenever a Joker slot was free. This could force acquisition of a visible Joker that canonical D2 would HOLD for weak value or conflict.
-- **`c1f8422` fixes D9 structurally.** Every visible Buffoon Joker is converted to a modeled candidate and evaluated by canonical `PlaybookJokerAcquisitionPolicy`; the opened-pack acquisition cost is normalized to `$0` without mutating live observation; replacement remains a SELL → reobserve → SELECT sequence; and Skip remains a legal D9 candidate so D2 HOLD/conflict is executable.
-- **D4 has a real future-plan integration gap but no valid generic target stream yet.** `StrategyPlan.missing_features` depends on `seek_feature:*`, while current canonical motif/strategy producers do not emit a usable generic feature-target stream. Hard-coding motif/card-specific D4 rules would create a parallel strategy layer rather than repair canonical ownership.
-- **D14 already inherits substantial Bond influence through D2.** No additional safe parent Bond bonus was identified that would improve cross-family arbitration without double-counting D2 or creating a second strategy authority.
-- **Build Health is not wired into new SHOP pressure because shop-time authoritative score projections are not proven persisted on base `BalatroState`.** A new pressure bonus could therefore misclassify states from missing projections and is not staged.
+## Audit method — three semantically related Bonds per batch
 
-Semantic validation of the staged D9 hypothesis:
+Do **not** audit alphabetically and do **not** mix unrelated Bonds merely to fill a batch. Use groups of three that share a meaningful mechanical engine or infrastructure concept.
 
-- focused D9 regression module: **user-confirmed GREEN** after `c1f8422`;
-- full deterministic Balatro suite: **user-confirmed GREEN** at `b8ef51b9`;
-- stale tests asserting the retired forced-Buffoon-pick contract were aligned in `aaa01d8f`;
-- unrelated stale/over-coupled test fixtures were isolated in `97049e62`, `f099b0ba`, and `b8ef51b9` without changing production behavior.
+For every Bond in a batch, audit the complete vertical slice:
 
-The staged live hypothesis is deliberately narrow: allowing canonical D2 to reject or replace visible Buffoon Jokers should reduce one source of incoherent/weak forced Joker acquisition. The effect may be infrequent because it applies only when Buffoon packs are opened, so live analysis must inspect both overall run outcomes and whether D9 Buffoon decisions actually occur before deciding whether this mechanism materially addresses the broader cash-rich/underpowered-build failure mode.
+1. **Definition / intended Balatro mechanic** — what strategic concept the Bond is supposed to represent and whether that abstraction makes sense.
+2. **Contributors** — every Joker/card/voucher/consumable/state feature that contributes, contribution magnitude, unlock/realization conditions, and whether any relevant contributor is missing or unrelated contributor is included.
+3. **Ranks R0–R5** — thresholds, whether progression is too easy/hard, and whether rank meaning corresponds to actual build development.
+4. **Mechanical roles and targets** — correctness of role ontology, targets, and whether flat scoring/scaling/XMult/retrigger/economy/infrastructure distinctions are preserved.
+5. **Relationships** — all declared synergy/conflict/neutral relationships to the rest of the Bond catalogue, including false positives and false negatives.
+6. **Strategy effects** — how the Bond participates in semantic/behavior candidates, commitment, motif recognition, StrategyPlan goals, completion, and D2 transition bonuses.
+7. **Failure cases** — concrete public states where the Bond should matter, should not matter, should be forming/established, or should lose to a stronger alternative.
+8. **Tests** — whether existing tests prove those semantics or merely exercise code paths.
+
+Classify each audited Bond as exactly one of:
+
+- **GOOD** — semantics and coverage are adequate;
+- **NEEDS MINOR FIX** — local factual/threshold/role/relationship issue without conceptual redesign;
+- **DESIGN PROBLEM** — abstraction or downstream meaning is materially wrong;
+- **MISSING COVERAGE** — semantics look plausible but are not adequately proven.
+
+### Audit discipline
+
+- Default to **audit first, redesign second**.
+- Do not introduce cross-cutting strategy/composer redesign while the Bond catalogue is only partially audited.
+- A narrowly isolated factual catalogue correction may be staged early only when it is unambiguous and cannot conceal a broader design issue; otherwise record it in the defect map and continue.
+- Do not tune numeric weights merely to make an audited Bond “look better.”
+- Do not run another live batch during the catalogue audit.
+- Preserve literal Balatro mechanics and public-information boundaries.
+
+## Catalogue audit order
+
+Batches are chosen by semantic cohesion. Reorder only if repo inspection proves a different grouping is materially cleaner.
+
+### Batch 1 — held-card engine core — NEXT
+
+1. `held_cards`
+2. `held_retrigger`
+3. `kings`
+
+Reason: these three sit at the core of the Baron/Mime/held-card strategy family and therefore exercise contribution semantics, retrigger amplification, rank-specific payoff/infrastructure, motif participation, and relationship quality together.
+
+### Later catalogue batches
+
+Determine subsequent trios from the actual catalogue after Batch 1 so they remain semantically coherent. Likely families include:
+
+- face-card / played-retrigger packages;
+- low-rank / played-retrigger packages;
+- enhancement feed/payoff packages;
+- hand-level / hand-payoff packages;
+- suit infrastructure/payoff packages;
+- economy engine/payoff packages;
+- deck-thinning / deck-growth infrastructure and payoff packages;
+- copy/scaler packages;
+- remaining hand-shape and generic scoring Bonds.
+
+Do not lock exact later trio membership until the catalogue files and relationship graph are inspected.
+
+## Higher-layer audit after the Bond catalogue
+
+Only after all Bond batches are classified, audit these layers in order:
+
+1. **global relationship graph** — systemic false-positive/false-negative synergy/conflict patterns;
+2. **mechanical-role ontology** — whether the available roles can express Balatro engines without collapsing support, flat power, scaling, and multiplicative power;
+3. **motifs** — completeness, activation, maturity, prescriptions, and whether named motifs duplicate or repair generic semantics;
+4. **strategy formation** — `FORMING / PINNED / ESTABLISHED / DOMINANT`, candidate ranking, confidence/strength, and pivot semantics;
+5. **StrategyPlan** — package completion versus engine power/scaling trajectory and missing-goal representation;
+6. **composer** — coherence, conflicts, pivot resistance, temporal persistence, observed-hand fallback, and whether a pinned strategy is actually a durable run-level thesis;
+7. **Build Health boundary** — determine whether engine sufficiency/stalled-underpowered state belongs there rather than duplicating score authority inside Bond;
+8. **canonical consumers** — D2, D4, D9, D14, and D1 strategy evidence consume the corrected model consistently without creating a second arbiter.
+
+The key target distinction is:
+
+- **structural coherence** — do these pieces mechanically reinforce each other?
+- **engine sufficiency / power trajectory** — is the coherent engine realized/scaling enough for the current run stage?
+
+Do not collapse those into one score unless the completed audit proves that is semantically sound.
 
 ## Runtime — sticky public `won` GAME_OVER restart — VALIDATED
 
@@ -360,23 +421,23 @@ Balatro's public `won` bit can remain sticky after a later Ante-8 GAME_OVER loss
 
 # EXACT NEXT ACTION
 
-Run one controlled **10-attempt Red Deck / White Stake production comparison** on the semantically validated D9 structural correction:
+Start **Full Bond Model Audit — Batch 1** with:
 
-```powershell
-git pull
-.\BalatroAgentToggle.bat --attempts 10
+1. `held_cards`
+2. `held_retrigger`
+3. `kings`
 
-```
+For this batch:
 
-Then analyze the resulting session/attempt traces before changing any thresholds or adding another structural patch. Record at minimum:
+1. locate their canonical definitions across the Bond catalogue and any calibration/realization helpers;
+2. enumerate every contributor and threshold for each Bond;
+3. trace mechanical roles/targets and every relationship involving these Bonds;
+4. trace their motif/strategy/StrategyPlan/composer effects, especially Baron/Mime/Steel;
+5. inspect semantic tests and identify missing failure cases;
+6. classify each Bond as **GOOD / NEEDS MINOR FIX / DESIGN PROBLEM / MISSING COVERAGE**;
+7. record a concrete defect map before changing production behavior.
 
-1. authoritative wins/losses and death antes;
-2. furthest depth and representative death score ratios;
-3. cash/Joker-board state at medium/late losses;
-4. every opened Buffoon decision if present — visible Jokers, D2 BUY/HOLD/REPLACE outcome, whether Skip won, and replacement sequence where applicable;
-5. whether the prior cash-rich/full-board-but-underpowered pattern materially changes.
-
-If the batch contains no or too few opened Buffoon decisions to test the mechanism directly, do not infer that the D9 correction failed; record the low exposure and select the next evidence-backed structural mechanism from the audit. Do **not** stage numerical Tune G until this batch is analyzed.
+Do **not** run another live batch or stage Tune G during this audit. Do **not** perform a cross-cutting Bond redesign until the catalogue audit is complete unless an isolated factual defect must be corrected to continue the audit accurately.
 
 # Phase order
 
@@ -386,7 +447,7 @@ If the batch contains no or too few opened Buffoon decisions to test the mechani
 4. Phase 3 — coherent build evidence/authority quality — COMPLETE
 5. Phase 4 — complex packs/consumables/vouchers/economy audit — COMPLETE
 6. Phase 5 — live validation — COMPLETE
-7. Phase 6 — numerical/action-quality tuning and build-planning utilization — ACTIVE
+7. Phase 6 — numerical/action-quality tuning and full Bond-model audit — ACTIVE
 
 Future stake/deck progression remains blocked until Red/White competence passes.
 
