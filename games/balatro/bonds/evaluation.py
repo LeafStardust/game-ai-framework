@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import replace
 from typing import Any, Callable
 
 from games.balatro.bonds.burnt import evaluate_hand_leveling_bond
@@ -10,6 +9,7 @@ from games.balatro.bonds.catalogue_batch_three import BATCH_THREE_EVALUATORS
 from games.balatro.bonds.catalogue_batch_four import BATCH_FOUR_EVALUATORS
 from games.balatro.bonds.catalogue_batch_five import BATCH_FIVE_EVALUATORS
 from games.balatro.bonds.composer import Composition, compose_build
+from games.balatro.bonds.gold_cards import evaluate_gold_cards_bond
 from games.balatro.bonds.held_cards import evaluate_held_cards_bond
 from games.balatro.bonds.model import BondDevelopment
 from games.balatro.bonds.no_face_cards import evaluate_no_face_cards_bond
@@ -19,15 +19,6 @@ from games.balatro.bonds.strategy_semantics import pinned_strategy
 from games.balatro.bonds.vampire import evaluate_enhancement_consumption_bond
 
 BondEvaluator = Callable[[Any], BondDevelopment]
-
-
-def _canonical_id_adapter(evaluator: BondEvaluator, bond_id: str) -> BondEvaluator:
-    """Temporary migration bridge for a legacy evaluator implementation."""
-    def adapted(state: Any) -> BondDevelopment:
-        development = evaluator(state)
-        return development if development.bond_id == bond_id else replace(development, bond_id=bond_id)
-    return adapted
-
 
 EVALUATORS: dict[str, BondEvaluator] = {}
 for family in (
@@ -42,14 +33,14 @@ for family in (
         raise RuntimeError(f"Duplicate Bond evaluator registration: {sorted(overlap)}")
     EVALUATORS.update(family)
 
-# `gold_economy` still lives in a legacy catalogue batch. Keep the compatibility
-# bridge local and explicit so it can be deleted when that batch is migrated.
-_legacy_gold = EVALUATORS.pop("gold_economy", None)
-if _legacy_gold is not None:
-    EVALUATORS["gold_cards"] = _canonical_id_adapter(_legacy_gold, "gold_cards")
+# The old catalogue batch still exports `gold_economy`; the canonical evaluator
+# now lives in gold_cards.py. Remove the legacy registration rather than letting
+# both vocabularies coexist in production evaluation.
+EVALUATORS.pop("gold_economy", None)
 
 for bond_id, evaluator in {
     "hand_leveling": evaluate_hand_leveling_bond,
+    "gold_cards": evaluate_gold_cards_bond,
     "held_cards": evaluate_held_cards_bond,
     "no_face_cards": evaluate_no_face_cards_bond,
     "enhancement_consumption": evaluate_enhancement_consumption_bond,
