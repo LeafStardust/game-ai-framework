@@ -19,6 +19,7 @@ from games.balatro.bonds.mechanical_core import (
 from games.balatro.bonds.mechanical_engines import MECHANICAL_ENGINE_EVALUATORS
 from games.balatro.bonds.mechanical_patterns import MECHANICAL_PATTERN_EVALUATORS
 from games.balatro.bonds.mechanical_rank_consumables import MECHANICAL_RANK_CONSUMABLE_EVALUATORS
+from games.balatro.bonds.mechanical_residue import MECHANICAL_RESIDUE_EVALUATORS
 from games.balatro.bonds.model import BondDevelopment
 from games.balatro.bonds.no_face_cards import evaluate_no_face_cards_bond
 from games.balatro.bonds.realization import FROZEN_BOND_IDS, realize_bond
@@ -51,6 +52,7 @@ for legacy_id in (
     *MECHANICAL_ENGINE_EVALUATORS,
     *MECHANICAL_PATTERN_EVALUATORS,
     *MECHANICAL_RANK_CONSUMABLE_EVALUATORS,
+    *MECHANICAL_RESIDUE_EVALUATORS,
 ):
     EVALUATORS.pop(legacy_id, None)
 
@@ -66,6 +68,7 @@ canonical_evaluators: dict[str, BondEvaluator] = {
     **MECHANICAL_ENGINE_EVALUATORS,
     **MECHANICAL_PATTERN_EVALUATORS,
     **MECHANICAL_RANK_CONSUMABLE_EVALUATORS,
+    **MECHANICAL_RESIDUE_EVALUATORS,
 }
 for bond_id, evaluator in canonical_evaluators.items():
     if bond_id in EVALUATORS:
