@@ -9,6 +9,10 @@ from games.balatro.state import BalatroState
 
 
 class DummyJoker(Joker):
+    def __init__(self, native_gain=0.0):
+        super().__init__()
+        self.native_gain = float(native_gain)
+
     def apply(self, context: JokerContext) -> JokerContext:
         return context
 
@@ -16,16 +20,13 @@ class DummyJoker(Joker):
 class FixedNativeEvaluator:
     """Deterministic mechanical evaluator for the installed post-transaction owner."""
 
-    def __init__(self, values):
-        self.values = dict(values)
-
     def evaluate(self, state, joker):
         del state
-        return SimpleNamespace(total_gain=float(self.values.get(id(joker), 0.0)))
+        return SimpleNamespace(total_gain=float(joker.native_gain))
 
 
-def _policy_with_native_values(values) -> JokerAcquisitionPolicy:
-    planner = SimpleNamespace(evaluator=FixedNativeEvaluator(values))
+def _policy_with_native_values() -> JokerAcquisitionPolicy:
+    planner = SimpleNamespace(evaluator=FixedNativeEvaluator())
     return JokerAcquisitionPolicy(transition_planner=planner)
 
 
@@ -57,8 +58,8 @@ def test_joker_transition_uses_canonical_strategy_delta_and_domain_projection(mo
 def test_joker_add_scoring_preserves_post_transaction_native_gain_and_adds_strategy_delta():
     state = BalatroState()
     state.money = 20
-    candidate = DummyJoker()
-    policy = _policy_with_native_values({id(candidate): 2.0})
+    candidate = DummyJoker(native_gain=2.0)
+    policy = _policy_with_native_values()
 
     strategy_adjustment, _ = _bond_transition_bonus(state, candidate)
     # The installed post-transaction authority intentionally recomputes this term
@@ -76,15 +77,10 @@ def test_joker_add_scoring_preserves_post_transaction_native_gain_and_adds_strat
 def test_joker_replacement_preserves_post_transaction_native_delta_and_adds_strategy_delta():
     state = BalatroState()
     state.money = 20
-    incumbent = DummyJoker()
-    candidate = DummyJoker()
+    incumbent = DummyJoker(native_gain=1.0)
+    candidate = DummyJoker(native_gain=5.0)
     state.jokers = [incumbent]
-    policy = _policy_with_native_values(
-        {
-            id(incumbent): 1.0,
-            id(candidate): 5.0,
-        }
-    )
+    policy = _policy_with_native_values()
     replacement = SimpleNamespace(
         replace_index=0,
         # The installed owner recomputes 5 - 1 = 4 from the resulting state.
