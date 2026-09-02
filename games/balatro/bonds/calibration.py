@@ -3,7 +3,7 @@ from __future__ import annotations
 """Typed numerical calibration surface for the canonical Bond composer.
 
 This module contains production defaults and a context-local override mechanism for
-offline experiments.  It deliberately has no Optuna dependency.  Normal runtime
+offline experiments. It deliberately has no Optuna dependency. Normal runtime
 imports always see ``DEFAULT_BOND_CALIBRATION`` unless an offline evaluator enters
 ``use_bond_calibration`` explicitly.
 """
@@ -13,15 +13,13 @@ from contextvars import ContextVar
 from dataclasses import asdict, dataclass, replace
 from typing import Iterator, Mapping
 
-from games.balatro.bonds.model import BondRank
-
 
 SCHEMA_VERSION = 1
 
 
 @dataclass(frozen=True)
 class BondCalibration:
-    """Numerical composer calibration with defaults equal to current production."""
+    """Numerical composer calibration for canonical structural Bond evidence."""
 
     realization_priority_weight: float = 0.75
     synergy_bonus: float = 1.50
@@ -29,11 +27,6 @@ class BondCalibration:
     motif_potential_value: float = 1.00
     motif_active_value: float = 4.00
     motif_mature_value: float = 7.00
-    pivot_resistance_r1: float = 0.50
-    pivot_resistance_r2: float = 1.00
-    pivot_resistance_r3: float = 2.50
-    pivot_resistance_r4: float = 4.50
-    pivot_resistance_r5: float = 7.00
 
     def __post_init__(self) -> None:
         non_negative = (
@@ -43,11 +36,6 @@ class BondCalibration:
             "motif_potential_value",
             "motif_active_value",
             "motif_mature_value",
-            "pivot_resistance_r1",
-            "pivot_resistance_r2",
-            "pivot_resistance_r3",
-            "pivot_resistance_r4",
-            "pivot_resistance_r5",
         )
         for name in non_negative:
             value = float(getattr(self, name))
@@ -61,29 +49,6 @@ class BondCalibration:
         )
         if not motif[0] <= motif[1] <= motif[2]:
             raise ValueError("motif values must satisfy POTENTIAL <= ACTIVE <= MATURE")
-
-        pivot = tuple(float(value) for value in self.pivot_resistance_values())
-        if not all(left <= right for left, right in zip(pivot, pivot[1:])):
-            raise ValueError("pivot resistance must be monotonic from R1 through R5")
-
-    def pivot_resistance_values(self) -> tuple[float, float, float, float, float]:
-        return (
-            self.pivot_resistance_r1,
-            self.pivot_resistance_r2,
-            self.pivot_resistance_r3,
-            self.pivot_resistance_r4,
-            self.pivot_resistance_r5,
-        )
-
-    def pivot_resistance(self, rank: BondRank) -> float:
-        mapping = {
-            BondRank.R1: self.pivot_resistance_r1,
-            BondRank.R2: self.pivot_resistance_r2,
-            BondRank.R3: self.pivot_resistance_r3,
-            BondRank.R4: self.pivot_resistance_r4,
-            BondRank.R5: self.pivot_resistance_r5,
-        }
-        return float(mapping.get(rank, 0.0))
 
     def to_dict(self) -> dict[str, float | int]:
         return {"schema_version": SCHEMA_VERSION, **asdict(self)}
