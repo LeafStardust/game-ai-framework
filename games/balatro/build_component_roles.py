@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.evaluation import evaluate_bond_structure
 from games.balatro.bonds.model import BondRank, BondRealization
 from games.balatro.build_health_runtime import RealizedEngineAnalyzer
 
@@ -101,7 +101,7 @@ def _development_priority(development) -> tuple[float, float, float]:
 
 
 class BuildComponentRoleClassifier:
-    """Classify owned Jokers from canonical Bond composition and realized engines.
+    """Classify owned Jokers from canonical Bond structure and realized engines.
 
     This classifier is structural rather than a second value catalogue. A Joker is
     an ENGINE when it participates in a realized scaling engine, CORE when it is a
@@ -118,7 +118,7 @@ class BuildComponentRoleClassifier:
         # strategy state has no authority in the canonical Bond classifier.
         del strategy_tracker
 
-        developments, composition = evaluate_bond_composition(state)
+        developments, composition = evaluate_bond_structure(state)
         selected_ids = set(composition.bond_ids)
         conflict_losers = {left for left, _right in composition.conflicts}
         engines = {
