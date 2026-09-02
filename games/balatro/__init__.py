@@ -50,7 +50,6 @@ from games.balatro.spectral_booster_expectation_policy import install_spectral_b
 from games.balatro.stable_economy_mechanics_policy import install_stable_economy_mechanics_policy
 from games.balatro.standard_booster_expectation_policy import install_standard_booster_expectation_policy
 from games.balatro.stateful_joker_admission_policy import install_stateful_joker_admission_policy
-from games.balatro.strategy_authority_correction_policy import install_strategy_authority_correction_policy
 from games.balatro.strategy_plan_pack_policy import install_strategy_plan_pack_policy
 from games.balatro.strategy_resource_coherence_policy import install_strategy_resource_coherence_policy
 from games.balatro.tactical_scaler_build_health import install_tactical_scaler_build_health_policy
@@ -107,11 +106,12 @@ install_face_card_enabler_bond_policy()
 # projected StrategyDelta. Do not reinstall the historical R0/PINNED/FORMING
 # transition or retention controllers around that canonical owner.
 # D9 exact persistent pack outcomes are already migrated through
-# install_strategy_plan_pack_policy(); do not add pinned seek_feature execution
-# bonuses after the canonical projected StrategyDelta scorer.
+# install_strategy_plan_pack_policy(); do not add pinned/forming StrategyPlan
+# execution bonuses after the canonical projected StrategyDelta scorer.
+# D14 likewise consumes H1's canonical D2 build gain; do not add manual
+# missing-component recruitment bonuses from StrategyPlan state.
 install_strategy_plan_pack_policy()
 install_strategy_resource_coherence_policy()
-install_strategy_authority_correction_policy()
 install_planet_pack_fallback_policy()
 install_live_decision_quality_policy()
 install_stateful_joker_admission_policy()
