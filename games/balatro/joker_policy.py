@@ -4,9 +4,7 @@ import copy
 from dataclasses import dataclass, fields
 from typing import Mapping
 
-from games.balatro.bonds.evaluation import evaluate_bond_composition
-from games.balatro.bonds.model import BondRank
-from games.balatro.bonds.strategy_semantics import StrategyCommitment
+from games.balatro.bonds.strategy_delta import strategy_delta_from_states
 from games.balatro.build import JokerBuildTransitionPlanner
 from games.balatro.joker import Joker
 from games.balatro.joker_edition import (
@@ -23,16 +21,12 @@ HOLD = "HOLD"
 
 _EARLY_ENGINE_ANTE_LIMIT = 2
 _FIRST_ENGINE_MINIMUM_CASH_AFTER = 2
+# Initial integration calibration only. Live tuning belongs to Phase L.
+_JOKER_STRATEGY_WEIGHT = 0.10
 
 
 def _has_current_scoring_foothold(candidate_value: object) -> bool:
-    """Return whether D2's literal whole-build probe found current scoring power.
-
-    The early first-Joker relaxation exists to establish a scoring foothold, not
-    merely any positive structural/economy axis. ``direct_scoring_gain`` is already
-    computed by the canonical Joker build evaluator from public literal score
-    projections, so reusing it adds no second scorer or hidden-state inference.
-    """
+    """Return whether D2's literal whole-build probe found current scoring power."""
     try:
         return float(getattr(candidate_value, "direct_scoring_gain", 0.0) or 0.0) > 0.0
     except (TypeError, ValueError):
@@ -42,6 +36,7 @@ def _has_current_scoring_foothold(candidate_value: object) -> bool:
 @dataclass(frozen=True)
 class JokerAcquisitionThresholds:
     """Thresholds owned only by D2 Joker acquisition/replacement decisions."""
+
     minimum_purchase_build_gain: float = 0.0
     minimum_purchase_advantage: float = 0.35
     minimum_replacement_build_delta: float = 0.0
@@ -56,10 +51,16 @@ class JokerAcquisitionThresholds:
 
     def __post_init__(self) -> None:
         nonnegative = (
-            "minimum_purchase_build_gain", "minimum_purchase_advantage",
-            "minimum_replacement_build_delta", "minimum_replacement_advantage",
-            "aligned_minimum_replacement_advantage", "price_weight", "interest_weight",
-            "reserve_weight", "last_joker_slot_penalty", "penultimate_joker_slot_penalty",
+            "minimum_purchase_build_gain",
+            "minimum_purchase_advantage",
+            "minimum_replacement_build_delta",
+            "minimum_replacement_advantage",
+            "aligned_minimum_replacement_advantage",
+            "price_weight",
+            "interest_weight",
+            "reserve_weight",
+            "last_joker_slot_penalty",
+            "penultimate_joker_slot_penalty",
         )
         for name in nonnegative:
             if float(getattr(self, name)) < 0.0:
@@ -95,7 +96,13 @@ class JokerTransactionEconomics:
 
     @property
     def total_adjustment(self) -> float:
-        return self.edition_delta - self.price_penalty - self.interest_penalty - self.reserve_penalty - self.slot_penalty
+        return (
+            self.edition_delta
+            - self.price_penalty
+            - self.interest_penalty
+            - self.reserve_penalty
+            - self.slot_penalty
+        )
 
 
 @dataclass(frozen=True)
@@ -120,112 +127,28 @@ class JokerAcquisitionDecision:
     rationale: tuple[str, ...] = ()
 
 
-def _strategy_candidate(composition, strategy_id: str | None):
-    if not strategy_id:
-        return None
-    return next(
-        (
-            candidate
-            for candidate in tuple(getattr(composition, "strategy_candidates", ()) or ())
-            if str(getattr(candidate, "strategy_id", "") or "") == str(strategy_id)
-        ),
-        None,
-    )
+def _project_joker_transition(
+    state: BalatroState,
+    candidate: Joker,
+    *,
+    replace_index: int | None = None,
+) -> BalatroState:
+    """Project only the public persistent Joker ownership transition.
 
-
-def _plan_missing_count(plan) -> int:
-    if plan is None:
-        return 0
-    return len(tuple(getattr(plan, "missing_components", ()) or ())) + len(
-        tuple(getattr(plan, "missing_features", ()) or ())
-    )
-
-
-def _strategy_transition_bonus(before_comp, after_comp) -> tuple[float, tuple[str, ...]]:
-    """Bounded strategy-formation value that stays inside D2's Bond budget.
-
-    Development rank, realization, strategy commitment and Build Health remain
-    separate axes. This term therefore rewards only public structural transitions:
-    forming a pinned strategy, strengthening/advancing the same pinned strategy,
-    resolving explicit plan gaps, or pivoting to a materially stronger pinned plan.
-    It does not fabricate direct score and it never bypasses D2 admission/economics.
+    Mechanical score/economy projection remains owned by D2's existing build
+    planner. This projector exists solely so canonical StrategyDelta can compare
+    the resulting persistent build state.
     """
-
-    before_id = getattr(before_comp, "pinned_strategy_id", None)
-    after_id = getattr(after_comp, "pinned_strategy_id", None)
-    before_candidate = _strategy_candidate(before_comp, before_id)
-    after_candidate = _strategy_candidate(after_comp, after_id)
-    before_plan = getattr(before_comp, "strategy_plan", None)
-    after_plan = getattr(after_comp, "strategy_plan", None)
-
-    value = 0.0
-    notes: list[str] = []
-
-    if before_candidate is None and after_candidate is not None:
-        after_commitment = getattr(after_candidate, "commitment", StrategyCommitment.EXPLORATORY)
-        if after_commitment >= StrategyCommitment.PINNED:
-            value += 1.25
-            notes.append(
-                f"strategy formed={after_candidate.strategy_id} commitment={after_commitment.name}"
-            )
-
-    elif before_candidate is not None and after_candidate is not None:
-        before_commitment = getattr(before_candidate, "commitment", StrategyCommitment.EXPLORATORY)
-        after_commitment = getattr(after_candidate, "commitment", StrategyCommitment.EXPLORATORY)
-        before_strength = float(getattr(before_candidate, "strength", 0.0) or 0.0)
-        after_strength = float(getattr(after_candidate, "strength", 0.0) or 0.0)
-
-        if str(after_candidate.strategy_id) == str(before_candidate.strategy_id):
-            commitment_gain = max(0, int(after_commitment) - int(before_commitment))
-            if commitment_gain:
-                commitment_value = min(1.50, 0.75 * commitment_gain)
-                value += commitment_value
-                notes.append(
-                    f"strategy commitment={before_commitment.name}->{after_commitment.name}"
-                )
-
-            strength_gain = max(0.0, after_strength - before_strength)
-            if strength_gain > 0.0:
-                strength_value = min(0.75, 0.15 * strength_gain)
-                value += strength_value
-                notes.append(
-                    f"same-strategy strength={before_strength:.3f}->{after_strength:.3f}"
-                )
-        else:
-            strength_gain = after_strength - before_strength
-            if (
-                after_commitment >= StrategyCommitment.PINNED
-                and strength_gain >= 2.0
-            ):
-                pivot_value = min(1.25, 0.75 + 0.10 * (strength_gain - 2.0))
-                value += pivot_value
-                notes.append(
-                    "materially stronger pinned pivot="
-                    f"{before_candidate.strategy_id}:{before_strength:.3f}->"
-                    f"{after_candidate.strategy_id}:{after_strength:.3f}"
-                )
-
-    before_plan_id = str(getattr(before_plan, "strategy_id", "") or "")
-    after_plan_id = str(getattr(after_plan, "strategy_id", "") or "")
-    if before_plan_id and before_plan_id == after_plan_id:
-        before_completion = float(getattr(before_plan, "completion", 0.0) or 0.0)
-        after_completion = float(getattr(after_plan, "completion", 0.0) or 0.0)
-        completion_gain = max(0.0, after_completion - before_completion)
-        before_missing = _plan_missing_count(before_plan)
-        after_missing = _plan_missing_count(after_plan)
-        gaps_filled = max(0, before_missing - after_missing)
-        if completion_gain > 0.0 or gaps_filled > 0:
-            plan_value = min(1.00, 1.25 * completion_gain + 0.25 * min(2, gaps_filled))
-            value += plan_value
-            notes.append(
-                f"strategy plan progress={before_completion:.3f}->{after_completion:.3f}; "
-                f"missing goals={before_missing}->{after_missing}"
-            )
-
-    bounded = min(2.50, max(0.0, value))
-    if bounded <= 0.0:
-        return 0.0, ()
-    return bounded, tuple(notes)
+    copy_method = getattr(state, "copy", None)
+    projected = copy_method() if callable(copy_method) else copy.copy(state)
+    projected.jokers = list(getattr(state, "jokers", ()) or ())
+    if replace_index is None:
+        projected.jokers.append(candidate)
+    else:
+        if replace_index < 0 or replace_index >= len(projected.jokers):
+            raise IndexError("replacement Joker index out of range")
+        projected.jokers[replace_index] = candidate
+    return projected
 
 
 def _bond_transition_bonus(
@@ -234,185 +157,39 @@ def _bond_transition_bonus(
     *,
     replace_index: int | None = None,
 ) -> tuple[float, tuple[str, ...]]:
-    """Bounded long-horizon value from canonical Bond/composition transitions.
+    """Compatibility name for the canonical whole-build StrategyDelta term.
 
-    Immediate score probes systematically undervalue engines such as Burnt Joker.
-    D2 therefore projects only the public one-Joker transition and rewards actual
-    Bond development plus canonical strategy formation. All structural authority is
-    contained inside the existing four-point Bond-transition budget.
+    The former implementation separately rewarded Bond ranks, coherence,
+    pinned strategies, StrategyPlan progress, legacy motifs, and pivot state.
+    Phase H replaces that parallel authority with exactly one projected
+    BuildValue comparison. The name remains temporarily to avoid widening this
+    migration slice; its semantics are now entirely canonical.
     """
     try:
-        before, before_comp = evaluate_bond_composition(state)
-        projected = copy.copy(state)
-        projected.jokers = list(getattr(state, "jokers", ()) or ())
-        if replace_index is None:
-            projected.jokers.append(candidate)
-        else:
-            if replace_index < 0 or replace_index >= len(projected.jokers):
-                return 0.0, ()
-            projected.jokers[replace_index] = candidate
-        after, after_comp = evaluate_bond_composition(projected)
-    except (AttributeError, TypeError, ValueError):
+        projected = _project_joker_transition(
+            state,
+            candidate,
+            replace_index=replace_index,
+        )
+        delta = strategy_delta_from_states(state, projected)
+    except (AttributeError, IndexError, KeyError, TypeError, ValueError):
         return 0.0, ()
 
-    before_by_id = {d.bond_id: d for d in before}
-    established_before = {
-        development.bond_id
-        for development in before
-        if int(getattr(development, "rank", BondRank.LOCKED)) >= int(BondRank.R1)
-    }
-    established_rank_gain = 0.0
-    new_rank_gain = 0.0
-    progress_gain = 0.0
-    improved = []
-    for development in after:
-        previous = before_by_id.get(development.bond_id)
-        raw_old_rank = (
-            int(getattr(previous, "rank", BondRank.LOCKED))
-            if previous is not None
-            else int(BondRank.LOCKED)
-        )
-        old_rank = max(0, raw_old_rank)
-        new_rank = int(getattr(development, "rank", BondRank.LOCKED))
-        if new_rank > old_rank:
-            gain = float(new_rank - old_rank)
-            if old_rank >= int(BondRank.R1):
-                established_rank_gain += gain
-            else:
-                new_rank_gain += gain
-            improved.append(
-                f"{development.bond_id}:"
-                f"{BondRank(raw_old_rank).name if raw_old_rank in range(-1, 6) else raw_old_rank}"
-                f"->{development.rank.name}"
-            )
-        old_contribution = (
-            float(getattr(previous, "contribution", 0.0) or 0.0)
-            if previous is not None
-            else 0.0
-        )
-        delta = max(
-            0.0,
-            float(getattr(development, "contribution", 0.0) or 0.0) - old_contribution,
-        )
-        threshold = float(getattr(development, "next_rank_threshold", 0.0) or 0.0)
-        if old_rank >= int(BondRank.R1) and delta > 0.0 and threshold > 0.0:
-            progress_gain += min(1.0, delta / threshold)
-
-    coherence_delta = max(
-        0.0,
-        float(getattr(after_comp, "coherence_score", 0.0) or 0.0)
-        - float(getattr(before_comp, "coherence_score", 0.0) or 0.0),
-    )
-    strategy_value, strategy_notes = _strategy_transition_bonus(before_comp, after_comp)
-
-    before_synergies = set(tuple(value) for value in getattr(before_comp, "synergies", ()) or ())
-    after_synergies = set(tuple(value) for value in getattr(after_comp, "synergies", ()) or ())
-    new_synergies = after_synergies.difference(before_synergies)
-    # A single newly acquired component may contribute to multiple Bond labels.
-    # Do not reward those labels for being "synergistic" with each other unless the
-    # purchase actually connects to an axis that existed before the transaction.
-    # This keeps structural reward for genuine reinforcement (Erosion -> Trading
-    # Card) while preventing Trading Card alone from manufacturing its own synergy.
-    reinforcing_synergies = {
-        pair for pair in new_synergies if established_before.intersection(pair)
-    }
-    synergy_gain = len(reinforcing_synergies)
-    suppressed_self_synergies = len(new_synergies) - synergy_gain
-
-    before_motifs = {
-        str(motif.motif_id): motif
-        for motif in tuple(getattr(before_comp, "motifs", ()) or ())
-    }
-    motif_gain = 0.0
-    for motif in tuple(getattr(after_comp, "motifs", ()) or ()):
-        previous = before_motifs.get(str(motif.motif_id))
-        old_state = int(getattr(previous, "state", 0) or 0) if previous is not None else 0
-        new_state = int(getattr(motif, "state", 0) or 0)
-        state_gain = max(0, new_state - old_state)
-        old_missing = len(tuple(getattr(previous, "missing_components", ()) or ())) if previous is not None else len(tuple(getattr(motif, "missing_components", ()) or ())) + 1
-        new_missing = len(tuple(getattr(motif, "missing_components", ()) or ()))
-        motif_gain += float(state_gain) + 0.5 * max(0, old_missing - new_missing)
-
-    before_conflicts = {
-        frozenset(str(bond_id) for bond_id in pair)
-        for pair in tuple(getattr(before_comp, "conflicts", ()) or ())
-    }
-    after_conflicts = {
-        frozenset(str(bond_id) for bond_id in pair)
-        for pair in tuple(getattr(after_comp, "conflicts", ()) or ())
-    }
-    selected_before = set(str(bond_id) for bond_id in tuple(getattr(before_comp, "bond_ids", ()) or ()))
-    new_conflicts = after_conflicts.difference(before_conflicts)
-    conflicts_with_selected = tuple(
-        sorted(tuple(sorted(pair)))
-        for pair in new_conflicts
-        if selected_before.intersection(pair)
-    )
-
-    before_pinned = _strategy_candidate(before_comp, getattr(before_comp, "pinned_strategy_id", None))
-    after_pinned = _strategy_candidate(after_comp, getattr(after_comp, "pinned_strategy_id", None))
-    materially_stronger_pinned_pivot = False
-    if before_pinned is not None and after_pinned is not None:
-        before_strength = float(getattr(before_pinned, "strength", 0.0) or 0.0)
-        after_strength = float(getattr(after_pinned, "strength", 0.0) or 0.0)
-        materially_stronger_pinned_pivot = bool(
-            str(getattr(before_pinned, "strategy_id", ""))
-            != str(getattr(after_pinned, "strategy_id", ""))
-            and getattr(after_pinned, "commitment", StrategyCommitment.EXPLORATORY)
-            >= StrategyCommitment.PINNED
-            and after_strength - before_strength >= 2.0
-        )
-    conflicting_transition = bool(conflicts_with_selected) and not materially_stronger_pinned_pivot
-
-    has_existing_engine = bool(established_before)
-    aligned = bool(
-        not conflicting_transition
-        and (
-            established_rank_gain > 0.0
-            or synergy_gain > 0
-            or motif_gain > 0.0
-            or strategy_value > 0.0
-        )
-    )
-
-    if conflicting_transition:
-        conflict_weight = max(
-            1.0,
-            established_rank_gain + new_rank_gain + min(1.0, progress_gain),
-        )
-        adjustment = -min(1.50, 0.75 * conflict_weight)
-    elif aligned:
-        adjustment = min(
-            4.0,
-            1.75 * (established_rank_gain + new_rank_gain)
-            + 0.50 * min(1.0, progress_gain)
-            + 0.50 * min(2, synergy_gain)
-            + 0.75 * min(2.0, motif_gain)
-            + strategy_value,
-        )
-    elif new_rank_gain > 0.0 and not has_existing_engine:
-        adjustment = min(0.50, 0.50 * new_rank_gain)
-    elif new_rank_gain > 0.0:
-        adjustment = -min(1.50, 0.75 * new_rank_gain)
-    else:
-        adjustment = min(0.50, 0.35 * min(1.0, progress_gain))
-
-    if abs(adjustment) <= 1e-12:
+    weighted = _JOKER_STRATEGY_WEIGHT * float(delta.value)
+    if abs(weighted) <= 1e-12:
         return 0.0, ()
-    return adjustment, (
-        f"canonical Bond transition adjustment={adjustment:+.3f}",
-        f"established rank gain={established_rank_gain:.1f}; new-axis rank gain={new_rank_gain:.1f}; "
-        f"progress gain={progress_gain:.3f}; synergy gain={synergy_gain}; motif gain={motif_gain:.3f}; "
-        f"coherence delta={coherence_delta:.3f}; strategy value={strategy_value:.3f}",
-        *((f"suppressed same-purchase synergy count={suppressed_self_synergies}",) if suppressed_self_synergies else ()),
-        *(("Bond rank transitions=" + ", ".join(improved),) if improved else ()),
-        *(("new conflicts with selected composition=" + ", ".join("/".join(pair) for pair in conflicts_with_selected),) if conflicts_with_selected else ()),
-        *strategy_notes,
+    return weighted, (
+        f"canonical StrategyDelta={delta.value:+.3f}",
+        f"raw BuildValue delta={delta.raw_delta:+.3f}",
+        f"transition inertia={delta.transition_cost:.3f}",
+        f"Joker strategy weight={_JOKER_STRATEGY_WEIGHT:.3f}",
+        f"weighted strategic adjustment={weighted:+.3f}",
     )
 
 
 class JokerAcquisitionPolicy:
     """D2 build-aware Joker buy/replace decision with explicit HOLD baseline."""
+
     EDITION_BONUSES = EDITION_UNIVERSAL_VALUES
 
     def __init__(
@@ -438,6 +215,7 @@ class JokerAcquisitionPolicy:
                 self.thresholds,
                 ("candidate is not a modeled Joker",),
             )
+
         transition = self.transition_planner.plan(state, candidate)
         slot_neutral = joker_has_negative_edition(candidate)
         if len(state.jokers) < int(state.joker_slots) or slot_neutral:
@@ -481,7 +259,7 @@ class JokerAcquisitionPolicy:
             if first_engine_bootstrap:
                 action = BUY
 
-            rationale_parts = []
+            rationale_parts: list[str] = []
             if slot_neutral:
                 rationale_parts.append(
                     "Negative edition is slot-neutral; no incumbent replacement is required"
@@ -574,8 +352,8 @@ class JokerAcquisitionPolicy:
         *,
         strategic_conflict: bool = False,
     ) -> JokerAcquisitionOption:
-        bond_bonus, bond_notes = _bond_transition_bonus(state, candidate)
-        build_gain = float(build_gain) + bond_bonus
+        strategy_adjustment, strategy_notes = _bond_transition_bonus(state, candidate)
+        build_gain = float(build_gain) + strategy_adjustment
         economics = self._economics(state, candidate, incumbent=None, replacement=False)
         eligible = (
             economics.money_after >= 0
@@ -593,21 +371,30 @@ class JokerAcquisitionPolicy:
             economics,
             eligible,
             rationale=(
-                f"whole-build gain including Bond projection={build_gain:.3f}",
-                *bond_notes,
+                f"whole-build gain including StrategyDelta={build_gain:.3f}",
+                *strategy_notes,
                 f"net spend=${economics.net_spend}",
                 f"money after=${economics.money_after}",
                 f"economic adjustment={economics.total_adjustment:.3f}",
             ),
         )
 
-    def _score_replacement(self, state: BalatroState, candidate: Joker, replacement) -> JokerAcquisitionOption:
+    def _score_replacement(
+        self,
+        state: BalatroState,
+        candidate: Joker,
+        replacement,
+    ) -> JokerAcquisitionOption:
         index = int(replacement.replace_index)
         incumbent = state.jokers[index]
         economics = self._economics(state, candidate, incumbent=incumbent, replacement=True)
-        bond_bonus, bond_notes = _bond_transition_bonus(state, candidate, replace_index=index)
+        strategy_adjustment, strategy_notes = _bond_transition_bonus(
+            state,
+            candidate,
+            replace_index=index,
+        )
         raw_build_delta = float(replacement.build_delta)
-        build_gain = raw_build_delta + bond_bonus
+        build_gain = raw_build_delta + strategy_adjustment
         eligible = (
             bool(getattr(replacement, "eligible", True))
             and getattr(replacement, "blocked_reason", None) is None
@@ -627,7 +414,7 @@ class JokerAcquisitionPolicy:
             rationale=(
                 *replacement.rationale,
                 f"raw whole-build replacement delta={raw_build_delta:.3f}",
-                *bond_notes,
+                *strategy_notes,
                 f"sell credit=${economics.sell_credit}",
                 f"net spend=${economics.net_spend}",
                 f"money after=${economics.money_after}",
