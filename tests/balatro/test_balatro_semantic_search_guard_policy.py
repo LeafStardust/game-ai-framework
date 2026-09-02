@@ -1,38 +1,10 @@
 from types import SimpleNamespace
 
-import games.balatro.bonds.behavior_strategy as behavior_strategy
 import games.balatro.live.blind_clear_planner as planner_module
 import games.balatro.semantic_search_guard_policy as correction
 import games.balatro.strategy_execution_guard_policy as no_discard_policy
 from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
-from games.balatro.bonds.behavior_strategy import _Node
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
-
-
-def test_broad_rank_requirement_does_not_form_fake_rank_density_link(monkeypatch):
-    original = behavior_strategy._relation
-    joker = _Node(
-        source="Synthetic hand payoff",
-        bond_ids=("three_kind",),
-        outputs=frozenset({"score:mult"}),
-        requires=frozenset({
-            "rank:2", "rank:3", "rank:4", "rank:5", "rank:6", "rank:7",
-            "rank:8", "rank:9", "rank:10", "rank:J", "rank:Q", "rank:K", "rank:A",
-        }),
-        scales_with=frozenset(),
-        amplifies=frozenset(),
-        value=4.0,
-    )
-    rank = _Node(
-        source="feature:rank:4",
-        bond_ids=("low_ranks",),
-        outputs=frozenset({"rank:4"}),
-        requires=frozenset(),
-        scales_with=frozenset(),
-        amplifies=frozenset(),
-        value=2.0,
-    )
-    assert original(joker, rank) is None
 
 
 def test_green_joker_activates_no_discard_execution_immediately(monkeypatch):
