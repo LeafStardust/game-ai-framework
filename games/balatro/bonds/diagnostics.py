@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.evaluation import evaluate_bond_structure
 from games.balatro.bonds.model import BondDevelopment, BondRank, BondRealization
 
 
@@ -54,78 +54,14 @@ def _bond_payload(development: BondDevelopment) -> dict[str, Any]:
     }
 
 
-def _strategy_payload(candidate) -> dict[str, Any]:
-    return {
-        "strategy_id": candidate.strategy_id,
-        "commitment": candidate.commitment.name,
-        "confidence": float(candidate.confidence),
-        "strength": float(candidate.strength),
-        "pinned": bool(candidate.pinned),
-        "bond_ids": list(candidate.bond_ids),
-        "sources": list(candidate.sources),
-        "roles": [role.value for role in candidate.roles],
-        "motif_ids": list(candidate.motif_ids),
-        "links": [
-            {
-                "left_bond": link.left_bond,
-                "left_source": link.left_source,
-                "right_bond": link.right_bond,
-                "right_source": link.right_source,
-                "relation": link.relation,
-            }
-            for link in candidate.links
-        ],
-        "prescriptions": list(candidate.prescriptions),
-    }
-
-
-def _strategy_plan_payload(plan) -> dict[str, Any] | None:
-    if plan is None:
-        return None
-    return {
-        "strategy_id": str(plan.strategy_id),
-        "commitment": plan.commitment.name,
-        "confidence": float(plan.confidence),
-        "strength": float(plan.strength),
-        "completion": float(plan.completion),
-        "core_sources": list(plan.core_sources),
-        "missing_features": list(plan.missing_features),
-        "present_components": list(plan.present_components),
-        "missing_components": list(plan.missing_components),
-        "prescriptions": list(plan.prescriptions),
-        "bond_goals": [
-            {
-                "bond_id": goal.bond_id,
-                "rank": goal.rank.name,
-                "next_rank": goal.next_rank.name if goal.next_rank is not None else None,
-                "contribution": float(goal.contribution),
-                "next_rank_threshold": (
-                    float(goal.next_rank_threshold)
-                    if goal.next_rank_threshold is not None
-                    else None
-                ),
-                "points_to_next_rank": (
-                    float(goal.points_to_next_rank)
-                    if goal.points_to_next_rank is not None
-                    else None
-                ),
-                "priority": float(goal.priority),
-            }
-            for goal in plan.bond_goals
-        ],
-    }
-
-
 def bond_strategy_diagnostics(state: Any) -> dict[str, Any]:
-    """Return canonical Bond/composition telemetry from one public state.
+    """Return operator-facing canonical Bond/composition telemetry.
 
-    R1+ Bonds remain the compact operator-facing Bond list, but mechanical strategy
-    candidates may legitimately use positive R0 evidence. Candidate diagnostics are
-    therefore reported separately instead of polluting the rank display. The active
-    StrategyPlan is also emitted so live failures can distinguish malformed goals
-    from a downstream consumer that ignored a correct construction prescription.
+    The function name is retained as a logging-schema compatibility surface. Its
+    payload is structural only: no named strategy identity, commitment state,
+    StrategyPlan or action prescription is reconstructed for diagnostics.
     """
-    developments, composition = evaluate_bond_composition(state)
+    developments, composition = evaluate_bond_structure(state)
     by_id = {development.bond_id: development for development in developments}
     relevant = [
         by_id[bond_id]
@@ -142,18 +78,12 @@ def bond_strategy_diagnostics(state: Any) -> dict[str, Any]:
             "relevant_bonds": list(motif.relevant_bonds),
             "present_components": list(motif.present_components),
             "missing_components": list(motif.missing_components),
-            "prescriptions": list(motif.prescriptions),
         }
         for motif in composition.motifs
     ]
-    strategies = [_strategy_payload(candidate) for candidate in composition.strategy_candidates]
-    strategy_plan = _strategy_plan_payload(composition.strategy_plan)
 
     return {
         "power_engine": relevant[0].bond_id if relevant else None,
-        "pinned_strategy": composition.pinned_strategy_id,
-        "strategy_plan": strategy_plan,
-        "strategy_candidates": strategies,
         "relevant_bonds": [_bond_payload(development) for development in relevant],
         "composition": {
             "bond_ids": list(composition.bond_ids),
@@ -163,9 +93,5 @@ def bond_strategy_diagnostics(state: Any) -> dict[str, Any]:
             "coherence_score": float(composition.coherence_score),
             "pivot_resistance": float(composition.pivot_resistance),
             "motif_distance": [list(item) for item in composition.motif_distance],
-            "prescriptions": list(composition.prescriptions),
-            "pinned_strategy_id": composition.pinned_strategy_id,
-            "strategy_plan": strategy_plan,
-            "strategy_candidates": strategies,
         },
     }
