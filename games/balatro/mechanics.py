@@ -33,7 +33,8 @@ ALL_CARDS_FACE = "all_cards_face"
 RETRIGGER_HELD_CARDS = "retrigger_held_cards"
 STEEL_CARD_PAYOFF = "steel_card_payoff"
 CARD_DESTRUCTION = "card_destruction"
-CARD_DESTRUCTION_PAYOFF = "card_destruction_payoff"
+FACE_DESTRUCTION_SCALING = "face_destruction_scaling"
+GLASS_DESTRUCTION_SCALING = "glass_destruction_scaling"
 DECK_THIN_PAYOFF = "deck_thin_payoff"
 SPECTRAL_GENERATION = "spectral_generation"
 
@@ -50,8 +51,10 @@ DISCARD_JACK_SCALING = "discard_jack_scaling"
 BLIND_SKIP_SCALING = "blind_skip_scaling"
 BLIND_SKIP_TAG_GENERATION = "blind_skip_tag_generation"
 SELL_VALUE_SCORING = "sell_value_scoring"
-SELL_VALUE_GROWTH = "sell_value_growth"
-JOKER_SACRIFICE_SCALING = "joker_sacrifice_scaling"
+GLOBAL_SELL_VALUE_GROWTH = "global_sell_value_growth"
+SELF_SELL_VALUE_GROWTH = "self_sell_value_growth"
+LEFT_JOKER_SACRIFICE = "left_joker_sacrifice"
+RANDOM_JOKER_SACRIFICE = "random_joker_sacrifice"
 JOKER_FODDER_GENERATION = "joker_fodder_generation"
 HAND_REPETITION_XMULT = "hand_repetition_xmult"
 HAND_REPETITION_SCALING = "hand_repetition_scaling"
@@ -110,8 +113,8 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "erosionjoker": frozenset({DECK_THIN_PAYOFF}),
     "sixthsense": frozenset({CARD_DESTRUCTION, SPECTRAL_GENERATION}),
     "sixthsensejoker": frozenset({CARD_DESTRUCTION, SPECTRAL_GENERATION}),
-    "canio": frozenset({CARD_DESTRUCTION_PAYOFF}),
-    "glassjoker": frozenset({CARD_DESTRUCTION_PAYOFF}),
+    "canio": frozenset({FACE_DESTRUCTION_SCALING}),
+    "glassjoker": frozenset({GLASS_DESTRUCTION_SCALING}),
     "baron": frozenset({RANK_PAYOFF_KINGS}),
     "baronjoker": frozenset({RANK_PAYOFF_KINGS}),
     "triboulet": frozenset({RANK_PAYOFF_KINGS, RANK_PAYOFF_QUEENS}),
@@ -125,11 +128,11 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "throwback": frozenset({BLIND_SKIP_SCALING}),
     "dietcola": frozenset({BLIND_SKIP_TAG_GENERATION}),
     "swashbuckler": frozenset({SELL_VALUE_SCORING}),
-    "giftcard": frozenset({SELL_VALUE_GROWTH}),
-    "egg": frozenset({SELL_VALUE_GROWTH}),
-    "eggjoker": frozenset({SELL_VALUE_GROWTH}),
-    "ceremonialdagger": frozenset({JOKER_SACRIFICE_SCALING}),
-    "madness": frozenset({JOKER_SACRIFICE_SCALING}),
+    "giftcard": frozenset({GLOBAL_SELL_VALUE_GROWTH}),
+    "egg": frozenset({SELF_SELL_VALUE_GROWTH}),
+    "eggjoker": frozenset({SELF_SELL_VALUE_GROWTH}),
+    "ceremonialdagger": frozenset({LEFT_JOKER_SACRIFICE}),
+    "madness": frozenset({RANDOM_JOKER_SACRIFICE}),
     "riffraff": frozenset({JOKER_FODDER_GENERATION}),
     "cardsharp": frozenset({HAND_REPETITION_XMULT}),
     "supernova": frozenset({HAND_REPETITION_SCALING}),
