@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.evaluation import evaluate_bond_structure
 from games.balatro.bonds.build_health import BuildHealthState
 from games.balatro.live.bond_health import LiveBondHealthSnapshot, evaluate_live_build_health
 
@@ -28,14 +28,15 @@ class LiveStrategyHealth:
 
 
 def evaluate_live_strategy_health(state: Any, *, selected_plan: Any) -> LiveStrategyHealth:
-    """Evaluate strategy authority from the exact plan D1 selected.
+    """Evaluate structural build health from the exact plan D1 selected.
 
     This function is intentionally downstream of D1 plan selection. It cannot
-    replace a safer action with a strategically attractive losing action. Its
-    output is for strategy reinforcement, shop/pivot pressure, prescriptions and
-    telemetry after survival evidence has been established.
+    replace a safer action with a strategically attractive losing action. Production
+    health consumes only mechanical Bond/motif/coherence evidence; compatibility-only
+    named strategy candidates, commitment states, plans and prescriptions are stripped
+    before this layer can influence downstream shop pressure.
     """
-    developments, composition = evaluate_bond_composition(state)
+    developments, composition = evaluate_bond_structure(state)
     snapshot = evaluate_live_build_health(
         state,
         developments=developments,
