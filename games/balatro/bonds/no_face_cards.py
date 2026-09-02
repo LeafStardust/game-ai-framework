@@ -4,11 +4,10 @@ from typing import Any
 
 from games.balatro.bonds.contributions import component_contribution, finalize_development, state_contribution
 from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank
-from games.balatro.mechanics import component_has_mechanic
+from games.balatro.mechanics_compat import NO_FACE_PLAY_SCALING, component_has_public_mechanic
 
 
 NO_FACE_CARDS_BOND_ID = "no_face_cards"
-NO_FACE_PLAY_SCALING = "no_face_play_scaling"
 NO_FACE_CARDS_RANK_THRESHOLDS = {
     BondRank.R1: 4.0,
     BondRank.R2: 8.0,
@@ -59,7 +58,7 @@ def evaluate_no_face_cards_bond(state: Any) -> BondDevelopment:
         (
             index
             for index, joker in enumerate(jokers)
-            if component_has_mechanic(joker, NO_FACE_PLAY_SCALING)
+            if component_has_public_mechanic(joker, NO_FACE_PLAY_SCALING)
         ),
         None,
     )
