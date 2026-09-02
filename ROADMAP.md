@@ -161,9 +161,9 @@ Validated green.
 - Base pack legality, literal value, stochastic expectation, and Skip remain authoritative.
 - `_goal_ids` / `_playing_card_matches` remain temporarily as inert compatibility helpers only; production pack scoring does not call them. Remove at Phase K once final import users are migrated.
 
-### H3 — Tarot/Spectral persistent deck transformations — ACTIVE
+### H3 — Tarot/Spectral persistent deck transformations — COMPLETE
 
-Current implementation pending local validation:
+Validated green.
 
 - `ContextualConsumableTargetEvaluator` remains the canonical owner for deterministic target legality and literal/contextual target quality.
 - `games/balatro/consumable_strategy_delta_policy.py` reuses the real deterministic consumable `can_use/use` implementation on a deep-copied public state.
@@ -172,16 +172,40 @@ Current implementation pending local validation:
 - Only already-positive deterministic target evaluations receive the conservative `0.10 × StrategyDelta` adjustment.
 - Stochastic/generation/economy-only/Joker-targeted/unsupported consumables remain outside this projection path and fail closed.
 - No individual Bond IDs or StrategyPlan goals are wired into the target owner.
+- Focused deterministic target/consumable regressions are green.
 
-H3 completion gate:
-1. exact enhancement projection updates projected persistent deck without mutating current state;
-2. Hanged Man projection removes the persistent target via shared destruction semantics;
-3. canonical StrategyDelta is applied to positive deterministic targets;
-4. non-positive targets cannot be rescued by strategy value;
-5. stochastic consumables do not manufacture deterministic projected state;
-6. focused target/consumable regressions are green.
+### H4 — Planet / hand-development owners — ACTIVE
 
-After H3 is green, continue to remaining Planet/hand-development and persistent construction owners that are not already covered by pack projection.
+Current continuation checkpoint:
+
+- Two distinct production owners have been identified:
+  1. shop acquisition through `ConsumableAcquisitionPolicy`;
+  2. held-Planet use timing.
+- The Planet path has been wired toward canonical projected `StrategyDelta` at both owners; **the migration boundary and regression proof still need to be finished/verified before H4 can be marked complete.**
+- Shop acquisition keeps its existing B4 consumable/mechanical value and adds a separate conservative strategic term:
+
+```text
+existing B4 Planet value
++ 0.10 × canonical StrategyDelta
++ existing transaction/economy logic
+```
+
+- Do not collapse mechanical hand-level value, transaction economics, and coherent-build value into one opaque score.
+- Held-Planet timing already has tactical authority for clear probability, pace recovery, final-hand urgency, slot pressure, duplication, and Planet scalers. StrategyDelta may provide diagnostics/ranking context there, but **must not flip the canonical HOLD/USE timing decision.**
+- The shop path still has/previously had a legacy Bond-rank relevance veto. Remove that veto rather than retaining it as parallel strategic authority once canonical StrategyDelta is proven.
+- The legacy Planet relevance wrapper is installed globally through `games/balatro/__init__.py`; remove its production import/install when the migrated shop owner no longer depends on it.
+- Preserve legality, affordability, survival, scoring pace, boss logic, and tactical Planet-use timing as higher authority than strategic guidance.
+
+H4 completion gate:
+1. verify the shop owner projects the exact real Planet hand-level result and consumes canonical `StrategyDelta`;
+2. verify the held-use owner exposes/uses strategic value only without overriding HOLD/USE tactical authority;
+3. remove the legacy Bond-rank Planet relevance veto from production scoring;
+4. remove its global wrapper import/install from `games/balatro/__init__.py` once no required production user remains;
+5. add deterministic regressions proving exact projection, strategic adjustment, and authority separation;
+6. fix the lingering Held Cards policy label `candidly_superior_composition → clearly_superior_composition` if it has not already been committed;
+7. run focused local validation and mark H4 COMPLETE only after green.
+
+After H4 is green, inspect the remaining persistent construction/development consumers and migrate the narrowest next owner using the same shared `StrategyDelta` path. Do not add Bond-specific controllers.
 
 ## Phase I — Verify tactical exploitation
 
@@ -210,13 +234,15 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 
 # Exact next action
 
-**Validate the Phase H deterministic Tarot/Spectral StrategyDelta slice.**
+**Finish the Phase H4 Planet / hand-development migration boundary and deterministic proof.**
 
-1. Prove exact card transforms project the real persistent result.
-2. Prove destruction uses canonical permanent-card destruction semantics.
-3. Prove strategy augments only already-positive legal deterministic targets.
-4. Prove stochastic/unsupported effects remain fail-closed.
-5. If green, continue immediately to the remaining persistent hand-development/construction owners.
+1. Fresh-fetch the two Planet owners plus `games/balatro/__init__.py` and verify the current branch state before editing.
+2. Finish/verify exact Planet projected-state integration at shop acquisition and held-use owners.
+3. Remove the obsolete Bond-rank Planet relevance veto and its global production installation once dependency search proves it unnecessary.
+4. Add focused deterministic tests proving exact hand-level projection and that StrategyDelta cannot override tactical HOLD/USE authority.
+5. Fix the Held Cards `candidly → clearly` policy-label typo if still present.
+6. Ask the user to run the focused local H4 regression command.
+7. On green, mark H4 COMPLETE and continue immediately to the next remaining persistent construction/development owner.
 
 # Progress criterion
 
