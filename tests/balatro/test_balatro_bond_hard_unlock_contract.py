@@ -26,37 +26,12 @@ def _state(*, jokers=(), deck=()):
 @pytest.mark.parametrize(
     ("bond_id", "state"),
     (
-        (
-            "burnt",
-            _state(
-                jokers=(_named("Blueprint"), _named("Space Joker")),
-                deck=tuple(_card(seal="Blue") for _ in range(4)),
-            ),
-        ),
-        (
-            "discard",
-            _state(jokers=(_named("Burnt Joker"),)),
-        ),
-        (
-            "blind_skip",
-            _state(jokers=(_named("Diet Cola"),)),
-        ),
-        (
-            "sell_value",
-            _state(jokers=(_named("Egg"), _named("Gift Card"))),
-        ),
-        (
-            "joker_sacrifice",
-            _state(jokers=(_named("Riff-Raff"),)),
-        ),
-        (
-            "card_destruction",
-            _state(),
-        ),
-        (
-            "hand_repetition",
-            _state(),
-        ),
+        ("discard", _state(jokers=(_named("Burnt Joker"),))),
+        ("blind_skip", _state(jokers=(_named("Diet Cola"),))),
+        ("sell_value", _state(jokers=(_named("Egg"), _named("Gift Card")))),
+        ("joker_sacrifice", _state(jokers=(_named("Riff-Raff"),))),
+        ("card_destruction", _state()),
+        ("hand_repetition", _state()),
         (
             "enhanced_cards",
             _state(
@@ -64,22 +39,10 @@ def _state(*, jokers=(), deck=()):
                 deck=tuple(_card(enhancement="Gold") for _ in range(24)),
             ),
         ),
-        (
-            "no_face_cards",
-            _state(deck=tuple(_card(rank="2") for _ in range(40))),
-        ),
-        (
-            "vampire",
-            _state(
-                jokers=(_named("Midas Mask"), _named("Cartomancer")),
-                deck=tuple(_card(enhancement="Gold") for _ in range(12)),
-            ),
-        ),
+        ("no_face_cards", _state(deck=tuple(_card(rank="2") for _ in range(40)))),
     ),
 )
-def test_support_and_history_cannot_create_defining_payoff_bonds(bond_id, state):
-    # Populate every relevant persistent/history field aggressively. The defining
-    # payoff must still be present *now* before these fields can carry Bond authority.
+def test_support_and_history_cannot_create_hard_payoff_axes(bond_id, state):
     state.hand_levels["HIGH_CARD"] = 12
     state.discards_per_round = 8
     state.blinds_skipped = 12
@@ -97,9 +60,8 @@ def test_support_and_history_cannot_create_defining_payoff_bonds(bond_id, state)
     assert development.contribution == 0.0
 
 
-def test_each_defining_payoff_unlocks_its_own_axis():
+def test_each_hard_payoff_unlocks_its_own_axis():
     fixtures = {
-        "burnt": _state(jokers=(_named("Burnt Joker"),)),
         "discard": _state(jokers=(_named("Castle"),)),
         "blind_skip": _state(jokers=(_named("Throwback"),)),
         "sell_value": _state(jokers=(_named("Swashbuckler"),)),
@@ -108,10 +70,29 @@ def test_each_defining_payoff_unlocks_its_own_axis():
         "hand_repetition": _state(jokers=(_named("Card Sharp"),)),
         "enhanced_cards": _state(jokers=(_named("Driver's License"),)),
         "no_face_cards": _state(jokers=(_named("Ride the Bus"),)),
-        "vampire": _state(jokers=(_named("Vampire"),)),
     }
 
     for bond_id, state in fixtures.items():
         development = EVALUATORS[bond_id](state)
         assert development.unlocked, bond_id
         assert development.rank >= BondRank.R1, bond_id
+
+
+def test_hand_leveling_can_exist_without_burnt_joker():
+    state = _state(
+        jokers=(_named("Space Joker"),),
+        deck=tuple(_card(seal="Blue") for _ in range(4)),
+    )
+    development = EVALUATORS["hand_leveling"](state)
+    assert development.unlocked
+    assert development.contribution > 0.0
+
+
+def test_enhancement_consumption_can_have_preconsumer_feed_evidence():
+    state = _state(
+        jokers=(_named("Midas Mask"), _named("Cartomancer")),
+        deck=tuple(_card(enhancement="Gold") for _ in range(12)),
+    )
+    development = EVALUATORS["enhancement_consumption"](state)
+    assert development.unlocked
+    assert development.contribution > 0.0
