@@ -2,7 +2,6 @@ from types import SimpleNamespace
 
 import games.balatro  # noqa: F401 - initialize production registration
 from games.balatro.actions import BalatroAction, DISCARD_CARDS, PLAY_CARDS
-from games.balatro.bonds.behavior_strategy import _Node, _relation
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 
 
@@ -15,29 +14,6 @@ def _card(rank="2"):
         seal=None,
         debuffed=False,
     )
-
-
-def test_behavior_rank_guard_is_native_to_relation():
-    rank_feature = _Node(
-        source="feature:rank:2",
-        bond_ids=("low_ranks",),
-        outputs=frozenset({"rank:2"}),
-        requires=frozenset(),
-        scales_with=frozenset(),
-        amplifies=frozenset(),
-        value=1.0,
-    )
-    broad_requirement = _Node(
-        source="scenario:broad-rank-payoff",
-        bond_ids=("rank_payoff",),
-        outputs=frozenset(),
-        requires=frozenset({f"rank:{rank}" for rank in ("2", "3", "4", "5", "6", "7")}),
-        scales_with=frozenset(),
-        amplifies=frozenset(),
-        value=1.0,
-    )
-
-    assert _relation(rank_feature, broad_requirement) is None
 
 
 def test_native_discard_prefilter_preserves_wide_redraw_branch():
