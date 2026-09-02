@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any, Callable
 
 from games.balatro.bonds.burnt import evaluate_hand_leveling_bond
@@ -99,6 +100,26 @@ def evaluate_all_bonds(state: Any) -> tuple[BondDevelopment, ...]:
             )
         developments.append(realize_bond(development, state))
     return tuple(developments)
+
+
+def evaluate_bond_structure(state: Any) -> tuple[tuple[BondDevelopment, ...], Composition]:
+    """Return mechanical Bonds plus composition with legacy strategy diagnostics stripped.
+
+    The composer still carries compatibility-only strategy identity fields for stale
+    diagnostic callers. Production health consumers must cross this boundary instead:
+    structural Bond/motif/conflict/coherence evidence is retained, while named
+    strategy candidates, commitment-derived plans, pinned identity and prescription
+    plumbing are removed before the result can influence an action owner.
+    """
+    raw = evaluate_all_bonds(state)
+    composition = compose_build(state, raw)
+    return raw, replace(
+        composition,
+        prescriptions=(),
+        strategy_candidates=(),
+        pinned_strategy_id=None,
+        strategy_plan=None,
+    )
 
 
 def evaluate_bond_composition(state: Any) -> tuple[tuple[BondDevelopment, ...], Composition]:
