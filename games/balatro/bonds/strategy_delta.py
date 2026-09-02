@@ -35,12 +35,21 @@ def removed_realized_structure(current: BuildValue, projected: BuildValue) -> fl
 
     This is intentionally Bond-local rather than a named-strategy commitment
     score. Relationship and motif losses already appear in ``raw_delta`` and are
-    not charged again as transition inertia.
+    not charged again as transition inertia. A Bond absent from the projected
+    build has projected value zero and therefore counts as fully removed.
     """
     current_by_id = current.by_bond_id
     projected_by_id = projected.by_bond_id
     return sum(
-        max(0.0, item.value - projected_by_id.get(bond_id, item).value)
+        max(
+            0.0,
+            item.value
+            - (
+                projected_by_id[bond_id].value
+                if bond_id in projected_by_id
+                else 0.0
+            ),
+        )
         for bond_id, item in current_by_id.items()
     )
 
