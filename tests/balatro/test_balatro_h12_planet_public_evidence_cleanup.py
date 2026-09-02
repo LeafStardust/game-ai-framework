@@ -33,7 +33,8 @@ def test_h12_exotic_planet_cannot_bootstrap_from_level_without_play_history():
 
     assert not relevant
     assert any("zero play history" in note for note in notes)
-    assert all("plan" not in note.lower() for note in notes)
+    assert all("strategy plan" not in note.lower() for note in notes)
+    assert all("pinned strategy" not in note.lower() for note in notes)
 
 
 def test_h12_sustained_public_exotic_hand_use_can_make_planet_relevant():
