@@ -39,7 +39,6 @@ from games.balatro.live_decision_quality_policy import install_live_decision_qua
 from games.balatro.luchador_activation_policy import install_luchador_activation_policy
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
 from games.balatro.pack_sunk_cost_policy import install_pack_sunk_cost_policy
-from games.balatro.pinned_strategy_execution_policy import install_pinned_strategy_execution_policy
 from games.balatro.planet_pack_fallback_policy import install_planet_pack_fallback_policy
 from games.balatro.planet_scaler_authority import install_planet_scaler_authority
 from games.balatro.post_transaction_joker_value_policy import install_post_transaction_joker_value_policy
@@ -107,7 +106,9 @@ install_face_card_enabler_bond_policy()
 # D2 Joker construction is already migrated: JokerAcquisitionPolicy owns exact
 # projected StrategyDelta. Do not reinstall the historical R0/PINNED/FORMING
 # transition or retention controllers around that canonical owner.
-install_pinned_strategy_execution_policy()
+# D9 exact persistent pack outcomes are already migrated through
+# install_strategy_plan_pack_policy(); do not add pinned seek_feature execution
+# bonuses after the canonical projected StrategyDelta scorer.
 install_strategy_plan_pack_policy()
 install_strategy_resource_coherence_policy()
 install_strategy_authority_correction_policy()
