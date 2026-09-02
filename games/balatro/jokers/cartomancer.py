@@ -1,9 +1,11 @@
 import random
 
 from games.balatro.joker import Joker, JokerContext
+from games.balatro.mechanics import TAROT_GENERATION
 
 
 class CartomancerJoker(Joker):
+    mechanics = frozenset({TAROT_GENERATION})
 
     TAROT_CARDS = [
         "The Fool",
