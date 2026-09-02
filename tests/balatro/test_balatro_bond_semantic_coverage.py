@@ -22,7 +22,7 @@ def test_every_frozen_bond_has_a_strategy_semantic_channel() -> None:
 def test_behavior_feature_mapping_covers_core_build_axes() -> None:
     expected = {
         "kings", "queens", "steel", "held_cards", "held_retrigger",
-        "played_retrigger", "cash", "gold_economy", "enhanced_cards",
+        "played_retrigger", "cash", "gold_cards", "enhanced_cards",
         "straight", "flush", "full_house", "low_ranks",
     }
     assert expected <= BEHAVIOR_FEATURE_BONDS
@@ -30,9 +30,9 @@ def test_behavior_feature_mapping_covers_core_build_axes() -> None:
 
 def test_non_feature_axes_are_explicitly_owned_by_dedicated_semantics() -> None:
     expected = {
-        "burnt", "blind_skip", "card_destruction", "deck_growth", "discard",
+        "hand_leveling", "blind_skip", "card_destruction", "deck_growth", "discard",
         "hand_repetition", "joker_sacrifice", "no_discard", "no_face_cards",
-        "planet", "sell_value", "stone", "tarot", "vampire",
+        "planet", "sell_value", "stone", "tarot", "enhancement_consumption",
     }
     assert expected <= DEDICATED_SEMANTIC_BONDS
 
