@@ -2,7 +2,7 @@ from types import SimpleNamespace
 from games.balatro.bonds.model import BondDevelopment,BondRank,BondRealization
 from games.balatro.bonds.realization import realize_bond
 
-def _d():return BondDevelopment(bond_id="gold_economy",unlocked=True,contribution=22.0,rank=BondRank.R4,next_rank_threshold=30.0,contributions=(),realization=BondRealization.PARTIAL)
+def _d():return BondDevelopment(bond_id="gold_cards",unlocked=True,contribution=22.0,rank=BondRank.R4,next_rank_threshold=30.0,contributions=(),realization=BondRealization.PARTIAL)
 def _j(n):return SimpleNamespace(name=n)
 def _c(rank="7",enh="",debuffed=False):return SimpleNamespace(rank=rank,suit="Hearts",enhancement=enh,debuffed=debuffed)
 def test_held_gold_is_live_mid_round_as_available_end_of_round_payoff():
