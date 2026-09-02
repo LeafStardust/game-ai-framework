@@ -197,76 +197,44 @@ Phase A also established:
 
 Do not reopen vocabulary design unless a concrete later failure proves a Bond invalid.
 
-## Phase B — Complete semantic mechanical descriptors — ACTIVE
+## Phase B — Complete semantic mechanical descriptors — COMPLETE
 
-Audit the public mechanics required to evaluate all 46 retained Bonds.
+Validated green on the focused mechanical-descriptor / semantic / Bond / realization / rank-progression suite after the final residue migration.
 
-Use/reuse the existing mechanical descriptor/profile layer where valid. Do **not** create a duplicate semantics system.
+Phase B established:
 
-Prioritize:
+- `games/balatro/mechanics.py` as the canonical public component-mechanics query surface;
+- mechanically modeled components expose native mechanics where available, with centralized compatibility semantics for snapshot-only objects;
+- all 46 canonical Bond evaluators now consume mechanics and/or direct public state rather than maintaining independent component-name matching tables in production;
+- direct state evidence remains canonical where it already represents mechanics: deck size/composition, ranks, suits, enhancements, seals, hand levels, hand-play history, discard/skip/destruction history, bankroll, sell value, and similar public state;
+- arbitrary-name tests prove migrated evaluator families are driven by mechanics rather than display names;
+- hand-pattern, rank, suit, held/retrigger, enhancement, destruction/thinning, deck-growth, economy, discard/no-discard, Tarot, Planet, and other retained axes have explicit semantic coverage;
+- cross-axis mechanics intentionally overlap where appropriate instead of encoding Bond names into components;
+- post-audit reachable rank geometry is preserved, including corrected Gold and suit ladders;
+- the obsolete suit R5=30 ladder was corrected to a reachable shared suit ladder `3 / 6 / 10 / 14 / 19` rather than inventing fake mechanics or inflating contributions.
 
-- Jokers;
-- enhancements, seals, editions where strategically relevant;
-- Tarot/Spectral/Planet effects;
-- deck composition properties;
-- hand-level and persistent scaling state;
-- other persistent mechanics that affect retained Bonds.
+Phase B deliverable is satisfied: the retained catalogue can be explained from public mechanical state without depending on the rejected strategy-plan architecture.
 
-Requirements:
-
-- descriptors express actual mechanics rather than Bond names or display-name heuristics where avoidable;
-- each retained Bond has sufficient semantic evidence for current-state and projected-state evaluation;
-- cross-mechanic enablers are represented explicitly;
-- no numerical tuning yet beyond corrections required for semantic correctness;
-- valid existing semantics should be retained/migrated rather than rewritten needlessly.
-
-Deliverable: a deterministic semantic-coverage audit showing the cleaned Bond catalogue can be explained from public mechanical state without relying on the rejected strategy-plan architecture.
-
-### Phase B progress — VALIDATED SLICES
-
-The focused descriptor/semantic/Bond/realization suite is green through the engine-family migration.
-
-Implemented and validated:
-
-- added `games/balatro/mechanics.py` as the canonical component-mechanics query surface;
-- mechanically modeled or compatibility-described components use centralized mechanics rather than per-Bond display-name checks;
-- `hand_leveling`, `gold_cards`, `enhancement_consumption`, `held_retrigger`, `steel`, and `deck_thinning` use canonical descriptor-driven production evaluators/realizers;
-- `discard`, `blind_skip`, `sell_value`, `joker_sacrifice`, `card_destruction`, `hand_repetition`, and `enhanced_cards` now use `mechanical_engines.py` rather than legacy batch-five production implementations;
-- public state such as discard count, skip history, sell value, destruction history, hand-play history, deck size, rank/suit/enhancement/seal, and hand levels remains direct semantic evidence;
-- new mechanical evaluators preserve audited reachable rank thresholds;
-- an explicit semantic requirement contract covers all 46 canonical Bonds;
-- arbitrary-name tests prove migrated evaluators depend on mechanics rather than component display names.
-
-### Phase B progress — RANK / CONSUMABLE SLICE PENDING VALIDATION
-
-Implemented since the latest green checkpoint:
-
-- refined rank payoff mechanics into actual effects such as held-King XMult, played King/Queen XMult, held-Queen Mult, and discarded-Jack XMult;
-- refined Tarot and Planet mechanics into generation/scaling/shop-access/pack-targeting channels while preserving different structural weights;
-- added `games/balatro/bonds/mechanical_rank_consumables.py` for `kings`, `queens`, `jacks`, `tarot`, and `planet`;
-- production registry now overrides the legacy batch-four implementations for those five Bonds;
-- retained direct rank density, Blue Seal density, and other public card-state evidence;
-- added arbitrary-name descriptor tests for rank and consumable families.
-
-Still required before Phase B can close:
-
-- validate the rank/consumable slice locally;
-- migrate remaining hand-pattern payoffs, suit payoffs, played retriggers, deck growth, and remaining economy/state axes that still depend on catalogue component names;
-- ensure each retained Bond has enough mechanics for both current-state and projected-state evaluation;
-- extend deterministic descriptor tests for the remaining shared mechanic families;
-- run the focused semantic/Bond/realization suite green after the final Phase B migration.
-
-Do not mark Phase B complete until the remaining semantic dependency audit and migration are finished.
-
-## Phase C — Implement canonical mechanics → Bond contributions
+## Phase C — Implement canonical mechanics → Bond contributions — ACTIVE
 
 Implement one contribution path that:
 
-- derives weighted Bond evidence from public mechanics;
-- permits one mechanic to contribute to multiple Bonds;
-- prevents double-counting of one underlying source;
-- exposes per-source diagnostics;
+- derives weighted Bond evidence from public mechanics and direct public-state evidence;
+- permits one mechanic/source to contribute to multiple Bonds;
+- prevents accidental same-source double counting within one Bond;
+- exposes stable per-source diagnostics;
+- preserves the existing validated contribution/rank behavior unless a concrete semantic defect is discovered;
 - works identically for current and projected states.
+
+Initial implementation order:
+
+1. introduce a canonical contribution/source ledger rather than another evaluator hierarchy;
+2. give `BondContribution` stable source identity and mechanic/state diagnostics without breaking existing consumers;
+3. normalize duplicate evidence at the Bond-development boundary;
+4. migrate representative overlapping engines first: Held/Steel/Held Retrigger, Hand Leveling/Discard, and Destruction/Deck Thinning;
+5. prove one source can support several Bonds while not being counted twice inside the same Bond;
+6. move remaining evaluator families onto the canonical contribution helper;
+7. only then mark Phase C complete.
 
 ## Phase D — Implement Bond strategic value
 
@@ -392,15 +360,14 @@ After Bond-guided Red/White play is demonstrated:
 
 # Exact next action
 
-**Validate the rank/consumable Phase B slice, then continue automatically.**
+**Implement the first Phase C canonical contribution-ledger slice.**
 
-1. Run the focused descriptor/semantic/Bond/realization suite locally.
-2. Fix any regressions without restoring catalogue display-name branching.
-3. Continue with hand-pattern, suit, played-retrigger, deck-growth, and remaining economy/state mechanic families.
-4. Override each legacy production evaluator only after preserving valid contribution/rank behavior.
-5. Add arbitrary-name descriptor tests for every migrated family.
-6. Keep direct public-state properties as semantic evidence where they already represent mechanics.
-7. When every retained Bond has sufficient current/projected semantic coverage and the focused suite is green, mark Phase B COMPLETE and advance the roadmap to Phase C.
+1. Add stable source identity/diagnostics to contribution evidence without breaking existing evaluator APIs.
+2. Normalize duplicate evidence at one canonical boundary.
+3. Migrate the three representative overlapping engine families onto that helper.
+4. Add deterministic tests for cross-Bond overlap and same-Bond deduplication.
+5. Preserve current/projected-state symmetry by keeping the ledger stateless and derived entirely from the supplied state.
+6. Validate locally before migrating the remaining evaluator families.
 
 # Progress criterion
 
