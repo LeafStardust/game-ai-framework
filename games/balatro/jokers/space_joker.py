@@ -1,9 +1,11 @@
 import random
 
 from games.balatro.joker import Joker, JokerContext
+from games.balatro.mechanics import PROBABILISTIC_HAND_LEVELING
 
 
 class SpaceJoker(Joker):
+    mechanics = frozenset({PROBABILISTIC_HAND_LEVELING})
 
     def apply(self, context: JokerContext) -> JokerContext:
 
