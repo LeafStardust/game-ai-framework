@@ -76,19 +76,6 @@ def _no_economy_thresholds() -> ConsumableAcquisitionThresholds:
     )
 
 
-def _decision_debug(decision) -> str:
-    decide = ConsumableAcquisitionPolicy.decide
-    code = getattr(decide, "__code__", None)
-    return (
-        f"decision={decision!r}; "
-        f"decide_module={getattr(decide, '__module__', None)!r}; "
-        f"decide_qualname={getattr(decide, '__qualname__', None)!r}; "
-        f"decide_file={getattr(code, 'co_filename', None)!r}; "
-        f"planet_relevance_installed="
-        f"{getattr(ConsumableAcquisitionPolicy, '_planet_relevance_installed', False)!r}"
-    )
-
-
 def _held_pair_planet_state() -> tuple[BalatroState, object]:
     state = BalatroState()
     state.phase = "SELECTING_HAND"
@@ -136,11 +123,18 @@ def test_h4_shop_planet_score_adds_point_one_times_canonical_strategy_delta(monk
         evaluator=_PositiveEvaluator(),
     ).decide(state, mercury)
 
-    assert decision.action == BUY, _decision_debug(decision)
-    assert decision.selected is not None
-    assert decision.selected.strategy_delta_value == pytest.approx(6.0)
-    assert decision.selected.strategy_adjustment == pytest.approx(0.6)
-    assert decision.selected.total_advantage == pytest.approx(2.6)
+    assert len(decision.options) == 1
+    option = decision.options[0]
+    assert option.mode == BUY
+    assert option.build_gain == pytest.approx(2.0)
+    assert option.strategy_delta_value == pytest.approx(6.0)
+    assert option.strategy_adjustment == pytest.approx(0.6)
+    assert option.economics.money_after == 20
+    assert option.economics.total_adjustment == pytest.approx(0.0)
+    assert option.total_advantage == pytest.approx(2.6)
+    assert option.eligible is True
+    assert decision.selected is option
+    assert decision.action == BUY
 
 
 def test_h4_held_planet_strategy_delta_cannot_override_tactical_hold(monkeypatch):
@@ -173,7 +167,7 @@ def test_h4_held_planet_strategy_delta_cannot_override_tactical_hold(monkeypatch
     assert negative.duplicate_hold_value == pytest.approx(1.0)
 
 
-def test_h4_production_shop_has_no_legacy_bond_rank_planet_veto():
+def test_h4_production_shop_has_no_legacy_bond_rank_planet_veto(monkeypatch):
     state = BalatroState()
     state.phase = "SHOP"
     state.money = 20
@@ -183,11 +177,26 @@ def test_h4_production_shop_has_no_legacy_bond_rank_planet_veto():
     neptune = create_planet("NEPTUNE")
     neptune.price = 0
 
+    # This regression owns only removal of the old Bond-rank relevance veto.
+    # Neutralize the new canonical strategic adjustment so a legitimate negative
+    # StrategyDelta cannot turn the fixture into a HOLD for an unrelated reason.
+    monkeypatch.setattr(
+        "games.balatro.shop_consumable_policy.planet_strategy_delta",
+        lambda current, planet, held: SimpleNamespace(value=0.0),
+    )
+
     decision = ConsumableAcquisitionPolicy(
         _no_economy_thresholds(),
         evaluator=_PositiveEvaluator(),
     ).decide(state, neptune)
 
-    assert decision.action == BUY, _decision_debug(decision)
-    assert decision.selected is not None
+    assert len(decision.options) == 1
+    option = decision.options[0]
+    assert option.mode == BUY
+    assert option.build_gain == pytest.approx(2.0)
+    assert option.strategy_delta_value == pytest.approx(0.0)
+    assert option.total_advantage == pytest.approx(2.0)
+    assert option.eligible is True
+    assert decision.selected is option
+    assert decision.action == BUY
     assert all("Planet relevance veto" not in note for note in decision.rationale)
