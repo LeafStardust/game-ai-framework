@@ -17,6 +17,6 @@ def test_even_steven_four_is_live_for_low_rank_bond():assert _r("low_ranks","Eve
 def test_walkie_talkie_four_is_live_for_low_rank_bond():assert _r("low_ranks","Walkie Talkie",_c("4"))==BondRealization.ACTIVE
 def test_fibonacci_ace_realizes_aces_bond():assert _r("aces","Fibonacci",_c("A"))==BondRealization.ACTIVE
 def test_reserved_parking_live_when_held_face_opportunity_exists():
- s=SimpleNamespace(jokers=[_j("Reserved Parking")],hand=[_c("K")],scoring_cards=[]);assert realize_bond(_d("gold_economy"),s).realization==BondRealization.ACTIVE
+ s=SimpleNamespace(jokers=[_j("Reserved Parking")],hand=[_c("K")],scoring_cards=[]);assert realize_bond(_d("gold_cards"),s).realization==BondRealization.ACTIVE
 def test_reserved_parking_remains_live_during_scoring_window():
- s=SimpleNamespace(jokers=[_j("Reserved Parking")],hand=[_c("K")],scoring_cards=[_c("2")]);assert realize_bond(_d("gold_economy"),s).realization==BondRealization.ACTIVE
+ s=SimpleNamespace(jokers=[_j("Reserved Parking")],hand=[_c("K")],scoring_cards=[_c("2")]);assert realize_bond(_d("gold_cards"),s).realization==BondRealization.ACTIVE
