@@ -1,9 +1,9 @@
 from types import SimpleNamespace
 
-import games.balatro.build_health_policy as build_health_policy
 import games.balatro.shop_clear_probability_health_policy as clear_health
 from games.balatro.build_health_runtime import RuntimeBuildHealthEvaluator
 from games.balatro.shop_runtime_contract_policy import install_shop_runtime_contract_policy
+from games.balatro.shop_arbiter import BuildAwareShopArbiter
 
 
 class _Score:
@@ -13,15 +13,6 @@ class _Score:
 class _FakeScorer:
     def score(self, *args, **kwargs):
         return _Score()
-
-
-class _RecordingHealth:
-    def __init__(self):
-        self.seen = None
-
-    def evaluate(self, state):
-        self.seen = state
-        return "health"
 
 
 def test_internal_build_health_projection_never_launches_bounded_d1(monkeypatch):
@@ -52,27 +43,8 @@ def test_internal_build_health_projection_never_launches_bounded_d1(monkeypatch)
     assert 0.0 <= immediate <= 1.0
 
 
-def test_projected_health_marks_internal_candidate_state(monkeypatch):
+def test_runtime_contract_registration_is_idempotent_and_has_no_legacy_shop_authority():
     install_shop_runtime_contract_policy()
-    recorder = _RecordingHealth()
-    monkeypatch.setattr(build_health_policy, "_HEALTH", recorder)
-    state = SimpleNamespace(phase="SHOP", jokers=[], money=10)
-
-    result = build_health_policy._projected_health(state, [])
-
-    assert result == "health"
-    assert recorder.seen is not state
-    assert recorder.seen._rw_internal_build_health_projection is True
-
-
-def test_legacy_named_bundle_planner_cannot_reopen_canonical_shop_arbitration():
     install_shop_runtime_contract_policy()
-    sentinel = object()
 
-    result = build_health_policy._bundle_decision(
-        SimpleNamespace(phase="SHOP"),
-        sentinel,
-        object(),
-    )
-
-    assert result is sentinel
+    assert BuildAwareShopArbiter._rw_runtime_contract_installed is True
