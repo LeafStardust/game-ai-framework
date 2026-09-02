@@ -22,6 +22,7 @@ HELD_FACE_ECONOMY = "held_face_economy"
 ENHANCEMENT_CONSUMPTION = "enhancement_consumption"
 ENHANCEMENT_FEED_ACCESS = "enhancement_feed_access"
 TAROT_GENERATION = "tarot_generation"
+ALL_CARDS_FACE = "all_cards_face"
 
 
 def _normalize_name(value: Any) -> str:
@@ -54,6 +55,8 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "vampirejoker": frozenset({ENHANCEMENT_CONSUMPTION}),
     "cartomancer": frozenset({TAROT_GENERATION}),
     "cartomancerjoker": frozenset({TAROT_GENERATION}),
+    "pareidolia": frozenset({ALL_CARDS_FACE}),
+    "pareidoliajoker": frozenset({ALL_CARDS_FACE}),
 }
 
 
