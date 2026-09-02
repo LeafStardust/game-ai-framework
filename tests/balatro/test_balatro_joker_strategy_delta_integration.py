@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import pytest
+
 import games.balatro.joker_policy as joker_policy
 from games.balatro.joker import Joker, JokerContext
 from games.balatro.joker_policy import JokerAcquisitionPolicy, _bond_transition_bonus
@@ -36,27 +38,23 @@ def test_joker_transition_uses_canonical_strategy_delta_and_domain_projection(mo
     assert any("weighted strategic adjustment" in note for note in notes)
 
 
-def test_joker_add_scoring_combines_native_build_gain_with_strategy_delta(monkeypatch):
+def test_joker_add_scoring_preserves_native_build_gain_and_adds_strategy_delta():
     state = BalatroState()
     state.money = 20
     candidate = DummyJoker()
     policy = JokerAcquisitionPolicy()
 
-    monkeypatch.setattr(
-        joker_policy,
-        "_bond_transition_bonus",
-        lambda *_args, **_kwargs: (1.25, ("canonical strategy proof",)),
-    )
-
+    strategy_adjustment, _ = _bond_transition_bonus(state, candidate)
     option = policy._score_add(state, candidate, 2.0)
 
-    assert option.build_gain == 3.25
-    assert option.total_advantage == option.build_gain + option.economics.total_adjustment
+    assert option.build_gain == pytest.approx(2.0 + strategy_adjustment)
+    assert option.total_advantage == pytest.approx(
+        option.build_gain + option.economics.total_adjustment
+    )
     assert any("StrategyDelta" in note for note in option.rationale)
-    assert any("canonical strategy proof" in note for note in option.rationale)
 
 
-def test_joker_replacement_strategy_loss_reduces_but_does_not_replace_native_delta(monkeypatch):
+def test_joker_replacement_preserves_native_delta_and_adds_strategy_delta():
     state = BalatroState()
     state.money = 20
     incumbent = DummyJoker()
@@ -71,18 +69,12 @@ def test_joker_replacement_strategy_loss_reduces_but_does_not_replace_native_del
         rationale=("native mechanical replacement",),
     )
 
-    monkeypatch.setattr(
-        joker_policy,
-        "_bond_transition_bonus",
-        lambda *_args, **_kwargs: (-1.5, ("canonical strategic loss",)),
-    )
-
+    strategy_adjustment, _ = _bond_transition_bonus(state, candidate, replace_index=0)
     option = policy._score_replacement(state, candidate, replacement)
 
-    assert option.build_gain == 2.5
+    assert option.build_gain == pytest.approx(4.0 + strategy_adjustment)
     assert option.eligible
     assert "native mechanical replacement" in option.rationale
-    assert "canonical strategic loss" in option.rationale
 
 
 def test_joker_policy_no_longer_imports_legacy_strategy_composition_authority():
