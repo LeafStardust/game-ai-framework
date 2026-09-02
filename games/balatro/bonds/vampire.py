@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank, BondRealization
+from games.balatro.bonds.contributions import component_contribution, finalize_development, state_contribution
+from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank
 from games.balatro.mechanics import (
     ENHANCEMENT_CONSUMPTION,
     ENHANCEMENT_FEED_ACCESS,
     TAROT_GENERATION,
-    components_have_mechanic,
+    component_has_mechanic,
 )
 
 ENHANCEMENT_CONSUMPTION_BOND_ID = "enhancement_consumption"
-# Temporary compatibility alias while callers/tests migrate.
 VAMPIRE_BOND_ID = ENHANCEMENT_CONSUMPTION_BOND_ID
 VAMPIRE_THRESHOLDS = {
     BondRank.R1: 4.0,
@@ -20,7 +20,6 @@ VAMPIRE_THRESHOLDS = {
     BondRank.R4: 17.0,
     BondRank.R5: 21.0,
 }
-# Legacy diagnostic metadata only. It is not action authority in the new Bond model.
 VAMPIRE_POLICIES = {
     BondRank.R1: ("recognize_vampire_enhancement_consumption",),
     BondRank.R2: ("prefer_safe_enhancement_feed_lines",),
@@ -50,29 +49,37 @@ def _band(value: int, bands: tuple[tuple[int, float], ...]) -> float:
     return out
 
 
-def _rank(total: float) -> tuple[BondRank, float | None]:
-    rank = BondRank.R0
-    for candidate in (BondRank.R1, BondRank.R2, BondRank.R3, BondRank.R4, BondRank.R5):
-        threshold = VAMPIRE_THRESHOLDS[candidate]
-        if total >= threshold:
-            rank = candidate
-        else:
-            return rank, threshold
-    return BondRank.R5, None
+def _source(component: Any, fallback: str) -> str:
+    name = getattr(component, "name", None)
+    if name:
+        return str(name)
+    cls = component.__class__.__name__
+    return fallback if cls in {"str", "SimpleNamespace"} else cls
 
 
 def evaluate_enhancement_consumption_bond(state: Any) -> BondDevelopment:
-    """Evaluate enhancement-feed/consumption infrastructure from mechanics."""
+    """Evaluate enhancement-feed/consumption infrastructure through the ledger."""
     jokers = list(getattr(state, "jokers", ()) or ())
     parts: list[BondContribution] = []
+    has_consumer = any(component_has_mechanic(j, ENHANCEMENT_CONSUMPTION) for j in jokers)
 
-    has_consumer = components_have_mechanic(jokers, ENHANCEMENT_CONSUMPTION)
-    if has_consumer:
-        parts.append(BondContribution("Enhancement consumer", 7.0))
-    if components_have_mechanic(jokers, ENHANCEMENT_FEED_ACCESS):
-        parts.append(BondContribution("Renewable enhancement feed bridge", 5.0 if has_consumer else 2.0))
-    if components_have_mechanic(jokers, TAROT_GENERATION):
-        parts.append(BondContribution("Consumable enhancement-feed access", 2.0 if has_consumer else 1.0))
+    for index, joker in enumerate(jokers):
+        if component_has_mechanic(joker, ENHANCEMENT_CONSUMPTION):
+            mechanic, value, label = ENHANCEMENT_CONSUMPTION, 7.0, "Enhancement consumer"
+        elif component_has_mechanic(joker, ENHANCEMENT_FEED_ACCESS):
+            mechanic, value, label = ENHANCEMENT_FEED_ACCESS, (5.0 if has_consumer else 2.0), "Renewable enhancement feed bridge"
+        elif component_has_mechanic(joker, TAROT_GENERATION):
+            mechanic, value, label = TAROT_GENERATION, (2.0 if has_consumer else 1.0), "Consumable enhancement-feed access"
+        else:
+            continue
+        parts.append(component_contribution(
+            joker,
+            collection="jokers",
+            index=index,
+            label=_source(joker, label),
+            value=value,
+            mechanic=mechanic,
+        ))
 
     enhanced = sum(
         1 for card in _deck(state)
@@ -80,26 +87,30 @@ def evaluate_enhancement_consumption_bond(state: Any) -> BondDevelopment:
     )
     density = _band(enhanced, ((1, 1.0), (3, 3.0), (6, 5.0), (10, 7.0)))
     if density:
-        parts.append(BondContribution("Current enhancement feedstock", density))
+        parts.append(state_contribution(
+            "deck:enhancement_feedstock",
+            "Current enhancement feedstock",
+            density,
+            mechanic="enhancement_feedstock_density",
+        ))
 
     consumed = int(getattr(state, "vampire_enhancements_consumed", 0) or 0)
     history = _band(consumed, ((3, 1.0), (8, 2.0), (15, 4.0), (25, 6.0)))
     if history:
-        parts.append(BondContribution("Accumulated enhancement consumption", history))
+        parts.append(state_contribution(
+            "history:enhancements_consumed",
+            "Accumulated enhancement consumption",
+            history,
+            mechanic="enhancement_consumption_history",
+        ))
 
-    total = sum(part.value for part in parts)
-    rank, nxt = _rank(total)
-    return BondDevelopment(
-        bond_id=ENHANCEMENT_CONSUMPTION_BOND_ID,
-        unlocked=total > 0.0,
-        contribution=total,
-        rank=rank,
-        next_rank_threshold=nxt,
-        contributions=tuple(parts),
-        realization=BondRealization.DORMANT if rank == BondRank.R0 else BondRealization.PARTIAL,
+    return finalize_development(
+        ENHANCEMENT_CONSUMPTION_BOND_ID,
+        parts,
+        VAMPIRE_THRESHOLDS,
+        unlocked=bool(parts),
     )
 
 
-# Temporary callable alias for production/tests that still import the legacy name.
 def evaluate_vampire_bond(state: Any) -> BondDevelopment:
     return evaluate_enhancement_consumption_bond(state)
