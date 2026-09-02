@@ -43,7 +43,6 @@ from games.balatro.pinned_strategy_execution_policy import install_pinned_strate
 from games.balatro.planet_pack_fallback_policy import install_planet_pack_fallback_policy
 from games.balatro.planet_scaler_authority import install_planet_scaler_authority
 from games.balatro.post_transaction_joker_value_policy import install_post_transaction_joker_value_policy
-from games.balatro.r0_strategy_transition_policy import install_r0_strategy_transition_policy
 from games.balatro.shop_clear_probability_health_policy import install_shop_clear_probability_health_policy
 from games.balatro.shop_semantic_quiet_policy import install_shop_semantic_quiet_policy
 from games.balatro.sixth_sense_policy import install_sixth_sense_policy
@@ -66,7 +65,6 @@ from games.balatro.wraith_pack_expectation_policy import install_wraith_pack_exp
 
 install_blueprint_candidate_value_policy()
 install_banner_candidate_value_policy()
-install_r0_strategy_transition_policy()
 install_post_transaction_joker_value_policy()
 install_cryptid_dispatch_postcondition()
 install_generated_enhanced_spectral_dispatch_postcondition()
@@ -107,7 +105,7 @@ install_bond_pivot_authority()
 install_bond_power_engine_retention_policy()
 install_face_card_enabler_bond_policy()
 # D2 Joker construction is already migrated: JokerAcquisitionPolicy owns exact
-# projected StrategyDelta. Do not reinstall the historical PINNED/FORMING
+# projected StrategyDelta. Do not reinstall the historical R0/PINNED/FORMING
 # transition or retention controllers around that canonical owner.
 install_pinned_strategy_execution_policy()
 install_strategy_plan_pack_policy()
