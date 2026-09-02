@@ -14,6 +14,7 @@ from games.balatro.build.wheel_expectation import WheelOfFortuneExpectationEvalu
 from games.balatro.consumable import Consumable, ConsumableContext
 from games.balatro.live.consumable_timing import LiveConsumableTimingPolicy
 from games.balatro.planet_scaler_authority import has_planet_use_scaler
+from games.balatro.planet_strategy_delta import planet_strategy_delta
 from games.balatro.state import BalatroState
 
 
@@ -93,6 +94,8 @@ class ConsumableAcquisitionOption:
     eligible: bool
     executable_action: BalatroAction | None = None
     rationale: tuple[str, ...] = ()
+    strategy_delta_value: float = 0.0
+    strategy_adjustment: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -109,6 +112,7 @@ class ConsumableAcquisitionPolicy:
     """D4 HOLD/BUY/BUY_AND_USE policy over public shop state."""
 
     DETERMINISTIC_BUY_AND_USE_NAMES = frozenset({"The Hermit", "Temperance"})
+    PLANET_STRATEGY_DELTA_WEIGHT = 0.10
 
     def __init__(
         self,
@@ -130,9 +134,18 @@ class ConsumableAcquisitionPolicy:
             return ConsumableAcquisitionDecision(HOLD, candidate_name, None, (), self.thresholds, ("candidate is not a modeled consumable",))
 
         evaluation = self.evaluator.evaluate(candidate, state)
+        planet_strategy = self._planet_strategy_value(state, candidate)
         options: list[ConsumableAcquisitionOption] = []
         if len(state.consumables) < int(state.consumable_slots):
-            options.append(self._score_buy(state, candidate, build_gain=float(evaluation.total_gain), rationale=evaluation.rationale))
+            options.append(
+                self._score_buy(
+                    state,
+                    candidate,
+                    build_gain=float(evaluation.total_gain),
+                    strategy_delta_value=planet_strategy,
+                    rationale=evaluation.rationale,
+                )
+            )
 
         immediate = self._immediate_use_case(state, candidate)
         if immediate is not None:
@@ -143,6 +156,7 @@ class ConsumableAcquisitionPolicy:
                     candidate,
                     build_gain=float(evaluation.total_gain),
                     immediate_gain=immediate_gain,
+                    strategy_delta_value=planet_strategy,
                     rationale=(*timing_rationale, *evaluation.rationale),
                 )
             )
@@ -226,6 +240,13 @@ class ConsumableAcquisitionPolicy:
     def _scaler_planet(state: BalatroState, candidate: Consumable) -> bool:
         return str(getattr(candidate, "category", "")).upper() == "PLANET" and has_planet_use_scaler(state)
 
+    @staticmethod
+    def _planet_strategy_value(state: BalatroState, candidate: Consumable) -> float:
+        if str(getattr(candidate, "category", "")).upper() != "PLANET":
+            return 0.0
+        result = planet_strategy_delta(state, candidate, held=False)
+        return 0.0 if result is None else float(result.value)
+
     def _wheel_buy_and_use_option(
         self,
         state: BalatroState,
@@ -271,9 +292,18 @@ class ConsumableAcquisitionPolicy:
             ),
         )
 
-    def _score_buy(self, state: BalatroState, candidate: Consumable, *, build_gain: float, rationale: tuple[str, ...]) -> ConsumableAcquisitionOption:
+    def _score_buy(
+        self,
+        state: BalatroState,
+        candidate: Consumable,
+        *,
+        build_gain: float,
+        strategy_delta_value: float = 0.0,
+        rationale: tuple[str, ...],
+    ) -> ConsumableAcquisitionOption:
         economics = self._economics(state, candidate, occupy_slot=True)
-        total = build_gain + economics.total_adjustment
+        strategy_adjustment = strategy_delta_value * self.PLANET_STRATEGY_DELTA_WEIGHT
+        total = build_gain + strategy_adjustment + economics.total_adjustment
         eligible = economics.money_after >= 0 and build_gain > self.thresholds.minimum_purchase_build_gain
         return ConsumableAcquisitionOption(
             BUY,
@@ -285,17 +315,31 @@ class ConsumableAcquisitionPolicy:
             BalatroAction(BUY_CONSUMABLE, target=candidate) if eligible else None,
             (
                 f"B4 whole-build gain={build_gain:.3f}",
+                f"canonical Planet StrategyDelta={strategy_delta_value:.6f}",
+                f"weighted strategic adjustment={strategy_adjustment:.6f}",
                 f"price=${economics.price}",
                 f"money after=${economics.money_after}",
                 f"economic adjustment={economics.total_adjustment:.3f}",
                 *rationale,
             ),
+            strategy_delta_value,
+            strategy_adjustment,
         )
 
-    def _score_buy_and_use(self, state: BalatroState, candidate: Consumable, *, build_gain: float, immediate_gain: float, rationale: tuple[str, ...]) -> ConsumableAcquisitionOption:
+    def _score_buy_and_use(
+        self,
+        state: BalatroState,
+        candidate: Consumable,
+        *,
+        build_gain: float,
+        immediate_gain: float,
+        strategy_delta_value: float = 0.0,
+        rationale: tuple[str, ...],
+    ) -> ConsumableAcquisitionOption:
         economics = self._economics(state, candidate, occupy_slot=False)
         immediate_value = immediate_gain * self.thresholds.immediate_money_weight
-        total = build_gain + immediate_value + economics.total_adjustment
+        strategy_adjustment = strategy_delta_value * self.PLANET_STRATEGY_DELTA_WEIGHT
+        total = build_gain + immediate_value + strategy_adjustment + economics.total_adjustment
         scaler_planet = self._scaler_planet(state, candidate)
         eligible = economics.money_after >= 0 and (
             immediate_gain > 0.0 or scaler_planet
@@ -317,12 +361,16 @@ class ConsumableAcquisitionPolicy:
                         "no synthetic immediate utility; Planet-scaler admission is handled by explicit mechanical authority",
                     )
                 ),
+                f"canonical Planet StrategyDelta={strategy_delta_value:.6f}",
+                f"weighted strategic adjustment={strategy_adjustment:.6f}",
                 f"weighted immediate value={immediate_value:.3f}",
                 f"price=${economics.price}",
                 f"money after purchase=${economics.money_after}",
                 f"economic adjustment={economics.total_adjustment:.3f}",
                 *rationale,
             ),
+            strategy_delta_value,
+            strategy_adjustment,
         )
 
     def _immediate_use_case(self, state: BalatroState, candidate: Consumable) -> tuple[float, tuple[str, ...]] | None:
