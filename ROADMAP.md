@@ -9,6 +9,8 @@ This is the authoritative development roadmap for the Balatro Red Deck / White S
 - User runs tests and live games locally. **Do not run tests or live games from ChatGPT.**
 - Every validation command shown to the user must begin with `git pull`.
 - Every focused pytest command must use `-q`.
+- Commands shown to the user must be PowerShell-compatible: use separate command lines rather than `&&`.
+- Every command block shown to the user must contain a blank line after its final command before the closing fence.
 - Preserve exact mechanics, legality, boss rules, affordability, survival, and hidden-information boundaries.
 - Prefer canonical ownership over wrappers/rescue layers.
 - Cleanup is part of migration completion.
