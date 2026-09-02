@@ -49,7 +49,7 @@ def test_vampire_does_not_get_same_hand_feed_from_midas_to_its_right():
         scoring_cards=[face],
         hand=[face],
     )
-    assert realize_bond(_dev("vampire"), state).realization == BondRealization.PARTIAL
+    assert realize_bond(_dev("enhancement_consumption"), state).realization == BondRealization.PARTIAL
 
 
 def test_vampire_gets_same_hand_feed_from_midas_to_its_left():
@@ -59,7 +59,7 @@ def test_vampire_gets_same_hand_feed_from_midas_to_its_left():
         scoring_cards=[face],
         hand=[face],
     )
-    assert realize_bond(_dev("vampire"), state).realization == BondRealization.ACTIVE
+    assert realize_bond(_dev("enhancement_consumption"), state).realization == BondRealization.ACTIVE
 
 
 def test_glass_destruction_does_not_realize_from_non_scoring_glass_when_scoring_known():
