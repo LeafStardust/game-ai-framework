@@ -10,7 +10,7 @@ def _card(rank="2", enhancement=""):
 
 def _dev():
     return BondDevelopment(
-        bond_id="vampire",
+        bond_id="enhancement_consumption",
         unlocked=True,
         contribution=22.0,
         rank=BondRank.R4,
@@ -20,7 +20,7 @@ def _dev():
     )
 
 
-def test_vampire_does_not_feed_from_non_scoring_enhanced_card_when_scoring_telemetry_is_present():
+def test_enhancement_consumption_is_active_with_consumer_and_owned_feedstock():
     enhanced = _card("9", "Gold")
     state = SimpleNamespace(
         jokers=[SimpleNamespace(name="Vampire")],
@@ -28,10 +28,10 @@ def test_vampire_does_not_feed_from_non_scoring_enhanced_card_when_scoring_telem
         scoring_cards=[],
         owned_deck=[enhanced],
     )
-    assert realize_bond(_dev(), state).realization == BondRealization.PARTIAL
+    assert realize_bond(_dev(), state).realization == BondRealization.ACTIVE
 
 
-def test_vampire_feeds_from_enhanced_scoring_card():
+def test_enhancement_consumption_remains_active_when_feedstock_is_scoring_now():
     enhanced = _card("9", "Gold")
     state = SimpleNamespace(
         jokers=[SimpleNamespace(name="Vampire")],
