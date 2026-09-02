@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from itertools import combinations, product
 
 from games.balatro.actions import BUY_JOKER, SELL_JOKER, BalatroAction
-from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.evaluation import evaluate_bond_structure
 from games.balatro.bonds.motifs import MotifState
 from games.balatro.build_health_runtime import RuntimeBuildHealthEvaluator, projected_state_with_jokers
 from games.balatro.joker_edition import joker_has_negative_edition
@@ -75,11 +75,11 @@ def _motif_strength(motif) -> int:
 
 
 def _protected_indices(state) -> set[int]:
-    """Protect immutable Jokers and components whose removal breaks realized Bond structure."""
+    """Protect immutable Jokers and components whose removal breaks realized motifs."""
     jokers = tuple(getattr(state, "jokers", ()) or ())
     protected: set[int] = set()
     try:
-        _, current = evaluate_bond_composition(state)
+        _, current = evaluate_bond_structure(state)
     except (AttributeError, KeyError, TypeError, ValueError, RuntimeError):
         current = None
 
@@ -101,7 +101,7 @@ def _protected_indices(state) -> set[int]:
             tuple(value for current_index, value in enumerate(jokers) if current_index != index),
         )
         try:
-            _, projected = evaluate_bond_composition(projected_state)
+            _, projected = evaluate_bond_structure(projected_state)
         except (AttributeError, KeyError, TypeError, ValueError, RuntimeError):
             protected.add(index)
             continue
@@ -114,11 +114,7 @@ def _protected_indices(state) -> set[int]:
             and projected_motifs.get(motif_id, 0) < strength
             for motif_id, strength in current_motifs.items()
         )
-        loses_resistance = (
-            float(projected.pivot_resistance) + 1e-12
-            < float(current.pivot_resistance)
-        )
-        if loses_realized_motif or loses_resistance:
+        if loses_realized_motif:
             protected.add(index)
     return protected
 
@@ -163,7 +159,6 @@ def _health_improves(current, projected) -> bool:
 
 
 def _first_step_survival_safe(current, projected) -> bool:
-    """Every emitted checkpoint must preserve the run, not only the final bundle."""
     return projected.survival >= current.survival - _MAX_SURVIVAL_LOSS
 
 
