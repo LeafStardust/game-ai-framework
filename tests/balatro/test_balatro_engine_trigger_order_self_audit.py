@@ -37,10 +37,10 @@ def test_glass_joker_realizes_from_scoring_glass_card():
 def test_midas_after_vampire_cannot_create_same_hand_feed():
     face = _card("K")
     state = SimpleNamespace(jokers=[SimpleNamespace(name="Vampire"), SimpleNamespace(name="Midas Mask")], scoring_cards=[face], hand=[face], owned_deck=[face])
-    assert realize_bond(_dev("vampire"), state).realization == BondRealization.PARTIAL
+    assert realize_bond(_dev("enhancement_consumption"), state).realization == BondRealization.PARTIAL
 
 
 def test_midas_before_vampire_creates_same_hand_feed():
     face = _card("K")
     state = SimpleNamespace(jokers=[SimpleNamespace(name="Midas Mask"), SimpleNamespace(name="Vampire")], scoring_cards=[face], hand=[face], owned_deck=[face])
-    assert realize_bond(_dev("vampire"), state).realization == BondRealization.ACTIVE
+    assert realize_bond(_dev("enhancement_consumption"), state).realization == BondRealization.ACTIVE
