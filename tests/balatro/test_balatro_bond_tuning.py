@@ -14,11 +14,9 @@ class _Trial:
     def suggest_float(self, name, low, high):
         self.calls.append((name, low, high))
         defaults = {
-            "pivot_resistance_r1": 0.5,
-            "pivot_resistance_r2_delta": 0.5,
-            "pivot_resistance_r3_delta": 1.5,
-            "pivot_resistance_r4_delta": 2.0,
-            "pivot_resistance_r5_delta": 2.5,
+            "motif_potential_value": 1.0,
+            "motif_active_delta": 3.0,
+            "motif_mature_delta": 3.0,
             "realization_priority_weight": 0.75,
             "synergy_bonus": 1.5,
             "conflict_penalty": 2.0,
@@ -31,9 +29,13 @@ def test_phase_a_search_space_can_reproduce_production_baseline():
     assert calibration == DEFAULT_BOND_CALIBRATION
 
 
-def test_phase_a_search_space_preserves_monotonic_pivot_geometry():
+def test_phase_a_search_space_preserves_monotonic_motif_geometry():
     calibration = suggest_phase_a(_Trial())
-    values = calibration.pivot_resistance_values()
+    values = (
+        calibration.motif_potential_value,
+        calibration.motif_active_value,
+        calibration.motif_mature_value,
+    )
     assert all(left <= right for left, right in zip(values, values[1:]))
 
 
