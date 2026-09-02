@@ -222,6 +222,19 @@ Requirements:
 
 Deliverable: a deterministic semantic-coverage audit showing the cleaned Bond catalogue can be explained from public mechanical state without relying on the rejected strategy-plan architecture.
 
+### Phase B progress
+
+First canonical descriptor slice implemented; pending local validation:
+
+- added `games/balatro/mechanics.py` as the canonical component-mechanics query surface;
+- mechanically modeled Burnt, Space, Blueprint, Brainstorm, Midas Mask, Golden Ticket, Reserved Parking, Cartomancer, and Pareidolia components now expose native mechanic tags where the connector write was available;
+- snapshot/lightweight objects retain a centralized compatibility fallback rather than duplicating name checks across Bond evaluators;
+- `hand_leveling`, `gold_cards`, and `enhancement_consumption` evaluators now consume mechanical descriptors instead of direct Joker display-name checks;
+- their canonical realizers now consume the same mechanics, including Pareidolia face semantics and face-dependent renewable enhancement feed;
+- added focused tests proving arbitrary component names with explicit mechanic tags produce the same Bond evidence.
+
+Do not mark Phase B complete until the remaining 43-axis semantic dependency audit is performed and the deterministic descriptor/semantic suite is green.
+
 ## Phase C — Implement canonical mechanics → Bond contributions
 
 Implement one contribution path that:
@@ -356,15 +369,15 @@ After Bond-guided Red/White play is demonstrated:
 
 # Exact next action
 
-**Proceed with Phase B.**
+**Validate the first Phase B descriptor slice, then continue the full semantic dependency audit.**
 
-1. Inspect the existing mechanical descriptor/profile layer and semantic registries.
-2. Map each of the 46 canonical Bonds to the public mechanics/state features needed to evaluate it.
-3. Identify missing, Joker-name-dependent, duplicate, or strategically opaque semantic channels.
-4. Reuse/migrate valid existing descriptors.
-5. Add only the missing canonical mechanical semantics.
-6. Add/update focused semantic coverage tests.
-7. When Phase B validation is green, mark Phase B COMPLETE and advance the roadmap to Phase C before writing contribution-scoring architecture.
+1. Run the focused descriptor/semantic/Bond realization suite locally.
+2. Fix any semantic regressions without restoring per-Bond display-name branching.
+3. Map the remaining canonical Bonds to the public mechanics/state features required to evaluate them.
+4. Identify missing, duplicate, or strategically opaque semantic channels.
+5. Reuse/migrate valid existing descriptors and add only missing canonical mechanics.
+6. Extend deterministic semantic coverage tests.
+7. When all 46 Bonds have sufficient descriptor coverage and validation is green, mark Phase B COMPLETE and advance to Phase C.
 
 # Progress criterion
 
