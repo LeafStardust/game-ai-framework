@@ -23,6 +23,11 @@ ENHANCEMENT_CONSUMPTION = "enhancement_consumption"
 ENHANCEMENT_FEED_ACCESS = "enhancement_feed_access"
 TAROT_GENERATION = "tarot_generation"
 ALL_CARDS_FACE = "all_cards_face"
+RETRIGGER_HELD_CARDS = "retrigger_held_cards"
+STEEL_CARD_PAYOFF = "steel_card_payoff"
+CARD_DESTRUCTION = "card_destruction"
+DECK_THIN_PAYOFF = "deck_thin_payoff"
+SPECTRAL_GENERATION = "spectral_generation"
 
 
 def _normalize_name(value: Any) -> str:
@@ -57,6 +62,15 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "cartomancerjoker": frozenset({TAROT_GENERATION}),
     "pareidolia": frozenset({ALL_CARDS_FACE}),
     "pareidoliajoker": frozenset({ALL_CARDS_FACE}),
+    "mime": frozenset({RETRIGGER_HELD_CARDS}),
+    "mimejoker": frozenset({RETRIGGER_HELD_CARDS}),
+    "steeljoker": frozenset({STEEL_CARD_PAYOFF}),
+    "tradingcard": frozenset({CARD_DESTRUCTION}),
+    "tradingcardjoker": frozenset({CARD_DESTRUCTION}),
+    "erosion": frozenset({DECK_THIN_PAYOFF}),
+    "erosionjoker": frozenset({DECK_THIN_PAYOFF}),
+    "sixthsense": frozenset({CARD_DESTRUCTION, SPECTRAL_GENERATION}),
+    "sixthsensejoker": frozenset({CARD_DESTRUCTION, SPECTRAL_GENERATION}),
 }
 
 
