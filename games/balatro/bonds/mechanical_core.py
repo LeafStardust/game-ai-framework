@@ -16,26 +16,29 @@ from games.balatro.mechanics import (
 )
 
 
+# Keep the audited authority geometry used by the existing Bond system while the
+# semantic layer migrates. These are the post-audit reachable capstones from
+# authority_calibration.py, not the obsolete pre-audit catalogue defaults.
 HELD_RETRIGGER_THRESHOLDS = {
     BondRank.R1: 4.0,
     BondRank.R2: 8.0,
     BondRank.R3: 13.0,
-    BondRank.R4: 19.0,
-    BondRank.R5: 26.0,
+    BondRank.R4: 17.0,
+    BondRank.R5: 21.0,
 }
 STEEL_THRESHOLDS = {
     BondRank.R1: 4.0,
     BondRank.R2: 8.0,
-    BondRank.R3: 14.0,
-    BondRank.R4: 21.0,
-    BondRank.R5: 29.0,
+    BondRank.R3: 13.0,
+    BondRank.R4: 17.0,
+    BondRank.R5: 20.0,
 }
 DECK_THINNING_THRESHOLDS = {
     BondRank.R1: 4.0,
-    BondRank.R2: 8.0,
-    BondRank.R3: 13.0,
-    BondRank.R4: 19.0,
-    BondRank.R5: 26.0,
+    BondRank.R2: 7.0,
+    BondRank.R3: 10.0,
+    BondRank.R4: 13.0,
+    BondRank.R5: 16.0,
 }
 
 
