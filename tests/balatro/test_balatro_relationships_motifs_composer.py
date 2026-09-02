@@ -44,7 +44,7 @@ def test_baron_mime_steel_requires_specific_components_not_generic_held_cards():
 def test_baron_mime_steel_becomes_active_when_package_and_bonds_realize():
     state = SimpleNamespace(
         jokers=[SimpleNamespace(name="Baron"), SimpleNamespace(name="Mime")],
-        owned_deck=[card("K", "Steel") for _ in range(4)],
+        owned_deck=[card("K", "Steel") for _ in range(5)],
     )
     result = evaluate_baron_mime_steel(
         state,
@@ -56,7 +56,7 @@ def test_baron_mime_steel_becomes_active_when_package_and_bonds_realize():
 def test_baron_mime_steel_mature_requires_r4_bonds():
     state = SimpleNamespace(
         jokers=[SimpleNamespace(name="Baron"), SimpleNamespace(name="Mime")],
-        owned_deck=[card("K", "Steel") for _ in range(4)],
+        owned_deck=[card("K", "Steel") for _ in range(5)],
     )
     result = evaluate_baron_mime_steel(
         state,
