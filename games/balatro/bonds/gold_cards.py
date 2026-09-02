@@ -5,12 +5,15 @@ from typing import Any, Iterable
 from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank, BondRealization
 
 GOLD_CARDS_BOND_ID = "gold_cards"
+# The complete structural package tops out at 21 contribution:
+# Golden Ticket (5) + Midas Mask (5) + Reserved Parking (2) + dense Gold deck (9).
+# Keep R5 at that actual capstone rather than defining an unreachable rank.
 GOLD_CARDS_THRESHOLDS = {
-    BondRank.R1: 4.0,
-    BondRank.R2: 8.0,
-    BondRank.R3: 13.0,
-    BondRank.R4: 19.0,
-    BondRank.R5: 26.0,
+    BondRank.R1: 3.0,
+    BondRank.R2: 6.0,
+    BondRank.R3: 10.0,
+    BondRank.R4: 15.0,
+    BondRank.R5: 21.0,
 }
 
 
