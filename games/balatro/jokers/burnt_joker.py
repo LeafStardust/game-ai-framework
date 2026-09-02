@@ -1,8 +1,10 @@
 from games.balatro.events import BalatroEventType
 from games.balatro.joker import Joker, JokerContext
+from games.balatro.mechanics import DISCARD_HAND_LEVELING
 
 
 class BurntJoker(Joker):
+    mechanics = frozenset({DISCARD_HAND_LEVELING})
 
     def apply(self, context: JokerContext) -> JokerContext:
         if context.event is None:
