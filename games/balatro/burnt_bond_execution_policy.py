@@ -24,13 +24,13 @@ def _burnt_development(state):
         developments, composition = evaluate_bond_composition(state)
     except (AttributeError, TypeError, ValueError):
         return None
-    if "burnt" not in set(composition.bond_ids):
+    if "hand_leveling" not in set(composition.bond_ids):
         return None
     return next(
         (
             development
             for development in developments
-            if development.bond_id == "burnt"
+            if development.bond_id == "hand_leveling"
             and development.unlocked
             and development.rank >= BondRank.R1
         ),
