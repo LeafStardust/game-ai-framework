@@ -224,7 +224,7 @@ Deliverable: a deterministic semantic-coverage audit showing the cleaned Bond ca
 
 ### Phase B progress — VALIDATED SLICES
 
-The focused descriptor/semantic/Bond/realization suite is green after both descriptor migrations below.
+The focused descriptor/semantic/Bond/realization suite is green through the held/Steel/deck-thinning migration.
 
 Implemented and validated:
 
@@ -233,15 +233,25 @@ Implemented and validated:
 - snapshot/lightweight objects use one centralized compatibility fallback rather than duplicating display-name checks across Bond evaluators;
 - `hand_leveling`, `gold_cards`, and `enhancement_consumption` evaluators/realizers consume mechanical descriptors;
 - Pareidolia face semantics and face-dependent renewable enhancement feed are represented explicitly;
-- `held_retrigger`, `steel`, and `deck_thinning` production evaluation now uses canonical mechanical evaluators rather than the legacy catalogue implementations;
-- new mechanical evaluators use the audited reachable rank thresholds rather than restoring obsolete pre-audit capstones;
-- an explicit semantic requirement contract now covers all 46 canonical Bonds;
+- `held_retrigger`, `steel`, and `deck_thinning` production evaluation uses canonical mechanical evaluators rather than legacy catalogue implementations;
+- new mechanical evaluators use audited reachable rank thresholds rather than restoring obsolete pre-audit capstones;
+- an explicit semantic requirement contract covers all 46 canonical Bonds;
 - focused tests prove arbitrary component names with explicit mechanic tags produce the same strategic evidence for migrated axes.
+
+### Phase B progress — ENGINE FAMILY SLICE PENDING VALIDATION
+
+Implemented since the last green checkpoint:
+
+- expanded canonical mechanics for discard engines, blind-skip scaling, sell-value conversion/growth, Joker sacrifice/fodder generation, destruction payoffs, repeated-hand payoffs, and enhancement-density payoff/generation;
+- added `games/balatro/bonds/mechanical_engines.py` as the canonical production evaluator for `discard`, `blind_skip`, `sell_value`, `joker_sacrifice`, `card_destruction`, `hand_repetition`, and `enhanced_cards`;
+- production registry now overrides the legacy batch-five implementations for those seven Bonds;
+- retained direct public-state evidence such as discard count, skip history, sell value, destruction history, hand-play history, and enhancement density;
+- added arbitrary-name mechanic tests for all seven migrated engine-family Bonds.
 
 Still required before Phase B can close:
 
-- audit the remaining canonical Bonds whose production evaluators still depend on monolithic catalogue display-name specifications;
-- migrate strategically important shared mechanics first (hand-pattern payoffs, suit/rank payoffs, played retriggers, deck growth, economy/consumable engines, destruction/transformation, enhancement infrastructure);
+- validate the new engine-family slice locally;
+- migrate remaining strategically important shared mechanics: hand-pattern payoffs, suit/rank payoffs, played retriggers, deck growth, and consumable engines;
 - distinguish acceptable public card-state inspection (rank/suit/enhancement/seal/hand levels) from component-name heuristics;
 - ensure each retained Bond has enough mechanics for both current-state and projected-state evaluation;
 - extend deterministic descriptor tests for the remaining shared mechanic families;
@@ -383,14 +393,14 @@ After Bond-guided Red/White play is demonstrated:
 
 # Exact next action
 
-**Continue Phase B semantic migration from the validated descriptor foundation.**
+**Validate the engine-family Phase B slice, then continue automatically.**
 
-1. Inspect remaining catalogue evaluator families for component display-name dependencies.
-2. Group them by shared mechanic rather than migrating Bond-by-Bond.
-3. Add canonical mechanics for the highest-leverage shared families first.
-4. Override legacy production evaluators only after the replacement preserves valid contribution/rank behavior.
-5. Add arbitrary-name descriptor tests for each migrated family.
-6. Keep public state properties such as rank, suit, enhancement, seal, hand levels, bankroll, and deck size as direct state evidence where they already represent mechanics.
+1. Run the focused descriptor/semantic/Bond/realization suite locally.
+2. Fix any regressions without restoring batch-five display-name branching.
+3. Continue with shared rank/suit/hand-pattern, played-retrigger, deck-growth, and consumable mechanics.
+4. Override each legacy production evaluator only after preserving valid contribution/rank behavior.
+5. Add arbitrary-name descriptor tests for every migrated family.
+6. Keep direct public-state properties as semantic evidence where they already represent mechanics.
 7. When every retained Bond has sufficient current/projected semantic coverage and the focused suite is green, mark Phase B COMPLETE and advance the roadmap to Phase C.
 
 # Progress criterion
