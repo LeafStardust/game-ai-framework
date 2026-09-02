@@ -9,7 +9,7 @@ retaining survival ordering and final arbitration.
 """
 
 from games.balatro.actions import DISCARD_CARDS
-from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.evaluation import evaluate_bond_structure
 from games.balatro.bonds.model import BondRank
 from games.balatro.hand_evaluator import HandEvaluator
 from games.balatro.hand_rules import hand_rules_for_state
@@ -21,7 +21,7 @@ BURNT_GENERIC_FIRST_DISCARD_FIT = 0.5
 
 def _burnt_development(state):
     try:
-        developments, composition = evaluate_bond_composition(state)
+        developments, composition = evaluate_bond_structure(state)
     except (AttributeError, TypeError, ValueError):
         return None
     if "hand_leveling" not in set(composition.bond_ids):
