@@ -188,11 +188,12 @@ Runtime findings:
 - D1's previous 20–25 second `nodes=0` failure is absent after bounded root admission;
 - D14 timing still contains non-trivial unclassified residual around standalone Joker evaluation in some states, but it is no longer the dominant interactive blocker in this batch.
 
-Decision-quality finding:
+Decision-quality findings:
 
 - attempt 003 bought Baron for $8 in Ante 1 from an untouched 52-card deck and no established held-King engine;
 - canonical evaluation incorrectly treated the ordinary four starting Kings as `KING_INFRASTRUCTURE`, making `baron_mime_steel` POTENTIAL from Baron + baseline deck alone and inflating StrategyDelta;
-- production fix: exceptional Baron motif King infrastructure now requires increased King density (at least five Kings), while the ordinary Kings and held-card Bonds remain available to value Baron normally.
+- production fix: exceptional Baron motif King infrastructure now requires increased King density (at least five Kings), while ordinary Kings and held-card Bonds remain available to value Baron normally;
+- attempt 002 bought Flash Card even though canonical D2 explicitly returned HOLD (`buy advantage=0.100` versus threshold `0.350`); a later live Build Health rescue converted that rejected candidate back into BUY.
 
 ### L2 — Classify live failures — ACTIVE
 
@@ -205,7 +206,9 @@ For every suspicious live decision, classify it before changing numbers:
 
 Current classified work:
 
-- Baron + untouched four-King deck false exceptional-motif potential: **mechanics/model bug — FIXED, validation pending**;
+- Baron + untouched four-King deck false exceptional-motif potential: **mechanics/model bug — FIXED and focused validation GREEN**;
+- Flash Card D2 HOLD resurrected by `live_competence_guard_policy`: **integration/authority bug — FIXED, validation pending**;
+- the live competence guard no longer wraps Joker acquisition at all; D2 HOLD/BUY admission is final, while the independent D1 liveness guards and one bounded D14 scaling-deficit reroll guard remain;
 - remaining attempt 001/002 build quality and terminal boss decisions: **inspection pending**;
 - D14 standalone-Joker timing residual: **runtime attribution/possible optimization issue, non-blocking but still to classify**.
 
@@ -221,10 +224,10 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 
 # Exact next action
 
-**Validate the Baron motif semantic fix, then continue Phase L2 classification from the same three-run batch.**
+**Validate canonical D2 HOLD authority, then continue Phase L2 classification from the same three-run batch.**
 
-1. Run the focused Baron motif regression plus the relevant Bond/BuildValue/Joker acquisition regressions.
-2. If green, inspect attempt 001 and attempt 002 material purchases/replacements and terminal boss choices for additional semantic/integration defects.
+1. Run the focused live-competence/D2 authority regression and relevant Joker/D14 authority tests.
+2. If green, inspect attempt 001 and remaining attempt 002 material purchases/replacements and terminal boss choices for additional semantic/integration defects.
 3. Keep D14 residual timing under observation; optimize only if the expensive owner is identified without changing decision semantics.
 4. Do not begin numerical calibration until live semantic defects are exhausted.
 
