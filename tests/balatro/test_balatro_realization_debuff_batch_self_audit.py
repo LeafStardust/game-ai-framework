@@ -109,7 +109,14 @@ def test_glass_joker_ignores_debuffed_scoring_glass_card():
     assert realize_bond(_dev("card_destruction"), state).realization == BondRealization.PARTIAL
 
 
-def test_vampire_cannot_feed_from_debuffed_enhanced_scoring_card():
+def test_enhancement_consumption_remains_a_live_run_axis_with_owned_feedstock():
     enhanced = _c(enhancement="Bonus", debuffed=True)
-    state = SimpleNamespace(jokers=[_j("Vampire")], scoring_cards=[enhanced], hand=[enhanced])
-    assert realize_bond(_dev("vampire"), state).realization == BondRealization.PARTIAL
+    state = SimpleNamespace(
+        jokers=[_j("Vampire")],
+        scoring_cards=[enhanced],
+        hand=[enhanced],
+        owned_deck=[enhanced],
+    )
+    # Debuff state controls the immediate Vampire trigger in tactical mechanics;
+    # it does not erase the run-level enhancement-consumption structure.
+    assert realize_bond(_dev("enhancement_consumption"), state).realization == BondRealization.ACTIVE
