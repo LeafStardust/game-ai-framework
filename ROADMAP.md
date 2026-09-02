@@ -265,6 +265,39 @@ Required tactical paths:
 
 Do not create new Bond-specific tactical controllers unless a real mechanical owner is missing. Prefer extending the existing tactical evaluator with exact public mechanical value.
 
+### Phase I implementation audit — IN PROGRESS
+
+Fresh branch inspection confirms the three required engine families already have relevant canonical production hooks; the remaining work is to prove their tactical effect deterministically and patch only if a proof exposes a real gap.
+
+#### I1 — Burnt Joker / first-discard hand leveling — IMPLEMENTED, PROOF PENDING
+
+- `games/balatro/burnt_bond_execution_policy.py` is a pure D1 evidence helper, not a Play/Discard authority.
+- `_burnt_strategy_fit(...)` recognizes only a still-available first discard, requires remaining hand/discard resources, and rewards a discard whose evaluated poker hand matches the developed `hand_leveling` target.
+- `games/balatro/live/strategy_hand_policy.py` calls that helper from the canonical D1 `_strategy_fit(...)` path.
+- Burnt evidence remains subordinate to safe-pace survival/resource ordering and cannot reverse D1 Play/Discard arbitration.
+- Missing Phase I work: focused deterministic regression proving Burnt selects the target-matching discard among survival-equivalent legal discard lines while a materially safer play/discard still wins.
+
+#### I2 — Hanged Man / permanent deck thinning — IMPLEMENTED PROJECTION, TARGET-QUALITY PROOF PENDING
+
+- H3's `games/balatro/consumable_strategy_delta_policy.py` projects deterministic consumable targets on a deep-copied state and feeds the result into canonical `StrategyDelta` only after the native target evaluator has admitted a positive target.
+- `The Hanged Man` is explicitly handled as a destruction case: its real consumable semantics remove cards rather than attempting transform synchronization, and the projected persistent `owned_deck` state is evaluated afterward.
+- Legality and literal/contextual target quality remain owned by `ContextualConsumableTargetEvaluator`; StrategyDelta is only a conservative ranking adjustment.
+- Missing Phase I work: focused deterministic regression proving Hanged Man projection permanently removes the selected cards from owned-deck state and that a strategically better thinning target outranks a worse otherwise-viable target without creating a parallel destruction controller.
+
+#### I3 — Steel / Baron / Mime held-card exploitation — IMPLEMENTED, PROOF PENDING
+
+- Canonical D1 now has public mechanical held-card preservation in `games/balatro/live/strategy_hand_policy.py`.
+- `_held_card_value(...)` recognizes Steel xMult and Baron-held King xMult, adds Mime retrigger value, and also recognizes a Red Seal held-card retrigger.
+- `_held_card_preservation(...)` applies a negative tactical fit when a PLAY or DISCARD sacrifices those held-value cards.
+- This value participates only inside safe/equivalent D1 candidate ranking; clear probability, score pace, boss constraints, and survival remain authoritative.
+- Missing Phase I work: focused deterministic regression proving an otherwise-equivalent action preserves a Steel/Baron/Mime held-value card, plus a counterexample proving materially stronger survival/scoring can still spend it.
+
+### Phase I validation status
+
+- No new Phase I deterministic regression file has been committed yet in the current slice.
+- Do not claim Phase I complete until all three focused proofs are green locally.
+- If any focused proof fails because the implementation does not actually affect the canonical owner, patch that existing owner with exact public mechanical value only; do not add a late wrapper or new Bond controller.
+
 ## Phase J — Deterministic end-to-end proofs
 
 Minimum representative paths:
@@ -288,14 +321,14 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 
 # Exact next action
 
-**Complete Phase I tactical-exploitation verification across the three required engine families.**
+**Finish Phase I with focused deterministic proofs; implementation already exists for all three required tactical families.**
 
-1. Fresh-fetch the canonical live hand/discard owner and verify Burnt Joker's first-discard hand-leveling trigger is represented in action selection rather than only in strategic construction value.
-2. Verify Hanged Man/card-destruction target selection rewards permanent deck thinning through the existing consumable target owner without adding a parallel destruction controller.
-3. Verify hand/discard selection values held-card mechanics strongly enough to preserve and exploit Steel cards, Baron-held Kings, and Mime retriggers when tactically appropriate.
-4. For each confirmed gap, patch the existing tactical owner with public mechanical value only; preserve legality, survival, hand-clear probability, and boss constraints.
-5. Add focused deterministic Phase I regressions covering all changed tactical paths and ask the user to run one combined local validation command.
-6. When all three tactical paths are proven green, advance to Phase J end-to-end proofs.
+1. Add a focused Burnt Joker D1 regression proving target-hand first-discard evidence breaks only survival-equivalent discard ties and cannot override canonical safe-pace survival.
+2. Add a focused Hanged Man regression proving exact permanent `owned_deck` destruction plus target ranking that favors the stronger deck-thinning result among already-viable targets.
+3. Add a focused held-card regression proving D1 preserves Steel/Baron/Mime held-value cards across otherwise-equivalent actions while allowing materially stronger survival/scoring lines to spend them.
+4. Patch production only if one of those deterministic proofs exposes a real tactical gap; keep changes inside the existing D1 or consumable-target owner and use public mechanical evidence only.
+5. Ask the user to run one combined local focused pytest command beginning with `git pull`; ChatGPT must not run pytest itself.
+6. Once all three proofs are green, mark Phase I COMPLETE and advance directly to Phase J deterministic end-to-end proofs.
 
 # Progress criterion
 
