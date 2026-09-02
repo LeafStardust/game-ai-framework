@@ -5,7 +5,7 @@ from dataclasses import replace
 
 from games.balatro.aces_dna_hand_policy import _dna_aces_fit
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
-from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.evaluation import evaluate_bond_structure
 from games.balatro.bonds.model import BondRank, BondRealization
 from games.balatro.burnt_bond_execution_policy import _burnt_strategy_fit
 from games.balatro.castle_discard_policy import _castle_strategy_fit
@@ -597,7 +597,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
 
     def _composition(self, state):
         try:
-            return evaluate_bond_composition(state)
+            return evaluate_bond_structure(state)
         except (AttributeError, TypeError, ValueError, RuntimeError):
             return (), None
 
@@ -758,100 +758,58 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         scored = [
             (
                 self._structure_fit(kept, hand_type, rules=rules) * weight,
-                self._structure_fit(kept, hand_type, rules=rules),
                 hand_type,
-                weight,
                 source,
             )
             for hand_type, weight, source in intents
         ]
-        value, structure, hand_type, weight, source = max(scored, key=lambda item: (item[0], item[1], item[3], item[2]))
-        return value + preservation, (
-            f"D1 discard preserves {hand_type} structure={structure:.3f}",
-            f"D1 Bond intent source={source} weight={weight:.3f}",
+        best, hand_type, source = max(scored, key=lambda item: item[0])
+        return best + preservation, (
+            f"D1 {source} Bond preserves {hand_type} draw structure fit={best:.3f}",
             f"mechanical held-card preservation={preservation:+.3f}",
             *preservation_notes,
         )
 
-    @classmethod
-    def _structure_fit(cls, cards, hand_type: str, *, rules: dict | None = None) -> float:
-        rules = dict(rules or {})
-        hand_type = str(hand_type).upper()
-        regular = [
-            card
-            for card in cards
-            if str(getattr(card, "enhancement", "") or "") != "Stone"
-        ]
-        ranks = Counter(str(getattr(card, "rank", "")) for card in regular)
-        rank_counts = sorted(ranks.values(), reverse=True)
-        maximum_rank = rank_counts[0] if rank_counts else 0
-        flush_required = max(1, int(rules.get("flush_size", 5) or 5))
-        maximum_suit = max(
-            (
-                sum(1 for card in regular if card_matches_suit(card, suit, rules))
-                for suit in ("Hearts", "Diamonds", "Clubs", "Spades")
-            ),
-            default=0,
-        )
-        if hand_type == "HIGH_CARD": return 0.25 if regular else 0.0
-        if hand_type == "PAIR": return min(1.0, maximum_rank / 2.0)
-        if hand_type == "TWO_PAIR": return min(1.0, sum(1 for count in rank_counts if count >= 2) / 2.0)
-        if hand_type == "THREE_OF_A_KIND": return min(1.0, maximum_rank / 3.0)
-        if hand_type == "FOUR_OF_A_KIND": return min(1.0, maximum_rank / 4.0)
-        if hand_type == "FIVE_OF_A_KIND": return min(1.0, maximum_rank / 5.0)
-        if hand_type == "FLUSH": return min(1.0, maximum_suit / float(flush_required))
-        if hand_type == "STRAIGHT": return cls._straight_fit(regular, rules=rules)
-        if hand_type == "FULL_HOUSE":
-            top = rank_counts[0] if rank_counts else 0
-            second = rank_counts[1] if len(rank_counts) > 1 else 0
-            return 0.6 * min(1.0, top / 3.0) + 0.4 * min(1.0, second / 2.0)
-        if hand_type == "STRAIGHT_FLUSH":
-            return max(
-                (
-                    cls._straight_fit(
-                        [card for card in regular if card_matches_suit(card, suit, rules)],
-                        rules=rules,
-                    )
-                    for suit in ("Hearts", "Diamonds", "Clubs", "Spades")
-                ),
-                default=0.0,
-            )
-        if hand_type == "FLUSH_HOUSE": return cls._structure_fit(regular, "FULL_HOUSE", rules=rules) * cls._structure_fit(regular, "FLUSH", rules=rules)
-        if hand_type == "FLUSH_FIVE": return cls._structure_fit(regular, "FIVE_OF_A_KIND", rules=rules) * cls._structure_fit(regular, "FLUSH", rules=rules)
-        return 0.0
-
     @staticmethod
-    def _straight_fit(cards, *, rules: dict | None = None) -> float:
-        rules = dict(rules or {})
-        required = max(1, int(rules.get("straight_size", 5) or 5))
-        max_step = 2 if bool(rules.get("shortcut")) else 1
-        raw_values = {
-            _RANK_VALUE.get(str(getattr(card, "rank", "")))
-            for card in cards
-        }
-        raw_values.discard(None)
-        if not raw_values:
-            return 0.0
+    def _structure_fit(cards, hand_type: str, *, rules=None) -> float:
+        ranks = Counter(str(getattr(card, "rank", "")).split(".")[-1].upper() for card in cards)
+        suits = Counter(str(getattr(card, "suit", "")).split(".")[-1].upper() for card in cards)
+        values = sorted(
+            {_RANK_VALUE.get(rank, 0) for rank in ranks if _RANK_VALUE.get(rank, 0)},
+            reverse=True,
+        )
 
-        value_sets = [set(raw_values)]
-        if 14 in raw_values:
-            ace_low = set(raw_values)
-            ace_low.remove(14)
-            ace_low.add(1)
-            value_sets.append(ace_low)
-
-        best = 1
-        for values in value_sets:
-            ordered = sorted(values)
-            for start in range(len(ordered)):
-                length = 1
-                previous = ordered[start]
-                for current in ordered[start + 1:]:
-                    gap = current - previous
-                    if 1 <= gap <= max_step:
-                        length += 1
-                        previous = current
-                    elif gap > max_step:
-                        break
-                best = max(best, length)
-        return min(1.0, best / float(required))
+        if hand_type == "PAIR":
+            return 2.0 * sum(1 for count in ranks.values() if count >= 2) + max(ranks.values(), default=0) * 0.25
+        if hand_type == "TWO_PAIR":
+            return 2.0 * min(2, sum(1 for count in ranks.values() if count >= 2))
+        if hand_type in {"THREE_OF_A_KIND", "THREE_KIND"}:
+            return max(ranks.values(), default=0)
+        if hand_type in {"FOUR_OF_A_KIND", "FOUR_KIND", "FIVE_OF_A_KIND", "FIVE_KIND"}:
+            return max(ranks.values(), default=0) * 1.5
+        if hand_type in {"FLUSH", "FLUSH_HOUSE", "FLUSH_FIVE"}:
+            best_suit = 0
+            for suit in {str(getattr(card, "suit", "") or "") for card in cards}:
+                best_suit = max(
+                    best_suit,
+                    sum(1 for card in cards if card_matches_suit(card, suit, rules=rules)),
+                )
+            return float(best_suit)
+        if hand_type in {"STRAIGHT", "STRAIGHT_FLUSH"}:
+            if not values:
+                return 0.0
+            longest = 1
+            current = 1
+            for left, right in zip(values, values[1:]):
+                gap = left - right
+                if gap <= 2:
+                    current += 1
+                    longest = max(longest, current)
+                else:
+                    current = 1
+            if 14 in values and 2 in values:
+                longest = max(longest, 2)
+            return float(longest)
+        if hand_type in {"HIGH_CARD", "HIGH"}:
+            return float(max(values, default=0)) / 4.0
+        return 0.0
