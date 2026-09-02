@@ -3,6 +3,8 @@ from games.balatro.joker import Joker, JokerContext
 
 
 class RideTheBusJoker(Joker):
+    mechanics = frozenset({"no_face_play_scaling"})
+
     def __init__(self):
         self.mult = 0
 
