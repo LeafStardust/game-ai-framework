@@ -269,32 +269,32 @@ Do not create new Bond-specific tactical controllers unless a real mechanical ow
 
 Fresh branch inspection confirms the three required engine families already have relevant canonical production hooks; the remaining work is to prove their tactical effect deterministically and patch only if a proof exposes a real gap.
 
-#### I1 — Burnt Joker / first-discard hand leveling — IMPLEMENTED, PROOF PENDING
+#### I1 — Burnt Joker / first-discard hand leveling — PROOF AUTHORED, LOCAL VALIDATION PENDING
 
 - `games/balatro/burnt_bond_execution_policy.py` is a pure D1 evidence helper, not a Play/Discard authority.
 - `_burnt_strategy_fit(...)` recognizes only a still-available first discard, requires remaining hand/discard resources, and rewards a discard whose evaluated poker hand matches the developed `hand_leveling` target.
 - `games/balatro/live/strategy_hand_policy.py` calls that helper from the canonical D1 `_strategy_fit(...)` path.
 - Burnt evidence remains subordinate to safe-pace survival/resource ordering and cannot reverse D1 Play/Discard arbitration.
-- Missing Phase I work: focused deterministic regression proving Burnt selects the target-matching discard among survival-equivalent legal discard lines while a materially safer play/discard still wins.
+- `tests/balatro/test_balatro_phase_i_tactical_verification.py` now proves the real canonical `hand_leveling` evidence selects the target-matching first discard among survival-equivalent legal discard lines and that a materially safer discard still wins.
 
-#### I2 — Hanged Man / permanent deck thinning — IMPLEMENTED PROJECTION, TARGET-QUALITY PROOF PENDING
+#### I2 — Hanged Man / permanent deck thinning — PROOF AUTHORED, LOCAL VALIDATION PENDING
 
 - H3's `games/balatro/consumable_strategy_delta_policy.py` projects deterministic consumable targets on a deep-copied state and feeds the result into canonical `StrategyDelta` only after the native target evaluator has admitted a positive target.
 - `The Hanged Man` is explicitly handled as a destruction case: its real consumable semantics remove cards rather than attempting transform synchronization, and the projected persistent `owned_deck` state is evaluated afterward.
 - Legality and literal/contextual target quality remain owned by `ContextualConsumableTargetEvaluator`; StrategyDelta is only a conservative ranking adjustment.
-- Missing Phase I work: focused deterministic regression proving Hanged Man projection permanently removes the selected cards from owned-deck state and that a strategically better thinning target outranks a worse otherwise-viable target without creating a parallel destruction controller.
+- `tests/balatro/test_balatro_phase_i_tactical_verification.py` now proves Hanged Man projection permanently removes the selected card from copied `owned_deck` state without mutating authoritative state and that canonical StrategyDelta ranks the stronger thinning result above an otherwise-equally-viable target.
 
-#### I3 — Steel / Baron / Mime held-card exploitation — IMPLEMENTED, PROOF PENDING
+#### I3 — Steel / Baron / Mime held-card exploitation — PROOF AUTHORED, LOCAL VALIDATION PENDING
 
 - Canonical D1 now has public mechanical held-card preservation in `games/balatro/live/strategy_hand_policy.py`.
 - `_held_card_value(...)` recognizes Steel xMult and Baron-held King xMult, adds Mime retrigger value, and also recognizes a Red Seal held-card retrigger.
 - `_held_card_preservation(...)` applies a negative tactical fit when a PLAY or DISCARD sacrifices those held-value cards.
 - This value participates only inside safe/equivalent D1 candidate ranking; clear probability, score pace, boss constraints, and survival remain authoritative.
-- Missing Phase I work: focused deterministic regression proving an otherwise-equivalent action preserves a Steel/Baron/Mime held-value card, plus a counterexample proving materially stronger survival/scoring can still spend it.
+- `tests/balatro/test_balatro_phase_i_tactical_verification.py` now proves an otherwise-equivalent D1 action preserves a Red-Seal Steel King under Baron/Mime and that a materially stronger deterministic clear can still spend it.
 
 ### Phase I validation status
 
-- No new Phase I deterministic regression file has been committed yet in the current slice.
+- The focused Phase I deterministic regression file is authored; user-local validation is pending.
 - Do not claim Phase I complete until all three focused proofs are green locally.
 - If any focused proof fails because the implementation does not actually affect the canonical owner, patch that existing owner with exact public mechanical value only; do not add a late wrapper or new Bond controller.
 
@@ -321,14 +321,11 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 
 # Exact next action
 
-**Finish Phase I with focused deterministic proofs; implementation already exists for all three required tactical families.**
+**Validate the authored Phase I tactical proofs locally.**
 
-1. Add a focused Burnt Joker D1 regression proving target-hand first-discard evidence breaks only survival-equivalent discard ties and cannot override canonical safe-pace survival.
-2. Add a focused Hanged Man regression proving exact permanent `owned_deck` destruction plus target ranking that favors the stronger deck-thinning result among already-viable targets.
-3. Add a focused held-card regression proving D1 preserves Steel/Baron/Mime held-value cards across otherwise-equivalent actions while allowing materially stronger survival/scoring lines to spend them.
-4. Patch production only if one of those deterministic proofs exposes a real tactical gap; keep changes inside the existing D1 or consumable-target owner and use public mechanical evidence only.
-5. Ask the user to run one combined local focused pytest command beginning with `git pull`; ChatGPT must not run pytest itself.
-6. Once all three proofs are green, mark Phase I COMPLETE and advance directly to Phase J deterministic end-to-end proofs.
+1. Ask the user to run the combined focused pytest command beginning with `git pull`; ChatGPT must not run pytest itself.
+2. If a proof fails because the implementation does not actually affect the canonical owner, patch that existing D1 or consumable-target owner with exact public mechanical value only; do not add a late wrapper or new Bond controller.
+3. Once all three proof groups are green, mark Phase I COMPLETE and advance directly to Phase J deterministic end-to-end proofs.
 
 # Progress criterion
 
