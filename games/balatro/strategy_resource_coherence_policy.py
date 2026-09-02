@@ -1,154 +1,26 @@
 from __future__ import annotations
 
-"""Resource-policy coherence for the canonical Bond strategy machine.
+"""Resource-policy coherence for public D8/D3 state.
 
-Live validation exposed resource drift when D8 inferred needs from aggregate owned
-state instead of the strategy and behavior the run is actually realizing. This
-policy scopes card-development demand to the strongest semantic strategy, derives
-Celestial demand from observed hand specialization rather than level alone, and
-keeps zero-fit Voucher purchases from consuming the basic cash reserve.
+Unopened booster contents are hidden, so D8 must derive pre-open demand only from
+public mechanical state and its native BuildProfile expectation. Canonical
+StrategyDelta applies later, once D9 has a visible exact persistent outcome to
+project. Historical named-strategy commitments and ``seek_feature``/``seek_bond``
+prescriptions therefore have no authority in unopened-pack admission.
+
+Celestial demand keeps its separate observed-hand specialization signal because
+repeated public hand usage is direct mechanical evidence rather than hidden-pack or
+strategy-controller state. The independent D3 zero-fit Voucher cash floor is also
+preserved.
 """
 
 from dataclasses import replace
 
-from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.shop_booster_policy import BuildAwareShopBoosterPolicy
 from games.balatro.shop_voucher_policy import BUY, HOLD, VoucherAcquisitionPolicy
 
 
 _BASIC_CASH_RESERVE = 5
-_CARD_BOND_FEATURES = {
-    "face_cards": ("rank:J", "rank:Q", "rank:K"),
-    "aces": ("rank:A",),
-    "kings": ("rank:K",),
-    "queens": ("rank:Q",),
-    "jacks": ("rank:J",),
-    "low_ranks": ("rank:2", "rank:3", "rank:4", "rank:5"),
-    "hearts": ("suit:hearts",),
-    "spades": ("suit:spades",),
-    "clubs": ("suit:clubs",),
-    "diamonds": ("suit:diamonds",),
-    "steel": ("enhancement:steel",),
-    "glass": ("enhancement:glass",),
-    "stone": ("enhancement:stone",),
-    "gold_economy": ("enhancement:gold",),
-    "enhanced_cards": ("target:card",),
-}
-
-
-def _strategy_priority(candidate) -> tuple[int, float, float]:
-    commitment = getattr(candidate, "commitment", 0)
-    try:
-        commitment_value = int(commitment)
-    except (TypeError, ValueError):
-        commitment_value = 0
-    return (
-        commitment_value,
-        float(getattr(candidate, "confidence", 0.0) or 0.0),
-        float(getattr(candidate, "strength", 0.0) or 0.0),
-    )
-
-
-def _strategy_candidate(state):
-    try:
-        _developments, composition = evaluate_bond_composition(state)
-    except (AttributeError, TypeError, ValueError, RuntimeError):
-        return None
-    candidates = tuple(getattr(composition, "strategy_candidates", ()) or ())
-    if not candidates:
-        return None
-    return max(candidates, key=_strategy_priority)
-
-
-def _bond_goal_features(candidate) -> tuple[str, ...]:
-    if candidate is None:
-        return ()
-    values: list[str] = []
-    for prescription in getattr(candidate, "prescriptions", ()) or ():
-        text = str(prescription)
-        if not text.startswith("seek_bond:"):
-            continue
-        parts = text.split(":")
-        bond_id = parts[1].strip() if len(parts) >= 2 else ""
-        values.extend(_CARD_BOND_FEATURES.get(bond_id, ()))
-    return tuple(dict.fromkeys(values))
-
-
-def _strategy_features(state) -> tuple[str, ...]:
-    candidate = _strategy_candidate(state)
-    if candidate is None:
-        return ()
-
-    values: list[str] = []
-    for prescription in getattr(candidate, "prescriptions", ()) or ():
-        text = str(prescription)
-        if text.startswith("seek_feature:"):
-            feature = text.split(":", 1)[1].strip()
-            if feature:
-                values.append(feature)
-    values.extend(_bond_goal_features(candidate))
-    return tuple(dict.fromkeys(values))
-
-
-def _strategy_card_need(policy, state, profile, family: str):
-    candidate = _strategy_candidate(state)
-    features = _strategy_features(state)
-
-    if family == "STANDARD" and candidate is not None and not features:
-        return 0.0, (
-            "D8 committed/forming strategy has no card-level Standard prescription",
-            f"strategy={getattr(candidate, 'strategy_id', 'unknown')}",
-            "random deck growth is not treated as strategy demand",
-        )
-
-    if not features:
-        return None
-
-    prefixes = policy.FAMILY_CARD_FEATURE_PREFIXES.get(family, ())
-    exact = policy.FAMILY_TRANSFORM_FEATURES.get(family, frozenset())
-    relevant = {
-        feature
-        for feature in features
-        if feature in exact or any(feature.startswith(prefix) for prefix in prefixes)
-    }
-    bond_relevant = {
-        feature
-        for feature in _bond_goal_features(candidate)
-        if feature in exact or any(feature.startswith(prefix) for prefix in prefixes)
-    }
-    unmet = {
-        feature
-        for feature in relevant
-        if profile.strength(feature) <= 0.0 and not profile.can_produce(feature)
-    }
-    gap_score = min(1.0, len(unmet) / 3.0)
-    bond_targeted_score = min(1.0, len(bond_relevant) / 2.0)
-
-    modified_cards = sum(count for _, count in profile.enhancement_counts)
-    modified_cards += sum(count for _, count in profile.seal_counts)
-    modified_cards += sum(count for _, count in profile.edition_counts)
-    modified_density = (
-        min(1.0, modified_cards / max(1, profile.deck_size) / 0.20)
-        if profile.deck_size > 0
-        else 0.0
-    )
-    if family == "STANDARD":
-        # Preserve the established explicit seek_feature demand curve. Bond goals
-        # add a separate density signal because a rank/suit target remains useful
-        # even when the starting deck already contains matching cards.
-        gap_need = min(1.0, 0.75 * gap_score + 0.25 * modified_density)
-        bond_density_need = 0.45 * bond_targeted_score
-        need = min(1.0, max(gap_need, bond_density_need))
-    else:
-        need = min(1.0, max(gap_score, 0.35 * bond_targeted_score))
-    unmet_text = ", ".join(sorted(unmet)) if unmet else "none"
-    relevant_text = ", ".join(sorted(relevant)) if relevant else "none"
-    return need, (
-        "D8 strategy-scoped demand replaces aggregate owned-effect wishlist",
-        f"strategy relevant card goals={relevant_text}",
-        f"strategy relevant unmet build features={unmet_text}",
-        f"playing-card modifier density={modified_density:.3f}",
-    )
 
 
 def _celestial_observed_need(state) -> tuple[float, tuple[str, ...]]:
@@ -188,10 +60,9 @@ def install_strategy_resource_coherence_policy() -> None:
     def _build_need(self, state, profile, *, family: str):
         if family == "CELESTIAL":
             return _celestial_observed_need(state)
-        if family in {"STANDARD", "ARCANA", "SPECTRAL"}:
-            scoped = _strategy_card_need(self, state, profile, family)
-            if scoped is not None:
-                return scoped
+        # STANDARD / ARCANA / SPECTRAL are unopened stochastic acquisitions. Their
+        # pre-open demand remains the native D8 public BuildProfile expectation;
+        # exact persistent outcomes receive canonical StrategyDelta after opening.
         return original_build_need(self, state, profile, family=family)
 
     BuildAwareShopBoosterPolicy._build_need = _build_need
@@ -212,7 +83,7 @@ def install_strategy_resource_coherence_policy() -> None:
                 executable_action=None,
                 rationale=(
                     *decision.rationale,
-                    f"D3 strategy/resource veto: zero-compatibility Voucher may not breach ${_BASIC_CASH_RESERVE} basic reserve",
+                    f"D3 resource veto: zero-compatibility Voucher may not breach ${_BASIC_CASH_RESERVE} basic reserve",
                 ),
             )
         return decision
