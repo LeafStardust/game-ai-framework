@@ -28,7 +28,7 @@ def test_blackboard_is_held_state_support_not_baron_equivalent():
     dev = evaluate_held_cards_bond(state("Blackboard"))
     assert dev.contribution == 4.0
     assert dev.rank == BondRank.R1
-    assert sources(dev) == {"Blackboard"}
+    assert sources(dev) == {"Held black-suit XMult"}
 
 
 def test_cloud9_is_low_authority_cash_support():
