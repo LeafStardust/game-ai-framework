@@ -96,6 +96,22 @@ def test_every_frozen_bond_has_an_r5_reachable_structural_state():
     assert not failures, failures
 
 
+def test_every_emitted_canonical_contribution_has_source_and_mechanic_identity():
+    state = maximal_state()
+    failures = {}
+    for bond_id in FROZEN_BOND_IDS:
+        candidate_state = no_face_capstone_state() if bond_id == "no_face_cards" else state
+        development = EVALUATORS[bond_id](candidate_state)
+        missing = tuple(
+            (part.source, part.source_id, part.mechanic)
+            for part in development.contributions
+            if not part.source_id or not part.mechanic
+        )
+        if missing:
+            failures[bond_id] = missing
+    assert not failures, failures
+
+
 def test_low_ranks_r5_is_reachable_without_extra_joker_capacity():
     state = SimpleNamespace(
         jokers=("hackjoker", "weejoker", "fibonaccijoker", "evenstevenjoker", "walkietalkiejoker"),
