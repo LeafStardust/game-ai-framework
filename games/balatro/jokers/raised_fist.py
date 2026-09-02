@@ -2,6 +2,7 @@ from games.balatro.joker import Joker, JokerContext
 
 
 class RaisedFistJoker(Joker):
+    mechanics = frozenset({"held_lowest_rank_payoff"})
 
     RANK_VALUES = {
         "2": 2,
