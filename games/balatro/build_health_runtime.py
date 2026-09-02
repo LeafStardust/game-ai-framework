@@ -14,8 +14,6 @@ from math import prod
 from typing import Iterable
 
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
-from games.balatro.bonds.evaluation import evaluate_bond_composition
-from games.balatro.bonds.strategy_semantics import StrategyCommitment
 from games.balatro.build_health import (
     BuildHealth,
     BuildHealthEvaluator,
@@ -438,41 +436,14 @@ class RuntimeBuildHealthEvaluator:
 
     @staticmethod
     def _coherence(state, tracker) -> float:
-        del tracker
-        try:
-            _, composition = evaluate_bond_composition(state)
-        except (AttributeError, KeyError, TypeError, ValueError, RuntimeError):
-            return 0.25
+        """Return a neutral compatibility value for the retired health dimension.
 
-        candidates = tuple(getattr(composition, "strategy_candidates", ()) or ())
-        if not candidates:
-            # Several unrelated R1 Bonds are evidence of roster fragmentation, not
-            # neutral 50% coherence.  Preserve a little credit for one focused axis.
-            bond_count = len(tuple(getattr(composition, "bond_ids", ()) or ()))
-            return max(0.10, 0.35 - 0.05 * max(0, bond_count - 1))
-
-        best = max(
-            candidates,
-            key=lambda value: (
-                int(getattr(value, "commitment", StrategyCommitment.EXPLORATORY)),
-                float(getattr(value, "confidence", 0.0) or 0.0),
-                float(getattr(value, "strength", 0.0) or 0.0),
-            ),
-        )
-        commitment = getattr(best, "commitment", StrategyCommitment.EXPLORATORY)
-        base = {
-            StrategyCommitment.EXPLORATORY: 0.30,
-            StrategyCommitment.FORMING: 0.50,
-            StrategyCommitment.PINNED: 0.70,
-            StrategyCommitment.ESTABLISHED: 0.85,
-            StrategyCommitment.DOMINANT: 1.00,
-        }.get(commitment, 0.30)
-        confidence = max(0.0, min(1.0, float(getattr(best, "confidence", 0.0) or 0.0)))
-        conflict_penalty = min(
-            0.25,
-            0.05 * len(tuple(getattr(composition, "conflicts", ()) or ())),
-        )
-        return max(0.10, min(1.0, base * (0.75 + 0.25 * confidence) - conflict_penalty))
+        Runtime Build Health must not reconstruct strategic identity from diagnostic
+        composition candidates. BuildValue/StrategyDelta own learned strategic value;
+        this legacy numeric health adapter therefore keeps coherence non-authoritative.
+        """
+        del state, tracker
+        return 0.50
 
     @staticmethod
     def _runway(state, engines) -> float:
