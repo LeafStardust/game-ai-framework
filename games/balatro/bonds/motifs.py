@@ -109,10 +109,18 @@ def evaluate_baron_mime_steel(state: Any, developments: Iterable[BondDevelopment
     devs = _dev_map(developments)
     jokers = list(getattr(state, "jokers", ()) or ())
     deck = _deck(state)
+    king_count = sum(
+        1
+        for card in deck
+        if str(getattr(card, "rank", "") or "").upper() == "K"
+    )
     checks = (
         (_has(jokers, "baron"), "BARON"),
         (_has(jokers, "mime"), "MIME"),
-        (sum(1 for c in deck if str(getattr(c, "rank", "") or "").upper() == "K") >= 4, "KING_INFRASTRUCTURE"),
+        # Four Kings are the untouched 52-card baseline, not developed Baron
+        # infrastructure. The exceptional motif should become POTENTIAL only after
+        # the run has actually increased King density or acquired another component.
+        (king_count >= 5, "KING_INFRASTRUCTURE"),
         (sum(1 for c in deck if str(getattr(c, "enhancement", "") or "").lower() == "steel") >= 2, "STEEL_INFRASTRUCTURE"),
     )
     present = [label for ok, label in checks if ok]
