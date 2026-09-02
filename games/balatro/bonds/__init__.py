@@ -152,6 +152,7 @@ from games.balatro.bonds.build_health import BuildHealth, BuildHealthState, eval
 from games.balatro.bonds.evaluation import (
     EVALUATORS,
     evaluate_all_bonds,
+    evaluate_bond_structure,
     evaluate_bond_composition,
     extra_evaluators,
     missing_evaluators,
