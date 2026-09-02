@@ -6,8 +6,9 @@ This is the authoritative development roadmap for the Balatro Red Deck / White S
 
 - Repository: `LeafStardust/game-ai-framework`
 - Branch: `feat/v1.0-red-white-competence`
-- User runs tests and live games locally. **Do not run tests or live games from ChatGPT.**
-- Every validation command shown to the user must begin with `git pull`.
+- ChatGPT runs deterministic/static tests in its isolated repository environment and keeps output quiet (`pytest -q` plus focused failure inspection).
+- The user runs actual Balatro gameplay and any validation that genuinely requires the user's Windows/game environment.
+- Validation commands shown to the user only when local execution is genuinely required must begin with `git pull`.
 - Every focused pytest command must use `-q`.
 - Commands shown to the user must be PowerShell-compatible: use separate command lines rather than `&&`.
 - Every command block shown to the user must contain a blank line after its final command before the closing fence.
@@ -254,7 +255,7 @@ Validated green.
 
 Phase H exit condition is satisfied: remaining installed strategy-named resource logic uses public evidence/mechanics rather than named-strategy action authority. Compatibility-only legacy modules may remain until the Phase K cleanup gate.
 
-## Phase I — Verify tactical exploitation — ACTIVE
+## Phase I — Verify tactical exploitation — COMPLETE
 
 Verify canonical tactical owners actually exploit the engines Phase H can now construct.
 
@@ -265,11 +266,11 @@ Required tactical paths:
 
 Do not create new Bond-specific tactical controllers unless a real mechanical owner is missing. Prefer extending the existing tactical evaluator with exact public mechanical value.
 
-### Phase I implementation audit — IN PROGRESS
+### Phase I implementation audit — COMPLETE
 
 Fresh branch inspection confirms the three required engine families already have relevant canonical production hooks; the remaining work is to prove their tactical effect deterministically and patch only if a proof exposes a real gap.
 
-#### I1 — Burnt Joker / first-discard hand leveling — PROOF AUTHORED, LOCAL VALIDATION PENDING
+#### I1 — Burnt Joker / first-discard hand leveling — VALIDATED GREEN
 
 - `games/balatro/burnt_bond_execution_policy.py` is a pure D1 evidence helper, not a Play/Discard authority.
 - `_burnt_strategy_fit(...)` recognizes only a still-available first discard, requires remaining hand/discard resources, and rewards a discard whose evaluated poker hand matches the developed `hand_leveling` target.
@@ -277,14 +278,14 @@ Fresh branch inspection confirms the three required engine families already have
 - Burnt evidence remains subordinate to safe-pace survival/resource ordering and cannot reverse D1 Play/Discard arbitration.
 - `tests/balatro/test_balatro_phase_i_tactical_verification.py` now proves the real canonical `hand_leveling` evidence selects the target-matching first discard among survival-equivalent legal discard lines and that a materially safer discard still wins.
 
-#### I2 — Hanged Man / permanent deck thinning — PROOF AUTHORED, LOCAL VALIDATION PENDING
+#### I2 — Hanged Man / permanent deck thinning — VALIDATED GREEN
 
 - H3's `games/balatro/consumable_strategy_delta_policy.py` projects deterministic consumable targets on a deep-copied state and feeds the result into canonical `StrategyDelta` only after the native target evaluator has admitted a positive target.
 - `The Hanged Man` is explicitly handled as a destruction case: its real consumable semantics remove cards rather than attempting transform synchronization, and the projected persistent `owned_deck` state is evaluated afterward.
 - Legality and literal/contextual target quality remain owned by `ContextualConsumableTargetEvaluator`; StrategyDelta is only a conservative ranking adjustment.
 - `tests/balatro/test_balatro_phase_i_tactical_verification.py` now proves Hanged Man projection permanently removes the selected card from copied `owned_deck` state without mutating authoritative state and that canonical StrategyDelta ranks the stronger thinning result above an otherwise-equally-viable target.
 
-#### I3 — Steel / Baron / Mime held-card exploitation — PROOF AUTHORED, LOCAL VALIDATION PENDING
+#### I3 — Steel / Baron / Mime held-card exploitation — VALIDATED GREEN
 
 - Canonical D1 now has public mechanical held-card preservation in `games/balatro/live/strategy_hand_policy.py`.
 - `_held_card_value(...)` recognizes Steel xMult and Baron-held King xMult, adds Mime retrigger value, and also recognizes a Red Seal held-card retrigger.
@@ -294,11 +295,11 @@ Fresh branch inspection confirms the three required engine families already have
 
 ### Phase I validation status
 
-- The focused Phase I deterministic regression file is authored; user-local validation is pending.
-- Do not claim Phase I complete until all three focused proofs are green locally.
-- If any focused proof fails because the implementation does not actually affect the canonical owner, patch that existing owner with exact public mechanical value only; do not add a late wrapper or new Bond controller.
+- `tests/balatro/test_balatro_phase_i_tactical_verification.py` is green: `5 passed` in the isolated repository environment.
+- All three focused proof groups exercise the canonical production owners and passed without a production-code correction.
+- Phase I is complete; no Balatro gameplay run is required at this gate.
 
-## Phase J — Deterministic end-to-end proofs
+## Phase J — Deterministic end-to-end proofs — COMPLETE
 
 Minimum representative paths:
 1. Hand Leveling / Discard / Hand Development
@@ -307,7 +308,14 @@ Minimum representative paths:
 
 Prove compatible candidates gain strategic value, destructive replacement loses dependent value, materially stronger alternatives can still win, and tactical owners exploit resulting mechanics.
 
-## Phase K — Migration cleanup gate
+Validated green in `tests/balatro/test_balatro_phase_j_end_to_end.py`:
+
+- Burnt Joker receives positive hand-leveling BuildValue/StrategyDelta, reaches final D2 `BUY`, and the constructed engine drives the canonical target-matching first discard.
+- Trading Card receives positive deck-thinning BuildValue/StrategyDelta beside Erosion, reaches final D2 `BUY`, and Hanged Man's canonical target owner permanently removes the selected low-value cards without mutating the source state.
+- Mime receives positive held-engine BuildValue/StrategyDelta beside Baron and Steel Kings, reaches final D2 `BUY`, destructive dependency removal is penalized, an overwhelmingly stronger mechanical replacement can still win, and D1 preserves the held engine on survival-equivalent lines.
+- The combined Phase I + Phase J focused suite is green: `8 passed`.
+
+## Phase K — Migration cleanup gate — ACTIVE
 
 Repository-wide audit must confirm no production dependency on rejected commitment/prescription authority, no duplicate Bond/build evaluator, no obsolete compatibility wrapper after its final consumer, and no stale tests/docs enforcing rejected architecture.
 
@@ -321,11 +329,13 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 
 # Exact next action
 
-**Validate the authored Phase I tactical proofs locally.**
+**Execute the Phase K migration cleanup audit.**
 
-1. Ask the user to run the combined focused pytest command beginning with `git pull`; ChatGPT must not run pytest itself.
-2. If a proof fails because the implementation does not actually affect the canonical owner, patch that existing D1 or consumable-target owner with exact public mechanical value only; do not add a late wrapper or new Bond controller.
-3. Once all three proof groups are green, mark Phase I COMPLETE and advance directly to Phase J deterministic end-to-end proofs.
+1. Search production, tests, and documentation for rejected commitment/prescription authority, duplicate Bond/build evaluation, compatibility-only wrappers, and stale architecture assertions.
+2. Classify every match as canonical, generic mechanical/economic state, compatibility-only with a live consumer, or obsolete.
+3. Remove obsolete production modules, installers, tests, and documentation only after confirming their final consumers have migrated.
+4. Run focused cleanup regressions and the relevant Balatro suite with quiet output.
+5. Once no obsolete production dependency remains, mark Phase K COMPLETE and advance to Phase L live validation/tuning.
 
 # Progress criterion
 

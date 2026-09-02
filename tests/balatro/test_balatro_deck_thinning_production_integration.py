@@ -58,7 +58,7 @@ def test_real_erosion_strategy_changes_final_d2_trading_card_acquisition():
     thinning_option = _add_option(probe, thinning_state, candidate)
 
     assert thinning_option.total_advantage > ordinary_option.total_advantage
-    assert any("deck_thinning" in note for note in thinning_option.rationale)
+    assert any("canonical StrategyDelta=+" in note for note in thinning_option.rationale)
 
     # Put the admission line strictly between those two real production values.
     # This is a controlled counterfactual, not numerical tuning: both decisions use
@@ -79,6 +79,6 @@ def test_real_erosion_strategy_changes_final_d2_trading_card_acquisition():
     assert thinning_decision.selected is not None
     assert thinning_decision.selected.total_advantage > midpoint
     assert any(
-        "deck_thinning" in note
+        "canonical StrategyDelta=+" in note
         for note in thinning_decision.selected.rationale
     )
