@@ -1,8 +1,11 @@
 from games.balatro.deck_rules import starting_deck_size_for_name
 from games.balatro.joker import Joker, JokerContext
+from games.balatro.mechanics import DECK_THIN_PAYOFF
 
 
 class ErosionJoker(Joker):
+
+    mechanics = frozenset({DECK_THIN_PAYOFF})
 
     def apply(self, context: JokerContext) -> JokerContext:
         if context.score is None:
