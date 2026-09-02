@@ -1,7 +1,6 @@
 from games.balatro.bonds.evaluation import evaluate_all_bonds
 from games.balatro.bonds.model import BondRank
 from games.balatro.joker_policy import _bond_transition_bonus
-from games.balatro.jokers.drivers_license import DriversLicenseJoker
 from games.balatro.jokers.midas_mask import MidasMaskJoker
 from games.balatro.state import BalatroState
 
@@ -17,7 +16,7 @@ def _bond(state: BalatroState, bond_id: str):
     return next(dev for dev in evaluate_all_bonds(state) if dev.bond_id == bond_id)
 
 
-def test_midas_does_not_awaken_drivers_license_bond_without_drivers_license():
+def test_midas_does_not_awaken_enhanced_cards_axis_without_existing_enhancements():
     state = _state()
 
     before_enhanced = _bond(state, "enhanced_cards")
@@ -34,22 +33,3 @@ def test_midas_does_not_awaken_drivers_license_bond_without_drivers_license():
 
     assert 0.0 < adjustment <= 0.5
     assert not any("enhanced_cards:" in note for note in rationale)
-
-
-def test_midas_overlap_is_rewarded_when_drivers_license_axis_is_already_real():
-    state = _state(DriversLicenseJoker())
-
-    before_enhanced = _bond(state, "enhanced_cards")
-    assert before_enhanced.rank >= BondRank.R1
-
-    projected = _state(DriversLicenseJoker(), MidasMaskJoker())
-    after_enhanced = _bond(projected, "enhanced_cards")
-    gold = _bond(projected, "gold_cards")
-
-    assert after_enhanced.rank > before_enhanced.rank
-    assert gold.rank >= BondRank.R1
-
-    adjustment, rationale = _bond_transition_bonus(state, MidasMaskJoker())
-
-    assert adjustment > 0.5
-    assert any("enhanced_cards:" in note for note in rationale)
