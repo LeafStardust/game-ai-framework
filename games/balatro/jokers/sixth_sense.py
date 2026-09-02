@@ -1,7 +1,10 @@
 from games.balatro.joker import Joker, JokerContext
+from games.balatro.mechanics import CARD_DESTRUCTION, SPECTRAL_GENERATION
 
 
 class SixthSenseJoker(Joker):
+
+    mechanics = frozenset({CARD_DESTRUCTION, SPECTRAL_GENERATION})
 
     def apply(self, context: JokerContext) -> JokerContext:
         if context.trigger != "HAND_SCORED":
