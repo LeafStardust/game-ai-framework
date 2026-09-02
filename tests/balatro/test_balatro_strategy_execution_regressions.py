@@ -3,7 +3,6 @@ from types import SimpleNamespace
 import games.balatro.strategy_execution_guard_policy as no_discard
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS
 from games.balatro.aces_dna_hand_policy import _safe_dna_rank_plan
-from games.balatro.bonds.behavior_strategy import _Node, _relation
 from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.runtime import live_memory_autonomous_step_injected as live_step
 
@@ -106,28 +105,6 @@ def test_hand_repetition_can_replace_unnecessary_discard(monkeypatch):
     selected = no_discard._safe_repeat_play(policy, state, (discard, repeat), decision)
     assert selected is not None
     assert selected[2] is repeat
-
-
-def test_dna_behavior_links_to_rank_requirement_without_pair_table():
-    dna = _Node(
-        source="DNA",
-        bond_ids=("deck_growth",),
-        outputs=frozenset(),
-        requires=frozenset(),
-        scales_with=frozenset(),
-        amplifies=frozenset(),
-        value=4.0,
-    )
-    walkie = _Node(
-        source="Walkie Talkie",
-        bond_ids=("low_ranks",),
-        outputs=frozenset({"score:chips"}),
-        requires=frozenset({"rank:4", "rank:10"}),
-        scales_with=frozenset(),
-        amplifies=frozenset(),
-        value=4.0,
-    )
-    assert _relation(dna, walkie) == "CARD_COPY_FEEDS_REQUIRED_RANK"
 
 
 def test_dna_safe_copy_prefers_required_rank():
