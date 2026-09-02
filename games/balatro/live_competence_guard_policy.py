@@ -4,6 +4,9 @@ from __future__ import annotations
 
 These guards are intentionally mechanics/public-state based. They do not predict
 future draws, shop identities, RNG state, or use a named Joker tier table.
+
+Joker acquisition is deliberately not wrapped here. D2 is the canonical Joker
+admission owner; a later live guard must not resurrect a D2 HOLD into BUY.
 """
 
 from dataclasses import replace
@@ -11,9 +14,7 @@ from dataclasses import replace
 from games.balatro.actions import REFRESH_SHOP, BalatroAction
 from games.balatro.build.joker_scenarios import ScenarioJokerBehaviorAnalyzer
 from games.balatro.build_health_runtime import RuntimeBuildHealthEvaluator
-from games.balatro.joker_policy import BUY, HOLD
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
-from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
 from games.balatro.shop_arbiter import BuildAwareShopArbiter
 
 
@@ -49,28 +50,6 @@ def _has_single_play_semantics(state) -> bool:
     )
 
 
-def _immediate_scoring_candidate(candidate: object) -> bool:
-    tokens = _descriptor_tokens(candidate)
-    return any(
-        any(marker in token for marker in ("chip", "mult", "score"))
-        for token in tokens
-    )
-
-
-def _has_authoritative_hold_veto(decision) -> bool:
-    """Keep semantic/strategy vetoes above the late competence rescue layer."""
-    notes = tuple(str(note).lower() for note in (getattr(decision, "rationale", ()) or ()))
-    veto_markers = (
-        "canonical bond conflict veto",
-        "strategy conflict",
-        "conflict veto",
-        "mechanical conflict",
-        "banned",
-        "incompatible",
-    )
-    return any(marker in note for note in notes for marker in veto_markers)
-
-
 def _shop_signature(state) -> tuple[object, ...]:
     """Public-state signature for the one-reroll scaling rescue guard."""
     return (
@@ -93,7 +72,6 @@ def install_live_competence_guard_policy() -> None:
 
     original_discard_priority = LiveBlindClearPlanner._discard_priority
     original_candidate_actions = LiveBlindClearPlanner._candidate_actions
-    original_joker_decide = PlaybookJokerAcquisitionPolicy.decide
     original_shop_decide = BuildAwareShopArbiter.decide
 
     def discard_priority(self, state, action):
@@ -146,46 +124,6 @@ def install_live_competence_guard_policy() -> None:
                 filtered.append(action)
         return filtered or candidates
 
-    def joker_decide(self, state, candidate):
-        decision = original_joker_decide(self, state, candidate)
-        if decision.action != HOLD:
-            return decision
-        if _has_authoritative_hold_veto(decision):
-            return decision
-        ante = max(1, int(getattr(state, "ante", 1) or 1))
-        if ante > 4 or not _immediate_scoring_candidate(candidate):
-            return decision
-        if len(tuple(getattr(state, "jokers", ()) or ())) >= int(getattr(state, "joker_slots", 0) or 0):
-            return decision
-
-        options = tuple(getattr(decision, "options", ()) or ())
-        legal = [
-            option for option in options
-            if getattr(option, "mode", None) == BUY
-            and float(getattr(option, "build_gain", 0.0) or 0.0) > 0.0
-            and int(getattr(getattr(option, "economics", None), "money_after", -1)) >= 0
-        ]
-        if not legal:
-            return decision
-        raw_selected = max(
-            legal,
-            key=lambda option: float(getattr(option, "build_gain", 0.0) or 0.0),
-        )
-        selected = replace(raw_selected, eligible=True)
-        return replace(
-            decision,
-            action=BUY,
-            selected=selected,
-            options=tuple(
-                selected if option is raw_selected else option
-                for option in options
-            ),
-            rationale=(
-                *tuple(getattr(decision, "rationale", ()) or ()),
-                "live competence guard: affordable positive immediate scoring in a free early slot cannot be threshold-rejected",
-            ),
-        )
-
     def shop_decide(self, state, visible_actions, *, reroll_cost: int | None):
         result = original_shop_decide(self, state, visible_actions, reroll_cost=reroll_cost)
         if str(getattr(getattr(result, "action", None), "name", "")) != "END_SHOP":
@@ -223,8 +161,6 @@ def install_live_competence_guard_policy() -> None:
 
     LiveBlindClearPlanner._discard_priority = discard_priority
     LiveBlindClearPlanner._candidate_actions = candidate_actions
-    PlaybookJokerAcquisitionPolicy.decide = joker_decide
     BuildAwareShopArbiter.decide = shop_decide
     LiveBlindClearPlanner._rw_live_competence_guard_installed = True
-    PlaybookJokerAcquisitionPolicy._rw_live_competence_guard_installed = True
     BuildAwareShopArbiter._rw_live_competence_guard_installed = True
