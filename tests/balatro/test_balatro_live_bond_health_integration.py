@@ -27,9 +27,7 @@ def empty_composition(coherence=0.0):
         conflicts=(),
         synergies=(),
         coherence_score=coherence,
-        pivot_resistance=0.0,
         motif_distance=(),
-        prescriptions=(),
     )
 
 
