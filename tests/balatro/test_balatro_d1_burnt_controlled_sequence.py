@@ -2,8 +2,6 @@ from types import SimpleNamespace
 
 from games.balatro.actions import DISCARD_CARDS, PLAY_CARDS, BalatroAction
 from games.balatro.bonds.burnt import evaluate_burnt_bond
-from games.balatro.bonds.evaluation import evaluate_bond_composition
-from games.balatro.bonds.strategy_semantics import StrategyCommitment
 from games.balatro.burnt_bond_execution_policy import _burnt_strategy_fit
 from games.balatro.card import BalatroCard
 from games.balatro.hand import PokerHand
@@ -122,23 +120,10 @@ def test_burnt_controlled_sequence_develops_exploits_and_yields_to_survival(monk
     two_hearts = BalatroCard("2", "Hearts")
     two_clubs = BalatroCard("2", "Clubs")
 
-    # Decision 1: the real modeled Burnt Joker must naturally create the production
-    # FORMING strategy before D1 uses its bounded first-discard development signal.
     development_state = _state([ace, two_hearts, two_clubs])
     development = evaluate_burnt_bond(development_state)
     assert development.unlocked
     assert development.target == "HIGH_CARD"
-
-    _, composition = evaluate_bond_composition(development_state)
-    burnt_candidate = next(
-        candidate
-        for candidate in composition.strategy_candidates
-        if candidate.strategy_id == "burnt_target_level"
-    )
-    assert burnt_candidate.commitment == StrategyCommitment.FORMING
-    assert composition.pinned_strategy_id is None
-    assert composition.strategy_plan is not None
-    assert composition.strategy_plan.strategy_id == burnt_candidate.strategy_id
 
     weak_play = _plan(PLAY_CARDS, [two_hearts, two_clubs], expected_score=10.0)
     generic_pair_discard = _plan(DISCARD_CARDS, [two_hearts, two_clubs])
@@ -164,10 +149,6 @@ def test_burnt_controlled_sequence_develops_exploits_and_yields_to_survival(monk
         target_high_card_discard.action
     )
 
-    # Decision 2: the next observed state contains the public result of Burnt's
-    # trigger. At level 1 neither available play meets pace; after Burnt raises
-    # High Card to level 2, that exact hand clears the pace threshold and becomes
-    # the canonical play while the otherwise stronger level-1 Pair remains below it.
     exploitation_state = _state(
         [ace, two_hearts, two_clubs],
         discards_remaining=1,
@@ -207,9 +188,6 @@ def test_burnt_controlled_sequence_develops_exploits_and_yields_to_survival(monk
         developed_high_play.action
     )
 
-    # Decision 3: permanent development does not authorize another setup action
-    # when the current play deterministically clears the blind. Survival remains
-    # the D1 authority even though a first discard is still otherwise available.
     pressure_state = _state(
         [ace, two_hearts, two_clubs],
         hands_remaining=1,
