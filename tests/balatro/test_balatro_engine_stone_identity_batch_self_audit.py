@@ -21,10 +21,10 @@ def test_sixth_sense_does_not_see_stone_hidden_six():
 def test_midas_does_not_see_stone_hidden_face_without_pareidolia():
     stone = _stone("K", enhancement="")
     state = SimpleNamespace(jokers=[SimpleNamespace(name="Midas Mask"), SimpleNamespace(name="Vampire")], scoring_cards=[stone])
-    assert realize_bond(_dev("vampire"), state).realization == BondRealization.PARTIAL
+    assert realize_bond(_dev("enhancement_consumption"), state).realization == BondRealization.PARTIAL
 
 
 def test_pareidolia_allows_midas_to_treat_stone_as_face_before_vampire():
     stone = _stone("K", enhancement="")
     state = SimpleNamespace(jokers=[SimpleNamespace(name="Midas Mask"), SimpleNamespace(name="Pareidolia"), SimpleNamespace(name="Vampire")], scoring_cards=[stone])
-    assert realize_bond(_dev("vampire"), state).realization == BondRealization.ACTIVE
+    assert realize_bond(_dev("enhancement_consumption"), state).realization == BondRealization.ACTIVE
