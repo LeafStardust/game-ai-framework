@@ -55,6 +55,11 @@ class BondContribution:
     roles: tuple[MechanicalRole, ...] = ()
     targets: tuple[str, ...] = ()
     conditions: tuple[str, ...] = ()
+    # Phase C diagnostics. Legacy call sites may omit these while they migrate.
+    # source_id identifies one underlying public-state/component source within a
+    # Bond evaluation; mechanic records why that source contributes.
+    source_id: str | None = None
+    mechanic: str | None = None
 
 
 @dataclass(frozen=True)
