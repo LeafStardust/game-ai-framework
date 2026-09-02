@@ -11,7 +11,6 @@ but are not installed into production arbitration.
 """
 
 from games.balatro.actions import PLAY_CARDS
-from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.build.profile import BalatroBuildProfiler
 
 
@@ -136,45 +135,24 @@ def _safe_dna_rank_plan(plans, ranks: tuple[str, ...], decision):
     )
 
 
-def _candidate_priority(candidate) -> tuple[int, float, float]:
-    commitment = getattr(candidate, "commitment", 0)
-    try:
-        commitment_value = int(commitment)
-    except (TypeError, ValueError):
-        commitment_value = 0
-    return (
-        commitment_value,
-        float(getattr(candidate, "confidence", 0.0) or 0.0),
-        float(getattr(candidate, "strength", 0.0) or 0.0),
-    )
-
-
 def _strategy_dna_rank_targets(state) -> tuple[str, ...]:
-    """Return concrete rank requirements from the strongest strategy containing DNA."""
+    """Return rank requirements mechanically linked to owned Jokers alongside DNA.
+
+    DNA no longer consults retired named-strategy candidates or commitment states.
+    The only relevant evidence is public Joker mechanics: if another owned Joker
+    explicitly requires, scales with, or amplifies a rank, duplicating that rank is
+    useful DNA setup evidence.
+    """
     if not _owns(state, "dnajoker"):
         return ()
     try:
-        _developments, composition = evaluate_bond_composition(state)
-        linked = tuple(
-            item
-            for item in tuple(getattr(composition, "strategy_candidates", ()) or ())
-            if any(_normalize(source) == "dna" for source in getattr(item, "sources", ()) or ())
-        )
-        if not linked:
-            return ()
-        candidate = max(linked, key=_candidate_priority)
-        strategy_sources = {
-            _normalize(source)
-            for source in getattr(candidate, "sources", ()) or ()
-            if _normalize(source) != "dna"
-        }
         profile = BalatroBuildProfiler().profile(state)
     except (AttributeError, TypeError, ValueError, RuntimeError):
         return ()
 
     ranks: list[str] = []
     for descriptor in profile.descriptors(kind="JOKER"):
-        if _normalize(descriptor.source) not in strategy_sources:
+        if _normalize(descriptor.source) == "dna":
             continue
         features = set(descriptor.requires) | set(descriptor.scales_with) | set(descriptor.amplifies)
         for feature in features:
@@ -206,7 +184,7 @@ def _dna_aces_fit(policy, state, action) -> tuple[float, tuple[str, ...]]:
         targets = _strategy_dna_rank_targets(state)
         if rank and rank in set(targets):
             value += DNA_LINKED_RANK_FIT
-            notes.append(f"DNA first-hand duplication supports linked strategy rank {rank}")
+            notes.append(f"DNA first-hand duplication supports linked mechanical rank {rank}")
 
         if aces and _owns(state, "scholarjoker") and _aces_bond_active(policy, state):
             value += DNA_ACE_FIT
