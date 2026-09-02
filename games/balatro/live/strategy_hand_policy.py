@@ -43,8 +43,7 @@ _REALIZATION_WEIGHT = {
 # Strategy fit is only a within-safe-choice preference. These values must never be
 # large enough to replace pace/survival legality; the parent D1 hierarchy decides
 # that before this signal is consulted.
-_PINNED_HELD_CARD_VALUE = 1.25
-_PINNED_RED_SEAL_HELD_BONUS = 0.40
+_HELD_XMULT_TRIGGER_VALUE = 1.25
 
 
 def _boss_projection_unconfirmed(state, confirmed_clear_path) -> bool:
@@ -623,73 +622,58 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         return intents
 
     @staticmethod
-    def _pinned_candidate(composition):
-        if composition is None:
-            return None
-        pinned_id = getattr(composition, "pinned_strategy_id", None)
-        if not pinned_id:
-            return None
-        return next(
-            (
-                candidate
-                for candidate in getattr(composition, "strategy_candidates", ()) or ()
-                if candidate.strategy_id == pinned_id and candidate.pinned
-            ),
-            None,
-        )
+    def _held_card_value(state, card) -> tuple[float, tuple[str, ...]]:
+        """Return public mechanical value lost when a held-effect card is sacrificed.
+
+        This is deliberately independent of StrategyPlan/pinned prescriptions. Steel
+        cards and Baron's Kings are real held-card xMult sources; Mime and Red Seal
+        add real retriggers of those held effects. D1 may preserve that value only
+        as a safe/equivalent tactical tie-break beneath survival authority.
+        """
+        joker_types = {
+            type(joker).__name__
+            for joker in getattr(state, "jokers", ()) or ()
+        }
+        has_baron = "BaronJoker" in joker_types
+        has_mime = "MimeJoker" in joker_types
+
+        rank = str(getattr(card, "rank", "") or "").split(".")[-1].upper()
+        enhancement = str(getattr(card, "enhancement", "") or "").split(".")[-1].lower()
+        seal = str(getattr(card, "seal", "") or "").split(".")[-1].lower()
+
+        held_effects: list[str] = []
+        if enhancement == "steel":
+            held_effects.append("Steel xMult")
+        if has_baron and rank in {"K", "KING"}:
+            held_effects.append("Baron King xMult")
+        if not held_effects:
+            return 0.0, ()
+
+        trigger_count = 1 + int(has_mime) + int(seal == "red")
+        value = _HELD_XMULT_TRIGGER_VALUE * len(held_effects) * trigger_count
+        notes = [
+            f"preserve public held effect: {effect}"
+            for effect in held_effects
+        ]
+        if has_mime:
+            notes.append("Mime retriggers held-card effects")
+        if seal == "red":
+            notes.append("Red Seal adds a held-card retrigger")
+        return value, tuple(notes)
 
     @classmethod
-    def _pinned_held_card_value(cls, candidate, card) -> tuple[float, tuple[str, ...]]:
-        """Return strategic held value of one card for the pinned engine.
-
-        Held-oriented candidate Bonds supply the semantic context. Rank/enhancement
-        membership is derived from the candidate itself rather than a Joker-pair
-        lookup, so any future held-King/Queen/Steel package inherits the behavior.
-        """
-        if candidate is None:
-            return 0.0, ()
-        bonds = set(candidate.bond_ids)
-        prescriptions = tuple(str(item) for item in candidate.prescriptions)
-        held_oriented = bool(bonds & {"held_cards", "held_retrigger"}) or any(
-            "held" in item for item in prescriptions
-        )
-        if not held_oriented:
+    def _held_card_preservation(cls, state, action) -> tuple[float, tuple[str, ...]]:
+        if action.name not in {PLAY_CARDS, DISCARD_CARDS}:
             return 0.0, ()
 
-        rank = str(getattr(card, "rank", "") or "").upper()
-        enhancement = str(getattr(card, "enhancement", "") or "").lower()
-        seal = str(getattr(card, "seal", "") or "").lower()
-        value = 0.0
-        reasons: list[str] = []
-
-        rank_bonds = {"K": "kings", "Q": "queens", "A": "aces", "J": "jacks"}
-        rank_bond = rank_bonds.get(rank)
-        if rank_bond and rank_bond in bonds:
-            value += _PINNED_HELD_CARD_VALUE
-            reasons.append(f"pinned {candidate.strategy_id} preserves held {rank}")
-        if enhancement == "steel" and "steel" in bonds:
-            value += _PINNED_HELD_CARD_VALUE
-            reasons.append(f"pinned {candidate.strategy_id} preserves held Steel")
-        if seal == "red" and value > 0.0 and "held_retrigger" in bonds:
-            value += _PINNED_RED_SEAL_HELD_BONUS
-            reasons.append("Red Seal amplifies pinned held engine")
-        return value, tuple(reasons)
-
-    def _pinned_card_preservation(self, state, action) -> tuple[float, tuple[str, ...]]:
-        _, composition = self._composition(state)
-        candidate = self._pinned_candidate(composition)
-        if candidate is None or action.name not in {PLAY_CARDS, DISCARD_CARDS}:
-            return 0.0, ()
-
-        sacrificed = tuple(action.cards)
         total = 0.0
         notes: list[str] = []
-        for card in sacrificed:
-            value, reasons = self._pinned_held_card_value(candidate, card)
+        for card in tuple(action.cards):
+            value, reasons = cls._held_card_value(state, card)
             total += value
             notes.extend(reasons)
         if total <= 0.0:
-            return 0.0, (f"pinned strategy {candidate.strategy_id} sacrifices no held-engine card",)
+            return 0.0, ()
         return -total, tuple(dict.fromkeys(notes))
 
     def _strategy_fit(self, state, action) -> tuple[float, tuple[str, ...]]:
@@ -738,7 +722,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
 
     def _strategy_fit_without_castle(self, state, action) -> tuple[float, tuple[str, ...]]:
         intents = self._hand_bond_intents(state)
-        preservation, preservation_notes = self._pinned_card_preservation(state, action)
+        preservation, preservation_notes = self._held_card_preservation(state, action)
         rules = hand_rules_for_state(state)
 
         if action.name == PLAY_CARDS:
@@ -750,13 +734,13 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
             if not matches:
                 return preservation, (
                     f"no developed Bond targets {hand_type}",
-                    f"pinned held-card preservation={preservation:+.3f}",
+                    f"mechanical held-card preservation={preservation:+.3f}",
                     *preservation_notes,
                 )
             weight, source = max(matches)
             return weight + preservation, (
                 f"D1 {source} Bond targets {hand_type} weight={weight:.3f}",
-                f"pinned held-card preservation={preservation:+.3f}",
+                f"mechanical held-card preservation={preservation:+.3f}",
                 *preservation_notes,
             )
 
@@ -768,7 +752,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         if not intents:
             return preservation, (
                 "no developed hand-target Bond for discard shaping",
-                f"pinned held-card preservation={preservation:+.3f}",
+                f"mechanical held-card preservation={preservation:+.3f}",
                 *preservation_notes,
             )
         scored = [
@@ -785,7 +769,7 @@ class StrategyAwareLiveHandActionPolicy(BuildAwareLiveHandActionPolicy):
         return value + preservation, (
             f"D1 discard preserves {hand_type} structure={structure:.3f}",
             f"D1 Bond intent source={source} weight={weight:.3f}",
-            f"pinned held-card preservation={preservation:+.3f}",
+            f"mechanical held-card preservation={preservation:+.3f}",
             *preservation_notes,
         )
 
