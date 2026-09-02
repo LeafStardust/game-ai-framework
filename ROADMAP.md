@@ -6,12 +6,8 @@ This is the authoritative development roadmap for the Balatro Red Deck / White S
 
 - Repository: `LeafStardust/game-ai-framework`
 - Branch: `feat/v1.0-red-white-competence`
-- ChatGPT runs deterministic/static tests in its isolated repository environment and keeps output quiet (`pytest -q` plus focused failure inspection).
-- The user runs actual Balatro gameplay and any validation that genuinely requires the user's Windows/game environment.
-- Validation commands shown to the user only when local execution is genuinely required must begin with `git pull`.
-- Every focused pytest command must use `-q`.
-- Commands shown to the user must be PowerShell-compatible: use separate command lines rather than `&&`.
-- Every command block shown to the user must contain a blank line after its final command before the closing fence.
+- The user runs actual Balatro gameplay and validation requiring the Windows/game environment.
+- Validation commands shown to the user must begin with `git pull`, use `pytest -q` when applicable, and be PowerShell-compatible.
 - Preserve exact mechanics, legality, boss rules, affordability, survival, and hidden-information boundaries.
 - Prefer canonical ownership over wrappers/rescue layers.
 - Cleanup is part of migration completion.
@@ -59,26 +55,14 @@ Do not rebuild or preserve as production authority:
 
 - giant persistent strategy controller/state machine;
 - named strategy identity as primary action authority;
-- FORMING/PINNED/etc. as required action states;
-- mandatory persistent `StrategyPlan` propagation;
-- `seek_feature:*`, `seek_bond:*`, `preserve_feature:*`, `commit_*`, or pivot-prescription plumbing as the foundation;
-- manual 46-Bond wiring into every decision owner;
+- FORMING/PINNED/etc. action states;
+- persistent `StrategyPlan` propagation;
+- `seek_feature:*`, `seek_bond:*`, `preserve_feature:*`, `commit_*`, or pivot-prescription plumbing;
 - one execution tree per Bond;
 - generic pivot FSM/resistance;
-- motif explosion;
 - duplicate Bond/build evaluators.
 
-# Migration contract
-
-```text
-new canonical path implemented
-→ production consumer migrated
-→ deterministic tests prove replacement
-→ dependency search confirms old path unnecessary
-→ obsolete code/tests/docs deleted
-```
-
-Required end state:
+# Required end state
 
 ```text
 ONE mechanics → Bonds → BuildValue → StrategyDelta path
@@ -92,269 +76,144 @@ NO obsolete compatibility wrappers/tests/docs
 
 ## Phase A — Freeze Bond vocabulary — COMPLETE
 
-Validated green. 46 canonical Bonds; canonical renames are `burnt → hand_leveling`, `gold_economy → gold_cards`, and `vampire → enhancement_consumption`.
+Validated green. 46 canonical Bonds. Canonical renames include `burnt → hand_leveling`, `gold_economy → gold_cards`, and `vampire → enhancement_consumption`.
 
 ## Phase B — Mechanical descriptors — COMPLETE
 
-Validated green. `games/balatro/mechanics.py` is the canonical public mechanics surface and production Bond evaluators use mechanics/direct public state rather than local strategy-name tables.
+Validated green. `games/balatro/mechanics.py` is the canonical public mechanics surface.
 
 ## Phase C — Mechanics → Bond contributions — COMPLETE
 
-Validated green across all 46 Bonds. `games/balatro/bonds/contributions.py` owns keyed contribution normalization; the same source counts at most once within a Bond but may support multiple Bonds.
+Validated green across all 46 Bonds. `games/balatro/bonds/contributions.py` owns keyed contribution normalization.
 
 ## Phase D — Bond strategic value — COMPLETE
 
-Validated green. `games/balatro/bonds/strategic_value.py` owns nonlinear per-Bond value with exponent `1.35`, realization factors `0 / 0.35 / 0.75 / 1.0`, ranks as diagnostics only, and optional calibration weights.
+Validated green. `games/balatro/bonds/strategic_value.py` owns nonlinear per-Bond value; Bond rank is diagnostic rather than action authority.
 
 ## Phase E — Sparse relationships and exceptional motifs — COMPLETE
 
-Validated green.
-
-Positive relationships:
-- Held Cards + Steel
-- Held Cards + Held Retrigger
-- Steel + Held Retrigger
-- Card Destruction + Deck Thinning
-
-Conflicts:
-- Discard + No Discard
-- Face Cards + No Face Cards
-- Enhancement Consumption + Enhanced Cards
-
-Unlisted pairs are neutral. Canonical exceptional motif scope currently contains only Baron + Mime + at least two Steel Kings.
+Validated green. Relationships and motifs remain deliberately sparse; unlisted pairs are neutral.
 
 ## Phase F — Canonical `BuildValue(state)` — COMPLETE
 
-Validated green. `games/balatro/bonds/build_value.py` is the single whole-build evaluator and exposes Bond, relationship, motif, and total diagnostics without choosing actions.
+Validated green. `games/balatro/bonds/build_value.py` is the single whole-build evaluator.
 
 ## Phase G — Projected-state `StrategyDelta(candidate)` — COMPLETE
 
-Validated green after correcting disappeared projected Bonds to count as fully removed realized structure.
-
-- `strategy_delta_from_states(current_state, projected_state)` is the canonical state-comparison boundary.
-- `strategy_delta(candidate, state, projector=...)` delegates candidate simulation to the caller-owned domain projector.
-- Default transition inertia is `5%` of removed realized Bond value.
-- Relationship/motif losses are not charged twice as inertia.
-- No strategy identity, commitment state, pivot FSM, or prescription fields exist in `StrategyDelta`.
+Validated green. `strategy_delta_from_states(...)` is the canonical comparison boundary. No strategy identity, commitment state, pivot FSM, or prescription fields exist in `StrategyDelta`.
 
 ## Phase H — Integrate canonical strategic decision owners — COMPLETE
 
-### H1 — Joker acquisition/replacement — COMPLETE
+Validated green across Joker acquisition/replacement, pack choices, deterministic Tarot/Spectral transforms, Planet development, resource arbitration, and stateful Joker admission.
 
-Validated green.
+Production no longer installs retired R0/FORMING/PINNED controllers, generic pivot/resistance authority, manual prescription execution, pinned pack execution, strategy-authority correction, or Bond-rank retention vetoes.
 
-- The old Joker transition bonus based on Bond ranks, composition coherence, pinned strategy, `StrategyPlan`, legacy motifs, and pivot state has been removed from the production Joker policy.
-- The installed post-transaction D2 authority combines post-transaction native mechanical gain, `0.10 × canonical StrategyDelta`, and existing transaction economics.
-- Affordability, slot handling, early-run safety, and mechanically negative replacement rejection remain authoritative.
-
-### H2 — Booster/pack persistent choices — COMPLETE
-
-Validated green.
-
-- Historical StrategyPlan/Bond-goal pack bonuses were replaced by projected canonical StrategyDelta for exact persistent PLAYING_CARD and PLANET pack outcomes.
-- Playing-card projection appends the materialized card to persistent deck state; Planet projection increments the relevant public hand level.
-- Base pack legality, literal value, stochastic expectation, and Skip remain authoritative.
-- `_goal_ids` / `_playing_card_matches` remain temporarily as compatibility helpers only and are cleanup candidates for Phase K.
-
-### H3 — Tarot/Spectral persistent deck transformations — COMPLETE
-
-Validated green.
-
-- Deterministic Tarot/Spectral target legality and literal/contextual target quality remain owned by `ContextualConsumableTargetEvaluator`.
-- Real consumable `can_use/use` semantics are projected on deep-copied public state and exact persistent deck changes feed canonical StrategyDelta.
-- Hanged Man uses shared permanent playing-card destruction semantics.
-- Only already-positive deterministic target evaluations receive the conservative `0.10 × StrategyDelta` adjustment.
-
-### H4 — Planet / hand-development owners — COMPLETE
-
-Validated green.
-
-- Shop Planet acquisition uses exact projected Planet semantics and `0.10 × canonical StrategyDelta` in the existing acquisition owner.
-- Held-Planet timing remains tactical and cannot be overridden by StrategyDelta.
-- Historical Bond-rank Planet relevance was retired from D4 production authority.
-
-### H5 — Legacy acquisition-controller authority cleanup — COMPLETE
-
-Validated green.
-
-- D8 unopened Standard/Arcana/Spectral demand no longer reads strategy candidates, commitments, or prescriptions; hidden contents are valued from public BuildProfile expectation.
-- Celestial retained direct observed-hand specialization.
-- The generic D3 zero-fit Voucher cash reserve remains as an economic safety rule.
-- D14 Joker utility no longer adds pinned-strategy goal bonuses after H1's D2 build gain has already incorporated canonical StrategyDelta.
-
-### H6 — Manual Bond prescription execution wrapper — COMPLETE
-
-Validated green.
-
-- Manual motif-specific D9/D14 prescription bonuses were retired from production.
-- Exact persistent outcomes remain owned by the H2/H3/H4 canonical StrategyDelta integrations.
-- `_active_motif_ids` remains only as a temporary compatibility observer for stale non-authoritative callers.
-
-### H7 — Legacy D2 strategy controllers — COMPLETE
-
-Validated green.
-
-- Production no longer installs R0/FORMING transition bonuses, pinned transition bonuses, PINNED retention, or FORMING StrategyPlan retention controllers.
-- Native D2 `_bond_transition_bonus` now remains the canonical weighted whole-build StrategyDelta term without legacy wrappers.
-
-### H8 — Pinned pack execution overlay — COMPLETE
-
-Validated green.
-
-- Production no longer adds `seek_feature:*`/pinned-strategy execution bonuses after D9 canonical pack scoring.
-- The compatibility module remains only for later cleanup.
-
-### H9 — Strategy authority correction wrapper — COMPLETE
-
-Validated green.
-
-- Production no longer mutates composition into FORMING/PINNED action authority or adds FORMING missing-piece bonuses to D9/D14.
-- Canonical D9 StrategyDelta and H1/D14 value flow remain authoritative.
-
-### H10 — Generic Bond pivot authority — COMPLETE
-
-Validated green.
-
-- The generic pivot/resistance FSM-style controller was removed from production.
-- D2 replacement decisions rely on native mechanics/economics plus canonical projected StrategyDelta instead of named pivot thresholds.
-
-### H11 — Bond power-engine retention wrapper — COMPLETE
-
-Validated green.
-
-- ACTIVE/MATURE/R2 Bond-rank retention vetoes were retired from production.
-- Mechanical replacement eligibility remains native; projected BuildValue loss and transition inertia remain canonical StrategyDelta concerns.
-
-### H12 — Planet relevance public-evidence cleanup — COMPLETE
-
-Validated green.
-
-- D9 exotic-Planet relevance no longer accepts StrategyPlan/pinned-strategy escape hatches.
-- The legitimate anti-bootstrap guard remains based on public hand-play evidence/development state.
-
-### H13 — Stateful Joker admission public-evidence cleanup — COMPLETE
-
-Validated green.
-
-- Stateful Joker admission no longer uses `StrategyPlan`, `pinned_strategy_id`, strategy candidates, planned Bond goals, or “creates strategy” bypasses.
-- Mechanical guards for Mime, Madness, Obelisk, Joker Stencil, conditional hand payoffs, and To Do List remain intact and use public mechanics/evidence.
-
-### H14 — Retired-controller production registration audit — COMPLETE
-
-Validated green.
-
-- Consolidated regression coverage proves the retired H7–H13 strategy-controller installers are not reintroduced into the production stack.
-
-### H15 — Celestial direction public-evidence cleanup — COMPLETE
-
-Validated green.
-
-- Celestial D8/D9 direction/headroom no longer reads `StrategyPlan`, commitment, or pinned hand goals.
-- Direction comes from observed public hand usage; Constellation retains independent Planet-use-scaler authority.
-- Finite Planet-pool expectation, literal score projection, duplicate/Showman handling, affordability, reserve protection, and unrelated loose-Tarot behavior remain intact.
-
-Phase H exit condition is satisfied: remaining installed strategy-named resource logic uses public evidence/mechanics rather than named-strategy action authority. Compatibility-only legacy modules may remain until the Phase K cleanup gate.
+Public mechanics/evidence remain authoritative for legitimate guards such as exotic-Planet anti-bootstrap behavior, Stateful Joker admission, affordability, resource reserve, legality, and hidden-information boundaries.
 
 ## Phase I — Verify tactical exploitation — COMPLETE
 
-Verify canonical tactical owners actually exploit the engines Phase H can now construct.
+Validated green.
 
-Required tactical paths:
-1. Hand Leveling / Discard / Hand Development — especially Burnt Joker first-discard leveling.
-2. Card Destruction / Deck Thinning — especially Hanged Man target quality and permanent-deck exploitation.
-3. Held Cards / Steel / Held Retrigger — especially preserving and exploiting Steel/Baron/Mime held-card value during play/discard selection.
+Representative canonical tactical proofs cover:
 
-Do not create new Bond-specific tactical controllers unless a real mechanical owner is missing. Prefer extending the existing tactical evaluator with exact public mechanical value.
+1. Burnt Joker first-discard hand leveling.
+2. Hanged Man / permanent deck thinning.
+3. Steel / Baron / Mime held-card preservation and exploitation.
 
-### Phase I implementation audit — COMPLETE
-
-Fresh branch inspection confirms the three required engine families already have relevant canonical production hooks; the remaining work is to prove their tactical effect deterministically and patch only if a proof exposes a real gap.
-
-#### I1 — Burnt Joker / first-discard hand leveling — VALIDATED GREEN
-
-- `games/balatro/burnt_bond_execution_policy.py` is a pure D1 evidence helper, not a Play/Discard authority.
-- `_burnt_strategy_fit(...)` recognizes only a still-available first discard, requires remaining hand/discard resources, and rewards a discard whose evaluated poker hand matches the developed `hand_leveling` target.
-- `games/balatro/live/strategy_hand_policy.py` calls that helper from the canonical D1 `_strategy_fit(...)` path.
-- Burnt evidence remains subordinate to safe-pace survival/resource ordering and cannot reverse D1 Play/Discard arbitration.
-- `tests/balatro/test_balatro_phase_i_tactical_verification.py` now proves the real canonical `hand_leveling` evidence selects the target-matching first discard among survival-equivalent legal discard lines and that a materially safer discard still wins.
-
-#### I2 — Hanged Man / permanent deck thinning — VALIDATED GREEN
-
-- H3's `games/balatro/consumable_strategy_delta_policy.py` projects deterministic consumable targets on a deep-copied state and feeds the result into canonical `StrategyDelta` only after the native target evaluator has admitted a positive target.
-- `The Hanged Man` is explicitly handled as a destruction case: its real consumable semantics remove cards rather than attempting transform synchronization, and the projected persistent `owned_deck` state is evaluated afterward.
-- Legality and literal/contextual target quality remain owned by `ContextualConsumableTargetEvaluator`; StrategyDelta is only a conservative ranking adjustment.
-- `tests/balatro/test_balatro_phase_i_tactical_verification.py` now proves Hanged Man projection permanently removes the selected card from copied `owned_deck` state without mutating authoritative state and that canonical StrategyDelta ranks the stronger thinning result above an otherwise-equally-viable target.
-
-#### I3 — Steel / Baron / Mime held-card exploitation — VALIDATED GREEN
-
-- Canonical D1 now has public mechanical held-card preservation in `games/balatro/live/strategy_hand_policy.py`.
-- `_held_card_value(...)` recognizes Steel xMult and Baron-held King xMult, adds Mime retrigger value, and also recognizes a Red Seal held-card retrigger.
-- `_held_card_preservation(...)` applies a negative tactical fit when a PLAY or DISCARD sacrifices those held-value cards.
-- This value participates only inside safe/equivalent D1 candidate ranking; clear probability, score pace, boss constraints, and survival remain authoritative.
-- `tests/balatro/test_balatro_phase_i_tactical_verification.py` now proves an otherwise-equivalent D1 action preserves a Red-Seal Steel King under Baron/Mime and that a materially stronger deterministic clear can still spend it.
-
-### Phase I validation status
-
-- `tests/balatro/test_balatro_phase_i_tactical_verification.py` is green: `5 passed` in the isolated repository environment.
-- All three focused proof groups exercise the canonical production owners and passed without a production-code correction.
-- Phase I is complete; no Balatro gameplay run is required at this gate.
+Tactical owners remain subordinate to survival, clear probability, boss constraints, and legality.
 
 ## Phase J — Deterministic end-to-end proofs — COMPLETE
 
-Minimum representative paths:
-1. Hand Leveling / Discard / Hand Development
-2. Card Destruction / Deck Thinning
-3. Held Cards / Steel / Held Retrigger
+Validated green in representative end-to-end paths for hand leveling, deck thinning, and held-card engines.
 
-Prove compatible candidates gain strategic value, destructive replacement loses dependent value, materially stronger alternatives can still win, and tactical owners exploit resulting mechanics.
+Compatible candidates gain canonical BuildValue/StrategyDelta, destructive dependency removal loses value, materially stronger alternatives can still win, and D1/D2/D9/D14 tactical owners exploit the constructed engine.
 
-Validated green in `tests/balatro/test_balatro_phase_j_end_to_end.py`:
+## Phase K — Migration cleanup gate — COMPLETE
 
-- Burnt Joker receives positive hand-leveling BuildValue/StrategyDelta, reaches final D2 `BUY`, and the constructed engine drives the canonical target-matching first discard.
-- Trading Card receives positive deck-thinning BuildValue/StrategyDelta beside Erosion, reaches final D2 `BUY`, and Hanged Man's canonical target owner permanently removes the selected low-value cards without mutating the source state.
-- Mime receives positive held-engine BuildValue/StrategyDelta beside Baron and Steel Kings, reaches final D2 `BUY`, destructive dependency removal is penalized, an overwhelmingly stronger mechanical replacement can still win, and D1 preserves the held engine on survival-equivalent lines.
-- The combined Phase I + Phase J focused suite is green: `8 passed`.
+Completed repository-wide migration cleanup.
 
-## Phase K — Migration cleanup gate — ACTIVE
+### Production cleanup
 
-Repository-wide audit must confirm no production dependency on rejected commitment/prescription authority, no duplicate Bond/build evaluator, no obsolete compatibility wrapper after its final consumer, and no stale tests/docs enforcing rejected architecture.
+- removed the retired R0/PINNED/FORMING transition and retention controllers;
+- removed generic pivot FSM/resistance and pivot calibration/telemetry;
+- removed Bond-rank power-engine/tactical retention vetoes;
+- removed manual prescriptions, pinned execution, strategy authority correction, and obsolete Build Health HOLD→BUY wrappers;
+- removed the `StrategyPlan`, behavior-strategy, and strategy-semantics subsystems;
+- collapsed `Composition` to structural Bond/motif/synergy/conflict evidence only;
+- removed `evaluate_bond_composition(...)` and migrated production consumers to structural/canonical boundaries;
+- migrated canonical Bond IDs/realizers from retired `vampire` / `gold_economy` identities to `enhancement_consumption` / `gold_cards`;
+- migrated offline Bond tuning away from deleted pivot-resistance parameters;
+- preserved valid mechanics, economics, health, D1/D2/D9/D14, boss, hidden-information, and runtime constraints.
 
-### Phase K progress
+### Semantic corrections discovered during cleanup
 
-First cleanup slice complete and validated:
+Full-suite classification exposed and fixed real mechanics regressions rather than masking them:
 
-- physically removed the retired R0/PINNED/FORMING transition and retention controllers, generic pivot FSM, Bond-rank power-engine veto, manual prescription/pinned-execution layers, and strategy-authority correction wrapper;
-- removed their stale controller tests while preserving independent mechanical, health-cache, D2, D1, BuildValue, StrategyDelta, and live-state coverage;
-- renamed the live canonical pack integration from legacy `strategy_plan_pack_policy.py` to `pack_strategy_delta_policy.py`, removed dead StrategyPlan goal-match helpers, and registered the canonical installer directly;
-- removed the PINNED-strategy reinforcement feedback that could manufacture additional Bond contribution/rank inside diagnostic composition;
-- removed obsolete architecture documents that described the retired controllers as current authority and updated retained canonical documentation;
-- focused Phase I/J, BuildValue/StrategyDelta, composition, semantic benchmark, cleanup-registration, and runtime-authority coverage is green: `47 passed`.
+- Midas → Vampire same-hand feed respects Joker trigger order;
+- persistent enhancement feed remains a run-level Vampire axis even when temporarily debuffed;
+- Midas renewable future feed distinguishes current scoring order from future feed availability;
+- Gold-card realization ignores debuffed immediate Gold effects;
+- Midas Gold generation requires a live scoring face route;
+- Stone cards hide ordinary rank identity from Midas/Vampire unless Pareidolia/all-cards-face semantics apply;
+- Planet observed-hand ranking and exotic-hand public-evidence behavior remain canonical.
 
-Full-suite cleanup baseline before the remaining classifications: `2,858 passed, 59 failed`. The failures include stale rejected-architecture assertions, Windows injected-bridge tests that require `APPDATA`, and pre-existing semantic/runtime failures outside this deletion slice. Do not delete or weaken tests for the latter two categories.
+### Validation
 
-Remaining Phase K work:
+- collection is green;
+- focused Phase K regression groups are green;
+- the complete `tests/balatro` suite is green after the final stale `strategy_candidates` / `evaluate_bond_composition` Build Health test was removed.
 
-- classify and migrate the remaining `evaluate_bond_composition(...)` production consumers so diagnostic strategy identity/commitment cannot control actions;
-- finish stale documentation/test classification without masking real mechanics failures;
-- rerun the complete Balatro suite and record environment-specific exclusions separately from code failures.
+Phase K exit condition is satisfied: no rejected commitment/prescription architecture is required by production, and the deterministic Balatro suite is green.
 
-## Phase L — Targeted live validation and tuning
+## Phase L — Targeted live validation and tuning — ACTIVE
 
-Only after deterministic proofs and cleanup are green: run Red Deck / White Stake locally, inspect coherent build emergence/bait rejection/preservation/justified pivots, then tune contribution weights, curve, realization, relationships, motif payoff, transition cost, and integration weights.
+Run authoritative Red Deck / White Stake gameplay only after deterministic cleanup is green. It is now green.
+
+### L1 — Fresh production baseline — NEXT
+
+Run a fresh three-attempt Red Deck / White Stake baseline with the production supervisor.
+
+Inspect each attempt for:
+
+- completion vs runtime stall;
+- SHOP decision latency, especially first decision after entering SHOP and post-transaction checkpoints;
+- coherent build emergence rather than isolated high-value purchases;
+- obvious bait rejection;
+- preservation of already-realized mechanical engines;
+- justified pivots when a materially stronger replacement appears;
+- D1 tactical exploitation of the constructed engine;
+- any legality, boss, affordability, survival, or hidden-information violation.
+
+Use run/session telemetry as evidence. Do not tune from win/loss alone.
+
+### L2 — Classify live failures
+
+For every suspicious live decision, classify it before changing numbers:
+
+1. **mechanics/model bug** — fix semantics first;
+2. **runtime/latency bug** — bound or factorize computation without changing decision meaning;
+3. **integration/authority bug** — repair ownership/order instead of adding a rescue wrapper;
+4. **calibration issue** — only then tune contribution weights, realization, relationships, motif payoff, transition inertia, or integration weights.
+
+### L3 — Numerical tuning gate
+
+Do not start Optuna/numerical calibration until the fresh baseline completes SHOP decisions without semantic/runtime stalls or excessive interactive latency.
+
+When tuning begins, preserve the canonical architecture and compare against the production baseline using authoritative unseeded live runs with run provenance.
 
 ## Phase M — Broader competence
 
-After Bond-guided Red/White competence is demonstrated, address broader gameplay failures, consistency, stakes, and decks.
+After Bond-guided Red/White competence is demonstrated, address broader gameplay failures, consistency, higher stakes, and additional decks.
 
 # Exact next action
 
-**Execute the Phase K migration cleanup audit.**
+**Execute Phase L1: fresh three-attempt Red Deck / White Stake production baseline.**
 
-1. Search production, tests, and documentation for rejected commitment/prescription authority, duplicate Bond/build evaluation, compatibility-only wrappers, and stale architecture assertions.
-2. Classify every match as canonical, generic mechanical/economic state, compatibility-only with a live consumer, or obsolete.
-3. Remove obsolete production modules, installers, tests, and documentation only after confirming their final consumers have migrated.
-4. Run focused cleanup regressions and the relevant Balatro suite with quiet output.
-5. Once no obsolete production dependency remains, mark Phase K COMPLETE and advance to Phase L live validation/tuning.
+1. Run the production supervisor for three attempts.
+2. Preserve the generated run/session JSONL and diagnostics.
+3. Review runtime latency and every material acquisition/replacement/pivot decision.
+4. Fix semantic/runtime/integration defects before touching numerical tuning.
+5. Only after the live path is stable, proceed to calibration.
 
 # Progress criterion
 
