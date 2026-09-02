@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass
 
 from games.balatro.build.joker_semantics import (
     CONSUMABLE_DUPLICATE,
     SemanticJokerBehaviorAnalyzer,
 )
-from games.balatro.consumable import ConsumableContext
 from games.balatro.live.hand_decision import LiveHandDecisionEvaluator, LivePlayProjection
 from games.balatro.planet_outlook import PlanetOutlookEvaluator
 from games.balatro.planet_scaler_authority import has_planet_use_scaler
+from games.balatro.planet_strategy_delta import planet_strategy_delta, project_planet_use
 
 
 USE = "USE"
@@ -41,6 +40,7 @@ class PlanetDecision:
     expected_future_frequency: float = 0.0
     marginal_level_gain: float = 0.0
     future_value: float = 0.0
+    strategy_delta_value: float = 0.0
 
     @property
     def should_use(self) -> bool:
@@ -86,6 +86,7 @@ class LivePlanetPolicy:
             observed_plays = int((getattr(state, "hand_play_counts", {}) or {}).get(hand_type, 0) or 0)
             if level_gain <= 0:
                 return self._hold(planet, required, "Planet produced no permanent hand-level gain")
+            strategic_delta = self._strategy_delta_value(state, planet)
             return PlanetDecision(
                 decision=USE,
                 planet=planet,
@@ -100,8 +101,10 @@ class LivePlanetPolicy:
                 rationale=(
                     "USE: active Planet-use scaler makes consumption guaranteed permanent engine growth",
                     f"Planet={getattr(planet, 'name', 'Planet')} hand={hand_type} level {before_level} -> {after_level}",
-                    "Planet-scaler authority precedes ordinary projection, duplication, and slot-timing preferences",
+                    f"canonical held-use StrategyDelta={strategic_delta:.6f}",
+                    "Planet-scaler authority precedes ordinary projection, duplication, slot-timing, and strategic-ranking preferences",
                 ),
+                strategy_delta_value=strategic_delta,
             )
 
         if getattr(state, "phase", None) != "SELECTING_HAND":
@@ -132,6 +135,7 @@ class LivePlanetPolicy:
         duplicate_hold_value = self._duplicate_hold_value(state)
         slots_full = self._consumable_slots_full(state)
         outlook = self.planet_outlook.evaluate(state, planet)
+        strategic_delta = self._strategy_delta_value(state, planet)
 
         if level_gain <= 0:
             decision, reason = HOLD, "Planet produced no permanent hand-level gain"
@@ -171,14 +175,17 @@ class LivePlanetPolicy:
                 f"Planet marginal level gain={outlook.marginal_level_gain:.3f}",
                 f"Planet future value={outlook.future_value:.6f}",
                 f"Planet speculative={outlook.speculative}",
+                f"canonical held-use StrategyDelta={strategic_delta:.6f}",
                 f"consumable duplicate hold value={duplicate_hold_value:.3f}",
                 f"duplicate hold threshold={self.thresholds.duplicate_hold_minimum:.3f}",
                 f"consumable slots full={slots_full}",
+                "StrategyDelta ranks equivalent Planet uses but does not override D7 timing authority",
             ),
             structural_feasibility=outlook.structural_feasibility,
             expected_future_frequency=outlook.expected_future_frequency,
             marginal_level_gain=outlook.marginal_level_gain,
             future_value=outlook.future_value,
+            strategy_delta_value=strategic_delta,
         )
 
     def recommend_inventory(self, state) -> tuple[PlanetDecision, ...]:
@@ -201,16 +208,14 @@ class LivePlanetPolicy:
         return value
 
     def _simulate_use(self, state, planet_index: int):
-        simulated = copy.deepcopy(state)
-        if not (0 <= planet_index < len(simulated.consumables)):
+        if not (0 <= planet_index < len(getattr(state, "consumables", ()))):
             return None
-        planet = simulated.consumables[planet_index]
-        context = ConsumableContext(state=simulated)
-        if not planet.can_use(context):
-            return None
-        planet.use(context)
-        simulated.consumables.pop(planet_index)
-        return simulated
+        return project_planet_use(state, state.consumables[planet_index], held=True)
+
+    @staticmethod
+    def _strategy_delta_value(state, planet: object) -> float:
+        result = planet_strategy_delta(state, planet, held=True)
+        return 0.0 if result is None else float(result.value)
 
     def _best_play_projection(self, state) -> LivePlayProjection | None:
         best = None
@@ -254,6 +259,7 @@ class LivePlanetPolicy:
             float(decision.clear_probability_gain),
             float(decision.immediate_score_gain),
             float(decision.future_value),
+            float(decision.strategy_delta_value),
             int(decision.observed_hand_plays),
             int(decision.level_gain),
             str(getattr(decision.planet, "name", "")),
