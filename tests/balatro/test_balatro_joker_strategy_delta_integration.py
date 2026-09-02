@@ -13,6 +13,22 @@ class DummyJoker(Joker):
         return context
 
 
+class FixedNativeEvaluator:
+    """Deterministic mechanical evaluator for the installed post-transaction owner."""
+
+    def __init__(self, values):
+        self.values = dict(values)
+
+    def evaluate(self, state, joker):
+        del state
+        return SimpleNamespace(total_gain=float(self.values.get(id(joker), 0.0)))
+
+
+def _policy_with_native_values(values) -> JokerAcquisitionPolicy:
+    planner = SimpleNamespace(evaluator=FixedNativeEvaluator(values))
+    return JokerAcquisitionPolicy(transition_planner=planner)
+
+
 def test_joker_transition_uses_canonical_strategy_delta_and_domain_projection(monkeypatch):
     state = BalatroState()
     incumbent = DummyJoker()
@@ -38,32 +54,41 @@ def test_joker_transition_uses_canonical_strategy_delta_and_domain_projection(mo
     assert any("weighted strategic adjustment" in note for note in notes)
 
 
-def test_joker_add_scoring_preserves_native_build_gain_and_adds_strategy_delta():
+def test_joker_add_scoring_preserves_post_transaction_native_gain_and_adds_strategy_delta():
     state = BalatroState()
     state.money = 20
     candidate = DummyJoker()
-    policy = JokerAcquisitionPolicy()
+    policy = _policy_with_native_values({id(candidate): 2.0})
 
     strategy_adjustment, _ = _bond_transition_bonus(state, candidate)
-    option = policy._score_add(state, candidate, 2.0)
+    # The installed post-transaction authority intentionally recomputes this term
+    # through its evaluator rather than trusting this stale pre-transaction value.
+    option = policy._score_add(state, candidate, 999.0)
 
     assert option.build_gain == pytest.approx(2.0 + strategy_adjustment)
     assert option.total_advantage == pytest.approx(
         option.build_gain + option.economics.total_adjustment
     )
+    assert any("post-transaction whole-build candidate gain=2.000" in note for note in option.rationale)
     assert any("StrategyDelta" in note for note in option.rationale)
 
 
-def test_joker_replacement_preserves_native_delta_and_adds_strategy_delta():
+def test_joker_replacement_preserves_post_transaction_native_delta_and_adds_strategy_delta():
     state = BalatroState()
     state.money = 20
     incumbent = DummyJoker()
     candidate = DummyJoker()
     state.jokers = [incumbent]
-    policy = JokerAcquisitionPolicy()
+    policy = _policy_with_native_values(
+        {
+            id(incumbent): 1.0,
+            id(candidate): 5.0,
+        }
+    )
     replacement = SimpleNamespace(
         replace_index=0,
-        build_delta=4.0,
+        # The installed owner recomputes 5 - 1 = 4 from the resulting state.
+        build_delta=999.0,
         eligible=True,
         blocked_reason=None,
         rationale=("native mechanical replacement",),
@@ -75,6 +100,8 @@ def test_joker_replacement_preserves_native_delta_and_adds_strategy_delta():
     assert option.build_gain == pytest.approx(4.0 + strategy_adjustment)
     assert option.eligible
     assert "native mechanical replacement" in option.rationale
+    assert any("post-transaction raw replacement delta=4.000" in note for note in option.rationale)
+    assert any("StrategyDelta" in note for note in option.rationale)
 
 
 def test_joker_policy_no_longer_imports_legacy_strategy_composition_authority():
