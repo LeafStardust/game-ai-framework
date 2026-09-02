@@ -105,13 +105,3 @@ def evaluate_bond_structure(state: Any) -> tuple[tuple[BondDevelopment, ...], Co
     """Return the canonical mechanical Bond developments and structural composition."""
     raw = evaluate_all_bonds(state)
     return raw, compose_build(state, raw)
-
-
-def evaluate_bond_composition(state: Any) -> tuple[tuple[BondDevelopment, ...], Composition]:
-    """Compatibility alias for the canonical structural composition entry point.
-
-    New consumers should call :func:`evaluate_bond_structure`. The returned
-    Composition no longer contains named strategy identity, commitment, StrategyPlan
-    or prescription fields.
-    """
-    return evaluate_bond_structure(state)
