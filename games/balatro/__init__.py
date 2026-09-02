@@ -10,7 +10,6 @@ from games.balatro.banner_candidate_value_policy import install_banner_candidate
 from games.balatro.blueprint_candidate_value_policy import install_blueprint_candidate_value_policy
 from games.balatro.bond_pivot_authority import install_bond_pivot_authority
 from games.balatro.bond_power_engine_retention_policy import install_bond_power_engine_retention_policy
-from games.balatro.bond_prescription_policy import install_bond_prescription_policy
 from games.balatro.bond_scaler_build_health_policy import install_bond_scaler_build_health_policy
 from games.balatro.bond_shop_health_policy import install_bond_shop_health_policy
 from games.balatro.build_health_policy import install_build_health_policy
@@ -109,7 +108,6 @@ install_shop_clear_probability_health_policy()
 install_bond_shop_health_policy()
 install_bond_pivot_authority()
 install_bond_power_engine_retention_policy()
-install_bond_prescription_policy()
 install_face_card_enabler_bond_policy()
 install_pinned_strategy_transition_policy()
 install_pinned_strategy_retention_policy()
