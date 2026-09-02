@@ -16,6 +16,7 @@ from games.balatro.bonds.mechanical_core import (
     evaluate_held_retrigger_bond,
     evaluate_steel_bond,
 )
+from games.balatro.bonds.mechanical_engines import MECHANICAL_ENGINE_EVALUATORS
 from games.balatro.bonds.model import BondDevelopment
 from games.balatro.bonds.no_face_cards import evaluate_no_face_cards_bond
 from games.balatro.bonds.realization import FROZEN_BOND_IDS, realize_bond
@@ -45,10 +46,11 @@ for legacy_id in (
     "held_retrigger",
     "steel",
     "deck_thinning",
+    *MECHANICAL_ENGINE_EVALUATORS,
 ):
     EVALUATORS.pop(legacy_id, None)
 
-for bond_id, evaluator in {
+canonical_evaluators: dict[str, BondEvaluator] = {
     "hand_leveling": evaluate_hand_leveling_bond,
     "gold_cards": evaluate_gold_cards_bond,
     "held_cards": evaluate_held_cards_bond,
@@ -57,7 +59,9 @@ for bond_id, evaluator in {
     "deck_thinning": evaluate_deck_thinning_bond,
     "no_face_cards": evaluate_no_face_cards_bond,
     "enhancement_consumption": evaluate_enhancement_consumption_bond,
-}.items():
+    **MECHANICAL_ENGINE_EVALUATORS,
+}
+for bond_id, evaluator in canonical_evaluators.items():
     if bond_id in EVALUATORS:
         raise RuntimeError(f"Duplicate Bond evaluator registration: {bond_id}")
     EVALUATORS[bond_id] = evaluator
