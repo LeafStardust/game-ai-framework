@@ -2,9 +2,11 @@ import random
 
 from games.balatro.hand_rules import card_is_face
 from games.balatro.joker import Joker, JokerContext
+from games.balatro.mechanics import HELD_FACE_ECONOMY
 
 
 class ReservedParkingJoker(Joker):
+    mechanics = frozenset({HELD_FACE_ECONOMY})
 
     def apply(self, context: JokerContext) -> JokerContext:
         if context.trigger != "HELD_CARD":
