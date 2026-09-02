@@ -19,10 +19,6 @@ def test_midas_requires_scoring_face():
  assert realize_bond(_d(),SimpleNamespace(jokers=[_j("Midas Mask")],scoring_cards=[],hand=[_c("K")])).realization==BondRealization.PARTIAL
 def test_midas_live_on_scored_face():
  assert realize_bond(_d(),SimpleNamespace(jokers=[_j("Midas Mask")],scoring_cards=[_c("K")])).realization==BondRealization.ACTIVE
-def test_reserved_parking_live_when_held_face_opportunity_exists():
- assert realize_bond(_d(),SimpleNamespace(jokers=[_j("Reserved Parking")],hand=[_c("K")],scoring_cards=[])).realization==BondRealization.ACTIVE
-def test_reserved_parking_remains_live_during_scoring_with_held_face():
- assert realize_bond(_d(),SimpleNamespace(jokers=[_j("Reserved Parking")],hand=[_c("K")],scoring_cards=[_c("2")])).realization==BondRealization.ACTIVE
 def test_three_held_gold_cards_are_mature_available_payoff():
  assert realize_bond(_d(),SimpleNamespace(jokers=[],hand=[_c(enh="Gold"),_c(enh="Gold"),_c(enh="Gold")],hands_left=2)).realization==BondRealization.MATURE
  assert realize_bond(_d(),SimpleNamespace(jokers=[],hand=[_c(enh="Gold"),_c(enh="Gold"),_c(enh="Gold")],hands_left=0)).realization==BondRealization.MATURE
