@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank, BondRealization
+from games.balatro.bonds.contributions import component_contribution, finalize_development, state_contribution
+from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank
 from games.balatro.mechanics import (
     DISCARD_JACK_XMULT,
     HELD_KING_XMULT,
@@ -13,6 +14,7 @@ from games.balatro.mechanics import (
     PLANET_SHOP_ACCESS,
     PLANET_SHOP_ACCESS_MAJOR,
     PLAYED_KING_QUEEN_XMULT,
+    PROBABILISTIC_HAND_LEVELING,
     TAROT_GENERATION,
     TAROT_LOW_MONEY_GENERATION,
     TAROT_PACK_GENERATION,
@@ -57,37 +59,6 @@ def _band(value: int, bands: tuple[tuple[int, float], ...]) -> float:
     return result
 
 
-def _rank(total: float, thresholds: dict[BondRank, float]) -> tuple[BondRank, float | None]:
-    rank = BondRank.R0
-    for candidate in (BondRank.R1, BondRank.R2, BondRank.R3, BondRank.R4, BondRank.R5):
-        threshold = thresholds[candidate]
-        if total < threshold:
-            return rank, threshold
-        rank = candidate
-    return BondRank.R5, None
-
-
-def _finish(
-    bond_id: str,
-    parts: list[BondContribution],
-    thresholds: dict[BondRank, float],
-    *,
-    target: str | None = None,
-) -> BondDevelopment:
-    total = sum(part.value for part in parts)
-    rank, next_threshold = _rank(total, thresholds)
-    return BondDevelopment(
-        bond_id=bond_id,
-        unlocked=True,
-        contribution=total,
-        rank=rank,
-        next_rank_threshold=next_threshold,
-        contributions=tuple(parts),
-        target=target,
-        realization=BondRealization.DORMANT if rank == BondRank.R0 else BondRealization.PARTIAL,
-    )
-
-
 def _source(component: Any, fallback: str) -> str:
     name = getattr(component, "name", None)
     if name:
@@ -109,41 +80,44 @@ def _rank_density(state: Any, ranks: set[str]) -> float:
     )
 
 
-def evaluate_kings_bond(state: Any) -> BondDevelopment:
+def _rank_bond(state: Any, bond_id: str, target: str, weights: tuple[tuple[str, float, str], ...]) -> BondDevelopment:
     parts: list[BondContribution] = []
-    for joker in list(getattr(state, "jokers", ()) or ()):
-        if component_has_mechanic(joker, HELD_KING_XMULT):
-            parts.append(BondContribution(_source(joker, "Held-King payoff"), 7.0))
-        elif component_has_mechanic(joker, PLAYED_KING_QUEEN_XMULT):
-            parts.append(BondContribution(_source(joker, "Played K/Q payoff"), 6.0))
-    density = _rank_density(state, {"K"})
+    jokers = list(getattr(state, "jokers", ()) or ())
+    for index, joker in enumerate(jokers):
+        for mechanic, value, fallback in weights:
+            if component_has_mechanic(joker, mechanic):
+                parts.append(component_contribution(
+                    joker, collection="jokers", index=index,
+                    label=_source(joker, fallback), value=value, mechanic=mechanic,
+                ))
+                break
+    density = _rank_density(state, {target})
     if density:
-        parts.append(BondContribution("kings rank density", density))
-    return _finish("kings", parts, RANK_THRESHOLDS, target="K")
+        parts.append(state_contribution(
+            f"deck:rank_density:{target}", f"{bond_id} rank density", density,
+            mechanic=f"rank_density:{target}",
+        ))
+    return finalize_development(bond_id, parts, RANK_THRESHOLDS, target=target)
+
+
+def evaluate_kings_bond(state: Any) -> BondDevelopment:
+    return _rank_bond(state, "kings", "K", (
+        (HELD_KING_XMULT, 7.0, "Held-King payoff"),
+        (PLAYED_KING_QUEEN_XMULT, 6.0, "Played K/Q payoff"),
+    ))
 
 
 def evaluate_queens_bond(state: Any) -> BondDevelopment:
-    parts: list[BondContribution] = []
-    for joker in list(getattr(state, "jokers", ()) or ()):
-        if component_has_mechanic(joker, HELD_QUEEN_MULT):
-            parts.append(BondContribution(_source(joker, "Held-Queen payoff"), 6.0))
-        elif component_has_mechanic(joker, PLAYED_KING_QUEEN_XMULT):
-            parts.append(BondContribution(_source(joker, "Played K/Q payoff"), 5.0))
-    density = _rank_density(state, {"Q"})
-    if density:
-        parts.append(BondContribution("queens rank density", density))
-    return _finish("queens", parts, RANK_THRESHOLDS, target="Q")
+    return _rank_bond(state, "queens", "Q", (
+        (HELD_QUEEN_MULT, 6.0, "Held-Queen payoff"),
+        (PLAYED_KING_QUEEN_XMULT, 5.0, "Played K/Q payoff"),
+    ))
 
 
 def evaluate_jacks_bond(state: Any) -> BondDevelopment:
-    parts: list[BondContribution] = []
-    for joker in list(getattr(state, "jokers", ()) or ()):
-        if component_has_mechanic(joker, DISCARD_JACK_XMULT):
-            parts.append(BondContribution(_source(joker, "Jack-discard payoff"), 7.0))
-    density = _rank_density(state, {"J"})
-    if density:
-        parts.append(BondContribution("jacks rank density", density))
-    return _finish("jacks", parts, RANK_THRESHOLDS, target="J")
+    return _rank_bond(state, "jacks", "J", (
+        (DISCARD_JACK_XMULT, 7.0, "Jack-discard payoff"),
+    ))
 
 
 def evaluate_tarot_bond(state: Any) -> BondDevelopment:
@@ -156,35 +130,56 @@ def evaluate_tarot_bond(state: Any) -> BondDevelopment:
         (TAROT_SCORING_EIGHT_GENERATION, 2.0, "Eight-trigger Tarot generation"),
         (TAROT_STRAIGHT_ACE_GENERATION, 2.0, "Straight-Ace Tarot generation"),
     )
-    for component in list(getattr(state, "jokers", ()) or ()):
+    for index, component in enumerate(list(getattr(state, "jokers", ()) or ())):
         for mechanic, value, fallback in weighted:
             if component_has_mechanic(component, mechanic):
-                parts.append(BondContribution(_source(component, fallback), value))
+                parts.append(component_contribution(
+                    component, collection="jokers", index=index,
+                    label=_source(component, fallback), value=value, mechanic=mechanic,
+                ))
                 break
-    for component in list(getattr(state, "vouchers", ()) or ()):
+    for index, component in enumerate(list(getattr(state, "vouchers", ()) or ())):
         if component_has_mechanic(component, TAROT_SHOP_ACCESS_MAJOR):
-            parts.append(BondContribution(_source(component, "Major Tarot shop access"), 6.0))
+            mechanic, value, fallback = TAROT_SHOP_ACCESS_MAJOR, 6.0, "Major Tarot shop access"
         elif component_has_mechanic(component, TAROT_SHOP_ACCESS):
-            parts.append(BondContribution(_source(component, "Tarot shop access"), 4.0))
-    return _finish("tarot", parts, TAROT_THRESHOLDS)
+            mechanic, value, fallback = TAROT_SHOP_ACCESS, 4.0, "Tarot shop access"
+        else:
+            continue
+        parts.append(component_contribution(
+            component, collection="vouchers", index=index,
+            label=_source(component, fallback), value=value, mechanic=mechanic,
+        ))
+    return finalize_development("tarot", parts, TAROT_THRESHOLDS)
 
 
 def evaluate_planet_bond(state: Any) -> BondDevelopment:
     parts: list[BondContribution] = []
-    for component in list(getattr(state, "jokers", ()) or ()):
+    for index, component in enumerate(list(getattr(state, "jokers", ()) or ())):
         if component_has_mechanic(component, PLANET_SCALING):
-            parts.append(BondContribution(_source(component, "Planet-use scaling"), 6.0))
+            mechanic, value, fallback = PLANET_SCALING, 6.0, "Planet-use scaling"
         elif component_has_mechanic(component, PLANET_GENERATION):
-            # Space Joker historically contributes 3 while Astronomer contributes 4.
-            value = 3.0 if component_has_mechanic(component, "probabilistic_hand_leveling") else 4.0
-            parts.append(BondContribution(_source(component, "Planet generation"), value))
-    for component in list(getattr(state, "vouchers", ()) or ()):
+            mechanic = PLANET_GENERATION
+            value = 3.0 if component_has_mechanic(component, PROBABILISTIC_HAND_LEVELING) else 4.0
+            fallback = "Planet generation"
+        else:
+            continue
+        parts.append(component_contribution(
+            component, collection="jokers", index=index,
+            label=_source(component, fallback), value=value, mechanic=mechanic,
+        ))
+    for index, component in enumerate(list(getattr(state, "vouchers", ()) or ())):
         if component_has_mechanic(component, PLANET_PACK_TARGETING):
-            parts.append(BondContribution(_source(component, "Planet pack targeting"), 5.0))
+            mechanic, value, fallback = PLANET_PACK_TARGETING, 5.0, "Planet pack targeting"
         elif component_has_mechanic(component, PLANET_SHOP_ACCESS_MAJOR):
-            parts.append(BondContribution(_source(component, "Major Planet shop access"), 6.0))
+            mechanic, value, fallback = PLANET_SHOP_ACCESS_MAJOR, 6.0, "Major Planet shop access"
         elif component_has_mechanic(component, PLANET_SHOP_ACCESS):
-            parts.append(BondContribution(_source(component, "Planet shop access"), 4.0))
+            mechanic, value, fallback = PLANET_SHOP_ACCESS, 4.0, "Planet shop access"
+        else:
+            continue
+        parts.append(component_contribution(
+            component, collection="vouchers", index=index,
+            label=_source(component, fallback), value=value, mechanic=mechanic,
+        ))
 
     blue_seals = sum(
         1 for card in _deck(state)
@@ -192,8 +187,11 @@ def evaluate_planet_bond(state: Any) -> BondDevelopment:
     )
     blue_score = _band(blue_seals, ((1, 1.0), (2, 3.0), (4, 5.0), (7, 7.0)))
     if blue_score:
-        parts.append(BondContribution("Blue Seal Planet infrastructure", blue_score))
-    return _finish("planet", parts, PLANET_THRESHOLDS)
+        parts.append(state_contribution(
+            "deck:blue_seal_density", "Blue Seal Planet infrastructure", blue_score,
+            mechanic="blue_seal_density",
+        ))
+    return finalize_development("planet", parts, PLANET_THRESHOLDS)
 
 
 MECHANICAL_RANK_CONSUMABLE_EVALUATORS = {
