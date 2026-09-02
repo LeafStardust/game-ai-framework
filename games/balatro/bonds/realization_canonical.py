@@ -33,7 +33,16 @@ def _enhancement(card: Any) -> str:
     return str(getattr(card, "enhancement", "") or "").strip().lower()
 
 
+def _is_stone(card: Any) -> bool:
+    return bool(getattr(card, "is_stone", False)) or _enhancement(card) == "stone"
+
+
 def _is_face(card: Any) -> bool:
+    # Stone cards have no rank/suit identity for ordinary rank-sensitive effects.
+    # Pareidolia is handled separately through ALL_CARDS_FACE and may restore face
+    # identity for effects such as Midas Mask.
+    if _is_stone(card):
+        return False
     rank = str(getattr(card, "rank", "") or "").strip().upper()
     return rank in {"J", "Q", "K", "JACK", "QUEEN", "KING"}
 
