@@ -54,7 +54,7 @@ def test_one_accidental_straight_flush_does_not_make_neptune_relevant() -> None:
     state.jokers = []
     relevant, notes = _strict_planet_hand_relevant(state, _planet("Neptune"))
     assert not relevant
-    assert any("off-plan/weak-history" in note for note in notes)
+    assert any("weak public history" in note for note in notes)
 
 
 def test_sustained_primary_hand_can_still_make_planet_relevant() -> None:
