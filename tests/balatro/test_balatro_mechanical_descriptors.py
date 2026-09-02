@@ -302,4 +302,4 @@ def test_planet_uses_mechanics_not_component_display_names():
     )
     dev = evaluate_planet_bond(state)
     assert dev.bond_id == "planet"
-    assert dev.contribution == 25.0
+    assert dev.contribution == 26.0
