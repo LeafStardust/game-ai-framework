@@ -32,6 +32,11 @@ def _enhancement(card: Any) -> str:
     return str(getattr(card, "enhancement", "") or "").strip().lower()
 
 
+def _is_face(card: Any) -> bool:
+    rank = str(getattr(card, "rank", "") or "").strip().upper()
+    return rank in {"J", "Q", "K", "JACK", "QUEEN", "KING"}
+
+
 def _finish(dev: BondDevelopment, *, active: bool, strong: bool = False) -> BondDevelopment:
     dev = enrich_development(dev)
     if not dev.unlocked or dev.rank in (BondRank.LOCKED, BondRank.R0):
@@ -95,12 +100,16 @@ def realize_enhancement_consumption(dev: BondDevelopment, state: Any) -> BondDev
     hand = _cards(state, "hand", "current_hand", "cards_in_hand")
 
     consumer = _has(jokers, "vampire")
-    renewable_feed = _has(jokers, "midasmask")
+    has_midas = _has(jokers, "midasmask")
+    pareidolia = _has(jokers, "pareidolia")
+    face_feed = pareidolia or any(_is_face(card) for card in (deck or hand))
+    renewable_feed = has_midas and face_feed
     feedstock = sum(1 for card in (deck or hand) if _enhancement(card))
     consumed = int(getattr(state, "vampire_enhancements_consumed", 0) or 0)
 
     # Feedstock before Vampire is useful evidence for acquisition but only PARTIAL;
-    # an ACTIVE consumption engine requires the consumer to exist.
+    # an ACTIVE consumption engine requires a consumer plus usable feed. Midas is
+    # only renewable feed when the run actually has a face-card route (or Pareidolia).
     active = consumer and (feedstock > 0 or renewable_feed or consumed > 0)
     strong = consumer and ((renewable_feed and feedstock > 0) or feedstock >= 6 or consumed >= 15)
     return _finish(dev, active=active, strong=strong)
