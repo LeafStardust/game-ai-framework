@@ -19,6 +19,7 @@ PLANET_PACK_TARGETING = "planet_pack_targeting"
 PLANET_GENERATION = "planet_generation"
 PLANET_SCALING = "planet_scaling"
 PLANET_SHOP_ACCESS = "planet_shop_access"
+PLANET_SHOP_ACCESS_MAJOR = "planet_shop_access_major"
 GOLD_CARD_GENERATION = "gold_card_generation"
 GOLD_CARD_SCORING_ECONOMY = "gold_card_scoring_economy"
 HELD_FACE_ECONOMY = "held_face_economy"
@@ -27,8 +28,13 @@ ENHANCEMENT_FEED_ACCESS = "enhancement_feed_access"
 ENHANCEMENT_DENSITY_PAYOFF = "enhancement_density_payoff"
 ENHANCEMENT_GENERATION = "enhancement_generation"
 TAROT_GENERATION = "tarot_generation"
+TAROT_LOW_MONEY_GENERATION = "tarot_low_money_generation"
+TAROT_PACK_GENERATION = "tarot_pack_generation"
+TAROT_SCORING_EIGHT_GENERATION = "tarot_scoring_eight_generation"
+TAROT_STRAIGHT_ACE_GENERATION = "tarot_straight_ace_generation"
 TAROT_SCALING = "tarot_scaling"
 TAROT_SHOP_ACCESS = "tarot_shop_access"
+TAROT_SHOP_ACCESS_MAJOR = "tarot_shop_access_major"
 ALL_CARDS_FACE = "all_cards_face"
 RETRIGGER_HELD_CARDS = "retrigger_held_cards"
 STEEL_CARD_PAYOFF = "steel_card_payoff"
@@ -37,6 +43,11 @@ FACE_DESTRUCTION_SCALING = "face_destruction_scaling"
 GLASS_DESTRUCTION_SCALING = "glass_destruction_scaling"
 DECK_THIN_PAYOFF = "deck_thin_payoff"
 SPECTRAL_GENERATION = "spectral_generation"
+
+HELD_KING_XMULT = "held_king_xmult"
+PLAYED_KING_QUEEN_XMULT = "played_king_queen_xmult"
+HELD_QUEEN_MULT = "held_queen_mult"
+DISCARD_JACK_XMULT = "discard_jack_xmult"
 
 RANK_PAYOFF_KINGS = "rank_payoff:kings"
 RANK_PAYOFF_QUEENS = "rank_payoff:queens"
@@ -81,7 +92,7 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "brainstormjoker": frozenset({HAND_LEVEL_COPY}),
     "telescope": frozenset({PLANET_PACK_TARGETING}),
     "planetmerchant": frozenset({PLANET_SHOP_ACCESS}),
-    "planettycoon": frozenset({PLANET_SHOP_ACCESS}),
+    "planettycoon": frozenset({PLANET_SHOP_ACCESS_MAJOR}),
     "constellation": frozenset({PLANET_SCALING}),
     "astronomer": frozenset({PLANET_GENERATION}),
     "midasmask": frozenset({GOLD_CARD_GENERATION, ENHANCEMENT_FEED_ACCESS, ENHANCEMENT_GENERATION}),
@@ -94,14 +105,14 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "vampirejoker": frozenset({ENHANCEMENT_CONSUMPTION}),
     "cartomancer": frozenset({TAROT_GENERATION}),
     "cartomancerjoker": frozenset({TAROT_GENERATION}),
-    "vagabond": frozenset({TAROT_GENERATION}),
-    "hallucination": frozenset({TAROT_GENERATION}),
+    "vagabond": frozenset({TAROT_LOW_MONEY_GENERATION}),
+    "hallucination": frozenset({TAROT_PACK_GENERATION}),
     "fortuneteller": frozenset({TAROT_SCALING}),
-    "8ball": frozenset({TAROT_GENERATION}),
-    "eightball": frozenset({TAROT_GENERATION}),
-    "superposition": frozenset({TAROT_GENERATION}),
+    "8ball": frozenset({TAROT_SCORING_EIGHT_GENERATION}),
+    "eightball": frozenset({TAROT_SCORING_EIGHT_GENERATION}),
+    "superposition": frozenset({TAROT_STRAIGHT_ACE_GENERATION}),
     "tarotmerchant": frozenset({TAROT_SHOP_ACCESS}),
-    "tarottycoon": frozenset({TAROT_SHOP_ACCESS}),
+    "tarottycoon": frozenset({TAROT_SHOP_ACCESS_MAJOR}),
     "pareidolia": frozenset({ALL_CARDS_FACE}),
     "pareidoliajoker": frozenset({ALL_CARDS_FACE}),
     "mime": frozenset({RETRIGGER_HELD_CARDS}),
@@ -115,12 +126,12 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "sixthsensejoker": frozenset({CARD_DESTRUCTION, SPECTRAL_GENERATION}),
     "canio": frozenset({FACE_DESTRUCTION_SCALING}),
     "glassjoker": frozenset({GLASS_DESTRUCTION_SCALING}),
-    "baron": frozenset({RANK_PAYOFF_KINGS}),
-    "baronjoker": frozenset({RANK_PAYOFF_KINGS}),
-    "triboulet": frozenset({RANK_PAYOFF_KINGS, RANK_PAYOFF_QUEENS}),
-    "shootthemoon": frozenset({RANK_PAYOFF_QUEENS}),
-    "shootthemoonjoker": frozenset({RANK_PAYOFF_QUEENS}),
-    "hittheroad": frozenset({RANK_PAYOFF_JACKS, DISCARD_JACK_SCALING}),
+    "baron": frozenset({HELD_KING_XMULT, RANK_PAYOFF_KINGS}),
+    "baronjoker": frozenset({HELD_KING_XMULT, RANK_PAYOFF_KINGS}),
+    "triboulet": frozenset({PLAYED_KING_QUEEN_XMULT, RANK_PAYOFF_KINGS, RANK_PAYOFF_QUEENS}),
+    "shootthemoon": frozenset({HELD_QUEEN_MULT, RANK_PAYOFF_QUEENS}),
+    "shootthemoonjoker": frozenset({HELD_QUEEN_MULT, RANK_PAYOFF_QUEENS}),
+    "hittheroad": frozenset({DISCARD_JACK_XMULT, RANK_PAYOFF_JACKS, DISCARD_JACK_SCALING}),
     "yorick": frozenset({DISCARD_SCALING}),
     "castle": frozenset({DISCARD_SUIT_SCALING}),
     "mailinrebate": frozenset({DISCARD_RANK_ECONOMY}),
