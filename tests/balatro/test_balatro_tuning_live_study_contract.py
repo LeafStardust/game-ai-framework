@@ -14,11 +14,9 @@ class _Trial:
 
     def suggest_float(self, name, low, high):
         defaults = {
-            "pivot_resistance_r1": 0.5,
-            "pivot_resistance_r2_delta": 0.5,
-            "pivot_resistance_r3_delta": 1.5,
-            "pivot_resistance_r4_delta": 2.0,
-            "pivot_resistance_r5_delta": 2.5,
+            "motif_potential_value": 1.0,
+            "motif_active_delta": 3.0,
+            "motif_mature_delta": 3.0,
             "realization_priority_weight": 0.75,
             "synergy_bonus": 1.5,
             "conflict_penalty": 2.0,
@@ -77,7 +75,7 @@ def test_live_objective_records_unseeded_session_run_calibration_and_metrics(tmp
     calibration = trial.user_attrs["calibration"]
     assert calibration["schema_version"] == 1
     assert calibration["synergy_bonus"] == pytest.approx(1.5)
-    assert calibration["pivot_resistance_r5"] == pytest.approx(7.0)
+    assert calibration["motif_mature_value"] == pytest.approx(7.0)
 
 
 def test_live_objective_marks_nondefault_candidate_as_not_baseline(tmp_path: Path):
