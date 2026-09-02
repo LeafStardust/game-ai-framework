@@ -167,9 +167,22 @@ Phase K exit condition is satisfied: no rejected commitment/prescription archite
 
 ## Phase L — Targeted live validation and tuning — ACTIVE
 
-Run authoritative Red Deck / White Stake gameplay only after deterministic cleanup is green. It is now green.
+**Current project state: still in the validation/testing phase. Phase L is not complete, numerical tuning has not started, and broader competence work has not started.**
 
-### L1 — Fresh production baseline — COMPLETE
+The deterministic cleanup prerequisite is green. The active loop is now:
+
+```text
+live baseline telemetry
+→ classify suspicious decision
+→ patch canonical semantics/runtime/authority
+→ add focused regression
+→ USER VALIDATION
+→ only after green, continue classification
+```
+
+A newly patched live defect is not considered resolved until its focused validation is green. Do not advance past the current validation gate merely because the code change and regression test have been committed.
+
+### L1 — Fresh production baseline — COMPLETE AS DATA COLLECTION
 
 Fresh three-attempt production batch: `balatro-20260902T200815Z-dba5db6f`.
 
@@ -195,7 +208,9 @@ Decision-quality findings:
 - production fix: exceptional Baron motif King infrastructure now requires increased King density (at least five Kings), while ordinary Kings and held-card Bonds remain available to value Baron normally;
 - attempt 002 bought Flash Card even though canonical D2 explicitly returned HOLD (`buy advantage=0.100` versus threshold `0.350`); a later live Build Health rescue converted that rejected candidate back into BUY.
 
-### L2 — Classify live failures — ACTIVE
+L1 being complete means the three-run baseline has been collected and is usable for diagnosis. It does **not** mean the live competence gate has passed.
+
+### L2 — Classify and repair live failures — ACTIVE / TESTING
 
 For every suspicious live decision, classify it before changing numbers:
 
@@ -204,32 +219,114 @@ For every suspicious live decision, classify it before changing numbers:
 3. **integration/authority bug** — repair ownership/order instead of adding a rescue wrapper;
 4. **calibration issue** — only then tune contribution weights, realization, relationships, motif payoff, transition inertia, or integration weights.
 
-Current classified work:
+#### L2.1 — Baron exceptional-motif false positive — FIXED AND VALIDATED
 
-- Baron + untouched four-King deck false exceptional-motif potential: **mechanics/model bug — FIXED and focused validation GREEN**;
-- Flash Card D2 HOLD resurrected by `live_competence_guard_policy`: **integration/authority bug — FIXED, validation pending**;
-- the live competence guard no longer wraps Joker acquisition at all; D2 HOLD/BUY admission is final, while the independent D1 liveness guards and one bounded D14 scaling-deficit reroll guard remain;
-- remaining attempt 001/002 build quality and terminal boss decisions: **inspection pending**;
-- D14 standalone-Joker timing residual: **runtime attribution/possible optimization issue, non-blocking but still to classify**.
+Classification: **mechanics/model bug**.
 
-### L3 — Numerical tuning gate
+Observed failure:
 
-Do not start Optuna/numerical calibration until the fresh baseline completes SHOP decisions without semantic/runtime stalls or excessive interactive latency and the identified live semantic defects are fixed.
+- untouched starting deck contained the normal four Kings;
+- those four Kings were incorrectly accepted as developed `KING_INFRASTRUCTURE`;
+- Baron + baseline deck therefore activated exceptional `baron_mime_steel` POTENTIAL too early;
+- the inflated motif value contributed to the bad Ante 1 Baron purchase.
+
+Repair:
+
+- exceptional Baron motif King infrastructure now requires actual developed King density: at least five Kings;
+- ordinary four-King baseline evidence still contributes through normal held-card/King-relevant Bond valuation rather than exceptional motif completion.
+
+Validation state:
+
+- focused Baron motif fixtures/regression: **GREEN, user-confirmed**;
+- associated corrected test commit: `7caf314d432f94c5874c28cf1fd273ed497204d8` (`test(balatro): update Baron motif fixtures for developed King density`).
+
+This item is closed unless later live telemetry disproves the repaired semantics.
+
+#### L2.2 — Flash Card D2 HOLD resurrected into BUY — FIXED IN CODE, VALIDATION PENDING
+
+Classification: **integration/authority bug**.
+
+Observed failure from attempt 002:
+
+- canonical D2 evaluated Flash Card and returned HOLD;
+- telemetry recorded `buy advantage=0.100` against threshold `0.350`;
+- a later `live_competence_guard_policy` Build Health Joker rescue overrode that result and emitted BUY;
+- this violated the architecture: D2 is the canonical Joker acquisition/admission owner and a post-D2 wrapper must not resurrect a rejected Joker purchase.
+
+Repair:
+
+- removed Joker acquisition rescue authority from `live_competence_guard_policy`;
+- the live competence guard no longer converts canonical Joker HOLD decisions into BUY;
+- D2 HOLD/BUY admission is final at that boundary;
+- independent D1 liveness filtering remains;
+- the bounded D14 scaling-deficit reroll guard remains because it operates on reroll behavior rather than overriding a rejected Joker candidate.
+
+Committed repair/test state:
+
+- production fix: `62f74053ca4976522fb4e70326859a6a643b02e4` — `fix(balatro): preserve canonical D2 Joker hold authority`;
+- focused regression: `f6c6fc7f211e221b98141f1f9481f85e0309fc76` — `test(balatro): protect canonical D2 hold authority`;
+- documentation checkpoint before this update: `0ed041c1902d081e8137c614e7980b4a668717cd` — `docs(balatro): record Phase L2 D2 authority fix`.
+
+**Validation state: PENDING.**
+
+The existence of the regression test commit is not itself validation. User-run focused tests are still required before this item becomes green or before Phase L2 proceeds to the next material live defect.
+
+#### L2.3 — Remaining baseline defects — BLOCKED ON CURRENT VALIDATION GATE
+
+Not yet considered active repair work until L2.2 validation is green:
+
+- remaining attempt 001 material Joker/pack/voucher/reroll decisions;
+- remaining attempt 002 material decisions other than the confirmed Flash Card authority defect;
+- terminal boss decision quality in attempts 001/002/003 where telemetry indicates a suspicious actionable decision rather than simple insufficient engine strength;
+- D14 standalone-Joker timing residual attribution.
+
+These remain **inspection/classification pending**, not fixed, not tuned, and not validated.
+
+### Current validation checkpoint — EXACT STATE
+
+```text
+Deterministic Phase K suite                     GREEN
+Fresh 3-attempt live baseline collection       COMPLETE
+Baron motif semantics patch                    GREEN
+Flash Card / canonical D2 authority patch      COMMITTED
+Flash Card / canonical D2 regression           COMMITTED
+Flash Card / canonical D2 focused validation   PENDING  ← CURRENT GATE
+Further Phase L2 baseline classification        BLOCKED UNTIL CURRENT GATE IS GREEN
+Numerical tuning / Optuna                       NOT STARTED
+Phase M broader competence                      NOT STARTED
+```
+
+Therefore the repository is **currently in testing**, specifically the focused validation gate for the D2 authority repair. Do not mark L2 complete and do not describe the branch as having moved into tuning.
+
+### L3 — Numerical tuning gate — NOT STARTED
+
+Do not start Optuna/numerical calibration until:
+
+1. the current D2 authority patch validates green;
+2. the remaining baseline suspicious decisions have been classified;
+3. all confirmed mechanics/runtime/integration defects from that baseline are repaired and validated;
+4. SHOP/D1/D14 interactive latency is acceptable or remaining residuals are demonstrated non-blocking;
+5. no canonical owner is being bypassed by late rescue/compatibility authority.
 
 When tuning begins, preserve the canonical architecture and compare against the production baseline using authoritative unseeded live runs with run provenance.
 
-## Phase M — Broader competence
+## Phase M — Broader competence — NOT STARTED
 
 After Bond-guided Red/White competence is demonstrated, address broader gameplay failures, consistency, higher stakes, and additional decks.
 
 # Exact next action
 
-**Validate canonical D2 HOLD authority, then continue Phase L2 classification from the same three-run batch.**
+**TEST the canonical D2 HOLD authority repair. Do not continue development/tuning until this focused validation gate is green.**
 
-1. Run the focused live-competence/D2 authority regression and relevant Joker/D14 authority tests.
-2. If green, inspect attempt 001 and remaining attempt 002 material purchases/replacements and terminal boss choices for additional semantic/integration defects.
-3. Keep D14 residual timing under observation; optimize only if the expensive owner is identified without changing decision semantics.
-4. Do not begin numerical calibration until live semantic defects are exhausted.
+After the user confirms the focused D2/live-competence authority tests green:
+
+1. mark L2.2 validated;
+2. resume telemetry inspection from the same three-attempt baseline;
+3. classify the next suspicious attempt 001/002/003 material decision as mechanics, runtime, integration, or calibration;
+4. patch only confirmed defects at their canonical owner;
+5. repeat the focused test gate before moving to the next defect;
+6. keep D14 residual timing under observation and optimize only after identifying the expensive owner without changing semantics;
+7. keep L3 numerical tuning closed until the semantic/integration/runtime defect pass is exhausted.
 
 # Progress criterion
 
@@ -244,7 +341,9 @@ mechanical semantics
 → tactical exploitation
 → deterministic E2E proof
 → cleanup gate
-→ live validation/tuning
+→ live validation/testing  ← CURRENT
+→ numerical tuning
+→ broader competence
 ```
 
 Controlling question:
