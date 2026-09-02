@@ -12,7 +12,6 @@ def test_structural_composition_boundary_exposes_no_strategy_authority(monkeypat
         conflicts=(("steel", "deck_thinning"),),
         synergies=(("steel", "held_retrigger"),),
         coherence_score=0.73,
-        pivot_resistance=0.42,
         motif_distance=(("baron_mime_steel", 1),),
     )
 
@@ -27,3 +26,4 @@ def test_structural_composition_boundary_exposes_no_strategy_authority(monkeypat
     assert not hasattr(structural, "strategy_candidates")
     assert not hasattr(structural, "pinned_strategy_id")
     assert not hasattr(structural, "strategy_plan")
+    assert not hasattr(structural, "pivot_resistance")
