@@ -1,26 +1,15 @@
 from __future__ import annotations
 
-"""Persistent offline Optuna studies for Balatro Bond calibration.
-
-Seeded/offline simulation and authoritative unseeded live Balatro are intentionally
-separate study modes. Neither mode is imported by the production agent.
-"""
-
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, Sequence
 
-from games.balatro.bonds.calibration import (
-    DEFAULT_BOND_CALIBRATION,
-    SCHEMA_VERSION,
-    BondCalibration,
-)
+from games.balatro.bonds.calibration import DEFAULT_BOND_CALIBRATION, SCHEMA_VERSION, BondCalibration
 from games.balatro.tuning.metrics import BatchMetrics
 
-
 OBJECTIVE_VERSION = 1
-PHASE_A_SCHEMA = "composition-v1"
-LIVE_PHASE_A_SCHEMA = "composition-live-unseeded-v1"
+PHASE_A_SCHEMA = "composition-structural-v2"
+LIVE_PHASE_A_SCHEMA = "composition-live-unseeded-structural-v2"
 
 
 class BatchEvaluator(Protocol):
@@ -63,8 +52,6 @@ class StudyConfig:
 
 @dataclass(frozen=True)
 class LiveStudyConfig:
-    """Persistent study identity for authoritative unseeded real-game trials."""
-
     name: str
     storage_path: Path
     repository_sha: str
@@ -100,99 +87,62 @@ def _optuna():
     try:
         import optuna
     except ImportError as exc:  # pragma: no cover
-        raise RuntimeError(
-            "Optuna is an optional offline dependency. Install with "
-            "`python -m pip install -r requirements-tuning.txt`."
-        ) from exc
+        raise RuntimeError("Optuna is optional; install requirements-tuning.txt") from exc
     return optuna
 
 
 def suggest_phase_a(trial) -> BondCalibration:
-    """Small first search space: composer balance only, no Bond semantics."""
-    r1 = trial.suggest_float("pivot_resistance_r1", 0.25, 0.90)
-    r2 = r1 + trial.suggest_float("pivot_resistance_r2_delta", 0.25, 1.10)
-    r3 = r2 + trial.suggest_float("pivot_resistance_r3_delta", 0.75, 2.25)
-    r4 = r3 + trial.suggest_float("pivot_resistance_r4_delta", 1.00, 3.00)
-    r5 = r4 + trial.suggest_float("pivot_resistance_r5_delta", 1.25, 4.00)
+    potential = trial.suggest_float("motif_potential_value", 0.25, 2.00)
+    active = potential + trial.suggest_float("motif_active_delta", 1.00, 5.00)
+    mature = active + trial.suggest_float("motif_mature_delta", 1.00, 5.00)
     return DEFAULT_BOND_CALIBRATION.with_overrides(
         realization_priority_weight=trial.suggest_float("realization_priority_weight", 0.45, 1.20),
         synergy_bonus=trial.suggest_float("synergy_bonus", 0.75, 2.50),
         conflict_penalty=trial.suggest_float("conflict_penalty", 1.00, 4.00),
-        pivot_resistance_r1=r1,
-        pivot_resistance_r2=r2,
-        pivot_resistance_r3=r3,
-        pivot_resistance_r4=r4,
-        pivot_resistance_r5=r5,
+        motif_potential_value=potential,
+        motif_active_value=active,
+        motif_mature_value=mature,
     )
 
 
 def _seeded_attrs(config: StudyConfig) -> dict[str, object]:
-    return {
-        "mode": "seeded",
-        "parameter_schema": PHASE_A_SCHEMA,
-        "calibration_schema_version": SCHEMA_VERSION,
-        "objective_version": OBJECTIVE_VERSION,
-        "repository_sha": config.repository_sha,
-        "deck": config.deck,
-        "stake": config.stake,
-        "seeds": list(config.seeds),
-    }
+    return {"mode": "seeded", "parameter_schema": PHASE_A_SCHEMA, "calibration_schema_version": SCHEMA_VERSION,
+            "objective_version": OBJECTIVE_VERSION, "repository_sha": config.repository_sha, "deck": config.deck,
+            "stake": config.stake, "seeds": list(config.seeds)}
 
 
 def _live_attrs(config: LiveStudyConfig) -> dict[str, object]:
-    return {
-        "mode": "authoritative-live-unseeded",
-        "parameter_schema": LIVE_PHASE_A_SCHEMA,
-        "calibration_schema_version": SCHEMA_VERSION,
-        "objective_version": OBJECTIVE_VERSION,
-        "repository_sha": config.repository_sha,
-        "deck": config.deck,
-        "stake": config.stake,
-        "attempts_per_trial": int(config.attempts_per_trial),
-    }
+    return {"mode": "authoritative-live-unseeded", "parameter_schema": LIVE_PHASE_A_SCHEMA,
+            "calibration_schema_version": SCHEMA_VERSION, "objective_version": OBJECTIVE_VERSION,
+            "repository_sha": config.repository_sha, "deck": config.deck, "stake": config.stake,
+            "attempts_per_trial": int(config.attempts_per_trial)}
 
 
 def _validate_or_initialize_attrs(study, expected: dict[str, object], name: str) -> None:
     existing = dict(study.user_attrs)
     for key, value in expected.items():
         if key in existing and existing[key] != value:
-            raise ValueError(
-                f"study {name!r} is incompatible: {key}={existing[key]!r}, expected {value!r}"
-            )
+            raise ValueError(f"study {name!r} is incompatible: {key}={existing[key]!r}, expected {value!r}")
     for key, value in expected.items():
         study.set_user_attr(key, value)
 
 
 def _create_study(*, name: str, storage_url: str, sampler_seed: int, attrs: dict[str, object]):
     optuna = _optuna()
-    sampler = optuna.samplers.TPESampler(seed=int(sampler_seed))
-    study = optuna.create_study(
-        study_name=name,
-        storage=storage_url,
-        direction="maximize",
-        sampler=sampler,
-        load_if_exists=True,
-    )
+    study = optuna.create_study(study_name=name, storage=storage_url, direction="maximize",
+                                sampler=optuna.samplers.TPESampler(seed=int(sampler_seed)), load_if_exists=True)
     _validate_or_initialize_attrs(study, attrs, name)
     return study
 
 
 def create_phase_a_study(config: StudyConfig):
-    return _create_study(
-        name=config.name,
-        storage_url=config.storage_url,
-        sampler_seed=config.sampler_seed,
-        attrs=_seeded_attrs(config),
-    )
+    return _create_study(name=config.name, storage_url=config.storage_url, sampler_seed=config.sampler_seed,
+                         attrs=_seeded_attrs(config))
 
 
 def create_live_phase_a_study(config: LiveStudyConfig):
-    return _create_study(
-        name=config.name,
-        storage_url=config.storage_url,
-        sampler_seed=config.sampler_seed,
-        attrs=_live_attrs(config),
-    )
+    return _create_study(name=config.name, storage_url=config.storage_url, sampler_seed=config.sampler_seed,
+                         attrs=_live_attrs(config))
 
 
 def _record_metrics(trial, calibration: BondCalibration, metrics: BatchMetrics) -> float:
@@ -235,22 +185,17 @@ def make_live_phase_a_objective(config: LiveStudyConfig, evaluator: LiveBatchEva
 
 
 def enqueue_production_baseline(study) -> None:
-    """Queue the current production point once for apples-to-apples comparison."""
     if study.user_attrs.get("production_baseline_enqueued"):
         return
     baseline = DEFAULT_BOND_CALIBRATION
-    study.enqueue_trial(
-        {
-            "pivot_resistance_r1": baseline.pivot_resistance_r1,
-            "pivot_resistance_r2_delta": baseline.pivot_resistance_r2 - baseline.pivot_resistance_r1,
-            "pivot_resistance_r3_delta": baseline.pivot_resistance_r3 - baseline.pivot_resistance_r2,
-            "pivot_resistance_r4_delta": baseline.pivot_resistance_r4 - baseline.pivot_resistance_r3,
-            "pivot_resistance_r5_delta": baseline.pivot_resistance_r5 - baseline.pivot_resistance_r4,
-            "realization_priority_weight": baseline.realization_priority_weight,
-            "synergy_bonus": baseline.synergy_bonus,
-            "conflict_penalty": baseline.conflict_penalty,
-        }
-    )
+    study.enqueue_trial({
+        "motif_potential_value": baseline.motif_potential_value,
+        "motif_active_delta": baseline.motif_active_value - baseline.motif_potential_value,
+        "motif_mature_delta": baseline.motif_mature_value - baseline.motif_active_value,
+        "realization_priority_weight": baseline.realization_priority_weight,
+        "synergy_bonus": baseline.synergy_bonus,
+        "conflict_penalty": baseline.conflict_penalty,
+    })
     study.set_user_attr("production_baseline_enqueued", True)
 
 
@@ -259,33 +204,17 @@ def run_phase_a(config: StudyConfig, evaluator: BatchEvaluator, *, trials: int, 
         raise ValueError("trials must be positive")
     study = create_phase_a_study(config)
     enqueue_production_baseline(study)
-    study.optimize(
-        make_phase_a_objective(config, evaluator),
-        n_trials=trials,
-        timeout=timeout_seconds,
-        gc_after_trial=True,
-        catch=(RuntimeError,),
-    )
+    study.optimize(make_phase_a_objective(config, evaluator), n_trials=trials, timeout=timeout_seconds,
+                   gc_after_trial=True, catch=(RuntimeError,))
     return study
 
 
-def run_live_phase_a(
-    config: LiveStudyConfig,
-    evaluator: LiveBatchEvaluator,
-    *,
-    trials: int,
-    timeout_seconds: float | None = None,
-):
-    """Run authoritative unseeded trials; every trial preserves exact run IDs."""
+def run_live_phase_a(config: LiveStudyConfig, evaluator: LiveBatchEvaluator, *, trials: int,
+                     timeout_seconds: float | None = None):
     if trials <= 0:
         raise ValueError("trials must be positive")
     study = create_live_phase_a_study(config)
     enqueue_production_baseline(study)
-    study.optimize(
-        make_live_phase_a_objective(config, evaluator),
-        n_trials=trials,
-        timeout=timeout_seconds,
-        gc_after_trial=True,
-        catch=(RuntimeError,),
-    )
+    study.optimize(make_live_phase_a_objective(config, evaluator), n_trials=trials, timeout=timeout_seconds,
+                   gc_after_trial=True, catch=(RuntimeError,))
     return study
