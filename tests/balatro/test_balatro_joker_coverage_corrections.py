@@ -43,9 +43,9 @@ def test_erosion_is_major_deck_thinning_payoff():
     assert thinned.rank == BondRank.R4
 
 
-def test_vampire_requires_vampire_and_uses_feedstock():
-    locked = evaluate_vampire_bond(_state(owned_deck=[_card(enhancement="Mult") for _ in range(10)]))
-    assert locked.rank == BondRank.LOCKED
+def test_enhancement_consumption_axis_tracks_feedstock_before_consumer_and_matures_with_vampire():
+    feed_only = evaluate_vampire_bond(_state(owned_deck=[_card(enhancement="Mult") for _ in range(10)]))
+    assert feed_only.rank >= BondRank.R1
     vampire = evaluate_vampire_bond(_state(jokers=[_joker("Vampire")]))
     assert vampire.contribution == 7.0
     assert vampire.rank == BondRank.R1
