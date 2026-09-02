@@ -259,7 +259,7 @@ def test_red_white_d2_vetoes_new_canonical_conflict(monkeypatch):
             conflicts = (("face_cards", "no_face_cards"),)
         return (), SimpleNamespace(conflicts=conflicts)
 
-    monkeypatch.setattr(red_white_joker_policy, "evaluate_bond_composition", fake_evaluate)
+    monkeypatch.setattr(red_white_joker_policy, "evaluate_bond_structure", fake_evaluate)
 
     decision = red_white_joker_policy.PlaybookJokerAcquisitionPolicy(
         transition_planner=SimpleNamespace(),
