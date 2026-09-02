@@ -136,71 +136,134 @@ Validated green after correcting disappeared projected Bonds to count as fully r
 - Relationship/motif losses are not charged twice as inertia.
 - No strategy identity, commitment state, pivot FSM, or prescription fields exist in `StrategyDelta`.
 
-## Phase H — Integrate canonical strategic decision owners — ACTIVE
+## Phase H — Integrate canonical strategic decision owners — COMPLETE
 
 ### H1 — Joker acquisition/replacement — COMPLETE
 
 Validated green.
 
 - The old Joker transition bonus based on Bond ranks, composition coherence, pinned strategy, `StrategyPlan`, legacy motifs, and pivot state has been removed from the production Joker policy.
-- The installed post-transaction D2 authority now combines:
-
-```text
-post-transaction native mechanical gain
-+ 0.10 × canonical StrategyDelta
-+ existing transaction economics
-```
-
+- The installed post-transaction D2 authority combines post-transaction native mechanical gain, `0.10 × canonical StrategyDelta`, and existing transaction economics.
 - Affordability, slot handling, early-run safety, and mechanically negative replacement rejection remain authoritative.
 
 ### H2 — Booster/pack persistent choices — COMPLETE
 
 Validated green.
 
-- The historical StrategyPlan/Bond-goal pack bonus has been replaced by projected canonical StrategyDelta for exact persistent PLAYING_CARD and PLANET pack outcomes.
-- Playing-card projection appends the materialized card to persistent deck state.
-- Planet projection increments the relevant public hand level.
+- Historical StrategyPlan/Bond-goal pack bonuses were replaced by projected canonical StrategyDelta for exact persistent PLAYING_CARD and PLANET pack outcomes.
+- Playing-card projection appends the materialized card to persistent deck state; Planet projection increments the relevant public hand level.
 - Base pack legality, literal value, stochastic expectation, and Skip remain authoritative.
-- `_goal_ids` / `_playing_card_matches` remain temporarily as inert compatibility helpers only; production pack scoring does not call them. Remove at Phase K once final import users are migrated.
+- `_goal_ids` / `_playing_card_matches` remain temporarily as compatibility helpers only and are cleanup candidates for Phase K.
 
 ### H3 — Tarot/Spectral persistent deck transformations — COMPLETE
 
 Validated green.
 
-- `ContextualConsumableTargetEvaluator` remains the canonical owner for deterministic target legality and literal/contextual target quality.
-- `games/balatro/consumable_strategy_delta_policy.py` reuses the real deterministic consumable `can_use/use` implementation on a deep-copied public state.
-- Exact transformed hand cards are synchronized into authoritative `owned_deck` by public `live_id` when live observation uses separate card objects.
-- Hanged Man uses the existing shared permanent playing-card destruction semantics rather than duplicating them.
+- Deterministic Tarot/Spectral target legality and literal/contextual target quality remain owned by `ContextualConsumableTargetEvaluator`.
+- Real consumable `can_use/use` semantics are projected on deep-copied public state and exact persistent deck changes feed canonical StrategyDelta.
+- Hanged Man uses shared permanent playing-card destruction semantics.
 - Only already-positive deterministic target evaluations receive the conservative `0.10 × StrategyDelta` adjustment.
-- Stochastic/generation/economy-only/Joker-targeted/unsupported consumables remain outside this projection path and fail closed.
-- No individual Bond IDs or StrategyPlan goals are wired into the target owner.
-- Focused deterministic target/consumable regressions are green.
 
 ### H4 — Planet / hand-development owners — COMPLETE
 
 Validated green.
 
-- `games/balatro/planet_strategy_delta.py` projects the exact real Planet transition on a deep-copied public state through the Planet's own `can_use/use` semantics; held projection also consumes the copied held Planet without mutating authoritative state.
-- Shop acquisition remains owned by `ConsumableAcquisitionPolicy` and combines:
+- Shop Planet acquisition uses exact projected Planet semantics and `0.10 × canonical StrategyDelta` in the existing acquisition owner.
+- Held-Planet timing remains tactical and cannot be overridden by StrategyDelta.
+- Historical Bond-rank Planet relevance was retired from D4 production authority.
 
-```text
-existing B4 Planet value
-+ 0.10 × canonical StrategyDelta
-+ existing transaction/economy logic
-```
+### H5 — Legacy acquisition-controller authority cleanup — COMPLETE
 
-- Held-Planet timing remains owned by `LivePlanetPolicy`; canonical StrategyDelta is exposed for strategic diagnostics/ranking but cannot override tactical HOLD/USE authority for clear probability, pace recovery, final-hand urgency, slot pressure, duplication, or Planet scalers.
-- The historical Bond-rank Planet relevance wrapper is retired to an inert compatibility shim and is no longer installed by `games/balatro/__init__.py`.
-- The separate loose-Planet veto in `planet_pack_fallback_policy.py` was also removed from D4 so the migrated canonical shop owner is not post-processed back to HOLD by legacy hand-direction thresholds. Celestial pack/D8 behavior and the unrelated loose-Tarot guard remain intact.
-- Deterministic regressions prove exact projection, the `0.10 × StrategyDelta` shop adjustment, tactical authority separation, and absence of the old off-build Planet veto.
-- The Held Cards policy label uses `clearly_superior_composition`.
-- Focused H4 validation is green.
+Validated green.
 
-After H4, inspect the remaining persistent construction/development consumers and migrate the narrowest next owner using the same shared `StrategyDelta` path. Do not add Bond-specific controllers.
+- D8 unopened Standard/Arcana/Spectral demand no longer reads strategy candidates, commitments, or prescriptions; hidden contents are valued from public BuildProfile expectation.
+- Celestial retained direct observed-hand specialization.
+- The generic D3 zero-fit Voucher cash reserve remains as an economic safety rule.
+- D14 Joker utility no longer adds pinned-strategy goal bonuses after H1's D2 build gain has already incorporated canonical StrategyDelta.
 
-## Phase I — Verify tactical exploitation
+### H6 — Manual Bond prescription execution wrapper — COMPLETE
 
-Verify canonical tactical owners exploit constructed engines, especially Burnt first-discard hand leveling, card destruction/deck thinning, and held cards/Steel/held retrigger.
+Validated green.
+
+- Manual motif-specific D9/D14 prescription bonuses were retired from production.
+- Exact persistent outcomes remain owned by the H2/H3/H4 canonical StrategyDelta integrations.
+- `_active_motif_ids` remains only as a temporary compatibility observer for stale non-authoritative callers.
+
+### H7 — Legacy D2 strategy controllers — COMPLETE
+
+Validated green.
+
+- Production no longer installs R0/FORMING transition bonuses, pinned transition bonuses, PINNED retention, or FORMING StrategyPlan retention controllers.
+- Native D2 `_bond_transition_bonus` now remains the canonical weighted whole-build StrategyDelta term without legacy wrappers.
+
+### H8 — Pinned pack execution overlay — COMPLETE
+
+Validated green.
+
+- Production no longer adds `seek_feature:*`/pinned-strategy execution bonuses after D9 canonical pack scoring.
+- The compatibility module remains only for later cleanup.
+
+### H9 — Strategy authority correction wrapper — COMPLETE
+
+Validated green.
+
+- Production no longer mutates composition into FORMING/PINNED action authority or adds FORMING missing-piece bonuses to D9/D14.
+- Canonical D9 StrategyDelta and H1/D14 value flow remain authoritative.
+
+### H10 — Generic Bond pivot authority — COMPLETE
+
+Validated green.
+
+- The generic pivot/resistance FSM-style controller was removed from production.
+- D2 replacement decisions rely on native mechanics/economics plus canonical projected StrategyDelta instead of named pivot thresholds.
+
+### H11 — Bond power-engine retention wrapper — COMPLETE
+
+Validated green.
+
+- ACTIVE/MATURE/R2 Bond-rank retention vetoes were retired from production.
+- Mechanical replacement eligibility remains native; projected BuildValue loss and transition inertia remain canonical StrategyDelta concerns.
+
+### H12 — Planet relevance public-evidence cleanup — COMPLETE
+
+Validated green.
+
+- D9 exotic-Planet relevance no longer accepts StrategyPlan/pinned-strategy escape hatches.
+- The legitimate anti-bootstrap guard remains based on public hand-play evidence/development state.
+
+### H13 — Stateful Joker admission public-evidence cleanup — COMPLETE
+
+Validated green.
+
+- Stateful Joker admission no longer uses `StrategyPlan`, `pinned_strategy_id`, strategy candidates, planned Bond goals, or “creates strategy” bypasses.
+- Mechanical guards for Mime, Madness, Obelisk, Joker Stencil, conditional hand payoffs, and To Do List remain intact and use public mechanics/evidence.
+
+### H14 — Retired-controller production registration audit — COMPLETE
+
+Validated green.
+
+- Consolidated regression coverage proves the retired H7–H13 strategy-controller installers are not reintroduced into the production stack.
+
+### H15 — Celestial direction public-evidence cleanup — COMPLETE
+
+Validated green.
+
+- Celestial D8/D9 direction/headroom no longer reads `StrategyPlan`, commitment, or pinned hand goals.
+- Direction comes from observed public hand usage; Constellation retains independent Planet-use-scaler authority.
+- Finite Planet-pool expectation, literal score projection, duplicate/Showman handling, affordability, reserve protection, and unrelated loose-Tarot behavior remain intact.
+
+Phase H exit condition is satisfied: remaining installed strategy-named resource logic uses public evidence/mechanics rather than named-strategy action authority. Compatibility-only legacy modules may remain until the Phase K cleanup gate.
+
+## Phase I — Verify tactical exploitation — ACTIVE
+
+Verify canonical tactical owners actually exploit the engines Phase H can now construct.
+
+Required tactical paths:
+1. Hand Leveling / Discard / Hand Development — especially Burnt Joker first-discard leveling.
+2. Card Destruction / Deck Thinning — especially Hanged Man target quality and permanent-deck exploitation.
+3. Held Cards / Steel / Held Retrigger — especially preserving and exploiting Steel/Baron/Mime held-card value during play/discard selection.
+
+Do not create new Bond-specific tactical controllers unless a real mechanical owner is missing. Prefer extending the existing tactical evaluator with exact public mechanical value.
 
 ## Phase J — Deterministic end-to-end proofs
 
@@ -225,14 +288,14 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 
 # Exact next action
 
-**Inspect the remaining persistent construction/development consumers and migrate the narrowest next owner.**
+**Complete Phase I tactical-exploitation verification across the three required engine families.**
 
-1. Fresh-fetch current production registration and remaining modules that still consume `StrategyPlan`, pinned/forming strategy state, Bond-rank relevance, or prescription-derived resource demand.
-2. Identify the narrowest remaining persistent-state acquisition/development owner that still depends on rejected strategy-controller semantics.
-3. Replace only that owner's legacy strategic adjustment with exact projected-state `StrategyDelta`; preserve its mechanics, legality, affordability, survival, and domain-specific tactical authority.
-4. Add focused deterministic replacement regressions and remove the superseded production wrapper/path for that owner.
-5. Ask the user to run the focused local validation command.
-6. Repeat until no remaining persistent construction/development owner depends on the rejected architecture, then advance to Phase I tactical exploitation verification.
+1. Fresh-fetch the canonical live hand/discard owner and verify Burnt Joker's first-discard hand-leveling trigger is represented in action selection rather than only in strategic construction value.
+2. Verify Hanged Man/card-destruction target selection rewards permanent deck thinning through the existing consumable target owner without adding a parallel destruction controller.
+3. Verify hand/discard selection values held-card mechanics strongly enough to preserve and exploit Steel cards, Baron-held Kings, and Mime retriggers when tactically appropriate.
+4. For each confirmed gap, patch the existing tactical owner with public mechanical value only; preserve legality, survival, hand-clear probability, and boss constraints.
+5. Add focused deterministic Phase I regressions covering all changed tactical paths and ask the user to run one combined local validation command.
+6. When all three tactical paths are proven green, advance to Phase J end-to-end proofs.
 
 # Progress criterion
 
