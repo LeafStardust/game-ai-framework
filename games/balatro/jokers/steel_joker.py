@@ -1,7 +1,10 @@
 from games.balatro.joker import Joker, JokerContext
+from games.balatro.mechanics import STEEL_CARD_PAYOFF
 
 
 class SteelJoker(Joker):
+
+    mechanics = frozenset({STEEL_CARD_PAYOFF})
 
     def apply(
         self,
