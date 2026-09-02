@@ -50,7 +50,6 @@ from games.balatro.stateful_joker_admission_policy import install_stateful_joker
 from games.balatro.pack_strategy_delta_policy import install_pack_strategy_delta_policy
 from games.balatro.strategy_resource_coherence_policy import install_strategy_resource_coherence_policy
 from games.balatro.tactical_scaler_build_health import install_tactical_scaler_build_health_policy
-from games.balatro.tactical_scaler_retention_policy import install_tactical_scaler_retention_policy
 from games.balatro.targeted_pack_literal_value_policy import install_targeted_pack_literal_value_policy
 from games.balatro.shop_transaction_policy import install_shop_transaction_policy
 from games.balatro.voucher_parent_literal_policy import install_voucher_parent_literal_policy
@@ -99,8 +98,8 @@ install_face_card_enabler_bond_policy()
 # D2 Joker construction is already migrated: JokerAcquisitionPolicy owns exact
 # projected StrategyDelta. Do not reinstall historical R0/PINNED/FORMING
 # transition/retention controllers, generic pivot/resistance FSM, legacy numeric
-# BuildHealth HOLD->BUY overrides, or Bond-rank power-engine retention vetoes around
-# that canonical owner.
+# BuildHealth HOLD->BUY overrides, or tactical/Bond retention vetoes around that
+# canonical owner.
 # D9 exact persistent pack outcomes are already migrated through
 # install_pack_strategy_delta_policy(); do not add pinned/forming StrategyPlan
 # execution bonuses after the canonical projected StrategyDelta scorer.
@@ -111,7 +110,6 @@ install_strategy_resource_coherence_policy()
 install_planet_pack_fallback_policy()
 install_live_decision_quality_policy()
 install_stateful_joker_admission_policy()
-install_tactical_scaler_retention_policy()
 install_soul_pack_expectation_policy()
 install_full_roster_shop_guard()
 install_full_roster_pack_guard()
