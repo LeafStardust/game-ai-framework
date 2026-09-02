@@ -222,18 +222,32 @@ Requirements:
 
 Deliverable: a deterministic semantic-coverage audit showing the cleaned Bond catalogue can be explained from public mechanical state without relying on the rejected strategy-plan architecture.
 
-### Phase B progress
+### Phase B progress — VALIDATED SLICES
 
-First canonical descriptor slice implemented; pending local validation:
+The focused descriptor/semantic/Bond/realization suite is green after both descriptor migrations below.
+
+Implemented and validated:
 
 - added `games/balatro/mechanics.py` as the canonical component-mechanics query surface;
-- mechanically modeled Burnt, Space, Blueprint, Brainstorm, Midas Mask, Golden Ticket, Reserved Parking, Cartomancer, and Pareidolia components now expose native mechanic tags where the connector write was available;
-- snapshot/lightweight objects retain a centralized compatibility fallback rather than duplicating name checks across Bond evaluators;
-- `hand_leveling`, `gold_cards`, and `enhancement_consumption` evaluators now consume mechanical descriptors instead of direct Joker display-name checks;
-- their canonical realizers now consume the same mechanics, including Pareidolia face semantics and face-dependent renewable enhancement feed;
-- added focused tests proving arbitrary component names with explicit mechanic tags produce the same Bond evidence.
+- mechanically modeled Burnt, Space, Blueprint, Brainstorm, Midas Mask, Golden Ticket, Reserved Parking, Cartomancer, Pareidolia, Mime, Steel Joker, Trading Card, Erosion, and Sixth Sense expose or map to canonical mechanics;
+- snapshot/lightweight objects use one centralized compatibility fallback rather than duplicating display-name checks across Bond evaluators;
+- `hand_leveling`, `gold_cards`, and `enhancement_consumption` evaluators/realizers consume mechanical descriptors;
+- Pareidolia face semantics and face-dependent renewable enhancement feed are represented explicitly;
+- `held_retrigger`, `steel`, and `deck_thinning` production evaluation now uses canonical mechanical evaluators rather than the legacy catalogue implementations;
+- new mechanical evaluators use the audited reachable rank thresholds rather than restoring obsolete pre-audit capstones;
+- an explicit semantic requirement contract now covers all 46 canonical Bonds;
+- focused tests prove arbitrary component names with explicit mechanic tags produce the same strategic evidence for migrated axes.
 
-Do not mark Phase B complete until the remaining 43-axis semantic dependency audit is performed and the deterministic descriptor/semantic suite is green.
+Still required before Phase B can close:
+
+- audit the remaining canonical Bonds whose production evaluators still depend on monolithic catalogue display-name specifications;
+- migrate strategically important shared mechanics first (hand-pattern payoffs, suit/rank payoffs, played retriggers, deck growth, economy/consumable engines, destruction/transformation, enhancement infrastructure);
+- distinguish acceptable public card-state inspection (rank/suit/enhancement/seal/hand levels) from component-name heuristics;
+- ensure each retained Bond has enough mechanics for both current-state and projected-state evaluation;
+- extend deterministic descriptor tests for the remaining shared mechanic families;
+- run the focused semantic/Bond/realization suite green after the final Phase B migration.
+
+Do not mark Phase B complete until the remaining semantic dependency audit and migration are finished.
 
 ## Phase C — Implement canonical mechanics → Bond contributions
 
@@ -369,15 +383,15 @@ After Bond-guided Red/White play is demonstrated:
 
 # Exact next action
 
-**Validate the first Phase B descriptor slice, then continue the full semantic dependency audit.**
+**Continue Phase B semantic migration from the validated descriptor foundation.**
 
-1. Run the focused descriptor/semantic/Bond realization suite locally.
-2. Fix any semantic regressions without restoring per-Bond display-name branching.
-3. Map the remaining canonical Bonds to the public mechanics/state features required to evaluate them.
-4. Identify missing, duplicate, or strategically opaque semantic channels.
-5. Reuse/migrate valid existing descriptors and add only missing canonical mechanics.
-6. Extend deterministic semantic coverage tests.
-7. When all 46 Bonds have sufficient descriptor coverage and validation is green, mark Phase B COMPLETE and advance to Phase C.
+1. Inspect remaining catalogue evaluator families for component display-name dependencies.
+2. Group them by shared mechanic rather than migrating Bond-by-Bond.
+3. Add canonical mechanics for the highest-leverage shared families first.
+4. Override legacy production evaluators only after the replacement preserves valid contribution/rank behavior.
+5. Add arbitrary-name descriptor tests for each migrated family.
+6. Keep public state properties such as rank, suit, enhancement, seal, hand levels, bankroll, and deck size as direct state evidence where they already represent mechanics.
+7. When every retained Bond has sufficient current/projected semantic coverage and the focused suite is green, mark Phase B COMPLETE and advance the roadmap to Phase C.
 
 # Progress criterion
 
