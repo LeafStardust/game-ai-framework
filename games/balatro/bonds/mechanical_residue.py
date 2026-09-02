@@ -38,7 +38,8 @@ from games.balatro.mechanics import (
     RETRIGGER_PLAYED_FACE,
     ROUND_CASH_GROWTH,
     STONE_PAYOFF,
-    SUIT_CLUBS_MULT,
+    SUIT_CLUBS_MULT_MAJOR,
+    SUIT_CLUBS_MULT_MINOR,
     SUIT_DIAMONDS_CASH,
     SUIT_DIAMONDS_MULT,
     SUIT_HEARTS_MULT,
@@ -254,8 +255,8 @@ def evaluate_spades_bond(state: Any) -> BondDevelopment:
 
 def evaluate_clubs_bond(state: Any) -> BondDevelopment:
     return _suit_bond(state, "clubs", "Clubs", (
-        (SUIT_CLUBS_MULT, 6.0, "Clubs primary payoff"),
-        (SUIT_CLUBS_MULT, 4.0, "Clubs secondary payoff"),
+        (SUIT_CLUBS_MULT_MAJOR, 6.0, "Clubs major Mult payoff"),
+        (SUIT_CLUBS_MULT_MINOR, 4.0, "Clubs minor Mult payoff"),
     ), b3.CLUBS_THRESHOLDS)
 
 
