@@ -11,6 +11,11 @@ from games.balatro.bonds.catalogue_batch_five import BATCH_FIVE_EVALUATORS
 from games.balatro.bonds.composer import Composition, compose_build
 from games.balatro.bonds.gold_cards import evaluate_gold_cards_bond
 from games.balatro.bonds.held_cards import evaluate_held_cards_bond
+from games.balatro.bonds.mechanical_core import (
+    evaluate_deck_thinning_bond,
+    evaluate_held_retrigger_bond,
+    evaluate_steel_bond,
+)
 from games.balatro.bonds.model import BondDevelopment
 from games.balatro.bonds.no_face_cards import evaluate_no_face_cards_bond
 from games.balatro.bonds.realization import FROZEN_BOND_IDS, realize_bond
@@ -33,15 +38,23 @@ for family in (
         raise RuntimeError(f"Duplicate Bond evaluator registration: {sorted(overlap)}")
     EVALUATORS.update(family)
 
-# The old catalogue batch still exports `gold_economy`; the canonical evaluator
-# now lives in gold_cards.py. Remove the legacy registration rather than letting
-# both vocabularies coexist in production evaluation.
-EVALUATORS.pop("gold_economy", None)
+# Legacy catalogue implementations remain temporarily for migration compatibility,
+# but production evaluation must use the canonical mechanical evaluators below.
+for legacy_id in (
+    "gold_economy",
+    "held_retrigger",
+    "steel",
+    "deck_thinning",
+):
+    EVALUATORS.pop(legacy_id, None)
 
 for bond_id, evaluator in {
     "hand_leveling": evaluate_hand_leveling_bond,
     "gold_cards": evaluate_gold_cards_bond,
     "held_cards": evaluate_held_cards_bond,
+    "held_retrigger": evaluate_held_retrigger_bond,
+    "steel": evaluate_steel_bond,
+    "deck_thinning": evaluate_deck_thinning_bond,
     "no_face_cards": evaluate_no_face_cards_bond,
     "enhancement_consumption": evaluate_enhancement_consumption_bond,
 }.items():
