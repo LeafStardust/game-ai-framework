@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
-from games.balatro.bonds import evaluate_cash_bond, evaluate_gold_economy_bond, evaluate_vampire_bond
+from games.balatro.bonds import evaluate_cash_bond, evaluate_vampire_bond
+from games.balatro.bonds.gold_cards import evaluate_gold_cards_bond
 from games.balatro.bonds.model import BondRealization
 from games.balatro.bonds.realization import realize_bond
 from games.balatro.bonds.realization_engine import realize_vampire
@@ -47,7 +48,7 @@ def test_pareidolia_does_not_make_debuffed_cards_live_for_reserved_parking():
     assert realize_bond(dev, state).realization == BondRealization.PARTIAL
 
 
-def test_pareidolia_makes_midas_and_parking_live_inside_gold_economy():
+def test_pareidolia_makes_midas_generator_live_inside_gold_cards():
     card = _card("7")
     state = SimpleNamespace(
         jokers=[_joker("Midas Mask"), _joker("Reserved Parking"), _joker("Pareidolia")],
@@ -58,7 +59,7 @@ def test_pareidolia_makes_midas_and_parking_live_inside_gold_economy():
         owned_deck=[card],
         deck=[card],
     )
-    dev = evaluate_gold_economy_bond(state)
+    dev = evaluate_gold_cards_bond(state)
     assert dev.rank.value >= 1
     assert realize_bond(dev, state).realization == BondRealization.ACTIVE
 
