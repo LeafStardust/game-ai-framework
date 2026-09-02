@@ -12,6 +12,9 @@ candidate marginal on that resulting cash state. Replacement keeps the incumbent
 marginal on the actual pre-transaction baseline while the candidate is measured on
 the post-sale/buy baseline. Resource/interest/reserve/slot costs remain separate and
 are not converted into chips or Mult here.
+
+Phase H adds the canonical projected ``StrategyDelta`` only after this mechanical
+recomputation. Strategic value cannot rescue a mechanically negative replacement.
 """
 
 import copy
@@ -66,11 +69,11 @@ def install_post_transaction_joker_value_policy() -> None:
             candidate,
             economics.money_after,
         )
-        bond_bonus, bond_notes = joker_policy_module._bond_transition_bonus(
+        strategy_adjustment, strategy_notes = joker_policy_module._bond_transition_bonus(
             state,
             candidate,
         )
-        resulting_build_gain = raw_post_transaction_gain + bond_bonus
+        resulting_build_gain = raw_post_transaction_gain + strategy_adjustment
         eligible = (
             not strategic_conflict
             and (
@@ -88,8 +91,8 @@ def install_post_transaction_joker_value_policy() -> None:
             rationale=(
                 f"post-transaction whole-build candidate gain={raw_post_transaction_gain:.3f}",
                 f"candidate scoring cash=${int(state.money)}->${economics.money_after}",
-                *bond_notes,
-                f"whole-build gain including Bond projection={resulting_build_gain:.3f}",
+                *strategy_notes,
+                f"whole-build gain including StrategyDelta={resulting_build_gain:.3f}",
                 f"net spend=${economics.net_spend}",
                 f"money after=${economics.money_after}",
                 f"economic adjustment={economics.total_adjustment:.3f}",
@@ -124,12 +127,12 @@ def install_post_transaction_joker_value_policy() -> None:
             self.transition_planner.evaluator.evaluate(candidate_state, candidate).total_gain
         )
         raw_build_delta = candidate_gain - incumbent_gain
-        bond_bonus, bond_notes = joker_policy_module._bond_transition_bonus(
+        strategy_adjustment, strategy_notes = joker_policy_module._bond_transition_bonus(
             state,
             candidate,
             replace_index=index,
         )
-        resulting_build_gain = raw_build_delta + bond_bonus
+        resulting_build_gain = raw_build_delta + strategy_adjustment
         eligible = (
             bool(getattr(replacement, "eligible", True))
             and getattr(replacement, "blocked_reason", None) is None
@@ -150,7 +153,8 @@ def install_post_transaction_joker_value_policy() -> None:
                 f"actual incumbent whole-build marginal at current cash={incumbent_gain:.3f}",
                 f"candidate whole-build marginal at money_after=${economics.money_after}: {candidate_gain:.3f}",
                 f"post-transaction raw replacement delta={raw_build_delta:.3f}",
-                *bond_notes,
+                *strategy_notes,
+                f"whole-build gain including StrategyDelta={resulting_build_gain:.3f}",
                 f"sell credit=${economics.sell_credit}",
                 f"net spend=${economics.net_spend}",
                 f"money after=${economics.money_after}",
