@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any
 
 from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank, BondRealization
+from games.balatro.mechanics import (
+    GOLD_CARD_GENERATION,
+    GOLD_CARD_SCORING_ECONOMY,
+    HELD_FACE_ECONOMY,
+    components_have_mechanic,
+)
 
 GOLD_CARDS_BOND_ID = "gold_cards"
 # The complete structural package tops out at 21 contribution:
-# Golden Ticket (5) + Midas Mask (5) + Reserved Parking (2) + dense Gold deck (9).
-# Keep R5 at that actual capstone rather than defining an unreachable rank.
+# scoring Gold payoff (5) + Gold generator (5) + held-face economy (2)
+# + dense Gold deck (9).
 GOLD_CARDS_THRESHOLDS = {
     BondRank.R1: 3.0,
     BondRank.R2: 6.0,
@@ -15,16 +21,6 @@ GOLD_CARDS_THRESHOLDS = {
     BondRank.R4: 15.0,
     BondRank.R5: 21.0,
 }
-
-
-def _name(value: Any) -> str:
-    raw = value if isinstance(value, str) else getattr(value, "name", None) or value.__class__.__name__
-    return "".join(ch for ch in str(raw).lower() if ch.isalnum())
-
-
-def _contains(values: Iterable[Any], *tokens: str) -> bool:
-    names = {_name(value) for value in values}
-    return any(any(token in name for name in names) for token in tokens)
 
 
 def _deck(state: Any) -> list[Any]:
@@ -54,16 +50,16 @@ def _rank(total: float) -> tuple[BondRank, float | None]:
 
 
 def evaluate_gold_cards_bond(state: Any) -> BondDevelopment:
-    """Evaluate persistent Gold-card infrastructure, separate from generic cash."""
+    """Evaluate persistent Gold-card infrastructure from public mechanics."""
     jokers = list(getattr(state, "jokers", ()) or ())
     parts: list[BondContribution] = []
 
-    if _contains(jokers, "goldenticket"):
-        parts.append(BondContribution("Golden Ticket", 5.0))
-    if _contains(jokers, "midasmask"):
-        parts.append(BondContribution("Midas Mask", 5.0))
-    if _contains(jokers, "reservedparking"):
-        parts.append(BondContribution("Reserved Parking held-card economy", 2.0))
+    if components_have_mechanic(jokers, GOLD_CARD_SCORING_ECONOMY):
+        parts.append(BondContribution("Gold-card scoring economy", 5.0))
+    if components_have_mechanic(jokers, GOLD_CARD_GENERATION):
+        parts.append(BondContribution("Gold-card generation", 5.0))
+    if components_have_mechanic(jokers, HELD_FACE_ECONOMY):
+        parts.append(BondContribution("Held-face economy", 2.0))
 
     gold_count = sum(
         1
