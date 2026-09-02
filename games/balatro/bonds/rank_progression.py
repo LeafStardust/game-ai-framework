@@ -35,7 +35,7 @@ def audit_rank_progression(
       R4 major power engine
       R5 capstone commitment
 
-    This audit is deliberately scale-free.  Bonds may use different absolute
+    This audit is deliberately scale-free. Bonds may use different absolute
     contribution economies, but their five thresholds must still occupy distinct
     portions of that Bond's own R5 scale rather than bunching into one region.
     """
@@ -63,10 +63,6 @@ def audit_rank_progression(
     else:
         normalized = tuple(value / r5 for value in values)
 
-    # Broad semantic bands, intentionally tolerant of different Bond economies.
-    # They prevent the pathologies that matter: recognition arriving near the
-    # capstone, establishment happening too early, or R4/R5 being effectively the
-    # same state.
     bands = (
         (0.10, 0.40, "R1 recognition"),
         (0.20, 0.62, "R2 support"),
@@ -95,19 +91,20 @@ def audit_rank_progression(
 
 
 def canonical_rank_thresholds() -> dict[str, Mapping[BondRank, float]]:
-    """Return the post-audit threshold table used by each frozen Bond."""
+    """Return the post-audit threshold table used by each canonical Bond."""
     from games.balatro.bonds import catalogue_batch_one as b1
     from games.balatro.bonds import catalogue_batch_two as b2
     from games.balatro.bonds import catalogue_batch_three as b3
     from games.balatro.bonds import catalogue_batch_four as b4
     from games.balatro.bonds import catalogue_batch_five as b5
     from games.balatro.bonds.burnt import BURNT_RANK_THRESHOLDS
+    from games.balatro.bonds.gold_cards import GOLD_CARDS_THRESHOLDS
     from games.balatro.bonds.held_cards import HELD_CARDS_RANK_THRESHOLDS
     from games.balatro.bonds.no_face_cards import NO_FACE_CARDS_RANK_THRESHOLDS
     from games.balatro.bonds.vampire import VAMPIRE_THRESHOLDS
 
     return {
-        "burnt": BURNT_RANK_THRESHOLDS,
+        "hand_leveling": BURNT_RANK_THRESHOLDS,
         "held_cards": HELD_CARDS_RANK_THRESHOLDS,
         "held_retrigger": b1.HELD_RETRIGGER_THRESHOLDS,
         "steel": b1.STEEL_THRESHOLDS,
@@ -126,7 +123,7 @@ def canonical_rank_thresholds() -> dict[str, Mapping[BondRank, float]]:
         "flush": b2.FLUSH_THRESHOLDS,
         "played_retrigger": b2.PLAYED_RETRIGGER_THRESHOLDS,
         "stone": b2.STONE_THRESHOLDS,
-        "gold_economy": b2.GOLD_ECONOMY_THRESHOLDS,
+        "gold_cards": GOLD_CARDS_THRESHOLDS,
         "deck_thinning": b2.DECK_THINNING_THRESHOLDS,
         "deck_growth": b2.DECK_GROWTH_THRESHOLDS,
         "full_house": b3.FULL_HOUSE_THRESHOLDS,
@@ -152,7 +149,7 @@ def canonical_rank_thresholds() -> dict[str, Mapping[BondRank, float]]:
         "hand_repetition": b5.HAND_REPETITION_THRESHOLDS,
         "enhanced_cards": b5.ENHANCED_CARDS_THRESHOLDS,
         "no_face_cards": NO_FACE_CARDS_RANK_THRESHOLDS,
-        "vampire": VAMPIRE_THRESHOLDS,
+        "enhancement_consumption": VAMPIRE_THRESHOLDS,
     }
 
 
