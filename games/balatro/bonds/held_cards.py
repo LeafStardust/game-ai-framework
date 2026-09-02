@@ -28,7 +28,7 @@ HELD_CARDS_RANK_POLICIES: dict[BondRank, tuple[str, ...]] = {
     BondRank.R2: ("prefer_held_card_infrastructure_when_build_compatible", "preserve_useful_held_cards_more_consistently"),
     BondRank.R3: ("actively_shape_hand_and_deck_toward_held_payoff", "protect_material_held_card_contributors", "increase_value_of_held_retrigger_and_steel_synergy"),
     BondRank.R4: ("eligible_as_power_engine", "strongly_prioritize_hand_size_and_held_payoff_efficiency", "actively_seek_compatible_held_card_motifs"),
-    BondRank.R5: ("capstone_held_card_commitment", "aggressively_optimize_compatible_build_around_held_value", "abandon_only_for_survival_or_candidly_superior_composition"),
+    BondRank.R5: ("capstone_held_card_commitment", "aggressively_optimize_compatible_build_around_held_value", "abandon_only_for_survival_or_clearly_superior_composition"),
 }
 
 
