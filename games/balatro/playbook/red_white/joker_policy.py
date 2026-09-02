@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 from dataclasses import replace
 
-from games.balatro.bonds.evaluation import evaluate_bond_composition
+from games.balatro.bonds.evaluation import evaluate_bond_structure
 from games.balatro.build import JokerBuildTransitionPlanner
 from games.balatro.joker_policy import (
     HOLD,
@@ -133,7 +133,7 @@ def _new_canonical_conflicts(
 ) -> frozenset[frozenset[str]]:
     """Project the exact proposed roster change and return newly-created conflicts."""
     try:
-        _, before_composition = evaluate_bond_composition(state)
+        _, before_composition = evaluate_bond_structure(state)
         projected = copy.copy(state)
         projected.jokers = list(getattr(state, "jokers", ()) or ())
         if replace_index is None:
@@ -142,7 +142,7 @@ def _new_canonical_conflicts(
             if replace_index < 0 or replace_index >= len(projected.jokers):
                 return frozenset()
             projected.jokers[replace_index] = candidate
-        _, after_composition = evaluate_bond_composition(projected)
+        _, after_composition = evaluate_bond_structure(projected)
     except (AttributeError, TypeError, ValueError, RuntimeError):
         return frozenset()
     return _conflict_set(after_composition) - _conflict_set(before_composition)
