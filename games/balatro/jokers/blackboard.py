@@ -3,6 +3,7 @@ from games.balatro.joker import Joker, JokerContext
 
 
 class BlackboardJoker(Joker):
+    mechanics = frozenset({"held_black_state_xmult"})
 
     def apply(self, context: JokerContext) -> JokerContext:
         if context.score is None:
