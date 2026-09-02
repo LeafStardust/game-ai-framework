@@ -48,7 +48,6 @@ HELD_KING_XMULT = "held_king_xmult"
 PLAYED_KING_QUEEN_XMULT = "played_king_queen_xmult"
 HELD_QUEEN_MULT = "held_queen_mult"
 DISCARD_JACK_XMULT = "discard_jack_xmult"
-
 RANK_PAYOFF_KINGS = "rank_payoff:kings"
 RANK_PAYOFF_QUEENS = "rank_payoff:queens"
 RANK_PAYOFF_JACKS = "rank_payoff:jacks"
@@ -58,7 +57,6 @@ DISCARD_SUIT_SCALING = "discard_suit_scaling"
 DISCARD_RANK_ECONOMY = "discard_rank_economy"
 DISCARD_FACE_ECONOMY = "discard_face_economy"
 DISCARD_JACK_SCALING = "discard_jack_scaling"
-
 BLIND_SKIP_SCALING = "blind_skip_scaling"
 BLIND_SKIP_TAG_GENERATION = "blind_skip_tag_generation"
 SELL_VALUE_SCORING = "sell_value_scoring"
@@ -69,6 +67,42 @@ RANDOM_JOKER_SACRIFICE = "random_joker_sacrifice"
 JOKER_FODDER_GENERATION = "joker_fodder_generation"
 HAND_REPETITION_XMULT = "hand_repetition_xmult"
 HAND_REPETITION_SCALING = "hand_repetition_scaling"
+
+# Shared hand-shape semantics. These describe the actual Joker requirement or
+# enabling mechanic and may intentionally support more than one Bond.
+CONTAINS_PAIR_XMULT = "contains_pair_xmult"
+CONTAINS_PAIR_MULT = "contains_pair_mult"
+CONTAINS_PAIR_CHIPS = "contains_pair_chips"
+SMALL_HAND_MULT = "small_hand_mult"
+SMALL_HAND_CHIPS = "small_hand_chips"
+TWO_PAIR_SCALING = "two_pair_scaling"
+FOUR_CARD_HAND_SCALING = "four_card_hand_scaling"
+TWO_PAIR_MULT = "two_pair_mult"
+TWO_PAIR_CHIPS = "two_pair_chips"
+CONTAINS_THREE_XMULT = "contains_three_xmult"
+CONTAINS_THREE_MULT = "contains_three_mult"
+CONTAINS_THREE_CHIPS = "contains_three_chips"
+FOUR_KIND_XMULT = "four_kind_xmult"
+STRAIGHT_XMULT = "straight_xmult"
+STRAIGHT_MULT = "straight_mult"
+STRAIGHT_CHIPS = "straight_chips"
+STRAIGHT_GAP_RELAXATION = "straight_gap_relaxation"
+FOUR_CARD_STRAIGHT_FLUSH = "four_card_straight_flush"
+STRAIGHT_SCALING = "straight_scaling"
+FLUSH_XMULT = "flush_xmult"
+FLUSH_MULT = "flush_mult"
+FLUSH_CHIPS = "flush_chips"
+SUIT_MERGE_RED_BLACK = "suit_merge_red_black"
+
+RETRIGGER_PLAYED_FACE = "retrigger_played_face"
+RETRIGGER_PLAYED_LOW_RANK = "retrigger_played_low_rank"
+RETRIGGER_FIRST_SCORED = "retrigger_first_scored"
+RETRIGGER_FINAL_HAND = "retrigger_final_hand"
+
+ADD_SEALED_CARD = "add_sealed_card"
+DUPLICATE_SELECTED_CARD = "duplicate_selected_card"
+ADD_STONE_CARD = "add_stone_card"
+SCALE_ON_CARD_ADDED = "scale_on_card_added"
 
 
 def _normalize_name(value: Any) -> str:
@@ -110,7 +144,7 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "fortuneteller": frozenset({TAROT_SCALING}),
     "8ball": frozenset({TAROT_SCORING_EIGHT_GENERATION}),
     "eightball": frozenset({TAROT_SCORING_EIGHT_GENERATION}),
-    "superposition": frozenset({TAROT_STRAIGHT_ACE_GENERATION}),
+    "superposition": frozenset({TAROT_STRAIGHT_ACE_GENERATION, STRAIGHT_SCALING}),
     "tarotmerchant": frozenset({TAROT_SHOP_ACCESS}),
     "tarottycoon": frozenset({TAROT_SHOP_ACCESS_MAJOR}),
     "pareidolia": frozenset({ALL_CARDS_FACE}),
@@ -148,7 +182,44 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "cardsharp": frozenset({HAND_REPETITION_XMULT}),
     "supernova": frozenset({HAND_REPETITION_SCALING}),
     "driverslicense": frozenset({ENHANCEMENT_DENSITY_PAYOFF}),
-    "marblejoker": frozenset({ENHANCEMENT_GENERATION}),
+    "marblejoker": frozenset({ENHANCEMENT_GENERATION, ADD_STONE_CARD}),
+
+    "theduo": frozenset({CONTAINS_PAIR_XMULT}),
+    "theduojoker": frozenset({CONTAINS_PAIR_XMULT}),
+    "jollyjoker": frozenset({CONTAINS_PAIR_MULT}),
+    "slyjoker": frozenset({CONTAINS_PAIR_CHIPS}),
+    "halfjoker": frozenset({SMALL_HAND_MULT}),
+    "stuntman": frozenset({SMALL_HAND_CHIPS}),
+    "stuntmanjoker": frozenset({SMALL_HAND_CHIPS}),
+    "sparetrousers": frozenset({TWO_PAIR_SCALING}),
+    "squarejoker": frozenset({FOUR_CARD_HAND_SCALING}),
+    "madjoker": frozenset({TWO_PAIR_MULT}),
+    "cleverjoker": frozenset({TWO_PAIR_CHIPS}),
+    "thetrio": frozenset({CONTAINS_THREE_XMULT}),
+    "zanyjoker": frozenset({CONTAINS_THREE_MULT}),
+    "wilyjoker": frozenset({CONTAINS_THREE_CHIPS}),
+    "thefamily": frozenset({FOUR_KIND_XMULT}),
+    "theorder": frozenset({STRAIGHT_XMULT}),
+    "crazyjoker": frozenset({STRAIGHT_MULT}),
+    "deviousjoker": frozenset({STRAIGHT_CHIPS}),
+    "shortcut": frozenset({STRAIGHT_GAP_RELAXATION}),
+    "fourfingers": frozenset({FOUR_CARD_STRAIGHT_FLUSH}),
+    "runner": frozenset({STRAIGHT_SCALING}),
+    "thetribe": frozenset({FLUSH_XMULT}),
+    "drolljoker": frozenset({FLUSH_MULT}),
+    "craftyjoker": frozenset({FLUSH_CHIPS}),
+    "smearedjoker": frozenset({SUIT_MERGE_RED_BLACK}),
+    "sockandbuskin": frozenset({RETRIGGER_PLAYED_FACE}),
+    "hack": frozenset({RETRIGGER_PLAYED_LOW_RANK}),
+    "hackjoker": frozenset({RETRIGGER_PLAYED_LOW_RANK}),
+    "hangingchad": frozenset({RETRIGGER_FIRST_SCORED}),
+    "dusk": frozenset({RETRIGGER_FINAL_HAND}),
+    "duskjoker": frozenset({RETRIGGER_FINAL_HAND}),
+    "certificate": frozenset({ADD_SEALED_CARD}),
+    "dna": frozenset({DUPLICATE_SELECTED_CARD}),
+    "dnajoker": frozenset({DUPLICATE_SELECTED_CARD}),
+    "hologram": frozenset({SCALE_ON_CARD_ADDED}),
+    "hologramjoker": frozenset({SCALE_ON_CARD_ADDED}),
 }
 
 
