@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+import games.balatro.bonds.strategy_delta as delta_module
 from games.balatro.bonds.build_value import compose_build_value
 from games.balatro.bonds.model import BondDevelopment, BondRank, BondRealization
 from games.balatro.bonds.strategic_value import value_bond
@@ -83,22 +84,29 @@ def test_negative_transition_cost_fraction_is_rejected():
         raise AssertionError("negative transition cost should fail")
 
 
-def test_candidate_adapter_uses_caller_owned_projector():
+def test_candidate_adapter_uses_caller_owned_projector(monkeypatch):
     state = SimpleNamespace(value="current")
-    projected = SimpleNamespace(value="projected")
+    projected_state = SimpleNamespace(value="projected")
     candidate = object()
+    current_build = _build(_bond("pair", 8.0))
+    projected_build = _build(_bond("pair", 10.0))
     calls = []
 
     def projector(received_state, received_candidate):
         calls.append((received_state, received_candidate))
-        return projected
+        return projected_state
 
-    # Replace the expensive state-level evaluation boundary with a deliberately
-    # invalid state here only to prove projector invocation is caller-owned.
-    # The actual BuildValue comparison contract is covered above.
-    try:
-        strategy_delta(candidate, state, projector=projector)
-    except Exception:
-        pass
+    def fake_evaluate_build_value(received_state, *, calibration_weights=None):
+        assert calibration_weights is None
+        if received_state is state:
+            return current_build
+        assert received_state is projected_state
+        return projected_build
+
+    monkeypatch.setattr(delta_module, "evaluate_build_value", fake_evaluate_build_value)
+    result = strategy_delta(candidate, state, projector=projector)
 
     assert calls == [(state, candidate)]
+    assert result.current is current_build
+    assert result.projected is projected_build
+    assert result.value > 0.0
