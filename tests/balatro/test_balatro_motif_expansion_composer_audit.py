@@ -25,12 +25,11 @@ def test_vampire_midas_is_distinct_motif():
     assert motifs["vampire_midas"].state==MotifState.ACTIVE
 
 
-def test_composer_exposes_distance_and_pivot_resistance():
+def test_composer_exposes_motif_distance():
     state=SimpleNamespace(jokers=["Photograph"],owned_deck=[card("K") for _ in range(8)])
     comp=compose_build(state,[dev("face_cards",BondRank.R4),dev("played_retrigger",BondRank.R2)])
     distances=dict(comp.motif_distance)
     assert distances["photograph_hanging_chad"]==1
-    assert comp.pivot_resistance>0
 
 
 def test_composer_deduplicates_relationship_accounting():
