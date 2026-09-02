@@ -50,6 +50,18 @@ from games.balatro.mechanics import (
     component_has_mechanic,
 )
 
+# The legacy suit ladder topped out at 30 despite structural maxima of 20 for
+# Hearts and 19 for the other suits. This post-audit ladder keeps the same
+# recognition -> support -> establishment -> power -> capstone shape while
+# making R5 structurally reachable without inventing fake mechanics.
+SUIT_THRESHOLDS = {
+    BondRank.R1: 3.0,
+    BondRank.R2: 6.0,
+    BondRank.R3: 10.0,
+    BondRank.R4: 14.0,
+    BondRank.R5: 19.0,
+}
+
 
 def _deck(state: Any) -> list[Any]:
     owned = getattr(state, "owned_deck", None)
@@ -184,32 +196,32 @@ def evaluate_stone_bond(state: Any) -> BondDevelopment:
     return _finish("stone", parts, b2.STONE_THRESHOLDS)
 
 
-def _suit_bond(state: Any, bond_id: str, suit: str, weights: tuple[tuple[str, float, str], ...], thresholds: dict[BondRank, float]) -> BondDevelopment:
+def _suit_bond(state: Any, bond_id: str, suit: str, weights: tuple[tuple[str, float, str], ...]) -> BondDevelopment:
     parts = _mechanic_parts(state, weights)
     count = sum(1 for c in _deck(state) if str(getattr(c, "enhancement", "") or "").lower() != "stone" and (str(getattr(c, "suit", "") or "").lower() == suit.lower() or str(getattr(c, "enhancement", "") or "").lower() == "wild"))
     score = _band(count, ((13, 1.0), (17, 3.0), (21, 5.0), (26, 7.0), (32, 9.0)))
     if score:
         parts.append(BondContribution(f"{suit} density", score))
-    return _finish(bond_id, parts, thresholds, target=suit.upper())
+    return _finish(bond_id, parts, SUIT_THRESHOLDS, target=suit.upper())
 
 
 def evaluate_hearts_bond(state: Any) -> BondDevelopment:
-    return _suit_bond(state, "hearts", "Hearts", ((SUIT_HEARTS_XMULT, 7.0, "Hearts XMult payoff"), (SUIT_HEARTS_MULT, 4.0, "Hearts Mult payoff")), b3.HEARTS_THRESHOLDS)
+    return _suit_bond(state, "hearts", "Hearts", ((SUIT_HEARTS_XMULT, 7.0, "Hearts XMult payoff"), (SUIT_HEARTS_MULT, 4.0, "Hearts Mult payoff")))
 
 
 def evaluate_spades_bond(state: Any) -> BondDevelopment:
-    return _suit_bond(state, "spades", "Spades", ((SUIT_SPADES_CHIPS, 6.0, "Spades chips payoff"), (SUIT_SPADES_MULT, 4.0, "Spades Mult payoff")), b3.SPADES_THRESHOLDS)
+    return _suit_bond(state, "spades", "Spades", ((SUIT_SPADES_CHIPS, 6.0, "Spades chips payoff"), (SUIT_SPADES_MULT, 4.0, "Spades Mult payoff")))
 
 
 def evaluate_clubs_bond(state: Any) -> BondDevelopment:
     # Both legacy Clubs Jokers expose the same strategic mechanic: Clubs Mult.
     # The descriptor layer intentionally does not encode Joker identity as fake
     # mechanics merely to preserve historical 6-vs-4 catalogue weights.
-    return _suit_bond(state, "clubs", "Clubs", ((SUIT_CLUBS_MULT, 5.0, "Clubs Mult payoff"),), b3.CLUBS_THRESHOLDS)
+    return _suit_bond(state, "clubs", "Clubs", ((SUIT_CLUBS_MULT, 5.0, "Clubs Mult payoff"),))
 
 
 def evaluate_diamonds_bond(state: Any) -> BondDevelopment:
-    return _suit_bond(state, "diamonds", "Diamonds", ((SUIT_DIAMONDS_CASH, 6.0, "Diamonds economy payoff"), (SUIT_DIAMONDS_MULT, 4.0, "Diamonds Mult payoff")), b3.DIAMONDS_THRESHOLDS)
+    return _suit_bond(state, "diamonds", "Diamonds", ((SUIT_DIAMONDS_CASH, 6.0, "Diamonds economy payoff"), (SUIT_DIAMONDS_MULT, 4.0, "Diamonds Mult payoff")))
 
 
 def evaluate_low_ranks_bond(state: Any) -> BondDevelopment:
