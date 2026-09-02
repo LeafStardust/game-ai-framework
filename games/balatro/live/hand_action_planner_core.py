@@ -60,15 +60,15 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
     slots by the generic priority. Beam widths therefore stay bounded while D1
     sees materially different actions instead of near-duplicates.
 
-    A guaranteed immediate blind clear is terminal for D1. When one is currently
-    visible, discard branches are suppressed entirely and only guaranteed clearing
-    plays are returned. This prevents expectimax from spending an unnecessary
-    discard to chase a higher terminal score after the blind can already be won.
+    A literal guaranteed immediate blind clear is terminal for D1. Root admission
+    detects that case from deterministic public scoring without launching full Joker
+    projection before node accounting. Joker-aware clear probability remains
+    authoritative once admitted candidates enter the actual bounded search.
 
     Root Play candidates preserve broad visible coverage through a cheap structural
-    pre-beam, but expensive Joker-aware score projection is hard-bounded. Recursive
-    hypothetical states construct an even smaller deterministic public-state-only
-    candidate set directly from the visible hand. Hidden draw order is never used.
+    pre-beam. Recursive hypothetical states construct an even smaller deterministic
+    public-state-only candidate set directly from the visible hand. Hidden draw order
+    is never used.
 
     Validated boss-blind mechanics are supplied through the shared boss integration
     layer. Root and recursive Play candidates therefore obey the same legality
@@ -123,11 +123,11 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         if cached is not None:
             return cached
 
-        # Candidate ranking used to perform hundreds of Joker-aware projections
-        # before the first planner node was consumed. Check the shared D1 deadline
-        # before every expensive projection so pre-beam work is part of the budget.
         self._check_wall_clock_budget()
         projection = self.evaluator.project_play(state, action)
+        # A single projection can itself be expensive. Re-check immediately on
+        # return so no additional planner work occurs after the shared deadline.
+        self._check_wall_clock_budget()
         self._play_projection_cache[key] = projection
         self.play_projections_evaluated += 1
         return projection
@@ -169,33 +169,45 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         previous_cache = self._play_projection_cache
         self._play_projection_cache = {}
         try:
-            # rank_plans()/plan() construct the authoritative root beam before the
-            # first search node is consumed. Root play enumeration remains cheap and
-            # exhaustive, but only a bounded structural shortlist receives expensive
-            # Joker-aware projection. Recursive child beams stay directly bounded.
             root_beam = self.nodes_evaluated == 0
             if root_beam:
                 plays = self._root_play_candidates(state, play_limit)
+                # Root admission must stay outside expensive Joker-aware projection.
+                # Literal public scoring can safely identify a subset of guaranteed
+                # clears; all other candidates are merely shortlisted here and get
+                # authoritative projection only after a planner node is consumed.
+                root_records = [
+                    (self._root_play_priority(state, action), action)
+                    for action in plays
+                ]
+                root_records.sort(key=lambda item: item[0], reverse=True)
+                literal_clears = [
+                    action for key, action in root_records if float(key[0]) >= 1.0
+                ]
+                if literal_clears:
+                    return literal_clears[: max(0, play_limit)]
+                ranked_plays = [
+                    action for _, action in root_records[: max(0, play_limit)]
+                ]
             else:
                 plays = self._child_play_candidates(state, play_limit)
+                guaranteed_clears = [
+                    action
+                    for action in plays
+                    if self._play_projection(state, action).clears_blind
+                ]
+                if guaranteed_clears:
+                    return sorted(
+                        guaranteed_clears,
+                        key=lambda action: self._play_priority(state, action),
+                        reverse=True,
+                    )[: max(0, play_limit)]
+                ranked_plays = self._diverse_play_beam(
+                    state,
+                    plays,
+                    play_limit,
+                )
 
-            guaranteed_clears = [
-                action
-                for action in plays
-                if self._play_projection(state, action).clears_blind
-            ]
-            if guaranteed_clears:
-                return sorted(
-                    guaranteed_clears,
-                    key=lambda action: self._play_priority(state, action),
-                    reverse=True,
-                )[: max(0, play_limit)]
-
-            ranked_plays = self._diverse_play_beam(
-                state,
-                plays,
-                play_limit,
-            )
             consumable_action = (
                 self._guaranteed_sun_action(state) if root_beam else None
             )
@@ -211,13 +223,18 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
 
             if root_beam:
                 discards = self.action_generator.generate_discard_actions(state)
+                ranked_discards = self._projection_free_discard_reserve(
+                    state,
+                    discards,
+                    limit=discard_limit,
+                )
             else:
                 discards = self._child_discard_candidates(state)
-            ranked_discards = self._diverse_discard_beam(
-                state,
-                discards,
-                discard_limit,
-            )
+                ranked_discards = self._diverse_discard_beam(
+                    state,
+                    discards,
+                    discard_limit,
+                )
             result = ranked_plays + ranked_discards
             if consumable_action is not None:
                 result.append(consumable_action)
@@ -226,14 +243,7 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             self._play_projection_cache = previous_cache
 
     def _root_play_candidates(self, state, play_limit: int):
-        """Cheaply pre-beam exhaustive visible root plays before full projection.
-
-        Full root enumeration is inexpensive at normal hand sizes; full Joker-aware
-        projection of every subset is not. Preserve the structurally strongest
-        actions, one representative for every selectable card count, and the direct
-        strategic child representatives, then cap expensive projection to a small
-        deterministic set.
-        """
+        """Cheaply pre-beam exhaustive visible root plays before full projection."""
         plays = [
             action
             for action in self.action_generator.generate_play_actions(state)
@@ -253,7 +263,6 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             if action is not None:
                 chosen.setdefault(self._action_identity(action), action)
 
-        # Keep a broad top slice by cheap poker-hand strength and visible chips.
         top_count = min(
             self._MAX_ROOT_PROJECTED_PLAYS,
             max(12, max(1, play_limit) * 3),
@@ -261,7 +270,6 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         for action in ranked[:top_count]:
             add(action)
 
-        # Preserve redraw/cycling diversity across every selectable card count.
         max_cards = min(
             self.action_generator.MAX_SELECTED_CARDS,
             len(getattr(state, "hand", [])),
@@ -271,8 +279,6 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             if same_size:
                 add(max(same_size, key=self._direct_child_play_priority))
 
-        # Child construction adds deterministic rank/suit/straight/flush coverage
-        # without depending on expensive Joker projection.
         for action in self._child_play_candidates(state, max(play_limit, 1)):
             add(action)
 
@@ -337,8 +343,6 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
                 return
             candidates.setdefault(self._action_identity(action), action)
 
-        # Cheap high-chip prefixes guarantee basic coverage for every selectable
-        # card count without constructing combinations.
         high_cards = sorted(hand, key=self._card_play_candidate_value, reverse=True)
         for amount in range(1, max_cards + 1):
             add(high_cards[:amount])
@@ -370,7 +374,6 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             if pair is not None:
                 add(triples[0][:3] + pair[:2])
 
-        # Flushes and straights are generated directly from rank/suit maps.
         for cards in by_suit.values():
             if len(cards) >= 5:
                 add(sorted(cards, key=self._card_play_candidate_value, reverse=True)[:5])
@@ -407,9 +410,6 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             return candidates
 
         seen = {self._action_identity(action) for action in candidates}
-        # Purple Seal is a mechanically distinct discard transition: a valid
-        # discard can generate a Tarot. Expose a singleton branch for each eligible
-        # card without replacing the ordinary redraw-size representatives.
         for card in purple_cards:
             action = BalatroAction(DISCARD_CARDS, cards=[card])
             key = self._action_identity(action)
@@ -463,13 +463,6 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         return value
 
     def _card_play_candidate_value(self, card) -> float:
-        """Cheap root-shortlist value with held-card opportunity costs.
-
-        Full Joker-aware projection remains authoritative after shortlisting. This
-        proxy must nevertheless keep an ordinary rank-equivalent card ahead of a
-        Steel/Gold/Blue-Seal card whose effect is lost when played; otherwise the
-        correct action never reaches projection.
-        """
         value = self._card_visible_value(card)
         enhancement = str(getattr(card, "enhancement", "") or "")
         seal = str(getattr(card, "seal", "") or "")
@@ -503,8 +496,6 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             len(getattr(state, "hand", [])),
         )
 
-        # A longer play with the same scoring core can act as a free redraw of
-        # otherwise non-scoring cards. Keep one representative per card count.
         for amount in range(len(top.cards) + 1, max_cards + 1):
             variants = []
             for action in plays:
@@ -555,11 +546,6 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
             len(getattr(state, "hand", [])),
         )
 
-        # Beam width is a candidate-count budget, not a redraw-size preference.
-        # Select the strongest representative from every redraw size, then rank
-        # those representatives globally. This keeps size diversity without the
-        # old 1->5 iteration bias that made width=1 synonymous with discarding one
-        # card regardless of the actual discard priority.
         per_size = []
         for amount in range(1, max_cards + 1):
             same_size = [action for action in discards if len(action.cards) == amount]
