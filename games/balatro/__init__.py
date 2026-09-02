@@ -23,7 +23,6 @@ from games.balatro.deck_growth_playing_card_value_policy import install_deck_gro
 from games.balatro.early_spend_sanity_policy import install_early_spend_sanity_policy
 from games.balatro.emperor_pack_expectation_policy import install_emperor_pack_expectation_policy
 from games.balatro.face_card_enabler_bond_policy import install_face_card_enabler_bond_policy
-from games.balatro.forming_strategy_retention_policy import install_forming_strategy_retention_policy
 from games.balatro.full_roster_pack_guard import install_full_roster_pack_guard
 from games.balatro.full_roster_shop_guard import install_full_roster_shop_guard
 from games.balatro.generated_enhanced_spectral_dispatch_postcondition import install_generated_enhanced_spectral_dispatch_postcondition
@@ -41,8 +40,6 @@ from games.balatro.luchador_activation_policy import install_luchador_activation
 from games.balatro.observatory_planet_policy import install_observatory_planet_policy
 from games.balatro.pack_sunk_cost_policy import install_pack_sunk_cost_policy
 from games.balatro.pinned_strategy_execution_policy import install_pinned_strategy_execution_policy
-from games.balatro.pinned_strategy_retention_policy import install_pinned_strategy_retention_policy
-from games.balatro.pinned_strategy_transition_policy import install_pinned_strategy_transition_policy
 from games.balatro.planet_pack_fallback_policy import install_planet_pack_fallback_policy
 from games.balatro.planet_scaler_authority import install_planet_scaler_authority
 from games.balatro.post_transaction_joker_value_policy import install_post_transaction_joker_value_policy
@@ -109,9 +106,9 @@ install_bond_shop_health_policy()
 install_bond_pivot_authority()
 install_bond_power_engine_retention_policy()
 install_face_card_enabler_bond_policy()
-install_pinned_strategy_transition_policy()
-install_pinned_strategy_retention_policy()
-install_forming_strategy_retention_policy()
+# D2 Joker construction is already migrated: JokerAcquisitionPolicy owns exact
+# projected StrategyDelta. Do not reinstall the historical PINNED/FORMING
+# transition or retention controllers around that canonical owner.
 install_pinned_strategy_execution_policy()
 install_strategy_plan_pack_policy()
 install_strategy_resource_coherence_policy()
