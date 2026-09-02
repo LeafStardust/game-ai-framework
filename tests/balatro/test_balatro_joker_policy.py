@@ -46,10 +46,6 @@ class _FixedReplacementEvaluator:
 
 class FixedReplacementPlanner:
     def __init__(self):
-        # The installed post-transaction D2 authority recomputes incumbent and
-        # candidate marginals through the planner's evaluator. Keep the test double
-        # deterministic on that actual contract rather than relying on a stale
-        # alternative.build_delta value that production intentionally supersedes.
         self.evaluator = _FixedReplacementEvaluator()
         self.strategy_evaluator = self.evaluator
 
@@ -137,9 +133,6 @@ def test_d2_buys_behavior_backed_economy_joker_without_scoring_gain():
     assert build_value.contextual.intrinsic_gain > 0.0
     assert decision.action == BUY
     assert decision.selected is not None
-    # D2 now adds bounded canonical Bond-transition value on top of the raw
-    # whole-build evaluator. The selected gain must preserve, not erase, the
-    # underlying behavioral/economic value.
     assert decision.selected.build_gain >= build_value.total_gain
     assert decision.selected.build_gain > 0.0
 
@@ -297,10 +290,6 @@ def test_d2_bond_bonus_cannot_rescue_negative_raw_replacement(monkeypatch):
     ).decide(state, candidate)
 
     assert decision.action == HOLD
-    # Post-transaction D2 recomputes the literal marginal through the planner's
-    # evaluator: incumbent +0.5, candidate 0.0 => raw replacement -0.5. The large
-    # mocked Bond bonus makes the combined gain positive but cannot make a negative
-    # raw replacement eligible.
     assert decision.options[0].build_gain == pytest.approx(3.5)
     assert decision.options[0].eligible is False
     assert any(
@@ -324,9 +313,6 @@ def test_d2_does_not_use_retired_strategy_tier_shortcut_for_replacement():
         transition_planner=FixedReplacementPlanner(),
     ).decide(state, candidate)
 
-    # A literal +0.5 replacement no longer receives the deleted
-    # Gold/Silver/Bronze alignment threshold. It must clear the ordinary threshold
-    # or earn enough canonical Bond value from the real public state.
     assert decision.action == HOLD
     assert decision.selected is None
     assert decision.options
@@ -334,7 +320,7 @@ def test_d2_does_not_use_retired_strategy_tier_shortcut_for_replacement():
     assert all("strategy tier" not in note.lower() for note in decision.rationale)
 
 
-def test_d2_bond_transition_treats_first_axis_as_scouting_not_an_engine():
+def test_d2_strategy_delta_values_first_axis_without_legacy_scouting_state():
     from games.balatro.joker_policy import _bond_transition_bonus
 
     adjustment, rationale = _bond_transition_bonus(
@@ -342,11 +328,12 @@ def test_d2_bond_transition_treats_first_axis_as_scouting_not_an_engine():
         ZanyJoker(),
     )
 
-    assert 0.0 < adjustment <= 0.50
-    assert any("new-axis rank gain=1.0" in note for note in rationale)
+    assert adjustment > 0.0
+    assert any("canonical StrategyDelta=" in note for note in rationale)
+    assert all("scouting" not in note.lower() for note in rationale)
 
 
-def test_d2_bond_transition_penalizes_unrelated_second_hand_axis():
+def test_d2_strategy_delta_does_not_penalize_unrelated_axis_without_explicit_conflict():
     from games.balatro.joker_policy import _bond_transition_bonus
 
     state = _standard_deck_state()
@@ -354,17 +341,19 @@ def test_d2_bond_transition_penalizes_unrelated_second_hand_axis():
 
     adjustment, rationale = _bond_transition_bonus(state, CrazyJoker())
 
-    assert adjustment < 0.0
-    assert any("new-axis rank gain=1.0" in note for note in rationale)
+    assert adjustment >= 0.0
+    assert any("canonical StrategyDelta=" in note for note in rationale)
+    assert all("new-axis" not in note.lower() for note in rationale)
 
 
-def test_d2_bond_transition_rewards_deepening_the_existing_hand_axis():
+def test_d2_strategy_delta_prefers_deepening_existing_hand_axis_over_unrelated_axis():
     from games.balatro.joker_policy import _bond_transition_bonus
 
     state = _standard_deck_state()
     state.jokers = [ZanyJoker()]
 
-    adjustment, rationale = _bond_transition_bonus(state, WilyJoker())
+    unrelated, _ = _bond_transition_bonus(state, CrazyJoker())
+    deepening, rationale = _bond_transition_bonus(state, WilyJoker())
 
-    assert adjustment > 1.0
-    assert any("established rank gain=1.0" in note for note in rationale)
+    assert deepening > unrelated
+    assert any("canonical StrategyDelta=" in note for note in rationale)
