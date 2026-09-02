@@ -100,6 +100,7 @@ def canonical_rank_thresholds() -> dict[str, Mapping[BondRank, float]]:
     from games.balatro.bonds.burnt import BURNT_RANK_THRESHOLDS
     from games.balatro.bonds.gold_cards import GOLD_CARDS_THRESHOLDS
     from games.balatro.bonds.held_cards import HELD_CARDS_RANK_THRESHOLDS
+    from games.balatro.bonds.mechanical_residue import SUIT_THRESHOLDS
     from games.balatro.bonds.no_face_cards import NO_FACE_CARDS_RANK_THRESHOLDS
     from games.balatro.bonds.vampire import VAMPIRE_THRESHOLDS
 
@@ -131,10 +132,10 @@ def canonical_rank_thresholds() -> dict[str, Mapping[BondRank, float]]:
         "five_kind": b3.FIVE_KIND_THRESHOLDS,
         "flush_house": b3.FLUSH_HOUSE_THRESHOLDS,
         "flush_five": b3.FLUSH_FIVE_THRESHOLDS,
-        "hearts": b3.HEARTS_THRESHOLDS,
-        "spades": b3.SPADES_THRESHOLDS,
-        "clubs": b3.CLUBS_THRESHOLDS,
-        "diamonds": b3.DIAMONDS_THRESHOLDS,
+        "hearts": SUIT_THRESHOLDS,
+        "spades": SUIT_THRESHOLDS,
+        "clubs": SUIT_THRESHOLDS,
+        "diamonds": SUIT_THRESHOLDS,
         "low_ranks": b3.LOW_RANKS_THRESHOLDS,
         "kings": b4.KINGS_THRESHOLDS,
         "queens": b4.QUEENS_THRESHOLDS,
