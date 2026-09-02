@@ -1,13 +1,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
 from games.balatro.bonds.model import (
     BondContribution,
     BondDevelopment,
     BondRank,
     BondRealization,
+)
+from games.balatro.mechanics import (
+    DISCARD_HAND_LEVELING,
+    HAND_LEVEL_COPY,
+    PLANET_PACK_TARGETING,
+    PROBABILISTIC_HAND_LEVELING,
+    components_have_mechanic,
+    components_with_mechanic,
 )
 
 
@@ -63,21 +71,6 @@ class BurntBondContext:
 
     target_hand: str | None = None
     discards_per_round: int | None = None
-
-
-def _name(value: Any) -> str:
-    if isinstance(value, str):
-        raw = value
-    else:
-        raw = getattr(value, "name", None)
-        if raw is None:
-            raw = value.__class__.__name__
-    return "".join(ch for ch in str(raw).lower() if ch.isalnum())
-
-
-def _contains_named(values: Iterable[Any], *tokens: str) -> bool:
-    normalized = {_name(value) for value in values}
-    return any(any(token in candidate for candidate in normalized) for token in tokens)
 
 
 def _owned_deck(state: Any) -> list[Any]:
@@ -182,32 +175,29 @@ def evaluate_hand_leveling_bond(
     *,
     context: BurntBondContext | None = None,
 ) -> BondDevelopment:
-    """Evaluate persistent hand-level development from public run state.
-
-    Unlike the legacy Burnt Bond, this axis is not hard-locked by Burnt Joker.
-    Burnt is one strong contributor alongside Space Joker, Telescope, Blue Seals,
-    and already accumulated permanent hand-level investment. This lets the Bond
-    exist before a payoff component appears and lets projected-state evaluation
-    value future components against existing hand-development infrastructure.
-    """
+    """Evaluate persistent hand-level development from public run mechanics."""
 
     context = context or BurntBondContext()
     target_hand = select_burnt_target_hand(state, context.target_hand)
     jokers = list(getattr(state, "jokers", ()) or ())
     parts: list[BondContribution] = []
 
-    if _contains_named(jokers, "burntjoker"):
-        parts.append(BondContribution("Burnt Joker", 8.0))
-    if _contains_named(jokers, "blueprintjoker", "blueprint") and _contains_named(jokers, "burntjoker", "spacejoker"):
-        parts.append(BondContribution("Copyable hand-level engine", 5.0))
-    if _contains_named(jokers, "brainstormjoker", "brainstorm") and _contains_named(jokers, "burntjoker", "spacejoker"):
-        parts.append(BondContribution("Copyable hand-level engine", 5.0))
-    if _contains_named(jokers, "spacejoker"):
-        parts.append(BondContribution("Space Joker", 4.0))
+    has_discard_leveling = components_have_mechanic(jokers, DISCARD_HAND_LEVELING)
+    has_probabilistic_leveling = components_have_mechanic(jokers, PROBABILISTIC_HAND_LEVELING)
+
+    if has_discard_leveling:
+        parts.append(BondContribution("Discard hand-level engine", 8.0))
+
+    if has_discard_leveling or has_probabilistic_leveling:
+        for _copy_engine in components_with_mechanic(jokers, HAND_LEVEL_COPY):
+            parts.append(BondContribution("Copyable hand-level engine", 5.0))
+
+    if has_probabilistic_leveling:
+        parts.append(BondContribution("Probabilistic hand-level engine", 4.0))
 
     vouchers = list(getattr(state, "vouchers", ()) or ())
-    if _contains_named(vouchers, "telescope"):
-        parts.append(BondContribution("Telescope", 4.0))
+    if components_have_mechanic(vouchers, PLANET_PACK_TARGETING):
+        parts.append(BondContribution("Planet targeting access", 4.0))
 
     blue_seals = _blue_seal_contribution(state)
     if blue_seals > 0.0:
@@ -217,9 +207,8 @@ def evaluate_hand_leveling_bond(
     if target_level > 0.0:
         parts.append(BondContribution(f"{target_hand} permanent specialization", target_level))
 
-    # Extra discards specifically support Burnt's hand-level mechanic; they are
-    # irrelevant to hand leveling in a run without Burnt.
-    if _contains_named(jokers, "burntjoker"):
+    # Extra discards support the discard-based hand-level mechanic specifically.
+    if has_discard_leveling:
         extra_discards = _extra_discard_contribution(context)
         if extra_discards > 0.0:
             parts.append(BondContribution("Extra discard capacity", extra_discards))
