@@ -2,19 +2,21 @@ from __future__ import annotations
 
 """Final D2 guards for stateful Joker purchases observed failing live.
 
-These are mechanical admission constraints rather than catalogue tuning:
+These are mechanical admission constraints rather than strategy-controller tuning:
 - Madness makes paid non-Eternal support/economy pieces disposable on future
   Small/Big blind selections, so only direct scoring purchases may coexist without
   an explicit protection mechanism;
-- To Do List must not be bought for an exotic hand target with no demonstrated
-  play/strategy path.
+- conditional hand-payoff Jokers require sustained public hand-use evidence;
+- To Do List must not be bought for an exotic hand target the run has never played.
+
+Canonical H1 StrategyDelta already prices coherent projected build development.
+Named StrategyPlan, pinned/forming state, and strategy-formation transitions do not
+bypass these public mechanical admission guards.
 """
 
-from copy import copy
 from dataclasses import replace
 from typing import Mapping
 
-from games.balatro.bonds.evaluation import evaluate_bond_composition
 from games.balatro.build.joker_scenarios import ScenarioJokerBehaviorAnalyzer
 from games.balatro.joker_policy import BUY, HOLD, REPLACE
 from games.balatro.joker_edition import (
@@ -84,37 +86,10 @@ def _candidate_hand_requirements(candidate: object) -> tuple[str, ...]:
     )
 
 
-def _planned_hand_bonds(state) -> frozenset[str]:
-    try:
-        _, composition = evaluate_bond_composition(state)
-    except (AttributeError, TypeError, ValueError, RuntimeError):
-        return frozenset()
-    values: set[str] = set()
-    plan = getattr(composition, "strategy_plan", None)
-    for goal in tuple(getattr(plan, "bond_goals", ()) or ()):
-        values.add(str(getattr(goal, "bond_id", "") or ""))
-    pinned = getattr(composition, "pinned_strategy_id", None)
-    for candidate in tuple(getattr(composition, "strategy_candidates", ()) or ()):
-        if str(getattr(candidate, "strategy_id", "") or "") == str(pinned or ""):
-            values.update(str(value) for value in tuple(candidate.bond_ids or ()))
-    return frozenset(values)
-
-
 def _hand_requirements_supported(state, candidate: object) -> bool:
-    """Require public evidence before opening a conditional hand-payoff axis."""
+    """Require sustained public evidence before opening a hand-payoff axis."""
     requirements = _candidate_hand_requirements(candidate)
     if not requirements:
-        return True
-
-    bond_ids = {
-        "HIGH_CARD": "high_card", "PAIR": "pair", "TWO_PAIR": "two_pair",
-        "THREE_OF_A_KIND": "three_kind", "FOUR_OF_A_KIND": "four_kind",
-        "STRAIGHT": "straight", "FLUSH": "flush", "FULL_HOUSE": "full_house",
-        "STRAIGHT_FLUSH": "straight_flush", "FIVE_OF_A_KIND": "five_kind",
-        "FLUSH_HOUSE": "flush_house", "FLUSH_FIVE": "flush_five",
-    }
-    planned = _planned_hand_bonds(state)
-    if any(bond_ids.get(hand) in planned for hand in requirements):
         return True
 
     counts = {
@@ -130,30 +105,6 @@ def _hand_requirements_supported(state, candidate: object) -> bool:
         if plays >= 2 and plays / total >= 0.20:
             return True
     return False
-
-
-def _creates_strategy(state, candidate, decision) -> bool:
-    try:
-        _, before = evaluate_bond_composition(state)
-        projected = copy(state)
-        projected.jokers = list(getattr(state, "jokers", ()) or ())
-        if decision.action == REPLACE and getattr(decision, "selected", None) is not None:
-            index = int(decision.selected.replace_index)
-            projected.jokers[index] = candidate
-        else:
-            projected.jokers.append(candidate)
-        _, after = evaluate_bond_composition(projected)
-    except (AttributeError, IndexError, TypeError, ValueError, RuntimeError):
-        return False
-    before_best = max(
-        (int(getattr(value, "commitment", 0)) for value in tuple(before.strategy_candidates or ())),
-        default=0,
-    )
-    after_best = max(
-        (int(getattr(value, "commitment", 0)) for value in tuple(after.strategy_candidates or ())),
-        default=0,
-    )
-    return after_best > before_best and after_best >= 1
 
 
 def _has_madness(state) -> bool:
@@ -198,38 +149,12 @@ def _target_hand(candidate: object) -> str:
     return ""
 
 
-def _plan_owns_hand(state, hand: str) -> bool:
-    bond_id = {
-        "STRAIGHT_FLUSH": "straight_flush",
-        "FIVE_OF_A_KIND": "five_kind",
-        "FLUSH_HOUSE": "flush_house",
-        "FLUSH_FIVE": "flush_five",
-    }.get(hand)
-    if not bond_id:
-        return False
-    try:
-        _, composition = evaluate_bond_composition(state)
-    except (AttributeError, TypeError, ValueError, RuntimeError):
-        return False
-    if not getattr(composition, "pinned_strategy_id", None):
-        return False
-    plan = getattr(composition, "strategy_plan", None)
-    if plan is None:
-        return False
-    return any(
-        str(getattr(goal, "bond_id", "")) == bond_id
-        for goal in tuple(getattr(plan, "bond_goals", ()) or ())
-    )
-
-
 def _todo_target_supported(state, candidate: object) -> bool:
     target = _target_hand(candidate)
     if not target or target not in _EXOTIC_HANDS:
         return True
     plays = getattr(state, "hand_play_counts", {}) or {}
-    if int(plays.get(target, 0) or 0) > 0:
-        return True
-    return _plan_owns_hand(state, target)
+    return int(plays.get(target, 0) or 0) > 0
 
 
 def _projected_stencil_multiplier(state, candidate, decision) -> int | None:
@@ -332,7 +257,6 @@ def install_stateful_joker_admission_policy() -> None:
             and getattr(candidate, "discovered", True) is not False
             and joker_edition_universal_value(candidate) <= 0.0
             and not _hand_requirements_supported(state, candidate)
-            and not _creates_strategy(state, candidate, decision)
         ):
             requirements = ",".join(_candidate_hand_requirements(candidate))
             return replace(
@@ -341,9 +265,9 @@ def install_stateful_joker_admission_policy() -> None:
                 selected=None,
                 rationale=(
                     *decision.rationale,
-                    f"conditional hand-payoff veto: required hands={requirements} have no sustained public use or applied Strategy Plan",
-                    "an isolated off-direction payoff does not open a new Bond axis after the first Joker",
-                    "editions, collection-critical offers, and genuine strategy-forming transitions retain authority",
+                    f"conditional hand-payoff veto: required hands={requirements} have no sustained public use",
+                    "an isolated off-direction payoff does not open a new hand axis after the first Joker",
+                    "canonical StrategyDelta may value coherent build progress but cannot bypass missing activation evidence",
                 ),
             )
 
@@ -373,7 +297,7 @@ def install_stateful_joker_admission_policy() -> None:
                 rationale=(
                     *decision.rationale,
                     f"To Do List target veto: {target} has no demonstrated exotic-hand path",
-                    "stateful target value must be supported by actual play history or the pinned Strategy Plan",
+                    "stateful target value must be supported by actual public play history",
                 ),
             )
 
