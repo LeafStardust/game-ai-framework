@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any
 
-from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank, BondRealization
+from games.balatro.bonds.contributions import component_contribution, finalize_development, state_contribution
+from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank
+from games.balatro.mechanics import component_has_mechanic
 
 
 NO_FACE_CARDS_BOND_ID = "no_face_cards"
+NO_FACE_PLAY_SCALING = "no_face_play_scaling"
 NO_FACE_CARDS_RANK_THRESHOLDS = {
     BondRank.R1: 4.0,
     BondRank.R2: 8.0,
@@ -22,21 +25,6 @@ NO_FACE_CARDS_RANK_POLICIES = {
 }
 
 
-def _name(value: Any) -> str:
-    if isinstance(value, str):
-        raw = value
-    else:
-        raw = getattr(value, "name", None)
-        if raw is None:
-            raw = value.__class__.__name__
-    return "".join(ch for ch in str(raw).lower() if ch.isalnum())
-
-
-def _contains(values: Iterable[Any], *tokens: str) -> bool:
-    names = {_name(v) for v in values}
-    return any(any(token in name for name in names) for token in tokens)
-
-
 def _deck(state: Any) -> list[Any]:
     owned = getattr(state, "owned_deck", None)
     if owned is not None:
@@ -44,15 +32,12 @@ def _deck(state: Any) -> list[Any]:
     return list(getattr(state, "deck", ()) or ())
 
 
-def _rank(total: float) -> tuple[BondRank, float | None]:
-    rank = BondRank.R0
-    for candidate in (BondRank.R1, BondRank.R2, BondRank.R3, BondRank.R4, BondRank.R5):
-        threshold = NO_FACE_CARDS_RANK_THRESHOLDS[candidate]
-        if total >= threshold:
-            rank = candidate
-        else:
-            return rank, threshold
-    return BondRank.R5, None
+def _source(component: Any) -> str:
+    name = getattr(component, "name", None)
+    if name:
+        return str(name)
+    cls = component.__class__.__name__
+    return "No-face play scaler" if cls in {"str", "SimpleNamespace"} else cls
 
 
 def _locked() -> BondDevelopment:
@@ -63,22 +48,35 @@ def _locked() -> BondDevelopment:
         rank=BondRank.LOCKED,
         next_rank_threshold=NO_FACE_CARDS_RANK_THRESHOLDS[BondRank.R1],
         contributions=(),
-        realization=BondRealization.DORMANT,
+        target="NO_FACE_CARDS",
     )
 
 
 def evaluate_no_face_cards_bond(state: Any) -> BondDevelopment:
-    """Evaluate Ride-the-Bus-defined no-face-card development.
-
-    Natural J/Q/K depletion develops the Bond because it directly lowers the
-    probability of accidentally resetting Ride the Bus when following the plan.
-    Generic face-card interaction does not count as quota.
-    """
+    """Evaluate no-face development from an explicit no-face scaling mechanic."""
     jokers = list(getattr(state, "jokers", ()) or ())
-    if not _contains(jokers, "ridethebusjoker", "ridethebus"):
+    scaler_index = next(
+        (
+            index
+            for index, joker in enumerate(jokers)
+            if component_has_mechanic(joker, NO_FACE_PLAY_SCALING)
+        ),
+        None,
+    )
+    if scaler_index is None:
         return _locked()
 
-    parts = [BondContribution("Ride the Bus", 7.0)]
+    scaler = jokers[scaler_index]
+    parts: list[BondContribution] = [
+        component_contribution(
+            scaler,
+            collection="jokers",
+            index=scaler_index,
+            label=_source(scaler),
+            value=7.0,
+            mechanic=NO_FACE_PLAY_SCALING,
+        )
+    ]
     deck = _deck(state)
 
     if deck:
@@ -89,8 +87,6 @@ def evaluate_no_face_cards_bond(state: Any) -> BondDevelopment:
             and str(getattr(card, "enhancement", "") or "").lower() != "stone"
         )
 
-        # Standard 52-card deck starts with 12 natural face cards. Lower density
-        # is persistent structural commitment; zero natural faces is capstone support.
         density_score = 0.0
         if face_count == 0:
             density_score = 7.0
@@ -102,19 +98,18 @@ def evaluate_no_face_cards_bond(state: Any) -> BondDevelopment:
             density_score = 1.0
 
         if density_score:
-            parts.append(BondContribution("Low natural face-card density", density_score))
+            parts.append(state_contribution(
+                "deck:natural_face_density",
+                "Low natural face-card density",
+                density_score,
+                mechanic="natural_face_card_density",
+            ))
 
-    total = sum(part.value for part in parts)
-    rank, next_threshold = _rank(total)
-    return BondDevelopment(
-        bond_id=NO_FACE_CARDS_BOND_ID,
-        unlocked=True,
-        contribution=total,
-        rank=rank,
-        next_rank_threshold=next_threshold,
-        contributions=tuple(parts),
+    return finalize_development(
+        NO_FACE_CARDS_BOND_ID,
+        parts,
+        NO_FACE_CARDS_RANK_THRESHOLDS,
         target="NO_FACE_CARDS",
-        realization=BondRealization.PARTIAL,
     )
 
 
