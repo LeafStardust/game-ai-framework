@@ -16,6 +16,13 @@ from games.balatro.bonds.mechanical_engines import (
     evaluate_joker_sacrifice_bond,
     evaluate_sell_value_bond,
 )
+from games.balatro.bonds.mechanical_rank_consumables import (
+    evaluate_jacks_bond,
+    evaluate_kings_bond,
+    evaluate_planet_bond,
+    evaluate_queens_bond,
+    evaluate_tarot_bond,
+)
 from games.balatro.bonds.model import BondRealization
 from games.balatro.bonds.realization import realize_bond
 from games.balatro.bonds.vampire import evaluate_enhancement_consumption_bond
@@ -35,6 +42,7 @@ from games.balatro.mechanics import (
     DECK_THIN_PAYOFF,
     DISCARD_FACE_ECONOMY,
     DISCARD_HAND_LEVELING,
+    DISCARD_JACK_XMULT,
     DISCARD_SCALING,
     ENHANCEMENT_CONSUMPTION,
     ENHANCEMENT_DENSITY_PAYOFF,
@@ -47,14 +55,26 @@ from games.balatro.mechanics import (
     HAND_LEVEL_COPY,
     HAND_REPETITION_SCALING,
     HAND_REPETITION_XMULT,
+    HELD_KING_XMULT,
+    HELD_QUEEN_MULT,
     JOKER_FODDER_GENERATION,
     LEFT_JOKER_SACRIFICE,
+    PLANET_GENERATION,
+    PLANET_PACK_TARGETING,
+    PLANET_SCALING,
+    PLANET_SHOP_ACCESS_MAJOR,
+    PLAYED_KING_QUEEN_XMULT,
     PROBABILISTIC_HAND_LEVELING,
     RETRIGGER_HELD_CARDS,
     SELF_SELL_VALUE_GROWTH,
     SELL_VALUE_SCORING,
     SPECTRAL_GENERATION,
     STEEL_CARD_PAYOFF,
+    TAROT_GENERATION,
+    TAROT_LOW_MONEY_GENERATION,
+    TAROT_PACK_GENERATION,
+    TAROT_SCALING,
+    TAROT_SHOP_ACCESS_MAJOR,
     component_mechanics,
 )
 
@@ -67,10 +87,10 @@ def _card(rank="7", enhancement="", seal=""):
     return SimpleNamespace(rank=rank, suit="Hearts", enhancement=enhancement, seal=seal)
 
 
-def _state(*, jokers=(), deck=(), hand=(), hand_levels=None, **extra):
+def _state(*, jokers=(), vouchers=(), deck=(), hand=(), hand_levels=None, **extra):
     data = dict(
         jokers=list(jokers),
-        vouchers=[],
+        vouchers=list(vouchers),
         owned_deck=list(deck),
         deck=list(deck),
         deck_name="Red Deck",
@@ -245,3 +265,41 @@ def test_enhanced_cards_uses_mechanics_not_component_display_names():
     dev = evaluate_enhanced_cards_bond(state)
     assert dev.bond_id == "enhanced_cards"
     assert dev.contribution == 18.0
+
+
+def test_rank_bonds_use_mechanics_not_component_display_names():
+    kings = evaluate_kings_bond(_state(jokers=(_component(HELD_KING_XMULT), _component(PLAYED_KING_QUEEN_XMULT))))
+    queens = evaluate_queens_bond(_state(jokers=(_component(HELD_QUEEN_MULT), _component(PLAYED_KING_QUEEN_XMULT))))
+    jacks = evaluate_jacks_bond(_state(jokers=(_component(DISCARD_JACK_XMULT),)))
+    assert kings.contribution == 13.0
+    assert queens.contribution == 11.0
+    assert jacks.contribution == 7.0
+
+
+def test_tarot_uses_mechanics_not_component_display_names():
+    state = _state(
+        jokers=(
+            _component(TAROT_GENERATION),
+            _component(TAROT_LOW_MONEY_GENERATION),
+            _component(TAROT_PACK_GENERATION),
+            _component(TAROT_SCALING),
+        ),
+        vouchers=(_component(TAROT_SHOP_ACCESS_MAJOR),),
+    )
+    dev = evaluate_tarot_bond(state)
+    assert dev.bond_id == "tarot"
+    assert dev.contribution == 25.0
+
+
+def test_planet_uses_mechanics_not_component_display_names():
+    state = _state(
+        jokers=(_component(PLANET_SCALING), _component(PLANET_GENERATION)),
+        vouchers=(
+            _component(PLANET_PACK_TARGETING),
+            _component(PLANET_SHOP_ACCESS_MAJOR),
+        ),
+        deck=tuple(_card(seal="Blue") for _ in range(4)),
+    )
+    dev = evaluate_planet_bond(state)
+    assert dev.bond_id == "planet"
+    assert dev.contribution == 25.0
