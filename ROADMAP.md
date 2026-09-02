@@ -53,7 +53,7 @@ A mechanic may contribute to multiple Bonds. Overlap is intentional.
 
 ## Bond value
 
-Reference shape:
+Canonical shape:
 
 ```text
 BondValue
@@ -62,14 +62,14 @@ BondValue
 × optional calibration weight
 ```
 
-Initial development curve reference:
+Initial development curve:
 
 ```python
 def bond_strength(points: float) -> float:
     return points ** 1.35
 ```
 
-Ranks may remain diagnostic, but ranks must not directly issue actions.
+Ranks remain diagnostic and must not directly issue actions or alter strategic value.
 
 ## Relationships and motifs
 
@@ -183,70 +183,64 @@ gold_economy → gold_cards
 vampire      → enhancement_consumption
 ```
 
-The Joker/mechanic names Burnt Joker and Vampire remain valid mechanical concepts; only the strategic Bond IDs changed.
-
-Phase A also established:
-
-- canonical Bond IDs in `games/balatro/bonds/ids.py`;
-- canonical evaluator/realizer registration for renamed axes;
-- rank progression aligned to canonical IDs;
-- reachable `gold_cards` R5 progression;
-- semantic coverage aligned to canonical IDs;
-- obsolete hard-unlock assumptions removed from migrated tests;
-- Midas/Vampire face-feed realization corrected.
+Phase A established canonical Bond IDs, canonical registration for renamed axes, aligned rank progression and semantic coverage, reachable Gold progression, and corrected Midas/Vampire realization semantics.
 
 Do not reopen vocabulary design unless a concrete later failure proves a Bond invalid.
 
 ## Phase B — Complete semantic mechanical descriptors — COMPLETE
 
-Validated green on the focused mechanical-descriptor / semantic / Bond / realization / rank-progression suite after the final residue migration.
+Validated green on the focused mechanical-descriptor / semantic / Bond / realization / rank-progression suite.
 
 Phase B established:
 
 - `games/balatro/mechanics.py` as the canonical public component-mechanics query surface;
-- mechanically modeled components expose native mechanics where available, with centralized compatibility semantics for snapshot-only objects;
-- all 46 canonical Bond evaluators now consume mechanics and/or direct public state rather than maintaining independent component-name matching tables in production;
-- direct state evidence remains canonical where it already represents mechanics: deck size/composition, ranks, suits, enhancements, seals, hand levels, hand-play history, discard/skip/destruction history, bankroll, sell value, and similar public state;
-- arbitrary-name tests prove migrated evaluator families are driven by mechanics rather than display names;
-- hand-pattern, rank, suit, held/retrigger, enhancement, destruction/thinning, deck-growth, economy, discard/no-discard, Tarot, Planet, and other retained axes have explicit semantic coverage;
-- cross-axis mechanics intentionally overlap where appropriate instead of encoding Bond names into components;
-- post-audit reachable rank geometry is preserved, including corrected Gold and suit ladders;
-- the obsolete suit R5=30 ladder was corrected to a reachable shared suit ladder `3 / 6 / 10 / 14 / 19` rather than inventing fake mechanics or inflating contributions.
+- native mechanics on modeled runtime components plus centralized snapshot compatibility;
+- all 46 canonical evaluators driven by mechanics and/or direct public state rather than independent production name tables;
+- explicit semantic coverage across hand patterns, ranks, suits, held/retrigger, enhancement, destruction/thinning, deck growth, economy, discard/no-discard, Tarot, Planet, and retained residual axes;
+- intentional cross-axis mechanical overlap;
+- reachable post-audit rank geometry, including the corrected shared suit ladder `3 / 6 / 10 / 14 / 19`.
 
-Phase B deliverable is satisfied: the retained catalogue can be explained from public mechanical state without depending on the rejected strategy-plan architecture.
+## Phase C — Implement canonical mechanics → Bond contributions — COMPLETE
 
-## Phase C — Implement canonical mechanics → Bond contributions — ACTIVE
+Validated green after the full 46-Bond contribution-ledger migration.
 
-Implement one contribution path that:
+Phase C established:
 
-- derives weighted Bond evidence from public mechanics and direct public-state evidence;
-- permits one mechanic/source to contribute to multiple Bonds;
-- prevents accidental same-source double counting within one Bond;
-- exposes stable per-source diagnostics;
-- preserves the existing validated contribution/rank behavior unless a concrete semantic defect is discovered;
-- works identically for current and projected states.
+- `games/balatro/bonds/contributions.py` as the canonical contribution/source ledger;
+- stable `source_id` and `mechanic` diagnostics on emitted Bond evidence;
+- same-source normalization at the Bond-development boundary to prevent accidental within-Bond double counting;
+- intentional one-source-to-many-Bonds overlap remains valid because normalization is Bond-local;
+- current/projected symmetry because contribution evaluation is stateless and derived only from supplied public state;
+- all production evaluator families migrated onto keyed contribution helpers, including hand patterns, ranks/consumables, engines/economy, residual axes, Hand Leveling, Gold Cards, Enhancement Consumption, and No Face Cards;
+- Ride the Bus, Raised Fist, and Blackboard expose native runtime mechanics;
+- remaining string/snapshot compatibility is centralized rather than embedded in evaluators;
+- a catalogue-wide contract test proves all emitted contributions across all 46 canonical Bonds carry stable `source_id` and `mechanic` diagnostics;
+- rank reachability and semantic/mechanical suites remained green after migration.
 
-Initial implementation order:
+Phase C deliverable is satisfied: there is one canonical mechanics/state → keyed weighted Bond-evidence path for the frozen catalogue.
 
-1. introduce a canonical contribution/source ledger rather than another evaluator hierarchy;
-2. give `BondContribution` stable source identity and mechanic/state diagnostics without breaking existing consumers;
-3. normalize duplicate evidence at the Bond-development boundary;
-4. migrate representative overlapping engines first: Held/Steel/Held Retrigger, Hand Leveling/Discard, and Destruction/Deck Thinning;
-5. prove one source can support several Bonds while not being counted twice inside the same Bond;
-6. move remaining evaluator families onto the canonical contribution helper;
-7. only then mark Phase C complete.
-
-## Phase D — Implement Bond strategic value
+## Phase D — Implement Bond strategic value — ACTIVE
 
 Implement:
 
 - contribution totals;
 - nonlinear development strength;
 - realization factor;
-- optional diagnostic ranks;
+- optional calibration weight;
+- diagnostic rank passthrough without rank-based value authority;
 - explainable per-Bond strategic value.
 
-Tests should emphasize monotonic/marginal behavior rather than arbitrary exact constants.
+Current Phase D slice pending local validation:
+
+- `games/balatro/bonds/strategic_value.py` defines canonical `bond_strength(points) = points ** 1.35`;
+- existing categorical realization (`DORMANT / PARTIAL / ACTIVE / MATURE`) is converted once to numeric factors `0.0 / 0.35 / 0.75 / 1.0` rather than creating a parallel realization system;
+- locked Bonds are forced to zero strategic value;
+- optional non-negative calibration weights are multiplicative and default to `1.0`;
+- `BondStrategicValue` exposes points, nonlinear strength, categorical realization, numeric realization factor, calibration weight, final value, diagnostic rank, and underlying development;
+- `evaluate_bond_values(state)` composes the existing canonical `evaluate_all_bonds(state)` pipeline with value evaluation;
+- deterministic tests emphasize monotonic development, increasing marginal strength, monotonic realization, rank non-authority, locked zero value, calibration behavior, and explainable diagnostics.
+
+Do not tune factors or exponent from live performance until the architecture is integrated and deterministic proofs are complete.
 
 ## Phase E — Relationships and motifs
 
@@ -360,14 +354,15 @@ After Bond-guided Red/White play is demonstrated:
 
 # Exact next action
 
-**Implement the first Phase C canonical contribution-ledger slice.**
+**Validate the first Phase D strategic-value slice, then continue automatically.**
 
-1. Add stable source identity/diagnostics to contribution evidence without breaking existing evaluator APIs.
-2. Normalize duplicate evidence at one canonical boundary.
-3. Migrate the three representative overlapping engine families onto that helper.
-4. Add deterministic tests for cross-Bond overlap and same-Bond deduplication.
-5. Preserve current/projected-state symmetry by keeping the ledger stateless and derived entirely from the supplied state.
-6. Validate locally before migrating the remaining evaluator families.
+After green:
+
+1. audit value behavior against representative realized Bond states;
+2. keep contribution/rank evaluation unchanged unless a concrete defect appears;
+3. complete Phase D diagnostics/API coverage;
+4. mark Phase D complete when the canonical value layer is proven catalogue-wide;
+5. immediately begin Phase E sparse relationships and exceptional motifs.
 
 # Progress criterion
 
