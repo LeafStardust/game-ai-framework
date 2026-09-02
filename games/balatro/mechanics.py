@@ -210,6 +210,7 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "craftyjoker": frozenset({FLUSH_CHIPS}),
     "smearedjoker": frozenset({SUIT_MERGE_RED_BLACK}),
     "sockandbuskin": frozenset({RETRIGGER_PLAYED_FACE}),
+    "sockandbuskinjoker": frozenset({RETRIGGER_PLAYED_FACE}),
     "hack": frozenset({RETRIGGER_PLAYED_LOW_RANK}),
     "hackjoker": frozenset({RETRIGGER_PLAYED_LOW_RANK}),
     "hangingchad": frozenset({RETRIGGER_FIRST_SCORED}),
