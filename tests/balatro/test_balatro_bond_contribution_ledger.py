@@ -18,17 +18,22 @@ def _component(*mechanics):
     return SimpleNamespace(name="arbitrary-component", mechanics=frozenset(mechanics))
 
 
-def _state(*, jokers=(), deck=()):
-    return SimpleNamespace(
-        jokers=list(jokers),
-        owned_deck=list(deck),
-        deck=list(deck),
-        deck_name="Red Deck",
-    )
-
-
 def _card(*, enhancement="", seal=""):
     return SimpleNamespace(rank="7", suit="Hearts", enhancement=enhancement, seal=seal)
+
+
+def _neutral_deck():
+    return tuple(_card() for _ in range(52))
+
+
+def _state(*, jokers=(), deck=None):
+    resolved_deck = _neutral_deck() if deck is None else tuple(deck)
+    return SimpleNamespace(
+        jokers=list(jokers),
+        owned_deck=list(resolved_deck),
+        deck=list(resolved_deck),
+        deck_name="Red Deck",
+    )
 
 
 def test_same_component_source_is_not_double_counted_within_one_bond():
