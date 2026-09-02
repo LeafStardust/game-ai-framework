@@ -16,18 +16,45 @@ DISCARD_HAND_LEVELING = "discard_hand_leveling"
 PROBABILISTIC_HAND_LEVELING = "probabilistic_hand_leveling"
 HAND_LEVEL_COPY = "hand_level_copy"
 PLANET_PACK_TARGETING = "planet_pack_targeting"
+PLANET_GENERATION = "planet_generation"
+PLANET_SCALING = "planet_scaling"
+PLANET_SHOP_ACCESS = "planet_shop_access"
 GOLD_CARD_GENERATION = "gold_card_generation"
 GOLD_CARD_SCORING_ECONOMY = "gold_card_scoring_economy"
 HELD_FACE_ECONOMY = "held_face_economy"
 ENHANCEMENT_CONSUMPTION = "enhancement_consumption"
 ENHANCEMENT_FEED_ACCESS = "enhancement_feed_access"
+ENHANCEMENT_DENSITY_PAYOFF = "enhancement_density_payoff"
+ENHANCEMENT_GENERATION = "enhancement_generation"
 TAROT_GENERATION = "tarot_generation"
+TAROT_SCALING = "tarot_scaling"
+TAROT_SHOP_ACCESS = "tarot_shop_access"
 ALL_CARDS_FACE = "all_cards_face"
 RETRIGGER_HELD_CARDS = "retrigger_held_cards"
 STEEL_CARD_PAYOFF = "steel_card_payoff"
 CARD_DESTRUCTION = "card_destruction"
+CARD_DESTRUCTION_PAYOFF = "card_destruction_payoff"
 DECK_THIN_PAYOFF = "deck_thin_payoff"
 SPECTRAL_GENERATION = "spectral_generation"
+
+RANK_PAYOFF_KINGS = "rank_payoff:kings"
+RANK_PAYOFF_QUEENS = "rank_payoff:queens"
+RANK_PAYOFF_JACKS = "rank_payoff:jacks"
+
+DISCARD_SCALING = "discard_scaling"
+DISCARD_SUIT_SCALING = "discard_suit_scaling"
+DISCARD_RANK_ECONOMY = "discard_rank_economy"
+DISCARD_FACE_ECONOMY = "discard_face_economy"
+DISCARD_JACK_SCALING = "discard_jack_scaling"
+
+BLIND_SKIP_SCALING = "blind_skip_scaling"
+BLIND_SKIP_TAG_GENERATION = "blind_skip_tag_generation"
+SELL_VALUE_SCORING = "sell_value_scoring"
+SELL_VALUE_GROWTH = "sell_value_growth"
+JOKER_SACRIFICE_SCALING = "joker_sacrifice_scaling"
+JOKER_FODDER_GENERATION = "joker_fodder_generation"
+HAND_REPETITION_XMULT = "hand_repetition_xmult"
+HAND_REPETITION_SCALING = "hand_repetition_scaling"
 
 
 def _normalize_name(value: Any) -> str:
@@ -44,14 +71,18 @@ def _normalize_name(value: Any) -> str:
 # Runtime Joker classes should expose their mechanics directly.
 _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "burntjoker": frozenset({DISCARD_HAND_LEVELING}),
-    "spacejoker": frozenset({PROBABILISTIC_HAND_LEVELING}),
+    "spacejoker": frozenset({PROBABILISTIC_HAND_LEVELING, PLANET_GENERATION}),
     "blueprint": frozenset({HAND_LEVEL_COPY}),
     "blueprintjoker": frozenset({HAND_LEVEL_COPY}),
     "brainstorm": frozenset({HAND_LEVEL_COPY}),
     "brainstormjoker": frozenset({HAND_LEVEL_COPY}),
     "telescope": frozenset({PLANET_PACK_TARGETING}),
-    "midasmask": frozenset({GOLD_CARD_GENERATION, ENHANCEMENT_FEED_ACCESS}),
-    "midasmaskjoker": frozenset({GOLD_CARD_GENERATION, ENHANCEMENT_FEED_ACCESS}),
+    "planetmerchant": frozenset({PLANET_SHOP_ACCESS}),
+    "planettycoon": frozenset({PLANET_SHOP_ACCESS}),
+    "constellation": frozenset({PLANET_SCALING}),
+    "astronomer": frozenset({PLANET_GENERATION}),
+    "midasmask": frozenset({GOLD_CARD_GENERATION, ENHANCEMENT_FEED_ACCESS, ENHANCEMENT_GENERATION}),
+    "midasmaskjoker": frozenset({GOLD_CARD_GENERATION, ENHANCEMENT_FEED_ACCESS, ENHANCEMENT_GENERATION}),
     "goldenticket": frozenset({GOLD_CARD_SCORING_ECONOMY}),
     "goldenticketjoker": frozenset({GOLD_CARD_SCORING_ECONOMY}),
     "reservedparking": frozenset({HELD_FACE_ECONOMY}),
@@ -60,6 +91,14 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "vampirejoker": frozenset({ENHANCEMENT_CONSUMPTION}),
     "cartomancer": frozenset({TAROT_GENERATION}),
     "cartomancerjoker": frozenset({TAROT_GENERATION}),
+    "vagabond": frozenset({TAROT_GENERATION}),
+    "hallucination": frozenset({TAROT_GENERATION}),
+    "fortuneteller": frozenset({TAROT_SCALING}),
+    "8ball": frozenset({TAROT_GENERATION}),
+    "eightball": frozenset({TAROT_GENERATION}),
+    "superposition": frozenset({TAROT_GENERATION}),
+    "tarotmerchant": frozenset({TAROT_SHOP_ACCESS}),
+    "tarottycoon": frozenset({TAROT_SHOP_ACCESS}),
     "pareidolia": frozenset({ALL_CARDS_FACE}),
     "pareidoliajoker": frozenset({ALL_CARDS_FACE}),
     "mime": frozenset({RETRIGGER_HELD_CARDS}),
@@ -71,6 +110,31 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "erosionjoker": frozenset({DECK_THIN_PAYOFF}),
     "sixthsense": frozenset({CARD_DESTRUCTION, SPECTRAL_GENERATION}),
     "sixthsensejoker": frozenset({CARD_DESTRUCTION, SPECTRAL_GENERATION}),
+    "canio": frozenset({CARD_DESTRUCTION_PAYOFF}),
+    "glassjoker": frozenset({CARD_DESTRUCTION_PAYOFF}),
+    "baron": frozenset({RANK_PAYOFF_KINGS}),
+    "baronjoker": frozenset({RANK_PAYOFF_KINGS}),
+    "triboulet": frozenset({RANK_PAYOFF_KINGS, RANK_PAYOFF_QUEENS}),
+    "shootthemoon": frozenset({RANK_PAYOFF_QUEENS}),
+    "shootthemoonjoker": frozenset({RANK_PAYOFF_QUEENS}),
+    "hittheroad": frozenset({RANK_PAYOFF_JACKS, DISCARD_JACK_SCALING}),
+    "yorick": frozenset({DISCARD_SCALING}),
+    "castle": frozenset({DISCARD_SUIT_SCALING}),
+    "mailinrebate": frozenset({DISCARD_RANK_ECONOMY}),
+    "facelessjoker": frozenset({DISCARD_FACE_ECONOMY}),
+    "throwback": frozenset({BLIND_SKIP_SCALING}),
+    "dietcola": frozenset({BLIND_SKIP_TAG_GENERATION}),
+    "swashbuckler": frozenset({SELL_VALUE_SCORING}),
+    "giftcard": frozenset({SELL_VALUE_GROWTH}),
+    "egg": frozenset({SELL_VALUE_GROWTH}),
+    "eggjoker": frozenset({SELL_VALUE_GROWTH}),
+    "ceremonialdagger": frozenset({JOKER_SACRIFICE_SCALING}),
+    "madness": frozenset({JOKER_SACRIFICE_SCALING}),
+    "riffraff": frozenset({JOKER_FODDER_GENERATION}),
+    "cardsharp": frozenset({HAND_REPETITION_XMULT}),
+    "supernova": frozenset({HAND_REPETITION_SCALING}),
+    "driverslicense": frozenset({ENHANCEMENT_DENSITY_PAYOFF}),
+    "marblejoker": frozenset({ENHANCEMENT_GENERATION}),
 }
 
 
