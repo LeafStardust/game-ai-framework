@@ -56,13 +56,11 @@ def test_component_roles_use_selected_bonds_realized_engines_and_conflicts(monke
         conflicts=(("pair", "flush"),),
         synergies=(),
         coherence_score=8.0,
-        pivot_resistance=2.0,
         motif_distance=(),
-        prescriptions=(),
     )
     monkeypatch.setattr(
         roles_module,
-        "evaluate_bond_composition",
+        "evaluate_bond_structure",
         lambda state: (developments, composition),
     )
     state = SimpleNamespace(
