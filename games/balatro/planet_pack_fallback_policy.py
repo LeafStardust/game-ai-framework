@@ -4,14 +4,14 @@ from __future__ import annotations
 
 Opened Celestial packs should almost always yield a Planet: once the pack cost is
 sunk, every offered Planet is a permanent scoring upgrade. Rank the complete Planet
-pool by canonical strategy direction, realized hand development, practical hand
-realisability, and only then generic card value.
+pool by observed hand development, practical hand realisability, and only then
+generic card value.
 
 Acquisition remains a separate resource decision. Celestial packs require actual
-hand-development headroom and obey a diminishing global Planet-investment budget;
-loose Planet acquisition is owned by D4 canonical projected StrategyDelta; loose
-Tarots require stronger transaction value unless immediately usable. Arcana pack
-acquisition is not changed here.
+public hand-development headroom and obey a diminishing global Planet-investment
+budget; loose Planet acquisition is owned by D4 canonical projected StrategyDelta;
+loose Tarots require stronger transaction value unless immediately usable. Arcana
+pack acquisition is not changed here.
 
 An active Planet-use scaler is a stronger mechanical authority than ordinary hand-
 development headroom: every Planet is direct permanent engine progress. Reserve
@@ -24,8 +24,6 @@ from dataclasses import replace
 from itertools import combinations, combinations_with_replacement
 from math import comb, factorial
 
-from games.balatro.bonds.evaluation import evaluate_bond_composition
-from games.balatro.bonds.strategy_semantics import StrategyCommitment
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
 from games.balatro.pack_policy import BalatroPackPolicy, PackActionScore
 from games.balatro.planet_scaler_authority import has_planet_use_scaler
@@ -74,36 +72,6 @@ def _planet_for_action(action):
     return None
 
 
-def _plan_hand_goals(state) -> set[str]:
-    try:
-        _, composition = evaluate_bond_composition(state)
-    except (AttributeError, TypeError, ValueError, RuntimeError):
-        return set()
-    plan = getattr(composition, "strategy_plan", None)
-    if plan is None or getattr(plan, "commitment", StrategyCommitment.EXPLORATORY) < StrategyCommitment.PINNED:
-        return set()
-    aliases = {
-        "high_card": "HIGH_CARD",
-        "pair": "PAIR",
-        "two_pair": "TWO_PAIR",
-        "three_kind": "THREE_OF_A_KIND",
-        "four_kind": "FOUR_OF_A_KIND",
-        "straight": "STRAIGHT",
-        "flush": "FLUSH",
-        "full_house": "FULL_HOUSE",
-        "straight_flush": "STRAIGHT_FLUSH",
-        "five_kind": "FIVE_OF_A_KIND",
-        "flush_house": "FLUSH_HOUSE",
-        "flush_five": "FLUSH_FIVE",
-    }
-    result: set[str] = set()
-    for goal in tuple(getattr(plan, "bond_goals", ()) or ()):
-        hand = aliases.get(str(getattr(goal, "bond_id", "")))
-        if hand:
-            result.add(hand)
-    return result
-
-
 def _hand_level(state, hand: str) -> int:
     levels = getattr(state, "hand_levels", {}) or {}
     return int(levels.get(hand, levels.get(hand.replace("_", " "), 1)) or 1)
@@ -134,16 +102,14 @@ def _observed_hand_goals(state) -> set[str]:
 
 
 def _hand_direction(state, hand: str | None = None) -> bool:
-    plan_hands = _plan_hand_goals(state)
     observed_hands = _observed_hand_goals(state)
     if hand is None:
-        return bool(plan_hands or observed_hands)
-    return hand in plan_hands or hand in observed_hands
+        return bool(observed_hands)
+    return hand in observed_hands
 
 
 def _planet_priority(state, planet, original_total: float) -> tuple[float, ...]:
     hand = _hand_token(planet.hand_type)
-    plan_owned = 1.0 if hand in _plan_hand_goals(state) else 0.0
     observed_owned = 1.0 if hand in _observed_hand_goals(state) else 0.0
     plays = float(_hand_plays(state, hand))
     sustained_plays = plays if plays >= 3.0 else 0.0
@@ -154,7 +120,6 @@ def _planet_priority(state, planet, original_total: float) -> tuple[float, ...]:
         getattr(planet, "mult", 0) or 0
     )
     return (
-        plan_owned,
         observed_owned,
         sustained_plays,
         supported_level,
@@ -178,11 +143,9 @@ def _celestial_headroom(state) -> tuple[int, tuple[str, ...]]:
             "active Planet-use scaler supplies direct Celestial headroom independent of poker-hand specialization",
         )
 
-    plan_hands = _plan_hand_goals(state)
-    observed_hands = _observed_hand_goals(state)
-    relevant_hands = plan_hands | observed_hands
+    relevant_hands = _observed_hand_goals(state)
     if not relevant_hands:
-        return 0, ("no pinned hand goal or strong realized hand specialization",)
+        return 0, ("no strong realized hand specialization",)
 
     raw_headroom = 0
     relevant_plays = 0
@@ -191,21 +154,14 @@ def _celestial_headroom(state) -> tuple[int, tuple[str, ...]]:
         plays = max(0, _hand_plays(state, hand))
         level = max(1, _hand_level(state, hand))
         relevant_plays += plays
-        target_level = 1 + min(3, plays // 4) + (1 if hand in plan_hands else 0)
-        target_level = min(5, target_level)
+        target_level = min(5, 1 + min(3, plays // 4))
         hand_headroom = max(0, target_level - level)
         raw_headroom += hand_headroom
         details.append(
             f"{hand}:plays={plays},level={level},target={target_level},headroom={hand_headroom}"
         )
 
-    global_budget = max(
-        1,
-        min(
-            5,
-            1 + relevant_plays // 6 + (1 if plan_hands else 0),
-        ),
-    )
+    global_budget = max(1, min(5, 1 + relevant_plays // 6))
     invested = _total_planet_investment(state)
     budget_remaining = max(0, global_budget - invested)
     effective_headroom = min(raw_headroom, budget_remaining)
@@ -428,7 +384,7 @@ def _celestial_visible_hit_probability(
     state,
     offer_count: int,
 ) -> tuple[float, float, tuple[str, ...]]:
-    """Return the public chance of seeing a directionally useful Planet."""
+    """Return the public chance of seeing an observed-direction Planet."""
     pool, showman, excluded = _celestial_planet_pool(state)
     pool_size = len(pool)
     if pool_size <= 0 or offer_count <= 0:
@@ -438,7 +394,7 @@ def _celestial_visible_hit_probability(
         useful_names = set(pool)
         direction = "Planet-use scaler"
     else:
-        hands = _plan_hand_goals(state) | _observed_hand_goals(state)
+        hands = _observed_hand_goals(state)
         useful_names = {
             name
             for name in pool
@@ -504,7 +460,7 @@ def install_planet_pack_fallback_policy() -> None:
             (
                 *best_score.notes,
                 "Planet pack full-pool selection authority",
-                "priority=strategy > observed specialization > sustained plays > supported level > practical fallback > incidental plays",
+                "priority=observed specialization > sustained plays > supported level > practical fallback > incidental plays",
                 f"selected Planet hand={best_hand}",
                 "opened Celestial pack cost is sunk and this Planet is mechanically relevant; eligible permanent upgrade beats Skip",
             ),
