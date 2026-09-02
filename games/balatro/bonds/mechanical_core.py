@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank, BondRealization
+from games.balatro.bonds.contributions import (
+    component_contribution,
+    finalize_development,
+    state_contribution,
+)
+from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank
 from games.balatro.deck_rules import starting_deck_size_for_name
 from games.balatro.mechanics import (
     CARD_DESTRUCTION,
@@ -12,13 +17,10 @@ from games.balatro.mechanics import (
     SPECTRAL_GENERATION,
     STEEL_CARD_PAYOFF,
     component_has_mechanic,
-    components_with_mechanic,
 )
 
 
-# Keep the audited authority geometry used by the existing Bond system while the
-# semantic layer migrates. These are the post-audit reachable capstones from
-# authority_calibration.py, not the obsolete pre-audit catalogue defaults.
+# Post-audit reachable capstones retained from the validated Phase B geometry.
 HELD_RETRIGGER_THRESHOLDS = {
     BondRank.R1: 4.0,
     BondRank.R2: 8.0,
@@ -58,34 +60,6 @@ def _band(value: int, bands: tuple[tuple[int, float], ...]) -> float:
     return score
 
 
-def _rank(total: float, thresholds: dict[BondRank, float]) -> tuple[BondRank, float | None]:
-    rank = BondRank.R0
-    for candidate in (BondRank.R1, BondRank.R2, BondRank.R3, BondRank.R4, BondRank.R5):
-        threshold = thresholds[candidate]
-        if total < threshold:
-            return rank, threshold
-        rank = candidate
-    return BondRank.R5, None
-
-
-def _finish(
-    bond_id: str,
-    parts: list[BondContribution],
-    thresholds: dict[BondRank, float],
-) -> BondDevelopment:
-    total = sum(part.value for part in parts)
-    rank, next_threshold = _rank(total, thresholds)
-    return BondDevelopment(
-        bond_id=bond_id,
-        unlocked=True,
-        contribution=total,
-        rank=rank,
-        next_rank_threshold=next_threshold,
-        contributions=tuple(parts),
-        realization=BondRealization.DORMANT if rank == BondRank.R0 else BondRealization.PARTIAL,
-    )
-
-
 def _source_label(component: Any, fallback: str) -> str:
     raw = getattr(component, "name", None)
     if raw:
@@ -95,37 +69,66 @@ def _source_label(component: Any, fallback: str) -> str:
 
 
 def evaluate_held_retrigger_bond(state: Any) -> BondDevelopment:
-    """Evaluate held-card retrigger infrastructure from public mechanics."""
+    """Evaluate held-card retrigger infrastructure through the Phase C ledger."""
     jokers = list(getattr(state, "jokers", ()) or ())
     parts: list[BondContribution] = []
+    retrigger_indexes: list[int] = []
 
-    retriggers = components_with_mechanic(jokers, RETRIGGER_HELD_CARDS)
-    for component in retriggers:
-        parts.append(BondContribution(_source_label(component, "Held retrigger source"), 6.0))
+    for index, component in enumerate(jokers):
+        if component_has_mechanic(component, RETRIGGER_HELD_CARDS):
+            retrigger_indexes.append(index)
+            parts.append(component_contribution(
+                component,
+                collection="jokers",
+                index=index,
+                label=_source_label(component, "Held retrigger source"),
+                value=6.0,
+                mechanic=RETRIGGER_HELD_CARDS,
+            ))
 
-    deck = _owned_deck(state)
     red = sum(
-        1 for card in deck
+        1 for card in _owned_deck(state)
         if str(getattr(card, "seal", "") or "").strip().lower() == "red"
     )
     red_score = _band(red, ((1, 1.0), (2, 3.0), (4, 5.0), (6, 7.0)))
     if red_score:
-        parts.append(BondContribution("Red Seal retrigger infrastructure", red_score))
+        parts.append(state_contribution(
+            "deck:red_seal_density",
+            "Red Seal retrigger infrastructure",
+            red_score,
+            mechanic="red_seal_density",
+        ))
 
-    if retriggers:
-        for copier in components_with_mechanic(jokers, HAND_LEVEL_COPY):
-            parts.append(BondContribution(_source_label(copier, "Copy engine"), 4.0))
+    if retrigger_indexes:
+        for index, copier in enumerate(jokers):
+            if component_has_mechanic(copier, HAND_LEVEL_COPY):
+                parts.append(component_contribution(
+                    copier,
+                    collection="jokers",
+                    index=index,
+                    label=_source_label(copier, "Copy engine"),
+                    value=4.0,
+                    mechanic=HAND_LEVEL_COPY,
+                ))
 
-    return _finish("held_retrigger", parts, HELD_RETRIGGER_THRESHOLDS)
+    return finalize_development("held_retrigger", parts, HELD_RETRIGGER_THRESHOLDS)
 
 
 def evaluate_steel_bond(state: Any) -> BondDevelopment:
-    """Evaluate Steel infrastructure without identifying Steel Joker by name."""
+    """Evaluate Steel infrastructure through the Phase C ledger."""
     jokers = list(getattr(state, "jokers", ()) or ())
     parts: list[BondContribution] = []
 
-    for component in components_with_mechanic(jokers, STEEL_CARD_PAYOFF):
-        parts.append(BondContribution(_source_label(component, "Steel payoff"), 5.0))
+    for index, component in enumerate(jokers):
+        if component_has_mechanic(component, STEEL_CARD_PAYOFF):
+            parts.append(component_contribution(
+                component,
+                collection="jokers",
+                index=index,
+                label=_source_label(component, "Steel payoff"),
+                value=5.0,
+                mechanic=STEEL_CARD_PAYOFF,
+            ))
 
     steel_cards = [
         card for card in _owned_deck(state)
@@ -133,7 +136,12 @@ def evaluate_steel_bond(state: Any) -> BondDevelopment:
     ]
     density = _band(len(steel_cards), ((1, 1.0), (2, 3.0), (4, 6.0), (6, 9.0), (10, 12.0)))
     if density:
-        parts.append(BondContribution("Steel card density", density))
+        parts.append(state_contribution(
+            "deck:steel_density",
+            "Steel card density",
+            density,
+            mechanic="steel_card_density",
+        ))
 
     red_steel = sum(
         1 for card in steel_cards
@@ -141,30 +149,51 @@ def evaluate_steel_bond(state: Any) -> BondDevelopment:
     )
     overlap = _band(red_steel, ((1, 1.0), (2, 2.0), (4, 3.0)))
     if overlap:
-        parts.append(BondContribution("Red-Seal Steel overlap", overlap))
+        parts.append(state_contribution(
+            "deck:red_steel_density",
+            "Red-Seal Steel overlap",
+            overlap,
+            mechanic="red_seal_steel_density",
+        ))
 
-    return _finish("steel", parts, STEEL_THRESHOLDS)
+    return finalize_development("steel", parts, STEEL_THRESHOLDS)
 
 
 def evaluate_deck_thinning_bond(state: Any) -> BondDevelopment:
-    """Evaluate permanent removal infrastructure and reduced deck size."""
+    """Evaluate removal infrastructure with same-source deduplication."""
     jokers = list(getattr(state, "jokers", ()) or ())
     parts: list[BondContribution] = []
 
-    for component in jokers:
+    for index, component in enumerate(jokers):
         if component_has_mechanic(component, DECK_THIN_PAYOFF):
-            parts.append(BondContribution(_source_label(component, "Deck-thin payoff"), 7.0))
+            parts.append(component_contribution(
+                component,
+                collection="jokers",
+                index=index,
+                label=_source_label(component, "Deck-thin payoff"),
+                value=7.0,
+                mechanic=DECK_THIN_PAYOFF,
+            ))
         if component_has_mechanic(component, CARD_DESTRUCTION):
             value = 4.0 if component_has_mechanic(component, SPECTRAL_GENERATION) else 5.0
-            parts.append(BondContribution(_source_label(component, "Card-destruction engine"), value))
+            parts.append(component_contribution(
+                component,
+                collection="jokers",
+                index=index,
+                label=_source_label(component, "Card-destruction engine"),
+                value=value,
+                mechanic=CARD_DESTRUCTION,
+            ))
 
-    deck = _owned_deck(state)
-    starting_size = starting_deck_size_for_name(getattr(state, "deck_name", None))
-    if starting_size is None:
-        starting_size = 52
-    reduction = max(0, int(starting_size) - len(deck))
+    starting_size = starting_deck_size_for_name(getattr(state, "deck_name", None)) or 52
+    reduction = max(0, int(starting_size) - len(_owned_deck(state)))
     score = _band(reduction, ((4, 1.0), (8, 3.0), (12, 5.0), (18, 7.0)))
     if score:
-        parts.append(BondContribution("Permanent deck reduction", score))
+        parts.append(state_contribution(
+            "deck:permanent_reduction",
+            "Permanent deck reduction",
+            score,
+            mechanic="permanent_deck_reduction",
+        ))
 
-    return _finish("deck_thinning", parts, DECK_THINNING_THRESHOLDS)
+    return finalize_development("deck_thinning", parts, DECK_THINNING_THRESHOLDS)
