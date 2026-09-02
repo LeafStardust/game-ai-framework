@@ -169,24 +169,32 @@ Phase K exit condition is satisfied: no rejected commitment/prescription archite
 
 Run authoritative Red Deck / White Stake gameplay only after deterministic cleanup is green. It is now green.
 
-### L1 — Fresh production baseline — NEXT
+### L1 — Fresh production baseline — COMPLETE
 
-Run a fresh three-attempt Red Deck / White Stake baseline with the production supervisor.
+Fresh three-attempt production batch: `balatro-20260902T200815Z-dba5db6f`.
 
-Inspect each attempt for:
+Outcomes:
 
-- completion vs runtime stall;
-- SHOP decision latency, especially first decision after entering SHOP and post-transaction checkpoints;
-- coherent build emergence rather than isolated high-value purchases;
-- obvious bait rejection;
-- preservation of already-realized mechanical engines;
-- justified pivots when a materially stronger replacement appears;
-- D1 tactical exploitation of the constructed engine;
-- any legality, boss, affordability, survival, or hidden-information violation.
+- attempt 001: lost Ante 7 boss The House, 49,834 / 70,000;
+- attempt 002: lost Ante 3 boss The Needle, 770 / 2,000;
+- attempt 003: lost Ante 2 boss The Club, 1,404 / 1,600.
 
-Use run/session telemetry as evidence. Do not tune from win/loss alone.
+Runtime findings:
 
-### L2 — Classify live failures
+- no permanent SHOP stall;
+- no SHOP decision exceeded 5 seconds in this batch;
+- maximum observed SHOP decision latency was approximately 3.829 seconds;
+- maximum observed D1 decision latency was approximately 2.519 seconds;
+- D1's previous 20–25 second `nodes=0` failure is absent after bounded root admission;
+- D14 timing still contains non-trivial unclassified residual around standalone Joker evaluation in some states, but it is no longer the dominant interactive blocker in this batch.
+
+Decision-quality finding:
+
+- attempt 003 bought Baron for $8 in Ante 1 from an untouched 52-card deck and no established held-King engine;
+- canonical evaluation incorrectly treated the ordinary four starting Kings as `KING_INFRASTRUCTURE`, making `baron_mime_steel` POTENTIAL from Baron + baseline deck alone and inflating StrategyDelta;
+- production fix: exceptional Baron motif King infrastructure now requires increased King density (at least five Kings), while the ordinary Kings and held-card Bonds remain available to value Baron normally.
+
+### L2 — Classify live failures — ACTIVE
 
 For every suspicious live decision, classify it before changing numbers:
 
@@ -195,9 +203,15 @@ For every suspicious live decision, classify it before changing numbers:
 3. **integration/authority bug** — repair ownership/order instead of adding a rescue wrapper;
 4. **calibration issue** — only then tune contribution weights, realization, relationships, motif payoff, transition inertia, or integration weights.
 
+Current classified work:
+
+- Baron + untouched four-King deck false exceptional-motif potential: **mechanics/model bug — FIXED, validation pending**;
+- remaining attempt 001/002 build quality and terminal boss decisions: **inspection pending**;
+- D14 standalone-Joker timing residual: **runtime attribution/possible optimization issue, non-blocking but still to classify**.
+
 ### L3 — Numerical tuning gate
 
-Do not start Optuna/numerical calibration until the fresh baseline completes SHOP decisions without semantic/runtime stalls or excessive interactive latency.
+Do not start Optuna/numerical calibration until the fresh baseline completes SHOP decisions without semantic/runtime stalls or excessive interactive latency and the identified live semantic defects are fixed.
 
 When tuning begins, preserve the canonical architecture and compare against the production baseline using authoritative unseeded live runs with run provenance.
 
@@ -207,13 +221,12 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 
 # Exact next action
 
-**Execute Phase L1: fresh three-attempt Red Deck / White Stake production baseline.**
+**Validate the Baron motif semantic fix, then continue Phase L2 classification from the same three-run batch.**
 
-1. Run the production supervisor for three attempts.
-2. Preserve the generated run/session JSONL and diagnostics.
-3. Review runtime latency and every material acquisition/replacement/pivot decision.
-4. Fix semantic/runtime/integration defects before touching numerical tuning.
-5. Only after the live path is stable, proceed to calibration.
+1. Run the focused Baron motif regression plus the relevant Bond/BuildValue/Joker acquisition regressions.
+2. If green, inspect attempt 001 and attempt 002 material purchases/replacements and terminal boss choices for additional semantic/integration defects.
+3. Keep D14 residual timing under observation; optimize only if the expensive owner is identified without changing decision semantics.
+4. Do not begin numerical calibration until live semantic defects are exhausted.
 
 # Progress criterion
 
