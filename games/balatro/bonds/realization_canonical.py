@@ -5,11 +5,18 @@ from typing import Any
 
 from games.balatro.bonds.mechanical_roles import enrich_development
 from games.balatro.bonds.model import BondDevelopment, BondRank, BondRealization
-
-
-def _name(value: Any) -> str:
-    raw = value if isinstance(value, str) else getattr(value, "name", None) or value.__class__.__name__
-    return "".join(ch for ch in str(raw).lower() if ch.isalnum())
+from games.balatro.mechanics import (
+    ALL_CARDS_FACE,
+    DISCARD_HAND_LEVELING,
+    ENHANCEMENT_CONSUMPTION,
+    ENHANCEMENT_FEED_ACCESS,
+    GOLD_CARD_GENERATION,
+    GOLD_CARD_SCORING_ECONOMY,
+    HELD_FACE_ECONOMY,
+    PLANET_PACK_TARGETING,
+    PROBABILISTIC_HAND_LEVELING,
+    components_have_mechanic,
+)
 
 
 def _jokers(state: Any) -> list[Any]:
@@ -21,11 +28,6 @@ def _cards(state: Any, *names: str) -> list[Any]:
         if hasattr(state, name):
             return list(getattr(state, name, None) or ())
     return []
-
-
-def _has(values: list[Any], *tokens: str) -> bool:
-    names = {_name(value) for value in values}
-    return any(any(token in name for name in names) for token in tokens)
 
 
 def _enhancement(card: Any) -> str:
@@ -49,13 +51,16 @@ def _finish(dev: BondDevelopment, *, active: bool, strong: bool = False) -> Bond
 
 
 def realize_hand_leveling(dev: BondDevelopment, state: Any) -> BondDevelopment:
-    """Realize persistent hand-level development, not only Burnt's trigger window."""
+    """Realize persistent hand-level development from public mechanics."""
     jokers = _jokers(state)
     vouchers = list(getattr(state, "vouchers", ()) or ())
     deck = _cards(state, "owned_deck", "deck")
 
-    engine = _has(jokers, "burntjoker", "spacejoker")
-    planet_access = _has(vouchers, "telescope")
+    engine = (
+        components_have_mechanic(jokers, DISCARD_HAND_LEVELING)
+        or components_have_mechanic(jokers, PROBABILISTIC_HAND_LEVELING)
+    )
+    planet_access = components_have_mechanic(vouchers, PLANET_PACK_TARGETING)
     blue_seals = sum(
         1 for card in deck
         if str(getattr(card, "seal", "") or "").strip().lower() == "blue"
@@ -86,8 +91,11 @@ def realize_gold_cards(dev: BondDevelopment, state: Any) -> BondDevelopment:
     gold_held = sum(1 for card in hand if _enhancement(card) == "gold")
     gold_played = sum(1 for card in played if _enhancement(card) == "gold")
 
-    generator = _has(jokers, "midasmask")
-    payoff = _has(jokers, "goldenticket", "reservedparking")
+    generator = components_have_mechanic(jokers, GOLD_CARD_GENERATION)
+    payoff = (
+        components_have_mechanic(jokers, GOLD_CARD_SCORING_ECONOMY)
+        or components_have_mechanic(jokers, HELD_FACE_ECONOMY)
+    )
     active = gold_held > 0 or gold_owned >= 2 or generator or (payoff and (gold_owned > 0 or gold_played > 0))
     strong = (gold_owned >= 5 and payoff) or (generator and payoff) or gold_held >= 3
     return _finish(dev, active=active, strong=strong)
@@ -99,17 +107,16 @@ def realize_enhancement_consumption(dev: BondDevelopment, state: Any) -> BondDev
     deck = _cards(state, "owned_deck", "deck")
     hand = _cards(state, "hand", "current_hand", "cards_in_hand")
 
-    consumer = _has(jokers, "vampire")
-    has_midas = _has(jokers, "midasmask")
-    pareidolia = _has(jokers, "pareidolia")
-    face_feed = pareidolia or any(_is_face(card) for card in (deck or hand))
-    renewable_feed = has_midas and face_feed
+    consumer = components_have_mechanic(jokers, ENHANCEMENT_CONSUMPTION)
+    has_feed_access = components_have_mechanic(jokers, ENHANCEMENT_FEED_ACCESS)
+    all_cards_face = components_have_mechanic(jokers, ALL_CARDS_FACE)
+    face_feed = all_cards_face or any(_is_face(card) for card in (deck or hand))
+    renewable_feed = has_feed_access and face_feed
     feedstock = sum(1 for card in (deck or hand) if _enhancement(card))
     consumed = int(getattr(state, "vampire_enhancements_consumed", 0) or 0)
 
-    # Feedstock before Vampire is useful evidence for acquisition but only PARTIAL;
-    # an ACTIVE consumption engine requires a consumer plus usable feed. Midas is
-    # only renewable feed when the run actually has a face-card route (or Pareidolia).
+    # Feedstock before a consumer is useful acquisition evidence but only PARTIAL.
+    # A face-dependent feed generator is renewable only when a face route exists.
     active = consumer and (feedstock > 0 or renewable_feed or consumed > 0)
     strong = consumer and ((renewable_feed and feedstock > 0) or feedstock >= 6 or consumed >= 15)
     return _finish(dev, active=active, strong=strong)
