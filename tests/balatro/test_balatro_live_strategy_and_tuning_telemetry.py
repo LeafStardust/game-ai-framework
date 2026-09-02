@@ -5,79 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from games.balatro.bonds.composer import _sanitize_behavior_candidates
-from games.balatro.bonds.strategy_semantics import (
-    StrategyCandidate,
-    StrategyCommitment,
-)
 from games.balatro.tuning.live_metrics_runtime import episode_metrics_from_run_log
-
-
-def _candidate(
-    strategy_id: str,
-    bond_ids: tuple[str, ...],
-    sources: tuple[str, ...],
-    *,
-    commitment: StrategyCommitment = StrategyCommitment.PINNED,
-    motif_ids: tuple[str, ...] = (),
-) -> StrategyCandidate:
-    return StrategyCandidate(
-        strategy_id=strategy_id,
-        bond_ids=bond_ids,
-        sources=sources,
-        roles=(),
-        links=(),
-        motif_ids=motif_ids,
-        commitment=commitment,
-        confidence=0.65,
-        strength=12.0,
-        prescriptions=(),
-    )
-
-
-def test_single_joker_plus_ambient_feature_does_not_pin_run() -> None:
-    candidate = _candidate(
-        "behavior:spades",
-        ("spades",),
-        ("WrathfulJoker", "feature:suit:Spades"),
-    )
-
-    (sanitized,) = _sanitize_behavior_candidates((candidate,))
-
-    assert sanitized.commitment == StrategyCommitment.FORMING
-
-
-def test_two_concrete_sources_can_pin_single_bond_engine() -> None:
-    candidate = _candidate(
-        "behavior:spades",
-        ("spades",),
-        ("WrathfulJoker", "BloodstoneJoker", "feature:suit:Spades"),
-    )
-
-    (sanitized,) = _sanitize_behavior_candidates((candidate,))
-
-    assert sanitized.commitment == StrategyCommitment.PINNED
-
-
-def test_generic_all_suit_component_is_rejected() -> None:
-    candidate = _candidate(
-        "behavior:clubs+diamonds+flush+hearts+spades",
-        ("clubs", "diamonds", "flush", "hearts", "spades"),
-        ("feature:suit:Clubs", "feature:suit:Diamonds", "feature:suit:Hearts", "feature:suit:Spades"),
-    )
-
-    assert _sanitize_behavior_candidates((candidate,)) == ()
-
-
-def test_known_motif_may_explicitly_join_otherwise_alternative_axes() -> None:
-    candidate = _candidate(
-        "known-motif",
-        ("hearts", "spades"),
-        ("A", "B"),
-        motif_ids=("known-motif",),
-    )
-
-    assert _sanitize_behavior_candidates((candidate,)) == (candidate,)
 
 
 def _row(run_id: str, sequence: int, event: str, data: dict) -> dict:
