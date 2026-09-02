@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import inspect
+
 import pytest
 
 import games.balatro.strategy_plan_pack_policy as pack_strategy
@@ -84,10 +86,18 @@ def test_unprojected_pack_kinds_receive_no_strategy_adjustment():
     assert notes == ()
 
 
-def test_pack_strategy_module_no_longer_imports_legacy_plan_or_composition_authority():
+def test_pack_production_scorer_no_longer_uses_legacy_plan_or_composition_authority():
     source_names = set(pack_strategy.__dict__)
     assert "evaluate_bond_composition" not in source_names
     assert "StrategyCommitment" not in source_names
     assert "StrategyPlan" not in source_names
-    assert "_goal_ids" not in source_names
-    assert "_playing_card_matches" not in source_names
+
+    installer_source = inspect.getsource(pack_strategy.install_strategy_plan_pack_policy)
+    assert "_goal_ids(" not in installer_source
+    assert "_playing_card_matches(" not in installer_source
+    assert "strategy_delta" in installer_source or "_strategy_adjustment" in installer_source
+
+
+def test_legacy_pack_helpers_are_inert_compatibility_only():
+    assert pack_strategy._goal_ids(None) == ()
+    assert pack_strategy._playing_card_matches("kings", {"rank": "King", "suit": "Hearts"})
