@@ -59,7 +59,8 @@ def bond_strategy_diagnostics(state: Any) -> dict[str, Any]:
 
     The function name is retained as a logging-schema compatibility surface. Its
     payload is structural only: no named strategy identity, commitment state,
-    StrategyPlan or action prescription is reconstructed for diagnostics.
+    StrategyPlan, generic pivot resistance or action prescription is reconstructed
+    for diagnostics.
     """
     developments, composition = evaluate_bond_structure(state)
     by_id = {development.bond_id: development for development in developments}
@@ -91,7 +92,6 @@ def bond_strategy_diagnostics(state: Any) -> dict[str, Any]:
             "conflicts": [list(pair) for pair in composition.conflicts],
             "synergies": [list(pair) for pair in composition.synergies],
             "coherence_score": float(composition.coherence_score),
-            "pivot_resistance": float(composition.pivot_resistance),
             "motif_distance": [list(item) for item in composition.motif_distance],
         },
     }
