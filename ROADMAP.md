@@ -176,15 +176,12 @@ Validated green.
 - No individual Bond IDs or StrategyPlan goals are wired into the target owner.
 - Focused deterministic target/consumable regressions are green.
 
-### H4 — Planet / hand-development owners — ACTIVE
+### H4 — Planet / hand-development owners — COMPLETE
 
-Current continuation checkpoint:
+Validated green.
 
-- Two distinct production owners have been identified:
-  1. shop acquisition through `ConsumableAcquisitionPolicy`;
-  2. held-Planet use timing.
-- The Planet path has been wired toward canonical projected `StrategyDelta` at both owners; **the migration boundary and regression proof still need to be finished/verified before H4 can be marked complete.**
-- Shop acquisition keeps its existing B4 consumable/mechanical value and adds a separate conservative strategic term:
+- `games/balatro/planet_strategy_delta.py` projects the exact real Planet transition on a deep-copied public state through the Planet's own `can_use/use` semantics; held projection also consumes the copied held Planet without mutating authoritative state.
+- Shop acquisition remains owned by `ConsumableAcquisitionPolicy` and combines:
 
 ```text
 existing B4 Planet value
@@ -192,22 +189,14 @@ existing B4 Planet value
 + existing transaction/economy logic
 ```
 
-- Do not collapse mechanical hand-level value, transaction economics, and coherent-build value into one opaque score.
-- Held-Planet timing already has tactical authority for clear probability, pace recovery, final-hand urgency, slot pressure, duplication, and Planet scalers. StrategyDelta may provide diagnostics/ranking context there, but **must not flip the canonical HOLD/USE timing decision.**
-- The shop path still has/previously had a legacy Bond-rank relevance veto. Remove that veto rather than retaining it as parallel strategic authority once canonical StrategyDelta is proven.
-- The legacy Planet relevance wrapper is installed globally through `games/balatro/__init__.py`; remove its production import/install when the migrated shop owner no longer depends on it.
-- Preserve legality, affordability, survival, scoring pace, boss logic, and tactical Planet-use timing as higher authority than strategic guidance.
+- Held-Planet timing remains owned by `LivePlanetPolicy`; canonical StrategyDelta is exposed for strategic diagnostics/ranking but cannot override tactical HOLD/USE authority for clear probability, pace recovery, final-hand urgency, slot pressure, duplication, or Planet scalers.
+- The historical Bond-rank Planet relevance wrapper is retired to an inert compatibility shim and is no longer installed by `games/balatro/__init__.py`.
+- The separate loose-Planet veto in `planet_pack_fallback_policy.py` was also removed from D4 so the migrated canonical shop owner is not post-processed back to HOLD by legacy hand-direction thresholds. Celestial pack/D8 behavior and the unrelated loose-Tarot guard remain intact.
+- Deterministic regressions prove exact projection, the `0.10 × StrategyDelta` shop adjustment, tactical authority separation, and absence of the old off-build Planet veto.
+- The Held Cards policy label uses `clearly_superior_composition`.
+- Focused H4 validation is green.
 
-H4 completion gate:
-1. verify the shop owner projects the exact real Planet hand-level result and consumes canonical `StrategyDelta`;
-2. verify the held-use owner exposes/uses strategic value only without overriding HOLD/USE tactical authority;
-3. remove the legacy Bond-rank Planet relevance veto from production scoring;
-4. remove its global wrapper import/install from `games/balatro/__init__.py` once no required production user remains;
-5. add deterministic regressions proving exact projection, strategic adjustment, and authority separation;
-6. fix the lingering Held Cards policy label `candidly_superior_composition → clearly_superior_composition` if it has not already been committed;
-7. run focused local validation and mark H4 COMPLETE only after green.
-
-After H4 is green, inspect the remaining persistent construction/development consumers and migrate the narrowest next owner using the same shared `StrategyDelta` path. Do not add Bond-specific controllers.
+After H4, inspect the remaining persistent construction/development consumers and migrate the narrowest next owner using the same shared `StrategyDelta` path. Do not add Bond-specific controllers.
 
 ## Phase I — Verify tactical exploitation
 
@@ -236,15 +225,14 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 
 # Exact next action
 
-**Finish the Phase H4 Planet / hand-development migration boundary and deterministic proof.**
+**Inspect the remaining persistent construction/development consumers and migrate the narrowest next owner.**
 
-1. Fresh-fetch the two Planet owners plus `games/balatro/__init__.py` and verify the current branch state before editing.
-2. Finish/verify exact Planet projected-state integration at shop acquisition and held-use owners.
-3. Remove the obsolete Bond-rank Planet relevance veto and its global production installation once dependency search proves it unnecessary.
-4. Add focused deterministic tests proving exact hand-level projection and that StrategyDelta cannot override tactical HOLD/USE authority.
-5. Fix the Held Cards `candidly → clearly` policy-label typo if still present.
-6. Ask the user to run the focused local H4 regression command.
-7. On green, mark H4 COMPLETE and continue immediately to the next remaining persistent construction/development owner.
+1. Fresh-fetch current production registration and remaining modules that still consume `StrategyPlan`, pinned/forming strategy state, Bond-rank relevance, or prescription-derived resource demand.
+2. Identify the narrowest remaining persistent-state acquisition/development owner that still depends on rejected strategy-controller semantics.
+3. Replace only that owner's legacy strategic adjustment with exact projected-state `StrategyDelta`; preserve its mechanics, legality, affordability, survival, and domain-specific tactical authority.
+4. Add focused deterministic replacement regressions and remove the superseded production wrapper/path for that owner.
+5. Ask the user to run the focused local validation command.
+6. Repeat until no remaining persistent construction/development owner depends on the rejected architecture, then advance to Phase I tactical exploitation verification.
 
 # Progress criterion
 
