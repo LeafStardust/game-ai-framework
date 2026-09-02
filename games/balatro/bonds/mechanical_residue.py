@@ -7,53 +7,22 @@ from typing import Any
 from games.balatro.bonds import catalogue_batch_one as b1
 from games.balatro.bonds import catalogue_batch_two as b2
 from games.balatro.bonds import catalogue_batch_three as b3
-from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank, BondRealization
+from games.balatro.bonds.contributions import component_contribution, finalize_development, state_contribution
+from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank
 from games.balatro.mechanics import (
-    ACE_CHIPS_MULT,
-    ADD_STONE_CARD,
-    ALL_CARDS_FACE,
-    CASH_CHIPS,
-    CASH_MULT,
-    DISCARDS_TO_HANDS,
-    DUPLICATE_SELECTED_CARD,
-    FACE_CASH,
-    FACE_CHIPS,
-    FACE_MULT,
-    FACE_XMULT_FIRST,
-    GLASS_PAYOFF,
-    HELD_FACE_ECONOMY,
-    INTEREST_AMPLIFICATION,
-    LOW_RANK_EVEN_MULT,
-    LOW_RANK_FIBONACCI_MULT,
-    LOW_RANK_FOUR_TEN,
-    LOW_RANK_RETRIGGER,
-    LOW_RANK_TWO_SCALING,
-    LUCKY_TRIGGER_SCALING,
-    NO_DISCARD_ECONOMY,
-    NO_DISCARD_SCALING,
-    NO_DISCARD_XMULT,
-    PASSIVE_CASH,
-    PROBABILITY_DOUBLING,
-    RANK_NINE_CASH,
-    RETRIGGER_PLAYED_FACE,
-    ROUND_CASH_GROWTH,
-    STONE_PAYOFF,
-    SUIT_CLUBS_MULT,
-    SUIT_DIAMONDS_CASH,
-    SUIT_DIAMONDS_MULT,
-    SUIT_HEARTS_MULT,
-    SUIT_HEARTS_XMULT,
-    SUIT_SPADES_CHIPS,
-    SUIT_SPADES_MULT,
-    UNIQUE_PLANET_CASH,
-    UNUSED_DISCARD_CHIPS,
+    ACE_CHIPS_MULT, ADD_STONE_CARD, ALL_CARDS_FACE, CASH_CHIPS, CASH_MULT,
+    DISCARDS_TO_HANDS, DUPLICATE_SELECTED_CARD, FACE_CASH, FACE_CHIPS, FACE_MULT,
+    FACE_XMULT_FIRST, GLASS_PAYOFF, HELD_FACE_ECONOMY, INTEREST_AMPLIFICATION,
+    LOW_RANK_EVEN_MULT, LOW_RANK_FIBONACCI_MULT, LOW_RANK_FOUR_TEN,
+    LOW_RANK_RETRIGGER, LOW_RANK_TWO_SCALING, LUCKY_TRIGGER_SCALING,
+    NO_DISCARD_ECONOMY, NO_DISCARD_SCALING, NO_DISCARD_XMULT, PASSIVE_CASH,
+    PROBABILITY_DOUBLING, RANK_NINE_CASH, RETRIGGER_PLAYED_FACE,
+    ROUND_CASH_GROWTH, STONE_PAYOFF, SUIT_CLUBS_MULT, SUIT_DIAMONDS_CASH,
+    SUIT_DIAMONDS_MULT, SUIT_HEARTS_MULT, SUIT_HEARTS_XMULT, SUIT_SPADES_CHIPS,
+    SUIT_SPADES_MULT, UNIQUE_PLANET_CASH, UNUSED_DISCARD_CHIPS,
     component_has_mechanic,
 )
 
-# The legacy suit ladder topped out at 30 despite structural maxima of 20 for
-# Hearts and 19 for the other suits. This post-audit ladder keeps the same
-# recognition -> support -> establishment -> power -> capstone shape while
-# making R5 structurally reachable without inventing fake mechanics.
 SUIT_THRESHOLDS = {
     BondRank.R1: 3.0,
     BondRank.R2: 6.0,
@@ -77,31 +46,6 @@ def _band(value: int, bands: tuple[tuple[int, float], ...]) -> float:
     return result
 
 
-def _rank(total: float, thresholds: dict[BondRank, float]) -> tuple[BondRank, float | None]:
-    rank = BondRank.R0
-    for candidate in (BondRank.R1, BondRank.R2, BondRank.R3, BondRank.R4, BondRank.R5):
-        threshold = thresholds[candidate]
-        if total < threshold:
-            return rank, threshold
-        rank = candidate
-    return BondRank.R5, None
-
-
-def _finish(bond_id: str, parts: list[BondContribution], thresholds: dict[BondRank, float], *, target: str | None = None) -> BondDevelopment:
-    total = sum(part.value for part in parts)
-    rank, next_threshold = _rank(total, thresholds)
-    return BondDevelopment(
-        bond_id=bond_id,
-        unlocked=True,
-        contribution=total,
-        rank=rank,
-        next_rank_threshold=next_threshold,
-        contributions=tuple(parts),
-        target=target,
-        realization=BondRealization.DORMANT if rank == BondRank.R0 else BondRealization.PARTIAL,
-    )
-
-
 def _source(component: Any, fallback: str) -> str:
     name = getattr(component, "name", None)
     if name:
@@ -112,29 +56,39 @@ def _source(component: Any, fallback: str) -> str:
 
 def _mechanic_parts(state: Any, weights: tuple[tuple[str, float, str], ...]) -> list[BondContribution]:
     parts: list[BondContribution] = []
-    for joker in list(getattr(state, "jokers", ()) or ()):
+    for index, joker in enumerate(list(getattr(state, "jokers", ()) or ())):
         for mechanic, value, label in weights:
             if component_has_mechanic(joker, mechanic):
-                parts.append(BondContribution(_source(joker, label), value))
+                parts.append(component_contribution(
+                    joker, collection="jokers", index=index,
+                    label=_source(joker, label), value=value, mechanic=mechanic,
+                ))
     return parts
 
 
 def evaluate_aces_bond(state: Any) -> BondDevelopment:
-    parts = _mechanic_parts(state, ((ACE_CHIPS_MULT, 6.0, "Ace chips/Mult payoff"), (LOW_RANK_FIBONACCI_MULT, 3.0, "Ace Fibonacci payoff")))
+    parts = _mechanic_parts(state, (
+        (ACE_CHIPS_MULT, 6.0, "Ace chips/Mult payoff"),
+        (LOW_RANK_FIBONACCI_MULT, 3.0, "Ace Fibonacci payoff"),
+    ))
     aces = sum(1 for card in _deck(state) if str(getattr(card, "rank", "") or "").upper() == "A")
     score = _band(aces, ((4, 1.0), (6, 3.0), (8, 5.0), (12, 7.0)))
     if score:
-        parts.append(BondContribution("Ace density", score))
+        parts.append(state_contribution("deck:ace_density", "Ace density", score, mechanic="ace_density"))
     if aces >= 6:
-        for joker in list(getattr(state, "jokers", ()) or ()):
+        for index, joker in enumerate(list(getattr(state, "jokers", ()) or ())):
             if component_has_mechanic(joker, DUPLICATE_SELECTED_CARD):
-                parts.append(BondContribution(_source(joker, "Ace duplication bridge"), 4.0))
+                parts.append(component_contribution(
+                    joker, collection="jokers", index=index,
+                    label=_source(joker, "Ace duplication bridge"), value=4.0,
+                    mechanic=DUPLICATE_SELECTED_CARD,
+                ))
                 break
-    return _finish("aces", parts, b1.ACES_THRESHOLDS, target="A")
+    return finalize_development("aces", parts, b1.ACES_THRESHOLDS, target="A")
 
 
 def evaluate_no_discard_bond(state: Any) -> BondDevelopment:
-    return _finish("no_discard", _mechanic_parts(state, (
+    return finalize_development("no_discard", _mechanic_parts(state, (
         (NO_DISCARD_SCALING, 6.0, "No-discard scaling"),
         (DISCARDS_TO_HANDS, 6.0, "Discard-to-hand conversion"),
         (NO_DISCARD_ECONOMY, 4.0, "Unused-discard economy"),
@@ -152,28 +106,31 @@ def evaluate_cash_bond(state: Any) -> BondDevelopment:
     ))
     score = _band(int(getattr(state, "money", 0) or 0), ((25, 1.0), (50, 3.0), (100, 5.0), (150, 7.0)))
     if score:
-        parts.append(BondContribution("Current bankroll", score))
-    return _finish("cash", parts, b1.CASH_THRESHOLDS)
+        parts.append(state_contribution("economy:bankroll", "Current bankroll", score, mechanic="bankroll"))
+    return finalize_development("cash", parts, b1.CASH_THRESHOLDS)
 
 
 def evaluate_lucky_bond(state: Any) -> BondDevelopment:
-    parts = _mechanic_parts(state, ((LUCKY_TRIGGER_SCALING, 6.0, "Lucky trigger scaling"), (PROBABILITY_DOUBLING, 4.0, "Probability amplification")))
+    parts = _mechanic_parts(state, (
+        (LUCKY_TRIGGER_SCALING, 6.0, "Lucky trigger scaling"),
+        (PROBABILITY_DOUBLING, 4.0, "Probability amplification"),
+    ))
     score = _band(sum(1 for c in _deck(state) if str(getattr(c, "enhancement", "") or "").lower() == "lucky"), ((1, 1.0), (3, 3.0), (6, 5.0), (10, 7.0)))
     if score:
-        parts.append(BondContribution("Lucky card density", score))
-    return _finish("lucky", parts, b1.LUCKY_THRESHOLDS)
+        parts.append(state_contribution("deck:lucky_density", "Lucky card density", score, mechanic="lucky_card_density"))
+    return finalize_development("lucky", parts, b1.LUCKY_THRESHOLDS)
 
 
 def evaluate_glass_bond(state: Any) -> BondDevelopment:
     parts = _mechanic_parts(state, ((GLASS_PAYOFF, 6.0, "Glass destruction payoff"),))
     score = _band(sum(1 for c in _deck(state) if str(getattr(c, "enhancement", "") or "").lower() == "glass"), ((1, 1.0), (3, 3.0), (6, 5.0), (10, 7.0)))
     if score:
-        parts.append(BondContribution("Glass card density", score))
+        parts.append(state_contribution("deck:glass_density", "Glass card density", score, mechanic="glass_card_density"))
     has_payoff = any(component_has_mechanic(j, GLASS_PAYOFF) for j in list(getattr(state, "jokers", ()) or ()))
     history = _band(int(getattr(state, "glass_cards_destroyed", 0) or 0), ((1, 1.0), (3, 2.0), (6, 4.0), (10, 6.0))) if has_payoff else 0.0
     if history:
-        parts.append(BondContribution("Accumulated Glass destruction", history))
-    return _finish("glass", parts, b1.GLASS_THRESHOLDS)
+        parts.append(state_contribution("history:glass_destroyed", "Accumulated Glass destruction", history, mechanic="glass_destruction_history"))
+    return finalize_development("glass", parts, b1.GLASS_THRESHOLDS)
 
 
 def evaluate_face_cards_bond(state: Any) -> BondDevelopment:
@@ -184,25 +141,35 @@ def evaluate_face_cards_bond(state: Any) -> BondDevelopment:
     ))
     score = _band(sum(1 for c in _deck(state) if str(getattr(c, "rank", "") or "").upper() in {"J", "Q", "K"}), ((12, 1.0), (16, 3.0), (20, 5.0), (26, 7.0)))
     if score:
-        parts.append(BondContribution("Face-card density", score))
-    return _finish("face_cards", parts, b1.FACE_CARDS_THRESHOLDS, target="J/Q/K")
+        parts.append(state_contribution("deck:face_density", "Face-card density", score, mechanic="face_card_density"))
+    return finalize_development("face_cards", parts, b1.FACE_CARDS_THRESHOLDS, target="J/Q/K")
 
 
 def evaluate_stone_bond(state: Any) -> BondDevelopment:
     parts = _mechanic_parts(state, ((STONE_PAYOFF, 6.0, "Stone-card payoff"), (ADD_STONE_CARD, 5.0, "Stone-card generation")))
     score = _band(sum(1 for c in _deck(state) if str(getattr(c, "enhancement", "") or "").lower() == "stone"), ((1, 1.0), (3, 3.0), (6, 6.0), (10, 9.0)))
     if score:
-        parts.append(BondContribution("Stone card density", score))
-    return _finish("stone", parts, b2.STONE_THRESHOLDS)
+        parts.append(state_contribution("deck:stone_density", "Stone card density", score, mechanic="stone_card_density"))
+    return finalize_development("stone", parts, b2.STONE_THRESHOLDS)
 
 
 def _suit_bond(state: Any, bond_id: str, suit: str, weights: tuple[tuple[str, float, str], ...]) -> BondDevelopment:
     parts = _mechanic_parts(state, weights)
-    count = sum(1 for c in _deck(state) if str(getattr(c, "enhancement", "") or "").lower() != "stone" and (str(getattr(c, "suit", "") or "").lower() == suit.lower() or str(getattr(c, "enhancement", "") or "").lower() == "wild"))
+    count = sum(
+        1 for c in _deck(state)
+        if str(getattr(c, "enhancement", "") or "").lower() != "stone"
+        and (
+            str(getattr(c, "suit", "") or "").lower() == suit.lower()
+            or str(getattr(c, "enhancement", "") or "").lower() == "wild"
+        )
+    )
     score = _band(count, ((13, 1.0), (17, 3.0), (21, 5.0), (26, 7.0), (32, 9.0)))
     if score:
-        parts.append(BondContribution(f"{suit} density", score))
-    return _finish(bond_id, parts, SUIT_THRESHOLDS, target=suit.upper())
+        parts.append(state_contribution(
+            f"deck:suit_density:{suit.lower()}", f"{suit} density", score,
+            mechanic=f"suit_density:{suit.lower()}",
+        ))
+    return finalize_development(bond_id, parts, SUIT_THRESHOLDS, target=suit.upper())
 
 
 def evaluate_hearts_bond(state: Any) -> BondDevelopment:
@@ -214,9 +181,6 @@ def evaluate_spades_bond(state: Any) -> BondDevelopment:
 
 
 def evaluate_clubs_bond(state: Any) -> BondDevelopment:
-    # Both legacy Clubs Jokers expose the same strategic mechanic: Clubs Mult.
-    # The descriptor layer intentionally does not encode Joker identity as fake
-    # mechanics merely to preserve historical 6-vs-4 catalogue weights.
     return _suit_bond(state, "clubs", "Clubs", ((SUIT_CLUBS_MULT, 5.0, "Clubs Mult payoff"),))
 
 
@@ -232,8 +196,8 @@ def evaluate_low_ranks_bond(state: Any) -> BondDevelopment:
     ))
     score = _band(sum(1 for c in _deck(state) if str(getattr(c, "rank", "") or "") in {"2", "3", "4", "5"}), ((16, 1.0), (20, 3.0), (24, 5.0), (30, 7.0)))
     if score:
-        parts.append(BondContribution("2-5 density", score))
-    return _finish("low_ranks", parts, b3.LOW_RANKS_THRESHOLDS, target="2-5")
+        parts.append(state_contribution("deck:low_rank_density", "2-5 density", score, mechanic="low_rank_density"))
+    return finalize_development("low_ranks", parts, b3.LOW_RANKS_THRESHOLDS, target="2-5")
 
 
 MECHANICAL_RESIDUE_EVALUATORS = {
