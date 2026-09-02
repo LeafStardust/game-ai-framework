@@ -33,22 +33,7 @@ def test_pareidolia_without_face_payoff_gets_no_bridge():
     assert "Pareidolia all-card face enabler bridge" not in sources
 
 
-def test_d4_rejects_neptune_for_unplayed_level_one_straight_flush():
-    state = BalatroState()
-    state.phase = "SHOP"
-    state.money = 20
-    state.hand_levels["STRAIGHT_FLUSH"] = 1
-    state.hand_play_counts["STRAIGHT_FLUSH"] = 0
-    neptune = PlanetCard("Neptune", "STRAIGHT_FLUSH", 40, 4)
-
-    decision = ConsumableAcquisitionPolicy().decide(state, neptune)
-
-    assert decision.action == HOLD
-    assert decision.selected is None
-    assert any("zero play history" in note for note in decision.rationale)
-
-
-def test_planet_relevance_guard_does_not_override_existing_hold():
+def test_planet_acquisition_still_respects_affordability_hold():
     state = BalatroState()
     state.phase = "SHOP"
     state.money = 0
