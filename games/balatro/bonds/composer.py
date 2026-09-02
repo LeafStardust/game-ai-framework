@@ -13,10 +13,11 @@ from games.balatro.bonds.relationships import BondRelationship, relationship_bet
 class Composition:
     """Structural Bond composition only.
 
-    Named strategy identities, commitment states, StrategyPlan objects and action
-    prescriptions were part of the retired strategy-controller architecture. The
-    canonical composer exposes only mechanical Bond selection, sparse relationships,
-    exceptional motifs and aggregate structural diagnostics.
+    Named strategy identities, commitment states, StrategyPlan objects, generic
+    pivot resistance and action prescriptions were part of the retired strategy-
+    controller architecture. The canonical composer exposes only mechanical Bond
+    selection, sparse relationships, exceptional motifs and aggregate structural
+    diagnostics.
     """
 
     bond_ids: tuple[str, ...]
@@ -24,7 +25,6 @@ class Composition:
     conflicts: tuple[tuple[str, str], ...]
     synergies: tuple[tuple[str, str], ...]
     coherence_score: float
-    pivot_resistance: float
     motif_distance: tuple[tuple[str, int], ...]
 
 
@@ -54,10 +54,6 @@ def _bond_priority(dev: BondDevelopment) -> float:
     )
 
 
-def _pivot_resistance(dev: BondDevelopment) -> float:
-    return current_bond_calibration().pivot_resistance(dev.rank)
-
-
 def _component_token(value: object) -> str:
     return "".join(ch for ch in str(value or "").upper() if ch.isalnum())
 
@@ -84,7 +80,7 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
     calibration = current_bond_calibration()
     all_developments = tuple(developments)
     devs = [dev for dev in all_developments if _eligible(dev)]
-    devs.sort(key=lambda d: (_bond_priority(d), _pivot_resistance(d)), reverse=True)
+    devs.sort(key=lambda d: (_bond_priority(d), d.bond_id), reverse=True)
 
     selected: list[BondDevelopment] = []
     conflicts: list[tuple[str, str]] = []
@@ -97,11 +93,8 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
         if not local:
             selected.append(dev)
             continue
-        challenger = _bond_priority(dev) + 0.20 * _pivot_resistance(dev)
-        incumbents = max(
-            (_bond_priority(other) + 0.20 * _pivot_resistance(other) for other in local),
-            default=0.0,
-        )
+        challenger = _bond_priority(dev)
+        incumbents = max((_bond_priority(other) for other in local), default=0.0)
         if challenger <= incumbents:
             conflicts.extend((dev.bond_id, other.bond_id) for other in local)
             continue
@@ -144,6 +137,5 @@ def compose_build(state: Any, developments: Iterable[BondDevelopment]) -> Compos
         conflicts=tuple(dict.fromkeys(conflicts)),
         synergies=tuple(sorted(synergies)),
         coherence_score=coherence,
-        pivot_resistance=sum(_pivot_resistance(dev) for dev in selected),
         motif_distance=tuple((motif.motif_id, motif.missing_count) for motif in motifs),
     )
