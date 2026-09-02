@@ -26,14 +26,14 @@ def test_smeared_allows_diamond_to_realize_hearts_payoff():
 
 def test_golden_ticket_realizes_when_gold_card_is_played():
     state=SimpleNamespace(jokers=[_joker("Golden Ticket")],scoring_cards=[_card("9","Hearts","Gold")],hand=[])
-    assert realize_bond(_dev("gold_economy"),state).realization==BondRealization.ACTIVE
+    assert realize_bond(_dev("gold_cards"),state).realization==BondRealization.ACTIVE
 
 
-def test_midas_mask_realizes_gold_engine_when_face_is_played():
+def test_midas_mask_realizes_gold_cards_as_a_generator():
     state=SimpleNamespace(jokers=[_joker("Midas Mask")],scoring_cards=[_card("K")],hand=[])
-    assert realize_bond(_dev("gold_economy"),state).realization==BondRealization.ACTIVE
+    assert realize_bond(_dev("gold_cards"),state).realization==BondRealization.ACTIVE
 
 
-def test_reserved_parking_realizes_from_held_face_card():
-    state=SimpleNamespace(jokers=[_joker("Reserved Parking")],scoring_cards=[],hand=[_card("Q")])
-    assert realize_bond(_dev("gold_economy"),state).realization==BondRealization.ACTIVE
+def test_reserved_parking_realizes_with_held_gold_card():
+    state=SimpleNamespace(jokers=[_joker("Reserved Parking")],scoring_cards=[],hand=[_card("Q",enhancement="Gold")])
+    assert realize_bond(_dev("gold_cards"),state).realization==BondRealization.ACTIVE
