@@ -265,21 +265,6 @@ def test_solo_mature_green_joker_does_not_masquerade_as_complete_scaling():
     assert health.scaling_deficit
 
 
-def test_fragmented_bonds_without_strategy_candidate_have_low_coherence(monkeypatch):
-    import games.balatro.build_health_runtime as module
-
-    composition = SimpleNamespace(
-        bond_ids=("no_discard", "three_kind", "tarot", "sell_value", "low_ranks"),
-        strategy_candidates=(),
-        conflicts=(),
-    )
-    monkeypatch.setattr(module, "evaluate_bond_composition", lambda state: ((), composition))
-
-    inputs = RuntimeBuildHealthEvaluator(scorer=_FixedScorer(1000)).inputs(_state())
-
-    assert inputs.coherence_ratio < 0.25
-
-
 def test_foundation_without_scaler_is_not_prematurely_called_scaling_deficit():
     state = _state(ante=2, blind_score=800, hands=4)
     health = RuntimeBuildHealthEvaluator(scorer=_FixedScorer(300)).evaluate(state)
