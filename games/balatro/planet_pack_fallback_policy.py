@@ -9,8 +9,9 @@ realisability, and only then generic card value.
 
 Acquisition remains a separate resource decision. Celestial packs require actual
 hand-development headroom and obey a diminishing global Planet-investment budget;
-loose Planets require hand relevance; loose Tarots require stronger transaction
-value unless immediately usable. Arcana pack acquisition is not changed here.
+loose Planet acquisition is owned by D4 canonical projected StrategyDelta; loose
+Tarots require stronger transaction value unless immediately usable. Arcana pack
+acquisition is not changed here.
 
 An active Planet-use scaler is a stronger mechanical authority than ordinary hand-
 development headroom: every Planet is direct permanent engine progress. Reserve
@@ -632,24 +633,6 @@ def install_planet_pack_fallback_policy() -> None:
                 return result
 
             category = str(getattr(candidate, "category", "") or "").upper()
-            if category == "PLANET":
-                if has_planet_use_scaler(state) and result.action == BUY_AND_USE:
-                    return result
-                hand = _hand_token(getattr(candidate, "hand_type", ""))
-                if _hand_direction(state, hand) and float(selected.total_advantage) >= 0.75:
-                    return result
-                return ConsumableAcquisitionDecision(
-                    action=HOLD,
-                    candidate=result.candidate,
-                    selected=None,
-                    options=result.options,
-                    thresholds=result.thresholds,
-                    rationale=(
-                        *result.rationale,
-                        "loose Planet held: requires hand-development relevance and >=0.75 transaction advantage",
-                    ),
-                )
-
             if category == "TAROT" and result.action == BUY:
                 if float(selected.total_advantage) >= 1.00:
                     return result
