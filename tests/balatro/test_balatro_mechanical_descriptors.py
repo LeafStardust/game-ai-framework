@@ -7,6 +7,15 @@ from games.balatro.bonds.mechanical_core import (
     evaluate_held_retrigger_bond,
     evaluate_steel_bond,
 )
+from games.balatro.bonds.mechanical_engines import (
+    evaluate_blind_skip_bond,
+    evaluate_card_destruction_bond,
+    evaluate_discard_bond,
+    evaluate_enhanced_cards_bond,
+    evaluate_hand_repetition_bond,
+    evaluate_joker_sacrifice_bond,
+    evaluate_sell_value_bond,
+)
 from games.balatro.bonds.model import BondRealization
 from games.balatro.bonds.realization import realize_bond
 from games.balatro.bonds.vampire import evaluate_enhancement_consumption_bond
@@ -20,16 +29,30 @@ from games.balatro.jokers.steel_joker import SteelJoker
 from games.balatro.jokers.trading_card import TradingCardJoker
 from games.balatro.mechanics import (
     ALL_CARDS_FACE,
+    BLIND_SKIP_SCALING,
+    BLIND_SKIP_TAG_GENERATION,
     CARD_DESTRUCTION,
     DECK_THIN_PAYOFF,
+    DISCARD_FACE_ECONOMY,
     DISCARD_HAND_LEVELING,
+    DISCARD_SCALING,
     ENHANCEMENT_CONSUMPTION,
+    ENHANCEMENT_DENSITY_PAYOFF,
     ENHANCEMENT_FEED_ACCESS,
+    ENHANCEMENT_GENERATION,
+    FACE_DESTRUCTION_SCALING,
+    GLOBAL_SELL_VALUE_GROWTH,
     GOLD_CARD_GENERATION,
     GOLD_CARD_SCORING_ECONOMY,
     HAND_LEVEL_COPY,
+    HAND_REPETITION_SCALING,
+    HAND_REPETITION_XMULT,
+    JOKER_FODDER_GENERATION,
+    LEFT_JOKER_SACRIFICE,
     PROBABILISTIC_HAND_LEVELING,
     RETRIGGER_HELD_CARDS,
+    SELF_SELL_VALUE_GROWTH,
+    SELL_VALUE_SCORING,
     SPECTRAL_GENERATION,
     STEEL_CARD_PAYOFF,
     component_mechanics,
@@ -44,8 +67,8 @@ def _card(rank="7", enhancement="", seal=""):
     return SimpleNamespace(rank=rank, suit="Hearts", enhancement=enhancement, seal=seal)
 
 
-def _state(*, jokers=(), deck=(), hand=(), hand_levels=None):
-    return SimpleNamespace(
+def _state(*, jokers=(), deck=(), hand=(), hand_levels=None, **extra):
+    data = dict(
         jokers=list(jokers),
         vouchers=[],
         owned_deck=list(deck),
@@ -57,7 +80,14 @@ def _state(*, jokers=(), deck=(), hand=(), hand_levels=None):
         hand_levels=dict(hand_levels or {}),
         hand_play_counts={},
         vampire_enhancements_consumed=0,
+        discards_per_round=3,
+        blinds_skipped=0,
+        joker_sell_value_total=0,
+        jokers_destroyed=0,
+        cards_destroyed=0,
     )
+    data.update(extra)
+    return SimpleNamespace(**data)
 
 
 def test_modeled_jokers_expose_native_mechanics():
@@ -72,29 +102,15 @@ def test_modeled_jokers_expose_native_mechanics():
 
 
 def test_hand_leveling_uses_mechanics_not_component_display_names():
-    state = _state(
-        jokers=(
-            _component(DISCARD_HAND_LEVELING),
-            _component(HAND_LEVEL_COPY),
-        ),
-    )
-
+    state = _state(jokers=(_component(DISCARD_HAND_LEVELING), _component(HAND_LEVEL_COPY)))
     dev = evaluate_hand_leveling_bond(state)
-
     assert dev.bond_id == "hand_leveling"
     assert dev.contribution == 13.0
 
 
 def test_gold_cards_uses_mechanics_not_component_display_names():
-    state = _state(
-        jokers=(
-            _component(GOLD_CARD_GENERATION),
-            _component(GOLD_CARD_SCORING_ECONOMY),
-        ),
-    )
-
+    state = _state(jokers=(_component(GOLD_CARD_GENERATION), _component(GOLD_CARD_SCORING_ECONOMY)))
     dev = evaluate_gold_cards_bond(state)
-
     assert dev.bond_id == "gold_cards"
     assert dev.contribution == 10.0
 
@@ -110,25 +126,16 @@ def test_enhancement_consumption_uses_mechanics_not_component_display_names():
         deck=(enhanced,),
         hand=(enhanced,),
     )
-
     dev = evaluate_enhancement_consumption_bond(state)
     realized = realize_bond(dev, state)
-
     assert dev.bond_id == "enhancement_consumption"
     assert dev.contribution == 13.0
     assert realized.realization == BondRealization.ACTIVE
 
 
 def test_held_retrigger_uses_mechanics_not_component_display_names():
-    state = _state(
-        jokers=(
-            _component(RETRIGGER_HELD_CARDS),
-            _component(HAND_LEVEL_COPY),
-        ),
-    )
-
+    state = _state(jokers=(_component(RETRIGGER_HELD_CARDS), _component(HAND_LEVEL_COPY)))
     dev = evaluate_held_retrigger_bond(state)
-
     assert dev.bond_id == "held_retrigger"
     assert dev.contribution == 10.0
 
@@ -136,14 +143,9 @@ def test_held_retrigger_uses_mechanics_not_component_display_names():
 def test_steel_uses_mechanics_not_component_display_names():
     state = _state(
         jokers=(_component(STEEL_CARD_PAYOFF),),
-        deck=(
-            _card(enhancement="Steel"),
-            _card(enhancement="Steel"),
-        ),
+        deck=(_card(enhancement="Steel"), _card(enhancement="Steel")),
     )
-
     dev = evaluate_steel_bond(state)
-
     assert dev.bond_id == "steel"
     assert dev.contribution == 8.0
 
@@ -158,8 +160,88 @@ def test_deck_thinning_uses_mechanics_not_component_display_names():
         ),
         deck=deck,
     )
-
     dev = evaluate_deck_thinning_bond(state)
-
     assert dev.bond_id == "deck_thinning"
     assert dev.contribution == 19.0
+
+
+def test_discard_uses_mechanics_not_component_display_names():
+    state = _state(
+        jokers=(_component(DISCARD_SCALING), _component(DISCARD_FACE_ECONOMY)),
+        discards_per_round=5,
+    )
+    dev = evaluate_discard_bond(state)
+    assert dev.bond_id == "discard"
+    assert dev.contribution == 13.0
+
+
+def test_blind_skip_uses_mechanics_not_component_display_names():
+    state = _state(
+        jokers=(_component(BLIND_SKIP_SCALING), _component(BLIND_SKIP_TAG_GENERATION)),
+        blinds_skipped=5,
+    )
+    dev = evaluate_blind_skip_bond(state)
+    assert dev.bond_id == "blind_skip"
+    assert dev.contribution == 16.0
+
+
+def test_sell_value_uses_mechanics_not_component_display_names():
+    state = _state(
+        jokers=(
+            _component(SELL_VALUE_SCORING),
+            _component(GLOBAL_SELL_VALUE_GROWTH),
+            _component(SELF_SELL_VALUE_GROWTH),
+        ),
+        joker_sell_value_total=35,
+    )
+    dev = evaluate_sell_value_bond(state)
+    assert dev.bond_id == "sell_value"
+    assert dev.contribution == 23.0
+
+
+def test_joker_sacrifice_uses_mechanics_not_component_display_names():
+    state = _state(
+        jokers=(_component(LEFT_JOKER_SACRIFICE), _component(JOKER_FODDER_GENERATION)),
+        jokers_destroyed=6,
+    )
+    dev = evaluate_joker_sacrifice_bond(state)
+    assert dev.bond_id == "joker_sacrifice"
+    assert dev.contribution == 15.0
+
+
+def test_card_destruction_uses_mechanics_not_component_display_names():
+    state = _state(
+        jokers=(
+            _component(FACE_DESTRUCTION_SCALING),
+            _component(CARD_DESTRUCTION),
+            _component(CARD_DESTRUCTION, SPECTRAL_GENERATION),
+        ),
+        cards_destroyed=10,
+    )
+    dev = evaluate_card_destruction_bond(state)
+    assert dev.bond_id == "card_destruction"
+    assert dev.contribution == 21.0
+
+
+def test_hand_repetition_uses_mechanics_not_component_display_names():
+    state = _state(
+        jokers=(_component(HAND_REPETITION_XMULT), _component(HAND_REPETITION_SCALING)),
+        hand_play_counts={"PAIR": 18},
+    )
+    dev = evaluate_hand_repetition_bond(state)
+    assert dev.bond_id == "hand_repetition"
+    assert dev.contribution == 18.0
+
+
+def test_enhanced_cards_uses_mechanics_not_component_display_names():
+    state = _state(
+        jokers=(
+            _component(ENHANCEMENT_DENSITY_PAYOFF),
+            _component(ENHANCEMENT_GENERATION),
+            _component(ENHANCEMENT_GENERATION),
+        ),
+        deck=tuple(_card(enhancement="Bonus") for _ in range(16)),
+    )
+    dev = evaluate_enhanced_cards_bond(state)
+    assert dev.bond_id == "enhanced_cards"
+    assert dev.contribution == 18.0
