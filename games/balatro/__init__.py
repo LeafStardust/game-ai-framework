@@ -8,7 +8,6 @@ installed as competing production strategy authorities.
 from games.balatro.arcana_booster_expectation_policy import install_arcana_booster_expectation_policy
 from games.balatro.banner_candidate_value_policy import install_banner_candidate_value_policy
 from games.balatro.blueprint_candidate_value_policy import install_blueprint_candidate_value_policy
-from games.balatro.bond_power_engine_retention_policy import install_bond_power_engine_retention_policy
 from games.balatro.bond_scaler_build_health_policy import install_bond_scaler_build_health_policy
 from games.balatro.bond_shop_health_policy import install_bond_shop_health_policy
 from games.balatro.build_health_policy import install_build_health_policy
@@ -98,11 +97,11 @@ install_bond_scaler_build_health_policy()
 install_build_health_policy()
 install_shop_clear_probability_health_policy()
 install_bond_shop_health_policy()
-install_bond_power_engine_retention_policy()
 install_face_card_enabler_bond_policy()
 # D2 Joker construction is already migrated: JokerAcquisitionPolicy owns exact
 # projected StrategyDelta. Do not reinstall historical R0/PINNED/FORMING
-# transition/retention controllers or the generic pivot/resistance FSM around it.
+# transition/retention controllers, generic pivot/resistance FSM, or Bond-rank
+# power-engine retention vetoes around that canonical owner.
 # D9 exact persistent pack outcomes are already migrated through
 # install_strategy_plan_pack_policy(); do not add pinned/forming StrategyPlan
 # execution bonuses after the canonical projected StrategyDelta scorer.
