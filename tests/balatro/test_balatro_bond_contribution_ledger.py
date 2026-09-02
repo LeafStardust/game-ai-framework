@@ -5,13 +5,20 @@ from games.balatro.bonds.contributions import (
     finalize_development,
     normalize_contributions,
 )
+from games.balatro.bonds.held_cards import evaluate_held_cards_bond
 from games.balatro.bonds.mechanical_core import (
     DECK_THINNING_THRESHOLDS,
     evaluate_deck_thinning_bond,
     evaluate_steel_bond,
 )
 from games.balatro.bonds.model import BondRank
-from games.balatro.mechanics import CARD_DESTRUCTION, DECK_THIN_PAYOFF, STEEL_CARD_PAYOFF
+from games.balatro.mechanics import (
+    CARD_DESTRUCTION,
+    DECK_THIN_PAYOFF,
+    HELD_KING_XMULT,
+    HELD_QUEEN_MULT,
+    STEEL_CARD_PAYOFF,
+)
 
 
 def _component(*mechanics):
@@ -26,13 +33,14 @@ def _neutral_deck():
     return tuple(_card() for _ in range(52))
 
 
-def _state(*, jokers=(), deck=None):
+def _state(*, jokers=(), deck=None, hand_size=8):
     resolved_deck = _neutral_deck() if deck is None else tuple(deck)
     return SimpleNamespace(
         jokers=list(jokers),
         owned_deck=list(resolved_deck),
         deck=list(resolved_deck),
         deck_name="Red Deck",
+        hand_size=hand_size,
     )
 
 
@@ -73,6 +81,33 @@ def test_canonical_state_evidence_has_diagnostic_source_identity():
     source_ids = {item.source_id for item in development.contributions}
     assert "state:deck:steel_density" in source_ids
     assert "state:deck:red_steel_density" in source_ids
+
+
+def test_held_cards_uses_component_and_state_ledger_sources():
+    state = _state(
+        jokers=(_component(HELD_KING_XMULT), _component(HELD_QUEEN_MULT)),
+        deck=tuple(_card(enhancement="Steel") for _ in range(6)),
+        hand_size=10,
+    )
+    development = evaluate_held_cards_bond(state)
+
+    assert development.contribution == 19.0
+    source_ids = {item.source_id for item in development.contributions}
+    assert "jokers:slot:0" in source_ids
+    assert "jokers:slot:1" in source_ids
+    assert "state:deck:steel_held_density" in source_ids
+    assert "state:hand:extra_size" in source_ids
+
+
+def test_held_cards_snapshot_compatibility_is_isolated_for_remaining_holdouts():
+    state = _state(jokers=("raisedfistjoker", "blackboardjoker"))
+    development = evaluate_held_cards_bond(state)
+
+    assert development.contribution == 6.0
+    assert {item.source_id for item in development.contributions} == {
+        "jokers:slot:0",
+        "jokers:slot:1",
+    }
 
 
 def test_normalization_preserves_legacy_entries_during_incremental_migration():
