@@ -8,9 +8,9 @@ future draws, shop identities, RNG state, or use a named Joker tier table.
 
 from dataclasses import replace
 
-import games.balatro.build_health_policy as build_health_policy
 from games.balatro.actions import REFRESH_SHOP, BalatroAction
 from games.balatro.build.joker_scenarios import ScenarioJokerBehaviorAnalyzer
+from games.balatro.build_health_runtime import RuntimeBuildHealthEvaluator
 from games.balatro.joker_policy import BUY, HOLD
 from games.balatro.live.blind_clear_planner import LiveBlindClearPlanner
 from games.balatro.playbook.red_white.joker_policy import PlaybookJokerAcquisitionPolicy
@@ -18,6 +18,7 @@ from games.balatro.shop_arbiter import BuildAwareShopArbiter
 
 
 _ANALYZER = ScenarioJokerBehaviorAnalyzer()
+_HEALTH = RuntimeBuildHealthEvaluator()
 
 
 def _descriptor_tokens(joker: object) -> tuple[str, ...]:
@@ -68,6 +69,22 @@ def _has_authoritative_hold_veto(decision) -> bool:
         "incompatible",
     )
     return any(marker in note for note in notes for marker in veto_markers)
+
+
+def _shop_signature(state) -> tuple[object, ...]:
+    """Public-state signature for the one-reroll scaling rescue guard."""
+    return (
+        int(getattr(state, "ante", 0) or 0),
+        int(getattr(state, "round", getattr(state, "round_num", 0)) or 0),
+        int(getattr(state, "money", 0) or 0),
+        tuple(
+            (
+                str(getattr(joker, "name", getattr(joker, "label", type(joker).__name__)) or ""),
+                str(getattr(joker, "edition", "") or ""),
+            )
+            for joker in tuple(getattr(state, "jokers", ()) or ())
+        ),
+    )
 
 
 def install_live_competence_guard_policy() -> None:
@@ -133,9 +150,6 @@ def install_live_competence_guard_policy() -> None:
         decision = original_joker_decide(self, state, candidate)
         if decision.action != HOLD:
             return decision
-        # This layer may rescue only an ordinary threshold/adequacy HOLD. Existing
-        # semantic direction, Bond-conflict, banned/incompatible, legality and other
-        # authoritative vetoes must remain final.
         if _has_authoritative_hold_veto(decision):
             return decision
         ante = max(1, int(getattr(state, "ante", 1) or 1))
@@ -188,10 +202,10 @@ def install_live_competence_guard_policy() -> None:
         money = max(0, int(getattr(state, "money", 0) or 0))
         if money - cost < 15:
             return result
-        health = build_health_policy._cached_health(self, state)
+        health = _HEALTH.evaluate(state)
         if not bool(getattr(health, "scaling_deficit", False)):
             return result
-        signature = build_health_policy._shop_signature(state)
+        signature = _shop_signature(state)
         if getattr(self, "_rw_scaling_rescue_reroll_signature", None) == signature:
             return result
         self._rw_scaling_rescue_reroll_signature = signature
