@@ -1,8 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any
 
 from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank, BondRealization
+from games.balatro.mechanics import (
+    ENHANCEMENT_CONSUMPTION,
+    ENHANCEMENT_FEED_ACCESS,
+    TAROT_GENERATION,
+    components_have_mechanic,
+)
 
 ENHANCEMENT_CONSUMPTION_BOND_ID = "enhancement_consumption"
 # Temporary compatibility alias while callers/tests migrate.
@@ -25,21 +31,6 @@ VAMPIRE_POLICIES = {
 VAMPIRE_RELATIONSHIPS = {
     frozenset((ENHANCEMENT_CONSUMPTION_BOND_ID, "enhanced_cards")): "CONFLICT",
 }
-
-
-def _name(value: Any) -> str:
-    if isinstance(value, str):
-        raw = value
-    else:
-        raw = getattr(value, "name", None)
-        if raw is None:
-            raw = value.__class__.__name__
-    return "".join(ch for ch in str(raw).lower() if ch.isalnum())
-
-
-def _contains(values: Iterable[Any], *tokens: str) -> bool:
-    names = {_name(v) for v in values}
-    return any(any(token in name for name in names) for token in tokens)
 
 
 def _deck(state: Any) -> list[Any]:
@@ -71,23 +62,17 @@ def _rank(total: float) -> tuple[BondRank, float | None]:
 
 
 def evaluate_enhancement_consumption_bond(state: Any) -> BondDevelopment:
-    """Evaluate enhancement-feed/consumption infrastructure.
-
-    Vampire is the primary payoff/consumer, not the Bond identity. Existing
-    enhanced-card feedstock and renewable Midas infrastructure therefore provide
-    pre-payoff evidence so a later Vampire can receive the correct projected
-    strategic value.
-    """
+    """Evaluate enhancement-feed/consumption infrastructure from mechanics."""
     jokers = list(getattr(state, "jokers", ()) or ())
     parts: list[BondContribution] = []
 
-    has_vampire = _contains(jokers, "vampire")
-    if has_vampire:
-        parts.append(BondContribution("Vampire enhancement consumer", 7.0))
-    if _contains(jokers, "midasmask"):
-        parts.append(BondContribution("Midas Mask renewable feed bridge", 5.0 if has_vampire else 2.0))
-    if _contains(jokers, "cartomancer"):
-        parts.append(BondContribution("Cartomancer enhancement-feed access", 2.0 if has_vampire else 1.0))
+    has_consumer = components_have_mechanic(jokers, ENHANCEMENT_CONSUMPTION)
+    if has_consumer:
+        parts.append(BondContribution("Enhancement consumer", 7.0))
+    if components_have_mechanic(jokers, ENHANCEMENT_FEED_ACCESS):
+        parts.append(BondContribution("Renewable enhancement feed bridge", 5.0 if has_consumer else 2.0))
+    if components_have_mechanic(jokers, TAROT_GENERATION):
+        parts.append(BondContribution("Consumable enhancement-feed access", 2.0 if has_consumer else 1.0))
 
     enhanced = sum(
         1 for card in _deck(state)
@@ -95,8 +80,6 @@ def evaluate_enhancement_consumption_bond(state: Any) -> BondDevelopment:
     )
     density = _band(enhanced, ((1, 1.0), (3, 3.0), (6, 5.0), (10, 7.0)))
     if density:
-        # Feedstock alone is real strategic evidence, but without a consumer its
-        # realization remains low and BuildValue will not treat it as a finished engine.
         parts.append(BondContribution("Current enhancement feedstock", density))
 
     consumed = int(getattr(state, "vampire_enhancements_consumed", 0) or 0)
