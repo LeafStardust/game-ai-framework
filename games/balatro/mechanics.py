@@ -68,8 +68,7 @@ JOKER_FODDER_GENERATION = "joker_fodder_generation"
 HAND_REPETITION_XMULT = "hand_repetition_xmult"
 HAND_REPETITION_SCALING = "hand_repetition_scaling"
 
-# Shared hand-shape semantics. These describe the actual Joker requirement or
-# enabling mechanic and may intentionally support more than one Bond.
+# Shared hand-shape semantics.
 CONTAINS_PAIR_XMULT = "contains_pair_xmult"
 CONTAINS_PAIR_MULT = "contains_pair_mult"
 CONTAINS_PAIR_CHIPS = "contains_pair_chips"
@@ -103,6 +102,41 @@ ADD_SEALED_CARD = "add_sealed_card"
 DUPLICATE_SELECTED_CARD = "duplicate_selected_card"
 ADD_STONE_CARD = "add_stone_card"
 SCALE_ON_CARD_ADDED = "scale_on_card_added"
+
+# Residual rank/suit/economy/enhancement semantics.
+ACE_CHIPS_MULT = "ace_chips_mult"
+LOW_RANK_FIBONACCI_MULT = "low_rank_fibonacci_mult"
+NO_DISCARD_SCALING = "no_discard_scaling"
+DISCARDS_TO_HANDS = "discards_to_hands"
+NO_DISCARD_ECONOMY = "no_discard_economy"
+NO_DISCARD_XMULT = "no_discard_xmult"
+UNUSED_DISCARD_CHIPS = "unused_discard_chips"
+CASH_CHIPS = "cash_chips"
+CASH_MULT = "cash_mult"
+ROUND_CASH_GROWTH = "round_cash_growth"
+PASSIVE_CASH = "passive_cash"
+INTEREST_AMPLIFICATION = "interest_amplification"
+UNIQUE_PLANET_CASH = "unique_planet_cash"
+RANK_NINE_CASH = "rank_nine_cash"
+LUCKY_TRIGGER_SCALING = "lucky_trigger_scaling"
+PROBABILITY_DOUBLING = "probability_doubling"
+GLASS_PAYOFF = "glass_payoff"
+FACE_XMULT_FIRST = "face_xmult_first"
+FACE_CHIPS = "face_chips"
+FACE_MULT = "face_mult"
+FACE_CASH = "face_cash"
+SUIT_HEARTS_XMULT = "suit_hearts_xmult"
+SUIT_HEARTS_MULT = "suit_hearts_mult"
+SUIT_SPADES_CHIPS = "suit_spades_chips"
+SUIT_SPADES_MULT = "suit_spades_mult"
+SUIT_CLUBS_MULT = "suit_clubs_mult"
+SUIT_DIAMONDS_CASH = "suit_diamonds_cash"
+SUIT_DIAMONDS_MULT = "suit_diamonds_mult"
+LOW_RANK_RETRIGGER = "low_rank_retrigger"
+LOW_RANK_TWO_SCALING = "low_rank_two_scaling"
+LOW_RANK_EVEN_MULT = "low_rank_even_mult"
+LOW_RANK_FOUR_TEN = "low_rank_four_ten"
+STONE_PAYOFF = "stone_payoff"
 
 
 def _normalize_name(value: Any) -> str:
@@ -159,7 +193,6 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "sixthsense": frozenset({CARD_DESTRUCTION, SPECTRAL_GENERATION}),
     "sixthsensejoker": frozenset({CARD_DESTRUCTION, SPECTRAL_GENERATION}),
     "canio": frozenset({FACE_DESTRUCTION_SCALING}),
-    "glassjoker": frozenset({GLASS_DESTRUCTION_SCALING}),
     "baron": frozenset({HELD_KING_XMULT, RANK_PAYOFF_KINGS}),
     "baronjoker": frozenset({HELD_KING_XMULT, RANK_PAYOFF_KINGS}),
     "triboulet": frozenset({PLAYED_KING_QUEEN_XMULT, RANK_PAYOFF_KINGS, RANK_PAYOFF_QUEENS}),
@@ -211,8 +244,8 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "smearedjoker": frozenset({SUIT_MERGE_RED_BLACK}),
     "sockandbuskin": frozenset({RETRIGGER_PLAYED_FACE}),
     "sockandbuskinjoker": frozenset({RETRIGGER_PLAYED_FACE}),
-    "hack": frozenset({RETRIGGER_PLAYED_LOW_RANK}),
-    "hackjoker": frozenset({RETRIGGER_PLAYED_LOW_RANK}),
+    "hack": frozenset({RETRIGGER_PLAYED_LOW_RANK, LOW_RANK_RETRIGGER}),
+    "hackjoker": frozenset({RETRIGGER_PLAYED_LOW_RANK, LOW_RANK_RETRIGGER}),
     "hangingchad": frozenset({RETRIGGER_FIRST_SCORED}),
     "dusk": frozenset({RETRIGGER_FINAL_HAND}),
     "duskjoker": frozenset({RETRIGGER_FINAL_HAND}),
@@ -221,6 +254,60 @@ _LEGACY_NAME_MECHANICS: dict[str, frozenset[str]] = {
     "dnajoker": frozenset({DUPLICATE_SELECTED_CARD}),
     "hologram": frozenset({SCALE_ON_CARD_ADDED}),
     "hologramjoker": frozenset({SCALE_ON_CARD_ADDED}),
+
+    "scholar": frozenset({ACE_CHIPS_MULT}),
+    "scholarjoker": frozenset({ACE_CHIPS_MULT}),
+    "fibonacci": frozenset({LOW_RANK_FIBONACCI_MULT}),
+    "fibonaccijoker": frozenset({LOW_RANK_FIBONACCI_MULT}),
+    "greenjoker": frozenset({NO_DISCARD_SCALING}),
+    "burglar": frozenset({DISCARDS_TO_HANDS}),
+    "burglarjoker": frozenset({DISCARDS_TO_HANDS}),
+    "delayedgratification": frozenset({NO_DISCARD_ECONOMY}),
+    "delayedgratificationjoker": frozenset({NO_DISCARD_ECONOMY}),
+    "ramen": frozenset({NO_DISCARD_XMULT}),
+    "ramenjoker": frozenset({NO_DISCARD_XMULT}),
+    "banner": frozenset({UNUSED_DISCARD_CHIPS}),
+    "bannerjoker": frozenset({UNUSED_DISCARD_CHIPS}),
+    "bull": frozenset({CASH_CHIPS}),
+    "bulljoker": frozenset({CASH_CHIPS}),
+    "bootstraps": frozenset({CASH_MULT}),
+    "bootstrapsjoker": frozenset({CASH_MULT}),
+    "rocket": frozenset({ROUND_CASH_GROWTH}),
+    "rocketjoker": frozenset({ROUND_CASH_GROWTH}),
+    "goldenjoker": frozenset({PASSIVE_CASH}),
+    "tothemoon": frozenset({INTEREST_AMPLIFICATION}),
+    "tothemoonjoker": frozenset({INTEREST_AMPLIFICATION}),
+    "satellite": frozenset({UNIQUE_PLANET_CASH}),
+    "satellitejoker": frozenset({UNIQUE_PLANET_CASH}),
+    "cloud9": frozenset({RANK_NINE_CASH}),
+    "cloud9joker": frozenset({RANK_NINE_CASH}),
+    "luckycat": frozenset({LUCKY_TRIGGER_SCALING}),
+    "luckycatjoker": frozenset({LUCKY_TRIGGER_SCALING}),
+    "oopsall6s": frozenset({PROBABILITY_DOUBLING}),
+    "oopsall6sjoker": frozenset({PROBABILITY_DOUBLING}),
+    "glassjoker": frozenset({GLASS_DESTRUCTION_SCALING, GLASS_PAYOFF}),
+    "photograph": frozenset({FACE_XMULT_FIRST}),
+    "photographjoker": frozenset({FACE_XMULT_FIRST}),
+    "scaryface": frozenset({FACE_CHIPS}),
+    "scaryfacejoker": frozenset({FACE_CHIPS}),
+    "smileyface": frozenset({FACE_MULT}),
+    "smileyfacejoker": frozenset({FACE_MULT}),
+    "businesscard": frozenset({FACE_CASH}),
+    "businesscardjoker": frozenset({FACE_CASH}),
+    "bloodstone": frozenset({SUIT_HEARTS_XMULT}),
+    "lustyjoker": frozenset({SUIT_HEARTS_MULT}),
+    "arrowhead": frozenset({SUIT_SPADES_CHIPS}),
+    "wrathfuljoker": frozenset({SUIT_SPADES_MULT}),
+    "onyxagate": frozenset({SUIT_CLUBS_MULT}),
+    "gluttonousjoker": frozenset({SUIT_CLUBS_MULT}),
+    "roughgem": frozenset({SUIT_DIAMONDS_CASH}),
+    "greedyjoker": frozenset({SUIT_DIAMONDS_MULT}),
+    "weejoker": frozenset({LOW_RANK_TWO_SCALING}),
+    "evensteven": frozenset({LOW_RANK_EVEN_MULT}),
+    "evenstevenjoker": frozenset({LOW_RANK_EVEN_MULT}),
+    "walkietalkie": frozenset({LOW_RANK_FOUR_TEN}),
+    "walkietalkiejoker": frozenset({LOW_RANK_FOUR_TEN}),
+    "stonejoker": frozenset({STONE_PAYOFF}),
 }
 
 
