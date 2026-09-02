@@ -149,15 +149,13 @@ Validated green.
 
 Validated green after fixing the Phase E circular import.
 
-Canonical sparse relationships:
-
-Positive:
+Canonical sparse positive relationships:
 - Held Cards + Steel
 - Held Cards + Held Retrigger
 - Steel + Held Retrigger
 - Card Destruction + Deck Thinning
 
-Conflicts:
+Canonical conflicts:
 - Discard + No Discard
 - Face Cards + No Face Cards
 - Enhancement Consumption + Enhanced Cards
@@ -170,7 +168,7 @@ Canonical motif layer initially contains one exceptional package only:
 Baron + Mime + at least two Steel Kings
 ```
 
-No prescriptions or named-strategy authority exist in the canonical motif output. Legacy `motifs.py` remains cleanup-only until its remaining consumers migrate.
+No prescriptions or named-strategy authority exist in canonical motif output. Legacy `motifs.py` remains cleanup-only until its final consumers migrate.
 
 ## Phase F — Canonical `BuildValue(state)` — COMPLETE
 
@@ -178,47 +176,43 @@ Validated green.
 
 - `games/balatro/bonds/build_value.py` is the single canonical whole-build value evaluator.
 - It exposes Bond, relationship, motif subtotals and full diagnostics.
-- Exact composition is:
-
-```text
-BuildValue = bond_total + relationship_total + motif_total
-```
-
+- Exact composition is `BuildValue = bond_total + relationship_total + motif_total`.
 - BuildValue does not project candidates or choose actions.
 
-## Phase G — Projected-state `StrategyDelta(candidate)` — ACTIVE
+## Phase G — Projected-state `StrategyDelta(candidate)` — COMPLETE
 
-Current implementation pending local validation:
+Validated green after fixing missing projected Bonds to count as fully removed realized structure.
 
 - `games/balatro/bonds/strategy_delta.py` compares canonical current/projected BuildValue.
-- `strategy_delta_from_states(current_state, projected_state)` is the canonical state comparison boundary.
-- `strategy_delta(candidate, state, projector=...)` is a thin adapter that delegates candidate simulation to the caller-owned domain projector.
-- This avoids inventing a second universal candidate simulator; Phase H decision owners retain exact legality/mechanics projection ownership.
+- `strategy_delta_from_states(current_state, projected_state)` is the canonical state-comparison boundary.
+- `strategy_delta(candidate, state, projector=...)` delegates candidate simulation to the caller-owned domain projector.
 - Default transition inertia is `5%` of removed realized Bond value.
-- Removed relationship/motif value is **not** charged a second time as inertia because it already appears in raw BuildValue delta.
+- Relationship/motif losses are not charged twice as transition inertia.
+- Deepening structure gives positive delta; removal adds small inertia; materially stronger alternatives can still win.
 - No strategy identity, commitment state, pivot FSM, or prescription fields exist in `StrategyDelta`.
 
-Phase G completion gate:
+## Phase H — Integrate canonical strategic decision owners — ACTIVE
 
-1. compatible/deepening projected state gives positive delta;
-2. removal of realized structure yields a small additional transition cost;
-3. materially stronger alternative can still overcome inertia;
-4. candidate adapter demonstrably uses caller-owned projector;
-5. no hard gameplay constraints move into StrategyDelta;
-6. focused BuildValue/Bond suites remain green.
+First active vertical slice: Joker acquisition/replacement.
 
-## Phase H — Integrate canonical strategic decision owners
+- `games/balatro/joker_policy.py` previously contained a parallel `_bond_transition_bonus()` that re-evaluated Bond ranks, composition coherence, legacy motifs, pinned strategies, `StrategyPlan` progress, conflicts, and pivot state.
+- That parallel authority is being replaced by exactly one caller-projected canonical `StrategyDelta` term at the existing D2 Joker utility boundary.
+- D2's native `JokerBuildTransitionPlanner` continues to own literal mechanical/build projection.
+- Joker transaction economics, affordability, slot handling, early-run safety, and existing admission rules remain authoritative and unchanged by the strategic layer.
+- Initial integration weight is deliberately conservative and remains a Phase L tuning parameter rather than architecture.
 
-After Phase G green, wire the same `StrategyDelta` into persistent build decisions:
+After Joker integration is green, continue through persistent build domains:
 
-- Joker acquisition/replacement/sale;
-- booster choices;
-- Tarot/Spectral use;
-- deck destruction/transformation/enhancement;
-- Planet/hand development;
-- other persistent construction choices.
+1. booster/pack choices;
+2. Tarot/Spectral use and persistent deck transformations;
+3. Planet/hand development;
+4. remaining persistent construction choices.
 
-Do not wire Bonds directly by name. Delete obsolete strategic paths as each consumer migrates.
+For each domain:
+- use the domain's existing legal/mechanical projector;
+- add one `StrategyDelta` term at the final value boundary;
+- remove the obsolete Bond-specific/strategy-plan scoring path it replaces;
+- do not wire individual Bond IDs into the decision owner.
 
 ## Phase I — Verify tactical exploitation
 
@@ -256,15 +250,12 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 
 # Exact next action
 
-**Validate Phase G canonical projected StrategyDelta.**
+**Validate the first Phase H Joker StrategyDelta integration slice.**
 
-After green:
-
-1. mark Phase G complete;
-2. inspect existing canonical Joker/shop/pack/consumable projectors and decision owners;
-3. begin Phase H with the narrowest persistent-decision vertical slice;
-4. integrate one shared `StrategyDelta` value rather than Bond-specific bonuses;
-5. delete the obsolete strategic scoring path that slice replaces.
+1. Prove Joker add/replacement uses caller-owned public state projection and canonical `StrategyDelta`.
+2. Prove native D2 build gain and economics remain separate inputs rather than being replaced by strategic value.
+3. Prove the old composition/pinned-strategy/StrategyPlan imports are absent from the Joker policy.
+4. If green, continue immediately to the canonical pack/booster decision owner and repeat the same migration pattern.
 
 # Progress criterion
 
