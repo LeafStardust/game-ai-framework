@@ -17,6 +17,7 @@ from games.balatro.bonds.mechanical_core import (
     evaluate_steel_bond,
 )
 from games.balatro.bonds.mechanical_engines import MECHANICAL_ENGINE_EVALUATORS
+from games.balatro.bonds.mechanical_rank_consumables import MECHANICAL_RANK_CONSUMABLE_EVALUATORS
 from games.balatro.bonds.model import BondDevelopment
 from games.balatro.bonds.no_face_cards import evaluate_no_face_cards_bond
 from games.balatro.bonds.realization import FROZEN_BOND_IDS, realize_bond
@@ -47,6 +48,7 @@ for legacy_id in (
     "steel",
     "deck_thinning",
     *MECHANICAL_ENGINE_EVALUATORS,
+    *MECHANICAL_RANK_CONSUMABLE_EVALUATORS,
 ):
     EVALUATORS.pop(legacy_id, None)
 
@@ -60,6 +62,7 @@ canonical_evaluators: dict[str, BondEvaluator] = {
     "no_face_cards": evaluate_no_face_cards_bond,
     "enhancement_consumption": evaluate_enhancement_consumption_bond,
     **MECHANICAL_ENGINE_EVALUATORS,
+    **MECHANICAL_RANK_CONSUMABLE_EVALUATORS,
 }
 for bond_id, evaluator in canonical_evaluators.items():
     if bond_id in EVALUATORS:
