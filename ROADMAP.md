@@ -41,34 +41,11 @@ def bond_strength(points: float) -> float:
 ```
 
 ```text
-BondValue
-= bond_strength(points)
-× realization
-× optional calibration weight
-```
-
-```text
-RelationshipValue
-= coefficient × min(BondValueA, BondValueB)
-```
-
-```text
-MotifValue
-= completion × estimated_payoff
-```
-
-```text
-BuildValue(state)
-= Σ BondValue
-+ Σ RelationshipValue
-+ Σ MotifValue
-```
-
-```text
-StrategyDelta(candidate)
-= BuildValue(projected_state_after_candidate)
-- BuildValue(current_state)
-- transition_cost
+BondValue = bond_strength(points) × realization × optional calibration weight
+RelationshipValue = coefficient × min(BondValueA, BondValueB)
+MotifValue = completion × estimated_payoff
+BuildValue(state) = Σ BondValue + Σ RelationshipValue + Σ MotifValue
+StrategyDelta(candidate) = BuildValue(projected) - BuildValue(current) - transition_cost
 ```
 
 Transition cost is small inertia against near-equal thrashing, not a strategy state machine.
@@ -112,120 +89,107 @@ NO obsolete compatibility wrappers/tests/docs
 
 ## Phase A — Freeze Bond vocabulary — COMPLETE
 
-Validated green.
-
-- 46 canonical Bonds.
-- Renames: `burnt → hand_leveling`, `gold_economy → gold_cards`, `vampire → enhancement_consumption`.
+Validated green. 46 canonical Bonds; canonical renames are `burnt → hand_leveling`, `gold_economy → gold_cards`, and `vampire → enhancement_consumption`.
 
 ## Phase B — Mechanical descriptors — COMPLETE
 
-Validated green.
-
-- `games/balatro/mechanics.py` is the canonical public mechanics surface.
-- All production Bond evaluators use mechanics and/or direct public state rather than local name-driven strategy tables.
-- Reachable rank geometry audited, including suit ladder `3 / 6 / 10 / 14 / 19`.
+Validated green. `games/balatro/mechanics.py` is the canonical public mechanics surface and production Bond evaluators use mechanics/direct public state rather than local strategy-name tables.
 
 ## Phase C — Mechanics → Bond contributions — COMPLETE
 
-Validated green across all 46 Bonds.
-
-- `games/balatro/bonds/contributions.py` owns keyed contribution normalization.
-- Every emitted production contribution has `source_id` and `mechanic` diagnostics.
-- Same source counts at most once within a Bond, but may support multiple Bonds.
-- Current/projected evaluation is stateless and symmetric.
+Validated green across all 46 Bonds. `games/balatro/bonds/contributions.py` owns keyed contribution normalization; the same source counts at most once within a Bond but may support multiple Bonds.
 
 ## Phase D — Bond strategic value — COMPLETE
 
-Validated green.
-
-- `games/balatro/bonds/strategic_value.py` owns canonical per-Bond value.
-- Nonlinear strength uses exponent `1.35`.
-- Realization factors: `DORMANT 0.0`, `PARTIAL 0.35`, `ACTIVE 0.75`, `MATURE 1.0`.
-- Locked Bonds have zero value.
-- Ranks are diagnostics only.
-- Optional calibration weights default to `1.0`.
+Validated green. `games/balatro/bonds/strategic_value.py` owns nonlinear per-Bond value with exponent `1.35`, realization factors `0 / 0.35 / 0.75 / 1.0`, ranks as diagnostics only, and optional calibration weights.
 
 ## Phase E — Sparse relationships and exceptional motifs — COMPLETE
 
-Validated green after fixing the Phase E circular import.
+Validated green.
 
-Canonical sparse positive relationships:
+Positive relationships:
 - Held Cards + Steel
 - Held Cards + Held Retrigger
 - Steel + Held Retrigger
 - Card Destruction + Deck Thinning
 
-Canonical conflicts:
+Conflicts:
 - Discard + No Discard
 - Face Cards + No Face Cards
 - Enhancement Consumption + Enhanced Cards
 
-Unlisted pairs are neutral.
-
-Canonical motif layer initially contains one exceptional package only:
-
-```text
-Baron + Mime + at least two Steel Kings
-```
-
-No prescriptions or named-strategy authority exist in canonical motif output. Legacy `motifs.py` remains cleanup-only until its final consumers migrate.
+Unlisted pairs are neutral. Canonical exceptional motif scope currently contains only Baron + Mime + at least two Steel Kings.
 
 ## Phase F — Canonical `BuildValue(state)` — COMPLETE
 
-Validated green.
-
-- `games/balatro/bonds/build_value.py` is the single canonical whole-build value evaluator.
-- It exposes Bond, relationship, motif subtotals and full diagnostics.
-- Exact composition is `BuildValue = bond_total + relationship_total + motif_total`.
-- BuildValue does not project candidates or choose actions.
+Validated green. `games/balatro/bonds/build_value.py` is the single whole-build evaluator and exposes Bond, relationship, motif, and total diagnostics without choosing actions.
 
 ## Phase G — Projected-state `StrategyDelta(candidate)` — COMPLETE
 
-Validated green after fixing missing projected Bonds to count as fully removed realized structure.
+Validated green after correcting disappeared projected Bonds to count as fully removed realized structure.
 
-- `games/balatro/bonds/strategy_delta.py` compares canonical current/projected BuildValue.
 - `strategy_delta_from_states(current_state, projected_state)` is the canonical state-comparison boundary.
 - `strategy_delta(candidate, state, projector=...)` delegates candidate simulation to the caller-owned domain projector.
 - Default transition inertia is `5%` of removed realized Bond value.
-- Relationship/motif losses are not charged twice as transition inertia.
-- Deepening structure gives positive delta; removal adds small inertia; materially stronger alternatives can still win.
+- Relationship/motif losses are not charged twice as inertia.
 - No strategy identity, commitment state, pivot FSM, or prescription fields exist in `StrategyDelta`.
 
 ## Phase H — Integrate canonical strategic decision owners — ACTIVE
 
-First active vertical slice: Joker acquisition/replacement.
+### H1 — Joker acquisition/replacement — COMPLETE
 
-- `games/balatro/joker_policy.py` previously contained a parallel `_bond_transition_bonus()` that re-evaluated Bond ranks, composition coherence, legacy motifs, pinned strategies, `StrategyPlan` progress, conflicts, and pivot state.
-- That parallel authority is being replaced by exactly one caller-projected canonical `StrategyDelta` term at the existing D2 Joker utility boundary.
-- D2's native `JokerBuildTransitionPlanner` continues to own literal mechanical/build projection.
-- Joker transaction economics, affordability, slot handling, early-run safety, and existing admission rules remain authoritative and unchanged by the strategic layer.
-- Initial integration weight is deliberately conservative and remains a Phase L tuning parameter rather than architecture.
+Validated green.
 
-After Joker integration is green, continue through persistent build domains:
+- The old Joker transition bonus based on Bond ranks, composition coherence, pinned strategy, `StrategyPlan`, legacy motifs, and pivot state has been removed from the production Joker policy.
+- The installed post-transaction D2 authority now combines:
 
-1. booster/pack choices;
-2. Tarot/Spectral use and persistent deck transformations;
-3. Planet/hand development;
-4. remaining persistent construction choices.
+```text
+post-transaction native mechanical gain
++ 0.10 × canonical StrategyDelta
++ existing transaction economics
+```
 
-For each domain:
-- use the domain's existing legal/mechanical projector;
-- add one `StrategyDelta` term at the final value boundary;
-- remove the obsolete Bond-specific/strategy-plan scoring path it replaces;
-- do not wire individual Bond IDs into the decision owner.
+- Affordability, slot handling, early-run safety, and mechanically negative replacement rejection remain authoritative.
+
+### H2 — Booster/pack persistent choices — COMPLETE
+
+Validated green.
+
+- The historical StrategyPlan/Bond-goal pack bonus has been replaced by projected canonical StrategyDelta for exact persistent PLAYING_CARD and PLANET pack outcomes.
+- Playing-card projection appends the materialized card to persistent deck state.
+- Planet projection increments the relevant public hand level.
+- Base pack legality, literal value, stochastic expectation, and Skip remain authoritative.
+- `_goal_ids` / `_playing_card_matches` remain temporarily as inert compatibility helpers only; production pack scoring does not call them. Remove at Phase K once final import users are migrated.
+
+### H3 — Tarot/Spectral persistent deck transformations — ACTIVE
+
+Current implementation pending local validation:
+
+- `ContextualConsumableTargetEvaluator` remains the canonical owner for deterministic target legality and literal/contextual target quality.
+- `games/balatro/consumable_strategy_delta_policy.py` reuses the real deterministic consumable `can_use/use` implementation on a deep-copied public state.
+- Exact transformed hand cards are synchronized into authoritative `owned_deck` by public `live_id` when live observation uses separate card objects.
+- Hanged Man uses the existing shared permanent playing-card destruction semantics rather than duplicating them.
+- Only already-positive deterministic target evaluations receive the conservative `0.10 × StrategyDelta` adjustment.
+- Stochastic/generation/economy-only/Joker-targeted/unsupported consumables remain outside this projection path and fail closed.
+- No individual Bond IDs or StrategyPlan goals are wired into the target owner.
+
+H3 completion gate:
+1. exact enhancement projection updates projected persistent deck without mutating current state;
+2. Hanged Man projection removes the persistent target via shared destruction semantics;
+3. canonical StrategyDelta is applied to positive deterministic targets;
+4. non-positive targets cannot be rescued by strategy value;
+5. stochastic consumables do not manufacture deterministic projected state;
+6. focused target/consumable regressions are green.
+
+After H3 is green, continue to remaining Planet/hand-development and persistent construction owners that are not already covered by pack projection.
 
 ## Phase I — Verify tactical exploitation
 
-Verify canonical tactical owners exploit constructed engines, especially:
-
-- Burnt first-discard hand leveling;
-- card destruction/deck thinning;
-- held cards/Steel/held retrigger.
+Verify canonical tactical owners exploit constructed engines, especially Burnt first-discard hand leveling, card destruction/deck thinning, and held cards/Steel/held retrigger.
 
 ## Phase J — Deterministic end-to-end proofs
 
 Minimum representative paths:
-
 1. Hand Leveling / Discard / Hand Development
 2. Card Destruction / Deck Thinning
 3. Held Cards / Steel / Held Retrigger
@@ -238,11 +202,7 @@ Repository-wide audit must confirm no production dependency on rejected commitme
 
 ## Phase L — Targeted live validation and tuning
 
-Only after deterministic proofs and cleanup are green:
-
-- Red Deck / White Stake local runs;
-- inspect coherent build emergence, bait rejection, preservation, justified pivots;
-- tune contribution weights, curve, realization, relationships, motif payoff, transition cost, and integration weight.
+Only after deterministic proofs and cleanup are green: run Red Deck / White Stake locally, inspect coherent build emergence/bait rejection/preservation/justified pivots, then tune contribution weights, curve, realization, relationships, motif payoff, transition cost, and integration weights.
 
 ## Phase M — Broader competence
 
@@ -250,12 +210,13 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 
 # Exact next action
 
-**Validate the first Phase H Joker StrategyDelta integration slice.**
+**Validate the Phase H deterministic Tarot/Spectral StrategyDelta slice.**
 
-1. Prove Joker add/replacement uses caller-owned public state projection and canonical `StrategyDelta`.
-2. Prove native D2 build gain and economics remain separate inputs rather than being replaced by strategic value.
-3. Prove the old composition/pinned-strategy/StrategyPlan imports are absent from the Joker policy.
-4. If green, continue immediately to the canonical pack/booster decision owner and repeat the same migration pattern.
+1. Prove exact card transforms project the real persistent result.
+2. Prove destruction uses canonical permanent-card destruction semantics.
+3. Prove strategy augments only already-positive legal deterministic targets.
+4. Prove stochastic/unsupported effects remain fail-closed.
+5. If green, continue immediately to the remaining persistent hand-development/construction owners.
 
 # Progress criterion
 
@@ -275,4 +236,4 @@ mechanical semantics
 
 Controlling question:
 
-> **Does this candidate leave the run with a stronger coherent Balatro engine, and can the rest of the agent exploit that engine to win?**
+> **Does this candidate leave the run with a stronger coherent Balatro engine, and can the rest of the agent actually exploit that engine to win?**
