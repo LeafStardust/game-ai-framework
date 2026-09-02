@@ -76,6 +76,19 @@ def _no_economy_thresholds() -> ConsumableAcquisitionThresholds:
     )
 
 
+def _decision_debug(decision) -> str:
+    decide = ConsumableAcquisitionPolicy.decide
+    code = getattr(decide, "__code__", None)
+    return (
+        f"decision={decision!r}; "
+        f"decide_module={getattr(decide, '__module__', None)!r}; "
+        f"decide_qualname={getattr(decide, '__qualname__', None)!r}; "
+        f"decide_file={getattr(code, 'co_filename', None)!r}; "
+        f"planet_relevance_installed="
+        f"{getattr(ConsumableAcquisitionPolicy, '_planet_relevance_installed', False)!r}"
+    )
+
+
 def _held_pair_planet_state() -> tuple[BalatroState, object]:
     state = BalatroState()
     state.phase = "SELECTING_HAND"
@@ -123,7 +136,7 @@ def test_h4_shop_planet_score_adds_point_one_times_canonical_strategy_delta(monk
         evaluator=_PositiveEvaluator(),
     ).decide(state, mercury)
 
-    assert decision.action == BUY
+    assert decision.action == BUY, _decision_debug(decision)
     assert decision.selected is not None
     assert decision.selected.strategy_delta_value == pytest.approx(6.0)
     assert decision.selected.strategy_adjustment == pytest.approx(0.6)
@@ -175,6 +188,6 @@ def test_h4_production_shop_has_no_legacy_bond_rank_planet_veto():
         evaluator=_PositiveEvaluator(),
     ).decide(state, neptune)
 
-    assert decision.action == BUY
+    assert decision.action == BUY, _decision_debug(decision)
     assert decision.selected is not None
     assert all("Planet relevance veto" not in note for note in decision.rationale)
