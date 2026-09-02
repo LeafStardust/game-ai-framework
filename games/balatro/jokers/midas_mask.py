@@ -1,8 +1,10 @@
 from games.balatro.hand_rules import card_is_face
 from games.balatro.joker import Joker, JokerContext
+from games.balatro.mechanics import ENHANCEMENT_FEED_ACCESS, GOLD_CARD_GENERATION
 
 
 class MidasMaskJoker(Joker):
+    mechanics = frozenset({GOLD_CARD_GENERATION, ENHANCEMENT_FEED_ACCESS})
 
     def apply(self, context: JokerContext) -> JokerContext:
         if context.trigger == "HAND_PLAYED":
