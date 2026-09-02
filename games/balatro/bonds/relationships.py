@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Iterable
+from typing import TYPE_CHECKING, Iterable
 
-from games.balatro.bonds.strategic_value import BondStrategicValue
+if TYPE_CHECKING:
+    from games.balatro.bonds.strategic_value import BondStrategicValue
 
 
 class BondRelationship(StrEnum):
