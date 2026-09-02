@@ -26,9 +26,7 @@ def comp(*bond_ids, coherence=100.0, motifs=()):
         conflicts=(),
         synergies=(),
         coherence_score=coherence,
-        pivot_resistance=5.0,
         motif_distance=(),
-        prescriptions=(),
     )
 
 
