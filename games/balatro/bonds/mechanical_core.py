@@ -9,9 +9,9 @@ from games.balatro.mechanics import (
     DECK_THIN_PAYOFF,
     HAND_LEVEL_COPY,
     RETRIGGER_HELD_CARDS,
+    SPECTRAL_GENERATION,
     STEEL_CARD_PAYOFF,
     component_has_mechanic,
-    components_have_mechanic,
     components_with_mechanic,
 )
 
@@ -152,11 +152,7 @@ def evaluate_deck_thinning_bond(state: Any) -> BondDevelopment:
         if component_has_mechanic(component, DECK_THIN_PAYOFF):
             parts.append(BondContribution(_source_label(component, "Deck-thin payoff"), 7.0))
         if component_has_mechanic(component, CARD_DESTRUCTION):
-            # Trading Card and Sixth Sense historically contribute different
-            # amounts; use the explicit Spectral side effect to preserve the
-            # latter's lower structural weighting without name checks.
-            mechanics = getattr(component, "mechanics", ()) or ()
-            value = 4.0 if "spectral_generation" in mechanics else 5.0
+            value = 4.0 if component_has_mechanic(component, SPECTRAL_GENERATION) else 5.0
             parts.append(BondContribution(_source_label(component, "Card-destruction engine"), value))
 
     deck = _owned_deck(state)
