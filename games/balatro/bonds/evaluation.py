@@ -23,8 +23,6 @@ from games.balatro.bonds.mechanical_residue import MECHANICAL_RESIDUE_EVALUATORS
 from games.balatro.bonds.model import BondDevelopment
 from games.balatro.bonds.no_face_cards import evaluate_no_face_cards_bond
 from games.balatro.bonds.realization import FROZEN_BOND_IDS, realize_bond
-from games.balatro.bonds.strategy_development import reinforce_developments
-from games.balatro.bonds.strategy_semantics import pinned_strategy
 from games.balatro.bonds.vampire import evaluate_enhancement_consumption_bond
 
 BondEvaluator = Callable[[Any], BondDevelopment]
@@ -104,13 +102,12 @@ def evaluate_all_bonds(state: Any) -> tuple[BondDevelopment, ...]:
 
 
 def evaluate_bond_composition(state: Any) -> tuple[tuple[BondDevelopment, ...], Composition]:
-    """Legacy composition entry point retained only while consumers migrate."""
-    raw = evaluate_all_bonds(state)
-    initial = compose_build(state, raw)
-    pinned = pinned_strategy(initial.strategy_candidates)
-    reinforced = reinforce_developments(raw, pinned)
-    if reinforced == raw:
-        return raw, initial
+    """Return raw mechanical Bond developments plus diagnostic composition.
 
-    realized = tuple(realize_bond(dev, state) for dev in reinforced)
-    return realized, compose_build(state, realized)
+    Composition must not feed strategy identity or commitment back into Bond
+    contribution/rank. Production strategic value is owned by BuildValue and
+    StrategyDelta; this entry point remains only while diagnostic/mechanical
+    consumers migrate.
+    """
+    raw = evaluate_all_bonds(state)
+    return raw, compose_build(state, raw)

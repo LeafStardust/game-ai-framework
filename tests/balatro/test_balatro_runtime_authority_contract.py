@@ -38,13 +38,9 @@ _RETIRED_RUNTIME_TOKENS = (
 )
 
 _REQUIRED_BOND_RUNTIME_TOKENS = (
-    "install_bond_pivot_authority",
-    "install_bond_power_engine_retention_policy",
-    "install_bond_prescription_policy",
     "install_bond_shop_health_policy",
-    "install_strategy_plan_pack_policy",
+    "install_pack_strategy_delta_policy",
     "install_strategy_resource_coherence_policy",
-    "install_pinned_strategy_execution_policy",
 )
 
 

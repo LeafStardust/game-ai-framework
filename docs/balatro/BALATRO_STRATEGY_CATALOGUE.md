@@ -96,4 +96,8 @@ Flower Pot  -> tactical/motif valuation
 
 ## Current stage
 
-The live agent has migrated to the canonical Bond/composition architecture. Keep the 46-Bond catalogue stable while collecting runtime evidence, auditing realization and contribution calibration, and validating composition-driven health, pivots, prescriptions, and telemetry. Do not reintroduce categorical strategy tiers as a compatibility layer.
+The live agent has migrated to canonical Bond contributions, realization,
+relationships/motifs, `BuildValue`, and projected `StrategyDelta`. Keep the
+46-Bond catalogue stable while collecting runtime evidence and auditing
+realization/contribution calibration. Do not reintroduce categorical strategy
+tiers, commitment controllers, pivot FSMs, or prescription overlays.

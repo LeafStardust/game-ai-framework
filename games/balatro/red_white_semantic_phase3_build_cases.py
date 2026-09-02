@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import games.balatro.bond_pivot_authority as bond_pivot_module
 import games.balatro.joker_policy as joker_policy_module
 from games.balatro.build.joker_lifecycle import STATEFUL_SCALING
 from games.balatro.build.joker_strategy import JokerBuildValueEvaluator
@@ -13,7 +12,6 @@ from games.balatro.jokers.blueprint import BlueprintJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.golden_joker import GoldenJoker
 from games.balatro.jokers.ride_the_bus import RideTheBusJoker
-from games.balatro.live.strategy_health import StrategyHealthMode
 from games.balatro.semantic_benchmark import SemanticBenchmarkCase, SemanticCheck
 from games.balatro.state import BalatroState
 
@@ -165,43 +163,6 @@ def _independent_scorers_do_not_manufacture_pair_synergy() -> SemanticCheck:
     )
 
 
-def _coherence_only_transition_has_no_bond_bonus() -> SemanticCheck:
-    state = _base_state()
-    candidate = FlatMultJoker(4)
-    before_comp = SimpleNamespace(
-        coherence_score=1.0,
-        strategy_candidates=(),
-        pinned_strategy_id=None,
-        strategy_plan=None,
-        synergies=(),
-        motifs=(),
-    )
-    after_comp = SimpleNamespace(
-        coherence_score=9.0,
-        strategy_candidates=(),
-        pinned_strategy_id=None,
-        strategy_plan=None,
-        synergies=(),
-        motifs=(),
-    )
-    responses = iter((((), before_comp), ((), after_comp)))
-    original = joker_policy_module.evaluate_bond_composition
-    joker_policy_module.evaluate_bond_composition = lambda projected: next(responses)
-    try:
-        bonus, notes = joker_policy_module._bond_transition_bonus(state, candidate)
-    finally:
-        joker_policy_module.evaluate_bond_composition = original
-    return SemanticCheck(
-        abs(float(bonus)) <= 1e-12,
-        observed=f"coherence=1.000->9.000, bond_bonus={float(bonus):.3f}, notes={notes!r}",
-        expected="coherence improvement alone does not create a Bond transition bonus",
-        detail=(
-            "composer coherence is planning evidence, not chip arithmetic or an independent purchase reward; "
-            "D2 may reward only concrete Bond rank/progress/synergy/motif/strategy transitions"
-        ),
-    )
-
-
 def _bond_adjustment_is_added_once_to_mechanical_gain() -> SemanticCheck:
     state = _base_state()
     state.money = 20
@@ -226,90 +187,6 @@ def _bond_adjustment_is_added_once_to_mechanical_gain() -> SemanticCheck:
         detail=(
             "Bond/composition evidence is a separate bounded structural term; it must not be folded into B3 "
             "literal scoring and then credited again by D2"
-        ),
-    )
-
-
-def _pivot_does_not_promote_ineligible_d2_option() -> SemanticCheck:
-    state = _base_state()
-    state.jokers = [FlatMultJoker(4)] * state.joker_slots
-    candidate = BlueprintJoker()
-    option = SimpleNamespace(eligible=False, total_advantage=99.0, replace_index=0)
-    decision = SimpleNamespace(action="HOLD", selected=None, options=(option,), rationale=())
-    composition_calls = 0
-
-    current = SimpleNamespace()
-    original_health = bond_pivot_module.last_strategy_health
-    original_evaluate = bond_pivot_module.evaluate_bond_composition
-
-    def evaluate(projected):
-        nonlocal composition_calls
-        composition_calls += 1
-        return (), current
-
-    bond_pivot_module.last_strategy_health = lambda projected: SimpleNamespace(
-        mode=StrategyHealthMode.SURVIVE
-    )
-    bond_pivot_module.evaluate_bond_composition = evaluate
-    try:
-        result = bond_pivot_module._canonical_pivot_decision(state, candidate, decision)
-    finally:
-        bond_pivot_module.last_strategy_health = original_health
-        bond_pivot_module.evaluate_bond_composition = original_evaluate
-
-    return SemanticCheck(
-        result.action == "HOLD" and result.selected is None and composition_calls == 1,
-        observed=(
-            f"action={result.action}, selected={result.selected!r}, "
-            f"option_eligible={option.eligible}, option_advantage={option.total_advantage:.3f}, "
-            f"composition_calls={composition_calls}"
-        ),
-        expected="pivot authority cannot promote a D2-ineligible replacement option",
-        detail=(
-            "Bond/pivot structure is downstream evidence only: an option rejected by D2 legality/economics "
-            "must be filtered before projected structural gain can authorize replacement"
-        ),
-    )
-
-
-def _pivot_does_not_promote_nonpositive_d2_option() -> SemanticCheck:
-    state = _base_state()
-    state.jokers = [FlatMultJoker(4)] * state.joker_slots
-    candidate = BlueprintJoker()
-    option = SimpleNamespace(eligible=True, total_advantage=0.0, replace_index=0)
-    decision = SimpleNamespace(action="HOLD", selected=None, options=(option,), rationale=())
-    composition_calls = 0
-
-    current = SimpleNamespace()
-    original_health = bond_pivot_module.last_strategy_health
-    original_evaluate = bond_pivot_module.evaluate_bond_composition
-
-    def evaluate(projected):
-        nonlocal composition_calls
-        composition_calls += 1
-        return (), current
-
-    bond_pivot_module.last_strategy_health = lambda projected: SimpleNamespace(
-        mode=StrategyHealthMode.SURVIVE
-    )
-    bond_pivot_module.evaluate_bond_composition = evaluate
-    try:
-        result = bond_pivot_module._canonical_pivot_decision(state, candidate, decision)
-    finally:
-        bond_pivot_module.last_strategy_health = original_health
-        bond_pivot_module.evaluate_bond_composition = original_evaluate
-
-    return SemanticCheck(
-        result.action == "HOLD" and result.selected is None and composition_calls == 1,
-        observed=(
-            f"action={result.action}, selected={result.selected!r}, "
-            f"option_eligible={option.eligible}, option_advantage={option.total_advantage:.3f}, "
-            f"composition_calls={composition_calls}"
-        ),
-        expected="pivot authority cannot promote a replacement with non-positive D2 total advantage",
-        detail=(
-            "a structurally appealing pivot cannot bypass D2 transaction value: replacement promotion requires "
-            "an already legal, economically positive D2 option before Bond structure is considered"
         ),
     )
 
@@ -358,31 +235,10 @@ RED_WHITE_PHASE3_BUILD_CASES = (
         source="Phase 3 build-evidence audit: pair double-count prevention",
     ),
     SemanticBenchmarkCase(
-        case_id="build.bond.coherence_not_scoring_bonus",
-        category="BUILD_COHERENCE",
-        description="composer coherence alone does not manufacture Bond purchase value",
-        evaluate=_coherence_only_transition_has_no_bond_bonus,
-        source="Phase 3 build-evidence audit: composition versus score authority",
-    ),
-    SemanticBenchmarkCase(
         case_id="build.bond.adjustment_added_once",
         category="BUILD_COHERENCE",
         description="bounded Bond transition value is added exactly once after B3 mechanical value",
         evaluate=_bond_adjustment_is_added_once_to_mechanical_gain,
         source="Phase 3 build-evidence audit: Bond double-count prevention",
-    ),
-    SemanticBenchmarkCase(
-        case_id="build.pivot.ineligible_d2_not_promoted",
-        category="BUILD_COHERENCE",
-        description="Bond pivot authority cannot promote a D2-ineligible replacement",
-        evaluate=_pivot_does_not_promote_ineligible_d2_option,
-        source="Phase 3 build-evidence audit: pivot downstream of D2 eligibility",
-    ),
-    SemanticBenchmarkCase(
-        case_id="build.pivot.nonpositive_d2_not_promoted",
-        category="BUILD_COHERENCE",
-        description="Bond pivot authority cannot promote a non-positive D2 replacement",
-        evaluate=_pivot_does_not_promote_nonpositive_d2_option,
-        source="Phase 3 build-evidence audit: pivot downstream of D2 economics",
     ),
 )

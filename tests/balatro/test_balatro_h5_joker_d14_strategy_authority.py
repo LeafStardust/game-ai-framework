@@ -5,9 +5,6 @@ from types import SimpleNamespace
 
 import pytest
 
-from games.balatro.pinned_strategy_shop_goal_policy import (
-    install_pinned_strategy_shop_goal_policy,
-)
 from games.balatro.shop_utility_scale import ShopUtilityScale
 
 
@@ -37,15 +34,6 @@ def _state(**extra):
     }
     values.update(extra)
     return SimpleNamespace(**values)
-
-
-def test_h5_pinned_strategy_shop_goal_installer_is_compatibility_noop():
-    before = ShopUtilityScale.joker_gain
-
-    install_pinned_strategy_shop_goal_policy()
-
-    assert ShopUtilityScale.joker_gain is before
-    assert not getattr(ShopUtilityScale, "_pinned_strategy_shop_goal_installed", False)
 
 
 def test_h5_d14_joker_gain_ignores_legacy_strategy_metadata():

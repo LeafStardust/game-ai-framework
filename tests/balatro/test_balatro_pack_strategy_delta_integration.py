@@ -4,7 +4,7 @@ import inspect
 
 import pytest
 
-import games.balatro.strategy_plan_pack_policy as pack_strategy
+import games.balatro.pack_strategy_delta_policy as pack_strategy
 from games.balatro.state import BalatroState
 
 
@@ -92,12 +92,5 @@ def test_pack_production_scorer_no_longer_uses_legacy_plan_or_composition_author
     assert "StrategyCommitment" not in source_names
     assert "StrategyPlan" not in source_names
 
-    installer_source = inspect.getsource(pack_strategy.install_strategy_plan_pack_policy)
-    assert "_goal_ids(" not in installer_source
-    assert "_playing_card_matches(" not in installer_source
+    installer_source = inspect.getsource(pack_strategy.install_pack_strategy_delta_policy)
     assert "strategy_delta" in installer_source or "_strategy_adjustment" in installer_source
-
-
-def test_legacy_pack_helpers_are_inert_compatibility_only():
-    assert pack_strategy._goal_ids(None) == ()
-    assert pack_strategy._playing_card_matches("kings", {"rank": "King", "suit": "Hearts"})

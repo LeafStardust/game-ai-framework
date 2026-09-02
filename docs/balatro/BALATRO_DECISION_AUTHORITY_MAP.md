@@ -140,7 +140,9 @@ Red/White semantic benchmark SHOP: **9/9**.
 
 # D9 — opened pack authority
 
-`BalatroPackPolicy` is the final opened-pack action authority. Pack-specific valuation, strategy prescriptions, and literal mechanics remain subordinate evidence unless a later audit explicitly promotes a canonical owner.
+`BalatroPackPolicy` is the final opened-pack action authority. Pack-specific
+valuation, canonical projected `StrategyDelta`, and literal mechanics remain
+subordinate evidence unless a later audit explicitly promotes a canonical owner.
 
 ---
 

@@ -17,67 +17,8 @@ from games.balatro.planets import PLANET_CARDS
 
 
 _PACK_STRATEGY_WEIGHT = 0.10
-_MAX_TRACKED_GOALS = 3
-
-
 def _token(value) -> str:
     return "".join(ch for ch in str(value or "").lower() if ch.isalnum())
-
-
-def _rank(value) -> str:
-    raw = str(value or "").upper()
-    return {"KING": "K", "QUEEN": "Q", "JACK": "J", "ACE": "A", "T": "10"}.get(raw, raw)
-
-
-def _suit(value) -> str:
-    return str(value or "").lower().rstrip("s")
-
-
-def _enhancement(value) -> str:
-    token = _token(value)
-    if token.startswith("m") and token in {"msteel", "mglass", "mgold", "mlucky"}:
-        return token[1:]
-    return token.removesuffix("card")
-
-
-def _goal_ids(plan) -> tuple[str, ...]:
-    """Compatibility-only StrategyPlan introspection; not used by pack scoring."""
-    if plan is None:
-        return ()
-    goals = tuple(getattr(plan, "bond_goals", ()) or ())[:_MAX_TRACKED_GOALS]
-    return tuple(str(goal.bond_id) for goal in goals)
-
-
-def _playing_card_matches(goal: str, data: dict) -> bool:
-    """Compatibility-only legacy matcher; canonical scoring uses projection."""
-    value = data.get("value")
-    nested = value if isinstance(value, dict) else {}
-    rank = _rank(data.get("rank") or nested.get("rank") or value)
-    suit = _suit(data.get("suit") or nested.get("suit"))
-    enhancement = _enhancement(data.get("enhancement") or data.get("ability_name"))
-    if goal == "kings":
-        return rank == "K"
-    if goal == "queens":
-        return rank == "Q"
-    if goal == "jacks":
-        return rank == "J"
-    if goal == "aces":
-        return rank == "A"
-    if goal == "low_ranks":
-        return rank in {"2", "3", "4", "5"}
-    if goal in {"hearts", "spades", "clubs", "diamonds"}:
-        return suit == goal.rstrip("s")
-    if goal == "steel":
-        return enhancement == "steel"
-    if goal == "glass":
-        return enhancement == "glass"
-    if goal == "lucky":
-        return enhancement == "lucky"
-    if goal in {"gold_economy", "gold_cards"}:
-        return enhancement == "gold"
-    if goal == "enhanced_cards":
-        return bool(enhancement)
-    return False
 
 
 def _choice(action):
@@ -214,9 +155,9 @@ def _strategy_adjustment(state, action) -> tuple[float, tuple[str, ...]]:
     )
 
 
-def install_strategy_plan_pack_policy() -> None:
-    """Install canonical pack StrategyDelta under the legacy installer name."""
-    if getattr(BalatroPackPolicy, "_strategy_plan_pack_policy_installed", False):
+def install_pack_strategy_delta_policy() -> None:
+    """Install canonical projected StrategyDelta for persistent pack choices."""
+    if getattr(BalatroPackPolicy, "_pack_strategy_delta_policy_installed", False):
         return
     original = BalatroPackPolicy.score_action
 
@@ -239,4 +180,4 @@ def install_strategy_plan_pack_policy() -> None:
         )
 
     BalatroPackPolicy.score_action = score_action
-    BalatroPackPolicy._strategy_plan_pack_policy_installed = True
+    BalatroPackPolicy._pack_strategy_delta_policy_installed = True

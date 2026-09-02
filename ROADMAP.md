@@ -319,6 +319,25 @@ Validated green in `tests/balatro/test_balatro_phase_j_end_to_end.py`:
 
 Repository-wide audit must confirm no production dependency on rejected commitment/prescription authority, no duplicate Bond/build evaluator, no obsolete compatibility wrapper after its final consumer, and no stale tests/docs enforcing rejected architecture.
 
+### Phase K progress
+
+First cleanup slice complete and validated:
+
+- physically removed the retired R0/PINNED/FORMING transition and retention controllers, generic pivot FSM, Bond-rank power-engine veto, manual prescription/pinned-execution layers, and strategy-authority correction wrapper;
+- removed their stale controller tests while preserving independent mechanical, health-cache, D2, D1, BuildValue, StrategyDelta, and live-state coverage;
+- renamed the live canonical pack integration from legacy `strategy_plan_pack_policy.py` to `pack_strategy_delta_policy.py`, removed dead StrategyPlan goal-match helpers, and registered the canonical installer directly;
+- removed the PINNED-strategy reinforcement feedback that could manufacture additional Bond contribution/rank inside diagnostic composition;
+- removed obsolete architecture documents that described the retired controllers as current authority and updated retained canonical documentation;
+- focused Phase I/J, BuildValue/StrategyDelta, composition, semantic benchmark, cleanup-registration, and runtime-authority coverage is green: `47 passed`.
+
+Full-suite cleanup baseline before the remaining classifications: `2,858 passed, 59 failed`. The failures include stale rejected-architecture assertions, Windows injected-bridge tests that require `APPDATA`, and pre-existing semantic/runtime failures outside this deletion slice. Do not delete or weaken tests for the latter two categories.
+
+Remaining Phase K work:
+
+- classify and migrate the remaining `evaluate_bond_composition(...)` production consumers so diagnostic strategy identity/commitment cannot control actions;
+- finish stale documentation/test classification without masking real mechanics failures;
+- rerun the complete Balatro suite and record environment-specific exclusions separately from code failures.
+
 ## Phase L — Targeted live validation and tuning
 
 Only after deterministic proofs and cleanup are green: run Red Deck / White Stake locally, inspect coherent build emergence/bait rejection/preservation/justified pivots, then tune contribution weights, curve, realization, relationships, motif payoff, transition cost, and integration weights.

@@ -1,13 +1,14 @@
 # Balatro Relationships, Motifs, and Composer
 
-The composer sits above Bond Rank and Realization and below Build Health / score projection.
+The composer is a diagnostic compatibility surface. Production strategic value is
+owned by canonical `BuildValue(state)` and projected `StrategyDelta(candidate)`.
 
 ```text
 Bonds + Realization
   -> sparse relationships
   -> motifs
-  -> combined composition
-  -> Build Health / score projection
+  -> relationship and motif diagnostics
+  -> BuildValue
 ```
 
 ## Sparse relationships
@@ -38,22 +39,16 @@ MATURE    ACTIVE plus high structural development where applicable
 `missing_count` is the composer-facing motif distance. It is deliberately simple and should not be mistaken for acquisition probability or economic cost.
 
 ## Composer
-The composer selects a coherent set of developed Bonds, resolves explicit conflicts, records unique synergies, evaluates motifs, and emits prescriptions from ACTIVE/MATURE motifs.
+The composer records developed Bonds, explicit conflicts, unique synergies, and
+motif diagnostics. Historical strategy identity, commitment, pinning, and
+prescription fields are not production action authority.
 
 `coherence_score` is not projected score power. It rewards structurally developed, realized, mutually compatible plans and motif completion.
 
-## Pivot resistance
-High-rank Bonds create abandonment cost:
-
-```text
-R1 low
-R2 modest
-R3 meaningful
-R4 strong
-R5 very strong
-```
-
-Pivot resistance is never a lock. A clearly superior or survival-required plan may still replace a mature composition.
+## Transition cost
+Production abandonment inertia is the small Bond-local transition cost in
+`StrategyDelta`. The composer's historical `pivot_resistance` diagnostic does not
+control acquisition or replacement decisions.
 
 ## No double counting
 The composer must not:
@@ -63,4 +58,5 @@ The composer must not:
 - treat motif bonuses as direct chip/mult estimates;
 - count a Joker twice merely because it contributes to several compatible Bonds.
 
-The following stage, Build Health / score projection, determines whether the coherent plan actually clears current and future blinds.
+Build Health / score projection separately determines whether the resulting build
+actually clears current and future blinds.

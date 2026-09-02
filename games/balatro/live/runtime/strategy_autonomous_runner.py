@@ -26,8 +26,8 @@ class StrategyAwareLiveMemoryInjectedSingleStepRunner(
     """Production runner using canonical Bonds/composition for strategic direction.
 
     The historical categorical strategy tracker is intentionally absent. Mature
-    mechanics from the parent runner remain, while Bond health, pivot authority,
-    prescriptions, and D1 Bond hand shaping provide the current strategy layer.
+    mechanics from the parent runner remain, while canonical Bond/BuildValue
+    evidence and D1 mechanical hand shaping provide the current strategy layer.
     """
 
     def __init__(self, observer, **kwargs) -> None:
