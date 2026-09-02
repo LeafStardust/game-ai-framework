@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import replace
 from typing import Any, Callable
 
 from games.balatro.bonds.burnt import evaluate_hand_leveling_bond
@@ -103,32 +102,16 @@ def evaluate_all_bonds(state: Any) -> tuple[BondDevelopment, ...]:
 
 
 def evaluate_bond_structure(state: Any) -> tuple[tuple[BondDevelopment, ...], Composition]:
-    """Return mechanical Bonds plus composition with legacy strategy diagnostics stripped.
-
-    The composer still carries compatibility-only strategy identity fields for stale
-    diagnostic callers. Production health consumers must cross this boundary instead:
-    structural Bond/motif/conflict/coherence evidence is retained, while named
-    strategy candidates, commitment-derived plans, pinned identity and prescription
-    plumbing are removed before the result can influence an action owner.
-    """
+    """Return the canonical mechanical Bond developments and structural composition."""
     raw = evaluate_all_bonds(state)
-    composition = compose_build(state, raw)
-    return raw, replace(
-        composition,
-        prescriptions=(),
-        strategy_candidates=(),
-        pinned_strategy_id=None,
-        strategy_plan=None,
-    )
+    return raw, compose_build(state, raw)
 
 
 def evaluate_bond_composition(state: Any) -> tuple[tuple[BondDevelopment, ...], Composition]:
-    """Return raw mechanical Bond developments plus diagnostic composition.
+    """Compatibility alias for the canonical structural composition entry point.
 
-    Composition must not feed strategy identity or commitment back into Bond
-    contribution/rank. Production strategic value is owned by BuildValue and
-    StrategyDelta; this entry point remains only while diagnostic/mechanical
-    consumers migrate.
+    New consumers should call :func:`evaluate_bond_structure`. The returned
+    Composition no longer contains named strategy identity, commitment, StrategyPlan
+    or prescription fields.
     """
-    raw = evaluate_all_bonds(state)
-    return raw, compose_build(state, raw)
+    return evaluate_bond_structure(state)
