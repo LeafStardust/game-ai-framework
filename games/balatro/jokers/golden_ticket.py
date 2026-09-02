@@ -1,7 +1,9 @@
 from games.balatro.joker import Joker, JokerContext
+from games.balatro.mechanics import GOLD_CARD_SCORING_ECONOMY
 
 
 class GoldenTicketJoker(Joker):
+    mechanics = frozenset({GOLD_CARD_SCORING_ECONOMY})
 
     def apply(self, context: JokerContext) -> JokerContext:
         if context.trigger != "CARD_SCORED":
