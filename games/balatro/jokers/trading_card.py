@@ -1,7 +1,10 @@
 from games.balatro.joker import Joker, JokerContext
+from games.balatro.mechanics import CARD_DESTRUCTION
 
 
 class TradingCardJoker(Joker):
+
+    mechanics = frozenset({CARD_DESTRUCTION})
 
     def apply(self, context: JokerContext) -> JokerContext:
         if context.trigger != "DISCARD":
