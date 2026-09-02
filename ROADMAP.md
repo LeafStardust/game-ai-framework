@@ -242,7 +242,7 @@ Validation state:
 
 This item is closed unless later live telemetry disproves the repaired semantics.
 
-#### L2.2 — Flash Card D2 HOLD resurrected into BUY — FIXED IN CODE, VALIDATION PENDING
+#### L2.2 — Flash Card D2 HOLD resurrected into BUY — FIXED AND VALIDATED
 
 Classification: **integration/authority bug**.
 
@@ -264,23 +264,24 @@ Repair:
 Committed repair/test state:
 
 - production fix: `62f74053ca4976522fb4e70326859a6a643b02e4` — `fix(balatro): preserve canonical D2 Joker hold authority`;
-- focused regression: `f6c6fc7f211e221b98141f1f9481f85e0309fc76` — `test(balatro): protect canonical D2 hold authority`;
-- documentation checkpoint before this update: `0ed041c1902d081e8137c614e7980b4a668717cd` — `docs(balatro): record Phase L2 D2 authority fix`.
+- original focused regression: `f6c6fc7f211e221b98141f1f9481f85e0309fc76` — `test(balatro): protect canonical D2 hold authority`;
+- collection correction: `d1d599a1f96560c068998da275f9634d6beddd1b` — `test(balatro): target canonical D2 authority regression`; the original regression referenced retired `PlaybookJokerAcquisitionPolicy` and was corrected to target canonical `JokerAcquisitionPolicy` after Phase K cleanup;
+- focused D2 authority validation after that correction: **GREEN, user-confirmed**.
 
-**Validation state: PENDING.**
+This item is now closed unless later live telemetry shows another post-D2 authority path.
 
-The existence of the regression test commit is not itself validation. User-run focused tests are still required before this item becomes green or before Phase L2 proceeds to the next material live defect.
+#### L2.3 — Remaining baseline defects — ACTIVE INSPECTION / CLASSIFICATION
 
-#### L2.3 — Remaining baseline defects — BLOCKED ON CURRENT VALIDATION GATE
+The D2 gate is green. Resume diagnosis from the same three-attempt baseline before any numerical tuning.
 
-Not yet considered active repair work until L2.2 validation is green:
+Active inspection targets:
 
 - remaining attempt 001 material Joker/pack/voucher/reroll decisions;
-- remaining attempt 002 material decisions other than the confirmed Flash Card authority defect;
+- remaining attempt 002 material decisions other than the now-fixed Flash Card authority defect;
 - terminal boss decision quality in attempts 001/002/003 where telemetry indicates a suspicious actionable decision rather than simple insufficient engine strength;
 - D14 standalone-Joker timing residual attribution.
 
-These remain **inspection/classification pending**, not fixed, not tuned, and not validated.
+These are **inspection/classification pending**, not fixed, not tuned, and not validated.
 
 ### Current validation checkpoint — EXACT STATE
 
@@ -288,25 +289,22 @@ These remain **inspection/classification pending**, not fixed, not tuned, and no
 Deterministic Phase K suite                     GREEN
 Fresh 3-attempt live baseline collection       COMPLETE
 Baron motif semantics patch                    GREEN
-Flash Card / canonical D2 authority patch      COMMITTED
-Flash Card / canonical D2 regression           COMMITTED
-Flash Card / canonical D2 focused validation   PENDING  ← CURRENT GATE
-Further Phase L2 baseline classification        BLOCKED UNTIL CURRENT GATE IS GREEN
+Flash Card / canonical D2 authority patch      GREEN
+Further Phase L2 baseline classification        ACTIVE
 Numerical tuning / Optuna                       NOT STARTED
 Phase M broader competence                      NOT STARTED
 ```
 
-Therefore the repository is **currently in testing**, specifically the focused validation gate for the D2 authority repair. Do not mark L2 complete and do not describe the branch as having moved into tuning.
+Therefore the repository is **still in testing/live validation**, specifically Phase L2 defect inspection and focused repair-validation loops. Do not mark L2 complete and do not describe the branch as having moved into numerical tuning.
 
 ### L3 — Numerical tuning gate — NOT STARTED
 
 Do not start Optuna/numerical calibration until:
 
-1. the current D2 authority patch validates green;
-2. the remaining baseline suspicious decisions have been classified;
-3. all confirmed mechanics/runtime/integration defects from that baseline are repaired and validated;
-4. SHOP/D1/D14 interactive latency is acceptable or remaining residuals are demonstrated non-blocking;
-5. no canonical owner is being bypassed by late rescue/compatibility authority.
+1. the remaining baseline suspicious decisions have been classified;
+2. all confirmed mechanics/runtime/integration defects from that baseline are repaired and validated;
+3. SHOP/D1/D14 interactive latency is acceptable or remaining residuals are demonstrated non-blocking;
+4. no canonical owner is being bypassed by late rescue/compatibility authority.
 
 When tuning begins, preserve the canonical architecture and compare against the production baseline using authoritative unseeded live runs with run provenance.
 
@@ -316,17 +314,14 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 
 # Exact next action
 
-**TEST the canonical D2 HOLD authority repair. Do not continue development/tuning until this focused validation gate is green.**
+**Continue Phase L2 inspection from the same three-run live baseline. This remains testing/validation, not tuning.**
 
-After the user confirms the focused D2/live-competence authority tests green:
-
-1. mark L2.2 validated;
-2. resume telemetry inspection from the same three-attempt baseline;
-3. classify the next suspicious attempt 001/002/003 material decision as mechanics, runtime, integration, or calibration;
-4. patch only confirmed defects at their canonical owner;
-5. repeat the focused test gate before moving to the next defect;
-6. keep D14 residual timing under observation and optimize only after identifying the expensive owner without changing semantics;
-7. keep L3 numerical tuning closed until the semantic/integration/runtime defect pass is exhausted.
+1. Inspect the remaining material decisions from attempts 001 and 002 and terminal boss choices where telemetry supports an actionable defect.
+2. Classify each suspicious decision as mechanics/model, runtime/latency, integration/authority, or calibration before changing code.
+3. Patch only confirmed defects at their canonical owner.
+4. Add a focused regression for each confirmed defect and require user-run green validation before closing that defect.
+5. Keep D14 residual timing under observation and optimize only after identifying the expensive owner without changing semantics.
+6. Keep L3 numerical tuning closed until the semantic/integration/runtime defect pass is exhausted.
 
 # Progress criterion
 
