@@ -24,7 +24,7 @@ def test_midas_does_not_awaken_drivers_license_bond_without_drivers_license():
     assert before_enhanced.rank == BondRank.LOCKED
 
     projected = _state(MidasMaskJoker())
-    gold = _bond(projected, "gold_economy")
+    gold = _bond(projected, "gold_cards")
     enhanced = _bond(projected, "enhanced_cards")
 
     assert gold.rank >= BondRank.R1
@@ -32,9 +32,6 @@ def test_midas_does_not_awaken_drivers_license_bond_without_drivers_license():
 
     adjustment, rationale = _bond_transition_bonus(state, MidasMaskJoker())
 
-    # Midas may receive bounded first-axis scouting value for the real Gold engine,
-    # but its generic enhancement-feed role must not fabricate a second Driver's
-    # License axis while that defining payoff is absent.
     assert 0.0 < adjustment <= 0.5
     assert not any("enhanced_cards:" in note for note in rationale)
 
@@ -47,15 +44,12 @@ def test_midas_overlap_is_rewarded_when_drivers_license_axis_is_already_real():
 
     projected = _state(DriversLicenseJoker(), MidasMaskJoker())
     after_enhanced = _bond(projected, "enhanced_cards")
-    gold = _bond(projected, "gold_economy")
+    gold = _bond(projected, "gold_cards")
 
     assert after_enhanced.rank > before_enhanced.rank
     assert gold.rank >= BondRank.R1
 
     adjustment, rationale = _bond_transition_bonus(state, MidasMaskJoker())
 
-    # Here the overlap is mechanically real: Driver's License already makes
-    # enhancement density a live payoff and Midas also opens Gold-card economy.
-    # That coherent transition may therefore exceed isolated-axis scouting value.
     assert adjustment > 0.5
     assert any("enhanced_cards:" in note for note in rationale)
