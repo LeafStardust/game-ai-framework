@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank, BondRealization
+from games.balatro.bonds.contributions import (
+    component_contribution,
+    finalize_development,
+    state_contribution,
+)
+from games.balatro.bonds.model import BondContribution, BondDevelopment, BondRank
 from games.balatro.deck_rules import starting_deck_size_for_name
 from games.balatro.mechanics import (
     ADD_SEALED_CARD,
@@ -95,37 +100,6 @@ def _level_score(level: int) -> float:
     return 18.0
 
 
-def _rank(total: float, thresholds: dict[BondRank, float]) -> tuple[BondRank, float | None]:
-    rank = BondRank.R0
-    for candidate in (BondRank.R1, BondRank.R2, BondRank.R3, BondRank.R4, BondRank.R5):
-        threshold = thresholds[candidate]
-        if total < threshold:
-            return rank, threshold
-        rank = candidate
-    return BondRank.R5, None
-
-
-def _finish(
-    bond_id: str,
-    parts: list[BondContribution],
-    thresholds: dict[BondRank, float],
-    *,
-    target: str | None = None,
-) -> BondDevelopment:
-    total = sum(part.value for part in parts)
-    rank, next_threshold = _rank(total, thresholds)
-    return BondDevelopment(
-        bond_id=bond_id,
-        unlocked=True,
-        contribution=total,
-        rank=rank,
-        next_rank_threshold=next_threshold,
-        contributions=tuple(parts),
-        target=target,
-        realization=BondRealization.DORMANT if rank == BondRank.R0 else BondRealization.PARTIAL,
-    )
-
-
 def _source(component: Any, fallback: str) -> str:
     name = getattr(component, "name", None)
     if name:
@@ -138,9 +112,23 @@ def _hand_level(state: Any, hand: str) -> int:
     return int((getattr(state, "hand_levels", {}) or {}).get(hand, 1) or 1)
 
 
-def _append_mechanic(parts: list[BondContribution], component: Any, mechanic: str, value: float, label: str) -> None:
+def _append_mechanic(
+    parts: list[BondContribution],
+    component: Any,
+    index: int,
+    mechanic: str,
+    value: float,
+    label: str,
+) -> None:
     if component_has_mechanic(component, mechanic):
-        parts.append(BondContribution(_source(component, label), value))
+        parts.append(component_contribution(
+            component,
+            collection="jokers",
+            index=index,
+            label=_source(component, label),
+            value=value,
+            mechanic=mechanic,
+        ))
 
 
 def _hand_bond(
@@ -151,14 +139,18 @@ def _hand_bond(
     thresholds: dict[BondRank, float] = HAND_THRESHOLDS,
 ) -> BondDevelopment:
     parts: list[BondContribution] = []
-    for joker in list(getattr(state, "jokers", ()) or ()):
+    for index, joker in enumerate(list(getattr(state, "jokers", ()) or ())):
         for mechanic, value, label in mechanic_weights:
-            if component_has_mechanic(joker, mechanic):
-                parts.append(BondContribution(_source(joker, label), value))
+            _append_mechanic(parts, joker, index, mechanic, value, label)
     level = _level_score(_hand_level(state, hand))
     if level:
-        parts.append(BondContribution(f"{hand} permanent hand level", level))
-    return _finish(bond_id, parts, thresholds, target=hand)
+        parts.append(state_contribution(
+            f"hand_level:{hand}",
+            f"{hand} permanent hand level",
+            level,
+            mechanic="permanent_hand_level",
+        ))
+    return finalize_development(bond_id, parts, thresholds, target=hand)
 
 
 def evaluate_pair_bond(state: Any) -> BondDevelopment:
@@ -197,9 +189,13 @@ def evaluate_three_kind_bond(state: Any) -> BondDevelopment:
 
 
 def evaluate_four_kind_bond(state: Any) -> BondDevelopment:
-    return _hand_bond(state, "four_kind", "FOUR_OF_A_KIND", (
-        (FOUR_KIND_XMULT, 7.0, "Four-kind XMult payoff"),
-    ), FOUR_KIND_THRESHOLDS)
+    return _hand_bond(
+        state,
+        "four_kind",
+        "FOUR_OF_A_KIND",
+        ((FOUR_KIND_XMULT, 7.0, "Four-kind XMult payoff"),),
+        FOUR_KIND_THRESHOLDS,
+    )
 
 
 def evaluate_straight_bond(state: Any) -> BondDevelopment:
@@ -215,8 +211,8 @@ def evaluate_straight_bond(state: Any) -> BondDevelopment:
 
 def _flush_density(state: Any) -> float:
     smeared = any(
-        component_has_mechanic(j, SUIT_MERGE_RED_BLACK)
-        for j in list(getattr(state, "jokers", ()) or ())
+        component_has_mechanic(joker, SUIT_MERGE_RED_BLACK)
+        for joker in list(getattr(state, "jokers", ()) or ())
     )
     suits: dict[str, int] = {}
     for card in _deck(state):
@@ -248,8 +244,13 @@ def evaluate_flush_bond(state: Any) -> BondDevelopment:
     parts = list(dev.contributions)
     density = _flush_density(state)
     if density:
-        parts.append(BondContribution("Dominant suit density", density))
-    return _finish("flush", parts, HAND_THRESHOLDS, target="FLUSH")
+        parts.append(state_contribution(
+            "deck:dominant_suit_density",
+            "Dominant suit density",
+            density,
+            mechanic="dominant_suit_density",
+        ))
+    return finalize_development("flush", parts, HAND_THRESHOLDS, target="FLUSH")
 
 
 def evaluate_full_house_bond(state: Any) -> BondDevelopment:
@@ -269,8 +270,8 @@ def evaluate_straight_flush_bond(state: Any) -> BondDevelopment:
 
 def evaluate_five_kind_bond(state: Any) -> BondDevelopment:
     parts: list[BondContribution] = []
-    for joker in list(getattr(state, "jokers", ()) or ()):
-        _append_mechanic(parts, joker, DUPLICATE_SELECTED_CARD, 4.0, "Card duplication")
+    for index, joker in enumerate(list(getattr(state, "jokers", ()) or ())):
+        _append_mechanic(parts, joker, index, DUPLICATE_SELECTED_CARD, 4.0, "Card duplication")
     ranks: dict[str, int] = {}
     for card in _deck(state):
         if str(getattr(card, "enhancement", "") or "").lower() == "stone":
@@ -280,11 +281,21 @@ def evaluate_five_kind_bond(state: Any) -> BondDevelopment:
             ranks[rank] = ranks.get(rank, 0) + 1
     concentration = _band(max(ranks.values(), default=0), ((5, 2.0), (7, 4.0), (10, 6.0), (14, 8.0)))
     if concentration:
-        parts.append(BondContribution("Maximum rank concentration", concentration))
+        parts.append(state_contribution(
+            "deck:max_rank_concentration",
+            "Maximum rank concentration",
+            concentration,
+            mechanic="rank_concentration",
+        ))
     level = _level_score(_hand_level(state, "FIVE_OF_A_KIND"))
     if level:
-        parts.append(BondContribution("FIVE_OF_A_KIND permanent hand level", level))
-    return _finish("five_kind", parts, HAND_THRESHOLDS, target="FIVE_OF_A_KIND")
+        parts.append(state_contribution(
+            "hand_level:FIVE_OF_A_KIND",
+            "FIVE_OF_A_KIND permanent hand level",
+            level,
+            mechanic="permanent_hand_level",
+        ))
+    return finalize_development("five_kind", parts, HAND_THRESHOLDS, target="FIVE_OF_A_KIND")
 
 
 def evaluate_flush_house_bond(state: Any) -> BondDevelopment:
@@ -297,9 +308,9 @@ def evaluate_flush_house_bond(state: Any) -> BondDevelopment:
 
 def evaluate_flush_five_bond(state: Any) -> BondDevelopment:
     parts: list[BondContribution] = []
-    for joker in list(getattr(state, "jokers", ()) or ()):
-        _append_mechanic(parts, joker, DUPLICATE_SELECTED_CARD, 3.0, "Card duplication")
-        _append_mechanic(parts, joker, SUIT_MERGE_RED_BLACK, 2.0, "Suit merge")
+    for index, joker in enumerate(list(getattr(state, "jokers", ()) or ())):
+        _append_mechanic(parts, joker, index, DUPLICATE_SELECTED_CARD, 3.0, "Card duplication")
+        _append_mechanic(parts, joker, index, SUIT_MERGE_RED_BLACK, 2.0, "Suit merge")
     groups: dict[tuple[str, str], int] = {}
     for card in _deck(state):
         if str(getattr(card, "enhancement", "") or "").lower() == "stone":
@@ -309,11 +320,21 @@ def evaluate_flush_five_bond(state: Any) -> BondDevelopment:
             groups[key] = groups.get(key, 0) + 1
     concentration = _band(max(groups.values(), default=0), ((5, 3.0), (7, 5.0), (10, 7.0)))
     if concentration:
-        parts.append(BondContribution("Same-rank same-suit concentration", concentration))
+        parts.append(state_contribution(
+            "deck:same_rank_same_suit_concentration",
+            "Same-rank same-suit concentration",
+            concentration,
+            mechanic="same_rank_same_suit_concentration",
+        ))
     level = _level_score(_hand_level(state, "FLUSH_FIVE"))
     if level:
-        parts.append(BondContribution("FLUSH_FIVE permanent hand level", level))
-    return _finish("flush_five", parts, HAND_THRESHOLDS, target="FLUSH_FIVE")
+        parts.append(state_contribution(
+            "hand_level:FLUSH_FIVE",
+            "FLUSH_FIVE permanent hand level",
+            level,
+            mechanic="permanent_hand_level",
+        ))
+    return finalize_development("flush_five", parts, HAND_THRESHOLDS, target="FLUSH_FIVE")
 
 
 def evaluate_played_retrigger_bond(state: Any) -> BondDevelopment:
@@ -324,14 +345,19 @@ def evaluate_played_retrigger_bond(state: Any) -> BondDevelopment:
         (RETRIGGER_FIRST_SCORED, 6.0, "First-scored retrigger"),
         (RETRIGGER_FINAL_HAND, 4.0, "Final-hand retrigger"),
     )
-    for joker in list(getattr(state, "jokers", ()) or ()):
+    for index, joker in enumerate(list(getattr(state, "jokers", ()) or ())):
         for mechanic, value, label in weights:
-            _append_mechanic(parts, joker, mechanic, value, label)
-    red = sum(1 for c in _deck(state) if str(getattr(c, "seal", "") or "").lower() == "red")
+            _append_mechanic(parts, joker, index, mechanic, value, label)
+    red = sum(1 for card in _deck(state) if str(getattr(card, "seal", "") or "").lower() == "red")
     score = _band(red, ((1, 1.0), (2, 3.0), (4, 5.0), (7, 7.0)))
     if score:
-        parts.append(BondContribution("Red Seal played-card infrastructure", score))
-    return _finish("played_retrigger", parts, PLAYED_RETRIGGER_THRESHOLDS)
+        parts.append(state_contribution(
+            "deck:red_seal_density",
+            "Red Seal played-card infrastructure",
+            score,
+            mechanic="red_seal_density",
+        ))
+    return finalize_development("played_retrigger", parts, PLAYED_RETRIGGER_THRESHOLDS)
 
 
 def evaluate_deck_growth_bond(state: Any) -> BondDevelopment:
@@ -342,15 +368,20 @@ def evaluate_deck_growth_bond(state: Any) -> BondDevelopment:
         (ADD_STONE_CARD, 3.0, "Stone-card generation"),
         (SCALE_ON_CARD_ADDED, 4.0, "Added-card scaling"),
     )
-    for joker in list(getattr(state, "jokers", ()) or ()):
+    for index, joker in enumerate(list(getattr(state, "jokers", ()) or ())):
         for mechanic, value, label in weights:
-            _append_mechanic(parts, joker, mechanic, value, label)
+            _append_mechanic(parts, joker, index, mechanic, value, label)
     starting = starting_deck_size_for_name(getattr(state, "deck_name", None)) or 52
     growth = max(0, len(_deck(state)) - int(starting))
     score = _band(growth, ((4, 1.0), (8, 3.0), (12, 5.0), (18, 7.0)))
     if score:
-        parts.append(BondContribution("Permanent deck growth", score))
-    return _finish("deck_growth", parts, DECK_GROWTH_THRESHOLDS)
+        parts.append(state_contribution(
+            "deck:permanent_growth",
+            "Permanent deck growth",
+            score,
+            mechanic="permanent_deck_growth",
+        ))
+    return finalize_development("deck_growth", parts, DECK_GROWTH_THRESHOLDS)
 
 
 MECHANICAL_PATTERN_EVALUATORS = {
