@@ -153,6 +153,7 @@ def snapshot_payload_from_live_memory(
     joker_unlocks = _normalize_joker_unlocks(decoder, root.get("P_CENTERS"))
     ectoplasm_penalty = max(1, _integer(game.get("ecto_minus"), 1))
     round_reset_discards = _number(round_resets.get("discards"))
+    round_reset_hands = _number(round_resets.get("hands"))
     current_tag = blind_tags.get(str(normalized_blind.get("type") or "").lower())
     if current_tag:
         normalized_blind["tag"] = current_tag
@@ -215,6 +216,12 @@ def snapshot_payload_from_live_memory(
         **(
             {"round_reset_discards": max(0, int(round_reset_discards))}
             if round_reset_discards is not None
+            else {}
+        ),
+        "round_reset_hands_observed": round_reset_hands is not None,
+        **(
+            {"round_reset_hands": max(0, int(round_reset_hands))}
+            if round_reset_hands is not None
             else {}
         ),
         "round": {
