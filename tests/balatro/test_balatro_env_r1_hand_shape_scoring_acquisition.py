@@ -15,6 +15,10 @@ from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.mad_joker import MadJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.the_duo import TheDuoJoker
+from games.balatro.jokers.the_family import TheFamilyJoker
+from games.balatro.jokers.the_order import TheOrderJoker
+from games.balatro.jokers.the_tribe import TheTribeJoker
+from games.balatro.jokers.the_trio import TheTrioJoker
 from games.balatro.jokers.wily_joker import WilyJoker
 from games.balatro.jokers.zany_joker import ZanyJoker
 from games.balatro.live.joker_projection import LiveJokerScoreProjector
@@ -33,6 +37,10 @@ PURE_SCORING_TYPES = (
     CraftyJoker,
     MadJoker,
     CleverJoker,
+    TheTrioJoker,
+    TheFamilyJoker,
+    TheOrderJoker,
+    TheTribeJoker,
 )
 
 
