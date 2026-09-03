@@ -231,22 +231,132 @@ The legacy `games/balatro/environment.py` toy/stub environment is **not** author
 
 ## R1 — State transition engine — ACTIVE
 
-### Current progress — September 3, 2026
+### Current progress — September 4, 2026
 
-The first deterministic R1 transition slice is implemented and green. Current work is auditing acquisition semantics before broadening the training-visible action surface.
+The first deterministic R1 transition slice is implemented. Current work remains the acquisition-semantics audit and incremental exact expansion of shop acquisitions.
 
-Current finding:
+The generic-acquisition finding remains authoritative:
 
-- ordinary acquisition transitions cannot be modeled generically as only `inventory append + money subtraction`;
-- canonical `BalatroState` contains mutable capacity/resource fields including hand size, Joker slots, consumable slots, and discard-related allowances;
-- some Jokers and vouchers apply immediate persistent modifiers to those fields or other run state;
-- therefore generic `BUY_JOKER` / `BUY_VOUCHER` transitions are **not yet exact** if they only move inventory and subtract cost;
-- unsupported/inexact acquisition actions must remain fail-closed and absent from training legality until their immediate effects are implemented and tested;
-- transition execution must reject the same unsupported actions even if called directly, so legality and execution cannot disagree.
+- acquisitions cannot be modeled generically as only `inventory append + money subtraction`;
+- canonical `BalatroState` owns mutable capacity/resource state such as hand size, next-round hand/discard allowances, Joker slots, and consumable slots;
+- some Jokers/vouchers change those values immediately or persistently;
+- generic `BUY_JOKER` / `BUY_VOUCHER` therefore remain incorrect unless the individual immediate effects are owned exactly;
+- unsupported/inexact acquisition actions must be absent from `legal_actions()` and must reject on direct execution;
+- Joker editions remain fail-closed because edition semantics, especially Negative slot effects, are not yet owned exactly in R1;
+- `SELL_JOKER` is still outside the frozen training surface, so inverse lifecycle semantics are not yet part of the active R1 shop slice.
+
+### Exact R1 shop behavior currently implemented
+
+`ShopTransitionEngine` currently exposes only deterministic acquisitions whose semantics have been explicitly audited.
+
+Always supported in an active shop when otherwise legal:
+
+- `END_SHOP`;
+- exact held-consumable purchase when capacity, price, and affordability are exact.
+
+Joker purchase is identity-gated. The current audited scoring/state-safe set includes:
+
+- `FlatMultJoker`;
+- `AbstractJoker`;
+- `AcrobatJoker`;
+- `BannerJoker`;
+- `BaronJoker`;
+- `BlackboardJoker`;
+- `BlueJoker`;
+- `EvenStevenJoker`;
+- `FibonacciJoker`;
+- `HalfJoker`;
+- `MysticSummitJoker`;
+- `OddToddJoker`;
+- `PhotographJoker`;
+- `RaisedFistJoker`;
+- `ScholarJoker`;
+- `SmileyFaceJoker`;
+- `WalkieTalkieJoker`;
+- `JugglerJoker`.
+
+Additional exact resource/capacity-sensitive Joker rules currently implemented:
+
+- **Juggler**: purchase applies `hand_size += 1` once;
+- **Stuntman**: purchase applies `hand_size -= 2`; acquisition remains fail-closed when current authoritative hand size is below 2 rather than inventing negative-capacity semantics;
+- **Drunkard**: purchase applies `round_reset_discards += 1`, but only when the next-round discard allowance was authoritatively observed;
+- **Troubadour**: purchase applies `hand_size += 2` and `round_reset_hands -= 1`, but only when the next-round hand allowance was authoritatively observed and is at least 1.
+
+Current price semantics are fail-closed:
+
+- price must exist as an exact integer;
+- booleans, strings, floats, missing values, invalid mappings, and negative prices are not treated as affordable purchases;
+- legality and direct transition execution agree on the same price/slot boundary.
+
+Still fail-closed:
+
+- unknown/generic Joker identities;
+- all Joker editions;
+- generic voucher acquisition;
+- booster-pack opening;
+- stochastic acquisition/generation paths that require R2 RNG ownership;
+- any acquisition whose immediate persistent effect has not been audited.
+
+### Current Troubadour / next-round-hands checkpoint
+
+This is the exact code state at the roadmap update:
+
+Completed and pushed:
+
+1. `BalatroState` now canonically owns:
+   - `round_reset_hands_observed: bool`;
+   - `round_reset_hands: int`.
+2. `BalatroState.copy()` preserves both fields.
+3. `HeadlessRunState` validates the observed next-round hand allowance as an exact nonnegative integer.
+4. `ShopTransitionEngine` enables Troubadour only when `round_reset_hands_observed` is true and `round_reset_hands >= 1`.
+5. Troubadour purchase applies the exact immediate R1-owned pair:
+   - `hand_size += 2`;
+   - `round_reset_hands -= 1`.
+6. Dedicated deterministic tests were added in `tests/balatro/test_balatro_env_r1_troubadour.py` covering:
+   - state-copy preservation;
+   - type/range validation;
+   - fail-closed behavior when the reset-hand baseline is unobserved;
+   - fail-closed behavior at zero next-round hands;
+   - exact isolated acquisition when an authoritative baseline exists.
+
+Latest code commits for this slice:
+
+```text
+d503f26  feat(balatro): own next-round hand allowance
+f990b98  feat(balatro): enable exact Troubadour acquisition
+f172334  test(balatro): cover exact Troubadour R1 acquisition
+```
+
+Not yet completed at this checkpoint:
+
+- `DefaultBalatroStateTranslator` does **not yet** populate `round_reset_hands_observed` / `round_reset_hands` from live payloads;
+- `LiveMemoryBalatroObserver` does **not yet** expose `G.GAME.round_resets.hands` into the public snapshot;
+- corresponding translator/live-observer regression tests are still pending;
+- therefore real live-derived SHOP states do not yet satisfy Troubadour's authoritative next-round-hand gate automatically;
+- the just-pushed Troubadour slice has not yet been declared CI-green in this roadmap update.
+
+The next-round live source has been identified and should be used rather than inferred:
+
+```text
+G.GAME.round_resets.hands
+```
+
+This is the exact analogue of the already-owned `G.GAME.round_resets.discards` path used for Drunkard.
 
 ### R1 immediate objective
 
-Implement exact acquisition semantics incrementally, beginning with deterministic state effects required by the initial Red/White strategic surface. Do not expose an acquisition merely because the live UI can click it.
+Finish the live/public ownership path for the next-round hands baseline, then continue the acquisition inventory. Do not expose an acquisition merely because the live UI can click it.
+
+Immediate sequence from this exact checkpoint:
+
+1. wire `G.GAME.round_resets.hands` through `LiveMemoryBalatroObserver` as public snapshot fields;
+2. wire those fields through `DefaultBalatroStateTranslator` into canonical `BalatroState`;
+3. add observer + translator tests proving observed, missing, zero, and invalid-value behavior is fail-closed/canonical;
+4. run focused deterministic R1 tests/CI and only then mark the Troubadour live-observation path green;
+5. continue auditing the next acquisition identity/resource modifier;
+6. keep generic vouchers, packs, editions, unknown Jokers, and unaudited acquisitions fail-closed;
+7. broaden the legal R1 surface only after each transition is exact;
+8. then continue remaining transition categories and R2/R3 work.
 
 For every newly enabled Joker/voucher/consumable/card acquisition:
 
@@ -264,7 +374,7 @@ Required R1 state categories remain:
 - ante, blind, boss, blind requirement;
 - current score and round progress;
 - money/economy state;
-- hands/discards remaining and allowances;
+- hands/discards remaining and next-round allowances;
 - exact deck/card zones and public card properties;
 - current hand;
 - Jokers/editions/counters and slot capacity;
@@ -510,9 +620,23 @@ RL pivot                                           APPROVED / ROADMAP ACTIVE
 L3 environment-freeze correctness gate            COMPLETE
 R0 environment architecture/ownership             COMPLETE
 R1 state transition engine                        ACTIVE
-R1 first deterministic transition slice           GREEN
-R1 acquisition semantics audit                    ACTIVE — CURRENT TASK
-Generic Joker/voucher acquisition                 FAIL-CLOSED UNTIL EXACT EFFECTS
+R1 first deterministic shop slice                 IMPLEMENTED
+R1 acquisition semantics audit                    ACTIVE — CURRENT WORKSTREAM
+Exact scoring-safe Joker allowlist                IMPLEMENTED INCREMENTALLY
+Exact Juggler acquisition                         IMPLEMENTED
+Exact Stuntman acquisition                        IMPLEMENTED WITH CAPACITY GUARD
+Exact Drunkard acquisition                        IMPLEMENTED WITH OBSERVED RESET-DISCARD GATE
+Canonical next-round hand allowance               IMPLEMENTED IN BalatroState
+Exact Troubadour headless acquisition             IMPLEMENTED WITH OBSERVED RESET-HAND GATE
+Troubadour deterministic tests                    ADDED
+Live observer round_reset_hands path              NOT YET WIRED
+Translator round_reset_hands path                 NOT YET WIRED
+Troubadour slice focused CI                       NOT YET DECLARED GREEN
+Generic/unknown Joker acquisition                 FAIL-CLOSED
+Joker editions                                    FAIL-CLOSED
+Generic voucher acquisition                       FAIL-CLOSED
+Booster-pack opening                              FAIL-CLOSED UNTIL RNG/PACK STATE EXACT
+SELL_JOKER lifecycle/inverse modifiers            NOT YET IN TRAINING SURFACE
 R2 RNG determinism                                NOT STARTED AS COMPLETE PHASE
 R3 action vocabulary                              PARTIAL / TIED TO R1 EXACTNESS
 R4 deterministic tactical bridge                  NOT STARTED
@@ -531,24 +655,41 @@ Full tactical RL                                  OPTIONAL / NOT STARTED
 Post-RL symbolic cleanup                          NOT STARTED
 ```
 
+Current branch code head immediately before this roadmap synchronization:
+
+```text
+f1723345b76f972a48562bd36bcd7a373655938c
+```
+
+Latest functional R1 commits immediately before the roadmap update:
+
+```text
+d503f26  feat(balatro): own next-round hand allowance
+f990b98  feat(balatro): enable exact Troubadour acquisition
+f172334  test(balatro): cover exact Troubadour R1 acquisition
+```
+
 ---
 
 # Exact next development action
 
 **Continue R1. Do not move to PPO/observation training work yet.**
 
-Immediate order:
+Immediate order from the current checkpoint:
 
-1. finish the acquisition-semantics inventory for currently training-exposed shop actions;
-2. keep generic Joker/voucher buys fail-closed wherever their immediate state effects are not exact;
-3. implement exact immediate acquisition modifiers incrementally using canonical mechanics/owners;
-4. add deterministic legality + direct-transition rejection tests so unsupported acquisitions cannot leak through either path;
-5. re-run focused deterministic CI/tests;
-6. broaden the legal R1 action surface only after each transition is exact;
-7. then continue the remaining state-transition categories and R2/R3 work;
-8. add R5 parity fixtures before declaring the environment authoritative for training.
+1. expose public `G.GAME.round_resets.hands` in `LiveMemoryBalatroObserver` using the same fail-closed pattern as `round_resets.discards`;
+2. translate `round_reset_hands_observed` / `round_reset_hands` into canonical `BalatroState` in `DefaultBalatroStateTranslator`;
+3. add deterministic observer/translator regressions for the next-round hand allowance;
+4. run focused deterministic R1 tests and CI and verify the Troubadour slice green;
+5. continue the acquisition-semantics inventory for the next unaudited training-relevant Joker/resource effect;
+6. keep generic Joker/voucher buys, editions, packs, and other unsupported acquisitions fail-closed wherever immediate semantics are not exact;
+7. implement exact immediate acquisition modifiers incrementally using canonical mechanics/owners;
+8. retain deterministic legality + direct-transition rejection tests so unsupported acquisitions cannot leak through either path;
+9. broaden the legal R1 action surface only after each transition is exact;
+10. then continue remaining state-transition categories and R2/R3 work;
+11. add R5 parity fixtures before declaring the environment authoritative for training.
 
-The next code written should therefore be **exact R1 acquisition/state-transition work**, not Bond tuning and not PPO.
+The next code written should therefore be **live/public next-round-hands ownership for the already-implemented Troubadour R1 transition**, followed by continued exact acquisition/state-transition work. It should **not** be Bond tuning and **not** PPO.
 
 ---
 
@@ -562,7 +703,11 @@ live correctness stabilization                     ✓
 R0 HEADLESS ENVIRONMENT ARCHITECTURE               ✓
         ↓
 R1 EXACT STATE TRANSITIONS                         ← ACTIVE
-  └─ acquisition semantics audit                   ← CURRENT
+  └─ acquisition semantics audit                   ← ACTIVE
+      ├─ scoring-safe Joker allowlist               ✓ incremental
+      ├─ Juggler / Stuntman capacity ownership      ✓
+      ├─ Drunkard next-round discard ownership      ✓
+      └─ Troubadour next-round hand ownership       ← HEADLESS DONE; LIVE PATH NEXT
         ↓
 R2 RNG + R3 ACTION COMPLETION
         ↓
