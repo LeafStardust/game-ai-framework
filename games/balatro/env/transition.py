@@ -3,8 +3,9 @@
 This module owns environment-private run state that is required for deterministic
 simulation but is not part of the canonical public observation.  The initial
 transition engine deliberately covers only deterministic shop operations whose
-outcomes do not require R2 RNG.  Booster opening and all stochastic transitions
-remain unavailable until their exact RNG/state ownership exists.
+outcomes do not require R2 RNG or unmodeled acquisition side effects.  Booster
+opening, voucher acquisition, and all stochastic transitions remain unavailable
+until their exact RNG/state ownership exists.
 """
 
 from __future__ import annotations
@@ -84,13 +85,13 @@ class ShopTransitionEngine:
                 for slot, item in enumerate(state.shop_consumables)
                 if state.money >= self._price(item)
             )
-        actions.extend(
-            EnvAction.from_alias("BUY_VOUCHER", {"slot": slot})
-            for slot, item in enumerate(state.shop_vouchers)
-            if state.money >= self._price(item)
-        )
 
-        # BUY_BOOSTER / OPEN_PACK is intentionally not exposed here: purchase is
+        # BUY_VOUCHER is intentionally not exposed until the headless state owns
+        # the voucher's immediate rule modification.  Merely moving the voucher
+        # into ``state.vouchers`` would create a legal transition with incomplete
+        # gameplay semantics.
+        #
+        # OPEN_PACK is also intentionally not exposed here: purchase is
         # deterministic, but entering a generated pack is not exact until R2 owns
         # pack RNG and R1 owns the resulting pack state.
         actions.append(EnvAction.from_alias("END_SHOP"))
@@ -119,9 +120,6 @@ class ShopTransitionEngine:
             return next_run
         if action.alias == "BUY_CONSUMABLE":
             self._buy(state, state.shop_consumables, state.consumables, slot)
-            return next_run
-        if action.alias == "BUY_VOUCHER":
-            self._buy(state, state.shop_vouchers, state.vouchers, slot)
             return next_run
 
         raise HeadlessTransitionError(f"unimplemented shop transition: {action.alias}")
