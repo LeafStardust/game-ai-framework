@@ -36,6 +36,7 @@ from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.smiley_face import SmileyFaceJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
+from games.balatro.jokers.troubadour import TroubadourJoker
 from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.state import BalatroState
 
@@ -95,6 +96,13 @@ class HeadlessRunState:
         self._require_int("money", self.public.money)
         self._require_nonnegative_int("hand_size", self.public.hand_size)
         self._require_nonnegative_int("hands_remaining", self.public.hands_remaining)
+        if not isinstance(self.public.round_reset_hands_observed, bool):
+            raise HeadlessTransitionError("round_reset_hands_observed must be a boolean")
+        if self.public.round_reset_hands_observed:
+            self._require_nonnegative_int(
+                "round_reset_hands",
+                self.public.round_reset_hands,
+            )
         self._require_nonnegative_int("discards_remaining", self.public.discards_remaining)
         self._require_nonnegative_int("joker_slots", self.public.joker_slots)
         self._require_nonnegative_int("consumable_slots", self.public.consumable_slots)
@@ -219,6 +227,8 @@ class ShopTransitionEngine:
             return state.hand_size >= 2
         if type(item) is DrunkardJoker:
             return bool(state.round_reset_discards_observed)
+        if type(item) is TroubadourJoker:
+            return bool(state.round_reset_hands_observed) and state.round_reset_hands >= 1
         return False
 
     @staticmethod
@@ -226,10 +236,11 @@ class ShopTransitionEngine:
         """Apply exact immediate persistent state changes for audited Jokers.
 
         ``BalatroState.hand_size`` is canonical public hand capacity. Likewise,
-        ``round_reset_discards`` is explicitly the public starting discard
-        allowance for the next round, distinct from the finished blind's current
-        ``discards_remaining``. SELL_JOKER stays outside the frozen training
-        surface until inverse lifecycle transitions are independently audited.
+        ``round_reset_hands`` and ``round_reset_discards`` are explicitly the
+        public starting allowances for the next round, distinct from the finished
+        blind's current remaining resources. SELL_JOKER stays outside the frozen
+        training surface until inverse lifecycle transitions are independently
+        audited.
         """
 
         if type(joker) is JugglerJoker:
@@ -238,6 +249,9 @@ class ShopTransitionEngine:
             state.hand_size -= 2
         elif type(joker) is DrunkardJoker:
             state.round_reset_discards += 1
+        elif type(joker) is TroubadourJoker:
+            state.hand_size += 2
+            state.round_reset_hands -= 1
 
     @classmethod
     def _is_affordable(cls, state: BalatroState, item: Any) -> bool:
