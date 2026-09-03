@@ -80,13 +80,13 @@ class ShopTransitionEngine:
                 EnvAction.from_alias("BUY_JOKER", {"slot": slot})
                 for slot, item in enumerate(state.shop_jokers)
                 if self._joker_acquisition_is_exact(item)
-                and state.money >= self._price(item)
+                and self._is_affordable(state, item)
             )
         if len(state.consumables) < state.consumable_slots:
             actions.extend(
                 EnvAction.from_alias("BUY_CONSUMABLE", {"slot": slot})
                 for slot, item in enumerate(state.shop_consumables)
-                if state.money >= self._price(item)
+                if self._is_affordable(state, item)
             )
 
         # Generic BUY_JOKER remains fail-closed.  Only explicitly audited Joker
@@ -145,6 +145,16 @@ class ShopTransitionEngine:
         return type(item) is FlatMultJoker and not getattr(item, "edition", None)
 
     @classmethod
+    def _is_affordable(cls, state: BalatroState, item: Any) -> bool:
+        """Return exact purchase affordability without inventing missing prices."""
+
+        try:
+            price = cls._price(item)
+        except HeadlessTransitionError:
+            return False
+        return price >= 0 and state.money >= price
+
+    @classmethod
     def _buy(cls, state: BalatroState, source: list, destination: list, slot: int) -> None:
         if slot < 0 or slot >= len(source):
             raise HeadlessTransitionError(f"shop slot out of range: {slot}")
@@ -170,9 +180,13 @@ class ShopTransitionEngine:
 
     @staticmethod
     def _price(item: Any) -> int:
-        value = getattr(item, "price", getattr(item, "cost", 0))
+        value = getattr(item, "price", None)
+        if value is None:
+            value = getattr(item, "cost", None)
         if isinstance(value, dict):
-            value = value.get("buy", 0)
+            value = value.get("buy")
+        if value is None or isinstance(value, bool):
+            raise HeadlessTransitionError("shop item has no exact price")
         try:
             return int(value)
         except (TypeError, ValueError) as exc:
