@@ -227,9 +227,6 @@ class ShopTransitionEngine:
             value = getattr(item, "cost", None)
         if isinstance(value, dict):
             value = value.get("buy")
-        if value is None or isinstance(value, bool):
-            raise HeadlessTransitionError("shop item has no exact price")
-        try:
-            return int(value)
-        except (TypeError, ValueError) as exc:
-            raise HeadlessTransitionError("shop item has invalid price") from exc
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise HeadlessTransitionError("shop item has no exact integer price")
+        return value
