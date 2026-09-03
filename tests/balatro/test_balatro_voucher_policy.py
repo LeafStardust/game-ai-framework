@@ -91,6 +91,19 @@ def test_blank_is_not_bought_just_because_it_is_a_persistent_voucher():
     assert result.executable_action is None
 
 
+@pytest.mark.parametrize("label", ("Director's Cut", "Retcon"))
+def test_activated_boss_reroll_voucher_is_rejected_without_executable_action(label):
+    result = VoucherAcquisitionPolicy().decide(
+        _state(money=57, ante=6),
+        _voucher(label, price=10),
+    )
+
+    assert result.action == HOLD
+    assert result.executable_action is None
+    assert result.persistent_value == 0.0
+    assert any("no executable production action" in note for note in result.rationale)
+
+
 @pytest.mark.parametrize("label", ("Wasteful", "Recyclomancy"))
 def test_burglar_blocks_additional_discard_vouchers(label):
     state = _state(money=50, ante=4)

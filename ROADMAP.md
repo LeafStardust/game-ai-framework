@@ -355,9 +355,36 @@ Validation state:
 
 This item is closed. Inspect the new stage in the next genuine live run; do not reopen policy semantics merely because prior residual values were large.
 
+##### L2.3.4 — Attempt 001 unusable Director's Cut purchase — FIXED AND DETERMINISTICALLY VALIDATED
+
+Classification: **integration/authority bug** at canonical D3 voucher admission.
+
+Observed defect at attempt-001 sequence 366:
+
+- the agent bought Director's Cut for `$10` at Ante 6 with `$57` available;
+- D3 assigned the unknown-voucher fallback base value `5.000`, added `0.400` horizon value, and admitted the purchase with `3.400` child advantage / `1.900` D14 normalized gain;
+- Director's Cut and Retcon provide value only through an explicit paid boss-blind reroll;
+- the production action vocabulary, live runner, and injected dispatcher expose no boss-reroll action, so the agent could not use the purchased capability at any later blind.
+
+Repair:
+
+- canonical D3 now rejects Director's Cut and Retcon while boss-reroll execution is unsupported;
+- the rejection has zero persistent value, no executable purchase action, and an explicit fail-closed rationale;
+- passive and otherwise implemented vouchers retain their existing valuation and admission paths;
+- implementing boss-reroll execution remains possible as a later bounded feature, but Phase L2 does not open that connector path merely to justify an unusable purchase.
+
+Validation state:
+
+- focused D3/voucher/readiness/D14/live-shop regression slice: **GREEN in Work Chat (`46 passed`)**;
+- broader affected SHOP/Joker/replacement/voucher slice: **GREEN in Work Chat (`162 passed`)**;
+- the exact attempt state (`$57`, Ante 6, `$10` Director's Cut) is covered by the regression and now returns HOLD with no executable action;
+- no user pytest or separate Windows validation is required for this fail-closed admission repair; the next genuine live batch should simply contain no Director's Cut/Retcon purchase unless boss-reroll execution is added first.
+
+This item is closed unless a production boss-reroll action is deliberately implemented later, at which point D3 valuation must be reintroduced together with end-to-end execution proof.
+
 Active inspection targets:
 
-- remaining attempt 001 material Joker/pack/voucher/reroll decisions other than the now-fixed Throwback and Card Sharp defects;
+- remaining attempt 001 material Joker/pack/voucher/reroll decisions other than the now-fixed Throwback, Card Sharp, and Director's Cut defects;
 - remaining attempt 002 material decisions other than the now-fixed Flash Card authority defect;
 - terminal boss decision quality in attempts 001/002/003 where telemetry indicates a suspicious actionable decision rather than simple insufficient engine strength;
 - any remaining D14 residual after the newly explicit standalone-Joker stage is observed in a genuine live run.
@@ -374,6 +401,7 @@ Flash Card / canonical D2 authority patch      GREEN
 Throwback blind-skip realization patch         GREEN
 Card Sharp shop-history translation patch      GREEN (WORK CHAT)
 D14 standalone-Joker timing attribution patch  GREEN (WORK CHAT)
+Director's Cut/Retcon D3 fail-closed patch       GREEN (WORK CHAT)
 Further Phase L2 baseline classification        ACTIVE
 Numerical tuning / Optuna                       NOT STARTED
 Phase M broader competence                      NOT STARTED

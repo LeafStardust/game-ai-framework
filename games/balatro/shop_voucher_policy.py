@@ -36,6 +36,7 @@ _EARLY_STRUCTURAL_EXCEPTIONS = {
 _EARLY_SURVIVAL_RESERVE = 10
 _EARLY_EXPENSIVE_VOUCHER_PRICE = 8
 _FIRST_ENGINE_HAND_SIZE_VOUCHERS = frozenset({"Paint Brush", "Palette"})
+_UNSUPPORTED_ACTIVATED_VOUCHERS = frozenset({"Director's Cut", "Retcon"})
 
 
 @dataclass(frozen=True)
@@ -169,6 +170,29 @@ class VoucherAcquisitionPolicy:
                 thresholds=self.thresholds,
                 rationale=(
                     f"D3 unaffordable: costs ${price} with ${state.money} available",
+                ),
+            )
+
+        if candidate_name in _UNSUPPORTED_ACTIVATED_VOUCHERS:
+            return VoucherAcquisitionDecision(
+                action=HOLD,
+                candidate=candidate_name,
+                executable_action=None,
+                base_persistent_value=0.0,
+                build_compatibility=0.0,
+                horizon_bonus=0.0,
+                persistent_value=0.0,
+                total_advantage=float("-inf"),
+                price=price,
+                money_after=money_after,
+                price_penalty=0.0,
+                interest_penalty=0.0,
+                reserve_penalty=0.0,
+                thresholds=self.thresholds,
+                rationale=(
+                    f"D3 voucher={candidate_name}",
+                    "activated boss-reroll voucher has no executable production action",
+                    "D3 fails closed until boss-reroll execution is implemented",
                 ),
             )
 
