@@ -8,6 +8,7 @@ ordering and rejecting unclassified modifier surfaces.
 from __future__ import annotations
 
 from games.balatro.blinds.blind import BlindType
+from games.balatro.env.boss_debuffs import apply_static_suit_boss_debuff
 from games.balatro.env.boss_resources import apply_resource_boss_start
 from games.balatro.env.deal import (
     deal_pristine_round_start,
@@ -24,6 +25,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 _REQUIREMENT_ONLY_BOSS_NAMES = frozenset({"The Wall", "Violet Vessel"})
 _MUTABLE_HAND_RULE_BOSS_NAMES = frozenset({"The Eye", "The Mouth"})
 _RESOURCE_MUTATING_BOSS_NAMES = frozenset({"The Water", "The Needle", "The Manacle"})
+_STATIC_SUIT_DEBUFF_BOSS_NAMES = frozenset({"The Goad", "The Window", "The Head", "The Club"})
 
 
 def _require_common_blind_start_boundary(run: HeadlessRunState, *, label: str) -> None:
@@ -177,6 +179,31 @@ def prepare_supported_resource_boss_start(run: HeadlessRunState) -> HeadlessRunS
 def start_supported_resource_boss(run: HeadlessRunState) -> HeadlessRunState:
     """Compose audited resource-Boss lifecycle with exact generalized shuffle/deal."""
     prepared = prepare_supported_resource_boss_start(run)
+    return deal_supported_round_start(prepared)
+
+
+def prepare_supported_static_suit_debuff_boss_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own exact Goad/Window/Head/Club pre-deal card debuff ordering.
+
+    Vanilla performs its all-playing-card debuff pass after Boss-specific resource
+    mutations and before Joker ``setting_blind`` effects. These four Bosses have
+    no additional start mutation, so this slice is baseline → suit debuff →
+    setting_blind → bonus consume.
+    """
+    _require_boss_blind(run, label="static suit-debuff boss start")
+    if run.public.boss_name not in _STATIC_SUIT_DEBUFF_BOSS_NAMES:
+        raise HeadlessTransitionError(
+            "boss is not in the audited static suit-debuff start set"
+        )
+
+    next_run = _begin_predeal_lifecycle(run)
+    next_run = apply_static_suit_boss_debuff(next_run)
+    return _finish_predeal_lifecycle(next_run)
+
+
+def start_supported_static_suit_debuff_boss(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose static suit-debuff Boss state with exact shuffle/deal."""
+    prepared = prepare_supported_static_suit_debuff_boss_start(run)
     return deal_supported_round_start(prepared)
 
 
