@@ -11,6 +11,9 @@ from games.balatro.env.transition import (
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.acrobat import AcrobatJoker
 from games.balatro.jokers.banner import BannerJoker
+from games.balatro.jokers.baron import BaronJoker
+from games.balatro.jokers.blackboard import BlackboardJoker
+from games.balatro.jokers.blue_joker import BlueJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.juggler import JugglerJoker
@@ -98,6 +101,9 @@ def test_balatro_env_r1_buy_consumable_updates_exact_zone():
         AbstractJoker,
         AcrobatJoker,
         BannerJoker,
+        BaronJoker,
+        BlackboardJoker,
+        BlueJoker,
         JugglerJoker,
         StuntmanJoker,
     ),
