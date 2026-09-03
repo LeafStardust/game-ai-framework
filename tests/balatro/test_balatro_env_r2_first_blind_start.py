@@ -16,7 +16,7 @@ def _run(seed: str = "TESTSEED") -> HeadlessRunState:
     state.stake_name = "WHITE"
     state.phase = "BLIND_SELECT"
     state.ante = 1
-    state.round = 1
+    state.round = 0
     state.blind = create_small_blind(300)
     state.score = 123
     state.blind_score = 999
@@ -39,8 +39,10 @@ def test_env_r2_first_blind_prepare_resets_round_state_before_draw():
 
     assert result is not run
     assert run.public.phase == "BLIND_SELECT"
+    assert run.public.round == 0
     assert run.public.score == 123
     assert result.public.phase == "DRAW_TO_HAND"
+    assert result.public.round == 1
     assert result.public.score == 0
     assert result.public.blind_score == 300
     assert result.public.hands_remaining == 4
@@ -55,6 +57,7 @@ def test_env_r2_first_blind_start_composes_lifecycle_shuffle_and_initial_draw():
     result = start_pristine_first_small_blind(_run())
 
     assert result.public.phase == "SELECTING_HAND"
+    assert result.public.round == 1
     assert result.public.blind_score == 300
     assert result.public.hands_remaining == 4
     assert result.public.discards_remaining == 3
@@ -118,8 +121,8 @@ def test_env_r2_first_blind_start_rejects_wrong_phase_round_or_blind():
         prepare_pristine_first_small_blind(run)
 
     run = _run()
-    run.public.round = 2
-    with pytest.raises(HeadlessTransitionError, match="ante 1 round 1"):
+    run.public.round = 1
+    with pytest.raises(HeadlessTransitionError, match="ante 1 round 0"):
         prepare_pristine_first_small_blind(run)
 
     run = _run()
