@@ -209,6 +209,14 @@ class HeadlessRunState:
                 raise HeadlessTransitionError("owned_deck must be a list or None")
             if any(not isinstance(card, BalatroCard) for card in self.public.owned_deck):
                 raise HeadlessTransitionError("owned_deck must contain only BalatroCard values")
+        for zone_name in ("draw_pile", "discard_pile", "played_pile"):
+            zone = getattr(self, zone_name)
+            if not isinstance(zone, list):
+                raise HeadlessTransitionError(f"{zone_name} must be a list")
+            if any(not isinstance(card, BalatroCard) for card in zone):
+                raise HeadlessTransitionError(
+                    f"{zone_name} must contain only BalatroCard values"
+                )
         self._require_nonnegative_int("reroll_cost", self.reroll_cost)
         self._require_nonnegative_int("skips", self.skips)
 
