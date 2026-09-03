@@ -8,7 +8,10 @@ ordering and rejecting unclassified modifier surfaces.
 from __future__ import annotations
 
 from games.balatro.blinds.blind import BlindType
-from games.balatro.env.boss_debuffs import apply_static_suit_boss_debuff
+from games.balatro.env.boss_debuffs import (
+    apply_plant_face_debuff,
+    apply_static_suit_boss_debuff,
+)
 from games.balatro.env.boss_resources import apply_resource_boss_start
 from games.balatro.env.deal import (
     deal_pristine_round_start,
@@ -183,13 +186,7 @@ def start_supported_resource_boss(run: HeadlessRunState) -> HeadlessRunState:
 
 
 def prepare_supported_static_suit_debuff_boss_start(run: HeadlessRunState) -> HeadlessRunState:
-    """Own exact Goad/Window/Head/Club pre-deal card debuff ordering.
-
-    Vanilla performs its all-playing-card debuff pass after Boss-specific resource
-    mutations and before Joker ``setting_blind`` effects. These four Bosses have
-    no additional start mutation, so this slice is baseline → suit debuff →
-    setting_blind → bonus consume.
-    """
+    """Own exact Goad/Window/Head/Club pre-deal card debuff ordering."""
     _require_boss_blind(run, label="static suit-debuff boss start")
     if run.public.boss_name not in _STATIC_SUIT_DEBUFF_BOSS_NAMES:
         raise HeadlessTransitionError(
@@ -204,6 +201,23 @@ def prepare_supported_static_suit_debuff_boss_start(run: HeadlessRunState) -> He
 def start_supported_static_suit_debuff_boss(run: HeadlessRunState) -> HeadlessRunState:
     """Compose static suit-debuff Boss state with exact shuffle/deal."""
     prepared = prepare_supported_static_suit_debuff_boss_start(run)
+    return deal_supported_round_start(prepared)
+
+
+def prepare_supported_plant_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own The Plant's source-ordered face-card debuff start."""
+    _require_boss_blind(run, label="Plant boss start")
+    if run.public.boss_name != "The Plant":
+        raise HeadlessTransitionError("Plant boss start requires The Plant")
+
+    next_run = _begin_predeal_lifecycle(run)
+    next_run = apply_plant_face_debuff(next_run)
+    return _finish_predeal_lifecycle(next_run)
+
+
+def start_supported_plant(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose The Plant face-card debuff lifecycle with exact shuffle/deal."""
+    prepared = prepare_supported_plant_start(run)
     return deal_supported_round_start(prepared)
 
 
