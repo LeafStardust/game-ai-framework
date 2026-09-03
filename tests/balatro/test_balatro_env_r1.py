@@ -80,6 +80,12 @@ def test_balatro_env_r1_state_rejects_non_red_white_surface():
     (
         ("money", "20", "money must be an exact integer"),
         ("money", True, "money must be an exact integer"),
+        ("hand_size", 8.0, "hand_size must be an exact integer"),
+        ("hand_size", -1, "hand_size cannot be negative"),
+        ("hands_remaining", "4", "hands_remaining must be an exact integer"),
+        ("hands_remaining", -1, "hands_remaining cannot be negative"),
+        ("discards_remaining", True, "discards_remaining must be an exact integer"),
+        ("discards_remaining", -1, "discards_remaining cannot be negative"),
         ("joker_slots", 5.0, "joker_slots must be an exact integer"),
         ("joker_slots", -1, "joker_slots cannot be negative"),
         ("consumable_slots", "2", "consumable_slots must be an exact integer"),
@@ -94,6 +100,32 @@ def test_balatro_env_r1_state_rejects_inexact_shop_numeric_state(field, value, m
         HeadlessRunState(public=state, seed=2)
 
 
+def test_balatro_env_r1_state_validates_observed_round_reset_discards():
+    state = _shop_state()
+    state.round_reset_discards_observed = "yes"
+    with pytest.raises(
+        HeadlessTransitionError,
+        match="round_reset_discards_observed must be a boolean",
+    ):
+        HeadlessRunState(public=state, seed=3)
+
+    state = _shop_state()
+    state.round_reset_discards_observed = True
+    state.round_reset_discards = 3.0
+    with pytest.raises(
+        HeadlessTransitionError,
+        match="round_reset_discards must be an exact integer",
+    ):
+        HeadlessRunState(public=state, seed=3)
+
+    state.round_reset_discards = -1
+    with pytest.raises(
+        HeadlessTransitionError,
+        match="round_reset_discards cannot be negative",
+    ):
+        HeadlessRunState(public=state, seed=3)
+
+
 @pytest.mark.parametrize(
     ("kwargs", "message"),
     (
@@ -105,7 +137,7 @@ def test_balatro_env_r1_state_rejects_inexact_shop_numeric_state(field, value, m
 )
 def test_balatro_env_r1_state_rejects_inexact_environment_counters(kwargs, message):
     with pytest.raises(HeadlessTransitionError, match=message):
-        HeadlessRunState(public=_shop_state(), seed=3, **kwargs)
+        HeadlessRunState(public=_shop_state(), seed=4, **kwargs)
 
 
 def test_balatro_env_r1_shop_legality_is_exact_for_deterministic_subset():
