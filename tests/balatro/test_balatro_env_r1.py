@@ -228,6 +228,9 @@ def test_balatro_env_r1_affordability_rejects_inexact_prices():
     state.shop_consumables = [
         _Item("Negative", -1),
         _Item("Invalid", "not-a-price"),
+        _Item("Numeric string", "3"),
+        _Item("Integral float", 3.0),
+        _Item("Fractional float", 3.9),
         _Item("Boolean", True),
         _PricelessItem("Missing"),
     ]
