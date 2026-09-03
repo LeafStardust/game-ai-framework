@@ -53,7 +53,6 @@ _EXACT_R1_JOKER_ACQUISITION_TYPES = (
     ScholarJoker,
     SmileyFaceJoker,
     JugglerJoker,
-    StuntmanJoker,
 )
 
 
@@ -207,6 +206,11 @@ class ShopTransitionEngine:
             return False
         if type(item) in _EXACT_R1_JOKER_ACQUISITION_TYPES:
             return True
+        if type(item) is StuntmanJoker:
+            # R1 does not guess how live Balatro resolves a capacity modifier
+            # larger than the authoritative current hand limit. Keep those edge
+            # states unavailable instead of creating a negative headless limit.
+            return state.hand_size >= 2
         if type(item) is DrunkardJoker:
             return bool(state.round_reset_discards_observed)
         return False
