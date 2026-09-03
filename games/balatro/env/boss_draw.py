@@ -77,3 +77,28 @@ def apply_cerulean_bell_drawn_to_hand(run: HeadlessRunState) -> HeadlessRunState
     chosen_hand_index = sorted_hand_indices[sorted_position]
     next_run.public.hand[chosen_hand_index].forced_selection = True
     return next_run
+
+
+def clear_cerulean_bell_forced_selection(run: HeadlessRunState) -> HeadlessRunState:
+    """Mirror Cerulean Bell cleanup in both ``Blind:disable`` and ``Blind:defeat``.
+
+    Vanilla iterates ``G.playing_cards`` and clears ``forced_selection`` from
+    every permanent playing card. The retained playing-card order is therefore
+    the exact object set to mutate, regardless of which card zone currently owns
+    the forced card. No RNG is consumed.
+    """
+    if run.public.boss_name != "Cerulean Bell":
+        raise HeadlessTransitionError(
+            "Cerulean Bell forced-selection cleanup requires Cerulean Bell"
+        )
+
+    cards = run.require_playing_card_order()
+    if not cards:
+        raise HeadlessTransitionError(
+            "Cerulean Bell forced-selection cleanup requires permanent playing cards"
+        )
+
+    next_run = run.copy()
+    for card in next_run.require_playing_card_order():
+        card.forced_selection = False
+    return next_run
