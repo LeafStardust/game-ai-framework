@@ -2,12 +2,14 @@ from time import perf_counter
 
 import pytest
 
+import games.balatro.live.hand_action_planner_core as planner_module
 from games.balatro.card import BalatroCard
 from games.balatro.live.blind_clear_planner import PlannerSearchBudgetExceeded
 from games.balatro.live.consumable_escape import (
     SunConsumableEscapePlanner,
     judgement_live_block_reason,
 )
+from games.balatro.live.hand_action_planner_core import D1LiveBlindClearPlanner
 from games.balatro.state import BalatroState
 from games.balatro.tarots import create_tarot
 
@@ -69,6 +71,37 @@ def test_sun_escape_respects_an_expired_parent_d1_deadline():
 
     with pytest.raises(PlannerSearchBudgetExceeded, match="parent D1 wall-clock budget"):
         planner.plan(state)
+
+
+def test_sun_root_proof_cannot_consume_the_entire_d1_deadline(monkeypatch):
+    state = BalatroState()
+    state.phase = "SELECTING_HAND"
+    state.hand = [
+        BalatroCard("K", "Spades"),
+        BalatroCard("Q", "Diamonds"),
+        BalatroCard("J", "Hearts"),
+    ]
+    state.consumables = [create_tarot("The Sun")]
+
+    observed = {}
+
+    class _SlowSunProof:
+        def __init__(self, **kwargs):
+            observed["deadline"] = kwargs["deadline"]
+
+        def plan(self, current):
+            assert current is state
+            raise RuntimeError("bounded Sun proof expired")
+
+    monkeypatch.setattr(planner_module, "perf_counter", lambda: 100.0)
+    monkeypatch.setattr(planner_module, "SunConsumableEscapePlanner", _SlowSunProof)
+    planner = D1LiveBlindClearPlanner(deadline=107.0)
+
+    assert planner._guaranteed_sun_action(state) is None
+    assert observed["deadline"] == pytest.approx(
+        100.0 + planner._SUN_ROOT_PROOF_SECONDS
+    )
+    assert observed["deadline"] < planner.deadline
 
 
 def test_judgement_is_explicitly_blocked_for_live_blind_planning():

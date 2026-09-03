@@ -96,6 +96,7 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
     }
     _MAX_CHILD_PROJECTED_PLAYS = 6
     _MAX_ROOT_PROJECTED_PLAYS = 24
+    _SUN_ROOT_PROOF_SECONDS = 0.75
 
     def __init__(self, *args, **kwargs):
         if kwargs.get("evaluator") is None:
@@ -297,6 +298,14 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
         if not any(getattr(item, "name", None) == "The Sun" for item in consumables):
             return None
 
+        # The Sun is an optional exact-clear candidate, not the root search itself.
+        # Give its proof a bounded slice of the shared wall-clock budget so a hard
+        # target cannot consume the entire deadline before D1 admits its first
+        # ordinary Play/Discard node.
+        sun_deadline = perf_counter() + self._SUN_ROOT_PROOF_SECONDS
+        if self.deadline is not None:
+            sun_deadline = min(self.deadline, sun_deadline)
+
         try:
             recommendation = SunConsumableEscapePlanner(
                 horizon=self.horizon,
@@ -305,7 +314,7 @@ class D1LiveBlindClearPlanner(LiveBlindClearPlanner):
                 child_play_width=max(1, self.child_play_width),
                 child_discard_width=max(0, self.child_discard_width),
                 max_nodes=(self.max_nodes if self.max_nodes is not None else 10000),
-                deadline=self.deadline,
+                deadline=sun_deadline,
             ).plan(state)
         except RuntimeError:
             return None
