@@ -273,7 +273,33 @@ Joker purchase is identity-gated. The current audited scoring/state-safe set inc
 - `ScholarJoker`;
 - `SmileyFaceJoker`;
 - `WalkieTalkieJoker`;
-- `JugglerJoker`.
+- `JugglerJoker`;
+- `FourFingersJoker`;
+- `PareidoliaJoker`;
+- `ShortcutJoker`;
+- `SmearedJoker`;
+- `SplashJoker`;
+- `JollyJoker`;
+- `SlyJoker`;
+- `ZanyJoker`;
+- `WilyJoker`;
+- `TheDuoJoker`.
+
+The five passive hand-rule acquisitions are exact inventory-only purchases because their gameplay rules are already owned by the canonical hand-rule/scoring pipeline:
+
+- **Four Fingers**: `flush_size = 4`, `straight_size = 4`;
+- **Pareidolia**: all cards are faces for owned face-card rules;
+- **Shortcut**: straight gaps of one rank are allowed;
+- **Smeared Joker**: red suits merge and black suits merge;
+- **Splash**: all played cards score.
+
+The first audited hand-shape score-only group is also inventory-only because each class mutates only the score projection and is already explicitly supported by `LiveJokerScoreProjector`:
+
+- **Jolly Joker**;
+- **Sly Joker**;
+- **Zany Joker**;
+- **Wily Joker**;
+- **The Duo**.
 
 Additional exact resource/capacity-sensitive Joker rules currently implemented:
 
@@ -296,9 +322,9 @@ Still fail-closed:
 - generic voucher acquisition;
 - booster-pack opening;
 - stochastic acquisition/generation paths that require R2 RNG ownership;
-- any acquisition whose immediate persistent effect has not been audited.
+- any acquisition whose immediate persistent or later lifecycle effect has not been audited.
 
-### Current live next-round-hands / Merry Andy checkpoint
+### Current live next-round-hands / acquisition checkpoint
 
 Completed and pushed:
 
@@ -306,13 +332,19 @@ Completed and pushed:
 2. `HeadlessRunState` validates observed next-round hand allowance as an exact nonnegative integer.
 3. `ShopTransitionEngine` enables Troubadour only when the next-round hand baseline is authoritative and at least 1.
 4. Troubadour purchase applies `hand_size += 2` and `round_reset_hands -= 1` exactly once.
-5. `LiveMemoryBalatroObserver` now reads the authoritative public source `G.GAME.round_resets.hands` and exposes `round_reset_hands_observed` plus the value only when numeric.
-6. `DefaultBalatroStateTranslator` maps that snapshot field into canonical state and fails closed for missing, boolean, string, float, negative, or otherwise invalid externally supplied values.
+5. `LiveMemoryBalatroObserver` reads `G.GAME.round_resets.hands` and exposes it fail-closed.
+6. `DefaultBalatroStateTranslator` maps that field into canonical state and rejects malformed external values.
 7. `tests/balatro/test_balatro_r1_round_reset_hands_live.py` covers observed, zero, missing, and invalid observer/translator behavior.
 8. Deterministic CI run `33781164005` is green: `1297 passed, 1594 deselected`.
-9. Merry Andy acquisition is now exact in R1: authoritative next-round discard baseline required, authoritative hand size must be at least 1, successful purchase applies `hand_size -= 1` and `round_reset_discards += 3` while leaving the completed round's `discards_remaining` unchanged.
-10. `tests/balatro/test_balatro_env_r1_merry_andy.py` proves fail-closed behavior without reset-discard observation, fail-closed behavior at zero hand size, input-state isolation, affordability/inventory transition, and exact one-time modifiers.
+9. Merry Andy acquisition is exact in R1 with authoritative reset-discard and hand-size gates.
+10. `tests/balatro/test_balatro_env_r1_merry_andy.py` proves its exact transition and rejection boundaries.
 11. Deterministic CI run `33781461393` is green: `1300 passed, 1594 deselected`.
+12. Four Fingers, Pareidolia, Shortcut, Smeared Joker, and Splash are admitted as exact inventory-only acquisitions; their passive rule semantics are already canonical and no resource/capacity mutation occurs on purchase.
+13. `tests/balatro/test_balatro_env_r1_passive_hand_rule_acquisition.py` proves exact purchase isolation, resulting hand-rule activation, unchanged resources, and edition fail-closed behavior for all five.
+14. Deterministic CI run `33782526550` is green: `1310 passed, 1594 deselected`.
+15. Jolly, Sly, Zany, Wily, and The Duo are admitted as exact inventory-only hand-shape scoring acquisitions; each is already in the validated live score projector and has no acquisition/lifecycle mutation.
+16. `tests/balatro/test_balatro_env_r1_hand_shape_scoring_acquisition.py` proves exact inventory/economy transfer, score-projector ownership, unchanged resources, and edition fail-closed behavior for all five.
+17. Deterministic CI run `33782754111` is green: `1320 passed, 1594 deselected`.
 
 Latest functional commits for this checkpoint:
 
@@ -323,11 +355,16 @@ d58436c  feat(balatro): observe next-round hand allowance
 f3fe9f2  test(balatro): keep R1 live ownership in CI
 91d66ef  feat(balatro): enable exact Merry Andy acquisition
 00363a7  test(balatro): cover exact Merry Andy R1 acquisition
+bccddd7  feat(balatro): admit exact passive hand-rule acquisitions
+b29bfb3  test(balatro): cover passive hand-rule R1 acquisitions
+0d075e4  feat(balatro): admit exact hand-shape scoring acquisitions
+e1276c0  test(balatro): cover hand-shape scoring R1 acquisitions
 ```
 
-Audit finding retained for the next transition inventory:
+Audit findings retained for the next transition inventory:
 
-- **Burglar is not an acquisition-only modifier.** Its modeled effect fires at `BLIND_SELECTED`, gaining hands and setting discards to zero. It must remain fail-closed until R1 owns that blind-selection lifecycle transition rather than being admitted merely because buying the Joker itself is deterministic.
+- **Burglar is not an acquisition-only modifier.** Its modeled effect fires at `BLIND_SELECTED`, gaining hands and setting discards to zero. It must remain fail-closed until R1 owns that blind-selection lifecycle transition.
+- Score-only candidates may be admitted incrementally only after verifying that the concrete runtime class has no hidden acquisition, round, blind, sell, destruction, RNG, or counter mutation and that its score semantics are already owned by the validated projector.
 
 ### R1 immediate objective
 
@@ -335,13 +372,15 @@ Continue the acquisition and lifecycle semantics inventory from this green check
 
 Immediate sequence from this exact checkpoint:
 
-1. audit the next unaudited training-relevant Joker/resource acquisition and classify whether its consequences occur at acquisition or a later lifecycle transition;
-2. enable only identities whose immediate and persistent consequences are already exactly representable by canonical/headless state;
-3. when a candidate depends on an unowned lifecycle transition (for example Burglar at `BLIND_SELECTED`), keep it fail-closed and add/finish that transition category before admission;
+1. continue auditing pure score-only Joker classes in small mechanically coherent groups and admit only those with fully owned score semantics and no hidden state/lifecycle mutation;
+2. separately classify stateful candidates by their actual lifecycle trigger rather than treating deterministic purchase as sufficient proof;
+3. keep Burglar fail-closed until `BLIND_SELECTED` hands/discards consequences are owned by the headless transition engine;
 4. keep generic vouchers, packs, editions, unknown Jokers, and unaudited acquisitions fail-closed;
 5. retain legality + direct-transition rejection tests so unsupported actions cannot leak through either path;
 6. broaden the legal R1 surface only after each transition is exact;
-7. then continue remaining state-transition categories and R2/R3 work.
+7. implement lifecycle transition categories incrementally when they block training-relevant acquisitions;
+8. then continue remaining state-transition categories and R2/R3 work;
+9. add R5 parity fixtures before declaring the environment authoritative for training.
 
 For every newly enabled Joker/voucher/consumable/card acquisition:
 
@@ -608,6 +647,8 @@ R1 state transition engine                        ACTIVE
 R1 first deterministic shop slice                 IMPLEMENTED
 R1 acquisition semantics audit                    ACTIVE — CURRENT WORKSTREAM
 Exact scoring-safe Joker allowlist                IMPLEMENTED INCREMENTALLY
+Exact passive hand-rule acquisitions              GREEN — CI 33782526550
+Exact first hand-shape scoring group              GREEN — CI 33782754111
 Exact Juggler acquisition                         IMPLEMENTED
 Exact Stuntman acquisition                        IMPLEMENTED WITH CAPACITY GUARD
 Exact Drunkard acquisition                        IMPLEMENTED WITH OBSERVED RESET-DISCARD GATE
@@ -645,18 +686,16 @@ Post-RL symbolic cleanup                          NOT STARTED
 Current branch code head immediately before this roadmap synchronization:
 
 ```text
-00363a7b29ceaeafca89ddde95f2061d704da4c1
+e1276c0c62cf0dec0b150fa8141ee310e50d22f3
 ```
 
 Latest functional R1 commits immediately before the roadmap update:
 
 ```text
-c816aa8  feat(balatro): translate next-round hand allowance
-d58436c  feat(balatro): observe next-round hand allowance
-8bf4c07  test(balatro): cover live next-round hand ownership
-f3fe9f2  test(balatro): keep R1 live ownership in CI
-91d66ef  feat(balatro): enable exact Merry Andy acquisition
-00363a7  test(balatro): cover exact Merry Andy R1 acquisition
+bccddd7  feat(balatro): admit exact passive hand-rule acquisitions
+b29bfb3  test(balatro): cover passive hand-rule R1 acquisitions
+0d075e4  feat(balatro): admit exact hand-shape scoring acquisitions
+e1276c0  test(balatro): cover hand-shape scoring R1 acquisitions
 ```
 
 ---
@@ -667,17 +706,18 @@ f3fe9f2  test(balatro): keep R1 live ownership in CI
 
 Immediate order from the current checkpoint:
 
-1. continue the acquisition-semantics inventory and classify the next candidate by the lifecycle point where its consequences occur;
-2. implement the next exact acquisition whose immediate/persistent state effects are fully owned;
+1. continue the score-only acquisition audit in small mechanically coherent groups;
+2. admit an identity only when its runtime class has no unowned acquisition/lifecycle/counter/RNG consequence and its score semantics are already exact in the validated projector;
 3. keep Burglar fail-closed until `BLIND_SELECTED` hands/discards consequences are owned by the headless transition engine;
-4. keep generic Joker/voucher buys, editions, packs, and other unsupported acquisitions fail-closed wherever immediate semantics are not exact;
-5. retain deterministic legality + direct-transition rejection tests so unsupported acquisitions cannot leak through either path;
-6. broaden the legal R1 action surface only after each transition is exact;
-7. implement lifecycle transition categories incrementally when they block otherwise training-relevant acquisitions;
-8. then continue remaining state-transition categories and R2/R3 work;
-9. add R5 parity fixtures before declaring the environment authoritative for training.
+4. classify other stateful candidates by trigger (`ROUND_STARTED`, `BLIND_SELECTED`, hand/discard, sell/destruction, shop generation, RNG) before deciding whether R1 needs a new lifecycle transition;
+5. keep generic Joker/voucher buys, editions, packs, and other unsupported acquisitions fail-closed wherever semantics are not exact;
+6. retain deterministic legality + direct-transition rejection tests so unsupported acquisitions cannot leak through either path;
+7. broaden the legal R1 action surface only after each transition is exact;
+8. implement lifecycle transition categories incrementally when they block training-relevant acquisitions;
+9. then continue remaining state-transition categories and R2/R3 work;
+10. add R5 parity fixtures before declaring the environment authoritative for training.
 
-The next code written should therefore be **continued exact R1 acquisition/lifecycle transition work from the green Merry Andy checkpoint**. It should **not** be Bond tuning and **not** PPO.
+The next code written should therefore be **continued exact R1 score-only acquisition auditing or the next required lifecycle transition if a high-value candidate is blocked by one**. It should **not** be Bond tuning and **not** PPO.
 
 ---
 
@@ -693,6 +733,8 @@ R0 HEADLESS ENVIRONMENT ARCHITECTURE               ✓
 R1 EXACT STATE TRANSITIONS                         ← ACTIVE
   └─ acquisition semantics audit                   ← ACTIVE
       ├─ scoring-safe Joker allowlist               ✓ incremental
+      ├─ passive hand-rule acquisition group        ✓
+      ├─ first hand-shape scoring group             ✓
       ├─ Juggler / Stuntman capacity ownership      ✓
       ├─ Drunkard next-round discard ownership      ✓
       ├─ Troubadour next-round hand ownership       ✓ headless + live/public
