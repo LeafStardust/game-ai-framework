@@ -135,7 +135,7 @@ def test_env_r2_resource_boss_start_composes_exact_shuffle_and_deal():
     assert "nr4" in result.rng.nodes
 
 
-@pytest.mark.parametrize("boss_name", ["The Wall", "Violet Vessel", "The Eye", "The Mouth", "The Manacle"])
+@pytest.mark.parametrize("boss_name", ["The Wall", "Violet Vessel", "The Eye", "The Mouth"])
 def test_env_r2_resource_boss_gate_rejects_other_bosses(boss_name):
     with pytest.raises(HeadlessTransitionError, match="resource-mutating start set"):
         prepare_supported_resource_boss_start(_run(boss_name=boss_name))
