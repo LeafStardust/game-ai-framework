@@ -194,6 +194,30 @@ class BalatroRNG:
             current = size - 1
             values[current], values[other] = values[other], values[current]
 
+    def pseudorandom_element_index(self, length: int, key: str) -> int:
+        """Return the zero-based index chosen by vanilla ``pseudorandom_element``.
+
+        For a Lua array, vanilla first materializes numeric keys ``1..n``, calls
+        ``pseudoshuffle(keys, pseudoseed(key))``, then calls ``math.random(n)``
+        on the *same* freshly seeded LuaJIT RNG state and returns the key stored
+        at that shuffled position.  Advancing the keyed node more than once, or
+        reseeding before the final draw, would produce a different result.
+        """
+        if isinstance(length, bool) or not isinstance(length, int):
+            raise TypeError("pseudorandom element length must be an exact integer")
+        if length <= 0:
+            raise ValueError("pseudorandom element requires a non-empty sequence")
+
+        keys = list(range(length))
+        rng = self.generator(key)
+        for size in range(length, 1, -1):
+            other = rng.randint(1, size) - 1
+            current = size - 1
+            keys[current], keys[other] = keys[other], keys[current]
+
+        shuffled_position = rng.randint(1, length) - 1
+        return keys[shuffled_position]
+
     @property
     def nodes(self) -> Mapping[str, float]:
         return dict(self._nodes)
