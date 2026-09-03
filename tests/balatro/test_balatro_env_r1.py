@@ -47,26 +47,12 @@ def test_balatro_env_r1_shop_legality_is_exact_for_deterministic_subset():
     run = HeadlessRunState(public=_shop_state(), seed="shop-seed")
     legal = ShopTransitionEngine().legal_actions(run)
 
-    assert EnvAction.from_alias("BUY_JOKER", {"slot": 0}) in legal
     assert EnvAction.from_alias("BUY_CONSUMABLE", {"slot": 0}) in legal
     assert EnvAction.from_alias("END_SHOP") in legal
+    assert EnvAction.from_alias("BUY_JOKER", {"slot": 0}) not in legal
     assert EnvAction.from_alias("BUY_JOKER", {"slot": 1}) not in legal
     assert EnvAction.from_alias("BUY_VOUCHER", {"slot": 0}) not in legal
     assert EnvAction.from_alias("OPEN_PACK", {"slot": 0}) not in legal
-
-
-def test_balatro_env_r1_buy_joker_isolated_and_deterministic():
-    run = HeadlessRunState(public=_shop_state(), seed=7)
-    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
-
-    next_run = ShopTransitionEngine().step(run, action)
-
-    assert run.public.money == 20
-    assert len(run.public.jokers) == 0
-    assert len(run.public.shop_jokers) == 2
-    assert next_run.public.money == 15
-    assert [item.label for item in next_run.public.jokers] == ["Joker A"]
-    assert [item.label for item in next_run.public.shop_jokers] == ["Joker B"]
 
 
 def test_balatro_env_r1_buy_consumable_updates_exact_zone():
@@ -88,14 +74,17 @@ def test_balatro_env_r1_rejects_unsupported_acquisition_execution():
     run = HeadlessRunState(public=_shop_state(), seed=8)
     engine = ShopTransitionEngine()
 
-    with pytest.raises(HeadlessTransitionError, match="illegal shop transition: BUY_VOUCHER"):
-        engine.step(run, EnvAction.from_alias("BUY_VOUCHER", {"slot": 0}))
-
-    with pytest.raises(HeadlessTransitionError, match="illegal shop transition: OPEN_PACK"):
-        engine.step(run, EnvAction.from_alias("OPEN_PACK", {"slot": 0}))
+    for alias in ("BUY_JOKER", "BUY_VOUCHER", "OPEN_PACK"):
+        with pytest.raises(
+            HeadlessTransitionError,
+            match=rf"illegal shop transition: {alias}",
+        ):
+            engine.step(run, EnvAction.from_alias(alias, {"slot": 0}))
 
     assert run.public.money == 20
+    assert run.public.jokers == []
     assert run.public.vouchers == []
+    assert [item.label for item in run.public.shop_jokers] == ["Joker A", "Joker B"]
     assert [item.label for item in run.public.shop_vouchers] == ["Voucher A"]
     assert [item.label for item in run.public.shop_boosters] == ["Pack A"]
 
@@ -118,7 +107,7 @@ def test_balatro_env_r1_rejects_unaffordable_or_invalid_shop_action():
     engine = ShopTransitionEngine()
 
     with pytest.raises(HeadlessTransitionError, match="illegal shop transition"):
-        engine.step(run, EnvAction.from_alias("BUY_JOKER", {"slot": 0}))
+        engine.step(run, EnvAction.from_alias("BUY_CONSUMABLE", {"slot": 0}))
 
     with pytest.raises(HeadlessTransitionError, match="illegal shop transition"):
-        engine.step(run, EnvAction.from_alias("BUY_JOKER", {"slot": 99}))
+        engine.step(run, EnvAction.from_alias("BUY_CONSUMABLE", {"slot": 99}))
