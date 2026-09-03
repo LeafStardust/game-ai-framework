@@ -8,6 +8,9 @@ from games.balatro.env.transition import (
     HeadlessTransitionError,
     ShopTransitionEngine,
 )
+from games.balatro.jokers.abstract_joker import AbstractJoker
+from games.balatro.jokers.acrobat import AcrobatJoker
+from games.balatro.jokers.banner import BannerJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.state import BalatroState
 
@@ -37,9 +40,9 @@ def _shop_state(*, money=20):
     return state
 
 
-def _base_joker(*, cost=5, edition=None):
-    joker = FlatMultJoker()
-    joker.label = "Joker"
+def _modeled_joker(joker_type=FlatMultJoker, *, cost=5, edition=None):
+    joker = joker_type()
+    joker.label = joker_type.__name__
     joker.cost = cost
     if edition is not None:
         joker.edition = edition
@@ -85,9 +88,13 @@ def test_balatro_env_r1_buy_consumable_updates_exact_zone():
     assert after_consumable.public.shop_consumables == []
 
 
-def test_balatro_env_r1_base_joker_acquisition_is_exact_and_isolated():
+@pytest.mark.parametrize(
+    "joker_type",
+    (FlatMultJoker, AbstractJoker, AcrobatJoker, BannerJoker),
+)
+def test_balatro_env_r1_audited_joker_acquisition_is_exact_and_isolated(joker_type):
     state = _shop_state()
-    state.shop_jokers = [_base_joker(), _Item("Unsupported Joker", 5)]
+    state.shop_jokers = [_modeled_joker(joker_type), _Item("Unsupported Joker", 5)]
     run = HeadlessRunState(public=state, seed=9)
     engine = ShopTransitionEngine()
 
@@ -103,15 +110,28 @@ def test_balatro_env_r1_base_joker_acquisition_is_exact_and_isolated():
     assert len(run.public.shop_jokers) == 2
     assert next_run.public.money == 15
     assert len(next_run.public.jokers) == 1
+    assert type(next_run.public.jokers[0]) is joker_type
+    assert [item.label for item in next_run.public.shop_jokers] == ["Unsupported Joker"]
+
+
+def test_balatro_env_r1_base_joker_keeps_modeled_scoring_state():
+    state = _shop_state()
+    state.shop_jokers = [_modeled_joker(FlatMultJoker)]
+    run = HeadlessRunState(public=state, seed=10)
+
+    next_run = ShopTransitionEngine().step(
+        run,
+        EnvAction.from_alias("BUY_JOKER", {"slot": 0}),
+    )
+
     assert type(next_run.public.jokers[0]) is FlatMultJoker
     assert next_run.public.jokers[0].mult == 4
-    assert [item.label for item in next_run.public.shop_jokers] == ["Unsupported Joker"]
 
 
 def test_balatro_env_r1_joker_editions_remain_fail_closed():
     state = _shop_state()
-    state.shop_jokers = [_base_joker(edition="Negative")]
-    run = HeadlessRunState(public=state, seed=10)
+    state.shop_jokers = [_modeled_joker(FlatMultJoker, edition="Negative")]
+    run = HeadlessRunState(public=state, seed=11)
     engine = ShopTransitionEngine()
     action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
 
@@ -125,7 +145,7 @@ def test_balatro_env_r1_joker_editions_remain_fail_closed():
 
 
 def test_balatro_env_r1_rejects_unsupported_acquisition_execution():
-    run = HeadlessRunState(public=_shop_state(), seed=11)
+    run = HeadlessRunState(public=_shop_state(), seed=12)
     engine = ShopTransitionEngine()
 
     for alias in ("BUY_JOKER", "BUY_VOUCHER", "OPEN_PACK"):
@@ -151,7 +171,7 @@ def test_balatro_env_r1_affordability_rejects_inexact_prices():
         _Item("Boolean", True),
         _PricelessItem("Missing"),
     ]
-    run = HeadlessRunState(public=state, seed=12)
+    run = HeadlessRunState(public=state, seed=13)
     engine = ShopTransitionEngine()
     legal = engine.legal_actions(run)
 
@@ -167,7 +187,7 @@ def test_balatro_env_r1_affordability_rejects_inexact_prices():
 
 
 def test_balatro_env_r1_end_shop_clears_offers_and_transfers_phase():
-    run = HeadlessRunState(public=_shop_state(), seed=13)
+    run = HeadlessRunState(public=_shop_state(), seed=14)
     next_run = ShopTransitionEngine().step(run, EnvAction.from_alias("END_SHOP"))
 
     assert next_run.public.phase == "BLIND_SELECT"
@@ -180,7 +200,7 @@ def test_balatro_env_r1_end_shop_clears_offers_and_transfers_phase():
 
 
 def test_balatro_env_r1_rejects_unaffordable_or_invalid_shop_action():
-    run = HeadlessRunState(public=_shop_state(money=2), seed=14)
+    run = HeadlessRunState(public=_shop_state(money=2), seed=15)
     engine = ShopTransitionEngine()
 
     with pytest.raises(HeadlessTransitionError, match="illegal shop transition"):
