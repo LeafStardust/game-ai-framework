@@ -71,7 +71,6 @@ class LiveMemoryBalatroObserver:
 
         required = ("GAME", "STATE", "STATES", "hand", "jokers", "deck")
         if not all(name in root for name in required):
-            # A VM restart can invalidate the cached table address. Rediscover once.
             self._g_table = discover_balatro_g_table(self.decoder)
             root = self.decoder.string_fields(self._g_table)
             if not all(name in root for name in required):
@@ -178,7 +177,8 @@ def snapshot_payload_from_live_memory(
 
     # G.playing_cards is the public permanent playing-card collection. Its internal
     # array order is not strategically meaningful, so expose only a canonicalized
-    # composition. Keep absence distinct from an authoritative empty collection.
+    # composition. Keep absence or any incomplete read distinct from an authoritative
+    # empty collection; permanent-deck consumers must never see a shortened list.
     playing_cards = root.get("playing_cards")
     owned_deck = (
         _normalize_card_array(decoder, playing_cards)
@@ -286,6 +286,22 @@ def _array_table_values(
     ]
 
 
+def _strict_array_table_values(
+    decoder: LuaJITNonGC64Decoder,
+    value: LuaValue | None,
+) -> list[tuple[int, int]] | None:
+    """Return an authoritative table array or None if any slot is inexact."""
+    if value is None or value.kind != "table":
+        return None
+    try:
+        items = decoder.array_items_strict(int(value.value))
+    except (BalatroProcessMemoryError, LuaJITMemoryError):
+        return None
+    if any(item.kind != "table" for _, item in items):
+        return None
+    return [(index, int(item.value)) for index, item in items]
+
+
 def _phase_name(
     decoder: LuaJITNonGC64Decoder,
     root: dict[str, LuaValue],
@@ -329,11 +345,18 @@ def _normalize_area(
 def _normalize_card_array(
     decoder: LuaJITNonGC64Decoder,
     cards_value: LuaValue | None,
-) -> dict[str, Any]:
-    cards = [
-        _normalize_card(decoder, address)
-        for _, address in _array_table_values(decoder, cards_value)
-    ]
+) -> dict[str, Any] | None:
+    raw_cards = _strict_array_table_values(decoder, cards_value)
+    if raw_cards is None:
+        return None
+    try:
+        cards = [_normalize_card(decoder, address) for _, address in raw_cards]
+    except (BalatroProcessMemoryError, LuaJITMemoryError, KeyError, TypeError, ValueError):
+        return None
+    for card in cards:
+        value = card.get("value") or {}
+        if value.get("rank") is None or not value.get("suit"):
+            return None
     cards.sort(key=_public_card_sort_key)
     return {
         "count": len(cards),
@@ -642,8 +665,6 @@ def _normalize_blind(
         "key": key,
     }
 
-    # The Eye and The Mouth keep ordinary public round state on the active Blind
-    # object. Expose only those whitelisted fields; never serialize Blind recursively.
     hands_value = blind.get("hands")
     if hands_value is not None and hands_value.kind == "table":
         hands = _table_fields(decoder, hands_value)
@@ -660,8 +681,6 @@ def _normalize_blind(
         if character.isalnum()
     )
     if only_hand_value is not None and blind_identity in {"blmouth", "themouth"}:
-        # Mouth initializes this field to false. Preserve key presence while
-        # normalizing false/non-string to None so the translator knows it was read.
         result["only_hand"] = _string(only_hand_value)
 
     return result
