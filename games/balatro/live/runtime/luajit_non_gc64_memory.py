@@ -231,6 +231,27 @@ class LuaJITNonGC64Decoder:
         self,
         table: int | LuaTableMeta,
     ) -> tuple[tuple[int, LuaValue], ...]:
+        """Decode readable non-nil array values, tolerating bad individual slots."""
+        return self._array_items(table, strict=False)
+
+    def array_items_strict(
+        self,
+        table: int | LuaTableMeta,
+    ) -> tuple[tuple[int, LuaValue], ...]:
+        """Decode an array all-or-nothing, raising if any TValue is unreadable.
+
+        Authoritative collections such as ``G.playing_cards`` must never silently
+        shrink because one process-memory TValue failed to decode. Nil slots remain
+        ordinary absent Lua array entries; actual read/decode failures propagate.
+        """
+        return self._array_items(table, strict=True)
+
+    def _array_items(
+        self,
+        table: int | LuaTableMeta,
+        *,
+        strict: bool,
+    ) -> tuple[tuple[int, LuaValue], ...]:
         meta = table if isinstance(table, LuaTableMeta) else self.read_table_meta(table)
         if not meta.array or not meta.asize:
             return ()
@@ -242,7 +263,7 @@ class LuaJITNonGC64Decoder:
                     f"short LuaJIT array block at 0x{meta.array:x}"
                 )
         except (BalatroProcessMemoryError, LuaJITMemoryError):
-            return self._array_items_individually(meta)
+            return self._array_items_individually(meta, strict=strict)
 
         result: list[tuple[int, LuaValue]] = []
         for index in range(meta.asize):
@@ -250,6 +271,8 @@ class LuaJITNonGC64Decoder:
             try:
                 value = self.decode_value(raw)
             except (BalatroProcessMemoryError, LuaJITMemoryError):
+                if strict:
+                    raise
                 continue
             if value.kind != "nil":
                 result.append((index, value))
@@ -258,12 +281,16 @@ class LuaJITNonGC64Decoder:
     def _array_items_individually(
         self,
         meta: LuaTableMeta,
+        *,
+        strict: bool = False,
     ) -> tuple[tuple[int, LuaValue], ...]:
         result: list[tuple[int, LuaValue]] = []
         for index in range(meta.asize):
             try:
                 value = self.read_value_at(meta.array + index * 8)
             except (BalatroProcessMemoryError, LuaJITMemoryError):
+                if strict:
+                    raise
                 continue
             if value.kind != "nil":
                 result.append((index, value))
