@@ -27,13 +27,16 @@ from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
+from games.balatro.jokers.half_joker import HalfJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
+from games.balatro.jokers.photograph import PhotographJoker
 from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.smiley_face import SmileyFaceJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
+from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.state import BalatroState
 
 
@@ -47,11 +50,14 @@ _EXACT_R1_JOKER_ACQUISITION_TYPES = (
     BlueJoker,
     EvenStevenJoker,
     FibonacciJoker,
+    HalfJoker,
     MysticSummitJoker,
     OddToddJoker,
+    PhotographJoker,
     RaisedFistJoker,
     ScholarJoker,
     SmileyFaceJoker,
+    WalkieTalkieJoker,
     JugglerJoker,
 )
 
