@@ -16,6 +16,8 @@ jobs:
   balatro-l3-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      APPDATA: ${{ runner.temp }}/balatro-appdata
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
