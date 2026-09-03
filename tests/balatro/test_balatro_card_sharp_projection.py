@@ -3,6 +3,7 @@ from games.balatro.hand import PokerHand
 from games.balatro.jokers.card_sharp import CardSharpJoker
 from games.balatro.live.runtime.live_memory_observer import _normalize_hand_levels
 from games.balatro.live.runtime.luajit_memory import LuaValue
+from games.balatro.live.protocol import LiveBalatroSnapshot
 from games.balatro.live.score_outcomes import VisibleCardScoreOutcomeModel
 from games.balatro.live.translator import DefaultBalatroStateTranslator
 from games.balatro.state import BalatroState
@@ -77,6 +78,28 @@ def test_translator_preserves_run_and_round_hand_history_separately():
     assert state.hand_levels["PAIR"] == 3
     assert state.hand_play_counts["PAIR"] == 7
     assert state.round_hand_play_counts["PAIR"] == 1
+
+
+def test_shop_translation_clears_completed_round_card_sharp_history():
+    snapshot = LiveBalatroSnapshot(
+        sequence=1,
+        phase="SHOP",
+        state_complete=True,
+        payload={
+            "hands": {
+                "Pair": {
+                    "level": 3,
+                    "played": 7,
+                    "played_this_round": 2,
+                }
+            }
+        },
+    )
+
+    state = DefaultBalatroStateTranslator().translate(snapshot)
+
+    assert state.hand_play_counts["PAIR"] == 7
+    assert state.round_hand_play_counts["PAIR"] == 0
 
 
 def test_card_sharp_ignores_run_wide_history_without_round_prior_play():

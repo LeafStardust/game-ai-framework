@@ -6,8 +6,10 @@ This is the authoritative development roadmap for the Balatro Red Deck / White S
 
 - Repository: `LeafStardust/game-ai-framework`
 - Branch: `feat/v1.0-red-white-competence`
-- The user runs actual Balatro gameplay and validation requiring the Windows/game environment.
-- Validation commands shown to the user must begin with `git pull`, use `pytest -q` when applicable, and be PowerShell-compatible.
+- Work Chat runs all deterministic/static tests itself in its isolated repository environment and keeps output quiet (`pytest -q` plus focused failure inspection).
+- The user runs only actual Balatro gameplay and validation that genuinely requires the user's Windows/game environment.
+- Do not ask the user to pull and run pytest when Work Chat can execute the test. If a test genuinely cannot run in Work Chat because it depends on the Windows/game environment, state that limitation explicitly.
+- Commands genuinely requiring the user's environment must begin with `git pull` and be PowerShell-compatible.
 - Preserve exact mechanics, legality, boss rules, affordability, survival, and hidden-information boundaries.
 - Prefer canonical ownership over wrappers/rescue layers.
 - Cleanup is part of migration completion.
@@ -176,11 +178,12 @@ live baseline telemetry
 → classify suspicious decision
 → patch canonical semantics/runtime/authority
 → add focused regression
-→ USER VALIDATION
+→ WORK CHAT DETERMINISTIC VALIDATION
+→ USER LIVE VALIDATION ONLY WHEN REQUIRED
 → only after green, continue classification
 ```
 
-A newly patched live defect is not considered resolved until its focused validation is green. Do not advance past the current validation gate merely because the code change and regression test have been committed.
+A newly patched live defect is not considered resolved until Work Chat has run its focused deterministic validation successfully. If the behavior can only be proven in the real Balatro/Windows environment, it remains awaiting user live validation after deterministic coverage is green. Do not advance merely because the code change and regression test have been committed.
 
 ### L1 — Fresh production baseline — COMPLETE AS DATA COLLECTION
 
@@ -297,9 +300,37 @@ Committed repair/test state:
 
 This item is closed unless later live telemetry disproves the repaired semantics.
 
+##### L2.3.2 — Attempt 001 Card Sharp shop-history leakage — FIXED AND DETERMINISTICALLY VALIDATED
+
+Classification: **mechanics/model bug** at the live public-state translation boundary.
+
+Observed defect during the Ante 7 shop before The House:
+
+- Balatro's live memory still exposed the completed Big Blind's `played_this_round` values during SHOP (`Flush=2`, `Full House=2`, `Pair=1`);
+- the translator copied those completed-round values into canonical `round_hand_play_counts` as if they were live for the upcoming boss;
+- that stale history inflated the Odd Todd → Card Sharp replacement delta from `1.074` to `2.657`;
+- after the recorded `$1.400` economic adjustment, the stale state changed the decision from canonical HOLD (`-0.326`) to BUY (`1.257`);
+- the counters reset to zero only after The House began, confirming that the shop values belonged to the completed blind rather than the upcoming round.
+
+Repair:
+
+- live translation now preserves run-wide `hand_play_counts` in every phase;
+- current-round `round_hand_play_counts` are accepted only during active `SELECTING_HAND` state and are normalized to zero in SHOP, BLIND_SELECT, pack, round-evaluation, and terminal states;
+- Card Sharp's existing reachable repeated-hand projection remains intact, so the candidate still receives legitimate future value without treating a completed round as already active.
+
+Validation state:
+
+- focused Card Sharp/translator/competence regression slice: **GREEN in Work Chat (`17 passed`)**;
+- broader affected Card Sharp/live translation/Joker projection/shop-arbiter slice: **GREEN in Work Chat (`174 passed`)**;
+- exact attempt-001 snapshot replay: nonzero translated round counters `3 → 0`, Odd Todd replacement delta `2.656506 → 1.074050`, economic-adjusted result `-0.325950` (HOLD);
+- complete Balatro suite check: `2,787 passed, 19 failed`; none of the failures exercise this repair, and the failures remain separately classified as pre-existing stale Throwback/D1 assertions, production-wrapper expectation mismatches, or Windows bridge construction that lacks `APPDATA` in Work Chat's Linux environment;
+- no separate user pytest run is required; the next genuine live batch can confirm the repaired behavior alongside the remaining Phase L validation.
+
+This item is closed unless later live telemetry disproves the repaired phase semantics.
+
 Active inspection targets:
 
-- remaining attempt 001 material Joker/pack/voucher/reroll decisions;
+- remaining attempt 001 material Joker/pack/voucher/reroll decisions other than the now-fixed Throwback and Card Sharp defects;
 - remaining attempt 002 material decisions other than the now-fixed Flash Card authority defect;
 - terminal boss decision quality in attempts 001/002/003 where telemetry indicates a suspicious actionable decision rather than simple insufficient engine strength;
 - D14 standalone-Joker timing residual attribution.
@@ -314,6 +345,7 @@ Fresh 3-attempt live baseline collection       COMPLETE
 Baron motif semantics patch                    GREEN
 Flash Card / canonical D2 authority patch      GREEN
 Throwback blind-skip realization patch         GREEN
+Card Sharp shop-history translation patch      GREEN (WORK CHAT)
 Further Phase L2 baseline classification        ACTIVE
 Numerical tuning / Optuna                       NOT STARTED
 Phase M broader competence                      NOT STARTED
@@ -343,7 +375,7 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 1. Inspect the remaining material decisions from attempts 001 and 002 and terminal boss choices where telemetry supports an actionable defect.
 2. Classify each suspicious decision as mechanics/model, runtime/latency, integration/authority, or calibration before changing code.
 3. Patch only confirmed defects at their canonical owner.
-4. Add a focused regression for each confirmed defect and require user-run green validation before closing that defect.
+4. Add a focused regression for each confirmed defect and run it in Work Chat; request user validation only when the remaining proof genuinely requires Balatro or the Windows/game environment.
 5. Keep D14 residual timing under observation and optimize only after identifying the expensive owner without changing semantics.
 6. Keep L3 numerical tuning closed until the semantic/integration/runtime defect pass is exhausted.
 

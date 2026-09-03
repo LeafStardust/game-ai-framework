@@ -157,6 +157,14 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         state.shop_vouchers = self._shop_items(shop_voucher_area.get("cards", []), kind="VOUCHER")
         state.shop_active = snapshot.phase == "SHOP"
         self._translate_hand_levels(state, payload.get("hands") or {})
+        if snapshot.phase != "SELECTING_HAND":
+            # Balatro keeps the completed blind's ``played_this_round`` values
+            # in memory through cash-out and SHOP, then resets them when the
+            # next blind starts.  They are not live Card Sharp/DNA/etc. history
+            # outside an active hand-selection round.
+            state.round_hand_play_counts = {
+                hand_type: 0 for hand_type in state.round_hand_play_counts
+            }
         self._translate_blind(state, payload.get("blinds") or payload.get("blind"))
         return state
 
