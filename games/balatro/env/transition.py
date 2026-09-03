@@ -24,6 +24,8 @@ from games.balatro.jokers.banner import BannerJoker
 from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.blackboard import BlackboardJoker
 from games.balatro.jokers.blue_joker import BlueJoker
+from games.balatro.jokers.bootstraps import BootstrapsJoker
+from games.balatro.jokers.bull import BullJoker
 from games.balatro.jokers.clever_joker import CleverJoker
 from games.balatro.jokers.crafty_joker import CraftyJoker
 from games.balatro.jokers.crazy_joker import CrazyJoker
@@ -125,6 +127,8 @@ _EXACT_R1_JOKER_ACQUISITION_TYPES = (
     JokerStencil,
     ShootTheMoonJoker,
     TribouletJoker,
+    BullJoker,
+    BootstrapsJoker,
 )
 
 
