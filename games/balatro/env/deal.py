@@ -1,21 +1,19 @@
-"""Exact R2 shuffle/deal primitive for the currently provable base-deck case.
+"""Exact R2 round-start shuffle/deal primitives.
 
-This module deliberately does **not** expose ``SELECT_BLIND``.  It owns only the
-source-order slice beginning once the lifecycle has already entered
-``DRAW_TO_HAND`` with every permanent playing card back in the deck.
+This module deliberately does **not** expose ``SELECT_BLIND``. It owns the
+source-order slice beginning once lifecycle setup has entered ``DRAW_TO_HAND``
+with every permanent playing card back in the deck.
 
-The first implementation is intentionally narrow: it requires the untouched
-one-of-each 52-card base composition with no live ids.  That boundary is enough
-to prove Balatro's keyed ``nr{ante}`` shuffle, tail draw direction, hidden draw
-pile ownership, public remaining-deck canonicalization, and vanilla hand sort
-without pretending we can reconstruct converted-card ``suit_nominal_original``
-from the current public card schema.
+The generalized boundary remains deliberately strict. Modified decks are
+supported only when the simulator can prove that the current complete deck and
+its authoritative permanent owned deck are the same card objects, retained
+creation order is exact, and every card carries Balatro's original-suit nominal
+needed by ``Card:get_nominal()``. Anything less fails closed before RNG advances.
 """
 
 from __future__ import annotations
 
 from games.balatro.card import BalatroCard
-from games.balatro.env.card_order import vanilla_playing_card_sort_key
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
@@ -49,6 +47,8 @@ _SUIT_NOMINAL = {
     "Spades": 0.04,
 }
 
+_ORIGINAL_SUIT_NOMINAL = frozenset({0.001, 0.002, 0.003, 0.004})
+
 _VANILLA_BASE_IDENTITIES = frozenset(
     (rank, suit)
     for rank in _RANK_NOMINAL
@@ -71,29 +71,46 @@ def _is_provably_pristine_base_order(cards: list[BalatroCard]) -> bool:
         and not card.debuffed
         and card.permanent_bonus == 0
         and not card.forced_selection
+        and card.original_suit_nominal is None
         for card in cards
     )
 
 
-def _vanilla_pristine_hand_sort_key(card: BalatroCard) -> float:
-    """Return vanilla ``Card:get_nominal()`` without the irrelevant unique tie.
+def _card_original_suit_nominal(card: BalatroCard, *, pristine: bool) -> float:
+    if pristine:
+        try:
+            return _SUIT_NOMINAL[card.suit] / 10.0
+        except KeyError as exc:
+            raise HeadlessTransitionError("card has no exact vanilla original suit") from exc
 
-    In this primitive every rank/suit identity is unique, so ``unique_val`` can
-    never be the deciding term.  ``suit_nominal_original`` equals current suit
-    nominal for an untouched base card and is included exactly.
-    """
+    value = card.original_suit_nominal
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or float(value) not in _ORIGINAL_SUIT_NOMINAL
+    ):
+        raise HeadlessTransitionError(
+            "modified round-start deal requires exact original-suit nominal"
+        )
+    return float(value)
+
+
+def _vanilla_hand_primary_nominal(card: BalatroCard, *, pristine: bool) -> float:
+    """Mirror the non-unique portion of vanilla ``Card:get_nominal()``."""
     try:
         rank = _RANK_NOMINAL[card.rank]
         face = _FACE_NOMINAL.get(card.rank, 0.0)
         suit = _SUIT_NOMINAL[card.suit]
     except KeyError as exc:
         raise HeadlessTransitionError("card has no exact vanilla nominal") from exc
-    original_suit = suit / 10.0
-    return rank + suit + original_suit * 0.0001 + face
+
+    original_suit = _card_original_suit_nominal(card, pristine=pristine)
+    mult = -1000.0 if card.is_stone else 1.0
+    return rank + suit * mult + original_suit * 0.0001 * mult + face
 
 
 def _public_card_sort_key(card: BalatroCard) -> tuple[str, ...]:
-    """Mirror the live observer's public, non-future-order deck canonicalizer."""
+    """Mirror the observer's non-future-order public deck canonicalizer."""
     return (
         str(card.suit or ""),
         str(card.rank or ""),
@@ -105,56 +122,94 @@ def _public_card_sort_key(card: BalatroCard) -> tuple[str, ...]:
     )
 
 
-def deal_pristine_round_start(run: HeadlessRunState) -> HeadlessRunState:
-    """Shuffle and deal one exact pristine base-deck round start.
-
-    Preconditions intentionally describe the stable point immediately after
-    blind/lifecycle setup has entered ``DRAW_TO_HAND`` and before any card has
-    moved.  The input snapshot is never mutated.
-    """
+def _require_empty_round_start_zones(run: HeadlessRunState) -> None:
     state = run.public
     if state.phase != "DRAW_TO_HAND":
-        raise HeadlessTransitionError(
-            "pristine round-start deal requires DRAW_TO_HAND phase"
-        )
+        raise HeadlessTransitionError("round-start deal requires DRAW_TO_HAND phase")
     if state.hand or state.discard_pile:
         raise HeadlessTransitionError(
-            "pristine round-start deal requires empty public hand/discard zones"
+            "round-start deal requires empty public hand/discard zones"
         )
     if run.draw_pile or run.discard_pile or run.played_pile:
         raise HeadlessTransitionError(
-            "pristine round-start deal requires empty private card zones"
+            "round-start deal requires empty private card zones"
         )
 
-    order = run.require_playing_card_order()
-    if not _is_provably_pristine_base_order(order):
+
+def _modified_complete_owned_order(run: HeadlessRunState) -> list[BalatroCard]:
+    state = run.public
+    if state.owned_deck is None:
         raise HeadlessTransitionError(
-            "exact pristine base-card hand sort is unavailable for this deck"
+            "modified round-start deal requires authoritative owned deck"
         )
+    order = run.require_playing_card_order()
+    if len(state.deck) != len(order):
+        raise HeadlessTransitionError(
+            "current deck is not a complete permanent-card collection"
+        )
+
+    # This is intentionally stronger than semantic equality. Headless transitions
+    # must retain one canonical card object per owned playing card so mutations,
+    # creation order, and future zone movement cannot silently diverge.
+    if {id(card) for card in state.deck} != {id(card) for card in order}:
+        raise HeadlessTransitionError(
+            "current deck must reference the authoritative owned cards exactly"
+        )
+
+    for card in order:
+        _vanilla_hand_primary_nominal(card, pristine=False)
+    return order
+
+
+def deal_supported_round_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Shuffle and deal an exact supported round-start card collection.
+
+    Vanilla draws ``min(#deck, hand capacity)`` cards, so short exact decks are
+    allowed. The input state and RNG remain unchanged on every rejected path.
+    """
+    _require_empty_round_start_zones(run)
+
+    order = run.require_playing_card_order()
+    pristine = _is_provably_pristine_base_order(order)
+    if not pristine:
+        order = _modified_complete_owned_order(run)
 
     next_run = run.copy()
     next_state = next_run.public
     next_order = next_run.require_playing_card_order()
 
-    # Headless ownership now has an explicit public permanent composition before
-    # ``deck`` becomes the public *remaining* composition after the deal.
-    if next_state.owned_deck is None:
+    if pristine and next_state.owned_deck is None:
         next_state.owned_deck = list(next_order)
 
     draw_pile = list(next_order)
     next_run.rng.shuffle_in_place(draw_pile, f"nr{next_state.ante}")
 
+    # Vanilla draw_from_deck_to_hand uses min(#G.deck.cards, hand space).
     deal_count = min(len(draw_pile), next_state.hand_size)
     dealt = [draw_pile.pop() for _ in range(deal_count)]
 
+    creation_index = {id(card): index for index, card in enumerate(next_order)}
     next_run.draw_pile = draw_pile
     next_state.hand = sorted(
         dealt,
-        key=_vanilla_pristine_hand_sort_key,
+        key=lambda card: (
+            _vanilla_hand_primary_nominal(card, pristine=pristine),
+            -creation_index[id(card)],
+        ),
         reverse=True,
     )
-    # Never expose the hidden physical draw order through canonical public state.
+    # Never expose hidden physical draw order through canonical public state.
     next_state.deck = sorted(draw_pile, key=_public_card_sort_key)
     next_state.phase = "SELECTING_HAND"
-
     return next_run
+
+
+def deal_pristine_round_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Backward-compatible exact pristine-base wrapper."""
+    _require_empty_round_start_zones(run)
+    order = run.require_playing_card_order()
+    if not _is_provably_pristine_base_order(order):
+        raise HeadlessTransitionError(
+            "exact pristine base-card hand sort is unavailable for this deck"
+        )
+    return deal_supported_round_start(run)
