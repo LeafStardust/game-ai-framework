@@ -45,24 +45,26 @@ def test_env_r2_round_resource_baseline_matches_vanilla_minimum_semantics():
     assert result.public.score == 0
     assert result.public.last_played_hand is None
     assert all(value == 0 for value in result.public.round_hand_play_counts.values())
-    assert result.round_bonus_hands == -10
-    assert result.round_bonus_discards == -10
+    assert result.round_bonus_hands == 0
+    assert result.round_bonus_discards == 0
+    assert run.round_bonus_hands == -10
+    assert run.round_bonus_discards == -10
     assert run.public.hands_remaining == 99
     assert run.public.discards_remaining == 99
 
 
-def test_env_r2_round_resource_baseline_adds_positive_bonuses_without_consuming_them():
+def test_env_r2_round_resource_baseline_applies_then_consumes_positive_bonuses():
     result = apply_round_resource_baseline(
         _run(hands=4, discards=3, bonus_hands=2, bonus_discards=4)
     )
 
     assert result.public.hands_remaining == 6
     assert result.public.discards_remaining == 7
-    assert result.round_bonus_hands == 2
-    assert result.round_bonus_discards == 4
+    assert result.round_bonus_hands == 0
+    assert result.round_bonus_discards == 0
 
 
-def test_env_r2_burglar_applies_after_resource_baseline_and_preserves_pending_bonus():
+def test_env_r2_burglar_runs_after_round_bonus_has_already_been_consumed():
     run = _run(hands=4, discards=3, bonus_hands=2, bonus_discards=1)
     run.public.jokers = [BurglarJoker()]
     baseline = apply_round_resource_baseline(run)
@@ -71,10 +73,12 @@ def test_env_r2_burglar_applies_after_resource_baseline_and_preserves_pending_bo
 
     assert baseline.public.hands_remaining == 6
     assert baseline.public.discards_remaining == 4
+    assert baseline.round_bonus_hands == 0
+    assert baseline.round_bonus_discards == 0
     assert result.public.hands_remaining == 9
     assert result.public.discards_remaining == 0
-    assert result.round_bonus_hands == 2
-    assert result.round_bonus_discards == 1
+    assert result.round_bonus_hands == 0
+    assert result.round_bonus_discards == 0
 
 
 def test_env_r2_multiple_burglars_stack_hands_and_zero_discards():
@@ -110,13 +114,16 @@ def test_env_r2_blind_start_joker_dispatch_fails_closed_on_unclassified_identity
         apply_supported_setting_blind_effects(baseline)
 
 
-def test_env_r2_round_bonus_consumption_is_explicit_and_isolated():
+def test_env_r2_round_bonus_consumption_helper_is_explicit_isolated_and_idempotent():
     run = _run(bonus_hands=2, bonus_discards=-1)
 
     result = consume_round_bonuses(run)
+    again = consume_round_bonuses(result)
 
     assert result.round_bonus_hands == 0
     assert result.round_bonus_discards == 0
+    assert again.round_bonus_hands == 0
+    assert again.round_bonus_discards == 0
     assert run.round_bonus_hands == 2
     assert run.round_bonus_discards == -1
 
