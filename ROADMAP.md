@@ -16,13 +16,20 @@ The project has pivoted from hand-authored Bond-value strategy toward reinforcem
 - Prefer canonical ownership over wrappers/rescue layers.
 - Training code must never silently redefine Balatro mechanics to make learning easier.
 - Simulator shortcuts are allowed only when behaviorally equivalent at the modeled state/action boundary and covered by parity tests.
-- Model checkpoints are artifacts, not source-of-truth strategy definitions. Promoted checkpoints require reproducible configs, seeds, environment/schema versions, and evaluation results.
+- Model checkpoints are artifacts, not source-of-truth strategy definitions.
+- Unsupported or inexact actions stay absent from the training mask; do not assign them arbitrary low value.
 
 ---
 
 # Primary objective
 
 **Red Deck / White Stake, normal mode: maximize probability of clearing Ante 8.**
+
+Controlling metric:
+
+```text
+P(clear Ante 8 | Red Deck, White Stake, normal mode)
+```
 
 The terminal objective is run success, not score maximization, Joker collection, money maximization, Bond completion, or build aesthetics.
 
@@ -52,7 +59,7 @@ EXISTING EXECUTION OWNER / HEADLESS step(action)
 REWARD + NEXT STATE
 ```
 
-Training loop:
+Training:
 
 ```text
 parallel deterministic environments
@@ -69,109 +76,50 @@ Initial RL keeps tactical hand play deterministic while RL learns strategic run 
 
 ---
 
-# Bond-system status
+# Bond-system authority
 
-Preserve:
+Retain as deterministic baseline / optional features:
 
-- canonical Bond vocabulary;
+- canonical 46-Bond vocabulary;
 - mechanics-to-Bond contributions;
 - realization semantics;
-- sparse relationship/motif descriptors that encode real public-state structure;
-- deterministic feature tests;
-- Bond telemetry.
+- sparse relationships/motifs;
+- deterministic feature tests and telemetry;
+- frozen `BuildValue` / `StrategyDelta` baseline.
 
-Authority change:
+Do **not** return to manual Bond coefficient tuning, persistent named strategy FSMs, prescription plumbing, or one-off live-loss thresholds as the primary competence path.
 
-- Bonds are no longer the final strategic authority.
-- `BuildValue` / `StrategyDelta` remain frozen deterministic baselines and optional diagnostic features.
-- Do not resume manual Bond coefficient optimization as the primary path.
-
-Planned observation ablations after training is stable:
+Planned later observation ablation:
 
 ```text
-A. RAW
-B. RAW+BOND
-C. BOND-HEAVY diagnostic only if useful
+RAW
+RAW+BOND
+BOND-HEAVY diagnostic only if useful
 ```
-
-Production selection is based on held-out win rate and stability.
-
----
-
-# Explicitly obsolete development path
-
-Do not return to:
-
-- manual Optuna tuning of Bond coefficients as primary strategy learning;
-- endless live batches for discovering one-off strategic thresholds;
-- named strategy-state / identity FSM expansion;
-- rebuilding persistent `StrategyPlan` / FORMING / PINNED controllers;
-- one execution tree per Bond;
-- generic pivot FSM/resistance;
-- prescription plumbing such as `seek_feature:*`, `seek_bond:*`, `preserve_feature:*`, or `commit_*`;
-- rescue wrappers that override canonical legality/admission owners;
-- treating symbolic `BuildValue` as win-probability proof;
-- Joker-specific thresholds inferred only from suspicious live losses rather than exact mechanics/public-state truth.
 
 ---
 
 # Completed foundation — Phases A–K
 
-## A — Bond vocabulary — COMPLETE
+- **A** Bond vocabulary — COMPLETE.
+- **B** mechanical descriptors — COMPLETE; `games/balatro/mechanics.py` canonical.
+- **C** mechanics→Bond contributions — COMPLETE.
+- **D** Bond strategic value — COMPLETE AS BASELINE.
+- **E** sparse relationships/motifs — COMPLETE AS BASELINE/FEATURES.
+- **F** `BuildValue(state)` — COMPLETE AS BASELINE.
+- **G** projected-state `StrategyDelta(candidate)` — COMPLETE AS BASELINE.
+- **H** canonical strategic decision-owner integration — COMPLETE.
+- **I** tactical exploitation proofs — COMPLETE: Burnt Joker, Hanged Man/thinning, Steel/Baron/Mime.
+- **J** deterministic end-to-end proofs — COMPLETE.
+- **K** legacy strategic migration cleanup — COMPLETE.
 
-46 canonical Bonds; deterministic vocabulary frozen.
-
-## B — Mechanical descriptors — COMPLETE
-
-`games/balatro/mechanics.py` is the canonical public mechanics surface.
-
-## C — Mechanics → Bond contributions — COMPLETE
-
-`games/balatro/bonds/contributions.py` owns keyed contribution normalization.
-
-## D — Bond strategic value — COMPLETE AS BASELINE
-
-`games/balatro/bonds/strategic_value.py` remains the frozen symbolic baseline.
-
-## E — Sparse relationships / motifs — COMPLETE AS BASELINE/FEATURES
-
-Relationships and motifs remain deliberately sparse; unlisted pairs are neutral.
-
-## F — `BuildValue(state)` — COMPLETE AS BASELINE
-
-Deterministic whole-build baseline retained.
-
-## G — Projected-state `StrategyDelta(candidate)` — COMPLETE AS BASELINE
-
-Retained for deterministic projection/comparison tests, not as final learned-policy authority.
-
-## H — Canonical strategic decision-owner integration — COMPLETE
-
-Canonical acquisition, replacement, pack, consumable, voucher, shop-arbitration, and execution ownership remains the action-interface foundation for RL.
-
-## I — Tactical exploitation — COMPLETE
-
-Representative deterministic proofs cover:
-
-1. Burnt Joker first-discard hand leveling.
-2. Hanged Man / permanent deck thinning.
-3. Steel / Baron / Mime held-card preservation and exploitation.
-
-## J — Deterministic end-to-end proofs — COMPLETE
-
-Representative hand-leveling, thinning, and held-card paths are green and become simulator parity assets.
-
-## K — Legacy strategic migration cleanup — COMPLETE
-
-Rejected persistent strategy-controller architecture removed while preserving canonical mechanics/economics/health/D1/D2/D9/D14/boss/runtime ownership.
-
-Important retained semantic corrections include Midas→Vampire trigger order, persistent enhancement feed, renewable future-feed distinction, debuffed Gold cards, Midas scoring-face requirements, Stone-card rank identity, and Planet observed/exotic-hand evidence semantics.
+Retained semantic corrections include Midas→Vampire trigger order, persistent enhancement feed, renewable future-feed distinction, debuffed Gold cards, Midas scoring-face requirements, Stone-card rank identity, and Planet observed/exotic-hand evidence semantics.
 
 ---
 
-# Phase L — Live correctness stabilization before RL environment freeze — COMPLETE
+# Phase L — Live correctness stabilization — COMPLETE
 
-## L1 — September 2 baseline — COMPLETE
+## L1 — September 2 baseline
 
 Batch `balatro-20260902T200815Z-dba5db6f`:
 
@@ -181,7 +129,7 @@ Batch `balatro-20260902T200815Z-dba5db6f`:
 
 Repairs included Baron motif false positive, Flash Card D2 authority, Throwback realization, Card Sharp stale history, D14 attribution, and unsupported Director's Cut/Retcon boss-reroll fail-closed behavior.
 
-## L2 — September 3 post-repair batch — COMPLETE / INSPECTED
+## L2 — September 3 post-repair batch
 
 Batch `balatro-20260903T094415Z-87fd8720`:
 
@@ -189,16 +137,16 @@ Batch `balatro-20260903T094415Z-87fd8720`:
 - attempt 002 lost Ante 3 boss The Water: `2,512 / 4,000`;
 - attempt 003 lost Ante 7 Big Blind: `21,908 / 52,500`.
 
-Repairs included the D14 deterministic-policy timing blind spot and The Sun optional-proof/D1 budget starvation.
+Repairs included D14 deterministic-policy timing and The Sun optional-proof/D1 budget starvation.
 
-## L3 — RL environment freeze gate — COMPLETE
+## L3 — environment freeze gate
 
 - `BALATRO_ENV_CONTRACT_VERSION = "l3-v1"`;
-- training-exposed actions fail closed unless canonical legality/execution ownership is declared;
-- unsupported boss reroll is unavailable;
-- translator phase-boundary regression covers stale-round reset and active-round preservation;
-- CI `33758680261`: `1223 passed, 1594 deselected`;
-- 7 Linux-only `APPDATA` construction issues repaired without test skips.
+- training actions fail closed unless legality/execution ownership is declared;
+- boss reroll unsupported/unavailable;
+- translator phase-boundary regressions cover stale-round reset / active-round preservation;
+- Linux `APPDATA` construction issues repaired without skips;
+- CI `33758680261`: `1223 passed, 1594 deselected`.
 
 Do not request another open-ended live batch and do not resume symbolic strategy tuning.
 
@@ -215,7 +163,7 @@ Purpose: build a fast deterministic training environment reproducing the canonic
 - `reset`, `step`, `legal_actions`;
 - observations wrap/copy canonical `BalatroState`;
 - strategic actions alias frozen `l3-v1` contract;
-- explicit single-agent turn ownership, Ante-8 terminal semantics, serialization/restore, and illegal-action rejection;
+- explicit single-agent turn ownership, Ante-8 terminal semantics, serialization/restore, illegal-action rejection;
 - CI `33760179448`: `1233 passed, 1594 deselected`.
 
 Legacy `games/balatro/environment.py` remains toy/stub code and is not authoritative RL environment truth.
@@ -224,199 +172,205 @@ Legacy `games/balatro/environment.py` remains toy/stub code and is not authorita
 
 ### Core acquisition rule
 
-Generic acquisition is not `append inventory + subtract money`.
+Generic acquisition is **not** `append inventory + subtract money`.
 
-Canonical `BalatroState` owns mutable capacities/resources including hand size, next-round hand/discard allowances, Joker slots, and consumable slots. Some Jokers/vouchers mutate these immediately or at later lifecycle boundaries. Therefore:
+`BalatroState` owns mutable capacities/resources and public gameplay state. Some Jokers/vouchers mutate those immediately or later. Therefore:
 
-- `BUY_JOKER` is identity-gated;
+- `BUY_JOKER` is identity/state gated;
 - generic `BUY_VOUCHER` remains fail-closed;
 - unsupported/inexact actions are absent from `legal_actions()` and reject on direct execution;
-- all Joker editions remain fail-closed, especially Negative because it changes Joker-capacity semantics;
-- `SELL_JOKER` remains outside the frozen training surface until inverse lifecycle effects are audited;
-- packs remain blocked until exact pack state and R2 RNG ownership exist.
+- all Joker editions remain fail-closed, especially Negative because it changes Joker capacity;
+- `SELL_JOKER` remains outside the frozen training surface until inverse lifecycle effects are exact;
+- packs remain blocked until exact pack state + R2 RNG ownership exist.
 
-### Exact shop behavior currently owned
+### Exact generic shop behavior
 
 Always supported in active shop when otherwise legal:
 
 - `END_SHOP`;
-- exact held-consumable purchase when capacity, price, and affordability are exact.
+- held-consumable purchase when capacity, price, and affordability are exact.
 
 Price semantics fail closed:
 
-- price must be an exact integer;
-- bool/string/float/missing/invalid mapping/negative values are rejected as exact purchases;
-- legality and direct transition execution share the same price/slot boundary.
+- exact integer only;
+- bool/string/float/missing/invalid mapping/negative rejected;
+- legality and direct transition execution share the same boundary.
 
-### Exact resource/capacity-sensitive Joker acquisitions
+### Exact resource/capacity-sensitive acquisitions
 
 - **Juggler**: `hand_size += 1` once.
-- **Stuntman**: `hand_size -= 2`; fail-closed when authoritative hand size is below 2.
-- **Drunkard**: `round_reset_discards += 1`; requires authoritative observed next-round discard allowance.
-- **Troubadour**: `hand_size += 2`, `round_reset_hands -= 1`; requires authoritative observed next-round hand allowance and at least 1 hand.
-- **Merry Andy**: `hand_size -= 1`, `round_reset_discards += 3`; requires authoritative observed reset-discard baseline and hand size at least 1.
+- **Stuntman**: `hand_size -= 2`; blocked if current authoritative hand size < 2.
+- **Drunkard**: `round_reset_discards += 1`; requires observed reset-discard baseline.
+- **Troubadour**: `hand_size += 2`, `round_reset_hands -= 1`; requires observed reset-hands baseline and >=1.
+- **Merry Andy**: `hand_size -= 1`, `round_reset_discards += 3`; requires observed reset-discards and hand size >=1.
 
-Canonical/live next-round hand ownership is complete:
+Live next-round hand ownership:
 
 - `BalatroState` owns/copies `round_reset_hands_observed` / `round_reset_hands`;
-- `LiveMemoryBalatroObserver` reads `G.GAME.round_resets.hands` fail-closed;
-- `DefaultBalatroStateTranslator` maps only valid exact nonnegative integer values;
-- observer/translator tests cover observed, zero, missing, and invalid behavior;
+- `LiveMemoryBalatroObserver` reads public `G.GAME.round_resets.hands`;
+- translator accepts only valid exact nonnegative integer values;
 - CI `33781164005`: `1297 passed, 1594 deselected`.
 
-Merry Andy exactness:
-
-- `tests/balatro/test_balatro_env_r1_merry_andy.py` covers gates, isolation, affordability/inventory transfer, and exact one-time modifiers;
-- CI `33781461393`: `1300 passed, 1594 deselected`.
+Merry Andy CI `33781461393`: `1300 passed, 1594 deselected`.
 
 ### Exact inventory-only scoring/rule acquisitions
 
-These Jokers have no acquisition-time capacity/resource mutation and their gameplay rule/scoring semantics are already owned by the canonical hand-rule or validated live score-projector path. Their non-edition purchases are exact inventory/economy transitions.
-
 Previously admitted scoring/state-safe set:
 
-- `FlatMultJoker`
-- `AbstractJoker`
-- `AcrobatJoker`
-- `BannerJoker`
-- `BaronJoker`
-- `BlackboardJoker`
-- `BlueJoker`
-- `EvenStevenJoker`
-- `FibonacciJoker`
-- `HalfJoker`
-- `MysticSummitJoker`
-- `OddToddJoker`
-- `PhotographJoker`
-- `RaisedFistJoker`
-- `ScholarJoker`
-- `SmileyFaceJoker`
-- `WalkieTalkieJoker`
-- `JugglerJoker`
+```text
+FlatMultJoker AbstractJoker AcrobatJoker BannerJoker BaronJoker
+BlackboardJoker BlueJoker EvenStevenJoker FibonacciJoker HalfJoker
+MysticSummitJoker OddToddJoker PhotographJoker RaisedFistJoker
+ScholarJoker SmileyFaceJoker WalkieTalkieJoker JugglerJoker
+```
 
 Passive hand-rule group:
 
-- `FourFingersJoker`
-- `PareidoliaJoker`
-- `ShortcutJoker`
-- `SmearedJoker`
-- `SplashJoker`
-
-Semantics are already canonical: Four Fingers changes straight/flush size, Pareidolia face identity, Shortcut straight gaps, Smeared suit equivalence, Splash scoring-card membership.
+```text
+FourFingersJoker PareidoliaJoker ShortcutJoker SmearedJoker SplashJoker
+```
 
 CI `33782526550`: `1310 passed, 1594 deselected`.
 
 Initial hand-shape score-only group:
 
-- `JollyJoker`
-- `SlyJoker`
-- `ZanyJoker`
-- `WilyJoker`
-- `TheDuoJoker`
+```text
+JollyJoker SlyJoker ZanyJoker WilyJoker TheDuoJoker
+```
 
 CI `33782754111`: `1320 passed, 1594 deselected`.
 
-Pair / Straight / Flush score-only expansion:
+Pair/Straight/Flush score-only expansion:
 
-- `CrazyJoker`
-- `DeviousJoker`
-- `DrollJoker`
-- `CraftyJoker`
-- `MadJoker`
-- `CleverJoker`
-
-All six only mutate score during hand evaluation. Parameterized tests prove exact money/inventory transfer, input isolation, unchanged resources, projector support, edition rejection, and direct-transition rejection.
+```text
+CrazyJoker DeviousJoker DrollJoker CraftyJoker MadJoker CleverJoker
+```
 
 CI `33783865698`: `1332 passed, 1594 deselected`.
 
 Hand-shape xMult expansion:
 
-- `TheTrioJoker`
-- `TheFamilyJoker`
-- `TheOrderJoker`
-- `TheTribeJoker`
-
-All four are pure hand-shape xMult predicates with no acquisition/lifecycle mutation.
+```text
+TheTrioJoker TheFamilyJoker TheOrderJoker TheTribeJoker
+```
 
 CI `33784097107`: `1340 passed, 1594 deselected`.
 
 Suit-scoring expansion:
 
-- `GreedyJoker`
-- `LustyJoker`
-- `WrathfulJoker`
-- `GluttonousJoker`
-
-All four only add score contribution based on canonical suit matching. `tests/balatro/test_balatro_env_r1_suit_scoring_acquisition.py` separately proves inventory/economy exactness, unchanged resources, projector ownership, edition rejection, and direct-transition rejection.
+```text
+GreedyJoker LustyJoker WrathfulJoker GluttonousJoker
+```
 
 CI `33784381489`: `1348 passed, 1594 deselected`.
 
 Conditional-scoring expansion:
 
-- `ScaryFaceJoker`
-- `ArrowheadJoker`
-- `OnyxAgateJoker`
-- `FlowerPotJoker`
-- `SeeingDoubleJoker`
-
-These are pure face/suit/scoring predicates over already-owned hand-rule/scoring state and have no acquisition or persistent lifecycle mutation. `tests/balatro/test_balatro_env_r1_conditional_scoring_acquisition.py` proves exact inventory/economy transfer, unchanged resources, projector ownership, and edition fail-closed behavior.
+```text
+ScaryFaceJoker ArrowheadJoker OnyxAgateJoker FlowerPotJoker SeeingDoubleJoker
+```
 
 CI `33785203157`: `1358 passed, 1594 deselected`.
 
 Static public-state scoring expansion:
 
-- `JokerStencil`
-- `ShootTheMoonJoker`
-- `TribouletJoker`
-
-These consume only current canonical Joker inventory/slot state, held-card state, or scoring-card rank state. They introduce no counter, RNG, or acquisition/lifecycle mutation.
+```text
+JokerStencil ShootTheMoonJoker TribouletJoker
+```
 
 CI `33785485082`: `1364 passed, 1594 deselected`.
 
 Money-scoring expansion:
 
-- `BullJoker`
-- `BootstrapsJoker`
-
-Both are pure score functions of canonical `money`, which `HeadlessRunState` already validates as an exact integer. Their purchases are exact inventory-only transitions with the ordinary price deduction and no additional persistent mutation.
+```text
+BullJoker BootstrapsJoker
+```
 
 CI `33786958116`: `1370 passed, 1594 deselected`.
+
+Retrigger-only scoring expansion:
+
+```text
+DuskJoker HackJoker HangingChadJoker MimeJoker SockAndBuskinJoker
+```
+
+These effects are contained within the validated hand-scoring projection and introduce no acquisition-time persistent mutation.
+
+- implementation `3abedb428add794d2d16f4232e43f386ddb272c3`;
+- tests `0b4a681dbd4c83231d2d1432975a2cf89de2e107`;
+- CI `33787354303`: `1380 passed, 1594 deselected`.
+
+### Permanent owned-deck scoring expansion — GREEN
+
+Affected Jokers:
+
+```text
+SteelJoker
+StoneJoker
+DriversLicenseJoker
+ErosionJoker
+```
+
+Authoritative semantics:
+
+- `G.playing_cards` is the live public permanent owned-card collection;
+- `G.deck.cards` is **not** a substitute because it represents currently drawable composition/future physical deck order;
+- live observer canonical-sorts `G.playing_cards` before exposure and never exposes draw order;
+- `BalatroState.owned_deck` remains `None` when permanent ownership is unobserved/inexact;
+- `DefaultBalatroStateTranslator` now translates owned cards all-or-nothing: malformed records, invalid rank/suit/modifier values, or count mismatch make the whole `owned_deck` unavailable rather than silently shortening it;
+- observed authoritative empty collection remains `[]`;
+- `HeadlessRunState` rejects non-list/non-`BalatroCard` owned-deck values;
+- the four acquisitions are legal only when `owned_deck` is authoritative; Erosion additionally requires a recognized starting-deck size;
+- editions remain rejected;
+- no acquisition-time capacity/resource mutation is introduced.
+
+Commits:
+
+```text
+7b7699e  fix(balatro): fail closed on partial owned deck translation
+17176c7  feat(balatro): gate deck scoring acquisitions on owned deck
+5062f0f  test(balatro): cover exact owned deck R1 acquisitions
+```
+
+CI `33788603611`: **1401 passed, 1594 deselected**.
+
+Observer robustness note:
+
+- the valid live source is already `G.playing_cards`;
+- lower-level `LuaJITNonGC64Decoder.array_items()` intentionally skips TValue decode failures as a general resilience behavior;
+- R1 must harden completeness detection for the permanent-owned-card snapshot so a transient unreadable array element cannot masquerade as a shorter authoritative owned deck;
+- until that is hardened, **never** compensate by substituting `G.deck.cards` or inferred deck averages.
 
 ### Burglar / blind-start RNG boundary — RESOLVED
 
 **Burglar remains fail-closed through R1 and is explicitly blocked on R2 RNG ownership.**
 
-Reason:
+Vanilla boundary:
 
-- modeled Burglar behavior is a blind-selection lifecycle effect (`BLIND_SELECTED` / live `setting_blind` semantics), not an acquisition-time effect;
-- live bridge execution invokes vanilla `G.FUNCS.select_blind` from `BLIND_SELECT`;
-- vanilla `G.FUNCS.select_blind` immediately calls `new_round()`;
-- `new_round()` sets the blind, fires `setting_blind` Joker effects, then immediately enters `DRAW_TO_HAND` and calls `G.deck:shuffle(...)` before the initial hand is drawn;
-- there is therefore no canonical live post-selection/pre-RNG action boundary that R1 can mirror without inventing a synthetic transition;
-- `SELECT_BLIND` remains `PLANNED` / non-training-exposed until R2 owns shuffle/deal RNG and the complete blind-start transition.
+1. bridge executes `G.FUNCS.select_blind` from `BLIND_SELECT`;
+2. vanilla selection immediately invokes `new_round()`;
+3. `new_round()` sets the blind and fires `setting_blind` Joker effects;
+4. it then enters `DRAW_TO_HAND`, calls `G.deck:shuffle(...)`, and draws the initial hand.
 
-`tests/balatro/test_balatro_env_r1_burglar_rng_boundary.py` locks both conditions: Burglar purchase remains absent from R1 legality and `SELECT_BLIND` cannot enter the training surface early.
+There is no canonical live post-selection/pre-RNG action boundary. Do not invent one merely to admit Burglar.
+
+`SELECT_BLIND` remains planned/non-training-exposed until R2 owns the entire shuffle/deal transition.
 
 CI `33786662421`: `1366 passed, 1594 deselected`.
 
 ### Current R1 fail-closed boundary
 
-Still fail-closed:
+Still blocked:
 
 - unknown/generic Joker identities;
 - all Joker editions;
 - generic voucher acquisition;
 - booster-pack opening;
 - stochastic acquisition/generation requiring R2 RNG;
-- any acquisition whose immediate persistent or later lifecycle consequences have not been audited;
-- `SELL_JOKER` and inverse capacity/resource semantics;
-- `SELECT_BLIND` until R2 owns the vanilla blind-start shuffle/deal transition.
-
-Important retained audit findings:
-
-- **Burglar is not acquisition-only and must remain blocked until R2.** Do not synthesize a pre-draw blind-selected phase merely to admit it.
-- **Owned-deck-dependent scoring** such as Steel Joker, Stone Joker, Drivers License, and Erosion remains blocked until exact deck/card-zone state is authoritative in the headless transition path.
-- **Lifecycle/economy/RNG Jokers** such as Chaos the Clown, Credit Card, Egg, Gros Michel/Cavendish, Ice Cream/Popcorn/Ramen, and persistent counter Jokers remain blocked until their exact lifecycle owners exist.
+- acquisitions with unaudited persistent/lifecycle consequences;
+- `SELL_JOKER` inverse lifecycle effects;
+- `SELECT_BLIND` until R2 exact shuffle/deal;
+- lifecycle/economy/RNG Jokers such as Chaos the Clown, Credit Card, Egg, Gros Michel/Cavendish, Ice Cream/Popcorn/Ramen, and persistent-counter Jokers until their owners exist.
 
 ### Latest functional R1 commits
 
@@ -444,24 +398,12 @@ b333ea2  test(balatro): cover static scoring R1 acquisitions
 39ff54d  test(balatro): lock Burglar behind blind-start RNG
 3a5069e  feat(balatro): admit exact money scoring acquisitions
 c25940b  test(balatro): cover money scoring R1 acquisitions
+3abedb4  feat(balatro): admit exact retrigger scoring acquisitions
+0b4a681  test(balatro): cover retrigger scoring R1 acquisitions
+7b7699e  fix(balatro): fail closed on partial owned deck translation
+17176c7  feat(balatro): gate deck scoring acquisitions on owned deck
+5062f0f  test(balatro): cover exact owned deck R1 acquisitions
 ```
-
-### R1 immediate objective
-
-Continue the acquisition/lifecycle semantics inventory from the green money-scoring checkpoint.
-
-For each next candidate:
-
-1. classify the lifecycle point where its consequences occur;
-2. admit it only if immediate and persistent consequences are exactly represented by canonical/headless state and existing owned scoring/rule semantics;
-3. preserve affordability and slot legality;
-4. preserve input-state isolation;
-5. retain edition rejection;
-6. retain legality + direct-transition rejection tests;
-7. if a candidate depends on an unowned lifecycle transition, keep it blocked and implement that lifecycle category when its prerequisites exist;
-8. do not broaden generic Joker/voucher/pack surfaces merely because the live UI can click them.
-
-Continue exact score/retrigger-only inventory auditing where no persistent mutation exists. Do **not** try to solve Burglar in R1; blind-start exactness now explicitly crosses into R2 RNG. After remaining deterministic R1 categories are exhausted or classified, begin R2 RNG ownership, then complete R3 action exposure against those exact transitions. Do not move to PPO or observation training yet.
 
 ### Remaining R1 state categories
 
@@ -482,23 +424,25 @@ Continue exact score/retrigger-only inventory auditing where no persistent mutat
 - boss restrictions;
 - run-wide and round-local Joker counters.
 
-Do not substitute averages for exact deterministic state where training parity requires exactness.
+Do not substitute averages for exact deterministic state where parity requires exactness.
+
+---
 
 ## R2 — RNG determinism — NOT STARTED AS A COMPLETE PHASE
 
 Requirements:
 
 - `reset(seed)` owns environment RNG;
-- deterministic shop generation, draws, packs, boss selection, and modeled random effects;
+- deterministic shop generation, draws, packs, boss selection, modeled random effects;
 - no unrelated global RNG in transitions;
 - replay metadata records seed/action sequence;
 - identical environment version + seed + actions produce identical trajectories;
 - serialization/restoration preserves the next RNG result;
-- blind-start `SELECT_BLIND` must reproduce vanilla `new_round()` ordering: blind setup/Joker `setting_blind` effects, deterministic shuffle, then initial draw.
+- blind-start `SELECT_BLIND` reproduces vanilla ordering: blind setup / `setting_blind` effects → deterministic shuffle → initial draw.
 
 ## R3 — Typed action vocabulary — PARTIAL / TIED TO R1 EXACTNESS
 
-Initial strategic action classes as applicable:
+Target strategic actions as exact ownership becomes available:
 
 ```text
 END_SHOP
@@ -516,19 +460,19 @@ SKIP_BLIND
 SELECT_BLIND / START_BLIND
 ```
 
-Every training-visible action requires stable type/id, required parameters, deterministic legality, deterministic exact transition, serialization representation, and training-mask representation. Unsupported actions are absent, not given arbitrary low value.
+Every training-visible action requires stable type/id, required parameters, deterministic legality, exact transition, serialization representation, and mask representation.
 
 ## R4 — Deterministic tactical bridge — NOT STARTED
 
-Initial curriculum reuses existing deterministic D1/D9/tactical owners for hand-level play while RL controls strategic boundaries. Tactical trajectories remain logged for parity/debugging.
+Reuse existing deterministic D1/D9/tactical owners for hand-level play while RL controls strategic boundaries. Tactical trajectories remain logged for parity/debugging.
 
 ## R5 — Live/simulator parity harness — NOT STARTED
 
-Priority fixtures include ordinary shop purchase/hold/end-shop, Joker replacement, reroll, voucher purchase/rejection, pack paths, blind skip, ordinary blind clear, boss restrictions, Card Sharp reset, Throwback skip counter, Baron held-card state, The Sun path, and economy/interest transitions.
+Priority fixtures: ordinary shop purchase/hold/end-shop, Joker replacement, reroll, voucher purchase/rejection, pack paths, blind skip, ordinary blind clear, boss restrictions, Card Sharp reset, Throwback skip counter, Baron held-card state, The Sun path, owned-deck composition, and economy/interest transitions.
 
 ## R6 — Environment performance gate — NOT STARTED
 
-Measure steps/sec, runs/minute, parallel scaling, tactical-bridge cost, and serialization overhead after semantics are correct. Do not trade correctness for speed without an explicit parity record.
+Measure steps/sec, runs/minute, parallel scaling, tactical-bridge cost, and serialization overhead only after semantics are correct.
 
 ### Phase R exit criteria
 
@@ -537,120 +481,90 @@ Measure steps/sec, runs/minute, parallel scaling, tactical-bridge cost, and seri
 - Red/White run proceeds reset→terminal entirely headlessly;
 - fixed-seed replay deterministic;
 - representative live parity fixtures green;
-- throughput supports automated training experiments;
+- throughput supports automated training;
 - environment version stored in trajectory metadata.
 
 ---
 
-# Phase O — Observation and action encoding — NOT STARTED
+# Later phases
 
-Create versioned observation/action schemas with no hidden-information leakage. Encode public run context, Jokers, deck structure, visible offers, capacities, counters, and optional Bond/mechanics features. Illegal actions must have zero probability after masking.
+## O — Observation/action encoding — NOT STARTED
 
----
+Versioned public observation/action schemas, no hidden-information leakage, illegal actions probability zero after masking.
 
-# Phase B0 — RL baseline infrastructure — NOT STARTED
+## B0 — RL baseline infrastructure — NOT STARTED
 
 1. random legal strategic baseline;
-2. frozen symbolic/Bond baseline in the same headless environment;
-3. stable trajectory format containing environment/schema versions, seed, step, phase, mask, selected action, reward, termination, and useful diagnostics.
+2. frozen symbolic/Bond baseline in the same environment;
+3. stable versioned trajectory format.
 
----
+## P — PPO strategic learner — NOT STARTED
 
-# Phase P — PPO strategic learner — NOT STARTED
-
-Build a modest masked policy/value network, parallel rollout collector, GAE/returns, PPO update, reproducible checkpointing, and terminal-win reward baseline.
+Initial reward reference:
 
 ```text
 Ante 8 cleared: +1
 run lost:        0
 ```
 
-Any shaping must be explicitly configured and validated against actual Ante-8 success.
+Any shaping must be explicitly configured and validated against Ante-8 success.
 
----
+## C0 — Curriculum/sample efficiency — NOT STARTED
 
-# Phase C0 — Curriculum and sample efficiency — NOT STARTED
+Strategic shop/build/economy control first; expand action ownership only after exact environment transitions exist.
 
-Initial RL controls strategic shop/build/economy decisions while deterministic tactical owners resolve hand play. Curriculum may expand through packs, vouchers, rerolls, skips, consumable timing, and later optional tactical RL. Fresh Ante-1 evaluation remains authoritative.
+## E0 — Evaluation framework — NOT STARTED
 
----
-
-# Phase E0 — Evaluation framework — NOT STARTED
-
-Maintain separate training, development-evaluation, and final held-out seed sets.
-
-Mandatory comparisons:
+Separate train/dev/final held-out seeds. Mandatory comparisons:
 
 ```text
 Random legal policy
 Frozen symbolic/Bond baseline
-Learned RAW model
-Learned RAW+BOND model
+Learned RAW
+Learned RAW+BOND
 ```
 
-Report Ante-8 clear rate, confidence interval, run count, ante/failure distributions, invalid actions, runtime, and useful policy diagnostics.
+Report clear rate, confidence interval, run count, ante/failure distribution, invalid actions, runtime, diagnostics.
 
----
+## A0 — Bond observation ablation — NOT STARTED
 
-# Phase A0 — Observation/Bond ablation — NOT STARTED
+Retain Bonds only if they improve sample efficiency, competence, stability, or useful interpretability.
 
-Compare RAW vs RAW+BOND under equal training budgets and multiple training seeds. Retain Bond features only if they improve sample efficiency, final competence, stability, or useful interpretability at acceptable cost.
+## F0 — Reward validation — NOT STARTED
 
----
+Terminal-only remains reference. Reject shaping that raises shaped return without improving Ante-8 success.
 
-# Phase F0 — Reward/objective validation — NOT STARTED
+## T — Training scale-up — NOT STARTED
 
-Always retain terminal-only reward as reference. Reject shaping that increases shaped return without increasing Ante-8 success.
+Record source commit, environment/schema versions, config, workers, seeds, steps, evaluation protocol.
 
----
+## V — Simulator→live learned-policy validation — NOT STARTED
 
-# Phase T — Training scale-up — NOT STARTED
+Freeze promoted checkpoints; same encoder/decoder live and headlessly; canonical live legality remains safety boundary.
 
-Scale parallel rollout collection only after environment/training stability. Record source commit, environment/schema versions, model/reward/PPO config, workers, seeds, steps, and evaluation protocol for meaningful runs.
+## Q — Red/White competence gate — NOT STARTED
 
----
+Required evidence: large held-out simulated evaluation, confidence intervals, baselines, multiple training seeds, live validation of frozen checkpoint, no unresolved high-impact parity defect.
 
-# Phase V — Simulator-to-live learned-policy validation — NOT STARTED
+## X — Optional full tactical RL — NOT REQUIRED FOR INITIAL GATE
 
-Freeze a promoted checkpoint and use the same observation encoder/action decoder live and headlessly. Canonical live legality remains the safety boundary. Classify simulator/live mismatches before changing policy behavior.
+Only if strategic-only RL plateaus for reasons attributable to hand/discard decisions.
 
----
+## M — Post-RL symbolic cleanup — NOT STARTED
 
-# Phase Q — Red/White learned competence gate — NOT STARTED
+Do not delete symbolic/Bond baseline before Q. After learned authority is proven, retain one canonical learned strategic owner and one deterministic mechanics/legality boundary.
 
-Controlling metric:
+## N — Broader competence — NOT STARTED
 
-```text
-P(clear Ante 8 | Red Deck, White Stake, normal mode)
-```
-
-Required evidence: large held-out simulated evaluation, confidence intervals, random/symbolic baselines, multiple training seeds, live validation on a frozen checkpoint, and no unresolved high-impact parity defect.
-
----
-
-# Phase X — Optional full tactical RL — NOT REQUIRED FOR INITIAL GATE
-
-Begin only if strategic-only RL with deterministic tactical execution plateaus for reasons attributable to hand/discard decisions.
-
----
-
-# Phase M — Post-RL symbolic cleanup — NOT STARTED
-
-Do not delete symbolic/Bond baseline before Phase Q. After learned authority is proven, retain one canonical learned strategic owner, one deterministic mechanics/legality boundary, and only optional Bond diagnostics/features.
-
----
-
-# Phase N — Broader competence — NOT STARTED
-
-Only after Red/White success: additional decks, higher stakes, broader actions such as boss reroll if desired, endless objectives, tactical RL, and wider framework integration.
+Only after Red/White success: additional decks, higher stakes, broader actions, endless objectives, optional tactical RL, wider framework integration.
 
 ---
 
 # Testing and reproducibility contract
 
-Use deterministic tests for mechanics, transitions, legality, phase boundaries, RNG, serialization, encodings, masks, parity, checkpoint loading, and deterministic inference.
+Use deterministic tests for mechanics, transitions, legality, phase boundaries, RNG, serialization, encodings, masks, parity, checkpoint loading, deterministic inference.
 
-Use statistical rollout evaluation for win rate, learning curves, model comparisons, ablations, reward validation, and hyperparameter comparison.
+Use statistical rollout evaluation for win rate, learning curves, model comparisons, ablations, reward validation, hyperparameter comparison.
 
 Every promoted model records:
 
@@ -668,11 +582,7 @@ evaluation seed set id
 evaluation results
 ```
 
----
-
-# Failure-classification contract
-
-Classify bad decisions before changing code:
+Failure classification before code changes:
 
 1. mechanics bug;
 2. state bug;
@@ -684,7 +594,7 @@ Classify bad decisions before changing code:
 8. capacity/optimization issue;
 9. ordinary learned-policy error.
 
-A single bad run is not sufficient evidence for a new hand-coded strategic exception.
+A single bad run is not sufficient evidence for a new hand-coded exception.
 
 ---
 
@@ -711,6 +621,10 @@ Suit-scoring expansion                            GREEN — CI 33784381489
 Conditional-scoring expansion                     GREEN — CI 33785203157
 Static public-state scoring expansion             GREEN — CI 33785485082
 Money-scoring expansion                           GREEN — CI 33786958116
+Retrigger-only scoring expansion                  GREEN — CI 33787354303
+Owned-deck scoring expansion                      GREEN — CI 33788603611
+Owned-deck translator fail-closed semantics       GREEN
+G.playing_cards decode-completeness hardening     NEXT R1 ROBUSTNESS TASK
 Burglar acquisition                               FAIL-CLOSED UNTIL R2 BLIND-START RNG
 SELECT_BLIND training action                      PLANNED — BLOCKED UNTIL R2 EXACT SHUFFLE/DRAW
 Generic/unknown Joker acquisition                 FAIL-CLOSED
@@ -739,7 +653,7 @@ Post-RL symbolic cleanup                          NOT STARTED
 Current branch code head immediately before this roadmap synchronization:
 
 ```text
-c25940ba4d4be29a91ef1d6d2d4e18f10a57c8c2
+5062f0f910ff4aba24646630e4dec78ea8259eb3
 ```
 
 ---
@@ -750,17 +664,18 @@ c25940ba4d4be29a91ef1d6d2d4e18f10a57c8c2
 
 Immediate order:
 
-1. continue the small scoring/rule/retrigger-only acquisition audit and classify every candidate by lifecycle point;
-2. admit an acquisition only where purchase plus every persistent consequence is already owned;
-3. keep lifecycle-dependent Jokers blocked until the required lifecycle transition exists;
-4. keep Burglar and `SELECT_BLIND` explicitly blocked until R2 owns vanilla blind-start shuffle/draw RNG;
-5. keep generic Joker/voucher buys, editions, packs, and unknown acquisitions fail-closed;
-6. preserve deterministic legality, isolation, edition-rejection, and direct-transition rejection tests;
-7. when deterministic R1 inventory-only expansion is exhausted, move into exact remaining R1 state ownership and then R2 RNG rather than inventing synthetic lifecycle boundaries;
-8. complete R3 action exposure only after the corresponding exact transitions exist;
-9. add R5 parity fixtures before treating the environment as authoritative for training.
+1. harden permanent `G.playing_cards` array completeness so a low-level unreadable TValue cannot silently become a shorter authoritative `owned_deck`;
+2. keep `G.deck.cards` strictly separate from permanent owned-deck truth;
+3. retain translator all-or-nothing owned-card validation and its malformed/count-mismatch regressions;
+4. continue exact deck/card-zone ownership and inventory/lifecycle auditing after that robustness gate;
+5. admit acquisitions only when purchase plus every persistent consequence is owned;
+6. keep lifecycle-dependent Jokers blocked until their lifecycle transitions exist;
+7. keep Burglar/`SELECT_BLIND` blocked until R2 owns vanilla blind-start shuffle/draw RNG;
+8. keep generic Joker/voucher buys, editions, packs, and unknown acquisitions fail-closed;
+9. finish deterministic R1 categories, then R2/R3;
+10. add R5 parity before treating the environment as authoritative for training.
 
-The next code should therefore be **continued exact R1 acquisition/state-transition work from the green money-scoring checkpoint**, with retrigger-only candidates as the next audit target. It should **not** attempt a synthetic Burglar blind transition, **not** return to Bond tuning, and **not** start PPO.
+The next code is therefore **R1 live-owned-deck completeness hardening followed by exact remaining state-transition work**. It is **not** Bond tuning and **not** PPO.
 
 ---
 
@@ -774,12 +689,13 @@ live correctness stabilization                     ✓
 R0 HEADLESS ENVIRONMENT ARCHITECTURE               ✓
         ↓
 R1 EXACT STATE TRANSITIONS                         ← ACTIVE
-  └─ acquisition semantics audit                   ← ACTIVE
+  └─ acquisition/state semantics audit             ← ACTIVE
       ├─ resource-sensitive capacity ownership      ✓ incremental
-      ├─ passive hand-rule acquisitions             ✓
-      ├─ score-only inventory acquisitions          ✓ expanding incrementally
+      ├─ passive/scoring/retrigger acquisitions     ✓ expanding
+      ├─ permanent owned-deck scoring               ✓
+      ├─ live owned-deck completeness hardening     ← NEXT
       ├─ Burglar / blind-start boundary             ✓ classified → R2 dependency
-      └─ lifecycle-dependent acquisitions           ← KEEP FAIL-CLOSED UNTIL OWNED
+      └─ lifecycle-dependent acquisitions           ← FAIL-CLOSED UNTIL OWNED
         ↓
 R2 RNG + R3 ACTION COMPLETION
         ↓
@@ -802,10 +718,6 @@ TRAINING SCALE-UP
 SIMULATOR ↔ LIVE TRANSFER VALIDATION
         ↓
 RED/WHITE RL COMPETENCE GATE
-        ↓
-POST-RL SYMBOLIC CLEANUP
-        ↓
-OPTIONAL FULL TACTICAL RL / BROADER COMPETENCE
 ```
 
 Controlling implementation question:
