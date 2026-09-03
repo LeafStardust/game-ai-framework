@@ -1,0 +1,33 @@
+name: Balatro L3 deterministic suite
+
+on:
+  push:
+    branches:
+      - feat/v1.0-red-white-competence
+    paths:
+      - "games/balatro/**"
+      - "tests/balatro/**"
+      - "ROADMAP.md"
+      - "requirements.txt"
+      - ".github/workflows/balatro-l3.yml"
+  workflow_dispatch:
+
+jobs:
+  balatro-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install test dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run Balatro deterministic suite
+        run: python -m pytest -q tests/balatro
