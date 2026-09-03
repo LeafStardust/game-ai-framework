@@ -11,6 +11,7 @@ from games.balatro.env.transition import (
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.acrobat import AcrobatJoker
 from games.balatro.jokers.banner import BannerJoker
+from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
@@ -165,10 +166,26 @@ def test_balatro_env_r1_hand_size_joker_acquisition_updates_capacity_once(
     assert type(next_run.public.jokers[0]) is joker_type
 
 
+def test_balatro_env_r1_unowned_round_resource_joker_remains_fail_closed():
+    state = _shop_state()
+    state.shop_jokers = [_modeled_joker(DrunkardJoker)]
+    run = HeadlessRunState(public=state, seed=12)
+    engine = ShopTransitionEngine()
+    action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
+
+    assert action not in engine.legal_actions(run)
+    with pytest.raises(HeadlessTransitionError, match="illegal shop transition: BUY_JOKER"):
+        engine.step(run, action)
+
+    assert run.public.money == 20
+    assert run.public.jokers == []
+    assert run.public.round_reset_discards == 0
+
+
 def test_balatro_env_r1_joker_editions_remain_fail_closed():
     state = _shop_state()
     state.shop_jokers = [_modeled_joker(FlatMultJoker, edition="Negative")]
-    run = HeadlessRunState(public=state, seed=12)
+    run = HeadlessRunState(public=state, seed=13)
     engine = ShopTransitionEngine()
     action = EnvAction.from_alias("BUY_JOKER", {"slot": 0})
 
@@ -182,7 +199,7 @@ def test_balatro_env_r1_joker_editions_remain_fail_closed():
 
 
 def test_balatro_env_r1_rejects_unsupported_acquisition_execution():
-    run = HeadlessRunState(public=_shop_state(), seed=13)
+    run = HeadlessRunState(public=_shop_state(), seed=14)
     engine = ShopTransitionEngine()
 
     for alias in ("BUY_JOKER", "BUY_VOUCHER", "OPEN_PACK"):
@@ -208,7 +225,7 @@ def test_balatro_env_r1_affordability_rejects_inexact_prices():
         _Item("Boolean", True),
         _PricelessItem("Missing"),
     ]
-    run = HeadlessRunState(public=state, seed=14)
+    run = HeadlessRunState(public=state, seed=15)
     engine = ShopTransitionEngine()
     legal = engine.legal_actions(run)
 
@@ -224,7 +241,7 @@ def test_balatro_env_r1_affordability_rejects_inexact_prices():
 
 
 def test_balatro_env_r1_end_shop_clears_offers_and_transfers_phase():
-    run = HeadlessRunState(public=_shop_state(), seed=15)
+    run = HeadlessRunState(public=_shop_state(), seed=16)
     next_run = ShopTransitionEngine().step(run, EnvAction.from_alias("END_SHOP"))
 
     assert next_run.public.phase == "BLIND_SELECT"
@@ -237,7 +254,7 @@ def test_balatro_env_r1_end_shop_clears_offers_and_transfers_phase():
 
 
 def test_balatro_env_r1_rejects_unaffordable_or_invalid_shop_action():
-    run = HeadlessRunState(public=_shop_state(money=2), seed=16)
+    run = HeadlessRunState(public=_shop_state(money=2), seed=17)
     engine = ShopTransitionEngine()
 
     with pytest.raises(HeadlessTransitionError, match="illegal shop transition"):
