@@ -23,7 +23,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 
 _REQUIREMENT_ONLY_BOSS_NAMES = frozenset({"The Wall", "Violet Vessel"})
 _MUTABLE_HAND_RULE_BOSS_NAMES = frozenset({"The Eye", "The Mouth"})
-_RESOURCE_MUTATING_BOSS_NAMES = frozenset({"The Water", "The Needle"})
+_RESOURCE_MUTATING_BOSS_NAMES = frozenset({"The Water", "The Needle", "The Manacle"})
 
 
 def _require_common_blind_start_boundary(run: HeadlessRunState, *, label: str) -> None:
@@ -155,12 +155,13 @@ def start_supported_mutable_hand_rule_boss(run: HeadlessRunState) -> HeadlessRun
 
 
 def prepare_supported_resource_boss_start(run: HeadlessRunState) -> HeadlessRunState:
-    """Own exact Water/Needle start ordering and reversible private state.
+    """Own exact Water/Needle/Manacle start ordering and reversible private state.
 
     Vanilla applies the Boss resource mutation after the generic round-resource
-    baseline and before the Joker ``setting_blind`` pass.  Water stores and
+    baseline and before the Joker ``setting_blind`` pass. Water stores and
     removes current post-bonus discards; Needle stores ``round_resets.hands - 1``
-    and removes exactly that amount, leaving one-shot hand bonuses intact.
+    and removes exactly that amount, leaving one-shot hand bonuses intact;
+    Manacle stores and removes exactly one hand-size slot before the initial deal.
     """
     _require_boss_blind(run, label="resource-mutating boss start")
     if run.public.boss_name not in _RESOURCE_MUTATING_BOSS_NAMES:
@@ -174,7 +175,7 @@ def prepare_supported_resource_boss_start(run: HeadlessRunState) -> HeadlessRunS
 
 
 def start_supported_resource_boss(run: HeadlessRunState) -> HeadlessRunState:
-    """Compose Water/Needle lifecycle with exact generalized shuffle/deal."""
+    """Compose audited resource-Boss lifecycle with exact generalized shuffle/deal."""
     prepared = prepare_supported_resource_boss_start(run)
     return deal_supported_round_start(prepared)
 
