@@ -67,6 +67,39 @@ def test_balatro_env_r1_state_rejects_non_red_white_surface():
         HeadlessRunState(public=state, seed=1)
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    (
+        ("money", "20", "money must be an exact integer"),
+        ("money", True, "money must be an exact integer"),
+        ("joker_slots", 5.0, "joker_slots must be an exact integer"),
+        ("joker_slots", -1, "joker_slots cannot be negative"),
+        ("consumable_slots", "2", "consumable_slots must be an exact integer"),
+        ("consumable_slots", -1, "consumable_slots cannot be negative"),
+    ),
+)
+def test_balatro_env_r1_state_rejects_inexact_shop_numeric_state(field, value, message):
+    state = _shop_state()
+    setattr(state, field, value)
+
+    with pytest.raises(HeadlessTransitionError, match=message):
+        HeadlessRunState(public=state, seed=2)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    (
+        ({"reroll_cost": 5.0}, "reroll_cost must be an exact integer"),
+        ({"reroll_cost": -1}, "reroll_cost cannot be negative"),
+        ({"skips": True}, "skips must be an exact integer"),
+        ({"skips": -1}, "skips cannot be negative"),
+    ),
+)
+def test_balatro_env_r1_state_rejects_inexact_environment_counters(kwargs, message):
+    with pytest.raises(HeadlessTransitionError, match=message):
+        HeadlessRunState(public=_shop_state(), seed=3, **kwargs)
+
+
 def test_balatro_env_r1_shop_legality_is_exact_for_deterministic_subset():
     run = HeadlessRunState(public=_shop_state(), seed="shop-seed")
     legal = ShopTransitionEngine().legal_actions(run)
