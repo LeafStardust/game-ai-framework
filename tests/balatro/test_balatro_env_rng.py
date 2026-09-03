@@ -91,3 +91,41 @@ def test_balatro_rng_randint_is_inclusive_and_deterministic():
 
     assert values_a == values_b
     assert all(1 <= value <= 52 for value in values_a)
+
+
+def test_balatro_rng_pseudoshuffle_reference_vector():
+    rng = BalatroRNG("TESTSEED")
+    values = list(range(10, 0, -1))
+
+    rng.shuffle_in_place(values, "nr1", sort_key=lambda value: value)
+
+    # Vanilla pseudoshuffle sorts card-like inputs before Fisher-Yates. The
+    # pinned permutation uses the exact LuaJIT random stream for pseudoseed nr1.
+    assert values == [7, 5, 4, 9, 10, 8, 2, 6, 3, 1]
+    assert rng.nodes["nr1"] == 0.8232194488594
+
+
+def test_balatro_rng_pseudoshuffle_advances_node_once_not_once_per_swap():
+    shuffled = BalatroRNG("TESTSEED")
+    values = list(range(1, 11))
+    shuffled.shuffle_in_place(values, "nr1")
+
+    one_seed_only = BalatroRNG("TESTSEED")
+    one_seed_only.pseudoseed("nr1")
+
+    assert shuffled.nodes == one_seed_only.nodes
+
+
+def test_balatro_rng_pseudoshuffle_snapshot_restores_next_shuffle():
+    original = BalatroRNG("TESTSEED")
+    first = list(range(1, 11))
+    original.shuffle_in_place(first, "nr1")
+
+    restored = BalatroRNG.from_snapshot(original.snapshot())
+    next_original = list(range(1, 11))
+    next_restored = list(range(1, 11))
+    original.shuffle_in_place(next_original, "nr1")
+    restored.shuffle_in_place(next_restored, "nr1")
+
+    assert next_restored == next_original
+    assert restored.snapshot() == original.snapshot()
