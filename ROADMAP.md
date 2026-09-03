@@ -351,6 +351,54 @@ All four only add score contribution based on canonical suit matching. `tests/ba
 
 CI `33784381489`: `1348 passed, 1594 deselected`.
 
+Conditional-scoring expansion:
+
+- `ScaryFaceJoker`
+- `ArrowheadJoker`
+- `OnyxAgateJoker`
+- `FlowerPotJoker`
+- `SeeingDoubleJoker`
+
+These are pure face/suit/scoring predicates over already-owned hand-rule/scoring state and have no acquisition or persistent lifecycle mutation. `tests/balatro/test_balatro_env_r1_conditional_scoring_acquisition.py` proves exact inventory/economy transfer, unchanged resources, projector ownership, and edition fail-closed behavior.
+
+CI `33785203157`: `1358 passed, 1594 deselected`.
+
+Static public-state scoring expansion:
+
+- `JokerStencil`
+- `ShootTheMoonJoker`
+- `TribouletJoker`
+
+These consume only current canonical Joker inventory/slot state, held-card state, or scoring-card rank state. They introduce no counter, RNG, or acquisition/lifecycle mutation.
+
+CI `33785485082`: `1364 passed, 1594 deselected`.
+
+Money-scoring expansion:
+
+- `BullJoker`
+- `BootstrapsJoker`
+
+Both are pure score functions of canonical `money`, which `HeadlessRunState` already validates as an exact integer. Their purchases are exact inventory-only transitions with the ordinary price deduction and no additional persistent mutation.
+
+CI `33786958116`: `1370 passed, 1594 deselected`.
+
+### Burglar / blind-start RNG boundary — RESOLVED
+
+**Burglar remains fail-closed through R1 and is explicitly blocked on R2 RNG ownership.**
+
+Reason:
+
+- modeled Burglar behavior is a blind-selection lifecycle effect (`BLIND_SELECTED` / live `setting_blind` semantics), not an acquisition-time effect;
+- live bridge execution invokes vanilla `G.FUNCS.select_blind` from `BLIND_SELECT`;
+- vanilla `G.FUNCS.select_blind` immediately calls `new_round()`;
+- `new_round()` sets the blind, fires `setting_blind` Joker effects, then immediately enters `DRAW_TO_HAND` and calls `G.deck:shuffle(...)` before the initial hand is drawn;
+- there is therefore no canonical live post-selection/pre-RNG action boundary that R1 can mirror without inventing a synthetic transition;
+- `SELECT_BLIND` remains `PLANNED` / non-training-exposed until R2 owns shuffle/deal RNG and the complete blind-start transition.
+
+`tests/balatro/test_balatro_env_r1_burglar_rng_boundary.py` locks both conditions: Burglar purchase remains absent from R1 legality and `SELECT_BLIND` cannot enter the training surface early.
+
+CI `33786662421`: `1366 passed, 1594 deselected`.
+
 ### Current R1 fail-closed boundary
 
 Still fail-closed:
@@ -361,11 +409,14 @@ Still fail-closed:
 - booster-pack opening;
 - stochastic acquisition/generation requiring R2 RNG;
 - any acquisition whose immediate persistent or later lifecycle consequences have not been audited;
-- `SELL_JOKER` and inverse capacity/resource semantics.
+- `SELL_JOKER` and inverse capacity/resource semantics;
+- `SELECT_BLIND` until R2 owns the vanilla blind-start shuffle/deal transition.
 
-Important retained audit finding:
+Important retained audit findings:
 
-- **Burglar is not acquisition-only.** Its modeled effect fires at `BLIND_SELECTED`, gaining hands and setting discards to zero. Keep it blocked until R1 owns that blind-selection lifecycle transition exactly.
+- **Burglar is not acquisition-only and must remain blocked until R2.** Do not synthesize a pre-draw blind-selected phase merely to admit it.
+- **Owned-deck-dependent scoring** such as Steel Joker, Stone Joker, Drivers License, and Erosion remains blocked until exact deck/card-zone state is authoritative in the headless transition path.
+- **Lifecycle/economy/RNG Jokers** such as Chaos the Clown, Credit Card, Egg, Gros Michel/Cavendish, Ice Cream/Popcorn/Ramen, and persistent counter Jokers remain blocked until their exact lifecycle owners exist.
 
 ### Latest functional R1 commits
 
@@ -386,11 +437,18 @@ c0ab092  test(balatro): cover pair straight flush R1 acquisitions
 4940a79  test(balatro): cover hand-shape xmult R1 acquisitions
 3146473  feat(balatro): admit exact suit scoring acquisitions
 06c2430  test(balatro): cover suit scoring R1 acquisitions
+d0ca348  feat(balatro): admit exact conditional scoring acquisitions
+534c571  test(balatro): cover conditional scoring R1 acquisitions
+645c0db  feat(balatro): admit exact static scoring acquisitions
+b333ea2  test(balatro): cover static scoring R1 acquisitions
+39ff54d  test(balatro): lock Burglar behind blind-start RNG
+3a5069e  feat(balatro): admit exact money scoring acquisitions
+c25940b  test(balatro): cover money scoring R1 acquisitions
 ```
 
 ### R1 immediate objective
 
-Continue the acquisition/lifecycle semantics inventory from the green suit-scoring checkpoint.
+Continue the acquisition/lifecycle semantics inventory from the green money-scoring checkpoint.
 
 For each next candidate:
 
@@ -400,10 +458,10 @@ For each next candidate:
 4. preserve input-state isolation;
 5. retain edition rejection;
 6. retain legality + direct-transition rejection tests;
-7. if a candidate depends on an unowned lifecycle transition, keep it blocked and implement that lifecycle category before admission;
+7. if a candidate depends on an unowned lifecycle transition, keep it blocked and implement that lifecycle category when its prerequisites exist;
 8. do not broaden generic Joker/voucher/pack surfaces merely because the live UI can click them.
 
-After the remaining R1 transition categories are exact, continue R2/R3. Do not move to PPO or observation training yet.
+Continue exact score/retrigger-only inventory auditing where no persistent mutation exists. Do **not** try to solve Burglar in R1; blind-start exactness now explicitly crosses into R2 RNG. After remaining deterministic R1 categories are exhausted or classified, begin R2 RNG ownership, then complete R3 action exposure against those exact transitions. Do not move to PPO or observation training yet.
 
 ### Remaining R1 state categories
 
@@ -435,7 +493,8 @@ Requirements:
 - no unrelated global RNG in transitions;
 - replay metadata records seed/action sequence;
 - identical environment version + seed + actions produce identical trajectories;
-- serialization/restoration preserves the next RNG result.
+- serialization/restoration preserves the next RNG result;
+- blind-start `SELECT_BLIND` must reproduce vanilla `new_round()` ordering: blind setup/Joker `setting_blind` effects, deterministic shuffle, then initial draw.
 
 ## R3 — Typed action vocabulary — PARTIAL / TIED TO R1 EXACTNESS
 
@@ -649,7 +708,11 @@ Hand-shape score-only acquisitions                GREEN
 Pair/Straight/Flush score-only expansion          GREEN — CI 33783865698
 Hand-shape xMult expansion                        GREEN — CI 33784097107
 Suit-scoring expansion                            GREEN — CI 33784381489
-Burglar acquisition                               FAIL-CLOSED PENDING BLIND_SELECTED OWNERSHIP
+Conditional-scoring expansion                     GREEN — CI 33785203157
+Static public-state scoring expansion             GREEN — CI 33785485082
+Money-scoring expansion                           GREEN — CI 33786958116
+Burglar acquisition                               FAIL-CLOSED UNTIL R2 BLIND-START RNG
+SELECT_BLIND training action                      PLANNED — BLOCKED UNTIL R2 EXACT SHUFFLE/DRAW
 Generic/unknown Joker acquisition                 FAIL-CLOSED
 Joker editions                                    FAIL-CLOSED
 Generic voucher acquisition                       FAIL-CLOSED
@@ -676,7 +739,7 @@ Post-RL symbolic cleanup                          NOT STARTED
 Current branch code head immediately before this roadmap synchronization:
 
 ```text
-06c2430b71a9535f4c584007bead79d308bc4cdb
+c25940ba4d4be29a91ef1d6d2d4e18f10a57c8c2
 ```
 
 ---
@@ -687,16 +750,17 @@ Current branch code head immediately before this roadmap synchronization:
 
 Immediate order:
 
-1. continue the small scoring/rule acquisition audit and classify each candidate by lifecycle point;
-2. admit the next exact acquisition only where purchase plus all persistent consequences are already owned;
+1. continue the small scoring/rule/retrigger-only acquisition audit and classify every candidate by lifecycle point;
+2. admit an acquisition only where purchase plus every persistent consequence is already owned;
 3. keep lifecycle-dependent Jokers blocked until the required lifecycle transition exists;
-4. keep generic Joker/voucher buys, editions, packs, and unknown acquisitions fail-closed;
-5. preserve deterministic legality, isolation, edition-rejection, and direct-transition rejection tests;
-6. when score-only inventory expansion stops being the limiting surface, implement the next blocked lifecycle transition category rather than weakening the exactness gate;
-7. finish R1 transition categories, then R2/R3;
-8. add R5 parity fixtures before treating the environment as authoritative for training.
+4. keep Burglar and `SELECT_BLIND` explicitly blocked until R2 owns vanilla blind-start shuffle/draw RNG;
+5. keep generic Joker/voucher buys, editions, packs, and unknown acquisitions fail-closed;
+6. preserve deterministic legality, isolation, edition-rejection, and direct-transition rejection tests;
+7. when deterministic R1 inventory-only expansion is exhausted, move into exact remaining R1 state ownership and then R2 RNG rather than inventing synthetic lifecycle boundaries;
+8. complete R3 action exposure only after the corresponding exact transitions exist;
+9. add R5 parity fixtures before treating the environment as authoritative for training.
 
-The next code should therefore be **continued exact R1 acquisition/lifecycle transition work from the green suit-scoring checkpoint**. It should **not** be Bond tuning and **not** PPO.
+The next code should therefore be **continued exact R1 acquisition/state-transition work from the green money-scoring checkpoint**, with retrigger-only candidates as the next audit target. It should **not** attempt a synthetic Burglar blind transition, **not** return to Bond tuning, and **not** start PPO.
 
 ---
 
@@ -714,6 +778,7 @@ R1 EXACT STATE TRANSITIONS                         ← ACTIVE
       ├─ resource-sensitive capacity ownership      ✓ incremental
       ├─ passive hand-rule acquisitions             ✓
       ├─ score-only inventory acquisitions          ✓ expanding incrementally
+      ├─ Burglar / blind-start boundary             ✓ classified → R2 dependency
       └─ lifecycle-dependent acquisitions           ← KEEP FAIL-CLOSED UNTIL OWNED
         ↓
 R2 RNG + R3 ACTION COMPLETION
