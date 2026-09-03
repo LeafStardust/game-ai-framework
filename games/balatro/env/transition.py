@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from games.balatro.card import BalatroCard
+from games.balatro.deck_rules import starting_deck_size_for_name
 from games.balatro.env.actions import EnvAction
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.acrobat import AcrobatJoker
@@ -30,9 +31,11 @@ from games.balatro.jokers.clever_joker import CleverJoker
 from games.balatro.jokers.crafty_joker import CraftyJoker
 from games.balatro.jokers.crazy_joker import CrazyJoker
 from games.balatro.jokers.devious_joker import DeviousJoker
+from games.balatro.jokers.drivers_license import DriversLicenseJoker
 from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.dusk import DuskJoker
+from games.balatro.jokers.erosion import ErosionJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
@@ -66,6 +69,8 @@ from games.balatro.jokers.smeared_joker import SmearedJoker
 from games.balatro.jokers.smiley_face import SmileyFaceJoker
 from games.balatro.jokers.sock_and_buskin import SockAndBuskinJoker
 from games.balatro.jokers.splash import SplashJoker
+from games.balatro.jokers.steel_joker import SteelJoker
+from games.balatro.jokers.stone_joker import StoneJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.jokers.the_duo import TheDuoJoker
 from games.balatro.jokers.the_family import TheFamilyJoker
@@ -141,6 +146,13 @@ _EXACT_R1_JOKER_ACQUISITION_TYPES = (
     SockAndBuskinJoker,
 )
 
+_OWNED_DECK_SCORING_TYPES = (
+    DriversLicenseJoker,
+    ErosionJoker,
+    SteelJoker,
+    StoneJoker,
+)
+
 
 class HeadlessTransitionError(ValueError):
     """Raised when a requested headless transition is not exact/legal."""
@@ -192,6 +204,11 @@ class HeadlessRunState:
                 "round_reset_discards",
                 self.public.round_reset_discards,
             )
+        if self.public.owned_deck is not None:
+            if not isinstance(self.public.owned_deck, list):
+                raise HeadlessTransitionError("owned_deck must be a list or None")
+            if any(not isinstance(card, BalatroCard) for card in self.public.owned_deck):
+                raise HeadlessTransitionError("owned_deck must contain only BalatroCard values")
         self._require_nonnegative_int("reroll_cost", self.reroll_cost)
         self._require_nonnegative_int("skips", self.skips)
 
@@ -299,10 +316,13 @@ class ShopTransitionEngine:
             return False
         if type(item) in _EXACT_R1_JOKER_ACQUISITION_TYPES:
             return True
+        if type(item) in _OWNED_DECK_SCORING_TYPES:
+            if state.owned_deck is None:
+                return False
+            if type(item) is ErosionJoker:
+                return starting_deck_size_for_name(state.deck_name) is not None
+            return True
         if type(item) is StuntmanJoker:
-            # R1 does not guess how live Balatro resolves a capacity modifier
-            # larger than the authoritative current hand limit. Keep those edge
-            # states unavailable instead of creating a negative headless limit.
             return state.hand_size >= 2
         if type(item) is DrunkardJoker:
             return bool(state.round_reset_discards_observed)
