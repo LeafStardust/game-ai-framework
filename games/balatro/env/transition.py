@@ -32,6 +32,7 @@ from games.balatro.jokers.crazy_joker import CrazyJoker
 from games.balatro.jokers.devious_joker import DeviousJoker
 from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
+from games.balatro.jokers.dusk import DuskJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
@@ -39,13 +40,16 @@ from games.balatro.jokers.flower_pot import FlowerPotJoker
 from games.balatro.jokers.four_fingers import FourFingersJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.greedy_joker import GreedyJoker
+from games.balatro.jokers.hack import HackJoker
 from games.balatro.jokers.half_joker import HalfJoker
+from games.balatro.jokers.hanging_chad import HangingChadJoker
 from games.balatro.jokers.joker_stencil import JokerStencil
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.lusty_joker import LustyJoker
 from games.balatro.jokers.mad_joker import MadJoker
 from games.balatro.jokers.merry_andy import MerryAndyJoker
+from games.balatro.jokers.mime import MimeJoker
 from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
 from games.balatro.jokers.onyx_agate import OnyxAgateJoker
@@ -60,6 +64,7 @@ from games.balatro.jokers.shortcut import ShortcutJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.smeared_joker import SmearedJoker
 from games.balatro.jokers.smiley_face import SmileyFaceJoker
+from games.balatro.jokers.sock_and_buskin import SockAndBuskinJoker
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.jokers.the_duo import TheDuoJoker
@@ -129,6 +134,11 @@ _EXACT_R1_JOKER_ACQUISITION_TYPES = (
     TribouletJoker,
     BullJoker,
     BootstrapsJoker,
+    DuskJoker,
+    HackJoker,
+    HangingChadJoker,
+    MimeJoker,
+    SockAndBuskinJoker,
 )
 
 
