@@ -36,7 +36,7 @@ def realize_discard(dev,state):
  if not d:return _finish(dev,False)
  live=[c for c in d if not _debuffed(c)];par=_has(j,"pareidolia");faces=len(live) if par else sum(1 for c in live if not _stone(c) and str(getattr(c,"rank","") or "").upper() in {"J","Q","K"});jacks=sum(1 for c in live if not _stone(c) and str(getattr(c,"rank","") or "").upper()=="J");rank=str(getattr(state,"mail_in_rebate_rank",getattr(state,"rebate_rank","")) or "").upper();reb=bool(rank) and any(not _stone(c) and str(getattr(c,"rank","") or "").upper()==rank for c in live);suit=str(getattr(state,"castle_suit",getattr(state,"castle_target_suit","")) or "").lower();castle=bool(suit) and any(not _stone(c) and (str(getattr(c,"suit","") or "").lower()==suit or str(getattr(c,"enhancement","") or "").lower()=="wild") for c in live);src=sum((_has(j,"yorick"),_has(j,"facelessjoker") and faces>=3,_has(j,"hittheroad") and jacks>0,_has(j,"mailinrebate") and reb,_has(j,"castle") and castle));return _finish(dev,src>0,src>=2)
 def realize_blind_skip(dev,state):
- a=_has(_jokers(state),"throwback");n=int(getattr(state,"blinds_skipped",0) or 0);return _finish(dev,a,a and n>=5)
+ a=_has(_jokers(state),"throwback");n=int(getattr(state,"blinds_skipped",0) or 0);return _finish(dev,a and n>=1,a and n>=5)
 def realize_sell_value(dev,state):
  total=int(getattr(state,"joker_sell_value_total",0) or 0);a=_has(_jokers(state),"swashbuckler") and total>0;return _finish(dev,a,a and total>=35)
 def realize_joker_sacrifice(dev,state):
