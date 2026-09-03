@@ -3,9 +3,9 @@
 This module owns environment-private run state that is required for deterministic
 simulation but is not part of the canonical public observation.  The initial
 transition engine deliberately covers only deterministic shop operations whose
-outcomes do not require R2 RNG or unmodeled acquisition side effects.  Booster
-opening, voucher acquisition, and all stochastic transitions remain unavailable
-until their exact RNG/state ownership exists.
+outcomes do not require R2 RNG or unmodeled acquisition side effects.  Generic
+Joker acquisition, voucher acquisition, booster opening, and all stochastic
+transitions remain unavailable until their exact RNG/state ownership exists.
 """
 
 from __future__ import annotations
@@ -73,12 +73,6 @@ class ShopTransitionEngine:
             return ()
 
         actions: list[EnvAction] = []
-        if len(state.jokers) < state.joker_slots:
-            actions.extend(
-                EnvAction.from_alias("BUY_JOKER", {"slot": slot})
-                for slot, item in enumerate(state.shop_jokers)
-                if state.money >= self._price(item)
-            )
         if len(state.consumables) < state.consumable_slots:
             actions.extend(
                 EnvAction.from_alias("BUY_CONSUMABLE", {"slot": slot})
@@ -86,6 +80,11 @@ class ShopTransitionEngine:
                 if state.money >= self._price(item)
             )
 
+        # BUY_JOKER is intentionally not exposed until acquisition applies every
+        # immediate persistent modifier of the purchased Joker.  A generic list
+        # transfer is not exact for Jokers that change capacities/resources on
+        # acquisition.
+        #
         # BUY_VOUCHER is intentionally not exposed until the headless state owns
         # the voucher's immediate rule modification.  Merely moving the voucher
         # into ``state.vouchers`` would create a legal transition with incomplete
@@ -115,9 +114,6 @@ class ShopTransitionEngine:
             return next_run
 
         slot = self._slot(params)
-        if action.alias == "BUY_JOKER":
-            self._buy(state, state.shop_jokers, state.jokers, slot)
-            return next_run
         if action.alias == "BUY_CONSUMABLE":
             self._buy(state, state.shop_consumables, state.consumables, slot)
             return next_run
