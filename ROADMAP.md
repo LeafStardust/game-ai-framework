@@ -16,21 +16,15 @@ The project has pivoted from hand-authored Bond-value strategy toward reinforcem
 - Prefer canonical ownership over wrappers/rescue layers.
 - Training code must never silently redefine Balatro mechanics to make learning easier.
 - Simulator shortcuts are allowed only when behaviorally equivalent at the modeled boundary and covered by parity tests.
-- Unsupported/inexact actions stay absent from the training mask; do not assign arbitrary low value.
+- Unsupported/inexact actions stay absent from the training mask.
 - Model checkpoints are artifacts, not source-of-truth strategy definitions.
 - Do not reintroduce legacy multi-attempt CLI conventions such as `--one`, `--three`, or `--five`; retain the canonical attempt-count interface.
 
----
+Primary objective:
 
-# Primary objective
+> **Red Deck / White Stake, normal mode: maximize probability of clearing Ante 8.**
 
-**Red Deck / White Stake, normal mode: maximize probability of clearing Ante 8.**
-
-```text
-P(clear Ante 8 | Red Deck, White Stake, normal mode)
-```
-
-The terminal objective is run success, not score maximization, Joker collection, money maximization, Bond completion, or build aesthetics.
+Do **not** start PPO, observation training, or resume manual Bond tuning until the exact headless environment reaches its parity/performance gates.
 
 ---
 
@@ -44,8 +38,6 @@ CANONICAL PUBLIC GAME STATE
 EXACT MECHANICS + LEGAL ACTION GENERATION
         ↓
 OBSERVATION ENCODER
-   ├─ raw/public state features
-   └─ optional Bond/mechanical derived features
         ↓
 LEARNED POLICY / VALUE MODEL
         ↓
@@ -60,25 +52,15 @@ REWARD + NEXT STATE
 
 Initial RL keeps tactical hand play deterministic while RL learns strategic run development. Full tactical RL remains optional later work.
 
-Do **not** start PPO or observation training until the headless environment reaches its exactness/parity gates.
-
 ---
 
-# Completed foundation — Phases A–K
+# Completed foundation
 
-A–K symbolic/mechanical foundation is complete as baseline. Retain:
+## A–K — symbolic/mechanical foundation — COMPLETE AS BASELINE
 
-- canonical Bond vocabulary/features;
-- mechanics/state/legality;
-- deterministic tactical owners;
-- `BuildValue` / `StrategyDelta` as frozen symbolic baseline;
-- sparse relationships/motifs and telemetry.
+Retain canonical Bond features, mechanics/state/legality, deterministic tactical owners, `BuildValue` / `StrategyDelta`, sparse relationships/motifs, and telemetry. Do not return to manual coefficient tuning as the primary competence path.
 
-Do not return to manual Bond coefficient tuning as the primary competence path.
-
----
-
-# Phase L — Live correctness stabilization — COMPLETE
+## L — live correctness stabilization — COMPLETE
 
 Historical live batches:
 
@@ -95,51 +77,44 @@ attempt 003  Ante 7 Big Blind   21,908 / 52,500
 ```
 
 L3 environment freeze:
-
-- `BALATRO_ENV_CONTRACT_VERSION = "l3-v1"`;
-- unsupported training actions fail closed;
-- CI `33758680261`: `1223 passed, 1594 deselected`.
+- `BALATRO_ENV_CONTRACT_VERSION = "l3-v1"`
+- unsupported training actions fail closed
+- CI `33758680261`: `1223 passed, 1594 deselected`
 
 Do not request another open-ended live batch at this stage.
 
----
+## R0 — environment architecture/ownership — COMPLETE
 
-# Phase R — Headless Balatro environment — ACTIVE
-
-The headless simulator is not authoritative game truth until live/simulator parity gates pass.
-
-## R0 — Environment architecture/ownership — COMPLETE
-
-- authoritative environment under `games/balatro/env/`;
-- version `r0-v1`;
-- `reset`, `step`, `legal_actions`;
-- canonical `BalatroState` observations;
-- serialization/restore and illegal-action rejection;
-- CI `33760179448`: `1233 passed, 1594 deselected`.
+- authoritative environment under `games/balatro/env/`
+- version `r0-v1`
+- deterministic `reset`, `step`, `legal_actions`
+- canonical `BalatroState` observations
+- serialization/restore and illegal-action rejection
+- CI `33760179448`: `1233 passed, 1594 deselected`
 
 Legacy `games/balatro/environment.py` is not authoritative RL environment truth.
 
 ---
 
-## R1 — Deterministic state/acquisition transitions — SUBSTANTIALLY COMPLETE; LIFECYCLE WORK REMAINS
+# Phase R — headless Balatro environment — ACTIVE
+
+The headless simulator is not authoritative game truth until live/simulator parity gates pass.
+
+## R1 — deterministic state/acquisition transitions — SUBSTANTIALLY COMPLETE; OPEN LIFECYCLES REMAIN
 
 ### Acquisition contract
 
-Generic acquisition is **not** merely append inventory + subtract money.
+Generic acquisition is **not** merely append inventory + subtract money. Always fail closed unless identity/state consequences are exact.
 
-Always fail closed unless identity/state consequences are exact. Current hard boundaries:
+Hard boundaries:
+- all Joker editions blocked, especially Negative
+- generic/unknown Joker identities blocked
+- generic voucher acquisition blocked
+- packs blocked until exact pack/RNG state
+- `SELL_JOKER` blocked until inverse lifecycle effects are exact
+- price must be an exact nonnegative integer; bool/string/float/missing/invalid fail closed
 
-- all Joker editions remain blocked, especially Negative;
-- generic/unknown Joker identities remain blocked;
-- generic voucher acquisition remains blocked;
-- packs remain blocked until exact pack/RNG state;
-- `SELL_JOKER` remains blocked until inverse lifecycle effects are exact.
-
-Exact generic shop behavior:
-
-- `END_SHOP`;
-- held-consumable purchase when capacity/price/affordability are exact;
-- price must be an exact integer; bool/string/float/missing/invalid/negative fail closed.
+Always-supported exact shop actions currently include `END_SHOP` and exact held-consumable purchase when capacity/price/affordability are known.
 
 ### Exact resource-sensitive Joker acquisitions
 
@@ -151,16 +126,11 @@ Troubadour   hand_size += 2; round_reset_hands -= 1, observed baseline required
 Merry Andy   hand_size -= 1; round_reset_discards += 3, observed baseline required
 ```
 
-Live `round_reset_hands` ownership CI `33781164005`: `1297 passed, 1594 deselected`.
-Merry Andy CI `33781461393`: `1300 passed, 1594 deselected`.
+### Exact inventory-only scoring/rule acquisition families
 
-### Exact inventory-only scoring/rule acquisition set
-
-Current audited scoring/rule set includes:
+Audited exact acquisition set includes the established flat/scoring/rule Jokers plus:
 
 ```text
-FlatMult Abstract Acrobat Banner Baron Blackboard Blue EvenSteven Fibonacci Half
-MysticSummit OddTodd Photograph RaisedFist Scholar SmileyFace WalkieTalkie Juggler
 FourFingers Pareidolia Shortcut Smeared Splash
 Jolly Sly Zany Wily TheDuo
 Crazy Devious Droll Crafty Mad Clever
@@ -172,25 +142,9 @@ Bull Bootstraps
 Dusk Hack HangingChad Mime SockAndBuskin
 ```
 
-Relevant green gates progressed through:
-
-```text
-33782526550  1310 passed
-33782754111  1320 passed
-33783865698  1332 passed
-33784097107  1340 passed
-33784381489  1348 passed
-33785203157  1358 passed
-33785485082  1364 passed
-33786958116  1370 passed
-33787354303  1380 passed
-```
-
-All above had `1594 deselected` unless otherwise noted.
-
 ### Permanent owned-deck scoring — GREEN
 
-Exact owned-deck dependent Jokers:
+Exact deck-dependent acquisition support:
 
 ```text
 Steel Joker
@@ -199,109 +153,84 @@ Driver's License
 Erosion
 ```
 
-Rules:
+Authority rules:
+- permanent owned deck source is `G.playing_cards`
+- **never** substitute `G.deck.cards`
+- translator is all-or-nothing
+- malformed/count-mismatched/inexact permanent card records yield `owned_deck = None`
+- low-level LuaJIT TValue failures cannot silently shorten an authoritative permanent deck
 
-- authoritative live permanent deck source is `G.playing_cards`;
-- **never** substitute `G.deck.cards` for permanent ownership;
-- translator is all-or-nothing;
-- malformed cards/count mismatch/inexact modifiers make `owned_deck = None`;
-- authoritative empty deck remains `[]`.
-
-Commits:
-
-```text
-7b7699e  fail closed on partial owned-deck translation
-17176c7  gate deck-scoring acquisitions on owned deck
-5062f0f  owned-deck acquisition tests
-```
-
-CI `33788603611`: `1401 passed, 1594 deselected`.
-
-### Permanent `G.playing_cards` decode completeness — GREEN
-
-A low-level LuaJIT TValue decode failure can no longer silently shorten the permanent owned deck. Strict all-or-nothing array reading is used only where permanent-deck authority requires it; tolerant observation elsewhere is retained.
-
-CI `33789894797`: `1405 passed, 1594 deselected`.
+Key gates:
+- CI `33788603611`: `1401 passed, 1594 deselected`
+- strict `G.playing_cards` completeness CI `33789894797`: `1405 passed, 1594 deselected`
 
 ### Private deterministic state hardening — GREEN
 
-- `draw_pile`, `discard_pile`, `played_pile` are exact `list[BalatroCard]`;
-- seed is `str | int`, bool rejected;
-- tags are `list[str]`;
-- pack choices must at least be a list pending exact pack ownership.
+- private `draw_pile`, `discard_pile`, `played_pile` contain only `BalatroCard`
+- seed is `str | int`, bool rejected
+- tags are `list[str]`
+- pack choices are at least list-shaped pending exact pack ownership
+- round-reset hand/discard baselines fail closed when unobserved
 
 Card-zone gate: `1412 passed, 1594 deselected`.
 Container CI `33790592775`: `1424 passed, 1594 deselected`.
 
 ---
 
-## R2 — RNG + blind-start stochastic lifecycle — ACTIVE / CURRENT PRIMARY WORKSTREAM
+## R2 — exact RNG + round/blind lifecycle — ACTIVE / CURRENT PRIMARY WORKSTREAM
 
-### R2.1 — Exact Balatro/LuaJIT RNG — GREEN
+### R2.1 — Balatro/LuaJIT RNG — GREEN
 
 `games/balatro/env/rng.py` owns:
+- Balatro keyed pseudohash/pseudoseed progression
+- LuaJIT combined Tausworthe `math.random`
+- inclusive integer draws
+- independent keyed queues
+- bit-preserving snapshot/restore
 
-- Balatro keyed pseudohash/pseudoseed progression;
-- LuaJIT combined Tausworthe `math.random` semantics;
-- inclusive integer draws;
-- independent keyed queues;
-- bit-preserving snapshot/restore.
-
-Do **not** use Python `random` as a substitute.
+Do not use Python `random` as a substitute.
 
 Commits `2e61cd8`, `290ff11`.
 CI `33791671797`: `1432 passed, 1594 deselected`.
 
-### R2.2 — Exact pseudoshuffle — GREEN
+### R2.2 — pseudoshuffle — GREEN
 
-- keyed pseudoseed advances once per shuffle;
-- one LuaJIT RNG stream drives Fisher–Yates;
-- not equivalent to repeated keyed random calls.
+- keyed pseudoseed advances once per shuffle
+- one LuaJIT RNG stream drives Fisher–Yates
+- not equivalent to repeated keyed random calls
 
 Commits `246f442`, `d9662c6`.
 CI `33791916289`: `1435 passed, 1594 deselected`.
 
-### R2.3 — Exact playing-card creation/pre-shuffle order — GREEN
+### R2.3 — playing-card creation/pre-shuffle order + headless RNG ownership — GREEN
 
-Vanilla sorts cards by monotonic `sort_id` before pseudoshuffle. Public state does not expose a fake sort id.
+Vanilla sorts playing cards by monotonic `sort_id` before pseudoshuffle. Public state does not expose a fake `sort_id`.
 
 Exact reconstruction is allowed only when:
+1. every owned live playing card has a unique exact integer `playing_card` id (`BalatroCard.live_id`), preserving relative playing-card creation order; or
+2. the deck is the untouched one-of-each vanilla 52-card identity set with known initial creation order.
 
-1. every owned live playing card has a unique exact integer `playing_card` id (`BalatroCard.live_id`), whose relative creation order matches playing-card `sort_id`; or
-2. the deck is the untouched one-of-each vanilla 52-card identity set, whose initial control-code creation order is known.
+Duplicate/mixed/missing IDs or unprovable modified no-ID decks fail closed.
 
-Duplicate/mixed/missing IDs or modified no-ID decks fail closed.
-
-Commits:
+Key commits:
 
 ```text
 e7b0bb0  derive exact playing-card creation order
 2a26e79  pin card-order tests
-34d88e9  include env_r2 tests in deterministic CI selector
-7c070b2  retain private card creation order in headless state
+34d88e9  include env_r2 tests in deterministic CI
+7c070b2  retain private card creation order
 2dc47eb  test retained order
-0a7f845  own exact Balatro RNG in HeadlessRunState
+0a7f845  own exact RNG state in HeadlessRunState
 eed926e  test headless RNG ownership
 ```
 
-Corrected CI selector includes `env_r2`.
 CI `33795507133`: **1461 passed, 1594 deselected**.
 
-### R2.4a — Exact pristine round-start shuffle/deal — GREEN
+### R2.4 — exact round-start shuffle/deal — GREEN FOR SUPPORTED COMPLETE DECKS
 
-`games/balatro/env/deal.py` currently owns the exact pristine 52-card draw boundary:
-
-- requires `DRAW_TO_HAND`;
-- exact retained card creation order;
-- shuffle key `nr{ante}`;
-- hidden shuffled order remains private;
-- public remaining deck is canonicalized;
-- initial hand drawn from deck tail and nominal-sorted;
-- RNG state advances reproducibly;
-- phase becomes `SELECTING_HAND`.
-
-Commits `61ec993`, `2d37016`.
-CI `33794664514`: `1461 passed, 1594 deselected`.
+Initial pristine implementation:
+- commits `61ec993`, `2d37016`
+- CI `33794664514`: `1461 passed, 1594 deselected`
 
 Pinned `TESTSEED` first hand:
 
@@ -316,146 +245,175 @@ Q Diamonds
 4 Clubs
 ```
 
-Next hidden draw tail: `10 Clubs`.
-`nr1` node after shuffle: `0.8232194488594`.
+Next hidden draw tail: `10 Clubs`; `nr1` node after shuffle: `0.8232194488594`.
 
-### R2.4b — Round-start bonus/resource lifecycle — GREEN
+Generalized exact owned-deck support is now implemented:
 
-Private headless state now owns signed exact one-shot fields:
+```text
+fa6c40e  retain original suit nominal required by vanilla Card:get_nominal()
+1f35a5c  generalize exact owned-deck round-start deal
+```
+
+`deal_supported_round_start()` supports pristine or modified complete authoritative decks only when:
+- `owned_deck` is authoritative
+- current deck is the complete permanent-card collection
+- current deck references the same exact card objects
+- retained playing-card creation order is exact
+- modified cards retain exact original-suit nominal
+
+Short exact decks use vanilla `min(deck size, hand capacity)` draw semantics. Hidden physical draw order remains private; public remaining deck is canonicalized.
+
+### R2.5 — round-start bonus/resource lifecycle — GREEN
+
+Private headless state owns signed exact one-shot:
 
 ```text
 round_bonus_hands
 round_bonus_discards
 ```
 
-Vanilla source ordering is preserved:
+Source semantics:
 
 ```text
 hands_remaining    = max(1, round_reset_hands + round_bonus_hands)
 discards_remaining = max(0, round_reset_discards + round_bonus_discards)
 ```
 
-The bonuses are **not** consumed during baseline computation. Consumption is a separate explicit step after blind/Joker setup.
+Bonuses are consumed only after blind/Joker setup.
 
-Commits:
-
-```text
-906719d  own round-start bonus state
-d727221  validate signed exact bonus state
-58ac3cc  own round resource baseline / bonus consumption
-bd07ffe  pin round lifecycle
-```
-
+Commits `906719d`, `d727221`, `58ac3cc`, `bd07ffe`.
 CI `33796637904`: **1479 passed, 1594 deselected**.
 
-### R2.4c — Burglar `setting_blind` lifecycle — GREEN
+### R2.6 — `setting_blind` Joker lifecycle / Burglar — GREEN FOR AUDITED IDENTITIES
 
-Canonical project Burglar behavior on `BLIND_SELECTED`:
+Burglar source effect:
 
 ```text
-hands_gained += 3
+hands += 3
 discards_remaining = 0
 ```
 
-Source-order ownership:
+Owned source order:
 
 ```text
 reset + round_bonus baseline
-→ setting_blind Joker pass
-→ consume round bonuses
+→ audited setting_blind Joker pass
+→ consume one-shot round bonuses
 ```
 
-The generic Joker `.apply()` interface is **not** treated as a universal event bus because some mechanical Joker implementations are trigger-agnostic and rely on their owning scoring/rule pipeline.
+All currently R1-admitted scoring/rule acquisition identities are explicitly classified as inert at `setting_blind`; Burglar is the first active case. Unknown lifecycle identities fail closed.
 
-All currently R1-admitted acquisition identities are classified as inert at vanilla `setting_blind`; Burglar is the first owned active case. Unknown lifecycle identities fail closed.
-
-Commits:
-
-```text
-cf56473  own Burglar blind-selected lifecycle
-f0c300c  Burglar lifecycle tests
-19ba181  classify admitted blind-start inert Jokers
-d82e012  pin inert coexistence and unclassified rejection
-```
-
-CI `33796875616`: `1482 passed, 1594 deselected`.
+Commits `cf56473`, `f0c300c`, `19ba181`, `d82e012`.
 CI `33797436606`: **1483 passed, 1594 deselected**.
 
-### R2.4d — First-blind round counter parity — GREEN
+### R2.7 — first-round counter parity — GREEN
 
 Vanilla source truth:
+- `G.GAME.round` initializes to `0`
+- `select_blind` queues `ease_round(1)` before `new_round()`
+- fresh first `BLIND_SELECT` therefore transitions `0 → 1`
 
-- `G.GAME.round` initializes to `0`;
-- `G.FUNCS.select_blind` queues `ease_round(1)` before `new_round()`;
-- therefore fresh first `BLIND_SELECT` is round `0`, and starting it produces round `1`.
-
-The initial project-local assumption that first BLIND_SELECT was already round 1 was corrected.
-
-Commits:
-
-```text
-3fa6948  mirror first-blind round increment
-727eb8e  pin round 0 → 1 behavior
-```
-
+Commits `3fa6948`, `727eb8e`.
 CI `33797071526`: **1482 passed, 1594 deselected**.
 
-### R2.4e — Supported Small/Big Blind pre-deal lifecycle — GREEN
+### R2.8 — Small/Big Blind start lifecycle — GREEN
 
-`prepare_supported_nonboss_blind_start()` now composes the deterministic source-ordered **pre-deal** boundary for audited Small/Big Blind state:
+`prepare_supported_nonboss_blind_start()` owns:
 
 ```text
 BLIND_SELECT
 → round += 1
-→ blind requirement/public boss-state normalization
+→ authoritative blind requirement
 → reset + round_bonus resources
-→ audited setting_blind Joker effects
-→ consume one-shot round bonuses
+→ audited setting_blind Jokers
+→ consume bonuses
 → DRAW_TO_HAND
 ```
 
-Current fail-closed constraints:
+`start_supported_nonboss_blind()` composes that lifecycle with generalized exact `deal_supported_round_start()`.
 
-- Small/Big only; Boss excluded;
-- no active tags;
-- no vouchers;
-- unclassified Joker lifecycle rejected;
-- exact reset allowances required;
-- transition card zones must be empty;
-- this helper is not itself a training-visible action.
+Current fail-closed constraints:
+- Small/Big only
+- no active tags
+- no vouchers
+- unclassified Joker lifecycle rejected
+- exact reset allowances required
+- transition card zones empty
+- helper is not itself training-visible `SELECT_BLIND`
+
+Original lifecycle commits `c327b4d`, `e32e3e2`; CI `33797587142`: **1492 passed, 1594 deselected**.
+
+Additional composed Burglar/non-boss integration:
+
+```text
+09ae7a2  compose supported nonboss blind start
+d95d342  cover nonboss Burglar + bonus ordering + exact deal
+```
+
+CI `33798795353`: **1497 passed, 1594 deselected**.
+
+### R2.9 — Boss blind-start lifecycle — ACTIVE
+
+Boss start logic must be expanded in **small source-audited groups**, not by assuming all bosses share ordinary blind setup.
+
+Vanilla `Blind:set_blind` has explicit start-time cases for at least:
+- The Eye
+- The Mouth
+- The Fish
+- The Water
+- The Needle
+- The Manacle
+- Amber Acorn
+
+and then runs the generic card/Joker debuff pass. Bosses with RNG, resource overrides, hand-size changes, card debuffs, mutable blind-owned state, or Joker shuffling stay blocked until their specific start semantics are owned.
+
+#### First boss slice — The Wall — GREEN
+
+The Wall has no start-time card/resource/mutable-state consequence beyond the authoritative enlarged blind requirement. The exact Boss boundary now owns:
+- Boss identity and requirement validation
+- round increment
+- round resource baseline
+- audited `setting_blind` Jokers, including Burglar
+- one-shot bonus consumption
+- clearing nonapplicable Eye/Mouth mutable state
+- transition to `DRAW_TO_HAND`
+- optional generalized exact shuffle/deal composition
 
 Commits:
 
 ```text
-c327b4d  compose supported nonboss blind lifecycle
-e32e3e2  pin supported nonboss lifecycle
+4f5b476  own first Wall boss-start slice
+e3f1bd5  pin Wall lifecycle and Burglar/deal composition
+7c27802  preserve established blind-start validation contracts
 ```
 
-CI `33797587142`: **1492 passed, 1594 deselected**.
+The first Wall test run exposed only an error-message regression (`1 failed, 1501 passed, 1594 deselected`); successful transition semantics were unaffected. The validation contract was restored.
+
+CI `33799302675`: **1502 passed, 1594 deselected**.
+
+Next audited requirement-only candidate: **Violet Vessel**. Vanilla source definition uses only its enlarged requirement (`mult = 6`) with an empty debuff table and it is not one of the explicit `Blind:set_blind` start-time special cases. Verify this again in code/tests before admitting it.
 
 ### Current R2 fail-closed boundary
 
 `SELECT_BLIND` remains **PLANNED / NOT TRAINING-EXPOSED**.
 
-Burglar purchase remains **FAIL-CLOSED** even though its non-boss `setting_blind` effect is now owned, because a purchased Burglar persists into Boss blinds and the Boss blind-start lifecycle is not yet complete.
+Burglar purchase remains **FAIL-CLOSED**. Its ordinary Small/Big and Wall `setting_blind` behavior is now owned, but a purchased Burglar persists into every possible Boss blind; the full Boss-start surface is not yet exact.
 
 Still unowned/high-priority:
-
-- generalized exact shuffle/deal for authoritative modified owned decks;
-- prior-round card-zone cleanup sufficient to reach a complete next-round deck;
-- Boss blind setup/debuff/restriction lifecycle;
-- active tag effects at blind start;
-- voucher effects at blind start;
-- shop generation/reroll RNG;
-- pack RNG/state;
-- boss selection RNG;
-- other random effects.
+- remaining Boss blind-start groups
+- prior-round card-zone cleanup sufficient to reconstruct the complete next-round deck in all supported trajectories
+- active tag effects at blind start
+- voucher effects at blind start
+- shop generation/reroll RNG
+- pack RNG/state
+- boss selection RNG
+- other modeled random effects
 
 ---
 
-## R3 — Typed action vocabulary — PARTIAL / TIED TO EXACTNESS
+## R3 — typed strategic action vocabulary — PARTIAL / TIED TO EXACTNESS
 
-Target strategic actions:
+Target actions include:
 
 ```text
 END_SHOP
@@ -475,30 +433,27 @@ SELECT_BLIND / START_BLIND
 
 Every training-visible action requires stable type/id, exact parameters, deterministic legality, exact transition, serialization representation, and mask representation.
 
-Do not expose `SELECT_BLIND` yet.
+Do **not** expose `SELECT_BLIND` yet.
 
----
-
-## R4 — Deterministic tactical bridge — NOT STARTED
+## R4 — deterministic tactical bridge — NOT STARTED
 
 Reuse existing deterministic hand/discard tactical owners while RL initially controls strategic run development.
 
-## R5 — Live/simulator parity harness — NOT STARTED
+## R5 — live/simulator parity harness — NOT STARTED
 
-Priority fixtures include:
+Priority fixtures:
+- shop purchase/end-shop/reroll
+- voucher/pack paths
+- blind skip/start/clear
+- boss restrictions
+- owned-deck composition
+- economy/interest
+- RNG/shuffle/initial draw
+- lifecycle-sensitive Jokers
 
-- shop purchase/end-shop;
-- reroll/voucher/pack paths;
-- blind skip/start/clear;
-- boss restrictions;
-- owned-deck composition;
-- economy/interest;
-- RNG/shuffle/initial draw;
-- lifecycle-sensitive Jokers.
+## R6 — environment performance gate — NOT STARTED
 
-## R6 — Performance gate — NOT STARTED
-
-Measure only after semantics are correct.
+Measure steps/sec, runs/minute, parallel scaling, tactical-bridge cost, and serialization overhead only after semantics are correct.
 
 ---
 
@@ -520,7 +475,7 @@ M   post-RL symbolic cleanup
 N   broader decks/stakes/objectives
 ```
 
-Reference reward remains terminal-only unless an explicitly validated shaping experiment improves Ante-8 clear probability:
+Reference reward remains terminal-only unless a validated shaping experiment improves Ante-8 clear probability:
 
 ```text
 Ante 8 cleared: +1
@@ -552,21 +507,20 @@ Phase K cleanup                                   COMPLETE
 Phase L live stabilization                        COMPLETE
 L3 environment freeze                             COMPLETE
 R0 environment architecture                       COMPLETE
-R1 deterministic state/acquisition work           SUBSTANTIALLY COMPLETE / OPEN LIFECYCLES
+R1 deterministic state/acquisition                SUBSTANTIALLY COMPLETE / OPEN LIFECYCLES
 R2 RNG determinism                                ACTIVE
 R2.1 Balatro/LuaJIT RNG                           GREEN — CI 33791671797
 R2.2 pseudoshuffle                                GREEN — CI 33791916289
 R2.3 card creation order + headless RNG           GREEN — CI 33795507133
-R2.4 pristine shuffle/deal                        GREEN — CI 33794664514
-R2.4 round bonus/resource lifecycle               GREEN — CI 33796637904
-R2.4 Burglar setting_blind lifecycle              GREEN — CI 33796875616
-R2.4 admitted inert-Joker classification          GREEN — CI 33797436606
-R2.4 first round 0→1 source parity                GREEN — CI 33797071526
-R2.4 supported Small/Big pre-deal lifecycle       GREEN — CI 33797587142
+R2.4 generalized complete-deck shuffle/deal       IMPLEMENTED / GREEN AT CURRENT HEAD
+R2.5 round bonus/resource lifecycle               GREEN — CI 33796637904
+R2.6 Burglar setting_blind lifecycle              GREEN — CI 33797436606
+R2.7 first round 0→1 source parity                GREEN — CI 33797071526
+R2.8 supported Small/Big start + exact deal       GREEN — CI 33798795353
+R2.9 The Wall Boss start                          GREEN — CI 33799302675
+R2.9 remaining Boss start groups                  ACTIVE — CURRENT NEXT WORK
 SELECT_BLIND training action                      NOT EXPOSED
-Burglar acquisition                               FAIL-CLOSED UNTIL BOSS LIFECYCLE OWNED
-Boss blind-start lifecycle                        NOT YET OWNED
-General modified-deck shuffle/deal                NEXT
+Burglar acquisition                               FAIL-CLOSED UNTIL FULL BOSS START OWNED
 Generic/unknown Joker acquisition                 FAIL-CLOSED
 Joker editions                                    FAIL-CLOSED
 Generic voucher acquisition                       FAIL-CLOSED
@@ -579,29 +533,31 @@ Observation/action encoding                       NOT STARTED
 PPO                                               NOT STARTED
 ```
 
-Current code head immediately before this roadmap synchronization:
+Current branch code head immediately before this roadmap synchronization:
 
 ```text
-e32e3e21aaf02f1efb33149d64c81501778716a0
+7c278020c46601efdefafb1049e8249d460a5b53
 ```
 
 ---
 
 # Exact next development action
 
-**Continue R2 exact environment work. Do not start PPO/observation training.**
+**Continue R2 Boss blind-start lifecycle. Do not start PPO/observation training.**
 
 Immediate order:
 
-1. generalize round-start shuffle/deal beyond pristine 52 cards only when permanent owned deck, current complete deck composition, and retained playing-card creation order prove the same card set;
-2. reproduce vanilla short-deck draw semantics (`min(deck size, hand capacity)`), still keeping shuffled order private;
-3. retain fail-closed behavior when deck completeness/order cannot be proved;
-4. then implement exact Boss blind-start setup/debuff/restriction lifecycle in small audited slices;
-5. only after Boss + non-Boss blind-start transitions are exact should Burglar purchase and/or `SELECT_BLIND` be reconsidered;
-6. keep tags, vouchers, editions, packs, unknown acquisitions, sell/inverse effects, and unowned RNG paths blocked;
-7. add R5 live/simulator parity before declaring the environment authoritative for training.
+1. verify and admit **Violet Vessel** as the next requirement-only Boss start if source/tests confirm no additional start mutation or debuff;
+2. classify remaining Bosses by vanilla `Blind:set_blind` and `debuff_card` behavior rather than by display description alone;
+3. implement start-inert/requirement-only Bosses in a small coherent group;
+4. separately implement resource-mutating Bosses such as Water/Needle/Manacle with exact source ordering;
+5. separately implement mutable-state Bosses such as Eye/Mouth;
+6. separately implement card/Joker debuff or RNG-sensitive Bosses; keep Amber Acorn and other stochastic starts blocked until exact RNG/order ownership exists for their effect;
+7. only after the full supported Boss-start surface is exact should Burglar purchase and `SELECT_BLIND` exposure be reconsidered;
+8. retain fail-closed tags, vouchers, editions, packs, unknown acquisitions, and sell/inverse effects;
+9. add R5 live/simulator parity before declaring the environment authoritative for training.
 
-The next code should therefore be **generalized exact owned-deck round-start shuffle/deal**, followed by **Boss blind-start lifecycle ownership**. It should **not** be Bond tuning and **not** PPO.
+The next code should therefore be **Violet Vessel / requirement-only Boss start auditing and exact Boss lifecycle expansion**. It should **not** be Bond tuning and **not** PPO.
 
 ---
 
@@ -617,33 +573,41 @@ R1 DETERMINISTIC STATE/ACQUISITION                 ✓ substantial
 R2 EXACT RNG / ROUND START                         ← ACTIVE
   ├─ LuaJIT RNG                                    ✓
   ├─ pseudoshuffle                                 ✓
-  ├─ creation order                                ✓
-  ├─ pristine deal                                 ✓
-  ├─ round bonus lifecycle                         ✓
+  ├─ creation order / private RNG                  ✓
+  ├─ complete-deck exact shuffle/deal              ✓
+  ├─ round resources / bonuses                     ✓
   ├─ Burglar setting_blind                         ✓
-  ├─ Small/Big pre-deal lifecycle                  ✓
-  ├─ generalized modified-deck deal                ← NEXT
-  └─ Boss blind-start lifecycle                    ← AFTER
+  ├─ Small/Big start                               ✓
+  ├─ The Wall Boss start                           ✓
+  └─ remaining Boss start groups                   ← NEXT
         ↓
 R3 ACTION COMPLETION
         ↓
-R4 TACTICAL BRIDGE
+R4 DETERMINISTIC TACTICAL BRIDGE
         ↓
-R5 PARITY + R6 PERFORMANCE
+R5 LIVE/SIMULATOR PARITY
         ↓
-OBSERVATION/ACTION ENCODING
+R6 PERFORMANCE
         ↓
-BASELINES
+OBSERVATION + ACTION ENCODING
         ↓
-PPO
+HEADLESS BASELINES
         ↓
-EVALUATION / TRANSFER / COMPETENCE GATE
+PPO STRATEGIC LEARNER
+        ↓
+CURRICULUM / EVALUATION / ABLATION
+        ↓
+TRAINING SCALE-UP
+        ↓
+SIMULATOR↔LIVE VALIDATION
+        ↓
+RED/WHITE COMPETENCE GATE
 ```
 
-Controlling implementation question:
+Controlling environment question:
 
-> **Does the headless environment expose the same public Balatro problem and exact legal consequences that the live agent faces?**
+> **Does the environment expose the same public Balatro problem and exact legal consequences that the live agent faces?**
 
 Controlling learned-strategy question:
 
-> **Does the eventual learned policy increase the probability of clearing Ante 8 on held-out Red Deck / White Stake runs?**
+> **Does this policy increase the probability of clearing Ante 8 on held-out Red Deck / White Stake runs?**
