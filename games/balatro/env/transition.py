@@ -182,6 +182,8 @@ class HeadlessRunState:
     played_pile: list[BalatroCard] = field(default_factory=list)
     round_bonus_hands: int = 0
     round_bonus_discards: int = 0
+    boss_hands_sub: int | None = None
+    boss_discards_sub: int | None = None
     reroll_cost: int = 5
     skips: int = 0
     tags: list[str] = field(default_factory=list)
@@ -231,6 +233,24 @@ class HeadlessRunState:
             )
         self._require_int("round_bonus_hands", self.round_bonus_hands)
         self._require_int("round_bonus_discards", self.round_bonus_discards)
+
+        if self.boss_hands_sub is not None:
+            self._require_int("boss_hands_sub", self.boss_hands_sub)
+            if self.public.boss_name != "The Needle":
+                raise HeadlessTransitionError(
+                    "boss_hands_sub is only valid for The Needle"
+                )
+        if self.boss_discards_sub is not None:
+            self._require_nonnegative_int("boss_discards_sub", self.boss_discards_sub)
+            if self.public.boss_name != "The Water":
+                raise HeadlessTransitionError(
+                    "boss_discards_sub is only valid for The Water"
+                )
+        if self.boss_hands_sub is not None and self.boss_discards_sub is not None:
+            raise HeadlessTransitionError(
+                "only one reversible boss resource adjustment may be active"
+            )
+
         if self.public.owned_deck is not None:
             if not isinstance(self.public.owned_deck, list):
                 raise HeadlessTransitionError("owned_deck must be a list or None")
