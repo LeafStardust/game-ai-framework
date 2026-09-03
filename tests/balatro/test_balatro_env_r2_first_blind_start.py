@@ -87,6 +87,18 @@ def test_env_r2_first_blind_start_fails_closed_on_nonvanilla_reset_allowances():
         prepare_pristine_first_small_blind(run)
 
 
+def test_env_r2_first_blind_start_requires_zero_pending_round_bonuses():
+    run = _run()
+    run.round_bonus_hands = 1
+    with pytest.raises(HeadlessTransitionError, match="zero pending round bonuses"):
+        prepare_pristine_first_small_blind(run)
+
+    run = _run()
+    run.round_bonus_discards = -1
+    with pytest.raises(HeadlessTransitionError, match="zero pending round bonuses"):
+        prepare_pristine_first_small_blind(run)
+
+
 def test_env_r2_first_blind_start_rejects_any_acquired_modifier_surface():
     run = _run()
     run.public.jokers.append(BurglarJoker())
