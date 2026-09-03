@@ -34,4 +34,4 @@ jobs:
       - name: Run deterministic Balatro suites
         run: >-
           python -m pytest -q tests/balatro
-          -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0 or env_r1"
+          -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0 or env_r1 or env_r2"
