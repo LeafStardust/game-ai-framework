@@ -21,6 +21,7 @@ from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionErr
 
 
 _REQUIREMENT_ONLY_BOSS_NAMES = frozenset({"The Wall", "Violet Vessel"})
+_MUTABLE_HAND_RULE_BOSS_NAMES = frozenset({"The Eye", "The Mouth"})
 
 
 def _require_common_blind_start_boundary(run: HeadlessRunState, *, label: str) -> None:
@@ -40,6 +41,13 @@ def _require_common_blind_start_boundary(run: HeadlessRunState, *, label: str) -
         raise HeadlessTransitionError(f"{label} requires empty transition card zones")
 
 
+def _require_boss_blind(run: HeadlessRunState, *, label: str) -> None:
+    state = run.public
+    if state.blind is None or getattr(state.blind, "type", None) is not BlindType.BOSS:
+        raise HeadlessTransitionError(f"{label} requires Boss Blind")
+    _require_common_blind_start_boundary(run, label=label)
+
+
 def _require_nonboss_blind_start_boundary(run: HeadlessRunState) -> None:
     state = run.public
     if state.blind is None or getattr(state.blind, "type", None) not in {
@@ -52,7 +60,8 @@ def _require_nonboss_blind_start_boundary(run: HeadlessRunState) -> None:
         raise HeadlessTransitionError("nonboss blind start cannot have boss state")
 
 
-def _apply_common_predeal_lifecycle(run: HeadlessRunState) -> HeadlessRunState:
+def _begin_predeal_lifecycle(run: HeadlessRunState) -> HeadlessRunState:
+    """Apply source-ordered round increment, target install, and resource reset."""
     next_run = run.copy()
     next_state = next_run.public
 
@@ -62,12 +71,19 @@ def _apply_common_predeal_lifecycle(run: HeadlessRunState) -> HeadlessRunState:
     next_state.boss_blind_state_observed = False
     next_state.boss_blind_hands = set()
     next_state.boss_blind_only_hand = None
+    return apply_round_resource_baseline(next_run)
 
-    next_run = apply_round_resource_baseline(next_run)
-    next_run = apply_supported_setting_blind_effects(next_run)
+
+def _finish_predeal_lifecycle(run: HeadlessRunState) -> HeadlessRunState:
+    """Apply setting_blind Jokers after Blind:set_blind state, then consume bonus."""
+    next_run = apply_supported_setting_blind_effects(run)
     next_run = consume_round_bonuses(next_run)
     next_run.public.phase = "DRAW_TO_HAND"
     return next_run
+
+
+def _apply_common_predeal_lifecycle(run: HeadlessRunState) -> HeadlessRunState:
+    return _finish_predeal_lifecycle(_begin_predeal_lifecycle(run))
 
 
 def prepare_supported_nonboss_blind_start(run: HeadlessRunState) -> HeadlessRunState:
@@ -89,18 +105,9 @@ def start_supported_nonboss_blind_pristine_deck(run: HeadlessRunState) -> Headle
 
 
 def prepare_supported_requirement_only_boss_start(run: HeadlessRunState) -> HeadlessRunState:
-    """Own Boss starts whose only start-time mechanic is their requirement.
-
-    Vanilla source currently proves this boundary for The Wall and Violet Vessel:
-    neither has a dedicated ``Blind:set_blind`` mutation and both use an empty
-    card-debuff configuration. Their enlarged target is already represented by
-    the authoritative selected blind requirement.
-    """
-    state = run.public
-    if state.blind is None or getattr(state.blind, "type", None) is not BlindType.BOSS:
-        raise HeadlessTransitionError("requirement-only boss start requires Boss Blind")
-    _require_common_blind_start_boundary(run, label="requirement-only boss start")
-    if state.boss_name not in _REQUIREMENT_ONLY_BOSS_NAMES:
+    """Own Boss starts whose only start-time mechanic is their requirement."""
+    _require_boss_blind(run, label="requirement-only boss start")
+    if run.public.boss_name not in _REQUIREMENT_ONLY_BOSS_NAMES:
         raise HeadlessTransitionError(
             "boss is not in the audited requirement-only start set"
         )
@@ -110,6 +117,38 @@ def prepare_supported_requirement_only_boss_start(run: HeadlessRunState) -> Head
 def start_supported_requirement_only_boss(run: HeadlessRunState) -> HeadlessRunState:
     """Compose an audited requirement-only Boss start with exact shuffle/deal."""
     prepared = prepare_supported_requirement_only_boss_start(run)
+    return deal_supported_round_start(prepared)
+
+
+def prepare_supported_mutable_hand_rule_boss_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own exact start state for The Eye and The Mouth.
+
+    Vanilla ``Blind:set_blind`` initializes The Eye's per-hand usage table and
+    The Mouth's selected-hand restriction *after* round resources are reset but
+    *before* the Joker ``setting_blind`` pass. Canonical public state represents
+    those mutable structures directly:
+
+    * Eye: observed mutable state with no hands used yet;
+    * Mouth: observed mutable state with no hand locked yet.
+    """
+    _require_boss_blind(run, label="mutable hand-rule boss start")
+    state = run.public
+    if state.boss_name not in _MUTABLE_HAND_RULE_BOSS_NAMES:
+        raise HeadlessTransitionError(
+            "boss is not in the audited mutable hand-rule start set"
+        )
+
+    next_run = _begin_predeal_lifecycle(run)
+    next_state = next_run.public
+    next_state.boss_blind_state_observed = True
+    next_state.boss_blind_hands = set()
+    next_state.boss_blind_only_hand = None
+    return _finish_predeal_lifecycle(next_run)
+
+
+def start_supported_mutable_hand_rule_boss(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose Eye/Mouth start state with exact shuffle/deal."""
+    prepared = prepare_supported_mutable_hand_rule_boss_start(run)
     return deal_supported_round_start(prepared)
 
 
