@@ -17,8 +17,19 @@ from typing import Any
 
 from games.balatro.card import BalatroCard
 from games.balatro.env.actions import EnvAction
+from games.balatro.jokers.abstract_joker import AbstractJoker
+from games.balatro.jokers.acrobat import AcrobatJoker
+from games.balatro.jokers.banner import BannerJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.state import BalatroState
+
+
+_EXACT_R1_JOKER_ACQUISITION_TYPES = (
+    FlatMultJoker,
+    AbstractJoker,
+    AcrobatJoker,
+    BannerJoker,
+)
 
 
 class HeadlessTransitionError(ValueError):
@@ -136,13 +147,18 @@ class ShopTransitionEngine:
     def _joker_acquisition_is_exact(item: Any) -> bool:
         """Return whether R1 currently owns this Joker's purchase semantics.
 
-        The base +4 Mult Joker has no acquisition-time capacity/resource side
-        effect; its later scoring behavior is already carried by ``FlatMultJoker``.
-        Editions are kept fail-closed until their headless ownership is audited,
-        because Negative in particular changes Joker capacity semantics.
+        The allowlist contains only audited modeled identities with no
+        acquisition-time capacity/resource side effect. Their later scoring
+        behavior is carried by the Joker object itself. Editions remain
+        fail-closed until their headless ownership is audited, because Negative
+        in particular changes Joker capacity semantics.
         """
 
-        return type(item) is FlatMultJoker and not getattr(item, "edition", None)
+        return type(item) in _EXACT_R1_JOKER_ACQUISITION_TYPES and not getattr(
+            item,
+            "edition",
+            None,
+        )
 
     @classmethod
     def _is_affordable(cls, state: BalatroState, item: Any) -> bool:
