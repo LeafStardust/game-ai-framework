@@ -184,6 +184,8 @@ class HeadlessRunState:
             raise HeadlessTransitionError("R1 headless state currently supports Red Deck only")
         if str(self.public.stake_name).upper() != "WHITE":
             raise HeadlessTransitionError("R1 headless state currently supports White Stake only")
+        if isinstance(self.seed, bool) or not isinstance(self.seed, (str, int)):
+            raise HeadlessTransitionError("seed must be a string or exact integer")
         self._require_int("money", self.public.money)
         self._require_nonnegative_int("hand_size", self.public.hand_size)
         self._require_nonnegative_int("hands_remaining", self.public.hands_remaining)
@@ -217,6 +219,12 @@ class HeadlessRunState:
                 raise HeadlessTransitionError(
                     f"{zone_name} must contain only BalatroCard values"
                 )
+        if not isinstance(self.tags, list):
+            raise HeadlessTransitionError("tags must be a list")
+        if any(not isinstance(tag, str) for tag in self.tags):
+            raise HeadlessTransitionError("tags must contain only strings")
+        if not isinstance(self.pack_choices, list):
+            raise HeadlessTransitionError("pack_choices must be a list")
         self._require_nonnegative_int("reroll_cost", self.reroll_cost)
         self._require_nonnegative_int("skips", self.skips)
 
@@ -266,19 +274,6 @@ class ShopTransitionEngine:
                 if self._is_affordable(state, item)
             )
 
-        # Generic BUY_JOKER remains fail-closed.  Only explicitly audited Joker
-        # identities admitted by ``_joker_acquisition_is_exact`` are exposed.
-        # This prevents list-transfer semantics from silently skipping immediate
-        # capacity/resource modifiers on other Jokers.
-        #
-        # BUY_VOUCHER is intentionally not exposed until the headless state owns
-        # the voucher's immediate rule modification.  Merely moving the voucher
-        # into ``state.vouchers`` would create a legal transition with incomplete
-        # gameplay semantics.
-        #
-        # OPEN_PACK is also intentionally not exposed here: purchase is
-        # deterministic, but entering a generated pack is not exact until R2 owns
-        # pack RNG and R1 owns the resulting pack state.
         actions.append(EnvAction.from_alias("END_SHOP"))
         return tuple(actions)
 
@@ -312,14 +307,6 @@ class ShopTransitionEngine:
 
     @staticmethod
     def _joker_acquisition_is_exact(state: BalatroState, item: Any) -> bool:
-        """Return whether R1 currently owns this Joker's purchase semantics.
-
-        Most admitted identities have unconditional exact acquisition semantics.
-        Resource-sensitive Jokers may additionally require authoritative public
-        state. Editions remain fail-closed until their headless ownership is
-        audited, because Negative in particular changes Joker capacity semantics.
-        """
-
         if getattr(item, "edition", None):
             return False
         if type(item) in _EXACT_R1_JOKER_ACQUISITION_TYPES:
@@ -342,16 +329,6 @@ class ShopTransitionEngine:
 
     @staticmethod
     def _apply_joker_acquisition_effects(state: BalatroState, joker: Any) -> None:
-        """Apply exact immediate persistent state changes for audited Jokers.
-
-        ``BalatroState.hand_size`` is canonical public hand capacity. Likewise,
-        ``round_reset_hands`` and ``round_reset_discards`` are explicitly the
-        public starting allowances for the next round, distinct from the finished
-        blind's current remaining resources. SELL_JOKER stays outside the frozen
-        training surface until inverse lifecycle transitions are independently
-        audited.
-        """
-
         if type(joker) is JugglerJoker:
             state.hand_size += 1
         elif type(joker) is StuntmanJoker:
@@ -367,8 +344,6 @@ class ShopTransitionEngine:
 
     @classmethod
     def _is_affordable(cls, state: BalatroState, item: Any) -> bool:
-        """Return exact purchase affordability without inventing missing prices."""
-
         try:
             price = cls._price(item)
         except HeadlessTransitionError:
