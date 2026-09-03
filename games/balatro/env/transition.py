@@ -23,6 +23,7 @@ from games.balatro.jokers.banner import BannerJoker
 from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.blackboard import BlackboardJoker
 from games.balatro.jokers.blue_joker import BlueJoker
+from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
@@ -114,7 +115,7 @@ class ShopTransitionEngine:
             actions.extend(
                 EnvAction.from_alias("BUY_JOKER", {"slot": slot})
                 for slot, item in enumerate(state.shop_jokers)
-                if self._joker_acquisition_is_exact(item)
+                if self._joker_acquisition_is_exact(state, item)
                 and self._is_affordable(state, item)
             )
         if len(state.consumables) < state.consumable_slots:
@@ -169,36 +170,40 @@ class ShopTransitionEngine:
         raise HeadlessTransitionError(f"unimplemented shop transition: {action.alias}")
 
     @staticmethod
-    def _joker_acquisition_is_exact(item: Any) -> bool:
+    def _joker_acquisition_is_exact(state: BalatroState, item: Any) -> bool:
         """Return whether R1 currently owns this Joker's purchase semantics.
 
-        The allowlist contains only audited modeled identities whose immediate
-        persistent effects are owned below. Editions remain fail-closed until
-        their headless ownership is audited, because Negative in particular
-        changes Joker capacity semantics.
+        Most admitted identities have unconditional exact acquisition semantics.
+        Resource-sensitive Jokers may additionally require authoritative public
+        state. Editions remain fail-closed until their headless ownership is
+        audited, because Negative in particular changes Joker capacity semantics.
         """
 
-        return type(item) in _EXACT_R1_JOKER_ACQUISITION_TYPES and not getattr(
-            item,
-            "edition",
-            None,
-        )
+        if getattr(item, "edition", None):
+            return False
+        if type(item) in _EXACT_R1_JOKER_ACQUISITION_TYPES:
+            return True
+        if type(item) is DrunkardJoker:
+            return bool(state.round_reset_discards_observed)
+        return False
 
     @staticmethod
     def _apply_joker_acquisition_effects(state: BalatroState, joker: Any) -> None:
         """Apply exact immediate persistent state changes for audited Jokers.
 
-        ``BalatroState.hand_size`` is the canonical public hand-capacity value, so
-        passive hand-size Jokers update it as soon as they are acquired. Their
-        scoring behavior remains owned by the Joker object. SELL_JOKER stays
-        outside the frozen training surface until inverse lifecycle transitions
-        are independently audited.
+        ``BalatroState.hand_size`` is canonical public hand capacity. Likewise,
+        ``round_reset_discards`` is explicitly the public starting discard
+        allowance for the next round, distinct from the finished blind's current
+        ``discards_remaining``. SELL_JOKER stays outside the frozen training
+        surface until inverse lifecycle transitions are independently audited.
         """
 
         if type(joker) is JugglerJoker:
             state.hand_size += 1
         elif type(joker) is StuntmanJoker:
             state.hand_size -= 2
+        elif type(joker) is DrunkardJoker:
+            state.round_reset_discards += 1
 
     @classmethod
     def _is_affordable(cls, state: BalatroState, item: Any) -> bool:
