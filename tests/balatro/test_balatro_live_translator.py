@@ -162,3 +162,41 @@ def test_translator_maps_live_poker_hand_levels_and_play_counts():
     assert state.hand_levels["FLUSH"] == 2
     assert state.hand_play_counts["PAIR"] == 7
     assert state.hand_play_counts["FLUSH"] == 4
+
+
+def test_translator_clears_previous_round_hand_counts_outside_active_round():
+    snapshot = LiveBalatroSnapshot(
+        sequence=1,
+        phase="SHOP",
+        state_complete=True,
+        payload={
+            "hands": {
+                "Pair": {"level": 3, "played": 7, "played_this_round": 2},
+                "Flush": {"level": 2, "played": 4, "played_this_round": 1},
+            }
+        },
+    )
+
+    state = DefaultBalatroStateTranslator().translate(snapshot)
+
+    assert state.round_hand_play_counts["PAIR"] == 0
+    assert state.round_hand_play_counts["FLUSH"] == 0
+
+
+def test_translator_preserves_current_round_hand_counts_while_selecting_hand():
+    snapshot = LiveBalatroSnapshot(
+        sequence=1,
+        phase="SELECTING_HAND",
+        state_complete=True,
+        payload={
+            "hands": {
+                "Pair": {"level": 3, "played": 7, "played_this_round": 2},
+                "Flush": {"level": 2, "played": 4, "played_this_round": 1},
+            }
+        },
+    )
+
+    state = DefaultBalatroStateTranslator().translate(snapshot)
+
+    assert state.round_hand_play_counts["PAIR"] == 2
+    assert state.round_hand_play_counts["FLUSH"] == 1
