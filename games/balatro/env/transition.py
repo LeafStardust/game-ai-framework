@@ -18,6 +18,10 @@ from typing import Any
 from games.balatro.card import BalatroCard
 from games.balatro.deck_rules import starting_deck_size_for_name
 from games.balatro.env.actions import EnvAction
+from games.balatro.env.card_order import (
+    derive_playing_card_order,
+    playing_card_order_matches,
+)
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.acrobat import AcrobatJoker
 from games.balatro.jokers.arrowhead import ArrowheadJoker
@@ -171,6 +175,7 @@ class HeadlessRunState:
     public: BalatroState
     seed: str | int
     rng_state: Any = None
+    playing_card_order: list[BalatroCard] | None = None
     draw_pile: list[BalatroCard] = field(default_factory=list)
     discard_pile: list[BalatroCard] = field(default_factory=list)
     played_pile: list[BalatroCard] = field(default_factory=list)
@@ -211,6 +216,21 @@ class HeadlessRunState:
                 raise HeadlessTransitionError("owned_deck must be a list or None")
             if any(not isinstance(card, BalatroCard) for card in self.public.owned_deck):
                 raise HeadlessTransitionError("owned_deck must contain only BalatroCard values")
+
+        if self.playing_card_order is None:
+            self.playing_card_order = derive_playing_card_order(self.public)
+        else:
+            if not isinstance(self.playing_card_order, list):
+                raise HeadlessTransitionError("playing_card_order must be a list or None")
+            if any(not isinstance(card, BalatroCard) for card in self.playing_card_order):
+                raise HeadlessTransitionError(
+                    "playing_card_order must contain only BalatroCard values"
+                )
+            if not playing_card_order_matches(self.playing_card_order, self.public):
+                raise HeadlessTransitionError(
+                    "playing_card_order must reference the authoritative owned cards exactly"
+                )
+
         for zone_name in ("draw_pile", "discard_pile", "played_pile"):
             zone = getattr(self, zone_name)
             if not isinstance(zone, list):
@@ -239,13 +259,26 @@ class HeadlessRunState:
         if value < 0:
             raise HeadlessTransitionError(f"{name} cannot be negative")
 
+    def require_playing_card_order(self) -> list[BalatroCard]:
+        """Return the exact private playing-card creation order or fail closed."""
+        if self.playing_card_order is None:
+            raise HeadlessTransitionError(
+                "exact playing-card creation order is unavailable for shuffle"
+            )
+        if not playing_card_order_matches(self.playing_card_order, self.public):
+            raise HeadlessTransitionError(
+                "playing-card creation order is stale relative to the public deck"
+            )
+        return list(self.playing_card_order)
+
     def copy(self) -> "HeadlessRunState":
         """Return an isolated transition snapshot.
 
         A deep copy is intentional here: public ``BalatroState.copy`` is shallow
         for several contained gameplay objects, while a simulator transition must
         never mutate the pre-transition state through shared Joker/shop/card
-        objects.
+        objects.  Python deepcopy memoization also preserves the private
+        playing-card-order links to the corresponding copied public cards.
         """
 
         return deepcopy(self)
