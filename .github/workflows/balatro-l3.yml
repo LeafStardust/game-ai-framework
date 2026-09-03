@@ -12,9 +12,6 @@ on:
       - ".github/workflows/balatro-l3.yml"
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   balatro-deterministic-tests:
     runs-on: ubuntu-latest
@@ -38,28 +35,3 @@ jobs:
         run: >-
           python -m pytest -q tests/balatro
           -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0"
-
-      - name: Mark R0 complete in roadmap
-        if: github.event_name == 'push'
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path("ROADMAP.md")
-          text = path.read_text(encoding="utf-8")
-          text = text.replace("## R0 — Environment architecture and ownership", "## R0 — Environment architecture and ownership — COMPLETE", 1)
-          text = text.replace("Headless training environment                     ACTIVE — R0 NEXT", "Headless training environment                     ACTIVE — R1 NEXT", 1)
-          marker = "## R0 — Environment architecture and ownership — COMPLETE\n"
-          evidence = "\nCompletion evidence (September 3, 2026):\n\n- `games/balatro/env/` now defines the versioned `r0-v1` environment boundary;\n- `reset`, `step`, and `legal_actions` use the target Gym-like API while delegating exact transitions to an injected deterministic backend;\n- observations wrap and copy the canonical `BalatroState` rather than creating a parallel game-state model;\n- strategic actions alias the frozen `l3-v1` contract and fail closed outside training-exposed actions;\n- single-agent turn ownership, Ante-8 win/loss terminal semantics, serialization/restore ownership, and illegal-action rejection are explicit;\n- deterministic CI run `33760179448` passed: `1233 passed, 1594 deselected`.\n"
-          if marker in text and "deterministic CI run `33760179448`" not in text:
-              text = text.replace(marker, marker + evidence, 1)
-          path.write_text(text, encoding="utf-8")
-          PY
-          if git diff --quiet -- ROADMAP.md; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ROADMAP.md
-          git commit -m "docs(balatro): mark R0 environment architecture complete"
-          git push
