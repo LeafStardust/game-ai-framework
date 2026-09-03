@@ -202,7 +202,7 @@ Runtime findings:
 - maximum observed SHOP decision latency was approximately 3.829 seconds;
 - maximum observed D1 decision latency was approximately 2.519 seconds;
 - D1's previous 20–25 second `nodes=0` failure is absent after bounded root admission;
-- D14 timing still contains non-trivial unclassified residual around standalone Joker evaluation in some states, but it is no longer the dominant interactive blocker in this batch.
+- D14 timing contained non-trivial residual around standalone Joker evaluation; L2.3.3 subsequently exposed that work as a disjoint canonical timing stage without changing policy behavior.
 
 Decision-quality findings:
 
@@ -273,7 +273,7 @@ Committed repair/test state:
 
 This item is now closed unless later live telemetry shows another post-D2 authority path.
 
-#### L2.3 — Remaining baseline defects — ACTIVE INSPECTION / CLASSIFICATION
+#### L2.3 — Remaining baseline defects — ORIGINAL-BATCH INSPECTION COMPLETE
 
 The D2 gate is green. Resume diagnosis from the same three-attempt baseline before any numerical tuning.
 
@@ -382,14 +382,41 @@ Validation state:
 
 This item is closed unless a production boss-reroll action is deliberately implemented later, at which point D3 valuation must be reintroduced together with end-to-end execution proof.
 
-Active inspection targets:
+##### L2.3.5 — Residual original-batch classification — COMPLETE / NO ADDITIONAL PATCH
 
-- remaining attempt 001 material Joker/pack/voucher/reroll decisions other than the now-fixed Throwback, Card Sharp, and Director's Cut defects;
-- remaining attempt 002 material decisions other than the now-fixed Flash Card authority defect;
-- terminal boss decision quality in attempts 001/002/003 where telemetry indicates a suspicious actionable decision rather than simple insufficient engine strength;
-- any remaining D14 residual after the newly explicit standalone-Joker stage is observed in a genuine live run.
+The remaining causally usable evidence from the September 2 batch has been inspected:
 
-These remaining targets are **inspection/classification pending**, not fixed, not tuned, and not validated.
+- attempt 002 contains no additional suspicious material decision before the sequence-48 Flash Card authority divergence;
+- attempt 003 diverges at the already-fixed early Baron purchase, so later choices cannot validate current policy;
+- attempt 001's surviving low-margin Joker swaps and public-pool rerolls are calibration evidence rather than a demonstrated mechanics/runtime/authority contradiction, so they do not authorize a semantic patch while L3 is closed;
+- exact replay of the sequence-160 Saturn state confirms that D4's `4.150` child admission score becomes literal D14 value `0.000` and normalized value `-1.050` after resource cost, so END_SHOP is the correct canonical parent decision;
+- terminal boss losses in all three attempts occur after an already-confirmed causal divergence and therefore cannot be used to patch current D1/boss policy merely because the old run lost.
+
+No further code change is authorized from this original batch. This is an evidence boundary, not a claim that current live competence has passed.
+
+#### L2.4 — Post-repair three-attempt live validation — AWAITING USER BALATRO RUN
+
+The deterministic work that Work Chat can perform is complete for the confirmed L2.3 defects. A fresh genuine Balatro batch is now required because it must validate the game/Windows integration and produce new public-state telemetry.
+
+Run requirements:
+
+- pull the current published HEAD of remote `feat/v1.0-red-white-competence`;
+- start one fresh unseeded Red Deck / White Stake three-attempt production batch with `BalatroAgentToggle.bat --three`;
+- do not change code, thresholds, or runtime options during the batch;
+- preserve all three JSONL attempt artifacts and the batch summary;
+- numerical tuning remains closed during and after collection until Work Chat classifies the new evidence.
+
+Work Chat must then verify:
+
+1. no Baron baseline-King false-positive purchase;
+2. no post-D2 resurrection of rejected Joker buys;
+3. Throwback remains unrealized before a real blind skip;
+4. SHOP-phase Card Sharp history begins at zero for the upcoming blind;
+5. Director's Cut and Retcon are not purchased without boss-reroll execution;
+6. D14 `joker_standalone` attribution explains the former residual or exposes a smaller concrete remaining owner;
+7. no new mechanics, runtime, or authority contradiction appears before any later divergence.
+
+The user is needed now for the Balatro run only. Work Chat remains responsible for every deterministic pytest run and for inspecting/classifying the resulting artifacts.
 
 ### Current validation checkpoint — EXACT STATE
 
@@ -401,13 +428,14 @@ Flash Card / canonical D2 authority patch      GREEN
 Throwback blind-skip realization patch         GREEN
 Card Sharp shop-history translation patch      GREEN (WORK CHAT)
 D14 standalone-Joker timing attribution patch  GREEN (WORK CHAT)
-Director's Cut/Retcon D3 fail-closed patch       GREEN (WORK CHAT)
-Further Phase L2 baseline classification        ACTIVE
+Director's Cut/Retcon D3 fail-closed patch      GREEN (WORK CHAT)
+Original September 2 baseline classification    COMPLETE
+Post-repair three-attempt live validation       AWAITING USER BALATRO RUN
 Numerical tuning / Optuna                       NOT STARTED
 Phase M broader competence                      NOT STARTED
 ```
 
-Therefore the repository is **still in testing/live validation**, specifically Phase L2 defect inspection and focused repair-validation loops. Do not mark L2 complete and do not describe the branch as having moved into numerical tuning.
+Therefore the repository is **still in testing/live validation**, specifically Phase L2.4 post-repair live validation. Do not mark L2 complete and do not describe the branch as having moved into numerical tuning.
 
 ### L3 — Numerical tuning gate — NOT STARTED
 
@@ -426,14 +454,14 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 
 # Exact next action
 
-**Continue Phase L2 inspection from the same three-run live baseline. This remains testing/validation, not tuning.**
+**Collect the Phase L2.4 post-repair three-attempt Balatro batch. This remains testing/validation, not tuning.**
 
-1. Inspect the remaining material decisions from attempts 001 and 002 and terminal boss choices where telemetry supports an actionable defect.
-2. Classify each suspicious decision as mechanics/model, runtime/latency, integration/authority, or calibration before changing code.
-3. Patch only confirmed defects at their canonical owner.
-4. Add a focused regression for each confirmed defect and run it in Work Chat; request user validation only when the remaining proof genuinely requires Balatro or the Windows/game environment.
-5. Read the new `joker_standalone` D14 stage during the next genuine live run; optimize only after telemetry identifies an expensive owner without changing semantics.
-6. Keep L3 numerical tuning closed until the semantic/integration/runtime defect pass is exhausted.
+1. User pulls the exact published branch HEAD and runs `BalatroAgentToggle.bat --three` once with Balatro ready at a fresh Red Deck / White Stake run.
+2. User returns the three JSONL artifacts and batch summary; no user pytest run is requested.
+3. Work Chat inspects the seven explicit L2.4 checks and classifies any suspicious decision before changing code.
+4. Work Chat patches only confirmed defects at their canonical owner and runs all focused deterministic regressions itself.
+5. Read the new `joker_standalone` D14 stage; optimize only after telemetry identifies an expensive owner without changing semantics.
+6. Keep L3 numerical tuning closed until the post-repair semantic/integration/runtime validation is green.
 
 # Progress criterion
 
