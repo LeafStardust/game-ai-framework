@@ -7,6 +7,7 @@ from games.balatro.env.blind_start import (
 )
 from games.balatro.env.boss_resources import (
     apply_resource_boss_start,
+    defeat_resource_boss,
     disable_resource_boss,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
@@ -76,6 +77,23 @@ def test_env_r2_manacle_postdeal_disable_restores_slot_and_draws_one_card():
     assert result.boss_hand_size_sub is None
     # Blind:disable's replacement draw consumes the already-shuffled deck tail;
     # it does not advance keyed RNG again.
+    assert result.rng_snapshot() == before_rng
+
+
+def test_env_r2_manacle_normal_defeat_restores_slot_without_drawing():
+    active = start_supported_resource_boss(_run())
+    before_rng = active.rng_snapshot()
+    before_hand = [_identity(card) for card in active.public.hand]
+    before_draw = [_identity(card) for card in active.draw_pile]
+
+    result = defeat_resource_boss(active)
+
+    assert active.public.hand_size == 7
+    assert active.boss_hand_size_sub == 1
+    assert result.public.hand_size == 8
+    assert result.boss_hand_size_sub is None
+    assert [_identity(card) for card in result.public.hand] == before_hand
+    assert [_identity(card) for card in result.draw_pile] == before_draw
     assert result.rng_snapshot() == before_rng
 
 
