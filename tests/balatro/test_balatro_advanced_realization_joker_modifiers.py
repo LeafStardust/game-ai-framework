@@ -116,3 +116,13 @@ def test_smeared_joker_can_realize_mixed_black_flush_five():
         ],
     )
     assert realize_bond(_dev("flush_five"), state).realization == BondRealization.ACTIVE
+
+
+def test_throwback_without_skipped_blind_remains_partial():
+    state = SimpleNamespace(jokers=[_joker("Throwback")], blinds_skipped=0)
+    assert realize_bond(_dev("blind_skip"), state).realization == BondRealization.PARTIAL
+
+
+def test_throwback_realizes_after_first_skipped_blind():
+    state = SimpleNamespace(jokers=[_joker("Throwback")], blinds_skipped=1)
+    assert realize_bond(_dev("blind_skip"), state).realization == BondRealization.ACTIVE
