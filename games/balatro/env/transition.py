@@ -88,8 +88,18 @@ class HeadlessRunState:
         if str(self.public.stake_name).upper() != "WHITE":
             raise HeadlessTransitionError("R1 headless state currently supports White Stake only")
         self._require_int("money", self.public.money)
+        self._require_nonnegative_int("hand_size", self.public.hand_size)
+        self._require_nonnegative_int("hands_remaining", self.public.hands_remaining)
+        self._require_nonnegative_int("discards_remaining", self.public.discards_remaining)
         self._require_nonnegative_int("joker_slots", self.public.joker_slots)
         self._require_nonnegative_int("consumable_slots", self.public.consumable_slots)
+        if not isinstance(self.public.round_reset_discards_observed, bool):
+            raise HeadlessTransitionError("round_reset_discards_observed must be a boolean")
+        if self.public.round_reset_discards_observed:
+            self._require_nonnegative_int(
+                "round_reset_discards",
+                self.public.round_reset_discards,
+            )
         self._require_nonnegative_int("reroll_cost", self.reroll_cost)
         self._require_nonnegative_int("skips", self.skips)
 
