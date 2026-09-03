@@ -32,6 +32,11 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         "Straight Flush": "STRAIGHT_FLUSH", "Five of a Kind": "FIVE_OF_A_KIND",
         "Flush House": "FLUSH_HOUSE", "Flush Five": "FLUSH_FIVE",
     }
+    VALID_RANKS = frozenset({"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"})
+    VALID_SUITS = frozenset({"Hearts", "Diamonds", "Clubs", "Spades"})
+    VALID_ENHANCEMENTS = frozenset(ENHANCEMENTS.values())
+    VALID_EDITIONS = frozenset(EDITIONS.values())
+    VALID_SEALS = frozenset(SEALS.values())
 
     def __init__(self):
         self.consumable_factory = LiveConsumableFactory()
@@ -135,7 +140,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         hand_area = self._area(payload.get("hand"))
         deck_area = self._area(payload.get("cards", payload.get("deck")))
         owned_deck_present = "owned_cards" in payload or "owned_deck" in payload
-        owned_deck_area = self._area(payload.get("owned_cards", payload.get("owned_deck")))
+        owned_deck_source = payload.get("owned_cards", payload.get("owned_deck"))
         joker_area = self._area(payload.get("jokers"))
         consumable_area = self._area(payload.get("consumables"))
         legacy_shop_area = self._area(payload.get("shop"))
@@ -148,7 +153,7 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         state.hand = self._cards(hand_area.get("cards", []))
         state.deck = self._cards(deck_area.get("cards", []))
         if owned_deck_present:
-            state.owned_deck = self._cards(owned_deck_area.get("cards", []))
+            state.owned_deck = self._strict_owned_cards(owned_deck_source)
 
         raw_jokers = list(joker_area.get("cards", []))
         state.jokers = self._jokers(raw_jokers)
@@ -171,10 +176,6 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
         state.shop_active = snapshot.phase == "SHOP"
         self._translate_hand_levels(state, payload.get("hands") or {})
         if snapshot.phase != "SELECTING_HAND":
-            # Balatro keeps the completed blind's ``played_this_round`` values
-            # in memory through cash-out and SHOP, then resets them when the
-            # next blind starts.  They are not live Card Sharp/DNA/etc. history
-            # outside an active hand-selection round.
             state.round_hand_play_counts = {
                 hand_type: 0 for hand_type in state.round_hand_play_counts
             }
@@ -195,6 +196,82 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             if rank is None or suit is None: continue
             live_id = card.get("live_id", card.get("id", index))
             result.append(self._card(card, live_id))
+        return result
+
+    def _strict_owned_cards(self, value) -> list[BalatroCard] | None:
+        """Translate permanent playing cards only when the whole source is exact."""
+
+        if isinstance(value, list):
+            cards = value
+            expected_count = len(cards)
+        elif isinstance(value, dict):
+            cards = value.get("cards")
+            if not isinstance(cards, list):
+                return None
+            expected_count = value.get("count", len(cards))
+            if type(expected_count) is not int:
+                return None
+        else:
+            return None
+
+        if expected_count != len(cards):
+            return None
+
+        result: list[BalatroCard] = []
+        for index, card in enumerate(cards):
+            if not isinstance(card, dict):
+                return None
+            raw_value = card.get("value")
+            if raw_value is None:
+                raw_value = card
+            if not isinstance(raw_value, dict):
+                return None
+            raw_rank = raw_value.get("rank")
+            raw_suit = raw_value.get("suit")
+            if raw_rank is None or raw_suit is None:
+                return None
+
+            rank = self.RANKS.get(str(raw_rank), str(raw_rank))
+            suit = self.SUITS.get(str(raw_suit), str(raw_suit))
+            if rank not in self.VALID_RANKS or suit not in self.VALID_SUITS:
+                return None
+
+            modifier = card.get("modifier")
+            if modifier is None:
+                modifier = card
+            if not isinstance(modifier, dict):
+                return None
+
+            raw_enhancement = modifier.get("enhancement")
+            enhancement = self.ENHANCEMENTS.get(raw_enhancement, raw_enhancement)
+            if enhancement is not None and enhancement not in self.VALID_ENHANCEMENTS:
+                return None
+
+            raw_edition = modifier.get("edition")
+            edition = self.EDITIONS.get(raw_edition, raw_edition)
+            if edition is not None and edition not in self.VALID_EDITIONS:
+                return None
+
+            raw_seal = modifier.get("seal")
+            seal = self.SEALS.get(raw_seal, raw_seal)
+            if seal is not None and seal not in self.VALID_SEALS:
+                return None
+
+            for boolean_field in ("debuff", "forced_selection"):
+                if boolean_field in card and not isinstance(card[boolean_field], bool):
+                    return None
+            if "permanent_bonus" in card and (
+                isinstance(card["permanent_bonus"], bool)
+                or not isinstance(card["permanent_bonus"], int)
+            ):
+                return None
+
+            live_id = card.get("live_id", card.get("id", index))
+            try:
+                result.append(self._card(card, live_id))
+            except (KeyError, TypeError, ValueError):
+                return None
+
         return result
 
     def _jokers(self, values: list[dict]) -> list:
