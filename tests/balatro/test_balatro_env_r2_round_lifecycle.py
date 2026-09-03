@@ -2,9 +2,12 @@ import pytest
 
 from games.balatro.env.round_lifecycle import (
     apply_round_resource_baseline,
+    apply_supported_setting_blind_effects,
     consume_round_bonuses,
 )
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.jokers.burglar import BurglarJoker
+from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.state import BalatroState
 
 
@@ -56,6 +59,41 @@ def test_env_r2_round_resource_baseline_adds_positive_bonuses_without_consuming_
     assert result.public.discards_remaining == 7
     assert result.round_bonus_hands == 2
     assert result.round_bonus_discards == 4
+
+
+def test_env_r2_burglar_applies_after_resource_baseline_and_preserves_pending_bonus():
+    run = _run(hands=4, discards=3, bonus_hands=2, bonus_discards=1)
+    run.public.jokers = [BurglarJoker()]
+    baseline = apply_round_resource_baseline(run)
+
+    result = apply_supported_setting_blind_effects(baseline)
+
+    assert baseline.public.hands_remaining == 6
+    assert baseline.public.discards_remaining == 4
+    assert result.public.hands_remaining == 9
+    assert result.public.discards_remaining == 0
+    assert result.round_bonus_hands == 2
+    assert result.round_bonus_discards == 1
+
+
+def test_env_r2_multiple_burglars_stack_hands_and_zero_discards():
+    run = _run()
+    run.public.jokers = [BurglarJoker(), BurglarJoker()]
+    baseline = apply_round_resource_baseline(run)
+
+    result = apply_supported_setting_blind_effects(baseline)
+
+    assert result.public.hands_remaining == 10
+    assert result.public.discards_remaining == 0
+
+
+def test_env_r2_blind_start_joker_dispatch_fails_closed_on_unclassified_identity():
+    run = _run()
+    run.public.jokers = [JugglerJoker()]
+    baseline = apply_round_resource_baseline(run)
+
+    with pytest.raises(HeadlessTransitionError, match="unsupported identity"):
+        apply_supported_setting_blind_effects(baseline)
 
 
 def test_env_r2_round_bonus_consumption_is_explicit_and_isolated():
