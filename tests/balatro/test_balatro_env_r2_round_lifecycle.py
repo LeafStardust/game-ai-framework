@@ -8,6 +8,7 @@ from games.balatro.env.round_lifecycle import (
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 from games.balatro.jokers.burglar import BurglarJoker
 from games.balatro.jokers.juggler import JugglerJoker
+from games.balatro.jokers.turtle_bean import TurtleBeanJoker
 from games.balatro.state import BalatroState
 
 
@@ -87,9 +88,22 @@ def test_env_r2_multiple_burglars_stack_hands_and_zero_discards():
     assert result.public.discards_remaining == 0
 
 
+def test_env_r2_admitted_trigger_agnostic_juggler_is_inert_at_blind_start():
+    run = _run()
+    run.public.jokers = [JugglerJoker(), BurglarJoker()]
+    baseline = apply_round_resource_baseline(run)
+
+    result = apply_supported_setting_blind_effects(baseline)
+
+    # Juggler's hand-size acquisition effect is already persistent state; its
+    # trigger-agnostic apply() must not be called by the setting_blind dispatcher.
+    assert result.public.hands_remaining == 7
+    assert result.public.discards_remaining == 0
+
+
 def test_env_r2_blind_start_joker_dispatch_fails_closed_on_unclassified_identity():
     run = _run()
-    run.public.jokers = [JugglerJoker()]
+    run.public.jokers = [TurtleBeanJoker()]
     baseline = apply_round_resource_baseline(run)
 
     with pytest.raises(HeadlessTransitionError, match="unsupported identity"):
