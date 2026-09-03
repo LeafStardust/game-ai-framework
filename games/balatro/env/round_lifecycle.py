@@ -8,9 +8,28 @@ separate so later ``setting_blind`` ownership can preserve source order.
 
 from __future__ import annotations
 
-from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
+from games.balatro.env.transition import (
+    _EXACT_R1_JOKER_ACQUISITION_TYPES,
+    _OWNED_DECK_SCORING_TYPES,
+    HeadlessRunState,
+    HeadlessTransitionError,
+)
 from games.balatro.joker import JokerContext
 from games.balatro.jokers.burglar import BurglarJoker
+from games.balatro.jokers.drunkard import DrunkardJoker
+from games.balatro.jokers.merry_andy import MerryAndyJoker
+from games.balatro.jokers.stuntman import StuntmanJoker
+from games.balatro.jokers.troubadour import TroubadourJoker
+
+
+_BLIND_START_INERT_JOKER_TYPES = (
+    *_EXACT_R1_JOKER_ACQUISITION_TYPES,
+    *_OWNED_DECK_SCORING_TYPES,
+    StuntmanJoker,
+    DrunkardJoker,
+    TroubadourJoker,
+    MerryAndyJoker,
+)
 
 
 def apply_round_resource_baseline(run: HeadlessRunState) -> HeadlessRunState:
@@ -51,14 +70,15 @@ def apply_supported_setting_blind_effects(run: HeadlessRunState) -> HeadlessRunS
     The generic Joker interface is not a universal event bus: some modeled
     Jokers intentionally have trigger-agnostic ``apply`` methods because their
     owning scoring/rule pipeline decides when to call them.  Blind-start code
-    must therefore dispatch only identities explicitly audited for this event.
+    therefore dispatches only identities explicitly audited for this event.
 
-    R2 currently owns Burglar only.  Any other Joker identity fails closed until
-    it is classified as blind-start inert or its own ``setting_blind`` effect is
-    modeled at this lifecycle boundary.
+    All Jokers already admitted by the R1 shop acquisition boundary have been
+    classified as inert at vanilla ``setting_blind``. Burglar is the first owned
+    active case. Any other identity fails closed.
     """
     state = run.public
-    if any(type(joker) is not BurglarJoker for joker in state.jokers):
+    supported_types = (*_BLIND_START_INERT_JOKER_TYPES, BurglarJoker)
+    if any(type(joker) not in supported_types for joker in state.jokers):
         raise HeadlessTransitionError(
             "blind-start Joker lifecycle contains unsupported identity"
         )
@@ -70,7 +90,12 @@ def apply_supported_setting_blind_effects(run: HeadlessRunState) -> HeadlessRunS
         "discards_remaining": next_state.discards_remaining,
     }
 
+    # Do not call generic apply() for inert identities. Several mechanical Joker
+    # classes are intentionally trigger-agnostic and rely on their owning scoring
+    # or rule pipeline for dispatch. Only active BLIND_SELECTED identities run.
     for joker in next_state.jokers:
+        if type(joker) is not BurglarJoker:
+            continue
         context = JokerContext(
             state=next_state,
             trigger="BLIND_SELECTED",
