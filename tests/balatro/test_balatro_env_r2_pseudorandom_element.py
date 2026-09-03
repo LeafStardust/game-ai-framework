@@ -8,11 +8,10 @@ def test_env_r2_pseudorandom_element_pins_cerulean_bell_testseed_vector():
 
     chosen = rng.pseudorandom_element_index(8, "cerulean_bell")
 
-    # Vanilla pseudorandom_element shuffles numeric keys with one freshly seeded
-    # LuaJIT stream and then draws from that same stream.  For TESTSEED the
-    # shuffled 1-based keys are [7, 5, 6, 2, 8, 3, 4, 1], the final draw selects
-    # position 2, therefore original key 5 / zero-based index 4.
-    assert chosen == 4
+    # Vanilla pseudorandom_element sorts dense Lua-array numeric keys 1..n,
+    # seeds math.random once from pseudoseed('cerulean_bell'), then performs one
+    # math.random(n). For TESTSEED that draw is key 1 / zero-based index 0.
+    assert chosen == 0
     assert rng.nodes["cerulean_bell"] == pytest.approx(0.2175606045966)
 
 
@@ -24,7 +23,7 @@ def test_env_r2_pseudorandom_element_advances_key_once_per_call():
     second = rng.pseudorandom_element_index(8, "cerulean_bell")
     second_node = rng.nodes["cerulean_bell"]
 
-    assert first == 4
+    assert first == 0
     assert first_node == pytest.approx(0.2175606045966)
     assert second_node != first_node
     assert 0 <= second < 8
