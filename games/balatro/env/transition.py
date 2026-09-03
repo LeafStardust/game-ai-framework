@@ -23,6 +23,11 @@ from games.balatro.jokers.banner import BannerJoker
 from games.balatro.jokers.baron import BaronJoker
 from games.balatro.jokers.blackboard import BlackboardJoker
 from games.balatro.jokers.blue_joker import BlueJoker
+from games.balatro.jokers.clever_joker import CleverJoker
+from games.balatro.jokers.crafty_joker import CraftyJoker
+from games.balatro.jokers.crazy_joker import CrazyJoker
+from games.balatro.jokers.devious_joker import DeviousJoker
+from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.drunkard import DrunkardJoker
 from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
@@ -31,6 +36,7 @@ from games.balatro.jokers.four_fingers import FourFingersJoker
 from games.balatro.jokers.half_joker import HalfJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.juggler import JugglerJoker
+from games.balatro.jokers.mad_joker import MadJoker
 from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.mystic_summit import MysticSummitJoker
 from games.balatro.jokers.odd_todd import OddToddJoker
@@ -81,6 +87,12 @@ _EXACT_R1_JOKER_ACQUISITION_TYPES = (
     ZanyJoker,
     WilyJoker,
     TheDuoJoker,
+    CrazyJoker,
+    DeviousJoker,
+    DrollJoker,
+    CraftyJoker,
+    MadJoker,
+    CleverJoker,
 )
 
 
