@@ -45,6 +45,11 @@ class BalatroCard:
     # public controller constraint, not hidden RNG; live observation hydrates the
     # currently selected card and action generation must keep it in the action.
     forced_selection: bool = False
+    # Balatro preserves the card's original suit nominal when set_base converts
+    # its current suit. Card:get_nominal() uses this value as a deterministic hand
+    # sort tiebreak component. It is ordinary card state/history, not future draw
+    # order or RNG. None means the observation/source did not expose it exactly.
+    original_suit_nominal: float | None = None
 
     @property
     def is_wild(self) -> bool:
