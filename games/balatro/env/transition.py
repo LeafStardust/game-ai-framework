@@ -180,6 +180,8 @@ class HeadlessRunState:
     draw_pile: list[BalatroCard] = field(default_factory=list)
     discard_pile: list[BalatroCard] = field(default_factory=list)
     played_pile: list[BalatroCard] = field(default_factory=list)
+    round_bonus_hands: int = 0
+    round_bonus_discards: int = 0
     reroll_cost: int = 5
     skips: int = 0
     tags: list[str] = field(default_factory=list)
@@ -227,6 +229,8 @@ class HeadlessRunState:
                 "round_reset_discards",
                 self.public.round_reset_discards,
             )
+        self._require_int("round_bonus_hands", self.round_bonus_hands)
+        self._require_int("round_bonus_discards", self.round_bonus_discards)
         if self.public.owned_deck is not None:
             if not isinstance(self.public.owned_deck, list):
                 raise HeadlessTransitionError("owned_deck must be a list or None")
