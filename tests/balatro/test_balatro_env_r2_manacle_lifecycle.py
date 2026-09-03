@@ -30,6 +30,10 @@ def _run(*, hand_size: int = 8) -> HeadlessRunState:
     return HeadlessRunState(public=state, seed="MANACLE")
 
 
+def _identity(card):
+    return card.rank, card.suit
+
+
 def test_env_r2_manacle_direct_start_stores_and_removes_one_hand_size_slot():
     run = _run()
 
@@ -42,15 +46,37 @@ def test_env_r2_manacle_direct_start_stores_and_removes_one_hand_size_slot():
     assert result.boss_hand_size_sub == 1
 
 
-def test_env_r2_manacle_disable_restores_exact_stored_hand_size_slot():
+def test_env_r2_manacle_predeal_disable_fails_closed_until_physical_draw_pile_exists():
     active = apply_resource_boss_start(_run())
+
+    with pytest.raises(HeadlessTransitionError, match="SELECTING_HAND"):
+        disable_resource_boss(active)
+
+    assert active.public.hand_size == 7
+    assert active.boss_hand_size_sub == 1
+
+
+def test_env_r2_manacle_postdeal_disable_restores_slot_and_draws_one_card():
+    active = start_supported_resource_boss(_run())
+    next_card = _identity(active.draw_pile[-1])
+    before_rng = active.rng_snapshot()
 
     result = disable_resource_boss(active)
 
     assert active.public.hand_size == 7
+    assert len(active.public.hand) == 7
+    assert len(active.draw_pile) == 45
     assert active.boss_hand_size_sub == 1
+
     assert result.public.hand_size == 8
+    assert len(result.public.hand) == 8
+    assert len(result.draw_pile) == 44
+    assert len(result.public.deck) == 44
+    assert next_card in {_identity(card) for card in result.public.hand}
     assert result.boss_hand_size_sub is None
+    # Blind:disable's replacement draw consumes the already-shuffled deck tail;
+    # it does not advance keyed RNG again.
+    assert result.rng_snapshot() == before_rng
 
 
 def test_env_r2_manacle_start_and_disable_fail_closed_on_invalid_lifecycle_state():
