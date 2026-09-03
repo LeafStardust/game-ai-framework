@@ -1,4 +1,4 @@
-name: Balatro L3 deterministic suite
+name: Balatro deterministic suite
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  balatro-l3-tests:
+  balatro-deterministic-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -31,7 +31,7 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Run L3 freeze-gate deterministic suites
+      - name: Run deterministic Balatro suites
         run: >-
           python -m pytest -q tests/balatro
-          -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract"
+          -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract or env_r0"
