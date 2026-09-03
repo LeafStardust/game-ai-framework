@@ -38,6 +38,7 @@ from games.balatro.jokers.four_fingers import FourFingersJoker
 from games.balatro.jokers.gluttonous_joker import GluttonousJoker
 from games.balatro.jokers.greedy_joker import GreedyJoker
 from games.balatro.jokers.half_joker import HalfJoker
+from games.balatro.jokers.joker_stencil import JokerStencil
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.lusty_joker import LustyJoker
@@ -52,6 +53,7 @@ from games.balatro.jokers.raised_fist import RaisedFistJoker
 from games.balatro.jokers.scary_face import ScaryFaceJoker
 from games.balatro.jokers.scholar import ScholarJoker
 from games.balatro.jokers.seeing_double import SeeingDoubleJoker
+from games.balatro.jokers.shoot_the_moon import ShootTheMoonJoker
 from games.balatro.jokers.shortcut import ShortcutJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.smeared_joker import SmearedJoker
@@ -63,6 +65,7 @@ from games.balatro.jokers.the_family import TheFamilyJoker
 from games.balatro.jokers.the_order import TheOrderJoker
 from games.balatro.jokers.the_tribe import TheTribeJoker
 from games.balatro.jokers.the_trio import TheTrioJoker
+from games.balatro.jokers.triboulet import TribouletJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
 from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.jokers.wily_joker import WilyJoker
@@ -119,6 +122,9 @@ _EXACT_R1_JOKER_ACQUISITION_TYPES = (
     OnyxAgateJoker,
     FlowerPotJoker,
     SeeingDoubleJoker,
+    JokerStencil,
+    ShootTheMoonJoker,
+    TribouletJoker,
 )
 
 
