@@ -68,6 +68,19 @@ class DefaultBalatroStateTranslator(BalatroStateTranslator):
             )
         except (TypeError, ValueError):
             state.round_reset_discards = 0
+        raw_round_reset_hands = payload.get("round_reset_hands")
+        state.round_reset_hands_observed = bool(
+            payload.get("round_reset_hands_observed", False)
+        )
+        if (
+            state.round_reset_hands_observed
+            and type(raw_round_reset_hands) is int
+            and raw_round_reset_hands >= 0
+        ):
+            state.round_reset_hands = raw_round_reset_hands
+        else:
+            state.round_reset_hands_observed = False
+            state.round_reset_hands = 0
         pools = payload.get("joker_generation_pools")
         state.joker_generation_pool_observed = bool(
             payload.get("joker_generation_pool_observed", False)
