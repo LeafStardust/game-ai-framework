@@ -4,9 +4,21 @@ This file records notable development changes to the project. Active and future 
 
 ## Unreleased
 
+### Architecture pivot — 2026-09-03
+
+- Pivoted the Balatro Red Deck / White Stake competence path from manually calibrated Bond strategy toward a reinforcement-learning strategy trained in a fast deterministic headless Balatro environment.
+- Retained the completed deterministic mechanics, public-state translation, legality, tactical execution, candidate projection, telemetry, tests, and Bond semantics as foundations rather than discarding the v1.0.x work.
+- Reclassified Bonds from intended final strategic authority to a deterministic baseline, diagnostic vocabulary, and optional structured observation features for later `RAW` versus `RAW+BOND` ablation.
+- Retired manual Bond/relationship/motif coefficient tuning and Optuna promotion as the primary route to competence. The existing Optuna subsystem remains historical/reusable tooling but is not the active development path.
+- Replaced the previous post-Phase-L tuning plan with an explicit RL program: freeze the canonical environment contract; build deterministic headless `reset(seed)` / `step(action)` execution; prove live/simulator mechanics and RNG parity; define observations and legal-action masks; establish random and symbolic baselines; train/evaluate PPO policy-value models; perform reward-hacking and feature ablations; then integrate validated checkpoints into the existing live execution layer.
+- Preserved the terminal objective as **maximizing Red Deck / White Stake Ante-8 clear probability**. Intermediate rewards, Bonds, score, economy, and build coherence are subordinate learning signals only and may not replace the win objective.
+- Moved routine learning/evaluation away from tiny live batches. Once simulator fidelity is proven, training and checkpoint evaluation must use large reproducible simulated episode sets, while real Balatro runs become parity and sim-to-live validation gates.
+- Established that learned-policy defects must first be classified as environment/parity, observation, action-mask, reward, optimization, or genuine policy-learning failures before any new hand-authored strategic exception is introduced.
+- The authoritative RL migration specification is now `ROADMAP.md` at and after commit `a766a6c654d0574989b89f8584253fdda57a95d1`.
+
 ### Added
 
-- Added the **offline Optuna Bond-tuning subsystem** defined in `docs/balatro/BALATRO_BOND_TUNING.md`: typed immutable `BondCalibration`, audited Phase-A parameter overrides, seeded and authoritative-live evaluators, persistent revision-bound Optuna studies, exact run provenance, production-baseline queuing/tagging, fresh-boundary live preflight, baseline-aware reports, and conservative holdout/promotion comparison. Optuna remains excluded from the normal live-agent decision path, cannot redefine Bond semantics or use hidden information, and cannot automatically promote its output.
+- Added the **offline Optuna Bond-tuning subsystem** defined in `docs/balatro/BALATRO_BOND_TUNING.md`: typed immutable `BondCalibration`, audited Phase-A parameter overrides, seeded and authoritative-live evaluators, persistent revision-bound Optuna studies, exact run provenance, production-baseline queuing/tagging, fresh-boundary live preflight, baseline-aware reports, and conservative holdout/promotion comparison. Optuna remains excluded from the normal live-agent decision path, cannot redefine Bond semantics or use hidden information, and cannot automatically promote its output. **As of the 2026-09-03 RL pivot, this subsystem is no longer the active competence path.**
 - Added the Red/White **Build Health** layer with auditable Survival, Immediate Scoring, Scaling, Coherence, and Runway dimensions so a full Joker roster is no longer assumed to be a functioning build.
 - Added realized engine lifecycle diagnostics (`OWNED_INACTIVE`, `ACTIVATED_WEAK`, `ACTIVATED_HEALTHY`, `MATURE`) for Blue/Hologram deck growth, Burnt Joker, Castle, Green Joker, Red Card, Runner, and Bull/Bootstraps cash scoring.
 - Added structural `CORE` / `ENGINE` / `SUPPORT` / `FILLER` / `CONFLICT` Joker-role diagnostics relative to the realized active build.
@@ -25,7 +37,7 @@ This file records notable development changes to the project. Active and future 
 - Removed the remaining pre-Bond categorical `PlaystyleIntent` and irreversible Ante lock from Joker valuation, held-card decisions, Planet selection, packs, blind skipping, and production runtime wiring. Canonical Bonds/composition and Strategy Plans are now the only strategic direction source; mechanical build profiling remains a subordinate evidence layer.
 - Replaced `build_intent` telemetry with canonical `bond_build` events containing the mechanical build profile, Bond/composition diagnostics, and behavior-backed synergies.
 - Retired the neutral pack/shop/hand playstyle compatibility shells and renamed installed timestamp-, batch-, and release-labelled modules around the stable mechanics they implement.
-- Converted systematic Bond numerical calibration from a documentation-only plan into an implemented staged offline optimization path. The first live gate is now a clean production-default 3-run baseline on one unchanged repository HEAD; only then may Phase-A candidate trials begin. Promotion requires a fresh comparison with at least **20 completed episodes per arm** plus the implemented objective, Ante, runtime, diversity, win-rate, and illegal-action checks.
+- Converted systematic Bond numerical calibration from a documentation-only plan into an implemented staged offline optimization path. This was the active planned path when implemented; **the 2026-09-03 RL pivot supersedes its planned promotion/tuning program without removing the tooling.**
 - Continued Red Deck / White Stake post-release calibration from repeated five-run autonomous batches before advancing stake progression.
 - Replaced the old Ante 1–2 “any positive immediate scorer” exception with Build-Health-based survival admission: an off-route purchase must materially improve projected survival rather than merely add local scoring value. Production SHOP survival now reuses D1 whole-blind clear-probability semantics through a strictly bounded public-state opening-hand projection; if that bounded projection is unavailable, the generic Build Health capacity estimate remains the fail-safe.
 - Kept the new SHOP D1 projection production-only so injected/custom Build Health scorers and offline deterministic contracts retain the generic estimator rather than unexpectedly invoking live planner semantics.
@@ -89,9 +101,9 @@ This file records notable development changes to the project. Active and future 
 - Nine uploaded Red/White attempts from 2026-08-24 through 2026-08-25 were reviewed as forensic evidence. They confirmed the hand-Bond catalogue and stochastic-lifecycle defects above; they also predate the current conflict, Planet-scaler, ordering, and engine-retention fixes, so a fresh unchanged-HEAD batch is required before numerical calibration.
 - The complete Balatro deterministic suite was green after the categorical-to-Bond migration and subsequent stale-test cleanup on 2026-08-23 before the newest live-batch fixes; each new execution/pivot/resource change remains subject to a fresh full `python -m pytest -q tests/balatro` gate.
 - A subsequent five-run Red/White batch exposed Burnt under-utilization, weak power-engine preservation, marginal late pack spending, and a D1 Bond recomputation performance defect; those concrete defects have been corrected and require fresh unchanged-HEAD live validation.
-- The authoritative tuning foundation is implemented, but **Phase-A candidate search is not yet unlocked**. The historical `e0cb0984` baseline is forensic/reference evidence only because later semantic/runtime fixes changed the repository SHA. The next empirical gate is a clean production-default 3-run live baseline on the final unchanged HEAD; any new semantic/runtime fix invalidates that study and requires a new baseline.
-- Red Deck stake progression begins with v1.1 after the current Red/White calibration branch is accepted.
-- Fresh-profile collection progression remains active but is non-blocking for the v1.0 competence line.
+- The authoritative tuning foundation was implemented, but **the 2026-09-03 RL pivot retires Phase-A Bond candidate search as the active next gate**. Historical live baselines remain forensic/reference evidence for simulator parity and regression reconstruction rather than promotion datasets for manual Bond calibration.
+- Red Deck stake progression remains deferred until the Red/White competence target is satisfied under the new RL path.
+- Fresh-profile collection progression remains non-blocking for the Red/White competence line.
 
 ## v1.0.0 — Red Deck / White Stake competence — 2026-08-20
 
