@@ -33,9 +33,12 @@ from games.balatro.jokers.even_steven import EvenStevenJoker
 from games.balatro.jokers.fibonacci import FibonacciJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.four_fingers import FourFingersJoker
+from games.balatro.jokers.gluttonous_joker import GluttonousJoker
+from games.balatro.jokers.greedy_joker import GreedyJoker
 from games.balatro.jokers.half_joker import HalfJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
 from games.balatro.jokers.juggler import JugglerJoker
+from games.balatro.jokers.lusty_joker import LustyJoker
 from games.balatro.jokers.mad_joker import MadJoker
 from games.balatro.jokers.merry_andy import MerryAndyJoker
 from games.balatro.jokers.mystic_summit import MysticSummitJoker
@@ -58,6 +61,7 @@ from games.balatro.jokers.the_trio import TheTrioJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
 from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.jokers.wily_joker import WilyJoker
+from games.balatro.jokers.wrathful_joker import WrathfulJoker
 from games.balatro.jokers.zany_joker import ZanyJoker
 from games.balatro.state import BalatroState
 
@@ -101,6 +105,10 @@ _EXACT_R1_JOKER_ACQUISITION_TYPES = (
     TheFamilyJoker,
     TheOrderJoker,
     TheTribeJoker,
+    GreedyJoker,
+    LustyJoker,
+    WrathfulJoker,
+    GluttonousJoker,
 )
 
 
