@@ -20,6 +20,9 @@ from games.balatro.env.actions import EnvAction
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.acrobat import AcrobatJoker
 from games.balatro.jokers.banner import BannerJoker
+from games.balatro.jokers.baron import BaronJoker
+from games.balatro.jokers.blackboard import BlackboardJoker
+from games.balatro.jokers.blue_joker import BlueJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.juggler import JugglerJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
@@ -31,6 +34,9 @@ _EXACT_R1_JOKER_ACQUISITION_TYPES = (
     AbstractJoker,
     AcrobatJoker,
     BannerJoker,
+    BaronJoker,
+    BlackboardJoker,
+    BlueJoker,
     JugglerJoker,
     StuntmanJoker,
 )
