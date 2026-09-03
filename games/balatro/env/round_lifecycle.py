@@ -1,9 +1,10 @@
 """Exact deterministic round-start resource lifecycle helpers.
 
 Vanilla ``new_round`` computes current-round allowances from persistent
-``round_resets`` plus one-shot ``round_bonus`` values, then runs blind/Joker
-setup, and only afterward clears those one-shot bonuses.  Keep those operations
-separate so later ``setting_blind`` ownership can preserve source order.
+``round_resets`` plus one-shot ``round_bonus`` values, then immediately clears
+those one-shot bonuses *before* ``Blind:set_blind`` and Joker ``setting_blind``
+processing.  Preserve that ordering so later lifecycle effects cannot observe a
+bonus that vanilla has already consumed.
 """
 
 from __future__ import annotations
@@ -33,7 +34,16 @@ _BLIND_START_INERT_JOKER_TYPES = (
 
 
 def apply_round_resource_baseline(run: HeadlessRunState) -> HeadlessRunState:
-    """Apply vanilla hands/discards baseline without consuming round bonuses."""
+    """Apply vanilla hands/discards baseline and consume one-shot bonuses.
+
+    Source order in ``new_round`` is exact here:
+
+    1. compute ``discards_left`` from reset + round bonus;
+    2. compute ``hands_left`` from reset + round bonus;
+    3. reset per-round counters;
+    4. clear ``round_bonus.next_hands`` and ``round_bonus.discards``;
+    5. only later run ``Blind:set_blind`` / Joker ``setting_blind``.
+    """
     state = run.public
     if not state.round_reset_hands_observed or not state.round_reset_discards_observed:
         raise HeadlessTransitionError(
@@ -60,6 +70,10 @@ def apply_round_resource_baseline(run: HeadlessRunState) -> HeadlessRunState:
         hand: 0 for hand in next_state.round_hand_play_counts
     }
     next_state.score = 0
+
+    # Vanilla clears these before Blind:set_blind and setting_blind Jokers.
+    next_run.round_bonus_hands = 0
+    next_run.round_bonus_discards = 0
 
     return next_run
 
@@ -122,7 +136,12 @@ def apply_supported_setting_blind_effects(run: HeadlessRunState) -> HeadlessRunS
 
 
 def consume_round_bonuses(run: HeadlessRunState) -> HeadlessRunState:
-    """Clear vanilla one-shot round bonuses after blind/Joker setup."""
+    """Idempotently clear one-shot round bonuses.
+
+    ``apply_round_resource_baseline`` already performs the canonical vanilla
+    consumption before blind/Joker setup.  This helper remains for callers that
+    need an explicit clear boundary and is intentionally idempotent.
+    """
     next_run = run.copy()
     next_run.round_bonus_hands = 0
     next_run.round_bonus_discards = 0
