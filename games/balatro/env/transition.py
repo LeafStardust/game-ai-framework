@@ -51,6 +51,10 @@ from games.balatro.jokers.smiley_face import SmileyFaceJoker
 from games.balatro.jokers.splash import SplashJoker
 from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.jokers.the_duo import TheDuoJoker
+from games.balatro.jokers.the_family import TheFamilyJoker
+from games.balatro.jokers.the_order import TheOrderJoker
+from games.balatro.jokers.the_tribe import TheTribeJoker
+from games.balatro.jokers.the_trio import TheTrioJoker
 from games.balatro.jokers.troubadour import TroubadourJoker
 from games.balatro.jokers.walkie_talkie import WalkieTalkieJoker
 from games.balatro.jokers.wily_joker import WilyJoker
@@ -93,6 +97,10 @@ _EXACT_R1_JOKER_ACQUISITION_TYPES = (
     CraftyJoker,
     MadJoker,
     CleverJoker,
+    TheTrioJoker,
+    TheFamilyJoker,
+    TheOrderJoker,
+    TheTribeJoker,
 )
 
 
