@@ -3,9 +3,10 @@
 This module owns environment-private run state that is required for deterministic
 simulation but is not part of the canonical public observation.  The initial
 transition engine deliberately covers only deterministic shop operations whose
-outcomes do not require R2 RNG or unmodeled acquisition side effects.  Generic
-Joker acquisition, voucher acquisition, booster opening, and all stochastic
-transitions remain unavailable until their exact RNG/state ownership exists.
+outcomes do not require R2 RNG or unmodeled acquisition side effects.  Joker
+acquisition is enabled only for explicitly audited modeled identities; generic
+Jokers, vouchers, booster opening, and stochastic transitions remain unavailable
+until their exact RNG/state ownership exists.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from typing import Any
 
 from games.balatro.card import BalatroCard
 from games.balatro.env.actions import EnvAction
+from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.state import BalatroState
 
 
@@ -73,6 +75,13 @@ class ShopTransitionEngine:
             return ()
 
         actions: list[EnvAction] = []
+        if len(state.jokers) < state.joker_slots:
+            actions.extend(
+                EnvAction.from_alias("BUY_JOKER", {"slot": slot})
+                for slot, item in enumerate(state.shop_jokers)
+                if self._joker_acquisition_is_exact(item)
+                and state.money >= self._price(item)
+            )
         if len(state.consumables) < state.consumable_slots:
             actions.extend(
                 EnvAction.from_alias("BUY_CONSUMABLE", {"slot": slot})
@@ -80,10 +89,10 @@ class ShopTransitionEngine:
                 if state.money >= self._price(item)
             )
 
-        # BUY_JOKER is intentionally not exposed until acquisition applies every
-        # immediate persistent modifier of the purchased Joker.  A generic list
-        # transfer is not exact for Jokers that change capacities/resources on
-        # acquisition.
+        # Generic BUY_JOKER remains fail-closed.  Only explicitly audited Joker
+        # identities admitted by ``_joker_acquisition_is_exact`` are exposed.
+        # This prevents list-transfer semantics from silently skipping immediate
+        # capacity/resource modifiers on other Jokers.
         #
         # BUY_VOUCHER is intentionally not exposed until the headless state owns
         # the voucher's immediate rule modification.  Merely moving the voucher
@@ -114,11 +123,26 @@ class ShopTransitionEngine:
             return next_run
 
         slot = self._slot(params)
+        if action.alias == "BUY_JOKER":
+            self._buy(state, state.shop_jokers, state.jokers, slot)
+            return next_run
         if action.alias == "BUY_CONSUMABLE":
             self._buy(state, state.shop_consumables, state.consumables, slot)
             return next_run
 
         raise HeadlessTransitionError(f"unimplemented shop transition: {action.alias}")
+
+    @staticmethod
+    def _joker_acquisition_is_exact(item: Any) -> bool:
+        """Return whether R1 currently owns this Joker's purchase semantics.
+
+        The base +4 Mult Joker has no acquisition-time capacity/resource side
+        effect; its later scoring behavior is already carried by ``FlatMultJoker``.
+        Editions are kept fail-closed until their headless ownership is audited,
+        because Negative in particular changes Joker capacity semantics.
+        """
+
+        return type(item) is FlatMultJoker and not getattr(item, "edition", None)
 
     @classmethod
     def _buy(cls, state: BalatroState, source: list, destination: list, slot: int) -> None:
