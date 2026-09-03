@@ -22,6 +22,7 @@ from games.balatro.env.card_order import (
     derive_playing_card_order,
     playing_card_order_matches,
 )
+from games.balatro.env.rng import BalatroRNG
 from games.balatro.jokers.abstract_joker import AbstractJoker
 from games.balatro.jokers.acrobat import AcrobatJoker
 from games.balatro.jokers.arrowhead import ArrowheadJoker
@@ -174,7 +175,7 @@ class HeadlessRunState:
 
     public: BalatroState
     seed: str | int
-    rng_state: Any = None
+    rng_state: BalatroRNG | dict[str, Any] | None = None
     playing_card_order: list[BalatroCard] | None = None
     draw_pile: list[BalatroCard] = field(default_factory=list)
     discard_pile: list[BalatroCard] = field(default_factory=list)
@@ -191,6 +192,21 @@ class HeadlessRunState:
             raise HeadlessTransitionError("R1 headless state currently supports White Stake only")
         if isinstance(self.seed, bool) or not isinstance(self.seed, (str, int)):
             raise HeadlessTransitionError("seed must be a string or exact integer")
+
+        if self.rng_state is None:
+            self.rng_state = BalatroRNG(self.seed)
+        elif isinstance(self.rng_state, dict):
+            try:
+                self.rng_state = BalatroRNG.from_snapshot(self.rng_state)
+            except (TypeError, ValueError) as exc:
+                raise HeadlessTransitionError("invalid Balatro RNG snapshot") from exc
+        elif not isinstance(self.rng_state, BalatroRNG):
+            raise HeadlessTransitionError(
+                "rng_state must be BalatroRNG, an exact RNG snapshot, or None"
+            )
+        if self.rng_state.seed != str(self.seed):
+            raise HeadlessTransitionError("rng_state seed does not match headless run seed")
+
         self._require_int("money", self.public.money)
         self._require_nonnegative_int("hand_size", self.public.hand_size)
         self._require_nonnegative_int("hands_remaining", self.public.hands_remaining)
@@ -258,6 +274,17 @@ class HeadlessRunState:
         cls._require_int(name, value)
         if value < 0:
             raise HeadlessTransitionError(f"{name} cannot be negative")
+
+    @property
+    def rng(self) -> BalatroRNG:
+        """Return the exact deterministic RNG owner for this run."""
+        if not isinstance(self.rng_state, BalatroRNG):
+            raise HeadlessTransitionError("headless RNG owner is unavailable")
+        return self.rng_state
+
+    def rng_snapshot(self) -> dict[str, Any]:
+        """Return the bit-preserving RNG payload required for replay/restore."""
+        return self.rng.snapshot()
 
     def require_playing_card_order(self) -> list[BalatroCard]:
         """Return the exact private playing-card creation order or fail closed."""
