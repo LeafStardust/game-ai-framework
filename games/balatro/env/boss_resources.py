@@ -8,6 +8,7 @@ Balatro itself retains them on the Blind object solely for reversal.
 
 from __future__ import annotations
 
+from games.balatro.env.deal import draw_one_supported_card_to_hand
 from games.balatro.env.transition import HeadlessRunState, HeadlessTransitionError
 
 
@@ -69,7 +70,7 @@ def apply_resource_boss_start(run: HeadlessRunState) -> HeadlessRunState:
 
     # Vanilla The Manacle:
     #   G.hand:change_size(-1)
-    # Blind:disable later restores the same single hand-size slot.
+    # Blind:disable later restores the same single hand-size slot and draws one.
     if next_state.hand_size < 1:
         raise HeadlessTransitionError(
             "Manacle requires positive current hand size"
@@ -107,8 +108,13 @@ def disable_resource_boss(run: HeadlessRunState) -> HeadlessRunState:
             raise HeadlessTransitionError("Manacle disable requires stored hand_size_sub")
         if amount != 1:
             raise HeadlessTransitionError("Manacle stored hand_size_sub must equal one")
+
+        # Vanilla Blind:disable performs change_size(+1) and immediately
+        # draw_from_deck_to_hand(1).  The latter is exact only once headless owns
+        # the shuffled physical draw pile (post initial deal).  Pre-deal disable,
+        # e.g. future Chicot support during setting_blind, remains fail-closed.
         next_state.hand_size += amount
         next_run.boss_hand_size_sub = None
-        return next_run
+        return draw_one_supported_card_to_hand(next_run)
 
     raise HeadlessTransitionError("boss has no audited reversible resource disable")
