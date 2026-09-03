@@ -6,7 +6,13 @@ from games.balatro.env.transition import (
     HeadlessTransitionError,
     ShopTransitionEngine,
 )
+from games.balatro.jokers.clever_joker import CleverJoker
+from games.balatro.jokers.crafty_joker import CraftyJoker
+from games.balatro.jokers.crazy_joker import CrazyJoker
+from games.balatro.jokers.devious_joker import DeviousJoker
+from games.balatro.jokers.droll_joker import DrollJoker
 from games.balatro.jokers.jolly_joker import JollyJoker
+from games.balatro.jokers.mad_joker import MadJoker
 from games.balatro.jokers.sly_joker import SlyJoker
 from games.balatro.jokers.the_duo import TheDuoJoker
 from games.balatro.jokers.wily_joker import WilyJoker
@@ -21,6 +27,12 @@ PURE_SCORING_TYPES = (
     ZanyJoker,
     WilyJoker,
     TheDuoJoker,
+    CrazyJoker,
+    DeviousJoker,
+    DrollJoker,
+    CraftyJoker,
+    MadJoker,
+    CleverJoker,
 )
 
 
