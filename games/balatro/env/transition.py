@@ -22,6 +22,7 @@ from games.balatro.jokers.acrobat import AcrobatJoker
 from games.balatro.jokers.banner import BannerJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.juggler import JugglerJoker
+from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.state import BalatroState
 
 
@@ -31,6 +32,7 @@ _EXACT_R1_JOKER_ACQUISITION_TYPES = (
     AcrobatJoker,
     BannerJoker,
     JugglerJoker,
+    StuntmanJoker,
 )
 
 
@@ -166,14 +168,17 @@ class ShopTransitionEngine:
     def _apply_joker_acquisition_effects(state: BalatroState, joker: Any) -> None:
         """Apply exact immediate persistent state changes for audited Jokers.
 
-        ``BalatroState.hand_size`` is the canonical public hand-capacity value.
-        Juggler's +1 therefore becomes part of that state as soon as the Joker is
-        acquired.  SELL_JOKER remains outside the frozen training surface until
-        the inverse lifecycle transition is independently audited.
+        ``BalatroState.hand_size`` is the canonical public hand-capacity value, so
+        passive hand-size Jokers update it as soon as they are acquired. Their
+        scoring behavior remains owned by the Joker object. SELL_JOKER stays
+        outside the frozen training surface until inverse lifecycle transitions
+        are independently audited.
         """
 
         if type(joker) is JugglerJoker:
             state.hand_size += 1
+        elif type(joker) is StuntmanJoker:
+            state.hand_size -= 2
 
     @classmethod
     def _is_affordable(cls, state: BalatroState, item: Any) -> bool:
