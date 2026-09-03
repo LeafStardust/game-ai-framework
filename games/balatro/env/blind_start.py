@@ -12,6 +12,7 @@ from games.balatro.env.boss_debuffs import (
     apply_plant_face_debuff,
     apply_static_suit_boss_debuff,
 )
+from games.balatro.env.boss_draw import apply_cerulean_bell_drawn_to_hand
 from games.balatro.env.boss_resources import apply_resource_boss_start
 from games.balatro.env.deal import (
     deal_pristine_round_start,
@@ -82,8 +83,11 @@ def _begin_predeal_lifecycle(run: HeadlessRunState) -> HeadlessRunState:
 
 
 def _finish_predeal_lifecycle(run: HeadlessRunState) -> HeadlessRunState:
-    """Apply setting_blind Jokers after Blind:set_blind state, then consume bonus."""
+    """Apply setting_blind Jokers after Blind:set_blind state."""
     next_run = apply_supported_setting_blind_effects(run)
+    # Round bonuses are already consumed by apply_round_resource_baseline in
+    # vanilla source order. Retain the explicit idempotent clear for callers
+    # built before that ordering was corrected.
     next_run = consume_round_bonuses(next_run)
     next_run.public.phase = "DRAW_TO_HAND"
     return next_run
@@ -160,14 +164,7 @@ def start_supported_mutable_hand_rule_boss(run: HeadlessRunState) -> HeadlessRun
 
 
 def prepare_supported_resource_boss_start(run: HeadlessRunState) -> HeadlessRunState:
-    """Own exact Water/Needle/Manacle start ordering and reversible private state.
-
-    Vanilla applies the Boss resource mutation after the generic round-resource
-    baseline and before the Joker ``setting_blind`` pass. Water stores and
-    removes current post-bonus discards; Needle stores ``round_resets.hands - 1``
-    and removes exactly that amount, leaving one-shot hand bonuses intact;
-    Manacle stores and removes exactly one hand-size slot before the initial deal.
-    """
+    """Own exact Water/Needle/Manacle start ordering and reversible private state."""
     _require_boss_blind(run, label="resource-mutating boss start")
     if run.public.boss_name not in _RESOURCE_MUTATING_BOSS_NAMES:
         raise HeadlessTransitionError(
@@ -219,6 +216,28 @@ def start_supported_plant(run: HeadlessRunState) -> HeadlessRunState:
     """Compose The Plant face-card debuff lifecycle with exact shuffle/deal."""
     prepared = prepare_supported_plant_start(run)
     return deal_supported_round_start(prepared)
+
+
+def prepare_supported_cerulean_bell_start(run: HeadlessRunState) -> HeadlessRunState:
+    """Own Cerulean Bell's ordinary pre-deal Boss lifecycle.
+
+    Cerulean Bell has no additional ``Blind:set_blind`` mutation. Its forced
+    card mechanic fires later in ``Blind:drawn_to_hand`` and is intentionally
+    applied only by :func:`start_supported_cerulean_bell` after exact deal.
+    """
+    _require_boss_blind(run, label="Cerulean Bell boss start")
+    if run.public.boss_name != "Cerulean Bell":
+        raise HeadlessTransitionError(
+            "Cerulean Bell boss start requires Cerulean Bell"
+        )
+    return _apply_common_predeal_lifecycle(run)
+
+
+def start_supported_cerulean_bell(run: HeadlessRunState) -> HeadlessRunState:
+    """Compose Cerulean Bell pre-deal, exact deal, and drawn-to-hand effect."""
+    prepared = prepare_supported_cerulean_bell_start(run)
+    dealt = deal_supported_round_start(prepared)
+    return apply_cerulean_bell_drawn_to_hand(dealt)
 
 
 def prepare_supported_wall_blind_start(run: HeadlessRunState) -> HeadlessRunState:
