@@ -6,7 +6,7 @@ This is the authoritative development roadmap for the Balatro Red Deck / White S
 
 - Repository: `LeafStardust/game-ai-framework`
 - Branch: `feat/v1.0-red-white-competence`
-- Work Chat runs all deterministic/static tests itself in its isolated repository environment and keeps output quiet (`pytest -q` plus focused failure inspection).
+- Work Chat runs all deterministic/static tests itself in its isolated repository environment and keeps output quiet (`.venv/bin/python -m pytest -q` plus focused failure inspection).
 - The user runs only actual Balatro gameplay and validation that genuinely requires the user's Windows/game environment.
 - Do not ask the user to pull and run pytest when Work Chat can execute the test. If a test genuinely cannot run in Work Chat because it depends on the Windows/game environment, state that limitation explicitly.
 - Commands genuinely requiring the user's environment must begin with `git pull` and be PowerShell-compatible.
@@ -394,29 +394,80 @@ The remaining causally usable evidence from the September 2 batch has been inspe
 
 No further code change is authorized from this original batch. This is an evidence boundary, not a claim that current live competence has passed.
 
-#### L2.4 — Post-repair three-attempt live validation — AWAITING USER BALATRO RUN
+#### L2.4 — Post-repair three-attempt live validation — BATCH INSPECTED / REPAIRS AWAIT LIVE VALIDATION
 
-The deterministic work that Work Chat can perform is complete for the confirmed L2.3 defects. A fresh genuine Balatro batch is now required because it must validate the game/Windows integration and produce new public-state telemetry.
+Fresh post-repair batch: `balatro-20260903T094415Z-87fd8720`.
 
-Run requirements:
+Outcomes:
 
-- pull the current published HEAD of remote `feat/v1.0-red-white-competence`;
-- start one fresh unseeded Red Deck / White Stake three-attempt production batch with `BalatroAgentToggle.bat --three`;
-- do not change code, thresholds, or runtime options during the batch;
-- preserve all three JSONL attempt artifacts and the batch summary;
-- numerical tuning remains closed during and after collection until Work Chat classifies the new evidence.
+- attempt 001: lost Ante 1 boss The Club, `272 / 600`;
+- attempt 002: lost Ante 3 boss The Water, `2,512 / 4,000`;
+- attempt 003: lost Ante 7 Big Blind, `21,908 / 52,500`;
+- no action-result failure occurred in the batch.
 
-Work Chat must then verify:
+Exercise status of the previously repaired defects:
 
-1. no Baron baseline-King false-positive purchase;
-2. no post-D2 resurrection of rejected Joker buys;
-3. Throwback remains unrealized before a real blind skip;
-4. SHOP-phase Card Sharp history begins at zero for the upcoming blind;
-5. Director's Cut and Retcon are not purchased without boss-reroll execution;
-6. D14 `joker_standalone` attribution explains the former residual or exposes a smaller concrete remaining owner;
-7. no new mechanics, runtime, or authority contradiction appears before any later divergence.
+- Baron, Flash Card, Throwback, Card Sharp, Director's Cut, and Retcon were neither offered nor owned, so this batch did not directly exercise those item-specific repairs;
+- every observed `BUY_JOKER` came from canonical `arbiter_source=JOKER_BUY`; no post-D2 rescue authority appeared;
+- replaying every SHOP observation through the production translator produced zero upcoming-round hand counters, preserving the Card Sharp phase-boundary repair;
+- `joker_standalone` correctly explained the expensive visible-Joker work, including `4.288s` of the `4.302s` D14 decision at attempt-002 sequence 119;
+- numerical tuning remains closed because two new runtime/telemetry defects were demonstrated and repaired below.
 
-The user is needed now for the Balatro run only. Work Chat remains responsible for every deterministic pytest run and for inspecting/classifying the resulting artifacts.
+##### L2.4.1 — D14 deterministic-policy timing blind spot — FIXED AND DETERMINISTICALLY VALIDATED
+
+Classification: **runtime telemetry-attribution bug** at the canonical D14 deterministic child boundary.
+
+Observed defect:
+
+- attempt-002 sequence 124 reported `3.461s` D14 total with `3.369s` residual after buying Smiley Face while Supernova and Planet Merchant remained visible;
+- attempt-003 voucher decisions showed the same pattern, including `2.017s` residual for Wasteful;
+- compact timing wrapped only base `BalatroShopPolicy.rank_actions`, while production uses an overriding active shop policy, so canonical deterministic/Voucher work escaped the timer;
+- globally wrapping a base policy method was also the wrong ownership boundary because ranking can occur inside nested reroll evaluation.
+
+Repair:
+
+- `BuildAwareShopArbiter` now exposes its existing active-policy call as `_rank_deterministic_actions()` without changing policy inputs, results, thresholds, or authority;
+- compact and durable diagnostics time that direct D14 child;
+- `deterministic` is now a disjoint top-level stage subtracted from D14 residual, while nested reroll work remains excluded from top-level subtraction.
+
+Validation state:
+
+- focused D14/D1 diagnostic slice: **GREEN in Work Chat (`20 passed`, shared with L2.4.2)**;
+- broader affected D1/SHOP slice: **`268 passed`, with seven known unrelated failures** (five stale pre-existing D1 beam assertions and two Linux `APPDATA` bridge-construction failures);
+- focused regression proves the active production override is timed as `deterministic` and returns exactly the same result.
+
+##### L2.4.2 — The Sun starved D1 before node admission — FIXED AND DETERMINISTICALLY VALIDATED
+
+Classification: **runtime/latency bug** at D1 root consumable admission.
+
+Observed defect:
+
+- attempt-003 sequences 190 and 194 both held The Sun and exhausted the adaptive search at `8.488s` / `9.163s` with `nodes=0/750`, `budget_exceeded=True`, and `best_action=NONE`;
+- exact snapshot replay reproduced the cause: `_guaranteed_sun_action()` spent `8.001s` and `8.442s` attempting a full multi-target Sun proof before any ordinary Play/Discard node could be admitted;
+- the legal structural fallback prevented an illegal action, but the optional consumable proof consumed the entire search budget and recreated the eliminated zero-node latency mode.
+
+Repair:
+
+- The Sun exact-clear proof receives a dedicated `0.75s` slice bounded by the parent deadline;
+- expiration still rejects the unproved Sun candidate safely, but leaves the remaining parent budget for canonical ordinary D1 search;
+- no search score, gameplay threshold, or Bond calibration changed.
+
+Validation state:
+
+- focused regression proves the Sun child deadline is strictly earlier than the parent D1 deadline;
+- exact attempt-003 replay now returns from the Sun proof in approximately `0.984–1.180s` instead of consuming the full eight-second budget;
+- an exact sequence-188 root replay then admitted `385` ordinary nodes before the parent deadline instead of reporting `nodes=0`;
+- focused D14/D1 diagnostic slice: **GREEN in Work Chat (`20 passed`)**;
+- broader affected D1/SHOP slice: **`268 passed`, with the same seven documented unrelated failures**.
+
+##### L2.4.3 — Remaining batch decision classification — COMPLETE / NO ADDITIONAL PATCH
+
+- attempt 001's Mercury purchase and subsequent Ante-1 Club loss do not demonstrate a mechanics, runtime, or authority contradiction;
+- attempt 002's Handy Tag skip valued the observed tag at `$15`, included interest, shop, and boss-preparation opportunity costs, and cleared the configured skip margin before the later Water loss; the loss alone is calibration evidence, not proof that D13 violated public mechanics;
+- later attempt-003 decisions after the first sequence-190 D1 runtime divergence are not valid evidence for changing current policy semantics;
+- no Baron/Flash/Throwback/Card-Sharp/boss-reroll regression was observed, but absence from the offer pool is not positive live validation.
+
+No architecture or numerical change is authorized from these remaining decisions.
 
 ### Current validation checkpoint — EXACT STATE
 
@@ -430,7 +481,8 @@ Card Sharp shop-history translation patch      GREEN (WORK CHAT)
 D14 standalone-Joker timing attribution patch  GREEN (WORK CHAT)
 Director's Cut/Retcon D3 fail-closed patch      GREEN (WORK CHAT)
 Original September 2 baseline classification    COMPLETE
-Post-repair three-attempt live validation       AWAITING USER BALATRO RUN
+Post-repair three-attempt batch                 INSPECTED; 2 RUNTIME REPAIRS GREEN
+Post-L2.4 repair live validation                AWAITING USER BALATRO RUN
 Numerical tuning / Optuna                       NOT STARTED
 Phase M broader competence                      NOT STARTED
 ```
@@ -454,14 +506,14 @@ After Bond-guided Red/White competence is demonstrated, address broader gameplay
 
 # Exact next action
 
-**Collect the Phase L2.4 post-repair three-attempt Balatro batch. This remains testing/validation, not tuning.**
+**Publish the L2.4 runtime repairs, then collect one unchanged-HEAD three-attempt Balatro validation batch. This remains testing/validation, not tuning.**
 
-1. User pulls the exact published branch HEAD and runs `BalatroAgentToggle.bat --three` once with Balatro ready at a fresh Red Deck / White Stake run.
-2. User returns the three JSONL artifacts and batch summary; no user pytest run is requested.
-3. Work Chat inspects the seven explicit L2.4 checks and classifies any suspicious decision before changing code.
-4. Work Chat patches only confirmed defects at their canonical owner and runs all focused deterministic regressions itself.
-5. Read the new `joker_standalone` D14 stage; optimize only after telemetry identifies an expensive owner without changing semantics.
-6. Keep L3 numerical tuning closed until the post-repair semantic/integration/runtime validation is green.
+1. Work Chat commits and publishes the deterministically green D14 attribution and D1 Sun-budget repairs.
+2. User pulls the exact published branch HEAD and runs `BalatroAgentToggle.bat --three` once with Balatro ready at a fresh Red Deck / White Stake run.
+3. User returns the three JSONL artifacts and summaries; no user pytest run is requested.
+4. Work Chat verifies that D14 deterministic work is attributed, The Sun cannot recreate `nodes=0` starvation, and no earlier mechanics/runtime/authority contradiction appears.
+5. Work Chat patches only confirmed defects at their canonical owner and runs all focused deterministic regressions itself.
+6. Keep L3 numerical tuning closed until post-repair semantic/integration/runtime validation is green.
 
 # Progress criterion
 
