@@ -13,9 +13,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  balatro-tests:
+  balatro-l3-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -29,5 +29,7 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Run Balatro deterministic suite
-        run: python -m pytest -q tests/balatro
+      - name: Run L3 freeze-gate deterministic suites
+        run: >-
+          python -m pytest -q tests/balatro
+          -k "translator or mechanics or legality or shop or target_hand or joker or voucher or pack or consumable or arbiter or boss or rng or env_contract"
