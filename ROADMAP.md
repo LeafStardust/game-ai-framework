@@ -280,7 +280,8 @@ Additional exact resource/capacity-sensitive Joker rules currently implemented:
 - **Juggler**: purchase applies `hand_size += 1` once;
 - **Stuntman**: purchase applies `hand_size -= 2`; acquisition remains fail-closed when current authoritative hand size is below 2 rather than inventing negative-capacity semantics;
 - **Drunkard**: purchase applies `round_reset_discards += 1`, but only when the next-round discard allowance was authoritatively observed;
-- **Troubadour**: purchase applies `hand_size += 2` and `round_reset_hands -= 1`, but only when the next-round hand allowance was authoritatively observed and is at least 1.
+- **Troubadour**: purchase applies `hand_size += 2` and `round_reset_hands -= 1`, but only when the next-round hand allowance was authoritatively observed and is at least 1;
+- **Merry Andy**: purchase applies `hand_size -= 1` and `round_reset_discards += 3`, but only when the next-round discard allowance was authoritatively observed and authoritative hand size is at least 1.
 
 Current price semantics are fail-closed:
 
@@ -297,66 +298,50 @@ Still fail-closed:
 - stochastic acquisition/generation paths that require R2 RNG ownership;
 - any acquisition whose immediate persistent effect has not been audited.
 
-### Current Troubadour / next-round-hands checkpoint
-
-This is the exact code state at the roadmap update:
+### Current live next-round-hands / Merry Andy checkpoint
 
 Completed and pushed:
 
-1. `BalatroState` now canonically owns:
-   - `round_reset_hands_observed: bool`;
-   - `round_reset_hands: int`.
-2. `BalatroState.copy()` preserves both fields.
-3. `HeadlessRunState` validates the observed next-round hand allowance as an exact nonnegative integer.
-4. `ShopTransitionEngine` enables Troubadour only when `round_reset_hands_observed` is true and `round_reset_hands >= 1`.
-5. Troubadour purchase applies the exact immediate R1-owned pair:
-   - `hand_size += 2`;
-   - `round_reset_hands -= 1`.
-6. Dedicated deterministic tests were added in `tests/balatro/test_balatro_env_r1_troubadour.py` covering:
-   - state-copy preservation;
-   - type/range validation;
-   - fail-closed behavior when the reset-hand baseline is unobserved;
-   - fail-closed behavior at zero next-round hands;
-   - exact isolated acquisition when an authoritative baseline exists.
+1. `BalatroState` canonically owns and copies `round_reset_hands_observed` / `round_reset_hands`.
+2. `HeadlessRunState` validates observed next-round hand allowance as an exact nonnegative integer.
+3. `ShopTransitionEngine` enables Troubadour only when the next-round hand baseline is authoritative and at least 1.
+4. Troubadour purchase applies `hand_size += 2` and `round_reset_hands -= 1` exactly once.
+5. `LiveMemoryBalatroObserver` now reads the authoritative public source `G.GAME.round_resets.hands` and exposes `round_reset_hands_observed` plus the value only when numeric.
+6. `DefaultBalatroStateTranslator` maps that snapshot field into canonical state and fails closed for missing, boolean, string, float, negative, or otherwise invalid externally supplied values.
+7. `tests/balatro/test_balatro_r1_round_reset_hands_live.py` covers observed, zero, missing, and invalid observer/translator behavior.
+8. Deterministic CI run `33781164005` is green: `1297 passed, 1594 deselected`.
+9. Merry Andy acquisition is now exact in R1: authoritative next-round discard baseline required, authoritative hand size must be at least 1, successful purchase applies `hand_size -= 1` and `round_reset_discards += 3` while leaving the completed round's `discards_remaining` unchanged.
+10. `tests/balatro/test_balatro_env_r1_merry_andy.py` proves fail-closed behavior without reset-discard observation, fail-closed behavior at zero hand size, input-state isolation, affordability/inventory transition, and exact one-time modifiers.
+11. Deterministic CI run `33781461393` is green: `1300 passed, 1594 deselected`.
 
-Latest code commits for this slice:
+Latest functional commits for this checkpoint:
 
 ```text
-d503f26  feat(balatro): own next-round hand allowance
-f990b98  feat(balatro): enable exact Troubadour acquisition
-f172334  test(balatro): cover exact Troubadour R1 acquisition
+c816aa8  feat(balatro): translate next-round hand allowance
+d58436c  feat(balatro): observe next-round hand allowance
+8bf4c07  test(balatro): cover live next-round hand ownership
+f3fe9f2  test(balatro): keep R1 live ownership in CI
+91d66ef  feat(balatro): enable exact Merry Andy acquisition
+00363a7  test(balatro): cover exact Merry Andy R1 acquisition
 ```
 
-Not yet completed at this checkpoint:
+Audit finding retained for the next transition inventory:
 
-- `DefaultBalatroStateTranslator` does **not yet** populate `round_reset_hands_observed` / `round_reset_hands` from live payloads;
-- `LiveMemoryBalatroObserver` does **not yet** expose `G.GAME.round_resets.hands` into the public snapshot;
-- corresponding translator/live-observer regression tests are still pending;
-- therefore real live-derived SHOP states do not yet satisfy Troubadour's authoritative next-round-hand gate automatically;
-- the just-pushed Troubadour slice has not yet been declared CI-green in this roadmap update.
-
-The next-round live source has been identified and should be used rather than inferred:
-
-```text
-G.GAME.round_resets.hands
-```
-
-This is the exact analogue of the already-owned `G.GAME.round_resets.discards` path used for Drunkard.
+- **Burglar is not an acquisition-only modifier.** Its modeled effect fires at `BLIND_SELECTED`, gaining hands and setting discards to zero. It must remain fail-closed until R1 owns that blind-selection lifecycle transition rather than being admitted merely because buying the Joker itself is deterministic.
 
 ### R1 immediate objective
 
-Finish the live/public ownership path for the next-round hands baseline, then continue the acquisition inventory. Do not expose an acquisition merely because the live UI can click it.
+Continue the acquisition and lifecycle semantics inventory from this green checkpoint. Do not expose an acquisition merely because the live UI can click it.
 
 Immediate sequence from this exact checkpoint:
 
-1. wire `G.GAME.round_resets.hands` through `LiveMemoryBalatroObserver` as public snapshot fields;
-2. wire those fields through `DefaultBalatroStateTranslator` into canonical `BalatroState`;
-3. add observer + translator tests proving observed, missing, zero, and invalid-value behavior is fail-closed/canonical;
-4. run focused deterministic R1 tests/CI and only then mark the Troubadour live-observation path green;
-5. continue auditing the next acquisition identity/resource modifier;
-6. keep generic vouchers, packs, editions, unknown Jokers, and unaudited acquisitions fail-closed;
-7. broaden the legal R1 surface only after each transition is exact;
-8. then continue remaining transition categories and R2/R3 work.
+1. audit the next unaudited training-relevant Joker/resource acquisition and classify whether its consequences occur at acquisition or a later lifecycle transition;
+2. enable only identities whose immediate and persistent consequences are already exactly representable by canonical/headless state;
+3. when a candidate depends on an unowned lifecycle transition (for example Burglar at `BLIND_SELECTED`), keep it fail-closed and add/finish that transition category before admission;
+4. keep generic vouchers, packs, editions, unknown Jokers, and unaudited acquisitions fail-closed;
+5. retain legality + direct-transition rejection tests so unsupported actions cannot leak through either path;
+6. broaden the legal R1 surface only after each transition is exact;
+7. then continue remaining state-transition categories and R2/R3 work.
 
 For every newly enabled Joker/voucher/consumable/card acquisition:
 
@@ -628,10 +613,12 @@ Exact Stuntman acquisition                        IMPLEMENTED WITH CAPACITY GUAR
 Exact Drunkard acquisition                        IMPLEMENTED WITH OBSERVED RESET-DISCARD GATE
 Canonical next-round hand allowance               IMPLEMENTED IN BalatroState
 Exact Troubadour headless acquisition             IMPLEMENTED WITH OBSERVED RESET-HAND GATE
-Troubadour deterministic tests                    ADDED
-Live observer round_reset_hands path              NOT YET WIRED
-Translator round_reset_hands path                 NOT YET WIRED
-Troubadour slice focused CI                       NOT YET DECLARED GREEN
+Live observer round_reset_hands path              WIRED / FAIL-CLOSED
+Translator round_reset_hands path                 WIRED / FAIL-CLOSED
+Troubadour live/public deterministic regressions  GREEN — CI 33781164005
+Exact Merry Andy acquisition                      IMPLEMENTED WITH OBSERVED RESET-DISCARD + HAND-SIZE GATES
+Merry Andy deterministic regressions              GREEN — CI 33781461393
+Burglar acquisition                               FAIL-CLOSED PENDING BLIND_SELECTED LIFECYCLE OWNERSHIP
 Generic/unknown Joker acquisition                 FAIL-CLOSED
 Joker editions                                    FAIL-CLOSED
 Generic voucher acquisition                       FAIL-CLOSED
@@ -658,15 +645,18 @@ Post-RL symbolic cleanup                          NOT STARTED
 Current branch code head immediately before this roadmap synchronization:
 
 ```text
-f1723345b76f972a48562bd36bcd7a373655938c
+00363a7b29ceaeafca89ddde95f2061d704da4c1
 ```
 
 Latest functional R1 commits immediately before the roadmap update:
 
 ```text
-d503f26  feat(balatro): own next-round hand allowance
-f990b98  feat(balatro): enable exact Troubadour acquisition
-f172334  test(balatro): cover exact Troubadour R1 acquisition
+c816aa8  feat(balatro): translate next-round hand allowance
+d58436c  feat(balatro): observe next-round hand allowance
+8bf4c07  test(balatro): cover live next-round hand ownership
+f3fe9f2  test(balatro): keep R1 live ownership in CI
+91d66ef  feat(balatro): enable exact Merry Andy acquisition
+00363a7  test(balatro): cover exact Merry Andy R1 acquisition
 ```
 
 ---
@@ -677,19 +667,17 @@ f172334  test(balatro): cover exact Troubadour R1 acquisition
 
 Immediate order from the current checkpoint:
 
-1. expose public `G.GAME.round_resets.hands` in `LiveMemoryBalatroObserver` using the same fail-closed pattern as `round_resets.discards`;
-2. translate `round_reset_hands_observed` / `round_reset_hands` into canonical `BalatroState` in `DefaultBalatroStateTranslator`;
-3. add deterministic observer/translator regressions for the next-round hand allowance;
-4. run focused deterministic R1 tests and CI and verify the Troubadour slice green;
-5. continue the acquisition-semantics inventory for the next unaudited training-relevant Joker/resource effect;
-6. keep generic Joker/voucher buys, editions, packs, and other unsupported acquisitions fail-closed wherever immediate semantics are not exact;
-7. implement exact immediate acquisition modifiers incrementally using canonical mechanics/owners;
-8. retain deterministic legality + direct-transition rejection tests so unsupported acquisitions cannot leak through either path;
-9. broaden the legal R1 action surface only after each transition is exact;
-10. then continue remaining state-transition categories and R2/R3 work;
-11. add R5 parity fixtures before declaring the environment authoritative for training.
+1. continue the acquisition-semantics inventory and classify the next candidate by the lifecycle point where its consequences occur;
+2. implement the next exact acquisition whose immediate/persistent state effects are fully owned;
+3. keep Burglar fail-closed until `BLIND_SELECTED` hands/discards consequences are owned by the headless transition engine;
+4. keep generic Joker/voucher buys, editions, packs, and other unsupported acquisitions fail-closed wherever immediate semantics are not exact;
+5. retain deterministic legality + direct-transition rejection tests so unsupported acquisitions cannot leak through either path;
+6. broaden the legal R1 action surface only after each transition is exact;
+7. implement lifecycle transition categories incrementally when they block otherwise training-relevant acquisitions;
+8. then continue remaining state-transition categories and R2/R3 work;
+9. add R5 parity fixtures before declaring the environment authoritative for training.
 
-The next code written should therefore be **live/public next-round-hands ownership for the already-implemented Troubadour R1 transition**, followed by continued exact acquisition/state-transition work. It should **not** be Bond tuning and **not** PPO.
+The next code written should therefore be **continued exact R1 acquisition/lifecycle transition work from the green Merry Andy checkpoint**. It should **not** be Bond tuning and **not** PPO.
 
 ---
 
@@ -707,7 +695,9 @@ R1 EXACT STATE TRANSITIONS                         ← ACTIVE
       ├─ scoring-safe Joker allowlist               ✓ incremental
       ├─ Juggler / Stuntman capacity ownership      ✓
       ├─ Drunkard next-round discard ownership      ✓
-      └─ Troubadour next-round hand ownership       ← HEADLESS DONE; LIVE PATH NEXT
+      ├─ Troubadour next-round hand ownership       ✓ headless + live/public
+      ├─ Merry Andy mixed capacity/resource effect  ✓
+      └─ lifecycle-dependent acquisitions           ← AUDIT / KEEP FAIL-CLOSED UNTIL OWNED
         ↓
 R2 RNG + R3 ACTION COMPLETION
         ↓
