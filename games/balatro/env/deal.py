@@ -8,7 +8,10 @@ The generalized boundary remains deliberately strict. Modified decks are
 supported only when the simulator can prove that the current complete deck and
 its authoritative permanent owned deck are the same card objects, retained
 creation order is exact, and every card carries Balatro's original-suit nominal
-needed by ``Card:get_nominal()``. Anything less fails closed before RNG advances.
+needed by ``Card:get_nominal()``. A structurally untouched base 52-card deck may
+also carry transient blind debuff flags: those do not alter rank/suit history, so
+its original suit remains provably equal to its current suit. Anything less
+fails closed before RNG advances.
 """
 
 from __future__ import annotations
@@ -56,7 +59,17 @@ _VANILLA_BASE_IDENTITIES = frozenset(
 )
 
 
-def _is_provably_pristine_base_order(cards: list[BalatroCard]) -> bool:
+def _is_provably_base_order_allowing_transient_debuff(
+    cards: list[BalatroCard],
+) -> bool:
+    """Return whether only transient ``debuffed`` state may differ from base.
+
+    Debuff is applied by ``Blind:set_blind`` after card creation and never changes
+    the card's base rank/suit or original-suit nominal.  This narrow structural
+    proof therefore lets static debuff Bosses reach the exact shuffle/deal path
+    without pretending other mutations (enhancements, conversions, editions,
+    seals, permanent bonuses, forced selection, or live-created cards) are base.
+    """
     if len(cards) != 52:
         return False
     if any(card.live_id is not None for card in cards):
@@ -68,11 +81,16 @@ def _is_provably_pristine_base_order(cards: list[BalatroCard]) -> bool:
         card.enhancement is None
         and card.edition is None
         and card.seal is None
-        and not card.debuffed
         and card.permanent_bonus == 0
         and not card.forced_selection
         and card.original_suit_nominal is None
         for card in cards
+    )
+
+
+def _is_provably_pristine_base_order(cards: list[BalatroCard]) -> bool:
+    return _is_provably_base_order_allowing_transient_debuff(cards) and all(
+        not card.debuffed for card in cards
     )
 
 
@@ -182,15 +200,15 @@ def deal_supported_round_start(run: HeadlessRunState) -> HeadlessRunState:
     _require_empty_round_start_zones(run)
 
     order = run.require_playing_card_order()
-    pristine = _is_provably_pristine_base_order(order)
-    if not pristine:
+    infer_base_original_suit = _is_provably_base_order_allowing_transient_debuff(order)
+    if not infer_base_original_suit:
         order = _modified_complete_owned_order(run)
 
     next_run = run.copy()
     next_state = next_run.public
     next_order = next_run.require_playing_card_order()
 
-    if pristine and next_state.owned_deck is None:
+    if infer_base_original_suit and next_state.owned_deck is None:
         next_state.owned_deck = list(next_order)
 
     draw_pile = list(next_order)
@@ -206,7 +224,7 @@ def deal_supported_round_start(run: HeadlessRunState) -> HeadlessRunState:
         dealt,
         key=lambda card: _hand_sort_key(
             card,
-            pristine=pristine,
+            pristine=infer_base_original_suit,
             creation_index=creation_index,
         ),
         reverse=True,
@@ -246,8 +264,8 @@ def draw_one_supported_card_to_hand(run: HeadlessRunState) -> HeadlessRunState:
         return run.copy()
 
     order = run.require_playing_card_order()
-    pristine = _is_provably_pristine_base_order(order)
-    if not pristine:
+    infer_base_original_suit = _is_provably_base_order_allowing_transient_debuff(order)
+    if not infer_base_original_suit:
         for card in order:
             _vanilla_hand_primary_nominal(card, pristine=False)
 
@@ -261,7 +279,7 @@ def draw_one_supported_card_to_hand(run: HeadlessRunState) -> HeadlessRunState:
     next_state.hand.sort(
         key=lambda value: _hand_sort_key(
             value,
-            pristine=pristine,
+            pristine=infer_base_original_suit,
             creation_index=creation_index,
         ),
         reverse=True,
