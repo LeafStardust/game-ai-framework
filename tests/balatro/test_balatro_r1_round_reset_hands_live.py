@@ -55,35 +55,35 @@ def _translate(payload):
     )
 
 
-def test_live_observer_exposes_observed_next_round_hands():
+def test_env_r1_live_observer_exposes_observed_next_round_hands():
     payload = _snapshot_payload({"hands": _integer(4)})
 
     assert payload["round_reset_hands_observed"] is True
     assert payload["round_reset_hands"] == 4
 
 
-def test_live_observer_preserves_observed_zero_next_round_hands():
+def test_env_r1_live_observer_preserves_observed_zero_next_round_hands():
     payload = _snapshot_payload({"hands": _integer(0)})
 
     assert payload["round_reset_hands_observed"] is True
     assert payload["round_reset_hands"] == 0
 
 
-def test_live_observer_fails_closed_when_next_round_hands_is_missing():
+def test_env_r1_live_observer_fails_closed_when_next_round_hands_is_missing():
     payload = _snapshot_payload({})
 
     assert payload["round_reset_hands_observed"] is False
     assert "round_reset_hands" not in payload
 
 
-def test_live_observer_fails_closed_when_next_round_hands_is_not_numeric():
+def test_env_r1_live_observer_fails_closed_when_next_round_hands_is_not_numeric():
     payload = _snapshot_payload({"hands": _string("4")})
 
     assert payload["round_reset_hands_observed"] is False
     assert "round_reset_hands" not in payload
 
 
-def test_translator_maps_observed_next_round_hands():
+def test_env_r1_translator_maps_observed_next_round_hands():
     state = _translate(
         {
             "round_reset_hands_observed": True,
@@ -95,7 +95,7 @@ def test_translator_maps_observed_next_round_hands():
     assert state.round_reset_hands == 4
 
 
-def test_translator_preserves_observed_zero_next_round_hands():
+def test_env_r1_translator_preserves_observed_zero_next_round_hands():
     state = _translate(
         {
             "round_reset_hands_observed": True,
@@ -107,14 +107,14 @@ def test_translator_preserves_observed_zero_next_round_hands():
     assert state.round_reset_hands == 0
 
 
-def test_translator_fails_closed_when_next_round_hands_is_missing():
+def test_env_r1_translator_fails_closed_when_next_round_hands_is_missing():
     state = _translate({})
 
     assert state.round_reset_hands_observed is False
     assert state.round_reset_hands == 0
 
 
-def test_translator_fails_closed_for_invalid_observed_next_round_hands():
+def test_env_r1_translator_fails_closed_for_invalid_observed_next_round_hands():
     for invalid_value in (True, "4", 4.0, -1, None):
         state = _translate(
             {
