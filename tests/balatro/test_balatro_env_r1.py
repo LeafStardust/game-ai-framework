@@ -13,6 +13,7 @@ from games.balatro.jokers.acrobat import AcrobatJoker
 from games.balatro.jokers.banner import BannerJoker
 from games.balatro.jokers.flat_mult import FlatMultJoker
 from games.balatro.jokers.juggler import JugglerJoker
+from games.balatro.jokers.stuntman import StuntmanJoker
 from games.balatro.state import BalatroState
 
 
@@ -91,7 +92,14 @@ def test_balatro_env_r1_buy_consumable_updates_exact_zone():
 
 @pytest.mark.parametrize(
     "joker_type",
-    (FlatMultJoker, AbstractJoker, AcrobatJoker, BannerJoker, JugglerJoker),
+    (
+        FlatMultJoker,
+        AbstractJoker,
+        AcrobatJoker,
+        BannerJoker,
+        JugglerJoker,
+        StuntmanJoker,
+    ),
 )
 def test_balatro_env_r1_audited_joker_acquisition_is_exact_and_isolated(joker_type):
     state = _shop_state()
@@ -129,9 +137,19 @@ def test_balatro_env_r1_base_joker_keeps_modeled_scoring_state():
     assert next_run.public.jokers[0].mult == 4
 
 
-def test_balatro_env_r1_juggler_acquisition_updates_hand_size_once():
+@pytest.mark.parametrize(
+    ("joker_type", "expected_hand_size"),
+    (
+        (JugglerJoker, 9),
+        (StuntmanJoker, 6),
+    ),
+)
+def test_balatro_env_r1_hand_size_joker_acquisition_updates_capacity_once(
+    joker_type,
+    expected_hand_size,
+):
     state = _shop_state()
-    state.shop_jokers = [_modeled_joker(JugglerJoker)]
+    state.shop_jokers = [_modeled_joker(joker_type)]
     state.hand_size = 8
     run = HeadlessRunState(public=state, seed=11)
 
@@ -142,9 +160,9 @@ def test_balatro_env_r1_juggler_acquisition_updates_hand_size_once():
 
     assert run.public.hand_size == 8
     assert run.public.jokers == []
-    assert next_run.public.hand_size == 9
+    assert next_run.public.hand_size == expected_hand_size
     assert len(next_run.public.jokers) == 1
-    assert type(next_run.public.jokers[0]) is JugglerJoker
+    assert type(next_run.public.jokers[0]) is joker_type
 
 
 def test_balatro_env_r1_joker_editions_remain_fail_closed():
