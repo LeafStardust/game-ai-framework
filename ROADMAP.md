@@ -253,7 +253,7 @@ Notable retained semantic corrections include:
 
 ---
 
-# Phase L — Live correctness stabilization before RL environment freeze — ACTIVE, BOUNDED
+# Phase L — Live correctness stabilization before RL environment freeze — COMPLETE
 
 Phase L is no longer a path toward manual Bond calibration. Its only remaining purpose is to ensure that the canonical live state/action/mechanics surfaces we are about to use as simulator truth are not carrying known correctness or severe runtime defects.
 
@@ -291,7 +291,16 @@ Confirmed repairs from this batch:
 - D14 deterministic-policy timing blind spot — fixed and deterministically validated;
 - The Sun optional proof starving D1 before root-node admission — fixed and deterministically validated.
 
-## L3 — RL environment freeze gate — NEXT / FINAL L GATE
+## L3 — RL environment freeze gate — COMPLETE
+
+Completion evidence (September 3, 2026):
+
+- versioned environment contract frozen as `BALATRO_ENV_CONTRACT_VERSION = "l3-v1"`;
+- training-exposed actions are fail-closed to entries with canonical legality and execution owners;
+- unsupported boss reroll is explicitly `UNAVAILABLE`;
+- translator phase-boundary regression covers stale-round reset and active-round preservation;
+- focused L3 CI run `33758680261` passed: `1223 passed, 1594 deselected`;
+- 7 preceding Linux-only failures were classified as environment-only `APPDATA` construction failures and corrected without skipping tests.
 
 Do **not** begin another open-ended symbolic tuning campaign.
 
@@ -320,7 +329,7 @@ Once L3 is green, stop manual Bond-strategy tuning and move directly to Phase R.
 
 ---
 
-# Phase R — Headless Balatro environment — NEXT MAJOR DEVELOPMENT
+# Phase R — Headless Balatro environment — ACTIVE / NEXT MAJOR DEVELOPMENT
 
 **Purpose:** create a fast, deterministic training environment that reproduces the canonical modeled Red Deck / White Stake game surface without requiring the live Windows/Balatro UI.
 
@@ -1422,8 +1431,8 @@ D14 deterministic attribution repair              GREEN (DETERMINISTIC)
 The Sun D1 budget repair                          GREEN (DETERMINISTIC)
 Manual Bond numerical tuning                      RETIRED AS PRIMARY PATH
 RL pivot                                           APPROVED / ROADMAP ACTIVE
-L3 environment-freeze correctness gate            NEXT
-Headless training environment                     NOT STARTED
+L3 environment-freeze correctness gate            COMPLETE
+Headless training environment                     ACTIVE — R0 NEXT
 Observation/action encoding                       NOT STARTED
 Random/symbolic headless baselines                 NOT STARTED
 PPO strategic learner                             NOT STARTED
@@ -1441,7 +1450,7 @@ Post-RL symbolic cleanup                          NOT STARTED
 
 # Exact next development action
 
-**Do not request another Balatro live batch yet. Do not begin manual Bond tuning. Begin the RL migration by freezing and testing the environment contract, then implement the headless environment.**
+**L3 is complete. Do not request another Balatro live batch yet and do not resume manual Bond tuning. Begin Phase R by implementing the headless environment on top of the frozen `l3-v1` contract.**
 
 Order:
 
@@ -1487,7 +1496,7 @@ The next code written should therefore be **environment-contract/headless-simula
 mechanical/state/action foundation                 ✓
 Bond symbolic baseline                             ✓
 legacy strategic-controller cleanup                ✓
-live correctness stabilization                     ACTIVE, BOUNDED
+live correctness stabilization                     COMPLETE
         ↓
 HEADLESS ENVIRONMENT                               ← NEXT MAJOR BUILD
         ↓
